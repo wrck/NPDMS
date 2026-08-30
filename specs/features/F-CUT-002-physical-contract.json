@@ -7,9 +7,16 @@
     "reviewedBaseline": "cad8088a"
   },
   "technicalPlanGate": {
-    "status": "PASS",
-    "reviewedCommit": "14440e45",
+    "status": "REVIEW_REQUIRED",
+    "lastValidVerdict": "NO_GO_PROJECT_CUTOVER_CONTEXT_PUBLIC_OWNER_CONTRACT_MISSING",
+    "invalidProjectionCommit": "1875bb89",
     "asset": "docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md"
+  },
+  "projectCutoverContextFactContractGate": {
+    "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+    "asset": "specs/features/F-CUT-002-project-context-fact-contract.json",
+    "providerImplementation": "NOT_STARTED",
+    "nextGate": "F_CUT_002_TECHNICAL_PLAN_REREVIEW"
   },
   "migrationContractGate": {
     "status": "PASS",
@@ -33,6 +40,7 @@
   "hardDependencies": [
     "IMP:ImplementationReadinessApi",
     "PROJ:ProjectScopeApi.ACTION_EDIT",
+    "PROJ:ProjectCutoverContextFactApi",
     "AST:DeviceScopeFactApi",
     "CUS:CustomerServiceLevelFactApi",
     "PLT:PlatformMigrationEvidenceApi"
@@ -251,7 +259,7 @@
       },
       "contextSnapshotContract": {
         "exactKeys": ["project", "devices", "implementationReadiness", "customerServiceLevel"],
-        "project": "projectId + projectScopeVersion + normalized project/office display snapshot",
+        "project": "projectId + projectVersion from ProjectCutoverContextFactApi + independent projectScopeVersion + normalized project/department occurrence snapshot mapped to office display",
         "devices": "non-empty stable deviceId/projectAssignmentVersion vector sorted by deviceId",
         "implementationReadiness": "DRAFT may carry structured READY or NOT_READY snapshotId/snapshotVersion/source watermark/unmetCodes consumed from ImplementationReadinessApi; SUBMITTED and INVALIDATED require READY with empty unmetCodes",
         "customerServiceLevel": "AVAILABLE carries serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval; NOT_CONFIGURED carries customer identity and factVersion with revision/code/effective interval null; both are consumed from CustomerServiceLevelFactApi and no user-entered substitute is allowed"

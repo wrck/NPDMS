@@ -56,10 +56,12 @@
     },
     "deviceScopeWatermark": "NON_EMPTY_ARRAY_OF_deviceWatermarkEntry_SORTED_BY_deviceId_ASC_UNIQUE_deviceId_AND_serialComparisonKey",
     "projectContext": {
-      "exactKeys": ["projectId", "projectCode", "projectName", "officeCode", "officeName", "projectScopeVersion"],
+      "exactKeys": ["projectId", "projectVersion", "projectCode", "projectName", "officeDepartmentId", "officeCode", "officeName", "projectScopeVersion"],
       "projectId": "POSITIVE_LONG",
+      "projectVersion": "NON_NEGATIVE_INTEGER_FROM_ProjectCutoverContextFactApi",
       "projectCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
       "projectName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+      "officeDepartmentId": "POSITIVE_LONG_MAPPED_FROM_ProjectCutoverContextFact.departmentId",
       "officeCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
       "officeName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
       "projectScopeVersion": "NON_NEGATIVE_LONG"
@@ -276,7 +278,7 @@
       "path": "",
       "permission": "CREATE",
       "headers": ["Idempotency-Key"],
-      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
+      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectVersion", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
       "request": {
         "projectId": "POSITIVE_LONG",
         "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
@@ -285,6 +287,7 @@
         "cutoverType": "ENABLED_F_CUT_001_CUTOVER_TYPE_CODE",
         "networkMode": "ENABLED_F_CUT_001_NETWORK_MODE_CODE_OR_JSON_NULL",
         "scheduledTime": "wireContract.dateTime",
+        "expectedProjectVersion": "NON_NEGATIVE_INTEGER_FROM_PREVIOUS_ProjectCutoverContextFactApi_FOUND",
         "expectedProjectScopeVersion": "NON_NEGATIVE_LONG",
         "expectedDeviceScopeWatermark": "commonTypes.deviceScopeWatermark",
         "expectedReadinessSnapshotId": "POSITIVE_LONG",
@@ -296,7 +299,7 @@
         "expectedCustomerServiceLevelEffectiveFrom": "wireContract.dateTime_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
         "expectedCustomerServiceLevelEffectiveTo": "wireContract.dateTime_OR_JSON_NULL; must be JSON null for NOT_CONFIGURED"
       },
-      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer identity is supplied only by trusted project context; AVAILABLE carries the exact previously displayed revision/code/factVersion/effective interval and NOT_CONFIGURED carries null revision/code/interval plus factVersion", "CustomerServiceLevelFactApi.lockAndRevalidate matches that complete expected fact", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
+      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "ProjectCutoverContextFactApi.lockAndRevalidate matches projectId and expectedProjectVersion and supplies the exact project/department/customer occurrence fact", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer identity is supplied only by trusted project context; AVAILABLE carries the exact previously displayed revision/code/factVersion/effective interval and NOT_CONFIGURED carries null revision/code/interval plus factVersion", "CustomerServiceLevelFactApi.lockAndRevalidate matches that complete expected fact", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
       "write": "one NEW_PLATFORM/SELF_CREATED cut_task + stable device scope rows + one P1_ACCEPTED history row + platform success facts atomically; server generates taskNo and P2/GRADE_CONFIRMING state",
       "idempotencyScope": "CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}",
       "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",
@@ -321,7 +324,7 @@
         "manualGrade": "A|B|C|D_OR_JSON_NULL"
       },
       "guards": ["allowedActions contains SAVE_ASSESSMENT", "task If-Match", "current assessment row version or first-draft sentinel 0"],
-      "write": "create revision 1 DRAFT with server-owned questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1, or update only current DRAFT answer/manual-grade fields under optimistic version; read-only inspect and refresh the DRAFT project/device/readiness/customer context, including transition from NOT_CONFIGURED to AVAILABLE, before persisting; do not advance task stage/status",
+      "write": "create revision 1 DRAFT with server-owned questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1, or update only current DRAFT answer/manual-grade fields under optimistic version; read-only inspect and refresh the DRAFT project/projectVersion/department/device/readiness/customer context, including transition from NOT_CONFIGURED to AVAILABLE, before persisting; do not advance task stage/status",
       "success": "wireContract.successEnvelope<data=responseTypes.AssessmentCommandData>",
       "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "VERSION_CONFLICT", "OWNER_PROVIDER_UNAVAILABLE"]
     },
@@ -331,7 +334,7 @@
       "permission": "SUBMIT_ASSESSMENT",
       "headers": ["Idempotency-Key", "If-Match", "Assessment-If-Match"],
       "requestExactKeys": [],
-      "guards": ["allowedActions contains SUBMIT_ASSESSMENT", "task and assessment versions match", "current DRAFT contains all four answer values and manual grade", "ProjectScopeApi, DeviceScopeFactApi, CustomerServiceLevelFactApi and ImplementationReadinessApi lock-and-revalidate match every stored version and identity"],
+      "guards": ["allowedActions contains SUBMIT_ASSESSMENT", "task and assessment versions match", "current DRAFT contains all four answer values and manual grade", "ProjectScopeApi, ProjectCutoverContextFactApi, DeviceScopeFactApi, CustomerServiceLevelFactApi and ImplementationReadinessApi lock-and-revalidate match every stored version and identity"],
       "write": "mark current assessment SUBMITTED with immutable answer/context/grade; set task manual grade/currentAssessmentId; A/B/C atomically enter P3/SURVEYING, D atomically enters P4/PLAN_DRAFTING; append one P2_ASSESSMENT_SUBMITTED history row and platform success facts",
       "idempotencyScope": "CUTOVER_ASSESSMENT_SUBMIT:{tenantId}:{id}:{actorId}:{Idempotency-Key}",
       "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",
@@ -382,6 +385,15 @@
     "errors": ["INVALID_REQUEST", "SOURCE_IDENTITY_CONFLICT", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
   },
   "providerContracts": {
+    "ProjectCutoverContextFactApi": {
+      "owner": "PROJ",
+      "gate": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+      "operations": ["inspect", "lockAndRevalidate"],
+      "machineContract": "specs/features/F-CUT-002-project-context-fact-contract.json",
+      "requiredInput": "trusted tenant + projectId; revalidation additionally carries expectedProjectVersion from the displayed FOUND fact",
+      "requiredOutput": "FOUND|NOT_FOUND|INACTIVE|VERSION_CONFLICT + exact project/customer/department occurrence fact where required",
+      "consumerRule": "CUT maps department to the office display, independently revalidates ProjectScopeApi.treeVersion and uses customerId for CustomerServiceLevelFactApi; no table read, Summary composition or version substitution"
+    },
     "ImplementationReadinessApi": {
       "owner": "IMP",
       "gate": "PASS_38FC0D9D",
@@ -420,7 +432,7 @@
     },
     "errorData": "{category,reasonCode,recoveryAction,ownerContext,currentTaskVersion,currentAssessmentVersion,currentOwnerVersion}; fields unavailable for a category are JSON null",
     "ownerContexts": ["PROJ", "AST", "CUS", "IMP"],
-    "reasonCodes": ["INVALID_REQUEST", "FUNCTION_PERMISSION_DENIED", "PROJECT_SCOPE_DENIED", "CUTOVER_TASK_NOT_VISIBLE", "CUTOVER_STATE_CONFLICT", "TASK_VERSION_STALE", "ASSESSMENT_VERSION_STALE", "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "CUSTOMER_SERVICE_LEVEL_STALE", "IMPLEMENTATION_READINESS_STALE", "IDEMPOTENCY_KEY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "IMPLEMENTATION_NOT_READY", "CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED", "BUSINESS_CONTEXT_INVALID", "PROJ_PROVIDER_UNAVAILABLE", "AST_PROVIDER_UNAVAILABLE", "CUS_PROVIDER_UNAVAILABLE", "IMP_PROVIDER_UNAVAILABLE"]
+    "reasonCodes": ["INVALID_REQUEST", "FUNCTION_PERMISSION_DENIED", "PROJECT_SCOPE_DENIED", "CUTOVER_TASK_NOT_VISIBLE", "CUTOVER_STATE_CONFLICT", "TASK_VERSION_STALE", "ASSESSMENT_VERSION_STALE", "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "PROJECT_SCOPE_STALE", "PROJECT_CONTEXT_STALE", "DEVICE_SCOPE_STALE", "CUSTOMER_SERVICE_LEVEL_STALE", "IMPLEMENTATION_READINESS_STALE", "IDEMPOTENCY_KEY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "IMPLEMENTATION_NOT_READY", "CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED", "BUSINESS_CONTEXT_INVALID", "PROJ_PROVIDER_UNAVAILABLE", "AST_PROVIDER_UNAVAILABLE", "CUS_PROVIDER_UNAVAILABLE", "IMP_PROVIDER_UNAVAILABLE"]
   },
   "idempotency": {
     "provider": "PlatformCommandExecutionApi",

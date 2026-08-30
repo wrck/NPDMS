@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "consumerFeatureId": "F-CUT-002",
+  "supportingRequirement": "CUT-01@V1",
+  "requirementCoverage": "NONE_SUPPORTING_CONTRACT_ONLY",
+  "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+  "owner": "PROJ",
+  "consumer": "CUT",
+  "api": "ProjectCutoverContextFactApi",
+  "javaPackage": "cn.iocoder.yudao.module.pms.project.api.cutovercontext",
+  "module": {
+    "contract": "pms-module-project-api",
+    "provider": "pms-module-project"
+  },
+  "operations": {
+    "inspect": {
+      "input": "ProjectCutoverContextFactQuery(tenantId, projectId)",
+      "output": "ProjectCutoverContextFactResult(decision,currentFact)",
+      "transaction": "READ_ONLY_NO_BUSINESS_WRITE",
+      "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE"]
+    },
+    "lockAndRevalidate": {
+      "input": "ProjectCutoverContextFactRevalidationQuery(tenantId, projectId, expectedProjectVersion)",
+      "output": "ProjectCutoverContextFactResult(decision,currentFact)",
+      "transaction": "MANDATORY_JOIN_CUT_WRITE_TRANSACTION_AND_LOCK_PROJ_PROJECT_ROW",
+      "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE", "VERSION_CONFLICT"]
+    }
+  },
+  "trustedTenant": "query.tenantId must equal TenantContextHolder.getRequiredTenantId before Owner access; no tenant switching",
+  "fact": {
+    "exactFields": [
+      "tenantId",
+      "projectId",
+      "projectVersion",
+      "projectCode",
+      "projectName",
+      "customerId",
+      "customerCode",
+      "customerName",
+      "departmentId",
+      "departmentCode",
+      "departmentName"
+    ],
+    "source": "one tenant-scoped ProjectMasterDO row from proj_project",
+    "required": "positive tenantId/projectId/customerId/departmentId; non-negative projectVersion; normalized nonblank projectCode/projectName/customerCode/customerName/departmentCode/departmentName",
+    "customerSemantics": "customerCode/customerName are the project occurrence snapshot and share projectVersion; they are not CUS current-master or service-level truth",
+    "departmentSemantics": "departmentId/departmentCode/departmentName are the project occurrence snapshot from the same row and are displayed by CUT as the office context; the public DTO does not introduce officeCode aliases and CUT does not resolve SYSTEM current organization for this snapshot"
+  },
+  "resultUnion": {
+    "FOUND": "currentFact is complete and decision is FOUND",
+    "VERSION_CONFLICT": "lockAndRevalidate only; currentFact is the complete current fact",
+    "NOT_FOUND": "currentFact is null",
+    "INACTIVE": "currentFact is null"
+  },
+  "revalidation": {
+    "match": "same tenantId/projectId, ACTIVE lifecycle, complete fact and row.version equals expectedProjectVersion returns FOUND",
+    "versionMismatch": "return VERSION_CONFLICT with current complete non-sensitive fact; no business write",
+    "notFound": "return NOT_FOUND",
+    "inactive": "return INACTIVE for lifecycle other than ACTIVE",
+    "ownerCorruption": "throw OWNER_DATA_CORRUPTED; never return a partial FOUND"
+  },
+  "stableFailures": [
+    "INVALID_REQUEST",
+    "TENANT_CONTEXT_MISMATCH",
+    "OWNER_DATA_CORRUPTED",
+    "PROVIDER_UNAVAILABLE"
+  ],
+  "consumerMapping": {
+    "scope": "CUT separately uses ProjectScopeApi PROJECT_VIEW/PROJECT_EDIT and treeVersion; projectVersion never substitutes for scopeVersion",
+    "resolveCreateContext": "FOUND supplies project and department occurrence facts plus trusted customerId/code/name; CUT maps department to the office display and then calls CustomerServiceLevelFactApi by customerId",
+    "createAndSubmit": "CUT passes the previously displayed projectVersion to lockAndRevalidate and freezes the returned exact fact",
+    "NOT_FOUND_OR_INACTIVE": "BUSINESS_GATE_INVALID/BUSINESS_CONTEXT_INVALID/HTTP_422",
+    "VERSION_CONFLICT": "SCOPE_STALE/PROJECT_CONTEXT_STALE/HTTP_409",
+    "PROVIDER_UNAVAILABLE": "OWNER_PROVIDER_UNAVAILABLE/PROJ_PROVIDER_UNAVAILABLE/HTTP_503"
+  },
+  "forbidden": [
+    "CUT reads proj_project or SYSTEM/CUS tables",
+    "CUT combines ProjectScopeResult, ProjectOrganizationFact and CustomerSummaryDTO into an unversioned fact",
+    "client supplies customer or office identity",
+    "projectVersion replaces ProjectScopeApi.treeVersion",
+    "project customer snapshot is presented as current CUS master truth"
+  ],
+  "providerImplementation": "NOT_STARTED_BY_THIS_CONTRACT",
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_REVIEW_REQUIRED"
+}

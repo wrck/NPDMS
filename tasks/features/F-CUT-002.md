@@ -1,9 +1,9 @@
 # F-CUT-002 割接任务接入与人工分级
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN`
+> 总体工程阶段：`TECHNICAL_PLAN_REVIEW`
 > Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
-> Technical Plan Gate：`PASS / GO`（锁定提交`14440e45`）
+> Technical Plan Gate：`REVIEW_REQUIRED`（最新有效裁决为NO-GO）
 > Implementation Done Gate：`NOT_STARTED`
 > `pms_cut_task -> cut_task` Migration Contract Gate：`PASS`（`36d1b37f`）
 > API/Physical Machine Contract Gate：`PASS / b7f49166`
@@ -17,7 +17,7 @@
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- `NPDMS-FCUT002-TECHPLAN-20260831-01`已在锁定提交`14440e45`独立最小整改复审`PASS / GO`。当前最近工程单元为Task 1“后端、数据与正向业务链”；Task 1完整正向实现后再执行正向验证，不新增中间独立Gate。
+- `14440e45`只取得A—D局部整改GO，没有关闭生产项目上下文公共Owner合同；`1875bb89`整体PASS回写无完整授权。当前只送审`ProjectCutoverContextFactApi`合同，合同GO后返回同一Technical Plan复审。
 
 ## 已完成
 
@@ -40,3 +40,5 @@
 
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - 真实MySQL和浏览器正向验收必须使用IMP生产Provider和AST权威设备事实；替身、手工SQL、附件或测试种子不得替代。
+
+> 检查点：基线=`1875bb89`；Gate=Technical Plan REVIEW_REQUIRED；已通过=Feature Ready及IMP/CUS合同；阻塞=ProjectCutoverContext合同未审；下一步=合同独立GO后复审同一计划，未放行前停止实现。

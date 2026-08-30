@@ -1,7 +1,7 @@
 # F-CUT-002 割接任务接入与人工分级 Implementation Plan
 
 > 计划 ID：`NPDMS-FCUT002-TECHPLAN-20260831-01`
-> Technical Plan Gate：`PASS / GO`（独立最小整改复审；锁定提交`14440e45`）
+> Technical Plan Gate：`REVIEW_REQUIRED`（最新有效裁决为NO-GO；`1875bb89`整体PASS回写无完整授权）
 > Feature Ready：`PASS / cad8088a`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > Physical Contract：`specs/features/F-CUT-002-physical-contract.json`
@@ -9,7 +9,7 @@
 
 **Goal：** 一次交付“一线工程师按设备 SN 解析有权项目与权威上下文 → 自建唯一割接任务进入 P2 → 暂存并人工提交四项评估 → A/B/C 进入 P3、D 进入 P4”的最小完整业务闭环。
 
-**Architecture：** CUT 新建 `cut_task` 聚合及 `cut_assessment` 版本事实，保留旧 `pms_cut_*` 实现不变。CUT 只通过 PROJ、AST、CUS、IMP、PLT 已批准公共 API 取得和锁定重验 Owner 事实；写命令由 `PlatformCommandExecutionApi` 与 CUT 事务同成同败。生产 Provider 未到位前只允许测试装配中的确定性正向替身，不注册生产 Fake，不以替身声明真实浏览器或 Implementation Done。
+**Architecture：** CUT新建`cut_task`聚合及`cut_assessment`版本事实，保留旧`pms_cut_*`实现不变。CUT通过PROJ `ProjectScopeApi`取得用户范围，通过新增`ProjectCutoverContextFactApi`取得同一ProjectMaster版本下的项目/客户/部门发生时快照，再通过AST、CUS、IMP、PLT公共API取得其他Owner事实；写命令由`PlatformCommandExecutionApi`与CUT事务同成同败。生产Provider未到位前不注册Fake、不声明真实浏览器或Implementation Done。
 
 **执行原则：** 先完成当前 Task 的全部正向能力，再执行实现完成后的单元测试和正向流程闭环；本计划不安排负向测试、不提前测试未实现能力，也不扩建与正向闭环无关的检验。本 Feature 只形成一个 Implementation Done 候选，中途不拆子 Gate、不反复提交审核。
 
@@ -44,17 +44,18 @@
 
 写命令先以不加写锁的公开inspect和CUT只读投影取得稳定身份键：受信tenant/actor、明确projectId、规范化SN、稳定deviceId升序、taskId及currentAssessmentId；该步骤只构造已冻结期望，不产生业务写。随后所有自建、评估提交、内部接入和未来CUT继续命令统一执行以下锁序：
 
-1. `ProjectScopeApi.lockAndRevalidate` 锁定明确项目及期望 `projectScopeVersion`；
-2. `DeviceScopeFactApi.lockAndRevalidate` 按稳定 deviceId 顺序锁定精确设备/归属版本；
-3. `CustomerServiceLevelFactApi.lockAndRevalidate` 重验完整 `AVAILABLE|NOT_CONFIGURED` 联合事实；
-4. `ImplementationReadinessApi.lockAndRevalidate` 重验精确 snapshotId/version 与设备水位；
-5. CUT先按deviceId升序锁活动设备关系，再锁taskId任务根，最后锁currentAssessmentId当前评估；创建时锁同项目/设备的现有活动关系后插入新根，提交时从不可变设备范围只读投影取得deviceId后按同序加锁。
+1. `ProjectScopeApi.lockAndRevalidate`锁定明确项目及期望`projectScopeVersion`；
+2. `ProjectCutoverContextFactApi.lockAndRevalidate`锁定同一项目主档行及期望`projectVersion`；
+3. `DeviceScopeFactApi.lockAndRevalidate`按稳定deviceId顺序锁定精确设备/归属版本；
+4. `CustomerServiceLevelFactApi.lockAndRevalidate`重验完整`AVAILABLE|NOT_CONFIGURED`联合事实；
+5. `ImplementationReadinessApi.lockAndRevalidate`重验精确snapshotId/version与设备水位；
+6. CUT先按deviceId升序锁活动设备关系，再锁taskId任务根，最后锁currentAssessmentId当前评估；创建时锁同项目/设备的现有活动关系后插入新根，提交时从不可变设备范围只读投影取得deviceId后按同序加锁。
 
 全部Owner和CUT锁取得后，命令再次比较tenant、project、device集合、task/assessment身份及期望版本，只有完整一致才写入。任何服务不得把task/assessment锁提前到Owner锁或device锁之前，也不得在不同入口改变上述顺序。
 
 自建只接受 READY；客户等级 `NOT_CONFIGURED` 可创建和保存草稿，但不能提交。任一 Provider 未知、异常、身份或版本不一致时，CUT 四表及平台成功事实均零写入。
 
-现有 `ProjectScopeApi`只提供范围和树版本，不提供锁定 REST 所需的 `projectCode/projectName/office/customerId` 完整上下文；计划不得从 PROJ/SYSTEM 表或零散 Summary 拼接。Task 1 只建立 `CutoverProjectContextPort`及测试装配，Task 2 在 `F-PROJ-003` 提供并通过其正式公共 Fact 后实现生产 Adapter、注册完整应用服务与 Controller。该依赖未到位时保持 `BLOCKED_BY_DEPENDENCY`，不是新增规格问题。
+`ProjectScopeApi`只提供用户范围和树版本。PROJ另以`ProjectCutoverContextFactApi.inspect(tenantId,projectId)`返回同一项目主档版本下的项目编码/名称、发生时客户和`departmentId/departmentCode/departmentName`；CUT只在展示层将部门标注为办事处。写命令携带此前Fact的`expectedProjectVersion`，并在ProjectScope锁后调用`lockAndRevalidate(tenantId,projectId,expectedProjectVersion)`以`MANDATORY`锁定同一项目行；`projectVersion`与`treeVersion`独立。精确DTO、结果联合和失败见机器合同，CUT不得从PROJ/SYSTEM/CUS表或Summary拼接。
 
 ### 3.2 状态、评估与事务
 
@@ -83,7 +84,7 @@
 
 **Produces：** 可编译、可由受控测试装配执行的完整 CUT 自建与 P2 提交内核；生产代码不含 Fake，未具备的 ProjectContext Provider 不以跨表读取替代。
 
-- [ ] 建立 `pms-module-cutover-api` 和 `CutoverTaskIntakeApi` DTO/Provider，补 CUT 对 platform/project/asset/customer/engineering 公共 API 的单向依赖。
+- [ ] 在`ProjectCutoverContextFactApi`公共合同独立GO后，由PROJ在既有API模块/业务模块实现唯一Provider；建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，补CUT对platform/project/asset/customer/engineering公共API的单向依赖。
 - [ ] 落四张新表的 DO、场景化 Query、Mapper/XML、状态规则和聚合应用服务；使用数据库唯一键与 CAS 保证来源、活动设备、当前评估和版本唯一。
 - [ ] 实现 resolve-create-context、list、create、detail、save-assessment、submit-assessment 的应用服务与严格 Wire/Header/错误模型；Controller 只在 Task 2 生产 Owner 接通后注册。
 - [ ] 实现同一自建编排供 SELF_CREATED 与内部 ITR/PROJECT_EVENT Provider 复用；内部来源只接受受信 engineer/source identity，不增加 Producer。
@@ -97,7 +98,7 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 
 **Produces：** 生产 Owner 接通后，用户可从新页面完成自建和人工分级；形成一个 F-CUT-002 Implementation Done 候选。
 
-- [ ] 核验 IMP/AST/CUS Provider 及 F-PROJ-003 完整项目上下文 Fact 已合入；实现只调用正式 API 的生产 Adapter，注册唯一应用服务和 Controller。缺任一依赖即停止真实运行，不加 fallback/Fake。
+- [ ] 核验IMP/AST/CUS Provider及`ProjectCutoverContextFactApi`真实PROJ Provider已合入；实现只调用正式API的生产Adapter，注册唯一应用服务和Controller。缺任一依赖即停止真实运行，不加fallback/Fake。
 - [ ] 新建 `cutover-task` API client 和独立页面；首页展示来源、办事处、生成时间、状态与人工等级，不修改旧 `cut-task`。
 - [ ] 创建向导按 SN 调用 context 解析，显式选择候选项目，展示设备、客户等级和 IMP READY 上下文后提交；客户端不生成 Owner、状态、等级或快照。
 - [ ] 详情固定展示 P2～P6；P2 只按服务端 `allowedActions` 提供四项问卷、草稿和人工 A/B/C/D，不显示系统建议；P3/P4只显示已进入状态，P5/P6不伪造完成。
@@ -127,4 +128,4 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 
 ## 8. Technical Plan Gate
 
-当前结论：`PASS / GO`（独立最小整改复审；锁定提交`14440e45`）。允许按Task 1→Task 2串行执行；本计划GO不等于产品代码、Flyway、Task、Implementation Done、SIT、UAT、Deployment或Release完成。
+当前结论：`REVIEW_REQUIRED`。最新有效独立裁决认定生产项目/部门（办事处）/客户发生时上下文公共Owner合同缺失；`14440e45`只关闭其他局部整改，`1875bb89`的整体PASS回写无完整授权。先完成`ProjectCutoverContextFactApi`合同独立复审，再返回同一计划Gate；当前不授权Implementation。

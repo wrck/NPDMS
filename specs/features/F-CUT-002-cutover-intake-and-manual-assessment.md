@@ -12,7 +12,7 @@
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 > 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；API/Physical Machine Contract Gate `PASS@b7f49166`）
 > REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`BASELINE_READY@b7f49166`）
-> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`（`PASS / GO@14440e45`）
+> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`（`REVIEW_REQUIRED`；`1875bb89`的整体PASS回写无完整授权）
 
 ## 1. 业务目标
 
@@ -104,7 +104,7 @@ SURVEYING/PLAN_DRAFTING --later CUT continuation proves submitted context stale-
 
 内部`CutoverTaskIntakeApi.create`使用`ITR/PROJECT_EVENT`严格判别联合，只接受受信租户、来源身份和明确`handlingEngineerUserId`；该用户必须在写前通过同一项目/设备操作范围验证，不建立自动匹配、指派或领取流程。ITR按`tenant+sourceSystem+sourceBusinessNo`、项目事件按`tenant+businessEventId`幂等，并执行与自建相同的PROJ/AST/CUS/IMP重验。本Feature不实现任何Producer或第三方客户端。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。IMP合同与CUS合同均已通过公共机器Contract Gate；两者只预留公开接口，不在CUT实现Provider。禁止依赖其他Context的Service、Mapper、DO或业务表。
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围；通过`ProjectCutoverContextFactApi.inspect/lockAndRevalidate`消费同一项目主档版本下的项目、发生时客户及部门（办事处）快照；通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`；通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。项目上下文精确合同见`specs/features/F-CUT-002-project-context-fact-contract.json`；它不替代ProjectScope treeVersion或CUS当前时间线。CUT禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 
@@ -142,4 +142,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`READY / GO`（独立复审锁定基线`cad8088a`）。
 
-`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过，`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`通过，`CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`通过，Feature Ready已在锁定基线`cad8088a`独立复审通过。最近Gate为唯一`F-CUT-002 Technical Plan`独立复审；可在计划中安排受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+`F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效。最近未满足Gate仍为唯一Technical Plan：当前只补充`ProjectCutoverContextFactApi`公共Owner合同并独立送审；合同GO后返回同一Technical Plan复审，之前不得进入Implementation。受控模拟不进生产装配，也不产生真实Owner或浏览器证据。
