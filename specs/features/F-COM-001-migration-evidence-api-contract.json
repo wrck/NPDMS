@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-COM-001",
   "supportTaskId": "T-FCOM001-PLT-01",
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "requirementCoverage": ["COM-01@V1=FULL"],
   "ownerContext": "PLT",
   "consumerContext": "COM",
