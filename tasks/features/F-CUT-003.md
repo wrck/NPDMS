@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`7e470968`；当前=Task 1 IN_PROGRESS。新任务按创建时点冻结唯一PUBLISHED配置，Generate/Save/Custom/Manual/Submit已形成P3→P4命令内核；聚焦6/6与受影响构建通过。下一步接查询视图、PLT文件策略和用户REST，不扩负向矩阵。
+> 检查点：基线=`7e470968`；当前=Task 1 IN_PROGRESS。新任务按创建时点冻结唯一PUBLISHED配置，Generate/Save/Custom/Manual/Submit已形成P3→P4正向命令内核；跨模块仅保留消费端口与`src/test`受控替身，聚焦9/9及受影响构建通过。下一步继续CUT查询视图、Rematch与用户REST。
