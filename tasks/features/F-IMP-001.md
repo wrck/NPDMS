@@ -13,8 +13,8 @@
 
 ## 当前最小工作单元
 
-- `T-FIMP001-AST-01 Public Machine Contract Gate`：候选已形成，状态`REVIEW_REQUIRED`；当前只评审正式SDS细化、机器JSON、AST API/DTO/公共失败和Contract测试，不包含Mapper/Provider。
-- Gate GO后才进入AST物理Owner生产Provider与真实MySQL锁测试；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
+- `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
+- 当前进入AST物理Owner生产Provider与真实MySQL锁测试；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成
@@ -37,8 +37,8 @@
 
 - `T-FIMP001-AST-01`：基于F-AST-001现有`ast_device`和归属版本交付`DeviceScopeFactApi.resolveBySerials/lockAndRevalidate`；不新增表、不迁移数据、不产生独立Feature状态。
 - 审计：`specs/features/F-IMP-001-ast-device-scope-support-audit.md`。
-- 机器契约：`specs/features/F-IMP-001-device-scope-fact-contract.json`（`REVIEW_REQUIRED`）。
-- 当前Contract候选锁定：受信租户一致性、SN trim/case规范化与重复拒绝、状态/项目资格、稳定设备排序、结构化归属版本水位、`VALID/STALE/INVALID`及AST公共失败类型；尚无生产Provider或Bean。
+- 机器契约：`specs/features/F-IMP-001-device-scope-fact-contract.json`（`PASS`）。
+- Contract Gate已锁定：受信租户一致性、SN trim/case规范化与重复拒绝、状态/项目资格、稳定设备排序、结构化归属版本水位、`VALID/STALE/INVALID`、调用方/Owner错误归因及同deviceId的SN身份不变量；生产Provider与Bean仍待下一Gate实现和复审。
 - 合入顺序：AST API/Provider → IMP消费者装配 → CUT真实消费；消费者不得跨模块读取AST表或内部实现。
 
 ## 验证边界

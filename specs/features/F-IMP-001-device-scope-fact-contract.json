@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "supportTaskId": "T-FIMP001-AST-01",
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "requirementSlice": "EQP-01@V1",
   "coverage": "PARTIAL_SUPPORT_ONLY",
   "owner": "AST",
