@@ -488,3 +488,19 @@
 - Blocking scope: 无。
 - Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
 - Decision date: 2026-08-30
+
+## F-IMP-002 Task 5B 待裁决项
+
+### Q-FIMP002-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: EXE-01
+- Area: 到货差异具体豁免的审批主体事实
+- Question: V1执行`resolve-difference`的`EXEMPT`分支时，哪个正式公共事实或已定义项目内角色唯一证明调用人是PRD所述“豁免审批人”？
+- Why it blocks design/implementation: 五项锁定功能权限只提供`pms:arrival-acceptance:resolve-difference`，`ProjectScopeApi.ACTION_EDIT`只证明数据范围；二者都不单独证明调用人具有业务审批资格。客户端提交`approvedBy/approvedAt`又会伪造审批事实。
+- Options: A. V1由本人负责项目的当前`PROJECT_MANAGER`承接豁免审批，同时要求`resolve-difference + ACTION_EDIT`，批准人/时间由服务端写入；B. 引用另一个已锁定的项目内审批主体事实；C. 新增独立审批流程/角色契约并先回写PRD/SDS。
+- Recommended technical default: A。它与当前Feature中“项目经理提交差异处置”及现有`ProjectParticipantFactApi`最小一致，不新增角色、流程或表。
+- Business decision required: 是。PRD对“项目经理”和“豁免审批人”分别表述，实施层不得自行等同。
+- Blocking scope: F-IMP-002 Task 5B `EXEMPT` resolve分支、完整Task 5B Code Review与后续Task 8；不重开已通过的Feature Ready/Technical Plan或已完成5A/6/7候选。
+- Decision owner: 需求方；IMP、PROJ和权限Owner参与影响分析
+- Decision date: 待裁决

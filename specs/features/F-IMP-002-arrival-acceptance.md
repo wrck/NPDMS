@@ -9,6 +9,7 @@
 > 外部输入依赖：COM `DeliveryScopeApi`、AST `T-FIMP001-AST-01`、PROJ `ProjectParticipantFactApi`/`ProjectScopeApi`、PLT `FileArtifactApi`
 > 事件方向：IMP出向`ImplementationEvidencePublished`；ACC入向`ArtifactAccepted/Archived`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`（`PASS / GO`；锁定提交`e0184ac4`）
+> REST/API机器契约：`specs/features/F-IMP-002-rest-api-contract.json`（`REVIEW_REQUIRED`；Task 5B/Task 8实施前补全候选）
 
 ## 1. 业务目标与范围
 
@@ -67,6 +68,34 @@
 
 ## 5. API与公开事实契约
 
+### 5.1 HTTP边界与服务端字段
+
+- 对外路径固定为`/api/v1/pms/arrival-acceptances`；旧`/pms/eng-arrival`保持不变，不作新聚合的兼容或降级入口。
+- `tenantId`、`actorUserId`、`status`、`allowedActions`、`approvedBy/approvedAt`、`projectFactVersion`、`factImpactType`、当前版本和各Owner水位均由服务端解析或分配，HTTP请求不得接收并信任这些字段。
+- `PATCH`只能修改本人`DRAFT`的物流单号、签收时间、签收人快照、当前明细修订和PLT已返回的签收证据修订；不提供通用状态PATCH、删除或原始URL字段。明细和证据的更改均追加revision，不覆盖旧行。
+- 列表页大小固定为`1..100`，按`arrivedAt DESC, id DESC`稳定排序；可见项目集合由服务端`ProjectScopeApi.ACTION_VIEW`解析，空集合返回空页，不省略权限条件。
+- 详情统一返回批次根、当前明细、当前及历史差异revision、DeliveryEvidence摘要与当前revision、聚合版本和服务端`allowedActions`；不返回文件正文、持久下载URL或Owner DO。
+
+### 5.2 命令、并发与追加历史
+
+- 创建和全部action必须携带`Idempotency-Key`；`PATCH`和全部作用于已有聚合的action必须携带十进制非负聚合版本`If-Match`。同作用域同键同规范化请求重放首次结果；同键异请求永久冲突；首次命令仍处理中返回可重试冲突，不二次执行业务写。
+- `raise-difference`只能在本人`DRAFT`上针对当前明细追加`OPEN`差异首revision；必须锁定聚合版本、明细ID/版本、基础平台启用的差异类型码、严格`scopeSnapshot`、原因、风险和PLT证据事实。范围必须属于该明细且不超出冻结COM/AST范围。
+- `resolve-difference`使用严格判别联合`SUPPLEMENT/KEEP_REJECTED/EXEMPT/CLOSE`，只接收分支所需的精确字段，不接收客户端`resolutionStatus`或包含大量可选字段的通用对象。命令必须锁定当前差异revision/版本并追加新revision；任何已提交历史均不回写。
+- 未确认批次上的差异处置在原批次追加line/difference revision并重算候选状态；针对`CONFIRMED`历史的补签、信息纠正或差异关闭创建关联`predecessorAcceptanceId`的successor `DRAFT`，原批次不回退。
+- 服务端依据已锁定的命令分支、当前已发布项目事实和重算结果判定`factImpactType`；客户端不得提交boolean、类型或`projectFactVersion`。非事实影响revision永久保持`projectFactVersion=NULL`；真正更正、重开或豁免失效来源在同一事务持有PROJ项目锁、分配项目事实版本后追加。
+- successor根必须保存服务端分配的`successorReason=SUPPLEMENT|CORRECTION|DIFFERENCE_CLOSURE|EXEMPTION_INVALIDATION`。`SUPPLEMENT`只表示新到范围的普通补签；`CORRECTION/EXEMPTION_INVALIDATION`为可证明的重开来源；`DIFFERENCE_CLOSURE`是否改变已发布事实由服务端对比前后权威计算结果判定，不仅凭原因码分配版本。
+
+### 5.3 权限、allowedActions与错误
+
+- 五项权限唯一映射：列表/详情使用`query`；创建使用`create`；PATCH与submit使用`edit-own-draft`；confirm使用`confirm`；raise/resolve共用`resolve-difference`。所有写入同时执行服务端ProjectScope和主体/当前项目事实守卫，全局角色或前端按钮不能替代。
+- `allowedActions`封闭为`EDIT_DRAFT/SUBMIT/CONFIRM/RAISE_DIFFERENCE/RESOLVE_DIFFERENCE`，由服务端按功能权限、ProjectScope、当前项目主体事实、批次状态、创建人及未决差异派生。它是界面入口投影，每个命令仍必须在业务写前重验。
+- 对越权或跨租户对象，详情和命令统一返回不可见/不存在，不泄露对象存在性；对已可见项目内主体不满足命令条件则返回授权拒绝。
+- 到货专属错误必须区分参数校验、不可见/不存在、功能权限、数据范围、非法状态、聚合/明细/差异版本冲突、幂等冲突/处理中、COM/AST/PLT不可用、范围陈旧和证据无效。HTTP使用真实`400/403/404/409/422/503`语义，响应体仍使用Yudao `CommonResult{code,msg,data}`；Task 8以仅作用于该Controller的局部异常映射实现，不改写全局平台异常行为。
+
+### 5.4 当前规格阻断
+
+- `EXEMPT`分支的范围、理由、风险、证据、批准人/时间和有效期字段已锁定；但PRD的“豁免审批人”尚无独立正式角色或公共事实契约。`Q-FIMP002-001`解决前，不得仅凭`resolve-difference`权限、`ACTION_EDIT`或客户端批准人字段实施该分支。
+
 用户路径继承`/api/v1/pms`：
 
 | 接口 | 操作 | 契约 |
@@ -78,7 +107,7 @@
 | `/arrival-acceptances/{id}/actions/raise-difference` | `POST` | 追加明确差异，不覆盖明细历史 |
 | `/arrival-acceptances/{id}/actions/resolve-difference` | `POST` | 追加补签、拒收保持或明确豁免处置；要求版本、权限和证据 |
 
-机器契约：`specs/features/F-IMP-002-arrival-fact-contract.json`。
+机器契约：`specs/features/F-IMP-002-rest-api-contract.json`、`specs/features/F-IMP-002-arrival-fact-contract.json`。
 
 `ArrivalAcceptanceFactApi.inspect/lockAndRevalidate`按受信租户、项目、设备/数量范围、期望`factVersion`和`scopeWatermark`读取或按稳定设备/订单行顺序锁定重验，返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序的`sourceAcceptanceIds`、已签/豁免/未满足范围、项目级单调`factVersion`及`reopened`。Owner锁定重验明确返回期望版本不一致时，IMP重新读取当前事实并返回`STALE`；Owner缺失、未知或不可用仍失败关闭，不得伪装为陈旧事实。多批事实不得压缩成一个伪造来源ID；它不返回Owner DO、签收人隐私、文件正文或持久下载地址。
 

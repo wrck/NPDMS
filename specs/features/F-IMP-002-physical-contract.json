@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-IMP-002",
   "status": "BASELINE_READY",
+  "task5BExtensionStatus": "REVIEW_REQUIRED",
   "requirementSlices": ["EXE-01@V1"],
   "coverage": "FULL",
   "owner": "IMP",
@@ -19,6 +20,12 @@
       },
       "nullableUntilSubmit": ["evidence_id", "evidence_revision"],
       "submitRequiredReferences": ["evidence_id", "evidence_revision"],
+      "nullableUnlessSuccessor": ["predecessor_acceptance_id", "successor_reason"],
+      "successorReasonPolicy": {
+        "values": ["SUPPLEMENT", "CORRECTION", "DIFFERENCE_CLOSURE", "EXEMPTION_INVALIDATION"],
+        "source": "SERVER_COMMAND_BRANCH_AND_AUTHORITATIVE_BEFORE_AFTER_FACT_COMPARISON",
+        "guards": ["PREDECESSOR_AND_REASON_BOTH_NULL_OR_BOTH_NON_NULL", "CLIENT_WRITE_FORBIDDEN", "PREDECESSOR_ID_ALONE_DOES_NOT_PROVE_REOPENED"]
+      },
       "nullableUntilConfirm": ["project_fact_version"],
       "confirmRequiredReferences": ["project_fact_version", "evidence_id", "evidence_revision"],
       "uniqueKeys": [["tenant_id", "project_id", "batch_code"], ["tenant_id", "project_id", "project_fact_version"]],
@@ -31,7 +38,7 @@
           "imp_arrival_difference.project_fact_version JOINED_BY_ARRIVAL_ACCEPTANCE FOR_SAME_TENANT_PROJECT"
         ],
         "guards": ["IGNORE_NULL", "UNQUALIFIED_LEGACY_VALUE_FORBIDDEN", "UNIQUE_KEY_IS_LAST_CONFLICT_GUARD", "CONFLICT_ROLLS_BACK_WITHOUT_RENUMBER"],
-        "reopenedDerivation": "MAX_VERSION_FROM_ONE_QUALIFIED_DIFFERENCE_SOURCE_IS_TRUE; MAX_VERSION_FROM_ONE_ORDINARY_ROOT_IS_FALSE; MISSING_DUPLICATED_DAMAGED_OR_UNPROVABLE_SUCCESSOR_SOURCE_FAILS_CLOSED"
+        "reopenedDerivation": "MAX_VERSION_FROM_ONE_QUALIFIED_FACT_AFFECTING_DIFFERENCE_SOURCE_IS_TRUE; MAX_VERSION_FROM_ROOT_WITHOUT_SUCCESSOR_REASON_OR_WITH_SUCCESSOR_REASON_SUPPLEMENT_IS_FALSE; MAX_VERSION_FROM_ROOT_WITH_SUCCESSOR_REASON_CORRECTION_OR_EXEMPTION_INVALIDATION_IS_TRUE; DIFFERENCE_CLOSURE_USES_SERVER_PERSISTED_AUTHORITATIVE_BEFORE_AFTER_FACT_DECISION; MISSING_DUPLICATED_DAMAGED_OR_UNPROVABLE_SOURCE_FAILS_CLOSED"
       },
       "migrationResolutionStatuses": ["NOT_APPLICABLE", "PENDING_RECONCILIATION", "RECONCILED"],
       "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; CORRECTIONS_CREATE_LINKED_SUCCESSOR_DRAFTS"
@@ -48,8 +55,9 @@
       "name": "imp_arrival_difference",
       "purpose": "差异、拒收处置和具体豁免的不可变版本",
       "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "scope_snapshot", "current_marker", "version"],
-      "nullableUnlessFactAffectingSource": ["project_fact_version"],
-      "projectFactVersionPolicy": ["FACT_AFFECTING_SOURCE_REQUIRES_ALLOCATED_VERSION_AT_INSERT", "NON_FACT_AFFECTING_REVISION_MUST_REMAIN_NULL", "NEVER_BACKFILL_IMMUTABLE_REVISION", "RESOLUTION_STATUS_ALONE_DOES_NOT_PROVE_FACT_IMPACT"],
+      "nullableUnlessFactAffectingSource": ["project_fact_version", "fact_impact_type"],
+      "factImpactTypes": ["CORRECTION", "REOPEN", "EXEMPTION_INVALIDATION"],
+      "projectFactVersionPolicy": ["FACT_AFFECTING_SOURCE_REQUIRES_NON_NULL_FACT_IMPACT_TYPE_AND_ALLOCATED_VERSION_AT_INSERT", "NON_FACT_AFFECTING_REVISION_REQUIRES_BOTH_FIELDS_NULL", "NEVER_BACKFILL_IMMUTABLE_REVISION", "CLIENT_FACT_IMPACT_WRITE_FORBIDDEN", "RESOLUTION_STATUS_ALONE_DOES_NOT_PROVE_FACT_IMPACT"],
       "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
       "scopeSnapshotContract": {
         "discriminator": "scopeType",
@@ -161,6 +169,7 @@
     "forbiddenInferences": ["LEGACY_TINYINT_TO_ACCEPTED", "SHIPMENT_TO_ACCEPTED", "RAW_ATTACHMENT_URL_TO_EVIDENCE", "TEST_SEED_TO_PRODUCTION_FACT"]
   },
   "apiPrefix": "/api/v1/pms/arrival-acceptances",
+  "restApiContract": "specs/features/F-IMP-002-rest-api-contract.json",
   "internalApi": "ArrivalAcceptanceFactApi",
   "permissions": ["pms:arrival-acceptance:query", "pms:arrival-acceptance:create", "pms:arrival-acceptance:edit-own-draft", "pms:arrival-acceptance:confirm", "pms:arrival-acceptance:resolve-difference"],
   "featureReadyDecision": "GO_FIMP002_FEATURE_READY_4B5A2AC9"

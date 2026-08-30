@@ -204,6 +204,8 @@ EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletio
 
 F-IMP-002只在`/implementation-evidence`中创建`sourceRequirement=EXE-01/sourceObjectType=ARRIVAL_ACCEPTANCE`的签收单证据revision；IMP发布`ImplementationEvidencePublished`，ACC以`ArtifactAccepted/ArtifactArchived`回显同一`evidenceId/evidenceRevision`。IMP按eventId和证据revision幂等推进同步投影，不能调用ACC归档命令、重复下载文件或把事件发送成功解释为已归档。
 
+F-IMP-002用户REST的精确请求/响应、Header、五权限映射、`allowedActions`、严格差异处置判别联合和到货专属错误映射由`specs/features/F-IMP-002-rest-api-contract.json`锁定。新路径不接受tenant、actor、状态、批准人/时间、事实影响类型或项目事实版本等服务端字段；旧`/pms/eng-arrival`不作兼容或降级入口。`EXEMPT`分支的审批主体事实在`Q-FIMP002-001`关闭前保持`BLOCKED_BY_SPEC`。
+
 ## 8. ACC：验收与项目闭环 API
 
 适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。

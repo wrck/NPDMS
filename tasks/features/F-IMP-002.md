@@ -10,6 +10,7 @@
 > 复用审计：`specs/features/F-IMP-002-legacy-reuse-audit.md`
 > 物理契约：`specs/features/F-IMP-002-physical-contract.json`
 > 事实契约：`specs/features/F-IMP-002-arrival-fact-contract.json`
+> REST/API契约：`specs/features/F-IMP-002-rest-api-contract.json`（`REVIEW_REQUIRED`）
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`
 
 ## 当前最小工作单元
@@ -37,6 +38,9 @@
 - Task 6C的V138定点Gate已通过（`e34930bc`，`PASS / GO`）：首次发布`correlationId`权威持久化、失败关闭迁移可恢复重跑及PAD SPACE尾随空格约束均已闭合。
 - Task 6C运行实现与独立Code Review／聚焦测试Gate已完成（`9561384b`，`PASS / GO`）：首次出向消息同步发布成功后，外层本地事务按当前证据状态登记首个Accepted等待水位并完成平台Outbox；双阶段业务重试以`evidenceId:revision:status:retryCount`排他执行，按1/2/4…60分钟退避，在同一次NEW命令内进入重试态并排队同revision新事件，只递增一次retryCount。MyBatis运行绑定、四态单次NEW事务、冻结身份失败关闭及`correlationId`命令边界已通过独立复审；平台白名单已纳入`ImplementationEvidencePublished`，V139幂等登记`arrivalEvidenceRetryJob`为PAUSED。两个生产Job仍不激活，ACC Producer、真实Spring双向传播、真实浏览器和Feature Implementation Done继续受生产依赖阻断。
 - Task 7消费端候选独立Code Review Gate已通过（`dfcc224c`，`PASS / GO`）：全部已确认累计和有效豁免先按完整COM当前范围校验超量/越界，再投影调用方请求子范围；COM/AST锁定重验的显式期望版本不一致重新读取当前事实并返回`STALE`，缺失、未知或不可用仍失败关闭。`inspect/lockAndRevalidate`按稳定顺序计算范围结果、来源批次、项目事实版本与`reopened`；最大事实版本只在唯一合格差异revision为来源时标记重开，普通确认根为非重开，缺失/重复/损坏或后继根语义不可证明时失败关闭。实现类保持可代理但不注册生产Bean；聚焦测试26项及一次性隔离MySQL 8.4测试3项通过。该PASS只确认消费端候选；COM `getAssignedScope`与AST `DeviceScopeFactApi`生产Provider/Adapter未合入前，本Task继续`IN_PROGRESS / BLOCKED_BY_DEPENDENCY`，不得回写生产完成、真实浏览器闭环或Feature Implementation Done。
+- Task 8实施前独立定点裁决确认：当前直接进入Controller为`NO-GO`，缺口属于现有Task 5未完成的应用义务，不新建并列Task或第二份Technical Plan。当前仅进入Task 5B正式REST/应用机器契约候选及聚焦复审。
+- Task 5B契约候选状态为`REVIEW_REQUIRED / BLOCKED_BY_SPEC`：已补六类路由、严格DTO判别联合、五权限唯一映射、`allowedActions`、PATCH白名单、追加revision、successor和事实影响来源、错误及幂等契约。`Q-FIMP002-001`尚需裁决V1豁免审批主体事实；关闭前不实施Task 5B或Task 8。
+- Task 8当前为`BLOCKED_BY_SPEC_AND_TASK5B`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
