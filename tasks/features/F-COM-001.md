@@ -4,10 +4,12 @@
 > Feature Ready Gate：`READY / GO`
 > Feature实施状态：`NOT_STARTED`
 > 当前阶段：`TECHNICAL_PLAN`
+> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`
 
 ## 当前检查点
 
-锁定基线`2fed46d4`的Feature Ready最终独立裁决为`GO`，A-E及对象重放可达性均已关闭；权威状态已进入`READY`，实施仍`NOT_STARTED`。最近Gate为F-COM-001唯一Technical Plan独立复审；当前不授权DDL、代码、菜单、测试实现或Implementation Done。
+锁定基线`2fed46d4`的Feature Ready最终独立裁决为`GO`；状态回写提交`8ca36560`。唯一Technical Plan候选已形成，Gate为`REVIEW_REQUIRED`，实施仍`NOT_STARTED`；最近Gate为计划独立复审，当前不授权DDL、代码、菜单、测试实现或Implementation Done。
 
 ## Gate输入
 

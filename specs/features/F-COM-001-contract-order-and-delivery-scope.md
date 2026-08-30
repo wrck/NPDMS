@@ -9,7 +9,7 @@
 > Owner Context：`COM（合同订单履约）`
 > 外部协作Context：`PROJ`、`AST`、`IMP`、`ACC`、`PLT`、ERP集成Owner
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> Technical Plan：Feature Ready状态回写后生成一个当前有效计划并独立送审
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 
