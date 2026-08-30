@@ -8,6 +8,7 @@ public interface DeviceScopeFactPort {
 
     DeviceScopeFact resolveBySerials(Long tenantId, Long projectId, Set<String> serialNumbers);
 
+    /** 任一归属版本不一致时抛出OwnerFactVersionMismatchException；不可用等故障不得伪装为版本不一致。 */
     DeviceScopeFact lockAndRevalidate(Long tenantId, Long projectId,
                                       List<ExpectedDeviceFact> expectedDevices);
 

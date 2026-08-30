@@ -11,6 +11,7 @@ public interface DeliveryScopePort {
 
     AssignedScope inspectAssignedScope(Long projectId);
 
+    /** 期望版本不一致时抛出OwnerFactVersionMismatchException；不可用等故障不得伪装为版本不一致。 */
     AssignedScope lockAndRevalidate(Long projectId, Long expectedScopeVersion);
 
     record AssignedScope(Long projectId, Long scopeVersion, List<AssignedLine> lines) {

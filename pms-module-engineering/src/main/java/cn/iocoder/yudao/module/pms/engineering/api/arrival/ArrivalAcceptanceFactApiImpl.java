@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalD
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalFactCalculator;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.OwnerFactVersionMismatchException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -90,7 +91,14 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         if (!Objects.equals(query.expectedScopeWatermark(), inspected.watermark())) {
             return stale(readFact(query.tenantId(), query.projectId(), inspected, false));
         }
-        CurrentScope locked = lockScope(query, inspected);
+        CurrentScope locked;
+        try {
+            locked = lockScope(query, inspected);
+        } catch (OwnerFactVersionMismatchException ex) {
+            CurrentScope current = inspectScope(query.tenantId(), query.projectId(),
+                    query.deviceIds(), query.quantityScopes());
+            return stale(readFact(query.tenantId(), query.projectId(), current, false));
+        }
         ArrivalAcceptanceFact current = readFact(query.tenantId(), query.projectId(), locked, true);
         if (!Objects.equals(query.expectedFactVersion(), current.factVersion())
                 || !Objects.equals(query.expectedScopeWatermark(), current.scopeWatermark())) {
@@ -113,7 +121,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                     DeviceScopeFactPort.DeviceFact device = byId.get(deviceId);
                     Long version = query.expectedScopeWatermark().deviceAssignmentVersions().get(deviceId);
                     if (device == null || version == null) {
-                        throw new IllegalStateException("arrival device scope is stale or unavailable");
+                        throw new OwnerFactVersionMismatchException("arrival device scope version changed");
                     }
                     return new DeviceScopeFactPort.ExpectedDeviceFact(
                             device.deviceId(), device.serialNumber(), version);
@@ -125,7 +133,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         CurrentScope locked = requestedScope(query.deviceIds(), query.quantityScopes(),
                 delivery, deliveryComposition, lockedDevices);
         if (!Objects.equals(inspected.watermark(), locked.watermark())) {
-            throw new IllegalStateException("arrival scope changed while locking");
+            throw new OwnerFactVersionMismatchException("arrival scope changed while locking");
         }
         return locked;
     }
@@ -158,7 +166,11 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         TreeMap<Long, Long> versions = new TreeMap<>();
         requestedDeviceIds.forEach(deviceId -> versions.put(
                 deviceId, byId.get(deviceId).projectAssignmentVersion()));
+        List<ArrivalQuantityScopeFact> assignedQuantities = composition.quantities().entrySet().stream()
+                .map(entry -> entry.getKey().scope(entry.getValue()))
+                .toList();
         return new CurrentScope(Set.copyOf(requestedDeviceIds), List.copyOf(requestedQuantities),
+                Set.copyOf(byId.keySet()), assignedQuantities,
                 new ArrivalScopeWatermark(delivery.scopeVersion(), versions));
     }
 
@@ -177,7 +189,12 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 : differenceMapper.selectEffectiveExemptionsByProject(factQuery);
         requireLists(lines, differences, roots);
         FactVersion factVersion = factVersion(tenantId, projectId, roots, locked);
-        Contributions contributions = contributions(scope, lines, differences, checkedAt);
+        Contributions allContributions = contributions(lines, differences, checkedAt);
+        calculator.calculate(new ArrivalFactCalculator.CalculationInput(
+                scope.assignedDeviceIds(), scope.assignedQuantities(),
+                allContributions.acceptedDevices(), allContributions.acceptedQuantities(),
+                allContributions.deviceExemptions(), allContributions.quantityExemptions(), checkedAt));
+        Contributions contributions = projectContributions(scope, allContributions);
         ArrivalFactCalculator.CalculationResult calculated = calculator.calculate(
                 new ArrivalFactCalculator.CalculationInput(scope.deviceIds(), scope.quantities(),
                         contributions.acceptedDevices(), contributions.acceptedQuantities(),
@@ -245,20 +262,20 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         return combined.size() <= 2 ? List.copyOf(combined) : List.copyOf(combined.subList(0, 2));
     }
 
-    private static Contributions contributions(CurrentScope scope, List<ArrivalLineDO> lines,
+    private static Contributions contributions(List<ArrivalLineDO> lines,
                                                List<ArrivalDifferenceDO> differences,
                                                LocalDateTime checkedAt) {
         List<ArrivalFactCalculator.DeviceContribution> acceptedDevices = new ArrayList<>();
         List<ArrivalFactCalculator.QuantityContribution> acceptedQuantities = new ArrayList<>();
         List<ArrivalFactCalculator.DeviceExemption> deviceExemptions = new ArrayList<>();
         List<ArrivalFactCalculator.QuantityExemption> quantityExemptions = new ArrayList<>();
-        Map<QuantityKey, BigDecimal> remaining = requestedQuantities(scope.quantities());
         for (ArrivalLineDO line : lines) {
-            if ("DEVICE".equals(line.getScopeType()) && scope.deviceIds().contains(line.getDeviceId())) {
+            if ("DEVICE".equals(line.getScopeType())) {
                 acceptedDevices.add(new ArrivalFactCalculator.DeviceContribution(
                         line.getArrivalAcceptanceId(), line.getDeviceId()));
             } else if ("ORDER_MODEL_QUANTITY".equals(line.getScopeType())) {
-                addAcceptedQuantity(line, remaining, acceptedQuantities);
+                acceptedQuantities.add(new ArrivalFactCalculator.QuantityContribution(
+                        line.getArrivalAcceptanceId(), quantityFact(line)));
             } else if (!"DEVICE".equals(line.getScopeType())) {
                 throw new IllegalStateException("confirmed arrival line scope type is unsupported");
             }
@@ -272,52 +289,92 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             }
             ArrivalDifferenceScopeCodec.Scope parsed = ArrivalDifferenceScopeCodec.parse(
                     difference.getScopeSnapshot());
-            if (parsed instanceof ArrivalDifferenceScopeCodec.DeviceScope device
-                    && scope.deviceIds().contains(device.deviceId())
-                    && !acceptedDeviceIds.contains(device.deviceId())) {
-                deviceExemptions.add(new ArrivalFactCalculator.DeviceExemption(
-                        difference.getArrivalAcceptanceId(), device.deviceId(), difference.getReason(),
-                        difference.getRiskDescription(), difference.getApprovedBy(), difference.getApprovedAt(),
-                        difference.getEvidenceId(), difference.getEvidenceRevision(),
-                        difference.getExemptionExpiresAt()));
+            if (parsed instanceof ArrivalDifferenceScopeCodec.DeviceScope device) {
+                if (!acceptedDeviceIds.contains(device.deviceId())) {
+                    deviceExemptions.add(deviceExemption(difference, device.deviceId()));
+                }
             } else if (parsed instanceof ArrivalDifferenceScopeCodec.QuantityScope quantity) {
-                addQuantityExemption(difference, quantity, remaining, quantityExemptions);
+                quantityExemptions.add(quantityExemption(difference, quantity));
             }
         }
         return new Contributions(List.copyOf(acceptedDevices), List.copyOf(acceptedQuantities),
                 List.copyOf(deviceExemptions), List.copyOf(quantityExemptions));
     }
 
-    private static void addAcceptedQuantity(
-            ArrivalLineDO line, Map<QuantityKey, BigDecimal> remaining,
+    private static Contributions projectContributions(CurrentScope scope, Contributions all) {
+        List<ArrivalFactCalculator.DeviceContribution> acceptedDevices = all.acceptedDevices().stream()
+                .filter(contribution -> scope.deviceIds().contains(contribution.deviceId()))
+                .toList();
+        Set<Long> acceptedDeviceIds = acceptedDevices.stream()
+                .map(ArrivalFactCalculator.DeviceContribution::deviceId)
+                .collect(java.util.stream.Collectors.toSet());
+        List<ArrivalFactCalculator.DeviceExemption> deviceExemptions = all.deviceExemptions().stream()
+                .filter(exemption -> scope.deviceIds().contains(exemption.deviceId()))
+                .filter(exemption -> !acceptedDeviceIds.contains(exemption.deviceId()))
+                .toList();
+        List<ArrivalFactCalculator.QuantityContribution> acceptedQuantities = new ArrayList<>();
+        List<ArrivalFactCalculator.QuantityExemption> quantityExemptions = new ArrayList<>();
+        Map<QuantityKey, BigDecimal> remaining = requestedQuantities(scope.quantities());
+        for (ArrivalFactCalculator.QuantityContribution contribution : all.acceptedQuantities()) {
+            projectAcceptedQuantity(contribution, remaining, acceptedQuantities);
+        }
+        for (ArrivalFactCalculator.QuantityExemption exemption : all.quantityExemptions()) {
+            projectQuantityExemption(exemption, remaining, quantityExemptions);
+        }
+        return new Contributions(List.copyOf(acceptedDevices), List.copyOf(acceptedQuantities),
+                List.copyOf(deviceExemptions), List.copyOf(quantityExemptions));
+    }
+
+    private static void projectAcceptedQuantity(
+            ArrivalFactCalculator.QuantityContribution contribution,
+            Map<QuantityKey, BigDecimal> remaining,
             List<ArrivalFactCalculator.QuantityContribution> contributions) {
-        ArrivalQuantityScopeFact fact = new ArrivalQuantityScopeFact(line.getOrderLineId(),
-                line.getProductCode(), line.getModelCode(), line.getAcceptedQuantity(), line.getUnit());
-        QuantityKey key = QuantityKey.from(fact);
+        QuantityKey key = QuantityKey.from(contribution.scope());
         BigDecimal left = remaining.get(key);
         if (left == null || left.signum() == 0) return;
-        BigDecimal used = fact.quantity().min(left);
-        contributions.add(new ArrivalFactCalculator.QuantityContribution(line.getArrivalAcceptanceId(),
+        BigDecimal used = contribution.scope().quantity().min(left);
+        contributions.add(new ArrivalFactCalculator.QuantityContribution(contribution.sourceAcceptanceId(),
                 key.scope(used)));
         remaining.put(key, left.subtract(used));
     }
 
-    private static void addQuantityExemption(
-            ArrivalDifferenceDO difference, ArrivalDifferenceScopeCodec.QuantityScope quantity,
+    private static void projectQuantityExemption(
+            ArrivalFactCalculator.QuantityExemption exemption,
             Map<QuantityKey, BigDecimal> remaining,
             List<ArrivalFactCalculator.QuantityExemption> exemptions) {
-        ArrivalQuantityScopeFact fact = new ArrivalQuantityScopeFact(quantity.orderLineId(),
-                quantity.productCode(), quantity.modelCode(), quantity.quantity(), quantity.unitCode());
-        QuantityKey key = QuantityKey.from(fact);
+        QuantityKey key = QuantityKey.from(exemption.scope());
         BigDecimal left = remaining.get(key);
         if (left == null || left.signum() == 0) return;
-        BigDecimal used = fact.quantity().min(left);
+        BigDecimal used = exemption.scope().quantity().min(left);
         exemptions.add(new ArrivalFactCalculator.QuantityExemption(
-                difference.getArrivalAcceptanceId(), key.scope(used), difference.getReason(),
+                exemption.sourceAcceptanceId(), key.scope(used), exemption.reason(),
+                exemption.riskDescription(), exemption.approvedBy(), exemption.approvedAt(),
+                exemption.evidenceId(), exemption.evidenceRevision(), exemption.expiresAt()));
+        remaining.put(key, left.subtract(used));
+    }
+
+    private static ArrivalQuantityScopeFact quantityFact(ArrivalLineDO line) {
+        return new ArrivalQuantityScopeFact(line.getOrderLineId(), line.getProductCode(),
+                line.getModelCode(), line.getAcceptedQuantity(), line.getUnit());
+    }
+
+    private static ArrivalFactCalculator.DeviceExemption deviceExemption(
+            ArrivalDifferenceDO difference, Long deviceId) {
+        return new ArrivalFactCalculator.DeviceExemption(
+                difference.getArrivalAcceptanceId(), deviceId, difference.getReason(),
                 difference.getRiskDescription(), difference.getApprovedBy(), difference.getApprovedAt(),
                 difference.getEvidenceId(), difference.getEvidenceRevision(),
-                difference.getExemptionExpiresAt()));
-        remaining.put(key, left.subtract(used));
+                difference.getExemptionExpiresAt());
+    }
+
+    private static ArrivalFactCalculator.QuantityExemption quantityExemption(
+            ArrivalDifferenceDO difference, ArrivalDifferenceScopeCodec.QuantityScope quantity) {
+        return new ArrivalFactCalculator.QuantityExemption(
+                difference.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(quantity.orderLineId(),
+                quantity.productCode(), quantity.modelCode(), quantity.quantity(), quantity.unitCode()),
+                difference.getReason(), difference.getRiskDescription(), difference.getApprovedBy(),
+                difference.getApprovedAt(), difference.getEvidenceId(), difference.getEvidenceRevision(),
+                difference.getExemptionExpiresAt());
     }
 
     private static Map<QuantityKey, BigDecimal> requestedQuantities(
@@ -437,6 +494,8 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
     }
 
     private record CurrentScope(Set<Long> deviceIds, List<ArrivalQuantityScopeFact> quantities,
+                                Set<Long> assignedDeviceIds,
+                                List<ArrivalQuantityScopeFact> assignedQuantities,
                                 ArrivalScopeWatermark watermark) {
     }
 

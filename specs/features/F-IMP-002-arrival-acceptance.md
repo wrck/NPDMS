@@ -80,7 +80,7 @@
 
 机器契约：`specs/features/F-IMP-002-arrival-fact-contract.json`。
 
-`ArrivalAcceptanceFactApi.inspect/lockAndRevalidate`按受信租户、项目、设备/数量范围、期望`factVersion`和`scopeWatermark`读取或按稳定设备/订单行顺序锁定重验，返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序的`sourceAcceptanceIds`、已签/豁免/未满足范围、项目级单调`factVersion`及`reopened`。多批事实不得压缩成一个伪造来源ID；它不返回Owner DO、签收人隐私、文件正文或持久下载地址。
+`ArrivalAcceptanceFactApi.inspect/lockAndRevalidate`按受信租户、项目、设备/数量范围、期望`factVersion`和`scopeWatermark`读取或按稳定设备/订单行顺序锁定重验，返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序的`sourceAcceptanceIds`、已签/豁免/未满足范围、项目级单调`factVersion`及`reopened`。Owner锁定重验明确返回期望版本不一致时，IMP重新读取当前事实并返回`STALE`；Owner缺失、未知或不可用仍失败关闭，不得伪装为陈旧事实。多批事实不得压缩成一个伪造来源ID；它不返回Owner DO、签收人隐私、文件正文或持久下载地址。
 
 ## 6. 数据与迁移
 

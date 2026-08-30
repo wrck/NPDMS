@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.projection.ArrivalProjectFactAllocation;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.OwnerFactVersionMismatchException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -216,6 +217,106 @@ class ArrivalAcceptanceFactApiImplTest {
         verify(acceptanceMapper, never()).selectConfirmedByProject(any());
     }
 
+    @Test
+    void fullDeliveryScopeRejectsAcceptedOrExemptedQuantityOverflowBeforeProjection() {
+        prepareCurrentScope();
+        when(acceptanceMapper.selectConfirmedByProject(any())).thenReturn(roots());
+        prepareAllocation();
+        when(differenceMapper.selectEffectiveExemptionsByProject(any())).thenReturn(List.of());
+        when(lineMapper.selectConfirmedAcceptedByProject(any())).thenReturn(List.of(quantityLine(20L, "12")));
+
+        assertThrows(IllegalStateException.class, () -> api.inspect(quantityOnlyQuery("5")));
+
+        when(lineMapper.selectConfirmedAcceptedByProject(any())).thenReturn(List.of(quantityLine(20L, "6")));
+        when(differenceMapper.selectEffectiveExemptionsByProject(any()))
+                .thenReturn(List.of(quantityDifference(40L, 2L, "5")));
+        assertThrows(IllegalStateException.class, () -> api.inspect(quantityOnlyQuery("5")));
+    }
+
+    @Test
+    void fullDeliveryScopeRejectsDeviceAndQuantityExemptionsOutsideCurrentAssignment() {
+        prepareCurrentScope();
+        when(lineMapper.selectConfirmedAcceptedByProject(any())).thenReturn(List.of());
+        when(acceptanceMapper.selectConfirmedByProject(any())).thenReturn(roots());
+        prepareAllocation();
+        when(differenceMapper.selectEffectiveExemptionsByProject(any()))
+                .thenReturn(List.of(deviceDifference(40L, 999L)));
+
+        assertThrows(IllegalStateException.class, () -> api.inspect(quantityOnlyQuery("5")));
+
+        when(differenceMapper.selectEffectiveExemptionsByProject(any()))
+                .thenReturn(List.of(quantityDifference(40L, 999L, "1")));
+        assertThrows(IllegalStateException.class, () -> api.inspect(quantityOnlyQuery("5")));
+    }
+
+    @Test
+    void validFactsInOtherAssignedSubscopeDoNotPolluteRequestedProjection() {
+        prepareCurrentScope();
+        prepareReadFacts();
+
+        ArrivalAcceptanceFact fact = api.inspect(quantityOnlyQuery("5"));
+
+        assertEquals(ArrivalAcceptanceFact.DECISION_ACCEPTED, fact.decision());
+        assertEquals(List.of(20L), fact.sourceAcceptanceIds());
+        assertEquals(List.of(quantity("5")), fact.acceptedQuantityScopes());
+        assertTrue(fact.exemptedQuantityScopes().isEmpty());
+    }
+
+    @Test
+    void deliveryVersionChangeBetweenInspectAndLockReturnsCurrentStaleFact() {
+        when(deliveryScopePort.inspectAssignedScope(PROJECT_ID))
+                .thenReturn(deliveryScope(5L), deliveryScope(6L));
+        when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("SN-1", "SN-2")))
+                .thenReturn(deviceScope());
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L))
+                .thenThrow(new OwnerFactVersionMismatchException("delivery scope changed"));
+        prepareReadFacts();
+
+        ArrivalAcceptanceFact fact = api.lockAndRevalidate(currentRevalidation());
+
+        assertEquals(ArrivalAcceptanceFact.DECISION_STALE, fact.decision());
+        assertEquals(6L, fact.scopeWatermark().deliveryScopeVersion());
+    }
+
+    @Test
+    void deviceVersionChangeBetweenInspectAndLockReturnsCurrentStaleFact() {
+        when(deliveryScopePort.inspectAssignedScope(PROJECT_ID)).thenReturn(deliveryScope());
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(deliveryScope());
+        when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("SN-1", "SN-2")))
+                .thenReturn(deviceScope(), deviceScope(9L, 8L), deviceScope(9L, 8L));
+        when(deviceScopeFactPort.lockAndRevalidate(any(), any(), any()))
+                .thenThrow(new OwnerFactVersionMismatchException("device assignment changed"));
+        prepareReadFacts();
+
+        ArrivalAcceptanceFact fact = api.lockAndRevalidate(currentRevalidation());
+
+        assertEquals(ArrivalAcceptanceFact.DECISION_STALE, fact.decision());
+        assertEquals(9L, fact.scopeWatermark().deviceAssignmentVersions().get(11L));
+    }
+
+    @Test
+    void ownerUnavailableStillFailsClosedInsteadOfReturningStale() {
+        prepareCurrentScope();
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L))
+                .thenThrow(new IllegalStateException("delivery provider unavailable"));
+
+        assertThrows(IllegalStateException.class,
+                () -> api.lockAndRevalidate(currentRevalidation()));
+        verify(acceptanceMapper, never()).selectConfirmedByProject(any());
+    }
+
+    @Test
+    void deviceOwnerUnavailableStillFailsClosedInsteadOfReturningStale() {
+        prepareCurrentScope();
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(deliveryScope());
+        when(deviceScopeFactPort.lockAndRevalidate(any(), any(), any()))
+                .thenThrow(new IllegalStateException("device provider unavailable"));
+
+        assertThrows(IllegalStateException.class,
+                () -> api.lockAndRevalidate(currentRevalidation()));
+        verify(acceptanceMapper, never()).selectConfirmedByProject(any());
+    }
+
     private void prepareCurrentScope() {
         when(deliveryScopePort.inspectAssignedScope(PROJECT_ID)).thenReturn(deliveryScope());
         when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("SN-1", "SN-2")))
@@ -255,8 +356,22 @@ class ArrivalAcceptanceFactApiImplTest {
                 Set.of(11L, 12L), List.of(quantity("10")));
     }
 
+    private static ArrivalAcceptanceFactQuery quantityOnlyQuery(String value) {
+        return new ArrivalAcceptanceFactQuery(TENANT_ID, PROJECT_ID, Set.of(), List.of(quantity(value)));
+    }
+
+    private static ArrivalAcceptanceFactRevalidationQuery currentRevalidation() {
+        return new ArrivalAcceptanceFactRevalidationQuery(
+                TENANT_ID, PROJECT_ID, Set.of(11L, 12L), List.of(quantity("10")),
+                3L, new ArrivalScopeWatermark(5L, Map.of(11L, 7L, 12L, 8L)));
+    }
+
     private static DeliveryScopePort.AssignedScope deliveryScope() {
-        return new DeliveryScopePort.AssignedScope(PROJECT_ID, 5L, List.of(
+        return deliveryScope(5L);
+    }
+
+    private static DeliveryScopePort.AssignedScope deliveryScope(Long version) {
+        return new DeliveryScopePort.AssignedScope(PROJECT_ID, version, List.of(
                 new DeliveryScopePort.AssignedLine(1L, BigDecimal.valueOf(2), "SET",
                         "P-1", "M-1", Set.of("SN-1", "SN-2")),
                 new DeliveryScopePort.AssignedLine(2L, BigDecimal.TEN, "EA",
@@ -264,9 +379,13 @@ class ArrivalAcceptanceFactApiImplTest {
     }
 
     private static DeviceScopeFactPort.DeviceScopeFact deviceScope() {
+        return deviceScope(7L, 8L);
+    }
+
+    private static DeviceScopeFactPort.DeviceScopeFact deviceScope(Long firstVersion, Long secondVersion) {
         return new DeviceScopeFactPort.DeviceScopeFact(PROJECT_ID, List.of(
-                new DeviceScopeFactPort.DeviceFact(12L, "SN-2", PROJECT_ID, 8L),
-                new DeviceScopeFactPort.DeviceFact(11L, "SN-1", PROJECT_ID, 7L)));
+                new DeviceScopeFactPort.DeviceFact(12L, "SN-2", PROJECT_ID, secondVersion),
+                new DeviceScopeFactPort.DeviceFact(11L, "SN-1", PROJECT_ID, firstVersion)));
     }
 
     private static List<ArrivalLineDO> lines() {
@@ -296,20 +415,36 @@ class ArrivalAcceptanceFactApiImplTest {
     }
 
     private static List<ArrivalDifferenceDO> differences() {
+        return List.of(quantityDifference(40L, 2L, "4"));
+    }
+
+    private static ArrivalDifferenceDO quantityDifference(Long acceptanceId, Long orderLineId,
+                                                          String quantity) {
+        ArrivalDifferenceDO difference = validDifference(acceptanceId);
+        difference.setScopeSnapshot("{\"scopeType\":\"ORDER_MODEL_QUANTITY\",\"orderLineId\":"
+                + orderLineId + ",\"productCode\":\"P-2\",\"modelCode\":\"M-2\",\"quantity\":"
+                + quantity + ",\"unitCode\":\"EA\"}");
+        return difference;
+    }
+
+    private static ArrivalDifferenceDO deviceDifference(Long acceptanceId, Long deviceId) {
+        ArrivalDifferenceDO difference = validDifference(acceptanceId);
+        difference.setScopeSnapshot("{\"scopeType\":\"DEVICE\",\"deviceId\":" + deviceId + "}");
+        return difference;
+    }
+
+    private static ArrivalDifferenceDO validDifference(Long acceptanceId) {
         ArrivalDifferenceDO difference = new ArrivalDifferenceDO();
-        difference.setArrivalAcceptanceId(40L);
+        difference.setArrivalAcceptanceId(acceptanceId);
         difference.setResolutionStatus("EXEMPTED");
         difference.setReason("approved reason");
         difference.setRiskDescription("accepted risk");
-        difference.setScopeSnapshot("{\"scopeType\":\"ORDER_MODEL_QUANTITY\",\"orderLineId\":2,"
-                + "\"productCode\":\"P-2\",\"modelCode\":\"M-2\",\"quantity\":4,"
-                + "\"unitCode\":\"EA\"}");
         difference.setApprovedBy(7L);
         difference.setApprovedAt(NOW.minusHours(1));
         difference.setEvidenceId(90L);
         difference.setEvidenceRevision(1);
         difference.setExemptionExpiresAt(NOW.plusDays(1));
-        return List.of(difference);
+        return difference;
     }
 
     private static List<ArrivalAcceptanceDO> roots() {
