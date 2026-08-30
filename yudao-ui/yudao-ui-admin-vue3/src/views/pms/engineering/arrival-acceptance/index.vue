@@ -263,11 +263,12 @@ import ArrivalEvidencePanel from './components/ArrivalEvidencePanel.vue'
 import ArrivalLineEditor from './components/ArrivalLineEditor.vue'
 import {
   arrivalAcceptanceLayout,
+  createArrivalWriteBarrier,
   createArrivalIntentStore,
   evidenceSyncPresentation,
   formatWireDateTime,
   projectArrivalProgress,
-  resolveArrivalCommandFailure,
+  runArrivalGuardedWrite,
   runArrivalIntent,
   successorReasonPresentation
 } from './arrivalAcceptanceInteraction'
@@ -276,7 +277,7 @@ defineOptions({ name: 'PmsArrivalAcceptance' })
 const message = useMessage()
 const { width } = useWindowSize()
 const intentStore = createArrivalIntentStore()
-let pendingCommandRefresh: (() => Promise<void>) | null = null
+const writeBarrier = createArrivalWriteBarrier()
 const statuses: ArrivalApi.ArrivalStatus[] = [
   'DRAFT',
   'PARTIALLY_ACCEPTED',
@@ -378,6 +379,9 @@ const loadDetail = async (id: ArrivalApi.WireLong) => {
   detailLoading.value = true
   try {
     detail.value = await ArrivalApi.getArrivalDetail(id)
+    if (editingDetail.value && String(editingDetail.value.id) === String(id)) {
+      editingDetail.value = detail.value
+    }
     stagedEvidenceRevision.value = null
   } finally {
     detailLoading.value = false
@@ -414,21 +418,23 @@ const refreshWorkspace = async (detailId?: ArrivalApi.WireLong) => {
   if (detailId !== undefined) await loadDetail(detailId)
 }
 
+const passWriteBarrier = async () => {
+  const barrier = await writeBarrier.beforeWrite()
+  if (barrier === 'PROCEED') return true
+  if (barrier === 'REFRESHED') {
+    message.success('上次命令结果已刷新，请按最新事实继续操作')
+  } else {
+    message.warning('上次命令已成功，但页面仍未刷新；不会重复发送业务命令')
+  }
+  return false
+}
+
 const executeIntent = async <T,>(
   intent: string,
   call: (key: string) => Promise<T>,
   refresh: (result: T) => Promise<void> = () => refreshWorkspace(detail.value?.id)
 ) => {
-  if (pendingCommandRefresh) {
-    try {
-      await pendingCommandRefresh()
-      pendingCommandRefresh = null
-      message.success('上次命令结果已刷新，请按最新事实继续操作')
-    } catch {
-      message.warning('上次命令已成功，但页面仍未刷新；不会重复发送业务命令')
-    }
-    return false
-  }
+  if (!(await passWriteBarrier())) return false
   const outcome = await runArrivalIntent({
     intent,
     store: intentStore,
@@ -438,7 +444,7 @@ const executeIntent = async <T,>(
   })
   if (outcome.commandSucceeded) {
     if (!outcome.refreshSucceeded) {
-      pendingCommandRefresh = outcome.retryRefresh
+      writeBarrier.register(outcome.retryRefresh!)
       message.warning('命令已成功，但页面刷新失败；请手动刷新，勿重复提交')
     }
     return true
@@ -468,17 +474,32 @@ const createDraft = async (payload: CreateArrivalRequest) => {
   }
 }
 const patchDraft = async (payload: PatchArrivalRequest) => {
-  if (!editingDetail.value) return
-  try {
-    await ArrivalApi.patchArrival(editingDetail.value.id, editingDetail.value.version, payload)
+  if (!editingDetail.value) return false
+  const acceptanceId = editingDetail.value.id
+  const outcome = await runArrivalGuardedWrite({
+    barrier: writeBarrier,
+    call: () => ArrivalApi.patchArrival(acceptanceId, editingDetail.value!.version, payload),
+    refreshAfterConflict: async () => {
+      await refreshWorkspace(acceptanceId)
+      editingDetail.value = detail.value
+    }
+  })
+  if (!outcome.writeCalled) {
+    if (outcome.barrierResult === 'REFRESHED') {
+      message.success('上次命令结果已刷新，请按最新事实继续操作')
+    } else {
+      message.warning('上次命令已成功，但页面仍未刷新；不会重复发送业务命令')
+    }
+    return false
+  }
+  if (outcome.succeeded) {
     formVisible.value = false
     message.success('草稿已保存')
-    await loadPage()
-    await loadDetail(editingDetail.value.id)
-  } catch (error) {
-    if (resolveArrivalCommandFailure(error) === 'REFRESH_AGGREGATE')
-      await loadDetail(editingDetail.value.id)
+    await refreshWorkspace(acceptanceId)
+    return true
   }
+  if (outcome.refreshSucceeded === false) message.warning('权威事实刷新失败，请手动刷新后再操作')
+  return false
 }
 const runSimpleAction = async (name: 'submit' | 'confirm') => {
   if (!detail.value) return
@@ -496,9 +517,9 @@ const confirmFromList = async (row: ArrivalListItem) => {
 }
 const saveEvidenceRevision = async (revision: FileRevision) => {
   if (!detail.value) return
-  stagedEvidenceRevision.value = revision
   editingDetail.value = detail.value
-  await patchDraft({ evidenceRevision: revision })
+  const saved = await patchDraft({ evidenceRevision: revision })
+  if (!saved) stagedEvidenceRevision.value = null
 }
 const resolveDifference = async (payload: ResolveDifferenceRequest) => {
   if (!detail.value) return

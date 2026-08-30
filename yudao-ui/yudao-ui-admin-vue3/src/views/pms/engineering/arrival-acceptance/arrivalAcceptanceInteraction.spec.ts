@@ -3,11 +3,13 @@ import {
   arrivalAcceptanceLayout,
   arrivalResolutionOptions,
   createArrivalIntentStore,
+  createArrivalWriteBarrier,
   evidenceSyncPresentation,
   formatWireDateTime,
   pickerValueToWireDateTime,
   projectArrivalProgress,
   resolveArrivalCommandFailure,
+  runArrivalGuardedWrite,
   runArrivalIntent,
   shouldExposeArrivalAction,
   successorReasonPresentation,
@@ -231,6 +233,56 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
     await outcome.retryRefresh?.().catch(() => undefined)
     expect(call).toHaveBeenCalledOnce()
     expect(store.key('submit:10:3')).toBe('key-2')
+  })
+
+  it('blocks PATCH behind the shared refresh barrier and then uses the refreshed version', async () => {
+    const barrier = createArrivalWriteBarrier()
+    const patch = vi.fn()
+    let aggregateVersion = 4
+    barrier.register(async () => {
+      aggregateVersion = 7
+    })
+
+    const first = await barrier.beforeWrite()
+    if (first === 'PROCEED') await patch(aggregateVersion)
+    expect(first).toBe('REFRESHED')
+    expect(patch).not.toHaveBeenCalled()
+
+    const second = await barrier.beforeWrite()
+    if (second === 'PROCEED') await patch(aggregateVersion)
+    expect(patch).toHaveBeenCalledExactlyOnceWith(7)
+  })
+
+  it('refreshes owner facts after PATCH scope stale and retries with the latest version', async () => {
+    const barrier = createArrivalWriteBarrier()
+    const patch = vi
+      .fn()
+      .mockRejectedValueOnce({
+        response: { status: 409, data: { data: { recoveryAction: 'REFRESH_OWNER_FACTS' } } }
+      })
+      .mockResolvedValueOnce({ version: 8 })
+    let aggregateVersion = 4
+    const first = await runArrivalGuardedWrite({
+      barrier,
+      call: () => patch(aggregateVersion),
+      refreshAfterConflict: async () => {
+        aggregateVersion = 7
+      }
+    })
+    expect(first).toMatchObject({
+      writeCalled: true,
+      succeeded: false,
+      recovery: 'REFRESH_OWNER_FACTS',
+      refreshSucceeded: true
+    })
+
+    const second = await runArrivalGuardedWrite({
+      barrier,
+      call: () => patch(aggregateVersion),
+      refreshAfterConflict: vi.fn()
+    })
+    expect(second).toMatchObject({ writeCalled: true, succeeded: true })
+    expect(patch.mock.calls).toEqual([[4], [7]])
   })
 
   it('retains one idempotency key for an unknown response and rotates after success', () => {
