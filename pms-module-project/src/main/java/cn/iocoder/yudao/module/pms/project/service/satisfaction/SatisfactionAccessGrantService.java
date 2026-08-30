@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionAccessGrantDO;
@@ -21,6 +22,9 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -85,7 +89,40 @@ public class SatisfactionAccessGrantService {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_UNAVAILABLE");
         }
         return new PublicQuestionnaire(questionnaire.getId(), questionnaire.getVersion(),
-                questionnaire.getFrozenQuestionJson(), grant.getExpiresAt());
+                publicQuestionnaireJson(questionnaire.getFrozenQuestionJson()), grant.getExpiresAt());
+    }
+
+    private String publicQuestionnaireJson(String frozenJson) {
+        Map<?, ?> root = JsonUtils.parseObjectQuietly(frozenJson, Map.class);
+        if (root == null || !(root.get("questions") instanceof List<?> questions)) {
+            throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_CONFIG_INVALID");
+        }
+        List<Map<String, Object>> publicQuestions = questions.stream().map(item -> {
+            if (!(item instanceof Map<?, ?> question)) {
+                throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_CONFIG_INVALID");
+            }
+            Map<String, Object> projected = new LinkedHashMap<>();
+            for (String field : List.of("code", "title", "type", "required", "minSelections",
+                    "maxSelections", "minLength", "maxLength")) {
+                if (question.containsKey(field)) projected.put(field, question.get(field));
+            }
+            if (question.get("options") instanceof List<?> options) {
+                projected.put("options", options.stream().map(option -> {
+                    if (!(option instanceof Map<?, ?> value)) {
+                        throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_CONFIG_INVALID");
+                    }
+                    Map<String, Object> projectedOption = new LinkedHashMap<>();
+                    projectedOption.put("code", value.get("code"));
+                    projectedOption.put("label", value.get("label"));
+                    return projectedOption;
+                }).toList());
+            }
+            return projected;
+        }).toList();
+        Map<String, Object> projected = new LinkedHashMap<>();
+        projected.put("schemaVersion", root.get("schemaVersion"));
+        projected.put("questions", publicQuestions);
+        return JsonUtils.toJsonString(projected);
     }
 
     private String digest(String token) {
