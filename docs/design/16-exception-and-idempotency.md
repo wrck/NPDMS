@@ -235,8 +235,9 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 场景 | 分类与失败行为 |
 |---|---|
 | 同operation同摘要/异摘要 | 返回原ExportTask / IDEMPOTENCY_CONFLICT；不得创建第二Task或第二文件 |
-| 业务Provider缺失、重复、不可用或范围版本未知 | DEPENDENCY_UNAVAILABLE；Task记FAILED/REJECTED及永久审计，不生成文件 |
-| 申请、生成或下载时功能/项目/责任人/字段/文件/租户范围拒绝 | AUTHORIZATION；保存安全拒绝原因，不返回数据、文件或对象存在性 |
+| 业务Provider缺失、重复或载荷不符合稳定契约 | DEPENDENCY_UNAVAILABLE；Task记`FAILED + failure_retryable=false`并追加永久失败审计，不生成文件 |
+| 业务Provider暂时不可用或范围版本暂时未知 | DEPENDENCY_UNAVAILABLE；Task记`FAILED + failure_retryable=true`并追加可重试失败审计，不生成文件 |
+| 申请、生成或下载时功能/项目/责任人/字段/文件/租户范围拒绝 | AUTHORIZATION；Task记`REJECTED`并保存安全拒绝原因，不返回数据、文件或对象存在性 |
 | 文件生成、扫描或存储失败 | DEPENDENCY_UNAVAILABLE；Task记FAILED并保留可重试审计，不误标SUCCEEDED |
 | 原申请actor重试可重试FAILED | 重验当前权限/范围并按expectedVersion CAS回REQUESTED、retry_count+1、追加RETRY_REQUESTED；同operation request本身不改变FAILED |
 | 重试非可重试FAILED、REJECTED/SUCCEEDED/EXPIRED或版本冲突 | BUSINESS_GATE/VERSION_CONFLICT；Task与Audit不变，不创建新Task |
