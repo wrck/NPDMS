@@ -1,8 +1,8 @@
 # F-CUT-002 割接任务接入与人工分级
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`FEATURE_READY_BLOCKED`
-> Feature Ready Gate：`NO-GO`
+> 总体工程阶段：`TECHNICAL_PLAN`
+> Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
 > Technical Plan Gate：`NOT_STARTED`
 > Implementation Done Gate：`NOT_STARTED`
 > `pms_cut_task -> cut_task` Migration Contract Gate：`PASS`（`36d1b37f`）
@@ -15,8 +15,8 @@
 
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
-- 当前最近Gate为`F-CUT-002 Feature Ready`独立复审。
-- 直接消费合同及F-CUT-002 Feature Ready通过后，使用受控正向模拟推进CUT自身P1→P2→P3/P4；生产依赖合入前不声明真实浏览器闭环或Implementation Done。
+- `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
+- 当前最近Gate为唯一`F-CUT-002 Technical Plan`独立复审；计划通过后使用受控正向模拟推进CUT自身P1→P2→P3/P4，生产依赖合入前不声明真实浏览器闭环或Implementation Done。
 
 ## 已完成
 
@@ -29,7 +29,7 @@
 - 独立裁决已确认F-IMP-003～005未Ready不应永久阻断CUT；跨模块接口冻结后，Feature Ready可允许CUT在非生产装配中使用受控模拟完成自身正向闭环。
 - ITR/项目事件Producer、P3以后、V2/V3、自动指派和通用工单动作均排除。
 
-## 阻断
+## 依赖边界
 
 - F-CUT-002完整API/物理机器合同已通过，不再阻断Feature Ready。
 - AST的`DeviceScopeFactApi`公开合同、Owner Provider及IMP消费适配已分别通过独立Gate；该项不再是F-CUT-002规格阻断，但生产装配与真实依赖闭环仍按各Owner任务状态判定。

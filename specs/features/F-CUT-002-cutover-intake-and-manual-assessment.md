@@ -1,14 +1,14 @@
 # F-CUT-002 割接任务接入与人工分级 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / NO-GO`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO`
 > Requirement：`CUT-01（V1/P0）`、`CUT-02（V1/P0）`
 > Requirement切片覆盖：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Owner Context：`CUT（变更切换与稳定治理）`
 > 前置Feature：`F-CUT-001`、`F-PROJ-003`、`F-PROJ-007`、`F-IMP-001`
 > AST支撑Task：`T-FIMP001-AST-01`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
+> 独立裁决：`GO`（锁定基线`cad8088a`）
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 > 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；API/Physical Machine Contract Gate `PASS@b7f49166`）
 > REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`BASELINE_READY@b7f49166`）
@@ -139,6 +139,6 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 ## 8. Feature Ready Gate
 
-当前结论：`NOT_READY / NO-GO`。
+当前结论：`READY / GO`（独立复审锁定基线`cad8088a`）。
 
-`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过，`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`通过，`CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`通过。最近Gate为`F-CUT-002 Feature Ready`；无需等待CUS生产实现完成，Feature Ready通过后可使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过，`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`通过，`CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`通过，Feature Ready已在锁定基线`cad8088a`独立复审通过。最近Gate为唯一`F-CUT-002 Technical Plan`独立复审；可在计划中安排受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
