@@ -448,6 +448,10 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 | `com_delivery_scope_detail` | `delivery_scope_id/office_department_code/serial_no/allocated_qty/detail_status/source_snapshot/version` | `uk(tenant_id, delivery_scope_id, office_department_code, serial_no)`；明细数量合计等于主记录；办事处只用部门稳定编码，不以地址ID推导 |
 | `com_outbox_event` | `event_id/event_type/aggregate_type/aggregate_key/scope_version/payload/status/occurred_at/retry_count` | `uk(tenant_id, event_id)`；`idx(tenant_id, status, occurred_at, id)`；仅由COM事务发布DeliveryScopeAssigned/Released |
 
+F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯一数量权威字段（`CONFIRMED/PENDING_AUTHORITY`），不得改名或与`authority_status`双写。新增`model_code/source_lifecycle_status/source_updated_at`以及DeliveryScopeDetail的单位、产品/型号、地点、SN、状态和来源快照列对既有行先保持NULL；只有正式来源完整的新写入或证据化核对行才可进入当前范围，禁止默认补造。
+
+新增`com_authority_candidate`保存`PLATFORM_MANUAL`的合同/订单/行候选：不可变来源键、版本、payload和证据，状态限定`PENDING_RECONCILIATION/MATCHED/REJECTED`；MATCHED只引用已存在的CONFIRMED ERP Owner表/id/sourceVersion，不把候选晋升为权威主档。新增`com_delivery_scope_project_version`以`uk(tenant_id,project_id)`保存不可删除的项目`scope_version`，任何当前集合、返回载荷、冲突或清空变化在同一事务只递增一次。当前关系与当前范围分别通过显式current marker唯一键约束；SN明细数量固定为1，规范化SN在当前项目/订单行范围唯一。
+
 预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
