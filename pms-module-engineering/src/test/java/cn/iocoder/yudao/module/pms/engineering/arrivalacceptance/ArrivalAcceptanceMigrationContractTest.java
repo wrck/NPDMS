@@ -19,6 +19,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String fileFactUpgradeSql;
     private static String differenceFactUpgradeSql;
     private static String evidenceOutboxJobSql;
+    private static String evidenceCorrelationUpgradeSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -39,6 +40,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         evidenceOutboxJobSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V137__fimp002_arrival_evidence_outbox_job.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        evidenceCorrelationUpgradeSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V138__fimp002_evidence_correlation.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -177,6 +181,33 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(evidenceOutboxJobSql.contains("`status` = 2"));
         assertFalse(evidenceOutboxJobSql.contains("`status` = 1"));
         assertFalse(evidenceOutboxJobSql.contains("arrivalEvidenceRetryJob"));
+    }
+
+    @Test
+    void addsNullableEvidenceCorrelationWithoutDefaultOrInventedBackfill() {
+        assertTrue(evidenceCorrelationUpgradeSql.contains(
+                "ADD COLUMN `acc_correlation_id` varchar(128) NULL"));
+        assertTrue(evidenceCorrelationUpgradeSql.contains(
+                "`acc_sync_status` = 'NOT_PUBLISHED' AND `acc_correlation_id` IS NULL"));
+        assertTrue(evidenceCorrelationUpgradeSql.contains(
+                "`acc_sync_status` <> 'NOT_PUBLISHED' AND `acc_correlation_id` IS NOT NULL"));
+        assertTrue(evidenceCorrelationUpgradeSql.contains(
+                "CHAR_LENGTH(TRIM(`acc_correlation_id`)) BETWEEN 1 AND 128"));
+        assertTrue(evidenceCorrelationUpgradeSql.contains(
+                "`acc_correlation_id` = TRIM(`acc_correlation_id`)"));
+        assertFalse(evidenceCorrelationUpgradeSql.contains(" DEFAULT "));
+        assertFalse(evidenceCorrelationUpgradeSql.contains("UPDATE `imp_delivery_evidence`"));
+    }
+
+    @Test
+    void rejectsExistingPublishedEvidenceBeforeAddingCorrelationColumn() {
+        int guard = evidenceCorrelationUpgradeSql.indexOf(
+                "WHERE `acc_sync_status` <> 'NOT_PUBLISHED'");
+        int signal = evidenceCorrelationUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
+        int alter = evidenceCorrelationUpgradeSql.indexOf("ALTER TABLE `imp_delivery_evidence`");
+        assertTrue(guard >= 0);
+        assertTrue(signal > guard);
+        assertTrue(alter > signal);
     }
 
     private static int occurrences(String source, String token) {

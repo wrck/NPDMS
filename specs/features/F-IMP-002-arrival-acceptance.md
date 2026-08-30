@@ -58,10 +58,10 @@
 ## 4. DeliveryEvidence与ACC-04契约
 
 - F-IMP-002在EXE-01支撑范围内拥有`imp_delivery_evidence/imp_delivery_evidence_revision`，只创建`sourceRequirement=EXE-01`且`sourceObjectType=ARRIVAL_ACCEPTANCE`的签收单证据；不宣称覆盖IMP-01其他实施交付件义务。签收证据通过PLT `FileArtifactApi`引用稳定`FileReference`，数据库不得保存或返回原始附件URL充当权威引用，也不得重复下载或复制二进制。
-- `DeliveryEvidence`根保存证据身份、来源到货批次和当前ACC同步投影；上传或替换草稿时，从同一次PLT正式返回值追加revision并冻结`evidenceId/revision/artifactId/versionNo/referenceKey/FileFactVersion/scopeVersion/hash/sourceRecordId/sourceVersion`，旧revision不可覆盖。`FileFactVersion`只含非负整数`artifactVersion/referenceVersion/availabilityVersion`。项目经理确认批次时，在同一事务冻结当前revision引用并发布出向`ImplementationEvidencePublished`；ACC只建立索引、审核和归档引用，不复制或修改到货事实。
+- `DeliveryEvidence`根保存证据身份、来源到货批次和当前ACC同步投影；上传或替换草稿时，从同一次PLT正式返回值追加revision并冻结`evidenceId/revision/artifactId/versionNo/referenceKey/FileFactVersion/scopeVersion/hash/sourceRecordId/sourceVersion`，旧revision不可覆盖。`FileFactVersion`只含非负整数`artifactVersion/referenceVersion/availabilityVersion`。项目经理确认批次时，在同一事务冻结当前revision引用并发布出向`ImplementationEvidencePublished`；首次发布把规范化命令`correlationId`原子写入根`acc_correlation_id`，此后同一证据发布/重试链必须原样继承且不可改写。ACC只建立索引、审核和归档引用，不复制或修改到货事实。
 - IMP锁定重验文件时固定使用`ownerContext=IMP`、`objectType=ARRIVAL_ACCEPTANCE`、`objectId=来源到货批次ID`、`purposeCode=RECEIPT`和`requiredAction=READ`；这些策略字段不得由客户端传入。不得先读取当前PLT事实再把当前值冒充草稿冻结期望。
 - 出向事件成功进入发送队列后，当前revision投影为`PUBLISHED_PENDING_ACC`。`ArtifactAccepted`和`ArtifactArchived`是ACC→IMP入向回执，必须回显`evidenceId/evidenceRevision/artifactId/fileVersion/reviewOrArchiveRecordId`。IMP按`eventId` Inbox幂等并按`evidenceId + evidenceRevision`拒绝旧序/错配回执：Accepted把当前revision推进为`ACCEPTED_PENDING_ARCHIVE`，Archived只允许从对应已接受revision推进为`ARCHIVED`。
-- 发布失败、ACC暂不可用或Accepted回执超时/错配时，IMP转为`ARCHIVE_PENDING_RETRY`并按同一`evidenceId + revision`重发。已收到匹配Accepted后若Archived回执超时/丢失，则从`ACCEPTED_PENDING_ARCHIVE`转为`ARCHIVE_ACK_PENDING_RETRY`，保留已接受事实并重发同一revision；匹配Archived可从上述等待态或归档回执重试态进入ARCHIVED，重复Accepted只作幂等确认且不退回发布重试。任何重试均不回滚签收真值、不重复revision，也不得提前返回“已归档”；旧revision迟到回执只记审计。
+- 发布失败、ACC暂不可用或Accepted回执超时/错配时，IMP转为`ARCHIVE_PENDING_RETRY`并按同一`evidenceId + revision`重发。已收到匹配Accepted后若Archived回执超时/丢失，则从`ACCEPTED_PENDING_ARCHIVE`转为`ARCHIVE_ACK_PENDING_RETRY`，保留已接受事实并重发同一revision；所有重发使用新`eventId`和服务端本次重试时间，但必须继承首次`acc_correlation_id`。匹配Archived可从上述等待态或归档回执重试态进入ARCHIVED，重复Accepted只作幂等确认且不退回发布重试。任何重试均不回滚签收真值、不重复revision，也不得提前返回“已归档”；旧revision迟到回执只记审计。
 - 附件上传、格式/病毒校验或FileReference创建失败时禁止最终确认；该失败与最终确认后ACC索引失败严格区分。
 
 ## 5. API与公开事实契约

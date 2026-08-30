@@ -78,6 +78,13 @@
       "name": "imp_delivery_evidence",
       "purpose": "EXE-01签收单证据身份、来源批次和ACC同步当前投影",
       "requiredFields": ["tenant_id", "project_id", "source_requirement", "source_object_type", "source_object_id", "current_revision_no", "acc_sync_status", "version"],
+      "nullableUntilFirstPublication": ["acc_correlation_id"],
+      "publicationCorrelationPolicy": {
+        "source": "NORMALIZED_ARRIVAL_CONFIRM_COMMAND_CORRELATION_ID",
+        "firstPublication": "NOT_PUBLISHED_TO_PUBLISHED_PENDING_ACC_WRITES_ROOT_AND_OUTBOUND_MESSAGE_ATOMICALLY",
+        "afterFirstPublication": "NON_NULL_IMMUTABLE_FOR_EVIDENCE_PUBLICATION_CHAIN",
+        "retry": "INHERIT_ACC_CORRELATION_ID_VERBATIM; NEVER_DERIVE_FROM_EVIDENCE_ID_EVENT_ID_LOG_OR_CURRENT_OWNER_FACT"
+      },
       "scopeGuard": "SOURCE_REQUIREMENT_EXE_01_AND_SOURCE_OBJECT_TYPE_ARRIVAL_ACCEPTANCE_ONLY",
       "uniqueKeys": [["tenant_id", "source_requirement", "source_object_type", "source_object_id"]]
     },
@@ -109,6 +116,7 @@
     "inboundEvents": ["ArtifactAccepted", "ArtifactArchived"],
     "inboxIdempotencyKey": "eventId",
     "correlationKey": ["tenantId", "evidenceId", "evidenceRevision"],
+    "correlationIdPolicy": "FIRST_PUBLICATION_PERSISTS_NORMALIZED_COMMAND_CORRELATION_ID_TO_IMP_DELIVERY_EVIDENCE; ALL_RETRIES_INHERIT_VERBATIM",
     "archiveStatuses": ["NOT_PUBLISHED", "PUBLISHED_PENDING_ACC", "ARCHIVE_PENDING_RETRY", "ACCEPTED_PENDING_ARCHIVE", "ARCHIVE_ACK_PENDING_RETRY", "ARCHIVED"],
     "statusTransitions": {
       "OUTBOX_QUEUED": "NOT_PUBLISHED->PUBLISHED_PENDING_ACC",
