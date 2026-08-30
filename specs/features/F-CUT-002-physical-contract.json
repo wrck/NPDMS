@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-002",
+  "status": "REVIEW_REQUIRED",
+  "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
+  "ownerContext": "CUT",
+  "hardDependencies": [
+    "IMP:ImplementationReadinessApi",
+    "PROJ:ProjectScopeApi.ACTION_EDIT",
+    "AST:DeviceScopeFactApi",
+    "PLT:PlatformMigrationEvidenceApi"
+  ],
+  "enums": {
+    "taskOrigin": ["NEW_PLATFORM", "LEGACY_FORWARD"],
+    "taskStatus": ["GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "LEGACY_UNKNOWN"],
+    "manualGrade": ["A", "B", "C", "D"]
+  },
+  "tables": {
+    "cut_task": {
+      "policy": "NEW_FORWARD_OWNER_TABLE",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "project_id": "BIGINT NOT NULL",
+        "task_no": "VARCHAR(64) NOT NULL",
+        "task_name": "VARCHAR(128) NOT NULL",
+        "cutover_type": "VARCHAR(32) NOT NULL",
+        "network_mode": "VARCHAR(32) NULL",
+        "scheduled_time": "DATETIME(3) NULL",
+        "task_origin": "VARCHAR(32) NOT NULL",
+        "task_status": "VARCHAR(32) NOT NULL",
+        "owner_user_id": "BIGINT NULL",
+        "customer_id": "BIGINT NULL",
+        "implementation_readiness_snapshot_id": "BIGINT NULL",
+        "implementation_readiness_snapshot_version": "BIGINT NULL",
+        "project_scope_version": "BIGINT NULL",
+        "manual_grade": "VARCHAR(8) NULL",
+        "current_assessment_id": "BIGINT NULL",
+        "legacy_task_id": "BIGINT NULL",
+        "legacy_status_value": "TINYINT NULL",
+        "legacy_source_version": "INT NULL",
+        "legacy_mapping_version": "VARCHAR(64) NULL",
+        "version": "INT NOT NULL",
+        "creator": "VARCHAR(64) NOT NULL",
+        "create_time": "DATETIME(3) NOT NULL",
+        "updater": "VARCHAR(64) NOT NULL",
+        "update_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT NOT NULL DEFAULT b'0'"
+      },
+      "identity": ["id", "tenant_id", "project_id", "task_no"],
+      "requiredNewPlatformFacts": [
+        "owner_user_id",
+        "customer_id",
+        "implementation_readiness_snapshot_id",
+        "implementation_readiness_snapshot_version",
+        "project_scope_version",
+        "task_status",
+        "task_origin",
+        "version"
+      ],
+      "legacyForwardFields": [
+        "legacy_task_id",
+        "legacy_status_value",
+        "legacy_source_version",
+        "legacy_mapping_version"
+      ],
+      "uniqueKeys": [
+        ["tenant_id", "project_id", "task_no"],
+        ["tenant_id", "legacy_task_id"]
+      ],
+      "originUnion": {
+        "NEW_PLATFORM": "legacy_task_id, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present and task_status is not LEGACY_UNKNOWN",
+        "LEGACY_FORWARD": "legacy_task_id, legacy_status_value, legacy_source_version and legacy_mapping_version are present; task_status is LEGACY_UNKNOWN; owner, customer, readiness snapshot and project-scope version may be null and no business command is allowed"
+      },
+      "checks": [
+        "version >= 0",
+        "task_origin IN taskOrigin",
+        "task_status IN taskStatus",
+        "manual_grade IS NULL OR manual_grade IN manualGrade",
+        "task_origin and legacy fields satisfy originUnion"
+      ]
+    },
+    "cut_task_device_scope": {
+      "policy": "NEW_FORWARD_SUPPORT_TABLE",
+      "legacyRule": "LEGACY_FORWARD tasks create no device-scope rows because pms_cut_task has no stable device identity or assignment version",
+      "activeUniquePolicy": "NEW_PLATFORM active rows use UNIQUE(tenant_id, project_id, device_id, active_marker)"
+    },
+    "cut_task_stage_history": {
+      "policy": "NEW_ONLY_SUPPORT_TABLE",
+      "legacyRule": "never synthesize P1-P6 history from pms_cut_task.status or timestamps"
+    },
+    "cut_assessment": {
+      "policy": "NEW_ONLY_OWNER_TABLE",
+      "legacyRule": "pms_cut_risk and pms_cut_task.risk_level never create questionnaire answers, an assessment revision or a manual grade"
+    }
+  },
+  "migration": {
+    "source": "pms_cut_task",
+    "target": "cut_task",
+    "policy": "CURRENT_FORWARD",
+    "mappingVersion": "F-CUT-002-PMS-CUT-TASK-V1",
+    "qualificationOrder": [
+      "lock and read one source row by tenant_id and id without changing the legacy row",
+      "deleted=b'1' => RETAIN_LEGACY_DELETED and create no target row",
+      "require positive id, tenant_id and project_id; normalized code length 1..64; normalized name length 1..128; nonnegative version; valid create_time and update_time",
+      "resolve project_id to the same trusted tenant through the PROJ Owner; missing, cross-tenant or unavailable Owner fact fails closed and creates no target row",
+      "require cutover_type in REPLACE/ACCESS/UPGRADE/DRILL/CONFIG and network_mode null or in VSM/DUAL/CLUSTER/SINGLE",
+      "require legacy status in 0..8; any other value is SOURCE_DATA_INVALID and creates no target row",
+      "preflight target uniqueness by tenant_id+project_id+task_no and tenant_id+legacy_task_id before insert"
+    ],
+    "fieldMappings": [
+      {"source": "id", "target": "legacy_task_id", "rule": "direct positive Long; target id remains a new CUT Owner identity"},
+      {"source": "tenant_id", "target": "tenant_id", "rule": "direct after trusted tenant validation"},
+      {"source": "project_id", "target": "project_id", "rule": "direct only after same-tenant PROJ resolution"},
+      {"source": "code", "target": "task_no", "rule": "trim; reject blank or length greater than 64; never generate a replacement code"},
+      {"source": "name", "target": "task_name", "rule": "trim; reject blank or length greater than 128"},
+      {"source": "cutover_type", "target": "cutover_type", "rule": "direct closed-enum mapping"},
+      {"source": "network_mode", "target": "network_mode", "rule": "null or direct closed-enum mapping"},
+      {"source": "scheduled_time", "target": "scheduled_time", "rule": "direct nullable timestamp"},
+      {"source": "status", "target": "legacy_status_value", "rule": "preserve the original 0..8 integer"},
+      {"source": "status", "target": "task_status", "rule": "always LEGACY_UNKNOWN; no legacy value maps to GRADE_CONFIRMING, SURVEYING or PLAN_DRAFTING"},
+      {"source": "version", "target": "legacy_source_version", "rule": "preserve nonnegative value; target optimistic-lock version starts at 0"},
+      {"source": "constant LEGACY_FORWARD", "target": "task_origin", "rule": "server-owned migration constant"},
+      {"source": "constant F-CUT-002-PMS-CUT-TASK-V1", "target": "legacy_mapping_version", "rule": "server-owned mapping contract version"},
+      {"source": "constant 0", "target": "version", "rule": "initial target optimistic-lock version; never copied from the legacy version"},
+      {"source": "creator/create_time/updater/update_time", "target": "creator/create_time/updater/update_time", "rule": "preserve valid audit facts"}
+    ],
+    "forbiddenMappings": [
+      "source_type/source_id never prove the new trusted source identity",
+      "risk_level never becomes manual_grade",
+      "approval_opinion and remark never become questionnaire answers, readiness facts or stage history",
+      "actual_time never proves P6 closure",
+      "no customer, device, owner, IMP readiness snapshot, project scope version, assessment or stage history is inferred from defaults, test seeds, names or timestamps"
+    ],
+    "legacyStatusPolicy": {
+      "0": "LEGACY_UNKNOWN_READ_ONLY",
+      "1": "LEGACY_UNKNOWN_READ_ONLY",
+      "2": "LEGACY_UNKNOWN_READ_ONLY",
+      "3": "LEGACY_UNKNOWN_READ_ONLY",
+      "4": "LEGACY_UNKNOWN_READ_ONLY",
+      "5": "LEGACY_UNKNOWN_READ_ONLY",
+      "6": "LEGACY_UNKNOWN_READ_ONLY",
+      "7": "LEGACY_UNKNOWN_READ_ONLY",
+      "8": "LEGACY_UNKNOWN_READ_ONLY",
+      "commandPolicy": "LEGACY_FORWARD rows return no allowedActions and cannot be continued, assessed, corrected, deleted or used as an active-device blocker in the new F-CUT-002 path"
+    },
+    "dispositions": {
+      "MIGRATED_LEGACY_READ_ONLY": "insert one LEGACY_FORWARD cut_task identity projection and retain the source row unchanged",
+      "RETAIN_LEGACY_DELETED": "retain the soft-deleted source row only and create no target row",
+      "SOURCE_DATA_INVALID": "retain the source row, create deterministic migration issue evidence and create no target row",
+      "OWNER_FACT_UNAVAILABLE_OR_MISMATCH": "roll back this target insert, retain the source row and record a retryable or reconciliation issue without manufacturing facts",
+      "TARGET_IDENTITY_CONFLICT": "retain the source row, record a permanent reconciliation issue and never overwrite an existing target row"
+    },
+    "atomicity": "one source row, its external-key/migration issue evidence and optional target insert commit or roll back together; pms_cut_task is never updated, deleted or dual-written",
+    "evidenceOwner": "all source identity, target mapping and issue outcomes are written through PLT PlatformMigrationEvidenceApi; CUT never writes PLT tables directly",
+    "implementationGate": "use the actual next free Flyway version only after this contract passes review; migration tests must cover each disposition and prove legacy rows cannot enter a writable F-CUT-002 state"
+  }
+}

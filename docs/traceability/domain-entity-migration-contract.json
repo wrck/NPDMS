@@ -6,7 +6,7 @@
   "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
-    "allBindingCount": 40,
+    "allBindingCount": 47,
     "v17BindingCount": 18,
     "v17LegacyBindingCount": 14,
     "v17LegacySourceTableCount": 8,
@@ -2176,9 +2176,61 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_task",
           "disposition": "CURRENT_FORWARD",
-          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
-          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
-          "gate": "NEXT_FLYWAY",
+          "transform": "map only qualified legacy identity, project, task number/name, type/network, scheduled time and audit facts into a LEGACY_FORWARD/LEGACY_UNKNOWN read-only cut_task projection; preserve legacy id/status/mapping version; never infer device scope, readiness snapshot, manual grade, assessment, stage history or closure; invalid/deleted/unresolved/conflicting rows remain legacy with explicit disposition",
+          "mappingStatus": "FEATURE_MAPPING_DEFINED",
+          "gate": "F-CUT-002_MIGRATION_CONTRACT_REVIEW",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pms_cut_task.id",
+              "targetField": "cut_task.legacy_task_id",
+              "transform": "direct positive legacy identity; target id remains CUT-generated",
+              "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"
+            },
+            {
+              "sourceField": "pms_cut_task.tenant_id|project_id",
+              "targetField": "cut_task.tenant_id|project_id",
+              "transform": "direct only after same-tenant PROJ resolution",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            },
+            {
+              "sourceField": "pms_cut_task.code|name",
+              "targetField": "cut_task.task_no|task_name",
+              "transform": "trim with length and uniqueness validation; never generate replacements",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            },
+            {
+              "sourceField": "pms_cut_task.cutover_type|network_mode",
+              "targetField": "cut_task.cutover_type|network_mode",
+              "transform": "closed-enum mapping only",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            },
+            {
+              "sourceField": "pms_cut_task.scheduled_time",
+              "targetField": "cut_task.scheduled_time",
+              "transform": "direct nullable timestamp",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            },
+            {
+              "sourceField": "pms_cut_task.status",
+              "targetField": "cut_task.legacy_status_value|task_status",
+              "transform": "preserve 0..8 and set LEGACY_UNKNOWN; no new workflow-state inference",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            },
+            {
+              "sourceField": "pms_cut_task.version",
+              "targetField": "cut_task.legacy_source_version",
+              "transform": "preserve nonnegative source version; target version starts at zero",
+              "evidenceRef": "specs/features/F-CUT-002-physical-contract.json#migration"
+            }
+          ],
+          "statusMapping": {
+            "policy": "ALL_0_TO_8_TO_LEGACY_UNKNOWN_READ_ONLY",
+            "sourceFields": [
+              "pms_cut_task.status"
+            ],
+            "unknown": "MIGRATION_ISSUE_AND_RETAIN_LEGACY"
+          },
+          "terminalDisposition": "INSERT_LEGACY_FORWARD_READ_ONLY_ONLY_AFTER_IDENTITY_PROJECT_ENUM_AND_AUDIT_VALIDATE;DELETED_INVALID_UNRESOLVED_OR_CONFLICTING_ROWS_RETAIN_LEGACY_WITH_EXPLICIT_DISPOSITION",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"
         }
       ]

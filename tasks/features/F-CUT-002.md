@@ -22,13 +22,14 @@
 - 已明确来源幂等、活动设备范围唯一性、IMP快照重验、权限、API、数据和UI边界。
 - 已完成本Feature的后端、前端、配置、运行数据/迁移、状态机、权限和测试复用审计；结论为`CURRENT_FORWARD / COPY_THEN_ENHANCE / PRESERVE_LEGACY`。
 - 已纠正CUT物理Owner为`cut_task/cut_assessment`，并将`CutoverAssessment`与旧`pms_cut_risk`解耦为`NEW_ONLY`。
+- 已形成`pms_cut_task -> cut_task`字段、旧状态只读化、完整性资格和不可迁行处置的机器合同候选；当前状态`REVIEW_REQUIRED`，待独立迁移Contract Gate。
 - ITR/项目事件Producer、P3以后、V2/V3、自动指派和通用工单动作均排除。
 
 ## 阻断
 
 - F-IMP-001无生产Provider；EXE-01～04无权威完成事实。
-- AST现有SN校验接口不足以冻结稳定设备ID和归属版本，且EQP-01当前无任务记录可派生Implementation Done。
-- PROJ项目scope action、AST设备范围契约及`pms_cut_task -> cut_task`完整映射尚未通过正式评审。
+- AST的`DeviceScopeFactApi`公开合同、Owner Provider及IMP消费适配已分别通过独立Gate；该项不再是F-CUT-002规格阻断，但生产装配与真实依赖闭环仍按各Owner任务状态判定。
+- F-IMP-001及EXE-01～04完成事实依赖尚未达到本Feature Ready输入；`pms_cut_task -> cut_task`机器合同候选尚未通过独立评审。
 
 ## 验收分层
 
