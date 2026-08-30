@@ -54,7 +54,7 @@
 - Task 8实现候选已形成：新增八操作严格请求/响应VO、受信HTTP上下文边界及`/api/v1/pms/arrival-acceptances` Controller映射，五项权限、If-Match/幂等Header、判别联合、Long线协议和局部错误响应均按已通过REST机器契约实现。Controller没有`@RestController/@Component`且无生产Bean，仅显式测试组装；聚焦回归74项通过。当前最近Gate为Task 8独立Code Review／聚焦测试，生产激活继续由Task 12阻断。
 - 锁定提交`fb69dbcc`的Task 8首轮独立Code Review为`NO-GO`：须以结构化机器错误贯通Service/Port到Controller并用真实MockMvc验证400/403/404/409/422/503；严格请求须在反序列化前同时拒绝额外键与缺失键。`FileFactVersion`请求三轴按正式PLT公开契约和Feature Spec的非负整数语义收敛为`NON_NEGATIVE_INTEGER`，不修改PLT模块。
 - Task 8最小整改候选已形成：移除无生产抛出点的HTTP专用异常，使用HTTP无关的结构化机器错误贯通应用服务、PROJ适配和Controller；真实MockMvc已覆盖缺Header、缺键、畸形JSON、403、404、409、422、503及精确恢复数据；反序列化前按各判别联合校验精确键。含Owner适配回归的聚焦套件83项通过，当前仍为`CODE_REVIEW_REQUIRED`。
-- 锁定提交`b63b5a0c`的Task 8整改复审确认严格请求边界已关闭，但错误合同仍因聚合版本类别漏登记及submit/confirm/PATCH裸`IllegalStateException`而`NO-GO`。当前最小整改已补齐封闭类别，并将不可见、陈旧聚合版本、非法状态和证据缺失从实际Service/状态机贯通为404/409/422；真实Service→Controller测试及Task 8聚焦回归84项通过，最近Gate仍为该A项独立Code Review／真实HTTP复审。
+- 锁定提交`b63b5a0c`的Task 8整改复审曾因聚合版本类别漏登记及submit/confirm/PATCH裸`IllegalStateException`而`NO-GO`；`d71ced40`已补齐封闭类别，并将不可见、陈旧聚合版本、非法状态和证据缺失从实际Service/状态机贯通为404/409/422。独立复审确认真实Service→Controller路径及聚焦回归84项通过，Task 8 Code Review Gate为`PASS / GO`；最近下一Gate为Task 12正式COM/AST Adapter、唯一生产Service/Controller Bean装配及其独立审查。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
