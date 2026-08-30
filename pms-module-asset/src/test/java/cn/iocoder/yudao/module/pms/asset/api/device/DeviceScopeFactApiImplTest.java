@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeRevalidationR
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +30,13 @@ import static org.mockito.Mockito.when;
 class DeviceScopeFactApiImplTest {
 
     @Mock private DeviceMapper deviceMapper;
-    @InjectMocks private DeviceScopeFactApiImpl api;
+    @InjectMocks private DeviceScopeFactTransactionExecutor transactions;
+    private DeviceScopeFactApi api;
+
+    @BeforeEach
+    void setUpApi() {
+        api = new DeviceScopeFactApiImpl(transactions);
+    }
 
     @AfterEach
     void clearTenant() {

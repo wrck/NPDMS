@@ -14,7 +14,7 @@
 ## 当前最小工作单元
 
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
-- AST物理Owner生产Provider候选已形成：场景化批量解析、按deviceId升序`FOR UPDATE`、受信租户/状态/项目资格、SN身份不变量和版本`STALE`均已实现；非IT聚焦测试15项及隔离MySQL 8.4测试3项通过。当前最近Gate为Provider独立Code Review／真实MySQL锁与并发测试复审；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
+- AST物理Owner生产Provider候选已形成：场景化批量解析、按deviceId升序`FOR UPDATE`、受信租户/状态/项目资格、SN身份不变量和版本`STALE`均已实现；事务执行Bean保持`REQUIRED`并由公共Facade统一转换事务开始、执行和自有提交失败。非IT聚焦测试16项及隔离MySQL 8.4测试3项通过。当前最近Gate为Provider独立Code Review／真实MySQL锁与并发测试最小整改复审；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成

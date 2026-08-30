@@ -233,7 +233,8 @@ class DeviceScopeFactApiMySqlTest {
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
-            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, DeviceScopeFactApiImpl.class})
+            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, DeviceScopeFactApiImpl.class,
+            DeviceScopeFactTransactionExecutor.class})
     static class TestApplication {
 
         @Bean
