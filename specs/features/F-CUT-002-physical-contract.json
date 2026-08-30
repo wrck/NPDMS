@@ -13,9 +13,11 @@
     "nextGate": "CUSTOMER_SERVICE_LEVEL_FACT_API_PUBLIC_MACHINE_CONTRACT_REVIEW"
   },
   "customerServiceLevelFactContractGate": {
-    "status": "REVIEW_REQUIRED",
+    "status": "PASS",
+    "reviewedCommit": "64e3dbbd",
     "asset": "specs/features/F-CUT-002-customer-service-level-fact-contract.json",
-    "providerImplementation": "NOT_STARTED"
+    "providerImplementation": "NOT_STARTED",
+    "nextGate": "F_CUT_002_FEATURE_READY_REVIEW"
   },
   "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
   "ownerContext": "CUT",

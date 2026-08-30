@@ -384,7 +384,7 @@
   "providerContracts": {
     "ImplementationReadinessApi": {
       "owner": "IMP",
-      "gate": "PUBLIC_MACHINE_CONTRACT_REQUIRED_BEFORE_F_CUT_002_FEATURE_READY",
+      "gate": "PASS_38FC0D9D",
       "operations": ["inspect", "lockAndRevalidate"],
       "requiredInput": "trusted tenant + projectId + exact snapshotId/version + exact deviceId/projectAssignmentVersion vector",
       "requiredOutput": "READY|NOT_READY|STALE + snapshot identity/version + project/device/source watermarks + unmetCodes",
@@ -392,7 +392,7 @@
     },
     "CustomerServiceLevelFactApi": {
       "owner": "CUS",
-      "gate": "PUBLIC_MACHINE_CONTRACT_REQUIRED_BEFORE_F_CUT_002_FEATURE_READY",
+      "gate": "PASS_64E3DBBD",
       "operations": ["inspectCurrent", "lockAndRevalidate"],
       "machineContract": "specs/features/F-CUT-002-customer-service-level-fact-contract.json",
       "requiredInput": "trusted tenant + customerId; revalidation additionally carries the complete previously inspected AVAILABLE or NOT_CONFIGURED fact",
