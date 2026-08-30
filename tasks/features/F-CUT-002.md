@@ -10,7 +10,8 @@
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`
-> 硬依赖：`F-IMP-001`、`F-PROJ-003`、`T-FIMP001-AST-01`
+> 外部硬依赖：`F-IMP-001`、`T-FIMP001-AST-01`、CUS `CustomerServiceLevelFactApi`生产Provider
+> 既有复用基线：`F-PROJ-003`已交付的`ProjectScopeApi`；本Task 1自行交付`ProjectCutoverContextFactApi`唯一PROJ Provider
 
 ## 当前最小工作单元
 
@@ -41,4 +42,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - 真实MySQL和浏览器正向验收必须使用IMP生产Provider和AST权威设备事实；替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`e68ad4e0`；Gate=Technical Plan REVIEW_REQUIRED；已通过=Feature Ready、IMP/CUS/ProjectCutoverContext合同；阻塞=计划待复审；下一步=提交合同GO回写并复审同一计划，未放行前停止实现。
+> 检查点：基线=`f04650b6`；Gate=ProjectCutoverContext合同整改复审；已通过=Feature Ready及IMP/CUS合同；阻塞=完整Fact重验与Owner长度A/B待GO；下一步=提交A/B规格整改并复审，GO前停止实现。

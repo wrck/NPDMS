@@ -20,13 +20,14 @@
 - 实现用户 REST、自建命令、列表/详情、评估暂存/提交和内部 `CutoverTaskIntakeApi` Provider；不实现 ITR 连接器、项目事件 Producer 或第三方 HTTP。
 - 不实现 P3 采集、P4 方案、P5/P6、自动判级、指派、取消、暂停、转派或 SLA。
 - 不修改旧 `CutTaskController/CutTaskService/pms_cut_task`、旧 `cut-task` 页面及其菜单；新路径使用 `/api/v1/pms/cutover-tasks` 和 `pms:cutover-task:*`。
-- 不实现 IMP、AST、CUS、PROJ Owner；不直接访问这些 Context 的 Service、Mapper、DO 或业务表。
+- 不实现IMP、AST、CUS Owner；本次已批准的PROJ `ProjectCutoverContextFactApi`合同及唯一Provider是Task 1的明确例外交付物。CUT仍不得访问这些Context的Service、Mapper、DO或业务表。
 - 不修改 Yudao 基础模块。Flyway 只用实施合入时的下一连续未占用版本，本文不预约 V146。
 
 ## 2. 模块与文件责任
 
 | 责任 | 主要位置 | 处理 |
 |---|---|---|
+| PROJ割接上下文公共Fact | `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/`、`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/ProjectCutoverContextFactApiImpl.java` | 按已GO合同实现API/DTO/公共失败和唯一Provider；实现后以同包直接正向测试证明inspect及精确版本lockAndRevalidate |
 | CUT 公共入向契约 | 新建 `pms-module-cutover-api`，并同步根 `pom.xml`、`pms-module-cutover/pom.xml` | 放置 `CutoverTaskIntakeApi`、严格判别 Command/Result；不放 Producer、HTTP 或 Owner 实现 |
 | CUT 聚合与命令 | `pms-module-cutover/src/main/java/.../taskv2/` | 新增领域规则、应用服务、Owner 消费端口、事实编排和错误分类；不复用旧任务状态机 |
 | CUT 持久化 | `.../dal/dataobject/taskv2/`、`.../dal/mysql/taskv2/`、`src/main/resources/mapper/taskv2/` | 四张新表各自 DO/Mapper；联表、锁定、集合和 CAS 使用场景化 Query + XML |
@@ -85,7 +86,7 @@
 
 **Produces：** 可编译、可由受控测试装配执行的完整 CUT 自建与 P2 提交内核；生产代码不含 Fake，未具备的 ProjectContext Provider 不以跨表读取替代。
 
-- [ ] 在`ProjectCutoverContextFactApi`公共合同独立GO后，由PROJ在既有API模块/业务模块实现唯一Provider；建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，补CUT对platform/project/asset/customer/engineering公共API的单向依赖。
+- [ ] 在PROJ既有API模块/业务模块实现已GO的`ProjectCutoverContextFactApi`合同与唯一Provider；实现完成后做inspect及精确版本lockAndRevalidate直接正向验证。随后建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，补CUT对platform/project/asset/customer/engineering公共API的单向依赖。
 - [ ] 落四张新表的 DO、场景化 Query、Mapper/XML、状态规则和聚合应用服务；使用数据库唯一键与 CAS 保证来源、活动设备、当前评估和版本唯一。
 - [ ] 实现 resolve-create-context、list、create、detail、save-assessment、submit-assessment 的应用服务与严格 Wire/Header/错误模型；Controller 只在 Task 2 生产 Owner 接通后注册。
 - [ ] 实现同一自建编排供 SELF_CREATED 与内部 ITR/PROJECT_EVENT Provider 复用；内部来源只接受受信 engineer/source identity，不增加 Producer。
@@ -122,7 +123,7 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 
 ## 7. 风险与依赖
 
-- **生产 Provider 未完成：** 只阻断 Task 2 最终真实浏览器和 Implementation Done，不授权 CUT 复制 Owner；继续跟踪 `F-IMP-001`、`F-PROJ-003`、`T-FIMP001-AST-01`。
+- **生产Provider未完成：** PROJ `ProjectCutoverContextFactApi` Provider由本计划Task 1交付，不再等待F-PROJ-003；外部只继续跟踪IMP、AST和CUS正式Provider。缺任一Provider只阻断Task 2真实浏览器和Implementation Done，不授权CUT复制Owner。
 - **共享 Flyway 竞争：** 实施落迁移前重新读取最高版本并取连续空闲号；若并行分支先占用，只前向改号，不改已执行迁移。
 - **旧任务事实不完整：** 严格按已批准 CURRENT_FORWARD 分类；无法无损映射只留 issue，不为了提高迁移率补默认值。
 - **旧新页面并存：** 菜单、路由、权限、表和写服务完全分离；项目详情旧入口不在本 Feature 中重定向。
