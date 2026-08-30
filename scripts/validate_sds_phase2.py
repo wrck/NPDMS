@@ -819,6 +819,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "expectedResultVersion",
             "invalidation_reason_code",
             "失效事件乱序",
+            "旧RECORDED重试",
             "pms:acceptance:satisfaction:query/manage/collect/export/download",
             "SatisfactionRemediationFact",
             "D-SAT-REPORT",
@@ -828,6 +829,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "SatisfactionResultOutboxDeliveryJob",
             "T-SAT-SURVEY",
             "taskRevisionNo",
+            "RECORDED置CURRENT前按Result ID/version重验Owner",
         ),
         "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE"),
     }
