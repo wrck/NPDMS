@@ -222,6 +222,8 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | ACC模板解析零匹配、并列最高优先级或发布版本漂移 | BUSINESS_GATE / VERSION_CONFLICT；项目创建或任务触发整体失败，不选默认模板 |
 | 业务时点Owner未知、ProjectTask/WorkBinding身份或触发版本不一致 | DEPENDENCY_UNAVAILABLE / VERSION_CONFLICT；Task、Questionnaire和Todo零写入 |
 | 访问令牌缺失、过期、撤销、已消费或Questionnaire不匹配 | BUSINESS_GATE；不泄露问卷/项目存在性，不写文件、答卷或结果 |
+| 同grant+requestId的Response预留同摘要重放/异摘要，或最终提交responseId不等于预留回执 | 返回原responseId / IDEMPOTENCY_CONFLICT；不得生成第二ID，最终提交不得自行分配新ID |
+| grant creator不是正数正式用户，或grant/Questionnaire/Task/项目范围、文件槽位、Artifact/Version/Reference任一重验不一致 | IDENTITY/DEPENDENCY；在对象存储或Response/ResponseFile写入前失败，客户端文件Fact不得直接落库 |
 | 答卷含未知/重复题目、未知/重复选项、类型错误、选择数量越界、文本长度非法或客户端计分字段 | BUSINESS_GATE；在Response、文件关系和Result写入前拒绝，零业务写入 |
 | 同questionnaire+requestId同载荷重放/异载荷 | 返回首次Result / IDEMPOTENCY_CONFLICT；不得追加第二Response或Result |
 | 结构合法但必答缺失、签字无效、附件范围不一致或最终舍入分数未达冻结阈值 | 保存不可变Response并追加失败Result；未答计分题按0，必答/签字门禁强制passed=false；不得人工改分或将Todo完成当通过 |

@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：无；按已GO可配置问卷契约恢复Task 1 Step 3<br>
+> 当前阻断：受控grant上传Response身份与匿名审计契约待独立复审；Task 1 Step 3保持进行中<br>
 > 当前任务：`Task 1：共享契约、V133与后端纵向闭环`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`4ecc9d3b`；当前Gate=Implementation Task 1 Step 3；已通过=PRD010、SDS计分补充GO；阻塞=无；下一步=同步Feature/机器契约/计划后实现配置校验、答卷验证与确定性计分，Task 1未完成前不进入Task 2。
+> 检查点：基线=`e83cda3f`；当前Gate=Implementation Task 1 Step 3 grant上传契约复审；已通过=计分与Result生成路径；阻塞=Response预留/文件重验待审；下一步=GO后实现grant上传，不进入Task 2。

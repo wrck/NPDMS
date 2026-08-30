@@ -127,27 +127,43 @@ public record SatisfactionResultFact(
 ```java
 public record BusinessGrantUploadInitializeCommand(
         Long tenantId, Long grantId, Integer grantVersion,
-        Long responseId, String policyKey, String operationId,
+        String requestId, Long responseId, String policyKey, String operationId,
         String fileName, String contentType, Long fileSize) {}
 
 public record BusinessGrantUploadInitialized(
+        Long responseId, String fileSlotKey, Integer fileSequence,
         Long artifactId, Long sessionId, Instant expiresAt) {}
 
 public record BusinessGrantUploadCompleteCommand(
         Long tenantId, Long grantId, Integer grantVersion,
-        Long responseId, String policyKey, String operationId,
-        Long sessionId, byte[] content) {}
+        String requestId, Long responseId, String policyKey, String operationId,
+        String fileSlotKey, Integer fileSequence, Long sessionId, byte[] content) {}
+
+public record BusinessGrantFileHandle(
+        String policyKey, String fileSlotKey, Integer fileSequence,
+        Long artifactId, Integer versionNo, String referenceKey,
+        Integer artifactVersion, Integer referenceVersion,
+        Integer availabilityVersion, Long scopeVersion, String sha256) {}
+
+public record BusinessGrantFilesRevalidationCommand(
+        Long tenantId, Long grantId, Integer grantVersion,
+        String requestId, Long responseId, List<BusinessGrantFileHandle> files) {}
 
 BusinessGrantUploadInitialized initializeBusinessGrantUpload(
         BusinessGrantUploadInitializeCommand command);
 
 FileArtifactVersionFact completeBusinessGrantUpload(
         BusinessGrantUploadCompleteCommand command);
+
+List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
+        BusinessGrantFilesRevalidationCommand command);
 ```
 
-- 命令固定携带`tenantId/grantId/grantVersion/responseId/policyKey/operationId`和安全文件元数据；不携带登录用户，不伪造Web上下文。
-- ACC先锁定ACTIVE grant和预分配Response，再调用PLT；PLT策略Provider只接受`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`，继续执行大小、类型、扫描、版本和审计。
-- 完成返回现有公共`FileArtifactVersionFact`；ACC只保存`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，`sha256`精确落`file_hash`。
+- `requestId`同时是最终Response提交幂等键和Response预留操作键。ACC在固定`PlatformCommandExecutionApi`作用域`ACC_SATISFACTION_RESPONSE_RESERVATION`中，以grant创建人作为服务端actor、`tenant+grantId+grantVersion+questionnaireId+requestId`为规范化摘要，一次性生成并持久化`responseId`；同键同摘要重放返回原ID，异摘要冲突。initialize响应返回该ID，complete和最终提交必须重放并精确匹配；`SatisfactionResponseSubmissionService`删除自行`IdWorker.getId()`路径。
+- 文件`operationId`只标识单个上传会话。PLT在初始化时生成并返回稳定`fileSlotKey/fileSequence`，同operation重放返回同槽位；客户端不得自造槽位。命令不携带登录用户，不伪造Web上下文。
+- 通用`FileBusinessObjectPolicyQuery/FileBusinessObjectPolicyRevalidationQuery`保持不变。新增`BusinessGrantUploadInitializePolicyQuery/BusinessGrantUploadCompletePolicyQuery/BusinessGrantFileRevalidationQuery`及`BusinessGrantUploadPolicyFact`，Provider对应方法默认失败关闭；Registry按`ACC/SATISFACTION_RESPONSE`唯一分派。ACC Provider按grant→Questionnaire→Task锁序验证tenant、grant版本/ACTIVE/有效期、requestId/responseId预留、用途/槽位和`ProjectScopeApi(PROJECT_EDIT)`；Fact冻结`grantIssuerUserId=positive(grant.creator)`及scopeVersion，不使用updater或客户端值。
+- PLT仍执行大小、类型、扫描、存储、Artifact/Version/Reference和补偿。完成返回公共文件Fact；最终提交把客户端列表只作为句柄传给`lockAndRevalidateBusinessGrantFiles`，仅持久化PLT返回且与grant/version/response/policy/scope/slot精确匹配的规范Fact。ACC只保存`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，`sha256`精确落`file_hash`。
+- PLT仅把`grantIssuerUserId`作为受控grant内部责任主体写入现有`created_by/creator/updater/OperationAudit.actorId`；detail固定记录`subjectType=BUSINESS_GRANT`、grantId/version、questionnaireId、responseId、policyKey、fileSlotKey。不得建立SecurityContext、调用登录上传Controller、把grant当用户ID或解释为客户拥有`pms:file:upload`。
 
 ### 3.3 PLT受控Result生成文件
 
@@ -173,7 +189,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 ### 3.4 Result、Outbox、来源与归档
 
-1. 公开Response入口先以提交事务锁定`AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response`，只追加并提交Response/答案/文件，Task进入`PENDING_DECISION`。随后由独立Spring Bean开启判定事务，重新锁定`Task→Questionnaire→Response`并重验ProjectScope；同`questionnaireId+requestId`重放若已有Response但没有Result，复用该Response和同一判定operation继续判定，不追加第二Response。
+1. 公开Response入口先重放`ACC_SATISFACTION_RESPONSE_RESERVATION`并要求请求responseId等于回执，再以提交事务锁定`AccessGrant→Task→Questionnaire→PLT grant文件规范事实→Response`。PLT对实际Artifact/Version/Reference、grantId/version、responseId、policyKey、scopeVersion和服务端槽位作最终锁定重验；ACC只持久化返回事实并直接使用预留responseId，不再生成ID。随后由独立Spring Bean开启判定事务，重新锁定`Task→Questionnaire→Response`并重验ProjectScope；同`questionnaireId+requestId`重放若已有Response但没有Result，复用该Response和同一判定operation继续判定，不追加第二Response。
 2. 判定事务先调用`createGeneratedBusinessFile`，再原子写Result、唯一ResultFile、Task状态、成功幂等事实和`SatisfactionResultVersionChanged` Outbox。失败Result把Task置FAILED；达标Result为`EFFECTIVE + passed=true`并把Task置`PENDING_ARCHIVE`，两者都必须有唯一结果文档。PLT任一步失败时保留已提交Response和`PENDING_DECISION`，上述判定写入全部为零；Result形成时冻结当前责任人为`archiveActorUserId`。
 3. `recollect`锁`Task链→前一Result→RemediationFact→新Task→Questionnaire→Outbox`；原source不变，新trigger固定为`ACC/SatisfactionRemediationFact`，collectionKey不变且revision+1。
 4. `invalidate`锁`PROJ当前树版本→Task链→当前Result→Outbox`，只接受当前有效达标版本；关闭区间、清空marker、写失效审计和`INVALIDATED`事件，不重开旧Task。
@@ -194,7 +210,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 ### 4.1 后端/API文件
 
 - 新增：`pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/satisfaction/`及`dto/`，承载三组稳定API和命令/Fact。
-- 修改：`pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/FileArtifactApi.java`；在同目录`dto/`新增`BusinessGrantUploadInitializeCommand/Initialized/CompleteCommand`和`GeneratedBusinessFileCommand`。
+- 修改：`pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/FileArtifactApi.java`、`FileBusinessObjectPolicyProvider.java`；在同目录`dto/`新增grant初始化/完成/最终重验Command、Query、PolicyFact、服务端槽位Fact和`GeneratedBusinessFileCommand`。
 - 新增：`pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/export/ExportTaskApi.java`、`ExportBusinessDataProvider.java`及命令/Fact/规范化请求/裁剪结果类型；ACC实现该PLT SPI，不增加平台对project-api的反向依赖。
 - 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`、FileUploadSession/补偿接入及文件策略路由，只加满意度grant上传与Result生成文件，不改变现有登录上传、ACC报告和其他目标。
 - 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`，只增加两种满意度事件白名单。
@@ -249,7 +265,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 3：接入PLT、PROJ和Outbox**
 
-  加性实现受控grant上传、Result生成文件与策略Provider；项目创建冻结Template Fact；初验完成事务调用initializer；Task Job重验身份并写`TodoRequested`、Result Job只投影来源，归档Job只处理待补偿来源；PLT导出执行/到期Job按Task CAS和TTL规则运行。事件Job均以真实消费事务成功作为`markDelivered`前提。
+  先实现Response预留：同grant+requestId通过`PlatformCommandExecutionApi`重放同一responseId，最终Response不得再次生成ID。再加性实现grant上传初始化/完成/最终文件集合锁定重验、服务端槽位、issuer审计和默认失败Provider；直接测试证明异摘要、错ID/槽位/文件Fact及非正数issuer均在文件或Response写入前失败。继续完成Result生成文件、项目创建冻结Template Fact、初验完成initializer、Task/Result/归档Job及PLT导出Job。事件Job均以真实消费事务成功作为`markDelivered`前提。
 
 - [ ] **Step 4：实现并验证V133**
 

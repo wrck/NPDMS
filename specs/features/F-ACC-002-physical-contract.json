@@ -118,9 +118,24 @@
     },
     "FileArtifactApi": {
       "owner":"PLT",
-      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload","createGeneratedBusinessFile"],
+      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload","lockAndRevalidateBusinessGrantFiles","createGeneratedBusinessFile"],
       "reusedMethods":["lockAndRevalidateReferenceSets","inspectReferenceSets","archiveReferenceSets","accessTicketDownload"],
-      "businessGrantInputs":["grantId","grantVersion","responseId","policyKey","operationId","safeFileMetadata"],
+      "businessGrantInputs":["grantId","grantVersion","requestId","responseId","policyKey","operationId","fileSlotKey","fileSequence","safeFileMetadata"],
+      "businessGrantUpload": {
+        "target":"ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT",
+        "responseReservation":{"owner":"ACC","scopeCode":"ACC_SATISFACTION_RESPONSE_RESERVATION","key":"questionnaireId+requestId","persistence":"PlatformCommandExecutionApi","requestDigestIncludes":["tenantId","grantId","grantVersion","questionnaireId","requestId"],"replay":"SAME_RESPONSE_ID","conflict":"DIFFERENT_DIGEST_REJECTED","finalSubmission":"USE_RESERVED_RESPONSE_ID_NO_NEW_ID"},
+        "serverSlot":{"source":"PLT_INITIALIZE_RESULT","facts":["fileSlotKey","fileSequence"],"clientGenerated":"FORBIDDEN","replay":"SAME_OPERATION_SAME_SLOT"},
+        "policyQueries":["BusinessGrantUploadInitializePolicyQuery","BusinessGrantUploadCompletePolicyQuery","BusinessGrantFileRevalidationQuery"],
+        "providerMethods":["initializeBusinessGrantUploadPolicy","lockAndRevalidateBusinessGrantUpload","lockAndRevalidateBusinessGrantFiles"],
+        "providerDefaults":"FAIL_CLOSED",
+        "providerDispatch":"ACC/SATISFACTION_RESPONSE_UNIQUE",
+        "lockOrder":["ACCESS_GRANT","QUESTIONNAIRE","SATISFACTION_TASK","PROJECT_SCOPE"],
+        "policyFactFields":["tenantId","grantId","grantVersion","questionnaireId","responseId","requestId","policyKey","fileSlotKey","fileSequence","grantIssuerUserId","scopeVersion"],
+        "grantIssuerUserId":"POSITIVE_LONG_FROM_CURRENT_GRANT_CREATOR_NOT_UPDATER_OR_CLIENT",
+        "finalRevalidation":"CANONICAL_PLT_FACT_MATCHES_ARTIFACT_VERSION_REFERENCE_GRANT_RESPONSE_POLICY_SCOPE_AND_SERVER_SLOT",
+        "clientFileFact":"HANDLE_ONLY_NEVER_DIRECTLY_PERSISTED",
+        "audit":{"actor":"grantIssuerUserId_INTERNAL_RESPONSIBILITY_ONLY","detailFields":["subjectType=BUSINESS_GRANT","grantId","grantVersion","questionnaireId","responseId","policyKey","fileSlotKey"],"forbidden":"SECURITY_CONTEXT_LOGIN_CONTROLLER_GRANT_AS_USER_OR_CUSTOMER_UPLOAD_PERMISSION"}
+      },
       "generatedBusinessFile": {
         "target":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",
         "inputs":["tenantId","actorUserId","operationId","resultId","collectionTaskId","questionnaireId","responseId","expectedTaskVersion","scopeVersion","safeFileMetadata","boundedGeneratedContent"],
@@ -139,7 +154,7 @@
       },
       "forbidden":"FAKE_LOGIN_OR_BYPASS_FILE_POLICY"
     },
-    "PlatformCommandExecutionApi": {"reuse":"DIRECT_REUSE","purpose":"RESULT_AND_OUTBOX_ATOMIC"},
+    "PlatformCommandExecutionApi": {"reuse":"DIRECT_REUSE","purpose":"RESPONSE_RESERVATION_AND_RESULT_OUTBOX_ATOMIC"},
     "PlatformOutboxDeliveryApi": {"reuse":"DIRECT_REUSE","consumerJob":"SatisfactionResultOutboxDeliveryJob_ONLY_SATISFACTION_RESULT_VERSION_CHANGED"}
   },
   "states": {
@@ -193,6 +208,8 @@
   "transactionBoundary": {
     "initializationLockOrder":["PROJ_PROJECT_TASK_WORK_BINDING","ACC_TASK","QUESTIONNAIRE"],
     "submissionLockOrder":["ACCESS_GRANT","ACC_TASK","QUESTIONNAIRE","PLT_REFERENCES","RESPONSE","RESULT","OUTBOX"],
+    "responseReservation":"SAME_GRANT_REQUEST_ID_REPLAYS_SERVER_RESPONSE_ID_DIFFERENT_DIGEST_CONFLICT",
+    "finalResponseIdentity":"PLATFORM_RESERVATION_ID_PLUS_PLT_CANONICAL_GRANT_FILE_REVALIDATION_NO_NEW_ID",
     "remediationLockOrder":["TASK_CHAIN","PRIOR_RESULT","REMEDIATION_FACT","NEW_TASK","QUESTIONNAIRE","OUTBOX"],
     "invalidationLockOrder":["PROJ_PROJECT_SCOPE_CURRENT_TREE_VERSION","TASK_CHAIN","CURRENT_RESULT","OUTBOX"],
     "archiveLockOrder":["DELIVERABLE_ROOT","SOURCE_VERSION","PLT_ACTIVE_AND_ARCHIVE_SETS","ARCHIVE_PROJECTION"],

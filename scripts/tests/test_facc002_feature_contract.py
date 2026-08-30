@@ -77,9 +77,29 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("platform-export-owner")
     file_api = contract.get("moduleApis", {}).get("FileArtifactApi", {})
     if file_api.get("additiveMethods") != ["initializeBusinessGrantUpload", "completeBusinessGrantUpload",
-                                           "createGeneratedBusinessFile"] or \
+                                           "lockAndRevalidateBusinessGrantFiles", "createGeneratedBusinessFile"] or \
             file_api.get("forbidden") != "FAKE_LOGIN_OR_BYPASS_FILE_POLICY":
         errors.append("external-file")
+    grant_upload = file_api.get("businessGrantUpload", {})
+    reservation = grant_upload.get("responseReservation", {})
+    if reservation.get("persistence") != "PlatformCommandExecutionApi" or \
+            reservation.get("replay") != "SAME_RESPONSE_ID" or \
+            reservation.get("finalSubmission") != "USE_RESERVED_RESPONSE_ID_NO_NEW_ID" or \
+            grant_upload.get("serverSlot", {}).get("clientGenerated") != "FORBIDDEN" or \
+            grant_upload.get("policyQueries") != ["BusinessGrantUploadInitializePolicyQuery",
+                                                  "BusinessGrantUploadCompletePolicyQuery",
+                                                  "BusinessGrantFileRevalidationQuery"] or \
+            grant_upload.get("providerDefaults") != "FAIL_CLOSED" or \
+            grant_upload.get("grantIssuerUserId") != \
+            "POSITIVE_LONG_FROM_CURRENT_GRANT_CREATOR_NOT_UPDATER_OR_CLIENT" or \
+            grant_upload.get("finalRevalidation") != \
+            "CANONICAL_PLT_FACT_MATCHES_ARTIFACT_VERSION_REFERENCE_GRANT_RESPONSE_POLICY_SCOPE_AND_SERVER_SLOT" or \
+            grant_upload.get("clientFileFact") != "HANDLE_ONLY_NEVER_DIRECTLY_PERSISTED" or \
+            "lockAndRevalidateBusinessGrantFiles" not in grant_upload.get("providerMethods", []) or \
+            grant_upload.get("audit", {}).get("actor") != \
+            "grantIssuerUserId_INTERNAL_RESPONSIBILITY_ONLY" or \
+            "SECURITY_CONTEXT" not in grant_upload.get("audit", {}).get("forbidden", ""):
+        errors.append("business-grant-owner-binding")
     generated = file_api.get("generatedBusinessFile", {})
     if generated.get("transactionPropagation") != "MANDATORY" or \
             generated.get("actor") != "RESULT_CURRENT_ASSIGNEE_SERVER_FROZEN" or \
@@ -109,6 +129,11 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
             "RESPONSE_KEPT_TASK_PENDING_DECISION_ZERO_RESULT_RESULT_FILE_SUCCESS_IDEMPOTENCY_OUTBOX" or \
             "NO_SECOND_DOCUMENT" not in transaction.get("storageRollback", ""):
         errors.append("generated-file-rollback")
+    if transaction.get("responseReservation") != \
+            "SAME_GRANT_REQUEST_ID_REPLAYS_SERVER_RESPONSE_ID_DIFFERENT_DIGEST_CONFLICT" or \
+            transaction.get("finalResponseIdentity") != \
+            "PLATFORM_RESERVATION_ID_PLUS_PLT_CANONICAL_GRANT_FILE_REVALIDATION_NO_NEW_ID":
+        errors.append("business-grant-response-identity")
     event = contract.get("events", {}).get("SatisfactionResultVersionChanged", {})
     if event.get("changeTypes") != ["RECORDED", "INVALIDATED"] or \
             not any("files[{role,sequence,artifactId" in fact and "sha256" in fact
@@ -140,7 +165,8 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     for marker in ("文档状态：`BASELINE`", "Feature Ready：`READY`", "ACC-02@V1=FULL",
                    "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
                    "actions/invalidate", "createGeneratedBusinessFile", "ProjectScopeApi/Impl", "sha256", "pms_acc_completion_certificate",
-                   "ExportTaskApi.request/getFact/retry", "FAILED + failure_retryable=true", "双向乱序", "AI-MIG-000"):
+                   "ExportTaskApi.request/getFact/retry", "FAILED + failure_retryable=true", "双向乱序", "AI-MIG-000",
+                   "PlatformCommandExecutionApi", "lockAndRevalidateBusinessGrantFiles", "grantIssuerUserId"):
         if marker not in spec:
             errors.append(f"spec:{marker}")
     for marker in ("REUSE-01", "REUSE-17", "REUSE-18", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
@@ -198,6 +224,26 @@ class Facc002FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["moduleApis"]["FileArtifactApi"]["forbidden"] = "FAKE_LOGIN_ALLOWED"
         self.assertIn("external-file", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_unbound_response_or_client_file_fact(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["businessGrantUpload"]["responseReservation"]["replay"] = \
+            "ALLOCATE_NEW_RESPONSE_ID"
+        self.assertIn("business-grant-owner-binding", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["businessGrantUpload"]["clientFileFact"] = \
+            "TRUST_AND_PERSIST"
+        self.assertIn("business-grant-owner-binding", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_client_or_updater_as_grant_audit_actor(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["businessGrantUpload"]["grantIssuerUserId"] = \
+            "CLIENT_ACTOR_OR_GRANT_UPDATER"
+        self.assertIn("business-grant-owner-binding", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["businessGrantUpload"]["serverSlot"]["clientGenerated"] = \
+            "ALLOWED"
+        self.assertIn("business-grant-owner-binding", contract_errors(mutated, self.spec, self.audit))
 
     def test_rejects_generated_document_without_owner_or_storage_compensation(self) -> None:
         mutated = deepcopy(self.contract)
