@@ -48,7 +48,9 @@
 
 - 数量不符、型号/SN不符、外观/质量问题或证据不完整形成独立`ArrivalDifference`；保存类型、范围、数量、原因、风险、证据和处理版本。
 - 拒收是明细结果，不等于差异已解决；被拒设备/数量仍属于未满足范围。
-- 豁免只能针对明确`deviceId`或`orderLineId + model + quantity`，保存理由、风险、批准人、批准时间、有效期和证据；未知差异、模糊整项目豁免或过期豁免均不计入满足范围。豁免作为差异的`EXEMPTED`处置版本保存，不另造无Owner表。
+- 豁免只能针对明确`deviceId`或`orderLineId + product/model + quantity + unit`，保存理由、风险、批准人、批准时间、有效期和证据；未知差异、模糊整项目豁免或过期豁免均不计入满足范围。豁免作为差异的`EXEMPTED`处置版本保存，不另造无Owner表。
+- 每个`ArrivalDifference` revision的`scope_snapshot`使用严格判别联合：设备固定为`{"scopeType":"DEVICE","deviceId":正整数Long}`；数量固定为`{"scopeType":"ORDER_MODEL_QUANTITY","orderLineId":正整数Long,"productCode":String|null,"modelCode":String|null,"quantity":正BigDecimal,"unitCode":非空String}`。数量结构中`productCode/modelCode`规范化后至少一项非空，空值统一写JSON `null`；两种结构只能包含各自列出的精确键，禁止额外键、缺键、字符串数字、零/负数量、空白代码和未知`scopeType`。
+- `EXEMPTED`累计只解析已确认批次中当前、未过期且批准人/批准时间/证据完整的revision；旧形状、未知形状、解析失败或越出当前应到范围的快照失败关闭且不得计入豁免，禁止从XLSX、reason文本或`arrival_line`当前值猜测。
 - DIFFERENCE_PENDING只能在每个差异均追加`SUPPLEMENTED/REJECTED/EXEMPTED/CLOSED`处置后离开；补签使对应明细转入新版本ACCEPTED，拒收保持原范围未满足，豁免仅在有效期内满足明确范围。重算后进入PARTIALLY_ACCEPTED或ACCEPTED，再由项目经理确认。
 - 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；新记录提交/确认或豁免到期时递增项目`factVersion`并使旧事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
 

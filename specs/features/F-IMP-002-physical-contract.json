@@ -37,8 +37,29 @@
     {
       "name": "imp_arrival_difference",
       "purpose": "差异、拒收处置和具体豁免的不可变版本",
-      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "project_fact_version", "current_marker", "version"],
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "scope_snapshot", "project_fact_version", "current_marker", "version"],
       "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
+      "scopeSnapshotContract": {
+        "discriminator": "scopeType",
+        "exactKeysOnly": true,
+        "stringNumbersForbidden": true,
+        "variants": {
+          "DEVICE": {
+            "exactKeys": ["scopeType", "deviceId"],
+            "deviceId": "POSITIVE_LONG"
+          },
+          "ORDER_MODEL_QUANTITY": {
+            "exactKeys": ["scopeType", "orderLineId", "productCode", "modelCode", "quantity", "unitCode"],
+            "orderLineId": "POSITIVE_LONG",
+            "productCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+            "modelCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+            "productOrModelGuard": "AT_LEAST_ONE_NON_NULL",
+            "quantity": "POSITIVE_DECIMAL_JSON_NUMBER",
+            "unitCode": "NON_BLANK_STRING"
+          }
+        },
+        "readPolicy": "CURRENT_CONFIRMED_UNEXPIRED_EXEMPTED_REVISION_WITH_COMPLETE_APPROVAL_AND_EVIDENCE_ONLY; UNKNOWN_OR_INVALID_SHAPE_FAILS_CLOSED; NEVER_INFER_FROM_XLSX_REASON_OR_ARRIVAL_LINE"
+      },
       "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "difference_no", "revision_no"], ["tenant_id", "arrival_acceptance_id", "difference_no", "current_marker"]],
       "exemptionGuards": ["EXPLICIT_DEVICE_OR_ORDER_MODEL_QUANTITY_SCOPE", "APPROVER_AND_APPROVED_AT_REQUIRED", "EVIDENCE_REQUIRED", "EXPIRY_REVALIDATED"]
     },
