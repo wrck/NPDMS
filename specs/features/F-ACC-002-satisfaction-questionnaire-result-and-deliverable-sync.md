@@ -149,4 +149,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | PENDING |
 
-检查点：基线=`38901259`；当前Gate=Result失效SDS补充；已通过=Feature Ready其余边界已确认；阻塞=失效命令上游契约待独立复审；下一步=上游GO后返回同一Feature Ready整改，不生成Technical Plan或代码。
+检查点：基线=`c1e7354c`；当前Gate=Feature Ready整改；已通过=Result失效SDS补充GO；阻塞=待同步失效命令、ProjectScope、文件字段映射和旧完工证明审计；下一步=完成最小契约整改并复审，不生成Technical Plan或代码。

@@ -24,6 +24,8 @@ Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式�
 
 2026-08-30 F-ACC-002同一Gate整改提交`b98d0caafb724a13433aec382bafa30c02d30091`经独立复审GO：ADR-0041、同项目`T-SAT-SURVEY→D-SAT-REPORT`精确应交根、不可变RemediationFact驱动的collectionKey/taskRevision链及94对象/111来源绑定/1排除源闭合；仅放行Feature Spec Gate，不批准Feature Ready、Technical Plan、代码或Flyway。
 
+2026-08-30 F-ACC-002 Result失效命令SDS补充整改`c1e7354c4738be42d2792b70222f1a369b82583b`经独立复审GO：当前有效达标Result按版本失效、原子Outbox及RECORDED/INVALIDATED双向单调投影闭合；仅允许返回同一Feature Ready整改。
+
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 
 ## 2. 复审发现与关闭
