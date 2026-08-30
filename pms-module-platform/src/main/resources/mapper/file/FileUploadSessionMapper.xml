@@ -68,6 +68,19 @@
           AND version = #{query.expectedVersion}
     </update>
 
+    <update id="bindStorageReceiptIfInitialized">
+        UPDATE plt_file_upload_session
+        SET actual_sha256 = #{query.actualSha256},
+            registered_infra_file_id = #{query.registeredInfraFileId},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.sessionId}
+          AND status_code = 'INITIALIZED'
+          AND registered_infra_file_id IS NULL
+          AND version = #{query.expectedVersion}
+    </update>
+
     <update id="completeIfValidating">
         UPDATE plt_file_upload_session
         SET status_code = 'COMPLETED',

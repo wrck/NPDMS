@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessi
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionTerminationUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionValidationUpdate;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionStorageBindingUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,6 +21,8 @@ public interface FileUploadSessionMapper {
             @Param("query") FileUploadSessionArtifactBindingQuery query);
 
     int beginValidationIfInitialized(@Param("query") FileUploadSessionValidationUpdate query);
+
+    int bindStorageReceiptIfInitialized(@Param("query") FileUploadSessionStorageBindingUpdate query);
 
     int completeIfValidating(@Param("query") FileUploadSessionCompletionUpdate query);
 

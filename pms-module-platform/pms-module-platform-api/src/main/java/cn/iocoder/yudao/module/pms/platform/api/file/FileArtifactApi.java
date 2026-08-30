@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionReva
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFileCommand;
 
 import java.util.List;
 
@@ -26,4 +27,6 @@ public interface FileArtifactApi {
     List<FileArtifactVersionFact> attachExistingVersions(AttachExistingFileVersionsCommand command);
 
     FileArchiveReferenceSetFact archiveReferenceSets(ArchiveFileReferenceSetsCommand command);
+
+    FileArtifactVersionFact createGeneratedBusinessFile(GeneratedBusinessFileCommand command);
 }

@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollect
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFileCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO;
@@ -65,6 +66,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     private final ExistingFileVersionAttachmentService attachmentService;
     private final FileArchiveRecordMapper archiveRecordMapper;
     private final PermissionApi permissionApi;
+    private final GeneratedBusinessFileService generatedBusinessFileService;
 
     public FileArtifactApiImpl(FileBusinessObjectPolicyRegistry policyRegistry,
                                FileArtifactMapper artifactMapper,
@@ -72,7 +74,8 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                                FileReferenceMapper referenceMapper,
                                ExistingFileVersionAttachmentService attachmentService,
                                FileArchiveRecordMapper archiveRecordMapper,
-                               PermissionApi permissionApi) {
+                               PermissionApi permissionApi,
+                               GeneratedBusinessFileService generatedBusinessFileService) {
         this.policyRegistry = policyRegistry;
         this.artifactMapper = artifactMapper;
         this.versionMapper = versionMapper;
@@ -80,6 +83,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
         this.attachmentService = attachmentService;
         this.archiveRecordMapper = archiveRecordMapper;
         this.permissionApi = permissionApi;
+        this.generatedBusinessFileService = generatedBusinessFileService;
     }
 
     @Override
@@ -255,6 +259,11 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                             fact.fileFactVersion().availabilityVersion()), archivePolicy.scopeVersion()));
         }
         return new FileArchiveReferenceSetFact(command.archiveBatchId(), command.archiveSetKey(), archived);
+    }
+
+    @Override
+    public FileArtifactVersionFact createGeneratedBusinessFile(GeneratedBusinessFileCommand command) {
+        return generatedBusinessFileService.create(command);
     }
 
     private List<ArchiveFactKey> archiveKeys(List<FileArtifactVersionFact> facts) {
