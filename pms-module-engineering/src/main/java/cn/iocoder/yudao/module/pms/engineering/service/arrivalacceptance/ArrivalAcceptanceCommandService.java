@@ -840,9 +840,17 @@ public class ArrivalAcceptanceCommandService {
 
     private ArrivalAcceptanceDO lockOwnedDraft(Long tenantId, Long id, Long actor, Integer version) {
         ArrivalAcceptanceDO root = acceptanceMapper.selectForUpdate(new ArrivalRowQuery(tenantId, id));
-        if (root == null || !"DRAFT".equals(root.getStatus())
-                || !String.valueOf(actor).equals(root.getCreator())) throw new IllegalStateException("draft is not editable");
-        if (!Objects.equals(root.getVersion(), version)) throw new VersionConflictException();
+        if (root == null || !String.valueOf(actor).equals(root.getCreator())) {
+            throw ArrivalAcceptanceContractException.notVisible("arrival acceptance draft is not visible or does not exist");
+        }
+        if (!Objects.equals(root.getVersion(), version)) {
+            throw ArrivalAcceptanceContractException.aggregateVersion(root.getVersion(),
+                    "arrival acceptance version changed before patch");
+        }
+        if (!"DRAFT".equals(root.getStatus())) {
+            throw ArrivalAcceptanceContractException.stateConflict(root.getVersion(),
+                    "arrival acceptance is not an editable draft");
+        }
         return root;
     }
 

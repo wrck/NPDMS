@@ -501,11 +501,29 @@ public class ArrivalAcceptanceApplicationService {
     }
 
     private static void requireConfirmable(ArrivalAcceptanceDO root, ConfirmCommand command) {
-        if (root == null || !command.expectedVersion().equals(root.getVersion())
-                || root.getProjectVersion() == null || root.getProjectParticipantFactVersion() == null
-                || root.getProjectScopeVersion() == null || root.getProjectFactVersion() != null
-                || root.getEvidenceId() == null || root.getEvidenceRevision() == null) {
-            throw new IllegalStateException("arrival acceptance candidate is unavailable or stale");
+        if (root == null) {
+            throw ArrivalAcceptanceContractException.notVisible("arrival acceptance is not visible or does not exist");
+        }
+        if (!command.expectedVersion().equals(root.getVersion())) {
+            throw ArrivalAcceptanceContractException.aggregateVersion(root.getVersion(),
+                    "arrival acceptance version changed before confirm");
+        }
+        if (root.getProjectFactVersion() != null) {
+            throw ArrivalAcceptanceContractException.stateConflict(root.getVersion(),
+                    "arrival acceptance is already confirmed");
+        }
+        if (!ArrivalAcceptanceStateMachine.PARTIALLY_ACCEPTED.equals(root.getStatus())
+                && !ArrivalAcceptanceStateMachine.ACCEPTED.equals(root.getStatus())) {
+            throw ArrivalAcceptanceContractException.stateConflict(root.getVersion(),
+                    "arrival acceptance is not confirmable");
+        }
+        if (root.getEvidenceId() == null || root.getEvidenceRevision() == null) {
+            throw ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID", "EVIDENCE_MISSING",
+                    "arrival acceptance evidence is missing");
+        }
+        if (root.getProjectVersion() == null || root.getProjectParticipantFactVersion() == null
+                || root.getProjectScopeVersion() == null) {
+            throw new IllegalStateException("arrival acceptance qualification snapshot is damaged");
         }
     }
 
@@ -544,12 +562,20 @@ public class ArrivalAcceptanceApplicationService {
     }
 
     private static void requireOwnedDraft(ArrivalAcceptanceDO root, SubmitCommand command) {
-        if (root == null || !ArrivalAcceptanceStateMachine.DRAFT.equals(root.getStatus())
-                || !command.expectedVersion().equals(root.getVersion())
-                || !String.valueOf(command.actorUserId()).equals(root.getCreator())
-                || root.getProjectVersion() == null || root.getProjectParticipantFactVersion() == null
+        if (root == null || !String.valueOf(command.actorUserId()).equals(root.getCreator())) {
+            throw ArrivalAcceptanceContractException.notVisible("arrival acceptance draft is not visible or does not exist");
+        }
+        if (!command.expectedVersion().equals(root.getVersion())) {
+            throw ArrivalAcceptanceContractException.aggregateVersion(root.getVersion(),
+                    "arrival acceptance version changed before submit");
+        }
+        if (!ArrivalAcceptanceStateMachine.DRAFT.equals(root.getStatus())) {
+            throw ArrivalAcceptanceContractException.stateConflict(root.getVersion(),
+                    "arrival acceptance is not a draft");
+        }
+        if (root.getProjectVersion() == null || root.getProjectParticipantFactVersion() == null
                 || root.getProjectScopeVersion() == null) {
-            throw new IllegalStateException("arrival acceptance draft is unavailable, stale or not owned by actor");
+            throw new IllegalStateException("arrival acceptance qualification snapshot is damaged");
         }
     }
 

@@ -456,9 +456,12 @@ class ArrivalAcceptanceApplicationServiceTest {
         stale.setVersion(2);
         when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(stale);
 
-        assertThrows(IllegalStateException.class, () -> fixture.service().confirm(
-                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+        ArrivalAcceptanceContractException exception = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> fixture.service().confirm(new ArrivalAcceptanceApplicationService.ConfirmCommand(
                         1L, 900L, 8L, 1, "confirm-key", "corr-1")));
+        assertEquals("AGGREGATE_OR_LINE_VERSION_CONFLICT", exception.category());
+        assertEquals("AGGREGATE_VERSION_STALE", exception.reasonCode());
+        assertEquals(2, exception.currentAggregateVersion());
 
         verify(fixture.projectPort(), never()).lockAndRevalidate(any());
         verify(fixture.acceptanceMapper(), never()).updateConfirmedIfMatch(any());

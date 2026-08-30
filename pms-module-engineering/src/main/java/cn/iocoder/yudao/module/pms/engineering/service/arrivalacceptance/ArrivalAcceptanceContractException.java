@@ -10,6 +10,9 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
             "DATA_SCOPE_FORBIDDEN", Set.of("PROJECT_DATA_SCOPE_DENIED"),
             "IDEMPOTENCY_CONFLICT", Set.of("IDEMPOTENCY_PAYLOAD_CONFLICT"),
             "IDEMPOTENCY_IN_PROGRESS", Set.of("IDEMPOTENCY_COMMAND_IN_PROGRESS"),
+            "NOT_VISIBLE_OR_NOT_FOUND", Set.of("ARRIVAL_ACCEPTANCE_NOT_VISIBLE"),
+            "STATE_CONFLICT", Set.of("BATCH_STATE_CONFLICT"),
+            "AGGREGATE_OR_LINE_VERSION_CONFLICT", Set.of("AGGREGATE_VERSION_STALE", "LINE_VERSION_STALE"),
             "SCOPE_STALE", Set.of("PROJECT_FACT_STALE", "DELIVERY_SCOPE_STALE",
                     "DEVICE_ASSIGNMENT_STALE", "FILE_SCOPE_STALE"),
             "EVIDENCE_INVALID", Set.of("EVIDENCE_MISSING", "EVIDENCE_REVISION_STALE",
@@ -62,6 +65,15 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
     public static ArrivalAcceptanceContractException aggregateVersion(Integer currentVersion, String message) {
         return new ArrivalAcceptanceContractException("AGGREGATE_OR_LINE_VERSION_CONFLICT",
                 "AGGREGATE_VERSION_STALE", message, null, currentVersion, null, null, null);
+    }
+
+    public static ArrivalAcceptanceContractException notVisible(String message) {
+        return simple("NOT_VISIBLE_OR_NOT_FOUND", "ARRIVAL_ACCEPTANCE_NOT_VISIBLE", message);
+    }
+
+    public static ArrivalAcceptanceContractException stateConflict(Integer currentVersion, String message) {
+        return new ArrivalAcceptanceContractException("STATE_CONFLICT", "BATCH_STATE_CONFLICT",
+                message, null, currentVersion, null, null, null);
     }
 
     public String category() { return category; }

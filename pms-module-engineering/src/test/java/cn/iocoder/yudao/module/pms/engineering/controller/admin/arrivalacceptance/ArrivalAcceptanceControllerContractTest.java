@@ -5,11 +5,23 @@ import cn.iocoder.yudao.framework.jackson.config.YudaoJacksonAutoConfiguration;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrivalacceptance.vo.ArrivalAcceptanceReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrivalacceptance.vo.ArrivalAcceptanceRespVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalAcceptanceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalDifferenceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalLineMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceCommandService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceViews;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ArrivalDifferenceTypePort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectSystemQualificationPort;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -28,19 +40,24 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Method;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -196,6 +213,43 @@ class ArrivalAcceptanceControllerContractTest {
     }
 
     @Test
+    void realServicesMapSubmitConfirmAndPatchGuardsToLockedHttpErrors() throws Exception {
+        ArrivalAcceptanceDO stale = guardedRoot("DRAFT", "88", 7);
+        mvc(applicationWithRoot(stale), mock(ArrivalAcceptanceCommandService.class))
+                .perform(post("/api/v1/pms/arrival-acceptances/900/actions/submit")
+                        .header("Idempotency-Key", "submit-1").header("If-Match", "6"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.category").value("AGGREGATE_OR_LINE_VERSION_CONFLICT"))
+                .andExpect(jsonPath("$.data.reasonCode").value("AGGREGATE_VERSION_STALE"))
+                .andExpect(jsonPath("$.data.currentAggregateVersion").value(7));
+
+        ArrivalAcceptanceDO notOwned = guardedRoot("DRAFT", "99", 7);
+        mvc(applicationWithRoot(notOwned), mock(ArrivalAcceptanceCommandService.class))
+                .perform(post("/api/v1/pms/arrival-acceptances/900/actions/submit")
+                        .header("Idempotency-Key", "submit-2").header("If-Match", "7"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value(1011004011));
+
+        ArrivalAcceptanceDO notConfirmable = guardedRoot("DRAFT", "88", 7);
+        notConfirmable.setEvidenceId(50L);
+        notConfirmable.setEvidenceRevision(1);
+        mvc(applicationWithRoot(notConfirmable), mock(ArrivalAcceptanceCommandService.class))
+                .perform(post("/api/v1/pms/arrival-acceptances/900/actions/confirm")
+                        .header("Idempotency-Key", "confirm-1").header("If-Match", "7"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.category").value("STATE_CONFLICT"))
+                .andExpect(jsonPath("$.data.currentAggregateVersion").value(7));
+
+        ArrivalAcceptanceDO submitted = guardedRoot("ACCEPTED", "88", 7);
+        mvc(mock(ArrivalAcceptanceApplicationService.class), commandWithRoot(submitted))
+                .perform(patch("/api/v1/pms/arrival-acceptances/900")
+                        .header("If-Match", "7").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"logisticsNo\":\"LOG-002\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.category").value("STATE_CONFLICT"))
+                .andExpect(jsonPath("$.data.currentAggregateVersion").value(7));
+    }
+
+    @Test
     void serializesSnowflakeIdsAndAbsentEvidenceWithLockedWireShape() throws Exception {
         long snowflake = 9_007_199_254_740_992L;
         ArrivalAcceptanceRespVO.Detail detail = new ArrivalAcceptanceRespVO.Detail(
@@ -311,6 +365,63 @@ class ArrivalAcceptanceControllerContractTest {
 
     private static String first(String[] paths) {
         return paths.length == 0 ? "" : paths[0];
+    }
+
+    private static org.springframework.test.web.servlet.MockMvc mvc(
+            ArrivalAcceptanceApplicationService application, ArrivalAcceptanceCommandService command) {
+        ArrivalAcceptanceRequestContext context = mock(ArrivalAcceptanceRequestContext.class);
+        when(context.current()).thenReturn(new ArrivalAcceptanceRequestContext.TrustedContext(
+                9L, 88L, "corr-http-real", access()));
+        return MockMvcBuilders.standaloneSetup(new TestArrivalAcceptanceController(
+                application, command, mock(ArrivalAcceptanceQueryService.class), context)).build();
+    }
+
+    private static ArrivalAcceptanceApplicationService applicationWithRoot(ArrivalAcceptanceDO root) {
+        ArrivalAcceptanceMapper acceptance = mock(ArrivalAcceptanceMapper.class);
+        when(acceptance.selectForUpdate(any())).thenReturn(root);
+        return new ArrivalAcceptanceApplicationService(acceptance, mock(ArrivalLineMapper.class),
+                mock(ArrivalDifferenceMapper.class), mock(DeliveryEvidenceMapper.class),
+                mock(DeliveryEvidenceRevisionMapper.class), mock(ProjectQualificationPort.class),
+                mock(DeliveryScopePort.class), mock(DeviceScopeFactPort.class),
+                mock(FileArtifactFactPort.class), executingCommandApi());
+    }
+
+    private static ArrivalAcceptanceCommandService commandWithRoot(ArrivalAcceptanceDO root) {
+        ArrivalAcceptanceMapper acceptance = mock(ArrivalAcceptanceMapper.class);
+        when(acceptance.selectForUpdate(any())).thenReturn(root);
+        return new ArrivalAcceptanceCommandService(acceptance, mock(ArrivalLineMapper.class),
+                mock(ArrivalDifferenceMapper.class), mock(DeliveryEvidenceMapper.class),
+                mock(DeliveryEvidenceRevisionMapper.class), mock(ProjectQualificationPort.class),
+                mock(ProjectSystemQualificationPort.class), mock(DeliveryScopePort.class),
+                mock(DeviceScopeFactPort.class), mock(FileArtifactFactPort.class),
+                mock(ArrivalDifferenceTypePort.class), executingCommandApi(), Clock.systemUTC());
+    }
+
+    private static PlatformCommandExecutionApi executingCommandApi() {
+        PlatformCommandExecutionApi api = mock(PlatformCommandExecutionApi.class);
+        doAnswer(invocation -> {
+            Supplier<?> operation = invocation.getArgument(3);
+            Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
+            Object response = operation.get();
+            facts.apply(response);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, response);
+        }).when(api).execute(any(), any(), any(), any(), any());
+        return api;
+    }
+
+    private static ArrivalAcceptanceDO guardedRoot(String status, String creator, int version) {
+        ArrivalAcceptanceDO root = new ArrivalAcceptanceDO();
+        root.setId(900L);
+        root.setTenantId(9L);
+        root.setProjectId(20L);
+        root.setStatus(status);
+        root.setCreator(creator);
+        root.setVersion(version);
+        root.setProjectVersion(5);
+        root.setProjectParticipantFactVersion(6L);
+        root.setProjectScopeVersion(7L);
+        return root;
     }
 
     private static ArrivalAcceptanceViews.AccessContext access() {

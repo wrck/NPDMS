@@ -571,6 +571,16 @@ public class ArrivalAcceptanceController {
         return switch (exception.category()) {
             case "DATA_SCOPE_FORBIDDEN" -> error(403, ARRIVAL_DATA_SCOPE_FORBIDDEN,
                     exception.getMessage(), null);
+            case "NOT_VISIBLE_OR_NOT_FOUND" -> error(404, ARRIVAL_NOT_VISIBLE,
+                    exception.getMessage(), null);
+            case "STATE_CONFLICT" -> recoverable(409, ARRIVAL_STATE_CONFLICT,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "REFRESH_AGGREGATE",
+                    exception.currentAggregateVersion(), exception.currentLineVersion(),
+                    exception.currentDifferenceRevision(), exception.currentDifferenceVersion(), null);
+            case "AGGREGATE_OR_LINE_VERSION_CONFLICT" -> recoverable(409, ARRIVAL_VERSION_CONFLICT,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "REFRESH_AGGREGATE",
+                    exception.currentAggregateVersion(), exception.currentLineVersion(),
+                    exception.currentDifferenceRevision(), exception.currentDifferenceVersion(), null);
             case "IDEMPOTENCY_CONFLICT" -> recoverable(409, IDEMPOTENCY_CONFLICT,
                     exception.getMessage(), exception.category(), exception.reasonCode(), "START_NEW_INTENT");
             case "IDEMPOTENCY_IN_PROGRESS" -> recoverable(409, IDEMPOTENCY_IN_PROGRESS,
