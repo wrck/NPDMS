@@ -46,7 +46,7 @@
 
 - 仅当前`CutoverTask`为`SURVEYING`、最终等级为A/B/C、当前提交评估仍有效时可生成清单；D级和`LEGACY_FORWARD`不得生成。
 - 同一任务仅一个未失效当前清单。首次生成使用`checklistVersion=1`；已提交版本不得原位编辑，受控变更只能关闭旧当前版本并追加新版本。
-- 生成时锁定任务、当前评估，并按任务创建时冻结的`configurationRevisionId/configurationCode/configurationRevisionNo`精确读取同一`CutoverConfigurationRevision`，保存输入、定义、规则和字典快照。P3不得按当前时间、种子代码或任意当前发布版本重新选择；配置后续发布不改变既有任务或清单。
+- 生成时锁定任务、当前评估，并按任务创建时冻结的`configurationRevisionId/configurationCode/configurationRevisionNo`精确读取同一`CutoverConfigurationRevision`，即使该修订后来已`DISABLED`仍按历史身份消费，并保存输入、定义、规则和字典快照。P3不得按当前时间、种子代码或任意当前发布版本重新选择；配置后续发布不改变既有任务或清单。
 - 任务、评估、配置或项目范围身份不完整时整笔失败，不留下部分清单或项目。
 
 ### BR-FCUT003-002 动态匹配与重匹配

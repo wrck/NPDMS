@@ -47,7 +47,7 @@
 ### BR-FCUT002-001 P1自建与来源幂等
 
 - 用户自建请求只提交项目ID、明确选择的`configurationCode`、设备序列号、任务名称、割接类型、组网模式、计划时间、背景以及前一次只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；任务编号、来源主体、项目/客户/设备引用与快照由服务端生成。`configurationCode`只表示选择意图，期望版本只作为并发守卫，不允许客户端写配置revision或其他Owner事实。
-- CUT使用服务端捕获并同时写为任务`createTime`的单一`taskCreatedAt`，按租户、选择代码和生效区间精确解析唯一已发布配置修订，原子冻结`configurationRevisionId/configurationCode/configurationRevisionNo`。受信ITR/PROJECT_EVENT命令也必须显式提供配置代码；缺失、零命中或多命中整笔失败，不使用种子默认、当前时间或割接类型推断。
+- CUT使用服务端捕获并同时写为任务`createTime`的单一`taskCreatedAt`，按租户、选择代码、`status=PUBLISHED`和生效区间精确解析唯一当前发布配置修订，原子冻结`configurationRevisionId/configurationCode/configurationRevisionNo`。受信ITR/PROJECT_EVENT命令也必须显式提供配置代码；缺失、零命中或多命中整笔失败，不使用种子默认、当前时间或割接类型推断。
 - 创建前重新校验当前租户、工程师主体、PROJ公开scope action返回的“本人参与、负责或明确授权项目”范围、AST公开契约返回的全部设备当前项目归属及版本，并锁定IMP明确`READY`快照。不得以“可管理项目”替代或收窄PRD授权语义。
 - 用户命令的幂等作用域为`CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}`；同键同规范化请求返回原任务，同键异请求冲突。可信内部来源分别以`sourceSystem+sourceBusinessNo`和`businessEventId`唯一。
 - 复用平台既有命令幂等摘要，不新增第二套哈希、指纹或幂等表。
@@ -111,7 +111,7 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 - 新建CUT Owner前向表：`cut_task`、`cut_task_device_scope`、`cut_task_stage_history`、`cut_assessment`。其中聚合根和评估表名严格沿用正式SDS，不另建同义表。
 - `cut_task`保存来源判别联合、不可变`previous_task_id`、背景、当前阶段/状态、负责人、IMP快照、PROJ水位、项目/办事处/设备/客户/就绪上下文快照，以及任务创建时冻结且不可改的配置revision三元组；`cut_task_device_scope`保存稳定设备ID、SN快照、归属版本和活动唯一标记；`cut_task_stage_history`只追加P1接入与P2提交产生的阶段迁移；`cut_assessment`保存DRAFT/SUBMITTED/INVALIDATED版本、服务端固定模板、草稿可空/提交非空答案JSON、上下文JSON和人工等级。已提交版本失效时同事务追加下一版DRAFT并原子切换当前评估引用，不留下无current marker状态。
-- 配置字段加入前已存在的`NEW_PLATFORM`任务，只允许按原`create_time`在全租户全部配置代码中恰好命中一个适用发布修订时前向补齐；零个或多个候选整批失败，禁止使用`CUTOVER_DEFAULT`、当前时间、名称或任选候选。`LEGACY_FORWARD`配置字段保持空。
+- 配置字段加入前已存在的`NEW_PLATFORM`任务，只允许按原`create_time`从具有正式发布事实且状态为`PUBLISHED/DISABLED`的历史修订中解析；DRAFT排除，且在全租户全部配置代码中恰好命中一个生效区间时才前向补齐。零个或多个候选整批失败，禁止使用`CUTOVER_DEFAULT`、当前时间、名称或任选候选。`LEGACY_FORWARD`配置字段保持空。
 - 已提交评估和阶段历史只追加；当前任务根保存阶段、状态、人工等级、当前评估ID、IMP快照ID/版本和乐观锁版本。
 - 活动设备范围使用`uk(tenant_id, project_id, device_id, active_marker)`控制并发；任务终态由后续Feature在同事务清除活动标记。
 - 来源唯一键分别约束`tenant_id/source_system/source_business_no`和`tenant_id/business_event_id`；用户自建幂等复用平台命令事实。

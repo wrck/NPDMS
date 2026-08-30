@@ -153,12 +153,12 @@
       "configurationBinding": {
         "selectionIntent": "SELF_CREATED receives one configurationCode explicitly selected from resolve-create-context; trusted ITR/PROJECT_EVENT commands also carry one explicit configurationCode; callers never supply revision id or revision number",
         "effectiveAt": "one server-captured taskCreatedAt is used both for revision resolution and cut_task.create_time",
-        "resolution": "exactly one same-tenant revision with the selected configurationCode whose published effective interval contains taskCreatedAt",
+        "resolution": "for new task creation exactly one same-tenant revision with the selected configurationCode, current status PUBLISHED and an effective interval containing taskCreatedAt",
         "frozenIdentity": ["configuration_revision_id", "configuration_code", "configuration_revision_no"],
         "immutability": "all three fields are immutable after NEW_PLATFORM task creation",
         "forbiddenFallbacks": ["CUTOVER_DEFAULT seed assumption", "P3 current time", "cutover_type as configuration code", "name inference", "arbitrary candidate"]
       },
-      "existingNewPlatformForwardFill": "for NEW_PLATFORM rows created before these columns exist, resolve by the original create_time across all same-tenant configuration codes; update only when exactly one applicable published revision exists; zero or multiple candidates fail the whole forward migration before any task update; LEGACY_FORWARD remains null",
+      "existingNewPlatformForwardFill": "for NEW_PLATFORM rows created before these columns exist, resolve by original create_time across all same-tenant configuration codes from revisions with formal publish facts and status PUBLISHED or DISABLED whose effective interval contains that time; DRAFT never participates; update only when exactly one historical revision exists; zero or multiple candidates fail the whole forward migration before any task update; LEGACY_FORWARD remains null",
       "previousTaskChain": "previous_task_id is null for the first task in a business chain; otherwise it points to one same-tenant, same-project, nondeleted direct predecessor whose task lifecycle has been authoritatively ended by the owning later Feature; the relation is immutable, UNIQUE(tenant_id, previous_task_id) forbids sibling successors, and F-CUT-002 itself creates only initial tasks because it does not own a task-ending transition",
       "checks": [
         "version >= 0",

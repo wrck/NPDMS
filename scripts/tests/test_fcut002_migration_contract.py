@@ -53,6 +53,14 @@ class FCut002MigrationContractTest(unittest.TestCase):
             self.assertIn(field, legacy_union)
         self.assertIn("all null", legacy_union)
 
+    def test_existing_new_platform_configuration_fill_uses_historical_publish_interval(self):
+        rule = self.physical["tables"]["cut_task"]["existingNewPlatformForwardFill"]
+        self.assertIn("status PUBLISHED or DISABLED", rule)
+        self.assertIn("formal publish facts", rule)
+        self.assertIn("DRAFT never participates", rule)
+        self.assertIn("original create_time", rule)
+        self.assertIn("exactly one historical revision", rule)
+
     def test_each_unmigratable_path_has_an_explicit_disposition(self):
         dispositions = self.physical["migration"]["dispositions"]
         self.assertEqual(
