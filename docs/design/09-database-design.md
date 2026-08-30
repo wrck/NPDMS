@@ -648,10 +648,10 @@ F-PLT-002只拥有上述三张动态表单表。用户REST创建的手工实例�
 
 | 表 | 关键字段 | 约束/索引与语义 |
 |---|---|---|
-| `plt_export_task` | `owner_context/export_type/operation_id/request_digest/actor_user_id/filter_snapshot/scope_snapshot/requested_fields_snapshot/include_files/scope_version/task_status/result_count`、公共文件事实、`expires_at/failure_code/version`及标准租户审计字段 | `uk(tenant_id, owner_context, export_type, actor_user_id, operation_id)`；状态REQUESTED/GENERATING/SUCCEEDED/FAILED/REJECTED/EXPIRED；成功文件事实整组同时存在；不逻辑删除，不以`plt_operation_audit`替代 |
-| `plt_export_audit` | `export_task_id/audit_sequence/action_code/actor_user_id/detail_snapshot/occurred_at`及租户/创建审计字段 | `uk(tenant_id, export_task_id, audit_sequence)`；REQUESTED/GENERATION_STARTED/SUCCEEDED/FAILED/REJECTED/DOWNLOADED/EXPIRED只追加；下载和TTL清理不得另建第二审计 |
+| `plt_export_task` | `owner_context/export_type/operation_id/request_digest/actor_user_id/filter_snapshot/scope_snapshot/requested_fields_snapshot/include_files/scope_version/task_status/result_count`、公共文件事实、`expires_at/failure_code/failure_retryable/retry_count/version`及标准租户审计字段 | `uk(tenant_id, owner_context, export_type, actor_user_id, operation_id)`；REQUESTED→GENERATING→SUCCEEDED/FAILED/REJECTED，只有可重试FAILED可按version CAS回REQUESTED，只有SUCCEEDED可转EXPIRED；FAILED必须有失败码/可重试标记，retry_count从0递增；成功文件事实整组同时存在；不逻辑删除，不以`plt_operation_audit`替代 |
+| `plt_export_audit` | `export_task_id/audit_sequence/action_code/actor_user_id/detail_snapshot/occurred_at`及租户/创建审计字段 | `uk(tenant_id, export_task_id, audit_sequence)`；REQUESTED/GENERATION_STARTED/SUCCEEDED/FAILED/REJECTED/RETRY_REQUESTED/DOWNLOADED/EXPIRED只追加；下载和TTL清理不得另建第二审计 |
 
-两张物理表由ACC-02 Feature前向迁移确定并由PLT Owner持有，ACC及其他消费Context不得直写。`ExportTaskExecutionJob`按Task版本CAS领取并调用唯一业务Provider；结果文件目标固定`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`。`ExportFileExpirationJob`只删除到期文件内容并追加审计，Task/Audit永久保留。
+两张物理表由ACC-02 Feature前向迁移确定并由PLT Owner持有，ACC及其他消费Context不得直写。`ExportTaskExecutionJob`只按Task版本CAS领取REQUESTED；原申请actor的显式retry命令重验权限后才可把`FAILED + failure_retryable=1`恢复为REQUESTED并递增retry_count。结果文件目标固定`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`。`ExportFileExpirationJob`只处理SUCCEEDED到期文件并追加审计，FAILED/REJECTED不得转EXPIRED，Task/Audit永久保留。
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |
 | `ana_portfolio_projection` | 组合维度的可重建经营查询投影 | `uk(tenant_id, portfolio_id, metric_version, data_watermark)`；返回权限范围哈希 |
 

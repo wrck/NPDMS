@@ -192,7 +192,7 @@ F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Quest
 
 Result判定在锁定Task/Questionnaire/Response并取得ProjectScope事实后，先以稳定operation调用PLT生成文档，再写Result/ResultFile/Outbox；`createGeneratedBusinessFile`以MANDATORY加入同一MySQL事务。对象存储写入不延长反向Owner锁序：PLT不得在取得文件锁后回调PROJ。并发同Result只允许一个RESULT_DOCUMENT引用；同operation同摘要复用FileUploadSession/回执，异摘要冲突，外层回滚由会话补偿未引用对象。
 
-统一导出申请按`tenant+ownerContext+exportType+actor+operationId`单胜；同摘要返回原Task，异摘要冲突。执行Job以`plt_export_task.version`从REQUESTED抢占GENERATING，同Task只允许一个成功文件；生成前调用业务Provider重验，PLT取得文件锁后不得反向持有业务表锁。下载不缓存授权，始终以原申请actor重新调用Provider；TTL Job与下载以Task版本和到期时点竞争，已EXPIRED不得签发Ticket。
+统一导出申请按`tenant+ownerContext+exportType+actor+operationId`单胜；同摘要返回原Task且不改变状态，异摘要冲突。执行Job以`plt_export_task.version`从REQUESTED抢占GENERATING；暂时生成失败写`FAILED + failure_retryable=1`。只有原申请actor的retry命令在权限重验后以expectedVersion CAS执行`FAILED(retryable)→REQUESTED`并递增retry_count，并发重试只允许一个成功；非可重试、REJECTED/SUCCEEDED/EXPIRED均不得恢复。同Task只允许一个成功文件；生成前调用业务Provider重验，PLT取得文件锁后不得反向持有业务表锁。下载不缓存授权；TTL Job只与SUCCEEDED下载以Task版本和到期时点竞争，FAILED/REJECTED不得转EXPIRED。
 
 监控 cache hit/miss/latency、DB fallback、lock wait/deadlock、optimistic conflict、tree projection lag、assignment projection lag、outbox lag 和 callback disorder。
 

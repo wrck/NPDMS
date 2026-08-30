@@ -1089,13 +1089,28 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
             contract = root / "docs" / "design" / "02d-cross-context-contracts.md"
             contract.write_text(
-                contract.read_text(encoding="utf-8").replace("ExportTaskApi.request/getFact", "ExportTaskAdapter"),
+                contract.read_text(encoding="utf-8").replace("ExportTaskApi.request/getFact/retry", "ExportTaskAdapter"),
                 encoding="utf-8",
             )
 
             errors = MODULE.validate_facc002_satisfaction_contract(root)
 
-            self.assertTrue(any("ExportTaskApi.request/getFact" in error for error in errors), errors)
+            self.assertTrue(any("ExportTaskApi.request/getFact/retry" in error for error in errors), errors)
+
+    def test_facc002_export_contract_rejects_missing_retry_watermark(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            database = root / "docs" / "design" / "09-database-design.md"
+            database.write_text(
+                database.read_text(encoding="utf-8").replace("failure_retryable/retry_count", "failure_code"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("failure_retryable/retry_count" in error for error in errors), errors)
 
 
 if __name__ == "__main__":
