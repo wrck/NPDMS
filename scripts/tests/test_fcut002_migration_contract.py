@@ -77,7 +77,9 @@ class FCut002MigrationContractTest(unittest.TestCase):
         record = next(item for item in self.trace["records"] if item["object"] == "CutoverTask")
         source = record["sources"][0]
         self.assertEqual("FEATURE_MAPPING_DEFINED", source["mappingStatus"])
-        self.assertEqual("F-CUT-002_MIGRATION_CONTRACT_REVIEW", source["gate"])
+        self.assertEqual("F-CUT-002_FEATURE_READY_REVIEW", source["gate"])
+        self.assertEqual("PASS", self.physical["migrationContractGate"]["status"])
+        self.assertEqual("36d1b37f", self.physical["migrationContractGate"]["reviewedCommit"])
         self.assertEqual("ALL_0_TO_8_TO_LEGACY_UNKNOWN_READ_ONLY", source["statusMapping"]["policy"])
         bindings = {item["targetField"]: item for item in source["targetFieldBindings"]}
         self.assertEqual(
