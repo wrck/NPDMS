@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2A已`PASS / GO`；关系二元来源身份Contract/Schema在`dd0a26ee`通过，`BLOCKED_BY_SPEC`已解除。Task 3进入ERP批次接收与Owner副本CAS实现，最近Gate为独立Code Review/真实MySQL原子批次、重放、CAS、回滚与并发验证；Task 8及下游依赖仍未解除。
+Task 3运行候选已完成，Gate保持`REVIEW_REQUIRED`：非IT聚焦24/24、隔离MySQL 8.4为4/4，覆盖原子批次、事件/对象重放、前驱CAS、全批回滚、数量下调冲突水位与并发。最近Gate为独立Code Review；Task 8及下游依赖仍未解除。
 
 ## Gate输入
 

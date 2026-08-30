@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.AuthorityScopeImpactMapper">
+    <select id="selectActiveScopesForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT * FROM com_delivery_scope
+        WHERE tenant_id = #{tenantId} AND order_line_id = #{orderLineId}
+          AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
+        ORDER BY project_id, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectDetailsForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO">
+        SELECT * FROM com_delivery_scope_detail
+        WHERE tenant_id = #{tenantId} AND deleted = b'0'
+          AND delivery_scope_id IN
+          <foreach collection="scopeIds" item="scopeId" open="(" separator="," close=")">
+              #{scopeId}
+          </foreach>
+        ORDER BY delivery_scope_id, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectProjectVersionForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        SELECT * FROM com_delivery_scope_project_version
+        WHERE tenant_id = #{tenantId} AND project_id = #{projectId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <insert id="insertScopeDetail" parameterType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO">
+        INSERT INTO com_delivery_scope_detail
+        (id, delivery_scope_id, office_department_code, serial_no, allocated_qty, unit_code,
+         product_code, model_code, site_id, site_location_id, location_text,
+         location_resolution_status, detail_status, source_snapshot, version,
+         creator, create_time, updater, update_time, deleted, tenant_id)
+        VALUES
+        (#{id}, #{deliveryScopeId}, #{officeDepartmentCode}, #{serialNo}, #{allocatedQty}, #{unitCode},
+         #{productCode}, #{modelCode}, #{siteId}, #{siteLocationId}, #{locationText},
+         #{locationResolutionStatus}, #{detailStatus}, #{sourceSnapshot}, #{version},
+         #{creator}, #{createTime}, #{updater}, #{updateTime}, #{deleted}, #{tenantId})
+    </insert>
+
+    <update id="releaseActiveScopeByVersion">
+        UPDATE com_delivery_scope
+        SET scope_status = 'RELEASED', effective_to = #{effectiveTo}, version = version + 1,
+            updater = '0', update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{scopeId} AND version = #{expectedVersion}
+          AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
+    </update>
+
+    <insert id="insertProjectVersion" parameterType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        INSERT INTO com_delivery_scope_project_version
+        (id, project_id, scope_version, payload_version, last_change_type, version,
+         creator, create_time, updater, update_time, deleted, tenant_id)
+        VALUES
+        (#{id}, #{projectId}, #{scopeVersion}, #{payloadVersion}, #{lastChangeType}, #{version},
+         #{creator}, #{createTime}, #{updater}, #{updateTime}, #{deleted}, #{tenantId})
+    </insert>
+
+    <update id="updateProjectVersionById" parameterType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        UPDATE com_delivery_scope_project_version
+        SET scope_version = #{scopeVersion}, payload_version = #{payloadVersion},
+            last_change_type = #{lastChangeType}, version = version + 1,
+            updater = #{updater}, update_time = #{updateTime}
+        WHERE id = #{id} AND tenant_id = #{tenantId} AND version = #{version} AND deleted = b'0'
+    </update>
+</mapper>
