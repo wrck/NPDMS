@@ -32,6 +32,7 @@
 - Task 5A差异范围契约已锁定为DEVICE/ORDER_MODEL_QUANTITY严格JSON判别联合；`project_fact_version`经补充裁决改为仅事实影响revision插入时非空，普通OPEN/预确认处置永久NULL。隔离MySQL 8.4已验证V136空表升级后列可空、无默认值、NULL可写且负值拒绝；预确认EXEMPTED在根确认后仍为NULL，独立事实影响revision可在插入时持有非空版本；非空表升级在ALTER前失败且原1行、值5、NOT NULL及旧检查约束均保持不变。
 - Task 5A确认前置已增加场景化项目事实版本查询：在调用方持有PROJ权威项目锁的前提下，按同租户项目联合根与差异两类全部非NULL `project_fact_version`取MAX；NULL与逻辑删除行不进入分配集合，查询本身不访问PROJ表或创建本地锁。
 - Task 5A首个确认正向闭环已实现：平台幂等命令内先取得PROJ项目经理事实锁，再重验COM/AST/PLT及跨批累计事实；候选状态一致时按项目级MAX+1写根`project_fact_version`并推进CONFIRMED，同时将同一证据revision置为PUBLISHED_PENDING_ACC，通过平台SuccessFacts同事务写`ImplementationEvidencePublished` Outbox。完成重放不再访问业务行，陈旧If-Match在Owner重验和业务写前失败。
+- Task 6A投递实现已完成：只领取`ImplementationEvidencePublished`，严格校验tenant/eventId/payload，同步发布成功后markDelivered，发布或校验异常按1/2/4…60分钟重试。V137将`arrivalEvidenceOutboxDeliveryJob`正式登记为PAUSED；生产激活保持`BLOCKED_BY_ACC_CONSUMER`，ACC消费者与真实Spring传播契约未形成前不注册Quartz同步、不运行证据投递或证据回执重试。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选

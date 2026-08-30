@@ -200,7 +200,7 @@
 - Modify: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/arrivalacceptance/ArrivalAcceptanceMigrationContractTest.java`
 
 - [ ] 在现有现场实施菜单体系新增一个到货签收可见菜单和五项锁定权限，不写角色授权，不覆盖旧到货菜单/权限。
-- [ ] 以确定性高段ID和 `handler_name` 幂等登记启用的 `arrivalEvidenceOutboxDeliveryJob`（每30秒）与 `arrivalEvidenceRetryJob`（每分钟）；在同一 `infra_job` 调度器登记初始暂停的 `arrivalLegacyReconciliationJob`，只有 Task 12 核验生产 COM/AST/PLT Provider 和迁移前置条件后才显式启用。Job重试业务字段在 `imp_delivery_evidence`，Outbox传输重试字段继续由平台 Outbox 持有。
+- [ ] 以确定性高段ID和 `handler_name` 幂等登记初始暂停的 `arrivalEvidenceOutboxDeliveryJob`（每30秒）、`arrivalEvidenceRetryJob`（每分钟）与 `arrivalLegacyReconciliationJob`；ACC生产`ImplementationEvidencePublished`消费者、契约测试和同步传播边界成立后，才在同一启用提交中显式启用证据投递与证据重试Job并加入Quartz启动同步；Task 12核验生产COM/AST/PLT Provider和迁移前置条件后才显式启用旧数据核对Job。Job重试业务字段在 `imp_delivery_evidence`，Outbox传输重试字段继续由平台 Outbox 持有。
 - [ ] 仅播种正式定义的字典状态、差异类型和菜单资源；无正式名称或值域的业务数据不臆造。
 - [ ] 示例数据如需用于隔离验收，必须使用专用高段 ID/前缀、`creator='seed'`、可重放且不覆盖用户事实；旧测试种子不得升级为已接受项目事实。
 - [ ] 验证迁移前向、重复执行、旧菜单仍可访问和没有自动指派资源。

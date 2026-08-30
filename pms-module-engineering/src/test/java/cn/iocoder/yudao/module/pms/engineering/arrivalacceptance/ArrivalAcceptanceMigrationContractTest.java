@@ -18,6 +18,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String qualificationUpgradeSql;
     private static String fileFactUpgradeSql;
     private static String differenceFactUpgradeSql;
+    private static String evidenceOutboxJobSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -35,6 +36,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         differenceFactUpgradeSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V136__fimp002_nullable_difference_fact_version.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        evidenceOutboxJobSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V137__fimp002_arrival_evidence_outbox_job.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -162,6 +166,17 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(guard >= 0);
         assertTrue(signal > guard);
         assertTrue(alter > signal);
+    }
+
+    @Test
+    void registersEvidenceOutboxJobPausedUntilAccConsumerIsReady() {
+        assertTrue(evidenceOutboxJobSql.contains("992602010001"));
+        assertTrue(evidenceOutboxJobSql.contains("'arrivalEvidenceOutboxDeliveryJob'"));
+        assertTrue(evidenceOutboxJobSql.contains("'0/30 * * * * ?'"));
+        assertTrue(evidenceOutboxJobSql.contains("WHERE NOT EXISTS"));
+        assertTrue(evidenceOutboxJobSql.contains("`status` = 2"));
+        assertFalse(evidenceOutboxJobSql.contains("`status` = 1"));
+        assertFalse(evidenceOutboxJobSql.contains("arrivalEvidenceRetryJob"));
     }
 
     private static int occurrences(String source, String token) {
