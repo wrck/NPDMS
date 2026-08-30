@@ -61,7 +61,6 @@
               FROM imp_arrival_acceptance successor
               WHERE successor.tenant_id = a.tenant_id
                 AND successor.predecessor_acceptance_id = a.id
-                AND successor.successor_reason = 'EXEMPTION_INVALIDATION'
                 AND successor.deleted = b'0'
           )
         ORDER BY d.exemption_expires_at, d.tenant_id, d.arrival_acceptance_id,

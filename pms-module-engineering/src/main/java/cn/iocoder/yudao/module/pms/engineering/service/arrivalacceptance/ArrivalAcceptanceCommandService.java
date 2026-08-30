@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalResolutionMutation;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceIdentityQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionAdvance;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
@@ -28,6 +29,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.Ar
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectSystemQualificationPort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
@@ -57,6 +59,7 @@ public class ArrivalAcceptanceCommandService {
     private final DeliveryEvidenceMapper evidenceMapper;
     private final DeliveryEvidenceRevisionMapper revisionMapper;
     private final ProjectQualificationPort projectPort;
+    private final ProjectSystemQualificationPort systemProjectPort;
     private final DeliveryScopePort deliveryPort;
     private final DeviceScopeFactPort devicePort;
     private final FileArtifactFactPort filePort;
@@ -70,6 +73,7 @@ public class ArrivalAcceptanceCommandService {
                                            DeliveryEvidenceMapper evidenceMapper,
                                            DeliveryEvidenceRevisionMapper revisionMapper,
                                            ProjectQualificationPort projectPort,
+                                           ProjectSystemQualificationPort systemProjectPort,
                                            DeliveryScopePort deliveryPort,
                                            DeviceScopeFactPort devicePort,
                                            FileArtifactFactPort filePort,
@@ -82,6 +86,7 @@ public class ArrivalAcceptanceCommandService {
         this.evidenceMapper = Objects.requireNonNull(evidenceMapper);
         this.revisionMapper = Objects.requireNonNull(revisionMapper);
         this.projectPort = Objects.requireNonNull(projectPort);
+        this.systemProjectPort = Objects.requireNonNull(systemProjectPort);
         this.deliveryPort = Objects.requireNonNull(deliveryPort);
         this.devicePort = Objects.requireNonNull(devicePort);
         this.filePort = Objects.requireNonNull(filePort);
@@ -168,7 +173,8 @@ public class ArrivalAcceptanceCommandService {
                 || claimed.getApprovedBy() == null || claimed.getApprovedBy() <= 0) {
             throw new StateConflictException();
         }
-        lockProject(observed, claimed.getApprovedBy(), false);
+        ProjectSystemQualificationPort.CurrentProjectQualification project =
+                systemProjectPort.lockCurrent(observed.getTenantId(), observed.getProjectId());
         ArrivalAcceptanceDO source = acceptanceMapper.selectForUpdate(new ArrivalRowQuery(
                 claimed.getTenantId(), claimed.getArrivalAcceptanceId()));
         if (!sameLockedSource(observed, source) || !"CONFIRMED".equals(source.getStatus())) {
@@ -192,7 +198,7 @@ public class ArrivalAcceptanceCommandService {
         lockScopeOwners(source);
         lockStoredEvidence(source, current);
         SuccessorContext successor = createSuccessor(source, sourceLines, sourceDifferences,
-                "EXEMPTION_INVALIDATION", 0L);
+                "EXEMPTION_INVALIDATION", 0L, project);
         ArrivalDifferenceDO copied = successor.differencesByNumber().get(current.getDifferenceNo());
         ArrivalLineDO copiedLine = successor.linesBySourceId().get(current.getArrivalLineId());
         if (copied == null || copiedLine == null) throw new IllegalStateException("successor copy is incomplete");
@@ -225,13 +231,23 @@ public class ArrivalAcceptanceCommandService {
         DeliveryEvidenceRevisionDO revision = revisionMapper.selectRevision(
                 new DeliveryEvidenceRevisionQuery(source.getTenantId(), difference.getEvidenceId(),
                         difference.getEvidenceRevision()));
-        if (revision == null || !source.getId().equals(revision.getSourceRecordId())) {
+        if (revision == null || revision.getSourceRecordId() == null || revision.getSourceRecordId() <= 0) {
             throw new IllegalStateException("exemption evidence revision is mismatched");
         }
+        DeliveryEvidenceDO evidence = evidenceMapper.selectByIdentityForUpdate(
+                new DeliveryEvidenceIdentityQuery(source.getTenantId(), difference.getEvidenceId()));
+        if (evidence == null || !Objects.equals(source.getTenantId(), evidence.getTenantId())
+                || !Objects.equals(source.getProjectId(), evidence.getProjectId())
+                || !"EXE-01".equals(evidence.getSourceRequirement())
+                || !"ARRIVAL_ACCEPTANCE".equals(evidence.getSourceObjectType())
+                || !Objects.equals(revision.getSourceRecordId(), evidence.getSourceObjectId())) {
+            throw new IllegalStateException("exemption evidence root is mismatched");
+        }
+        requireEvidenceSourceInLineage(source, revision.getSourceRecordId());
         FileFactVersion factVersion = JsonUtils.parseObject(revision.getFileFactVersion(), FileFactVersion.class);
         FileArtifactVersionFact current = filePort.lockAndRevalidateArrivalEvidence(
                 new FileArtifactFactPort.ArrivalEvidenceExpectation(revision.getFileArtifactId(),
-                        revision.getFileVersionNo(), source.getId(), revision.getFileReferenceId(),
+                        revision.getFileVersionNo(), revision.getSourceRecordId(), revision.getFileReferenceId(),
                         factVersion, revision.getFileScopeVersion()));
         if (current == null || !revision.getFileArtifactId().equals(current.artifactId())
                 || !revision.getFileVersionNo().equals(current.versionNo())
@@ -240,6 +256,28 @@ public class ArrivalAcceptanceCommandService {
                 || !revision.getFileScopeVersion().equals(current.scopeVersion())
                 || !revision.getFileHash().equals(current.sha256())) {
             throw new IllegalStateException("exemption evidence fact is stale or mismatched");
+        }
+    }
+
+    private void requireEvidenceSourceInLineage(ArrivalAcceptanceDO source, Long evidenceSourceId) {
+        ArrivalAcceptanceDO cursor = source;
+        Set<Long> visited = new HashSet<>();
+        while (true) {
+            if (cursor.getId() == null || !visited.add(cursor.getId())
+                    || !Objects.equals(source.getTenantId(), cursor.getTenantId())
+                    || !Objects.equals(source.getProjectId(), cursor.getProjectId())
+                    || !Objects.equals(source.getBatchCode(), cursor.getBatchCode())) {
+                throw new IllegalStateException("arrival acceptance predecessor lineage is invalid");
+            }
+            if (Objects.equals(cursor.getId(), evidenceSourceId)) return;
+            if (cursor.getPredecessorAcceptanceId() == null) {
+                throw new IllegalStateException("evidence source is not an arrival acceptance ancestor");
+            }
+            Long predecessorId = cursor.getPredecessorAcceptanceId();
+            cursor = acceptanceMapper.selectRow(new ArrivalRowQuery(source.getTenantId(), predecessorId));
+            if (cursor == null || !Objects.equals(predecessorId, cursor.getId())) {
+                throw new IllegalStateException("arrival acceptance predecessor lineage is broken");
+            }
         }
     }
 
@@ -357,7 +395,7 @@ public class ArrivalAcceptanceCommandService {
                 new ArrivalChildrenQuery(command.tenantId(), source.getId()));
         List<ArrivalDifferenceDO> sourceDifferences = differenceMapper.selectCurrentListForUpdate(
                 new ArrivalChildrenQuery(command.tenantId(), source.getId()));
-        ArrivalDifferenceDO sourceDifference = requireCurrentDifference(sourceDifferences, resolution);
+        ArrivalDifferenceDO sourceDifference = requireConfirmedDifference(sourceDifferences, resolution);
         SuccessorContext successor = createSuccessor(source, sourceLines, sourceDifferences,
                 resolution instanceof ArrivalAcceptanceCommands.Supplement
                         ? "SUPPLEMENT" : "DIFFERENCE_CLOSURE", command.actorUserId());
@@ -442,15 +480,21 @@ public class ArrivalAcceptanceCommandService {
                 quantity.acceptedQuantity(), quantity.unitCode());
     }
 
-    private ArrivalDifferenceDO requireCurrentDifference(List<ArrivalDifferenceDO> differences,
-                                                         ArrivalAcceptanceCommands.DifferenceResolution resolution) {
+    private ArrivalDifferenceDO requireConfirmedDifference(List<ArrivalDifferenceDO> differences,
+                                                           ArrivalAcceptanceCommands.DifferenceResolution resolution) {
+        if (differences.stream().anyMatch(value -> "OPEN".equals(value.getResolutionStatus()))) {
+            throw new StateConflictException();
+        }
         ArrivalDifferenceDO current = differences.stream()
                 .filter(value -> value.getId().equals(resolution.differenceId()))
                 .findFirst().orElseThrow(DifferenceVersionConflictException::new);
         if (!Objects.equals(current.getRevisionNo(), resolution.expectedDifferenceRevision())
-                || !Objects.equals(current.getVersion(), resolution.expectedDifferenceVersion())
-                || !"OPEN".equals(current.getResolutionStatus())) {
+                || !Objects.equals(current.getVersion(), resolution.expectedDifferenceVersion())) {
             throw new DifferenceVersionConflictException();
+        }
+        if (!"REJECTED".equals(current.getResolutionStatus())
+                || resolution instanceof ArrivalAcceptanceCommands.KeepRejected) {
+            throw new StateConflictException();
         }
         return current;
     }
@@ -458,6 +502,13 @@ public class ArrivalAcceptanceCommandService {
     private SuccessorContext createSuccessor(ArrivalAcceptanceDO source, List<ArrivalLineDO> sourceLines,
                                              List<ArrivalDifferenceDO> sourceDifferences,
                                              String reason, Long actorUserId) {
+        return createSuccessor(source, sourceLines, sourceDifferences, reason, actorUserId, null);
+    }
+
+    private SuccessorContext createSuccessor(ArrivalAcceptanceDO source, List<ArrivalLineDO> sourceLines,
+                                             List<ArrivalDifferenceDO> sourceDifferences,
+                                             String reason, Long actorUserId,
+                                             ProjectSystemQualificationPort.CurrentProjectQualification project) {
         if (acceptanceMapper.selectSuccessorForUpdate(new ArrivalPredecessorQuery(
                 source.getTenantId(), source.getId())) != null) {
             throw new StateConflictException();
@@ -476,9 +527,13 @@ public class ArrivalAcceptanceCommandService {
         successor.setArrivedAt(source.getArrivedAt());
         successor.setSignerSnapshot(source.getSignerSnapshot());
         successor.setStatus("DRAFT");
-        successor.setProjectVersion(source.getProjectVersion());
-        successor.setProjectParticipantFactVersion(source.getProjectParticipantFactVersion());
-        successor.setProjectScopeVersion(source.getProjectScopeVersion());
+        if (project != null && !Objects.equals(source.getProjectId(), project.projectId())) {
+            throw new IllegalStateException("current project system qualification is mismatched");
+        }
+        successor.setProjectVersion(project == null ? source.getProjectVersion() : project.projectVersion());
+        successor.setProjectParticipantFactVersion(project == null
+                ? source.getProjectParticipantFactVersion() : project.participantFactVersion());
+        successor.setProjectScopeVersion(project == null ? source.getProjectScopeVersion() : project.treeVersion());
         successor.setDeliveryScopeVersion(source.getDeliveryScopeVersion());
         successor.setExpectedScopeSnapshot(source.getExpectedScopeSnapshot());
         successor.setScopeWatermark(source.getScopeWatermark());

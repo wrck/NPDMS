@@ -95,7 +95,7 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("predecessor_acceptance_id = #{query.predecessorAcceptanceId}"));
         assertTrue(mapperXml.contains("id=\"selectDueExemptions\""));
         assertTrue(mapperXml.contains("d.exemption_expires_at &lt;= #{query.processingTime}"));
-        assertTrue(mapperXml.contains("successor.successor_reason = 'EXEMPTION_INVALIDATION'"));
+        assertFalse(mapperXml.contains("successor.successor_reason = 'EXEMPTION_INVALIDATION'"));
         assertTrue(mapperXml.contains("ORDER BY d.exemption_expires_at, d.tenant_id"));
         assertTrue(mapperXml.contains("id=\"updateSubmittedIfMatch\""));
         assertTrue(mapperXml.contains("id=\"updateConfirmedIfMatch\""));

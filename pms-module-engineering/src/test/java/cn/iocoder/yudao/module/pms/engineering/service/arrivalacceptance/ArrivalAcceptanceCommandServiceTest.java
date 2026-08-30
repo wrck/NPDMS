@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.Ar
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectSystemQualificationPort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
@@ -122,7 +123,7 @@ class ArrivalAcceptanceCommandServiceTest {
         root.setStatus("CONFIRMED");
         Fixture fixture = fixture(root);
         ArrivalLineDO line = quantityLine();
-        ArrivalDifferenceDO difference = openQuantityDifference();
+        ArrivalDifferenceDO difference = rejectedQuantityDifference();
         when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(line));
         when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(difference));
         when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
@@ -191,7 +192,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().selectSuccessorForUpdate(any())).thenReturn(existing);
         when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
         when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
-                .thenReturn(List.of(openQuantityDifference()));
+                .thenReturn(List.of(rejectedQuantityDifference()));
 
         assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(
@@ -244,6 +245,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
         when(fixture.acceptanceMapper().selectMaxAllocatedProjectFactVersion(any())).thenReturn(4L);
         when(fixture.revisionMapper().selectRevision(any())).thenReturn(storedEvidenceRevision());
+        when(fixture.evidenceMapper().selectByIdentityForUpdate(any())).thenReturn(storedEvidence());
 
         List<ArrivalAcceptanceCommands.CommandResult> results = fixture.service().expireExemptions(
                 new ArrivalAcceptanceCommands.ExpireArrivalExemptionsCommand(10));
@@ -258,11 +260,17 @@ class ArrivalAcceptanceCommandServiceTest {
         assertEquals(5L, invalidation.getProjectFactVersion());
         assertEquals("EXEMPTION_INVALIDATION", invalidation.getFactImpactType());
         verify(fixture.acceptanceMapper(), never()).resolveDifferenceIfMatch(any());
+        ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
+        verify(fixture.acceptanceMapper()).insert(successor.capture());
+        assertEquals(15, successor.getValue().getProjectVersion());
+        assertEquals(16L, successor.getValue().getProjectParticipantFactVersion());
+        assertEquals(17L, successor.getValue().getProjectScopeVersion());
         org.mockito.InOrder lockOrder = org.mockito.Mockito.inOrder(
-                fixture.acceptanceMapper(), fixture.projectPort());
+                fixture.acceptanceMapper(), fixture.systemProjectPort());
         lockOrder.verify(fixture.acceptanceMapper()).selectRow(any());
-        lockOrder.verify(fixture.projectPort()).lockAndRevalidate(any());
+        lockOrder.verify(fixture.systemProjectPort()).lockCurrent(1L, 100L);
         lockOrder.verify(fixture.acceptanceMapper()).selectForUpdate(any());
+        verify(fixture.projectPort(), never()).lockAndRevalidate(any());
     }
 
     @Test
@@ -276,7 +284,7 @@ class ArrivalAcceptanceCommandServiceTest {
         exempt.setExemptionExpiresAt(java.time.LocalDateTime.of(2026, 8, 30, 3, 0));
         when(fixture.differenceMapper().selectDueExemptions(any())).thenReturn(List.of(exempt));
         when(fixture.acceptanceMapper().selectRow(any())).thenReturn(root);
-        when(fixture.projectPort().lockAndRevalidate(any()))
+        when(fixture.systemProjectPort().lockCurrent(any(), any()))
                 .thenThrow(new IllegalStateException("project provider unavailable"));
 
         assertThrows(IllegalStateException.class, () -> fixture.service().expireExemptions(
@@ -285,6 +293,110 @@ class ArrivalAcceptanceCommandServiceTest {
         verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
         verify(fixture.differenceMapper(), never()).insert(any(ArrivalDifferenceDO.class));
         verify(fixture.acceptanceMapper(), never()).selectMaxAllocatedProjectFactVersion(any());
+    }
+
+    @Test
+    void confirmedSourceWithCurrentOpenDifferenceFailsBeforeSuccessorWrite() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        ArrivalDifferenceDO rejected = rejectedQuantityDifference();
+        ArrivalDifferenceDO open = openQuantityDifference();
+        open.setId(22L);
+        open.setDifferenceNo(2);
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(rejected, open));
+
+        assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
+                () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
+                        1L, 900L, 8L, 2,
+                        new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()), "close-key")));
+
+        verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
+        verify(fixture.revisionMapper(), never()).insert(any(DeliveryEvidenceRevisionDO.class));
+    }
+
+    @Test
+    void confirmedRejectedDifferenceCannotUseKeepRejectedNoOp() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(rejectedQuantityDifference()));
+
+        assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
+                () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
+                        1L, 900L, 8L, 2,
+                        new ArrivalAcceptanceCommands.KeepRejected(20L, 1, 0, "保持拒收", fileRevision()),
+                        "keep-key")));
+
+        verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
+    }
+
+    @Test
+    void copiedExemptionRevalidatesEvidenceAgainstStrictAncestorSource() {
+        ArrivalAcceptanceDO source = draft(2);
+        source.setId(901L);
+        source.setPredecessorAcceptanceId(900L);
+        source.setStatus("CONFIRMED");
+        Fixture fixture = fixture(source);
+        ArrivalAcceptanceDO ancestor = draft(4);
+        ancestor.setStatus("CONFIRMED");
+        ArrivalDifferenceDO exempt = expiredExemption(901L);
+        when(fixture.differenceMapper().selectDueExemptions(any())).thenReturn(List.of(exempt));
+        when(fixture.acceptanceMapper().selectRow(any())).thenAnswer(invocation -> {
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery query =
+                    invocation.getArgument(0);
+            return query.arrivalAcceptanceId().equals(901L) ? source : ancestor;
+        });
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(exempt));
+        when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
+        when(fixture.acceptanceMapper().selectMaxAllocatedProjectFactVersion(any())).thenReturn(4L);
+        when(fixture.revisionMapper().selectRevision(any())).thenReturn(storedEvidenceRevision());
+        when(fixture.evidenceMapper().selectByIdentityForUpdate(any())).thenReturn(storedEvidence());
+
+        fixture.service().expireExemptions(new ArrivalAcceptanceCommands.ExpireArrivalExemptionsCommand(10));
+
+        ArgumentCaptor<FileArtifactFactPort.ArrivalEvidenceExpectation> expectation =
+                ArgumentCaptor.forClass(FileArtifactFactPort.ArrivalEvidenceExpectation.class);
+        verify(fixture.filePort()).lockAndRevalidateArrivalEvidence(expectation.capture());
+        assertEquals(900L, expectation.getValue().arrivalAcceptanceId());
+    }
+
+    @Test
+    void nonAncestorEvidenceSourceFailsBeforeFileOwnerCall() {
+        ArrivalAcceptanceDO source = draft(2);
+        source.setId(901L);
+        source.setPredecessorAcceptanceId(900L);
+        source.setStatus("CONFIRMED");
+        Fixture fixture = fixture(source);
+        ArrivalAcceptanceDO ancestor = draft(4);
+        ancestor.setStatus("CONFIRMED");
+        ArrivalDifferenceDO exempt = expiredExemption(901L);
+        DeliveryEvidenceRevisionDO revision = storedEvidenceRevision();
+        revision.setSourceRecordId(899L);
+        DeliveryEvidenceDO evidence = storedEvidence();
+        evidence.setSourceObjectId(899L);
+        when(fixture.differenceMapper().selectDueExemptions(any())).thenReturn(List.of(exempt));
+        when(fixture.acceptanceMapper().selectRow(any())).thenAnswer(invocation -> {
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery query =
+                    invocation.getArgument(0);
+            if (query.arrivalAcceptanceId().equals(901L)) return source;
+            if (query.arrivalAcceptanceId().equals(900L)) return ancestor;
+            return null;
+        });
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(exempt));
+        when(fixture.revisionMapper().selectRevision(any())).thenReturn(revision);
+        when(fixture.evidenceMapper().selectByIdentityForUpdate(any())).thenReturn(evidence);
+
+        assertThrows(IllegalStateException.class, () -> fixture.service().expireExemptions(
+                new ArrivalAcceptanceCommands.ExpireArrivalExemptionsCommand(10)));
+
+        verify(fixture.filePort(), never()).lockAndRevalidateArrivalEvidence(any());
+        verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
     }
 
     @Test
@@ -299,6 +411,7 @@ class ArrivalAcceptanceCommandServiceTest {
         DeliveryEvidenceMapper evidence = mock(DeliveryEvidenceMapper.class);
         DeliveryEvidenceRevisionMapper revisions = mock(DeliveryEvidenceRevisionMapper.class);
         ProjectQualificationPort project = mock(ProjectQualificationPort.class);
+        ProjectSystemQualificationPort systemProject = mock(ProjectSystemQualificationPort.class);
         DeliveryScopePort delivery = mock(DeliveryScopePort.class);
         DeviceScopeFactPort devices = mock(DeviceScopeFactPort.class);
         FileArtifactFactPort files = mock(FileArtifactFactPort.class);
@@ -308,9 +421,11 @@ class ArrivalAcceptanceCommandServiceTest {
         when(acceptance.selectSuccessorForUpdate(any())).thenReturn(null);
         when(project.lockAndRevalidate(any())).thenReturn(new ProjectQualificationPort.ProjectQualificationFact(
                 100L, 8L, Set.of("PROJECT_MANAGER"), "ACTIVE", "S4", 5, 6L, 7L));
+        when(systemProject.lockCurrent(1L, 100L)).thenReturn(
+                new ProjectSystemQualificationPort.CurrentProjectQualification(100L, 18L, 15, 16L, 17L));
         doAnswer(invocation -> {
             ArrivalAcceptanceDO value = invocation.getArgument(0);
-            value.setId(901L);
+            value.setId(value.getPredecessorAcceptanceId() + 1L);
             return 1;
         }).when(acceptance).insert(any(ArrivalAcceptanceDO.class));
         when(delivery.lockAndRevalidate(100L, 8L)).thenReturn(deliveryScope());
@@ -341,9 +456,10 @@ class ArrivalAcceptanceCommandServiceTest {
                     PlatformCommandExecutionApi.Decision.NEW, response);
         }).when(commands).execute(any(), any(), any(), any(), any());
         Clock clock = Clock.fixed(Instant.parse("2026-08-30T04:00:00Z"), ZoneOffset.UTC);
-        return new Fixture(acceptance, lines, differences, evidence, revisions, project, files, differenceTypes,
+        return new Fixture(acceptance, lines, differences, evidence, revisions, project, systemProject,
+                files, differenceTypes,
                 new ArrivalAcceptanceCommandService(acceptance, lines, differences, evidence, revisions,
-                        project, delivery, devices, files, differenceTypes, commands, clock));
+                        project, systemProject, delivery, devices, files, differenceTypes, commands, clock));
     }
 
     private static ArrivalAcceptanceDO draft(int version) {
@@ -406,6 +522,24 @@ class ArrivalAcceptanceCommandServiceTest {
         return difference;
     }
 
+    private static ArrivalDifferenceDO rejectedQuantityDifference() {
+        ArrivalDifferenceDO difference = openQuantityDifference();
+        difference.setResolutionStatus("REJECTED");
+        return difference;
+    }
+
+    private static ArrivalDifferenceDO expiredExemption(Long acceptanceId) {
+        ArrivalDifferenceDO exempt = openQuantityDifference();
+        exempt.setArrivalAcceptanceId(acceptanceId);
+        exempt.setResolutionStatus("EXEMPTED");
+        exempt.setApprovedBy(8L);
+        exempt.setApprovedAt(java.time.LocalDateTime.of(2026, 8, 29, 4, 0));
+        exempt.setExemptionExpiresAt(java.time.LocalDateTime.of(2026, 8, 30, 3, 0));
+        exempt.setEvidenceId(50L);
+        exempt.setEvidenceRevision(1);
+        return exempt;
+    }
+
     private static ArrivalDifferenceScopeCodec.QuantityScope quantityScope(String quantity) {
         return new ArrivalDifferenceScopeCodec.QuantityScope(200L, "P-1", "M-1",
                 new BigDecimal(quantity), "台");
@@ -449,6 +583,17 @@ class ArrivalAcceptanceCommandServiceTest {
         return revision;
     }
 
+    private static DeliveryEvidenceDO storedEvidence() {
+        DeliveryEvidenceDO evidence = new DeliveryEvidenceDO();
+        evidence.setId(50L);
+        evidence.setTenantId(1L);
+        evidence.setProjectId(100L);
+        evidence.setSourceRequirement("EXE-01");
+        evidence.setSourceObjectType("ARRIVAL_ACCEPTANCE");
+        evidence.setSourceObjectId(900L);
+        return evidence;
+    }
+
     private record ExpectedScopeSnapshot(List<DeliveryScopePort.AssignedLine> deliveryLines,
                                          List<DeviceScopeFactPort.DeviceFact> devices) {
     }
@@ -456,6 +601,7 @@ class ArrivalAcceptanceCommandServiceTest {
     private record Fixture(ArrivalAcceptanceMapper acceptanceMapper, ArrivalLineMapper lineMapper,
                            ArrivalDifferenceMapper differenceMapper, DeliveryEvidenceMapper evidenceMapper,
                            DeliveryEvidenceRevisionMapper revisionMapper, ProjectQualificationPort projectPort,
+                           ProjectSystemQualificationPort systemProjectPort,
                            FileArtifactFactPort filePort, ArrivalDifferenceTypePort differenceTypePort,
                            ArrivalAcceptanceCommandService service) {
     }
