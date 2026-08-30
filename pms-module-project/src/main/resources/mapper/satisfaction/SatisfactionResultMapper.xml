@@ -23,4 +23,16 @@
     <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionResultDO">
         SELECT * FROM acc_satisfaction_result WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
     </select>
+    <update id="updateArchiveProjection">
+        UPDATE acc_satisfaction_result
+           SET deliverable_source_version_id=#{query.deliverableSourceVersionId},
+               archive_status=#{query.archiveStatus},
+               archive_failure_code=#{query.archiveFailureCode},
+               archive_retry_count=#{query.archiveRetryCount},
+               version=version+1, updater=#{query.updater}, update_time=NOW(3)
+         WHERE tenant_id=#{query.tenantId} AND id=#{query.resultId}
+           AND version=#{query.expectedFactVersion}
+           AND (deliverable_source_version_id IS NULL
+                OR deliverable_source_version_id=#{query.deliverableSourceVersionId})
+    </update>
 </mapper>

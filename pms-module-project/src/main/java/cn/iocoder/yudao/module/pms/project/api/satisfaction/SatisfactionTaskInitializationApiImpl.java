@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.api.satisfaction;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationCommand;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -24,6 +26,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_QUERY_INVALID;
@@ -39,6 +48,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionQuestionnaireTemplateRevisionMapper templateRevisionMapper;
+    private final PlatformCommandExecutionApi commandExecutionApi;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -57,6 +67,29 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
             return conflict();
         }
 
+        var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
+                        tenantId, "ACC_SATISFACTION_TASK_INITIALIZATION",
+                        taskFact.currentAssigneeUserId(), command.operationId()),
+                digest(command), SatisfactionTaskInitializationResult.class,
+                () -> initializeOnce(command, taskFact, tenantId),
+                result -> successFacts(command, taskFact, result));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                || execution.response() == null) {
+            return conflict();
+        }
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED) {
+            SatisfactionTaskInitializationResult response = execution.response();
+            return new SatisfactionTaskInitializationResult("REPLAYED", response.taskId(),
+                    response.questionnaireId(), response.collectionKey(), response.taskRevisionNo(),
+                    response.taskVersion());
+        }
+        return execution.response();
+    }
+
+    private SatisfactionTaskInitializationResult initializeOnce(SatisfactionTaskInitializationCommand command,
+                                                                  ProjectSatisfactionTaskFact taskFact,
+                                                                  Long tenantId) {
         SatisfactionTaskTriggerLockQuery triggerQuery = new SatisfactionTaskTriggerLockQuery(tenantId,
                 command.projectTaskId(), command.triggerOwnerContext(), command.triggerObjectType(),
                 command.triggerFactId(), command.triggerFactVersion());
@@ -118,6 +151,47 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         questionnaireMapper.insert(questionnaire);
         return new SatisfactionTaskInitializationResult("CREATED", taskId, questionnaireId,
                 task.getCollectionKey(), 1, 0);
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts successFacts(SatisfactionTaskInitializationCommand command,
+                                                                   ProjectSatisfactionTaskFact taskFact,
+                                                                   SatisfactionTaskInitializationResult result) {
+        if (result == null || "FACT_CONFLICT".equals(result.outcome())) {
+            return new PlatformCommandExecutionApi.SuccessFacts("SATISFACTION_TASK_INITIALIZATION_CONFLICT",
+                    "SatisfactionCollectionTask", String.valueOf(command.projectTaskId()), command.operationId(),
+                    "{}", List.of());
+        }
+        String eventId = command.operationId() + ":satisfaction-task-created";
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("eventId", eventId); payload.put("tenantId", command.tenantId());
+        payload.put("projectId", command.projectId()); payload.put("projectTaskId", command.projectTaskId());
+        payload.put("projectTaskVersion", taskFact.projectTaskVersion()); payload.put("taskCode", taskFact.taskCode());
+        payload.put("taskId", result.taskId()); payload.put("collectionKey", result.collectionKey());
+        payload.put("taskRevisionNo", result.taskRevisionNo()); payload.put("priorTaskId", null);
+        payload.put("sourceOwnerContext", command.sourceOwnerContext());
+        payload.put("sourceObjectType", command.sourceObjectType()); payload.put("sourceObjectId", command.sourceObjectId());
+        payload.put("sourceObjectVersion", command.sourceObjectVersion());
+        payload.put("triggerOwnerContext", command.triggerOwnerContext());
+        payload.put("triggerObjectType", command.triggerObjectType()); payload.put("triggerFactId", command.triggerFactId());
+        payload.put("triggerFactVersion", command.triggerFactVersion());
+        payload.put("questionnaireId", result.questionnaireId());
+        payload.put("templateRevisionId", taskFact.templateRevisionId());
+        payload.put("templateVersion", taskFact.templateVersion()); payload.put("ruleVersion", taskFact.ruleVersion());
+        payload.put("threshold", taskFact.threshold()); payload.put("assigneeUserId", taskFact.currentAssigneeUserId());
+        return new PlatformCommandExecutionApi.SuccessFacts("SATISFACTION_TASK_INITIALIZED",
+                "SatisfactionCollectionTask", String.valueOf(result.taskId()), command.operationId(),
+                JsonUtils.toJsonString(Map.of("taskId", result.taskId(), "questionnaireId", result.questionnaireId())),
+                List.of(new PlatformCommandExecutionApi.BusinessEvent(eventId, "SatisfactionTaskCreated",
+                        JsonUtils.toJsonString(payload))));
+    }
+
+    private String digest(SatisfactionTaskInitializationCommand command) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(JsonUtils.toJsonString(command).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 
     private SatisfactionTaskInitializationResult replayOrConflict(SatisfactionCollectionTaskDO task,

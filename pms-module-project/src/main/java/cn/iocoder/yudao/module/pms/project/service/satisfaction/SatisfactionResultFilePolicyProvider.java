@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -20,6 +21,7 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
     static final String OWNER = "ACC";
     static final String TYPE = "SATISFACTION_RESULT";
     static final String PURPOSE = "SATISFACTION_RESULT_DOCUMENT";
+    static final String ARCHIVE_PURPOSE = "SATISFACTION_ARCHIVE";
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResponseMapper responseMapper;
@@ -29,8 +31,30 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
     @Override public String ownerContext() { return OWNER; }
     @Override public String objectType() { return TYPE; }
     @Override public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) { return denied(); }
-    @Override public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
-        return denied();
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
+        if (query == null || !FileActionCodes.ARCHIVE.equals(query.requiredAction())
+                || !(PURPOSE.equals(query.purposeCode()) || ARCHIVE_PURPOSE.equals(query.purposeCode()))) {
+            return denied();
+        }
+        Long resultId = positiveLong(query.objectId());
+        SatisfactionResultDO result = resultMapper.selectByIdForUpdate(query.tenantId(), resultId);
+        SatisfactionCollectionTaskDO task = result == null ? null
+                : taskMapper.selectByIdForUpdate(query.tenantId(), result.getCollectionTaskId());
+        if (result == null || task == null || !Objects.equals(result.getArchiveActorUserId(), query.actorUserId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_OWNER_CONFLICT");
+        }
+        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
+                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
+                query.expectedScopeVersion()));
+        if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_SCOPE_CONFLICT");
+        }
+        return new FileBusinessObjectPolicyFact(true, scope.treeVersion(), "IMMUTABLE", "MULTIPLE",
+                Set.of(PURPOSE, ARCHIVE_PURPOSE), Set.of("application/pdf", "image/png", "image/jpeg"),
+                52_428_800L, "CONFIDENTIAL");
     }
 
     @Override
@@ -82,5 +106,14 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
     private FileBusinessObjectPolicyFact denied() {
         return new FileBusinessObjectPolicyFact(false, null, "IMMUTABLE", "SINGLE",
                 Set.of(), Set.of(), 0L, "INTERNAL");
+    }
+
+    private Long positiveLong(String value) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed > 0) return parsed;
+        } catch (NumberFormatException ignored) {
+        }
+        throw new IllegalArgumentException("SATISFACTION_RESULT_FILE_OBJECT_INVALID");
     }
 }

@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.Satisfact
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionAccessGrantMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionResponseMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,6 +27,7 @@ class SatisfactionResponseFilePolicyProviderTest {
     @Mock SatisfactionAccessGrantMapper grantMapper;
     @Mock SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock SatisfactionCollectionTaskMapper taskMapper;
+    @Mock SatisfactionResponseMapper responseMapper;
     @Mock SatisfactionResponseReservationService reservationService;
     @Mock ProjectScopeApi projectScopeApi;
 
@@ -48,7 +50,7 @@ class SatisfactionResponseFilePolicyProviderTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L,
                 Set.of(20L), Set.of()));
         var provider = new SatisfactionResponseFilePolicyProvider(grantMapper, questionnaireMapper, taskMapper,
-                reservationService, projectScopeApi);
+                responseMapper, reservationService, projectScopeApi);
 
         var fact = provider.initializeBusinessGrantUploadPolicy(new BusinessGrantUploadInitializePolicyQuery(
                 7L, 1L, 2, 11L, "req-1", 50L, "SATISFACTION_SIGNATURE", "slot-1", 1));

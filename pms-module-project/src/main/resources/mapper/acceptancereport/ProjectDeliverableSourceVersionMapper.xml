@@ -61,4 +61,20 @@
         LIMIT #{query.limit}
     </select>
 
+    <select id="selectPendingArchiveBySourceType"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO">
+        SELECT *
+        FROM acc_project_deliverable_source_version
+        WHERE tenant_id = #{query.tenantId}
+          AND source_object_type = #{query.sourceObjectType}
+          AND relation_status IN
+          <foreach collection="query.relationStatuses" item="status" open="(" separator="," close=")">
+              #{status}
+          </foreach>
+          AND archive_status = 'PENDING_COMPENSATION'
+          AND deleted = b'0'
+        ORDER BY id
+        LIMIT #{query.limit}
+    </select>
+
 </mapper>

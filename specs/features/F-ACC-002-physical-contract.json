@@ -201,7 +201,7 @@
     "forbiddenFields":["fileVersionId","fileReferenceId","tokenPlaintext"]
   },
   "events": {
-    "SatisfactionTaskCreated":{"facts":["taskId","projectTaskId","projectId","collectionKey","taskRevisionNo","priorTaskId","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","questionnaireId","templateRevisionId","ruleVersion","threshold","assignee"]},
+    "SatisfactionTaskCreated":{"facts":["taskId","projectTaskId","projectTaskVersion","taskCode","projectId","collectionKey","taskRevisionNo","priorTaskId","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","questionnaireId","templateRevisionId","templateVersion","ruleVersion","threshold","assigneeUserId"]},
     "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","projectTaskVersion","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","resultFactVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","invalidationReasonCode","invalidatedByUserId","invalidatedAt","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,sha256}]"]},
     "futureConsumerRequests":{"ClosureGateRecheckRequested":"NOT_CLAIMED_AS_DELIVERED_BY_THIS_FEATURE","SubcontractRecheckRequested":"NOT_IMPLEMENTED"}
   },

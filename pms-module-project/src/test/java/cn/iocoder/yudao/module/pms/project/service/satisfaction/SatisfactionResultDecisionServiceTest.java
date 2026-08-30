@@ -34,6 +34,7 @@ class SatisfactionResultDecisionServiceTest {
     @Mock SatisfactionCollectionTaskMapper taskMapper;
     @Mock SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock SatisfactionResponseMapper responseMapper;
+    @Mock SatisfactionResponseFileMapper responseFileMapper;
     @Mock SatisfactionResultMapper resultMapper;
     @Mock SatisfactionResultFileMapper resultFileMapper;
     @Mock ProjectScopeApi projectScopeApi;
@@ -45,7 +46,7 @@ class SatisfactionResultDecisionServiceTest {
     @BeforeEach
     void setUp() {
         service = new SatisfactionResultDecisionService(taskMapper, questionnaireMapper, responseMapper,
-                resultMapper, resultFileMapper, projectScopeApi, workBindingFactApi, fileArtifactApi,
+                responseFileMapper, resultMapper, resultFileMapper, projectScopeApi, workBindingFactApi, fileArtifactApi,
                 commandExecutionApi);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<?> operation = invocation.getArgument(3);
@@ -58,6 +59,8 @@ class SatisfactionResultDecisionServiceTest {
         when(taskMapper.selectById(10L)).thenReturn(task());
         when(questionnaireMapper.selectByIdForUpdate(7L, 11L)).thenReturn(questionnaire());
         when(responseMapper.selectByIdForUpdate(7L, 12L)).thenReturn(response());
+        org.mockito.Mockito.lenient().when(responseFileMapper.selectListByResponse(any()))
+                .thenReturn(java.util.List.of(signature()));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()));
         when(workBindingFactApi.lockCurrentSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
                 20L, 21L, "T-SAT-SURVEY", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
@@ -77,7 +80,7 @@ class SatisfactionResultDecisionServiceTest {
         assertEquals(new BigDecimal("5.0"), result.score());
         assertTrue(result.passed());
         verify(resultMapper).insert(any(SatisfactionResultDO.class));
-        verify(resultFileMapper).insert(any(SatisfactionResultFileDO.class));
+        verify(resultFileMapper, org.mockito.Mockito.times(2)).insert(any(SatisfactionResultFileDO.class));
         verify(taskMapper).completeDecision(any());
     }
 
@@ -126,6 +129,15 @@ class SatisfactionResultDecisionServiceTest {
         return new FileArtifactVersionFact(100L, 1, "satisfaction-result-12", "SATISFACTION_RESULT_DOCUMENT",
                 "satisfaction-result-12.pdf", 100L, "application/pdf", "a".repeat(64), "AVAILABLE", "ACTIVE",
                 new FileFactVersion(1, 0, 0), 3L);
+    }
+
+    private SatisfactionResponseFileDO signature() {
+        SatisfactionResponseFileDO row = new SatisfactionResponseFileDO();
+        row.setId(200L); row.setTenantId(7L); row.setResponseId(12L); row.setFileRole("SIGNATURE");
+        row.setFileSequence(1); row.setArtifactId(101L); row.setVersionNo(1); row.setReferenceKey("sig-ref");
+        row.setArtifactVersion(1); row.setReferenceVersion(0); row.setAvailabilityVersion(0);
+        row.setScopeVersion(3L); row.setFileHash("b".repeat(64));
+        return row;
     }
 
     private String config() {

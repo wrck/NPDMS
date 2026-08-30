@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.Satisfact
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateRevisionMapper;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,13 +41,23 @@ class SatisfactionTaskInitializationApiImplTest {
     @Mock private SatisfactionCollectionTaskMapper taskMapper;
     @Mock private SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock private SatisfactionQuestionnaireTemplateRevisionMapper revisionMapper;
+    @Mock private PlatformCommandExecutionApi commandExecutionApi;
     private SatisfactionTaskInitializationApiImpl api;
+    private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> emitted = new AtomicReference<>();
 
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         api = new SatisfactionTaskInitializationApiImpl(workBindingFactApi, projectScopeApi, taskMapper,
-                questionnaireMapper, revisionMapper);
+                questionnaireMapper, revisionMapper, commandExecutionApi);
+        org.mockito.Mockito.lenient().when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<?> operation = invocation.getArgument(3);
+            Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
+            Object response = operation.get();
+            emitted.set(facts.apply(response));
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, response);
+        });
     }
 
     @AfterEach
@@ -71,6 +85,9 @@ class SatisfactionTaskInitializationApiImplTest {
         verify(questionnaireMapper).insert((SatisfactionQuestionnaireDO) questionnaire.capture());
         assertEquals(9L, questionnaire.getValue().getAccessScopeVersion());
         assertEquals("[{\"code\":\"Q1\"}]", questionnaire.getValue().getFrozenQuestionJson());
+        assertEquals("SatisfactionTaskCreated", emitted.get().businessEvents().getFirst().eventType());
+        org.junit.jupiter.api.Assertions.assertTrue(emitted.get().businessEvents().getFirst().eventPayload()
+                .contains("\"projectTaskVersion\":7"));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 
 import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -11,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.Satisfact
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionAccessGrantMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -32,14 +34,38 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
     private final SatisfactionAccessGrantMapper grantMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
+    private final SatisfactionResponseMapper responseMapper;
     private final SatisfactionResponseReservationService reservationService;
     private final ProjectScopeApi projectScopeApi;
 
     @Override public String ownerContext() { return OWNER; }
     @Override public String objectType() { return TYPE; }
     @Override public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) { return denied(); }
-    @Override public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
-        return denied();
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
+        if (query == null || !FileActionCodes.ARCHIVE.equals(query.requiredAction())
+                || !(SIGNATURE.equals(query.purposeCode()) || ATTACHMENT.equals(query.purposeCode()))) {
+            return denied();
+        }
+        Long responseId = positiveLong(query.objectId());
+        var response = responseMapper.selectByIdForUpdate(query.tenantId(), responseId);
+        SatisfactionQuestionnaireDO questionnaire = response == null ? null
+                : questionnaireMapper.selectByIdForUpdate(query.tenantId(), response.getQuestionnaireId());
+        SatisfactionCollectionTaskDO task = questionnaire == null ? null
+                : taskMapper.selectByIdForUpdate(query.tenantId(), questionnaire.getCollectionTaskId());
+        if (response == null || questionnaire == null || task == null
+                || !Objects.equals(task.getAssignedToUserId(), query.actorUserId())) {
+            throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_OWNER_CONFLICT");
+        }
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                query.tenantId(), query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
+                query.expectedScopeVersion()));
+        if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_SCOPE_CONFLICT");
+        }
+        return policy(query.purposeCode(), scope.treeVersion());
     }
 
     @Override
@@ -142,5 +168,14 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
 
     private FileBusinessObjectPolicyFact denied() {
         return new FileBusinessObjectPolicyFact(false, null, null, null, Set.of(), Set.of(), null, null);
+    }
+
+    private Long positiveLong(String value) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed > 0) return parsed;
+        } catch (NumberFormatException ignored) {
+        }
+        throw new IllegalArgumentException("SATISFACTION_RESPONSE_FILE_OBJECT_INVALID");
     }
 }

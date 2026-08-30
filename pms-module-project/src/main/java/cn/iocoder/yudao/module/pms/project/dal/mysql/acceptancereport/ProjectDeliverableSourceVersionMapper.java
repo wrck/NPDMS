@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.Deli
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableSourceIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableSourceObjectIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceTypeQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -33,4 +34,7 @@ public interface ProjectDeliverableSourceVersionMapper extends BaseMapperX<Proje
 
     java.util.List<ProjectDeliverableSourceVersionDO> selectPendingArchive(
             @Param("query") PendingArchiveSourceQuery query);
+
+    java.util.List<ProjectDeliverableSourceVersionDO> selectPendingArchiveBySourceType(
+            @Param("query") PendingArchiveSourceTypeQuery query);
 }

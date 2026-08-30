@@ -9,7 +9,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SatisfactionResultQuartzRegistrar implements ApplicationRunner {
-    public static final String HANDLER_NAME = "satisfactionResultOutboxDeliveryJob";
+    public static final java.util.List<String> HANDLER_NAMES = java.util.List.of(
+            "satisfactionTaskOutboxDeliveryJob",
+            "satisfactionResultOutboxDeliveryJob",
+            "satisfactionResultArchiveCompensationJob");
     private final JobApi jobApi;
     private final ObjectProvider<Scheduler> schedulerProvider;
 
@@ -21,7 +24,7 @@ public class SatisfactionResultQuartzRegistrar implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (schedulerProvider.getIfAvailable() != null) {
-            jobApi.syncEnabledJobByHandlerName(HANDLER_NAME);
+            HANDLER_NAMES.forEach(jobApi::syncEnabledJobByHandlerName);
         }
     }
 }

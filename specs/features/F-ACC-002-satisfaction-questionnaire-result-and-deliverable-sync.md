@@ -137,7 +137,7 @@
 | Archive | `PENDING_COMPENSATION/ARCHIVED/INVALID` |
 | ExportTask | `REQUESTED/GENERATING/SUCCEEDED/FAILED/REJECTED/EXPIRED` |
 
-- `SatisfactionTaskCreated`携带collection/revision/prior、原始source、当前trigger、问卷与规则版本；不表示提交或通过。
+- `SatisfactionTaskCreated`携带由PROJ锁定事实冻结的`projectTaskVersion/taskCode`、collection/revision/prior、原始source、当前trigger、问卷与规则版本；专用消费者只能以该版本重验ProjectTask并追加`TodoRequested`，不表示提交或通过。
 - `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、由PROJ生产者冻结的`projectTaskVersion`、业务来源`resultVersion`、Owner状态重验`resultFactVersion`、其他完整版本链、判定、有序文件公共`sha256`事实，以及失效事件的原因码、操作者和时间；与Result事务同写Outbox。投影以factVersion调用Owner重验，以resultVersion维护来源身份，并按精确当前指针对称处理乱序。
 - `SatisfactionResultOutboxDeliveryJob`只领取该事件；投影提交后才markDelivered，失败按同retryCount重试；CLO/SUB事件不由本Job误标成功。
 - 业务门禁、版本冲突、依赖不可用、幂等冲突均使用稳定分类；所有拒绝路径保持对应任务/问卷/答卷/Result/来源/Outbox零新增。

@@ -34,6 +34,7 @@ public class SatisfactionResultDecisionService {
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResponseMapper responseMapper;
+    private final SatisfactionResponseFileMapper responseFileMapper;
     private final SatisfactionResultMapper resultMapper;
     private final SatisfactionResultFileMapper resultFileMapper;
     private final ProjectScopeApi projectScopeApi;
@@ -118,8 +119,10 @@ public class SatisfactionResultDecisionService {
         LocalDateTime now = LocalDateTime.now();
         SatisfactionResultDO result = result(task, questionnaire, response, resultId, evaluation, now, command,
                 actorUserId);
-        SatisfactionResultFileDO resultFile = resultFile(resultId, file, now, actorUserId, command.tenantId());
-        if (resultMapper.insert(result) != 1 || resultFileMapper.insert(resultFile) != 1
+        List<DecisionFile> files = resultFiles(resultId, response.getId(), file, now, actorUserId,
+                command.tenantId(), scope.treeVersion());
+        if (resultMapper.insert(result) != 1
+                || files.stream().map(DecisionFile::row).anyMatch(row -> resultFileMapper.insert(row) != 1)
                 || taskMapper.completeDecision(new SatisfactionTaskResultUpdate(command.tenantId(), task.getId(),
                 task.getVersion(), resultId, evaluation.passed() ? "PENDING_ARCHIVE" : "FAILED",
                 String.valueOf(actorUserId))) != 1) {
@@ -131,7 +134,8 @@ public class SatisfactionResultDecisionService {
                 response.getId(), resultId, 1, result.getVersion(), task.getCollectionKey(), task.getSourceOwnerContext(),
                 task.getSourceObjectType(), task.getSourceObjectId(), task.getSourceObjectVersion(),
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion(),
-                result.getResultStatus(), actorUserId, file, false);
+                result.getResultStatus(), actorUserId, files.stream()
+                        .map(item -> new ResultFileFact(item.role(), item.sequence(), item.fact())).toList(), false);
     }
 
     private SatisfactionResultDO result(SatisfactionCollectionTaskDO task, SatisfactionQuestionnaireDO questionnaire,
@@ -165,6 +169,34 @@ public class SatisfactionResultDecisionService {
         return row;
     }
 
+    private List<DecisionFile> resultFiles(Long resultId, Long responseId, FileArtifactVersionFact document,
+                                           LocalDateTime now, Long actorUserId, Long tenantId, Long scopeVersion) {
+        List<DecisionFile> files = new java.util.ArrayList<>();
+        SatisfactionResultFileDO documentRow = resultFile(resultId, document, now, actorUserId, tenantId);
+        files.add(new DecisionFile("RESULT_DOCUMENT", 1, document, documentRow));
+        List<SatisfactionResponseFileDO> responseFiles = responseFileMapper.selectListByResponse(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResponseFilesQuery(
+                        tenantId, responseId));
+        for (SatisfactionResponseFileDO source : responseFiles) {
+            if (!List.of("SIGNATURE", "ATTACHMENT").contains(source.getFileRole())
+                    || !scopeVersion.equals(source.getScopeVersion())) {
+                throw new IllegalStateException("SATISFACTION_RESULT_RESPONSE_FILE_CONFLICT");
+            }
+            FileArtifactVersionFact fact = new FileArtifactVersionFact(source.getArtifactId(), source.getVersionNo(),
+                    source.getReferenceKey(), null, null, null, null, source.getFileHash(), "AVAILABLE", "ACTIVE",
+                    new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(
+                            source.getArtifactVersion(), source.getReferenceVersion(), source.getAvailabilityVersion()),
+                    source.getScopeVersion());
+            SatisfactionResultFileDO row = resultFile(resultId, fact, now, actorUserId, tenantId);
+            row.setFileRole(source.getFileRole()); row.setFileSequence(source.getFileSequence());
+            files.add(new DecisionFile(source.getFileRole(), source.getFileSequence(), fact, row));
+        }
+        if (files.stream().noneMatch(item -> "SIGNATURE".equals(item.role()))) {
+            throw new IllegalStateException("SATISFACTION_RESULT_SIGNATURE_MISSING");
+        }
+        return List.copyOf(files);
+    }
+
     private PlatformCommandExecutionApi.SuccessFacts successFacts(DecisionResult result) {
         String eventId = result.operationId() + ":result-recorded";
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -182,7 +214,7 @@ public class SatisfactionResultDecisionService {
         payload.put("sourceObjectType", result.sourceObjectType()); payload.put("sourceObjectId", result.sourceObjectId());
         payload.put("sourceObjectVersion", result.sourceObjectVersion()); payload.put("passed", result.passed());
         payload.put("resultStatus", result.resultStatus()); payload.put("archiveActorUserId", result.archiveActorUserId());
-        payload.put("files", List.of(filePayload(result.file())));
+        payload.put("files", result.files().stream().map(this::filePayload).toList());
         return new PlatformCommandExecutionApi.SuccessFacts("SATISFACTION_RESULT_RECORDED", "SatisfactionResult",
                 String.valueOf(result.resultId()), result.operationId(), JsonUtils.toJsonString(Map.of(
                 "resultId", result.resultId(), "passed", result.passed())), List.of(
@@ -190,9 +222,10 @@ public class SatisfactionResultDecisionService {
                         JsonUtils.toJsonString(payload))));
     }
 
-    private Map<String, Object> filePayload(FileArtifactVersionFact file) {
+    private Map<String, Object> filePayload(ResultFileFact resultFile) {
+        FileArtifactVersionFact file = resultFile.file();
         Map<String, Object> value = new LinkedHashMap<>();
-        value.put("role", "RESULT_DOCUMENT"); value.put("sequence", 1);
+        value.put("role", resultFile.role()); value.put("sequence", resultFile.sequence());
         value.put("artifactId", file.artifactId()); value.put("versionNo", file.versionNo());
         value.put("referenceKey", file.referenceKey());
         value.put("artifactVersion", file.fileFactVersion().artifactVersion());
@@ -245,14 +278,18 @@ public class SatisfactionResultDecisionService {
                                  String sourceOwnerContext, String sourceObjectType, String sourceObjectId,
                                  Long sourceObjectVersion, java.math.BigDecimal score, java.math.BigDecimal threshold,
                                  boolean passed, String ruleVersion, String resultStatus, Long archiveActorUserId,
-                                 FileArtifactVersionFact file, boolean replayed) {
+                                 List<ResultFileFact> files, boolean replayed) {
         DecisionResult withReplay() {
             return new DecisionResult(operationId, tenantId, projectId, projectTaskId, projectTaskVersion,
                     taskId, taskRevisionNo,
                     questionnaireId, templateRevisionId, responseId, resultId, resultVersion, resultFactVersion,
                     collectionKey,
                     sourceOwnerContext, sourceObjectType, sourceObjectId, sourceObjectVersion, score, threshold,
-                    passed, ruleVersion, resultStatus, archiveActorUserId, file, true);
+                    passed, ruleVersion, resultStatus, archiveActorUserId, files, true);
         }
     }
+
+    public record ResultFileFact(String role, Integer sequence, FileArtifactVersionFact file) {}
+    private record DecisionFile(String role, Integer sequence, FileArtifactVersionFact fact,
+                                SatisfactionResultFileDO row) {}
 }
