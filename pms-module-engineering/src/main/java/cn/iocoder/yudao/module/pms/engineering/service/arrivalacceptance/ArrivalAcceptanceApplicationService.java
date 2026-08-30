@@ -289,7 +289,7 @@ public class ArrivalAcceptanceApplicationService {
         DeviceScopeFactPort.DeviceScopeFact devices = lockDeviceScope(
                 root.getTenantId(), root.getProjectId(), expectedDevices);
         requireDeviceScope(devices, root.getProjectId(), collectSerialNumbers(delivery.lines()));
-        if (!orderedDevices(devices.devices()).equals(expected.devices())) {
+        if (!DeviceScopeFactPort.sameDevices(devices.devices(), expected.devices())) {
             throw ArrivalAcceptanceContractException.owner("SCOPE_STALE", "DEVICE_ASSIGNMENT_STALE",
                     "AST", "device assignment fact changed without version change");
         }
@@ -607,11 +607,13 @@ public class ArrivalAcceptanceApplicationService {
 
     private static Set<String> collectSerialNumbers(List<DeliveryScopePort.AssignedLine> lines) {
         Set<String> serialNumbers = new HashSet<>();
+        Set<String> comparisonKeys = new HashSet<>();
         for (DeliveryScopePort.AssignedLine line : lines) {
             for (String serialNumber : line.serialNumbers()) {
-                if (!serialNumbers.add(serialNumber)) {
+                if (!comparisonKeys.add(DeviceScopeFactPort.serialComparisonKey(serialNumber))) {
                     throw new IllegalStateException("assigned serial number is duplicated");
                 }
+                serialNumbers.add(serialNumber);
             }
         }
         return Set.copyOf(serialNumbers);
@@ -643,11 +645,12 @@ public class ArrivalAcceptanceApplicationService {
         Set<Long> deviceIds = new HashSet<>();
         for (DeviceScopeFactPort.DeviceFact device : scope.devices()) {
             if (!projectId.equals(device.currentProjectId())
-                    || !actualSerialNumbers.add(device.serialNumber()) || !deviceIds.add(device.deviceId())) {
+                    || !actualSerialNumbers.add(DeviceScopeFactPort.serialComparisonKey(device.serialNumber()))
+                    || !deviceIds.add(device.deviceId())) {
                 throw new IllegalStateException("device scope contains foreign or duplicate device");
             }
         }
-        if (!actualSerialNumbers.equals(expectedSerialNumbers)) {
+        if (!actualSerialNumbers.equals(DeviceScopeFactPort.serialComparisonKeys(expectedSerialNumbers))) {
             throw new IllegalStateException("device scope does not resolve every assigned serial number");
         }
     }

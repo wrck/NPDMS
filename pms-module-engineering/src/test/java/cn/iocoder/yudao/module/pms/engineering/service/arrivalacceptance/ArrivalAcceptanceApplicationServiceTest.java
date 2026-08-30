@@ -113,6 +113,35 @@ class ArrivalAcceptanceApplicationServiceTest {
     }
 
     @Test
+    void createAcceptsEquivalentComAndAstSerialIdentity() {
+        ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
+        ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);
+        DeliveryScopePort deliveryPort = mock(DeliveryScopePort.class);
+        DeviceScopeFactPort devicePort = mock(DeviceScopeFactPort.class);
+        when(projectPort.inspect(1L, 100L, 8L)).thenReturn(projectFact());
+        when(deliveryPort.inspectAssignedScope(100L)).thenReturn(new DeliveryScopePort.AssignedScope(
+                100L, 8L, List.of(new DeliveryScopePort.AssignedLine(
+                20L, BigDecimal.ONE, "台", "P-1", "M-1", Set.of(" sn-1 ")))));
+        when(devicePort.resolveBySerials(1L, 100L, Set.of("sn-1")))
+                .thenReturn(new DeviceScopeFactPort.DeviceScopeFact(100L, List.of(
+                        new DeviceScopeFactPort.DeviceFact(11L, "SN-1", 100L, 9L))));
+        doAnswer(invocation -> {
+            ArrivalAcceptanceDO row = invocation.getArgument(0);
+            row.setId(900L);
+            return 1;
+        }).when(mapper).insert(any(ArrivalAcceptanceDO.class));
+        ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
+                mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
+                mock(DeliveryEvidenceMapper.class), mock(DeliveryEvidenceRevisionMapper.class),
+                projectPort, deliveryPort, devicePort, mock(FileArtifactFactPort.class),
+                new RecordingCommandExecutionApi());
+
+        ArrivalAcceptanceDO created = service.createDraft(command());
+
+        assertTrue(created.getExpectedScopeSnapshot().contains("SN-1"));
+    }
+
+    @Test
     void rejectsForeignDeviceBeforeWritingDraft() {
         ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
         ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);

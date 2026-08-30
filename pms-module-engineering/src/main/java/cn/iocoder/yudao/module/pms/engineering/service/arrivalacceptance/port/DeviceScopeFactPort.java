@@ -1,6 +1,11 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port;
 
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /** IMP消费的AST稳定设备身份与当前直接项目归属；生产适配等待AST支撑Task。 */
@@ -11,6 +16,48 @@ public interface DeviceScopeFactPort {
     /** 冻结集合陈旧或失效时抛出带AST/DEVICE_ASSIGNMENT_STALE字段的OwnerFactVersionMismatchException；不可用等故障不得伪装为范围陈旧。 */
     DeviceScopeFact lockAndRevalidate(Long tenantId, Long projectId,
                                       List<ExpectedDeviceFact> expectedDevices);
+
+    static String serialComparisonKey(String serialNumber) {
+        String normalized = trimToNull(serialNumber);
+        if (normalized == null) {
+            throw new IllegalArgumentException("device serial number is blank");
+        }
+        return normalized.toUpperCase(Locale.ROOT);
+    }
+
+    static Set<String> serialComparisonKeys(Collection<String> serialNumbers) {
+        if (serialNumbers == null) {
+            throw new IllegalArgumentException("device serial numbers are required");
+        }
+        Set<String> keys = new HashSet<>();
+        for (String serialNumber : serialNumbers) {
+            if (!keys.add(serialComparisonKey(serialNumber))) {
+                throw new IllegalArgumentException("device serial number is duplicated");
+            }
+        }
+        return Set.copyOf(keys);
+    }
+
+    static boolean sameDevices(List<DeviceFact> first, List<DeviceFact> second) {
+        if (first == null || second == null || first.size() != second.size()) {
+            return false;
+        }
+        Comparator<DeviceFact> byId = Comparator.comparing(DeviceFact::deviceId);
+        List<DeviceFact> left = first.stream().sorted(byId).toList();
+        List<DeviceFact> right = second.stream().sorted(byId).toList();
+        for (int index = 0; index < left.size(); index++) {
+            DeviceFact current = left.get(index);
+            DeviceFact expected = right.get(index);
+            if (!Objects.equals(current.deviceId(), expected.deviceId())
+                    || !Objects.equals(current.currentProjectId(), expected.currentProjectId())
+                    || !Objects.equals(current.projectAssignmentVersion(), expected.projectAssignmentVersion())
+                    || !serialComparisonKey(current.serialNumber())
+                    .equals(serialComparisonKey(expected.serialNumber()))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     record DeviceScopeFact(Long projectId, List<DeviceFact> devices) {
 

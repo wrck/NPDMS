@@ -61,6 +61,7 @@
 - Task 12继续`NO-GO / BLOCKED_BY_DEPENDENCY`：AST Provider与消费错误映射Contract Gate均已`PASS / GO`，当前进入`DeviceScopeFactApiAdapter`失败测试优先实现与独立Code Review。COM与ACC依赖不变，禁止完整生产装配、Fake/fallback及Job激活。
 - AST `DeviceScopeFactApiAdapter`运行候选已有7项聚焦测试；无明确SN适用边界锁定提交`b20e817a`已独立复审`PASS / GO`，只有验证完整COM范围的消费编排层可在非空纯数量范围下跳过AST，通用Adapter仍拒绝空输入。当前进入三个调用面运行实现与独立Code Review；未注册到货ApplicationService/FactApi/Controller，Task 12仍受COM/ACC依赖阻断。
 - Adapter与三个调用面运行候选已完成：非空SN仍调用AST并按36f44719映射，经COM验证的非空纯数量范围使用空设备/水位且AST零交互，Adapter本身拒绝空输入。Adapter/现有Owner Adapter/ApplicationService/CommandService/FactApi聚焦回归68项通过，当前`CODE_REVIEW_REQUIRED`；未注册完整到货ApplicationService/FactApi/Controller，Task 12仍受COM/ACC依赖阻断。
+- `6793c1d9`首轮独立Code Review的两项阻断已完成最小整改：ApplicationService、CommandService、FactApi的重复检测与COM↔AST/冻结↔当前身份比较均使用`trim + Locale.ROOT uppercase`；FactApi混合COM范围的仅数量投影也锁定完整明确设备集合，纯数量COM仍AST零交互。聚焦回归71项通过，当前等待最小整改复审；Task 12依赖阻断不变。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选

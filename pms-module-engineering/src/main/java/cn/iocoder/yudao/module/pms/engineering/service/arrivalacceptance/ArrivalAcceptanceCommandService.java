@@ -818,14 +818,15 @@ public class ArrivalAcceptanceCommandService {
         Set<String> expectedSerials = collectSerialNumbers(expected.deliveryLines());
         Set<String> frozenDeviceSerials = expectation.stream()
                 .map(DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)
+                .map(DeviceScopeFactPort::serialComparisonKey)
                 .collect(java.util.stream.Collectors.toSet());
-        if (!expectedSerials.equals(frozenDeviceSerials)) {
+        if (!DeviceScopeFactPort.serialComparisonKeys(expectedSerials).equals(frozenDeviceSerials)) {
             throw new IllegalStateException("frozen device scope does not match delivery serials");
         }
         DeviceScopeFactPort.DeviceScopeFact devices = expectedSerials.isEmpty()
                 ? new DeviceScopeFactPort.DeviceScopeFact(root.getProjectId(), List.of())
                 : devicePort.lockAndRevalidate(root.getTenantId(), root.getProjectId(), expectation);
-        if (!orderedDevices(devices.devices()).equals(orderedDevices(expected.devices()))) {
+        if (!DeviceScopeFactPort.sameDevices(devices.devices(), expected.devices())) {
             throw new IllegalStateException("device scope changed without version change");
         }
         return new FrozenScope(delivery.lines(), devices.devices());
@@ -998,11 +999,13 @@ public class ArrivalAcceptanceCommandService {
 
     private static Set<String> collectSerialNumbers(List<DeliveryScopePort.AssignedLine> lines) {
         Set<String> serialNumbers = new java.util.HashSet<>();
+        Set<String> comparisonKeys = new java.util.HashSet<>();
         for (DeliveryScopePort.AssignedLine line : lines) {
             for (String serialNumber : line.serialNumbers()) {
-                if (!serialNumbers.add(serialNumber)) {
+                if (!comparisonKeys.add(DeviceScopeFactPort.serialComparisonKey(serialNumber))) {
                     throw new IllegalStateException("assigned serial number is duplicated");
                 }
+                serialNumbers.add(serialNumber);
             }
         }
         return Set.copyOf(serialNumbers);

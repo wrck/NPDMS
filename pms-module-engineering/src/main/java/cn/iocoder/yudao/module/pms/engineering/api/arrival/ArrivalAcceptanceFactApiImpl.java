@@ -115,16 +115,19 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 resolveDeviceScope(query.tenantId(), query.projectId(), deliveryComposition.serialNumbers()),
                 query.projectId(), deliveryComposition.serialNumbers());
         Map<Long, DeviceScopeFactPort.DeviceFact> byId = indexDevices(currentDevices.devices());
-        List<DeviceScopeFactPort.ExpectedDeviceFact> expected = query.deviceIds().stream()
-                .sorted().map(deviceId -> {
-                    DeviceScopeFactPort.DeviceFact device = byId.get(deviceId);
-                    Long version = query.expectedScopeWatermark().deviceAssignmentVersions().get(deviceId);
-                    if (device == null || version == null) {
-                        throw new OwnerFactVersionMismatchException("arrival device scope version changed");
-                    }
-                    return new DeviceScopeFactPort.ExpectedDeviceFact(
-                            device.deviceId(), device.serialNumber(), version);
-                }).toList();
+        for (Long requestedDeviceId : query.deviceIds()) {
+            DeviceScopeFactPort.DeviceFact device = byId.get(requestedDeviceId);
+            Long version = query.expectedScopeWatermark().deviceAssignmentVersions().get(requestedDeviceId);
+            if (device == null || version == null
+                    || !version.equals(device.projectAssignmentVersion())) {
+                throw new OwnerFactVersionMismatchException("arrival device scope version changed");
+            }
+        }
+        List<DeviceScopeFactPort.ExpectedDeviceFact> expected = currentDevices.devices().stream()
+                .sorted(Comparator.comparing(DeviceScopeFactPort.DeviceFact::deviceId))
+                .map(device -> new DeviceScopeFactPort.ExpectedDeviceFact(
+                        device.deviceId(), device.serialNumber(), device.projectAssignmentVersion()))
+                .toList();
         DeviceScopeFactPort.DeviceScopeFact lockedDevices = requireDeviceScope(
                 lockDeviceScope(query.tenantId(), query.projectId(), expected),
                 query.projectId(), expected.stream().map(DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)
@@ -410,6 +413,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             throw new IllegalStateException("assigned delivery scope is unavailable");
         }
         TreeSet<String> serials = new TreeSet<>();
+        Set<String> serialComparisonKeys = new HashSet<>();
         TreeMap<QuantityKey, BigDecimal> quantities = new TreeMap<>();
         Set<Long> orderLineIds = new HashSet<>();
         for (DeliveryScopePort.AssignedLine line : delivery.lines()) {
@@ -424,9 +428,10 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 }
             } else {
                 for (String serialNumber : line.serialNumbers()) {
-                    if (!serials.add(serialNumber)) {
+                    if (!serialComparisonKeys.add(DeviceScopeFactPort.serialComparisonKey(serialNumber))) {
                         throw new IllegalStateException("assigned serial number is duplicated");
                     }
+                    serials.add(serialNumber);
                 }
             }
         }
@@ -442,11 +447,12 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         Set<Long> ids = new HashSet<>();
         for (DeviceScopeFactPort.DeviceFact device : fact.devices()) {
             if (!Objects.equals(projectId, device.currentProjectId())
-                    || !ids.add(device.deviceId()) || !actualSerials.add(device.serialNumber())) {
+                    || !ids.add(device.deviceId())
+                    || !actualSerials.add(DeviceScopeFactPort.serialComparisonKey(device.serialNumber()))) {
                 throw new IllegalStateException("device scope fact is inconsistent");
             }
         }
-        if (!actualSerials.equals(expectedSerials)) {
+        if (!actualSerials.equals(DeviceScopeFactPort.serialComparisonKeys(expectedSerials))) {
             throw new IllegalStateException("device scope fact is incomplete");
         }
         return fact;

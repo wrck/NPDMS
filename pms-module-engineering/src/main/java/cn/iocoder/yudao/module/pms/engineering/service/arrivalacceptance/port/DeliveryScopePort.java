@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -38,11 +39,14 @@ public interface DeliveryScopePort {
                 throw new IllegalArgumentException("invalid assigned delivery line");
             }
             TreeSet<String> normalizedSerials = new TreeSet<>();
+            Set<String> comparisonKeys = new HashSet<>();
             for (String serialNumber : serialNumbers) {
                 String normalized = trimToNull(serialNumber);
-                if (normalized == null || !normalizedSerials.add(normalized)) {
+                if (normalized == null
+                        || !comparisonKeys.add(DeviceScopeFactPort.serialComparisonKey(normalized))) {
                     throw new IllegalArgumentException("assigned serial number is blank or duplicated");
                 }
+                normalizedSerials.add(normalized);
             }
             serialNumbers = Collections.unmodifiableSet(normalizedSerials);
         }
