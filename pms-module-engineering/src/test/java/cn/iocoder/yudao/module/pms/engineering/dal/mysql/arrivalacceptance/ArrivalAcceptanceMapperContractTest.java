@@ -79,6 +79,12 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("id=\"selectByIdentityForUpdate\""));
         assertTrue(mapperXml.contains("id=\"markAcceptedPendingArchiveIfMatch\""));
         assertTrue(mapperXml.contains("id=\"markArchivedIfMatch\""));
+        assertTrue(mapperXml.contains("id=\"registerFirstCallbackWatermarkIfMatch\""));
+        assertTrue(mapperXml.contains("id=\"selectNextDueForRetry\""));
+        assertTrue(mapperXml.contains("FOR UPDATE SKIP LOCKED"));
+        assertTrue(mapperXml.contains("id=\"advanceRetryIfMatch\""));
+        assertTrue(mapperXml.contains("acc_correlation_id = #{query.correlationId}"));
+        assertTrue(mapperXml.contains("acc_correlation_id IS NULL"));
         assertTrue(mapperXml.contains(
                 "acc_sync_status IN ('PUBLISHED_PENDING_ACC', 'ARCHIVE_PENDING_RETRY')"));
         assertTrue(mapperXml.contains(

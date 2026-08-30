@@ -26,6 +26,7 @@ public class DeliveryEvidenceDO extends TenantBaseDO {
     private LocalDateTime accNextRetryAt;
     private Integer accRetryCount;
     private String accLastEventId;
+    private String accCorrelationId;
     private String accAcceptedRecordId;
     private String accArchivedRecordId;
     @Version

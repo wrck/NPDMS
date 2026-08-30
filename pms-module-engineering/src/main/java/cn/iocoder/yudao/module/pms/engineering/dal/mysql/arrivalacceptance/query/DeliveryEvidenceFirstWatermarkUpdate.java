@@ -2,13 +2,11 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.quer
 
 import java.time.LocalDateTime;
 
-public record DeliveryEvidencePublishUpdate(
+public record DeliveryEvidenceFirstWatermarkUpdate(
         Long tenantId,
         Long evidenceId,
-        Integer expectedRevision,
+        Integer currentRevision,
         Integer expectedVersion,
         String eventId,
-        String correlationId,
-        Long actorUserId,
-        LocalDateTime publishedAt) {
+        LocalDateTime nextRetryAt) {
 }

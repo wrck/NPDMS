@@ -204,7 +204,7 @@ public final class ArrivalAcceptanceApplicationService {
         int evidenceUpdated = evidenceMapper.markPublishedPendingAccIfMatch(
                 new DeliveryEvidencePublishUpdate(command.tenantId(), evidence.root().getId(),
                         evidence.revision().getRevisionNo(), evidence.root().getVersion(), eventId,
-                        command.actorUserId(), confirmedAt));
+                        command.correlationId(), command.actorUserId(), confirmedAt));
         if (evidenceUpdated != 1) {
             throw new IllegalStateException("arrival evidence changed before publish");
         }

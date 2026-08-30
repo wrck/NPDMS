@@ -31,6 +31,7 @@ class ArrivalEvidenceOutboxDeliveryJobTest {
 
     @Mock PlatformOutboxDeliveryApi outboxApi;
     @Mock ApplicationEventPublisher publisher;
+    @Mock ArrivalEvidenceDeliveryFinalizer finalizer;
 
     @BeforeEach
     void setUp() {
@@ -48,11 +49,11 @@ class ArrivalEvidenceOutboxDeliveryJobTest {
         when(outboxApi.claimDue(any())).thenReturn(List.of(message(payload, 0)));
 
         String result = new ArrivalEvidenceOutboxDeliveryJob(
-                outboxApi, publisher, new MockEnvironment()).execute(null);
+                outboxApi, publisher, finalizer, new MockEnvironment()).execute(null);
 
         assertEquals("到货签收证据事件投递成功 1 条，待重试 0 条", result);
         verify(publisher).publishEvent(payload);
-        verify(outboxApi).markDelivered("evt-1", 0);
+        verify(finalizer).complete(message(payload, 0), payload);
         ArgumentCaptor<PlatformOutboxClaimQuery> claim =
                 ArgumentCaptor.forClass(PlatformOutboxClaimQuery.class);
         verify(outboxApi).claimDue(claim.capture());
@@ -69,12 +70,13 @@ class ArrivalEvidenceOutboxDeliveryJobTest {
                 .when(publisher).publishEvent(payload);
 
         String result = new ArrivalEvidenceOutboxDeliveryJob(
-                outboxApi, publisher, new MockEnvironment()).execute(null);
+                outboxApi, publisher, finalizer, new MockEnvironment()).execute(null);
 
         assertEquals("到货签收证据事件投递成功 0 条，待重试 1 条", result);
         ArgumentCaptor<LocalDateTime> retryAt = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(outboxApi).scheduleRetry(org.mockito.ArgumentMatchers.eq("evt-2"),
                 org.mockito.ArgumentMatchers.eq(2), retryAt.capture());
+        verify(finalizer, org.mockito.Mockito.never()).complete(any(), any());
         ArgumentCaptor<PlatformOutboxClaimQuery> claim =
                 ArgumentCaptor.forClass(PlatformOutboxClaimQuery.class);
         verify(outboxApi).claimDue(claim.capture());
@@ -89,7 +91,7 @@ class ArrivalEvidenceOutboxDeliveryJobTest {
         when(outboxApi.claimDue(any())).thenReturn(List.of(message(payload, 0)));
 
         String result = new ArrivalEvidenceOutboxDeliveryJob(
-                outboxApi, publisher, new MockEnvironment()).execute(null);
+                outboxApi, publisher, finalizer, new MockEnvironment()).execute(null);
 
         assertEquals("到货签收证据事件投递成功 0 条，待重试 1 条", result);
         verify(outboxApi).scheduleRetry(org.mockito.ArgumentMatchers.eq("evt-3"),

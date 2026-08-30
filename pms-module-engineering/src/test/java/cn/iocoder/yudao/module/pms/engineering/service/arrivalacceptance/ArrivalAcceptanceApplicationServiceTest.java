@@ -266,6 +266,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 ArgumentCaptor.forClass(DeliveryEvidencePublishUpdate.class);
         verify(fixture.evidenceMapper()).markPublishedPendingAccIfMatch(evidenceUpdate.capture());
         assertEquals(result.eventId(), evidenceUpdate.getValue().eventId());
+        assertEquals("corr-1", evidenceUpdate.getValue().correlationId());
         ArgumentCaptor<ProjectQualificationPort.RevalidationCommand> qualification =
                 ArgumentCaptor.forClass(ProjectQualificationPort.RevalidationCommand.class);
         verify(fixture.projectPort()).lockAndRevalidate(qualification.capture());

@@ -30,6 +30,7 @@ public class ArrivalEvidenceOutboxDeliveryJob implements JobHandler {
 
     private final PlatformOutboxDeliveryApi outboxDeliveryApi;
     private final ApplicationEventPublisher eventPublisher;
+    private final ArrivalEvidenceDeliveryFinalizer deliveryFinalizer;
     private final Environment environment;
 
     @Override
@@ -55,8 +56,9 @@ public class ArrivalEvidenceOutboxDeliveryJob implements JobHandler {
         int retried = 0;
         for (PlatformOutboxMessageDTO message : messages) {
             try {
-                eventPublisher.publishEvent(toPublishedMessage(message));
-                outboxDeliveryApi.markDelivered(message.eventId(), message.retryCount());
+                ImplementationEvidencePublishedMessage payload = toPublishedMessage(message);
+                eventPublisher.publishEvent(payload);
+                deliveryFinalizer.complete(message, payload);
                 delivered++;
             } catch (RuntimeException exception) {
                 LocalDateTime nextRetryTime = dueAt.plusMinutes(retryDelayMinutes(message.retryCount()));

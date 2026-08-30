@@ -5,7 +5,8 @@
     <sql id="columns">
         id, project_id, source_requirement, source_object_type, source_object_id,
         current_revision_no, acc_sync_status, acc_last_published_at, acc_next_retry_at,
-        acc_retry_count, acc_last_event_id, acc_accepted_record_id, acc_archived_record_id,
+        acc_retry_count, acc_last_event_id, acc_correlation_id,
+        acc_accepted_record_id, acc_archived_record_id,
         version, creator, create_time, updater, update_time, deleted, tenant_id
     </sql>
     <sql id="sourceWhere">
@@ -37,6 +38,7 @@
             acc_last_published_at = #{query.publishedAt},
             acc_next_retry_at = NULL,
             acc_last_event_id = #{query.eventId},
+            acc_correlation_id = #{query.correlationId},
             version = version + 1,
             updater = CAST(#{query.actorUserId} AS CHAR),
             update_time = CURRENT_TIMESTAMP
@@ -44,6 +46,7 @@
           AND id = #{query.evidenceId}
           AND current_revision_no = #{query.expectedRevision}
           AND acc_sync_status = 'NOT_PUBLISHED'
+          AND acc_correlation_id IS NULL
           AND version = #{query.expectedVersion}
           AND deleted = b'0'
     </update>
@@ -51,7 +54,7 @@
         UPDATE imp_delivery_evidence
         SET acc_sync_status = 'ACCEPTED_PENDING_ARCHIVE',
             acc_next_retry_at = #{query.nextRetryAt},
-            acc_retry_count = #{query.retryCount},
+            acc_retry_count = #{query.newRetryCount},
             acc_last_event_id = #{query.eventId},
             acc_accepted_record_id = #{query.reviewRecordId},
             acc_archived_record_id = NULL,
@@ -79,6 +82,54 @@
           AND current_revision_no = #{query.currentRevision}
           AND acc_sync_status IN ('ACCEPTED_PENDING_ARCHIVE', 'ARCHIVE_ACK_PENDING_RETRY')
           AND acc_accepted_record_id IS NOT NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="registerFirstCallbackWatermarkIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_next_retry_at = #{query.nextRetryAt},
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status = 'PUBLISHED_PENDING_ACC'
+          AND acc_last_event_id = #{query.eventId}
+          AND acc_retry_count = 0
+          AND acc_next_retry_at IS NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <select id="selectNextDueForRetry" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE tenant_id = #{query.tenantId}
+          AND acc_sync_status IN ('PUBLISHED_PENDING_ACC', 'ARCHIVE_PENDING_RETRY',
+                                  'ACCEPTED_PENDING_ARCHIVE', 'ARCHIVE_ACK_PENDING_RETRY')
+          AND acc_next_retry_at IS NOT NULL
+          AND acc_next_retry_at &lt;= #{query.dueAt}
+          AND deleted = b'0'
+        ORDER BY acc_next_retry_at, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+    </select>
+    <update id="advanceRetryIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = #{query.targetStatus},
+            acc_retry_count = #{query.retryCount},
+            acc_next_retry_at = #{query.nextRetryAt},
+            <if test="query.eventId != null">
+                acc_last_event_id = #{query.eventId},
+                acc_last_published_at = #{query.publishedAt},
+            </if>
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status = #{query.expectedStatus}
+          AND acc_retry_count = #{query.expectedRetryCount}
           AND version = #{query.expectedVersion}
           AND deleted = b'0'
     </update>

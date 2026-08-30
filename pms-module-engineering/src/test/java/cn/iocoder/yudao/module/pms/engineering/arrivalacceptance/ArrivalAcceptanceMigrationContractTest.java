@@ -20,6 +20,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String differenceFactUpgradeSql;
     private static String evidenceOutboxJobSql;
     private static String evidenceCorrelationUpgradeSql;
+    private static String evidenceRetryJobSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -43,6 +44,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         evidenceCorrelationUpgradeSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V138__fimp002_evidence_correlation.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        evidenceRetryJobSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V139__fimp002_arrival_evidence_retry_job.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -214,6 +218,17 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(guard > create);
         assertTrue(signal > guard);
         assertTrue(alter > signal);
+    }
+
+    @Test
+    void registersEvidenceRetryJobPausedUntilAccConsumerIsReady() {
+        assertTrue(evidenceRetryJobSql.contains("992602010002"));
+        assertTrue(evidenceRetryJobSql.contains("'arrivalEvidenceRetryJob'"));
+        assertTrue(evidenceRetryJobSql.contains("'0 0/1 * * * ?'"));
+        assertTrue(evidenceRetryJobSql.contains("WHERE NOT EXISTS"));
+        assertTrue(evidenceRetryJobSql.contains("`status` = 2"));
+        assertFalse(evidenceRetryJobSql.contains("`status` = 1"));
+        assertFalse(evidenceRetryJobSql.contains("syncEnabledJobByHandlerName"));
     }
 
     private static int occurrences(String source, String token) {
