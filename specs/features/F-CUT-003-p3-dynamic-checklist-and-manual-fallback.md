@@ -1,7 +1,7 @@
 # F-CUT-003 P3动态采集清单、直接填写与人工降级闭环 Feature Spec
 
-> 文档状态：`CANDIDATE`
-> Feature Ready：`NOT_READY`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY`（GO@`ea986d61`）
 > Requirement：`CUT-03（V1/P0）`
 > Requirement切片覆盖：`CUT-03@V1=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -124,4 +124,4 @@
 
 ## 8. Feature Ready Gate
 
-当前结论：`CANDIDATE / NOT_READY`。本候选只形成Feature Spec、机器合同和复用审计；独立Feature Ready GO前不得生成Technical Plan、Task、产品代码或Flyway。
+当前结论：`BASELINE / READY`（GO@`ea986d61`）。允许进入唯一Technical Plan形成阶段；Technical Plan独立GO前不得创建Task、产品代码或Flyway。

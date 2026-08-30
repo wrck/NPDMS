@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-003",
-  "status": "CANDIDATE_NOT_READY",
+  "status": "BASELINE_READY",
   "requirementSlices": ["CUT-03@V1=FULL"],
   "owner": "CUT",
   "aggregate": "CutoverChecklist",
@@ -115,5 +115,5 @@
     "migration": "NO_LEGACY_SOURCE_NO_DUAL_WRITE_NO_INFERENCE"
   },
   "outOfScope": ["V2_EXPORT", "CONFIGURABLE_FLOW_JUMP", "P4_P5_P6", "DAC_PROVIDER", "EXTERNAL_DATA_PROVIDER", "GENERAL_WORK_ORDER", "YUDAO_PLATFORM_CHANGE"],
-  "featureReadyGate": "INDEPENDENT_REVIEW_REQUIRED"
+  "featureReadyGate": "GO@ea986d61"
 }
