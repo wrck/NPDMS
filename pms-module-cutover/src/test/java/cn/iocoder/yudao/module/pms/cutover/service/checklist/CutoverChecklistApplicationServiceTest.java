@@ -287,6 +287,19 @@ class CutoverChecklistApplicationServiceTest {
             checklist.get().setVersion(checklist.get().getVersion() + 1);
             return 1;
         });
+        when(checklistMapper.rematchIfMatch(any())).thenAnswer(invocation -> {
+            var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRematchUpdate)
+                    invocation.getArgument(0);
+            checklist.get().setChecklistVersion(update.nextChecklistVersion());
+            checklist.get().setAssessmentId(update.assessmentId());
+            checklist.get().setAssessmentVersion(update.assessmentVersion());
+            checklist.get().setInputSnapshot(update.inputSnapshot());
+            checklist.get().setInputSnapshotHash(update.inputSnapshotHash());
+            checklist.get().setMatchTrace(update.matchTrace());
+            checklist.get().setConfigGapSnapshot(update.configGapSnapshot());
+            checklist.get().setVersion(checklist.get().getVersion() + 1);
+            return 1;
+        });
         when(taskMapper.submitChecklistIfMatch(any())).thenAnswer(ignored -> {
             task.get().setCurrentStage("P4");
             task.get().setTaskStatus("PLAN_DRAFTING");
