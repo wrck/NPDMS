@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.DeviceCurrentProductTypeDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.projection.AuthorizedDeviceProductTypeProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.AuthorizedDeviceProductTypesQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.DeviceCurrentProductTypeClose;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.DeviceCurrentProductTypeLockQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -24,4 +26,9 @@ public interface DeviceCurrentProductTypeMapper
 
     List<AuthorizedDeviceProductTypeProjection> selectAuthorizedCurrentInternal(
             @Param("query") AuthorizedDeviceProductTypesQuery query);
+
+    DeviceCurrentProductTypeDO selectCurrentForUpdate(
+            @Param("query") DeviceCurrentProductTypeLockQuery query);
+
+    int closeCurrent(@Param("update") DeviceCurrentProductTypeClose update);
 }

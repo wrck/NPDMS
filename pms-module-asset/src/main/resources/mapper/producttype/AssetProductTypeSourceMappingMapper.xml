@@ -32,4 +32,45 @@
         FOR UPDATE
     </select>
 
+    <select id="selectForImportUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.AssetProductTypeSourceMappingDO">
+        SELECT id,
+               source_system,
+               source_key,
+               source_version,
+               source_updated_at,
+               payload_hash,
+               product_type_id,
+               mapping_status,
+               conflict_product_type_code,
+               conflict_source_version,
+               conflict_source_updated_at,
+               conflict_payload_hash,
+               synced_at,
+               version,
+               creator,
+               create_time,
+               updater,
+               update_time,
+               deleted,
+               tenant_id
+        FROM ast_product_type_source_mapping
+        WHERE tenant_id = #{query.tenantId}
+          AND source_system = #{query.sourceSystem}
+          AND source_key = #{query.sourceKey}
+        FOR UPDATE
+    </select>
+
+    <update id="markConflict">
+        UPDATE ast_product_type_source_mapping
+        SET mapping_status = 'CONFLICT',
+            conflict_product_type_code = #{update.productTypeCode},
+            conflict_source_version = #{update.sourceVersion},
+            conflict_source_updated_at = #{update.sourceUpdatedAt},
+            conflict_payload_hash = #{update.payloadHash}
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.mappingId}
+          AND deleted = b'0'
+    </update>
+
 </mapper>

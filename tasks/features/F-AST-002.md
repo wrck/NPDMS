@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 3最终独立复审`GO / NPDMS-FAST002-TASK3-FINAL-REVIEW-20260830-01`，允许提交DAL、锁查询和批量授权查询逻辑单元；提交完成前不得进入Task 4，后续Task未验证内容不得提前宣称完成
+> 当前阻断：Task 4已通过独立复审，待提交本逻辑单元；提交后进入Task 5公开查询Service/API，后续Task未验证内容不得提前宣称完成
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 3 DAL、来源映射锁查询和批量授权查询已完成实现、验证及最终独立复审；当前只完成状态回写与提交，提交后最近单元为Task 4受控导入。
+- Task 4受控导入、独立权限、来源顺序、冲突独立事务、来源失败与审计已完成实现、真实事务验证和独立复审；当前最小工作单元为Task 4提交，提交后进入Task 5。
 
 ## 已完成
 
@@ -25,6 +25,7 @@
 - Task 1代码已交付两个公开Query/Result契约、包级栈式调用上下文、不可变主体授权注册表、租户/动作/委托用户守卫和错误码；15项定向测试、模块编译、SDS与追溯检查通过，独立代码复审`GO NPDMS-FAST002-TASK1-REMEDIATION-REVIEW-20260830-01`。Inspection专用适配器、空设备范围查询和受控导入仍分别保留在Task 8、Task 5和Task 4。
 - Task 2已交付`ast_product_type`、`ast_product_type_source_mapping`、`ast_device_current_product_type`三表前向迁移和三个Tenant DO；稳定编码/来源键、冲突证据、当前引用、同租户复合引用和状态空值约束已落盘。原迁移V132因固定权威测试库已由F-CUT-001占用，按计划串行前移为V146；V132～V145历史确认、V146 migrate和后续validate均PASS。Schema契约4项、AST Reactor编译、SDS Phase 2、需求追溯均PASS；MySQL 8.4.10创建3表、9个CHECK、4个外键和生成列成功。独立复审`GO NPDMS-FAST002-TASK2-FINAL-REVIEW-20260830-01`；并发和幂等仍保留在Task 7/Task 4。
 - Task 3已交付三个场景化Query、三个Mapper、三个XML和授权设备投影；动态集合空范围失败关闭，来源映射按稳定唯一键`FOR UPDATE`，授权设备单次联查当前项目与有效项目关系并保留未解析状态。首轮独立复审NO-GO指出逻辑删除和真实证据缺口，已补齐三类表逻辑删除条件与负向验证。定向测试19项、真实MySQL Mapper 3项、标准Flyway validate和模块编译均PASS；最终独立复审`GO / NPDMS-FAST002-TASK3-FINAL-REVIEW-20260830-01`。
+- Task 4已交付唯一受控导入POST入口、Controller与Service双重专用权限、认证上下文租户/操作者、`sourceUpdatedAt`唯一排序水位、平台幂等成功编排、产品类型/来源映射/设备当前引用事务写入、冲突`REQUIRES_NEW`记录、来源失败保留最近成功副本和摘要化操作审计；软删除来源键继续占用并稳定拒绝，冲突审计携带当前来源证据，并发推进保护不会反向覆盖更晚成功事实。V147只登记`pms:asset-product-type:controlled-import`且不绑定角色，固定测试库Flyway validate 143项PASS。Task 4定向测试30项、真实MySQL事务/Mapper 7项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO / NPDMS-FAST002-TASK4-REMEDIATION-REVIEW-20260831-01`，不代表Feature Implementation Done。
 
 ## 实施范围
 

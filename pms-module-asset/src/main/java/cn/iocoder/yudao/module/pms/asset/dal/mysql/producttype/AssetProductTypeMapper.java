@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype;
 
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.AssetProductTypeDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypeCodeLockQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypesByCodesQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -20,4 +21,7 @@ public interface AssetProductTypeMapper extends BaseMapperX<AssetProductTypeDO> 
 
     List<AssetProductTypeDO> selectByCodesInternal(
             @Param("query") ProductTypesByCodesQuery query);
+
+    AssetProductTypeDO selectByCodeForUpdate(
+            @Param("query") ProductTypeCodeLockQuery query);
 }

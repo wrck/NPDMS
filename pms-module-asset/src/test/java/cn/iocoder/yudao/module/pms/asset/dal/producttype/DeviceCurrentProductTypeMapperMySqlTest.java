@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.AssetProductTypeS
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.DeviceCurrentProductTypeMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.projection.AuthorizedDeviceProductTypeProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.AuthorizedDeviceProductTypesQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypeSourceMappingImportLockQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypeSourceMappingLockQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypesByCodesQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
@@ -149,11 +150,15 @@ class DeviceCurrentProductTypeMapperMySqlTest {
         sqlSession.clearCache();
         AssetProductTypeSourceMappingDO deleted = sourceMappingMapper.selectForUpdate(
                 new ProductTypeSourceMappingLockQuery(1L, "CRM", "mapping-a"));
+        AssetProductTypeSourceMappingDO reserved = sourceMappingMapper.selectForImportUpdate(
+                new ProductTypeSourceMappingImportLockQuery(1L, "CRM", "mapping-a"));
 
         assertEquals(idBase + 11, result.getId());
         assertEquals(idBase + 1, result.getProductTypeId());
         assertNull(otherTenant);
         assertNull(deleted);
+        assertEquals(idBase + 11, reserved.getId());
+        assertTrue(reserved.getDeleted());
     }
 
     @Test

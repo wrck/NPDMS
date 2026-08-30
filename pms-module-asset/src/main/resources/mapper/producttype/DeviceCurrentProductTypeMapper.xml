@@ -51,4 +51,41 @@
         ORDER BY d.id
     </select>
 
+    <select id="selectCurrentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.DeviceCurrentProductTypeDO">
+        SELECT id,
+               device_id,
+               product_type_id,
+               product_type_code,
+               source_mapping_id,
+               resolution_status,
+               source_version,
+               source_updated_at,
+               effective_from,
+               effective_to,
+               version,
+               creator,
+               create_time,
+               updater,
+               update_time,
+               deleted,
+               tenant_id
+        FROM ast_device_current_product_type
+        WHERE tenant_id = #{query.tenantId}
+          AND device_id = #{query.deviceId}
+          AND current_marker = 1
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="closeCurrent">
+        UPDATE ast_device_current_product_type
+        SET effective_to = #{update.effectiveTo},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND device_id = #{update.deviceId}
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+
 </mapper>
