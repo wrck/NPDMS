@@ -60,7 +60,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
     "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
-    "AuditRecord": ("plt_operation_audit",), "DeviceCredential": ("plt_device_credential",),
+    "AuditRecord": ("plt_operation_audit",), "ExportTask": ("plt_export_task", "plt_export_audit"), "DeviceCredential": ("plt_device_credential",),
     "CredentialGrant": ("plt_credential_grant",), "CollectionTask": ("plt_collection_task",),
     "DispatchAttempt": ("plt_dispatch_attempt",), "CallbackRecord": ("plt_callback_record",),
     "CollectionResultReference": ("plt_collection_result_reference",), "TechnicalNoticeReference": (),
@@ -74,6 +74,7 @@ TARGET_POLICIES = {
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
     "AcceptanceScopeBinding": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "COM-01"},
+    "ExportTask": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "ACC-02"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -88,6 +89,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverSupportArrangement": {"owner": "CUT", "requirementIds": ["CUT-04"]},
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07", "CUT-09", "CUT-10"]},
+    "ExportTask": {"owner": "PLT", "requirementIds": ["ACC-02", "PLT-02"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
     "AcceptanceScopeBinding": {"owner": "ACC", "requirementIds": ["COM-01", "ACC-03"]},
     "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
