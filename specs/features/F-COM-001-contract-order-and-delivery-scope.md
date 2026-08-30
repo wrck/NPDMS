@@ -113,7 +113,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### 5.2 跨Context契约
 
 - 扩展既有`DeliveryScopeApi`新增`getAssignedScope(projectId, expectedScopeVersion)`；返回稳定DTO，不暴露DO、来源正文或内部状态。
-- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。一个租户/来源批次全有或全无；同event同规范载荷返回重放，同event异载荷永久冲突，旧来源版本不得覆盖。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
+- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。来源版本是1～64字符、批次水位是1～128字符的不透明规范字符串，禁止数字或字典序比较；每个对象以`expectedPreviousSourceVersion`对锁定当前版本做CAS，首建要求null且当前不存在。一个租户/来源批次全有或全无；同event同规范载荷返回重放，同event异载荷永久冲突，同对象同版本同载荷为重放、异载荷为永久冲突，前驱不匹配使全批回滚。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
 - PROJ资格复用正式公开事实；AST地点/SN校验复用正式公开API。不得降级为直接跨表查询。
 
 ### 5.3 事件
@@ -126,7 +126,8 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - COM物理Owner为`com_contract`、`com_sales_order`、合同订单关系、项目合同关系、`com_authority_candidate`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_delivery_scope_project_version`和`com_outbox_event`。
 - V70已有订单行/范围/明细/Outbox只作为F-PROJ-002切片，允许在保持既有接口语义下前向扩展；不得修改已执行迁移。
 - `sms_ofst_contract_head_sap`、`pm_order_data_from_erp`、`pm_order_line_from_erp`、`pm_project_product_line`只按正式迁移契约逐行映射：原值进入`plt_migration_source_record`，合格目标进入`plt_external_key_mapping`，不可迁原因进入`plt_migration_issue`，批次数量和状态进入`plt_migration_batch`。无法证明公司+合同号、订单业务键、订单行键、项目、数量或关系完整性时不创建权威目标事实。
-- V70 `com_order_line.quantity_status`继续是`CONFIRMED/PENDING_AUTHORITY`唯一数量权威字段，不改名、不新增`authority_status`双写。前向新增的型号、来源生命周期/时间和范围维度列对既有行可空；缺任一正式事实的旧行保持`PENDING_RECONCILIATION`并从当前范围排除，禁止用默认值补齐。
+- V70 `com_order_line.quantity_status`继续是`CONFIRMED/PENDING_AUTHORITY`唯一数量权威字段，不改名、不新增`authority_status`双写。`source_updated_at`以及detail的`serial_no/detail_status/source_snapshot`均为既有列；真正新增的型号、来源生命周期和范围维度列对既有行可空。仓库不新增`PENDING_RECONCILIATION`业务字段：旧行是否可用只由机器合同的完整资格谓词判定，不合格行保持原值、由`plt_migration_issue`留证并从当前范围排除。
+- V70允许订单行数量为NULL或0、范围`source_evidence`为NULL、旧detail缺新维度；前向迁移保留这些可空性，不直接增加会使现存数据失败的全表约束。只对满足完整资格谓词的行执行当前范围查询和新增业务写守卫；任何缺失事实不得用默认值补齐。范围current marker的表达式调整前先失败关闭校验重复当前行。
 - 审计事实显示`pm_project_product_line.projectQuantity`无已填充值；`orderQuantity/deliverQuantity/openQuantity`均只保留原值，绝不替代项目分配量。因而当前这批旧范围行在取得逐行权威证据前全部进入迁移问题。
 - V72种子仅是受控测试数据，不作为生产Owner来源或迁移事实。
 - 旧CRM合同表/页面属于CRM业务，不迁移、不双写、不作为COM合同主档；现有旧入口保持不变。
@@ -155,4 +156,4 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 
 ## 9. Feature Ready Gate
 
-当前结论：`NOT_READY / REVIEW_REQUIRED`。进入Ready前必须独立确认完整COM-01边界、五权限、来源状态与范围状态、`getAssignedScope`机器契约、PROJ/AST依赖、旧实现复用审计、八表物理契约和逐行迁移处置均无未决业务选择。Ready通过后才生成唯一Technical Plan；生产ERP连接器未形成不阻断COM本地闭环编码，但阻断真实外部联调证据。
+当前结论：`NOT_READY / REVIEW_REQUIRED`。进入Ready前必须独立确认完整COM-01边界、五权限、来源状态与范围状态、`getAssignedScope`机器契约、PROJ/AST依赖、旧实现复用审计、十表Owner/支撑物理契约和逐行迁移处置均无未决业务选择。Ready通过后才生成唯一Technical Plan；生产ERP连接器未形成不阻断COM本地闭环编码，但阻断真实外部联调证据。

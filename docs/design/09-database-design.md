@@ -448,7 +448,7 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 | `com_delivery_scope_detail` | `delivery_scope_id/office_department_code/serial_no/allocated_qty/detail_status/source_snapshot/version` | `uk(tenant_id, delivery_scope_id, office_department_code, serial_no)`；明细数量合计等于主记录；办事处只用部门稳定编码，不以地址ID推导 |
 | `com_outbox_event` | `event_id/event_type/aggregate_type/aggregate_key/scope_version/payload/status/occurred_at/retry_count` | `uk(tenant_id, event_id)`；`idx(tenant_id, status, occurred_at, id)`；仅由COM事务发布DeliveryScopeAssigned/Released |
 
-F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯一数量权威字段（`CONFIRMED/PENDING_AUTHORITY`），不得改名或与`authority_status`双写。新增`model_code/source_lifecycle_status/source_updated_at`以及DeliveryScopeDetail的单位、产品/型号、地点、SN、状态和来源快照列对既有行先保持NULL；只有正式来源完整的新写入或证据化核对行才可进入当前范围，禁止默认补造。
+F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯一数量权威字段（`CONFIRMED/PENDING_AUTHORITY`），不得改名或与`authority_status`双写。`source_updated_at`和DeliveryScopeDetail的`serial_no/detail_status/source_snapshot`均为V70既有列；真正新增的是订单行`model_code/source_lifecycle_status`及明细单位、产品/型号、结构化地点列，均对旧行保持NULL。V70允许订单行quantity为NULL/0、scope.source_evidence为NULL及detail缺新维度，不增加会否决旧行的全表约束；当前范围只读取满足完整资格谓词的行，不合格行保持原值、写PLT迁移问题并排除，禁止虚构`PENDING_RECONCILIATION`业务状态或默认补造。
 
 新增`com_authority_candidate`保存`PLATFORM_MANUAL`的合同/订单/行候选：不可变来源键、版本、payload和证据，状态限定`PENDING_RECONCILIATION/MATCHED/REJECTED`；MATCHED只引用已存在的CONFIRMED ERP Owner表/id/sourceVersion，不把候选晋升为权威主档。新增`com_delivery_scope_project_version`以`uk(tenant_id,project_id)`保存不可删除的项目`scope_version`，任何当前集合、返回载荷、冲突或清空变化在同一事务只递增一次。当前关系与当前范围分别通过显式current marker唯一键约束；SN明细数量固定为1，规范化SN在当前项目/订单行范围唯一。
 
