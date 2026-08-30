@@ -51,6 +51,7 @@ class SatisfactionResultDecisionServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
         when(taskMapper.selectByIdForUpdate(7L, 10L)).thenReturn(task());
+        when(taskMapper.selectById(10L)).thenReturn(task());
         when(questionnaireMapper.selectByIdForUpdate(7L, 11L)).thenReturn(questionnaire());
         when(responseMapper.selectByIdForUpdate(7L, 12L)).thenReturn(response());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()));
@@ -86,7 +87,7 @@ class SatisfactionResultDecisionServiceTest {
     }
 
     private SatisfactionResultDecisionService.Command command() {
-        return new SatisfactionResultDecisionService.Command(7L, 10L, 11L, 12L, 99L, "decision-12");
+        return new SatisfactionResultDecisionService.Command(7L, 10L, 11L, 12L, "decision-12");
     }
 
     private SatisfactionCollectionTaskDO task() {

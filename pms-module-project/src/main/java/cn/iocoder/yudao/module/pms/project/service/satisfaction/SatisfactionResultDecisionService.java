@@ -40,10 +40,16 @@ public class SatisfactionResultDecisionService {
     @Transactional(rollbackFor = Exception.class)
     public DecisionResult decide(Command command) {
         require(command);
+        SatisfactionCollectionTaskDO current = taskMapper.selectById(command.taskId());
+        if (current == null || !command.tenantId().equals(current.getTenantId())
+                || current.getAssignedToUserId() == null) {
+            throw new IllegalStateException("SATISFACTION_RESULT_TASK_CONFLICT");
+        }
+        Long actorUserId = current.getAssignedToUserId();
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
-                        "ACC_SATISFACTION_RESULT_DECISION", command.actorUserId(), command.operationId()),
-                digest(command), DecisionResult.class, () -> decideOnce(command), this::successFacts);
+                        "ACC_SATISFACTION_RESULT_DECISION", actorUserId, command.operationId()),
+                digest(command), DecisionResult.class, () -> decideOnce(command, actorUserId), this::successFacts);
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
             throw new IllegalStateException("SATISFACTION_RESULT_IDEMPOTENCY_CONFLICT");
         }
@@ -55,11 +61,11 @@ public class SatisfactionResultDecisionService {
                 ? execution.response().withReplay() : execution.response();
     }
 
-    private DecisionResult decideOnce(Command command) {
+    private DecisionResult decideOnce(Command command, Long actorUserId) {
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(command.tenantId(), command.taskId());
         if (task == null || !"PENDING_DECISION".equals(task.getTaskStatus()) || task.getResultId() != null
                 || !command.questionnaireId().equals(task.getQuestionnaireId())
-                || !command.actorUserId().equals(task.getAssignedToUserId())) {
+                || !actorUserId.equals(task.getAssignedToUserId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_TASK_CONFLICT");
         }
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectByIdForUpdate(
@@ -77,7 +83,7 @@ public class SatisfactionResultDecisionService {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_PROJECTION_CONFLICT");
         }
         var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(command.tenantId(),
-                command.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
+                actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
                 questionnaire.getAccessScopeVersion()));
         if (scope == null || !questionnaire.getAccessScopeVersion().equals(scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
@@ -92,19 +98,20 @@ public class SatisfactionResultDecisionService {
                 response.getId(), evaluation.score().toPlainString(), evaluation.threshold().toPlainString(),
                 evaluation.passed(), evaluation.ruleVersion());
         FileArtifactVersionFact file = fileArtifactApi.createGeneratedBusinessFile(new GeneratedBusinessFileCommand(
-                command.tenantId(), command.actorUserId(), command.operationId(), resultId, task.getId(),
+                command.tenantId(), actorUserId, command.operationId(), resultId, task.getId(),
                 questionnaire.getId(), response.getId(), task.getVersion(), "ACC", "SATISFACTION_RESULT",
                 "SATISFACTION_RESULT_DOCUMENT", scope.treeVersion(), "satisfaction-result-" + resultId + ".pdf",
                 "application/pdf", content));
         requireFile(file, scope.treeVersion());
 
         LocalDateTime now = LocalDateTime.now();
-        SatisfactionResultDO result = result(task, questionnaire, response, resultId, evaluation, now, command);
-        SatisfactionResultFileDO resultFile = resultFile(resultId, file, now, command.actorUserId(), command.tenantId());
+        SatisfactionResultDO result = result(task, questionnaire, response, resultId, evaluation, now, command,
+                actorUserId);
+        SatisfactionResultFileDO resultFile = resultFile(resultId, file, now, actorUserId, command.tenantId());
         if (resultMapper.insert(result) != 1 || resultFileMapper.insert(resultFile) != 1
                 || taskMapper.completeDecision(new SatisfactionTaskResultUpdate(command.tenantId(), task.getId(),
                 task.getVersion(), resultId, evaluation.passed() ? "PENDING_ARCHIVE" : "FAILED",
-                String.valueOf(command.actorUserId()))) != 1) {
+                String.valueOf(actorUserId))) != 1) {
             throw new IllegalStateException("SATISFACTION_RESULT_WRITE_CONFLICT");
         }
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
@@ -112,13 +119,13 @@ public class SatisfactionResultDecisionService {
                 response.getId(), resultId, 1, task.getCollectionKey(), task.getSourceOwnerContext(),
                 task.getSourceObjectType(), task.getSourceObjectId(), task.getSourceObjectVersion(),
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion(),
-                result.getResultStatus(), command.actorUserId(), file, false);
+                result.getResultStatus(), actorUserId, file, false);
     }
 
     private SatisfactionResultDO result(SatisfactionCollectionTaskDO task, SatisfactionQuestionnaireDO questionnaire,
                                         SatisfactionResponseDO response, Long resultId,
                                         SatisfactionQuestionnaireDefinition.Evaluation evaluation,
-                                        LocalDateTime now, Command command) {
+                                        LocalDateTime now, Command command, Long actorUserId) {
         SatisfactionResultDO row = new SatisfactionResultDO();
         row.setId(resultId); row.setTenantId(command.tenantId()); row.setCollectionTaskId(task.getId());
         row.setQuestionnaireId(questionnaire.getId()); row.setResponseId(response.getId());
@@ -126,8 +133,8 @@ public class SatisfactionResultDecisionService {
         row.setThreshold(evaluation.threshold()); row.setPassed(evaluation.passed());
         row.setRuleVersion(evaluation.ruleVersion()); row.setResultStatus(evaluation.passed() ? "EFFECTIVE" : "FAILED");
         row.setEffectiveFrom(now); row.setArchiveStatus("PENDING_COMPENSATION");
-        row.setArchiveActorUserId(command.actorUserId()); row.setArchiveRetryCount(0); row.setVersion(0);
-        row.setCreator(String.valueOf(command.actorUserId())); row.setUpdater(String.valueOf(command.actorUserId()));
+        row.setArchiveActorUserId(actorUserId); row.setArchiveRetryCount(0); row.setVersion(0);
+        row.setCreator(String.valueOf(actorUserId)); row.setUpdater(String.valueOf(actorUserId));
         row.setCreateTime(now); row.setUpdateTime(now);
         return row;
     }
@@ -192,12 +199,12 @@ public class SatisfactionResultDecisionService {
     private String digest(Command command) {
         return sha256(JsonUtils.toJsonString(Map.of("tenantId", command.tenantId(), "taskId", command.taskId(),
                 "questionnaireId", command.questionnaireId(), "responseId", command.responseId(),
-                "actorUserId", command.actorUserId(), "operationId", command.operationId())));
+                "operationId", command.operationId())));
     }
 
     private void require(Command command) {
         if (command == null || command.tenantId() == null || command.tenantId() < 0 || command.taskId() == null
-                || command.questionnaireId() == null || command.responseId() == null || command.actorUserId() == null
+                || command.questionnaireId() == null || command.responseId() == null
                 || command.operationId() == null || command.operationId().isBlank()) {
             throw new IllegalArgumentException("SATISFACTION_RESULT_COMMAND_INVALID");
         }
@@ -212,8 +219,7 @@ public class SatisfactionResultDecisionService {
         }
     }
 
-    public record Command(Long tenantId, Long taskId, Long questionnaireId, Long responseId,
-                          Long actorUserId, String operationId) {
+    public record Command(Long tenantId, Long taskId, Long questionnaireId, Long responseId, String operationId) {
     }
 
     public record DecisionResult(String operationId, Long tenantId, Long projectId, Long projectTaskId,
