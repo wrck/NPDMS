@@ -78,7 +78,7 @@
 - ACC只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，其中公共`sha256`精确映射到ACC物理列`file_hash`；不得把物理列名作为公共DTO/事件字段，也不得保存PLT内部FileVersion/FileReference主键。
 - ACC判定成功时以Result形成时当前责任人为actor，通过PLT `FileArtifactApi.createGeneratedBusinessFile`生成唯一不可变`SATISFACTION_RESULT_DOCUMENT`；接口以`MANDATORY`加入判定事务并重验`pms:file:upload`、租户和FileBusinessScope。命令仅由ACC服务端增加`collectionTaskId/questionnaireId/responseId/expectedTaskVersion`，并与operation摘要绑定且不得进入Controller。PLT以专用Provider查询把Owner链送达ACC Provider；Provider按Task→Questionnaire→Response锁序验证状态、版本、责任人、关系、无既有Result及预分配resultId未占用，再按Task.projectId重验`ProjectScopeApi(PROJECT_EDIT)`并要求treeVersion原样等于scopeVersion。actor、Result目标和scopeVersion不得由客户、Job或伪造Web上下文覆盖。
 - PLT复用FileUploadSession及既有上传补偿承接对象存储非事务性：同operation同摘要复用会话/回执，异摘要冲突；外层回滚不留下可见Artifact/Reference，放弃时删除未引用对象。生成失败时Response保持已提交、Task保持`PENDING_DECISION`，Result/ResultFile/成功幂等事实/Outbox零写入。
-- 有效达标Result发布`SatisfactionResultVersionChanged`。投影先由PROJ重验同租户同项目ProjectTask的稳定码为`T-SAT-SURVEY`，再锁定唯一`acc_project_deliverable(tenant,project,D-SAT-REPORT)`且要求根`task_code=T-SAT-SURVEY`。
+- 有效达标Result发布`SatisfactionResultVersionChanged`。Result事务在写入前通过PROJ `ProjectWorkBindingFactApi.lockCurrentSatisfactionTask(projectId, projectTaskId)`窄方法锁定唯一当前`T-SAT-SURVEY`任务Fact并冻结`projectTaskVersion`；投影仅以该版本调用原`lockAndRevalidateSatisfactionTask`精确重验同租户同项目ProjectTask，再锁定唯一`acc_project_deliverable(tenant,project,D-SAT-REPORT)`且要求根`task_code=T-SAT-SURVEY`。不得使用ACC Task版本、默认值或运行时当前版本代替。
 - 根缺失、重复或身份不一致保持`PENDING_COMPENSATION`；禁止按中文名称、其他交付件或任选根推断。归档失败不回滚Result、不破坏ACTIVE历史下载；成功才记`ARCHIVED`。
 - 归档actor冻结为Result形成时当前责任人；PLT以该用户重验`pms:file:archive`、FileBusinessScope和租户，不借用Job用户或伪造Web身份。
 - `RECORDED`投影准备置CURRENT前必须按Result ID/version调用`SatisfactionResultFactApi`重验Owner；仅精确版本仍`EFFECTIVE + passed=true`且没有更新当前Result时切换。若同Result已失效或已有更新Result，只保留非当前来源历史、ACTIVE文件与历史归档资格。`INVALIDATED`仅清空仍精确指向自身版本的根指针；双向乱序都不得恢复失效版本或覆盖更新来源。
@@ -138,7 +138,7 @@
 | ExportTask | `REQUESTED/GENERATING/SUCCEEDED/FAILED/REJECTED/EXPIRED` |
 
 - `SatisfactionTaskCreated`携带collection/revision/prior、原始source、当前trigger、问卷与规则版本；不表示提交或通过。
-- `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、完整版本链、判定、有序文件公共`sha256`事实，以及失效事件的原因码、操作者和时间；与Result事务同写Outbox。投影按上述Owner重验和精确当前指针对称处理乱序。
+- `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、由PROJ生产者冻结的`projectTaskVersion`、业务来源`resultVersion`、Owner状态重验`resultFactVersion`、其他完整版本链、判定、有序文件公共`sha256`事实，以及失效事件的原因码、操作者和时间；与Result事务同写Outbox。投影以factVersion调用Owner重验，以resultVersion维护来源身份，并按精确当前指针对称处理乱序。
 - `SatisfactionResultOutboxDeliveryJob`只领取该事件；投影提交后才markDelivered，失败按同retryCount重试；CLO/SUB事件不由本Job误标成功。
 - 业务门禁、版本冲突、依赖不可用、幂等冲突均使用稳定分类；所有拒绝路径保持对应任务/问卷/答卷/Result/来源/Outbox零新增。
 

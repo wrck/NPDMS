@@ -34,7 +34,7 @@ public class SatisfactionResultFactApiImpl implements SatisfactionResultFactApi 
     private Long trustedTenant(SatisfactionResultFactQuery query) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (query == null || query.resultId() == null || query.resultId() <= 0
-                || query.expectedResultVersion() == null || query.expectedResultVersion() < 0
+                || query.expectedFactVersion() == null || query.expectedFactVersion() < 0
                 || !Objects.equals(query.tenantId(), tenantId)) {
             throw new IllegalArgumentException("invalid satisfaction result fact query");
         }
@@ -43,7 +43,7 @@ public class SatisfactionResultFactApiImpl implements SatisfactionResultFactApi 
 
     private SatisfactionResultFact toFact(SatisfactionResultFactRecord row, SatisfactionResultFactQuery query) {
         if (row == null) return unavailable("NOT_FOUND");
-        if (!Objects.equals(row.factVersion(), query.expectedResultVersion())) return unavailable("VERSION_CONFLICT");
+        if (!Objects.equals(row.factVersion(), query.expectedFactVersion())) return unavailable("VERSION_CONFLICT");
         return new SatisfactionResultFact("FOUND", row.collectionKey(), row.taskId(), row.taskRevisionNo(),
                 row.questionnaireId(), row.responseId(), row.resultId(), row.resultVersion(),
                 row.templateRevisionId(), row.ruleVersion(), row.threshold(), row.sourceOwnerContext(),

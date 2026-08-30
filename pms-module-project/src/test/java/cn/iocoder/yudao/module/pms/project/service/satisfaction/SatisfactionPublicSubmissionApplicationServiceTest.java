@@ -26,7 +26,7 @@ class SatisfactionPublicSubmissionApplicationServiceTest {
         when(responseService.submit(any())).thenReturn(new SatisfactionResponseSubmissionService.SubmissionResult(
                 12L, 11L, 10L, false, new BigDecimal("5.0"), new BigDecimal("4.00"), true, "RULE-1"));
         when(resultService.decide(any())).thenReturn(new SatisfactionResultDecisionService.DecisionResult(
-                "sat-result:12", 7L, 20L, 21L, 10L, 1, 11L, 30L, 12L, 12L, 1,
+                "sat-result:12", 7L, 20L, 21L, 7, 10L, 1, 11L, 30L, 12L, 12L, 1, 0,
                 "SAT-10", "ACC", "AcceptanceActivity", "100", 1L, new BigDecimal("5.0"),
                 new BigDecimal("4.00"), true, "RULE-1", "EFFECTIVE", 99L, null, false));
         var service = new SatisfactionPublicSubmissionApplicationService(responseService, resultService,

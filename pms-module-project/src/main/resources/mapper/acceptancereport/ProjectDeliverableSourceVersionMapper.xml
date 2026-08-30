@@ -36,6 +36,19 @@
         FOR UPDATE
     </select>
 
+    <select id="selectSourceObjectIdentityForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO">
+        SELECT *
+        FROM acc_project_deliverable_source_version
+        WHERE tenant_id = #{query.tenantId}
+          AND deliverable_id = #{query.deliverableId}
+          AND source_object_type = #{query.sourceObjectType}
+          AND source_object_id = #{query.sourceObjectId}
+          AND source_version = #{query.sourceVersion}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
     <select id="selectPendingArchive"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO">
         SELECT *

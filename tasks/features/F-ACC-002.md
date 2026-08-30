@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：无；98e4ae22复审两项阻断已按最小边界整改，待同一Gate复审，Task 1 Step 3不得提前完成<br>
+> 当前阻断：无产品阻断；Result双版本来源投影整改待同一Step 3独立复审<br>
 > 当前任务：`Task 1：共享契约、V133与后端纵向闭环`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`98e4ae22`；当前Gate=Step 3 grant实现整改复审；已通过=槽位身份服务端派生、Response重放绑定grant及规范文件、聚焦8项；阻塞=待独立复审；下一步=GO后继续同Task，不进入Task 2。
+> 检查点：基线=`57b2dcd2`；当前Gate=Task 1 Step 3 Result投影整改复审；已通过=grant GO、PROJ任务版本冻结、Result双版本、来源投影与Outbox正向接线、聚焦验证；阻塞=待独立复审；下一步=GO后继续Step 3剩余实现。

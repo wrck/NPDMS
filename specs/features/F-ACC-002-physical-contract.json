@@ -80,7 +80,7 @@
       "firstRevision":{"collectionKey":"ACC_ALLOCATED_STABLE","taskRevisionNo":1,"sourceEqualsTrigger":true},
       "outcomes":["INITIALIZED","REPLAYED","IDENTITY_MISMATCH","VERSION_CONFLICT","DEPENDENCY_UNAVAILABLE"]
     },
-    "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"DIRECT_REUSE","facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
+    "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"COPY_THEN_ENHANCE","producerFreeze":{"method":"lockCurrentSatisfactionTask","inputs":["projectId","projectTaskId"],"requiredTaskCode":"T-SAT-SURVEY","use":"RESULT_EVENT_PRODUCER_ONLY"},"consumerRevalidation":{"method":"lockAndRevalidateSatisfactionTask","expectedVersionFrom":"SatisfactionResultVersionChanged.projectTaskVersion"},"facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
     "ProjectScopeApi": {
       "owner":"PROJ",
       "provider":"ProjectScopeApiImpl",
@@ -202,7 +202,7 @@
   },
   "events": {
     "SatisfactionTaskCreated":{"facts":["taskId","projectTaskId","projectId","collectionKey","taskRevisionNo","priorTaskId","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","questionnaireId","templateRevisionId","ruleVersion","threshold","assignee"]},
-    "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","invalidationReasonCode","invalidatedByUserId","invalidatedAt","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,sha256}]"]},
+    "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","projectTaskVersion","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","resultFactVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","invalidationReasonCode","invalidatedByUserId","invalidatedAt","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,sha256}]"]},
     "futureConsumerRequests":{"ClosureGateRecheckRequested":"NOT_CLAIMED_AS_DELIVERED_BY_THIS_FEATURE","SubcontractRecheckRequested":"NOT_IMPLEMENTED"}
   },
   "transactionBoundary": {

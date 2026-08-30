@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ class SatisfactionResultDecisionServiceTest {
     @Mock SatisfactionResultMapper resultMapper;
     @Mock SatisfactionResultFileMapper resultFileMapper;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectWorkBindingFactApi workBindingFactApi;
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     SatisfactionResultDecisionService service;
@@ -42,7 +45,8 @@ class SatisfactionResultDecisionServiceTest {
     @BeforeEach
     void setUp() {
         service = new SatisfactionResultDecisionService(taskMapper, questionnaireMapper, responseMapper,
-                resultMapper, resultFileMapper, projectScopeApi, fileArtifactApi, commandExecutionApi);
+                resultMapper, resultFileMapper, projectScopeApi, workBindingFactApi, fileArtifactApi,
+                commandExecutionApi);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<?> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
@@ -55,6 +59,9 @@ class SatisfactionResultDecisionServiceTest {
         when(questionnaireMapper.selectByIdForUpdate(7L, 11L)).thenReturn(questionnaire());
         when(responseMapper.selectByIdForUpdate(7L, 12L)).thenReturn(response());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()));
+        when(workBindingFactApi.lockCurrentSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
+                20L, 21L, "T-SAT-SURVEY", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
+                1, "RULE-1", new BigDecimal("4.00"), 99L));
     }
 
     @Test
