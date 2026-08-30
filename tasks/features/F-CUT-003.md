@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`28e6db2c`；当前=Task 1 IN_PROGRESS。冻结revision精确读取及READY/GAP/CONFLICT匹配已实现，受影响Reactor编译成功、聚焦3/3通过；三表/V147正并行落位。下一步接持久化与DIRECT/MANUAL/CUSTOM提交P4正向链，跨模块仅用test替身。
+> 检查点：基线=`146254d8`；当前=Task 1 IN_PROGRESS。冻结配置匹配与V147三表/任务配置字段已落位，CUT构建及一次性MySQL正向回填/建表通过；阻塞=无。下一步实现持久化与DIRECT/MANUAL/CUSTOM提交P4正向链。

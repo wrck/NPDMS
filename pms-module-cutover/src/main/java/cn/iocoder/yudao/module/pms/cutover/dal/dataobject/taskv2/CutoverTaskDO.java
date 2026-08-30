@@ -42,6 +42,9 @@ public class CutoverTaskDO extends TenantBaseDO {
     private String readinessContextSnapshot;
     private String manualGrade;
     private Long currentAssessmentId;
+    private Long configurationRevisionId;
+    private String configurationCode;
+    private Integer configurationRevisionNo;
     private Long legacyTaskId;
     private String legacyCutoverTypeRaw;
     private String legacyNetworkModeRaw;

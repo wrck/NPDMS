@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper">
+    <select id="selectListForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO">
+        SELECT *
+        FROM cut_cutover_checklist_item
+        WHERE tenant_id = #{query.tenantId}
+          AND checklist_id = #{query.checklistId}
+          AND deleted = b'0'
+        ORDER BY stable_item_key, id
+        FOR UPDATE
+    </select>
+</mapper>
