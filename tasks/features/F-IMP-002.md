@@ -45,6 +45,7 @@
 - Task 5B基础候选已完成V140两列前向迁移、列表/详情/allowedActions读模型，以及本人DRAFT PATCH、raise-difference和未确认批次差异追加处置；均未注册生产Bean。`Q-FIMP002-002`随后独立裁决采用`OPTION_B`：successor原样继承前驱`batch_code`，以服务端`batch_root_marker`根唯一键和前驱唯一键形成线性后继链，不生成新业务编码。
 - `Q-FIMP002-002`规格与V141前向迁移Gate已在`0750182e`通过独立复审（`PASS / GO`）：初始根marker显式两值约束关闭MySQL NULL/UNKNOWN绕过，后继marker保持NULL；根唯一性和单前驱单后继均由真实MySQL 8.4验证。
 - Task 5B后继运行候选已形成：初始根写`batch_root_marker=1`；CONFIRMED差异处置与`CORRECT_INFORMATION`只在平台NEW命令内锁前驱并创建至多一个DRAFT successor，原样复制批次码和冻结历史后只在后继追加修改；不同intent占用同一前驱返回状态冲突。`ExpireArrivalExemptionsCommand`按服务端时钟领取到期豁免，先取得PROJ权威锁，再锁根/明细/差异并重验COM/AST/PLT，在同事务创建`EXEMPTION_INVALIDATION`后继、追加事实影响revision并按项目联合MAX+1分配版本；Owner失败或CAS冲突零业务写。当前最近Gate为该运行候选的独立Code Review／聚焦测试，Task 5B整体尚未PASS，Task 8继续阻断。
+- 锁定提交`935324cf`的Task 5B后继运行候选独立Code Review为`NO-GO`：CONFIRMED后继状态矩阵、任意直接successor排除、跨代豁免证据及内部到期PROJ主体语义存在运行阻断。独立定点裁决已锁定：CONFIRMED只允许current REJECTED进入SUPPLEMENT/EXEMPT/CLOSE；证据只允许当前节点或不可变严格祖先来源；到期领取排除任意直接successor；内部命令使用PROJ当前系统资格锁而非历史approvedBy用户授权。当前先完成规格/端口基线，不回写运行候选PASS。
 - Task 8当前为`BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
@@ -70,3 +71,9 @@
 
 - 只执行Technical Plan已授权且依赖已满足的最小工作单元；公共API、Flyway、菜单/Job种子、错误码和事件契约继续串行合入。
 - 生产依赖未形成前不得声明Implementation Done、真实MySQL生产闭环或真实浏览器正向验收。
+
+## PROJ物理Owner支撑Task
+
+- `T-FIMP002-PROJ-01`：PROJ公开`ProjectSystemQualificationFactApi.lockCurrentForSystem`，在受信租户上下文按项目锁定当前主行、唯一`PROJECT_MANAGER`事实和当前根树版本，校验`ACTIVE/S4`并返回当前项目/参与者/树版本。
+- 该Task不新增Feature状态、不放宽`ProjectParticipantFactApi/ProjectScopeApi`用户语义，不接收`subjectUserId/ACTION_EDIT/approvedBy/system actor`或消费方冻结版本；缺项目、非`ACTIVE/S4`、经理缺失/重复或树事实不可用均失败关闭。
+- 合入顺序：公开API契约Gate → PROJ Provider与真实锁测试 → IMP内部到期Adapter/运行整改。当前只形成公开契约候选，Provider与IMP生产接通仍`BLOCKED_BY_REVIEW`。

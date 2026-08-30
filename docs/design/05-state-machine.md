@@ -43,6 +43,8 @@
 - 后续DRAFT不得仅以`predecessorAcceptanceId`推导事实含义；服务端同时固化`successorReason=SUPPLEMENT/CORRECTION/DIFFERENCE_CLOSURE/EXEMPTION_INVALIDATION`。普通新到范围补签不标记重开；更正、已确认历史上的差异关闭或豁免失效均为可证明的重开来源。后继DRAFT本身不发布事实，确认时才由根分配项目事实版本；豁免到期的独立失效revision按下一条规则即时分配。
 - successor原样继承直接前驱`batchCode`，用新的acceptance id和`predecessorAcceptanceId`区分记录；初始根占用`batch_root_marker=1`，后继marker为NULL。创建后继必须锁当前前驱且同一前驱至多一个直接后继；已存在后继时除平台幂等重放外返回状态冲突，后续更正只能从链上最新已确认记录继续。
 - 数量差异部分补签时，当前OPEN revision只能收窄为同一订单/型号/单位身份下的精确剩余正数量；全量补齐才进入SUPPLEMENTED，设备差异只能整项补签。豁免到期不由读取事实触发，而由Task 5B内部到期命令在PROJ项目锁内追加`EXEMPTION_INVALIDATION`事实影响revision并创建后继DRAFT；任一Owner锁定重验失败则失败关闭并等待重试。
+- `CONFIRMED`来源不得保留current `OPEN`差异。确认后的人工处置只允许从current `REJECTED`进入：`SUPPLEMENT`整项补设备或按严格剩余量部分/全量补数量，`EXEMPT`形成带新证据和期限的明确豁免，`CLOSE`保持未满足范围并关闭该差异；`KEEP_REJECTED`只允许未确认批次的`OPEN -> REJECTED`。current `SUPPLEMENTED/EXEMPTED/CLOSED`不再由人工差异分支变更，豁免失效只走内部命令。
+- 豁免到期只从没有任意直接successor的最新`CONFIRMED`链节点领取。内部命令以PROJ系统资格锁取得当前`ACTIVE/S4`、唯一项目经理及项目/参与者/树版本，新后继保存当前版本；历史审批人只作证据，不作当前授权主体，前驱冻结版本不回填也不作为当前系统锁相等条件。
 
 DeliveryEvidence的ACC同步投影区分两类重试：Accepted前发布/回执失败使用`ARCHIVE_PENDING_RETRY`；已收到匹配Accepted后等待Archived超时使用`ARCHIVE_ACK_PENDING_RETRY`，不得丢失已接受事实。两类重试均重发同一`evidenceId+revision`；匹配Archived只允许从`ACCEPTED_PENDING_ARCHIVE`或`ARCHIVE_ACK_PENDING_RETRY`进入ARCHIVED，重复Accepted幂等且不创建新revision。
 
