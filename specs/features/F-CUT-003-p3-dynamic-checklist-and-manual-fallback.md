@@ -10,6 +10,7 @@
 > Feature边界裁决：`GO`（事实基线`9b3644d9`）
 > 机器合同：`specs/features/F-CUT-003-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-003-legacy-reuse-audit.md`
+> Technical Plan：`CANDIDATE / IN_REVIEW`（`NPDMS-FCUT003-TECHPLAN-20260831-01`）
 
 ## 1. 业务目标
 
