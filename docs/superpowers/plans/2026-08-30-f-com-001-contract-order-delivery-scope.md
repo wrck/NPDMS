@@ -1,6 +1,6 @@
 # F-COM-001 合同订单副本与交付范围管理 Implementation Plan
 
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO`（独立正式裁决锁定计划提交`8f5ec1c1`）
 > **实施代理必读：** 只有本计划通过独立 Technical Plan Gate 后才可执行。执行时使用 `executing-plans` 按Task排他认领；公共API、Flyway、权限/菜单种子与共享错误码串行合入。按本目标已确认的执行方式，先完成每个最小实现，再补聚焦验证；不得在功能尚未实现时以失败测试驱动或阻断编码。
 
 **Goal:** 交付 `COM-01@V1=FULL` 的完整COM纵向闭环：接收ERP合同/订单权威副本，核对人工候选，按项目经理和公司范围管理交付范围，并向IMP/ACC提供可锁定重验的当前已分配范围。
