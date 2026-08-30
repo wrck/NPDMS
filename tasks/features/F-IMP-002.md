@@ -49,6 +49,7 @@
 - 锁定提交`f4aa1ad2`的`T-FIMP002-PROJ-01` Provider独立Code Review／真实MySQL锁与并发测试Gate已复审`PASS / GO`：Provider按根项目→目标项目→当前ACTIVE树版本固定顺序持锁，current `PROJECT_MANAGER`与参与者事实版本沿用PROJ既有权威语义；当前进入A/B/C/D的IMP Adapter与运行整改，不回写Task 5B整体PASS。
 - Task 5B的A/B/C/D运行整改候选已形成：CONFIRMED发现任一current OPEN即失败，只允许current REJECTED进入SUPPLEMENT/EXEMPT/CLOSE；到期领取排除任意直接successor；复制豁免以当前节点或同tenant/project/batch严格祖先的不可变sourceRecordId重验文件事实；内部到期通过PROJ系统资格端口取得当前项目/参与者/树水位并只写入新successor。消费端聚焦测试24项及隔离MySQL 8.4单前驱并发/事务回滚2项通过，当前最近Gate为本运行整改候选的独立Code Review／聚焦测试复审。
 - 锁定提交`1b2b6a75`的A/B/C/D运行整改四项原阻断均已关闭；其唯一剩余的`SuccessFacts.correlationId`与真实平台事务阻断已由`808151ce`完成整改并经独立复审`PASS / GO`：用户命令使用受信规范化关联标识，内部到期复用服务端稳定幂等键，业务摘要排除关联标识；真实`PlatformCommandExecutionApiImpl`验证NEW成功落账及successor/line/difference/projectFactVersion与平台记录失败时原子回滚。该PASS不等于Task 5B整体PASS；最近Gate为Task 5B八操作应用能力与状态记录的整体Code Review／聚焦测试收口。
+- 锁定基线`f10454dc`的Task 5B整体收口复审为`NO-GO / REVIEW_REQUIRED`，仅剩两项实际可达阻断：create/submit仍向生产平台SuccessFacts传空关联标识，以及已有直接successor的旧CONFIRMED节点误显`RESOLVE_DIFFERENCE`。当前最小整改已让Create/Submit从受信上下文接收并校验关联标识、排除业务摘要后原样进入SuccessFacts；列表按整页批量、详情按单场景查询直接后继事实，旧链节点不再投影处置动作。整体聚焦测试68项通过，等待本两项独立复审，不提前解除Task 8阻断。
 - Task 8当前为`BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 

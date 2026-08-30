@@ -101,7 +101,7 @@ public class ArrivalAcceptanceApplicationService {
                         "IMP:ARRIVAL_CREATE:" + command.projectId(), command.actorUserId(), command.idempotencyKey()),
                 createDigest(command), ArrivalAcceptanceDO.class, () -> createDraftOnce(command),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_CREATE",
-                        "ArrivalAcceptance", String.valueOf(result.getId()), null,
+                        "ArrivalAcceptance", String.valueOf(result.getId()), command.correlationId(),
                         JsonUtils.toJsonString(result), List.of()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
@@ -163,7 +163,7 @@ public class ArrivalAcceptanceApplicationService {
                         command.actorUserId(), command.idempotencyKey()),
                 submitDigest(command), SubmissionResult.class, () -> submitOnce(command),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_SUBMIT",
-                        "ArrivalAcceptance", String.valueOf(result.arrivalAcceptanceId()), null,
+                        "ArrivalAcceptance", String.valueOf(result.arrivalAcceptanceId()), command.correlationId(),
                         JsonUtils.toJsonString(result), List.of()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
@@ -470,7 +470,7 @@ public class ArrivalAcceptanceApplicationService {
                 || command.arrivalAcceptanceId() == null || command.arrivalAcceptanceId() <= 0
                 || command.actorUserId() == null || command.actorUserId() <= 0
                 || command.expectedVersion() == null || command.expectedVersion() < 0
-                || blank(command.idempotencyKey())) {
+                || blank(command.idempotencyKey()) || invalidCorrelation(command.correlationId())) {
             throw new IllegalArgumentException("invalid arrival acceptance submit command");
         }
     }
@@ -548,7 +548,7 @@ public class ArrivalAcceptanceApplicationService {
                 || command.arrivedAt() == null || blank(command.signerName())
                 || command.expectedDeliveryScopeVersion() != null
                 && command.expectedDeliveryScopeVersion() < 0
-                || blank(command.idempotencyKey())) {
+                || blank(command.idempotencyKey()) || invalidCorrelation(command.correlationId())) {
             throw new IllegalArgumentException("invalid arrival acceptance draft command");
         }
     }
@@ -617,14 +617,20 @@ public class ArrivalAcceptanceApplicationService {
         return value == null || value.trim().isEmpty();
     }
 
+    private static boolean invalidCorrelation(String value) {
+        return blank(value) || value.length() > 128 || !value.equals(value.trim());
+    }
+
     public record CreateDraftCommand(Long tenantId, Long projectId, Long actorUserId,
                                      String batchCode, String logisticsNo,
                                      LocalDateTime arrivedAt, String signerName,
-                                     Long expectedDeliveryScopeVersion, String idempotencyKey) {
+                                     Long expectedDeliveryScopeVersion, String idempotencyKey,
+                                     String correlationId) {
     }
 
     public record SubmitCommand(Long tenantId, Long arrivalAcceptanceId,
-                                Long actorUserId, Integer expectedVersion, String idempotencyKey) {
+                                Long actorUserId, Integer expectedVersion, String idempotencyKey,
+                                String correlationId) {
     }
 
     public record ConfirmCommand(Long tenantId, Long arrivalAcceptanceId,

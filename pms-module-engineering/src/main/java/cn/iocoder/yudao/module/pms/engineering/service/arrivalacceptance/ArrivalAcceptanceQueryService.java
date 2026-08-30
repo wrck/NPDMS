@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** COM/AST生产依赖接通前仅显式组装，不注册Spring Bean。 */
@@ -75,11 +76,14 @@ public class ArrivalAcceptanceQueryService {
                 .collect(Collectors.groupingBy(ArrivalDifferenceDO::getArrivalAcceptanceId));
         Map<Long, DeliveryEvidenceDO> evidenceByAcceptance = uniqueEvidenceByAcceptance(
                 evidenceMapper.selectByArrivalAcceptanceIds(childrenQuery));
+        Set<Long> predecessorIdsWithSuccessor = new LinkedHashSet<>(
+                acceptanceMapper.selectPredecessorIdsWithSuccessor(childrenQuery));
         List<ArrivalAcceptanceViews.ArrivalListItem> items = rows.stream()
                 .map(row -> toListItem(row,
                         linesByAcceptance.getOrDefault(row.getId(), List.of()),
                         differencesByAcceptance.getOrDefault(row.getId(), List.of()),
-                        evidenceByAcceptance.get(row.getId()), request.access()))
+                        evidenceByAcceptance.get(row.getId()),
+                        predecessorIdsWithSuccessor.contains(row.getId()), request.access()))
                 .toList();
         return new PageResult<>(items, acceptanceMapper.selectPageCount(query));
     }
@@ -96,13 +100,15 @@ public class ArrivalAcceptanceQueryService {
         List<ArrivalLineDO> lines = lineMapper.selectCurrentList(children);
         List<ArrivalDifferenceDO> differences = differenceMapper.selectCurrentList(children);
         DeliveryEvidenceDO evidence = evidence(root);
+        boolean hasDirectSuccessor = !acceptanceMapper.selectPredecessorIdsWithSuccessor(
+                new ArrivalChildrenBatchQuery(request.tenantId(), Set.of(root.getId()))).isEmpty();
         return new ArrivalAcceptanceViews.ArrivalDetail(
                 root.getId(), root.getProjectId(), root.getBatchCode(), root.getLogisticsNo(),
                 root.getArrivedAt(), signerName(root), root.getStatus(), root.getDeliveryScopeVersion(),
                 watermark(root), root.getEvidenceId(), root.getEvidenceRevision(), root.getProjectFactVersion(),
                 root.getPredecessorAcceptanceId(), root.getSuccessorReason(), root.getSubmittedBy(),
                 root.getSubmittedAt(), root.getConfirmedBy(), root.getConfirmedAt(), root.getVersion(),
-                allowedActions(root, lines, differences, evidence, request.access()),
+                allowedActions(root, lines, differences, evidence, hasDirectSuccessor, request.access()),
                 lines.stream().sorted(Comparator.comparing(ArrivalLineDO::getLineNo)
                                 .thenComparing(ArrivalLineDO::getId)).map(ArrivalAcceptanceQueryService::line).toList(),
                 differences.stream().sorted(Comparator.comparing(ArrivalDifferenceDO::getDifferenceNo)
@@ -114,11 +120,13 @@ public class ArrivalAcceptanceQueryService {
 
     private ArrivalAcceptanceViews.ArrivalListItem toListItem(
             ArrivalAcceptanceDO row, List<ArrivalLineDO> lines, List<ArrivalDifferenceDO> differences,
-            DeliveryEvidenceDO evidence, ArrivalAcceptanceViews.AccessContext access) {
+            DeliveryEvidenceDO evidence, boolean hasDirectSuccessor,
+            ArrivalAcceptanceViews.AccessContext access) {
         return new ArrivalAcceptanceViews.ArrivalListItem(
                 row.getId(), row.getProjectId(), row.getBatchCode(), row.getLogisticsNo(), row.getArrivedAt(),
                 signerName(row), row.getStatus(), evidence == null ? null : evidence.getAccSyncStatus(),
-                row.getVersion(), allowedActions(row, lines, differences, evidence, access), row.getCreateTime());
+                row.getVersion(), allowedActions(row, lines, differences, evidence, hasDirectSuccessor, access),
+                row.getCreateTime());
     }
 
     private static Map<Long, DeliveryEvidenceDO> uniqueEvidenceByAcceptance(List<DeliveryEvidenceDO> evidence) {
@@ -154,6 +162,7 @@ public class ArrivalAcceptanceQueryService {
 
     static List<String> allowedActions(ArrivalAcceptanceDO root, List<ArrivalLineDO> lines,
                                        List<ArrivalDifferenceDO> differences, DeliveryEvidenceDO evidence,
+                                       boolean hasDirectSuccessor,
                                        ArrivalAcceptanceViews.AccessContext access) {
         boolean visible = access.visibleProjectIds().contains(root.getProjectId());
         boolean editable = access.editableProjectIds().contains(root.getProjectId());
@@ -183,6 +192,7 @@ public class ArrivalAcceptanceQueryService {
         if (visible && editable && manager
                 && ("DIFFERENCE_PENDING".equals(root.getStatus()) || "CONFIRMED".equals(root.getStatus()))
                 && (hasOpen || "CONFIRMED".equals(root.getStatus()))
+                && !("CONFIRMED".equals(root.getStatus()) && hasDirectSuccessor)
                 && access.functionPermissions().contains(ArrivalAcceptanceViews.PERMISSION_RESOLVE_DIFFERENCE)) {
             actions.add("RESOLVE_DIFFERENCE");
         }

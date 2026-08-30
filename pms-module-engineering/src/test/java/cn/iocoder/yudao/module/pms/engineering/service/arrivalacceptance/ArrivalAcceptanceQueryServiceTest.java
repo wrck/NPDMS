@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalScopeWatermark;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalAcceptanceMapper;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -118,6 +120,48 @@ class ArrivalAcceptanceQueryServiceTest {
         verify(fixture.lineMapper(), never()).selectCurrentList(any());
     }
 
+    @Test
+    void confirmedAllowedActionsUseOneSuccessorQueryForWholePage() {
+        Fixture fixture = fixture();
+        ArrivalAcceptanceDO predecessor = confirmed(900L);
+        ArrivalAcceptanceDO latest = confirmed(901L);
+        when(fixture.acceptanceMapper().selectPageRows(any())).thenReturn(List.of(predecessor, latest));
+        when(fixture.acceptanceMapper().selectPageCount(any())).thenReturn(2L);
+        when(fixture.lineMapper().selectCurrentListByAcceptanceIds(any())).thenReturn(List.of());
+        when(fixture.differenceMapper().selectCurrentListByAcceptanceIds(any()))
+                .thenReturn(List.of(rejectedDifference(900L), rejectedDifference(901L)));
+        when(fixture.evidenceMapper().selectByArrivalAcceptanceIds(any())).thenReturn(List.of());
+        when(fixture.acceptanceMapper().selectPredecessorIdsWithSuccessor(any())).thenReturn(List.of(900L));
+
+        PageResult<ArrivalAcceptanceViews.ArrivalListItem> page = fixture.service().page(
+                new ArrivalAcceptanceViews.PageRequest(1L, null, null, "CONFIRMED", 1, 20,
+                        access(Set.of(ArrivalAcceptanceViews.PERMISSION_RESOLVE_DIFFERENCE),
+                                Set.of(100L), Set.of(100L), Set.of(100L), Set.of())));
+
+        assertEquals(List.of(), page.getList().get(0).allowedActions());
+        assertEquals(List.of("RESOLVE_DIFFERENCE"), page.getList().get(1).allowedActions());
+        verify(fixture.acceptanceMapper(), times(1)).selectPredecessorIdsWithSuccessor(any());
+    }
+
+    @Test
+    void confirmedDetailWithDirectSuccessorDoesNotExposeResolveDifference() {
+        Fixture fixture = fixture();
+        when(fixture.acceptanceMapper().selectRow(any())).thenReturn(confirmed(900L));
+        when(fixture.lineMapper().selectCurrentList(any())).thenReturn(List.of());
+        when(fixture.differenceMapper().selectCurrentList(any()))
+                .thenReturn(List.of(rejectedDifference(900L)));
+        when(fixture.evidenceMapper().selectBySource(any())).thenReturn(null);
+        when(fixture.acceptanceMapper().selectPredecessorIdsWithSuccessor(any())).thenReturn(List.of(900L));
+
+        ArrivalAcceptanceViews.ArrivalDetail detail = fixture.service().detail(
+                new ArrivalAcceptanceViews.DetailRequest(1L, 900L,
+                        access(Set.of(ArrivalAcceptanceViews.PERMISSION_RESOLVE_DIFFERENCE),
+                                Set.of(100L), Set.of(100L), Set.of(100L), Set.of())));
+
+        assertEquals(List.of(), detail.allowedActions());
+        verify(fixture.acceptanceMapper(), times(1)).selectPredecessorIdsWithSuccessor(any());
+    }
+
     private static Fixture fixture() {
         ArrivalAcceptanceMapper acceptance = mock(ArrivalAcceptanceMapper.class);
         ArrivalLineMapper line = mock(ArrivalLineMapper.class);
@@ -151,6 +195,24 @@ class ArrivalAcceptanceQueryServiceTest {
         row.setVersion(0);
         row.setCreator("8");
         row.setCreateTime(LocalDateTime.of(2026, 8, 30, 8, 1));
+        return row;
+    }
+
+    private static ArrivalAcceptanceDO confirmed(long id) {
+        ArrivalAcceptanceDO row = draft();
+        row.setId(id);
+        row.setStatus("CONFIRMED");
+        return row;
+    }
+
+    private static ArrivalDifferenceDO rejectedDifference(long acceptanceId) {
+        ArrivalDifferenceDO row = new ArrivalDifferenceDO();
+        row.setId(acceptanceId + 1000);
+        row.setArrivalAcceptanceId(acceptanceId);
+        row.setDifferenceNo(1);
+        row.setRevisionNo(1);
+        row.setResolutionStatus("REJECTED");
+        row.setCurrentMarker(1);
         return row;
     }
 

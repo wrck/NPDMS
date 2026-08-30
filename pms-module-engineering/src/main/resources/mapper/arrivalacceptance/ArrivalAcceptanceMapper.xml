@@ -49,6 +49,18 @@
         FOR UPDATE
     </select>
 
+    <select id="selectPredecessorIdsWithSuccessorInternal" resultType="java.lang.Long">
+        SELECT predecessor_acceptance_id
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND predecessor_acceptance_id IN
+          <foreach collection="query.arrivalAcceptanceIds" item="acceptanceId" open="(" separator="," close=")">
+              #{acceptanceId}
+          </foreach>
+          AND deleted = b'0'
+        ORDER BY predecessor_acceptance_id ASC
+    </select>
+
     <update id="updateSubmittedIfMatch">
         UPDATE imp_arrival_acceptance
         SET status = #{query.submittedStatus},

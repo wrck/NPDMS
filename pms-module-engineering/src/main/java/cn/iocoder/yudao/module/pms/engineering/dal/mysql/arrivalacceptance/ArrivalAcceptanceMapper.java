@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalBatchQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalConfirmationUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildrenBatchQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalDraftMutation;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPredecessorQuery;
@@ -29,6 +30,14 @@ public interface ArrivalAcceptanceMapper extends BaseMapperX<ArrivalAcceptanceDO
     ArrivalAcceptanceDO selectForUpdate(@Param("query") ArrivalRowQuery query);
 
     ArrivalAcceptanceDO selectSuccessorForUpdate(@Param("query") ArrivalPredecessorQuery query);
+
+    List<Long> selectPredecessorIdsWithSuccessorInternal(
+            @Param("query") ArrivalChildrenBatchQuery query);
+
+    default List<Long> selectPredecessorIdsWithSuccessor(ArrivalChildrenBatchQuery query) {
+        return query.arrivalAcceptanceIds().isEmpty()
+                ? List.of() : selectPredecessorIdsWithSuccessorInternal(query);
+    }
 
     int updateSubmittedIfMatch(@Param("query") ArrivalSubmissionUpdate update);
 

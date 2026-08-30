@@ -28,6 +28,8 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -59,11 +61,12 @@ class ArrivalAcceptanceApplicationServiceTest {
             row.setId(900L);
             return 1;
         }).when(mapper).insert(any(ArrivalAcceptanceDO.class));
+        RecordingCommandExecutionApi commands = new RecordingCommandExecutionApi();
         ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
                 mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
                 mock(DeliveryEvidenceMapper.class),
                 mock(DeliveryEvidenceRevisionMapper.class), projectPort, deliveryPort, devicePort,
-                mock(FileArtifactFactPort.class), new RecordingCommandExecutionApi());
+                mock(FileArtifactFactPort.class), commands);
 
         ArrivalAcceptanceDO created = service.createDraft(command());
 
@@ -80,6 +83,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         ArgumentCaptor<ArrivalAcceptanceDO> inserted = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
         verify(mapper).insert(inserted.capture());
         assertEquals("8", inserted.getValue().getCreator());
+        assertEquals("corr-create", commands.successFacts.correlationId());
     }
 
     @Test
@@ -118,10 +122,70 @@ class ArrivalAcceptanceApplicationServiceTest {
 
         assertThrows(IllegalStateException.class, () -> service.createDraft(
                 new ArrivalAcceptanceApplicationService.CreateDraftCommand(
-                        1L, 100L, 8L, "B-1", "L-1", LocalDateTime.now(), "Signer", 7L, "create-key")));
+                        1L, 100L, 8L, "B-1", "L-1", LocalDateTime.now(), "Signer", 7L,
+                        "create-key", "corr-create")));
 
         verify(devicePort, never()).resolveBySerials(any(), any(), any());
         verify(mapper, never()).insert(any(ArrivalAcceptanceDO.class));
+    }
+
+    @Test
+    void createAndSubmitRejectInvalidCorrelationBeforePlatformClaim() {
+        for (String invalid : Arrays.asList(null, "", " corr", "corr ", "x".repeat(129))) {
+            RecordingCommandExecutionApi commands = new RecordingCommandExecutionApi();
+            ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
+                    mock(ArrivalAcceptanceMapper.class), mock(ArrivalLineMapper.class),
+                    mock(ArrivalDifferenceMapper.class), mock(DeliveryEvidenceMapper.class),
+                    mock(DeliveryEvidenceRevisionMapper.class), mock(ProjectQualificationPort.class),
+                    mock(DeliveryScopePort.class), mock(DeviceScopeFactPort.class),
+                    mock(FileArtifactFactPort.class), commands);
+
+            assertThrows(IllegalArgumentException.class, () -> service.createDraft(
+                    new ArrivalAcceptanceApplicationService.CreateDraftCommand(
+                            1L, 100L, 8L, "B-1", "L-1", LocalDateTime.now(), "Signer", 8L,
+                            "create-key", invalid)));
+            assertThrows(IllegalArgumentException.class, () -> service.submit(
+                    new ArrivalAcceptanceApplicationService.SubmitCommand(
+                            1L, 900L, 8L, 0, "submit-key", invalid)));
+            assertEquals(0, commands.requestDigests.size());
+        }
+    }
+
+    @Test
+    void createAndSubmitCorrelationDoesNotChangeBusinessDigest() {
+        ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
+        ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);
+        DeliveryScopePort deliveryPort = mock(DeliveryScopePort.class);
+        DeviceScopeFactPort devicePort = mock(DeviceScopeFactPort.class);
+        when(projectPort.inspect(1L, 100L, 8L)).thenReturn(projectFact());
+        when(deliveryPort.inspectAssignedScope(100L)).thenReturn(deliveryScope());
+        when(devicePort.resolveBySerials(1L, 100L, Set.of("SN-1"))).thenReturn(deviceScope(100L));
+        doAnswer(invocation -> {
+            ((ArrivalAcceptanceDO) invocation.getArgument(0)).setId(900L);
+            return 1;
+        }).when(mapper).insert(any(ArrivalAcceptanceDO.class));
+        RecordingCommandExecutionApi createCommands = new RecordingCommandExecutionApi();
+        ArrivalAcceptanceApplicationService createService = new ArrivalAcceptanceApplicationService(
+                mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
+                mock(DeliveryEvidenceMapper.class), mock(DeliveryEvidenceRevisionMapper.class),
+                projectPort, deliveryPort, devicePort, mock(FileArtifactFactPort.class), createCommands);
+
+        createService.createDraft(command("corr-create-one"));
+        createService.createDraft(command("corr-create-two"));
+        assertEquals(createCommands.requestDigests.get(0), createCommands.requestDigests.get(1));
+        assertEquals(List.of("corr-create-one", "corr-create-two"), createCommands.successFactsHistory.stream()
+                .map(PlatformCommandExecutionApi.SuccessFacts::correlationId).toList());
+
+        SubmissionFixture submission = submissionFixture();
+        when(submission.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(submission.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+        submission.service().submit(submitCommand("corr-submit-one"));
+        submission.service().submit(submitCommand("corr-submit-two"));
+        assertEquals(submission.commandExecutionApi().requestDigests.get(0),
+                submission.commandExecutionApi().requestDigests.get(1));
+        assertEquals(List.of("corr-submit-one", "corr-submit-two"),
+                submission.commandExecutionApi().successFactsHistory.stream()
+                        .map(PlatformCommandExecutionApi.SuccessFacts::correlationId).toList());
     }
 
     @Test
@@ -155,11 +219,12 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         fixture.service().submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
-                1L, 900L, 8L, 0, "submit-key"));
+                1L, 900L, 8L, 0, "submit-key", "corr-submit"));
 
         assertEquals("IMP:ARRIVAL_SUBMIT:900", fixture.commandExecutionApi().scope.scopeCode());
         assertEquals(64, fixture.commandExecutionApi().requestDigest.length());
         assertEquals("ARRIVAL_ACCEPTANCE_SUBMIT", fixture.commandExecutionApi().successFacts.operationCode());
+        assertEquals("corr-submit", fixture.commandExecutionApi().successFacts.correlationId());
     }
 
     @Test
@@ -375,13 +440,23 @@ class ArrivalAcceptanceApplicationServiceTest {
     }
 
     private static ArrivalAcceptanceApplicationService.CreateDraftCommand command() {
+        return command("corr-create");
+    }
+
+    private static ArrivalAcceptanceApplicationService.CreateDraftCommand command(String correlationId) {
         return new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                 1L, 100L, 8L, "ARRIVAL-001", "LOGISTICS-001",
-                LocalDateTime.of(2026, 8, 30, 9, 0), "客户签收人", 8L, "create-key");
+                LocalDateTime.of(2026, 8, 30, 9, 0), "客户签收人", 8L,
+                "create-key", correlationId);
     }
 
     private static ArrivalAcceptanceApplicationService.SubmitCommand submitCommand() {
-        return new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0, "submit-key");
+        return submitCommand("corr-submit");
+    }
+
+    private static ArrivalAcceptanceApplicationService.SubmitCommand submitCommand(String correlationId) {
+        return new ArrivalAcceptanceApplicationService.SubmitCommand(
+                1L, 900L, 8L, 0, "submit-key", correlationId);
     }
 
     private static ProjectQualificationPort.ProjectQualificationFact projectFact() {
@@ -602,6 +677,8 @@ class ArrivalAcceptanceApplicationServiceTest {
         private IdempotencyScope scope;
         private String requestDigest;
         private SuccessFacts successFacts;
+        private final List<String> requestDigests = new ArrayList<>();
+        private final List<SuccessFacts> successFactsHistory = new ArrayList<>();
 
         @Override
         @SuppressWarnings("unchecked")
@@ -610,11 +687,18 @@ class ArrivalAcceptanceApplicationServiceTest {
                                               Function<T, SuccessFacts> successFactsFactory) {
             this.scope = scope;
             this.requestDigest = requestDigest;
+            requestDigests.add(requestDigest);
             if (decision == Decision.REPLAY_COMPLETED) {
                 return new ExecutionResult<>(decision, (T) replay.value());
             }
             T response = operation.get();
             successFacts = successFactsFactory.apply(response);
+            if (successFacts == null || successFacts.correlationId() == null
+                    || successFacts.correlationId().isBlank()
+                    || successFacts.correlationId().length() > 128) {
+                throw new IllegalArgumentException("platform command success facts are incomplete");
+            }
+            successFactsHistory.add(successFacts);
             return new ExecutionResult<>(decision, response);
         }
     }

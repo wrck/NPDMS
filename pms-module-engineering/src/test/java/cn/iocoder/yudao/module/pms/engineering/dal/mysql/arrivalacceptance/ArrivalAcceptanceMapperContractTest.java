@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildrenBatchQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalDueExemptionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPredecessorQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
@@ -92,6 +93,7 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("batch_code, batch_root_marker, logistics_no"));
         assertTrue(mapperXml.contains("AND batch_root_marker = 1"));
         assertTrue(mapperXml.contains("id=\"selectSuccessorForUpdate\""));
+        assertTrue(mapperXml.contains("id=\"selectPredecessorIdsWithSuccessorInternal\""));
         assertTrue(mapperXml.contains("predecessor_acceptance_id = #{query.predecessorAcceptanceId}"));
         assertTrue(mapperXml.contains("id=\"selectDueExemptions\""));
         assertTrue(mapperXml.contains("d.exemption_expires_at &lt;= #{query.processingTime}"));
@@ -169,6 +171,17 @@ class ArrivalAcceptanceMapperContractTest {
                 configuration.newMetaObject(predecessor).getValue(mapping.getProperty()));
         assertTrue(successor.getSql().contains("predecessor_acceptance_id = ?"));
         assertTrue(successor.getSql().contains("FOR UPDATE"));
+
+        Map<String, Object> pageSuccessors = Map.of("query",
+                new ArrivalChildrenBatchQuery(1L, Set.of(900L, 901L)));
+        BoundSql successorBatch = configuration.getMappedStatement(
+                        ArrivalAcceptanceMapper.class.getName()
+                                + ".selectPredecessorIdsWithSuccessorInternal")
+                .getBoundSql(pageSuccessors);
+        successorBatch.getParameterMappings().forEach(mapping ->
+                configuration.newMetaObject(pageSuccessors).getValue(mapping.getProperty()));
+        assertTrue(successorBatch.getSql().contains("predecessor_acceptance_id IN"));
+        assertEquals(3, successorBatch.getParameterMappings().size());
 
         Map<String, Object> dueQuery = Map.of("query", new ArrivalDueExemptionQuery(
                 LocalDateTime.of(2026, 8, 30, 12, 0), 20));
