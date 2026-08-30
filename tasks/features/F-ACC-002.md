@@ -1,12 +1,12 @@
 # F-ACC-002 满意度问卷、达标判定与归档同步
 
 > Feature实施状态：`IN_PROGRESS`<br>
-> 总体工程阶段：`IMPLEMENTATION_TASK_1`<br>
+> 总体工程阶段：`IMPLEMENTATION_TASK_2`<br>
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：无产品阻断；完整Result文件全局来源序号整改待同一Step 3独立复审<br>
-> 当前任务：`Task 1：共享契约、V133与后端纵向闭环`<br>
+> 当前阻断：无<br>
+> 当前任务：`Task 2：前端与一次真实Chromium闭环`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-002-satisfaction-questionnaire-result-deliverable-sync.md`<br>
@@ -23,12 +23,12 @@
 
 ## Task 1：共享契约、V133与后端纵向闭环
 
-- [ ] Step 1：编写聚焦失败测试并确认RED。
-- [ ] Step 2：实现API、DO/Mapper和领域服务最小闭环。
-- [ ] Step 3：接入PLT、PROJ和Outbox/Quartz。
-- [ ] Step 4：实现并验证V133。
-- [ ] Step 5：运行聚焦后端验证和构建。
-- [ ] Step 6：提交Task 1并更新检查点。
+- [x] Step 1：确定聚焦验收边界；按用户要求不执行测试先行。
+- [x] Step 2：实现API、DO/Mapper和领域服务最小闭环。
+- [x] Step 3：接入PLT、PROJ和Outbox/Quartz。
+- [x] Step 4：实现并验证V133。
+- [x] Step 5：运行聚焦后端验证和构建。
+- [x] Step 6：提交Task 1并更新检查点。
 
 ## Task 2：前端与一次真实Chromium闭环
 
@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`6ec1b245`；当前Gate=Task 1 Step 3来源附件全局序号整改复审；已通过=角色内序号保留、跨角色来源序号1..N，聚焦单测4/4、真实MySQL 4/4；阻塞=无；下一步=提交整改并申请同一Gate复审。
+> 检查点：基线=`59c34505`；当前Gate=Task 2 Step 1前端闭环；已通过=Task 1后端、V133双路径与冲突前置失败，聚焦74/74、真实MySQL 4/4、reactor package PASS；阻塞=无；下一步=实现模板、任务、问卷、Result与导出前端正向链。
