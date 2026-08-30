@@ -80,7 +80,7 @@
         UPDATE imp_delivery_evidence
         SET acc_sync_status = 'ACCEPTED_PENDING_ARCHIVE',
             acc_next_retry_at = #{query.nextRetryAt},
-            acc_retry_count = #{query.newRetryCount},
+            acc_retry_count = #{query.retryCount},
             acc_last_event_id = #{query.eventId},
             acc_accepted_record_id = #{query.reviewRecordId},
             acc_archived_record_id = NULL,
