@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFilePolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileAccessGrantMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArchiveRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
@@ -65,6 +66,23 @@ class FileContractAndMapperTest {
 
         assertEquals(7L, registry.inspect(query).scopeVersion());
         assertEquals(7L, registry.lockAndRevalidate(revalidation).scopeVersion());
+    }
+
+    @Test
+    void dispatchesGeneratedFilePolicyAndRejectsChangedScopeVersion() {
+        FileBusinessObjectPolicyProvider provider = provider("ACC", "SATISFACTION_RESULT");
+        GeneratedBusinessFilePolicyRevalidationQuery query = new GeneratedBusinessFilePolicyRevalidationQuery(
+                0L, 9L, 40L, 10L, 11L, 12L, 4,
+                "ACC", "SATISFACTION_RESULT", "SATISFACTION_RESULT_DOCUMENT",
+                "satisfaction-result-40", FileActionCodes.UPLOAD, 7L);
+        when(provider.lockAndRevalidateGeneratedBusinessFile(query)).thenReturn(allowedFact(7L));
+        FileBusinessObjectPolicyRegistry registry = new FileBusinessObjectPolicyRegistry(List.of(provider));
+
+        assertEquals(7L, registry.lockAndRevalidateGeneratedBusinessFile(query).scopeVersion());
+
+        when(provider.lockAndRevalidateGeneratedBusinessFile(query)).thenReturn(allowedFact(8L));
+        assertCode(FILE_SCOPE_VERSION_CONFLICT.getCode(),
+                () -> registry.lockAndRevalidateGeneratedBusinessFile(query));
     }
 
     @Test

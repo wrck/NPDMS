@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFilePolicyRevalidationQuery;
 
 public interface FileBusinessObjectPolicyProvider {
 
@@ -23,5 +24,10 @@ public interface FileBusinessObjectPolicyProvider {
     default FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
             FileBusinessObjectReferenceSetRevalidationQuery query) {
         throw new UnsupportedOperationException("reference set locking is not implemented");
+    }
+
+    default FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(
+            GeneratedBusinessFilePolicyRevalidationQuery query) {
+        throw new UnsupportedOperationException("generated business file policy is not implemented");
     }
 }

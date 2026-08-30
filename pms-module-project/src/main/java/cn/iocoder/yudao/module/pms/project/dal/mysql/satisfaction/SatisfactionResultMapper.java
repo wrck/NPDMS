@@ -10,4 +10,5 @@ import org.apache.ibatis.annotations.Param;
 public interface SatisfactionResultMapper extends BaseMapperX<SatisfactionResultDO> {
     SatisfactionResultFactRecord selectFact(@Param("query") SatisfactionResultIdentityQuery query);
     SatisfactionResultFactRecord selectFactForUpdate(@Param("query") SatisfactionResultIdentityQuery query);
+    SatisfactionResultDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
 }

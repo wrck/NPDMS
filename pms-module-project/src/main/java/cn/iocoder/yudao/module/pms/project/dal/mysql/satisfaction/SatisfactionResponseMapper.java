@@ -11,4 +11,5 @@ public interface SatisfactionResponseMapper extends BaseMapperX<SatisfactionResp
     SatisfactionResponseDO selectByIdentityForUpdate(@Param("query") SatisfactionResponseIdentityQuery query);
     Integer selectNextResponseNo(@Param("tenantId") Long tenantId,
                                  @Param("questionnaireId") Long questionnaireId);
+    SatisfactionResponseDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
 }

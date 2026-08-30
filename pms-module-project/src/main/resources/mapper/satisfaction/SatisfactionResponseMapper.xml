@@ -10,4 +10,7 @@
         SELECT COALESCE(MAX(response_no),0)+1 FROM acc_satisfaction_response
          WHERE tenant_id=#{tenantId} AND questionnaire_id=#{questionnaireId}
     </select>
+    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionResponseDO">
+        SELECT * FROM acc_satisfaction_response WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
 </mapper>

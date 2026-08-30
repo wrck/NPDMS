@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFilePolicyRevalidationQuery;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -72,6 +73,23 @@ public class FileBusinessObjectPolicyRegistry {
         FileBusinessObjectPolicyFact fact;
         try {
             fact = provider.lockAndRevalidateReferenceSet(query);
+        } catch (RuntimeException ex) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        fact = requireUsableFact(fact);
+        if (!query.expectedScopeVersion().equals(fact.scopeVersion())) {
+            throw exception(FILE_SCOPE_VERSION_CONFLICT);
+        }
+        return fact;
+    }
+
+    public FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(
+            GeneratedBusinessFilePolicyRevalidationQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(
+                query.ownerContext(), query.objectType());
+        FileBusinessObjectPolicyFact fact;
+        try {
+            fact = provider.lockAndRevalidateGeneratedBusinessFile(query);
         } catch (RuntimeException ex) {
             throw exception(FILE_PROVIDER_UNAVAILABLE);
         }
