@@ -265,6 +265,7 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
     const first = await runArrivalGuardedWrite({
       barrier,
       call: () => patch(aggregateVersion),
+      refreshAfterSuccess: vi.fn().mockResolvedValue(undefined),
       refreshAfterConflict: async () => {
         aggregateVersion = 7
       }
@@ -279,9 +280,54 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
     const second = await runArrivalGuardedWrite({
       barrier,
       call: () => patch(aggregateVersion),
+      refreshAfterSuccess: vi.fn().mockResolvedValue(undefined),
       refreshAfterConflict: vi.fn()
     })
     expect(second).toMatchObject({ writeCalled: true, succeeded: true })
+    expect(patch.mock.calls).toEqual([[4], [7]])
+  })
+
+  it('blocks the next write when PATCH succeeds but its refresh fails', async () => {
+    const barrier = createArrivalWriteBarrier()
+    const patch = vi.fn().mockResolvedValue({ version: 5 })
+    let aggregateVersion = 4
+    const refresh = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('refresh failed'))
+      .mockImplementationOnce(async () => {
+        aggregateVersion = 7
+      })
+      .mockResolvedValue(undefined)
+
+    const first = await runArrivalGuardedWrite({
+      barrier,
+      call: () => patch(aggregateVersion),
+      refreshAfterSuccess: refresh,
+      refreshAfterConflict: vi.fn()
+    })
+    expect(first).toMatchObject({
+      writeCalled: true,
+      succeeded: true,
+      refreshSucceeded: false
+    })
+    expect(barrier.hasPending()).toBe(true)
+
+    const second = await runArrivalGuardedWrite({
+      barrier,
+      call: () => patch(aggregateVersion),
+      refreshAfterSuccess: refresh,
+      refreshAfterConflict: vi.fn()
+    })
+    expect(second).toEqual({ writeCalled: false, barrierResult: 'REFRESHED' })
+    expect(patch).toHaveBeenCalledTimes(1)
+
+    const third = await runArrivalGuardedWrite({
+      barrier,
+      call: () => patch(aggregateVersion),
+      refreshAfterSuccess: refresh,
+      refreshAfterConflict: vi.fn()
+    })
+    expect(third).toMatchObject({ writeCalled: true, succeeded: true })
     expect(patch.mock.calls).toEqual([[4], [7]])
   })
 

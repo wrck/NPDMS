@@ -138,6 +138,7 @@ export const createArrivalWriteBarrier = () => {
 export const runArrivalGuardedWrite = async <T>(options: {
   barrier: ReturnType<typeof createArrivalWriteBarrier>
   call: () => Promise<T>
+  refreshAfterSuccess: (result: T) => Promise<void>
   refreshAfterConflict: () => Promise<void>
 }) => {
   const barrierResult = await options.barrier.beforeWrite()
@@ -145,7 +146,24 @@ export const runArrivalGuardedWrite = async <T>(options: {
     return { writeCalled: false as const, barrierResult }
   }
   try {
-    return { writeCalled: true as const, succeeded: true as const, result: await options.call() }
+    const result = await options.call()
+    try {
+      await options.refreshAfterSuccess(result)
+      return {
+        writeCalled: true as const,
+        succeeded: true as const,
+        result,
+        refreshSucceeded: true as const
+      }
+    } catch {
+      options.barrier.register(() => options.refreshAfterSuccess(result))
+      return {
+        writeCalled: true as const,
+        succeeded: true as const,
+        result,
+        refreshSucceeded: false as const
+      }
+    }
   } catch (error) {
     const recovery = resolveArrivalCommandFailure(error)
     let refreshSucceeded: boolean | null = null

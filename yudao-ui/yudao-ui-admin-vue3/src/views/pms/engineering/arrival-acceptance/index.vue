@@ -479,6 +479,7 @@ const patchDraft = async (payload: PatchArrivalRequest) => {
   const outcome = await runArrivalGuardedWrite({
     barrier: writeBarrier,
     call: () => ArrivalApi.patchArrival(acceptanceId, editingDetail.value!.version, payload),
+    refreshAfterSuccess: () => refreshWorkspace(acceptanceId),
     refreshAfterConflict: async () => {
       await refreshWorkspace(acceptanceId)
       editingDetail.value = detail.value
@@ -495,7 +496,9 @@ const patchDraft = async (payload: PatchArrivalRequest) => {
   if (outcome.succeeded) {
     formVisible.value = false
     message.success('草稿已保存')
-    await refreshWorkspace(acceptanceId)
+    if (!outcome.refreshSucceeded) {
+      message.warning('草稿已保存，但页面刷新失败；下一次写操作只会重试刷新')
+    }
     return true
   }
   if (outcome.refreshSucceeded === false) message.warning('权威事实刷新失败，请手动刷新后再操作')
