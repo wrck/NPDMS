@@ -3,12 +3,13 @@
 > Feature实施状态：`NOT_STARTED`
 > 总体工程阶段：`TECHNICAL_PLAN`
 > Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
-> Technical Plan Gate：`NOT_STARTED`
+> Technical Plan Gate：`REVIEW_REQUIRED`
 > Implementation Done Gate：`NOT_STARTED`
 > `pms_cut_task -> cut_task` Migration Contract Gate：`PASS`（`36d1b37f`）
 > API/Physical Machine Contract Gate：`PASS / b7f49166`
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`
 > 硬依赖：`F-IMP-001`、`F-PROJ-003`、`T-FIMP001-AST-01`
 
 ## 当前最小工作单元
@@ -16,7 +17,7 @@
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- 当前最近Gate为唯一`F-CUT-002 Technical Plan`独立复审；计划通过后使用受控正向模拟推进CUT自身P1→P2→P3/P4，生产依赖合入前不声明真实浏览器闭环或Implementation Done。
+- 唯一`F-CUT-002 Technical Plan`候选已形成，当前状态`REVIEW_REQUIRED`；计划通过后使用受控正向模拟推进CUT自身P1→P2→P3/P4，生产依赖合入前不声明真实浏览器闭环或Implementation Done。
 
 ## 已完成
 

@@ -12,6 +12,7 @@
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 > 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；API/Physical Machine Contract Gate `PASS@b7f49166`）
 > REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`BASELINE_READY@b7f49166`）
+> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 
