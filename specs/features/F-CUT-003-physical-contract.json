@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-003",
+  "status": "CANDIDATE_NOT_READY",
+  "requirementSlices": ["CUT-03@V1=FULL"],
+  "owner": "CUT",
+  "aggregate": "CutoverChecklist",
+  "dependencies": {
+    "configuration": "F-CUT-001 published CutoverConfigurationRevision",
+    "task": "F-CUT-002 CutoverTask in SURVEYING with effective submitted assessment",
+    "files": "F-PLT-001 public FileArtifact fact and CUT FileBusinessObjectPolicyProvider",
+    "collection": "INT-12 consumer port only; provider and collection engine are out of scope"
+  },
+  "lifecycles": {
+    "checklist": ["DRAFT", "SUBMITTED", "INVALIDATED"],
+    "match": ["READY", "GAP", "CONFLICT"],
+    "taskTransition": "SURVEYING -> PLAN_DRAFTING only after checklist submit; grade D never creates a checklist"
+  },
+  "tables": [
+    {
+      "name": "cut_cutover_checklist",
+      "strategy": "NEW_ONLY_FEATURE_FORWARD_MIGRATION",
+      "uniqueKeys": [
+        ["tenant_id", "cutover_task_id", "checklist_version"],
+        ["tenant_id", "cutover_task_id", "current_marker"]
+      ],
+      "requiredFacts": ["assessment_id", "assessment_version", "input_snapshot", "config_revision_snapshot", "match_trace", "status_code", "version"]
+    },
+    {
+      "name": "cut_cutover_checklist_item",
+      "strategy": "NEW_ONLY_FEATURE_FORWARD_MIGRATION",
+      "uniqueKeys": [["tenant_id", "checklist_id", "stable_item_key"]],
+      "requiredFacts": ["item_type_code", "work_mode_code", "required_flag", "source_code", "applicable_flag", "sort_order"],
+      "conditionalFacts": {
+        "SYSTEM_MATCHED": ["item_definition_id", "item_definition_version", "interface_schema_snapshot"],
+        "CUSTOM": ["item_definition_id and item_definition_version are null", "source_code=CUSTOM", "custom_creator_user_id", "server-generated stable_item_key"]
+      }
+    },
+    {
+      "name": "cut_cutover_checklist_item_result",
+      "strategy": "NEW_ONLY_FEATURE_FORWARD_MIGRATION",
+      "uniqueKeys": [
+        ["tenant_id", "checklist_item_id", "result_version"],
+        ["tenant_id", "checklist_item_id", "current_marker"]
+      ],
+      "appendOnly": true,
+      "resultSources": ["DIRECT", "COLLECTION", "EXTERNAL", "MANUAL"]
+    }
+  ],
+  "matching": {
+    "baseDimensions": ["CUTOVER_TYPE", "NETWORK_MODE", "DEVICE_TYPE", "CUTOVER_LEVEL"],
+    "extensionDimensions": "only enabled dimensions frozen in the same published configuration revision",
+    "deduplicateBy": "stableItemKey",
+    "requiredMerge": "true when any compatible matched rule requires the item",
+    "conflict": "persist all conflicting rule identities and require one explicit valid selection before submit",
+    "gap": "persist configuration gap and allow task-level custom items; never fabricate a matched system item",
+    "rematch": "preserve an answer only when stableItemKey and itemDefinitionVersion remain applicable; removed results stay historical"
+  },
+  "resultSelection": {
+    "currentRule": "one open selection interval per checklist item",
+    "switch": "close old selection and append the new result in one CUT transaction",
+    "collectionMeaning": "technical result reference only; never means item passed",
+    "manualFallback": "retain failed automatic/external fact and select a MANUAL result with authorized evidence"
+  },
+  "filePolicy": {
+    "ownerContext": "CUT",
+    "objectType": "CUTOVER_CHECKLIST_ITEM",
+    "objectId": "checklistItemId",
+    "purposeCode": "MANUAL_EVIDENCE",
+    "scopeVersion": "ProjectScopeApi treeVersion revalidated for the task project",
+    "storedPublicFacts": ["artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "sha256"],
+    "physicalMapping": {
+      "answer_snapshot": "complete immutable PLT public file fact",
+      "manual_evidence_file_reference": "the same fact's stable referenceKey only"
+    },
+    "forbidden": ["PLT FileVersion.id", "PLT FileReference.id", "file bytes in CUT tables", "client supplied file fact as authority"]
+  },
+  "restApis": [
+    {"method": "GET", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist", "permission": "pms:cutover-task:query"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/actions/generate", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/actions/rematch", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "PUT", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/custom-items", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "DELETE", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/custom-items/{stableItemKey}", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/items/{stableItemKey}/collection-requests", "permission": "pms:cutover-task:request-collection"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/items/{stableItemKey}/manual-results", "permission": "pms:cutover-task:save-checklist"},
+    {"method": "POST", "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/actions/submit", "permission": "pms:cutover-task:submit-checklist"}
+  ],
+  "internalPorts": {
+    "configuration": "CUT reads the published F-CUT-001 revision through a narrow CUT-owned query service",
+    "collection": "create request and inspect result reference only; no connector or provider in F-CUT-003",
+    "externalData": "query request and stable failure only; provider is out of scope",
+    "projectScope": "reuse ProjectScopeApi ACTION_EDIT and treeVersion"
+  },
+  "transactionAndLocks": [
+    "lock CutoverTask and effective submitted assessment",
+    "lock ProjectScope expected treeVersion",
+    "lock current checklist root and expected checklist version",
+    "lock checklist items in stableItemKey order",
+    "close old result selections then append new results",
+    "on submit mark checklist SUBMITTED, transition task to PLAN_DRAFTING and append stage history in the same CUT transaction"
+  ],
+  "events": [
+    {
+      "name": "CutoverChecklistItemResultLinked",
+      "meaning": "one CUT result version was selected for one checklist item",
+      "forbiddenMeanings": ["DAC collection succeeded", "item passed", "P3 completed"]
+    }
+  ],
+  "legacyDisposition": {
+    "pms_cut_risk": "DO_NOT_REUSE_AS_CHECKLIST_OR_RESULT_PRESERVE_EXISTING",
+    "legacyControllerServiceUi": "DO_NOT_REUSE_PRESERVE_EXISTING",
+    "migration": "NO_LEGACY_SOURCE_NO_DUAL_WRITE_NO_INFERENCE"
+  },
+  "outOfScope": ["V2_EXPORT", "CONFIGURABLE_FLOW_JUMP", "P4_P5_P6", "DAC_PROVIDER", "EXTERNAL_DATA_PROVIDER", "GENERAL_WORK_ORDER", "YUDAO_PLATFORM_CHANGE"],
+  "featureReadyGate": "INDEPENDENT_REVIEW_REQUIRED"
+}
