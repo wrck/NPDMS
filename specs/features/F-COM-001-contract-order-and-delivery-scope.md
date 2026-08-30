@@ -113,7 +113,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### 5.2 跨Context契约
 
 - 扩展既有`DeliveryScopeApi`新增`getAssignedScope(projectId, expectedScopeVersion)`；返回稳定DTO，不暴露DO、来源正文或内部状态。
-- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。来源版本是1～64字符、批次水位是1～128字符的不透明规范字符串，禁止数字或字典序比较；每个对象以`expectedPreviousSourceVersion`对锁定当前版本做CAS，首建要求null且当前不存在。一个租户/来源批次全有或全无；同event同规范载荷返回重放，同event异载荷永久冲突，同对象同版本同载荷为重放、异载荷为永久冲突，前驱不匹配使全批回滚。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
+- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。来源版本是1～64字符、批次水位是1～128字符的不透明规范字符串，禁止数字或字典序比较。锁定对象后按固定顺序判定：当前不存在时仅expected前驱为null可创建；incoming版本等于当前版本时先比较冻结规范载荷，同载荷为`OBJECT_REPLAY`、异载荷永久冲突，不执行前驱CAS；版本不同时才要求expected前驱精确命中当前版本后更新。全对象重放返回`ACCEPTED_NO_CHANGE`，重放与创建/更新混合且无冲突返回`ACCEPTED`；任一冲突全批回滚。新event可完成自身幂等/审计，但对象重放不改Owner、范围版本或业务Outbox。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
 - PROJ资格复用正式公开事实；AST地点/SN校验复用正式公开API。不得降级为直接跨表查询。
 
 ### 5.3 事件

@@ -120,9 +120,16 @@
       "orderLineFact": ["sourceKey","expectedPreviousSourceVersion|null","sourceVersion","salesOrderSourceKey","lineCode","itemCode","modelCode","quantity","unitCode","lifecycleStatus","sourceUpdatedAt"],
       "relationFact": ["salesOrderSourceKey","contractSourceKey","expectedPreviousSourceVersion|null","sourceVersion","effectiveFrom","effectiveTo"],
       "atomicity": "one tenant/source batch is all-or-nothing; no per-item partial success",
-      "versionTransition": "first creation requires expectedPreviousSourceVersion=null and absent current row; update requires exact equality with the locked current sourceVersion and a different nonblank sourceVersion; mismatch is SOURCE_VERSION_CONFLICT and rolls back the whole batch; sourceWatermark is recorded/audited only and never orders object versions",
-      "idempotency": "eventId key; same eventId and canonical full payload, including expected/current versions and watermark, returns REPLAYED; same eventId different payload is EVENT_PAYLOAD_CONFLICT; same object sourceVersion and same canonical object payload is object replay, while same version different payload is SOURCE_VERSION_PAYLOAD_CONFLICT",
-      "result": ["ACCEPTED","REPLAYED","SOURCE_VERSION_CONFLICT","EVENT_PAYLOAD_CONFLICT","SOURCE_VERSION_PAYLOAD_CONFLICT"],
+      "versionDecisionOrder": [
+        "lock current object by tenant/sourceSystem/sourceKey",
+        "if absent: expectedPreviousSourceVersion must be null, then create",
+        "if incoming sourceVersion equals current sourceVersion: compare the frozen canonical owner payload before predecessor CAS; equal is OBJECT_REPLAY and different is SOURCE_VERSION_PAYLOAD_CONFLICT",
+        "if incoming sourceVersion differs: expectedPreviousSourceVersion must exactly equal current sourceVersion, then update; otherwise SOURCE_VERSION_CONFLICT"
+      ],
+      "idempotency": "eventId decision precedes object decisions: same eventId and canonical full batch payload returns EVENT_REPLAYED; same eventId different payload is EVENT_PAYLOAD_CONFLICT. OBJECT_REPLAY never requires expectedPreviousSourceVersion to equal current and never enters predecessor CAS",
+      "batchResult": "all objects OBJECT_REPLAY => ACCEPTED_NO_CHANGE; any create/update with zero conflicts => ACCEPTED even when other objects replay; any object/event conflict rolls back every owner/relation write and no scopeVersion/outbox is produced",
+      "replaySideEffects": "a new eventId may complete its batch idempotency/audit record, but OBJECT_REPLAY does not rewrite owner payload/version, allocate scopeVersion or publish business Outbox",
+      "result": ["ACCEPTED","ACCEPTED_NO_CHANGE","EVENT_REPLAYED","SOURCE_VERSION_CONFLICT","EVENT_PAYLOAD_CONFLICT","SOURCE_VERSION_PAYLOAD_CONFLICT"],
       "failure": "any validation, mapping or write failure rolls back; retry same eventId; no empty-success degradation",
       "connectorBoundary": "network auth, polling, transport retry and external reconciliation remain INT-01"
     }

@@ -84,7 +84,7 @@
 | CRM 客户/产品同步 | CRM→平台 | CRM客户ID、原客户ID、客户编码/名称/等级/状态、归属销售、产品编码/名称、停产停维标记、源版本 | 批次号、单项同步/待映射/失败状态 | CRM客户或产品ID+源版本 | 只更新 CRM Owner 字段；平台联系人/标签/备注不被覆盖，接口中断展示最近成功水位 |
 | ERP 合同订单同步 | ERP→平台 | ERP合同ID、所属公司、合同编号、销售订单ID/号、订单行ID、产品明细、数量、金额、单位、来源版本 | 批次号、平台合同/订单映射ID、处理状态/差异 | ERP合同ID+销售订单ID+订单行ID+源版本；合同业务身份=所属公司+合同编号 | ERP 核心字段落本地只读副本后才确认；来源减量造成超分配时冻结受影响 DeliveryScope 并进入待调整，不静默删减 |
 
-F-COM-001提供`CommerceAuthorityIngestApi.ingestBatch`作为INT-01到COM的本地接收契约。命令固定受信tenant/eventId/batchId/sourceSystem/sourceWatermark、合同/销售订单/订单行/订单合同关系精确DTO、occurredAt/correlationId；sourceVersion为1～64字符、sourceWatermark为1～128字符的不透明规范字符串，禁止字典序或数字比较。每个对象以`expectedPreviousSourceVersion`对锁定当前版本做CAS：首建要求null且当前不存在，更新要求精确命中当前版本；不匹配全批回滚。同event同完整载荷重放、异载荷永久冲突；同对象同版本同载荷重放、异载荷永久冲突。COM不在此接口内实现网络认证、轮询、传输重试或外部对账，也不以空成功降级。
+F-COM-001提供`CommerceAuthorityIngestApi.ingestBatch`作为INT-01到COM的本地接收契约。命令固定受信tenant/eventId/batchId/sourceSystem/sourceWatermark、合同/销售订单/订单行/订单合同关系精确DTO、occurredAt/correlationId；sourceVersion为1～64字符、sourceWatermark为1～128字符的不透明规范字符串，禁止字典序或数字比较。锁定对象后先判同版本：载荷相同为OBJECT_REPLAY、不同为永久冲突，均不进入前驱CAS；仅incoming版本不同才要求`expectedPreviousSourceVersion`精确命中当前版本。全对象重放返回ACCEPTED_NO_CHANGE；重放与创建/更新混合返回ACCEPTED；任一冲突全批回滚。同event同完整批次载荷为EVENT_REPLAYED、异载荷永久冲突。对象重放不改Owner、范围版本或业务Outbox，但新event可完成其幂等/审计记录。COM不实现网络认证、轮询、传输重试或外部对账，也不以空成功降级。
 
 人工补录只写不可变`PLATFORM_MANUAL`候选；核对结果只能关联已存在且已确认的ERP Owner事实，不修改候选来源键、不复制为ERP主档。无匹配时继续待核对或明确拒绝。来源取消/减量造成范围冲突时，F-COM-001保存冲突、项目水位和审计，继续使用已批准通知边界，不新增`DeliveryScopeConflicted`公共事件。
 | ITR 产品版本/问题同步 | ITR→平台 | ITR对象ID、产品/设备标识、版本、故障/问题类型、状态、发生时间、源版本/事件ID | 平台映射ID、处理状态、待映射原因 | ITR对象ID+源版本或事件ID | 设备/项目唯一匹配后落本地副本；无法匹配不自动归入相似对象 |
