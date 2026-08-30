@@ -283,6 +283,28 @@ public class ArrivalAcceptanceCommandService {
         }
     }
 
+    private void requireEvidenceSourceInLineage(ArrivalAcceptanceDO source, Long evidenceSourceId) {
+        ArrivalAcceptanceDO cursor = source;
+        Set<Long> visited = new HashSet<>();
+        while (true) {
+            if (cursor.getId() == null || !visited.add(cursor.getId())
+                    || !Objects.equals(source.getTenantId(), cursor.getTenantId())
+                    || !Objects.equals(source.getProjectId(), cursor.getProjectId())
+                    || !Objects.equals(source.getBatchCode(), cursor.getBatchCode())) {
+                throw new IllegalStateException("arrival acceptance predecessor lineage is invalid");
+            }
+            if (Objects.equals(cursor.getId(), evidenceSourceId)) return;
+            if (cursor.getPredecessorAcceptanceId() == null) {
+                throw new IllegalStateException("evidence source is not an arrival acceptance ancestor");
+            }
+            Long predecessorId = cursor.getPredecessorAcceptanceId();
+            cursor = acceptanceMapper.selectRow(new ArrivalRowQuery(source.getTenantId(), predecessorId));
+            if (cursor == null || !Objects.equals(predecessorId, cursor.getId())) {
+                throw new IllegalStateException("arrival acceptance predecessor lineage is broken");
+            }
+        }
+    }
+
     private ArrivalAcceptanceCommands.CommandResult raiseOnce(
             ArrivalAcceptanceCommands.RaiseDifferenceCommand command) {
         ArrivalAcceptanceDO root = lockOwnedDraft(command.tenantId(), command.arrivalAcceptanceId(),
