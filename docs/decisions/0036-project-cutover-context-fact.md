@@ -2,7 +2,7 @@
 
 ## 状态
 
-`ACCEPTED`
+`PROPOSED_FOR_INDEPENDENT_REVIEW`
 
 ## 日期
 
@@ -37,6 +37,6 @@
 
 ## 边界
 
-- 本ADR只批准公共合同、Owner方向和F-CUT-002消费映射，不批准Provider产品代码、CUT实现、Flyway或Technical Plan GO。
+- 本ADR只提出公共合同、Owner方向和F-CUT-002消费映射，不批准Provider产品代码、Flyway或Technical Plan GO。F-CUT-002实现阶段仅保留消费端口并在`src/test`使用受控模拟推进CUT正向闭环；PROJ生产Provider由PROJ物理Owner在独立交付单元实现。
 - 不扩展`ProjectScopeApi`，不修改现有DTO构造器，不让CUT访问`proj_project`、SYSTEM或CUS表。
 - 不把客户服务等级、项目范围或设备归属合并进该Fact。

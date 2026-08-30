@@ -10,15 +10,15 @@
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`
-> 外部硬依赖：`F-IMP-001`、`T-FIMP001-AST-01`、CUS `CustomerServiceLevelFactApi`生产Provider
-> 既有复用基线：`F-PROJ-003`已交付的`ProjectScopeApi`；本Task 1自行交付`ProjectCutoverContextFactApi`唯一PROJ Provider
+> 外部硬依赖：PROJ、IMP、AST、CUS、PLT生产Provider（仅阻断生产装配、真实浏览器和Implementation Done）
+> 既有复用基线：`F-PROJ-003`已交付的`ProjectScopeApi`；其余跨模块能力仅预留消费端口并在`src/test`受控模拟，不由CUT实现Owner Provider
 
 ## 当前最小工作单元
 
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- `ProjectCutoverContextFactApi`公共Owner合同已在`e68ad4e0`独立复审`PASS / GO`，关闭上一轮唯一前置阻断；当前返回同一Technical Plan复审，尚未授权Implementation。
+- `ProjectCutoverContextFactApi`公共Owner合同当前为`REVIEW_REQUIRED`；本轮只收敛Expected守卫与跨模块预留接口边界，合同GO后返回同一Technical Plan复审，尚未授权Implementation。
 
 ## 已完成
 
@@ -42,4 +42,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - 真实MySQL和浏览器正向验收必须使用IMP生产Provider和AST权威设备事实；替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`f04650b6`；Gate=ProjectCutoverContext合同整改复审；已通过=Feature Ready及IMP/CUS合同；阻塞=完整Fact重验与Owner长度A/B待GO；下一步=提交A/B规格整改并复审，GO前停止实现。
+> 检查点：基线=`5d334050`；Gate=ProjectCutoverContext合同单点整改复审；已通过=Feature Ready、IMP/CUS合同及Owner长度；边界=跨模块只预留端口并在src/test模拟正常闭环；下一步=提交规格整改并复审，计划GO后只恢复CUT实现。

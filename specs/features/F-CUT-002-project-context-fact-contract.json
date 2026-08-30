@@ -3,7 +3,7 @@
   "consumerFeatureId": "F-CUT-002",
   "supportingRequirement": "CUT-01@V1",
   "requirementCoverage": "NONE_SUPPORTING_CONTRACT_ONLY",
-  "status": "PASS",
+  "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
   "owner": "PROJ",
   "consumer": "CUT",
   "api": "ProjectCutoverContextFactApi",
@@ -65,6 +65,7 @@
     "validation": "same field constraints as fact; expectedFact.tenantId/projectId must equal the enclosing query identities",
     "authority": "concurrency guard only; never persisted as the locked current Owner fact"
   },
+  "expectedFactServerConstruction": "CUT adds trusted tenantId; requires wire projectId to equal the selected project; maps wire officeDepartmentId/officeCode/officeName exactly to departmentId/departmentCode/departmentName; copies every other field unchanged from the previous FOUND response; the client may only echo this complete previous snapshot as a concurrency guard and CUT persists only the locked FOUND currentFact",
   "resultUnion": {
     "FOUND": "currentFact is complete and decision is FOUND",
     "VERSION_CONFLICT": "lockAndRevalidate only; currentFact is the complete current fact",
@@ -95,10 +96,10 @@
   "forbidden": [
     "CUT reads proj_project or SYSTEM/CUS tables",
     "CUT combines ProjectScopeResult, ProjectOrganizationFact and CustomerSummaryDTO into an unversioned fact",
-    "client supplies customer or office identity",
+    "client-originated customer or office values are treated as authority or persisted without locked Owner revalidation",
     "projectVersion replaces ProjectScopeApi.treeVersion",
     "project customer snapshot is presented as current CUS master truth"
   ],
   "providerImplementation": "NOT_STARTED_BY_THIS_CONTRACT",
-  "implementationGate": "PUBLIC_MACHINE_CONTRACT_PASS_E68AD4E0"
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_REVIEW_REQUIRED"
 }

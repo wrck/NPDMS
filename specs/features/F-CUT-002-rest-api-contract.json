@@ -396,12 +396,12 @@
   "providerContracts": {
     "ProjectCutoverContextFactApi": {
       "owner": "PROJ",
-      "gate": "PASS_E68AD4E0",
+      "gate": "REVIEW_REQUIRED",
       "operations": ["inspect", "lockAndRevalidate"],
       "machineContract": "specs/features/F-CUT-002-project-context-fact-contract.json",
       "requiredInput": "trusted tenant + projectId; revalidation additionally carries the complete ExpectedProjectCutoverContextFact copied from the displayed FOUND fact",
       "requiredOutput": "FOUND|NOT_FOUND|INACTIVE|VERSION_CONFLICT + exact project/customer/department occurrence fact where required",
-      "consumerRule": "CUT maps department to the office display, independently revalidates ProjectScopeApi.treeVersion and uses customerId for CustomerServiceLevelFactApi; no table read, Summary composition or version substitution"
+      "consumerRule": "CUT adds trusted tenantId, requires the wire projectId to equal the selected project, and maps wire officeDepartmentId/officeCode/officeName exactly to the prior FOUND department fields only to construct the Expected concurrency guard; CUT persists only the locked currentFact, maps department to the office display, independently revalidates ProjectScopeApi.treeVersion and uses locked currentFact.customerId for CustomerServiceLevelFactApi; no table read, Summary composition or version substitution"
     },
     "ImplementationReadinessApi": {
       "owner": "IMP",
