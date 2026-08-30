@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-IMP-001",
+  "requirementSlice": "EXE-06@V1",
+  "status": "REVIEW_REQUIRED",
+  "owner": "IMP",
+  "consumer": "F-CUT-002",
+  "api": "ImplementationReadinessApi",
+  "operations": {
+    "inspect": {
+      "input": "ImplementationReadinessQuery",
+      "transaction": "READ_ONLY_NO_BUSINESS_WRITE_NO_SNAPSHOT_APPEND",
+      "purpose": "inspect the latest CUTOVER snapshot against current project/device/plan/source facts without acquiring business write locks"
+    },
+    "lockAndRevalidate": {
+      "input": "ImplementationReadinessRevalidationQuery",
+      "transaction": "PROPAGATION_REQUIRED; joins the CUT write transaction; locks and revalidates the selected immutable snapshot and current Owner facts",
+      "purpose": "guard CUT create or continuation with exact snapshot and device expectations"
+    }
+  },
+  "trustedTenant": "query.tenantId must equal TenantContextHolder.getRequiredTenantId before Owner access; no tenant switching",
+  "inputContract": {
+    "common": {
+      "tenantId": "POSITIVE_LONG",
+      "projectId": "POSITIVE_LONG",
+      "expectedDevices": "NON_EMPTY; sorted by deviceId; unique deviceId and trim+Locale.ROOT-uppercase serial comparison key",
+      "expectedDevice": "{deviceId POSITIVE_LONG, serialNumber normalized nonblank max128, projectAssignmentVersion NON_NEGATIVE_LONG}"
+    },
+    "revalidationOnly": {
+      "expectedSnapshotId": "POSITIVE_LONG",
+      "expectedSnapshotVersion": "NON_NEGATIVE_LONG"
+    },
+    "forbidden": "caller supplied project/source/approved-plan facts, opaque watermark, hash or partial device set"
+  },
+  "outputContract": {
+    "decision": ["READY", "NOT_READY", "STALE"],
+    "snapshot": "immutable CUTOVER snapshot fact including tenant/project/snapshot identity and version, frozen context, decision, sorted unmetCodes and evaluatedAt",
+    "context": {
+      "projectScopeVersion": "NON_NEGATIVE_LONG",
+      "devices": "non-empty stable device facts sorted by deviceId",
+      "approvedPlan": "{planId POSITIVE_LONG, planVersion NON_NEGATIVE_LONG}",
+      "sourceFacts": "exactly EXE_01, EXE_02, EXE_03, EXE_04 sorted by sourceCode"
+    },
+    "sourceFact": "{sourceCode, completionStatus ACCEPTED|COMPLETED|NOT_COMPLETED, factVersion NON_NEGATIVE_LONG, sourceObjectIds sorted unique, watermarkEntries sorted unique, reopened boolean}",
+    "watermarkEntry": "{axisCode stable UPPER_SNAKE max64, objectId POSITIVE_LONG, version NON_NEGATIVE_LONG}; no hash or opaque JSON",
+    "ready": "snapshot decision READY, frozen and current context equal, currentUnmetCodes empty",
+    "notReady": "snapshot decision NOT_READY, frozen and current context equal, currentUnmetCodes non-empty",
+    "stale": "snapshot remains immutable; staleReasonCodes non-empty; currentContext may be null only when no complete current scope can be returned without partial facts"
+  },
+  "stableFailures": [
+    "INVALID_REQUEST",
+    "DUPLICATE_DEVICE",
+    "TENANT_CONTEXT_MISMATCH",
+    "SNAPSHOT_NOT_FOUND",
+    "OWNER_DATA_CORRUPTED",
+    "PROVIDER_UNAVAILABLE"
+  ],
+  "consumerMapping": {
+    "READY": "CUT may continue its own guarded command",
+    "NOT_READY": "READINESS_NOT_READY/IMPLEMENTATION_NOT_READY/HTTP_422",
+    "STALE": "SCOPE_STALE/IMPLEMENTATION_READINESS_STALE/HTTP_409",
+    "SNAPSHOT_NOT_FOUND": "READINESS_NOT_READY/IMPLEMENTATION_NOT_READY/HTTP_422",
+    "PROVIDER_UNAVAILABLE": "OWNER_PROVIDER_UNAVAILABLE/IMP_PROVIDER_UNAVAILABLE/HTTP_503",
+    "OWNER_DATA_CORRUPTED": "internal failure; never masquerade as READY, NOT_READY or STALE"
+  },
+  "controlledSimulation": {
+    "allowed": "F-CUT-002 unit and integration test assembly may provide deterministic READY and NOT_READY doubles after this contract passes",
+    "forbidden": "no double in src/main or production Bean assembly; no simulated fact is Owner completion, real browser evidence or Implementation Done"
+  },
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_REVIEW_REQUIRED"
+}

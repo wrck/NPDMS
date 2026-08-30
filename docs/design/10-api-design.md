@@ -196,7 +196,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 到货、安装、质量和安全接口按聚合独立分页和状态；不得恢复为一个通用“现场执行单” CRUD。
 
-IMP对CUT公开`ImplementationReadinessApi.inspect/lockAndRevalidate`：输入明确快照ID/版本、项目、设备ID及归属版本、批准方案和来源事实版本；返回`READY/NOT_READY/STALE`、快照序号和未满足项。`lockAndRevalidate`在消费方命令事务中重读权威来源水位，不允许CUT直读IMP或EXE-01～04表。
+IMP对CUT公开`ImplementationReadinessApi.inspect/lockAndRevalidate`。`inspect`输入受信`tenantId/projectId`和完整非空设备归属水位；`lockAndRevalidate`另输入明确快照ID/版本并以`PROPAGATION_REQUIRED`加入CUT写事务。Provider从不可变快照自身取得冻结项目、设备、批准方案及EXE-01～04来源水位，调用方不得提交或改写这些Owner事实。结果封闭为`READY/NOT_READY/STALE`，同时返回快照身份/版本、冻结上下文、可完整返回时的当前上下文、未满足项和陈旧原因；水位使用稳定ID与版本条目，不使用哈希或不透明默认值。缺快照、Owner数据损坏和Provider不可用分别失败，不允许CUT直读IMP或EXE-01～04表。精确机器合同见`specs/features/F-IMP-001-readiness-api-contract.json`。
 
 EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`；统一返回租户/项目、权威范围、稳定来源对象ID、业务判定、业务版本、范围版本/水位和重开标识，并提供按期望版本的锁定重验。不返回Owner DO、文件或解析正文。
 

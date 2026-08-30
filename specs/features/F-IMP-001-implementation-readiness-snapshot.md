@@ -10,6 +10,7 @@
 > AST支撑Task：`T-FIMP001-AST-01`（物理Owner AST；不形成独立Feature Done）
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
+> 公共API机器合同：`specs/features/F-IMP-001-readiness-api-contract.json`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 
@@ -82,9 +83,11 @@
 
 跨模块契约`ImplementationReadinessApi`：
 
-- `inspect(ImplementationReadinessQuery)`：读取明确快照事实，不持锁；
-- `lockAndRevalidate(ImplementationReadinessRevalidationQuery)`：按期望快照、项目、设备、方案和来源版本锁定重验；
-- 返回`READY/NOT_READY/STALE`、`snapshotId/snapshotNo/version`、项目/设备/方案版本及`unmetCodes`；不返回Owner表实体或正文。
+- `inspect(ImplementationReadinessQuery)`：输入受信租户、项目和完整设备归属水位，读取最新CUTOVER快照并无副作用对照当前Owner事实；无快照不伪造`NOT_READY`事实，而以`SNAPSHOT_NOT_FOUND`失败；
+- `lockAndRevalidate(ImplementationReadinessRevalidationQuery)`：另输入期望快照ID/版本，以`PROPAGATION_REQUIRED`加入CUT写事务，从不可变快照取得冻结项目、设备、方案和来源水位并锁定重验；调用方不得提交部分来源向量；
+- 返回`READY/NOT_READY/STALE`、不可变快照、结构化冻结/当前上下文、未满足项和陈旧原因。`READY/NOT_READY`要求当前上下文与快照一致；`STALE`不覆盖旧快照，不返回部分Owner事实；
+- 来源水位固定为EXE-01～04四项稳定来源对象、业务版本和按轴/对象排序的数值版本条目，不使用哈希、不透明JSON或业务正文；
+- `INVALID_REQUEST/DUPLICATE_DEVICE/TENANT_CONTEXT_MISMATCH/SNAPSHOT_NOT_FOUND/OWNER_DATA_CORRUPTED/PROVIDER_UNAVAILABLE`为封闭公共失败，CUT只把`NOT_READY/STALE/SNAPSHOT_NOT_FOUND/PROVIDER_UNAVAILABLE`映射到已锁定业务错误，Owner损坏保持内部失败。
 
 事件`ImplementationReadinessSnapshotPublished`只在快照事务成功后发布，payload包含`snapshotId/version/projectId/decision/unmetCodes`。事件发布成功不改变CUT或项目阶段状态。
 
@@ -113,5 +116,7 @@
 当前结论：`NOT_READY / NO-GO`。
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。
+
+当前最近Gate为`ImplementationReadinessApi Public Machine Contract`；本候选只冻结公开Java接口/DTO/失败和机器JSON，不实现Provider，不改变F-IMP-001 Feature Ready结论。
 
 F-IMP-002已通过Feature Ready并冻结ArrivalAcceptanceFactApi；F-IMP-003～005仍须分别通过Feature Ready，旧`pms_eng_*`映射须按各Feature锁定。F-AST-001现有`ast_device`已核验具备稳定设备ID、当前项目和归属版本，`DeviceScopeFactApi`改由`T-FIMP001-AST-01`承接，机器契约仍须通过评审并由AST Owner实现。其余设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。

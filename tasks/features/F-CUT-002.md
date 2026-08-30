@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- `API/Physical Machine Contract Gate`已在`b7f49166`通过；当前最近单元为`ImplementationReadinessApi Public Machine Contract Gate`，只冻结IMP Owner公开消费接口，不实现Provider。
+- `API/Physical Machine Contract Gate`已在`b7f49166`通过；当前最近单元为`ImplementationReadinessApi Public Machine Contract Gate`候选复审，只冻结IMP Owner公开消费接口，不实现Provider。
 - 随后推动`CustomerServiceLevelFactApi`公共机器合同，不在CUT重复实现Owner。
 - 直接消费合同及F-CUT-002 Feature Ready通过后，使用受控正向模拟推进CUT自身P1→P2→P3/P4；生产依赖合入前不声明真实浏览器闭环或Implementation Done。
 
