@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidencePublishUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryClaimQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryStateUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -33,6 +34,8 @@ public interface DeliveryEvidenceMapper extends BaseMapperX<DeliveryEvidenceDO> 
 
     DeliveryEvidenceDO selectNextDueForRetry(
             @Param("query") DeliveryEvidenceRetryClaimQuery query);
+
+    int enterRetryStateIfMatch(@Param("query") DeliveryEvidenceRetryStateUpdate update);
 
     int advanceRetryIfMatch(@Param("query") DeliveryEvidenceRetryUpdate update);
 }

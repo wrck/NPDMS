@@ -9,11 +9,14 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryStateUpdate;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +30,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -58,38 +62,34 @@ class ArrivalEvidenceRetryServiceTest {
     }
 
     @Test
-    void firstAcceptedWaitTimeoutOnlyEntersRetryState() {
+    void publishedWaitQueuesRetryEventInTheSameCommand() {
         DeliveryEvidenceDO root = root("PUBLISHED_PENDING_ACC", 0);
-        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
-        when(evidenceMapper.advanceRetryIfMatch(any())).thenReturn(1);
+        prepareQueuedRetry(root);
 
         assertTrue(service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0)));
 
+        ArgumentCaptor<DeliveryEvidenceRetryStateUpdate> state =
+                ArgumentCaptor.forClass(DeliveryEvidenceRetryStateUpdate.class);
+        verify(evidenceMapper).enterRetryStateIfMatch(state.capture());
+        assertEquals("PUBLISHED_PENDING_ACC", state.getValue().expectedStatus());
+        assertEquals("ARCHIVE_PENDING_RETRY", state.getValue().targetStatus());
         ArgumentCaptor<DeliveryEvidenceRetryUpdate> update =
                 ArgumentCaptor.forClass(DeliveryEvidenceRetryUpdate.class);
         verify(evidenceMapper).advanceRetryIfMatch(update.capture());
-        assertEquals("ARCHIVE_PENDING_RETRY", update.getValue().targetStatus());
+        assertEquals("PUBLISHED_PENDING_ACC", update.getValue().targetStatus());
+        assertEquals("ARCHIVE_PENDING_RETRY", update.getValue().expectedStatus());
+        assertEquals(5, update.getValue().expectedVersion());
         assertEquals(0, update.getValue().expectedRetryCount());
         assertEquals(1, update.getValue().newRetryCount());
         assertEquals(LocalDateTime.of(2026, 8, 30, 2, 1), update.getValue().nextRetryAt());
-        assertNull(update.getValue().eventId());
-        verify(eventFactory, never()).nextEventId();
-        assertTrue(commandApi.successFacts.businessEvents().isEmpty());
+        assertEquals("retry-event-1", update.getValue().eventId());
+        assertEquals(1, commandApi.successFacts.businessEvents().size());
     }
 
     @Test
     void publishRetryQueuesFrozenRevisionWithOriginalCorrelation() {
         DeliveryEvidenceDO root = root("ARCHIVE_PENDING_RETRY", 1);
-        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
-        when(revisionMapper.selectRevision(any())).thenReturn(revision());
-        when(acceptanceMapper.selectRow(any())).thenReturn(acceptance());
-        when(eventFactory.nextEventId()).thenReturn("retry-event-1");
-        when(eventFactory.published(any())).thenAnswer(invocation -> {
-            ImplementationEvidencePublishedMessage message = invocation.getArgument(0);
-            return new PlatformCommandExecutionApi.BusinessEvent(
-                    message.eventId(), "ImplementationEvidencePublished", "payload");
-        });
-        when(evidenceMapper.advanceRetryIfMatch(any())).thenReturn(1);
+        prepareQueuedRetry(root);
 
         service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0));
 
@@ -106,10 +106,33 @@ class ArrivalEvidenceRetryServiceTest {
     }
 
     @Test
-    void archivedWaitUsesSeparateRetryStateBeforeQueueing() {
+    void archivedWaitQueuesRetryEventInTheSameCommand() {
         DeliveryEvidenceDO root = root("ACCEPTED_PENDING_ARCHIVE", 0);
-        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
-        when(evidenceMapper.advanceRetryIfMatch(any())).thenReturn(1);
+        prepareQueuedRetry(root);
+
+        service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0));
+
+        ArgumentCaptor<DeliveryEvidenceRetryStateUpdate> state =
+                ArgumentCaptor.forClass(DeliveryEvidenceRetryStateUpdate.class);
+        verify(evidenceMapper).enterRetryStateIfMatch(state.capture());
+        assertEquals("ACCEPTED_PENDING_ARCHIVE", state.getValue().expectedStatus());
+        assertEquals("ARCHIVE_ACK_PENDING_RETRY", state.getValue().targetStatus());
+        ArgumentCaptor<DeliveryEvidenceRetryUpdate> update =
+                ArgumentCaptor.forClass(DeliveryEvidenceRetryUpdate.class);
+        verify(evidenceMapper).advanceRetryIfMatch(update.capture());
+        assertEquals("ARCHIVE_ACK_PENDING_RETRY", update.getValue().targetStatus());
+        assertEquals("ARCHIVE_ACK_PENDING_RETRY", update.getValue().expectedStatus());
+        assertEquals(5, update.getValue().expectedVersion());
+        assertEquals("retry-event-1", update.getValue().eventId());
+        assertEquals(1, update.getValue().newRetryCount());
+        assertEquals(LocalDateTime.of(2026, 8, 30, 2, 1), update.getValue().nextRetryAt());
+        assertEquals(1, commandApi.successFacts.businessEvents().size());
+    }
+
+    @Test
+    void archiveRetryStateQueuesSelfLoopEventOnce() {
+        DeliveryEvidenceDO root = root("ARCHIVE_ACK_PENDING_RETRY", 2);
+        prepareQueuedRetry(root);
 
         service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0));
 
@@ -117,8 +140,71 @@ class ArrivalEvidenceRetryServiceTest {
                 ArgumentCaptor.forClass(DeliveryEvidenceRetryUpdate.class);
         verify(evidenceMapper).advanceRetryIfMatch(update.capture());
         assertEquals("ARCHIVE_ACK_PENDING_RETRY", update.getValue().targetStatus());
-        assertNull(update.getValue().eventId());
+        assertEquals(2, update.getValue().expectedRetryCount());
+        assertEquals(3, update.getValue().newRetryCount());
+        assertEquals(LocalDateTime.of(2026, 8, 30, 2, 4), update.getValue().nextRetryAt());
+        assertEquals("retry-event-1", update.getValue().eventId());
+        verify(evidenceMapper, never()).enterRetryStateIfMatch(any());
+    }
+
+    @Test
+    void casMissDoesNotCreateSuccessFactsOrOutbox() {
+        DeliveryEvidenceDO root = root("PUBLISHED_PENDING_ACC", 0);
+        prepareFrozenFacts(root);
+        when(evidenceMapper.enterRetryStateIfMatch(any())).thenReturn(1);
+        when(evidenceMapper.advanceRetryIfMatch(any())).thenReturn(0);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0)));
+
+        assertNull(commandApi.successFacts);
+        verify(eventFactory, never()).published(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"REVISION", "SOURCE_RECORD", "CONFIRMED", "EVIDENCE_ID",
+            "EVIDENCE_REVISION", "SCOPE_WATERMARK"})
+    void frozenIdentityMismatchFailsBeforeGeneratingEventId(String mismatch) {
+        DeliveryEvidenceDO root = root("PUBLISHED_PENDING_ACC", 0);
+        DeliveryEvidenceRevisionDO revision = revision();
+        ArrivalAcceptanceDO acceptance = acceptance();
+        switch (mismatch) {
+            case "REVISION" -> revision.setRevisionNo(2);
+            case "SOURCE_RECORD" -> revision.setSourceRecordId(901L);
+            case "CONFIRMED" -> acceptance.setStatus("ACCEPTED");
+            case "EVIDENCE_ID" -> acceptance.setEvidenceId(51L);
+            case "EVIDENCE_REVISION" -> acceptance.setEvidenceRevision(2);
+            case "SCOPE_WATERMARK" -> acceptance.setScopeWatermark(" ");
+            default -> throw new IllegalArgumentException(mismatch);
+        }
+        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
+        when(revisionMapper.selectRevision(any())).thenReturn(revision);
+        if (!"REVISION".equals(mismatch) && !"SOURCE_RECORD".equals(mismatch)) {
+            when(acceptanceMapper.selectRow(any())).thenReturn(acceptance);
+        }
+
+        assertThrows(IllegalStateException.class,
+                () -> service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0)));
+
+        verify(eventFactory, never()).nextEventId();
+        verify(evidenceMapper, never()).enterRetryStateIfMatch(any());
+        verify(evidenceMapper, never()).advanceRetryIfMatch(any());
+    }
+
+    @Test
+    void completedReplayDoesNotGenerateAnotherEventId() {
+        DeliveryEvidenceDO root = root("PUBLISHED_PENDING_ACC", 0);
+        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
+        commandApi.decision = PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED;
+        commandApi.replay = new ArrivalEvidenceRetryService.ArrivalEvidenceRetryResult(
+                50L, 1, "PUBLISHED_PENDING_ACC", 1, "old-event",
+                LocalDateTime.of(2026, 8, 30, 1, 0), null);
+
+        assertTrue(service.retryNext(LocalDateTime.of(2026, 8, 30, 2, 0)));
+
         verify(revisionMapper, never()).selectRevision(any());
+        verify(eventFactory, never()).nextEventId();
+        verify(evidenceMapper, never()).advanceRetryIfMatch(any());
     }
 
     @Test
@@ -140,6 +226,27 @@ class ArrivalEvidenceRetryServiceTest {
         assertEquals(32, ArrivalEvidenceRetryService.delayMinutes(5));
         assertEquals(60, ArrivalEvidenceRetryService.delayMinutes(6));
         assertEquals(60, ArrivalEvidenceRetryService.delayMinutes(20));
+    }
+
+    private void prepareQueuedRetry(DeliveryEvidenceDO root) {
+        prepareFrozenFacts(root);
+        if ("PUBLISHED_PENDING_ACC".equals(root.getAccSyncStatus())
+                || "ACCEPTED_PENDING_ARCHIVE".equals(root.getAccSyncStatus())) {
+            when(evidenceMapper.enterRetryStateIfMatch(any())).thenReturn(1);
+        }
+        when(evidenceMapper.advanceRetryIfMatch(any())).thenReturn(1);
+        when(eventFactory.published(any())).thenAnswer(invocation -> {
+            ImplementationEvidencePublishedMessage message = invocation.getArgument(0);
+            return new PlatformCommandExecutionApi.BusinessEvent(
+                    message.eventId(), "ImplementationEvidencePublished", "payload");
+        });
+    }
+
+    private void prepareFrozenFacts(DeliveryEvidenceDO root) {
+        when(evidenceMapper.selectNextDueForRetry(any())).thenReturn(root);
+        when(revisionMapper.selectRevision(any())).thenReturn(revision());
+        when(acceptanceMapper.selectRow(any())).thenReturn(acceptance());
+        when(eventFactory.nextEventId()).thenReturn("retry-event-1");
     }
 
     private static DeliveryEvidenceDO root(String status, int retryCount) {
@@ -189,6 +296,8 @@ class ArrivalEvidenceRetryServiceTest {
         private String digest;
         private SuccessFacts successFacts;
         private ArrivalEvidenceRetryService.ArrivalEvidenceRetryResult result;
+        private Decision decision = Decision.NEW;
+        private ArrivalEvidenceRetryService.ArrivalEvidenceRetryResult replay;
 
         @Override
         @SuppressWarnings("unchecked")
@@ -198,6 +307,9 @@ class ArrivalEvidenceRetryServiceTest {
             calls++;
             this.scope = scope;
             this.digest = requestDigest;
+            if (decision == Decision.REPLAY_COMPLETED) {
+                return new ExecutionResult<>(decision, (T) replay);
+            }
             T response = operation.get();
             this.result = (ArrivalEvidenceRetryService.ArrivalEvidenceRetryResult) response;
             this.successFacts = successFactsFactory.apply(response);

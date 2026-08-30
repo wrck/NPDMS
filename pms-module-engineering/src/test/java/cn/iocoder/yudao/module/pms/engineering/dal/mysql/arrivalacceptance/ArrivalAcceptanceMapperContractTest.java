@@ -7,15 +7,22 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
 import com.baomidou.mybatisplus.annotation.TableName;
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +38,7 @@ class ArrivalAcceptanceMapperContractTest {
 
     private static String mapperXml;
     private static String mapperJava;
+    private static Path deliveryEvidenceMapperPath;
 
     @BeforeAll
     static void loadMapperSources() throws IOException {
@@ -38,6 +46,8 @@ class ArrivalAcceptanceMapperContractTest {
         Path root = Files.exists(moduleDirectory.resolve("pms-module-engineering"))
                 ? moduleDirectory.resolve("pms-module-engineering") : moduleDirectory;
         mapperXml = readTree(root.resolve("src/main/resources/mapper/arrivalacceptance"));
+        deliveryEvidenceMapperPath = root.resolve(
+                "src/main/resources/mapper/arrivalacceptance/DeliveryEvidenceMapper.xml");
         mapperJava = readTree(root.resolve(
                 "src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance"));
     }
@@ -82,7 +92,11 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("id=\"registerFirstCallbackWatermarkIfMatch\""));
         assertTrue(mapperXml.contains("id=\"selectNextDueForRetry\""));
         assertTrue(mapperXml.contains("FOR UPDATE SKIP LOCKED"));
+        assertTrue(mapperXml.contains("id=\"enterRetryStateIfMatch\""));
         assertTrue(mapperXml.contains("id=\"advanceRetryIfMatch\""));
+        assertTrue(mapperXml.contains("acc_retry_count = #{query.newRetryCount}"));
+        assertTrue(mapperXml.contains("AND acc_retry_count = #{query.expectedRetryCount}"));
+        assertFalse(mapperXml.contains("#{query.retryCount}"));
         assertTrue(mapperXml.contains("acc_correlation_id = #{query.correlationId}"));
         assertTrue(mapperXml.contains("acc_correlation_id IS NULL"));
         assertTrue(mapperXml.contains(
@@ -98,6 +112,29 @@ class ArrivalAcceptanceMapperContractTest {
         assertFalse(mapperJava.contains("@Select"));
         assertFalse(mapperJava.contains(".last("));
         assertFalse(mapperJava.contains("Map<"));
+    }
+
+    @Test
+    void retryUpdateParametersResolveThroughRealMyBatisDynamicSql() throws IOException {
+        Configuration configuration = new Configuration();
+        try (InputStream input = Files.newInputStream(deliveryEvidenceMapperPath)) {
+            new XMLMapperBuilder(input, configuration, deliveryEvidenceMapperPath.toString(),
+                    configuration.getSqlFragments()).parse();
+        }
+        DeliveryEvidenceRetryUpdate query = new DeliveryEvidenceRetryUpdate(
+                1L, 50L, 1, 4, "ARCHIVE_PENDING_RETRY", "PUBLISHED_PENDING_ACC",
+                0, 1, LocalDateTime.of(2026, 8, 30, 10, 1), "evt-1",
+                LocalDateTime.of(2026, 8, 30, 10, 0));
+        Map<String, Object> parameters = Map.of("query", query);
+        BoundSql boundSql = configuration.getMappedStatement(
+                DeliveryEvidenceMapper.class.getName() + ".advanceRetryIfMatch")
+                .getBoundSql(parameters);
+
+        List<String> properties = boundSql.getParameterMappings().stream()
+                .map(mapping -> mapping.getProperty()).toList();
+        assertTrue(properties.contains("query.newRetryCount"));
+        assertTrue(properties.contains("query.expectedRetryCount"));
+        properties.forEach(property -> configuration.newMetaObject(parameters).getValue(property));
     }
 
     @Test

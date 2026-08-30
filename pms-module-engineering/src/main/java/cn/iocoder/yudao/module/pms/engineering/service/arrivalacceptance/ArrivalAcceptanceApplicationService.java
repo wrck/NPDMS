@@ -443,7 +443,9 @@ public final class ArrivalAcceptanceApplicationService {
                 || command.arrivalAcceptanceId() == null || command.arrivalAcceptanceId() <= 0
                 || command.actorUserId() == null || command.actorUserId() <= 0
                 || command.expectedVersion() == null || command.expectedVersion() < 0
-                || blank(command.idempotencyKey()) || blank(command.correlationId())) {
+                || blank(command.idempotencyKey()) || blank(command.correlationId())
+                || command.correlationId().length() > 128
+                || !command.correlationId().equals(command.correlationId().trim())) {
             throw new IllegalArgumentException("invalid arrival acceptance confirm command");
         }
     }

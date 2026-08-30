@@ -281,6 +281,23 @@ class ArrivalAcceptanceApplicationServiceTest {
         assertTrue(event.eventPayload().contains("\"evidenceId\":50"));
         assertTrue(event.eventPayload().contains("\"evidenceRevision\":1"));
         assertTrue(event.eventPayload().contains("\"artifactId\":40"));
+        assertTrue(event.eventPayload().contains("\"correlationId\":\"corr-1\""));
+        assertEquals("corr-1", fixture.commandExecutionApi().successFacts.correlationId());
+    }
+
+    @Test
+    void rejectsNonNormalizedOrOversizedCorrelationBeforeClaimingCommand() {
+        SubmissionFixture spaced = submissionFixture();
+        assertThrows(IllegalArgumentException.class, () -> spaced.service().confirm(
+                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+                        1L, 900L, 8L, 1, "confirm-key", " corr-1")));
+        assertEquals(null, spaced.commandExecutionApi().scope);
+
+        SubmissionFixture oversized = submissionFixture();
+        assertThrows(IllegalArgumentException.class, () -> oversized.service().confirm(
+                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+                        1L, 900L, 8L, 1, "confirm-key", "c".repeat(129))));
+        assertEquals(null, oversized.commandExecutionApi().scope);
     }
 
     @Test

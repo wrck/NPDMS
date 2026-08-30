@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Deliv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryClaimQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryStateUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -93,21 +94,31 @@ public class ArrivalEvidenceRetryService {
         LocalDateTime retriedAt = LocalDateTime.now(clock);
         int oldCount = root.getAccRetryCount();
         int newCount = Math.addExact(oldCount, 1);
-        String targetStatus = targetStatus(root.getAccSyncStatus());
-        boolean queuesEvent = PUBLISH_RETRY.equals(root.getAccSyncStatus())
-                || ARCHIVE_RETRY.equals(root.getAccSyncStatus());
-        ImplementationEvidencePublishedMessage message = queuesEvent
-                ? rebuildMessage(root, retriedAt) : null;
+        RetryTransition transition = transition(root.getAccSyncStatus());
+        ImplementationEvidencePublishedMessage message = rebuildMessage(root, retriedAt);
+        int queueExpectedVersion = root.getVersion();
+        String queueExpectedStatus = root.getAccSyncStatus();
+        if (!root.getAccSyncStatus().equals(transition.retryState())) {
+            int entered = evidenceMapper.enterRetryStateIfMatch(
+                    new DeliveryEvidenceRetryStateUpdate(root.getTenantId(), root.getId(),
+                            root.getCurrentRevisionNo(), root.getVersion(),
+                            root.getAccSyncStatus(), transition.retryState()));
+            if (entered != 1) {
+                throw new IllegalStateException("arrival evidence changed before entering retry state");
+            }
+            queueExpectedVersion = Math.addExact(root.getVersion(), 1);
+            queueExpectedStatus = transition.retryState();
+        }
         int updated = evidenceMapper.advanceRetryIfMatch(new DeliveryEvidenceRetryUpdate(
-                root.getTenantId(), root.getId(), root.getCurrentRevisionNo(), root.getVersion(),
-                root.getAccSyncStatus(), targetStatus, oldCount, newCount,
+                root.getTenantId(), root.getId(), root.getCurrentRevisionNo(), queueExpectedVersion,
+                queueExpectedStatus, transition.queuedState(), oldCount, newCount,
                 retriedAt.plusMinutes(delayMinutes(oldCount)),
-                message == null ? null : message.eventId(), message == null ? null : retriedAt));
+                message.eventId(), retriedAt));
         if (updated != 1) {
             throw new IllegalStateException("arrival evidence changed before retry");
         }
         return new ArrivalEvidenceRetryResult(root.getId(), root.getCurrentRevisionNo(),
-                targetStatus, newCount, message == null ? null : message.eventId(), retriedAt,
+                transition.queuedState(), newCount, message.eventId(), retriedAt,
                 message);
     }
 
@@ -146,8 +157,8 @@ public class ArrivalEvidenceRetryService {
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(
             DeliveryEvidenceDO root, ArrivalEvidenceRetryResult result) {
-        List<PlatformCommandExecutionApi.BusinessEvent> events = result.message() == null
-                ? List.of() : List.of(eventFactory.published(result.message()));
+        List<PlatformCommandExecutionApi.BusinessEvent> events =
+                List.of(eventFactory.published(result.message()));
         return new PlatformCommandExecutionApi.SuccessFacts(
                 "ARRIVAL_EVIDENCE_RETRY", "DeliveryEvidence", String.valueOf(root.getId()),
                 root.getAccCorrelationId(), JsonUtils.toJsonString(result), events);
@@ -164,14 +175,15 @@ public class ArrivalEvidenceRetryService {
                 || root.getSourceObjectId() == null) {
             throw new IllegalStateException("arrival evidence retry fact is incomplete");
         }
-        targetStatus(root.getAccSyncStatus());
+        transition(root.getAccSyncStatus());
     }
 
-    private static String targetStatus(String status) {
+    private static RetryTransition transition(String status) {
         return switch (status) {
-            case PUBLISHED -> PUBLISH_RETRY;
-            case PUBLISH_RETRY -> PUBLISHED;
-            case ACCEPTED, ARCHIVE_RETRY -> ARCHIVE_RETRY;
+            case PUBLISHED -> new RetryTransition(PUBLISH_RETRY, PUBLISHED);
+            case PUBLISH_RETRY -> new RetryTransition(PUBLISH_RETRY, PUBLISHED);
+            case ACCEPTED -> new RetryTransition(ARCHIVE_RETRY, ARCHIVE_RETRY);
+            case ARCHIVE_RETRY -> new RetryTransition(ARCHIVE_RETRY, ARCHIVE_RETRY);
             default -> throw new IllegalStateException("arrival evidence is not retryable");
         };
     }
@@ -202,5 +214,8 @@ public class ArrivalEvidenceRetryService {
             String eventId,
             LocalDateTime retriedAt,
             ImplementationEvidencePublishedMessage message) {
+    }
+
+    private record RetryTransition(String retryState, String queuedState) {
     }
 }
