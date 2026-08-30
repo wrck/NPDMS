@@ -103,10 +103,7 @@ public class ArrivalAcceptanceApplicationService {
                 result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_CREATE",
                         "ArrivalAcceptance", String.valueOf(result.getId()), command.correlationId(),
                         JsonUtils.toJsonString(result), List.of()));
-        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
-                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
-            throw new IllegalStateException("arrival acceptance creation is conflicting or in progress");
-        }
+        requireExecutionCompleted(execution.decision());
         return execution.response();
     }
 
@@ -120,7 +117,8 @@ public class ArrivalAcceptanceApplicationService {
         requireDeliveryScope(deliveryScope, command.projectId());
         if (command.expectedDeliveryScopeVersion() != null
                 && !command.expectedDeliveryScopeVersion().equals(deliveryScope.scopeVersion())) {
-            throw new IllegalStateException("assigned delivery scope version is stale");
+            throw ArrivalAcceptanceContractException.owner("SCOPE_STALE", "DELIVERY_SCOPE_STALE",
+                    "COM", "assigned delivery scope version is stale");
         }
         Set<String> serialNumbers = collectSerialNumbers(deliveryScope.lines());
         DeviceScopeFactPort.DeviceScopeFact deviceScope = deviceScopeFactPort.resolveBySerials(
@@ -165,10 +163,7 @@ public class ArrivalAcceptanceApplicationService {
                 result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_SUBMIT",
                         "ArrivalAcceptance", String.valueOf(result.arrivalAcceptanceId()), command.correlationId(),
                         JsonUtils.toJsonString(result), List.of()));
-        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
-                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
-            throw new IllegalStateException("arrival acceptance submission is conflicting or in progress");
-        }
+        requireExecutionCompleted(execution.decision());
         return execution.response();
     }
 
@@ -185,7 +180,8 @@ public class ArrivalAcceptanceApplicationService {
                 evaluation.evidence().root().getId(), evaluation.evidence().revision().getRevisionNo(),
                 command.actorUserId(), submittedAt));
         if (updated != 1) {
-            throw new IllegalStateException("arrival acceptance version changed before submit");
+            throw ArrivalAcceptanceContractException.aggregateVersion(root.getVersion(),
+                    "arrival acceptance version changed before submit");
         }
         return new SubmissionResult(root.getId(), submittedStatus, command.expectedVersion() + 1,
                 evaluation.evidence().root().getId(), evaluation.evidence().revision().getRevisionNo());
@@ -201,10 +197,7 @@ public class ArrivalAcceptanceApplicationService {
                 confirmationDigest(command), ConfirmationResult.class,
                 () -> confirmOnce(command),
                 result -> confirmationSuccessFacts(command, result));
-        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
-                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
-            throw new IllegalStateException("arrival acceptance confirmation is conflicting or in progress");
-        }
+        requireExecutionCompleted(execution.decision());
         return execution.response();
     }
 
@@ -217,14 +210,16 @@ public class ArrivalAcceptanceApplicationService {
         String recalculatedStatus = stateMachine.submit(evaluation.scope().hasOpenDifference(),
                 ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(evaluation.calculation().decision()));
         if (!root.getStatus().equals(recalculatedStatus)) {
-            throw new IllegalStateException("arrival acceptance candidate fact changed before confirm");
+            throw ArrivalAcceptanceContractException.owner("SCOPE_STALE", "PROJECT_FACT_STALE",
+                    "PROJ", "arrival acceptance candidate fact changed before confirm");
         }
         EvidenceRevision evidence = evaluation.evidence();
         if (!root.getEvidenceId().equals(evidence.root().getId())
                 || !root.getEvidenceRevision().equals(evidence.revision().getRevisionNo())
                 || !"NOT_PUBLISHED".equals(evidence.root().getAccSyncStatus())
                 || evidence.root().getVersion() == null) {
-            throw new IllegalStateException("arrival evidence is not publishable for this batch revision");
+            throw ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID", "EVIDENCE_REVISION_STALE",
+                    "arrival evidence is not publishable for this batch revision");
         }
         Long currentMax = acceptanceMapper.selectMaxAllocatedProjectFactVersion(
                 new ArrivalProjectFactVersionQuery(command.tenantId(), root.getProjectId()));
@@ -235,14 +230,16 @@ public class ArrivalAcceptanceApplicationService {
                 command.tenantId(), root.getId(), command.expectedVersion(), projectFactVersion,
                 command.actorUserId(), confirmedAt));
         if (updated != 1) {
-            throw new IllegalStateException("arrival acceptance version changed before confirm");
+            throw ArrivalAcceptanceContractException.aggregateVersion(root.getVersion(),
+                    "arrival acceptance version changed before confirm");
         }
         int evidenceUpdated = evidenceMapper.markPublishedPendingAccIfMatch(
                 new DeliveryEvidencePublishUpdate(command.tenantId(), evidence.root().getId(),
                         evidence.revision().getRevisionNo(), evidence.root().getVersion(), eventId,
                         command.correlationId(), command.actorUserId(), confirmedAt));
         if (evidenceUpdated != 1) {
-            throw new IllegalStateException("arrival evidence changed before publish");
+            throw ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID", "EVIDENCE_REVISION_STALE",
+                    "arrival evidence changed before publish");
         }
         return new ConfirmationResult(root.getId(), ArrivalAcceptanceStateMachine.CONFIRMED,
                 command.expectedVersion() + 1, projectFactVersion,
@@ -282,7 +279,8 @@ public class ArrivalAcceptanceApplicationService {
                 root.getProjectId(), root.getDeliveryScopeVersion());
         requireDeliveryScope(delivery, root.getProjectId());
         if (!orderedLines(delivery.lines()).equals(expected.deliveryLines())) {
-            throw new IllegalStateException("assigned delivery scope payload changed without version change");
+            throw ArrivalAcceptanceContractException.owner("SCOPE_STALE", "DELIVERY_SCOPE_STALE",
+                    "COM", "assigned delivery scope payload changed without version change");
         }
         List<DeviceScopeFactPort.ExpectedDeviceFact> expectedDevices = expected.devices().stream()
                 .map(device -> new DeviceScopeFactPort.ExpectedDeviceFact(
@@ -292,7 +290,8 @@ public class ArrivalAcceptanceApplicationService {
                 root.getTenantId(), root.getProjectId(), expectedDevices);
         requireDeviceScope(devices, root.getProjectId(), collectSerialNumbers(delivery.lines()));
         if (!orderedDevices(devices.devices()).equals(expected.devices())) {
-            throw new IllegalStateException("device assignment fact changed without version change");
+            throw ArrivalAcceptanceContractException.owner("SCOPE_STALE", "DEVICE_ASSIGNMENT_STALE",
+                    "AST", "device assignment fact changed without version change");
         }
         EvidenceRevision evidence = lockEvidence(root);
         List<ArrivalLineDO> lines = lineMapper.selectCurrentListForUpdate(
@@ -333,13 +332,15 @@ public class ArrivalAcceptanceApplicationService {
                 root.getTenantId(), "EXE-01", "ARRIVAL_ACCEPTANCE", root.getId()));
         if (evidence == null || !root.getProjectId().equals(evidence.getProjectId())
                 || evidence.getCurrentRevisionNo() == null || evidence.getCurrentRevisionNo() <= 0) {
-            throw new IllegalStateException("current arrival evidence is unavailable");
+            throw ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID", "EVIDENCE_MISSING",
+                    "current arrival evidence is unavailable");
         }
         DeliveryEvidenceRevisionDO revision = evidenceRevisionMapper.selectRevision(
                 new DeliveryEvidenceRevisionQuery(root.getTenantId(), evidence.getId(),
                         evidence.getCurrentRevisionNo()));
         if (revision == null || !root.getId().equals(revision.getSourceRecordId())) {
-            throw new IllegalStateException("arrival evidence revision is unavailable or mismatched");
+            throw ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID", "EVIDENCE_REVISION_STALE",
+                    "arrival evidence revision is unavailable or mismatched");
         }
         FileFactVersion fileFactVersion = JsonUtils.parseObject(
                 revision.getFileFactVersion(), FileFactVersion.class);
@@ -353,7 +354,8 @@ public class ArrivalAcceptanceApplicationService {
                 || !fileFactVersion.equals(current.fileFactVersion())
                 || !revision.getFileScopeVersion().equals(current.scopeVersion())
                 || !revision.getFileHash().equals(current.sha256())) {
-            throw new IllegalStateException("arrival evidence fact is stale or mismatched");
+            throw ArrivalAcceptanceContractException.owner("EVIDENCE_INVALID", "EVIDENCE_SCOPE_INVALID",
+                    "PLT", "arrival evidence fact is stale or mismatched");
         }
         return new EvidenceRevision(evidence, revision);
     }
@@ -472,6 +474,17 @@ public class ArrivalAcceptanceApplicationService {
                 || command.expectedVersion() == null || command.expectedVersion() < 0
                 || blank(command.idempotencyKey()) || invalidCorrelation(command.correlationId())) {
             throw new IllegalArgumentException("invalid arrival acceptance submit command");
+        }
+    }
+
+    private static void requireExecutionCompleted(PlatformCommandExecutionApi.Decision decision) {
+        if (decision == PlatformCommandExecutionApi.Decision.CONFLICT) {
+            throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_CONFLICT",
+                    "IDEMPOTENCY_PAYLOAD_CONFLICT", "idempotency key is bound to another request");
+        }
+        if (decision == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
+            throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_IN_PROGRESS",
+                    "IDEMPOTENCY_COMMAND_IN_PROGRESS", "idempotent command is in progress");
         }
     }
 

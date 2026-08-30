@@ -226,7 +226,7 @@
       "scopeVersion": "NON_NEGATIVE_LONG",
       "fileFactVersion": {
         "exactKeys": ["artifactVersion", "referenceVersion", "availabilityVersion"],
-        "each": "NON_NEGATIVE_LONG"
+        "each": "NON_NEGATIVE_INTEGER"
       },
       "hash": "NORMALIZED_NON_BLANK_STRING_MAX_128",
       "fixedServerPolicy": {

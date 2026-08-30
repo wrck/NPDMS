@@ -347,11 +347,9 @@ public class ArrivalAcceptanceCommandService {
         ArrivalDifferenceDO current = differences.stream()
                 .filter(value -> value.getId().equals(resolution.differenceId()))
                 .findFirst().orElseThrow(DifferenceVersionConflictException::new);
-        if (!Objects.equals(current.getRevisionNo(), resolution.expectedDifferenceRevision())
-                || !Objects.equals(current.getVersion(), resolution.expectedDifferenceVersion())
-                || !"OPEN".equals(current.getResolutionStatus())) {
-            throw new DifferenceVersionConflictException();
-        }
+        requireExpectedDifference(current, resolution.expectedDifferenceRevision(),
+                resolution.expectedDifferenceVersion());
+        if (!"OPEN".equals(current.getResolutionStatus())) throw new StateConflictException();
         ArrivalLineDO line = findCurrentLine(current, lines);
         EvidenceRef evidence = appendEvidence(root, resolution.evidenceRevision(),
                 command.expectedVersion() + 1L, command.actorUserId());
@@ -490,10 +488,8 @@ public class ArrivalAcceptanceCommandService {
         ArrivalDifferenceDO current = differences.stream()
                 .filter(value -> value.getId().equals(resolution.differenceId()))
                 .findFirst().orElseThrow(DifferenceVersionConflictException::new);
-        if (!Objects.equals(current.getRevisionNo(), resolution.expectedDifferenceRevision())
-                || !Objects.equals(current.getVersion(), resolution.expectedDifferenceVersion())) {
-            throw new DifferenceVersionConflictException();
-        }
+        requireExpectedDifference(current, resolution.expectedDifferenceRevision(),
+                resolution.expectedDifferenceVersion());
         if (!"REJECTED".equals(current.getResolutionStatus())
                 || resolution instanceof ArrivalAcceptanceCommands.KeepRejected) {
             throw new StateConflictException();
@@ -867,6 +863,18 @@ public class ArrivalAcceptanceCommandService {
         }
     }
 
+    private static void requireExpectedDifference(ArrivalDifferenceDO current,
+                                                  Integer expectedRevision, Integer expectedVersion) {
+        if (!Objects.equals(current.getRevisionNo(), expectedRevision)) {
+            throw new DifferenceVersionConflictException("DIFFERENCE_REVISION_STALE",
+                    current.getRevisionNo(), current.getVersion());
+        }
+        if (!Objects.equals(current.getVersion(), expectedVersion)) {
+            throw new DifferenceVersionConflictException("DIFFERENCE_VERSION_STALE",
+                    current.getRevisionNo(), current.getVersion());
+        }
+    }
+
     private static ArrivalDifferenceDO difference(ArrivalAcceptanceDO root, Long lineId, int differenceNo,
                                                    int revisionNo, String type, String status, String reason,
                                                    String risk, String scope, EvidenceRef evidence, Long actor) {
@@ -1040,6 +1048,24 @@ public class ArrivalAcceptanceCommandService {
     public static final class LineVersionConflictException extends VersionConflictException {
     }
     public static final class DifferenceVersionConflictException extends VersionConflictException {
+        private final String reasonCode;
+        private final Integer currentRevision;
+        private final Integer currentVersion;
+
+        public DifferenceVersionConflictException() {
+            this("DIFFERENCE_VERSION_STALE", null, null);
+        }
+
+        public DifferenceVersionConflictException(String reasonCode, Integer currentRevision,
+                                                  Integer currentVersion) {
+            this.reasonCode = reasonCode;
+            this.currentRevision = currentRevision;
+            this.currentVersion = currentVersion;
+        }
+
+        public String reasonCode() { return reasonCode; }
+        public Integer currentRevision() { return currentRevision; }
+        public Integer currentVersion() { return currentVersion; }
     }
     public static final class IdempotencyConflictException extends RuntimeException {
     }

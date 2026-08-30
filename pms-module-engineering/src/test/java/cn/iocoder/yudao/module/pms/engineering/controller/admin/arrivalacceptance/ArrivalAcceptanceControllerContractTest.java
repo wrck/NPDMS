@@ -7,11 +7,14 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrivalacceptanc
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceViews;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -88,9 +92,11 @@ class ArrivalAcceptanceControllerContractTest {
         when(query.detail(any())).thenReturn(detailView(101L));
 
         var controller = new ArrivalAcceptanceController(application, command, query, context);
-        var result = controller.create("idem-create", new ArrivalAcceptanceReqVO.Create(
-                20L, "ARR-001", "LOG-001", LocalDateTime.of(2026, 8, 30, 10, 0),
-                "张三", 7L));
+        var result = controller.create("idem-create", JsonUtils.parseObject("""
+                {"projectId":20,"batchCode":"ARR-001","logisticsNo":"LOG-001",
+                 "arrivedAt":"2026-08-30T10:00:00","signerName":"张三",
+                 "expectedDeliveryScopeVersion":7}
+                """, JsonNode.class));
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.getData()).extracting(ArrivalAcceptanceRespVO.Command::id,
@@ -128,6 +134,65 @@ class ArrivalAcceptanceControllerContractTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.list[0].batchCode").value("ARR-001"));
+    }
+
+    @Test
+    void realHttpBoundaryMapsValidationPermissionAndMachineFailures() throws Exception {
+        ArrivalAcceptanceApplicationService application = mock(ArrivalAcceptanceApplicationService.class);
+        ArrivalAcceptanceCommandService command = mock(ArrivalAcceptanceCommandService.class);
+        ArrivalAcceptanceQueryService query = mock(ArrivalAcceptanceQueryService.class);
+        ArrivalAcceptanceRequestContext context = mock(ArrivalAcceptanceRequestContext.class);
+        when(context.current()).thenReturn(new ArrivalAcceptanceRequestContext.TrustedContext(
+                9L, 88L, "corr-http", access()));
+        when(application.createDraft(any())).thenThrow(
+                ArrivalAcceptanceContractException.simple("IDEMPOTENCY_CONFLICT",
+                        "IDEMPOTENCY_PAYLOAD_CONFLICT", "conflict"),
+                ArrivalAcceptanceContractException.simple("EVIDENCE_INVALID",
+                        "EVIDENCE_MISSING", "evidence missing"),
+                ArrivalAcceptanceContractException.owner("OWNER_PROVIDER_UNAVAILABLE",
+                        "COM_PROVIDER_UNAVAILABLE", "COM", "commerce unavailable"));
+        when(query.detail(any())).thenThrow(new ArrivalAcceptanceQueryService.NotVisibleException());
+        var mvc = MockMvcBuilders.standaloneSetup(
+                new TestArrivalAcceptanceController(application, command, query, context)).build();
+        String create = """
+                {"projectId":20,"batchCode":"ARR-001","logisticsNo":"LOG-001",
+                 "arrivedAt":"2026-08-30T10:00:00","signerName":"张三",
+                 "expectedDeliveryScopeVersion":7}
+                """;
+
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").contentType(MediaType.APPLICATION_JSON)
+                        .content(create)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").header("Idempotency-Key", "idem")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(create.replace(",\"signerName\":\"张三\"", "")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").header("Idempotency-Key", "idem")
+                        .contentType(MediaType.APPLICATION_JSON).content("{"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.data").doesNotExist());
+
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").header("Idempotency-Key", "idem-1")
+                        .contentType(MediaType.APPLICATION_JSON).content(create))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.category").value("IDEMPOTENCY_CONFLICT"))
+                .andExpect(jsonPath("$.data.reasonCode").value("IDEMPOTENCY_PAYLOAD_CONFLICT"));
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").header("Idempotency-Key", "idem-2")
+                        .contentType(MediaType.APPLICATION_JSON).content(create))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.data.category").value("EVIDENCE_INVALID"));
+        mvc.perform(post("/api/v1/pms/arrival-acceptances").header("Idempotency-Key", "idem-3")
+                        .contentType(MediaType.APPLICATION_JSON).content(create))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.data.ownerContext").value("COM"));
+        mvc.perform(get("/api/v1/pms/arrival-acceptances/101"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value(1011004011));
+
+        ArrivalAcceptanceRequestContext denied = mock(ArrivalAcceptanceRequestContext.class);
+        when(denied.current()).thenThrow(new AccessDeniedException("denied"));
+        var deniedMvc = MockMvcBuilders.standaloneSetup(
+                new TestArrivalAcceptanceController(application, command, query, denied)).build();
+        deniedMvc.perform(get("/api/v1/pms/arrival-acceptances"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value(403));
     }
 
     @Test
@@ -195,6 +260,16 @@ class ArrivalAcceptanceControllerContractTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> lenientMapper.readValue(
                         nestedJson, ArrivalAcceptanceReqVO.FileRevision.class))
                 .isInstanceOf(RuntimeException.class);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> ArrivalAcceptanceRequestCodec.raise(
+                        lenientMapper.readTree("""
+                                {"arrivalLineId":31,"expectedLineVersion":2,"differenceTypeCode":"SHORTAGE",
+                                 "scopeSnapshot":{"scopeType":"DEVICE"},"reason":"缺件","riskDescription":"延期",
+                                 "evidenceRevision":{"artifactId":5,"referenceKey":"ref-5","versionNo":1,
+                                  "scopeVersion":3,"fileFactVersion":{"artifactVersion":1,"referenceVersion":2,
+                                  "availabilityVersion":3},"hash":"hash-5"}}
+                                """)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     /** Task 12 前仅在测试中激活候选 Controller，避免提前进入生产组件扫描。 */

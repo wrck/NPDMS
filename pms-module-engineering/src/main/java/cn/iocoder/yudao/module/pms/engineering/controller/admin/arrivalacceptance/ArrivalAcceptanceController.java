@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrivalacceptanc
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalDifferenceScopeCodec;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceCommands;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceViews;
@@ -16,6 +17,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Objects;
@@ -46,12 +52,15 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class ArrivalAcceptanceController {
 
     private static final int ARRIVAL_NOT_VISIBLE = 1_011_004_011;
+    private static final int ARRIVAL_DATA_SCOPE_FORBIDDEN = 1_011_004_012;
     private static final int ARRIVAL_STATE_CONFLICT = 1_011_004_013;
     private static final int ARRIVAL_VERSION_CONFLICT = 1_011_004_014;
     private static final int DIFFERENCE_VERSION_CONFLICT = 1_011_004_015;
     private static final int IDEMPOTENCY_CONFLICT = 1_011_004_016;
     private static final int IDEMPOTENCY_IN_PROGRESS = 1_011_004_017;
+    private static final int OWNER_UNAVAILABLE = 1_011_004_018;
     private static final int SCOPE_STALE = 1_011_004_019;
+    private static final int EVIDENCE_INVALID = 1_011_004_020;
     private static final int BUSINESS_GATE_INVALID = 1_011_004_021;
 
     private final ArrivalAcceptanceApplicationService applicationService;
@@ -93,7 +102,8 @@ public class ArrivalAcceptanceController {
     @PreAuthorize("@ss.hasPermission('pms:arrival-acceptance:create')")
     public CommonResult<ArrivalAcceptanceRespVO.Command> create(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody ArrivalAcceptanceReqVO.Create request) {
+            @RequestBody JsonNode body) {
+        ArrivalAcceptanceReqVO.Create request = ArrivalAcceptanceRequestCodec.create(body);
         requireCreate(request);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
         var trusted = requestContext.current();
@@ -119,7 +129,8 @@ public class ArrivalAcceptanceController {
     public CommonResult<ArrivalAcceptanceRespVO.Command> patch(
             @PathVariable("id") Long id,
             @RequestHeader("If-Match") String ifMatch,
-            @RequestBody ArrivalAcceptanceReqVO.Patch request) {
+            @RequestBody JsonNode body) {
+        ArrivalAcceptanceReqVO.Patch request = ArrivalAcceptanceRequestCodec.patch(body);
         requireId(id);
         requirePatch(request);
         int expectedVersion = parseIfMatch(ifMatch);
@@ -139,7 +150,9 @@ public class ArrivalAcceptanceController {
     public CommonResult<ArrivalAcceptanceRespVO.Command> submit(
             @PathVariable("id") Long id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestHeader("If-Match") String ifMatch) {
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestBody(required = false) JsonNode body) {
+        ArrivalAcceptanceRequestCodec.empty(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
         int expectedVersion = parseIfMatch(ifMatch);
@@ -156,7 +169,9 @@ public class ArrivalAcceptanceController {
     public CommonResult<ArrivalAcceptanceRespVO.Command> confirm(
             @PathVariable("id") Long id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestHeader("If-Match") String ifMatch) {
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestBody(required = false) JsonNode body) {
+        ArrivalAcceptanceRequestCodec.empty(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
         int expectedVersion = parseIfMatch(ifMatch);
@@ -174,7 +189,8 @@ public class ArrivalAcceptanceController {
             @PathVariable("id") Long id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader("If-Match") String ifMatch,
-            @RequestBody ArrivalAcceptanceReqVO.RaiseDifference request) {
+            @RequestBody JsonNode body) {
+        ArrivalAcceptanceReqVO.RaiseDifference request = ArrivalAcceptanceRequestCodec.raise(body);
         requireId(id);
         requireRaise(request);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
@@ -195,7 +211,8 @@ public class ArrivalAcceptanceController {
             @PathVariable("id") Long id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader("If-Match") String ifMatch,
-            @RequestBody ArrivalAcceptanceReqVO.Resolution request) {
+            @RequestBody JsonNode body) {
+        ArrivalAcceptanceReqVO.Resolution request = ArrivalAcceptanceRequestCodec.resolution(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
         int expectedVersion = parseIfMatch(ifMatch);
@@ -207,12 +224,6 @@ public class ArrivalAcceptanceController {
         return success(differenceCommand(result, detail(trusted, projectedId)));
     }
 
-    @ExceptionHandler(ArrivalAcceptanceHttpException.class)
-    public ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> handleArrivalHttp(
-            ArrivalAcceptanceHttpException exception) {
-        return error(exception.status(), exception.code(), exception.getMessage(), exception.data());
-    }
-
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> handleRuntime(
             RuntimeException exception) {
@@ -220,8 +231,10 @@ public class ArrivalAcceptanceController {
             return error(404, ARRIVAL_NOT_VISIBLE, "到货签收不可见或不存在", null);
         }
         if (exception instanceof ArrivalAcceptanceCommandService.DifferenceVersionConflictException) {
+            var conflict = (ArrivalAcceptanceCommandService.DifferenceVersionConflictException) exception;
             return recoverable(409, DIFFERENCE_VERSION_CONFLICT, "到货差异版本已变化",
-                    "DIFFERENCE_VERSION_CONFLICT", "DIFFERENCE_VERSION_STALE", "REFRESH_AGGREGATE");
+                    "DIFFERENCE_VERSION_CONFLICT", conflict.reasonCode(), "REFRESH_AGGREGATE",
+                    null, null, conflict.currentRevision(), conflict.currentVersion(), null);
         }
         if (exception instanceof ArrivalAcceptanceCommandService.LineVersionConflictException) {
             return recoverable(409, ARRIVAL_VERSION_CONFLICT, "到货签收明细版本已变化",
@@ -244,17 +257,31 @@ public class ArrivalAcceptanceController {
                     "IDEMPOTENCY_IN_PROGRESS", "IDEMPOTENCY_COMMAND_IN_PROGRESS", "RETRY_SAME_KEY");
         }
         if (exception instanceof OwnerFactVersionMismatchException) {
+            var mismatch = (OwnerFactVersionMismatchException) exception;
+            if (mismatch.ownerContext() == null || mismatch.reasonCode() == null) throw exception;
             return recoverable(409, SCOPE_STALE, "到货签收范围事实已变化",
-                    "SCOPE_STALE", "PROJECT_FACT_STALE", "REFRESH_OWNER_FACTS");
+                    "SCOPE_STALE", mismatch.reasonCode(), "REFRESH_OWNER_FACTS",
+                    null, null, null, null, mismatch.ownerContext());
+        }
+        if (exception instanceof ArrivalAcceptanceContractException) {
+            return contractError((ArrivalAcceptanceContractException) exception);
         }
         if (exception instanceof IllegalArgumentException) {
             return error(400, 400, "请求参数无效", null);
         }
-        if (exception instanceof IllegalStateException) {
-            return recoverable(422, BUSINESS_GATE_INVALID, "到货签收业务门禁未满足",
-                    "BUSINESS_GATE_INVALID", "PROJECT_SUBJECT_NOT_ELIGIBLE", "CORRECT_PROJECT_GATE");
-        }
         throw exception;
+    }
+
+    @ExceptionHandler({MissingRequestHeaderException.class, MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class})
+    public ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> handleBinding(Exception exception) {
+        return error(400, 400, "请求参数无效", null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> handleForbidden(
+            AccessDeniedException exception) {
+        return error(403, 403, "无功能权限", null);
     }
 
     private ArrivalAcceptanceViews.ArrivalDetail detail(
@@ -526,8 +553,45 @@ public class ArrivalAcceptanceController {
 
     private static ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> recoverable(
             int status, int code, String message, String category, String reason, String recovery) {
+        return recoverable(status, code, message, category, reason, recovery,
+                null, null, null, null, null);
+    }
+
+    private static ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> recoverable(
+            int status, int code, String message, String category, String reason, String recovery,
+            Integer aggregateVersion, Integer lineVersion, Integer differenceRevision,
+            Integer differenceVersion, String ownerContext) {
         return error(status, code, message, new ArrivalAcceptanceRespVO.ErrorData(
-                category, reason, recovery, null, null, null, null, null));
+                category, reason, recovery, aggregateVersion, lineVersion,
+                differenceRevision, differenceVersion, ownerContext));
+    }
+
+    private static ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> contractError(
+            ArrivalAcceptanceContractException exception) {
+        return switch (exception.category()) {
+            case "DATA_SCOPE_FORBIDDEN" -> error(403, ARRIVAL_DATA_SCOPE_FORBIDDEN,
+                    exception.getMessage(), null);
+            case "IDEMPOTENCY_CONFLICT" -> recoverable(409, IDEMPOTENCY_CONFLICT,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "START_NEW_INTENT");
+            case "IDEMPOTENCY_IN_PROGRESS" -> recoverable(409, IDEMPOTENCY_IN_PROGRESS,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "RETRY_SAME_KEY");
+            case "SCOPE_STALE" -> recoverable(409, SCOPE_STALE,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "REFRESH_OWNER_FACTS",
+                    exception.currentAggregateVersion(), exception.currentLineVersion(),
+                    exception.currentDifferenceRevision(), exception.currentDifferenceVersion(),
+                    exception.ownerContext());
+            case "EVIDENCE_INVALID" -> recoverable(422, EVIDENCE_INVALID,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "REPLACE_EVIDENCE",
+                    exception.currentAggregateVersion(), exception.currentLineVersion(),
+                    exception.currentDifferenceRevision(), exception.currentDifferenceVersion(),
+                    exception.ownerContext());
+            case "BUSINESS_GATE_INVALID" -> recoverable(422, BUSINESS_GATE_INVALID,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "CORRECT_PROJECT_GATE");
+            case "OWNER_PROVIDER_UNAVAILABLE" -> recoverable(503, OWNER_UNAVAILABLE,
+                    exception.getMessage(), exception.category(), exception.reasonCode(), "RETRY_LATER",
+                    null, null, null, null, exception.ownerContext());
+            default -> throw exception;
+        };
     }
 
     private static ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> error(

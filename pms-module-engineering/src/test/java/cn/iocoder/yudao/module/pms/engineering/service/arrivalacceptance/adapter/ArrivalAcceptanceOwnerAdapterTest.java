@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.adapter;
 
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
@@ -99,9 +100,12 @@ class ArrivalAcceptanceOwnerAdapterTest {
         when(participantApi.lockAndRevalidate(any())).thenReturn(participant("S3", 5, 6L));
         ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(participantApi, scopeApi);
 
-        assertThrows(IllegalStateException.class, () -> adapter.lockAndRevalidate(
+        ArrivalAcceptanceContractException stale = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
                         1L, 100L, null, 8L, 5, 5L, 9L, false)));
+        assertEquals("BUSINESS_GATE_INVALID", stale.category());
+        assertEquals("PROJECT_STAGE_NOT_S4", stale.reasonCode());
 
         verify(scopeApi, never()).lockAndRevalidate(any());
     }
@@ -114,7 +118,24 @@ class ArrivalAcceptanceOwnerAdapterTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(scope(9L, Set.of(200L)));
         ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(participantApi, scopeApi);
 
-        assertThrows(IllegalStateException.class, () -> adapter.inspect(1L, 100L, 7L));
+        ArrivalAcceptanceContractException forbidden = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> adapter.inspect(1L, 100L, 7L));
+        assertEquals("DATA_SCOPE_FORBIDDEN", forbidden.category());
+        assertEquals("PROJECT_DATA_SCOPE_DENIED", forbidden.reasonCode());
+    }
+
+    @Test
+    void projectProviderFailureKeepsOwnerUnavailableIdentity() {
+        ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
+        ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
+        when(participantApi.inspect(any())).thenThrow(new IllegalStateException("provider down"));
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(participantApi, scopeApi);
+
+        ArrivalAcceptanceContractException unavailable = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> adapter.inspect(1L, 100L, 7L));
+        assertEquals("OWNER_PROVIDER_UNAVAILABLE", unavailable.category());
+        assertEquals("PROJ_PROVIDER_UNAVAILABLE", unavailable.reasonCode());
+        assertEquals("PROJ", unavailable.ownerContext());
     }
 
     @Test

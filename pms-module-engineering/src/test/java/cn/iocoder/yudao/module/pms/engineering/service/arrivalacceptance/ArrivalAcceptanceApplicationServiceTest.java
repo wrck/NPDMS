@@ -120,10 +120,14 @@ class ArrivalAcceptanceApplicationServiceTest {
                 projectPort, deliveryPort, devicePort, mock(FileArtifactFactPort.class),
                 new RecordingCommandExecutionApi());
 
-        assertThrows(IllegalStateException.class, () -> service.createDraft(
+        ArrivalAcceptanceContractException stale = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> service.createDraft(
                 new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                         1L, 100L, 8L, "B-1", "L-1", LocalDateTime.now(), "Signer", 7L,
                         "create-key", "corr-create")));
+        assertEquals("SCOPE_STALE", stale.category());
+        assertEquals("DELIVERY_SCOPE_STALE", stale.reasonCode());
+        assertEquals("COM", stale.ownerContext());
 
         verify(devicePort, never()).resolveBySerials(any(), any(), any());
         verify(mapper, never()).insert(any(ArrivalAcceptanceDO.class));
@@ -232,11 +236,33 @@ class ArrivalAcceptanceApplicationServiceTest {
         SubmissionFixture fixture = submissionFixture();
         when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(7L));
 
-        assertThrows(IllegalStateException.class, () -> fixture.service().submit(
-                submitCommand()));
+        ArrivalAcceptanceContractException invalid = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> fixture.service().submit(submitCommand()));
+        assertEquals("EVIDENCE_INVALID", invalid.category());
+        assertEquals("EVIDENCE_SCOPE_INVALID", invalid.reasonCode());
+        assertEquals("PLT", invalid.ownerContext());
 
         verify(fixture.acceptanceMapper(), never()).updateSubmittedIfMatch(any());
         verify(fixture.lineMapper(), never()).selectCurrentListForUpdate(any());
+    }
+
+    @Test
+    void distinguishesIdempotencyConflictFromInProgressBeforeBusinessOperation() {
+        SubmissionFixture conflictFixture = submissionFixture();
+        conflictFixture.commandExecutionApi().decision = PlatformCommandExecutionApi.Decision.CONFLICT;
+        ArrivalAcceptanceContractException conflict = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> conflictFixture.service().submit(submitCommand()));
+        assertEquals("IDEMPOTENCY_CONFLICT", conflict.category());
+        assertEquals("IDEMPOTENCY_PAYLOAD_CONFLICT", conflict.reasonCode());
+        verify(conflictFixture.acceptanceMapper(), never()).selectForUpdate(any());
+
+        SubmissionFixture progressFixture = submissionFixture();
+        progressFixture.commandExecutionApi().decision = PlatformCommandExecutionApi.Decision.IN_PROGRESS;
+        ArrivalAcceptanceContractException progress = assertThrows(ArrivalAcceptanceContractException.class,
+                () -> progressFixture.service().submit(submitCommand()));
+        assertEquals("IDEMPOTENCY_IN_PROGRESS", progress.category());
+        assertEquals("IDEMPOTENCY_COMMAND_IN_PROGRESS", progress.reasonCode());
+        verify(progressFixture.acceptanceMapper(), never()).selectForUpdate(any());
     }
 
     @Test
@@ -690,6 +716,9 @@ class ArrivalAcceptanceApplicationServiceTest {
             requestDigests.add(requestDigest);
             if (decision == Decision.REPLAY_COMPLETED) {
                 return new ExecutionResult<>(decision, (T) replay.value());
+            }
+            if (decision == Decision.CONFLICT || decision == Decision.IN_PROGRESS) {
+                return new ExecutionResult<>(decision, null);
             }
             T response = operation.get();
             successFacts = successFactsFactory.apply(response);
