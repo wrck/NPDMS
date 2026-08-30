@@ -1,17 +1,26 @@
 # F-AST-002 设备产品类型受控副本与公开查询
 
-> Feature实施状态：`NOT_STARTED`
-> Technical Plan Gate：`NOT_STARTED`
+> Feature实施状态：`TECHNICAL_PLAN_READY`
+> Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无规格阻断；Feature Ready已通过`NPDMS-FAST002-FEATURE-READY-20260830-01`，下一步仅允许生成并评审唯一Technical Plan，计划通过前不得进入Implementation
+> 当前阻断：无规格或计划阻断；Feature Ready与Technical Plan Gate均已通过，允许按唯一Technical Plan进入Implementation
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
+> 锁定规格提交：`a52b22b4`
 > 关联消费：`F-INS-001`发布与工程师选择外部Gate
 > 适用基线：`CHG-PRD-2026-08-30-010`
 
 ## 当前最小工作单元
 
-- 基于已通过Feature Ready的规格生成并评审唯一Technical Plan。计划必须限定为AST本地受控副本、来源证据、公开API、权限、迁移和测试，不得加入CRM/MES连接器；Technical Plan Gate通过前不得进入Implementation。
+- Technical Plan Gate已通过；按唯一Technical Plan从公开契约、服务身份与输入守卫开始实施首个可独立验证单元，完成最小实现、定向测试、验证和提交后再进入下一单元。
+
+## 已完成
+
+- Feature Ready：`GO NPDMS-FAST002-FEATURE-READY-20260830-01`。
+- 唯一Technical Plan已覆盖公开API、三表、权限、来源顺序、冲突事务、批量授权范围、测试、真实MySQL和追溯收口。
+- 首轮独立复审发现来源顺序、设备复合外键、关联设备范围、测试节奏和冲突事务五项问题；已按正式SDS、Feature Spec和计划顺序整改。
+- 整改复审：`GO NPDMS-FAST002-TECHPLAN-20260830-01`；只放行Implementation，不代表Implementation Done或后续发布Gate。
 
 ## 实施范围
 

@@ -136,12 +136,19 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 
 | 场景 | 控制 |
 |---|---|
-| 同一来源对象乱序事件 | sourceVersion；旧版本忽略，同版本异内容隔离 |
+| 同一来源对象乱序事件 | 先按来源契约确认顺序字段；F-AST-002在连接器未落地前固定以`sourceUpdatedAt`作为同一`tenantId + sourceSystem + sourceKey`的顺序水位，`sourceVersion`仅作不透明等值键；更早水位拒绝、同水位同版本同摘要幂等、同水位任一事实不同则隔离冲突 |
 | 同一批次重复投递 | source eventId/batch item 唯一键 |
 | 外部超时后本地重试 | 先查询外部结果；原幂等键不产生第二业务单 |
 | DAC 回调乱序 | callback sequence/resultVersion + task aggregateVersion |
 | DAC 回调与撤销并发 | 保存实际停止点；撤销阻止后续执行但不改写已发生结果 |
 | 通知回执晚到 | 更新通知尝试，不改变业务对象终态 |
+
+### 9.1 F-AST-002来源事实顺序
+
+- `sourceVersion`来自CRM/MES或受控导入来源，只保证可追溯和等值比较；在来源连接器契约尚未定义单调序列前，不得按字符串、数字、语义版本或接收顺序排序。
+- `sourceUpdatedAt`是同一`tenantId + sourceSystem + sourceKey`下当前唯一顺序水位，受控导入必须提供且不得为空。更早水位为陈旧来源；同水位仅当`sourceVersion + payloadHash + targetProductTypeCode`全部相同才是幂等重放，否则为来源冲突；更晚水位才可进入后续业务校验。
+- 来源冲突不得覆盖当前产品类型、来源映射目标或最近成功副本；冲突事实必须在独立可提交边界内留痕，不能随被拒绝的导入事务回滚。
+- 后续EQP-04或独立连接器若提供经正式规格批准的单调来源序列，必须先修订SDS和Feature Spec，再替换本顺序规则；F-AST-002不预埋多策略猜测。
 
 ## 10. 锁策略
 
@@ -170,6 +177,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 订单行并发分配、ERP减量后超分配；
 - 同一状态双命令、工作流重复/过期回调；
 - DAC 回调重复、乱序、撤销并发；
+- F-AST-002更早`sourceUpdatedAt`拒绝、同水位同事实幂等、同水位异事实冲突留痕、更晚水位更新，以及`sourceVersion`不参与排序；
 - 动态表单唯一草稿、并发发布/启停、选择后指针变化、实例CAS单胜和已发布修订不可变；
 - 跨Context动态表单命令先冻结封闭业务动作，再按完整Owner稳定键全量锁定并以同一动作重验Provider事实，之后锁PLT实例/修订，最后按全局稳定顺序锁Artifact→Version→Reference；首个PLT锁后禁止回调Owner Provider。写入和持锁方法传播`MANDATORY`；完整重验比较双版本、规范化值和所有ACTIVE引用集合，显式空集合也必须相等；
 - 缓存失效丢失、Redis不可用、热点穿透；
