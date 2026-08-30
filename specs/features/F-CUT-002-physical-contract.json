@@ -1,15 +1,16 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-002",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "migrationContractGate": {
     "status": "PASS",
     "reviewedCommit": "36d1b37f",
     "nextGate": "F-CUT-002_API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW"
   },
   "apiAndPhysicalContractGate": {
-    "status": "REVIEW_REQUIRED",
-    "nextGate": "F-CUT-002_API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW"
+    "status": "PASS",
+    "reviewedCommit": "b7f49166",
+    "nextGate": "IMPLEMENTATION_READINESS_API_PUBLIC_MACHINE_CONTRACT_REVIEW"
   },
   "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
   "ownerContext": "CUT",

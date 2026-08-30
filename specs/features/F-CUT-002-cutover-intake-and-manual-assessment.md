@@ -10,8 +10,8 @@
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
-> 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；Feature物理基线仍`REVIEW_REQUIRED`）
-> REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`REVIEW_REQUIRED`）
+> 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；API/Physical Machine Contract Gate `PASS@b7f49166`）
+> REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`BASELINE_READY@b7f49166`）
 
 ## 1. 业务目标
 
@@ -141,4 +141,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`NOT_READY / NO-GO`。
 
-最近Gate为`F-CUT-002 API/Physical Machine Contract`：四表字段与联合约束、REST/Internal API、权限、错误、来源身份、评估快照及PROJ/AST/CUS/IMP消费边界必须先独立通过。随后还须分别取得`ImplementationReadinessApi`与`CustomerServiceLevelFactApi`公共机器合同Gate；无需等待F-IMP-003～005或CUS生产实现完成，直接消费合同冻结后即可重审F-CUT-002 Feature Ready，并在通过后使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过。最近Gate为`ImplementationReadinessApi Public Machine Contract`，随后还须取得`CustomerServiceLevelFactApi Public Machine Contract`；无需等待F-IMP-003～005或CUS生产实现完成，直接消费合同冻结后即可重审F-CUT-002 Feature Ready，并在通过后使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。

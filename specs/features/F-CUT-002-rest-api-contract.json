@@ -3,11 +3,11 @@
   "featureId": "F-CUT-002",
   "requirementSlices": ["CUT-01@V1", "CUT-02@V1"],
   "coverage": "PARTIAL",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "owner": "CUT",
   "apiPrefix": "/api/v1/pms/cutover-tasks",
   "legacyRoutePolicy": "PRESERVE_EXISTING_PMS_CUT_TASK_ROUTES_WITHOUT_REDIRECT_OR_SHARED_WRITE_PATH",
-  "implementationGate": "API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW_REQUIRED",
+  "implementationGate": "API_AND_PHYSICAL_MACHINE_CONTRACT_PASS_B7F49166",
   "trustedContext": {
     "serverOwned": ["tenantId", "actorId", "correlationId", "permissions", "visibleProjectScope"],
     "forbiddenClientFields": [
