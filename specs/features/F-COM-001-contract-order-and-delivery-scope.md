@@ -154,8 +154,6 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - `AC-FCOM001-010`：真实MySQL验证唯一键、锁序、版本、Outbox和迁移；真实浏览器完成来源确认→分配→当前范围读取的正向闭环及四档响应式。
 - `AC-FCOM001-011`：完成不宣称INT-01连接器、COM-02、V2自动指派、ACC/IMP业务状态、外部联调或Release完成。
 
-订单—合同关系来源身份的运行实现继续`BLOCKED_BY_SPEC`，直至双来源键前向物理合同通过独立Contract/Schema Gate；该阻断不回退Feature Ready或已通过Technical Plan。
-
 ## 9. Feature Ready Gate
 
 最终结论：`READY / GO`。独立正式裁决以锁定基线`2fed46d4`确认完整COM-01边界、五权限、来源状态与范围状态、`getAssignedScope`、PROJ/SYSTEM/AST依赖、ERP接收、旧实现复用、十表Owner/支撑物理合同和逐行迁移处置均已锁定，且无COM-01未决问题。下一Gate为唯一Technical Plan独立复审；本GO不授权DDL或实现。生产ERP连接器未形成不阻断COM本地闭环计划与后续编码，但继续阻断真实外部联调证据。
