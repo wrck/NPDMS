@@ -468,6 +468,30 @@ class ArrivalAcceptanceFactApiImplTest {
     }
 
     @Test
+    void quantityProjectionInMixedScopeLocksEveryExplicitDevice() {
+        when(deliveryScopePort.inspectAssignedScope(PROJECT_ID)).thenReturn(deliveryScope());
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(deliveryScope());
+        when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("SN-1", "SN-2")))
+                .thenReturn(deviceScope());
+        when(deviceScopeFactPort.lockAndRevalidate(any(), any(), any())).thenReturn(deviceScope());
+        prepareReadFacts();
+
+        ArrivalAcceptanceFact inspected = api.inspect(quantityOnlyQuery("5"));
+        api.lockAndRevalidate(new ArrivalAcceptanceFactRevalidationQuery(
+                TENANT_ID, PROJECT_ID, Set.of(), List.of(quantity("5")),
+                inspected.factVersion(), inspected.scopeWatermark()));
+
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<DeviceScopeFactPort.ExpectedDeviceFact>> expected =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(deviceScopeFactPort).lockAndRevalidate(
+                org.mockito.ArgumentMatchers.eq(TENANT_ID),
+                org.mockito.ArgumentMatchers.eq(PROJECT_ID), expected.capture());
+        assertEquals(List.of(11L, 12L), expected.getValue().stream()
+                .map(DeviceScopeFactPort.ExpectedDeviceFact::deviceId).toList());
+    }
+
+    @Test
     void deliveryVersionChangeBetweenInspectAndLockReturnsCurrentStaleFact() {
         when(deliveryScopePort.inspectAssignedScope(PROJECT_ID))
                 .thenReturn(deliveryScope(5L), deliveryScope(6L));
@@ -489,8 +513,6 @@ class ArrivalAcceptanceFactApiImplTest {
         when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(deliveryScope());
         when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("SN-1", "SN-2")))
                 .thenReturn(deviceScope(), deviceScope(9L, 8L), deviceScope(9L, 8L));
-        when(deviceScopeFactPort.lockAndRevalidate(any(), any(), any()))
-                .thenThrow(new OwnerFactVersionMismatchException("device assignment changed"));
         prepareReadFacts();
 
         ArrivalAcceptanceFact fact = api.lockAndRevalidate(currentRevalidation());
