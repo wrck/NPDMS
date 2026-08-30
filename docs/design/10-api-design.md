@@ -325,12 +325,13 @@ PLT内部`PlatformMigrationEvidenceApi`由F-COM-001的PLT物理Owner支撑Task�
 
 - 八个写动作固定为`createImportBatch/appendSourceRecord/markStagedReady/claimStagedBatch/appendExternalMapping/appendMigrationIssue/completeReconciliation/closeMigrationIssue`；另有只读`pageSourceRecords`按`sourceRecordId`升序读取冻结来源，页大小为1～500，空页不放大范围；
 - 所有输入tenant必须与`TenantContextHolder`一致。批次由`ownerContextCode + purposeCode + releaseId + sourceSystem + sourceTable`定位，重跑通过幂等键判定，不以文件路径或当前时间作为业务身份；
-- `markStagedReady`只在`IMPORTING`校验manifest行数、内容SHA-256、schema版本和冻结来源计数；成功进入`STAGED_READY`，校验不通过进入`FAILED`并保留失败事实。`FAILED/COMPLETED`不可领取；
-- `claimStagedBatch`只在调用方已存在的外层事务内按`createTime,id`稳定领取一个`STAGED_READY`批次并进入`RECONCILING`。后续结果登记和`completeReconciliation`必须加入同一事务，失败整体回滚到领取前的`STAGED_READY`；
+- `appendSourceRecord`锁定批次后要求显式tenant与受信tenant一致，并要求命令`sourceSystem/sourceTable`与批次身份完全一致；不一致为`BATCH_SOURCE_IDENTITY_MISMATCH`。只允许`IMPORTING`追加，状态不符为`BATCH_STATE_CONFLICT`；
+- `markStagedReady`是严格判别联合：`READY`只在`IMPORTING`携带并校验manifest行数、内容SHA-256、schema版本和冻结来源计数，成功进入`STAGED_READY`且禁止failureCode；`FAIL_IMPORT`禁止伪造成功manifest事实，必须携带封闭`MigrationImportFailureCode`并原子进入`FAILED`。只有manifest/来源结构或永久source冲突属于终止导入失败；`PROVIDER_UNAVAILABLE`等可重试基础设施失败不得写`FAILED`。同键同载荷重放同一结果，同键异载荷冲突；`FAILED/COMPLETED`不可领取；
+- `claimStagedBatch`只在调用方已存在的外层事务内按`createTime,id`稳定领取一个`STAGED_READY`批次并进入`RECONCILING`，CAS后返回权威批次版本。后续`appendExternalMapping/appendMigrationIssue`只追加不可变来源分类，不改变批次版本或批次上的最终计数；`completeReconciliation.expectedBatchVersion`必须使用claim返回版本，重算唯一来源分类与计数后一次CAS到`COMPLETED`。全部动作加入同一事务，失败整体回滚到领取前的`STAGED_READY`；
 - `appendExternalMapping`是严格判别联合：`MAPPED`必须携带至少一个按`targetRole,targetSequence,targetContext,targetObjectType,targetId`稳定排序的目标，`RETAINED`禁止携带目标，只把该来源行登记为明确留存结果。它不允许用空目标把映射伪装成成功；
-- `appendMigrationIssue`只对同批冻结来源追加`OPEN`问题；一个来源可有多个确定性问题，但批次`mappedCount/issueCount/retainedCount`均按唯一来源行计数，不按目标映射条数或问题条数计数。`completeReconciliation`重算并要求`sourceCount = mappedCount + issueCount + retainedCount`且每个来源恰有一种最终分类，随后原子进入`COMPLETED`。完成后禁止追加来源、改变初始分类、覆盖映射或重算批次；
+- `appendExternalMapping/appendMigrationIssue`都按`tenantId+batchId+sourceRecordId`锁定来源，只接受该`RECONCILING`批次的冻结来源；跨tenant按不可见处理，批次或来源不匹配为`SOURCE_NOT_FOUND`，批次状态不符为`BATCH_STATE_CONFLICT`。`appendMigrationIssue`可对一个来源追加多个确定性`OPEN`问题，但批次`mappedCount/issueCount/retainedCount`均按唯一来源行计数，不按目标映射条数或问题条数计数。`completeReconciliation`重算并要求`sourceCount = mappedCount + issueCount + retainedCount`且每个来源恰有一种最终分类，随后原子进入`COMPLETED`。完成后禁止追加来源、改变初始分类、覆盖映射或重算批次；
 - `closeMigrationIssue`只允许最终`COMPLETED`批次的当前`OPEN`问题以CAS关闭，写入受信处理人、规则版本、目标结果和平台操作审计。同键同载荷重放返回原结果，同键异载荷永久冲突；需要新映射或重新迁移时创建引用原问题的新批次；
-- 稳定失败分类为`INVALID_REQUEST/TENANT_CONTEXT_MISMATCH/CALLER_TRANSACTION_REQUIRED/IDEMPOTENCY_CONFLICT/IDEMPOTENCY_IN_PROGRESS/BATCH_NOT_FOUND/BATCH_STATE_CONFLICT/SOURCE_NOT_FOUND/SOURCE_RECORD_CONFLICT/SOURCE_ALREADY_CLASSIFIED/MAPPING_CONFLICT/ISSUE_NOT_FOUND/ISSUE_CONFLICT/ISSUE_STATE_CONFLICT/COUNT_MISMATCH/OWNER_DATA_CORRUPTED/PROVIDER_UNAVAILABLE`。输入、状态冲突、Owner损坏和Provider不可用不得互相伪装。
+- 稳定失败分类为`INVALID_REQUEST/TENANT_CONTEXT_MISMATCH/CALLER_TRANSACTION_REQUIRED/IDEMPOTENCY_CONFLICT/IDEMPOTENCY_IN_PROGRESS/BATCH_NOT_FOUND/BATCH_STATE_CONFLICT/BATCH_SOURCE_IDENTITY_MISMATCH/SOURCE_NOT_FOUND/SOURCE_RECORD_CONFLICT/SOURCE_ALREADY_CLASSIFIED/MAPPING_CONFLICT/ISSUE_NOT_FOUND/ISSUE_CONFLICT/ISSUE_STATE_CONFLICT/COUNT_MISMATCH/OWNER_DATA_CORRUPTED/PROVIDER_UNAVAILABLE`。输入、批次来源身份、状态冲突、Owner损坏和Provider不可用不得互相伪装。
 
 周报/日报不提供独立 API；周期性展示复用指标快照。
 

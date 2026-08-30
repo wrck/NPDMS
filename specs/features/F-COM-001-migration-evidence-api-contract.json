@@ -19,8 +19,8 @@
     "order": ["createTime ASC","batchId ASC"],
     "transitions": [
       "createImportBatch: NONE -> IMPORTING",
-      "markStagedReady: IMPORTING -> STAGED_READY when manifest and frozen sources match",
-      "markStagedReady: IMPORTING -> FAILED when manifest validation fails",
+      "markStagedReady READY: IMPORTING -> STAGED_READY when manifest and frozen sources match",
+      "markStagedReady FAIL_IMPORT: IMPORTING -> FAILED for a closed importFailureCode",
       "claimStagedBatch: STAGED_READY -> RECONCILING",
       "completeReconciliation: RECONCILING -> COMPLETED"
     ],
@@ -33,14 +33,29 @@
     "identity": ["tenantId","batchId","sourceSystem","sourceTable","sourcePk"],
     "immutableFields": ["sourceSystem","sourceTable","sourcePk","sourceBusinessKey","sourcePayloadJson","sourceChecksum","extractedAt"],
     "appendState": "IMPORTING_ONLY",
+    "batchIdentityGuard": "after locking tenantId+batchId, command sourceSystem and sourceTable must exactly equal the batch identity; mismatch is BATCH_SOURCE_IDENTITY_MISMATCH",
     "replay": "same identity and identical immutable fields returns the existing record; any difference is SOURCE_RECORD_CONFLICT",
     "query": "pageSourceRecords reads only the frozen batch by sourceRecordId ASC with afterSourceRecordId exclusive and limit 1..500"
+  },
+  "reconciliationOwnership": {
+    "lookup": "appendExternalMapping and appendMigrationIssue lock by trusted tenantId+batchId+sourceRecordId",
+    "required": "the source record belongs to that tenant and batch, is frozen, and the batch is RECONCILING",
+    "tenantVisibility": "cross-tenant batch/source is not visible and returns BATCH_NOT_FOUND or SOURCE_NOT_FOUND",
+    "sourceMismatch": "missing source or a sourceRecordId belonging to another batch returns SOURCE_NOT_FOUND",
+    "stateMismatch": "a visible batch outside RECONCILING returns BATCH_STATE_CONFLICT"
   },
   "actions": {
     "createImportBatch": "idempotency key plus canonical command digest; same payload replays the batch, different payload conflicts",
     "appendSourceRecord": "intrinsic source identity replay; source payload remains opaque valid JSON and is never reinterpreted by PLT",
-    "markStagedReady": "validates expected row count, schema version and manifest content SHA-256 before freezing the source set",
-    "claimStagedBatch": "requires caller transaction and claims at most one matching STAGED_READY batch; no match returns claimed=false with no side effects",
+    "markStagedReady": {
+      "discriminator": "decision",
+      "READY": "requires manifestRowCount, manifestSchemaVersion and manifestContentSha256; forbids failureCode; validates and freezes the source set",
+      "FAIL_IMPORT": "forbids successful manifest fields; requires one closed importFailureCode; atomically records FAILED",
+      "importFailureCodes": ["MANIFEST_STRUCTURE_INVALID","MANIFEST_ROW_COUNT_MISMATCH","MANIFEST_SCHEMA_VERSION_MISMATCH","MANIFEST_CONTENT_SHA256_MISMATCH","SOURCE_PAYLOAD_INVALID","SOURCE_RECORD_CONFLICT"],
+      "retryableFailure": "PROVIDER_UNAVAILABLE and other transient infrastructure failures do not transition the batch and must retry the same intent",
+      "idempotency": "same key and same normalized decision payload replays the result; same key and different payload is IDEMPOTENCY_CONFLICT"
+    },
+    "claimStagedBatch": "requires caller transaction and claims at most one matching STAGED_READY batch; no match returns claimed=false with no side effects; successful CAS returns the authoritative RECONCILING batch version",
     "pageSourceRecords": "read-only cursor query; not one of the eight write actions",
     "appendExternalMapping": {
       "discriminator": "resultType",
@@ -48,7 +63,8 @@
       "RETAINED": "targets empty; records an explicit retained result against the stable sourceRecordId"
     },
     "appendMigrationIssue": "appends one deterministic OPEN issue against a stable frozen sourceRecordId; does not modify source payload",
-    "completeReconciliation": "recomputes classifications and counts under lock, then writes immutable final counts and COMPLETED",
+    "reconciliationAppendVersionRule": "appendExternalMapping and appendMigrationIssue never update batch.version or final batch counts",
+    "completeReconciliation": "expectedBatchVersion is exactly the version returned by claim; recomputes classifications and counts under lock, then performs one CAS that writes immutable final counts and COMPLETED",
     "closeMigrationIssue": "COMPLETED batch and OPEN issue only; CAS appends resolver, ruleVersion, targetResult and audit without changing batch counts"
   },
   "idempotency": {
@@ -69,7 +85,7 @@
     "forbidden": ["overwrite closed issue","change initial issue classification","change source or mapping","reopen batch","recompute final counts"],
     "remigration": "create a new batch referencing the prior issueId"
   },
-  "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"],
+  "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","BATCH_SOURCE_IDENTITY_MISMATCH","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"],
   "implementationBoundary": {
     "contractGate": "API, DTO, stable exception, SDS and machine contract only",
     "providerGate": "tables, DDL, DO, Mapper XML, Service and MySQL evidence only after this contract passes",

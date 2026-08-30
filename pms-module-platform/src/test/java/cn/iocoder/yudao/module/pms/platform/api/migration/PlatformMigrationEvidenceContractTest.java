@@ -60,6 +60,30 @@ class PlatformMigrationEvidenceContractTest {
     }
 
     @Test
+    void locksReadyAndTerminalImportFailureAsStrictUnion() {
+        MarkStagedReadyCommand ready = new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.READY,
+                10L, "1", SHA256, null, "key-ready", "corr");
+        MarkStagedReadyCommand failed = new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.FAIL_IMPORT,
+                null, null, null, MigrationImportFailureCode.SOURCE_RECORD_CONFLICT,
+                "key-failed", "corr");
+
+        assertEquals(10L, ready.manifestRowCount());
+        assertEquals(MigrationImportFailureCode.SOURCE_RECORD_CONFLICT, failed.failureCode());
+        assertThrows(PlatformMigrationEvidenceException.class,
+                () -> new MarkStagedReadyCommand(
+                        1L, 2L, 3, ImportStagingDecision.READY,
+                        10L, "1", SHA256, MigrationImportFailureCode.SOURCE_PAYLOAD_INVALID,
+                        "key", "corr"));
+        assertThrows(PlatformMigrationEvidenceException.class,
+                () -> new MarkStagedReadyCommand(
+                        1L, 2L, 3, ImportStagingDecision.FAIL_IMPORT,
+                        10L, "1", SHA256, MigrationImportFailureCode.MANIFEST_ROW_COUNT_MISMATCH,
+                        "key", "corr"));
+    }
+
+    @Test
     void locksMappedAndRetainedAsStrictUnion() {
         ExternalTargetMapping later = new ExternalTargetMapping(
                 "COM", "ORDER", "com_sales_order", 22L, "PRIMARY", 1);
@@ -136,5 +160,32 @@ class PlatformMigrationEvidenceContractTest {
         assertTrue(new MigrationBatchClaimResult(true, claimedBatch).claimed());
         assertThrows(PlatformMigrationEvidenceException.class,
                 () -> new MigrationBatchClaimResult(false, claimedBatch));
+    }
+
+    @Test
+    void keepsClaimVersionStableUntilSingleCompletionCas() {
+        MigrationBatchFact claimedBatch = new MigrationBatchFact(
+                2L, 1L, "COM", "F-COM-001", "R1", "ERP", "orders",
+                MigrationBatchStatus.RECONCILING, 10, 0, 0, 0,
+                null, 4, NOW);
+        CompleteReconciliationCommand completion = new CompleteReconciliationCommand(
+                1L, 2L, claimedBatch.version(), 10, 4, 5, 1,
+                "rules-v1", "key", "corr");
+
+        assertEquals(4, completion.expectedBatchVersion());
+        assertThrows(PlatformMigrationEvidenceException.class,
+                () -> new MigrationBatchFact(
+                        2L, 1L, "COM", "F-COM-001", "R1", "ERP", "orders",
+                        MigrationBatchStatus.RECONCILING, 10, 1, 0, 0,
+                        null, 4, NOW));
+    }
+
+    @Test
+    void exposesDistinctBatchIdentitySourceAndStateFailures() {
+        assertTrue(Set.of(PlatformMigrationEvidenceException.Code.values())
+                .containsAll(Set.of(
+                        PlatformMigrationEvidenceException.Code.BATCH_SOURCE_IDENTITY_MISMATCH,
+                        PlatformMigrationEvidenceException.Code.SOURCE_NOT_FOUND,
+                        PlatformMigrationEvidenceException.Code.BATCH_STATE_CONFLICT)));
     }
 }

@@ -17,7 +17,7 @@ public record MigrationBatchFact(
         long mappedCount,
         long issueCount,
         long retainedCount,
-        String failureCode,
+        MigrationImportFailureCode failureCode,
         int version,
         LocalDateTime createTime) {
 
@@ -37,7 +37,6 @@ public record MigrationBatchFact(
             mappedCount = nonNegative(mappedCount, "mappedCount");
             issueCount = nonNegative(issueCount, "issueCount");
             retainedCount = nonNegative(retainedCount, "retainedCount");
-            failureCode = optionalText(failureCode, 64, "failureCode");
             version = nonNegative(version, "version");
             createTime = time(createTime, "createTime");
         } catch (cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceException ex) {
@@ -48,6 +47,10 @@ public record MigrationBatchFact(
         }
         if (status != MigrationBatchStatus.FAILED && failureCode != null) {
             throw corrupted("non-FAILED batch forbids failureCode");
+        }
+        if (status != MigrationBatchStatus.COMPLETED
+                && (mappedCount != 0 || issueCount != 0 || retainedCount != 0)) {
+            throw corrupted("only COMPLETED exposes final reconciliation counts");
         }
         if (status == MigrationBatchStatus.COMPLETED
                 && sourceCount != mappedCount + issueCount + retainedCount) {

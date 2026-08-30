@@ -29,6 +29,7 @@ public final class PlatformMigrationEvidenceException extends RuntimeException {
         IDEMPOTENCY_IN_PROGRESS,
         BATCH_NOT_FOUND,
         BATCH_STATE_CONFLICT,
+        BATCH_SOURCE_IDENTITY_MISMATCH,
         SOURCE_NOT_FOUND,
         SOURCE_RECORD_CONFLICT,
         SOURCE_ALREADY_CLASSIFIED,

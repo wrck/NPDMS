@@ -156,6 +156,14 @@
       "readQueries": ["pageSourceRecords"],
       "sourceResultTypes": ["MAPPED","ISSUE","RETAINED"],
       "transactionRule": "claimStagedBatch requires a caller-owned transaction; claim, COM target writes, PLT result appends and completeReconciliation join that transaction so failure restores STAGED_READY",
+      "sourceBatchIdentityRule": "append source requires command tenant/sourceSystem/sourceTable to equal the locked batch; reconciliation results lock and accept only the frozen source selected by trusted tenantId+batchId+sourceRecordId",
+      "reconciliationVersionRule": "claim returns the authoritative RECONCILING batch version; result/issue appends do not update batch.version or final counts; complete uses the claim version, recomputes classifications and performs one CAS",
+      "importTerminalUnion": {
+        "READY": "requires manifest row count/schema/hash, forbids failureCode and enters STAGED_READY after validation",
+        "FAIL_IMPORT": "forbids successful manifest facts, requires a closed importFailureCode and enters FAILED",
+        "failureCodes": ["MANIFEST_STRUCTURE_INVALID","MANIFEST_ROW_COUNT_MISMATCH","MANIFEST_SCHEMA_VERSION_MISMATCH","MANIFEST_CONTENT_SHA256_MISMATCH","SOURCE_PAYLOAD_INVALID","SOURCE_RECORD_CONFLICT"],
+        "transientProviderFailure": "does not enter FAILED and retries the same intent"
+      },
       "appendExternalMappingUnion": {
         "MAPPED": "one or more stable target mappings are required",
         "RETAINED": "target mappings must be empty and the source row is classified as retained"
@@ -164,7 +172,7 @@
       "countUnit": "mappedCount, issueCount and retainedCount count unique source records, not target mapping rows or issue rows",
       "issueClosure": "only an OPEN issue in a COMPLETED batch may be closed once; append resolver, ruleVersion and targetResult without reopening or recounting the batch",
       "trustedTenant": "every explicit tenantId equals TenantContextHolder.getRequiredTenantId",
-      "stableErrors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
+      "stableErrors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","BATCH_SOURCE_IDENTITY_MISMATCH","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
     },
     "forbidden": ["modify V70/V72","dual-write quantity_status and authority_status","default-fill new facts","infer from XLSX/attachment/text","promote V72 seed","use orderQuantity as project allocation"]
   },
