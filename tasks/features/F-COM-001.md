@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 3运行候选已完成，Gate保持`REVIEW_REQUIRED`：非IT聚焦24/24、隔离MySQL 8.4为4/4，覆盖原子批次、事件/对象重放、前驱CAS、全批回滚、数量下调冲突水位与并发。最近Gate为独立Code Review；Task 8及下游依赖仍未解除。
+Task 3在`d8a27561`通过独立Code Review与真实MySQL Gate，状态`PASS / GO`。当前进入Task 4“人工候选、关系核对与公司范围”最小实现；最近Gate为其独立Code Review/聚焦测试。Task 8虽具备前提但暂不并行写共享资产，下游依赖仍未解除。
 
 ## Gate输入
 
