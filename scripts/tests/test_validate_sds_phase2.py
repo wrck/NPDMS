@@ -1112,6 +1112,26 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertTrue(any("failure_retryable/retry_count" in error for error in errors), errors)
 
+    def test_facc002_export_contract_rejects_ambiguous_failure_classification(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            exceptions = root / "docs" / "design" / "16-exception-and-idempotency.md"
+            content = exceptions.read_text(encoding="utf-8")
+            content = content.replace(
+                "业务Provider缺失、重复或载荷不符合稳定契约",
+                "业务Provider缺失、重复、不可用或范围版本未知",
+            ).replace(
+                "业务Provider暂时不可用或范围版本暂时未知",
+                "业务Provider缺失、重复、不可用或范围版本未知",
+            ).replace("Task记`REJECTED`", "Task记FAILED/REJECTED")
+            exceptions.write_text(content, encoding="utf-8")
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("Provider暂时不可用或范围版本暂时未知" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()
