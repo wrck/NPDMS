@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2候选`ae1968c6`复审NO-GO：Owner sourceVersion列宽与公共合同不一致，且marker预检漏掉软删当前行。最小整改已统一Owner版本为64并使预检覆盖与生成列相同集合，当前Gate为A/B定点Schema/迁移复审；尚未回写PASS，Task 2A仍另走PLT合同Gate。
+Task 2十表Schema与V70前向兼容在`4996c754`通过独立Schema/迁移Gate：22/22非IT、4/4隔离MySQL及软删冲突前置失败/repair重跑证据通过。Task 2状态为PASS；最近Gate为Task 2A `PlatformMigrationEvidenceApi` Public Machine Contract Gate，尚未授权PLT实现。
 
 ## Gate输入
 
