@@ -2178,7 +2178,7 @@
           "disposition": "CURRENT_FORWARD",
           "transform": "map only qualified legacy identity, project, task number/name, legacy type/network raw values, scheduled time and audit facts into a LEGACY_FORWARD/LEGACY_UNKNOWN read-only cut_task projection; preserve legacy id/status/mapping version; never populate current CUT-07 dictionary fields or infer device scope, readiness snapshot, manual grade, assessment, stage history or closure; invalid/deleted/unresolved/conflicting rows remain legacy with explicit disposition",
           "mappingStatus": "FEATURE_MAPPING_DEFINED",
-          "gate": "F-CUT-002_MIGRATION_CONTRACT_REVIEW",
+          "gate": "F-CUT-002_FEATURE_READY_REVIEW",
           "targetFieldBindings": [
             {
               "sourceField": "pms_cut_task.id",

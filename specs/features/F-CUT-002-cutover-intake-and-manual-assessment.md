@@ -10,7 +10,7 @@
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
-> 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（`REVIEW_REQUIRED`）
+> 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；Feature物理基线仍`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 

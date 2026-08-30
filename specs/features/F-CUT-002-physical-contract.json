@@ -2,6 +2,11 @@
   "schemaVersion": 1,
   "featureId": "F-CUT-002",
   "status": "REVIEW_REQUIRED",
+  "migrationContractGate": {
+    "status": "PASS",
+    "reviewedCommit": "36d1b37f",
+    "nextGate": "F-CUT-002_FEATURE_READY_REVIEW"
+  },
   "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
   "ownerContext": "CUT",
   "hardDependencies": [
