@@ -1,6 +1,8 @@
 -- F-IMP-002 / EXE-01: persist the first publication correlationId for all retries.
 -- Existing published rows cannot recover this value unambiguously, so fail closed.
 
+DROP PROCEDURE IF EXISTS `fimp002_require_unpublished_delivery_evidence`;
+
 DELIMITER //
 CREATE PROCEDURE `fimp002_require_unpublished_delivery_evidence`()
 BEGIN
@@ -26,5 +28,5 @@ ALTER TABLE `imp_delivery_evidence`
     (`acc_sync_status` <> 'NOT_PUBLISHED'
       AND `acc_correlation_id` IS NOT NULL
       AND CHAR_LENGTH(TRIM(`acc_correlation_id`)) BETWEEN 1 AND 128
-      AND `acc_correlation_id` = TRIM(`acc_correlation_id`))
+      AND CHAR_LENGTH(`acc_correlation_id`) = CHAR_LENGTH(TRIM(`acc_correlation_id`)))
   );

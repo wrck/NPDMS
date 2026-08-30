@@ -194,18 +194,24 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(evidenceCorrelationUpgradeSql.contains(
                 "CHAR_LENGTH(TRIM(`acc_correlation_id`)) BETWEEN 1 AND 128"));
         assertTrue(evidenceCorrelationUpgradeSql.contains(
-                "`acc_correlation_id` = TRIM(`acc_correlation_id`)"));
+                "CHAR_LENGTH(`acc_correlation_id`) = CHAR_LENGTH(TRIM(`acc_correlation_id`))"));
         assertFalse(evidenceCorrelationUpgradeSql.contains(" DEFAULT "));
         assertFalse(evidenceCorrelationUpgradeSql.contains("UPDATE `imp_delivery_evidence`"));
     }
 
     @Test
     void rejectsExistingPublishedEvidenceBeforeAddingCorrelationColumn() {
+        int cleanup = evidenceCorrelationUpgradeSql.indexOf(
+                "DROP PROCEDURE IF EXISTS `fimp002_require_unpublished_delivery_evidence`");
+        int create = evidenceCorrelationUpgradeSql.indexOf(
+                "CREATE PROCEDURE `fimp002_require_unpublished_delivery_evidence`");
         int guard = evidenceCorrelationUpgradeSql.indexOf(
                 "WHERE `acc_sync_status` <> 'NOT_PUBLISHED'");
         int signal = evidenceCorrelationUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
         int alter = evidenceCorrelationUpgradeSql.indexOf("ALTER TABLE `imp_delivery_evidence`");
-        assertTrue(guard >= 0);
+        assertTrue(cleanup >= 0);
+        assertTrue(create > cleanup);
+        assertTrue(guard > create);
         assertTrue(signal > guard);
         assertTrue(alter > signal);
     }
