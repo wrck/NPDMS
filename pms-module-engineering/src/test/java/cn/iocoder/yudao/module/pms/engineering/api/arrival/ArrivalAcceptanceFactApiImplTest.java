@@ -307,6 +307,50 @@ class ArrivalAcceptanceFactApiImplTest {
     }
 
     @Test
+    void inspectAndLockAcceptEquivalentSerialIdentityWithoutRewritingOwnerValues() {
+        DeliveryScopePort.AssignedScope delivery = new DeliveryScopePort.AssignedScope(
+                PROJECT_ID, 5L, List.of(
+                new DeliveryScopePort.AssignedLine(1L, BigDecimal.valueOf(2), "SET",
+                        "P-1", "M-1", Set.of(" sn-1 ", "Sn-2 ")),
+                new DeliveryScopePort.AssignedLine(2L, BigDecimal.TEN, "EA",
+                        "P-2", "M-2", Set.of())));
+        DeviceScopeFactPort.DeviceScopeFact inspectedOwner = new DeviceScopeFactPort.DeviceScopeFact(
+                PROJECT_ID, List.of(
+                new DeviceScopeFactPort.DeviceFact(12L, "sn-2", PROJECT_ID, 8L),
+                new DeviceScopeFactPort.DeviceFact(11L, "SN-1", PROJECT_ID, 7L)));
+        DeviceScopeFactPort.DeviceScopeFact lockedOwner = new DeviceScopeFactPort.DeviceScopeFact(
+                PROJECT_ID, List.of(
+                new DeviceScopeFactPort.DeviceFact(12L, "SN-2", PROJECT_ID, 8L),
+                new DeviceScopeFactPort.DeviceFact(11L, " sn-1 ", PROJECT_ID, 7L)));
+        when(deliveryScopePort.inspectAssignedScope(PROJECT_ID)).thenReturn(delivery);
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(delivery);
+        when(deviceScopeFactPort.resolveBySerials(TENANT_ID, PROJECT_ID, Set.of("sn-1", "Sn-2")))
+                .thenReturn(inspectedOwner);
+        when(deviceScopeFactPort.lockAndRevalidate(any(), any(), any())).thenReturn(lockedOwner);
+        prepareReadFacts();
+        prepareLockedFacts();
+
+        ArrivalAcceptanceFact inspected = api.inspect(query());
+        ArrivalAcceptanceFact locked = api.lockAndRevalidate(new ArrivalAcceptanceFactRevalidationQuery(
+                TENANT_ID, PROJECT_ID, Set.of(11L, 12L), List.of(quantity("10")),
+                inspected.factVersion(), inspected.scopeWatermark()));
+
+        assertEquals(ArrivalAcceptanceFact.DECISION_ACCEPTED, inspected.decision());
+        assertEquals(ArrivalAcceptanceFact.DECISION_ACCEPTED, locked.decision());
+        assertEquals(inspected.scopeWatermark(), locked.scopeWatermark());
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<DeviceScopeFactPort.ExpectedDeviceFact>> expected =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(deviceScopeFactPort).lockAndRevalidate(
+                org.mockito.ArgumentMatchers.eq(TENANT_ID),
+                org.mockito.ArgumentMatchers.eq(PROJECT_ID), expected.capture());
+        assertEquals(Map.of(11L, "SN-1", 12L, "sn-2"), expected.getValue().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        DeviceScopeFactPort.ExpectedDeviceFact::deviceId,
+                        DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)));
+    }
+
+    @Test
     void deliveryVersionChangeBetweenInspectAndLockReturnsCurrentStaleFact() {
         when(deliveryScopePort.inspectAssignedScope(PROJECT_ID))
                 .thenReturn(deliveryScope(5L), deliveryScope(6L));
