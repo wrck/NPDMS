@@ -507,14 +507,15 @@
 
 ### Q-FIMP002-002
 
-- Status: OPEN / BLOCKED_BY_SPEC
+- Status: RESOLVED / OPTION_B
 - Requirement IDs: EXE-01
 - Area: 到货签收已确认批次的后继DRAFT业务编码
 - Question: `SUPPLEMENT`、`CORRECTION`、`DIFFERENCE_CLOSURE`和`EXEMPTION_INVALIDATION`创建关联后继DRAFT时，后继`batch_code`应继承哪个业务值，还是由哪个Owner按什么稳定规则生成新值？
 - Why it blocks design/implementation: `imp_arrival_acceptance`已正式锁定租户内`project_id + batch_code`唯一；直接复制前驱编码必然违反唯一键，自行拼接后缀会臆造业务编码并可能突破64字符合同。当前Feature/REST机器契约只锁定`predecessor_acceptance_id`和`successor_reason`，没有给出后继编码来源、格式、长度溢出处置或幂等重放规则。
 - Options: A. 明确由IMP服务端按正式稳定规则生成新的后继批次编码；B. 批准后继沿用业务批次编码并正式调整唯一键/引入独立实例序号；C. 引用另一个已锁定Owner提供的新批次编码。
-- Recommended technical default: A，但必须由正式规格锁定格式、唯一性、长度和幂等语义后实施，不由代码猜测。
+- Recommended technical default: 原建议A已被正式裁决B替代。
 - Business decision required: 是。该选择改变公开详情中的`batchCode`及数据库唯一性执行路径。
-- Blocking scope: 仅阻断CONFIRMED来源的successor DRAFT、`CORRECT_INFORMATION`和`ExpireArrivalExemptionsCommand`；本人DRAFT PATCH、未确认差异raise/resolve、查询投影及已批准两列迁移可独立继续。
+- Resolution: 采用B。successor原样继承直接前驱规范化`batch_code`，禁止后缀、截断或外部生成；新增服务端`batch_root_marker`，以`tenant+project+batch_code+batch_root_marker`只约束一个初始根，并以`tenant+predecessor_acceptance_id`保证每个前驱最多一个直接后继。平台重放返回同一后继，不同key不得创建兄弟节点。
+- Blocking scope: 本问题自身已解除；在规格与前向迁移合同聚焦复审GO前，CONFIRMED successor、`CORRECT_INFORMATION`和`ExpireArrivalExemptionsCommand`仍不得实现。
 - Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
-- Decision date: 待定
+- Decision date: 2026-08-30

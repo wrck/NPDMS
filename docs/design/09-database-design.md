@@ -324,7 +324,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 明细/历史表 | 关键数据库约束 |
 |---|---|---|---|
-| ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 根冻结DeliveryScope版本、结构化范围水位、项目级单调事实版本、独立迁移核对状态和ACC引用状态；批次编码项目内唯一；后续根同时保存`predecessor_acceptance_id/successor_reason`，原因封闭为补签/更正/差异关闭/豁免失效且由服务端写入；明细按设备或订单型号数量追加版本且数量非负/不得超签；差异、拒收处置和具体豁免通过`imp_arrival_difference`不可变版本表达，仅事实影响revision在插入时同时持有非空`fact_impact_type/project_fact_version`，非事实影响revision两者永久为NULL，已提交历史不可覆盖 |
+| ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 根冻结DeliveryScope版本、结构化范围水位、项目级单调事实版本、独立迁移核对状态和ACC引用状态；批次编码是整条后继链稳定共享的业务身份，`batch_root_marker=1`只约束一个初始根，successor marker为NULL且每个前驱最多一个直接后继；后续根同时保存`predecessor_acceptance_id/successor_reason`，原因封闭为补签/更正/差异关闭/豁免失效且由服务端写入；明细按设备或订单型号数量追加版本且数量非负/不得超签；差异、拒收处置和具体豁免通过`imp_arrival_difference`不可变版本表达，仅事实影响revision在插入时同时持有非空`fact_impact_type/project_fact_version`，非事实影响revision两者永久为NULL，已提交历史不可覆盖 |
 | InstallationRecord | `imp_installation_record` | `imp_installation_item`、`imp_installation_evidence` | 保存可空`site_id/site_location_id`、解析状态、文本降级、位置快照和有效区间；设备/安装批次索引；同一设备同一时点仅一个当前有效安装位置；历史记录不覆盖 |
 | ConfigurationCollectionResult | `imp_configuration_collection_result` | `imp_configuration_collection_parse_attempt` | `uk(tenant_id, collection_task_id, result_type_code, result_version_no)`；根保存项目/设备快照、脚本/解析器版本、原始整机Log文件引用及哈希；解析尝试追加 |
 | ConfigurationCollectionResult解析候选 | `imp_configuration_collection_result` | `imp_configuration_component_candidate` | 保存机框SN、槽位、板卡SN/型号、解析 revision、解析器版本、板卡配置引用和匹配状态；不能覆盖原始Log或直接改写已生效设备关系 |
@@ -335,6 +335,8 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；revision只追加并引用PLT FileVersion+哈希，不复制二进制。根的`acc_correlation_id`在首次发布前可空，首次`NOT_PUBLISHED→PUBLISHED_PENDING_ACC`与出向消息原子写入后不可变，后续同revision重试原样继承。F-IMP-002承接`source_requirement=EXE-01/source_object_type=ARRIVAL_ACCEPTANCE`的签收单最窄切片；其他IMP-01义务仍由后续Owner Feature承接 |
 
 F-IMP-002 Task 5B前向扩展必须在实际串行合入时使用下一个空闲Flyway版本：`imp_arrival_acceptance.successor_reason varchar(32) NULL DEFAULT NULL`，封闭值为`SUPPLEMENT/CORRECTION/DIFFERENCE_CLOSURE/EXEMPTION_INVALIDATION`，并以CHECK保证它与`predecessor_acceptance_id`同时为空或同时非空；`imp_arrival_difference.fact_impact_type varchar(32) NULL DEFAULT NULL`，封闭值为`CORRECTION/REOPEN/EXEMPTION_INVALIDATION`，并与`project_fact_version`同时为空或同时非空。迁移不得猜测不可变历史：存在任一非空`predecessor_acceptance_id`但无权威successor原因，或任一非空差异`project_fact_version`但无权威影响类型时，DDL前失败关闭并保持原表结构；仅两类存量均为空时可直接ALTER。所有新增列无伪默认值，失败过程必须可按Flyway repair原样重跑并最终清理临时过程。
+
+Q-FIMP002-002的后继身份修正使用下一实际空闲Flyway版本：新增服务端字段`batch_root_marker tinyint NULL`且无默认值；初始根必须为`predecessor_acceptance_id/successor_reason=NULL + batch_root_marker=1`，successor必须为两项非NULL且marker=NULL。迁移仅在所有现存根均无predecessor/successor语义时确定性写marker=1，否则在任何ALTER前SIGNAL；随后以`uk(tenant_id, project_id, batch_code, batch_root_marker)`替换旧批次唯一键，并增加`uk(tenant_id, predecessor_acceptance_id)`保证线性后继。失败过程可按Flyway repair原样重跑并清理临时过程，不从编码、状态或时间猜测历史。
 
 旧 `pms_eng_*` 表按字段语义映射到新 Owner；物理模块无需立即拆库，但新 Repository 必须按 Context 包隔离。复用旧表时以兼容视图/适配器映射稳定状态代码，不直接重解释历史 tinyint。
 

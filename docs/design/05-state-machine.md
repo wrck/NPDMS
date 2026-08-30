@@ -41,6 +41,7 @@
 - 项目经理最终确认只允许`PARTIALLY_ACCEPTED -> CONFIRMED`或`ACCEPTED -> CONFIRMED`。CONFIRMED仅表示本批最终确认；只有确认批次中的ACCEPTED明细及有效具体豁免参与项目事实计算，项目仍有未到/拒收/过期豁免时返回NOT_ACCEPTED。
 - CONFIRMED批次不回退、不覆盖。补签、更正、差异关闭或豁免失效创建关联原批次的后续DRAFT；普通补签后继确认分配新的项目事实版本但`reopened=false`，更正、已发布事实重开或豁免失效才使新事实`reopened=true`。
 - 后续DRAFT不得仅以`predecessorAcceptanceId`推导事实含义；服务端同时固化`successorReason=SUPPLEMENT/CORRECTION/DIFFERENCE_CLOSURE/EXEMPTION_INVALIDATION`。普通新到范围补签不标记重开；更正、已确认历史上的差异关闭或豁免失效均为可证明的重开来源。后继DRAFT本身不发布事实，确认时才由根分配项目事实版本；豁免到期的独立失效revision按下一条规则即时分配。
+- successor原样继承直接前驱`batchCode`，用新的acceptance id和`predecessorAcceptanceId`区分记录；初始根占用`batch_root_marker=1`，后继marker为NULL。创建后继必须锁当前前驱且同一前驱至多一个直接后继；已存在后继时除平台幂等重放外返回状态冲突，后续更正只能从链上最新已确认记录继续。
 - 数量差异部分补签时，当前OPEN revision只能收窄为同一订单/型号/单位身份下的精确剩余正数量；全量补齐才进入SUPPLEMENTED，设备差异只能整项补签。豁免到期不由读取事实触发，而由Task 5B内部到期命令在PROJ项目锁内追加`EXEMPTION_INVALIDATION`事实影响revision并创建后继DRAFT；任一Owner锁定重验失败则失败关闭并等待重试。
 
 DeliveryEvidence的ACC同步投影区分两类重试：Accepted前发布/回执失败使用`ARCHIVE_PENDING_RETRY`；已收到匹配Accepted后等待Archived超时使用`ARCHIVE_ACK_PENDING_RETRY`，不得丢失已接受事实。两类重试均重发同一`evidenceId+revision`；匹配Archived只允许从`ACCEPTED_PENDING_ARCHIVE`或`ARCHIVE_ACK_PENDING_RETRY`进入ARCHIVED，重复Accepted幂等且不创建新revision。

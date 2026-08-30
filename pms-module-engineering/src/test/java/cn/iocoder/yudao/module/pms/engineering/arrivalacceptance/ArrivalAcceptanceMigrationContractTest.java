@@ -22,6 +22,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String evidenceCorrelationUpgradeSql;
     private static String evidenceRetryJobSql;
     private static String task5BUpgradeSql;
+    private static String successorIdentityUpgradeSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -51,6 +52,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         task5BUpgradeSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V140__fimp002_task5b_successor_fact_impact.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        successorIdentityUpgradeSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V141__fimp002_successor_batch_identity.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -269,6 +273,44 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(alter > signal);
         assertEquals(2, occurrences(task5BUpgradeSql,
                 "DROP PROCEDURE IF EXISTS `fimp002_require_provable_task5b_history`"));
+    }
+
+    @Test
+    void replacesBatchUniquenessWithOneInitialRootAndLinearSuccessorChain() {
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "ADD COLUMN `batch_root_marker` tinyint NULL"));
+        assertFalse(successorIdentityUpgradeSql.contains("`batch_root_marker` tinyint NULL DEFAULT"));
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "DROP INDEX `uk_imp_arrival_batch`"));
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "(`tenant_id`, `project_id`, `batch_code`, `batch_root_marker`)"));
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "(`tenant_id`, `predecessor_acceptance_id`)"));
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "`predecessor_acceptance_id` IS NULL AND `successor_reason` IS NULL AND `batch_root_marker` = 1"));
+        assertTrue(successorIdentityUpgradeSql.contains(
+                "`predecessor_acceptance_id` IS NOT NULL AND `successor_reason` IS NOT NULL AND `batch_root_marker` IS NULL"));
+    }
+
+    @Test
+    void failsBeforeSuccessorIdentityAlterAndCanRerunAfterReconciliation() {
+        int cleanup = successorIdentityUpgradeSql.indexOf(
+                "DROP PROCEDURE IF EXISTS `fimp002_require_initial_arrival_roots`");
+        int create = successorIdentityUpgradeSql.indexOf(
+                "CREATE PROCEDURE `fimp002_require_initial_arrival_roots`");
+        int predecessorGuard = successorIdentityUpgradeSql.indexOf(
+                "WHERE `predecessor_acceptance_id` IS NOT NULL OR `successor_reason` IS NOT NULL");
+        int signal = successorIdentityUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
+        int alter = successorIdentityUpgradeSql.indexOf("ALTER TABLE `imp_arrival_acceptance`");
+        int update = successorIdentityUpgradeSql.indexOf("UPDATE `imp_arrival_acceptance`");
+        assertTrue(cleanup >= 0);
+        assertTrue(create > cleanup);
+        assertTrue(predecessorGuard > create);
+        assertTrue(signal > predecessorGuard);
+        assertTrue(alter > signal);
+        assertTrue(update > alter);
+        assertEquals(2, occurrences(successorIdentityUpgradeSql,
+                "DROP PROCEDURE IF EXISTS `fimp002_require_initial_arrival_roots`"));
     }
 
     private static int occurrences(String source, String token) {

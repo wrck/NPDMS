@@ -21,6 +21,14 @@
       "nullableUntilSubmit": ["evidence_id", "evidence_revision"],
       "submitRequiredReferences": ["evidence_id", "evidence_revision"],
       "nullableUnlessSuccessor": ["predecessor_acceptance_id", "successor_reason"],
+      "batchChainIdentityPolicy": {
+        "batchCode": "NORMALIZED_1_TO_64_STABLE_BUSINESS_BATCH_IDENTITY; SUCCESSOR_COPIES_DIRECT_PREDECESSOR_VALUE_VERBATIM; NO_SUFFIX_TRUNCATION_OR_EXTERNAL_GENERATION",
+        "batchRootMarkerColumn": "TINYINT NULL NO_DEFAULT; SERVER_OWNED; NEVER_EXPOSED_TO_REST",
+        "initialRoot": "PREDECESSOR_NULL_AND_SUCCESSOR_REASON_NULL_AND_BATCH_ROOT_MARKER_1",
+        "successor": "PREDECESSOR_NON_NULL_AND_SUCCESSOR_REASON_NON_NULL_AND_BATCH_ROOT_MARKER_NULL",
+        "linearChain": "LOCK_DIRECT_PREDECESSOR; SAME_TENANT_AND_PROJECT; AT_MOST_ONE_DIRECT_SUCCESSOR; LATER_SUCCESSOR_SOURCE_IS_CURRENT_LATEST_CONFIRMED_CHAIN_NODE",
+        "idempotency": "SAME_PLATFORM_SCOPE_KEY_DIGEST_REPLAYS_SAME_SUCCESSOR_ID; DIFFERENT_KEY_OR_INTENT_ON_OCCUPIED_PREDECESSOR_IS_STATE_CONFLICT_WITH_ZERO_WRITE"
+      },
       "successorReasonPolicy": {
         "values": ["SUPPLEMENT", "CORRECTION", "DIFFERENCE_CLOSURE", "EXEMPTION_INVALIDATION"],
         "source": "SERVER_COMMAND_BRANCH; SUPPLEMENT_IS_ORDINARY_NON_REOPEN; OTHER_VALUES_PROVE_POST_PUBLICATION_REOPEN",
@@ -29,7 +37,7 @@
       },
       "nullableUntilConfirm": ["project_fact_version"],
       "confirmRequiredReferences": ["project_fact_version", "evidence_id", "evidence_revision"],
-      "uniqueKeys": [["tenant_id", "project_id", "batch_code"], ["tenant_id", "project_id", "project_fact_version"]],
+      "uniqueKeys": [["tenant_id", "project_id", "batch_code", "batch_root_marker"], ["tenant_id", "predecessor_acceptance_id"], ["tenant_id", "project_id", "project_fact_version"]],
       "projectFactVersionPolicy": {
         "timing": "SUBMIT_REMAINS_NULL; ALLOCATE_FOR_CONFIRMATION_OR_FACT_AFFECTING_SOURCE_ONLY",
         "serializationLock": "HOLD_PROJ_AUTHORITATIVE_TENANT_PROJECT_ROW_LOCK_UNTIL_OUTER_TRANSACTION_COMMIT",
@@ -195,6 +203,28 @@
       "NON_NULL_PREDECESSOR_FAILS_WITHOUT_SCHEMA_OR_DATA_CHANGE",
       "NON_NULL_DIFFERENCE_FACT_VERSION_FAILS_WITHOUT_SCHEMA_OR_DATA_CHANGE",
       "FAILED_THEN_DATA_REMEDIATED_AND_FLYWAY_REPAIRED_RERUN_SUCCEEDS"
+    ]
+  },
+  "successorIdentityForwardMigration": {
+    "version": "NEXT_FREE_FLYWAY_VERSION_AT_SERIAL_MERGE; NEVER_RESERVE",
+    "column": "imp_arrival_acceptance.batch_root_marker TINYINT NULL NO_DEFAULT",
+    "preDdlGuard": "FAIL_BEFORE_ALTER_IF_ANY_PREDECESSOR_ACCEPTANCE_ID_OR_SUCCESSOR_REASON_IS_NON_NULL",
+    "allowedExistingData": "ALL_EXISTING_ROWS_PROVABLY_INITIAL_ROOTS; SET_BATCH_ROOT_MARKER_1_DETERMINISTICALLY_AFTER_COLUMN_ADD",
+    "constraints": [
+      "CHECK_BATCH_ROOT_MARKER_IS_NULL_OR_1",
+      "CHECK_INITIAL_ROOT_HAS_NULL_PREDECESSOR_AND_REASON_AND_MARKER_1",
+      "CHECK_SUCCESSOR_HAS_NON_NULL_PREDECESSOR_AND_REASON_AND_NULL_MARKER"
+    ],
+    "replaceUniqueKey": "DROP_uk_imp_arrival_batch; ADD_UNIQUE_tenant_project_batch_code_batch_root_marker",
+    "linearSuccessorUniqueKey": "ADD_UNIQUE_tenant_predecessor_acceptance_id",
+    "failureSemantics": "SIGNAL_BEFORE_FIRST_ALTER; PRESERVE_ROWS_AND_ORIGINAL_TABLE_SHAPE; NO_HISTORY_GUESS",
+    "retryability": "DROP_GUARD_PROCEDURE_IF_EXISTS_BEFORE_CREATE; FLYWAY_REPAIR_THEN_RERUN; PROCEDURE_ABSENT_AFTER_SUCCESS",
+    "tests": [
+      "PROVABLE_INITIAL_ROOTS_MIGRATE_TO_MARKER_1_AND_NEW_UNIQUES",
+      "ANY_EXISTING_SUCCESSOR_SEMANTICS_FAILS_BEFORE_SCHEMA_OR_DATA_CHANGE",
+      "FAILED_THEN_DATA_REMEDIATED_AND_FLYWAY_REPAIRED_RERUN_SUCCEEDS",
+      "SECOND_INITIAL_ROOT_SAME_TENANT_PROJECT_BATCH_CONFLICTS_WHILE_LINEAR_SUCCESSORS_WITH_NULL_MARKER_ARE_ALLOWED",
+      "SECOND_DIRECT_SUCCESSOR_FOR_SAME_TENANT_PREDECESSOR_CONFLICTS"
     ]
   },
   "apiPrefix": "/api/v1/pms/arrival-acceptances",

@@ -85,6 +85,7 @@
 - 未确认批次上的差异处置在原批次追加line/difference revision并重算候选状态；针对`CONFIRMED`历史的补签、信息纠正或差异关闭创建关联`predecessorAcceptanceId`的successor `DRAFT`，原批次不回退。
 - 服务端依据已锁定的命令分支和当前已发布项目事实判定根`successorReason`及独立差异事实源`factImpactType`；客户端不得提交boolean、类型或`projectFactVersion`。非事实影响difference revision永久保持`factImpactType/projectFactVersion=NULL`；只有独立更正、重开或豁免失效revision在创建事务持有PROJ项目锁并分配项目事实版本。
 - successor根必须保存服务端分配的`successorReason=SUPPLEMENT|CORRECTION|DIFFERENCE_CLOSURE|EXEMPTION_INVALIDATION`。`SUPPLEMENT`只表示新到范围的普通补签且确认后`reopened=false`；其余三类均明确发生在已发布历史之后，后继确认时由根分配新项目事实版本且`reopened=true`。后继仍为DRAFT时不提前发布事实。
+- `Q-FIMP002-002`已裁决采用方案B：`batchCode`是业务到货批次的稳定身份，所有successor必须原样继承直接前驱已存储的规范化值，禁止后缀、截断或调用其他Owner生成新码；`CORRECT_INFORMATION`不得修改它。初始根以服务端`batch_root_marker=1`占用`tenant+project+batchCode`，successor的marker为NULL；每个前驱最多一个直接successor，创建前锁前驱并重验tenant/project。平台同键同载荷重放返回同一`successorAcceptanceId`，不同key/intent不得为同一前驱创建兄弟节点。
 - 数量差异的`SUPPLEMENT`携带严格同一订单/型号单位身份和正数`supplementQuantity`。小于当前未满足量时，同一事务追加ACCEPTED line revision，并把当前差异追加为仅含精确剩余量的`OPEN` revision；等于未满足量时追加`SUPPLEMENTED` revision。DEVICE差异只能整项补签，不能用数量裁剪。任何补签不得超过当前差异剩余量或COM当前范围。
 - 豁免到期由Task 5B内部`ExpireArrivalExemptionsCommand`处理，不由Fact查询产生副作用：按到期时间和稳定ID领取current `EXEMPTED` revision，逐项目取得PROJ权威锁，再锁根/明细/差异并重验COM/AST/PLT；同事务创建`EXEMPTION_INVALIDATION` successor DRAFT、追加事实影响差异revision、分配`projectFactVersion`并使旧事实陈旧。身份、版本、范围或证据无法重验时失败关闭并保留待重试，不从当前时间查询结果直接推导事实完成。
 
