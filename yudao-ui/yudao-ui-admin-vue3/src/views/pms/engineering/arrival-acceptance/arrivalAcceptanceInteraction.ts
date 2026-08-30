@@ -247,6 +247,70 @@ export const runArrivalIntent = async <T>(options: {
   }
 }
 
+export type ArrivalIntentStore = ReturnType<typeof createArrivalIntentStore>
+export type ArrivalIntentExecution =
+  | {
+      commandSucceeded: false
+      recovery: ArrivalCommandFailure
+      keyRetained: boolean
+      refreshSucceeded: boolean | null
+      retryRefresh: null
+    }
+  | {
+      commandSucceeded: true
+      recovery: null
+      keyRetained: false
+      refreshSucceeded: boolean
+      retryRefresh: (() => Promise<void>) | null
+    }
+
+export const runArrivalIntent = async <T>(options: {
+  intent: string
+  store: ArrivalIntentStore
+  call: (key: string) => Promise<T>
+  refreshAfterSuccess: (result: T) => Promise<void>
+  refreshAfterFailure: () => Promise<void>
+}): Promise<ArrivalIntentExecution> => {
+  const key = options.store.key(options.intent)
+  let result: T
+  try {
+    result = await options.call(key)
+  } catch (error) {
+    const recovery = resolveArrivalCommandFailure(error)
+    const keyRetained = recovery === 'RETAIN_INTENT'
+    if (!keyRetained) options.store.complete(options.intent)
+    let refreshSucceeded: boolean | null = null
+    if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
+      try {
+        await options.refreshAfterFailure()
+        refreshSucceeded = true
+      } catch {
+        refreshSucceeded = false
+      }
+    }
+    return { commandSucceeded: false, recovery, keyRetained, refreshSucceeded, retryRefresh: null }
+  }
+  options.store.complete(options.intent)
+  try {
+    await options.refreshAfterSuccess(result)
+    return {
+      commandSucceeded: true,
+      recovery: null,
+      keyRetained: false,
+      refreshSucceeded: true,
+      retryRefresh: null
+    }
+  } catch {
+    return {
+      commandSucceeded: true,
+      recovery: null,
+      keyRetained: false,
+      refreshSucceeded: false,
+      retryRefresh: () => options.refreshAfterSuccess(result)
+    }
+  }
+}
+
 export const truncateEvidenceName = (name: string, maximum: number) => {
   if (name.length <= maximum) return name
   return `${name.slice(0, Math.max(0, maximum - 1))}…`
