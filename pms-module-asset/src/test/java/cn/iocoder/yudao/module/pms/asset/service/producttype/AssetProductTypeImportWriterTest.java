@@ -22,8 +22,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -82,6 +85,138 @@ class AssetProductTypeImportWriterTest {
         verifyNoInteractions(sourceOrder, productTypeMapper, currentProductTypeMapper, deviceMapper);
         verify(sourceMappingMapper, never()).insert(any(AssetProductTypeSourceMappingDO.class));
         verify(sourceMappingMapper, never()).updateById(any(AssetProductTypeSourceMappingDO.class));
+    }
+
+    @Test
+    void shouldRejectSoftDeletedProductTypeCodeBeforeBusinessWrites() {
+        AssetProductTypeDO productType = productType(11L, "TYPE-A");
+        productType.setSourceSystem("CRM");
+        productType.setSourceKey("source-1");
+        productType.setDeleted(true);
+        when(sourceMappingMapper.selectForImportUpdate(any())).thenReturn(null);
+        when(productTypeMapper.selectByCodeForUpdate(any())).thenReturn(productType);
+
+        AssetProductTypeImportRejectedException rejection = assertThrows(
+                AssetProductTypeImportRejectedException.class,
+                () -> writer.importOnce(1L, 9L, command("TYPE-A", time(10), List.of())));
+
+        assertEquals("PRODUCT_TYPE_CODE_RESERVED", rejection.rejectionCode());
+        verify(productTypeMapper, never()).insert(any(AssetProductTypeDO.class));
+        verify(productTypeMapper, never()).updateById(any(AssetProductTypeDO.class));
+        verifyNoInteractions(currentProductTypeMapper, deviceMapper);
+        verify(sourceMappingMapper, never()).insert(any(AssetProductTypeSourceMappingDO.class));
+    }
+
+    @Test
+    void shouldReturnIdempotentReplayWithoutBusinessWrites() {
+        AssetProductTypeSourceMappingDO mapping = mapping("v2", time(10), "b", 11L);
+        when(sourceMappingMapper.selectForImportUpdate(any())).thenReturn(mapping);
+        when(productTypeMapper.selectById(11L)).thenReturn(productType(11L, "TYPE-A"));
+        when(sourceOrder.decide(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(AssetProductTypeSourceOrder.Decision.IDEMPOTENT_REPLAY);
+
+        var result = writer.importOnce(1L, 9L, command("TYPE-A", time(10), List.of()));
+
+        assertTrue(result.replayed());
+        assertEquals(11L, result.productTypeId());
+        assertEquals(21L, result.sourceMappingId());
+        verify(productTypeMapper, never()).selectByCodeForUpdate(any());
+        verify(productTypeMapper, never()).insert(any(AssetProductTypeDO.class));
+        verify(productTypeMapper, never()).updateById(any(AssetProductTypeDO.class));
+        verify(sourceMappingMapper, never()).insert(any(AssetProductTypeSourceMappingDO.class));
+        verify(sourceMappingMapper, never()).updateById(any(AssetProductTypeSourceMappingDO.class));
+        verifyNoInteractions(currentProductTypeMapper, deviceMapper);
+    }
+
+    @Test
+    void shouldRejectStaleSourceWithoutBusinessWrites() {
+        AssetProductTypeSourceMappingDO mapping = mapping("v3", time(11), "c", 11L);
+        when(sourceMappingMapper.selectForImportUpdate(any())).thenReturn(mapping);
+        when(productTypeMapper.selectById(11L)).thenReturn(productType(11L, "TYPE-A"));
+        when(sourceOrder.decide(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(AssetProductTypeSourceOrder.Decision.STALE_SOURCE);
+
+        AssetProductTypeImportRejectedException rejection = assertThrows(
+                AssetProductTypeImportRejectedException.class,
+                () -> writer.importOnce(1L, 9L, command("TYPE-A", time(10), List.of())));
+
+        assertEquals("STALE_SOURCE", rejection.rejectionCode());
+        verify(productTypeMapper, never()).selectByCodeForUpdate(any());
+        verify(productTypeMapper, never()).insert(any(AssetProductTypeDO.class));
+        verify(productTypeMapper, never()).updateById(any(AssetProductTypeDO.class));
+        verify(sourceMappingMapper, never()).insert(any(AssetProductTypeSourceMappingDO.class));
+        verify(sourceMappingMapper, never()).updateById(any(AssetProductTypeSourceMappingDO.class));
+        verifyNoInteractions(currentProductTypeMapper, deviceMapper);
+    }
+
+    @Test
+    void shouldCreateCompleteControlledCopyAndSourceMappingOnFirstImport() {
+        when(sourceMappingMapper.selectForImportUpdate(any())).thenReturn(null);
+        when(productTypeMapper.selectByCodeForUpdate(any())).thenReturn(null);
+        when(productTypeMapper.insert(any(AssetProductTypeDO.class))).thenAnswer(invocation -> {
+            invocation.<AssetProductTypeDO>getArgument(0).setId(11L);
+            return 1;
+        });
+        when(sourceMappingMapper.insert(any(AssetProductTypeSourceMappingDO.class))).thenAnswer(invocation -> {
+            invocation.<AssetProductTypeSourceMappingDO>getArgument(0).setId(21L);
+            return 1;
+        });
+        ArgumentCaptor<AssetProductTypeDO> productCaptor = ArgumentCaptor.forClass(AssetProductTypeDO.class);
+        ArgumentCaptor<AssetProductTypeSourceMappingDO> mappingCaptor =
+                ArgumentCaptor.forClass(AssetProductTypeSourceMappingDO.class);
+
+        var result = writer.importOnce(1L, 9L, command("TYPE-A", time(10), List.of()));
+
+        verify(productTypeMapper).insert(productCaptor.capture());
+        verify(sourceMappingMapper).insert(mappingCaptor.capture());
+        AssetProductTypeDO productType = productCaptor.getValue();
+        AssetProductTypeSourceMappingDO mapping = mappingCaptor.getValue();
+        assertFalse(result.replayed());
+        assertEquals(1L, productType.getTenantId());
+        assertEquals("TYPE-A", productType.getTypeCode());
+        assertEquals("类型A", productType.getDisplayName());
+        assertTrue(productType.getEnabled());
+        assertEquals("CRM", productType.getSourceSystem());
+        assertEquals("source-1", productType.getSourceKey());
+        assertEquals("v2", productType.getSourceVersion());
+        assertEquals(time(10), productType.getSourceUpdatedAt());
+        assertEquals("b".repeat(64), productType.getPayloadHash());
+        assertEquals("FRESH", productType.getSyncStatus());
+        assertNotNull(productType.getSyncedAt());
+        assertEquals("RESOLVED", mapping.getMappingStatus());
+        assertEquals(11L, mapping.getProductTypeId());
+        assertEquals(productType.getSyncedAt(), mapping.getSyncedAt());
+    }
+
+    @Test
+    void shouldUpdateControlledCopyAndMappingForNewerSource() {
+        AssetProductTypeSourceMappingDO mapping = mapping("v1", time(9), "a", 11L);
+        AssetProductTypeDO productType = productType(11L, "TYPE-A");
+        productType.setSourceSystem("CRM");
+        productType.setSourceKey("source-1");
+        when(sourceMappingMapper.selectForImportUpdate(any())).thenReturn(mapping);
+        when(productTypeMapper.selectById(11L)).thenReturn(productType);
+        when(sourceOrder.decide(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(AssetProductTypeSourceOrder.Decision.NEWER);
+        when(productTypeMapper.selectByCodeForUpdate(any())).thenReturn(productType);
+        when(productTypeMapper.updateById(productType)).thenReturn(1);
+        when(sourceMappingMapper.updateById(mapping)).thenReturn(1);
+
+        var result = writer.importOnce(1L, 9L, command("TYPE-A", time(10), List.of()));
+
+        assertFalse(result.replayed());
+        assertEquals("类型A", productType.getDisplayName());
+        assertTrue(productType.getEnabled());
+        assertEquals("v2", productType.getSourceVersion());
+        assertEquals(time(10), productType.getSourceUpdatedAt());
+        assertEquals("b".repeat(64), productType.getPayloadHash());
+        assertEquals("FRESH", productType.getSyncStatus());
+        assertEquals("v2", mapping.getSourceVersion());
+        assertEquals(time(10), mapping.getSourceUpdatedAt());
+        assertEquals("b".repeat(64), mapping.getPayloadHash());
+        assertEquals("RESOLVED", mapping.getMappingStatus());
+        verify(productTypeMapper).updateById(productType);
+        verify(sourceMappingMapper).updateById(mapping);
     }
 
     @Test

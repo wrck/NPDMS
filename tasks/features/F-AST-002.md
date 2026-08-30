@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：Task 5已通过独立复审，待提交本逻辑单元；提交后进入Task 6跨单元定向回归，后续Task未验证内容不得提前宣称完成
+> 当前阻断：Task 6已通过独立复审，待提交本逻辑单元；提交后进入Task 7真实MySQL迁移、幂等与并发验证，后续Task未验证内容不得提前宣称完成
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 5两个通用公开查询、可信主体与委托用户守卫、项目数据范围、批量映射和薄API适配已完成实现、定向验证和独立复审；当前最小工作单元为Task 5提交，提交后进入Task 6。
+- Task 6跨单元定向回归、遗漏补测和软删除稳定编码缺陷整改已完成验证和独立复审；当前最小工作单元为Task 6提交，提交后进入Task 7。
 
 ## 已完成
 
@@ -27,6 +27,7 @@
 - Task 3已交付三个场景化Query、三个Mapper、三个XML和授权设备投影；动态集合空范围失败关闭，来源映射按稳定唯一键`FOR UPDATE`，授权设备单次联查当前项目与有效项目关系并保留未解析状态。首轮独立复审NO-GO指出逻辑删除和真实证据缺口，已补齐三类表逻辑删除条件与负向验证。定向测试19项、真实MySQL Mapper 3项、标准Flyway validate和模块编译均PASS；最终独立复审`GO / NPDMS-FAST002-TASK3-FINAL-REVIEW-20260830-01`。
 - Task 4已交付唯一受控导入POST入口、Controller与Service双重专用权限、认证上下文租户/操作者、`sourceUpdatedAt`唯一排序水位、平台幂等成功编排、产品类型/来源映射/设备当前引用事务写入、冲突`REQUIRES_NEW`记录、来源失败保留最近成功副本和摘要化操作审计；软删除来源键继续占用并稳定拒绝，冲突审计携带当前来源证据，并发推进保护不会反向覆盖更晚成功事实。V147只登记`pms:asset-product-type:controlled-import`且不绑定角色，固定测试库Flyway validate 143项PASS。Task 4定向测试30项、真实MySQL事务/Mapper 7项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO / NPDMS-FAST002-TASK4-REMEDIATION-REVIEW-20260831-01`，不代表Feature Implementation Done。
 - Task 5已交付`AssetProductTypeQueryService`和薄`AssetProductTypeApiImpl`：按编码查询在可信动作校验后一次批量读取并按请求顺序补齐未知、停用和最近成功副本事实；授权设备查询校验可信动作与委托用户，空设备/空项目范围失败关闭，以统一`effectiveAt`复用Task 3联查并映射未解析状态。Task 5定向测试10项、Task 1/3/5组合定向测试21项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO / F-AST-002-TASK5-CURRENT-DIFF-REVIEW-20260831-01`。Inspection不可伪造专用适配器仍保留在Task 8，本结论不代表Feature Implementation Done。
+- Task 6已执行Task 1至5跨单元定向回归，并补齐Writer首次导入、幂等重放、陈旧来源、更晚来源更新、既有副本空响应保留和审计详情脱敏证据；回归发现软删除产品类型编码会被同源导入错误更新，已最小修复为`PRODUCT_TYPE_CODE_RESERVED`稳定拒绝且不写产品类型、来源映射或设备事实。15个测试类71项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO`。真实MySQL软删除唯一键、事务和并发证据仍保留在Task 7，本结论不代表Feature Implementation Done。
 
 ## 实施范围
 

@@ -63,6 +63,36 @@ class AssetProductTypeSourceFailureWriterTest {
     }
 
     @Test
+    void shouldPreserveSuccessfulCopyWhenSourceReturnsEmptyResponse() {
+        AssetProductTypeSourceMappingDO mapping = new AssetProductTypeSourceMappingDO();
+        mapping.setProductTypeId(11L);
+        AssetProductTypeDO productType = new AssetProductTypeDO();
+        productType.setId(11L);
+        productType.setTypeCode("TYPE-A");
+        productType.setDisplayName("类型A");
+        productType.setSourceVersion("v1");
+        productType.setSourceUpdatedAt(LocalDateTime.of(2026, 8, 30, 9, 0));
+        productType.setPayloadHash("a".repeat(64));
+        productType.setSyncedAt(LocalDateTime.of(2026, 8, 30, 9, 1));
+        when(sourceMappingMapper.selectForUpdate(any())).thenReturn(mapping);
+        when(productTypeMapper.selectById(11L)).thenReturn(productType);
+
+        writer.markFailed(1L, 9L, new RecordAssetProductTypeSourceFailureCommand(
+                "op-1", "CRM", "source-1", "EMPTY_RESPONSE"));
+
+        assertEquals("FAILED", productType.getSyncStatus());
+        assertEquals("TYPE-A", productType.getTypeCode());
+        assertEquals("类型A", productType.getDisplayName());
+        assertEquals("v1", productType.getSourceVersion());
+        assertEquals(LocalDateTime.of(2026, 8, 30, 9, 0), productType.getSourceUpdatedAt());
+        assertEquals("a".repeat(64), productType.getPayloadHash());
+        assertEquals(LocalDateTime.of(2026, 8, 30, 9, 1), productType.getSyncedAt());
+        verify(productTypeMapper).updateById(productType);
+        verify(auditService).recordSourceFailure(
+                1L, 9L, "op-1", "CRM", "source-1", "EMPTY_RESPONSE");
+    }
+
+    @Test
     void shouldNotCreateGuessedFactWhenSuccessfulCopyDoesNotExist() {
         when(sourceMappingMapper.selectForUpdate(any())).thenReturn(null);
 

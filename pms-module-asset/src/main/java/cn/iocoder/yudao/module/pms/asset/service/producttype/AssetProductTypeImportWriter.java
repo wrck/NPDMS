@@ -75,6 +75,9 @@ public class AssetProductTypeImportWriter {
         LocalDateTime now = LocalDateTime.now();
         AssetProductTypeDO productType = productTypeMapper.selectByCodeForUpdate(
                 new ProductTypeCodeLockQuery(tenantId, command.productTypeCode()));
+        if (productType != null && Boolean.TRUE.equals(productType.getDeleted())) {
+            throw AssetProductTypeImportRejectedException.productTypeCodeReserved(command, productType);
+        }
         if (productType != null && (!Objects.equals(productType.getSourceSystem(), command.sourceSystem())
                 || !Objects.equals(productType.getSourceKey(), command.sourceKey()))) {
             throw AssetProductTypeImportRejectedException.codeConflict(command, productType.getSourceSystem(),

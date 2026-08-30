@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.asset.service.producttype;
 
 import cn.iocoder.yudao.framework.common.exception.ErrorCode;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.AssetProductTypeDO;
 import cn.iocoder.yudao.module.pms.asset.service.producttype.command.ImportAssetProductTypeCommand;
 
 import java.time.LocalDateTime;
@@ -71,6 +72,13 @@ public class AssetProductTypeImportRejectedException extends RuntimeException {
         return new AssetProductTypeImportRejectedException(AST_PRODUCT_TYPE_SOURCE_CONFLICT,
                 "SOURCE_KEY_RESERVED", command, null, command.sourceSystem(), command.sourceKey(), null,
                 observedSourceUpdatedAt, false);
+    }
+
+    public static AssetProductTypeImportRejectedException productTypeCodeReserved(
+            ImportAssetProductTypeCommand command, AssetProductTypeDO productType) {
+        return new AssetProductTypeImportRejectedException(AST_PRODUCT_TYPE_CODE_CONFLICT,
+                "PRODUCT_TYPE_CODE_RESERVED", command, command.productTypeCode(), productType.getSourceSystem(),
+                productType.getSourceKey(), productType.getSourceVersion(), productType.getSourceUpdatedAt(), false);
     }
 
     public static AssetProductTypeImportRejectedException crossTenant(ImportAssetProductTypeCommand command) {
