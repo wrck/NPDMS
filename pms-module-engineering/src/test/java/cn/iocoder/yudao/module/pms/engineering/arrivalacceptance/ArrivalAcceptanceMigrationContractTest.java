@@ -17,6 +17,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String schemaSql;
     private static String qualificationUpgradeSql;
     private static String fileFactUpgradeSql;
+    private static String differenceFactUpgradeSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -31,6 +32,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         fileFactUpgradeSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V135__fimp002_file_fact_versions.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        differenceFactUpgradeSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V136__fimp002_nullable_difference_fact_version.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -137,6 +141,27 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(signal > guard);
         assertTrue(alter > signal);
         assertFalse(fileFactUpgradeSql.contains("UPDATE `imp_delivery_evidence_revision`"));
+    }
+
+    @Test
+    void makesDifferenceFactVersionNullableWithoutDefaultOrBackfill() {
+        assertTrue(differenceFactUpgradeSql.contains(
+                "MODIFY COLUMN `project_fact_version` bigint NULL"));
+        assertTrue(differenceFactUpgradeSql.contains(
+                "`project_fact_version` IS NULL OR `project_fact_version` >= 0"));
+        assertFalse(differenceFactUpgradeSql.contains(" DEFAULT "));
+        assertFalse(differenceFactUpgradeSql.contains("UPDATE `imp_arrival_difference`"));
+    }
+
+    @Test
+    void rejectsNonEmptyDifferenceTableBeforeChangingNullability() {
+        int guard = differenceFactUpgradeSql.indexOf(
+                "IF EXISTS (SELECT 1 FROM `imp_arrival_difference` LIMIT 1)");
+        int signal = differenceFactUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
+        int alter = differenceFactUpgradeSql.indexOf("ALTER TABLE `imp_arrival_difference`");
+        assertTrue(guard >= 0);
+        assertTrue(signal > guard);
+        assertTrue(alter > signal);
     }
 
     private static int occurrences(String source, String token) {

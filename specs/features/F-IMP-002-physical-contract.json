@@ -22,7 +22,16 @@
       "nullableUntilConfirm": ["project_fact_version"],
       "confirmRequiredReferences": ["project_fact_version", "evidence_id", "evidence_revision"],
       "uniqueKeys": [["tenant_id", "project_id", "batch_code"], ["tenant_id", "project_id", "project_fact_version"]],
-      "projectFactVersionPolicy": "ALLOCATE_MONOTONIC_VERSION_FOR_EACH_PROJECT_FACT_AFFECTING_CONFIRMATION_OR_INVALIDATION; NULL_BEFORE_CONFIRM",
+      "projectFactVersionPolicy": {
+        "timing": "SUBMIT_REMAINS_NULL; ALLOCATE_FOR_CONFIRMATION_OR_FACT_AFFECTING_SOURCE_ONLY",
+        "serializationLock": "HOLD_PROJ_AUTHORITATIVE_TENANT_PROJECT_ROW_LOCK_UNTIL_OUTER_TRANSACTION_COMMIT",
+        "allocation": "MAX_OF_ALL_NON_NULL_AUTHORITATIVE_ALLOCATION_SET_PLUS_ONE",
+        "authoritativeAllocationSet": [
+          "imp_arrival_acceptance.project_fact_version FOR_SAME_TENANT_PROJECT",
+          "imp_arrival_difference.project_fact_version JOINED_BY_ARRIVAL_ACCEPTANCE FOR_SAME_TENANT_PROJECT"
+        ],
+        "guards": ["IGNORE_NULL", "UNQUALIFIED_LEGACY_VALUE_FORBIDDEN", "UNIQUE_KEY_IS_LAST_CONFLICT_GUARD", "CONFLICT_ROLLS_BACK_WITHOUT_RENUMBER"]
+      },
       "migrationResolutionStatuses": ["NOT_APPLICABLE", "PENDING_RECONCILIATION", "RECONCILED"],
       "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; CORRECTIONS_CREATE_LINKED_SUCCESSOR_DRAFTS"
     },
@@ -37,7 +46,9 @@
     {
       "name": "imp_arrival_difference",
       "purpose": "差异、拒收处置和具体豁免的不可变版本",
-      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "scope_snapshot", "project_fact_version", "current_marker", "version"],
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "scope_snapshot", "current_marker", "version"],
+      "nullableUnlessFactAffectingSource": ["project_fact_version"],
+      "projectFactVersionPolicy": ["FACT_AFFECTING_SOURCE_REQUIRES_ALLOCATED_VERSION_AT_INSERT", "NON_FACT_AFFECTING_REVISION_MUST_REMAIN_NULL", "NEVER_BACKFILL_IMMUTABLE_REVISION", "RESOLUTION_STATUS_ALONE_DOES_NOT_PROVE_FACT_IMPACT"],
       "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
       "scopeSnapshotContract": {
         "discriminator": "scopeType",

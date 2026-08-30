@@ -52,7 +52,8 @@
 - 每个`ArrivalDifference` revision的`scope_snapshot`使用严格判别联合：设备固定为`{"scopeType":"DEVICE","deviceId":正整数Long}`；数量固定为`{"scopeType":"ORDER_MODEL_QUANTITY","orderLineId":正整数Long,"productCode":String|null,"modelCode":String|null,"quantity":正BigDecimal,"unitCode":非空String}`。数量结构中`productCode/modelCode`规范化后至少一项非空，空值统一写JSON `null`；两种结构只能包含各自列出的精确键，禁止额外键、缺键、字符串数字、零/负数量、空白代码和未知`scopeType`。
 - `EXEMPTED`累计只解析已确认批次中当前、未过期且批准人/批准时间/证据完整的revision；旧形状、未知形状、解析失败或越出当前应到范围的快照失败关闭且不得计入豁免，禁止从XLSX、reason文本或`arrival_line`当前值猜测。
 - DIFFERENCE_PENDING只能在每个差异均追加`SUPPLEMENTED/REJECTED/EXEMPTED/CLOSED`处置后离开；补签使对应明细转入新版本ACCEPTED，拒收保持原范围未满足，豁免仅在有效期内满足明确范围。重算后进入PARTIALLY_ACCEPTED或ACCEPTED，再由项目经理确认。
-- 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；新记录提交/确认或豁免到期时递增项目`factVersion`并使旧事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
+- 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；普通`submit`只计算候选状态且不分配`factVersion`，首次确认及后续真正影响已发布项目事实的确认、更正、重开或豁免失效才递增项目`factVersion`并使旧事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
+- 初始批次确认分配的`project_fact_version`只写`imp_arrival_acceptance`根；确认前已存在且未独立改变已发布项目事实的OPEN或处置revision，其`imp_arrival_difference.project_fact_version`在插入时为NULL并永久保持NULL，不得在确认时回填不可变历史。只有某个新追加差异revision本身构成已发布事实的更正、重开、失效或其他独立事实影响源时，才在创建该revision的同一事务分配非空版本，不能仅凭`resolution_status`推断。
 
 ## 4. DeliveryEvidence与ACC-04契约
 
@@ -84,7 +85,7 @@
 
 机器物理契约：`specs/features/F-IMP-002-physical-contract.json`；旧实现审计：`specs/features/F-IMP-002-legacy-reuse-audit.md`。
 
-- 到货Owner三表固定为`imp_arrival_acceptance`、`imp_arrival_line`、`imp_arrival_difference`；EXE-01证据支撑复用正式IMP Owner表`imp_delivery_evidence`、`imp_delivery_evidence_revision`。到货根保存批次、范围快照、项目级事实版本和迁移核对状态并引用证据revision；证据根保存ACC同步投影。每个影响项目里程碑的提交按项目分配单调`factVersion`并写入来源记录，不另造项目完成表。
+- 到货Owner三表固定为`imp_arrival_acceptance`、`imp_arrival_line`、`imp_arrival_difference`；EXE-01证据支撑复用正式IMP Owner表`imp_delivery_evidence`、`imp_delivery_evidence_revision`。到货根保存批次、范围快照、项目级事实版本和迁移核对状态并引用证据revision；证据根保存ACC同步投影。所有版本分配路径必须在同一事务先持有对应`tenantId + projectId`的PROJ权威项目行锁，再取该项目`imp_arrival_acceptance.project_fact_version`与通过批次根关联的`imp_arrival_difference.project_fact_version`全部非NULL已分配值的MAX+1；不得直接读PROJ表或另造本地锁，唯一键只作最终冲突保护。普通提交保持NULL，首次确认及真正影响项目事实的来源才分配并写入对应不可变来源记录，不另造项目完成表。
 - `pms_eng_arrival -> imp_arrival_*`执行`CURRENT_FORWARD`，只迁移可证明的身份、项目、批次编码、发生时间、操作者引用和原始说明。旧`equipment_id`须先映射到AST稳定设备；旧`attachment_url`须先转为有效FileReference；任一失败均保持待核对，不补默认值。
 - 旧`status=0/1/2`、`inspection_result`、`exception_record`、单个`quantity`和测试种子均不足以证明当前应到范围、差异闭环、有效豁免或不可变证据。任何旧行不得仅凭tinyint直接产生`ACCEPTED`事实。
 - 无法证明设备、数量、证据或完整性的新行保留旧记录并登记`PENDING_RECONCILIATION`迁移处置；不生成可供EXE-02/EXE-06消费的完成事实，不双写旧表。
