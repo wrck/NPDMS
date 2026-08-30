@@ -11,14 +11,14 @@ public record DeviceScopeResolutionResult(Decision decision, DeviceScopeFact fac
 
     public DeviceScopeResolutionResult {
         if (decision == null || invalidItems == null || invalidItems.stream().anyMatch(item -> item == null)) {
-            throw invalid("resolution result is incomplete");
+            throw corrupted("resolution result is incomplete");
         }
         invalidItems = ordered(invalidItems);
         if (decision == Decision.RESOLVED && (fact == null || !invalidItems.isEmpty())) {
-            throw invalid("RESOLVED requires fact and no invalid items");
+            throw corrupted("RESOLVED requires fact and no invalid items");
         }
         if (decision == Decision.INVALID && (fact != null || invalidItems.isEmpty())) {
-            throw invalid("INVALID requires invalid items and no partial fact");
+            throw corrupted("INVALID requires invalid items and no partial fact");
         }
     }
 
@@ -33,7 +33,7 @@ public record DeviceScopeResolutionResult(Decision decision, DeviceScopeFact fac
                 .thenComparing(DeviceScopeInvalidItem::serialNumber)).toList();
     }
 
-    private static DeviceScopeFactException invalid(String message) {
-        return new DeviceScopeFactException(DeviceScopeFactException.Code.INVALID_REQUEST, message);
+    private static DeviceScopeFactException corrupted(String message) {
+        return new DeviceScopeFactException(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED, message);
     }
 }

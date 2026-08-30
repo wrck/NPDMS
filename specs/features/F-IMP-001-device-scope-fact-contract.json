@@ -61,11 +61,22 @@
   },
   "revalidation": {
     "decisions": ["VALID", "STALE", "INVALID"],
-    "valid": "FULL_SET_AND_ALL_ASSIGNMENT_VERSIONS_EQUAL",
-    "stale": "FULL_SET_REMAINS_ELIGIBLE_BUT_ANY_PROJECT_ASSIGNMENT_VERSION_CHANGED",
+    "valid": "FULL_SET_SAME_DEVICE_ID_AND_NORMALIZED_SERIAL_IDENTITY_AND_ALL_ASSIGNMENT_VERSIONS_EQUAL",
+    "stale": "FULL_SET_SAME_DEVICE_ID_AND_NORMALIZED_SERIAL_IDENTITY_REMAINS_ELIGIBLE_BUT_ANY_PROJECT_ASSIGNMENT_VERSION_CHANGED",
+    "serialIdentityInvariant": "SAME_DEVICE_ID_CURRENT_OWNER_SERIAL_COMPARISON_KEY_MUST_EQUAL_FROZEN_SERIAL_COMPARISON_KEY",
+    "serialIdentityViolation": "DeviceScopeFactException.OWNER_DATA_CORRUPTED",
     "invalidReasons": ["NOT_FOUND", "STATUS_INELIGIBLE", "PROJECT_MISMATCH"],
     "invalidPolicy": "NO_PARTIAL_FACT",
+    "expectedScopeWatermarkType": "DeviceScopeRevalidationQuery.ExpectedScopeWatermark",
     "expectedSetPolicy": "EXPECTED_DEVICES_AND_EXPECTED_SCOPE_WATERMARK_MUST_DESCRIBE_THE_SAME_COMPLETE_SET"
+  },
+  "validationOwnership": {
+    "callerQueryOrExpectedWatermarkInvalid": "INVALID_REQUEST",
+    "callerNormalizedSerialDuplicate": "DUPLICATE_SERIAL",
+    "providerFactInvalid": "OWNER_DATA_CORRUPTED",
+    "providerInvalidItemInvalid": "OWNER_DATA_CORRUPTED",
+    "providerResultCombinationInvalid": "OWNER_DATA_CORRUPTED",
+    "forbidden": "REUSE_PROVIDER_SCOPE_WATERMARK_AS_CALLER_EXPECTED_WATERMARK_TYPE"
   },
   "stableFailures": [
     "INVALID_REQUEST",

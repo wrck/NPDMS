@@ -70,18 +70,47 @@ class DeviceScopeFactApiContractTest {
                 new DeviceScopeRevalidationQuery.ExpectedDevice(22L, "SN-22", 8L),
                 new DeviceScopeRevalidationQuery.ExpectedDevice(11L, "SN-11", 7L));
         DeviceScopeRevalidationQuery query = new DeviceScopeRevalidationQuery(1L, 10L, devices,
-                new DeviceScopeFact.ScopeWatermark(List.of(
-                        new DeviceScopeFact.WatermarkEntry(11L, 7L),
-                        new DeviceScopeFact.WatermarkEntry(22L, 8L))));
+                new DeviceScopeRevalidationQuery.ExpectedScopeWatermark(List.of(
+                        new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(11L, 7L),
+                        new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(22L, 8L))));
         assertEquals(List.of(11L, 22L), query.expectedDevices().stream()
                 .map(DeviceScopeRevalidationQuery.ExpectedDevice::deviceId).toList());
 
         DeviceScopeFactException mismatch = assertThrows(DeviceScopeFactException.class,
                 () -> new DeviceScopeRevalidationQuery(1L, 10L, devices,
-                        new DeviceScopeFact.ScopeWatermark(List.of(
-                                new DeviceScopeFact.WatermarkEntry(11L, 7L),
-                                new DeviceScopeFact.WatermarkEntry(22L, 9L)))));
+                        new DeviceScopeRevalidationQuery.ExpectedScopeWatermark(List.of(
+                                new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(11L, 7L),
+                                new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(22L, 9L)))));
         assertEquals(DeviceScopeFactException.Code.INVALID_REQUEST, mismatch.getCode());
+    }
+
+    @Test
+    void callerWatermarkFailureAndProviderOutputFailureHaveDifferentOwnership() {
+        DeviceScopeFactException callerFailure = assertThrows(DeviceScopeFactException.class,
+                () -> new DeviceScopeRevalidationQuery.ExpectedScopeWatermark(List.of(
+                        new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(11L, -1L))));
+        assertEquals(DeviceScopeFactException.Code.INVALID_REQUEST, callerFailure.getCode());
+
+        DeviceScopeFactException providerItemFailure = assertThrows(DeviceScopeFactException.class,
+                () -> new DeviceScopeInvalidItem(-1L, "SN-11", DeviceScopeInvalidItem.Reason.NOT_FOUND));
+        assertEquals(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED, providerItemFailure.getCode());
+        DeviceScopeFactException providerResultFailure = assertThrows(DeviceScopeFactException.class,
+                () -> new DeviceScopeRevalidationResult(
+                        DeviceScopeRevalidationResult.Decision.INVALID, fact(), List.of()));
+        assertEquals(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED, providerResultFailure.getCode());
+    }
+
+    @Test
+    void sameDeviceIdMustKeepTheFrozenNormalizedSerialIdentity() {
+        DeviceScopeRevalidationQuery query = new DeviceScopeRevalidationQuery(1L, 10L,
+                List.of(new DeviceScopeRevalidationQuery.ExpectedDevice(11L, " sn-11 ", 7L)),
+                new DeviceScopeRevalidationQuery.ExpectedScopeWatermark(List.of(
+                        new DeviceScopeRevalidationQuery.ExpectedWatermarkEntry(11L, 7L))));
+        query.requireCurrentSerialIdentity(11L, "SN-11");
+
+        DeviceScopeFactException changed = assertThrows(DeviceScopeFactException.class,
+                () -> query.requireCurrentSerialIdentity(11L, "SN-OTHER"));
+        assertEquals(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED, changed.getCode());
     }
 
     @Test
@@ -98,10 +127,12 @@ class DeviceScopeFactApiContractTest {
         assertNull(invalid.currentFact());
         assertEquals(DeviceScopeInvalidItem.Reason.PROJECT_MISMATCH, invalid.invalidItems().getFirst().reason());
 
-        assertThrows(DeviceScopeFactException.class, () -> new DeviceScopeRevalidationResult(
-                DeviceScopeRevalidationResult.Decision.INVALID, fact, invalid.invalidItems()));
-        assertThrows(DeviceScopeFactException.class, () -> new DeviceScopeResolutionResult(
-                DeviceScopeResolutionResult.Decision.INVALID, null, List.of()));
+        assertEquals(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED,
+                assertThrows(DeviceScopeFactException.class, () -> new DeviceScopeRevalidationResult(
+                        DeviceScopeRevalidationResult.Decision.INVALID, fact, invalid.invalidItems())).getCode());
+        assertEquals(DeviceScopeFactException.Code.OWNER_DATA_CORRUPTED,
+                assertThrows(DeviceScopeFactException.class, () -> new DeviceScopeResolutionResult(
+                        DeviceScopeResolutionResult.Decision.INVALID, null, List.of())).getCode());
     }
 
     @Test

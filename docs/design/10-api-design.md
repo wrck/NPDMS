@@ -302,7 +302,8 @@ AST公开`DeviceScopeFactApi.resolveBySerials(DeviceScopeResolveQuery)`与`lockA
 - `resolveBySerials`接收非空SN列表。每项先trim，空白拒绝，再以`Locale.ROOT` uppercase形成比较键；规范化后重复属于`DUPLICATE_SERIAL`输入错误，不静默去重。数据库匹配遵循`ast_device`租户内SN唯一语义，响应保留Owner已存储的规范化SN，并按`deviceId`升序。
 - 可进入设备范围事实的状态封闭为`ACTIVE/IN_STOCK/IN_USE/FAULT/REPAIRING`；`RETIRED`、空值或未知值均为`STATUS_INELIGIBLE`。只读取`deleted=b'0'`且`currentProjectId`精确等于请求项目的设备；其他租户的同SN按`NOT_FOUND`处理，不泄漏跨租户身份。
 - `DeviceScopeFact`返回`tenantId/projectId/devices/scopeWatermark`。设备项仅含`deviceId/sn/currentProjectId/projectAssignmentVersion`；水位仅含按`deviceId`升序的`deviceId/projectAssignmentVersion`向量，不使用哈希、摘要、伪全局版本或新表。
-- `lockAndRevalidate`接收完整期望设备项与相同水位，按`deviceId`升序锁`ast_device`当前投影并校验集合完全相等。集合仍完整有效但任一归属版本变化时返回`STALE`和当前完整事实；缺失、状态不可用、错项目返回`INVALID`及按`deviceId`稳定排序的逐项原因，不返回部分有效事实；Provider不可用或Owner数据损坏抛AST公共稳定失败类型，不伪装为`STALE`。
+- `lockAndRevalidate`接收完整期望设备项与调用方专用`ExpectedScopeWatermark`，按`deviceId`升序锁`ast_device`当前投影并校验集合完全相等。集合仍完整有效但任一归属版本变化时返回`STALE`和当前完整事实；同一`deviceId`的当前Owner SN与冻结SN按同一比较键不一致时属于身份不变量损坏，抛`OWNER_DATA_CORRUPTED`，不得返回`VALID/STALE/INVALID`。缺失、状态不可用、错项目返回`INVALID`及按`deviceId`稳定排序的逐项原因，不返回部分有效事实；Provider不可用或Owner数据损坏抛AST公共稳定失败类型，不伪装为`STALE`。
+- 公共验证归因固定：调用方Query及其期望设备/期望水位的非法结构抛`INVALID_REQUEST`（规范化重复仍为`DUPLICATE_SERIAL`）；Provider构造的事实、逐项结果或结果组合损坏抛`OWNER_DATA_CORRUPTED`。输出事实类型不得复用于调用方期望水位输入。
 - 该契约只供设备Owner事实，不替代`ProjectScopeApi.ACTION_EDIT`的主体项目授权，不得以旧`AssetDeviceScopeApi`的缺失/不可用分类结果代替稳定ID和归属版本。
 
 ## 12. ANA 与公共能力 API
