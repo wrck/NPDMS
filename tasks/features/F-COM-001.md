@@ -7,7 +7,7 @@
 
 ## 当前检查点
 
-基线`ed96361d`；F-COM-001 Feature Ready剩余B/C整改中。ERP版本改为不透明值+前驱CAS；V70现列与新增列已分离，旧行通过nullable资格谓词+PLT问题排除，不虚构核对状态或默认补值；下一步验证后复审这两项。
+基线`862b47ec`；F-COM-001 Feature Ready仅剩B项。已锁定同版本先比载荷、不同版本才做前驱CAS；全对象重放为ACCEPTED_NO_CHANGE，混合重放/更新为ACCEPTED，冲突全批回滚且重放不改Owner/范围版本/Outbox；下一步单点复审。
 
 ## Gate输入
 
