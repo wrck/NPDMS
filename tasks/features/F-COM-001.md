@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 1公开API/DTO/稳定异常候选已形成；合同8项与旧服务8项回归共16/16通过。`getAssignedScope`在Task 6 Provider接通前默认失败关闭为`PROVIDER_UNAVAILABLE`，不返回空成功。最近Gate为Task 1独立Contract/Code Review，Task 2～6仍不得启动。
+Task 1公共API与错误机器合同在`5abbc82b`通过独立Contract/Code Review，16/16聚焦测试通过；Task 6前`getAssignedScope`继续失败关闭。最近Gate为Task 2“十表Schema与V70前向兼容”Schema/迁移合同及隔离MySQL复审；Task 2A仍须另走PLT合同Gate。
 
 ## Gate输入
 
