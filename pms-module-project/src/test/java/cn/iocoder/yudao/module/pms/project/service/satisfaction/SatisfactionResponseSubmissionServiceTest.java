@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +37,8 @@ class SatisfactionResponseSubmissionServiceTest {
         var result = service.submit(command());
 
         assertFalse(result.replayed());
+        assertEquals(new BigDecimal("5.0"), result.score());
+        assertTrue(result.passed());
         verify(responseMapper).insert((SatisfactionResponseDO) any());
         verify(responseFileMapper).insert((SatisfactionResponseFileDO) any());
         verify(grantMapper).consumeIfActive(any());
@@ -70,6 +73,9 @@ class SatisfactionResponseSubmissionServiceTest {
         SatisfactionQuestionnaireDO questionnaire = new SatisfactionQuestionnaireDO();
         questionnaire.setId(11L); questionnaire.setTenantId(7L); questionnaire.setCollectionTaskId(10L);
         questionnaire.setQuestionnaireStatus("ACTIVE");
+        questionnaire.setFrozenQuestionJson(config());
+        questionnaire.setFrozenThreshold(new BigDecimal("4.00"));
+        questionnaire.setRuleVersion("RULE-1");
         SatisfactionCollectionTaskDO task = new SatisfactionCollectionTaskDO();
         task.setId(10L); task.setTenantId(7L); task.setTaskStatus("PENDING_COLLECTION"); task.setVersion(0);
         when(grantMapper.selectByDigestForUpdate(any())).thenReturn(grant);
@@ -80,7 +86,17 @@ class SatisfactionResponseSubmissionServiceTest {
 
     private SatisfactionResponseSubmissionService.Command command() {
         return new SatisfactionResponseSubmissionService.Command(7L, "token", "req-1", "PUBLIC_LINK",
-                "customer-1", null, "{\"score\":5}", List.of(new SatisfactionResponseSubmissionService.FileFact(
+                "customer-1", null, "{\"answers\":[{\"questionCode\":\"Q1\",\"value\":\"YES\"}]}", List.of(new SatisfactionResponseSubmissionService.FileFact(
                 "SIGNATURE", 1, 100L, 1, "signature-1", 1, 1, 1, 3L, "a".repeat(64))), "grant:1");
+    }
+
+    private String config() {
+        return "{\"schemaVersion\":1,\"questions\":[{\"code\":\"Q1\",\"title\":\"满意\","
+                + "\"type\":\"SINGLE_CHOICE\",\"required\":true,\"options\":["
+                + "{\"code\":\"YES\",\"label\":\"是\",\"score\":\"5.00\"},"
+                + "{\"code\":\"NO\",\"label\":\"否\",\"score\":\"0.00\"}]}],"
+                + "\"scoring\":{\"ruleVersion\":\"RULE-1\",\"strategy\":\"SUM_V1\","
+                + "\"scoreMin\":\"0.00\",\"scoreMax\":\"5.00\",\"precision\":1,"
+                + "\"roundingMode\":\"HALF_UP\",\"threshold\":\"4.00\"}}";
     }
 }

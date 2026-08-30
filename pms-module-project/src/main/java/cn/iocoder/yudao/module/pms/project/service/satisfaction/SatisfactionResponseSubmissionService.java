@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.*;
+import cn.iocoder.yudao.module.pms.project.domain.satisfaction.SatisfactionQuestionnaireDefinition;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.HashSet;
@@ -47,7 +49,7 @@ public class SatisfactionResponseSubmissionService {
 
         SatisfactionResponseDO existing = responseMapper.selectByIdentityForUpdate(
                 new SatisfactionResponseIdentityQuery(command.tenantId(), questionnaire.getId(), command.requestId()));
-        if (existing != null) return replay(existing, command, task.getId());
+        if (existing != null) return replay(existing, command, task.getId(), questionnaire);
 
         LocalDateTime now = LocalDateTime.now();
         if (!"ACTIVE".equals(grant.getGrantStatus()) || now.isBefore(grant.getEffectiveFrom())
@@ -55,6 +57,8 @@ public class SatisfactionResponseSubmissionService {
                 || !("PENDING_COLLECTION".equals(task.getTaskStatus()) || "ASSIGNED".equals(task.getTaskStatus()))) {
             throw new IllegalStateException("SATISFACTION_SUBMISSION_NOT_ALLOWED");
         }
+
+        SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, command.answerSnapshot());
 
         long responseId = IdWorker.getId();
         SatisfactionResponseDO response = new SatisfactionResponseDO();
@@ -77,7 +81,8 @@ public class SatisfactionResponseSubmissionService {
                 task.getId(), task.getVersion(), command.actorRef())) != 1) {
             throw new IllegalStateException("SATISFACTION_SUBMISSION_STATE_CONFLICT");
         }
-        return new SubmissionResult(responseId, questionnaire.getId(), task.getId(), false);
+        return new SubmissionResult(responseId, questionnaire.getId(), task.getId(), false,
+                evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion());
     }
 
     private void insertFile(Command command, long responseId, FileFact fact) {
@@ -91,13 +96,28 @@ public class SatisfactionResponseSubmissionService {
         if (responseFileMapper.insert(row) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_FILE_CREATE_FAILED");
     }
 
-    private SubmissionResult replay(SatisfactionResponseDO existing, Command command, Long taskId) {
+    private SubmissionResult replay(SatisfactionResponseDO existing, Command command, Long taskId,
+                                    SatisfactionQuestionnaireDO questionnaire) {
         if (!existing.getAnswerSnapshot().equals(command.answerSnapshot())
                 || !existing.getSubmitChannel().equals(command.submitChannel())
                 || !existing.getCustomerContactRef().equals(command.customerContactRef())) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_IDEMPOTENCY_CONFLICT");
         }
-        return new SubmissionResult(existing.getId(), existing.getQuestionnaireId(), taskId, true);
+        SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, existing.getAnswerSnapshot());
+        return new SubmissionResult(existing.getId(), existing.getQuestionnaireId(), taskId, true,
+                evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion());
+    }
+
+    private SatisfactionQuestionnaireDefinition.Evaluation evaluate(SatisfactionQuestionnaireDO questionnaire,
+                                                                     String answerSnapshot) {
+        SatisfactionQuestionnaireDefinition.Evaluation evaluation = SatisfactionQuestionnaireDefinition
+                .parse(questionnaire.getFrozenQuestionJson()).evaluate(answerSnapshot, true);
+        if (questionnaire.getFrozenThreshold() == null || questionnaire.getRuleVersion() == null
+                || questionnaire.getFrozenThreshold().compareTo(evaluation.threshold()) != 0
+                || !questionnaire.getRuleVersion().equals(evaluation.ruleVersion())) {
+            throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_PROJECTION_CONFLICT");
+        }
+        return evaluation;
     }
 
     private void requireCommand(Command command) {
@@ -143,5 +163,6 @@ public class SatisfactionResponseSubmissionService {
     public record FileFact(String role, Integer sequence, Long artifactId, Integer versionNo,
                            String referenceKey, Integer artifactVersion, Integer referenceVersion,
                            Integer availabilityVersion, Long scopeVersion, String sha256) {}
-    public record SubmissionResult(Long responseId, Long questionnaireId, Long taskId, boolean replayed) {}
+    public record SubmissionResult(Long responseId, Long questionnaireId, Long taskId, boolean replayed,
+                                   BigDecimal score, BigDecimal threshold, boolean passed, String ruleVersion) {}
 }
