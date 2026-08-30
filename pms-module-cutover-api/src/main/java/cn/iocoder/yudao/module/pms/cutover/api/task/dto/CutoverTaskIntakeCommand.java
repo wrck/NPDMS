@@ -9,6 +9,7 @@ public record CutoverTaskIntakeCommand(
         Long projectId,
         List<String> serialNumbers,
         Long handlingEngineerUserId,
+        String configurationCode,
         String taskName,
         String background,
         String cutoverType,

@@ -11,4 +11,37 @@
           AND deleted = b'0'
         FOR UPDATE
     </select>
+
+    <select id="selectMaxVersion" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(result_version), 0)
+        FROM cut_cutover_checklist_item_result
+        WHERE tenant_id = #{query.tenantId}
+          AND checklist_item_id = #{query.checklistItemId}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectCurrentByChecklistForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO">
+        SELECT r.*
+        FROM cut_cutover_checklist_item_result r
+        JOIN cut_cutover_checklist_item i
+          ON i.tenant_id = r.tenant_id
+         AND i.id = r.checklist_item_id
+         AND i.checklist_id = #{query.checklistId}
+         AND i.deleted = b'0'
+        WHERE r.tenant_id = #{query.tenantId}
+          AND r.current_marker = 1
+          AND r.deleted = b'0'
+        ORDER BY i.stable_item_key, r.id
+        FOR UPDATE
+    </select>
+
+    <update id="closeCurrentIfMatch">
+        UPDATE cut_cutover_checklist_item_result
+        SET selection_ended_at = #{query.endedAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.resultId}
+          AND selection_ended_at IS NULL
+          AND deleted = b'0'
+    </update>
 </mapper>

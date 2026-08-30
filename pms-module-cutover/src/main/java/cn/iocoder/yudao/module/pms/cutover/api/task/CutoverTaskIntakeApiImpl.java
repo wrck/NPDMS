@@ -31,7 +31,8 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
         try {
             CutoverTaskCommandResult result = applicationService.create(new CreateCutoverTaskCommand(
                     tenantId, command.handlingEngineerUserId(), idempotencyKey, command.correlationId(),
-                    command.sourceType(), command.projectId(), command.serialNumbers(), command.taskName(),
+                    command.sourceType(), command.projectId(), command.serialNumbers(), command.configurationCode(),
+                    command.taskName(),
                     command.background(), command.cutoverType(), command.networkMode(), command.scheduledTime(),
                     command.sourceSystem(), command.sourceBusinessNo(), command.businessEventId()));
             return new CutoverTaskIntakeResult(result.taskId(), result.taskNo(), result.currentStage(),

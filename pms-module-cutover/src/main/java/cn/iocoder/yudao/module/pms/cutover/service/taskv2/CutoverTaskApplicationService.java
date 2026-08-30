@@ -4,10 +4,13 @@ import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectivePublishedConfigurationQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
@@ -61,6 +64,7 @@ public class CutoverTaskApplicationService {
     private final CutoverTaskDeviceScopeMapper deviceMapper;
     private final CutoverTaskStageHistoryMapper historyMapper;
     private final CutoverAssessmentMapper assessmentMapper;
+    private final CutoverConfigurationRevisionMapper configurationMapper;
     private final CutoverProjectScopePort projectScopePort;
     private final CutoverProjectContextPort projectContextPort;
     private final CutoverDeviceScopePort deviceScopePort;
@@ -73,6 +77,7 @@ public class CutoverTaskApplicationService {
                                          CutoverTaskDeviceScopeMapper deviceMapper,
                                          CutoverTaskStageHistoryMapper historyMapper,
                                          CutoverAssessmentMapper assessmentMapper,
+                                         CutoverConfigurationRevisionMapper configurationMapper,
                                          CutoverProjectScopePort projectScopePort,
                                          CutoverProjectContextPort projectContextPort,
                                          CutoverDeviceScopePort deviceScopePort,
@@ -84,6 +89,7 @@ public class CutoverTaskApplicationService {
         this.deviceMapper = deviceMapper;
         this.historyMapper = historyMapper;
         this.assessmentMapper = assessmentMapper;
+        this.configurationMapper = configurationMapper;
         this.projectScopePort = projectScopePort;
         this.projectContextPort = projectContextPort;
         this.deviceScopePort = deviceScopePort;
@@ -182,6 +188,12 @@ public class CutoverTaskApplicationService {
         require(deviceMapper.selectActiveForUpdate(new CutoverActiveDeviceQuery(command.tenantId(),
                 command.projectId(), deviceIds)).isEmpty(), ACTIVE_DEVICE_CONFLICT, "设备已有活动割接任务");
 
+        LocalDateTime taskCreatedAt = LocalDateTime.now(clock);
+        CutoverConfigurationRevisionDO configuration = configurationMapper.selectEffectivePublished(
+                new CutoverEffectivePublishedConfigurationQuery(command.tenantId(),
+                        command.configurationCode(), taskCreatedAt));
+        require(configuration != null, STATE_CONFLICT, "所选割接配置在任务创建时点无有效发布修订");
+
         Long taskId = nextId();
         CutoverTaskDO row = new CutoverTaskDO();
         row.setId(taskId);
@@ -198,6 +210,9 @@ public class CutoverTaskApplicationService {
         row.setSourceSystem(command.sourceSystem());
         row.setSourceBusinessNo(command.sourceBusinessNo());
         row.setBusinessEventId(command.businessEventId());
+        row.setConfigurationRevisionId(configuration.getId());
+        row.setConfigurationCode(configuration.getConfigurationCode());
+        row.setConfigurationRevisionNo(configuration.getRevisionNo());
         row.setCurrentStage(CutoverTaskRules.STAGE_P2);
         row.setTaskStatus(CutoverTaskRules.STATUS_GRADE_CONFIRMING);
         row.setOwnerUserId(command.actorId());
@@ -212,6 +227,8 @@ public class CutoverTaskApplicationService {
         row.setVersion(0);
         row.setCreator(String.valueOf(command.actorId()));
         row.setUpdater(String.valueOf(command.actorId()));
+        row.setCreateTime(taskCreatedAt);
+        row.setUpdateTime(taskCreatedAt);
         require(taskMapper.insert(row) == 1, STATE_CONFLICT, "割接任务创建失败");
         for (CutoverDeviceScopePort.DeviceFact device : locked.devices()) {
             CutoverTaskDeviceScopeDO link = new CutoverTaskDeviceScopeDO();
@@ -354,6 +371,7 @@ public class CutoverTaskApplicationService {
         requireText(command.idempotencyKey(), "Idempotency-Key", 128);
         requireText(command.correlationId(), "correlationId", 128);
         requireText(command.taskName(), "taskName", 128);
+        requireText(command.configurationCode(), "configurationCode", 64);
         requireText(command.background(), "background", 4000);
         requireText(command.cutoverType(), "cutoverType", 32);
         require(Set.of("SELF_CREATED", "ITR", "PROJECT_EVENT").contains(command.intakeSourceType()),
@@ -464,6 +482,7 @@ public class CutoverTaskApplicationService {
         value.put("intakeSourceType", command.intakeSourceType());
         value.put("projectId", command.projectId());
         value.put("serialNumbers", normalizeSerials(command.serialNumbers()));
+        value.put("configurationCode", command.configurationCode());
         value.put("taskName", command.taskName());
         value.put("background", command.background());
         value.put("cutoverType", command.cutoverType());

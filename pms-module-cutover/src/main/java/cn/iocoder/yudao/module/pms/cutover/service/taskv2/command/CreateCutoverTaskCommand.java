@@ -6,7 +6,7 @@ import java.util.List;
 public record CreateCutoverTaskCommand(
         Long tenantId, Long actorId, String idempotencyKey, String correlationId,
         String intakeSourceType, Long projectId, List<String> serialNumbers,
-        String taskName, String background, String cutoverType, String networkMode,
+        String configurationCode, String taskName, String background, String cutoverType, String networkMode,
         LocalDateTime scheduledTime, String sourceSystem, String sourceBusinessNo,
         String businessEventId) {
     public CreateCutoverTaskCommand {

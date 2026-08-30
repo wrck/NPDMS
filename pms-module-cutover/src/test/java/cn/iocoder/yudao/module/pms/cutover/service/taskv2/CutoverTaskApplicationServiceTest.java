@@ -1,10 +1,12 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
@@ -81,6 +83,7 @@ class CutoverTaskApplicationServiceTest {
         CutoverTaskDeviceScopeMapper deviceMapper = mock(CutoverTaskDeviceScopeMapper.class);
         CutoverTaskStageHistoryMapper historyMapper = mock(CutoverTaskStageHistoryMapper.class);
         CutoverAssessmentMapper assessmentMapper = mock(CutoverAssessmentMapper.class);
+        CutoverConfigurationRevisionMapper configurationMapper = mock(CutoverConfigurationRevisionMapper.class);
         CutoverProjectScopePort projectScope = mock(CutoverProjectScopePort.class);
         CutoverProjectContextPort projectContext = mock(CutoverProjectContextPort.class);
         CutoverDeviceScopePort deviceScope = mock(CutoverDeviceScopePort.class);
@@ -118,6 +121,11 @@ class CutoverTaskApplicationServiceTest {
         when(readiness.inspect(100L, List.of(400L))).thenReturn(readinessFact);
         when(readiness.lockAndRevalidate(readinessFact)).thenReturn(readinessFact);
         when(deviceMapper.selectActiveForUpdate(any())).thenReturn(List.of());
+        CutoverConfigurationRevisionDO configuration = new CutoverConfigurationRevisionDO();
+        configuration.setId(700L);
+        configuration.setConfigurationCode("CUTOVER-V1");
+        configuration.setRevisionNo(1);
+        when(configurationMapper.selectEffectivePublished(any())).thenReturn(configuration);
         when(deviceMapper.selectActiveByTask(any())).thenAnswer(ignored -> List.copyOf(deviceRows));
         when(taskMapper.selectById(any())).thenAnswer(ignored -> task.get());
         when(taskMapper.selectForUpdate(any())).thenAnswer(ignored -> task.get());
@@ -156,14 +164,15 @@ class CutoverTaskApplicationServiceTest {
         when(taskMapper.transitionIfMatch(any())).thenReturn(1);
 
         CutoverTaskApplicationService service = new CutoverTaskApplicationService(taskMapper, deviceMapper,
-                historyMapper, assessmentMapper, projectScope, projectContext, deviceScope, customerLevel,
+                historyMapper, assessmentMapper, configurationMapper, projectScope, projectContext,
+                deviceScope, customerLevel,
                 readiness, platform, Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC));
         return new Fixture(service, task, assessment, history, platform);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
         return new CreateCutoverTaskCommand(1L, 8L, key, "corr-" + key, "SELF_CREATED", 100L,
-                List.of("SN-400"), "核心网割接", "计划内设备割接", "配置变更", "普通双机",
+                List.of("SN-400"), "CUTOVER-V1", "核心网割接", "计划内设备割接", "配置变更", "普通双机",
                 LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null);
     }
 

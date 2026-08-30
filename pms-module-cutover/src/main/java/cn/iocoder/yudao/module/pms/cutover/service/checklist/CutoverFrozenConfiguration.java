@@ -30,6 +30,13 @@ public record CutoverFrozenConfiguration(Long revisionId,
                               Integer itemDefinitionVersion,
                               String dimensionConditionSnapshot,
                               Integer priority,
-                              boolean requiredResult) {
+                              boolean requiredResult,
+                              Integer version) {
+        public BindingRule(Long id, String stableRuleKey, Long itemDefinitionId,
+                           Integer itemDefinitionVersion, String dimensionConditionSnapshot,
+                           Integer priority, boolean requiredResult) {
+            this(id, stableRuleKey, itemDefinitionId, itemDefinitionVersion,
+                    dimensionConditionSnapshot, priority, requiredResult, 0);
+        }
     }
 }

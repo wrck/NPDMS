@@ -81,6 +81,6 @@ public class CutoverChecklistConfigurationQueryService {
     private CutoverFrozenConfiguration.BindingRule rule(CutoverChecklistBindingRuleRevisionDO row) {
         return new CutoverFrozenConfiguration.BindingRule(row.getId(), row.getStableRuleKey(),
                 row.getItemDefinitionId(), row.getItemDefinitionVersion(), row.getDimensionConditionSnapshot(),
-                row.getPriority(), Boolean.TRUE.equals(row.getRequiredResult()));
+                row.getPriority(), Boolean.TRUE.equals(row.getRequiredResult()), row.getVersion());
     }
 }

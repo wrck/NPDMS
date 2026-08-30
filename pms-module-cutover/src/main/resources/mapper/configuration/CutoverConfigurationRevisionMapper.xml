@@ -24,4 +24,16 @@
           AND revision_no = #{configurationRevisionNo}
           AND deleted = b'0'
     </select>
+
+    <select id="selectEffectivePublished"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
+        SELECT *
+        FROM cut_cutover_configuration_revision
+        WHERE tenant_id = #{tenantId}
+          AND configuration_code = #{configurationCode}
+          AND status_code = 'PUBLISHED'
+          AND effective_from &lt;= #{taskCreatedAt}
+          AND (effective_to IS NULL OR effective_to &gt; #{taskCreatedAt})
+          AND deleted = b'0'
+    </select>
 </mapper>
