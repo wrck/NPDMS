@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalLineMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildRevisionMutation;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalDifferenceScopeCodec;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ArrivalDifferenceTypePort;
@@ -116,19 +117,90 @@ class ArrivalAcceptanceCommandServiceTest {
     }
 
     @Test
-    void confirmedResolutionFailsClosedBeforeCreatingUnspecifiedSuccessor() {
+    void confirmedCloseCreatesLinearSuccessorWithoutMutatingSourceHistory() {
         ArrivalAcceptanceDO root = draft(2);
         root.setStatus("CONFIRMED");
         Fixture fixture = fixture(root);
+        ArrivalLineDO line = quantityLine();
+        ArrivalDifferenceDO difference = openQuantityDifference();
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(line));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(difference));
+        when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
+        when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
-        assertThrows(ArrivalAcceptanceCommandService.BlockedBySpecException.class,
+        ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
+                        new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
+                        "resolve-key"));
+
+        assertEquals(901L, result.successorAcceptanceId());
+        ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
+        verify(fixture.acceptanceMapper()).insert(successor.capture());
+        assertEquals("B-001", successor.getValue().getBatchCode());
+        assertEquals(900L, successor.getValue().getPredecessorAcceptanceId());
+        assertEquals("DIFFERENCE_CLOSURE", successor.getValue().getSuccessorReason());
+        assertEquals(null, successor.getValue().getBatchRootMarker());
+        verify(fixture.acceptanceMapper(), never()).resolveDifferenceIfMatch(any());
+        ArgumentCaptor<ArrivalChildRevisionMutation> cleared =
+                ArgumentCaptor.forClass(ArrivalChildRevisionMutation.class);
+        verify(fixture.differenceMapper()).clearCurrentIfMatch(cleared.capture());
+        assertEquals(901L, cleared.getValue().arrivalAcceptanceId());
+        ArgumentCaptor<ArrivalDifferenceDO> successorDifferences =
+                ArgumentCaptor.forClass(ArrivalDifferenceDO.class);
+        verify(fixture.differenceMapper(), org.mockito.Mockito.times(2)).insert(successorDifferences.capture());
+        assertEquals(List.of(901L, 901L), successorDifferences.getAllValues().stream()
+                .map(ArrivalDifferenceDO::getArrivalAcceptanceId).toList());
+        assertEquals(900L, root.getId());
+        assertEquals("CONFIRMED", root.getStatus());
+    }
+
+    @Test
+    void correctInformationCreatesSuccessorAndKeepsStableBatchCode() {
+        ArrivalAcceptanceDO root = draft(3);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of());
+        when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 3,
+                        new ArrivalAcceptanceCommands.CorrectInformation(3, "修正签收人",
+                                new ArrivalAcceptanceCommands.CorrectionPatch(
+                                        null, null, "新签收人", null), fileRevision()),
+                        "correct-key"));
+
+        assertEquals(901L, result.successorAcceptanceId());
+        ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
+        verify(fixture.acceptanceMapper()).insert(successor.capture());
+        assertEquals("B-001", successor.getValue().getBatchCode());
+        assertEquals("CORRECTION", successor.getValue().getSuccessorReason());
+        assertEquals(900L, successor.getValue().getPredecessorAcceptanceId());
+        verify(fixture.acceptanceMapper()).mutateDraftIfMatch(any());
+    }
+
+    @Test
+    void differentIntentCannotCreateSiblingSuccessor() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        ArrivalAcceptanceDO existing = draft(0);
+        existing.setId(901L);
+        existing.setPredecessorAcceptanceId(900L);
+        existing.setSuccessorReason("SUPPLEMENT");
+        when(fixture.acceptanceMapper().selectSuccessorForUpdate(any())).thenReturn(existing);
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(openQuantityDifference()));
+
+        assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(
                         new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
                                 new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
-                                "resolve-key")));
+                                "different-key")));
 
-        verify(fixture.projectPort(), never()).lockAndRevalidate(any());
         verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
+        verify(fixture.lineMapper(), never()).insert(any(ArrivalLineDO.class));
         verify(fixture.differenceMapper(), never()).insert(any(ArrivalDifferenceDO.class));
     }
 
@@ -154,6 +226,68 @@ class ArrivalAcceptanceCommandServiceTest {
     }
 
     @Test
+    void expiresExemptionByCreatingFactAffectingSuccessorInOneCommand() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        ArrivalDifferenceDO exempt = openQuantityDifference();
+        exempt.setResolutionStatus("EXEMPTED");
+        exempt.setApprovedBy(8L);
+        exempt.setApprovedAt(java.time.LocalDateTime.of(2026, 8, 29, 4, 0));
+        exempt.setExemptionExpiresAt(java.time.LocalDateTime.of(2026, 8, 30, 3, 0));
+        exempt.setEvidenceId(50L);
+        exempt.setEvidenceRevision(1);
+        when(fixture.differenceMapper().selectDueExemptions(any())).thenReturn(List.of(exempt));
+        when(fixture.acceptanceMapper().selectRow(any())).thenReturn(root);
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(exempt));
+        when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
+        when(fixture.acceptanceMapper().selectMaxAllocatedProjectFactVersion(any())).thenReturn(4L);
+        when(fixture.revisionMapper().selectRevision(any())).thenReturn(storedEvidenceRevision());
+
+        List<ArrivalAcceptanceCommands.CommandResult> results = fixture.service().expireExemptions(
+                new ArrivalAcceptanceCommands.ExpireArrivalExemptionsCommand(10));
+
+        assertEquals(1, results.size());
+        assertEquals(5L, results.getFirst().projectFactVersion());
+        assertEquals("EXEMPTION_INVALIDATION", results.getFirst().factImpactType());
+        ArgumentCaptor<ArrivalDifferenceDO> revisions = ArgumentCaptor.forClass(ArrivalDifferenceDO.class);
+        verify(fixture.differenceMapper(), org.mockito.Mockito.times(2)).insert(revisions.capture());
+        ArrivalDifferenceDO invalidation = revisions.getAllValues().get(1);
+        assertEquals("OPEN", invalidation.getResolutionStatus());
+        assertEquals(5L, invalidation.getProjectFactVersion());
+        assertEquals("EXEMPTION_INVALIDATION", invalidation.getFactImpactType());
+        verify(fixture.acceptanceMapper(), never()).resolveDifferenceIfMatch(any());
+        org.mockito.InOrder lockOrder = org.mockito.Mockito.inOrder(
+                fixture.acceptanceMapper(), fixture.projectPort());
+        lockOrder.verify(fixture.acceptanceMapper()).selectRow(any());
+        lockOrder.verify(fixture.projectPort()).lockAndRevalidate(any());
+        lockOrder.verify(fixture.acceptanceMapper()).selectForUpdate(any());
+    }
+
+    @Test
+    void exemptionOwnerFailureLeavesSuccessorAndFactVersionUnwritten() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        Fixture fixture = fixture(root);
+        ArrivalDifferenceDO exempt = openQuantityDifference();
+        exempt.setResolutionStatus("EXEMPTED");
+        exempt.setApprovedBy(8L);
+        exempt.setExemptionExpiresAt(java.time.LocalDateTime.of(2026, 8, 30, 3, 0));
+        when(fixture.differenceMapper().selectDueExemptions(any())).thenReturn(List.of(exempt));
+        when(fixture.acceptanceMapper().selectRow(any())).thenReturn(root);
+        when(fixture.projectPort().lockAndRevalidate(any()))
+                .thenThrow(new IllegalStateException("project provider unavailable"));
+
+        assertThrows(IllegalStateException.class, () -> fixture.service().expireExemptions(
+                new ArrivalAcceptanceCommands.ExpireArrivalExemptionsCommand(10)));
+
+        verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
+        verify(fixture.differenceMapper(), never()).insert(any(ArrivalDifferenceDO.class));
+        verify(fixture.acceptanceMapper(), never()).selectMaxAllocatedProjectFactVersion(any());
+    }
+
+    @Test
     void commandServiceHasNoProductionBeanAnnotationBeforeTask12() {
         assertFalse(ArrivalAcceptanceCommandService.class.isAnnotationPresent(Service.class));
     }
@@ -171,6 +305,14 @@ class ArrivalAcceptanceCommandServiceTest {
         ArrivalDifferenceTypePort differenceTypes = mock(ArrivalDifferenceTypePort.class);
         PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
         when(acceptance.selectForUpdate(any())).thenReturn(root);
+        when(acceptance.selectSuccessorForUpdate(any())).thenReturn(null);
+        when(project.lockAndRevalidate(any())).thenReturn(new ProjectQualificationPort.ProjectQualificationFact(
+                100L, 8L, Set.of("PROJECT_MANAGER"), "ACTIVE", "S4", 5, 6L, 7L));
+        doAnswer(invocation -> {
+            ArrivalAcceptanceDO value = invocation.getArgument(0);
+            value.setId(901L);
+            return 1;
+        }).when(acceptance).insert(any(ArrivalAcceptanceDO.class));
         when(delivery.lockAndRevalidate(100L, 8L)).thenReturn(deliveryScope());
         when(devices.lockAndRevalidate(any(), any(), any())).thenReturn(deviceScope());
         when(files.lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact());
@@ -209,6 +351,10 @@ class ArrivalAcceptanceCommandServiceTest {
         root.setId(900L);
         root.setTenantId(1L);
         root.setProjectId(100L);
+        root.setBatchCode("B-001");
+        root.setLogisticsNo("L-1");
+        root.setArrivedAt(java.time.LocalDateTime.of(2026, 8, 29, 4, 0));
+        root.setSignerSnapshot(JsonUtils.toJsonString(new ArrivalAcceptanceViews.SignerSnapshot("原签收人")));
         root.setStatus("DRAFT");
         root.setVersion(version);
         root.setCreator("8");
@@ -216,6 +362,7 @@ class ArrivalAcceptanceCommandServiceTest {
         root.setProjectParticipantFactVersion(6L);
         root.setProjectScopeVersion(7L);
         root.setDeliveryScopeVersion(8L);
+        root.setScopeWatermark("{\"deliveryScopeVersion\":8}");
         root.setExpectedScopeSnapshot(JsonUtils.toJsonString(new ExpectedScopeSnapshot(
                 deliveryScope().lines(), deviceScope().devices())));
         return root;
@@ -284,6 +431,22 @@ class ArrivalAcceptanceCommandServiceTest {
         return new FileArtifactVersionFact(70L, 2, "ref-1", "RECEIPT", "receipt.pdf",
                 10L, "application/pdf", "hash-1", "AVAILABLE", "ACTIVE",
                 new FileFactVersion(3, 4, 5), 6L);
+    }
+
+    private static DeliveryEvidenceRevisionDO storedEvidenceRevision() {
+        DeliveryEvidenceRevisionDO revision = new DeliveryEvidenceRevisionDO();
+        revision.setTenantId(1L);
+        revision.setEvidenceId(50L);
+        revision.setRevisionNo(1);
+        revision.setFileArtifactId(70L);
+        revision.setFileReferenceId("ref-1");
+        revision.setFileVersionNo(2);
+        revision.setFileScopeVersion(6L);
+        revision.setFileFactVersion(JsonUtils.toJsonString(new FileFactVersion(3, 4, 5)));
+        revision.setFileHash("hash-1");
+        revision.setSourceRecordId(900L);
+        revision.setSourceVersion(2L);
+        return revision;
     }
 
     private record ExpectedScopeSnapshot(List<DeliveryScopePort.AssignedLine> deliveryLines,

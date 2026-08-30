@@ -44,6 +44,30 @@
         ORDER BY difference_no, revision_no, id
         FOR UPDATE
     </select>
+    <select id="selectDueExemptions" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM imp_arrival_difference d
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = d.tenant_id
+         AND a.id = d.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE a.status = 'CONFIRMED'
+          AND d.resolution_status = 'EXEMPTED'
+          AND d.current_marker = 1
+          AND d.exemption_expires_at &lt;= #{query.processingTime}
+          AND d.deleted = b'0'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM imp_arrival_acceptance successor
+              WHERE successor.tenant_id = a.tenant_id
+                AND successor.predecessor_acceptance_id = a.id
+                AND successor.successor_reason = 'EXEMPTION_INVALIDATION'
+                AND successor.deleted = b'0'
+          )
+        ORDER BY d.exemption_expires_at, d.tenant_id, d.arrival_acceptance_id,
+                 d.difference_no, d.revision_no, d.id
+        LIMIT #{query.pageSize}
+    </select>
     <update id="clearCurrentIfMatch">
         UPDATE imp_arrival_difference
         SET current_marker = NULL,

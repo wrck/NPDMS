@@ -18,6 +18,7 @@ public class ArrivalAcceptanceDO extends TenantBaseDO {
     private Long id;
     private Long projectId;
     private String batchCode;
+    private Integer batchRootMarker;
     private String logisticsNo;
     private LocalDateTime arrivedAt;
     private String signerSnapshot;

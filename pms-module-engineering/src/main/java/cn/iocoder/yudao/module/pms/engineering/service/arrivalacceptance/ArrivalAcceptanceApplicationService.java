@@ -131,6 +131,7 @@ public class ArrivalAcceptanceApplicationService {
         row.setTenantId(command.tenantId());
         row.setProjectId(command.projectId());
         row.setBatchCode(command.batchCode().trim());
+        row.setBatchRootMarker(1);
         row.setLogisticsNo(command.logisticsNo().trim());
         row.setArrivedAt(command.arrivedAt());
         row.setSignerSnapshot(JsonUtils.toJsonString(new SignerSnapshot(command.signerName().trim())));

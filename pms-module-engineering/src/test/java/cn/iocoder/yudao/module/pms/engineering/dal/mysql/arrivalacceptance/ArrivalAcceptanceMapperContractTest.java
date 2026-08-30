@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalDueExemptionQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPredecessorQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
@@ -40,6 +42,8 @@ class ArrivalAcceptanceMapperContractTest {
     private static String mapperXml;
     private static String mapperJava;
     private static Path deliveryEvidenceMapperPath;
+    private static Path arrivalAcceptanceMapperPath;
+    private static Path arrivalDifferenceMapperPath;
 
     @BeforeAll
     static void loadMapperSources() throws IOException {
@@ -49,6 +53,10 @@ class ArrivalAcceptanceMapperContractTest {
         mapperXml = readTree(root.resolve("src/main/resources/mapper/arrivalacceptance"));
         deliveryEvidenceMapperPath = root.resolve(
                 "src/main/resources/mapper/arrivalacceptance/DeliveryEvidenceMapper.xml");
+        arrivalAcceptanceMapperPath = root.resolve(
+                "src/main/resources/mapper/arrivalacceptance/ArrivalAcceptanceMapper.xml");
+        arrivalDifferenceMapperPath = root.resolve(
+                "src/main/resources/mapper/arrivalacceptance/ArrivalDifferenceMapper.xml");
         mapperJava = readTree(root.resolve(
                 "src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance"));
     }
@@ -81,6 +89,14 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("ORDER BY arrived_at DESC, id DESC"));
         assertTrue(mapperXml.contains(
                 "project_version, project_participant_fact_version, project_scope_version"));
+        assertTrue(mapperXml.contains("batch_code, batch_root_marker, logistics_no"));
+        assertTrue(mapperXml.contains("AND batch_root_marker = 1"));
+        assertTrue(mapperXml.contains("id=\"selectSuccessorForUpdate\""));
+        assertTrue(mapperXml.contains("predecessor_acceptance_id = #{query.predecessorAcceptanceId}"));
+        assertTrue(mapperXml.contains("id=\"selectDueExemptions\""));
+        assertTrue(mapperXml.contains("d.exemption_expires_at &lt;= #{query.processingTime}"));
+        assertTrue(mapperXml.contains("successor.successor_reason = 'EXEMPTION_INVALIDATION'"));
+        assertTrue(mapperXml.contains("ORDER BY d.exemption_expires_at, d.tenant_id"));
         assertTrue(mapperXml.contains("id=\"updateSubmittedIfMatch\""));
         assertTrue(mapperXml.contains("id=\"updateConfirmedIfMatch\""));
         assertTrue(mapperXml.contains("status IN ('PARTIALLY_ACCEPTED', 'ACCEPTED')"));
@@ -140,6 +156,33 @@ class ArrivalAcceptanceMapperContractTest {
     }
 
     @Test
+    void successorAndExpiryQueriesResolveThroughRealMyBatisSql() throws IOException {
+        Configuration configuration = new Configuration();
+        parseMapper(configuration, arrivalAcceptanceMapperPath);
+        parseMapper(configuration, arrivalDifferenceMapperPath);
+
+        Map<String, Object> predecessor = Map.of("query", new ArrivalPredecessorQuery(1L, 900L));
+        BoundSql successor = configuration.getMappedStatement(
+                        ArrivalAcceptanceMapper.class.getName() + ".selectSuccessorForUpdate")
+                .getBoundSql(predecessor);
+        successor.getParameterMappings().forEach(mapping ->
+                configuration.newMetaObject(predecessor).getValue(mapping.getProperty()));
+        assertTrue(successor.getSql().contains("predecessor_acceptance_id = ?"));
+        assertTrue(successor.getSql().contains("FOR UPDATE"));
+
+        Map<String, Object> dueQuery = Map.of("query", new ArrivalDueExemptionQuery(
+                LocalDateTime.of(2026, 8, 30, 12, 0), 20));
+        BoundSql due = configuration.getMappedStatement(
+                        ArrivalDifferenceMapper.class.getName() + ".selectDueExemptions")
+                .getBoundSql(dueQuery);
+        due.getParameterMappings().forEach(mapping ->
+                configuration.newMetaObject(dueQuery).getValue(mapping.getProperty()));
+        assertTrue(due.getSql().contains("d.exemption_expires_at <= ?"));
+        assertTrue(due.getSql().contains("LIMIT ?"));
+        assertFalse(due.getSql().contains("FOR UPDATE"));
+    }
+
+    @Test
     void projectFactQueriesUseOnlyConfirmedAcceptedAndEffectiveExplicitExemptions() {
         assertTrue(mapperXml.contains("id=\"selectConfirmedByProject\""));
         assertTrue(mapperXml.contains("id=\"selectConfirmedAcceptedByProject\""));
@@ -180,6 +223,13 @@ class ArrivalAcceptanceMapperContractTest {
 
     private static String tableName(Class<?> type) {
         return type.getAnnotation(TableName.class).value();
+    }
+
+    private static void parseMapper(Configuration configuration, Path path) throws IOException {
+        try (InputStream input = Files.newInputStream(path)) {
+            new XMLMapperBuilder(input, configuration, path.toString(),
+                    configuration.getSqlFragments()).parse();
+        }
     }
 
     private static String readTree(Path directory) throws IOException {

@@ -4,7 +4,7 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalAcceptanceMapper">
 
     <sql id="columns">
-        id, project_id, batch_code, logistics_no, arrived_at, signer_snapshot,
+        id, project_id, batch_code, batch_root_marker, logistics_no, arrived_at, signer_snapshot,
         status, project_version, project_participant_fact_version, project_scope_version,
         delivery_scope_version, expected_scope_snapshot, scope_watermark,
         migration_resolution_status, migration_reason_code, legacy_source_id,
@@ -19,6 +19,7 @@
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
           AND batch_code = #{query.batchCode}
+          AND batch_root_marker = 1
           AND deleted = b'0'
     </select>
 
@@ -35,6 +36,15 @@
         FROM imp_arrival_acceptance
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.arrivalAcceptanceId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectSuccessorForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND predecessor_acceptance_id = #{query.predecessorAcceptanceId}
           AND deleted = b'0'
         FOR UPDATE
     </select>

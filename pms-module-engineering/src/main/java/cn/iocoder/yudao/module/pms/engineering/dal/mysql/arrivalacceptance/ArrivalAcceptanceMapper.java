@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalConfirmationUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalDraftMutation;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPredecessorQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
@@ -26,6 +27,8 @@ public interface ArrivalAcceptanceMapper extends BaseMapperX<ArrivalAcceptanceDO
     ArrivalAcceptanceDO selectRow(@Param("query") ArrivalRowQuery query);
 
     ArrivalAcceptanceDO selectForUpdate(@Param("query") ArrivalRowQuery query);
+
+    ArrivalAcceptanceDO selectSuccessorForUpdate(@Param("query") ArrivalPredecessorQuery query);
 
     int updateSubmittedIfMatch(@Param("query") ArrivalSubmissionUpdate update);
 

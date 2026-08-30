@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildRevisionMutation;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalDueExemptionQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -26,6 +27,8 @@ public interface ArrivalDifferenceMapper extends BaseMapperX<ArrivalDifferenceDO
     }
 
     List<ArrivalDifferenceDO> selectCurrentListForUpdate(@Param("query") ArrivalChildrenQuery query);
+
+    List<ArrivalDifferenceDO> selectDueExemptions(@Param("query") ArrivalDueExemptionQuery query);
 
     int clearCurrentIfMatch(@Param("query") ArrivalChildRevisionMutation update);
 

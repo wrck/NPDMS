@@ -89,17 +89,20 @@ public final class ArrivalAcceptanceCommands {
         }
     }
 
-    public sealed interface Resolution permits Supplement, KeepRejected, Exempt, Close {
-        Long differenceId();
-        Integer expectedDifferenceRevision();
-        Integer expectedDifferenceVersion();
+    public sealed interface Resolution permits DifferenceResolution, CorrectInformation {
         String reason();
         FileRevision evidenceRevision();
     }
 
+    public sealed interface DifferenceResolution extends Resolution permits Supplement, KeepRejected, Exempt, Close {
+        Long differenceId();
+        Integer expectedDifferenceRevision();
+        Integer expectedDifferenceVersion();
+    }
+
     public record Supplement(Long differenceId, Integer expectedDifferenceRevision,
                              Integer expectedDifferenceVersion, ArrivalDifferenceScopeCodec.Scope supplementScope,
-                             String reason, FileRevision evidenceRevision) implements Resolution {
+                             String reason, FileRevision evidenceRevision) implements DifferenceResolution {
         public Supplement {
             requireResolution(differenceId, expectedDifferenceRevision, expectedDifferenceVersion,
                     reason, evidenceRevision);
@@ -110,7 +113,7 @@ public final class ArrivalAcceptanceCommands {
 
     public record KeepRejected(Long differenceId, Integer expectedDifferenceRevision,
                                Integer expectedDifferenceVersion, String reason,
-                               FileRevision evidenceRevision) implements Resolution {
+                               FileRevision evidenceRevision) implements DifferenceResolution {
         public KeepRejected {
             requireResolution(differenceId, expectedDifferenceRevision, expectedDifferenceVersion,
                     reason, evidenceRevision);
@@ -120,7 +123,7 @@ public final class ArrivalAcceptanceCommands {
 
     public record Exempt(Long differenceId, Integer expectedDifferenceRevision,
                          Integer expectedDifferenceVersion, String reason, String riskDescription,
-                         LocalDateTime expiresAt, FileRevision evidenceRevision) implements Resolution {
+                         LocalDateTime expiresAt, FileRevision evidenceRevision) implements DifferenceResolution {
         public Exempt {
             requireResolution(differenceId, expectedDifferenceRevision, expectedDifferenceVersion,
                     reason, evidenceRevision);
@@ -132,11 +135,36 @@ public final class ArrivalAcceptanceCommands {
 
     public record Close(Long differenceId, Integer expectedDifferenceRevision,
                         Integer expectedDifferenceVersion, String reason,
-                        FileRevision evidenceRevision) implements Resolution {
+                        FileRevision evidenceRevision) implements DifferenceResolution {
         public Close {
             requireResolution(differenceId, expectedDifferenceRevision, expectedDifferenceVersion,
                     reason, evidenceRevision);
             reason = normalized(reason, 1000, "reason");
+        }
+    }
+
+    public record CorrectionPatch(String logisticsNo, LocalDateTime arrivedAt, String signerName,
+                                  List<DraftLine> lines) {
+        public CorrectionPatch {
+            logisticsNo = normalizedNullable(logisticsNo, 128);
+            signerName = normalizedNullable(signerName, 128);
+            lines = lines == null ? null : List.copyOf(lines);
+            if (logisticsNo == null && arrivedAt == null && signerName == null && lines == null) {
+                throw new IllegalArgumentException("empty correction patch");
+            }
+            if (lines != null && lines.isEmpty()) throw new IllegalArgumentException("empty correction lines");
+        }
+    }
+
+    public record CorrectInformation(Integer expectedSourceVersion, String reason,
+                                     CorrectionPatch correctionPatch,
+                                     FileRevision evidenceRevision) implements Resolution {
+        public CorrectInformation {
+            reason = normalized(reason, 1000, "reason");
+            if (expectedSourceVersion == null || expectedSourceVersion < 0
+                    || correctionPatch == null || evidenceRevision == null) {
+                throw new IllegalArgumentException("invalid correction command");
+            }
         }
     }
 
@@ -153,7 +181,16 @@ public final class ArrivalAcceptanceCommands {
     public record CommandResult(Long arrivalAcceptanceId, Long differenceId, Integer differenceNo,
                                 Integer revisionNo, String resolutionStatus, String aggregateStatus,
                                 Integer aggregateVersion, Long successorAcceptanceId,
+                                Long projectFactVersion, String factImpactType,
                                 ArrivalDifferenceScopeCodec.Scope remainingScope) {
+    }
+
+    public record ExpireArrivalExemptionsCommand(Integer pageSize) {
+        public ExpireArrivalExemptionsCommand {
+            if (pageSize == null || pageSize <= 0 || pageSize > 100) {
+                throw new IllegalArgumentException("invalid exemption expiry page size");
+            }
+        }
     }
 
     private static void requireIdentity(Long tenantId, Long id, Long actorId, Integer version) {

@@ -69,6 +69,7 @@ class ArrivalAcceptanceApplicationServiceTest {
 
         assertEquals(900L, created.getId());
         assertEquals("DRAFT", created.getStatus());
+        assertEquals(1, created.getBatchRootMarker());
         assertEquals(5, created.getProjectVersion());
         assertEquals(6L, created.getProjectParticipantFactVersion());
         assertEquals(7L, created.getProjectScopeVersion());
