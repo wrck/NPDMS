@@ -38,7 +38,7 @@
 
 - IMP唯一拥有`ImplementationReadinessSnapshot`和`imp_implementation_readiness_snapshot`；PROJ只拥有`proj_project_stage_snapshot`，不得承载EXE-06快照。
 - F-IMP-002～005分别通过`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`返回明确业务结果及版本水位。F-IMP-001不得依赖其`-biz`、Service、Mapper、DO或业务表。
-- PROJ使用`ProjectScopeApi.ACTION_EDIT`合并本人参与、负责或明确授权项目；AST通过`T-FIMP001-AST-01`交付的`DeviceScopeFactApi`提供明确设备ID、序列号、当前项目归属及归属版本事实。该支撑Task复用F-AST-001现有Device聚合，不新增表，也不形成独立Feature Done。
+- PROJ使用`ProjectScopeApi.ACTION_EDIT`合并本人参与、负责或明确授权项目；AST通过`T-FIMP001-AST-01`交付的`DeviceScopeFactApi`提供明确设备ID、序列号、当前项目归属及归属版本事实。该API按受信租户和项目批量解析SN，以`deviceId`升序返回设备及`deviceId/projectAssignmentVersion`结构化水位；锁定重验只把完整有效集合的归属版本变化判为`STALE`，缺失、状态不可用、错项目或Provider故障失败关闭。该支撑Task复用F-AST-001现有Device聚合，不新增表，也不形成独立Feature Done。
 - F-CUT-002只消费IMP公开事实，不直接查询IMP表，也不能以Provider调用成功替代`READY`判定。
 - 硬依赖形成顺序：EXE-01～04权威事实 → F-IMP-001快照Provider → F-CUT-002真实创建/继续验收。
 
