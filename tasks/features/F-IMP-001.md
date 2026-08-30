@@ -14,7 +14,7 @@
 ## 当前最小工作单元
 
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
-- AST Owner Provider锁定提交`69d37400`已独立复审`PASS / GO`：完整事务异常统一为公共失败，非IT 16项及隔离MySQL 8.4测试3项通过。当前最近Gate为IMP侧`DeviceScopeFactApiAdapter`最窄消费接线复审；F-IMP-003～005仍分别等待Feature Ready评审。
+- AST Owner Provider锁定提交`69d37400`已独立复审`PASS / GO`。IMP接线核对发现首次`INVALID`与公共异常尚无唯一错误映射，当前最近Gate为`DeviceScopeFactApiAdapter`最窄消费映射Contract Gate；通过前不实现Adapter。F-IMP-003～005仍分别等待Feature Ready评审。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成
@@ -38,7 +38,7 @@
 - `T-FIMP001-AST-01`：基于F-AST-001现有`ast_device`和归属版本交付`DeviceScopeFactApi.resolveBySerials/lockAndRevalidate`；不新增表、不迁移数据、不产生独立Feature状态。
 - 审计：`specs/features/F-IMP-001-ast-device-scope-support-audit.md`。
 - 机器契约：`specs/features/F-IMP-001-device-scope-fact-contract.json`（`PASS`）。
-- Contract Gate与Provider Gate均已通过；最近只允许实现IMP侧公开事实到内部Port的原样映射，不注册Fake/fallback或Task 12完整生产装配。
+- Contract Gate与Provider Gate均已通过；IMP侧新增消费错误映射候选保持`REVIEW_REQUIRED / BLOCKED_BY_SPEC`，通过后才允许实现公开事实到内部Port的原样映射，不注册Fake/fallback或Task 12完整生产装配。
 - 合入顺序：AST API/Provider → IMP消费者装配 → CUT真实消费；消费者不得跨模块读取AST表或内部实现。
 
 ## 验证边界
