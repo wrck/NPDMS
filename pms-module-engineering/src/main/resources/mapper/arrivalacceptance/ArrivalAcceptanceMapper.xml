@@ -127,6 +127,23 @@
           AND deleted = b'0'
     </update>
 
+    <update id="updateConfirmedIfMatch">
+        UPDATE imp_arrival_acceptance
+        SET status = 'CONFIRMED',
+            project_fact_version = #{query.projectFactVersion},
+            confirmed_by = #{query.confirmedBy},
+            confirmed_at = #{query.confirmedAt},
+            version = version + 1,
+            updater = CAST(#{query.confirmedBy} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.arrivalAcceptanceId}
+          AND status IN ('PARTIALLY_ACCEPTED', 'ACCEPTED')
+          AND project_fact_version IS NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
     <select id="selectConfirmedByProject" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
         SELECT <include refid="columns"/>
         FROM imp_arrival_acceptance
