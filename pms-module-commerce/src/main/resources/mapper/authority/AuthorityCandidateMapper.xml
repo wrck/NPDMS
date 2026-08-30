@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.AuthorityCandidateMapper">
+    <select id="selectByIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.AuthorityCandidateDO">
+        SELECT * FROM com_authority_candidate
+        WHERE tenant_id = #{tenantId} AND object_type = #{objectType}
+          AND candidate_source_system = #{sourceSystem} AND candidate_source_key = #{sourceKey}
+          AND candidate_version = #{candidateVersion} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.AuthorityCandidateDO">
+        SELECT * FROM com_authority_candidate
+        WHERE tenant_id = #{tenantId} AND id = #{candidateId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCandidateById" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.AuthorityCandidateDO">
+        SELECT * FROM com_authority_candidate
+        WHERE tenant_id = #{tenantId} AND id = #{candidateId} AND deleted = b'0'
+    </select>
+
+    <select id="selectConfirmedOwnerForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.AuthorityCandidateOwnerFact">
+        <choose>
+            <when test="objectType == 'CONTRACT'">
+                SELECT id owner_id, 'com_contract' owner_table, company_code, source_version, authority_status
+                FROM com_contract
+                WHERE tenant_id = #{tenantId} AND id = #{ownerId} AND deleted = b'0'
+                FOR UPDATE
+            </when>
+            <when test="objectType == 'SALES_ORDER'">
+                SELECT id owner_id, 'com_sales_order' owner_table, company_code, source_version, authority_status
+                FROM com_sales_order
+                WHERE tenant_id = #{tenantId} AND id = #{ownerId} AND deleted = b'0'
+                FOR UPDATE
+            </when>
+            <otherwise>
+                SELECT l.id owner_id, 'com_order_line' owner_table, o.company_code, l.source_version,
+                       l.quantity_status authority_status
+                FROM com_order_line l
+                JOIN com_sales_order o ON o.tenant_id = l.tenant_id AND o.id = l.order_id AND o.deleted = b'0'
+                WHERE l.tenant_id = #{tenantId} AND l.id = #{ownerId} AND l.deleted = b'0'
+                FOR UPDATE
+            </otherwise>
+        </choose>
+    </select>
+
+    <update id="decideByVersion">
+        UPDATE com_authority_candidate
+        SET candidate_status = #{candidateStatus}, matched_owner_table = #{matchedOwnerTable},
+            matched_owner_id = #{matchedOwnerId}, matched_owner_source_version = #{matchedOwnerSourceVersion},
+            decided_by = #{decidedBy}, decided_at = #{decidedAt}, version = version + 1,
+            updater = CAST(#{decidedBy} AS CHAR), update_time = #{decidedAt}
+        WHERE tenant_id = #{tenantId} AND id = #{candidateId} AND version = #{expectedVersion}
+          AND candidate_status = 'PENDING_RECONCILIATION' AND deleted = b'0'
+    </update>
+
+    <select id="selectVisiblePage" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.AuthorityCandidateDO">
+        SELECT * FROM com_authority_candidate
+        WHERE tenant_id = #{tenantId} AND deleted = b'0'
+          AND JSON_UNQUOTE(JSON_EXTRACT(candidate_payload, '$.companyCode')) IN
+          <foreach collection="companyCodes" item="companyCode" open="(" separator="," close=")">
+              #{companyCode}
+          </foreach>
+        <if test="objectType != null">AND object_type = #{objectType}</if>
+        <if test="candidateStatus != null">AND candidate_status = #{candidateStatus}</if>
+        ORDER BY submitted_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

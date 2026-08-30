@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 3在`d8a27561`通过独立Code Review与真实MySQL Gate，状态`PASS / GO`。当前进入Task 4“人工候选、关系核对与公司范围”最小实现；最近Gate为其独立Code Review/聚焦测试。Task 8虽具备前提但暂不并行写共享资产，下游依赖仍未解除。
+Task 3在`d8a27561`通过独立Code Review与真实MySQL Gate，状态`PASS / GO`。Task 4“人工候选、关系核对与公司范围”运行候选已完成：新增候选追加、公司范围守卫、既有CONFIRMED Owner关联、拒绝及可见列表，生产候选状态保持`REVIEW_REQUIRED`；聚焦非IT测试31/31、隔离MySQL 8.4测试3/3通过。最近Gate为Task 4独立Code Review/聚焦测试；Task 8暂不并行写共享资产，下游依赖仍未解除。
 
 ## Gate输入
 
