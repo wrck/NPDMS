@@ -76,6 +76,15 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("id=\"markPublishedPendingAccIfMatch\""));
         assertTrue(mapperXml.contains("acc_sync_status = 'PUBLISHED_PENDING_ACC'"));
         assertTrue(mapperXml.contains("AND acc_sync_status = 'NOT_PUBLISHED'"));
+        assertTrue(mapperXml.contains("id=\"selectByIdentityForUpdate\""));
+        assertTrue(mapperXml.contains("id=\"markAcceptedPendingArchiveIfMatch\""));
+        assertTrue(mapperXml.contains("id=\"markArchivedIfMatch\""));
+        assertTrue(mapperXml.contains(
+                "acc_sync_status IN ('PUBLISHED_PENDING_ACC', 'ARCHIVE_PENDING_RETRY')"));
+        assertTrue(mapperXml.contains(
+                "acc_sync_status IN ('ACCEPTED_PENDING_ARCHIVE', 'ARCHIVE_ACK_PENDING_RETRY')"));
+        assertTrue(mapperXml.contains("current_revision_no = #{query.currentRevision}"));
+        assertTrue(mapperXml.contains("acc_accepted_record_id IS NOT NULL"));
         assertTrue(mapperXml.contains("AND status = 'DRAFT'"));
         assertTrue(mapperXml.contains("AND version = #{query.expectedVersion}"));
         assertTrue(mapperXml.contains("<foreach collection=\"query.visibleProjectIds\""));
