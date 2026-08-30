@@ -31,7 +31,7 @@ class AssetProductTypeSchemaContractTest {
     @BeforeAll
     static void loadMigration() throws Exception {
         Path migration = locateRepositoryRoot().resolve(
-                "sql/migrations/V132__fast002_asset_product_type.sql");
+                "sql/migrations/V146__fast002_asset_product_type.sql");
         assertTrue(Files.exists(migration));
         sql = Files.readString(migration, StandardCharsets.UTF_8);
     }

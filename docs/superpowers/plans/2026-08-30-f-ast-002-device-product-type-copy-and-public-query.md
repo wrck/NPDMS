@@ -306,7 +306,7 @@ git commit -m "feat(asset): add product type public contract"
 Get-ChildItem sql/migrations -Filter 'V*.sql' | Sort-Object {[int]($_.BaseName -replace '^V(\d+).*','$1')} | Select-Object -Last 20 -ExpandProperty Name
 ```
 
-当前已落盘最高版本为V131；Technical Plan不预留Flyway版本，因此其他计划中的V132意向不构成占用，本Task使用`V132__fast002_asset_product_type.sql`。合入前若V132已被实际迁移占用，必须串行改为当时下一个未占用版本并同步Schema契约测试；禁止预留或修改既有迁移。
+首次实施时工作树最高版本为V131，原迁移使用V132；固定权威测试库随后证明V132～V145已被其他串行Feature实际执行，因此本Task按下一个空闲版本改为`V146__fast002_asset_product_type.sql`并同步Schema契约测试。禁止修改已执行迁移。
 
 - [ ] **Step 2: 创建`ast_product_type`**
 
@@ -472,6 +472,7 @@ git commit -m "feat(asset): add product type controlled copy schema"
 - Create: `pms-module-asset/src/main/resources/mapper/producttype/AssetProductTypeSourceMappingMapper.xml`
 - Create: `pms-module-asset/src/main/resources/mapper/producttype/DeviceCurrentProductTypeMapper.xml`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/producttype/DeviceCurrentProductTypeMapperTest.java`
+- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/producttype/DeviceCurrentProductTypeMapperMySqlTest.java`
 
 - [ ] **Step 1: 实现场景化Query**
 
