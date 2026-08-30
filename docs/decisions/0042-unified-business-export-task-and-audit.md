@@ -1,6 +1,6 @@
 # ADR-0042：统一业务导出任务与永久审计载体
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`（整改提交`1df9b392`独立复审GO）<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-02@V1`，并落实ADR-0014、ADR-0016<br>
 > 触发：F-ACC-002 Technical Plan整改复审指出仓库尚无可调用的`ExportTask/ExportAudit`公共载体

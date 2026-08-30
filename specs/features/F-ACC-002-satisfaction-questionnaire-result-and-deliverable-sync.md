@@ -158,4 +158,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`700b659d`；当前Gate=统一导出SDS/P3-E09整改复审；已通过=PLT Owner、三时点授权、统一Task/Audit及TTL边界正确；阻塞=同Task显式重试状态/水位已闭合待复审；下一步=GO后同步Feature与计划，不提前创建Task或代码。
+检查点：基线=`1df9b392`；当前Gate=Technical Plan整改；已通过=统一导出SDS/P3-E09补充GO；阻塞=需同步Feature/机器契约并关闭问卷验收顺序与真实导出载体计划；下一步=完成同一计划最小整改并复审，不创建Task或代码。

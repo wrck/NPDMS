@@ -26,6 +26,8 @@ Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式�
 
 2026-08-30 F-ACC-002 Result失效命令SDS补充整改`c1e7354c4738be42d2792b70222f1a369b82583b`经独立复审GO：当前有效达标Result按版本失效、原子Outbox及RECORDED/INVALIDATED双向单调投影闭合；仅允许返回同一Feature Ready整改。
 
+2026-08-30 F-ACC-002统一异步导出公共契约补充整改`1df9b3922a5c0a0ad5150cc5e33c14c7585c564c`经独立复审GO：PLT统一Task/Audit、三时点授权、显式重试CAS、失败分类及仅成功文件过期闭合；仅允许同步Feature与同一Technical Plan整改。
+
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 
 ## 2. 复审发现与关闭
