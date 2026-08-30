@@ -72,6 +72,7 @@
 
 - 对外路径固定为`/api/v1/pms/arrival-acceptances`；旧`/pms/eng-arrival`保持不变，不作新聚合的兼容或降级入口。
 - `tenantId`、`actorUserId`、`status`、`allowedActions`、`approvedBy/approvedAt`、`projectFactVersion`、`factImpactType`、当前版本和各Owner水位均由服务端解析或分配，HTTP请求不得接收并信任这些字段。
+- 所有进入`PlatformCommandExecutionApi`的用户写命令必须在受信请求可观测上下文中解析或生成一次规范化、非空且不超过128字符的`correlationId`，命令成功事实与审计使用同一值；该值不进入业务请求摘要，幂等重放返回首次结果。无HTTP入口的豁免失效命令使用其服务端稳定幂等键作为同一平台命令的`correlationId`，不得传空或临时随机拼造。
 - `PATCH`只能修改本人`DRAFT`的物流单号、签收时间、签收人快照、当前明细修订和PLT已返回的签收证据修订；不提供通用状态PATCH、删除或原始URL字段。明细和证据的更改均追加revision，不覆盖旧行。
 - 列表页大小固定为`1..100`，按`arrivedAt DESC, id DESC`稳定排序；可见项目集合由服务端`ProjectScopeApi.ACTION_VIEW`解析，空集合返回空页，不省略权限条件。
 - 详情统一返回批次根、当前明细、当前及历史差异revision、DeliveryEvidence摘要与当前revision、聚合版本和服务端`allowedActions`；不返回文件正文、持久下载URL或Owner DO。

@@ -84,7 +84,7 @@ class ArrivalAcceptanceCommandServiceTest {
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
                 new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1,
                         new ArrivalAcceptanceCommands.Supplement(20L, 1, 0,
-                                quantityScope("1"), "补签", fileRevision()), "resolve-key"));
+                                quantityScope("1"), "补签", fileRevision()), "resolve-key", "corr-resolve"));
 
         assertEquals("OPEN", result.resolutionStatus());
         assertEquals(new BigDecimal("2"),
@@ -110,11 +110,34 @@ class ArrivalAcceptanceCommandServiceTest {
 
         fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
                 1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
-                "少货", "影响交付", fileRevision(), "raise-key"));
+                "少货", "影响交付", fileRevision(), "raise-key", "corr-raise"));
 
         verify(fixture.differenceTypePort()).requireEnabled("QUANTITY_MISMATCH");
         verify(fixture.filePort()).lockAndRevalidateArrivalEvidence(any());
         verify(fixture.filePort(), never()).inspectArrivalEvidence(any(), any(), any(), any());
+        assertEquals("corr-raise", fixture.successFacts().getFirst().correlationId());
+    }
+
+    @Test
+    void trustedCorrelationDoesNotChangeBusinessIdempotencyDigest() {
+        Fixture fixture = fixture(draft(0));
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any())).thenReturn(List.of());
+        when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
+
+        fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
+                1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
+                "少货", "影响交付", fileRevision(), "same-key", "corr-one"));
+        fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
+                1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
+                "少货", "影响交付", fileRevision(), "same-key", "corr-two"));
+
+        ArgumentCaptor<String> digest = ArgumentCaptor.forClass(String.class);
+        verify(fixture.commandApi(), org.mockito.Mockito.times(2))
+                .execute(any(), digest.capture(), any(), any(), any());
+        assertEquals(digest.getAllValues().get(0), digest.getAllValues().get(1));
+        assertEquals(List.of("corr-one", "corr-two"), fixture.successFacts().stream()
+                .map(PlatformCommandExecutionApi.SuccessFacts::correlationId).toList());
     }
 
     @Test
@@ -132,7 +155,7 @@ class ArrivalAcceptanceCommandServiceTest {
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
                 new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
                         new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
-                        "resolve-key"));
+                        "resolve-key", "corr-resolve"));
 
         assertEquals(901L, result.successorAcceptanceId());
         ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
@@ -142,6 +165,7 @@ class ArrivalAcceptanceCommandServiceTest {
         assertEquals("DIFFERENCE_CLOSURE", successor.getValue().getSuccessorReason());
         assertEquals(null, successor.getValue().getBatchRootMarker());
         verify(fixture.acceptanceMapper(), never()).resolveDifferenceIfMatch(any());
+        assertEquals("corr-resolve", fixture.successFacts().getFirst().correlationId());
         ArgumentCaptor<ArrivalChildRevisionMutation> cleared =
                 ArgumentCaptor.forClass(ArrivalChildRevisionMutation.class);
         verify(fixture.differenceMapper()).clearCurrentIfMatch(cleared.capture());
@@ -169,7 +193,7 @@ class ArrivalAcceptanceCommandServiceTest {
                         new ArrivalAcceptanceCommands.CorrectInformation(3, "修正签收人",
                                 new ArrivalAcceptanceCommands.CorrectionPatch(
                                         null, null, "新签收人", null), fileRevision()),
-                        "correct-key"));
+                        "correct-key", "corr-correct"));
 
         assertEquals(901L, result.successorAcceptanceId());
         ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
@@ -198,7 +222,7 @@ class ArrivalAcceptanceCommandServiceTest {
                 () -> fixture.service().resolveDifference(
                         new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
                                 new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
-                                "different-key")));
+                                "different-key", "corr-different")));
 
         verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
         verify(fixture.lineMapper(), never()).insert(any(ArrivalLineDO.class));
@@ -221,7 +245,8 @@ class ArrivalAcceptanceCommandServiceTest {
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
                 new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1,
                         new ArrivalAcceptanceCommands.Exempt(20L, 1, 0, "豁免", "已批准风险",
-                                java.time.LocalDateTime.of(2026, 8, 31, 4, 0), fileRevision()), "resolve-key"));
+                                java.time.LocalDateTime.of(2026, 8, 31, 4, 0), fileRevision()),
+                        "resolve-key", "corr-exempt"));
 
         assertEquals("PARTIALLY_ACCEPTED", result.aggregateStatus());
     }
@@ -260,6 +285,8 @@ class ArrivalAcceptanceCommandServiceTest {
         assertEquals(5L, invalidation.getProjectFactVersion());
         assertEquals("EXEMPTION_INVALIDATION", invalidation.getFactImpactType());
         verify(fixture.acceptanceMapper(), never()).resolveDifferenceIfMatch(any());
+        assertEquals("1:900:1:1:EXEMPTION_INVALIDATION",
+                fixture.successFacts().getFirst().correlationId());
         ArgumentCaptor<ArrivalAcceptanceDO> successor = ArgumentCaptor.forClass(ArrivalAcceptanceDO.class);
         verify(fixture.acceptanceMapper()).insert(successor.capture());
         assertEquals(15, successor.getValue().getProjectVersion());
@@ -310,7 +337,8 @@ class ArrivalAcceptanceCommandServiceTest {
         assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
                         1L, 900L, 8L, 2,
-                        new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()), "close-key")));
+                        new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
+                        "close-key", "corr-close")));
 
         verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
         verify(fixture.revisionMapper(), never()).insert(any(DeliveryEvidenceRevisionDO.class));
@@ -329,7 +357,7 @@ class ArrivalAcceptanceCommandServiceTest {
                 () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
                         1L, 900L, 8L, 2,
                         new ArrivalAcceptanceCommands.KeepRejected(20L, 1, 0, "保持拒收", fileRevision()),
-                        "keep-key")));
+                        "keep-key", "corr-keep")));
 
         verify(fixture.acceptanceMapper(), never()).insert(any(ArrivalAcceptanceDO.class));
     }
@@ -417,6 +445,7 @@ class ArrivalAcceptanceCommandServiceTest {
         FileArtifactFactPort files = mock(FileArtifactFactPort.class);
         ArrivalDifferenceTypePort differenceTypes = mock(ArrivalDifferenceTypePort.class);
         PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
+        List<PlatformCommandExecutionApi.SuccessFacts> successFacts = new java.util.ArrayList<>();
         when(acceptance.selectForUpdate(any())).thenReturn(root);
         when(acceptance.selectSuccessorForUpdate(any())).thenReturn(null);
         when(project.lockAndRevalidate(any())).thenReturn(new ProjectQualificationPort.ProjectQualificationFact(
@@ -451,13 +480,18 @@ class ArrivalAcceptanceCommandServiceTest {
             Supplier<?> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
             Object response = operation.get();
-            facts.apply(response);
+            PlatformCommandExecutionApi.SuccessFacts committed = facts.apply(response);
+            if (committed == null || committed.correlationId() == null
+                    || committed.correlationId().isBlank() || committed.correlationId().length() > 128) {
+                throw new IllegalStateException("invalid platform success correlation");
+            }
+            successFacts.add(committed);
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, response);
         }).when(commands).execute(any(), any(), any(), any(), any());
         Clock clock = Clock.fixed(Instant.parse("2026-08-30T04:00:00Z"), ZoneOffset.UTC);
         return new Fixture(acceptance, lines, differences, evidence, revisions, project, systemProject,
-                files, differenceTypes,
+                files, differenceTypes, commands, successFacts,
                 new ArrivalAcceptanceCommandService(acceptance, lines, differences, evidence, revisions,
                         project, systemProject, delivery, devices, files, differenceTypes, commands, clock));
     }
@@ -603,6 +637,8 @@ class ArrivalAcceptanceCommandServiceTest {
                            DeliveryEvidenceRevisionMapper revisionMapper, ProjectQualificationPort projectPort,
                            ProjectSystemQualificationPort systemProjectPort,
                            FileArtifactFactPort filePort, ArrivalDifferenceTypePort differenceTypePort,
+                           PlatformCommandExecutionApi commandApi,
+                           List<PlatformCommandExecutionApi.SuccessFacts> successFacts,
                            ArrivalAcceptanceCommandService service) {
     }
 }

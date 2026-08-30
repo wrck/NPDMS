@@ -125,8 +125,9 @@ public class ArrivalAcceptanceCommandService {
                 commandApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                                 command.tenantId(), "IMP:ARRIVAL_RAISE_DIFFERENCE:" + command.arrivalAcceptanceId(),
                                 command.actorUserId(), command.idempotencyKey()),
-                        digest(command), ArrivalAcceptanceCommands.CommandResult.class,
-                        () -> raiseOnce(command), response -> successFacts("ARRIVAL_DIFFERENCE_RAISE", response));
+                        digestExcludingCorrelation(command), ArrivalAcceptanceCommands.CommandResult.class,
+                        () -> raiseOnce(command), response -> successFacts(
+                                "ARRIVAL_DIFFERENCE_RAISE", command.correlationId(), response));
         return requireCompleted(result);
     }
 
@@ -137,8 +138,9 @@ public class ArrivalAcceptanceCommandService {
                 commandApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                                 command.tenantId(), "IMP:ARRIVAL_RESOLVE_DIFFERENCE:" + command.arrivalAcceptanceId(),
                                 command.actorUserId(), command.idempotencyKey()),
-                        digest(command), ArrivalAcceptanceCommands.CommandResult.class,
-                        () -> resolveOnce(command), response -> successFacts("ARRIVAL_DIFFERENCE_RESOLVE", response));
+                        digestExcludingCorrelation(command), ArrivalAcceptanceCommands.CommandResult.class,
+                        () -> resolveOnce(command), response -> successFacts(
+                                "ARRIVAL_DIFFERENCE_RESOLVE", command.correlationId(), response));
         return requireCompleted(result);
     }
 
@@ -159,7 +161,7 @@ public class ArrivalAcceptanceCommandService {
                                     0L, key), digest(Map.of("key", key)),
                             ArrivalAcceptanceCommands.CommandResult.class,
                             () -> expireOnce(difference, processingTime),
-                            response -> successFacts("ARRIVAL_EXEMPTION_INVALIDATION", response));
+                            response -> successFacts("ARRIVAL_EXEMPTION_INVALIDATION", key, response));
             results.add(requireCompleted(execution));
         }
         return List.copyOf(results);
@@ -979,10 +981,19 @@ public class ArrivalAcceptanceCommandService {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static String digestExcludingCorrelation(Object command) {
+        Map<String, Object> payload = JsonUtils.parseObject(JsonUtils.toJsonString(command), Map.class);
+        if (payload == null || payload.remove("correlationId") == null) {
+            throw new IllegalArgumentException("trusted correlation id is missing from command");
+        }
+        return digest(payload);
+    }
+
     private static PlatformCommandExecutionApi.SuccessFacts successFacts(
-            String operation, ArrivalAcceptanceCommands.CommandResult response) {
+            String operation, String correlationId, ArrivalAcceptanceCommands.CommandResult response) {
         return new PlatformCommandExecutionApi.SuccessFacts(operation, "ArrivalAcceptance",
-                String.valueOf(response.arrivalAcceptanceId()), null,
+                String.valueOf(response.arrivalAcceptanceId()), correlationId,
                 JsonUtils.toJsonString(response), List.of());
     }
 

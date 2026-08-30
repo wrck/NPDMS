@@ -75,13 +75,14 @@ public final class ArrivalAcceptanceCommands {
                                          Integer expectedLineVersion, String differenceTypeCode,
                                          ArrivalDifferenceScopeCodec.Scope scope, String reason,
                                          String riskDescription, FileRevision evidenceRevision,
-                                         String idempotencyKey) {
+                                         String idempotencyKey, String correlationId) {
         public RaiseDifferenceCommand {
             requireIdentity(tenantId, arrivalAcceptanceId, actorUserId, expectedVersion);
             differenceTypeCode = normalized(differenceTypeCode, 64, "differenceTypeCode");
             reason = normalized(reason, 1000, "reason");
             riskDescription = normalized(riskDescription, 1000, "riskDescription");
             idempotencyKey = normalized(idempotencyKey, 128, "idempotencyKey");
+            correlationId = normalized(correlationId, 128, "correlationId");
             if (arrivalLineId == null || arrivalLineId <= 0 || expectedLineVersion == null
                     || expectedLineVersion < 0 || scope == null || evidenceRevision == null) {
                 throw new IllegalArgumentException("invalid raise difference command");
@@ -170,10 +171,11 @@ public final class ArrivalAcceptanceCommands {
 
     public record ResolveDifferenceCommand(Long tenantId, Long arrivalAcceptanceId, Long actorUserId,
                                            Integer expectedVersion, Resolution resolution,
-                                           String idempotencyKey) {
+                                           String idempotencyKey, String correlationId) {
         public ResolveDifferenceCommand {
             requireIdentity(tenantId, arrivalAcceptanceId, actorUserId, expectedVersion);
             idempotencyKey = normalized(idempotencyKey, 128, "idempotencyKey");
+            correlationId = normalized(correlationId, 128, "correlationId");
             if (resolution == null) throw new IllegalArgumentException("resolution required");
         }
     }
