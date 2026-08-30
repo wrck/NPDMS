@@ -35,7 +35,7 @@
 - Task 6A投递实现已完成：只领取`ImplementationEvidencePublished`，严格校验tenant/eventId/payload，同步发布成功后markDelivered，发布或校验异常按1/2/4…60分钟重试。V137将`arrivalEvidenceOutboxDeliveryJob`正式登记为PAUSED；生产激活保持`BLOCKED_BY_ACC_CONSUMER`，ACC消费者与真实Spring传播契约未形成前不注册Quartz同步、不运行证据投递或证据回执重试。
 - Task 6B消费实现与独立Code Review Gate已完成（`b943461c`，`PASS / GO`）：新增锁定载荷的`ArtifactAcceptedMessage`/`ArtifactArchivedMessage`及同步Listener，运行时租户与载荷tenant一致后才复用平台幂等Inbox；按固定事件类型和全字段摘要处理回执，匹配当前不可变revision后以行锁与version CAS推进`ACCEPTED_PENDING_ARCHIVE`/`ARCHIVED`。审计快照保存收到身份、冻结身份、结果和明确原因；永久异载荷冲突与暂时处理中使用不同公开异常分类。ACC Producer尚未合入，两个生产Job继续PAUSED，生产联调与激活保持`BLOCKED_BY_ACC_CONSUMER`。
 - Task 6C的V138定点Gate已通过（`e34930bc`，`PASS / GO`）：首次发布`correlationId`权威持久化、失败关闭迁移可恢复重跑及PAD SPACE尾随空格约束均已闭合。
-- Task 6C运行候选已形成：首次出向消息同步发布成功后，外层本地事务按当前证据状态登记首个Accepted等待水位并完成平台Outbox；双阶段业务重试以`evidenceId:revision:status:retryCount`排他执行，按1/2/4…60分钟退避，在同一次NEW命令内进入重试态并排队同revision新事件，只递增一次retryCount。首次Code Review的MyBatis字段绑定、两次到期空转和`correlationId`边界三项NO-GO已形成最小整改；平台白名单已纳入`ImplementationEvidencePublished`，V139幂等登记`arrivalEvidenceRetryJob`为PAUSED，两个生产Job仍不激活，整改候选等待独立复审。
+- Task 6C运行实现与独立Code Review／聚焦测试Gate已完成（`9561384b`，`PASS / GO`）：首次出向消息同步发布成功后，外层本地事务按当前证据状态登记首个Accepted等待水位并完成平台Outbox；双阶段业务重试以`evidenceId:revision:status:retryCount`排他执行，按1/2/4…60分钟退避，在同一次NEW命令内进入重试态并排队同revision新事件，只递增一次retryCount。MyBatis运行绑定、四态单次NEW事务、冻结身份失败关闭及`correlationId`命令边界已通过独立复审；平台白名单已纳入`ImplementationEvidencePublished`，V139幂等登记`arrivalEvidenceRetryJob`为PAUSED。两个生产Job仍不激活，ACC Producer、真实Spring双向传播、真实浏览器和Feature Implementation Done继续受生产依赖阻断。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
