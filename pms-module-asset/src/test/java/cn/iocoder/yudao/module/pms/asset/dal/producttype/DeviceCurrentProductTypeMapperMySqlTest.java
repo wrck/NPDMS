@@ -69,8 +69,11 @@ class DeviceCurrentProductTypeMapperMySqlTest {
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> values = environment();
-        String port = values.getOrDefault("NPDMS_MYSQL_PORT", "13306");
-        String database = values.getOrDefault("NPDMS_DB_NAME", "npdms");
+        String port = values.getOrDefault("NPDMS_MYSQL_PORT", "23316");
+        String database = values.getOrDefault("NPDMS_DB_NAME", "npdms_test");
+        if (!"npdms_test".equals(database)) {
+            throw new IllegalStateException("EQP-01真实MySQL测试仅允许使用npdms_test隔离库");
+        }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
         registry.add("spring.datasource.username", () -> required(values, "NPDMS_DB_USER"));

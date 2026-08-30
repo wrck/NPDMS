@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：Task 6已通过独立复审，待提交本逻辑单元；提交后进入Task 7真实MySQL迁移、幂等与并发验证，后续Task未验证内容不得提前宣称完成
+> 当前阻断：无；Task 7真实MySQL迁移、幂等与并发验证已通过独立复审，当前提交本逻辑单元，提交后进入Task 8 Inspection专用只读适配器
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 6跨单元定向回归、遗漏补测和软删除稳定编码缺陷整改已完成验证和独立复审；当前最小工作单元为Task 6提交，提交后进入Task 7。
+- Task 7已完成真实MySQL迁移、约束、事务、幂等和并发验证并取得独立复审GO；当前最小工作单元为Task 7提交，提交后进入Task 8。
 
 ## 已完成
 
@@ -28,6 +28,9 @@
 - Task 4已交付唯一受控导入POST入口、Controller与Service双重专用权限、认证上下文租户/操作者、`sourceUpdatedAt`唯一排序水位、平台幂等成功编排、产品类型/来源映射/设备当前引用事务写入、冲突`REQUIRES_NEW`记录、来源失败保留最近成功副本和摘要化操作审计；软删除来源键继续占用并稳定拒绝，冲突审计携带当前来源证据，并发推进保护不会反向覆盖更晚成功事实。V147只登记`pms:asset-product-type:controlled-import`且不绑定角色，固定测试库Flyway validate 143项PASS。Task 4定向测试30项、真实MySQL事务/Mapper 7项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO / NPDMS-FAST002-TASK4-REMEDIATION-REVIEW-20260831-01`，不代表Feature Implementation Done。
 - Task 5已交付`AssetProductTypeQueryService`和薄`AssetProductTypeApiImpl`：按编码查询在可信动作校验后一次批量读取并按请求顺序补齐未知、停用和最近成功副本事实；授权设备查询校验可信动作与委托用户，空设备/空项目范围失败关闭，以统一`effectiveAt`复用Task 3联查并映射未解析状态。Task 5定向测试10项、Task 1/3/5组合定向测试21项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO / F-AST-002-TASK5-CURRENT-DIFF-REVIEW-20260831-01`。Inspection不可伪造专用适配器仍保留在Task 8，本结论不代表Feature Implementation Done。
 - Task 6已执行Task 1至5跨单元定向回归，并补齐Writer首次导入、幂等重放、陈旧来源、更晚来源更新、既有副本空响应保留和审计详情脱敏证据；回归发现软删除产品类型编码会被同源导入错误更新，已最小修复为`PRODUCT_TYPE_CODE_RESERVED`稳定拒绝且不写产品类型、来源映射或设备事实。15个测试类71项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO`。真实MySQL软删除唯一键、事务和并发证据仍保留在Task 7，本结论不代表Feature Implementation Done。
+- Task 7已在固定隔离MySQL中验证三表约束、受控导入、幂等重放、陈旧水位和来源失败不覆盖最近成功事实、停用历史、授权设备范围、跨租户及审计失败回滚；并以真实线程和同步栅栏验证同稳定编码、同来源不同目标、同设备当前引用和同幂等键竞争。空库143项迁移、重复migrate以及V145→V147前向升级均PASS，既有设备数据指纹与`ast_device`结构不变；10项导入集成、3项Mapper、4项并发共17项真实MySQL测试、AST Reactor编译及`git diff --check`均PASS；独立复审`GO`，仅放行Task 7，不代表Feature Implementation Done。
+
+> 检查点（2026-08-31）：基线`ce7ce39f`；当前Gate=Task 7提交；证据=空库/V145→V147迁移、17项真实MySQL、Reactor编译、diff-check及独立GO；阻塞=无；下一步=提交Task 7后进入Task 8 Inspection专用只读适配器。
 
 ## 实施范围
 

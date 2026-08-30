@@ -900,8 +900,9 @@ git commit -m "test(asset): cover product type controlled copy"
 
 **Files:**
 
-- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/producttype/AssetProductTypeMySqlIntegrationTest.java`
-- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/producttype/AssetProductTypeConcurrencyMySqlTest.java`
+- Modify: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportMySqlIntegrationTest.java`
+- Modify: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/producttype/DeviceCurrentProductTypeMapperMySqlTest.java`
+- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeConcurrencyMySqlTest.java`
 
 - [ ] **Step 1: 补真实MySQL正向与降级测试**
 
@@ -970,15 +971,15 @@ Expected：前向升级成功，既有设备表和数据不被覆盖。
 - [ ] **Step 6: 运行真实MySQL测试**
 
 ```powershell
-mvn.cmd -pl pms-module-asset -am "-DskipITs=false" "-Dtest=AssetProductTypeMySqlIntegrationTest,AssetProductTypeConcurrencyMySqlTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-asset -am "-DskipITs=false" "-Dtest=AssetProductTypeImportMySqlIntegrationTest,DeviceCurrentProductTypeMapperMySqlTest,AssetProductTypeConcurrencyMySqlTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Expected：两个真实MySQL测试类实际执行且全部PASS。
+Expected：三个真实MySQL测试类实际执行且全部PASS。
 
 - [ ] **Step 7: 提交逻辑单元**
 
 ```powershell
-git add pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/producttype
+git add docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/producttype/DeviceCurrentProductTypeMapperMySqlTest.java pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportMySqlIntegrationTest.java pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeConcurrencyMySqlTest.java
 git commit -m "test(asset): verify product type mysql constraints"
 ```
 

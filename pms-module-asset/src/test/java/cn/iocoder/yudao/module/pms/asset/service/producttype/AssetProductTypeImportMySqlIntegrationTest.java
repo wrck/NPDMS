@@ -7,6 +7,10 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.service.producttype.command.DeviceCurrentProductTypeInput;
 import cn.iocoder.yudao.module.pms.asset.service.producttype.command.ImportAssetProductTypeCommand;
 import cn.iocoder.yudao.module.pms.asset.service.producttype.command.ImportAssetProductTypeResult;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.AssetProductTypeMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.DeviceCurrentProductTypeMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.AuthorizedDeviceProductTypesQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.query.ProductTypesByCodesQuery;
 import cn.iocoder.yudao.module.pms.asset.service.producttype.command.RecordAssetProductTypeSourceFailureCommand;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -16,6 +20,8 @@ import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecu
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
@@ -42,10 +48,13 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = AssetProductTypeImportMySqlIntegrationTest.TestApplication.class,
@@ -56,6 +65,8 @@ class AssetProductTypeImportMySqlIntegrationTest {
     @Resource private AssetProductTypeConflictRecordService conflictRecordService;
     @Resource private AssetProductTypeSourceFailureWriter sourceFailureWriter;
     @Resource private PlatformCommandExecutionApi commandExecutionApi;
+    @Resource private AssetProductTypeMapper productTypeMapper;
+    @Resource private DeviceCurrentProductTypeMapper currentProductTypeMapper;
     @Resource private JdbcTemplate jdbcTemplate;
 
     private long idBase;
@@ -64,8 +75,11 @@ class AssetProductTypeImportMySqlIntegrationTest {
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> values = environment();
-        String port = values.getOrDefault("NPDMS_MYSQL_PORT", "13306");
-        String database = values.getOrDefault("NPDMS_DB_NAME", "npdms");
+        String port = values.getOrDefault("NPDMS_MYSQL_PORT", "23316");
+        String database = values.getOrDefault("NPDMS_DB_NAME", "npdms_test");
+        if (!"npdms_test".equals(database)) {
+            throw new IllegalStateException("EQP-01真实MySQL测试仅允许使用npdms_test隔离库");
+        }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
         registry.add("spring.datasource.username", () -> required(values, "NPDMS_DB_USER"));
@@ -90,7 +104,11 @@ class AssetProductTypeImportMySqlIntegrationTest {
     void tearDown() {
         try {
             TestApplication.auditFailureEnabled = false;
-            jdbcTemplate.update("DELETE FROM ast_device_current_product_type WHERE tenant_id=1 AND source_version LIKE ?", keyPrefix + "%");
+            jdbcTemplate.update("DELETE current_type FROM ast_device_current_product_type current_type "
+                    + "LEFT JOIN ast_product_type_source_mapping mapping "
+                    + "ON mapping.tenant_id=current_type.tenant_id AND mapping.id=current_type.source_mapping_id "
+                    + "WHERE current_type.tenant_id=1 AND (current_type.source_version LIKE ? "
+                    + "OR mapping.source_key LIKE ?)", keyPrefix + "%", keyPrefix + "%");
             jdbcTemplate.update("DELETE FROM ast_product_type_source_mapping WHERE tenant_id=1 AND source_key LIKE ?", keyPrefix + "%");
             jdbcTemplate.update("DELETE FROM ast_product_type WHERE tenant_id=1 AND source_key LIKE ?", keyPrefix + "%");
             jdbcTemplate.update("DELETE FROM ast_device WHERE id BETWEEN ? AND ?", idBase, idBase + 99);
@@ -99,6 +117,139 @@ class AssetProductTypeImportMySqlIntegrationTest {
         } finally {
             TenantContextHolder.clear();
         }
+    }
+
+    @Test
+    void schemaConstraintsReserveSoftDeletedCodeAndKeepOneCurrentDeviceReference() {
+        LocalDateTime watermark = LocalDateTime.of(2026, 8, 31, 8, 0);
+        long productTypeId = idBase + 1;
+        long mappingId = idBase + 2;
+        long deviceId = idBase + 3;
+        String typeCode = "TYPE-SCHEMA-" + Long.toUnsignedString(idBase, 36);
+        insertDevice(deviceId, 501L);
+        insertProductType(productTypeId, typeCode, keyPrefix + "-schema", "v1", watermark, "a".repeat(64));
+        insertMapping(mappingId, keyPrefix + "-schema", productTypeId, "v1", watermark, "a".repeat(64));
+        jdbcTemplate.update("UPDATE ast_product_type SET deleted=b'1' WHERE id=?", productTypeId);
+
+        assertThrows(RuntimeException.class, () -> insertProductType(idBase + 4, typeCode,
+                keyPrefix + "-schema-other", "v2", watermark.plusMinutes(1), "b".repeat(64)));
+        jdbcTemplate.update("UPDATE ast_product_type SET deleted=b'0' WHERE id=?", productTypeId);
+        insertCurrent(idBase + 5, deviceId, productTypeId, typeCode, mappingId, "v1", watermark, null);
+        assertThrows(RuntimeException.class, () -> insertCurrent(idBase + 6, deviceId, productTypeId,
+                typeCode, mappingId, "v2", watermark.plusMinutes(1), null));
+
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM ast_device_current_product_type "
+                        + "WHERE tenant_id=1 AND device_id=? AND current_marker=1", Long.class, deviceId));
+    }
+
+    @Test
+    void controlledImportCreatesCopyMappingAndCurrentReferenceAndReplaysWithoutDuplicates() {
+        long deviceId = idBase + 11;
+        insertDevice(deviceId, 501L);
+        ImportAssetProductTypeCommand command = command("positive", "TYPE-POSITIVE",
+                LocalDateTime.of(2026, 8, 31, 9, 0),
+                List.of(new DeviceCurrentProductTypeInput(deviceId, "RESOLVED")));
+
+        PlatformCommandExecutionApi.ExecutionResult<ImportAssetProductTypeResult> first = execute(command);
+        PlatformCommandExecutionApi.ExecutionResult<ImportAssetProductTypeResult> replay = execute(command);
+
+        assertEquals(PlatformCommandExecutionApi.Decision.NEW, first.decision());
+        assertEquals(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay.decision());
+        assertEquals(first.response().productTypeId(), replay.response().productTypeId());
+        assertEquals(1L, count("ast_product_type", "source_key", command.sourceKey()));
+        assertEquals(1L, count("ast_product_type_source_mapping", "source_key", command.sourceKey()));
+        assertEquals(1L, count("ast_device_current_product_type", "source_version", command.sourceVersion()));
+        assertEquals(1L, count("plt_idempotency_record", "idempotency_key", command.idempotencyKey()));
+        assertEquals(1L, count("plt_operation_audit", "correlation_id", command.operationId()));
+    }
+
+    @Test
+    void staleSourceDoesNotOverwriteLastSuccessfulFacts() {
+        LocalDateTime currentWatermark = LocalDateTime.of(2026, 8, 31, 10, 0);
+        ImportAssetProductTypeCommand current = command("stale", "TYPE-STALE", currentWatermark, List.of());
+        ImportAssetProductTypeResult imported = execute(current).response();
+        ImportAssetProductTypeCommand stale = new ImportAssetProductTypeCommand(
+                keyPrefix + "-stale-old-op", keyPrefix + "-stale-old-idem", "TYPE-STALE", "旧名称", false,
+                "CRM", current.sourceKey(), "old-version", currentWatermark.minusMinutes(1), "c".repeat(64), List.of());
+
+        assertThrows(AssetProductTypeImportRejectedException.class,
+                () -> importWriter.importOnce(1L, 9L, stale));
+
+        Map<String, Object> stored = jdbcTemplate.queryForMap(
+                "SELECT display_name,enabled,source_version,source_updated_at,payload_hash "
+                        + "FROM ast_product_type WHERE tenant_id=1 AND source_key=?", current.sourceKey());
+        assertEquals("集成测试类型", stored.get("display_name"));
+        assertTrue((Boolean) stored.get("enabled"));
+        assertEquals(current.sourceVersion(), stored.get("source_version"));
+        assertEquals(currentWatermark, stored.get("source_updated_at"));
+        assertEquals(current.payloadHash(), stored.get("payload_hash"));
+        Map<String, Object> mapping = jdbcTemplate.queryForMap(
+                "SELECT product_type_id,source_version,source_updated_at,payload_hash "
+                        + "FROM ast_product_type_source_mapping WHERE tenant_id=1 AND source_key=?",
+                current.sourceKey());
+        assertEquals(imported.productTypeId(), mapping.get("product_type_id"));
+        assertEquals(current.sourceVersion(), mapping.get("source_version"));
+        assertEquals(currentWatermark, mapping.get("source_updated_at"));
+        assertEquals(current.payloadHash(), mapping.get("payload_hash"));
+    }
+
+    @Test
+    void disabledProductTypeRemainsQueryableButIsNotEnabledForNewConsumption() {
+        ImportAssetProductTypeCommand disabled = new ImportAssetProductTypeCommand(
+                keyPrefix + "-disabled-op", keyPrefix + "-disabled-idem", "TYPE-DISABLED", "停用类型", false,
+                "CRM", keyPrefix + "-disabled", "v1", LocalDateTime.of(2026, 8, 31, 11, 0),
+                "d".repeat(64), List.of());
+        execute(disabled);
+
+        var stored = productTypeMapper.selectByCodes(new ProductTypesByCodesQuery(1L, Set.of("TYPE-DISABLED")));
+
+        assertEquals(1, stored.size());
+        assertFalse(stored.getFirst().getEnabled());
+        assertFalse(stored.getFirst().getDeleted());
+        assertEquals("v1", stored.getFirst().getSourceVersion());
+    }
+
+    @Test
+    void authorizedDeviceProjectionOnlyReturnsVisibleProjectDevice() {
+        LocalDateTime watermark = LocalDateTime.of(2026, 8, 31, 12, 0);
+        long visibleDeviceId = idBase + 21;
+        long hiddenDeviceId = idBase + 22;
+        insertDevice(visibleDeviceId, 501L);
+        insertDevice(hiddenDeviceId, 502L);
+        ImportAssetProductTypeCommand command = command("scope", "TYPE-SCOPE", watermark,
+                List.of(new DeviceCurrentProductTypeInput(visibleDeviceId, "RESOLVED"),
+                        new DeviceCurrentProductTypeInput(hiddenDeviceId, "RESOLVED")));
+        execute(command);
+
+        var projections = currentProductTypeMapper.selectAuthorizedCurrent(
+                new AuthorizedDeviceProductTypesQuery(1L, Set.of(visibleDeviceId, hiddenDeviceId),
+                        Set.of(501L), watermark.plusMinutes(1)));
+
+        assertEquals(1, projections.size());
+        assertEquals(visibleDeviceId, projections.getFirst().deviceId());
+        assertEquals("TYPE-SCOPE", projections.getFirst().productTypeCode());
+    }
+
+    @Test
+    void sourceFailureKeepsLastSuccessfulValuesAndTimestamp() {
+        LocalDateTime watermark = LocalDateTime.of(2026, 8, 31, 13, 0);
+        ImportAssetProductTypeCommand command = command("degraded", "TYPE-DEGRADED", watermark, List.of());
+        ImportAssetProductTypeResult imported = execute(command).response();
+        LocalDateTime syncedAt = jdbcTemplate.queryForObject(
+                "SELECT synced_at FROM ast_product_type WHERE id=?", LocalDateTime.class, imported.productTypeId());
+
+        sourceFailureWriter.markFailed(1L, 9L, new RecordAssetProductTypeSourceFailureCommand(
+                keyPrefix + "-degraded-failure", "CRM", command.sourceKey(), "TIMEOUT"));
+
+        Map<String, Object> stored = jdbcTemplate.queryForMap(
+                "SELECT display_name,source_version,source_updated_at,synced_at,sync_status "
+                        + "FROM ast_product_type WHERE id=?", imported.productTypeId());
+        assertEquals("集成测试类型", stored.get("display_name"));
+        assertEquals(command.sourceVersion(), stored.get("source_version"));
+        assertEquals(watermark, stored.get("source_updated_at"));
+        assertEquals(syncedAt, stored.get("synced_at"));
+        assertEquals("FAILED", stored.get("sync_status"));
     }
 
     @Test
@@ -184,6 +335,12 @@ class AssetProductTypeImportMySqlIntegrationTest {
                 1L, AssetProductTypeImportService.IMPORT_SCOPE, 9L, command.idempotencyKey());
     }
 
+    private PlatformCommandExecutionApi.ExecutionResult<ImportAssetProductTypeResult> execute(
+            ImportAssetProductTypeCommand command) {
+        return commandExecutionApi.execute(scope(command), command.payloadHash(), ImportAssetProductTypeResult.class,
+                () -> importWriter.importOnce(1L, 9L, command), result -> successFacts(command, result));
+    }
+
     private PlatformCommandExecutionApi.SuccessFacts successFacts(
             ImportAssetProductTypeCommand command, ImportAssetProductTypeResult result) {
         return new PlatformCommandExecutionApi.SuccessFacts(
@@ -218,11 +375,26 @@ class AssetProductTypeImportMySqlIntegrationTest {
     }
 
     private void insertDevice(long id) {
+        insertDevice(id, null);
+    }
+
+    private void insertDevice(long id, Long projectId) {
         jdbcTemplate.update("INSERT INTO ast_device "
-                        + "(id,sn,name,project_assignment_version,status,source_system,source_key,sync_status,version,"
-                        + "creator,updater,deleted,tenant_id) "
-                        + "VALUES (?,?,?,0,'ACTIVE','PMS',?,'FRESH',0,'mysql-it','mysql-it',b'0',1)",
-                id, "IT-FAST002-" + id, "FAST002", keyPrefix + "-device");
+                        + "(id,sn,name,project_id,project_assignment_version,status,source_system,source_key,sync_status,"
+                        + "version,creator,updater,deleted,tenant_id) "
+                        + "VALUES (?,?,?,?,0,'ACTIVE','PMS',?,'FRESH',0,'mysql-it','mysql-it',b'0',1)",
+                id, "IT-FAST002-" + id, "FAST002", projectId, keyPrefix + "-device-" + id);
+    }
+
+    private void insertCurrent(long id, long deviceId, long productTypeId, String productTypeCode,
+                               long mappingId, String sourceVersion, LocalDateTime sourceUpdatedAt,
+                               LocalDateTime effectiveTo) {
+        jdbcTemplate.update("INSERT INTO ast_device_current_product_type "
+                        + "(id,device_id,product_type_id,product_type_code,source_mapping_id,resolution_status,"
+                        + "source_version,source_updated_at,effective_from,effective_to,version,creator,updater,deleted,"
+                        + "tenant_id) VALUES (?,?,?,?,?,'RESOLVED',?,?,?, ?,0,'mysql-it','mysql-it',b'0',1)",
+                id, deviceId, productTypeId, productTypeCode, mappingId, sourceVersion, sourceUpdatedAt,
+                sourceUpdatedAt, effectiveTo);
     }
 
     private long count(String table, String column, String value) {
@@ -230,7 +402,7 @@ class AssetProductTypeImportMySqlIntegrationTest {
                 "SELECT COUNT(*) FROM " + table + " WHERE tenant_id=1 AND " + column + "=?", Long.class, value);
     }
 
-    private static Map<String, String> environment() {
+    static Map<String, String> environment() {
         Map<String, String> values = new HashMap<>(System.getenv());
         Path dotenv = findDotenv();
         if (dotenv == null) {
@@ -271,7 +443,7 @@ class AssetProductTypeImportMySqlIntegrationTest {
         return value;
     }
 
-    private static String required(Map<String, String> values, String key) {
+    static String required(Map<String, String> values, String key) {
         String value = values.get(key);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("真实MySQL集成测试缺少当前仓库参数：" + key);
@@ -288,7 +460,8 @@ class AssetProductTypeImportMySqlIntegrationTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            AssetProductTypeSourceOrder.class, AssetProductTypeImportWriter.class,
+            AssetProductTypeSourceOrder.class,
+            AssetProductTypeImportWriter.class,
             AssetProductTypeAuditService.class, AssetProductTypeConflictRecordService.class,
             AssetProductTypeSourceFailureWriter.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
@@ -298,6 +471,13 @@ class AssetProductTypeImportMySqlIntegrationTest {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        OptimisticLockerInnerInterceptor optimisticLockerInnerInterceptor(MybatisPlusInterceptor interceptor) {
+            OptimisticLockerInnerInterceptor optimisticLocker = new OptimisticLockerInnerInterceptor();
+            interceptor.addInnerInterceptor(optimisticLocker);
+            return optimisticLocker;
         }
 
         @Bean
