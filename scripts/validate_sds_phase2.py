@@ -800,6 +800,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "SatisfactionTaskInitializationApi.initialize",
             "SatisfactionResultFactApi.inspect/lockAndRevalidate",
             "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload",
+            "FileArtifactApi.createGeneratedBusinessFile",
         ),
         "09-database-design.md": (
             "acc_satisfaction_access_grant",
@@ -820,6 +821,8 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "invalidation_reason_code",
             "失效事件乱序",
             "旧RECORDED重试",
+            "createGeneratedBusinessFile",
+            "FileUploadSession",
             "pms:acceptance:satisfaction:query/manage/collect/export/download",
             "SatisfactionRemediationFact",
             "D-SAT-REPORT",
@@ -831,7 +834,11 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "taskRevisionNo",
             "RECORDED置CURRENT前按Result ID/version重验Owner",
         ),
-        "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE"),
+        "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE",
+                              "createGeneratedBusinessFile", "未引用对象"),
+        "15-cache-and-concurrency.md": ("createGeneratedBusinessFile", "MANDATORY", "同operation同摘要"),
+        "16-exception-and-idempotency.md": ("Task保持PENDING_DECISION", "Result Outbox零写入",
+                                             "同operation同摘要复用存储回执"),
     }
     for name, tokens in required.items():
         path = design / name
