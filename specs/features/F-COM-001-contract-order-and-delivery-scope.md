@@ -54,13 +54,13 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### BR-FCOM001-002 关系与查询
 
 - 合同与销售订单使用关系记录表达多对多，不在订单头固化唯一合同；项目可关联多个合同/订单，实际交付边界以订单行到项目的当前DeliveryScope为准。
-- 合同管理员只能维护其`OrganizationScopeApi`当前有效公司范围内的关联、候选核对和冲突处置；Owner `companyCode`必须精确命中同一有效范围行，无项目关联合同也不得越出该公司范围。项目范围写入必须同时满足功能权限、`ProjectScopeApi.ACTION_EDIT`和`ProjectParticipantFactApi`对受信actor返回的current `PROJECT_MANAGER`事实；普通参与、全局角色或单独ACTION_EDIT均不能替代项目经理。
+- 合同管理员只能维护其`OrganizationScopeApi`当前有效公司范围内的关联、候选核对和冲突处置；Owner `companyCode`必须精确命中同一有效范围行，无项目关联合同也不得越出该公司范围。项目范围写入必须同时满足功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`锁定返回的current `PROJECT_MANAGER + ACTION_EDIT`组合事实；普通参与、全局角色或单独ACTION_EDIT均不能替代项目经理。该用途封闭契约冻结生命周期、阶段及项目/参与者/树版本；`ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED`和S0～S6均可被准确比较，S5/S6或关闭事实只使减配/释放转为`CONFLICT`，不得传`null`绕过现有Participant API。
 - 项目、合同、订单、订单行任一不可见时返回不可见/不存在，不通过全局角色或前端按钮扩大数据范围。
 
 ### BR-FCOM001-003 范围分配
 
 - 分配命令携带受信租户、项目、期望`scopeVersion`、幂等键和明细；明细至少包含订单行、数量、单位及地点或产品/型号/明确SN维度。
-- COM按稳定订单行ID升序锁定；仅`authorityStatus=CONFIRMED`且来源当前有效的订单行进入可分配量。有效分配总量不得超过ERP有效数量，单位和精度必须一致。
+- COM写路径与ERP来源减量/取消、当前范围Provider统一采用`orderLineId -> scopeId -> detailId -> projectId水位`全局锁序；多订单行和多项目水位分别升序。仅`authorityStatus=CONFIRMED`且来源当前有效的订单行进入可分配量。有效分配总量不得超过ERP有效数量，单位和精度必须一致；项目水位锁定后必须比较调用方期望版本，任一不符使整命令及平台认领、业务写、审计和Outbox回滚。
 - 同一项目—订单行同一时点最多一条当前主记录；明细数量合计必须等于主记录数量。SN按AST正式规范化身份去重，并通过AST公开契约校验租户和项目归属。
 - 地点优先保存AST稳定`siteId/siteLocationId`；只有站点未维护时可保存文本降级并标记`UNRESOLVED`。未解析文本不得参与正式站点统计或结构化权限判断。
 - `previewSplit`只返回校验结果和当前版本，不写业务事实；`applySplit`在同一事务写范围、明细、审计、幂等完成点和`DeliveryScopeAssigned/Released` Outbox。
@@ -74,7 +74,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 
 ### BR-FCOM001-005 当前范围事实
 
-- `getAssignedScope(projectId, expectedScopeVersion)`从受信租户上下文执行；项目必须为正数并通过`ProjectScopeApi.ACTION_VIEW`。`expectedScopeVersion=null`是只读inspect；非空时先锁项目水位，再按订单行、范围、明细ID升序锁当前投影并比较期望版本。
+- `getAssignedScope(projectId, expectedScopeVersion)`从受信租户上下文执行；项目必须为正数并通过`ProjectScopeApi.ACTION_VIEW`。`expectedScopeVersion=null`是只读inspect；非空时按订单行、范围、明细ID升序锁当前投影，再锁项目水位并比较期望版本；因所有范围写入与来源变化遵守同一全局锁序，已锁订单行下不得插入绕过水位比较的新当前范围。
 - 返回行以`scopeId+scopeDetailId`为不可歧义分组键，不把同一订单行的不同产品、型号或地点静默聚合；每行包含订单行、数量、单位、产品/型号和明确SN。SN比较键为`trim + Locale.ROOT uppercase`，有SN时每个SN占数量1且数量等于SN数；无SN表示订单型号数量。
 - `PENDING_AUTHORITY`、取消、退货、已释放、过期或旧行待核对不进入结果；但项目存在任一未解决`CONFLICT`时整体返回`SCOPE_CONFLICT`，禁止部分或空成功。项目真实无范围返回持久水位和明确空结果。
 - 独立`com_delivery_scope_project_version`保存项目水位；当前集合、返回载荷、冲突冻结/解除或清空的任何变化均在同一事务单调加一且不删除水位行。未知/过期返回`SCOPE_STALE`；输入、租户、项目资格、Owner损坏和Provider不可用使用机器合同封闭分类。
@@ -86,6 +86,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - 功能权限、项目数据范围、当前项目主体事实和业务状态守卫必须同时成立。空范围返回空，不省略条件扩大结果。
 - 同键同摘要重放返回首次结果；同键异摘要为永久冲突；处理中可重试同键。失败不得产生部分范围、版本、审计或Outbox。
 - 审计保存来源键/版本、分配前后数量、项目/订单行、地点解析状态、冲突原因、操作者、关联ID和时间；不记录附件正文、ERP敏感原文或完整SN清单到普通日志。
+- Task 5平台成功事实的`detailSnapshot`使用结构化封闭对象：命令级保存`action/projectId/actorId/correlationId/occurredAt/expectedScopeVersion/resultScopeVersion/protectedAsConflict`；明细按`orderLineId`稳定排序保存`orderLineId/sourceKey/sourceVersion/beforeQuantity/afterQuantity/unitCode/locationResolutionStatuses/resultState/conflictReason/affectedScopeIds/serialCount`。地点状态去重排序、ID稳定排序，只保存SN数量而不保存完整SN；该快照与范围、项目水位、平台幂等完成点及Outbox同事务，失败不得留下成功审计。
 
 ## 4. 状态与流程
 

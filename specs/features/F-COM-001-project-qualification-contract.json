@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-COM-001",
+  "supportTaskId": "T-FCOM001-PROJ-01",
+  "status": "REVIEW_REQUIRED",
+  "ownerContext": "PROJ",
+  "consumerContext": "COM",
+  "requirementCoverage": ["COM-01@V1=FULL"],
+  "api": "ProjectDeliveryScopeQualificationFactApi",
+  "operations": {
+    "inspect": {
+      "input": ["tenantId", "projectId", "actorId"],
+      "rule": "tenantId must equal the trusted runtime tenant; return the current project manager, lifecycle, stage, project version, participant fact version and ACTION_EDIT tree version without a write"
+    },
+    "lockAndRevalidate": {
+      "input": ["tenantId", "projectId", "actorId", "expectedLifecycleStatus", "expectedCurrentStage", "expectedProjectVersion", "expectedParticipantFactVersion", "expectedTreeVersion"],
+      "lockOrder": ["root project row", "target project row", "current active tree version", "current ACTION_EDIT authorization facts"],
+      "rule": "join the caller transaction; lock and compare every frozen axis before COM locks or writes"
+    }
+  },
+  "qualification": {
+    "subject": "actorId must equal the current PROJECT_MANAGER; global role or ordinary participation is insufficient",
+    "scope": "the same actor and target project must satisfy current ProjectScopeApi.ACTION_EDIT",
+    "lifecycle": ["ACTIVE", "NORMAL_CLOSED", "EXCEPTION_CLOSED"],
+    "stage": "return the current S0-S6 stage and compare it exactly during revalidation; S5/S6 and either closed lifecycle remain valid facts used by COM to protect reductions as CONFLICT"
+  },
+  "errors": ["INVALID_REQUEST", "TENANT_CONTEXT_MISMATCH", "SUBJECT_NOT_ELIGIBLE", "DATA_SCOPE_DENIED", "FACT_STALE", "OWNER_DATA_CORRUPTED", "PROVIDER_UNAVAILABLE"],
+  "forbidden": ["null lifecycle bypass", "reuse ProjectParticipantFactApi ACTIVE/S1 revalidation for this purpose", "map every PROJ failure to provider unavailable", "accept subject, scope or stale failures as partial success"]
+}

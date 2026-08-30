@@ -168,6 +168,8 @@
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeStateMachine.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeValidationRules.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/ProjectScopeQualificationAdapter.java`
+- Create: `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/deliveryscope/*.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/deliveryscope/*.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeviceAndLocationFactAdapter.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandService.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommands.java`
@@ -179,18 +181,19 @@
 
 **Interfaces:**
 
-- Consumes: PROJ Participant/Scope、AST DeviceScopeFact/AssetLocation、平台幂等审计。
+- Consumes: PROJ `T-FCOM001-PROJ-01 ProjectDeliveryScopeQualificationFactApi`、AST DeviceScopeFact/AssetLocation、平台幂等审计。
 - Produces: ACTIVE/RELEASED/CONFLICT历史、qualified detail、项目scopeVersion与Assigned/Released Outbox。
 
 - [ ] `CommerceDeliveryScopeCommandService`是F-COM-001 REST与工作台写命令的唯一新入口，承接项目水位、完整明细、冲突历史、平台幂等/审计和Outbox；它不被旧`DeliveryScopeApi.previewSplit/applySplit`调用。
 - [ ] 既有`DeliveryScopeService`、`DeliveryScopeApiImpl`中三个旧方法及其Mapper调用路径保持源码和副作用不变；不得在旧路径接入项目水位、新明细或新冲突行为。若两套服务需要相同纯校验，只允许新建无数据库/事务/事件副作用的`DeliveryScopeValidationRules`，旧服务是否改为调用该规则不属于本Feature，默认不修改。
-- [ ] 用户写命令同时锁定重验功能权限外的current PROJECT_MANAGER和ACTION_EDIT；全局角色、普通参与或单独ACTION_EDIT均不足。
-- [ ] 锁序固定：项目水位→orderLineId升序→scopeId→detailId；文本SQL、集合和FOR UPDATE全部放XML，Mapper只接收场景化Query。
+- [ ] PROJ物理Owner先以`T-FCOM001-PROJ-01`实现用途封闭的组合资格Provider：受信actor必须是current PROJECT_MANAGER且拥有ACTION_EDIT；inspect冻结生命周期/阶段及项目/参与者/树版本，lock按根项目→目标项目→当前树版本→授权事实重验全部冻结轴，稳定区分主体不合格、范围拒绝、陈旧、Owner损坏和Provider不可用。现有Participant API不放宽，禁止`requiredLifecycleStatus=null`。
+- [ ] COM全局锁序固定为orderLineId升序→scopeId→detailId→projectId水位升序；Task 3来源减量/取消、Task 5 apply/release/resolve和Task 6锁定读取全部同序，文本SQL、集合和FOR UPDATE全部放XML，Mapper只接收场景化Query。
 - [ ] 只允许qualified CONFIRMED/ACTIVE订单行分配；主/明细数量一致、单位精度一致，项目间总量不超权威数量。
 - [ ] 明确SN通过AST解析到同tenant/project且去重，每个SN detail数量1；无SN数量不调用设备API。地点使用稳定site/location，文本降级必须UNRESOLVED。
 - [ ] apply同事务追加范围/明细、项目水位、平台幂等/审计和Assigned/Released Outbox；失败零业务副作用。
+- [ ] 平台成功审计使用锁定的结构化快照，保存来源键/版本、前后数量、项目/订单行、地点解析状态、冲突原因、actor、correlationId、服务端时间及受影响scopeId；只保存SN数量，不保存完整SN或来源正文。apply/release、受保护CONFLICT和resolve均验证持久快照，失败整体回滚。
 - [ ] S5/S6/关闭项目或验收保护下的减少转CONFLICT而非静默释放；冲突解除必须引用新ERP版本或明确释放证据。
-- [ ] 实现后以新`CommerceDeliveryScopeCommandServiceTest`验证并发超配、权限、项目版本、SN/地点、释放保护和Outbox；原样复跑既有`DeliveryScopeServiceTest`固定旧三个API返回、幂等键、Outbox和数据库副作用均未改变。
+- [ ] 实现后以新`CommerceDeliveryScopeCommandServiceTest`验证并发超配、权限、项目版本、SN/地点、释放保护和Outbox；真实PROJ Provider覆盖正常apply、S5/关闭保护、经理变化及树/项目版本变化；真实MySQL覆盖来源减量/取消与apply/release/resolve交叉并发无死锁、至多一个期望版本成功及失败方平台/业务/Outbox回滚。原样复跑既有`DeliveryScopeServiceTest`固定旧三个API返回、幂等键、Outbox和数据库副作用均未改变。
 
 ### Task 6：getAssignedScope生产Provider
 
@@ -208,7 +211,7 @@
 - Produces: Task 1正式`getAssignedScope`生产Bean，可供F-IMP-002 Task 12消费。
 
 - [ ] tenant取运行上下文，项目为正数并通过ACTION_VIEW；null expected为read-only inspect，返回不存在水位时的确定性version 0空结果。
-- [ ] 非null expected在事务内锁项目水位；水位行不存在且expected=0时以唯一键创建version 0行并持锁，expected非0则STALE。随后按orderLine/scope/detail稳定顺序锁投影；任何不匹配返回SCOPE_STALE。
+- [ ] 非null expected在事务内按orderLine/scope/detail稳定顺序锁投影，再锁项目水位；水位行不存在且expected=0时以唯一键创建version 0行并持锁，expected非0则STALE。水位或投影任何不匹配返回SCOPE_STALE。
 - [ ] 查询只返回完整资格谓词命中的ACTIVE行；任何当前CONFLICT先整体返回SCOPE_CONFLICT，禁止部分成功。
 - [ ] 每个scope/detail独立成行，不聚合不同维度；SN规范化去重、稳定排序，有SN时数量等于SN数。
 - [ ] Owner缺失、重复、主明细数量不等、单位/产品/型号/SN损坏返回OWNER_DATA_CORRUPTED；数据库/事务不可用只在包住代理边界后映射PROVIDER_UNAVAILABLE。

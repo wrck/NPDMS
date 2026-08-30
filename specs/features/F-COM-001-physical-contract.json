@@ -4,7 +4,7 @@
   "status": "BASELINE_READY",
   "requirementCoverage": ["COM-01@V1=FULL"],
   "ownerContext": "COM",
-  "hardDependencies": ["PROJ:ProjectParticipantFactApi", "PROJ:ProjectScopeApi", "SYSTEM:OrganizationScopeApi", "AST:AssetLocationApi", "AST:DeviceScopeFactApi"],
+  "hardDependencies": ["PROJ:ProjectDeliveryScopeQualificationFactApi", "PROJ:ProjectScopeApi", "SYSTEM:OrganizationScopeApi", "AST:AssetLocationApi", "AST:DeviceScopeFactApi"],
   "integrationDependencies": ["INT-01:ERP_CONTRACT_ORDER_SOURCE"],
   "enums": {
     "authorityStatus": ["PENDING_AUTHORITY", "CONFIRMED"],
@@ -92,7 +92,7 @@
       "columns": {"project_id":"BIGINT NOT NULL","scope_version":"BIGINT NOT NULL","payload_version":"INT NOT NULL","last_change_type":"VARCHAR(32) NOT NULL","version":"INT NOT NULL"},
       "uniqueKeys": [["tenant_id","project_id"]],
       "checks": ["scope_version >= 0", "payload_version >= 0", "version >= 0"],
-      "allocation": "lock/create project watermark before scope rows; each current-set, returned-payload or conflict change increments exactly once, including transition to empty; deletion forbidden"
+      "allocation": "all COM scope mutations use orderLineId,scopeId,detailId,projectId-watermark order; lock/create the project watermark last and compare the caller expected version before writes; each current-set, returned-payload or conflict change increments exactly once, including transition to empty; deletion forbidden"
     },
     "com_outbox_event": {
       "policy": "REUSE_EXISTING_V70",
@@ -102,10 +102,20 @@
     }
   },
   "publicContracts": {
+    "ProjectDeliveryScopeQualificationFactApi": {
+      "owner": "PROJ:T-FCOM001-PROJ-01",
+      "operations": ["inspect", "lockAndRevalidate"],
+      "trustedContext": "explicit tenantId equals TenantContextHolder tenantId; actorId and projectId are positive",
+      "qualification": "the actor is the current PROJECT_MANAGER and the target project is in the same actor's current ProjectScopeApi.ACTION_EDIT result",
+      "fact": ["tenantId","projectId","currentManagerUserId","lifecycleStatus","currentStage","projectVersion","participantFactVersion","treeVersion"],
+      "revalidation": "compare lifecycle, stage, projectVersion, participantFactVersion and treeVersion after locking root project, target project, active tree version and current authorization facts",
+      "protectedFacts": "ACTIVE, NORMAL_CLOSED and EXCEPTION_CLOSED plus current S0-S6 are comparable; S5/S6 or closed facts cause COM reduction/release to become CONFLICT",
+      "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","SUBJECT_NOT_ELIGIBLE","DATA_SCOPE_DENIED","FACT_STALE","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
+    },
     "DeliveryScopeApi.getAssignedScope": {
       "trustedContext": "tenantId from TenantContextHolder; explicit tenant must match; positive projectId must be visible through ProjectScopeApi.ACTION_VIEW",
       "inspect": "expectedScopeVersion=null is read-only and returns the persisted project watermark, including version 0 and an empty result",
-      "lockAndRevalidate": "nonnull expected version locks project watermark then current scope/order/detail rows in orderLineId,scopeId,detailId order; mismatch returns SCOPE_STALE",
+      "lockAndRevalidate": "nonnull expected version locks current order/scope/detail rows in orderLineId,scopeId,detailId order, then locks the project watermark; mismatch returns SCOPE_STALE and all scope mutation paths use the same global order",
       "result": {"fields":["projectId","scopeVersion","assignedLines"],"lineFields":["scopeId","scopeDetailId","orderLineId","quantity","unitCode","productCode","modelCode","serialNumbers"],"groupingKey":["scopeId","scopeDetailId"],"stableOrder":["orderLineId ASC","scopeId ASC","scopeDetailId ASC","normalizedSerial ASC"]},
       "lineRules": ["one result line is one qualified detail; dimensions are never silently aggregated", "serialNumbers empty means quantity-only; otherwise serials are unique and quantity equals serial count", "productCode and modelCode may individually be null but at least one is nonblank"],
       "conflictPolicy": "any unresolved current CONFLICT fails the whole call with SCOPE_CONFLICT; partial or empty success is forbidden",
@@ -138,8 +148,15 @@
     }
   },
   "authorization": {
-    "projectScopeWrites": "functional permission + ProjectScopeApi.ACTION_EDIT + ProjectParticipantFactApi current PROJECT_MANAGER for trusted actor",
+    "projectScopeWrites": "functional permission + ProjectDeliveryScopeQualificationFactApi current PROJECT_MANAGER and ACTION_EDIT composite fact for the trusted actor",
     "contractAdministration": "functional permission + OrganizationScopeApi current active scope whose companyCode equals owner companyCode; unassociated contracts outside those scopes are invisible"
+  },
+  "deliveryScopeCommandAudit": {
+    "commandFields": ["action","projectId","actorId","correlationId","occurredAt","expectedScopeVersion","resultScopeVersion","protectedAsConflict"],
+    "lineFields": ["orderLineId","sourceKey","sourceVersion","beforeQuantity","afterQuantity","unitCode","locationResolutionStatuses","resultState","conflictReason","affectedScopeIds","serialCount"],
+    "stableOrder": ["orderLineId ASC","locationResolutionStatuses ASC UNIQUE","affectedScopeIds ASC"],
+    "privacy": "serialCount only; full serial lists, attachments and ERP source payload are forbidden",
+    "atomicity": "the detail snapshot, scope history, project watermark, platform idempotency completion and outbox commit or roll back together"
   },
   "migration": {
     "ownerTables": ["plt_migration_source_record","plt_external_key_mapping","plt_migration_issue","plt_migration_batch"],
