@@ -5,7 +5,11 @@
   "migrationContractGate": {
     "status": "PASS",
     "reviewedCommit": "36d1b37f",
-    "nextGate": "F-CUT-002_FEATURE_READY_REVIEW"
+    "nextGate": "F-CUT-002_API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW"
+  },
+  "apiAndPhysicalContractGate": {
+    "status": "REVIEW_REQUIRED",
+    "nextGate": "F-CUT-002_API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW"
   },
   "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
   "ownerContext": "CUT",
@@ -13,12 +17,17 @@
     "IMP:ImplementationReadinessApi",
     "PROJ:ProjectScopeApi.ACTION_EDIT",
     "AST:DeviceScopeFactApi",
+    "CUS:CustomerServiceLevelFactApi",
     "PLT:PlatformMigrationEvidenceApi"
   ],
   "enums": {
     "taskOrigin": ["NEW_PLATFORM", "LEGACY_FORWARD"],
+    "intakeSourceType": ["SELF_CREATED", "ITR", "PROJECT_EVENT", "LEGACY_FORWARD"],
+    "stageCode": ["P1", "P2", "P3", "P4"],
     "taskStatus": ["GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "LEGACY_UNKNOWN"],
-    "manualGrade": ["A", "B", "C", "D"]
+    "manualGrade": ["A", "B", "C", "D"],
+    "assessmentStatus": ["DRAFT", "SUBMITTED", "INVALIDATED"],
+    "stageTriggerType": ["P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED"]
   },
   "tables": {
     "cut_task": {
@@ -29,16 +38,26 @@
         "project_id": "BIGINT NOT NULL",
         "task_no": "VARCHAR(64) NOT NULL",
         "task_name": "VARCHAR(128) NOT NULL",
+        "background": "VARCHAR(4000) NULL",
         "cutover_type": "VARCHAR(32) NULL",
         "network_mode": "VARCHAR(32) NULL",
         "scheduled_time": "DATETIME(3) NULL",
         "task_origin": "VARCHAR(32) NOT NULL",
+        "intake_source_type": "VARCHAR(32) NOT NULL",
+        "source_system": "VARCHAR(64) NULL",
+        "source_business_no": "VARCHAR(128) NULL",
+        "business_event_id": "VARCHAR(128) NULL",
+        "current_stage": "VARCHAR(8) NULL",
         "task_status": "VARCHAR(32) NOT NULL",
         "owner_user_id": "BIGINT NULL",
         "customer_id": "BIGINT NULL",
         "implementation_readiness_snapshot_id": "BIGINT NULL",
         "implementation_readiness_snapshot_version": "BIGINT NULL",
         "project_scope_version": "BIGINT NULL",
+        "project_context_snapshot": "JSON NULL",
+        "device_scope_watermark": "JSON NULL",
+        "customer_context_snapshot": "JSON NULL",
+        "readiness_context_snapshot": "JSON NULL",
         "manual_grade": "VARCHAR(8) NULL",
         "current_assessment_id": "BIGINT NULL",
         "legacy_task_id": "BIGINT NULL",
@@ -58,10 +77,17 @@
       "requiredNewPlatformFacts": [
         "owner_user_id",
         "customer_id",
+        "background",
         "cutover_type",
+        "intake_source_type",
+        "current_stage",
         "implementation_readiness_snapshot_id",
         "implementation_readiness_snapshot_version",
         "project_scope_version",
+        "project_context_snapshot",
+        "device_scope_watermark",
+        "customer_context_snapshot",
+        "readiness_context_snapshot",
         "task_status",
         "task_origin",
         "version"
@@ -76,15 +102,25 @@
       ],
       "uniqueKeys": [
         ["tenant_id", "project_id", "task_no"],
+        ["tenant_id", "source_system", "source_business_no"],
+        ["tenant_id", "business_event_id"],
         ["tenant_id", "legacy_task_id"]
       ],
+      "intakeSourceUnion": {
+        "SELF_CREATED": "task_origin is NEW_PLATFORM; source_system, source_business_no and business_event_id are null",
+        "ITR": "task_origin is NEW_PLATFORM; normalized source_system and source_business_no are present; business_event_id is null",
+        "PROJECT_EVENT": "task_origin is NEW_PLATFORM; normalized business_event_id is present; source_system and source_business_no are null",
+        "LEGACY_FORWARD": "task_origin is LEGACY_FORWARD; source_system, source_business_no and business_event_id are null"
+      },
       "originUnion": {
-        "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present and task_status is not LEGACY_UNKNOWN",
-        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; task_status is LEGACY_UNKNOWN; cutover_type, network_mode, owner_user_id, customer_id, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
+        "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present; current_stage is P2, P3 or P4; task_status is not LEGACY_UNKNOWN",
+        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; background, cutover_type, network_mode, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
       },
       "checks": [
         "version >= 0",
         "task_origin IN taskOrigin",
+        "intake_source_type IN intakeSourceType and satisfies intakeSourceUnion",
+        "current_stage IS NULL OR current_stage IN ('P2','P3','P4')",
         "task_status IN taskStatus",
         "manual_grade IS NULL OR manual_grade IN manualGrade",
         "task_origin and legacy fields satisfy originUnion"
@@ -92,18 +128,133 @@
     },
     "cut_task_device_scope": {
       "policy": "NEW_FORWARD_SUPPORT_TABLE",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "cutover_task_id": "BIGINT NOT NULL",
+        "project_id": "BIGINT NOT NULL",
+        "device_id": "BIGINT NOT NULL",
+        "serial_number_snapshot": "VARCHAR(128) NOT NULL",
+        "project_assignment_version": "BIGINT NOT NULL",
+        "active_marker": "TINYINT NULL",
+        "version": "INT NOT NULL",
+        "creator": "VARCHAR(64) NOT NULL",
+        "create_time": "DATETIME(3) NOT NULL",
+        "updater": "VARCHAR(64) NOT NULL",
+        "update_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT NOT NULL DEFAULT b'0'"
+      },
+      "requiredFields": ["tenant_id", "cutover_task_id", "project_id", "device_id", "serial_number_snapshot", "project_assignment_version", "active_marker", "version"],
+      "uniqueKeys": [
+        ["tenant_id", "cutover_task_id", "device_id"],
+        ["tenant_id", "project_id", "device_id", "active_marker"]
+      ],
+      "checks": [
+        "device_id > 0 and project_assignment_version >= 0 and version >= 0",
+        "normalized serial_number_snapshot length is 1..128",
+        "active_marker is 1 for every active NEW_PLATFORM task device and may become null only when a later Feature ends that task"
+      ],
+      "ordering": ["device_id ASC"],
       "legacyRule": "LEGACY_FORWARD tasks create no device-scope rows because pms_cut_task has no stable device identity or assignment version",
       "activeUniquePolicy": "NEW_PLATFORM active rows use UNIQUE(tenant_id, project_id, device_id, active_marker)"
     },
     "cut_task_stage_history": {
       "policy": "NEW_ONLY_SUPPORT_TABLE",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "cutover_task_id": "BIGINT NOT NULL",
+        "sequence_no": "INT NOT NULL",
+        "from_stage": "VARCHAR(8) NOT NULL",
+        "to_stage": "VARCHAR(8) NOT NULL",
+        "from_status": "VARCHAR(32) NULL",
+        "to_status": "VARCHAR(32) NOT NULL",
+        "trigger_type": "VARCHAR(64) NOT NULL",
+        "trigger_reference_id": "BIGINT NULL",
+        "actor_id": "BIGINT NOT NULL",
+        "correlation_id": "VARCHAR(128) NOT NULL",
+        "occurred_at": "DATETIME(3) NOT NULL",
+        "creator": "VARCHAR(64) NOT NULL",
+        "create_time": "DATETIME(3) NOT NULL"
+      },
+      "requiredFields": ["tenant_id", "cutover_task_id", "sequence_no", "from_stage", "to_stage", "to_status", "trigger_type", "actor_id", "correlation_id", "occurred_at"],
+      "uniqueKeys": [["tenant_id", "cutover_task_id", "sequence_no"]],
+      "checks": [
+        "sequence_no > 0 and actor_id >= 0",
+        "P1_ACCEPTED requires P1 -> P2 and to_status GRADE_CONFIRMING",
+        "P2_ASSESSMENT_SUBMITTED requires P2 -> P3/SURVEYING for A/B/C or P2 -> P4/PLAN_DRAFTING for D"
+      ],
+      "immutability": "insert-only; no update, soft delete or synthesized history",
       "legacyRule": "never synthesize P1-P6 history from pms_cut_task.status or timestamps"
     },
     "cut_assessment": {
       "policy": "NEW_ONLY_OWNER_TABLE",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "cutover_task_id": "BIGINT NOT NULL",
+        "assessment_version": "INT NOT NULL",
+        "assessment_status": "VARCHAR(32) NOT NULL",
+        "questionnaire_template_code": "VARCHAR(64) NOT NULL",
+        "questionnaire_template_version": "BIGINT NOT NULL",
+        "answer_snapshot": "JSON NOT NULL",
+        "context_snapshot": "JSON NOT NULL",
+        "manual_grade": "VARCHAR(8) NULL",
+        "simple_flow": "BIT NOT NULL",
+        "submitted_by": "BIGINT NULL",
+        "submitted_at": "DATETIME(3) NULL",
+        "invalidated_by": "BIGINT NULL",
+        "invalidated_at": "DATETIME(3) NULL",
+        "invalidation_reason": "VARCHAR(1000) NULL",
+        "current_marker": "TINYINT NULL",
+        "version": "INT NOT NULL",
+        "creator": "VARCHAR(64) NOT NULL",
+        "create_time": "DATETIME(3) NOT NULL",
+        "updater": "VARCHAR(64) NOT NULL",
+        "update_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT NOT NULL DEFAULT b'0'"
+      },
+      "requiredFields": ["tenant_id", "cutover_task_id", "assessment_version", "assessment_status", "questionnaire_template_code", "questionnaire_template_version", "answer_snapshot", "context_snapshot", "simple_flow", "version"],
+      "uniqueKeys": [
+        ["tenant_id", "cutover_task_id", "assessment_version"],
+        ["tenant_id", "cutover_task_id", "current_marker"]
+      ],
+      "answerSnapshotContract": {
+        "exactKeys": ["businessImportanceLevel", "operationComplexityLevel", "hiddenRiskLevel", "sparePartApplied"],
+        "businessImportanceLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+        "operationComplexityLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+        "hiddenRiskLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+        "sparePartApplied": "BOOLEAN"
+      },
+      "contextSnapshotContract": {
+        "exactKeys": ["project", "devices", "implementationReadiness", "customerServiceLevel"],
+        "project": "projectId + projectScopeVersion + normalized display snapshot",
+        "devices": "non-empty stable deviceId/projectAssignmentVersion vector sorted by deviceId",
+        "implementationReadiness": "READY snapshotId/snapshotVersion/source watermark consumed from ImplementationReadinessApi",
+        "customerServiceLevel": "AVAILABLE serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval consumed from CustomerServiceLevelFactApi; no user-entered substitute"
+      },
+      "statusUnion": {
+        "DRAFT": "manual_grade may be null or A/B/C/D; submitted_by, submitted_at, invalidated_by, invalidated_at and invalidation_reason are null; simple_flow is false until submission",
+        "SUBMITTED": "manual_grade, submitted_by and submitted_at are present; simple_flow is true only for manual_grade D; invalidation fields are null",
+        "INVALIDATED": "the submitted answer/context/grade fields remain unchanged; invalidated_by, invalidated_at and normalized invalidation_reason are filled once; current_marker is null"
+      },
+      "checks": [
+        "assessment_version > 0 and questionnaire_template_version > 0 and version >= 0",
+        "assessment_status IN assessmentStatus and satisfies statusUnion",
+        "manual_grade IS NULL OR manual_grade IN manualGrade",
+        "current_marker is 1 only for the task current assessment and is otherwise null"
+      ],
+      "immutability": "DRAFT may be updated only by optimistic version; after SUBMITTED answer_snapshot, context_snapshot, template identity and manual_grade are immutable; INVALIDATED only fills invalidation metadata once",
       "legacyRule": "pms_cut_risk and pms_cut_task.risk_level never create questionnaire answers, an assessment revision or a manual grade"
     }
   },
+  "crossTableInvariants": [
+    "cut_task.current_assessment_id is null before the first draft and otherwise points to the same tenant/task current_marker=1 assessment",
+    "cut_task.manual_grade is null until a current SUBMITTED assessment exists and then equals that assessment manual_grade",
+    "every NEW_PLATFORM task has at least one active cut_task_device_scope row and one P1_ACCEPTED stage history row in the create transaction",
+    "P2 submission atomically marks the current assessment SUBMITTED, updates cut_task grade/stage/status/version and appends one stage history row",
+    "provider failure, stale context, activity uniqueness conflict or optimistic version conflict leaves all four tables and platform success facts unchanged"
+  ],
   "migration": {
     "source": "pms_cut_task",
     "target": "cut_task",

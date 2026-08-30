@@ -11,6 +11,7 @@
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 > 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；Feature物理基线仍`REVIEW_REQUIRED`）
+> REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 
@@ -21,12 +22,14 @@
 ### 2.1 包含
 
 - 一线工程师按设备序列号查询授权项目/设备并自建P1任务；服务端生成任务编号；
+- 一线自建前由只读上下文解析接口返回可选项目、稳定设备、客户服务等级与IMP就绪快照及其版本，确认创建时逐项锁定重验；
 - 可信内部来源创建命令契约，支持ITR来源键和项目事件ID幂等，但本Feature不实现Producer或第三方适配器；
 - 唯一CutoverTask、来源事实、项目/客户/设备引用及必要快照、当前阶段和状态版本；
 - 同项目同设备范围同一时点仅一个活动任务，后续任务关联前次已结束任务；
 - P2问卷暂存、提交和人工A/B/C/D级；不计算建议等级；
 - A/B/C→P3、D→P4的服务端状态迁移；P2～P6工作台只读骨架；
 - 创建和每次继续前通过F-IMP-001公开契约读取并重验快照；
+- CUT单元/集成装配可对PROJ、AST、CUS、IMP正式消费端口使用受控正向模拟；模拟不得进入生产装配或形成Owner完成证据；
 - 租户、项目/设备范围、一线工程师权限、幂等、并发、审计和响应式UI。
 
 ### 2.2 不包含
@@ -42,7 +45,7 @@
 
 ### BR-FCUT002-001 P1自建与来源幂等
 
-- 用户自建请求只提交项目ID、设备序列号、任务名称、割接类型、组网模式、计划时间和背景；任务编号、来源主体、项目/客户/设备引用与快照由服务端生成。
+- 用户自建请求只提交项目ID、设备序列号、任务名称、割接类型、组网模式、计划时间、背景以及前一次只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；任务编号、来源主体、项目/客户/设备引用与快照由服务端生成。期望版本只作为并发守卫，不允许客户端写Owner事实。
 - 创建前重新校验当前租户、工程师主体、PROJ公开scope action返回的“本人参与、负责或明确授权项目”范围、AST公开契约返回的全部设备当前项目归属及版本，并锁定IMP明确`READY`快照。不得以“可管理项目”替代或收窄PRD授权语义。
 - 用户命令的幂等作用域为`CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}`；同键同规范化请求返回原任务，同键异请求冲突。可信内部来源分别以`sourceSystem+sourceBusinessNo`和`businessEventId`唯一。
 - 复用平台既有命令幂等摘要，不新增第二套哈希、指纹或幂等表。
@@ -58,6 +61,7 @@
 
 - 只有`GRADE_CONFIRMING`状态且当前一线工程师具有任务与项目设备范围权限时可暂存/提交。
 - 问卷冻结模板标识/版本，至少包含业务重要等级、操作复杂度等级、隐患风险等级、备件是否申请和客户服务等级；项目权威上下文只读展示，不要求重复录入。
+- 客户服务等级只能来自CUS `CustomerServiceLevelFactApi`当前有效版本并冻结到评估上下文；现有`CustomerSummaryDTO`不含该事实，不能替代。`NOT_CONFIGURED`或版本失效时允许保存草稿但不得提交，不接受用户手工补值。
 - 暂存不推进状态；提交必须具备全部必填答案和人工最终等级A/B/C/D，并保存评估版本、上下文快照、提交人和时间。
 - 不默认C级，不计算分值、区间或系统建议等级。
 
@@ -83,23 +87,27 @@ GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
 
 ## 4. API与模块契约
 
-所有用户路径继承`/api/v1/pms`：
+精确请求、响应、Header、Wire Long/时间、权限、`allowedActions`和错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。所有用户路径继承`/api/v1/pms`：
 
 | 接口 | 操作 | 契约 |
 |---|---|---|
+| `/cutover-tasks/actions/resolve-create-context` | `POST` | 只读解析SN对应的授权项目、设备、客户服务等级和IMP就绪事实；不创建业务记录 |
 | `/cutover-tasks` | `GET` | 按服务端项目/设备范围分页查询 |
 | `/cutover-tasks` | `POST` | 一线自建；`Idempotency-Key`；只接受业务输入，不接受来源主体、状态或等级 |
 | `/cutover-tasks/{id}` | `GET` | 返回来源上下文、P2～P6工作台和`allowedActions` |
 | `/cutover-tasks/{id}/assessment` | `PUT` | P2暂存；`If-Match`任务版本和评估版本 |
 | `/cutover-tasks/{id}/assessment/actions/submit` | `POST` | 提交完整问卷与人工等级；`Idempotency-Key/If-Match` |
 
-内部`CutoverTaskIntakeApi`只接受受信租户与来源主体，提供ITR/项目事件创建契约；本Feature不实现任何Producer或第三方客户端。
+权限固定为`pms:cutover-task:query/create/save-assessment/submit-assessment`四项；详情动作只允许`SAVE_ASSESSMENT/SUBMIT_ASSESSMENT`，且必须与功能权限、项目范围、任务Owner、当前状态和Owner事实重验同构。`LEGACY_FORWARD`不返回任何动作。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS公开API消费客户事实。禁止依赖其他Context的Service、Mapper、DO或业务表。
+内部`CutoverTaskIntakeApi.create`使用`ITR/PROJECT_EVENT`严格判别联合，只接受受信租户、来源身份和明确`handlingEngineerUserId`；该用户必须在写前通过同一项目/设备操作范围验证，不建立自动匹配、指派或领取流程。ITR按`tenant+sourceSystem+sourceBusinessNo`、项目事件按`tenant+businessEventId`幂等，并执行与自建相同的PROJ/AST/CUS/IMP重验。本Feature不实现任何Producer或第三方客户端。
+
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。两个尚未通过公共机器Contract Gate的跨Context接口只登记消费合同，不在CUT实现Provider；禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 
 - 新建CUT Owner前向表：`cut_task`、`cut_task_device_scope`、`cut_task_stage_history`、`cut_assessment`。其中聚合根和评估表名严格沿用正式SDS，不另建同义表。
+- `cut_task`保存来源判别联合、背景、当前阶段/状态、负责人、IMP快照、PROJ水位及项目/设备/客户/就绪上下文快照；`cut_task_device_scope`保存稳定设备ID、SN快照、归属版本和活动唯一标记；`cut_task_stage_history`只追加P1接入与P2提交产生的阶段迁移；`cut_assessment`保存DRAFT/SUBMITTED/INVALIDATED版本、冻结模板、严格答案JSON、上下文JSON和人工等级。
 - 已提交评估和阶段历史只追加；当前任务根保存阶段、状态、人工等级、当前评估ID、IMP快照ID/版本和乐观锁版本。
 - 活动设备范围使用`uk(tenant_id, project_id, device_id, active_marker)`控制并发；任务终态由后续Feature在同事务清除活动标记。
 - 来源唯一键分别约束`tenant_id/source_system/source_business_no`和`tenant_id/business_event_id`；用户自建幂等复用平台命令事实。
@@ -132,4 +140,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`NOT_READY / NO-GO`。
 
-Feature Ready前必须满足：F-IMP-001和EXE-01～04 Owner Feature Spec、公开事实契约及合入顺序已锁定；PROJ已锁定不收窄PRD的项目scope action；AST已锁定SN→稳定设备ID/当前项目归属/归属版本的公开事实契约；F-CUT-002旧实现复用审计和`pms_cut_task -> cut_task`前向映射契约通过评审。只有相关Feature通过Feature Ready后，才可实施不依赖生产Provider的CUT侧代码并在单元/集成测试中使用受控替身；替身不进生产装配、不产生正式就绪事实、不支撑真实浏览器验收。F-IMP-001和AST生产事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+最近Gate为`F-CUT-002 API/Physical Machine Contract`：四表字段与联合约束、REST/Internal API、权限、错误、来源身份、评估快照及PROJ/AST/CUS/IMP消费边界必须先独立通过。随后还须分别取得`ImplementationReadinessApi`与`CustomerServiceLevelFactApi`公共机器合同Gate；无需等待F-IMP-003～005或CUS生产实现完成，直接消费合同冻结后即可重审F-CUT-002 Feature Ready，并在通过后使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。

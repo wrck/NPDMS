@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-002",
+  "requirementSlices": ["CUT-01@V1", "CUT-02@V1"],
+  "coverage": "PARTIAL",
+  "status": "REVIEW_REQUIRED",
+  "owner": "CUT",
+  "apiPrefix": "/api/v1/pms/cutover-tasks",
+  "legacyRoutePolicy": "PRESERVE_EXISTING_PMS_CUT_TASK_ROUTES_WITHOUT_REDIRECT_OR_SHARED_WRITE_PATH",
+  "implementationGate": "API_AND_PHYSICAL_MACHINE_CONTRACT_REVIEW_REQUIRED",
+  "trustedContext": {
+    "serverOwned": ["tenantId", "actorId", "correlationId", "permissions", "visibleProjectScope"],
+    "forbiddenClientFields": [
+      "tenantId",
+      "actorId",
+      "taskNo",
+      "taskOrigin",
+      "intakeSourceType",
+      "sourceSystem",
+      "sourceBusinessNo",
+      "businessEventId",
+      "customerId",
+      "ownerUserId",
+      "currentStage",
+      "taskStatus",
+      "manualGradeOnTask",
+      "currentAssessmentId",
+      "createdBy",
+      "createdAt",
+      "submittedBy",
+      "submittedAt"
+    ],
+    "correlationId": "RESOLVED_ONCE_FROM_TRUSTED_REQUEST_CONTEXT; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_BUSINESS_DIGEST; SAME_VALUE_PERSISTED_IN_SUCCESS_FACTS"
+  },
+  "wireContract": {
+    "successEnvelope": "Yudao CommonResult<data=T>",
+    "pageEnvelope": "Yudao CommonResult<data=PageResult{list,total}>",
+    "longWireRule": "Java Long uses Yudao NumberSerializer: JSON number only when -9007199254740991 < value < 9007199254740991; otherwise unformatted decimal JSON string",
+    "dateTime": "positive safe-range epoch-millisecond JSON number",
+    "enum": "UPPER_SNAKE_CASE",
+    "unknownRequestFields": "HTTP_400_INVALID_REQUEST",
+    "missingRequiredFields": "HTTP_400_INVALID_REQUEST"
+  },
+  "headers": {
+    "Idempotency-Key": "NORMALIZED_NON_BLANK_STRING_1_TO_128",
+    "If-Match": "NON_NEGATIVE_INTEGER_TASK_VERSION",
+    "Assessment-If-Match": "NON_NEGATIVE_INTEGER_ASSESSMENT_ROW_VERSION; 0 means the task has no assessment yet and only permits first-draft creation"
+  },
+  "commonTypes": {
+    "serialNumber": "TRIMMED_NON_BLANK_STRING_MAX_128; comparison key uses trim + Locale.ROOT uppercase; duplicates by comparison key are forbidden",
+    "deviceWatermarkEntry": {
+      "exactKeys": ["deviceId", "serialNumber", "projectAssignmentVersion"],
+      "deviceId": "POSITIVE_LONG",
+      "serialNumber": "commonTypes.serialNumber",
+      "projectAssignmentVersion": "NON_NEGATIVE_LONG"
+    },
+    "deviceScopeWatermark": "NON_EMPTY_ARRAY_OF_deviceWatermarkEntry_SORTED_BY_deviceId_ASC_UNIQUE_deviceId_AND_serialComparisonKey",
+    "projectContext": {
+      "exactKeys": ["projectId", "projectCode", "projectName", "projectScopeVersion"],
+      "projectId": "POSITIVE_LONG",
+      "projectCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
+      "projectName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+      "projectScopeVersion": "NON_NEGATIVE_LONG"
+    },
+    "customerServiceLevelContext": {
+      "exactKeys": ["customerId", "customerCode", "customerName", "serviceLevelRevisionId", "serviceLevelCode", "factVersion", "effectiveFrom", "effectiveTo"],
+      "customerId": "POSITIVE_LONG",
+      "customerCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
+      "customerName": "NORMALIZED_NON_BLANK_STRING_MAX_256",
+      "serviceLevelRevisionId": "POSITIVE_LONG",
+      "serviceLevelCode": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+      "factVersion": "NON_NEGATIVE_LONG",
+      "effectiveFrom": "wireContract.dateTime",
+      "effectiveTo": "wireContract.dateTime_OR_JSON_NULL"
+    },
+    "readinessContext": {
+      "exactKeys": ["snapshotId", "snapshotVersion", "decision", "projectId", "deviceIds", "sourceWatermark"],
+      "snapshotId": "POSITIVE_LONG",
+      "snapshotVersion": "NON_NEGATIVE_LONG",
+      "decision": "READY",
+      "projectId": "POSITIVE_LONG",
+      "deviceIds": "NON_EMPTY_ARRAY_OF_POSITIVE_LONG_SORTED_ASC_UNIQUE",
+      "sourceWatermark": "STRUCTURED_PROVIDER_OWNED_WATERMARK; NO_HASH_OR_OPAQUE_DEFAULT"
+    },
+    "assessmentAnswers": {
+      "exactKeys": ["businessImportanceLevel", "operationComplexityLevel", "hiddenRiskLevel", "sparePartApplied"],
+      "businessImportanceLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+      "operationComplexityLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+      "hiddenRiskLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
+      "sparePartApplied": "BOOLEAN"
+    },
+    "workbenchStep": {
+      "exactKeys": ["stage", "label", "state", "isCurrent", "isAccessible"],
+      "stage": "P2|P3|P4|P5|P6",
+      "label": "NON_BLANK_DISPLAY_STRING",
+      "state": "CURRENT|COMPLETED|FUTURE",
+      "isCurrent": "BOOLEAN",
+      "isAccessible": "BOOLEAN"
+    }
+  },
+  "responseTypes": {
+    "CreateContextData": {
+      "exactKeys": ["project", "devices", "customerServiceLevel", "implementationReadiness", "createAllowed"],
+      "project": "commonTypes.projectContext",
+      "devices": "commonTypes.deviceScopeWatermark",
+      "customerServiceLevel": "commonTypes.customerServiceLevelContext",
+      "implementationReadiness": "commonTypes.readinessContext",
+      "createAllowed": "BOOLEAN_TRUE_ONLY_WHEN_ALL_FOUR_OWNER_CONTEXTS_ARE_COMPLETE_AND_READY"
+    },
+    "CutoverTaskSummary": {
+      "exactKeys": ["id", "taskNo", "taskName", "taskOrigin", "projectId", "projectName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "version"],
+      "id": "POSITIVE_LONG",
+      "taskNo": "NON_BLANK_STRING_MAX_64",
+      "taskName": "NON_BLANK_STRING_MAX_128",
+      "taskOrigin": "NEW_PLATFORM|LEGACY_FORWARD",
+      "projectId": "POSITIVE_LONG",
+      "projectName": "NON_BLANK_DISPLAY_STRING",
+      "ownerUserId": "POSITIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "currentStage": "P2|P3|P4_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "taskStatus": "GRADE_CONFIRMING|SURVEYING|PLAN_DRAFTING|LEGACY_UNKNOWN",
+      "manualGrade": "A|B|C|D_OR_JSON_NULL",
+      "scheduledTime": "wireContract.dateTime_OR_JSON_NULL",
+      "version": "NON_NEGATIVE_INTEGER"
+    },
+    "CutoverTaskCore": {
+      "exactKeys": ["id", "taskNo", "taskName", "background", "taskOrigin", "cutoverType", "networkMode", "projectId", "projectName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "createTime", "version"],
+      "id": "POSITIVE_LONG",
+      "taskNo": "NON_BLANK_STRING_MAX_64",
+      "taskName": "NON_BLANK_STRING_MAX_128",
+      "background": "STRING_MAX_4000_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "taskOrigin": "NEW_PLATFORM|LEGACY_FORWARD",
+      "cutoverType": "F_CUT_001_CODE_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "networkMode": "F_CUT_001_CODE_OR_JSON_NULL",
+      "projectId": "POSITIVE_LONG",
+      "projectName": "NON_BLANK_DISPLAY_STRING",
+      "ownerUserId": "POSITIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "currentStage": "P2|P3|P4_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "taskStatus": "GRADE_CONFIRMING|SURVEYING|PLAN_DRAFTING|LEGACY_UNKNOWN",
+      "manualGrade": "A|B|C|D_OR_JSON_NULL",
+      "scheduledTime": "wireContract.dateTime_OR_JSON_NULL",
+      "createTime": "wireContract.dateTime",
+      "version": "NON_NEGATIVE_INTEGER"
+    },
+    "ProjectReadOnlyContext": {
+      "exactKeys": ["projectId", "projectCode", "projectName", "projectScopeVersion"],
+      "projectId": "POSITIVE_LONG",
+      "projectCode": "NORMALIZED_STRING_MAX_64_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "projectName": "NORMALIZED_STRING_MAX_128_OR_JSON_NULL_WHEN_CURRENT_OWNER_FACT_IS_UNAVAILABLE_FOR_LEGACY_FORWARD",
+      "projectScopeVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD"
+    },
+    "TaskSourceContext": {
+      "exactKeys": ["intakeSourceType", "sourceSystem", "sourceBusinessNo", "businessEventId", "legacyTaskId"],
+      "intakeSourceType": "SELF_CREATED|ITR|PROJECT_EVENT|LEGACY_FORWARD",
+      "sourceSystem": "NORMALIZED_STRING_OR_JSON_NULL",
+      "sourceBusinessNo": "NORMALIZED_STRING_OR_JSON_NULL",
+      "businessEventId": "NORMALIZED_STRING_OR_JSON_NULL",
+      "legacyTaskId": "POSITIVE_LONG_OR_JSON_NULL",
+      "union": "matches physicalContract.tables.cut_task.intakeSourceUnion"
+    },
+    "AssessmentView": {
+      "exactKeys": ["id", "assessmentVersion", "rowVersion", "status", "questionnaireTemplateCode", "questionnaireTemplateVersion", "answers", "customerServiceLevel", "manualGrade", "simpleFlow", "submittedBy", "submittedAt", "invalidatedAt", "invalidationReason"],
+      "id": "POSITIVE_LONG",
+      "assessmentVersion": "POSITIVE_INTEGER",
+      "rowVersion": "NON_NEGATIVE_INTEGER",
+      "status": "DRAFT|SUBMITTED|INVALIDATED",
+      "questionnaireTemplateCode": "NON_BLANK_STRING_MAX_64",
+      "questionnaireTemplateVersion": "POSITIVE_LONG",
+      "answers": "commonTypes.assessmentAnswers_WITH_NULL_VALUES_ONLY_FOR_DRAFT",
+      "customerServiceLevel": "commonTypes.customerServiceLevelContext",
+      "manualGrade": "A|B|C|D_OR_JSON_NULL",
+      "simpleFlow": "BOOLEAN",
+      "submittedBy": "POSITIVE_LONG_OR_JSON_NULL",
+      "submittedAt": "wireContract.dateTime_OR_JSON_NULL",
+      "invalidatedAt": "wireContract.dateTime_OR_JSON_NULL",
+      "invalidationReason": "STRING_MAX_1000_OR_JSON_NULL"
+    },
+    "CutoverTaskDetail": {
+      "exactKeys": ["task", "source", "project", "devices", "customerServiceLevel", "implementationReadiness", "assessment", "workbenchSteps", "allowedActions"],
+      "task": "responseTypes.CutoverTaskCore",
+      "source": "responseTypes.TaskSourceContext",
+      "project": "responseTypes.ProjectReadOnlyContext",
+      "devices": "commonTypes.deviceScopeWatermark_OR_EMPTY_FOR_LEGACY_FORWARD",
+      "customerServiceLevel": "commonTypes.customerServiceLevelContext_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "implementationReadiness": "commonTypes.readinessContext_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "assessment": "responseTypes.AssessmentView_OR_JSON_NULL",
+      "workbenchSteps": "ARRAY_OF_commonTypes.workbenchStep_IN_FIXED_P2_P3_P4_P5_P6_ORDER",
+      "allowedActions": "ARRAY_OF_allowedActions.values_STABLE_ENUM_ORDER"
+    },
+    "CutoverTaskCommandData": {
+      "exactKeys": ["id", "taskNo", "currentStage", "taskStatus", "version", "replayed"],
+      "id": "POSITIVE_LONG",
+      "taskNo": "NON_BLANK_STRING_MAX_64",
+      "currentStage": "P2|P3|P4",
+      "taskStatus": "GRADE_CONFIRMING|SURVEYING|PLAN_DRAFTING",
+      "version": "NON_NEGATIVE_INTEGER",
+      "replayed": "BOOLEAN"
+    },
+    "AssessmentCommandData": {
+      "exactKeys": ["taskId", "assessmentId", "assessmentVersion", "assessmentRowVersion", "taskVersion", "status"],
+      "taskId": "POSITIVE_LONG",
+      "assessmentId": "POSITIVE_LONG",
+      "assessmentVersion": "POSITIVE_INTEGER",
+      "assessmentRowVersion": "NON_NEGATIVE_INTEGER",
+      "taskVersion": "NON_NEGATIVE_INTEGER",
+      "status": "DRAFT"
+    }
+  },
+  "permissions": {
+    "QUERY": "pms:cutover-task:query",
+    "CREATE": "pms:cutover-task:create",
+    "SAVE_ASSESSMENT": "pms:cutover-task:save-assessment",
+    "SUBMIT_ASSESSMENT": "pms:cutover-task:submit-assessment"
+  },
+  "allowedActions": {
+    "values": ["SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT"],
+    "rules": {
+      "SAVE_ASSESSMENT": "permission SAVE_ASSESSMENT + ProjectScopeApi.ACTION_EDIT + actor is task owner + NEW_PLATFORM + P2/GRADE_CONFIRMING + no existing SUBMITTED current assessment",
+      "SUBMIT_ASSESSMENT": "permission SUBMIT_ASSESSMENT + ProjectScopeApi.ACTION_EDIT + actor is task owner + NEW_PLATFORM + P2/GRADE_CONFIRMING + current DRAFT assessment + complete answers + manual grade + all stored owner facts lock-and-revalidate"
+    },
+    "legacyRule": "LEGACY_FORWARD always returns an empty array"
+  },
+  "endpoints": {
+    "resolveCreateContext": {
+      "method": "POST",
+      "path": "/actions/resolve-create-context",
+      "permission": "CREATE",
+      "requestExactKeys": ["serialNumbers"],
+      "request": {
+        "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500"
+      },
+      "readOnly": true,
+      "flow": "resolve complete DeviceScopeFactApi facts; group only by currentProjectId; filter with ProjectScopeApi.ACTION_EDIT without narrowing participant/responsible/explicit-authorization semantics; resolve project/customer and AVAILABLE customer-service-level facts; inspect current ImplementationReadinessApi fact for the exact project/device set",
+      "success": "wireContract.successEnvelope<data=responseTypes.CreateContextData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "BUSINESS_GATE_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "list": {
+      "method": "GET",
+      "path": "",
+      "permission": "QUERY",
+      "queryExactKeys": ["projectId", "taskStatus", "currentStage", "pageNo", "pageSize"],
+      "query": {
+        "projectId": "POSITIVE_LONG_OR_ABSENT",
+        "taskStatus": "GRADE_CONFIRMING|SURVEYING|PLAN_DRAFTING|LEGACY_UNKNOWN_OR_ABSENT",
+        "currentStage": "P2|P3|P4_OR_ABSENT",
+        "pageNo": "POSITIVE_INTEGER_DEFAULT_1",
+        "pageSize": "INTEGER_1_TO_100_DEFAULT_20"
+      },
+      "serverQuery": "tenant from trusted context; visible project ids from ProjectScopeApi.ACTION_VIEW; empty scope returns empty page",
+      "order": ["scheduled_time DESC", "id DESC"],
+      "success": "wireContract.pageEnvelope<list=responseTypes.CutoverTaskSummary>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "create": {
+      "method": "POST",
+      "path": "",
+      "permission": "CREATE",
+      "headers": ["Idempotency-Key"],
+      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelFactVersion"],
+      "request": {
+        "projectId": "POSITIVE_LONG",
+        "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
+        "taskName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+        "background": "NORMALIZED_NON_BLANK_STRING_MAX_4000",
+        "cutoverType": "ENABLED_F_CUT_001_CUTOVER_TYPE_CODE",
+        "networkMode": "ENABLED_F_CUT_001_NETWORK_MODE_CODE_OR_JSON_NULL",
+        "scheduledTime": "wireContract.dateTime",
+        "expectedProjectScopeVersion": "NON_NEGATIVE_LONG",
+        "expectedDeviceScopeWatermark": "commonTypes.deviceScopeWatermark",
+        "expectedReadinessSnapshotId": "POSITIVE_LONG",
+        "expectedReadinessSnapshotVersion": "NON_NEGATIVE_LONG",
+        "expectedCustomerServiceLevelRevisionId": "POSITIVE_LONG",
+        "expectedCustomerServiceLevelFactVersion": "NON_NEGATIVE_LONG"
+      },
+      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "all normalized serials resolve to the exact expected non-empty device set and current project", "customer and service-level fact belong to the project customer", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
+      "write": "one NEW_PLATFORM/SELF_CREATED cut_task + stable device scope rows + one P1_ACCEPTED history row + platform success facts atomically; server generates taskNo and P2/GRADE_CONFIRMING state",
+      "idempotencyScope": "CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}",
+      "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "SCOPE_STALE", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"]
+    },
+    "detail": {
+      "method": "GET",
+      "path": "/{id}",
+      "permission": "QUERY",
+      "pathParameters": {"id": "POSITIVE_LONG"},
+      "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskDetail>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "saveAssessment": {
+      "method": "PUT",
+      "path": "/{id}/assessment",
+      "permission": "SAVE_ASSESSMENT",
+      "headers": ["If-Match", "Assessment-If-Match"],
+      "requestExactKeys": ["questionnaireTemplateCode", "questionnaireTemplateVersion", "answers", "manualGrade"],
+      "request": {
+        "questionnaireTemplateCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
+        "questionnaireTemplateVersion": "POSITIVE_LONG",
+        "answers": "commonTypes.assessmentAnswers_ALLOW_INCOMPLETE_VALUES_FOR_DRAFT_BUT_EXACT_KEYS_REQUIRED",
+        "manualGrade": "A|B|C|D_OR_JSON_NULL"
+      },
+      "guards": ["allowedActions contains SAVE_ASSESSMENT", "task If-Match", "current assessment row version or first-draft sentinel 0", "questionnaire identity is current enabled revision only when creating first draft"],
+      "write": "create revision 1 DRAFT or update only current DRAFT answer/manual-grade fields under optimistic version; do not advance task stage/status",
+      "success": "wireContract.successEnvelope<data=responseTypes.AssessmentCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "VERSION_CONFLICT", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "submitAssessment": {
+      "method": "POST",
+      "path": "/{id}/assessment/actions/submit",
+      "permission": "SUBMIT_ASSESSMENT",
+      "headers": ["Idempotency-Key", "If-Match", "Assessment-If-Match"],
+      "requestExactKeys": [],
+      "guards": ["allowedActions contains SUBMIT_ASSESSMENT", "task and assessment versions match", "current DRAFT contains all four answer values and manual grade", "ProjectScopeApi, DeviceScopeFactApi, CustomerServiceLevelFactApi and ImplementationReadinessApi lock-and-revalidate match every stored version and identity"],
+      "write": "mark current assessment SUBMITTED with immutable answer/context/grade; set task manual grade/currentAssessmentId; A/B/C atomically enter P3/SURVEYING, D atomically enters P4/PLAN_DRAFTING; append one P2_ASSESSMENT_SUBMITTED history row and platform success facts",
+      "idempotencyScope": "CUTOVER_ASSESSMENT_SUBMIT:{tenantId}:{id}:{actorId}:{Idempotency-Key}",
+      "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "VERSION_CONFLICT", "SCOPE_STALE", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"]
+    }
+  },
+  "internalApi": {
+    "name": "CutoverTaskIntakeApi",
+    "productionProviderScope": "CUT application boundary only; no ITR connector or Project event producer in F-CUT-002",
+    "operation": "create(CutoverTaskIntakeCommand)",
+    "discriminator": "sourceType",
+    "commonFields": ["projectId", "serialNumbers", "handlingEngineerUserId", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "correlationId"],
+    "variants": {
+      "ITR": {
+        "exactAdditionalFields": ["sourceSystem", "sourceBusinessNo"],
+        "identity": "tenantId from trusted context + normalized sourceSystem + normalized sourceBusinessNo"
+      },
+      "PROJECT_EVENT": {
+        "exactAdditionalFields": ["businessEventId"],
+        "identity": "tenantId from trusted context + normalized businessEventId"
+      }
+    },
+    "behavior": "handlingEngineerUserId is a positive trusted source fact, not a public assignment action; server proves that exact engineer currently has the same project/device operation scope, then resolves and locks the same PROJ/AST/CUS/IMP facts as self-create; same source identity and same normalized payload replays the task; different payload conflicts; no caller may supply customer, task state, grade or snapshots",
+    "result": "CutoverTaskIntakeResult{taskId,taskNo,currentStage,taskStatus,version,replayed}",
+    "errors": ["INVALID_REQUEST", "SOURCE_IDENTITY_CONFLICT", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+  },
+  "providerContracts": {
+    "ImplementationReadinessApi": {
+      "owner": "IMP",
+      "gate": "PUBLIC_MACHINE_CONTRACT_REQUIRED_BEFORE_F_CUT_002_FEATURE_READY",
+      "operations": ["inspect", "lockAndRevalidate"],
+      "requiredInput": "trusted tenant + projectId + exact snapshotId/version + exact deviceId/projectAssignmentVersion vector",
+      "requiredOutput": "READY|NOT_READY|STALE + snapshot identity/version + project/device/source watermarks + unmetCodes",
+      "consumerRule": "only READY may create or continue; NOT_READY is a 422 business gate; STALE is 409 refresh; provider unavailable is 503; controlled test fake is allowed only outside production assembly"
+    },
+    "CustomerServiceLevelFactApi": {
+      "owner": "CUS",
+      "gate": "PUBLIC_MACHINE_CONTRACT_REQUIRED_BEFORE_F_CUT_002_FEATURE_READY",
+      "operations": ["inspectCurrent", "lockAndRevalidate"],
+      "requiredInput": "trusted tenant + customerId; revalidation additionally carries expected serviceLevelRevisionId/factVersion/effective interval",
+      "requiredOutput": "AVAILABLE|NOT_CONFIGURED|STALE + customerId + serviceLevelRevisionId/code + factVersion + effective interval",
+      "consumerRule": "AVAILABLE is frozen into P2 read-only context; NOT_CONFIGURED blocks P2 submission without user-entered substitute; STALE refreshes context; provider unavailable is 503; CustomerSummaryDTO is not a substitute"
+    }
+  },
+  "errorContract": {
+    "envelope": "CommonResult with controller-local real HTTP status; global Yudao handlers are unchanged",
+    "categories": {
+      "VALIDATION": {"http": 400, "recoveryAction": "CORRECT_REQUEST"},
+      "FUNCTION_PERMISSION": {"http": 403, "recoveryAction": "REQUEST_PERMISSION"},
+      "DATA_SCOPE_FORBIDDEN": {"http": 403, "recoveryAction": "SELECT_AUTHORIZED_CONTEXT"},
+      "NOT_VISIBLE_OR_NOT_FOUND": {"http": 404, "recoveryAction": "RETURN_TO_LIST"},
+      "STATE_CONFLICT": {"http": 409, "recoveryAction": "REFRESH_TASK"},
+      "VERSION_CONFLICT": {"http": 409, "recoveryAction": "REFRESH_TASK"},
+      "ACTIVE_DEVICE_CONFLICT": {"http": 409, "recoveryAction": "OPEN_EXISTING_TASK"},
+      "SCOPE_STALE": {"http": 409, "recoveryAction": "REFRESH_OWNER_FACTS"},
+      "IDEMPOTENCY_CONFLICT": {"http": 409, "recoveryAction": "START_NEW_INTENT"},
+      "IDEMPOTENCY_IN_PROGRESS": {"http": 409, "recoveryAction": "RETRY_SAME_KEY"},
+      "READINESS_NOT_READY": {"http": 422, "recoveryAction": "COMPLETE_IMPLEMENTATION_PREREQUISITES"},
+      "CUSTOMER_CONTEXT_INVALID": {"http": 422, "recoveryAction": "COMPLETE_CUSTOMER_SERVICE_LEVEL"},
+      "BUSINESS_GATE_INVALID": {"http": 422, "recoveryAction": "CORRECT_BUSINESS_CONTEXT"},
+      "OWNER_PROVIDER_UNAVAILABLE": {"http": 503, "recoveryAction": "RETRY_AFTER_OWNER_RECOVERY"}
+    },
+    "errorData": "{category,reasonCode,recoveryAction,ownerContext,currentTaskVersion,currentAssessmentVersion,currentOwnerVersion}; fields unavailable for a category are JSON null",
+    "ownerContexts": ["PROJ", "AST", "CUS", "IMP"],
+    "reasonCodes": ["INVALID_REQUEST", "FUNCTION_PERMISSION_DENIED", "PROJECT_SCOPE_DENIED", "CUTOVER_TASK_NOT_VISIBLE", "CUTOVER_STATE_CONFLICT", "TASK_VERSION_STALE", "ASSESSMENT_VERSION_STALE", "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "CUSTOMER_SERVICE_LEVEL_STALE", "IMPLEMENTATION_READINESS_STALE", "IDEMPOTENCY_KEY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "IMPLEMENTATION_NOT_READY", "CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED", "BUSINESS_CONTEXT_INVALID", "PROJ_PROVIDER_UNAVAILABLE", "AST_PROVIDER_UNAVAILABLE", "CUS_PROVIDER_UNAVAILABLE", "IMP_PROVIDER_UNAVAILABLE"]
+  },
+  "idempotency": {
+    "provider": "PlatformCommandExecutionApi",
+    "sameKeySameDigest": "REPLAY_FIRST_COMPLETED_RESULT_WITHOUT_BUSINESS_ROW_ACCESS",
+    "sameKeyDifferentDigest": "IDEMPOTENCY_CONFLICT",
+    "inProgress": "IDEMPOTENCY_IN_PROGRESS",
+    "transaction": "command operation, all CUT writes, success facts and audit commit or roll back together"
+  },
+  "controlledSimulation": {
+    "allowed": "CUT unit/integration assembly may provide deterministic positive PROJ/AST/CUS/IMP test doubles after this contract passes",
+    "forbidden": "no test double in src/main or production Bean assembly; no fake fact counts as Owner implementation, real browser evidence or F-CUT-002 Implementation Done"
+  }
+}

@@ -374,6 +374,8 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 
 `pms_cut_task -> cut_task`采用来源联合而非把旧字段冒充新流程：新平台任务使用`task_origin=NEW_PLATFORM`并满足CUT-07正式类型、设备范围、IMP就绪快照、项目水位和负责人等写入守卫；经资格校验的旧行使用`task_origin=LEGACY_FORWARD/task_status=LEGACY_UNKNOWN`，只在`legacy_cutover_type_raw/legacy_network_mode_raw/legacy_task_id/legacy_status_value/legacy_mapping_version`保留旧原值。LEGACY_FORWARD的当前类型/组网、负责人、客户、IMP快照、项目水位、人工等级和当前评估必须为NULL；旧`0..8`状态不映射为`GRADE_CONFIRMING/SURVEYING/PLAN_DRAFTING`，旧默认等级不映射人工等级。只读行不生成设备范围、阶段历史或评估，也不占用新路径活动设备唯一性。损坏、软删除、跨租户/项目无法解析或目标身份冲突行保留旧表并记录迁移问题，不补默认事实。
 
+F-CUT-002新平台路径使用`cut_task`、`cut_task_device_scope`、`cut_task_stage_history`、`cut_assessment`四表。`cut_task`保存SELF_CREATED/ITR/PROJECT_EVENT来源联合、背景、P2～P4当前阶段、IMP快照和PROJ/AST/CUS/IMP上下文快照；`cut_task_device_scope`按`uk(tenant_id,project_id,device_id,active_marker)`保证活动设备唯一；`cut_task_stage_history`只追加P1接入和P2提交迁移；`cut_assessment`按任务+assessmentVersion保存严格答案JSON、项目/设备/IMP/客户等级上下文、人工等级及DRAFT/SUBMITTED/INVALIDATED历史。精确列、可空性、唯一键、联合约束与跨表原子不变量由`specs/features/F-CUT-002-physical-contract.json`锁定；不得用测试模拟、附件或旧风险行补造Owner事实。
+
 CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_revision`，也不建立采集阶段、通用工单或结果中转页：
 
 | 目标表 | 关键字段 | 约束与索引 |
