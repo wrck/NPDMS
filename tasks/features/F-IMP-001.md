@@ -14,7 +14,7 @@
 ## 当前最小工作单元
 
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
-- 当前进入AST物理Owner生产Provider与真实MySQL锁测试；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
+- AST物理Owner生产Provider候选已形成：场景化批量解析、按deviceId升序`FOR UPDATE`、受信租户/状态/项目资格、SN身份不变量和版本`STALE`均已实现；非IT聚焦测试15项及隔离MySQL 8.4测试3项通过。当前最近Gate为Provider独立Code Review／真实MySQL锁与并发测试复审；F-IMP-003～005公开事实契约和复用映射仍分别等待Feature Ready评审。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成
@@ -31,14 +31,14 @@
 
 - F-IMP-002已为`BASELINE / READY / NOT_STARTED`并冻结到货公开事实；F-IMP-003～005仍为`DRAFT / NOT_READY / NOT_STARTED`，其公开事实契约尚未通过独立评审。
 - `ImplementationReadinessSnapshot`迁移策略为`REBUILD_AFTER_OWNERS`，旧`pms_eng_*`状态不能直接升级。
-- AST现有Device聚合已有稳定设备ID与归属版本，但公开接口缺少批量解析和锁定重验；`T-FIMP001-AST-01`机器契约与生产实现仍是Implementation Done硬依赖。
+- AST现有Device聚合已有稳定设备ID与归属版本；`T-FIMP001-AST-01`公开契约已通过，生产Provider候选仍待独立Code Review Gate，通过前仍是Implementation Done硬依赖。
 
 ## AST物理Owner支撑Task
 
 - `T-FIMP001-AST-01`：基于F-AST-001现有`ast_device`和归属版本交付`DeviceScopeFactApi.resolveBySerials/lockAndRevalidate`；不新增表、不迁移数据、不产生独立Feature状态。
 - 审计：`specs/features/F-IMP-001-ast-device-scope-support-audit.md`。
 - 机器契约：`specs/features/F-IMP-001-device-scope-fact-contract.json`（`PASS`）。
-- Contract Gate已锁定：受信租户一致性、SN trim/case规范化与重复拒绝、状态/项目资格、稳定设备排序、结构化归属版本水位、`VALID/STALE/INVALID`、调用方/Owner错误归因及同deviceId的SN身份不变量；生产Provider与Bean仍待下一Gate实现和复审。
+- Contract Gate已锁定：受信租户一致性、SN trim/case规范化与重复拒绝、状态/项目资格、稳定设备排序、结构化归属版本水位、`VALID/STALE/INVALID`、调用方/Owner错误归因及同deviceId的SN身份不变量；生产Provider候选已实现但Gate仍为`CODE_REVIEW_REQUIRED`。
 - 合入顺序：AST API/Provider → IMP消费者装配 → CUT真实消费；消费者不得跨模块读取AST表或内部实现。
 
 ## 验证边界

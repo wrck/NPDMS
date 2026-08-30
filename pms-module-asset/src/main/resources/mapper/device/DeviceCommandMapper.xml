@@ -15,6 +15,25 @@
         FOR UPDATE
     </select>
 
+    <select id="selectScopeDevicesForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT id,
+               sn,
+               project_id,
+               project_assignment_version,
+               status,
+               tenant_id
+        FROM ast_device
+        WHERE tenant_id = #{query.tenantId}
+          AND id IN
+          <foreach collection="query.deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+          </foreach>
+          AND deleted = b'0'
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
     <update id="updateLocationProjection">
         UPDATE ast_device
         SET site_id = #{update.siteId},
