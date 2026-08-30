@@ -530,7 +530,8 @@
       ],
       "targetTables": [
         "srv_inspection_rule",
-        "srv_inspection_rule_revision"
+        "srv_inspection_rule_revision",
+        "srv_inspection_rule_product_type_revision"
       ]
     },
     "InspectionReport": {
@@ -694,6 +695,39 @@
         "ast_device_current_assignment",
         "ast_device_assignment_history"
       ]
+    },
+    "AssetProductType": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    "AssetProductTypeSourceMapping": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type_source_mapping"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    "DeviceCurrentProductType": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_device_current_product_type"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
     },
     "DeviceAssignmentHistory": {
       "owner": "AST",

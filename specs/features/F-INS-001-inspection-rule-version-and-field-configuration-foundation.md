@@ -1,14 +1,14 @@
-# F-INS-001 巡检规则版本与字段配置基础 Feature Spec
+﻿# F-INS-001 巡检规则版本与字段配置基础 Feature Spec
 
 > 规格状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260830-01`
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Requirement切片覆盖：`INS-03@V2=PARTIAL；INS-09@V2=FULL`
 > Owner Context：`Inspection（SRV物理模块）`
-> 前置Feature：无业务运行态前置；基础平台字典能力与AST设备产品分类查询契约可用
+> 前置Feature：`F-AST-002`设备产品类型受控副本与公开查询（发布、工程师选择和Implementation Done实施Gate）；基础平台字典能力
 > 后续Feature：F-INS-002巡检任务准备与规则冻结（覆盖INS-01及INS-03剩余任务内选择/命令清单义务）、INS-02在线/离线执行、INS-05报告、INS-06问题标注、INS-08误报修订
-> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`均已关闭
-> 适用基线：PRD V1.8修订009；SDS Phase 1/2/3 `BASELINE`
+> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`、`Q-FINS001-002`均已关闭
+> 适用基线：PRD V1.8修订010；SDS Phase 1/2/3 `BASELINE`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：Feature Ready规格提交锁定后生成唯一计划
 
@@ -46,7 +46,7 @@
 
 - Inspection拥有`InspectionRule`稳定身份、revision、命令与判定配置、发布停用和历史解释。
 - 基础平台拥有字典能力；Inspection只使用正式检测分类和严重级别字典值，不修改Yudao基础平台实现。
-- CRM/MES拥有产品和设备来源事实，AST保存设备可解析的产品分类受控副本并提供公开查询；Inspection保存稳定编码与发布时名称快照，不维护第二套产品类型库。
+- CRM/MES拥有产品和设备来源事实；F-AST-002由AST保存设备可解析的产品分类受控副本并提供公开查询。Inspection保存稳定编码与发布时名称快照，不维护第二套产品类型库，不实现连接器。
 - Device Access & Collection拥有凭证、授权、CollectionTask和外部执行证据；本Feature不连接设备、不下发命令。
 - 命令安全审核由PRD定义的审批/任务角色组在Inspection规则revision上记录，绑定命令/正则内容摘要；本Feature不新增审批角色、节点或生命周期状态。
 - 旧实现结论见复用审计，固定为`COPY_THEN_ENHANCE / PRESERVE_LEGACY / CURRENT_FORWARD_FIELD_REVIEW`。
@@ -169,4 +169,4 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 
 当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260830-01`。
 
-INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。PRD修订009已关闭超时上限冲突；Q-PRD-VS-009已关闭超时后的后续命令策略。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结，无直接Open Question阻断，可以锁定规格提交后生成唯一Technical Plan。本结论不表示代码、迁移、测试、浏览器验收或Implementation Done已通过。
+INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。PRD修订009已关闭超时上限冲突；Q-PRD-VS-009已关闭超时后的后续命令策略。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结，无直接Open Question阻断。F-AST-002规格与Task已建立并关闭Q-FINS001-002；其实际契约交付仍是本Feature发布、工程师选择和Implementation Done的实施Gate。本结论不表示代码、迁移、测试、浏览器验收或Implementation Done已通过。

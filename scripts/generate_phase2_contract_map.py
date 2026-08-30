@@ -77,8 +77,9 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("CUS-02",), contract("CustomerServiceLevelRevision", "cus_customer_service_level_revision", "/customers/{id}/service-level-revisions", events="CustomerServiceLevelChanged", workflow="结束原有效区间并生成新等级版本；新业务动作冻结等级与策略版本，历史业务快照不回写", authorization="OrganizationCustomerScope；服务经理或管理层客户等级维护权限")),
     (("CUS-03",), contract("Customer、MarketRelation、CustomerLocationReference、CustomerScopeSlice", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_location_reference、cus_market_relation、cus_customer_scope_slice", "/api/v1/pms/customers、/api/v1/pms/customers/{id}/locations、/api/v1/pms/customers/{id}/projects、/api/v1/pms/customers/{id}/devices", events="CustomerUpdated", integration="CRM（由INT-03负责连接、认证、同步、重试和对账）", workflow="CUS作为唯一当前写Owner；CRM客户同步和平台临时客户受控创建；ENABLED/DISABLED/DELETED本地生命周期；旧project客户入口只保留历史列表和详情读取，不双写、不代理新Owner写操作", authorization="五维复选权限切片；同维度OR、不同维度AND、多切片OR；管理员无显式切片时全量、显式切片时按切片降权；普通角色无有效切片时为空；联系方式RAW/MASKED/HIDDEN服务端裁剪")),
     (("CUS-04",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customer-contacts、/projects/{id}/customer-contacts", events="CustomerContactChanged", integration="CRM", workflow="联系人维护、项目角色时态关系和业务发生时联系信息快照", authorization="OrganizationCustomerScope、ProjectTreeScope；联系人字段专项权限")),
-    (("EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history", events="DeviceAssigned、DeviceComponentRelationChanged", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围")),
-    (("EQP-04",), contract("AssetSyncSnapshot、Device", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="MES", workflow="MES来源版本幂等同步与冲突隔离", authorization="ProjectDeviceScope；MES字段只读")),
+    (("EQP-01",), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment、AssetProductType、AssetProductTypeSourceMapping、DeviceCurrentProductType", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history、ast_product_type、ast_product_type_source_mapping、ast_device_current_product_type", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history；模块内AssetProductTypeApi.getByCodes(ProductTypeCodesQuery)、getAuthorizedDeviceProductType(AuthorizedDeviceProductTypeQuery)", events="DeviceAssigned、DeviceComponentRelationChanged；产品类型查询为同步模块契约，不新增业务事件", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属；产品类型受控来源、稳定编码、设备当前解析、停用历史与查询降级", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围；产品类型模块服务身份和设备数据范围")),
+    (("EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history", events="DeviceAssigned、DeviceComponentRelationChanged", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围")),
+    (("EQP-04",), contract("AssetSyncSnapshot、Device", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="MES", workflow="MES来源版本幂等同步与冲突隔离；产品类型协议适配、调度、游标、重试、补偿和对账仍属于EQP-04，F-AST-002完成不代表本Requirement完成", authorization="ProjectDeviceScope；MES字段只读")),
     (("AST-01",), contract("RMAReplacement、MaintenanceFact", "ast_rma_replacement、ast_maintenance_fact", "/rma-replacements、/devices/{deviceId}/service-status", events="DeviceStatusSynchronized", integration="备件系统", files="FileArtifact", workflow="RMA替换、设备归属校验和维保事实衔接", authorization="ProjectDeviceScope；设备与来源范围")),
     (("AST-02", "SRV-01"), contract("MaintenanceFact、ServiceStatus", "ast_maintenance_fact、srv_service_status", "/devices/{deviceId}/service-status", events="ServiceStatusChanged", integration="CRM", workflow="客观维保/停产停维状态计算与提示", authorization="ProjectDeviceScope；客观事实只读")),
 
@@ -96,7 +97,7 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("CUT-07", "CUT-09", "CUT-10"), contract("CutoverConfigurationRevision", "cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision", "/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules", events="CutoverConfigurationPublished", integration="基础平台字典、可选外部动态数据源", workflow="V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释", authorization="系统管理员配置权限；已发布版本和历史业务实例不可覆盖")),
 
     (("INS-01", "INS-02", "INS-04", "INS-07"), contract("InspectionTask、CollectionTask", "srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task", "/inspection-tasks、/collection-tasks", events="InspectionDispatched、InspectionCompleted、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="方式选择、预检/执行、业务消费和归档门禁", authorization="AssignedProjectDeviceScope、BusinessObjectDeviceCredentialScope")),
-    (("INS-03", "INS-09"), contract("InspectionRule", "srv_inspection_rule、srv_inspection_rule_revision", "/inspection-rules、/{id}/revisions", workflow="规则配置、发布版本和任务冻结", authorization="AssignedProjectDeviceScope；规则维护/使用分离")),
+    (("INS-03", "INS-09"), contract("InspectionRule", "srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision", "/inspection-rules、/{id}/revisions、/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}、/selectable；消费AssetProductTypeApi.getByCodes和getAuthorizedDeviceProductType", workflow="规则配置、发布版本和任务冻结；发布/选择回源AST当前产品类型事实并失败关闭", authorization="AssignedProjectDeviceScope；规则维护/使用分离；AST产品类型服务身份和设备范围")),
     (("INS-05",), contract("InspectionReport", "srv_inspection_report_revision", "/inspection-reports/{id}/versions", events="InspectionCompleted", integration="UMC", files="FileArtifact", workflow="报告生成、回调校验、发布版本", authorization="AssignedProjectDeviceScope、FileBusinessScope")),
     (("INS-06", "INS-08"), contract("ServiceIssue", "srv_service_issue、srv_service_issue_remediation", "/service-issues", events="InspectionIssueRaised/Closed", files="FileArtifact", workflow="问题标注、误报、整改复核和关闭", authorization="AssignedProjectDeviceScope；问题责任范围")),
 
@@ -209,23 +210,32 @@ DECISION_NOTES = {
     "CUS-03": "F-CUS-001实现证据：NPDMS `a9f8b7c568546839d3d641531f8036bb75889a82`；前向Flyway按合并后序号登记为`V106__fcus001_customer_master.sql`、`V107__fcus001_customer_classification_scope.sql`、`V108__fcus001_seed_data.sql`，不得回写为暂存补丁中的V87～V89。",
     "PM-07": "F-PROJ-004聚焦裁决（`CHG-PRD-2026-08-25-003`）：本Feature仅实现PM-07的PROJ子切片，包括四属性复用、INITIAL_CREATE决策历史、SOURCE_CORRECTION/MANUAL_ADJUSTMENT影响识别；无匹配拒绝，多匹配仅在显式选择本次合法候选时创建。不新增待分类/待选模状态、独立属性历史、分类案例、影响处理表、重新实例化或CHG事件。INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不计入本Feature完成度。",
     "PM-08": "F-PROJ-005聚焦裁决：PM-08局部验收中的服务经理指派后ASSIGNED，解释为该操作使有效主责服务经理和有效项目经理两项条件全部满足时ASSIGNED；仅服务经理有效时仍为UNASSIGNED。V1只支持服务端即时生效，不实现PM-11项目经理指派或预约生效。",
+    "EQP-01": "修订010增量验收：已核验来源映射或带完整来源证据的受控导入形成产品类型副本后，按编码批量查询逐项返回稳定编码、显示名称、存在/停用事实、来源版本和同步状态；按授权设备查询返回当前产品类型与解析状态。未知、冲突或未解析不得以`conpType`、旧字典、型号、自由文本或猜测值替代；停用不供新消费，历史快照不回写；来源不可用保留最近成功副本并明确不可用状态。本子闭环不实现CRM/MES连接器，不宣称EQP-04完成。",
+    "INS-03": "修订010增量验收：规则草稿保存不把AST可用性当作前置；发布必须对全部稳定编码取得AST当前存在且启用事实并冻结显示名称快照；未知、停用、来源证据缺失或契约不可用时发布失败且旧revision不变。工程师按授权设备选择时重新查询当前产品类型，只返回适用的已发布规则；无权设备、未知映射、停用或契约不可用时失败关闭，不使用历史名称快照替代当前选择事实。",
+    "INS-09": "修订010增量验收：适用产品类型必须为AST稳定编码；草稿可在契约暂不可用时继续编辑，但发布和按设备选择必须重验当前存在、启用、来源可证明及设备授权事实。未知、停用、来源证据缺失、无权设备或契约不可用均失败关闭；历史revision继续按冻结编码和名称快照解释。",
 }
 
 FEATURE_LINES = {
     "PM-07": "Feature：F-PROJ-004（项目业务属性判定、模板匹配历史与影响识别）",
+    "EQP-01": "Feature：F-AST-002（EQP-01产品类型受控副本与公开查询合法子闭环）",
 }
 
 BUSINESS_GUARD_OVERRIDES = {
     "PM-07": "按“模板匹配前确定输入、首次创建原子记录、创建后只读影响评估”执行；非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
+    "EQP-01": "按“产品类型稳定编码租户内唯一、未知/冲突/未解析不得写猜测映射、停用不供新消费、来源不可用保留最近成功副本”执行；非法状态、来源冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
 }
 
 AUTHORIZATION_ASSERTION_OVERRIDES = {
     "PM-07": "项目管理范围、属性Owner和手工重大级别禁写边界",
+    "EQP-01": "AST模块服务身份仅可查询当前租户产品类型；按设备查询必须合并调用方授权设备范围，空范围返回空且无权设备不泄露存在性",
 }
 
 SIDE_EFFECT_OVERRIDES = {
     "PM-07": "成功仅按契约写入/引用数据对象“Project、ProjectTemplateMatchHistory”及数据表“proj_project、proj_project_template_match_history”；事件边界为“N/A（不发布CHG事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（INT自动建项与重试不在本Feature）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝审计和已有事实不变的结果。",
     "PM-08": "成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment、ast_area_department_mapping”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。区域—部门映射表只读；同时写入Project版本/状态、幂等/审计及一个Outbox。处理器以eventId调用SYSTEM幂等站内信接口；通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。",
+    "INS-03": "成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。",
+    "INS-09": "成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。",
+    "EQP-01": "成功仅按契约写入/引用数据对象“Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment、AssetProductType、AssetProductTypeSourceMapping、DeviceCurrentProductType”及数据表“ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history、ast_product_type、ast_product_type_source_mapping、ast_device_current_product_type”；事件边界为“DeviceAssigned、DeviceComponentRelationChanged；产品类型查询为同步模块契约，不新增业务事件”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。",
 }
 
 
@@ -239,7 +249,7 @@ def render(prd: Path) -> str:
         "# SDS Phase 2 显式需求契约映射",
         "",
         "> 文档状态：`BASELINE`",
-        "> 适用基线：PRD V1.8 修订008（`docs/baseline/prd-v1.8.md`）",
+        "> 适用基线：PRD V1.8 修订010（`docs/baseline/prd-v1.8.md`）；批准依据`docs/baseline/prd-v1.8-amendment-010-asset-product-type-public-contract.md`",
         "> Requirement ID：附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片（V1 53个、V2 58个）",
         "> Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准",
         "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`（仅表示SDS设计可进入Phase 3，不批准DDL、Feature或Release）",

@@ -1,4 +1,4 @@
-﻿# SDS Phase 1：模块设计
+# SDS Phase 1：模块设计
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
@@ -35,3 +35,4 @@
 - `CustomerMasterDataApi`承接CRM权威字段入向写入；集成适配模块不得直接访问CUS Service、Mapper、Repository或业务表。
 - `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
 - AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。
+- F-AST-002在`pms-module-asset-api`提供产品类型公开查询，`pms-module-asset`拥有受控副本、设备当前引用和来源映射；Inspection只依赖API模块。CRM/MES连接器仍由EQP-04或后续独立Feature拥有，不进入F-AST-002。

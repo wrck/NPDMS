@@ -76,10 +76,15 @@ def phase2_contracts(path: Path) -> dict[str, dict[str, set[str]]]:
 
 def requirement_owners(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
+    owner_index: int | None = None
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) >= 3 and re.fullmatch(r"[A-Z]+-\d+", cells[0]):
-            result[cells[0]] = cells[2].split("（", 1)[0].strip()
+        if cells and cells[0] in {"Requirement", "Requirement切片"} and "Owner" in cells:
+            owner_index = cells.index("Owner")
+            continue
+        requirement_match = re.fullmatch(r"([A-Z]+-\d+)(?:@V\d+)?", cells[0]) if cells else None
+        if requirement_match and owner_index is not None and len(cells) > owner_index:
+            result[requirement_match.group(1)] = cells[owner_index].split("（", 1)[0].strip()
     return result
 
 

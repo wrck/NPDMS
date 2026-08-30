@@ -44,7 +44,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CutoverChecklist": ("cut_cutover_checklist", "cut_cutover_checklist_item", "cut_cutover_checklist_item_result"),
     "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverConfigurationRevision": ("cut_cutover_configuration_revision", "cut_cutover_checklist_item_definition_revision", "cut_cutover_checklist_binding_rule_revision"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
     "CutoverClosure": ("cut_cutover_closure",),
-    "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
+    "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision", "srv_inspection_rule_product_type_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
     "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer_master", "cus_customer_external_mapping", "cus_customer_field_history"),
     "MarketRelation": ("cus_market_relation",), "CustomerLocationReference": ("cus_customer_location_reference",),
@@ -52,6 +52,8 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "CustomerServiceLevelRevision": ("cus_customer_service_level_revision",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
     "DeviceComponentRelation": ("ast_device_component_relation",),
     "DeviceCurrentAssignment": ("ast_device_current_assignment", "ast_device_assignment_history"),
+    "AssetProductType": ("ast_product_type",), "AssetProductTypeSourceMapping": ("ast_product_type_source_mapping",),
+    "DeviceCurrentProductType": ("ast_device_current_product_type",),
     "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
     "AssetSyncSnapshot": ("ast_asset_sync_batch", "ast_asset_sync_item", "ast_device"), "MaintenanceFact": ("ast_maintenance_fact",),
     "RMAReplacement": ("ast_rma_replacement",), "Contract": ("com_contract",), "SalesOrder": ("com_sales_order",),
@@ -72,6 +74,9 @@ TARGET_POLICIES = {
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
+    "AssetProductType": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "EQP-01"},
+    "AssetProductTypeSourceMapping": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "EQP-01"},
+    "DeviceCurrentProductType": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "EQP-01"},
 }
 
 MODEL_ENTITY_CONTRACTS = {

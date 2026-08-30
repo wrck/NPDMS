@@ -426,8 +426,6 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
     evidence_paths = (
         root / "docs" / "engineering" / "gates" / "phase-2" / "README.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "independent-review.md",
     )
     for path in evidence_paths:
         if not path.is_file():

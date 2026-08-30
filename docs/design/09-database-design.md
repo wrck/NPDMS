@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：数据库设计
+# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8及批准修订001—010；本次落位引用`CHG-PRD-2026-08-30-010`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -352,7 +352,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
 | Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
-| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份租户内检测ID唯一；revision号在规则内唯一；命令顺序在revision内唯一且连续由服务校验；产品类型在revision内唯一；安全审核唯一绑定命令内容摘要；同一规则最多一个当前发布revision；任务规则快照唯一；报告 revision 只追加 |
+| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份租户内检测ID唯一；revision号在规则内唯一；命令顺序在revision内唯一且连续由服务校验；`srv_inspection_rule_product_type_revision`只保存稳定产品类型编码和发布时显示名称快照，产品类型在revision内唯一，不建立AST外键；安全审核唯一绑定命令内容摘要；同一规则最多一个当前发布revision；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。
@@ -623,7 +623,12 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | `ast_device` | `serial_number`及AST平台字段 | `uk(tenant_id, serial_number)`不随软删除释放 |
 | `ast_device_mes_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status/payload_hash` | 来源事件幂等；一个有效MES对象映射一个Device |
 | `ast_device_itr_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status` | 按来源版本追加或受控更新当前副本 |
+| `ast_product_type` | `type_code/display_name/enabled/source_system/source_key/source_version/source_updated_at/synced_at/sync_status` | `uk(tenant_id,type_code)`；停用或软删除不释放稳定编码；不保存自由值 |
+| `ast_product_type_source_mapping` | `source_system/source_key/source_version/product_type_id/mapping_status` | `uk(tenant_id,source_system,source_key)`；同源多目标冲突进入待处理 |
+| `ast_device_current_product_type` | `device_id/product_type_id/product_type_code/source_mapping_id/resolution_status/source_version/effective_from/effective_to/current_marker/version` | `uk(tenant_id,device_id,current_marker)`保证至多一个当前引用；只允许引用同租户受控副本；未知、冲突或未解析保留明确状态，不写猜测编码 |
 | `ast_device_current_customer_assignment` | `device_id/customer_id/relationship_version/assigned_at` | `uk(tenant_id, device_id)`；当前直接归属唯一 |
 | `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
+
+上述`AssetProductType`、`AssetProductTypeSourceMapping`、`DeviceCurrentProductType`物理表由EQP-01 Feature前向迁移确定，不进入当前核心DDL；F-AST-002只交付本地受控副本和公开查询合法子闭环，不实现CRM/MES连接器。
 
 下载链接不落业务表；由文件能力按用户和文件生成默认5分钟、可配置的短期授权。具体列长、索引名和DDL由Technical Plan按本契约生成前向迁移。

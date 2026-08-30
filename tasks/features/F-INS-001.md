@@ -1,9 +1,9 @@
-# F-INS-001 巡检规则版本与字段配置基础
+﻿# F-INS-001 巡检规则版本与字段配置基础
 
 > Feature实施状态：`TECHNICAL_PLAN_READY`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`BLOCKED_BY_SPEC`——AST产品分类公开契约对应的独立Feature Spec与当前Task尚未建立；不阻断F-INS-001计划评审及后续不依赖AST的领域/草稿工作，但阻断发布、工程师选择和Implementation Done
+> 当前阻断：`BLOCKED_BY_DEPENDENCY`——Q-FINS001-002规格阻断已由修订010关闭，`F-AST-002` Spec/Task已建立；其公开契约尚未实施，继续阻断发布、工程师选择和Implementation Done
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
@@ -12,7 +12,7 @@
 
 ## 当前最小工作单元
 
-- Technical Plan Gate已通过；下一单元先建立AST产品分类外部依赖的独立Feature Spec与Task，或仅推进不依赖AST的领域/草稿工作。
+- Technical Plan Gate已通过；可推进不依赖AST的领域/草稿工作。发布、工程师选择和Implementation Done须等待F-AST-002实际交付公开契约。
 
 ## 已完成
 
@@ -23,7 +23,7 @@
 - 已在正式SDS冻结规则状态、八字段、命令从属关系、产品适用关系、安全审核事实、权限、API、数据、页面和验收边界。
 - 已明确第三方采集平台、设备凭证和任务执行不在本Feature实现范围。
 - 已生成并自审唯一Technical Plan，覆盖AST外部Gate、安全审核、后端、迁移、前端、测试、真实浏览器和追溯收口；历次NO-GO问题已整改，独立复审GO。
-- 已确认当前AST仅提供设备摘要查询，尚无Feature Spec要求的设备产品分类公开查询契约；等待AST Owner独立Feature/Task补齐并交付，F-INS-001仅验收消费，不允许Inspection猜测产品类型或直读AST业务表。
+- 已通过`CHG-PRD-2026-08-30-010`和`F-AST-002` Spec/Task关闭AST状态源缺口；F-INS-001仅验收消费，不允许Inspection猜测产品类型、直读AST业务表或实现CRM/MES连接器。
 
 ## 首轮Technical Plan评审核销
 
@@ -40,7 +40,7 @@
 
 ## 阻断
 
-`BLOCKED_BY_SPEC`：AST产品分类公开契约必须由AST Owner的独立Feature Spec与当前Task冻结并交付，当前仓库尚未建立该状态源；F-INS-001不得代建AST字段、API、迁移、种子或测试。该缺口不阻断Technical Plan评审及后续不依赖AST的领域规则和草稿工作，但在外部Gate通过前阻断发布、工程师选择和Feature Implementation Done。命令安全审核采用租户内显式授予`pms:inspection-rule:security-review`的动态权限包成员，在Inspection revision上记录并绑定内容摘要；不新增固定角色、审批节点或状态。
+`BLOCKED_BY_DEPENDENCY`：Q-FINS001-002已关闭，AST产品分类公开契约由F-AST-002及当前Task负责。F-INS-001不得代建AST字段、API、迁移、种子、连接器或测试；该依赖不阻断不依赖AST的领域规则和草稿工作，但在F-AST-002实际契约、迁移和验收证据通过前阻断发布、工程师选择和Feature Implementation Done。命令安全审核采用租户内显式授予`pms:inspection-rule:security-review`的动态权限包成员，在Inspection revision上记录并绑定内容摘要；不新增固定角色、审批节点或状态。
 
 ## 已知边界
 
@@ -51,4 +51,4 @@
 
 ## 检查点
 
-基线=829a00ac；当前Gate=Technical Plan已通过；证据=唯一计划、历次整改、独立复审GO/NPDMS-FINS001-TECHPLAN-20260830-01；阻塞=Q-FINS001-002阻断发布/选择/Done；下一步=提交计划基线。
+基线=829a00ac；当前Gate=Technical Plan已通过；证据=唯一计划、历次整改、独立复审GO/NPDMS-FINS001-TECHPLAN-20260830-01；阻塞=F-AST-002实施依赖阻断发布/选择/Done；下一步=提交计划基线。

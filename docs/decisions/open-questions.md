@@ -446,17 +446,18 @@
 
 ### Q-FINS001-002
 
-- Status: OPEN / BLOCKED_BY_SPEC
-- Requirement IDs: INS-03、INS-09
+- Status: RESOLVED
+- Requirement IDs: EQP-01、INS-03、INS-09
 - Area: AST产品分类公开查询外部依赖
 - Question: 哪个AST独立Feature Spec与当前Task负责冻结并交付产品类型稳定编码、显示名称、存在/停用事实、设备授权查询、来源版本及CRM/MES映射契约？
-- Why it blocks design/implementation: F-INS-001只允许消费AST公开契约，不得代建AST字段、API、迁移、种子或第二套产品类型主数据；当前缺少AST侧Feature与Task状态源。
+- Why it blocks design/implementation: F-INS-001只允许消费AST公开契约，不得代建AST字段、API、迁移、种子或第二套产品类型主数据；原状态缺少AST侧Feature与Task状态源。
 - Options: A. 建立AST独立Feature Spec与Task并通过其Gate后供F-INS-001消费；B. 由F-INS-001直接改AST；C. 使用`conpType`、旧字典或手工值替代。
 - Recommended technical default: A；保持模块Owner、追溯链和外部来源语义，B/C违反现有边界。
-- Business decision required: 否，按既有工程链和Owner边界建立AST独立Feature即可。
-- Blocking scope: 不阻断F-INS-001 Technical Plan评审及不依赖AST的领域/草稿工作；阻断发布、工程师选择和Implementation Done。
-- Decision owner: AST Owner；SRV/Inspection作为消费方参与契约验收
-- Decision date: 【待确认】
+- Business decision required: 已完成。
+- Resolution: 采用A，见`CHG-PRD-2026-08-30-010`。建立`F-AST-002`及当前Task，由AST交付产品类型受控副本、按编码批量查询和按授权设备查询的模块内公开契约；Inspection只保存稳定编码与发布名称快照。CRM/MES连接器明确排除，不使用`conpType`、旧字典、自由文本或猜测值替代。
+- Blocking scope: SDS/追溯规格阻断已解除。F-AST-002保持`IN_REVIEW / NOT_READY`，评审通过前不得生成Technical Plan或进入Implementation；F-INS-001仍以F-AST-002实际契约交付作为发布、工程师选择和Implementation Done的实施Gate，不得仅凭规格关闭宣称通过。
+- Decision owner: 需求方；AST Owner负责交付，SRV/Inspection作为消费方参与契约验收
+- Decision date: 2026-08-30
 
 ## F-CUT-001 Feature Ready 待裁决项
 

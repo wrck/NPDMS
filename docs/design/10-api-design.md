@@ -1,4 +1,4 @@
-﻿# SDS Phase 2：API 设计
+# SDS Phase 2：API 设计
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
@@ -253,12 +253,14 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |
-| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements` | 设备归属用`actions/assign-project`；地点由AST拥有；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
+| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements`；模块内`AssetProductTypeApi` | 设备归属用`actions/assign-project`；地点由AST拥有；产品类型公开契约提供按编码批量校验及按授权设备查询，执行租户/设备范围校验，不暴露DO；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
 | COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；F-PROJ-002先落查询、预览和分配公开契约切片，不宣称合同/订单全量同步、人工补录、对账或管理页面完成 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
+
+AST模块内产品类型公开契约：`AssetProductTypeApi.getByCodes(ProductTypeCodesQuery)`逐项返回存在、停用、显示名称、来源版本、同步状态、最近成功同步时间和最近成功副本标记；`getAuthorizedDeviceProductType(AuthorizedDeviceProductTypeQuery)`按租户、设备范围和调用主体返回当前设备产品类型、解析状态及相同降级字段。空请求设备集合、空数据范围、跨租户或不可见设备统一返回空结果且不泄露存在性；未知编码不猜测名称。该契约只读取AST本地受控副本，不承担CRM/MES连接器。
 
 跨模块只调用`AssetLocationApi`：
 

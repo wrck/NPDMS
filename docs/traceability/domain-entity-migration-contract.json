@@ -561,7 +561,8 @@
       ],
       "targetTables": [
         "srv_inspection_rule",
-        "srv_inspection_rule_revision"
+        "srv_inspection_rule_revision",
+        "srv_inspection_rule_product_type_revision"
       ]
     },
     "InspectionReport": {
@@ -725,6 +726,39 @@
         "ast_device_current_assignment",
         "ast_device_assignment_history"
       ]
+    },
+    "AssetProductType": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    "AssetProductTypeSourceMapping": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type_source_mapping"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    "DeviceCurrentProductType": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_device_current_product_type"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
     },
     "DeviceAssignmentHistory": {
       "owner": "AST",
@@ -2362,7 +2396,8 @@
       ],
       "targetTables": [
         "srv_inspection_rule",
-        "srv_inspection_rule_revision"
+        "srv_inspection_rule_revision",
+        "srv_inspection_rule_product_type_revision"
       ],
       "sources": [
         {
@@ -2823,6 +2858,78 @@
           "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_shipment"
         }
       ]
+    },
+    {
+      "object": "AssetProductType",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "AssetProductType",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=AssetProductType"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    {
+      "object": "AssetProductTypeSourceMapping",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_product_type_source_mapping"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "AssetProductTypeSourceMapping",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=AssetProductTypeSourceMapping"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
+    },
+    {
+      "object": "DeviceCurrentProductType",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01"
+      ],
+      "targetTables": [
+        "ast_device_current_product_type"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DeviceCurrentProductType",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=DeviceCurrentProductType"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "EQP-01"
     },
     {
       "object": "DeviceAssignmentHistory",

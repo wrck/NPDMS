@@ -9,7 +9,8 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 
 > 2026-08-25聚焦增量：F-PROJ-004新增`ProjectTemplateMatchHistory`后，当前迁移契约为88对象/99来源绑定/1排除源；该对象为`NONE_NEW / FEATURE_FORWARD_MIGRATION(PM-07)`，不进入既有核心DDL，Feature Ready独立复审仍须单独GO。
 > 2026-08-28聚焦候选：F-PLT-002把共享动态表单前向归属PLT，并保留Preparation专用实例后，该候选形成时的生成契约为90对象/101来源绑定/1排除源；三个PLT对象均不迁移、不双写旧`pms_eng_form_*`。该历史统计只证明候选生成链一致；修订007当前总体统计见上方迁移边界，Feature Ready仍待独立裁决。
-> 2026-08-28 F-CUS-001回写：新增`MarketRelation`、`CustomerLocationReference`、`CustomerScopeSlice`并将`Customer`映射到F-CUS前向表后，当前迁移契约为93对象/104来源绑定/1排除源；V106～V108属于Feature前向迁移，不进入当前核心DDL精确表集。
+> 2026-08-28 F-CUS-001回写：新增`MarketRelation`、`CustomerLocationReference`、`CustomerScopeSlice`并将`Customer`映射到F-CUS前向表后，当时迁移契约为93对象/104来源绑定/1排除源；V106～V108属于Feature前向迁移，不进入当前核心DDL精确表集。
+> 2026-08-30修订010差量：新增`AssetProductType`、`AssetProductTypeSourceMapping`、`DeviceCurrentProductType`三个EQP-01 Feature前向对象后，当前生成契约为96对象/107来源绑定/1排除源；不改变当前核心DDL精确表集，F-AST-002 Feature Ready已由`NPDMS-FAST002-FEATURE-READY-20260830-01`放行，不改写历史评审证据。
 
 ## 当前文件
 

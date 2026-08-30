@@ -481,7 +481,7 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
             "CustomerScopeSlice": ["cus_customer_scope_slice"],
         }
 
-        self.assertEqual(93, len(self.records))
+        self.assertEqual(96, len(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])

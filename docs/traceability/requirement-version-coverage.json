@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-008",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-010",
   "sources": {
     "prd": "需求/PRD-项目实施交付管理平台.md",
     "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
@@ -36,6 +36,19 @@
       "taskPath": null,
       "taskStatus": "NO_TASK",
       "taskStatusRaw": null,
+      "mappings": [
+        {
+          "sliceKey": "EQP-01@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-AST-002",
+      "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
+      "taskPath": "tasks/features/F-AST-002.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
       "mappings": [
         {
           "sliceKey": "EQP-01@V1",
@@ -1001,6 +1014,13 @@
           "taskStatus": "NO_TASK",
           "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
           "taskPath": null
+        },
+        {
+          "featureId": "F-AST-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
+          "taskPath": "tasks/features/F-AST-002.md"
         }
       ]
     },

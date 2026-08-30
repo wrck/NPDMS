@@ -1,4 +1,4 @@
-﻿# SDS Phase 2：数据模型
+# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
@@ -224,7 +224,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Service Operations | ServiceStatus | 设备客观服务状态和来源提示 | 不提供续保空间或续保率管理 |
 | Service Operations | ServiceHandoverReference | 对 ACC 交接结果的只读引用和处理状态 | 不回写 ACC 交接原记录 |
 
-InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；Inspection只保存产品类型稳定编码及发布时名称快照。规则安全审核作为InspectionRule revision的发布前置事实，记录审核引用、审核主体角色组、审核时间、结论及命令内容摘要；不新增业务生命周期状态。
+InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；受控副本包含稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态。Inspection只保存产品类型稳定编码及发布时名称快照。产品类型停用阻止新发布和新选择，历史revision继续按快照解释；AST契约不可用时发布失败关闭。规则安全审核作为InspectionRule revision的发布前置事实，记录审核引用、审核主体角色组、审核时间、结论及命令内容摘要；不新增业务生命周期状态。
 
 ## 9. Customer、Asset、Commerce 与 Resource
 
@@ -250,7 +250,10 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 | 聚合/实体 | 类型 | 规则 |
 |---|---|---|
-| Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充和业务关联 |
+| Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充、当前产品类型引用和业务关联 |
+| AssetProductType | External Master Copy | 稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态；只接收已核验CRM/MES映射或带来源证据的受控导入，不允许自由值或猜测映射 |
+| AssetProductTypeSourceMapping | 来源映射 | 来源系统与来源键到稳定产品类型编码的版本化映射；冲突和未解析事实进入待处理，不覆盖当前有效映射 |
+| DeviceCurrentProductType | Device当前事实 | 设备ID、产品类型稳定编码、来源映射引用、解析状态、来源版本和有效区间；同一租户设备最多一个当前引用，未知、冲突或未解析时不写猜测编码 |
 | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
 | Address | 聚合根 | 国家、省、市、区县编码/名称、详细/完整地址、可空经纬度、标准化候选指纹和版本；指纹不作为自动合并键 |
 | Site | 聚合根 | 站点编码、名称、可空客户引用、Address引用、类型、状态和版本；不保存公司或部门字段，同址允许多站点 |
