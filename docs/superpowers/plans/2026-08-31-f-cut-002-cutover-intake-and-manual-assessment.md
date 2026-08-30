@@ -27,7 +27,7 @@
 
 | 责任 | 主要位置 | 处理 |
 |---|---|---|
-| PROJ割接上下文公共Fact | `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/`、`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/ProjectCutoverContextFactApiImpl.java` | 按已GO合同实现API/DTO/公共失败和唯一Provider；实现后以同包直接正向测试证明inspect及精确版本lockAndRevalidate |
+| PROJ割接上下文公共Fact | `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/`、`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutovercontext/ProjectCutoverContextFactApiImpl.java` | 按已GO合同实现API/DTO/公共失败和唯一Provider；实现后直接证明inspect及前次FOUND完整Expected Fact逐字段lockAndRevalidate，并只使用锁后currentFact |
 | CUT 公共入向契约 | 新建 `pms-module-cutover-api`，并同步根 `pom.xml`、`pms-module-cutover/pom.xml` | 放置 `CutoverTaskIntakeApi`、严格判别 Command/Result；不放 Producer、HTTP 或 Owner 实现 |
 | CUT 聚合与命令 | `pms-module-cutover/src/main/java/.../taskv2/` | 新增领域规则、应用服务、Owner 消费端口、事实编排和错误分类；不复用旧任务状态机 |
 | CUT 持久化 | `.../dal/dataobject/taskv2/`、`.../dal/mysql/taskv2/`、`src/main/resources/mapper/taskv2/` | 四张新表各自 DO/Mapper；联表、锁定、集合和 CAS 使用场景化 Query + XML |
@@ -86,7 +86,7 @@
 
 **Produces：** 可编译、可由受控测试装配执行的完整 CUT 自建与 P2 提交内核；生产代码不含 Fake，未具备的 ProjectContext Provider 不以跨表读取替代。
 
-- [ ] 在PROJ既有API模块/业务模块实现已GO的`ProjectCutoverContextFactApi`合同与唯一Provider；实现完成后做inspect及精确版本lockAndRevalidate直接正向验证。随后建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，补CUT对platform/project/asset/customer/engineering公共API的单向依赖。
+- [ ] 在PROJ既有API模块/业务模块实现已GO的`ProjectCutoverContextFactApi`合同与唯一Provider；实现完成后直接验证inspect及前次FOUND完整Expected Fact逐字段lockAndRevalidate，并只使用锁后currentFact。随后建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，补CUT对platform/project/asset/customer/engineering公共API的单向依赖。
 - [ ] 落四张新表的 DO、场景化 Query、Mapper/XML、状态规则和聚合应用服务；使用数据库唯一键与 CAS 保证来源、活动设备、当前评估和版本唯一。
 - [ ] 实现 resolve-create-context、list、create、detail、save-assessment、submit-assessment 的应用服务与严格 Wire/Header/错误模型；Controller 只在 Task 2 生产 Owner 接通后注册。
 - [ ] 实现同一自建编排供 SELF_CREATED 与内部 ITR/PROJECT_EVENT Provider 复用；内部来源只接受受信 engineer/source identity，不增加 Producer。
