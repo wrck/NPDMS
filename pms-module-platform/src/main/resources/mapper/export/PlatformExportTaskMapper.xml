@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.export.PlatformExportTaskMapper">
+    <sql id="columns">id, tenant_id, owner_context, export_type, operation_id, request_digest,
+        actor_user_id, filter_snapshot, scope_snapshot, requested_fields_snapshot, include_files,
+        scope_version, task_status, result_count, artifact_id, file_version_no, reference_key,
+        artifact_version, reference_version, availability_version, file_hash, expires_at,
+        failure_code, failure_retryable, retry_count, version, creator, create_time, updater, update_time</sql>
+
+    <insert id="insertIfAbsent">
+        INSERT IGNORE INTO plt_export_task
+          (id, tenant_id, owner_context, export_type, operation_id, request_digest, actor_user_id,
+           filter_snapshot, scope_snapshot, requested_fields_snapshot, include_files, scope_version,
+           task_status, retry_count, version, creator, create_time, updater, update_time)
+        VALUES
+          (#{id}, #{tenantId}, #{ownerContext}, #{exportType}, #{operationId}, #{requestDigest}, #{actorUserId},
+           #{filterSnapshot}, #{scopeSnapshot}, #{requestedFieldsSnapshot}, #{includeFiles}, #{scopeVersion},
+           #{taskStatus}, #{retryCount}, #{version}, #{creator}, #{createTime}, #{updater}, #{updateTime})
+    </insert>
+
+    <select id="selectByIdentity" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.export.PlatformExportTaskDO">
+        SELECT <include refid="columns"/> FROM plt_export_task
+        WHERE tenant_id=#{query.tenantId} AND owner_context=#{query.ownerContext}
+          AND export_type=#{query.exportType} AND actor_user_id=#{query.actorUserId}
+          AND operation_id=#{query.operationId}
+    </select>
+
+    <select id="selectByActor" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.export.PlatformExportTaskDO">
+        SELECT <include refid="columns"/> FROM plt_export_task
+        WHERE tenant_id=#{query.tenantId} AND actor_user_id=#{query.actorUserId} AND id=#{query.taskId}
+    </select>
+
+    <select id="selectByActorForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.export.PlatformExportTaskDO">
+        SELECT <include refid="columns"/> FROM plt_export_task
+        WHERE tenant_id=#{query.tenantId} AND actor_user_id=#{query.actorUserId} AND id=#{query.taskId}
+        FOR UPDATE
+    </select>
+
+    <update id="retryFailed">
+        UPDATE plt_export_task
+        SET task_status='REQUESTED', failure_code=NULL, failure_retryable=NULL,
+            retry_count=retry_count+1, version=version+1, updater=#{update.updater}, update_time=NOW()
+        WHERE tenant_id=#{update.tenantId} AND id=#{update.taskId} AND version=#{update.expectedVersion}
+          AND task_status='FAILED' AND failure_retryable=1
+    </update>
+
+    <select id="selectRequestedForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.export.PlatformExportTaskDO">
+        SELECT <include refid="columns"/> FROM plt_export_task
+        WHERE tenant_id=#{query.tenantId} AND task_status='REQUESTED'
+        ORDER BY create_time, id LIMIT #{query.limit} FOR UPDATE SKIP LOCKED
+    </select>
+
+    <select id="selectExpiredForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.export.PlatformExportTaskDO">
+        SELECT <include refid="columns"/> FROM plt_export_task
+        WHERE tenant_id=#{query.tenantId} AND task_status='SUCCEEDED' AND expires_at &lt;= NOW()
+        ORDER BY expires_at, id LIMIT #{query.limit} FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="transition">
+        UPDATE plt_export_task
+        SET task_status=#{update.targetStatus}, result_count=#{update.resultCount},
+            artifact_id=#{update.artifactId}, file_version_no=#{update.fileVersionNo},
+            reference_key=#{update.referenceKey}, artifact_version=#{update.artifactVersion},
+            reference_version=#{update.referenceVersion}, availability_version=#{update.availabilityVersion},
+            file_hash=#{update.fileHash}, expires_at=#{update.expiresAt}, failure_code=#{update.failureCode},
+            failure_retryable=#{update.failureRetryable}, version=version+1,
+            updater=#{update.updater}, update_time=NOW()
+        WHERE tenant_id=#{update.tenantId} AND id=#{update.taskId} AND version=#{update.expectedVersion}
+          AND task_status=#{update.expectedStatus}
+    </update>
+</mapper>
