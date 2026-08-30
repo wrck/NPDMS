@@ -17,7 +17,7 @@
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- 检查点（基线`2958e366`）：当前Gate为`NPDMS-FCUT002-TECHPLAN-20260831-01`候选独立审核；Feature Ready及三项公共合同已GO。计划收敛为后端正向链、新工作台两个串行Task，测试后置且只形成一次Implementation Done候选；生产Owner只阻断真实浏览器与完成声明。下一步：Technical Plan裁决。
+- 检查点：`NPDMS-FCUT002-TECHPLAN-20260831-01`已在`9cef17e4`收敛为后端正向链、新工作台两个串行Task；当前仅整改验证规则、统一锁序、公共API模块边界和legacy Mapper绑定，Technical Plan仍为`REVIEW_REQUIRED`。下一步：A-D最小复审。
 
 ## 已完成
 
