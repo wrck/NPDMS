@@ -837,8 +837,13 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
         "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE",
                               "createGeneratedBusinessFile", "未引用对象"),
         "15-cache-and-concurrency.md": ("createGeneratedBusinessFile", "MANDATORY", "同operation同摘要"),
-        "16-exception-and-idempotency.md": ("Task保持PENDING_DECISION", "Result Outbox零写入",
-                                             "同operation同摘要复用存储回执"),
+        "16-exception-and-idempotency.md": (
+            "Result与结果文档已经共同提交后，来源投影或归档失败",
+            "该规则不适用于Result文档生成失败或对象已写后ACC外层事务回滚",
+            "Task保持PENDING_DECISION",
+            "Result、ResultFile、成功幂等事实和Result Outbox零写入",
+            "同operation同摘要复用存储回执",
+        ),
     }
     for name, tokens in required.items():
         path = design / name
