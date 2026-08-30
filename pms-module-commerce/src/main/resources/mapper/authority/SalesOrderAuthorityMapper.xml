@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.SalesOrderAuthorityMapper">
+    <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderDO">
+        SELECT * FROM com_sales_order
+        WHERE tenant_id = #{tenantId} AND source_system = #{sourceSystem}
+          AND source_key = #{sourceKey} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <update id="updateOwnerByVersion">
+        UPDATE com_sales_order
+        SET company_code = #{row.companyCode}, order_no = #{row.orderNo}, order_type = #{row.orderType},
+            customer_code = #{row.customerCode}, customer_name = #{row.customerName},
+            order_amount = #{row.orderAmount}, currency_code = #{row.currencyCode},
+            authority_status = #{row.authorityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
+            source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
+            synced_at = #{row.syncedAt}, version = version + 1,
+            updater = #{row.updater}, update_time = #{row.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{row.id} AND version = #{expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>
