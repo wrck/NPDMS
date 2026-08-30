@@ -17,10 +17,11 @@
 | REUSE-10 | `PlatformCommandExecutionApi`、`PlatformOutboxDeliveryApi`及F-ACC-001专用投递模式 | `DIRECT_REUSE + COPY_THEN_ENHANCE` | 复用事务Outbox/claim/mark/retry；新增Job只领取SatisfactionResultVersionChanged，不误标CLO/SUB事件 |
 | REUSE-11 | PLT Todo及PROJ任务工作台 | `DIRECT_REUSE` | 只投影责任人待办和业务工作台入口；Todo完成不得反向制造客户提交或通过 |
 | REUSE-12 | 旧关项与转包满意度状态消费者 | `DO_NOT_REUSE` | 本Feature只公开不可变Result Fact；不改CLO/SUB状态、不把旧缓存值冒充Owner Fact |
-| REUSE-13 | Yudao基础平台认证、权限、租户与导出基础能力 | `DIRECT_REUSE_NO_SOURCE_CHANGE` | 使用现有控制点；不得修改Yudao源码、删除鉴权或固定角色映射 |
+| REUSE-13 | Yudao基础平台认证、权限与租户控制点 | `DIRECT_REUSE_NO_SOURCE_CHANGE` | 使用现有控制点；不得修改Yudao源码、删除鉴权或固定角色映射。ADR-0014逻辑决策本身不是可运行导出载体 |
 | REUSE-14 | F-ACC-001 `AcceptanceActivityCompletionFactApi`真实Provider与初验活动完成事务 | `COPY_THEN_ENHANCE` | 复用已交付初验完成Fact作为`AFTER_INITIAL_ACCEPTANCE`正向触发；只在冻结时点匹配时同事务调用满意度initializer，不以报告上传、Todo或项目阶段推断 |
 | REUSE-15 | PROJ `ProjectScopeApi/ProjectScopeApiImpl`、`ProjectTreeScopeService`及树版本测试 | `DIRECT_REUSE` | 查询/导出使用当前项目集合，下载和失效写入按`PROJECT_VIEW/PROJECT_EDIT`重验；返回`treeVersion`作为文件策略唯一`scopeVersion`，ACC不复制项目树/授权算法或跨Context读表 |
 | REUSE-16 | V17 `pms_acc_completion_certificate`、`CompletionCertificateController/Service/ServiceImpl/DO/Mapper`、V18菜单19094/19100～19104、旧API、`completion-certificate`页面及项目详情投影 | `DO_NOT_REUSE / PRESERVE_EXISTING` | 旧电子完工证明及其客户确认、归档、状态和`satisfactionScore`继续保持原行为；不得作为F-ACC-002 Task/Questionnaire/Result、阈值、满意度来源或CLO/SUB事实，不修改旧表、接口、菜单和页面 |
 | REUSE-17 | PLT `FileUploadApplicationService`、`FileUploadSession`、`FileUploadCompensationService`及Artifact/Version/Reference持久化链 | `COPY_THEN_ENHANCE_BEHIND_PUBLIC_API` | 只在PLT内部复用生成文档的内容校验、存储、幂等与未引用对象补偿；ACC仅调用加性`FileArtifactApi.createGeneratedBusinessFile`，不得依赖PLT Service/Mapper/表或伪造登录上下文 |
+| REUSE-18 | 仓库现状中的ADR-0014及全量Java/XML/SQL导出载体检索 | `NO_RUNTIME_CARRIER / BUILD_APPROVED_ADR_0042` | 当前没有`ExportTask/ExportAudit`公共API、物理表或执行Job可直接复用；按ADR-0042在PLT唯一新增`ExportTaskApi`、`ExportBusinessDataProvider`、`plt_export_task/plt_export_audit`和执行/到期Job，ACC只提供`ACC/SATISFACTION_RESULT`场景Provider，不新建第二导出真值 |
 
-迁移结论：F-ACC-002正向事实为`NEW_ONLY`；所有旧问卷、回访和转包载体保持原始状态并交由`AI-MIG-000`后续确认，V17/V18电子完工证明栈保持独立可达。Technical Plan不得引入旧值映射、名称/分数/状态推断、长期双写、第二应交根、PLT内部主键，或把旧完工证明事实升级为新满意度真值。
+迁移结论：F-ACC-002正向事实与PLT统一导出载体均为`NEW_ONLY / FEATURE_FORWARD_MIGRATION`；所有旧问卷、回访和转包载体保持原始状态并交由`AI-MIG-000`后续确认，V17/V18电子完工证明栈保持独立可达。Technical Plan不得引入旧值映射、名称/分数/状态推断、长期双写、第二应交根、第二导出Task/Audit、PLT内部主键，或把旧完工证明事实升级为新满意度真值。

@@ -6,8 +6,8 @@
 > Requirement切片覆盖：`ACC-02@V1=FULL；ACC-04@V1=PARTIAL`
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
-> 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件契约仅作PMS加性扩展
-> 适用基线：PRD V1.8；ADR-0041 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`）
+> 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件与统一导出契约仅作PMS加性扩展
+> 适用基线：PRD V1.8；ADR-0041、ADR-0042 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`、统一异步导出补充`1df9b392`）
 
 ## 1. 业务目标
 
@@ -80,7 +80,9 @@
 
 - `SatisfactionResultFactApi.inspect/lockAndRevalidate`返回稳定task/questionnaire/response/result、模板/规则/阈值、原始source、各版本、passed/resultStatus/archiveStatus；CLO/SUB只能读取，不能修改或推断。
 - 仅有效达标Result可成为当前满意度交付件；失败/失效保留历史但不得形成CLO/SUB通过事实。
-- 导出按项目树、责任人、字段、文件和租户范围裁剪，保存条件、范围摘要、文件哈希、下载人和时间；没有字段或文件权限时不得带出对应内容。
+- 导出只通过PLT Owner的`ExportTaskApi.request/getFact/retry`形成统一`ExportTask/ExportAudit`；ACC固定提供`ACC/SATISFACTION_RESULT`的`ExportBusinessDataProvider`，不得新建领域导出任务或第二审计真值。
+- 申请、生成、显式重试和下载均按项目树、责任人、字段、文件和租户范围重验；Task保存规范化条件、范围/字段/文件快照、公共文件事实和永久审计，没有字段或文件权限时不得带出对应内容。
+- 暂时生成/扫描/存储或Provider不可用、范围版本未知进入可重试`FAILED`；永久Provider/载荷契约错误进入不可重试`FAILED`；授权/范围拒绝进入`REJECTED`。仅原申请actor可按expectedVersion显式重试同一Task，`retry_count+1`且追加`RETRY_REQUESTED`；同operation申请不隐式重试，只有`SUCCEEDED`文件可在24小时后转`EXPIRED`。
 - 项目查询、导出、下载、失效与管理写操作统一复用PROJ `ProjectScopeApi/Impl`：查询使用`resolveAllCurrent/resolveCurrent`，写入或下载重验使用`lockAndRevalidate`及对应`PROJECT_VIEW/PROJECT_EDIT`动作；返回`treeVersion`是文件策略`scopeVersion`的唯一来源。ACC不得读取PROJ表、复制项目树/授权算法或用Result版本、固定值替代范围版本。
 
 ### BR-FACC002-006 旧载体与前向边界
@@ -108,7 +110,10 @@
 | `GET /satisfaction-results`、`GET .../{id}` | `pms:acceptance:satisfaction:query` | 当前与历史Result，敏感答案按字段权限裁剪 |
 | `POST /satisfaction-results/{id}/actions/invalidate` | `pms:acceptance:satisfaction:manage` | 服务端actor、`PROJECT_EDIT`、expectedResultVersion、原因和Idempotency-Key；原子关闭当前Result并写失效Outbox |
 | `GET .../{resultId}/files/{sequence}/download` | `pms:acceptance:satisfaction:download` | 每次重验项目、FileBusinessScope和租户 |
-| `POST /satisfaction-results/exports` | `pms:acceptance:satisfaction:export` | 授权记录/字段/文件的异步导出及审计 |
+| `POST /satisfaction-results/exports` | `pms:acceptance:satisfaction:export` | 固定`ACC/SATISFACTION_RESULT`调用PLT `ExportTaskApi.request`，返回Task状态查询位置 |
+| `GET /export-tasks/{id}` | 原申请actor；重验`pms:acceptance:satisfaction:export`及业务范围 | PLT返回统一Task状态和安全摘要，不泄露业务对象 |
+| `POST /export-tasks/{id}/actions/retry` | 原申请actor；重验权限/范围 | 仅`FAILED + failure_retryable=true`按expectedVersion CAS回`REQUESTED` |
+| `POST /export-tasks/{id}/access-ticket` | 原申请actor；重验权限/范围 | 仅`SUCCEEDED`且未到期文件签发Access Ticket并追加下载审计 |
 
 角色映射保持正式配置；验收身份可配置全部相关键，不能删除服务端鉴权或租户隔离。
 
@@ -123,6 +128,7 @@
 | Result | `EFFECTIVE/INVALIDATED`，passed独立保存 |
 | AccessGrant | `ACTIVE/CONSUMED/REVOKED/EXPIRED` |
 | Archive | `PENDING_COMPENSATION/ARCHIVED/INVALID` |
+| ExportTask | `REQUESTED/GENERATING/SUCCEEDED/FAILED/REJECTED/EXPIRED` |
 
 - `SatisfactionTaskCreated`携带collection/revision/prior、原始source、当前trigger、问卷与规则版本；不表示提交或通过。
 - `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、完整版本链、判定、有序文件公共`sha256`事实，以及失效事件的原因码、操作者和时间；与Result事务同写Outbox。投影按上述Owner重验和精确当前指针对称处理乱序。
@@ -144,6 +150,7 @@
 - AC-06：有效达标Result只进入同项目`D-SAT-REPORT/T-SAT-SURVEY`根；根缺失/错配待补偿，归档重试不回滚Result。
 - AC-07：正式失效命令按期望版本和项目范围原子关闭当前Result并清空精确当前来源；旧RECORDED延迟重试不得恢复失效版或覆盖新来源，来源历史、归档结果和ACTIVE文件下载保持可追溯。
 - AC-08：查询、导出、下载按项目/责任人/字段/文件/租户范围执行；跨范围拒绝且不泄露。
+- AC-08A：统一导出Task由PLT异步执行；暂时失败可由原actor显式重试同一Task，永久失败/拒绝不可重试，同operation不创建第二Task，成功文件到期后仅清内容且Task/Audit永久保留。
 - AC-09：旧问卷/回访/转包载体保持不变，不能产生当前Result；INT通道不可用时V1路径仍可完成。
 - AC-10：真实MySQL验证唯一键、追加历史、原子回滚；真实Chromium完成指派→受控问卷→失败→整改重收→达标→归档/下载闭环。
 
@@ -158,4 +165,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`1df9b392`；当前Gate=Technical Plan整改；已通过=统一导出SDS/P3-E09补充GO；阻塞=需同步Feature/机器契约并关闭问卷验收顺序与真实导出载体计划；下一步=完成同一计划最小整改并复审，不创建Task或代码。
+检查点：基线=`9ab20d99`；当前Gate=Technical Plan整改复审；已通过=统一导出SDS/P3-E09补充GO且Feature/机器契约/计划已同步；阻塞=计划待独立复审；下一步=GO后创建唯一Task并进入Implementation，GO前不写代码或Flyway。

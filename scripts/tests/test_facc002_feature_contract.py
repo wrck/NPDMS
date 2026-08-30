@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md"
 CONTRACT = ROOT / "specs/features/F-ACC-002-physical-contract.json"
 AUDIT = ROOT / "specs/features/F-ACC-002-legacy-reuse-audit.md"
+PLAN = ROOT / "docs/superpowers/plans/2026-08-30-f-acc-002-satisfaction-questionnaire-result-deliverable-sync.md"
 
 
 def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
@@ -57,6 +58,15 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
             "lockAndRevalidate" not in project_scope.get("methods", []) or \
             "PROJECT_EDIT" not in project_scope.get("actions", []):
         errors.append("project-scope")
+    export_api = contract.get("moduleApis", {}).get("ExportTaskApi", {})
+    export_provider = contract.get("moduleApis", {}).get("ExportBusinessDataProvider", {})
+    if export_api.get("methods") != ["request", "getFact", "retry"] or \
+            "FAILED_RETRYABLE_TO_REQUESTED" not in export_api.get("retry", "") or \
+            export_provider.get("owner") != "PLT" or \
+            export_provider.get("businessFactOwner") != "ACC" or \
+            export_provider.get("providerKey") != "ACC/SATISFACTION_RESULT" or \
+            export_provider.get("revalidationPoints") != ["REQUEST", "GENERATION", "RETRY", "DOWNLOAD"]:
+        errors.append("platform-export-owner")
     file_api = contract.get("moduleApis", {}).get("FileArtifactApi", {})
     if file_api.get("additiveMethods") != ["initializeBusinessGrantUpload", "completeBusinessGrantUpload",
                                            "createGeneratedBusinessFile"] or \
@@ -102,6 +112,13 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         "acc_project_deliverable_source_attachment", {})
     if source_attachment.get("publicToPhysical", {}).get("sha256") != "file_hash":
         errors.append("file-physical-mapping")
+    export_task = contract.get("physicalDelta", {}).get("tables", {}).get("plt_export_task", {})
+    export_audit = contract.get("physicalDelta", {}).get("tables", {}).get("plt_export_audit", {})
+    if export_task.get("owner") != "PLT" or \
+            "failure_retryable" not in export_task.get("fields", []) or \
+            export_task.get("stateRules") != "ONLY_FAILED_RETRYABLE_TO_REQUESTED_AND_ONLY_SUCCEEDED_TO_EXPIRED" or \
+            "RETRY_REQUESTED" not in export_audit.get("actions", []):
+        errors.append("platform-export-physical")
     disposition = contract.get("legacyDisposition", {})
     if disposition.get("v17V18CompletionCertificateStack") != "DO_NOT_REUSE_PRESERVE_EXISTING" or \
             "satisfactionScore" not in disposition.get("completionCertificateForbiddenFacts", []):
@@ -111,12 +128,12 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     for marker in ("文档状态：`BASELINE`", "Feature Ready：`READY`", "ACC-02@V1=FULL",
                    "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
                    "actions/invalidate", "createGeneratedBusinessFile", "ProjectScopeApi/Impl", "sha256", "pms_acc_completion_certificate",
-                   "双向乱序", "AI-MIG-000"):
+                   "ExportTaskApi.request/getFact/retry", "FAILED + failure_retryable=true", "双向乱序", "AI-MIG-000"):
         if marker not in spec:
             errors.append(f"spec:{marker}")
-    for marker in ("REUSE-01", "REUSE-17", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
+    for marker in ("REUSE-01", "REUSE-17", "REUSE-18", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
                    "ProjectScopeApiImpl", "D-SAT-REPORT", "PlatformOutboxDeliveryApi",
-                   "pms_acc_completion_certificate", "satisfactionScore", "DIRECT_REUSE_NO_SOURCE_CHANGE"):
+                   "pms_acc_completion_certificate", "satisfactionScore", "NO_RUNTIME_CARRIER / BUILD_APPROVED_ADR_0042"):
         if marker not in audit:
             errors.append(f"audit:{marker}")
     return errors
@@ -128,6 +145,7 @@ class Facc002FeatureContractTest(unittest.TestCase):
         cls.spec = SPEC.read_text(encoding="utf-8")
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.audit = AUDIT.read_text(encoding="utf-8")
+        cls.plan = PLAN.read_text(encoding="utf-8")
 
     def test_baseline_contract_matches_independent_go(self) -> None:
         self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
@@ -213,6 +231,19 @@ class Facc002FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["legacyDisposition"]["v17V18CompletionCertificateStack"] = "DIRECT_REUSE"
         self.assertIn("completion-certificate", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_missing_platform_export_owner_or_retry_watermark(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["ExportTaskApi"]["methods"].remove("retry")
+        self.assertIn("platform-export-owner", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["physicalDelta"]["tables"]["plt_export_task"]["fields"].remove("failure_retryable")
+        self.assertIn("platform-export-physical", contract_errors(mutated, self.spec, self.audit))
+
+    def test_plan_uses_one_submission_channel_per_questionnaire(self) -> None:
+        self.assertIn("revision1只走现场协助", self.plan)
+        self.assertIn("revision2后只走匿名渠道", self.plan)
+        self.assertNotIn("客户问卷第一次因未达标", self.plan)
 
 
 if __name__ == "__main__":
