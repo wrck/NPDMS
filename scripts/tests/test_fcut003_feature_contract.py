@@ -56,6 +56,13 @@ class Fcut003FeatureContractTest(unittest.TestCase):
             self.contract["legacyDisposition"]["pms_cut_risk"],
         )
 
+    def test_write_lock_order_starts_with_project_scope(self) -> None:
+        locks = self.contract["transactionAndLocks"]
+        self.assertIn("non-locking inspect", locks[0])
+        self.assertIn("ProjectScopeApi.lockAndRevalidate", locks[1])
+        self.assertIn("other required owner facts", locks[2])
+        self.assertIn("CutoverTask then effective submitted assessment", locks[3])
+
     def test_feature_index_projects_candidate_state(self) -> None:
         self.assertIn("[F-CUT-003]", self.index)
         self.assertIn("CUT-03（V1，FULL） | CANDIDATE | NOT_READY | NOT_STARTED", self.index)
