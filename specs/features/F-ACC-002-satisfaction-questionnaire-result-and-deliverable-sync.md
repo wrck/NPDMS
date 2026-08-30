@@ -7,7 +7,7 @@
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件契约仅作PMS加性扩展
-> 适用基线：PRD V1.8；ADR-0041 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`）
+> 适用基线：PRD V1.8；ADR-0041 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`）
 
 ## 1. 业务目标
 
@@ -158,4 +158,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`27f5bcb2`；当前Gate=Result生成文件SDS/Feature补充；已通过=Feature Ready GO；阻塞=PLT生成文件公共契约待独立复审；下一步=补充GO后恢复唯一Technical Plan，不创建Task或代码。
+检查点：基线=`afa37d66`；当前Gate=Technical Plan形成；已通过=Feature Ready及Result生成文件Owner补充GO；阻塞=无；下一步=形成唯一Technical Plan候选，不创建Task或代码。
