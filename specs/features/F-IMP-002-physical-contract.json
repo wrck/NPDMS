@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-IMP-002",
   "status": "BASELINE_READY",
-  "task5BExtensionStatus": "REVIEW_REQUIRED",
+  "task5BExtensionStatus": "BASELINE_READY",
   "requirementSlices": ["EXE-01@V1"],
   "coverage": "FULL",
   "owner": "IMP",

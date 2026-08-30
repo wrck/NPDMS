@@ -9,7 +9,7 @@
 > 外部输入依赖：COM `DeliveryScopeApi`、AST `T-FIMP001-AST-01`、PROJ `ProjectParticipantFactApi`/`ProjectScopeApi`、PLT `FileArtifactApi`
 > 事件方向：IMP出向`ImplementationEvidencePublished`；ACC入向`ArtifactAccepted/Archived`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`（`PASS / GO`；锁定提交`e0184ac4`）
-> REST/API机器契约：`specs/features/F-IMP-002-rest-api-contract.json`（`REVIEW_REQUIRED`；Task 5B/Task 8实施前补全候选）
+> REST/API机器契约：`specs/features/F-IMP-002-rest-api-contract.json`（`PASS / GO`；锁定提交`dbf62b8f`）
 
 ## 1. 业务目标与范围
 

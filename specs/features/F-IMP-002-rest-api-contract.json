@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "featureId": "F-IMP-002",
   "requirementSlices": ["EXE-01@V1"],
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "owner": "IMP",
   "apiPrefix": "/api/v1/pms/arrival-acceptances",
   "legacyRoutePolicy": "PRESERVE_/pms/eng-arrival; NEVER_ALIAS_REUSE_OR_FALLBACK",
   "implementationGate": {
-    "task5B": "REVIEW_REQUIRED_FOR_337757B3_REMEDIATION_A_TO_E",
+    "task5B": "BASELINE_READY_AFTER_GO_DBF62B8F",
     "task8": "BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW",
     "productionActivation": "BLOCKED_BY_COM_AND_AST_PRODUCTION_PROVIDERS_UNTIL_TASK12",
     "preActivation": "EXPLICIT_TEST_ASSEMBLY_ONLY; NO_SERVICE_COMPONENT_RESTCONTROLLER_BEAN_FALLBACK_OR_FAKE_IN_SRC_MAIN"
