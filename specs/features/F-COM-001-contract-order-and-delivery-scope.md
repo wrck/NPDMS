@@ -86,7 +86,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - 功能权限、项目数据范围、当前项目主体事实和业务状态守卫必须同时成立。空范围返回空，不省略条件扩大结果。
 - 同键同摘要重放返回首次结果；同键异摘要为永久冲突；处理中可重试同键。失败不得产生部分范围、版本、审计或Outbox。
 - 审计保存来源键/版本、分配前后数量、项目/订单行、地点解析状态、冲突原因、操作者、关联ID和时间；不记录附件正文、ERP敏感原文或完整SN清单到普通日志。
-- Task 5平台成功事实的`detailSnapshot`严格遵守`specs/features/F-COM-001-delivery-scope-audit-contract.json`：命令级与行级均只允许合同列出的精确键；行按`orderLineId`唯一稳定排序，并保存来源版本、变更前数量、请求目标、变更后ACTIVE数量、保留冲突数量、地点解析、结果态和冲突原因。`ACTIVE/RELEASED/CONFLICT`使用封闭判别联合，`protectedAsConflict`当且仅当存在CONFLICT行；只保存SN数量而不保存完整SN、ERP原文或附件正文。快照与范围、项目水位、平台幂等完成点及Outbox同事务，失败不得留下成功审计。
+- Task 5平台成功事实的`detailSnapshot`严格遵守`specs/features/F-COM-001-delivery-scope-audit-contract.json`：命令级与行级均只允许合同列出的精确键；行按`orderLineId`唯一稳定排序，并保存来源版本、变更前数量、真实请求目标、变更后ACTIVE数量、保留冲突数量、地点解析、结果态和冲突原因。受保护减配仍保存实际请求目标，只有RELEASE为零；冲突原因按项目关闭→S5/S6→已有到货验收保护的稳定优先级选择。`ACTIVE/RELEASED/CONFLICT`使用封闭判别联合，`protectedAsConflict`当且仅当存在CONFLICT行；只保存SN数量而不保存完整SN、ERP原文或附件正文。快照与范围、项目水位、平台幂等完成点及Outbox同事务，失败不得留下成功审计。
 
 ## 4. 状态与流程
 

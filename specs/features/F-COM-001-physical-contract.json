@@ -110,7 +110,7 @@
       "fact": ["tenantId","projectId","rootProjectId","currentManagerUserId","lifecycleStatus","currentStage","projectVersion","participantFactVersion","treeVersion"],
       "factInvariants": "NORMAL_CLOSED requires S6; treeVersion is positive; invalid caller expectations are INVALID_REQUEST and impossible Owner output is OWNER_DATA_CORRUPTED",
       "revalidation": "compare manager, lifecycle, stage, projectVersion, participantFactVersion, treeVersion and root identity after locking root project, target project and active tree version",
-      "errorDecisionOrder": ["invalid query or expected fact => INVALID_REQUEST", "trusted tenant mismatch => TENANT_CONTEXT_MISMATCH", "inspect missing/not-visible target => DATA_SCOPE_DENIED", "inspect actor not current manager => SUBJECT_NOT_ELIGIBLE", "lock mismatch of any structurally valid frozen axis => FACT_STALE", "impossible locked Owner fact => OWNER_DATA_CORRUPTED", "transaction/database unavailable => PROVIDER_UNAVAILABLE"],
+      "errorDecisionOrder": ["invalid query or expected fact => INVALID_REQUEST", "trusted tenant mismatch => TENANT_CONTEXT_MISMATCH", "inspect missing/not-visible target => DATA_SCOPE_DENIED", "validate every present locked current Owner fact; impossible structure => OWNER_DATA_CORRUPTED", "inspect actor not current manager => SUBJECT_NOT_ELIGIBLE", "only after current Owner structure is valid, any frozen-axis mismatch including simultaneous manager/version changes => FACT_STALE", "transaction/database unavailable => PROVIDER_UNAVAILABLE"],
       "protectedFacts": "ACTIVE, NORMAL_CLOSED and EXCEPTION_CLOSED plus current S0-S6 are comparable; S5/S6 or closed facts cause COM reduction/release to become CONFLICT",
       "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","SUBJECT_NOT_ELIGIBLE","DATA_SCOPE_DENIED","FACT_STALE","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
     },
@@ -157,7 +157,7 @@
     "machineContract": "specs/features/F-COM-001-delivery-scope-audit-contract.json",
     "exactTopLevelKeys": ["schemaVersion","action","projectId","actorId","correlationId","occurredAt","expectedScopeVersion","resultScopeVersion","protectedAsConflict","lines"],
     "exactLineKeys": ["orderLineId","sourceKey","sourceVersion","beforeQuantity","requestedQuantity","afterQuantity","preservedConflictQuantity","unitCode","locationResolutionStatuses","resultState","conflictReason","affectedScopeIds","serialCount"],
-    "stateUnion": "ACTIVE has positive after quantity; RELEASED has zero after and preserved quantities; CONFLICT has zero after quantity, positive preserved quantity and a closed/stage conflict reason",
+    "stateUnion": "ACTIVE has positive after quantity; RELEASED has zero after and preserved quantities; CONFLICT has zero after quantity, positive preserved quantity and a lifecycle/stage/arrival-acceptance protection reason",
     "stableOrder": ["orderLineId ASC UNIQUE","locationResolutionStatuses ASC UNIQUE","affectedScopeIds ASC UNIQUE"],
     "privacy": "serialCount only; full serial lists, attachments, ERP source payload and extra keys are forbidden",
     "atomicity": "the detail snapshot, scope history, project watermark, platform idempotency completion and outbox commit or roll back together"

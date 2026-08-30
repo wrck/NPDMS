@@ -33,14 +33,14 @@
       "unitCode": "NON_BLANK_TRIMMED_STRING_1_32",
       "locationResolutionStatuses": "NON_EMPTY_ASC_UNIQUE_ARRAY[RESOLVED,UNRESOLVED]",
       "resultState": "ENUM[ACTIVE,RELEASED,CONFLICT]",
-      "conflictReason": "ENUM[PROJECT_LIFECYCLE_CLOSED,PROJECT_STAGE_S5_OR_S6]_OR_JSON_NULL",
+      "conflictReason": "ENUM[PROJECT_LIFECYCLE_CLOSED,PROJECT_STAGE_S5_OR_S6,ARRIVAL_ACCEPTANCE_PROTECTED]_OR_JSON_NULL",
       "affectedScopeIds": "NON_EMPTY_ASC_UNIQUE_ARRAY[POSITIVE_LONG]",
       "serialCount": "NON_NEGATIVE_INTEGER"
     }
   },
   "quantitySemantics": {
     "beforeQuantity": "sum of qualified current ACTIVE allocation for the project and order line immediately before the command",
-    "requestedQuantity": "the command target ACTIVE quantity; RELEASE and protected reduction use zero",
+    "requestedQuantity": "the command requested target quantity: RELEASE uses zero; APPLY including a protected reduction preserves the actual requested target quantity",
     "afterQuantity": "sum of qualified current ACTIVE allocation immediately after the command; RELEASED and CONFLICT use zero because neither is an assigned-scope fact",
     "preservedConflictQuantity": "zero for ACTIVE or RELEASED; for CONFLICT it is the positive quantity preserved in the new conflict history"
   },
@@ -49,7 +49,8 @@
     "RELEASED": "afterQuantity = 0; preservedConflictQuantity = 0; conflictReason = null",
     "CONFLICT": "afterQuantity = 0; preservedConflictQuantity > 0; conflictReason is nonnull"
   },
-  "commandInvariant": "protectedAsConflict is true if and only if at least one line has resultState CONFLICT; when lifecycle is closed it takes precedence over S5/S6 for conflictReason",
+  "conflictReasonDecisionOrder": ["PROJECT_LIFECYCLE_CLOSED", "PROJECT_STAGE_S5_OR_S6", "ARRIVAL_ACCEPTANCE_PROTECTED"],
+  "commandInvariant": "protectedAsConflict is true if and only if at least one line has resultState CONFLICT; each conflict uses the first applicable reason in conflictReasonDecisionOrder",
   "privacy": ["full serial list forbidden", "ERP source payload forbidden", "attachment body forbidden", "extra keys forbidden"],
   "atomicity": "detailSnapshot, scope history, project watermark, platform idempotency completion and outbox commit or roll back together"
 }

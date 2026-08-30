@@ -32,9 +32,9 @@
     "malformed public query or expected fact => INVALID_REQUEST",
     "explicit tenant differs from trusted runtime tenant => TENANT_CONTEXT_MISMATCH",
     "inspect target missing or not visible in the direct-target contract => DATA_SCOPE_DENIED",
+    "validate every present locked current Owner fact; any impossible lifecycle-stage, identity or version structure => OWNER_DATA_CORRUPTED",
     "inspect actor differs from the locked current manager => SUBJECT_NOT_ELIGIBLE",
-    "lockAndRevalidate any mismatch against a structurally valid frozen fact, including manager, lifecycle, stage, project, participant, tree or root identity change => FACT_STALE",
-    "impossible or corrupted locked Owner facts => OWNER_DATA_CORRUPTED",
+    "lockAndRevalidate only after current Owner structure is valid; any mismatch against the frozen fact, including simultaneous manager and version changes, => FACT_STALE",
     "transaction or database Provider unavailable => PROVIDER_UNAVAILABLE"
   ],
   "forbidden": ["null lifecycle bypass", "NORMAL_CLOSED outside S6", "zero or negative treeVersion", "reuse ProjectParticipantFactApi ACTIVE/S1 revalidation for this purpose", "consult unlocked authorization grants", "map every PROJ failure to provider unavailable", "accept subject, scope or stale failures as partial success"]

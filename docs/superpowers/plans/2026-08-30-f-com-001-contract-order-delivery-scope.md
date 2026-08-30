@@ -191,7 +191,7 @@
 - [ ] 只允许qualified CONFIRMED/ACTIVE订单行分配；主/明细数量一致、单位精度一致，项目间总量不超权威数量。
 - [ ] 明确SN通过AST解析到同tenant/project且去重，每个SN detail数量1；无SN数量不调用设备API。地点使用稳定site/location，文本降级必须UNRESOLVED。
 - [ ] apply同事务追加范围/明细、项目水位、平台幂等/审计和Assigned/Released Outbox；失败零业务副作用。
-- [ ] 平台成功审计`detailSnapshot`按`specs/features/F-COM-001-delivery-scope-audit-contract.json`构造精确键对象和`ACTIVE/RELEASED/CONFLICT`判别联合；来源版本、前/请求/后/冲突数量、地点状态、actor/correlation/server time完整，完整SN、ERP原文、附件正文和额外键禁止。
+- [ ] 平台成功审计`detailSnapshot`按`specs/features/F-COM-001-delivery-scope-audit-contract.json`构造精确键对象和`ACTIVE/RELEASED/CONFLICT`判别联合；受保护减配保存真实请求目标，仅RELEASE请求量为零；冲突原因按项目关闭→S5/S6→到货验收保护选择。来源版本、前/请求/后/冲突数量、地点状态、actor/correlation/server time完整，完整SN、ERP原文、附件正文和额外键禁止。
 - [ ] S5/S6/关闭项目或验收保护下的减少转CONFLICT而非静默释放；冲突解除必须引用新ERP版本或明确释放证据。
 - [ ] 实现后以新`CommerceDeliveryScopeCommandServiceTest`验证并发超配、权限、项目版本、SN/地点、释放保护和Outbox；真实PROJ Provider覆盖正常apply、S5/关闭保护、经理变化及树/项目版本变化；真实MySQL覆盖来源减量/取消与apply/release/resolve交叉并发无死锁、至多一个期望版本成功及失败方平台/业务/Outbox回滚。原样复跑既有`DeliveryScopeServiceTest`固定旧三个API返回、幂等键、Outbox和数据库副作用均未改变。
 
