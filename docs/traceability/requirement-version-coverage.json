@@ -81,8 +81,8 @@
       "featureId": "F-INS-001",
       "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
       "taskPath": "tasks/features/F-INS-001.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "TECHNICAL_PLAN_READY",
       "mappings": [
         {
           "sliceKey": "INS-03@V2",
@@ -1306,7 +1306,7 @@
         {
           "featureId": "F-INS-001",
           "coverage": "PARTIAL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
           "taskPath": "tasks/features/F-INS-001.md"
         }
@@ -1386,7 +1386,7 @@
         {
           "featureId": "F-INS-001",
           "coverage": "FULL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
           "taskPath": "tasks/features/F-INS-001.md"
         }
