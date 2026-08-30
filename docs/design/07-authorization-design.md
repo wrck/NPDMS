@@ -58,7 +58,7 @@ WorkBinding不授予新权限。`TASK_NATIVE`的授权目标就是当前ProjectT
 
 `Device Access & Collection` 的子应用或模块不得扩大调用方权限；任务下发前重新校验用户、租户、项目树、设备当前归属、订单交付范围、现场批次和凭证/临时登录方式。临时用户名密码可以用于单次连接但不落库；只有用户明确执行“保存为凭证”才创建 `DeviceCredential`。
 
-COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`对受信actor锁定返回的current `PROJECT_MANAGER + ProjectScopeApi.ACTION_EDIT`组合事实；普通参与人、全局角色或单独数据范围不得替代项目经理。该用途封闭契约返回并重验当前生命周期/阶段，因此S5/S6或关闭项目仍能形成受保护减配/释放所需事实，不得以`null`放宽既有Participant API。合同管理员查询、候选核对与关联仅限`OrganizationScopeApi`返回的当前有效公司范围，Owner `companyCode`须精确命中同一范围行；没有项目关系的合同仍按公司范围裁剪，不因全局角色或前端入口扩大。
+COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`对受信actor锁定返回的直管目标项目`PROJECT_MANAGER + ACTION_EDIT`组合事实；该用途的编辑资格只由锁定目标项目行的current manager证明，不查询未锁定的授权Grant、不扩展到后代项目，普通参与人、全局角色或其他授权范围均不得替代。封闭契约返回并重验经理、根身份、生命周期/阶段及项目/参与者/树版本，因此S5/S6或关闭项目仍能形成受保护减配/释放所需事实；初次不合格、数据范围拒绝、锁定期间事实变化、Owner损坏和Provider不可用必须按公共机器合同分别处理。合同管理员查询、候选核对与关联仅限`OrganizationScopeApi`返回的当前有效公司范围，Owner `companyCode`须精确命中同一范围行；没有项目关系的合同仍按公司范围裁剪，不因全局角色或前端入口扩大。
 
 ## 3. 关键角色边界
 

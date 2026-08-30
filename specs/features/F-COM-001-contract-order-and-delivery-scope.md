@@ -54,7 +54,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### BR-FCOM001-002 关系与查询
 
 - 合同与销售订单使用关系记录表达多对多，不在订单头固化唯一合同；项目可关联多个合同/订单，实际交付边界以订单行到项目的当前DeliveryScope为准。
-- 合同管理员只能维护其`OrganizationScopeApi`当前有效公司范围内的关联、候选核对和冲突处置；Owner `companyCode`必须精确命中同一有效范围行，无项目关联合同也不得越出该公司范围。项目范围写入必须同时满足功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`锁定返回的current `PROJECT_MANAGER + ACTION_EDIT`组合事实；普通参与、全局角色或单独ACTION_EDIT均不能替代项目经理。该用途封闭契约冻结生命周期、阶段及项目/参与者/树版本；`ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED`和S0～S6均可被准确比较，S5/S6或关闭事实只使减配/释放转为`CONFLICT`，不得传`null`绕过现有Participant API。
+- 合同管理员只能维护其`OrganizationScopeApi`当前有效公司范围内的关联、候选核对和冲突处置；Owner `companyCode`必须精确命中同一有效范围行，无项目关联合同也不得越出该公司范围。项目范围写入必须同时满足功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`锁定返回的直管目标项目current `PROJECT_MANAGER + ACTION_EDIT`组合事实；该编辑资格只由目标项目锁定行的current manager证明，不读取授权Grant或扩展后代范围，普通参与、全局角色或其他授权范围均不能替代。封闭契约冻结经理、根身份、生命周期、阶段及项目/参与者/树版本；`NORMAL_CLOSED`只允许S6且树版本必须为正，S5/S6或关闭事实只使减配/释放转为`CONFLICT`。
 - 项目、合同、订单、订单行任一不可见时返回不可见/不存在，不通过全局角色或前端按钮扩大数据范围。
 
 ### BR-FCOM001-003 范围分配
@@ -86,7 +86,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - 功能权限、项目数据范围、当前项目主体事实和业务状态守卫必须同时成立。空范围返回空，不省略条件扩大结果。
 - 同键同摘要重放返回首次结果；同键异摘要为永久冲突；处理中可重试同键。失败不得产生部分范围、版本、审计或Outbox。
 - 审计保存来源键/版本、分配前后数量、项目/订单行、地点解析状态、冲突原因、操作者、关联ID和时间；不记录附件正文、ERP敏感原文或完整SN清单到普通日志。
-- Task 5平台成功事实的`detailSnapshot`使用结构化封闭对象：命令级保存`action/projectId/actorId/correlationId/occurredAt/expectedScopeVersion/resultScopeVersion/protectedAsConflict`；明细按`orderLineId`稳定排序保存`orderLineId/sourceKey/sourceVersion/beforeQuantity/afterQuantity/unitCode/locationResolutionStatuses/resultState/conflictReason/affectedScopeIds/serialCount`。地点状态去重排序、ID稳定排序，只保存SN数量而不保存完整SN；该快照与范围、项目水位、平台幂等完成点及Outbox同事务，失败不得留下成功审计。
+- Task 5平台成功事实的`detailSnapshot`严格遵守`specs/features/F-COM-001-delivery-scope-audit-contract.json`：命令级与行级均只允许合同列出的精确键；行按`orderLineId`唯一稳定排序，并保存来源版本、变更前数量、请求目标、变更后ACTIVE数量、保留冲突数量、地点解析、结果态和冲突原因。`ACTIVE/RELEASED/CONFLICT`使用封闭判别联合，`protectedAsConflict`当且仅当存在CONFLICT行；只保存SN数量而不保存完整SN、ERP原文或附件正文。快照与范围、项目水位、平台幂等完成点及Outbox同事务，失败不得留下成功审计。
 
 ## 4. 状态与流程
 

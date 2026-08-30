@@ -18,7 +18,7 @@
 - 旧CRM合同页面、旧权限、旧表和旧接口保持不变；需要增强时新增COM类/页面，不把CRM字段升级为ERP权威事实。
 - `getAvailableSlices/previewSplit/applySplit`保持原调用方与响应语义；`getAssignedScope`是独立的项目当前已分配范围契约，禁止由可分割余量降级适配。
 - sourceVersion为1..64字符、sourceWatermark为1..128字符的不透明规范字符串；禁止数字或字典序比较。
-- 项目范围写入固定要求功能权限、`ProjectScopeApi.ACTION_EDIT`与current `PROJECT_MANAGER`；合同管理固定要求功能权限与`OrganizationScopeApi`有效companyCode范围。
+- 项目范围写入固定要求功能权限及锁定目标项目行可证明的current `PROJECT_MANAGER`直管`ACTION_EDIT`；不读取授权Grant、不扩展后代范围。合同管理固定要求功能权限与`OrganizationScopeApi`有效companyCode范围。
 - 任一当前CONFLICT使`getAssignedScope`整体失败；不返回缩小后的部分或空成功。
 - Flyway不预约版本号；每次实际串行合入前读取`sql/migrations`并使用下一个未占用版本。
 - 本计划通过前不实施。计划通过后，单元/组件替身只允许在测试装配；真实MySQL和浏览器正向证据必须使用生产COM服务与正式PROJ/SYSTEM/AST Provider。
@@ -186,12 +186,12 @@
 
 - [ ] `CommerceDeliveryScopeCommandService`是F-COM-001 REST与工作台写命令的唯一新入口，承接项目水位、完整明细、冲突历史、平台幂等/审计和Outbox；它不被旧`DeliveryScopeApi.previewSplit/applySplit`调用。
 - [ ] 既有`DeliveryScopeService`、`DeliveryScopeApiImpl`中三个旧方法及其Mapper调用路径保持源码和副作用不变；不得在旧路径接入项目水位、新明细或新冲突行为。若两套服务需要相同纯校验，只允许新建无数据库/事务/事件副作用的`DeliveryScopeValidationRules`，旧服务是否改为调用该规则不属于本Feature，默认不修改。
-- [ ] PROJ物理Owner先以`T-FCOM001-PROJ-01`实现用途封闭的组合资格Provider：受信actor必须是current PROJECT_MANAGER且拥有ACTION_EDIT；inspect冻结生命周期/阶段及项目/参与者/树版本，lock按根项目→目标项目→当前树版本→授权事实重验全部冻结轴，稳定区分主体不合格、范围拒绝、陈旧、Owner损坏和Provider不可用。现有Participant API不放宽，禁止`requiredLifecycleStatus=null`。
+- [ ] PROJ物理Owner先以`T-FCOM001-PROJ-01`实现用途封闭的组合资格Provider：受信actor必须等于锁定目标项目行的current PROJECT_MANAGER，由该行证明直管ACTION_EDIT，不读取授权Grant或后代范围；inspect冻结经理、根身份、生命周期/阶段及项目/参与者/树版本，lock按根项目→目标项目→当前树版本重验全部冻结轴。`NORMAL_CLOSED`只允许S6且树版本为正；非法输入、租户错配、初次范围/主体失败、锁定事实陈旧、Owner损坏和Provider不可用按机器合同顺序分类。现有Participant API不放宽，禁止`requiredLifecycleStatus=null`。
 - [ ] COM全局锁序固定为orderLineId升序→scopeId→detailId→projectId水位升序；Task 3来源减量/取消、Task 5 apply/release/resolve和Task 6锁定读取全部同序，文本SQL、集合和FOR UPDATE全部放XML，Mapper只接收场景化Query。
 - [ ] 只允许qualified CONFIRMED/ACTIVE订单行分配；主/明细数量一致、单位精度一致，项目间总量不超权威数量。
 - [ ] 明确SN通过AST解析到同tenant/project且去重，每个SN detail数量1；无SN数量不调用设备API。地点使用稳定site/location，文本降级必须UNRESOLVED。
 - [ ] apply同事务追加范围/明细、项目水位、平台幂等/审计和Assigned/Released Outbox；失败零业务副作用。
-- [ ] 平台成功审计使用锁定的结构化快照，保存来源键/版本、前后数量、项目/订单行、地点解析状态、冲突原因、actor、correlationId、服务端时间及受影响scopeId；只保存SN数量，不保存完整SN或来源正文。apply/release、受保护CONFLICT和resolve均验证持久快照，失败整体回滚。
+- [ ] 平台成功审计`detailSnapshot`按`specs/features/F-COM-001-delivery-scope-audit-contract.json`构造精确键对象和`ACTIVE/RELEASED/CONFLICT`判别联合；来源版本、前/请求/后/冲突数量、地点状态、actor/correlation/server time完整，完整SN、ERP原文、附件正文和额外键禁止。
 - [ ] S5/S6/关闭项目或验收保护下的减少转CONFLICT而非静默释放；冲突解除必须引用新ERP版本或明确释放证据。
 - [ ] 实现后以新`CommerceDeliveryScopeCommandServiceTest`验证并发超配、权限、项目版本、SN/地点、释放保护和Outbox；真实PROJ Provider覆盖正常apply、S5/关闭保护、经理变化及树/项目版本变化；真实MySQL覆盖来源减量/取消与apply/release/resolve交叉并发无死锁、至多一个期望版本成功及失败方平台/业务/Outbox回滚。原样复跑既有`DeliveryScopeServiceTest`固定旧三个API返回、幂等键、Outbox和数据库副作用均未改变。
 

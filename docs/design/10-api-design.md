@@ -288,7 +288,7 @@ F-PROJ-002另使用以下Owner公开契约：
 
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
-- `ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`：PROJ在受信租户下为COM交付范围写命令返回current项目经理、生命周期/阶段、项目/参与者/树版本和`ACTION_EDIT`组合事实；锁定重验按根项目→目标项目→当前树版本→当前授权事实执行并比较全部冻结轴。主体不合格、数据范围拒绝、事实陈旧、Owner损坏和Provider不可用使用稳定公共分类；`ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED`及S0～S6均是可比较事实，关闭或S5/S6不等于授权写入减量，而由COM转为`CONFLICT`；
+- `ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`：PROJ在受信租户下为COM交付范围写命令返回current项目经理、生命周期/阶段、项目/参与者/树版本和直管目标项目`ACTION_EDIT`组合事实；该编辑资格只由锁定目标项目行的current manager证明，不读取授权Grant或后代范围。锁定重验按根项目→目标项目→当前树版本执行，并比较经理、根身份及全部冻结轴。`NORMAL_CLOSED`只允许S6，树版本必须为正；公共错误按非法输入、租户错配、初次不可见/主体不合格、锁定事实陈旧、Owner损坏、Provider不可用依次判定，不得把经理变化与版本变化降级为不可用；关闭或S5/S6由COM转为`CONFLICT`；
 - `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：租户取受信上下文，项目须通过`ProjectScopeApi.ACTION_VIEW`。期望版本为null时只读inspect；非null时按orderLineId→scopeId→detailId→项目水位稳定锁序重验；项目水位最后锁定并比较，因范围写入和来源减量遵守同一锁序，已锁订单行下不得插入绕过水位比较的新当前范围。返回行按`scopeId+scopeDetailId`分组并稳定排序，不聚合不同产品/型号/地点；明确SN用`trim + Locale.ROOT uppercase`比较，有SN时数量等于SN数。待核对、取消、退货或释放量排除，但存在任一未解决冲突时整体失败关闭。持久项目水位覆盖空结果，版本陈旧、冲突、Owner损坏及Provider不可用分别返回稳定分类；
 - `CommerceAuthorityIngestApi.ingestBatch(command)`：合同、销售订单和订单行按受信tenant+sourceSystem+sourceKey执行版本判定；订单—合同关系按受信tenant+sourceSystem+salesOrderSourceKey+contractSourceKey执行同一版本判定。关系双来源键各自为1～128字符并原样传递，不提供、拼接或推导独立relation sourceKey。
 - `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；

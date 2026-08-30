@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`。Task 5候选`18237796`独立复审为`NO-GO / REVIEW_REQUIRED`：旧写路径隔离、范围历史及基础MySQL证据保持有效，但PROJ组合资格、Task 3/5/6全局锁序和平台成功审计快照须先整改。当前最近Gate为`T-FCOM001-PROJ-01 ProjectDeliveryScopeQualificationFactApi`及Task 5锁序/审计机器合同复审；合同GO前不修改运行Provider，不回写Task 5 PASS。Task 8暂不并行写共享资产，下游依赖仍未解除。
+Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`。Task 5候选`18237796`独立复审为`NO-GO / REVIEW_REQUIRED`；首个合同候选`9d029976`已关闭全局锁序，但PROJ直管授权锁定语义、DTO不变量和审计精确机器结构仍被裁决`NO-GO`。当前最近Gate为上述三项最小机器合同整改复审；GO前不修改运行Provider，不回写Task 5 PASS。Task 8暂不并行写共享资产，下游依赖仍未解除。
 
 ## Gate输入
 
@@ -27,6 +27,6 @@ Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立C
 
 ## Task 5整改支撑单元
 
-- `T-FCOM001-PROJ-01`由PROJ物理Owner交付，不形成独立Feature状态。公开`ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`，组合current PROJECT_MANAGER、项目生命周期/阶段与ACTION_EDIT事实，稳定区分主体不合格、数据范围拒绝、事实陈旧、Owner损坏和Provider不可用；现有`ProjectParticipantFactApi`不放宽。
+- `T-FCOM001-PROJ-01`由PROJ物理Owner交付，不形成独立Feature状态。公开`ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`；直管ACTION_EDIT只由锁定目标项目行的current PROJECT_MANAGER证明，不读取授权Grant或后代范围。经理/根身份/生命周期/阶段及项目/参与者/树版本全部冻结重验，`NORMAL_CLOSED`只允许S6、树版本为正，并按机器合同顺序稳定区分初次主体/范围失败、锁定事实陈旧、Owner损坏和Provider不可用；现有`ProjectParticipantFactApi`不放宽。
 - Task 3来源减量/取消、Task 5 apply/release/resolve和Task 6锁定读取统一为`orderLineId -> scopeId -> detailId -> projectId水位`，并以真实MySQL交叉并发验证无反向锁序。
-- Task 5成功审计按`specs/features/F-COM-001-physical-contract.json#deliveryScopeCommandAudit`持久化结构化快照；失败与平台认领、范围、版本及Outbox一并回滚。
+- Task 5成功审计按`specs/features/F-COM-001-delivery-scope-audit-contract.json`持久化精确键与状态判别联合快照；失败与平台认领、范围、版本及Outbox一并回滚。

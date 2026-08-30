@@ -10,6 +10,7 @@ import static cn.iocoder.yudao.module.pms.project.api.deliveryscope.ProjectDeliv
 public record ProjectDeliveryScopeQualificationRevalidationQuery(
         Long tenantId,
         Long projectId,
+        Long expectedRootProjectId,
         Long actorId,
         String expectedLifecycleStatus,
         String expectedCurrentStage,
@@ -22,11 +23,13 @@ public record ProjectDeliveryScopeQualificationRevalidationQuery(
 
     public ProjectDeliveryScopeQualificationRevalidationQuery {
         if (tenantId == null || tenantId <= 0 || projectId == null || projectId <= 0
+                || expectedRootProjectId == null || expectedRootProjectId <= 0
                 || actorId == null || actorId <= 0 || expectedLifecycleStatus == null
                 || !LIFECYCLES.contains(expectedLifecycleStatus) || expectedCurrentStage == null
                 || !STAGES.contains(expectedCurrentStage) || expectedProjectVersion == null
                 || expectedProjectVersion < 0 || expectedParticipantFactVersion == null
-                || expectedParticipantFactVersion < 0 || expectedTreeVersion == null || expectedTreeVersion < 0) {
+                || expectedParticipantFactVersion < 0 || expectedTreeVersion == null || expectedTreeVersion <= 0
+                || "NORMAL_CLOSED".equals(expectedLifecycleStatus) && !"S6".equals(expectedCurrentStage)) {
             throw new ProjectDeliveryScopeQualificationFactException(INVALID_REQUEST,
                     "冻结项目资格输入不完整或越界");
         }

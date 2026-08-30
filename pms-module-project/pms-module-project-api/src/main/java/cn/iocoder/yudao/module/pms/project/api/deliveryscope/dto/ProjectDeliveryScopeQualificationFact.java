@@ -10,6 +10,7 @@ import static cn.iocoder.yudao.module.pms.project.api.deliveryscope.ProjectDeliv
 public record ProjectDeliveryScopeQualificationFact(
         Long tenantId,
         Long projectId,
+        Long rootProjectId,
         Long currentManagerUserId,
         String lifecycleStatus,
         String currentStage,
@@ -22,10 +23,12 @@ public record ProjectDeliveryScopeQualificationFact(
 
     public ProjectDeliveryScopeQualificationFact {
         if (tenantId == null || tenantId <= 0 || projectId == null || projectId <= 0
+                || rootProjectId == null || rootProjectId <= 0
                 || currentManagerUserId == null || currentManagerUserId <= 0 || lifecycleStatus == null
                 || !LIFECYCLES.contains(lifecycleStatus) || currentStage == null || !STAGES.contains(currentStage)
                 || projectVersion == null || projectVersion < 0 || participantFactVersion == null
-                || participantFactVersion < 0 || treeVersion == null || treeVersion < 0) {
+                || participantFactVersion < 0 || treeVersion == null || treeVersion <= 0
+                || "NORMAL_CLOSED".equals(lifecycleStatus) && !"S6".equals(currentStage)) {
             throw new ProjectDeliveryScopeQualificationFactException(OWNER_DATA_CORRUPTED,
                     "PROJ交付范围资格事实损坏");
         }

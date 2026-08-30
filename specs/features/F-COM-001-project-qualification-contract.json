@@ -10,20 +10,32 @@
   "operations": {
     "inspect": {
       "input": ["tenantId", "projectId", "actorId"],
-      "rule": "tenantId must equal the trusted runtime tenant; return the current project manager, lifecycle, stage, project version, participant fact version and ACTION_EDIT tree version without a write"
+      "rule": "tenantId must equal the trusted runtime tenant; return the current project manager, lifecycle, stage, project version, participant fact version and current tree version without a write"
     },
     "lockAndRevalidate": {
-      "input": ["tenantId", "projectId", "actorId", "expectedLifecycleStatus", "expectedCurrentStage", "expectedProjectVersion", "expectedParticipantFactVersion", "expectedTreeVersion"],
-      "lockOrder": ["root project row", "target project row", "current active tree version", "current ACTION_EDIT authorization facts"],
+      "input": ["tenantId", "projectId", "expectedRootProjectId", "actorId", "expectedLifecycleStatus", "expectedCurrentStage", "expectedProjectVersion", "expectedParticipantFactVersion", "expectedTreeVersion"],
+      "lockOrder": ["root project row", "target project row", "current active tree version"],
       "rule": "join the caller transaction; lock and compare every frozen axis before COM locks or writes"
     }
   },
   "qualification": {
     "subject": "actorId must equal the current PROJECT_MANAGER; global role or ordinary participation is insufficient",
-    "scope": "the same actor and target project must satisfy current ProjectScopeApi.ACTION_EDIT",
+    "scope": "for this direct-target write contract, ProjectScopeApi.ACTION_EDIT entitlement is proven only by actorId equalling the locked target project current manager; no descendant scope or AuthorizationGrantApi/listEffective fact is consulted",
     "lifecycle": ["ACTIVE", "NORMAL_CLOSED", "EXCEPTION_CLOSED"],
-    "stage": "return the current S0-S6 stage and compare it exactly during revalidation; S5/S6 and either closed lifecycle remain valid facts used by COM to protect reductions as CONFLICT"
+    "lifecycleStageInvariant": "NORMAL_CLOSED requires S6; ACTIVE and EXCEPTION_CLOSED may return their current S0-S6 stage",
+    "stage": "return the current S0-S6 stage and compare it exactly during revalidation; S5/S6 and either closed lifecycle remain valid facts used by COM to protect reductions as CONFLICT",
+    "identity": "rootProjectId is positive and frozen explicitly; a root identity change is FACT_STALE",
+    "versions": "projectVersion and participantFactVersion are nonnegative; treeVersion is positive"
   },
   "errors": ["INVALID_REQUEST", "TENANT_CONTEXT_MISMATCH", "SUBJECT_NOT_ELIGIBLE", "DATA_SCOPE_DENIED", "FACT_STALE", "OWNER_DATA_CORRUPTED", "PROVIDER_UNAVAILABLE"],
-  "forbidden": ["null lifecycle bypass", "reuse ProjectParticipantFactApi ACTIVE/S1 revalidation for this purpose", "map every PROJ failure to provider unavailable", "accept subject, scope or stale failures as partial success"]
+  "errorDecisionOrder": [
+    "malformed public query or expected fact => INVALID_REQUEST",
+    "explicit tenant differs from trusted runtime tenant => TENANT_CONTEXT_MISMATCH",
+    "inspect target missing or not visible in the direct-target contract => DATA_SCOPE_DENIED",
+    "inspect actor differs from the locked current manager => SUBJECT_NOT_ELIGIBLE",
+    "lockAndRevalidate any mismatch against a structurally valid frozen fact, including manager, lifecycle, stage, project, participant, tree or root identity change => FACT_STALE",
+    "impossible or corrupted locked Owner facts => OWNER_DATA_CORRUPTED",
+    "transaction or database Provider unavailable => PROVIDER_UNAVAILABLE"
+  ],
+  "forbidden": ["null lifecycle bypass", "NORMAL_CLOSED outside S6", "zero or negative treeVersion", "reuse ProjectParticipantFactApi ACTIVE/S1 revalidation for this purpose", "consult unlocked authorization grants", "map every PROJ failure to provider unavailable", "accept subject, scope or stale failures as partial success"]
 }

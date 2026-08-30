@@ -106,9 +106,11 @@
       "owner": "PROJ:T-FCOM001-PROJ-01",
       "operations": ["inspect", "lockAndRevalidate"],
       "trustedContext": "explicit tenantId equals TenantContextHolder tenantId; actorId and projectId are positive",
-      "qualification": "the actor is the current PROJECT_MANAGER and the target project is in the same actor's current ProjectScopeApi.ACTION_EDIT result",
-      "fact": ["tenantId","projectId","currentManagerUserId","lifecycleStatus","currentStage","projectVersion","participantFactVersion","treeVersion"],
-      "revalidation": "compare lifecycle, stage, projectVersion, participantFactVersion and treeVersion after locking root project, target project, active tree version and current authorization facts",
+      "qualification": "for this direct-target contract, ACTION_EDIT is proven only by actorId equalling the locked target project current manager; no descendant or AuthorizationGrantApi grant scope is used",
+      "fact": ["tenantId","projectId","rootProjectId","currentManagerUserId","lifecycleStatus","currentStage","projectVersion","participantFactVersion","treeVersion"],
+      "factInvariants": "NORMAL_CLOSED requires S6; treeVersion is positive; invalid caller expectations are INVALID_REQUEST and impossible Owner output is OWNER_DATA_CORRUPTED",
+      "revalidation": "compare manager, lifecycle, stage, projectVersion, participantFactVersion, treeVersion and root identity after locking root project, target project and active tree version",
+      "errorDecisionOrder": ["invalid query or expected fact => INVALID_REQUEST", "trusted tenant mismatch => TENANT_CONTEXT_MISMATCH", "inspect missing/not-visible target => DATA_SCOPE_DENIED", "inspect actor not current manager => SUBJECT_NOT_ELIGIBLE", "lock mismatch of any structurally valid frozen axis => FACT_STALE", "impossible locked Owner fact => OWNER_DATA_CORRUPTED", "transaction/database unavailable => PROVIDER_UNAVAILABLE"],
       "protectedFacts": "ACTIVE, NORMAL_CLOSED and EXCEPTION_CLOSED plus current S0-S6 are comparable; S5/S6 or closed facts cause COM reduction/release to become CONFLICT",
       "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","SUBJECT_NOT_ELIGIBLE","DATA_SCOPE_DENIED","FACT_STALE","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
     },
@@ -152,10 +154,12 @@
     "contractAdministration": "functional permission + OrganizationScopeApi current active scope whose companyCode equals owner companyCode; unassociated contracts outside those scopes are invisible"
   },
   "deliveryScopeCommandAudit": {
-    "commandFields": ["action","projectId","actorId","correlationId","occurredAt","expectedScopeVersion","resultScopeVersion","protectedAsConflict"],
-    "lineFields": ["orderLineId","sourceKey","sourceVersion","beforeQuantity","afterQuantity","unitCode","locationResolutionStatuses","resultState","conflictReason","affectedScopeIds","serialCount"],
-    "stableOrder": ["orderLineId ASC","locationResolutionStatuses ASC UNIQUE","affectedScopeIds ASC"],
-    "privacy": "serialCount only; full serial lists, attachments and ERP source payload are forbidden",
+    "machineContract": "specs/features/F-COM-001-delivery-scope-audit-contract.json",
+    "exactTopLevelKeys": ["schemaVersion","action","projectId","actorId","correlationId","occurredAt","expectedScopeVersion","resultScopeVersion","protectedAsConflict","lines"],
+    "exactLineKeys": ["orderLineId","sourceKey","sourceVersion","beforeQuantity","requestedQuantity","afterQuantity","preservedConflictQuantity","unitCode","locationResolutionStatuses","resultState","conflictReason","affectedScopeIds","serialCount"],
+    "stateUnion": "ACTIVE has positive after quantity; RELEASED has zero after and preserved quantities; CONFLICT has zero after quantity, positive preserved quantity and a closed/stage conflict reason",
+    "stableOrder": ["orderLineId ASC UNIQUE","locationResolutionStatuses ASC UNIQUE","affectedScopeIds ASC UNIQUE"],
+    "privacy": "serialCount only; full serial lists, attachments, ERP source payload and extra keys are forbidden",
     "atomicity": "the detail snapshot, scope history, project watermark, platform idempotency completion and outbox commit or roll back together"
   },
   "migration": {
