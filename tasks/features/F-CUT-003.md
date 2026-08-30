@@ -9,7 +9,7 @@
 > Feature Spec：`specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-003-p3-dynamic-checklist.md`
 > 前置Feature：`F-CUT-001`、`F-CUT-002`
-> 外部硬依赖：F-CUT-002生产Owner接线只阻断生产Controller装配、真实浏览器和Implementation Done；不得注册生产Fake或复制其他Context Owner
+> 外部硬依赖：`Q-FCUT003-001 BLOCKED_BY_SPEC`阻断完整设备类型匹配；F-CUT-002生产Owner接线阻断生产Controller装配、真实浏览器和Implementation Done；不得注册生产Fake或复制其他Context Owner
 
 ## 当前最小工作单元
 
@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`d9869165`；当前=Task 1 IN_PROGRESS。Rematch按稳定项保留当前结果并同步冻结定义，Query View返回Schema与当前选择；正向链Generate→Save→Custom→Manual→Rematch→Query→Submit通过，聚焦7/7及受影响构建PASS。跨模块仍仅消费端口和`src/test`替身；下一步接CUT用户REST与工作台。
+> 检查点：基线=`aa29efcb`；当前=Task 1 `BLOCKED_BY_SPEC: Q-FCUT003-001`。Generate/Rematch/Query独立切片已完成，聚焦7/7及受影响构建PASS；设备类型仍无权威赋值Fact，禁止从产品/型号/CONP推断。待需求方确认Owner与来源后，按前向迁移冻结任务设备类型快照，再恢复完整匹配、REST与工作台。

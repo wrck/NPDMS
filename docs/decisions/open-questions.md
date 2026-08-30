@@ -489,6 +489,23 @@
 - Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
 - Decision date: 2026-08-30
 
+## F-CUT-003 Implementation 待裁决项
+
+### Q-FCUT003-001
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: CUT-03、CUT-07
+- Area: P3动态清单的设备类型匹配输入Owner
+- Question: 每台设备的`deviceTypeCode`应由哪个权威来源赋值并由哪个领域Owner维护，才能在割接任务创建时冻结为P3匹配输入？
+- Why it blocks design/implementation: F-CUT-003已锁定`DEVICE_TYPE`为基础匹配维度，但AST设备范围Fact、CUT任务设备范围和现有资产字段均没有该事实；SYSTEM只拥有`pms_device_type`值域。CUT不能从产品编码、产品型号、CONP类型、字典值或客户端输入推断设备类型。
+- Options: A. AST Device聚合拥有设备类型赋值，明确权威来源及创建/更新规则并经SYSTEM字典校验；B. 引用另一个已批准Owner的稳定设备类型Fact；C. 调整CUT-03，使V1不以设备类型作为匹配维度。
+- Recommended technical default: A；SYSTEM继续拥有值域，AST拥有设备赋值，F-CUT-002在任务创建时冻结快照，F-CUT-003只消费任务快照。
+- Business decision required: 是。必须确认赋值来源；在确认前不得只加字段，也不得用`productCode/productModel/conpType`或默认值回填。
+- Resolution: 待确认。
+- Blocking scope: F-CUT-003完整Task 1、用户REST/工作台正向闭环；已完成且不依赖设备类型的Generate/Rematch/Query独立切片不回退。
+- Decision owner: 需求方；AST、SYSTEM、CUT领域Owner参与裁决
+- Decision date: 待确认
+
 ## F-IMP-002 Task 5B 裁决项
 
 ### Q-FIMP002-001
