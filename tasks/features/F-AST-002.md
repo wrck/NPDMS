@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 7真实MySQL迁移、幂等与并发验证已通过独立复审，当前提交本逻辑单元，提交后进入Task 8 Inspection专用只读适配器
+> 当前阻断：无；Task 8 Inspection专用只读适配器与消费边界已通过独立复审，当前提交本逻辑单元，提交后进入Task 9回归、追溯、自审与Feature收口
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 7已完成真实MySQL迁移、约束、事务、幂等和并发验证并取得独立复审GO；当前最小工作单元为Task 7提交，提交后进入Task 8。
+- Task 8已完成Inspection专用只读适配器与消费边界验证并取得独立复审GO；当前最小工作单元为Task 8提交，提交后进入Task 9。
 
 ## 已完成
 
@@ -30,7 +30,9 @@
 - Task 6已执行Task 1至5跨单元定向回归，并补齐Writer首次导入、幂等重放、陈旧来源、更晚来源更新、既有副本空响应保留和审计详情脱敏证据；回归发现软删除产品类型编码会被同源导入错误更新，已最小修复为`PRODUCT_TYPE_CODE_RESERVED`稳定拒绝且不写产品类型、来源映射或设备事实。15个测试类71项、AST Reactor编译和`git diff --check`均PASS；独立复审`GO`。真实MySQL软删除唯一键、事务和并发证据仍保留在Task 7，本结论不代表Feature Implementation Done。
 - Task 7已在固定隔离MySQL中验证三表约束、受控导入、幂等重放、陈旧水位和来源失败不覆盖最近成功事实、停用历史、授权设备范围、跨租户及审计失败回滚；并以真实线程和同步栅栏验证同稳定编码、同来源不同目标、同设备当前引用和同幂等键竞争。空库143项迁移、重复migrate以及V145→V147前向升级均PASS，既有设备数据指纹与`ast_device`结构不变；10项导入集成、3项Mapper、4项并发共17项真实MySQL测试、AST Reactor编译及`git diff --check`均PASS；独立复审`GO`，仅放行Task 7，不代表Feature Implementation Done。
 
-> 检查点（2026-08-31）：基线`ce7ce39f`；当前Gate=Task 7提交；证据=空库/V145→V147迁移、17项真实MySQL、Reactor编译、diff-check及独立GO；阻塞=无；下一步=提交Task 7后进入Task 8 Inspection专用只读适配器。
+- Task 8已新增仅含两个查询方法的`InspectionAssetProductTypeApi`，由AST适配器固定建立Inspection调用上下文后委托通用API；Service模块仅依赖`pms-module-asset-api`，未依赖AST业务模块或访问其DO、Mapper、Service及业务表。5项定向测试、相关Reactor编译、依赖树和`git diff --check`均PASS；独立复审`GO`。本结论不代表Inspection规则、发布或工程师选择闭环完成。
+
+> 检查点（2026-08-31）：基线`a3a9853f`；当前Gate=Task 8提交；证据=专用双查询API、固定Inspection上下文、5项定向测试、Reactor编译、依赖树、diff-check及独立GO；阻塞=无；下一步=提交Task 8后进入Task 9回归与Feature收口。
 
 ## 实施范围
 
