@@ -19,10 +19,10 @@ class Fcut003FeatureContractTest(unittest.TestCase):
         cls.audit = AUDIT.read_text(encoding="utf-8")
         cls.index = INDEX.read_text(encoding="utf-8")
 
-    def test_candidate_scope_is_full_v1_without_premature_gate(self) -> None:
+    def test_baseline_scope_is_full_v1_after_feature_ready_go(self) -> None:
         self.assertIn("CUT-03@V1=FULL", self.spec)
-        self.assertIn("CANDIDATE / NOT_READY", self.spec)
-        self.assertEqual("CANDIDATE_NOT_READY", self.contract["status"])
+        self.assertIn("BASELINE / READY", self.spec)
+        self.assertEqual("BASELINE_READY", self.contract["status"])
         self.assertEqual(["CUT-03@V1=FULL"], self.contract["requirementSlices"])
 
     def test_only_three_sds_checklist_tables_are_business_truth(self) -> None:
@@ -65,7 +65,7 @@ class Fcut003FeatureContractTest(unittest.TestCase):
 
     def test_feature_index_projects_candidate_state(self) -> None:
         self.assertIn("[F-CUT-003]", self.index)
-        self.assertIn("CUT-03（V1，FULL） | CANDIDATE | NOT_READY | NOT_STARTED", self.index)
+        self.assertIn("CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | NOT_STARTED", self.index)
 
 
 if __name__ == "__main__":
