@@ -15,6 +15,7 @@
 
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
 - AST Owner Provider锁定提交`69d37400`已独立复审`PASS / GO`；IMP消费错误映射Contract Gate锁定提交`36f44719`亦为`PASS / GO`。当前进入`DeviceScopeFactApiAdapter`失败测试优先实现与独立Code Review；F-IMP-003～005仍等待Feature Ready评审。
+- IMP `DeviceScopeFactApiAdapter`运行候选暂停提交：已发现COM合法应到范围可只含无SN数量，而AST公共Query明确拒绝空SN。当前先将“非空COM数量范围下AST不适用”与“禁止空集合fallback”的边界送独立Contract Gate，状态`BLOCKED_BY_SPEC_REVIEW`；不改变已通过的错误映射。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成

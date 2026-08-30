@@ -306,6 +306,7 @@ AST公开`DeviceScopeFactApi.resolveBySerials(DeviceScopeResolveQuery)`与`lockA
 - 公共验证归因固定：调用方Query及其期望设备/期望水位的非法结构抛`INVALID_REQUEST`（规范化重复仍为`DUPLICATE_SERIAL`）；Provider构造的事实、逐项结果或结果组合损坏抛`OWNER_DATA_CORRUPTED`。输出事实类型不得复用于调用方期望水位输入。
 - 该契约只供设备Owner事实，不替代`ProjectScopeApi.ACTION_EDIT`的主体项目授权，不得以旧`AssetDeviceScopeApi`的缺失/不可用分类结果代替稳定ID和归属版本。
 - IMP到货签收消费映射固定为：首次`resolveBySerials`返回`INVALID`时统一形成`BUSINESS_GATE_INVALID/DEVICE_SCOPE_INVALID`，不得把不存在、状态不可用或错项目伪装为版本陈旧或Provider不可用，也不得向HTTP泄漏逐项设备身份；`lockAndRevalidate`返回`STALE`或`INVALID`均表示冻结设备范围已不再成立，转换为`SCOPE_STALE/DEVICE_ASSIGNMENT_STALE`。AST公共`PROVIDER_UNAVAILABLE`只转换为`OWNER_PROVIDER_UNAVAILABLE/AST_PROVIDER_UNAVAILABLE`；`OWNER_DATA_CORRUPTED`以及由IMP构造请求却触发的`INVALID_REQUEST/DUPLICATE_SERIAL/TENANT_CONTEXT_MISMATCH`属于内部契约或Owner数据损坏，必须失败关闭并保留公共异常为cause，不得伪装成409、422或503。该映射Contract Gate已在`36f44719`独立复审`PASS / GO`。
+- IMP只对COM当前已分配范围中的非空明确SN集合调用AST。COM范围本身非空、但只含`ORDER_MODEL_QUANTITY`且明确SN集合为空时，AST对该范围不适用：IMP消费编排层不调用`resolveBySerials/lockAndRevalidate`，并使用结构化空设备事实与空归属水位。混合范围只对其非空明确SN并集调用AST，数量行不伪造设备项。该分支必须在COM范围非空且结构合法校验之后执行；COM空范围仍按`ASSIGNED_SCOPE_EMPTY`失败，预期设备集非空却跳过AST、返回部分事实或以空集合替代Provider失败仍被禁止。锁定重验时须先完成COM范围版本与内容重验；若明确SN从空变为非空，由COM范围陈旧先行阻断，不得沿用旧空设备事实。
 
 ## 12. ANA 与公共能力 API
 
