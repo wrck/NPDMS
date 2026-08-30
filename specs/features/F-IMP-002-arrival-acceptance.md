@@ -99,7 +99,7 @@
 - 对越权或跨租户对象，详情和命令统一返回不可见/不存在，不泄露对象存在性；对已可见项目内主体不满足命令条件则返回授权拒绝。
 - 到货专属错误必须区分参数校验、不可见/不存在、功能权限、数据范围、非法状态、聚合/明细/差异版本冲突、幂等冲突/处理中、COM/AST/PLT不可用、范围陈旧、项目阶段/资格业务门禁和证据无效；业务门禁与证据错误不得共用code。HTTP使用真实`400/403/404/409/422/503`语义，响应体仍使用Yudao `CommonResult{code,msg,data}`；`409/422/503`的`data`固定携带机器可读原因和恢复动作。Task 8以仅作用于该Controller的局部异常映射实现，不改写全局平台异常行为。
 - Provider不可用统一归类为`OWNER_PROVIDER_UNAVAILABLE`，由`ownerContext/reasonCode`封闭区分PROJ、COM、AST、PLT；错误类别和每类`reasonCode`均以REST机器契约枚举为准，不接受任意字符串。
-- AST消费错误映射候选：首次解析明确SN若返回`INVALID(NOT_FOUND|STATUS_INELIGIBLE|PROJECT_MISMATCH)`，统一拒绝为`BUSINESS_GATE_INVALID/DEVICE_SCOPE_INVALID`，不返回逐项设备身份；冻结范围锁定重验返回`STALE`或`INVALID`时统一为`SCOPE_STALE/DEVICE_ASSIGNMENT_STALE`。只有AST公共`PROVIDER_UNAVAILABLE`可映射为`OWNER_PROVIDER_UNAVAILABLE/AST_PROVIDER_UNAVAILABLE`；`OWNER_DATA_CORRUPTED`及由IMP内部构造请求触发的输入类公共错误保持内部失败，禁止伪装为可恢复业务错误。该候选通过独立Contract Gate前，IMP `DeviceScopeFactApiAdapter`保持`BLOCKED_BY_SPEC`。
+- AST消费错误映射已通过独立Contract Gate：首次解析明确SN若返回`INVALID(NOT_FOUND|STATUS_INELIGIBLE|PROJECT_MISMATCH)`，统一拒绝为`BUSINESS_GATE_INVALID/DEVICE_SCOPE_INVALID`，不返回逐项设备身份；冻结范围锁定重验返回`STALE`或`INVALID`时统一为`SCOPE_STALE/DEVICE_ASSIGNMENT_STALE`。只有AST公共`PROVIDER_UNAVAILABLE`可映射为`OWNER_PROVIDER_UNAVAILABLE/AST_PROVIDER_UNAVAILABLE`；`OWNER_DATA_CORRUPTED`及由IMP内部构造请求触发的输入类公共错误保持内部失败，禁止伪装为可恢复业务错误。
 
 ### 5.4 豁免审批主体裁决
 
