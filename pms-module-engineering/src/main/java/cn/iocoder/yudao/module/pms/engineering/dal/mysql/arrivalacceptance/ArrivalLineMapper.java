@@ -18,4 +18,7 @@ public interface ArrivalLineMapper extends BaseMapperX<ArrivalLineDO> {
 
     List<ArrivalLineDO> selectConfirmedAcceptedByProject(
             @Param("query") ArrivalProjectFactQuery query);
+
+    List<ArrivalLineDO> selectConfirmedAcceptedByProjectForUpdate(
+            @Param("query") ArrivalProjectFactQuery query);
 }

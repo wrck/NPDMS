@@ -83,6 +83,74 @@
         ORDER BY project_fact_version, id
     </select>
 
+    <select id="selectConfirmedByProjectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND status = 'CONFIRMED'
+          AND deleted = b'0'
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+    <select id="selectLatestProjectFactAllocations"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.projection.ArrivalProjectFactAllocation">
+        SELECT allocated.project_fact_version,
+               allocated.source_type,
+               allocated.source_id,
+               allocated.acceptance_id,
+               allocated.predecessor_acceptance_id
+        FROM (
+            SELECT a.project_fact_version,
+                   'ACCEPTANCE' AS source_type,
+                   a.id AS source_id,
+                   a.id AS acceptance_id,
+                   a.predecessor_acceptance_id
+            FROM imp_arrival_acceptance a
+            WHERE a.tenant_id = #{query.tenantId}
+              AND a.project_id = #{query.projectId}
+              AND a.project_fact_version IS NOT NULL
+              AND a.deleted = b'0'
+            UNION ALL
+            SELECT d.project_fact_version,
+                   'DIFFERENCE' AS source_type,
+                   d.id AS source_id,
+                   d.arrival_acceptance_id AS acceptance_id,
+                   a.predecessor_acceptance_id
+            FROM imp_arrival_difference d
+            JOIN imp_arrival_acceptance a
+              ON a.tenant_id = d.tenant_id
+             AND a.id = d.arrival_acceptance_id
+             AND a.deleted = b'0'
+            WHERE d.tenant_id = #{query.tenantId}
+              AND a.project_id = #{query.projectId}
+              AND d.project_fact_version IS NOT NULL
+              AND d.deleted = b'0'
+        ) allocated
+        ORDER BY allocated.project_fact_version DESC,
+                 allocated.source_type,
+                 allocated.source_id
+        LIMIT 2
+    </select>
+
+    <select id="selectLatestAllocatedRootsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.projection.ArrivalProjectFactAllocation">
+        SELECT a.project_fact_version,
+               'ACCEPTANCE' AS source_type,
+               a.id AS source_id,
+               a.id AS acceptance_id,
+               a.predecessor_acceptance_id
+        FROM imp_arrival_acceptance a
+        WHERE a.tenant_id = #{query.tenantId}
+          AND a.project_id = #{query.projectId}
+          AND a.project_fact_version IS NOT NULL
+          AND a.deleted = b'0'
+        ORDER BY a.project_fact_version DESC, a.id
+        LIMIT 2
+        FOR UPDATE
+    </select>
+
     <select id="selectMaxAllocatedProjectFactVersion" resultType="java.lang.Long">
         SELECT MAX(allocated.project_fact_version)
         FROM (

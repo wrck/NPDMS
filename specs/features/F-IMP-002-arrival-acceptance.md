@@ -54,6 +54,7 @@
 - DIFFERENCE_PENDING只能在每个差异均追加`SUPPLEMENTED/REJECTED/EXEMPTED/CLOSED`处置后离开；补签使对应明细转入新版本ACCEPTED，拒收保持原范围未满足，豁免仅在有效期内满足明确范围。重算后进入PARTIALLY_ACCEPTED或ACCEPTED，再由项目经理确认。
 - 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；普通`submit`只计算候选状态且不分配`factVersion`，首次确认及后续真正影响已发布项目事实的确认、更正、重开或豁免失效才递增项目`factVersion`并使旧事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
 - 初始批次确认分配的`project_fact_version`只写`imp_arrival_acceptance`根；确认前已存在且未独立改变已发布项目事实的OPEN或处置revision，其`imp_arrival_difference.project_fact_version`在插入时为NULL并永久保持NULL，不得在确认时回填不可变历史。只有某个新追加差异revision本身构成已发布事实的更正、重开、失效或其他独立事实影响源时，才在创建该revision的同一事务分配非空版本，不能仅凭`resolution_status`推断。
+- `ArrivalAcceptanceFactApi.reopened`只按当前最大`project_fact_version`的唯一权威来源类型推导：最大版本来自经完整资格校验的不可变差异事实影响revision时为`true`，来自无重开语义的普通确认根时为`false`；最大来源缺失、重复、损坏或后继根的重开语义无法由机器字段证明时失败关闭。不得从`factVersion>1`、`predecessor_acceptance_id`、处置状态、批次数量或当前判定猜测；旧期望版本在新重开版本形成后因`factVersion`变化返回`STALE`，重新读取当前版本可获得`reopened=true`。
 
 ## 4. DeliveryEvidence与ACC-04契约
 

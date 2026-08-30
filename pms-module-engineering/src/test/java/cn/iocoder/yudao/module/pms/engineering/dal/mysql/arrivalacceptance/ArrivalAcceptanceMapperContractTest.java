@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -150,6 +151,17 @@ class ArrivalAcceptanceMapperContractTest {
 
     @Test
     void projectFactVersionAllocationSetUnionsRootAndDifferenceNonNullValues() {
+        assertTrue(mapperXml.contains("id=\"selectLatestProjectFactAllocations\""));
+        assertTrue(mapperXml.contains("'ACCEPTANCE' AS source_type"));
+        assertTrue(mapperXml.contains("'DIFFERENCE' AS source_type"));
+        assertTrue(mapperXml.contains("ORDER BY allocated.project_fact_version DESC"));
+        assertTrue(mapperXml.contains("allocated.source_type"));
+        assertTrue(mapperXml.contains("allocated.source_id"));
+        assertTrue(mapperXml.contains("LIMIT 2"));
+        assertTrue(mapperXml.contains("id=\"selectLatestAllocatedRootsForUpdate\""));
+        assertTrue(mapperXml.contains("id=\"selectLatestAllocatedDifferencesForUpdate\""));
+        assertTrue(mapperXml.contains("ORDER BY a.project_fact_version DESC, a.id"));
+        assertTrue(mapperXml.contains("ORDER BY d.project_fact_version DESC, d.id"));
         assertTrue(mapperXml.contains("id=\"selectMaxAllocatedProjectFactVersion\""));
         assertTrue(mapperXml.contains("SELECT MAX(allocated.project_fact_version)"));
         assertTrue(mapperXml.contains("FROM imp_arrival_acceptance a"));
@@ -161,6 +173,8 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("d.tenant_id = #{query.tenantId}"));
         assertThrows(IllegalArgumentException.class,
                 () -> new ArrivalProjectFactVersionQuery(1L, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ArrivalProjectFactAllocationQuery(null, 1L));
     }
 
     private static String tableName(Class<?> type) {
