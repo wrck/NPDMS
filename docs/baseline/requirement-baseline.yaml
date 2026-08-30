@@ -32,7 +32,7 @@ ownership:
 
 validation:
   semantic: "py -3.13 -B scripts/validate_prd_semantics.py --prd 需求/PRD-项目实施交付管理平台.md"
-  baseline_structure: "py -3.13 -B scripts/validate_prd_baseline.py --prd 需求/PRD-项目实施交付管理平台.md --report docs/reports/2026-08-29-PRD-V1.8修订009基线变更报告.md --expected-version V1.8 --expected-status 正式基线"
+  baseline_structure: "py -3.13 -B scripts/validate_prd_baseline.py --prd 需求/PRD-项目实施交付管理平台.md --report docs/reports/2026-08-30-PRD-V1.8修订010基线变更报告.md --expected-version V1.8 --expected-status 正式基线"
   domain_generation: "py -3.13 -B scripts/validate_prd_domain_generation.py --prd 需求/PRD-项目实施交付管理平台.md --domains specs/001-project-delivery-platform/domains"
   requirement_traceability: "py -3.13 -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md --coverage-output docs/traceability/requirement-version-coverage.json --check"
   unit: "py -3.13 -B scripts/tests/test_validate_prd_semantics.py"
