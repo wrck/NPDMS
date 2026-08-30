@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper">
+    <select id="selectLegacySourceForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO">
+        SELECT *
+        FROM pms_cut_task
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.legacyTaskId}
+        FOR UPDATE
+    </select>
     <select id="selectListForGovernanceGuard0"
             resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO">
         SELECT id, tenant_id, project_id, code, status, version, update_time
