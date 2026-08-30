@@ -1,6 +1,7 @@
 # ADR-0041：满意度问卷、判定与交付件来源
 
 > 状态：`ACCEPTED`<br>
+> Result失效命令补充：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-02@V1`、`ACC-04@V1`（仅满意度来源）<br>
 > 前置批准：F-ACC-002边界与最近Gate定位独立裁决GO（基线`7f3e3c62`）
@@ -26,6 +27,8 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 11. `SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVersionChanged`，ACC-04投影事务成功后才`markDelivered`，失败按同一retryCount执行`scheduleRetry`。`ClosureGateRecheckRequested`和未来SUB重校验请求不由该Job领取或误标成功。
 12. ACC公开`SatisfactionResultFactApi.inspect/lockAndRevalidate`，返回稳定task/questionnaire/response/result、模板/规则/阈值、来源业务对象及各自版本，以及`passed/resultStatus/archiveStatus`。CLO-01和SUB-03未来只消费该不可变事实；本Feature不实现闭环或付款门禁。
 13. 最小权限键为`pms:acceptance:satisfaction:query/manage/collect/export/download`。服务端分别执行项目范围、责任人范围、字段范围、FileBusinessScope和租户隔离；客户令牌仅能访问其唯一问卷及上传/提交动作。角色—权限映射保持正式授权配置，具备全部权限通过授权关系实现，不删除鉴权。
+14. V1由ACC Owner提供`POST /api/v1/pms/satisfaction-results/{id}/actions/invalidate`关闭当前有效达标Result。命令只接受服务端认证用户，要求既有`pms:acceptance:satisfaction:manage`、PROJ `ProjectScopeApi(PROJECT_EDIT)`通过、非空`Idempotency-Key`、`expectedResultVersion`及失效原因；客户端不得提供tenant、操作者、collectionKey或来源身份。只允许`EFFECTIVE + passed=true + effective_to is null + current_marker=1`迁为`INVALIDATED`，原子写`effective_to/invalidated_by_user_id/invalidated_at/invalidation_reason_code/invalidation_reason_summary`并清空current marker；评分、答卷、签字、附件、Task和Questionnaire历史均不改写，也不重开旧Task。相同幂等键同载荷返回原结果，异载荷冲突，非当前、版本不符或范围不符均零写入。
+15. Result失效与`SatisfactionResultVersionChanged(changeType=INVALIDATED)`通过`PlatformCommandExecutionApi`同一ACC事务提交；事件冻结失效原因、操作者和时间。ACC-04投影仅在应交根当前指针仍指向该Result及版本时清空指针并把来源关系置`REVOKED`，乱序到达时不得清除更新的当前来源；历史来源、ACTIVE文件引用及既有归档记录保持可下载，待补偿的该来源仍可完成历史归档。Result事务提交后`SatisfactionResultFactApi`立即返回INVALIDATED，未来CLO/SUB消费者必须重验Owner事实，不能因来源投影尚未完成继续把旧结果解释为有效。整改重收继续以该INVALIDATED Result追加RemediationFact和下一revision。
 
 ## 状态、事务与锁序
 
@@ -33,6 +36,7 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 - Questionnaire：`ACTIVE -> SUBMITTED|INVALIDATED|EXPIRED`；一个Questionnaire只接受一个首次有效requestId结果，失败判定也不可覆盖。
 - 触发锁序：PROJ ProjectTask/WorkBinding事实→ACC Task→Questionnaire。
 - 提交锁序：ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox。
+- 失效锁序：PROJ ProjectScope事实重验→ACC Task链→当前Result→Outbox；不锁定或改写Questionnaire/Response/文件引用。
 - 归档锁序：ACC交付件根/来源版本→PLT结果文件集合及归档集合→ACC归档投影。任一事务内不得反向加锁。
 
 ## P3-E09 Feature-forward差量
@@ -48,7 +52,7 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 | `acc_satisfaction_access_grant` | 新建受控链接授权 | token摘要唯一；状态`ACTIVE/CONSUMED/REVOKED/EXPIRED`；完整令牌不落库 |
 | `acc_satisfaction_response` | 移除泛化`signature_ref/attachment_refs_json`目标语义，增加提交渠道、客户联系人引用和协助人 | `uk(tenant_id, questionnaire_id, request_id)`；答卷只追加 |
 | `acc_satisfaction_response_file` | 新建签字/客户附件公共文件事实 | role=`SIGNATURE/ATTACHMENT`；签字恰一条，附件按sequence唯一 |
-| `acc_satisfaction_result` | 增加`collection_key/result_status/effective_from/effective_to/current_marker/archive_actor_user_id/deliverable_source_version_id`及补偿字段，Feature目标不使用旧模型`archive_artifact_id/archive_payload_sha256` | 结果只追加；`uk(tenant_id, collection_key, current_marker)`只标记未关闭EFFECTIVE且passed的当前结果 |
+| `acc_satisfaction_result` | 增加`collection_key/result_status/effective_from/effective_to/current_marker/archive_actor_user_id/deliverable_source_version_id/invalidated_by_user_id/invalidated_at/invalidation_reason_code/invalidation_reason_summary`及补偿字段，Feature目标不使用旧模型`archive_artifact_id/archive_payload_sha256` | 判定业务字段只追加；仅允许当前有效达标Result以正式失效命令一次性关闭区间并记录原因；`uk(tenant_id, collection_key, current_marker)`只标记未关闭EFFECTIVE且passed的当前结果 |
 | `acc_satisfaction_result_file` | 新建结果文档及冻结来源文件集合 | role=`RESULT_DOCUMENT/SIGNATURE/ATTACHMENT`；完整有序PLT公共文件事实 |
 | `acc_project_deliverable*` | 直接复用F-ACC-001根、来源版本、来源附件和补偿字段 | 仅精确`deliverable_code=D-SAT-REPORT/task_code=T-SAT-SURVEY`且同租户同项目的唯一根接受`source_object_type=SatisfactionResult`；当前指针只指有效达标结果，根缺失/重复/错配失败关闭 |
 

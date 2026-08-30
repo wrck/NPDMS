@@ -225,6 +225,8 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | Result文档、来源投影或归档失败 | Result保持已形成，来源为PENDING_COMPENSATION；不误写ARCHIVED，不删除ACTIVE历史下载引用 |
 | 整改缺前序失败/失效Result或整改事实 | BUSINESS_GATE；不创建新Task/Questionnaire |
 | 同一整改Fact/requestId同载荷重放或异载荷 | 前者返回既有RemediationFact及taskRevision，不重复创建；后者IDEMPOTENCY_CONFLICT，旧链不变 |
+| Result失效的范围拒绝、非当前、非EFFECTIVE/passed或expectedVersion不一致 | AUTHORIZATION / BUSINESS_GATE / VERSION_CONFLICT；Result、Task、Questionnaire、来源和Outbox零写入 |
+| Result失效同幂等键同载荷重放/异载荷，或INVALIDATED事件晚于新来源到达 | 返回首次失效结果 / IDEMPOTENCY_CONFLICT；投影仅撤销仍指向该Result版本的根，不能清除新当前来源 |
 | 满意度应交根缺失、重复、不是`D-SAT-REPORT/T-SAT-SURVEY`或项目/任务不一致 | DEPENDENCY/IDENTITY；来源保持PENDING_COMPENSATION，不选择其他根、不写当前指针 |
 | 旧问卷/回访/转包字段缺映射或值域未确认 | AI-MIG-000迁移问题并保留原始证据；F-ACC-002正向实现不得推断答案、签字或通过 |
 

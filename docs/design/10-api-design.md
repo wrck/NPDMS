@@ -216,10 +216,13 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | `/satisfaction-questionnaires/{token}/responses` | POST | 按问卷+requestId幂等提交；必答、签字、文件范围和阈值服务端判定，客户不能覆盖旧答案 |
 | `/satisfaction-tasks/{id}/assisted-responses` | POST | 已认证项目成员现场协助，仍保存客户联系人和签字事实；不得把协助人冒充客户 |
 | `/satisfaction-results` | GET、export | 只读Result；导出按项目、字段、文件与租户裁剪并保存条件/范围/文件/下载审计 |
+| `/satisfaction-results/{id}/actions/invalidate` | POST | ACC Owner失效当前有效达标Result；要求`pms:acceptance:satisfaction:manage`、`ProjectScopeApi(PROJECT_EDIT)`、`expectedResultVersion`、非空失效原因和`Idempotency-Key`。只关闭Result区间并写失效审计/Outbox，不重开或改写Task、Questionnaire、Response和历史文件 |
 
 F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最小权限键。写入/换版只允许项目经理项目范围，完成命令同时校验ProjectTask范围与活动版本；查询、历史版本和单文件下载分别执行项目树范围、FileBusinessScope和租户隔离。角色—权限映射保持正式授权配置，不以“全权限”删除服务端鉴权。
 
-F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download`五个最小权限键。`manage`控制指派、访问授权和整改重收，`collect`只控制已认证现场协助；客户令牌不取得后台权限，只能访问唯一问卷的GET/文件上传/提交。所有后台路径保留ProjectScope、责任人、字段、FileBusinessScope和租户控制点；角色映射保持可配置。
+F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download`五个最小权限键。`manage`控制指派、访问授权、Result失效和整改重收，`collect`只控制已认证现场协助；客户令牌不取得后台权限，只能访问唯一问卷的GET/文件上传/提交。所有后台路径保留ProjectScope、责任人、字段、FileBusinessScope和租户控制点；角色映射保持可配置。
+
+`invalidate`只接受服务端认证用户，tenant/actor不从请求体读取。ACC先以PROJ `ProjectScopeApi`按`PROJECT_EDIT`重验项目范围，再按Task链→Result锁序校验该Result为当前`EFFECTIVE + passed`且`expectedResultVersion`一致；在同一`PlatformCommandExecutionApi`事务中将其置`INVALIDATED`、关闭`effective_to`、清空current marker、保存`invalidation_reason_code`、可选原因摘要、操作者和时间并写`SatisfactionResultVersionChanged(INVALIDATED)` Outbox。旧Task状态、Questionnaire、Response、评分、签字和文件事实均保持不变；整改必须另走`recollect`新建revision。相同幂等键同载荷返回原结果，异载荷冲突；非当前、版本/范围冲突或Provider不可用时零写入。失效事件乱序到达来源投影时，只能撤销仍指向该Result版本的当前指针，不得清除更新的来源。
 
 ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；`SatisfactionTaskInitializationApi.initialize`以MANDATORY加入首次触发事务并回查`ProjectWorkBindingFactApi`，首次输入为原始source/trigger Fact，ACC返回分配的collectionKey/taskRevisionNo；整改不复用外部初始化接口，而由ACC `recollect`以不可变`SatisfactionRemediationFact`创建下一revision；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
 

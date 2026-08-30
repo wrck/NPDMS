@@ -186,9 +186,9 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 缓存失效丢失、Redis不可用、热点穿透；
 - 权限收缩后缓存不得继续授权敏感访问。
 - 合同公司scope撤权/到期、同公司多scope去重、Owner不可用及关系写前版本重验；任何场景不得因缓存继续返回合同或写关系。
-- 满意度模板解析零/多匹配、同一业务时点重复触发、同一整改Fact重放/异载荷冲突、collectionKey内taskRevision并发递增、同一问卷同requestId重放/异载荷冲突、访问授权并发消费、Result当前唯一、精确`T-SAT-SURVEY→D-SAT-REPORT`根锁定及归档补偿；不得用缓存授权令牌、项目范围、应交根身份或当前达标结果。
+- 满意度模板解析零/多匹配、同一业务时点重复触发、同一整改Fact重放/异载荷冲突、collectionKey内taskRevision并发递增、同一问卷同requestId重放/异载荷冲突、访问授权并发消费、Result当前唯一/按expectedVersion失效、失效事件乱序保护、精确`T-SAT-SURVEY→D-SAT-REPORT`根锁定及归档补偿；不得用缓存授权令牌、项目范围、应交根身份或当前达标结果。
 
-F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire；客户提交为ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox；归档为ACC交付件根/来源版本→PLT结果文件集合/归档集合→ACC归档投影。首个PLT文件锁取得后不得回调PROJ改变业务时点，归档网络/对象存储步骤不得持有长事务锁。
+F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire；客户提交为ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox；失效为PROJ ProjectScope重验→ACC Task链→当前Result→Outbox；归档为ACC交付件根/来源版本→PLT结果文件集合/归档集合→ACC归档投影。失效以Result expectedVersion和current marker单胜，Outbox乱序消费只允许撤销仍指向该版本的根指针。首个PLT文件锁取得后不得回调PROJ改变业务时点，归档网络/对象存储步骤不得持有长事务锁。
 
 监控 cache hit/miss/latency、DB fallback、lock wait/deadlock、optimistic conflict、tree projection lag、assignment projection lag、outbox lag 和 callback disorder。
 
