@@ -20,7 +20,7 @@
       "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE"]
     },
     "lockAndRevalidate": {
-      "input": "ProjectCutoverContextFactRevalidationQuery(tenantId, projectId, expectedProjectVersion)",
+      "input": "ProjectCutoverContextFactRevalidationQuery(tenantId, projectId, expectedFact)",
       "output": "ProjectCutoverContextFactResult(decision,currentFact)",
       "transaction": "MANDATORY_JOIN_CUT_WRITE_TRANSACTION_AND_LOCK_PROJ_PROJECT_ROW",
       "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE", "VERSION_CONFLICT"]
@@ -42,9 +42,28 @@
       "departmentName"
     ],
     "source": "one tenant-scoped ProjectMasterDO row from proj_project",
-    "required": "positive tenantId/projectId/customerId/departmentId; non-negative projectVersion; normalized nonblank projectCode/projectName/customerCode/customerName/departmentCode/departmentName",
-    "customerSemantics": "customerCode/customerName are the project occurrence snapshot and share projectVersion; they are not CUS current-master or service-level truth",
+    "required": "positive tenantId/projectId/customerId/departmentId; non-negative projectVersion; normalized nonblank projectCode/customerCode/departmentCode length 1..64; normalized nonblank projectName/customerName/departmentName length 1..255",
+    "customerSemantics": "customerCode/customerName are the project occurrence snapshot; they are not CUS current-master or service-level truth",
     "departmentSemantics": "departmentId/departmentCode/departmentName are the project occurrence snapshot from the same row and are displayed by CUT as the office context; the public DTO does not introduce officeCode aliases and CUT does not resolve SYSTEM current organization for this snapshot"
+  },
+  "expectedFact": {
+    "type": "ExpectedProjectCutoverContextFact",
+    "exactFields": [
+      "tenantId",
+      "projectId",
+      "projectVersion",
+      "projectCode",
+      "projectName",
+      "customerId",
+      "customerCode",
+      "customerName",
+      "departmentId",
+      "departmentCode",
+      "departmentName"
+    ],
+    "source": "copied without truncation or renaming from the previous inspect FOUND currentFact",
+    "validation": "same field constraints as fact; expectedFact.tenantId/projectId must equal the enclosing query identities",
+    "authority": "concurrency guard only; never persisted as the locked current Owner fact"
   },
   "resultUnion": {
     "FOUND": "currentFact is complete and decision is FOUND",
@@ -53,8 +72,8 @@
     "INACTIVE": "currentFact is null"
   },
   "revalidation": {
-    "match": "same tenantId/projectId, ACTIVE lifecycle, complete fact and row.version equals expectedProjectVersion returns FOUND",
-    "versionMismatch": "return VERSION_CONFLICT with current complete non-sensitive fact; no business write",
+    "match": "same tenantId/projectId, ACTIVE lifecycle, complete current fact and every current fact field exactly equals expectedFact returns FOUND",
+    "versionMismatch": "any difference in projectVersion, project/customer/department identity or display fields returns VERSION_CONFLICT with current complete non-sensitive fact; no business write",
     "notFound": "return NOT_FOUND",
     "inactive": "return INACTIVE for lifecycle other than ACTIVE",
     "ownerCorruption": "throw OWNER_DATA_CORRUPTED; never return a partial FOUND"
@@ -68,7 +87,7 @@
   "consumerMapping": {
     "scope": "CUT separately uses ProjectScopeApi PROJECT_VIEW/PROJECT_EDIT and treeVersion; projectVersion never substitutes for scopeVersion",
     "resolveCreateContext": "FOUND supplies project and department occurrence facts plus trusted customerId/code/name; CUT maps department to the office display and then calls CustomerServiceLevelFactApi by customerId",
-    "createAndSubmit": "CUT passes the previously displayed projectVersion to lockAndRevalidate and freezes the returned exact fact",
+    "createAndSubmit": "CUT passes the complete previously displayed FOUND fact to lockAndRevalidate and freezes only the exact currentFact returned by the locked FOUND result",
     "NOT_FOUND_OR_INACTIVE": "BUSINESS_GATE_INVALID/BUSINESS_CONTEXT_INVALID/HTTP_422",
     "VERSION_CONFLICT": "SCOPE_STALE/PROJECT_CONTEXT_STALE/HTTP_409",
     "PROVIDER_UNAVAILABLE": "OWNER_PROVIDER_UNAVAILABLE/PROJ_PROVIDER_UNAVAILABLE/HTTP_503"

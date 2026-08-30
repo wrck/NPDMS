@@ -47,7 +47,7 @@
 写命令先以不加写锁的公开inspect和CUT只读投影取得稳定身份键：受信tenant/actor、明确projectId、规范化SN、稳定deviceId升序、taskId及currentAssessmentId；该步骤只构造已冻结期望，不产生业务写。随后所有自建、评估提交、内部接入和未来CUT继续命令统一执行以下锁序：
 
 1. `ProjectScopeApi.lockAndRevalidate`锁定明确项目及期望`projectScopeVersion`；
-2. `ProjectCutoverContextFactApi.lockAndRevalidate`锁定同一项目主档行及期望`projectVersion`；
+2. `ProjectCutoverContextFactApi.lockAndRevalidate`锁定同一项目主档行，并逐字段重验前次`FOUND`的完整Expected Fact；
 3. `DeviceScopeFactApi.lockAndRevalidate`按稳定deviceId顺序锁定精确设备/归属版本；
 4. `CustomerServiceLevelFactApi.lockAndRevalidate`重验完整`AVAILABLE|NOT_CONFIGURED`联合事实；
 5. `ImplementationReadinessApi.lockAndRevalidate`重验精确snapshotId/version与设备水位；
@@ -57,7 +57,7 @@
 
 自建只接受 READY；客户等级 `NOT_CONFIGURED` 可创建和保存草稿，但不能提交。任一 Provider 未知、异常、身份或版本不一致时，CUT 四表及平台成功事实均零写入。
 
-`ProjectScopeApi`只提供用户范围和树版本。PROJ另以`ProjectCutoverContextFactApi.inspect(tenantId,projectId)`返回同一项目主档版本下的项目编码/名称、发生时客户和`departmentId/departmentCode/departmentName`；CUT只在展示层将部门标注为办事处。写命令携带此前Fact的`expectedProjectVersion`，并在ProjectScope锁后调用`lockAndRevalidate(tenantId,projectId,expectedProjectVersion)`以`MANDATORY`锁定同一项目行；`projectVersion`与`treeVersion`独立。精确DTO、结果联合和失败见机器合同，CUT不得从PROJ/SYSTEM/CUS表或Summary拼接。
+`ProjectScopeApi`只提供用户范围和树版本。PROJ另以`ProjectCutoverContextFactApi.inspect(tenantId,projectId)`返回同一项目主档行的项目编码/名称、发生时客户和`departmentId/departmentCode/departmentName`；CUT只在展示层将部门标注为办事处。写命令携带此前`FOUND`完整Fact，并在ProjectScope锁后调用`lockAndRevalidate(tenantId,projectId,expectedFact)`以`MANDATORY`锁定同一项目行并逐字段比较；Expected只作并发守卫，CUT只冻结Owner锁后返回的currentFact。编码最长64字符，名称最长255字符，均不截断；`projectVersion`与`treeVersion`独立。精确DTO、结果联合和失败见机器合同，CUT不得从PROJ/SYSTEM/CUS表或Summary拼接。
 
 ### 3.2 状态、评估与事务
 

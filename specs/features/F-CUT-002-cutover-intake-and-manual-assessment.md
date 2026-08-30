@@ -104,7 +104,7 @@ SURVEYING/PLAN_DRAFTING --later CUT continuation proves submitted context stale-
 
 内部`CutoverTaskIntakeApi.create`使用`ITR/PROJECT_EVENT`严格判别联合，只接受受信租户、来源身份和明确`handlingEngineerUserId`；该用户必须在写前通过同一项目/设备操作范围验证，不建立自动匹配、指派或领取流程。ITR按`tenant+sourceSystem+sourceBusinessNo`、项目事件按`tenant+businessEventId`幂等，并执行与自建相同的PROJ/AST/CUS/IMP重验。本Feature不实现任何Producer或第三方客户端。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围；通过`ProjectCutoverContextFactApi.inspect/lockAndRevalidate`消费同一项目主档版本下的项目、发生时客户及部门（办事处）快照；通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`；通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。项目上下文精确合同见`specs/features/F-CUT-002-project-context-fact-contract.json`；它不替代ProjectScope treeVersion或CUS当前时间线。CUT禁止依赖其他Context的Service、Mapper、DO或业务表。
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围；通过`ProjectCutoverContextFactApi.inspect/lockAndRevalidate`消费同一项目主档行的项目、发生时客户及部门（办事处）快照。CUT写命令把前次`FOUND`完整Fact原样作为Expected交给PROJ，Owner锁行后逐字段比较；任一字段变化均返回版本冲突，Expected只作并发守卫，CUT只冻结锁后`currentFact`。项目/客户/部门编码最长64字符，名称最长255字符且不得截断。通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`；通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。项目上下文精确合同见`specs/features/F-CUT-002-project-context-fact-contract.json`；它不替代ProjectScope treeVersion或CUS当前时间线。CUT禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 

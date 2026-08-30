@@ -259,7 +259,7 @@
       },
       "contextSnapshotContract": {
         "exactKeys": ["project", "devices", "implementationReadiness", "customerServiceLevel"],
-        "project": "projectId + projectVersion from ProjectCutoverContextFactApi + independent projectScopeVersion + normalized project/department occurrence snapshot mapped to office display",
+        "project": "projectId + complete locked currentFact from ProjectCutoverContextFactApi + independent projectScopeVersion; codes are 1..64 and project/department/customer names are 1..255 without truncation; department occurrence snapshot is mapped only at the CUT display boundary to office labels",
         "devices": "non-empty stable deviceId/projectAssignmentVersion vector sorted by deviceId",
         "implementationReadiness": "DRAFT may carry structured READY or NOT_READY snapshotId/snapshotVersion/source watermark/unmetCodes consumed from ImplementationReadinessApi; SUBMITTED and INVALIDATED require READY with empty unmetCodes",
         "customerServiceLevel": "AVAILABLE carries serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval; NOT_CONFIGURED carries customer identity and factVersion with revision/code/effective interval null; both are consumed from CustomerServiceLevelFactApi and no user-entered substitute is allowed"
