@@ -32,7 +32,7 @@
   "internalApi": "ImplementationReadinessApi",
   "publicApiContract": {
     "asset": "specs/features/F-IMP-001-readiness-api-contract.json",
-    "status": "REVIEW_REQUIRED",
+    "status": "PASS",
     "operations": ["inspect", "lockAndRevalidate"],
     "inputOwnership": "caller supplies trusted tenant/project, complete device expectations and revalidation snapshot identity/version only; snapshot-owned project/source/approved-plan facts are never caller writable",
     "watermark": "structured project/device/approved-plan and exact EXE_01..04 source facts with stable object/version entries; no hash or opaque default",

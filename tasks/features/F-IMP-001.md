@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- `ImplementationReadinessApi Public Machine Contract Gate`：候选冻结受信租户/项目/完整设备期望、明确快照重验、结构化项目/设备/批准方案/EXE-01～04水位及封闭失败；只含API/DTO/规格与Contract测试，不实现Provider。
+- `ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`：冻结受信租户/项目/完整设备期望、明确快照重验、结构化项目/设备/批准方案/EXE-01～04水位及封闭失败；只含API/DTO/规格与Contract测试，不实现Provider。
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
 - AST Owner Provider（`69d37400`）、IMP消费错误映射（`36f44719`）及无SN适用边界（`b20e817a`）均已独立复审`PASS / GO`。
 - IMP `DeviceScopeFactApiAdapter`与三个消费调用面Gate已独立复审`PASS / GO`（`7fa32fc5`）：统一按`trim + Locale.ROOT uppercase`比较SN身份；混合COM数量投影锁定全部明确设备，纯数量COM保持AST零交互；聚焦回归72项通过。F-IMP-003～005仍等待Feature Ready评审。
@@ -45,5 +45,5 @@
 
 ## 验证边界
 
-- 当前只验证`ImplementationReadinessApi`公开类型、输入/输出不变量、规格生成一致性和Feature资产结构，不验证或注册生产Provider。
+- `ImplementationReadinessApi`公共机器合同已通过；当前不验证或注册生产Provider。后续CUT仅可在单元/集成测试装配中使用受控模拟。
 - 后续CUT单元/集成可用受控替身；真实MySQL和浏览器正向验收必须使用IMP生产Provider从真实Owner事实生成的快照。

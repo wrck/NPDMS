@@ -13,8 +13,8 @@
 
 ## 当前最小工作单元
 
-- `API/Physical Machine Contract Gate`已在`b7f49166`通过；当前最近单元为`ImplementationReadinessApi Public Machine Contract Gate`候选复审，只冻结IMP Owner公开消费接口，不实现Provider。
-- 随后推动`CustomerServiceLevelFactApi`公共机器合同，不在CUT重复实现Owner。
+- `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
+- 当前最近单元为`CustomerServiceLevelFactApi Public Machine Contract Gate`，不在CUT重复实现Owner。
 - 直接消费合同及F-CUT-002 Feature Ready通过后，使用受控正向模拟推进CUT自身P1→P2→P3/P4；生产依赖合入前不声明真实浏览器闭环或Implementation Done。
 
 ## 已完成
@@ -32,7 +32,7 @@
 
 - F-CUT-002完整API/物理机器合同已通过，不再阻断Feature Ready。
 - AST的`DeviceScopeFactApi`公开合同、Owner Provider及IMP消费适配已分别通过独立Gate；该项不再是F-CUT-002规格阻断，但生产装配与真实依赖闭环仍按各Owner任务状态判定。
-- `ImplementationReadinessApi`与CUS `CustomerServiceLevelFactApi`尚无通过Gate的独立公共机器合同；生产Provider继续只阻断生产装配、真实浏览器和Implementation Done，不授权CUT重复建设。
+- `ImplementationReadinessApi`公共机器合同已通过；CUS `CustomerServiceLevelFactApi`尚无通过Gate的独立公共机器合同。生产Provider继续只阻断生产装配、真实浏览器和Implementation Done，不授权CUT重复建设。
 
 ## 验收分层
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-IMP-001",
   "requirementSlice": "EXE-06@V1",
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "owner": "IMP",
   "consumer": "F-CUT-002",
   "api": "ImplementationReadinessApi",
@@ -67,5 +67,5 @@
     "allowed": "F-CUT-002 unit and integration test assembly may provide deterministic READY and NOT_READY doubles after this contract passes",
     "forbidden": "no double in src/main or production Bean assembly; no simulated fact is Owner completion, real browser evidence or Implementation Done"
   },
-  "implementationGate": "PUBLIC_MACHINE_CONTRACT_REVIEW_REQUIRED"
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_PASS_38FC0D9D"
 }

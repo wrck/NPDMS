@@ -10,7 +10,7 @@
 > AST支撑Task：`T-FIMP001-AST-01`（物理Owner AST；不形成独立Feature Done）
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
-> 公共API机器合同：`specs/features/F-IMP-001-readiness-api-contract.json`（`REVIEW_REQUIRED`）
+> 公共API机器合同：`specs/features/F-IMP-001-readiness-api-contract.json`（`PASS / 38fc0d9d`）
 
 ## 1. 业务目标
 
@@ -118,6 +118,6 @@
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。
 
-当前最近Gate为`ImplementationReadinessApi Public Machine Contract`；本候选只冻结公开Java接口/DTO/失败和机器JSON，不实现Provider，不改变F-IMP-001 Feature Ready结论。
+`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审通过；合同只冻结公开Java接口/DTO/失败和机器JSON，不实现Provider，不改变F-IMP-001 Feature Ready结论。
 
 F-IMP-002已通过Feature Ready并冻结ArrivalAcceptanceFactApi；F-IMP-003～005仍须分别通过Feature Ready，旧`pms_eng_*`映射须按各Feature锁定。F-AST-001现有`ast_device`已核验具备稳定设备ID、当前项目和归属版本，`DeviceScopeFactApi`改由`T-FIMP001-AST-01`承接，机器契约仍须通过评审并由AST Owner实现。其余设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。
