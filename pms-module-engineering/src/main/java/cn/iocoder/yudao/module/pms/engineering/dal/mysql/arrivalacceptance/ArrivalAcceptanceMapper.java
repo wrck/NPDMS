@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalBatchQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalConfirmationUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
@@ -23,6 +24,8 @@ public interface ArrivalAcceptanceMapper extends BaseMapperX<ArrivalAcceptanceDO
     ArrivalAcceptanceDO selectForUpdate(@Param("query") ArrivalRowQuery query);
 
     int updateSubmittedIfMatch(@Param("query") ArrivalSubmissionUpdate update);
+
+    int updateConfirmedIfMatch(@Param("query") ArrivalConfirmationUpdate update);
 
     List<ArrivalAcceptanceDO> selectConfirmedByProject(
             @Param("query") ArrivalProjectFactQuery query);

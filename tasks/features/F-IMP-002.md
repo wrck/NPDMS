@@ -27,10 +27,11 @@
 - Task 5A的PROJ资格边界已收敛：创建读取当前项目经理事实，ACTION_EDIT独立校验操作人；独立裁决批准根表持久化projectVersion、participant factVersion与scope treeVersion。物理契约先行同步，V134仅允许V133空表升级；MySQL 8.4已验证空表三列NOT NULL且无默认值、非空根迁移失败并保持1行/0新增列。
 - Task 5A草稿创建核心已实现：只从PROJ/COM/AST端口读取权威事实，原子保存项目资格版本、已分配范围快照和设备归属水位；设备缺失、重复或不属于项目时写前失败。COM/AST仅有消费端口和src/test受控替身，生产适配与Spring装配继续`BLOCKED_BY_DEPENDENCY`。
 - Task 5A的PLT重验物理缺口经独立裁决放行：证据revision冻结artifactId、referenceKey、versionNo、scopeVersion及三轴FileFactVersion；V135仅允许空revision表升级。MySQL 8.4已验证三列NOT NULL且无默认值、JSON精确三键非负约束，以及非空迁移失败并保持1行/0新增列。
-- Task 5A提交核心已实现：同一事务锁定根、明细、差异和当前证据revision，按冻结版本重验PROJ、COM、AST、PLT事实；完整范围进入ACCEPTED，权威差异表存在OPEN时进入DIFFERENCE_PENDING，并以DRAFT/version CAS零副作用推进。当前仅受控端口测试通过，生产COM/AST Provider、confirm、REST/UI与真实浏览器闭环仍未完成。
+- Task 5A提交核心已实现：同一事务锁定根、明细、差异和当前证据revision，按冻结版本重验PROJ、COM、AST、PLT事实；完整范围进入ACCEPTED，权威差异表存在OPEN时进入DIFFERENCE_PENDING，并以DRAFT/version CAS零副作用推进。当前仅受控端口测试通过，生产COM/AST Provider、REST/UI与真实浏览器闭环仍未完成。
 - Task 5A候选累计已纳入历史CONFIRMED批次的ACCEPTED设备/数量，并以严格`scope_snapshot` codec合并当前候选与历史CONFIRMED批次中当前、完整、未过期的EXEMPTED设备/数量范围；活动豁免旧形状解析失败时在状态写入前失败关闭。
 - Task 5A差异范围契约已锁定为DEVICE/ORDER_MODEL_QUANTITY严格JSON判别联合；`project_fact_version`经补充裁决改为仅事实影响revision插入时非空，普通OPEN/预确认处置永久NULL。隔离MySQL 8.4已验证V136空表升级后列可空、无默认值、NULL可写且负值拒绝；预确认EXEMPTED在根确认后仍为NULL，独立事实影响revision可在插入时持有非空版本；非空表升级在ALTER前失败且原1行、值5、NOT NULL及旧检查约束均保持不变。
 - Task 5A确认前置已增加场景化项目事实版本查询：在调用方持有PROJ权威项目锁的前提下，按同租户项目联合根与差异两类全部非NULL `project_fact_version`取MAX；NULL与逻辑删除行不进入分配集合，查询本身不访问PROJ表或创建本地锁。
+- Task 5A首个确认正向闭环已实现：平台幂等命令内先取得PROJ项目经理事实锁，再重验COM/AST/PLT及跨批累计事实；候选状态一致时按项目级MAX+1写根`project_fact_version`并推进CONFIRMED，同时将同一证据revision置为PUBLISHED_PENDING_ACC，通过平台SuccessFacts同事务写`ImplementationEvidencePublished` Outbox。完成重放不再访问业务行，陈旧If-Match在Owner重验和业务写前失败。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选

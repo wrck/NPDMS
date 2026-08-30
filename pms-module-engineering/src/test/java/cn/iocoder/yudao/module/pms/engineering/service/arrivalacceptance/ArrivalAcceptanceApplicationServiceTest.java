@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalSubmissionUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalConfirmationUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidencePublishUpdate;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalDifferenceScopeCodec;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
@@ -19,6 +21,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.Fi
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +30,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,7 +63,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
                 mock(DeliveryEvidenceMapper.class),
                 mock(DeliveryEvidenceRevisionMapper.class), projectPort, deliveryPort, devicePort,
-                mock(FileArtifactFactPort.class));
+                mock(FileArtifactFactPort.class), mock(PlatformCommandExecutionApi.class));
 
         ArrivalAcceptanceDO created = service.createDraft(command());
 
@@ -89,7 +94,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
                 mock(DeliveryEvidenceMapper.class),
                 mock(DeliveryEvidenceRevisionMapper.class), projectPort, deliveryPort, devicePort,
-                mock(FileArtifactFactPort.class));
+                mock(FileArtifactFactPort.class), mock(PlatformCommandExecutionApi.class));
 
         assertThrows(IllegalStateException.class, () -> service.createDraft(command()));
 
@@ -237,6 +242,83 @@ class ArrivalAcceptanceApplicationServiceTest {
         verify(fixture.acceptanceMapper(), never()).updateSubmittedIfMatch(any());
     }
 
+    @Test
+    void confirmsCandidateWithProjectFactVersionEvidenceStateAndOutbox() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(confirmableCandidate());
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().selectMaxAllocatedProjectFactVersion(any())).thenReturn(4L);
+        when(fixture.acceptanceMapper().updateConfirmedIfMatch(any())).thenReturn(1);
+        when(fixture.evidenceMapper().markPublishedPendingAccIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceApplicationService.ConfirmationResult result = fixture.service().confirm(
+                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+                        1L, 900L, 8L, 1, "confirm-key", "corr-1"));
+
+        assertEquals("CONFIRMED", result.status());
+        assertEquals(2, result.version());
+        assertEquals(5L, result.projectFactVersion());
+        ArgumentCaptor<ArrivalConfirmationUpdate> rootUpdate =
+                ArgumentCaptor.forClass(ArrivalConfirmationUpdate.class);
+        verify(fixture.acceptanceMapper()).updateConfirmedIfMatch(rootUpdate.capture());
+        assertEquals(5L, rootUpdate.getValue().projectFactVersion());
+        ArgumentCaptor<DeliveryEvidencePublishUpdate> evidenceUpdate =
+                ArgumentCaptor.forClass(DeliveryEvidencePublishUpdate.class);
+        verify(fixture.evidenceMapper()).markPublishedPendingAccIfMatch(evidenceUpdate.capture());
+        assertEquals(result.eventId(), evidenceUpdate.getValue().eventId());
+        ArgumentCaptor<ProjectQualificationPort.RevalidationCommand> qualification =
+                ArgumentCaptor.forClass(ProjectQualificationPort.RevalidationCommand.class);
+        verify(fixture.projectPort()).lockAndRevalidate(qualification.capture());
+        assertEquals(8L, qualification.getValue().subjectUserId());
+        assertTrue(qualification.getValue().requireActorAsProjectManager());
+        assertEquals("IMP:ARRIVAL_CONFIRM:900", fixture.commandExecutionApi().scope.scopeCode());
+        assertEquals(64, fixture.commandExecutionApi().requestDigest.length());
+        assertEquals(1, fixture.commandExecutionApi().successFacts.businessEvents().size());
+        PlatformCommandExecutionApi.BusinessEvent event =
+                fixture.commandExecutionApi().successFacts.businessEvents().getFirst();
+        assertEquals("ImplementationEvidencePublished", event.eventType());
+        assertTrue(event.eventPayload().contains("\"evidenceId\":50"));
+        assertTrue(event.eventPayload().contains("\"evidenceRevision\":1"));
+        assertTrue(event.eventPayload().contains("\"artifactId\":40"));
+    }
+
+    @Test
+    void replaysCompletedConfirmationWithoutTouchingBusinessRows() {
+        SubmissionFixture fixture = submissionFixture();
+        LocalDateTime confirmedAt = LocalDateTime.of(2026, 8, 30, 10, 0);
+        ArrivalAcceptanceApplicationService.ConfirmationResult replay =
+                new ArrivalAcceptanceApplicationService.ConfirmationResult(
+                        900L, "CONFIRMED", 2, 5L, 50L, 1, 40L, 5,
+                        "REF-1", "hash", 3L, "{}", "event-1", confirmedAt);
+        fixture.commandExecutionApi().decision = PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED;
+        fixture.commandExecutionApi().replay = new ConfirmationResultHolder(replay);
+
+        ArrivalAcceptanceApplicationService.ConfirmationResult result = fixture.service().confirm(
+                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+                        1L, 900L, 8L, 1, "confirm-key", "corr-1"));
+
+        assertEquals(replay, result);
+        verify(fixture.acceptanceMapper(), never()).selectForUpdate(any());
+        verify(fixture.acceptanceMapper(), never()).updateConfirmedIfMatch(any());
+        verify(fixture.evidenceMapper(), never()).markPublishedPendingAccIfMatch(any());
+    }
+
+    @Test
+    void rejectsStaleConfirmationBeforeOwnerFactsOrBusinessWrites() {
+        SubmissionFixture fixture = submissionFixture();
+        ArrivalAcceptanceDO stale = confirmableCandidate();
+        stale.setVersion(2);
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(stale);
+
+        assertThrows(IllegalStateException.class, () -> fixture.service().confirm(
+                new ArrivalAcceptanceApplicationService.ConfirmCommand(
+                        1L, 900L, 8L, 1, "confirm-key", "corr-1")));
+
+        verify(fixture.projectPort(), never()).lockAndRevalidate(any());
+        verify(fixture.acceptanceMapper(), never()).updateConfirmedIfMatch(any());
+        verify(fixture.evidenceMapper(), never()).markPublishedPendingAccIfMatch(any());
+    }
+
     private static ArrivalAcceptanceApplicationService.CreateDraftCommand command() {
         return new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                 1L, 100L, 8L, "ARRIVAL-001", "LOGISTICS-001",
@@ -270,6 +352,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         DeliveryScopePort deliveryPort = mock(DeliveryScopePort.class);
         DeviceScopeFactPort devicePort = mock(DeviceScopeFactPort.class);
         FileArtifactFactPort filePort = mock(FileArtifactFactPort.class);
+        RecordingCommandExecutionApi commandExecutionApi = new RecordingCommandExecutionApi();
         when(acceptanceMapper.selectForUpdate(any())).thenReturn(draft());
         when(projectPort.lockAndRevalidate(any())).thenReturn(projectFact());
         when(deliveryPort.lockAndRevalidate(100L, 8L)).thenReturn(deliveryScope());
@@ -280,9 +363,9 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(differenceMapper.selectCurrentListForUpdate(any())).thenReturn(List.of());
         ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
                 acceptanceMapper, lineMapper, differenceMapper, evidenceMapper, revisionMapper,
-                projectPort, deliveryPort, devicePort, filePort);
+                projectPort, deliveryPort, devicePort, filePort, commandExecutionApi);
         return new SubmissionFixture(service, acceptanceMapper, lineMapper, differenceMapper,
-                projectPort, deliveryPort, devicePort, filePort);
+                evidenceMapper, projectPort, deliveryPort, devicePort, filePort, commandExecutionApi);
     }
 
     private static ArrivalAcceptanceDO draft() {
@@ -324,12 +407,24 @@ class ArrivalAcceptanceApplicationServiceTest {
         return row;
     }
 
+    private static ArrivalAcceptanceDO confirmableCandidate() {
+        ArrivalAcceptanceDO row = draft();
+        row.setStatus("ACCEPTED");
+        row.setVersion(1);
+        row.setEvidenceId(50L);
+        row.setEvidenceRevision(1);
+        row.setScopeWatermark("{\"deliveryScopeVersion\":8}");
+        return row;
+    }
+
     private static DeliveryEvidenceDO evidence() {
         DeliveryEvidenceDO row = new DeliveryEvidenceDO();
         row.setId(50L);
         row.setTenantId(1L);
         row.setProjectId(100L);
         row.setCurrentRevisionNo(1);
+        row.setAccSyncStatus("NOT_PUBLISHED");
+        row.setVersion(0);
         return row;
     }
 
@@ -344,6 +439,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         row.setFileFactVersion(JsonUtils.toJsonString(new FileFactVersion(2, 3, 4)));
         row.setFileHash("hash");
         row.setSourceRecordId(900L);
+        row.setSourceVersion(3L);
         return row;
     }
 
@@ -433,9 +529,37 @@ class ArrivalAcceptanceApplicationServiceTest {
             ArrivalAcceptanceMapper acceptanceMapper,
             ArrivalLineMapper lineMapper,
             ArrivalDifferenceMapper differenceMapper,
+            DeliveryEvidenceMapper evidenceMapper,
             ProjectQualificationPort projectPort,
             DeliveryScopePort deliveryPort,
             DeviceScopeFactPort devicePort,
-            FileArtifactFactPort filePort) {
+            FileArtifactFactPort filePort,
+            RecordingCommandExecutionApi commandExecutionApi) {
+    }
+
+    private static final class RecordingCommandExecutionApi implements PlatformCommandExecutionApi {
+        private Decision decision = Decision.NEW;
+        private ConfirmationResultHolder replay;
+        private IdempotencyScope scope;
+        private String requestDigest;
+        private SuccessFacts successFacts;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> ExecutionResult<T> execute(IdempotencyScope scope, String requestDigest,
+                                              Class<T> responseType, Supplier<T> operation,
+                                              Function<T, SuccessFacts> successFactsFactory) {
+            this.scope = scope;
+            this.requestDigest = requestDigest;
+            if (decision == Decision.REPLAY_COMPLETED) {
+                return new ExecutionResult<>(decision, (T) replay.value());
+            }
+            T response = operation.get();
+            successFacts = successFactsFactory.apply(response);
+            return new ExecutionResult<>(decision, response);
+        }
+    }
+
+    private record ConfirmationResultHolder(Object value) {
     }
 }

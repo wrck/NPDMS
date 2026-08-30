@@ -70,6 +70,12 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains(
                 "project_version, project_participant_fact_version, project_scope_version"));
         assertTrue(mapperXml.contains("id=\"updateSubmittedIfMatch\""));
+        assertTrue(mapperXml.contains("id=\"updateConfirmedIfMatch\""));
+        assertTrue(mapperXml.contains("status IN ('PARTIALLY_ACCEPTED', 'ACCEPTED')"));
+        assertTrue(mapperXml.contains("project_fact_version IS NULL"));
+        assertTrue(mapperXml.contains("id=\"markPublishedPendingAccIfMatch\""));
+        assertTrue(mapperXml.contains("acc_sync_status = 'PUBLISHED_PENDING_ACC'"));
+        assertTrue(mapperXml.contains("AND acc_sync_status = 'NOT_PUBLISHED'"));
         assertTrue(mapperXml.contains("AND status = 'DRAFT'"));
         assertTrue(mapperXml.contains("AND version = #{query.expectedVersion}"));
         assertTrue(mapperXml.contains("<foreach collection=\"query.visibleProjectIds\""));

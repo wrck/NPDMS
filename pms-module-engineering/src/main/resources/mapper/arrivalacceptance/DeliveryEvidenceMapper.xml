@@ -24,4 +24,20 @@
         WHERE <include refid="sourceWhere"/>
         FOR UPDATE
     </select>
+    <update id="markPublishedPendingAccIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = 'PUBLISHED_PENDING_ACC',
+            acc_last_published_at = #{query.publishedAt},
+            acc_next_retry_at = NULL,
+            acc_last_event_id = #{query.eventId},
+            version = version + 1,
+            updater = CAST(#{query.actorUserId} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.expectedRevision}
+          AND acc_sync_status = 'NOT_PUBLISHED'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
 </mapper>

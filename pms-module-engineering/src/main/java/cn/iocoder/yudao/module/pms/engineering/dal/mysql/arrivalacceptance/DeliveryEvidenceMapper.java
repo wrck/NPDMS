@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidencePublishUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -12,4 +13,6 @@ public interface DeliveryEvidenceMapper extends BaseMapperX<DeliveryEvidenceDO> 
     DeliveryEvidenceDO selectBySource(@Param("query") DeliveryEvidenceSourceQuery query);
 
     DeliveryEvidenceDO selectBySourceForUpdate(@Param("query") DeliveryEvidenceSourceQuery query);
+
+    int markPublishedPendingAccIfMatch(@Param("query") DeliveryEvidencePublishUpdate update);
 }

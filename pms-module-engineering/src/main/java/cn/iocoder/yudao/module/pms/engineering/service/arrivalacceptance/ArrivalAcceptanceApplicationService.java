@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.engineering.api.arrival.event.ImplementationEvidencePublishedMessage;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalScopeWatermark;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalAcceptanceFact;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalQuantityScopeFact;
@@ -15,10 +16,13 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildrenQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalConfirmationUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalSubmissionUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidencePublishUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalAcceptanceRules;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalAcceptanceStateMachine;
@@ -28,13 +32,19 @@ import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.De
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
+import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.evidence.ArrivalEvidenceEventFactory;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +64,8 @@ public final class ArrivalAcceptanceApplicationService {
     private final DeliveryScopePort deliveryScopePort;
     private final DeviceScopeFactPort deviceScopeFactPort;
     private final FileArtifactFactPort fileArtifactFactPort;
+    private final PlatformCommandExecutionApi commandExecutionApi;
+    private final ArrivalEvidenceEventFactory evidenceEventFactory;
     private final ArrivalAcceptanceRules rules = new ArrivalAcceptanceRules();
     private final ArrivalAcceptanceStateMachine stateMachine = new ArrivalAcceptanceStateMachine();
     private final ArrivalFactCalculator factCalculator = new ArrivalFactCalculator();
@@ -66,7 +78,8 @@ public final class ArrivalAcceptanceApplicationService {
                                                ProjectQualificationPort projectQualificationPort,
                                                DeliveryScopePort deliveryScopePort,
                                                DeviceScopeFactPort deviceScopeFactPort,
-                                               FileArtifactFactPort fileArtifactFactPort) {
+                                               FileArtifactFactPort fileArtifactFactPort,
+                                               PlatformCommandExecutionApi commandExecutionApi) {
         this.acceptanceMapper = acceptanceMapper;
         this.lineMapper = lineMapper;
         this.differenceMapper = differenceMapper;
@@ -76,6 +89,8 @@ public final class ArrivalAcceptanceApplicationService {
         this.deliveryScopePort = deliveryScopePort;
         this.deviceScopeFactPort = deviceScopeFactPort;
         this.fileArtifactFactPort = fileArtifactFactPort;
+        this.commandExecutionApi = commandExecutionApi;
+        this.evidenceEventFactory = new ArrivalEvidenceEventFactory();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -125,11 +140,106 @@ public final class ArrivalAcceptanceApplicationService {
         ArrivalAcceptanceDO root = acceptanceMapper.selectForUpdate(
                 new ArrivalRowQuery(command.tenantId(), command.arrivalAcceptanceId()));
         requireOwnedDraft(root, command);
-        projectQualificationPort.lockAndRevalidate(new ProjectQualificationPort.RevalidationCommand(
-                command.tenantId(), root.getProjectId(), null, command.actorUserId(),
-                root.getProjectVersion(), root.getProjectParticipantFactVersion(),
-                root.getProjectScopeVersion(), false));
+        LockedEvaluation evaluation = lockAndEvaluate(root, command.actorUserId(), false);
+        String submittedStatus = stateMachine.submit(evaluation.scope().hasOpenDifference(),
+                ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(evaluation.calculation().decision()));
+        LocalDateTime submittedAt = LocalDateTime.now();
+        int updated = acceptanceMapper.updateSubmittedIfMatch(new ArrivalSubmissionUpdate(
+                command.tenantId(), root.getId(), command.expectedVersion(), submittedStatus,
+                evaluation.evidence().root().getId(), evaluation.evidence().revision().getRevisionNo(),
+                command.actorUserId(), submittedAt));
+        if (updated != 1) {
+            throw new IllegalStateException("arrival acceptance version changed before submit");
+        }
+        return new SubmissionResult(root.getId(), submittedStatus, command.expectedVersion() + 1,
+                evaluation.evidence().root().getId(), evaluation.evidence().revision().getRevisionNo());
+    }
 
+    @Transactional(rollbackFor = Exception.class)
+    public ConfirmationResult confirm(ConfirmCommand command) {
+        requireConfirmCommand(command);
+        PlatformCommandExecutionApi.ExecutionResult<ConfirmationResult> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "IMP:ARRIVAL_CONFIRM:" + command.arrivalAcceptanceId(),
+                        command.actorUserId(), command.idempotencyKey()),
+                confirmationDigest(command), ConfirmationResult.class,
+                () -> confirmOnce(command),
+                result -> confirmationSuccessFacts(command, result));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
+            throw new IllegalStateException("arrival acceptance confirmation is conflicting or in progress");
+        }
+        return execution.response();
+    }
+
+    private ConfirmationResult confirmOnce(ConfirmCommand command) {
+        ArrivalAcceptanceDO root = acceptanceMapper.selectForUpdate(
+                new ArrivalRowQuery(command.tenantId(), command.arrivalAcceptanceId()));
+        requireConfirmable(root, command);
+        stateMachine.confirm(root.getStatus());
+        LockedEvaluation evaluation = lockAndEvaluate(root, command.actorUserId(), true);
+        String recalculatedStatus = stateMachine.submit(evaluation.scope().hasOpenDifference(),
+                ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(evaluation.calculation().decision()));
+        if (!root.getStatus().equals(recalculatedStatus)) {
+            throw new IllegalStateException("arrival acceptance candidate fact changed before confirm");
+        }
+        EvidenceRevision evidence = evaluation.evidence();
+        if (!root.getEvidenceId().equals(evidence.root().getId())
+                || !root.getEvidenceRevision().equals(evidence.revision().getRevisionNo())
+                || !"NOT_PUBLISHED".equals(evidence.root().getAccSyncStatus())
+                || evidence.root().getVersion() == null) {
+            throw new IllegalStateException("arrival evidence is not publishable for this batch revision");
+        }
+        Long currentMax = acceptanceMapper.selectMaxAllocatedProjectFactVersion(
+                new ArrivalProjectFactVersionQuery(command.tenantId(), root.getProjectId()));
+        long projectFactVersion = currentMax == null ? 1L : Math.addExact(currentMax, 1L);
+        LocalDateTime confirmedAt = LocalDateTime.now();
+        String eventId = evidenceEventFactory.nextEventId();
+        int updated = acceptanceMapper.updateConfirmedIfMatch(new ArrivalConfirmationUpdate(
+                command.tenantId(), root.getId(), command.expectedVersion(), projectFactVersion,
+                command.actorUserId(), confirmedAt));
+        if (updated != 1) {
+            throw new IllegalStateException("arrival acceptance version changed before confirm");
+        }
+        int evidenceUpdated = evidenceMapper.markPublishedPendingAccIfMatch(
+                new DeliveryEvidencePublishUpdate(command.tenantId(), evidence.root().getId(),
+                        evidence.revision().getRevisionNo(), evidence.root().getVersion(), eventId,
+                        command.actorUserId(), confirmedAt));
+        if (evidenceUpdated != 1) {
+            throw new IllegalStateException("arrival evidence changed before publish");
+        }
+        return new ConfirmationResult(root.getId(), ArrivalAcceptanceStateMachine.CONFIRMED,
+                command.expectedVersion() + 1, projectFactVersion,
+                evidence.root().getId(), evidence.revision().getRevisionNo(),
+                evidence.revision().getFileArtifactId(), evidence.revision().getFileVersionNo(),
+                evidence.revision().getFileReferenceId(), evidence.revision().getFileHash(),
+                evidence.revision().getSourceVersion(), root.getScopeWatermark(), eventId, confirmedAt);
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts confirmationSuccessFacts(
+            ConfirmCommand command, ConfirmationResult result) {
+        ImplementationEvidencePublishedMessage message = new ImplementationEvidencePublishedMessage(
+                result.eventId(), command.tenantId(), result.evidenceId(), result.evidenceRevision(),
+                result.artifactId(), result.fileVersion(), result.fileReference(), result.hash(),
+                "EXE-01", result.arrivalAcceptanceId(), result.sourceVersion(),
+                result.sourceScopeWatermark(), result.confirmedAt(), command.correlationId());
+        PlatformCommandExecutionApi.BusinessEvent event = evidenceEventFactory.published(message);
+        return new PlatformCommandExecutionApi.SuccessFacts(
+                "ARRIVAL_ACCEPTANCE_CONFIRM", "ArrivalAcceptance",
+                String.valueOf(result.arrivalAcceptanceId()), command.correlationId(),
+                JsonUtils.toJsonString(result), List.of(event));
+    }
+
+    private LockedEvaluation lockAndEvaluate(ArrivalAcceptanceDO root, Long actorUserId,
+                                              boolean requireActorAsProjectManager) {
+        ProjectQualificationPort.ProjectQualificationFact project =
+                projectQualificationPort.lockAndRevalidate(
+                        new ProjectQualificationPort.RevalidationCommand(
+                                root.getTenantId(), root.getProjectId(),
+                                requireActorAsProjectManager ? actorUserId : null, actorUserId,
+                                root.getProjectVersion(), root.getProjectParticipantFactVersion(),
+                                root.getProjectScopeVersion(), requireActorAsProjectManager));
+        requireProject(project, root.getProjectId());
         ExpectedScopeSnapshot expected = JsonUtils.parseObject(
                 root.getExpectedScopeSnapshot(), ExpectedScopeSnapshot.class);
         DeliveryScopePort.AssignedScope delivery = deliveryScopePort.lockAndRevalidate(
@@ -143,26 +253,25 @@ public final class ArrivalAcceptanceApplicationService {
                         device.deviceId(), device.serialNumber(), device.projectAssignmentVersion()))
                 .toList();
         DeviceScopeFactPort.DeviceScopeFact devices = deviceScopeFactPort.lockAndRevalidate(
-                command.tenantId(), root.getProjectId(), expectedDevices);
+                root.getTenantId(), root.getProjectId(), expectedDevices);
         requireDeviceScope(devices, root.getProjectId(), collectSerialNumbers(delivery.lines()));
         if (!orderedDevices(devices.devices()).equals(expected.devices())) {
             throw new IllegalStateException("device assignment fact changed without version change");
         }
-
         EvidenceRevision evidence = lockEvidence(root);
         List<ArrivalLineDO> lines = lineMapper.selectCurrentListForUpdate(
-                new ArrivalChildrenQuery(command.tenantId(), root.getId()));
+                new ArrivalChildrenQuery(root.getTenantId(), root.getId()));
         if (lines == null || lines.isEmpty()) {
             throw new IllegalStateException("arrival acceptance lines are required");
         }
         List<ArrivalDifferenceDO> differences = differenceMapper.selectCurrentListForUpdate(
-                new ArrivalChildrenQuery(command.tenantId(), root.getId()));
+                new ArrivalChildrenQuery(root.getTenantId(), root.getId()));
         SubmissionScope scope = submissionScope(root.getId(), expected, lines, differences);
         rules.validateSubmission(scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
                 scope.acceptedDeviceIds(), scope.acceptedQuantityScopes(), true);
         LocalDateTime checkedAt = LocalDateTime.now();
         ArrivalProjectFactQuery factQuery = new ArrivalProjectFactQuery(
-                command.tenantId(), root.getProjectId(), checkedAt);
+                root.getTenantId(), root.getProjectId(), checkedAt);
         List<ArrivalLineDO> confirmedLines = lineMapper.selectConfirmedAcceptedByProject(factQuery);
         List<ArrivalDifferenceDO> confirmedExemptions =
                 differenceMapper.selectEffectiveExemptionsByProject(factQuery);
@@ -180,18 +289,7 @@ public final class ArrivalAcceptanceApplicationService {
                         scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
                         List.copyOf(acceptedDevices), List.copyOf(acceptedQuantities),
                         List.copyOf(deviceExemptions), List.copyOf(quantityExemptions), checkedAt));
-        String submittedStatus = stateMachine.submit(scope.hasOpenDifference(),
-                ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(calculation.decision()));
-        LocalDateTime submittedAt = LocalDateTime.now();
-        int updated = acceptanceMapper.updateSubmittedIfMatch(new ArrivalSubmissionUpdate(
-                command.tenantId(), root.getId(), command.expectedVersion(), submittedStatus,
-                evidence.root().getId(), evidence.revision().getRevisionNo(),
-                command.actorUserId(), submittedAt));
-        if (updated != 1) {
-            throw new IllegalStateException("arrival acceptance version changed before submit");
-        }
-        return new SubmissionResult(root.getId(), submittedStatus, command.expectedVersion() + 1,
-                evidence.root().getId(), evidence.revision().getRevisionNo());
+        return new LockedEvaluation(scope, calculation, evidence);
     }
 
     private EvidenceRevision lockEvidence(ArrivalAcceptanceDO root) {
@@ -340,6 +438,39 @@ public final class ArrivalAcceptanceApplicationService {
         }
     }
 
+    private static void requireConfirmCommand(ConfirmCommand command) {
+        if (command == null || command.tenantId() == null || command.tenantId() < 0
+                || command.arrivalAcceptanceId() == null || command.arrivalAcceptanceId() <= 0
+                || command.actorUserId() == null || command.actorUserId() <= 0
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || blank(command.idempotencyKey()) || blank(command.correlationId())) {
+            throw new IllegalArgumentException("invalid arrival acceptance confirm command");
+        }
+    }
+
+    private static void requireConfirmable(ArrivalAcceptanceDO root, ConfirmCommand command) {
+        if (root == null || !command.expectedVersion().equals(root.getVersion())
+                || root.getProjectVersion() == null || root.getProjectParticipantFactVersion() == null
+                || root.getProjectScopeVersion() == null || root.getProjectFactVersion() != null
+                || root.getEvidenceId() == null || root.getEvidenceRevision() == null) {
+            throw new IllegalStateException("arrival acceptance candidate is unavailable or stale");
+        }
+    }
+
+    private static String confirmationDigest(ConfirmCommand command) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        normalized.put("tenantId", command.tenantId());
+        normalized.put("arrivalAcceptanceId", command.arrivalAcceptanceId());
+        normalized.put("actorUserId", command.actorUserId());
+        normalized.put("expectedVersion", command.expectedVersion());
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(JsonUtils.toJsonString(normalized).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 digest algorithm is unavailable", ex);
+        }
+    }
+
     private static void requireOwnedDraft(ArrivalAcceptanceDO root, SubmitCommand command) {
         if (root == null || !ArrivalAcceptanceStateMachine.DRAFT.equals(root.getStatus())
                 || !command.expectedVersion().equals(root.getVersion())
@@ -433,8 +564,30 @@ public final class ArrivalAcceptanceApplicationService {
                                 Long actorUserId, Integer expectedVersion) {
     }
 
+    public record ConfirmCommand(Long tenantId, Long arrivalAcceptanceId,
+                                 Long actorUserId, Integer expectedVersion,
+                                 String idempotencyKey, String correlationId) {
+    }
+
     public record SubmissionResult(Long arrivalAcceptanceId, String status, Integer version,
                                    Long evidenceId, Integer evidenceRevision) {
+    }
+
+    public record ConfirmationResult(
+            Long arrivalAcceptanceId,
+            String status,
+            Integer version,
+            Long projectFactVersion,
+            Long evidenceId,
+            Integer evidenceRevision,
+            Long artifactId,
+            Integer fileVersion,
+            String fileReference,
+            String hash,
+            Long sourceVersion,
+            String sourceScopeWatermark,
+            String eventId,
+            LocalDateTime confirmedAt) {
     }
 
     private record SignerSnapshot(String signerName) {
@@ -445,6 +598,11 @@ public final class ArrivalAcceptanceApplicationService {
     }
 
     private record EvidenceRevision(DeliveryEvidenceDO root, DeliveryEvidenceRevisionDO revision) {
+    }
+
+    private record LockedEvaluation(SubmissionScope scope,
+                                    ArrivalFactCalculator.CalculationResult calculation,
+                                    EvidenceRevision evidence) {
     }
 
     private record SubmissionScope(Set<Long> expectedDeviceIds,
