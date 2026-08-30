@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper">
+
+    <select id="selectByTenantAndIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO">
+        SELECT * FROM plt_migration_batch
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.batchId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectNextStagedForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO">
+        SELECT * FROM plt_migration_batch
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context_code = #{query.ownerContextCode}
+          AND purpose_code = #{query.purposeCode}
+          AND batch_status = 'STAGED_READY'
+          AND deleted = b'0'
+          AND source_system IN
+          <foreach collection="query.sourceSystems" item="value" open="(" separator="," close=")">
+              #{value}
+          </foreach>
+          AND source_table IN
+          <foreach collection="query.sourceTables" item="value" open="(" separator="," close=")">
+              #{value}
+          </foreach>
+        ORDER BY create_time ASC, id ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="transition">
+        UPDATE plt_migration_batch
+        SET batch_status = #{update.targetStatus},
+            source_count = #{update.sourceCount},
+            failure_code = #{update.failureCode},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.batchId}
+          AND batch_status = #{update.expectedStatus}
+          AND version = #{update.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="claim">
+        UPDATE plt_migration_batch
+        SET batch_status = 'RECONCILING',
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.batchId}
+          AND batch_status = 'STAGED_READY'
+          AND version = #{expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="complete">
+        UPDATE plt_migration_batch
+        SET batch_status = 'COMPLETED',
+            source_count = #{update.sourceCount},
+            mapped_count = #{update.mappedCount},
+            issue_count = #{update.issueCount},
+            retained_count = #{update.retainedCount},
+            rule_version = #{update.ruleVersion},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.batchId}
+          AND batch_status = 'RECONCILING'
+          AND version = #{update.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>
