@@ -10,7 +10,7 @@
 > Feature边界裁决：`GO`（事实基线`9b3644d9`）
 > 机器合同：`specs/features/F-CUT-003-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-003-legacy-reuse-audit.md`
-> Technical Plan：`CANDIDATE / IN_REVIEW`（`NPDMS-FCUT003-TECHPLAN-20260831-01`）
+> Technical Plan：`PASS / GO@ac740458`（`NPDMS-FCUT003-TECHPLAN-20260831-01`）
 > Technical Plan前置配置身份补充：`PASS / GO@b06061eb`
 
 ## 1. 业务目标
@@ -126,4 +126,4 @@
 
 ## 8. Feature Ready Gate
 
-当前结论：`BASELINE / READY`（GO@`ea986d61`）。允许进入唯一Technical Plan形成阶段；Technical Plan独立GO前不得创建Task、产品代码或Flyway。
+当前结论：`BASELINE / READY`（GO@`ea986d61`）。唯一Technical Plan已于`ac740458`通过独立复审，允许创建唯一Feature Task并进入Implementation；不批准产品代码结果、V147实际迁移执行、Implementation Done或后续Gate。

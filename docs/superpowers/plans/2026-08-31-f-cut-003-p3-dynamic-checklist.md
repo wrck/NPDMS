@@ -1,7 +1,7 @@
 # F-CUT-003 P3动态采集清单、直接填写与人工降级闭环 Implementation Plan
 
 > 计划 ID：`NPDMS-FCUT003-TECHPLAN-20260831-01`
-> Technical Plan Gate：`CANDIDATE / IN_REVIEW`
+> Technical Plan Gate：`PASS / GO@ac740458`
 > Feature Ready：`PASS / GO@ea986d61`
 > Feature Spec：`specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md`
 > Physical Contract：`specs/features/F-CUT-003-physical-contract.json`
@@ -175,4 +175,4 @@ Task 1结束不单独申请Implementation Done；若CUT内核与V147验证通过
 
 ## 8. Technical Plan Gate
 
-当前结论：`CANDIDATE / IN_REVIEW`。本计划只形成实施方案；独立Technical Plan GO前不得创建`tasks/features/F-CUT-003.md`、产品代码或Flyway。
+当前结论：`PASS / GO@ac740458`。允许创建唯一`tasks/features/F-CUT-003.md`并按本计划进入Implementation；本结论不批准产品代码结果、V147实际迁移执行、Implementation Done或后续Gate。
