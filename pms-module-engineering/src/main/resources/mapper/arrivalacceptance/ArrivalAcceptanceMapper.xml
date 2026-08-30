@@ -66,6 +66,29 @@
         ORDER BY project_fact_version, id
     </select>
 
+    <select id="selectMaxAllocatedProjectFactVersion" resultType="java.lang.Long">
+        SELECT MAX(allocated.project_fact_version)
+        FROM (
+            SELECT a.project_fact_version
+            FROM imp_arrival_acceptance a
+            WHERE a.tenant_id = #{query.tenantId}
+              AND a.project_id = #{query.projectId}
+              AND a.project_fact_version IS NOT NULL
+              AND a.deleted = b'0'
+            UNION ALL
+            SELECT d.project_fact_version
+            FROM imp_arrival_difference d
+            JOIN imp_arrival_acceptance a
+              ON a.tenant_id = d.tenant_id
+             AND a.id = d.arrival_acceptance_id
+             AND a.deleted = b'0'
+            WHERE d.tenant_id = #{query.tenantId}
+              AND a.project_id = #{query.projectId}
+              AND d.project_fact_version IS NOT NULL
+              AND d.deleted = b'0'
+        ) allocated
+    </select>
+
     <sql id="pageWhere">
         tenant_id = #{query.tenantId}
         AND deleted = b'0'

@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalBatchQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalSubmissionUpdate;
 import org.apache.ibatis.annotations.Mapper;
@@ -25,6 +26,9 @@ public interface ArrivalAcceptanceMapper extends BaseMapperX<ArrivalAcceptanceDO
 
     List<ArrivalAcceptanceDO> selectConfirmedByProject(
             @Param("query") ArrivalProjectFactQuery query);
+
+    Long selectMaxAllocatedProjectFactVersion(
+            @Param("query") ArrivalProjectFactVersionQuery query);
 
     List<ArrivalAcceptanceDO> selectPageRowsInternal(@Param("query") ArrivalPageQuery query);
 

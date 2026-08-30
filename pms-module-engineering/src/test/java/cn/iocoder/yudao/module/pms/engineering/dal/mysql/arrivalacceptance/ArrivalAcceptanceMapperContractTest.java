@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import com.baomidou.mybatisplus.annotation.TableName;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -86,6 +88,21 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("l.status = 'ACCEPTED'"));
         assertTrue(mapperXml.contains("d.resolution_status = 'EXEMPTED'"));
         assertTrue(mapperXml.contains("d.exemption_expires_at &gt; #{query.checkedAt}"));
+    }
+
+    @Test
+    void projectFactVersionAllocationSetUnionsRootAndDifferenceNonNullValues() {
+        assertTrue(mapperXml.contains("id=\"selectMaxAllocatedProjectFactVersion\""));
+        assertTrue(mapperXml.contains("SELECT MAX(allocated.project_fact_version)"));
+        assertTrue(mapperXml.contains("FROM imp_arrival_acceptance a"));
+        assertTrue(mapperXml.contains("UNION ALL"));
+        assertTrue(mapperXml.contains("FROM imp_arrival_difference d"));
+        assertTrue(mapperXml.contains("a.project_fact_version IS NOT NULL"));
+        assertTrue(mapperXml.contains("d.project_fact_version IS NOT NULL"));
+        assertTrue(mapperXml.contains("a.project_id = #{query.projectId}"));
+        assertTrue(mapperXml.contains("d.tenant_id = #{query.tenantId}"));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ArrivalProjectFactVersionQuery(1L, null));
     }
 
     private static String tableName(Class<?> type) {
