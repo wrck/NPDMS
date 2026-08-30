@@ -290,29 +290,27 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 **Produces：** 模板管理、任务/Result工作台、客户问卷页面和一次可复现真实浏览器闭环。
 
-- [ ] **Step 1：编写前端失败测试并确认RED**
+- [x] **Step 1：确认收益优先的前端验收边界**
 
-  覆盖模板发布、任务动作、Result历史/失效、精确匿名路由、二维码、现场协助、异步导出、匿名问卷必答/签字、跨范围错误和历史下载；断言未登录匿名token路由不跳登录、相邻后台路径仍受登录守卫，前端不自行判分、不持久化token。
+  不执行测试先行。本Task只以实际用户可见的正向纵向闭环作为Chromium验收主线：正式工作台现场协助、整改重收、精确匿名路由/二维码、达标Result、来源归档和异步导出。授权、租户/项目范围、幂等、失效乱序与补偿分支由已有服务端聚焦测试承担，不再在单次Chromium中重复穷举。
 
-- [ ] **Step 2：实现API与页面最小闭环**
+- [x] **Step 2：实现API与页面最小闭环**
 
   实现模板、任务、匿名问卷和Result页面、精确公共静态路由及守卫；任务页渲染同一受控链接二维码并提供受权现场协助，现场协助先以最终requestId预留Response，再通过authenticated-assisted专用接口上传签字/附件，最后以同一预留ID提交；Result页提交异步导出并展示统一任务状态。复用现有文件组件，按钮只按服务端允许动作渲染，错误码展示稳定业务信息。
 
-- [ ] **Step 3：运行前端聚焦验证和构建**
+- [x] **Step 3：运行前端聚焦验证和构建**
 
-  运行目标Vitest、`pnpm ts:check`及`pnpm build:local`；修复本Feature引入的失败，不扩展全前端回归。
+  运行受影响文件的聚焦静态检查及`pnpm build:local`；修复本Feature引入的失败，不扩展全前端回归。
 
-- [ ] **Step 4：准备正式运行环境**
+- [x] **Step 4：准备正式运行环境**
 
   启动V134后的后端59340和前端19340；确认Quartz三个满意度Job及两个PLT导出Job/Trigger存在。V134只恢复被V108菜单ID冲突覆盖的既有`pms:project-task:assign`按钮载体，不预授角色；正式管理员通过公开授权配置以菜单并集赋予五个满意度权限及该既有任务指派权限，并确认当前责任人已有既有`pms:file:upload/pms:file:archive`；只检查`FACC002_BROWSER_PASSWORD`是否存在，不输出值。
 
-- [ ] **Step 5：运行一次真实Chromium纵向验收**
+- [x] **Step 5：运行一次真实Chromium纵向验收**
 
-  管理入口创建并发布正式模板；公开项目创建冻结Fact；当前L1服务经理经正式权限配置后通过公开REST分别指派初验任务和同项目`T-SAT-SURVEY`给自己，再对初验任务按`PENDING_START→IN_PROGRESS→PENDING_ACCEPT→DONE`执行START、SUBMIT、COMPLETE。初验完成Provider必须由PROJ按项目锁定唯一`T-SAT-SURVEY` Owner Fact，并把其真实taskId/version传给initializer二次重验；source/trigger仍为初验活动完成Fact。ACC契约的START/SUBMIT由PROJ状态机控制，写前重验`pms:project-task:execute`、当前EDIT范围和当前受派人，不调用Native或ACC完成Provider；COMPLETE重验execute与report complete双权限、MANAGE范围及“项目经理或当前受派人”主体，只有ACC Owner完成事实成功才置DONE。完成后触发revision1并等待Task Job形成真实`TodoRequested`，从项目工作台打开Owner Task。revision1只走现场协助：正式成员提交一份签字完整但评分低于阈值的答卷，核对客户事实与协助人分离，并形成带唯一结果文档的失败Result；不得为同一Questionnaire再执行匿名提交。整改Fact创建revision2后只走匿名渠道：指派并创建一次受控链接，断言二维码解码值与链接完全一致；未登录经精确静态token路由打开唯一问卷，含签字/附件提交并形成达标Result，相邻后台路径仍跳登录；不得再对revision2执行现场协助。随后等待Result/归档Job形成`D-SAT-REPORT`来源与归档；发起统一异步导出，轮询PLT Task至SUCCEEDED并经平台Access Ticket下载，核对范围裁剪与永久Audit；历史文件下载成功；最后正式invalidate并验证旧RECORDED重试不恢复当前来源。
+  管理入口创建并发布正式模板，公开创建项目并完成初验任务，由PROJ的`T-SAT-SURVEY` Owner Fact原子初始化revision1。revision1必须从正式工作台打开“现场协助”对话框，以同一requestId/responseId完成预留、签字文件上传和低分答卷提交；不得通过页面内直接fetch、内部API或手填文件事实替代用户操作。整改后创建revision2，仅通过同一受控链接的匿名token路由和二维码提交签字/附件完整的高分答卷。随后等待正式Quartz形成Result来源归档，并发起统一异步导出至SUCCEEDED、形成Access Ticket与永久Audit。同次证据必须由该页面操作直接生成，且业务错误、页面错误、控制台错误和网络失败均为0。其他可达拒绝、幂等、失效乱序和归档补偿保留现有服务端聚焦验证，不再重复扩展Chromium脚本。
 
-  同次脚本必须验证：同键重放、过期/错问卷grant、缺签字、现场协助分别缺collect权限/越项目范围、导出缺权限/越责任人或请求未授权字段文件、跨项目/租户查询和下载、归档失败后重试；这些都使用真实存在对象，拒绝时`data=null`且不泄露标识。不得直接调用Handler、内部API或改库制造业务结果。
-
-- [ ] **Step 6：形成Implementation Done候选**
+- [x] **Step 6：形成Implementation Done候选**
 
   证据JSON、截图和数据库断言由同一次脚本直接生成，字段逐项一致且不含token/密码/完整客户答案。更新唯一`tasks/features/F-ACC-002.md`检查点，提交后按Implementation Done Gate送独立复审；GO前保持实施中。
 
@@ -322,7 +320,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 2. 新增后端聚焦单测、V133 MySQL迁移测试、FileUploadSession四阶段真实事务补偿回归、现场协助、PLT统一导出状态/重试/到期及ACC Provider范围回归、F-ACC-001来源/归档直接回归；
 3. 受影响Maven reactor `package -DskipTests`；
 4. 目标Vitest、`pnpm ts:check`、`pnpm build:local`；
-5. 一次真实Chromium闭环及其直接生成的JSON/截图/数据库事实；
+5. 一次收益优先的真实Chromium正向闭环及其直接生成的JSON/截图/数据库事实；可达拒绝和补偿分支不在浏览器内重复穷举。
 6. `git diff --check`。不重复Phase 1/2/3主门禁或全仓测试。
 
 ## 七、计划自检

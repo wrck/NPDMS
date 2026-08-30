@@ -77,24 +77,57 @@
 
   <el-dialog v-model="assistedVisible" title="现场协助提交" width="min(720px, 94vw)">
     <el-alert
-      title="签字及附件必须是当前用户有权读取的PLT公共文件事实；服务端会再次重验并绑定到答卷。"
+      title="提交时将先预留答卷身份，再把所选文件上传到该答卷；服务端会重验任务、范围和文件事实。"
       type="info"
       :closable="false"
     />
     <el-form label-position="top" class="dialog-form">
       <el-form-item label="客户联系人"
-        ><el-input v-model="assisted.customerContactRef"
+        ><el-input v-model="assisted.customerContactRef" data-testid="assisted-customer-contact"
       /></el-form-item>
       <el-form-item label="答卷 JSON"
-        ><el-input v-model="assisted.answerSnapshot" type="textarea" :rows="7" spellcheck="false"
+        ><el-input
+          v-model="assisted.answerSnapshot"
+          data-testid="assisted-answer"
+          type="textarea"
+          :rows="7"
+          spellcheck="false"
       /></el-form-item>
-      <el-form-item label="文件事实 JSON（至少一条 SIGNATURE）"
-        ><el-input v-model="assisted.filesJson" type="textarea" :rows="8" spellcheck="false"
-      /></el-form-item>
+      <el-form-item label="客户签字（必填）">
+        <el-upload
+          v-model:file-list="assistedSignatureFiles"
+          data-testid="assisted-signature-upload"
+          :auto-upload="false"
+          :limit="1"
+          accept=".png,.jpg,.jpeg,.pdf"
+        >
+          <el-button>选择签字文件</el-button>
+          <template #tip><div class="el-upload__tip">支持 PNG、JPEG 或 PDF，最多 10 MB</div></template>
+        </el-upload>
+      </el-form-item>
+      <el-form-item label="补充附件（可选）">
+        <el-upload
+          v-model:file-list="assistedAttachmentFiles"
+          data-testid="assisted-attachment-upload"
+          :auto-upload="false"
+          :limit="10"
+          multiple
+          accept=".png,.jpg,.jpeg,.pdf"
+        >
+          <el-button>选择附件</el-button>
+          <template #tip><div class="el-upload__tip">单个文件最多 50 MB</div></template>
+        </el-upload>
+      </el-form-item>
     </el-form>
     <template #footer
       ><el-button @click="assistedVisible = false">取消</el-button
-      ><el-button type="primary" @click="submitAssisted">提交并判定</el-button></template
+      ><el-button
+        type="primary"
+        data-testid="assisted-submit"
+        :loading="assistedSubmitting"
+        @click="submitAssisted"
+        >上传并提交</el-button
+      ></template
     >
   </el-dialog>
 
@@ -119,6 +152,7 @@ import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
 import * as Api from '@/api/pms/project/satisfaction'
 import type { TaskView } from '@/api/pms/project/satisfaction'
+import type { UploadUserFile } from 'element-plus'
 
 const message = useMessage()
 const loading = ref(false)
@@ -131,10 +165,13 @@ const grantVisible = ref(false)
 const grantExpiresAt = ref('')
 const grantUrl = ref('')
 const assistedVisible = ref(false)
+const assistedSubmitting = ref(false)
+const assistedRequestId = ref('')
+const assistedSignatureFiles = ref<UploadUserFile[]>([])
+const assistedAttachmentFiles = ref<UploadUserFile[]>([])
 const assisted = reactive({
   customerContactRef: '',
-  answerSnapshot: '{\n  "answers": []\n}',
-  filesJson: '[\n  {\n    "role": "SIGNATURE",\n    "sequence": 1\n  }\n]'
+  answerSnapshot: '{\n  "answers": []\n}'
 })
 const recollectVisible = ref(false)
 const recollectForm = reactive({ evidenceSummary: '', evidenceFileFactVersion: '' })
@@ -181,20 +218,113 @@ const closeGrant = () => {
 }
 const openAssisted = (task: TaskView) => {
   selected.value = task
+  assistedRequestId.value = crypto.randomUUID()
+  assisted.customerContactRef = ''
+  assisted.answerSnapshot = '{\n  "answers": []\n}'
+  assistedSignatureFiles.value = []
+  assistedAttachmentFiles.value = []
   assistedVisible.value = true
 }
+const mediaType = (file: File) => {
+  if (file.type) return file.type
+  const extension = file.name.toLowerCase().split('.').pop()
+  if (extension === 'png') return 'image/png'
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg'
+  if (extension === 'pdf') return 'application/pdf'
+  return ''
+}
+const assistedOperationId = () =>
+  `ui:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 10)}`
+const uploadAssistedFile = async (
+  taskId: number,
+  responseId: number,
+  policyKey: 'SATISFACTION_SIGNATURE' | 'SATISFACTION_ATTACHMENT',
+  file: File
+) => {
+  const declaredMediaType = mediaType(file)
+  if (!declaredMediaType) throw new Error(`不支持的文件类型：${file.name}`)
+  const operationId = assistedOperationId()
+  const initialized = await Api.initializeAssistedFile(taskId, {
+    requestId: assistedRequestId.value,
+    responseId,
+    policyKey,
+    operationId,
+    fileName: file.name,
+    categoryCode: policyKey,
+    declaredSizeBytes: file.size,
+    declaredMediaType
+  })
+  return Api.completeAssistedFile(
+    taskId,
+    initialized.sessionId,
+    {
+      requestId: assistedRequestId.value,
+      responseId,
+      policyKey,
+      operationId,
+      fileSlotKey: initialized.fileSlotKey,
+      fileSequence: initialized.fileSequence,
+      artifactId: initialized.artifactId
+    },
+    file
+  )
+}
+const toSubmissionFile = (fact: Api.AssistedFileFact) => ({
+  role: fact.policyKey === 'SATISFACTION_SIGNATURE' ? 'SIGNATURE' : 'ATTACHMENT',
+  fileSlotKey: fact.fileSlotKey,
+  sequence: fact.fileSequence,
+  artifactId: fact.fileFact.artifactId,
+  versionNo: fact.fileFact.versionNo,
+  referenceKey: fact.fileFact.referenceKey,
+  artifactVersion: fact.fileFact.fileFactVersion.artifactVersion,
+  referenceVersion: fact.fileFact.fileFactVersion.referenceVersion,
+  availabilityVersion: fact.fileFact.fileFactVersion.availabilityVersion,
+  scopeVersion: fact.fileFact.scopeVersion,
+  sha256: fact.fileFact.sha256
+})
 const submitAssisted = async () => {
   if (!selected.value) return
-  const files = JSON.parse(assisted.filesJson)
-  await Api.submitAssisted(selected.value.id, {
-    requestId: crypto.randomUUID(),
-    customerContactRef: assisted.customerContactRef,
-    answerSnapshot: assisted.answerSnapshot,
-    files
-  })
-  message.success('现场协助答卷已提交并完成判定')
-  assistedVisible.value = false
-  await load()
+  const signature = assistedSignatureFiles.value[0]?.raw
+  if (!assisted.customerContactRef.trim()) return message.warning('请输入客户联系人')
+  if (!signature) return message.warning('请选择客户签字文件')
+  try {
+    JSON.parse(assisted.answerSnapshot)
+  } catch {
+    return message.warning('答卷 JSON 格式不正确')
+  }
+  assistedSubmitting.value = true
+  try {
+    const taskId = selected.value.id
+    const reservation = await Api.reserveAssistedResponse(taskId, assistedRequestId.value)
+    const uploaded: Api.AssistedFileFact[] = []
+    uploaded.push(
+      await uploadAssistedFile(taskId, reservation.responseId, 'SATISFACTION_SIGNATURE', signature)
+    )
+    for (const item of assistedAttachmentFiles.value) {
+      if (item.raw) {
+        uploaded.push(
+          await uploadAssistedFile(
+            taskId,
+            reservation.responseId,
+            'SATISFACTION_ATTACHMENT',
+            item.raw
+          )
+        )
+      }
+    }
+    await Api.submitAssisted(taskId, {
+      requestId: assistedRequestId.value,
+      responseId: reservation.responseId,
+      customerContactRef: assisted.customerContactRef.trim(),
+      answerSnapshot: assisted.answerSnapshot,
+      files: uploaded.map(toSubmissionFile)
+    })
+    message.success('现场协助答卷已提交并完成判定')
+    assistedVisible.value = false
+    await load()
+  } finally {
+    assistedSubmitting.value = false
+  }
 }
 const openRecollect = (task: TaskView) => {
   selected.value = task

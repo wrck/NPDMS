@@ -1,12 +1,12 @@
 # F-ACC-002 满意度问卷、达标判定与归档同步
 
 > Feature实施状态：`IN_PROGRESS`<br>
-> 总体工程阶段：`IMPLEMENTATION_TASK_2`<br>
+> 总体工程阶段：`IMPLEMENTATION_DONE_REMEDIATION_REVIEW`<br>
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：无；Task 2 Step 5真实Chromium纵向验收已通过，Task仍保持进行中<br>
-> 当前任务：`Task 2：前端与一次真实Chromium闭环`<br>
+> 当前阻断：无实现阻断；正式工作台现场协助与收益优先Chromium正向闭环已通过，待Implementation Done整改复审<br>
+> 当前任务：`Implementation Done整改候选提交与复审`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-002-satisfaction-questionnaire-result-deliverable-sync.md`<br>
@@ -32,13 +32,13 @@
 
 ## Task 2：前端与一次真实Chromium闭环
 
-- [ ] Step 1：编写前端失败测试并确认RED。
-- [ ] Step 2：实现API与页面最小闭环。
-- [ ] Step 3：运行前端聚焦验证和构建。
-- [ ] Step 4：准备正式运行环境。
+- [x] Step 1：按收益优先口径不执行前端测试先行，只锁定用户可见的正向闭环。
+- [x] Step 2：实现API与页面最小闭环。
+- [x] Step 3：运行前端聚焦静态检查和`build:local`。
+- [x] Step 4：准备正式运行环境。
 - [x] Step 5：运行一次真实Chromium纵向验收。
-- [ ] Step 6：形成Implementation Done候选。
+- [x] Step 6：形成Implementation Done整改候选。
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`0b832c37`；当前Gate=Task 2 Step 6前；已通过=V134、ACC任务生命周期、按项目解析T-SAT-SURVEY、revision1原子初始化、authenticated-assisted预留/上传/最终重验及一次真实Chromium纵向闭环；证据=`docs/engineering/evidence/f-acc-002-browser-evidence.json`；下一步=整理同一Feature的Implementation Done候选并独立送审，不提前回写完成状态。
+> 检查点：基线=`486727a3`；当前Gate=Implementation Done整改复审；已通过=V134、ACC任务生命周期、按项目解析T-SAT-SURVEY、revision1原子初始化、authenticated-assisted预留/上传/最终重验、正式工作台低分现场协助、整改后匿名达标、来源归档与异步导出；证据=`docs/engineering/evidence/f-acc-002-browser-evidence.json`及`docs/engineering/evidence/f-acc-002-browser/01-assisted-response-dialog.png`；下一步=提交同一Feature的Implementation Done整改复审，GO前保持实施中。

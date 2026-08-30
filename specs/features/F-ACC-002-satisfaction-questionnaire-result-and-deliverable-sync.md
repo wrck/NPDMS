@@ -176,4 +176,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`0b832c37`；当前Gate=Implementation Task 2 Step 5；已通过=grant上传、计分、Result文件、任务生命周期与满意度初始化；阻塞=正式身份现场协助尚缺Response预留、专用上传及最终文件重验；下一步=按已批准窄契约实现并恢复同一次Chromium闭环。
+检查点：基线=`486727a3`；当前Gate=Implementation Done整改复审；已通过=grant上传、计分、Result文件、任务生命周期、满意度初始化、正式工作台Response预留/签字上传/同ID提交及一次收益优先的真实Chromium正向闭环；阻塞=无实现阻塞；下一步=提交同一Feature的Implementation Done整改复审，GO前保持实施中。

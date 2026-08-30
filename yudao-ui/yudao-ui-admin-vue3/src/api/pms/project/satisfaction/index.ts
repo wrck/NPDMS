@@ -109,6 +109,26 @@ export interface GrantFileFact {
   }
 }
 
+export interface AssistedResponseReservation {
+  responseId: number
+  taskId: number
+  questionnaireId: number
+  actorUserId: number
+  replayed: boolean
+}
+
+export interface AssistedUploadInitialized {
+  responseId: number
+  fileSlotKey: string
+  fileSequence: number
+  artifactId: number
+  sessionId: number
+  scopeVersion: number
+  expiresAt: string
+}
+
+export type AssistedFileFact = GrantFileFact
+
 export interface SubmissionOutcome {
   responseId: number
   resultId: number
@@ -194,6 +214,37 @@ export const recollect = (taskId: number, data: Record<string, unknown>) =>
 
 export const submitAssisted = (taskId: number, data: Record<string, unknown>) =>
   request.post({ url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-responses`, data })
+
+export const reserveAssistedResponse = (taskId: number, requestId: string) =>
+  request.post<AssistedResponseReservation>({
+    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-response-reservations`,
+    data: { requestId }
+  })
+
+export const initializeAssistedFile = (
+  taskId: number,
+  data: Record<string, unknown>
+) =>
+  request.post<AssistedUploadInitialized>({
+    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-files`,
+    data
+  })
+
+export const completeAssistedFile = (
+  taskId: number,
+  sessionId: number,
+  metadata: Record<string, unknown>,
+  file: File
+) => {
+  const data = new FormData()
+  data.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+  data.append('file', file)
+  return request.post<AssistedFileFact>({
+    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-files/${sessionId}/complete`,
+    data,
+    headersType: 'multipart/form-data'
+  })
+}
 
 export const listResults = (projectId?: number) =>
   request.get<ResultView[]>({ url: '/api/v1/pms/satisfaction-results', params: { projectId } })

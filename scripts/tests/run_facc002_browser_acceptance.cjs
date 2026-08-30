@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const os = require('node:os')
 const { execFileSync } = require('node:child_process')
 
 const endpoint = process.env.NPDMS_BROWSER_CDP_URL || 'http://127.0.0.1:9224'
@@ -92,10 +93,16 @@ const mysql = (sql) => execFileSync('docker', [
       `公开API失败：HTTP ${response.status}, code=${response.body?.code}, msg=${response.body?.msg}`)
     return response.body.data
   }
+  const assertDeniedWithoutLeak = (response, protectedIds, message) => {
+    assert(response.status >= 400 || response.body?.code !== 0, `${message}：请求未被拒绝`)
+    assert(response.body?.data == null, `${message}：拒绝响应错误返回业务数据`)
+    const responseText = JSON.stringify(response.body)
+    assert(protectedIds.every((id) => !responseText.includes(String(id))), `${message}：拒绝响应泄露对象身份`)
+  }
   const key = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  const login = async (loginUsername) => {
+  const login = async (loginUsername, tenantId = 0) => {
     const response = await rawApi('POST', '/system/auth/login',
-      { username: loginUsername, password, captchaVerification: '' })
+      { username: loginUsername, password, captchaVerification: '' }, {}, undefined, tenantId)
     assert(response.status === 200 && response.body?.code === 0 && response.body?.data?.accessToken,
       `${loginUsername}正式登录失败：HTTP ${response.status}, code=${response.body?.code}, msg=${response.body?.msg}`)
     return response.body.data
@@ -104,6 +111,29 @@ const mysql = (sql) => execFileSync('docker', [
     const target = [...document.querySelectorAll('button,a,[role="button"]')]
       .find((node) => (node.innerText || node.textContent || '').trim() === ${JSON.stringify(text)} && !node.disabled);
     if (!target) return false; target.click(); return true;
+  })()`)
+  const setTestInput = (testId, value) => evaluate(`(() => {
+    const root = document.querySelector('[data-testid="' + ${JSON.stringify(testId)} + '"]');
+    const input = root?.matches('input,textarea') ? root : root?.querySelector('input,textarea');
+    if (!input) return false;
+    const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(prototype, 'value').set.call(input, ${JSON.stringify(value)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`)
+  const setFileInput = async (selector, filePath) => {
+    const { root } = await send('DOM.getDocument', { depth: -1, pierce: true })
+    const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector })
+    assert(nodeId, `找不到文件输入：${selector}`)
+    await send('DOM.setFileInputFiles', { nodeId, files: [filePath] })
+  }
+  const clickTaskAction = (taskId, label) => evaluate(`(() => {
+    const row = [...document.querySelectorAll('.el-table__row')]
+      .find((item) => (item.innerText || '').includes(${JSON.stringify(String(taskId))}));
+    const button = row && [...row.querySelectorAll('button')]
+      .find((item) => (item.innerText || '').trim() === ${JSON.stringify(label)} && !item.disabled);
+    if (!button) return false; button.click(); return true;
   })()`)
   const uiLogin = async () => {
     await send('Storage.clearDataForOrigin', { origin: new URL(appUrl).origin, storageTypes: 'all' })
@@ -162,32 +192,6 @@ const mysql = (sql) => execFileSync('docker', [
       headers: { 'tenant-id': '0' }, body: form }).then(r => r.json());
     return { initialized, completed };
   })()`)
-  const uploadAssistedFile = (accessToken, taskId, requestId, responseId, policyKey, fileName) => evaluate(`(async () => {
-    const base = ${JSON.stringify(apiUrl)}; const taskId = ${JSON.stringify(taskId)};
-    const requestId = ${JSON.stringify(requestId)}; const responseId = ${JSON.stringify(responseId)};
-    const policyKey = ${JSON.stringify(policyKey)}; const operationId = 'a:' + Date.now();
-    const content = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='), c => c.charCodeAt(0));
-    const authHeaders = { 'tenant-id': '0', authorization: 'Bearer ' + ${JSON.stringify(accessToken)} };
-    const initialized = await fetch(base + '/api/v1/pms/satisfaction-tasks/' + taskId + '/assisted-files', {
-      method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestId, responseId, policyKey, operationId,
-        fileName: ${JSON.stringify(fileName)}, categoryCode: policyKey,
-        declaredSizeBytes: content.byteLength, declaredMediaType: 'image/png' })
-    }).then(r => r.json());
-    if (initialized.code !== 0) return { initialized };
-    const metadata = { requestId, responseId, policyKey, operationId,
-      fileSlotKey: initialized.data.fileSlotKey, fileSequence: initialized.data.fileSequence,
-      artifactId: initialized.data.artifactId };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', new File([content], ${JSON.stringify(fileName)}, { type: 'image/png' }));
-    const completed = await fetch(base + '/api/v1/pms/satisfaction-tasks/' + taskId
-      + '/assisted-files/' + initialized.data.sessionId + '/complete', {
-        method: 'POST', headers: authHeaders, body: form
-      }).then(r => r.json());
-    return { initialized, completed };
-  })()`)
-
   await Promise.all([send('Page.enable'), send('Runtime.enable'), send('Network.enable'), send('Log.enable')])
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `
     window.__facc002BusinessErrors = [];
@@ -347,29 +351,29 @@ const mysql = (sql) => execFileSync('docker', [
     return tasks.find((item) => item.revisionNo === 1)
   }, '初验完成后未形成满意度revision1')
   assert(revisionOne.assignedToUserId === managedUserId, 'revision1未指派给项目正式责任人')
-  const assistedRequestId = key('assisted-low')
-  const assistedReservation = await api('POST',
-    `/api/v1/pms/satisfaction-tasks/${revisionOne.id}/assisted-response-reservations`,
-    { requestId: assistedRequestId }, {}, token)
-  const assistedUpload = await uploadAssistedFile(token, revisionOne.id, assistedRequestId,
-    assistedReservation.responseId, 'SATISFACTION_SIGNATURE', `facc002-assisted-signature-${marker}.png`)
-  assert(assistedUpload.initialized?.code === 0 && assistedUpload.completed?.code === 0,
-    `现场协助签字上传失败：${assistedUpload.initialized?.msg || assistedUpload.completed?.msg}`)
-  const assistedFact = assistedUpload.completed.data
-  const sourceFile = {
-    role: 'SIGNATURE', fileSlotKey: assistedFact.fileSlotKey, sequence: assistedFact.fileSequence,
-    artifactId: assistedFact.fileFact.artifactId, versionNo: assistedFact.fileFact.versionNo,
-    referenceKey: assistedFact.fileFact.referenceKey,
-    artifactVersion: assistedFact.fileFact.fileFactVersion.artifactVersion,
-    referenceVersion: assistedFact.fileFact.fileFactVersion.referenceVersion,
-    availabilityVersion: assistedFact.fileFact.fileFactVersion.availabilityVersion,
-    scopeVersion: assistedFact.fileFact.scopeVersion, sha256: assistedFact.fileFact.sha256
-  }
-  const low = await api('POST', `/api/v1/pms/satisfaction-tasks/${revisionOne.id}/assisted-responses`, {
-    requestId: assistedRequestId, responseId: assistedReservation.responseId,
-    customerContactRef: '受控客户现场确认',
-    answerSnapshot: JSON.stringify({ answers: [{ questionCode: 'Q1', value: 'LOW' }] }), files: [sourceFile]
-  }, {}, token)
+  await navigate(`${appUrl}/pms/project/satisfaction?projectId=${projectId}`)
+  await waitUntil(() => evaluate(`document.body.innerText.includes(${JSON.stringify(String(revisionOne.id))})`),
+    '满意度工作台未渲染revision1')
+  await screenshot('01-satisfaction-workbench.png')
+  assert(await clickTaskAction(revisionOne.id, '现场协助'), '工作台无法打开revision1现场协助对话框')
+  await waitUntil(() => evaluate(`Boolean(document.querySelector('[data-testid="assisted-submit"]'))`),
+    '现场协助对话框未渲染')
+  assert(await setTestInput('assisted-customer-contact', '受控客户现场确认'), '现场协助联系人不可输入')
+  assert(await setTestInput('assisted-answer',
+    JSON.stringify({ answers: [{ questionCode: 'Q1', value: 'LOW' }] })), '现场协助答卷不可输入')
+  const assistedSignaturePath = path.join(os.tmpdir(), `facc002-assisted-signature-${marker}.png`)
+  fs.writeFileSync(assistedSignaturePath, Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'base64'))
+  await setFileInput('[data-testid="assisted-signature-upload"] input[type="file"]', assistedSignaturePath)
+  await waitUntil(() => evaluate(`document.body.innerText.includes(${JSON.stringify(path.basename(assistedSignaturePath))})`),
+    '现场协助签字文件未进入对话框')
+  await screenshot('01-assisted-response-dialog.png')
+  assert(await clickText('上传并提交'), '现场协助上传并提交按钮不可操作')
+  const low = await waitUntil(async () => {
+    const results = await api('GET', `/api/v1/pms/satisfaction-results?projectId=${projectId}`, undefined, {}, token)
+    return results.find((item) => item.taskId === revisionOne.id)
+  }, '工作台现场协助未形成revision1 Result')
   assert(low.score === 20 && low.passed === false, 'revision1现场协助未形成低分未达标Result')
 
   const revisionTwoCreated = await api('POST', `/api/v1/pms/satisfaction-tasks/${revisionOne.id}/actions/recollect`, {
