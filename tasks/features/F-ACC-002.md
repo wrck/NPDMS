@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`57b2dcd2`；当前Gate=Task 1 Step 3 Result投影整改复审；已通过=grant GO、PROJ任务版本冻结、Result双版本、来源投影与Outbox正向接线、聚焦验证；阻塞=待独立复审；下一步=GO后继续Step 3剩余实现。
+> 检查点：基线=`57b2dcd2`；当前Gate=Task 1 Step 3 Result投影整改复审；已通过=grant GO、PROJ任务版本冻结、Result双版本、来源投影/Outbox、失效根指针CAS清理及真实MySQL回归；阻塞=待独立复审；下一步=GO后继续Step 3剩余实现。

@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.Proje
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdentityLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.DeliverableCurrentSourceClearQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
@@ -113,11 +114,9 @@ public class SatisfactionResultSourceProjectionService {
             }
         }
         if (Objects.equals(root.getCurrentSourceVersionId(), source.getId())) {
-            root.setCurrentSourceVersionId(null);
-            root.setArchiveStatus("INVALID");
-            root.setVersion(root.getVersion() + 1);
-            root.setUpdater(String.valueOf(event.invalidatedByUserId()));
-            if (deliverableMapper.updateById(root) != 1) {
+            if (deliverableMapper.clearCurrentSource(new DeliverableCurrentSourceClearQuery(
+                    event.tenantId(), root.getId(), source.getId(), root.getVersion(),
+                    String.valueOf(event.invalidatedByUserId()))) != 1) {
                 throw new IllegalStateException("SATISFACTION_DELIVERABLE_REVOKE_CONFLICT");
             }
         }
