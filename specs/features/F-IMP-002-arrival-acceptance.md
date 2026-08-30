@@ -53,7 +53,7 @@
 - 每个`ArrivalDifference` revision的`scope_snapshot`使用严格判别联合：设备固定为`{"scopeType":"DEVICE","deviceId":正整数Long}`；数量固定为`{"scopeType":"ORDER_MODEL_QUANTITY","orderLineId":正整数Long,"productCode":String|null,"modelCode":String|null,"quantity":正BigDecimal,"unitCode":非空String}`。数量结构中`productCode/modelCode`规范化后至少一项非空，空值统一写JSON `null`；两种结构只能包含各自列出的精确键，禁止额外键、缺键、字符串数字、零/负数量、空白代码和未知`scopeType`。
 - `EXEMPTED`累计只解析已确认批次中当前、未过期且批准人/批准时间/证据完整的revision；旧形状、未知形状、解析失败或越出当前应到范围的快照失败关闭且不得计入豁免，禁止从XLSX、reason文本或`arrival_line`当前值猜测。
 - DIFFERENCE_PENDING只能在每个差异均追加`SUPPLEMENTED/REJECTED/EXEMPTED/CLOSED`处置后离开；补签使对应明细转入新版本ACCEPTED，拒收保持原范围未满足，豁免仅在有效期内满足明确范围。重算后进入PARTIALLY_ACCEPTED或ACCEPTED，再由项目经理确认。
-- 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；普通`submit`只计算候选状态且不分配`factVersion`，首次确认及后续真正影响已发布项目事实的确认、更正、重开或豁免失效才递增项目`factVersion`并使旧事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
+- 已提交批次、差异处置、豁免和证据revision不可覆盖或删除。补签、差异关闭、豁免失效和签收信息纠正均创建关联原批次的后续DRAFT记录，原CONFIRMED批次不回退；普通`submit`只计算候选状态且不分配`factVersion`。首次确认和普通补签后继确认递增项目`factVersion`但`reopened=false`；更正、已确认历史差异关闭、重开或豁免失效的后继确认/独立失效revision递增版本并使新事实`reopened=true`，项目事实可从ACCEPTED变为NOT_ACCEPTED。
 - 初始批次确认分配的`project_fact_version`只写`imp_arrival_acceptance`根；确认前已存在且未独立改变已发布项目事实的OPEN或处置revision，其`imp_arrival_difference.project_fact_version`在插入时为NULL并永久保持NULL，不得在确认时回填不可变历史。只有某个新追加差异revision本身构成已发布事实的更正、重开、失效或其他独立事实影响源时，才在创建该revision的同一事务分配非空版本，不能仅凭`resolution_status`推断。
 - `ArrivalAcceptanceFactApi.reopened`只按当前最大`project_fact_version`的唯一权威来源类型推导：最大版本来自经完整资格校验的不可变差异事实影响revision时为`true`，来自无重开语义的普通确认根时为`false`；最大来源缺失、重复、损坏或后继根的重开语义无法由机器字段证明时失败关闭。不得从`factVersion>1`、`predecessor_acceptance_id`、处置状态、批次数量或当前判定猜测；旧期望版本在新重开版本形成后因`factVersion`变化返回`STALE`，重新读取当前版本可获得`reopened=true`。
 
@@ -80,21 +80,23 @@
 
 - 创建和全部action必须携带`Idempotency-Key`；`PATCH`和全部作用于已有聚合的action必须携带十进制非负聚合版本`If-Match`。同作用域同键同规范化请求重放首次结果；同键异请求永久冲突；首次命令仍处理中返回可重试冲突，不二次执行业务写。
 - `raise-difference`只能在本人`DRAFT`上针对当前明细追加`OPEN`差异首revision；必须锁定聚合版本、明细ID/版本、基础平台启用的差异类型码、严格`scopeSnapshot`、原因、风险和PLT证据事实。范围必须属于该明细且不超出冻结COM/AST范围。
-- `resolve-difference`使用严格判别联合`SUPPLEMENT/KEEP_REJECTED/EXEMPT/CLOSE`，只接收分支所需的精确字段，不接收客户端`resolutionStatus`或包含大量可选字段的通用对象。命令必须锁定当前差异revision/版本并追加新revision；任何已提交历史均不回写。
+- `resolve-difference`使用严格判别联合`SUPPLEMENT/KEEP_REJECTED/EXEMPT/CLOSE/CORRECT_INFORMATION`，只接收分支所需的精确字段，不接收客户端`resolutionStatus`或包含大量可选字段的通用对象。前四个分支必须锁定当前差异revision/版本并追加新revision；`CORRECT_INFORMATION`仅允许当前项目经理针对`CONFIRMED`来源创建`CORRECTION` successor DRAFT，不回写原根。任何已提交历史均不回写。
 - 未确认批次上的差异处置在原批次追加line/difference revision并重算候选状态；针对`CONFIRMED`历史的补签、信息纠正或差异关闭创建关联`predecessorAcceptanceId`的successor `DRAFT`，原批次不回退。
-- 服务端依据已锁定的命令分支、当前已发布项目事实和重算结果判定`factImpactType`；客户端不得提交boolean、类型或`projectFactVersion`。非事实影响revision永久保持`projectFactVersion=NULL`；真正更正、重开或豁免失效来源在同一事务持有PROJ项目锁、分配项目事实版本后追加。
-- successor根必须保存服务端分配的`successorReason=SUPPLEMENT|CORRECTION|DIFFERENCE_CLOSURE|EXEMPTION_INVALIDATION`。`SUPPLEMENT`只表示新到范围的普通补签；`CORRECTION/EXEMPTION_INVALIDATION`为可证明的重开来源；`DIFFERENCE_CLOSURE`是否改变已发布事实由服务端对比前后权威计算结果判定，不仅凭原因码分配版本。
+- 服务端依据已锁定的命令分支和当前已发布项目事实判定根`successorReason`及独立差异事实源`factImpactType`；客户端不得提交boolean、类型或`projectFactVersion`。非事实影响difference revision永久保持`factImpactType/projectFactVersion=NULL`；只有独立更正、重开或豁免失效revision在创建事务持有PROJ项目锁并分配项目事实版本。
+- successor根必须保存服务端分配的`successorReason=SUPPLEMENT|CORRECTION|DIFFERENCE_CLOSURE|EXEMPTION_INVALIDATION`。`SUPPLEMENT`只表示新到范围的普通补签且确认后`reopened=false`；其余三类均明确发生在已发布历史之后，后继确认时由根分配新项目事实版本且`reopened=true`。后继仍为DRAFT时不提前发布事实。
+- 数量差异的`SUPPLEMENT`携带严格同一订单/型号单位身份和正数`supplementQuantity`。小于当前未满足量时，同一事务追加ACCEPTED line revision，并把当前差异追加为仅含精确剩余量的`OPEN` revision；等于未满足量时追加`SUPPLEMENTED` revision。DEVICE差异只能整项补签，不能用数量裁剪。任何补签不得超过当前差异剩余量或COM当前范围。
+- 豁免到期由Task 5B内部`ExpireArrivalExemptionsCommand`处理，不由Fact查询产生副作用：按到期时间和稳定ID领取current `EXEMPTED` revision，逐项目取得PROJ权威锁，再锁根/明细/差异并重验COM/AST/PLT；同事务创建`EXEMPTION_INVALIDATION` successor DRAFT、追加事实影响差异revision、分配`projectFactVersion`并使旧事实陈旧。身份、版本、范围或证据无法重验时失败关闭并保留待重试，不从当前时间查询结果直接推导事实完成。
 
 ### 5.3 权限、allowedActions与错误
 
 - 五项权限唯一映射：列表/详情使用`query`；创建使用`create`；PATCH与submit使用`edit-own-draft`；confirm使用`confirm`；raise/resolve共用`resolve-difference`。所有写入同时执行服务端ProjectScope和主体/当前项目事实守卫，全局角色或前端按钮不能替代。
-- `allowedActions`封闭为`EDIT_DRAFT/SUBMIT/CONFIRM/RAISE_DIFFERENCE/RESOLVE_DIFFERENCE`，由服务端按功能权限、ProjectScope、当前项目主体事实、批次状态、创建人及未决差异派生。它是界面入口投影，每个命令仍必须在业务写前重验。
+- `allowedActions`封闭为`EDIT_DRAFT/SUBMIT/CONFIRM/RAISE_DIFFERENCE/RESOLVE_DIFFERENCE`，并与对应命令的功能权限、`ProjectScopeApi.ACTION_EDIT`、当前项目主体事实、批次状态、创建人和对象版本守卫逐项同构。`RESOLVE_DIFFERENCE`只对current `PROJECT_MANAGER`且状态为`DIFFERENCE_PENDING|CONFIRMED`的可处置对象返回；`EXEMPT`同样要求该项目经理资格。它是界面入口投影，每个命令仍必须在业务写前重验。
 - 对越权或跨租户对象，详情和命令统一返回不可见/不存在，不泄露对象存在性；对已可见项目内主体不满足命令条件则返回授权拒绝。
-- 到货专属错误必须区分参数校验、不可见/不存在、功能权限、数据范围、非法状态、聚合/明细/差异版本冲突、幂等冲突/处理中、COM/AST/PLT不可用、范围陈旧和证据无效。HTTP使用真实`400/403/404/409/422/503`语义，响应体仍使用Yudao `CommonResult{code,msg,data}`；Task 8以仅作用于该Controller的局部异常映射实现，不改写全局平台异常行为。
+- 到货专属错误必须区分参数校验、不可见/不存在、功能权限、数据范围、非法状态、聚合/明细/差异版本冲突、幂等冲突/处理中、COM/AST/PLT不可用、范围陈旧、项目阶段/资格业务门禁和证据无效；业务门禁与证据错误不得共用code。HTTP使用真实`400/403/404/409/422/503`语义，响应体仍使用Yudao `CommonResult{code,msg,data}`；`409/422/503`的`data`固定携带机器可读原因和恢复动作。Task 8以仅作用于该Controller的局部异常映射实现，不改写全局平台异常行为。
 
-### 5.4 当前规格阻断
+### 5.4 豁免审批主体裁决
 
-- `EXEMPT`分支的范围、理由、风险、证据、批准人/时间和有效期字段已锁定；但PRD的“豁免审批人”尚无独立正式角色或公共事实契约。`Q-FIMP002-001`解决前，不得仅凭`resolve-difference`权限、`ACTION_EDIT`或客户端批准人字段实施该分支。
+- `Q-FIMP002-001`已裁决采用方案A：V1豁免审批人固定为调用当时本人负责该项目的current `PROJECT_MANAGER`，同时要求`resolve-difference + ACTION_EDIT`，并由`ProjectParticipantFactApi`在写事务中锁定重验。`approvedBy/approvedAt`只取受信actor和服务端时钟，客户端不得提交；权限键、数据范围或全局角色不能单独替代审批主体事实。
 
 用户路径继承`/api/v1/pms`：
 

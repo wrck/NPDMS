@@ -204,7 +204,9 @@ EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletio
 
 F-IMP-002只在`/implementation-evidence`中创建`sourceRequirement=EXE-01/sourceObjectType=ARRIVAL_ACCEPTANCE`的签收单证据revision；IMP发布`ImplementationEvidencePublished`，ACC以`ArtifactAccepted/ArtifactArchived`回显同一`evidenceId/evidenceRevision`。IMP按eventId和证据revision幂等推进同步投影，不能调用ACC归档命令、重复下载文件或把事件发送成功解释为已归档。
 
-F-IMP-002用户REST的精确请求/响应、Header、五权限映射、`allowedActions`、严格差异处置判别联合和到货专属错误映射由`specs/features/F-IMP-002-rest-api-contract.json`锁定。新路径不接受tenant、actor、状态、批准人/时间、事实影响类型或项目事实版本等服务端字段；旧`/pms/eng-arrival`不作兼容或降级入口。`EXEMPT`分支的审批主体事实在`Q-FIMP002-001`关闭前保持`BLOCKED_BY_SPEC`。
+F-IMP-002用户REST的精确请求/响应、Header、五权限映射、`allowedActions`、严格差异处置判别联合和到货专属错误映射由`specs/features/F-IMP-002-rest-api-contract.json`锁定。新路径不接受tenant、actor、状态、批准人/时间、事实影响类型或项目事实版本等服务端字段；旧`/pms/eng-arrival`不作兼容或降级入口。`Q-FIMP002-001`已裁决V1 `EXEMPT`由写事务中锁定重验的current `PROJECT_MANAGER`审批，同时要求`resolve-difference + ACTION_EDIT`，批准人和时间只取受信actor与服务端时钟。
+
+`resolve-difference`还锁定数量部分补签的精确剩余范围和`CORRECT_INFORMATION`后继草稿；豁免失效由无HTTP入口的`ExpireArrivalExemptionsCommand`在PROJ项目锁内追加事实影响revision并创建后继草稿，查询不得产生副作用。成功响应使用Yudao `CommonResult`，分页data严格为`PageResult{list,total}`，日期时间按当前Yudao Jackson的epoch毫秒Long；`409/422/503`错误data携带稳定原因与恢复动作，业务阶段/资格门禁和证据无效使用不同code。
 
 ## 8. ACC：验收与项目闭环 API
 
