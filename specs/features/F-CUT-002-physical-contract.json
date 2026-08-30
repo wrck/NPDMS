@@ -27,7 +27,7 @@
     "taskStatus": ["GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "LEGACY_UNKNOWN"],
     "manualGrade": ["A", "B", "C", "D"],
     "assessmentStatus": ["DRAFT", "SUBMITTED", "INVALIDATED"],
-    "stageTriggerType": ["P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED"]
+    "stageTriggerType": ["P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED", "P2_ASSESSMENT_INVALIDATED"]
   },
   "tables": {
     "cut_task": {
@@ -36,6 +36,7 @@
         "id": "BIGINT NOT NULL PRIMARY KEY",
         "tenant_id": "BIGINT NOT NULL",
         "project_id": "BIGINT NOT NULL",
+        "previous_task_id": "BIGINT NULL",
         "task_no": "VARCHAR(64) NOT NULL",
         "task_name": "VARCHAR(128) NOT NULL",
         "background": "VARCHAR(4000) NULL",
@@ -102,6 +103,7 @@
       ],
       "uniqueKeys": [
         ["tenant_id", "project_id", "task_no"],
+        ["tenant_id", "previous_task_id"],
         ["tenant_id", "source_system", "source_business_no"],
         ["tenant_id", "business_event_id"],
         ["tenant_id", "legacy_task_id"]
@@ -114,8 +116,9 @@
       },
       "originUnion": {
         "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present; current_stage is P2, P3 or P4; task_status is not LEGACY_UNKNOWN",
-        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; background, cutover_type, network_mode, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
+        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; previous_task_id, background, cutover_type, network_mode, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
       },
+      "previousTaskChain": "previous_task_id is null for the first task in a business chain; otherwise it points to one same-tenant, same-project, nondeleted direct predecessor whose task lifecycle has been authoritatively ended by the owning later Feature; the relation is immutable, UNIQUE(tenant_id, previous_task_id) forbids sibling successors, and F-CUT-002 itself creates only initial tasks because it does not own a task-ending transition",
       "checks": [
         "version >= 0",
         "task_origin IN taskOrigin",
@@ -123,6 +126,7 @@
         "current_stage IS NULL OR current_stage IN ('P2','P3','P4')",
         "task_status IN taskStatus",
         "manual_grade IS NULL OR manual_grade IN manualGrade",
+        "previous_task_id IS NULL OR previous_task_id <> id",
         "task_origin and legacy fields satisfy originUnion"
       ]
     },
@@ -182,7 +186,8 @@
       "checks": [
         "sequence_no > 0 and actor_id >= 0",
         "P1_ACCEPTED requires P1 -> P2 and to_status GRADE_CONFIRMING",
-        "P2_ASSESSMENT_SUBMITTED requires P2 -> P3/SURVEYING for A/B/C or P2 -> P4/PLAN_DRAFTING for D"
+        "P2_ASSESSMENT_SUBMITTED requires P2 -> P3/SURVEYING for A/B/C or P2 -> P4/PLAN_DRAFTING for D",
+        "P2_ASSESSMENT_INVALIDATED requires P3 or P4 -> P2 and to_status GRADE_CONFIRMING"
       ],
       "immutability": "insert-only; no update, soft delete or synthesized history",
       "legacyRule": "never synthesize P1-P6 history from pms_cut_task.status or timestamps"
@@ -221,22 +226,24 @@
       ],
       "answerSnapshotContract": {
         "exactKeys": ["businessImportanceLevel", "operationComplexityLevel", "hiddenRiskLevel", "sparePartApplied"],
-        "businessImportanceLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
-        "operationComplexityLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
-        "hiddenRiskLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE",
-        "sparePartApplied": "BOOLEAN"
+        "businessImportanceLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_OR_JSON_NULL_ONLY_FOR_DRAFT",
+        "operationComplexityLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_OR_JSON_NULL_ONLY_FOR_DRAFT",
+        "hiddenRiskLevel": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_OR_JSON_NULL_ONLY_FOR_DRAFT",
+        "sparePartApplied": "BOOLEAN_OR_JSON_NULL_ONLY_FOR_DRAFT",
+        "submittedRule": "SUBMITTED and INVALIDATED snapshots require all four values nonnull"
       },
       "contextSnapshotContract": {
         "exactKeys": ["project", "devices", "implementationReadiness", "customerServiceLevel"],
-        "project": "projectId + projectScopeVersion + normalized display snapshot",
+        "project": "projectId + projectScopeVersion + normalized project/office display snapshot",
         "devices": "non-empty stable deviceId/projectAssignmentVersion vector sorted by deviceId",
         "implementationReadiness": "READY snapshotId/snapshotVersion/source watermark consumed from ImplementationReadinessApi",
-        "customerServiceLevel": "AVAILABLE serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval consumed from CustomerServiceLevelFactApi; no user-entered substitute"
+        "customerServiceLevel": "AVAILABLE carries serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval; NOT_CONFIGURED carries customer identity and factVersion with revision/code/effective interval null; both are consumed from CustomerServiceLevelFactApi and no user-entered substitute is allowed"
       },
+      "questionnaireIdentity": "CUT Owner constant questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1; its exact four questions are this Feature contract, are assigned by the server on first draft creation and are never accepted from the client",
       "statusUnion": {
         "DRAFT": "manual_grade may be null or A/B/C/D; submitted_by, submitted_at, invalidated_by, invalidated_at and invalidation_reason are null; simple_flow is false until submission",
         "SUBMITTED": "manual_grade, submitted_by and submitted_at are present; simple_flow is true only for manual_grade D; invalidation fields are null",
-        "INVALIDATED": "the submitted answer/context/grade fields remain unchanged; invalidated_by, invalidated_at and normalized invalidation_reason are filled once; current_marker is null"
+        "INVALIDATED": "the submitted answer/context/grade fields remain unchanged; invalidated_by, invalidated_at and normalized invalidation_reason are filled once; current_marker is null; the same transaction inserts exactly one next-version DRAFT with refreshed server-owned template/context and current_marker=1, then repoints cut_task.current_assessment_id to that replacement"
       },
       "checks": [
         "assessment_version > 0 and questionnaire_template_version > 0 and version >= 0",
@@ -244,15 +251,17 @@
         "manual_grade IS NULL OR manual_grade IN manualGrade",
         "current_marker is 1 only for the task current assessment and is otherwise null"
       ],
-      "immutability": "DRAFT may be updated only by optimistic version; after SUBMITTED answer_snapshot, context_snapshot, template identity and manual_grade are immutable; INVALIDATED only fills invalidation metadata once",
+      "immutability": "DRAFT may be updated only by optimistic version; after SUBMITTED answer_snapshot, context_snapshot, template identity and manual_grade are immutable; INVALIDATED only fills invalidation metadata once and never rewrites the invalidated row when creating its replacement",
+      "invalidationCommandBoundary": "a later CUT continuation command that proves a stored submitted context stale invokes the CUT Owner invalidation transition in its write transaction: invalidate the old current row, insert the next-version DRAFT, reset cut_task manual_grade to null and stage/status to P2/GRADE_CONFIRMING, repoint current_assessment_id, increment task version and append P2_ASSESSMENT_INVALIDATED history; no GET or external Provider performs this write",
       "legacyRule": "pms_cut_risk and pms_cut_task.risk_level never create questionnaire answers, an assessment revision or a manual grade"
     }
   },
   "crossTableInvariants": [
-    "cut_task.current_assessment_id is null before the first draft and otherwise points to the same tenant/task current_marker=1 assessment",
+    "cut_task.current_assessment_id is null before the first draft and otherwise points to the same tenant/task current_marker=1 assessment; invalidation atomically replaces the marker before commit so no committed state has a dangling current_assessment_id",
     "cut_task.manual_grade is null until a current SUBMITTED assessment exists and then equals that assessment manual_grade",
     "every NEW_PLATFORM task has at least one active cut_task_device_scope row and one P1_ACCEPTED stage history row in the create transaction",
     "P2 submission atomically marks the current assessment SUBMITTED, updates cut_task grade/stage/status/version and appends one stage history row",
+    "submitted-context invalidation atomically replaces the assessment, resets the task to P2/GRADE_CONFIRMING with null manual_grade and appends one invalidation history row",
     "provider failure, stale context, activity uniqueness conflict or optimistic version conflict leaves all four tables and platform success facts unchanged"
   ],
   "migration": {

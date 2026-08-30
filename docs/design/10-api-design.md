@@ -237,7 +237,7 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
 | `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
-| `/cutover-tasks/actions/resolve-create-context` | POST只读解析 | 按SN返回本人授权项目、稳定设备、CUS客户服务等级和IMP就绪事实及版本；不创建任务或成功审计 |
+| `/cutover-tasks/actions/resolve-create-context` | POST只读解析 | 按SN及`projectId`稳定顺序返回全部本人授权项目候选、办事处、稳定设备、CUS客户服务等级和IMP就绪事实及版本；多候选由工程师明确选择，不创建任务或成功审计 |
 | `/cutover-dashboard/kpis` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
 | `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
@@ -251,7 +251,7 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 | `/cutover-config/{types|network-modes|checklist-items|binding-rules|navigation-rules}` | CRUD + `actions/publish` | CUT-07/09/10的V1动态模板、表单和匹配配置先于或不晚于首个消费能力交付；CUT-03 V2可增加受控跳转规则 | 发布版本不可覆盖；稳定编码、引用启用状态、条件可判定性和目标流程状态不合法时整版拒绝 |
 
-F-CUT-002用户REST、内部`CutoverTaskIntakeApi`、Wire Long/时间、四权限、`allowedActions`、来源判别联合及错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。自建确认携带只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；这些字段只作并发守卫，客户、负责人、阶段、状态、等级和业务快照均由服务端写入。ITR/项目事件仅预留受信入向接口，不在CUT实现第三方Producer。
+F-CUT-002用户REST、内部`CutoverTaskIntakeApi`、Wire Long/时间、四权限、`allowedActions`、来源判别联合及错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。P1列表固定显示割接来源、办事处和任务生成时间；P2模板固定由CUT服务端写为`CUT_P2_MANUAL_ASSESSMENT@1`，草稿四项答案可空。详情GET只用Owner只读`inspect`投影提示性动作，提交命令另在写事务中执行`lockAndRevalidate`。自建确认携带明确选择的projectId及只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；这些字段只作并发守卫，客户、负责人、阶段、状态、等级和业务快照均由服务端写入。ITR/项目事件仅预留字段类型、可空性和判别联合完整的受信入向接口，不在CUT实现第三方Producer。
 
 CUT通过CUS Owner的`CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`取得当前有效服务等级revision/code/factVersion/effective interval；`CustomerSummaryDTO`不包含该事实，不能替代。CUT通过IMP Owner的`ImplementationReadinessApi.inspect/lockAndRevalidate`取得明确READY快照及项目/设备/来源水位。两个消费接口可在CUT单元/集成中使用受控正向模拟，但模拟不得注册到生产装配或作为真实Owner、浏览器验收和Implementation Done证据。
 

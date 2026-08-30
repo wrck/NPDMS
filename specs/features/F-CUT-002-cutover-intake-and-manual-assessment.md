@@ -22,7 +22,7 @@
 ### 2.1 包含
 
 - 一线工程师按设备序列号查询授权项目/设备并自建P1任务；服务端生成任务编号；
-- 一线自建前由只读上下文解析接口返回可选项目、稳定设备、客户服务等级与IMP就绪快照及其版本，确认创建时逐项锁定重验；
+- 一线自建前由只读上下文解析接口按`projectId`稳定排序返回全部可选项目候选、各自稳定设备、办事处、客户服务等级与IMP就绪快照及其版本；多候选必须由工程师明确选择，服务端不得代选，确认创建时逐项锁定重验；
 - 可信内部来源创建命令契约，支持ITR来源键和项目事件ID幂等，但本Feature不实现Producer或第三方适配器；
 - 唯一CutoverTask、来源事实、项目/客户/设备引用及必要快照、当前阶段和状态版本；
 - 同项目同设备范围同一时点仅一个活动任务，后续任务关联前次已结束任务；
@@ -54,15 +54,15 @@
 ### BR-FCUT002-002 活动设备范围唯一性
 
 - 同一租户、项目和任一设备同一时点只能属于一个活动CutoverTask；创建时按规范化设备ID顺序锁定活动范围记录。
-- 前一任务结束后可创建新任务，并保存`previousTaskId`；不得复用旧任务或覆盖历史。
+- 前一任务结束后可创建新任务，并保存不可变`previousTaskId`；同一直接前驱最多一个后继且必须同租户、同项目。F-CUT-002不拥有任务结束转换，因此本Feature只创建首任务；该字段和线性约束供后续拥有终态的CUT Feature使用，不得猜测终态。
 - 并发创建最多一个成功；失败请求不生成任务、设备范围、阶段历史或成功审计。
 
 ### BR-FCUT002-003 P2问卷与人工等级
 
 - 只有`GRADE_CONFIRMING`状态且当前一线工程师具有任务与项目设备范围权限时可暂存/提交。
-- 问卷冻结模板标识/版本，至少包含业务重要等级、操作复杂度等级、隐患风险等级、备件是否申请和客户服务等级；项目权威上下文只读展示，不要求重复录入。
+- 问卷由CUT固定为服务端模板`CUT_P2_MANUAL_ASSESSMENT@1`，包含业务重要等级、操作复杂度等级、隐患风险等级、备件是否申请；客户服务等级来自CUS并作为同屏只读上下文展示。模板标识/版本由服务端写入，客户端不得提交或猜测“当前启用版本”。
 - 客户服务等级只能来自CUS `CustomerServiceLevelFactApi`当前有效版本并冻结到评估上下文；现有`CustomerSummaryDTO`不含该事实，不能替代。`NOT_CONFIGURED`或版本失效时允许保存草稿但不得提交，不接受用户手工补值。
-- 暂存不推进状态；提交必须具备全部必填答案和人工最终等级A/B/C/D，并保存评估版本、上下文快照、提交人和时间。
+- 草稿答案四个精确键均可为`null`，暂存不推进状态；每次暂存只读刷新DRAFT上下文，允许客户等级从`NOT_CONFIGURED`变为`AVAILABLE`。提交必须具备全部非空答案、当前`AVAILABLE`客户等级和人工最终等级A/B/C/D，并保存评估版本、上下文快照、提交人和时间。
 - 不默认C级，不计算分值、区间或系统建议等级。
 
 ### BR-FCUT002-004 状态与重验
@@ -71,9 +71,10 @@
 P1 accepted -> GRADE_CONFIRMING
 GRADE_CONFIRMING --submit A/B/C--> SURVEYING
 GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
+SURVEYING/PLAN_DRAFTING --later CUT continuation proves submitted context stale--> GRADE_CONFIRMING (replacement DRAFT)
 ```
 
-- 状态只能由创建和P2提交命令推进，客户端不得直接写阶段、状态或等级。
+- 状态只能由创建、P2提交以及后续CUT继续命令触发的内部评估失效替代迁移推进，客户端不得直接写阶段、状态或等级。失效迁移同事务保留旧评估、追加下一版DRAFT、清空任务等级、返回P2并追加历史；GET和外部Provider不得执行该写入。
 - 创建和P2提交前均按明确IMP快照ID/版本重验；项目、设备范围、批准方案、EXE来源事实变化或Provider不可用时保持当前状态并返回原因。
 - P2提交使用任务`If-Match`、评估版本和`Idempotency-Key`；并发只接受首个有效版本。
 - P5复核与驳回回改未在本Feature实现，因此CUT-02覆盖固定为`PARTIAL`。
@@ -82,7 +83,7 @@ GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
 
 - 一线工程师只能查询、创建和办理本人有权项目及设备的任务；项目只读角色只读；服务经理不获得P1创建、指派、取消或P2代填权限。
 - P1来源事实在任务详情只读；P2～P6固定显示五步，未实现步骤显示后续阶段但不提供伪操作按钮。
-- `allowedActions`由服务端根据功能权限、项目/设备范围、任务状态、负责人和IMP重验结果返回；前端不按角色名称自行推导。
+- `allowedActions`由服务端只读`inspect`功能权限、项目/设备范围、任务状态、负责人和Owner事实后提示性返回；详情GET不得取得写锁。真正提交命令必须在写事务内独立执行全部`lockAndRevalidate`，前端不按角色名称自行推导。
 - 审计记录来源键、项目/设备稳定ID、IMP快照、问卷字段键、人工等级、状态前后值、版本、操作者和时间；不复制设备凭证或附件正文。
 
 ## 4. API与模块契约
@@ -91,14 +92,14 @@ GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
 
 | 接口 | 操作 | 契约 |
 |---|---|---|
-| `/cutover-tasks/actions/resolve-create-context` | `POST` | 只读解析SN对应的授权项目、设备、客户服务等级和IMP就绪事实；不创建业务记录 |
+| `/cutover-tasks/actions/resolve-create-context` | `POST` | 只读返回SN对应的全部授权项目候选、办事处、设备、客户服务等级和IMP就绪事实；多候选由工程师明确选择，不创建业务记录 |
 | `/cutover-tasks` | `GET` | 按服务端项目/设备范围分页查询 |
 | `/cutover-tasks` | `POST` | 一线自建；`Idempotency-Key`；只接受业务输入，不接受来源主体、状态或等级 |
 | `/cutover-tasks/{id}` | `GET` | 返回来源上下文、P2～P6工作台和`allowedActions` |
 | `/cutover-tasks/{id}/assessment` | `PUT` | P2暂存；`If-Match`任务版本和评估版本 |
 | `/cutover-tasks/{id}/assessment/actions/submit` | `POST` | 提交完整问卷与人工等级；`Idempotency-Key/If-Match` |
 
-权限固定为`pms:cutover-task:query/create/save-assessment/submit-assessment`四项；详情动作只允许`SAVE_ASSESSMENT/SUBMIT_ASSESSMENT`，且必须与功能权限、项目范围、任务Owner、当前状态和Owner事实重验同构。`LEGACY_FORWARD`不返回任何动作。
+权限固定为`pms:cutover-task:query/create/save-assessment/submit-assessment`四项；详情动作只允许`SAVE_ASSESSMENT/SUBMIT_ASSESSMENT`，且只读投影必须与功能权限、项目范围、任务Owner、当前状态和Owner事实`inspect`一致，写命令再独立锁定重验。`LEGACY_FORWARD`不返回任何动作。
 
 内部`CutoverTaskIntakeApi.create`使用`ITR/PROJECT_EVENT`严格判别联合，只接受受信租户、来源身份和明确`handlingEngineerUserId`；该用户必须在写前通过同一项目/设备操作范围验证，不建立自动匹配、指派或领取流程。ITR按`tenant+sourceSystem+sourceBusinessNo`、项目事件按`tenant+businessEventId`幂等，并执行与自建相同的PROJ/AST/CUS/IMP重验。本Feature不实现任何Producer或第三方客户端。
 
@@ -107,7 +108,7 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 ## 5. 数据与迁移边界
 
 - 新建CUT Owner前向表：`cut_task`、`cut_task_device_scope`、`cut_task_stage_history`、`cut_assessment`。其中聚合根和评估表名严格沿用正式SDS，不另建同义表。
-- `cut_task`保存来源判别联合、背景、当前阶段/状态、负责人、IMP快照、PROJ水位及项目/设备/客户/就绪上下文快照；`cut_task_device_scope`保存稳定设备ID、SN快照、归属版本和活动唯一标记；`cut_task_stage_history`只追加P1接入与P2提交产生的阶段迁移；`cut_assessment`保存DRAFT/SUBMITTED/INVALIDATED版本、冻结模板、严格答案JSON、上下文JSON和人工等级。
+- `cut_task`保存来源判别联合、不可变`previous_task_id`、背景、当前阶段/状态、负责人、IMP快照、PROJ水位及项目/办事处/设备/客户/就绪上下文快照；`cut_task_device_scope`保存稳定设备ID、SN快照、归属版本和活动唯一标记；`cut_task_stage_history`只追加P1接入与P2提交产生的阶段迁移；`cut_assessment`保存DRAFT/SUBMITTED/INVALIDATED版本、服务端固定模板、草稿可空/提交非空答案JSON、上下文JSON和人工等级。已提交版本失效时同事务追加下一版DRAFT并原子切换当前评估引用，不留下无current marker状态。
 - 已提交评估和阶段历史只追加；当前任务根保存阶段、状态、人工等级、当前评估ID、IMP快照ID/版本和乐观锁版本。
 - 活动设备范围使用`uk(tenant_id, project_id, device_id, active_marker)`控制并发；任务终态由后续Feature在同事务清除活动标记。
 - 来源唯一键分别约束`tenant_id/source_system/source_business_no`和`tenant_id/business_event_id`；用户自建幂等复用平台命令事实。
@@ -120,14 +121,14 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 ## 6. UI
 
 - 新建割接任务首页和任务详情工作台，不改旧`cut-task`页面；新菜单使用`pms:cutover-task:*`权限。
-- 自建入口先输入SN并展示服务端返回的授权项目、设备和只读上下文，再确认创建；无权或事实不完整不显示可提交结果。
+- 自建入口先输入SN并展示服务端按项目稳定排序返回的全部授权候选、办事处、设备和只读上下文；多项目时由工程师明确选择后再确认创建。客户等级未配置不阻断创建或草稿，但必须清楚提示且禁止P2提交。
 - 详情固定展示P2～P6五步：P2可填写/只读取决于服务端动作；P3/P4只反映已进入的下一阶段，P5/P6为后续状态，不伪造完成。
 - 问卷和人工等级为同一提交区；不显示自动建议、默认等级、自动指派、取消、暂停或转派。
 - 320/768/1024/1440无页面级横向溢出，错误不能只用颜色表达。
 
 ## 7. 验收标准
 
-- AC-FCUT002-001：一线工程师在有权项目下选择全部授权设备并使用READY快照创建唯一任务，任务进入P2并展示P1只读事实。
+- AC-FCUT002-001：一线工程师输入跨多个有效项目的SN时获得稳定候选列表，明确选择一个有权项目及其全部设备并使用READY快照创建唯一任务；任务进入P2，P1列表展示割接来源、办事处和任务生成时间。
 - AC-FCUT002-002：同一自建幂等键重放返回同一任务；异载荷、重复来源键或同设备活动冲突不新增任务。
 - AC-FCUT002-003：P2可暂存；完整问卷和人工A/B/C级提交后进入P3，D级进入P4，且不生成自动建议等级。
 - AC-FCUT002-004：缺少必填答案/人工等级、越权、跨租户、陈旧任务版本或陈旧IMP快照保持P2且无阶段历史副作用。
