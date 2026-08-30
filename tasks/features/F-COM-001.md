@@ -1,13 +1,13 @@
 # F-COM-001 合同订单副本与交付范围管理任务
 
 > Requirement：`COM-01@V1`
-> Feature Ready Gate：`NOT_READY / REVIEW_REQUIRED`
+> Feature Ready Gate：`READY / GO`
 > Feature实施状态：`NOT_STARTED`
-> 当前阶段：`FEATURE_READY`
+> 当前阶段：`TECHNICAL_PLAN`
 
 ## 当前检查点
 
-基线`862b47ec`；F-COM-001 Feature Ready仅剩B项。已锁定同版本先比载荷、不同版本才做前驱CAS；全对象重放为ACCEPTED_NO_CHANGE，混合重放/更新为ACCEPTED，冲突全批回滚且重放不改Owner/范围版本/Outbox；下一步单点复审。
+锁定基线`2fed46d4`的Feature Ready最终独立裁决为`GO`，A-E及对象重放可达性均已关闭；权威状态已进入`READY`，实施仍`NOT_STARTED`。最近Gate为F-COM-001唯一Technical Plan独立复审；当前不授权DDL、代码、菜单、测试实现或Implementation Done。
 
 ## Gate输入
 
@@ -18,7 +18,7 @@
 
 ## 状态约束
 
-- Feature Ready GO前不生成Technical Plan，不修改DDL、后端、前端、菜单或测试；
+- 只允许生成并送审唯一当前Technical Plan；Technical Plan GO前不修改DDL、后端、前端、菜单或测试；
 - 附件/XLSX只可参考名称与样式，不参与业务、数量、迁移或不一致裁决；
 - 不实现V2自动指派、COM-02或第三方ERP连接器；
 - 本Feature生产Provider形成前，F-IMP-002 Task 12继续`BLOCKED_BY_DEPENDENCY`。
