@@ -218,9 +218,9 @@
 - Options: A. 明确V1题型、选项/答案值域及服务端确定性计分契约；B. 需求方指定另一套完整且可判定的题型、答案和计分规则；C. 暂停F-ACC-002的判定与Result形成路径。
 - Recommended technical default: 无。题型、分值与计分公式直接决定客户答卷合法性及CLO/SUB可消费结果，必须由需求方确认。
 - Business decision required: 是。须逐项确认题型与JSON结构、分数来源与总分公式、精度/舍入及阈值比较时点、`weight`语义、各类无效答案的业务结果。
-- Resolution: 【待确认】。确认前已提交Response保持不变，SatisfactionTask保持`PENDING_DECISION`；不得写评分实现、Result、ResultFile或Result Outbox。
+- Resolution: 需求方已确认业务方向：ACC-02建设可配置问卷基础能力，具体题目、答案Schema、分值、权重、计分策略、精度/舍入和阈值由发布模板修订配置并冻结，不在方案阶段预设。修订010独立审批GO前仍保持`BLOCKED_BY_SPEC`；已提交Response保持不变，SatisfactionTask保持`PENDING_DECISION`。
 - Decision owner: 需求方；ACC业务Owner参与影响分析
-- Decision date: -
+- Decision date: 2026-08-30（待独立基线审批）
 
 ### Q-FPROJ-001
 

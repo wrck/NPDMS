@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：`Q-FACC-001 / BLOCKED_BY_SPEC（答卷结构与确定性计分规则）`<br>
+> 当前阻断：`Q-FACC-001 / BLOCKED_BY_SPEC（修订010待独立PRD Baseline Gate）`<br>
 > 当前任务：`Task 1：共享契约、V133与后端纵向闭环`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`369c92bd`；当前Gate=Implementation Task 1 Step 3；已通过=Result文件Owner重验与PLT原子生成文件；阻塞=`Q-FACC-001 BLOCKED_BY_SPEC`，答卷结构/计分未锁定；下一步=业务确认并按PRD→SDS→Feature→Plan回写后恢复判定实现，Response保持、Task=`PENDING_DECISION`。
+> 检查点：基线=`bf904db1`；当前Gate=PRD修订010独立复审；已通过=需求方确认可配置问卷基础能力；阻塞=`Q-FACC-001`待PRD GO；下一步=验证并提交PRD候选，GO后按SDS→Feature→Plan锁定受控题型/策略，再恢复判定实现。

@@ -5,15 +5,15 @@
 ```text
 需求/PRD-项目实施交付管理平台.md
 版本：V1.8
-当前修订：CHG-PRD-2026-08-29-007
-状态：正式基线
+当前修订候选：CHG-PRD-2026-08-30-010
+状态：需求方已确认，待独立PRD Baseline Gate审批
 ```
 
 ## 基线文件
 
 | 文件 | 用途 |
 |---|---|
-| `prd-v1.8.md` | PRD V1.8修订007的当前内容快照，已合并修订001—007，供SDS、Feature和测试读取；不得直接编辑 |
+| `prd-v1.8.md` | PRD V1.8修订010候选快照，已合并修订001—010；独立审批GO前不得作为新增下游实现输入 |
 | `prd-v1.8-amendment-001-no-manual-project-draft.md` | 已批准增量：手动项目创建失败不保留草稿 |
 | `prd-v1.8-amendment-002-organization-and-asset-location.md` | 已批准增量：组织主数据与AST地点所有权 |
 | `prd-v1.8-amendment-003-pm07-template-match-decision-history.md` | 已批准增量：PM-07模板匹配决策历史与影响识别 |
@@ -21,6 +21,9 @@
 | `prd-v1.8-amendment-005-audit-decisions-and-formal-consolidation.md` | 已批准修订：59项需求方裁决与正式整理 |
 | `prd-v1.8-amendment-006-selective-mapping-and-baseline-repair.md` | 已批准修订：PRE-04选择性映射、修订004回写与基线一致性修复 |
 | `prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md` | 已批准修订：111个Requirement目标版本切片、配置基础前置规则及自动派生覆盖 |
+| `prd-v1.8-amendment-008-commerce-office-scope-location.md` | 已批准修订：COM订单范围办事处发生时快照 |
+| `prd-v1.8-amendment-009-acceptance-scope-stage-trigger.md` | 已批准修订：验收范围时序及合同管理员公司范围 |
+| `prd-v1.8-amendment-010-configurable-questionnaire-foundation.md` | 待独立审批：ACC-02可配置问卷基础能力 |
 | `prd-v1.7.md` | 已被V1.8替代的历史快照；仅用于差异和审计追溯 |
 | `requirement-baseline.yaml` | 版本、Requirement/切片数量、哈希、范围分类和校验命令 |
 | `baseline-signoff.md` | 基线批准、适用范围和签署记录；不虚构签署人 |
@@ -32,5 +35,5 @@
 2. 快照与源PRD必须使用同一SHA-256；哈希不一致时标记`STALE`，不得作为下游输入。
 3. PRD变化必须先更新源文件，再重新生成快照、元数据和追溯矩阵；禁止只改快照。
 4. V3和`OUT_OF_SCOPE`只保留追溯，不得进入V1/V2开发承诺。
-5. 基线生效后的业务变化必须通过CHG-01记录影响、批准和新版本；当前快照已合并修订001—007，增量文件只作为批准依据和审计追溯，不得在读取快照后重复叠加。
+5. 基线生效后的业务变化必须通过CHG-01记录影响、批准和新版本；当前候选快照已合并修订001—010，增量文件只作为批准依据和审计追溯，不得在读取快照后重复叠加。
 6. 111个正式目标版本切片由PRD附录A.1/A.1.1派生；`requirement-version-coverage.json`和`requirement-matrix.md`必须由生成器同步重建，不得直接编辑状态。
