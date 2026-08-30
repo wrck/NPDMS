@@ -287,7 +287,8 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(successorIdentityUpgradeSql.contains(
                 "(`tenant_id`, `predecessor_acceptance_id`)"));
         assertTrue(successorIdentityUpgradeSql.contains(
-                "`predecessor_acceptance_id` IS NULL AND `successor_reason` IS NULL AND `batch_root_marker` = 1"));
+                "`predecessor_acceptance_id` IS NULL AND `successor_reason` IS NULL "
+                        + "AND `batch_root_marker` IS NOT NULL AND `batch_root_marker` = 1"));
         assertTrue(successorIdentityUpgradeSql.contains(
                 "`predecessor_acceptance_id` IS NOT NULL AND `successor_reason` IS NOT NULL AND `batch_root_marker` IS NULL"));
     }

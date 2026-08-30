@@ -34,6 +34,7 @@ ALTER TABLE `imp_arrival_acceptance`
     ADD CONSTRAINT `chk_imp_arrival_batch_chain`
         CHECK ((`predecessor_acceptance_id` IS NULL
                     AND `successor_reason` IS NULL
+                    AND `batch_root_marker` IS NOT NULL
                     AND `batch_root_marker` = 1)
             OR (`predecessor_acceptance_id` IS NOT NULL
                     AND `successor_reason` IS NOT NULL
