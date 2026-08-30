@@ -66,13 +66,18 @@ public record ImplementationReadinessContextFact(
             Boolean reopened) {
         public SourceFact {
             if (sourceCode == null || completionStatus == null || factVersion == null || factVersion < 0
-                    || sourceObjectIds == null || sourceObjectIds.isEmpty()
-                    || watermarkEntries == null || watermarkEntries.isEmpty() || reopened == null) {
+                    || sourceObjectIds == null || watermarkEntries == null || reopened == null) {
                 throw corrupted("invalid source fact");
             }
             if (sourceCode == SourceCode.EXE_01 && completionStatus == CompletionStatus.COMPLETED
                     || sourceCode != SourceCode.EXE_01 && completionStatus == CompletionStatus.ACCEPTED) {
                 throw corrupted("source completion status does not match its requirement");
+            }
+            boolean completed = completionStatus == CompletionStatus.ACCEPTED
+                    || completionStatus == CompletionStatus.COMPLETED;
+            if (completed && (sourceObjectIds.isEmpty() || watermarkEntries.isEmpty())
+                    || !completed && sourceObjectIds.isEmpty() != watermarkEntries.isEmpty()) {
+                throw corrupted("source identity and watermark do not match completion status");
             }
             sourceObjectIds = sourceObjectIds.stream().sorted().toList();
             requireUnique(sourceObjectIds, "sourceObjectId");
@@ -97,4 +102,11 @@ public record ImplementationReadinessContextFact(
     public enum SourceCode { EXE_01, EXE_02, EXE_03, EXE_04 }
 
     public enum CompletionStatus { ACCEPTED, COMPLETED, NOT_COMPLETED }
+
+    public boolean isReady() {
+        return sourceFacts.stream().allMatch(fact -> !fact.reopened()
+                && (fact.sourceCode() == SourceCode.EXE_01
+                ? fact.completionStatus() == CompletionStatus.ACCEPTED
+                : fact.completionStatus() == CompletionStatus.COMPLETED));
+    }
 }

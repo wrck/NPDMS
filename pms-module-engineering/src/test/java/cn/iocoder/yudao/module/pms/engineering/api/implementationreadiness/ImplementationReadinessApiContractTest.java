@@ -93,6 +93,32 @@ class ImplementationReadinessApiContractTest {
     }
 
     @Test
+    void missingOrReopenedSourceProducesARealNotReadyFactWithoutPlaceholders() {
+        ImplementationReadinessContextFact missingContext = contextWithExe02(
+                new ImplementationReadinessContextFact.SourceFact(
+                        ImplementationReadinessContextFact.SourceCode.EXE_02,
+                        ImplementationReadinessContextFact.CompletionStatus.NOT_COMPLETED,
+                        0L, List.of(), List.of(), false));
+        ImplementationReadinessSnapshotFact missingSnapshot = snapshot(
+                ImplementationReadinessSnapshotFact.Decision.NOT_READY, missingContext,
+                List.of("EXE_02_NOT_COMPLETED"));
+        ImplementationReadinessResult notReady = new ImplementationReadinessResult(
+                ImplementationReadinessResult.Decision.NOT_READY, missingSnapshot, missingContext,
+                List.of("EXE_02_NOT_COMPLETED"), List.of());
+        assertEquals(ImplementationReadinessResult.Decision.NOT_READY, notReady.decision());
+        assertEquals(List.of(), missingContext.sourceFacts().get(1).sourceObjectIds());
+
+        ImplementationReadinessContextFact reopenedContext = contextWithExe02(
+                new ImplementationReadinessContextFact.SourceFact(
+                        ImplementationReadinessContextFact.SourceCode.EXE_02,
+                        ImplementationReadinessContextFact.CompletionStatus.COMPLETED,
+                        22L, List.of(22L), List.of(new ImplementationReadinessContextFact.WatermarkEntry(
+                        "FACT_VERSION", 22L, 22L)), true));
+        assertThrows(ImplementationReadinessException.class, () -> snapshot(
+                ImplementationReadinessSnapshotFact.Decision.READY, reopenedContext, List.of()));
+    }
+
+    @Test
     void publicFailuresRemainClosed() {
         assertEquals(List.of("DUPLICATE_DEVICE", "INVALID_REQUEST", "OWNER_DATA_CORRUPTED",
                         "PROVIDER_UNAVAILABLE", "SNAPSHOT_NOT_FOUND", "TENANT_CONTEXT_MISMATCH"),
@@ -120,6 +146,13 @@ class ImplementationReadinessApiContractTest {
                                 ImplementationReadinessContextFact.CompletionStatus.ACCEPTED, 11L),
                         source(ImplementationReadinessContextFact.SourceCode.EXE_03,
                                 ImplementationReadinessContextFact.CompletionStatus.COMPLETED, 33L)));
+    }
+
+    private static ImplementationReadinessContextFact contextWithExe02(
+            ImplementationReadinessContextFact.SourceFact exe02) {
+        ImplementationReadinessContextFact base = context();
+        return new ImplementationReadinessContextFact(base.projectScopeVersion(), base.devices(), base.approvedPlan(),
+                List.of(base.sourceFacts().get(0), exe02, base.sourceFacts().get(2), base.sourceFacts().get(3)));
     }
 
     private static ImplementationReadinessContextFact.SourceFact source(
