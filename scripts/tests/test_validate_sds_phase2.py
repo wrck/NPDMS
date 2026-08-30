@@ -116,6 +116,44 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("RECORDED置CURRENT" in error for error in errors), errors)
 
+    def test_facc002_rejects_missing_configurable_scoring_catalog(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "SUM_V1/WEIGHTED_AVERAGE_V1", "IMPLEMENTATION_DEFINED", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("SUM_V1/WEIGHTED_AVERAGE_V1" in error for error in errors), errors)
+
+    def test_facc002_rejects_client_scoring_fields(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "10-api-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "客户不能提交score/passed/threshold/weight/strategy",
+                "客户可以提交score/passed",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("客户不能提交score" in error for error in errors), errors)
+
+    def test_facc002_rejects_rewriting_v133_seed(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "FORWARD_MANAGED_SEED_REVISION_REQUIRED", "REWRITE_V133", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("FORWARD_MANAGED_SEED_REVISION_REQUIRED" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|
