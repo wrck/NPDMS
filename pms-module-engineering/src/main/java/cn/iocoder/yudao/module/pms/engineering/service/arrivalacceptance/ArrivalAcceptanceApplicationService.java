@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalAcceptanceRules;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalAcceptanceStateMachine;
+import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalDifferenceScopeCodec;
 import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalFactCalculator;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
@@ -160,18 +161,25 @@ public final class ArrivalAcceptanceApplicationService {
         rules.validateSubmission(scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
                 scope.acceptedDeviceIds(), scope.acceptedQuantityScopes(), true);
         LocalDateTime checkedAt = LocalDateTime.now();
-        List<ArrivalLineDO> confirmedLines = lineMapper.selectConfirmedAcceptedByProject(
-                new ArrivalProjectFactQuery(command.tenantId(), root.getProjectId(), checkedAt));
+        ArrivalProjectFactQuery factQuery = new ArrivalProjectFactQuery(
+                command.tenantId(), root.getProjectId(), checkedAt);
+        List<ArrivalLineDO> confirmedLines = lineMapper.selectConfirmedAcceptedByProject(factQuery);
+        List<ArrivalDifferenceDO> confirmedExemptions =
+                differenceMapper.selectEffectiveExemptionsByProject(factQuery);
         List<ArrivalFactCalculator.DeviceContribution> acceptedDevices = new java.util.ArrayList<>();
         List<ArrivalFactCalculator.QuantityContribution> acceptedQuantities = new java.util.ArrayList<>();
+        List<ArrivalFactCalculator.DeviceExemption> deviceExemptions = new java.util.ArrayList<>();
+        List<ArrivalFactCalculator.QuantityExemption> quantityExemptions = new java.util.ArrayList<>();
         addContributions(root.getId(), scope.acceptedDeviceIds(), scope.acceptedQuantityScopes(),
                 acceptedDevices, acceptedQuantities);
         addConfirmedContributions(confirmedLines, acceptedDevices, acceptedQuantities);
+        addEffectiveExemptions(differences, checkedAt, deviceExemptions, quantityExemptions);
+        addEffectiveExemptions(confirmedExemptions, checkedAt, deviceExemptions, quantityExemptions);
         ArrivalFactCalculator.CalculationResult calculation = factCalculator.calculate(
                 new ArrivalFactCalculator.CalculationInput(
                         scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
                         List.copyOf(acceptedDevices), List.copyOf(acceptedQuantities),
-                        List.of(), List.of(), checkedAt));
+                        List.copyOf(deviceExemptions), List.copyOf(quantityExemptions), checkedAt));
         String submittedStatus = stateMachine.submit(scope.hasOpenDifference(),
                 ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(calculation.decision()));
         LocalDateTime submittedAt = LocalDateTime.now();
@@ -282,6 +290,45 @@ public final class ArrivalAcceptanceApplicationService {
                 throw new IllegalStateException("confirmed arrival line scope type is unsupported");
             }
         }
+    }
+
+    private static void addEffectiveExemptions(
+            List<ArrivalDifferenceDO> differences, LocalDateTime checkedAt,
+            List<ArrivalFactCalculator.DeviceExemption> devices,
+            List<ArrivalFactCalculator.QuantityExemption> quantities) {
+        if (differences == null) return;
+        for (ArrivalDifferenceDO difference : differences) {
+            if (!isEffectiveExemption(difference, checkedAt)) continue;
+            ArrivalDifferenceScopeCodec.Scope scope =
+                    ArrivalDifferenceScopeCodec.parse(difference.getScopeSnapshot());
+            if (scope instanceof ArrivalDifferenceScopeCodec.DeviceScope device) {
+                devices.add(new ArrivalFactCalculator.DeviceExemption(
+                        difference.getArrivalAcceptanceId(), device.deviceId(),
+                        difference.getReason(), difference.getRiskDescription(),
+                        difference.getApprovedBy(), difference.getApprovedAt(),
+                        difference.getEvidenceId(), difference.getEvidenceRevision(),
+                        difference.getExemptionExpiresAt()));
+            } else if (scope instanceof ArrivalDifferenceScopeCodec.QuantityScope quantity) {
+                quantities.add(new ArrivalFactCalculator.QuantityExemption(
+                        difference.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(
+                        quantity.orderLineId(), quantity.productCode(), quantity.modelCode(),
+                        quantity.quantity(), quantity.unitCode()),
+                        difference.getReason(), difference.getRiskDescription(),
+                        difference.getApprovedBy(), difference.getApprovedAt(),
+                        difference.getEvidenceId(), difference.getEvidenceRevision(),
+                        difference.getExemptionExpiresAt()));
+            }
+        }
+    }
+
+    private static boolean isEffectiveExemption(ArrivalDifferenceDO difference, LocalDateTime checkedAt) {
+        return difference != null && "EXEMPTED".equals(difference.getResolutionStatus())
+                && !blank(difference.getReason()) && !blank(difference.getRiskDescription())
+                && difference.getApprovedBy() != null && difference.getApprovedAt() != null
+                && difference.getEvidenceId() != null
+                && difference.getEvidenceRevision() != null && difference.getEvidenceRevision() > 0
+                && difference.getExemptionExpiresAt() != null
+                && difference.getExemptionExpiresAt().isAfter(checkedAt);
     }
 
     private static void requireSubmitCommand(SubmitCommand command) {

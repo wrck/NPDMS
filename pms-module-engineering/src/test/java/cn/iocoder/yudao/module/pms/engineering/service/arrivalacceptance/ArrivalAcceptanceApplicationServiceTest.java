@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalSubmissionUpdate;
+import cn.iocoder.yudao.module.pms.engineering.domain.arrivalacceptance.ArrivalDifferenceScopeCodec;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeliveryScopePort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.DeviceScopeFactPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.FileArtifactFactPort;
@@ -162,6 +163,80 @@ class ArrivalAcceptanceApplicationServiceTest {
         assertEquals("ACCEPTED", result.status());
     }
 
+    @Test
+    void combinesCurrentAcceptedDeviceWithCurrentEffectiveExemption() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftTwoDevices());
+        when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryScopeTwoDevices());
+        when(fixture.devicePort().lockAndRevalidate(any(), any(), any())).thenReturn(deviceScopeTwoDevices());
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(acceptedDeviceLine(12L, 900L)));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(exemptedDevice(900L, 11L)));
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
+                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+
+        assertEquals("ACCEPTED", result.status());
+    }
+
+    @Test
+    void combinesConfirmedEffectiveExemptionWithCurrentAcceptedDevice() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftTwoDevices());
+        when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryScopeTwoDevices());
+        when(fixture.devicePort().lockAndRevalidate(any(), any(), any())).thenReturn(deviceScopeTwoDevices());
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(acceptedDeviceLine(12L, 900L)));
+        when(fixture.differenceMapper().selectEffectiveExemptionsByProject(any()))
+                .thenReturn(List.of(exemptedDevice(800L, 11L)));
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
+                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+
+        assertEquals("ACCEPTED", result.status());
+    }
+
+    @Test
+    void combinesCurrentAcceptedQuantityWithCurrentEffectiveExemption() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftQuantityScope());
+        when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryQuantityScope());
+        when(fixture.devicePort().lockAndRevalidate(any(), any(), any()))
+                .thenReturn(new DeviceScopeFactPort.DeviceScopeFact(100L, List.of()));
+        when(fixture.lineMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(acceptedQuantityLine(new BigDecimal("3"))));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(exemptedQuantity(new BigDecimal("2"))));
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
+                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+
+        assertEquals("ACCEPTED", result.status());
+    }
+
+    @Test
+    void rejectsActiveExemptionWithLegacyScopeShapeBeforeWritingSubmission() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftTwoDevices());
+        when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryScopeTwoDevices());
+        when(fixture.devicePort().lockAndRevalidate(any(), any(), any())).thenReturn(deviceScopeTwoDevices());
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(acceptedDeviceLine(12L, 900L)));
+        ArrivalDifferenceDO legacy = exemptedDevice(800L, 11L);
+        legacy.setScopeSnapshot("{\"scopeType\":\"DEVICE\",\"deviceId\":\"11\"}");
+        when(fixture.differenceMapper().selectEffectiveExemptionsByProject(any())).thenReturn(List.of(legacy));
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+
+        assertThrows(IllegalArgumentException.class, () -> fixture.service().submit(
+                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0)));
+
+        verify(fixture.acceptanceMapper(), never()).updateSubmittedIfMatch(any());
+    }
+
     private static ArrivalAcceptanceApplicationService.CreateDraftCommand command() {
         return new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                 1L, 100L, 8L, "ARRIVAL-001", "LOGISTICS-001",
@@ -241,6 +316,14 @@ class ArrivalAcceptanceApplicationServiceTest {
         return row;
     }
 
+    private static ArrivalAcceptanceDO draftQuantityScope() {
+        ArrivalAcceptanceDO row = draft();
+        row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20," +
+                "\"assignedQuantity\":5,\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\"," +
+                "\"modelCode\":\"MODEL-1\",\"serialNumbers\":[]}],\"devices\":[]}");
+        return row;
+    }
+
     private static DeliveryEvidenceDO evidence() {
         DeliveryEvidenceDO row = new DeliveryEvidenceDO();
         row.setId(50L);
@@ -283,6 +366,25 @@ class ArrivalAcceptanceApplicationServiceTest {
         return row;
     }
 
+    private static ArrivalLineDO acceptedQuantityLine(BigDecimal quantity) {
+        ArrivalLineDO row = new ArrivalLineDO();
+        row.setArrivalAcceptanceId(900L);
+        row.setScopeType("ORDER_MODEL_QUANTITY");
+        row.setOrderLineId(20L);
+        row.setProductCode("PRODUCT-1");
+        row.setModelCode("MODEL-1");
+        row.setAcceptedQuantity(quantity);
+        row.setUnit("台");
+        row.setStatus("ACCEPTED");
+        return row;
+    }
+
+    private static DeliveryScopePort.AssignedScope deliveryQuantityScope() {
+        return new DeliveryScopePort.AssignedScope(100L, 8L, List.of(
+                new DeliveryScopePort.AssignedLine(20L, new BigDecimal("5"),
+                        "台", "PRODUCT-1", "MODEL-1", Set.of())));
+    }
+
     private static DeliveryScopePort.AssignedScope deliveryScopeTwoDevices() {
         return new DeliveryScopePort.AssignedScope(100L, 8L, List.of(
                 new DeliveryScopePort.AssignedLine(20L, new BigDecimal("2"),
@@ -299,6 +401,30 @@ class ArrivalAcceptanceApplicationServiceTest {
         ArrivalDifferenceDO row = new ArrivalDifferenceDO();
         row.setArrivalAcceptanceId(900L);
         row.setResolutionStatus("OPEN");
+        return row;
+    }
+
+    private static ArrivalDifferenceDO exemptedDevice(Long acceptanceId, Long deviceId) {
+        ArrivalDifferenceDO row = new ArrivalDifferenceDO();
+        row.setArrivalAcceptanceId(acceptanceId);
+        row.setResolutionStatus("EXEMPTED");
+        row.setReason("approved reason");
+        row.setRiskDescription("accepted risk");
+        row.setScopeSnapshot(ArrivalDifferenceScopeCodec.serialize(
+                new ArrivalDifferenceScopeCodec.DeviceScope(deviceId)));
+        row.setApprovedBy(8L);
+        row.setApprovedAt(LocalDateTime.now().minusHours(1));
+        row.setEvidenceId(50L);
+        row.setEvidenceRevision(1);
+        row.setExemptionExpiresAt(LocalDateTime.now().plusDays(1));
+        return row;
+    }
+
+    private static ArrivalDifferenceDO exemptedQuantity(BigDecimal quantity) {
+        ArrivalDifferenceDO row = exemptedDevice(900L, 11L);
+        row.setScopeSnapshot(ArrivalDifferenceScopeCodec.serialize(
+                new ArrivalDifferenceScopeCodec.QuantityScope(
+                        20L, "PRODUCT-1", "MODEL-1", quantity, "台")));
         return row;
     }
 
