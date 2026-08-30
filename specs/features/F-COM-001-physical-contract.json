@@ -23,14 +23,14 @@
   "tables": {
     "com_contract": {
       "policy": "NEW_FORWARD_OWNER_TABLE",
-      "columns": {"company_code":"VARCHAR(32) NOT NULL","contract_no":"VARCHAR(64) NOT NULL","customer_code":"VARCHAR(64) NULL","customer_name":"VARCHAR(255) NULL","contract_amount":"DECIMAL(20,2) NULL","currency_code":"VARCHAR(16) NULL","authority_status":"VARCHAR(32) NOT NULL","source_lifecycle_status":"VARCHAR(32) NOT NULL","source_system":"VARCHAR(32) NOT NULL","source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(128) NOT NULL","source_updated_at":"DATETIME(3) NOT NULL","synced_at":"DATETIME(3) NOT NULL","version":"INT NOT NULL"},
+      "columns": {"company_code":"VARCHAR(32) NOT NULL","contract_no":"VARCHAR(64) NOT NULL","customer_code":"VARCHAR(64) NULL","customer_name":"VARCHAR(255) NULL","contract_amount":"DECIMAL(20,2) NULL","currency_code":"VARCHAR(16) NULL","authority_status":"VARCHAR(32) NOT NULL","source_lifecycle_status":"VARCHAR(32) NOT NULL","source_system":"VARCHAR(32) NOT NULL","source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(64) NOT NULL","source_updated_at":"DATETIME(3) NOT NULL","synced_at":"DATETIME(3) NOT NULL","version":"INT NOT NULL"},
       "uniqueKeys": [["tenant_id","company_code","contract_no"],["tenant_id","source_system","source_key"]],
       "checks": ["authority_status IN authorityStatus", "source_lifecycle_status IN sourceLifecycleStatus", "version >= 0"],
       "immutableOwnerFields": ["company_code","contract_no","source_system","source_key"]
     },
     "com_sales_order": {
       "policy": "NEW_FORWARD_OWNER_TABLE",
-      "columns": {"company_code":"VARCHAR(32) NOT NULL","order_no":"VARCHAR(64) NOT NULL","order_type":"VARCHAR(32) NOT NULL","customer_code":"VARCHAR(64) NULL","customer_name":"VARCHAR(255) NULL","order_amount":"DECIMAL(20,2) NULL","currency_code":"VARCHAR(16) NULL","authority_status":"VARCHAR(32) NOT NULL","source_lifecycle_status":"VARCHAR(32) NOT NULL","source_system":"VARCHAR(32) NOT NULL","source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(128) NOT NULL","source_updated_at":"DATETIME(3) NOT NULL","synced_at":"DATETIME(3) NOT NULL","version":"INT NOT NULL"},
+      "columns": {"company_code":"VARCHAR(32) NOT NULL","order_no":"VARCHAR(64) NOT NULL","order_type":"VARCHAR(32) NOT NULL","customer_code":"VARCHAR(64) NULL","customer_name":"VARCHAR(255) NULL","order_amount":"DECIMAL(20,2) NULL","currency_code":"VARCHAR(16) NULL","authority_status":"VARCHAR(32) NOT NULL","source_lifecycle_status":"VARCHAR(32) NOT NULL","source_system":"VARCHAR(32) NOT NULL","source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(64) NOT NULL","source_updated_at":"DATETIME(3) NOT NULL","synced_at":"DATETIME(3) NOT NULL","version":"INT NOT NULL"},
       "uniqueKeys": [["tenant_id","source_system","source_key"]],
       "checks": ["authority_status IN authorityStatus", "source_lifecycle_status IN sourceLifecycleStatus", "version >= 0"]
     },
@@ -49,7 +49,7 @@
     },
     "com_authority_candidate": {
       "policy": "NEW_FORWARD_SUPPORT_TABLE",
-      "columns": {"object_type":"VARCHAR(32) NOT NULL","candidate_source_system":"VARCHAR(32) NOT NULL","candidate_source_key":"VARCHAR(128) NOT NULL","candidate_version":"VARCHAR(128) NOT NULL","candidate_payload":"JSON NOT NULL","evidence_reference":"JSON NOT NULL","candidate_status":"VARCHAR(32) NOT NULL","matched_owner_table":"VARCHAR(64) NULL","matched_owner_id":"BIGINT NULL","matched_owner_source_version":"VARCHAR(128) NULL","submitted_by":"BIGINT NOT NULL","submitted_at":"DATETIME(3) NOT NULL","decided_by":"BIGINT NULL","decided_at":"DATETIME(3) NULL","version":"INT NOT NULL"},
+      "columns": {"object_type":"VARCHAR(32) NOT NULL","candidate_source_system":"VARCHAR(32) NOT NULL","candidate_source_key":"VARCHAR(128) NOT NULL","candidate_version":"VARCHAR(128) NOT NULL","candidate_payload":"JSON NOT NULL","evidence_reference":"JSON NOT NULL","candidate_status":"VARCHAR(32) NOT NULL","matched_owner_table":"VARCHAR(64) NULL","matched_owner_id":"BIGINT NULL","matched_owner_source_version":"VARCHAR(64) NULL","submitted_by":"BIGINT NOT NULL","submitted_at":"DATETIME(3) NOT NULL","decided_by":"BIGINT NULL","decided_at":"DATETIME(3) NULL","version":"INT NOT NULL"},
       "uniqueKeys": [["tenant_id","object_type","candidate_source_system","candidate_source_key","candidate_version"]],
       "checks": ["candidate_source_system = PLATFORM_MANUAL", "object_type IN candidateObjectType", "candidate_status IN candidateStatus", "MATCHED requires all matched/decided fields; PENDING_RECONCILIATION requires them null", "version >= 0"],
       "immutability": "source identity, payload and evidence are append-only; reconcile links an existing CONFIRMED owner row and never promotes or rewrites candidate payload"

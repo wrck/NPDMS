@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2十表Schema与V70前向兼容候选已形成：V143、六张新表、V70 nullable前向列、current marker预检及DO映射已完成；21项聚焦测试和隔离MySQL 8.4空库、旧NULL/0行、冲突失败关闭与repair重跑证据通过。当前Gate为Task 2独立Schema/迁移复审，尚未回写PASS；Task 2A仍另走PLT合同Gate。
+Task 2候选`ae1968c6`复审NO-GO：Owner sourceVersion列宽与公共合同不一致，且marker预检漏掉软删当前行。最小整改已统一Owner版本为64并使预检覆盖与生成列相同集合，当前Gate为A/B定点Schema/迁移复审；尚未回写PASS，Task 2A仍另走PLT合同Gate。
 
 ## Gate输入
 
