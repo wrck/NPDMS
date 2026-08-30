@@ -48,13 +48,13 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 
 - 合同业务身份为`tenantId + companyCode + contractNo`；销售订单和订单行按ERP稳定来源键幂等，来源版本只能前进，重复同版本同摘要为重放，同版本异内容进入冲突隔离。
 - ERP拥有合同、订单、订单行、产品、数量、金额和来源状态；COM只保存只读副本。`authorityStatus`只表达数量是否已获权威确认，`sourceLifecycleStatus`独立表达`ACTIVE/CANCELLED/RETURNED`，两者不得互相推断。CRM经营引用独立保存，不覆盖ERP字段。
-- 授权人工补录只形成`sourceSystem=PLATFORM_MANUAL`、`authorityStatus=PENDING_AUTHORITY`的候选，必须保存依据和操作人；经ERP或正式Owner确认前不得转成可分配量。
+- 授权人工补录只追加`com_authority_candidate`候选，保存对象类型、不可变`PLATFORM_MANUAL`来源键/版本、完整候选载荷、证据引用和操作人。核对只能把候选关联到已经存在且为`CONFIRMED`的ERP Owner事实，候选进入`MATCHED`但不改来源键、不复制或晋升为权威主档；拒绝保留历史。
 - 外部Owner不可用时保留最近一次成功副本及状态，不用空响应覆盖；来源缺失或损坏失败关闭。
 
 ### BR-FCOM001-002 关系与查询
 
 - 合同与销售订单使用关系记录表达多对多，不在订单头固化唯一合同；项目可关联多个合同/订单，实际交付边界以订单行到项目的当前DeliveryScope为准。
-- 合同管理员只能维护关联、来源核对和冲突处置，不能编辑ERP权威字段；项目经理只能查看和维护本人负责、参与或明确授权且`ProjectScopeApi.ACTION_EDIT`允许的项目范围。
+- 合同管理员只能维护其`OrganizationScopeApi`当前有效公司范围内的关联、候选核对和冲突处置；Owner `companyCode`必须精确命中同一有效范围行，无项目关联合同也不得越出该公司范围。项目范围写入必须同时满足功能权限、`ProjectScopeApi.ACTION_EDIT`和`ProjectParticipantFactApi`对受信actor返回的current `PROJECT_MANAGER`事实；普通参与、全局角色或单独ACTION_EDIT均不能替代项目经理。
 - 项目、合同、订单、订单行任一不可见时返回不可见/不存在，不通过全局角色或前端按钮扩大数据范围。
 
 ### BR-FCOM001-003 范围分配
@@ -74,9 +74,10 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 
 ### BR-FCOM001-005 当前范围事实
 
-- `getAssignedScope(projectId, expectedScopeVersion)`返回项目当前有效且来源已确认的订单行、已分配数量、单位、产品/型号维度、明确SN集合及结构化`scopeVersion`。
-- `PENDING_AUTHORITY`、`CONFLICT`、取消、退货、已释放或过期范围不进入结果。项目无有效范围返回明确空结果；版本未知、过期或Owner数据损坏失败关闭。
-- `scopeVersion`在任何会改变当前有效集合或载荷的分配、释放、冲突冻结、冲突解除或来源确认变化时单调递增；调用方不得用当前可分割余量接口降级替代。
+- `getAssignedScope(projectId, expectedScopeVersion)`从受信租户上下文执行；项目必须为正数并通过`ProjectScopeApi.ACTION_VIEW`。`expectedScopeVersion=null`是只读inspect；非空时先锁项目水位，再按订单行、范围、明细ID升序锁当前投影并比较期望版本。
+- 返回行以`scopeId+scopeDetailId`为不可歧义分组键，不把同一订单行的不同产品、型号或地点静默聚合；每行包含订单行、数量、单位、产品/型号和明确SN。SN比较键为`trim + Locale.ROOT uppercase`，有SN时每个SN占数量1且数量等于SN数；无SN表示订单型号数量。
+- `PENDING_AUTHORITY`、取消、退货、已释放、过期或旧行待核对不进入结果；但项目存在任一未解决`CONFLICT`时整体返回`SCOPE_CONFLICT`，禁止部分或空成功。项目真实无范围返回持久水位和明确空结果。
+- 独立`com_delivery_scope_project_version`保存项目水位；当前集合、返回载荷、冲突冻结/解除或清空的任何变化均在同一事务单调加一且不删除水位行。未知/过期返回`SCOPE_STALE`；输入、租户、项目资格、Owner损坏和Provider不可用使用机器合同封闭分类。
 - IMP/ACC只消费COM公开事实；COM不写到货、验收或归档状态。
 
 ### BR-FCOM001-006 权限、幂等和审计
@@ -112,19 +113,21 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### 5.2 跨Context契约
 
 - 扩展既有`DeliveryScopeApi`新增`getAssignedScope(projectId, expectedScopeVersion)`；返回稳定DTO，不暴露DO、来源正文或内部状态。
-- ERP集成Owner只通过`CommerceAuthorityIngestApi`提交合同/订单/订单行来源事实、来源版本和事件键；F-COM-001实现本地接收与幂等落库，不实现第三方连接器。
+- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。一个租户/来源批次全有或全无；同event同规范载荷返回重放，同event异载荷永久冲突，旧来源版本不得覆盖。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
 - PROJ资格复用正式公开事实；AST地点/SN校验复用正式公开API。不得降级为直接跨表查询。
 
 ### 5.3 事件
 
 - `DeliveryScopeAssigned/Released`与范围事实同事务进入COM Outbox，至少冻结`eventId/tenantId/orderLineId/projectId/scopeId/scopeVersion/allocatedQty/dimensionDigest/occurredAt`。
-- 来源取消/减量导致冻结时发布`DeliveryScopeConflicted`；事件送达不等于消费者业务完成，重复/乱序不得覆盖更高版本。
+- 来源取消/减量导致冻结时只保存COM冲突事实、项目水位、审计及既有通知边界；F-COM-001不新增未在事件SDS批准的公共冲突事件。事件送达不等于消费者业务完成，重复/乱序不得覆盖更高版本。
 
 ## 6. 数据与迁移边界
 
-- COM物理Owner为`com_contract`、`com_sales_order`、合同订单关系、项目合同关系、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`和`com_outbox_event`。
+- COM物理Owner为`com_contract`、`com_sales_order`、合同订单关系、项目合同关系、`com_authority_candidate`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_delivery_scope_project_version`和`com_outbox_event`。
 - V70已有订单行/范围/明细/Outbox只作为F-PROJ-002切片，允许在保持既有接口语义下前向扩展；不得修改已执行迁移。
-- `sms_ofst_contract_head_sap`、`pm_order_data_from_erp`、`pm_order_line_from_erp`、`pm_project_product_line`只按正式迁移契约逐行映射。无法证明公司+合同号、订单业务键、订单行键、项目、数量或关系完整性时保留旧记录并生成迁移问题，不创建权威目标事实。
+- `sms_ofst_contract_head_sap`、`pm_order_data_from_erp`、`pm_order_line_from_erp`、`pm_project_product_line`只按正式迁移契约逐行映射：原值进入`plt_migration_source_record`，合格目标进入`plt_external_key_mapping`，不可迁原因进入`plt_migration_issue`，批次数量和状态进入`plt_migration_batch`。无法证明公司+合同号、订单业务键、订单行键、项目、数量或关系完整性时不创建权威目标事实。
+- V70 `com_order_line.quantity_status`继续是`CONFIRMED/PENDING_AUTHORITY`唯一数量权威字段，不改名、不新增`authority_status`双写。前向新增的型号、来源生命周期/时间和范围维度列对既有行可空；缺任一正式事实的旧行保持`PENDING_RECONCILIATION`并从当前范围排除，禁止用默认值补齐。
+- 审计事实显示`pm_project_product_line.projectQuantity`无已填充值；`orderQuantity/deliverQuantity/openQuantity`均只保留原值，绝不替代项目分配量。因而当前这批旧范围行在取得逐行权威证据前全部进入迁移问题。
 - V72种子仅是受控测试数据，不作为生产Owner来源或迁移事实。
 - 旧CRM合同表/页面属于CRM业务，不迁移、不双写、不作为COM合同主档；现有旧入口保持不变。
 
@@ -142,7 +145,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - `AC-FCOM001-002`：项目经理可在授权项目完成订单行预览和确认分配，主/明细数量一致，成功后工作台及`getAssignedScope`返回同一当前事实。
 - `AC-FCOM001-003`：超配、单位/精度错误、地点或SN无效、项目无权、版本陈旧均在写入前拒绝且零业务副作用。
 - `AC-FCOM001-004`：同键重放不重复范围、Outbox或审计；同键异载荷冲突；并发分配最多一个按期望版本成功。
-- `AC-FCOM001-005`：来源取消、退货或减量造成超分配时范围进入`CONFLICT`，不静默削减；无关项目内部流程继续。
+- `AC-FCOM001-005`：来源取消、退货或减量造成超分配时范围进入`CONFLICT`，不静默削减；`getAssignedScope`对该项目整体失败关闭，不返回缩小范围；无关项目内部流程继续。
 - `AC-FCOM001-006`：S5/S6或已有验收保护的范围不能静默减少，释放/调整保留旧版本、原因与冲突证据。
 - `AC-FCOM001-007`：`getAssignedScope`返回产品/型号/明确SN、数量、单位和版本，排除待核对、冲突、取消、退货和已释放范围；版本变化失败关闭。
 - `AC-FCOM001-008`：合同管理员、项目经理权限与数据范围符合PRD；空范围不放大，跨租户不可见，ERP字段无业务写入口。

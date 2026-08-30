@@ -7,7 +7,7 @@
 
 ## 当前检查点
 
-基线`eda54bd0`；最近Gate为F-COM-001 Feature Ready；已确认COM-01无现行Feature且现有F-PROJ-002切片不能替代项目当前已分配范围；候选覆盖完整合同/订单副本、范围分配/释放、冲突、工作台和`getAssignedScope`，ERP连接器仅预留接口；下一步独立复审Feature/物理/迁移/复用边界。
+基线`c21745a9`；F-COM-001 Feature Ready整改中。已锁定项目级持久水位、冲突整体失败、原子ERP接收、人工候选只关联正式Owner、V70 `quantity_status`兼容、PLT逐行迁移及项目经理/公司范围联合授权，并移除未批准冲突事件；下一步验证A-E规格闭环后复审。
 
 ## Gate输入
 
