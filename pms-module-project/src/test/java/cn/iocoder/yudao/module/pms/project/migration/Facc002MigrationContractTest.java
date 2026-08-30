@@ -23,6 +23,11 @@ class Facc002MigrationContractTest {
         assertTrue(sql.contains("CREATE TABLE IF NOT EXISTS `plt_export_task`"));
         assertTrue(sql.contains("CREATE TABLE IF NOT EXISTS `plt_export_audit`"));
         assertTrue(sql.contains("@facc002_v133_apply=1"));
+        assertTrue(sql.contains("involved_root_count=4 AND exact_root_count=4"));
+        assertTrue(sql.contains("FACC002-SEED-EXACT"));
+        assertTrue(sql.contains("FACC002-SEED-AMB-A"));
+        assertTrue(sql.contains("FACC002-SEED-AMB-B"));
+        assertTrue(sql.contains("FACC002-SEED-DISABLED"));
     }
 
     @Test

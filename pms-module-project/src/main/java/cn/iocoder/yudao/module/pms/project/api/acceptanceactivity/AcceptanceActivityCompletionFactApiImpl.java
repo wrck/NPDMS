@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.pms.project.api.acceptanceactivity;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionTaskInitializationApi;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationCommand;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
@@ -25,6 +27,7 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
     private final AcceptanceActivityMapper activityMapper;
     private final AcceptanceReportVersionMapper reportMapper;
     private final AcceptanceReportAttachmentMapper attachmentMapper;
+    private final SatisfactionTaskInitializationApi satisfactionTaskInitializationApi;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -42,10 +45,12 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
         }
         if ("COMPLETED".equals(activity.getActivityStatus())) {
             AcceptanceReportVersionDO completedReport = currentReport(activity);
-            return completedReport != null
+            AcceptanceActivityCompletionFact completed = completedReport != null
                     && Objects.equals(completedReport.getReportVersionNo(), command.expectedReportVersion())
                     ? fact("COMPLETED", activity, completedReport.getId(), completedReport.getReportVersionNo())
                     : fact("VERSION_CONFLICT", activity, null, null);
+            return "COMPLETED".equals(completed.outcome())
+                    ? initializeSatisfaction(command, activity, completed) : completed;
         }
         if (!"PENDING".equals(activity.getActivityStatus()) || activity.getCurrentReportVersionId() == null) {
             return fact("REPORT_INCOMPLETE", activity, null, null);
@@ -62,7 +67,27 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
         if (updated != 1) return fact("VERSION_CONFLICT", activity, null, null);
         activity.setActivityStatus("COMPLETED");
         activity.setVersion(activity.getVersion() + 1);
-        return fact("COMPLETED", activity, report.getId(), report.getReportVersionNo());
+        return initializeSatisfaction(command, activity,
+                fact("COMPLETED", activity, report.getId(), report.getReportVersionNo()));
+    }
+
+    private AcceptanceActivityCompletionFact initializeSatisfaction(AcceptanceActivityCompletionCommand command,
+                                                                      AcceptanceActivityDO activity,
+                                                                      AcceptanceActivityCompletionFact completed) {
+        if (!"PRELIMINARY".equals(activity.getAcceptanceType())) {
+            return completed;
+        }
+        String factId = String.valueOf(activity.getId());
+        var initialized = satisfactionTaskInitializationApi.initialize(new SatisfactionTaskInitializationCommand(
+                command.tenantId(), command.projectId(), command.projectTaskId(),
+                command.expectedProjectTaskVersion(), "ACC", "AcceptanceActivityCompletionFact", factId,
+                Long.valueOf(completed.activityVersion()), "ACC", "AcceptanceActivityCompletionFact", factId,
+                Long.valueOf(completed.activityVersion()), command.operationId() + ":SATISFACTION"));
+        if (initialized == null || !("CREATED".equals(initialized.outcome())
+                || "REPLAYED".equals(initialized.outcome()))) {
+            throw new IllegalStateException("SATISFACTION_TASK_INITIALIZATION_FAILED");
+        }
+        return completed;
     }
 
     private AcceptanceReportVersionDO currentReport(AcceptanceActivityDO activity) {
@@ -84,6 +109,7 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
         return command != null && tenantId != null && tenantId.equals(command.tenantId())
                 && command.projectId() != null && command.projectId() > 0
                 && command.projectTaskId() != null && command.projectTaskId() > 0
+                && command.expectedProjectTaskVersion() != null && command.expectedProjectTaskVersion() >= 0
                 && command.executionContractId() != null && command.executionContractId() > 0
                 && command.acceptanceId() != null && command.acceptanceId() > 0
                 && command.expectedActivityVersion() != null && command.expectedActivityVersion() >= 0

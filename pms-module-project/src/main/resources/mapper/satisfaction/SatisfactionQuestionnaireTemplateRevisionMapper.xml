@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateRevisionMapper">
+    <select id="selectFrozenRevision"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateRevisionDO">
+        SELECT r.*
+        FROM acc_satisfaction_questionnaire_template_revision r
+        JOIN acc_satisfaction_questionnaire_template t
+          ON t.tenant_id = r.tenant_id
+         AND t.id = r.template_id
+         AND t.current_revision_id = r.id
+         AND t.status = 'PUBLISHED'
+         AND t.deleted = b'0'
+        WHERE r.tenant_id = #{query.tenantId}
+          AND r.template_id = #{query.templateId}
+          AND r.id = #{query.templateRevisionId}
+          AND r.revision_status = 'PUBLISHED'
+          AND r.deleted = b'0'
+    </select>
+</mapper>

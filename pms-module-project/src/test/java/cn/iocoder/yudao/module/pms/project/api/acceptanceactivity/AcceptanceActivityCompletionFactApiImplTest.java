@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.project.api.acceptanceactivity;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionTaskInitializationApi;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
@@ -30,6 +32,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
     @Mock AcceptanceActivityMapper activityMapper;
     @Mock AcceptanceReportVersionMapper reportMapper;
     @Mock AcceptanceReportAttachmentMapper attachmentMapper;
+    @Mock SatisfactionTaskInitializationApi satisfactionTaskInitializationApi;
 
     @BeforeEach
     void setTenant() {
@@ -49,7 +52,8 @@ class AcceptanceActivityCompletionFactApiImplTest {
         when(reportMapper.selectByIdForUpdate(any())).thenReturn(report);
         when(attachmentMapper.selectByReportVersion(41L)).thenReturn(List.of(new AcceptanceReportAttachmentDO()));
         when(activityMapper.completeIfPending(any())).thenReturn(1);
-        var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper);
+        var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
+                satisfactionTaskInitializationApi);
 
         var result = api.lockAndComplete(command(0, 2));
 
@@ -66,7 +70,8 @@ class AcceptanceActivityCompletionFactApiImplTest {
         report.setAcceptorName(null);
         when(activityMapper.selectByIdForUpdate(any())).thenReturn(activity);
         when(reportMapper.selectByIdForUpdate(any())).thenReturn(report);
-        var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper);
+        var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
+                satisfactionTaskInitializationApi);
 
         var result = api.lockAndComplete(command(0, 2));
 
@@ -75,8 +80,25 @@ class AcceptanceActivityCompletionFactApiImplTest {
         verify(attachmentMapper, never()).selectByReportVersion(any());
     }
 
+    @Test
+    void preliminaryCompletionInitializesSatisfactionInTheSameCall() {
+        AcceptanceActivityDO activity = activity();
+        activity.setAcceptanceType("PRELIMINARY");
+        when(activityMapper.selectByIdForUpdate(any())).thenReturn(activity);
+        when(reportMapper.selectByIdForUpdate(any())).thenReturn(report());
+        when(attachmentMapper.selectByReportVersion(41L)).thenReturn(List.of(new AcceptanceReportAttachmentDO()));
+        when(activityMapper.completeIfPending(any())).thenReturn(1);
+        when(satisfactionTaskInitializationApi.initialize(any())).thenReturn(
+                new SatisfactionTaskInitializationResult("CREATED", 61L, 62L, "SAT-61", 1, 0));
+        var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
+                satisfactionTaskInitializationApi);
+
+        assertEquals("COMPLETED", api.lockAndComplete(command(0, 2)).outcome());
+        verify(satisfactionTaskInitializationApi).initialize(any());
+    }
+
     private AcceptanceActivityCompletionCommand command(int activityVersion, int reportVersion) {
-        return new AcceptanceActivityCompletionCommand(7L, 11L, 21L, 31L, 51L,
+        return new AcceptanceActivityCompletionCommand(7L, 11L, 21L, 3, 31L, 51L,
                 activityVersion, reportVersion, "operation-1");
     }
 
@@ -87,6 +109,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         row.setProjectId(11L);
         row.setProjectTaskId(21L);
         row.setExecutionContractId(31L);
+        row.setAcceptanceType("FINAL");
         row.setActivityStatus("PENDING");
         row.setCurrentReportVersionId(41L);
         row.setVersion(0);

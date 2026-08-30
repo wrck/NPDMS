@@ -88,4 +88,36 @@
           AND d.deleted = b'0'
     </select>
 
+    <select id="selectSatisfactionTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectSatisfactionTaskFactRecord">
+        SELECT p.tenant_id                       AS tenantId,
+               p.id                              AS projectId,
+               t.id                              AS projectTaskId,
+               t.task_code                       AS taskCode,
+               t.version                         AS projectTaskVersion,
+               t.satisfaction_timing             AS satisfactionTiming,
+               t.acc_satisfaction_template_id    AS templateId,
+               t.template_revision_id            AS templateRevisionId,
+               t.template_version                AS templateVersion,
+               t.satisfaction_rule_version       AS ruleVersion,
+               t.satisfaction_threshold          AS threshold,
+               COALESCE(a.assignee_user_id, p.manager_id) AS currentAssigneeUserId
+        FROM proj_project p
+        JOIN proj_project_task t
+          ON t.tenant_id = p.tenant_id
+         AND t.project_id = p.id
+         AND t.deleted = b'0'
+        LEFT JOIN proj_project_task_assignment a
+          ON a.tenant_id = t.tenant_id
+         AND a.project_task_id = t.id
+         AND a.current_marker = 1
+         AND a.effective_to IS NULL
+         AND a.deleted = b'0'
+        WHERE p.tenant_id = #{query.tenantId}
+          AND p.id = #{query.projectId}
+          AND t.id = #{query.projectTaskId}
+          AND p.deleted = b'0'
+        FOR UPDATE
+    </select>
+
 </mapper>

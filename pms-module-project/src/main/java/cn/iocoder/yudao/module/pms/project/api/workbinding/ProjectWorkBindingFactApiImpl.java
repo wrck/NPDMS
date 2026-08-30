@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindin
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
@@ -12,9 +14,11 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectSatisfactionTaskFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import lombok.RequiredArgsConstructor;
@@ -91,6 +95,38 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         return toFact(project, task, contract, revision);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectSatisfactionTaskFact lockAndRevalidateSatisfactionTask(ProjectSatisfactionTaskFactQuery query) {
+        Long tenantId = trustedTenantId();
+        if (query == null || invalidId(query.projectId()) || invalidId(query.projectTaskId())
+                || invalidVersion(query.expectedProjectTaskVersion())) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        List<ProjectSatisfactionTaskFactRecord> records = factMapper.selectSatisfactionTaskForUpdate(
+                new ProjectSatisfactionTaskFactLockQuery(tenantId, query.projectId(), query.projectTaskId()));
+        if (records == null || records.size() != 1) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        ProjectSatisfactionTaskFactRecord record = records.getFirst();
+        if (!Objects.equals(record.tenantId(), tenantId)
+                || !Objects.equals(record.projectId(), query.projectId())
+                || !Objects.equals(record.projectTaskId(), query.projectTaskId())
+                || !Objects.equals(record.projectTaskVersion(), query.expectedProjectTaskVersion())
+                || blank(record.taskCode()) || blank(record.satisfactionTiming())
+                || invalidId(record.templateId()) || invalidId(record.templateRevisionId())
+                || record.templateVersion() == null || record.templateVersion() <= 0
+                || blank(record.ruleVersion()) || record.threshold() == null
+                || record.threshold().signum() < 0 || invalidId(record.currentAssigneeUserId())) {
+            throw exception(Objects.equals(record.projectTaskVersion(), query.expectedProjectTaskVersion())
+                    ? PROJECT_TASK_QUERY_INVALID : PROJECT_TASK_VERSION_CONFLICT);
+        }
+        return new ProjectSatisfactionTaskFact(record.projectId(), record.projectTaskId(), record.taskCode(),
+                record.projectTaskVersion(), record.satisfactionTiming(), record.templateId(),
+                record.templateRevisionId(), record.templateVersion(), record.ruleVersion(), record.threshold(),
+                record.currentAssigneeUserId());
+    }
+
     private void validateRevalidation(ProjectWorkBindingFactRevalidationQuery query) {
         if (query == null || invalidId(query.projectId()) || invalidId(query.projectTaskId())
                 || invalidId(query.executionContractId()) || invalidVersion(query.expectedProjectTaskVersion())
@@ -106,6 +142,10 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
 
     private boolean invalidVersion(Integer value) {
         return value == null || value < 0;
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void requireRecord(ProjectWorkBindingFactRecord record, Long tenantId, Long projectId,
