@@ -87,6 +87,7 @@
 - `lockAndRevalidate(ImplementationReadinessRevalidationQuery)`：另输入期望快照ID/版本，以`PROPAGATION_REQUIRED`加入CUT写事务，从不可变快照取得冻结项目、设备、方案和来源水位并锁定重验；调用方不得提交部分来源向量；
 - 返回`READY/NOT_READY/STALE`、不可变快照、结构化冻结/当前上下文、未满足项和陈旧原因。`READY/NOT_READY`要求当前上下文与快照一致；`STALE`不覆盖旧快照，不返回部分Owner事实；
 - 来源水位固定为EXE-01～04四项稳定来源对象、业务版本和按轴/对象排序的数值版本条目，不使用哈希、不透明JSON或业务正文；
+- `NOT_COMPLETED`采用判别联合：Owner尚无来源事实时来源对象与水位同时为空，已有部分/失败事实时二者同时完整；不得补占位ID或虚构水位。`READY`只允许EXE-01=`ACCEPTED`、EXE-02～04=`COMPLETED`且四项均未重开，其余合法组合只能为携带非空未满足项的`NOT_READY`；
 - `INVALID_REQUEST/DUPLICATE_DEVICE/TENANT_CONTEXT_MISMATCH/SNAPSHOT_NOT_FOUND/OWNER_DATA_CORRUPTED/PROVIDER_UNAVAILABLE`为封闭公共失败，CUT只把`NOT_READY/STALE/SNAPSHOT_NOT_FOUND/PROVIDER_UNAVAILABLE`映射到已锁定业务错误，Owner损坏保持内部失败。
 
 事件`ImplementationReadinessSnapshotPublished`只在快照事务成功后发布，payload包含`snapshotId/version/projectId/decision/unmetCodes`。事件发布成功不改变CUT或项目阶段状态。

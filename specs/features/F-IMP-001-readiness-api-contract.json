@@ -41,10 +41,10 @@
       "approvedPlan": "{planId POSITIVE_LONG, planVersion NON_NEGATIVE_LONG}",
       "sourceFacts": "exactly EXE_01, EXE_02, EXE_03, EXE_04 sorted by sourceCode"
     },
-    "sourceFact": "{sourceCode, completionStatus ACCEPTED|COMPLETED|NOT_COMPLETED, factVersion NON_NEGATIVE_LONG, sourceObjectIds sorted unique, watermarkEntries sorted unique, reopened boolean}",
+    "sourceFact": "strict union: EXE_01 uses ACCEPTED|NOT_COMPLETED; EXE_02..04 use COMPLETED|NOT_COMPLETED. ACCEPTED/COMPLETED require non-empty stable sourceObjectIds and watermarkEntries. NOT_COMPLETED permits both collections empty when no source fact exists, or both non-empty for a partial/failed existing fact; placeholders are forbidden. reopened is explicit",
     "watermarkEntry": "{axisCode stable UPPER_SNAKE max64, objectId POSITIVE_LONG, version NON_NEGATIVE_LONG}; no hash or opaque JSON",
-    "ready": "snapshot decision READY, frozen and current context equal, currentUnmetCodes empty",
-    "notReady": "snapshot decision NOT_READY, frozen and current context equal, currentUnmetCodes non-empty",
+    "ready": "only EXE_01=ACCEPTED, EXE_02..04=COMPLETED and all reopened=false; snapshot decision READY, frozen and current context equal, currentUnmetCodes empty",
+    "notReady": "any otherwise valid source fact combination, including missing source or reopened=true, must use snapshot decision NOT_READY with frozen/current context equal and the same non-empty unmetCodes",
     "stale": "snapshot remains immutable; staleReasonCodes non-empty; currentContext may be null only when no complete current scope can be returned without partial facts"
   },
   "stableFailures": [
