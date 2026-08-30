@@ -31,7 +31,7 @@ class PrdSatisfactionQuestionnaireConfigurationTest(unittest.TestCase):
         cls.acc_domain = ACC_DOMAIN.read_text(encoding="utf-8")
         cls.open_questions = OPEN_QUESTIONS.read_text(encoding="utf-8")
 
-    def test_source_snapshot_and_acc_projection_share_the_candidate_rule(self) -> None:
+    def test_source_snapshot_and_acc_projection_share_the_approved_rule(self) -> None:
         self.assertEqual(self.source_bytes, self.baseline_bytes)
         self.assertIn("CHG-PRD-2026-08-30-010", self.prd)
         acc = requirement_block(self.prd, "ACC-02")
@@ -56,8 +56,8 @@ class PrdSatisfactionQuestionnaireConfigurationTest(unittest.TestCase):
         self.assertIn("结构合法但缺少必答项时保存不可变Response并形成未通过Result", acc)
         start = self.open_questions.index("### Q-FACC-001")
         question = self.open_questions[start:]
-        self.assertIn("Status: BLOCKED_BY_SPEC", question)
-        self.assertIn("修订010独立审批GO前仍保持", question)
+        self.assertIn("Status: RESOLVED", question)
+        self.assertIn("修订010已获独立PRD Baseline Gate `GO`", question)
 
 
 if __name__ == "__main__":

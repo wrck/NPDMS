@@ -818,8 +818,14 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "plt_export_audit",
             "failure_retryable/retry_count",
             "FAILED + failure_retryable=1",
+            "schemaVersion=1/questions/scoring",
+            "SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT",
+            "SUM_V1/WEIGHTED_AVERAGE_V1",
+            "最终总分仅按冻结precision/roundingMode舍入一次",
+            "FORWARD_MANAGED_SEED_REVISION_REQUIRED",
         ),
         "10-api-design.md": (
+            "/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish",
             "/satisfaction-tasks/{id}/access-grants",
             "/satisfaction-questionnaires/{token}/files",
             "/satisfaction-results/{id}/actions/invalidate",
@@ -835,6 +841,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "/api/v1/pms/export-tasks/{id}/access-ticket",
             "ownerContext=ACC/exportType=SATISFACTION_RESULT",
             "/api/v1/pms/export-tasks/{id}/actions/retry",
+            "客户不能提交score/passed/threshold/weight/strategy",
         ),
         "11-event-design.md": (
             "SatisfactionResultVersionChanged",
@@ -858,6 +865,8 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "Provider缺失、重复或载荷不符合稳定契约",
             "Provider暂时不可用或范围版本暂时未知",
             "Task记`REJECTED`",
+            "模板配置未知字段/题型/策略/舍入",
+            "答卷含未知/重复题目",
         ),
     }
     for name, tokens in required.items():
