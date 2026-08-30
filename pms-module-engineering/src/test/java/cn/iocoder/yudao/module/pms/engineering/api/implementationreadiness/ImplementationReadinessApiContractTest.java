@@ -114,8 +114,14 @@ class ImplementationReadinessApiContractTest {
                         ImplementationReadinessContextFact.CompletionStatus.COMPLETED,
                         22L, List.of(22L), List.of(new ImplementationReadinessContextFact.WatermarkEntry(
                         "FACT_VERSION", 22L, 22L)), true));
-        assertThrows(ImplementationReadinessException.class, () -> snapshot(
-                ImplementationReadinessSnapshotFact.Decision.READY, reopenedContext, List.of()));
+        ImplementationReadinessSnapshotFact reopenedSnapshot = snapshot(
+                ImplementationReadinessSnapshotFact.Decision.NOT_READY, reopenedContext,
+                List.of("EXE_02_REOPENED"));
+        ImplementationReadinessResult reopened = new ImplementationReadinessResult(
+                ImplementationReadinessResult.Decision.NOT_READY, reopenedSnapshot, reopenedContext,
+                List.of("EXE_02_REOPENED"), List.of());
+        assertEquals(ImplementationReadinessResult.Decision.NOT_READY, reopened.decision());
+        assertEquals(true, reopened.snapshot().context().sourceFacts().get(1).reopened());
     }
 
     @Test
