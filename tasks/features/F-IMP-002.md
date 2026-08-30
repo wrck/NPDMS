@@ -51,6 +51,7 @@
 - 锁定提交`1b2b6a75`的A/B/C/D运行整改四项原阻断均已关闭；其唯一剩余的`SuccessFacts.correlationId`与真实平台事务阻断已由`808151ce`完成整改并经独立复审`PASS / GO`：用户命令使用受信规范化关联标识，内部到期复用服务端稳定幂等键，业务摘要排除关联标识；真实`PlatformCommandExecutionApiImpl`验证NEW成功落账及successor/line/difference/projectFactVersion与平台记录失败时原子回滚。该PASS不等于Task 5B整体PASS；最近Gate为Task 5B八操作应用能力与状态记录的整体Code Review／聚焦测试收口。
 - 锁定基线`f10454dc`的Task 5B整体收口复审曾因create/submit空关联标识与旧CONFIRMED节点误显处置动作而`NO-GO`；两项已由`c649c424`关闭并经独立复审`PASS / GO`。Task 5B八操作应用能力、线性后继、事实版本、平台事务、分页/详情与allowedActions整体Gate正式通过。
 - Task 8的`TASK5B`实现前置已解除，允许进入VO、六类路由和八操作Controller契约实施；COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
+- Task 8实现候选已形成：新增八操作严格请求/响应VO、受信HTTP上下文边界及`/api/v1/pms/arrival-acceptances` Controller映射，五项权限、If-Match/幂等Header、判别联合、Long线协议和局部错误响应均按已通过REST机器契约实现。Controller没有`@RestController/@Component`且无生产Bean，仅显式测试组装；聚焦回归74项通过。当前最近Gate为Task 8独立Code Review／聚焦测试，生产激活继续由Task 12阻断。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
