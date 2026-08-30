@@ -26,7 +26,7 @@
 | `If-Match` | 修改聚合、移动树节点、状态命令 | 值为当前聚合版本；不匹配拒绝覆盖 |
 | `X-Source-System` | 受信任同步/回调 | 必须与执行身份绑定，不能由普通用户伪造 |
 
-租户、用户、组织、项目数据范围和执行服务身份从服务端认证上下文取得，不接受请求体中的同名字段覆盖。
+租户、用户、组织、项目数据范围和执行服务身份从服务端认证上下文取得，不接受请求体中的同名字段覆盖。模块化单体内尚无跨进程认证边界的服务调用，必须由Owner批准的专用适配器建立受控进程内调用主体；普通业务参数、公开DTO和任意调用模块名不得建立或覆盖该主体，具体边界见ADR-0036。
 
 ### 2.2 成功响应
 
@@ -260,7 +260,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
 
-AST模块内产品类型公开契约：`AssetProductTypeApi.getByCodes(ProductTypeCodesQuery)`逐项返回存在、停用、显示名称、来源版本、同步状态、最近成功同步时间和最近成功副本标记；`getAuthorizedDeviceProductType(AuthorizedDeviceProductTypeQuery)`按租户、设备范围和调用主体返回当前设备产品类型、解析状态及相同降级字段。空请求设备集合、空数据范围、跨租户或不可见设备统一返回空结果且不泄露存在性；未知编码不猜测名称。该契约只读取AST本地受控副本，不承担CRM/MES连接器。
+AST模块内产品类型公开契约：`AssetProductTypeApi.getByCodes(ProductTypeCodesQuery)`逐项返回存在、停用、显示名称、来源版本、同步状态、最近成功同步时间和最近成功副本标记；`getAuthorizedDeviceProductType(AuthorizedDeviceProductTypeQuery)`按当前租户、服务端解析的委托用户设备范围和请求设备集合返回当前设备产品类型、解析状态及相同降级字段。两个Query只承载业务筛选条件，不携带`tenantId`或`serviceIdentity`；Inspection只注入`InspectionAssetProductTypeApi`专用只读接口，其AST实现建立ADR-0036受控进程内上下文并固定消费者，通用上下文设置能力不进入API模块。AST最终校验稳定主体、消费者、动作、租户和委托用户。已认证委托用户的数据范围为空、跨租户或设备不可见时统一返回空且不泄露存在性；缺少服务调用主体、租户或委托用户时失败关闭；未知编码不猜测名称。该契约只读取AST本地受控副本，不承担CRM/MES连接器。
 
 跨模块只调用`AssetLocationApi`：
 

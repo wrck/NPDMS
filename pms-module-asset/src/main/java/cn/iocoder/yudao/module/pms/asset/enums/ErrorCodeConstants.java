@@ -10,6 +10,7 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  * - equipment-version:   1_015_002_000
  * - equipment-config-log:1_015_003_000
  * - asset-location:       1_015_004_000
+ * - asset-product-type:   1_015_005_000
  */
 public interface ErrorCodeConstants {
 
@@ -51,5 +52,16 @@ public interface ErrorCodeConstants {
     ErrorCode AST_AREA_DEPARTMENT_MAPPING_OVERLAP = new ErrorCode(1_015_004_012, "同一行政区划存在重叠的有效服务办事处映射");
     ErrorCode AST_AREA_DEPARTMENT_MAPPING_INVALID = new ErrorCode(1_015_004_013, "行政区划与服务办事处映射无效");
     ErrorCode AST_SITE_LOCATION_IN_USE = new ErrorCode(1_015_004_014, "站点位置仍被设备当前位置引用，不允许停用");
+
+    ErrorCode AST_PRODUCT_TYPE_INVALID_REQUEST = new ErrorCode(1_015_005_000, "产品类型请求无效");
+    ErrorCode AST_PRODUCT_TYPE_SERVICE_IDENTITY_REJECTED =
+            new ErrorCode(1_015_005_001, "产品类型服务身份未授权");
+    ErrorCode AST_PRODUCT_TYPE_SOURCE_STALE = new ErrorCode(1_015_005_002, "产品类型来源事实已过期");
+    ErrorCode AST_PRODUCT_TYPE_SOURCE_CONFLICT = new ErrorCode(1_015_005_003, "产品类型来源事实冲突");
+    ErrorCode AST_PRODUCT_TYPE_CODE_CONFLICT = new ErrorCode(1_015_005_004, "产品类型稳定编码冲突");
+    ErrorCode AST_PRODUCT_TYPE_CROSS_TENANT_REFERENCE =
+            new ErrorCode(1_015_005_005, "产品类型引用不属于当前租户");
+    ErrorCode AST_PRODUCT_TYPE_IDEMPOTENCY_CONFLICT =
+            new ErrorCode(1_015_005_006, "产品类型操作幂等键冲突");
 
 }

@@ -459,6 +459,21 @@
 - Decision owner: 需求方；AST Owner负责交付，SRV/Inspection作为消费方参与契约验收
 - Decision date: 2026-08-30
 
+### Q-FAST002-001
+
+- Status: RESOLVED
+- Requirement IDs: EQP-01、INS-03、INS-09
+- Area: F-AST-002模块内服务调用主体可信绑定
+- Question: `AssetProductTypeApi`如何在不修改Yudao基础平台的前提下识别Inspection服务调用，并防止Query中的自由`serviceIdentity`被其他模块冒用？
+- Why it blocks design/implementation: 自报字符串注册表只能做授权映射，不能证明调用方身份；继续实施会使产品类型读取及后续受控导入动作可被错误归因或冒用，并与API、安全SDS冲突。
+- Options: A. 保留自由字符串；B. 修改Yudao OAuth并传播`clientId`；C. Inspection专用只读适配器建立受控进程内调用主体，AST执行最终授权；D. 删除服务主体只按用户范围授权。
+- Recommended technical default: C；在模块化单体内提供最小动作约束、租户失败关闭和稳定审计归因，不修改Yudao；未来跨进程时再由独立基础能力Feature升级为可验证机器身份。
+- Business decision required: 已完成，独立裁决高可信推荐直接接受。
+- Resolution: 采用C，见ADR-0036。公开Query移除`tenantId/serviceIdentity`；租户和服务主体只从受控服务端上下文取得；委托用户由Inspection服务端解析，AST仍按其设备范围过滤。该机制只声明进程内调用控制，不宣称对同JVM恶意代码提供密码学认证。不修改Yudao OAuth、`LoginUser`或Token过滤器。
+- Blocking scope: 原Technical Plan与Task 1路径NO-GO；SDS、Feature Spec、Technical Plan和Task按ADR-0036同向修订后，仍须闭合专用适配器文件边界、不可绕过验证和受控导入主体来源，并通过差量复审后解除。
+- Decision owner: 需求方；AST、Inspection与安全Owner参与影响分析
+- Decision date: 2026-08-30
+
 ## F-CUT-001 Feature Ready 待裁决项
 
 ### Q-FCUT001-001

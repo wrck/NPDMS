@@ -4,7 +4,7 @@
 
 **Goal:** 在AST内建立可独立验收的设备产品类型受控副本、来源映射、设备当前引用和两个模块内公开查询，使授权消费者能够取得可追溯、可降级且不泄露无权设备事实的产品类型结果。
 
-**Architecture:** 新能力独立落在现有`pms-module-asset-api`与`pms-module-asset`的`producttype`包，不修改旧设备、Equipment、CONP或页面实现。三张AST自有表保存产品类型副本、来源映射与设备当前引用；受控导入通过平台命令执行契约原子完成业务写入、幂等和成功审计，拒绝事实使用通用操作审计。查询入口先校验租户与受信服务身份，设备查询再计算工程师项目范围并一次性批量联查；CRM/MES连接器仅保留后续调用边界，不在本Feature实现。
+**Architecture:** 新能力独立落在现有`pms-module-asset-api`与`pms-module-asset`的`producttype`包，不修改旧设备、Equipment、CONP或页面实现。三张AST自有表保存产品类型副本、来源映射与设备当前引用；受控导入通过平台命令执行契约原子完成业务写入、幂等和成功审计，拒绝事实使用通用操作审计。查询入口按ADR-0036由Inspection专用只读接口的AST实现建立固定进程内调用主体，AST校验当前租户、消费者和动作，设备查询再按服务端解析的委托用户范围一次性批量联查；CRM/MES连接器仅保留后续调用边界，不在本Feature实现。
 
 **Tech Stack:** Java 25、Spring Boot 4.1、Spring Security、MyBatis-Plus/XML、MySQL 8.4、Flyway 11、Maven、JUnit 5、Mockito、Docker Compose。
 
@@ -28,9 +28,9 @@
 - 不实现CRM/MES协议、认证、网络访问、调度、游标、批次拉取、重试、补偿或对账；不宣称`EQP-04`完成。
 - 不修改`DeviceDO`、`DeviceMapper`、`DeviceQueryMapper.xml`、`DeviceController`、`EquipmentDO`、`EquipmentMapper`、旧设备接口、旧页面或CONP字段语义。
 - 不修改Yudao基础平台。直接复用`PlatformCommandExecutionApi`和`OperationAuditApi`，不因既有通用实现中的措辞问题改动平台模块。
-- 不创建产品类型人工维护页面、菜单、字典或未经权威来源确认的产品类型种子。
-- AST内部允许新增受控导入应用服务，供后续同模块连接器或受信维护入口调用；本Feature不提供外部连接器实现。
-- Inspection消费边界只增加`pms-module-service -> pms-module-asset-api`编译依赖和契约边界验证，不实现规则发布、工程师选择、`INS-03`或`INS-09`业务。
+- 不创建产品类型人工维护页面、字典或未经权威来源确认的产品类型种子；只为已批准的受控导入维护入口增加独立功能权限与菜单授权种子，不默认授予任何角色。
+- AST内部新增受控导入应用服务和最小管理入口，入口只接受当前已认证用户且要求`pms:asset-product-type:controlled-import`，租户与`actorId`从安全上下文取得；本Feature不提供外部连接器实现。
+- Inspection消费边界增加`pms-module-service -> pms-module-asset-api`依赖、专用`InspectionAssetProductTypeApi`消费和架构边界验证；不实现规则发布、工程师选择、`INS-03`或`INS-09`业务。
 - 新能力按可独立验证的逻辑单元推进；每个实现Task必须在本Task内完成最小实现、补充该单元定向测试、实际运行并通过后，才允许进入下一Task。
 - 不把Task 1至Task 5的测试集中后置到统一测试Task；后续综合测试只补跨单元、真实数据库和消费契约，不替代逐单元验证。
 - 每个逻辑单元验证通过后仅按用户明确要求提交；本计划不得自行提交。
@@ -63,15 +63,15 @@ incoming.sourceUpdatedAt > current.sourceUpdatedAt
 - 同一来源时间水位出现不同版本或不同载荷时失败关闭，不能用任意事件键打破平局。
 - 后续连接器若提供经正式规格批准的单调序列，须由独立Feature修订SDS和本比较策略，F-AST-002不预埋多策略框架。
 
-### 2.2 服务身份与租户
+### 2.2 服务调用主体与租户
 
-两个公开Query显式携带`tenantId`和`serviceIdentity`。实现必须同时满足：
+按ADR-0036，两个公开Query只承载业务筛选条件，不携带`tenantId`或`serviceIdentity`。实现必须同时满足：
 
-1. `tenantId`非空；
-2. 当前`TenantContextHolder`存在时与Query租户一致；
-3. `serviceIdentity`在AST私有注册表中存在；
-4. 注册身份具备当前动作；
-5. 授权设备查询还必须携带`subjectUserId`并按其设备范围过滤。
+1. 当前`TenantContextHolder`租户非空；
+2. ADR-0036受控进程内调用主体存在，且上下文租户与当前租户一致；
+3. 上下文消费者代码在AST私有注册表中存在；
+4. 注册主体具备当前动作；
+5. 授权设备查询携带由Inspection服务端解析的`subjectUserId`并按其设备范围过滤；缺少或非法委托用户失败关闭，已认证用户的空范围返回空。
 
 动作码固定为：
 
@@ -81,7 +81,7 @@ DEVICE_PRODUCT_TYPE_READ
 PRODUCT_TYPE_CONTROLLED_IMPORT
 ```
 
-AST私有注册表使用`pms.asset-product-type.trusted-service-principals`配置前缀，默认空映射即不信任任何身份。每个身份映射稳定主体ID和允许动作集合；不得仅凭角色名称、自由字符串或调用模块名授予权限。
+AST私有注册表使用`pms.asset-product-type.trusted-service-principals`配置前缀，默认空映射即不信任任何主体。每个消费者代码映射稳定主体ID和允许动作集合；注册表只负责授权映射，不承担认证。Task 1新增只允许固定Inspection消费者建立的进程内上下文，按栈恢复并默认不向异步线程传播；Task 8由Inspection专用只读适配器使用该入口。该边界只提供模块化单体内误用防护和审计归因，不宣称对同JVM恶意代码提供密码学隔离。
 
 ### 2.3 数据与冲突
 
@@ -123,7 +123,9 @@ Task 1至Task 5各自在单元内实现并测试，任何单元测试未通过�
 | 路径 | 职责 |
 |---|---|
 | `pms-module-asset/pms-module-asset-api/.../api/producttype` | 两个公开查询及纯DTO，不暴露持久化类型 |
-| `pms-module-asset/.../service/producttype/security` | AST私有服务主体、动作白名单与租户交叉校验 |
+| `pms-module-asset-api/.../api/producttype/inspection` | 唯一供Inspection注入的专用只读接口；不暴露消费者、主体、动作或上下文设置器 |
+| `pms-module-asset/.../service/producttype/security` | AST包级上下文栈、私有主体注册表、动作白名单和最终租户/动作校验 |
+| `pms-module-asset/.../service/producttype/security/InspectionAssetProductTypeApiImpl` | 专用接口实现，与包级上下文持有器同包，固定Inspection消费者后调用通用AST API |
 | `pms-module-asset/.../service/producttype` | 受控导入、来源失败记录、查询编排、审计与结果映射 |
 | `pms-module-asset/.../dal/dataobject/producttype` | 三张AST产品类型表DO |
 | `pms-module-asset/.../dal/mysql/producttype` | 场景化Query、Projection、Mapper与锁/批量查询声明 |
@@ -144,10 +146,14 @@ Task 1至Task 5各自在单元内实现并测试，任何单元测试未通过�
 - Create: `pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/producttype/dto/AuthorizedDeviceProductTypeQuery.java`
 - Create: `pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/producttype/dto/AuthorizedDeviceProductTypeResult.java`
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeActionCodes.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeCaller.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeCallerContext.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeServicePrincipalProperties.java`
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/TrustedAssetProductTypeServicePrincipalRegistry.java`
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeRequestGuard.java`
 - Modify: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/enums/ErrorCodeConstants.java`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/api/producttype/AssetProductTypeApiContractTest.java`
+- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeCallerContextTest.java`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/AssetProductTypeRequestGuardTest.java`
 
 - [ ] **Step 1: 创建纯Java公开契约**
@@ -168,16 +174,12 @@ public interface AssetProductTypeApi {
 
 ```java
 public record ProductTypeCodesQuery(
-        Long tenantId,
-        String serviceIdentity,
         List<String> productTypeCodes) {
 }
 ```
 
 ```java
 public record AuthorizedDeviceProductTypeQuery(
-        Long tenantId,
-        String serviceIdentity,
         Long subjectUserId,
         List<Long> deviceIds) {
 }
@@ -224,19 +226,20 @@ public record TrustedPrincipal(Long principalId, Set<String> allowedActions) {
 }
 ```
 
-`resolve(serviceIdentity, actionCode)`必须拒绝空身份、未注册身份、非正主体ID和未授权动作。配置默认空，不在模板中写入真实主体或Secret。
+`resolve(consumerCode, actionCode)`返回注册表中的稳定主体ID，并拒绝空消费者、未注册消费者、非正主体ID、未知动作和未授权动作。`principalId`只能由AST注册表解析，不进入Query、调用上下文或调用参数。注册表为AST包级非public组件，配置绑定完成后使用不可变映射且不暴露运行期替换入口；配置默认空，不在模板中写入真实主体或Secret。Inspection注册项只能包含两个只读动作，不得包含`PRODUCT_TYPE_CONTROLLED_IMPORT`。注册表只做授权映射，调用主体可信性来自后续专用适配器固定建立的上下文。
 
-- [ ] **Step 3: 建立租户与请求守卫**
+- [ ] **Step 3: 建立受控调用上下文与请求守卫**
+
+`AssetProductTypeCaller`是AST业务模块内的包级record，只保存`consumerCode`和`tenantId`；`AssetProductTypeCallerContext`同样为包级final类，使用普通`ThreadLocal<Deque<AssetProductTypeCaller>>`，只向同包专用适配器实现提供包级`callAsInspection(Supplier<T>)`，固定消费者`INSPECTION`并从`TenantContextHolder`读取当前租户。缺失租户拒绝，`finally`弹栈，空栈删除ThreadLocal；不使用`TransmittableThreadLocal`，因此异步线程默认不继承。API模块不包含上下文类型、主体设置器或通用`runAs`入口。
 
 `AssetProductTypeRequestGuard`负责：
 
 ```text
-requireTenant(queryTenantId)
-requireTrustedPrincipal(serviceIdentity, actionCode)
+requireTrustedPrincipal(actionCode)
 requireSubjectUser(subjectUserId)
 ```
 
-存在租户上下文时必须与请求租户相同；跨租户调用返回稳定业务拒绝并记录安全审计。设备查询的`subjectUserId`为空时返回空，不把服务主体当作工程师数据范围。查询执行时先由`DeviceAccessScopeService.visibleProjectIds`取得项目范围，再按现有设备可见条件关联当前直接项目或有效项目关系；不得将`visibleProjectIds`误当作仅匹配`ast_device.project_id`。
+`requireTrustedPrincipal`必须读取当前租户和调用上下文并校验租户、消费者、主体与动作，不接受Query覆盖。编码查询的跨租户主体拒绝并记录安全审计；设备查询在后续实现中把跨租户或不可见设备映射为空结果。设备查询缺少或非法`subjectUserId`时失败关闭；只有合法委托用户的数据范围为空时返回空，不把服务主体当作工程师数据范围。查询执行时先由`DeviceAccessScopeService.visibleProjectIds`取得项目范围，再按现有设备可见条件关联当前直接项目或有效项目关系；不得将`visibleProjectIds`误当作仅匹配`ast_device.project_id`。
 
 - [ ] **Step 4: 分配AST产品类型错误码**
 
@@ -256,15 +259,15 @@ AST_PRODUCT_TYPE_IDEMPOTENCY_CONFLICT
 
 - [ ] **Step 5: 补充并运行本单元测试**
 
-覆盖接口仅有两个规格方法、DTO不泄露持久化类型、动作白名单、跨租户拒绝、空主体和空设备输入语义。
+覆盖接口仅有两个规格方法、DTO不泄露持久化类型且Query不存在`tenantId/serviceIdentity`、Query空集合归一化、动作白名单、缺少/错误调用主体、未知/空动作、主体动作不匹配、租户缺失或不一致、非法委托用户、空设备输入、嵌套上下文恢复、调用结束清理和异步线程默认不传播；同时以反射/源码边界断言API模块不存在public主体设置器或通用`runAs`，上下文与注册表均为AST包级非public类型。合法委托用户设备范围为空返回空依赖Task 3/5的批量范围与查询实现，在对应Task验证，不提前宣称由Task 1关闭。
 
 Run:
 
 ```powershell
-mvn.cmd -pl pms-module-asset/pms-module-asset-api,pms-module-asset -am "-DskipITs=true" "-Dtest=AssetProductTypeApiContractTest,AssetProductTypeRequestGuardTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-asset/pms-module-asset-api,pms-module-asset -am "-DskipITs=true" "-Dtest=AssetProductTypeApiContractTest,AssetProductTypeCallerContextTest,AssetProductTypeRequestGuardTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Expected：两个测试类实际执行且PASS。失败时停留在Task 1整改，不进入Task 2。
+Expected：三个测试类实际执行且PASS。失败时停留在Task 1整改，不进入Task 2。
 
 - [ ] **Step 6: 编译公开契约和AST模块**
 
@@ -276,7 +279,7 @@ mvn.cmd -pl pms-module-asset/pms-module-asset-api,pms-module-asset -am -DskipTes
 
 Expected：Reactor成功，公开DTO不需要新增API模块依赖，Yudao基础模块无变更。
 
-- [ ] **Step 9: 提交逻辑单元**
+- [ ] **Step 7: 提交逻辑单元**
 
 ```powershell
 git add pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/producttype pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/enums/ErrorCodeConstants.java
@@ -573,18 +576,19 @@ git commit -m "feat(asset): add product type query persistence"
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeSourceOrder.java`
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeAuditService.java`
 - Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeConflictRecordService.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/producttype/AssetProductTypeImportController.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/producttype/vo/ImportAssetProductTypeReqVO.java`
+- Create: `sql/migrations/V<合入时下一个未占用版本>__fast002_product_type_import_permission.sql`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeSourceOrderTest.java`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportServiceTest.java`
+- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/controller/admin/producttype/AssetProductTypeImportControllerTest.java`
 
 - [ ] **Step 1: 定义受控导入命令**
 
-命令必须包含：
+命令只承载来源和业务载荷；`tenantId`和`actorId`从当前已认证用户安全上下文取得，不接受命令覆盖。Inspection专用只读适配器不开放本动作；连接器Feature未批准前，Task 4只允许要求独立`pms:asset-product-type:controlled-import`权限的AST管理入口调用。
 
 ```java
 public record ImportAssetProductTypeCommand(
-        Long tenantId,
-        String serviceIdentity,
-        Long actorId,
         String operationId,
         String idempotencyKey,
         String productTypeCode,
@@ -601,7 +605,11 @@ public record ImportAssetProductTypeCommand(
 
 `payloadHash`由受控调用方对规范化业务载荷计算，AST校验为64位十六进制但不保存完整载荷。设备输入只包含`deviceId`、`resolutionStatus`和必要来源引用，不接受猜测名称或自由产品类型值。
 
-- [ ] **Step 2: 实现来源顺序纯规则**
+- [ ] **Step 2: 建立受控导入维护入口与独立权限**
+
+`AssetProductTypeImportController`只提供受控导入命令入口，使用`@PreAuthorize("@ss.hasPermission('pms:asset-product-type:controlled-import')")`。`AssetProductTypeImportService`的public应用方法必须再次调用`SecurityFrameworkService.hasPermission("pms:asset-product-type:controlled-import")`，并读取`SecurityFrameworkUtils.getLoginUserId()`和`TenantContextHolder.getRequiredTenantId()`；任一缺失或无权均在进入Mapper与平台幂等执行器前拒绝，使进程内直接注入Service也不能绕过。ReqVO不包含租户、actor、serviceIdentity或任意动作字段。前向迁移只登记独立权限菜单项，不绑定任何角色，不复用`pms:equipment:update`或普通设备维护权限；不得创建产品类型自由CRUD页面。
+
+- [ ] **Step 3: 实现来源顺序纯规则**
 
 `AssetProductTypeSourceOrder`只返回：
 
@@ -614,14 +622,14 @@ SOURCE_CONFLICT
 
 比较只使用第2.1节规则。`sourceVersion`只参与相等判定，禁止排序。
 
-- [ ] **Step 3: 使用平台命令执行契约编排成功导入**
+- [ ] **Step 4: 使用平台命令执行契约编排成功导入**
 
 幂等Scope固定为：
 
 ```text
 scopeCode = AST:ASSET_PRODUCT_TYPE:CONTROLLED_IMPORT
 key = command.idempotencyKey
-actorId = 受信服务主体ID
+actorId = 当前已认证且具备受控导入专用权限的用户ID
 ```
 
 `requestDigest`覆盖租户、稳定编码、启停、来源系统、来源键、来源版本、来源时间、载荷摘要和按设备ID稳定排序后的设备输入。
@@ -642,7 +650,7 @@ actorId = 受信服务主体ID
 
 `REPLAY_COMPLETED`返回首次结果，不重复写三表或成功审计。`CONFLICT`与`IN_PROGRESS`映射稳定业务错误。
 
-- [ ] **Step 4: 处理来源和稳定编码冲突**
+- [ ] **Step 5: 处理来源和稳定编码冲突**
 
 - 同源多目标：业务写事务回滚并保持已有`product_type_id`；事务结束后由AST冲突记录服务在独立事务中重新按来源键读取当前映射，只更新`mapping_status=CONFLICT`及冲突摘要字段，不覆盖当前目标、来源成功水位或最近成功副本，然后向调用方返回拒绝。
 - 同稳定编码但来源业务含义冲突：业务写事务不覆盖显示名称或来源证据；独立事务记录`AST_PRODUCT_TYPE_CODE_CONFLICT`摘要。
@@ -651,7 +659,7 @@ actorId = 受信服务主体ID
 - 跨租户设备或产品类型引用：整个业务命令回滚，无半写入；拒绝审计在事务结束后独立提交。
 - 独立冲突事务只允许追加/更新冲突元数据和操作审计，不得修改当前映射目标、产品类型业务值、设备当前引用或幂等成功状态；若当前映射已被更晚合法来源推进，仍保留冲突发生时的摘要和观察水位，不反向覆盖新事实。
 
-- [ ] **Step 5: 实现来源失败记录**
+- [ ] **Step 6: 实现来源失败记录**
 
 `recordSourceFailure`只允许`PRODUCT_TYPE_CONTROLLED_IMPORT`动作，按来源键锁定现有映射和产品类型：
 
@@ -663,7 +671,7 @@ actorId = 受信服务主体ID
 
 该方法是后续连接器调用边界，不包含网络、调度、重试或补偿。
 
-- [ ] **Step 6: 实现安全审计**
+- [ ] **Step 7: 实现安全审计**
 
 操作码固定为：
 
@@ -676,19 +684,19 @@ ASSET_PRODUCT_TYPE_SOURCE_FAILURE
 
 成功事实由`PlatformCommandExecutionApi`写入。业务写方法置于独立Spring Bean并由`PlatformCommandExecutionApi`事务调用；外层编排捕获稳定业务冲突后，调用另一个AST Bean的`@Transactional(propagation = REQUIRES_NEW)`方法重新读取必要当前事实、更新允许的冲突摘要并调用`OperationAuditApi`通用聚合重载，待该独立事务提交后再向调用方抛出拒绝。不得同类自调用绕过事务代理，也不得在原事务尚持有来源映射行锁时启动冲突事务。
 
-- [ ] **Step 7: 补充并运行来源顺序、幂等与冲突事务测试**
+- [ ] **Step 8: 补充并运行维护入口、来源顺序、幂等与冲突事务测试**
 
-覆盖更早/同水位同事实/同水位异事实/更晚水位、`sourceVersion`不排序、同源多目标、业务事务回滚、独立冲突事务保留摘要与拒绝审计、并发推进后不反向覆盖、同键重放和异摘要冲突。
+覆盖未认证、Controller缺少专用权限、绕过Controller直接调用Service但缺少专用权限仍拒绝、ReqVO伪造身份字段不存在、已认证授权用户通过、权限迁移不绑定角色，以及更早/同水位同事实/同水位异事实/更晚水位、`sourceVersion`不排序、同源多目标、业务事务回滚、独立冲突事务保留摘要与拒绝审计、并发推进后不反向覆盖、同键重放和异摘要冲突。
 
 Run:
 
 ```powershell
-mvn.cmd -pl pms-module-asset -am "-DskipITs=true" "-Dtest=AssetProductTypeSourceOrderTest,AssetProductTypeImportServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-asset -am "-DskipITs=true" "-Dtest=AssetProductTypeImportControllerTest,AssetProductTypeSourceOrderTest,AssetProductTypeImportServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Expected：两个测试类实际执行且PASS。失败时停留在Task 4整改。
 
-- [ ] **Step 8: 编译受控导入实现**
+- [ ] **Step 9: 编译受控导入实现**
 
 Run:
 
@@ -696,12 +704,12 @@ Run:
 mvn.cmd -pl pms-module-asset -am -DskipTests compile
 ```
 
-Expected：受控导入只依赖现有API模块和AST自有DAL，不出现CRM/MES Client、Job或HTTP代码。
+Expected：受控导入只依赖现有安全上下文、API模块和AST自有DAL；唯一HTTP代码是专用管理入口，不出现CRM/MES Client、Job、自由CRUD或外部连接器代码。
 
-- [ ] **Step 8: 提交逻辑单元**
+- [ ] **Step 10: 提交逻辑单元**
 
 ```powershell
-git add pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype
+git add pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/producttype pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/controller/admin/producttype sql/migrations/V<实际版本>__fast002_product_type_import_permission.sql
 git commit -m "feat(asset): implement controlled product type import"
 ```
 
@@ -747,8 +755,9 @@ fromLastSuccessfulCopy=false
 处理顺序：
 
 ```text
-校验租户和DEVICE_PRODUCT_TYPE_READ动作
--> subjectUserId为空或deviceIds为空直接返回空
+校验当前租户、ADR-0036调用主体和DEVICE_PRODUCT_TYPE_READ动作
+-> subjectUserId为空或非法时失败关闭
+-> deviceIds为空直接返回空
 -> DeviceAccessScopeService.visibleProjectIds
 -> 空项目范围直接返回空
 -> 以统一effectiveAt一次XML联查请求设备、项目范围和租户
@@ -970,14 +979,25 @@ git commit -m "test(asset): verify product type mysql constraints"
 
 ---
 
-### Task 8: 验证Inspection只消费AST API模块
+### Task 8: 交付Inspection专用只读适配器并验证消费边界
 
 **Files:**
 
+- Create: `pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/producttype/inspection/InspectionAssetProductTypeApi.java`
+- Create: `pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/InspectionAssetProductTypeApiImpl.java`
+- Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/InspectionAssetProductTypeApiImplTest.java`
 - Modify: `pms-module-service/pom.xml`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/inspection/AssetProductTypeConsumerBoundaryTest.java`
 
-- [ ] **Step 1: 增加API模块依赖**
+- [ ] **Step 1: 建立Inspection专用只读接口与AST实现**
+
+`InspectionAssetProductTypeApi`只声明与通用API相同的两个只读方法，不包含消费者代码、主体ID、动作、租户或上下文方法。`InspectionAssetProductTypeApiImpl`位于AST的`service.producttype.security`包，固定通过`AssetProductTypeCallerContext.callAsInspection(...)`调用通用`AssetProductTypeApi`；不接受任意消费者或动作，不暴露受控导入。
+
+- [ ] **Step 2: 验证适配器固定边界**
+
+测试断言：两个专用方法分别建立Inspection上下文并委托通用API；缺失租户拒绝；调用完成或异常后上下文清理；API模块不存在名称或签名可设置`consumerCode/principalId/actionCode`的public类型；`AssetProductTypeCallerContext`和`AssetProductTypeCaller`不是public；Service生产代码只允许引用`InspectionAssetProductTypeApi`，不直接引用通用`AssetProductTypeApi`。
+
+- [ ] **Step 3: 增加API模块依赖**
 
 仅增加：
 
@@ -991,31 +1011,31 @@ git commit -m "test(asset): verify product type mysql constraints"
 
 不得依赖`pms-module-asset`业务模块。
 
-- [ ] **Step 2: 补消费边界测试**
+- [ ] **Step 4: 补消费边界测试**
 
 测试只证明：
 
 ```text
-pms-module-service可编译引用AssetProductTypeApi及DTO
-Inspection包不引用AST DO、Mapper、Service或ast_*表
+pms-module-service可编译引用InspectionAssetProductTypeApi及DTO
+Inspection生产包不直接引用通用AssetProductTypeApi，也不引用AST DO、Mapper、Service或ast_*表
 API不可用、未知或停用事实可被消费者识别为失败关闭输入
 ```
 
 不创建Inspection规则实现，不宣称发布或工程师选择已完成。
 
-- [ ] **Step 3: 运行消费边界测试**
+- [ ] **Step 5: 运行适配器与消费边界测试**
 
 ```powershell
-mvn.cmd -pl pms-module-service -am "-DskipITs=true" "-Dtest=AssetProductTypeConsumerBoundaryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-asset,pms-module-service -am "-DskipITs=true" "-Dtest=InspectionAssetProductTypeApiImplTest,AssetProductTypeConsumerBoundaryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Expected：测试实际执行并PASS；依赖树中Inspection只依赖`pms-module-asset-api`。
 
-- [ ] **Step 4: 提交逻辑单元**
+- [ ] **Step 6: 提交逻辑单元**
 
 ```powershell
-git add pms-module-service/pom.xml pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/inspection/AssetProductTypeConsumerBoundaryTest.java
-git commit -m "test(service): verify asset product type api boundary"
+git add pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/producttype/inspection pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/InspectionAssetProductTypeApiImpl.java pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/producttype/security/InspectionAssetProductTypeApiImplTest.java pms-module-service/pom.xml pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/inspection/AssetProductTypeConsumerBoundaryTest.java
+git commit -m "feat(asset): add inspection product type adapter"
 ```
 
 ---
