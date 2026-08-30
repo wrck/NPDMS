@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2A公共机器合同已在`df27632e`通过；V144四表Schema、场景化Mapper XML、事务Provider及隔离MySQL 8.4事务/并发/重放/回滚证据已形成候选。最近Gate为PLT物理Owner Provider/Schema独立Code Review与MySQL复审，当前仍`REVIEW_REQUIRED`；通过前不授权COM直写PLT表，也不解除下游生产依赖。
+Task 2A公共合同及PLT物理Owner Provider/Schema已分别在`df27632e`、`8b41a096`通过独立Gate，状态`PASS / GO`；COM仅可消费`PlatformMigrationEvidenceApi`，不得直写PLT表。最近Gate为Task 3“ERP批次接收与Owner副本CAS”独立Code Review；下游生产依赖仍未解除。
 
 ## Gate输入
 
