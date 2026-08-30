@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-基线`4e86e5cf`的A/B复审中A已关闭，B仅余批次生命周期冲突。计划已收敛为`IMPORTING→STAGED_READY→RECONCILING→COMPLETED`；导入器不提前完成，COM核对及计数校验后才终结。最近Gate为B单点复审，实施仍`NOT_STARTED`。
+基线`6921a0dd`已关闭迁移批次循环，B仅余issue关闭不可达。计划新增`closeMigrationIssue`一次性CAS关闭与审计；原分类/计数不可变，需新mapping时另建引用原issue的批次。最近Gate为issue关闭单点复审，实施仍`NOT_STARTED`。
 
 ## Gate输入
 

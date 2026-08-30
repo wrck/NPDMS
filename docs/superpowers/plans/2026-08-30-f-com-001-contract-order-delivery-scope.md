@@ -111,9 +111,10 @@
 
 - [ ] 先形成独立公共机器合同并送Contract Gate，固定受信tenant、batchId、sourceSystem/table/pk、不可变sourcePayload、mapping/issue状态、幂等键、批次计数和失败分类；不承接COM字段判定。批次状态封闭为`IMPORTING/STAGED_READY/RECONCILING/COMPLETED/FAILED`，其中`STAGED_READY`仅表示来源暂存已校验，`COMPLETED`仅表示COM核对终结。
 - [ ] Contract Gate GO后由PLT Owner创建四表及DO/Mapper/Service；动态集合、批次锁和状态汇总SQL进入XML，不把PLT DO暴露给COM。
-- [ ] API动作固定为`createImportBatch/appendSourceRecord/markStagedReady/claimStagedBatch/appendExternalMapping/appendMigrationIssue/completeReconciliation`。导入器仅可在`IMPORTING`追加source；`markStagedReady`校验manifest、行数/hash后冻结source集合并进入`STAGED_READY`，不得写mapping/issue或提前`COMPLETED`。
-- [ ] `claimStagedBatch`只领取`STAGED_READY`并在调用方同一外层事务内进入`RECONCILING`；COM逐行追加mapping/issue/retained结果后，`completeReconciliation`校验`source=mapped+issue+retained`及各计数并原子进入最终`COMPLETED`。任一步失败使整事务回滚到`STAGED_READY`；`FAILED`不可领取，`COMPLETED`后禁止追加、关闭、重算或覆盖结果。
+- [ ] API动作固定为`createImportBatch/appendSourceRecord/markStagedReady/claimStagedBatch/appendExternalMapping/appendMigrationIssue/completeReconciliation/closeMigrationIssue`。导入器仅可在`IMPORTING`追加source；`markStagedReady`校验manifest、行数/hash后冻结source集合并进入`STAGED_READY`，不得写mapping/issue或提前`COMPLETED`。
+- [ ] `claimStagedBatch`只领取`STAGED_READY`并在调用方同一外层事务内进入`RECONCILING`；COM逐行追加mapping/issue/retained结果后，`completeReconciliation`校验`source=mapped+issue+retained`及各计数并原子进入最终`COMPLETED`。任一步失败使整事务回滚到`STAGED_READY`；`FAILED`不可领取。`COMPLETED`后禁止追加source、改写mapping或issue初始分类、重算或覆盖批次结果。
 - [ ] append source record以`tenant+batch+system+table+pk`幂等；同键异原值冲突。external mapping、issue和retained结果均使用来源行稳定引用，不覆盖前批次。
+- [ ] `closeMigrationIssue`只允许对最终`COMPLETED`批次中的当前`OPEN` issue执行一次CAS关闭，受信输入必须包含issueId、处理人、规则版本、目标结果、correlationId和Idempotency-Key；仅把原为NULL的关闭字段写入并追加平台操作审计，原source、原因、初始分类、mapping和批次计数全部不可变。同键重放返回同一关闭结果，同键异载荷冲突；已关闭issue不得覆盖。若关闭结论要求生成新目标mapping或重新迁移，必须创建引用原issueId的新批次，不能重开原批次。
 - [ ] 实现后验证真实MySQL租户隔离、重放/冲突、问题关闭审计、批次并发结束与外层事务回滚。
 - [ ] Gate：PLT Owner Contract Gate后再做Provider Code Review/MySQL Gate；未通过时Task 8保持`BLOCKED_BY_DEPENDENCY`，不得由COM直写平台表。
 
