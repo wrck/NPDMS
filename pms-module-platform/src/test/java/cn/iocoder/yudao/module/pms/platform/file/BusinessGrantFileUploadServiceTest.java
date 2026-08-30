@@ -2,8 +2,12 @@ package cn.iocoder.yudao.module.pms.platform.service.file;
 
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompleteCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileHandle;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesRevalidationCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
@@ -25,6 +29,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,5 +72,53 @@ class BusinessGrantFileUploadServiceTest {
         assertEquals(9L, command.getValue().actorUserId());
         assertEquals("50", command.getValue().objectId());
         assertEquals(initialized.fileSlotKey(), command.getValue().referenceKey());
+    }
+
+    @Test
+    void completeRejectsOperationIdThatDiffersFromServerSlot() {
+        var service = service();
+        when(sessionMapper.selectForUpdate(any())).thenReturn(session());
+
+        assertThrows(IllegalStateException.class, () -> service.complete(complete("other-op", 1)));
+
+        verifyNoInteractions(policyRegistry, uploadService, operationAuditApi);
+    }
+
+    @Test
+    void finalRevalidationRejectsSequenceThatDiffersFromServerSlot() {
+        var service = service();
+        var handle = new BusinessGrantFileHandle("SATISFACTION_SIGNATURE",
+                "grant-file:50:1:file-op-1", 99, 100L, 1,
+                "grant-file:50:1:file-op-1", 1, 1, 1, 3L, "a".repeat(64));
+
+        assertThrows(IllegalStateException.class, () -> service.lockAndRevalidate(
+                new BusinessGrantFilesRevalidationCommand(7L, 1L, 2, 11L,
+                        "req-1", 50L, java.util.List.of(handle))));
+
+        verifyNoInteractions(artifactMapper, versionMapper, referenceMapper, uploadService, operationAuditApi);
+    }
+
+    private BusinessGrantFileUploadService service() {
+        return new BusinessGrantFileUploadService(policyRegistry, uploadService, sessionMapper,
+                artifactMapper, versionMapper, referenceMapper, operationAuditApi);
+    }
+
+    private FileUploadSessionDO session() {
+        FileUploadSessionDO session = new FileUploadSessionDO();
+        session.setId(101L);
+        session.setArtifactId(100L);
+        session.setOwnerContext("ACC");
+        session.setObjectType("SATISFACTION_RESPONSE");
+        session.setObjectId("50");
+        session.setPurposeCode("SATISFACTION_SIGNATURE");
+        session.setReferenceKey("grant-file:50:1:file-op-1");
+        session.setScopeVersion(3L);
+        return session;
+    }
+
+    private BusinessGrantUploadCompleteCommand complete(String operationId, int sequence) {
+        return new BusinessGrantUploadCompleteCommand(7L, 1L, 2, 11L, "req-1", 50L,
+                "SATISFACTION_SIGNATURE", operationId, "grant-file:50:1:file-op-1", sequence,
+                100L, 101L, new byte[]{1}, null);
     }
 }

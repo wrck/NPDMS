@@ -18,6 +18,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +56,7 @@ public class SatisfactionResponseSubmissionService {
 
         SatisfactionResponseDO existing = responseMapper.selectByIdentityForUpdate(
                 new SatisfactionResponseIdentityQuery(command.tenantId(), questionnaire.getId(), command.requestId()));
-        if (existing != null) return replay(existing, command, task.getId(), questionnaire);
+        if (existing != null) return replay(existing, command, grant, task.getId(), questionnaire);
 
         LocalDateTime now = LocalDateTime.now();
         if (!"ACTIVE".equals(grant.getGrantStatus()) || now.isBefore(grant.getEffectiveFrom())
@@ -116,14 +117,25 @@ public class SatisfactionResponseSubmissionService {
         if (responseFileMapper.insert(row) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_FILE_CREATE_FAILED");
     }
 
-    private SubmissionResult replay(SatisfactionResponseDO existing, Command command, Long taskId,
-                                    SatisfactionQuestionnaireDO questionnaire) {
+    private SubmissionResult replay(SatisfactionResponseDO existing, Command command, SatisfactionAccessGrantDO grant,
+                                    Long taskId, SatisfactionQuestionnaireDO questionnaire) {
         if (command.reservedResponseId() != null && !command.reservedResponseId().equals(existing.getId())) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_RESERVATION_CONFLICT");
+        }
+        if ("PUBLIC_LINK".equals(command.submitChannel())
+                && !("BUSINESS_GRANT:" + grant.getId()).equals(existing.getCreator())) {
+            throw new IllegalStateException("SATISFACTION_RESPONSE_IDEMPOTENCY_CONFLICT");
         }
         if (!existing.getAnswerSnapshot().equals(command.answerSnapshot())
                 || !existing.getSubmitChannel().equals(command.submitChannel())
                 || !existing.getCustomerContactRef().equals(command.customerContactRef())) {
+            throw new IllegalStateException("SATISFACTION_RESPONSE_IDEMPOTENCY_CONFLICT");
+        }
+        List<FileFact> persistedFiles = responseFileMapper.selectListByResponse(
+                        new SatisfactionResponseFilesQuery(command.tenantId(), existing.getId())).stream()
+                .map(this::persistedFileFact).toList();
+        boolean publicLink = "PUBLIC_LINK".equals(command.submitChannel());
+        if (!stableFiles(command.files(), publicLink).equals(stableFiles(persistedFiles, publicLink))) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_IDEMPOTENCY_CONFLICT");
         }
         SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, existing.getAnswerSnapshot());
@@ -186,6 +198,21 @@ public class SatisfactionResponseSubmissionService {
                 fact.fileFact().fileFactVersion().referenceVersion(),
                 fact.fileFact().fileFactVersion().availabilityVersion(), fact.fileFact().scopeVersion(),
                 fact.fileFact().sha256())).toList();
+    }
+
+    private FileFact persistedFileFact(SatisfactionResponseFileDO row) {
+        return new FileFact(row.getFileRole(), row.getReferenceKey(), row.getFileSequence(), row.getArtifactId(),
+                row.getVersionNo(), row.getReferenceKey(), row.getArtifactVersion(), row.getReferenceVersion(),
+                row.getAvailabilityVersion(), row.getScopeVersion(), row.getFileHash());
+    }
+
+    private List<FileFact> stableFiles(List<FileFact> files, boolean includeServerSlot) {
+        return files.stream().map(file -> includeServerSlot ? file : new FileFact(file.role(), file.referenceKey(),
+                        file.sequence(), file.artifactId(), file.versionNo(), file.referenceKey(),
+                        file.artifactVersion(), file.referenceVersion(), file.availabilityVersion(),
+                        file.scopeVersion(), file.sha256()))
+                .sorted(Comparator.comparing(FileFact::role)
+                .thenComparing(FileFact::sequence)).toList();
     }
 
     private String policyKey(String role) {

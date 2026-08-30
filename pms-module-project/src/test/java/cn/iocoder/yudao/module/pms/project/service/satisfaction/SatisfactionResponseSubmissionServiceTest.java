@@ -43,7 +43,7 @@ class SatisfactionResponseSubmissionServiceTest {
                 .thenReturn(new SatisfactionResponseReservationService.Reservation(50L, 1L, 1, 11L, 9L, true));
         when(fileArtifactApi.lockAndRevalidateBusinessGrantFiles(any())).thenReturn(List.of(
                 new BusinessGrantFileFact("SATISFACTION_SIGNATURE", "slot-1", 1,
-                        new FileArtifactVersionFact(100L, 1, "signature-1", "SATISFACTION_SIGNATURE",
+                        new FileArtifactVersionFact(100L, 1, "slot-1", "SATISFACTION_SIGNATURE",
                                 "sign.png", 3L, "image/png", "a".repeat(64), "AVAILABLE", "ACTIVE",
                                 new FileFactVersion(1, 1, 1), 3L))));
 
@@ -78,11 +78,43 @@ class SatisfactionResponseSubmissionServiceTest {
         verify(responseFileMapper, never()).insert((SatisfactionResponseFileDO) any());
     }
 
+    @Test
+    void replayWithDifferentFileSetConflictsWithoutWrite() {
+        arrangeActive();
+        SatisfactionResponseDO existing = existingResponse(1L);
+        when(responseMapper.selectByIdentityForUpdate(any())).thenReturn(existing);
+        when(responseFileMapper.selectListByResponse(any())).thenReturn(List.of(existingFile(100L)));
+        var differentFile = command().files().getFirst();
+        var changed = new SatisfactionResponseSubmissionService.FileFact(differentFile.role(),
+                differentFile.fileSlotKey(), differentFile.sequence(), 999L, differentFile.versionNo(),
+                differentFile.referenceKey(), differentFile.artifactVersion(), differentFile.referenceVersion(),
+                differentFile.availabilityVersion(), differentFile.scopeVersion(), differentFile.sha256());
+        var command = new SatisfactionResponseSubmissionService.Command(7L, "token", "req-1", 50L,
+                "PUBLIC_LINK", "customer-1", null,
+                "{\"answers\":[{\"questionCode\":\"Q1\",\"value\":\"YES\"}]}",
+                List.of(changed), "grant:1");
+
+        assertThrows(IllegalStateException.class, () -> service.submit(command));
+
+        verify(responseMapper, never()).insert((SatisfactionResponseDO) any());
+        verify(responseFileMapper, never()).insert((SatisfactionResponseFileDO) any());
+    }
+
+    @Test
+    void differentGrantCannotClaimExistingResponse() {
+        arrangeActive();
+        SatisfactionAccessGrantDO otherGrant = activeGrant(2L);
+        when(grantMapper.selectByDigestForUpdate(any())).thenReturn(otherGrant);
+        when(responseMapper.selectByIdentityForUpdate(any())).thenReturn(existingResponse(1L));
+
+        assertThrows(IllegalStateException.class, () -> service.submit(command()));
+
+        verify(responseFileMapper, never()).selectListByResponse(any());
+        verify(responseMapper, never()).insert((SatisfactionResponseDO) any());
+    }
+
     private void arrangeActive() {
-        SatisfactionAccessGrantDO grant = new SatisfactionAccessGrantDO();
-        grant.setId(1L); grant.setTenantId(7L); grant.setQuestionnaireId(11L); grant.setGrantStatus("ACTIVE");
-        grant.setEffectiveFrom(LocalDateTime.now().minusMinutes(1)); grant.setExpiresAt(LocalDateTime.now().plusHours(1));
-        grant.setVersion(0); grant.setGrantVersion(1); grant.setCreator("9");
+        SatisfactionAccessGrantDO grant = activeGrant(1L);
         SatisfactionQuestionnaireDO questionnaire = new SatisfactionQuestionnaireDO();
         questionnaire.setId(11L); questionnaire.setTenantId(7L); questionnaire.setCollectionTaskId(10L);
         questionnaire.setQuestionnaireStatus("ACTIVE");
@@ -97,10 +129,36 @@ class SatisfactionResponseSubmissionServiceTest {
         when(questionnaireMapper.selectByIdForUpdate(7L, 11L)).thenReturn(questionnaire);
     }
 
+    private SatisfactionAccessGrantDO activeGrant(long grantId) {
+        SatisfactionAccessGrantDO grant = new SatisfactionAccessGrantDO();
+        grant.setId(grantId); grant.setTenantId(7L); grant.setQuestionnaireId(11L); grant.setGrantStatus("ACTIVE");
+        grant.setEffectiveFrom(LocalDateTime.now().minusMinutes(1)); grant.setExpiresAt(LocalDateTime.now().plusHours(1));
+        grant.setVersion(0); grant.setGrantVersion(1); grant.setCreator("9");
+        return grant;
+    }
+
+    private SatisfactionResponseDO existingResponse(long grantId) {
+        SatisfactionResponseDO existing = new SatisfactionResponseDO();
+        existing.setId(50L); existing.setQuestionnaireId(11L);
+        existing.setAnswerSnapshot("{\"answers\":[{\"questionCode\":\"Q1\",\"value\":\"YES\"}]}");
+        existing.setSubmitChannel("PUBLIC_LINK"); existing.setCustomerContactRef("customer-1");
+        existing.setCreator("BUSINESS_GRANT:" + grantId);
+        return existing;
+    }
+
+    private SatisfactionResponseFileDO existingFile(long artifactId) {
+        SatisfactionResponseFileDO file = new SatisfactionResponseFileDO();
+        file.setId(70L); file.setTenantId(7L); file.setResponseId(50L); file.setFileRole("SIGNATURE");
+        file.setFileSequence(1); file.setArtifactId(artifactId); file.setVersionNo(1);
+        file.setReferenceKey("slot-1"); file.setArtifactVersion(1); file.setReferenceVersion(1);
+        file.setAvailabilityVersion(1); file.setScopeVersion(3L); file.setFileHash("a".repeat(64));
+        return file;
+    }
+
     private SatisfactionResponseSubmissionService.Command command() {
         return new SatisfactionResponseSubmissionService.Command(7L, "token", "req-1", 50L, "PUBLIC_LINK",
                 "customer-1", null, "{\"answers\":[{\"questionCode\":\"Q1\",\"value\":\"YES\"}]}", List.of(new SatisfactionResponseSubmissionService.FileFact(
-                "SIGNATURE", "slot-1", 1, 100L, 1, "signature-1", 1, 1, 1, 3L,
+                "SIGNATURE", "slot-1", 1, 100L, 1, "slot-1", 1, 1, 1, 3L,
                 "a".repeat(64))), "grant:1");
     }
 

@@ -82,21 +82,21 @@ public class BusinessGrantFileUploadService {
         requireComplete(command);
         FileUploadSessionDO session = sessionMapper.selectForUpdate(
                 new FileUploadSessionLockQuery(command.tenantId(), command.sessionId()));
-        requireSession(command, session);
+        SlotIdentity slot = requireSession(command, session);
         BusinessGrantUploadPolicyFact policy = policyRegistry.lockAndRevalidateBusinessGrantUpload(
                 new BusinessGrantUploadCompletePolicyQuery(command.tenantId(), command.grantId(),
                         command.grantVersion(), command.questionnaireId(), command.requestId(),
-                        command.responseId(), command.policyKey(), command.fileSlotKey(),
-                        command.fileSequence(), session.getScopeVersion()));
+                        command.responseId(), command.policyKey(), slot.fileSlotKey(),
+                        slot.fileSequence(), session.getScopeVersion()));
         FileUploadCompleted completed = uploadService.completeAuthorized(new FileUploadCompleteCommand(
-                command.tenantId(), policy.grantIssuerUserId(), command.operationId(), command.artifactId(),
+                command.tenantId(), policy.grantIssuerUserId(), slot.operationId(), command.artifactId(),
                 command.sessionId(), null, command.clientSha256()), command.content(), policy.filePolicy());
         BusinessGrantFileFact fact = fact(command.tenantId(), command.responseId(), policy.scopeVersion(), command.policyKey(),
-                command.fileSlotKey(), command.fileSequence(), completed.artifactId(), completed.versionNo(),
+                slot.fileSlotKey(), slot.fileSequence(), completed.artifactId(), completed.versionNo(),
                 completed.referenceKey());
-        audit(command.tenantId(), policy.grantIssuerUserId(), command.operationId(), "COMPLETED",
+        audit(command.tenantId(), policy.grantIssuerUserId(), slot.operationId(), "COMPLETED",
                 command.grantId(), command.grantVersion(), command.questionnaireId(), command.responseId(),
-                command.policyKey(), command.fileSlotKey(), command.fileSequence(), completed.artifactId());
+                command.policyKey(), slot.fileSlotKey(), slot.fileSequence(), completed.artifactId());
         return fact;
     }
 
@@ -128,12 +128,13 @@ public class BusinessGrantFileUploadService {
     private BusinessGrantFileFact fact(Long tenantId, Long responseId, Long scopeVersion, String policyKey,
                                        String fileSlotKey, Integer sequence, Long artifactId,
                                        Integer versionNo, String referenceKey) {
-        String referenceObjectId = referenceObjectId(referenceKey);
-        if (!String.valueOf(responseId).equals(referenceObjectId) || !fileSlotKey.equals(referenceKey)) {
+        SlotIdentity slot = slotIdentity(referenceKey);
+        if (!responseId.equals(slot.responseId()) || !fileSlotKey.equals(referenceKey)
+                || !sequence.equals(slot.fileSequence())) {
             throw new IllegalStateException("BUSINESS_GRANT_FILE_REFERENCE_INVALID");
         }
         FileReferenceDO reference = referenceMapper.selectForUpdate(new FileReferenceLockQuery(
-                tenantId, OWNER, OBJECT, referenceObjectId, policyKey, referenceKey));
+                tenantId, OWNER, OBJECT, String.valueOf(slot.responseId()), policyKey, referenceKey));
         FileArtifactDO artifact = artifactMapper.selectForUpdate(new FileArtifactLockQuery(tenantId, artifactId));
         FileVersionDO version = versionMapper.selectForUpdate(new FileVersionLockQuery(
                 tenantId, artifactId, versionNo));
@@ -152,18 +153,10 @@ public class BusinessGrantFileUploadService {
                 version.getDetectedMediaType(), version.getSha256(), version.getAvailabilityStatusCode(),
                 reference.getStatusCode(), new FileFactVersion(artifact.getVersion(), reference.getVersion(),
                 version.getAvailabilityVersion()), scopeVersion);
-        return new BusinessGrantFileFact(policyKey, fileSlotKey, sequence, fileFact);
+        return new BusinessGrantFileFact(policyKey, slot.fileSlotKey(), slot.fileSequence(), fileFact);
     }
 
-    private String referenceObjectId(String referenceKey) {
-        String[] parts = referenceKey.split(":", 3);
-        if (parts.length != 3 || !"grant-file".equals(parts[0])) {
-            throw new IllegalStateException("BUSINESS_GRANT_FILE_REFERENCE_INVALID");
-        }
-        return parts[1];
-    }
-
-    private void requireSession(BusinessGrantUploadCompleteCommand command, FileUploadSessionDO session) {
+    private SlotIdentity requireSession(BusinessGrantUploadCompleteCommand command, FileUploadSessionDO session) {
         if (session == null || !command.artifactId().equals(session.getArtifactId())
                 || !OWNER.equals(session.getOwnerContext()) || !OBJECT.equals(session.getObjectType())
                 || !String.valueOf(command.responseId()).equals(session.getObjectId())
@@ -171,6 +164,13 @@ public class BusinessGrantFileUploadService {
                 || !command.fileSlotKey().equals(session.getReferenceKey())) {
             throw new IllegalStateException("BUSINESS_GRANT_FILE_SESSION_CONFLICT");
         }
+        SlotIdentity slot = slotIdentity(session.getReferenceKey());
+        if (!command.responseId().equals(slot.responseId())
+                || !command.fileSequence().equals(slot.fileSequence())
+                || !command.operationId().trim().equals(slot.operationId())) {
+            throw new IllegalStateException("BUSINESS_GRANT_FILE_SESSION_CONFLICT");
+        }
+        return slot;
     }
 
     private void requireInitialize(BusinessGrantUploadInitializeCommand command) {
@@ -213,11 +213,11 @@ public class BusinessGrantFileUploadService {
         List<FileUploadSessionDO> sessions = sessionMapper.selectBusinessGrantSlotsForUpdate(
                 new BusinessGrantUploadSessionQuery(command.tenantId(), OWNER, OBJECT,
                         String.valueOf(command.responseId())));
-        String suffix = ":" + command.operationId().trim();
         for (FileUploadSessionDO session : sessions) {
+            SlotIdentity existing = slotIdentity(session.getReferenceKey());
             if (command.policyKey().equals(session.getPurposeCode())
-                    && session.getReferenceKey().endsWith(suffix)) {
-                return new SlotIdentity(session.getReferenceKey(), slotSequence(session.getReferenceKey()));
+                    && command.operationId().trim().equals(existing.operationId())) {
+                return existing;
             }
         }
         if ("SATISFACTION_SIGNATURE".equals(command.policyKey())) {
@@ -227,24 +227,25 @@ public class BusinessGrantFileUploadService {
             return slot(command, 1);
         }
         int next = sessions.stream().filter(session -> "SATISFACTION_ATTACHMENT".equals(session.getPurposeCode()))
-                .mapToInt(session -> slotSequence(session.getReferenceKey())).max().orElse(1) + 1;
+                .mapToInt(session -> slotIdentity(session.getReferenceKey()).fileSequence()).max().orElse(1) + 1;
         return slot(command, next);
     }
 
     private SlotIdentity slot(BusinessGrantUploadInitializeCommand command, int sequence) {
         return new SlotIdentity("grant-file:" + command.responseId() + ":" + sequence + ":"
-                + command.operationId().trim(), sequence);
+                + command.operationId().trim(), command.responseId(), sequence, command.operationId().trim());
     }
 
-    private int slotSequence(String referenceKey) {
-        String[] parts = referenceKey.split(":", 5);
-        if (parts.length < 4 || !"grant-file".equals(parts[0])) {
+    private SlotIdentity slotIdentity(String referenceKey) {
+        String[] parts = referenceKey == null ? new String[0] : referenceKey.split(":", 4);
+        if (parts.length != 4 || !"grant-file".equals(parts[0]) || blank(parts[3])) {
             throw new IllegalStateException("BUSINESS_GRANT_FILE_REFERENCE_INVALID");
         }
         try {
-            int parsed = Integer.parseInt(parts[2]);
-            if (parsed <= 0) throw new NumberFormatException();
-            return parsed;
+            long responseId = Long.parseLong(parts[1]);
+            int sequence = Integer.parseInt(parts[2]);
+            if (responseId <= 0 || sequence <= 0) throw new NumberFormatException();
+            return new SlotIdentity(referenceKey, responseId, sequence, parts[3]);
         } catch (NumberFormatException invalid) {
             throw new IllegalStateException("BUSINESS_GRANT_FILE_REFERENCE_INVALID");
         }
@@ -271,6 +272,6 @@ public class BusinessGrantFileUploadService {
         return value == null || value.isBlank();
     }
 
-    private record SlotIdentity(String fileSlotKey, Integer fileSequence) {
+    private record SlotIdentity(String fileSlotKey, Long responseId, Integer fileSequence, String operationId) {
     }
 }
