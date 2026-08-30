@@ -63,7 +63,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
                 mock(DeliveryEvidenceMapper.class),
                 mock(DeliveryEvidenceRevisionMapper.class), projectPort, deliveryPort, devicePort,
-                mock(FileArtifactFactPort.class), mock(PlatformCommandExecutionApi.class));
+                mock(FileArtifactFactPort.class), new RecordingCommandExecutionApi());
 
         ArrivalAcceptanceDO created = service.createDraft(command());
 
@@ -94,10 +94,32 @@ class ArrivalAcceptanceApplicationServiceTest {
                 mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
                 mock(DeliveryEvidenceMapper.class),
                 mock(DeliveryEvidenceRevisionMapper.class), projectPort, deliveryPort, devicePort,
-                mock(FileArtifactFactPort.class), mock(PlatformCommandExecutionApi.class));
+                mock(FileArtifactFactPort.class), new RecordingCommandExecutionApi());
 
         assertThrows(IllegalStateException.class, () -> service.createDraft(command()));
 
+        verify(mapper, never()).insert(any(ArrivalAcceptanceDO.class));
+    }
+
+    @Test
+    void rejectsStaleExpectedDeliveryScopeBeforeWritingDraft() {
+        ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
+        ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);
+        DeliveryScopePort deliveryPort = mock(DeliveryScopePort.class);
+        DeviceScopeFactPort devicePort = mock(DeviceScopeFactPort.class);
+        when(projectPort.inspect(1L, 100L, 8L)).thenReturn(projectFact());
+        when(deliveryPort.inspectAssignedScope(100L)).thenReturn(deliveryScope());
+        ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
+                mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
+                mock(DeliveryEvidenceMapper.class), mock(DeliveryEvidenceRevisionMapper.class),
+                projectPort, deliveryPort, devicePort, mock(FileArtifactFactPort.class),
+                new RecordingCommandExecutionApi());
+
+        assertThrows(IllegalStateException.class, () -> service.createDraft(
+                new ArrivalAcceptanceApplicationService.CreateDraftCommand(
+                        1L, 100L, 8L, "B-1", "L-1", LocalDateTime.now(), "Signer", 7L, "create-key")));
+
+        verify(devicePort, never()).resolveBySerials(any(), any(), any());
         verify(mapper, never()).insert(any(ArrivalAcceptanceDO.class));
     }
 
@@ -108,7 +130,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals(900L, result.arrivalAcceptanceId());
         assertEquals("ACCEPTED", result.status());
@@ -126,12 +148,26 @@ class ArrivalAcceptanceApplicationServiceTest {
     }
 
     @Test
+    void submitsThroughPlatformIdempotencyScopeWhenKeyIsPresent() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+
+        fixture.service().submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
+                1L, 900L, 8L, 0, "submit-key"));
+
+        assertEquals("IMP:ARRIVAL_SUBMIT:900", fixture.commandExecutionApi().scope.scopeCode());
+        assertEquals(64, fixture.commandExecutionApi().requestDigest.length());
+        assertEquals("ARRIVAL_ACCEPTANCE_SUBMIT", fixture.commandExecutionApi().successFacts.operationCode());
+    }
+
+    @Test
     void rejectsChangedFileScopeBeforeWritingSubmission() {
         SubmissionFixture fixture = submissionFixture();
         when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(7L));
 
         assertThrows(IllegalStateException.class, () -> fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0)));
+                submitCommand()));
 
         verify(fixture.acceptanceMapper(), never()).updateSubmittedIfMatch(any());
         verify(fixture.lineMapper(), never()).selectCurrentListForUpdate(any());
@@ -145,7 +181,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals("DIFFERENCE_PENDING", result.status());
     }
@@ -163,7 +199,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals("ACCEPTED", result.status());
     }
@@ -181,7 +217,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals("ACCEPTED", result.status());
     }
@@ -199,7 +235,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals("ACCEPTED", result.status());
     }
@@ -219,7 +255,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+                submitCommand());
 
         assertEquals("ACCEPTED", result.status());
     }
@@ -237,7 +273,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
 
         assertThrows(IllegalArgumentException.class, () -> fixture.service().submit(
-                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0)));
+                submitCommand()));
 
         verify(fixture.acceptanceMapper(), never()).updateSubmittedIfMatch(any());
     }
@@ -340,7 +376,11 @@ class ArrivalAcceptanceApplicationServiceTest {
     private static ArrivalAcceptanceApplicationService.CreateDraftCommand command() {
         return new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                 1L, 100L, 8L, "ARRIVAL-001", "LOGISTICS-001",
-                LocalDateTime.of(2026, 8, 30, 9, 0), "客户签收人");
+                LocalDateTime.of(2026, 8, 30, 9, 0), "客户签收人", 8L, "create-key");
+    }
+
+    private static ArrivalAcceptanceApplicationService.SubmitCommand submitCommand() {
+        return new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0, "submit-key");
     }
 
     private static ProjectQualificationPort.ProjectQualificationFact projectFact() {

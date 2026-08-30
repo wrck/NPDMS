@@ -76,7 +76,8 @@ class ArrivalAcceptanceMapperContractTest {
     @Test
     void keepsDynamicAndLockSqlInXmlWithStablePositivePathOrder() {
         assertTrue(mapperXml.contains("FOR UPDATE"));
-        assertTrue(mapperXml.contains("device_id, order_line_id, arrival_acceptance_id, line_no, id"));
+        assertTrue(mapperXml.contains("ORDER BY line_no, id"));
+        assertTrue(mapperXml.contains("ORDER BY difference_no, revision_no, id"));
         assertTrue(mapperXml.contains("ORDER BY arrived_at DESC, id DESC"));
         assertTrue(mapperXml.contains(
                 "project_version, project_participant_fact_version, project_scope_version"));

@@ -42,6 +42,7 @@
 - 锁定提交`337757b3`的Task 5B契约候选聚焦复审为`NO-GO / REVIEW_REQUIRED`，当前按A～E整改精确响应DTO、allowedActions同构守卫、correction/豁免失效/部分补签命令闭环、两列前向迁移合同及可恢复错误data。`Q-FIMP002-001`已单项`GO`采用方案A：V1豁免审批人为写事务中由`ProjectParticipantFactApi`锁定重验的current `PROJECT_MANAGER`，同时要求`resolve-difference + ACTION_EDIT`；批准人/时间服务端写入，不新增角色、流程或表。
 - 锁定提交`856f458b`的A～E整改复审仍为`NO-GO / REVIEW_REQUIRED`，B/C/D/Q及E的拆码/恢复data已关闭；剩余A/E仅要求锁定Yudao Long number/string wire分支、无证据详情`evidence=null`、错误category/reasonCode封闭枚举及包含PROJ的通用Owner Provider不可用类别。当前按该最小范围整改，未进入Task 5B实现。
 - 锁定提交`dbf62b8f`的A1/A2/E1/E2最小整改复审为`PASS / GO`：Long wire严格边界、无证据详情null、13类错误/原因码封闭集合和覆盖PROJ/COM/AST/PLT的Owner不可用语义均已关闭。REST契约已回写`PASS`，physical `task5BExtensionStatus`已回写`BASELINE_READY`；最近Gate切换为Task 5B实现候选独立Code Review／聚焦测试。
+- Task 5B实现中已完成V140两列前向迁移候选、列表/详情/allowedActions读模型，以及本人DRAFT PATCH、raise-difference和未确认批次差异追加处置的消费端候选；均未注册生产Bean。实现发现后继DRAFT的`batch_code`来源/生成规则未被正式契约锁定，且直接复制会违反`tenant_id + project_id + batch_code`唯一键，已登记`Q-FIMP002-002`。因此CONFIRMED来源successor、`CORRECT_INFORMATION`和豁免失效内部命令保持`BLOCKED_BY_SPEC`，Task 5B尚不得申请整体Code Review PASS，Task 8继续阻断。
 - Task 8当前为`BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 

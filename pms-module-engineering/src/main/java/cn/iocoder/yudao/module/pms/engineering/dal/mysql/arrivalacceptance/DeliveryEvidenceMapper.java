@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceIdentityQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceFirstWatermarkUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceSourceQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildrenBatchQuery;
+
+import java.util.List;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionAdvance;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidencePublishUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryClaimQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryStateUpdate;
@@ -19,7 +23,16 @@ public interface DeliveryEvidenceMapper extends BaseMapperX<DeliveryEvidenceDO> 
 
     DeliveryEvidenceDO selectBySource(@Param("query") DeliveryEvidenceSourceQuery query);
 
+    List<DeliveryEvidenceDO> selectByArrivalAcceptanceIdsInternal(
+            @Param("query") ArrivalChildrenBatchQuery query);
+
+    default List<DeliveryEvidenceDO> selectByArrivalAcceptanceIds(ArrivalChildrenBatchQuery query) {
+        return query.arrivalAcceptanceIds().isEmpty() ? List.of() : selectByArrivalAcceptanceIdsInternal(query);
+    }
+
     DeliveryEvidenceDO selectBySourceForUpdate(@Param("query") DeliveryEvidenceSourceQuery query);
+
+    int advanceRevisionIfMatch(@Param("query") DeliveryEvidenceRevisionAdvance update);
 
     int markPublishedPendingAccIfMatch(@Param("query") DeliveryEvidencePublishUpdate update);
 

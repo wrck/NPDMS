@@ -53,7 +53,7 @@ import java.util.Set;
 /**
  * 到货签收应用核心。COM/AST生产Provider形成前不注册Spring Bean，只允许显式组装测试替身。
  */
-public final class ArrivalAcceptanceApplicationService {
+public class ArrivalAcceptanceApplicationService {
 
     private final ArrivalAcceptanceMapper acceptanceMapper;
     private final ArrivalLineMapper lineMapper;
@@ -96,6 +96,21 @@ public final class ArrivalAcceptanceApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public ArrivalAcceptanceDO createDraft(CreateDraftCommand command) {
         requireCommand(command);
+        PlatformCommandExecutionApi.ExecutionResult<ArrivalAcceptanceDO> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "IMP:ARRIVAL_CREATE:" + command.projectId(), command.actorUserId(), command.idempotencyKey()),
+                createDigest(command), ArrivalAcceptanceDO.class, () -> createDraftOnce(command),
+                result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_CREATE",
+                        "ArrivalAcceptance", String.valueOf(result.getId()), null,
+                        JsonUtils.toJsonString(result), List.of()));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
+            throw new IllegalStateException("arrival acceptance creation is conflicting or in progress");
+        }
+        return execution.response();
+    }
+
+    private ArrivalAcceptanceDO createDraftOnce(CreateDraftCommand command) {
         ProjectQualificationPort.ProjectQualificationFact project = projectQualificationPort.inspect(
                 command.tenantId(), command.projectId(), command.actorUserId());
         requireProject(project, command.projectId());
@@ -103,6 +118,10 @@ public final class ArrivalAcceptanceApplicationService {
         DeliveryScopePort.AssignedScope deliveryScope =
                 deliveryScopePort.inspectAssignedScope(command.projectId());
         requireDeliveryScope(deliveryScope, command.projectId());
+        if (command.expectedDeliveryScopeVersion() != null
+                && !command.expectedDeliveryScopeVersion().equals(deliveryScope.scopeVersion())) {
+            throw new IllegalStateException("assigned delivery scope version is stale");
+        }
         Set<String> serialNumbers = collectSerialNumbers(deliveryScope.lines());
         DeviceScopeFactPort.DeviceScopeFact deviceScope = deviceScopeFactPort.resolveBySerials(
                 command.tenantId(), command.projectId(), serialNumbers);
@@ -137,6 +156,22 @@ public final class ArrivalAcceptanceApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public SubmissionResult submit(SubmitCommand command) {
         requireSubmitCommand(command);
+        PlatformCommandExecutionApi.ExecutionResult<SubmissionResult> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "IMP:ARRIVAL_SUBMIT:" + command.arrivalAcceptanceId(),
+                        command.actorUserId(), command.idempotencyKey()),
+                submitDigest(command), SubmissionResult.class, () -> submitOnce(command),
+                result -> new PlatformCommandExecutionApi.SuccessFacts("ARRIVAL_ACCEPTANCE_SUBMIT",
+                        "ArrivalAcceptance", String.valueOf(result.arrivalAcceptanceId()), null,
+                        JsonUtils.toJsonString(result), List.of()));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
+            throw new IllegalStateException("arrival acceptance submission is conflicting or in progress");
+        }
+        return execution.response();
+    }
+
+    private SubmissionResult submitOnce(SubmitCommand command) {
         ArrivalAcceptanceDO root = acceptanceMapper.selectForUpdate(
                 new ArrivalRowQuery(command.tenantId(), command.arrivalAcceptanceId()));
         requireOwnedDraft(root, command);
@@ -433,7 +468,8 @@ public final class ArrivalAcceptanceApplicationService {
         if (command == null || command.tenantId() == null || command.tenantId() < 0
                 || command.arrivalAcceptanceId() == null || command.arrivalAcceptanceId() <= 0
                 || command.actorUserId() == null || command.actorUserId() <= 0
-                || command.expectedVersion() == null || command.expectedVersion() < 0) {
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || blank(command.idempotencyKey())) {
             throw new IllegalArgumentException("invalid arrival acceptance submit command");
         }
     }
@@ -461,10 +497,30 @@ public final class ArrivalAcceptanceApplicationService {
 
     private static String confirmationDigest(ConfirmCommand command) {
         Map<String, Object> normalized = new LinkedHashMap<>();
-        normalized.put("tenantId", command.tenantId());
         normalized.put("arrivalAcceptanceId", command.arrivalAcceptanceId());
-        normalized.put("actorUserId", command.actorUserId());
         normalized.put("expectedVersion", command.expectedVersion());
+        return digest(normalized);
+    }
+
+    private static String createDigest(CreateDraftCommand command) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        normalized.put("projectId", command.projectId());
+        normalized.put("batchCode", command.batchCode().trim());
+        normalized.put("logisticsNo", command.logisticsNo().trim());
+        normalized.put("arrivedAt", command.arrivedAt());
+        normalized.put("signerName", command.signerName().trim());
+        normalized.put("expectedDeliveryScopeVersion", command.expectedDeliveryScopeVersion());
+        return digest(normalized);
+    }
+
+    private static String submitDigest(SubmitCommand command) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        normalized.put("arrivalAcceptanceId", command.arrivalAcceptanceId());
+        normalized.put("expectedVersion", command.expectedVersion());
+        return digest(normalized);
+    }
+
+    private static String digest(Map<String, Object> normalized) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(JsonUtils.toJsonString(normalized).getBytes(StandardCharsets.UTF_8)));
@@ -488,7 +544,10 @@ public final class ArrivalAcceptanceApplicationService {
                 || command.projectId() == null || command.projectId() <= 0
                 || command.actorUserId() == null || command.actorUserId() <= 0
                 || blank(command.batchCode()) || blank(command.logisticsNo())
-                || command.arrivedAt() == null || blank(command.signerName())) {
+                || command.arrivedAt() == null || blank(command.signerName())
+                || command.expectedDeliveryScopeVersion() != null
+                && command.expectedDeliveryScopeVersion() < 0
+                || blank(command.idempotencyKey())) {
             throw new IllegalArgumentException("invalid arrival acceptance draft command");
         }
     }
@@ -559,11 +618,12 @@ public final class ArrivalAcceptanceApplicationService {
 
     public record CreateDraftCommand(Long tenantId, Long projectId, Long actorUserId,
                                      String batchCode, String logisticsNo,
-                                     LocalDateTime arrivedAt, String signerName) {
+                                     LocalDateTime arrivedAt, String signerName,
+                                     Long expectedDeliveryScopeVersion, String idempotencyKey) {
     }
 
     public record SubmitCommand(Long tenantId, Long arrivalAcceptanceId,
-                                Long actorUserId, Integer expectedVersion) {
+                                Long actorUserId, Integer expectedVersion, String idempotencyKey) {
     }
 
     public record ConfirmCommand(Long tenantId, Long arrivalAcceptanceId,

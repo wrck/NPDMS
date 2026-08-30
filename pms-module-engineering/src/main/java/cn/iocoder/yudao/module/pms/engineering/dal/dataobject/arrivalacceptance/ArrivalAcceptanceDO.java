@@ -35,6 +35,7 @@ public class ArrivalAcceptanceDO extends TenantBaseDO {
     private Long evidenceId;
     private Integer evidenceRevision;
     private Long predecessorAcceptanceId;
+    private String successorReason;
     private Long submittedBy;
     private LocalDateTime submittedAt;
     private Long confirmedBy;

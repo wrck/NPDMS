@@ -23,16 +23,38 @@
     <select id="selectCurrentList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
         SELECT <include refid="columns"/> FROM imp_arrival_line
         WHERE <include refid="currentWhere"/>
-        ORDER BY CASE WHEN scope_type = 'DEVICE' THEN 0 ELSE 1 END,
-                 device_id, order_line_id, arrival_acceptance_id, line_no, id
+        ORDER BY line_no, id
+    </select>
+    <select id="selectCurrentListByAcceptanceIdsInternal" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_line
+        WHERE tenant_id = #{query.tenantId}
+          AND arrival_acceptance_id IN
+          <foreach collection="query.arrivalAcceptanceIds" item="acceptanceId" open="(" separator="," close=")">
+              #{acceptanceId}
+          </foreach>
+          AND current_marker = 1
+          AND deleted = b'0'
+        ORDER BY arrival_acceptance_id, line_no, id
     </select>
     <select id="selectCurrentListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
         SELECT <include refid="columns"/> FROM imp_arrival_line
         WHERE <include refid="currentWhere"/>
-        ORDER BY CASE WHEN scope_type = 'DEVICE' THEN 0 ELSE 1 END,
-                 device_id, order_line_id, arrival_acceptance_id, line_no, id
+        ORDER BY line_no, id
         FOR UPDATE
     </select>
+    <update id="clearCurrentIfMatch">
+        UPDATE imp_arrival_line
+        SET current_marker = NULL,
+            version = version + 1,
+            updater = CAST(#{query.actorUserId} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND arrival_acceptance_id = #{query.arrivalAcceptanceId}
+          AND id = #{query.childId}
+          AND current_marker = 1
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
     <select id="selectConfirmedAcceptedByProject" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
         SELECT <include refid="qualifiedColumns"/>
         FROM imp_arrival_line l

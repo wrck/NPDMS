@@ -504,3 +504,17 @@
 - Blocking scope: 已解除本问题自身对`EXEMPT`分支的阻断；Task 5B仍受337757b3复审A～E整改Gate阻断。
 - Decision owner: 需求方；IMP、PROJ和权限Owner参与影响分析
 - Decision date: 2026-08-30
+
+### Q-FIMP002-002
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: EXE-01
+- Area: 到货签收已确认批次的后继DRAFT业务编码
+- Question: `SUPPLEMENT`、`CORRECTION`、`DIFFERENCE_CLOSURE`和`EXEMPTION_INVALIDATION`创建关联后继DRAFT时，后继`batch_code`应继承哪个业务值，还是由哪个Owner按什么稳定规则生成新值？
+- Why it blocks design/implementation: `imp_arrival_acceptance`已正式锁定租户内`project_id + batch_code`唯一；直接复制前驱编码必然违反唯一键，自行拼接后缀会臆造业务编码并可能突破64字符合同。当前Feature/REST机器契约只锁定`predecessor_acceptance_id`和`successor_reason`，没有给出后继编码来源、格式、长度溢出处置或幂等重放规则。
+- Options: A. 明确由IMP服务端按正式稳定规则生成新的后继批次编码；B. 批准后继沿用业务批次编码并正式调整唯一键/引入独立实例序号；C. 引用另一个已锁定Owner提供的新批次编码。
+- Recommended technical default: A，但必须由正式规格锁定格式、唯一性、长度和幂等语义后实施，不由代码猜测。
+- Business decision required: 是。该选择改变公开详情中的`batchCode`及数据库唯一性执行路径。
+- Blocking scope: 仅阻断CONFIRMED来源的successor DRAFT、`CORRECT_INFORMATION`和`ExpireArrivalExemptionsCommand`；本人DRAFT PATCH、未确认差异raise/resolve、查询投影及已批准两列迁移可独立继续。
+- Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
+- Decision date: 待定

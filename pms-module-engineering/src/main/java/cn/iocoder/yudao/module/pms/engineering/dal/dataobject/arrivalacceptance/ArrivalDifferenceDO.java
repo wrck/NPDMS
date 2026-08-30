@@ -26,6 +26,7 @@ public class ArrivalDifferenceDO extends TenantBaseDO {
     private String riskDescription;
     private String scopeSnapshot;
     private Long projectFactVersion;
+    private String factImpactType;
     private Long approvedBy;
     private LocalDateTime approvedAt;
     private LocalDateTime exemptionExpiresAt;

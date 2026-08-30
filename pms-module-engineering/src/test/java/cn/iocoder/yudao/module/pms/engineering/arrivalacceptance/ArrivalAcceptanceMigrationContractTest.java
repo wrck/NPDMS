@@ -21,6 +21,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String evidenceOutboxJobSql;
     private static String evidenceCorrelationUpgradeSql;
     private static String evidenceRetryJobSql;
+    private static String task5BUpgradeSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -47,6 +48,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         evidenceRetryJobSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V139__fimp002_arrival_evidence_retry_job.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        task5BUpgradeSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V140__fimp002_task5b_successor_fact_impact.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -229,6 +233,42 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(evidenceRetryJobSql.contains("`status` = 2"));
         assertFalse(evidenceRetryJobSql.contains("`status` = 1"));
         assertFalse(evidenceRetryJobSql.contains("syncEnabledJobByHandlerName"));
+    }
+
+    @Test
+    void addsServerOwnedSuccessorAndFactImpactDiscriminators() {
+        assertTrue(task5BUpgradeSql.contains(
+                "ADD COLUMN `successor_reason` varchar(32) NULL DEFAULT NULL"));
+        assertTrue(task5BUpgradeSql.contains(
+                "'SUPPLEMENT', 'CORRECTION', 'DIFFERENCE_CLOSURE', 'EXEMPTION_INVALIDATION'"));
+        assertTrue(task5BUpgradeSql.contains(
+                "ADD COLUMN `fact_impact_type` varchar(32) NULL DEFAULT NULL"));
+        assertTrue(task5BUpgradeSql.contains("'CORRECTION', 'REOPEN', 'EXEMPTION_INVALIDATION'"));
+        assertTrue(task5BUpgradeSql.contains("chk_imp_arrival_successor_pair"));
+        assertTrue(task5BUpgradeSql.contains("chk_imp_arrival_difference_fact_pair"));
+        assertFalse(task5BUpgradeSql.contains("UPDATE `imp_arrival_"));
+    }
+
+    @Test
+    void failsBeforeTask5BAlterWhenImmutableHistoryCannotBeProvenAndCanBeReplayed() {
+        int cleanup = task5BUpgradeSql.indexOf(
+                "DROP PROCEDURE IF EXISTS `fimp002_require_provable_task5b_history`");
+        int create = task5BUpgradeSql.indexOf(
+                "CREATE PROCEDURE `fimp002_require_provable_task5b_history`");
+        int predecessorGuard = task5BUpgradeSql.indexOf(
+                "WHERE `predecessor_acceptance_id` IS NOT NULL");
+        int factGuard = task5BUpgradeSql.indexOf(
+                "WHERE `project_fact_version` IS NOT NULL");
+        int signal = task5BUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
+        int alter = task5BUpgradeSql.indexOf("ALTER TABLE `imp_arrival_acceptance`");
+        assertTrue(cleanup >= 0);
+        assertTrue(create > cleanup);
+        assertTrue(predecessorGuard > create);
+        assertTrue(factGuard > predecessorGuard);
+        assertTrue(signal > factGuard);
+        assertTrue(alter > signal);
+        assertEquals(2, occurrences(task5BUpgradeSql,
+                "DROP PROCEDURE IF EXISTS `fimp002_require_provable_task5b_history`"));
     }
 
     private static int occurrences(String source, String token) {
