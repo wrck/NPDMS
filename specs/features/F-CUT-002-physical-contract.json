@@ -10,7 +10,12 @@
   "apiAndPhysicalContractGate": {
     "status": "PASS",
     "reviewedCommit": "b7f49166",
-    "nextGate": "IMPLEMENTATION_READINESS_API_PUBLIC_MACHINE_CONTRACT_REVIEW"
+    "nextGate": "CUSTOMER_SERVICE_LEVEL_FACT_API_PUBLIC_MACHINE_CONTRACT_REVIEW"
+  },
+  "customerServiceLevelFactContractGate": {
+    "status": "REVIEW_REQUIRED",
+    "asset": "specs/features/F-CUT-002-customer-service-level-fact-contract.json",
+    "providerImplementation": "NOT_STARTED"
   },
   "requirementCoverage": ["CUT-01@V1=PARTIAL", "CUT-02@V1=PARTIAL"],
   "ownerContext": "CUT",

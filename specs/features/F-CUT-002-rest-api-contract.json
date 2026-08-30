@@ -391,8 +391,9 @@
       "owner": "CUS",
       "gate": "PUBLIC_MACHINE_CONTRACT_REQUIRED_BEFORE_F_CUT_002_FEATURE_READY",
       "operations": ["inspectCurrent", "lockAndRevalidate"],
-      "requiredInput": "trusted tenant + customerId; revalidation additionally carries expected serviceLevelRevisionId/factVersion/effective interval",
-      "requiredOutput": "AVAILABLE|NOT_CONFIGURED|STALE + customerId + serviceLevelRevisionId/code + factVersion + effective interval",
+      "machineContract": "specs/features/F-CUT-002-customer-service-level-fact-contract.json",
+      "requiredInput": "trusted tenant + customerId; revalidation additionally carries the complete previously inspected AVAILABLE or NOT_CONFIGURED fact",
+      "requiredOutput": "AVAILABLE|NOT_CONFIGURED|STALE + complete current customer fact; STALE is only returned by lockAndRevalidate",
       "consumerRule": "AVAILABLE is frozen into P2 read-only context; NOT_CONFIGURED blocks P2 submission without user-entered substitute; STALE refreshes context; provider unavailable is 503; CustomerSummaryDTO is not a substitute"
     }
   },

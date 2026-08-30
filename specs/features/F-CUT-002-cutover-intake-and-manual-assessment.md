@@ -103,7 +103,7 @@ SURVEYING/PLAN_DRAFTING --later CUT continuation proves submitted context stale-
 
 内部`CutoverTaskIntakeApi.create`使用`ITR/PROJECT_EVENT`严格判别联合，只接受受信租户、来源身份和明确`handlingEngineerUserId`；该用户必须在写前通过同一项目/设备操作范围验证，不建立自动匹配、指派或领取流程。ITR按`tenant+sourceSystem+sourceBusinessNo`、项目事件按`tenant+businessEventId`幂等，并执行与自建相同的PROJ/AST/CUS/IMP重验。本Feature不实现任何Producer或第三方客户端。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。两个尚未通过公共机器Contract Gate的跨Context接口只登记消费合同，不在CUT实现Provider；禁止依赖其他Context的Service、Mapper、DO或业务表。
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS `CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`消费当前有效客户服务等级事实。IMP合同已通过；CUS合同候选只预留公开接口，不在CUT实现Provider。禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 
@@ -141,4 +141,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`NOT_READY / NO-GO`。
 
-`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过。最近Gate为`ImplementationReadinessApi Public Machine Contract`，随后还须取得`CustomerServiceLevelFactApi Public Machine Contract`；无需等待F-IMP-003～005或CUS生产实现完成，直接消费合同冻结后即可重审F-CUT-002 Feature Ready，并在通过后使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+`F-CUT-002 API/Physical Machine Contract Gate`已在`b7f49166`独立复审通过，`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`通过。最近Gate为`CustomerServiceLevelFactApi Public Machine Contract`；无需等待CUS生产实现完成，直接消费合同冻结后即可重审F-CUT-002 Feature Ready，并在通过后使用受控正向模拟实施CUT自有单元/集成闭环。模拟不进生产装配、不产生正式就绪/客户等级事实、不支撑真实浏览器验收；生产Owner事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。

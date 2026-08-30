@@ -253,7 +253,7 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 
 F-CUT-002用户REST、内部`CutoverTaskIntakeApi`、Wire Long/时间、四权限、`allowedActions`、来源判别联合及错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。P1列表固定显示割接来源、办事处和任务生成时间；P2模板固定由CUT服务端写为`CUT_P2_MANUAL_ASSESSMENT@1`，草稿四项答案可空。详情GET只用Owner只读`inspect`投影提示性动作，提交命令另在写事务中执行`lockAndRevalidate`。自建确认携带明确选择的projectId及只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；这些字段只作并发守卫，客户、负责人、阶段、状态、等级和业务快照均由服务端写入。ITR/项目事件仅预留字段类型、可空性和判别联合完整的受信入向接口，不在CUT实现第三方Producer。
 
-CUT通过CUS Owner的`CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`取得当前有效服务等级revision/code/factVersion/effective interval；`CustomerSummaryDTO`不包含该事实，不能替代。CUT通过IMP Owner的`ImplementationReadinessApi.inspect/lockAndRevalidate`取得明确READY快照及项目/设备/来源水位。两个消费接口可在CUT单元/集成中使用受控正向模拟，但模拟不得注册到生产装配或作为真实Owner、浏览器验收和Implementation Done证据。
+CUT通过CUS Owner的`CustomerServiceLevelFactApi.inspectCurrent/lockAndRevalidate`取得客户等级时间线事实。`inspectCurrent`只返回`AVAILABLE`或`NOT_CONFIGURED`；`AVAILABLE`携带revision/code/factVersion/effective interval，`NOT_CONFIGURED`只携带客户身份和可比较的时间线factVersion，不补造等级字段。`lockAndRevalidate`使用此前完整事实加入CUT写事务，精确匹配返回原状态，任一字段变化返回携带完整当前事实的`STALE`；客户不存在、Owner数据损坏和Provider不可用分别失败。`CustomerSummaryDTO`和旧PROJ服务等级实现不能替代。CUT通过IMP Owner的`ImplementationReadinessApi.inspect/lockAndRevalidate`取得明确READY快照及项目/设备/来源水位。两个消费接口可在CUT单元/集成中使用受控正向模拟，但模拟不得注册到生产装配或作为真实Owner、浏览器验收和Implementation Done证据。精确CUS机器合同见`specs/features/F-CUT-002-customer-service-level-fact-contract.json`。
 
 ## 10. SRV：巡检与服务状态 API
 
