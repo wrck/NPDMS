@@ -248,6 +248,61 @@ export const runArrivalIntent = async <T>(options: {
 }
 
 export type ArrivalIntentStore = ReturnType<typeof createArrivalIntentStore>
+export type ArrivalWriteBarrierResult = 'PROCEED' | 'REFRESHED' | 'REFRESH_FAILED'
+
+export const createArrivalWriteBarrier = () => {
+  let pendingRefresh: (() => Promise<void>) | null = null
+  return {
+    register(refresh: () => Promise<void>) {
+      pendingRefresh = refresh
+    },
+    hasPending() {
+      return pendingRefresh !== null
+    },
+    async beforeWrite(): Promise<ArrivalWriteBarrierResult> {
+      if (!pendingRefresh) return 'PROCEED'
+      try {
+        await pendingRefresh()
+        pendingRefresh = null
+        return 'REFRESHED'
+      } catch {
+        return 'REFRESH_FAILED'
+      }
+    }
+  }
+}
+
+export const runArrivalGuardedWrite = async <T>(options: {
+  barrier: ReturnType<typeof createArrivalWriteBarrier>
+  call: () => Promise<T>
+  refreshAfterConflict: () => Promise<void>
+}) => {
+  const barrierResult = await options.barrier.beforeWrite()
+  if (barrierResult !== 'PROCEED') {
+    return { writeCalled: false as const, barrierResult }
+  }
+  try {
+    return { writeCalled: true as const, succeeded: true as const, result: await options.call() }
+  } catch (error) {
+    const recovery = resolveArrivalCommandFailure(error)
+    let refreshSucceeded: boolean | null = null
+    if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
+      try {
+        await options.refreshAfterConflict()
+        refreshSucceeded = true
+      } catch {
+        refreshSucceeded = false
+      }
+    }
+    return {
+      writeCalled: true as const,
+      succeeded: false as const,
+      recovery,
+      refreshSucceeded
+    }
+  }
+}
+
 export type ArrivalIntentExecution =
   | {
       commandSucceeded: false
