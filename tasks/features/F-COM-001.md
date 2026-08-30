@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`；非IT测试33/33、隔离MySQL 8.4测试4/4通过。当前进入Task 5“项目经理交付范围分配、释放与冲突处置”，最近Gate为其实现候选独立Code Review/真实MySQL Gate；Task 8暂不并行写共享资产，下游依赖仍未解除。
+Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`。Task 5“项目经理交付范围分配、释放与冲突处置”实现候选已形成，状态`REVIEW_REQUIRED`：新增写路径与旧`DeliveryScopeService`隔离，聚焦非IT测试18/18、真实MySQL测试4/4通过；最近Gate为Task 5独立Code Review/真实MySQL复审。Task 8暂不并行写共享资产，下游依赖仍未解除。
 
 ## Gate输入
 
