@@ -29,6 +29,13 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
             projection.get("rootTaskCode") != "T-SAT-SURVEY" or \
             projection.get("missingDuplicateMismatch") != "PENDING_COMPENSATION_FAIL_CLOSED":
         errors.append("deliverable-root")
+    if not projection.get("recordedBeforeCurrent", "").startswith(
+            "REVALIDATE_SatisfactionResultFactApi_BY_RESULT_ID_AND_VERSION") or \
+            projection.get("lateRecordedAfterInvalidatedOrNewer") != \
+            "KEEP_NON_CURRENT_HISTORY_ACTIVE_FILES_AND_ARCHIVE_ELIGIBILITY" or \
+            projection.get("invalidatedCurrentClear") != \
+            "ONLY_IF_ROOT_POINTS_TO_EXACT_RESULT_AND_VERSION":
+        errors.append("projection-monotonicity")
     initializer = contract.get("moduleApis", {}).get("SatisfactionTaskInitializationApi", {})
     if initializer.get("transactionPropagation") != "MANDATORY" or \
             "triggerObjectType" not in initializer.get("inputs", []):
@@ -41,6 +48,14 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     paths = {(item.get("method"), item.get("path")) for item in contract.get("restApis", [])}
     if ("POST", "/api/v1/pms/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish") not in paths:
         errors.append("template-publish")
+    if ("POST", "/api/v1/pms/satisfaction-results/{id}/actions/invalidate") not in paths:
+        errors.append("result-invalidation")
+    project_scope = contract.get("moduleApis", {}).get("ProjectScopeApi", {})
+    if project_scope.get("provider") != "ProjectScopeApiImpl" or \
+            project_scope.get("scopeVersionSource") != "treeVersion" or \
+            "lockAndRevalidate" not in project_scope.get("methods", []) or \
+            "PROJECT_EDIT" not in project_scope.get("actions", []):
+        errors.append("project-scope")
     file_api = contract.get("moduleApis", {}).get("FileArtifactApi", {})
     if file_api.get("additiveMethods") != ["initializeBusinessGrantUpload", "completeBusinessGrantUpload"] or \
             file_api.get("forbidden") != "FAKE_LOGIN_OR_BYPASS_FILE_POLICY":
@@ -60,17 +75,34 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("compensation")
     event = contract.get("events", {}).get("SatisfactionResultVersionChanged", {})
     if event.get("changeTypes") != ["RECORDED", "INVALIDATED"] or \
-            not any("files[{role,sequence,artifactId" in fact for fact in event.get("facts", [])):
+            not any("files[{role,sequence,artifactId" in fact and "sha256" in fact
+                    for fact in event.get("facts", [])) or \
+            "invalidatedByUserId" not in event.get("facts", []):
         errors.append("event")
+    file_policies = contract.get("filePolicies", {})
+    if "sha256" not in file_policies.get("storedFacts", []) or \
+            "fileHash" in file_policies.get("storedFacts", []) or \
+            file_policies.get("physicalFieldMapping", {}).get("sha256") != "file_hash":
+        errors.append("public-file-fact")
+    source_attachment = contract.get("physicalDelta", {}).get("tables", {}).get(
+        "acc_project_deliverable_source_attachment", {})
+    if source_attachment.get("publicToPhysical", {}).get("sha256") != "file_hash":
+        errors.append("file-physical-mapping")
+    disposition = contract.get("legacyDisposition", {})
+    if disposition.get("v17V18CompletionCertificateStack") != "DO_NOT_REUSE_PRESERVE_EXISTING" or \
+            "satisfactionScore" not in disposition.get("completionCertificateForbiddenFacts", []):
+        errors.append("completion-certificate")
     if contract.get("legacyDisposition", {}).get("currentForward") != "NEW_ONLY_EXPLICIT_COMMANDS":
         errors.append("legacy")
     for marker in ("文档状态：`CANDIDATE`", "Feature Ready：`NOT_READY`", "ACC-02@V1=FULL",
                    "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
-                   "AI-MIG-000"):
+                   "actions/invalidate", "ProjectScopeApi/Impl", "sha256", "pms_acc_completion_certificate",
+                   "双向乱序", "AI-MIG-000"):
         if marker not in spec:
             errors.append(f"spec:{marker}")
-    for marker in ("REUSE-01", "REUSE-14", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
-                   "D-SAT-REPORT", "PlatformOutboxDeliveryApi", "DIRECT_REUSE_NO_SOURCE_CHANGE"):
+    for marker in ("REUSE-01", "REUSE-16", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
+                   "ProjectScopeApiImpl", "D-SAT-REPORT", "PlatformOutboxDeliveryApi",
+                   "pms_acc_completion_certificate", "satisfactionScore", "DIRECT_REUSE_NO_SOURCE_CHANGE"):
         if marker not in audit:
             errors.append(f"audit:{marker}")
     return errors
@@ -102,6 +134,11 @@ class Facc002FeatureContractTest(unittest.TestCase):
         mutated["deliverableProjection"]["rootLookup"] = "ANY_PROJECT_DELIVERABLE"
         self.assertIn("deliverable-root", contract_errors(mutated, self.spec, self.audit))
 
+    def test_rejects_late_recorded_restoring_invalidated_result(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["deliverableProjection"]["recordedBeforeCurrent"] = "SET_CURRENT_DIRECTLY"
+        self.assertIn("projection-monotonicity", contract_errors(mutated, self.spec, self.audit))
+
     def test_rejects_result_current_without_pass_guard(self) -> None:
         mutated = deepcopy(self.contract)
         mutated["physicalDelta"]["tables"]["acc_satisfaction_result"]["currentMarker"] = (
@@ -130,6 +167,30 @@ class Facc002FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["legacyDisposition"]["currentForward"] = "MIGRATE_CALLBACK_SCORE"
         self.assertIn("legacy", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_missing_result_invalidation_command(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["restApis"] = [item for item in mutated["restApis"]
+                               if "actions/invalidate" not in item["path"]]
+        self.assertIn("result-invalidation", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_abstract_or_local_project_scope(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["ProjectScopeApi"]["provider"] = "ACC_LOCAL_SCOPE"
+        self.assertIn("project-scope", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_public_file_hash_alias_or_missing_physical_mapping(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["filePolicies"]["storedFacts"][-1] = "fileHash"
+        self.assertIn("public-file-fact", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        del mutated["physicalDelta"]["tables"]["acc_project_deliverable_source_attachment"]["publicToPhysical"]
+        self.assertIn("file-physical-mapping", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_completion_certificate_as_new_result_truth(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["legacyDisposition"]["v17V18CompletionCertificateStack"] = "DIRECT_REUSE"
+        self.assertIn("completion-certificate", contract_errors(mutated, self.spec, self.audit))
 
 
 if __name__ == "__main__":

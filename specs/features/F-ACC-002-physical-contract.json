@@ -39,6 +39,7 @@
     {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-responses","permission":"pms:acceptance:satisfaction:collect"},
     {"method":"GET","path":"/api/v1/pms/satisfaction-results","permission":"pms:acceptance:satisfaction:query"},
     {"method":"GET","path":"/api/v1/pms/satisfaction-results/{id}","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-results/{id}/actions/invalidate","permission":"pms:acceptance:satisfaction:manage","scope":"PROJECT_EDIT","inputs":["expectedResultVersion","invalidationReasonCode","invalidationReasonSummary","Idempotency-Key"],"actor":"SERVER_AUTHENTICATED_USER","result":"INVALIDATED_CURRENT_RESULT_OR_STABLE_REJECTION"},
     {"method":"GET","path":"/api/v1/pms/satisfaction-results/{resultId}/files/{sequence}/download","permission":"pms:acceptance:satisfaction:download","scope":"PROJECT_FILE_TENANT_EACH_REQUEST"},
     {"method":"POST","path":"/api/v1/pms/satisfaction-results/exports","permission":"pms:acceptance:satisfaction:export","scope":"PROJECT_FIELD_FILE_TENANT"}
   ],
@@ -60,10 +61,20 @@
       "outcomes":["INITIALIZED","REPLAYED","IDENTITY_MISMATCH","VERSION_CONFLICT","DEPENDENCY_UNAVAILABLE"]
     },
     "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"DIRECT_REUSE","facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
+    "ProjectScopeApi": {
+      "owner":"PROJ",
+      "provider":"ProjectScopeApiImpl",
+      "reuse":"DIRECT_REUSE",
+      "methods":["resolveCurrent","resolveAllCurrent","lockAndRevalidate"],
+      "actions":["PROJECT_VIEW","PROJECT_EDIT"],
+      "facts":["rootProjectId","treeVersion","fullProjectIds","placeholderProjectIds"],
+      "scopeVersionSource":"treeVersion",
+      "consumers":["SATISFACTION_QUERY","SATISFACTION_EXPORT","SATISFACTION_DOWNLOAD","RESULT_INVALIDATION","FILE_BUSINESS_SCOPE"]
+    },
     "SatisfactionResultFactApi": {
       "methods":["inspect","lockAndRevalidate"],
       "owner":"ACC",
-      "consumers":"FUTURE_CLO_SUB_ONLY",
+      "consumers":["SATISFACTION_DELIVERABLE_PROJECTION_MONOTONIC_REVALIDATION","FUTURE_CLO_SUB_ONLY"],
       "facts":["collectionKey","taskId","taskRevisionNo","questionnaireId","responseId","resultId","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveStatus","factVersion"]
     },
     "FileArtifactApi": {
@@ -103,6 +114,10 @@
     "rootLookup":"tenant_id+project_id+deliverable_code=D-SAT-REPORT",
     "rootTaskCode":"T-SAT-SURVEY",
     "missingDuplicateMismatch":"PENDING_COMPENSATION_FAIL_CLOSED",
+    "recordedBeforeCurrent":"REVALIDATE_SatisfactionResultFactApi_BY_RESULT_ID_AND_VERSION_REQUIRE_EFFECTIVE_PASSED_AND_NO_NEWER_CURRENT",
+    "lateRecordedAfterInvalidatedOrNewer":"KEEP_NON_CURRENT_HISTORY_ACTIVE_FILES_AND_ARCHIVE_ELIGIBILITY",
+    "invalidatedCurrentClear":"ONLY_IF_ROOT_POINTS_TO_EXACT_RESULT_AND_VERSION",
+    "outOfOrderGuarantee":"NEVER_RESTORE_INVALIDATED_OR_OVERWRITE_NEWER_CURRENT",
     "forbiddenInference":["NAME","OTHER_DELIVERABLE","ARBITRARY_ROOT","LEGACY_CALLBACK_STATUS"]
   },
   "filePolicies": {
@@ -110,18 +125,20 @@
     "attachment":"ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_ATTACHMENT",
     "resultDocument":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",
     "archive":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_ARCHIVE",
-    "storedFacts":["artifactId","versionNo","referenceKey","artifactVersion","referenceVersion","availabilityVersion","scopeVersion","fileHash"],
+    "storedFacts":["artifactId","versionNo","referenceKey","artifactVersion","referenceVersion","availabilityVersion","scopeVersion","sha256"],
+    "physicalFieldMapping":{"sha256":"file_hash"},
     "forbiddenFields":["fileVersionId","fileReferenceId","tokenPlaintext"]
   },
   "events": {
     "SatisfactionTaskCreated":{"facts":["taskId","projectTaskId","projectId","collectionKey","taskRevisionNo","priorTaskId","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","questionnaireId","templateRevisionId","ruleVersion","threshold","assignee"]},
-    "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]"]},
+    "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","invalidationReasonCode","invalidatedByUserId","invalidatedAt","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,sha256}]"]},
     "futureConsumerRequests":{"ClosureGateRecheckRequested":"NOT_CLAIMED_AS_DELIVERED_BY_THIS_FEATURE","SubcontractRecheckRequested":"NOT_IMPLEMENTED"}
   },
   "transactionBoundary": {
     "initializationLockOrder":["PROJ_PROJECT_TASK_WORK_BINDING","ACC_TASK","QUESTIONNAIRE"],
     "submissionLockOrder":["ACCESS_GRANT","ACC_TASK","QUESTIONNAIRE","PLT_REFERENCES","RESPONSE","RESULT","OUTBOX"],
     "remediationLockOrder":["TASK_CHAIN","PRIOR_RESULT","REMEDIATION_FACT","NEW_TASK","QUESTIONNAIRE","OUTBOX"],
+    "invalidationLockOrder":["PROJ_PROJECT_SCOPE_CURRENT_TREE_VERSION","TASK_CHAIN","CURRENT_RESULT","OUTBOX"],
     "archiveLockOrder":["DELIVERABLE_ROOT","SOURCE_VERSION","PLT_ACTIVE_AND_ARCHIVE_SETS","ARCHIVE_PROJECTION"],
     "resultAndOutboxAtomic":true,
     "archiveFailureRollsBackResult":false,
@@ -137,18 +154,21 @@
       "acc_satisfaction_questionnaire":{"mode":"CREATE_OR_ALTER_FORWARD","fields":["questionnaire_status","access_scope_version"],"immutable":"FROZEN_TEMPLATE_QUESTIONS_RULE_THRESHOLD"},
       "acc_satisfaction_access_grant":{"mode":"CREATE","uniqueKeys":["tenant_id+token_digest"],"tokenPlaintext":"FORBIDDEN"},
       "acc_satisfaction_response":{"mode":"CREATE_OR_ALTER_FORWARD","uniqueKeys":["tenant_id+questionnaire_id+response_no","tenant_id+questionnaire_id+request_id"],"immutable":true},
-      "acc_satisfaction_response_file":{"mode":"CREATE","roles":["SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true},
-      "acc_satisfaction_result":{"mode":"CREATE_OR_ALTER_FORWARD","currentMarker":"case when result_status='EFFECTIVE' and passed=1 and effective_to is null then 1 else null end","uniqueKeys":["tenant_id+collection_key+current_marker"],"immutableBusinessFields":true},
-      "acc_satisfaction_result_file":{"mode":"CREATE","roles":["RESULT_DOCUMENT","SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true},
+      "acc_satisfaction_response_file":{"mode":"CREATE","roles":["SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true,"publicToPhysical":{"sha256":"file_hash"}},
+      "acc_satisfaction_result":{"mode":"CREATE_OR_ALTER_FORWARD","fields":["invalidated_by_user_id","invalidated_at","invalidation_reason_code","invalidation_reason_summary"],"currentMarker":"case when result_status='EFFECTIVE' and passed=1 and effective_to is null then 1 else null end","uniqueKeys":["tenant_id+collection_key+current_marker"],"immutableBusinessFields":true,"invalidation":"CURRENT_EFFECTIVE_PASSED_EXPECTED_VERSION_ATOMIC_CLOSE_AND_OUTBOX"},
+      "acc_satisfaction_result_file":{"mode":"CREATE","roles":["RESULT_DOCUMENT","SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true,"publicToPhysical":{"sha256":"file_hash"}},
       "acc_satisfaction_remediation_fact":{"mode":"CREATE","fields":["prior_result_id","remediation_revision_no","remediation_request_id","evidence_summary","evidence_file_fact_version","completed_by","completed_at","fact_version"],"uniqueKeys":["tenant_id+prior_result_id+remediation_revision_no","tenant_id+prior_result_id+remediation_request_id"],"immutable":true},
       "acc_project_deliverable_source_version":{"mode":"DIRECT_REUSE_F_ACC_001","sourceObjectType":"SatisfactionResult"},
-      "acc_project_deliverable_source_attachment":{"mode":"DIRECT_REUSE_F_ACC_001","completeOrderedPublicFileFacts":true}
+      "acc_project_deliverable_source_attachment":{"mode":"DIRECT_REUSE_F_ACC_001","completeOrderedPublicFileFacts":true,"publicToPhysical":{"sha256":"file_hash"}}
     },
     "crossContextForeignKeys":"FORBIDDEN"
   },
   "legacyDisposition": {
     "pm_cl_quesnaire_tables":"PRESERVE_RAW_AI_MIG_000",
     "callbackVisitSubcontractTables":"PRESERVE_RAW_AI_MIG_000",
+    "v17V18CompletionCertificateStack":"DO_NOT_REUSE_PRESERVE_EXISTING",
+    "completionCertificateAssets":["pms_acc_completion_certificate","CompletionCertificateController","CompletionCertificateService","CompletionCertificateServiceImpl","CompletionCertificateDO","CompletionCertificateMapper","V18_MENU_19094_AND_ACTIONS","completion-certificate_UI","project-detail_completion-certificate_projection"],
+    "completionCertificateForbiddenFacts":["PRIMARY_KEY","STATUS","CUSTOMER_CONFIRMATION","ARCHIVE_ACTION","satisfactionScore"],
     "currentForward":"NEW_ONLY_EXPLICIT_COMMANDS",
     "forbiddenInference":["LEGACY_STATUS","QUESTIONNAIRE_NAME","CACHED_SCORE","URL","APPROVAL","CALLBACK","SUBCONTRACT_STATE"]
   },

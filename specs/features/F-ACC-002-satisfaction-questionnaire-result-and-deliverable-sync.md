@@ -7,7 +7,7 @@
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件契约仅作PMS加性扩展
-> 适用基线：PRD V1.8；ADR-0041 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（整改提交`b98d0caa`）
+> 适用基线：PRD V1.8；ADR-0041 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`）
 
 ## 1. 业务目标
 
@@ -60,26 +60,31 @@
 
 - 仅必答完整、客户答案和签字有效且评分达到冻结阈值时产生`EFFECTIVE + passed=true`；失败判定同样不可变并保存阻断原因。
 - 同`collectionKey`最多一个未关闭有效达标Result；失效关闭区间但不删除、不恢复旧Result，禁止人工改分。
+- 当前有效达标Result只能由ACC Owner公开命令`POST /satisfaction-results/{id}/actions/invalidate`失效。命令取服务端认证用户并要求`manage`权限、`ProjectScopeApi(PROJECT_EDIT)`、`expectedResultVersion`、非空原因和`Idempotency-Key`；只接受当前`EFFECTIVE + passed=true`版本，在同一事务关闭区间、清空current marker、写失效审计和`INVALIDATED` Outbox。旧Task、Questionnaire、Response、评分、签字和文件均保持不变。
+- 失效命令同键同载荷返回原结果、异载荷冲突；非当前、版本/范围冲突或Owner不可用时零写入。整改仍须另走`recollect`，不得以失效重开旧Task。
 - `recollect`只接受当前链前一失败/失效Result、`remediationRequestId`和整改证据。ACC先追加不可变`SatisfactionRemediationFact`，再原子创建相同collectionKey、revision+1的新Task和Questionnaire。
 - 新revision复制首任务source；trigger固定为`ACC/SatisfactionRemediationFact`。同整改Fact同载荷返回原revision，异载荷冲突；客户端不得覆盖collectionKey、revision、source或trigger。
 
 ### BR-FACC002-004 文件、结果文档与归档
 
 - Response文件策略键固定为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`；Result使用持续ACTIVE的`SATISFACTION_RESULT_DOCUMENT`和独立ARCHIVED的`SATISFACTION_ARCHIVE`。
-- ACC只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/fileHash`，不得保存PLT内部FileVersion/FileReference主键。
+- ACC只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，其中公共`sha256`精确映射到ACC物理列`file_hash`；不得把物理列名作为公共DTO/事件字段，也不得保存PLT内部FileVersion/FileReference主键。
 - 有效达标Result发布`SatisfactionResultVersionChanged`。投影先由PROJ重验同租户同项目ProjectTask的稳定码为`T-SAT-SURVEY`，再锁定唯一`acc_project_deliverable(tenant,project,D-SAT-REPORT)`且要求根`task_code=T-SAT-SURVEY`。
 - 根缺失、重复或身份不一致保持`PENDING_COMPENSATION`；禁止按中文名称、其他交付件或任选根推断。归档失败不回滚Result、不破坏ACTIVE历史下载；成功才记`ARCHIVED`。
 - 归档actor冻结为Result形成时当前责任人；PLT以该用户重验`pms:file:archive`、FileBusinessScope和租户，不借用Job用户或伪造Web身份。
+- `RECORDED`投影准备置CURRENT前必须按Result ID/version调用`SatisfactionResultFactApi`重验Owner；仅精确版本仍`EFFECTIVE + passed=true`且没有更新当前Result时切换。若同Result已失效或已有更新Result，只保留非当前来源历史、ACTIVE文件与历史归档资格。`INVALIDATED`仅清空仍精确指向自身版本的根指针；双向乱序都不得恢复失效版本或覆盖更新来源。
 
 ### BR-FACC002-005 结果Fact、导出与消费者边界
 
 - `SatisfactionResultFactApi.inspect/lockAndRevalidate`返回稳定task/questionnaire/response/result、模板/规则/阈值、原始source、各版本、passed/resultStatus/archiveStatus；CLO/SUB只能读取，不能修改或推断。
 - 仅有效达标Result可成为当前满意度交付件；失败/失效保留历史但不得形成CLO/SUB通过事实。
 - 导出按项目树、责任人、字段、文件和租户范围裁剪，保存条件、范围摘要、文件哈希、下载人和时间；没有字段或文件权限时不得带出对应内容。
+- 项目查询、导出、下载、失效与管理写操作统一复用PROJ `ProjectScopeApi/Impl`：查询使用`resolveAllCurrent/resolveCurrent`，写入或下载重验使用`lockAndRevalidate`及对应`PROJECT_VIEW/PROJECT_EDIT`动作；返回`treeVersion`是文件策略`scopeVersion`的唯一来源。ACC不得读取PROJ表、复制项目树/授权算法或用Result版本、固定值替代范围版本。
 
 ### BR-FACC002-006 旧载体与前向边界
 
 - `pm_cl_quesnaire_*`和`pm_cl_callback*`、`pm_subcontract_project_callback`及其他回访/维保缓存事实均`PRESERVE_RAW`，等待`AI-MIG-000`字段和值域确认。
+- V17/V18 `pms_acc_completion_certificate`及其Controller/Service/DO/Mapper、菜单、API和`completion-certificate`页面继续服务旧电子完工证明，整体`DO_NOT_REUSE / PRESERVE_EXISTING`；其主键、状态、客户确认、归档动作和`satisfactionScore`不得作为新满意度Task、Questionnaire、Result、阈值或CLO/SUB事实。
 - F-ACC-002只从新平台明确命令创建当前事实；不得从旧审批/回访状态、问卷名称、缓存分数、URL或转包状态推断业务时点、答案、签字、整改或通过。
 - 直接复用PROJ任务/WorkBinding、V55稳定定义、F-ACC-001应交来源与归档载体、PLT文件和平台Outbox；不建立第二任务、应交根、文件或归档真值。
 
@@ -99,12 +104,13 @@
 | `GET /satisfaction-questionnaires/{token}`、`POST .../{token}/files`、`POST .../{token}/responses` | 有效客户grant | 仅唯一问卷、预分配Response和一次提交 |
 | `POST /satisfaction-tasks/{id}/assisted-responses` | `pms:acceptance:satisfaction:collect` | 正式项目成员现场协助，记录协助人与客户联系人 |
 | `GET /satisfaction-results`、`GET .../{id}` | `pms:acceptance:satisfaction:query` | 当前与历史Result，敏感答案按字段权限裁剪 |
+| `POST /satisfaction-results/{id}/actions/invalidate` | `pms:acceptance:satisfaction:manage` | 服务端actor、`PROJECT_EDIT`、expectedResultVersion、原因和Idempotency-Key；原子关闭当前Result并写失效Outbox |
 | `GET .../{resultId}/files/{sequence}/download` | `pms:acceptance:satisfaction:download` | 每次重验项目、FileBusinessScope和租户 |
 | `POST /satisfaction-results/exports` | `pms:acceptance:satisfaction:export` | 授权记录/字段/文件的异步导出及审计 |
 
 角色映射保持正式配置；验收身份可配置全部相关键，不能删除服务端鉴权或租户隔离。
 
-固定锁序：首次触发`PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire`；提交`AccessGrant→Task→Questionnaire→PLT引用→Response→Result→Outbox`；整改`Task链→前一Result→RemediationFact→新Task→Questionnaire→Outbox`；归档`应交根→来源版本→PLT ACTIVE/ARCHIVE集合→归档投影`。
+固定锁序：首次触发`PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire`；提交`AccessGrant→Task→Questionnaire→PLT引用→Response→Result→Outbox`；失效`PROJ ProjectScope当前树版本→Task链→当前Result→Outbox`；整改`Task链→前一Result→RemediationFact→新Task→Questionnaire→Outbox`；归档`应交根→来源版本→PLT ACTIVE/ARCHIVE集合→归档投影`。
 
 ## 5. 状态、事件与异常
 
@@ -117,7 +123,7 @@
 | Archive | `PENDING_COMPENSATION/ARCHIVED/INVALID` |
 
 - `SatisfactionTaskCreated`携带collection/revision/prior、原始source、当前trigger、问卷与规则版本；不表示提交或通过。
-- `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、完整版本链、判定及有序文件公共事实；与Result事务同写Outbox。
+- `SatisfactionResultVersionChanged`携带`RECORDED/INVALIDATED`、项目/任务码、完整版本链、判定、有序文件公共`sha256`事实，以及失效事件的原因码、操作者和时间；与Result事务同写Outbox。投影按上述Owner重验和精确当前指针对称处理乱序。
 - `SatisfactionResultOutboxDeliveryJob`只领取该事件；投影提交后才markDelivered，失败按同retryCount重试；CLO/SUB事件不由本Job误标成功。
 - 业务门禁、版本冲突、依赖不可用、幂等冲突均使用稳定分类；所有拒绝路径保持对应任务/问卷/答卷/Result/来源/Outbox零新增。
 
@@ -133,7 +139,7 @@
 - AC-04：必答、签字和阈值满足时形成不可变达标Result；任一不满足形成失败判定且不能用于闭环/付款。
 - AC-05：首次失败后以整改Fact创建同collectionKey的revision2和新Questionnaire/Result；旧事实不变，同整改Fact重放幂等。
 - AC-06：有效达标Result只进入同项目`D-SAT-REPORT/T-SAT-SURVEY`根；根缺失/错配待补偿，归档重试不回滚Result。
-- AC-07：Result失效清空当前来源且不恢复旧版；来源历史、归档结果和ACTIVE文件下载保持可追溯。
+- AC-07：正式失效命令按期望版本和项目范围原子关闭当前Result并清空精确当前来源；旧RECORDED延迟重试不得恢复失效版或覆盖新来源，来源历史、归档结果和ACTIVE文件下载保持可追溯。
 - AC-08：查询、导出、下载按项目/责任人/字段/文件/租户范围执行；跨范围拒绝且不泄露。
 - AC-09：旧问卷/回访/转包载体保持不变，不能产生当前Result；INT通道不可用时V1路径仍可完成。
 - AC-10：真实MySQL验证唯一键、追加历史、原子回滚；真实Chromium完成指派→受控问卷→失败→整改重收→达标→归档/下载闭环。
