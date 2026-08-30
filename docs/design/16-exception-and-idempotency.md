@@ -223,6 +223,8 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 同questionnaire+requestId同载荷重放/异载荷 | 返回首次Result / IDEMPOTENCY_CONFLICT；不得追加第二Response或Result |
 | 必答缺失、签字无效、附件范围不一致或评分未达阈值 | 追加不可变失败Result并保持旧事实；不得人工改分或将Todo完成当通过 |
 | Result文档、来源投影或归档失败 | Result保持已形成，来源为PENDING_COMPENSATION；不误写ARCHIVED，不删除ACTIVE历史下载引用 |
+| Result文档生成前的PLT授权/范围/内容/存储失败 | Response保持已提交、Task保持PENDING_DECISION；Result、ResultFile、成功幂等事实和Result Outbox零写入，使用同一业务意图重试 |
+| Result文档对象已写但ACC外层事务回滚 | FileUploadSession保持可重试/待补偿；同operation同摘要复用存储回执，不创建第二Artifact/Reference；放弃后由既有补偿删除未引用对象，清理失败继续对账重试 |
 | 整改缺前序失败/失效Result或整改事实 | BUSINESS_GATE；不创建新Task/Questionnaire |
 | 同一整改Fact/requestId同载荷重放或异载荷 | 前者返回既有RemediationFact及taskRevision，不重复创建；后者IDEMPOTENCY_CONFLICT，旧链不变 |
 | Result失效的范围拒绝、非当前、非EFFECTIVE/passed或expectedVersion不一致 | AUTHORIZATION / BUSINESS_GATE / VERSION_CONFLICT；Result、Task、Questionnaire、来源和Outbox零写入 |

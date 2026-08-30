@@ -2,6 +2,7 @@
 
 > 状态：`ACCEPTED`<br>
 > Result失效命令补充：`ACCEPTED`（整改提交`c1e7354c`独立复审GO）<br>
+> Result生成文件Owner补充：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-02@V1`、`ACC-04@V1`（仅满意度来源）<br>
 > 前置批准：F-ACC-002边界与最近Gate定位独立裁决GO（基线`7f3e3c62`）
@@ -29,6 +30,8 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 13. 最小权限键为`pms:acceptance:satisfaction:query/manage/collect/export/download`。服务端分别执行项目范围、责任人范围、字段范围、FileBusinessScope和租户隔离；客户令牌仅能访问其唯一问卷及上传/提交动作。角色—权限映射保持正式授权配置，具备全部权限通过授权关系实现，不删除鉴权。
 14. V1由ACC Owner提供`POST /api/v1/pms/satisfaction-results/{id}/actions/invalidate`关闭当前有效达标Result。命令只接受服务端认证用户，要求既有`pms:acceptance:satisfaction:manage`、PROJ `ProjectScopeApi(PROJECT_EDIT)`通过、非空`Idempotency-Key`、`expectedResultVersion`及失效原因；客户端不得提供tenant、操作者、collectionKey或来源身份。只允许`EFFECTIVE + passed=true + effective_to is null + current_marker=1`迁为`INVALIDATED`，原子写`effective_to/invalidated_by_user_id/invalidated_at/invalidation_reason_code/invalidation_reason_summary`并清空current marker；评分、答卷、签字、附件、Task和Questionnaire历史均不改写，也不重开旧Task。相同幂等键同载荷返回原结果，异载荷冲突，非当前、版本不符或范围不符均零写入。
 15. Result失效与`SatisfactionResultVersionChanged(changeType=INVALIDATED)`通过`PlatformCommandExecutionApi`同一ACC事务提交；事件冻结失效原因、操作者和时间。ACC-04投影处理任何`RECORDED`前必须以Result ID/version调用`SatisfactionResultFactApi`重验ACC Owner当前事实：只有该精确版本仍为EFFECTIVE且passed、且不存在更新的当前Result时才能置CURRENT；若已INVALIDATED或已有更新结果，延迟/重试的旧RECORDED只能幂等保留为非当前历史和历史归档输入，不得设置或恢复根当前指针。INVALIDATED仅在应交根当前指针仍指向该Result及版本时清空指针并把来源关系置`REVOKED`，不得清除更新来源。历史来源、ACTIVE文件引用及既有归档记录保持可下载，待补偿的该来源仍可完成历史归档。Result事务提交后`SatisfactionResultFactApi`立即返回INVALIDATED，未来CLO/SUB消费者必须重验Owner事实。整改重收继续以该INVALIDATED Result追加RemediationFact和下一revision。
+16. PLT在现有`FileArtifactApi`加性公开`createGeneratedBusinessFile`，仅供ACC生成`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`。命令冻结当前租户、Result形成时当前责任人`actorUserId`、稳定`operationId`、精确目标键、`scopeVersion`、安全文件元数据及受大小限制的服务端生成内容；actor、目标和scopeVersion不得由客户、Job线程或伪造Web登录上下文覆盖。PLT以`MANDATORY`加入ACC判定外层MySQL事务，按actor重验既有`pms:file:upload`、租户和FileBusinessScope，复用现有内容类型/大小/SHA-256/扫描、对象存储、Artifact/Version/Reference及审计链并返回唯一`FileArtifactVersionFact`。同Result只允许一条RESULT_DOCUMENT；`operationId+规范化请求摘要`同载荷返回原事实、异载荷冲突。
+17. 生成内容写对象存储前，PLT复用现有`FileUploadSession`形成可补偿的持久会话和稳定operation绑定；Artifact/Version/Reference与ACC Result、ResultFile、成功幂等事实、Result Outbox在外层事务同成同败。若对象已写入而外层事务回滚，会话恢复为可重试/待补偿状态：同operation和摘要重用原会话及存储回执，不创建第二Artifact/Reference；放弃或校验失败由既有`FileUploadCompensationService`删除未引用对象并终止会话，清理失败继续可对账重试。PLT授权、范围、内容、存储或生成任一步失败时不得写Result、ResultFile、成功幂等事实或Result Outbox；已提交Response保持不变，Task保持`PENDING_DECISION`，允许同一业务意图重试。
 
 ## 状态、事务与锁序
 

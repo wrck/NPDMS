@@ -69,6 +69,8 @@
 
 - Response文件策略键固定为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`；Result使用持续ACTIVE的`SATISFACTION_RESULT_DOCUMENT`和独立ARCHIVED的`SATISFACTION_ARCHIVE`。
 - ACC只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，其中公共`sha256`精确映射到ACC物理列`file_hash`；不得把物理列名作为公共DTO/事件字段，也不得保存PLT内部FileVersion/FileReference主键。
+- ACC判定成功时以Result形成时当前责任人为actor，通过PLT `FileArtifactApi.createGeneratedBusinessFile`生成唯一不可变`SATISFACTION_RESULT_DOCUMENT`；接口以`MANDATORY`加入判定事务并重验`pms:file:upload`、租户和FileBusinessScope。actor、Result目标和`ProjectScopeApi.treeVersion`不得由客户、Job或伪造Web上下文覆盖。
+- PLT复用FileUploadSession及既有上传补偿承接对象存储非事务性：同operation同摘要复用会话/回执，异摘要冲突；外层回滚不留下可见Artifact/Reference，放弃时删除未引用对象。生成失败时Response保持已提交、Task保持`PENDING_DECISION`，Result/ResultFile/成功幂等事实/Outbox零写入。
 - 有效达标Result发布`SatisfactionResultVersionChanged`。投影先由PROJ重验同租户同项目ProjectTask的稳定码为`T-SAT-SURVEY`，再锁定唯一`acc_project_deliverable(tenant,project,D-SAT-REPORT)`且要求根`task_code=T-SAT-SURVEY`。
 - 根缺失、重复或身份不一致保持`PENDING_COMPENSATION`；禁止按中文名称、其他交付件或任选根推断。归档失败不回滚Result、不破坏ACTIVE历史下载；成功才记`ARCHIVED`。
 - 归档actor冻结为Result形成时当前责任人；PLT以该用户重验`pms:file:archive`、FileBusinessScope和租户，不借用Job用户或伪造Web身份。
@@ -137,6 +139,7 @@
 - AC-02：已交付初验活动完成Fact按冻结时点首次触发revision1，未指派时使用当前项目经理；同Fact重放不重复，错项目/版本/责任人零写入。
 - AC-03：受控链接/二维码只能访问唯一ACTIVE问卷；令牌过期、撤销、消费或跨租户拒绝且不泄露。
 - AC-04：必答、签字和阈值满足时形成不可变达标Result；任一不满足形成失败判定且不能用于闭环/付款。
+- AC-04A：达标判定必须同时形成唯一Result文档公共事实；PLT生成失败零Result/Outbox且同operation可重试，外层回滚后的对象不会形成孤立业务引用或重复文档。
 - AC-05：首次失败后以整改Fact创建同collectionKey的revision2和新Questionnaire/Result；旧事实不变，同整改Fact重放幂等。
 - AC-06：有效达标Result只进入同项目`D-SAT-REPORT/T-SAT-SURVEY`根；根缺失/错配待补偿，归档重试不回滚Result。
 - AC-07：正式失效命令按期望版本和项目范围原子关闭当前Result并清空精确当前来源；旧RECORDED延迟重试不得恢复失效版或覆盖新来源，来源历史、归档结果和ACTIVE文件下载保持可追溯。
@@ -155,4 +158,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`145e4a61`；当前Gate=Technical Plan形成；已通过=Feature Ready独立复审GO，失效、ProjectScope、文件映射和旧载体边界已闭环；阻塞=无；下一步=形成唯一Technical Plan候选，不进入实现。
+检查点：基线=`27f5bcb2`；当前Gate=Result生成文件SDS/Feature补充；已通过=Feature Ready GO；阻塞=PLT生成文件公共契约待独立复审；下一步=补充GO后恢复唯一Technical Plan，不创建Task或代码。

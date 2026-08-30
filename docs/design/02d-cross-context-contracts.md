@@ -24,6 +24,7 @@
 | `SatisfactionTaskInitializationApi.initialize` | ACC-02、PM-11 | ACC | PROJ/受信业务时点Owner | 以`MANDATORY`加入首次业务时点事务，ACC回查`ProjectWorkBindingFactApi`，冻结原始source/trigger Fact并返回collectionKey/revision=1；整改由ACC不可变RemediationFact触发同链下一revision，外部Owner不发明整改身份 |
 | `SatisfactionResultFactApi.inspect/lockAndRevalidate` | ACC-02、CLO-01、SUB-03 | ACC | CLO/SUB | 返回稳定任务、问卷、答卷、结果、模板/规则/阈值、来源业务对象及版本和passed/valid/archive状态；消费者不得修改答卷或自行推断通过 |
 | `FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload` | ACC-02、PLT-02 | PLT | ACC | 仅接受ACC已验证ACTIVE访问授权及其grant版本，按唯一满意度文件策略上传签字/附件；不伪造登录用户，PLT继续执行文件校验、版本和审计 |
+| `FileArtifactApi.createGeneratedBusinessFile` | ACC-02、PLT-02 | PLT | ACC | 只为精确Result目标生成不可变判定文档；命令冻结责任人actor、scopeVersion、operationId和服务端内容，Provider以MANDATORY加入ACC判定事务并重验`pms:file:upload`/租户/FileBusinessScope；复用FileUploadSession补偿对象存储先行写入，失败零Result/Outbox |
 | `SatisfactionResultVersionChanged` | ACC-02、ACC-04 | ACC | ACC交付件索引；未来CLO/SUB | 携带project/projectTask/taskCode、collection/revision、task/questionnaire/response/result、模板/规则/阈值、原始来源业务对象版本、`RECORDED/INVALIDATED`、passed、失效原因/操作者/时间和完整有序文件公共事实；失效与Result同事务写Outbox，仅精确`T-SAT-SURVEY→D-SAT-REPORT`根接受有效达标来源 |
 | ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |
 | CutoverCompleted | CUT-06 | Cutover | Project Delivery/Acceptance/Analytics | CUT任务、P6闭环版本、最终成功结果和归档引用；失败或仅完成采集不得发布完成事件 |

@@ -190,6 +190,8 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 
 F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire；客户提交为ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox；失效为PROJ ProjectScope重验→ACC Task链→当前Result→Outbox；归档为ACC交付件根/来源版本→PLT结果文件集合/归档集合→ACC归档投影。失效以Result expectedVersion和current marker单胜；RECORDED消费置CURRENT前重验Owner版本与当前状态，INVALIDATED消费只撤销仍指向该版本的根，双向乱序均保持来源指针单调。首个PLT文件锁取得后不得回调PROJ改变业务时点，归档网络/对象存储步骤不得持有长事务锁。
 
+Result判定在锁定Task/Questionnaire/Response并取得ProjectScope事实后，先以稳定operation调用PLT生成文档，再写Result/ResultFile/Outbox；`createGeneratedBusinessFile`以MANDATORY加入同一MySQL事务。对象存储写入不延长反向Owner锁序：PLT不得在取得文件锁后回调PROJ。并发同Result只允许一个RESULT_DOCUMENT引用；同operation同摘要复用FileUploadSession/回执，异摘要冲突，外层回滚由会话补偿未引用对象。
+
 监控 cache hit/miss/latency、DB fallback、lock wait/deadlock、optimistic conflict、tree projection lag、assignment projection lag、outbox lag 和 callback disorder。
 
 ## 13. 门禁结论

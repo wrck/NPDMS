@@ -79,9 +79,20 @@
     },
     "FileArtifactApi": {
       "owner":"PLT",
-      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload"],
+      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload","createGeneratedBusinessFile"],
       "reusedMethods":["lockAndRevalidateReferenceSets","inspectReferenceSets","archiveReferenceSets","accessTicketDownload"],
       "businessGrantInputs":["grantId","grantVersion","responseId","policyKey","operationId","safeFileMetadata"],
+      "generatedBusinessFile": {
+        "target":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",
+        "inputs":["tenantId","actorUserId","operationId","resultId","scopeVersion","safeFileMetadata","boundedGeneratedContent"],
+        "actor":"RESULT_CURRENT_ASSIGNEE_SERVER_FROZEN",
+        "permission":"pms:file:upload",
+        "scope":"TENANT_PLUS_FileBusinessScope",
+        "transactionPropagation":"MANDATORY",
+        "idempotency":"OPERATION_ID_PLUS_REQUEST_DIGEST",
+        "storageCompensation":"REUSE_FileUploadSession_AND_FileUploadCompensationService",
+        "outcome":"UNIQUE_FileArtifactVersionFact_OR_ZERO_RESULT"
+      },
       "forbidden":"FAKE_LOGIN_OR_BYPASS_FILE_POLICY"
     },
     "PlatformCommandExecutionApi": {"reuse":"DIRECT_REUSE","purpose":"RESULT_AND_OUTBOX_ATOMIC"},
@@ -141,6 +152,9 @@
     "invalidationLockOrder":["PROJ_PROJECT_SCOPE_CURRENT_TREE_VERSION","TASK_CHAIN","CURRENT_RESULT","OUTBOX"],
     "archiveLockOrder":["DELIVERABLE_ROOT","SOURCE_VERSION","PLT_ACTIVE_AND_ARCHIVE_SETS","ARCHIVE_PROJECTION"],
     "resultAndOutboxAtomic":true,
+    "generatedResultDocumentAtomic":"PLT_ARTIFACT_VERSION_REFERENCE_PLUS_ACC_RESULT_RESULT_FILE_OUTBOX",
+    "generatedFileFailure":"RESPONSE_KEPT_TASK_PENDING_DECISION_ZERO_RESULT_RESULT_FILE_SUCCESS_IDEMPOTENCY_OUTBOX",
+    "storageRollback":"SAME_OPERATION_REUSES_SESSION_RECEIPT_OR_COMPENSATES_UNREFERENCED_OBJECT_NO_SECOND_DOCUMENT",
     "archiveFailureRollsBackResult":false,
     "customerSubmissionFailureWritesPartialResponse":false
   },
