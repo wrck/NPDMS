@@ -44,6 +44,20 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             self.assertTrue(any("createGeneratedBusinessFile" in error for error in errors), errors)
             self.assertTrue(any("未引用对象" in error for error in errors), errors)
 
+    def test_facc002_rejects_generated_file_failure_preserving_result(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "16-exception-and-idempotency.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "Result、ResultFile、成功幂等事实和Result Outbox零写入",
+                "Result保持已形成",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("Result、ResultFile" in error for error in errors), errors)
+
     def test_facc002_rejects_legacy_pass_inference_boundary_removal(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:
