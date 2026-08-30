@@ -79,4 +79,4 @@
 
 - `T-FIMP002-PROJ-01`：PROJ公开`ProjectSystemQualificationFactApi.lockCurrentForSystem`，在受信租户上下文按项目锁定当前主行、唯一`PROJECT_MANAGER`事实和当前根树版本，校验`ACTIVE/S4`并返回当前项目/参与者/树版本。
 - 该Task不新增Feature状态、不放宽`ProjectParticipantFactApi/ProjectScopeApi`用户语义，不接收`subjectUserId/ACTION_EDIT/approvedBy/system actor`或消费方冻结版本；缺项目、非`ACTIVE/S4`、经理缺失/重复或树事实不可用均失败关闭。
-- 合入顺序：公开API契约Gate → PROJ Provider与真实锁测试 → IMP内部到期Adapter/运行整改。公开契约Gate已在`b4f16bdf`通过，Provider Gate已在`f4aa1ad2`通过；当前IMP Adapter/运行整改为`REVIEW_REQUIRED`，Task 5B整体仍未PASS。
+- 合入顺序：公开API契约Gate → PROJ Provider与真实锁测试 → IMP内部到期Adapter/运行整改。公开契约Gate已在`b4f16bdf`通过，Provider Gate已在`f4aa1ad2`通过，IMP Adapter/运行整改及平台事务最小整改已在`808151ce`复审通过；Task 5B整体Code Review仍为`REVIEW_REQUIRED`。
