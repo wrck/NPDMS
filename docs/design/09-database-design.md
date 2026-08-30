@@ -623,9 +623,9 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | `ast_device` | `serial_number`及AST平台字段 | `uk(tenant_id, serial_number)`不随软删除释放 |
 | `ast_device_mes_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status/payload_hash` | 来源事件幂等；一个有效MES对象映射一个Device |
 | `ast_device_itr_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status` | 按来源版本追加或受控更新当前副本 |
-| `ast_product_type` | `type_code/display_name/enabled/source_system/source_key/source_version/source_updated_at/synced_at/sync_status` | `uk(tenant_id,type_code)`；停用或软删除不释放稳定编码；不保存自由值 |
-| `ast_product_type_source_mapping` | `source_system/source_key/source_version/product_type_id/mapping_status` | `uk(tenant_id,source_system,source_key)`；同源多目标冲突进入待处理 |
-| `ast_device_current_product_type` | `device_id/product_type_id/product_type_code/source_mapping_id/resolution_status/source_version/effective_from/effective_to/current_marker/version` | `uk(tenant_id,device_id,current_marker)`保证至多一个当前引用；只允许引用同租户受控副本；未知、冲突或未解析保留明确状态，不写猜测编码 |
+| `ast_product_type` | `type_code/display_name/enabled/source_system/source_key/source_version/source_updated_at/synced_at/last_sync_attempt_at/sync_status` | `uk(tenant_id,type_code)`；停用或软删除不释放稳定编码；不保存自由值；平台MySQL主键采用自增技术ID，业务唯一性不依赖主键 |
+| `ast_product_type_source_mapping` | `source_system/source_key/source_version/source_updated_at/payload_hash/product_type_id/mapping_status/conflict_product_type_code/conflict_source_version/conflict_source_updated_at/conflict_payload_hash/synced_at` | `uk(tenant_id,source_system,source_key)`；`RESOLVED`必须有同租户产品类型目标，`UNRESOLVED`目标必须为空，`CONFLICT`允许保留已有目标或空目标但必须完整记录冲突编码、来源版本、来源时间和载荷摘要且不得覆盖当前有效映射；非冲突状态不得残留冲突摘要 |
+| `ast_device_current_product_type` | `device_id/product_type_id/product_type_code/source_mapping_id/resolution_status/source_version/source_updated_at/effective_from/effective_to/current_marker/version` | `current_marker`由`effective_to IS NULL AND deleted=0`生成，`uk(tenant_id,device_id,current_marker)`保证至多一个当前引用；`RESOLVED`必须同时引用同租户产品类型和来源映射且编码非空，未知、冲突或未解析不写猜测编码；`device_id`因既有`ast_device`缺少`uk(tenant_id,id)`而不建无效复合外键，由导入事务锁定校验 |
 | `ast_device_current_customer_assignment` | `device_id/customer_id/relationship_version/assigned_at` | `uk(tenant_id, device_id)`；当前直接归属唯一 |
 | `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
 

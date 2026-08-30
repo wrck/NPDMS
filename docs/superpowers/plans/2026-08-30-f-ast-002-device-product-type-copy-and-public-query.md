@@ -300,13 +300,13 @@ git commit -m "feat(asset): add product type public contract"
 
 - [ ] **Step 1: 合入前串行确定Flyway版本**
 
-执行：
+执行数值版本扫描：
 
 ```powershell
-Get-ChildItem sql/migrations -Filter 'V*.sql' | Sort-Object Name | Select-Object -Last 20 -ExpandProperty Name
+Get-ChildItem sql/migrations -Filter 'V*.sql' | Sort-Object {[int]($_.BaseName -replace '^V(\d+).*','$1')} | Select-Object -Last 20 -ExpandProperty Name
 ```
 
-选择目标分支下下一个未占用版本，禁止预留或修改既有迁移。本文占位符必须在创建文件时替换为实际版本。
+当前已落盘最高版本为V131；Technical Plan不预留Flyway版本，因此其他计划中的V132意向不构成占用，本Task使用`V132__fast002_asset_product_type.sql`。合入前若V132已被实际迁移占用，必须串行改为当时下一个未占用版本并同步Schema契约测试；禁止预留或修改既有迁移。
 
 - [ ] **Step 2: 创建`ast_product_type`**
 
@@ -325,7 +325,7 @@ source_updated_at datetime(3)
 payload_hash char(64)
 sync_status varchar(32)
 last_sync_attempt_at datetime(3)
-last_successful_sync_time datetime(3)
+synced_at datetime(3)
 version int
 creator/updater varchar(64)
 create_time/update_time datetime(3)
@@ -350,20 +350,20 @@ CHECK(sync_status IN ('FRESH','STALE','FAILED','PENDING_MAPPING','NOT_AVAILABLE'
 列至少包含：
 
 ```text
-id bigint
- tenant_id bigint
+id bigint AUTO_INCREMENT
+tenant_id bigint
 source_system varchar(32)
 source_key varchar(128)
 source_version varchar(128)
 source_updated_at datetime(3)
 payload_hash char(64)
-product_type_id bigint
+product_type_id bigint null
 mapping_status varchar(32)
 conflict_product_type_code varchar(64) null
 conflict_source_version varchar(128) null
 conflict_source_updated_at datetime(3) null
 conflict_payload_hash char(64) null
-last_successful_sync_time datetime(3)
+synced_at datetime(3) null
 version int
 creator/updater varchar(64)
 create_time/update_time datetime(3)
@@ -377,6 +377,8 @@ UNIQUE KEY uk_ast_product_type_mapping_source(tenant_id, source_system, source_k
 UNIQUE KEY uk_ast_product_type_mapping_tenant_id(tenant_id, id)
 FOREIGN KEY(tenant_id, product_type_id) REFERENCES ast_product_type(tenant_id, id)
 CHECK(mapping_status IN ('RESOLVED','CONFLICT','UNRESOLVED'))
+CHECK((mapping_status = 'RESOLVED' AND product_type_id IS NOT NULL) OR (mapping_status = 'UNRESOLVED' AND product_type_id IS NULL) OR mapping_status = 'CONFLICT')
+CHECK((mapping_status = 'CONFLICT' AND conflict_product_type_code IS NOT NULL AND conflict_source_version IS NOT NULL AND conflict_source_updated_at IS NOT NULL AND conflict_payload_hash IS NOT NULL) OR (mapping_status <> 'CONFLICT' AND conflict_product_type_code IS NULL AND conflict_source_version IS NULL AND conflict_source_updated_at IS NULL AND conflict_payload_hash IS NULL))
 ```
 
 `deleted`不参与来源唯一键，软删除不释放来源键。
@@ -410,21 +412,23 @@ deleted bit
 UNIQUE KEY uk_ast_device_product_type_current(tenant_id, device_id, current_marker)
 UNIQUE KEY uk_ast_device_product_type_tenant_id(tenant_id, id)
 -- device_id不声明数据库外键：现有ast_device不存在(tenant_id,id)候选键，导入事务必须按tenant_id+id锁定校验
-FOREIGN KEY(tenant_id, product_type_id) REFERENCES ast_product_type(tenant_id, id)
+FOREIGN KEY(tenant_id, product_type_id, product_type_code) REFERENCES ast_product_type(tenant_id, id, type_code)
 FOREIGN KEY(tenant_id, source_mapping_id) REFERENCES ast_product_type_source_mapping(tenant_id, id)
-CHECK(current_marker IS NULL OR current_marker = 1)
+FOREIGN KEY(tenant_id, source_mapping_id, product_type_id) REFERENCES ast_product_type_source_mapping(tenant_id, id, product_type_id)
 CHECK(resolution_status IN ('RESOLVED','UNKNOWN','CONFLICT','UNRESOLVED'))
+CHECK(effective_to IS NULL OR effective_to >= effective_from)
+CHECK((resolution_status = 'RESOLVED' AND product_type_id IS NOT NULL AND product_type_code IS NOT NULL AND source_mapping_id IS NOT NULL) OR (resolution_status <> 'RESOLVED' AND product_type_id IS NULL AND product_type_code IS NULL))
 ```
 
 迁移不回填`DeviceDO.conpType`或其他旧字段，不扫描附件猜测映射。不得为`device_id`外键修改既有`ast_device`迁移或追加与本Feature无关的候选键；设备引用完整性由同事务锁定校验、租户条件和测试保证。
 
 - [ ] **Step 5: 创建三个Tenant DO**
 
-三个DO继承`TenantBaseDO`，使用`@TableName`、`@TableId`和`@Version`，字段与迁移一一对应。不得把DO放入API模块或公开DTO。
+三个DO继承`TenantBaseDO`，使用`@TableName`、`@TableId`和`@Version`，字段与迁移一一对应。`current_marker`是数据库生成列，DO仅以`@TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)`只读映射；不得把DO放入API模块或公开DTO。
 
 - [ ] **Step 6: 补充并运行Schema契约测试**
 
-断言三表、唯一约束、AST内部有效复合外键、`device_id`无无效外键、来源水位、冲突摘要和无业务种子；同时核对现有`ast_device`未被本Feature修改。
+断言三表、自增技术主键、唯一约束、AST内部有效复合外键、`device_id`无无效外键、`synced_at`统一命名、来源水位、映射状态空值约束、生成式当前标记、解析状态引用约束、冲突摘要和无业务种子；同时核对现有`ast_device`未被本Feature修改，并验证三个DO的Tenant继承、表名、主键、乐观锁及生成列只读映射。
 
 Run:
 
@@ -444,7 +448,7 @@ mvn.cmd -pl pms-module-asset -am -DskipTests compile
 
 Expected：三个DO完成MyBatis映射，既有设备DO无变化。
 
-- [ ] **Step 7: 提交逻辑单元**
+- [ ] **Step 8: 提交逻辑单元**
 
 ```powershell
 git add sql/migrations/V*__fast002_asset_product_type.sql pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/producttype

@@ -252,8 +252,8 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 |---|---|---|
 | Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充、当前产品类型引用和业务关联 |
 | AssetProductType | External Master Copy | 稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态；只接收已核验CRM/MES映射或带来源证据的受控导入，不允许自由值或猜测映射 |
-| AssetProductTypeSourceMapping | 来源映射 | 来源系统与来源键到稳定产品类型编码的版本化映射；冲突和未解析事实进入待处理，不覆盖当前有效映射 |
-| DeviceCurrentProductType | Device当前事实 | 设备ID、产品类型稳定编码、来源映射引用、解析状态、来源版本和有效区间；同一租户设备最多一个当前引用，未知、冲突或未解析时不写猜测编码 |
+| AssetProductTypeSourceMapping | 来源映射 | 来源系统与来源键到稳定产品类型编码的版本化映射；`RESOLVED`必须引用受控产品类型，`UNRESOLVED`允许目标为空，`CONFLICT`保留已有目标或空目标并完整记录冲突编码、来源版本、来源时间和载荷摘要，不覆盖当前有效映射；非冲突状态不得残留冲突摘要 |
+| DeviceCurrentProductType | Device当前事实 | 设备ID、产品类型稳定编码、来源映射引用、解析状态、来源版本和有效区间；同一租户设备最多一个当前引用，`RESOLVED`必须同时具备一致的产品类型ID、编码和来源映射，未知、冲突或未解析时不写猜测编码；当前标记由有效区间和删除状态派生 |
 | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
 | Address | 聚合根 | 国家、省、市、区县编码/名称、详细/完整地址、可空经纬度、标准化候选指纹和版本；指纹不作为自动合并键 |
 | Site | 聚合根 | 站点编码、名称、可空客户引用、Address引用、类型、状态和版本；不保存公司或部门字段，同址允许多站点 |
