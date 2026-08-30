@@ -208,6 +208,8 @@ F-IMP-002用户REST的精确请求/响应、Header、五权限映射、`allowedA
 
 `resolve-difference`还锁定数量部分补签的精确剩余范围和`CORRECT_INFORMATION`后继草稿；豁免失效由无HTTP入口的`ExpireArrivalExemptionsCommand`在PROJ项目锁内追加事实影响revision并创建后继草稿，查询不得产生副作用。成功响应使用Yudao `CommonResult`，分页data严格为`PageResult{list,total}`，日期时间按当前Yudao Jackson的epoch毫秒Long；`409/422/503`错误data携带稳定原因与恢复动作，业务阶段/资格门禁和证据无效使用不同code。
 
+所有Java `long/Long`响应字段沿用Yudao `NumberSerializer`的安全整数条件分支，Snowflake ID通常以十进制JSON string返回；前端类型必须同时接受安全范围内number和范围外string且不得精度丢失。尚未创建DeliveryEvidence根的草稿详情返回`evidence=null`。Provider错误统一为`OWNER_PROVIDER_UNAVAILABLE`，再以封闭`ownerContext/reasonCode`区分PROJ/COM/AST/PLT。
+
 ## 8. ACC：验收与项目闭环 API
 
 适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。

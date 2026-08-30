@@ -40,6 +40,7 @@
 - Task 7消费端候选独立Code Review Gate已通过（`dfcc224c`，`PASS / GO`）：全部已确认累计和有效豁免先按完整COM当前范围校验超量/越界，再投影调用方请求子范围；COM/AST锁定重验的显式期望版本不一致重新读取当前事实并返回`STALE`，缺失、未知或不可用仍失败关闭。`inspect/lockAndRevalidate`按稳定顺序计算范围结果、来源批次、项目事实版本与`reopened`；最大事实版本只在唯一合格差异revision为来源时标记重开，普通确认根为非重开，缺失/重复/损坏或后继根语义不可证明时失败关闭。实现类保持可代理但不注册生产Bean；聚焦测试26项及一次性隔离MySQL 8.4测试3项通过。该PASS只确认消费端候选；COM `getAssignedScope`与AST `DeviceScopeFactApi`生产Provider/Adapter未合入前，本Task继续`IN_PROGRESS / BLOCKED_BY_DEPENDENCY`，不得回写生产完成、真实浏览器闭环或Feature Implementation Done。
 - Task 8实施前独立定点裁决确认：当前直接进入Controller为`NO-GO`，缺口属于现有Task 5未完成的应用义务，不新建并列Task或第二份Technical Plan。当前仅进入Task 5B正式REST/应用机器契约候选及聚焦复审。
 - 锁定提交`337757b3`的Task 5B契约候选聚焦复审为`NO-GO / REVIEW_REQUIRED`，当前按A～E整改精确响应DTO、allowedActions同构守卫、correction/豁免失效/部分补签命令闭环、两列前向迁移合同及可恢复错误data。`Q-FIMP002-001`已单项`GO`采用方案A：V1豁免审批人为写事务中由`ProjectParticipantFactApi`锁定重验的current `PROJECT_MANAGER`，同时要求`resolve-difference + ACTION_EDIT`；批准人/时间服务端写入，不新增角色、流程或表。
+- 锁定提交`856f458b`的A～E整改复审仍为`NO-GO / REVIEW_REQUIRED`，B/C/D/Q及E的拆码/恢复data已关闭；剩余A/E仅要求锁定Yudao Long number/string wire分支、无证据详情`evidence=null`、错误category/reasonCode封闭枚举及包含PROJ的通用Owner Provider不可用类别。当前按该最小范围整改，未进入Task 5B实现。
 - Task 8当前为`BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 

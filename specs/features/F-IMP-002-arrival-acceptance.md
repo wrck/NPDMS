@@ -75,6 +75,7 @@
 - `PATCH`只能修改本人`DRAFT`的物流单号、签收时间、签收人快照、当前明细修订和PLT已返回的签收证据修订；不提供通用状态PATCH、删除或原始URL字段。明细和证据的更改均追加revision，不覆盖旧行。
 - 列表页大小固定为`1..100`，按`arrivedAt DESC, id DESC`稳定排序；可见项目集合由服务端`ProjectScopeApi.ACTION_VIEW`解析，空集合返回空页，不省略权限条件。
 - 详情统一返回批次根、当前明细、当前及历史差异revision、DeliveryEvidence摘要与当前revision、聚合版本和服务端`allowedActions`；不返回文件正文、持久下载URL或Owner DO。
+- HTTP响应中的Java `long/Long`严格沿用Yudao `NumberSerializer`：值位于`(-9007199254740991, 9007199254740991)`时输出JSON number，落在边界或超出时输出十进制JSON string；前端不得把Snowflake字符串ID强转为JavaScript number。草稿尚未创建DeliveryEvidence根时，详情`evidence`明确为JSON null，不能用空ID和伪`NOT_PUBLISHED`状态冒充证据根。
 
 ### 5.2 命令、并发与追加历史
 
@@ -93,6 +94,7 @@
 - `allowedActions`封闭为`EDIT_DRAFT/SUBMIT/CONFIRM/RAISE_DIFFERENCE/RESOLVE_DIFFERENCE`，并与对应命令的功能权限、`ProjectScopeApi.ACTION_EDIT`、当前项目主体事实、批次状态、创建人和对象版本守卫逐项同构。`RESOLVE_DIFFERENCE`只对current `PROJECT_MANAGER`且状态为`DIFFERENCE_PENDING|CONFIRMED`的可处置对象返回；`EXEMPT`同样要求该项目经理资格。它是界面入口投影，每个命令仍必须在业务写前重验。
 - 对越权或跨租户对象，详情和命令统一返回不可见/不存在，不泄露对象存在性；对已可见项目内主体不满足命令条件则返回授权拒绝。
 - 到货专属错误必须区分参数校验、不可见/不存在、功能权限、数据范围、非法状态、聚合/明细/差异版本冲突、幂等冲突/处理中、COM/AST/PLT不可用、范围陈旧、项目阶段/资格业务门禁和证据无效；业务门禁与证据错误不得共用code。HTTP使用真实`400/403/404/409/422/503`语义，响应体仍使用Yudao `CommonResult{code,msg,data}`；`409/422/503`的`data`固定携带机器可读原因和恢复动作。Task 8以仅作用于该Controller的局部异常映射实现，不改写全局平台异常行为。
+- Provider不可用统一归类为`OWNER_PROVIDER_UNAVAILABLE`，由`ownerContext/reasonCode`封闭区分PROJ、COM、AST、PLT；错误类别和每类`reasonCode`均以REST机器契约枚举为准，不接受任意字符串。
 
 ### 5.4 豁免审批主体裁决
 
