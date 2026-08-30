@@ -75,6 +75,18 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("invalidate" in error for error in errors), errors)
 
+    def test_facc002_rejects_old_recorded_reactivating_invalidated_result(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "11-event-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "RECORDED置CURRENT前按Result ID/version重验Owner", "RECORDED直接置CURRENT", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("RECORDED置CURRENT" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|
