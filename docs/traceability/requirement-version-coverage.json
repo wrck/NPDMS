@@ -48,6 +48,23 @@
       ]
     },
     {
+      "featureId": "F-ACC-002",
+      "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+      "taskPath": null,
+      "taskStatus": "NO_TASK",
+      "taskStatusRaw": null,
+      "mappings": [
+        {
+          "sliceKey": "ACC-02@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "ACC-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-AST-001",
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "taskPath": null,
@@ -794,7 +811,15 @@
       "businessResult": "满意度收集与结果管理的V1主交付业务结果",
       "versionBoundary": "V1问卷与结果闭环；V2自动触达",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-002",
+          "coverage": "FULL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+          "taskPath": null
+        }
+      ]
     },
     {
       "sliceKey": "ACC-03@V1",
@@ -833,6 +858,13 @@
           "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-001.md"
+        },
+        {
+          "featureId": "F-ACC-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+          "taskPath": null
         }
       ]
     },

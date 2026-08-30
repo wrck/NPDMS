@@ -1,0 +1,170 @@
+{
+  "featureId": "F-ACC-002",
+  "status": "CANDIDATE_NOT_READY",
+  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW",
+  "requirements": {
+    "ACC-02@V1": "FULL",
+    "ACC-04@V1": "PARTIAL_SATISFACTION_SOURCE_ONLY"
+  },
+  "ownerContext": "ACC",
+  "implementationCarriers": [
+    "pms-module-project/pms-module-project-api",
+    "pms-module-project",
+    "pms-module-platform/pms-module-platform-api_ADDITIVE_PMS_FILE_CONTRACT_ONLY",
+    "pms-module-platform"
+  ],
+  "phaseGateImpact": "P3_E09_FEATURE_FORWARD_DELTA_REVIEWED_GO_ADR_0041",
+  "permissions": [
+    "pms:acceptance:satisfaction:query",
+    "pms:acceptance:satisfaction:manage",
+    "pms:acceptance:satisfaction:collect",
+    "pms:acceptance:satisfaction:export",
+    "pms:acceptance:satisfaction:download"
+  ],
+  "rolePermissionPolicy": "FORMAL_CONFIGURATION_NO_FIXED_ROLE_MATRIX",
+  "serverScopes": ["TENANT", "PROJECT_TREE", "ASSIGNEE", "FIELD", "FILE_BUSINESS_SCOPE", "CUSTOMER_GRANT_SINGLE_QUESTIONNAIRE"],
+  "restApis": [
+    {"method":"GET","path":"/api/v1/pms/satisfaction-questionnaire-templates","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaire-templates","permission":"pms:acceptance:satisfaction:manage"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaire-templates/{id}/revisions","permission":"pms:acceptance:satisfaction:manage","result":"DRAFT_REVISION"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish","permission":"pms:acceptance:satisfaction:manage","idempotency":"REQUIRED"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-tasks","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-tasks/{id}","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/actions/assign","permission":"pms:acceptance:satisfaction:manage","idempotency":"REQUIRED"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/actions/recollect","permission":"pms:acceptance:satisfaction:manage","idempotency":"REMEDIATION_REQUEST_ID"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/access-grants","permission":"pms:acceptance:satisfaction:manage","token":"RETURN_ONCE_STORE_DIGEST"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-questionnaires/{token}","identity":"CUSTOMER_GRANT"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaires/{token}/files","identity":"CUSTOMER_GRANT"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaires/{token}/responses","identity":"CUSTOMER_GRANT","idempotency":"QUESTIONNAIRE_ID_PLUS_REQUEST_ID"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-responses","permission":"pms:acceptance:satisfaction:collect"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-results","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-results/{id}","permission":"pms:acceptance:satisfaction:query"},
+    {"method":"GET","path":"/api/v1/pms/satisfaction-results/{resultId}/files/{sequence}/download","permission":"pms:acceptance:satisfaction:download","scope":"PROJECT_FILE_TENANT_EACH_REQUEST"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-results/exports","permission":"pms:acceptance:satisfaction:export","scope":"PROJECT_FIELD_FILE_TENANT"}
+  ],
+  "moduleApis": {
+    "SatisfactionQuestionnaireTemplateApi": {
+      "method":"resolvePublished",
+      "owner":"ACC",
+      "inputs":["tenantId","projectType","signingMode","implementationMode","businessPurposeCode","applicableTimingCode"],
+      "facts":["templateId","templateRevisionId","templateVersion","ruleVersion","threshold"],
+      "outcomes":["FOUND","NO_MATCH","AMBIGUOUS","DEPENDENCY_UNAVAILABLE"]
+    },
+    "SatisfactionTaskInitializationApi": {
+      "method":"initialize",
+      "owner":"ACC",
+      "provider":"REAL_ACC_PROVIDER_REQUIRED",
+      "transactionPropagation":"MANDATORY",
+      "inputs":["tenantId","projectId","projectTaskId","expectedProjectTaskVersion","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","operationId"],
+      "firstRevision":{"collectionKey":"ACC_ALLOCATED_STABLE","taskRevisionNo":1,"sourceEqualsTrigger":true},
+      "outcomes":["INITIALIZED","REPLAYED","IDENTITY_MISMATCH","VERSION_CONFLICT","DEPENDENCY_UNAVAILABLE"]
+    },
+    "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"DIRECT_REUSE","facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
+    "SatisfactionResultFactApi": {
+      "methods":["inspect","lockAndRevalidate"],
+      "owner":"ACC",
+      "consumers":"FUTURE_CLO_SUB_ONLY",
+      "facts":["collectionKey","taskId","taskRevisionNo","questionnaireId","responseId","resultId","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveStatus","factVersion"]
+    },
+    "FileArtifactApi": {
+      "owner":"PLT",
+      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload"],
+      "reusedMethods":["lockAndRevalidateReferenceSets","inspectReferenceSets","archiveReferenceSets","accessTicketDownload"],
+      "businessGrantInputs":["grantId","grantVersion","responseId","policyKey","operationId","safeFileMetadata"],
+      "forbidden":"FAKE_LOGIN_OR_BYPASS_FILE_POLICY"
+    },
+    "PlatformCommandExecutionApi": {"reuse":"DIRECT_REUSE","purpose":"RESULT_AND_OUTBOX_ATOMIC"},
+    "PlatformOutboxDeliveryApi": {"reuse":"DIRECT_REUSE","consumerJob":"SatisfactionResultOutboxDeliveryJob_ONLY_SATISFACTION_RESULT_VERSION_CHANGED"}
+  },
+  "states": {
+    "SatisfactionTask":["PENDING_ASSIGNMENT","PENDING_COLLECTION","PENDING_DECISION","FAILED","PASSED","PENDING_ARCHIVE","ARCHIVED"],
+    "Questionnaire":["ACTIVE","SUBMITTED","INVALIDATED","EXPIRED"],
+    "AccessGrant":["ACTIVE","CONSUMED","REVOKED","EXPIRED"],
+    "Result":["EFFECTIVE","INVALIDATED"],
+    "Archive":["PENDING_COMPENSATION","ARCHIVED","INVALID"]
+  },
+  "identityRules": {
+    "sourceMeaning":"ORIGINAL_BUSINESS_TRIGGER_IMMUTABLE_ACROSS_COLLECTION_CHAIN",
+    "firstTrigger":"SAME_AS_SOURCE",
+    "remediationTrigger":"ACC/SatisfactionRemediationFact",
+    "collectionKey":"ACC_ALLOCATED_ON_FIRST_TRIGGER_COPIED_TO_REVISIONS",
+    "taskRevision":"FIRST_1_NEXT_PRIOR_PLUS_1",
+    "recollect":"APPEND_REMEDIATION_FACT_THEN_NEW_TASK_AND_QUESTIONNAIRE_ATOMIC",
+    "clientIdentityOverride":"FORBIDDEN"
+  },
+  "triggerSources": {
+    "v1PositivePath":{"owner":"ACC","factType":"AcceptanceActivityCompletionFact","applicableTiming":"AFTER_INITIAL_ACCEPTANCE","transaction":"SAME_TRANSACTION_INITIALIZER_CALL","defaultAssignee":"CURRENT_PROJECT_MANAGER_IF_UNASSIGNED"},
+    "otherFrozenTimings":"CALL_ONLY_AFTER_THEIR_OWNER_PROVIDER_IS_DELIVERED",
+    "forbidden":["INFER_FROM_TASK_NAME","INFER_FROM_STAGE","INFER_FROM_TODO","INFER_FROM_REPORT_UPLOAD"]
+  },
+  "deliverableProjection": {
+    "sourceObjectType":"SatisfactionResult",
+    "taskOwnerValidation":"PROJ_SAME_TENANT_PROJECT_TASK_CODE_T_SAT_SURVEY",
+    "rootLookup":"tenant_id+project_id+deliverable_code=D-SAT-REPORT",
+    "rootTaskCode":"T-SAT-SURVEY",
+    "missingDuplicateMismatch":"PENDING_COMPENSATION_FAIL_CLOSED",
+    "forbiddenInference":["NAME","OTHER_DELIVERABLE","ARBITRARY_ROOT","LEGACY_CALLBACK_STATUS"]
+  },
+  "filePolicies": {
+    "signature":"ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE",
+    "attachment":"ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_ATTACHMENT",
+    "resultDocument":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",
+    "archive":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_ARCHIVE",
+    "storedFacts":["artifactId","versionNo","referenceKey","artifactVersion","referenceVersion","availabilityVersion","scopeVersion","fileHash"],
+    "forbiddenFields":["fileVersionId","fileReferenceId","tokenPlaintext"]
+  },
+  "events": {
+    "SatisfactionTaskCreated":{"facts":["taskId","projectTaskId","projectId","collectionKey","taskRevisionNo","priorTaskId","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","triggerOwnerContext","triggerObjectType","triggerFactId","triggerFactVersion","questionnaireId","templateRevisionId","ruleVersion","threshold","assignee"]},
+    "SatisfactionResultVersionChanged":{"changeTypes":["RECORDED","INVALIDATED"],"facts":["projectId","projectTaskId","taskCode","collectionKey","taskRevisionNo","taskId","questionnaireId","responseId","resultId","resultVersion","templateRevisionId","ruleVersion","threshold","sourceOwnerContext","sourceObjectType","sourceObjectId","sourceObjectVersion","passed","resultStatus","archiveActorUserId","files[{role,sequence,artifactId,versionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]"]},
+    "futureConsumerRequests":{"ClosureGateRecheckRequested":"NOT_CLAIMED_AS_DELIVERED_BY_THIS_FEATURE","SubcontractRecheckRequested":"NOT_IMPLEMENTED"}
+  },
+  "transactionBoundary": {
+    "initializationLockOrder":["PROJ_PROJECT_TASK_WORK_BINDING","ACC_TASK","QUESTIONNAIRE"],
+    "submissionLockOrder":["ACCESS_GRANT","ACC_TASK","QUESTIONNAIRE","PLT_REFERENCES","RESPONSE","RESULT","OUTBOX"],
+    "remediationLockOrder":["TASK_CHAIN","PRIOR_RESULT","REMEDIATION_FACT","NEW_TASK","QUESTIONNAIRE","OUTBOX"],
+    "archiveLockOrder":["DELIVERABLE_ROOT","SOURCE_VERSION","PLT_ACTIVE_AND_ARCHIVE_SETS","ARCHIVE_PROJECTION"],
+    "resultAndOutboxAtomic":true,
+    "archiveFailureRollsBackResult":false,
+    "customerSubmissionFailureWritesPartialResponse":false
+  },
+  "physicalDelta": {
+    "mode":"FEATURE_FORWARD_DELTA_REQUIRED",
+    "tables": {
+      "acc_satisfaction_questionnaire_template":{"mode":"CREATE","uniqueKeys":["tenant_id+template_code"]},
+      "acc_satisfaction_questionnaire_template_revision":{"mode":"CREATE","uniqueKeys":["tenant_id+template_id+revision_no"],"immutable":"PUBLISHED_REVISION"},
+      "proj_project_task":{"mode":"ALTER_ADDITIVE","fields":["acc_satisfaction_template_id","template_revision_id","template_version","satisfaction_rule_version","satisfaction_threshold"],"owner":"PROJ_FACT_FROM_ACC_API"},
+      "acc_satisfaction_collection_task":{"mode":"CREATE_OR_ALTER_FORWARD","fields":["project_task_id","source_owner_context","source_object_type","source_object_id","source_object_version","trigger_owner_context","trigger_object_type","trigger_fact_id","trigger_fact_version","collection_key","task_revision_no","prior_task_id","assigned_by_user_id"],"uniqueKeys":["tenant_id+collection_key+task_revision_no","tenant_id+project_task_id+trigger_owner_context+trigger_object_type+trigger_fact_id+trigger_fact_version"]},
+      "acc_satisfaction_questionnaire":{"mode":"CREATE_OR_ALTER_FORWARD","fields":["questionnaire_status","access_scope_version"],"immutable":"FROZEN_TEMPLATE_QUESTIONS_RULE_THRESHOLD"},
+      "acc_satisfaction_access_grant":{"mode":"CREATE","uniqueKeys":["tenant_id+token_digest"],"tokenPlaintext":"FORBIDDEN"},
+      "acc_satisfaction_response":{"mode":"CREATE_OR_ALTER_FORWARD","uniqueKeys":["tenant_id+questionnaire_id+response_no","tenant_id+questionnaire_id+request_id"],"immutable":true},
+      "acc_satisfaction_response_file":{"mode":"CREATE","roles":["SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true},
+      "acc_satisfaction_result":{"mode":"CREATE_OR_ALTER_FORWARD","currentMarker":"case when result_status='EFFECTIVE' and passed=1 and effective_to is null then 1 else null end","uniqueKeys":["tenant_id+collection_key+current_marker"],"immutableBusinessFields":true},
+      "acc_satisfaction_result_file":{"mode":"CREATE","roles":["RESULT_DOCUMENT","SIGNATURE","ATTACHMENT"],"publicFileFactsOnly":true},
+      "acc_satisfaction_remediation_fact":{"mode":"CREATE","fields":["prior_result_id","remediation_revision_no","remediation_request_id","evidence_summary","evidence_file_fact_version","completed_by","completed_at","fact_version"],"uniqueKeys":["tenant_id+prior_result_id+remediation_revision_no","tenant_id+prior_result_id+remediation_request_id"],"immutable":true},
+      "acc_project_deliverable_source_version":{"mode":"DIRECT_REUSE_F_ACC_001","sourceObjectType":"SatisfactionResult"},
+      "acc_project_deliverable_source_attachment":{"mode":"DIRECT_REUSE_F_ACC_001","completeOrderedPublicFileFacts":true}
+    },
+    "crossContextForeignKeys":"FORBIDDEN"
+  },
+  "legacyDisposition": {
+    "pm_cl_quesnaire_tables":"PRESERVE_RAW_AI_MIG_000",
+    "callbackVisitSubcontractTables":"PRESERVE_RAW_AI_MIG_000",
+    "currentForward":"NEW_ONLY_EXPLICIT_COMMANDS",
+    "forbiddenInference":["LEGACY_STATUS","QUESTIONNAIRE_NAME","CACHED_SCORE","URL","APPROVAL","CALLBACK","SUBCONTRACT_STATE"]
+  },
+  "externalIntegration": {"INT_10":"V2_INTERFACE_ONLY","INT_05":"V2_INTERFACE_ONLY","deliveryMeansSubmissionOrPass":false},
+  "acceptance": [
+    "UNIQUE_TEMPLATE_FACT_FROZEN",
+    "FORMAL_TEMPLATE_DRAFT_AND_PUBLISH_PATH",
+    "INITIAL_ACCEPTANCE_COMPLETION_FACT_REAL_TRIGGER_PATH",
+    "FIRST_TRIGGER_IDEMPOTENT_REVISION_ONE",
+    "CUSTOMER_GRANT_SINGLE_QUESTIONNAIRE_NO_TOKEN_PERSISTENCE",
+    "IMMUTABLE_RESPONSE_SIGNATURE_FILES_AND_RESULT",
+    "FAIL_THEN_REMEDIATION_FACT_CREATES_SECOND_REVISION_AND_REPLAY_IS_IDEMPOTENT",
+    "PASS_ONLY_EXACT_T_SAT_SURVEY_TO_D_SAT_REPORT_SOURCE",
+    "ARCHIVE_COMPENSATION_KEEPS_RESULT_AND_ACTIVE_HISTORY_DOWNLOAD",
+    "PROJECT_ASSIGNEE_FIELD_FILE_TENANT_SCOPE_ENFORCED",
+    "LEGACY_PRESERVED_NO_INFERENCE_AND_V1_WORKS_WITHOUT_INT_CHANNELS",
+    "REAL_MYSQL_AND_CHROMIUM_VERTICAL_CLOSURE"
+  ]
+}

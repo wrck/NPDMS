@@ -1,0 +1,136 @@
+import json
+import unittest
+from copy import deepcopy
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SPEC = ROOT / "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md"
+CONTRACT = ROOT / "specs/features/F-ACC-002-physical-contract.json"
+AUDIT = ROOT / "specs/features/F-ACC-002-legacy-reuse-audit.md"
+
+
+def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
+    errors = []
+    if contract.get("requirements") != {
+        "ACC-02@V1": "FULL", "ACC-04@V1": "PARTIAL_SATISFACTION_SOURCE_ONLY"
+    }:
+        errors.append("coverage")
+    if contract.get("status") != "CANDIDATE_NOT_READY" or \
+            contract.get("featureReadyDecision") != "PENDING_INDEPENDENT_REVIEW":
+        errors.append("premature-ready")
+    identity = contract.get("identityRules", {})
+    if identity.get("remediationTrigger") != "ACC/SatisfactionRemediationFact" or \
+            identity.get("taskRevision") != "FIRST_1_NEXT_PRIOR_PLUS_1" or \
+            identity.get("sourceMeaning") != "ORIGINAL_BUSINESS_TRIGGER_IMMUTABLE_ACROSS_COLLECTION_CHAIN":
+        errors.append("remediation-identity")
+    projection = contract.get("deliverableProjection", {})
+    if projection.get("rootLookup") != "tenant_id+project_id+deliverable_code=D-SAT-REPORT" or \
+            projection.get("rootTaskCode") != "T-SAT-SURVEY" or \
+            projection.get("missingDuplicateMismatch") != "PENDING_COMPENSATION_FAIL_CLOSED":
+        errors.append("deliverable-root")
+    initializer = contract.get("moduleApis", {}).get("SatisfactionTaskInitializationApi", {})
+    if initializer.get("transactionPropagation") != "MANDATORY" or \
+            "triggerObjectType" not in initializer.get("inputs", []):
+        errors.append("initializer")
+    trigger = contract.get("triggerSources", {}).get("v1PositivePath", {})
+    if trigger.get("factType") != "AcceptanceActivityCompletionFact" or \
+            trigger.get("applicableTiming") != "AFTER_INITIAL_ACCEPTANCE" or \
+            trigger.get("defaultAssignee") != "CURRENT_PROJECT_MANAGER_IF_UNASSIGNED":
+        errors.append("positive-trigger")
+    paths = {(item.get("method"), item.get("path")) for item in contract.get("restApis", [])}
+    if ("POST", "/api/v1/pms/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish") not in paths:
+        errors.append("template-publish")
+    file_api = contract.get("moduleApis", {}).get("FileArtifactApi", {})
+    if file_api.get("additiveMethods") != ["initializeBusinessGrantUpload", "completeBusinessGrantUpload"] or \
+            file_api.get("forbidden") != "FAKE_LOGIN_OR_BYPASS_FILE_POLICY":
+        errors.append("external-file")
+    result = contract.get("physicalDelta", {}).get("tables", {}).get("acc_satisfaction_result", {})
+    if result.get("currentMarker") != \
+            "case when result_status='EFFECTIVE' and passed=1 and effective_to is null then 1 else null end":
+        errors.append("result-current")
+    task = contract.get("physicalDelta", {}).get("tables", {}).get("acc_satisfaction_collection_task", {})
+    if "tenant_id+collection_key+task_revision_no" not in task.get("uniqueKeys", []) or \
+            "trigger_object_type" not in task.get("fields", []):
+        errors.append("task-revision")
+    remediation = contract.get("physicalDelta", {}).get("tables", {}).get("acc_satisfaction_remediation_fact", {})
+    if remediation.get("immutable") is not True:
+        errors.append("remediation-fact")
+    if contract.get("transactionBoundary", {}).get("archiveFailureRollsBackResult") is not False:
+        errors.append("compensation")
+    event = contract.get("events", {}).get("SatisfactionResultVersionChanged", {})
+    if event.get("changeTypes") != ["RECORDED", "INVALIDATED"] or \
+            not any("files[{role,sequence,artifactId" in fact for fact in event.get("facts", [])):
+        errors.append("event")
+    if contract.get("legacyDisposition", {}).get("currentForward") != "NEW_ONLY_EXPLICIT_COMMANDS":
+        errors.append("legacy")
+    for marker in ("文档状态：`CANDIDATE`", "Feature Ready：`NOT_READY`", "ACC-02@V1=FULL",
+                   "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
+                   "AI-MIG-000"):
+        if marker not in spec:
+            errors.append(f"spec:{marker}")
+    for marker in ("REUSE-01", "REUSE-14", "PRESERVE_RAW", "ProjectWorkBindingFactApi",
+                   "D-SAT-REPORT", "PlatformOutboxDeliveryApi", "DIRECT_REUSE_NO_SOURCE_CHANGE"):
+        if marker not in audit:
+            errors.append(f"audit:{marker}")
+    return errors
+
+
+class Facc002FeatureContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.spec = SPEC.read_text(encoding="utf-8")
+        cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        cls.audit = AUDIT.read_text(encoding="utf-8")
+
+    def test_candidate_contract_is_complete_without_premature_ready(self) -> None:
+        self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
+
+    def test_rejects_original_trigger_reuse_for_remediation(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["identityRules"]["remediationTrigger"] = "ORIGINAL_BUSINESS_TRIGGER"
+        self.assertIn("remediation-identity", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_missing_task_revision_unique_key(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["physicalDelta"]["tables"]["acc_satisfaction_collection_task"]["uniqueKeys"].remove(
+            "tenant_id+collection_key+task_revision_no")
+        self.assertIn("task-revision", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_arbitrary_deliverable_root(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["deliverableProjection"]["rootLookup"] = "ANY_PROJECT_DELIVERABLE"
+        self.assertIn("deliverable-root", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_result_current_without_pass_guard(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["physicalDelta"]["tables"]["acc_satisfaction_result"]["currentMarker"] = (
+            "case when effective_to is null then 1 else null end")
+        self.assertIn("result-current", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_external_upload_auth_bypass(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["forbidden"] = "FAKE_LOGIN_ALLOWED"
+        self.assertIn("external-file", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_missing_real_trigger_or_template_publish_path(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["triggerSources"]["v1PositivePath"]["factType"] = "TODO_COMPLETED"
+        self.assertIn("positive-trigger", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["restApis"] = [item for item in mutated["restApis"] if "actions/publish" not in item["path"]]
+        self.assertIn("template-publish", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_archive_failure_rolling_back_result(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["transactionBoundary"]["archiveFailureRollsBackResult"] = True
+        self.assertIn("compensation", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_legacy_current_truth(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["legacyDisposition"]["currentForward"] = "MIGRATE_CALLBACK_SCORE"
+        self.assertIn("legacy", contract_errors(mutated, self.spec, self.audit))
+
+
+if __name__ == "__main__":
+    unittest.main()

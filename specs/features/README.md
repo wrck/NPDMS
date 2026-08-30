@@ -24,6 +24,7 @@
 | [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `a9f8b7c5`；自动化、真实MySQL、查询计划、真实浏览器与合并后复审通过） |
 | [F-COM-001](F-COM-001-contract-order-association-and-delivery-scope-allocation.md) | 合同订单关联与交付范围分配 | COM-01（V1） | BASELINE | READY（完整全新审核GO：`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3`） | NOT_STARTED |
 | [F-ACC-001](F-ACC-001-acceptance-report-version-and-deliverable-sync.md) | 初验/终验报告版本与交付件同步 | ACC-03（V1）、ACC-04（V1初验/终验来源切片） | BASELINE | READY（整改提交`bde0feac019baf820634ecc6a0e88272672b601d`独立复审GO） | IMPLEMENTATION_COMPLETE（NPDMS `ad5b401f`；独立复审GO） |
+| [F-ACC-002](F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md) | 满意度问卷、达标判定与归档同步 | ACC-02（V1）、ACC-04（V1满意度来源切片） | CANDIDATE | NOT_READY（待独立Feature Ready审核） | NOT_STARTED |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
