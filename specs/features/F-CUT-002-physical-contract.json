@@ -236,14 +236,14 @@
         "exactKeys": ["project", "devices", "implementationReadiness", "customerServiceLevel"],
         "project": "projectId + projectScopeVersion + normalized project/office display snapshot",
         "devices": "non-empty stable deviceId/projectAssignmentVersion vector sorted by deviceId",
-        "implementationReadiness": "READY snapshotId/snapshotVersion/source watermark consumed from ImplementationReadinessApi",
+        "implementationReadiness": "DRAFT may carry structured READY or NOT_READY snapshotId/snapshotVersion/source watermark/unmetCodes consumed from ImplementationReadinessApi; SUBMITTED and INVALIDATED require READY with empty unmetCodes",
         "customerServiceLevel": "AVAILABLE carries serviceLevelRevisionId/serviceLevelCode/factVersion/effective interval; NOT_CONFIGURED carries customer identity and factVersion with revision/code/effective interval null; both are consumed from CustomerServiceLevelFactApi and no user-entered substitute is allowed"
       },
       "questionnaireIdentity": "CUT Owner constant questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1; its exact four questions are this Feature contract, are assigned by the server on first draft creation and are never accepted from the client",
       "statusUnion": {
-        "DRAFT": "manual_grade may be null or A/B/C/D; submitted_by, submitted_at, invalidated_by, invalidated_at and invalidation_reason are null; simple_flow is false until submission",
-        "SUBMITTED": "manual_grade, submitted_by and submitted_at are present; simple_flow is true only for manual_grade D; invalidation fields are null",
-        "INVALIDATED": "the submitted answer/context/grade fields remain unchanged; invalidated_by, invalidated_at and normalized invalidation_reason are filled once; current_marker is null; the same transaction inserts exactly one next-version DRAFT with refreshed server-owned template/context and current_marker=1, then repoints cut_task.current_assessment_id to that replacement"
+        "DRAFT": "manual_grade may be null or A/B/C/D; submitted_by, submitted_at, invalidated_by, invalidated_at and invalidation_reason are null; simple_flow is false until submission; context implementationReadiness may be READY or NOT_READY",
+        "SUBMITTED": "manual_grade, submitted_by and submitted_at are present; context implementationReadiness is READY and customerServiceLevel is AVAILABLE; simple_flow is true only for manual_grade D; invalidation fields are null",
+        "INVALIDATED": "the previously SUBMITTED answer/context/grade fields remain unchanged and therefore retain READY/AVAILABLE context; invalidated_by, invalidated_at and normalized invalidation_reason are filled once; current_marker is null; the same transaction inserts exactly one next-version DRAFT with refreshed server-owned template/context, which may contain structured NOT_READY, and current_marker=1, then repoints cut_task.current_assessment_id to that replacement"
       },
       "checks": [
         "assessment_version > 0 and questionnaire_template_version > 0 and version >= 0",

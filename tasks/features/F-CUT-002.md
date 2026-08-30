@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- 按`1a0ceb98`独立复审NO-GO最小整改：补齐多项目候选选择、P1来源/办事处/生成时间、P2草稿可空和固定服务端模板、`previous_task_id`线性链与失效替代、GET只读动作投影及精确Internal API，再申请同一`API/Physical Machine Contract Gate`。
+- `02198211`独立复审已确认前六项关闭；当前只按方案B统一DRAFT可保存结构化IMP `NOT_READY`、SUBMITTED/INVALIDATED只允许`READY`的单点机器语义，再申请同一`API/Physical Machine Contract Gate`。
 - 该Gate通过后分别推动`ImplementationReadinessApi`与`CustomerServiceLevelFactApi`公共机器合同，不在CUT重复实现Owner。
 - 直接消费合同及F-CUT-002 Feature Ready通过后，使用受控正向模拟推进CUT自身P1→P2→P3/P4；生产依赖合入前不声明真实浏览器闭环或Implementation Done。
 
@@ -30,7 +30,7 @@
 
 ## 阻断
 
-- F-CUT-002完整API/物理机器合同在`1a0ceb98`独立复审为NO-GO；当前只通过迁移子Gate，最近Gate仍是上述六项最小整改复审。
+- F-CUT-002完整API/物理机器合同在`02198211`独立复审仍为NO-GO，但前六项均已关闭；最近Gate仅剩DRAFT IMP就绪上下文可空态的单点整改复审。
 - AST的`DeviceScopeFactApi`公开合同、Owner Provider及IMP消费适配已分别通过独立Gate；该项不再是F-CUT-002规格阻断，但生产装配与真实依赖闭环仍按各Owner任务状态判定。
 - `ImplementationReadinessApi`与CUS `CustomerServiceLevelFactApi`尚无通过Gate的独立公共机器合同；生产Provider继续只阻断生产装配、真实浏览器和Implementation Done，不授权CUT重复建设。
 
