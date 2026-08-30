@@ -18,9 +18,9 @@
       "V2": 58
     },
     "slicesByImplementationStatus": {
-      "IMPLEMENTATION_COMPLETE": 7,
+      "IMPLEMENTATION_COMPLETE": 8,
       "IMPLEMENTATION_PARTIAL": 10,
-      "NOT_STARTED": 94
+      "NOT_STARTED": 93
     }
   },
   "derivationRules": [
@@ -51,8 +51,8 @@
       "featureId": "F-ACC-002",
       "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
       "taskPath": "tasks/features/F-ACC-002.md",
-      "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
       "mappings": [
         {
           "sliceKey": "ACC-02@V1",
@@ -810,12 +810,12 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "满意度收集与结果管理的V1主交付业务结果",
       "versionBoundary": "V1问卷与结果闭环；V2自动触达",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-ACC-002",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-002.md"
         }
@@ -862,7 +862,7 @@
         {
           "featureId": "F-ACC-002",
           "coverage": "PARTIAL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-002.md"
         }
