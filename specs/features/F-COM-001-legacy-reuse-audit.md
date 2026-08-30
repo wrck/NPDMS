@@ -24,6 +24,6 @@
 - DeliveryScope：必须同时解析项目、订单行和正数`projectQuantity`；审计的该列填充率为0，`orderQuantity/deliverQuantity/openQuantity`只能保留原值而不能替代，故当前旧范围行进入`plt_migration_issue`且不进入指标或当前范围。
 - DeliveryScopeDetail：旧表无可靠地点/维度明细，不从名称、备注或附件推导；仅新业务明确创建。
 
-迁移统一使用PLT Owner四表：每个源行原值进入`plt_migration_source_record`；合格的旧键—新键关系进入`plt_external_key_mapping`；空键、多义、状态未知、数量/单位/模型/地点缺失进入`plt_migration_issue`；`plt_migration_batch`保存抽取、资格、迁入和问题计数。前向新增列不设伪默认值，既有V70行缺正式事实时保留并排除。
+迁移统一使用PLT Owner四表：每个源行原值进入`plt_migration_source_record`；合格的旧键—新键关系进入`plt_external_key_mapping`；空键、多义、状态未知、数量/单位/模型/地点缺失进入`plt_migration_issue`；`plt_migration_batch`保存抽取、资格、迁入和问题计数。前向新增列不设伪默认值，既有V70行缺正式事实时原值保留并由查询资格谓词排除，不写不存在的核对业务状态。
 
 结论：现有F-PROJ-002 COM切片可以保留并扩展，但不是完整COM-01。Feature Ready前须由独立复审确认上述复用判定及物理/迁移合同；实施不得修改旧CRM功能或把测试种子、附件/XLSX当成权威来源。
