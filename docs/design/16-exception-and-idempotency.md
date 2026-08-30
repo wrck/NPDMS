@@ -121,6 +121,8 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/stableItemKey/itemVersion/设备相符的结果，其余进入待核对，不覆盖当前答案、不复制DAC技术状态 |
 | CUT-03自动采集失败后人工降级 | 自动失败结果正文和原因保持不变；授权工程师在同一事务关闭旧选择区间并追加带人工证据的MANUAL结果，唯一当前选择冲突则整体回滚，不把原CollectionTask改写为成功 |
 | CUT-03已提交版本再次编辑 | VERSION_CONFLICT/BUSINESS_GATE；创建新清单版本并使下游未审批方案按PRD失效，不原位解锁或覆盖 |
+| CUT任务创建缺少配置代码、代码在任务创建时点无适用发布修订或出现多个适用修订 | BUSINESS_GATE/CONFIGURATION_CONFLICT；任务、设备范围、阶段历史和成功审计零写入，不使用种子代码、当前时间或任意候选降级 |
+| V146后既有NEW_PLATFORM任务配置身份前向补齐为零候选或多候选 | MIGRATION_INPUT_CONFLICT；任何任务更新前整批失败，保留原任务；LEGACY_FORWARD保持配置身份为空且不可进入CUT-03 |
 
 ## 8. 外部集成异常与降级
 

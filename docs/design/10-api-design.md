@@ -237,7 +237,7 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
 | `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
-| `/cutover-tasks/actions/resolve-create-context` | POST只读解析 | 按SN及`projectId`稳定顺序返回全部本人授权项目候选、办事处、稳定设备、CUS客户服务等级和IMP就绪事实及版本；多候选由工程师明确选择，不创建任务或成功审计 |
+| `/cutover-tasks/actions/resolve-create-context` | POST只读解析 | 按SN及`projectId`稳定顺序返回全部本人授权项目候选、办事处、稳定设备、CUS客户服务等级、IMP就绪事实及当前时点适用的已发布配置代码选项；项目和配置均由工程师明确选择，不创建任务或成功审计 |
 | `/cutover-dashboard/kpis` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
 | `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
@@ -251,7 +251,7 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 | `/cutover-config/{types|network-modes|checklist-items|binding-rules|navigation-rules}` | CRUD + `actions/publish` | CUT-07/09/10的V1动态模板、表单和匹配配置先于或不晚于首个消费能力交付；CUT-03 V2可增加受控跳转规则 | 发布版本不可覆盖；稳定编码、引用启用状态、条件可判定性和目标流程状态不合法时整版拒绝 |
 
-F-CUT-002用户REST、内部`CutoverTaskIntakeApi`、Wire Long/时间、四权限、`allowedActions`、来源判别联合及错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。P1列表固定显示割接来源、办事处和任务生成时间；P2模板固定由CUT服务端写为`CUT_P2_MANUAL_ASSESSMENT@1`，草稿四项答案可空。详情GET只用Owner只读`inspect`投影提示性动作，提交命令另在写事务中执行`lockAndRevalidate`。自建确认携带明确选择的projectId及只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；这些字段只作并发守卫，客户、负责人、阶段、状态、等级和业务快照均由服务端写入。ITR/项目事件仅预留字段类型、可空性和判别联合完整的受信入向接口，不在CUT实现第三方Producer。
+F-CUT-002用户REST、内部`CutoverTaskIntakeApi`、Wire Long/时间、四权限、`allowedActions`、来源判别联合及错误恢复动作由`specs/features/F-CUT-002-rest-api-contract.json`锁定。P1列表固定显示割接来源、办事处和任务生成时间；P2模板固定由CUT服务端写为`CUT_P2_MANUAL_ASSESSMENT@1`，草稿四项答案可空。详情GET只用Owner只读`inspect`投影提示性动作，提交命令另在写事务中执行`lockAndRevalidate`。自建确认携带明确选择的`projectId/configurationCode`及只读上下文解析返回的PROJ/AST/CUS/IMP期望版本；受信ITR/项目事件命令同样必须携带明确`configurationCode`。代码只是调用方选择意图，CUT以服务端捕获且同时写为`create_time`的`taskCreatedAt`精确解析唯一适用已发布修订，并在任务上冻结`configurationRevisionId/configurationCode/configurationRevisionNo`；调用方不得提交或覆盖revision ID/no。这些字段之外的期望版本只作并发守卫，客户、负责人、阶段、状态、等级和业务快照均由服务端写入。ITR/项目事件仅预留字段类型、可空性和判别联合完整的受信入向接口，不在CUT实现第三方Producer。
 
 PROJ公开`ProjectCutoverContextFactApi.inspect(ProjectCutoverContextFactQuery)`与`lockAndRevalidate(ProjectCutoverContextFactRevalidationQuery)`。inspect Query固定携带正数`tenantId/projectId`；重验Query携带从前次`FOUND`原样复制的完整`ExpectedProjectCutoverContextFact`，tenant必须与受信运行时上下文一致。`FOUND`返回同一ProjectMaster行的`tenantId/projectId/projectVersion/projectCode/projectName/customerId/customerCode/customerName/departmentId/departmentCode/departmentName`完整事实；三个编码字段最大64字符，`projectName/customerName/departmentName`最大255字符。`NOT_FOUND/INACTIVE`无Fact，写重验的`VERSION_CONFLICT`返回当前完整Fact。锁定方法以`MANDATORY`加入CUT写事务并锁定项目当前行，锁后逐字段比较完整Expected与currentFact；任一字段变化均返回`VERSION_CONFLICT`，Expected只作并发守卫，CUT只冻结Owner返回的currentFact。Owner损坏和Provider不可用分别使用公共稳定失败。客户字段和部门字段是项目发生时展示快照，CUT仍分别以`ProjectScopeApi.treeVersion`做用户范围重验、以`CustomerServiceLevelFactApi`取得当前服务等级；不得跨Context读表、拼接Summary或以projectVersion替代treeVersion。精确机器合同见`specs/features/F-CUT-002-project-context-fact-contract.json`。
 

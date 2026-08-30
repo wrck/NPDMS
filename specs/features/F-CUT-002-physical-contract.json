@@ -69,6 +69,9 @@
         "cutover_type": "VARCHAR(32) NULL",
         "network_mode": "VARCHAR(32) NULL",
         "scheduled_time": "DATETIME(3) NULL",
+        "configuration_revision_id": "BIGINT NULL",
+        "configuration_code": "VARCHAR(64) NULL",
+        "configuration_revision_no": "INT NULL",
         "task_origin": "VARCHAR(32) NOT NULL",
         "intake_source_type": "VARCHAR(32) NOT NULL",
         "source_system": "VARCHAR(64) NULL",
@@ -106,6 +109,9 @@
         "customer_id",
         "background",
         "cutover_type",
+        "configuration_revision_id",
+        "configuration_code",
+        "configuration_revision_no",
         "intake_source_type",
         "current_stage",
         "implementation_readiness_snapshot_id",
@@ -142,8 +148,17 @@
       },
       "originUnion": {
         "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present; current_stage is P2, P3 or P4; task_status is not LEGACY_UNKNOWN",
-        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; previous_task_id, background, cutover_type, network_mode, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
+        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; previous_task_id, background, cutover_type, network_mode, configuration_revision_id, configuration_code, configuration_revision_no, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
       },
+      "configurationBinding": {
+        "selectionIntent": "SELF_CREATED receives one configurationCode explicitly selected from resolve-create-context; trusted ITR/PROJECT_EVENT commands also carry one explicit configurationCode; callers never supply revision id or revision number",
+        "effectiveAt": "one server-captured taskCreatedAt is used both for revision resolution and cut_task.create_time",
+        "resolution": "exactly one same-tenant revision with the selected configurationCode whose published effective interval contains taskCreatedAt",
+        "frozenIdentity": ["configuration_revision_id", "configuration_code", "configuration_revision_no"],
+        "immutability": "all three fields are immutable after NEW_PLATFORM task creation",
+        "forbiddenFallbacks": ["CUTOVER_DEFAULT seed assumption", "P3 current time", "cutover_type as configuration code", "name inference", "arbitrary candidate"]
+      },
+      "existingNewPlatformForwardFill": "for NEW_PLATFORM rows created before these columns exist, resolve by the original create_time across all same-tenant configuration codes; update only when exactly one applicable published revision exists; zero or multiple candidates fail the whole forward migration before any task update; LEGACY_FORWARD remains null",
       "previousTaskChain": "previous_task_id is null for the first task in a business chain; otherwise it points to one same-tenant, same-project, nondeleted direct predecessor whose task lifecycle has been authoritatively ended by the owning later Feature; the relation is immutable, UNIQUE(tenant_id, previous_task_id) forbids sibling successors, and F-CUT-002 itself creates only initial tasks because it does not own a task-ending transition",
       "checks": [
         "version >= 0",
@@ -152,6 +167,7 @@
         "current_stage IS NULL OR current_stage IN ('P2','P3','P4')",
         "task_status IN taskStatus",
         "manual_grade IS NULL OR manual_grade IN manualGrade",
+        "NEW_PLATFORM requires configuration_revision_id > 0, nonblank configuration_code and configuration_revision_no > 0; LEGACY_FORWARD requires all three null",
         "previous_task_id IS NULL OR previous_task_id <> id",
         "task_origin and legacy fields satisfy originUnion"
       ]

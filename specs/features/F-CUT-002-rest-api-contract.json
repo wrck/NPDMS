@@ -130,18 +130,32 @@
       "implementationReadiness": "commonTypes.readinessContext",
       "createAllowed": "BOOLEAN_TRUE_WHEN_PROJECT_DEVICE_AND_READINESS_FACTS_ARE_VALID; CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED_DOES_NOT_BLOCK_CREATE_OR_DRAFT_BUT_BLOCKS_SUBMIT"
     },
+    "ConfigurationChoice": {
+      "exactKeys": ["configurationCode", "configurationName", "revisionId", "revisionNo", "effectiveFrom", "effectiveTo"],
+      "configurationCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
+      "configurationName": "NON_BLANK_DISPLAY_STRING_MAX_128",
+      "revisionId": "POSITIVE_LONG_READ_ONLY_PREVIEW_NOT_ACCEPTED_BY_CREATE",
+      "revisionNo": "POSITIVE_INTEGER_READ_ONLY_PREVIEW_NOT_ACCEPTED_BY_CREATE",
+      "effectiveFrom": "wireContract.dateTime",
+      "effectiveTo": "wireContract.dateTime_OR_JSON_NULL"
+    },
     "CreateContextData": {
-      "exactKeys": ["candidates", "selectionRequired"],
+      "exactKeys": ["candidates", "selectionRequired", "configurationChoices", "configurationSelectionRequired"],
       "candidates": "NON_EMPTY_ARRAY_OF_responseTypes.CreateContextCandidate_SORTED_BY_project.projectId_ASC_UNIQUE_projectId; each normalized input serial appears in exactly one candidate",
-      "selectionRequired": "BOOLEAN_TRUE_IFF_candidates.size_GREATER_THAN_1"
+      "selectionRequired": "BOOLEAN_TRUE_IFF_candidates.size_GREATER_THAN_1",
+      "configurationChoices": "NON_EMPTY_ARRAY_OF_responseTypes.ConfigurationChoice_SORTED_BY_configurationCode_ASC; only revisions applicable at the read instant are shown and the create command re-resolves by code at taskCreatedAt",
+      "configurationSelectionRequired": "BOOLEAN_TRUE; UI may preselect when one choice exists but create request still carries configurationCode explicitly"
     },
     "CutoverTaskSummary": {
-      "exactKeys": ["id", "taskNo", "taskName", "taskOrigin", "intakeSourceType", "projectId", "projectName", "officeCode", "officeName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "generatedAt", "version"],
+      "exactKeys": ["id", "taskNo", "taskName", "taskOrigin", "intakeSourceType", "configurationRevisionId", "configurationCode", "configurationRevisionNo", "projectId", "projectName", "officeCode", "officeName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "generatedAt", "version"],
       "id": "POSITIVE_LONG",
       "taskNo": "NON_BLANK_STRING_MAX_64",
       "taskName": "NON_BLANK_STRING_MAX_128",
       "taskOrigin": "NEW_PLATFORM|LEGACY_FORWARD",
       "intakeSourceType": "SELF_CREATED|ITR|PROJECT_EVENT|LEGACY_FORWARD",
+      "configurationRevisionId": "POSITIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "configurationCode": "NORMALIZED_NON_BLANK_STRING_MAX_64_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "configurationRevisionNo": "POSITIVE_INTEGER_OR_JSON_NULL_FOR_LEGACY_FORWARD",
       "projectId": "POSITIVE_LONG",
       "projectName": "NORMALIZED_NON_BLANK_STRING_MAX_255",
       "officeCode": "NORMALIZED_STRING_MAX_64_OR_JSON_NULL_FOR_LEGACY_FORWARD",
@@ -155,7 +169,7 @@
       "version": "NON_NEGATIVE_INTEGER"
     },
     "CutoverTaskCore": {
-      "exactKeys": ["id", "taskNo", "taskName", "background", "taskOrigin", "cutoverType", "networkMode", "projectId", "projectName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "createTime", "version"],
+      "exactKeys": ["id", "taskNo", "taskName", "background", "taskOrigin", "cutoverType", "networkMode", "configurationRevisionId", "configurationCode", "configurationRevisionNo", "projectId", "projectName", "ownerUserId", "currentStage", "taskStatus", "manualGrade", "scheduledTime", "createTime", "version"],
       "id": "POSITIVE_LONG",
       "taskNo": "NON_BLANK_STRING_MAX_64",
       "taskName": "NON_BLANK_STRING_MAX_128",
@@ -163,6 +177,9 @@
       "taskOrigin": "NEW_PLATFORM|LEGACY_FORWARD",
       "cutoverType": "F_CUT_001_CODE_OR_JSON_NULL_FOR_LEGACY_FORWARD",
       "networkMode": "F_CUT_001_CODE_OR_JSON_NULL",
+      "configurationRevisionId": "POSITIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "configurationCode": "NORMALIZED_NON_BLANK_STRING_MAX_64_OR_JSON_NULL_FOR_LEGACY_FORWARD",
+      "configurationRevisionNo": "POSITIVE_INTEGER_OR_JSON_NULL_FOR_LEGACY_FORWARD",
       "projectId": "POSITIVE_LONG",
       "projectName": "NORMALIZED_NON_BLANK_STRING_MAX_255",
       "ownerUserId": "POSITIVE_LONG_OR_JSON_NULL_FOR_LEGACY_FORWARD",
@@ -261,7 +278,7 @@
         "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500"
       },
       "readOnly": true,
-      "flow": "resolve complete DeviceScopeFactApi facts; group by currentProjectId; filter each group with ProjectScopeApi.ACTION_EDIT without narrowing participant/responsible/explicit-authorization semantics; resolve project/office/customer and AVAILABLE or NOT_CONFIGURED customer-service-level facts; inspect current ImplementationReadinessApi fact for each exact project/device set; return every authorized candidate without choosing one server-side",
+      "flow": "resolve complete DeviceScopeFactApi facts; group by currentProjectId; filter each group with ProjectScopeApi.ACTION_EDIT without narrowing participant/responsible/explicit-authorization semantics; resolve project/office/customer and AVAILABLE or NOT_CONFIGURED customer-service-level facts; inspect current ImplementationReadinessApi fact for each exact project/device set; list every currently applicable published configuration code; return every authorized project candidate and configuration choice without choosing either server-side",
       "success": "wireContract.successEnvelope<data=responseTypes.CreateContextData>",
       "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "BUSINESS_GATE_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
     },
@@ -287,9 +304,10 @@
       "path": "",
       "permission": "CREATE",
       "headers": ["Idempotency-Key"],
-      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectContext", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
+      "requestExactKeys": ["projectId", "configurationCode", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectContext", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
       "request": {
         "projectId": "POSITIVE_LONG",
+        "configurationCode": "NORMALIZED_NON_BLANK_F_CUT_001_CONFIGURATION_CODE_MAX_64_SELECTION_INTENT_ONLY",
         "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
         "taskName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
         "background": "NORMALIZED_NON_BLANK_STRING_MAX_4000",
@@ -308,11 +326,11 @@
         "expectedCustomerServiceLevelEffectiveFrom": "wireContract.dateTime_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
         "expectedCustomerServiceLevelEffectiveTo": "wireContract.dateTime_OR_JSON_NULL; must be JSON null for NOT_CONFIGURED"
       },
-      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "ProjectCutoverContextFactApi.lockAndRevalidate matches every field in expectedProjectContext and supplies the exact locked current project/department/customer occurrence fact; CUT freezes only currentFact", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer identity is supplied only by trusted project context; AVAILABLE carries the exact previously displayed revision/code/factVersion/effective interval and NOT_CONFIGURED carries null revision/code/interval plus factVersion", "CustomerServiceLevelFactApi.lockAndRevalidate matches that complete expected fact", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
-      "write": "one NEW_PLATFORM/SELF_CREATED cut_task + stable device scope rows + one P1_ACCEPTED history row + platform success facts atomically; server generates taskNo and P2/GRADE_CONFIRMING state",
+      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "server captures one taskCreatedAt and resolves exactly one same-tenant published revision for configurationCode whose effective interval contains taskCreatedAt; caller cannot supply revisionId or revisionNo", "ProjectCutoverContextFactApi.lockAndRevalidate matches every field in expectedProjectContext and supplies the exact locked current project/department/customer occurrence fact; CUT freezes only currentFact", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer identity is supplied only by trusted project context; AVAILABLE carries the exact previously displayed revision/code/factVersion/effective interval and NOT_CONFIGURED carries null revision/code/interval plus factVersion", "CustomerServiceLevelFactApi.lockAndRevalidate matches that complete expected fact", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
+      "write": "one NEW_PLATFORM/SELF_CREATED cut_task with immutable configurationRevisionId/configurationCode/configurationRevisionNo and create_time=taskCreatedAt + stable device scope rows + one P1_ACCEPTED history row + platform success facts atomically; server generates taskNo and P2/GRADE_CONFIRMING state",
       "idempotencyScope": "CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}",
       "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",
-      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "SCOPE_STALE", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"]
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "CONFIGURATION_CONFLICT", "ACTIVE_DEVICE_CONFLICT", "SCOPE_STALE", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"]
     },
     "detail": {
       "method": "GET",
@@ -356,9 +374,10 @@
     "operation": "CutoverTaskIntakeResult create(CutoverTaskIntakeCommand command)",
     "discriminator": "sourceType",
     "command": {
-      "exactCommonKeys": ["sourceType", "projectId", "serialNumbers", "handlingEngineerUserId", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "correlationId"],
+      "exactCommonKeys": ["sourceType", "projectId", "configurationCode", "serialNumbers", "handlingEngineerUserId", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "correlationId"],
       "sourceType": "ITR|PROJECT_EVENT",
       "projectId": "POSITIVE_LONG",
+      "configurationCode": "NORMALIZED_NON_BLANK_F_CUT_001_CONFIGURATION_CODE_MAX_64_FROM_TRUSTED_PRODUCER_SELECTION_INTENT_ONLY",
       "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
       "handlingEngineerUserId": "POSITIVE_LONG",
       "taskName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
@@ -381,7 +400,7 @@
         "identity": "tenantId from trusted context + normalized businessEventId"
       }
     },
-    "behavior": "handlingEngineerUserId is a positive trusted source fact, not a public assignment action; server proves that exact engineer currently has the same project/device operation scope, then resolves and locks the same PROJ/AST/CUS/IMP facts as self-create; same source identity and same normalized payload replays the task; different payload conflicts; no caller may supply customer, task state, grade or snapshots",
+    "behavior": "handlingEngineerUserId is a positive trusted source fact, not a public assignment action; configurationCode is an explicit trusted-producer selection intent and enters the normalized payload, while CUT captures taskCreatedAt and resolves/freezes the exact applicable revision; server proves that exact engineer currently has the same project/device operation scope, then resolves and locks the same PROJ/AST/CUS/IMP facts as self-create; same source identity and same normalized payload replays the task; different payload conflicts; no caller may supply configuration revision id/no, customer, task state, grade or snapshots",
     "result": {
       "exactKeys": ["taskId", "taskNo", "currentStage", "taskStatus", "version", "replayed"],
       "taskId": "POSITIVE_LONG",
@@ -391,7 +410,7 @@
       "version": "NON_NEGATIVE_INTEGER",
       "replayed": "BOOLEAN"
     },
-    "errors": ["INVALID_REQUEST", "SOURCE_IDENTITY_CONFLICT", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+    "errors": ["INVALID_REQUEST", "SOURCE_IDENTITY_CONFLICT", "CONFIGURATION_CONFLICT", "DATA_SCOPE_FORBIDDEN", "ACTIVE_DEVICE_CONFLICT", "READINESS_NOT_READY", "CUSTOMER_CONTEXT_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
   },
   "providerContracts": {
     "ProjectCutoverContextFactApi": {

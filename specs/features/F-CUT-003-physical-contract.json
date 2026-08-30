@@ -6,8 +6,8 @@
   "owner": "CUT",
   "aggregate": "CutoverChecklist",
   "dependencies": {
-    "configuration": "F-CUT-001 published CutoverConfigurationRevision",
-    "task": "F-CUT-002 CutoverTask in SURVEYING with effective submitted assessment",
+    "configuration": "F-CUT-001 CutoverConfigurationRevision identified exactly by the immutable configurationRevisionId/configurationCode/configurationRevisionNo frozen on F-CUT-002 task creation",
+    "task": "F-CUT-002 CutoverTask in SURVEYING with effective submitted assessment and complete immutable configuration identity",
     "files": "F-PLT-001 public FileArtifact fact and CUT FileBusinessObjectPolicyProvider",
     "collection": "INT-12 consumer port only; provider and collection engine are out of scope"
   },
@@ -48,6 +48,7 @@
     }
   ],
   "matching": {
+    "configurationIdentitySource": "task.configurationRevisionId + task.configurationCode + task.configurationRevisionNo; never current time, CUTOVER_DEFAULT, cutoverType or an arbitrary published revision",
     "baseDimensions": ["CUTOVER_TYPE", "NETWORK_MODE", "DEVICE_TYPE", "CUTOVER_LEVEL"],
     "extensionDimensions": "only enabled dimensions frozen in the same published configuration revision",
     "deduplicateBy": "stableItemKey",
