@@ -9,6 +9,10 @@
         SELECT * FROM acc_satisfaction_access_grant
          WHERE tenant_id=#{query.tenantId} AND token_digest=#{query.tokenDigest} FOR UPDATE
     </select>
+    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionAccessGrantDO">
+        SELECT * FROM acc_satisfaction_access_grant
+         WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
     <select id="selectNextVersion" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(grant_version),0)+1 FROM acc_satisfaction_access_grant
          WHERE tenant_id=#{tenantId} AND questionnaire_id=#{questionnaireId}

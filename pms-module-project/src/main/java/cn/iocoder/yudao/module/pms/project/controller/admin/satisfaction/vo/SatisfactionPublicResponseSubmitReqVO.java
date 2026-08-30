@@ -11,6 +11,7 @@ import java.util.List;
 @Data
 public class SatisfactionPublicResponseSubmitReqVO {
     @NotBlank private String requestId;
+    @NotNull private Long responseId;
     @NotBlank private String customerContactRef;
     @NotBlank private String answerSnapshot;
     @Valid @NotEmpty private List<FileFact> files;
@@ -18,6 +19,7 @@ public class SatisfactionPublicResponseSubmitReqVO {
     @Data
     public static class FileFact {
         @NotBlank private String role;
+        @NotBlank private String fileSlotKey;
         @NotNull private Integer sequence;
         @NotNull private Long artifactId;
         @NotNull private Integer versionNo;

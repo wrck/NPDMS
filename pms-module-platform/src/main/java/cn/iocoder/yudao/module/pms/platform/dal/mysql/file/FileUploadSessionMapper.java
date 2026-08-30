@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessi
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionTerminationUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionValidationUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionStorageBindingUpdate;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.BusinessGrantUploadSessionQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -16,6 +17,9 @@ public interface FileUploadSessionMapper {
     int insert(@Param("row") FileUploadSessionDO row);
 
     FileUploadSessionDO selectForUpdate(@Param("query") FileUploadSessionLockQuery query);
+
+    java.util.List<FileUploadSessionDO> selectBusinessGrantSlotsForUpdate(
+            @Param("query") BusinessGrantUploadSessionQuery query);
 
     FileUploadSessionDO selectArtifactBindingForUpdate(
             @Param("query") FileUploadSessionArtifactBindingQuery query);

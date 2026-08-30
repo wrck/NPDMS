@@ -117,28 +117,43 @@ public class FileUploadApplicationService {
         try {
             validateComplete(command);
             byte[] content = multipartReader.read(command.file(), PLATFORM_MAX_BYTES);
-            String actualSha256 = contentSha256(content);
-            AtomicReference<CompletionFacts> completionRef = new AtomicReference<>();
-            var execution = commandExecutionApi.execute(
-                    new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
-                            "PLT:FILE:COMPLETE_UPLOAD", command.actorUserId(), command.idempotencyKey()),
-                    completionRequestDigest(command, actualSha256), FileUploadCompleted.class,
-                    () -> completeOnce(command, content, completionRef),
-                    completed -> completionSuccessFacts(completed, requireCompletion(completionRef)));
-            if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
-                    || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
-                    || execution.response() == null) {
-                throw exception(FILE_COMMAND_INVALID);
-            }
-            return execution.response();
+            return completeBytes(command, content, null);
         } catch (RuntimeException failure) {
             auditCompleteRejected(command, failure);
             throw failure;
         }
     }
 
+    FileUploadCompleted completeAuthorized(FileUploadCompleteCommand command, byte[] content,
+                                           FileBusinessObjectPolicyFact policy) {
+        validateCompleteIdentity(command);
+        if (content == null || content.length == 0 || content.length > PLATFORM_MAX_BYTES || policy == null) {
+            throw exception(FILE_COMMAND_INVALID);
+        }
+        return completeBytes(command, content.clone(), policy);
+    }
+
+    private FileUploadCompleted completeBytes(FileUploadCompleteCommand command, byte[] content,
+                                              FileBusinessObjectPolicyFact authorizedPolicy) {
+        String actualSha256 = contentSha256(content);
+        AtomicReference<CompletionFacts> completionRef = new AtomicReference<>();
+        var execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "PLT:FILE:COMPLETE_UPLOAD", command.actorUserId(), command.idempotencyKey()),
+                completionRequestDigest(command, actualSha256), FileUploadCompleted.class,
+                () -> completeOnce(command, content, completionRef, authorizedPolicy),
+                completed -> completionSuccessFacts(completed, requireCompletion(completionRef)));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                || execution.response() == null) {
+            throw exception(FILE_COMMAND_INVALID);
+        }
+        return execution.response();
+    }
+
     private FileUploadCompleted completeOnce(FileUploadCompleteCommand command, byte[] content,
-                                              AtomicReference<CompletionFacts> completionRef) {
+                                              AtomicReference<CompletionFacts> completionRef,
+                                              FileBusinessObjectPolicyFact authorizedPolicy) {
         FileUploadSessionDO session = sessionMapper.selectForUpdate(
                 new FileUploadSessionLockQuery(command.tenantId(), command.sessionId()));
         requireCompletableSession(command, session);
@@ -148,14 +163,19 @@ public class FileUploadApplicationService {
         }
         String action = MODE_CREATE_ARTIFACT.equals(session.getModeCode())
                 ? FileActionCodes.UPLOAD : FileActionCodes.REPLACE;
-        policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
-                command.tenantId(), command.actorUserId(), new FileReferenceSetKey(session.getOwnerContext(),
-                session.getObjectType(), session.getObjectId(), session.getPurposeCode()), action,
-                session.getScopeVersion()));
-        FileBusinessObjectPolicyFact policy = policyRegistry.lockAndRevalidate(
-                new FileBusinessObjectPolicyRevalidationQuery(command.tenantId(), command.actorUserId(),
-                        session.getOwnerContext(), session.getObjectType(), session.getObjectId(),
-                        session.getPurposeCode(), session.getReferenceKey(), action, session.getScopeVersion()));
+        FileBusinessObjectPolicyFact policy = authorizedPolicy;
+        if (policy == null) {
+            policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
+                    command.tenantId(), command.actorUserId(), new FileReferenceSetKey(session.getOwnerContext(),
+                    session.getObjectType(), session.getObjectId(), session.getPurposeCode()), action,
+                    session.getScopeVersion()));
+            policy = policyRegistry.lockAndRevalidate(
+                    new FileBusinessObjectPolicyRevalidationQuery(command.tenantId(), command.actorUserId(),
+                            session.getOwnerContext(), session.getObjectType(), session.getObjectId(),
+                            session.getPurposeCode(), session.getReferenceKey(), action, session.getScopeVersion()));
+        } else if (!session.getScopeVersion().equals(policy.scopeVersion())) {
+            throw exception(FILE_SCOPE_FORBIDDEN);
+        }
         validatePolicy(new ValidatedInitialization(session.getModeCode(), command.idempotencyKey(),
                         session.getOwnerContext(), session.getObjectType(), session.getObjectId(),
                         session.getPurposeCode(), session.getReferenceKey(), session.getFileName(),
@@ -247,14 +267,21 @@ public class FileUploadApplicationService {
 
     public FileUploadInitialized initialize(FileUploadInitializeCommand command) {
         try {
-            return initializeInTransaction(command);
+            return initializeInTransaction(command, null);
         } catch (RuntimeException failure) {
             auditRejected(command, failure);
             throw failure;
         }
     }
 
-    private FileUploadInitialized initializeInTransaction(FileUploadInitializeCommand command) {
+    FileUploadInitialized initializeAuthorized(FileUploadInitializeCommand command,
+                                               FileBusinessObjectPolicyFact policy) {
+        if (policy == null) throw exception(FILE_COMMAND_INVALID);
+        return initializeInTransaction(command, policy);
+    }
+
+    private FileUploadInitialized initializeInTransaction(FileUploadInitializeCommand command,
+                                                          FileBusinessObjectPolicyFact authorizedPolicy) {
         ValidatedInitialization validated = validate(command);
         Long artifactId = MODE_CREATE_ARTIFACT.equals(validated.modeCode())
                 ? IdWorker.getId() : command.artifactId();
@@ -265,7 +292,8 @@ public class FileUploadApplicationService {
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "PLT:FILE:INIT_UPLOAD", command.actorUserId(), validated.idempotencyKey()),
                 requestDigest(command, validated), FileUploadInitialized.class,
-                () -> authorizeAndCreateSession(command, validated, artifactId, sessionId, expiresAt, policyRef),
+                () -> authorizeAndCreateSession(command, validated, artifactId, sessionId, expiresAt,
+                        policyRef, authorizedPolicy),
                 initialized -> successFacts(initialized, command, validated, requirePolicy(policyRef)));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
@@ -278,10 +306,13 @@ public class FileUploadApplicationService {
     private FileUploadInitialized authorizeAndCreateSession(
             FileUploadInitializeCommand command, ValidatedInitialization validated,
             Long artifactId, Long sessionId, LocalDateTime expiresAt,
-            AtomicReference<FileBusinessObjectPolicyFact> policyRef) {
-        FileBusinessObjectPolicyFact policy = policyRegistry.inspect(new FileBusinessObjectPolicyQuery(
+            AtomicReference<FileBusinessObjectPolicyFact> policyRef,
+            FileBusinessObjectPolicyFact authorizedPolicy) {
+        FileBusinessObjectPolicyFact policy = authorizedPolicy == null
+                ? policyRegistry.inspect(new FileBusinessObjectPolicyQuery(
                 command.tenantId(), command.actorUserId(), validated.ownerContext(), validated.objectType(),
-                validated.objectId(), validated.purposeCode(), validated.referenceKey(), validated.action()));
+                validated.objectId(), validated.purposeCode(), validated.referenceKey(), validated.action()))
+                : authorizedPolicy;
         validatePolicy(validated, command.declaredSizeBytes(), policy);
         policyRef.set(policy);
         return createSession(command, validated, policy, artifactId, sessionId, expiresAt);
@@ -447,11 +478,17 @@ public class FileUploadApplicationService {
     }
 
     private void validateComplete(FileUploadCompleteCommand command) {
+        validateCompleteIdentity(command);
+        if (command.file() == null || command.file().isEmpty()) {
+            throw exception(FILE_COMMAND_INVALID);
+        }
+    }
+
+    private void validateCompleteIdentity(FileUploadCompleteCommand command) {
         if (command == null || command.tenantId() == null || command.tenantId() < 0
                 || command.actorUserId() == null || command.actorUserId() <= 0
                 || command.artifactId() == null || command.artifactId() <= 0
-                || command.sessionId() == null || command.sessionId() <= 0
-                || command.file() == null || command.file().isEmpty()) {
+                || command.sessionId() == null || command.sessionId() <= 0) {
             throw exception(FILE_COMMAND_INVALID);
         }
         limitedText(command.idempotencyKey(), 128);

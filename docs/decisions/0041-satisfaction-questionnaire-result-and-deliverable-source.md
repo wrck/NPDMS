@@ -4,7 +4,7 @@
 > Result失效命令补充：`ACCEPTED`（整改提交`c1e7354c`独立复审GO）<br>
 > Result生成文件Owner补充：`ACCEPTED`（整改提交`afa37d66`独立复审GO）<br>
 > 可配置问卷与确定性计分补充：`ACCEPTED`（整改提交`4ecc9d3b`独立复审GO）<br>
-> 受控grant上传Response身份补充：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 受控grant上传Response身份补充：`ACCEPTED`（整改提交`4f6d51bd`独立复审GO）<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-02@V1`、`ACC-04@V1`（仅满意度来源）<br>
 > 前置批准：F-ACC-002边界与最近Gate定位独立裁决GO（基线`7f3e3c62`）

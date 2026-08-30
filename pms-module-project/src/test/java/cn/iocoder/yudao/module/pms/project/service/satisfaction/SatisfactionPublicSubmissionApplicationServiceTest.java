@@ -18,6 +18,8 @@ import static org.mockito.Mockito.when;
 class SatisfactionPublicSubmissionApplicationServiceTest {
     @Mock SatisfactionResponseSubmissionService responseService;
     @Mock SatisfactionResultDecisionService resultService;
+    @Mock SatisfactionResponseReservationService reservationService;
+    @Mock cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi fileArtifactApi;
 
     @Test
     void commitsResponseThenUsesStableResponseIdentityForDecision() {
@@ -27,10 +29,11 @@ class SatisfactionPublicSubmissionApplicationServiceTest {
                 "sat-result:12", 7L, 20L, 21L, 10L, 1, 11L, 30L, 12L, 12L, 1,
                 "SAT-10", "ACC", "AcceptanceActivity", "100", 1L, new BigDecimal("5.0"),
                 new BigDecimal("4.00"), true, "RULE-1", "EFFECTIVE", 99L, null, false));
-        var service = new SatisfactionPublicSubmissionApplicationService(responseService, resultService);
+        var service = new SatisfactionPublicSubmissionApplicationService(responseService, resultService,
+                reservationService, fileArtifactApi);
 
         var result = service.submit(new SatisfactionPublicSubmissionApplicationService.Command(
-                7L, "token", "request-1", "customer", "{}", List.of()));
+                7L, "token", "request-1", 12L, "customer", "{}", List.of()));
 
         ArgumentCaptor<SatisfactionResultDecisionService.Command> decision =
                 ArgumentCaptor.forClass(SatisfactionResultDecisionService.Command.class);

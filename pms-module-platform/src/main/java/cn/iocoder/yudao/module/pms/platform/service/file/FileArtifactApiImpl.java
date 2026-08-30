@@ -21,6 +21,11 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollect
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFileCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesRevalidationCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompleteCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitialized;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO;
@@ -67,6 +72,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     private final FileArchiveRecordMapper archiveRecordMapper;
     private final PermissionApi permissionApi;
     private final GeneratedBusinessFileService generatedBusinessFileService;
+    private final BusinessGrantFileUploadService businessGrantFileUploadService;
 
     public FileArtifactApiImpl(FileBusinessObjectPolicyRegistry policyRegistry,
                                FileArtifactMapper artifactMapper,
@@ -75,7 +81,8 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                                ExistingFileVersionAttachmentService attachmentService,
                                FileArchiveRecordMapper archiveRecordMapper,
                                PermissionApi permissionApi,
-                               GeneratedBusinessFileService generatedBusinessFileService) {
+                               GeneratedBusinessFileService generatedBusinessFileService,
+                               BusinessGrantFileUploadService businessGrantFileUploadService) {
         this.policyRegistry = policyRegistry;
         this.artifactMapper = artifactMapper;
         this.versionMapper = versionMapper;
@@ -84,6 +91,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
         this.archiveRecordMapper = archiveRecordMapper;
         this.permissionApi = permissionApi;
         this.generatedBusinessFileService = generatedBusinessFileService;
+        this.businessGrantFileUploadService = businessGrantFileUploadService;
     }
 
     @Override
@@ -264,6 +272,23 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     @Override
     public FileArtifactVersionFact createGeneratedBusinessFile(GeneratedBusinessFileCommand command) {
         return generatedBusinessFileService.create(command);
+    }
+
+    @Override
+    public BusinessGrantUploadInitialized initializeBusinessGrantUpload(
+            BusinessGrantUploadInitializeCommand command) {
+        return businessGrantFileUploadService.initialize(command);
+    }
+
+    @Override
+    public BusinessGrantFileFact completeBusinessGrantUpload(BusinessGrantUploadCompleteCommand command) {
+        return businessGrantFileUploadService.complete(command);
+    }
+
+    @Override
+    public List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
+            BusinessGrantFilesRevalidationCommand command) {
+        return businessGrantFileUploadService.lockAndRevalidate(command);
     }
 
     private List<ArchiveFactKey> archiveKeys(List<FileArtifactVersionFact> facts) {

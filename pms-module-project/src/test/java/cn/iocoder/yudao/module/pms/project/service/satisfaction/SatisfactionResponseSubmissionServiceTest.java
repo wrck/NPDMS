@@ -2,6 +2,10 @@ package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.*;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +27,8 @@ class SatisfactionResponseSubmissionServiceTest {
     @Mock SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock SatisfactionResponseMapper responseMapper;
     @Mock SatisfactionResponseFileMapper responseFileMapper;
+    @Mock SatisfactionResponseReservationService reservationService;
+    @Mock FileArtifactApi fileArtifactApi;
     @InjectMocks SatisfactionResponseSubmissionService service;
 
     @Test
@@ -33,6 +39,13 @@ class SatisfactionResponseSubmissionServiceTest {
         when(responseFileMapper.insert((SatisfactionResponseFileDO) any())).thenReturn(1);
         when(grantMapper.consumeIfActive(any())).thenReturn(1);
         when(taskMapper.moveToPendingDecision(any())).thenReturn(1);
+        when(reservationService.requireReserved(anyLong(), any(), any(), any(), anyString(), anyLong()))
+                .thenReturn(new SatisfactionResponseReservationService.Reservation(50L, 1L, 1, 11L, 9L, true));
+        when(fileArtifactApi.lockAndRevalidateBusinessGrantFiles(any())).thenReturn(List.of(
+                new BusinessGrantFileFact("SATISFACTION_SIGNATURE", "slot-1", 1,
+                        new FileArtifactVersionFact(100L, 1, "signature-1", "SATISFACTION_SIGNATURE",
+                                "sign.png", 3L, "image/png", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                                new FileFactVersion(1, 1, 1), 3L))));
 
         var result = service.submit(command());
 
@@ -69,7 +82,7 @@ class SatisfactionResponseSubmissionServiceTest {
         SatisfactionAccessGrantDO grant = new SatisfactionAccessGrantDO();
         grant.setId(1L); grant.setTenantId(7L); grant.setQuestionnaireId(11L); grant.setGrantStatus("ACTIVE");
         grant.setEffectiveFrom(LocalDateTime.now().minusMinutes(1)); grant.setExpiresAt(LocalDateTime.now().plusHours(1));
-        grant.setVersion(0);
+        grant.setVersion(0); grant.setGrantVersion(1); grant.setCreator("9");
         SatisfactionQuestionnaireDO questionnaire = new SatisfactionQuestionnaireDO();
         questionnaire.setId(11L); questionnaire.setTenantId(7L); questionnaire.setCollectionTaskId(10L);
         questionnaire.setQuestionnaireStatus("ACTIVE");
@@ -85,9 +98,10 @@ class SatisfactionResponseSubmissionServiceTest {
     }
 
     private SatisfactionResponseSubmissionService.Command command() {
-        return new SatisfactionResponseSubmissionService.Command(7L, "token", "req-1", "PUBLIC_LINK",
+        return new SatisfactionResponseSubmissionService.Command(7L, "token", "req-1", 50L, "PUBLIC_LINK",
                 "customer-1", null, "{\"answers\":[{\"questionCode\":\"Q1\",\"value\":\"YES\"}]}", List.of(new SatisfactionResponseSubmissionService.FileFact(
-                "SIGNATURE", 1, 100L, 1, "signature-1", 1, 1, 1, 3L, "a".repeat(64))), "grant:1");
+                "SIGNATURE", "slot-1", 1, 100L, 1, "signature-1", 1, 1, 1, 3L,
+                "a".repeat(64))), "grant:1");
     }
 
     private String config() {

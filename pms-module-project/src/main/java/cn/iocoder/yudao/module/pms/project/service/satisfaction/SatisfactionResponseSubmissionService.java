@@ -4,6 +4,10 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.*;
 import cn.iocoder.yudao.module.pms.project.domain.satisfaction.SatisfactionQuestionnaireDefinition;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileHandle;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesRevalidationCommand;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,8 @@ public class SatisfactionResponseSubmissionService {
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResponseMapper responseMapper;
     private final SatisfactionResponseFileMapper responseFileMapper;
+    private final SatisfactionResponseReservationService reservationService;
+    private final FileArtifactApi fileArtifactApi;
 
     @Transactional(rollbackFor = Exception.class)
     public SubmissionResult submit(Command command) {
@@ -60,7 +66,21 @@ public class SatisfactionResponseSubmissionService {
 
         SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, command.answerSnapshot());
 
-        long responseId = IdWorker.getId();
+        List<FileFact> canonicalFiles = command.files();
+        long responseId;
+        if ("PUBLIC_LINK".equals(command.submitChannel())) {
+            var reservation = reservationService.requireReserved(command.tenantId(), grant, questionnaire, task,
+                    command.requestId(), command.reservedResponseId());
+            responseId = reservation.responseId();
+            canonicalFiles = canonicalFiles(fileArtifactApi.lockAndRevalidateBusinessGrantFiles(
+                    new BusinessGrantFilesRevalidationCommand(command.tenantId(), grant.getId(),
+                            grant.getGrantVersion(), questionnaire.getId(), command.requestId(), responseId,
+                            command.files().stream().map(this::toHandle).toList())));
+        } else {
+            responseId = IdWorker.getId();
+        }
+        String actorRef = "PUBLIC_LINK".equals(command.submitChannel())
+                ? "BUSINESS_GRANT:" + grant.getId() : command.actorRef();
         SatisfactionResponseDO response = new SatisfactionResponseDO();
         response.setId(responseId);
         response.setTenantId(command.tenantId());
@@ -72,32 +92,35 @@ public class SatisfactionResponseSubmissionService {
         response.setAssistedByUserId(command.assistedByUserId());
         response.setAnswerSnapshot(command.answerSnapshot());
         response.setSubmittedAt(now);
-        response.setCreator(command.actorRef());
+        response.setCreator(actorRef);
         if (responseMapper.insert(response) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_CREATE_FAILED");
-        for (FileFact fact : command.files()) insertFile(command, responseId, fact);
+        for (FileFact fact : canonicalFiles) insertFile(command, responseId, fact, actorRef);
         if (grantMapper.consumeIfActive(new SatisfactionGrantConsumeUpdate(command.tenantId(), grant.getId(),
-                grant.getVersion(), now, command.actorRef())) != 1
+                grant.getVersion(), now, actorRef)) != 1
                 || taskMapper.moveToPendingDecision(new SatisfactionTaskDecisionUpdate(command.tenantId(),
-                task.getId(), task.getVersion(), command.actorRef())) != 1) {
+                task.getId(), task.getVersion(), actorRef)) != 1) {
             throw new IllegalStateException("SATISFACTION_SUBMISSION_STATE_CONFLICT");
         }
         return new SubmissionResult(responseId, questionnaire.getId(), task.getId(), false,
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion());
     }
 
-    private void insertFile(Command command, long responseId, FileFact fact) {
+    private void insertFile(Command command, long responseId, FileFact fact, String actorRef) {
         SatisfactionResponseFileDO row = new SatisfactionResponseFileDO();
         row.setId(IdWorker.getId()); row.setTenantId(command.tenantId()); row.setResponseId(responseId);
         row.setFileRole(fact.role()); row.setFileSequence(fact.sequence()); row.setArtifactId(fact.artifactId());
         row.setVersionNo(fact.versionNo()); row.setReferenceKey(fact.referenceKey());
         row.setArtifactVersion(fact.artifactVersion()); row.setReferenceVersion(fact.referenceVersion());
         row.setAvailabilityVersion(fact.availabilityVersion()); row.setScopeVersion(fact.scopeVersion());
-        row.setFileHash(fact.sha256()); row.setCreator(command.actorRef());
+        row.setFileHash(fact.sha256()); row.setCreator(actorRef);
         if (responseFileMapper.insert(row) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_FILE_CREATE_FAILED");
     }
 
     private SubmissionResult replay(SatisfactionResponseDO existing, Command command, Long taskId,
                                     SatisfactionQuestionnaireDO questionnaire) {
+        if (command.reservedResponseId() != null && !command.reservedResponseId().equals(existing.getId())) {
+            throw new IllegalStateException("SATISFACTION_RESPONSE_RESERVATION_CONFLICT");
+        }
         if (!existing.getAnswerSnapshot().equals(command.answerSnapshot())
                 || !existing.getSubmitChannel().equals(command.submitChannel())
                 || !existing.getCustomerContactRef().equals(command.customerContactRef())) {
@@ -138,6 +161,8 @@ public class SatisfactionResponseSubmissionService {
         for (FileFact fact : command.files()) {
             if (fact == null || !Set.of("SIGNATURE", "ATTACHMENT").contains(fact.role())
                     || fact.sequence() == null || fact.sequence() <= 0 || fact.artifactId() == null
+                    || ("PUBLIC_LINK".equals(command.submitChannel())
+                    && (fact.fileSlotKey() == null || fact.fileSlotKey().isBlank()))
                     || fact.versionNo() == null || fact.referenceKey() == null || fact.referenceKey().isBlank()
                     || fact.artifactVersion() == null || fact.referenceVersion() == null
                     || fact.availabilityVersion() == null || fact.scopeVersion() == null
@@ -146,6 +171,29 @@ public class SatisfactionResponseSubmissionService {
                 throw new IllegalArgumentException("SATISFACTION_RESPONSE_FILE_INVALID");
             }
         }
+    }
+
+    private BusinessGrantFileHandle toHandle(FileFact fact) {
+        return new BusinessGrantFileHandle(policyKey(fact.role()), fact.fileSlotKey(), fact.sequence(),
+                fact.artifactId(), fact.versionNo(), fact.referenceKey(), fact.artifactVersion(),
+                fact.referenceVersion(), fact.availabilityVersion(), fact.scopeVersion(), fact.sha256());
+    }
+
+    private List<FileFact> canonicalFiles(List<BusinessGrantFileFact> facts) {
+        return facts.stream().map(fact -> new FileFact(role(fact.policyKey()), fact.fileSlotKey(),
+                fact.fileSequence(), fact.fileFact().artifactId(), fact.fileFact().versionNo(),
+                fact.fileFact().referenceKey(), fact.fileFact().fileFactVersion().artifactVersion(),
+                fact.fileFact().fileFactVersion().referenceVersion(),
+                fact.fileFact().fileFactVersion().availabilityVersion(), fact.fileFact().scopeVersion(),
+                fact.fileFact().sha256())).toList();
+    }
+
+    private String policyKey(String role) {
+        return "SIGNATURE".equals(role) ? "SATISFACTION_SIGNATURE" : "SATISFACTION_ATTACHMENT";
+    }
+
+    private String role(String policyKey) {
+        return "SATISFACTION_SIGNATURE".equals(policyKey) ? "SIGNATURE" : "ATTACHMENT";
     }
 
     private String digest(String token) {
@@ -157,12 +205,27 @@ public class SatisfactionResponseSubmissionService {
         }
     }
 
-    public record Command(Long tenantId, String token, String requestId, String submitChannel,
+    public record Command(Long tenantId, String token, String requestId, Long reservedResponseId,
+                          String submitChannel,
                           String customerContactRef, Long assistedByUserId, String answerSnapshot,
-                          List<FileFact> files, String actorRef) {}
-    public record FileFact(String role, Integer sequence, Long artifactId, Integer versionNo,
+                          List<FileFact> files, String actorRef) {
+        public Command(Long tenantId, String token, String requestId, String submitChannel,
+                       String customerContactRef, Long assistedByUserId, String answerSnapshot,
+                       List<FileFact> files, String actorRef) {
+            this(tenantId, token, requestId, null, submitChannel, customerContactRef,
+                    assistedByUserId, answerSnapshot, files, actorRef);
+        }
+    }
+    public record FileFact(String role, String fileSlotKey, Integer sequence, Long artifactId, Integer versionNo,
                            String referenceKey, Integer artifactVersion, Integer referenceVersion,
-                           Integer availabilityVersion, Long scopeVersion, String sha256) {}
+                           Integer availabilityVersion, Long scopeVersion, String sha256) {
+        public FileFact(String role, Integer sequence, Long artifactId, Integer versionNo,
+                        String referenceKey, Integer artifactVersion, Integer referenceVersion,
+                        Integer availabilityVersion, Long scopeVersion, String sha256) {
+            this(role, null, sequence, artifactId, versionNo, referenceKey, artifactVersion,
+                    referenceVersion, availabilityVersion, scopeVersion, sha256);
+        }
+    }
     public record SubmissionResult(Long responseId, Long questionnaireId, Long taskId, boolean replayed,
                                    BigDecimal score, BigDecimal threshold, boolean passed, String ruleVersion) {}
 }

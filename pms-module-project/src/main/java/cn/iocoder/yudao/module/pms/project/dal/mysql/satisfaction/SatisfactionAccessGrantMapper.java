@@ -11,6 +11,7 @@ import org.apache.ibatis.annotations.Param;
 public interface SatisfactionAccessGrantMapper extends BaseMapperX<SatisfactionAccessGrantDO> {
     SatisfactionAccessGrantDO selectByDigest(@Param("query") SatisfactionGrantDigestQuery query);
     SatisfactionAccessGrantDO selectByDigestForUpdate(@Param("query") SatisfactionGrantDigestQuery query);
+    SatisfactionAccessGrantDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
     Integer selectNextVersion(@Param("tenantId") Long tenantId, @Param("questionnaireId") Long questionnaireId);
     int consumeIfActive(@Param("query") SatisfactionGrantConsumeUpdate query);
 }

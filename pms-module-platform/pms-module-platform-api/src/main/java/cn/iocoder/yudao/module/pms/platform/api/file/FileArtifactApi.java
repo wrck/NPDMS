@@ -10,6 +10,11 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollect
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFileCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesRevalidationCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompleteCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitialized;
 
 import java.util.List;
 
@@ -29,4 +34,11 @@ public interface FileArtifactApi {
     FileArchiveReferenceSetFact archiveReferenceSets(ArchiveFileReferenceSetsCommand command);
 
     FileArtifactVersionFact createGeneratedBusinessFile(GeneratedBusinessFileCommand command);
+
+    BusinessGrantUploadInitialized initializeBusinessGrantUpload(BusinessGrantUploadInitializeCommand command);
+
+    BusinessGrantFileFact completeBusinessGrantUpload(BusinessGrantUploadCompleteCommand command);
+
+    List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
+            BusinessGrantFilesRevalidationCommand command);
 }

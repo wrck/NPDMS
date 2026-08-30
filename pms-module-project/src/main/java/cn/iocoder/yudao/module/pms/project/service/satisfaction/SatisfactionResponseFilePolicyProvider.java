@@ -1,0 +1,146 @@
+package cn.iocoder.yudao.module.pms.project.service.satisfaction;
+
+import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionAccessGrantDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionQuestionnaireDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionAccessGrantMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+@Component
+@RequiredArgsConstructor
+public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjectPolicyProvider {
+    static final String OWNER = "ACC";
+    static final String TYPE = "SATISFACTION_RESPONSE";
+    static final String SIGNATURE = "SATISFACTION_SIGNATURE";
+    static final String ATTACHMENT = "SATISFACTION_ATTACHMENT";
+
+    private final SatisfactionAccessGrantMapper grantMapper;
+    private final SatisfactionQuestionnaireMapper questionnaireMapper;
+    private final SatisfactionCollectionTaskMapper taskMapper;
+    private final SatisfactionResponseReservationService reservationService;
+    private final ProjectScopeApi projectScopeApi;
+
+    @Override public String ownerContext() { return OWNER; }
+    @Override public String objectType() { return TYPE; }
+    @Override public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) { return denied(); }
+    @Override public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
+        return denied();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public BusinessGrantUploadPolicyFact initializeBusinessGrantUploadPolicy(
+            BusinessGrantUploadInitializePolicyQuery query) {
+        return resolve(query.tenantId(), query.grantId(), query.grantVersion(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(),
+                query.fileSequence(), null, List.of());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public BusinessGrantUploadPolicyFact lockAndRevalidateBusinessGrantUpload(
+            BusinessGrantUploadCompletePolicyQuery query) {
+        return resolve(query.tenantId(), query.grantId(), query.grantVersion(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(),
+                query.fileSequence(), query.expectedScopeVersion(), List.of());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public BusinessGrantUploadPolicyFact lockAndRevalidateBusinessGrantFiles(
+            BusinessGrantFileRevalidationQuery query) {
+        if (query.files().isEmpty()) throw new IllegalArgumentException("SATISFACTION_GRANT_FILES_EMPTY");
+        if (query.files().stream().anyMatch(file -> file == null
+                || !(SIGNATURE.equals(file.policyKey()) || ATTACHMENT.equals(file.policyKey()))
+                || file.fileSlotKey() == null || file.fileSlotKey().isBlank()
+                || file.fileSequence() == null || file.fileSequence() <= 0)) {
+            throw new IllegalArgumentException("SATISFACTION_GRANT_FILE_IDENTITY_INVALID");
+        }
+        Long scopeVersion = query.files().getFirst().scopeVersion();
+        if (query.files().stream().anyMatch(file -> !Objects.equals(scopeVersion, file.scopeVersion()))) {
+            throw new IllegalStateException("SATISFACTION_GRANT_FILE_SCOPE_CONFLICT");
+        }
+        return resolve(query.tenantId(), query.grantId(), query.grantVersion(), query.questionnaireId(),
+                query.requestId(), query.responseId(), null, null, null, scopeVersion, query.files());
+    }
+
+    private BusinessGrantUploadPolicyFact resolve(
+            Long tenantId, Long grantId, Integer grantVersion, Long questionnaireId,
+            String requestId, Long responseId, String policyKey, String fileSlotKey,
+            Integer fileSequence, Long expectedScopeVersion, List<BusinessGrantFileHandle> files) {
+        SatisfactionAccessGrantDO grant = grantMapper.selectByIdForUpdate(tenantId, grantId);
+        SatisfactionQuestionnaireDO questionnaire = grant == null ? null
+                : questionnaireMapper.selectByIdForUpdate(tenantId, grant.getQuestionnaireId());
+        SatisfactionCollectionTaskDO task = questionnaire == null ? null
+                : taskMapper.selectByIdForUpdate(tenantId, questionnaire.getCollectionTaskId());
+        requireIdentity(tenantId, grantId, grantVersion, questionnaireId, grant, questionnaire, task);
+        var reservation = reservationService.requireReserved(tenantId, grant, questionnaire, task,
+                requestId, responseId);
+        Long expected = expectedScopeVersion == null ? questionnaire.getAccessScopeVersion() : expectedScopeVersion;
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                tenantId, reservation.grantIssuerUserId(), task.getProjectId(),
+                ProjectScopeApi.ACTION_EDIT, expected));
+        if (scope == null || !Objects.equals(expected, scope.treeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_GRANT_FILE_SCOPE_CONFLICT");
+        }
+        String effectivePolicy = policyKey == null ? files.getFirst().policyKey() : policyKey;
+        FileBusinessObjectPolicyFact filePolicy = policy(effectivePolicy, scope.treeVersion());
+        return new BusinessGrantUploadPolicyFact(grantId, grantVersion, questionnaireId, requestId,
+                responseId, effectivePolicy, fileSlotKey, fileSequence,
+                reservation.grantIssuerUserId(), scope.treeVersion(), filePolicy);
+    }
+
+    private void requireIdentity(Long tenantId, Long grantId, Integer grantVersion, Long questionnaireId,
+                                 SatisfactionAccessGrantDO grant, SatisfactionQuestionnaireDO questionnaire,
+                                 SatisfactionCollectionTaskDO task) {
+        LocalDateTime now = LocalDateTime.now();
+        if (grant == null || questionnaire == null || task == null
+                || !tenantId.equals(grant.getTenantId()) || !grantId.equals(grant.getId())
+                || !grantVersion.equals(grant.getGrantVersion())
+                || !questionnaireId.equals(grant.getQuestionnaireId())
+                || !questionnaireId.equals(questionnaire.getId())
+                || !questionnaire.getCollectionTaskId().equals(task.getId())
+                || !"ACTIVE".equals(grant.getGrantStatus()) || now.isBefore(grant.getEffectiveFrom())
+                || !now.isBefore(grant.getExpiresAt())
+                || !"ACTIVE".equals(questionnaire.getQuestionnaireStatus())
+                || !("PENDING_COLLECTION".equals(task.getTaskStatus())
+                || "ASSIGNED".equals(task.getTaskStatus()))
+                || SatisfactionResponseReservationService.positiveLong(grant.getCreator()) == null) {
+            throw new IllegalStateException("SATISFACTION_GRANT_FILE_OWNER_CONFLICT");
+        }
+    }
+
+    private FileBusinessObjectPolicyFact policy(String policyKey, Long scopeVersion) {
+        if (SIGNATURE.equals(policyKey)) {
+            return new FileBusinessObjectPolicyFact(true, scopeVersion, "IMMUTABLE", "SINGLE",
+                    Set.of(SIGNATURE), Set.of("image/png", "image/jpeg", "application/pdf"),
+                    10_485_760L, "CONFIDENTIAL");
+        }
+        if (ATTACHMENT.equals(policyKey)) {
+            return new FileBusinessObjectPolicyFact(true, scopeVersion, "IMMUTABLE", "MULTIPLE",
+                    Set.of(ATTACHMENT), Set.of("image/png", "image/jpeg", "application/pdf"),
+                    52_428_800L, "CONFIDENTIAL");
+        }
+        throw new IllegalArgumentException("SATISFACTION_GRANT_FILE_POLICY_INVALID");
+    }
+
+    private FileBusinessObjectPolicyFact denied() {
+        return new FileBusinessObjectPolicyFact(false, null, null, null, Set.of(), Set.of(), null, null);
+    }
+}
