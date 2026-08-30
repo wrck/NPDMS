@@ -9,6 +9,10 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollect
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -135,6 +139,38 @@ class ArrivalAcceptanceOwnerAdapterTest {
                 ArgumentCaptor.forClass(FileReferenceSetCollectionRevalidationQuery.class);
         verify(fileApi).lockAndRevalidateReferenceSets(revalidationQuery.capture());
         assertEquals(FileActionCodes.READ, revalidationQuery.getValue().requiredAction());
+    }
+
+    @Test
+    void fileAdapterFixesArrivalEvidencePolicyForSingleFileRevalidation() {
+        FileArtifactApi fileApi = mock(FileArtifactApi.class);
+        FileFactVersion fileFactVersion = new FileFactVersion(2, 3, 4);
+        FileArtifactVersionFact fact = new FileArtifactVersionFact(
+                40L, 5, "REF-1", "RECEIPT", "签收单", 100L,
+                "application/pdf", "hash", "AVAILABLE", "ACTIVE", fileFactVersion, 6L);
+        when(fileApi.inspect(any())).thenReturn(fact);
+        when(fileApi.lockAndRevalidate(any())).thenReturn(fact);
+        FileArtifactFactPort adapter = new FileArtifactApiAdapter(fileApi);
+
+        assertEquals(fact, adapter.inspectArrivalEvidence(40L, 5, 100L, "REF-1"));
+        assertEquals(fact, adapter.lockAndRevalidateArrivalEvidence(
+                new FileArtifactFactPort.ArrivalEvidenceExpectation(
+                        40L, 5, 100L, "REF-1", fileFactVersion, 6L)));
+
+        ArgumentCaptor<FileArtifactVersionQuery> inspect =
+                ArgumentCaptor.forClass(FileArtifactVersionQuery.class);
+        verify(fileApi).inspect(inspect.capture());
+        assertEquals("IMP", inspect.getValue().ownerContext());
+        assertEquals("ARRIVAL_ACCEPTANCE", inspect.getValue().objectType());
+        assertEquals("100", inspect.getValue().objectId());
+        assertEquals("RECEIPT", inspect.getValue().purposeCode());
+        assertEquals(FileActionCodes.READ, inspect.getValue().requiredAction());
+        ArgumentCaptor<FileArtifactVersionRevalidationQuery> revalidation =
+                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
+        verify(fileApi).lockAndRevalidate(revalidation.capture());
+        assertEquals(fileFactVersion, revalidation.getValue().expectedFileFactVersion());
+        assertEquals(6L, revalidation.getValue().expectedScopeVersion());
+        assertEquals(FileActionCodes.READ, revalidation.getValue().requiredAction());
     }
 
     private static ProjectParticipantFact participant(String stage, Integer projectVersion, Long factVersion) {

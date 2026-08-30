@@ -67,6 +67,9 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("ORDER BY arrived_at DESC, id DESC"));
         assertTrue(mapperXml.contains(
                 "project_version, project_participant_fact_version, project_scope_version"));
+        assertTrue(mapperXml.contains("id=\"updateSubmittedIfMatch\""));
+        assertTrue(mapperXml.contains("AND status = 'DRAFT'"));
+        assertTrue(mapperXml.contains("AND version = #{query.expectedVersion}"));
         assertTrue(mapperXml.contains("<foreach collection=\"query.visibleProjectIds\""));
         assertFalse(mapperXml.contains("${"));
         assertFalse(mapperJava.contains("@Select"));
