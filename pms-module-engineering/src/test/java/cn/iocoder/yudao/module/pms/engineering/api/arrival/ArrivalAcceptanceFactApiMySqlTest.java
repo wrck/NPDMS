@@ -173,11 +173,11 @@ class ArrivalAcceptanceFactApiMySqlTest {
 
     private void insertConfirmed(long acceptanceId, long factVersion, long lineId, long deviceId) {
         jdbcTemplate.update("INSERT INTO imp_arrival_acceptance "
-                        + "(id,project_id,batch_code,logistics_no,arrived_at,signer_snapshot,status,"
+                        + "(id,project_id,batch_code,batch_root_marker,logistics_no,arrived_at,signer_snapshot,status,"
                         + "project_version,project_participant_fact_version,project_scope_version,"
                         + "delivery_scope_version,expected_scope_snapshot,scope_watermark,"
                         + "migration_resolution_status,project_fact_version,version,tenant_id) "
-                        + "VALUES (?,?,?,?,NOW(),JSON_OBJECT('name','test'),'CONFIRMED',1,1,1,5,"
+                        + "VALUES (?,?,?,1,?,NOW(),JSON_OBJECT('name','test'),'CONFIRMED',1,1,1,5,"
                         + "JSON_OBJECT(),JSON_OBJECT(),'NOT_APPLICABLE',?,0,0)",
                 acceptanceId, projectId, "B-" + acceptanceId, "L-" + acceptanceId, factVersion);
         long assignmentVersion = deviceId == 11L ? 7L : 8L;
@@ -193,8 +193,9 @@ class ArrivalAcceptanceFactApiMySqlTest {
         jdbcTemplate.update("INSERT INTO imp_arrival_difference "
                         + "(id,arrival_acceptance_id,arrival_line_id,difference_no,revision_no,"
                         + "difference_type,resolution_status,reason,scope_snapshot,project_fact_version,"
-                        + "current_marker,version,tenant_id) VALUES (?,?,?,1,1,'EVIDENCE_INCOMPLETE',"
-                        + "'OPEN','reopened source',JSON_OBJECT('scopeType','DEVICE','deviceId',11),?,1,0,0)",
+                        + "fact_impact_type,current_marker,version,tenant_id) "
+                        + "VALUES (?,?,?,1,1,'EVIDENCE_INCOMPLETE','OPEN','reopened source',"
+                        + "JSON_OBJECT('scopeType','DEVICE','deviceId',11),?,'REOPEN',1,0,0)",
                 differenceId, acceptanceId, lineId, factVersion);
     }
 

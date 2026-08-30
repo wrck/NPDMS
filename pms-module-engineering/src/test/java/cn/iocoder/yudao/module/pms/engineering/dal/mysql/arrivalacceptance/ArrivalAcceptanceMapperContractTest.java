@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactAllocationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactVersionQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRetryUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceAcceptedUpdate;
 import com.baomidou.mybatisplus.annotation.TableName;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
@@ -114,9 +115,9 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(mapperXml.contains("FOR UPDATE SKIP LOCKED"));
         assertTrue(mapperXml.contains("id=\"enterRetryStateIfMatch\""));
         assertTrue(mapperXml.contains("id=\"advanceRetryIfMatch\""));
+        assertTrue(mapperXml.contains("acc_retry_count = #{query.retryCount}"));
         assertTrue(mapperXml.contains("acc_retry_count = #{query.newRetryCount}"));
         assertTrue(mapperXml.contains("AND acc_retry_count = #{query.expectedRetryCount}"));
-        assertFalse(mapperXml.contains("#{query.retryCount}"));
         assertTrue(mapperXml.contains("acc_correlation_id = #{query.correlationId}"));
         assertTrue(mapperXml.contains("acc_correlation_id IS NULL"));
         assertTrue(mapperXml.contains(
@@ -155,6 +156,19 @@ class ArrivalAcceptanceMapperContractTest {
         assertTrue(properties.contains("query.newRetryCount"));
         assertTrue(properties.contains("query.expectedRetryCount"));
         properties.forEach(property -> configuration.newMetaObject(parameters).getValue(property));
+
+        DeliveryEvidenceAcceptedUpdate acceptedQuery = new DeliveryEvidenceAcceptedUpdate(
+                1L, 50L, 1, 4, "review-1", "evt-accepted", 0,
+                LocalDateTime.of(2026, 8, 30, 10, 1));
+        Map<String, Object> acceptedParameters = Map.of("query", acceptedQuery);
+        BoundSql accepted = configuration.getMappedStatement(
+                        DeliveryEvidenceMapper.class.getName() + ".markAcceptedPendingArchiveIfMatch")
+                .getBoundSql(acceptedParameters);
+        List<String> acceptedProperties = accepted.getParameterMappings().stream()
+                .map(mapping -> mapping.getProperty()).toList();
+        assertTrue(acceptedProperties.contains("query.retryCount"));
+        acceptedProperties.forEach(property ->
+                configuration.newMetaObject(acceptedParameters).getValue(property));
     }
 
     @Test
