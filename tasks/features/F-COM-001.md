@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-基线`a0cf6d06`的Technical Plan独立复审为`NO-GO`；A/B定点整改中：新COM命令服务与旧`DeliveryScopeService`隔离，Release导入器先经PLT暂存，COM仅消费正式`COMPLETED`批次；无正式批次时Job保持暂停。最近Gate为A/B最小复审，实施仍`NOT_STARTED`。
+基线`4e86e5cf`的A/B复审中A已关闭，B仅余批次生命周期冲突。计划已收敛为`IMPORTING→STAGED_READY→RECONCILING→COMPLETED`；导入器不提前完成，COM核对及计数校验后才终结。最近Gate为B单点复审，实施仍`NOT_STARTED`。
 
 ## Gate输入
 

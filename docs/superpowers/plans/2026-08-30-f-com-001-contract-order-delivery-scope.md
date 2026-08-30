@@ -106,12 +106,14 @@
 
 **Interfaces:**
 
-- Produces: PLT物理Owner的批次创建/结束、逐源行追加/游标查询、外部键映射追加、迁移问题追加/关闭最窄API。
+- Produces: PLT物理Owner的批次创建/暂存就绪/核对领取/最终完成、逐源行追加/游标查询、外部键映射追加、迁移问题追加/关闭最窄API。
 - Owns: `plt_migration_source_record/plt_external_key_mapping/plt_migration_issue/plt_migration_batch`；COM不得直接访问这些表。
 
-- [ ] 先形成独立公共机器合同并送Contract Gate，固定受信tenant、batchId、sourceSystem/table/pk、不可变sourcePayload、mapping/issue状态、幂等键、批次计数和失败分类；不承接COM字段判定。
+- [ ] 先形成独立公共机器合同并送Contract Gate，固定受信tenant、batchId、sourceSystem/table/pk、不可变sourcePayload、mapping/issue状态、幂等键、批次计数和失败分类；不承接COM字段判定。批次状态封闭为`IMPORTING/STAGED_READY/RECONCILING/COMPLETED/FAILED`，其中`STAGED_READY`仅表示来源暂存已校验，`COMPLETED`仅表示COM核对终结。
 - [ ] Contract Gate GO后由PLT Owner创建四表及DO/Mapper/Service；动态集合、批次锁和状态汇总SQL进入XML，不把PLT DO暴露给COM。
-- [ ] append source record以`tenant+batch+system+table+pk`幂等；同键异原值冲突。external mapping和issue均使用来源行稳定引用，批次结束校验source=mapped+issue/保留计数，不覆盖前批次。
+- [ ] API动作固定为`createImportBatch/appendSourceRecord/markStagedReady/claimStagedBatch/appendExternalMapping/appendMigrationIssue/completeReconciliation`。导入器仅可在`IMPORTING`追加source；`markStagedReady`校验manifest、行数/hash后冻结source集合并进入`STAGED_READY`，不得写mapping/issue或提前`COMPLETED`。
+- [ ] `claimStagedBatch`只领取`STAGED_READY`并在调用方同一外层事务内进入`RECONCILING`；COM逐行追加mapping/issue/retained结果后，`completeReconciliation`校验`source=mapped+issue+retained`及各计数并原子进入最终`COMPLETED`。任一步失败使整事务回滚到`STAGED_READY`；`FAILED`不可领取，`COMPLETED`后禁止追加、关闭、重算或覆盖结果。
+- [ ] append source record以`tenant+batch+system+table+pk`幂等；同键异原值冲突。external mapping、issue和retained结果均使用来源行稳定引用，不覆盖前批次。
 - [ ] 实现后验证真实MySQL租户隔离、重放/冲突、问题关闭审计、批次并发结束与外层事务回滚。
 - [ ] Gate：PLT Owner Contract Gate后再做Provider Code Review/MySQL Gate；未通过时Task 8保持`BLOCKED_BY_DEPENDENCY`，不得由COM直写平台表。
 
@@ -248,14 +250,14 @@
 - Test: `tools/migration/commerce-legacy-source-import/src/test/java/cn/iocoder/yudao/tools/migration/commerce/CommerceLegacySourceImportTest.java`
 
 - [ ] 采用独立Release迁移工具，不建立legacy datasource。Release Owner先从遗留系统按批准窗口导出四个UTF-8 JSONL文件和一个manifest；manifest精确包含`releaseId/tenantId/sourceSystem/sourceTable/filePath/rowCount/exportedAt/schemaVersion/contentSha256`，文件每行必须包含原始主键及原字段名/值。工具只读取显式绝对路径，不扫描目录、不下载附件、不连接遗留库。
-- [ ] `tools/migration/commerce-legacy-source-import`是独立Maven模块，依赖`pms-module-platform`但不被`yudao-server`依赖；`CommerceLegacySourceImportMain`以`WebApplicationType.NONE`启动专用Spring上下文，`Runner`只调用Task 2A `PlatformMigrationEvidenceApi`，不注册到正常服务Bean或Job。运行必须显式提供`--spring.config.additional-location=<approved-local-config>`、`--pms.migration.manifest=<absolute-path>`和`--pms.migration.tenant-id=<id>`，manifest tenant必须匹配后才设置受信TenantContext；随后创建batch，按sourceTable/sourcePk升序追加不可变source record，校验行数/hash，完成或失败批次并写审计；不写COM表。
+- [ ] `tools/migration/commerce-legacy-source-import`是独立Maven模块，依赖`pms-module-platform`但不被`yudao-server`依赖；`CommerceLegacySourceImportMain`以`WebApplicationType.NONE`启动专用Spring上下文，`Runner`只调用Task 2A `PlatformMigrationEvidenceApi`，不注册到正常服务Bean或Job。运行必须显式提供`--spring.config.additional-location=<approved-local-config>`、`--pms.migration.manifest=<absolute-path>`和`--pms.migration.tenant-id=<id>`，manifest tenant必须匹配后才设置受信TenantContext；随后创建`IMPORTING`批次，按sourceTable/sourcePk升序追加不可变source record，校验行数/hash后仅推进为`STAGED_READY`；校验或API失败写`FAILED`审计，不写COM表、不提前形成最终完成结果。
 - [ ] 导入器只接受四个锁定表名及对应精确字段集合，缺主键、重复主键、字段漂移、行数/hash不符或API失败使当前批次FAILED；同release/table manifest重跑复用同一导入幂等键，同键异文件永久冲突。跨文件不使用分布式事务，各表批次独立且失败表不得被COM消费。
-- [ ] COM正常生产Bean不包含遗留连接配置、DataSource、Mapper或文件读取器。`CommerceLegacyReconciliationJob`只通过Task 2A API分页读取状态为COMPLETED且未消费的PLT source records，再写COM目标、external mapping或issue；无正式COMPLETED暂存批次时返回零项并保持Job PAUSED。
+- [ ] COM正常生产Bean不包含遗留连接配置、DataSource、Mapper或文件读取器。`CommerceLegacyReconciliationJob`只通过Task 2A API领取`STAGED_READY`批次；同一外层事务内进入`RECONCILING`、分页读取其冻结source、写COM目标和PLT mapping/issue/retained结果，并在计数相等后原子转最终`COMPLETED`。失败整体回滚到`STAGED_READY`供同批重试；`FAILED/COMPLETED`均不可领取。不存在正式`STAGED_READY`批次时领取返回空，Job保持`PAUSED`且不产生业务或批次副作用。
 - [ ] `sms_ofst_contract_head_sap`因无公司、生命周期和单调来源版本只留问题；`pm_order_data_from_erp`缺稳定版本/生命周期时不建CONFIRMED Owner；订单行缺单位/模型/生命周期时排除。
 - [ ] `pm_project_product_line.projectQuantity`空值率100%，禁止以order/deliver/openQuantity替代；当前审计行全部形成确定性问题，不生成DeliveryScope。
 - [ ] 合格行记录external key mapping；不可迁行保留source record并写issue；batch保存抽取、合格、迁入、问题计数。重跑幂等，不双写旧表。
 - [ ] 实现后分层验证：导入器用受控合成JSONL验证schema/行数/hash/重放/失败，但该fixture只证明工具行为，不得标记生产迁移完成；COM MySQL测试从PLT API暂存记录验证四源逐字段映射、问题原因、重复扫描和旧行排除。
-- [ ] 只有Release Owner提供带批准releaseId、来源导出记录、manifest、导入命令输出和PLT batchId的真实制品，Task 11才可记录“生产历史迁移证据”。当前Release若明确不含历史迁移/数据切换，则该证据为`NOT_APPLICABLE`且Job继续PAUSED；若包含而无正式制品，则阻断Release/迁移完成声明，不得用fixture替代。
+- [ ] 只有Release Owner提供带批准releaseId、来源导出记录、manifest、导入命令输出、PLT batchId及最终`COMPLETED`核对计数的真实制品，Task 11才可记录“生产历史迁移证据”。当前Release若明确不含历史迁移/数据切换，则该证据为`NOT_APPLICABLE`且Job继续PAUSED；若包含而无正式制品或只有`STAGED_READY`未终结，则阻断Release/迁移完成声明，不得用fixture替代。
 
 ### Task 9：字典、菜单、权限与暂停Job种子
 
@@ -298,7 +300,7 @@
 - [ ] 使用独立Compose MySQL 8.4空卷从V1迁到当前版本，验证十表、CAS、项目水位、唯一键、旧行资格、Outbox和并发超配。
 - [ ] 以生产API本地调用`ingestBatch`形成真实COM Owner副本；这证明COM本地接收，不冒充ERP网络联调。
 - [ ] 核验PROJ/SYSTEM/AST生产Provider后完成候选→正式Owner关联、项目经理分配、`getAssignedScope`正向与来源减量冲突负向；缺Provider时保持BLOCKED_BY_DEPENDENCY，不注册Fake。
-- [ ] 如当前Release包含历史迁移且已有正式Release导出manifest、导入器审计和COMPLETED PLT batch，显式启用核对Job并记录批次/问题；不包含历史迁移时登记`NOT_APPLICABLE`并保持PAUSED，包含但证据不完备时阻断迁移/Release完成。任何场景都不得以测试fixture冒充生产迁移证据。
+- [ ] 如当前Release包含历史迁移且已有正式Release导出manifest、导入器审计和`STAGED_READY` PLT batch，才可受控启用核对Job；Job完成后记录最终`COMPLETED`批次、mapping/issue/retained计数。不包含历史迁移时登记`NOT_APPLICABLE`并保持PAUSED，包含但暂存证据不完备时阻断迁移/Release完成。任何场景都不得以测试fixture冒充生产迁移证据。
 - [ ] 为当前工作树分配不冲突前后端端口，前端代理同分支后端；记录端口、提交、进程与DB版本。
 - [ ] 真实浏览器覆盖公司范围、候选核对、项目经理分配/释放、同键重放、旧版本刷新、冲突整体阻断、越权、空范围与四档响应式；检查console/page error/network。
 - [ ] INT-01外部连接器未形成时证据明确标记`EXTERNAL_ERP_INTEGRATION_NOT_TESTED`，不把本地API调用伪装为外部联调。
