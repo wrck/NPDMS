@@ -319,6 +319,112 @@ CREATE TABLE IF NOT EXISTS `plt_export_audit` (
   CONSTRAINT `chk_plt_export_audit_action` CHECK (`action_code` IN ('REQUESTED','GENERATION_STARTED','SUCCEEDED','FAILED','REJECTED','RETRY_REQUESTED','DOWNLOADED','EXPIRED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='PLT统一业务导出永久审计';
 
+DROP PROCEDURE IF EXISTS `facc002_apply_v133_template_candidates`;
+
+DELIMITER $$
+CREATE PROCEDURE `facc002_apply_v133_template_candidates`()
+BEGIN
+  DECLARE involved_root_count INT DEFAULT 0;
+  DECLARE exact_root_count INT DEFAULT 0;
+  DECLARE involved_revision_count INT DEFAULT 0;
+  DECLARE exact_revision_count INT DEFAULT 0;
+
+  SELECT COUNT(*) INTO involved_root_count
+  FROM `acc_satisfaction_questionnaire_template`
+  WHERE `id` BETWEEN 992005100001 AND 992005100004
+     OR `template_code` IN ('FACC002-SEED-EXACT','FACC002-SEED-AMB-A',
+                            'FACC002-SEED-AMB-B','FACC002-SEED-DISABLED');
+  SELECT COUNT(*) INTO exact_root_count
+  FROM `acc_satisfaction_questionnaire_template`
+  WHERE `tenant_id`=0 AND `deleted`=b'0'
+    AND ((`id`=992005100001 AND `template_code`='FACC002-SEED-EXACT'
+          AND `name`='F-ACC-002精确候选' AND `status`='PUBLISHED'
+          AND `current_revision_id`=992005110001 AND `version`=0)
+      OR (`id`=992005100002 AND `template_code`='FACC002-SEED-AMB-A'
+          AND `name`='F-ACC-002并列候选A' AND `status`='PUBLISHED'
+          AND `current_revision_id`=992005110002 AND `version`=0)
+      OR (`id`=992005100003 AND `template_code`='FACC002-SEED-AMB-B'
+          AND `name`='F-ACC-002并列候选B' AND `status`='PUBLISHED'
+          AND `current_revision_id`=992005110003 AND `version`=0)
+      OR (`id`=992005100004 AND `template_code`='FACC002-SEED-DISABLED'
+          AND `name`='F-ACC-002停用候选' AND `status`='DISABLED'
+          AND `current_revision_id` IS NULL AND `version`=0));
+
+  SELECT COUNT(*) INTO involved_revision_count
+  FROM `acc_satisfaction_questionnaire_template_revision`
+  WHERE `id` BETWEEN 992005110001 AND 992005110004
+     OR (`template_id` BETWEEN 992005100001 AND 992005100004 AND `revision_no`=1);
+  SELECT COUNT(*) INTO exact_revision_count
+  FROM `acc_satisfaction_questionnaire_template_revision`
+  WHERE `tenant_id`=0 AND `revision_no`=1 AND `deleted`=b'0'
+    AND ((`id`=992005110001 AND `template_id`=992005100001
+          AND `project_type`='FACC002_EXACT' AND `priority`=100 AND `revision_status`='PUBLISHED'
+          AND `signing_mode`='STANDARD' AND `implementation_mode`='ON_SITE'
+          AND `business_purpose_code`='ACCEPTANCE' AND `applicable_timing_code`='AFTER_INITIAL_ACCEPTANCE'
+          AND `frozen_threshold`=80.00 AND `rule_version`='FACC002-RULE-V1' AND `version`=0)
+      OR (`id`=992005110002 AND `template_id`=992005100002
+          AND `project_type`='FACC002_AMBIGUOUS' AND `priority`=100 AND `revision_status`='PUBLISHED'
+          AND `signing_mode`='STANDARD' AND `implementation_mode`='ON_SITE'
+          AND `business_purpose_code`='ACCEPTANCE' AND `applicable_timing_code`='AFTER_INITIAL_ACCEPTANCE'
+          AND `frozen_threshold`=80.00 AND `rule_version`='FACC002-RULE-V1' AND `version`=0)
+      OR (`id`=992005110003 AND `template_id`=992005100003
+          AND `project_type`='FACC002_AMBIGUOUS' AND `priority`=100 AND `revision_status`='PUBLISHED'
+          AND `signing_mode`='STANDARD' AND `implementation_mode`='ON_SITE'
+          AND `business_purpose_code`='ACCEPTANCE' AND `applicable_timing_code`='AFTER_INITIAL_ACCEPTANCE'
+          AND `frozen_threshold`=80.00 AND `rule_version`='FACC002-RULE-V1' AND `version`=0)
+      OR (`id`=992005110004 AND `template_id`=992005100004
+          AND `project_type`='FACC002_DISABLED' AND `priority`=100 AND `revision_status`='DISABLED'
+          AND `signing_mode`='STANDARD' AND `implementation_mode`='ON_SITE'
+          AND `business_purpose_code`='ACCEPTANCE' AND `applicable_timing_code`='AFTER_INITIAL_ACCEPTANCE'
+          AND `frozen_threshold`=80.00 AND `rule_version`='FACC002-RULE-V1' AND `version`=0));
+
+  IF involved_root_count=0 AND involved_revision_count=0 AND @facc002_v133_apply=1 THEN
+    INSERT INTO `acc_satisfaction_questionnaire_template`
+      (`id`,`tenant_id`,`template_code`,`name`,`status`,`current_revision_id`,`version`,
+       `creator`,`create_time`,`updater`,`update_time`,`deleted`)
+    VALUES
+      (992005100001,0,'FACC002-SEED-EXACT','F-ACC-002精确候选','PUBLISHED',992005110001,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005100002,0,'FACC002-SEED-AMB-A','F-ACC-002并列候选A','PUBLISHED',992005110002,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005100003,0,'FACC002-SEED-AMB-B','F-ACC-002并列候选B','PUBLISHED',992005110003,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005100004,0,'FACC002-SEED-DISABLED','F-ACC-002停用候选','DISABLED',NULL,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0');
+
+    INSERT INTO `acc_satisfaction_questionnaire_template_revision`
+      (`id`,`tenant_id`,`template_id`,`revision_no`,`project_type`,`signing_mode`,`implementation_mode`,
+       `business_purpose_code`,`applicable_timing_code`,`priority`,`frozen_question_json`,
+       `frozen_threshold`,`rule_version`,`revision_status`,`effective_from`,`effective_to`,`version`,
+       `creator`,`create_time`,`updater`,`update_time`,`deleted`)
+    VALUES
+      (992005110001,0,992005100001,1,'FACC002_EXACT','STANDARD','ON_SITE','ACCEPTANCE',
+       'AFTER_INITIAL_ACCEPTANCE',100,JSON_ARRAY(JSON_OBJECT('code','Q1','required',true,'weight',100)),
+       80.00,'FACC002-RULE-V1','PUBLISHED','2026-08-30 00:00:00.000',NULL,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005110002,0,992005100002,1,'FACC002_AMBIGUOUS','STANDARD','ON_SITE','ACCEPTANCE',
+       'AFTER_INITIAL_ACCEPTANCE',100,JSON_ARRAY(JSON_OBJECT('code','Q1','required',true,'weight',100)),
+       80.00,'FACC002-RULE-V1','PUBLISHED','2026-08-30 00:00:00.000',NULL,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005110003,0,992005100003,1,'FACC002_AMBIGUOUS','STANDARD','ON_SITE','ACCEPTANCE',
+       'AFTER_INITIAL_ACCEPTANCE',100,JSON_ARRAY(JSON_OBJECT('code','Q1','required',true,'weight',100)),
+       80.00,'FACC002-RULE-V1','PUBLISHED','2026-08-30 00:00:00.000',NULL,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0'),
+      (992005110004,0,992005100004,1,'FACC002_DISABLED','STANDARD','ON_SITE','ACCEPTANCE',
+       'AFTER_INITIAL_ACCEPTANCE',100,JSON_ARRAY(JSON_OBJECT('code','Q1','required',true,'weight',100)),
+       80.00,'FACC002-RULE-V1','DISABLED',NULL,NULL,0,
+       'facc002_v133',NOW(3),'facc002_v133',NOW(3),b'0');
+  ELSEIF NOT (involved_root_count=4 AND exact_root_count=4
+              AND involved_revision_count=4 AND exact_revision_count=4) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT='F-ACC-002 V133 managed template candidates are partial or conflicting';
+  END IF;
+END$$
+DELIMITER ;
+
+CALL `facc002_apply_v133_template_candidates`();
+DROP PROCEDURE IF EXISTS `facc002_apply_v133_template_candidates`;
+
 INSERT IGNORE INTO `system_menu`
 (`id`,`name`,`permission`,`type`,`sort`,`parent_id`,`path`,`icon`,`component`,`component_name`,
  `status`,`visible`,`keep_alive`,`always_show`,`creator`,`create_time`,`updater`,`update_time`,`deleted`)
