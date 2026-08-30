@@ -94,8 +94,8 @@
       "featureId": "F-CUT-002",
       "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
       "taskPath": "tasks/features/F-CUT-002.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-01@V1",
@@ -1264,7 +1264,7 @@
         {
           "featureId": "F-CUT-002",
           "coverage": "PARTIAL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
           "taskPath": "tasks/features/F-CUT-002.md"
         }
@@ -1284,7 +1284,7 @@
         {
           "featureId": "F-CUT-002",
           "coverage": "PARTIAL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
           "taskPath": "tasks/features/F-CUT-002.md"
         }

@@ -1,12 +1,12 @@
 # F-CUT-002 割接任务接入与人工分级 Implementation Plan
 
 > 计划 ID：`NPDMS-FCUT002-TECHPLAN-20260831-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`（最新有效裁决为NO-GO；`1875bb89`整体PASS回写无完整授权）
+> Technical Plan Gate：`PASS / GO@8eb36222`
 > Feature Ready：`PASS / cad8088a`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > Physical Contract：`specs/features/F-CUT-002-physical-contract.json`
 > REST Contract：`specs/features/F-CUT-002-rest-api-contract.json`
-> ProjectCutoverContext Fact Contract Gate：`REVIEW_REQUIRED`
+> ProjectCutoverContext Fact Contract Gate：`PASS / 8eb36222`
 
 **Goal：** 一次交付“一线工程师按设备 SN 解析有权项目与权威上下文 → 自建唯一割接任务进入 P2 → 暂存并人工提交四项评估 → A/B/C 进入 P3、D 进入 P4”的最小完整业务闭环。
 
@@ -130,4 +130,4 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 
 ## 8. Technical Plan Gate
 
-当前结论：`REVIEW_REQUIRED`。最近Gate为`ProjectCutoverContextFactApi`合同单点整改复审；合同GO后返回同一计划Gate。计划明确不再由CUT实现任何跨模块Provider，而以`src/test`受控模拟推进CUT正常闭环；当前仍不授权Implementation。
+当前结论：`PASS / GO@8eb36222`。F-CUT-002不实现任何跨模块Provider，以`src/test`受控模拟推进CUT正常闭环；授权进入Task 1，仅恢复CUT自有实现。生产Owner仍阻断生产装配、真实浏览器和Implementation Done。

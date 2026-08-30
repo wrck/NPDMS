@@ -7,16 +7,17 @@
     "reviewedBaseline": "cad8088a"
   },
   "technicalPlanGate": {
-    "status": "REVIEW_REQUIRED",
-    "prerequisiteContractPass": "PROJECT_CUTOVER_CONTEXT_FACT_REVIEW_REQUIRED",
+    "status": "PASS",
+    "reviewedCommit": "8eb36222",
+    "prerequisiteContractPass": "PROJECT_CUTOVER_CONTEXT_FACT_8EB36222",
     "asset": "docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md"
   },
   "projectCutoverContextFactContractGate": {
-    "status": "REVIEW_REQUIRED",
-    "reviewedCommit": null,
+    "status": "PASS",
+    "reviewedCommit": "8eb36222",
     "asset": "specs/features/F-CUT-002-project-context-fact-contract.json",
     "providerImplementation": "NOT_STARTED",
-    "nextGate": "PROJECT_CUTOVER_CONTEXT_FACT_CONTRACT_REREVIEW"
+    "nextGate": "F_CUT_002_TASK_1_IMPLEMENTATION"
   },
   "migrationContractGate": {
     "status": "PASS",

@@ -396,7 +396,7 @@
   "providerContracts": {
     "ProjectCutoverContextFactApi": {
       "owner": "PROJ",
-      "gate": "REVIEW_REQUIRED",
+      "gate": "PASS_8EB36222",
       "operations": ["inspect", "lockAndRevalidate"],
       "machineContract": "specs/features/F-CUT-002-project-context-fact-contract.json",
       "requiredInput": "trusted tenant + projectId; revalidation additionally carries the complete ExpectedProjectCutoverContextFact copied from the displayed FOUND fact",

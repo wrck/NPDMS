@@ -2,7 +2,7 @@
 
 ## 状态
 
-`PROPOSED_FOR_INDEPENDENT_REVIEW`
+`ACCEPTED`
 
 ## 日期
 

@@ -12,7 +12,7 @@
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 > 机器物理/迁移合同：`specs/features/F-CUT-002-physical-contract.json`（迁移Contract Gate `PASS`；API/Physical Machine Contract Gate `PASS@b7f49166`）
 > REST/Internal API机器合同：`specs/features/F-CUT-002-rest-api-contract.json`（`BASELINE_READY@b7f49166`）
-> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`（`REVIEW_REQUIRED`；`1875bb89`的整体PASS回写无完整授权）
+> 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`（`PASS / GO@8eb36222`）
 
 ## 1. 业务目标
 
@@ -142,4 +142,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`READY / GO`（独立复审锁定基线`cad8088a`）。
 
-`F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效；`ProjectCutoverContextFactApi`公共Owner合同当前为`REVIEW_REQUIRED`，Technical Plan亦保持`REVIEW_REQUIRED`。合同GO后返回同一计划复审；计划GO前不得进入Implementation。PROJ/IMP/AST/CUS/PLT只作为跨模块预留接口，CUT可在`src/test`以受控模拟推进正常闭环，但模拟不进生产装配，也不产生真实Owner或浏览器证据。
+`F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效；`ProjectCutoverContextFactApi`公共Owner合同及唯一Technical Plan已在`8eb36222`独立复审`PASS / GO`。PROJ/IMP/AST/CUS/PLT只作为跨模块预留接口，CUT可在`src/test`以受控模拟推进正常闭环，但模拟不进生产装配，也不产生真实Owner或浏览器证据。
