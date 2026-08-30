@@ -815,6 +815,10 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
         "10-api-design.md": (
             "/satisfaction-tasks/{id}/access-grants",
             "/satisfaction-questionnaires/{token}/files",
+            "/satisfaction-results/{id}/actions/invalidate",
+            "expectedResultVersion",
+            "invalidation_reason_code",
+            "失效事件乱序",
             "pms:acceptance:satisfaction:query/manage/collect/export/download",
             "SatisfactionRemediationFact",
             "D-SAT-REPORT",
