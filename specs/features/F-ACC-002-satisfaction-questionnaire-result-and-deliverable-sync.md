@@ -1,7 +1,7 @@
 # F-ACC-002 满意度问卷、达标判定与归档同步 Feature Spec
 
-> 文档状态：`CANDIDATE`
-> Feature Ready：`NOT_READY`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY`
 > 实施状态：`NOT_STARTED`
 > Requirement切片覆盖：`ACC-02@V1=FULL；ACC-04@V1=PARTIAL`
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
@@ -148,11 +148,11 @@
 
 | 检查项 | 当前结论 |
 |---|---|
-| Requirement覆盖与纵向闭环 | CANDIDATE |
-| Owner/API/权限/事务与锁序 | CANDIDATE |
-| 状态、物理差量和迁移边界 | CANDIDATE |
+| Requirement覆盖与纵向闭环 | PASS |
+| Owner/API/权限/事务与锁序 | PASS |
+| 状态、物理差量和迁移边界 | PASS |
 | 旧实现复用审计 | COMPLETE（见独立审计文件） |
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`c1e7354c`；当前Gate=Feature Ready整改；已通过=Result失效SDS补充GO；阻塞=待同步失效命令、ProjectScope、文件字段映射和旧完工证明审计；下一步=完成最小契约整改并复审，不生成Technical Plan或代码。
+检查点：基线=`145e4a61`；当前Gate=Technical Plan形成；已通过=Feature Ready独立复审GO，失效、ProjectScope、文件映射和旧载体边界已闭环；阻塞=无；下一步=形成唯一Technical Plan候选，不进入实现。

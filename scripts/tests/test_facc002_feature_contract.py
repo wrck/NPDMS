@@ -16,9 +16,10 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         "ACC-02@V1": "FULL", "ACC-04@V1": "PARTIAL_SATISFACTION_SOURCE_ONLY"
     }:
         errors.append("coverage")
-    if contract.get("status") != "CANDIDATE_NOT_READY" or \
-            contract.get("featureReadyDecision") != "PENDING_INDEPENDENT_REVIEW":
-        errors.append("premature-ready")
+    if contract.get("status") != "BASELINE_READY" or \
+            contract.get("featureReadyDecision") != \
+            "GO_145e4a61ea936d0679f2ec41a7d412975572e5a3":
+        errors.append("feature-ready-state")
     identity = contract.get("identityRules", {})
     if identity.get("remediationTrigger") != "ACC/SatisfactionRemediationFact" or \
             identity.get("taskRevision") != "FIRST_1_NEXT_PRIOR_PLUS_1" or \
@@ -94,7 +95,7 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("completion-certificate")
     if contract.get("legacyDisposition", {}).get("currentForward") != "NEW_ONLY_EXPLICIT_COMMANDS":
         errors.append("legacy")
-    for marker in ("文档状态：`CANDIDATE`", "Feature Ready：`NOT_READY`", "ACC-02@V1=FULL",
+    for marker in ("文档状态：`BASELINE`", "Feature Ready：`READY`", "ACC-02@V1=FULL",
                    "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
                    "actions/invalidate", "ProjectScopeApi/Impl", "sha256", "pms_acc_completion_certificate",
                    "双向乱序", "AI-MIG-000"):
@@ -115,7 +116,7 @@ class Facc002FeatureContractTest(unittest.TestCase):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.audit = AUDIT.read_text(encoding="utf-8")
 
-    def test_candidate_contract_is_complete_without_premature_ready(self) -> None:
+    def test_baseline_contract_matches_independent_go(self) -> None:
         self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
 
     def test_rejects_original_trigger_reuse_for_remediation(self) -> None:
