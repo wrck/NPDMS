@@ -2,12 +2,13 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
-> 实施状态：`NOT_STARTED`
+> 实施状态：`IN_PROGRESS`
 > Requirement切片覆盖：`ACC-02@V1=FULL；ACC-04@V1=PARTIAL`
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件与统一导出契约仅作PMS加性扩展
 > 适用基线：PRD V1.8；ADR-0041、ADR-0042 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`、统一异步导出补充`1df9b392`）
+> Technical Plan：`NPDMS-FACC002-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`41f92526919e8c18b11c04f188365be2105240ac`）
 
 ## 1. 业务目标
 
@@ -165,4 +166,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`9ab20d99`；当前Gate=Technical Plan整改复审；已通过=统一导出SDS/P3-E09补充GO且Feature/机器契约/计划已同步；阻塞=计划待独立复审；下一步=GO后创建唯一Task并进入Implementation，GO前不写代码或Flyway。
+检查点：基线=`41f92526`；当前Gate=Implementation Task 1；已通过=Technical Plan独立整改复审GO；阻塞=无；下一步=按计划串行实现共享契约、V133与后端闭环，Task 1通过前不进入Task 2。

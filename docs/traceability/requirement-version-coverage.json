@@ -50,9 +50,9 @@
     {
       "featureId": "F-ACC-002",
       "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
-      "taskPath": null,
-      "taskStatus": "NO_TASK",
-      "taskStatusRaw": null,
+      "taskPath": "tasks/features/F-ACC-002.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "ACC-02@V1",
@@ -815,9 +815,9 @@
         {
           "featureId": "F-ACC-002",
           "coverage": "FULL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-ACC-002.md"
         }
       ]
     },
@@ -862,9 +862,9 @@
         {
           "featureId": "F-ACC-002",
           "coverage": "PARTIAL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-ACC-002.md"
         }
       ]
     },

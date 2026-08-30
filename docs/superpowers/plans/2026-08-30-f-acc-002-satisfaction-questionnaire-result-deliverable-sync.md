@@ -4,7 +4,7 @@
 
 **计划ID：** `NPDMS-FACC002-TECHPLAN-20260830-01`
 
-**当前状态：** `CANDIDATE / PENDING_INDEPENDENT_REVIEW`
+**当前状态：** `BASELINE / PASS / GO`（独立整改复审 `41f92526919e8c18b11c04f188365be2105240ac`）
 
 **目标：** 实现模板发布与冻结、满意度任务、V1受控客户答卷、不可变评分Result、整改重收、Result失效、满意度应交来源归档、历史下载与统一异步导出的完整纵向闭环。
 
@@ -305,4 +305,4 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 ## 八、Technical Plan Gate
 
-当前状态：`CANDIDATE / PENDING_INDEPENDENT_REVIEW`。独立GO前不得创建`tasks/features/F-ACC-002.md`、产品代码或V133，不得进入Implementation。
+当前状态：`BASELINE / PASS / GO`。独立整改复审已批准创建唯一`tasks/features/F-ACC-002.md`，并按本计划两个串行Task进入Implementation；本结论不代表产品代码、V133、Task完成或Implementation Done已获批准。
