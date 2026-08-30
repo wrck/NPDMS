@@ -1,6 +1,7 @@
 import request from '@/config/axios'
 
 export type WireLong = number | string
+export type WireDateTime = WireLong
 export type ArrivalStatus =
   | 'DRAFT'
   | 'PARTIALLY_ACCEPTED'
@@ -58,13 +59,13 @@ export interface ArrivalListItem {
   projectId: WireLong
   batchCode: string
   logisticsNo: string
-  arrivedAt: string
+  arrivedAt: WireDateTime
   signerName: string
   status: ArrivalStatus
   evidenceSyncStatus: string | null
   version: number
   allowedActions: string[]
-  createTime: string
+  createTime: WireDateTime
 }
 
 export interface ArrivalLine {
@@ -95,8 +96,8 @@ export interface ArrivalDifference {
   riskDescription: string | null
   scopeSnapshot: ArrivalScope
   approvedBy: WireLong | null
-  approvedAt: string | null
-  exemptionExpiresAt: string | null
+  approvedAt: WireDateTime | null
+  exemptionExpiresAt: WireDateTime | null
   evidenceId: WireLong | null
   evidenceRevision: number | null
   current: boolean
@@ -115,7 +116,7 @@ export interface ArrivalEvidence {
   fileScopeVersion: WireLong
   fileHash: string
   syncStatus: string
-  nextRetryAt: string | null
+  nextRetryAt: WireDateTime | null
   retryCount: number
 }
 
@@ -134,9 +135,9 @@ export interface ArrivalDetail extends Omit<ArrivalListItem, 'evidenceSyncStatus
   predecessorAcceptanceId: WireLong | null
   successorReason: string | null
   submittedBy: WireLong | null
-  submittedAt: string | null
+  submittedAt: WireDateTime | null
   confirmedBy: WireLong | null
-  confirmedAt: string | null
+  confirmedAt: WireDateTime | null
   currentLines: ArrivalLine[]
   differences: ArrivalDifference[]
   evidence: ArrivalEvidence | null
@@ -167,14 +168,14 @@ export interface CreateArrivalRequest {
   projectId: WireLong
   batchCode: string
   logisticsNo: string
-  arrivedAt: string
+  arrivedAt: WireDateTime
   signerName: string
   expectedDeliveryScopeVersion: WireLong
 }
 
 export type PatchArrivalRequest = Partial<{
   logisticsNo: string
-  arrivedAt: string
+  arrivedAt: WireDateTime
   signerName: string
   lines: ArrivalDraftLine[]
   evidenceRevision: FileRevision
@@ -215,7 +216,7 @@ export type ResolveDifferenceRequest =
       expectedDifferenceVersion: number
       reason: string
       riskDescription: string
-      expiresAt: string
+      expiresAt: WireDateTime
       evidenceRevision: FileRevision
     }
   | {
@@ -224,7 +225,7 @@ export type ResolveDifferenceRequest =
       reason: string
       correctionPatch: {
         logisticsNo: string
-        arrivedAt: string
+        arrivedAt: WireDateTime
         signerName: string
         lines: ArrivalDraftLine[]
       }

@@ -1,5 +1,13 @@
+import dayjs from 'dayjs'
+import type { WireDateTime } from '@/api/pms/engineering/arrival-acceptance'
+
 export type ArrivalLayout = 'mobile' | 'tablet' | 'desktop' | 'wide'
-export type ArrivalCommandFailure = 'REFRESH_AGGREGATE' | 'RETAIN_INTENT' | 'SURFACE_ERROR'
+export type ArrivalCommandFailure =
+  | 'REFRESH_AGGREGATE'
+  | 'REFRESH_OWNER_FACTS'
+  | 'RETAIN_INTENT'
+  | 'START_NEW_INTENT'
+  | 'SURFACE_ERROR'
 export type ArrivalTone = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 export interface ArrivalPresentation {
   label: string
@@ -62,10 +70,28 @@ export const shouldExposeArrivalAction = (
 export const resolveArrivalCommandFailure = (error: unknown): ArrivalCommandFailure => {
   const response = (error as any)?.response
   if (!response) return 'RETAIN_INTENT'
-  if (response.status === 409 && response.data?.data?.recoveryAction === 'REFRESH_AGGREGATE') {
-    return 'REFRESH_AGGREGATE'
-  }
+  const recoveryAction = response.data?.data?.recoveryAction
+  if (recoveryAction === 'REFRESH_AGGREGATE') return 'REFRESH_AGGREGATE'
+  if (recoveryAction === 'REFRESH_OWNER_FACTS') return 'REFRESH_OWNER_FACTS'
+  if (recoveryAction === 'RETRY_SAME_KEY') return 'RETAIN_INTENT'
+  if (recoveryAction === 'START_NEW_INTENT') return 'START_NEW_INTENT'
   return 'SURFACE_ERROR'
+}
+
+export const pickerValueToWireDateTime = (value: string | number): number => {
+  const epoch = typeof value === 'number' ? value : Number(value)
+  if (!Number.isSafeInteger(epoch) || epoch <= 0) throw new Error('时间必须是有效的 epoch 毫秒')
+  return epoch
+}
+
+export const wireDateTimeToPickerValue = (value?: WireDateTime | null): number | '' => {
+  if (value === null || value === undefined || value === '') return ''
+  return pickerValueToWireDateTime(value)
+}
+
+export const formatWireDateTime = (value?: WireDateTime | null): string => {
+  const epoch = wireDateTimeToPickerValue(value)
+  return epoch === '' ? '-' : dayjs(epoch).format('YYYY-MM-DD HH:mm:ss')
 }
 
 export const createArrivalIntentStore = (factory: () => string = () => crypto.randomUUID()) => {
@@ -80,6 +106,70 @@ export const createArrivalIntentStore = (factory: () => string = () => crypto.ra
     },
     complete(intent: string) {
       keys.delete(intent)
+    }
+  }
+}
+
+export type ArrivalIntentStore = ReturnType<typeof createArrivalIntentStore>
+export type ArrivalIntentExecution =
+  | {
+      commandSucceeded: false
+      recovery: ArrivalCommandFailure
+      keyRetained: boolean
+      refreshSucceeded: boolean | null
+      retryRefresh: null
+    }
+  | {
+      commandSucceeded: true
+      recovery: null
+      keyRetained: false
+      refreshSucceeded: boolean
+      retryRefresh: (() => Promise<void>) | null
+    }
+
+export const runArrivalIntent = async <T>(options: {
+  intent: string
+  store: ArrivalIntentStore
+  call: (key: string) => Promise<T>
+  refreshAfterSuccess: (result: T) => Promise<void>
+  refreshAfterFailure: () => Promise<void>
+}): Promise<ArrivalIntentExecution> => {
+  const key = options.store.key(options.intent)
+  let result: T
+  try {
+    result = await options.call(key)
+  } catch (error) {
+    const recovery = resolveArrivalCommandFailure(error)
+    const keyRetained = recovery === 'RETAIN_INTENT'
+    if (!keyRetained) options.store.complete(options.intent)
+    let refreshSucceeded: boolean | null = null
+    if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
+      try {
+        await options.refreshAfterFailure()
+        refreshSucceeded = true
+      } catch {
+        refreshSucceeded = false
+      }
+    }
+    return { commandSucceeded: false, recovery, keyRetained, refreshSucceeded, retryRefresh: null }
+  }
+  options.store.complete(options.intent)
+  try {
+    await options.refreshAfterSuccess(result)
+    return {
+      commandSucceeded: true,
+      recovery: null,
+      keyRetained: false,
+      refreshSucceeded: true,
+      retryRefresh: null
+    }
+  } catch {
+    return {
+      commandSucceeded: true,
+      recovery: null,
+      keyRetained: false,
+      refreshSucceeded: false,
+      retryRefresh: () => options.refreshAfterSuccess(result)
     }
   }
 }

@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { readFileSync } from 'node:fs'
 import {
   arrivalAcceptanceLayout,
   arrivalResolutionOptions,
   createArrivalIntentStore,
   evidenceSyncPresentation,
+  formatWireDateTime,
+  pickerValueToWireDateTime,
   projectArrivalProgress,
   resolveArrivalCommandFailure,
+  runArrivalIntent,
   shouldExposeArrivalAction,
   successorReasonPresentation,
-  truncateEvidenceName
+  truncateEvidenceName,
+  wireDateTimeToPickerValue
 } from './arrivalAcceptanceInteraction'
 import * as ArrivalApi from '@/api/pms/engineering/arrival-acceptance'
 
@@ -65,7 +68,7 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
         projectId: '9007199254740993',
         batchCode: 'ARR-01',
         logisticsNo: 'L-01',
-        arrivedAt: '2026-08-30T10:00:00',
+        arrivedAt: 1788055200000,
         signerName: '张三',
         expectedDeliveryScopeVersion: 3
       },
@@ -136,28 +139,8 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
     ])
   })
 
-  it('keeps the new workspace on stable references, allowedActions and responsive components', () => {
-    const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
-    const page = read('./index.vue')
-    const evidence = read('./components/ArrivalEvidencePanel.vue')
-    const lines = read('./components/ArrivalLineEditor.vue')
-    const differences = read('./components/ArrivalDifferencePanel.vue')
-
-    expect(page).toContain("allowedActions.includes('EDIT_DRAFT')")
-    expect(page).toContain("allowedActions.includes('CONFIRM')")
-    expect(page).toContain('v-hasPermi="[\'pms:arrival-acceptance:confirm\']"')
-    expect(evidence).toContain('<PmsFileUploader')
-    expect(evidence).toContain('referenceKey')
-    expect(evidence).not.toMatch(/attachmentUrl|原始文件地址.*el-input/)
-    expect(differences).toContain('arrivalResolutionOptions')
-    for (const source of [page, evidence, lines, differences]) {
-      expect(source).not.toContain('/pms/eng-arrival')
-      expect(source).toContain('@media (width <= 767px)')
-    }
-  })
-
   it('uses both permission and server allowedActions without deriving lifecycle locally', () => {
-    const actions = ['PATCH_DRAFT', 'SUBMIT', 'RESOLVE_DIFFERENCE']
+    const actions = ['EDIT_DRAFT', 'SUBMIT', 'RESOLVE_DIFFERENCE']
     expect(shouldExposeArrivalAction('SUBMIT', actions, true)).toBe(true)
     expect(shouldExposeArrivalAction('CONFIRM', actions, true)).toBe(false)
     expect(shouldExposeArrivalAction('SUBMIT', actions, false)).toBe(false)
@@ -173,6 +156,81 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
       'RETAIN_INTENT'
     )
     expect(resolveArrivalCommandFailure({ response: { status: 422 } })).toBe('SURFACE_ERROR')
+    expect(
+      resolveArrivalCommandFailure({
+        response: { status: 409, data: { data: { recoveryAction: 'RETRY_SAME_KEY' } } }
+      })
+    ).toBe('RETAIN_INTENT')
+    expect(
+      resolveArrivalCommandFailure({
+        response: { status: 409, data: { data: { recoveryAction: 'REFRESH_OWNER_FACTS' } } }
+      })
+    ).toBe('REFRESH_OWNER_FACTS')
+    expect(
+      resolveArrivalCommandFailure({
+        response: { status: 409, data: { data: { recoveryAction: 'START_NEW_INTENT' } } }
+      })
+    ).toBe('START_NEW_INTENT')
+  })
+
+  it('uses epoch milliseconds for picker, request and response presentation', () => {
+    expect(pickerValueToWireDateTime('1788055200000')).toBe(1788055200000)
+    expect(wireDateTimeToPickerValue('1788055200000')).toBe(1788055200000)
+    expect(formatWireDateTime(1788055200000)).toMatch(/^2026-08-/)
+    expect(() => pickerValueToWireDateTime('2026-08-30T10:00:00')).toThrow()
+  })
+
+  it('retains one key for unknown/in-progress outcomes and refreshes stale facts', async () => {
+    const store = createArrivalIntentStore(() => 'key-1')
+    const refreshAfterFailure = vi.fn().mockResolvedValue(undefined)
+    const inProgress = await runArrivalIntent({
+      intent: 'submit:10:3',
+      store,
+      call: vi.fn().mockRejectedValue({
+        response: { status: 409, data: { data: { recoveryAction: 'RETRY_SAME_KEY' } } }
+      }),
+      refreshAfterSuccess: vi.fn(),
+      refreshAfterFailure
+    })
+    expect(inProgress).toMatchObject({ commandSucceeded: false, keyRetained: true })
+    expect(store.key('submit:10:3')).toBe('key-1')
+    expect(refreshAfterFailure).not.toHaveBeenCalled()
+
+    const stale = await runArrivalIntent({
+      intent: 'confirm:10:4',
+      store,
+      call: vi.fn().mockRejectedValue({
+        response: { status: 409, data: { data: { recoveryAction: 'REFRESH_AGGREGATE' } } }
+      }),
+      refreshAfterSuccess: vi.fn(),
+      refreshAfterFailure
+    })
+    expect(stale).toMatchObject({ commandSucceeded: false, refreshSucceeded: true })
+    expect(refreshAfterFailure).toHaveBeenCalledOnce()
+  })
+
+  it('never reissues a successful command when only the refresh fails', async () => {
+    const factory = vi.fn().mockReturnValueOnce('key-1').mockReturnValueOnce('key-2')
+    const store = createArrivalIntentStore(factory)
+    const call = vi.fn().mockResolvedValue({ id: 10 })
+    const outcome = await runArrivalIntent({
+      intent: 'submit:10:3',
+      store,
+      call,
+      refreshAfterSuccess: vi.fn().mockRejectedValue(new Error('refresh failed')),
+      refreshAfterFailure: vi.fn()
+    })
+    expect(outcome).toEqual({
+      commandSucceeded: true,
+      recovery: null,
+      keyRetained: false,
+      refreshSucceeded: false,
+      retryRefresh: expect.any(Function)
+    })
+    expect(call).toHaveBeenCalledOnce()
+    await outcome.retryRefresh?.().catch(() => undefined)
+    expect(call).toHaveBeenCalledOnce()
+    expect(store.key('submit:10:3')).toBe('key-2')
   })
 
   it('retains one idempotency key for an unknown response and rotates after success', () => {

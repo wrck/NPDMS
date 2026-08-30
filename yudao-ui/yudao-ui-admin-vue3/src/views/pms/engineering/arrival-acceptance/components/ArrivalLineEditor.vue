@@ -5,7 +5,7 @@
         <h3 id="arrival-line-title">到货明细</h3>
         <p>按设备序列或订单型号数量记录，本页不推导应到范围。</p>
       </div>
-      <el-button v-if="editable" @click="appendLine">新增明细</el-button>
+      <el-button v-if="editable" data-testid="append-line" @click="appendLine">新增明细</el-button>
     </div>
 
     <el-empty v-if="!modelValue.length" description="尚未录入到货明细" :image-size="72" />

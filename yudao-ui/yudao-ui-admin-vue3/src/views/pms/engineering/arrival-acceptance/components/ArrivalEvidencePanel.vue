@@ -21,6 +21,9 @@
       <div
         ><dt>重试</dt><dd>{{ evidence.retryCount }} 次</dd></div
       >
+      <div v-if="evidence.nextRetryAt"
+        ><dt>下次重试</dt><dd>{{ formatWireDateTime(evidence.nextRetryAt) }}</dd></div
+      >
     </dl>
     <el-empty v-else description="尚未绑定签收证据" :image-size="64" />
 
@@ -48,7 +51,11 @@ import type {
 } from '@/api/pms/engineering/arrival-acceptance'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
-import { evidenceSyncPresentation, truncateEvidenceName } from '../arrivalAcceptanceInteraction'
+import {
+  evidenceSyncPresentation,
+  formatWireDateTime,
+  truncateEvidenceName
+} from '../arrivalAcceptanceInteraction'
 
 const props = defineProps<{
   acceptanceId: WireLong

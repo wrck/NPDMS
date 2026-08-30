@@ -23,6 +23,12 @@
           </el-tag>
         </div>
         <p>{{ difference.reason }}</p>
+        <p v-if="difference.approvedAt" class="difference-time">
+          批准时间：{{ formatWireDateTime(difference.approvedAt) }}
+        </p>
+        <p v-if="difference.exemptionExpiresAt" class="difference-time">
+          豁免到期：{{ formatWireDateTime(difference.exemptionExpiresAt) }}
+        </p>
         <div
           v-if="resolutionOptions(difference).length"
           v-hasPermi="['pms:arrival-acceptance:resolve-difference']"
@@ -32,6 +38,7 @@
             v-for="option in resolutionOptions(difference)"
             :key="option.value"
             size="small"
+            :data-testid="`resolve-${option.value}`"
             @click="openResolution(difference, option.value)"
             >{{ option.label }}</el-button
           >
@@ -39,7 +46,7 @@
       </article>
     </div>
 
-    <Dialog v-model="dialogVisible" title="处理到货差异" width="560px">
+    <Dialog v-model="dialogVisible" title="处理到货差异" width="min(560px, 94vw)">
       <el-form label-position="top">
         <el-form-item label="处置方式">
           <el-input :model-value="resolutionType" disabled />
@@ -49,18 +56,27 @@
             v-model="supplementQuantity"
             :min="0.001"
             :max="quantityScope.quantity"
+            data-testid="supplement-quantity"
           />
         </el-form-item>
         <el-form-item v-if="resolutionType === 'EXEMPT'" label="豁免有效期">
           <el-date-picker
             v-model="expiresAt"
             type="datetime"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+            value-format="x"
             class="!w-full"
+            data-testid="exemption-expiry"
           />
         </el-form-item>
         <el-form-item label="原因">
-          <el-input v-model="reason" type="textarea" :rows="3" maxlength="500" show-word-limit />
+          <el-input
+            v-model="reason"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            data-testid="resolution-reason"
+          />
         </el-form-item>
         <el-alert v-if="!evidenceRevision" type="warning" :closable="false">
           请先在证据面板上传本次处置证据。
@@ -68,7 +84,11 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!canSubmit" @click="submitResolution"
+        <el-button
+          type="primary"
+          :disabled="!canSubmit"
+          data-testid="submit-resolution"
+          @click="submitResolution"
           >提交处置</el-button
         >
       </template>
@@ -82,7 +102,11 @@ import type {
   FileRevision,
   ResolveDifferenceRequest
 } from '@/api/pms/engineering/arrival-acceptance'
-import { arrivalResolutionOptions } from '../arrivalAcceptanceInteraction'
+import {
+  arrivalResolutionOptions,
+  formatWireDateTime,
+  pickerValueToWireDateTime
+} from '../arrivalAcceptanceInteraction'
 
 const props = defineProps<{
   differences: ArrivalDifference[]
@@ -96,7 +120,7 @@ const selected = ref<ArrivalDifference>()
 const dialogVisible = ref(false)
 const resolutionType = ref<'SUPPLEMENT' | 'KEEP_REJECTED' | 'EXEMPT' | 'CLOSE'>('SUPPLEMENT')
 const reason = ref('')
-const expiresAt = ref('')
+const expiresAt = ref<number | string>('')
 const supplementQuantity = ref(0)
 const quantityScope = computed(() =>
   selected.value?.scopeSnapshot.scopeType === 'ORDER_MODEL_QUANTITY'
@@ -159,7 +183,7 @@ const submitResolution = () => {
       ...common,
       resolutionType: 'EXEMPT',
       riskDescription: difference.riskDescription || difference.reason,
-      expiresAt: expiresAt.value
+      expiresAt: pickerValueToWireDateTime(expiresAt.value)
     })
   } else {
     emit('resolve', { ...common, resolutionType: resolutionType.value })
@@ -210,6 +234,10 @@ const submitResolution = () => {
 .difference-card p,
 .difference-actions {
   margin-top: 12px;
+}
+
+.difference-time {
+  color: var(--el-text-color-secondary);
 }
 
 @media (width <= 767px) {

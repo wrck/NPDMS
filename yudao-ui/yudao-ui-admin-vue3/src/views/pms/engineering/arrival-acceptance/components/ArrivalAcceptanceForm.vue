@@ -11,27 +11,38 @@
             query-field="projectName"
             placeholder="选择本人可编辑项目"
             :disabled="Boolean(detail)"
+            data-testid="project-id"
           />
         </el-form-item>
         <el-form-item label="业务批次码" prop="batchCode">
-          <el-input v-model="form.batchCode" :disabled="Boolean(detail)" maxlength="64" />
+          <el-input
+            v-model="form.batchCode"
+            :disabled="Boolean(detail)"
+            maxlength="64"
+            data-testid="batch-code"
+          />
         </el-form-item>
         <el-form-item label="物流单号" prop="logisticsNo">
-          <el-input v-model="form.logisticsNo" maxlength="128" />
+          <el-input v-model="form.logisticsNo" maxlength="128" data-testid="logistics-no" />
         </el-form-item>
         <el-form-item label="签收人" prop="signerName">
-          <el-input v-model="form.signerName" maxlength="128" />
+          <el-input v-model="form.signerName" maxlength="128" data-testid="signer-name" />
         </el-form-item>
         <el-form-item label="到货时间" prop="arrivedAt">
           <el-date-picker
             v-model="form.arrivedAt"
             type="datetime"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+            value-format="x"
             class="!w-full"
+            data-testid="arrival-time"
           />
         </el-form-item>
         <el-form-item v-if="!detail" label="应到范围版本" prop="expectedDeliveryScopeVersion">
-          <el-input v-model="form.expectedDeliveryScopeVersion" inputmode="numeric" />
+          <el-input
+            v-model="form.expectedDeliveryScopeVersion"
+            inputmode="numeric"
+            data-testid="delivery-scope-version"
+          />
         </el-form-item>
       </div>
       <ArrivalLineEditor v-if="detail" v-model="form.lines" :editable="true" />
@@ -47,12 +58,15 @@
           :rows="3"
           maxlength="500"
           show-word-limit
+          data-testid="correction-reason"
         />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="submit">保存</el-button>
+      <el-button type="primary" :loading="saving" data-testid="save-arrival" @click="submit"
+        >保存</el-button
+      >
     </template>
   </Dialog>
 </template>
@@ -66,6 +80,10 @@ import type {
   WireLong
 } from '@/api/pms/engineering/arrival-acceptance'
 import * as ProjectApi from '@/api/pms/project/projects'
+import {
+  pickerValueToWireDateTime,
+  wireDateTimeToPickerValue
+} from '../arrivalAcceptanceInteraction'
 import ArrivalLineEditor from './ArrivalLineEditor.vue'
 
 const props = withDefaults(
@@ -92,7 +110,7 @@ const form = reactive<{
   batchCode: string
   logisticsNo: string
   signerName: string
-  arrivedAt: string
+  arrivedAt: number | string
   expectedDeliveryScopeVersion: WireLong | ''
   lines: ArrivalDraftLine[]
   correctionReason: string
@@ -145,7 +163,7 @@ watch(
       batchCode: detail?.batchCode || '',
       logisticsNo: detail?.logisticsNo || '',
       signerName: detail?.signerName || '',
-      arrivedAt: detail?.arrivedAt || '',
+      arrivedAt: wireDateTimeToPickerValue(detail?.arrivedAt),
       expectedDeliveryScopeVersion: detail?.deliveryScopeVersion || '',
       lines: detail?.currentLines.map(toDraftLine) || [],
       correctionReason: ''
@@ -161,7 +179,7 @@ const submit = async () => {
     if (props.detail) {
       const patch = {
         logisticsNo: form.logisticsNo,
-        arrivedAt: form.arrivedAt,
+        arrivedAt: pickerValueToWireDateTime(form.arrivedAt),
         signerName: form.signerName,
         lines: form.lines
       }
@@ -172,7 +190,7 @@ const submit = async () => {
         projectId: form.projectId,
         batchCode: form.batchCode.trim(),
         logisticsNo: form.logisticsNo.trim(),
-        arrivedAt: form.arrivedAt,
+        arrivedAt: pickerValueToWireDateTime(form.arrivedAt),
         signerName: form.signerName.trim(),
         expectedDeliveryScopeVersion: form.expectedDeliveryScopeVersion
       })

@@ -56,7 +56,9 @@
           show-overflow-tooltip
         />
         <el-table-column prop="signerName" label="签收人" min-width="110" />
-        <el-table-column prop="arrivedAt" label="到货时间" min-width="170" />
+        <el-table-column label="到货时间" min-width="170">
+          <template #default="{ row }">{{ formatWireDateTime(row.arrivedAt) }}</template>
+        </el-table-column>
         <el-table-column label="批次进度" min-width="150">
           <template #default="{ row }">
             <el-tag :type="projectArrivalProgress(row.status).tone">
@@ -114,7 +116,9 @@
           <el-descriptions :column="detailColumns" border>
             <el-descriptions-item label="项目ID">{{ detail.projectId }}</el-descriptions-item>
             <el-descriptions-item label="签收人">{{ detail.signerName }}</el-descriptions-item>
-            <el-descriptions-item label="到货时间">{{ detail.arrivedAt }}</el-descriptions-item>
+            <el-descriptions-item label="到货时间">{{
+              formatWireDateTime(detail.arrivedAt)
+            }}</el-descriptions-item>
             <el-descriptions-item label="聚合版本">{{ detail.version }}</el-descriptions-item>
             <el-descriptions-item label="记录关系">{{
               successorReasonPresentation(detail.successorReason)
@@ -261,8 +265,10 @@ import {
   arrivalAcceptanceLayout,
   createArrivalIntentStore,
   evidenceSyncPresentation,
+  formatWireDateTime,
   projectArrivalProgress,
   resolveArrivalCommandFailure,
+  runArrivalIntent,
   successorReasonPresentation
 } from './arrivalAcceptanceInteraction'
 
@@ -270,6 +276,7 @@ defineOptions({ name: 'PmsArrivalAcceptance' })
 const message = useMessage()
 const { width } = useWindowSize()
 const intentStore = createArrivalIntentStore()
+let pendingCommandRefresh: (() => Promise<void>) | null = null
 const statuses: ArrivalApi.ArrivalStatus[] = [
   'DRAFT',
   'PARTIALLY_ACCEPTED',
@@ -402,30 +409,59 @@ const openCorrection = () => {
   formVisible.value = true
 }
 
-const executeIntent = async (intent: string, call: (key: string) => Promise<unknown>) => {
-  const key = intentStore.key(intent)
-  try {
-    await call(key)
-    intentStore.complete(intent)
-    await loadPage()
-    if (detail.value) await loadDetail(detail.value.id)
-    return true
-  } catch (error) {
-    const recovery = resolveArrivalCommandFailure(error)
-    if (recovery !== 'RETAIN_INTENT') intentStore.complete(intent)
-    if (recovery === 'REFRESH_AGGREGATE' && detail.value) await loadDetail(detail.value.id)
-    if (recovery === 'RETAIN_INTENT')
-      message.warning('响应结果未知，已保留本次幂等键，请重试原操作')
+const refreshWorkspace = async (detailId?: ArrivalApi.WireLong) => {
+  await loadPage()
+  if (detailId !== undefined) await loadDetail(detailId)
+}
+
+const executeIntent = async <T,>(
+  intent: string,
+  call: (key: string) => Promise<T>,
+  refresh: (result: T) => Promise<void> = () => refreshWorkspace(detail.value?.id)
+) => {
+  if (pendingCommandRefresh) {
+    try {
+      await pendingCommandRefresh()
+      pendingCommandRefresh = null
+      message.success('上次命令结果已刷新，请按最新事实继续操作')
+    } catch {
+      message.warning('上次命令已成功，但页面仍未刷新；不会重复发送业务命令')
+    }
     return false
   }
+  const outcome = await runArrivalIntent({
+    intent,
+    store: intentStore,
+    call,
+    refreshAfterSuccess: refresh,
+    refreshAfterFailure: () => refreshWorkspace(detail.value?.id)
+  })
+  if (outcome.commandSucceeded) {
+    if (!outcome.refreshSucceeded) {
+      pendingCommandRefresh = outcome.retryRefresh
+      message.warning('命令已成功，但页面刷新失败；请手动刷新，勿重复提交')
+    }
+    return true
+  }
+  if (outcome.recovery === 'RETAIN_INTENT') {
+    message.warning('响应结果未知或仍在处理中，已保留本次幂等键，请重试原操作')
+  } else if (outcome.recovery === 'START_NEW_INTENT') {
+    message.warning('原幂等键与请求不一致，请确认当前事实后重新发起操作')
+  } else if (outcome.refreshSucceeded === false) {
+    message.warning('权威事实刷新失败，请手动刷新后再操作')
+  }
+  return false
 }
 const createDraft = async (payload: CreateArrivalRequest) => {
   const intent = `create:${JSON.stringify(payload)}`
-  const succeeded = await executeIntent(intent, async (key) => {
-    const created = await ArrivalApi.createArrival(payload, key)
-    detailVisible.value = true
-    await loadDetail(created.id)
-  })
+  const succeeded = await executeIntent(
+    intent,
+    (key) => ArrivalApi.createArrival(payload, key),
+    async (created) => {
+      detailVisible.value = true
+      await refreshWorkspace(created.id)
+    }
+  )
   if (succeeded) {
     formVisible.value = false
     message.success('到货草稿已创建')
