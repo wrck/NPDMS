@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`59c34505`；当前Gate=Task 2 Step 1前端闭环；已通过=Task 1后端、V133双路径与冲突前置失败，聚焦74/74、真实MySQL 4/4、reactor package PASS；阻塞=无；下一步=实现模板、任务、问卷、Result与导出前端正向链。
+> 检查点：基线=`5f4054e5`；当前Gate=Task 2 Step 1；已通过=Task 1后端、V133、模板/任务/答卷/Result/失效/归档/导出REST闭环及reactor编译；阻塞=无；下一步=实现前端公开正向链并做一次Chromium验收。
