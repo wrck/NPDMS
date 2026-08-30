@@ -8,7 +8,6 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPag
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskAssessmentLinkUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskTransitionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.LegacyCutoverTargetIdentityQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -32,5 +31,4 @@ public interface CutoverTaskMapper extends BaseMapperX<CutoverTaskDO> {
     CutoverTaskDO selectForUpdate(@Param("query") CutoverTaskRowQuery query);
     int linkAssessmentIfMatch(@Param("query") CutoverTaskAssessmentLinkUpdate query);
     int transitionIfMatch(@Param("query") CutoverTaskTransitionUpdate query);
-    long countLegacyIdentityConflicts(@Param("query") LegacyCutoverTargetIdentityQuery query);
 }

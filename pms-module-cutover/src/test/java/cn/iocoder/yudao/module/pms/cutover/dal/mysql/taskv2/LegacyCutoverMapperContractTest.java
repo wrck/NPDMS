@@ -1,8 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2;
 
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.LegacyCutoverSourceRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.LegacyCutoverTargetIdentityQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.migration.LegacyCutoverReconciliationMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.migration.query.LegacyCutoverReconciliationQuery;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -21,13 +20,13 @@ class LegacyCutoverMapperContractTest {
     @Test
     void legacyMigrationQueriesResolveThroughMyBatisBindings() throws IOException {
         Configuration configuration = new Configuration();
-        parse(configuration, Path.of("src/main/resources/mapper/task/CutTaskMapper.xml"));
-        parse(configuration, Path.of("src/main/resources/mapper/taskv2/CutoverTaskMapper.xml"));
+        parse(configuration, Path.of("src/main/resources/mapper/taskv2/LegacyCutoverReconciliationMapper.xml"));
 
-        assertBindings(configuration, CutTaskMapper.class.getName() + ".selectLegacySourceForUpdate",
-                new LegacyCutoverSourceRowQuery(1L, 91L));
-        assertBindings(configuration, CutoverTaskMapper.class.getName() + ".countLegacyIdentityConflicts",
-                new LegacyCutoverTargetIdentityQuery(1L, 100L, "CUT-91", 91L));
+        assertBindings(configuration, LegacyCutoverReconciliationMapper.class.getName() + ".selectSourceForUpdate",
+                LegacyCutoverReconciliationQuery.source(1L, 91L));
+        assertBindings(configuration,
+                LegacyCutoverReconciliationMapper.class.getName() + ".countTargetIdentityConflicts",
+                LegacyCutoverReconciliationQuery.target(1L, 91L, 100L, "CUT-91"));
     }
 
     private static void parse(Configuration configuration, Path path) throws IOException {

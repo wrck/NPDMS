@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.migration.LegacyCutoverReconciliationMapper;
 import cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceApi;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.CompleteReconciliationCommand;
+import cn.iocoder.yudao.module.pms.platform.api.migration.dto.AppendMigrationIssueCommand;
+import cn.iocoder.yudao.module.pms.platform.api.migration.dto.AppendExternalMappingCommand;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationBatchClaimResult;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationBatchFact;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationBatchStatus;
@@ -31,7 +33,7 @@ class LegacyCutoverReconciliationServiceTest {
     void completesOneQualifiedLegacyTaskAsReadOnlyProjection() {
         PlatformMigrationEvidenceApi migrationApi = mock(PlatformMigrationEvidenceApi.class);
         ProjectOrganizationFactApi projectApi = mock(ProjectOrganizationFactApi.class);
-        CutTaskMapper sourceMapper = mock(CutTaskMapper.class);
+        LegacyCutoverReconciliationMapper reconciliationMapper = mock(LegacyCutoverReconciliationMapper.class);
         CutoverTaskMapper targetMapper = mock(CutoverTaskMapper.class);
         MigrationBatchFact batch = new MigrationBatchFact(71L, 1L, "CUT",
                 "CUTOVER_TASK_CURRENT_FORWARD", "release-1", "NPDMS_LEGACY", "pms_cut_task",
@@ -45,10 +47,10 @@ class LegacyCutoverReconciliationServiceTest {
 
         when(migrationApi.claimStagedBatch(any())).thenReturn(new MigrationBatchClaimResult(true, batch));
         when(migrationApi.pageSourceRecords(any())).thenReturn(new MigrationSourceRecordPage(List.of(source), null));
-        when(sourceMapper.selectLegacySourceForUpdate(any())).thenReturn(legacy);
+        when(reconciliationMapper.selectSourceForUpdate(any())).thenReturn(legacy);
         when(projectApi.inspect(any())).thenReturn(project);
         when(projectApi.lockAndRevalidate(any())).thenReturn(project);
-        when(targetMapper.countLegacyIdentityConflicts(any())).thenReturn(0L);
+        when(reconciliationMapper.countTargetIdentityConflicts(any())).thenReturn(0L);
         when(targetMapper.insert(any(CutoverTaskDO.class))).thenReturn(1);
         when(migrationApi.appendExternalMapping(any())).thenAnswer(invocation -> null);
         when(migrationApi.completeReconciliation(any())).thenReturn(new MigrationBatchFact(71L, 1L, "CUT",
@@ -57,9 +59,9 @@ class LegacyCutoverReconciliationServiceTest {
                 LocalDateTime.of(2026, 8, 31, 4, 0)));
 
         LegacyCutoverReconciliationResult result = new LegacyCutoverReconciliationService(migrationApi, projectApi,
-                sourceMapper, targetMapper, new LegacyCutoverRowConverter()).reconcileNext(1L, "corr-cut-legacy");
+                reconciliationMapper, targetMapper, new LegacyCutoverRowConverter()).reconcileNext(1L, "corr-cut-legacy");
 
-        assertThat(result).isEqualTo(new LegacyCutoverReconciliationResult(true, 71L, 1));
+        assertThat(result).isEqualTo(new LegacyCutoverReconciliationResult(true, 71L, 1, 0, 0));
         ArgumentCaptor<CutoverTaskDO> target = ArgumentCaptor.forClass(CutoverTaskDO.class);
         verify(targetMapper).insert(target.capture());
         assertThat(target.getValue().getLegacyTaskId()).isEqualTo(91L);
@@ -73,6 +75,63 @@ class LegacyCutoverReconciliationServiceTest {
         assertThat(complete.getValue().expectedMappedCount()).isEqualTo(1);
         assertThat(complete.getValue().expectedIssueCount()).isZero();
         assertThat(complete.getValue().expectedRetainedCount()).isZero();
+    }
+
+    @Test
+    void completesDeterministicRetainedAndIssueDispositions() {
+        PlatformMigrationEvidenceApi migrationApi = mock(PlatformMigrationEvidenceApi.class);
+        ProjectOrganizationFactApi projectApi = mock(ProjectOrganizationFactApi.class);
+        LegacyCutoverReconciliationMapper reconciliationMapper = mock(LegacyCutoverReconciliationMapper.class);
+        CutoverTaskMapper targetMapper = mock(CutoverTaskMapper.class);
+        MigrationBatchFact batch = new MigrationBatchFact(72L, 1L, "CUT",
+                "CUTOVER_TASK_CURRENT_FORWARD", "release-2", "NPDMS_LEGACY", "pms_cut_task",
+                MigrationBatchStatus.RECONCILING, 3, 0, 0, 0, null, 5,
+                LocalDateTime.of(2026, 8, 31, 5, 0));
+        List<MigrationSourceRecordFact> sources = List.of(
+                source(82L, 72L, "92"), source(83L, 72L, "93"), source(84L, 72L, "94"));
+        CutTaskDO deleted = legacyTask();
+        deleted.setId(92L);
+        deleted.setDeleted(true);
+        CutTaskDO invalid = legacyTask();
+        invalid.setId(93L);
+        invalid.setCode(" ");
+        CutTaskDO conflict = legacyTask();
+        conflict.setId(94L);
+        conflict.setCode("CUT-94");
+
+        when(migrationApi.claimStagedBatch(any())).thenReturn(new MigrationBatchClaimResult(true, batch));
+        when(migrationApi.pageSourceRecords(any())).thenReturn(new MigrationSourceRecordPage(sources, null));
+        when(reconciliationMapper.selectSourceForUpdate(any())).thenReturn(deleted, invalid, conflict);
+        ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5, 200L, 300L, "OFFICE-300");
+        when(projectApi.inspect(any())).thenReturn(project);
+        when(projectApi.lockAndRevalidate(any())).thenReturn(project);
+        when(reconciliationMapper.countTargetIdentityConflicts(any())).thenReturn(1L);
+
+        LegacyCutoverReconciliationResult result = new LegacyCutoverReconciliationService(migrationApi, projectApi,
+                reconciliationMapper, targetMapper, new LegacyCutoverRowConverter()).reconcileNext(1L, "corr-classify");
+
+        assertThat(result).isEqualTo(new LegacyCutoverReconciliationResult(true, 72L, 0, 2, 1));
+        ArgumentCaptor<AppendExternalMappingCommand> retained =
+                ArgumentCaptor.forClass(AppendExternalMappingCommand.class);
+        verify(migrationApi).appendExternalMapping(retained.capture());
+        assertThat(retained.getValue().resultType().name()).isEqualTo("RETAINED");
+        ArgumentCaptor<AppendMigrationIssueCommand> issues =
+                ArgumentCaptor.forClass(AppendMigrationIssueCommand.class);
+        verify(migrationApi, org.mockito.Mockito.times(2)).appendMigrationIssue(issues.capture());
+        assertThat(issues.getAllValues()).extracting(AppendMigrationIssueCommand::issueType)
+                .containsExactly("SOURCE_DATA_INVALID", "TARGET_IDENTITY_CONFLICT");
+        ArgumentCaptor<CompleteReconciliationCommand> complete =
+                ArgumentCaptor.forClass(CompleteReconciliationCommand.class);
+        verify(migrationApi).completeReconciliation(complete.capture());
+        assertThat(complete.getValue().expectedMappedCount()).isZero();
+        assertThat(complete.getValue().expectedIssueCount()).isEqualTo(2);
+        assertThat(complete.getValue().expectedRetainedCount()).isEqualTo(1);
+    }
+
+    private static MigrationSourceRecordFact source(Long sourceRecordId, Long batchId, String sourcePk) {
+        return new MigrationSourceRecordFact(sourceRecordId, 1L, batchId,
+                "NPDMS_LEGACY", "pms_cut_task", sourcePk, "CUT-" + sourcePk, "{}", "0".repeat(64),
+                LocalDateTime.of(2026, 8, 31, 5, 1), null);
     }
 
     private static CutTaskDO legacyTask() {

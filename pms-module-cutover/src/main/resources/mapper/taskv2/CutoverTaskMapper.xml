@@ -41,13 +41,4 @@
           AND task_status = 'GRADE_CONFIRMING'
           AND deleted = b'0'
     </update>
-
-    <select id="countLegacyIdentityConflicts" resultType="long">
-        SELECT COUNT(1)
-        FROM cut_task
-        WHERE tenant_id = #{query.tenantId}
-          AND deleted = b'0'
-          AND ((project_id = #{query.projectId} AND task_no = #{query.taskNo})
-            OR legacy_task_id = #{query.legacyTaskId})
-    </select>
 </mapper>
