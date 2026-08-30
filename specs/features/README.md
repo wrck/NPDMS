@@ -22,6 +22,7 @@
 | [F-PLT-002](F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) | 共享动态表单模板与实例基础能力 | SOL-01（主）、PRE-04/PM-03/PM-11（支撑） | BASELINE（业务实例API聚焦修订） | READY（原基础闭环GO保留；聚焦修订GO见`4d04dbd63bbd01683416563bece31da6cd53f849`） | IMPLEMENTATION_COMPLETE（基础闭环NPDMS `0ce68d04`；跨Context增量待F-SOL-003整体实施） |
 | [F-CUS-001](F-CUS-001-customer-master-and-local-lifecycle.md) | 客户主档与本地生命周期 | CUS-03（V1） | BASELINE | READY（`SPEC-FCUS001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `31834bc6`；受控验收种子、真实MySQL、稳定幂等、权限负向、删除恢复、真实浏览器与合并后代码审查通过） |
 | [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `a9f8b7c5`；自动化、真实MySQL、查询计划、真实浏览器与合并后复审通过） |
+| [F-COM-001](F-COM-001-contract-order-and-delivery-scope.md) | 合同订单副本与交付范围管理 | COM-01（V1） | DRAFT | NOT_READY / REVIEW_REQUIRED | NOT_STARTED |
 | [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | IMPLEMENTATION_COMPLETE（`NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-02`） |
 | [F-IMP-001](F-IMP-001-implementation-readiness-snapshot.md) | 割接上线实施就绪快照 | EXE-06（V1，PARTIAL） | DRAFT | NOT_READY（F-IMP-003～005及AST支撑契约待Ready评审） | NOT_STARTED |
 | [F-IMP-002](F-IMP-002-arrival-acceptance.md) | 到货签收与里程碑事实 | EXE-01（V1） | BASELINE | READY / GO（`4b5a2ac9`） | NOT_STARTED |
