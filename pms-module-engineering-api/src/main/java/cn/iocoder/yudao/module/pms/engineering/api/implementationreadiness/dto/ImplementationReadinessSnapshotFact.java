@@ -27,8 +27,8 @@ public record ImplementationReadinessSnapshotFact(
         if (new HashSet<>(unmetCodes).size() != unmetCodes.size()
                 || unmetCodes.stream().anyMatch(code -> code == null || code.isBlank()
                 || !code.equals(code.trim()) || code.length() > 64 || !code.matches("[A-Z][A-Z0-9_]*"))
-                || decision == Decision.READY && !unmetCodes.isEmpty()
-                || decision == Decision.NOT_READY && unmetCodes.isEmpty()) {
+                || decision == Decision.READY && (!context.isReady() || !unmetCodes.isEmpty())
+                || decision == Decision.NOT_READY && (context.isReady() || unmetCodes.isEmpty())) {
             throw ImplementationReadinessContextFact.corrupted("invalid readiness snapshot unmet codes");
         }
     }
