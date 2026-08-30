@@ -36,8 +36,10 @@
     },
     "com_sales_order_contract_relation": {
       "policy": "NEW_FORWARD_SUPPORT_TABLE",
-      "columns": {"sales_order_id":"BIGINT NOT NULL","contract_id":"BIGINT NOT NULL","relation_status":"VARCHAR(16) NOT NULL","source_system":"VARCHAR(32) NOT NULL","source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(64) NOT NULL","source_evidence":"JSON NOT NULL","effective_from":"DATETIME(3) NOT NULL","effective_to":"DATETIME(3) NULL"},
-      "uniqueKeys": [["tenant_id","source_system","source_key"],["tenant_id","sales_order_id","contract_id","effective_from"]],
+      "columns": {"sales_order_id":"BIGINT NOT NULL","contract_id":"BIGINT NOT NULL","relation_status":"VARCHAR(16) NOT NULL","source_system":"VARCHAR(32) NOT NULL","sales_order_source_key":"VARCHAR(128) NOT NULL","contract_source_key":"VARCHAR(128) NOT NULL","source_version":"VARCHAR(64) NOT NULL","source_evidence":"JSON NOT NULL","effective_from":"DATETIME(3) NOT NULL","effective_to":"DATETIME(3) NULL"},
+      "uniqueKeys": [["tenant_id","source_system","sales_order_source_key","contract_source_key"],["tenant_id","sales_order_id","contract_id","effective_from"]],
+      "sourceIdentity": "tenantId+sourceSystem+salesOrderSourceKey+contractSourceKey; both normalized keys are stored verbatim and are never concatenated, truncated or hashed",
+      "immutableOwnerFields": ["source_system","sales_order_source_key","contract_source_key"],
       "checks": ["relation_status IN relationStatus", "effective_to IS NULL OR effective_to > effective_from"]
     },
     "com_project_contract_relation": {
@@ -121,7 +123,8 @@
       "relationFact": ["salesOrderSourceKey","contractSourceKey","expectedPreviousSourceVersion|null","sourceVersion","effectiveFrom","effectiveTo"],
       "atomicity": "one tenant/source batch is all-or-nothing; no per-item partial success",
       "versionDecisionOrder": [
-        "lock current object by tenant/sourceSystem/sourceKey",
+        "for contract, sales order and order line lock current object by tenant/sourceSystem/sourceKey",
+        "for order-contract relation lock current object by tenant/sourceSystem/salesOrderSourceKey/contractSourceKey",
         "if absent: expectedPreviousSourceVersion must be null, then create",
         "if incoming sourceVersion equals current sourceVersion: compare the frozen canonical owner payload before predecessor CAS; equal is OBJECT_REPLAY and different is SOURCE_VERSION_PAYLOAD_CONFLICT",
         "if incoming sourceVersion differs: expectedPreviousSourceVersion must exactly equal current sourceVersion, then update; otherwise SOURCE_VERSION_CONFLICT"

@@ -125,6 +125,23 @@ class CommercePublicContractTest {
     }
 
     @Test
+    void keepsOrderContractRelationIdentityAsTwoIndependentSourceKeys() {
+        String orderKey = "O".repeat(128);
+        String contractKey = "C".repeat(128);
+        CommerceOrderContractRelationFact relation = new CommerceOrderContractRelationFact(
+                " " + orderKey + " ", " " + contractKey + " ", null, "v1", NOW, null);
+        CommerceAuthorityBatchCommand command = new CommerceAuthorityBatchCommand(
+                1L, "event", "batch", "ERP", "wm", List.of(), List.of(), List.of(),
+                List.of(relation), NOW, "chain");
+
+        assertEquals(orderKey, command.orderContractRelations().getFirst().salesOrderSourceKey());
+        assertEquals(contractKey, command.orderContractRelations().getFirst().contractSourceKey());
+        assertThrows(CommerceAuthorityIngestException.class,
+                () -> new CommerceAuthorityBatchCommand(1L, "event", "batch", "ERP", "wm",
+                        List.of(), List.of(), List.of(), List.of(relation, relation), NOW, "chain"));
+    }
+
+    @Test
     void rejectsIncompleteOrDuplicateAuthorityBatchInput() {
         CommerceAuthorityIngestException empty = assertThrows(CommerceAuthorityIngestException.class,
                 () -> new CommerceAuthorityBatchCommand(1L, "event", "batch", "ERP", "wm",

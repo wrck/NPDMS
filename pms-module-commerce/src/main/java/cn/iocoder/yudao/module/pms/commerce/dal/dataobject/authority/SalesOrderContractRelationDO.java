@@ -19,7 +19,8 @@ public class SalesOrderContractRelationDO extends TenantBaseDO {
     private Long contractId;
     private String relationStatus;
     private String sourceSystem;
-    private String sourceKey;
+    private String salesOrderSourceKey;
+    private String contractSourceKey;
     private String sourceVersion;
     private String sourceEvidence;
     private LocalDateTime effectiveFrom;

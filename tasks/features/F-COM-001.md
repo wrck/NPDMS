@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2A公共合同及PLT物理Owner Provider/Schema已分别在`df27632e`、`8b41a096`通过独立Gate，状态`PASS / GO`；COM仅可消费`PlatformMigrationEvidenceApi`，不得直写PLT表。最近Gate为Task 3“ERP批次接收与Owner副本CAS”独立Code Review；下游生产依赖仍未解除。
+Task 2A已`PASS / GO`。Task 3实施前发现关系DTO双来源键与V143单一source_key不可同时执行，独立裁决采用双来源键方案；Task 3保持`BLOCKED_BY_SPEC`。最近Gate为关系二元来源身份Contract/Schema复审，通过前不写运行服务、不启动Task 8，也不解除下游依赖。
 
 ## Gate输入
 

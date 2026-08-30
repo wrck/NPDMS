@@ -289,6 +289,7 @@ F-PROJ-002另使用以下Owner公开契约：
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
 - `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：租户取受信上下文，项目须通过`ProjectScopeApi.ACTION_VIEW`。期望版本为null时只读inspect；非null时按项目水位→订单行→范围→明细稳定锁序重验。返回行按`scopeId+scopeDetailId`分组并稳定排序，不聚合不同产品/型号/地点；明确SN用`trim + Locale.ROOT uppercase`比较，有SN时数量等于SN数。待核对、取消、退货或释放量排除，但存在任一未解决冲突时整体失败关闭。持久项目水位覆盖空结果，版本陈旧、冲突、Owner损坏及Provider不可用分别返回稳定分类；
+- `CommerceAuthorityIngestApi.ingestBatch(command)`：合同、销售订单和订单行按受信tenant+sourceSystem+sourceKey执行版本判定；订单—合同关系按受信tenant+sourceSystem+salesOrderSourceKey+contractSourceKey执行同一版本判定。关系双来源键各自为1～128字符并原样传递，不提供、拼接或推导独立relation sourceKey。
 - `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
 - `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
 

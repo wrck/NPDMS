@@ -113,7 +113,7 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 ### 5.2 跨Context契约
 
 - 扩展既有`DeliveryScopeApi`新增`getAssignedScope(projectId, expectedScopeVersion)`；返回稳定DTO，不暴露DO、来源正文或内部状态。
-- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。来源版本是1～64字符、批次水位是1～128字符的不透明规范字符串，禁止数字或字典序比较。锁定对象后按固定顺序判定：当前不存在时仅expected前驱为null可创建；incoming版本等于当前版本时先比较冻结规范载荷，同载荷为`OBJECT_REPLAY`、异载荷永久冲突，不执行前驱CAS；版本不同时才要求expected前驱精确命中当前版本后更新。全对象重放返回`ACCEPTED_NO_CHANGE`，重放与创建/更新混合且无冲突返回`ACCEPTED`；任一冲突全批回滚。新event可完成自身幂等/审计，但对象重放不改Owner、范围版本或业务Outbox。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
+- ERP集成Owner只通过`CommerceAuthorityIngestApi.ingestBatch`提交受信租户、eventId/batchId、来源水位、合同/订单/订单行/关系精确DTO、发生时间和correlationId。来源版本是1～64字符、批次水位是1～128字符的不透明规范字符串，禁止数字或字典序比较。合同、订单、订单行按`tenantId+sourceSystem+sourceKey`定位；订单—合同关系按`tenantId+sourceSystem+salesOrderSourceKey+contractSourceKey`定位，两个来源键分别原样持久化，禁止拼接、截断或哈希。锁定对象后按固定顺序判定：当前不存在时仅expected前驱为null可创建；incoming版本等于当前版本时先比较冻结规范载荷，同载荷为`OBJECT_REPLAY`、异载荷永久冲突，不执行前驱CAS；版本不同时才要求expected前驱精确命中当前版本后更新。全对象重放返回`ACCEPTED_NO_CHANGE`，重放与创建/更新混合且无冲突返回`ACCEPTED`；任一冲突全批回滚。新event可完成自身幂等/审计，但对象重放不改Owner、范围版本或业务Outbox。网络连接、认证、轮询、传输重试和外部对账仍由INT-01负责。
 - PROJ资格复用正式公开事实；AST地点/SN校验复用正式公开API。不得降级为直接跨表查询。
 
 ### 5.3 事件
@@ -153,6 +153,8 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 - `AC-FCOM001-009`：旧来源只迁移可证明行，不可迁行有明确问题证据；旧CRM页面和F-PROJ-002既有接口保持可用。
 - `AC-FCOM001-010`：真实MySQL验证唯一键、锁序、版本、Outbox和迁移；真实浏览器完成来源确认→分配→当前范围读取的正向闭环及四档响应式。
 - `AC-FCOM001-011`：完成不宣称INT-01连接器、COM-02、V2自动指派、ACC/IMP业务状态、外部联调或Release完成。
+
+订单—合同关系来源身份的运行实现继续`BLOCKED_BY_SPEC`，直至双来源键前向物理合同通过独立Contract/Schema Gate；该阻断不回退Feature Ready或已通过Technical Plan。
 
 ## 9. Feature Ready Gate
 

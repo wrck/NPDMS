@@ -452,6 +452,8 @@ F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯�
 
 新增`com_authority_candidate`保存`PLATFORM_MANUAL`的合同/订单/行候选：不可变来源键、版本、payload和证据，状态限定`PENDING_RECONCILIATION/MATCHED/REJECTED`；MATCHED只引用已存在的CONFIRMED ERP Owner表/id/sourceVersion，不把候选晋升为权威主档。新增`com_delivery_scope_project_version`以`uk(tenant_id,project_id)`保存不可删除的项目`scope_version`，任何当前集合、返回载荷、冲突或清空变化在同一事务只递增一次。当前关系与当前范围分别通过显式current marker唯一键约束；SN明细数量固定为1，规范化SN在当前项目/订单行范围唯一。
 
+`com_sales_order_contract_relation`的ERP来源身份为`tenant_id+source_system+sales_order_source_key+contract_source_key`；两个来源键均为`VARCHAR(128)`并原样持久化，禁止压入单一`source_key`、截断或哈希。关系的`source_version`、有效区间及前驱CAS均从该完整身份读取；内部`sales_order_id/contract_id`只作Owner引用，不替代来源身份。
+
 预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
