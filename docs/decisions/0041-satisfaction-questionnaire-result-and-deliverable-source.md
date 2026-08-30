@@ -3,6 +3,7 @@
 > 状态：`ACCEPTED`<br>
 > Result失效命令补充：`ACCEPTED`（整改提交`c1e7354c`独立复审GO）<br>
 > Result生成文件Owner补充：`ACCEPTED`（整改提交`afa37d66`独立复审GO）<br>
+> 可配置问卷与确定性计分补充：`PROPOSED_FOR_INDEPENDENT_REVIEW`（PRD修订010）<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-02@V1`、`ACC-04@V1`（仅满意度来源）<br>
 > 前置批准：F-ACC-002边界与最近Gate定位独立裁决GO（基线`7f3e3c62`）
@@ -32,6 +33,11 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 15. Result失效与`SatisfactionResultVersionChanged(changeType=INVALIDATED)`通过`PlatformCommandExecutionApi`同一ACC事务提交；事件冻结失效原因、操作者和时间。ACC-04投影处理任何`RECORDED`前必须以Result ID/version调用`SatisfactionResultFactApi`重验ACC Owner当前事实：只有该精确版本仍为EFFECTIVE且passed、且不存在更新的当前Result时才能置CURRENT；若已INVALIDATED或已有更新结果，延迟/重试的旧RECORDED只能幂等保留为非当前历史和历史归档输入，不得设置或恢复根当前指针。INVALIDATED仅在应交根当前指针仍指向该Result及版本时清空指针并把来源关系置`REVOKED`，不得清除更新来源。历史来源、ACTIVE文件引用及既有归档记录保持可下载，待补偿的该来源仍可完成历史归档。Result事务提交后`SatisfactionResultFactApi`立即返回INVALIDATED，未来CLO/SUB消费者必须重验Owner事实。整改重收继续以该INVALIDATED Result追加RemediationFact和下一revision。
 16. PLT在现有`FileArtifactApi`加性公开`createGeneratedBusinessFile`，仅供ACC生成`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`。命令冻结当前租户、Result形成时当前责任人`actorUserId`、稳定`operationId`、精确目标键、`scopeVersion`、安全文件元数据及受大小限制的服务端生成内容；actor、目标和scopeVersion不得由客户、Job线程或伪造Web登录上下文覆盖。PLT以`MANDATORY`加入ACC判定外层MySQL事务，按actor重验既有`pms:file:upload`、租户和FileBusinessScope，复用现有内容类型/大小/SHA-256/扫描、对象存储、Artifact/Version/Reference及审计链并返回唯一`FileArtifactVersionFact`。同Result只允许一条RESULT_DOCUMENT；`operationId+规范化请求摘要`同载荷返回原事实、异载荷冲突。
 17. 生成内容写对象存储前，PLT复用现有`FileUploadSession`形成可补偿的持久会话和稳定operation绑定；Artifact/Version/Reference与ACC Result、ResultFile、成功幂等事实、Result Outbox在外层事务同成同败。若对象已写入而外层事务回滚，会话恢复为可重试/待补偿状态：同operation和摘要重用原会话及存储回执，不创建第二Artifact/Reference；放弃或校验失败由既有`FileUploadCompensationService`删除未引用对象并终止会话，清理失败继续可对账重试。PLT授权、范围、内容、存储或生成任一步失败时不得写Result、ResultFile、成功幂等事实或Result Outbox；已提交Response保持不变，Task保持`PENDING_DECISION`，允许同一业务意图重试。
+18. 模板修订的`frozen_question_json`使用唯一`schemaVersion=1`配置包：根只允许`schemaVersion/questions/scoring`；题目按顺序保存稳定`code/title/type/required`及类型参数，计分配置保存`ruleVersion/strategy/scoreMin/scoreMax/precision/roundingMode/threshold`。V1的scoreMin固定为0，scoreMax由题目分值及策略确定并在发布时校验；受控题型仅`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`，受控策略仅`SUM_V1/WEIGHTED_AVERAGE_V1`，舍入仅`HALF_UP/HALF_EVEN/DOWN`；不得执行脚本、表达式或客户端算法标识。
+19. `SINGLE_CHOICE`答案为一个optionCode；`MULTIPLE_CHOICE`答案为去重optionCode数组并受`minSelections/maxSelections`约束；`RATING`答案为一个受控等级code；三类题目的每个option保存稳定code/label及非负decimal score。`TEXT`答案为字符串并冻结`minLength/maxLength`，不参与计分。题目/option编码在修订内唯一；至少一题参与计分。
+20. `SUM_V1`把所有计分题得分相加且禁止配置weight；`WEIGHTED_AVERAGE_V1`要求每个计分题具有正weight，按`sum(questionScore*weight)/sum(weight)`计算。单选/量表题得分为所选option score，多选题得分为所选option score算术平均；未回答的可选计分题及缺失的必答计分题按0计入，文本题不进入公式。所有中间值使用十进制精确运算，只在最终总分按`precision(0..2)`和`roundingMode`舍入一次，再以舍入后值与threshold比较；必答缺失或签字无效时无论分数均`passed=false`。
+21. 模板发布必须验证配置包字段封闭、编码唯一、类型参数完整、ruleVersion非空、option与非负score合法、SUM无weight、加权策略weight完整、precision/roundingMode受控；`SUM_V1.scoreMax`必须等于各计分题最大option score之和，`WEIGHTED_AVERAGE_V1.scoreMax`必须等于各计分题最大option score的加权平均，threshold必须位于0..scoreMax。失败保持DRAFT且不得由默认值补齐。发布后配置包不可改。Questionnaire规范化后完整冻结该配置包，同时把`scoring.threshold`投影到`frozen_threshold`、把`scoring.ruleVersion`投影到`rule_version`；三者不一致即身份冲突。
+22. 客户答卷JSON根只允许`answers`，每项只允许`questionCode/value`；客户端不得提交score、passed、threshold、weight、strategy或option score。未知/重复题目、未知/重复选项、类型错误、越界选择或文本长度非法在Response写入前拒绝；结构合法但缺必答题时保存不可变Response并按第20条形成失败Result。相同Questionnaire配置和规范化答案必须产生相同score/passed。
 
 ## 状态、事务与锁序
 
@@ -59,7 +65,9 @@ PRD要求在项目冻结模板配置的业务时点形成满意度领域任务�
 | `acc_satisfaction_result_file` | 新建结果文档及冻结来源文件集合 | role=`RESULT_DOCUMENT/SIGNATURE/ATTACHMENT`；完整有序PLT公共文件事实 |
 | `acc_project_deliverable*` | 直接复用F-ACC-001根、来源版本、来源附件和补偿字段 | 仅精确`deliverable_code=D-SAT-REPORT/task_code=T-SAT-SURVEY`且同租户同项目的唯一根接受`source_object_type=SatisfactionResult`；当前指针只指有效达标结果，根缺失/重复/错配失败关闭 |
 
-当前核心DDL不原地修改；未来Technical Plan只能创建新的前向Flyway。P3-E09结论为`FEATURE_FORWARD_DELTA_REQUIRED`，本ADR获独立GO前不得创建Feature Spec。
+可配置问卷补充不新增表或列：`acc_satisfaction_questionnaire_template_revision.frozen_question_json`与`acc_satisfaction_questionnaire.frozen_question_json`承载相同完整配置包，现有`frozen_threshold/rule_version`为强一致投影，Result继续保存最终`score/threshold/rule_version`。P3-E09结论为`NO_STRUCTURAL_DELTA / FORWARD_MANAGED_SEED_REVISION_REQUIRED`：已提交或执行的V133保持不可变；后续前向迁移只对V133精确受管且当前PUBLISHED的三组根追加revision 2完整配置、关闭旧revision 1有效区间并原子更新current_revision_id，旧行保留且普通业务模板不参与。停用种子不提升为发布配置，部分命中或身份冲突整批失败。
+
+当前核心DDL不原地修改；未来Technical Plan只能创建新的前向Flyway。原F-ACC-002总体P3-E09仍为`FEATURE_FORWARD_DELTA_REQUIRED`；本补充仅为`NO_STRUCTURAL_DELTA / FORWARD_MANAGED_SEED_REVISION_REQUIRED`。当前补充获独立GO前不得同步Feature/Technical Plan或实现。
 
 ## 旧载体复用与迁移判定
 

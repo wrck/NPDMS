@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "BASELINE",
   "baseline": "PRD_V1.8",
-  "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
+  "implementationRepo": "M:\\AICoding\\CodexData\\worktrees\\fcom\\NPDMS",
   "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
@@ -2009,7 +2009,7 @@
           "sourceType": "NONE_NEW",
           "sourceObject": "SatisfactionCollection",
           "disposition": "NEW_ONLY",
-          "transform": "F-ACC-002 creates template revisions, controlled grants, immutable questionnaire/response/result/remediation facts and result files only from approved new-platform commands; first task freezes the original source fact, remediation keeps that source and uses an immutable ACC remediation fact for the next task revision; only the exact same-tenant/project T-SAT-SURVEY to D-SAT-REPORT root accepts a passing result source",
+          "transform": "F-ACC-002 creates template revisions, controlled grants, immutable questionnaire/response/result/remediation facts and result files only from approved new-platform commands; a published schemaVersion=1 configuration freezes controlled question types, answer schema and deterministic scoring; first task freezes the original source fact, remediation keeps that source and uses an immutable ACC remediation fact for the next task revision; only the exact same-tenant/project T-SAT-SURVEY to D-SAT-REPORT root accepts a passing result source; V133 managed PUBLISHED seed revisions are preserved and replaced only by exact forward revision-2 seed configuration, never by rewriting V133 or converting ordinary rows",
           "mappingStatus": "NEW_ONLY",
           "gate": "F-ACC-002",
           "evidenceRef": "phase2-contract://object=SatisfactionCollection"

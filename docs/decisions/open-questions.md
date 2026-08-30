@@ -210,7 +210,7 @@
 
 ### Q-FACC-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: ACC-02
 - Area: F-ACC-002满意度答卷结构与确定性计分规则
 - Question: V1支持哪些题型，冻结题目与答卷JSON采用什么唯一结构；每题分数、总分/归一化公式、阈值量纲、精度和舍入规则是什么；`weight`是否参与计分；必答缺失与其他非法答案分别拒绝提交还是形成未通过Result？
@@ -218,9 +218,9 @@
 - Options: A. 明确V1题型、选项/答案值域及服务端确定性计分契约；B. 需求方指定另一套完整且可判定的题型、答案和计分规则；C. 暂停F-ACC-002的判定与Result形成路径。
 - Recommended technical default: 无。题型、分值与计分公式直接决定客户答卷合法性及CLO/SUB可消费结果，必须由需求方确认。
 - Business decision required: 是。须逐项确认题型与JSON结构、分数来源与总分公式、精度/舍入及阈值比较时点、`weight`语义、各类无效答案的业务结果。
-- Resolution: 需求方已确认业务方向：ACC-02建设可配置问卷基础能力，具体题目、答案Schema、分值、权重、计分策略、精度/舍入和阈值由发布模板修订配置并冻结，不在方案阶段预设。修订010独立审批GO前仍保持`BLOCKED_BY_SPEC`；已提交Response保持不变，SatisfactionTask保持`PENDING_DECISION`。
+- Resolution: 修订010已获独立PRD Baseline Gate `GO`。ACC-02建设可配置问卷基础能力，具体题目、答案Schema、分值、权重、计分策略、精度/舍入和阈值由发布模板修订配置并冻结，不在方案阶段预设；具体受控目录、算法和载荷契约进入下一SDS/P3-E09 Gate。SDS GO前已提交Response保持不变，SatisfactionTask保持`PENDING_DECISION`。
 - Decision owner: 需求方；ACC业务Owner参与影响分析
-- Decision date: 2026-08-30（待独立基线审批）
+- Decision date: 2026-08-30
 
 ### Q-FPROJ-001
 

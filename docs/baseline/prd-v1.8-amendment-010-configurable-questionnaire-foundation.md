@@ -2,7 +2,7 @@
 
 > 修订编号：`CHG-PRD-2026-08-30-010`<br>
 > 确认日期：2026-08-30<br>
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`（独立裁决 `c69a53a4`）<br>
 > 前置基线：`CHG-PRD-2026-08-29-009`
 
 ## 1. 权威来源

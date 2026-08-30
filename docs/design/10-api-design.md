@@ -208,12 +208,14 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
 | `/project-closures` | `create`、`submit`、`review`、`complete` | complete 发布事件请求 Project 关闭，不直写 Project 表 |
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
+| `/satisfaction-questionnaire-templates`、`/satisfaction-questionnaire-templates/{id}/revisions` | GET/POST | `query`读取根和修订；`manage`创建根/草稿修订。修订命令携带五维适用条件、优先级和唯一`schemaVersion=1`配置包，不接受PUBLISHED状态、current指针或服务端审计字段 |
+| `/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish` | POST | `manage`权限、expectedRevisionVersion和Idempotency-Key；服务端验证受控题型/策略/舍入、封闭Schema、编码唯一、分值/weight/threshold可判定及五维歧义后原子发布修订并切换根指针，失败保持DRAFT |
 | `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；领域任务只由受信业务时点初始化，不提供任意公共create |
 | `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result、`remediationRequestId`和整改证据，在ACC事务内先形成不可变`SatisfactionRemediationFact`，再以该Fact为新trigger创建同collectionKey的`taskRevisionNo+1` Task/Questionnaire；source仍为首任务原始业务Fact。同整改request/Fact同载荷重放返回原revision，异载荷冲突，不回退旧状态 |
 | `/satisfaction-tasks/{id}/access-grants` | POST | 创建V1受控链接；二维码仅表示同一链接；令牌只返回一次，库内仅存摘要，V2自动发送不在本Feature实现 |
 | `/satisfaction-questionnaires/{token}` | GET | 令牌只读返回唯一ACTIVE问卷的冻结题目和必要展示事实，不返回项目其他数据或内部规则实现 |
 | `/satisfaction-questionnaires/{token}/files` | init-upload、complete-upload | ACC先验证ACTIVE grant及版本，再调用PLT受信业务授权上传；只允许签字/附件目标和安全元数据 |
-| `/satisfaction-questionnaires/{token}/responses` | POST | 按问卷+requestId幂等提交；必答、签字、文件范围和阈值服务端判定，客户不能覆盖旧答案 |
+| `/satisfaction-questionnaires/{token}/responses` | POST | 请求体答案仅允许`{"answers":[{"questionCode":"...","value":...}]}`；按问卷+requestId幂等提交。单选/评分value为code，多选为去重code数组，文本为字符串；服务端按冻结配置校验和判定，客户不能提交score/passed/threshold/weight/strategy或覆盖旧答案 |
 | `/satisfaction-tasks/{id}/assisted-responses` | POST | 已认证项目成员现场协助，仍保存客户联系人和签字事实；不得把协助人冒充客户 |
 | `/satisfaction-results` | GET、export | 只读Result；导出按项目、字段、文件与租户裁剪并保存条件/范围/文件/下载审计 |
 | `/satisfaction-results/{id}/actions/invalidate` | POST | ACC Owner失效当前有效达标Result；要求`pms:acceptance:satisfaction:manage`、`ProjectScopeApi(PROJECT_EDIT)`、`expectedResultVersion`、非空失效原因和`Idempotency-Key`。只关闭Result区间并写失效审计/Outbox，不重开或改写Task、Questionnaire、Response和历史文件 |
@@ -227,6 +229,8 @@ F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download
 `invalidate`只接受服务端认证用户，tenant/actor不从请求体读取。ACC先以PROJ `ProjectScopeApi`按`PROJECT_EDIT`重验项目范围，再按Task链→Result锁序校验该Result为当前`EFFECTIVE + passed`且`expectedResultVersion`一致；在同一`PlatformCommandExecutionApi`事务中将其置`INVALIDATED`、关闭`effective_to`、清空current marker、保存`invalidation_reason_code`、可选原因摘要、操作者和时间并写`SatisfactionResultVersionChanged(INVALIDATED)` Outbox。旧Task状态、Questionnaire、Response、评分、签字和文件事实均保持不变；整改必须另走`recollect`新建revision。相同幂等键同载荷返回原结果，异载荷冲突；非当前、版本/范围冲突或Provider不可用时零写入。来源投影对称处理失效事件乱序与旧RECORDED重试：INVALIDATED只能撤销仍指向该Result版本的当前指针；旧RECORDED重试置CURRENT前必须按Result ID/version调用`SatisfactionResultFactApi`重验，已INVALIDATED或已有更新当前Result时只保留非当前历史及归档资格，不得恢复根指针。
 
 ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；`SatisfactionTaskInitializationApi.initialize`以MANDATORY加入首次触发事务并回查`ProjectWorkBindingFactApi`，首次输入为原始source/trigger Fact，ACC返回分配的collectionKey/taskRevisionNo；整改不复用外部初始化接口，而由ACC `recollect`以不可变`SatisfactionRemediationFact`创建下一revision；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
+
+模板配置包与判定契约固定如下：`scoring.ruleVersion`是该修订的不可变规则身份并投影到`rule_version`；题型目录为`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`；策略目录为`SUM_V1/WEIGHTED_AVERAGE_V1`；舍入目录为`HALF_UP/HALF_EVEN/DOWN`且precision为0..2。选项score、weight、scoreMin/scoreMax和threshold均使用可无损转`DECIMAL(7,2)`的十进制字符串，scoreMin固定0；scoreMax按策略由各题最大option score确定，threshold必须位于0..scoreMax。`SUM_V1`禁止weight并求计分题之和；`WEIGHTED_AVERAGE_V1`要求全部计分题正weight并计算加权平均；多选题取所选option score平均。未答计分题为0，文本题不计分；最终仅舍入一次，舍入后比较threshold，必答或签字门禁失败强制passed=false。模板公共GET向客户只返回code/title/type/required、option code/label及输入约束，不返回option score、weight、策略或threshold。
 
 ACC-04满意度来源投影的输入固定携带`projectId/projectTaskId/taskRevisionNo/collectionKey/resultId/resultVersion`。投影必须通过PROJ Owner重验该任务稳定码为`T-SAT-SURVEY`，并精确锁定同租户同项目`deliverable_code=D-SAT-REPORT`且`task_code=T-SAT-SURVEY`的唯一`acc_project_deliverable`根；缺失、重复或身份不一致返回稳定DEPENDENCY/IDENTITY错误并保留待补偿，不按名称或其他根降级。
 

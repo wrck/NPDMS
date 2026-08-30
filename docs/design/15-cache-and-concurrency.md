@@ -188,6 +188,8 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 合同公司scope撤权/到期、同公司多scope去重、Owner不可用及关系写前版本重验；任何场景不得因缓存继续返回合同或写关系。
 - 满意度模板解析零/多匹配、同一业务时点重复触发、同一整改Fact重放/异载荷冲突、collectionKey内taskRevision并发递增、同一问卷同requestId重放/异载荷冲突、访问授权并发消费、Result当前唯一/按expectedVersion失效、RECORDED/INVALIDATED双向乱序保护、精确`T-SAT-SURVEY→D-SAT-REPORT`根锁定及归档补偿；不得用缓存授权令牌、项目范围、应交根身份或当前达标结果。
 
+满意度模板发布固定锁序为Template根→目标DRAFT修订→相同五维当前PUBLISHED候选；以expectedRevisionVersion和Idempotency-Key单胜。校验与规范化配置在取写锁前完成，锁内重验完整配置摘要对应的结构化值、DRAFT状态、五维范围和并列优先级，再发布并切换根指针；不得缓存未发布配置或在Questionnaire创建时重新解释已变化的模板。答卷判定只读取Questionnaire冻结配置，在已固定的AccessGrant→Task→Questionnaire锁链内规范化答案；客户端传入的任何计分字段不得进入幂等摘要或判定输入。
+
 F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire；客户提交为ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox；失效为PROJ ProjectScope重验→ACC Task链→当前Result→Outbox；归档为ACC交付件根/来源版本→PLT结果文件集合/归档集合→ACC归档投影。失效以Result expectedVersion和current marker单胜；RECORDED消费置CURRENT前重验Owner版本与当前状态，INVALIDATED消费只撤销仍指向该版本的根，双向乱序均保持来源指针单调。首个PLT文件锁取得后不得回调PROJ改变业务时点，归档网络/对象存储步骤不得持有长事务锁。
 
 Result判定在锁定Task/Questionnaire/Response并取得ProjectScope事实后，先以稳定operation调用PLT生成文档，再写Result/ResultFile/Outbox；`createGeneratedBusinessFile`以MANDATORY加入同一MySQL事务。对象存储写入不延长反向Owner锁序：PLT不得在取得文件锁后回调PROJ。并发同Result只允许一个RESULT_DOCUMENT引用；同operation同摘要复用FileUploadSession/回执，异摘要冲突，外层回滚由会话补偿未引用对象。

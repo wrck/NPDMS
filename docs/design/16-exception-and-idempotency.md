@@ -217,11 +217,14 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 
 | 场景 | 分类与失败行为 |
 |---|---|
+| 模板配置未知字段/题型/策略/舍入、重复编码、类型参数缺失、非法decimal/weight/threshold或无法确定计分 | BUSINESS_GATE；修订保持DRAFT，根current指针不变，不用默认值修复 |
+| 模板发布expectedVersion冲突、同幂等键异配置或五维最高优先级并列 | VERSION_CONFLICT / IDEMPOTENCY_CONFLICT / BUSINESS_GATE；不发布、不覆盖旧修订 |
 | ACC模板解析零匹配、并列最高优先级或发布版本漂移 | BUSINESS_GATE / VERSION_CONFLICT；项目创建或任务触发整体失败，不选默认模板 |
 | 业务时点Owner未知、ProjectTask/WorkBinding身份或触发版本不一致 | DEPENDENCY_UNAVAILABLE / VERSION_CONFLICT；Task、Questionnaire和Todo零写入 |
 | 访问令牌缺失、过期、撤销、已消费或Questionnaire不匹配 | BUSINESS_GATE；不泄露问卷/项目存在性，不写文件、答卷或结果 |
+| 答卷含未知/重复题目、未知/重复选项、类型错误、选择数量越界、文本长度非法或客户端计分字段 | BUSINESS_GATE；在Response、文件关系和Result写入前拒绝，零业务写入 |
 | 同questionnaire+requestId同载荷重放/异载荷 | 返回首次Result / IDEMPOTENCY_CONFLICT；不得追加第二Response或Result |
-| 必答缺失、签字无效、附件范围不一致或评分未达阈值 | 追加不可变失败Result并保持旧事实；不得人工改分或将Todo完成当通过 |
+| 结构合法但必答缺失、签字无效、附件范围不一致或最终舍入分数未达冻结阈值 | 保存不可变Response并追加失败Result；未答计分题按0，必答/签字门禁强制passed=false；不得人工改分或将Todo完成当通过 |
 | Result与结果文档已经共同提交后，来源投影或归档失败 | Result保持已形成，来源为PENDING_COMPENSATION；不误写ARCHIVED，不删除ACTIVE历史下载引用；该规则不适用于Result文档生成失败或对象已写后ACC外层事务回滚 |
 | Result文档生成前的PLT授权/范围/内容/存储失败 | Response保持已提交、Task保持PENDING_DECISION；Result、ResultFile、成功幂等事实和Result Outbox零写入，使用同一业务意图重试 |
 | Result文档对象已写但ACC外层事务回滚 | FileUploadSession保持可重试/待补偿；同operation同摘要复用存储回执，不创建第二Artifact/Reference；放弃后由既有补偿删除未引用对象，清理失败继续对账重试 |
@@ -271,7 +274,7 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 - Outbox 重复、Inbox 重复、事件乱序；
 - 乐观锁冲突、非法状态、门禁失败；
 - 动态表单唯一草稿、不可变发布修订、停用/指针漂移、实例CAS、受控文件字段伪造及浏览器配置失败；
-- 满意度模板歧义、重复触发、令牌生命周期、客户提交幂等、签字/附件范围、失败判定、整改新版本、Result当前唯一和归档补偿；
+- 满意度模板配置发布、题型/策略目录、答案Schema、确定性计分与舍入阈值、模板歧义、重复触发、令牌生命周期、客户提交幂等、签字/附件范围、失败判定、整改新版本、Result当前唯一和归档补偿；
 - 外部超时但实际成功、部分失败、永久拒绝、恢复后对账；
 - 日志/错误/事件/缓存/数据库敏感字段扫描；
 - 批量逐项结果和人工补偿。
