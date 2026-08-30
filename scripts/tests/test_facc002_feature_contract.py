@@ -76,6 +76,10 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     if generated.get("transactionPropagation") != "MANDATORY" or \
             generated.get("actor") != "RESULT_CURRENT_ASSIGNEE_SERVER_FROZEN" or \
             generated.get("permission") != "pms:file:upload" or \
+            generated.get("policyQuery") != "GeneratedBusinessFilePolicyRevalidationQuery" or \
+            generated.get("providerDispatch") != "ACC/SATISFACTION_RESULT_UNIQUE" or \
+            generated.get("inputs", [])[4:8] != ["collectionTaskId", "questionnaireId", "responseId", "expectedTaskVersion"] or \
+            "PROJECT_SCOPE_EDIT_TREE_VERSION_MATCH" not in generated.get("ownerRevalidation", []) or \
             generated.get("storageCompensation") != \
             "REUSE_FileUploadSession_AND_FileUploadCompensationService":
         errors.append("generated-result-document")

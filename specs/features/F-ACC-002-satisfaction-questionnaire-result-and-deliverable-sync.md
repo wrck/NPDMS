@@ -70,7 +70,7 @@
 
 - Response文件策略键固定为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`；Result使用持续ACTIVE的`SATISFACTION_RESULT_DOCUMENT`和独立ARCHIVED的`SATISFACTION_ARCHIVE`。
 - ACC只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，其中公共`sha256`精确映射到ACC物理列`file_hash`；不得把物理列名作为公共DTO/事件字段，也不得保存PLT内部FileVersion/FileReference主键。
-- ACC判定成功时以Result形成时当前责任人为actor，通过PLT `FileArtifactApi.createGeneratedBusinessFile`生成唯一不可变`SATISFACTION_RESULT_DOCUMENT`；接口以`MANDATORY`加入判定事务并重验`pms:file:upload`、租户和FileBusinessScope。actor、Result目标和`ProjectScopeApi.treeVersion`不得由客户、Job或伪造Web上下文覆盖。
+- ACC判定成功时以Result形成时当前责任人为actor，通过PLT `FileArtifactApi.createGeneratedBusinessFile`生成唯一不可变`SATISFACTION_RESULT_DOCUMENT`；接口以`MANDATORY`加入判定事务并重验`pms:file:upload`、租户和FileBusinessScope。命令仅由ACC服务端增加`collectionTaskId/questionnaireId/responseId/expectedTaskVersion`，并与operation摘要绑定且不得进入Controller。PLT以专用Provider查询把Owner链送达ACC Provider；Provider按Task→Questionnaire→Response锁序验证状态、版本、责任人、关系、无既有Result及预分配resultId未占用，再按Task.projectId重验`ProjectScopeApi(PROJECT_EDIT)`并要求treeVersion原样等于scopeVersion。actor、Result目标和scopeVersion不得由客户、Job或伪造Web上下文覆盖。
 - PLT复用FileUploadSession及既有上传补偿承接对象存储非事务性：同operation同摘要复用会话/回执，异摘要冲突；外层回滚不留下可见Artifact/Reference，放弃时删除未引用对象。生成失败时Response保持已提交、Task保持`PENDING_DECISION`，Result/ResultFile/成功幂等事实/Outbox零写入。
 - 有效达标Result发布`SatisfactionResultVersionChanged`。投影先由PROJ重验同租户同项目ProjectTask的稳定码为`T-SAT-SURVEY`，再锁定唯一`acc_project_deliverable(tenant,project,D-SAT-REPORT)`且要求根`task_code=T-SAT-SURVEY`。
 - 根缺失、重复或身份不一致保持`PENDING_COMPENSATION`；禁止按中文名称、其他交付件或任选根推断。归档失败不回滚Result、不破坏ACTIVE历史下载；成功才记`ARCHIVED`。

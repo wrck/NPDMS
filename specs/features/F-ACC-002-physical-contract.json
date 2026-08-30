@@ -106,7 +106,12 @@
       "businessGrantInputs":["grantId","grantVersion","responseId","policyKey","operationId","safeFileMetadata"],
       "generatedBusinessFile": {
         "target":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",
-        "inputs":["tenantId","actorUserId","operationId","resultId","scopeVersion","safeFileMetadata","boundedGeneratedContent"],
+        "inputs":["tenantId","actorUserId","operationId","resultId","collectionTaskId","questionnaireId","responseId","expectedTaskVersion","scopeVersion","safeFileMetadata","boundedGeneratedContent"],
+        "controllerInputsForbidden":["collectionTaskId","questionnaireId","responseId","expectedTaskVersion","resultId","scopeVersion","actorUserId"],
+        "requestDigestIncludes":["collectionTaskId","questionnaireId","responseId","expectedTaskVersion","resultId","scopeVersion","actorUserId"],
+        "policyQuery":"GeneratedBusinessFilePolicyRevalidationQuery",
+        "providerDispatch":"ACC/SATISFACTION_RESULT_UNIQUE",
+        "ownerRevalidation":["TASK_PENDING_DECISION_EXPECTED_VERSION_ASSIGNEE_NO_RESULT","QUESTIONNAIRE_BELONGS_TO_TASK","RESPONSE_BELONGS_TO_QUESTIONNAIRE","RESULT_ID_AND_TARGET_UNOCCUPIED","PROJECT_SCOPE_EDIT_TREE_VERSION_MATCH"],
         "actor":"RESULT_CURRENT_ASSIGNEE_SERVER_FROZEN",
         "permission":"pms:file:upload",
         "scope":"TENANT_PLUS_FileBusinessScope",

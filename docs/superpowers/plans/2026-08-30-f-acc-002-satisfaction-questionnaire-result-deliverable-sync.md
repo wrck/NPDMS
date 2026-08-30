@@ -146,7 +146,9 @@ FileArtifactVersionFact completeBusinessGrantUpload(
 ```java
 public record GeneratedBusinessFileCommand(
         Long tenantId, Long actorUserId, String operationId,
-        Long resultId, String ownerContext, String objectType,
+        Long resultId, Long collectionTaskId, Long questionnaireId,
+        Long responseId, Integer expectedTaskVersion,
+        String ownerContext, String objectType,
         String purposeCode, Long scopeVersion,
         String fileName, String contentType, byte[] content) {}
 
@@ -154,8 +156,8 @@ FileArtifactVersionFact createGeneratedBusinessFile(
         GeneratedBusinessFileCommand command);
 ```
 
-- ACC在判定事务开始前预分配`resultId`，命令目标只允许`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`；`ownerContext/objectType/purposeCode`必须精确为`ACC/SATISFACTION_RESULT/SATISFACTION_RESULT_DOCUMENT`，客户、Job和Controller请求体均不能覆盖。
-- `actorUserId`只能取Result形成时Task当前责任人，`scopeVersion`为`Long`且只能原样取同项目`ProjectScopeApi.treeVersion`，禁止截断、固定值或经Result版本转换。PLT在当前租户以SYSTEM `PermissionApi`重验actor的既有`pms:file:upload`，并通过ACC `FileBusinessObjectPolicyProvider`重验项目与文件范围；不得伪造Web登录上下文。
+- ACC在判定事务开始前预分配`resultId`，锁定Task→Questionnaire→Response后由服务端把`collectionTaskId/questionnaireId/responseId/expectedTaskVersion`写入命令；这些字段和resultId/actor/scopeVersion均不得进入Controller，并必须进入operation规范化摘要。命令目标只允许`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`；`ownerContext/objectType/purposeCode`必须精确为`ACC/SATISFACTION_RESULT/SATISFACTION_RESULT_DOCUMENT`。
+- `actorUserId`只能取Result形成时Task当前责任人，`scopeVersion`为`Long`且只能原样取同项目`ProjectScopeApi.treeVersion`，禁止截断、固定值或经Result版本转换。通用文件策略Query不变；新增`GeneratedBusinessFilePolicyRevalidationQuery`及Provider默认失败方法，Registry按`ACC/SATISFACTION_RESULT`唯一分派。ACC Provider在同一MANDATORY事务锁定并验证Task为PENDING_DECISION、版本/责任人/questionnaire/无Result，Questionnaire→Task与Response→Questionnaire关系、resultId/目标未占用，再用Task.projectId执行`ProjectScopeApi.lockAndRevalidate(PROJECT_EDIT)`并要求treeVersion及项目集合匹配。PLT同时以SYSTEM `PermissionApi`重验actor的既有`pms:file:upload`；不得伪造Web登录上下文。
 - Provider以`MANDATORY`加入ACC判定MySQL事务，复用现有内容类型/大小/SHA-256/扫描、私有存储、Artifact/Version/Reference和审计。只返回一个`FileArtifactVersionFact`；同Result第二条文档和同operation异规范化摘要均冲突。
 - 对象存储补偿顺序固定为四步：①内部`REQUIRES_NEW`先按`operationId+请求摘要`提交`FileUploadSession`预留；②另一个内部`REQUIRES_NEW`调用`FileStorageReceiptApi.store`，对象写入后把`infra_file`回执及session回执绑定一并提交，失败时保留已提交session供同operation检查/清理；③只有已提交回执存在时，Provider才以`MANDATORY`加入ACC外层事务创建Artifact/Version/Reference，随后ACC写Result/ResultFile/Outbox；④外层事务`afterCompletion`再以独立事务把session标记完成，或在回滚时恢复为可重放/待补偿。进程中断按持久session与回执恢复；放弃时由现有`FileUploadCompensationService`确认无已提交Version后删除未引用对象。不得让`FileStorageReceiptApi.store`参加外层事务后随回滚丢失`infra_file`回执，也不得生成第二文档。
 
