@@ -822,6 +822,10 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT",
             "SUM_V1/WEIGHTED_AVERAGE_V1",
             "最终总分仅按冻结precision/roundingMode舍入一次",
+            "1<=minSelections<=maxSelections<=options数量",
+            "0<=minLength<=maxLength",
+            "合法去重选择集合的option score算术平均最大值",
+            "最低选2项、option分值100/0的多选题最大可达分为50，threshold=80必须拒绝发布",
             "FORWARD_MANAGED_SEED_REVISION_REQUIRED",
         ),
         "10-api-design.md": (
@@ -866,6 +870,8 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "Provider暂时不可用或范围版本暂时未知",
             "Task记`REJECTED`",
             "模板配置未知字段/题型/策略/舍入",
+            "MULTIPLE_CHOICE的min/max倒置或超出options数量",
+            "TEXT的min/max倒置",
             "答卷含未知/重复题目",
         ),
     }
