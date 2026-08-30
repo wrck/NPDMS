@@ -90,6 +90,10 @@
 
 **Files:**
 
+- Modify: `docs/design/02d-cross-context-contracts.md`
+- Modify: `docs/design/10-api-design.md`
+- Modify: `specs/features/F-COM-001-physical-contract.json`
+- Create: `specs/features/F-COM-001-migration-evidence-api-contract.json`
 - Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/migration/PlatformMigrationEvidenceApi.java`
 - Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/migration/dto/*.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/migration/PlatformMigrationEvidenceApiImpl.java`
@@ -159,26 +163,31 @@
 **Files:**
 
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeStateMachine.java`
+- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeValidationRules.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/ProjectScopeQualificationAdapter.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeviceAndLocationFactAdapter.java`
-- Modify: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeService.java`
-- Modify/Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/*.java`
-- Create: `pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeCommandMapper.xml`
-- Test: `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeCommandServiceTest.java`
+- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandService.java`
+- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommands.java`
+- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/CommerceDeliveryScopeCommandMapper.java`
+- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/query/CommerceDeliveryScopeCommandQuery.java`
+- Create: `pms-module-commerce/src/main/resources/mapper/scope/CommerceDeliveryScopeCommandMapper.xml`
+- Test: `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandServiceTest.java`
+- Existing regression: `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeServiceTest.java`
 
 **Interfaces:**
 
 - Consumes: PROJ Participant/Scope、AST DeviceScopeFact/AssetLocation、平台幂等审计。
 - Produces: ACTIVE/RELEASED/CONFLICT历史、qualified detail、项目scopeVersion与Assigned/Released Outbox。
 
-- [ ] 保留旧preview/apply外部语义，在内部前向接入项目水位与新明细，不改旧调用方DTO。
+- [ ] `CommerceDeliveryScopeCommandService`是F-COM-001 REST与工作台写命令的唯一新入口，承接项目水位、完整明细、冲突历史、平台幂等/审计和Outbox；它不被旧`DeliveryScopeApi.previewSplit/applySplit`调用。
+- [ ] 既有`DeliveryScopeService`、`DeliveryScopeApiImpl`中三个旧方法及其Mapper调用路径保持源码和副作用不变；不得在旧路径接入项目水位、新明细或新冲突行为。若两套服务需要相同纯校验，只允许新建无数据库/事务/事件副作用的`DeliveryScopeValidationRules`，旧服务是否改为调用该规则不属于本Feature，默认不修改。
 - [ ] 用户写命令同时锁定重验功能权限外的current PROJECT_MANAGER和ACTION_EDIT；全局角色、普通参与或单独ACTION_EDIT均不足。
 - [ ] 锁序固定：项目水位→orderLineId升序→scopeId→detailId；文本SQL、集合和FOR UPDATE全部放XML，Mapper只接收场景化Query。
 - [ ] 只允许qualified CONFIRMED/ACTIVE订单行分配；主/明细数量一致、单位精度一致，项目间总量不超权威数量。
 - [ ] 明确SN通过AST解析到同tenant/project且去重，每个SN detail数量1；无SN数量不调用设备API。地点使用稳定site/location，文本降级必须UNRESOLVED。
 - [ ] apply同事务追加范围/明细、项目水位、平台幂等/审计和Assigned/Released Outbox；失败零业务副作用。
 - [ ] S5/S6/关闭项目或验收保护下的减少转CONFLICT而非静默释放；冲突解除必须引用新ERP版本或明确释放证据。
-- [ ] 实现后扩展既有`DeliveryScopeServiceTest`并验证旧三个API、并发超配、权限、项目版本、SN/地点、释放保护和Outbox。
+- [ ] 实现后以新`CommerceDeliveryScopeCommandServiceTest`验证并发超配、权限、项目版本、SN/地点、释放保护和Outbox；原样复跑既有`DeliveryScopeServiceTest`固定旧三个API返回、幂等键、Outbox和数据库副作用均未改变。
 
 ### Task 6：getAssignedScope生产Provider
 
@@ -229,14 +238,24 @@
 
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/CommerceLegacyReconciliationService.java`
 - Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/CommerceLegacyReconciliationJob.java`
-- Create: `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/query/*.java`
+- Create: `tools/migration/commerce-legacy-source-import/pom.xml`
+- Create: `tools/migration/commerce-legacy-source-import/src/main/java/cn/iocoder/yudao/tools/migration/commerce/CommerceLegacySourceImportMain.java`
+- Create: `tools/migration/commerce-legacy-source-import/src/main/java/cn/iocoder/yudao/tools/migration/commerce/CommerceLegacySourceImportRunner.java`
+- Create: `tools/migration/commerce-legacy-source-import/src/main/java/cn/iocoder/yudao/tools/migration/commerce/CommerceLegacySourceManifest.java`
+- Modify: `pom.xml`
+- Create: `tools/migration/commerce-legacy-source-import/README.md`
 - Test: `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/migration/CommerceLegacyReconciliationServiceTest.java`
+- Test: `tools/migration/commerce-legacy-source-import/src/test/java/cn/iocoder/yudao/tools/migration/commerce/CommerceLegacySourceImportTest.java`
 
-- [ ] 通过Task 2A `PlatformMigrationEvidenceApi`按源表和源主键游标读取/登记PLT source record，不直接依赖附件/XLSX；只写本模块表和PLT公开迁移API，不跨模块读表。
+- [ ] 采用独立Release迁移工具，不建立legacy datasource。Release Owner先从遗留系统按批准窗口导出四个UTF-8 JSONL文件和一个manifest；manifest精确包含`releaseId/tenantId/sourceSystem/sourceTable/filePath/rowCount/exportedAt/schemaVersion/contentSha256`，文件每行必须包含原始主键及原字段名/值。工具只读取显式绝对路径，不扫描目录、不下载附件、不连接遗留库。
+- [ ] `tools/migration/commerce-legacy-source-import`是独立Maven模块，依赖`pms-module-platform`但不被`yudao-server`依赖；`CommerceLegacySourceImportMain`以`WebApplicationType.NONE`启动专用Spring上下文，`Runner`只调用Task 2A `PlatformMigrationEvidenceApi`，不注册到正常服务Bean或Job。运行必须显式提供`--spring.config.additional-location=<approved-local-config>`、`--pms.migration.manifest=<absolute-path>`和`--pms.migration.tenant-id=<id>`，manifest tenant必须匹配后才设置受信TenantContext；随后创建batch，按sourceTable/sourcePk升序追加不可变source record，校验行数/hash，完成或失败批次并写审计；不写COM表。
+- [ ] 导入器只接受四个锁定表名及对应精确字段集合，缺主键、重复主键、字段漂移、行数/hash不符或API失败使当前批次FAILED；同release/table manifest重跑复用同一导入幂等键，同键异文件永久冲突。跨文件不使用分布式事务，各表批次独立且失败表不得被COM消费。
+- [ ] COM正常生产Bean不包含遗留连接配置、DataSource、Mapper或文件读取器。`CommerceLegacyReconciliationJob`只通过Task 2A API分页读取状态为COMPLETED且未消费的PLT source records，再写COM目标、external mapping或issue；无正式COMPLETED暂存批次时返回零项并保持Job PAUSED。
 - [ ] `sms_ofst_contract_head_sap`因无公司、生命周期和单调来源版本只留问题；`pm_order_data_from_erp`缺稳定版本/生命周期时不建CONFIRMED Owner；订单行缺单位/模型/生命周期时排除。
 - [ ] `pm_project_product_line.projectQuantity`空值率100%，禁止以order/deliver/openQuantity替代；当前审计行全部形成确定性问题，不生成DeliveryScope。
 - [ ] 合格行记录external key mapping；不可迁行保留source record并写issue；batch保存抽取、合格、迁入、问题计数。重跑幂等，不双写旧表。
-- [ ] 实现后验证四源逐字段映射、问题原因、重复扫描、部分批次失败和旧行不进入`getAssignedScope`。
+- [ ] 实现后分层验证：导入器用受控合成JSONL验证schema/行数/hash/重放/失败，但该fixture只证明工具行为，不得标记生产迁移完成；COM MySQL测试从PLT API暂存记录验证四源逐字段映射、问题原因、重复扫描和旧行排除。
+- [ ] 只有Release Owner提供带批准releaseId、来源导出记录、manifest、导入命令输出和PLT batchId的真实制品，Task 11才可记录“生产历史迁移证据”。当前Release若明确不含历史迁移/数据切换，则该证据为`NOT_APPLICABLE`且Job继续PAUSED；若包含而无正式制品，则阻断Release/迁移完成声明，不得用fixture替代。
 
 ### Task 9：字典、菜单、权限与暂停Job种子
 
@@ -279,7 +298,7 @@
 - [ ] 使用独立Compose MySQL 8.4空卷从V1迁到当前版本，验证十表、CAS、项目水位、唯一键、旧行资格、Outbox和并发超配。
 - [ ] 以生产API本地调用`ingestBatch`形成真实COM Owner副本；这证明COM本地接收，不冒充ERP网络联调。
 - [ ] 核验PROJ/SYSTEM/AST生产Provider后完成候选→正式Owner关联、项目经理分配、`getAssignedScope`正向与来源减量冲突负向；缺Provider时保持BLOCKED_BY_DEPENDENCY，不注册Fake。
-- [ ] 如旧数据迁移前置证据完备，显式启用核对Job并记录批次/问题；否则保持PAUSED，不影响新业务闭环。
+- [ ] 如当前Release包含历史迁移且已有正式Release导出manifest、导入器审计和COMPLETED PLT batch，显式启用核对Job并记录批次/问题；不包含历史迁移时登记`NOT_APPLICABLE`并保持PAUSED，包含但证据不完备时阻断迁移/Release完成。任何场景都不得以测试fixture冒充生产迁移证据。
 - [ ] 为当前工作树分配不冲突前后端端口，前端代理同分支后端；记录端口、提交、进程与DB版本。
 - [ ] 真实浏览器覆盖公司范围、候选核对、项目经理分配/释放、同键重放、旧版本刷新、冲突整体阻断、越权、空范围与四档响应式；检查console/page error/network。
 - [ ] INT-01外部连接器未形成时证据明确标记`EXTERNAL_ERP_INTEGRATION_NOT_TESTED`，不把本地API调用伪装为外部联调。
@@ -309,7 +328,8 @@
 
 ## Plan自审
 
-- 覆盖：Feature Scope、六条业务规则、状态、API/事件、十表迁移、UI与AC-FCOM001-001～011均有对应Task。
+- 覆盖：Feature Scope、六条业务规则、状态、API/事件、十表迁移、受控遗留源摄取、UI与AC-FCOM001-001～011均有对应Task。
+- 复用：旧`DeliveryScopeService`及三个API路径不承接F-COM-001新副作用；新命令入口固定为`CommerceDeliveryScopeCommandService`。
 - 排除：未包含COM-02、自动指派、第三方连接器、CRM页面改造、ACC/IMP业务写入或Yudao平台改造。
 - 无占位业务选择：Flyway仅用`V{next}`表达合入时定号，不是预约；所有状态、权限、错误、版本与候选规则来自锁定Feature/physical contract。
 - 类型一致：公开`getAssignedScope`、`ingestBatch`与后续Provider/Controller使用同一Task 1 DTO；sourceVersion长度与V70列均为64。
