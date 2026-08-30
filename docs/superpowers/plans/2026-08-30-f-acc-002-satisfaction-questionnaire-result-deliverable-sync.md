@@ -145,7 +145,7 @@ FileArtifactVersionFact completeBusinessGrantUpload(
 public record GeneratedBusinessFileCommand(
         Long tenantId, Long actorUserId, String operationId,
         Long resultId, String ownerContext, String objectType,
-        String purposeCode, Integer scopeVersion,
+        String purposeCode, Long scopeVersion,
         String fileName, String contentType, byte[] content) {}
 
 FileArtifactVersionFact createGeneratedBusinessFile(
@@ -153,9 +153,9 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 ```
 
 - ACC在判定事务开始前预分配`resultId`，命令目标只允许`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`；`ownerContext/objectType/purposeCode`必须精确为`ACC/SATISFACTION_RESULT/SATISFACTION_RESULT_DOCUMENT`，客户、Job和Controller请求体均不能覆盖。
-- `actorUserId`只能取Result形成时Task当前责任人，`scopeVersion`只能取同项目`ProjectScopeApi.treeVersion`。PLT在当前租户以SYSTEM `PermissionApi`重验actor的既有`pms:file:upload`，并通过ACC `FileBusinessObjectPolicyProvider`重验项目与文件范围；不得伪造Web登录上下文。
+- `actorUserId`只能取Result形成时Task当前责任人，`scopeVersion`为`Long`且只能原样取同项目`ProjectScopeApi.treeVersion`，禁止截断、固定值或经Result版本转换。PLT在当前租户以SYSTEM `PermissionApi`重验actor的既有`pms:file:upload`，并通过ACC `FileBusinessObjectPolicyProvider`重验项目与文件范围；不得伪造Web登录上下文。
 - Provider以`MANDATORY`加入ACC判定MySQL事务，复用现有内容类型/大小/SHA-256/扫描、私有存储、Artifact/Version/Reference和审计。只返回一个`FileArtifactVersionFact`；同Result第二条文档和同operation异规范化摘要均冲突。
-- PLT在对象写入前以`operationId+请求摘要`复用`FileUploadSession`记录稳定会话；会话预留/存储回执通过内部`REQUIRES_NEW`小事务先于对象写入持久化，Artifact/Version/Reference仍以`MANDATORY`加入ACC外层事务。事务同步回调在外层回滚后以独立事务恢复会话为可重试/待补偿；进程中断时同operation重放按持久会话/回执恢复。若放弃，现有`FileUploadCompensationService`确认无已提交Version后删除未引用对象；补偿失败继续可重试，不生成第二文档。
+- 对象存储补偿顺序固定为四步：①内部`REQUIRES_NEW`先按`operationId+请求摘要`提交`FileUploadSession`预留；②另一个内部`REQUIRES_NEW`调用`FileStorageReceiptApi.store`，对象写入后把`infra_file`回执及session回执绑定一并提交，失败时保留已提交session供同operation检查/清理；③只有已提交回执存在时，Provider才以`MANDATORY`加入ACC外层事务创建Artifact/Version/Reference，随后ACC写Result/ResultFile/Outbox；④外层事务`afterCompletion`再以独立事务把session标记完成，或在回滚时恢复为可重放/待补偿。进程中断按持久session与回执恢复；放弃时由现有`FileUploadCompensationService`确认无已提交Version后删除未引用对象。不得让`FileStorageReceiptApi.store`参加外层事务后随回滚丢失`infra_file`回执，也不得生成第二文档。
 
 ### 3.4 Result、Outbox、来源与归档
 
@@ -176,6 +176,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 - 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`、FileUploadSession/补偿接入及文件策略路由，只加满意度grant上传与Result生成文件，不改变现有登录上传、ACC报告和其他目标。
 - 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`，只增加两种满意度事件白名单。
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/satisfaction/`真实Provider；`service/satisfaction/`模板、任务、分段提交/判定、Result、失效、Task/Result来源投影、两类Outbox Job、归档补偿和Quartz注册器；`controller/admin/satisfaction/`及VO。
+- 新增：`SatisfactionTaskController.assistedResponse`及`SatisfactionAssistedResponseApplicationService`，复用同一Response校验/判定编排并独立保存客户联系人、签字事实与服务端协助人；新增`SatisfactionResultController.createExport`及`SatisfactionResultExportApplicationService`，只作为ADR-0014统一`ExportTask/ExportAudit`的满意度场景适配器，不建立第二套导出审计。
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/satisfaction/`、`dal/mysql/satisfaction/`、`src/main/resources/mapper/satisfaction/`。锁、动态集合和联表只写Mapper XML。
 - 修改：`ProjectManualCreationServiceImpl`只在创建含`satisfaction_timing`任务时冻结Template Fact；`AcceptanceActivityCompletionFactApiImpl`只在完成初验且冻结时点为`AFTER_INITIAL_ACCEPTANCE`时，以现有事务调用initializer。
 - 修改：`AcceptanceReportSourceProjectionService`使用的应交来源Mapper仅加性支持`source_object_type=SatisfactionResult`；报告路径测试保持不变。
@@ -195,8 +196,11 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - 新增`src/api/pms/project/satisfaction/index.ts`，定义模板、任务、问卷、grant、Result、文件公共Fact和稳定错误类型。
 - 新增`views/pms/project/satisfaction/template/index.vue`及修订编辑器，提供正式草稿/发布入口。
-- 新增`views/pms/project/satisfaction/task/index.vue`、`detail.vue`、指派/受控链接/整改组件和Result历史抽屉。
+- 新增`views/pms/project/satisfaction/task/index.vue`、`detail.vue`、指派/受控链接/二维码/现场协助/整改组件和Result历史抽屉；二维码只编码同一次返回的受控链接，不创建第二token或第二入口。
 - 新增匿名`views/pms/project/satisfaction/questionnaire/index.vue`，只持有一次性token并显示唯一问卷；上传、签字和提交均走公开grant API。
+- 修改`src/router/modules/remaining.ts`：注册隐藏静态路由`/satisfaction-questionnaires/:token`，route name固定为`PmsSatisfactionQuestionnairePublic`，直接指向匿名问卷View，不挂后台Layout或动态菜单。
+- 修改`src/permission.ts`：仅当route name精确为`PmsSatisfactionQuestionnairePublic`且`token`参数为非空字符串时免登录放行；不得将`satisfaction`前缀、后台路由或后端API加入白名单，其他未认证满意度路径继续跳转登录。
+- Result页面增加异步导出动作：提交`POST /satisfaction-results/exports`后展示统一`ExportTask/ExportAudit`状态，完成后经现有受权下载链取文件；页面不扩大服务端返回的项目、责任人、字段、文件或租户范围。
 - 复用现有文件上传/列表/版本组件和Access Ticket；不修改旧`completion-certificate`页面，不在UI计算分数、阈值或项目范围。
 - 320/768/1024/1440宽度无页面级横向溢出；页面业务错误、console error和失败请求均使Chromium脚本失败。
 
@@ -212,11 +216,11 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 1：编写聚焦失败测试并确认RED**
 
-  新增Provider、命令、投影、乱序、grant上传、Result生成文件和迁移测试。至少证明：五维零/并列失败；initializer无外层事务拒绝；令牌错问卷/跨租户拒绝；Response已提交后生成文件失败保持`PENDING_DECISION`且零Result；同operation重试无第二对象/引用；必答/签字/阈值失败Result均有唯一文档；整改revision2幂等；invalidate期望版本；旧RECORDED晚到不恢复；旧完工证明零读取。
+  新增Provider、命令、投影、乱序、grant上传、Result生成文件、现场协助、导出和迁移测试。至少证明：五维零/并列失败；initializer无外层事务拒绝；令牌错问卷/跨租户拒绝；Response已提交后生成文件失败保持`PENDING_DECISION`且零Result；`scopeVersion(Long)`从`ProjectScopeResult.treeVersion`原样进入文件事实；session预留、对象/回执提交、外层Artifact/Result提交及afterCompletion四阶段逐点注入失败后可补偿/重放且无第二对象/引用；必答/签字/阈值失败Result均有唯一文档；现场协助缺collect权限、越项目范围或伪造客户/协助人时零写入；导出缺权限、越项目/责任人或请求未授权字段/文件时拒绝或裁剪并留统一审计；整改revision2幂等；invalidate期望版本；旧RECORDED晚到不恢复；旧完工证明零读取。
 
 - [ ] **Step 2：实现API、DO/Mapper和领域服务最小闭环**
 
-  先实现Template/Initializer/Result Fact，再实现客户提交、recollect和invalidate；所有非主键查询使用场景Query，拒绝路径在Result/来源/Outbox写入前结束。
+  先实现Template/Initializer/Result Fact，再实现客户提交、现场协助、导出、recollect和invalidate。现场协助只接受服务端认证actor，校验`collect + ProjectScope + 当前任务责任`后复用客户Response规则，客户联系人/签字与`assistedBy`分开保存；客户端不得覆盖tenant/actor。导出入口校验`export`权限后冻结ProjectScope treeVersion、责任人范围、请求条件和允许字段/文件集合，提交ADR-0014统一`ExportTask/ExportAudit`异步生成；生成与下载都重验租户、项目、字段、文件权限并保存条件、范围摘要、文件哈希、申请/下载人和时间。所有非主键查询使用场景Query，拒绝路径在Result/来源/Outbox写入前结束。
 
 - [ ] **Step 3：接入PLT、PROJ和Outbox**
 
@@ -244,11 +248,11 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 1：编写前端失败测试并确认RED**
 
-  覆盖模板发布、任务动作、Result历史/失效、匿名问卷必答/签字、跨范围错误和历史下载；断言前端不自行判分、不持久化token。
+  覆盖模板发布、任务动作、Result历史/失效、精确匿名路由、二维码、现场协助、异步导出、匿名问卷必答/签字、跨范围错误和历史下载；断言未登录匿名token路由不跳登录、相邻后台路径仍受登录守卫，前端不自行判分、不持久化token。
 
 - [ ] **Step 2：实现API与页面最小闭环**
 
-  实现模板、任务、匿名问卷和Result页面；复用现有文件组件，按钮只按服务端允许动作渲染，错误码展示稳定业务信息。
+  实现模板、任务、匿名问卷和Result页面、精确公共静态路由及守卫；任务页渲染同一受控链接二维码并提供受权现场协助，Result页提交异步导出并展示统一任务状态。复用现有文件组件，按钮只按服务端允许动作渲染，错误码展示稳定业务信息。
 
 - [ ] **Step 3：运行前端聚焦验证和构建**
 
@@ -260,9 +264,9 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 5：运行一次真实Chromium纵向验收**
 
-  管理入口创建并发布正式模板；公开项目创建冻结Fact；完成初验触发revision1并等待Task Job将`SatisfactionTaskCreated`投递为真实`TodoRequested`，同时从项目工作台打开Owner Task；指派并创建受控链接；客户问卷第一次因未达标形成带唯一结果文档的失败Result；整改Fact创建revision2；第二次含签字/附件达标；等待Result Job和归档Job形成`D-SAT-REPORT`来源与归档；历史文件下载成功；随后正式invalidate并验证旧RECORDED重试不恢复当前来源。
+  管理入口创建并发布正式模板；公开项目创建冻结Fact；完成初验触发revision1并等待Task Job将`SatisfactionTaskCreated`投递为真实`TodoRequested`，同时从项目工作台打开Owner Task；指派并创建受控链接，断言二维码解码值与该链接完全一致；未登录经静态匿名token路由打开唯一问卷且不落到登录页，相邻后台满意度路径仍被守卫。先用正式成员现场协助提交一份可判定答卷并核对客户事实与协助人分离；客户问卷第一次因未达标形成带唯一结果文档的失败Result；整改Fact创建revision2；第二次含签字/附件达标；等待Result Job和归档Job形成`D-SAT-REPORT`来源与归档；按项目/责任人/授权字段与文件发起异步导出，等待统一导出任务完成并下载，核对无关项目及未授权字段/文件未进入文件且审计完整；历史文件下载成功；随后正式invalidate并验证旧RECORDED重试不恢复当前来源。
 
-  同次脚本必须验证：同键重放、过期/错问卷grant、缺签字、跨项目/租户查询和下载、归档失败后重试；这些都使用真实存在对象，拒绝时`data=null`且不泄露标识。不得直接调用Handler、内部API或改库制造业务结果。
+  同次脚本必须验证：同键重放、过期/错问卷grant、缺签字、现场协助分别缺collect权限/越项目范围、导出缺权限/越责任人或请求未授权字段文件、跨项目/租户查询和下载、归档失败后重试；这些都使用真实存在对象，拒绝时`data=null`且不泄露标识。不得直接调用Handler、内部API或改库制造业务结果。
 
 - [ ] **Step 6：形成Implementation Done候选**
 
@@ -271,7 +275,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 ## 六、最低验证集合
 
 1. `python -B -m unittest scripts.tests.test_facc002_feature_contract`与Requirement追溯`--check`；
-2. 新增后端聚焦单测、V133 MySQL迁移测试、FileUploadSession补偿回归及F-ACC-001来源/归档直接回归；
+2. 新增后端聚焦单测、V133 MySQL迁移测试、FileUploadSession四阶段真实事务补偿回归、现场协助/导出范围回归及F-ACC-001来源/归档直接回归；
 3. 受影响Maven reactor `package -DskipTests`；
 4. 目标Vitest、`pnpm ts:check`、`pnpm build:local`；
 5. 一次真实Chromium闭环及其直接生成的JSON/截图/数据库事实；

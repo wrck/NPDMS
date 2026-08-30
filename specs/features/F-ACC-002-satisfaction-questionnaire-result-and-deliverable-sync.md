@@ -158,4 +158,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`131a5228`；当前Gate=Technical Plan独立审核；已通过=Feature Ready及Result生成文件Owner补充GO；阻塞=计划候选待独立裁决；下一步=仅在计划GO后创建唯一Feature Task并实施。
+检查点：基线=`878697ef`；当前Gate=Technical Plan整改复审；已通过=Feature Ready及Result生成文件Owner补充GO；阻塞=匿名路由、现场协助/导出、Long范围版本与存储补偿顺序已整改待复审；下一步=仅在计划GO后创建唯一Feature Task并实施。
