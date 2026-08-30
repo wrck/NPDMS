@@ -295,6 +295,13 @@
     "target": "cut_task",
     "policy": "CURRENT_FORWARD",
     "mappingVersion": "F-CUT-002-PMS-CUT-TASK-V1",
+    "batchIdentity": {
+      "ownerContextCode": "CUT",
+      "purposeCode": "CUTOVER_TASK_CURRENT_FORWARD",
+      "sourceSystem": "NPDMS_LEGACY",
+      "sourceTable": "pms_cut_task",
+      "inputBoundary": "the trusted CUT entry accepts only tenantId and correlationId; all four identity values are server constants and cannot be overridden by a caller"
+    },
     "qualificationOrder": [
       "lock and read one source row by tenant_id and id without changing the legacy row",
       "deleted=b'1' => RETAIN_LEGACY_DELETED and create no target row",
@@ -349,7 +356,7 @@
       "OWNER_FACT_MISMATCH": "retain the source row, append a deterministic reconciliation issue in the current transaction and create no target row",
       "TARGET_IDENTITY_CONFLICT": "retain the source row, record a permanent reconciliation issue and never overwrite an existing target row"
     },
-    "batchLifecycle": "claim one STAGED_READY PLT migration batch inside a caller-owned transaction; claim, CUT target inserts, PLT mapping/issue appends and completeReconciliation join that transaction; any transient Provider or write failure rolls the batch back to STAGED_READY, while successful classification and count reconciliation move it once to COMPLETED",
+    "batchLifecycle": "claim the earliest STAGED_READY PLT migration batch for CUT/CUTOVER_TASK_CURRENT_FORWARD/NPDMS_LEGACY/pms_cut_task inside a caller-owned transaction; revalidate the claimed batch identity, then let claim, CUT target inserts, PLT mapping/issue appends and completeReconciliation join that transaction; any transient Provider or write failure rolls the batch back to STAGED_READY, while successful classification and count reconciliation move it once to COMPLETED",
     "atomicity": "the claimed batch, all classified source rows, CUT target inserts, PLT mapping/issues and final counts commit or roll back together; pms_cut_task is never updated, deleted or dual-written",
     "evidenceOwner": "all source identity, target mapping and issue outcomes are written through PLT PlatformMigrationEvidenceApi; CUT never writes PLT tables directly",
     "implementationGate": "use the actual next free Flyway version only after this contract passes review; migration tests must cover each disposition and prove legacy rows cannot enter a writable F-CUT-002 state"
