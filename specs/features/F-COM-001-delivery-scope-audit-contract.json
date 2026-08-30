@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-COM-001",
   "taskId": "Task 5",
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "detailSnapshot": {
     "exactKeys": ["schemaVersion", "action", "projectId", "actorId", "correlationId", "occurredAt", "expectedScopeVersion", "resultScopeVersion", "protectedAsConflict", "lines"],
     "fields": {

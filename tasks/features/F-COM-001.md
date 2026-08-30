@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`。Task 5候选`18237796`独立复审为`NO-GO / REVIEW_REQUIRED`；合同候选`319a616e`已关闭直管授权、DTO不变量及审计结构方向，但错误优先级、受保护减配请求量与验收保护原因码仍被裁决`NO-GO`。当前最近Gate为这三项机器语义单点整改复审；GO前不修改运行Provider，不回写Task 5 PASS。Task 8暂不并行写共享资产，下游依赖仍未解除。
+Task 4“人工候选、关系核对与公司范围”在`f76525ef`通过独立Code Review与聚焦测试Gate，状态`PASS / GO`。Task 5候选`18237796`独立复审为`NO-GO / REVIEW_REQUIRED`；PROJ资格与成功审计机器合同经`86ea27de`独立复审`PASS / GO`，全局锁序B保持关闭。当前最近Gate为`T-FCOM001-PROJ-01` Provider独立Code Review/真实Provider测试；其通过后才进入Task 5 A/B/C运行整改，不回写Task 5整体PASS。Task 8暂不并行写共享资产，下游依赖仍未解除。
 
 ## Gate输入
 

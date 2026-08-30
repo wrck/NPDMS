@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-COM-001",
   "supportTaskId": "T-FCOM001-PROJ-01",
-  "status": "REVIEW_REQUIRED",
+  "status": "PASS",
   "ownerContext": "PROJ",
   "consumerContext": "COM",
   "requirementCoverage": ["COM-01@V1=FULL"],
