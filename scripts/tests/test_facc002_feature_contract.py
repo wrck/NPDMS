@@ -21,6 +21,14 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
             contract.get("featureReadyDecision") != \
             "GO_145e4a61ea936d0679f2ec41a7d412975572e5a3":
         errors.append("feature-ready-state")
+    questionnaire = contract.get("questionnaireConfiguration", {})
+    if questionnaire.get("questionTypes") != ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "RATING", "TEXT"] or \
+            questionnaire.get("scoringStrategies") != ["SUM_V1", "WEIGHTED_AVERAGE_V1"] or \
+            questionnaire.get("multipleChoiceBounds") != "1<=minSelections<=maxSelections<=optionsCount" or \
+            questionnaire.get("multipleChoiceMaxReachableScore") != \
+            "MAX_AVERAGE_OVER_ALL_LEGAL_DISTINCT_SELECTION_SETS" or \
+            questionnaire.get("rounding") != "EXACT_DECIMAL_INTERMEDIATE_FINAL_ONCE_THEN_COMPARE_THRESHOLD":
+        errors.append("configurable-questionnaire")
     identity = contract.get("identityRules", {})
     if identity.get("remediationTrigger") != "ACC/SatisfactionRemediationFact" or \
             identity.get("taskRevision") != "FIRST_1_NEXT_PRIOR_PLUS_1" or \
@@ -158,6 +166,11 @@ class Facc002FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["identityRules"]["remediationTrigger"] = "ORIGINAL_BUSINESS_TRIGGER"
         self.assertIn("remediation-identity", contract_errors(mutated, self.spec, self.audit))
+
+    def test_rejects_unreachable_multiple_choice_contract(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["questionnaireConfiguration"]["multipleChoiceMaxReachableScore"] = "MAX_SINGLE_OPTION_SCORE"
+        self.assertIn("configurable-questionnaire", contract_errors(mutated, self.spec, self.audit))
 
     def test_rejects_missing_task_revision_unique_key(self) -> None:
         mutated = deepcopy(self.contract)

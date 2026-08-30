@@ -23,6 +23,23 @@
   ],
   "rolePermissionPolicy": "FORMAL_CONFIGURATION_NO_FIXED_ROLE_MATRIX",
   "serverScopes": ["TENANT", "PROJECT_TREE", "ASSIGNEE", "FIELD", "FILE_BUSINESS_SCOPE", "CUSTOMER_GRANT_SINGLE_QUESTIONNAIRE"],
+  "questionnaireConfiguration": {
+    "schemaVersion": 1,
+    "rootFields": ["schemaVersion", "questions", "scoring"],
+    "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "RATING", "TEXT"],
+    "scoringStrategies": ["SUM_V1", "WEIGHTED_AVERAGE_V1"],
+    "roundingModes": ["HALF_UP", "HALF_EVEN", "DOWN"],
+    "precisionRange": [0, 2],
+    "multipleChoiceBounds": "1<=minSelections<=maxSelections<=optionsCount",
+    "textBounds": "0<=minLength<=maxLength",
+    "multipleChoiceScore": "AVERAGE_SELECTED_OPTION_SCORES",
+    "multipleChoiceMaxReachableScore": "MAX_AVERAGE_OVER_ALL_LEGAL_DISTINCT_SELECTION_SETS",
+    "scoreMax": "DERIVED_FROM_EACH_QUESTION_MAX_REACHABLE_SCORE",
+    "answerRootFields": ["answers"],
+    "answerItemFields": ["questionCode", "value"],
+    "clientFieldsForbidden": ["score", "passed", "threshold", "weight", "strategy", "optionScore"],
+    "rounding": "EXACT_DECIMAL_INTERMEDIATE_FINAL_ONCE_THEN_COMPARE_THRESHOLD"
+  },
   "restApis": [
     {"method":"GET","path":"/api/v1/pms/satisfaction-questionnaire-templates","permission":"pms:acceptance:satisfaction:query"},
     {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaire-templates","permission":"pms:acceptance:satisfaction:manage"},
@@ -189,6 +206,7 @@
   },
   "physicalDelta": {
     "mode":"FEATURE_FORWARD_DELTA_REQUIRED",
+    "configurableQuestionnaireAmendment":"NO_STRUCTURAL_DELTA_FORWARD_MANAGED_SEED_REVISION_REQUIRED_4ecc9d3b",
     "tables": {
       "acc_satisfaction_questionnaire_template":{"mode":"CREATE","uniqueKeys":["tenant_id+template_code"]},
       "acc_satisfaction_questionnaire_template_revision":{"mode":"CREATE","uniqueKeys":["tenant_id+template_id+revision_no"],"immutable":"PUBLISHED_REVISION"},

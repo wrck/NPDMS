@@ -7,7 +7,7 @@
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件与统一导出契约仅作PMS加性扩展
-> 适用基线：PRD V1.8；ADR-0041、ADR-0042 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`、统一异步导出补充`1df9b392`）
+> 适用基线：PRD V1.8修订010；ADR-0041、ADR-0042 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`、统一异步导出补充`1df9b392`、可配置问卷与确定性计分补充`4ecc9d3b`）
 > Technical Plan：`NPDMS-FACC002-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`41f92526919e8c18b11c04f188365be2105240ac`）
 
 ## 1. 业务目标
@@ -19,6 +19,7 @@
 ### 2.1 包含
 
 - ACC问卷模板草稿/发布修订、满意度领域任务、冻结问卷、受控访问授权、答卷、签字/附件、不可变Result和RemediationFact；
+- `schemaVersion=1`可配置问卷基础能力：四类受控题型、两种受控计分策略、答案Schema、真实可达分、最终一次舍入及阈值均随发布修订冻结；
 - PROJ在项目创建时冻结模板Fact，在配置业务时点以`MANDATORY`初始化首个满意度任务；
 - V1手工受控链接、二维码和正式登录身份现场协助；
 - 评分、达标判定、失效、整改重收及同链revision历史；
@@ -49,6 +50,8 @@
 - PROJ在项目创建事务内把模板/修订/规则/阈值Fact冻结到`satisfaction_timing` ProjectTask，不按任务名、任务码或默认模板推断。
 - V1正向业务时点至少由已交付ACC初验活动完成Fact触发：ACC完成初验活动的同一事务按冻结`AFTER_INITIAL_ACCEPTANCE`任务调用initializer；其他模板时点只在其Owner交付后调用同一接口，不由ACC/PROJ猜测。ACC经`ProjectWorkBindingFactApi`重验同租户项目、ProjectTask、冻结Fact、时点和当前责任人，并以`MANDATORY`加入调用方事务；未显式指派时责任人为当前项目经理。
 - 首次任务由ACC分配稳定`collectionKey`和`taskRevisionNo=1`；source和trigger都冻结原始业务时点Fact。同Fact同载荷返回原任务，异载荷冲突。
+- 配置包根只允许`schemaVersion/questions/scoring`。题型仅`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`，策略仅`SUM_V1/WEIGHTED_AVERAGE_V1`，舍入仅`HALF_UP/HALF_EVEN/DOWN`且precision为0..2；未知字段、脚本、表达式或客户端算法标识拒绝发布。
+- MULTIPLE_CHOICE必须满足`1<=minSelections<=maxSelections<=options数量`，TEXT必须满足`0<=minLength<=maxLength`，字段均必填非空且不适用参数必须缺失。多选最大可达分取全部合法去重选择集合的option score平均值之最大值；SUM/加权策略的scoreMax必须由各题真实最大可达分派生，threshold只能位于0..scoreMax。
 
 ### BR-FACC002-002 受控访问与客户提交
 
@@ -56,9 +59,11 @@
 - 客户grant只能读取唯一问卷、上传该预分配Response的签字/附件并以`questionnaireId+requestId`提交一次；过期、撤销、已消费、错问卷或错租户统一拒绝且不泄露对象。
 - 外部上传仅通过PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload`；ACC先验证grant，PLT仍执行大小、类型、扫描、版本和审计。现场协助使用正式登录用户和`collect`权限。
 - Response、答案、签字和附件只追加；同requestId同载荷返回首次结果，同键异载荷冲突。Todo完成或通道送达不能替代客户提交。
+- 答卷根只允许`answers`，每项只允许`questionCode/value`；客户端不得提交score、passed、threshold、weight、strategy或option score。未知/重复题目或选项、类型/数量/长度不符在Response前拒绝；结构合法但缺必答项保存Response并形成未通过Result。
 
 ### BR-FACC002-003 判定、当前结果与整改重收
 
+- 单选/量表题取所选option score，多选取所选option score算术平均，文本不计分；未回答计分题为0。SUM求和，加权策略按`sum(questionScore*weight)/sum(weight)`计算；中间值不舍入，只在最终总分按冻结precision/roundingMode舍入一次，并以舍入后值比较threshold。
 - 仅必答完整、客户答案和签字有效且评分达到冻结阈值时产生`EFFECTIVE + passed=true`；失败判定同样不可变并保存阻断原因。
 - 同`collectionKey`最多一个未关闭有效达标Result；失效关闭区间但不删除、不恢复旧Result，禁止人工改分。
 - 当前有效达标Result只能由ACC Owner公开命令`POST /satisfaction-results/{id}/actions/invalidate`失效。命令取服务端认证用户并要求`manage`权限、`ProjectScopeApi(PROJECT_EDIT)`、`expectedResultVersion`、非空原因和`Idempotency-Key`；只接受当前`EFFECTIVE + passed=true`版本，在同一事务关闭区间、清空current marker、写失效审计和`INVALIDATED` Outbox。旧Task、Questionnaire、Response、评分、签字和文件均保持不变。
@@ -143,6 +148,7 @@
 ## 7. 验收标准
 
 - AC-01：正式模板入口可创建并发布不可变修订；项目创建冻结唯一发布修订，零/多匹配整批失败，既有项目事实不变。
+- AC-01A：模板发布拒绝非法题型参数、不可达scoreMax/threshold和未知计分配置；最低选2项、分值100/0的多选题最大可达分为50，threshold=80不得发布。
 - AC-02：已交付初验活动完成Fact按冻结时点首次触发revision1，未指派时使用当前项目经理；同Fact重放不重复，错项目/版本/责任人零写入。
 - AC-03：受控链接/二维码只能访问唯一ACTIVE问卷；令牌过期、撤销、消费或跨租户拒绝且不泄露。
 - AC-04：必答、签字和阈值满足时形成不可变达标Result；任一不满足形成失败判定且不能用于闭环/付款。
@@ -166,4 +172,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`41f92526`；当前Gate=Implementation Task 1；已通过=Technical Plan独立整改复审GO；阻塞=无；下一步=按计划串行实现共享契约、V133与后端闭环，Task 1通过前不进入Task 2。
+检查点：基线=`4ecc9d3b`；当前Gate=Implementation Task 1 Step 3；已通过=PRD010及可配置问卷SDS补充GO；阻塞=无；下一步=按同步后的既有计划实现模板校验、答卷验证和确定性计分，不进入Task 2。

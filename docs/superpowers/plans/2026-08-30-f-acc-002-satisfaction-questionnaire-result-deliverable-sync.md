@@ -6,6 +6,8 @@
 
 **当前状态：** `BASELINE / PASS / GO`（独立整改复审 `41f92526919e8c18b11c04f188365be2105240ac`）
 
+**实施补充：** PRD修订010及可配置问卷SDS补充`4ecc9d3b`已GO；本计划不建立新Gate，仅按该上游契约补充模板校验、答卷验证、确定性计分和受管种子前向修订。
+
 **目标：** 实现模板发布与冻结、满意度任务、V1受控客户答卷、不可变评分Result、整改重收、Result失效、满意度应交来源归档、历史下载与统一异步导出的完整纵向闭环。
 
 **架构：** ACC满意度语义落在`pms-module-project`全新`satisfaction`子包；PROJ继续拥有项目任务、WorkBinding和项目范围，PLT继续拥有文件、归档及统一`ExportTask/ExportAudit`真值。客户grant只授权单一问卷；已提交Response与判定事务分段，PLT以`MANDATORY`生成唯一Result文档后，文件公共事实、Result、ResultFile和Outbox同事务提交。ACC只以`ACC/SATISFACTION_RESULT` Provider向PLT提供裁剪数据，异步导出不形成第二Task/Audit。ACC-04投影复用既有唯一应交根及来源历史表，归档失败只进入补偿。
@@ -109,6 +111,14 @@ public record SatisfactionResultFact(
 - Template Provider只返回`FOUND/NO_MATCH/AMBIGUOUS/DEPENDENCY_UNAVAILABLE`；五维最高优先级并列不是任选。
 - initializer为`MANDATORY`，先调用`ProjectWorkBindingFactApi`重验任务、冻结模板、时点和责任人；首次revision固定1且source=trigger。相同Fact同载荷返回原结果，异载荷冲突。
 - Result Fact返回task/questionnaire/response/result、模板/规则/阈值、原始source、passed、resultStatus、archiveStatus及版本；投影和未来CLO/SUB只能读取Owner Fact。
+
+### 3.1A 可配置问卷与确定性计分
+
+- 新增ACC内部`SatisfactionQuestionnaireDefinition`，只解析`schemaVersion=1`封闭配置包并在模板发布、Questionnaire冻结和判定三处复用同一校验器；不得执行脚本、表达式或客户端算法标识。
+- 题型仅`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`。多选`minSelections/maxSelections`为非空整数且满足`1<=min<=max<=options数量`；文本`minLength/maxLength`为非空整数且满足`0<=min<=max`；不适用参数必须缺失。
+- 发布时计算每题真实最大可达分：单选/量表取最大option score，多选取全部合法去重选择集合的平均分最大值；再派生`SUM_V1/WEIGHTED_AVERAGE_V1`的scoreMax并校验threshold。最低选2项、100/0时最大分50，threshold=80必须拒绝。
+- 答卷只接受`answers[{questionCode,value}]`。非法题目/选项/类型/数量/长度在Response前拒绝；缺必答项允许保存Response但强制未通过。中间值使用BigDecimal精确计算，只在最终按冻结`precision/roundingMode`舍入一次，再比较threshold。
+- 已执行V133不修改；后续前向迁移只为精确受管且当前PUBLISHED的V133模板追加完整revision 2并切换current指针，普通模板、停用模板、部分命中或冲突均不得进入该分支。
 
 ### 3.2 PLT受控客户上传
 
@@ -231,11 +241,11 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 1：编写聚焦失败测试并确认RED**
 
-  新增Provider、命令、投影、乱序、grant上传、Result生成文件、现场协助、统一导出和迁移测试。至少证明：五维零/并列失败；initializer无外层事务拒绝；令牌错问卷/跨租户拒绝；Response已提交后生成文件失败保持`PENDING_DECISION`且零Result；`scopeVersion(Long)`从`ProjectScopeResult.treeVersion`原样进入文件事实；session四阶段失败可补偿且无第二对象；必答/签字/阈值失败Result均有唯一文档；现场协助拒绝零写入；统一导出同operation幂等、生成前重验、可重试/不可重试/REJECTED分类、原actor expectedVersion CAS重试、下载重验和仅SUCCEEDED过期均有直接测试；整改revision2幂等；invalidate期望版本；旧RECORDED晚到不恢复；旧完工证明零读取。
+  新增Provider、命令、投影、乱序、grant上传、Result生成文件、现场协助、统一导出和迁移测试。计分聚焦只覆盖一条SUM、一条加权平均、多选真实最大可达分、非法答案零Response和缺必答失败Result；至少证明：五维零/并列失败；initializer无外层事务拒绝；令牌错问卷/跨租户拒绝；Response已提交后生成文件失败保持`PENDING_DECISION`且零Result；`scopeVersion(Long)`从`ProjectScopeResult.treeVersion`原样进入文件事实；session四阶段失败可补偿且无第二对象；必答/签字/阈值失败Result均有唯一文档；现场协助拒绝零写入；统一导出同operation幂等、生成前重验、可重试/不可重试/REJECTED分类、原actor expectedVersion CAS重试、下载重验和仅SUCCEEDED过期均有直接测试；整改revision2幂等；invalidate期望版本；旧RECORDED晚到不恢复；旧完工证明零读取。
 
 - [ ] **Step 2：实现API、DO/Mapper和领域服务最小闭环**
 
-  先实现PLT `ExportTaskApi`、两表、执行/到期Job及状态/retry/access-ticket公开入口，再实现Template/Initializer/Result Fact、客户提交、现场协助、ACC导出Provider、recollect和invalidate。现场协助只接受服务端认证actor；ACC导出入口只冻结场景请求并调用PLT request，四时点裁剪与失败分类按3.5执行。所有非主键查询使用场景Query，拒绝路径在Result/来源/Outbox写入前结束。
+  先实现PLT `ExportTaskApi`、两表、执行/到期Job及状态/retry/access-ticket公开入口，再实现Template/Initializer/Result Fact、客户提交、现场协助、ACC导出Provider、recollect和invalidate。模板发布、Questionnaire冻结与Result判定统一调用3.1A的配置解析/校验/计分器；客户端答案在Response前校验，服务端生成score/passed。现场协助只接受服务端认证actor；ACC导出入口只冻结场景请求并调用PLT request，四时点裁剪与失败分类按3.5执行。所有非主键查询使用场景Query，拒绝路径在Result/来源/Outbox写入前结束。
 
 - [ ] **Step 3：接入PLT、PROJ和Outbox**
 
