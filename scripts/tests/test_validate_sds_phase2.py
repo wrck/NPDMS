@@ -39,6 +39,30 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("legacy satisfaction boundary" in error for error in errors), errors)
 
+    def test_facc002_rejects_missing_exact_satisfaction_deliverable_root(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "deliverable_code=D-SAT-REPORT", "deliverable_code=UNRESOLVED", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("D-SAT-REPORT" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_remediation_revision_identity(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "uk(tenant_id, collection_key, task_revision_no)", "uk(tenant_id, collection_key)", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("task_revision_no" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|

@@ -805,14 +805,26 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "acc_satisfaction_access_grant",
             "acc_satisfaction_response_file",
             "acc_satisfaction_result_file",
+            "acc_satisfaction_remediation_fact",
             "source_object_type=SatisfactionResult",
+            "uk(tenant_id, collection_key, task_revision_no)",
+            "trigger_object_type",
+            "deliverable_code=D-SAT-REPORT",
+            "task_code=T-SAT-SURVEY",
         ),
         "10-api-design.md": (
             "/satisfaction-tasks/{id}/access-grants",
             "/satisfaction-questionnaires/{token}/files",
             "pms:acceptance:satisfaction:query/manage/collect/export/download",
+            "SatisfactionRemediationFact",
+            "D-SAT-REPORT",
         ),
-        "11-event-design.md": ("SatisfactionResultVersionChanged", "SatisfactionResultOutboxDeliveryJob"),
+        "11-event-design.md": (
+            "SatisfactionResultVersionChanged",
+            "SatisfactionResultOutboxDeliveryJob",
+            "T-SAT-SURVEY",
+            "taskRevisionNo",
+        ),
         "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE"),
     }
     for name, tokens in required.items():
