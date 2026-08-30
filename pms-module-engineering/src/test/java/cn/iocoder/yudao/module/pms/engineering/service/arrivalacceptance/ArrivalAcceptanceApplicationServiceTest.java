@@ -144,6 +144,24 @@ class ArrivalAcceptanceApplicationServiceTest {
         assertEquals("DIFFERENCE_PENDING", result.status());
     }
 
+    @Test
+    void combinesConfirmedBatchWithCurrentBatchBeforePromotingCandidate() {
+        SubmissionFixture fixture = submissionFixture();
+        when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftTwoDevices());
+        when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryScopeTwoDevices());
+        when(fixture.devicePort().lockAndRevalidate(any(), any(), any())).thenReturn(deviceScopeTwoDevices());
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(acceptedDeviceLine(12L, 900L)));
+        when(fixture.lineMapper().selectConfirmedAcceptedByProject(any()))
+                .thenReturn(List.of(acceptedDeviceLine(11L, 800L)));
+        when(fixture.filePort().lockAndRevalidateArrivalEvidence(any())).thenReturn(fileFact(6L));
+        when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
+
+        ArrivalAcceptanceApplicationService.SubmissionResult result = fixture.service().submit(
+                new ArrivalAcceptanceApplicationService.SubmitCommand(1L, 900L, 8L, 0));
+
+        assertEquals("ACCEPTED", result.status());
+    }
+
     private static ArrivalAcceptanceApplicationService.CreateDraftCommand command() {
         return new ArrivalAcceptanceApplicationService.CreateDraftCommand(
                 1L, 100L, 8L, "ARRIVAL-001", "LOGISTICS-001",
@@ -212,6 +230,17 @@ class ArrivalAcceptanceApplicationServiceTest {
         return row;
     }
 
+    private static ArrivalAcceptanceDO draftTwoDevices() {
+        ArrivalAcceptanceDO row = draft();
+        row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20,\"assignedQuantity\":2," +
+                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"modelCode\":\"MODEL-1\"," +
+                "\"serialNumbers\":[\"SN-1\",\"SN-2\"]}],\"devices\":[{\"deviceId\":11," +
+                "\"serialNumber\":\"SN-1\",\"currentProjectId\":100,\"projectAssignmentVersion\":9}," +
+                "{\"deviceId\":12,\"serialNumber\":\"SN-2\",\"currentProjectId\":100," +
+                "\"projectAssignmentVersion\":10}]}");
+        return row;
+    }
+
     private static DeliveryEvidenceDO evidence() {
         DeliveryEvidenceDO row = new DeliveryEvidenceDO();
         row.setId(50L);
@@ -242,12 +271,28 @@ class ArrivalAcceptanceApplicationServiceTest {
     }
 
     private static ArrivalLineDO acceptedDeviceLine() {
+        return acceptedDeviceLine(11L, 900L);
+    }
+
+    private static ArrivalLineDO acceptedDeviceLine(Long deviceId, Long acceptanceId) {
         ArrivalLineDO row = new ArrivalLineDO();
-        row.setArrivalAcceptanceId(900L);
+        row.setArrivalAcceptanceId(acceptanceId);
         row.setScopeType("DEVICE");
-        row.setDeviceId(11L);
+        row.setDeviceId(deviceId);
         row.setStatus("ACCEPTED");
         return row;
+    }
+
+    private static DeliveryScopePort.AssignedScope deliveryScopeTwoDevices() {
+        return new DeliveryScopePort.AssignedScope(100L, 8L, List.of(
+                new DeliveryScopePort.AssignedLine(20L, new BigDecimal("2"),
+                        "台", "PRODUCT-1", "MODEL-1", Set.of("SN-1", "SN-2"))));
+    }
+
+    private static DeviceScopeFactPort.DeviceScopeFact deviceScopeTwoDevices() {
+        return new DeviceScopeFactPort.DeviceScopeFact(100L, List.of(
+                new DeviceScopeFactPort.DeviceFact(11L, "SN-1", 100L, 9L),
+                new DeviceScopeFactPort.DeviceFact(12L, "SN-2", 100L, 10L)));
     }
 
     private static ArrivalDifferenceDO openDifference() {

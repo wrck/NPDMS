@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Arriv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalChildrenQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalProjectFactQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.ArrivalSubmissionUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceRevisionQuery;
@@ -158,15 +159,19 @@ public final class ArrivalAcceptanceApplicationService {
         SubmissionScope scope = submissionScope(root.getId(), expected, lines, differences);
         rules.validateSubmission(scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
                 scope.acceptedDeviceIds(), scope.acceptedQuantityScopes(), true);
+        LocalDateTime checkedAt = LocalDateTime.now();
+        List<ArrivalLineDO> confirmedLines = lineMapper.selectConfirmedAcceptedByProject(
+                new ArrivalProjectFactQuery(command.tenantId(), root.getProjectId(), checkedAt));
+        List<ArrivalFactCalculator.DeviceContribution> acceptedDevices = new java.util.ArrayList<>();
+        List<ArrivalFactCalculator.QuantityContribution> acceptedQuantities = new java.util.ArrayList<>();
+        addContributions(root.getId(), scope.acceptedDeviceIds(), scope.acceptedQuantityScopes(),
+                acceptedDevices, acceptedQuantities);
+        addConfirmedContributions(confirmedLines, acceptedDevices, acceptedQuantities);
         ArrivalFactCalculator.CalculationResult calculation = factCalculator.calculate(
                 new ArrivalFactCalculator.CalculationInput(
                         scope.expectedDeviceIds(), scope.expectedQuantityScopes(),
-                        scope.acceptedDeviceIds().stream()
-                                .map(deviceId -> new ArrivalFactCalculator.DeviceContribution(root.getId(), deviceId))
-                                .toList(),
-                        scope.acceptedQuantityScopes().stream()
-                                .map(quantity -> new ArrivalFactCalculator.QuantityContribution(root.getId(), quantity))
-                                .toList(), List.of(), List.of(), LocalDateTime.now()));
+                        List.copyOf(acceptedDevices), List.copyOf(acceptedQuantities),
+                        List.of(), List.of(), checkedAt));
         String submittedStatus = stateMachine.submit(scope.hasOpenDifference(),
                 ArrivalAcceptanceFact.DECISION_ACCEPTED.equals(calculation.decision()));
         LocalDateTime submittedAt = LocalDateTime.now();
@@ -248,6 +253,35 @@ public final class ArrivalAcceptanceApplicationService {
         });
         return new SubmissionScope(Set.copyOf(expectedDeviceIds), expectedQuantities,
                 Set.copyOf(acceptedDevices), List.copyOf(acceptedQuantities), hasOpenDifference);
+    }
+
+    private static void addContributions(Long acceptanceId, Set<Long> deviceIds,
+                                         List<ArrivalQuantityScopeFact> quantities,
+                                         List<ArrivalFactCalculator.DeviceContribution> devices,
+                                         List<ArrivalFactCalculator.QuantityContribution> quantityContributions) {
+        deviceIds.forEach(deviceId -> devices.add(
+                new ArrivalFactCalculator.DeviceContribution(acceptanceId, deviceId)));
+        quantities.forEach(quantity -> quantityContributions.add(
+                new ArrivalFactCalculator.QuantityContribution(acceptanceId, quantity)));
+    }
+
+    private static void addConfirmedContributions(List<ArrivalLineDO> confirmedLines,
+                                                  List<ArrivalFactCalculator.DeviceContribution> devices,
+                                                  List<ArrivalFactCalculator.QuantityContribution> quantities) {
+        if (confirmedLines == null) return;
+        for (ArrivalLineDO line : confirmedLines) {
+            if ("DEVICE".equals(line.getScopeType())) {
+                devices.add(new ArrivalFactCalculator.DeviceContribution(
+                        line.getArrivalAcceptanceId(), line.getDeviceId()));
+            } else if ("ORDER_MODEL_QUANTITY".equals(line.getScopeType())) {
+                quantities.add(new ArrivalFactCalculator.QuantityContribution(
+                        line.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(
+                        line.getOrderLineId(), line.getProductCode(), line.getModelCode(),
+                        line.getAcceptedQuantity(), line.getUnit())));
+            } else {
+                throw new IllegalStateException("confirmed arrival line scope type is unsupported");
+            }
+        }
     }
 
     private static void requireSubmitCommand(SubmitCommand command) {
