@@ -8,7 +8,7 @@
 
 **Goal：** 一次交付“A/B/C任务在P3按已发布配置生成版本化清单 → 同工作台直接填写或以人工证据降级 → 暂存 → 必填校验 → 提交并原子进入P4”的最小完整业务闭环；D级不生成清单。
 
-**Architecture：** CUT在既有`CutoverTask/CutoverAssessment`之下新增SDS锁定的三表聚合，直接消费F-CUT-001已发布配置，不复制配置真值。写命令沿用F-CUT-002共享Owner锁序和`PlatformCommandExecutionApi`幂等/审计/Outbox；PLT继续拥有文件事实，INT-12和外部数据只定义CUT消费端口，不实现第三方Provider。
+**Architecture：** CUT在既有`CutoverTask/CutoverAssessment`之下新增SDS锁定的三表聚合；任务创建时冻结F-CUT-001配置revision三元组，P3只按该身份读取配置，不复制或重选配置真值。写命令沿用F-CUT-002共享Owner锁序和`PlatformCommandExecutionApi`幂等/审计/Outbox；PLT继续拥有文件事实，INT-12和外部数据只定义CUT消费端口，不实现第三方Provider。
 
 **Tech Stack：** JDK 25、Spring Boot、MyBatis/XML、MySQL 8.4、Flyway、Vue 3、TypeScript、Element Plus、pnpm。
 
@@ -18,7 +18,7 @@
 
 - 权威语义固定为`CUT-03@V1=FULL`；V2导出、流程跳转配置和P4/P5/P6业务不进入本计划。
 - 先实现每个Task的完整正向能力，再补聚焦验证；不测试先行，不建设权限、冲突、乱序、跨租户或Provider失败矩阵。
-- 只新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`三张业务真值表。
+- 只新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`三张业务真值表；既有`cut_task`仅加任务配置身份三列，不新增映射表或第二配置真值。
 - 不修改旧`pms_cut_risk`、旧页面、旧接口、旧表或Yudao基础平台。
 - 不实现INT-12/DAC、外部技术公告或其他第三方Provider；只保留接口、稳定失败和人工降级路径。
 - 所有新增Mapper查询遵守`docs/coding/database-query-interface.md`：场景Query单参数、锁查询进入XML、禁止SQL注解和Service拼SQL。
@@ -40,9 +40,9 @@
 
 | 责任 | 文件或目录 | 处理 |
 |---|---|---|
-| 三表物理模型 | `sql/migrations/V147__fcut003_p3_dynamic_checklist.sql` | 新建三表并给既有工作台菜单增加三个新权限按钮；不授权固定角色，不改V146 |
+| 任务配置身份与三表物理模型 | `sql/migrations/V147__fcut003_p3_dynamic_checklist.sql` | 给`cut_task`增加配置revision三列并按批准规则补齐既有NEW_PLATFORM任务，再新建三表和三个权限按钮；不授权固定角色，不改V146 |
 | 清单DO/Mapper | `pms-module-cutover/src/main/java/.../dal/dataobject/checklist/`、`.../dal/mysql/checklist/`、`src/main/resources/mapper/checklist/` | 三表DO、场景Query、锁查询、CAS和稳定排序；不访问其他Context表 |
-| 配置读取与匹配 | `.../service/checklist/CutoverChecklistConfigurationQueryService.java`、`CutoverChecklistMatcher.java` | 读取F-CUT-001当前适用PUBLISHED修订、项定义和规则；按稳定键匹配、去重、合并必填、暴露GAP/CONFLICT |
+| 配置读取与匹配 | `.../service/checklist/CutoverChecklistConfigurationQueryService.java`、`CutoverChecklistMatcher.java` | 按任务冻结的revision ID/code/no精确读取F-CUT-001修订、项定义和规则；允许该历史修订后来DISABLED，不按P3当前时间重选；按稳定键匹配、去重、合并必填、暴露GAP/CONFLICT |
 | 清单命令内核 | `.../service/checklist/CutoverChecklistApplicationService.java`、`command/`、`result/` | 生成、重匹配、暂存、自定义项、人工结果、设备采集请求和提交；统一幂等与锁序 |
 | 清单查询 | `.../service/checklist/CutoverChecklistQueryService.java`、`view/CutoverChecklistViews.java` | 当前清单、分块项目、匹配轨迹、当前结果及allowedActions；D级返回资源不存在语义 |
 | 外部消费端口 | `.../service/checklist/port/CutoverCollectionPort.java`、`CutoverExternalDataPort.java` | 只定义稳定请求/结果/失败联合；`src/test`可提供受控正向替身，生产不实现Provider |
@@ -55,14 +55,15 @@
 
 ### 3.1 配置读取、匹配与快照
 
-`CutoverChecklistConfigurationQueryService.resolvePublished(MatchInput)`只读取一个当前适用的`PUBLISHED`配置修订及其全部启用定义/规则。`MatchInput`冻结：
+`CutoverChecklistConfigurationQueryService.resolveFrozen(MatchInput)`只按任务冻结三元组读取同一配置修订及其全部启用定义/规则；该revision后来`DISABLED`仍可读取，DRAFT或身份不一致失败。`MatchInput`冻结：
 
 - `cutoverType`、`networkMode`、稳定排序的设备类型集合、`manualGrade`；
 - 版本升级场景的当前/升级后版本；
 - 配置修订中启用的扩展维度；
+- `configurationRevisionId/configurationCode/configurationRevisionNo`；
 - `taskId/taskVersion/assessmentId/assessmentVersion/projectScopeVersion`。
 
-配置查询新增`CutoverPublishedConfigurationQuery`，用`tenantId + configurationCode + effectiveAt`精确选择当前发布版本；无版本或出现重叠版本时返回稳定配置错误，不任选。定义和规则继续复用现有Mapper，按`sortOrder/id`与`priority/id`稳定排序。
+配置查询新增`CutoverFrozenConfigurationQuery`，用`tenantId + configurationRevisionId + configurationCode + configurationRevisionNo`精确读取任务冻结revision；三项任一不匹配、目标为DRAFT或缺失时返回稳定配置错误，不查看P3当前发布指针、不任选。定义和规则继续复用现有Mapper，按`sortOrder/id`与`priority/id`稳定排序。
 
 `CutoverChecklistMatcher.match`产生`MatchedItem/GAP/CONFLICT`：
 
@@ -113,7 +114,13 @@
 
 ### 3.5 V147前向迁移
 
-`V147__fcut003_p3_dynamic_checklist.sql`严格从SDS物理附录复制三表列、唯一键、生成列、索引、检查与item/result外键，并增加：
+`V147__fcut003_p3_dynamic_checklist.sql`先给`cut_task`增加可空`configuration_revision_id/configuration_code/configuration_revision_no`，再在任何更新前完成全表预检：
+
+- 既有`NEW_PLATFORM`按原`create_time`，从具有正式发布事实、状态为`PUBLISHED/DISABLED`且生效区间覆盖该时点的历史revision中解析；DRAFT排除；
+- 全租户全部配置代码恰好一个候选时补齐三元组；零个或多个候选整批失败，不使用`CUTOVER_DEFAULT`、当前时间、类型或名称推断；
+- `LEGACY_FORWARD`三列保持空；补齐后增加来源联合CHECK，保证NEW_PLATFORM三列非空且revision ID/code/no精确一致，LEGACY_FORWARD三列全空。
+
+随后严格从SDS物理附录创建三表列、唯一键、生成列、索引、检查与item/result外键，并增加：
 
 - `status_code`限定`DRAFT/SUBMITTED/INVALIDATED`；
 - `result_source_code`限定`DIRECT/COLLECTION/EXTERNAL/MANUAL`；
@@ -126,11 +133,11 @@
 
 **Produces：** 可编译、可由受控正向装配执行的完整CUT清单内核；不依赖第三方Provider即可通过DIRECT/MANUAL完成P3→P4。
 
-- [ ] 建立三表DO、场景Query、Mapper/XML和V147，完整落位当前版本、当前结果、稳定项及权限菜单。
-- [ ] 实现`CutoverChecklistConfigurationQueryService`和`CutoverChecklistMatcher`，直接消费F-CUT-001发布配置，输出稳定匹配、GAP和CONFLICT，不复制配置表或矩阵。
+- [ ] 建立任务配置身份字段、三表DO、场景Query、Mapper/XML和V147，完成历史唯一补齐并落位当前版本、当前结果、稳定项及权限菜单。
+- [ ] 实现`CutoverChecklistConfigurationQueryService`和`CutoverChecklistMatcher`，只消费任务冻结的F-CUT-001 revision，输出稳定匹配、GAP和CONFLICT，不复制配置表或矩阵。
 - [ ] 实现Generate/Rematch/Save/Custom/Manual/Submit命令及Query View；所有写命令使用3.3统一锁序和幂等组件。
 - [ ] 实现`CutoverCollectionPort/CutoverExternalDataPort`接口和CUT文件策略；生产不实现第三方Provider，MANUAL使用PLT规范公共Fact。
-- [ ] 实现完成后补聚焦后端验证：真实MySQL落三表；A/B/C按已发布配置生成DRAFT；DIRECT与带文件Fact的MANUAL结果暂存；CUSTOM补足GAP；提交后Checklist=SUBMITTED且Task=P4；同键重放不重复。
+- [ ] 实现完成后补聚焦后端验证：真实MySQL证明既有NEW_PLATFORM任务唯一历史revision可补齐、零/多候选整批失败；A/B/C按冻结revision生成DRAFT；DIRECT与带文件Fact的MANUAL结果暂存；CUSTOM补足GAP；提交后Checklist=SUBMITTED且Task=P4；同键重放不重复。
 - [ ] 只运行CUT聚焦测试与受影响Maven reactor `package -DskipTests`；不运行Phase 1/2/3或全仓负向回归。
 
 Task 1结束不单独申请Implementation Done；若CUT内核与V147验证通过，直接进入Task 2接工作台。
@@ -151,7 +158,7 @@ Task 1结束不单独申请Implementation Done；若CUT内核与V147验证通过
 候选级验证只回答五个正向交付问题：
 
 1. 三张CUT表及权限菜单能否从当前基线前向迁移并通过Flyway validate；
-2. A/B/C能否按F-CUT-001已发布配置生成唯一DRAFT，D级是否不生成；
+2. A/B/C能否按任务冻结的F-CUT-001 revision生成唯一DRAFT，后续配置发布/停用是否不改变其解释，D级是否不生成；
 3. DIRECT、CUSTOM和带PLT公共Fact的MANUAL能否在同一P3草稿保存并刷新保持；
 4. 全部必填完成后能否原子形成SUBMITTED清单并把任务推进P4；
 5. 生产Owner到位后，正式工作台能否完成同一正向链并与数据库一致。
@@ -163,7 +170,7 @@ Task 1结束不单独申请Implementation Done；若CUT内核与V147验证通过
 - **F-CUT-002生产Owner未接通：** 不阻断Task 1和Task 2静态页面实现，但继续阻断Controller生产装配、真实浏览器和Implementation Done；CUT不得复制PROJ/AST/CUS/IMP Owner。
 - **INT-12/外部Provider未实现：** 不阻断V1正向闭环；页面展示稳定不可用事实并允许MANUAL，不能把人工结果写成自动成功。
 - **共享Flyway竞争：** 落文件前重新读取最高版本；只前向改本迁移版本号，不修改已执行迁移。
-- **配置修订缺失或冲突：** 缺规则允许GAP+CUSTOM；定义冲突必须显式选择。生产配置错误不通过硬编码默认值掩盖。
+- **任务配置身份缺失或冲突：** 新任务创建前已冻结三元组；V147存量补齐零/多候选整批失败；P3不重选。缺规则允许GAP+CUSTOM，定义冲突必须显式选择，生产配置错误不通过硬编码默认值掩盖。
 - **回退：** 未发布迁移可删除候选文件；迁移一旦执行只允许新增前向纠正。业务回退不删除已提交清单、结果、审计或Outbox。
 
 ## 8. Technical Plan Gate

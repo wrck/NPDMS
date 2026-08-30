@@ -11,10 +11,11 @@
 > 机器合同：`specs/features/F-CUT-003-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-003-legacy-reuse-audit.md`
 > Technical Plan：`CANDIDATE / IN_REVIEW`（`NPDMS-FCUT003-TECHPLAN-20260831-01`）
+> Technical Plan前置配置身份补充：`PASS / GO@b06061eb`
 
 ## 1. 业务目标
 
-割接-一线工程师在A/B/C级任务进入P3后，基于F-CUT-001已发布配置和任务冻结维度生成版本化采集清单，在同一工作台完成直接填写、任务级自定义项、暂存、人工证据降级、必填校验和提交，并由CUT原子推进到P4。D级继续跳过P3，不生成清单。
+割接-一线工程师在A/B/C级任务进入P3后，基于任务创建时冻结的F-CUT-001配置revision和任务维度生成版本化采集清单，在同一工作台完成直接填写、任务级自定义项、暂存、人工证据降级、必填校验和提交，并由CUT原子推进到P4。D级继续跳过P3，不生成清单。
 
 ## 2. Scope
 
