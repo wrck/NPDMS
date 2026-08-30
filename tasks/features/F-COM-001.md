@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2十表Schema与V70前向兼容在`4996c754`通过独立Schema/迁移Gate：22/22非IT、4/4隔离MySQL及软删冲突前置失败/repair重跑证据通过。Task 2状态为PASS；最近Gate为Task 2A `PlatformMigrationEvidenceApi` Public Machine Contract Gate，尚未授权PLT实现。
+Task 2十表Schema与V70前向兼容已在`4996c754`通过并完成状态回写。Task 2A `PlatformMigrationEvidenceApi`公共机器合同候选已形成：仅含SDS、机器合同、公开API/DTO/稳定错误与合同测试，不含Provider、Mapper、DDL或生产Bean；当前Gate为`REVIEW_REQUIRED`，尚未授权PLT实现。
 
 ## Gate输入
 

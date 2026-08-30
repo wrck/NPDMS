@@ -148,6 +148,24 @@
       "pm_project_product_line": {"fields":["id","projectId","contractNo","itemCode","projectQuantity","orderQuantity","deliverQuantity","openQuantity"],"qualification":"project, orderLine and positive projectQuantity resolve; audited projectQuantity is empty, and other quantities never substitute, so those rows remain issues"}
     },
     "invalidRows": "preserve source row; create deterministic issue; create no owner/current-scope fact",
+    "migrationEvidenceContract": {
+      "owner": "PLT:T-FCOM001-PLT-01",
+      "publicApi": "PlatformMigrationEvidenceApi",
+      "batchStates": ["IMPORTING","STAGED_READY","RECONCILING","COMPLETED","FAILED"],
+      "writeActions": ["createImportBatch","appendSourceRecord","markStagedReady","claimStagedBatch","appendExternalMapping","appendMigrationIssue","completeReconciliation","closeMigrationIssue"],
+      "readQueries": ["pageSourceRecords"],
+      "sourceResultTypes": ["MAPPED","ISSUE","RETAINED"],
+      "transactionRule": "claimStagedBatch requires a caller-owned transaction; claim, COM target writes, PLT result appends and completeReconciliation join that transaction so failure restores STAGED_READY",
+      "appendExternalMappingUnion": {
+        "MAPPED": "one or more stable target mappings are required",
+        "RETAINED": "target mappings must be empty and the source row is classified as retained"
+      },
+      "completionInvariant": "each frozen source has exactly one final result and sourceCount = mappedCount + issueCount + retainedCount before COMPLETED",
+      "countUnit": "mappedCount, issueCount and retainedCount count unique source records, not target mapping rows or issue rows",
+      "issueClosure": "only an OPEN issue in a COMPLETED batch may be closed once; append resolver, ruleVersion and targetResult without reopening or recounting the batch",
+      "trustedTenant": "every explicit tenantId equals TenantContextHolder.getRequiredTenantId",
+      "stableErrors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
+    },
     "forbidden": ["modify V70/V72","dual-write quantity_status and authority_status","default-fill new facts","infer from XLSX/attachment/text","promote V72 seed","use orderQuantity as project allocation"]
   },
   "permissions": ["pms:commerce:contract-order:query","pms:commerce:authority:reconcile","pms:commerce:delivery-scope:query","pms:commerce:delivery-scope:allocate","pms:commerce:delivery-scope:release"]

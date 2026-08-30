@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-COM-001",
+  "supportTaskId": "T-FCOM001-PLT-01",
+  "status": "REVIEW_REQUIRED",
+  "requirementCoverage": ["COM-01@V1=FULL"],
+  "ownerContext": "PLT",
+  "consumerContext": "COM",
+  "api": "PlatformMigrationEvidenceApi",
+  "trustedContext": {
+    "tenant": "every command/query tenantId is positive and equals TenantContextHolder.getRequiredTenantId",
+    "actor": "closeMigrationIssue resolverUserId is a positive trusted server-side subject",
+    "forbidden": ["client tenant switching","COM direct table access","legacy datasource in normal production beans","test fixture as production migration evidence"]
+  },
+  "batch": {
+    "states": ["IMPORTING","STAGED_READY","RECONCILING","COMPLETED","FAILED"],
+    "identity": ["tenantId","ownerContextCode","purposeCode","releaseId","sourceSystem","sourceTable"],
+    "lineage": "previousBatchId and previousIssueId are nullable positive references; remigration after issue closure requires previousIssueId",
+    "order": ["createTime ASC","batchId ASC"],
+    "transitions": [
+      "createImportBatch: NONE -> IMPORTING",
+      "markStagedReady: IMPORTING -> STAGED_READY when manifest and frozen sources match",
+      "markStagedReady: IMPORTING -> FAILED when manifest validation fails",
+      "claimStagedBatch: STAGED_READY -> RECONCILING",
+      "completeReconciliation: RECONCILING -> COMPLETED"
+    ],
+    "terminal": ["COMPLETED","FAILED"],
+    "failureRollback": "claim and all reconciliation writes join the caller transaction; any failure before completion rolls back to STAGED_READY",
+    "completionInvariant": "sourceCount = mappedCount + issueCount + retainedCount and every source has exactly one final classification",
+    "countUnit": "mappedCount, issueCount and retainedCount count unique source records; one MAPPED source may have multiple targets and one ISSUE source may have multiple issue rows"
+  },
+  "sourceRecord": {
+    "identity": ["tenantId","batchId","sourceSystem","sourceTable","sourcePk"],
+    "immutableFields": ["sourceSystem","sourceTable","sourcePk","sourceBusinessKey","sourcePayloadJson","sourceChecksum","extractedAt"],
+    "appendState": "IMPORTING_ONLY",
+    "replay": "same identity and identical immutable fields returns the existing record; any difference is SOURCE_RECORD_CONFLICT",
+    "query": "pageSourceRecords reads only the frozen batch by sourceRecordId ASC with afterSourceRecordId exclusive and limit 1..500"
+  },
+  "actions": {
+    "createImportBatch": "idempotency key plus canonical command digest; same payload replays the batch, different payload conflicts",
+    "appendSourceRecord": "intrinsic source identity replay; source payload remains opaque valid JSON and is never reinterpreted by PLT",
+    "markStagedReady": "validates expected row count, schema version and manifest content SHA-256 before freezing the source set",
+    "claimStagedBatch": "requires caller transaction and claims at most one matching STAGED_READY batch; no match returns claimed=false with no side effects",
+    "pageSourceRecords": "read-only cursor query; not one of the eight write actions",
+    "appendExternalMapping": {
+      "discriminator": "resultType",
+      "MAPPED": "targets nonempty; stable order targetRole,targetSequence,targetContext,targetObjectType,targetId",
+      "RETAINED": "targets empty; records an explicit retained result against the stable sourceRecordId"
+    },
+    "appendMigrationIssue": "appends one deterministic OPEN issue against a stable frozen sourceRecordId; does not modify source payload",
+    "completeReconciliation": "recomputes classifications and counts under lock, then writes immutable final counts and COMPLETED",
+    "closeMigrationIssue": "COMPLETED batch and OPEN issue only; CAS appends resolver, ruleVersion, targetResult and audit without changing batch counts"
+  },
+  "idempotency": {
+    "platformCommandActions": ["createImportBatch","markStagedReady","appendExternalMapping","appendMigrationIssue","completeReconciliation","closeMigrationIssue"],
+    "requiredFieldsForPlatformCommandActions": ["idempotencyKey","correlationId"],
+    "appendSourceRecord": "uses the intrinsic source identity and immutable payload comparison; correlationId is required and no second idempotency key is introduced",
+    "claimStagedBatch": "uses caller transaction plus locked STAGED_READY CAS; correlationId is required and replay is the enclosing reconciliation transaction responsibility",
+    "normalizedLength": "1..128, no leading or trailing whitespace",
+    "sameKeySamePayload": "REPLAY_EXISTING_RESULT",
+    "sameKeyDifferentPayload": "IDEMPOTENCY_CONFLICT",
+    "inProgress": "IDEMPOTENCY_IN_PROGRESS",
+    "intrinsicResultKeys": ["sourceRecord identity","sourceRecordId+resultType","sourceRecordId+issueKey"]
+  },
+  "issueClosure": {
+    "required": ["tenantId","issueId","resolverUserId","ruleVersion","targetResultJson","idempotencyKey","correlationId"],
+    "allowedFrom": "OPEN issue whose batch is COMPLETED",
+    "effect": "fill previously-null resolution fields and append operation audit only",
+    "forbidden": ["overwrite closed issue","change initial issue classification","change source or mapping","reopen batch","recompute final counts"],
+    "remigration": "create a new batch referencing the prior issueId"
+  },
+  "errors": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","CALLER_TRANSACTION_REQUIRED","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","BATCH_NOT_FOUND","BATCH_STATE_CONFLICT","SOURCE_NOT_FOUND","SOURCE_RECORD_CONFLICT","SOURCE_ALREADY_CLASSIFIED","MAPPING_CONFLICT","ISSUE_NOT_FOUND","ISSUE_CONFLICT","ISSUE_STATE_CONFLICT","COUNT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"],
+  "implementationBoundary": {
+    "contractGate": "API, DTO, stable exception, SDS and machine contract only",
+    "providerGate": "tables, DDL, DO, Mapper XML, Service and MySQL evidence only after this contract passes",
+    "forbiddenBeforeProviderGate": ["PlatformMigrationEvidenceApiImpl","Flyway migration","PLT Mapper","COM direct write","production fallback"]
+  }
+}
