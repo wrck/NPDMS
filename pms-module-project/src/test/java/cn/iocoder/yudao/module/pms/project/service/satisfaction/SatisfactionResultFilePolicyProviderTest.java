@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFilePolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -54,6 +55,23 @@ class SatisfactionResultFilePolicyProviderTest {
         assertThrows(IllegalStateException.class,
                 () -> provider.lockAndRevalidateGeneratedBusinessFile(query()));
         verifyNoInteractions(projectScopeApi);
+    }
+
+    @Test
+    void allowsResultDocumentDownloadForCurrentProjectViewScope() {
+        SatisfactionResultDO result = new SatisfactionResultDO();
+        result.setId(40L); result.setCollectionTaskId(10L);
+        when(resultMapper.selectById(40L)).thenReturn(result);
+        when(taskMapper.selectById(10L)).thenReturn(task());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(20L, 9L, Set.of(20L), Set.of()));
+
+        var fact = provider.inspect(new FileBusinessObjectPolicyQuery(7L, 30L, "ACC",
+                "SATISFACTION_RESULT", "40", "SATISFACTION_RESULT_DOCUMENT",
+                "satisfaction-result-40", FileActionCodes.DOWNLOAD));
+
+        assertTrue(fact.allowed());
+        assertEquals(9L, fact.scopeVersion());
     }
 
     private void arrangeOwnerChain() {

@@ -1,6 +1,6 @@
 {
   "feature": "F-ACC-002",
-  "generatedAt": "2026-08-30T17:11:36.309Z",
+  "generatedAt": "2026-08-30T18:59:31.320Z",
   "pass": true,
   "identity": {
     "username": "fcom001acceptance",
@@ -8,8 +8,8 @@
     "permissionCount": 30
   },
   "project": {
-    "projectId": 992203060028,
-    "projectCode": "PJT2026000025",
+    "projectId": 992203060037,
+    "projectCode": "PJT2026000034",
     "projectTemplateRevisionId": 911003
   },
   "template": {
@@ -18,18 +18,18 @@
     "configurableServerScoring": true
   },
   "revisionOne": {
-    "taskId": "2094110432968810498",
-    "responseId": "2094110445232955393",
-    "resultId": "2094110445232955393",
+    "taskId": "2094137617666519042",
+    "responseId": "2094137632027815937",
+    "resultId": "2094137632027815937",
     "score": 20,
     "threshold": 80,
     "passed": false,
     "channel": "ASSISTED"
   },
   "revisionTwo": {
-    "taskId": "2094110449867661314",
-    "responseId": "2094110489352839170",
-    "resultId": "2094110489352839170",
+    "taskId": "2094137637367164930",
+    "responseId": "2094137678492315650",
+    "resultId": "2094137678492315650",
     "score": 100,
     "threshold": 80,
     "passed": true,
@@ -43,8 +43,15 @@
     "archivedCurrentSource": true,
     "deliveredResultEvents": 2
   },
+  "historicalDownload": {
+    "resultId": "2094137678492315650",
+    "role": "RESULT_DOCUMENT",
+    "artifactId": "2094137681289916418",
+    "contentBytes": 750,
+    "auditCount": 1
+  },
   "export": {
-    "taskId": "2094110654352564226",
+    "taskId": "2094137849032716289",
     "status": "SUCCEEDED",
     "auditCount": 4,
     "accessTicketIssued": true
@@ -67,6 +74,7 @@
     "EXACT_ANONYMOUS_ROUTE_AND_QR",
     "PUBLIC_HIGH_SCORE_RESULT_WITH_SIGNATURE_AND_ATTACHMENT",
     "SOURCE_ARCHIVED_WITH_GLOBAL_SEQUENCE",
+    "ARCHIVED_RESULT_DOCUMENT_DOWNLOADED_AND_AUDITED",
     "UNIFIED_EXPORT_SUCCEEDED_AND_AUDITED",
     "CHROMIUM_DIAGNOSTICS_CLEAN"
   ]

@@ -108,8 +108,9 @@ const mysql = (sql) => execFileSync('docker', [
     return response.body.data
   }
   const clickText = (text) => evaluate(`(() => {
-    const target = [...document.querySelectorAll('button,a,[role="button"]')]
-      .find((node) => (node.innerText || node.textContent || '').trim() === ${JSON.stringify(text)} && !node.disabled);
+    const target = [...document.querySelectorAll('button,a,[role="button"],[role="tab"]')]
+      .find((node) => node.offsetParent !== null
+        && (node.innerText || node.textContent || '').trim() === ${JSON.stringify(text)} && !node.disabled);
     if (!target) return false; target.click(); return true;
   })()`)
   const setTestInput = (testId, value) => evaluate(`(() => {
@@ -207,6 +208,21 @@ const mysql = (sql) => execFileSync('docker', [
   await navigate(appUrl)
 
   const admin = await login('admin')
+  const runtimeFileConfig = await api('GET', '/infra/file-config/get?id=28', undefined, {}, admin.accessToken)
+  if (runtimeFileConfig.config.enablePublicAccess !== false
+      || runtimeFileConfig.config.enablePathStyleAccess !== true) {
+    await api('PUT', '/infra/file-config/update', {
+      id: runtimeFileConfig.id,
+      name: runtimeFileConfig.name,
+      storage: runtimeFileConfig.storage,
+      config: {
+        ...runtimeFileConfig.config,
+        enablePathStyleAccess: true,
+        enablePublicAccess: false
+      },
+      remark: runtimeFileConfig.remark
+    }, {}, admin.accessToken)
+  }
   await api('PUT', '/infra/file-config/update-master?id=28', undefined, {}, admin.accessToken)
   const existingMenus = await api('GET', `/system/permission/list-role-menus?roleId=${managedRoleId}`,
     undefined, {}, admin.accessToken)
@@ -452,6 +468,40 @@ const mysql = (sql) => execFileSync('docker', [
   await waitUntil(() => Number(mysql(`SELECT COUNT(*) FROM acc_project_deliverable_source_version WHERE tenant_id=0 AND source_object_type='SatisfactionResult' AND source_object_id='${high.resultId}' AND archive_status='ARCHIVED'`)) === 1,
     '达标Result未形成已归档满意度来源')
 
+  await navigate(`${appUrl}/pms/project/satisfaction?projectId=${projectId}`)
+  assert(await clickText('判定结果'), '无法打开满意度判定结果页')
+  const resultProjectSet = await evaluate(`(() => {
+    const input = [...document.querySelectorAll('.el-tab-pane input')]
+      .find((item) => item.offsetParent !== null && item.type !== 'checkbox');
+    if (!input) return false;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, ${JSON.stringify(String(projectId))});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`)
+  assert(resultProjectSet && await clickText('查询'), '判定结果项目查询不可操作')
+  await waitUntil(() => evaluate(`document.body.innerText.includes(${JSON.stringify(String(high.resultId))})`),
+    '判定结果页未渲染达标Result')
+  await screenshot('04-results-and-export.png')
+
+  const historicalDownloadFact = await api('GET',
+    `/api/v1/pms/satisfaction-results/${high.resultId}/files/1/download`, undefined, {}, token)
+  assert(historicalDownloadFact.role === 'RESULT_DOCUMENT', '达标Result历史文件首项不是结果文档')
+  const historicalFile = historicalDownloadFact.file
+  const historicalTicket = await api('POST',
+    `/api/v1/pms/files/${historicalFile.artifactId}/access-tickets`, {
+      versionNo: historicalFile.versionNo, operationCode: 'DOWNLOAD', ownerContext: 'ACC',
+      objectType: 'SATISFACTION_RESULT', objectId: String(high.resultId),
+      purposeCode: 'SATISFACTION_RESULT_DOCUMENT', referenceKey: historicalFile.referenceKey
+    }, {}, token)
+  const historicalContent = await fetch(historicalTicket.shortLivedUrl)
+  assert(historicalContent.ok, `达标Result历史文件短链下载失败：HTTP ${historicalContent.status}`)
+  const historicalContentBytes = (await historicalContent.arrayBuffer()).byteLength
+  assert(historicalContentBytes > 0, '达标Result历史文件下载内容为空')
+  const historicalDownloadAudits = Number(mysql(`SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=0 AND operation_code='FILE_ACCESS_TICKET_CREATE' AND aggregate_type='FileArtifact' AND aggregate_key='${historicalFile.artifactId}' AND result_code='SUCCESS'`))
+  assert(historicalDownloadAudits > 0, '达标Result历史文件下载缺少成功审计')
+
   const exportTask = await api('POST', '/api/v1/pms/satisfaction-results/exports', {
     projectId, fields: ['resultId', 'projectId', 'taskRevisionNo', 'score', 'threshold', 'passed',
       'ruleVersion', 'resultStatus', 'archiveStatus', 'effectiveFrom'], includeFiles: false
@@ -471,9 +521,6 @@ const mysql = (sql) => execFileSync('docker', [
   assert(sourceSequences === '1,2,3', `达标来源附件全局序号错误：${sourceSequences}`)
   assert(exportAudits > 0, '统一导出缺少永久审计')
 
-  await navigate(`${appUrl}/pms/project/satisfaction?projectId=${projectId}`)
-  await wait(2500)
-  await screenshot('04-results-and-export.png')
   const businessErrors = await evaluate(`window.__facc002BusinessErrors || []`)
   assert(businessErrors.length === 0 && pageErrors.length === 0 && consoleErrors.length === 0
     && requestFailures.length === 0, 'Chromium页面存在业务、脚本、控制台或网络错误')
@@ -489,6 +536,9 @@ const mysql = (sql) => execFileSync('docker', [
       score: high.score, threshold: high.threshold, passed: high.passed, channel: 'PUBLIC_LINK',
       qrRendered, anonymousStayedPublic },
     projection: { resultFiles, sourceSequences, archivedCurrentSource: true, deliveredResultEvents: 2 },
+    historicalDownload: { resultId: high.resultId, role: historicalDownloadFact.role,
+      artifactId: historicalFile.artifactId, contentBytes: historicalContentBytes,
+      auditCount: historicalDownloadAudits },
     export: { taskId: succeededExport.taskId, status: succeededExport.status, auditCount: exportAudits,
       accessTicketIssued: true },
     runtime: { backendPort: 59340, frontendPort: 19340, chromiumCdpPort: 9224,
@@ -498,6 +548,7 @@ const mysql = (sql) => execFileSync('docker', [
       'INITIAL_ACCEPTANCE_TRIGGERED_REVISION_ONE', 'ASSISTED_LOW_SCORE_RESULT',
       'RECOLLECT_CREATED_REVISION_TWO', 'EXACT_ANONYMOUS_ROUTE_AND_QR',
       'PUBLIC_HIGH_SCORE_RESULT_WITH_SIGNATURE_AND_ATTACHMENT', 'SOURCE_ARCHIVED_WITH_GLOBAL_SEQUENCE',
+      'ARCHIVED_RESULT_DOCUMENT_DOWNLOADED_AND_AUDITED',
       'UNIFIED_EXPORT_SUCCEEDED_AND_AUDITED', 'CHROMIUM_DIAGNOSTICS_CLEAN']
   }
   fs.writeFileSync(evidenceFile, `${JSON.stringify(evidence, null, 2)}\n`)

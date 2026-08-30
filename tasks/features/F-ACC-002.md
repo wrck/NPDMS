@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`486727a3`；当前Gate=Implementation Done整改复审；已通过=V134、ACC任务生命周期、按项目解析T-SAT-SURVEY、revision1原子初始化、authenticated-assisted预留/上传/最终重验、正式工作台低分现场协助、整改后匿名达标、来源归档与异步导出；证据=`docs/engineering/evidence/f-acc-002-browser-evidence.json`及`docs/engineering/evidence/f-acc-002-browser/01-assisted-response-dialog.png`；下一步=提交同一Feature的Implementation Done整改复审，GO前保持实施中。
+> 检查点：基线=`338dcc97`；当前Gate=Implementation Done整改复审；已通过=正式工作台低分现场协助、整改后匿名达标、来源归档、历史文件真实下载及统一导出同次Chromium正向闭环；证据=`docs/engineering/evidence/f-acc-002-browser-evidence.json`及结果页截图；下一步=提交独立整改复审，GO前保持实施中。
