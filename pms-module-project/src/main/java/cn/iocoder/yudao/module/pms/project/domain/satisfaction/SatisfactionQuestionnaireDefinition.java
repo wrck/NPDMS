@@ -107,6 +107,14 @@ public final class SatisfactionQuestionnaireDefinition {
                 && rounded.compareTo(threshold) >= 0, requiredComplete, ruleVersion);
     }
 
+    public String ruleVersion() {
+        return ruleVersion;
+    }
+
+    public BigDecimal threshold() {
+        return threshold;
+    }
+
     private static Question parseQuestion(Map<?, ?> raw, String strategy) {
         String type = text(raw.get("type"));
         if (!QUESTION_TYPES.contains(type)) invalid();

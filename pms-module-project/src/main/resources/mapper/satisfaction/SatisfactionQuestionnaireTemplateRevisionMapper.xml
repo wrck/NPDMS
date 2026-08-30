@@ -2,6 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateRevisionMapper">
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateRevisionDO">
+        SELECT * FROM acc_satisfaction_questionnaire_template_revision
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
     <select id="selectFrozenRevision"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateRevisionDO">
         SELECT r.*
