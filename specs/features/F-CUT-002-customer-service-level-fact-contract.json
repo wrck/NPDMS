@@ -28,6 +28,7 @@
   },
   "revalidation": {
     "inputOwnership": "malformed caller ExpectedCustomerServiceLevelFact is INVALID_REQUEST; malformed CUS current fact/result is OWNER_DATA_CORRUPTED",
+    "cutCreateInput": "the client repeats status/revisionId/code/factVersion/effectiveFrom/effectiveTo from resolve-create-context; AVAILABLE carries the full union and NOT_CONFIGURED carries null revision/code/interval. tenantId/customerId are added only from trusted server project context",
     "exactComparison": "status, tenantId, customerId, revisionId, code, factVersion and effective interval",
     "match": "return AVAILABLE or NOT_CONFIGURED with the locked current fact",
     "mismatch": "return STALE with the locked complete current fact; no business write",

@@ -276,7 +276,7 @@
       "path": "",
       "permission": "CREATE",
       "headers": ["Idempotency-Key"],
-      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelFactVersion"],
+      "requestExactKeys": ["projectId", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
       "request": {
         "projectId": "POSITIVE_LONG",
         "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
@@ -291,9 +291,12 @@
         "expectedReadinessSnapshotVersion": "NON_NEGATIVE_LONG",
         "expectedCustomerServiceLevelStatus": "AVAILABLE|NOT_CONFIGURED",
         "expectedCustomerServiceLevelRevisionId": "POSITIVE_LONG_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
-        "expectedCustomerServiceLevelFactVersion": "NON_NEGATIVE_LONG"
+        "expectedCustomerServiceLevelCode": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
+        "expectedCustomerServiceLevelFactVersion": "NON_NEGATIVE_LONG",
+        "expectedCustomerServiceLevelEffectiveFrom": "wireContract.dateTime_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
+        "expectedCustomerServiceLevelEffectiveTo": "wireContract.dateTime_OR_JSON_NULL; must be JSON null for NOT_CONFIGURED"
       },
-      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer and AVAILABLE or NOT_CONFIGURED service-level fact belong to the project customer and match the expected status/version", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
+      "guards": ["actor has ProjectScopeApi.ACTION_EDIT under participant/responsible/explicit-authorization semantics", "all normalized serials resolve to the exact expected non-empty device set and explicitly selected project candidate", "customer identity is supplied only by trusted project context; AVAILABLE carries the exact previously displayed revision/code/factVersion/effective interval and NOT_CONFIGURED carries null revision/code/interval plus factVersion", "CustomerServiceLevelFactApi.lockAndRevalidate matches that complete expected fact", "ImplementationReadinessApi.lockAndRevalidate returns READY for exact snapshot/project/devices", "no selected device has another active task"],
       "write": "one NEW_PLATFORM/SELF_CREATED cut_task + stable device scope rows + one P1_ACCEPTED history row + platform success facts atomically; server generates taskNo and P2/GRADE_CONFIRMING state",
       "idempotencyScope": "CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}",
       "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",

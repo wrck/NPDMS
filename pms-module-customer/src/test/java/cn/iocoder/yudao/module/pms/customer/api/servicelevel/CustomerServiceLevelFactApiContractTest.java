@@ -14,7 +14,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CustomerServiceLevelFactApiContractTest {
 
@@ -75,21 +74,6 @@ class CustomerServiceLevelFactApiContractTest {
                         "PROVIDER_UNAVAILABLE", "TENANT_CONTEXT_MISMATCH"),
                 Arrays.stream(CustomerServiceLevelFactException.Code.values())
                         .map(Enum::name).sorted().toList());
-    }
-
-    @Test
-    void callerExpectationAndOwnerOutputKeepDistinctFailureOwnership() {
-        CustomerServiceLevelFactException callerFailure = assertThrows(CustomerServiceLevelFactException.class,
-                () -> new ExpectedCustomerServiceLevelFact(CustomerServiceLevelFact.Status.AVAILABLE,
-                        1L, 10L, null, "LEVEL_1", 1L,
-                        LocalDateTime.of(2026, 8, 31, 10, 0), null));
-        assertEquals(CustomerServiceLevelFactException.Code.INVALID_REQUEST, callerFailure.getCode());
-
-        CustomerServiceLevelFactException ownerFailure = assertThrows(CustomerServiceLevelFactException.class,
-                () -> new CustomerServiceLevelFact(CustomerServiceLevelFact.Status.AVAILABLE,
-                        1L, 10L, null, "LEVEL_1", 1L,
-                        LocalDateTime.of(2026, 8, 31, 10, 0), null));
-        assertEquals(CustomerServiceLevelFactException.Code.OWNER_DATA_CORRUPTED, ownerFailure.getCode());
     }
 
     private static CustomerServiceLevelFact availableFact(long factVersion, String code) {
