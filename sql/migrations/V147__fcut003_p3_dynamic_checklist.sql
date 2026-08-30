@@ -78,6 +78,13 @@ ALTER TABLE `cut_task`
             AND `configuration_revision_no` IS NULL)
     );
 
+ALTER TABLE `cut_task_stage_history`
+    DROP CHECK `chk_cut_stage_trigger`,
+    ADD CONSTRAINT `chk_cut_stage_trigger` CHECK (
+        `trigger_type` IN ('P1_ACCEPTED', 'P2_ASSESSMENT_SUBMITTED',
+                           'P2_ASSESSMENT_INVALIDATED', 'P3_CHECKLIST_SUBMITTED')
+    );
+
 CREATE TABLE `cut_cutover_checklist` (
     `id` bigint NOT NULL,
     `tenant_id` bigint NOT NULL,
