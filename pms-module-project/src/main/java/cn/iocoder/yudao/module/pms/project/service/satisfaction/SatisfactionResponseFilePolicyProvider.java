@@ -44,7 +44,8 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
-        if (query == null || !FileActionCodes.ARCHIVE.equals(query.requiredAction())
+        if (query == null || !(FileActionCodes.ARCHIVE.equals(query.requiredAction())
+                || FileActionCodes.REFERENCE.equals(query.requiredAction()))
                 || !(SIGNATURE.equals(query.purposeCode()) || ATTACHMENT.equals(query.purposeCode()))) {
             return denied();
         }
