@@ -35,4 +35,34 @@
            AND (deliverable_source_version_id IS NULL
                 OR deliverable_source_version_id=#{query.deliverableSourceVersionId})
     </update>
+    <select id="selectByScope"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionResultViewRecord">
+        SELECT r.id AS result_id, t.project_id, t.project_task_id, t.id AS collection_task_id,
+               t.task_revision_no, r.questionnaire_id, r.response_id, r.result_version,
+               r.version AS fact_version, r.score, r.threshold, r.passed, r.rule_version,
+               r.result_status, r.archive_status, r.effective_from, r.effective_to
+          FROM acc_satisfaction_result r
+          JOIN acc_satisfaction_collection_task t
+            ON t.tenant_id=r.tenant_id AND t.id=r.collection_task_id AND t.deleted=b'0'
+         WHERE r.tenant_id=#{query.tenantId}
+           AND t.project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        <if test="query.resultId != null">
+           AND r.id=#{query.resultId}
+        </if>
+         ORDER BY r.create_time DESC, r.id DESC
+    </select>
+    <update id="invalidateCurrent">
+        UPDATE acc_satisfaction_result
+           SET result_status='INVALIDATED', effective_to=#{query.invalidatedAt},
+               invalidated_by_user_id=#{query.actorUserId}, invalidated_at=#{query.invalidatedAt},
+               invalidation_reason_code=#{query.reasonCode},
+               invalidation_reason_summary=#{query.reasonSummary}, version=version+1,
+               updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
+         WHERE tenant_id=#{query.tenantId} AND id=#{query.resultId}
+           AND version=#{query.expectedFactVersion} AND result_status='EFFECTIVE'
+           AND passed=b'1' AND effective_to IS NULL
+    </update>
 </mapper>

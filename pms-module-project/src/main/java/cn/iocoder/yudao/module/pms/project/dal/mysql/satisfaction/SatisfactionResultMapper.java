@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionResultDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResultIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResultArchiveProjectionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResultScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResultInvalidationUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -13,4 +15,6 @@ public interface SatisfactionResultMapper extends BaseMapperX<SatisfactionResult
     SatisfactionResultFactRecord selectFactForUpdate(@Param("query") SatisfactionResultIdentityQuery query);
     SatisfactionResultDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
     int updateArchiveProjection(@Param("query") SatisfactionResultArchiveProjectionUpdate query);
+    java.util.List<SatisfactionResultViewRecord> selectByScope(@Param("query") SatisfactionResultScopeQuery query);
+    int invalidateCurrent(@Param("query") SatisfactionResultInvalidationUpdate query);
 }
