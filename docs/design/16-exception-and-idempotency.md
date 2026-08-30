@@ -229,6 +229,17 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 同一整改Fact/requestId同载荷重放或异载荷 | 前者返回既有RemediationFact及taskRevision，不重复创建；后者IDEMPOTENCY_CONFLICT，旧链不变 |
 | Result失效的范围拒绝、非当前、非EFFECTIVE/passed或expectedVersion不一致 | AUTHORIZATION / BUSINESS_GATE / VERSION_CONFLICT；Result、Task、Questionnaire、来源和Outbox零写入 |
 | Result失效同幂等键同载荷重放/异载荷，或INVALIDATED事件晚于新来源到达 | 返回首次失效结果 / IDEMPOTENCY_CONFLICT；投影仅撤销仍指向该Result版本的根，不能清除新当前来源 |
+
+### 10.3 统一异步导出异常
+
+| 场景 | 分类与失败行为 |
+|---|---|
+| 同operation同摘要/异摘要 | 返回原ExportTask / IDEMPOTENCY_CONFLICT；不得创建第二Task或第二文件 |
+| 业务Provider缺失、重复、不可用或范围版本未知 | DEPENDENCY_UNAVAILABLE；Task记FAILED/REJECTED及永久审计，不生成文件 |
+| 申请、生成或下载时功能/项目/责任人/字段/文件/租户范围拒绝 | AUTHORIZATION；保存安全拒绝原因，不返回数据、文件或对象存在性 |
+| 文件生成、扫描或存储失败 | DEPENDENCY_UNAVAILABLE；Task记FAILED并保留可重试审计，不误标SUCCEEDED |
+| 下载时权限撤销、范围漂移、非原actor或文件过期 | AUTHORIZATION/BUSINESS_GATE；不签发Access Ticket并追加拒绝/到期审计 |
+| TTL清理失败 | Task保持SUCCEEDED及待清理水位；重试清理，不删除Task/Audit，不伪造EXPIRED |
 | 旧RECORDED失败重试晚于同Result的INVALIDATED，或晚于更新Result | 置CURRENT前按Result ID/version重验Owner；已失效/已有更新结果时仅保留非当前历史和归档资格，不恢复根当前指针 |
 | 满意度应交根缺失、重复、不是`D-SAT-REPORT/T-SAT-SURVEY`或项目/任务不一致 | DEPENDENCY/IDENTITY；来源保持PENDING_COMPENSATION，不选择其他根、不写当前指针 |
 | 旧问卷/回访/转包字段缺映射或值域未确认 | AI-MIG-000迁移问题并保留原始证据；F-ACC-002正向实现不得推断答案、签字或通过 |

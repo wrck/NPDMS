@@ -938,6 +938,19 @@
         "plt_operation_audit"
       ]
     },
+    "ExportTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "ACC-02",
+        "PLT-02"
+      ],
+      "targetTables": [
+        "plt_export_task",
+        "plt_export_audit"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-02"
+    },
     "DeviceCredential": {
       "owner": "PLT",
       "requirementIds": [

@@ -5,7 +5,7 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 > 当前门禁：`APPROVED / READY_FOR_PHASE_3_V1.8`<br>
 > 当前范围：主版本V1 53项、V2 47项、正式Requirement 100项；111个目标版本切片（V1 53个、V2 58个）；已编号V3 31项、跨需求演进方向5项；`OUT_OF_SCOPE` 9项<br>
 > 当前结论：修订007的11个补充V2切片及配置基础边界已完成Phase 2契约复核，只放行进入Phase 3设计评审<br>
-> 迁移边界：当前受管生成契约（含待审Feature-forward候选）为94对象/111来源绑定/1排除源；Feature前向对象不进入当前核心DDL。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
+> 迁移边界：当前受管生成契约（含待审Feature-forward候选）为95对象/112来源绑定/1排除源；Feature前向对象不进入当前核心DDL。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
 
 > 2026-08-25聚焦增量：F-PROJ-004新增`ProjectTemplateMatchHistory`后，当前迁移契约为88对象/99来源绑定/1排除源；该对象为`NONE_NEW / FEATURE_FORWARD_MIGRATION(PM-07)`，不进入既有核心DDL，Feature Ready独立复审仍须单独GO。
 > 2026-08-28聚焦候选：F-PLT-002把共享动态表单前向归属PLT，并保留Preparation专用实例后，该候选形成时的生成契约为90对象/101来源绑定/1排除源；三个PLT对象均不迁移、不双写旧`pms_eng_form_*`。该历史统计只证明候选生成链一致；修订007当前总体统计见上方迁移边界，Feature Ready仍待独立裁决。
@@ -13,6 +13,7 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 > 2026-08-29 F-COM-001修订008候选：新增`AcceptanceScopeBinding`并补齐V70订单行、范围主记录与明细来源后，受管生成契约为94对象/107来源绑定/1排除源；该统计只证明候选生成链一致，P3-E09差量及Feature Ready仍须分别裁决。
 > 2026-08-30 F-ACC-001聚焦差量：ACC-03报告活动/不可变版本与ACC-04初验终验来源切片复用`acc_project_deliverable`，受管生成契约为94对象/109来源绑定/1排除源；ADR-0039与SDS/P3-E09差量已由提交`5c1e1ff2`经独立复审GO，仅放行Feature Spec Gate。
 > 2026-08-30 F-ACC-002聚焦差量：ACC-02完整满意度问卷判定闭环与ACC-04满意度来源切片受管契约为94对象/111来源绑定/1排除源；ADR-0041及整改提交`b98d0caa`经独立复审GO，仅放行Feature Spec Gate。
+> 2026-08-30 F-ACC-002统一异步导出公共载体候选：新增PLT Owner的`ExportTask`及`plt_export_task/plt_export_audit`，当前受管契约为95对象/112来源绑定/1排除源；ADR-0042仍待独立复审，不批准Technical Plan或实现。
 
 ## 当前文件
 

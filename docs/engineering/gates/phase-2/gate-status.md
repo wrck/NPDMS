@@ -34,6 +34,7 @@
 | F-ACC-002满意度问卷、判定与归档来源SDS差量 | READY / GO | 检查点：基线`b98d0caa`；当前Gate=SDS Phase 2/P3-E09 GO；已通过=ADR-0041、精确`T-SAT-SURVEY→D-SAT-REPORT`根、RemediationFact revision链及`94对象/111来源绑定/1排除源`；阻塞=无；下一步=仅进入Feature Spec Gate。 |
 | F-ACC-002 Result失效命令SDS补充 | READY / GO | 检查点：基线=`c1e7354c`；当前Gate=SDS补充GO；已通过=失效Owner/权限/版本/原子Outbox及RECORDED/INVALIDATED双向单调投影；阻塞=无；下一步=返回同一Feature Ready整改，不生成Technical Plan或代码。 |
 | F-ACC-002 Result生成文件Owner补充 | READY / GO | 检查点：基线=`afa37d66`；当前Gate=SDS/Feature公共文件契约补充GO；已通过=`createGeneratedBusinessFile` Owner、服务端actor与权限重验、MANDATORY事务、对象存储补偿及失败零Result语义独立复审通过；阻塞=无；下一步=恢复同一Feature唯一Technical Plan形成。 |
+| F-ACC-002统一异步导出公共契约补充 | IN_REVIEW | 检查点：基线=`1927cb2e`；当前Gate=SDS Phase 2/P3-E09补充审核；已通过=Feature Ready及其他Technical Plan阻断保持既有结论，受管契约95对象/112来源绑定/1排除源；阻塞=仓库无真实ExportTask/ExportAudit载体，ADR-0042候选待独立复审；下一步=GO后同步Feature/计划，不提前创建Task或代码。 |
 | 追溯 | PASS | `phase2-contract-map.md`保留100个稳定Requirement锚点并显式登记111个切片键；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 | F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |

@@ -148,6 +148,8 @@ F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVer
 
 `SATISFACTION_RESULT_DOCUMENT`只能由ACC通过`FileArtifactApi.createGeneratedBusinessFile`创建。PLT按Result形成时冻结责任人重验`pms:file:upload`和FileBusinessScope，复用现有FileUploadSession、内容策略、扫描、私有对象存储、Artifact/Version/Reference及审计；同Result恰一条ACTIVE结果文档。对象存储先行写入而外层事务回滚时，稳定operation会话保留重放/补偿入口：重试复用同一存储回执，放弃后删除未引用对象，不把孤立对象或第二文档暴露为业务事实。
 
+统一导出文件目标固定为`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`，只由`ExportTaskExecutionJob`在业务Provider完成实时权限与字段裁剪后生成。文件自成功起24小时有效；Access Ticket只发给原申请actor且下载时再次调用业务Provider重验。到期只删除内容并推进Task文件状态，FileArtifact公共事实、ExportTask及ExportAudit永久保留；不得把浏览器本地文件、同步响应流或ACC私有文件表作为第二导出文件真值。
+
 客户受控链接上传不伪造用户。ACC验证`accessGrantId/grantVersion`、唯一Questionnaire、预分配Response、有效期和租户后调用PLT受信业务授权上传；PLT仍执行内容大小、类型、扫描、版本、引用和审计，ACC策略Provider把grant范围限制到签字或附件用途。现场协助使用现有认证上传。完整访问令牌、签字内容和文件正文不得进入日志。
 
 Result归档复用F-ACC-001的双集合模型：结果文档、签字和附件ACTIVE引用保持可下载，归档集合创建同一公共文件事实的ARCHIVED引用和`FileArchiveRecord`。归档actor为Result形成时冻结并在执行时重验权限/范围的责任人；失败保持`PENDING_COMPENSATION`，不回滚或覆盖Result。

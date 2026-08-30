@@ -153,6 +153,7 @@
 | `ChangeRequest` | 当前计划变更及治理动作 | CURRENT_FORWARD+PENDING_SOURCE_CONFIRMATION | 只迁能证明目标对象/版本/审批的变更；计划变更不自动升级为通用变更 |
 | `FileArtifact` | 当前业务文档/版本、交付件、模板、外协文件及旧文件元数据 | CURRENT_FORWARD+STRUCTURED | 内容、哈希、版本、业务引用分别迁；缺正文/哈希进入问题，不复制多份身份 |
 | `AuditRecord` | 旧项目日志、Activiti评论/历史、当前操作审计 | SNAPSHOT+CURRENT_FORWARD | 旧证据按`LEGACY_*`来源只读导入；不得伪装为新平台审计或改业务状态 |
+| `ExportTask` | 当前无统一ExportTask/ExportAudit物理载体；ADR-0014/0016仅有逻辑决策 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 由ACC-02前向Feature新建PLT唯一任务与只追加审计；不从`plt_operation_audit`、临时导出文件、浏览器下载或业务行反推历史Task，不为满意度另建第二导出真值 |
 | `DeviceCredential` | 当前未发现安全等价来源；旧`license_key`用途不明 | NEW_ONLY+PENDING_SOURCE_CONFIRMATION | 只有可证明为连接凭证且可安全重加密的记录才可专项迁移；否则不导入 |
 | `CredentialGrant` | 无可靠旧五元组授权 | NEW_ONLY | 创建人默认权限和后续五元组授权从新平台产生 |
 | `CollectionTask` | 外部采集平台任务、当前配置/巡检/割接入口候选 | EXTERNAL_SYNC+NEW_ONLY | 历史任务只在外部稳定键和回调证据完整时导入引用；临时密码永不迁移 |

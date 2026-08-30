@@ -643,6 +643,15 @@ proj_project
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 
 F-PLT-002只拥有上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`；F-SOL-003作为首个真实调用方，通过受信公共API以`SOL/REQUIREMENT_ANALYSIS/{preparationId}`创建业务实例。两类实例共用同一PLT真值，消费方不直读表。`PmsFileArtifact`业务键始终为`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通值PATCH不得伪造文件向量。
+
+### ADR-0014/0016统一业务导出Feature-forward差量（ADR-0042候选）
+
+| 表 | 关键字段 | 约束/索引与语义 |
+|---|---|---|
+| `plt_export_task` | `owner_context/export_type/operation_id/request_digest/actor_user_id/filter_snapshot/scope_snapshot/requested_fields_snapshot/include_files/scope_version/task_status/result_count`、公共文件事实、`expires_at/failure_code/version`及标准租户审计字段 | `uk(tenant_id, owner_context, export_type, actor_user_id, operation_id)`；状态REQUESTED/GENERATING/SUCCEEDED/FAILED/REJECTED/EXPIRED；成功文件事实整组同时存在；不逻辑删除，不以`plt_operation_audit`替代 |
+| `plt_export_audit` | `export_task_id/audit_sequence/action_code/actor_user_id/detail_snapshot/occurred_at`及租户/创建审计字段 | `uk(tenant_id, export_task_id, audit_sequence)`；REQUESTED/GENERATION_STARTED/SUCCEEDED/FAILED/REJECTED/DOWNLOADED/EXPIRED只追加；下载和TTL清理不得另建第二审计 |
+
+两张物理表由ACC-02 Feature前向迁移确定并由PLT Owner持有，ACC及其他消费Context不得直写。`ExportTaskExecutionJob`按Task版本CAS领取并调用唯一业务Provider；结果文件目标固定`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`。`ExportFileExpirationJob`只删除到期文件内容并追加审计，Task/Audit永久保留。
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |
 | `ana_portfolio_projection` | 组合维度的可重建经营查询投影 | `uk(tenant_id, portfolio_id, metric_version, data_watermark)`；返回权限范围哈希 |
 

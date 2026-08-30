@@ -310,7 +310,7 @@ F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约
 
 ### 10.2 基础平台公共能力
 
-适用 Requirement：PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10，以及SOL-01/PRE-04需要的共享动态表单基础切片。
+适用 Requirement：PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10、ACC-02的统一导出载体，以及SOL-01/PRE-04需要的共享动态表单基础切片。
 
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
@@ -321,6 +321,7 @@ F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约
 | AuthorizationGrant | 主体、资源、动作、范围、生效区间、来源、授予与撤销事实 | PLT拥有授权事实；PM-04使用`CURRENT_PROJECT`和`PROJECT_AND_DESCENDANTS`，由PROJ按当前完整项目树版本展开；不替代DeviceCredential专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
+| ExportTask | 统一异步任务、授权范围快照、结果文件公共事实和永久ExportAudit | PLT拥有任务/审计/TTL；业务Provider拥有查询与字段裁剪；申请、生成、下载三次重验，文件过期不删除审计 |
 | DynamicFormTemplate | 稳定模板身份、当前发布修订指针和新实例可用性 | 同一模板至多一个草稿；停用只阻止新实例选择 |
 | DynamicFormTemplateRevision | 完整FormCreate配置、规则和引擎版本 | 发布后不可覆盖；新版本只影响其后创建的实例 |
 | DynamicFormInstance | 手工或受信业务Owner实例冻结修订与普通字段值 | 保存使用CAS；文件字段引用FileArtifact；Owner稳定键唯一；不拥有消费方业务完成/审批/历史版本 |

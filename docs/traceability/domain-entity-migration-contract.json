@@ -969,6 +969,19 @@
         "plt_operation_audit"
       ]
     },
+    "ExportTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "ACC-02",
+        "PLT-02"
+      ],
+      "targetTables": [
+        "plt_export_task",
+        "plt_export_audit"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-02"
+    },
     "DeviceCredential": {
       "owner": "PLT",
       "requirementIds": [
@@ -3572,6 +3585,32 @@
           "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_log;data-elements://schema-records.jsonl#table=act_hi_comment"
         }
       ]
+    },
+    {
+      "object": "ExportTask",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-02",
+        "PLT-02"
+      ],
+      "targetTables": [
+        "plt_export_task",
+        "plt_export_audit"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ExportTask",
+          "disposition": "NEW_ONLY",
+          "transform": "create the single PLT-owned asynchronous ExportTask and append-only ExportAudit only from authorized business export requests; never infer historical tasks from operation audit, temporary files or domain rows",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "F-ACC-002/ADR-0042",
+          "evidenceRef": "phase2-contract://object=ExportTask"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-02"
     },
     {
       "object": "DeviceCredential",

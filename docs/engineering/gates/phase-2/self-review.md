@@ -37,7 +37,7 @@
 | Phase 2范围门禁 | PASS，100项Requirement、111个目标版本切片（V1 53个、V2 58个）；正式分册均为BASELINE |
 | Phase 3前置门禁 | PASS，100个共享实施契约与111个切片业务结果可进入Phase 3验证设计；不代表Phase 3已批准 |
 | 核心迁移Schema契约 | PASS |
-| 领域实体迁移对齐 | PASS，当前候选94对象/111来源绑定/1排除源；不代表独立复审通过 |
+| 领域实体迁移对齐 | PASS，当前候选95对象/112来源绑定/1排除源；其中统一ExportTask/ExportAudit公共载体仍待独立复审 |
 | Phase 2契约映射生成器 | PASS，100个Requirement锚点、111/111切片，无漂移 |
 | 领域迁移契约生成器 | PASS，无漂移 |
 | Phase 2门禁定点单元测试 | PASS，50/50 |

@@ -60,7 +60,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
     "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
-    "AuditRecord": ("plt_operation_audit",), "DeviceCredential": ("plt_device_credential",),
+    "AuditRecord": ("plt_operation_audit",), "ExportTask": ("plt_export_task", "plt_export_audit"), "DeviceCredential": ("plt_device_credential",),
     "CredentialGrant": ("plt_credential_grant",), "CollectionTask": ("plt_collection_task",),
     "DispatchAttempt": ("plt_dispatch_attempt",), "CallbackRecord": ("plt_callback_record",),
     "CollectionResultReference": ("plt_collection_result_reference",), "TechnicalNoticeReference": (),
@@ -74,6 +74,7 @@ TARGET_POLICIES = {
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
     "AcceptanceScopeBinding": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "COM-01"},
+    "ExportTask": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "ACC-02"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -88,6 +89,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverSupportArrangement": {"owner": "CUT", "requirementIds": ["CUT-04"]},
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07", "CUT-09", "CUT-10"]},
+    "ExportTask": {"owner": "PLT", "requirementIds": ["ACC-02", "PLT-02"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
     "AcceptanceScopeBinding": {"owner": "ACC", "requirementIds": ["COM-01", "ACC-03"]},
     "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
@@ -149,6 +151,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "DynamicFormTemplate": [source("CURRENT_TABLE", "pms_eng_form_template", "COMPATIBILITY_ONLY", "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write", "NO_MIGRATION", "F-PLT-002")],
     "DynamicFormTemplateRevision": [source("NONE_NEW", "DynamicFormTemplateRevision", "NEW_ONLY", "create only from new PLATFORM template commands; never synthesize a revision from legacy rows", "NEW_ONLY", "F-PLT-002")],
     "DynamicFormInstance": [source("CURRENT_TABLE", "pms_eng_form_instance", "COMPATIBILITY_ONLY", "create new PLATFORM manual and trusted business-owner instances; audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration, dual write or automatic PRE-04 candidate-data conversion", "NO_MIGRATION", "F-PLT-002/F-SOL-003")],
+    "ExportTask": [source("NONE_NEW", "ExportTask", "NEW_ONLY", "create the single PLT-owned asynchronous ExportTask and append-only ExportAudit only from authorized business export requests; never infer historical tasks from operation audit, temporary files or domain rows", "NEW_ONLY", "F-ACC-002/ADR-0042")],
     "ArrivalAcceptance": [source("CURRENT_TABLE", "pms_eng_arrival", "CURRENT_FORWARD", "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InstallationRecord": [source("CURRENT_TABLE", "pms_eng_installation", "CURRENT_FORWARD", "map installation facts and evidence without overwriting history", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ConfigurationCollectionResult": [source("CURRENT_TABLE", "pms_eng_configuration|pms_equipment_config_log", "CURRENT_FORWARD", "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
