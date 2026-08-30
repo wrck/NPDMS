@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.CommerceDeliveryScopeCommandMapper">
+
+    <insert id="insertProjectVersionIfAbsent">
+        INSERT IGNORE INTO com_delivery_scope_project_version
+            (id, project_id, scope_version, payload_version, last_change_type, version,
+             creator, create_time, updater, update_time, deleted, tenant_id)
+        VALUES
+            (#{id}, #{projectId}, 0, 0, 'INITIALIZED', 0,
+             #{actor}, #{now}, #{actor}, #{now}, b'0', #{tenantId})
+    </insert>
+
+    <select id="selectProjectVersionForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        SELECT *
+        FROM com_delivery_scope_project_version
+        WHERE tenant_id = #{tenantId}
+          AND project_id = #{projectId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectOrderLinesForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.OrderLineDO">
+        SELECT *
+        FROM com_order_line
+        WHERE tenant_id = #{tenantId}
+          AND deleted = b'0'
+          AND id IN
+          <foreach collection="orderLineIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentScopesForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT *
+        FROM com_delivery_scope
+        WHERE tenant_id = #{tenantId}
+          AND deleted = b'0'
+          AND order_line_id IN
+          <foreach collection="orderLineIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          AND scope_status IN ('ACTIVE', 'CONFLICT')
+          AND effective_to IS NULL
+        ORDER BY order_line_id, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectScopeDetailsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO">
+        SELECT *
+        FROM com_delivery_scope_detail
+        WHERE tenant_id = #{tenantId}
+          AND deleted = b'0'
+          AND delivery_scope_id IN
+          <foreach collection="scopeIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY delivery_scope_id, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectMaxAllocationVersions"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.CommerceDeliveryScopeCommandQuery$AllocationVersionFact">
+        SELECT order_line_id AS orderLineId, MAX(allocation_version) AS maxAllocationVersion
+        FROM com_delivery_scope
+        WHERE tenant_id = #{tenantId}
+          AND project_id = #{projectId}
+          AND deleted = b'0'
+          AND order_line_id IN
+          <foreach collection="orderLineIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        GROUP BY order_line_id
+        ORDER BY order_line_id
+    </select>
+
+    <update id="endScope">
+        UPDATE com_delivery_scope
+        SET effective_to = #{effectiveTo}, updater = #{actor}, update_time = #{now}, version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{scopeId}
+          AND version = #{expectedVersion}
+          AND scope_status IN ('ACTIVE', 'CONFLICT')
+          AND effective_to IS NULL
+          AND deleted = b'0'
+    </update>
+
+    <update id="endDetails">
+        UPDATE com_delivery_scope_detail
+        SET detail_status = 'RELEASED', updater = #{actor}, update_time = #{now}, version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND delivery_scope_id = #{scopeId}
+          AND detail_status = 'ACTIVE'
+          AND deleted = b'0'
+    </update>
+
+    <update id="advanceProjectVersion">
+        UPDATE com_delivery_scope_project_version
+        SET scope_version = #{newScopeVersion}, payload_version = #{newPayloadVersion},
+            last_change_type = #{changeType}, updater = #{actor}, update_time = #{now}, version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND project_id = #{projectId}
+          AND scope_version = #{expectedScopeVersion}
+          AND version = #{expectedRowVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>
