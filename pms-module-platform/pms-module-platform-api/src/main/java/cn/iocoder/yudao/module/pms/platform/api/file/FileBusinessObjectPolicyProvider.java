@@ -10,6 +10,10 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileRevali
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompletePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompletePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
 
 public interface FileBusinessObjectPolicyProvider {
 
@@ -48,5 +52,20 @@ public interface FileBusinessObjectPolicyProvider {
     default BusinessGrantUploadPolicyFact lockAndRevalidateBusinessGrantFiles(
             BusinessGrantFileRevalidationQuery query) {
         throw new UnsupportedOperationException("business grant file revalidation is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact initializeAuthenticatedAssistedUploadPolicy(
+            AuthenticatedAssistedUploadInitializePolicyQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted upload initialization is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompletePolicyQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted upload completion is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFileRevalidationQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted file revalidation is not implemented");
     }
 }

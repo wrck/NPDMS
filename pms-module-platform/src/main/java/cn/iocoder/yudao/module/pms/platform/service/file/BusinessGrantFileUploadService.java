@@ -178,7 +178,7 @@ public class BusinessGrantFileUploadService {
                 || command.grantId() == null || command.grantVersion() == null
                 || command.questionnaireId() == null || command.responseId() == null
                 || blank(command.requestId()) || !POLICIES.contains(command.policyKey())
-                || blank(command.operationId()) || command.operationId().length() > 64
+                || blank(command.operationId()) || command.operationId().length() > 32
                 || blank(command.fileName()) || blank(command.categoryCode())
                 || command.declaredSizeBytes() == null || command.declaredSizeBytes() <= 0
                 || blank(command.declaredMediaType())) {
@@ -232,13 +232,15 @@ public class BusinessGrantFileUploadService {
     }
 
     private SlotIdentity slot(BusinessGrantUploadInitializeCommand command, int sequence) {
-        return new SlotIdentity("grant-file:" + command.responseId() + ":" + sequence + ":"
-                + command.operationId().trim(), command.responseId(), sequence, command.operationId().trim());
+        String operationId = command.operationId().trim();
+        String fileSlotKey = "gf:" + command.responseId() + ":" + sequence + ":" + operationId;
+        if (fileSlotKey.length() > 64) throw new IllegalArgumentException("BUSINESS_GRANT_FILE_SLOT_TOO_LONG");
+        return new SlotIdentity(fileSlotKey, command.responseId(), sequence, operationId);
     }
 
     private SlotIdentity slotIdentity(String referenceKey) {
         String[] parts = referenceKey == null ? new String[0] : referenceKey.split(":", 4);
-        if (parts.length != 4 || !"grant-file".equals(parts[0]) || blank(parts[3])) {
+        if (parts.length != 4 || !"gf".equals(parts[0]) || blank(parts[3])) {
             throw new IllegalStateException("BUSINESS_GRANT_FILE_REFERENCE_INVALID");
         }
         try {

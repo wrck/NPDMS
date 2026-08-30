@@ -37,6 +37,15 @@ public class PlatformExportFilePolicyProvider implements FileBusinessObjectPolic
                 query.referenceKey(), query.requiredAction(), query.expectedScopeVersion());
     }
 
+    @Override
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        FileReferenceSetKey key = query.key();
+        if (key == null || !OWNER.equals(key.ownerContext()) || !TYPE.equals(key.objectType())) return denied();
+        return resolve(query.tenantId(), query.actorUserId(), key.objectId(), key.purposeCode(),
+                "export-task-" + key.objectId(), query.requiredAction(), query.expectedScopeVersion());
+    }
+
     private FileBusinessObjectPolicyFact resolve(Long tenantId, Long actorId, String objectId, String purpose,
                                                   String referenceKey, String action, Long expectedScopeVersion) {
         Long taskId;

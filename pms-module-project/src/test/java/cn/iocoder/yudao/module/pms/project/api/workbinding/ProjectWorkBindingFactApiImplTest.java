@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindin
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskIdentityQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
@@ -204,10 +205,12 @@ class ProjectWorkBindingFactApiImplTest {
     @Test
     void satisfactionTaskFactReturnsFrozenOwnerFactsAndCurrentAssignee() {
         when(factMapper.selectSatisfactionTaskForUpdate(any())).thenReturn(List.of(satisfactionRecord(7)));
+        when(factMapper.selectProjectSatisfactionTaskForUpdate(any())).thenReturn(List.of(satisfactionRecord(7)));
 
         var fact = api.lockAndRevalidateSatisfactionTask(
                 new ProjectSatisfactionTaskFactQuery(100L, 101L, 7));
         var frozen = api.lockCurrentSatisfactionTask(new ProjectSatisfactionTaskIdentityQuery(100L, 101L));
+        var resolved = api.lockCurrentSatisfactionTaskByProject(new ProjectSatisfactionTaskProjectQuery(100L));
 
         assertEquals("T-SAT-SURVEY", fact.taskCode());
         assertEquals("AFTER_INITIAL_ACCEPTANCE", fact.satisfactionTiming());
@@ -215,6 +218,8 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(901L, fact.templateRevisionId());
         assertEquals(1000L, fact.currentAssigneeUserId());
         assertEquals(7, frozen.projectTaskVersion());
+        assertEquals(101L, resolved.projectTaskId());
+        assertEquals(7, resolved.projectTaskVersion());
     }
 
     @Test

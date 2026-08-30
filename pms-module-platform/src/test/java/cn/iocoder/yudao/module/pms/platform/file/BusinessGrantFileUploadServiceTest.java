@@ -65,7 +65,7 @@ class BusinessGrantFileUploadServiceTest {
 
         assertEquals(50L, initialized.responseId());
         assertEquals(1, initialized.fileSequence());
-        assertEquals("grant-file:50:1:file-op-1", initialized.fileSlotKey());
+        assertEquals("gf:50:1:file-op-1", initialized.fileSlotKey());
         ArgumentCaptor<FileUploadInitializeCommand> command =
                 ArgumentCaptor.forClass(FileUploadInitializeCommand.class);
         verify(uploadService).initializeAuthorized(command.capture(), any());
@@ -88,8 +88,8 @@ class BusinessGrantFileUploadServiceTest {
     void finalRevalidationRejectsSequenceThatDiffersFromServerSlot() {
         var service = service();
         var handle = new BusinessGrantFileHandle("SATISFACTION_SIGNATURE",
-                "grant-file:50:1:file-op-1", 99, 100L, 1,
-                "grant-file:50:1:file-op-1", 1, 1, 1, 3L, "a".repeat(64));
+                "gf:50:1:file-op-1", 99, 100L, 1,
+                "gf:50:1:file-op-1", 1, 1, 1, 3L, "a".repeat(64));
 
         assertThrows(IllegalStateException.class, () -> service.lockAndRevalidate(
                 new BusinessGrantFilesRevalidationCommand(7L, 1L, 2, 11L,
@@ -111,14 +111,14 @@ class BusinessGrantFileUploadServiceTest {
         session.setObjectType("SATISFACTION_RESPONSE");
         session.setObjectId("50");
         session.setPurposeCode("SATISFACTION_SIGNATURE");
-        session.setReferenceKey("grant-file:50:1:file-op-1");
+        session.setReferenceKey("gf:50:1:file-op-1");
         session.setScopeVersion(3L);
         return session;
     }
 
     private BusinessGrantUploadCompleteCommand complete(String operationId, int sequence) {
         return new BusinessGrantUploadCompleteCommand(7L, 1L, 2, 11L, "req-1", 50L,
-                "SATISFACTION_SIGNATURE", operationId, "grant-file:50:1:file-op-1", sequence,
+                "SATISFACTION_SIGNATURE", operationId, "gf:50:1:file-op-1", sequence,
                 100L, 101L, new byte[]{1}, null);
     }
 }

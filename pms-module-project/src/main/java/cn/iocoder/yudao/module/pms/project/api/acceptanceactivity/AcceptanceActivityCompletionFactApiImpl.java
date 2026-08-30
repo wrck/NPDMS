@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.Acceptance
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionTaskInitializationApi;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationCommand;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
@@ -28,6 +30,7 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
     private final AcceptanceReportVersionMapper reportMapper;
     private final AcceptanceReportAttachmentMapper attachmentMapper;
     private final SatisfactionTaskInitializationApi satisfactionTaskInitializationApi;
+    private final ProjectWorkBindingFactApi projectWorkBindingFactApi;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -78,9 +81,11 @@ public class AcceptanceActivityCompletionFactApiImpl implements AcceptanceActivi
             return completed;
         }
         String factId = String.valueOf(activity.getId());
+        var satisfactionTask = projectWorkBindingFactApi.lockCurrentSatisfactionTaskByProject(
+                new ProjectSatisfactionTaskProjectQuery(command.projectId()));
         var initialized = satisfactionTaskInitializationApi.initialize(new SatisfactionTaskInitializationCommand(
-                command.tenantId(), command.projectId(), command.projectTaskId(),
-                command.expectedProjectTaskVersion(), "ACC", "AcceptanceActivityCompletionFact", factId,
+                command.tenantId(), command.projectId(), satisfactionTask.projectTaskId(),
+                satisfactionTask.projectTaskVersion(), "ACC", "AcceptanceActivityCompletionFact", factId,
                 Long.valueOf(completed.activityVersion()), "ACC", "AcceptanceActivityCompletionFact", factId,
                 Long.valueOf(completed.activityVersion()), command.operationId() + ":SATISFACTION"));
         if (initialized == null || !("CREATED".equals(initialized.outcome())

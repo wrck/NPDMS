@@ -53,7 +53,10 @@
     {"method":"GET","path":"/api/v1/pms/satisfaction-questionnaires/{token}","identity":"CUSTOMER_GRANT"},
     {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaires/{token}/files","identity":"CUSTOMER_GRANT"},
     {"method":"POST","path":"/api/v1/pms/satisfaction-questionnaires/{token}/responses","identity":"CUSTOMER_GRANT","idempotency":"QUESTIONNAIRE_ID_PLUS_REQUEST_ID"},
-    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-responses","permission":"pms:acceptance:satisfaction:collect"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-response-reservations","permission":"pms:acceptance:satisfaction:collect","idempotency":"ACTOR_PLUS_REQUEST_ID","result":"RESERVED_RESPONSE_ID_NO_RESPONSE_ROW"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-files","permissions":["pms:acceptance:satisfaction:collect","pms:file:upload"],"result":"SERVER_FILE_SLOT"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-files/{sessionId}/complete","permissions":["pms:acceptance:satisfaction:collect","pms:file:upload"],"result":"CANONICAL_PLT_FILE_FACT"},
+    {"method":"POST","path":"/api/v1/pms/satisfaction-tasks/{id}/assisted-responses","permission":"pms:acceptance:satisfaction:collect","requires":"ASSISTED_RESPONSE_RESERVATION_AND_FINAL_FILE_REVALIDATION"},
     {"method":"GET","path":"/api/v1/pms/satisfaction-results","permission":"pms:acceptance:satisfaction:query"},
     {"method":"GET","path":"/api/v1/pms/satisfaction-results/{id}","permission":"pms:acceptance:satisfaction:query"},
     {"method":"POST","path":"/api/v1/pms/satisfaction-results/{id}/actions/invalidate","permission":"pms:acceptance:satisfaction:manage","scope":"PROJECT_EDIT","inputs":["expectedResultVersion","invalidationReasonCode","invalidationReasonSummary","Idempotency-Key"],"actor":"SERVER_AUTHENTICATED_USER","result":"INVALIDATED_CURRENT_RESULT_OR_STABLE_REJECTION"},
@@ -80,7 +83,7 @@
       "firstRevision":{"collectionKey":"ACC_ALLOCATED_STABLE","taskRevisionNo":1,"sourceEqualsTrigger":true},
       "outcomes":["INITIALIZED","REPLAYED","IDENTITY_MISMATCH","VERSION_CONFLICT","DEPENDENCY_UNAVAILABLE"]
     },
-    "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"COPY_THEN_ENHANCE","producerFreeze":{"method":"lockCurrentSatisfactionTask","inputs":["projectId","projectTaskId"],"requiredTaskCode":"T-SAT-SURVEY","use":"RESULT_EVENT_PRODUCER_ONLY"},"consumerRevalidation":{"method":"lockAndRevalidateSatisfactionTask","expectedVersionFrom":"SatisfactionResultVersionChanged.projectTaskVersion"},"facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
+    "ProjectWorkBindingFactApi": {"owner":"PROJ","consumer":"ACC","reuse":"COPY_THEN_ENHANCE","initializationResolve":{"method":"lockCurrentSatisfactionTaskByProject","inputs":["projectId"],"requiredTaskCode":"T-SAT-SURVEY","tenantSource":"TRUSTED_CONTEXT","thenRevalidateWith":"lockAndRevalidateSatisfactionTask"},"producerFreeze":{"method":"lockCurrentSatisfactionTask","inputs":["projectId","projectTaskId"],"requiredTaskCode":"T-SAT-SURVEY","use":"RESULT_EVENT_PRODUCER_ONLY"},"consumerRevalidation":{"method":"lockAndRevalidateSatisfactionTask","expectedVersionFrom":"SatisfactionResultVersionChanged.projectTaskVersion"},"facts":["projectId","projectTaskId","taskCode","taskVersion","templateFacts","timingFact","currentAssignee"]},
     "ProjectScopeApi": {
       "owner":"PROJ",
       "provider":"ProjectScopeApiImpl",
@@ -118,7 +121,7 @@
     },
     "FileArtifactApi": {
       "owner":"PLT",
-      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload","lockAndRevalidateBusinessGrantFiles","createGeneratedBusinessFile"],
+      "additiveMethods":["initializeBusinessGrantUpload","completeBusinessGrantUpload","lockAndRevalidateBusinessGrantFiles","initializeAuthenticatedAssistedUpload","completeAuthenticatedAssistedUpload","lockAndRevalidateAuthenticatedAssistedFiles","createGeneratedBusinessFile"],
       "reusedMethods":["lockAndRevalidateReferenceSets","inspectReferenceSets","archiveReferenceSets","accessTicketDownload"],
       "businessGrantInputs":["grantId","grantVersion","requestId","responseId","policyKey","operationId","fileSlotKey","fileSequence","safeFileMetadata"],
       "businessGrantUpload": {
@@ -135,6 +138,21 @@
         "finalRevalidation":"CANONICAL_PLT_FACT_MATCHES_ARTIFACT_VERSION_REFERENCE_GRANT_RESPONSE_POLICY_SCOPE_AND_SERVER_SLOT",
         "clientFileFact":"HANDLE_ONLY_NEVER_DIRECTLY_PERSISTED",
         "audit":{"actor":"grantIssuerUserId_INTERNAL_RESPONSIBILITY_ONLY","detailFields":["subjectType=BUSINESS_GRANT","grantId","grantVersion","questionnaireId","responseId","policyKey","fileSlotKey"],"forbidden":"SECURITY_CONTEXT_LOGIN_CONTROLLER_GRANT_AS_USER_OR_CUSTOMER_UPLOAD_PERMISSION"}
+      },
+      "authenticatedAssistedUpload": {
+        "target":"ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT",
+        "responseReservation":{"owner":"ACC","scopeCode":"ACC_SATISFACTION_ASSISTED_RESPONSE_RESERVATION","scopeActor":"AUTHENTICATED_CURRENT_ASSIGNEE","requestDigestIncludes":["submitChannel=ASSISTED","tenantId","taskId","questionnaireId","actorUserId","requestId"],"replay":"SAME_RESPONSE_ID","conflict":"DIFFERENT_DIGEST_REJECTED","persistence":"PlatformCommandExecutionApi","responseRow":"NOT_CREATED_BY_RESERVATION"},
+        "methods":["initializeAuthenticatedAssistedUpload","completeAuthenticatedAssistedUpload","lockAndRevalidateAuthenticatedAssistedFiles"],
+        "policyQueries":["AuthenticatedAssistedUploadInitializePolicyQuery","AuthenticatedAssistedUploadCompletePolicyQuery","AuthenticatedAssistedFileRevalidationQuery"],
+        "providerMethods":["initializeAuthenticatedAssistedUploadPolicy","lockAndRevalidateAuthenticatedAssistedUpload","lockAndRevalidateAuthenticatedAssistedFiles"],
+        "providerDefaults":"FAIL_CLOSED",
+        "providerDispatch":"ACC/SATISFACTION_RESPONSE_UNIQUE",
+        "lockOrder":["SATISFACTION_TASK","QUESTIONNAIRE","PROJECT_SCOPE","UPLOAD_SESSION_REFERENCE"],
+        "ownerRevalidation":["TENANT_TASK_QUESTIONNAIRE_EXACT","TASK_COLLECTABLE","CURRENT_ASSIGNEE_EQUALS_AUTHENTICATED_ACTOR","RESERVATION_REQUEST_RESPONSE_EXACT","RESPONSE_UNOCCUPIED","PROJECT_SCOPE_EDIT_TREE_VERSION_MATCH"],
+        "permissions":["pms:acceptance:satisfaction:collect","pms:file:upload"],
+        "serverSlot":{"signature":"SEQUENCE_1_SINGLE","attachment":"SERVER_ALLOCATED_SEQUENCE","clientGenerated":"FORBIDDEN","completeAndFinal":"DERIVE_FROM_SESSION_AND_REFERENCE"},
+        "finalSubmission":"REPLAY_RESERVATION_USE_RESERVED_ID_PERSIST_CANONICAL_PLT_FACTS_NO_ATTACH_EXISTING_VERSIONS",
+        "audit":{"actor":"AUTHENTICATED_ASSISTANT","detailFields":["subjectType=AUTHENTICATED_ASSISTED","taskId","questionnaireId","requestId","responseId","policyKey","fileSlotKey"],"forbidden":"GRANT_OR_CUSTOMER_IMPERSONATION"}
       },
       "generatedBusinessFile": {
         "target":"ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT",

@@ -183,7 +183,7 @@ export const assignTask = (task: TaskView, assignedToUserId: number) =>
     headers: { 'Idempotency-Key': crypto.randomUUID() }
   })
 
-export const createGrant = (taskId: number, expiresAt: string) =>
+export const createGrant = (taskId: number, expiresAt: number) =>
   request.post<{ grantId: number; grantVersion: number; token: string; expiresAt: string }>({
     url: `/api/v1/pms/satisfaction-tasks/${taskId}/access-grants`,
     data: { expiresAt }

@@ -15,6 +15,11 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesReval
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompleteCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializeCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitialized;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFilesRevalidationCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompleteCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitialized;
 
 import java.util.List;
 
@@ -41,4 +46,13 @@ public interface FileArtifactApi {
 
     List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
             BusinessGrantFilesRevalidationCommand command);
+
+    AuthenticatedAssistedUploadInitialized initializeAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadInitializeCommand command);
+
+    AuthenticatedAssistedFileFact completeAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompleteCommand command);
+
+    List<AuthenticatedAssistedFileFact> lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFilesRevalidationCommand command);
 }

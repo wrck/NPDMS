@@ -8,11 +8,9 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileHandle;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesRevalidationCommand;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionItem;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTarget;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileHandle;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFilesRevalidationCommand;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +38,7 @@ public class SatisfactionResponseSubmissionService {
     private final SatisfactionResponseMapper responseMapper;
     private final SatisfactionResponseFileMapper responseFileMapper;
     private final SatisfactionResponseReservationService reservationService;
+    private final SatisfactionAssistedResponseReservationService assistedReservationService;
     private final FileArtifactApi fileArtifactApi;
 
     @Transactional(rollbackFor = Exception.class)
@@ -117,7 +116,8 @@ public class SatisfactionResponseSubmissionService {
     public SubmissionResult submitAssisted(AssistedCommand command) {
         if (command == null || command.tenantId() == null || command.actorUserId() == null
                 || command.actorUserId() <= 0 || command.taskId() == null || command.requestId() == null
-                || command.requestId().isBlank() || command.customerContactRef() == null
+                || command.requestId().isBlank() || command.reservedResponseId() == null
+                || command.customerContactRef() == null
                 || command.customerContactRef().isBlank() || command.answerSnapshot() == null
                 || command.answerSnapshot().isBlank() || command.files() == null
                 || command.files().stream().filter(file -> "SIGNATURE".equals(file.role())).count() != 1) {
@@ -135,11 +135,15 @@ public class SatisfactionResponseSubmissionService {
         SatisfactionResponseDO existing = responseMapper.selectByIdentityForUpdate(new SatisfactionResponseIdentityQuery(
                 command.tenantId(), questionnaire.getId(), command.requestId()));
         if (existing != null) {
-            if (!Objects.equals(existing.getAnswerSnapshot(), command.answerSnapshot())
+            assistedReservationService.requireReserved(command.tenantId(), command.actorUserId(), task, questionnaire,
+                    command.requestId(), command.reservedResponseId());
+            if (!Objects.equals(existing.getId(), command.reservedResponseId())
+                    || !Objects.equals(existing.getQuestionnaireId(), questionnaire.getId())
+                    || !Objects.equals(existing.getCreator(), String.valueOf(command.actorUserId()))
+                    || !Objects.equals(existing.getAnswerSnapshot(), command.answerSnapshot())
                     || !Objects.equals(existing.getCustomerContactRef(), command.customerContactRef())
                     || !Objects.equals(existing.getAssistedByUserId(), command.actorUserId())
-                    || !sameAssistedFiles(command.tenantId(), existing.getId(),
-                    attachAssistedFiles(command, existing.getId(), questionnaire))) {
+                    || !sameAssistedFiles(command.tenantId(), existing.getId(), command.files())) {
                 throw new IllegalStateException("SATISFACTION_RESPONSE_IDEMPOTENCY_CONFLICT");
             }
             SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, existing.getAnswerSnapshot());
@@ -150,7 +154,13 @@ public class SatisfactionResponseSubmissionService {
             throw new IllegalStateException("SATISFACTION_ASSISTED_RESPONSE_NOT_ALLOWED");
         }
         SatisfactionQuestionnaireDefinition.Evaluation evaluation = evaluate(questionnaire, command.answerSnapshot());
-        long responseId = IdWorker.getId();
+        var reservation = assistedReservationService.requireReserved(command.tenantId(), command.actorUserId(),
+                task, questionnaire, command.requestId(), command.reservedResponseId());
+        long responseId = reservation.responseId();
+        List<FileFact> canonicalFiles = canonicalAssistedFiles(fileArtifactApi
+                .lockAndRevalidateAuthenticatedAssistedFiles(new AuthenticatedAssistedFilesRevalidationCommand(
+                        command.tenantId(), task.getId(), questionnaire.getId(), command.requestId(), responseId,
+                        command.files().stream().map(this::toAssistedHandle).toList())));
         LocalDateTime now = LocalDateTime.now();
         SatisfactionResponseDO response = new SatisfactionResponseDO();
         response.setId(responseId); response.setTenantId(command.tenantId());
@@ -162,16 +172,10 @@ public class SatisfactionResponseSubmissionService {
         response.setSubmittedAt(now); response.setCreator(String.valueOf(command.actorUserId()));
         if (responseMapper.insert(response) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_CREATE_FAILED");
 
-        List<AttachedAssistedFile> attached = attachAssistedFiles(command, responseId, questionnaire);
-        for (AttachedAssistedFile file : attached) {
-            FileArtifactVersionFact fact = file.fact();
+        for (FileFact file : canonicalFiles) {
             insertFile(new Command(command.tenantId(), "assisted", command.requestId(), "ASSISTED",
                     command.customerContactRef(), command.actorUserId(), command.answerSnapshot(), List.of(),
-                    String.valueOf(command.actorUserId())), responseId,
-                    new FileFact(file.role(), fact.referenceKey(), file.sequence(), fact.artifactId(),
-                            fact.versionNo(), fact.referenceKey(), fact.fileFactVersion().artifactVersion(),
-                            fact.fileFactVersion().referenceVersion(), fact.fileFactVersion().availabilityVersion(),
-                            fact.scopeVersion(), fact.sha256()), String.valueOf(command.actorUserId()));
+                    String.valueOf(command.actorUserId())), responseId, file, String.valueOf(command.actorUserId()));
         }
         if (taskMapper.moveToPendingDecision(new SatisfactionTaskDecisionUpdate(command.tenantId(), task.getId(),
                 task.getVersion(), String.valueOf(command.actorUserId()))) != 1) {
@@ -181,48 +185,25 @@ public class SatisfactionResponseSubmissionService {
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion());
     }
 
-    private List<AttachedAssistedFile> attachAssistedFiles(AssistedCommand command, Long responseId,
-                                                            SatisfactionQuestionnaireDO questionnaire) {
-        List<AssistedFile> ordered = command.files().stream()
-                .sorted(Comparator.comparing(AssistedFile::role).thenComparing(AssistedFile::sequence)).toList();
-        List<AttachExistingFileVersionItem> items = new java.util.ArrayList<>(ordered.size());
-        for (AssistedFile file : ordered) {
-            if (!Set.of("SIGNATURE", "ATTACHMENT").contains(file.role()) || file.sequence() == null
-                    || file.sequence() <= 0 || file.source() == null) {
-                throw new IllegalArgumentException("SATISFACTION_ASSISTED_FILE_INVALID");
-            }
-            String referenceKey = java.util.UUID.nameUUIDFromBytes(
-                    (responseId + ":" + file.role() + ":" + file.sequence()).getBytes(StandardCharsets.UTF_8))
-                    .toString();
-            items.add(new AttachExistingFileVersionItem(file.source(), new ExistingFileReferenceTarget(
-                    "ACC", "SATISFACTION_RESPONSE", String.valueOf(responseId), policyKey(file.role()),
-                    referenceKey, questionnaire.getAccessScopeVersion())));
-        }
-        List<FileArtifactVersionFact> facts = fileArtifactApi.attachExistingVersions(
-                new AttachExistingFileVersionsCommand(command.requestId() + ":assisted-files", items));
-        if (facts.size() != ordered.size()) throw new IllegalStateException("SATISFACTION_ASSISTED_FILE_CONFLICT");
-        List<AttachedAssistedFile> attached = new java.util.ArrayList<>(facts.size());
-        for (int i = 0; i < facts.size(); i++) {
-            attached.add(new AttachedAssistedFile(ordered.get(i).role(), ordered.get(i).sequence(), facts.get(i)));
-        }
-        return List.copyOf(attached);
+    private boolean sameAssistedFiles(Long tenantId, Long responseId, List<FileFact> requested) {
+        return stableFiles(responseFileMapper.selectListByResponse(
+                        new SatisfactionResponseFilesQuery(tenantId, responseId)).stream()
+                .map(this::persistedFileFact).toList(), false).equals(stableFiles(requested, false));
     }
 
-    private boolean sameAssistedFiles(Long tenantId, Long responseId, List<AttachedAssistedFile> requested) {
-        List<String> actual = responseFileMapper.selectListByResponse(
-                        new SatisfactionResponseFilesQuery(tenantId, responseId)).stream()
-                .map(row -> row.getFileRole() + "|" + row.getFileSequence() + "|" + row.getArtifactId() + "|"
-                        + row.getVersionNo() + "|" + row.getArtifactVersion() + "|" + row.getReferenceVersion()
-                        + "|" + row.getAvailabilityVersion() + "|" + row.getScopeVersion())
-                .sorted().toList();
-        List<String> expected = requested.stream().map(file -> {
-            FileArtifactVersionFact fact = file.fact();
-            return file.role() + "|" + file.sequence() + "|" + fact.artifactId() + "|" + fact.versionNo()
-                    + "|" + fact.fileFactVersion().artifactVersion() + "|"
-                    + fact.fileFactVersion().referenceVersion() + "|"
-                    + fact.fileFactVersion().availabilityVersion() + "|" + fact.scopeVersion();
-        }).sorted().toList();
-        return actual.equals(expected);
+    private AuthenticatedAssistedFileHandle toAssistedHandle(FileFact fact) {
+        return new AuthenticatedAssistedFileHandle(policyKey(fact.role()), fact.fileSlotKey(), fact.sequence(),
+                fact.artifactId(), fact.versionNo(), fact.referenceKey(), fact.artifactVersion(),
+                fact.referenceVersion(), fact.availabilityVersion(), fact.scopeVersion(), fact.sha256());
+    }
+
+    private List<FileFact> canonicalAssistedFiles(List<AuthenticatedAssistedFileFact> facts) {
+        return facts.stream().map(fact -> new FileFact(role(fact.policyKey()), fact.fileSlotKey(),
+                fact.fileSequence(), fact.fileFact().artifactId(), fact.fileFact().versionNo(),
+                fact.fileFact().referenceKey(), fact.fileFact().fileFactVersion().artifactVersion(),
+                fact.fileFact().fileFactVersion().referenceVersion(),
+                fact.fileFact().fileFactVersion().availabilityVersion(), fact.fileFact().scopeVersion(),
+                fact.fileFact().sha256())).toList();
     }
 
     private void insertFile(Command command, long responseId, FileFact fact, String actorRef) {
@@ -374,8 +355,7 @@ public class SatisfactionResponseSubmissionService {
     }
     public record SubmissionResult(Long responseId, Long questionnaireId, Long taskId, boolean replayed,
                                    BigDecimal score, BigDecimal threshold, boolean passed, String ruleVersion) {}
-    public record AssistedFile(String role, Integer sequence, FileArtifactVersionRevalidationQuery source) {}
-    private record AttachedAssistedFile(String role, Integer sequence, FileArtifactVersionFact fact) {}
     public record AssistedCommand(Long tenantId, Long actorUserId, Long taskId, String requestId,
-                                  String customerContactRef, String answerSnapshot, List<AssistedFile> files) {}
+                                  Long reservedResponseId, String customerContactRef,
+                                  String answerSnapshot, List<FileFact> files) {}
 }

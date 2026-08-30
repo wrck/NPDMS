@@ -1,14 +1,16 @@
 package cn.iocoder.yudao.module.pms.platform.service.export;
 
 import cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptApi;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.ExactFileReferenceQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionArtifactBindingQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionAvailabilityUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionLockQuery;
@@ -27,7 +29,8 @@ import java.time.LocalDateTime;
 public class PlatformExportFileWriter implements ExportFileWriter {
 
     private final FileUploadApplicationService uploadService;
-    private final FileArtifactApi fileArtifactApi;
+    private final FileArtifactMapper artifactMapper;
+    private final FileReferenceMapper referenceMapper;
     private final FileUploadSessionMapper sessionMapper;
     private final FileVersionMapper versionMapper;
     private final FileStorageReceiptApi storageReceiptApi;
@@ -44,12 +47,20 @@ public class PlatformExportFileWriter implements ExportFileWriter {
         FileUploadCompleted completed = uploadService.complete(new FileUploadCompleteCommand(command.tenantId(),
                 command.actorUserId(), command.operationId() + ":complete", initialized.artifactId(),
                 initialized.sessionId(), new BytesMultipartFile(command.content()), null));
-        FileArtifactVersionFact fact = fileArtifactApi.inspect(new FileArtifactVersionQuery(completed.artifactId(),
-                completed.versionNo(), "PLATFORM", "EXPORT_TASK", objectId, "EXPORT_FILE", referenceKey,
-                FileActionCodes.READ));
-        return new WrittenExportFile(fact.artifactId(), fact.versionNo(), fact.referenceKey(),
-                fact.fileFactVersion().artifactVersion(), fact.fileFactVersion().referenceVersion(),
-                fact.fileFactVersion().availabilityVersion(), fact.sha256());
+        FileArtifactDO artifact = artifactMapper.selectOne(
+                new FileArtifactLockQuery(command.tenantId(), completed.artifactId()));
+        FileVersionDO version = versionMapper.selectOne(
+                new FileVersionLockQuery(command.tenantId(), completed.artifactId(), completed.versionNo()));
+        FileReferenceDO reference = referenceMapper.selectExact(new ExactFileReferenceQuery(command.tenantId(),
+                "PLATFORM", "EXPORT_TASK", objectId, "EXPORT_FILE", completed.referenceKey()));
+        if (artifact == null || version == null || reference == null
+                || !completed.artifactId().equals(reference.getArtifactId())
+                || !completed.versionNo().equals(reference.getFileVersionNo())
+                || !completed.sha256().equals(version.getSha256())) {
+            throw new IllegalStateException("统一导出文件完成事实不一致");
+        }
+        return new WrittenExportFile(completed.artifactId(), completed.versionNo(), completed.referenceKey(),
+                artifact.getVersion(), reference.getVersion(), version.getAvailabilityVersion(), version.getSha256());
     }
 
     @Override

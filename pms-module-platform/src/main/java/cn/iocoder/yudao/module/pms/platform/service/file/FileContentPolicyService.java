@@ -85,7 +85,7 @@ public class FileContentPolicyService {
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
         if (!allowedMediaTypes.contains(declaredMediaType)
-                || !declaredMediaType.equals(detectedMediaType)
+                || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
                 || !declaredMediaType.equals(nameMediaType)) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
@@ -106,6 +106,11 @@ public class FileContentPolicyService {
                 detectedMediaType, sha256);
         return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
                 extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
+    }
+
+    private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {
+        return declaredMediaType.equals(detectedMediaType)
+                || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
     }
 
     private FileSecurityScanResult scan(byte[] content, String fileName, String declaredMediaType,

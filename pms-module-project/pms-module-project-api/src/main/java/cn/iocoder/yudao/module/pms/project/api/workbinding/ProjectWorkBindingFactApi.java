@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindin
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
 
 /** PROJ冻结任务WorkBinding只读权威事实。 */
 public interface ProjectWorkBindingFactApi {
@@ -15,6 +16,8 @@ public interface ProjectWorkBindingFactApi {
     ProjectWorkBindingFact lockAndRevalidate(ProjectWorkBindingFactRevalidationQuery query);
 
     ProjectSatisfactionTaskFact lockCurrentSatisfactionTask(ProjectSatisfactionTaskIdentityQuery query);
+
+    ProjectSatisfactionTaskFact lockCurrentSatisfactionTaskByProject(ProjectSatisfactionTaskProjectQuery query);
 
     ProjectSatisfactionTaskFact lockAndRevalidateSatisfactionTask(ProjectSatisfactionTaskFactQuery query);
 

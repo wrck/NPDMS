@@ -59,6 +59,17 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        FileReferenceSetKey key = query.key();
+        if (key == null || !OWNER.equals(key.ownerContext()) || !TYPE.equals(key.objectType())) return denied();
+        return lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                query.tenantId(), query.actorUserId(), key.ownerContext(), key.objectType(), key.objectId(),
+                key.purposeCode(), "REFERENCE_SET", query.requiredAction(), query.expectedScopeVersion()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(
             GeneratedBusinessFilePolicyRevalidationQuery query) {
         requireShape(query);

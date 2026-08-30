@@ -39,6 +39,9 @@ public final class ProjectRules {
     public static final String SOURCE_TYPE_ORDER = "ORDER";
     public static final String SOURCE_TYPE_MIGRATION = "MIGRATION";
 
+    /** V57 项目主档的默认项目类型；创建事务内显式冻结，避免依赖数据库默认值回填。 */
+    public static final String DEFAULT_PROJECT_TYPE = "STANDARD";
+
     // ========== 模板加载方式（字典 pms_template_load_method） ==========
     /** 唯一默认命中自动加载 */
     public static final String TEMPLATE_LOAD_AUTO_DEFAULT = "AUTO_DEFAULT";

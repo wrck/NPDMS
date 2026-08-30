@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArchiveRecordMapp
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
 import cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService;
 import cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService;
@@ -60,6 +61,7 @@ class FileArtifactApiImplTest {
     @Mock PermissionApi permissionApi;
     @Mock GeneratedBusinessFileService generatedBusinessFileService;
     @Mock BusinessGrantFileUploadService businessGrantFileUploadService;
+    @Mock AuthenticatedAssistedFileUploadService authenticatedAssistedFileUploadService;
 
     private FileArtifactApiImpl api;
 
@@ -72,7 +74,7 @@ class FileArtifactApiImplTest {
                 new UsernamePasswordAuthenticationToken(user, null, List.of()));
         api = new FileArtifactApiImpl(policyRegistry, artifactMapper, versionMapper, referenceMapper,
                 attachmentService, archiveRecordMapper, permissionApi, generatedBusinessFileService,
-                businessGrantFileUploadService);
+                businessGrantFileUploadService, authenticatedAssistedFileUploadService);
     }
 
     @AfterEach

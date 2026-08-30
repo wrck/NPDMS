@@ -192,7 +192,7 @@ public class SatisfactionTaskManagementService {
         SatisfactionCollectionTaskDO task = taskMapper.selectById(result.taskId());
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectById(result.questionnaireId());
         Map<String, Object> payload = new LinkedHashMap<>();
-        String eventId = command.remediationRequestId() + ":satisfaction-task-created";
+        String eventId = "SAT-TASK:" + task.getId() + ":" + task.getTaskRevisionNo();
         payload.put("eventId", eventId); payload.put("tenantId", tenantId); payload.put("projectId", task.getProjectId());
         payload.put("projectTaskId", task.getProjectTaskId()); payload.put("taskId", task.getId());
         payload.put("projectTaskVersion", result.projectTaskVersion()); payload.put("taskCode", result.taskCode());

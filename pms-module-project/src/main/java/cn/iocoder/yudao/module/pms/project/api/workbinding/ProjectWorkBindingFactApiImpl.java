@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindin
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
@@ -20,6 +21,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskFactLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import lombok.RequiredArgsConstructor;
@@ -108,6 +110,27 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         ProjectSatisfactionTaskFactRecord record = uniqueSatisfactionTask(
                 tenantId, query.projectId(), query.projectTaskId());
         requireSatisfactionTask(record, tenantId, query.projectId(), query.projectTaskId());
+        if (!SATISFACTION_TASK_CODE.equals(record.taskCode())) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        return toSatisfactionTaskFact(record);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectSatisfactionTaskFact lockCurrentSatisfactionTaskByProject(
+            ProjectSatisfactionTaskProjectQuery query) {
+        Long tenantId = trustedTenantId();
+        if (query == null || invalidId(query.projectId())) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        List<ProjectSatisfactionTaskFactRecord> records = factMapper.selectProjectSatisfactionTaskForUpdate(
+                new ProjectSatisfactionTaskProjectLockQuery(tenantId, query.projectId()));
+        if (records == null || records.size() != 1) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        ProjectSatisfactionTaskFactRecord record = records.getFirst();
+        requireSatisfactionTask(record, tenantId, query.projectId(), record.projectTaskId());
         if (!SATISFACTION_TASK_CODE.equals(record.taskCode())) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }

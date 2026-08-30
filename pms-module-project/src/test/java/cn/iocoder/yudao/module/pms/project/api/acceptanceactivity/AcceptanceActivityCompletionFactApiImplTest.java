@@ -4,6 +4,9 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionTaskInitializationApi;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationResult;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTaskInitializationCommand;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
@@ -15,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -33,6 +37,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
     @Mock AcceptanceReportVersionMapper reportMapper;
     @Mock AcceptanceReportAttachmentMapper attachmentMapper;
     @Mock SatisfactionTaskInitializationApi satisfactionTaskInitializationApi;
+    @Mock ProjectWorkBindingFactApi projectWorkBindingFactApi;
 
     @BeforeEach
     void setTenant() {
@@ -53,7 +58,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         when(attachmentMapper.selectByReportVersion(41L)).thenReturn(List.of(new AcceptanceReportAttachmentDO()));
         when(activityMapper.completeIfPending(any())).thenReturn(1);
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
-                satisfactionTaskInitializationApi);
+                satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
         var result = api.lockAndComplete(command(0, 2));
 
@@ -71,7 +76,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         when(activityMapper.selectByIdForUpdate(any())).thenReturn(activity);
         when(reportMapper.selectByIdForUpdate(any())).thenReturn(report);
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
-                satisfactionTaskInitializationApi);
+                satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
         var result = api.lockAndComplete(command(0, 2));
 
@@ -88,13 +93,22 @@ class AcceptanceActivityCompletionFactApiImplTest {
         when(reportMapper.selectByIdForUpdate(any())).thenReturn(report());
         when(attachmentMapper.selectByReportVersion(41L)).thenReturn(List.of(new AcceptanceReportAttachmentDO()));
         when(activityMapper.completeIfPending(any())).thenReturn(1);
+        when(projectWorkBindingFactApi.lockCurrentSatisfactionTaskByProject(any())).thenReturn(
+                new ProjectSatisfactionTaskFact(11L, 71L, "T-SAT-SURVEY", 4,
+                        "AFTER_INITIAL_ACCEPTANCE", 81L, 82L, 1, "SUM_V1",
+                        java.math.BigDecimal.valueOf(80), 91L));
         when(satisfactionTaskInitializationApi.initialize(any())).thenReturn(
                 new SatisfactionTaskInitializationResult("CREATED", 61L, 62L, "SAT-61", 1, 0));
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
-                satisfactionTaskInitializationApi);
+                satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
         assertEquals("COMPLETED", api.lockAndComplete(command(0, 2)).outcome());
-        verify(satisfactionTaskInitializationApi).initialize(any());
+        ArgumentCaptor<SatisfactionTaskInitializationCommand> commandCaptor =
+                ArgumentCaptor.forClass(SatisfactionTaskInitializationCommand.class);
+        verify(satisfactionTaskInitializationApi).initialize(commandCaptor.capture());
+        assertEquals(71L, commandCaptor.getValue().projectTaskId());
+        assertEquals(4, commandCaptor.getValue().expectedProjectTaskVersion());
+        assertEquals("AcceptanceActivityCompletionFact", commandCaptor.getValue().triggerObjectType());
     }
 
     private AcceptanceActivityCompletionCommand command(int activityVersion, int reportVersion) {

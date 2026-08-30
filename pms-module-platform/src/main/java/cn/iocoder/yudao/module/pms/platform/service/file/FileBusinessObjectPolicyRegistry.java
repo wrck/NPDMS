@@ -11,6 +11,10 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileRevali
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompletePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompletePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -152,6 +156,37 @@ public class FileBusinessObjectPolicyRegistry {
                 null, null, null);
     }
 
+    public AuthenticatedAssistedUploadPolicyFact initializeAuthenticatedAssistedUploadPolicy(
+            AuthenticatedAssistedUploadInitializePolicyQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(BUSINESS_GRANT_OWNER, BUSINESS_GRANT_OBJECT);
+        AuthenticatedAssistedUploadPolicyFact fact;
+        try { fact = provider.initializeAuthenticatedAssistedUploadPolicy(query); }
+        catch (RuntimeException ex) { throw exception(FILE_PROVIDER_UNAVAILABLE); }
+        return requireAuthenticatedAssistedFact(fact, query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(), query.fileSequence(), null);
+    }
+
+    public AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompletePolicyQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(BUSINESS_GRANT_OWNER, BUSINESS_GRANT_OBJECT);
+        AuthenticatedAssistedUploadPolicyFact fact;
+        try { fact = provider.lockAndRevalidateAuthenticatedAssistedUpload(query); }
+        catch (RuntimeException ex) { throw exception(FILE_PROVIDER_UNAVAILABLE); }
+        return requireAuthenticatedAssistedFact(fact, query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(), query.fileSequence(),
+                query.expectedScopeVersion());
+    }
+
+    public AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFileRevalidationQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(BUSINESS_GRANT_OWNER, BUSINESS_GRANT_OBJECT);
+        AuthenticatedAssistedUploadPolicyFact fact;
+        try { fact = provider.lockAndRevalidateAuthenticatedAssistedFiles(query); }
+        catch (RuntimeException ex) { throw exception(FILE_PROVIDER_UNAVAILABLE); }
+        return requireAuthenticatedAssistedFact(fact, query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), null, null, null, null);
+    }
+
     private FileBusinessObjectPolicyProvider requireUniqueProvider(String ownerContext, String objectType) {
         List<FileBusinessObjectPolicyProvider> matches;
         try {
@@ -202,6 +237,27 @@ public class FileBusinessObjectPolicyRegistry {
                 || fact.scopeVersion() == null || fact.scopeVersion() < 0
                 || (expectedScopeVersion != null
                 && !java.util.Objects.equals(expectedScopeVersion, fact.scopeVersion()))) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        requireUsableFact(fact.filePolicy());
+        return fact;
+    }
+
+    private AuthenticatedAssistedUploadPolicyFact requireAuthenticatedAssistedFact(
+            AuthenticatedAssistedUploadPolicyFact fact, Long actorUserId, Long taskId, Long questionnaireId,
+            String requestId, Long responseId, String policyKey, String fileSlotKey,
+            Integer fileSequence, Long expectedScopeVersion) {
+        if (fact == null || !java.util.Objects.equals(actorUserId, fact.actorUserId())
+                || !java.util.Objects.equals(taskId, fact.taskId())
+                || !java.util.Objects.equals(questionnaireId, fact.questionnaireId())
+                || !java.util.Objects.equals(requestId, fact.requestId())
+                || !java.util.Objects.equals(responseId, fact.responseId())
+                || (policyKey != null && !java.util.Objects.equals(policyKey, fact.policyKey()))
+                || (fileSlotKey != null && !java.util.Objects.equals(fileSlotKey, fact.fileSlotKey()))
+                || (fileSequence != null && !java.util.Objects.equals(fileSequence, fact.fileSequence()))
+                || fact.actorUserId() == null || fact.actorUserId() <= 0
+                || fact.scopeVersion() == null || fact.scopeVersion() < 0
+                || (expectedScopeVersion != null && !java.util.Objects.equals(expectedScopeVersion, fact.scopeVersion()))) {
             throw exception(FILE_PROVIDER_UNAVAILABLE);
         }
         requireUsableFact(fact.filePolicy());

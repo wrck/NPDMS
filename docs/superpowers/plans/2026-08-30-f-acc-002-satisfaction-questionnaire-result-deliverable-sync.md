@@ -109,7 +109,7 @@ public record SatisfactionResultFact(
 ```
 
 - Template Provider只返回`FOUND/NO_MATCH/AMBIGUOUS/DEPENDENCY_UNAVAILABLE`；五维最高优先级并列不是任选。
-- initializer为`MANDATORY`，先调用`ProjectWorkBindingFactApi`重验任务、冻结模板、时点和责任人；首次revision固定1且source=trigger。相同Fact同载荷返回原结果，异载荷冲突。
+- initializer为`MANDATORY`。初验完成Provider先调用`ProjectWorkBindingFactApi.lockCurrentSatisfactionTaskByProject(projectId)`，由PROJ按稳定码锁定同项目唯一`T-SAT-SURVEY`及完整冻结Fact，再把其真实taskId/version传给initializer；initializer继续调用原expected-version接口二次重验。首次revision固定1且source/trigger仍为初验活动完成Fact；相同Fact同载荷返回原结果，异载荷冲突。
 - Result Fact返回task/questionnaire/response/result、模板/规则/阈值、原始source、passed、resultStatus、archiveStatus及版本；投影和未来CLO/SUB只能读取Owner Fact。
 
 ### 3.1A 可配置问卷与确定性计分
@@ -164,6 +164,9 @@ List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
 - 通用`FileBusinessObjectPolicyQuery/FileBusinessObjectPolicyRevalidationQuery`保持不变。新增`BusinessGrantUploadInitializePolicyQuery/BusinessGrantUploadCompletePolicyQuery/BusinessGrantFileRevalidationQuery`及`BusinessGrantUploadPolicyFact`，Provider对应方法默认失败关闭；Registry按`ACC/SATISFACTION_RESPONSE`唯一分派。ACC Provider按grant→Questionnaire→Task锁序验证tenant、grant版本/ACTIVE/有效期、requestId/responseId预留、用途/槽位和`ProjectScopeApi(PROJECT_EDIT)`；Fact冻结`grantIssuerUserId=positive(grant.creator)`及scopeVersion，不使用updater或客户端值。
 - PLT仍执行大小、类型、扫描、存储、Artifact/Version/Reference和补偿。完成返回公共文件Fact；最终提交把客户端列表只作为句柄传给`lockAndRevalidateBusinessGrantFiles`，仅持久化PLT返回且与grant/version/response/policy/scope/slot精确匹配的规范Fact。ACC只保存`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`，`sha256`精确落`file_hash`。
 - PLT仅把`grantIssuerUserId`作为受控grant内部责任主体写入现有`created_by/creator/updater/OperationAudit.actorId`；detail固定记录`subjectType=BUSINESS_GRANT`、grantId/version、questionnaireId、responseId、policyKey、fileSlotKey。不得建立SecurityContext、调用登录上传Controller、把grant当用户ID或解释为客户拥有`pms:file:upload`。
+- 现场协助另用固定作用域`ACC_SATISFACTION_ASSISTED_RESPONSE_RESERVATION`，以正式登录actor和最终`requestId`冻结`ASSISTED+tenant+task+questionnaire+actor+requestId`并重放同一`responseId`，预留不创建空Response。新增authenticated-assisted专用初始化、完成和最终文件重验DTO/SPI/Registry/FileArtifactApi及窄PLT服务；不得复用grant Query或通用`inspect`。
+- ACC Provider在initialize/complete/final三个时点按Task→Questionnaire锁定并重验当前责任人、可收集状态、预留身份与`ProjectScopeApi(PROJECT_EDIT)`的scopeVersion。PLT从SecurityContext取得actor，同时重验`pms:acceptance:satisfaction:collect`与`pms:file:upload`，复用现有UploadSession、内容校验、扫描、存储、Artifact/Version/Reference及补偿。槽位由PLT生成，完成与最终重验从Session/Reference反解；签字固定序号1，附件使用服务端序号。
+- `SatisfactionResponseSubmissionService.submitAssisted`必须先重放预留，再调用专用final-revalidation并仅持久化PLT规范事实和预留ID；删除`IdWorker`新ID与`attachExistingVersions`改挂路径。既有Response重放只比较原Task/Questionnaire/actor、联系人、答案和持久化规范文件集合，不能新增或改挂文件。
 
 ### 3.3 PLT受控Result生成文件
 
@@ -265,7 +268,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 3：接入PLT、PROJ和Outbox**
 
-  先实现Response预留：同grant+requestId通过`PlatformCommandExecutionApi`重放同一responseId，最终Response不得再次生成ID。再加性实现grant上传初始化/完成/最终文件集合锁定重验、服务端槽位、issuer审计和默认失败Provider；直接测试证明异摘要、错ID/槽位/文件Fact及非正数issuer均在文件或Response写入前失败。继续完成Result生成文件、项目创建冻结Template Fact、初验完成initializer、Task/Result/归档Job及PLT导出Job。事件Job均以真实消费事务成功作为`markDelivered`前提。
+  先实现Response预留：同grant+requestId通过`PlatformCommandExecutionApi`重放同一responseId，最终Response不得再次生成ID。再加性实现grant上传初始化/完成/最终文件集合锁定重验、服务端槽位、issuer审计和默认失败Provider；直接测试证明异摘要、错ID/槽位/文件Fact及非正数issuer均在文件或Response写入前失败。现场协助使用独立authenticated-assisted预留与专用PLT上传链，最终提交重放预留、锁定实际文件事实并使用同一ID，禁止改挂其他类别文件。继续完成Result生成文件、项目创建冻结Template Fact、初验完成initializer、Task/Result/归档Job及PLT导出Job。事件Job均以真实消费事务成功作为`markDelivered`前提。
 
 - [ ] **Step 4：实现并验证V133**
 
@@ -293,7 +296,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 2：实现API与页面最小闭环**
 
-  实现模板、任务、匿名问卷和Result页面、精确公共静态路由及守卫；任务页渲染同一受控链接二维码并提供受权现场协助，Result页提交异步导出并展示统一任务状态。复用现有文件组件，按钮只按服务端允许动作渲染，错误码展示稳定业务信息。
+  实现模板、任务、匿名问卷和Result页面、精确公共静态路由及守卫；任务页渲染同一受控链接二维码并提供受权现场协助，现场协助先以最终requestId预留Response，再通过authenticated-assisted专用接口上传签字/附件，最后以同一预留ID提交；Result页提交异步导出并展示统一任务状态。复用现有文件组件，按钮只按服务端允许动作渲染，错误码展示稳定业务信息。
 
 - [ ] **Step 3：运行前端聚焦验证和构建**
 
@@ -301,11 +304,11 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 - [ ] **Step 4：准备正式运行环境**
 
-  启动V133后的后端59340和前端19340；确认Quartz三个满意度Job及两个PLT导出Job/Trigger存在。正式管理员通过公开授权配置赋予五个满意度权限，并确认当前责任人已有既有`pms:file:upload/pms:file:archive`；只检查`FACC002_BROWSER_PASSWORD`是否存在，不输出值。
+  启动V134后的后端59340和前端19340；确认Quartz三个满意度Job及两个PLT导出Job/Trigger存在。V134只恢复被V108菜单ID冲突覆盖的既有`pms:project-task:assign`按钮载体，不预授角色；正式管理员通过公开授权配置以菜单并集赋予五个满意度权限及该既有任务指派权限，并确认当前责任人已有既有`pms:file:upload/pms:file:archive`；只检查`FACC002_BROWSER_PASSWORD`是否存在，不输出值。
 
 - [ ] **Step 5：运行一次真实Chromium纵向验收**
 
-  管理入口创建并发布正式模板；公开项目创建冻结Fact；完成初验触发revision1并等待Task Job形成真实`TodoRequested`，从项目工作台打开Owner Task。revision1只走现场协助：正式成员提交一份签字完整但评分低于阈值的答卷，核对客户事实与协助人分离，并形成带唯一结果文档的失败Result；不得为同一Questionnaire再执行匿名提交。整改Fact创建revision2后只走匿名渠道：指派并创建一次受控链接，断言二维码解码值与链接完全一致；未登录经精确静态token路由打开唯一问卷，含签字/附件提交并形成达标Result，相邻后台路径仍跳登录；不得再对revision2执行现场协助。随后等待Result/归档Job形成`D-SAT-REPORT`来源与归档；发起统一异步导出，轮询PLT Task至SUCCEEDED并经平台Access Ticket下载，核对范围裁剪与永久Audit；历史文件下载成功；最后正式invalidate并验证旧RECORDED重试不恢复当前来源。
+  管理入口创建并发布正式模板；公开项目创建冻结Fact；当前L1服务经理经正式权限配置后通过公开REST分别指派初验任务和同项目`T-SAT-SURVEY`给自己，再对初验任务按`PENDING_START→IN_PROGRESS→PENDING_ACCEPT→DONE`执行START、SUBMIT、COMPLETE。初验完成Provider必须由PROJ按项目锁定唯一`T-SAT-SURVEY` Owner Fact，并把其真实taskId/version传给initializer二次重验；source/trigger仍为初验活动完成Fact。ACC契约的START/SUBMIT由PROJ状态机控制，写前重验`pms:project-task:execute`、当前EDIT范围和当前受派人，不调用Native或ACC完成Provider；COMPLETE重验execute与report complete双权限、MANAGE范围及“项目经理或当前受派人”主体，只有ACC Owner完成事实成功才置DONE。完成后触发revision1并等待Task Job形成真实`TodoRequested`，从项目工作台打开Owner Task。revision1只走现场协助：正式成员提交一份签字完整但评分低于阈值的答卷，核对客户事实与协助人分离，并形成带唯一结果文档的失败Result；不得为同一Questionnaire再执行匿名提交。整改Fact创建revision2后只走匿名渠道：指派并创建一次受控链接，断言二维码解码值与链接完全一致；未登录经精确静态token路由打开唯一问卷，含签字/附件提交并形成达标Result，相邻后台路径仍跳登录；不得再对revision2执行现场协助。随后等待Result/归档Job形成`D-SAT-REPORT`来源与归档；发起统一异步导出，轮询PLT Task至SUCCEEDED并经平台Access Ticket下载，核对范围裁剪与永久Audit；历史文件下载成功；最后正式invalidate并验证旧RECORDED重试不恢复当前来源。
 
   同次脚本必须验证：同键重放、过期/错问卷grant、缺签字、现场协助分别缺collect权限/越项目范围、导出缺权限/越责任人或请求未授权字段文件、跨项目/租户查询和下载、归档失败后重试；这些都使用真实存在对象，拒绝时`data=null`且不泄露标识。不得直接调用Handler、内部API或改库制造业务结果。
 
@@ -327,7 +330,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 - **规格覆盖：** 模板冻结、首次触发、grant/二维码/现场协助、只追加答卷与文件、判定、整改revision、失效、双向乱序、来源归档、下载、导出和权限均有落点。
 - **Owner：** ACC不读PROJ/PLT表；PROJ不写ACC表；PLT不判定满意度；PLT生成文件仍重验actor与范围；Todo/通道送达不制造提交或通过。
 - **历史：** Response/Result/RemediationFact只追加；失效不恢复旧版；ACTIVE历史文件不因归档失效；旧完工证明保持独立。
-- **迁移：** 仅新增V133，不修改已执行迁移；来源历史表直接复用；PLT导出两表为唯一NEW_ONLY载体，不创建第二应交根、归档或导出真值。
+- **迁移：** V133新增Feature结构；V134仅恢复被V108覆盖的既有任务指派权限载体，不修改已执行迁移；来源历史表直接复用；PLT导出两表为唯一NEW_ONLY载体，不创建第二应交根、归档或导出真值。
 - **权限：** 五个最小键和服务端ProjectScope/FileBusinessScope/租户控制保留；角色映射仅作正式配置。
 - **收益：** 两个串行完整Task；一个前向迁移、五条必要调度配置、一次后端构建、一次前端构建和一次浏览器闭环，无低收益全仓重复验证。
 

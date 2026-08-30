@@ -26,6 +26,11 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFilesReval
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompleteCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializeCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitialized;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFilesRevalidationCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompleteCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitialized;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO;
@@ -73,6 +78,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     private final PermissionApi permissionApi;
     private final GeneratedBusinessFileService generatedBusinessFileService;
     private final BusinessGrantFileUploadService businessGrantFileUploadService;
+    private final AuthenticatedAssistedFileUploadService authenticatedAssistedFileUploadService;
 
     public FileArtifactApiImpl(FileBusinessObjectPolicyRegistry policyRegistry,
                                FileArtifactMapper artifactMapper,
@@ -82,7 +88,8 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                                FileArchiveRecordMapper archiveRecordMapper,
                                PermissionApi permissionApi,
                                GeneratedBusinessFileService generatedBusinessFileService,
-                               BusinessGrantFileUploadService businessGrantFileUploadService) {
+                               BusinessGrantFileUploadService businessGrantFileUploadService,
+                               AuthenticatedAssistedFileUploadService authenticatedAssistedFileUploadService) {
         this.policyRegistry = policyRegistry;
         this.artifactMapper = artifactMapper;
         this.versionMapper = versionMapper;
@@ -92,6 +99,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
         this.permissionApi = permissionApi;
         this.generatedBusinessFileService = generatedBusinessFileService;
         this.businessGrantFileUploadService = businessGrantFileUploadService;
+        this.authenticatedAssistedFileUploadService = authenticatedAssistedFileUploadService;
     }
 
     @Override
@@ -289,6 +297,36 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     public List<BusinessGrantFileFact> lockAndRevalidateBusinessGrantFiles(
             BusinessGrantFilesRevalidationCommand command) {
         return businessGrantFileUploadService.lockAndRevalidate(command);
+    }
+
+    @Override
+    public AuthenticatedAssistedUploadInitialized initializeAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadInitializeCommand command) {
+        TrustedActor actor = trustedActor();
+        requireTenant(command == null ? null : command.tenantId(), actor.tenantId());
+        return authenticatedAssistedFileUploadService.initialize(actor.userId(), command);
+    }
+
+    @Override
+    public AuthenticatedAssistedFileFact completeAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompleteCommand command) {
+        TrustedActor actor = trustedActor();
+        requireTenant(command == null ? null : command.tenantId(), actor.tenantId());
+        return authenticatedAssistedFileUploadService.complete(actor.userId(), command);
+    }
+
+    @Override
+    public List<AuthenticatedAssistedFileFact> lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFilesRevalidationCommand command) {
+        TrustedActor actor = trustedActor();
+        requireTenant(command == null ? null : command.tenantId(), actor.tenantId());
+        return authenticatedAssistedFileUploadService.lockAndRevalidate(actor.userId(), command);
+    }
+
+    private void requireTenant(Long commandTenantId, Long contextTenantId) {
+        if (commandTenantId == null || !commandTenantId.equals(contextTenantId)) {
+            throw exception(FILE_SCOPE_FORBIDDEN);
+        }
     }
 
     private List<ArchiveFactKey> archiveKeys(List<FileArtifactVersionFact> facts) {

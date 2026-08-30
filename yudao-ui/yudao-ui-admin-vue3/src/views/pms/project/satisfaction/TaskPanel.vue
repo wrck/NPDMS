@@ -167,8 +167,8 @@ const openGrant = (task: TaskView) => {
 }
 const createGrant = async () => {
   if (!selected.value || !grantExpiresAt.value) return
-  const grant = await Api.createGrant(selected.value.id, grantExpiresAt.value)
-  const tenantId = getTenantId()
+  const grant = await Api.createGrant(selected.value.id, new Date(grantExpiresAt.value).getTime())
+  const tenantId = getTenantId() ?? 0
   grantUrl.value = `${window.location.origin}/satisfaction-questionnaires/${encodeURIComponent(grant.token)}?tenantId=${tenantId}`
 }
 const copyLink = async () => {

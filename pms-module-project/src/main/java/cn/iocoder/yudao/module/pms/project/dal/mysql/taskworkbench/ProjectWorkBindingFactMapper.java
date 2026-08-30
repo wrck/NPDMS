@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskFactLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskProjectLockQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -29,4 +30,7 @@ public interface ProjectWorkBindingFactMapper {
 
     List<ProjectSatisfactionTaskFactRecord> selectSatisfactionTaskForUpdate(
             @Param("query") ProjectSatisfactionTaskFactLockQuery query);
+
+    List<ProjectSatisfactionTaskFactRecord> selectProjectSatisfactionTaskForUpdate(
+            @Param("query") ProjectSatisfactionTaskProjectLockQuery query);
 }

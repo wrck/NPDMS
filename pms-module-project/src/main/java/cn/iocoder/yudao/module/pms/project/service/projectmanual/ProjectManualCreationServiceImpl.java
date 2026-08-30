@@ -205,6 +205,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
             validateCustomerAvailable(draft.getCustomerId());
+            draft.setProjectType(ProjectRules.DEFAULT_PROJECT_TYPE);
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
             draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
             draft.setProjectSequence(ProjectCodeRules.ROOT_PROJECT_SEQUENCE);
@@ -551,6 +552,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (draft.getProjectCategory() == null) draft.setProjectCategory(parent.getProjectCategory());
         if (draft.getImplementationMode() == null) draft.setImplementationMode(parent.getImplementationMode());
         if (draft.getMajorProjectLevel() == null) draft.setMajorProjectLevel(parent.getMajorProjectLevel());
+        if (draft.getProjectType() == null) draft.setProjectType(parent.getProjectType());
         if (draft.getCompanyCode() == null) draft.setCompanyCode(parent.getCompanyCode());
         if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
         if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
@@ -585,7 +587,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         fresh.setProjectId(command.projectId());
         fresh.setUserId(command.managerId());
         AdminUserRespDTO manager = adminUserApi.getUser(command.managerId());
-        DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
+        DeptRespDTO department = deptApi.getDept(command.departmentId());
         fresh.setMemberName(manager == null ? null : manager.getNickname());
         fresh.setCompanyId(project.getCompanyId());
         fresh.setCompanyCode(project.getCompanyCode());

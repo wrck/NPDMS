@@ -131,7 +131,8 @@ public class SatisfactionResultDecisionService {
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
                 projectTask.projectTaskVersion(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
                 questionnaire.getTemplateRevisionId(),
-                response.getId(), resultId, 1, result.getVersion(), task.getCollectionKey(), task.getSourceOwnerContext(),
+                response.getId(), resultId, task.getTaskRevisionNo(), result.getVersion(), task.getCollectionKey(),
+                task.getSourceOwnerContext(),
                 task.getSourceObjectType(), task.getSourceObjectId(), task.getSourceObjectVersion(),
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion(),
                 result.getResultStatus(), actorUserId, files.stream()
@@ -146,7 +147,8 @@ public class SatisfactionResultDecisionService {
         SatisfactionResultDO row = new SatisfactionResultDO();
         row.setId(resultId); row.setTenantId(command.tenantId()); row.setCollectionTaskId(task.getId());
         row.setQuestionnaireId(questionnaire.getId()); row.setResponseId(response.getId());
-        row.setCollectionKey(task.getCollectionKey()); row.setResultVersion(1); row.setScore(evaluation.score());
+        row.setCollectionKey(task.getCollectionKey()); row.setResultVersion(task.getTaskRevisionNo());
+        row.setScore(evaluation.score());
         row.setThreshold(evaluation.threshold()); row.setPassed(evaluation.passed());
         row.setRuleVersion(evaluation.ruleVersion()); row.setResultStatus(evaluation.passed() ? "EFFECTIVE" : "FAILED");
         row.setEffectiveFrom(now); row.setArchiveStatus("PENDING_COMPENSATION");

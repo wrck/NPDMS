@@ -33,6 +33,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_QUERY_INVALID;
@@ -161,7 +162,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                     "SatisfactionCollectionTask", String.valueOf(command.projectTaskId()), command.operationId(),
                     "{}", List.of());
         }
-        String eventId = command.operationId() + ":satisfaction-task-created";
+        String eventId = UUID.randomUUID().toString();
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("eventId", eventId); payload.put("tenantId", command.tenantId());
         payload.put("projectId", command.projectId()); payload.put("projectTaskId", command.projectTaskId());

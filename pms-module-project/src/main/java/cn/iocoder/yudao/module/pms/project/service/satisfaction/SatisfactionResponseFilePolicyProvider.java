@@ -36,6 +36,7 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionResponseMapper responseMapper;
     private final SatisfactionResponseReservationService reservationService;
+    private final SatisfactionAssistedResponseReservationService assistedReservationService;
     private final ProjectScopeApi projectScopeApi;
 
     @Override public String ownerContext() { return OWNER; }
@@ -67,6 +68,17 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
             throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_SCOPE_CONFLICT");
         }
         return policy(query.purposeCode(), scope.treeVersion());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        FileReferenceSetKey key = query.key();
+        if (key == null || !OWNER.equals(key.ownerContext()) || !TYPE.equals(key.objectType())) return denied();
+        return lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                query.tenantId(), query.actorUserId(), key.ownerContext(), key.objectType(), key.objectId(),
+                key.purposeCode(), "REFERENCE_SET", query.requiredAction(), query.expectedScopeVersion()));
     }
 
     @Override
@@ -104,6 +116,72 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
         }
         return resolve(query.tenantId(), query.grantId(), query.grantVersion(), query.questionnaireId(),
                 query.requestId(), query.responseId(), null, null, null, scopeVersion, query.files());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuthenticatedAssistedUploadPolicyFact initializeAuthenticatedAssistedUploadPolicy(
+            AuthenticatedAssistedUploadInitializePolicyQuery query) {
+        return resolveAssisted(query.tenantId(), query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(),
+                query.fileSequence(), null, List.of());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompletePolicyQuery query) {
+        return resolveAssisted(query.tenantId(), query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), query.policyKey(), query.fileSlotKey(),
+                query.fileSequence(), query.expectedScopeVersion(), List.of());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFileRevalidationQuery query) {
+        if (query.files().isEmpty() || query.files().stream().anyMatch(file -> file == null
+                || !(SIGNATURE.equals(file.policyKey()) || ATTACHMENT.equals(file.policyKey()))
+                || file.fileSlotKey() == null || file.fileSlotKey().isBlank()
+                || file.fileSequence() == null || file.fileSequence() <= 0)) {
+            throw new IllegalArgumentException("SATISFACTION_ASSISTED_FILES_INVALID");
+        }
+        Long scopeVersion = query.files().getFirst().scopeVersion();
+        if (query.files().stream().anyMatch(file -> !Objects.equals(scopeVersion, file.scopeVersion()))) {
+            throw new IllegalStateException("SATISFACTION_ASSISTED_FILE_SCOPE_CONFLICT");
+        }
+        return resolveAssisted(query.tenantId(), query.actorUserId(), query.taskId(), query.questionnaireId(),
+                query.requestId(), query.responseId(), null, null, null, scopeVersion, query.files());
+    }
+
+    private AuthenticatedAssistedUploadPolicyFact resolveAssisted(
+            Long tenantId, Long actorUserId, Long taskId, Long questionnaireId,
+            String requestId, Long responseId, String policyKey, String fileSlotKey,
+            Integer fileSequence, Long expectedScopeVersion, List<AuthenticatedAssistedFileHandle> files) {
+        SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, taskId);
+        SatisfactionQuestionnaireDO questionnaire = task == null ? null
+                : questionnaireMapper.selectByIdForUpdate(tenantId, task.getQuestionnaireId());
+        if (task == null || questionnaire == null || !Objects.equals(questionnaireId, questionnaire.getId())
+                || !Objects.equals(taskId, questionnaire.getCollectionTaskId())
+                || !Objects.equals(actorUserId, task.getAssignedToUserId())
+                || !("PENDING_COLLECTION".equals(task.getTaskStatus()) || "ASSIGNED".equals(task.getTaskStatus()))
+                || !"ACTIVE".equals(questionnaire.getQuestionnaireStatus())
+                || responseMapper.selectByIdForUpdate(tenantId, responseId) != null) {
+            throw new IllegalStateException("SATISFACTION_ASSISTED_FILE_OWNER_CONFLICT");
+        }
+        assistedReservationService.requireReserved(tenantId, actorUserId, task, questionnaire,
+                requestId, responseId);
+        Long expected = expectedScopeVersion == null ? questionnaire.getAccessScopeVersion() : expectedScopeVersion;
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                tenantId, actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT, expected));
+        if (scope == null || !Objects.equals(expected, scope.treeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_ASSISTED_FILE_SCOPE_CONFLICT");
+        }
+        String effectivePolicy = policyKey == null ? files.getFirst().policyKey() : policyKey;
+        return new AuthenticatedAssistedUploadPolicyFact(taskId, questionnaireId, requestId, responseId,
+                effectivePolicy, fileSlotKey, fileSequence, actorUserId, scope.treeVersion(),
+                policy(effectivePolicy, scope.treeVersion()));
     }
 
     private BusinessGrantUploadPolicyFact resolve(

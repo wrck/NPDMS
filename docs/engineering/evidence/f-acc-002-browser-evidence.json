@@ -1,0 +1,73 @@
+{
+  "feature": "F-ACC-002",
+  "generatedAt": "2026-08-30T16:30:07.698Z",
+  "pass": true,
+  "identity": {
+    "username": "fcom001acceptance",
+    "userId": 992002800002,
+    "permissionCount": 30
+  },
+  "project": {
+    "projectId": 992203060027,
+    "projectCode": "PJT2026000024",
+    "projectTemplateRevisionId": 911003
+  },
+  "template": {
+    "templateId": "2094016708590874625",
+    "templateRevisionId": "2094016708930613249",
+    "configurableServerScoring": true
+  },
+  "revisionOne": {
+    "taskId": "2094099984445841410",
+    "responseId": "2094099985150484481",
+    "resultId": "2094099985150484481",
+    "score": 20,
+    "threshold": 80,
+    "passed": false,
+    "channel": "ASSISTED"
+  },
+  "revisionTwo": {
+    "taskId": "2094099988153606146",
+    "responseId": "2094100028360204289",
+    "resultId": "2094100028360204289",
+    "score": 100,
+    "threshold": 80,
+    "passed": true,
+    "channel": "PUBLIC_LINK",
+    "qrRendered": true,
+    "anonymousStayedPublic": true
+  },
+  "projection": {
+    "resultFiles": 5,
+    "sourceSequences": "1,2,3",
+    "archivedCurrentSource": true,
+    "deliveredResultEvents": 2
+  },
+  "export": {
+    "taskId": "2094100211265413121",
+    "status": "SUCCEEDED",
+    "auditCount": 4,
+    "accessTicketIssued": true
+  },
+  "runtime": {
+    "backendPort": 59340,
+    "frontendPort": 19340,
+    "chromiumCdpPort": 9224,
+    "businessErrors": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "requestFailures": 0
+  },
+  "assertions": [
+    "FORMAL_TEMPLATE_PUBLISHED",
+    "PUBLIC_PROJECT_CREATED_WITH_FROZEN_SATISFACTION_FACT",
+    "INITIAL_ACCEPTANCE_TRIGGERED_REVISION_ONE",
+    "ASSISTED_LOW_SCORE_RESULT",
+    "RECOLLECT_CREATED_REVISION_TWO",
+    "EXACT_ANONYMOUS_ROUTE_AND_QR",
+    "PUBLIC_HIGH_SCORE_RESULT_WITH_SIGNATURE_AND_ATTACHMENT",
+    "SOURCE_ARCHIVED_WITH_GLOBAL_SEQUENCE",
+    "UNIFIED_EXPORT_SUCCEEDED_AND_AUDITED",
+    "CHROMIUM_DIAGNOSTICS_CLEAN"
+  ]
+}

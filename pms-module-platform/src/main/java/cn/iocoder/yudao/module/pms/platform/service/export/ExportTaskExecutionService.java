@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.export.query.ExportTaskDue
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.export.query.ExportTaskStatusUpdate;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ExportTaskExecutionService {
 
     private static final int BATCH_SIZE = 20;
@@ -71,6 +73,7 @@ public class ExportTaskExecutionService {
         } catch (ExportBusinessDataProviderRegistry.ProviderContractException failure) {
             fail(task, "PROVIDER_CONTRACT_INVALID", false, false);
         } catch (RuntimeException failure) {
+            log.warn("[execute][统一导出任务({})执行失败]", task.getId(), failure);
             fail(task, "PROVIDER_TEMPORARILY_UNAVAILABLE", true, false);
         }
     }

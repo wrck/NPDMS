@@ -29,6 +29,7 @@ class SatisfactionResponseFilePolicyProviderTest {
     @Mock SatisfactionCollectionTaskMapper taskMapper;
     @Mock SatisfactionResponseMapper responseMapper;
     @Mock SatisfactionResponseReservationService reservationService;
+    @Mock SatisfactionAssistedResponseReservationService assistedReservationService;
     @Mock ProjectScopeApi projectScopeApi;
 
     @Test
@@ -50,7 +51,7 @@ class SatisfactionResponseFilePolicyProviderTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L,
                 Set.of(20L), Set.of()));
         var provider = new SatisfactionResponseFilePolicyProvider(grantMapper, questionnaireMapper, taskMapper,
-                responseMapper, reservationService, projectScopeApi);
+                responseMapper, reservationService, assistedReservationService, projectScopeApi);
 
         var fact = provider.initializeBusinessGrantUploadPolicy(new BusinessGrantUploadInitializePolicyQuery(
                 7L, 1L, 2, 11L, "req-1", 50L, "SATISFACTION_SIGNATURE", "slot-1", 1));

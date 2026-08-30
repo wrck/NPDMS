@@ -57,13 +57,15 @@
 
 - ACTIVE问卷可生成手工受控链接，二维码只是同一链接的表示；令牌仅创建时返回一次，库内只保存摘要、版本、有效期和状态。
 - 客户grant只能读取唯一问卷、上传该预分配Response的签字/附件并以`questionnaireId+requestId`提交一次。ACC用同一requestId通过现有`PlatformCommandExecutionApi`持久化并重放服务端`responseId`；初始化返回该ID，最终提交只使用该ID且不得重新生成。过期、撤销、已消费、错问卷或错租户统一拒绝且不泄露对象。
-- 外部上传仅通过PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload/lockAndRevalidateBusinessGrantFiles`。通用文件策略Query保持不变，新增grant专用默认失败方法与类型化Query/Fact；PLT返回服务端槽位，最终提交前重验实际Artifact/Version/Reference与grant、response、policy、scope和槽位身份，客户端FileFact仅作句柄。ACC先验证grant，PLT仍执行大小、类型、扫描、版本和审计。现场协助使用正式登录用户和`collect`权限。
+- 外部上传仅通过PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload/lockAndRevalidateBusinessGrantFiles`。通用文件策略Query保持不变，新增grant专用默认失败方法与类型化Query/Fact；PLT返回服务端槽位，最终提交前重验实际Artifact/Version/Reference与grant、response、policy、scope和槽位身份，客户端FileFact仅作句柄。ACC先验证grant，PLT仍执行大小、类型、扫描、版本和审计。
+- 现场协助以正式登录当前责任人和最终`requestId`在`ACC_SATISFACTION_ASSISTED_RESPONSE_RESERVATION`中预留同一`responseId`；摘要冻结ASSISTED、tenant、Task、Questionnaire、actor和requestId，回执不创建空Response。上传只走PLT加性的authenticated-assisted专用initialize/complete/final-revalidation接口与类型化Provider Query/Fact，三个时点均重验责任人、可收集状态、`PROJECT_EDIT`范围和scopeVersion；PLT同时校验`collect`与`pms:file:upload`。服务端冻结签字/附件槽位，最终提交只使用PLT规范事实和预留ID，不得调用`attachExistingVersions`或信任客户端文件事实。
 - grant文件审计的内部责任主体只能取当前grant创建时保存的正数`creator`并冻结为`grantIssuerUserId`；PLT只用其填充既有文件/操作审计actor字段，detail明确外部主体为`BUSINESS_GRANT`及grant/response/slot身份。不得使用updater、客户输入、grantId或固定用户，不建立SecurityContext、不调用登录上传Controller，也不解释为客户拥有`pms:file:upload`。
 - Response、答案、签字和附件只追加；同requestId同载荷返回首次结果，同键异载荷冲突。Todo完成或通道送达不能替代客户提交。
 - 答卷根只允许`answers`，每项只允许`questionCode/value`；客户端不得提交score、passed、threshold、weight、strategy或option score。未知/重复题目或选项、类型/数量/长度不符在Response前拒绝；结构合法但缺必答项保存Response并形成未通过Result。
 
 ### BR-FACC002-003 判定、当前结果与整改重收
 
+- 初验活动完成只冻结首次source/trigger业务时点；同一事务必须由PROJ `ProjectWorkBindingFactApi.lockCurrentSatisfactionTaskByProject(projectId)`按稳定码解析同项目唯一`T-SAT-SURVEY`及完整冻结Fact，并以其真实taskId/version调用initializer二次重验。不得把`T-INITIAL-ACCEPT`、服务经理或验收任务负责人当作满意度任务Owner；满意度任务须在完成前通过公开任务指派形成当前责任人。
 - 单选/量表题取所选option score，多选取所选option score算术平均，文本不计分；未回答计分题为0。SUM求和，加权策略按`sum(questionScore*weight)/sum(weight)`计算；中间值不舍入，只在最终总分按冻结precision/roundingMode舍入一次，并以舍入后值比较threshold。
 - 仅必答完整、客户答案和签字有效且评分达到冻结阈值时产生`EFFECTIVE + passed=true`；失败判定同样不可变并保存阻断原因。
 - 同`collectionKey`最多一个未关闭有效达标Result；失效关闭区间但不删除、不恢复旧Result，禁止人工改分。
@@ -113,7 +115,8 @@
 | `POST /satisfaction-tasks/{id}/actions/recollect` | `pms:acceptance:satisfaction:manage` | 前一失败/失效Result+整改Fact；新revision且旧链不变 |
 | `POST /satisfaction-tasks/{id}/access-grants` | `pms:acceptance:satisfaction:manage` | 创建一次性受控链接；完整令牌只返回一次 |
 | `GET /satisfaction-questionnaires/{token}`、`POST .../{token}/files`、`POST .../{token}/responses` | 有效客户grant | 仅唯一问卷；files初始化以最终requestId返回服务端responseId/槽位，responses重放预留并锁定重验文件后使用同一ID一次提交 |
-| `POST /satisfaction-tasks/{id}/assisted-responses` | `pms:acceptance:satisfaction:collect` | 正式项目成员现场协助，记录协助人与客户联系人 |
+| `POST /satisfaction-tasks/{id}/assisted-response-reservations`、`POST .../{id}/assisted-files`、`POST .../{id}/assisted-files/{sessionId}/complete` | `pms:acceptance:satisfaction:collect`且PLT重验`pms:file:upload` | 正式当前责任人预留Response并通过服务端槽位上传签字/附件；不预写Response |
+| `POST /satisfaction-tasks/{id}/assisted-responses` | `pms:acceptance:satisfaction:collect` | 重放预留、锁定重验规范文件事实后提交；记录协助人与客户联系人 |
 | `GET /satisfaction-results`、`GET .../{id}` | `pms:acceptance:satisfaction:query` | 当前与历史Result，敏感答案按字段权限裁剪 |
 | `POST /satisfaction-results/{id}/actions/invalidate` | `pms:acceptance:satisfaction:manage` | 服务端actor、`PROJECT_EDIT`、expectedResultVersion、原因和Idempotency-Key；原子关闭当前Result并写失效Outbox |
 | `GET .../{resultId}/files/{sequence}/download` | `pms:acceptance:satisfaction:download` | 每次重验项目、FileBusinessScope和租户 |
@@ -173,4 +176,4 @@
 | Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
 | 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
 
-检查点：基线=`e83cda3f`；当前Gate=Implementation Task 1 Step 3 grant上传契约复审；已通过=计分与Result生成路径；阻塞=Response预留/文件重验待审；下一步=GO后实现grant上传，不进入Task 2。
+检查点：基线=`0b832c37`；当前Gate=Implementation Task 2 Step 5；已通过=grant上传、计分、Result文件、任务生命周期与满意度初始化；阻塞=正式身份现场协助尚缺Response预留、专用上传及最终文件重验；下一步=按已批准窄契约实现并恢复同一次Chromium闭环。
