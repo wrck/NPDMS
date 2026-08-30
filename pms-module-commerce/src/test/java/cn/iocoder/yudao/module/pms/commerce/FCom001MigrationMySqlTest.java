@@ -68,6 +68,9 @@ class FCom001MigrationMySqlTest {
             result.next();
             assertEquals(10, result.getInt(1));
         }
+        assertColumnLength("com_contract", "source_version", 64);
+        assertColumnLength("com_sales_order", "source_version", 64);
+        assertColumnLength("com_authority_candidate", "matched_owner_source_version", 64);
     }
 
     @Test
@@ -170,5 +173,18 @@ class FCom001MigrationMySqlTest {
             throw new IllegalStateException("缺少环境变量：" + name);
         }
         return value;
+    }
+
+    private static void assertColumnLength(String table, String column, int expected) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT character_maximum_length FROM information_schema.columns "
+                        + "WHERE table_schema=DATABASE() AND table_name=? AND column_name=?")) {
+            statement.setString(1, table);
+            statement.setString(2, column);
+            try (ResultSet result = statement.executeQuery()) {
+                result.next();
+                assertEquals(expected, result.getInt(1));
+            }
+        }
     }
 }

@@ -69,8 +69,17 @@ class FCom001MigrationContractTest {
         assertTrue(alter > signal);
         assertEquals(2, occurrences(sql,
                 "DROP PROCEDURE IF EXISTS `fcom001_preflight_scope_current`"));
+        String preflightPredicate = sql.substring(sql.indexOf("FROM `com_delivery_scope`"), duplicateGuard);
+        assertFalse(preflightPredicate.contains("`deleted`"));
         assertTrue(sql.contains("CASE WHEN `scope_status` IN ('ACTIVE', 'CONFLICT') "
                 + "AND `effective_to` IS NULL THEN 1 ELSE NULL END"));
+    }
+
+    @Test
+    void keepsEveryOwnerSourceVersionAtThePublicContractLength() {
+        assertEquals(3, occurrences(sql, "`source_version` varchar(64) NOT NULL"));
+        assertTrue(sql.contains("`matched_owner_source_version` varchar(64) DEFAULT NULL"));
+        assertTrue(sql.contains("`candidate_version` varchar(128) NOT NULL"));
     }
 
     @Test
