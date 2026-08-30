@@ -21,10 +21,10 @@
 | EquipmentLocationEffective | EXE-02、EQP-01 | AST | Implementation Execution/Project | IMP通过`AssetLocationApi`公开命令提交已确认安装/迁移/拆除事实；AST在调用方事务内幂等更新设备当前地点和版本历史，AST不反向读取IMP表 |
 | DeviceComponentRelationChanged | EXE-03、EQP-02、EQP-03 | AST | Implementation Execution/Cutover | 机框、槽位、板卡当前关系、生效区间、解析/人工绑定证据和关系版本 |
 | `SatisfactionQuestionnaireTemplateApi.resolvePublished` | ACC-02、PM-03 | ACC | PROJ | 项目创建时按项目类别、签约方式、实施方式、业务用途和适用时点唯一解析发布修订，返回模板/修订/规则/阈值Fact；零匹配或多匹配失败，PROJ只冻结引用 |
-| `SatisfactionTaskInitializationApi.initialize` | ACC-02、PM-11 | ACC | PROJ/受信业务时点Owner | 以`MANDATORY`加入业务时点事务，ACC回查`ProjectWorkBindingFactApi`并按ProjectTask+触发Fact版本幂等创建任务与问卷；来源Owner未交付时只保留接口 |
+| `SatisfactionTaskInitializationApi.initialize` | ACC-02、PM-11 | ACC | PROJ/受信业务时点Owner | 以`MANDATORY`加入首次业务时点事务，ACC回查`ProjectWorkBindingFactApi`，冻结原始source/trigger Fact并返回collectionKey/revision=1；整改由ACC不可变RemediationFact触发同链下一revision，外部Owner不发明整改身份 |
 | `SatisfactionResultFactApi.inspect/lockAndRevalidate` | ACC-02、CLO-01、SUB-03 | ACC | CLO/SUB | 返回稳定任务、问卷、答卷、结果、模板/规则/阈值、来源业务对象及版本和passed/valid/archive状态；消费者不得修改答卷或自行推断通过 |
 | `FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload` | ACC-02、PLT-02 | PLT | ACC | 仅接受ACC已验证ACTIVE访问授权及其grant版本，按唯一满意度文件策略上传签字/附件；不伪造登录用户，PLT继续执行文件校验、版本和审计 |
-| `SatisfactionResultVersionChanged` | ACC-02、ACC-04 | ACC | ACC交付件索引；未来CLO/SUB | task/questionnaire/response/result与模板/规则/阈值、来源业务对象版本、`RECORDED/INVALIDATED`、passed和完整有序文件公共事实；只有有效达标结果可成为当前满意度交付件 |
+| `SatisfactionResultVersionChanged` | ACC-02、ACC-04 | ACC | ACC交付件索引；未来CLO/SUB | 携带project/projectTask/taskCode、collection/revision、task/questionnaire/response/result、模板/规则/阈值、原始来源业务对象版本、`RECORDED/INVALIDATED`、passed和完整有序文件公共事实；仅精确`T-SAT-SURVEY→D-SAT-REPORT`根接受有效达标来源 |
 | ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |
 | CutoverCompleted | CUT-06 | Cutover | Project Delivery/Acceptance/Analytics | CUT任务、P6闭环版本、最终成功结果和归档引用；失败或仅完成采集不得发布完成事件 |
 | MasterDataSynchronized | INT-01、INT-02、INT-03、INT-06、EQP-04 | CRM/ERP/MES/ITR/Integration ACL | Customer & Relationship/Asset Management/Contract & Fulfillment | 来源主键、来源版本、同步时间、同步状态和本地副本版本 |

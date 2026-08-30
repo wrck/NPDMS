@@ -209,7 +209,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | `/project-closures` | `create`、`submit`、`review`、`complete` | complete 发布事件请求 Project 关闭，不直写 Project 表 |
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
 | `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；领域任务只由受信业务时点初始化，不提供任意公共create |
-| `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result及整改事实，创建新Task/Questionnaire/Result链，不回退旧状态 |
+| `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result、`remediationRequestId`和整改证据，在ACC事务内先形成不可变`SatisfactionRemediationFact`，再以该Fact为新trigger创建同collectionKey的`taskRevisionNo+1` Task/Questionnaire；source仍为首任务原始业务Fact。同整改request/Fact同载荷重放返回原revision，异载荷冲突，不回退旧状态 |
 | `/satisfaction-tasks/{id}/access-grants` | POST | 创建V1受控链接；二维码仅表示同一链接；令牌只返回一次，库内仅存摘要，V2自动发送不在本Feature实现 |
 | `/satisfaction-questionnaires/{token}` | GET | 令牌只读返回唯一ACTIVE问卷的冻结题目和必要展示事实，不返回项目其他数据或内部规则实现 |
 | `/satisfaction-questionnaires/{token}/files` | init-upload、complete-upload | ACC先验证ACTIVE grant及版本，再调用PLT受信业务授权上传；只允许签字/附件目标和安全元数据 |
@@ -221,7 +221,9 @@ F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最
 
 F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download`五个最小权限键。`manage`控制指派、访问授权和整改重收，`collect`只控制已认证现场协助；客户令牌不取得后台权限，只能访问唯一问卷的GET/文件上传/提交。所有后台路径保留ProjectScope、责任人、字段、FileBusinessScope和租户控制点；角色映射保持可配置。
 
-ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；`SatisfactionTaskInitializationApi.initialize`以MANDATORY加入触发事务并回查`ProjectWorkBindingFactApi`；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
+ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；`SatisfactionTaskInitializationApi.initialize`以MANDATORY加入首次触发事务并回查`ProjectWorkBindingFactApi`，首次输入为原始source/trigger Fact，ACC返回分配的collectionKey/taskRevisionNo；整改不复用外部初始化接口，而由ACC `recollect`以不可变`SatisfactionRemediationFact`创建下一revision；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
+
+ACC-04满意度来源投影的输入固定携带`projectId/projectTaskId/taskRevisionNo/collectionKey/resultId/resultVersion`。投影必须通过PROJ Owner重验该任务稳定码为`T-SAT-SURVEY`，并精确锁定同租户同项目`deliverable_code=D-SAT-REPORT`且`task_code=T-SAT-SURVEY`的唯一`acc_project_deliverable`根；缺失、重复或身份不一致返回稳定DEPENDENCY/IDENTITY错误并保留待补偿，不按名称或其他根降级。
 
 满意度文件策略键为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`、`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT|SATISFACTION_ARCHIVE`。外部受控上传由PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload`承接，输入必须含ACC验证的grantId/version、预分配对象、策略键和幂等键；内部上传、集合重验、Access Ticket下载和归档继续复用现有接口。ACC不保存PLT内部主键、不建设第二文件真值。
 

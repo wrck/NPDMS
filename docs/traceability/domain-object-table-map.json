@@ -405,7 +405,8 @@
         "acc_satisfaction_response",
         "acc_satisfaction_response_file",
         "acc_satisfaction_result",
-        "acc_satisfaction_result_file"
+        "acc_satisfaction_result_file",
+        "acc_satisfaction_remediation_fact"
       ]
     },
     "DeliveryArtifact": {

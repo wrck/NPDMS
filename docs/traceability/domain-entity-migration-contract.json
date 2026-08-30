@@ -436,7 +436,8 @@
         "acc_satisfaction_response",
         "acc_satisfaction_response_file",
         "acc_satisfaction_result",
-        "acc_satisfaction_result_file"
+        "acc_satisfaction_result_file",
+        "acc_satisfaction_remediation_fact"
       ]
     },
     "DeliveryArtifact": {
@@ -1987,14 +1988,15 @@
         "acc_satisfaction_response",
         "acc_satisfaction_response_file",
         "acc_satisfaction_result",
-        "acc_satisfaction_result_file"
+        "acc_satisfaction_result_file",
+        "acc_satisfaction_remediation_fact"
       ],
       "sources": [
         {
           "sourceType": "NONE_NEW",
           "sourceObject": "SatisfactionCollection",
           "disposition": "NEW_ONLY",
-          "transform": "F-ACC-002 creates template revisions, controlled grants, immutable questionnaire/response/result facts and result files only from approved new-platform commands; reuse PROJ satisfaction timing and ACC deliverable source tables without inferring legacy answers",
+          "transform": "F-ACC-002 creates template revisions, controlled grants, immutable questionnaire/response/result/remediation facts and result files only from approved new-platform commands; first task freezes the original source fact, remediation keeps that source and uses an immutable ACC remediation fact for the next task revision; only the exact same-tenant/project T-SAT-SURVEY to D-SAT-REPORT root accepts a passing result source",
           "mappingStatus": "NEW_ONLY",
           "gate": "F-ACC-002",
           "evidenceRef": "phase2-contract://object=SatisfactionCollection"
