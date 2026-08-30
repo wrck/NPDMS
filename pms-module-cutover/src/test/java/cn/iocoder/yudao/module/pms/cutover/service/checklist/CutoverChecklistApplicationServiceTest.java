@@ -14,12 +14,14 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SelectManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
@@ -62,20 +64,29 @@ class CutoverChecklistApplicationServiceTest {
                 1L, 8L, 1000L, 2, generated.checklistId(), custom.checklistVersion(), 7L,
                 "SYS-IP", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
                 "现场截图"));
+        CutoverChecklistView beforeRematch = fixture.service.getView(1L, 8L, 1000L);
+        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(
+                1L, 8L, 1000L, 2, 1, generated.checklistId(), manual.checklistVersion(),
+                beforeRematch.inputSnapshotHash(), 7L, Map.of(), "rematch-1", "corr-rematch-1"));
+        CutoverChecklistView view = fixture.service.getView(1L, 8L, 1000L);
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
-                1L, 8L, 1000L, 2, 1, generated.checklistId(), manual.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2, 1, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "submit-1", "corr-submit-1"));
 
         assertEquals("DRAFT", generated.checklistStatus());
         assertEquals(1, saved.checklistFactVersion());
         assertEquals(2, custom.checklistVersion());
         assertEquals(2, manual.resultVersion());
+        assertEquals(2, rematched.checklistVersion());
+        assertEquals(2, view.items().size());
+        assertEquals("MANUAL", view.items().stream().filter(item -> "SYS-IP".equals(item.stableItemKey()))
+                .findFirst().orElseThrow().currentResult().resultSourceCode());
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
         assertEquals("PLAN_DRAFTING", fixture.task.get().getTaskStatus());
         assertEquals(List.of("P3_CHECKLIST_SUBMITTED"), fixture.history.stream()
                 .map(CutoverTaskStageHistoryDO::getTriggerType).toList());
-        assertEquals(2, fixture.platform.facts.size());
+        assertEquals(3, fixture.platform.facts.size());
         assertFalse(fixture.results.stream().filter(row -> "DIRECT".equals(row.getResultSourceCode()))
                 .allMatch(row -> row.getSelectionEndedAt() == null));
     }
@@ -121,9 +132,11 @@ class CutoverChecklistApplicationServiceTest {
         when(taskMapper.selectForUpdate(any())).thenAnswer(ignored -> task.get());
         when(assessmentMapper.selectForUpdate(any())).thenReturn(assessment);
         when(scopePort.inspect(8L, 10L, "ACTION_EDIT")).thenReturn(scope);
+        when(scopePort.inspect(8L, 10L, "ACTION_VIEW")).thenReturn(scope);
         when(scopePort.lockAndRevalidate(8L, 10L, "ACTION_EDIT", 7L)).thenReturn(scope);
         when(configurationService.resolveFrozen(any())).thenReturn(configuration);
         when(checklistMapper.selectCurrentForUpdate(any())).thenAnswer(ignored -> checklist.get());
+        when(checklistMapper.selectCurrent(any())).thenAnswer(ignored -> checklist.get());
         when(checklistMapper.insert(any(CutoverChecklistDO.class))).thenAnswer(invocation -> {
             checklist.set(invocation.getArgument(0));
             return 1;
@@ -133,6 +146,28 @@ class CutoverChecklistApplicationServiceTest {
             return 1;
         });
         when(itemMapper.selectListForUpdate(any())).thenAnswer(ignored -> List.copyOf(items));
+        when(itemMapper.selectListByChecklist(any())).thenAnswer(ignored -> List.copyOf(items));
+        when(itemMapper.updateApplicability(any())).thenAnswer(invocation -> {
+            var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemApplicabilityUpdate)
+                    invocation.getArgument(0);
+            CutoverChecklistItemDO item = items.stream().filter(row -> row.getId().equals(update.itemId()))
+                    .findFirst().orElseThrow();
+            item.setApplicableFlag(update.applicable());
+            item.setRequiredFlag(update.required());
+            item.setItemDefinitionId(update.itemDefinitionId());
+            item.setItemDefinitionVersion(update.itemDefinitionVersion());
+            item.setItemTypeCode(update.itemTypeCode());
+            item.setItemName(update.itemName());
+            item.setItemDescription(update.itemDescription());
+            item.setInterfaceFormatCode(update.interfaceFormatCode());
+            item.setInterfaceSchemaSnapshot(update.interfaceSchemaSnapshot());
+            item.setDisplayConditionSnapshot(update.displayConditionSnapshot());
+            item.setWorkModeCode(update.workModeCode());
+            item.setMatchedRuleId(update.matchedRuleId());
+            item.setMatchedRuleVersion(update.matchedRuleVersion());
+            item.setSortOrder(update.sortOrder());
+            return 1;
+        });
         when(resultMapper.selectCurrentForUpdate(any())).thenAnswer(invocation -> {
             var query = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCurrentResultQuery)
                     invocation.getArgument(0);
@@ -158,12 +193,27 @@ class CutoverChecklistApplicationServiceTest {
         });
         when(resultMapper.selectCurrentByChecklistForUpdate(any())).thenAnswer(ignored -> results.stream()
                 .filter(row -> row.getSelectionEndedAt() == null).toList());
+        when(resultMapper.selectCurrentByChecklist(any())).thenAnswer(ignored -> results.stream()
+                .filter(row -> row.getSelectionEndedAt() == null).toList());
         when(checklistMapper.touchDraftIfMatch(any())).thenAnswer(ignored -> {
             checklist.get().setVersion(checklist.get().getVersion() + 1);
             return 1;
         });
         when(checklistMapper.submitIfMatch(any())).thenAnswer(ignored -> {
             checklist.get().setStatusCode("SUBMITTED");
+            checklist.get().setVersion(checklist.get().getVersion() + 1);
+            return 1;
+        });
+        when(checklistMapper.rematchIfMatch(any())).thenAnswer(invocation -> {
+            var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRematchUpdate)
+                    invocation.getArgument(0);
+            checklist.get().setChecklistVersion(update.nextChecklistVersion());
+            checklist.get().setAssessmentId(update.assessmentId());
+            checklist.get().setAssessmentVersion(update.assessmentVersion());
+            checklist.get().setInputSnapshot(update.inputSnapshot());
+            checklist.get().setInputSnapshotHash(update.inputSnapshotHash());
+            checklist.get().setMatchTrace(update.matchTrace());
+            checklist.get().setConfigGapSnapshot(update.configGapSnapshot());
             checklist.get().setVersion(checklist.get().getVersion() + 1);
             return 1;
         });

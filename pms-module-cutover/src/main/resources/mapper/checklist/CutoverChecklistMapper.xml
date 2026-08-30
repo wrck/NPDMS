@@ -15,6 +15,19 @@
         FOR UPDATE
     </select>
 
+    <select id="selectCurrent"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO">
+        SELECT *
+        FROM cut_cutover_checklist
+        WHERE tenant_id = #{query.tenantId}
+          AND cutover_task_id = #{query.taskId}
+          AND current_marker = 1
+          AND deleted = b'0'
+        <if test="query.checklistId != null">
+          AND id = #{query.checklistId}
+        </if>
+    </select>
+
     <update id="touchDraftIfMatch">
         UPDATE cut_cutover_checklist
         SET version = version + 1,
@@ -32,6 +45,26 @@
         SET status_code = 'SUBMITTED',
             submitted_by = #{query.submittedBy},
             submitted_at = #{query.submittedAt},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.checklistId}
+          AND version = #{query.expectedVersion}
+          AND status_code = 'DRAFT'
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+
+    <update id="rematchIfMatch">
+        UPDATE cut_cutover_checklist
+        SET assessment_id = #{query.assessmentId},
+            assessment_version = #{query.assessmentVersion},
+            checklist_version = #{query.nextChecklistVersion},
+            input_snapshot = #{query.inputSnapshot},
+            input_snapshot_hash = #{query.inputSnapshotHash},
+            match_trace = #{query.matchTrace},
+            config_gap_snapshot = #{query.configGapSnapshot},
+            updater = #{query.actorId},
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}

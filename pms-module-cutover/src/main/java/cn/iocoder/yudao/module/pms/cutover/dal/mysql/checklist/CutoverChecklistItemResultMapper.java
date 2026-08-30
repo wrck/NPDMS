@@ -18,5 +18,8 @@ public interface CutoverChecklistItemResultMapper extends BaseMapperX<CutoverChe
     java.util.List<CutoverChecklistItemResultDO> selectCurrentByChecklistForUpdate(
             @Param("query") CutoverChecklistResultsQuery query);
 
+    java.util.List<CutoverChecklistItemResultDO> selectCurrentByChecklist(
+            @Param("query") CutoverChecklistResultsQuery query);
+
     int closeCurrentIfMatch(@Param("query") CutoverChecklistResultCloseUpdate query);
 }
