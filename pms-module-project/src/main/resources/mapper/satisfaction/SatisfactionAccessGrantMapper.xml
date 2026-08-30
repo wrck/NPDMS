@@ -13,4 +13,11 @@
         SELECT COALESCE(MAX(grant_version),0)+1 FROM acc_satisfaction_access_grant
          WHERE tenant_id=#{tenantId} AND questionnaire_id=#{questionnaireId}
     </select>
+    <update id="consumeIfActive">
+        UPDATE acc_satisfaction_access_grant
+           SET grant_status='CONSUMED', consumed_at=#{query.consumedAt}, version=version+1,
+               updater=#{query.updater}, update_time=NOW(3)
+         WHERE tenant_id=#{query.tenantId} AND id=#{query.grantId}
+           AND grant_status='ACTIVE' AND version=#{query.expectedVersion}
+    </update>
 </mapper>
