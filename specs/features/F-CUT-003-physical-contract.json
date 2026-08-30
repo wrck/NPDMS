@@ -93,8 +93,10 @@
     "projectScope": "reuse ProjectScopeApi ACTION_EDIT and treeVersion"
   },
   "transactionAndLocks": [
-    "lock CutoverTask and effective submitted assessment",
-    "lock ProjectScope expected treeVersion",
+    "before the write transaction use public non-locking inspect and CUT read projections to freeze projectId, taskId, assessmentId, checklistId and expected versions without business writes",
+    "first write lock: ProjectScopeApi.lockAndRevalidate expected treeVersion",
+    "then revalidate any other required owner facts in the existing F-CUT-002 global order",
+    "lock CutoverTask then effective submitted assessment",
     "lock current checklist root and expected checklist version",
     "lock checklist items in stableItemKey order",
     "close old result selections then append new results",
