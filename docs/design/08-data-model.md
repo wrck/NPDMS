@@ -218,11 +218,13 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
-| Inspection | InspectionRule | 可执行规则、参数和版本 | 任务冻结规则版本；规则发布后不可覆盖 |
+| Inspection | InspectionRule | 稳定检测ID、十类分类、严重级别、八字段、命令项、产品类型适用关系、安全审核事实和不可变revision | 命令项与产品适用关系从属revision；发布前审核事实必须绑定当前revision；任务冻结规则版本；规则发布后不可覆盖 |
 | Inspection | InspectionReport | 结果摘要、异常、来源和报告版本 | 外部原始数据保存引用；报告可重建但已发布版本不可覆盖 |
 | Inspection | ServiceIssue | 巡检问题、整改、复核和关闭证据 | 不与通用工单状态混写 |
 | Service Operations | ServiceStatus | 设备客观服务状态和来源提示 | 不提供续保空间或续保率管理 |
 | Service Operations | ServiceHandoverReference | 对 ACC 交接结果的只读引用和处理状态 | 不回写 ACC 交接原记录 |
+
+InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；Inspection只保存产品类型稳定编码及发布时名称快照。规则安全审核作为InspectionRule revision的发布前置事实，记录审核引用、审核主体角色组、审核时间、结论及命令内容摘要；不新增业务生命周期状态。
 
 ## 9. Customer、Asset、Commerce 与 Resource
 

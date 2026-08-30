@@ -78,6 +78,23 @@
       ]
     },
     {
+      "featureId": "F-INS-001",
+      "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+      "taskPath": "tasks/features/F-INS-001.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "INS-03@V2",
+          "coverage": "PARTIAL"
+        },
+        {
+          "sliceKey": "INS-09@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-PLT-001",
       "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
       "taskPath": "tasks/features/F-PLT-001.md",
@@ -1285,7 +1302,15 @@
       "businessResult": "巡检规则管理的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-INS-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+          "taskPath": "tasks/features/F-INS-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "INS-04@V2",
@@ -1357,7 +1382,15 @@
       "businessResult": "巡检规则配置字段的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-INS-001",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+          "taskPath": "tasks/features/F-INS-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "INT-01@V1",

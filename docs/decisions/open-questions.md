@@ -427,6 +427,23 @@
 - Decision owner: 需求方；SRV、PLT采集与安全Owner共同裁决
 - Decision date: 2026-08-29
 
+## F-INS-001 Feature Ready 裁决项
+
+### Q-FINS001-001
+
+- Status: RESOLVED
+- Requirement IDs: INS-02、INS-03、INS-09、NFR-02
+- Area: 在线巡检单命令超时上限
+- Question: NFR-02中“经审批更长”是否允许INS-09配置超过30秒，还是以INS-02、INS-09和NFR-02验收的≤30秒为硬上限？
+- Why it blocks design/implementation: 不同结论会改变字段校验、审批角色、状态、API、数据和安全验收；现有规格未定义超30秒审批契约。
+- Options: A. 30秒硬上限，只允许1～30秒；B. 建设超30秒审批；C. 允许管理员直接超过30秒。
+- Recommended technical default: A；与多处正式验收一致，且不新增无业务契约的审批体系。
+- Business decision required: 已完成，独立裁决高可信推荐直接接受。
+- Resolution: 采用A，见`CHG-PRD-2026-08-30-009`。V2在线巡检单命令默认30秒，只允许配置1～30秒；超过30秒拒绝。未来确需更长阈值时必须另行PRD变更并补齐安全上限、审批主体、适用范围和验收契约。
+- Blocking scope: 已解除。F-INS-001按1～30秒边界进入Feature Ready。
+- Decision owner: 需求方；SRV、采集与安全Owner参与影响分析
+- Decision date: 2026-08-30
+
 ## F-CUT-001 Feature Ready 待裁决项
 
 ### Q-FCUT001-001
