@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope;
+package cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -11,23 +11,23 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@TableName("com_order_line")
+@TableName("com_contract")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class OrderLineDO extends TenantBaseDO {
+public class ContractDO extends TenantBaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
+    private String companyCode;
+    private String contractNo;
+    private String customerCode;
+    private String customerName;
+    private BigDecimal contractAmount;
+    private String currencyCode;
+    private String authorityStatus;
+    private String sourceLifecycleStatus;
     private String sourceSystem;
     private String sourceKey;
     private String sourceVersion;
-    private Long orderId;
-    private String lineCode;
-    private String itemCode;
-    private String modelCode;
-    private BigDecimal quantity;
-    private String unitCode;
-    private String quantityStatus;
-    private String sourceLifecycleStatus;
     private LocalDateTime sourceUpdatedAt;
     private LocalDateTime syncedAt;
     @Version

@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 1公共API与错误机器合同在`5abbc82b`通过独立Contract/Code Review，16/16聚焦测试通过；Task 6前`getAssignedScope`继续失败关闭。最近Gate为Task 2“十表Schema与V70前向兼容”Schema/迁移合同及隔离MySQL复审；Task 2A仍须另走PLT合同Gate。
+Task 2十表Schema与V70前向兼容候选已形成：V143、六张新表、V70 nullable前向列、current marker预检及DO映射已完成；21项聚焦测试和隔离MySQL 8.4空库、旧NULL/0行、冲突失败关闭与repair重跑证据通过。当前Gate为Task 2独立Schema/迁移复审，尚未回写PASS；Task 2A仍另走PLT合同Gate。
 
 ## Gate输入
 

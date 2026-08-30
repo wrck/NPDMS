@@ -8,28 +8,19 @@ import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@TableName("com_order_line")
+@TableName("com_project_contract_relation")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class OrderLineDO extends TenantBaseDO {
+public class ProjectContractRelationDO extends TenantBaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
-    private String sourceSystem;
-    private String sourceKey;
-    private String sourceVersion;
-    private Long orderId;
-    private String lineCode;
-    private String itemCode;
-    private String modelCode;
-    private BigDecimal quantity;
-    private String unitCode;
-    private String quantityStatus;
-    private String sourceLifecycleStatus;
-    private LocalDateTime sourceUpdatedAt;
-    private LocalDateTime syncedAt;
+    private Long projectId;
+    private Long contractId;
+    private String relationStatus;
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
     @Version
     private Integer version;
 }

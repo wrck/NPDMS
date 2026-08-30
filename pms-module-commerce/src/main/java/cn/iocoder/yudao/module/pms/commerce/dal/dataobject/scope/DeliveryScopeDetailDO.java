@@ -20,6 +20,13 @@ public class DeliveryScopeDetailDO extends TenantBaseDO {
     private String officeDepartmentCode;
     private String serialNo;
     private BigDecimal allocatedQty;
+    private String unitCode;
+    private String productCode;
+    private String modelCode;
+    private Long siteId;
+    private Long siteLocationId;
+    private String locationText;
+    private String locationResolutionStatus;
     private String detailStatus;
     private String sourceSnapshot;
     @Version
