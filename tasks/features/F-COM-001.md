@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-锁定基线`2fed46d4`的Feature Ready最终独立裁决为`GO`；状态回写提交`8ca36560`。唯一Technical Plan候选已形成，Gate为`REVIEW_REQUIRED`，实施仍`NOT_STARTED`；最近Gate为计划独立复审，当前不授权DDL、代码、菜单、测试实现或Implementation Done。
+基线`a0cf6d06`的Technical Plan独立复审为`NO-GO`；A/B定点整改中：新COM命令服务与旧`DeliveryScopeService`隔离，Release导入器先经PLT暂存，COM仅消费正式`COMPLETED`批次；无正式批次时Job保持暂停。最近Gate为A/B最小复审，实施仍`NOT_STARTED`。
 
 ## Gate输入
 
