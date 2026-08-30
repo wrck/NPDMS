@@ -3,7 +3,7 @@
   "consumerFeatureId": "F-CUT-002",
   "supportingRequirement": "CUT-01@V1",
   "requirementCoverage": "NONE_SUPPORTING_CONTRACT_ONLY",
-  "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+  "status": "PASS",
   "owner": "PROJ",
   "consumer": "CUT",
   "api": "ProjectCutoverContextFactApi",
@@ -81,5 +81,5 @@
     "project customer snapshot is presented as current CUS master truth"
   ],
   "providerImplementation": "NOT_STARTED_BY_THIS_CONTRACT",
-  "implementationGate": "PUBLIC_MACHINE_CONTRACT_REVIEW_REQUIRED"
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_PASS_E68AD4E0"
 }

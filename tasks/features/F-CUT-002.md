@@ -17,7 +17,7 @@
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- `14440e45`只取得A—D局部整改GO，没有关闭生产项目上下文公共Owner合同；`1875bb89`整体PASS回写无完整授权。当前只送审`ProjectCutoverContextFactApi`合同，合同GO后返回同一Technical Plan复审。
+- `ProjectCutoverContextFactApi`公共Owner合同已在`e68ad4e0`独立复审`PASS / GO`，关闭上一轮唯一前置阻断；当前返回同一Technical Plan复审，尚未授权Implementation。
 
 ## 已完成
 
@@ -41,4 +41,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - 真实MySQL和浏览器正向验收必须使用IMP生产Provider和AST权威设备事实；替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`1875bb89`；Gate=Technical Plan REVIEW_REQUIRED；已通过=Feature Ready及IMP/CUS合同；阻塞=ProjectCutoverContext合同未审；下一步=合同独立GO后复审同一计划，未放行前停止实现。
+> 检查点：基线=`e68ad4e0`；Gate=Technical Plan REVIEW_REQUIRED；已通过=Feature Ready、IMP/CUS/ProjectCutoverContext合同；阻塞=计划待复审；下一步=提交合同GO回写并复审同一计划，未放行前停止实现。

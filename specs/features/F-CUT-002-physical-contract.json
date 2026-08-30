@@ -8,12 +8,12 @@
   },
   "technicalPlanGate": {
     "status": "REVIEW_REQUIRED",
-    "lastValidVerdict": "NO_GO_PROJECT_CUTOVER_CONTEXT_PUBLIC_OWNER_CONTRACT_MISSING",
-    "invalidProjectionCommit": "1875bb89",
+    "prerequisiteContractPass": "PROJECT_CUTOVER_CONTEXT_FACT_E68AD4E0",
     "asset": "docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md"
   },
   "projectCutoverContextFactContractGate": {
-    "status": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+    "status": "PASS",
+    "reviewedCommit": "e68ad4e0",
     "asset": "specs/features/F-CUT-002-project-context-fact-contract.json",
     "providerImplementation": "NOT_STARTED",
     "nextGate": "F_CUT_002_TECHNICAL_PLAN_REREVIEW"

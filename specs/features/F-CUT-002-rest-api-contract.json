@@ -387,7 +387,7 @@
   "providerContracts": {
     "ProjectCutoverContextFactApi": {
       "owner": "PROJ",
-      "gate": "PROPOSED_FOR_INDEPENDENT_REVIEW",
+      "gate": "PASS_E68AD4E0",
       "operations": ["inspect", "lockAndRevalidate"],
       "machineContract": "specs/features/F-CUT-002-project-context-fact-contract.json",
       "requiredInput": "trusted tenant + projectId; revalidation additionally carries expectedProjectVersion from the displayed FOUND fact",

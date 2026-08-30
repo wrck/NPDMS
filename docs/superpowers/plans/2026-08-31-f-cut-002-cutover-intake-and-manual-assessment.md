@@ -6,6 +6,7 @@
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > Physical Contract：`specs/features/F-CUT-002-physical-contract.json`
 > REST Contract：`specs/features/F-CUT-002-rest-api-contract.json`
+> ProjectCutoverContext Fact Contract Gate：`PASS / e68ad4e0`
 
 **Goal：** 一次交付“一线工程师按设备 SN 解析有权项目与权威上下文 → 自建唯一割接任务进入 P2 → 暂存并人工提交四项评估 → A/B/C 进入 P3、D 进入 P4”的最小完整业务闭环。
 

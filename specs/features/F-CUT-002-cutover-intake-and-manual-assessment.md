@@ -142,4 +142,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`READY / GO`（独立复审锁定基线`cad8088a`）。
 
-`F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效。最近未满足Gate仍为唯一Technical Plan：当前只补充`ProjectCutoverContextFactApi`公共Owner合同并独立送审；合同GO后返回同一Technical Plan复审，之前不得进入Implementation。受控模拟不进生产装配，也不产生真实Owner或浏览器证据。
+`F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效；`ProjectCutoverContextFactApi`公共Owner合同已在`e68ad4e0`独立复审GO。最近未满足Gate仍为唯一Technical Plan，当前返回同一计划复审；计划GO前不得进入Implementation。受控模拟不进生产装配，也不产生真实Owner或浏览器证据。
