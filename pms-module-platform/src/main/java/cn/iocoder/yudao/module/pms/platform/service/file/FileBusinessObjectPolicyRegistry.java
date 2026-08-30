@@ -286,6 +286,27 @@ public class FileBusinessObjectPolicyRegistry {
         return fact;
     }
 
+    private AuthenticatedAssistedUploadPolicyFact requireAuthenticatedAssistedFact(
+            AuthenticatedAssistedUploadPolicyFact fact, Long actorUserId, Long taskId, Long questionnaireId,
+            String requestId, Long responseId, String policyKey, String fileSlotKey,
+            Integer fileSequence, Long expectedScopeVersion) {
+        if (fact == null || !java.util.Objects.equals(actorUserId, fact.actorUserId())
+                || !java.util.Objects.equals(taskId, fact.taskId())
+                || !java.util.Objects.equals(questionnaireId, fact.questionnaireId())
+                || !java.util.Objects.equals(requestId, fact.requestId())
+                || !java.util.Objects.equals(responseId, fact.responseId())
+                || (policyKey != null && !java.util.Objects.equals(policyKey, fact.policyKey()))
+                || (fileSlotKey != null && !java.util.Objects.equals(fileSlotKey, fact.fileSlotKey()))
+                || (fileSequence != null && !java.util.Objects.equals(fileSequence, fact.fileSequence()))
+                || fact.actorUserId() == null || fact.actorUserId() <= 0
+                || fact.scopeVersion() == null || fact.scopeVersion() < 0
+                || (expectedScopeVersion != null && !java.util.Objects.equals(expectedScopeVersion, fact.scopeVersion()))) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        requireUsableFact(fact.filePolicy());
+        return fact;
+    }
+
     private static String normalize(String value) {
         return value == null ? null : value.trim();
     }
