@@ -42,4 +42,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`efcddc33`；Gate=Task 1 Implementation Checkpoint Review；已形成=CUT公开接入API、四张Owner表V146、场景化Mapper/XML、跨模块消费端口及P1→P2→P3/P4应用内核；受控正向模拟覆盖A→P3与D→P4；生产Adapter/Bean、REST/UI、真实浏览器及Implementation Done继续受Owner依赖和后续Task阻断。
+> 检查点：基线=`93accdd2`；当前=Task 2 IN_PROGRESS / BLOCKED_BY_DEPENDENCY；已形成=CUT公开接入API、V146、P1→P2→P3/P4内核，以及独立cutover-task API client、创建候选向导、列表/详情、P2问卷和P2～P6工作台页面；跨模块生产Adapter、唯一Service/Controller Bean及真实浏览器仍等待Owner依赖，不以Fake替代。
