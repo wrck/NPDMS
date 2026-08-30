@@ -1,7 +1,11 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.evidence;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.event.ArtifactAcceptedMessage;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.event.ArtifactArchivedMessage;
+import cn.iocoder.yudao.module.pms.engineering.api.arrival.event.ArtifactCallbackConflictException;
+import cn.iocoder.yudao.module.pms.engineering.api.arrival.event.ArtifactCallbackInProgressException;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper;
@@ -9,6 +13,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.Deliv
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceAcceptedUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.query.DeliveryEvidenceArchivedUpdate;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +48,16 @@ class ArtifactCallbackHandlerTest {
 
     @Mock DeliveryEvidenceMapper evidenceMapper;
     @Mock DeliveryEvidenceRevisionMapper revisionMapper;
+
+    @BeforeEach
+    void bindTenant() {
+        TenantContextHolder.setTenantId(7L);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContextHolder.clear();
+    }
 
     @Test
     void acceptsCurrentPublishedRevisionAndSchedulesArchiveAckWatermark() {
@@ -88,12 +104,13 @@ class ArtifactCallbackHandlerTest {
     void replaysSameEventWithoutReadingBusinessRows() {
         RecordingCommandApi commandApi = new RecordingCommandApi();
         commandApi.decision = PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED;
-        commandApi.replay = new ArtifactCallbackResult(
+        ArtifactCallbackResult replayResult = new ArtifactCallbackResult(
                 ArtifactCallbackResult.Outcome.APPLIED, 50L, 1, "ACCEPTED_PENDING_ARCHIVE");
+        commandApi.replay = new ArtifactCallbackProcessing(replayResult, null);
 
         ArtifactCallbackResult result = handler(commandApi).handle(accepted("evt-a", "review-1"));
 
-        assertEquals(commandApi.replay, result);
+        assertEquals(replayResult, result);
         verifyNoInteractions(evidenceMapper, revisionMapper);
     }
 
@@ -102,8 +119,18 @@ class ArtifactCallbackHandlerTest {
         RecordingCommandApi commandApi = new RecordingCommandApi();
         commandApi.decision = PlatformCommandExecutionApi.Decision.CONFLICT;
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(ArtifactCallbackConflictException.class,
                 () -> handler(commandApi).handle(accepted("evt-a", "review-2")));
+        verifyNoInteractions(evidenceMapper, revisionMapper);
+    }
+
+    @Test
+    void exposesInProgressAsRetryableClassification() {
+        RecordingCommandApi commandApi = new RecordingCommandApi();
+        commandApi.decision = PlatformCommandExecutionApi.Decision.IN_PROGRESS;
+
+        assertThrows(ArtifactCallbackInProgressException.class,
+                () -> handler(commandApi).handle(accepted("evt-a", "review-1")));
         verifyNoInteractions(evidenceMapper, revisionMapper);
     }
 
@@ -198,8 +225,29 @@ class ArtifactCallbackHandlerTest {
         ArtifactCallbackResult result = handler(commandApi).handle(accepted("evt-a", "review-1"));
 
         assertEquals(ArtifactCallbackResult.Outcome.IGNORED_MISMATCH, result.outcome());
-        verifyNoInteractions(revisionMapper);
         verify(evidenceMapper, never()).markAcceptedPendingArchiveIfMatch(any());
+    }
+
+    @Test
+    void missingRuntimeTenantFailsBeforeInboxClaim() {
+        TenantContextHolder.clear();
+        RecordingCommandApi commandApi = new RecordingCommandApi();
+
+        assertThrows(NullPointerException.class,
+                () -> handler(commandApi).handle(accepted("evt-a", "review-1")));
+        assertEquals(0, commandApi.calls);
+        verifyNoInteractions(evidenceMapper, revisionMapper);
+    }
+
+    @Test
+    void mismatchedRuntimeTenantFailsBeforeInboxClaim() {
+        TenantContextHolder.setTenantId(8L);
+        RecordingCommandApi commandApi = new RecordingCommandApi();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> handler(commandApi).handle(accepted("evt-a", "review-1")));
+        assertEquals(0, commandApi.calls);
+        verifyNoInteractions(evidenceMapper, revisionMapper);
     }
 
     @Test
@@ -291,6 +339,46 @@ class ArtifactCallbackHandlerTest {
         assertEquals(1, commandApi.calls);
     }
 
+    @Test
+    void mismatchAuditContainsReceivedAndFrozenIdentityWithReason() {
+        RecordingCommandApi commandApi = new RecordingCommandApi();
+        DeliveryEvidenceRevisionDO frozen = revision();
+        frozen.setFileArtifactId(41L);
+        when(evidenceMapper.selectByIdentityForUpdate(any())).thenReturn(
+                evidence("PUBLISHED_PENDING_ACC", null, 3));
+        when(revisionMapper.selectRevision(any())).thenReturn(frozen);
+
+        handler(commandApi).handle(accepted("evt-a", "review-1"));
+
+        Map<?, ?> audit = JsonUtils.parseObject(
+                commandApi.successFacts.detailSnapshot(), Map.class);
+        assertEquals("ArtifactAccepted", audit.get("callbackType"));
+        assertEquals("ARTIFACT_MISMATCH", audit.get("reason"));
+        assertEquals(40L, ((Number) audit.get("artifactId")).longValue());
+        assertEquals(41L, ((Number) audit.get("currentArtifactId")).longValue());
+        assertEquals("review-1", audit.get("recordId"));
+        assertEquals("PUBLISHED_PENDING_ACC", audit.get("currentStatus"));
+        assertEquals("IGNORED_MISMATCH", audit.get("outcome"));
+    }
+
+    @Test
+    void outOfOrderAuditIdentifiesArchivedCallbackAndCurrentState() {
+        RecordingCommandApi commandApi = new RecordingCommandApi();
+        when(evidenceMapper.selectByIdentityForUpdate(any())).thenReturn(
+                evidence("PUBLISHED_PENDING_ACC", null, 3));
+        when(revisionMapper.selectRevision(any())).thenReturn(revision());
+
+        handler(commandApi).handle(archived("evt-r", "archive-1"));
+
+        Map<?, ?> audit = JsonUtils.parseObject(
+                commandApi.successFacts.detailSnapshot(), Map.class);
+        assertEquals("ArtifactArchived", audit.get("callbackType"));
+        assertEquals("OUT_OF_ORDER_STATE", audit.get("reason"));
+        assertEquals("archive-1", audit.get("recordId"));
+        assertEquals("PUBLISHED_PENDING_ACC", audit.get("currentStatus"));
+        assertEquals("IGNORED_OUT_OF_ORDER", audit.get("outcome"));
+    }
+
     private ArtifactCallbackHandler handler(RecordingCommandApi commandApi) {
         return new ArtifactCallbackHandler(evidenceMapper, revisionMapper, commandApi, CLOCK);
     }
@@ -335,11 +423,12 @@ class ArtifactCallbackHandlerTest {
 
     private static final class RecordingCommandApi implements PlatformCommandExecutionApi {
         private Decision decision = Decision.NEW;
-        private ArtifactCallbackResult replay;
+        private ArtifactCallbackProcessing replay;
         private IdempotencyScope scope;
         private String digest;
         private int calls;
         private boolean failAfterOperation;
+        private SuccessFacts successFacts;
 
         @Override
         @SuppressWarnings("unchecked")
@@ -354,7 +443,7 @@ class ArtifactCallbackHandlerTest {
                 if (failAfterOperation) {
                     throw new IllegalStateException("platform transaction completion failed");
                 }
-                successFactsFactory.apply(response);
+                successFacts = successFactsFactory.apply(response);
                 return new ExecutionResult<>(decision, response);
             }
             return new ExecutionResult<>(decision, (T) replay);

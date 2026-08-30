@@ -33,7 +33,7 @@
 - Task 5A确认前置已增加场景化项目事实版本查询：在调用方持有PROJ权威项目锁的前提下，按同租户项目联合根与差异两类全部非NULL `project_fact_version`取MAX；NULL与逻辑删除行不进入分配集合，查询本身不访问PROJ表或创建本地锁。
 - Task 5A首个确认正向闭环已实现：平台幂等命令内先取得PROJ项目经理事实锁，再重验COM/AST/PLT及跨批累计事实；候选状态一致时按项目级MAX+1写根`project_fact_version`并推进CONFIRMED，同时将同一证据revision置为PUBLISHED_PENDING_ACC，通过平台SuccessFacts同事务写`ImplementationEvidencePublished` Outbox。完成重放不再访问业务行，陈旧If-Match在Owner重验和业务写前失败。
 - Task 6A投递实现已完成：只领取`ImplementationEvidencePublished`，严格校验tenant/eventId/payload，同步发布成功后markDelivered，发布或校验异常按1/2/4…60分钟重试。V137将`arrivalEvidenceOutboxDeliveryJob`正式登记为PAUSED；生产激活保持`BLOCKED_BY_ACC_CONSUMER`，ACC消费者与真实Spring传播契约未形成前不注册Quartz同步、不运行证据投递或证据回执重试。
-- Task 6B消费实现候选已完成：新增锁定载荷的`ArtifactAcceptedMessage`/`ArtifactArchivedMessage`及同步Listener，复用平台幂等Inbox按固定事件类型和全字段摘要处理回执；匹配当前不可变revision后以行锁与version CAS推进`ACCEPTED_PENDING_ARCHIVE`/`ARCHIVED`，重放、冲突、乱序和身份错配均不覆盖投影。ACC Producer尚未合入，两个生产Job继续PAUSED，生产联调与激活保持`BLOCKED_BY_ACC_CONSUMER`。
+- Task 6B消费实现候选已完成：新增锁定载荷的`ArtifactAcceptedMessage`/`ArtifactArchivedMessage`及同步Listener，运行时租户与载荷tenant一致后才复用平台幂等Inbox；按固定事件类型和全字段摘要处理回执，匹配当前不可变revision后以行锁与version CAS推进`ACCEPTED_PENDING_ARCHIVE`/`ARCHIVED`。审计快照保存收到身份、冻结身份、结果和明确原因；永久异载荷冲突与暂时处理中使用不同公开异常分类。ACC Producer尚未合入，两个生产Job继续PAUSED，生产联调与激活保持`BLOCKED_BY_ACC_CONSUMER`。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
