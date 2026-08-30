@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 /** PLATFORM_MANUAL候选只追加并关联既有Owner，不创建或改写权威主档。 */
@@ -224,7 +225,7 @@ public class CommerceAuthorityCandidateService {
         try {
             JsonNode node = JsonUtils.getObjectMapper().readTree(value);
             if (node == null || !node.isObject()) throw failure(Code.INVALID_REQUEST, field + "必须为JSON对象");
-            return node;
+            return canonicalJson(node);
         } catch (JacksonException ex) {
             throw failure(Code.INVALID_REQUEST, field + "不是合法JSON");
         } catch (RuntimeException ex) {
@@ -239,8 +240,9 @@ public class CommerceAuthorityCandidateService {
 
     private String requireCompanyCode(JsonNode payload) {
         JsonNode companyNode = payload.get("companyCode");
-        String companyCode = companyNode == null || !companyNode.isString() ? null : trimToNull(companyNode.asText());
-        if (companyCode == null || companyCode.length() > 64) {
+        String rawCompanyCode = companyNode == null || !companyNode.isString() ? null : companyNode.asText();
+        String companyCode = trimToNull(rawCompanyCode);
+        if (companyCode == null || !companyCode.equals(rawCompanyCode) || companyCode.length() > 64) {
             throw failure(Code.INVALID_REQUEST, "candidatePayload.companyCode非法");
         }
         return companyCode;
@@ -278,11 +280,28 @@ public class CommerceAuthorityCandidateService {
 
     private String digest(Object value) {
         try {
-            byte[] bytes = JsonUtils.toJsonString(value).getBytes(StandardCharsets.UTF_8);
+            JsonNode tree = JsonUtils.getObjectMapper().valueToTree(value);
+            byte[] bytes = JsonUtils.toJsonString(canonicalJson(tree)).getBytes(StandardCharsets.UTF_8);
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256不可用", ex);
         }
+    }
+
+    private JsonNode canonicalJson(JsonNode node) {
+        if (node.isObject()) {
+            TreeMap<String, JsonNode> fields = new TreeMap<>();
+            node.properties().forEach(entry -> fields.put(entry.getKey(), entry.getValue()));
+            var result = JsonUtils.getObjectMapper().createObjectNode();
+            fields.forEach((key, child) -> result.set(key, canonicalJson(child)));
+            return result;
+        }
+        if (node.isArray()) {
+            var result = JsonUtils.getObjectMapper().createArrayNode();
+            node.forEach(child -> result.add(canonicalJson(child)));
+            return result;
+        }
+        return node;
     }
 
     private static String trimToNull(String value) {
