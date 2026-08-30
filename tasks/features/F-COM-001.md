@@ -2,14 +2,14 @@
 
 > Requirement：`COM-01@V1`
 > Feature Ready Gate：`READY / GO`
-> Feature实施状态：`NOT_STARTED`
+> Feature实施状态：`IN_PROGRESS`
 > 当前阶段：`IMPLEMENTATION`
 > Technical Plan Gate：`PASS / GO`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`
 
 ## 当前检查点
 
-唯一Technical Plan在锁定提交`8f5ec1c1`通过独立正式裁决，Gate为`PASS / GO`。实施状态仍`NOT_STARTED`；最近Gate为Task 1“COM公开API与错误机器合同”独立Contract/Code Review Gate，未通过前不得进入后续实现。
+Task 1公开API/DTO/稳定异常候选已形成；合同8项与旧服务8项回归共16/16通过。`getAssignedScope`在Task 6 Provider接通前默认失败关闭为`PROVIDER_UNAVAILABLE`，不返回空成功。最近Gate为Task 1独立Contract/Code Review，Task 2～6仍不得启动。
 
 ## Gate输入
 

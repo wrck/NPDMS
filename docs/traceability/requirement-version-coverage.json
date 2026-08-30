@@ -47,8 +47,8 @@
       "featureId": "F-COM-001",
       "featurePath": "specs/features/F-COM-001-contract-order-and-delivery-scope.md",
       "taskPath": "tasks/features/F-COM-001.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "COM-01@V1",
@@ -348,7 +348,7 @@
         {
           "featureId": "F-COM-001",
           "coverage": "FULL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-COM-001-contract-order-and-delivery-scope.md",
           "taskPath": "tasks/features/F-COM-001.md"
         }

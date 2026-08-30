@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.commerce.api.scope;
 
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeSliceDTO;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.AssignedDeliveryScopeResult;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyCommand;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyResult;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopePreviewCommand;
@@ -14,4 +15,9 @@ public interface DeliveryScopeApi {
     SplitScopeApplyResult previewSplit(SplitScopePreviewCommand command);
 
     SplitScopeApplyResult applySplit(SplitScopeApplyCommand command);
+
+    default AssignedDeliveryScopeResult getAssignedScope(Long projectId, Long expectedScopeVersion) {
+        throw new DeliveryScopeFactException(DeliveryScopeFactException.Code.PROVIDER_UNAVAILABLE,
+                "getAssignedScope provider is not installed");
+    }
 }
