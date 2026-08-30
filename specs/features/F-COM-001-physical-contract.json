@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "featureId": "F-COM-001",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "requirementCoverage": ["COM-01@V1=FULL"],
   "ownerContext": "COM",
   "hardDependencies": ["PROJ:ProjectParticipantFactApi", "PROJ:ProjectScopeApi", "SYSTEM:OrganizationScopeApi", "AST:AssetLocationApi", "AST:DeviceScopeFactApi"],

@@ -1,7 +1,7 @@
 # F-COM-001 合同订单副本与交付范围管理 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO`
 > 实施状态：`NOT_STARTED`
 > Requirement：`COM-01（V1）`
 > Requirement切片覆盖：`COM-01@V1=FULL`
@@ -9,7 +9,7 @@
 > Owner Context：`COM（合同订单履约）`
 > 外部协作Context：`PROJ`、`AST`、`IMP`、`ACC`、`PLT`、ERP集成Owner
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> Technical Plan：仅在本Feature独立Feature Ready裁决`GO`后生成一个当前有效计划
+> Technical Plan：Feature Ready状态回写后生成一个当前有效计划并独立送审
 
 ## 1. 业务目标
 
@@ -156,4 +156,4 @@ ERP不可用不阻断无关项目内部流程。无权威数量时记录保持`P
 
 ## 9. Feature Ready Gate
 
-当前结论：`NOT_READY / REVIEW_REQUIRED`。进入Ready前必须独立确认完整COM-01边界、五权限、来源状态与范围状态、`getAssignedScope`机器契约、PROJ/AST依赖、旧实现复用审计、十表Owner/支撑物理契约和逐行迁移处置均无未决业务选择。Ready通过后才生成唯一Technical Plan；生产ERP连接器未形成不阻断COM本地闭环编码，但阻断真实外部联调证据。
+最终结论：`READY / GO`。独立正式裁决以锁定基线`2fed46d4`确认完整COM-01边界、五权限、来源状态与范围状态、`getAssignedScope`、PROJ/SYSTEM/AST依赖、ERP接收、旧实现复用、十表Owner/支撑物理合同和逐行迁移处置均已锁定，且无COM-01未决问题。下一Gate为唯一Technical Plan独立复审；本GO不授权DDL或实现。生产ERP连接器未形成不阻断COM本地闭环计划与后续编码，但继续阻断真实外部联调证据。
