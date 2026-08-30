@@ -9,7 +9,7 @@
 
 ## 当前检查点
 
-Task 2十表Schema与V70前向兼容已在`4996c754`通过并完成状态回写。Task 2A `PlatformMigrationEvidenceApi`公共机器合同经`df27632e`独立复审为`PASS / GO`：批次/逐源同属、claim版本稳定性、`READY/FAIL_IMPORT`终止导入联合及公共输入异常分类均已锁定。最近Gate进入PLT物理Owner Provider/Schema实现及独立Code Review/隔离MySQL复审；通过前不授权COM直写PLT表，也不解除下游生产依赖。
+Task 2十表Schema与V70前向兼容已在`4996c754`通过并完成状态回写。Task 2A `PlatformMigrationEvidenceApi`公共机器合同经`df27632e`独立复审为`PASS / GO`；V144四表Schema与迁移合同已进入实现，Provider/Mapper/真实MySQL证据尚未完成。最近Gate仍为PLT物理Owner Provider/Schema独立Code Review/隔离MySQL复审；通过前不授权COM直写PLT表，也不解除下游生产依赖。
 
 ## Gate输入
 
