@@ -1,9 +1,9 @@
 # F-AST-002 设备产品类型受控副本与公开查询
 
-> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTATION_DONE`
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
-> Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 8 Inspection专用只读适配器与消费边界已通过独立复审，当前提交本逻辑单元，提交后进入Task 9回归、追溯、自审与Feature收口
+> Implementation Done Gate：`PASS / NPDMS-FAST002-IMPLEMENTATION-DONE-20260831-01`
+> 当前阻断：无；Feature实现已收口，Requirement投影保持`EQP-01@V1=PARTIAL`，Deployment、SIT、UAT和Release未开始
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 8已完成Inspection专用只读适配器与消费边界验证并取得独立复审GO；当前最小工作单元为Task 8提交，提交后进入Task 9。
+- Task 9回归、追溯、自审与Feature收口已完成并取得独立裁决GO；当前最小工作单元为收口提交。
 
 ## 已完成
 
@@ -32,7 +32,9 @@
 
 - Task 8已新增仅含两个查询方法的`InspectionAssetProductTypeApi`，由AST适配器固定建立Inspection调用上下文后委托通用API；Service模块仅依赖`pms-module-asset-api`，未依赖AST业务模块或访问其DO、Mapper、Service及业务表。5项定向测试、相关Reactor编译、依赖树和`git diff --check`均PASS；独立复审`GO`。本结论不代表Inspection规则、发布或工程师选择闭环完成。
 
-> 检查点（2026-08-31）：基线`a3a9853f`；当前Gate=Task 8提交；证据=专用双查询API、固定Inspection上下文、5项定向测试、Reactor编译、依赖树、diff-check及独立GO；阻塞=无；下一步=提交Task 8后进入Task 9回归与Feature收口。
+- Task 9已完成产品类型定向回归90项、全仓Unit分类、`yudao-server`装配、全Reactor `verify -DskipTests`、需求追溯、迁移契约、Phase 2契约图及SDS校验；F-AST-002适用测试均PASS。全局Contract与Integration仅保留未由本Feature引入的Platform文件迁移契约及动态表单夹具既有失败，独立裁决允许如实登记后收口。Implementation Done Gate=`PASS / NPDMS-FAST002-IMPLEMENTATION-DONE-20260831-01`；Requirement投影保持`EQP-01@V1=PARTIAL`。
+
+> 检查点（2026-08-31）：基线`c967d667`；当前Gate=F-AST-002收口提交；证据=90项定向、Unit、装配、verify、追溯校验及独立GO；阻塞=无；下一步=提交收口后选择下一个前置已满足的巡检Feature Gate。
 
 ## 实施范围
 

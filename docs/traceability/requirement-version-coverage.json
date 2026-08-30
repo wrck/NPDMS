@@ -19,8 +19,8 @@
     },
     "slicesByImplementationStatus": {
       "IMPLEMENTATION_COMPLETE": 5,
-      "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 97
+      "IMPLEMENTATION_PARTIAL": 10,
+      "NOT_STARTED": 96
     }
   },
   "derivationRules": [
@@ -47,8 +47,8 @@
       "featureId": "F-AST-002",
       "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
       "taskPath": "tasks/features/F-AST-002.md",
-      "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTATION_IN_PROGRESS",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_DONE",
       "mappings": [
         {
           "sliceKey": "EQP-01@V1",
@@ -1006,7 +1006,7 @@
       "ownerName": "资产管理",
       "businessResult": "设备序列号档案的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
       "features": [
         {
           "featureId": "F-AST-001",
@@ -1018,7 +1018,7 @@
         {
           "featureId": "F-AST-002",
           "coverage": "PARTIAL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
           "taskPath": "tasks/features/F-AST-002.md"
         }
