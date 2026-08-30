@@ -93,7 +93,15 @@ class CommerceAuthorityCandidateMySqlTest {
     void createsListsAndMatchesExistingConfirmedOwnerWithoutMutation() {
         long ownerId = insertConfirmedContract("ACME", "ERP-V1");
         var created = service.create(create(ACTOR_ACME, "K-" + suffix, "IDEM-C-" + suffix));
+        var reorderedReplay = service.create(new CommerceAuthorityCandidateService.CreateCandidateCommand(
+                TENANT_ID, ACTOR_ACME, "CONTRACT", "K-" + suffix, "V1",
+                "{\"contractNo\":\"C-" + suffix + "\",\"companyCode\":\"ACME\"}",
+                "{\"referenceKey\":\"REF-" + suffix + "\"}",
+                "IDEM-C-" + suffix, "CORR-IDEM-C-" + suffix));
 
+        assertEquals(created.candidateId(), reorderedReplay.candidateId());
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
         assertEquals(1, service.listVisible(new CommerceAuthorityCandidateService.ListCandidatesQuery(
                 TENANT_ID, ACTOR_ACME, "CONTRACT", "PENDING_RECONCILIATION", 1, 20)).size());
         assertTrue(service.listVisible(new CommerceAuthorityCandidateService.ListCandidatesQuery(
@@ -122,6 +130,26 @@ class CommerceAuthorityCandidateMySqlTest {
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
                 Integer.class, TENANT_ID, "IDEM-X-" + suffix));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
+    }
+
+    @Test
+    void rejectsNonNormalizedCompanyBeforePlatformReservation() {
+        String idempotencyKey = "IDEM-W-" + suffix;
+        var command = new CommerceAuthorityCandidateService.CreateCandidateCommand(
+                TENANT_ID, ACTOR_ACME, "CONTRACT", "K-" + suffix, "V1",
+                "{\"companyCode\":\" ACME \",\"contractNo\":\"C-" + suffix + "\"}",
+                "{\"referenceKey\":\"REF-" + suffix + "\"}",
+                idempotencyKey, "CORR-" + idempotencyKey);
+
+        var error = assertThrows(CommerceAuthorityCandidateService.CandidateException.class,
+                () -> service.create(command));
+
+        assertEquals(CommerceAuthorityCandidateService.Code.INVALID_REQUEST, error.getCode());
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
+                Integer.class, TENANT_ID, idempotencyKey));
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
     }

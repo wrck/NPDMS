@@ -93,6 +93,52 @@ class CommerceAuthorityCandidateServiceTest {
     }
 
     @Test
+    void replaysSameCandidateWhenJsonObjectKeysAreReordered() {
+        when(organizationScopeApi.getActiveScopes(11L)).thenReturn(List.of(scope("ACME")));
+        when(candidateMapper.insert((AuthorityCandidateDO) any())).thenAnswer(invocation -> {
+            invocation.<AuthorityCandidateDO>getArgument(0).setId(101L);
+            return 1;
+        });
+        var original = new CommerceAuthorityCandidateService.CreateCandidateCommand(
+                1L, 11L, "CONTRACT", "K-1", "V1",
+                "{\"companyCode\":\"ACME\",\"contractNo\":\"C-1\"}",
+                "{\"referenceKey\":\"REF-1\",\"nested\":{\"a\":1,\"b\":2}}",
+                "IDEM-1", "CORR-1");
+        var reordered = new CommerceAuthorityCandidateService.CreateCandidateCommand(
+                1L, 11L, "CONTRACT", "K-1", "V1",
+                "{\"contractNo\":\"C-1\",\"companyCode\":\"ACME\"}",
+                "{\"nested\":{\"b\":2,\"a\":1},\"referenceKey\":\"REF-1\"}",
+                "IDEM-1", "CORR-1");
+
+        var first = service.create(original);
+        String firstDigest = commandApi.digest;
+        ArgumentCaptor<AuthorityCandidateDO> rowCaptor = ArgumentCaptor.forClass(AuthorityCandidateDO.class);
+        verify(candidateMapper).insert(rowCaptor.capture());
+        when(candidateMapper.selectByIdentityForUpdate(any())).thenReturn(rowCaptor.getValue());
+        var replay = service.create(reordered);
+
+        assertEquals(101L, first.candidateId());
+        assertEquals(101L, replay.candidateId());
+        assertEquals(firstDigest, commandApi.digest);
+        verify(candidateMapper, times(1)).insert(any(AuthorityCandidateDO.class));
+    }
+
+    @Test
+    void rejectsNonNormalizedCompanyCodeBeforePlatformClaim() {
+        var command = new CommerceAuthorityCandidateService.CreateCandidateCommand(
+                1L, 11L, "CONTRACT", "K-1", "V1",
+                "{\"companyCode\":\" ACME \",\"contractNo\":\"C-1\"}",
+                "{\"referenceKey\":\"REF-1\"}", "IDEM-1", "CORR-1");
+
+        var error = assertThrows(CommerceAuthorityCandidateService.CandidateException.class,
+                () -> service.create(command));
+
+        assertEquals(CommerceAuthorityCandidateService.Code.INVALID_REQUEST, error.getCode());
+        assertEquals(0, commandApi.calls);
+        verifyNoInteractions(candidateMapper, organizationScopeApi);
+    }
+
+    @Test
     void rejectsOutOfScopeBeforePlatformClaimOrDatabaseAccess() {
         when(organizationScopeApi.getActiveScopes(11L)).thenReturn(List.of(scope("ACME")));
 
