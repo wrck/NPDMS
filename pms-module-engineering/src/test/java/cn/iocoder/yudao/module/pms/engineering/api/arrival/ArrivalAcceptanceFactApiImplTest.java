@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -263,6 +264,25 @@ class ArrivalAcceptanceFactApiImplTest {
     }
 
     @Test
+    void quantityOnlyInspectAndLockUseStableEmptyDeviceWatermarkWithoutAstCalls() {
+        when(deliveryScopePort.inspectAssignedScope(PROJECT_ID)).thenReturn(quantityOnlyDeliveryScope());
+        when(deliveryScopePort.lockAndRevalidate(PROJECT_ID, 5L)).thenReturn(quantityOnlyDeliveryScope());
+        when(acceptanceMapper.selectConfirmedByProject(any())).thenReturn(List.of());
+        when(acceptanceMapper.selectLatestProjectFactAllocations(any())).thenReturn(List.of());
+        when(lineMapper.selectConfirmedAcceptedByProject(any())).thenReturn(List.of());
+        when(differenceMapper.selectEffectiveExemptionsByProject(any())).thenReturn(List.of());
+
+        ArrivalAcceptanceFact inspected = api.inspect(quantityOnlyQuery("5"));
+        ArrivalAcceptanceFact locked = api.lockAndRevalidate(new ArrivalAcceptanceFactRevalidationQuery(
+                TENANT_ID, PROJECT_ID, Set.of(), List.of(quantity("5")),
+                inspected.factVersion(), inspected.scopeWatermark()));
+
+        assertEquals(Map.of(), inspected.scopeWatermark().deviceAssignmentVersions());
+        assertEquals(inspected.scopeWatermark(), locked.scopeWatermark());
+        verifyNoInteractions(deviceScopeFactPort);
+    }
+
+    @Test
     void deliveryVersionChangeBetweenInspectAndLockReturnsCurrentStaleFact() {
         when(deliveryScopePort.inspectAssignedScope(PROJECT_ID))
                 .thenReturn(deliveryScope(5L), deliveryScope(6L));
@@ -374,6 +394,12 @@ class ArrivalAcceptanceFactApiImplTest {
         return new DeliveryScopePort.AssignedScope(PROJECT_ID, version, List.of(
                 new DeliveryScopePort.AssignedLine(1L, BigDecimal.valueOf(2), "SET",
                         "P-1", "M-1", Set.of("SN-1", "SN-2")),
+                new DeliveryScopePort.AssignedLine(2L, BigDecimal.TEN, "EA",
+                        "P-2", "M-2", Set.of())));
+    }
+
+    private static DeliveryScopePort.AssignedScope quantityOnlyDeliveryScope() {
+        return new DeliveryScopePort.AssignedScope(PROJECT_ID, 5L, List.of(
                 new DeliveryScopePort.AssignedLine(2L, BigDecimal.TEN, "EA",
                         "P-2", "M-2", Set.of())));
     }

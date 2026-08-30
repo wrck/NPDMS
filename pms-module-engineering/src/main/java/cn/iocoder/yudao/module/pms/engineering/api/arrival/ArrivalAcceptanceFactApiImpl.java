@@ -112,8 +112,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 query.projectId(), query.expectedScopeWatermark().deliveryScopeVersion());
         ScopeComposition deliveryComposition = requireDeliveryScope(delivery, query.projectId());
         DeviceScopeFactPort.DeviceScopeFact currentDevices = requireDeviceScope(
-                deviceScopeFactPort.resolveBySerials(query.tenantId(), query.projectId(),
-                        deliveryComposition.serialNumbers()),
+                resolveDeviceScope(query.tenantId(), query.projectId(), deliveryComposition.serialNumbers()),
                 query.projectId(), deliveryComposition.serialNumbers());
         Map<Long, DeviceScopeFactPort.DeviceFact> byId = indexDevices(currentDevices.devices());
         List<DeviceScopeFactPort.ExpectedDeviceFact> expected = query.deviceIds().stream()
@@ -127,7 +126,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                             device.deviceId(), device.serialNumber(), version);
                 }).toList();
         DeviceScopeFactPort.DeviceScopeFact lockedDevices = requireDeviceScope(
-                deviceScopeFactPort.lockAndRevalidate(query.tenantId(), query.projectId(), expected),
+                lockDeviceScope(query.tenantId(), query.projectId(), expected),
                 query.projectId(), expected.stream().map(DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)
                         .collect(java.util.stream.Collectors.toCollection(TreeSet::new)));
         CurrentScope locked = requestedScope(query.deviceIds(), query.quantityScopes(),
@@ -143,9 +142,26 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         DeliveryScopePort.AssignedScope delivery = deliveryScopePort.inspectAssignedScope(projectId);
         ScopeComposition composition = requireDeliveryScope(delivery, projectId);
         DeviceScopeFactPort.DeviceScopeFact devices = requireDeviceScope(
-                deviceScopeFactPort.resolveBySerials(tenantId, projectId, composition.serialNumbers()),
+                resolveDeviceScope(tenantId, projectId, composition.serialNumbers()),
                 projectId, composition.serialNumbers());
         return requestedScope(deviceIds, quantities, delivery, composition, devices);
+    }
+
+    private DeviceScopeFactPort.DeviceScopeFact resolveDeviceScope(
+            Long tenantId, Long projectId, Set<String> serialNumbers) {
+        if (serialNumbers.isEmpty()) {
+            return new DeviceScopeFactPort.DeviceScopeFact(projectId, List.of());
+        }
+        return deviceScopeFactPort.resolveBySerials(tenantId, projectId, serialNumbers);
+    }
+
+    private DeviceScopeFactPort.DeviceScopeFact lockDeviceScope(
+            Long tenantId, Long projectId,
+            List<DeviceScopeFactPort.ExpectedDeviceFact> expectedDevices) {
+        if (expectedDevices.isEmpty()) {
+            return new DeviceScopeFactPort.DeviceScopeFact(projectId, List.of());
+        }
+        return deviceScopeFactPort.lockAndRevalidate(tenantId, projectId, expectedDevices);
     }
 
     private CurrentScope requestedScope(Set<Long> requestedDeviceIds,

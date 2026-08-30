@@ -815,8 +815,16 @@ public class ArrivalAcceptanceCommandService {
         List<DeviceScopeFactPort.ExpectedDeviceFact> expectation = expected.devices().stream()
                 .map(device -> new DeviceScopeFactPort.ExpectedDeviceFact(device.deviceId(),
                         device.serialNumber(), device.projectAssignmentVersion())).toList();
-        DeviceScopeFactPort.DeviceScopeFact devices = devicePort.lockAndRevalidate(
-                root.getTenantId(), root.getProjectId(), expectation);
+        Set<String> expectedSerials = collectSerialNumbers(expected.deliveryLines());
+        Set<String> frozenDeviceSerials = expectation.stream()
+                .map(DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!expectedSerials.equals(frozenDeviceSerials)) {
+            throw new IllegalStateException("frozen device scope does not match delivery serials");
+        }
+        DeviceScopeFactPort.DeviceScopeFact devices = expectedSerials.isEmpty()
+                ? new DeviceScopeFactPort.DeviceScopeFact(root.getProjectId(), List.of())
+                : devicePort.lockAndRevalidate(root.getTenantId(), root.getProjectId(), expectation);
         if (!orderedDevices(devices.devices()).equals(orderedDevices(expected.devices()))) {
             throw new IllegalStateException("device scope changed without version change");
         }
@@ -986,6 +994,18 @@ public class ArrivalAcceptanceCommandService {
 
     private static List<DeviceScopeFactPort.DeviceFact> orderedDevices(List<DeviceScopeFactPort.DeviceFact> devices) {
         return devices.stream().sorted(Comparator.comparing(DeviceScopeFactPort.DeviceFact::deviceId)).toList();
+    }
+
+    private static Set<String> collectSerialNumbers(List<DeliveryScopePort.AssignedLine> lines) {
+        Set<String> serialNumbers = new java.util.HashSet<>();
+        for (DeliveryScopePort.AssignedLine line : lines) {
+            for (String serialNumber : line.serialNumbers()) {
+                if (!serialNumbers.add(serialNumber)) {
+                    throw new IllegalStateException("assigned serial number is duplicated");
+                }
+            }
+        }
+        return Set.copyOf(serialNumbers);
     }
 
     private static String digest(Object command) {

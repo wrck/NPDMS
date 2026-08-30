@@ -60,6 +60,7 @@
 - 锁定提交`085015c1`的Task 11独立Code Review／真实MySQL聚焦测试Gate已复审`PASS / GO`：独立Compose项目、独立端口与空卷在MySQL 8.4完成138个迁移至V142，指定真实MySQL套件40/40通过；更宽到货相关非IT回归执行168项，Failures=0、Errors=0，另有13项按`skipITs=true`预期跳过。五表正向创建/提交/确认、生产平台幂等/审计/Outbox、事实版本、线性后继、Owner失败回滚、跨租户回执拒绝、并发确认、Accepted/Archived乱序重放恢复及旧`pms_eng_arrival`表/DO/Controller路径均已验证；`DeliveryEvidenceAcceptedUpdate.retryCount`的MyBatis运行绑定与V140/V141测试夹具缺口已关闭。范围外既有ConstructionPlan与FileArtifact迁移合同各1项失败不阻断本Task，但不得宣称全模块/全Reactor绿。最近Gate切换为Task 12正式COM/AST生产Adapter、唯一ApplicationService/FactApi/Controller装配与生产依赖回归；三个Job激活、真实浏览器和Feature Implementation Done仍未授权。
 - Task 12继续`NO-GO / BLOCKED_BY_DEPENDENCY`：AST Provider与消费错误映射Contract Gate均已`PASS / GO`，当前进入`DeviceScopeFactApiAdapter`失败测试优先实现与独立Code Review。COM与ACC依赖不变，禁止完整生产装配、Fake/fallback及Job激活。
 - AST `DeviceScopeFactApiAdapter`运行候选已有7项聚焦测试；无明确SN适用边界锁定提交`b20e817a`已独立复审`PASS / GO`，只有验证完整COM范围的消费编排层可在非空纯数量范围下跳过AST，通用Adapter仍拒绝空输入。当前进入三个调用面运行实现与独立Code Review；未注册到货ApplicationService/FactApi/Controller，Task 12仍受COM/ACC依赖阻断。
+- Adapter与三个调用面运行候选已完成：非空SN仍调用AST并按36f44719映射，经COM验证的非空纯数量范围使用空设备/水位且AST零交互，Adapter本身拒绝空输入。Adapter/现有Owner Adapter/ApplicationService/CommandService/FactApi聚焦回归68项通过，当前`CODE_REVIEW_REQUIRED`；未注册完整到货ApplicationService/FactApi/Controller，Task 12仍受COM/ACC依赖阻断。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选

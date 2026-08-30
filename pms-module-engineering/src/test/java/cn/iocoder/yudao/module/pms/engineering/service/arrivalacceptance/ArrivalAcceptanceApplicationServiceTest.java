@@ -87,6 +87,32 @@ class ArrivalAcceptanceApplicationServiceTest {
     }
 
     @Test
+    void createsQuantityOnlyDraftWithoutCallingAst() {
+        ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
+        ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);
+        DeliveryScopePort deliveryPort = mock(DeliveryScopePort.class);
+        DeviceScopeFactPort devicePort = mock(DeviceScopeFactPort.class);
+        when(projectPort.inspect(1L, 100L, 8L)).thenReturn(projectFact());
+        when(deliveryPort.inspectAssignedScope(100L)).thenReturn(deliveryQuantityScope());
+        doAnswer(invocation -> {
+            ArrivalAcceptanceDO row = invocation.getArgument(0);
+            row.setId(900L);
+            return 1;
+        }).when(mapper).insert(any(ArrivalAcceptanceDO.class));
+        ArrivalAcceptanceApplicationService service = new ArrivalAcceptanceApplicationService(
+                mapper, mock(ArrivalLineMapper.class), mock(ArrivalDifferenceMapper.class),
+                mock(DeliveryEvidenceMapper.class), mock(DeliveryEvidenceRevisionMapper.class),
+                projectPort, deliveryPort, devicePort, mock(FileArtifactFactPort.class),
+                new RecordingCommandExecutionApi());
+
+        ArrivalAcceptanceDO created = service.createDraft(command());
+
+        assertTrue(created.getExpectedScopeSnapshot().contains("\"devices\":[]"));
+        assertTrue(created.getScopeWatermark().contains("\"deviceAssignmentVersions\":{}"));
+        verify(devicePort, never()).resolveBySerials(any(), any(), any());
+    }
+
+    @Test
     void rejectsForeignDeviceBeforeWritingDraft() {
         ArrivalAcceptanceMapper mapper = mock(ArrivalAcceptanceMapper.class);
         ProjectQualificationPort projectPort = mock(ProjectQualificationPort.class);
@@ -337,8 +363,6 @@ class ArrivalAcceptanceApplicationServiceTest {
         SubmissionFixture fixture = submissionFixture();
         when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(draftQuantityScope());
         when(fixture.deliveryPort().lockAndRevalidate(100L, 8L)).thenReturn(deliveryQuantityScope());
-        when(fixture.devicePort().lockAndRevalidate(any(), any(), any()))
-                .thenReturn(new DeviceScopeFactPort.DeviceScopeFact(100L, List.of()));
         when(fixture.lineMapper().selectCurrentListForUpdate(any()))
                 .thenReturn(List.of(acceptedQuantityLine(new BigDecimal("3"))));
         when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
@@ -350,6 +374,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 submitCommand());
 
         assertEquals("ACCEPTED", result.status());
+        verify(fixture.devicePort(), never()).lockAndRevalidate(any(), any(), any());
     }
 
     @Test

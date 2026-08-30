@@ -16,6 +16,7 @@
 - `T-FIMP001-AST-01 Public Machine Contract Gate`：锁定提交`c5f7ecda`已独立复审`PASS / GO`；正式SDS、机器JSON、AST API/DTO、公共失败和Contract测试已冻结，未包含Mapper/Provider。
 - AST Owner Provider锁定提交`69d37400`已独立复审`PASS / GO`；IMP消费错误映射Contract Gate锁定提交`36f44719`亦为`PASS / GO`。当前进入`DeviceScopeFactApiAdapter`失败测试优先实现与独立Code Review；F-IMP-003～005仍等待Feature Ready评审。
 - IMP无明确SN适用边界锁定提交`b20e817a`已独立复审`PASS / GO`：只有拿到并验证完整COM范围的IMP消费编排层可在非空纯数量范围下跳过AST；通用Adapter仍拒绝空输入。当前进入三个调用面与Adapter运行候选的失败测试优先实现及独立Code Review。
+- IMP `DeviceScopeFactApiAdapter`与三个消费调用面运行候选已形成：原样映射AST成功/失败契约，Adapter空输入在API调用前拒绝；经COM验证的非空纯数量范围在ApplicationService、CommandService与FactApi编排层稳定使用空设备投影。聚焦回归68项通过，当前`CODE_REVIEW_REQUIRED`。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成

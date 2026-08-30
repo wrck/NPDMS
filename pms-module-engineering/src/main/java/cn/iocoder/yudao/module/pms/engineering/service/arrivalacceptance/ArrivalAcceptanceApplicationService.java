@@ -121,7 +121,7 @@ public class ArrivalAcceptanceApplicationService {
                     "COM", "assigned delivery scope version is stale");
         }
         Set<String> serialNumbers = collectSerialNumbers(deliveryScope.lines());
-        DeviceScopeFactPort.DeviceScopeFact deviceScope = deviceScopeFactPort.resolveBySerials(
+        DeviceScopeFactPort.DeviceScopeFact deviceScope = resolveDeviceScope(
                 command.tenantId(), command.projectId(), serialNumbers);
         requireDeviceScope(deviceScope, command.projectId(), serialNumbers);
 
@@ -286,7 +286,7 @@ public class ArrivalAcceptanceApplicationService {
                 .map(device -> new DeviceScopeFactPort.ExpectedDeviceFact(
                         device.deviceId(), device.serialNumber(), device.projectAssignmentVersion()))
                 .toList();
-        DeviceScopeFactPort.DeviceScopeFact devices = deviceScopeFactPort.lockAndRevalidate(
+        DeviceScopeFactPort.DeviceScopeFact devices = lockDeviceScope(
                 root.getTenantId(), root.getProjectId(), expectedDevices);
         requireDeviceScope(devices, root.getProjectId(), collectSerialNumbers(delivery.lines()));
         if (!orderedDevices(devices.devices()).equals(expected.devices())) {
@@ -615,6 +615,23 @@ public class ArrivalAcceptanceApplicationService {
             }
         }
         return Set.copyOf(serialNumbers);
+    }
+
+    private DeviceScopeFactPort.DeviceScopeFact resolveDeviceScope(
+            Long tenantId, Long projectId, Set<String> serialNumbers) {
+        if (serialNumbers.isEmpty()) {
+            return new DeviceScopeFactPort.DeviceScopeFact(projectId, List.of());
+        }
+        return deviceScopeFactPort.resolveBySerials(tenantId, projectId, serialNumbers);
+    }
+
+    private DeviceScopeFactPort.DeviceScopeFact lockDeviceScope(
+            Long tenantId, Long projectId,
+            List<DeviceScopeFactPort.ExpectedDeviceFact> expectedDevices) {
+        if (expectedDevices.isEmpty()) {
+            return new DeviceScopeFactPort.DeviceScopeFact(projectId, List.of());
+        }
+        return deviceScopeFactPort.lockAndRevalidate(tenantId, projectId, expectedDevices);
     }
 
     private static void requireDeviceScope(DeviceScopeFactPort.DeviceScopeFact scope, Long projectId,

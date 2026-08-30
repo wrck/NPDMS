@@ -180,6 +180,30 @@ class ArrivalAcceptanceCommandServiceTest {
     }
 
     @Test
+    void confirmedQuantityOnlySuccessorLocksComButDoesNotCallAst() {
+        ArrivalAcceptanceDO root = draft(2);
+        root.setStatus("CONFIRMED");
+        root.setExpectedScopeSnapshot(JsonUtils.toJsonString(new ExpectedScopeSnapshot(
+                quantityOnlyDeliveryScope().lines(), List.of())));
+        Fixture fixture = fixture(root);
+        when(fixture.deliveryScopePort().lockAndRevalidate(100L, 8L))
+                .thenReturn(quantityOnlyDeliveryScope());
+        when(fixture.lineMapper().selectCurrentListForUpdate(any())).thenReturn(List.of(quantityLine()));
+        when(fixture.differenceMapper().selectCurrentListForUpdate(any()))
+                .thenReturn(List.of(rejectedQuantityDifference()));
+        when(fixture.differenceMapper().clearCurrentIfMatch(any())).thenReturn(1);
+        when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
+
+        fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
+                1L, 900L, 8L, 2,
+                new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
+                "resolve-key", "corr-resolve"));
+
+        verify(fixture.deliveryScopePort()).lockAndRevalidate(100L, 8L);
+        verify(fixture.deviceScopeFactPort(), never()).lockAndRevalidate(any(), any(), any());
+    }
+
+    @Test
     void correctInformationCreatesSuccessorAndKeepsStableBatchCode() {
         ArrivalAcceptanceDO root = draft(3);
         root.setStatus("CONFIRMED");
@@ -491,7 +515,7 @@ class ArrivalAcceptanceCommandServiceTest {
         }).when(commands).execute(any(), any(), any(), any(), any());
         Clock clock = Clock.fixed(Instant.parse("2026-08-30T04:00:00Z"), ZoneOffset.UTC);
         return new Fixture(acceptance, lines, differences, evidence, revisions, project, systemProject,
-                files, differenceTypes, commands, successFacts,
+                delivery, devices, files, differenceTypes, commands, successFacts,
                 new ArrivalAcceptanceCommandService(acceptance, lines, differences, evidence, revisions,
                         project, systemProject, delivery, devices, files, differenceTypes, commands, clock));
     }
@@ -585,6 +609,12 @@ class ArrivalAcceptanceCommandServiceTest {
                         "P-1", "M-1", Set.of("SN-1"))));
     }
 
+    private static DeliveryScopePort.AssignedScope quantityOnlyDeliveryScope() {
+        return new DeliveryScopePort.AssignedScope(100L, 8L, List.of(
+                new DeliveryScopePort.AssignedLine(200L, new BigDecimal("5"), "台",
+                        "P-1", "M-1", Set.of())));
+    }
+
     private static DeviceScopeFactPort.DeviceScopeFact deviceScope() {
         return new DeviceScopeFactPort.DeviceScopeFact(100L,
                 List.of(new DeviceScopeFactPort.DeviceFact(11L, "SN-1", 100L, 9L)));
@@ -636,6 +666,7 @@ class ArrivalAcceptanceCommandServiceTest {
                            ArrivalDifferenceMapper differenceMapper, DeliveryEvidenceMapper evidenceMapper,
                            DeliveryEvidenceRevisionMapper revisionMapper, ProjectQualificationPort projectPort,
                            ProjectSystemQualificationPort systemProjectPort,
+                           DeliveryScopePort deliveryScopePort, DeviceScopeFactPort deviceScopeFactPort,
                            FileArtifactFactPort filePort, ArrivalDifferenceTypePort differenceTypePort,
                            PlatformCommandExecutionApi commandApi,
                            List<PlatformCommandExecutionApi.SuccessFacts> successFacts,
