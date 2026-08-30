@@ -81,6 +81,18 @@ class PlatformMigrationEvidenceContractTest {
                         1L, 2L, 3, ImportStagingDecision.FAIL_IMPORT,
                         10L, "1", SHA256, MigrationImportFailureCode.MANIFEST_ROW_COUNT_MISMATCH,
                         "key", "corr"));
+        assertInvalidRequest(() -> new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.READY,
+                null, "1", SHA256, null, "key", "corr"));
+        assertInvalidRequest(() -> new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.READY,
+                10L, null, SHA256, null, "key", "corr"));
+        assertInvalidRequest(() -> new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.READY,
+                10L, "1", null, null, "key", "corr"));
+        assertInvalidRequest(() -> new MarkStagedReadyCommand(
+                1L, 2L, 3, ImportStagingDecision.FAIL_IMPORT,
+                null, null, null, null, "key", "corr"));
     }
 
     @Test
@@ -187,5 +199,11 @@ class PlatformMigrationEvidenceContractTest {
                         PlatformMigrationEvidenceException.Code.BATCH_SOURCE_IDENTITY_MISMATCH,
                         PlatformMigrationEvidenceException.Code.SOURCE_NOT_FOUND,
                         PlatformMigrationEvidenceException.Code.BATCH_STATE_CONFLICT)));
+    }
+
+    private static void assertInvalidRequest(org.junit.jupiter.api.function.Executable executable) {
+        PlatformMigrationEvidenceException exception = assertThrows(
+                PlatformMigrationEvidenceException.class, executable);
+        assertEquals(PlatformMigrationEvidenceException.Code.INVALID_REQUEST, exception.getCode());
     }
 }

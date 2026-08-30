@@ -22,6 +22,9 @@ public record MarkStagedReadyCommand(
             throw invalid("decision must not be null");
         }
         if (decision == ImportStagingDecision.READY) {
+            if (manifestRowCount == null) {
+                throw invalid("manifestRowCount must not be null");
+            }
             manifestRowCount = nonNegative(manifestRowCount, "manifestRowCount");
             manifestSchemaVersion = text(manifestSchemaVersion, 64, "manifestSchemaVersion");
             manifestContentSha256 = sha256(manifestContentSha256, "manifestContentSha256");
