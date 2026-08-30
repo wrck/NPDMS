@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / GO`（`145e4a61`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
 > Implementation Done Gate：`PENDING`<br>
-> 当前阻断：无产品阻断；Result双版本来源投影整改待同一Step 3独立复审<br>
+> 当前阻断：无产品阻断；完整Result文件全局来源序号整改待同一Step 3独立复审<br>
 > 当前任务：`Task 1：共享契约、V133与后端纵向闭环`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
@@ -41,4 +41,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1未通过不得进入Task 2；两个Task全部完成只允许申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`4a84f6f9`；当前Gate=Task 1 Step 3集成复审；已通过=Task→Todo Outbox、完整Result文件事实与满意度归档补偿，后端聚焦14/14、Feature契约20/20及JSON检查PASS；阻塞=无；下一步=提交候选并申请同一Gate独立复审。
+> 检查点：基线=`6ec1b245`；当前Gate=Task 1 Step 3来源附件全局序号整改复审；已通过=角色内序号保留、跨角色来源序号1..N，聚焦单测4/4、真实MySQL 4/4；阻塞=无；下一步=提交整改并申请同一Gate复审。

@@ -13,7 +13,7 @@ public record SatisfactionResultVersionChangedMessage(
         Boolean passed, String resultStatus, Long archiveActorUserId, String invalidationReasonCode,
         Long invalidatedByUserId, LocalDateTime invalidatedAt, List<FileFact> files) {
 
-    public record FileFact(String role, Integer sequence, Long artifactId, Integer versionNo,
+    public record FileFact(String role, Integer sequence, Integer sourceSequence, Long artifactId, Integer versionNo,
             String referenceKey, Integer artifactVersion, Integer referenceVersion,
             Integer availabilityVersion, Long scopeVersion, String sha256) {
     }

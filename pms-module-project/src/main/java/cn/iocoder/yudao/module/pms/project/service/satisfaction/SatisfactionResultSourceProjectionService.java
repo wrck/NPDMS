@@ -172,7 +172,7 @@ public class SatisfactionResultSourceProjectionService {
         for (SatisfactionResultVersionChangedMessage.FileFact file : event.files()) {
             ProjectDeliverableSourceAttachmentDO row = new ProjectDeliverableSourceAttachmentDO();
             row.setId(IdWorker.getId()); row.setTenantId(event.tenantId());
-            row.setDeliverableSourceVersionId(sourceId); row.setAttachmentSequence(file.sequence());
+            row.setDeliverableSourceVersionId(sourceId); row.setAttachmentSequence(file.sourceSequence());
             row.setFileArtifactId(file.artifactId()); row.setFileVersionNo(file.versionNo());
             row.setReferenceKey(file.referenceKey()); row.setArtifactVersion(file.artifactVersion());
             row.setReferenceVersion(file.referenceVersion()); row.setAvailabilityVersion(file.availabilityVersion());
@@ -193,14 +193,23 @@ public class SatisfactionResultSourceProjectionService {
                 || !List.of("RECORDED", "INVALIDATED").contains(event.changeType())
                 || event.archiveActorUserId() == null || event.archiveActorUserId() <= 0
                 || ("RECORDED".equals(event.changeType()) && (event.files() == null || event.files().isEmpty()))
-                || (event.files() != null && event.files().stream().anyMatch(this::invalidFile))) {
+                || (event.files() != null && (event.files().stream().anyMatch(this::invalidFile)
+                || !validSourceSequence(event.files())))) {
             throw new IllegalArgumentException("invalid satisfaction result event");
         }
     }
 
     private boolean invalidFile(SatisfactionResultVersionChangedMessage.FileFact file) {
-        return file == null || file.sequence() == null || file.sequence() <= 0 || file.artifactId() == null
+        return file == null || file.sequence() == null || file.sequence() <= 0
+                || file.sourceSequence() == null || file.sourceSequence() <= 0 || file.artifactId() == null
                 || file.versionNo() == null || file.referenceKey() == null || file.referenceKey().isBlank()
                 || file.scopeVersion() == null || file.sha256() == null || file.sha256().length() != 64;
+    }
+
+    private boolean validSourceSequence(List<SatisfactionResultVersionChangedMessage.FileFact> files) {
+        List<Integer> actual = files.stream().map(SatisfactionResultVersionChangedMessage.FileFact::sourceSequence)
+                .sorted().toList();
+        List<Integer> expected = java.util.stream.IntStream.rangeClosed(1, files.size()).boxed().toList();
+        return actual.equals(expected);
     }
 }

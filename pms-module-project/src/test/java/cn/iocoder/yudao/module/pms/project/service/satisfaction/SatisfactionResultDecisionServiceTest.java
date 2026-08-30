@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -79,6 +80,10 @@ class SatisfactionResultDecisionServiceTest {
         assertEquals(12L, result.resultId());
         assertEquals(new BigDecimal("5.0"), result.score());
         assertTrue(result.passed());
+        assertEquals(List.of(1, 2), result.files().stream()
+                .map(SatisfactionResultDecisionService.ResultFileFact::sourceSequence).toList());
+        assertEquals(List.of(1, 1), result.files().stream()
+                .map(SatisfactionResultDecisionService.ResultFileFact::sequence).toList());
         verify(resultMapper).insert(any(SatisfactionResultDO.class));
         verify(resultFileMapper, org.mockito.Mockito.times(2)).insert(any(SatisfactionResultFileDO.class));
         verify(taskMapper).completeDecision(any());

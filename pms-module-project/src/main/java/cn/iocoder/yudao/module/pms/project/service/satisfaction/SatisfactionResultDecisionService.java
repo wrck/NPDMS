@@ -135,7 +135,8 @@ public class SatisfactionResultDecisionService {
                 task.getSourceObjectType(), task.getSourceObjectId(), task.getSourceObjectVersion(),
                 evaluation.score(), evaluation.threshold(), evaluation.passed(), evaluation.ruleVersion(),
                 result.getResultStatus(), actorUserId, files.stream()
-                        .map(item -> new ResultFileFact(item.role(), item.sequence(), item.fact())).toList(), false);
+                        .map(item -> new ResultFileFact(item.role(), item.sequence(), item.sourceSequence(),
+                                item.fact())).toList(), false);
     }
 
     private SatisfactionResultDO result(SatisfactionCollectionTaskDO task, SatisfactionQuestionnaireDO questionnaire,
@@ -173,23 +174,28 @@ public class SatisfactionResultDecisionService {
                                            LocalDateTime now, Long actorUserId, Long tenantId, Long scopeVersion) {
         List<DecisionFile> files = new java.util.ArrayList<>();
         SatisfactionResultFileDO documentRow = resultFile(resultId, document, now, actorUserId, tenantId);
-        files.add(new DecisionFile("RESULT_DOCUMENT", 1, document, documentRow));
+        files.add(new DecisionFile("RESULT_DOCUMENT", 1, 1, document, documentRow));
         List<SatisfactionResponseFileDO> responseFiles = responseFileMapper.selectListByResponse(
                 new cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.query.SatisfactionResponseFilesQuery(
                         tenantId, responseId));
-        for (SatisfactionResponseFileDO source : responseFiles) {
-            if (!List.of("SIGNATURE", "ATTACHMENT").contains(source.getFileRole())
-                    || !scopeVersion.equals(source.getScopeVersion())) {
-                throw new IllegalStateException("SATISFACTION_RESULT_RESPONSE_FILE_CONFLICT");
+        if (responseFiles.stream().anyMatch(source -> !List.of("SIGNATURE", "ATTACHMENT")
+                .contains(source.getFileRole()) || !scopeVersion.equals(source.getScopeVersion()))) {
+            throw new IllegalStateException("SATISFACTION_RESULT_RESPONSE_FILE_CONFLICT");
+        }
+        for (String role : List.of("SIGNATURE", "ATTACHMENT")) {
+            for (SatisfactionResponseFileDO source : responseFiles.stream()
+                    .filter(row -> role.equals(row.getFileRole()))
+                    .sorted(java.util.Comparator.comparing(SatisfactionResponseFileDO::getFileSequence)).toList()) {
+                FileArtifactVersionFact fact = new FileArtifactVersionFact(source.getArtifactId(), source.getVersionNo(),
+                        source.getReferenceKey(), null, null, null, null, source.getFileHash(), "AVAILABLE", "ACTIVE",
+                        new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(
+                                source.getArtifactVersion(), source.getReferenceVersion(),
+                                source.getAvailabilityVersion()), source.getScopeVersion());
+                SatisfactionResultFileDO row = resultFile(resultId, fact, now, actorUserId, tenantId);
+                row.setFileRole(source.getFileRole()); row.setFileSequence(source.getFileSequence());
+                files.add(new DecisionFile(source.getFileRole(), source.getFileSequence(), files.size() + 1,
+                        fact, row));
             }
-            FileArtifactVersionFact fact = new FileArtifactVersionFact(source.getArtifactId(), source.getVersionNo(),
-                    source.getReferenceKey(), null, null, null, null, source.getFileHash(), "AVAILABLE", "ACTIVE",
-                    new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(
-                            source.getArtifactVersion(), source.getReferenceVersion(), source.getAvailabilityVersion()),
-                    source.getScopeVersion());
-            SatisfactionResultFileDO row = resultFile(resultId, fact, now, actorUserId, tenantId);
-            row.setFileRole(source.getFileRole()); row.setFileSequence(source.getFileSequence());
-            files.add(new DecisionFile(source.getFileRole(), source.getFileSequence(), fact, row));
         }
         if (files.stream().noneMatch(item -> "SIGNATURE".equals(item.role()))) {
             throw new IllegalStateException("SATISFACTION_RESULT_SIGNATURE_MISSING");
@@ -226,6 +232,7 @@ public class SatisfactionResultDecisionService {
         FileArtifactVersionFact file = resultFile.file();
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("role", resultFile.role()); value.put("sequence", resultFile.sequence());
+        value.put("sourceSequence", resultFile.sourceSequence());
         value.put("artifactId", file.artifactId()); value.put("versionNo", file.versionNo());
         value.put("referenceKey", file.referenceKey());
         value.put("artifactVersion", file.fileFactVersion().artifactVersion());
@@ -289,7 +296,8 @@ public class SatisfactionResultDecisionService {
         }
     }
 
-    public record ResultFileFact(String role, Integer sequence, FileArtifactVersionFact file) {}
-    private record DecisionFile(String role, Integer sequence, FileArtifactVersionFact fact,
+    public record ResultFileFact(String role, Integer sequence, Integer sourceSequence,
+                                 FileArtifactVersionFact file) {}
+    private record DecisionFile(String role, Integer sequence, Integer sourceSequence, FileArtifactVersionFact fact,
                                 SatisfactionResultFileDO row) {}
 }

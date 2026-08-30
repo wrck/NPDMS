@@ -94,7 +94,7 @@ class SatisfactionResultSourceProjectionServiceTest {
                 "T-SAT-SURVEY", "SAT-10", 1, 10L, 11L, 12L, 12L, 1, 0, 31L,
                 "RULE-1", new BigDecimal("4.00"), "ACC", "AcceptanceActivity", "100", 1L,
                 true, "EFFECTIVE", 99L, null, null, null, List.of(
-                new SatisfactionResultVersionChangedMessage.FileFact("RESULT_DOCUMENT", 1, 100L, 1,
+                new SatisfactionResultVersionChangedMessage.FileFact("RESULT_DOCUMENT", 1, 1, 100L, 1,
                         "result-12", 1, 0, 0, 3L, "a".repeat(64))));
     }
 }

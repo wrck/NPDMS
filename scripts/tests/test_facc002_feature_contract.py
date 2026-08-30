@@ -136,7 +136,7 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("business-grant-response-identity")
     event = contract.get("events", {}).get("SatisfactionResultVersionChanged", {})
     if event.get("changeTypes") != ["RECORDED", "INVALIDATED"] or \
-            not any("files[{role,sequence,artifactId" in fact and "sha256" in fact
+            not any("files[{role,sequence,sourceSequence,artifactId" in fact and "sha256" in fact
                     for fact in event.get("facts", [])) or \
             "invalidatedByUserId" not in event.get("facts", []):
         errors.append("event")

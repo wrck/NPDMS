@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionResultFa
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionResultFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceTypeQuery;
 import cn.iocoder.yudao.module.pms.project.service.satisfaction.event.SatisfactionResultVersionChangedMessage;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -34,6 +36,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,6 +53,7 @@ class SatisfactionResultSourceProjectionMySqlIntegrationTest {
 
     @Resource SatisfactionResultSourceProjectionService service;
     @Resource JdbcTemplate jdbcTemplate;
+    @Resource ProjectDeliverableSourceVersionMapper sourceMapper;
     @MockitoBean ProjectWorkBindingFactApi workBindingFactApi;
     @MockitoBean SatisfactionResultFactApi resultFactApi;
 
@@ -137,6 +141,30 @@ class SatisfactionResultSourceProjectionMySqlIntegrationTest {
                 "SELECT version FROM acc_project_deliverable WHERE id=?", Integer.class, rootId));
     }
 
+    @Test
+    void recordedFilesUseGlobalSourceSequenceAndReplayWithoutDuplicates() {
+        long resultId = 102L;
+        when(resultFactApi.lockAndRevalidate(any())).thenReturn(effectiveFact(resultId));
+        SatisfactionResultVersionChangedMessage event = recordedEvent(resultId);
+
+        service.project(event);
+        service.project(event);
+
+        Long recordedSourceId = jdbcTemplate.queryForObject(
+                "SELECT id FROM acc_project_deliverable_source_version WHERE deliverable_id=? "
+                        + "AND source_object_id=? AND source_version=2", Long.class, rootId, resultId);
+        assertEquals(List.of(1, 2, 3), jdbcTemplate.queryForList(
+                "SELECT attachment_sequence FROM acc_project_deliverable_source_attachment "
+                        + "WHERE deliverable_source_version_id=? ORDER BY attachment_sequence",
+                Integer.class, recordedSourceId));
+        assertEquals(3, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM acc_project_deliverable_source_attachment "
+                        + "WHERE deliverable_source_version_id=?", Integer.class, recordedSourceId));
+        assertEquals(true, sourceMapper.selectPendingArchiveBySourceType(new PendingArchiveSourceTypeQuery(
+                        TENANT_ID, "SatisfactionResult", Set.of("CURRENT", "SUPERSEDED", "REVOKED"), 20))
+                .stream().anyMatch(row -> recordedSourceId.equals(row.getId())));
+    }
+
     private void insertRoot(long currentSourceId) {
         jdbcTemplate.update("INSERT INTO acc_project_deliverable "
                         + "(id,project_id,deliverable_code,name,stage_code,task_code,required,status,"
@@ -164,11 +192,35 @@ class SatisfactionResultSourceProjectionMySqlIntegrationTest {
                 LocalDateTime.of(2026, 8, 30, 12, 0), List.of());
     }
 
+    private SatisfactionResultVersionChangedMessage recordedEvent(long resultId) {
+        return new SatisfactionResultVersionChangedMessage("recorded-" + resultId, "RECORDED", TENANT_ID,
+                projectId, projectId + 9, 7, "T-SAT-SURVEY", "SAT-10", 1, projectId + 8,
+                projectId + 7, projectId + 6, resultId, 2, 0, 31L, "RULE-1",
+                new BigDecimal("4.00"), "ACC", "AcceptanceActivity", "100", 1L,
+                true, "EFFECTIVE", ACTOR_ID, null, null, null, List.of(
+                file("RESULT_DOCUMENT", 1, 1, 201L, "result-doc"),
+                file("SIGNATURE", 1, 2, 202L, "signature"),
+                file("ATTACHMENT", 1, 3, 203L, "attachment")));
+    }
+
+    private SatisfactionResultVersionChangedMessage.FileFact file(String role, int sequence, int sourceSequence,
+                                                                    long artifactId, String referenceKey) {
+        return new SatisfactionResultVersionChangedMessage.FileFact(role, sequence, sourceSequence, artifactId, 1,
+                referenceKey, 1, 0, 0, 3L, "a".repeat(64));
+    }
+
     private SatisfactionResultFact invalidatedFact(long resultId) {
         return new SatisfactionResultFact("FOUND", "SAT-10", projectId + 8, 1, projectId + 7,
                 projectId + 6, resultId, 1, 31L, "RULE-1", new BigDecimal("4.00"),
                 "ACC", "AcceptanceActivity", "100", 1L, true, "INVALIDATED",
                 "PENDING_COMPENSATION", 1);
+    }
+
+    private SatisfactionResultFact effectiveFact(long resultId) {
+        return new SatisfactionResultFact("FOUND", "SAT-10", projectId + 8, 1, projectId + 7,
+                projectId + 6, resultId, 2, 31L, "RULE-1", new BigDecimal("4.00"),
+                "ACC", "AcceptanceActivity", "100", 1L, true, "EFFECTIVE",
+                "PENDING_COMPENSATION", 0);
     }
 
     private String sourceStatus(long id) {
