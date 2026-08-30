@@ -27,7 +27,7 @@
 | S2-V18-16 | F-ACC-001形成ACC-03完整报告闭环与ACC-04初验/终验来源切片 | 94对象/109来源绑定/1排除源；整改已闭合DRAFT/EFFECTIVE/SUPERSEDED/REVOKED、current_marker、发布/替换/撤销原子转换、完整附件集合及只追加来源历史，提交`5c1e1ff2`经独立复审GO |
 | S2-V18-17 | F-ACC-001补齐PLT稳定公共文件事实、ACC文件策略/归档Owner接口及活动初始化/存量切换 | ADR-0040与02d/04/08/08a/09/10/11/13/15/16整改提交`6b51d9af`经独立复审GO；附件ACTIVE引用与独立ARCHIVED归档引用分离，attach目标加性支持ACC；存量两项均终态保持、混合状态失败 |
 | S2-V18-18 | F-ACC-001补齐后台归档操作者与报告事件投递 | ADR-0040补充、02d/04/08/09/10/11/13/15/16已锁定发布时认证用户、显式actor权限重验、`PlatformCommandExecutionApi`写入和`PlatformOutboxDeliveryApi`专用领取/成功标记/失败重试；提交`701bdf70`经独立复审GO |
-| S2-V18-19 | F-ACC-002形成ACC-02完整问卷判定闭环与ACC-04满意度来源切片 | ADR-0041候选已锁定PROJ业务时点/ACC任务Owner、模板解析、V1受控访问、PLT公共文件事实、不可变Result；整改以ACC RemediationFact触发同collectionKey下一revision，满意度来源仅命中同项目`D-SAT-REPORT/T-SAT-SURVEY`精确根；旧载体PRESERVE_RAW；受管投影`94对象/111来源绑定/1排除源`，当前待整改复审 |
+| S2-V18-19 | F-ACC-002形成ACC-02完整问卷判定闭环与ACC-04满意度来源切片 | ADR-0041及整改提交`b98d0caa`经独立复审GO：PROJ业务时点/ACC任务Owner、V1受控访问、PLT公共文件事实、不可变Result、RemediationFact revision链与同项目`D-SAT-REPORT/T-SAT-SURVEY`精确根闭合；旧载体PRESERVE_RAW；`94对象/111来源绑定/1排除源` |
 
 ## 2. 可复现校验
 
