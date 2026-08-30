@@ -55,7 +55,7 @@
 - 锁定提交`fb69dbcc`的Task 8首轮独立Code Review为`NO-GO`：须以结构化机器错误贯通Service/Port到Controller并用真实MockMvc验证400/403/404/409/422/503；严格请求须在反序列化前同时拒绝额外键与缺失键。`FileFactVersion`请求三轴按正式PLT公开契约和Feature Spec的非负整数语义收敛为`NON_NEGATIVE_INTEGER`，不修改PLT模块。
 - Task 8最小整改候选已形成：移除无生产抛出点的HTTP专用异常，使用HTTP无关的结构化机器错误贯通应用服务、PROJ适配和Controller；真实MockMvc已覆盖缺Header、缺键、畸形JSON、403、404、409、422、503及精确恢复数据；反序列化前按各判别联合校验精确键。含Owner适配回归的聚焦套件83项通过，当前仍为`CODE_REVIEW_REQUIRED`。
 - 锁定提交`b63b5a0c`的Task 8整改复审曾因聚合版本类别漏登记及submit/confirm/PATCH裸`IllegalStateException`而`NO-GO`；`d71ced40`已补齐封闭类别，并将不可见、陈旧聚合版本、非法状态和证据缺失从实际Service/状态机贯通为404/409/422。独立复审确认真实Service→Controller路径及聚焦回归84项通过，Task 8 Code Review Gate为`PASS / GO`；最近下一Gate为Task 12正式COM/AST Adapter、唯一生产Service/Controller Bean装配及其独立审查。
-- Task 9候选已按实际下一串行版本V142形成：以确定性高段ID幂等登记5个正式批次状态、4个正式差异类型、一个新的到货签收可见菜单及5项锁定权限；不写角色授权、不修改旧`/pms/eng-arrival`菜单、不播种业务事实或自动指派资源。既有证据投递/回执重试Job与新增旧数据核对Job共3项均保持`PAUSED`；隔离MySQL 8.4全量迁移至V142及原脚本重复执行通过，数据断言为字典类型2、字典项9、菜单节点6、权限5、暂停Job 3、角色授权0、业务记录0。当前最近Gate为Task 9独立Code Review／迁移证据复审，尚不回写PASS或启用任何Job。
+- 锁定提交`871cfcbb`的Task 9独立Code Review／迁移证据Gate已复审`PASS / GO`：V142以确定性高段ID幂等登记5个正式批次状态、4个正式差异类型、一个新的到货签收可见菜单及5项锁定权限；不写角色授权、不修改旧`/pms/eng-arrival`菜单、不播种业务事实或自动指派资源。既有证据投递/回执重试Job与新增旧数据核对Job共3项均保持`PAUSED`；隔离MySQL 8.4全量迁移至V142及原脚本重复执行通过，数据断言为字典类型2、字典项9、菜单节点6、权限5、暂停Job 3、角色授权0、业务记录0。当前进入Task 10新前端工作台与组件测试；任何Job激活和生产装配仍由后续Gate阻断。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
