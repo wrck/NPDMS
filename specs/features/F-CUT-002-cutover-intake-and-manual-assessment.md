@@ -104,7 +104,7 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 - 活动设备范围使用`uk(tenant_id, project_id, device_id, active_marker)`控制并发；任务终态由后续Feature在同事务清除活动标记。
 - 来源唯一键分别约束`tenant_id/source_system/source_business_no`和`tenant_id/business_event_id`；用户自建幂等复用平台命令事实。
 - `CutoverTask`严格执行正式迁移契约`pms_cut_task -> cut_task / CURRENT_FORWARD`：只前向迁移经字段、状态和完整性映射证明有效的任务事实，不改写、双写或逆向同步旧表；无法无损映射的旧行不得猜测补齐。
-- F-CUT-002只允许把通过身份、项目归属、枚举和审计完整性校验的旧行迁成`task_origin=LEGACY_FORWARD/task_status=LEGACY_UNKNOWN`只读身份投影；目标保留`legacy_task_id/legacy_status_value/legacy_mapping_version`，不把任何旧`0..8`状态解释为`GRADE_CONFIRMING/SURVEYING/PLAN_DRAFTING`。只读投影没有`allowedActions`，不生成设备范围、评估或阶段历史，也不参与新路径的活动设备唯一性。
+- F-CUT-002只允许把通过身份、项目归属和审计完整性校验的旧行迁成`task_origin=LEGACY_FORWARD/task_status=LEGACY_UNKNOWN`只读身份投影；目标保留`legacy_task_id/legacy_cutover_type_raw/legacy_network_mode_raw/legacy_status_value/legacy_mapping_version`，当前`cutover_type/network_mode`及全部新路径事实保持空。旧粗粒度类型/组网不冒充F-CUT-001正式字典，任何旧`0..8`状态也不解释为`GRADE_CONFIRMING/SURVEYING/PLAN_DRAFTING`。只读投影没有`allowedActions`，不生成设备范围、评估或阶段历史，也不参与新路径的活动设备唯一性。
 - 旧行的`risk_level/source_type/source_id/approval_opinion/remark/actual_time`不得推导人工等级、可信来源、IMP快照、问卷、阶段或P6结果。软删除行、身份/枚举损坏行、项目无法在同租户解析行及目标身份冲突行保留在旧表并形成明确迁移处置，不插入目标；不得以默认值、测试种子、名称或时间补造。
 - `CutoverAssessment`严格执行`cut_assessment / NEW_ONLY`：旧`pms_cut_risk`不是P2问卷与人工等级的权威来源，不迁入`cut_assessment`；旧`pms_cut_risk/plan`保持不变。
 - Flyway使用实施时下一未占用版本；具体字段/状态映射必须在Feature Ready前形成可评审迁移契约，不以测试种子作为生产迁移事实。

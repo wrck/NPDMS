@@ -103,7 +103,7 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `CutoverTask` | 旧`pms_cut_task`前向迁入`cut_task` | CURRENT_FORWARD | 合法旧身份仅迁成`LEGACY_FORWARD/LEGACY_UNKNOWN`只读投影并保留旧ID、旧状态和映射版本；旧`0..8`均不映射新流程状态，不生成设备范围、IMP快照、P2评估或阶段历史；损坏、软删除、项目无法解析或身份冲突行保留旧表并记录迁移问题 |
+| `CutoverTask` | 旧`pms_cut_task`前向迁入`cut_task` | CURRENT_FORWARD | 合法旧身份仅迁成`LEGACY_FORWARD/LEGACY_UNKNOWN`只读投影；旧类型/组网只进legacy raw字段，当前字典字段及负责人、客户、IMP快照、项目水位、人工等级、当前评估均为空；旧`0..8`不映射新流程状态，不生成设备范围/P2评估/阶段历史；损坏、软删除、项目无法解析或身份冲突行保留旧表并记录迁移问题 |
 | `CutoverAssessment` | 新建`cut_assessment`；无可证明历史来源 | NEW_ONLY | 只从新平台P2问卷与人工等级命令创建；`pms_cut_risk`是旧风险/调研运行记录，不迁入评估聚合 |
 | `CutoverChecklist` | 当前`pms_cut_risk`中的风险/调研候选记录；新平台CUT-03清单版本 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁可证明的任务引用、原编码/名称/类型、说明和填写事实；不得推断采集项版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口；新清单版本和结果引用由前向Feature产生 |
 | `CutoverConfigurationRevision` | 无可靠旧来源；新平台CUT-07 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由CUT-07 Feature新建配置、采集项定义和绑定规则版本；类型/组网/设备复用基础平台字典，不从旧方案或风险项反推配置主数据 |

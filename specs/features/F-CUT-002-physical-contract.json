@@ -24,7 +24,7 @@
         "project_id": "BIGINT NOT NULL",
         "task_no": "VARCHAR(64) NOT NULL",
         "task_name": "VARCHAR(128) NOT NULL",
-        "cutover_type": "VARCHAR(32) NOT NULL",
+        "cutover_type": "VARCHAR(32) NULL",
         "network_mode": "VARCHAR(32) NULL",
         "scheduled_time": "DATETIME(3) NULL",
         "task_origin": "VARCHAR(32) NOT NULL",
@@ -37,6 +37,8 @@
         "manual_grade": "VARCHAR(8) NULL",
         "current_assessment_id": "BIGINT NULL",
         "legacy_task_id": "BIGINT NULL",
+        "legacy_cutover_type_raw": "VARCHAR(32) NULL",
+        "legacy_network_mode_raw": "VARCHAR(32) NULL",
         "legacy_status_value": "TINYINT NULL",
         "legacy_source_version": "INT NULL",
         "legacy_mapping_version": "VARCHAR(64) NULL",
@@ -51,6 +53,7 @@
       "requiredNewPlatformFacts": [
         "owner_user_id",
         "customer_id",
+        "cutover_type",
         "implementation_readiness_snapshot_id",
         "implementation_readiness_snapshot_version",
         "project_scope_version",
@@ -60,6 +63,8 @@
       ],
       "legacyForwardFields": [
         "legacy_task_id",
+        "legacy_cutover_type_raw",
+        "legacy_network_mode_raw",
         "legacy_status_value",
         "legacy_source_version",
         "legacy_mapping_version"
@@ -69,8 +74,8 @@
         ["tenant_id", "legacy_task_id"]
       ],
       "originUnion": {
-        "NEW_PLATFORM": "legacy_task_id, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present and task_status is not LEGACY_UNKNOWN",
-        "LEGACY_FORWARD": "legacy_task_id, legacy_status_value, legacy_source_version and legacy_mapping_version are present; task_status is LEGACY_UNKNOWN; owner, customer, readiness snapshot and project-scope version may be null and no business command is allowed"
+        "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present and task_status is not LEGACY_UNKNOWN",
+        "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; task_status is LEGACY_UNKNOWN; cutover_type, network_mode, owner_user_id, customer_id, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
       },
       "checks": [
         "version >= 0",
@@ -102,9 +107,9 @@
     "qualificationOrder": [
       "lock and read one source row by tenant_id and id without changing the legacy row",
       "deleted=b'1' => RETAIN_LEGACY_DELETED and create no target row",
-      "require positive id, tenant_id and project_id; normalized code length 1..64; normalized name length 1..128; nonnegative version; valid create_time and update_time",
-      "resolve project_id to the same trusted tenant through the PROJ Owner; missing, cross-tenant or unavailable Owner fact fails closed and creates no target row",
-      "require cutover_type in REPLACE/ACCESS/UPGRADE/DRILL/CONFIG and network_mode null or in VSM/DUAL/CLUSTER/SINGLE",
+      "require positive id, tenant_id and project_id; normalized code length 1..64; normalized name length 1..128; nonnegative version; nonnull creator/updater each length 0..64; valid create_time and update_time",
+      "resolve project_id to the same trusted tenant through the PROJ Owner; deterministic missing/cross-tenant/mismatch => OWNER_FACT_MISMATCH issue and no target row; transient Provider/transaction unavailable => roll the whole claimed batch back to STAGED_READY without a final issue",
+      "require normalized legacy cutover_type length 1..32 and legacy network_mode null or normalized length 1..32; preserve both only as legacy raw fields and never validate them against or write them into the F-CUT-001 dictionaries",
       "require legacy status in 0..8; any other value is SOURCE_DATA_INVALID and creates no target row",
       "preflight target uniqueness by tenant_id+project_id+task_no and tenant_id+legacy_task_id before insert"
     ],
@@ -114,8 +119,8 @@
       {"source": "project_id", "target": "project_id", "rule": "direct only after same-tenant PROJ resolution"},
       {"source": "code", "target": "task_no", "rule": "trim; reject blank or length greater than 64; never generate a replacement code"},
       {"source": "name", "target": "task_name", "rule": "trim; reject blank or length greater than 128"},
-      {"source": "cutover_type", "target": "cutover_type", "rule": "direct closed-enum mapping"},
-      {"source": "network_mode", "target": "network_mode", "rule": "null or direct closed-enum mapping"},
+      {"source": "cutover_type", "target": "legacy_cutover_type_raw", "rule": "trim and preserve 1..32 raw characters; current cutover_type remains null"},
+      {"source": "network_mode", "target": "legacy_network_mode_raw", "rule": "null or trim and preserve 1..32 raw characters; current network_mode remains null"},
       {"source": "scheduled_time", "target": "scheduled_time", "rule": "direct nullable timestamp"},
       {"source": "status", "target": "legacy_status_value", "rule": "preserve the original 0..8 integer"},
       {"source": "status", "target": "task_status", "rule": "always LEGACY_UNKNOWN; no legacy value maps to GRADE_CONFIRMING, SURVEYING or PLAN_DRAFTING"},
@@ -126,6 +131,7 @@
       {"source": "creator/create_time/updater/update_time", "target": "creator/create_time/updater/update_time", "rule": "preserve valid audit facts"}
     ],
     "forbiddenMappings": [
+      "legacy cutover_type/network_mode never populate the current F-CUT-001 dictionary fields",
       "source_type/source_id never prove the new trusted source identity",
       "risk_level never becomes manual_grade",
       "approval_opinion and remark never become questionnaire answers, readiness facts or stage history",
@@ -148,10 +154,12 @@
       "MIGRATED_LEGACY_READ_ONLY": "insert one LEGACY_FORWARD cut_task identity projection and retain the source row unchanged",
       "RETAIN_LEGACY_DELETED": "retain the soft-deleted source row only and create no target row",
       "SOURCE_DATA_INVALID": "retain the source row, create deterministic migration issue evidence and create no target row",
-      "OWNER_FACT_UNAVAILABLE_OR_MISMATCH": "roll back this target insert, retain the source row and record a retryable or reconciliation issue without manufacturing facts",
+      "OWNER_PROVIDER_UNAVAILABLE": "roll back the caller-owned reconciliation transaction to STAGED_READY and retry the same intent; append no final mapping or issue classification",
+      "OWNER_FACT_MISMATCH": "retain the source row, append a deterministic reconciliation issue in the current transaction and create no target row",
       "TARGET_IDENTITY_CONFLICT": "retain the source row, record a permanent reconciliation issue and never overwrite an existing target row"
     },
-    "atomicity": "one source row, its external-key/migration issue evidence and optional target insert commit or roll back together; pms_cut_task is never updated, deleted or dual-written",
+    "batchLifecycle": "claim one STAGED_READY PLT migration batch inside a caller-owned transaction; claim, CUT target inserts, PLT mapping/issue appends and completeReconciliation join that transaction; any transient Provider or write failure rolls the batch back to STAGED_READY, while successful classification and count reconciliation move it once to COMPLETED",
+    "atomicity": "the claimed batch, all classified source rows, CUT target inserts, PLT mapping/issues and final counts commit or roll back together; pms_cut_task is never updated, deleted or dual-written",
     "evidenceOwner": "all source identity, target mapping and issue outcomes are written through PLT PlatformMigrationEvidenceApi; CUT never writes PLT tables directly",
     "implementationGate": "use the actual next free Flyway version only after this contract passes review; migration tests must cover each disposition and prove legacy rows cannot enter a writable F-CUT-002 state"
   }

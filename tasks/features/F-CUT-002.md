@@ -23,6 +23,7 @@
 - 已完成本Feature的后端、前端、配置、运行数据/迁移、状态机、权限和测试复用审计；结论为`CURRENT_FORWARD / COPY_THEN_ENHANCE / PRESERVE_LEGACY`。
 - 已纠正CUT物理Owner为`cut_task/cut_assessment`，并将`CutoverAssessment`与旧`pms_cut_risk`解耦为`NEW_ONLY`。
 - 已形成`pms_cut_task -> cut_task`字段、旧状态只读化、完整性资格和不可迁行处置的机器合同候选；当前状态`REVIEW_REQUIRED`，待独立迁移Contract Gate。
+- 首轮迁移Contract Gate在`e1c45b02`为`NO-GO`：须隔离旧类型/组网原值、收紧LEGACY来源联合、拆分Owner暂时失败与确定性不匹配，并补齐生成投影字段；当前仅推进这些最小整改。
 - ITR/项目事件Producer、P3以后、V2/V3、自动指派和通用工单动作均排除。
 
 ## 阻断

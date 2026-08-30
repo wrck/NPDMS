@@ -42,11 +42,11 @@
 | `id` | `legacy_task_id` | 保留正整数旧身份；新`cut_task.id`仍由CUT Owner生成 |
 | `tenant_id/project_id` | 同名字段 | 仅在PROJ可证明同租户项目时直迁 |
 | `code/name` | `task_no/task_name` | 只trim；空白、超长或目标唯一冲突不生成目标行，不另造编号 |
-| `cutover_type/network_mode` | 同义稳定字段 | 只接受旧DDL已声明的封闭值；未知值不猜测 |
+| `cutover_type/network_mode` | `legacy_cutover_type_raw/legacy_network_mode_raw` | 只trim并保留旧原值；当前字典字段保持空，不把`REPLACE/DUAL`等粗粒度旧码冒充F-CUT-001正式码 |
 | `scheduled_time` | `scheduled_time` | 可空直迁 |
 | `status` | `legacy_status_value` + `task_status=LEGACY_UNKNOWN` | 旧`0..8`全部只读；不映射为新P1/P2/P3/P4状态 |
 | `version` | `legacy_source_version` | 保留非负来源版本；新聚合乐观锁从0开始 |
-| 创建/更新审计 | 同义审计字段 | 只保留合法时间和主体文本 |
+| 创建/更新审计 | 同义审计字段 | creator/updater必须非NULL且长度不超过64，时间必须有效；不以默认主体补空值 |
 | `source_type/source_id/risk_level/approval_opinion/remark/actual_time` | 不映射业务事实 | 不推导可信来源、人工等级、问卷、门禁、阶段或闭环 |
 
 完整机器规则见`specs/features/F-CUT-002-physical-contract.json`。合法旧行只形成`LEGACY_FORWARD/LEGACY_UNKNOWN`只读身份投影；软删除、身份或枚举损坏、项目无法解析、目标身份冲突行保留旧表并记录确定性处置。迁移从不更新旧行，也不创建`cut_task_device_scope/cut_task_stage_history/cut_assessment`。
