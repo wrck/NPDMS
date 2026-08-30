@@ -23,6 +23,7 @@ class ArrivalAcceptanceMigrationContractTest {
     private static String evidenceRetryJobSql;
     private static String task5BUpgradeSql;
     private static String successorIdentityUpgradeSql;
+    private static String seedSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -55,6 +56,9 @@ class ArrivalAcceptanceMigrationContractTest {
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
         successorIdentityUpgradeSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V141__fimp002_successor_batch_identity.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+        seedSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V142__fimp002_arrival_acceptance_seed.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
@@ -312,6 +316,40 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(update > alter);
         assertEquals(2, occurrences(successorIdentityUpgradeSql,
                 "DROP PROCEDURE IF EXISTS `fimp002_require_initial_arrival_roots`"));
+    }
+
+    @Test
+    void seedsOnlyLockedArrivalStatesDifferenceTypesAndFivePermissions() {
+        assertTrue(seedSql.contains("'pms_arrival_acceptance_status'"));
+        assertTrue(seedSql.contains("'DRAFT'"));
+        assertTrue(seedSql.contains("'PARTIALLY_ACCEPTED'"));
+        assertTrue(seedSql.contains("'DIFFERENCE_PENDING'"));
+        assertTrue(seedSql.contains("'ACCEPTED'"));
+        assertTrue(seedSql.contains("'CONFIRMED'"));
+        assertTrue(seedSql.contains("'pms_arrival_difference_type'"));
+        assertTrue(seedSql.contains("'QUANTITY_MISMATCH'"));
+        assertTrue(seedSql.contains("'MODEL_OR_SN_MISMATCH'"));
+        assertTrue(seedSql.contains("'APPEARANCE_OR_QUALITY'"));
+        assertTrue(seedSql.contains("'EVIDENCE_INCOMPLETE'"));
+        assertEquals(2, occurrences(seedSql, "'pms:arrival-acceptance:query'"));
+        assertTrue(seedSql.contains("'pms:arrival-acceptance:create'"));
+        assertTrue(seedSql.contains("'pms:arrival-acceptance:edit-own-draft'"));
+        assertTrue(seedSql.contains("'pms:arrival-acceptance:confirm'"));
+        assertTrue(seedSql.contains("'pms:arrival-acceptance:resolve-difference'"));
+    }
+
+    @Test
+    void preservesLegacyArrivalAndRegistersReconciliationJobPausedWithoutBusinessSeeds() {
+        assertTrue(seedSql.contains("'arrivalLegacyReconciliationJob'"));
+        assertTrue(seedSql.contains("'0 0/5 * * * ?'"));
+        assertTrue(seedSql.contains("WHERE NOT EXISTS"));
+        assertTrue(seedSql.contains("`status`=2"));
+        assertFalse(seedSql.contains("`status`=1"));
+        assertFalse(seedSql.contains("19013"));
+        assertFalse(seedSql.contains("pms:eng-arrival"));
+        assertFalse(seedSql.contains("system_role_menu"));
+        assertFalse(seedSql.contains("imp_arrival_acceptance`"));
+        assertFalse(seedSql.toLowerCase().contains("auto_assign"));
     }
 
     private static int occurrences(String source, String token) {
