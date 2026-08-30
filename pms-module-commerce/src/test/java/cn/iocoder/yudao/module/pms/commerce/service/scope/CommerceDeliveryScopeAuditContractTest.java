@@ -44,6 +44,13 @@ class CommerceDeliveryScopeAuditContractTest {
         assertTrue(union.getStr("ACTIVE").contains("conflictReason = null"));
         assertTrue(union.getStr("RELEASED").contains("afterQuantity = 0"));
         assertTrue(union.getStr("CONFLICT").contains("preservedConflictQuantity > 0"));
+        assertTrue(contract.getJSONObject("quantitySemantics").getStr("requestedQuantity")
+                .contains("protected reduction preserves the actual requested target quantity"));
+        assertEquals(List.of("PROJECT_LIFECYCLE_CLOSED", "PROJECT_STAGE_S5_OR_S6",
+                        "ARRIVAL_ACCEPTANCE_PROTECTED"),
+                contract.getJSONArray("conflictReasonDecisionOrder").toList(String.class));
+        assertTrue(contract.getJSONObject("DeliveryScopeCommandAuditLine").getJSONObject("fields")
+                .getStr("conflictReason").contains("ARRIVAL_ACCEPTANCE_PROTECTED"));
         assertTrue(contract.getStr("commandInvariant").contains("if and only if"));
     }
 
