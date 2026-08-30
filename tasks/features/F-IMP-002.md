@@ -46,6 +46,7 @@
 - `Q-FIMP002-002`规格与V141前向迁移Gate已在`0750182e`通过独立复审（`PASS / GO`）：初始根marker显式两值约束关闭MySQL NULL/UNKNOWN绕过，后继marker保持NULL；根唯一性和单前驱单后继均由真实MySQL 8.4验证。
 - Task 5B后继运行候选已形成：初始根写`batch_root_marker=1`；CONFIRMED差异处置与`CORRECT_INFORMATION`只在平台NEW命令内锁前驱并创建至多一个DRAFT successor，原样复制批次码和冻结历史后只在后继追加修改；不同intent占用同一前驱返回状态冲突。`ExpireArrivalExemptionsCommand`按服务端时钟领取到期豁免，先取得PROJ权威锁，再锁根/明细/差异并重验COM/AST/PLT，在同事务创建`EXEMPTION_INVALIDATION`后继、追加事实影响revision并按项目联合MAX+1分配版本；Owner失败或CAS冲突零业务写。当前最近Gate为该运行候选的独立Code Review／聚焦测试，Task 5B整体尚未PASS，Task 8继续阻断。
 - 锁定提交`935324cf`的Task 5B后继运行候选独立Code Review为`NO-GO`：CONFIRMED后继状态矩阵、任意直接successor排除、跨代豁免证据及内部到期PROJ主体语义存在运行阻断。独立定点裁决已锁定：CONFIRMED只允许current REJECTED进入SUPPLEMENT/EXEMPT/CLOSE；证据只允许当前节点或不可变严格祖先来源；到期领取排除任意直接successor；内部命令使用PROJ当前系统资格锁而非历史approvedBy用户授权。当前先完成规格/端口基线，不回写运行候选PASS。
+- 锁定提交`b4f16bdf`的A/C/D规格与PROJ公开支撑端口Gate已独立复审`PASS / GO`。`T-FIMP002-PROJ-01` Provider候选按根项目→目标项目→当前ACTIVE树版本的固定顺序持锁；current `PROJECT_MANAGER`沿用PROJ现有权威语义取锁定项目主行`manager_id`，参与者事实版本沿用同一主行`version`。单元/契约测试7项及隔离MySQL 8.4当前事实与锁并发测试2项通过；当前仅申请Provider独立Code Review，不回写IMP运行整改或Task 5B整体PASS。
 - Task 8当前为`BLOCKED_BY_TASK5B_CONTRACT_AND_IMPLEMENTATION_REVIEW`；即使后续候选通过，COM/AST正式Provider未合入前仍只允许显式测试组装，不注册生产`@Service/@RestController/@Bean`。Task 12在正式Adapter和唯一服务Bean可用的同一依赖接通提交中激活Controller。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
@@ -76,4 +77,4 @@
 
 - `T-FIMP002-PROJ-01`：PROJ公开`ProjectSystemQualificationFactApi.lockCurrentForSystem`，在受信租户上下文按项目锁定当前主行、唯一`PROJECT_MANAGER`事实和当前根树版本，校验`ACTIVE/S4`并返回当前项目/参与者/树版本。
 - 该Task不新增Feature状态、不放宽`ProjectParticipantFactApi/ProjectScopeApi`用户语义，不接收`subjectUserId/ACTION_EDIT/approvedBy/system actor`或消费方冻结版本；缺项目、非`ACTIVE/S4`、经理缺失/重复或树事实不可用均失败关闭。
-- 合入顺序：公开API契约Gate → PROJ Provider与真实锁测试 → IMP内部到期Adapter/运行整改。当前只形成公开契约候选，Provider与IMP生产接通仍`BLOCKED_BY_REVIEW`。
+- 合入顺序：公开API契约Gate → PROJ Provider与真实锁测试 → IMP内部到期Adapter/运行整改。公开契约Gate已在`b4f16bdf`通过；Provider候选及真实MySQL锁证据已形成，当前`REVIEW_REQUIRED`，IMP生产接通仍`BLOCKED_BY_REVIEW`。
