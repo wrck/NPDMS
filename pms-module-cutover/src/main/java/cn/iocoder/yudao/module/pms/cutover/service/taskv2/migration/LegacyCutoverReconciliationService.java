@@ -120,12 +120,14 @@ public class LegacyCutoverReconciliationService {
         }
         ProjectOrganizationFact inspected = projectApi.inspect(new ProjectOrganizationFactQuery(legacy.getProjectId()));
         if (inspected == null || !legacy.getProjectId().equals(inspected.projectId())) {
-            throw new LegacyCutoverMigrationException("旧割接任务项目事实不可用");
+            appendIssue(tenantId, batchId, source, "OWNER_FACT_MISMATCH", correlationId);
+            return Outcome.ISSUE;
         }
         ProjectOrganizationFact locked = projectApi.lockAndRevalidate(
                 new ProjectOrganizationFactRevalidationQuery(inspected.projectId(), inspected.projectVersion()));
         if (!inspected.equals(locked)) {
-            throw new LegacyCutoverMigrationException("旧割接任务项目事实已变化");
+            appendIssue(tenantId, batchId, source, "OWNER_FACT_MISMATCH", correlationId);
+            return Outcome.ISSUE;
         }
         long conflicts = reconciliationMapper.countTargetIdentityConflicts(
                 LegacyCutoverReconciliationQuery.target(tenantId, target.getLegacyTaskId(),

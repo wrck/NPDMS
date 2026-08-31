@@ -109,6 +109,12 @@ class CutoverTaskQueryServiceTest {
         when(taskMapper.selectById(701L)).thenReturn(task);
         when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectContextPort.inspect(1L, 101L, 7L)).thenReturn(project);
+        when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(device));
+        when(customerLevelPort.inspect(201L)).thenReturn(customer);
+        when(readinessPort.inspect(101L, List.of(401L))).thenReturn(readiness);
         when(deviceMapper.selectActiveByTask(any())).thenReturn(List.of(deviceRow()));
         when(assessmentMapper.selectById(801L)).thenReturn(assessment());
 
@@ -158,6 +164,7 @@ class CutoverTaskQueryServiceTest {
         row.setCutoverType("CORE_REPLACEMENT");
         row.setNetworkMode("DUAL_PLANE");
         row.setOwnerUserId(9L);
+        row.setCustomerId(201L);
         row.setCurrentStage("P2");
         row.setTaskStatus("GRADE_CONFIRMING");
         row.setProjectScopeVersion(7L);

@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -171,8 +172,13 @@ public class CutoverTaskQueryService {
         CutoverTaskViews.Assessment assessment = assessment(assessmentRow);
         CutoverChecklistDO checklist = CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
                 ? checklistMapper.selectCurrent(new CutoverChecklistRowQuery(tenantId, taskId, null)) : null;
+        P2ActionEligibility p2Eligibility = CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
+                ? p2ActionEligibility(tenantId, actorId, task, project, devices, customer, readiness, assessmentRow,
+                canSaveAssessment, canSubmitAssessment)
+                : P2ActionEligibility.NOT_APPLICABLE;
         List<String> actions = allowedActions(task, assessmentRow, checklist, actorId,
-                canSaveAssessment, canSubmitAssessment, canSaveChecklist, canRequestCollection, canSubmitChecklist);
+                canSaveAssessment, canSubmitAssessment, canSaveChecklist, canRequestCollection, canSubmitChecklist,
+                p2Eligibility);
         return new CutoverTaskViews.Detail(taskCore(task, project),
                 new CutoverTaskViews.Source(task.getIntakeSourceType(), task.getSourceSystem(),
                         task.getSourceBusinessNo(), task.getBusinessEventId(), task.getLegacyTaskId()),
@@ -225,7 +231,7 @@ public class CutoverTaskQueryService {
                                         CutoverChecklistDO checklist, Long actorId,
                                         boolean canSaveAssessment, boolean canSubmitAssessment,
                                         boolean canSaveChecklist, boolean canRequestCollection,
-                                        boolean canSubmitChecklist) {
+                                        boolean canSubmitChecklist, P2ActionEligibility p2Eligibility) {
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 || !actorId.equals(task.getOwnerUserId())) {
             return List.of();
@@ -260,14 +266,98 @@ public class CutoverTaskQueryService {
         }
         List<String> actions = new ArrayList<>();
         boolean submitted = assessment != null && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus());
-        if (canSaveAssessment && !submitted) {
+        if (canSaveAssessment && p2Eligibility.editAllowed() && !submitted) {
             actions.add("SAVE_ASSESSMENT");
         }
         if (canSubmitAssessment && assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
-                && assessment.getManualGrade() != null) {
+                && assessment.getManualGrade() != null && p2Eligibility.submitAllowed()) {
             actions.add("SUBMIT_ASSESSMENT");
         }
         return List.copyOf(actions);
+    }
+
+    private P2ActionEligibility p2ActionEligibility(
+            Long tenantId, Long actorId, CutoverTaskDO task,
+            CutoverProjectContextPort.ProjectContextFact storedProject,
+            List<CutoverDeviceScopePort.DeviceFact> storedDevices,
+            CutoverCustomerLevelPort.CustomerLevelFact storedCustomer,
+            CutoverReadinessPort.ReadinessFact storedReadiness,
+            CutoverAssessmentDO assessment,
+            boolean canSaveAssessment, boolean canSubmitAssessment) {
+        if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
+                || !actorId.equals(task.getOwnerUserId())
+                || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())
+                || (!canSaveAssessment && !canSubmitAssessment)
+                || (assessment != null
+                && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus()))) {
+            return P2ActionEligibility.NOT_APPLICABLE;
+        }
+        CutoverProjectScopePort.ProjectScopeFact editScope = projectScopePort.inspect(
+                actorId, task.getProjectId(), ACTION_EDIT);
+        require(editScope != null, PROJ_PROVIDER_UNAVAILABLE, "项目编辑范围事实不可用");
+        boolean editAllowed = editScope.allowed() && task.getProjectId().equals(editScope.projectId());
+        if (!editAllowed) {
+            return new P2ActionEligibility(false, false);
+        }
+        CutoverAssessmentAnswers answers = assessment == null ? null
+                : parse(assessment.getAnswerSnapshot(), CutoverAssessmentAnswers.class);
+        if (!canSubmitAssessment || assessment == null
+                || !CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
+                || assessment.getManualGrade() == null || answers == null || !answers.complete()) {
+            return new P2ActionEligibility(true, false);
+        }
+        CutoverProjectContextPort.ProjectContextFact currentProject = projectContextPort.inspect(
+                tenantId, task.getProjectId(), editScope.projectScopeVersion());
+        require(currentProject != null, PROJ_PROVIDER_UNAVAILABLE, "项目上下文事实不可用");
+        List<CutoverDeviceScopePort.DeviceFact> currentDevices = deviceScopePort.resolveBySerials(
+                storedDevices.stream().map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList());
+        require(currentDevices != null, AST_PROVIDER_UNAVAILABLE, "设备事实不可用");
+        CutoverCustomerLevelPort.CustomerLevelFact currentCustomer = customerLevelPort.inspect(task.getCustomerId());
+        require(currentCustomer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+        CutoverReadinessPort.ReadinessFact currentReadiness = readinessPort.inspect(task.getProjectId(),
+                storedDevices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).sorted().toList());
+        require(currentReadiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
+        boolean comparable = Objects.equals(storedProject, currentProject)
+                && equivalentDevices(storedDevices, currentDevices)
+                && Objects.equals(storedCustomer, currentCustomer)
+                && equivalentReadiness(storedReadiness, currentReadiness);
+        boolean submitAllowed = comparable && "AVAILABLE".equals(currentCustomer.status())
+                && "READY".equals(currentReadiness.decision())
+                && currentReadiness.unmetCodes() != null && currentReadiness.unmetCodes().isEmpty();
+        return new P2ActionEligibility(true, submitAllowed);
+    }
+
+    private static boolean equivalentDevices(List<CutoverDeviceScopePort.DeviceFact> stored,
+                                             List<CutoverDeviceScopePort.DeviceFact> current) {
+        if (stored.size() != current.size()) {
+            return false;
+        }
+        Map<Long, String> storedIdentity = stored.stream().collect(Collectors.toMap(
+                CutoverDeviceScopePort.DeviceFact::deviceId, CutoverTaskQueryService::deviceIdentity));
+        Map<Long, String> currentIdentity = current.stream().collect(Collectors.toMap(
+                CutoverDeviceScopePort.DeviceFact::deviceId, CutoverTaskQueryService::deviceIdentity));
+        return storedIdentity.equals(currentIdentity);
+    }
+
+    private static String deviceIdentity(CutoverDeviceScopePort.DeviceFact fact) {
+        return fact.serialNumber().trim().toUpperCase(Locale.ROOT) + ":" + fact.projectId()
+                + ":" + fact.projectAssignmentVersion();
+    }
+
+    private static boolean equivalentReadiness(CutoverReadinessPort.ReadinessFact stored,
+                                               CutoverReadinessPort.ReadinessFact current) {
+        return Objects.equals(stored.snapshotId(), current.snapshotId())
+                && stored.snapshotVersion() == current.snapshotVersion()
+                && Objects.equals(stored.decision(), current.decision())
+                && Objects.equals(stored.projectId(), current.projectId())
+                && Objects.equals(stored.deviceIds(), current.deviceIds())
+                && Objects.equals(stored.unmetCodes(), current.unmetCodes())
+                && Objects.equals(JsonUtils.getObjectMapper().valueToTree(stored.sourceWatermark()),
+                JsonUtils.getObjectMapper().valueToTree(current.sourceWatermark()));
+    }
+
+    private record P2ActionEligibility(boolean editAllowed, boolean submitAllowed) {
+        private static final P2ActionEligibility NOT_APPLICABLE = new P2ActionEligibility(false, false);
     }
 
     private List<CutoverTaskViews.WorkbenchStep> workbench(String currentStage) {
