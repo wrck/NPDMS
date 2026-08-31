@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- 当前进入Task 1，只实现CUT自有三表、任务冻结配置读取、匹配、填写、人工降级与提交内核。
+- 当前进入Task 2，在Task 1已通过基础上接通P3工作台，并继续补齐自定义项移出与采集请求。
 - 正向收益优先：先打通A/B/C按冻结配置生成DRAFT，DIRECT/MANUAL/CUSTOM保存，并原子提交到P4；不建设权限、冲突、乱序、跨租户、Provider失败或重试测试矩阵。
 - V147落文件前重新确认连续空闲迁移号；若已被并行迁移占用，只整体顺延编号，不改变已批准语义。
 
@@ -33,7 +33,7 @@
 
 状态：`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
 
-- [ ] 先用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
+- [x] 已用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
 - [ ] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM项、MANUAL证据、暂存和提交。
 - [ ] 完成后运行定向前端验证，并以正式身份完成一次“A级P3→生成→DIRECT+MANUAL→暂存刷新→提交→P4”真实工作台闭环。
 - [ ] 更新本Task与Feature追溯检查点，形成单一Implementation Done候选；不扩充异常Chromium矩阵。
@@ -45,4 +45,4 @@ Task 2增量状态：P3查询/生成/重匹配/暂存/自定义/人工证据/提
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：Task2正向REST/UI候选已接通生成、填写、MANUAL、暂存和提交；无生产Bean。删除自定义项、采集请求内核及生产Owner装配待续，真实浏览器与Done仍阻断。
+> 检查点：Task2正向REST/UI候选及阶段面板、DIRECT JSON往返已在`c8c75ce5`独立复审`PASS / GO`；无生产Bean。删除自定义项、采集请求内核及生产Owner装配待续，真实浏览器与Done仍阻断。
