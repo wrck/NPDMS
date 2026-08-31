@@ -465,3 +465,20 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 - 设备客户归属命令固定为`POST /api/v1/pms/devices/{id}/actions/assign-customer`，携带目标客户、关系类型、原因、`If-Match`和幂等键。
 - 设备详情采用固定摘要外壳和分Tab DTO；每个Tab统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。官网信息通过`KnowledgePublicProductInfoQueryApi`查询KNO已发布版本。
 - 配置Log下载链接默认5分钟、可配置、绑定当前用户和文件；每次生成前重新校验设备查询与文件下载权限。
+
+## F-PROJ-008 阶段推进API候选差量（IN_REVIEW）
+
+### Readiness query
+
+`GET /api/v1/pms/projects/{id}/stage-advance-readiness`只返回当前阶段、服务端推导的相邻目标、Project/tree版本以及有序Gate/Ref结果；该结果是预览，不授权推进，命令仍须重新锁定重验。
+
+### Advance command
+
+`POST /api/v1/pms/projects/{id}/actions/advance-stage`
+
+- Header：`If-Match`提供`expectedProjectVersion`，`Idempotency-Key`必填；
+- Body：`expectedCurrentStage`、`expectedTreeVersion`；不得提交目标阶段、actor、tenant或门禁结论；
+- Success：`projectId/beforeStage/afterStage/projectVersion/stageSnapshotId/gateEvaluationSummary`；
+- 仅接受当前S0～S3并由服务端推导相邻S1～S4。S4→S5返回专用路径提示，不代理调用验收入口。
+
+内部 `StageAdvanceCommand`的规范摘要冻结tenant、actor、projectId、期望阶段/Project/tree版本。相同键同摘要返回原结果；同键异摘要冲突。

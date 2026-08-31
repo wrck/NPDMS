@@ -648,3 +648,9 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
 
 下载链接不落业务表；由文件能力按用户和文件生成默认5分钟、可配置的短期授权。具体列长、索引名和DDL由Technical Plan按本契约生成前向迁移。
+
+## F-PROJ-008 P3-E09聚焦候选差量（IN_REVIEW）
+
+结论：`NO_PHYSICAL_DELTA`。
+
+阶段推进直接复用`proj_project`、`proj_project_stage`、`proj_project_gate`、`proj_project_gate_reference`、`proj_project_task`、`proj_project_milestone`、ACC唯一应交根、执行契约、`proj_project_stage_snapshot`及既有Outbox/审计载体。`proj_project_stage_snapshot`现有before/after stage、guard snapshot、provider facts、treeVersion、operationId、actor及唯一键足以承载`operation_type=STAGE_ADVANCE`。`ref_type`现有字符列加性使用受控`MILESTONE/APPROVAL`值不需要DDL。禁止新增第二门禁结果表、阶段历史表或修改旧Flyway。

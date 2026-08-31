@@ -433,3 +433,10 @@ CollectionTask 必须在创建时冻结完成模式：
 - MES、ITR和KNO来源副本分别保存来源键、来源版本、`dataAsOf`和统一同步状态；来源状态为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。
 - `DeviceCurrentCustomerAssignment`表达当前唯一客户直接归属；`DeviceCustomerRelationship`表达历史、租用、共管等带类型有效区间关系，区间不得重叠。
 - KNO拥有官网信息版本，保存来源URL、核验时间、摘要和发布版本；AST不复制为第二Owner。
+
+## F-PROJ-008 阶段准出数据候选差量（IN_REVIEW）
+
+- `ProjectGateEvaluation`是一次命令内形成并固化到`ProjectStageSnapshot.guardSnapshot/providerFacts`的不可变值对象，不建立第二当前真值表。
+- 快照逐项保存冻结gate/ref稳定身份、评估结果、Owner事实键/版本及稳定未满足码；不保存其他Context业务正文。
+- `ProjectGate.status`只在成功推进事务中按精确实例更新为`PASSED`；失败评估不把预览结果写成当前业务事实。
+- 旧`pms_project_phase`、旧项目任务/交付件只能作为保留历史证据，不参与V1.8阶段推进。

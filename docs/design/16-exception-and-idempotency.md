@@ -224,3 +224,17 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | 重试/熔断数值 | DEFERRED_TO_FEATURE_INTEGRATION | 对应 Feature 联调按外部 SLA 登记；Phase 3验证运行策略，不阻断 Phase 2 结构契约 |
 
 本分册满足 Phase 2 异常与幂等结构门禁；任何 Feature 不得通过禁用幂等、吞掉冲突、把未知状态当成功或减少授权校验来实现“流程顺畅”。
+
+## F-PROJ-008 阶段推进异常候选差量（IN_REVIEW）
+
+| 分类 | 稳定语义 | 写入结果 |
+|---|---|---|
+| `VALIDATION` | 命令缺字段、目标非服务端相邻阶段 | 零业务写入 |
+| `AUTHORIZATION` | 缺功能权限、`PROJECT_MANAGE`范围或当前项目经理关系 | 零业务写入 |
+| `STATE_CONFLICT` | 生命周期非ACTIVE、当前非S0～S3或Stage形状冲突 | 零业务写入 |
+| `BUSINESS_GATE` | Owner事实确定且存在未满足引用 | 返回有序稳定未满足引用，零推进写入 |
+| `DEPENDENCY_UNAVAILABLE` | Provider缺失/重复/不可用或事实不可判定 | 与业务未满足区分，零推进写入 |
+| `VERSION_CONFLICT` | Project/tree/stage/ref Owner版本变化 | 零推进写入，可重新读取后以新意图重试 |
+| `IDEMPOTENCY_CONFLICT` | 同键异规范摘要 | 零业务写入 |
+
+失败只允许保存拒绝审计或可重试技术状态，不得把Gate标为PASSED、写成功Snapshot/Outbox或推进任一Stage。已知未满足不是依赖故障；依赖未知不得当作未满足后继续，也不得当作通过。

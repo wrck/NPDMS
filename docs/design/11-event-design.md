@@ -238,3 +238,7 @@ V1/V2 不定义 `TechnicalNoticePublishedByPlatform`，避免把 V3 本地治理
 | 补偿与对账可实现 | PASS | 第 11 节 |
 
 本分册可进入外部集成详细契约评审；Phase 2 放行前仍需与 12、15、16 的超时、重试和异常分类逐项一致。
+
+## F-PROJ-008 ProjectStageChanged候选差量（IN_REVIEW）
+
+通用推进成功与Project/Stage/Gate/快照同事务写入 `ProjectStageChanged` Outbox。事件至少包含 `eventId/tenantId/projectId/projectVersion/action=STAGE_ADVANCE/beforeStage/afterStage/stageSnapshotId/gateEvaluationSummaryRef/actorUserId/occurredAt`；门禁正文留在PROJ快照，不进入事件。业务未满足、依赖未知、版本冲突和幂等重放均不得新增事件。S4→S5继续使用其已批准的专用事件语义，不由本差量覆盖。
