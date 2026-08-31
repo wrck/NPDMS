@@ -48,7 +48,7 @@
           </el-descriptions>
           <CutoverWorkbenchSteps :steps="detail.workbenchSteps" class="workbench-steps" />
           <CutoverAssessmentPanel
-            v-if="detail.task.currentStage === 'P2' || detail.assessment"
+            v-if="activeStagePanel === 'ASSESSMENT'"
             :model="assessmentModel"
             :editable="detail.allowedActions.includes('SAVE_ASSESSMENT')"
             :submittable="detail.allowedActions.includes('SUBMIT_ASSESSMENT')"
@@ -58,7 +58,7 @@
             @submit="submitAssessment"
           />
           <CutoverChecklistPanel
-            v-else-if="detail.task.currentStage === 'P3' || detail.task.currentStage === 'P4'"
+            v-else-if="activeStagePanel === 'CHECKLIST'"
             :detail="detail"
             @submitted="handleChecklistSubmitted"
           />
@@ -80,7 +80,11 @@ import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
 import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
 import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
-import { formatWireDateTime, newIntentKey } from './cutoverTaskInteraction'
+import {
+  activeCutoverStagePanel,
+  formatWireDateTime,
+  newIntentKey
+} from './cutoverTaskInteraction'
 
 const message = useMessage()
 const { width } = useWindowSize()
@@ -98,6 +102,7 @@ const assessmentModel = reactive<{ answers: AssessmentAnswers; manualGrade: Manu
 
 const drawerSize = computed(() => (width.value < 768 ? '100%' : width.value < 1200 ? '80%' : '68%'))
 const detailColumns = computed(() => (width.value < 768 ? 1 : 2))
+const activeStagePanel = computed(() => activeCutoverStagePanel(detail.value?.task.currentStage || null))
 const sourceLabels: Record<string, string> = { SELF_CREATED: '一线自建', ITR: 'ITR', PROJECT_EVENT: '项目事件', LEGACY_FORWARD: '历史只读' }
 const statusLabels: Record<string, string> = { GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制', LEGACY_UNKNOWN: '历史状态' }
 

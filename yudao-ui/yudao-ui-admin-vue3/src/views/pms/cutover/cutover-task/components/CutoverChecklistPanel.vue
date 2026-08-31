@@ -31,6 +31,7 @@
       <footer v-if="checklist" class="panel-actions">
         <el-button
           v-if="!readonly"
+          data-testid="checklist-save"
           v-hasPermi="['pms:cutover-task:save-checklist']"
           :loading="saving"
           @click="save"
@@ -51,7 +52,11 @@
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CutoverApi from '@/api/pms/cutover/cutover-task'
 import type { ChecklistFileHandle, CutoverChecklistView, CutoverTaskDetail } from '@/api/pms/cutover/cutover-task'
-import { newIntentKey } from '../cutoverTaskInteraction'
+import {
+  decodeChecklistDirectAnswer,
+  encodeChecklistDirectAnswer,
+  newIntentKey
+} from '../cutoverTaskInteraction'
 import CutoverChecklistField from './CutoverChecklistField.vue'
 
 const props = defineProps<{ detail: CutoverTaskDetail }>()
@@ -75,7 +80,7 @@ const hydrateAnswers = () => {
   for (const key of Object.keys(answers)) delete answers[key]
   for (const item of checklist.value?.items || []) {
     if (item.currentResult?.resultSourceCode === 'DIRECT') {
-      answers[item.stableItemKey] = item.currentResult.answerSnapshot
+      answers[item.stableItemKey] = decodeChecklistDirectAnswer(item.currentResult.answerSnapshot)
     }
   }
 }
@@ -116,7 +121,12 @@ const save = async () => {
       expectedProjectScopeVersion: checklist.value.projectScopeVersion,
       checklistId: checklist.value.checklistId,
       expectedChecklistVersion: checklist.value.checklistFactVersion,
-      answers: Object.entries(answers).filter(([, value]) => value).map(([stableItemKey, answerSnapshot]) => ({ stableItemKey, answerSnapshot }))
+      answers: Object.entries(answers)
+        .filter(([, value]) => value)
+        .map(([stableItemKey, value]) => ({
+          stableItemKey,
+          answerSnapshot: encodeChecklistDirectAnswer(value)
+        }))
     })
     message.success('P3 清单草稿已暂存')
     await load()

@@ -2,7 +2,12 @@ import { nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import type { CreateContextCandidate } from '@/api/pms/cutover/cutover-task'
 import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
-import { buildCreateRequest, gradeDestination, parseSerials } from './cutoverTaskInteraction'
+import {
+  activeCutoverStagePanel,
+  buildCreateRequest,
+  gradeDestination,
+  parseSerials
+} from './cutoverTaskInteraction'
 import {
   mount,
   passthrough,
@@ -74,6 +79,12 @@ describe('cutover task positive interaction', () => {
   it('presents the locked A and D destinations', () => {
     expect(gradeDestination('A')).toBe('P3 现场调研')
     expect(gradeDestination('D')).toBe('P4 方案编制')
+  })
+
+  it('selects the workbench panel from the current stage only', () => {
+    expect(activeCutoverStagePanel('P2')).toBe('ASSESSMENT')
+    expect(activeCutoverStagePanel('P3')).toBe('CHECKLIST')
+    expect(activeCutoverStagePanel('P4')).toBe('CHECKLIST')
   })
 
   it('mounts the P2 assessment and emits the positive save and submit actions', async () => {

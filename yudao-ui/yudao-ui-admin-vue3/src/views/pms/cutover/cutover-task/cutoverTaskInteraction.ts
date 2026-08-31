@@ -1,6 +1,7 @@
 import type {
   CreateContextCandidate,
   CreateCutoverTaskRequest,
+  CutoverStage,
   ManualGrade,
   WireDateTime
 } from '@/api/pms/cutover/cutover-task'
@@ -71,3 +72,16 @@ export const buildCreateRequest = (
 
 export const gradeDestination = (grade: ManualGrade | null) =>
   grade === 'D' ? 'P4 方案编制' : grade ? 'P3 现场调研' : '保存后不推进阶段'
+
+export const activeCutoverStagePanel = (stage: CutoverStage | null) =>
+  stage === 'P2' ? 'ASSESSMENT' : stage === 'P3' || stage === 'P4' ? 'CHECKLIST' : 'EMPTY'
+
+export const encodeChecklistDirectAnswer = (value: string) => JSON.stringify({ value })
+
+export const decodeChecklistDirectAnswer = (answerSnapshot: string) => {
+  const snapshot = JSON.parse(answerSnapshot) as { value?: unknown }
+  if (!snapshot || typeof snapshot !== 'object' || typeof snapshot.value !== 'string') {
+    throw new Error('清单直接填写结果不是受支持的 JSON 快照')
+  }
+  return snapshot.value
+}

@@ -1,6 +1,11 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
+import type {
+  CutoverChecklistView,
+  CutoverTaskDetail
+} from '@/api/pms/cutover/cutover-task'
 import CutoverChecklistField from './components/CutoverChecklistField.vue'
+import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
 import {
   findByTestId,
   mount,
@@ -8,7 +13,18 @@ import {
 } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const checklistApi = vi.hoisted(() => ({
+  getCutoverChecklist: vi.fn(),
+  saveCutoverChecklist: vi.fn(),
+  generateCutoverChecklist: vi.fn(),
+  saveManualChecklistResult: vi.fn(),
+  submitCutoverChecklist: vi.fn()
+}))
 vi.mock('@/api/pms/platform/file', () => fileApi)
+vi.mock('@/api/pms/cutover/cutover-task', () => checklistApi)
+vi.mock('@/hooks/web/useMessage', () => ({
+  useMessage: () => ({ success: vi.fn() })
+}))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
     inheritAttrs: false,
@@ -81,4 +97,72 @@ describe('F-CUT-003 mounted checklist field', () => {
     expect(typeof (manual[0][1] as { artifactId: unknown }).artifactId).toBe('string')
     mounted.app.unmount()
   })
+
+  it('saves a DIRECT value as JSON and hydrates the refreshed control value', async () => {
+    const initialChecklist = checklistView(null)
+    checklistApi.getCutoverChecklist
+      .mockResolvedValueOnce(initialChecklist)
+      .mockResolvedValueOnce(checklistView('{"value":"已核查"}'))
+    checklistApi.saveCutoverChecklist.mockResolvedValue(undefined)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+
+    const input = findByTestId(mounted.root, 'checklist-input')!
+    await (input.props?.['onUpdate:modelValue'] as (value: string) => void)('已核查')
+    const saveButton = findByTestId(mounted.root, 'checklist-save')!
+    await (saveButton.props?.onClick as () => Promise<void>)()
+    await flush()
+
+    expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledWith('101', {
+      expectedTaskVersion: 7,
+      expectedProjectScopeVersion: '12',
+      checklistId: '201',
+      expectedChecklistVersion: 3,
+      answers: [{ stableItemKey: 'risk-check', answerSnapshot: '{"value":"已核查"}' }]
+    })
+    await vi.waitFor(() => {
+      const refreshedInput = findByTestId(mounted.root, 'checklist-input')
+      expect(refreshedInput).toBeDefined()
+      expect(refreshedInput?.props?.['model-value']).toBe('已核查')
+    })
+    mounted.app.unmount()
+  })
 })
+
+const taskDetail = {
+  task: { id: '101', currentStage: 'P3', manualGrade: 'A' },
+  project: { projectScopeVersion: '12' },
+  assessment: { assessmentVersion: 2 }
+} as CutoverTaskDetail
+
+const checklistView = (answerSnapshot: string | null): CutoverChecklistView => ({
+  taskId: '101',
+  taskStage: 'P3',
+  taskVersion: 7,
+  projectScopeVersion: '12',
+  checklistId: '201',
+  checklistVersion: 1,
+  checklistFactVersion: 3,
+  status: 'DRAFT',
+  inputSnapshotHash: 'input',
+  configRevisionSnapshot: '{}',
+  matchTrace: '{}',
+  configGapSnapshot: '[]',
+  items: [{
+    ...item,
+    currentResult: answerSnapshot === null ? null : {
+      resultVersion: 1,
+      resultSourceCode: 'DIRECT',
+      answerSnapshot,
+      factDescription: null,
+      manualEvidenceFileReference: null
+    }
+  }]
+})
+
+const flush = async () => {
+  await Promise.resolve()
+  await nextTick()
+  await Promise.resolve()
+  await nextTick()
+}
