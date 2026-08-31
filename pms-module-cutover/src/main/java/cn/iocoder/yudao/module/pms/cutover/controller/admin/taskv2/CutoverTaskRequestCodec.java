@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.CutoverTas
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.util.MultiValueMap;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,6 +27,11 @@ public final class CutoverTaskRequestCodec {
     private static final Set<String> ASSESSMENT_KEYS = Set.of("answers", "manualGrade");
     private static final Set<String> ANSWER_KEYS = Set.of(
             "businessImportanceLevel", "operationComplexityLevel", "hiddenRiskLevel", "sparePartApplied");
+    private static final Set<String> LIST_QUERY_KEYS = Set.of(
+            "projectId", "taskStatus", "currentStage", "pageNo", "pageSize");
+    private static final Set<String> TASK_STATUSES = Set.of(
+            "GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "LEGACY_UNKNOWN");
+    private static final Set<String> TASK_STAGES = Set.of("P2", "P3", "P4");
 
     private final ObjectMapper objectMapper;
 
@@ -53,6 +59,19 @@ public final class CutoverTaskRequestCodec {
         return read(body, CutoverTaskReqVO.SaveAssessment.class);
     }
 
+    public ListQuery listQuery(MultiValueMap<String, String> query) {
+        require(query != null && LIST_QUERY_KEYS.containsAll(query.keySet())
+                && query.values().stream().allMatch(values -> values != null && values.size() == 1), "query keys");
+        Long projectId = optionalLong(query.getFirst("projectId"), "projectId");
+        require(projectId == null || projectId > 0, "projectId");
+        String taskStatus = optionalEnum(query.getFirst("taskStatus"), TASK_STATUSES, "taskStatus");
+        String currentStage = optionalEnum(query.getFirst("currentStage"), TASK_STAGES, "currentStage");
+        int pageNo = optionalInt(query.getFirst("pageNo"), 1, "pageNo");
+        int pageSize = optionalInt(query.getFirst("pageSize"), 20, "pageSize");
+        require(pageNo > 0 && pageSize > 0 && pageSize <= 100, "page");
+        return new ListQuery(projectId, taskStatus, currentStage, pageNo, pageSize);
+    }
+
     public void emptyCommand(JsonNode body) {
         exact(body, Set.of(), "empty-command");
     }
@@ -76,5 +95,30 @@ public final class CutoverTaskRequestCodec {
         if (!condition) {
             throw new IllegalArgumentException("invalid " + field);
         }
+    }
+
+    private static Long optionalLong(String value, String field) {
+        if (value == null) return null;
+        require(!value.isBlank() && value.equals(value.trim()), field);
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("invalid " + field, exception);
+        }
+    }
+
+    private static int optionalInt(String value, int defaultValue, String field) {
+        Long parsed = optionalLong(value, field);
+        require(parsed == null || parsed <= Integer.MAX_VALUE, field);
+        return parsed == null ? defaultValue : parsed.intValue();
+    }
+
+    private static String optionalEnum(String value, Set<String> allowed, String field) {
+        if (value == null) return null;
+        require(allowed.contains(value), field);
+        return value;
+    }
+
+    public record ListQuery(Long projectId, String taskStatus, String currentStage, int pageNo, int pageSize) {
     }
 }

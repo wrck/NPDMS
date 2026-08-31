@@ -132,7 +132,7 @@ public class CutoverTaskApplicationService {
         String answers = JsonUtils.toJsonString(command.answers());
         String contextJson = JsonUtils.toJsonString(contextSnapshot(context));
         if (lockedTask.getCurrentAssessmentId() == null) {
-            require(command.expectedAssessmentVersion() == 0, VERSION_CONFLICT, "评估版本已变化");
+            requireAssessmentVersion(command.expectedAssessmentVersion() == 0, 0);
             CutoverAssessmentDO row = new CutoverAssessmentDO();
             row.setId(nextId());
             row.setTenantId(command.tenantId());
@@ -150,9 +150,9 @@ public class CutoverTaskApplicationService {
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
             require(assessmentMapper.insert(row) == 1, STATE_CONFLICT, "评估草稿创建失败");
-            require(taskMapper.linkAssessmentIfMatch(new CutoverTaskAssessmentLinkUpdate(command.tenantId(),
-                    command.taskId(), command.expectedTaskVersion(), row.getId())) == 1,
-                    VERSION_CONFLICT, "任务版本已变化");
+            requireTaskVersion(taskMapper.linkAssessmentIfMatch(new CutoverTaskAssessmentLinkUpdate(
+                    command.tenantId(), command.taskId(), command.expectedTaskVersion(), row.getId())) == 1,
+                    lockedTask.getVersion());
             return new CutoverAssessmentCommandResult(command.taskId(), row.getId(), 1, 0,
                     command.expectedTaskVersion() + 1, CutoverTaskRules.ASSESSMENT_DRAFT);
         }
@@ -160,9 +160,9 @@ public class CutoverTaskApplicationService {
                 command.tenantId(), command.taskId(), lockedTask.getCurrentAssessmentId()));
         require(row != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(row.getAssessmentStatus()),
                 STATE_CONFLICT, "当前评估不可编辑");
-        require(assessmentMapper.updateDraftIfMatch(new CutoverAssessmentDraftUpdate(command.tenantId(), row.getId(),
-                command.expectedAssessmentVersion(), answers, contextJson,
-                normalizeOptionalGrade(command.manualGrade()))) == 1, VERSION_CONFLICT, "评估版本已变化");
+        requireAssessmentVersion(assessmentMapper.updateDraftIfMatch(new CutoverAssessmentDraftUpdate(
+                command.tenantId(), row.getId(), command.expectedAssessmentVersion(), answers, contextJson,
+                normalizeOptionalGrade(command.manualGrade()))) == 1, row.getVersion());
         return new CutoverAssessmentCommandResult(command.taskId(), row.getId(), row.getAssessmentVersion(),
                 command.expectedAssessmentVersion() + 1, lockedTask.getVersion(), CutoverTaskRules.ASSESSMENT_DRAFT);
     }
@@ -283,12 +283,13 @@ public class CutoverTaskApplicationService {
         String grade = CutoverTaskRules.normalizeGrade(assessment.getManualGrade());
         CutoverTaskRules.SubmissionTarget target = CutoverTaskRules.submissionTarget(grade);
         LocalDateTime now = LocalDateTime.now(clock);
-        require(assessmentMapper.submitIfMatch(new CutoverAssessmentSubmitUpdate(command.tenantId(), assessment.getId(),
-                command.expectedAssessmentVersion(), JsonUtils.toJsonString(contextSnapshot(locked)), grade,
-                target.simpleFlow(), command.actorId(), now)) == 1, VERSION_CONFLICT, "评估版本已变化");
-        require(taskMapper.transitionIfMatch(new CutoverTaskTransitionUpdate(command.tenantId(), task.getId(),
-                command.expectedTaskVersion(), assessment.getId(), grade, target.stage(), target.status())) == 1,
-                VERSION_CONFLICT, "任务版本已变化");
+        requireAssessmentVersion(assessmentMapper.submitIfMatch(new CutoverAssessmentSubmitUpdate(
+                command.tenantId(), assessment.getId(), command.expectedAssessmentVersion(),
+                JsonUtils.toJsonString(contextSnapshot(locked)), grade, target.simpleFlow(), command.actorId(), now)) == 1,
+                assessment.getVersion());
+        requireTaskVersion(taskMapper.transitionIfMatch(new CutoverTaskTransitionUpdate(
+                command.tenantId(), task.getId(), command.expectedTaskVersion(), assessment.getId(), grade,
+                target.stage(), target.status())) == 1, task.getVersion());
         insertHistory(command.tenantId(), task.getId(), 2, CutoverTaskRules.STAGE_P2, target.stage(),
                 CutoverTaskRules.STATUS_GRADE_CONFIRMING, target.status(), "P2_ASSESSMENT_SUBMITTED",
                 assessment.getId(), command.actorId(), command.correlationId());
@@ -471,7 +472,24 @@ public class CutoverTaskApplicationService {
         require(CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
                         && CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus()),
                 STATE_CONFLICT, "割接任务不在P2人工分级阶段");
-        require(Objects.equals(task.getVersion(), expectedVersion), VERSION_CONFLICT, "任务版本已变化");
+        if (!Objects.equals(task.getVersion(), expectedVersion)) {
+            throw new CutoverTaskApplicationException(TASK_VERSION_CONFLICT, "任务版本已变化",
+                    task.getVersion(), null);
+        }
+    }
+
+    private static void requireAssessmentVersion(boolean condition, Integer currentAssessmentVersion) {
+        if (!condition) {
+            throw new CutoverTaskApplicationException(ASSESSMENT_VERSION_CONFLICT, "评估版本已变化",
+                    null, currentAssessmentVersion);
+        }
+    }
+
+    private static void requireTaskVersion(boolean condition, Integer currentTaskVersion) {
+        if (!condition) {
+            throw new CutoverTaskApplicationException(TASK_VERSION_CONFLICT, "任务版本已变化",
+                    currentTaskVersion, null);
+        }
     }
 
     private static CutoverTaskDO requireTask(CutoverTaskDO task, Long tenantId) {

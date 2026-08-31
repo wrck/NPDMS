@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -66,14 +67,11 @@ public class CutoverTaskController {
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
     public CommonResult<PageResult<CutoverTaskViews.Summary>> list(
-            @RequestParam(value = "projectId", required = false) Long projectId,
-            @RequestParam(value = "taskStatus", required = false) String taskStatus,
-            @RequestParam(value = "currentStage", required = false) String currentStage,
-            @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
-            @RequestParam(value = "pageSize", defaultValue = "20") Integer pageSize) {
+            @RequestParam MultiValueMap<String, String> queryParameters) {
+        CutoverTaskRequestCodec.ListQuery query = requestCodec.listQuery(queryParameters);
         var trusted = requestContext.current();
-        return success(queryService.page(trusted.tenantId(), trusted.actorId(), projectId,
-                taskStatus, currentStage, pageNo, pageSize));
+        return success(queryService.page(trusted.tenantId(), trusted.actorId(), query.projectId(),
+                query.taskStatus(), query.currentStage(), query.pageNo(), query.pageSize()));
     }
 
     @PostMapping
@@ -161,20 +159,21 @@ public class CutoverTaskController {
             CutoverTaskApplicationException exception) {
         ErrorDescriptor descriptor = errorDescriptor(exception.code());
         return error(descriptor.httpStatus(), errorCode(exception.code()), exception.getMessage(),
-                descriptor.category(), descriptor.reasonCode(), descriptor.recoveryAction(), descriptor.ownerContext());
+                descriptor.category(), descriptor.reasonCode(), descriptor.recoveryAction(), descriptor.ownerContext(),
+                exception.currentTaskVersion(), exception.currentAssessmentVersion());
     }
 
     @ExceptionHandler({IllegalArgumentException.class, MissingRequestHeaderException.class,
             MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<CommonResult<CutoverTaskErrorData>> handleValidation(Exception exception) {
         return error(400, 1_011_005_100, exception.getMessage(),
-                "VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null);
+                "VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null, null, null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<CommonResult<CutoverTaskErrorData>> handlePermission(AccessDeniedException exception) {
         return error(403, 1_011_005_101, exception.getMessage(),
-                "FUNCTION_PERMISSION", "FUNCTION_PERMISSION_DENIED", "REQUEST_PERMISSION", null);
+                "FUNCTION_PERMISSION", "FUNCTION_PERMISSION_DENIED", "REQUEST_PERMISSION", null, null, null);
     }
 
     private static ErrorDescriptor errorDescriptor(CutoverTaskApplicationException.Code code) {
@@ -186,12 +185,14 @@ public class CutoverTaskController {
                     "SELECT_AUTHORIZED_CONTEXT", "PROJ");
             case STATE_CONFLICT -> new ErrorDescriptor(409, "STATE_CONFLICT", "CUTOVER_STATE_CONFLICT",
                     "REFRESH_TASK", null);
-            case VERSION_CONFLICT -> new ErrorDescriptor(409, "VERSION_CONFLICT", "TASK_VERSION_STALE",
+            case TASK_VERSION_CONFLICT -> new ErrorDescriptor(409, "VERSION_CONFLICT", "TASK_VERSION_STALE",
                     "REFRESH_TASK", null);
+            case ASSESSMENT_VERSION_CONFLICT -> new ErrorDescriptor(409, "VERSION_CONFLICT",
+                    "ASSESSMENT_VERSION_STALE", "REFRESH_TASK", null);
             case CONFIGURATION_CONFLICT -> new ErrorDescriptor(409, "CONFIGURATION_CONFLICT",
                     "CONFIGURATION_REVISION_CONFLICT", "RESELECT_CONFIGURATION", null);
             case ACTIVE_DEVICE_CONFLICT -> new ErrorDescriptor(409, "ACTIVE_DEVICE_CONFLICT",
-                    "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "OPEN_EXISTING_TASK", "AST");
+                    "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "OPEN_EXISTING_TASK", null);
             case PROJECT_SCOPE_STALE -> stale("PROJECT_SCOPE_STALE", "PROJ");
             case PROJECT_CONTEXT_STALE -> stale("PROJECT_CONTEXT_STALE", "PROJ");
             case DEVICE_SCOPE_STALE -> stale("DEVICE_SCOPE_STALE", "AST");
@@ -220,7 +221,8 @@ public class CutoverTaskController {
             case NOT_FOUND -> 1_011_005_102;
             case DATA_SCOPE_FORBIDDEN -> 1_011_005_103;
             case STATE_CONFLICT -> 1_011_005_104;
-            case VERSION_CONFLICT -> 1_011_005_105;
+            case TASK_VERSION_CONFLICT -> 1_011_005_105;
+            case ASSESSMENT_VERSION_CONFLICT -> 1_011_005_122;
             case CONFIGURATION_CONFLICT -> 1_011_005_106;
             case ACTIVE_DEVICE_CONFLICT -> 1_011_005_107;
             case PROJECT_SCOPE_STALE -> 1_011_005_108;
@@ -251,10 +253,11 @@ public class CutoverTaskController {
 
     private static ResponseEntity<CommonResult<CutoverTaskErrorData>> error(
             int httpStatus, int code, String message, String category, String reasonCode,
-            String recoveryAction, String ownerContext) {
+            String recoveryAction, String ownerContext, Integer currentTaskVersion,
+            Integer currentAssessmentVersion) {
         CommonResult<CutoverTaskErrorData> result = CommonResult.error(code, message);
         result.setData(new CutoverTaskErrorData(category, reasonCode, recoveryAction,
-                ownerContext, null, null, null));
+                ownerContext, currentTaskVersion, currentAssessmentVersion, null));
         return ResponseEntity.status(httpStatus).body(result);
     }
 

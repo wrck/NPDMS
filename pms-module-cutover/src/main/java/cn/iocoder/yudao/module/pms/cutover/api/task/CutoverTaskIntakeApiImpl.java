@@ -56,7 +56,7 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
             case CONFIGURATION_CONFLICT -> CutoverTaskIntakeException.Code.CONFIGURATION_CONFLICT;
             case DATA_SCOPE_FORBIDDEN, NOT_FOUND, PROJECT_SCOPE_STALE, PROJECT_CONTEXT_STALE, DEVICE_SCOPE_STALE ->
                     CutoverTaskIntakeException.Code.DATA_SCOPE_FORBIDDEN;
-            case ACTIVE_DEVICE_CONFLICT, STATE_CONFLICT, VERSION_CONFLICT ->
+            case ACTIVE_DEVICE_CONFLICT, STATE_CONFLICT, TASK_VERSION_CONFLICT, ASSESSMENT_VERSION_CONFLICT ->
                     CutoverTaskIntakeException.Code.ACTIVE_DEVICE_CONFLICT;
             case READINESS_NOT_READY, IMPLEMENTATION_READINESS_STALE ->
                     CutoverTaskIntakeException.Code.READINESS_NOT_READY;

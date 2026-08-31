@@ -7,7 +7,8 @@ public final class CutoverTaskApplicationException extends RuntimeException {
         NOT_FOUND,
         DATA_SCOPE_FORBIDDEN,
         STATE_CONFLICT,
-        VERSION_CONFLICT,
+        TASK_VERSION_CONFLICT,
+        ASSESSMENT_VERSION_CONFLICT,
         CONFIGURATION_CONFLICT,
         ACTIVE_DEVICE_CONFLICT,
         PROJECT_SCOPE_STALE,
@@ -27,13 +28,30 @@ public final class CutoverTaskApplicationException extends RuntimeException {
     }
 
     private final Code code;
+    private final Integer currentTaskVersion;
+    private final Integer currentAssessmentVersion;
 
     public CutoverTaskApplicationException(Code code, String message) {
+        this(code, message, null, null);
+    }
+
+    public CutoverTaskApplicationException(Code code, String message,
+                                           Integer currentTaskVersion, Integer currentAssessmentVersion) {
         super(message);
         this.code = code;
+        this.currentTaskVersion = currentTaskVersion;
+        this.currentAssessmentVersion = currentAssessmentVersion;
     }
 
     public Code code() {
         return code;
+    }
+
+    public Integer currentTaskVersion() {
+        return currentTaskVersion;
+    }
+
+    public Integer currentAssessmentVersion() {
+        return currentAssessmentVersion;
     }
 }
