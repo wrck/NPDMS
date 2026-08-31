@@ -482,3 +482,27 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 - 仅接受当前S0～S3并由服务端推导相邻S1～S4。S4→S5返回专用路径提示，不代理调用验收入口。
 
 内部 `StageAdvanceCommand`的规范摘要冻结tenant、actor、projectId、期望阶段/Project/tree版本。相同键同摘要返回原结果；同键异摘要冲突。
+
+### Gate Reference Owner Fact SPI
+
+既有`pms-module-project-api`加性声明类型化SPI，稳定方法为：
+
+```java
+String providerKey();
+ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query);
+```
+
+`ProjectStageGateFactQuery`只由PROJ服务端构造，固定包含`tenantId/projectId/currentStageCode/gateId/gateCode/gateVersion/gateReferenceId/gateReferenceVersion/refType/refCode/refVersion`；其中Gate、Reference版本来自已锁定实例，`refCode/refVersion`来自创建时冻结值。`ProjectStageGateFact`固定返回`providerKey/refType/ownerObjectKey/ownerBusinessVersion/factVersion/outcome/unmetCode`，三个Owner身份/版本字段均为非空String：本地/ACC行用稳定ID、业务状态/定义版本和十进制row.version，BPM用processInstanceId、processDefinitionId和`status:endTime`（运行中使用`status:startTime`）组成可重验事实版本，不使用摘要或当前时间。outcome封闭为`SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`。Provider以`MANDATORY`加入推进事务；Registry只接受02d分册的固定一对一providerKey，不接受调用方指定、通配或重复实现。
+
+| refType / providerKey | 精确Owner对象键与版本 | 唯一`SATISFIED`谓词 | 其他稳定结果 |
+|---|---|---|---|
+| `TASK / PROJ_TASK` | 同租户同项目唯一`task_code=refCode`的ProjectTask；`factVersion=row.version`，`refVersion`必须缺失 | `status=DONE` | `CLOSED -> TASK_CLOSED_NOT_COMPLETED`；其余已知状态`TASK_NOT_DONE`；缺失/重复/未知状态为依赖不可判定 |
+| `MILESTONE / PROJ_MILESTONE` | 同租户同项目唯一`milestone_code=refCode`的ProjectMilestone；`factVersion=row.version`，`refVersion`必须缺失 | `status=ACHIEVED` | `PENDING -> MILESTONE_NOT_ACHIEVED`；缺失/重复/未知状态为依赖不可判定 |
+| `DELIVERABLE / ACC_DELIVERABLE` | ACC中同租户同项目唯一`deliverable_code=refCode`的应交根；`factVersion=row.version`，`refVersion`必须缺失 | `status=ACCEPTED` | `PENDING/SUBMITTED -> DELIVERABLE_NOT_ACCEPTED`；缺失/重复/未知状态为依赖不可判定 |
+| `STATE / PROJ_STATE` | 受控状态目录项；V1阶段完成码仅允许`S0_COMPLETED`～`S6_COMPLETED`并精确映射同项目对应ProjectStage，`factVersion=stage.version`；`refVersion`必须缺失 | 对应Stage `status=DONE` | 其他已知状态`STATE_NOT_REACHED`；未登记状态码在模板发布时拒绝，运行时出现则依赖不可判定 |
+| `APPROVAL / BPM_APPROVAL` | `refCode=processDefinitionKey`、`refVersion=v<正整数>`，并按下述固定businessKey/变量唯一关联的最新审批尝试 | 精确定义版本实例已结束且`PROCESS_STATUS=APPROVE` | 未启动、运行中、REJECT、CANCEL分别为`APPROVAL_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；身份冲突、多个活动实例或未知状态为依赖不可判定 |
+| `PROCESS / BPM_PROCESS` | `refCode=processDefinitionKey`、`refVersion=v<正整数>`，并按下述固定businessKey/变量唯一关联的最新流程尝试 | 精确定义版本实例已结束且`PROCESS_STATUS=APPROVE` | 未启动、运行中、REJECT、CANCEL分别为`PROCESS_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；身份冲突、多个活动实例或未知状态为依赖不可判定 |
+
+APPROVAL/PROCESS启动必须复用既有`BpmProcessInstanceApi`，由PROJ服务端固定`businessKey=PROJECT_STAGE_GATE:{gateReferenceId}`，并冻结`tenantId/projectId/currentStageCode/gateId/gateReferenceId/refType/refCode/refVersion`变量；客户端不得覆盖。BPM Provider不修改Yudao基础平台，只通过现有Flowable运行/历史事实按该businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key及数字版本。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
+
+模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用，并按表中字段域校验refVersion及Provider存在性；运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。

@@ -194,6 +194,6 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 
 ## F-PROJ-008 锁序与CAS候选差量（IN_REVIEW）
 
-阶段推进的稳定顺序为：Project当前行 → 当前/下一Stage（按sort/id）→ 当前Stage EXIT Gate（gateId）→ Gate Reference（gateId/refType/refCode/id）→ PROJ本地事实稳定键或外域Owner Provider。Provider以`MANDATORY`加入同一MySQL事务；取得后序Owner锁后不得回头补锁前序PROJ对象。ProjectVersion、treeVersion、StageVersion及Owner FactVersion任一变化均整体失败；缓存和readiness预览不得替代锁内事实。
+阶段推进的稳定顺序为：Project当前行 → 当前/下一Stage（按sort/id）→ 当前Stage EXIT Gate（gateId）→ Gate Reference（gateId/refType/refCode/id）→ PROJ本地事实稳定键或外域Owner Provider。Provider以`MANDATORY`加入同一MySQL事务；取得后序Owner锁后不得回头补锁前序PROJ对象。ProjectVersion、treeVersion、StageVersion、Gate/Reference版本及Owner FactVersion任一变化均整体失败；缓存和readiness预览不得替代锁内事实。BPM类型先以gateReferenceId固定businessKey取得同一引用的尝试集合，再按`startTime/processInstanceId`稳定选择最新；多个活动实例或冻结身份不一致失败关闭。
 
 成功事务原子提交Gate结果、两Stage状态、Project.current_stage/version、不可变Snapshot、审计、Outbox及幂等完成点；影响行数不为预期即回滚。并发同项目推进只能有一个成功。

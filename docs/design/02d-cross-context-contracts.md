@@ -58,6 +58,6 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 
 | 契约 | Requirement ID | Producer | Consumer | 语义 |
 |---|---|---|---|---|
-| `ProjectStageGateFactProviderApi` | PM-03@V1 | 各引用对象Owner | Project | 按冻结 `projectId/gateId/refType/refCode/refVersion`定位精确Owner事实并在锁内重验其当前factVersion；返回 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`、稳定事实键/版本与未满足码，不返回外域正文。TASK/MILESTONE/STATE由PROJ本地评估；DELIVERABLE由ACC提供；APPROVAL/PROCESS由相应Owner Provider提供。Provider以`MANDATORY`加入阶段推进事务。 |
+| `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
 
-Registry只按受控 `refType`唯一分派，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。
+Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。

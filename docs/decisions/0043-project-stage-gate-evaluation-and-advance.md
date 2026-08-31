@@ -12,9 +12,9 @@
 ## 2. 权威输入与评估结果
 
 1. 仅项目创建时从已发布模板冻结到项目实例的 `ProjectStage/ProjectGate/ProjectGateReference/ProjectTask/ProjectMilestone/ProjectDeliverable/ExecutionContract` 事实参与评估；模板当前版本、名称相似对象、旧 `pms_project_phase` 和客户端门禁结论均不是运行时真值。
-2. Gate Reference 稳定类型为 `TASK/DELIVERABLE/MILESTONE/APPROVAL/PROCESS/STATE`。模板发布必须拒绝未知类型、重复引用、缺失稳定对象键、缺失该refType契约要求的`refVersion`或没有已登记 Owner Provider 的引用；已发布模板修订保持不可变。TASK/MILESTONE/DELIVERABLE等实例事实版本在命令锁内从精确实例取得，不能要求模板提前猜测运行时行版本。
-3. PROJ直接评估本 Context 的 TASK、MILESTONE、STATE；DELIVERABLE由 ACC Owner 公共事实接口提供；APPROVAL/PROCESS由相应业务 Owner 的稳定事实 Provider 提供。PROJ不得读取其他 Context 业务表，Provider不得返回或复制外域业务正文。
-4. 每个引用只产生 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`之一；同一 Gate 全部引用满足才通过，同阶段全部 EXIT Gate 通过才允许推进。已知业务未满足返回稳定未满足引用；Owner未知、不可用或事实不可判定必须失败关闭，且不得伪装成业务未满足。
+2. Gate Reference 稳定类型为 `TASK/DELIVERABLE/MILESTONE/APPROVAL/PROCESS/STATE`。模板发布必须拒绝未知类型、重复引用、缺失稳定对象键、缺失该refType契约要求的`refVersion`、没有已登记 Owner Provider 的引用、S0～S3任一阶段缺少EXIT Gate或任一EXIT Gate没有引用；已发布模板修订保持不可变。运行时若实例数据损坏并出现同类空集合，稳定返回`DEPENDENCY_UNAVAILABLE / EXIT_GATE_MISSING|EXIT_GATE_REFERENCE_MISSING`，不得以空集真值放行。TASK/MILESTONE/DELIVERABLE等实例事实版本在命令锁内从精确实例取得，不能要求模板提前猜测运行时行版本。
+3. PROJ直接评估本 Context 的TASK、MILESTONE、STATE；DELIVERABLE由ACC Owner公共事实接口提供；APPROVAL/PROCESS由BPM Owner的类型化Provider提供。六类引用的稳定键、Owner和唯一满足谓词统一冻结在10分册；PROJ不得读取其他Context业务表，Provider不得返回或复制外域业务正文。
+4. 每个引用只产生 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`之一；同一 Gate 全部引用满足才通过，同阶段全部 EXIT Gate 通过才允许推进。已知业务未满足返回稳定未满足引用；Owner未知、不可用、重复或事实不可判定必须失败关闭，且不得伪装成业务未满足。PROCESS/APPROVAL没有精确关联实例时是`*_NOT_STARTED`，运行中、驳回或撤回均不满足，只有精确版本实例批准完成才满足。
 
 ## 3. 命令与原子结果
 
@@ -34,7 +34,7 @@
 - `COPY_THEN_ENHANCE`：既有阶段快照/事件应用模式可复制增强为 `STAGE_ADVANCE`，但不得改变已批准的 PM-10 与 S4→S5 专用路径。
 - `DO_NOT_REUSE_RUNTIME / PRESERVE_EXISTING`：旧 `pms_project_phase`、旧阶段服务及旧任务/交付件平行真值。
 
-P3-E09结论为 `NO_PHYSICAL_DELTA`：现有引用类型列可承载新增受控枚举，现有阶段快照已具备 before/after stage、门禁快照、Owner事实、treeVersion、operationId、actor和唯一键。实现不得因此新增第二门禁结果表、阶段历史表或迁移脚本。
+P3-E09结论为 `NO_PHYSICAL_DELTA`：现有引用类型列可承载新增受控枚举，现有阶段快照已具备 before/after stage、门禁快照、Owner事实、treeVersion、operationId、actor和唯一键；APPROVAL/PROCESS以Flowable既有流程定义版本、固定businessKey、冻结变量和运行/历史事实形成权威关联，不新增PMS流程映射表。实现若不能从这些既有事实唯一解析精确关联，必须失败关闭并回到SDS复审，不得静默增加物理事实、推断或任选实例。
 
 ## 6. 后续 Gate
 
