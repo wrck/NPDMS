@@ -126,6 +126,24 @@ describe('F-CUT-003 mounted checklist field', () => {
     mounted.app.unmount()
   })
 
+  it('requests controlled collection with stable WireLong device and template identities', async () => {
+    const collection: unknown[][] = []
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION' },
+      directValue: '',
+      readonly: false,
+      devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
+      onCollection: (...args: unknown[]) => collection.push(args)
+    }, controls)
+    const template = findByTestId(mounted.root, 'collection-template')!
+    await (template.props?.['onUpdate:modelValue'] as (value: string) => void)('9007199254740992')
+    const requestButton = findByTestId(mounted.root, 'request-collection')!
+    await (requestButton.props?.onClick as () => Promise<void>)()
+
+    expect(collection).toEqual([['risk-check', '9007199254740991', '9007199254740992']])
+    mounted.app.unmount()
+  })
+
   it('saves a DIRECT value as JSON and hydrates the refreshed control value', async () => {
     const initialChecklist = checklistView(null)
     checklistApi.getCutoverChecklist
