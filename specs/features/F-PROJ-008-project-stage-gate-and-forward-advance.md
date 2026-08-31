@@ -10,7 +10,7 @@
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`
 > 上位决策：`ADR-0043（ACCEPTED）`
 > 适用基线：PRD V1.8；F-PROJ-008 SDS Phase 2 / P3-E09 `READY / GO`
-> Technical Plan：Feature Ready独立GO后形成唯一计划；当前不得生成
+> Technical Plan：`BLOCKED_BY_SPEC（Q-FPROJ-008）`；Feature Ready既有GO保持有效，Owner事实补充GO前不得生成计划或进入Implementation
 
 ## 1. 业务价值与最小正向闭环
 
@@ -154,4 +154,4 @@
 | 最小正向UI/浏览器验收 | PASS（已定义，未实施） |
 | 独立Feature Ready裁决 | PASS（744c70a0） |
 
-结论：`BASELINE / READY / NOT_STARTED`。允许形成并独立审核唯一Technical Plan；计划GO前不得创建Task或修改产品代码。
+结论：`BASELINE / READY / NOT_STARTED`。Feature Ready既有GO保持有效；`Q-FPROJ-008`关闭并完成上游最小补充前，不得形成Technical Plan、创建Task或修改产品代码。

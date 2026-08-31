@@ -210,6 +210,20 @@
 - Decision owner: 需求方（创建完成语义和用户效果）；PROJ、ACC领域负责人（契约和补偿）
 - Decision date: 2026-08-21
 
+### Q-FPROJ-008
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: PM-03@V1
+- Area: F-PROJ-008 PMS专用Gate流程定义启动策略Owner事实
+- Question: 在保持Yudao平台接口上游定义、禁止PMS读取BPM内部Service/Mapper/DO/表且不建立第二映射真值的前提下，哪个合法Owner接口提供冻结流程定义的`startUserIds/startDeptIds`为空及不存在发起人自选审批人策略的可重验事实？
+- Why it blocks design/implementation: Flowable只公开定义与BPMN事实，不包含Yudao两类发起白名单；当前BPM公共API也未公开该事实。Technical Plan无法同时满足“必须证明三项禁用配置为空”和“不修改Yudao、不越过BPM Owner边界”。
+- Options: A. 由更高权威明确批准极窄、只读、加性的BPM定义启动策略Fact契约及实现例外；B. 继续禁止Yudao扩展，并修订F-PROJ-008的APPROVAL/PROCESS契约或保持该路径阻断。
+- Recommended technical default: A；仅返回精确definitionId/key/version、两类白名单是否为空及BPMN是否存在START_USER_SELECT，不改变通用Controller/Service行为、不新增表。但该例外必须由需求方明确授权，当前不得自行采用。
+- Business decision required: 是。需求方须明确选择A或B；未确认前不得生成可执行Technical Plan、进入Task或Implementation。
+- Resolution: 待确认。Feature Ready既有GO保持有效；最近未满足Gate回到ADR-0043及受影响SDS/Feature的最小补充。
+- Decision owner: 需求方（Yudao扩展例外或业务范围）；BPM与PROJ Owner（契约落位）
+- Decision date: 待确认
+
 ### Q-FCUS-001
 
 - Status: RESOLVED
