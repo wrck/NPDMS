@@ -59,5 +59,6 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 | 契约 | Requirement ID | Producer | Consumer | 语义 |
 |---|---|---|---|---|
 | `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
+| `ProjectStageGateProcessOwnerApi` | PM-03@V1 | PMS Integration / Flowable | Project | 位于`pms-module-project-api`，由`pms-module-integration`实现；按受信tenant/actor、冻结definitionKey+definitionVersion、固定businessKey/变量启动精确定义ID并返回实例与定义身份。不得委托只能启动当前版本的Yudao `BpmProcessInstanceApi`，也不得修改其接口或实现。 |
 
 Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。
