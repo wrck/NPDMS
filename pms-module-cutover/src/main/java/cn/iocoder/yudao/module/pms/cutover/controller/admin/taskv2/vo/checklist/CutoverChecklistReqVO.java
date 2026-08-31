@@ -37,6 +37,15 @@ public final class CutoverChecklistReqVO {
                              Boolean required, String answerSnapshot) {
     }
 
+    public record CustomItemRemove(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
+                                   Long checklistId, Integer expectedChecklistVersion) {
+    }
+
+    public record CollectionRequest(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
+                                    Long checklistId, Integer expectedChecklistVersion,
+                                    Long deviceId, Long commandTemplateId) {
+    }
+
     public record FileFactVersion(Integer artifactVersion, Integer referenceVersion,
                                   Integer availabilityVersion) {
     }

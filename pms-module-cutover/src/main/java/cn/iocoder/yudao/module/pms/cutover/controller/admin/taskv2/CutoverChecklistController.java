@@ -7,16 +7,20 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExc
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RemoveCustomItemCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RequestCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SelectManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -117,6 +121,34 @@ public class CutoverChecklistController {
                 request.required(), request.answerSnapshot())));
     }
 
+    @DeleteMapping("/custom-items/{stableItemKey}")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistItemCommandResult> removeCustom(
+            @PathVariable("taskId") Long taskId, @PathVariable("stableItemKey") String stableItemKey,
+            @RequestBody CutoverChecklistReqVO.CustomItemRemove request) {
+        requireId(taskId);
+        require(request != null, "custom item remove request");
+        var trusted = requestContext.current();
+        return success(service.removeCustomItem(new RemoveCustomItemCommand(trusted.tenantId(), trusted.actorId(),
+                taskId, request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
+                request.expectedProjectScopeVersion(), stableItemKey)));
+    }
+
+    @PostMapping("/items/{stableItemKey}/collection-requests")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:request-collection')")
+    public CommonResult<CollectionRequestCommandResult> requestCollection(
+            @PathVariable("taskId") Long taskId, @PathVariable("stableItemKey") String stableItemKey,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestBody CutoverChecklistReqVO.CollectionRequest request) {
+        requireId(taskId);
+        require(request != null, "collection request");
+        var trusted = requestContext.current();
+        return success(service.requestCollection(new RequestCollectionCommand(trusted.tenantId(), trusted.actorId(),
+                taskId, request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
+                request.expectedProjectScopeVersion(), stableItemKey, request.deviceId(), request.commandTemplateId(),
+                header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
+    }
+
     @PostMapping("/items/{stableItemKey}/manual-results")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
     public CommonResult<ChecklistItemCommandResult> selectManual(
@@ -157,7 +189,7 @@ public class CutoverChecklistController {
             case NOT_FOUND -> 404;
             case DATA_SCOPE_FORBIDDEN -> 403;
             case STATE_CONFLICT, VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, IDEMPOTENCY_IN_PROGRESS -> 409;
-            case FILE_FACT_INVALID -> 422;
+            case FILE_FACT_INVALID, COLLECTION_FACT_INVALID -> 422;
             case INVALID_REQUEST, FROZEN_CONFIGURATION_NOT_FOUND, FROZEN_CONFIGURATION_INVALID -> 400;
         };
         CommonResult<Void> result = CommonResult.error(1_011_005_000 + exception.getCode().ordinal(),

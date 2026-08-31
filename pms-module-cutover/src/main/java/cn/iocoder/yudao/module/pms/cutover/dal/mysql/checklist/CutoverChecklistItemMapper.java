@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemApplicabilityUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCustomRemoveUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -17,4 +18,6 @@ public interface CutoverChecklistItemMapper extends BaseMapperX<CutoverChecklist
     List<CutoverChecklistItemDO> selectListByChecklist(@Param("query") CutoverChecklistItemsQuery query);
 
     int updateApplicability(@Param("query") CutoverChecklistItemApplicabilityUpdate query);
+
+    int removeCustomIfMatch(@Param("query") CutoverChecklistCustomRemoveUpdate query);
 }

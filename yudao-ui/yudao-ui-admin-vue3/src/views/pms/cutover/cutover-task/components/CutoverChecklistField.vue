@@ -10,11 +10,39 @@
         <el-tag v-if="item.currentResult" size="small" type="success">
           {{ resultLabel }}
         </el-tag>
+        <el-button
+          v-if="!readonly && item.sourceCode === 'CUSTOM' && !item.currentResult"
+          data-testid="remove-custom-item"
+          link
+          type="danger"
+          @click="emit('remove', item.stableItemKey)"
+        >移出</el-button>
       </div>
     </header>
 
+    <div v-if="item.workModeCode === 'COLLECTION'" class="collection-area">
+      <el-select v-model="selectedDeviceId" data-testid="collection-device" placeholder="选择任务设备">
+        <el-option
+          v-for="device in devices"
+          :key="String(device.deviceId)"
+          :label="device.serialNumber"
+          :value="String(device.deviceId)"
+        />
+      </el-select>
+      <el-input
+        v-model="commandTemplateId"
+        data-testid="collection-template"
+        placeholder="命令模板 ID"
+      />
+      <el-button
+        data-testid="request-collection"
+        type="primary"
+        :disabled="readonly || !selectedDeviceId || !commandTemplateId.trim()"
+        @click="requestCollection"
+      >请求采集</el-button>
+    </div>
     <el-select
-      v-if="options.length"
+      v-else-if="options.length"
       data-testid="checklist-select"
       :model-value="directValue"
       :disabled="readonly"
@@ -25,7 +53,7 @@
       <el-option v-for="option in options" :key="option.value" :label="option.label" :value="option.value" />
     </el-select>
     <el-input
-      v-else
+      v-else-if="item.workModeCode === 'DIRECT'"
       data-testid="checklist-input"
       :model-value="directValue"
       :disabled="readonly"
@@ -56,21 +84,39 @@
 import * as FileApi from '@/api/pms/platform/file'
 import type {
   ChecklistFileHandle,
-  CutoverChecklistItem
+  CutoverChecklistItem,
+  DeviceScopeEntry
 } from '@/api/pms/cutover/cutover-task'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
 
-const props = defineProps<{ item: CutoverChecklistItem; directValue: string; readonly: boolean }>()
+const props = withDefaults(defineProps<{
+  item: CutoverChecklistItem
+  directValue: string
+  readonly: boolean
+  devices: DeviceScopeEntry[]
+}>(), { devices: () => [] })
 const emit = defineEmits<{
   direct: [stableItemKey: string, value: string]
   manual: [stableItemKey: string, file: ChecklistFileHandle, factDescription: string]
+  collection: [stableItemKey: string, deviceId: string, commandTemplateId: string]
+  remove: [stableItemKey: string]
 }>()
 const factDescription = ref('')
+const selectedDeviceId = ref(props.devices[0] ? String(props.devices[0].deviceId) : '')
+const commandTemplateId = ref('')
 
 const sourceLabel = computed(() => (props.item.sourceCode === 'CUSTOM' ? '自定义项' : '配置匹配'))
 const resultLabel = computed(() =>
-  props.item.currentResult?.resultSourceCode === 'MANUAL' ? '人工证据' : '已填写'
+  props.item.currentResult?.resultSourceCode === 'MANUAL'
+    ? '人工证据'
+    : props.item.currentResult?.resultSourceCode === 'COLLECTION'
+      ? props.item.currentResult.loadFailureCode
+        ? `采集失败：${props.item.currentResult.loadFailureCode}`
+        : props.item.currentResult.collectionResultReferenceId
+          ? '采集完成'
+          : '采集中'
+      : '已填写'
 )
 const options = computed<Array<{ label: string; value: string }>>(() => {
   if (!props.item.interfaceSchemaSnapshot) return []
@@ -91,6 +137,8 @@ const options = computed<Array<{ label: string; value: string }>>(() => {
 })
 
 const updateDirect = (value: string) => emit('direct', props.item.stableItemKey, value || '')
+const requestCollection = () => emit('collection', props.item.stableItemKey,
+  selectedDeviceId.value, commandTemplateId.value.trim())
 const fileKey = (referenceKey: string) => ({
   ownerContext: 'CUT',
   objectType: 'CUTOVER_CHECKLIST_ITEM',
@@ -129,7 +177,11 @@ const completeUpload = async (selection: FileSelection) => {
 .checklist-field p { margin-top: 4px; color: var(--el-text-color-secondary); }
 .field-tags { display: flex; align-items: flex-start; gap: 6px; }
 .manual-area { margin-top: 14px; }
+.collection-area { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) auto; gap: 10px; }
 .manual-area summary { margin-bottom: 10px; cursor: pointer; color: var(--el-color-primary); }
 .manual-area :deep(.pms-file-uploader) { margin-top: 10px; }
-@media (max-width: 767px) { .checklist-field header { flex-direction: column; } }
+@media (max-width: 767px) {
+  .checklist-field header { flex-direction: column; }
+  .collection-area { grid-template-columns: 1fr; }
+}
 </style>

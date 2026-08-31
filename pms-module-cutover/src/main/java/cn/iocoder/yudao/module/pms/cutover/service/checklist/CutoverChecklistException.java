@@ -23,6 +23,7 @@ public final class CutoverChecklistException extends RuntimeException {
         VERSION_CONFLICT,
         IDEMPOTENCY_CONFLICT,
         IDEMPOTENCY_IN_PROGRESS,
-        FILE_FACT_INVALID
+        FILE_FACT_INVALID,
+        COLLECTION_FACT_INVALID
     }
 }

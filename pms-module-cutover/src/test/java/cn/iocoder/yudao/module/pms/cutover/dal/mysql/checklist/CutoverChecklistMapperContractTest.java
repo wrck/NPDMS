@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCurrentResultQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCustomRemoveUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
@@ -29,6 +30,8 @@ class CutoverChecklistMapperContractTest {
                 new CutoverChecklistRowQuery(1L, 10L, 20L));
         assertBindings(configuration, CutoverChecklistItemMapper.class.getName() + ".selectListForUpdate",
                 new CutoverChecklistItemsQuery(1L, 20L));
+        assertBindings(configuration, CutoverChecklistItemMapper.class.getName() + ".removeCustomIfMatch",
+                new CutoverChecklistCustomRemoveUpdate(1L, 30L, 0, 8L));
         assertBindings(configuration, CutoverChecklistItemResultMapper.class.getName() + ".selectCurrentForUpdate",
                 new CutoverChecklistCurrentResultQuery(1L, 30L));
     }

@@ -17,6 +17,9 @@ const checklistApi = vi.hoisted(() => ({
   getCutoverChecklist: vi.fn(),
   saveCutoverChecklist: vi.fn(),
   generateCutoverChecklist: vi.fn(),
+  addCustomChecklistItem: vi.fn(),
+  removeCustomChecklistItem: vi.fn(),
+  requestChecklistCollection: vi.fn(),
   saveManualChecklistResult: vi.fn(),
   submitCutoverChecklist: vi.fn()
 }))
@@ -44,7 +47,9 @@ const controls = {
   ElInput: passthrough,
   ElSelect: passthrough,
   ElOption: passthrough,
-  ElTag: passthrough
+  ElTag: passthrough,
+  ElButton: passthrough,
+  ElCheckbox: passthrough
 }
 const item = {
   itemId: '9007199254740995',
@@ -98,6 +103,24 @@ describe('F-CUT-003 mounted checklist field', () => {
     mounted.app.unmount()
   })
 
+  it('requests controlled collection with stable WireLong device and template identities', async () => {
+    const collection: unknown[][] = []
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION' },
+      directValue: '',
+      readonly: false,
+      devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
+      onCollection: (...args: unknown[]) => collection.push(args)
+    }, controls)
+    const template = findByTestId(mounted.root, 'collection-template')!
+    await (template.props?.['onUpdate:modelValue'] as (value: string) => void)('9007199254740992')
+    const requestButton = findByTestId(mounted.root, 'request-collection')!
+    await (requestButton.props?.onClick as () => Promise<void>)()
+
+    expect(collection).toEqual([['risk-check', '9007199254740991', '9007199254740992']])
+    mounted.app.unmount()
+  })
+
   it('saves a DIRECT value as JSON and hydrates the refreshed control value', async () => {
     const initialChecklist = checklistView(null)
     checklistApi.getCutoverChecklist
@@ -127,11 +150,34 @@ describe('F-CUT-003 mounted checklist field', () => {
     })
     mounted.app.unmount()
   })
+
+  it('adds a task-level custom item through the mounted P3 workbench', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.addCustomChecklistItem.mockResolvedValue(undefined)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+
+    const name = findByTestId(mounted.root, 'custom-item-name')!
+    await (name.props?.['onUpdate:modelValue'] as (value: string) => void)('现场补充核查')
+    const add = findByTestId(mounted.root, 'add-custom-item')!
+    await (add.props?.onClick as () => Promise<void>)()
+    await flush()
+
+    expect(checklistApi.addCustomChecklistItem).toHaveBeenCalledWith('101', expect.objectContaining({
+      checklistId: '201',
+      expectedChecklistVersion: 3,
+      itemName: '现场补充核查',
+      interfaceSchema: '{"type":"string"}'
+    }))
+    mounted.app.unmount()
+  })
 })
 
 const taskDetail = {
   task: { id: '101', currentStage: 'P3', manualGrade: 'A' },
   project: { projectScopeVersion: '12' },
+  devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
   assessment: { assessmentVersion: 2 }
 } as CutoverTaskDetail
 
@@ -155,7 +201,11 @@ const checklistView = (answerSnapshot: string | null): CutoverChecklistView => (
       resultSourceCode: 'DIRECT',
       answerSnapshot,
       factDescription: null,
-      manualEvidenceFileReference: null
+      manualEvidenceFileReference: null,
+      collectionTaskId: null,
+      collectionResultReferenceId: null,
+      collectionResultVersion: null,
+      loadFailureCode: null
     }
   }]
 })

@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistI
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCurrentResultQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistCustomRemoveUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistDraftTouchUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemApplicabilityUpdate;
@@ -33,12 +34,16 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRow
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RemoveCustomItemCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RequestCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SelectManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverCollectionPort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
@@ -64,6 +69,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException.Code.DATA_SCOPE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException.Code.COLLECTION_FACT_INVALID;
 import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException.Code.FILE_FACT_INVALID;
 import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException.Code.IDEMPOTENCY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException.Code.IDEMPOTENCY_IN_PROGRESS;
@@ -89,6 +95,7 @@ public class CutoverChecklistApplicationService {
     private final CutoverChecklistConfigurationQueryService configurationService;
     private final CutoverChecklistMatcher matcher;
     private final CutoverProjectScopePort projectScopePort;
+    private final CutoverCollectionPort collectionPort;
     private final CutoverChecklistFilePort filePort;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final Clock clock;
@@ -103,6 +110,7 @@ public class CutoverChecklistApplicationService {
                                               CutoverChecklistConfigurationQueryService configurationService,
                                               CutoverChecklistMatcher matcher,
                                               CutoverProjectScopePort projectScopePort,
+                                              CutoverCollectionPort collectionPort,
                                               CutoverChecklistFilePort filePort,
                                               PlatformCommandExecutionApi commandExecutionApi,
                                               Clock clock) {
@@ -116,6 +124,7 @@ public class CutoverChecklistApplicationService {
         this.configurationService = configurationService;
         this.matcher = matcher;
         this.projectScopePort = projectScopePort;
+        this.collectionPort = collectionPort;
         this.filePort = filePort;
         this.commandExecutionApi = commandExecutionApi;
         this.clock = clock;
@@ -196,7 +205,9 @@ public class CutoverChecklistApplicationService {
             CutoverChecklistView.CurrentResult resultView = current == null ? null
                     : new CutoverChecklistView.CurrentResult(current.getResultVersion(),
                     current.getResultSourceCode(), current.getAnswerSnapshot(), current.getFactDescription(),
-                    current.getManualEvidenceFileReference());
+                    current.getManualEvidenceFileReference(), current.getCollectionTaskId(),
+                    current.getCollectionResultReferenceId(), current.getCollectionResultVersion(),
+                    current.getLoadFailureCode());
             return new CutoverChecklistView.Item(item.getId(), item.getStableItemKey(), item.getItemTypeCode(),
                     item.getItemName(), item.getItemDescription(), item.getInterfaceFormatCode(),
                     item.getInterfaceSchemaSnapshot(), item.getWorkModeCode(),
@@ -224,6 +235,7 @@ public class CutoverChecklistApplicationService {
             require(seen.add(answer.stableItemKey()), INVALID_REQUEST, "直接填写项重复");
             CutoverChecklistItemDO item = items.get(answer.stableItemKey());
             require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "清单项不存在");
+            require("DIRECT".equals(item.getWorkModeCode()), STATE_CONFLICT, "当前清单项不支持直接填写");
             appendResult(command.tenantId(), command.actorId(), item, "DIRECT", answer.answerSnapshot(),
                     null, null, "DIRECT_SAVE");
         }
@@ -271,6 +283,51 @@ public class CutoverChecklistApplicationService {
                 VERSION_CONFLICT, "清单版本已变化");
         return new ChecklistItemCommandResult(command.checklistId(), command.expectedChecklistVersion() + 1,
                 item.getId(), stableItemKey, resultVersion);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ChecklistItemCommandResult removeCustomItem(RemoveCustomItemCommand command) {
+        requireRemoveCustom(command);
+        LockedDraft locked = lockDraft(command.tenantId(), command.actorId(), command.taskId(),
+                command.expectedTaskVersion(), command.checklistId(), command.expectedChecklistVersion(),
+                command.expectedProjectScopeVersion());
+        CutoverChecklistItemDO item = byStableKey(locked.items()).get(command.stableItemKey());
+        require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "自定义清单项不存在");
+        require("CUSTOM".equals(item.getSourceCode())
+                        && Objects.equals(item.getCustomCreatorUserId(), command.actorId()),
+                DATA_SCOPE_FORBIDDEN, "仅创建人可移出自定义清单项");
+        require(resultMapper.selectMaxVersion(new CutoverChecklistCurrentResultQuery(command.tenantId(),
+                item.getId())) == 0, STATE_CONFLICT, "已产生结果的自定义清单项不可移出");
+        require(itemMapper.removeCustomIfMatch(new CutoverChecklistCustomRemoveUpdate(command.tenantId(),
+                item.getId(), item.getVersion(), command.actorId())) == 1, VERSION_CONFLICT, "自定义清单项已变化");
+        require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
+                command.checklistId(), command.expectedChecklistVersion())) == 1,
+                VERSION_CONFLICT, "清单版本已变化");
+        return new ChecklistItemCommandResult(command.checklistId(), command.expectedChecklistVersion() + 1,
+                item.getId(), item.getStableItemKey(), null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public CollectionRequestCommandResult requestCollection(RequestCollectionCommand command) {
+        requireCollection(command);
+        PlatformCommandExecutionApi.ExecutionResult<CollectionRequestCommandResult> execution =
+                commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                                "CUT:CHECKLIST_COLLECTION:" + command.taskId() + ":" + command.stableItemKey(),
+                                command.actorId(), command.idempotencyKey()),
+                        sha256(JsonUtils.toJsonString(Map.of("taskId", command.taskId(),
+                                "taskVersion", command.expectedTaskVersion(),
+                                "checklistId", command.checklistId(),
+                                "checklistVersion", command.expectedChecklistVersion(),
+                                "projectScopeVersion", command.expectedProjectScopeVersion(),
+                                "stableItemKey", command.stableItemKey(),
+                                "deviceId", command.deviceId(),
+                                "commandTemplateId", command.commandTemplateId()))),
+                        CollectionRequestCommandResult.class, () -> requestCollectionOnce(command),
+                        result -> successFacts("CUTOVER_CHECKLIST_COLLECTION_REQUEST", result,
+                                command.correlationId()));
+        requireCompleted(execution.decision());
+        return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
+                ? execution.response().replayedCopy() : execution.response();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -428,7 +485,8 @@ public class CutoverChecklistApplicationService {
                             && Boolean.TRUE.equals(item.getApplicableFlag())),
                     STATE_CONFLICT, "配置缺口尚未通过自定义清单项补足");
         }
-        Set<Long> completed = results.stream().map(CutoverChecklistItemResultDO::getChecklistItemId)
+        Set<Long> completed = results.stream().filter(CutoverChecklistApplicationService::isCompletedResult)
+                .map(CutoverChecklistItemResultDO::getChecklistItemId)
                 .collect(Collectors.toSet());
         boolean missingRequired = items.stream().anyMatch(item -> Boolean.TRUE.equals(item.getApplicableFlag())
                 && Boolean.TRUE.equals(item.getRequiredFlag()) && !completed.contains(item.getId()));
@@ -443,6 +501,36 @@ public class CutoverChecklistApplicationService {
         return new ChecklistCommandResult(task.getId(), checklist.getId(), checklist.getChecklistVersion(),
                 command.expectedChecklistVersion() + 1, "SUBMITTED", CutoverTaskRules.STAGE_P4,
                 task.getVersion() + 1, false);
+    }
+
+    private CollectionRequestCommandResult requestCollectionOnce(RequestCollectionCommand command) {
+        LockedDraft locked = lockDraft(command.tenantId(), command.actorId(), command.taskId(),
+                command.expectedTaskVersion(), command.checklistId(), command.expectedChecklistVersion(),
+                command.expectedProjectScopeVersion());
+        CutoverChecklistItemDO item = byStableKey(locked.items()).get(command.stableItemKey());
+        require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "采集清单项不存在");
+        require("COLLECTION".equals(item.getWorkModeCode()), STATE_CONFLICT, "当前清单项不支持设备采集");
+        boolean deviceInScope = deviceMapper.selectActiveByTask(new CutoverTaskDeviceListQuery(command.tenantId(),
+                        command.taskId())).stream().anyMatch(row -> Objects.equals(row.getDeviceId(), command.deviceId()));
+        require(deviceInScope, DATA_SCOPE_FORBIDDEN, "设备不在当前割接任务范围");
+        CutoverCollectionPort.Request request = new CutoverCollectionPort.Request(command.tenantId(),
+                command.actorId(), locked.task().getProjectId(), command.taskId(), command.checklistId(),
+                locked.checklist().getChecklistVersion(), item.getId(), item.getVersion(), item.getStableItemKey(),
+                command.deviceId(), command.commandTemplateId(), command.idempotencyKey(), command.correlationId());
+        CutoverCollectionPort.RequestReceipt receipt = collectionPort.request(request);
+        require(receipt != null && positive(receipt.collectionTaskId()) && receipt.technicalStatus() != null,
+                COLLECTION_FACT_INVALID, "采集任务回执不完整");
+        CutoverCollectionPort.CollectionFact fact = collectionPort.inspect(new CutoverCollectionPort.Inspection(
+                command.tenantId(), command.actorId(), locked.task().getProjectId(), receipt.collectionTaskId(),
+                command.taskId(), command.checklistId(), item.getId(), command.deviceId(), command.commandTemplateId()));
+        requireCollectionFact(receipt, fact);
+        int resultVersion = appendCollectionResult(command.tenantId(), command.actorId(), item, fact);
+        require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
+                command.checklistId(), command.expectedChecklistVersion())) == 1,
+                VERSION_CONFLICT, "清单版本已变化");
+        return new CollectionRequestCommandResult(command.checklistId(), command.expectedChecklistVersion() + 1,
+                item.getId(), item.getStableItemKey(), resultVersion, fact.collectionTaskId(),
+                fact.technicalStatus().name(), fact.failureCode(), false);
     }
 
     private LockedDraft lockDraft(Long tenantId, Long actorId, Long taskId, Integer expectedTaskVersion,
@@ -648,6 +736,72 @@ public class CutoverChecklistApplicationService {
         return nextVersion;
     }
 
+    private int appendCollectionResult(Long tenantId, Long actorId, CutoverChecklistItemDO item,
+                                       CutoverCollectionPort.CollectionFact fact) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        CutoverChecklistCurrentResultQuery query = new CutoverChecklistCurrentResultQuery(tenantId, item.getId());
+        CutoverChecklistItemResultDO current = resultMapper.selectCurrentForUpdate(query);
+        if (current != null) {
+            require(resultMapper.closeCurrentIfMatch(new CutoverChecklistResultCloseUpdate(tenantId,
+                    current.getId(), now)) == 1, VERSION_CONFLICT, "当前清单结果已变化");
+        }
+        int nextVersion = resultMapper.selectMaxVersion(query) + 1;
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("collectionTaskId", fact.collectionTaskId());
+        snapshot.put("technicalStatus", fact.technicalStatus().name());
+        snapshot.put("resultReferenceId", fact.resultReferenceId());
+        snapshot.put("resultVersion", fact.resultVersion());
+        snapshot.put("resultSnapshot", present(fact.resultSnapshot()) ? JsonUtils.parseTree(fact.resultSnapshot()) : null);
+        snapshot.put("failureCode", fact.failureCode());
+        CutoverChecklistItemResultDO row = new CutoverChecklistItemResultDO();
+        row.setId(nextId());
+        row.setTenantId(tenantId);
+        row.setChecklistItemId(item.getId());
+        row.setResultVersion(nextVersion);
+        row.setResultSourceCode("COLLECTION");
+        row.setAnswerSnapshot(JsonUtils.toJsonString(snapshot));
+        row.setCollectionTaskId(fact.collectionTaskId());
+        row.setCollectionResultReferenceId(fact.resultReferenceId());
+        row.setCollectionResultVersion(fact.resultVersion());
+        row.setLoadFailureCode(fact.failureCode());
+        row.setSelectionStartedAt(now);
+        row.setSelectedBy(actorId);
+        row.setSelectionReasonCode("COLLECTION_RESULT_SELECTED");
+        row.setCreatedBy(actorId);
+        row.setCreatedAt(now);
+        row.setDeleted(false);
+        require(resultMapper.insert(row) == 1, STATE_CONFLICT, "采集结果保存失败");
+        return nextVersion;
+    }
+
+    private static boolean isCompletedResult(CutoverChecklistItemResultDO result) {
+        return !"COLLECTION".equals(result.getResultSourceCode())
+                || (positive(result.getCollectionResultReferenceId())
+                && positive(result.getCollectionResultVersion()) && !present(result.getLoadFailureCode()));
+    }
+
+    private static void requireCollectionFact(CutoverCollectionPort.RequestReceipt receipt,
+                                              CutoverCollectionPort.CollectionFact fact) {
+        require(fact != null && Objects.equals(receipt.collectionTaskId(), fact.collectionTaskId())
+                        && fact.technicalStatus() != null,
+                COLLECTION_FACT_INVALID, "采集事实身份不匹配");
+        if (fact.technicalStatus() == CutoverCollectionPort.TechnicalStatus.COMPLETED) {
+            require(positive(fact.resultReferenceId()) && positive(fact.resultVersion())
+                            && present(fact.resultSnapshot()) && !present(fact.failureCode()),
+                    COLLECTION_FACT_INVALID, "完成态采集事实不完整");
+            try {
+                JsonUtils.parseTree(fact.resultSnapshot());
+            } catch (RuntimeException exception) {
+                throw new CutoverChecklistException(COLLECTION_FACT_INVALID, "采集结果不是有效JSON");
+            }
+            return;
+        }
+        require(fact.resultReferenceId() == null && fact.resultVersion() == null
+                        && !present(fact.resultSnapshot()), COLLECTION_FACT_INVALID, "非完成态不得携带采集结果");
+        require(fact.technicalStatus() != CutoverCollectionPort.TechnicalStatus.FAILED
+                        || present(fact.failureCode()), COLLECTION_FACT_INVALID, "失败态缺少失败码");
+    }
+
     private void closeCurrentResult(Long tenantId, Long itemId) {
         CutoverChecklistItemResultDO current = resultMapper.selectCurrentForUpdate(
                 new CutoverChecklistCurrentResultQuery(tenantId, itemId));
@@ -691,6 +845,13 @@ public class CutoverChecklistApplicationService {
                                                                   String correlationId) {
         return new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverChecklist",
                 String.valueOf(result.checklistId()), correlationId, JsonUtils.toJsonString(result), List.of());
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts successFacts(String action,
+                                                                  CollectionRequestCommandResult result,
+                                                                  String correlationId) {
+        return new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverChecklistItem",
+                String.valueOf(result.checklistItemId()), correlationId, JsonUtils.toJsonString(result), List.of());
     }
 
     private ChecklistCommandResult result(CutoverTaskDO task, CutoverChecklistDO checklist,
@@ -748,6 +909,25 @@ public class CutoverChecklistApplicationService {
         requireText(command.itemTypeCode(), "itemTypeCode", 32);
         requireText(command.itemName(), "itemName", 255);
         requireText(command.interfaceFormatCode(), "interfaceFormatCode", 32);
+    }
+
+    private static void requireRemoveCustom(RemoveCustomItemCommand command) {
+        require(command != null && positive(command.tenantId()) && positive(command.actorId())
+                        && positive(command.taskId()) && positive(command.checklistId())
+                        && nonNegative(command.expectedTaskVersion()) && nonNegative(command.expectedChecklistVersion())
+                        && positive(command.expectedProjectScopeVersion()), INVALID_REQUEST, "移出自定义项命令非法");
+        requireText(command.stableItemKey(), "stableItemKey", 96);
+    }
+
+    private static void requireCollection(RequestCollectionCommand command) {
+        require(command != null && positive(command.tenantId()) && positive(command.actorId())
+                        && positive(command.taskId()) && positive(command.checklistId())
+                        && nonNegative(command.expectedTaskVersion()) && nonNegative(command.expectedChecklistVersion())
+                        && positive(command.expectedProjectScopeVersion()) && positive(command.deviceId())
+                        && positive(command.commandTemplateId()), INVALID_REQUEST, "采集请求命令非法");
+        requireText(command.stableItemKey(), "stableItemKey", 96);
+        requireText(command.idempotencyKey(), "Idempotency-Key", 128);
+        requireText(command.correlationId(), "correlationId", 128);
     }
 
     private static void requireManual(SelectManualResultCommand command) {

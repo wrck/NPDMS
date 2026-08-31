@@ -14,6 +14,8 @@ public record CutoverChecklistView(Long taskId, String taskStage, Integer taskVe
     }
 
     public record CurrentResult(Integer resultVersion, String resultSourceCode, String answerSnapshot,
-                                String factDescription, String manualEvidenceFileReference) {
+                                String factDescription, String manualEvidenceFileReference,
+                                Long collectionTaskId, Long collectionResultReferenceId,
+                                Long collectionResultVersion, String loadFailureCode) {
     }
 }

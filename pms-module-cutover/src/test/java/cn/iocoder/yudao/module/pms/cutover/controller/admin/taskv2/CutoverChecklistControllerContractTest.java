@@ -3,8 +3,10 @@ package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist.CutoverChecklistReqVO;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RequestCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -65,5 +67,22 @@ class CutoverChecklistControllerContractTest {
         verify(service).save(save.capture());
         assertThat(save.getValue().answers()).containsExactly(
                 new SaveChecklistCommand.DirectAnswer("risk-1", "checked"));
+
+        when(service.requestCollection(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new CollectionRequestCommandResult(41L, 2, 51L, "risk-1", 1,
+                        61L, "COMPLETED", null, false));
+        controller.requestCollection(31L, "risk-1", "collect-intent", new CutoverChecklistReqVO.CollectionRequest(
+                7, 19L, 41L, 1, 9007199254740991L, 9007199254740992L));
+        ArgumentCaptor<RequestCollectionCommand> collection =
+                ArgumentCaptor.forClass(RequestCollectionCommand.class);
+        verify(service).requestCollection(collection.capture());
+        assertThat(collection.getValue()).satisfies(command -> {
+            assertThat(command.tenantId()).isEqualTo(9L);
+            assertThat(command.actorId()).isEqualTo(12L);
+            assertThat(command.deviceId()).isEqualTo(9007199254740991L);
+            assertThat(command.commandTemplateId()).isEqualTo(9007199254740992L);
+            assertThat(command.idempotencyKey()).isEqualTo("collect-intent");
+            assertThat(command.correlationId()).isEqualTo("corr-1");
+        });
     }
 }

@@ -178,6 +178,10 @@ export interface CutoverChecklistResult {
   answerSnapshot: string
   factDescription: string | null
   manualEvidenceFileReference: string | null
+  collectionTaskId: WireLong | null
+  collectionResultReferenceId: WireLong | null
+  collectionResultVersion: WireLong | null
+  loadFailureCode: string | null
 }
 
 export interface CutoverChecklistItem {
@@ -314,6 +318,55 @@ export const saveCutoverChecklist = (
     answers: Array<{ stableItemKey: string; answerSnapshot: string }>
   }
 ) => request.put({ url: `${baseUrl}/${taskId}/checklist`, data })
+
+export const addCustomChecklistItem = (
+  taskId: WireLong,
+  data: {
+    expectedTaskVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+    itemTypeCode: string
+    itemName: string
+    itemDescription: string
+    interfaceFormatCode: string
+    interfaceSchema: string
+    required: boolean
+    answerSnapshot: string | null
+  }
+) => request.post({ url: `${baseUrl}/${taskId}/checklist/custom-items`, data })
+
+export const removeCustomChecklistItem = (
+  taskId: WireLong,
+  stableItemKey: string,
+  data: {
+    expectedTaskVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+  }
+) => request.delete({
+  url: `${baseUrl}/${taskId}/checklist/custom-items/${encodeURIComponent(stableItemKey)}`,
+  data
+})
+
+export const requestChecklistCollection = (
+  taskId: WireLong,
+  stableItemKey: string,
+  data: {
+    expectedTaskVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+    deviceId: WireLong
+    commandTemplateId: WireLong
+  },
+  idempotencyKey: string
+) => request.post({
+  url: `${baseUrl}/${taskId}/checklist/items/${encodeURIComponent(stableItemKey)}/collection-requests`,
+  data,
+  headers: { 'Idempotency-Key': idempotencyKey }
+})
 
 export const saveManualChecklistResult = (
   taskId: WireLong,

@@ -25,9 +25,21 @@
         :item="item"
         :direct-value="answers[item.stableItemKey] || ''"
         :readonly="readonly"
+        :devices="detail.devices"
         @direct="setAnswer"
         @manual="saveManual"
+        @collection="requestCollection"
+        @remove="removeCustom"
       />
+      <details v-if="checklist && !readonly" class="custom-item-area">
+        <summary>补充任务级自定义项</summary>
+        <el-input v-model="customItem.itemName" data-testid="custom-item-name" placeholder="清单项名称" />
+        <el-input v-model="customItem.itemDescription" placeholder="核查说明" />
+        <el-checkbox v-model="customItem.required">必填</el-checkbox>
+        <el-button data-testid="add-custom-item" :disabled="!customItem.itemName.trim()" @click="addCustom">
+          添加自定义项
+        </el-button>
+      </details>
       <footer v-if="checklist" class="panel-actions">
         <el-button
           v-if="!readonly"
@@ -68,6 +80,7 @@ const loading = ref(false)
 const generating = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
+const customItem = reactive({ itemName: '', itemDescription: '', required: false })
 const editable = computed(() => props.detail.task.currentStage === 'P3' && props.detail.task.manualGrade !== 'D')
 const readonly = computed(() => !editable.value || checklist.value?.status !== 'DRAFT')
 const applicableItems = computed(() => checklist.value?.items.filter((item) => item.applicable) || [])
@@ -145,6 +158,51 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
   message.success('人工证据已选为当前结果')
   await load()
 }
+const addCustom = async () => {
+  if (!checklist.value || !customItem.itemName.trim()) return
+  await CutoverApi.addCustomChecklistItem(props.detail.task.id, {
+    expectedTaskVersion: checklist.value.taskVersion,
+    expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+    checklistId: checklist.value.checklistId,
+    expectedChecklistVersion: checklist.value.checklistFactVersion,
+    itemTypeCode: 'BUSINESS_SURVEY',
+    itemName: customItem.itemName.trim(),
+    itemDescription: customItem.itemDescription.trim(),
+    interfaceFormatCode: 'TEXT',
+    interfaceSchema: '{"type":"string"}',
+    required: customItem.required,
+    answerSnapshot: null
+  })
+  customItem.itemName = ''
+  customItem.itemDescription = ''
+  customItem.required = false
+  message.success('已添加任务级自定义项')
+  await load()
+}
+const removeCustom = async (stableItemKey: string) => {
+  if (!checklist.value) return
+  await CutoverApi.removeCustomChecklistItem(props.detail.task.id, stableItemKey, {
+    expectedTaskVersion: checklist.value.taskVersion,
+    expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+    checklistId: checklist.value.checklistId,
+    expectedChecklistVersion: checklist.value.checklistFactVersion
+  })
+  message.success('已移出自定义项')
+  await load()
+}
+const requestCollection = async (stableItemKey: string, deviceId: string, commandTemplateId: string) => {
+  if (!checklist.value) return
+  await CutoverApi.requestChecklistCollection(props.detail.task.id, stableItemKey, {
+    expectedTaskVersion: checklist.value.taskVersion,
+    expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+    checklistId: checklist.value.checklistId,
+    expectedChecklistVersion: checklist.value.checklistFactVersion,
+    deviceId,
+    commandTemplateId
+  }, newIntentKey())
+  message.success('采集请求已形成当前结果')
+  await load()
+}
 const submit = async () => {
   if (!checklist.value || !props.detail.assessment) return
   submitting.value = true
@@ -170,5 +228,8 @@ watch(() => props.detail.task.id, load, { immediate: true })
 .panel-heading h3, .panel-heading p { margin: 0; }
 .panel-heading p { margin-top: 4px; color: var(--el-text-color-secondary); }
 .panel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.custom-item-area { margin-top: 14px; padding: 12px; border: 1px dashed var(--el-border-color); border-radius: 8px; }
+.custom-item-area summary { margin-bottom: 10px; cursor: pointer; }
+.custom-item-area :deep(.el-input) { margin-bottom: 10px; }
 @media (max-width: 767px) { .panel-actions { display: grid; grid-template-columns: 1fr; } }
 </style>
