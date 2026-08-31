@@ -15,6 +15,7 @@
 2. Gate Reference 稳定类型为 `TASK/DELIVERABLE/MILESTONE/APPROVAL/PROCESS/STATE`。模板发布必须拒绝未知类型、重复引用、缺失稳定对象键、缺失该refType契约要求的`refVersion`、没有已登记 Owner Provider 的引用、S0～S3任一阶段缺少EXIT Gate或任一EXIT Gate没有引用；已发布模板修订保持不可变。运行时若实例数据损坏并出现同类空集合，稳定返回`DEPENDENCY_UNAVAILABLE / EXIT_GATE_MISSING|EXIT_GATE_REFERENCE_MISSING`，不得以空集真值放行。TASK/MILESTONE/DELIVERABLE等实例事实版本在命令锁内从精确实例取得，不能要求模板提前猜测运行时行版本。
 3. PROJ直接评估本 Context 的TASK、MILESTONE、STATE；DELIVERABLE由ACC Owner公共事实接口提供；APPROVAL/PROCESS由BPM Owner的类型化Provider提供。冻结版本流程不调用只能按key启动当前活动定义的Yudao `BpmProcessInstanceApi`，而由PMS窄版本化流程Owner命令按key+正整数version解析精确定义ID后启动；接口位于`pms-module-project-api`，真实Provider位于`pms-module-integration`，不得修改Yudao基础源码。六类引用的稳定键、Owner和唯一满足谓词统一冻结在10分册；PROJ不得读取其他Context业务表，Provider不得返回或复制外域业务正文。
 4. 每个引用只产生 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`之一；同一 Gate 全部引用满足才通过，同阶段全部 EXIT Gate 通过才允许推进。已知业务未满足返回稳定未满足引用；Owner未知、不可用、重复或事实不可判定必须失败关闭，且不得伪装成业务未满足。PROCESS/APPROVAL没有精确关联实例时是`*_NOT_STARTED`，运行中、驳回或撤回均不满足，只有精确版本实例批准完成才满足。
+5. APPROVAL/PROCESS是PMS专用项目阶段Gate流程，其唯一发起授权为`pms:project:update + ProjectScope ACTION_MANAGE + 当前PROJECT_MANAGER`，由PROJ在调用版本化流程Owner命令前按当前事实重验。该专用定义禁止配置Yudao `startUserIds/startDeptIds`发起白名单及发起人自选审批人节点；模板发布时不能由BPM Provider证明两者均不存在即整版拒绝。此规则明确替代通用Yudao流程发起资格，但不替代项目服务端授权，也不适用于非Gate流程。
 
 ## 3. 命令与原子结果
 

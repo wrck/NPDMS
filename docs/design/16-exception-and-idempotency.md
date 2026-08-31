@@ -240,3 +240,5 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 失败只允许保存拒绝审计或可重试技术状态，不得把Gate标为PASSED、写成功Snapshot/Outbox或推进任一Stage。已知未满足不是依赖故障；依赖未知不得当作未满足后继续，也不得当作通过。
 
 TASK未DONE、MILESTONE未ACHIEVED、DELIVERABLE未ACCEPTED、STATE未到达，以及APPROVAL/PROCESS的未启动、整数状态`RUNNING(1)`、`REJECT(3)`或`CANCEL(4)`均是`BUSINESS_GATE`稳定未满足；APPROVAL/PROCESS只有精确冻结定义版本的最新尝试已结束且整数状态为`APPROVE(2)`才满足。key+version无唯一活动定义、多个活动实例、定义/变量/Owner版本不一致和未知状态属于`DEPENDENCY_UNAVAILABLE`，不得改用当前最新版、任选实例或把“无活动实例”解释为通过。
+
+PMS专用Gate流程发起缺`pms:project:update`、PROJECT_MANAGE范围或当前PROJECT_MANAGER关系时为`AUTHORIZATION`且零流程实例；定义含Yudao start-user白名单/部门白名单、发起人自选审批人策略，或无法证明这些专用Gate禁用项为空时为`DEPENDENCY_UNAVAILABLE`并拒绝模板发布/启动。启动只使用服务端actor设置Flowable authenticated initiator、`PROCESS_START_USER_ID`和`RUNNING(1)`；客户端占用系统变量或同operation异摘要均零实例，同operation同摘要仅返回原实例。
