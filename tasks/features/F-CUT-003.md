@@ -19,7 +19,7 @@
 
 ## Task 1：CUT清单内核与前向迁移
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@372f6895`
 
 - [x] 为`cut_task`增加冻结配置三元组，并按获批历史规则完成NEW_PLATFORM唯一补齐；LEGACY_FORWARD保持空。
 - [x] 新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`及最小权限菜单。
@@ -31,9 +31,9 @@
 
 ## Task 2：P3工作台与一次正向验收
 
-状态：`NOT_STARTED`
+状态：`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
 
-- [ ] 在生产Owner可用后接入清单REST与文件策略；依赖未到位时保持`BLOCKED_BY_DEPENDENCY`，不使用生产Fake。
+- [ ] 先用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
 - [ ] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM项、MANUAL证据、暂存和提交。
 - [ ] 完成后运行定向前端验证，并以正式身份完成一次“A级P3→生成→DIRECT+MANUAL→暂存刷新→提交→P4”真实工作台闭环。
 - [ ] 更新本Task与Feature追溯检查点，形成单一Implementation Done候选；不扩充异常Chromium矩阵。
@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`f767ffa8`；产品类型消费契约已独立GO。V148、CUT预留端口、创建冻结与P3 DEVICE_TYPE匹配已形成受控正向候选，CUT模块54/54及Reactor通过；当前Gate=Task 1 Code Review，生产Adapter、原子重验、浏览器及Done仍待集成Gate。
+> 检查点：Task 1=`PASS / GO@372f6895`；CUT冻结产品类型与P3 DEVICE_TYPE受控链已通过独立复审。当前进入Task 2，可用显式测试装配继续REST/UI正向候选；生产Adapter/原子重验/Controller激活、真实浏览器及Done仍待集成Gate。
