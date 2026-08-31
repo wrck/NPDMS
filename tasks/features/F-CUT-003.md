@@ -9,7 +9,7 @@
 > Feature Spec：`specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-003-p3-dynamic-checklist.md`
 > 前置Feature：`F-CUT-001`、`F-CUT-002`
-> 外部硬依赖：`Q-FCUT003-001`已确认来源为产品主数据，跨模块只预留公开接口；CUT可用`src/test`受控替身推进完整设备类型匹配。F-CUT-002及设备类型生产Owner仅阻断生产Controller装配、真实浏览器和Implementation Done
+> 外部硬依赖：F-AST-002已在独立分支完成公开产品类型查询；当前CUT分支只预留消费端口，并用`src/test`受控替身推进设备类型匹配。生产API集成及原子重验合同只阻断生产Controller装配、真实浏览器和Implementation Done
 
 ## 当前最小工作单元
 
@@ -24,7 +24,7 @@
 - [ ] 为`cut_task`增加冻结配置三元组，并按获批历史规则完成NEW_PLATFORM唯一补齐；LEGACY_FORWARD保持空。
 - [ ] 新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`及最小权限菜单。
 - [ ] 实现按冻结revision读取、稳定匹配、GAP/CONFLICT、DIRECT/MANUAL/CUSTOM结果和Generate/Rematch/Save/Submit命令。
-- [ ] 复用F-CUT-002 Owner锁序、平台幂等与PLT公共文件事实；产品主数据/AST设备类型只保留消费接口，使用`src/test`受控正向替身，不实现或注册跨模块生产Provider。
+- [ ] 复用F-CUT-002 Owner锁序、平台幂等与PLT公共文件事实；F-AST-002产品类型只保留CUT消费端口，使用`src/test`受控正向替身，不实现或注册跨模块生产Provider。
 - [ ] 实现完成后验证历史唯一补齐、A/B/C正向生成与保存、提交后Checklist=SUBMITTED且Task=P4；只运行CUT聚焦验证和受影响后端构建。
 
 完成口径：CUT内核与迁移具备可执行正向链后直接进入Task 2，不单独申请Implementation Done。
@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`9156a1d8`；设备类型来源确认为产品主数据，跨模块仅预留接口。CUT按受控替身继续完整正向闭环；生产Provider仅阻断生产装配、浏览器证据和Implementation Done，不再阻断Task 1实现。
+> 检查点：基线=`cc33c6ba`；分支核对确认F-COM-001与F-AST-002已在独立分支完成。CUT不扩展DeviceScope、不重复Owner，按F-AST-002公开结果预留端口并用src/test替身继续正向链；生产接线、浏览器及Done待集成Gate。

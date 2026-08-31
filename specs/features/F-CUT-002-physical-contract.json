@@ -183,9 +183,7 @@
         "serial_number_snapshot": "VARCHAR(128) NOT NULL",
         "project_assignment_version": "BIGINT NOT NULL",
         "device_type_code_snapshot": "VARCHAR(64) NULL_FOR_PRE_CONTRACT_ROWS_NEW_WRITES_NOT_NULL",
-        "device_type_source_key_snapshot": "VARCHAR(128) NULL_FOR_PRE_CONTRACT_ROWS_NEW_WRITES_NOT_NULL",
         "device_type_source_version_snapshot": "VARCHAR(128) NULL_FOR_PRE_CONTRACT_ROWS_NEW_WRITES_NOT_NULL",
-        "device_type_assignment_version": "BIGINT NULL_FOR_PRE_CONTRACT_ROWS_NEW_WRITES_NON_NEGATIVE",
         "active_marker": "TINYINT NULL",
         "version": "INT NOT NULL",
         "creator": "VARCHAR(64) NOT NULL",
@@ -194,14 +192,14 @@
         "update_time": "DATETIME(3) NOT NULL",
         "deleted": "BIT NOT NULL DEFAULT b'0'"
       },
-      "requiredFields": ["tenant_id", "cutover_task_id", "project_id", "device_id", "serial_number_snapshot", "project_assignment_version", "device_type_code_snapshot", "device_type_source_key_snapshot", "device_type_source_version_snapshot", "device_type_assignment_version", "active_marker", "version"],
+      "requiredFields": ["tenant_id", "cutover_task_id", "project_id", "device_id", "serial_number_snapshot", "project_assignment_version", "device_type_code_snapshot", "device_type_source_version_snapshot", "active_marker", "version"],
       "uniqueKeys": [
         ["tenant_id", "cutover_task_id", "device_id"],
         ["tenant_id", "project_id", "device_id", "active_marker"]
       ],
       "checks": [
         "device_id > 0 and project_assignment_version >= 0 and version >= 0",
-        "new writes require nonblank device type code/source key/source version and device_type_assignment_version >= 0",
+        "new writes require nonblank device type code and source version from the approved F-AST-002 public result",
         "normalized serial_number_snapshot length is 1..128",
         "active_marker is 1 for every active NEW_PLATFORM task device and may become null only when a later Feature ends that task"
       ],
@@ -209,10 +207,12 @@
       "legacyRule": "LEGACY_FORWARD tasks create no device-scope rows because pms_cut_task has no stable device identity or assignment version",
       "activeUniquePolicy": "NEW_PLATFORM active rows use UNIQUE(tenant_id, project_id, device_id, active_marker)",
       "deviceTypeSnapshot": {
-        "source": "AST DeviceScopeFactApi current projection from external Product Master",
-        "allowedValues": "SYSTEM pms_device_type",
+        "source": "F-AST-002 AssetProductTypeApi.getAuthorizedDeviceProductType via CUT reserved consumer port",
+        "storedFields": ["device_type_code_snapshot", "device_type_source_version_snapshot"],
         "immutability": "frozen at task creation and never rewritten by later product-master or dictionary changes",
-        "existingRows": "remain null unless an exact approved product-master source fact is available; no inferred backfill"
+        "existingRows": "remain null unless an exact approved F-AST-002 public fact is available; no inferred backfill",
+        "productionGate": "public query has no expected-version lockAndRevalidate; production adapter and atomic task-create integration require an independent gate",
+        "controlledTest": "src/test substitutes may provide complete positive facts but never enter production assembly"
       }
     },
     "cut_task_stage_history": {

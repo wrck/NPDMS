@@ -187,7 +187,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 - ConfigurationCollectionResult 与 JointDebuggingResult 消费 DAC 结果，但不持有连接参数和凭证明文。
 - ConfigurationCollectionResult完整保留原始整机Log；框/槽/板卡解析候选由AST确认后形成DeviceComponentRelation。自动匹配与人工绑定均保留来源、解析版本和证据引用。
 - ImplementationReadinessSnapshot每次评估只追加，不覆盖历史；只保存稳定ID、判定、业务版本和水位，不复制EXE-01～04正文、配置Log、设备凭证或附件。
-- 产品主数据拥有产品编码对应的设备类型赋值，SYSTEM拥有设备类型允许值；AST Device只保存带来源键、来源版本和赋值版本的当前分类投影。CUT任务创建时把该事实冻结为设备范围快照，后续产品分类变化不覆盖任务历史。
+- AST的F-AST-002拥有产品主数据受控副本及设备当前产品类型公开查询；CUT只冻结公开合同可证明的产品类型编码和来源版本，不扩展Device聚合或复制类型映射。后续产品分类变化不覆盖任务历史。
 - IMP 上传交付件，ACC 负责齐套审核和归档；文件二进制只有一个 FileArtifact 身份。
 
 ## 7. Acceptance & Closure 数据模型

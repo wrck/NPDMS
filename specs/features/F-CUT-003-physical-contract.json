@@ -50,7 +50,7 @@
   "matching": {
     "configurationIdentitySource": "task.configurationRevisionId + task.configurationCode + task.configurationRevisionNo; the frozen revision remains readable when later DISABLED; never current time, CUTOVER_DEFAULT, cutoverType or an arbitrary published revision",
     "baseDimensions": ["CUTOVER_TYPE", "NETWORK_MODE", "DEVICE_TYPE", "CUTOVER_LEVEL"],
-    "deviceTypeInput": "stable sorted distinct device_type_code_snapshot values frozen in cut_task_device_scope from AST DeviceScopeFact Product Master projection; never current Product Master/AST lookup and never productCode/productModel/conpType inference",
+    "deviceTypeInput": "stable sorted distinct device_type_code_snapshot values frozen in cut_task_device_scope from the F-AST-002 AssetProductTypeApi public fact; never current AST lookup and never productCode/productModel/conpType inference",
     "extensionDimensions": "only enabled dimensions frozen in the same published configuration revision",
     "deduplicateBy": "stableItemKey",
     "requiredMerge": "true when any compatible matched rule requires the item",
