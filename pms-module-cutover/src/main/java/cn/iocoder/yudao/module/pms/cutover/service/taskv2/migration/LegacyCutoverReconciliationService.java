@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
@@ -118,13 +119,20 @@ public class LegacyCutoverReconciliationService {
             appendIssue(tenantId, batchId, source, "SOURCE_DATA_INVALID", correlationId);
             return Outcome.ISSUE;
         }
-        ProjectOrganizationFact inspected = projectApi.inspect(new ProjectOrganizationFactQuery(legacy.getProjectId()));
-        if (inspected == null || !legacy.getProjectId().equals(inspected.projectId())) {
+        ProjectOrganizationFact inspected;
+        ProjectOrganizationFact locked;
+        try {
+            inspected = projectApi.inspect(new ProjectOrganizationFactQuery(legacy.getProjectId()));
+            if (inspected == null || !legacy.getProjectId().equals(inspected.projectId())) {
+                appendIssue(tenantId, batchId, source, "OWNER_FACT_MISMATCH", correlationId);
+                return Outcome.ISSUE;
+            }
+            locked = projectApi.lockAndRevalidate(
+                    new ProjectOrganizationFactRevalidationQuery(inspected.projectId(), inspected.projectVersion()));
+        } catch (ServiceException exception) {
             appendIssue(tenantId, batchId, source, "OWNER_FACT_MISMATCH", correlationId);
             return Outcome.ISSUE;
         }
-        ProjectOrganizationFact locked = projectApi.lockAndRevalidate(
-                new ProjectOrganizationFactRevalidationQuery(inspected.projectId(), inspected.projectVersion()));
         if (!inspected.equals(locked)) {
             appendIssue(tenantId, batchId, source, "OWNER_FACT_MISMATCH", correlationId);
             return Outcome.ISSUE;
