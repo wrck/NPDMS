@@ -100,7 +100,7 @@ const submit = async () => {
   if (!selectedCandidate.value) return
   submitting.value = true
   try {
-    await CutoverApi.createCutoverTask(buildCreateRequest(selectedCandidate.value, { ...form, serialNumbers: parsedSerials.value }), newIntentKey())
+    await CutoverApi.createCutoverTask(buildCreateRequest(selectedCandidate.value, form), newIntentKey())
     message.success('割接任务已创建并进入 P2 人工分级')
     visible.value = false
     emit('created')

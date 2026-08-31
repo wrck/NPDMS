@@ -53,12 +53,19 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
     private static CutoverTaskIntakeException map(CutoverTaskApplicationException exception) {
         CutoverTaskIntakeException.Code code = switch (exception.code()) {
             case INVALID_REQUEST -> CutoverTaskIntakeException.Code.INVALID_REQUEST;
-            case DATA_SCOPE_FORBIDDEN, NOT_FOUND -> CutoverTaskIntakeException.Code.DATA_SCOPE_FORBIDDEN;
+            case CONFIGURATION_CONFLICT -> CutoverTaskIntakeException.Code.CONFIGURATION_CONFLICT;
+            case DATA_SCOPE_FORBIDDEN, NOT_FOUND, PROJECT_SCOPE_STALE, PROJECT_CONTEXT_STALE, DEVICE_SCOPE_STALE ->
+                    CutoverTaskIntakeException.Code.DATA_SCOPE_FORBIDDEN;
             case ACTIVE_DEVICE_CONFLICT, STATE_CONFLICT, VERSION_CONFLICT ->
                     CutoverTaskIntakeException.Code.ACTIVE_DEVICE_CONFLICT;
-            case READINESS_NOT_READY -> CutoverTaskIntakeException.Code.READINESS_NOT_READY;
-            case CUSTOMER_CONTEXT_INVALID -> CutoverTaskIntakeException.Code.CUSTOMER_CONTEXT_INVALID;
-            case OWNER_PROVIDER_UNAVAILABLE -> CutoverTaskIntakeException.Code.OWNER_PROVIDER_UNAVAILABLE;
+            case READINESS_NOT_READY, IMPLEMENTATION_READINESS_STALE ->
+                    CutoverTaskIntakeException.Code.READINESS_NOT_READY;
+            case CUSTOMER_CONTEXT_INVALID, CUSTOMER_SERVICE_LEVEL_STALE ->
+                    CutoverTaskIntakeException.Code.CUSTOMER_CONTEXT_INVALID;
+            case PROJ_PROVIDER_UNAVAILABLE, AST_PROVIDER_UNAVAILABLE, CUS_PROVIDER_UNAVAILABLE,
+                    IMP_PROVIDER_UNAVAILABLE ->
+                    CutoverTaskIntakeException.Code.OWNER_PROVIDER_UNAVAILABLE;
+            case BUSINESS_GATE_INVALID -> CutoverTaskIntakeException.Code.INVALID_REQUEST;
             case IDEMPOTENCY_CONFLICT, IDEMPOTENCY_IN_PROGRESS ->
                     CutoverTaskIntakeException.Code.SOURCE_IDENTITY_CONFLICT;
         };

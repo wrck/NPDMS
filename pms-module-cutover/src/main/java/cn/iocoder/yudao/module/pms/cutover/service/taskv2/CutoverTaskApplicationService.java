@@ -108,15 +108,11 @@ public class CutoverTaskApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public CutoverTaskCommandResult create(CreateCutoverTaskCommand command) {
         requireCreate(command);
-        ResolvedContext expected = inspectContext(command.tenantId(), command.actorId(), command.projectId(),
-                command.serialNumbers());
-        requireExpectedCreateContext(command, expected);
-        requireReady(expected.readiness());
         PlatformCommandExecutionApi.ExecutionResult<CutoverTaskCommandResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUT:TASK_CREATE:" + command.projectId(), command.actorId(), command.idempotencyKey()),
                 sha256(JsonUtils.toJsonString(createDigestValue(command))), CutoverTaskCommandResult.class,
-                () -> createOnce(command, expected),
+                () -> createOnce(command),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_TASK_CREATE", "CutoverTask",
                         String.valueOf(result.taskId()), command.correlationId(), JsonUtils.toJsonString(result), List.of()));
         requireCompleted(execution.decision());
@@ -188,7 +184,11 @@ public class CutoverTaskApplicationService {
                 ? execution.response().replayedCopy() : execution.response();
     }
 
-    private CutoverTaskCommandResult createOnce(CreateCutoverTaskCommand command, ResolvedContext expected) {
+    private CutoverTaskCommandResult createOnce(CreateCutoverTaskCommand command) {
+        ResolvedContext expected = inspectContext(command.tenantId(), command.actorId(), command.projectId(),
+                command.serialNumbers());
+        requireExpectedCreateContext(command, expected);
+        requireReady(expected.readiness());
         ResolvedContext locked = lockContext(command.actorId(), expected);
         requireReady(locked.readiness());
         List<Long> deviceIds = locked.devices().stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList();
@@ -199,7 +199,7 @@ public class CutoverTaskApplicationService {
         CutoverConfigurationRevisionDO configuration = configurationMapper.selectEffectivePublished(
                 new CutoverEffectivePublishedConfigurationQuery(command.tenantId(),
                         command.configurationCode(), taskCreatedAt));
-        require(configuration != null, STATE_CONFLICT, "所选割接配置在任务创建时点无有效发布修订");
+        require(configuration != null, CONFIGURATION_CONFLICT, "所选割接配置在任务创建时点无有效发布修订");
 
         Long taskId = nextId();
         CutoverTaskDO row = new CutoverTaskDO();
@@ -300,8 +300,8 @@ public class CutoverTaskApplicationService {
                                            List<String> serialNumbers) {
         List<String> normalizedSerials = normalizeSerials(serialNumbers);
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, projectId, ACTION_EDIT);
-        require(scope != null && scope.allowed() && projectId.equals(scope.projectId()), DATA_SCOPE_FORBIDDEN,
-                "无项目编辑范围");
+        require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
+        require(scope.allowed() && projectId.equals(scope.projectId()), DATA_SCOPE_FORBIDDEN, "无项目编辑范围");
         CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(tenantId, projectId,
                 scope.projectScopeVersion());
         requireProjectContext(tenantId, projectId, scope.projectScopeVersion(), project);
@@ -314,6 +314,8 @@ public class CutoverTaskApplicationService {
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.inspect(project.customerId());
         CutoverReadinessPort.ReadinessFact readiness = readinessPort.inspect(projectId,
                 devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
+        require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+        require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
         return new ResolvedContext(project, devices, productTypesByDevice(productTypes), customer, readiness);
     }
 
@@ -322,7 +324,8 @@ public class CutoverTaskApplicationService {
         List<String> serialNumbers = rows.stream().map(CutoverTaskDeviceScopeDO::getSerialNumberSnapshot).toList();
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(
                 task.getOwnerUserId(), task.getProjectId(), ACTION_EDIT);
-        require(scope != null && scope.allowed() && task.getProjectId().equals(scope.projectId()),
+        require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
+        require(scope.allowed() && task.getProjectId().equals(scope.projectId()),
                 DATA_SCOPE_FORBIDDEN, "无项目编辑范围");
         CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(
                 task.getTenantId(), task.getProjectId(), scope.projectScopeVersion());
@@ -332,17 +335,20 @@ public class CutoverTaskApplicationService {
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.inspect(project.customerId());
         CutoverReadinessPort.ReadinessFact readiness = readinessPort.inspect(task.getProjectId(),
                 devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
+        require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+        require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
         return new ResolvedContext(project, devices, frozenProductTypes(rows), customer, readiness);
     }
 
     private ResolvedContext lockContext(Long actorId, ResolvedContext expected) {
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.lockAndRevalidate(actorId,
                 expected.project().projectId(), ACTION_EDIT, expected.project().projectScopeVersion());
-        require(scope != null && scope.allowed(), DATA_SCOPE_FORBIDDEN, "项目范围已失效");
+        require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
+        require(scope.allowed(), PROJECT_SCOPE_STALE, "项目范围已失效");
         CutoverProjectContextPort.ProjectContextFact project = projectContextPort.lockAndRevalidate(expected.project());
         requireProjectContext(expected.project().tenantId(), expected.project().projectId(),
                 expected.project().projectScopeVersion(), project);
-        require(expected.project().equals(project), VERSION_CONFLICT, "项目上下文事实已变化");
+        require(expected.project().equals(project), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
         List<CutoverDeviceScopePort.DeviceFact> devices = orderedDevices(deviceScopePort.lockAndRevalidate(
                 expected.project().projectId(), expected.devices()));
         requireEquivalentDevices(expected.devices(), devices);
@@ -353,6 +359,10 @@ public class CutoverTaskApplicationService {
         requireEquivalentProductTypes(expected.productTypesByDevice(), productTypesByDevice(productTypes));
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.lockAndRevalidate(expected.customer());
         CutoverReadinessPort.ReadinessFact readiness = readinessPort.lockAndRevalidate(expected.readiness());
+        require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+        require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
+        require(expected.customer().equals(customer), CUSTOMER_SERVICE_LEVEL_STALE, "客户服务等级事实已变化");
+        requireEquivalentReadiness(expected.readiness(), readiness);
         return new ResolvedContext(project, devices, productTypesByDevice(productTypes), customer, readiness);
     }
 
@@ -370,15 +380,20 @@ public class CutoverTaskApplicationService {
                 CutoverReadinessPort.ReadinessFact.class);
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.lockAndRevalidate(actorId,
                 project.projectId(), ACTION_EDIT, project.projectScopeVersion());
-        require(scope != null && scope.allowed(), DATA_SCOPE_FORBIDDEN, "项目范围已失效");
+        require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
+        require(scope.allowed(), PROJECT_SCOPE_STALE, "项目范围已失效");
         CutoverProjectContextPort.ProjectContextFact lockedProject = projectContextPort.lockAndRevalidate(project);
         requireProjectContext(project.tenantId(), project.projectId(), project.projectScopeVersion(), lockedProject);
-        require(project.equals(lockedProject), VERSION_CONFLICT, "项目上下文事实已变化");
+        require(project.equals(lockedProject), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
         List<CutoverDeviceScopePort.DeviceFact> lockedDevices = orderedDevices(deviceScopePort.lockAndRevalidate(
                 project.projectId(), devices));
         requireEquivalentDevices(devices, lockedDevices);
         CutoverCustomerLevelPort.CustomerLevelFact lockedCustomer = customerLevelPort.lockAndRevalidate(customer);
         CutoverReadinessPort.ReadinessFact lockedReadiness = readinessPort.lockAndRevalidate(readiness);
+        require(lockedCustomer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+        require(lockedReadiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
+        require(customer.equals(lockedCustomer), CUSTOMER_SERVICE_LEVEL_STALE, "客户服务等级事实已变化");
+        requireEquivalentReadiness(readiness, lockedReadiness);
         return new ResolvedContext(lockedProject, lockedDevices, productTypes, lockedCustomer, lockedReadiness);
     }
 
@@ -489,7 +504,7 @@ public class CutoverTaskApplicationService {
                         && normalizedText(fact.projectCode(), 64) && normalizedText(fact.customerCode(), 64)
                         && normalizedText(fact.departmentCode(), 64) && normalizedText(fact.projectName(), 255)
                         && normalizedText(fact.customerName(), 255) && normalizedText(fact.departmentName(), 255),
-                OWNER_PROVIDER_UNAVAILABLE, "项目上下文事实不完整");
+                PROJ_PROVIDER_UNAVAILABLE, "项目上下文事实不完整");
     }
 
     private static void requireEquivalentDevices(List<CutoverDeviceScopePort.DeviceFact> expected,
@@ -500,7 +515,7 @@ public class CutoverTaskApplicationService {
         Map<Long, String> actualIdentity = actual.stream().collect(Collectors.toMap(
                 CutoverDeviceScopePort.DeviceFact::deviceId,
                 d -> serialKey(d.serialNumber()) + ":" + d.projectId() + ":" + d.projectAssignmentVersion()));
-        require(expectedIdentity.equals(actualIdentity), VERSION_CONFLICT, "设备归属事实已变化");
+        require(expectedIdentity.equals(actualIdentity), DEVICE_SCOPE_STALE, "设备归属事实已变化");
     }
 
     private static void requireProductTypes(List<CutoverDeviceScopePort.DeviceFact> devices,
@@ -510,12 +525,12 @@ public class CutoverTaskApplicationService {
         Set<Long> actualIds = productTypes.stream().map(CutoverDeviceProductTypePort.ProductTypeFact::deviceId)
                 .collect(Collectors.toSet());
         require(productTypes.size() == devices.size() && actualIds.size() == productTypes.size()
-                        && expectedIds.equals(actualIds), OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不完整");
+                        && expectedIds.equals(actualIds), AST_PROVIDER_UNAVAILABLE, "设备产品类型事实不完整");
         require(productTypes.stream().allMatch(fact -> fact.enabled()
                         && "RESOLVED".equals(fact.resolutionStatus())
                         && normalizedText(fact.productTypeCode(), 64)
                         && normalizedText(fact.sourceVersion(), 128)),
-                OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
+                AST_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
     }
 
     private static void requireEquivalentProductTypes(
@@ -525,7 +540,7 @@ public class CutoverTaskApplicationService {
                 Map.Entry::getKey, entry -> entry.getValue().productTypeCode() + ":" + entry.getValue().sourceVersion()));
         Map<Long, String> actualIdentity = actual.entrySet().stream().collect(Collectors.toMap(
                 Map.Entry::getKey, entry -> entry.getValue().productTypeCode() + ":" + entry.getValue().sourceVersion()));
-        require(expectedIdentity.equals(actualIdentity), VERSION_CONFLICT, "设备产品类型事实已变化");
+        require(expectedIdentity.equals(actualIdentity), DEVICE_SCOPE_STALE, "设备产品类型事实已变化");
     }
 
     private static List<String> normalizeSerials(List<String> values) {
@@ -541,14 +556,14 @@ public class CutoverTaskApplicationService {
 
     private static List<CutoverDeviceScopePort.DeviceFact> orderedDevices(
             List<CutoverDeviceScopePort.DeviceFact> devices) {
-        require(devices != null, OWNER_PROVIDER_UNAVAILABLE, "设备事实不可用");
+        require(devices != null, AST_PROVIDER_UNAVAILABLE, "设备事实不可用");
         return devices.stream().sorted(Comparator.comparing(CutoverDeviceScopePort.DeviceFact::deviceId)).toList();
     }
 
     private static List<CutoverDeviceProductTypePort.ProductTypeFact> orderedProductTypes(
             List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes) {
         require(productTypes != null && productTypes.stream().allMatch(Objects::nonNull),
-                OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
+                AST_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
         return productTypes.stream().sorted(Comparator.comparing(
                 CutoverDeviceProductTypePort.ProductTypeFact::deviceId,
                 Comparator.nullsLast(Long::compareTo))).toList();
@@ -597,16 +612,26 @@ public class CutoverTaskApplicationService {
         require(expected != null && expected.project() != null && expected.customer() != null
                         && expected.readiness() != null && expected.devices() != null,
                 INVALID_REQUEST, "创建期望上下文不完整");
-        require(expected.project().equals(current.project()), VERSION_CONFLICT, "项目上下文事实已变化");
+        require(expected.project().equals(current.project()), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
         requireEquivalentDevices(expected.devices(), current.devices());
-        require(expected.customer().equals(current.customer()), VERSION_CONFLICT, "客户服务等级事实已变化");
+        require(expected.customer().equals(current.customer()), CUSTOMER_SERVICE_LEVEL_STALE,
+                "客户服务等级事实已变化");
         CutoverReadinessPort.ReadinessFact expectedReadiness = expected.readiness();
         CutoverReadinessPort.ReadinessFact currentReadiness = current.readiness();
         require(Objects.equals(expectedReadiness.snapshotId(), currentReadiness.snapshotId())
                         && expectedReadiness.snapshotVersion() == currentReadiness.snapshotVersion()
                         && Objects.equals(expectedReadiness.projectId(), currentReadiness.projectId())
                         && Objects.equals(expectedReadiness.deviceIds(), currentReadiness.deviceIds()),
-                VERSION_CONFLICT, "实施就绪事实已变化");
+                IMPLEMENTATION_READINESS_STALE, "实施就绪事实已变化");
+    }
+
+    private static void requireEquivalentReadiness(CutoverReadinessPort.ReadinessFact expected,
+                                                    CutoverReadinessPort.ReadinessFact actual) {
+        require(actual != null && Objects.equals(expected.snapshotId(), actual.snapshotId())
+                        && expected.snapshotVersion() == actual.snapshotVersion()
+                        && Objects.equals(expected.projectId(), actual.projectId())
+                        && Objects.equals(expected.deviceIds(), actual.deviceIds()),
+                IMPLEMENTATION_READINESS_STALE, "实施就绪事实已变化");
     }
 
     private static Object contextSnapshot(ResolvedContext context) {

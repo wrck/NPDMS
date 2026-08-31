@@ -40,7 +40,11 @@ import java.util.stream.Collectors;
 import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.DATA_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.INVALID_REQUEST;
 import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.NOT_FOUND;
-import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.AST_PROVIDER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.CUS_PROVIDER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.CONFIGURATION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.IMP_PROVIDER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.PROJ_PROVIDER_UNAVAILABLE;
 
 /** CUT只读查询编排；生产Bean在正式Owner依赖接通后统一注册。 */
 public class CutoverTaskQueryService {
@@ -91,7 +95,7 @@ public class CutoverTaskQueryService {
                                                                    List<String> serialNumbers) {
         List<String> normalized = normalizeSerials(serialNumbers);
         List<CutoverDeviceScopePort.DeviceFact> devices = deviceScopePort.resolveBySerials(normalized);
-        require(devices != null && devices.size() == normalized.size(), OWNER_PROVIDER_UNAVAILABLE,
+        require(devices != null && devices.size() == normalized.size(), AST_PROVIDER_UNAVAILABLE,
                 "设备事实不完整");
         Map<Long, List<CutoverDeviceScopePort.DeviceFact>> byProject = devices.stream()
                 .sorted(Comparator.comparing(CutoverDeviceScopePort.DeviceFact::deviceId))
@@ -106,11 +110,12 @@ public class CutoverTaskQueryService {
             CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(
                     tenantId, entry.getKey(), scope.projectScopeVersion());
             require(project != null && tenantId.equals(project.tenantId()) && entry.getKey().equals(project.projectId()),
-                    OWNER_PROVIDER_UNAVAILABLE, "项目上下文不可用");
+                    PROJ_PROVIDER_UNAVAILABLE, "项目上下文不可用");
             CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.inspect(project.customerId());
             CutoverReadinessPort.ReadinessFact readiness = readinessPort.inspect(entry.getKey(),
                     entry.getValue().stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
-            require(customer != null && readiness != null, OWNER_PROVIDER_UNAVAILABLE, "创建上下文不可用");
+            require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
+            require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
             boolean createAllowed = "READY".equals(readiness.decision())
                     && readiness.unmetCodes() != null && readiness.unmetCodes().isEmpty();
             candidates.add(new CutoverTaskViews.CreateContextCandidate(project, List.copyOf(entry.getValue()),
@@ -124,7 +129,7 @@ public class CutoverTaskQueryService {
                         tenantId, LocalDateTime.now(clock))).stream()
                 .map(CutoverTaskQueryService::configurationChoice)
                 .toList();
-        require(!choices.isEmpty(), INVALID_REQUEST, "当前没有可用的割接配置");
+        require(!choices.isEmpty(), CONFIGURATION_CONFLICT, "当前没有可用的割接配置");
         return new CutoverTaskViews.CreateContextData(List.copyOf(candidates), candidates.size() > 1,
                 choices, true);
     }
@@ -134,7 +139,7 @@ public class CutoverTaskQueryService {
                                                      int pageNo, int pageSize) {
         require(pageNo > 0 && pageSize > 0 && pageSize <= 100, INVALID_REQUEST, "分页参数非法");
         Set<Long> visible = projectScopePort.resolveAllCurrent(actorId, ACTION_VIEW);
-        require(visible != null, OWNER_PROVIDER_UNAVAILABLE, "项目范围不可用");
+        require(visible != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围不可用");
         PageParam pageParam = new PageParam();
         pageParam.setPageNo(pageNo);
         pageParam.setPageSize(pageSize);

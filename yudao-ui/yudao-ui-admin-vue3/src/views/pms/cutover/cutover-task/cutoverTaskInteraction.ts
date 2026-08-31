@@ -38,7 +38,6 @@ export const formatWireDateTime = (value: WireDateTime | null) => {
 export const buildCreateRequest = (
   candidate: CreateContextCandidate,
   form: {
-    serialNumbers: string[]
     configurationCode: string
     taskName: string
     background: string
@@ -52,7 +51,7 @@ export const buildCreateRequest = (
   return {
     projectId: candidate.project.projectId,
     configurationCode: form.configurationCode,
-    serialNumbers: form.serialNumbers,
+    serialNumbers: candidate.devices.map((device) => device.serialNumber),
     taskName: form.taskName.trim(),
     background: form.background.trim(),
     cutoverType: form.cutoverType,

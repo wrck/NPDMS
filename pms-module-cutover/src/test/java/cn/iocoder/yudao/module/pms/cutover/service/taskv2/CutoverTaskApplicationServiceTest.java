@@ -30,7 +30,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,10 +41,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class CutoverTaskApplicationServiceTest {
@@ -86,6 +89,20 @@ class CutoverTaskApplicationServiceTest {
         assertEquals("P4", submitted.currentStage());
         assertEquals("PLAN_DRAFTING", submitted.taskStatus());
         assertTrue(fixture.assessment().get().getSimpleFlow());
+    }
+
+    @Test
+    void replaysCompletedCreateBeforeReadingMutableOwnerFacts() {
+        Fixture fixture = fixture();
+        CreateCutoverTaskCommand command = createCommand("create-replay");
+
+        CutoverTaskCommandResult first = fixture.service().create(command);
+        clearInvocations(fixture.productType());
+        CutoverTaskCommandResult replay = fixture.service().create(command);
+
+        assertEquals(first.taskId(), replay.taskId());
+        assertTrue(replay.replayed());
+        verifyNoInteractions(fixture.productType());
     }
 
     private static Fixture fixture() {
@@ -220,13 +237,26 @@ class CutoverTaskApplicationServiceTest {
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {
         private final List<SuccessFacts> facts = new ArrayList<>();
+        private final Map<String, CachedResult> completed = new HashMap<>();
 
         @Override
         public <T> ExecutionResult<T> execute(IdempotencyScope scope, String requestDigest, Class<T> responseType,
                                               Supplier<T> operation, Function<T, SuccessFacts> successFactsFactory) {
+            String key = scope.scopeCode() + ":" + scope.actorId() + ":" + scope.key();
+            CachedResult cached = completed.get(key);
+            if (cached != null) {
+                if (!cached.requestDigest().equals(requestDigest)) {
+                    return new ExecutionResult<>(Decision.CONFLICT, null);
+                }
+                return new ExecutionResult<>(Decision.REPLAY_COMPLETED, responseType.cast(cached.response()));
+            }
             T result = operation.get();
             facts.add(successFactsFactory.apply(result));
+            completed.put(key, new CachedResult(requestDigest, result));
             return new ExecutionResult<>(Decision.NEW, result);
+        }
+
+        private record CachedResult(String requestDigest, Object response) {
         }
     }
 }

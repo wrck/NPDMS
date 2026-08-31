@@ -18,9 +18,14 @@ import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessP
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.result.CutoverAssessmentCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.result.CutoverTaskCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.view.CutoverTaskViews;
+import tools.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 import java.util.Objects;
@@ -35,19 +40,23 @@ public class CutoverTaskController {
     private final CutoverTaskApplicationService applicationService;
     private final CutoverTaskQueryService queryService;
     private final CutoverTaskRequestContext requestContext;
+    private final CutoverTaskRequestCodec requestCodec;
 
     public CutoverTaskController(CutoverTaskApplicationService applicationService,
                                  CutoverTaskQueryService queryService,
-                                 CutoverTaskRequestContext requestContext) {
+                                 CutoverTaskRequestContext requestContext,
+                                 CutoverTaskRequestCodec requestCodec) {
         this.applicationService = Objects.requireNonNull(applicationService);
         this.queryService = Objects.requireNonNull(queryService);
         this.requestContext = Objects.requireNonNull(requestContext);
+        this.requestCodec = Objects.requireNonNull(requestCodec);
     }
 
     @PostMapping("/actions/resolve-create-context")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
     public CommonResult<CutoverCreateContextRespVO> resolveCreateContext(
-            @RequestBody CutoverTaskReqVO.ResolveCreateContext request) {
+            @RequestBody JsonNode body) {
+        CutoverTaskReqVO.ResolveCreateContext request = requestCodec.resolveCreateContext(body);
         require(request != null && request.serialNumbers() != null, "serialNumbers");
         var trusted = requestContext.current();
         return success(createContext(queryService.resolveCreateContext(
@@ -71,7 +80,8 @@ public class CutoverTaskController {
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
     public CommonResult<CutoverTaskCommandResult> create(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody CutoverTaskReqVO.Create request) {
+            @RequestBody JsonNode body) {
+        CutoverTaskReqVO.Create request = requestCodec.create(body);
         require(request != null && request.expectedProjectContext() != null
                 && request.expectedDeviceScopeWatermark() != null, "create request");
         var trusted = requestContext.current();
@@ -118,7 +128,8 @@ public class CutoverTaskController {
     public CommonResult<CutoverAssessmentCommandResult> saveAssessment(
             @PathVariable("id") Long id, @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("Assessment-If-Match") String assessmentIfMatch,
-            @RequestBody CutoverTaskReqVO.SaveAssessment request) {
+            @RequestBody JsonNode body) {
+        CutoverTaskReqVO.SaveAssessment request = requestCodec.saveAssessment(body);
         requireId(id);
         require(request != null && request.answers() != null, "assessment request");
         var trusted = requestContext.current();
@@ -135,8 +146,10 @@ public class CutoverTaskController {
     public CommonResult<CutoverTaskCommandResult> submitAssessment(
             @PathVariable("id") Long id, @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("Assessment-If-Match") String assessmentIfMatch) {
+            @RequestHeader("Assessment-If-Match") String assessmentIfMatch,
+            @RequestBody JsonNode body) {
         requireId(id);
+        requestCodec.emptyCommand(body);
         var trusted = requestContext.current();
         return success(applicationService.submitAssessment(new SubmitCutoverAssessmentCommand(
                 trusted.tenantId(), trusted.actorId(), id, version(ifMatch), version(assessmentIfMatch),
@@ -144,18 +157,109 @@ public class CutoverTaskController {
     }
 
     @ExceptionHandler(CutoverTaskApplicationException.class)
-    public ResponseEntity<CommonResult<Void>> handleApplication(CutoverTaskApplicationException exception) {
-        int status = switch (exception.code()) {
-            case NOT_FOUND -> 404;
-            case DATA_SCOPE_FORBIDDEN -> 403;
-            case STATE_CONFLICT, VERSION_CONFLICT, ACTIVE_DEVICE_CONFLICT,
-                    IDEMPOTENCY_CONFLICT, IDEMPOTENCY_IN_PROGRESS -> 409;
-            case READINESS_NOT_READY, CUSTOMER_CONTEXT_INVALID -> 422;
-            case OWNER_PROVIDER_UNAVAILABLE -> 503;
-            case INVALID_REQUEST -> 400;
+    public ResponseEntity<CommonResult<CutoverTaskErrorData>> handleApplication(
+            CutoverTaskApplicationException exception) {
+        ErrorDescriptor descriptor = errorDescriptor(exception.code());
+        return error(descriptor.httpStatus(), errorCode(exception.code()), exception.getMessage(),
+                descriptor.category(), descriptor.reasonCode(), descriptor.recoveryAction(), descriptor.ownerContext());
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, MissingRequestHeaderException.class,
+            MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<CommonResult<CutoverTaskErrorData>> handleValidation(Exception exception) {
+        return error(400, 1_011_005_100, exception.getMessage(),
+                "VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CommonResult<CutoverTaskErrorData>> handlePermission(AccessDeniedException exception) {
+        return error(403, 1_011_005_101, exception.getMessage(),
+                "FUNCTION_PERMISSION", "FUNCTION_PERMISSION_DENIED", "REQUEST_PERMISSION", null);
+    }
+
+    private static ErrorDescriptor errorDescriptor(CutoverTaskApplicationException.Code code) {
+        return switch (code) {
+            case INVALID_REQUEST -> new ErrorDescriptor(400, "VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null);
+            case NOT_FOUND -> new ErrorDescriptor(404, "NOT_VISIBLE_OR_NOT_FOUND", "CUTOVER_TASK_NOT_VISIBLE",
+                    "RETURN_TO_LIST", null);
+            case DATA_SCOPE_FORBIDDEN -> new ErrorDescriptor(403, "DATA_SCOPE_FORBIDDEN", "PROJECT_SCOPE_DENIED",
+                    "SELECT_AUTHORIZED_CONTEXT", "PROJ");
+            case STATE_CONFLICT -> new ErrorDescriptor(409, "STATE_CONFLICT", "CUTOVER_STATE_CONFLICT",
+                    "REFRESH_TASK", null);
+            case VERSION_CONFLICT -> new ErrorDescriptor(409, "VERSION_CONFLICT", "TASK_VERSION_STALE",
+                    "REFRESH_TASK", null);
+            case CONFIGURATION_CONFLICT -> new ErrorDescriptor(409, "CONFIGURATION_CONFLICT",
+                    "CONFIGURATION_REVISION_CONFLICT", "RESELECT_CONFIGURATION", null);
+            case ACTIVE_DEVICE_CONFLICT -> new ErrorDescriptor(409, "ACTIVE_DEVICE_CONFLICT",
+                    "DEVICE_ALREADY_ACTIVE_IN_CUTOVER", "OPEN_EXISTING_TASK", "AST");
+            case PROJECT_SCOPE_STALE -> stale("PROJECT_SCOPE_STALE", "PROJ");
+            case PROJECT_CONTEXT_STALE -> stale("PROJECT_CONTEXT_STALE", "PROJ");
+            case DEVICE_SCOPE_STALE -> stale("DEVICE_SCOPE_STALE", "AST");
+            case CUSTOMER_SERVICE_LEVEL_STALE -> stale("CUSTOMER_SERVICE_LEVEL_STALE", "CUS");
+            case IMPLEMENTATION_READINESS_STALE -> stale("IMPLEMENTATION_READINESS_STALE", "IMP");
+            case READINESS_NOT_READY -> new ErrorDescriptor(422, "READINESS_NOT_READY", "IMPLEMENTATION_NOT_READY",
+                    "COMPLETE_IMPLEMENTATION_PREREQUISITES", "IMP");
+            case CUSTOMER_CONTEXT_INVALID -> new ErrorDescriptor(422, "CUSTOMER_CONTEXT_INVALID",
+                    "CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED", "COMPLETE_CUSTOMER_SERVICE_LEVEL", "CUS");
+            case BUSINESS_GATE_INVALID -> new ErrorDescriptor(422, "BUSINESS_GATE_INVALID",
+                    "BUSINESS_CONTEXT_INVALID", "CORRECT_BUSINESS_CONTEXT", null);
+            case PROJ_PROVIDER_UNAVAILABLE -> provider("PROJ_PROVIDER_UNAVAILABLE", "PROJ");
+            case AST_PROVIDER_UNAVAILABLE -> provider("AST_PROVIDER_UNAVAILABLE", "AST");
+            case CUS_PROVIDER_UNAVAILABLE -> provider("CUS_PROVIDER_UNAVAILABLE", "CUS");
+            case IMP_PROVIDER_UNAVAILABLE -> provider("IMP_PROVIDER_UNAVAILABLE", "IMP");
+            case IDEMPOTENCY_CONFLICT -> new ErrorDescriptor(409, "IDEMPOTENCY_CONFLICT",
+                    "IDEMPOTENCY_KEY_CONFLICT", "START_NEW_INTENT", null);
+            case IDEMPOTENCY_IN_PROGRESS -> new ErrorDescriptor(409, "IDEMPOTENCY_IN_PROGRESS",
+                    "IDEMPOTENCY_IN_PROGRESS", "RETRY_SAME_KEY", null);
         };
-        return ResponseEntity.status(status).body(CommonResult.error(
-                1_011_005_100 + exception.code().ordinal(), exception.getMessage()));
+    }
+
+    private static int errorCode(CutoverTaskApplicationException.Code code) {
+        return switch (code) {
+            case INVALID_REQUEST -> 1_011_005_100;
+            case NOT_FOUND -> 1_011_005_102;
+            case DATA_SCOPE_FORBIDDEN -> 1_011_005_103;
+            case STATE_CONFLICT -> 1_011_005_104;
+            case VERSION_CONFLICT -> 1_011_005_105;
+            case CONFIGURATION_CONFLICT -> 1_011_005_106;
+            case ACTIVE_DEVICE_CONFLICT -> 1_011_005_107;
+            case PROJECT_SCOPE_STALE -> 1_011_005_108;
+            case PROJECT_CONTEXT_STALE -> 1_011_005_109;
+            case DEVICE_SCOPE_STALE -> 1_011_005_110;
+            case CUSTOMER_SERVICE_LEVEL_STALE -> 1_011_005_111;
+            case IMPLEMENTATION_READINESS_STALE -> 1_011_005_112;
+            case READINESS_NOT_READY -> 1_011_005_113;
+            case CUSTOMER_CONTEXT_INVALID -> 1_011_005_114;
+            case BUSINESS_GATE_INVALID -> 1_011_005_115;
+            case PROJ_PROVIDER_UNAVAILABLE -> 1_011_005_116;
+            case AST_PROVIDER_UNAVAILABLE -> 1_011_005_117;
+            case CUS_PROVIDER_UNAVAILABLE -> 1_011_005_118;
+            case IMP_PROVIDER_UNAVAILABLE -> 1_011_005_119;
+            case IDEMPOTENCY_CONFLICT -> 1_011_005_120;
+            case IDEMPOTENCY_IN_PROGRESS -> 1_011_005_121;
+        };
+    }
+
+    private static ErrorDescriptor stale(String reasonCode, String ownerContext) {
+        return new ErrorDescriptor(409, "SCOPE_STALE", reasonCode, "REFRESH_OWNER_FACTS", ownerContext);
+    }
+
+    private static ErrorDescriptor provider(String reasonCode, String ownerContext) {
+        return new ErrorDescriptor(503, "OWNER_PROVIDER_UNAVAILABLE", reasonCode,
+                "RETRY_AFTER_OWNER_RECOVERY", ownerContext);
+    }
+
+    private static ResponseEntity<CommonResult<CutoverTaskErrorData>> error(
+            int httpStatus, int code, String message, String category, String reasonCode,
+            String recoveryAction, String ownerContext) {
+        CommonResult<CutoverTaskErrorData> result = CommonResult.error(code, message);
+        result.setData(new CutoverTaskErrorData(category, reasonCode, recoveryAction,
+                ownerContext, null, null, null));
+        return ResponseEntity.status(httpStatus).body(result);
+    }
+
+    private record ErrorDescriptor(int httpStatus, String category, String reasonCode,
+                                   String recoveryAction, String ownerContext) {
     }
 
     private static long requiredVersion(Long value, String field) {

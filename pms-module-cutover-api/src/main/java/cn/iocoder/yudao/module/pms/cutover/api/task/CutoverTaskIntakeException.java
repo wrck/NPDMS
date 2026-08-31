@@ -8,6 +8,7 @@ public final class CutoverTaskIntakeException extends RuntimeException {
     public enum Code {
         INVALID_REQUEST,
         SOURCE_IDENTITY_CONFLICT,
+        CONFIGURATION_CONFLICT,
         DATA_SCOPE_FORBIDDEN,
         ACTIVE_DEVICE_CONFLICT,
         READINESS_NOT_READY,
