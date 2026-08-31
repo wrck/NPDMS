@@ -44,11 +44,11 @@
   },
   "fact": {
     "required": ["tenantId", "projectId", "devices", "scopeWatermark"],
-    "deviceFields": ["deviceId", "serialNumber", "currentProjectId", "projectAssignmentVersion"],
+    "deviceFields": ["deviceId", "serialNumber", "currentProjectId", "projectAssignmentVersion", "deviceTypeCode", "deviceTypeSourceKey", "deviceTypeSourceVersion", "deviceTypeAssignmentVersion"],
     "deviceOrder": "DEVICE_ID_ASC",
     "scopeWatermark": {
       "type": "ORDERED_VECTOR",
-      "fields": ["deviceId", "projectAssignmentVersion"],
+      "fields": ["deviceId", "projectAssignmentVersion", "deviceTypeAssignmentVersion"],
       "order": "DEVICE_ID_ASC",
       "forbidden": ["HASH", "DIGEST", "PSEUDO_GLOBAL_VERSION", "NEW_OWNER_TABLE"]
     },
@@ -87,6 +87,13 @@
   ],
   "legacyPolicy": "AssetDeviceScopeApi_MUST_NOT_BE_ADAPTED_OR_USED_AS_FALLBACK",
   "physicalContract": "N/A_REUSE_AST_DEVICE_NO_NEW_TABLE",
-  "consumerFeatures": ["F-IMP-001", "F-IMP-002", "F-CUT-002"],
+  "deviceTypeOwnership": {
+    "assignmentOwner": "EXTERNAL_PRODUCT_MASTER",
+    "allowedValueOwner": "SYSTEM:pms_device_type",
+    "projectionOwner": "AST_DEVICE",
+    "cutoverRule": "F-CUT-002_REQUIRES_COMPLETE_CURRENT_CLASSIFICATION_AND_FREEZES_IT",
+    "forbidden": ["INFER_FROM_PRODUCT_CODE", "INFER_FROM_PRODUCT_MODEL", "INFER_FROM_CONP_TYPE", "CLIENT_VALUE", "DEFAULT_VALUE"]
+  },
+  "consumerFeatures": ["F-IMP-001", "F-IMP-002", "F-CUT-002", "F-CUT-003"],
   "implementationGate": "PROVIDER_IMPLEMENTATION_FORBIDDEN_UNTIL_PUBLIC_MACHINE_CONTRACT_GATE_GO"
 }

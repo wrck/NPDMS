@@ -108,6 +108,19 @@
       ]
     },
     {
+      "featureId": "F-CUT-003",
+      "featurePath": "specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md",
+      "taskPath": "tasks/features/F-CUT-003.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "CUT-03@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-IMP-001",
       "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
       "taskPath": "tasks/features/F-IMP-001.md",
@@ -1300,7 +1313,15 @@
       "businessResult": "割接采集清单动态多维绑定生成的V1主交付业务结果",
       "versionBoundary": "V1清单管理；V2导出与流程跳转",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-003",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md",
+          "taskPath": "tasks/features/F-CUT-003.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-04@V1",

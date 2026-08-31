@@ -24,6 +24,7 @@
 - 所有新增Mapper查询遵守`docs/coding/database-query-interface.md`：场景Query单参数、锁查询进入XML、禁止SQL注解和Service拼SQL。
 - 写事务首锁必须是`ProjectScopeApi.lockAndRevalidate`，随后遵守F-CUT-002既有Owner顺序，再锁`CutoverTask → submitted assessment → checklist → stableItemKey顺序items`。
 - F-CUT-002生产Owner未接通时，不注册Fake到生产，不以测试替身、手工SQL或内部API声明浏览器闭环及Implementation Done。
+- 产品主数据/AST设备类型Provider未接通时，CUT只保留消费接口；`src/test`受控替身可驱动设备类型正向匹配，不阻断Task 1、REST/UI候选或聚焦验证。
 
 ---
 
@@ -57,7 +58,7 @@
 
 `CutoverChecklistConfigurationQueryService.resolveFrozen(MatchInput)`只按任务冻结三元组读取同一配置修订及其全部启用定义/规则；该revision后来`DISABLED`仍可读取，DRAFT或身份不一致失败。`MatchInput`冻结：
 
-- `cutoverType`、`networkMode`、稳定排序的设备类型集合、`manualGrade`；
+- `cutoverType`、`networkMode`、从`cut_task_device_scope.device_type_code_snapshot`去重稳定排序得到的设备类型集合、`manualGrade`；该快照由F-CUT-002创建时从AST产品主数据投影冻结，P3不重新查询或推断；
 - 版本升级场景的当前/升级后版本；
 - 配置修订中启用的扩展维度；
 - `configurationRevisionId/configurationCode/configurationRevisionNo`；
@@ -167,7 +168,7 @@ Task 1结束不单独申请Implementation Done；若CUT内核与V147验证通过
 
 ## 7. 风险、依赖与回退
 
-- **F-CUT-002生产Owner未接通：** 不阻断Task 1和Task 2静态页面实现，但继续阻断Controller生产装配、真实浏览器和Implementation Done；CUT不得复制PROJ/AST/CUS/IMP Owner。
+- **F-CUT-002及设备类型生产Owner未接通：** 不阻断Task 1、REST/UI候选和受控正向验证，但继续阻断Controller生产装配、真实浏览器和Implementation Done；CUT不得复制PROJ/AST/CUS/IMP或产品主数据Owner。
 - **INT-12/外部Provider未实现：** 不阻断V1正向闭环；页面展示稳定不可用事实并允许MANUAL，不能把人工结果写成自动成功。
 - **共享Flyway竞争：** 落文件前重新读取最高版本；只前向改本迁移版本号，不修改已执行迁移。
 - **任务配置身份缺失或冲突：** 新任务创建前已冻结三元组；V147存量补齐零/多候选整批失败；P3不重选。缺规则允许GAP+CUSTOM，定义冲突必须显式选择，生产配置错误不通过硬编码默认值掩盖。

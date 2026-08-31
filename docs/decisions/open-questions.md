@@ -493,18 +493,18 @@
 
 ### Q-FCUT003-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED / PENDING_INDEPENDENT_REVIEW
 - Requirement IDs: CUT-03、CUT-07
 - Area: P3动态清单的设备类型匹配输入Owner
 - Question: 每台设备的`deviceTypeCode`应由哪个权威来源赋值并由哪个领域Owner维护，才能在割接任务创建时冻结为P3匹配输入？
-- Why it blocks design/implementation: F-CUT-003已锁定`DEVICE_TYPE`为基础匹配维度，但AST设备范围Fact、CUT任务设备范围和现有资产字段均没有该事实；SYSTEM只拥有`pms_device_type`值域。CUT不能从产品编码、产品型号、CONP类型、字典值或客户端输入推断设备类型。
+- Why it blocks design/implementation: F-CUT-003已锁定`DEVICE_TYPE`为基础匹配维度，但AST设备范围Fact、CUT任务设备范围和现有资产字段均没有该事实；SYSTEM只拥有`pms_device_type`值域。CUT不能从产品编码、产品型号、CONP类型、字典值或客户端输入推断设备类型。该缺口不阻断CUT按预留接口和`src/test`受控替身推进内核，只阻断生产接线、真实浏览器证据和Implementation Done。
 - Options: A. AST Device聚合拥有设备类型赋值，明确权威来源及创建/更新规则并经SYSTEM字典校验；B. 引用另一个已批准Owner的稳定设备类型Fact；C. 调整CUT-03，使V1不以设备类型作为匹配维度。
 - Recommended technical default: A；SYSTEM继续拥有值域，AST拥有设备赋值，F-CUT-002在任务创建时冻结快照，F-CUT-003只消费任务快照。
-- Business decision required: 是。必须确认赋值来源；在确认前不得只加字段，也不得用`productCode/productModel/conpType`或默认值回填。
-- Resolution: 待确认。
-- Blocking scope: F-CUT-003完整Task 1、用户REST/工作台正向闭环；已完成且不依赖设备类型的Generate/Rematch/Query独立切片不回退。
+- Business decision required: 已完成。需求方确认设备类型赋值来源为产品主数据。
+- Resolution: 产品主数据拥有产品编码对应的`deviceTypeCode`及来源版本；SYSTEM继续拥有`pms_device_type`允许值；AST保存当前投影并通过现有`DeviceScopeFactApi`提供，F-CUT-002创建任务时冻结精确快照，F-CUT-003只消费任务快照。禁止从产品编码、型号、CONP或默认值推断。精确契约见ADR-0037；独立复审前后均只推进CUT自有闭环，跨模块实现不在本Feature。
+- Blocking scope: 在ADR-0037及对应SDS/Feature契约独立GO前，F-CUT-003完整Task 1、用户REST/工作台正向闭环仍阻断；已完成且不依赖设备类型的Generate/Rematch/Query独立切片不回退。
 - Decision owner: 需求方；AST、SYSTEM、CUT领域Owner参与裁决
-- Decision date: 待确认
+- Decision date: 2026-08-31
 
 ## F-IMP-002 Task 5B 裁决项
 
