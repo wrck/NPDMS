@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.SubmitCutoverA
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverCustomerLevelPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceProductTypePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessPort;
@@ -61,6 +62,8 @@ class CutoverTaskApplicationServiceTest {
         assertEquals(List.of("P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED"), fixture.history().stream()
                 .map(CutoverTaskStageHistoryDO::getTriggerType).toList());
         assertEquals(2, fixture.platform().facts.size());
+        assertEquals("ROUTER", fixture.deviceRows().getFirst().getDeviceTypeCodeSnapshot());
+        assertEquals("pt-v1", fixture.deviceRows().getFirst().getDeviceTypeSourceVersionSnapshot());
     }
 
     @Test
@@ -87,6 +90,7 @@ class CutoverTaskApplicationServiceTest {
         CutoverProjectScopePort projectScope = mock(CutoverProjectScopePort.class);
         CutoverProjectContextPort projectContext = mock(CutoverProjectContextPort.class);
         CutoverDeviceScopePort deviceScope = mock(CutoverDeviceScopePort.class);
+        CutoverDeviceProductTypePort productType = mock(CutoverDeviceProductTypePort.class);
         CutoverCustomerLevelPort customerLevel = mock(CutoverCustomerLevelPort.class);
         CutoverReadinessPort readiness = mock(CutoverReadinessPort.class);
         DirectPlatform platform = new DirectPlatform();
@@ -103,6 +107,9 @@ class CutoverTaskApplicationServiceTest {
                         300L, "OFFICE-300", "一号办事处", 7L);
         List<CutoverDeviceScopePort.DeviceFact> devices = List.of(
                 new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L));
+        List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes = List.of(
+                new CutoverDeviceProductTypePort.ProductTypeFact(400L, "ROUTER", true, "pt-v1",
+                        "RESOLVED", "FRESH", LocalDateTime.of(2026, 8, 31, 0, 0), false));
         CutoverCustomerLevelPort.CustomerLevelFact customerFact =
                 new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
                         500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
@@ -116,6 +123,7 @@ class CutoverTaskApplicationServiceTest {
         when(projectContext.lockAndRevalidate(projectFact)).thenReturn(projectFact);
         when(deviceScope.resolveBySerials(List.of("SN-400"))).thenReturn(devices);
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
+        when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);
         when(customerLevel.lockAndRevalidate(customerFact)).thenReturn(customerFact);
         when(readiness.inspect(100L, List.of(400L))).thenReturn(readinessFact);
@@ -165,9 +173,9 @@ class CutoverTaskApplicationServiceTest {
 
         CutoverTaskApplicationService service = new CutoverTaskApplicationService(taskMapper, deviceMapper,
                 historyMapper, assessmentMapper, configurationMapper, projectScope, projectContext,
-                deviceScope, customerLevel,
+                deviceScope, productType, customerLevel,
                 readiness, platform, Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC));
-        return new Fixture(service, task, assessment, history, platform);
+        return new Fixture(service, task, assessment, deviceRows, history, platform);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
@@ -189,6 +197,7 @@ class CutoverTaskApplicationServiceTest {
 
     private record Fixture(CutoverTaskApplicationService service, AtomicReference<CutoverTaskDO> task,
                            AtomicReference<CutoverAssessmentDO> assessment,
+                           List<CutoverTaskDeviceScopeDO> deviceRows,
                            List<CutoverTaskStageHistoryDO> history, DirectPlatform platform) {
     }
 

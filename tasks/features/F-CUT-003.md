@@ -19,13 +19,13 @@
 
 ## Task 1：CUT清单内核与前向迁移
 
-状态：`IN_PROGRESS`
+状态：`CODE_REVIEW_REQUIRED`
 
-- [ ] 为`cut_task`增加冻结配置三元组，并按获批历史规则完成NEW_PLATFORM唯一补齐；LEGACY_FORWARD保持空。
-- [ ] 新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`及最小权限菜单。
-- [ ] 实现按冻结revision读取、稳定匹配、GAP/CONFLICT、DIRECT/MANUAL/CUSTOM结果和Generate/Rematch/Save/Submit命令。
-- [ ] 复用F-CUT-002 Owner锁序、平台幂等与PLT公共文件事实；F-AST-002产品类型只保留CUT消费端口，使用`src/test`受控正向替身，不实现或注册跨模块生产Provider。
-- [ ] 实现完成后验证历史唯一补齐、A/B/C正向生成与保存、提交后Checklist=SUBMITTED且Task=P4；只运行CUT聚焦验证和受影响后端构建。
+- [x] 为`cut_task`增加冻结配置三元组，并按获批历史规则完成NEW_PLATFORM唯一补齐；LEGACY_FORWARD保持空。
+- [x] 新建`cut_cutover_checklist`、`cut_cutover_checklist_item`、`cut_cutover_checklist_item_result`及最小权限菜单。
+- [x] 实现按冻结revision读取、稳定匹配、GAP/CONFLICT、DIRECT/MANUAL/CUSTOM结果和Generate/Rematch/Save/Submit命令。
+- [x] 复用F-CUT-002 Owner锁序、平台幂等与PLT公共文件事实；F-AST-002产品类型只保留CUT消费端口，使用`src/test`受控正向替身，不实现或注册跨模块生产Provider。
+- [x] 验证历史唯一补齐、A/B/C正向生成与保存、提交后Checklist=SUBMITTED且Task=P4；CUT模块54/54及受影响Reactor构建通过。
 
 完成口径：CUT内核与迁移具备可执行正向链后直接进入Task 2，不单独申请Implementation Done。
 
@@ -43,4 +43,4 @@
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：基线=`cc33c6ba`；分支核对确认F-COM-001与F-AST-002已在独立分支完成。CUT不扩展DeviceScope、不重复Owner，按F-AST-002公开结果预留端口并用src/test替身继续正向链；生产接线、浏览器及Done待集成Gate。
+> 检查点：基线=`f767ffa8`；产品类型消费契约已独立GO。V148、CUT预留端口、创建冻结与P3 DEVICE_TYPE匹配已形成受控正向候选，CUT模块54/54及Reactor通过；当前Gate=Task 1 Code Review，生产Adapter、原子重验、浏览器及Done仍待集成Gate。

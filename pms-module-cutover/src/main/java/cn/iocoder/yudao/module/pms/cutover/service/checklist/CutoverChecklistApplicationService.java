@@ -23,10 +23,12 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChec
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverFrozenConfigurationQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverAssessmentRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskChecklistSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceListQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
@@ -78,6 +80,7 @@ public class CutoverChecklistApplicationService {
     private static final Snowflake ID_GENERATOR = IdUtil.getSnowflake();
 
     private final CutoverTaskMapper taskMapper;
+    private final CutoverTaskDeviceScopeMapper deviceMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverTaskStageHistoryMapper historyMapper;
     private final CutoverChecklistMapper checklistMapper;
@@ -91,6 +94,7 @@ public class CutoverChecklistApplicationService {
     private final Clock clock;
 
     public CutoverChecklistApplicationService(CutoverTaskMapper taskMapper,
+                                              CutoverTaskDeviceScopeMapper deviceMapper,
                                               CutoverAssessmentMapper assessmentMapper,
                                               CutoverTaskStageHistoryMapper historyMapper,
                                               CutoverChecklistMapper checklistMapper,
@@ -103,6 +107,7 @@ public class CutoverChecklistApplicationService {
                                               PlatformCommandExecutionApi commandExecutionApi,
                                               Clock clock) {
         this.taskMapper = taskMapper;
+        this.deviceMapper = deviceMapper;
         this.assessmentMapper = assessmentMapper;
         this.historyMapper = historyMapper;
         this.checklistMapper = checklistMapper;
@@ -517,6 +522,19 @@ public class CutoverChecklistApplicationService {
         if (present(task.getNetworkMode())) {
             dimensions.put("NETWORK_MODE", List.of(task.getNetworkMode()));
         }
+        List<String> deviceTypeCodes = deviceMapper.selectActiveByTask(new CutoverTaskDeviceListQuery(
+                        task.getTenantId(), task.getId())).stream()
+                .map(row -> {
+                    require(present(row.getDeviceTypeCodeSnapshot())
+                                    && present(row.getDeviceTypeSourceVersionSnapshot()),
+                            STATE_CONFLICT, "任务设备产品类型快照不完整");
+                    return row.getDeviceTypeCodeSnapshot();
+                })
+                .distinct()
+                .sorted()
+                .toList();
+        require(!deviceTypeCodes.isEmpty(), STATE_CONFLICT, "任务设备产品类型快照不存在");
+        dimensions.put("DEVICE_TYPE", deviceTypeCodes);
         dimensions.put("MANUAL_GRADE", List.of(task.getManualGrade()));
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("taskId", task.getId());

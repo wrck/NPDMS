@@ -19,6 +19,8 @@ public class CutoverTaskDeviceScopeDO extends TenantBaseDO {
     private Long deviceId;
     private String serialNumberSnapshot;
     private Long projectAssignmentVersion;
+    private String deviceTypeCodeSnapshot;
+    private String deviceTypeSourceVersionSnapshot;
     private Integer activeMarker;
     @Version
     private Integer version;

@@ -5,12 +5,14 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverCheck
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
@@ -93,6 +95,7 @@ class CutoverChecklistApplicationServiceTest {
 
     private static Fixture fixture() {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
+        CutoverTaskDeviceScopeMapper deviceMapper = mock(CutoverTaskDeviceScopeMapper.class);
         CutoverAssessmentMapper assessmentMapper = mock(CutoverAssessmentMapper.class);
         CutoverTaskStageHistoryMapper historyMapper = mock(CutoverTaskStageHistoryMapper.class);
         CutoverChecklistMapper checklistMapper = mock(CutoverChecklistMapper.class);
@@ -108,6 +111,16 @@ class CutoverChecklistApplicationServiceTest {
         List<CutoverChecklistItemDO> items = new ArrayList<>();
         List<CutoverChecklistItemResultDO> results = new ArrayList<>();
         List<CutoverTaskStageHistoryDO> history = new ArrayList<>();
+        CutoverTaskDeviceScopeDO device = new CutoverTaskDeviceScopeDO();
+        device.setTenantId(1L);
+        device.setCutoverTaskId(1000L);
+        device.setProjectId(10L);
+        device.setDeviceId(400L);
+        device.setSerialNumberSnapshot("SN-400");
+        device.setProjectAssignmentVersion(9L);
+        device.setDeviceTypeCodeSnapshot("ROUTER");
+        device.setDeviceTypeSourceVersionSnapshot("pt-v1");
+        device.setActiveMarker(1);
 
         CutoverAssessmentDO assessment = new CutoverAssessmentDO();
         assessment.setId(2000L);
@@ -123,13 +136,14 @@ class CutoverChecklistApplicationServiceTest {
                 4000L, "SYS-IP", 1, "TEXT", "管理地址", null, "TEXT",
                 "{\"type\":\"string\"}", "DIRECT", true, 10)),
                 List.of(new CutoverFrozenConfiguration.BindingRule(5000L, "RULE-IP", 4000L, 1,
-                        "{\"CUTOVER_TYPE\":[\"配置变更\"]}", 100, true, 0)));
+                        "{\"CUTOVER_TYPE\":[\"配置变更\"],\"DEVICE_TYPE\":[\"ROUTER\"]}", 100, true, 0)));
         CutoverProjectScopePort.ProjectScopeFact scope = new CutoverProjectScopePort.ProjectScopeFact(10L, 7L, true);
         CutoverChecklistFilePort.FileFactVersion fileVersion =
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
 
         when(taskMapper.selectById(1000L)).thenAnswer(ignored -> task.get());
         when(taskMapper.selectForUpdate(any())).thenAnswer(ignored -> task.get());
+        when(deviceMapper.selectActiveByTask(any())).thenReturn(List.of(device));
         when(assessmentMapper.selectForUpdate(any())).thenReturn(assessment);
         when(scopePort.inspect(8L, 10L, "ACTION_EDIT")).thenReturn(scope);
         when(scopePort.inspect(8L, 10L, "ACTION_VIEW")).thenReturn(scope);
@@ -231,7 +245,7 @@ class CutoverChecklistApplicationServiceTest {
                 new CutoverChecklistFilePort.FileFact(90L, 2, "ref-90", fileVersion, 7L, "sha-90"));
 
         CutoverChecklistApplicationService service = new CutoverChecklistApplicationService(taskMapper,
-                assessmentMapper, historyMapper, checklistMapper, itemMapper, resultMapper, configurationService,
+                deviceMapper, assessmentMapper, historyMapper, checklistMapper, itemMapper, resultMapper, configurationService,
                 new CutoverChecklistMatcher(), scopePort, filePort, platform,
                 Clock.fixed(Instant.parse("2026-08-31T02:00:00Z"), ZoneOffset.UTC));
         return new Fixture(service, task, results, history, platform);

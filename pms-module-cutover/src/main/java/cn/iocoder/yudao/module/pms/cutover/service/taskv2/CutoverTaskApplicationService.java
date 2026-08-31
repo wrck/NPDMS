@@ -29,6 +29,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessme
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverCustomerLevelPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceProductTypePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessPort;
@@ -42,6 +43,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -50,6 +52,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException.Code.*;
@@ -68,6 +71,7 @@ public class CutoverTaskApplicationService {
     private final CutoverProjectScopePort projectScopePort;
     private final CutoverProjectContextPort projectContextPort;
     private final CutoverDeviceScopePort deviceScopePort;
+    private final CutoverDeviceProductTypePort deviceProductTypePort;
     private final CutoverCustomerLevelPort customerLevelPort;
     private final CutoverReadinessPort readinessPort;
     private final PlatformCommandExecutionApi commandExecutionApi;
@@ -81,6 +85,7 @@ public class CutoverTaskApplicationService {
                                          CutoverProjectScopePort projectScopePort,
                                          CutoverProjectContextPort projectContextPort,
                                          CutoverDeviceScopePort deviceScopePort,
+                                         CutoverDeviceProductTypePort deviceProductTypePort,
                                          CutoverCustomerLevelPort customerLevelPort,
                                          CutoverReadinessPort readinessPort,
                                          PlatformCommandExecutionApi commandExecutionApi,
@@ -93,6 +98,7 @@ public class CutoverTaskApplicationService {
         this.projectScopePort = projectScopePort;
         this.projectContextPort = projectContextPort;
         this.deviceScopePort = deviceScopePort;
+        this.deviceProductTypePort = deviceProductTypePort;
         this.customerLevelPort = customerLevelPort;
         this.readinessPort = readinessPort;
         this.commandExecutionApi = commandExecutionApi;
@@ -231,6 +237,7 @@ public class CutoverTaskApplicationService {
         row.setUpdateTime(taskCreatedAt);
         require(taskMapper.insert(row) == 1, STATE_CONFLICT, "割接任务创建失败");
         for (CutoverDeviceScopePort.DeviceFact device : locked.devices()) {
+            CutoverDeviceProductTypePort.ProductTypeFact productType = locked.productTypesByDevice().get(device.deviceId());
             CutoverTaskDeviceScopeDO link = new CutoverTaskDeviceScopeDO();
             link.setId(nextId());
             link.setTenantId(command.tenantId());
@@ -239,6 +246,8 @@ public class CutoverTaskApplicationService {
             link.setDeviceId(device.deviceId());
             link.setSerialNumberSnapshot(device.serialNumber());
             link.setProjectAssignmentVersion(device.projectAssignmentVersion());
+            link.setDeviceTypeCodeSnapshot(productType.productTypeCode());
+            link.setDeviceTypeSourceVersionSnapshot(productType.sourceVersion());
             link.setActiveMarker(1);
             link.setVersion(0);
             link.setCreator(String.valueOf(command.actorId()));
@@ -297,10 +306,14 @@ public class CutoverTaskApplicationService {
         requireProjectContext(tenantId, projectId, scope.projectScopeVersion(), project);
         List<CutoverDeviceScopePort.DeviceFact> devices = orderedDevices(deviceScopePort.resolveBySerials(normalizedSerials));
         requireDevices(projectId, normalizedSerials, devices);
+        List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes = orderedProductTypes(
+                deviceProductTypePort.resolveAuthorized(actorId,
+                        devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList()));
+        requireProductTypes(devices, productTypes);
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.inspect(project.customerId());
         CutoverReadinessPort.ReadinessFact readiness = readinessPort.inspect(projectId,
                 devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
-        return new ResolvedContext(project, devices, customer, readiness);
+        return new ResolvedContext(project, devices, productTypesByDevice(productTypes), customer, readiness);
     }
 
     private ResolvedContext inspectStoredContext(CutoverTaskDO task) {
@@ -320,9 +333,14 @@ public class CutoverTaskApplicationService {
         List<CutoverDeviceScopePort.DeviceFact> devices = orderedDevices(deviceScopePort.lockAndRevalidate(
                 expected.project().projectId(), expected.devices()));
         requireEquivalentDevices(expected.devices(), devices);
+        List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes = orderedProductTypes(
+                deviceProductTypePort.resolveAuthorized(actorId,
+                        devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList()));
+        requireProductTypes(devices, productTypes);
+        requireEquivalentProductTypes(expected.productTypesByDevice(), productTypesByDevice(productTypes));
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.lockAndRevalidate(expected.customer());
         CutoverReadinessPort.ReadinessFact readiness = readinessPort.lockAndRevalidate(expected.readiness());
-        return new ResolvedContext(project, devices, customer, readiness);
+        return new ResolvedContext(project, devices, productTypesByDevice(productTypes), customer, readiness);
     }
 
     private ResolvedContext lockStoredContext(Long actorId, CutoverTaskDO task,
@@ -332,11 +350,17 @@ public class CutoverTaskApplicationService {
         List<CutoverDeviceScopePort.DeviceFact> devices = storedDevices.stream()
                 .map(row -> new CutoverDeviceScopePort.DeviceFact(row.getDeviceId(), row.getSerialNumberSnapshot(),
                         row.getProjectId(), row.getProjectAssignmentVersion())).toList();
+        Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypes = productTypesByDevice(storedDevices.stream()
+                .map(row -> new CutoverDeviceProductTypePort.ProductTypeFact(row.getDeviceId(),
+                        row.getDeviceTypeCodeSnapshot(), true, row.getDeviceTypeSourceVersionSnapshot(),
+                        "RESOLVED", "FROZEN", null, false))
+                .sorted(Comparator.comparing(CutoverDeviceProductTypePort.ProductTypeFact::deviceId))
+                .toList());
         CutoverCustomerLevelPort.CustomerLevelFact customer = JsonUtils.parseObject(task.getCustomerContextSnapshot(),
                 CutoverCustomerLevelPort.CustomerLevelFact.class);
         CutoverReadinessPort.ReadinessFact readiness = JsonUtils.parseObject(task.getReadinessContextSnapshot(),
                 CutoverReadinessPort.ReadinessFact.class);
-        return lockContext(actorId, new ResolvedContext(project, devices, customer, readiness));
+        return lockContext(actorId, new ResolvedContext(project, devices, productTypes, customer, readiness));
     }
 
     private List<CutoverTaskDeviceScopeDO> storedDevices(Long tenantId, Long taskId) {
@@ -460,6 +484,31 @@ public class CutoverTaskApplicationService {
         require(expectedIdentity.equals(actualIdentity), VERSION_CONFLICT, "设备归属事实已变化");
     }
 
+    private static void requireProductTypes(List<CutoverDeviceScopePort.DeviceFact> devices,
+                                            List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes) {
+        Set<Long> expectedIds = devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId)
+                .collect(Collectors.toSet());
+        Set<Long> actualIds = productTypes.stream().map(CutoverDeviceProductTypePort.ProductTypeFact::deviceId)
+                .collect(Collectors.toSet());
+        require(productTypes.size() == devices.size() && actualIds.size() == productTypes.size()
+                        && expectedIds.equals(actualIds), OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不完整");
+        require(productTypes.stream().allMatch(fact -> fact.enabled()
+                        && "RESOLVED".equals(fact.resolutionStatus())
+                        && normalizedText(fact.productTypeCode(), 64)
+                        && normalizedText(fact.sourceVersion(), 128)),
+                OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
+    }
+
+    private static void requireEquivalentProductTypes(
+            Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> expected,
+            Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> actual) {
+        Map<Long, String> expectedIdentity = expected.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey, entry -> entry.getValue().productTypeCode() + ":" + entry.getValue().sourceVersion()));
+        Map<Long, String> actualIdentity = actual.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey, entry -> entry.getValue().productTypeCode() + ":" + entry.getValue().sourceVersion()));
+        require(expectedIdentity.equals(actualIdentity), VERSION_CONFLICT, "设备产品类型事实已变化");
+    }
+
     private static List<String> normalizeSerials(List<String> values) {
         require(values != null && !values.isEmpty() && values.size() <= 500, INVALID_REQUEST, "SN集合非法");
         LinkedHashMap<String, String> ordered = new LinkedHashMap<>();
@@ -475,6 +524,23 @@ public class CutoverTaskApplicationService {
             List<CutoverDeviceScopePort.DeviceFact> devices) {
         require(devices != null, OWNER_PROVIDER_UNAVAILABLE, "设备事实不可用");
         return devices.stream().sorted(Comparator.comparing(CutoverDeviceScopePort.DeviceFact::deviceId)).toList();
+    }
+
+    private static List<CutoverDeviceProductTypePort.ProductTypeFact> orderedProductTypes(
+            List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes) {
+        require(productTypes != null && productTypes.stream().allMatch(Objects::nonNull),
+                OWNER_PROVIDER_UNAVAILABLE, "设备产品类型事实不可用");
+        return productTypes.stream().sorted(Comparator.comparing(
+                CutoverDeviceProductTypePort.ProductTypeFact::deviceId,
+                Comparator.nullsLast(Long::compareTo))).toList();
+    }
+
+    private static Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypesByDevice(
+            List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes) {
+        Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> byDevice = productTypes.stream().collect(Collectors.toMap(
+                CutoverDeviceProductTypePort.ProductTypeFact::deviceId, Function.identity(),
+                (left, right) -> left, LinkedHashMap::new));
+        return Collections.unmodifiableMap(byDevice);
     }
 
     private static Map<String, Object> createDigestValue(CreateCutoverTaskCommand command) {
@@ -496,6 +562,7 @@ public class CutoverTaskApplicationService {
 
     private static Object contextSnapshot(ResolvedContext context) {
         return Map.of("project", context.project(), "devices", context.devices(),
+                "deviceProductTypes", context.productTypesByDevice().values(),
                 "implementationReadiness", context.readiness(), "customerServiceLevel", context.customer());
     }
 
@@ -554,6 +621,7 @@ public class CutoverTaskApplicationService {
 
     private record ResolvedContext(CutoverProjectContextPort.ProjectContextFact project,
                                    List<CutoverDeviceScopePort.DeviceFact> devices,
+                                   Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypesByDevice,
                                    CutoverCustomerLevelPort.CustomerLevelFact customer,
                                    CutoverReadinessPort.ReadinessFact readiness) {
     }
