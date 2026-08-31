@@ -132,6 +132,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       item: { ...item, workModeCode: 'COLLECTION' },
       directValue: '',
       readonly: false,
+      allowCollection: true,
       devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
       onCollection: (...args: unknown[]) => collection.push(args)
     }, controls)
