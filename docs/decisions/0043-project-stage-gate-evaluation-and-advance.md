@@ -1,6 +1,6 @@
 # ADR-0043：项目阶段准出门禁评估与相邻推进
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-31<br>
 > Requirement：`PM-03@V1`<br>
 > 候选 Feature：`F-PROJ-008 项目阶段准出门禁与正向推进`
