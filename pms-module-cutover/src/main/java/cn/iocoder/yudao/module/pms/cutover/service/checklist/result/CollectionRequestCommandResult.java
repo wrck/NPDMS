@@ -1,13 +1,19 @@
 package cn.iocoder.yudao.module.pms.cutover.service.checklist.result;
 
-public record CollectionRequestCommandResult(Long checklistId, Integer checklistVersion,
-                                             Long checklistItemId, String stableItemKey,
+public record CollectionRequestCommandResult(Long taskId, Integer taskVersion,
+                                             Long checklistId, Integer checklistBusinessVersion,
+                                             Integer checklistVersion, Long checklistItemId,
+                                             Integer itemVersion, String stableItemKey,
                                              Integer resultVersion, Long collectionTaskId,
+                                             Long collectionResultReferenceId,
+                                             Long collectionResultVersion,
                                              String technicalStatus, String failureCode,
-                                             boolean replayed) {
+                                             boolean resultLinked, boolean replayed) {
 
     public CollectionRequestCommandResult replayedCopy() {
-        return new CollectionRequestCommandResult(checklistId, checklistVersion, checklistItemId, stableItemKey,
-                resultVersion, collectionTaskId, technicalStatus, failureCode, true);
+        return new CollectionRequestCommandResult(taskId, taskVersion, checklistId, checklistBusinessVersion,
+                checklistVersion, checklistItemId, itemVersion, stableItemKey, resultVersion,
+                collectionTaskId, collectionResultReferenceId, collectionResultVersion,
+                technicalStatus, failureCode, resultLinked, true);
     }
 }

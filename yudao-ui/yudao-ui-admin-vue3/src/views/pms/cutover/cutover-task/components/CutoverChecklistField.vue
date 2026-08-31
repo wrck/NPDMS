@@ -11,7 +11,7 @@
           {{ resultLabel }}
         </el-tag>
         <el-button
-          v-if="!readonly && item.sourceCode === 'CUSTOM' && !item.currentResult"
+          v-if="!readonly && allowSave && item.sourceCode === 'CUSTOM' && !item.currentResult"
           data-testid="remove-custom-item"
           link
           type="danger"
@@ -21,7 +21,8 @@
     </header>
 
     <div v-if="item.workModeCode === 'COLLECTION'" class="collection-area">
-      <el-select v-model="selectedDeviceId" data-testid="collection-device" placeholder="选择任务设备">
+      <el-select v-model="selectedDeviceId" data-testid="collection-device" placeholder="选择任务设备"
+        :disabled="readonly || !allowCollection || collectionPending">
         <el-option
           v-for="device in devices"
           :key="String(device.deviceId)"
@@ -33,19 +34,20 @@
         v-model="commandTemplateId"
         data-testid="collection-template"
         placeholder="命令模板 ID"
+        :disabled="readonly || !allowCollection || collectionPending"
       />
       <el-button
         data-testid="request-collection"
         type="primary"
-        :disabled="readonly || !selectedDeviceId || !commandTemplateId.trim()"
+        :disabled="readonly || !allowCollection || !selectedDeviceId || !commandTemplateId.trim()"
         @click="requestCollection"
-      >请求采集</el-button>
+      >{{ collectionPending ? '刷新采集状态' : '请求采集' }}</el-button>
     </div>
     <el-select
       v-else-if="options.length"
       data-testid="checklist-select"
       :model-value="directValue"
-      :disabled="readonly"
+      :disabled="readonly || !allowSave"
       clearable
       placeholder="请选择"
       @update:model-value="updateDirect"
@@ -56,14 +58,14 @@
       v-else-if="item.workModeCode === 'DIRECT'"
       data-testid="checklist-input"
       :model-value="directValue"
-      :disabled="readonly"
+      :disabled="readonly || !allowSave"
       :rows="item.interfaceFormatCode === 'TABLE' ? 5 : 3"
       type="textarea"
       placeholder="填写调研结果"
       @update:model-value="updateDirect"
     />
 
-    <details v-if="!readonly" class="manual-area">
+    <details v-if="!readonly && allowSave" class="manual-area">
       <summary>自动/外部结果不可用时，改用人工证据</summary>
       <el-input v-model="factDescription" placeholder="说明人工核验事实" />
       <PmsFileUploader
@@ -94,8 +96,10 @@ const props = withDefaults(defineProps<{
   item: CutoverChecklistItem
   directValue: string
   readonly: boolean
+  allowSave: boolean
+  allowCollection: boolean
   devices: DeviceScopeEntry[]
-}>(), { devices: () => [] })
+}>(), { allowSave: false, allowCollection: false, devices: () => [] })
 const emit = defineEmits<{
   direct: [stableItemKey: string, value: string]
   manual: [stableItemKey: string, file: ChecklistFileHandle, factDescription: string]
@@ -103,8 +107,34 @@ const emit = defineEmits<{
   remove: [stableItemKey: string]
 }>()
 const factDescription = ref('')
-const selectedDeviceId = ref(props.devices[0] ? String(props.devices[0].deviceId) : '')
+const selectedDeviceId = ref('')
 const commandTemplateId = ref('')
+
+const storedCollection = computed(() => {
+  if (props.item.currentResult?.resultSourceCode !== 'COLLECTION') return null
+  try {
+    return JSON.parse(props.item.currentResult.answerSnapshot) as {
+      deviceId?: string | number
+      commandTemplateId?: string | number
+      technicalStatus?: string
+    }
+  } catch {
+    return null
+  }
+})
+const collectionPending = computed(() => ['ACCEPTED', 'RUNNING']
+  .includes(storedCollection.value?.technicalStatus || ''))
+
+watch([() => props.item.currentResult?.answerSnapshot, () => props.devices], () => {
+  if (collectionPending.value && storedCollection.value?.deviceId && storedCollection.value?.commandTemplateId) {
+    selectedDeviceId.value = String(storedCollection.value.deviceId)
+    commandTemplateId.value = String(storedCollection.value.commandTemplateId)
+    return
+  }
+  if (!selectedDeviceId.value && props.devices[0]) {
+    selectedDeviceId.value = String(props.devices[0].deviceId)
+  }
+}, { immediate: true, deep: true })
 
 const sourceLabel = computed(() => (props.item.sourceCode === 'CUSTOM' ? '自定义项' : '配置匹配'))
 const resultLabel = computed(() =>

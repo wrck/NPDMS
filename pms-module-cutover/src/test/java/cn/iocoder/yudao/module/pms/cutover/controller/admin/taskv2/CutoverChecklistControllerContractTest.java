@@ -69,8 +69,9 @@ class CutoverChecklistControllerContractTest {
                 new SaveChecklistCommand.DirectAnswer("risk-1", "checked"));
 
         when(service.requestCollection(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new CollectionRequestCommandResult(41L, 2, 51L, "risk-1", 1,
-                        61L, "COMPLETED", null, false));
+                new CollectionRequestCommandResult(31L, 4, 41L, 1, 2,
+                        51L, 0, "risk-1", 1, 61L, 71L, 1L,
+                        "COMPLETED", null, true, false));
         controller.requestCollection(31L, "risk-1", "collect-intent", new CutoverChecklistReqVO.CollectionRequest(
                 7, 19L, 41L, 1, 9007199254740991L, 9007199254740992L));
         ArgumentCaptor<RequestCollectionCommand> collection =

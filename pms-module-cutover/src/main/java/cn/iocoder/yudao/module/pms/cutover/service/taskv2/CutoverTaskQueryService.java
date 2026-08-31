@@ -4,9 +4,12 @@ import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceListQuery;
@@ -46,6 +49,7 @@ public class CutoverTaskQueryService {
     private final CutoverTaskMapper taskMapper;
     private final CutoverTaskDeviceScopeMapper deviceMapper;
     private final CutoverAssessmentMapper assessmentMapper;
+    private final CutoverChecklistMapper checklistMapper;
     private final CutoverProjectScopePort projectScopePort;
     private final CutoverProjectContextPort projectContextPort;
     private final CutoverDeviceScopePort deviceScopePort;
@@ -55,6 +59,7 @@ public class CutoverTaskQueryService {
     public CutoverTaskQueryService(CutoverTaskMapper taskMapper,
                                    CutoverTaskDeviceScopeMapper deviceMapper,
                                    CutoverAssessmentMapper assessmentMapper,
+                                   CutoverChecklistMapper checklistMapper,
                                    CutoverProjectScopePort projectScopePort,
                                    CutoverProjectContextPort projectContextPort,
                                    CutoverDeviceScopePort deviceScopePort,
@@ -63,6 +68,7 @@ public class CutoverTaskQueryService {
         this.taskMapper = taskMapper;
         this.deviceMapper = deviceMapper;
         this.assessmentMapper = assessmentMapper;
+        this.checklistMapper = checklistMapper;
         this.projectScopePort = projectScopePort;
         this.projectContextPort = projectContextPort;
         this.deviceScopePort = deviceScopePort;
@@ -120,7 +126,9 @@ public class CutoverTaskQueryService {
     }
 
     public CutoverTaskViews.Detail detail(Long tenantId, Long actorId, Long taskId,
-                                          boolean canSaveAssessment, boolean canSubmitAssessment) {
+                                          boolean canSaveAssessment, boolean canSubmitAssessment,
+                                          boolean canSaveChecklist, boolean canRequestCollection,
+                                          boolean canSubmitChecklist) {
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && tenantId.equals(task.getTenantId()), NOT_FOUND, "割接任务不存在");
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(), ACTION_VIEW);
@@ -138,7 +146,10 @@ public class CutoverTaskQueryService {
         CutoverAssessmentDO assessmentRow = task.getCurrentAssessmentId() == null
                 ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
         CutoverTaskViews.Assessment assessment = assessment(assessmentRow);
-        List<String> actions = allowedActions(task, assessmentRow, actorId, canSaveAssessment, canSubmitAssessment);
+        CutoverChecklistDO checklist = CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
+                ? checklistMapper.selectCurrent(new CutoverChecklistRowQuery(tenantId, taskId, null)) : null;
+        List<String> actions = allowedActions(task, assessmentRow, checklist, actorId,
+                canSaveAssessment, canSubmitAssessment, canSaveChecklist, canRequestCollection, canSubmitChecklist);
         return new CutoverTaskViews.Detail(taskCore(task, project),
                 new CutoverTaskViews.Source(task.getIntakeSourceType(), task.getSourceSystem(),
                         task.getSourceBusinessNo(), task.getBusinessEventId(), task.getLegacyTaskId()),
@@ -180,20 +191,49 @@ public class CutoverTaskQueryService {
                 row.getInvalidatedAt(), row.getInvalidationReason());
     }
 
-    private List<String> allowedActions(CutoverTaskDO task, CutoverAssessmentDO assessment, Long actorId,
-                                        boolean canSave, boolean canSubmit) {
+    private List<String> allowedActions(CutoverTaskDO task, CutoverAssessmentDO assessment,
+                                        CutoverChecklistDO checklist, Long actorId,
+                                        boolean canSaveAssessment, boolean canSubmitAssessment,
+                                        boolean canSaveChecklist, boolean canRequestCollection,
+                                        boolean canSubmitChecklist) {
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
-                || !CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
-                || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())
                 || !actorId.equals(task.getOwnerUserId())) {
+            return List.of();
+        }
+        if (CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
+                && CutoverTaskRules.STATUS_SURVEYING.equals(task.getTaskStatus())
+                && Set.of("A", "B", "C").contains(task.getManualGrade())) {
+            List<String> actions = new ArrayList<>();
+            if (checklist == null) {
+                if (canSaveChecklist) {
+                    actions.add("GENERATE_CHECKLIST");
+                }
+                return List.copyOf(actions);
+            }
+            if (!"DRAFT".equals(checklist.getStatusCode())) {
+                return List.of();
+            }
+            if (canSaveChecklist) {
+                actions.add("SAVE_CHECKLIST");
+            }
+            if (canRequestCollection) {
+                actions.add("REQUEST_COLLECTION");
+            }
+            if (canSubmitChecklist) {
+                actions.add("SUBMIT_CHECKLIST");
+            }
+            return List.copyOf(actions);
+        }
+        if (!CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
+                || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())) {
             return List.of();
         }
         List<String> actions = new ArrayList<>();
         boolean submitted = assessment != null && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus());
-        if (canSave && !submitted) {
+        if (canSaveAssessment && !submitted) {
             actions.add("SAVE_ASSESSMENT");
         }
-        if (canSubmit && assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
+        if (canSubmitAssessment && assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
                 && assessment.getManualGrade() != null) {
             actions.add("SUBMIT_ASSESSMENT");
         }

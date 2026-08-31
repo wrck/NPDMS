@@ -11,7 +11,7 @@
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
     <el-empty v-if="!loading && !checklist" description="尚未生成 P3 清单">
       <el-button
-        v-if="editable"
+        v-if="canGenerate"
         type="primary"
         v-hasPermi="['pms:cutover-task:save-checklist']"
         :loading="generating"
@@ -25,13 +25,15 @@
         :item="item"
         :direct-value="answers[item.stableItemKey] || ''"
         :readonly="readonly"
+        :allow-save="canSave"
+        :allow-collection="canRequestCollection"
         :devices="detail.devices"
         @direct="setAnswer"
         @manual="saveManual"
         @collection="requestCollection"
         @remove="removeCustom"
       />
-      <details v-if="checklist && !readonly" class="custom-item-area">
+      <details v-if="checklist && !readonly && canSave" class="custom-item-area">
         <summary>补充任务级自定义项</summary>
         <el-input v-model="customItem.itemName" data-testid="custom-item-name" placeholder="清单项名称" />
         <el-input v-model="customItem.itemDescription" placeholder="核查说明" />
@@ -42,14 +44,14 @@
       </details>
       <footer v-if="checklist" class="panel-actions">
         <el-button
-          v-if="!readonly"
+          v-if="!readonly && canSave"
           data-testid="checklist-save"
           v-hasPermi="['pms:cutover-task:save-checklist']"
           :loading="saving"
           @click="save"
         >暂存</el-button>
         <el-button
-          v-if="!readonly"
+          v-if="!readonly && canSubmit"
           type="primary"
           v-hasPermi="['pms:cutover-task:submit-checklist']"
           :loading="submitting"
@@ -81,8 +83,14 @@ const generating = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
 const customItem = reactive({ itemName: '', itemDescription: '', required: false })
-const editable = computed(() => props.detail.task.currentStage === 'P3' && props.detail.task.manualGrade !== 'D')
-const readonly = computed(() => !editable.value || checklist.value?.status !== 'DRAFT')
+const hasAction = (action: CutoverTaskDetail['allowedActions'][number]) =>
+  props.detail.allowedActions.includes(action)
+const canGenerate = computed(() => hasAction('GENERATE_CHECKLIST'))
+const canSave = computed(() => hasAction('SAVE_CHECKLIST'))
+const canRequestCollection = computed(() => hasAction('REQUEST_COLLECTION'))
+const canSubmit = computed(() => hasAction('SUBMIT_CHECKLIST'))
+const readonly = computed(() => props.detail.task.currentStage !== 'P3'
+  || props.detail.task.manualGrade === 'D' || checklist.value?.status !== 'DRAFT')
 const applicableItems = computed(() => checklist.value?.items.filter((item) => item.applicable) || [])
 const gapMessage = computed(() => {
   if (!checklist.value?.configGapSnapshot || checklist.value.configGapSnapshot === '[]') return ''

@@ -46,6 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CutoverChecklistApplicationServiceTest {
@@ -79,9 +81,12 @@ class CutoverChecklistApplicationServiceTest {
         ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(
                 1L, 8L, 1000L, 2, 1, generated.checklistId(), manual.checklistVersion(),
                 beforeRematch.inputSnapshotHash(), 7L, Map.of(), "rematch-1", "corr-rematch-1"));
-        var collection = fixture.service.requestCollection(new RequestCollectionCommand(
+        var accepted = fixture.service.requestCollection(new RequestCollectionCommand(
                 1L, 8L, 1000L, 2, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-1", "corr-collect-1"));
+        var collection = fixture.service.requestCollection(new RequestCollectionCommand(
+                1L, 8L, 1000L, 2, generated.checklistId(), accepted.checklistVersion(), 7L,
+                "SYS-COLLECT", 400L, 700L, "collect-refresh-1", "corr-collect-refresh-1"));
         CutoverChecklistView view = fixture.service.getView(1L, 8L, 1000L);
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
                 1L, 8L, 1000L, 2, 1, generated.checklistId(), collection.checklistVersion(), 7L,
@@ -104,7 +109,14 @@ class CutoverChecklistApplicationServiceTest {
         assertEquals("PLAN_DRAFTING", fixture.task.get().getTaskStatus());
         assertEquals(List.of("P3_CHECKLIST_SUBMITTED"), fixture.history.stream()
                 .map(CutoverTaskStageHistoryDO::getTriggerType).toList());
-        assertEquals(4, fixture.platform.facts.size());
+        assertEquals("ACCEPTED", accepted.technicalStatus());
+        assertEquals("COMPLETED", collection.technicalStatus());
+        assertEquals(5, fixture.platform.facts.size());
+        assertEquals(List.of("CutoverChecklistItemResultLinked", "CutoverChecklistItemResultLinked"),
+                fixture.platform.facts.stream().flatMap(fact -> fact.businessEvents().stream())
+                        .map(PlatformCommandExecutionApi.BusinessEvent::eventType).toList());
+        verify(fixture.collectionPort, times(1)).request(any());
+        verify(fixture.collectionPort, times(2)).inspect(any());
         assertFalse(fixture.results.stream().filter(row -> "DIRECT".equals(row.getResultSourceCode()))
                 .allMatch(row -> row.getSelectionEndedAt() == null));
     }
@@ -275,16 +287,19 @@ class CutoverChecklistApplicationServiceTest {
         when(filePort.lockAndRevalidate(any(), any(), any(), any(), any(Long.class), any())).thenReturn(
                 new CutoverChecklistFilePort.FileFact(90L, 2, "ref-90", fileVersion, 7L, "sha-90"));
         when(collectionPort.request(any())).thenReturn(new CutoverCollectionPort.RequestReceipt(9000L,
-                CutoverCollectionPort.TechnicalStatus.COMPLETED));
-        when(collectionPort.inspect(any())).thenReturn(new CutoverCollectionPort.CollectionFact(9000L,
-                CutoverCollectionPort.TechnicalStatus.COMPLETED, 9100L, 1L,
-                "{\"status\":\"ok\"}", null));
+                CutoverCollectionPort.TechnicalStatus.ACCEPTED));
+        when(collectionPort.inspect(any()))
+                .thenReturn(new CutoverCollectionPort.CollectionFact(9000L,
+                                CutoverCollectionPort.TechnicalStatus.ACCEPTED, null, null, null, null),
+                        new CutoverCollectionPort.CollectionFact(9000L,
+                                CutoverCollectionPort.TechnicalStatus.COMPLETED, 9100L, 1L,
+                                "{\"status\":\"ok\"}", null));
 
         CutoverChecklistApplicationService service = new CutoverChecklistApplicationService(taskMapper,
                 deviceMapper, assessmentMapper, historyMapper, checklistMapper, itemMapper, resultMapper, configurationService,
                 new CutoverChecklistMatcher(), scopePort, collectionPort, filePort, platform,
                 Clock.fixed(Instant.parse("2026-08-31T02:00:00Z"), ZoneOffset.UTC));
-        return new Fixture(service, task, results, history, platform);
+        return new Fixture(service, task, results, history, platform, collectionPort);
     }
 
     private static CutoverTaskDO task() {
@@ -310,7 +325,8 @@ class CutoverChecklistApplicationServiceTest {
 
     private record Fixture(CutoverChecklistApplicationService service, AtomicReference<CutoverTaskDO> task,
                            List<CutoverChecklistItemResultDO> results,
-                           List<CutoverTaskStageHistoryDO> history, DirectPlatform platform) {
+                           List<CutoverTaskStageHistoryDO> history, DirectPlatform platform,
+                           CutoverCollectionPort collectionPort) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

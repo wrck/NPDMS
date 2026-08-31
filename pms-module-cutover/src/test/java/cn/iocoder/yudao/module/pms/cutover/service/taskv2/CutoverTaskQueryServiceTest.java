@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessme
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPageQuery;
@@ -36,6 +37,7 @@ class CutoverTaskQueryServiceTest {
     @Mock private CutoverTaskMapper taskMapper;
     @Mock private CutoverTaskDeviceScopeMapper deviceMapper;
     @Mock private CutoverAssessmentMapper assessmentMapper;
+    @Mock private CutoverChecklistMapper checklistMapper;
     @Mock private CutoverProjectScopePort projectScopePort;
     @Mock private CutoverProjectContextPort projectContextPort;
     @Mock private CutoverDeviceScopePort deviceScopePort;
@@ -50,7 +52,7 @@ class CutoverTaskQueryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CutoverTaskQueryService(taskMapper, deviceMapper, assessmentMapper, projectScopePort,
+        service = new CutoverTaskQueryService(taskMapper, deviceMapper, assessmentMapper, checklistMapper, projectScopePort,
                 projectContextPort, deviceScopePort, customerLevelPort, readinessPort);
         project = new CutoverProjectContextPort.ProjectContextFact(1L, 101L, 3, "P-101", "核心网扩容",
                 201L, "C-201", "示例客户", 301L, "OFF-01", "华东办事处", 7L);
@@ -100,13 +102,37 @@ class CutoverTaskQueryServiceTest {
         when(deviceMapper.selectActiveByTask(any())).thenReturn(List.of(deviceRow()));
         when(assessmentMapper.selectById(801L)).thenReturn(assessment());
 
-        CutoverTaskViews.Detail detail = service.detail(1L, 9L, 701L, true, true);
+        CutoverTaskViews.Detail detail = service.detail(1L, 9L, 701L, true, true,
+                false, false, false);
 
         assertThat(detail.devices()).containsExactly(device);
         assertThat(detail.allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
         assertThat(detail.workbenchSteps()).extracting(CutoverTaskViews.WorkbenchStep::stage)
                 .containsExactly("P2", "P3", "P4", "P5", "P6");
         assertThat(detail.workbenchSteps().getFirst().isCurrent()).isTrue();
+    }
+
+    @Test
+    void exposesOnlyServerAuthorizedP3ChecklistActions() {
+        CutoverTaskDO task = task();
+        task.setCurrentStage("P3");
+        task.setTaskStatus("SURVEYING");
+        task.setManualGrade("A");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(deviceMapper.selectActiveByTask(any())).thenReturn(List.of(deviceRow()));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment());
+        cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO checklist =
+                new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO();
+        checklist.setStatusCode("DRAFT");
+        when(checklistMapper.selectCurrent(any())).thenReturn(checklist);
+
+        CutoverTaskViews.Detail detail = service.detail(1L, 9L, 701L, false, false,
+                true, true, true);
+
+        assertThat(detail.allowedActions()).containsExactly(
+                "SAVE_CHECKLIST", "REQUEST_COLLECTION", "SUBMIT_CHECKLIST");
     }
 
     private CutoverTaskDO task() {

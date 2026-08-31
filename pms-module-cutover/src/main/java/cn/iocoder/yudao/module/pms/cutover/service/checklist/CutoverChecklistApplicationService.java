@@ -65,6 +65,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -324,7 +325,7 @@ public class CutoverChecklistApplicationService {
                                 "commandTemplateId", command.commandTemplateId()))),
                         CollectionRequestCommandResult.class, () -> requestCollectionOnce(command),
                         result -> successFacts("CUTOVER_CHECKLIST_COLLECTION_REQUEST", result,
-                                command.correlationId()));
+                                command.tenantId(), command.correlationId()));
         requireCompleted(execution.decision());
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
@@ -513,24 +514,40 @@ public class CutoverChecklistApplicationService {
         boolean deviceInScope = deviceMapper.selectActiveByTask(new CutoverTaskDeviceListQuery(command.tenantId(),
                         command.taskId())).stream().anyMatch(row -> Objects.equals(row.getDeviceId(), command.deviceId()));
         require(deviceInScope, DATA_SCOPE_FORBIDDEN, "设备不在当前割接任务范围");
-        CutoverCollectionPort.Request request = new CutoverCollectionPort.Request(command.tenantId(),
-                command.actorId(), locked.task().getProjectId(), command.taskId(), command.checklistId(),
-                locked.checklist().getChecklistVersion(), item.getId(), item.getVersion(), item.getStableItemKey(),
-                command.deviceId(), command.commandTemplateId(), command.idempotencyKey(), command.correlationId());
-        CutoverCollectionPort.RequestReceipt receipt = collectionPort.request(request);
-        require(receipt != null && positive(receipt.collectionTaskId()) && receipt.technicalStatus() != null,
-                COLLECTION_FACT_INVALID, "采集任务回执不完整");
+        CutoverChecklistItemResultDO current = resultMapper.selectCurrentForUpdate(
+                new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
+        Long collectionTaskId;
+        CollectionSelectionSnapshot currentSnapshot = collectionSnapshot(current);
+        if (currentSnapshot != null && Set.of("ACCEPTED", "RUNNING").contains(currentSnapshot.technicalStatus())) {
+            require(Objects.equals(currentSnapshot.deviceId(), command.deviceId())
+                            && Objects.equals(currentSnapshot.commandTemplateId(), command.commandTemplateId()),
+                    STATE_CONFLICT, "采集中任务身份与当前请求不一致");
+            collectionTaskId = currentSnapshot.collectionTaskId();
+        } else {
+            CutoverCollectionPort.Request request = new CutoverCollectionPort.Request(command.tenantId(),
+                    command.actorId(), locked.task().getProjectId(), command.taskId(), command.checklistId(),
+                    locked.checklist().getChecklistVersion(), item.getId(), item.getVersion(), item.getStableItemKey(),
+                    command.deviceId(), command.commandTemplateId(), command.idempotencyKey(), command.correlationId());
+            CutoverCollectionPort.RequestReceipt receipt = collectionPort.request(request);
+            require(receipt != null && positive(receipt.collectionTaskId()) && receipt.technicalStatus() != null,
+                    COLLECTION_FACT_INVALID, "采集任务回执不完整");
+            collectionTaskId = receipt.collectionTaskId();
+        }
         CutoverCollectionPort.CollectionFact fact = collectionPort.inspect(new CutoverCollectionPort.Inspection(
-                command.tenantId(), command.actorId(), locked.task().getProjectId(), receipt.collectionTaskId(),
+                command.tenantId(), command.actorId(), locked.task().getProjectId(), collectionTaskId,
                 command.taskId(), command.checklistId(), item.getId(), command.deviceId(), command.commandTemplateId()));
-        requireCollectionFact(receipt, fact);
-        int resultVersion = appendCollectionResult(command.tenantId(), command.actorId(), item, fact);
+        requireCollectionFact(collectionTaskId, fact);
+        int resultVersion = appendCollectionResult(command.tenantId(), command.actorId(), item,
+                command.deviceId(), command.commandTemplateId(), fact);
         require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
                 command.checklistId(), command.expectedChecklistVersion())) == 1,
                 VERSION_CONFLICT, "清单版本已变化");
-        return new CollectionRequestCommandResult(command.checklistId(), command.expectedChecklistVersion() + 1,
-                item.getId(), item.getStableItemKey(), resultVersion, fact.collectionTaskId(),
-                fact.technicalStatus().name(), fact.failureCode(), false);
+        return new CollectionRequestCommandResult(command.taskId(), command.expectedTaskVersion(),
+                command.checklistId(), locked.checklist().getChecklistVersion(),
+                command.expectedChecklistVersion() + 1, item.getId(), item.getVersion(),
+                item.getStableItemKey(), resultVersion, fact.collectionTaskId(),
+                fact.resultReferenceId(), fact.resultVersion(), fact.technicalStatus().name(),
+                fact.failureCode(), true, false);
     }
 
     private LockedDraft lockDraft(Long tenantId, Long actorId, Long taskId, Integer expectedTaskVersion,
@@ -737,6 +754,7 @@ public class CutoverChecklistApplicationService {
     }
 
     private int appendCollectionResult(Long tenantId, Long actorId, CutoverChecklistItemDO item,
+                                       Long deviceId, Long commandTemplateId,
                                        CutoverCollectionPort.CollectionFact fact) {
         LocalDateTime now = LocalDateTime.now(clock);
         CutoverChecklistCurrentResultQuery query = new CutoverChecklistCurrentResultQuery(tenantId, item.getId());
@@ -746,13 +764,10 @@ public class CutoverChecklistApplicationService {
                     current.getId(), now)) == 1, VERSION_CONFLICT, "当前清单结果已变化");
         }
         int nextVersion = resultMapper.selectMaxVersion(query) + 1;
-        Map<String, Object> snapshot = new LinkedHashMap<>();
-        snapshot.put("collectionTaskId", fact.collectionTaskId());
-        snapshot.put("technicalStatus", fact.technicalStatus().name());
-        snapshot.put("resultReferenceId", fact.resultReferenceId());
-        snapshot.put("resultVersion", fact.resultVersion());
-        snapshot.put("resultSnapshot", present(fact.resultSnapshot()) ? JsonUtils.parseTree(fact.resultSnapshot()) : null);
-        snapshot.put("failureCode", fact.failureCode());
+        CollectionSelectionSnapshot snapshot = new CollectionSelectionSnapshot(fact.collectionTaskId(), deviceId,
+                commandTemplateId, fact.technicalStatus().name(), fact.resultReferenceId(), fact.resultVersion(),
+                present(fact.resultSnapshot()) ? JsonUtils.parseTree(fact.resultSnapshot()) : null,
+                fact.failureCode());
         CutoverChecklistItemResultDO row = new CutoverChecklistItemResultDO();
         row.setId(nextId());
         row.setTenantId(tenantId);
@@ -780,9 +795,9 @@ public class CutoverChecklistApplicationService {
                 && positive(result.getCollectionResultVersion()) && !present(result.getLoadFailureCode()));
     }
 
-    private static void requireCollectionFact(CutoverCollectionPort.RequestReceipt receipt,
+    private static void requireCollectionFact(Long expectedCollectionTaskId,
                                               CutoverCollectionPort.CollectionFact fact) {
-        require(fact != null && Objects.equals(receipt.collectionTaskId(), fact.collectionTaskId())
+        require(fact != null && Objects.equals(expectedCollectionTaskId, fact.collectionTaskId())
                         && fact.technicalStatus() != null,
                 COLLECTION_FACT_INVALID, "采集事实身份不匹配");
         if (fact.technicalStatus() == CutoverCollectionPort.TechnicalStatus.COMPLETED) {
@@ -849,9 +864,54 @@ public class CutoverChecklistApplicationService {
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(String action,
                                                                   CollectionRequestCommandResult result,
+                                                                  Long tenantId,
                                                                   String correlationId) {
+        List<PlatformCommandExecutionApi.BusinessEvent> events = result.resultLinked()
+                ? List.of(resultLinkedEvent(result, tenantId, correlationId)) : List.of();
         return new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverChecklistItem",
-                String.valueOf(result.checklistItemId()), correlationId, JsonUtils.toJsonString(result), List.of());
+                String.valueOf(result.checklistItemId()), correlationId, JsonUtils.toJsonString(result), events);
+    }
+
+    private PlatformCommandExecutionApi.BusinessEvent resultLinkedEvent(CollectionRequestCommandResult result,
+                                                                         Long tenantId, String correlationId) {
+        String eventId = UUID.randomUUID().toString();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("eventId", eventId);
+        payload.put("tenantId", tenantId);
+        payload.put("taskId", result.taskId());
+        payload.put("taskVersion", result.taskVersion());
+        payload.put("checklistId", result.checklistId());
+        payload.put("checklistVersion", result.checklistBusinessVersion());
+        payload.put("checklistFactVersion", result.checklistVersion());
+        payload.put("stableItemKey", result.stableItemKey());
+        payload.put("itemVersion", result.itemVersion());
+        payload.put("resultVersion", result.resultVersion());
+        payload.put("collectionTaskId", result.collectionTaskId());
+        payload.put("resultReferenceId", result.collectionResultReferenceId());
+        payload.put("collectionResultVersion", result.collectionResultVersion());
+        payload.put("resultSourceCode", "COLLECTION");
+        payload.put("correlationId", correlationId);
+        return new PlatformCommandExecutionApi.BusinessEvent(eventId, "CutoverChecklistItemResultLinked",
+                JsonUtils.toJsonString(payload));
+    }
+
+    private static CollectionSelectionSnapshot collectionSnapshot(CutoverChecklistItemResultDO current) {
+        if (current == null || !"COLLECTION".equals(current.getResultSourceCode())
+                || !present(current.getAnswerSnapshot())) {
+            return null;
+        }
+        try {
+            CollectionSelectionSnapshot snapshot = JsonUtils.parseObject(current.getAnswerSnapshot(),
+                    CollectionSelectionSnapshot.class);
+            require(snapshot != null && positive(snapshot.collectionTaskId()) && positive(snapshot.deviceId())
+                            && positive(snapshot.commandTemplateId()) && present(snapshot.technicalStatus()),
+                    COLLECTION_FACT_INVALID, "当前采集选择事实不完整");
+            return snapshot;
+        } catch (CutoverChecklistException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new CutoverChecklistException(COLLECTION_FACT_INVALID, "当前采集选择事实损坏");
+        }
     }
 
     private ChecklistCommandResult result(CutoverTaskDO task, CutoverChecklistDO checklist,
@@ -1004,5 +1064,10 @@ public class CutoverChecklistApplicationService {
 
     private record MatchContext(String inputSnapshot, String matchTrace, String gapSnapshot,
                                 List<ResolvedItem> items) {
+    }
+
+    private record CollectionSelectionSnapshot(Long collectionTaskId, Long deviceId, Long commandTemplateId,
+                                               String technicalStatus, Long resultReferenceId,
+                                               Long resultVersion, Object resultSnapshot, String failureCode) {
     }
 }

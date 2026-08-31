@@ -82,6 +82,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       item,
       directValue: '',
       readonly: false,
+      allowSave: true,
       onDirect: (...args: unknown[]) => direct.push(args),
       onManual: (...args: unknown[]) => manual.push(args)
     }, controls)
@@ -109,6 +110,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       item: { ...item, workModeCode: 'COLLECTION' },
       directValue: '',
       readonly: false,
+      allowCollection: true,
       devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
       onCollection: (...args: unknown[]) => collection.push(args)
     }, controls)
@@ -178,7 +180,8 @@ const taskDetail = {
   task: { id: '101', currentStage: 'P3', manualGrade: 'A' },
   project: { projectScopeVersion: '12' },
   devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
-  assessment: { assessmentVersion: 2 }
+  assessment: { assessmentVersion: 2 },
+  allowedActions: ['SAVE_CHECKLIST', 'REQUEST_COLLECTION', 'SUBMIT_CHECKLIST']
 } as CutoverTaskDetail
 
 const checklistView = (answerSnapshot: string | null): CutoverChecklistView => ({
