@@ -34,15 +34,15 @@
 状态：`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
 
 - [x] 已用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
-- [ ] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM项、MANUAL证据、暂存和提交。
+- [x] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM增删、COLLECTION请求/刷新、MANUAL证据、暂存和提交；服务端`allowedActions`控制入口。
 - [ ] 完成后运行定向前端验证，并以正式身份完成一次“A级P3→生成→DIRECT+MANUAL→暂存刷新→提交→P4”真实工作台闭环。
 - [ ] 更新本Task与Feature追溯检查点，形成单一Implementation Done候选；不扩充异常Chromium矩阵。
 
-Task 2增量状态：P3查询/生成/重匹配/暂存/自定义/人工证据/提交REST候选及现有工作台正向接线已形成；Controller仍无生产注册。自定义删除、采集请求内核及生产Owner装配尚未完成，Task继续IN_PROGRESS。
+Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收敛、P3服务端动作投影及`CutoverChecklistItemResultLinked`同事务Outbox已独立复审`PASS / GO`；Controller/Service仍无生产注册。生产Owner装配与真实工作台验收尚未完成，Task继续`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`。
 
 ## 完成边界
 
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：Task2正向REST/UI候选及阶段面板、DIRECT JSON往返已在`c8c75ce5`独立复审`PASS / GO`；无生产Bean。删除自定义项、采集请求内核及生产Owner装配待续，真实浏览器与Done仍阻断。
+> 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；受控测试链完成同一CollectionTask由ACCEPTED收敛至COMPLETED并提交P4。无生产Bean；下一Gate为生产依赖与正式装配，真实Owner联调、浏览器和Done仍阻断。
