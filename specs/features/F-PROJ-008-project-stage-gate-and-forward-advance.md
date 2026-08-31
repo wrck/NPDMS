@@ -1,7 +1,7 @@
 # F-PROJ-008 项目阶段准出门禁与正向推进 Feature Spec
 
-> 文档状态：`CANDIDATE`
-> Feature Ready：`NOT_READY（待独立审核）`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO（744c70a0独立整改复审通过）`
 > Implementation：`NOT_STARTED`
 > Requirement：`PM-03（V1阶段门禁正向运行切片）`
 > Requirement切片覆盖：`PM-03@V1=PARTIAL`
@@ -152,6 +152,6 @@
 | 权限、锁序、事务、幂等、事件 | PASS |
 | 物理差量与旧实现复用边界 | PASS（NO_PHYSICAL_DELTA） |
 | 最小正向UI/浏览器验收 | PASS（已定义，未实施） |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | PASS（744c70a0） |
 
-结论：`CANDIDATE / NOT_READY / NOT_STARTED`。当前只允许送Feature Ready独立审核；不得生成Technical Plan、Task或修改产品代码。
+结论：`BASELINE / READY / NOT_STARTED`。允许形成并独立审核唯一Technical Plan；计划GO前不得创建Task或修改产品代码。
