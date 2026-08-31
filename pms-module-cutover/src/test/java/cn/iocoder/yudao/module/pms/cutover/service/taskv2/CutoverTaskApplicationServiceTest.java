@@ -41,6 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CutoverTaskApplicationServiceTest {
@@ -64,6 +66,11 @@ class CutoverTaskApplicationServiceTest {
         assertEquals(2, fixture.platform().facts.size());
         assertEquals("ROUTER", fixture.deviceRows().getFirst().getDeviceTypeCodeSnapshot());
         assertEquals("pt-v1", fixture.deviceRows().getFirst().getDeviceTypeSourceVersionSnapshot());
+        assertTrue(fixture.assessment().get().getContextSnapshot().contains("\"productTypeCode\":\"ROUTER\""));
+        assertTrue(fixture.assessment().get().getContextSnapshot().contains("\"sourceVersion\":\"pt-v1\""));
+        assertFalse(fixture.assessment().get().getContextSnapshot().contains("syncStatus"));
+        assertFalse(fixture.assessment().get().getContextSnapshot().contains("lastSuccessfulSyncTime"));
+        verify(fixture.productType(), times(2)).resolveAuthorized(8L, List.of(400L));
     }
 
     @Test
@@ -175,7 +182,7 @@ class CutoverTaskApplicationServiceTest {
                 historyMapper, assessmentMapper, configurationMapper, projectScope, projectContext,
                 deviceScope, productType, customerLevel,
                 readiness, platform, Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC));
-        return new Fixture(service, task, assessment, deviceRows, history, platform);
+        return new Fixture(service, task, assessment, deviceRows, history, platform, productType);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
@@ -198,7 +205,8 @@ class CutoverTaskApplicationServiceTest {
     private record Fixture(CutoverTaskApplicationService service, AtomicReference<CutoverTaskDO> task,
                            AtomicReference<CutoverAssessmentDO> assessment,
                            List<CutoverTaskDeviceScopeDO> deviceRows,
-                           List<CutoverTaskStageHistoryDO> history, DirectPlatform platform) {
+                           List<CutoverTaskStageHistoryDO> history, DirectPlatform platform,
+                           CutoverDeviceProductTypePort productType) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {
