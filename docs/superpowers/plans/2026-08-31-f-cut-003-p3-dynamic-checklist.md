@@ -89,8 +89,8 @@
 - `GenerateChecklistCommand(tenantId, actorId, taskId, expectedTaskVersion, expectedAssessmentVersion, expectedProjectScopeVersion, selectedConflictDefinitions, idempotencyKey, correlationId)`；
 - `RematchChecklistCommand(..., checklistId, expectedChecklistVersion, expectedInputSnapshotHash, selectedConflictDefinitions, idempotencyKey)`；
 - `SaveChecklistCommand(..., checklistId, expectedChecklistVersion, directAnswers, backgroundData)`；
-- `AddCustomItemCommand/RemoveCustomItemCommand`保存服务端稳定键、创建人和引用状态；
-- `RequestCollectionCommand`只调用`CutoverCollectionPort`并保存请求/失败引用；
+- `AddCustomItemCommand/RemoveCustomItemCommand`保存服务端稳定键、创建人和引用状态；移出只把本人创建且从未产生结果版本的CUSTOM项置为不适用，不物理删除历史行；
+- `RequestCollectionCommand(tenantId, actorId, taskId, expectedTaskVersion, checklistId, expectedChecklistVersion, expectedProjectScopeVersion, stableItemKey, idempotencyKey, correlationId)`只调用`CutoverCollectionPort.request/inspect`并保存请求、结果或失败引用；端口请求冻结project/task/checklist/item/device/commandTemplate及各自版本，返回`ACCEPTED/RUNNING/COMPLETED/FAILED`，只有结果引用完整的`COMPLETED`当前结果参与必填完成判断；
 - `SelectManualResultCommand`携带PLT公共文件句柄，Owner重验后写规范Fact；
 - `SubmitChecklistCommand(..., expectedTaskVersion, expectedAssessmentVersion, checklistId, expectedChecklistVersion, expectedProjectScopeVersion, idempotencyKey, correlationId)`。
 

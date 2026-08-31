@@ -90,7 +90,18 @@
   ],
   "internalPorts": {
     "configuration": "CUT reads the published F-CUT-001 revision through a narrow CUT-owned query service",
-    "collection": "create request and inspect result reference only; no connector or provider in F-CUT-003",
+    "collection": {
+      "owner": "INT-12 / Device Access & Collection",
+      "operations": {
+        "request": "freeze trusted tenant/actor/project/task/checklist/item/device/commandTemplate identities and versions plus one idempotencyKey/correlationId; return collectionTaskId and technicalStatus",
+        "inspect": "re-read the same collectionTask identity and return technicalStatus plus resultReferenceId/resultVersion/resultSnapshot or failureCode"
+      },
+      "technicalStatuses": ["ACCEPTED", "RUNNING", "COMPLETED", "FAILED"],
+      "completionRule": "only COMPLETED with positive resultReferenceId/resultVersion and valid JSON resultSnapshot may satisfy a required checklist item; callback or technical completion never means the business item passed",
+      "persistence": "append one COLLECTION result version with collectionTaskId, normalized technical snapshot, optional result reference/version and optional failureCode; retry or MANUAL fallback closes the old selection but never overwrites its row",
+      "controlledTest": "src/test may provide one deterministic COMPLETED implementation for the positive CUT flow",
+      "production": "no provider, connector, engine, Fake or fallback is registered by F-CUT-003"
+    },
     "externalData": "query request and stable failure only; provider is out of scope",
     "projectScope": "reuse ProjectScopeApi ACTION_EDIT and treeVersion"
   },
