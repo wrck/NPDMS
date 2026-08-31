@@ -7,6 +7,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessme
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectiveConfigurationListQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
@@ -23,6 +26,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectSco
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.view.CutoverTaskViews;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -50,30 +55,36 @@ public class CutoverTaskQueryService {
     private final CutoverTaskDeviceScopeMapper deviceMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverChecklistMapper checklistMapper;
+    private final CutoverConfigurationRevisionMapper configurationMapper;
     private final CutoverProjectScopePort projectScopePort;
     private final CutoverProjectContextPort projectContextPort;
     private final CutoverDeviceScopePort deviceScopePort;
     private final CutoverCustomerLevelPort customerLevelPort;
     private final CutoverReadinessPort readinessPort;
+    private final Clock clock;
 
     public CutoverTaskQueryService(CutoverTaskMapper taskMapper,
                                    CutoverTaskDeviceScopeMapper deviceMapper,
                                    CutoverAssessmentMapper assessmentMapper,
                                    CutoverChecklistMapper checklistMapper,
+                                   CutoverConfigurationRevisionMapper configurationMapper,
                                    CutoverProjectScopePort projectScopePort,
                                    CutoverProjectContextPort projectContextPort,
                                    CutoverDeviceScopePort deviceScopePort,
                                    CutoverCustomerLevelPort customerLevelPort,
-                                   CutoverReadinessPort readinessPort) {
+                                   CutoverReadinessPort readinessPort,
+                                   Clock clock) {
         this.taskMapper = taskMapper;
         this.deviceMapper = deviceMapper;
         this.assessmentMapper = assessmentMapper;
         this.checklistMapper = checklistMapper;
+        this.configurationMapper = configurationMapper;
         this.projectScopePort = projectScopePort;
         this.projectContextPort = projectContextPort;
         this.deviceScopePort = deviceScopePort;
         this.customerLevelPort = customerLevelPort;
         this.readinessPort = readinessPort;
+        this.clock = clock;
     }
 
     public CutoverTaskViews.CreateContextData resolveCreateContext(Long tenantId, Long actorId,
@@ -108,7 +119,14 @@ public class CutoverTaskQueryService {
         require(!candidates.isEmpty() && candidates.stream().mapToInt(candidate -> candidate.devices().size()).sum()
                 == devices.size(), DATA_SCOPE_FORBIDDEN, "设备不在可创建项目范围内");
         candidates.sort(Comparator.comparing(candidate -> candidate.project().projectId()));
-        return new CutoverTaskViews.CreateContextData(List.copyOf(candidates), candidates.size() > 1);
+        List<CutoverTaskViews.ConfigurationChoice> choices = configurationMapper
+                .selectEffectivePublishedList(new CutoverEffectiveConfigurationListQuery(
+                        tenantId, LocalDateTime.now(clock))).stream()
+                .map(CutoverTaskQueryService::configurationChoice)
+                .toList();
+        require(!choices.isEmpty(), INVALID_REQUEST, "当前没有可用的割接配置");
+        return new CutoverTaskViews.CreateContextData(List.copyOf(candidates), candidates.size() > 1,
+                choices, true);
     }
 
     public PageResult<CutoverTaskViews.Summary> page(Long tenantId, Long actorId, Long projectId,
@@ -162,7 +180,8 @@ public class CutoverTaskQueryService {
         CutoverProjectContextPort.ProjectContextFact project = parse(task.getProjectContextSnapshot(),
                 CutoverProjectContextPort.ProjectContextFact.class);
         return new CutoverTaskViews.Summary(task.getId(), task.getTaskNo(), task.getTaskName(), task.getTaskOrigin(),
-                task.getIntakeSourceType(), task.getProjectId(), project == null ? null : project.projectName(),
+                task.getIntakeSourceType(), task.getConfigurationRevisionId(), task.getConfigurationCode(),
+                task.getConfigurationRevisionNo(), task.getProjectId(), project == null ? null : project.projectName(),
                 project == null ? null : project.departmentCode(), project == null ? null : project.departmentName(),
                 task.getOwnerUserId(), task.getCurrentStage(), task.getTaskStatus(), task.getManualGrade(),
                 task.getScheduledTime(), task.getCreateTime(), task.getVersion());
@@ -171,10 +190,16 @@ public class CutoverTaskQueryService {
     private CutoverTaskViews.TaskCore taskCore(CutoverTaskDO task,
                                                CutoverProjectContextPort.ProjectContextFact project) {
         return new CutoverTaskViews.TaskCore(task.getId(), task.getTaskNo(), task.getTaskName(), task.getBackground(),
-                task.getTaskOrigin(), task.getCutoverType(), task.getNetworkMode(), task.getProjectId(),
+                task.getTaskOrigin(), task.getCutoverType(), task.getNetworkMode(), task.getConfigurationRevisionId(),
+                task.getConfigurationCode(), task.getConfigurationRevisionNo(), task.getProjectId(),
                 project == null ? null : project.projectName(), task.getOwnerUserId(), task.getCurrentStage(),
                 task.getTaskStatus(), task.getManualGrade(), task.getScheduledTime(), task.getCreateTime(),
                 task.getVersion());
+    }
+
+    private static CutoverTaskViews.ConfigurationChoice configurationChoice(CutoverConfigurationRevisionDO row) {
+        return new CutoverTaskViews.ConfigurationChoice(row.getConfigurationCode(), row.getConfigurationName(),
+                row.getId(), row.getRevisionNo(), row.getEffectiveFrom(), row.getEffectiveTo());
     }
 
     private CutoverTaskViews.Assessment assessment(CutoverAssessmentDO row) {

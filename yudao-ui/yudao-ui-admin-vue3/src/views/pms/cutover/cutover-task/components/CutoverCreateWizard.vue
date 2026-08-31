@@ -30,6 +30,16 @@
           <el-descriptions-item label="设备">{{ selectedCandidate.devices.length }} 台</el-descriptions-item>
           <el-descriptions-item label="实施就绪">{{ selectedCandidate.implementationReadiness.decision }}</el-descriptions-item>
         </el-descriptions>
+        <el-form-item label="配置修订">
+          <el-select v-model="form.configurationCode" placeholder="请选择当前生效配置">
+            <el-option
+              v-for="choice in configurationChoices"
+              :key="String(choice.revisionId)"
+              :label="`${choice.configurationName}（${choice.configurationCode} / R${choice.revisionNo}）`"
+              :value="choice.configurationCode"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="任务名称"><el-input v-model="form.taskName" maxlength="128" /></el-form-item>
         <el-form-item label="割接背景"><el-input v-model="form.background" type="textarea" :rows="3" maxlength="4000" /></el-form-item>
         <div class="form-grid">
@@ -53,7 +63,7 @@
 <script setup lang="ts">
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CutoverApi from '@/api/pms/cutover/cutover-task'
-import type { CreateContextCandidate } from '@/api/pms/cutover/cutover-task'
+import type { ConfigurationChoice, CreateContextCandidate } from '@/api/pms/cutover/cutover-task'
 import { buildCreateRequest, newIntentKey, parseSerials } from '../cutoverTaskInteraction'
 
 const visible = defineModel<boolean>({ required: true })
@@ -62,20 +72,25 @@ const message = useMessage()
 const step = ref(0)
 const serialText = ref('')
 const candidates = ref<CreateContextCandidate[]>([])
+const configurationChoices = ref<ConfigurationChoice[]>([])
 const selectedProjectId = ref('')
 const resolving = ref(false)
 const submitting = ref(false)
-const form = reactive({ taskName: '', background: '', cutoverType: '', networkMode: null as string | null, scheduledTime: '' })
+const form = reactive({ configurationCode: '', taskName: '', background: '', cutoverType: '', networkMode: null as string | null, scheduledTime: '' })
 
 const parsedSerials = computed(() => parseSerials(serialText.value))
 const selectedCandidate = computed(() => candidates.value.find((item) => String(item.project.projectId) === selectedProjectId.value))
-const canSubmit = computed(() => Boolean(selectedCandidate.value?.createAllowed && form.taskName.trim() && form.background.trim() && form.cutoverType && form.scheduledTime))
+const canSubmit = computed(() => Boolean(selectedCandidate.value?.createAllowed && form.configurationCode && form.taskName.trim() && form.background.trim() && form.cutoverType && form.scheduledTime))
 
 const resolve = async () => {
   resolving.value = true
   try {
     const result = await CutoverApi.resolveCreateContext(parsedSerials.value)
     candidates.value = result.candidates
+    configurationChoices.value = result.configurationChoices
+    form.configurationCode = result.configurationChoices.length === 1
+      ? result.configurationChoices[0].configurationCode
+      : ''
     selectedProjectId.value = result.candidates.length === 1 ? String(result.candidates[0].project.projectId) : ''
     step.value = 1
   } finally { resolving.value = false }
@@ -97,8 +112,9 @@ watch(visible, (open) => {
   step.value = 0
   serialText.value = ''
   candidates.value = []
+  configurationChoices.value = []
   selectedProjectId.value = ''
-  Object.assign(form, { taskName: '', background: '', cutoverType: '', networkMode: null, scheduledTime: '' })
+  Object.assign(form, { configurationCode: '', taskName: '', background: '', cutoverType: '', networkMode: null, scheduledTime: '' })
 })
 </script>
 

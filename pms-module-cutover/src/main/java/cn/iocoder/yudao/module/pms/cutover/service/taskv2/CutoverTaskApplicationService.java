@@ -110,6 +110,7 @@ public class CutoverTaskApplicationService {
         requireCreate(command);
         ResolvedContext expected = inspectContext(command.tenantId(), command.actorId(), command.projectId(),
                 command.serialNumbers());
+        requireExpectedCreateContext(command, expected);
         requireReady(expected.readiness());
         PlatformCommandExecutionApi.ExecutionResult<CutoverTaskCommandResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
@@ -586,6 +587,26 @@ public class CutoverTaskApplicationService {
         value.put("sourceBusinessNo", command.sourceBusinessNo());
         value.put("businessEventId", command.businessEventId());
         return value;
+    }
+
+    private static void requireExpectedCreateContext(CreateCutoverTaskCommand command, ResolvedContext current) {
+        if (!"SELF_CREATED".equals(command.intakeSourceType())) {
+            return;
+        }
+        CreateCutoverTaskCommand.ExpectedCreateContext expected = command.expectedContext();
+        require(expected != null && expected.project() != null && expected.customer() != null
+                        && expected.readiness() != null && expected.devices() != null,
+                INVALID_REQUEST, "创建期望上下文不完整");
+        require(expected.project().equals(current.project()), VERSION_CONFLICT, "项目上下文事实已变化");
+        requireEquivalentDevices(expected.devices(), current.devices());
+        require(expected.customer().equals(current.customer()), VERSION_CONFLICT, "客户服务等级事实已变化");
+        CutoverReadinessPort.ReadinessFact expectedReadiness = expected.readiness();
+        CutoverReadinessPort.ReadinessFact currentReadiness = current.readiness();
+        require(Objects.equals(expectedReadiness.snapshotId(), currentReadiness.snapshotId())
+                        && expectedReadiness.snapshotVersion() == currentReadiness.snapshotVersion()
+                        && Objects.equals(expectedReadiness.projectId(), currentReadiness.projectId())
+                        && Objects.equals(expectedReadiness.deviceIds(), currentReadiness.deviceIds()),
+                VERSION_CONFLICT, "实施就绪事实已变化");
     }
 
     private static Object contextSnapshot(ResolvedContext context) {

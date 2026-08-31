@@ -8,7 +8,10 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.Cutover
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverFrozenConfigurationQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectivePublishedConfigurationQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectiveConfigurationListQuery;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 @Mapper
 public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverConfigurationRevisionDO> {
@@ -27,4 +30,7 @@ public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverC
     CutoverConfigurationRevisionDO selectFrozen(CutoverFrozenConfigurationQuery query);
 
     CutoverConfigurationRevisionDO selectEffectivePublished(CutoverEffectivePublishedConfigurationQuery query);
+
+    List<CutoverConfigurationRevisionDO> selectEffectivePublishedList(
+            CutoverEffectiveConfigurationListQuery query);
 }

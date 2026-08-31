@@ -49,6 +49,7 @@ const candidate: CreateContextCandidate = {
     decision: 'READY',
     projectId: '9007199254741001',
     deviceIds: ['9007199254742001'],
+    sourceWatermark: { projectVersion: 3 },
     unmetCodes: []
   },
   createAllowed: true
@@ -62,6 +63,7 @@ describe('cutover task positive interaction', () => {
   it('builds the complete expected-fact create request', () => {
     const request = buildCreateRequest(candidate, {
       serialNumbers: ['SN-001'],
+      configurationCode: 'CORE_STANDARD',
       taskName: ' 核心网割接 ',
       background: ' 设备替换 ',
       cutoverType: 'CORE_REPLACEMENT',
@@ -69,6 +71,7 @@ describe('cutover task positive interaction', () => {
       scheduledTime: '2026-09-01T01:30:00'
     })
     expect(request.expectedProjectContext).not.toHaveProperty('projectScopeVersion')
+    expect(request.configurationCode).toBe('CORE_STANDARD')
     expect(request.expectedProjectScopeVersion).toBe('12')
     expect(request.expectedDeviceScopeWatermark).toEqual(candidate.devices)
     expect(request.expectedReadinessSnapshotId).toBe('31')

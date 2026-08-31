@@ -44,7 +44,17 @@ export interface ReadinessContext {
   decision: 'READY' | 'NOT_READY'
   projectId: WireLong
   deviceIds: WireLong[]
+  sourceWatermark: unknown
   unmetCodes: string[]
+}
+
+export interface ConfigurationChoice {
+  configurationCode: string
+  configurationName: string
+  revisionId: WireLong
+  revisionNo: number
+  effectiveFrom: WireDateTime
+  effectiveTo: WireDateTime | null
 }
 
 export interface CreateContextCandidate {
@@ -58,6 +68,8 @@ export interface CreateContextCandidate {
 export interface CreateContextData {
   candidates: CreateContextCandidate[]
   selectionRequired: boolean
+  configurationChoices: ConfigurationChoice[]
+  configurationSelectionRequired: boolean
 }
 
 export interface AssessmentAnswers {
@@ -90,6 +102,9 @@ export interface CutoverTaskSummary {
   taskName: string
   taskOrigin: 'NEW_PLATFORM' | 'LEGACY_FORWARD'
   intakeSourceType: 'SELF_CREATED' | 'ITR' | 'PROJECT_EVENT' | 'LEGACY_FORWARD'
+  configurationRevisionId: WireLong | null
+  configurationCode: string | null
+  configurationRevisionNo: number | null
   projectId: WireLong
   projectName: string
   officeCode: string | null
@@ -111,6 +126,9 @@ export interface CutoverTaskCore {
   taskOrigin: 'NEW_PLATFORM' | 'LEGACY_FORWARD'
   cutoverType: string | null
   networkMode: string | null
+  configurationRevisionId: WireLong | null
+  configurationCode: string | null
+  configurationRevisionNo: number | null
   projectId: WireLong
   projectName: string
   ownerUserId: WireLong | null
@@ -223,6 +241,7 @@ export interface CutoverTaskPage {
 
 export interface CreateCutoverTaskRequest {
   projectId: WireLong
+  configurationCode: string
   serialNumbers: string[]
   taskName: string
   background: string

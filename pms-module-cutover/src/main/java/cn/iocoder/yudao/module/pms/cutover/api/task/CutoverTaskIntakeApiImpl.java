@@ -34,7 +34,7 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
                     command.sourceType(), command.projectId(), command.serialNumbers(), command.configurationCode(),
                     command.taskName(),
                     command.background(), command.cutoverType(), command.networkMode(), command.scheduledTime(),
-                    command.sourceSystem(), command.sourceBusinessNo(), command.businessEventId()));
+                    command.sourceSystem(), command.sourceBusinessNo(), command.businessEventId(), null));
             return new CutoverTaskIntakeResult(result.taskId(), result.taskNo(), result.currentStage(),
                     result.taskStatus(), result.version(), result.replayed());
         } catch (CutoverTaskApplicationException exception) {

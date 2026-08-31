@@ -39,6 +39,7 @@ export const buildCreateRequest = (
   candidate: CreateContextCandidate,
   form: {
     serialNumbers: string[]
+    configurationCode: string
     taskName: string
     background: string
     cutoverType: string
@@ -50,6 +51,7 @@ export const buildCreateRequest = (
   const customer = candidate.customerServiceLevel
   return {
     projectId: candidate.project.projectId,
+    configurationCode: form.configurationCode,
     serialNumbers: form.serialNumbers,
     taskName: form.taskName.trim(),
     background: form.background.trim(),

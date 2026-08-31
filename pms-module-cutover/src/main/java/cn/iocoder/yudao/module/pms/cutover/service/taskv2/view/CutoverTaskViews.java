@@ -21,17 +21,27 @@ public final class CutoverTaskViews {
                                          boolean createAllowed) {
     }
 
-    public record CreateContextData(List<CreateContextCandidate> candidates, boolean selectionRequired) {
+    public record ConfigurationChoice(String configurationCode, String configurationName,
+                                      Long revisionId, int revisionNo,
+                                      LocalDateTime effectiveFrom, LocalDateTime effectiveTo) {
+    }
+
+    public record CreateContextData(List<CreateContextCandidate> candidates, boolean selectionRequired,
+                                    List<ConfigurationChoice> configurationChoices,
+                                    boolean configurationSelectionRequired) {
     }
 
     public record Summary(Long id, String taskNo, String taskName, String taskOrigin, String intakeSourceType,
+                          Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
                           Long projectId, String projectName, String officeCode, String officeName,
                           Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
                           LocalDateTime scheduledTime, LocalDateTime generatedAt, int version) {
     }
 
     public record TaskCore(Long id, String taskNo, String taskName, String background, String taskOrigin,
-                           String cutoverType, String networkMode, Long projectId, String projectName,
+                           String cutoverType, String networkMode,
+                           Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
+                           Long projectId, String projectName,
                            Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
                            LocalDateTime scheduledTime, LocalDateTime createTime, int version) {
     }

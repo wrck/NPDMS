@@ -188,7 +188,16 @@ class CutoverTaskApplicationServiceTest {
     private static CreateCutoverTaskCommand createCommand(String key) {
         return new CreateCutoverTaskCommand(1L, 8L, key, "corr-" + key, "SELF_CREATED", 100L,
                 List.of("SN-400"), "CUTOVER-V1", "核心网割接", "计划内设备割接", "配置变更", "普通双机",
-                LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null);
+                LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null,
+                new CreateCutoverTaskCommand.ExpectedCreateContext(
+                        new CutoverProjectContextPort.ProjectContextFact(1L, 100L, 3,
+                                "PROJ-100", "核心网割接项目", 200L, "CUS-200", "示例客户",
+                                300L, "OFFICE-300", "一号办事处", 7L),
+                        List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L)),
+                        new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
+                                500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null),
+                        new CutoverReadinessPort.ReadinessFact(600L, 4L, "READY", 100L,
+                                List.of(400L), "watermark-1", List.of())));
     }
 
     private static SaveCutoverAssessmentCommand saveCommand(Long taskId, Integer taskVersion, String grade) {

@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMap
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverCustomerLevelPort;
@@ -24,6 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 
@@ -38,6 +43,7 @@ class CutoverTaskQueryServiceTest {
     @Mock private CutoverTaskDeviceScopeMapper deviceMapper;
     @Mock private CutoverAssessmentMapper assessmentMapper;
     @Mock private CutoverChecklistMapper checklistMapper;
+    @Mock private CutoverConfigurationRevisionMapper configurationMapper;
     @Mock private CutoverProjectScopePort projectScopePort;
     @Mock private CutoverProjectContextPort projectContextPort;
     @Mock private CutoverDeviceScopePort deviceScopePort;
@@ -52,8 +58,9 @@ class CutoverTaskQueryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CutoverTaskQueryService(taskMapper, deviceMapper, assessmentMapper, checklistMapper, projectScopePort,
-                projectContextPort, deviceScopePort, customerLevelPort, readinessPort);
+        service = new CutoverTaskQueryService(taskMapper, deviceMapper, assessmentMapper, checklistMapper,
+                configurationMapper, projectScopePort, projectContextPort, deviceScopePort, customerLevelPort,
+                readinessPort, Clock.fixed(Instant.parse("2026-08-31T04:00:00Z"), ZoneOffset.UTC));
         project = new CutoverProjectContextPort.ProjectContextFact(1L, 101L, 3, "P-101", "核心网扩容",
                 201L, "C-201", "示例客户", 301L, "OFF-01", "华东办事处", 7L);
         device = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L);
@@ -71,10 +78,13 @@ class CutoverTaskQueryServiceTest {
         when(projectContextPort.inspect(1L, 101L, 7L)).thenReturn(project);
         when(customerLevelPort.inspect(201L)).thenReturn(customer);
         when(readinessPort.inspect(101L, List.of(401L))).thenReturn(readiness);
+        when(configurationMapper.selectEffectivePublishedList(any())).thenReturn(List.of(configuration()));
 
         CutoverTaskViews.CreateContextData result = service.resolveCreateContext(1L, 9L, List.of("SN-401"));
 
         assertThat(result.selectionRequired()).isFalse();
+        assertThat(result.configurationChoices()).singleElement().satisfies(choice ->
+                assertThat(choice.configurationCode()).isEqualTo("CUTOVER-V1"));
         assertThat(result.candidates()).singleElement().satisfies(candidate -> {
             assertThat(candidate.project()).isEqualTo(project);
             assertThat(candidate.devices()).containsExactly(device);
@@ -187,6 +197,16 @@ class CutoverTaskQueryServiceTest {
         row.setManualGrade("A");
         row.setSimpleFlow(false);
         row.setVersion(0);
+        return row;
+    }
+
+    private CutoverConfigurationRevisionDO configuration() {
+        CutoverConfigurationRevisionDO row = new CutoverConfigurationRevisionDO();
+        row.setId(901L);
+        row.setConfigurationCode("CUTOVER-V1");
+        row.setConfigurationName("标准割接配置");
+        row.setRevisionNo(1);
+        row.setEffectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0));
         return row;
     }
 }
