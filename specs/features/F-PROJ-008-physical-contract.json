@@ -84,7 +84,15 @@
       "module": "pms-module-project-api",
       "method": "lockAndRevalidate(ProjectStageGateFactQuery)",
       "transaction": "MANDATORY",
-      "registry": "ONE_PROVIDER_PER_FIXED_REF_TYPE_AND_PROVIDER_KEY"
+      "registry": "ONE_PROVIDER_PER_FIXED_REF_TYPE_AND_PROVIDER_KEY",
+      "deliveryProvider": {
+        "providerKey": "ACC_DELIVERABLE",
+        "implementationOwner": "ACC",
+        "ownerStorage": "acc_project_deliverable",
+        "lookup": "tenantId+projectId+deliverableCode UNIQUE ROOT FOR UPDATE",
+        "response": ["deliverableRootId", "businessStatus", "rowVersion"],
+        "forbidden": ["PROJ_DIRECT_ACC_TABLE_READ", "NONEXISTENT_ACC_PROJECT_DELIVERABLE_FACT_REUSE"]
+      }
     },
     "ProjectStageGateProcessOwnerApi": {
       "module": "pms-module-project-api",
@@ -104,7 +112,8 @@
     }
   },
   "reuseDisposition": {
-    "directReuse": ["ProjectMasterLock", "ProjectStageGateReferenceInstances", "ProjectTask", "ProjectMilestone", "AccProjectDeliverableFact", "ProjectScopeApi", "ProjectManagerMembership", "ProjectStageSnapshot", "PlatformCommandExecutionApi"],
+    "directReuse": ["ProjectMasterLock", "ProjectStageGateReferenceInstances", "ProjectTask", "ProjectMilestone", "AccProjectDeliverableRootAndExistingOwnerMapper", "ProjectScopeApi", "ProjectManagerMembership", "ProjectStageSnapshot", "PlatformCommandExecutionApi"],
+    "additivePublicProviders": ["ProjectStageGateFactProviderApi", "ProjectStageGateFact", "ACC_DELIVERABLE_PROVIDER_IMPLEMENTATION"],
     "copyThenEnhance": ["ProjectGovernanceApplicationServiceTransactionPattern", "PmsIntegrationFlowableQueryPattern", "ProjectWorkspaceStagePanel"],
     "doNotReuseRuntime": ["pms_project_phase", "YudaoBpmProcessInstanceApiForVersionedStart", "BroadBpmGovernanceGuardNoActiveMeansNoBlocker", "PM10Commands", "F_COM_001_S4_TO_S5"]
   },

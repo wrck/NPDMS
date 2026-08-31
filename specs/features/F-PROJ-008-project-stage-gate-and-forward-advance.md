@@ -62,7 +62,7 @@
 
 - TASK：同项目稳定taskCode唯一命中，只有`DONE`满足；
 - MILESTONE：同项目稳定milestoneCode唯一命中，只有`ACHIEVED`满足；
-- DELIVERABLE：ACC同项目稳定deliverableCode唯一命中，只有`ACCEPTED`满足；
+- DELIVERABLE：ACC Owner实现本Feature新增的`ProjectStageGateFactProviderApi`，按同租户、同项目、稳定deliverableCode锁定唯一`acc_project_deliverable`根，返回根ID、业务状态和row version；只有`ACCEPTED`满足。PROJ不得读取ACC表；仓库当前不存在可直接复用的`AccProjectDeliverableFact`接口。
 - STATE：受控`S0_COMPLETED`～`S6_COMPLETED`精确映射ProjectStage，只有对应Stage `DONE`满足；
 - APPROVAL/PROCESS：按Gate Reference固定businessKey和冻结定义版本关联最新尝试，只有已结束且整数状态`APPROVE(2)`满足；未启动、运行、驳回、撤回均是已知未满足。
 - Owner缺失、重复、身份或版本不一致、未知状态、Provider缺失或不可用属于依赖不可判定，不得任选或解释为满足。
@@ -113,7 +113,8 @@
 | 资产 | 裁决 | 边界 |
 |---|---|---|
 | ProjectMaster当前行锁、ProjectStage/Gate/Reference实例、Task/Milestone实例 | `DIRECT_REUSE` | 作为PROJ当前真值；补场景化锁查询和应用服务，不复制模型 |
-| ACC `acc_project_deliverable`及公共Fact | `DIRECT_REUSE` | 只经ACC Owner API读取/锁定，不由PROJ直表读取 |
+| ACC `acc_project_deliverable`根及现有DO/Mapper | `DIRECT_REUSE_AS_OWNER_IMPLEMENTATION` | 只作为ACC Owner Provider的真实载体；PROJ不得直表读取，不能声称存在可复用的`AccProjectDeliverableFact` |
+| `ProjectStageGateFactProviderApi/ProjectStageGateFact` | `ADDITIVE_NEW_PUBLIC_SPI` | 本Feature在`pms-module-project-api`新增统一SPI；ACC实现`ACC_DELIVERABLE` Provider并返回根ID、状态和row version |
 | ProjectScopeApi、当前PROJECT_MANAGER、PlatformCommandExecutionApi | `DIRECT_REUSE` | 复用权限范围、主体、幂等/审计/Outbox能力 |
 | ProjectGovernanceApplicationService的项目锁、快照、事件模式 | `COPY_THEN_ENHANCE` | 复制增强为独立StageAdvance服务；不得改写rollback/close/reopen行为 |
 | `pms-module-integration`现有Flowable运行/历史查询模式 | `COPY_THEN_ENHANCE` | 新建窄版本化Gate Provider；不复用宽泛“无活动即无阻断”结论 |
@@ -131,7 +132,7 @@
 
 - `AC-FPROJ008-001`：真实冻结模板项目在S0～S3可查询当前EXIT Gate和六类Reference结果；结果来自精确Owner事实，未满足项有序可读。
 - `AC-FPROJ008-002`：项目经理可从项目工作区启动`PROCESS/APPROVAL`冻结定义版本；流程实例记录真实发起人、整数运行状态、固定businessKey和冻结变量，同operation重放不新增实例。
-- `AC-FPROJ008-003`：TASK=DONE、MILESTONE=ACHIEVED、DELIVERABLE=ACCEPTED、STATE=DONE、流程批准完成后，对应Reference稳定为满足；未启动/运行/驳回/撤回不满足。
+- `AC-FPROJ008-003`：TASK=DONE、MILESTONE=ACHIEVED、DELIVERABLE=ACCEPTED、STATE=DONE、流程批准完成后，对应Reference稳定为满足；DELIVERABLE结果必须来自ACC实现的统一Provider对唯一应交根的锁定重验，PROJ无ACC表依赖；未启动/运行/驳回/撤回不满足。
 - `AC-FPROJ008-004`：全部EXIT Gate满足后，S0→S1→S2→S3→S4逐次相邻推进成功；每次仅产生一组Stage/Project/Gate/Snapshot/Audit/Outbox/幂等结果。
 - `AC-FPROJ008-005`：任一业务未满足、依赖不可判定、版本漂移、无权或非当前项目经理时不改变阶段；空EXIT Gate/空Reference不能放行。
 - `AC-FPROJ008-006`：S4通用推进明确拒绝并引导F-COM-001专用入口；不触发、补建或反推AcceptanceScopeBinding。
