@@ -148,7 +148,68 @@ export interface CutoverTaskDetail {
     isCurrent: boolean
     isAccessible: boolean
   }>
-  allowedActions: Array<'SAVE_ASSESSMENT' | 'SUBMIT_ASSESSMENT'>
+  allowedActions: Array<
+    | 'SAVE_ASSESSMENT'
+    | 'SUBMIT_ASSESSMENT'
+    | 'GENERATE_CHECKLIST'
+    | 'SAVE_CHECKLIST'
+    | 'REQUEST_COLLECTION'
+    | 'SUBMIT_CHECKLIST'
+  >
+}
+
+export interface ChecklistFileFactVersion {
+  artifactVersion: number
+  referenceVersion: number
+  availabilityVersion: number
+}
+
+export interface ChecklistFileHandle {
+  artifactId: WireLong
+  versionNo: number
+  referenceKey: string
+  fileFactVersion: ChecklistFileFactVersion
+  scopeVersion: WireLong
+}
+
+export interface CutoverChecklistResult {
+  resultVersion: number
+  resultSourceCode: 'DIRECT' | 'MANUAL' | 'COLLECTION' | 'EXTERNAL'
+  answerSnapshot: string
+  factDescription: string | null
+  manualEvidenceFileReference: string | null
+}
+
+export interface CutoverChecklistItem {
+  itemId: WireLong
+  stableItemKey: string
+  itemTypeCode: string
+  itemName: string
+  itemDescription: string | null
+  interfaceFormatCode: string
+  interfaceSchemaSnapshot: string | null
+  workModeCode: 'DIRECT' | 'COLLECTION' | 'EXTERNAL'
+  required: boolean
+  sourceCode: 'SYSTEM_MATCHED' | 'CUSTOM'
+  applicable: boolean
+  sortOrder: number
+  currentResult: CutoverChecklistResult | null
+}
+
+export interface CutoverChecklistView {
+  taskId: WireLong
+  taskStage: string
+  taskVersion: number
+  projectScopeVersion: WireLong
+  checklistId: WireLong
+  checklistVersion: number
+  checklistFactVersion: number
+  status: 'DRAFT' | 'SUBMITTED' | 'INVALIDATED'
+  inputSnapshotHash: string
+  configRevisionSnapshot: string
+  matchTrace: string
+  configGapSnapshot: string
+  items: CutoverChecklistItem[]
 }
 
 export interface CutoverTaskPage {
@@ -222,4 +283,68 @@ export const submitCutoverAssessment = (
       'If-Match': String(taskVersion),
       'Assessment-If-Match': String(assessmentVersion)
     }
+  })
+
+export const getCutoverChecklist = (taskId: WireLong) =>
+  request.get<CutoverChecklistView>({ url: `${baseUrl}/${taskId}/checklist` })
+
+export const generateCutoverChecklist = (
+  taskId: WireLong,
+  data: {
+    expectedTaskVersion: number
+    expectedAssessmentVersion: number
+    expectedProjectScopeVersion: WireLong
+    selectedConflictDefinitions: Record<string, { itemDefinitionId: WireLong; itemDefinitionVersion: number }>
+  },
+  idempotencyKey: string
+) =>
+  request.post({
+    url: `${baseUrl}/${taskId}/checklist/actions/generate`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey }
+  })
+
+export const saveCutoverChecklist = (
+  taskId: WireLong,
+  data: {
+    expectedTaskVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+    answers: Array<{ stableItemKey: string; answerSnapshot: string }>
+  }
+) => request.put({ url: `${baseUrl}/${taskId}/checklist`, data })
+
+export const saveManualChecklistResult = (
+  taskId: WireLong,
+  stableItemKey: string,
+  data: {
+    expectedTaskVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+    file: ChecklistFileHandle
+    factDescription: string
+  }
+) =>
+  request.post({
+    url: `${baseUrl}/${taskId}/checklist/items/${encodeURIComponent(stableItemKey)}/manual-results`,
+    data
+  })
+
+export const submitCutoverChecklist = (
+  taskId: WireLong,
+  data: {
+    expectedTaskVersion: number
+    expectedAssessmentVersion: number
+    expectedProjectScopeVersion: WireLong
+    checklistId: WireLong
+    expectedChecklistVersion: number
+  },
+  idempotencyKey: string
+) =>
+  request.post({
+    url: `${baseUrl}/${taskId}/checklist/actions/submit`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey }
   })

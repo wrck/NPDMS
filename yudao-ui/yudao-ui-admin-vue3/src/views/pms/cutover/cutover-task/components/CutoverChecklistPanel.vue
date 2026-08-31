@@ -1,0 +1,164 @@
+<template>
+  <section class="checklist-panel" aria-labelledby="cutover-checklist-title">
+    <header class="panel-heading">
+      <div>
+        <h3 id="cutover-checklist-title">P3 动态采集清单</h3>
+        <p>{{ checklist ? `清单版本 ${checklist.checklistVersion}` : '按任务冻结配置生成清单' }}</p>
+      </div>
+      <el-tag v-if="checklist">{{ checklist.status }}</el-tag>
+    </header>
+
+    <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
+    <el-empty v-if="!loading && !checklist" description="尚未生成 P3 清单">
+      <el-button
+        v-if="editable"
+        type="primary"
+        v-hasPermi="['pms:cutover-task:save-checklist']"
+        :loading="generating"
+        @click="generate"
+      >生成清单</el-button>
+    </el-empty>
+    <div v-else v-loading="loading">
+      <CutoverChecklistField
+        v-for="item in applicableItems"
+        :key="item.stableItemKey"
+        :item="item"
+        :direct-value="answers[item.stableItemKey] || ''"
+        :readonly="readonly"
+        @direct="setAnswer"
+        @manual="saveManual"
+      />
+      <footer v-if="checklist" class="panel-actions">
+        <el-button
+          v-if="!readonly"
+          v-hasPermi="['pms:cutover-task:save-checklist']"
+          :loading="saving"
+          @click="save"
+        >暂存</el-button>
+        <el-button
+          v-if="!readonly"
+          type="primary"
+          v-hasPermi="['pms:cutover-task:submit-checklist']"
+          :loading="submitting"
+          @click="submit"
+        >提交并进入 P4</el-button>
+      </footer>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { useMessage } from '@/hooks/web/useMessage'
+import * as CutoverApi from '@/api/pms/cutover/cutover-task'
+import type { ChecklistFileHandle, CutoverChecklistView, CutoverTaskDetail } from '@/api/pms/cutover/cutover-task'
+import { newIntentKey } from '../cutoverTaskInteraction'
+import CutoverChecklistField from './CutoverChecklistField.vue'
+
+const props = defineProps<{ detail: CutoverTaskDetail }>()
+const emit = defineEmits<{ submitted: [] }>()
+const message = useMessage()
+const checklist = ref<CutoverChecklistView | null>(null)
+const answers = reactive<Record<string, string>>({})
+const loading = ref(false)
+const generating = ref(false)
+const saving = ref(false)
+const submitting = ref(false)
+const editable = computed(() => props.detail.task.currentStage === 'P3' && props.detail.task.manualGrade !== 'D')
+const readonly = computed(() => !editable.value || checklist.value?.status !== 'DRAFT')
+const applicableItems = computed(() => checklist.value?.items.filter((item) => item.applicable) || [])
+const gapMessage = computed(() => {
+  if (!checklist.value?.configGapSnapshot || checklist.value.configGapSnapshot === '[]') return ''
+  return '当前冻结配置存在缺口，可补充任务级自定义项后提交。'
+})
+
+const hydrateAnswers = () => {
+  for (const key of Object.keys(answers)) delete answers[key]
+  for (const item of checklist.value?.items || []) {
+    if (item.currentResult?.resultSourceCode === 'DIRECT') {
+      answers[item.stableItemKey] = item.currentResult.answerSnapshot
+    }
+  }
+}
+const load = async () => {
+  loading.value = true
+  try {
+    checklist.value = await CutoverApi.getCutoverChecklist(props.detail.task.id)
+    hydrateAnswers()
+  } catch (error) {
+    const status = (error as { response?: { status?: number } })?.response?.status
+    if (status !== 404) throw error
+    checklist.value = null
+  } finally {
+    loading.value = false
+  }
+}
+const generate = async () => {
+  if (!props.detail.assessment || !props.detail.project.projectScopeVersion) return
+  generating.value = true
+  try {
+    await CutoverApi.generateCutoverChecklist(props.detail.task.id, {
+      expectedTaskVersion: props.detail.task.version,
+      expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
+      expectedProjectScopeVersion: props.detail.project.projectScopeVersion,
+      selectedConflictDefinitions: {}
+    }, newIntentKey())
+    message.success('已按任务冻结配置生成清单')
+    await load()
+  } finally { generating.value = false }
+}
+const setAnswer = (stableItemKey: string, value: string) => { answers[stableItemKey] = value }
+const save = async () => {
+  if (!checklist.value) return
+  saving.value = true
+  try {
+    await CutoverApi.saveCutoverChecklist(props.detail.task.id, {
+      expectedTaskVersion: checklist.value.taskVersion,
+      expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+      checklistId: checklist.value.checklistId,
+      expectedChecklistVersion: checklist.value.checklistFactVersion,
+      answers: Object.entries(answers).filter(([, value]) => value).map(([stableItemKey, answerSnapshot]) => ({ stableItemKey, answerSnapshot }))
+    })
+    message.success('P3 清单草稿已暂存')
+    await load()
+  } finally { saving.value = false }
+}
+const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, factDescription: string) => {
+  if (!checklist.value) return
+  await CutoverApi.saveManualChecklistResult(props.detail.task.id, stableItemKey, {
+    expectedTaskVersion: checklist.value.taskVersion,
+    expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+    checklistId: checklist.value.checklistId,
+    expectedChecklistVersion: checklist.value.checklistFactVersion,
+    file,
+    factDescription
+  })
+  message.success('人工证据已选为当前结果')
+  await load()
+}
+const submit = async () => {
+  if (!checklist.value || !props.detail.assessment) return
+  submitting.value = true
+  try {
+    await CutoverApi.submitCutoverChecklist(props.detail.task.id, {
+      expectedTaskVersion: checklist.value.taskVersion,
+      expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
+      expectedProjectScopeVersion: checklist.value.projectScopeVersion,
+      checklistId: checklist.value.checklistId,
+      expectedChecklistVersion: checklist.value.checklistFactVersion
+    }, newIntentKey())
+    message.success('P3 清单已提交，任务进入 P4')
+    emit('submitted')
+  } finally { submitting.value = false }
+}
+
+watch(() => props.detail.task.id, load, { immediate: true })
+</script>
+
+<style scoped>
+.checklist-panel { padding-top: 18px; border-top: 1px solid var(--el-border-color-lighter); }
+.panel-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.panel-heading h3, .panel-heading p { margin: 0; }
+.panel-heading p { margin-top: 4px; color: var(--el-text-color-secondary); }
+.panel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+@media (max-width: 767px) { .panel-actions { display: grid; grid-template-columns: 1fr; } }
+</style>

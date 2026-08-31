@@ -83,6 +83,8 @@ class CutoverChecklistApplicationServiceTest {
         assertEquals(2, view.items().size());
         assertEquals("MANUAL", view.items().stream().filter(item -> "SYS-IP".equals(item.stableItemKey()))
                 .findFirst().orElseThrow().currentResult().resultSourceCode());
+        assertEquals("现场截图", view.items().stream().filter(item -> "SYS-IP".equals(item.stableItemKey()))
+                .findFirst().orElseThrow().currentResult().factDescription());
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
         assertEquals("PLAN_DRAFTING", fixture.task.get().getTaskStatus());

@@ -225,7 +225,7 @@ public class CutoverChecklistApplicationService {
             CutoverChecklistItemDO item = items.get(answer.stableItemKey());
             require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "清单项不存在");
             appendResult(command.tenantId(), command.actorId(), item, "DIRECT", answer.answerSnapshot(),
-                    null, "DIRECT_SAVE");
+                    null, null, "DIRECT_SAVE");
         }
         require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
                 command.checklistId(), command.expectedChecklistVersion())) == 1,
@@ -263,7 +263,7 @@ public class CutoverChecklistApplicationService {
         Integer resultVersion = null;
         if (present(command.answerSnapshot())) {
             appendResult(command.tenantId(), command.actorId(), item, "DIRECT", command.answerSnapshot(),
-                    null, "CUSTOM_DIRECT_SAVE");
+                    null, null, "CUSTOM_DIRECT_SAVE");
             resultVersion = 1;
         }
         require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
@@ -285,7 +285,8 @@ public class CutoverChecklistApplicationService {
                 locked.task().getProjectId(), item.getId(), command.expectedProjectScopeVersion(), command.fileHandle());
         requireFileFact(command.fileHandle(), fact);
         int resultVersion = appendResult(command.tenantId(), command.actorId(), item, "MANUAL",
-                JsonUtils.toJsonString(fact), fact.referenceKey(), "MANUAL_EVIDENCE_SELECTED");
+                JsonUtils.toJsonString(fact), command.factDescription(), fact.referenceKey(),
+                "MANUAL_EVIDENCE_SELECTED");
         require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
                 command.checklistId(), command.expectedChecklistVersion())) == 1,
                 VERSION_CONFLICT, "清单版本已变化");
@@ -618,7 +619,8 @@ public class CutoverChecklistApplicationService {
     }
 
     private int appendResult(Long tenantId, Long actorId, CutoverChecklistItemDO item, String source,
-                             String answerSnapshot, String manualReference, String reason) {
+                             String answerSnapshot, String factDescription,
+                             String manualReference, String reason) {
         LocalDateTime now = LocalDateTime.now(clock);
         CutoverChecklistCurrentResultQuery query = new CutoverChecklistCurrentResultQuery(tenantId, item.getId());
         CutoverChecklistItemResultDO current = resultMapper.selectCurrentForUpdate(query);
@@ -634,6 +636,7 @@ public class CutoverChecklistApplicationService {
         row.setResultVersion(nextVersion);
         row.setResultSourceCode(source);
         row.setAnswerSnapshot(answerSnapshot);
+        row.setFactDescription(factDescription);
         row.setManualEvidenceFileReference(manualReference);
         row.setSelectionStartedAt(now);
         row.setSelectedBy(actorId);

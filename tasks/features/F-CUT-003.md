@@ -38,9 +38,11 @@
 - [ ] 完成后运行定向前端验证，并以正式身份完成一次“A级P3→生成→DIRECT+MANUAL→暂存刷新→提交→P4”真实工作台闭环。
 - [ ] 更新本Task与Feature追溯检查点，形成单一Implementation Done候选；不扩充异常Chromium矩阵。
 
+Task 2增量状态：P3查询/生成/重匹配/暂存/自定义/人工证据/提交REST候选及现有工作台正向接线已形成；Controller仍无生产注册。自定义删除、采集请求内核及生产Owner装配尚未完成，Task继续IN_PROGRESS。
+
 ## 完成边界
 
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：Task 1=`PASS / GO@372f6895`；CUT冻结产品类型与P3 DEVICE_TYPE受控链已通过独立复审。当前进入Task 2，可用显式测试装配继续REST/UI正向候选；生产Adapter/原子重验/Controller激活、真实浏览器及Done仍待集成Gate。
+> 检查点：Task2正向REST/UI候选已接通生成、填写、MANUAL、暂存和提交；无生产Bean。删除自定义项、采集请求内核及生产Owner装配待续，真实浏览器与Done仍阻断。

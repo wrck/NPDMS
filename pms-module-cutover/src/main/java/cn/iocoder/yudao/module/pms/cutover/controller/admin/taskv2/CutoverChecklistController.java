@@ -1,0 +1,192 @@
+package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
+
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist.CutoverChecklistReqVO;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SelectManualResultCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitChecklistCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+
+/**
+ * F-CUT-003 P3 清单 REST 候选。
+ *
+ * <p>生产 Owner 接通前不得增加 {@code @RestController}/{@code @Component} 或生产 {@code @Bean}。</p>
+ */
+@RequestMapping("/api/v1/pms/cutover-tasks/{taskId}/checklist")
+@ResponseBody
+public class CutoverChecklistController {
+
+    private final CutoverChecklistApplicationService service;
+    private final CutoverChecklistRequestContext requestContext;
+
+    public CutoverChecklistController(CutoverChecklistApplicationService service,
+                                      CutoverChecklistRequestContext requestContext) {
+        this.service = Objects.requireNonNull(service);
+        this.requestContext = Objects.requireNonNull(requestContext);
+    }
+
+    @GetMapping
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    public CommonResult<CutoverChecklistView> get(@PathVariable("taskId") Long taskId) {
+        requireId(taskId);
+        var trusted = requestContext.current();
+        return success(service.getView(trusted.tenantId(), trusted.actorId(), taskId));
+    }
+
+    @PostMapping("/actions/generate")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistCommandResult> generate(
+            @PathVariable("taskId") Long taskId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestBody CutoverChecklistReqVO.Generate request) {
+        requireId(taskId);
+        require(request != null, "generate request");
+        var trusted = requestContext.current();
+        return success(service.generate(new GenerateChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
+                request.expectedTaskVersion(), request.expectedAssessmentVersion(),
+                request.expectedProjectScopeVersion(), definitions(request.selectedConflictDefinitions()),
+                header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
+    }
+
+    @PostMapping("/actions/rematch")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistCommandResult> rematch(
+            @PathVariable("taskId") Long taskId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestBody CutoverChecklistReqVO.Rematch request) {
+        requireId(taskId);
+        require(request != null, "rematch request");
+        var trusted = requestContext.current();
+        return success(service.rematch(new RematchChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
+                request.expectedTaskVersion(), request.expectedAssessmentVersion(), request.checklistId(),
+                request.expectedChecklistVersion(), request.expectedInputSnapshotHash(),
+                request.expectedProjectScopeVersion(), definitions(request.selectedConflictDefinitions()),
+                header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
+    }
+
+    @PutMapping
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistCommandResult> save(@PathVariable("taskId") Long taskId,
+                                                      @RequestBody CutoverChecklistReqVO.Save request) {
+        requireId(taskId);
+        require(request != null, "save request");
+        var trusted = requestContext.current();
+        return success(service.save(new SaveChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
+                request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
+                request.expectedProjectScopeVersion(), request.answers() == null ? null : request.answers().stream()
+                .map(answer -> new SaveChecklistCommand.DirectAnswer(answer.stableItemKey(), answer.answerSnapshot()))
+                .toList())));
+    }
+
+    @PostMapping("/custom-items")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistItemCommandResult> addCustom(
+            @PathVariable("taskId") Long taskId, @RequestBody CutoverChecklistReqVO.CustomItem request) {
+        requireId(taskId);
+        require(request != null && request.required() != null, "custom item request");
+        var trusted = requestContext.current();
+        return success(service.addCustomItem(new AddCustomItemCommand(trusted.tenantId(), trusted.actorId(), taskId,
+                request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
+                request.expectedProjectScopeVersion(), request.itemTypeCode(), request.itemName(),
+                request.itemDescription(), request.interfaceFormatCode(), request.interfaceSchema(),
+                request.required(), request.answerSnapshot())));
+    }
+
+    @PostMapping("/items/{stableItemKey}/manual-results")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<ChecklistItemCommandResult> selectManual(
+            @PathVariable("taskId") Long taskId, @PathVariable("stableItemKey") String stableItemKey,
+            @RequestBody CutoverChecklistReqVO.ManualResult request) {
+        requireId(taskId);
+        require(request != null && request.file() != null && request.file().fileFactVersion() != null,
+                "manual result request");
+        var trusted = requestContext.current();
+        var file = request.file();
+        var version = file.fileFactVersion();
+        var handle = new CutoverChecklistFilePort.FileHandle(file.artifactId(), file.versionNo(), file.referenceKey(),
+                new CutoverChecklistFilePort.FileFactVersion(version.artifactVersion(), version.referenceVersion(),
+                        version.availabilityVersion()), file.scopeVersion());
+        return success(service.selectManual(new SelectManualResultCommand(trusted.tenantId(), trusted.actorId(),
+                taskId, request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
+                request.expectedProjectScopeVersion(), stableItemKey, handle, request.factDescription())));
+    }
+
+    @PostMapping("/actions/submit")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:submit-checklist')")
+    public CommonResult<ChecklistCommandResult> submit(
+            @PathVariable("taskId") Long taskId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestBody CutoverChecklistReqVO.Submit request) {
+        requireId(taskId);
+        require(request != null, "submit request");
+        var trusted = requestContext.current();
+        return success(service.submit(new SubmitChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
+                request.expectedTaskVersion(), request.expectedAssessmentVersion(), request.checklistId(),
+                request.expectedChecklistVersion(), request.expectedProjectScopeVersion(),
+                header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
+    }
+
+    @ExceptionHandler(CutoverChecklistException.class)
+    public ResponseEntity<CommonResult<Void>> handleChecklistException(CutoverChecklistException exception) {
+        int status = switch (exception.getCode()) {
+            case NOT_FOUND -> 404;
+            case DATA_SCOPE_FORBIDDEN -> 403;
+            case STATE_CONFLICT, VERSION_CONFLICT, IDEMPOTENCY_CONFLICT, IDEMPOTENCY_IN_PROGRESS -> 409;
+            case FILE_FACT_INVALID -> 422;
+            case INVALID_REQUEST, FROZEN_CONFIGURATION_NOT_FOUND, FROZEN_CONFIGURATION_INVALID -> 400;
+        };
+        CommonResult<Void> result = CommonResult.error(1_011_005_000 + exception.getCode().ordinal(),
+                exception.getMessage());
+        return ResponseEntity.status(status).body(result);
+    }
+
+    private static Map<String, GenerateChecklistCommand.SelectedDefinition> definitions(
+            Map<String, CutoverChecklistReqVO.SelectedDefinition> values) {
+        if (values == null) {
+            return Map.of();
+        }
+        return values.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+                entry -> new GenerateChecklistCommand.SelectedDefinition(entry.getValue().itemDefinitionId(),
+                        entry.getValue().itemDefinitionVersion())));
+    }
+
+    private static String header(String value, String field) {
+        require(value != null && !value.isBlank() && value.equals(value.trim()) && value.length() <= 128, field);
+        return value;
+    }
+
+    private static void requireId(Long value) {
+        require(value != null && value > 0, "taskId");
+    }
+
+    private static void require(boolean valid, String field) {
+        if (!valid) {
+            throw new IllegalArgumentException("invalid " + field);
+        }
+    }
+}

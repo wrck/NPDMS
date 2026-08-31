@@ -57,6 +57,11 @@
             @save="saveAssessment"
             @submit="submitAssessment"
           />
+          <CutoverChecklistPanel
+            v-else-if="detail.task.currentStage === 'P3' || detail.task.currentStage === 'P4'"
+            :detail="detail"
+            @submitted="handleChecklistSubmitted"
+          />
           <el-empty v-else description="当前阶段暂无可编辑内容" />
         </template>
       </div>
@@ -73,6 +78,7 @@ import * as CutoverApi from '@/api/pms/cutover/cutover-task'
 import type { AssessmentAnswers, CutoverTaskDetail, CutoverTaskSummary, ManualGrade } from '@/api/pms/cutover/cutover-task'
 import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
+import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
 import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
 import { formatWireDateTime, newIntentKey } from './cutoverTaskInteraction'
 
@@ -139,6 +145,8 @@ const submitAssessment = async () => {
     await refreshDetail(); await loadPage()
   } finally { submitting.value = false }
 }
+
+const handleChecklistSubmitted = async () => { await refreshDetail(); await loadPage() }
 
 onMounted(loadPage)
 </script>
