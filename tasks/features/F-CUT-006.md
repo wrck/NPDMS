@@ -17,10 +17,10 @@
 - 跨模块仅保留`ProjectScopeApi/FileArtifactApi/INT-12`消费端口；正常正向闭环使用`src/test`受控替身，不修改其他Owner或Yudao。
 - Feature Ready独立最小整改复审已在`4e390d4f`裁决`GO`，采集基数、归档/晚到回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项阻断均已关闭。
 - 唯一Technical Plan已通过`PASS / GO@354471f1`；正向实施顺序、两类失败采集的人工替代及INT-12外部任务同意图恢复三项计划阻断已关闭。
-- Task 1已形成闭环领域类型、PLT/INT-12消费端口及`src/test`受控替身候选；未注册生产Bean、Fake或fallback，当前状态为`CODE_REVIEW_REQUIRED`。
+- Task 1闭环领域类型、PLT/INT-12消费端口及`src/test`受控替身已通过独立复审：`PASS / GO@35c8462d`；未注册生产Bean、Fake或fallback。
 - Task 1最小整改已在采集恢复事实中加入不含`transientSecret`的稳定请求摘要；同一意图只能恢复同摘要外部任务，异摘要按幂等冲突失败关闭。
 - Task 1聚焦证据：`CutoverClosurePortContractTest` 6/6通过；`pms-module-cutover`及依赖模块打包通过。
-- 最近Gate：Task 1独立Contract/Code Review Gate；通过前不得进入Task 2。
+- 最近Gate：Task 2三表Schema、任务归档前向约束与Mapper合同独立Schema/MySQL Gate。
 
 ## 状态边界
 
