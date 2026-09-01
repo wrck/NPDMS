@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.SelectableInspectionRuleMapper">
+
+    <select id="selectListSelectableInternal"
+            resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.SelectableInspectionRuleProjection">
+        SELECT i.id AS rule_id,
+               i.detection_id,
+               r.id AS revision_id,
+               r.revision_no,
+               r.category_code,
+               r.category_name_snapshot AS category_name,
+               r.inspection_item,
+               r.severity_code,
+               r.severity_name_snapshot AS severity_name,
+               r.sort_order,
+               p.product_type_code,
+               p.product_type_name_snapshot AS product_type_name
+        FROM srv_inspection_rule_revision r
+        JOIN srv_inspection_rule i
+          ON i.tenant_id = r.tenant_id
+         AND i.id = r.rule_id
+         AND i.deleted = b'0'
+        JOIN srv_inspection_rule_product_type_revision p
+          ON p.tenant_id = r.tenant_id
+         AND p.revision_id = r.id
+         AND p.deleted = b'0'
+        WHERE r.tenant_id = #{query.tenantId}
+          AND r.deleted = b'0'
+          AND r.status_code = 'PUBLISHED'
+          AND p.product_type_code IN
+        <foreach collection="query.productTypeCodes" item="productTypeCode" open="(" separator="," close=")">
+            #{productTypeCode}
+        </foreach>
+        ORDER BY r.sort_order, i.detection_id, r.id
+    </select>
+
+</mapper>

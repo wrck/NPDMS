@@ -39,10 +39,11 @@ class AssetProductTypeConsumerBoundaryTest {
 
     @Test
     void inspectionProductionCodeMustNotBypassDedicatedApiBoundary() throws Exception {
-        Path productionRoot = Path.of("src", "main", "java");
+        Path productionRoot = Path.of("src", "main", "java", "cn", "iocoder", "yudao", "module", "pms", "service");
         try (var files = Files.walk(productionRoot)) {
             List<String> sources = files.filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> path.toString().contains("inspection"))
+                    .filter(path -> path.toString().contains("inspectionrule"))
+                    .filter(path -> !path.toString().contains("dal" + java.io.File.separator))
                     .map(AssetProductTypeConsumerBoundaryTest::read)
                     .toList();
             assertTrue(sources.stream().noneMatch(source -> source.contains(

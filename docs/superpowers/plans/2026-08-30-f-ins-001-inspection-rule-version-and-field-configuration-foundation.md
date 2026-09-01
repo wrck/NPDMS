@@ -129,7 +129,7 @@ python -m unittest scripts.tests.test_fins001_plan_and_scope scripts.tests.test_
 
 Expected：唯一计划、锁定提交和旧文件SHA检查立即PASS；Owner/查询扫描对尚不存在的新目录视为PASS。后续Task均在最小实现完成后补充并运行对应定向测试。
 
-- [ ] **Step 5: 建议逻辑分组**
+- [x] **Step 5: 建议逻辑分组**
 
 建议提交信息：`test(service): 建立F-INS-001实施边界门禁`
 
@@ -393,11 +393,11 @@ Expected：Flyway成功到最终编号；五表、约束、字典、菜单、权
 - Create: `pms-module-service/src/main/resources/mapper/inspectionrule/SelectableInspectionRuleMapper.xml`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/dal/mysql/inspectionrule/InspectionRuleMapperContractTest.java`
 
-- [ ] **Step 1: 实现简单单表查询**
+- [x] **Step 1: 实现简单单表查询**
 
 主键、租户内检测ID和规则内revision号使用稳定唯一键查询；分页的名称筛选字段固定为`ruleNameKeyword`并采用包含匹配；产品类型筛选字段固定为`productTypeCode`，通过XML `EXISTS`检查revision产品类型关系。其余简单条件使用`LambdaQueryWrapperX`，稳定排序`rule_id, revision_no desc, id desc`。
 
-- [ ] **Step 2: 实现XML查询**
+- [x] **Step 2: 实现XML查询**
 
 将以下查询放入XML：发布时锁定规则与当前发布revision、按revision批量加载命令/产品类型/有效审核、工程师可选规则联表投影。所有动态集合使用`#{}`和`<foreach>`，空集合在Service或Mapper入口返回空。
 
@@ -405,7 +405,7 @@ Expected：Flyway成功到最终编号；五表、约束、字典、菜单、权
 
 断言分页只接收`InspectionRuleRevisionPageQuery`；子项批量读取只接收`InspectionRuleChildrenQuery`；可选规则只接收`SelectableInspectionRuleQuery`。权限产品类型集合为空时必须直接返回空，不得省略条件扩大范围。
 
-- [ ] **Step 4: 运行契约与静态门禁**
+- [x] **Step 4: 运行契约与静态门禁**
 
 Run:
 
@@ -416,7 +416,7 @@ python -m unittest scripts.tests.test_fins001_owner_and_query_boundary
 
 Expected：PASS；不出现SQL注解、`${}`、`.last(...)`、长位置参数或跨模块表。
 
-- [ ] **Step 5: 建议逻辑分组**
+- [x] **Step 5: 建议逻辑分组**
 
 建议提交信息：`feat(service): 实现巡检规则版本持久化契约`
 

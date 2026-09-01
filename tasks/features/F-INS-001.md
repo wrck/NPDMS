@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 5已通过`GO NPDMS-FINS001-TASK5-CLOSEOUT-REVIEW-20260902-02`，当前最近Gate为Task 6 DO、场景化Query、Mapper与并发查询
+> 当前阻断：无；Task 6已通过`GO NPDMS-FINS001-TASK6-SECOND-REVIEW-20260902-01`，当前最近Gate为Task 7草稿、整体保存、复制和无副作用发布预检
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
@@ -12,7 +12,7 @@
 
 ## 当前最小工作单元
 
-* Task 4已完成当时规格下的纯领域闭环。修订012进一步冻结规则名称归属稳定身份、租户内永久唯一、停用/软删除不释放及revision不可改名，并补齐草稿除检测ID/规则名称外可空或不完整、发布必须完整、阈值数据类型固定`NUMBER`、安全审核结论固定`PASSED/REJECTED`且仅`PASSED`可发布。当前最小工作单元为Task 5的V148五表Schema；已按新空值/枚举契约形成迁移与静态契约测试，跨表发布完整性仍由Task 7/8事务守卫验证，不修改既有迁移历史。
+* Task 6已完成五表DO、稳定键与分页场景Query、子项批量读取、可选规则投影及发布锁查询；稳定键显式携带租户，空集合直接返回空，发布锁同时定位稳定身份、目标revision和当前发布revision。当前最小工作单元为Task 7草稿创建、整体保存、复制和无副作用发布预检；跨表发布原子性仍由Task 8关闭。
 
 ## 已完成
 
@@ -73,4 +73,4 @@
 
 ## 检查点
 
-基线=27b5b4b3；当前Gate=Task6持久化查询契约；证据=Task5收口GO，V148～V150、213项范围门禁、MySQL8.4.10、旧表指纹不变、五表零迁移写入、validate/重复migrate通过；仓库全量3项失败在基线同样复现且非本Feature引入；阻塞=无；下一步=审计现有DO/Mapper/XML惯例，实施五DO、三个场景Query及Mapper查询最小闭环。
+基线=27b5b4b3；当前Gate=Task7草稿/整体保存/复制/无副作用预检；证据=Task6二次复审GO，五DO、七Query、六Mapper、五XML，定向7项、service39项、22模块test/package、Python24项与diff检查通过；阻塞=无；下一步=按需读取Task7相关Service/事务/CAS惯例，先完成草稿正向保存闭环。

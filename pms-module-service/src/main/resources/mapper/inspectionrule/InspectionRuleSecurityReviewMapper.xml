@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleSecurityReviewMapper">
+
+    <select id="selectListValidByRevisionIdsInternal"
+            resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleSecurityReviewDO">
+        SELECT *
+        FROM srv_inspection_rule_security_review
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = b'0'
+          AND conclusion_code = 'PASSED'
+          AND revision_id IN
+        <foreach collection="query.revisionIds" item="revisionId" open="(" separator="," close=")">
+            #{revisionId}
+        </foreach>
+        <if test="query.contentDigest != null and query.contentDigest != ''">
+          AND content_digest = #{query.contentDigest}
+        </if>
+        ORDER BY revision_id, reviewed_at DESC, id DESC
+    </select>
+
+</mapper>

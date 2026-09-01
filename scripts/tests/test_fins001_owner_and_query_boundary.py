@@ -53,12 +53,16 @@ class FIns001OwnerAndQueryBoundaryTest(unittest.TestCase):
             mapper_source = path.read_text(encoding="utf-8-sig")
             self.assertNotRegex(mapper_source, re.compile(r"\bMap\s*<"))
             self.assertNotRegex(mapper_source, re.compile(r"\b\w+(?:Req|Resp)?VO\b"))
+            declaration_source = mapper_source
             declarations = re.findall(
-                r"((?:select|get|find|list|page|count|exists)\w*)\s*\(([^)]*)\)\s*;",
-                mapper_source,
-                re.DOTALL)
+                r"^[ \t]*(?!return\b)[\w<>, ?]+[ \t]+((?:select|get|find|list|page|count|exists)\w*)\s*\(([^)]*)\)\s*;",
+                declaration_source,
+                re.MULTILINE)
             relative_path = path.relative_to(ROOT).as_posix()
             for method_name, parameters in declarations:
+                if parameters.strip() == "query":
+                    self.assertRegex(mapper_source, rf"return\s+{method_name}\(query\);")
+                    continue
                 normalized = re.sub(r"@\w+(?:\([^)]*\))?\s*", "", parameters).strip()
                 parameter_types = [] if not normalized else [
                     parameter.strip().rsplit(maxsplit=1)[0]

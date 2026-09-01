@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleRevisionMapper">
+
+    <sql id="revisionPageFromWhere">
+        FROM srv_inspection_rule_revision r
+        JOIN srv_inspection_rule i
+          ON i.tenant_id = r.tenant_id
+         AND i.id = r.rule_id
+         AND i.deleted = b'0'
+        WHERE r.tenant_id = #{query.tenantId}
+          AND r.deleted = b'0'
+        <if test="query.detectionId != null and query.detectionId != ''">
+          AND i.detection_id = #{query.detectionId}
+        </if>
+        <if test="query.ruleNameKeyword != null and query.ruleNameKeyword != ''">
+          AND i.rule_name LIKE CONCAT('%', #{query.ruleNameKeyword}, '%')
+        </if>
+        <if test="query.categoryCode != null and query.categoryCode != ''">
+          AND r.category_code = #{query.categoryCode}
+        </if>
+        <if test="query.severityCode != null and query.severityCode != ''">
+          AND r.severity_code = #{query.severityCode}
+        </if>
+        <if test="query.statusCode != null and query.statusCode != ''">
+          AND r.status_code = #{query.statusCode}
+        </if>
+        <if test="query.productTypeCode != null and query.productTypeCode != ''">
+          AND EXISTS (
+            SELECT 1
+            FROM srv_inspection_rule_product_type_revision p
+            WHERE p.tenant_id = r.tenant_id
+              AND p.revision_id = r.id
+              AND p.deleted = b'0'
+              AND p.product_type_code = #{query.productTypeCode}
+          )
+        </if>
+    </sql>
+
+    <select id="selectPageList"
+            resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleRevisionDO">
+        SELECT r.*
+        <include refid="revisionPageFromWhere"/>
+        ORDER BY r.rule_id, r.revision_no DESC, r.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+
+    <select id="selectPageCount" resultType="long">
+        SELECT COUNT(*)
+        <include refid="revisionPageFromWhere"/>
+    </select>
+
+    <select id="selectPublicationLockForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection">
+        SELECT i.id AS rule_id,
+               i.version AS rule_version,
+               target.id AS target_revision_id,
+               target.version AS target_revision_version,
+               target.status_code AS target_revision_status_code,
+               published.id AS current_published_revision_id,
+               published.revision_no AS current_published_revision_no,
+               published.version AS current_published_revision_version
+        FROM srv_inspection_rule i
+        JOIN srv_inspection_rule_revision target
+          ON target.tenant_id = i.tenant_id
+         AND target.rule_id = i.id
+         AND target.id = #{query.targetRevisionId}
+         AND target.deleted = b'0'
+        LEFT JOIN srv_inspection_rule_revision published
+          ON published.tenant_id = i.tenant_id
+         AND published.rule_id = i.id
+         AND published.status_code = 'PUBLISHED'
+         AND published.deleted = b'0'
+        WHERE i.tenant_id = #{query.tenantId}
+          AND i.id = #{query.ruleId}
+          AND i.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+</mapper>
