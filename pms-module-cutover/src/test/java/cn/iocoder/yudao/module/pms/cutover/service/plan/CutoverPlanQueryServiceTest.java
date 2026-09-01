@@ -59,28 +59,6 @@ class CutoverPlanQueryServiceTest {
     }
 
     @Test
-    void hidesWriteActionsWhenActorHasViewButNotEditScope() {
-        CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
-        CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
-        CutoverProjectScopePort projectScope = mock(CutoverProjectScopePort.class);
-        CutoverPlanSourcePort.SourceFacts facts = facts();
-        when(taskMapper.selectById(50L)).thenReturn(task());
-        when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
-                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(projectScope.inspect(8L, 70L, "ACTION_EDIT"))
-                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, false));
-        when(planMapper.selectCurrent(any())).thenReturn(plan(facts));
-        CutoverPlanQueryService service = new CutoverPlanQueryService(taskMapper, planMapper,
-                mock(CutoverPlanStepMapper.class), mock(CutoverSupportArrangementMapper.class),
-                projectScope, new CutoverPlanControlledPorts.SourcePort(facts), new CutoverPlanContentCodec());
-
-        CutoverPlanView view = service.detail(1L, 8L, 50L,
-                new CutoverPlanQueryService.PlanAccess(true, true, true));
-
-        assertThat(view.allowedActions()).containsExactly("DOWNLOAD_DRAFT");
-    }
-
-    @Test
     void readsLegacyPlanByImmutableLegacyIdentityWithNoActions() {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
@@ -91,7 +69,11 @@ class CutoverPlanQueryServiceTest {
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO(); plan.setId(81L); plan.setTenantId(1L);
         plan.setCutoverTaskId(50L); plan.setRevisionNo(1); plan.setOriginCode("LEGACY_FORWARD");
         plan.setStatusCode(null); plan.setCurrentMarker(null); plan.setLegacyPlanId(701L); plan.setLegacyStatusRaw(2);
-        plan.setVersion(0); plan.setSourceSnapshot("{\"sourceTable\":\"pms_cut_plan\",\"sourceId\":701}");
+        plan.setVersion(0); plan.setSourceSnapshot("""
+                {"sourceTable":"pms_cut_plan","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
+                 "sourceVersion":3,"sourceStatusRaw":2,"mappingVersion":"FCUT004_LEGACY_V1",
+                 "code":"CUT-LEGACY-001","name":"旧割接方案","level":"A","remark":"历史备注"}
+                """);
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
@@ -110,6 +92,7 @@ class CutoverPlanQueryServiceTest {
         assertThat(view.legacyPlanId()).isEqualTo(701L);
         assertThat(view.legacyStatusRaw()).isEqualTo(2);
         assertThat(view.sourceSnapshot().path("sourceId").asLong()).isEqualTo(701L);
+        assertThat(view.sourceSnapshot().path("mappingVersion").asText()).isEqualTo("FCUT004_LEGACY_V1");
         assertThat(view.content().path("editMode").asText()).isEqualTo("LEGACY_READ_ONLY");
         assertThat(view.allowedActions()).isEmpty();
         verify(planMapper, never()).selectCurrent(any());

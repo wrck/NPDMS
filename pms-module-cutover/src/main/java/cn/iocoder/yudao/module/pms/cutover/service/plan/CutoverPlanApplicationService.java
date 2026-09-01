@@ -329,7 +329,7 @@ public class CutoverPlanApplicationService {
             throw failure(OWNER_DATA_CORRUPTED, "P4来源事实身份损坏");
         }
         if (!Objects.equals(facts.snapshot().taskVersion(), task.getVersion())) {
-            throw failure(PROJECT_OR_DEVICE_STALE, "任务或项目设备事实已变化");
+            throw failure(TASK_VERSION_STALE, "任务版本已变化");
         }
     }
 
@@ -414,6 +414,9 @@ public class CutoverPlanApplicationService {
         if (!Objects.equals(before.taskId(), after.taskId())) {
             throw failure(OWNER_DATA_CORRUPTED, "来源任务身份损坏");
         }
+        if (!Objects.equals(before.taskVersion(), after.taskVersion())) {
+            throw failure(TASK_VERSION_STALE, "任务版本已变化");
+        }
         if (!Objects.equals(before.assessmentId(), after.assessmentId())
                 || !Objects.equals(before.assessmentVersion(), after.assessmentVersion())
                 || !Objects.equals(before.grade(), after.grade())) {
@@ -424,8 +427,7 @@ public class CutoverPlanApplicationService {
                 || !Objects.equals(expected.failedRiskFacts(), current.failedRiskFacts())) {
             throw failure(CHECKLIST_STALE, "清单事实已变化");
         }
-        if (!Objects.equals(before.taskVersion(), after.taskVersion())
-                || !Objects.equals(before.projectId(), after.projectId())
+        if (!Objects.equals(before.projectId(), after.projectId())
                 || !Objects.equals(before.projectVersion(), after.projectVersion())
                 || !Objects.equals(before.projectScopeVersion(), after.projectScopeVersion())
                 || !Objects.equals(before.devices(), after.devices())) {
@@ -436,6 +438,9 @@ public class CutoverPlanApplicationService {
                 || !Objects.equals(before.configurationRevisionNo(), after.configurationRevisionNo())
                 || !Objects.equals(before.templateSections(), after.templateSections())) {
             throw failure(CONFIGURATION_OR_TEMPLATE_STALE, "配置或模板事实已变化");
+        }
+        if (!Objects.equals(expected, current)) {
+            throw failure(OWNER_DATA_CORRUPTED, "来源Owner返回无法分轴解释的变化");
         }
     }
 

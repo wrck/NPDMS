@@ -24,7 +24,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException.Code.NOT_FOUND;
 
@@ -141,12 +143,47 @@ public class CutoverPlanQueryService {
         try {
             JsonNode snapshot = JsonUtils.parseObject(plan.getSourceSnapshot(), JsonNode.class);
             if (snapshot == null || !snapshot.isObject()) throw corrupted("方案来源快照损坏");
+            if ("LEGACY_FORWARD".equals(plan.getOriginCode())) {
+                requireExactKeys(snapshot, Set.of("sourceTable", "sourceId", "sourceTenantId", "sourceTaskId",
+                        "sourceVersion", "sourceStatusRaw", "mappingVersion", "code", "name", "level", "remark"));
+                LegacyPlanSourceSnapshot legacy = JsonUtils.parseObject(plan.getSourceSnapshot(), LegacyPlanSourceSnapshot.class);
+                legacy.validate();
+            } else {
+                JsonUtils.parseObject(plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+            }
             return snapshot;
         } catch (CutoverPlanApplicationException ex) {
             throw ex;
         } catch (RuntimeException ex) {
             throw corrupted("方案来源快照损坏");
         }
+    }
+
+    private static void requireExactKeys(JsonNode value, Set<String> expected) {
+        Set<String> actual = value.properties().stream().map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!actual.equals(expected)) throw corrupted("方案来源快照字段损坏");
+    }
+
+    private record LegacyPlanSourceSnapshot(String sourceTable, Long sourceId, Long sourceTenantId,
+                                            Long sourceTaskId, Integer sourceVersion, Integer sourceStatusRaw,
+                                            String mappingVersion, String code, String name, String level,
+                                            String remark) {
+        private void validate() {
+            if (!"pms_cut_plan".equals(sourceTable) || sourceId == null || sourceId <= 0
+                    || sourceTenantId == null || sourceTenantId <= 0 || sourceTaskId == null || sourceTaskId <= 0
+                    || sourceVersion == null || sourceVersion < 0 || sourceStatusRaw == null
+                    || sourceStatusRaw < 0 || sourceStatusRaw > 4
+                    || !"FCUT004_LEGACY_V1".equals(mappingVersion) || !validText(code, 64)
+                    || !validText(name, 128) || !List.of("A", "B", "C", "D").contains(level)
+                    || remark != null && (!remark.equals(remark.trim()) || remark.length() > 4000)) {
+                throw corrupted("legacy方案来源快照损坏");
+            }
+        }
+    }
+
+    private static boolean validText(String value, int maxLength) {
+        return value != null && !value.isBlank() && value.equals(value.trim()) && value.length() <= maxLength;
     }
 
     private boolean comparableSource(Long tenantId, Long actorId, CutoverTaskDO task, CutoverPlanRevisionDO plan) {

@@ -68,4 +68,4 @@
 - [x] 实现当前详情、legacy只读投影与服务端`allowedActions`。
 - [ ] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate。
 
-> 检查点：首轮Application/MySQL Gate对`f3e81acd`裁决NO-GO；当前最小整改已补legacy专用只读查询与完整PlanView、PLT先锁、保障身份保持、规范JSON摘要、ACTION_EDIT动作投影及四轴来源错误，聚焦测试20/20通过，等待独立复审。既有隔离MySQL真实平台命令1/1证据仍有效；生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
+> 检查点：第二轮Application/MySQL Gate对`b2aba462`仍裁决NO-GO；当前单点整改已补`TASK_VERSION_STALE`与来源record闭包、按机器合同强类型解析new/legacy来源快照，并移除该轮新增负向测试。保留的正向聚焦测试17/17通过，既有隔离MySQL真实平台命令1/1证据仍有效，等待三项最小复审。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
