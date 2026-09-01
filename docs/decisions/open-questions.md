@@ -495,13 +495,14 @@
 
 - Status: BLOCKED_BY_SPEC
 - Requirement IDs: ACC-02、EQP-01、INS-02、INS-03、INS-09、NFR-02、PM-03
-- Area: 并行PRD Change ID唯一性与修订011完整收敛
+- Area: 并行PRD Change ID唯一性与master串行收敛
 - Question: `CHG-PRD-2026-08-30-010`在ACC分支表示“ACC-02可配置问卷基础”，在INS/AST分支表示“EQP-01设备产品类型公开契约”；`CHG-PRD-2026-09-01-011`又在PROJ分支表示“并行基线收敛与BPM定义身份”，在INS分支`6719ab94`表示“巡检正则受限子集”。INS/AST分支还包含独立的巡检命令1～30秒修订009。应如何在不改写已批准历史的前提下为这些语义形成唯一Change ID和完整后续基线？
-- Why it blocks design/implementation: 修订010和011各自同时指向两套不同业务语义。PROJ候选011遗漏INS/AST的009/010及巡检正则；INS候选011遗漏ACC/PROJ的009/010与BPM身份，却在分支内自报合并001～011并重开F-INS-001 Ready。任何一条分支直接成为全局PRD都会静默丢失另一线已批准语义，并使Feature、SDS、Task锁定输入和验收引用失真。
+- Why it blocks: 修订010和011各自同时指向两套不同业务语义。PROJ候选011遗漏INS/AST的009/010及巡检正则；INS候选011遗漏ACC/PROJ的009/010与BPM身份。任何一条分支的PRD文件直接成为全局基线都会静默丢失另一线语义，并使全局Change ID和验收引用失真。该问题不表示F-INS与其他Feature存在实现、Owner或代码冲突。
 - Options: A. 保留ACC修订010编号，以新的正式Change ID重新批准INS/AST两项语义；B. 保留INS/AST修订010编号，以新的正式Change ID重新批准ACC问卷语义；C. 发布新的并行基线收敛修订，完整引用两条原始提交与冲突编号，为每项语义给出唯一后续身份，并明确修订011是被替代的部分候选。
 - Recommended technical default: C；保留原分支提交为不可变历史，不直接重编号或覆盖其文本，在新的收敛修订中为010/011全部语义给出唯一后续身份和完整输入清单。
 - Business decision required: 是；需要需求方决定两项业务语义是否均保留及其正式Change ID，并重新形成完整PRD Baseline Gate。
-- Resolution: 待确认。关闭前，ACC/COM、AST-002/INS-001和两份revision-011相关候选不得作为全局PRD、Feature Ready锁定输入或整支合入master；`feat-inspection-feature-xkjuCC@6719ab94`及其后续Task 4B不得以分支内自报GO解除本阻断。不依赖冲突语义的独立工作可继续。
+- Resolution: 待确认。关闭前，各分支内重复编号的PRD修订不得直接晋级为全局PRD，也不得据此整支合入master；最终Change ID由master集成窗口串行收口。F-INS-001的独立实现候选不受其他Feature阻断：`feat-inspection-feature-xkjuCC@e13feca7`可按提交边界进入独立复核和选择性集成，但分支内Feature Ready、Task状态和共享投影不反向覆盖master，也不得由Task 4推导Feature Done。后续Task 5开始前仍须从master建立有效DU和锁定输入。
+- Blocking scope: 仅阻断重复编号PRD修订成为全局基线、依赖该编号的全局验收引用定稿及整支合并；不阻断F-INS独立代码候选、适用测试或新DU内不依赖编号裁决的实施。
 - Decision owner: 需求方/产品组；ACC、AST、INS、PROJ领域Owner参与影响分析
 - Decision date: 待确认
 
