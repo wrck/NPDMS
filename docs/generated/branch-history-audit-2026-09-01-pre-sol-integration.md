@@ -1,8 +1,8 @@
 # 本地分支完整时间线审计
 
 > 文档状态：`GENERATED_SNAPSHOT / NON_AUTHORITATIVE_EVIDENCE`<br>
-> 审计截点：`2026-09-01T23:23:14.4365352+08:00`<br>
-> master输入：`master@75a489902f423bd1c929a279e3751a9c76d662a0`<br>
+> 审计截点：`2026-09-01T23:26:08.0719898+08:00`<br>
+> master输入：`master@a57fa1bf2817a5071f38c6a94b9a6ffdeee2d4ef`<br>
 > 生成器：`scripts/generate_branch_history_audit.py`<br>
 > 判读边界：本报告只记录Git、Worktree和stash事实；认领以Delivery Unit为准，Ready/Done以Feature权威文件为准。
 
@@ -10,28 +10,28 @@
 
 | 分支 | HEAD | 时间 | behind/ahead | DAG关系 | Worktree | 脏项 | Delivery Unit |
 |---|---|---|---:|---|---|---:|---|
-| `chore/merge-spec-revision-005` | `2dc8063ba987d320a7355fad7bdeddd069e82d97` | 2026-08-29T01:12:00+08:00 | 46/0 | IN_MASTER | `NONE` | N/A | NONE |
-| `chore/single-repository-governance` | `98ef4a41a00544472103bc8e0dd3bdbfe23dcb24` | 2026-08-28T20:58:02+08:00 | 49/0 | IN_MASTER | `NONE` | N/A | NONE |
-| `codex/f-acc-001-sds` | `58576666af682bed1a5ea8e40043ff77dde4b2c7` | 2026-08-31T03:04:19+08:00 | 35/142 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/fcom/NPDMS` | 2 | DU-20260901-COM-ACC-CANDIDATE:BLOCKED |
-| `codex/f-com-001-feature-ready` | `21423d9c17e1f67846558d031273e4d1398d6a3d` | 2026-08-30T00:39:02+08:00 | 35/62 | BRANCH_ONLY | `NONE` | N/A | NONE |
-| `codex/f-cut-001-master-integration` | `07b6eb063ab9a54fe419930c8417581eeb983f05` | 2026-09-01T17:51:13+08:00 | 21/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/fcut001-master-integration/NPDMS` | 0 | DU-20260901-FCUT001-INTEGRATION:INTEGRATED_PARTIAL |
-| `codex/f-cut-001-matrices` | `85b93828eb041db3b21611edf52b9180b673a5e0` | 2026-09-01T16:54:17+08:00 | 32/272 | BRANCH_ONLY | `E:/AICoding/Projects/NPDMS` | 2 | DU-20260901-CUT-MULTI-FEATURE-QUARANTINE:QUARANTINED |
-| `codex/f-proj-001-atomic-alignment` | `8bbaf69ae12583343b935521c27969fb85b7851e` | 2026-08-21T15:43:19+08:00 | 711/6 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/f001/NPDMS` | 1 | NONE |
-| `codex/f-proj-008-stage-advance` | `48175aa0e8185c54d08ee546daef3018f6fcfbd3` | 2026-09-01T15:00:06+08:00 | 32/203 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/7a76/NPDMS` | 24 | DU-20260901-FPROJ008-MIGRATION:INTEGRATED_PARTIAL |
-| `codex/f-sol-003-legacy-deprecation` | `3e27f047abb5771507985102786ce34d72ca7f0a` | 2026-09-01T17:15:40+08:00 | 28/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/fsol003-deprecation/NPDMS` | 0 | DU-20260901-FSOL003-DEPRECATION:INTEGRATED_COMPLETE |
-| `codex/integrate-f-cut-001` | `72ccb83f8052758e70fc585b1226403b6a825311` | 2026-08-30T05:15:26+08:00 | 32/9 | BRANCH_ONLY | `E:/AICoding/Worktrees/NPDMS-fcut001-integration` | 0 | NONE |
-| `codex/merge-engineering-chain-phase-tmrsp0` | `2911183338b65f6d3fc34ec2992d9937839b60dc` | 2026-08-25T17:03:40+08:00 | 663/1 | TREE_EQUIVALENT:00db759c988f | `NONE` | N/A | NONE |
-| `codex/v1-8-feature-revalidation-50eb` | `68db25b3c6bd6af8785fa54f018d5d54c504117f` | 2026-08-29T04:54:19+08:00 | 48/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/50eb/NPDMS` | 1 | NONE |
-| `engineering-chain-phase-TmrsP0` | `abbc3fa0b5b2ad98a405e0118cc0f9231f99cb46` | 2026-08-19T10:57:36+08:00 | 673/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/engineering-chain-phase-TmrsP0` | 0 | NONE |
-| `feat-inspection-feature-Q7yA35` | `08457e39d3f2d53657c5a31c984cd4cd645ce7b8` | 2026-08-30T02:54:21+08:00 | 32/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-inspection-feature-Q7yA35` | 0 | NONE |
-| `feat-inspection-feature-xkjuCC` | `e13feca79ba768234477315e2ccfe7ca54d4068c` | 2026-09-01T19:28:10+08:00 | 32/17 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-inspection-feature-xkjuCC` | 46 | DU-20260901-AST002-INTEGRATION:BLOCKED；DU-20260901-FINS001-MIGRATION:INTEGRATION_CANDIDATE |
-| `feat-parallel-features-akPsDH` | `4060039ce4866b42df1006c9c8bb6a7c99bb4864` | 2026-08-25T13:54:00+08:00 | 561/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-parallel-features-akPsDH` | 0 | NONE |
-| `feat/feature-01` | `28d44fe50e457c80e7471574cff17af7da63838b` | 2026-08-21T18:41:31+08:00 | 663/0 | IN_MASTER | `NONE` | N/A | NONE |
-| `feat/specification-baseline-sync` | `91ba833a88b76098f97993e5d5fe4fd6e20e29d5` | 2026-08-21T17:09:52+08:00 | 705/0 | IN_MASTER | `NONE` | N/A | NONE |
-| `import/spec-prd-v1.8-revision-005` | `aaed378a9e35165e78e144391cfd0ba7e73c137b` | 2026-08-29T01:27:26+08:00 | 465/0 | IN_MASTER | `NONE` | N/A | NONE |
-| `master` | `75a489902f423bd1c929a279e3751a9c76d662a0` | 2026-09-01T23:23:09+08:00 | 0/0 | MASTER | `M:/AICoding/CodexData/worktrees/master-governance/NPDMS` | 0 | DU-20260901-CUT-PROJ-OWNER-INTEGRATION:INTEGRATED_PARTIAL；DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION:INTEGRATED_COMPLETE |
-| `prd-audit-v1-8-LAR2Ap` | `48156a8a5d6be1859f2f7c19fe5e2a6d5e81e7a4` | 2026-08-28T20:29:53+08:00 | 359/1 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/prd-audit-v1-8-LAR2Ap` | 2 | NONE |
-| `prereq-parallel-check-kKiAdn` | `cdfbd71a1722f9696c1dbb8713566de9e88ff97c` | 2026-08-28T19:40:33+08:00 | 552/4 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/prereq-parallel-check-kKiAdn` | 2 | DU-20260901-FINT012-QUARANTINE:QUARANTINED |
+| `chore/merge-spec-revision-005` | `2dc8063ba987d320a7355fad7bdeddd069e82d97` | 2026-08-29T01:12:00+08:00 | 47/0 | IN_MASTER | `NONE` | N/A | NONE |
+| `chore/single-repository-governance` | `98ef4a41a00544472103bc8e0dd3bdbfe23dcb24` | 2026-08-28T20:58:02+08:00 | 50/0 | IN_MASTER | `NONE` | N/A | NONE |
+| `codex/f-acc-001-sds` | `58576666af682bed1a5ea8e40043ff77dde4b2c7` | 2026-08-31T03:04:19+08:00 | 36/142 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/fcom/NPDMS` | 2 | DU-20260901-COM-ACC-CANDIDATE:BLOCKED |
+| `codex/f-com-001-feature-ready` | `21423d9c17e1f67846558d031273e4d1398d6a3d` | 2026-08-30T00:39:02+08:00 | 36/62 | BRANCH_ONLY | `NONE` | N/A | NONE |
+| `codex/f-cut-001-master-integration` | `07b6eb063ab9a54fe419930c8417581eeb983f05` | 2026-09-01T17:51:13+08:00 | 22/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/fcut001-master-integration/NPDMS` | 0 | DU-20260901-FCUT001-INTEGRATION:INTEGRATED_PARTIAL |
+| `codex/f-cut-001-matrices` | `85b93828eb041db3b21611edf52b9180b673a5e0` | 2026-09-01T16:54:17+08:00 | 33/272 | BRANCH_ONLY | `E:/AICoding/Projects/NPDMS` | 2 | DU-20260901-CUT-MULTI-FEATURE-QUARANTINE:QUARANTINED |
+| `codex/f-proj-001-atomic-alignment` | `8bbaf69ae12583343b935521c27969fb85b7851e` | 2026-08-21T15:43:19+08:00 | 712/6 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/f001/NPDMS` | 1 | NONE |
+| `codex/f-proj-008-stage-advance` | `48175aa0e8185c54d08ee546daef3018f6fcfbd3` | 2026-09-01T15:00:06+08:00 | 33/203 | BRANCH_ONLY | `M:/AICoding/CodexData/worktrees/7a76/NPDMS` | 24 | DU-20260901-FPROJ008-MIGRATION:INTEGRATED_PARTIAL |
+| `codex/f-sol-003-legacy-deprecation` | `3e27f047abb5771507985102786ce34d72ca7f0a` | 2026-09-01T17:15:40+08:00 | 29/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/fsol003-deprecation/NPDMS` | 0 | DU-20260901-FSOL003-DEPRECATION:INTEGRATED_COMPLETE |
+| `codex/integrate-f-cut-001` | `72ccb83f8052758e70fc585b1226403b6a825311` | 2026-08-30T05:15:26+08:00 | 33/9 | BRANCH_ONLY | `E:/AICoding/Worktrees/NPDMS-fcut001-integration` | 0 | NONE |
+| `codex/merge-engineering-chain-phase-tmrsp0` | `2911183338b65f6d3fc34ec2992d9937839b60dc` | 2026-08-25T17:03:40+08:00 | 664/1 | TREE_EQUIVALENT:00db759c988f | `NONE` | N/A | NONE |
+| `codex/v1-8-feature-revalidation-50eb` | `68db25b3c6bd6af8785fa54f018d5d54c504117f` | 2026-08-29T04:54:19+08:00 | 49/1 | PATCH_EQUIVALENT | `M:/AICoding/CodexData/worktrees/50eb/NPDMS` | 1 | NONE |
+| `engineering-chain-phase-TmrsP0` | `abbc3fa0b5b2ad98a405e0118cc0f9231f99cb46` | 2026-08-19T10:57:36+08:00 | 674/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/engineering-chain-phase-TmrsP0` | 0 | NONE |
+| `feat-inspection-feature-Q7yA35` | `08457e39d3f2d53657c5a31c984cd4cd645ce7b8` | 2026-08-30T02:54:21+08:00 | 33/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-inspection-feature-Q7yA35` | 0 | NONE |
+| `feat-inspection-feature-xkjuCC` | `e13feca79ba768234477315e2ccfe7ca54d4068c` | 2026-09-01T19:28:10+08:00 | 33/17 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-inspection-feature-xkjuCC` | 46 | DU-20260901-AST002-INTEGRATION:BLOCKED；DU-20260901-FINS001-MIGRATION:INTEGRATION_CANDIDATE |
+| `feat-parallel-features-akPsDH` | `4060039ce4866b42df1006c9c8bb6a7c99bb4864` | 2026-08-25T13:54:00+08:00 | 562/0 | IN_MASTER | `C:/Users/user/.trae-cn/worktrees/NPDMS/feat-parallel-features-akPsDH` | 0 | NONE |
+| `feat/feature-01` | `28d44fe50e457c80e7471574cff17af7da63838b` | 2026-08-21T18:41:31+08:00 | 664/0 | IN_MASTER | `NONE` | N/A | NONE |
+| `feat/specification-baseline-sync` | `91ba833a88b76098f97993e5d5fe4fd6e20e29d5` | 2026-08-21T17:09:52+08:00 | 706/0 | IN_MASTER | `NONE` | N/A | NONE |
+| `import/spec-prd-v1.8-revision-005` | `aaed378a9e35165e78e144391cfd0ba7e73c137b` | 2026-08-29T01:27:26+08:00 | 466/0 | IN_MASTER | `NONE` | N/A | NONE |
+| `master` | `a57fa1bf2817a5071f38c6a94b9a6ffdeee2d4ef` | 2026-09-01T23:25:52+08:00 | 0/0 | MASTER | `M:/AICoding/CodexData/worktrees/master-governance/NPDMS` | 0 | DU-20260901-CUT-PROJ-OWNER-INTEGRATION:INTEGRATED_PARTIAL；DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION:INTEGRATED_COMPLETE |
+| `prd-audit-v1-8-LAR2Ap` | `48156a8a5d6be1859f2f7c19fe5e2a6d5e81e7a4` | 2026-08-28T20:29:53+08:00 | 360/1 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/prd-audit-v1-8-LAR2Ap` | 2 | NONE |
+| `prereq-parallel-check-kKiAdn` | `cdfbd71a1722f9696c1dbb8713566de9e88ff97c` | 2026-08-28T19:40:33+08:00 | 553/4 | BRANCH_ONLY | `C:/Users/user/.trae-cn/worktrees/NPDMS/prereq-parallel-check-kKiAdn` | 2 | DU-20260901-FINT012-QUARANTINE:QUARANTINED |
 
 ## 全部Worktree快照
 
@@ -54,7 +54,7 @@
 | `M:/AICoding/CodexData/worktrees/fcom/NPDMS` | `codex/f-acc-001-sds` | `58576666af682bed1a5ea8e40043ff77dde4b2c7` | 2 |
 | `M:/AICoding/CodexData/worktrees/fcut001-master-integration/NPDMS` | `codex/f-cut-001-master-integration` | `07b6eb063ab9a54fe419930c8417581eeb983f05` | 0 |
 | `M:/AICoding/CodexData/worktrees/fsol003-deprecation/NPDMS` | `codex/f-sol-003-legacy-deprecation` | `3e27f047abb5771507985102786ce34d72ca7f0a` | 0 |
-| `M:/AICoding/CodexData/worktrees/master-governance/NPDMS` | `master` | `75a489902f423bd1c929a279e3751a9c76d662a0` | 0 |
+| `M:/AICoding/CodexData/worktrees/master-governance/NPDMS` | `master` | `a57fa1bf2817a5071f38c6a94b9a6ffdeee2d4ef` | 0 |
 
 ## master之外的全部提交时间线
 
