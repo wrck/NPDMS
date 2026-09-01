@@ -97,6 +97,9 @@ class CutoverClosureApplicationServiceTest {
         service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(1L, 100L, 400L, 11L,
                 CollectionStage.POST_COLLECTION, "callback-ok", acceptedTaskId, true,
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-ok"));
+        service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(1L, 100L, 400L, 11L,
+                CollectionStage.POST_COLLECTION, "callback-ok", acceptedTaskId, true,
+                "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
         service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7, 400L, 2,
@@ -104,8 +107,13 @@ class CutoverClosureApplicationServiceTest {
                 "test-check", 2L, "collect-failed", "corr-collect-failed"));
         String failedTaskId = evidence.get(2).getCollectionTaskId();
         service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7, 400L, 3,
-                failedTaskId, file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
+                failedTaskId, 11L, CollectionStage.TEST,
+                file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-result"));
+        service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7, 400L, 3,
+                failedTaskId, 11L, CollectionStage.TEST,
+                file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
+                "manual-result", "corr-manual-replay"));
 
         assertThat(closure.getVersion()).isEqualTo(4);
         assertThat(evidence).extracting(CutoverCollectionEvidenceDO::getEvidenceTypeCode)

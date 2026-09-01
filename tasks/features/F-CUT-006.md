@@ -34,8 +34,10 @@
 - Task 3最终单点复审已对`a99ddf5b`裁决`GO`，ProjectScope正式异常映射阻断关闭；Task 3创建、保存、详情与文件事实正常链Gate现为`PASS / GO@a99ddf5b`。
 - Task 4候选已形成CUT自有采集请求、回调与人工结果替代正向链：DRAFT单设备请求追加下发事实，成功回调追加终态事实；下发/回调失败可锁定PLT文件事实追加人工结果，原失败证据保持不可变。INT-12仅经消费端口调用，受控实现位于`src/test`，未注册生产Bean、Fake或fallback。
 - Task 4恢复链已按同一`CollectionIntentIdentity`先查询外部任务：CUT本地事务失败后，重试复用同一`collectionTaskId`补齐本地投影，不创建第二外部任务；请求摘要不包含`transientSecret`。
-- Task 4聚焦证据：Application与Mapper合同4/4通过；独立MySQL 8.4空库全量迁移至V155后，正常dispatch/callback/manual持久链及“外部任务已存在、本地投影失败、同意图恢复”共3/3通过，平台幂等/审计与CUT写保持事务一致。候选仍等待独立Code Review/MySQL复审，不提前回写PASS。
-- 最近Gate：Task 4采集请求、回调与人工结果替代正向运行单元独立Code Review/MySQL复审。
+- Task 4首轮独立复审对`55dc8e49`裁决`NO-GO`：人工结果命令缺少`deviceId/collectionStage`联合身份，callback/manual业务摘要误含`correlationId/Idempotency-Key`；Task 4保持`REVIEW_REQUIRED`。
+- Task 4最小整改候选已补齐人工结果的`collectionTaskId + deviceId + collectionStage + failure type`精确匹配；callback/manual改用封闭业务摘要，明确排除关联标识与平台幂等键，人工摘要包含PLT文件冻结事实。
+- Task 4整改证据：Application与Mapper合同4/4通过；隔离MySQL 8.4空库全量迁移至V155后，dispatch/callback/manual、同关联标识变化重放及外部任务恢复链3/3通过，临时数据库已删除。整改仍等待独立复审，不提前回写PASS。
+- 最近Gate：Task 4 A/B最小命令身份与幂等摘要整改Code Review/正向聚焦与隔离MySQL复审。
 
 ## 状态边界
 

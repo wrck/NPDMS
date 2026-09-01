@@ -118,7 +118,7 @@ public class CutoverClosureApplicationService {
     public CutoverClosureCommandResult handleCollectionCallback(HandleClosureCollectionCallbackCommand command) {
         requireCallbackCommand(command);
         return executeCommand(command.tenantId(), "CUT:CLOSURE_COLLECTION_CALLBACK", 0L,
-                command.callbackEventId(), sha256(JsonUtils.toJsonString(command)), command.correlationId(),
+                command.callbackEventId(), callbackCommandDigest(command), command.correlationId(),
                 "CUTOVER_CLOSURE_COLLECTION_CALLBACK", () -> callbackNew(command));
     }
 
@@ -126,7 +126,7 @@ public class CutoverClosureApplicationService {
     public CutoverClosureCommandResult linkManualResult(LinkClosureManualResultCommand command) {
         requireManualCommand(command);
         return executeCommand(command.tenantId(), "CUT:CLOSURE_MANUAL_RESULT:" + command.taskId(),
-                command.actorId(), command.idempotencyKey(), sha256(JsonUtils.toJsonString(command)),
+                command.actorId(), command.idempotencyKey(), manualCommandDigest(command),
                 command.correlationId(), "CUTOVER_CLOSURE_MANUAL_RESULT", () -> manualResultNew(command));
     }
 
@@ -248,6 +248,8 @@ public class CutoverClosureApplicationService {
                 new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
         CutoverCollectionEvidenceDO failed = evidence.stream().filter(value ->
                         Objects.equals(value.getCollectionTaskId(), command.failedCollectionTaskId())
+                                && Objects.equals(value.getDeviceId(), command.deviceId())
+                                && Objects.equals(value.getCollectionStageCode(), command.collectionStage().name())
                                 && List.of("DISPATCH_FAILED", "CALLBACK_FAILED").contains(value.getEvidenceTypeCode()))
                 .findFirst().orElseThrow(() -> failure(STATE_CONFLICT, "失败采集事实不存在"));
         lockProjectScope(command.actorId(), task);
@@ -263,7 +265,7 @@ public class CutoverClosureApplicationService {
         }
         long attachmentId = insertAttachment(command.tenantId(), command.actorId(), closure.getId(), input, file,
                 LocalDateTime.now(clock));
-        insertEvidence(command.tenantId(), closure, task, failed.getDeviceId(), failed.getCollectionStageCode(),
+        insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
                 "MANUAL_UPLOAD", command.failedCollectionTaskId(), null, null, null,
                 command.failedCollectionTaskId(), attachmentId, LocalDateTime.now(clock), command.actorId());
         advanceClosure(command.tenantId(), closure, command.actorId());
@@ -575,7 +577,9 @@ public class CutoverClosureApplicationService {
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
                 || command.closureId() == null || command.closureId() <= 0
                 || command.expectedClosureVersion() == null || command.expectedClosureVersion() < 0
-                || !validText(command.failedCollectionTaskId(), 128) || command.attachment() == null
+                || !validText(command.failedCollectionTaskId(), 128)
+                || command.deviceId() == null || command.deviceId() <= 0 || command.collectionStage() == null
+                || command.attachment() == null
                 || command.attachment().purposeCode() != CutoverClosureRules.AttachmentPurpose.MANUAL_COLLECTION_RESULT
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "人工采集结果非法");
@@ -624,6 +628,26 @@ public class CutoverClosureApplicationService {
             value.put("loginName", transientCredential.loginName());
             value.put("saveAsCredential", transientCredential.saveAsCredential());
         }
+        return sha256(JsonUtils.toJsonString(value));
+    }
+
+    private static String callbackCommandDigest(HandleClosureCollectionCallbackCommand command) {
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("taskId", command.taskId()); value.put("closureId", command.closureId());
+        value.put("deviceId", command.deviceId()); value.put("collectionStage", command.collectionStage());
+        value.put("collectionTaskId", command.collectionTaskId()); value.put("succeeded", command.succeeded());
+        value.put("resultRef", command.resultRef()); value.put("resultVersion", command.resultVersion());
+        value.put("occurredAt", command.occurredAt());
+        return sha256(JsonUtils.toJsonString(value));
+    }
+
+    private static String manualCommandDigest(LinkClosureManualResultCommand command) {
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("taskId", command.taskId()); value.put("taskVersion", command.expectedTaskVersion());
+        value.put("closureId", command.closureId()); value.put("closureVersion", command.expectedClosureVersion());
+        value.put("failedCollectionTaskId", command.failedCollectionTaskId());
+        value.put("deviceId", command.deviceId()); value.put("collectionStage", command.collectionStage());
+        value.put("attachment", command.attachment());
         return sha256(JsonUtils.toJsonString(value));
     }
 

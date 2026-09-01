@@ -198,6 +198,9 @@ class CutoverClosureApplicationMySqlTest {
         service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
                 deviceId, CollectionStage.POST_COLLECTION, "callback-ok", acceptedTaskId, true,
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-ok"));
+        service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
+                deviceId, CollectionStage.POST_COLLECTION, "callback-ok", acceptedTaskId, true,
+                "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
         service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 2,
@@ -208,8 +211,13 @@ class CutoverClosureApplicationMySqlTest {
                  WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_FAILED'
                 """, String.class, tenantId, closureId);
         service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 3,
-                failedTaskId, file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
+                failedTaskId, deviceId, CollectionStage.TEST,
+                file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-result"));
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 3,
+                failedTaskId, deviceId, CollectionStage.TEST,
+                file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
+                "manual-result", "corr-manual-replay"));
 
         assertEquals(4, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
         assertEquals(4, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=?", tenantId));
