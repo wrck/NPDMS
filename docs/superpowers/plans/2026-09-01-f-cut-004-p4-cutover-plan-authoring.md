@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task with the listed review checkpoints.
 >
 > 计划 ID：`NPDMS-FCUT004-TECHPLAN-20260901-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@9ef7545d`
 > Feature Ready：`READY / GO@644816f2`
 > Feature Spec：`specs/features/F-CUT-004-p4-cutover-plan-authoring.md`
 > API Contract：`specs/features/F-CUT-004-api-contract.json`
@@ -369,4 +369,4 @@ Feature完成必须同时满足：
 
 ## 16. Technical Plan Gate
 
-当前结论：`REVIEW_REQUIRED`。本计划只申请独立Technical Plan复审；在GO前不授权Task 1、DDL、后端、前端、菜单或测试实现。GO后按Task 1→12及各自Gate执行，跨模块受控替身边界不等于生产依赖完成。
+当前结论：`PASS / GO@9ef7545d`。允许按Task 1→12及各自Gate执行；每个Task先完成最小正向实现，再补实现后的单元测试与正向闭环验证。跨模块受控替身边界不等于生产依赖完成。

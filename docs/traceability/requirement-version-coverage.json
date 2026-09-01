@@ -124,8 +124,8 @@
       "featureId": "F-CUT-004",
       "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
       "taskPath": "tasks/features/F-CUT-004.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-04@V1",
@@ -1350,7 +1350,7 @@
         {
           "featureId": "F-CUT-004",
           "coverage": "FULL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
           "taskPath": "tasks/features/F-CUT-004.md"
         }
