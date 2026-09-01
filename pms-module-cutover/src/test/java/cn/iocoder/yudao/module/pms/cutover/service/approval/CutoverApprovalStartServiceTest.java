@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,7 +51,9 @@ class CutoverApprovalStartServiceTest {
                 "A", 600L, 2, 700L, 3, 1, null, "start-1", "corr-1");
 
         CutoverApprovalStartResult started = service.start(command);
-        CutoverApprovalStartResult replayed = service.start(command);
+        CutoverApprovalStartCommand sameBusinessNewCorrelation = new CutoverApprovalStartCommand(1L, 100L, 5,
+                900L, 1, "A", 600L, 2, 700L, 3, 1, null, "start-1", "corr-2");
+        CutoverApprovalStartResult replayed = service.start(sameBusinessNewCorrelation);
         CutoverApprovalStartCommand changed = new CutoverApprovalStartCommand(1L, 100L, 6, 900L, 1,
                 "A", 600L, 2, 700L, 3, 1, null, "start-1", "corr-1");
         CutoverApprovalApplicationException conflict = assertThrows(CutoverApprovalApplicationException.class,
@@ -64,9 +68,45 @@ class CutoverApprovalStartServiceTest {
                 nodeCaptor.getAllValues().stream().map(CutoverApprovalNodeDO::getNodeCode).toList());
         assertEquals("PENDING", nodeCaptor.getAllValues().getFirst().getStatusCode());
         assertEquals(202L, nodeCaptor.getAllValues().getFirst().getCurrentApproverUserId());
-        verify(notifications).insert(any(CutoverApprovalNotificationDO.class));
+        ArgumentCaptor<CutoverApprovalInstanceDO> instanceCaptor =
+                ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
+        verify(instances).insert(instanceCaptor.capture());
+        var routeSnapshot = JsonUtils.parseTree(instanceCaptor.getValue().getRouteSnapshot());
+        assertEquals("A", routeSnapshot.path("grade").asText());
+        assertEquals(List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND"),
+                StreamSupport.stream(routeSnapshot.path("nodes").spliterator(), false)
+                        .map(node -> node.path("nodeCode").asText()).toList());
+        ArgumentCaptor<CutoverApprovalNotificationDO> notificationCaptor =
+                ArgumentCaptor.forClass(CutoverApprovalNotificationDO.class);
+        verify(notifications).insert(notificationCaptor.capture());
+        assertNull(notificationCaptor.getValue().getNextRetryAt());
         assertEquals(1, platform.facts.size());
         assertEquals(CutoverApprovalApplicationException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
+    }
+
+    @Test
+    void pausesPendingApprovalWithoutWritingDecisionTime() {
+        CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
+        CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
+        CutoverApprovalInstanceDO pending = new CutoverApprovalInstanceDO();
+        pending.setId(500L); pending.setTenantId(1L); pending.setTaskId(100L); pending.setPlanRevisionId(900L);
+        pending.setPlanRevisionNo(1); pending.setStatusCode("PENDING"); pending.setSourceSnapshotVersion(1);
+        pending.setVersion(3);
+        when(instances.selectByIdForUpdate(any())).thenReturn(pending);
+        when(instances.updateById(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
+        when(nodes.selectList(any())).thenReturn(List.of());
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(
+                mock(CutoverApprovalSourceAssembler.class), instances, nodes,
+                mock(CutoverApprovalNotificationMapper.class), CutoverApprovalControlledPorts.serviceManager(301L),
+                CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
+                new DirectPlatform(), () -> 202L,
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+
+        CutoverApprovalCommandResult result = service.pause(new CutoverApprovalPauseCommand(
+                1L, 500L, 3, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));
+
+        assertEquals(ApprovalStatus.PAUSED_SOURCE_INVALIDATED, result.fact().status());
+        assertNull(result.fact().decisionAt());
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

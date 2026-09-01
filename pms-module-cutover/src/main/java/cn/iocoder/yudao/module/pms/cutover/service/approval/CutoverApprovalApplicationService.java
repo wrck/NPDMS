@@ -64,7 +64,7 @@ public class CutoverApprovalApplicationService {
         PlatformCommandExecutionApi.ExecutionResult<CutoverApprovalStartResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUTOVER_APPROVAL_START:" + command.taskId() + ":" + command.planRevisionId(),
-                        actorId, command.idempotencyKey()), sha256(JsonUtils.toJsonString(command)),
+                        actorId, command.idempotencyKey()), startDigest(command),
                 CutoverApprovalStartResult.class, () -> startNew(command, actorId),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_APPROVAL_START",
                         "CutoverApproval", String.valueOf(result.fact().approvalInstanceId()),
@@ -84,7 +84,7 @@ public class CutoverApprovalApplicationService {
         PlatformCommandExecutionApi.ExecutionResult<CutoverApprovalCommandResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUTOVER_APPROVAL_PAUSE:" + command.approvalInstanceId(), actorId, command.idempotencyKey()),
-                sha256(JsonUtils.toJsonString(command)), CutoverApprovalCommandResult.class,
+                pauseDigest(command), CutoverApprovalCommandResult.class,
                 () -> pauseNew(command, actorId), result -> new PlatformCommandExecutionApi.SuccessFacts(
                         "CUTOVER_APPROVAL_SOURCE_PAUSE", "CutoverApproval",
                         String.valueOf(result.fact().approvalInstanceId()), command.correlationId(),
@@ -109,7 +109,7 @@ public class CutoverApprovalApplicationService {
                 VERSION_CONFLICT, "审批事实已变化");
         LocalDateTime now = LocalDateTime.now(clock);
         instance.setStatusCode("PAUSED_SOURCE_INVALIDATED"); instance.setHoldReasonCode(null);
-        instance.setDecisionAt(now); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
+        instance.setDecisionAt(null); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
         require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
         List<CutoverApprovalNodeDO> nodes = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
                 .eq(CutoverApprovalNodeDO::getTenantId, command.tenantId())
@@ -141,7 +141,7 @@ public class CutoverApprovalApplicationService {
         instance.setChecklistVersion(command.checklistVersion()); instance.setGradeCode(command.grade());
         instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(route.getFirst().treeVersion());
         instance.setSourceSnapshotVersion(command.sourceSnapshotVersion()); instance.setSourceSnapshot(source.sourceSnapshot());
-        instance.setRouteSnapshot(JsonUtils.toJsonString(route)); instance.setStatusCode("PENDING");
+        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); instance.setStatusCode("PENDING");
         instance.setHoldReasonCode(hold); instance.setCurrentNodeNo(1);
         instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0);
         instance.setCreator(String.valueOf(actorId)); instance.setUpdater(String.valueOf(actorId));
@@ -175,7 +175,7 @@ public class CutoverApprovalApplicationService {
                 SOURCE_STALE, "发起人项目范围已变化");
         route.add(new NodeDraft("INITIATOR", actorId, initiator.treeVersion(), JsonUtils.toJsonString(Map.of(
                 "userId", actorId, "projectId", projectId, "requiredAction", "ACTION_EDIT",
-                "treeVersion", initiator.treeVersion()))));
+                "treeVersion", initiator.treeVersion())), null));
         for (String code : CutoverApprovalRules.routeFor(grade).subList(1, CutoverApprovalRules.routeFor(grade).size())) {
             route.add("SERVICE_MANAGER".equals(code) ? serviceManager(tenantId, projectId, code)
                     : roleCandidate(tenantId, projectId, code));
@@ -192,7 +192,8 @@ public class CutoverApprovalApplicationService {
                 OWNER_DATA_CORRUPTED, "服务经理事实损坏");
         var current = locked.current();
         Long userId = current.outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND ? current.userId() : null;
-        return new NodeDraft(code, userId, 0, JsonUtils.toJsonString(current));
+        return new NodeDraft(code, userId, 0, JsonUtils.toJsonString(current),
+                userId == null ? "SERVICE_MANAGER_NOT_UNIQUE" : null);
     }
 
     private NodeDraft roleCandidate(long tenantId, long projectId, String code) {
@@ -217,7 +218,8 @@ public class CutoverApprovalApplicationService {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("roleGroupCode", group); snapshot.put("candidates", candidates.candidates());
         snapshot.put("projectScopes", scoped); snapshot.put("selectedUserId", selected);
-        return new NodeDraft(code, selected, selected == null ? 0 : treeVersion, JsonUtils.toJsonString(snapshot));
+        return new NodeDraft(code, selected, selected == null ? 0 : treeVersion, JsonUtils.toJsonString(snapshot),
+                selected == null ? "PROJECT_CANDIDATE_NOT_UNIQUE" : null);
     }
 
     private void linkPrevious(CutoverApprovalStartCommand command, long replacementId) {
@@ -237,7 +239,7 @@ public class CutoverApprovalApplicationService {
         row.setId(IDS.nextId()); row.setTenantId(command.tenantId()); row.setApprovalInstanceId(instanceId);
         row.setApprovalNodeId(nodeId); row.setRecipientUserId(actorId);
         row.setDeliveryKey("CUT_APPROVAL:" + instanceId + ":1:0"); row.setTemplateCode("CUT_APPROVAL_PENDING");
-        row.setStatusCode("PENDING"); row.setRetryCount(0); row.setNextRetryAt(now); row.setVersion(0);
+        row.setStatusCode("PENDING"); row.setRetryCount(0); row.setNextRetryAt(null); row.setVersion(0);
         row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
         row.setCreateTime(now); row.setUpdateTime(now);
         require(notificationMapper.insert(row) == 1, STATE_CONFLICT, "首节点通知创建失败");
@@ -256,11 +258,41 @@ public class CutoverApprovalApplicationService {
                 .digest(value.getBytes(StandardCharsets.UTF_8))); }
         catch (NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
+    private static String startDigest(CutoverApprovalStartCommand command) {
+        return sha256(JsonUtils.toJsonString(new StartBusinessInput(command.tenantId(), command.taskId(),
+                command.expectedTaskVersion(), command.planRevisionId(), command.planRevisionNo(), command.grade(),
+                command.assessmentId(), command.assessmentVersion(), command.checklistId(), command.checklistVersion(),
+                command.sourceSnapshotVersion(), command.previousApprovalInstanceId())));
+    }
+    private static String pauseDigest(CutoverApprovalPauseCommand command) {
+        return sha256(JsonUtils.toJsonString(new PauseBusinessInput(command.tenantId(), command.approvalInstanceId(),
+                command.expectedApprovalVersion(), command.planRevisionId(), command.expectedSourceSnapshotVersion(),
+                command.reasonCode())));
+    }
+    private static String routeSnapshot(String grade, List<NodeDraft> route) {
+        List<RouteNodeSnapshot> nodes = new ArrayList<>();
+        for (int index = 0; index < route.size(); index++) {
+            NodeDraft node = route.get(index);
+            nodes.add(new RouteNodeSnapshot(index + 1, node.nodeCode(), node.approverUserId(), node.treeVersion(),
+                    JsonUtils.parseTree(node.candidateSnapshot()), node.unresolvedReason()));
+        }
+        return JsonUtils.toJsonString(new RouteSnapshot(grade, List.copyOf(nodes)));
+    }
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {
         if (!condition) throw failure(code, message);
     }
     private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code, String message) {
         return new CutoverApprovalApplicationException(code, message);
     }
-    private record NodeDraft(String nodeCode, Long approverUserId, long treeVersion, String candidateSnapshot) { }
+    private record NodeDraft(String nodeCode, Long approverUserId, long treeVersion, String candidateSnapshot,
+                             String unresolvedReason) { }
+    private record RouteSnapshot(String grade, List<RouteNodeSnapshot> nodes) { }
+    private record RouteNodeSnapshot(int nodeNo, String nodeCode, Long selectedUserId, long projectScopeVersion,
+                                     tools.jackson.databind.JsonNode candidateFact, String unresolvedReason) { }
+    private record StartBusinessInput(long tenantId, long taskId, int expectedTaskVersion, long planRevisionId,
+                                      int planRevisionNo, String grade, long assessmentId, int assessmentVersion,
+                                      Long checklistId, Integer checklistVersion, int sourceSnapshotVersion,
+                                      Long previousApprovalInstanceId) { }
+    private record PauseBusinessInput(long tenantId, long approvalInstanceId, int expectedApprovalVersion,
+                                      long planRevisionId, int expectedSourceSnapshotVersion, String reasonCode) { }
 }
