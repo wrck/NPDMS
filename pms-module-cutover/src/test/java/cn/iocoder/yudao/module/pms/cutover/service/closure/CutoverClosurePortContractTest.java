@@ -43,6 +43,7 @@ class CutoverClosurePortContractTest {
         assertThat(replay).isEqualTo(first);
         assertThat(port.inspectByIntent(identity)).isEqualTo(new DispatchLookup(LookupStatus.FOUND, first));
         assertThat(port.lastIdentity()).isEqualTo(identity);
+        assertThat(first.requestDigest()).hasSize(64).matches("[0-9a-f]{64}");
     }
 
     @Test
@@ -56,6 +57,9 @@ class CutoverClosurePortContractTest {
 
         assertThat(authentication.toString()).doesNotContain("secret-value").contains("<redacted>");
         assertThat(result.toString()).doesNotContain("secret-value");
+        assertThat(result.requestDigest()).isEqualTo(new CollectionRequest(identity("intent-2"), 7L, 11L,
+                new TransientCredential("engineer", "rotated-secret", false),
+                "P6-COLLECT", 1L, "another-correlation").requestDigest());
         assertThat(port.lastIdentity()).isEqualTo(request.identity());
     }
 

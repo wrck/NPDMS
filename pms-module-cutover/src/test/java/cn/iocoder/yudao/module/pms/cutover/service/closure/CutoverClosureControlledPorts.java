@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 
 import java.time.Clock;
@@ -80,10 +81,21 @@ final class CutoverClosureControlledPorts {
         @Override
         public DispatchFact request(CollectionRequest request) {
             lastIdentity = request.identity();
-            return facts.computeIfAbsent(request.identity(), ignored -> new DispatchFact(
+            DispatchFact existing = facts.get(request.identity());
+            if (existing != null) {
+                if (!existing.requestDigest().equals(request.requestDigest())) {
+                    throw new CutoverClosureOwnerFactException(
+                            CutoverClosureOwnerFactException.Code.IDEMPOTENCY_CONFLICT,
+                            "collection intent payload conflicts with the frozen request");
+                }
+                return existing;
+            }
+            DispatchFact created = new DispatchFact(
                     "controlled-collection-" + sequence.incrementAndGet(), nextOutcome,
                     nextOutcome == DispatchOutcome.FAILED ? nextFailureCode : null,
-                    LocalDateTime.now(clock)));
+                    LocalDateTime.now(clock), request.requestDigest());
+            facts.put(request.identity(), created);
+            return created;
         }
 
         @Override

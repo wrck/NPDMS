@@ -7,6 +7,7 @@ public final class CutoverClosureOwnerFactException extends RuntimeException {
         INVALID_REQUEST,
         FILE_INVALID,
         COLLECTION_INVALID,
+        IDEMPOTENCY_CONFLICT,
         SOURCE_STALE,
         PROVIDER_UNAVAILABLE,
         OWNER_DATA_CORRUPTED
