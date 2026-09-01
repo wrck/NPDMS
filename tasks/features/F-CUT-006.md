@@ -45,9 +45,9 @@
 - Task 5单点整改已在`39083446`通过独立复审；`CutoverCompleted`九字段精确载荷阻断关闭。Task 5 SUCCESS/FAILED提交、归档、设备释放、P6历史、平台幂等审计与完成事件Gate现为`PASS / GO@39083446`。
 - Task 6首轮独立复审对`df1b7830`裁决`NO-GO`：应用异常将Owner、来源陈旧、状态及业务不完整原因有损折叠，且候选含负向测试。整改已由实际守卫携带封闭reasonCode、ownerContext和当前版本，Controller仅结构化投影；负向测试及Gate证据已移除，五路由、Codec与既有闭环正向聚焦验证5/5通过。
 - Task 6最小整改已在`97ee0904`通过独立复审；错误身份无损投影与正向验证边界阻断均已关闭。生产Controller/Service仍未注册，Task 6 REST Contract/Code Review Gate现为`PASS / GO@97ee0904`。
-- Task 7候选已形成CUT受控legacy前向分类：生产代码只领取PLT `STAGED_READY`冻结批次，结构合法旧步骤归为`RETAINED`，冻结来源载荷损坏归为`FCUT006_SOURCE_RECORD_INVALID`，不读取旧表且不创建CUT闭环；V156仅将`legacyCutoverClosureReconciliationJob`登记为`status=2/PAUSED`。
-- Task 7聚焦证据：Classifier与迁移合同5/5通过；隔离MySQL 8.4空库执行152个迁移至V156后，正式暂存来源正常分类与完成链1/1通过，批次`mapped=0/issue=0/retained=1`且CUT闭环零写；临时容器、网络和卷均已清理。候选保持`REVIEW_REQUIRED`，不提前回写PASS。
-- 最近Gate：Task 7受控legacy前向分类与暂停Job的Migration/MySQL Gate。
+- Task 7已形成CUT受控legacy前向分类：生产代码只领取PLT `STAGED_READY`冻结批次，结构合法旧步骤归为`RETAINED`，冻结来源载荷损坏归为`FCUT006_SOURCE_RECORD_INVALID`，不读取旧表且不创建CUT闭环；V156仅将`legacyCutoverClosureReconciliationJob`登记为`status=2/PAUSED`。
+- Task 7聚焦证据：Classifier与迁移合同5/5通过；隔离MySQL 8.4空库执行152个迁移至V156后，正式暂存来源正常分类与完成链1/1通过，批次`mapped=0/issue=0/retained=1`且CUT闭环零写；临时容器、网络和卷均已清理。独立Migration/MySQL Gate现为`PASS / GO@739aad09`。
+- 最近Gate：Task 8 P6工作台与组件交互的前端组件交互Gate。
 
 ## 状态边界
 
