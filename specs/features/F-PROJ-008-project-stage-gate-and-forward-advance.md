@@ -1,7 +1,7 @@
 # F-PROJ-008 项目阶段准出门禁与正向推进 Feature Spec
 
-> 文档状态：`CANDIDATE`
-> Feature Ready：`NOT_READY（修订011影响同步待独立复审；原非BPM边界GO保持）`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO（3ec0f743修订011影响同步独立复审通过）`
 > Implementation：`NOT_STARTED`
 > Requirement：`PM-03（V1阶段门禁正向运行切片）`
 > Requirement切片覆盖：`PM-03@V1=PARTIAL`
@@ -10,7 +10,7 @@
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`
 > 上位决策：`ADR-0043（ACCEPTED）`
 > 适用基线：PRD V1.8；F-PROJ-008 SDS Phase 2 / P3-E09 `READY / GO`
-> Technical Plan：`BLOCKED_BY_FEATURE_GATE`；`Q-FPROJ-008`已关闭，修订011影响同步独立GO前不得形成计划
+> Technical Plan：`PENDING_FORMATION`；`Q-FPROJ-008`已关闭，允许形成唯一计划，计划GO前不得进入Implementation
 
 ## 1. 业务价值与最小正向闭环
 
@@ -149,10 +149,10 @@
 |---|---|
 | PM-03正向运行切片及S4后置边界 | PASS |
 | 六类Owner与唯一满足谓词 | PASS |
-| Gate流程定义查询、授权、发起及状态 | PASS（待独立复审） |
+| Gate流程定义查询、授权、发起及状态 | PASS |
 | 权限、锁序、事务、幂等、事件 | PASS |
 | 物理差量与旧实现复用边界 | PASS（NO_PHYSICAL_DELTA） |
 | 最小正向UI/浏览器验收 | PASS（已定义，未实施） |
-| 独立Feature Ready裁决 | PENDING（修订011影响同步） |
+| 独立Feature Ready裁决 | PASS（3ec0f743） |
 
-结论：`CANDIDATE / NOT_READY / NOT_STARTED`。原非BPM业务边界GO保持，修订011影响同步仍须同一Feature Ready Gate独立复审；当前不得形成Technical Plan、创建Task或修改产品代码。
+结论：`BASELINE / READY / NOT_STARTED`。修订011影响同步已获独立GO；允许形成并独立审核唯一Technical Plan，计划GO前不得创建Task或修改产品代码。
