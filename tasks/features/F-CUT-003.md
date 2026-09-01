@@ -1,10 +1,10 @@
 # F-CUT-003 P3动态采集清单、直接填写与人工降级闭环
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@ea986d61`
 > Technical Plan Gate：`PASS / GO@ac740458`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`BLOCKED_BY_DEPENDENCY`
 > Requirement：`CUT-03@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-003-p3-dynamic-checklist.md`
@@ -31,7 +31,7 @@
 
 ## Task 2：P3工作台与一次正向验收
 
-状态：`IN_PROGRESS / CONTROLLED_POSITIVE_LOOP_REVIEW_REQUIRED / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
+状态：`IN_PROGRESS / BACKEND_MYSQL_CONTROLLED_LOOP_PASS_GO@d3161d9d / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
 
 - [x] 已用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
 - [x] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM增删、COLLECTION请求/刷新、MANUAL证据、暂存和提交；服务端`allowedActions`控制入口。
@@ -39,11 +39,11 @@
 - [ ] 完成后运行定向前端验证，并以正式身份完成一次“A级P3→生成→DIRECT+MANUAL→暂存刷新→提交→P4”真实工作台闭环。
 - [ ] 更新本Task与Feature追溯检查点，形成单一Implementation Done候选；不扩充异常Chromium矩阵。
 
-Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收敛、P3服务端动作投影及`CutoverChecklistItemResultLinked`同事务Outbox已独立复审`PASS / GO`；当前新增真实MySQL受控正向闭环候选，等待独立复审。Controller/Service仍无生产注册，生产Owner装配与真实工作台验收尚未完成，Task继续`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`。
+Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收敛、P3服务端动作投影及`CutoverChecklistItemResultLinked`同事务Outbox已独立复审`PASS / GO`；`d3161d9d`的真实MySQL受控正向闭环已独立复审`PASS / GO`。Controller/Service仍无生产注册，生产Owner装配与真实工作台验收尚未完成，Task继续`IN_PROGRESS / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`。
 
 ## 完成边界
 
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；本轮候选以真实MySQL完成P3生成、DIRECT/MANUAL结果、提交P4及平台幂等/审计，跨模块事实仅由`src/test`受控替身提供。最近Gate为该受控正向闭环独立复审；无生产Bean，真实Owner联调、浏览器和Done仍阻断。
+> 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`以真实MySQL完成P3生成、DIRECT/MANUAL结果、提交P4及平台幂等/审计，并获独立裁决`GO`。跨模块事实仅由`src/test`受控替身提供；最近Gate为定向前端正向验证，生产Owner联调、唯一生产装配、正式身份浏览器和Done仍阻断。
