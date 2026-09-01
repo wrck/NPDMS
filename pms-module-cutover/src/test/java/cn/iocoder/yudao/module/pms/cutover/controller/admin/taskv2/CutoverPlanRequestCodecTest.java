@@ -37,4 +37,31 @@ class CutoverPlanRequestCodecTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> codec.version(" 1", "If-Match")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void enforcesWireLongNumberBoundaryAndPlainDecimalStrings() {
+        assertThat(codec.revise(JsonUtils.parseObject(
+                "{\"sourcePlanRevisionId\":9007199254740990,\"reason\":\"APPROVAL_REJECTED\"}",
+                tools.jackson.databind.JsonNode.class)).sourcePlanRevisionId()).isEqualTo(9_007_199_254_740_990L);
+        assertThat(codec.revise(JsonUtils.parseObject(
+                "{\"sourcePlanRevisionId\":\"9007199254740991\",\"reason\":\"APPROVAL_REJECTED\"}",
+                tools.jackson.databind.JsonNode.class)).sourcePlanRevisionId()).isEqualTo(9_007_199_254_740_991L);
+
+        for (String value : java.util.List.of("9007199254740991", "9007199254740992")) {
+            assertThatThrownBy(() -> codec.revise(JsonUtils.parseObject(
+                    "{\"sourcePlanRevisionId\":" + value + ",\"reason\":\"APPROVAL_REJECTED\"}",
+                    tools.jackson.databind.JsonNode.class))).isInstanceOf(CutoverPlanRequestException.class);
+        }
+        for (String value : java.util.List.of("+1", "01")) {
+            assertThatThrownBy(() -> codec.revise(JsonUtils.parseObject(
+                    "{\"sourcePlanRevisionId\":\"" + value + "\",\"reason\":\"APPROVAL_REJECTED\"}",
+                    tools.jackson.databind.JsonNode.class))).isInstanceOf(CutoverPlanRequestException.class);
+        }
+    }
+
+    @Test
+    void rejectsZeroTrustedTenant() {
+        assertThatThrownBy(() -> new CutoverPlanRequestContext.TrustedContext(
+                0L, 8L, "corr-1", true, true, true)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException.Code.*;
 
@@ -266,7 +267,8 @@ public class CutoverPlanApplicationService {
                 command.expectedPlanVersion());
         CutoverApprovalFact inspectedApproval = inspectApprovalFact(command.tenantId(), inspectedPlan);
         if (inspectedApproval.status() != ApprovalStatus.APPROVED) {
-            throw failure(STATE_CONFLICT, "审批事实尚未通过");
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, inspectedPlan.getVersion(), inspectedApproval.approvalVersion(), "审批事实尚未通过");
         }
 
         lockScope(command.actorId(), inspectedTask.getProjectId(), scope.projectScopeVersion());
@@ -287,7 +289,8 @@ public class CutoverPlanApplicationService {
         if (planMapper.advanceApprovedVersionIfMatch(new CutoverApprovedContactVersionUpdate(
                 command.tenantId(), plan.getId(), plan.getVersion(), newPlanVersion,
                 String.valueOf(command.actorId()), now)) != 1) {
-            throw failure(VERSION_CONFLICT, "方案版本已变化");
+            throw failure(VERSION_CONFLICT, "PLAN_VERSION_STALE", null,
+                    null, plan.getVersion(), null, "方案版本已变化");
         }
         if (supportMapper.updateApprovedContactIfMatch(new CutoverSupportContactUpdate(
                 command.tenantId(), target.getId(), plan.getId(), target.getVersion(), command.personName(),
@@ -382,8 +385,8 @@ public class CutoverPlanApplicationService {
         } catch (IllegalArgumentException ex) {
             throw failure(PLAN_SECTION_INCOMPLETE, "方案内容尚未完整");
         }
-        CutoverPlanFilePort.FileFact file = filePort.downloadDraft(command.tenantId(), command.actorId(),
-                task.getProjectId(), plan.getId());
+        CutoverPlanFilePort.FileFact file = fileCall(() -> filePort.downloadDraft(command.tenantId(), command.actorId(),
+                task.getProjectId(), plan.getId()));
         if (file == null) throw failure(OWNER_DATA_CORRUPTED, "PLT未返回初稿文件事实");
         return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), file,
                 clock.instant().toEpochMilli());
@@ -677,8 +680,8 @@ public class CutoverPlanApplicationService {
 
     private CutoverPlanFilePort.FileFact inspectCreateFile(CreateCutoverPlanDraftCommand command, CutoverTaskDO task) {
         if (!"FULL_FILE_UPLOAD".equals(command.editMode())) return null;
-        CutoverPlanFilePort.FileFact actual = filePort.inspect(command.tenantId(), command.actorId(), task.getProjectId(),
-                command.expectedFileFact().handle());
+        CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(command.tenantId(), command.actorId(),
+                task.getProjectId(), command.expectedFileFact().handle()));
         if (!actual.equals(command.expectedFileFact())) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return actual;
     }
@@ -686,8 +689,8 @@ public class CutoverPlanApplicationService {
     private CutoverPlanFilePort.FileFact inspectSaveFile(SaveCutoverPlanDraftCommand command, CutoverTaskDO task,
                                                           CutoverPlanContentCodec.DecodedContent decoded) {
         if (decoded.fileFact() == null) return null;
-        CutoverPlanFilePort.FileFact actual = filePort.inspect(command.tenantId(), command.actorId(), task.getProjectId(),
-                decoded.fileFact().handle());
+        CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(command.tenantId(), command.actorId(),
+                task.getProjectId(), decoded.fileFact().handle()));
         if (!actual.equals(decoded.fileFact())) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return actual;
     }
@@ -695,8 +698,8 @@ public class CutoverPlanApplicationService {
     private CutoverPlanFilePort.FileFact lockFile(CreateCutoverPlanDraftCommand command, CutoverTaskDO task,
                                                    CutoverPlanFilePort.FileFact inspected) {
         if (inspected == null) return null;
-        CutoverPlanFilePort.FileFact locked = filePort.lockAndRevalidate(command.tenantId(), command.actorId(),
-                task.getProjectId(), inspected.handle());
+        CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(command.tenantId(),
+                command.actorId(), task.getProjectId(), inspected.handle()));
         if (!locked.equals(inspected)) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return locked;
     }
@@ -705,8 +708,8 @@ public class CutoverPlanApplicationService {
                                                    CutoverPlanContentCodec.DecodedContent decoded,
                                                    CutoverPlanFilePort.FileFact inspected) {
         if (inspected == null) return null;
-        CutoverPlanFilePort.FileFact locked = filePort.lockAndRevalidate(command.tenantId(), command.actorId(),
-                task.getProjectId(), decoded.fileFact().handle());
+        CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(command.tenantId(),
+                command.actorId(), task.getProjectId(), decoded.fileFact().handle()));
         if (!locked.equals(inspected)) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return locked;
     }
@@ -742,9 +745,13 @@ public class CutoverPlanApplicationService {
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 || !CutoverTaskRules.STAGE_P4.equals(task.getCurrentStage())
                 || !CutoverTaskRules.STATUS_PLAN_DRAFTING.equals(task.getTaskStatus())) {
-            throw failure(STATE_CONFLICT, "任务当前不可编辑P4方案");
+            throw failure(STATE_CONFLICT, "TASK_NOT_IN_P4", null,
+                    task.getVersion(), null, null, "任务当前不可编辑P4方案");
         }
-        if (!Objects.equals(task.getVersion(), version)) throw failure(VERSION_CONFLICT, "任务版本已变化");
+        if (!Objects.equals(task.getVersion(), version)) {
+            throw failure(VERSION_CONFLICT, "TASK_VERSION_STALE", null,
+                    task.getVersion(), null, null, "任务版本已变化");
+        }
         return task;
     }
 
@@ -753,7 +760,10 @@ public class CutoverPlanApplicationService {
         if (!DRAFT.equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)) {
             throw failure(STATE_CONFLICT, "当前方案不可编辑");
         }
-        if (!Objects.equals(plan.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "草稿版本已变化");
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) {
+            throw failure(VERSION_CONFLICT, "PLAN_VERSION_STALE", null,
+                    null, plan.getVersion(), null, "草稿版本已变化");
+        }
         return plan;
     }
 
@@ -777,7 +787,8 @@ public class CutoverPlanApplicationService {
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 || !"P6".equals(task.getCurrentStage())
                 || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) {
-            throw failure(STATE_CONFLICT, "任务当前不在批准后的P6阶段");
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    task.getVersion(), null, null, "任务当前不在批准后的P6阶段");
         }
         return task;
     }
@@ -787,14 +798,18 @@ public class CutoverPlanApplicationService {
         if (!"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
                 || !positive(plan.getApprovalInstanceId()) || plan.getApprovalVersion() == null
                 || plan.getApprovalVersion() < 0) {
-            throw failure(STATE_CONFLICT, "当前方案不可变更批准联系人");
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, plan.getVersion(), plan.getApprovalVersion(), "当前方案不可变更批准联系人");
         }
-        if (!Objects.equals(plan.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "方案版本已变化");
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) {
+            throw failure(VERSION_CONFLICT, "PLAN_VERSION_STALE", null,
+                    null, plan.getVersion(), null, "方案版本已变化");
+        }
         return plan;
     }
 
     private CutoverApprovalFact inspectApprovalFact(Long tenantId, CutoverPlanRevisionDO plan) {
-        if (approvalFactApi == null) throw failure(OWNER_PROVIDER_UNAVAILABLE, "CUT-05审批Provider不可用");
+        if (approvalFactApi == null) throw cut05Unavailable();
         try {
             CutoverApprovalInspectResult result = approvalFactApi.inspect(new CutoverApprovalFactQuery(
                     tenantId, plan.getCutoverTaskId(), plan.getId()));
@@ -817,7 +832,10 @@ public class CutoverPlanApplicationService {
             CutoverApprovalRevalidationResult result = approvalFactApi.lockAndRevalidate(
                     new CutoverApprovalRevalidationQuery(tenantId, expectedFact));
             if (result == null || result.status() != RevalidationStatus.VALID) {
-                throw failure(STATE_CONFLICT, "审批事实已变化");
+                Integer currentVersion = result == null || result.currentFact() == null
+                        ? null : result.currentFact().approvalVersion();
+                throw failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", "CUT",
+                        null, plan.getVersion(), currentVersion, "审批事实已变化");
             }
             requireApprovalIdentity(plan, result.currentFact());
             return result.currentFact();
@@ -828,7 +846,10 @@ public class CutoverPlanApplicationService {
 
     private void lockApprovedFact(Long tenantId, CutoverPlanRevisionDO plan, CutoverApprovalFact expected) {
         CutoverApprovalFact current = lockApprovalFact(tenantId, plan, expected);
-        if (current.status() != ApprovalStatus.APPROVED) throw failure(STATE_CONFLICT, "审批事实尚未通过");
+        if (current.status() != ApprovalStatus.APPROVED) {
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, plan.getVersion(), current.approvalVersion(), "审批事实尚未通过");
+        }
     }
 
     private static CutoverPlanRevisionDO requireRevisionSource(CutoverPlanRevisionDO source,
@@ -846,19 +867,22 @@ public class CutoverPlanApplicationService {
     private static void requireRevisionReason(String reason, CutoverPlanRevisionDO source,
                                               CutoverApprovalFact approval) {
         if ("DUTY_CHANGED".equals(reason)) {
-            throw failure(STATE_CONFLICT, "批准后职责变化的P6回退合同尚未锁定");
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, source.getVersion(), approval.approvalVersion(), "批准后职责变化的P6回退合同尚未锁定");
         }
         if ("APPROVAL_REJECTED".equals(reason)) {
             if (!"SUBMITTED".equals(source.getStatusCode()) || !Objects.equals(source.getCurrentMarker(), 1)
                     || approval.status() != ApprovalStatus.REJECTED) {
-                throw failure(STATE_CONFLICT, "来源方案不是已驳回的当前提交revision");
+                throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                        null, source.getVersion(), approval.approvalVersion(), "来源方案不是已驳回的当前提交revision");
             }
             return;
         }
         if ("SOURCE_REPLACED".equals(reason)) {
             if (!"INVALIDATED".equals(source.getStatusCode()) || source.getCurrentMarker() != null
                     || approval.status() != ApprovalStatus.PAUSED_SOURCE_INVALIDATED) {
-                throw failure(STATE_CONFLICT, "来源方案不是已暂停的失效revision");
+                throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                        null, source.getVersion(), approval.approvalVersion(), "来源方案不是已暂停的失效revision");
             }
             return;
         }
@@ -971,7 +995,10 @@ public class CutoverPlanApplicationService {
     private void requireComplete(CutoverPlanContentCodec.DecodedContent content,
                                  CutoverPlanSourcePort.SourceFacts sourceFacts) {
         if (content.fileFact() != null) {
-            if (!content.ownershipConfirmed()) throw failure(PLAN_SECTION_INCOMPLETE, "完整文件未确认归属");
+            if (!content.ownershipConfirmed()) {
+                throw failure(FILE_FACT_STALE, "FILE_OWNERSHIP_NOT_CONFIRMED", "PLT",
+                        null, null, null, "完整文件未确认归属");
+            }
             return;
         }
         String mode = content.rootSnapshot().path("editMode").asText();
@@ -1014,15 +1041,15 @@ public class CutoverPlanApplicationService {
 
     private void requireLockedFile(Long tenantId, Long actorId, Long projectId,
                                    CutoverPlanFilePort.FileFact expected) {
-        CutoverPlanFilePort.FileFact current = filePort.lockAndRevalidate(tenantId, actorId, projectId,
-                expected.handle());
+        CutoverPlanFilePort.FileFact current = fileCall(() -> filePort.lockAndRevalidate(tenantId, actorId, projectId,
+                expected.handle()));
         if (!Objects.equals(expected, current)) throw failure(FILE_FACT_STALE, "文件事实已变化");
     }
 
     private CutoverApprovalStartResult startApproval(SubmitCutoverPlanCommand command, CutoverTaskDO task,
                                                       CutoverPlanRevisionDO plan,
                                                       CutoverPlanSourcePort.SourceSnapshot source) {
-        if (approvalFactApi == null) throw failure(OWNER_PROVIDER_UNAVAILABLE, "CUT-05审批Provider不可用");
+        if (approvalFactApi == null) throw cut05Unavailable();
         try {
             Long previousApprovalInstanceId = previousApprovalInstanceId(command.tenantId(), task.getId(), plan);
             CutoverApprovalStartResult result = approvalFactApi.start(new CutoverApprovalStartCommand(
@@ -1062,7 +1089,7 @@ public class CutoverPlanApplicationService {
     private CutoverApprovalCommandResult pauseApproval(InvalidateCutoverPlanSourceCommand command,
                                                         CutoverPlanRevisionDO plan,
                                                         CutoverPlanSourcePort.SourceSnapshot source) {
-        if (approvalFactApi == null) throw failure(OWNER_PROVIDER_UNAVAILABLE, "CUT-05审批Provider不可用");
+        if (approvalFactApi == null) throw cut05Unavailable();
         try {
             CutoverApprovalCommandResult result = approvalFactApi.pauseForSourceInvalidation(
                     new CutoverApprovalPauseCommand(command.tenantId(), plan.getApprovalInstanceId(),
@@ -1086,11 +1113,13 @@ public class CutoverPlanApplicationService {
 
     private static CutoverPlanApplicationException approvalFailure(CutoverApprovalFactException ex) {
         return switch (ex.code()) {
-            case PROVIDER_UNAVAILABLE -> new CutoverPlanApplicationException(OWNER_PROVIDER_UNAVAILABLE, ex.getMessage());
+            case PROVIDER_UNAVAILABLE -> cut05Unavailable(ex.getMessage());
             case IDEMPOTENCY_CONFLICT -> new CutoverPlanApplicationException(IDEMPOTENCY_CONFLICT, ex.getMessage());
             case IDEMPOTENCY_IN_PROGRESS -> new CutoverPlanApplicationException(IDEMPOTENCY_IN_PROGRESS, ex.getMessage());
-            case STATE_CONFLICT -> new CutoverPlanApplicationException(STATE_CONFLICT, ex.getMessage());
-            case VERSION_CONFLICT -> new CutoverPlanApplicationException(VERSION_CONFLICT, ex.getMessage());
+            case STATE_CONFLICT -> failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, null, null, ex.getMessage());
+            case VERSION_CONFLICT -> failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", "CUT",
+                    null, null, null, ex.getMessage());
             default -> new CutoverPlanApplicationException(OWNER_DATA_CORRUPTED, ex.getMessage());
         };
     }
@@ -1331,6 +1360,30 @@ public class CutoverPlanApplicationService {
     private static long nextId() { return ID_GENERATOR.nextId(); }
     private static CutoverPlanApplicationException failure(CutoverPlanApplicationException.Code code, String message) {
         return new CutoverPlanApplicationException(code, message);
+    }
+    private static CutoverPlanApplicationException failure(CutoverPlanApplicationException.Code code,
+                                                            String reasonCode, String ownerContext,
+                                                            Integer currentTaskVersion, Integer currentPlanVersion,
+                                                            Integer currentApprovalVersion, String message) {
+        return new CutoverPlanApplicationException(code, reasonCode, ownerContext, currentTaskVersion,
+                currentPlanVersion, currentApprovalVersion, message);
+    }
+    private static CutoverPlanApplicationException cut05Unavailable() {
+        return cut05Unavailable("CUT-05审批Provider不可用");
+    }
+    private static CutoverPlanApplicationException cut05Unavailable(String message) {
+        return failure(OWNER_PROVIDER_UNAVAILABLE, "CUT05_PROVIDER_UNAVAILABLE", "CUT",
+                null, null, null, message);
+    }
+    private static <T> T fileCall(Supplier<T> operation) {
+        try {
+            return operation.get();
+        } catch (CutoverPlanApplicationException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw failure(OWNER_PROVIDER_UNAVAILABLE, "PLT_PROVIDER_UNAVAILABLE", "PLT",
+                    null, null, null, "PLT文件Provider不可用");
+        }
     }
     private static String sha256(String value) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }

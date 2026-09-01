@@ -7,7 +7,7 @@ public interface CutoverPlanRequestContext {
     record TrustedContext(Long tenantId, Long actorId, String correlationId,
                           boolean canCreate, boolean canSave, boolean canDownload) {
         public TrustedContext {
-            if (tenantId == null || tenantId < 0 || actorId == null || actorId <= 0
+            if (tenantId == null || tenantId <= 0 || actorId == null || actorId <= 0
                     || correlationId == null || correlationId.isBlank()
                     || !correlationId.equals(correlationId.trim()) || correlationId.length() > 128) {
                 throw new IllegalArgumentException("invalid trusted cutover plan context");

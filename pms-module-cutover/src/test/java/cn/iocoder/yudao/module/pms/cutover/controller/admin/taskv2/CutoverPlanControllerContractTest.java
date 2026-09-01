@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.*;
@@ -78,6 +79,63 @@ class CutoverPlanControllerContractTest {
                 .header("X-Task-Version","5").header("Idempotency-Key","i6").contentType("application/json")
                 .content("{\"sourcePlanRevisionId\":60,\"reason\":\"APPROVAL_REJECTED\"}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void returnsStableHttpErrorsForHeadersBindingAndStructuredApplicationFailures() throws Exception {
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
+                .header("Idempotency-Key", "i1").contentType("application/json")
+                .content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.reasonCode").value("HEADER_REQUIRED_OR_INVALID"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("FIX_REQUEST"));
+
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
+                .header("X-Task-Version", "4").header("Idempotency-Key", "i1")
+                .contentType("application/json").content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.reasonCode").value("REQUEST_SCHEMA_INVALID"));
+
+        when(application.createDraft(any())).thenThrow(new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.VERSION_CONFLICT, "TASK_VERSION_STALE", null,
+                7, null, null, "任务版本已变化"));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
+                .header("X-Task-Version", "4").header("Idempotency-Key", "i1")
+                .contentType("application/json").content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.reasonCode").value("TASK_VERSION_STALE"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_AGGREGATE"))
+                .andExpect(jsonPath("$.data.currentTaskVersion").value(7));
+
+        doThrow(new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE, "PLT_PROVIDER_UNAVAILABLE", "PLT",
+                null, null, null, "PLT文件Provider不可用")).when(application).createDraft(any());
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
+                .header("X-Task-Version", "4").header("Idempotency-Key", "i2")
+                .contentType("application/json").content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.data.reasonCode").value("PLT_PROVIDER_UNAVAILABLE"))
+                .andExpect(jsonPath("$.data.ownerContext").value("PLT"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("RETRY_SAME_KEY"));
+    }
+
+    @Test
+    void mapsPermissionAndFileOwnershipFailuresWithoutMessageInspection() throws Exception {
+        when(query.detail(any(), any(), any(), any())).thenThrow(new org.springframework.security.access.AccessDeniedException(
+                "denied"));
+        mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.data.reasonCode").value("PROJECT_OR_TASK_SCOPE_DENIED"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("CONTACT_ADMIN"));
+
+        when(application.submit(any())).thenThrow(new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.FILE_FACT_STALE, "FILE_OWNERSHIP_NOT_CONFIRMED", "PLT",
+                null, 3, null, "完整文件未确认归属"));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/submit")
+                .header("If-Match", "3").header("X-Task-Version", "4").header("Idempotency-Key", "i4"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.data.reasonCode").value("FILE_OWNERSHIP_NOT_CONFIRMED"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("FIX_REQUEST"));
     }
 
     @RestController

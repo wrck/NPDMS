@@ -12,6 +12,7 @@ import java.util.Set;
 
 /** F-CUT-004 七路由请求边界；只做wire/schema解析，不做业务状态判断。 */
 public final class CutoverPlanRequestCodec {
+    private static final long JS_SAFE_INTEGER_BOUNDARY = 9_007_199_254_740_991L;
     private static final Set<String> CREATE_ONLINE = Set.of("editMode");
     private static final Set<String> CREATE_UPLOAD = Set.of("editMode", "fileArtifactFact", "ownershipConfirmed");
     private static final Set<String> FILE = Set.of("artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "sha256");
@@ -69,12 +70,14 @@ public final class CutoverPlanRequestCodec {
 
     public int version(String value, String name) {
         String text = header(value, name);
-        try { int result = Integer.parseInt(text); if (result < 0) throw invalid(name); return result; }
-        catch (NumberFormatException ex) { throw invalid(name); }
+        try { int result = Integer.parseInt(text); if (result < 0) throw invalidHeader(name); return result; }
+        catch (NumberFormatException ex) { throw invalidHeader(name); }
     }
 
     public String header(String value, String name) {
-        if (value == null || value.isBlank() || !value.equals(value.trim()) || value.length() > 128) throw invalid(name);
+        if (value == null || value.isBlank() || !value.equals(value.trim()) || value.length() > 128) {
+            throw invalidHeader(name);
+        }
         return value;
     }
 
@@ -97,14 +100,34 @@ public final class CutoverPlanRequestCodec {
     private static int nonNegativeInt(JsonNode node, String field) { if (node == null || !node.isIntegralNumber() || !node.canConvertToInt() || node.asInt() < 0) throw invalid(field); return node.asInt(); }
     private static long wireLong(JsonNode node, String field, boolean positive) {
         if (node == null || !(node.isIntegralNumber() || node.isTextual())) throw invalid(field);
-        try { long value = node.isTextual() ? Long.parseLong(node.asText()) : node.asLong(); if (positive ? value <= 0 : value < 0) throw invalid(field); return value; }
+        try {
+            long value;
+            if (node.isTextual()) {
+                String text = node.asText();
+                if (!text.matches("0|[1-9][0-9]*")) throw invalid(field);
+                value = Long.parseLong(text);
+            } else {
+                if (!node.canConvertToLong()) throw invalid(field);
+                value = node.asLong();
+                if (value <= -JS_SAFE_INTEGER_BOUNDARY || value >= JS_SAFE_INTEGER_BOUNDARY) throw invalid(field);
+            }
+            if (positive ? value <= 0 : value < 0) throw invalid(field);
+            return value;
+        }
         catch (NumberFormatException ex) { throw invalid(field); }
     }
     private static String textField(JsonNode node, String field, int max) { return textValue(node == null ? null : node.get(field), field, max); }
     private static String textValue(JsonNode node, String field, int max) { if (node == null || !node.isTextual()) throw invalid(field); String value=node.asText(); if (value.isBlank() || !value.equals(value.trim()) || value.length()>max) throw invalid(field); return value; }
     private static void requireObject(JsonNode node, String field) { if (node == null || !node.isObject()) throw invalid(field); }
     private static void exact(JsonNode node, Set<String> keys, String field) { requireObject(node, field); Set<String> actual=new HashSet<>(node.propertyNames()); if (!actual.equals(keys)) throw invalid(field); }
-    private static IllegalArgumentException invalid(String field) { return new IllegalArgumentException("invalid " + field); }
+    private static CutoverPlanRequestException invalid(String field) {
+        return new CutoverPlanRequestException(CutoverPlanRequestException.Reason.REQUEST_SCHEMA_INVALID,
+                "invalid " + field);
+    }
+    private static CutoverPlanRequestException invalidHeader(String field) {
+        return new CutoverPlanRequestException(CutoverPlanRequestException.Reason.HEADER_REQUIRED_OR_INVALID,
+                "invalid " + field);
+    }
 
     public record CreateDraft(String editMode, CutoverPlanFilePort.FileFact fileFact, Boolean ownershipConfirmed) {}
     public record PatchContact(String personName, String phone, LocalDateTime arrivalTime) {}
