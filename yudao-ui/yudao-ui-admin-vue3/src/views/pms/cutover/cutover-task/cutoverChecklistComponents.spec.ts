@@ -174,6 +174,58 @@ describe('F-CUT-003 mounted checklist field', () => {
     }))
     mounted.app.unmount()
   })
+
+  it('selects MANUAL evidence and submits the refreshed checklist into P4', async () => {
+    fileApi.getArtifact.mockResolvedValue({
+      artifactVersion: 2,
+      reference: { scopeVersion: 17, referenceVersion: 3 }
+    })
+    fileApi.getVersions.mockResolvedValue({
+      items: [{ versionNo: 4, availabilityVersion: 5 }]
+    })
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist
+      .mockResolvedValueOnce(checklistView(null, 3))
+      .mockResolvedValueOnce(checklistView(null, 4))
+    checklistApi.saveManualChecklistResult.mockResolvedValue(undefined)
+    checklistApi.submitCutoverChecklist.mockResolvedValue(undefined)
+    const submitted: unknown[][] = []
+    const mounted = mount(CutoverChecklistPanel, {
+      detail: taskDetail,
+      onSubmitted: (...args: unknown[]) => submitted.push(args)
+    }, controls)
+    await flush()
+
+    const uploader = findByTestId(mounted.root, 'manual-uploader')!
+    await (uploader.props?.onClick as () => Promise<void>)()
+    await flush()
+    expect(checklistApi.saveManualChecklistResult).toHaveBeenCalledWith('101', 'risk-check', {
+      expectedTaskVersion: 7,
+      expectedProjectScopeVersion: '12',
+      checklistId: '201',
+      expectedChecklistVersion: 3,
+      file: {
+        artifactId: '9007199254740993',
+        versionNo: 4,
+        referenceKey: 'manual-proof',
+        fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
+        scopeVersion: 17
+      },
+      factDescription: ''
+    })
+
+    const submit = findByTestId(mounted.root, 'checklist-submit')!
+    await (submit.props?.onClick as () => Promise<void>)()
+    expect(checklistApi.submitCutoverChecklist).toHaveBeenCalledWith('101', {
+      expectedTaskVersion: 7,
+      expectedAssessmentVersion: 2,
+      expectedProjectScopeVersion: '12',
+      checklistId: '201',
+      expectedChecklistVersion: 4
+    }, expect.any(String))
+    expect(submitted).toHaveLength(1)
+    mounted.app.unmount()
+  })
 })
 
 const taskDetail = {
@@ -184,14 +236,17 @@ const taskDetail = {
   allowedActions: ['SAVE_CHECKLIST', 'REQUEST_COLLECTION', 'SUBMIT_CHECKLIST']
 } as CutoverTaskDetail
 
-const checklistView = (answerSnapshot: string | null): CutoverChecklistView => ({
+const checklistView = (
+  answerSnapshot: string | null,
+  checklistFactVersion = 3
+): CutoverChecklistView => ({
   taskId: '101',
   taskStage: 'P3',
   taskVersion: 7,
   projectScopeVersion: '12',
   checklistId: '201',
   checklistVersion: 1,
-  checklistFactVersion: 3,
+  checklistFactVersion,
   status: 'DRAFT',
   inputSnapshotHash: 'input',
   configRevisionSnapshot: '{}',

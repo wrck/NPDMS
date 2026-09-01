@@ -52,6 +52,7 @@
         >暂存</el-button>
         <el-button
           v-if="!readonly && canSubmit"
+          data-testid="checklist-submit"
           type="primary"
           v-hasPermi="['pms:cutover-task:submit-checklist']"
           :loading="submitting"
