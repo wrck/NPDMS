@@ -917,6 +917,29 @@ public class CutoverPlanApplicationService {
         return plan;
     }
 
+    private static CutoverTaskDO requireP5(CutoverTaskDO task, Long tenantId, Integer expectedVersion) {
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)
+                || !CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())) {
+            throw failure(NOT_FOUND, "任务不存在");
+        }
+        if (!"P5".equals(task.getCurrentStage()) || !"APPROVING".equals(task.getTaskStatus())) {
+            throw failure(STATE_CONFLICT, "任务当前不在P5审批中");
+        }
+        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "任务版本已变化");
+        return task;
+    }
+
+    private static CutoverPlanRevisionDO requireSubmitted(CutoverPlanRevisionDO plan, Integer expectedVersion) {
+        if (plan == null) throw failure(NOT_FOUND, "当前已提交方案不存在");
+        if (!"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
+                || !positive(plan.getApprovalInstanceId()) || plan.getApprovalVersion() == null
+                || plan.getApprovalVersion() < 0) {
+            throw failure(STATE_CONFLICT, "当前方案不可执行来源失效");
+        }
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "方案版本已变化");
+        return plan;
+    }
+
     private static void requireSource(CutoverPlanSourcePort.SourceFacts facts, CutoverTaskDO task) {
         if (facts == null || !Objects.equals(facts.snapshot().taskId(), task.getId())
                 || !Objects.equals(facts.snapshot().projectId(), task.getProjectId())) {
@@ -1361,6 +1384,16 @@ public class CutoverPlanApplicationService {
                 || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "提交方案命令非法");
+        }
+    }
+
+    private static void requireInvalidation(InvalidateCutoverPlanSourceCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "来源失效命令非法");
         }
     }
 
