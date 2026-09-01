@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1实现候选已形成并等待独立Code Review。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1已在`e6dac9fe`独立复审GO，当前进入Task 2。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -21,7 +21,8 @@
 - [x] API/Physical/Candidate/Legacy Machine Contract Gate。
 - [x] Feature Ready最终裁决：`GO @ 2e3fdba3`。
 - [x] 唯一Technical Plan独立复审：`PASS / GO @ 912d0cdb`。
-- [ ] Task 1 CUT领域合同、消费端口与快照Codec：`CODE_REVIEW_REQUIRED`。
+- [x] Task 1 CUT领域合同、消费端口与快照Codec：`PASS / GO @ e6dac9fe`。
+- [ ] Task 2 五表Schema、DO、Mapper与锁查询：`IN_PROGRESS`。
 
 ## 最近检查点
 
@@ -31,7 +32,7 @@
 - `1a45569f` Technical Plan首轮NO-GO仅指出生产Owner产出路径缺失与测试顺序冲突；当前候选只整改这两项。
 - `912d0cdb`关闭Owner合同/SYSTEM阻断表达与实施顺序残留，Technical Plan正式GO；最近实施单元为Task 1。
 - Task 1只新增CUT领域规则、三类消费端口、Owner异常、精确快照Codec与`src/test`受控正向事实；无生产Bean、DDL、COM或Yudao修改。
-- 整改只改Feature/API/Physical/Candidate/Authorization等正式规格，不新增DDL、运行代码或测试实现。
+- `e6dac9fe`关闭冻结快照跨子事实身份一致性与COLLECTION可选引用正数约束，Task 1正式GO；最近Gate为Task 2 Schema/迁移与隔离MySQL正向验证。
 
 ## 物理Owner支撑Task
 
