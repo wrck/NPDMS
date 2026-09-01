@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- 当前进入Task 1，只建立F-CUT-005审批消费Java合同、公共DTO/异常和`src/test`受控实现，不实现审批节点、待办或生产Provider。
+- Task 1审批消费Java合同已通过；当前进入Task 2三表Schema、阶段前向约束与Mapper合同，不写业务Service。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -27,10 +27,20 @@
 
 ## Task 1：CUT-05审批消费Java合同
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@38fd6cfd`
 
 - [x] 实现`CutoverApprovalFactApi`、精确Command/Query/Fact/Result records与稳定公共异常。
 - [x] 在`src/test`提供确定性受控审批事实实现并补实现后的合同测试（5/5通过）。
-- [ ] 通过独立Contract/Code Review Gate；不注册生产审批Bean。
+- [x] 通过独立Contract/Code Review Gate；不注册生产审批Bean（`GO@38fd6cfd`）。
 
-> 检查点：Task 1审批消费Java合同候选已完成，接口、精确DTO/枚举/异常与`src/test`受控正向链5/5通过；当前申请独立Contract/Code Review。未注册生产Bean，不重复COM，生产审批业务及完整装配仍不在本Task。
+> 检查点：独立复审确认四方法、精确records、封闭状态/错误与`src/test`正向链成立，无生产Provider或fallback；Task 1 Gate通过。
+
+## Task 2：三表Schema、阶段前向约束与Mapper合同
+
+状态：`IN_PROGRESS`
+
+- [ ] 使用实际下一空闲Flyway版本前向创建三表并收敛P4/P5/P6阶段约束。
+- [ ] 实现DO、场景Query、Mapper XML及迁移/Mapper合同测试。
+- [ ] 通过独立Schema/迁移Gate；不写业务Service。
+
+> 检查点：Task 1以`38fd6cfd`独立复审`PASS/GO`；当前只进入Task 2物理基础，不接通生产CUT-05/PLT依赖。
