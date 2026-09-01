@@ -79,9 +79,11 @@ export const activeCutoverStagePanel = (stage: CutoverStage | null) =>
     ? 'ASSESSMENT'
     : stage === 'P3'
       ? 'CHECKLIST'
-      : ['P4', 'P5', 'P6'].includes(stage || '')
-        ? 'PLAN'
-        : 'EMPTY'
+      : stage === 'P5'
+        ? 'APPROVAL'
+        : ['P4', 'P6'].includes(stage || '')
+          ? 'PLAN'
+          : 'EMPTY'
 
 export const createCutoverPlanIntentStore = (factory: () => string = newIntentKey) => {
   const keys = new Map<string, string>()
@@ -120,9 +122,47 @@ export const createCutoverPlanWriteBarrier = () => {
 
 export const cutoverPlanRecoveryAction = (error: unknown) => {
   const action = (error as any)?.response?.data?.data?.recoveryAction
-  if (['REFRESH_AGGREGATE', 'REFRESH_OWNER_FACTS', 'RETRY_SAME_KEY', 'START_NEW_INTENT']
-    .includes(action)) return action as string
+  if (
+    ['REFRESH_AGGREGATE', 'REFRESH_OWNER_FACTS', 'RETRY_SAME_KEY', 'START_NEW_INTENT'].includes(
+      action
+    )
+  )
+    return action as string
   return (error as any)?.response ? 'SURFACE_ERROR' : 'RETRY_SAME_KEY'
+}
+
+export const createCutoverApprovalWriteCoordinator = (factory: () => string = newIntentKey) => {
+  const intents = createCutoverPlanIntentStore(factory)
+  const barrier = createCutoverPlanWriteBarrier()
+  return {
+    async run<T>(intent: string, write: (key: string) => Promise<T>, refresh: () => Promise<void>) {
+      const before = await barrier.beforeWrite()
+      if (before !== 'PROCEED')
+        return { writeCalled: false, refreshSucceeded: before === 'REFRESHED' } as const
+      const key = intents.key(intent)
+      let result: T
+      try {
+        result = await write(key)
+      } catch (error) {
+        const recovery = cutoverPlanRecoveryAction(error)
+        if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
+          await refresh()
+          intents.complete(intent)
+        } else if (recovery === 'START_NEW_INTENT') {
+          intents.complete(intent)
+        }
+        throw error
+      }
+      intents.complete(intent)
+      try {
+        await refresh()
+        return { writeCalled: true, refreshSucceeded: true, result } as const
+      } catch {
+        barrier.register(refresh)
+        return { writeCalled: true, refreshSucceeded: false, result } as const
+      }
+    }
+  }
 }
 
 export const encodeChecklistDirectAnswer = (value: string) => JSON.stringify({ value })

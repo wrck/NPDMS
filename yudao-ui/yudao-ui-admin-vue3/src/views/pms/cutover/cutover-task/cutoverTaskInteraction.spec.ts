@@ -100,7 +100,9 @@ describe('cutover task positive interaction', () => {
   it('creates only from the devices of the selected project candidate', () => {
     const selected = {
       ...candidate,
-      devices: [{ deviceId: '9007199254742002', serialNumber: 'SN-SELECTED', projectAssignmentVersion: '7' }]
+      devices: [
+        { deviceId: '9007199254742002', serialNumber: 'SN-SELECTED', projectAssignmentVersion: '7' }
+      ]
     }
     const request = buildCreateRequest(selected, {
       configurationCode: 'CORE_STANDARD',
@@ -123,7 +125,7 @@ describe('cutover task positive interaction', () => {
     expect(activeCutoverStagePanel('P2')).toBe('ASSESSMENT')
     expect(activeCutoverStagePanel('P3')).toBe('CHECKLIST')
     expect(activeCutoverStagePanel('P4')).toBe('PLAN')
-    expect(activeCutoverStagePanel('P5')).toBe('PLAN')
+    expect(activeCutoverStagePanel('P5')).toBe('APPROVAL')
     expect(activeCutoverStagePanel('P6')).toBe('PLAN')
   })
 
@@ -181,14 +183,16 @@ describe('cutover task positive interaction', () => {
     cutoverApi.resolveCreateContext.mockResolvedValue({
       candidates: [candidate],
       selectionRequired: false,
-      configurationChoices: [{
-        configurationCode: 'CORE_STANDARD',
-        configurationName: '核心网标准配置',
-        revisionId: '41',
-        revisionNo: 2,
-        effectiveFrom: 1788105600000,
-        effectiveTo: null
-      }],
+      configurationChoices: [
+        {
+          configurationCode: 'CORE_STANDARD',
+          configurationName: '核心网标准配置',
+          revisionId: '41',
+          revisionNo: 2,
+          effectiveFrom: 1788105600000,
+          effectiveTo: null
+        }
+      ],
       configurationSelectionRequired: false
     })
     cutoverApi.createCutoverTask.mockResolvedValue({ id: '101' })
@@ -216,7 +220,10 @@ describe('cutover task positive interaction', () => {
     await flush()
     expect(cutoverApi.resolveCreateContext).toHaveBeenCalledWith(['sn-001'])
 
-    await update(findByTestId(mounted.root, 'create-project-candidates')!, String(candidate.project.projectId))
+    await update(
+      findByTestId(mounted.root, 'create-project-candidates')!,
+      String(candidate.project.projectId)
+    )
     await clickButton(mounted.root, '下一步')
     await nextTick()
     expect(textOf(mounted.root)).toContain('SN-001')

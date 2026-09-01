@@ -436,6 +436,214 @@ export interface SubmitCutoverPlanResult {
   approvalStatus: 'PENDING'
 }
 
+export type CutoverApprovalAction = 'APPROVE' | 'REJECT' | 'REASSIGN'
+export type CutoverApprovalNodeCode = 'INITIATOR' | 'SERVICE_MANAGER' | 'SECOND_LINE' | 'RND'
+export type CutoverApprovalNodeStatus =
+  | 'WAITING'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED'
+export type CutoverApprovalStatus =
+  | 'PENDING'
+  | 'PAUSED_SOURCE_INVALIDATED'
+  | 'APPROVED'
+  | 'REJECTED'
+
+export interface CutoverApprovalReviewItem {
+  itemCode: 'PREPARATION' | 'BUSINESS_TEST' | 'EXECUTION' | 'ROLLBACK' | 'OTHER'
+  decision: 'YES' | 'NO'
+  unreasonableReason: string | null
+}
+
+export interface CutoverApprovalAssessmentReview {
+  decision: 'CONFIRMED' | 'NOT_REASONABLE'
+  reason: string | null
+}
+
+export interface CutoverApprovalChecklistResultSnapshot {
+  checklistItemId: WireLong
+  stableItemKey: string
+  itemDefinitionId: WireLong | null
+  itemDefinitionVersion: number | null
+  itemTypeCode: 'RISK' | 'DUAL_MACHINE_CHECK' | 'BUSINESS_SURVEY'
+  itemName: string
+  required: boolean
+  itemResultVersion: number
+  resultSourceCode: 'DIRECT' | 'COLLECTION' | 'EXTERNAL' | 'MANUAL'
+  answerSnapshot: string
+  factDescription: string | null
+  collectionTaskId: WireLong | null
+  collectionResultReferenceId: WireLong | null
+  collectionResultVersion: WireLong | null
+  externalSourceCode: string | null
+  manualEvidenceFileReference: string | null
+}
+
+export interface CutoverApprovalNode {
+  nodeId: WireLong
+  nodeNo: number
+  nodeCode: CutoverApprovalNodeCode
+  status: CutoverApprovalNodeStatus
+  originalApproverUserId: WireLong | null
+  currentApproverUserId: WireLong | null
+  decisionAt: WireDateTime | null
+  feedback: string | null
+  reviewItems: CutoverApprovalReviewItem[]
+  assessmentReview: CutoverApprovalAssessmentReview | null
+}
+
+export interface CutoverApprovalSourceSnapshot {
+  snapshotVersion: number
+  taskId: WireLong
+  taskVersion: number
+  checklistId: WireLong | null
+  checklistVersion: number | null
+  project: ProjectContext
+  collectionAnalysis: {
+    cutoverType: string
+    networkMode: string | null
+    scheduledTime: WireDateTime
+  }
+  riskItems: CutoverApprovalChecklistResultSnapshot[]
+  businessSurveyItems: CutoverApprovalChecklistResultSnapshot[]
+  assessment: {
+    assessmentId: WireLong
+    assessmentVersion: number
+    questionnaireTemplateCode: 'CUT_P2_MANUAL_ASSESSMENT'
+    questionnaireTemplateVersion: WireLong
+    businessImportanceLevel: string
+    operationComplexityLevel: string
+    hiddenRiskLevel: string
+    sparePartApplied: boolean
+    customerServiceLevelCode: string
+    manualGrade: ManualGrade
+    submittedBy: WireLong
+    submittedAt: WireDateTime
+  }
+  plan: {
+    planRevisionId: WireLong
+    planRevisionNo: number
+    planVersion: number
+    originCode: 'NEW_PLATFORM'
+    sourceSnapshot: CutoverPlanSourceSnapshot
+    content: CutoverPlanContent
+  }
+}
+
+export interface CutoverApprovalDetail {
+  viewMode: 'FULL'
+  approvalInstanceId: WireLong
+  approvalVersion: number
+  taskId: WireLong
+  taskVersion: number
+  planRevisionId: WireLong
+  planRevisionNo: number
+  grade: ManualGrade
+  status: CutoverApprovalStatus
+  holdReason: 'ROUTE_CANDIDATE_NOT_UNIQUE' | 'APPROVER_UNAVAILABLE' | null
+  currentNodeNo: number | null
+  nodes: CutoverApprovalNode[]
+  sourceSnapshot: CutoverApprovalSourceSnapshot
+  decisionAt: WireDateTime | null
+  rejectionReason: string | null
+  allowedActions: CutoverApprovalAction[]
+}
+
+export interface CutoverApprovalFinalResult {
+  viewMode: 'FINAL_RESULT_ONLY'
+  approvalInstanceId: WireLong
+  taskId: WireLong
+  planRevisionId: WireLong
+  grade: ManualGrade
+  status: 'APPROVED' | 'REJECTED'
+  decisionAt: WireDateTime
+  rejectionReason: string | null
+  allowedActions: []
+}
+
+export interface CutoverApprovalReassignmentNode {
+  nodeId: WireLong
+  nodeNo: number
+  nodeCode: CutoverApprovalNodeCode
+  nodeStatus: 'WAITING' | 'PENDING'
+  currentApproverUserId: WireLong | null
+  nodeVersion: number
+}
+
+export interface CutoverApprovalReassignmentView {
+  viewMode: 'REASSIGNMENT_ONLY'
+  approvalInstanceId: WireLong
+  approvalVersion: number
+  taskId: WireLong
+  projectId: WireLong
+  taskCode: string
+  taskName: string
+  grade: ManualGrade
+  status: 'PENDING'
+  holdReason: 'ROUTE_CANDIDATE_NOT_UNIQUE' | 'APPROVER_UNAVAILABLE' | null
+  nodes: CutoverApprovalReassignmentNode[]
+  allowedActions: ['REASSIGN']
+}
+
+export type CutoverApprovalView =
+  | CutoverApprovalDetail
+  | CutoverApprovalFinalResult
+  | CutoverApprovalReassignmentView
+
+export interface CutoverApprovalDecisionRequest {
+  action: 'APPROVE' | 'REJECT'
+  reviewItems: CutoverApprovalReviewItem[]
+  assessmentReview: CutoverApprovalAssessmentReview | null
+  feedback: string
+}
+
+export interface CutoverApprovalReassignmentCandidate {
+  approvalInstanceId: WireLong
+  approvalVersion: number
+  taskId: WireLong
+  projectId: WireLong
+  taskCode: string
+  taskName: string
+  grade: ManualGrade
+  status: 'PENDING'
+  holdReason: 'ROUTE_CANDIDATE_NOT_UNIQUE' | 'APPROVER_UNAVAILABLE' | null
+  nodeId: WireLong
+  nodeNo: number
+  nodeCode: CutoverApprovalNodeCode
+  nodeStatus: 'WAITING' | 'PENDING'
+  currentApproverUserId: WireLong | null
+  nodeVersion: number
+  createdAt: WireDateTime
+}
+
+export interface CutoverApprovalReassignmentCandidatePage {
+  list: CutoverApprovalReassignmentCandidate[]
+  total: WireLong
+  pageNo: number
+  pageSize: number
+}
+
+export interface CutoverApprovalTodoItem {
+  approvalInstanceId: WireLong
+  approvalVersion: number
+  taskId: WireLong
+  projectId: WireLong
+  taskCode: string
+  taskName: string
+  grade: ManualGrade
+  nodeNo: number
+  nodeCode: CutoverApprovalNodeCode
+  createdAt: WireDateTime
+}
+
+export interface CutoverApprovalTodoPage {
+  list: CutoverApprovalTodoItem[]
+  total: WireLong
+  pageNo: number
+  pageSize: number
+}
+
 export interface CutoverTaskPage {
   list: CutoverTaskSummary[]
   total: WireLong
@@ -466,7 +674,10 @@ export interface CreateCutoverTaskRequest {
 const baseUrl = '/api/v1/pms/cutover-tasks'
 
 export const resolveCreateContext = (serialNumbers: string[]) =>
-  request.post<CreateContextData>({ url: `${baseUrl}/actions/resolve-create-context`, data: { serialNumbers } })
+  request.post<CreateContextData>({
+    url: `${baseUrl}/actions/resolve-create-context`,
+    data: { serialNumbers }
+  })
 
 export const getCutoverTaskPage = (params: {
   projectId?: WireLong
@@ -519,7 +730,10 @@ export const generateCutoverChecklist = (
     expectedTaskVersion: number
     expectedAssessmentVersion: number
     expectedProjectScopeVersion: WireLong
-    selectedConflictDefinitions: Record<string, { itemDefinitionId: WireLong; itemDefinitionVersion: number }>
+    selectedConflictDefinitions: Record<
+      string,
+      { itemDefinitionId: WireLong; itemDefinitionVersion: number }
+    >
   },
   idempotencyKey: string
 ) =>
@@ -566,10 +780,11 @@ export const removeCustomChecklistItem = (
     checklistId: WireLong
     expectedChecklistVersion: number
   }
-) => request.delete({
-  url: `${baseUrl}/${taskId}/checklist/custom-items/${encodeURIComponent(stableItemKey)}`,
-  data
-})
+) =>
+  request.delete({
+    url: `${baseUrl}/${taskId}/checklist/custom-items/${encodeURIComponent(stableItemKey)}`,
+    data
+  })
 
 export const requestChecklistCollection = (
   taskId: WireLong,
@@ -583,11 +798,12 @@ export const requestChecklistCollection = (
     commandTemplateId: WireLong
   },
   idempotencyKey: string
-) => request.post({
-  url: `${baseUrl}/${taskId}/checklist/items/${encodeURIComponent(stableItemKey)}/collection-requests`,
-  data,
-  headers: { 'Idempotency-Key': idempotencyKey }
-})
+) =>
+  request.post({
+    url: `${baseUrl}/${taskId}/checklist/items/${encodeURIComponent(stableItemKey)}/collection-requests`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey }
+  })
 
 export const saveManualChecklistResult = (
   taskId: WireLong,
@@ -631,11 +847,12 @@ export const createCutoverPlanDraft = (
   taskVersion: number,
   data: CreateCutoverPlanDraftRequest,
   idempotencyKey: string
-) => request.post<CutoverPlanView>({
-  url: `${baseUrl}/${taskId}/plan/actions/create-draft`,
-  data,
-  headers: { 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
-})
+) =>
+  request.post<CutoverPlanView>({
+    url: `${baseUrl}/${taskId}/plan/actions/create-draft`,
+    data,
+    headers: { 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
+  })
 
 export const saveCutoverPlanDraft = (
   taskId: WireLong,
@@ -643,40 +860,43 @@ export const saveCutoverPlanDraft = (
   planVersion: number,
   data: WritableCutoverPlanContent,
   idempotencyKey: string
-) => request.put<CutoverPlanView>({
-  url: `${baseUrl}/${taskId}/plan`,
-  data,
-  headers: {
-    'If-Match': String(planVersion),
-    'X-Task-Version': String(taskVersion),
-    'Idempotency-Key': idempotencyKey
-  }
-})
+) =>
+  request.put<CutoverPlanView>({
+    url: `${baseUrl}/${taskId}/plan`,
+    data,
+    headers: {
+      'If-Match': String(planVersion),
+      'X-Task-Version': String(taskVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
 
 export const downloadCutoverPlanDraft = (
   taskId: WireLong,
   planVersion: number,
   idempotencyKey: string
-) => request.post<DownloadCutoverPlanDraftResult>({
-  url: `${baseUrl}/${taskId}/plan/actions/download-draft`,
-  data: {},
-  headers: { 'If-Match': String(planVersion), 'Idempotency-Key': idempotencyKey }
-})
+) =>
+  request.post<DownloadCutoverPlanDraftResult>({
+    url: `${baseUrl}/${taskId}/plan/actions/download-draft`,
+    data: {},
+    headers: { 'If-Match': String(planVersion), 'Idempotency-Key': idempotencyKey }
+  })
 
 export const submitCutoverPlan = (
   taskId: WireLong,
   taskVersion: number,
   planVersion: number,
   idempotencyKey: string
-) => request.post<SubmitCutoverPlanResult>({
-  url: `${baseUrl}/${taskId}/plan/actions/submit`,
-  data: {},
-  headers: {
-    'If-Match': String(planVersion),
-    'X-Task-Version': String(taskVersion),
-    'Idempotency-Key': idempotencyKey
-  }
-})
+) =>
+  request.post<SubmitCutoverPlanResult>({
+    url: `${baseUrl}/${taskId}/plan/actions/submit`,
+    data: {},
+    headers: {
+      'If-Match': String(planVersion),
+      'X-Task-Version': String(taskVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
 
 export const patchApprovedCutoverPlanContact = (
   taskId: WireLong,
@@ -684,12 +904,13 @@ export const patchApprovedCutoverPlanContact = (
   planVersion: number,
   data: { personName: string; phone: string; arrivalTime: WireDateTime },
   idempotencyKey: string
-) => request.put<CutoverPlanView>({
-  method: 'PATCH',
-  url: `${baseUrl}/${taskId}/plan/support-arrangements/${arrangementId}`,
-  data,
-  headers: { 'If-Match': String(planVersion), 'Idempotency-Key': idempotencyKey }
-})
+) =>
+  request.put<CutoverPlanView>({
+    method: 'PATCH',
+    url: `${baseUrl}/${taskId}/plan/support-arrangements/${arrangementId}`,
+    data,
+    headers: { 'If-Match': String(planVersion), 'Idempotency-Key': idempotencyKey }
+  })
 
 export const reviseCutoverPlan = (
   taskId: WireLong,
@@ -699,8 +920,73 @@ export const reviseCutoverPlan = (
     reason: 'APPROVAL_REJECTED' | 'SOURCE_REPLACED'
   },
   idempotencyKey: string
-) => request.post<CutoverPlanView>({
-  url: `${baseUrl}/${taskId}/plan/actions/revise`,
-  data,
-  headers: { 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
-})
+) =>
+  request.post<CutoverPlanView>({
+    url: `${baseUrl}/${taskId}/plan/actions/revise`,
+    data,
+    headers: { 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export const getCutoverApproval = (taskId: WireLong) =>
+  request.get<CutoverApprovalView>({ url: `${baseUrl}/${taskId}/approval` })
+
+export const getCutoverApprovalTodos = (params: { pageNo: number; pageSize: number }) =>
+  request.get<CutoverApprovalTodoPage>({
+    url: '/api/v1/pms/cutover-approvals/todos',
+    params
+  })
+
+export const getCutoverApprovalReassignmentCandidates = (params: {
+  pageNo: number
+  pageSize: number
+}) =>
+  request.get<CutoverApprovalReassignmentCandidatePage>({
+    url: '/api/v1/pms/cutover-approvals/reassignment-candidates',
+    params
+  })
+
+export const approveCutoverApproval = (
+  taskId: WireLong,
+  approvalVersion: number,
+  taskVersion: number,
+  data: CutoverApprovalDecisionRequest,
+  idempotencyKey: string
+) =>
+  request.post<CutoverApprovalDetail>({
+    url: `${baseUrl}/${taskId}/approval-actions/approve`,
+    data,
+    headers: {
+      'If-Match': String(approvalVersion),
+      'X-Task-Version': String(taskVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
+
+export const rejectCutoverApproval = (
+  taskId: WireLong,
+  approvalVersion: number,
+  taskVersion: number,
+  data: CutoverApprovalDecisionRequest,
+  idempotencyKey: string
+) =>
+  request.post<CutoverApprovalDetail>({
+    url: `${baseUrl}/${taskId}/approval-actions/reject`,
+    data,
+    headers: {
+      'If-Match': String(approvalVersion),
+      'X-Task-Version': String(taskVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
+
+export const reassignCutoverApproval = (
+  taskId: WireLong,
+  approvalVersion: number,
+  data: { nodeNo: number; newApproverUserId: WireLong; reason: string },
+  idempotencyKey: string
+) =>
+  request.post<CutoverApprovalReassignmentView>({
+    url: `${baseUrl}/${taskId}/approval-actions/reassign`,
+    data,
+    headers: { 'If-Match': String(approvalVersion), 'Idempotency-Key': idempotencyKey }
+  })

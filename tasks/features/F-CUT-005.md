@@ -28,6 +28,7 @@
 - [x] Task 5 详情、本人待办、改派队列与管理员改派：`PASS / GO @ 0142e01e`。
 - [x] Task 6 站内通知提交后投递与暂停Job：`PASS / GO @ e5aff408`。
 - [x] Task 7 六路由REST、严格请求Codec与错误合同：`PASS / GO @ eefb40ec`。
+- [ ] Task 8 P5审批工作台与组件交互：`REVIEW_REQUIRED`。
 
 ## 最近检查点
 
@@ -45,6 +46,7 @@
 - `0142e01e`关闭Task 5完整候选交集、hold恢复、通知版本键及待办投影身份一致性，独立复审正式GO；最近Gate为Task 6站内通知提交后投递与暂停Job。
 - `e5aff408`以独立`REQUIRES_NEW` Provider Bean隔离SYSTEM通知事务，证明Provider失败回滚不影响CUT外层持久化`PENDING_RETRY`，独立复审正式GO；最近Gate为Task 7六路由REST与严格请求合同。
 - `0f98d527`关闭审批成功后Owner刷新与结构化错误合同问题；`eefb40ec`进一步冻结实际决定节点并使同键同载荷重放直接复用平台结果，Task 7独立复审正式GO；最近Gate为Task 8实施前边界核验。
+- Task 8候选已完成P5完整/最终结果/管理员改派三种投影、本人待办与改派队列入口、五项评审及服务经理复核、合法驳回和统一写后刷新屏障；跨模块Owner仅使用正式接口与测试模拟，无生产Fake/fallback。当前等待独立Code Review／组件交互Gate。
 
 ## 物理Owner支撑Task
 
