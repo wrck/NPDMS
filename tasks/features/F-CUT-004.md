@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～8均已通过；当前进入Task 9 P4工作台与组件交互；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
+- Task 1～9均已通过；当前进入Task 10 字典、菜单与权限种子；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -131,3 +131,15 @@
 - [x] 使用真实组件mount完成正向交互测试；Task 9 Frontend Gate通过（`GO@b51963ff`）。
 
 > 检查点：独立复审确认批准联系人实际编辑、多步骤稳定身份、标准方案三个PLT文件槽及初稿访问票据下载闭环成立；聚焦组件24/24、类型检查与生产构建通过。组件不注册后端生产Controller、Service或跨模块Fake/fallback，不启动真实浏览器；生产PLT/CUT-05 Provider继续阻断生产装配、浏览器正向闭环与Implementation Done。
+
+## Task 10：字典、菜单与权限种子
+
+状态：`CODE_REVIEW_REQUIRED`
+
+- [x] 使用实际下一空闲版本`V152`幂等登记方案状态、编辑方式、六章节、保障角色与修订原因字典。
+- [x] 在既有割接任务工作台下新增查询、保存、下载初稿、提交四项权限；不写`system_role_menu`，不修改旧菜单或旧权限。
+- [x] 保持Task 8旧方案核对Job为`status=2/PAUSED`，不注册Quartz同步，不激活跨模块生产依赖。
+- [x] 迁移合同聚焦测试6/6通过；隔离MySQL 8.4空卷V1→V152、V152重复执行及种子数量/零角色授权验证通过。
+- [ ] 通过Task 10 Seed/MySQL独立Gate。
+
+> 检查点候选：V152只新增CUT方案封闭字典和四项权限；隔离库重复执行后字典类型5、字典项21、权限4、角色授权0，legacy方案核对Job仍为PAUSED。生产PLT/CUT-05 Provider、浏览器与Implementation Done边界不变。

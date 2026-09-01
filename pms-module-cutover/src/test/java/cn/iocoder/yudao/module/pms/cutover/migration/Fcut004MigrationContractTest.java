@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class Fcut004MigrationContractTest {
     private final String sql = readMigration();
+    private final String seedSql = readSeedMigration();
 
     @Test
     void preflightsExistingStagesBeforeEverySchemaChange() {
@@ -61,9 +62,44 @@ class Fcut004MigrationContractTest {
                 .contains("`current_stage` = 'P6' AND `task_status` = 'CLOSURE_IN_PROGRESS'");
     }
 
+    @Test
+    void seedsOnlyTheLockedPlanDictionaries() {
+        assertThat(seedSql)
+                .contains("'pms_cutover_plan_revision_status'")
+                .contains("'DRAFT'", "'SUBMITTED'", "'INVALIDATED'")
+                .contains("'ONLINE_TEMPLATE_STANDARD'", "'ONLINE_TEMPLATE_SIMPLE_D'",
+                        "'FULL_FILE_UPLOAD'", "'LEGACY_READ_ONLY'")
+                .contains("'PRE_OPERATION'", "'OPERATION'", "'CLOSING_COLLECTION'",
+                        "'POST_BUSINESS_TEST'", "'ROLLBACK'", "'POST_CUTOVER_SUPPORT'")
+                .contains("'CUSTOMER'", "'DP_FIRST_LINE'", "'DP_SECOND_LINE'", "'DP_RND'")
+                .contains("'INITIAL'", "'APPROVAL_REJECTED'", "'DUTY_CHANGED'", "'SOURCE_REPLACED'");
+    }
+
+    @Test
+    void addsFourPlanPermissionsWithoutGrantingRolesOrChangingLegacyMenus() {
+        assertThat(seedSql)
+                .contains("'pms:cutover-task:query-plan'")
+                .contains("'pms:cutover-task:save-plan'")
+                .contains("'pms:cutover-task:download-plan'")
+                .contains("'pms:cutover-task:submit-plan'")
+                .contains("992602050001")
+                .contains("ON DUPLICATE KEY UPDATE")
+                .doesNotContain("system_role_menu")
+                .doesNotContain("pms:cut-plan:")
+                .doesNotContain("UPDATE `system_menu`");
+    }
+
     private static String readMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V150__fcut004_p4_cutover_plan.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readSeedMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V152__fcut004_plan_seed.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
