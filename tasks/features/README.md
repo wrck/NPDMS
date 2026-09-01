@@ -2,7 +2,7 @@
 
 本矩阵只投影`master`当前Feature Task状态。Feature Ready以Feature Spec为权威，Implementation状态与Done以对应`tasks/features/F-*.md`为权威；认领、写边界、Worktree交接和集成回执见[`tasks/delivery-units/`](../delivery-units/README.md)。Git分支、提交、测试和浏览器结果只作候选证据。
 
-首次冻结审计输入为`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`、截点`2026-09-01T16:59:30+08:00`，见[原始时间线](../../docs/generated/branch-history-audit-2026-09-01.md)。本轮增量审计输入为`master@133f7b8132e0f9f496ba4dbe79a4cce43a04019e`、截点`2026-09-01T17:59:19+08:00`，见[合入后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-post-governance.md)；CUT仍停在`85b93828`，INS新增未认领提交`6719ab94`。后续分支前进必须继续增量复审，不覆盖任一冻结快照。
+首次冻结审计输入为`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`、截点`2026-09-01T16:59:30+08:00`，见[原始时间线](../../docs/generated/branch-history-audit-2026-09-01.md)。上一轮增量审计输入为`master@133f7b8132e0f9f496ba4dbe79a4cce43a04019e`、截点`2026-09-01T17:59:19+08:00`，见[合入后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-post-governance.md)。本轮F-INS增量审计输入为`master@c33c7eb9d69eda365dd19ea1d5b8a25816b77850`、截点`2026-09-01T20:07:30+08:00`，见[F-INS Task 4后时间线](../../docs/generated/branch-history-audit-2026-09-01-fins-task4.md)；INS已从`6719ab94 + 7项未提交Task 4`前进为`e13feca7 + 4项未提交Task 5`。后续分支前进必须继续增量复审，不覆盖任一冻结快照。
 
 ## master权威Feature状态
 
@@ -33,7 +33,7 @@
 | COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | 顺序完成候选，但与COM-B竞争且PRD Change ID冲突 | 关闭`Q-GOV-20260901-001/002`后逐项选择提交，禁止整支合入 |
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始 | `CONFLICTED_IMPLEMENTATION / IN_PROGRESS` | 与COM-A按PRD、Spec、公共契约逐项裁决 |
 | F-AST-002 | `a52b22b4..68bc56ec` | 独立完成候选；不是F-INS-001脏改动的一部分 | PRD冲突关闭后更新master并复验 |
-| F-INS-001 | `feat-inspection-feature-xkjuCC@6719ab94`及7项未提交Task 4实现；新增提交复用冲突的修订011 | `QUARANTINED / IN_PROGRESS`；分支Ready/Task 4B解阻不进入master | 保留工作树；先关闭`Q-GOV-20260901-001`，再从master建立有效DU和锁定输入 |
+| F-INS-001 | `feat-inspection-feature-xkjuCC@e13feca7`及4项未提交Task 5变更；`e13feca7`聚焦提交Task 4实现与验证记录 | Task 4=`INTEGRATION_CANDIDATE`；Task 5=`UNCLAIMED_DIRTY`；无跨Feature领域实现冲突 | 独立复核并选择性集成Task 4；保留Task 5脏改动，先在最新master建立有效DU，再处理`Q-FINS001-004`和Flyway最终编号 |
 | F-CUT-001 | `08457e39..72ccb83f` -> `07b6eb06` -> `master@c61e5b1e` | `INTEGRATED_PARTIAL`；Feature权威状态仍为`IN_PROGRESS / MASTER_REVALIDATION` | 新建DU完成V133示例迁移与合入后独立MySQL/真实浏览器最终DoD |
 | F-CUT-002/003 | `codex/f-cut-001-matrices@85b93828`继承文本与实现 | `QUARANTINED / IN_PROGRESS` | 从多Feature分支拆分DU，不按分支头推断Owner |
 | F-CUT-004 | 同上 | `IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产依赖未满足 | 不得声明Done或激活完整生产入口 |
@@ -47,7 +47,8 @@
 
 - 已完成本轮选择性集成：`codex/f-cut-001-master-integration`为`PATCH_EQUIVALENT / INTEGRATED_PARTIAL`，`codex/f-sol-003-legacy-deprecation`为`PATCH_EQUIVALENT / INTEGRATED_COMPLETE`。
 - 历史来源候选：`codex/integrate-f-cut-001`；其适配范围已进入master，不能再作为当前状态源或新实施基础。
-- 活动但隔离：`codex/f-cut-001-matrices`、`codex/f-proj-008-stage-advance`、`feat-inspection-feature-xkjuCC`、`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`。
+- 活动但隔离：`codex/f-cut-001-matrices`、`codex/f-proj-008-stage-advance`、`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`。
+- 独立实现候选：`feat-inspection-feature-xkjuCC@e13feca7`；仅Task 4候选进入复核。该工作树另有4项未提交Task 5变更，必须保留并迁移到master新DU，不得沿历史未认领边界继续写入。
 - 完成候选祖先：`codex/f-com-001-feature-ready`、F-AST-002提交段。
 - 已被master包含或补丁/树等价：`engineering-chain-phase-TmrsP0`、`feat-inspection-feature-Q7yA35`、`feat-parallel-features-akPsDH`、`codex/merge-engineering-chain-phase-tmrsp0`、`codex/v1-8-feature-revalidation-50eb`及已包含的chore/import/spec历史分支。
 - 已替代实施基础：`codex/f-proj-001-atomic-alignment`。其旧任务链不完整，不得再承接F-PROJ-001新实施。
@@ -57,9 +58,10 @@
 
 ## 严重漂移与阻断
 
-- `Q-GOV-20260901-001`：并行PRD分别重复使用修订`010`与`011`表达不同业务语义；PROJ与INS两份revision-011互相遗漏对方及ACC/AST输入，均不得成为master锁定基线。
+- `Q-GOV-20260901-001`：并行PRD分别重复使用修订`010`与`011`表达不同业务语义；它只阻断分支PRD直接晋级、全局编号定稿和整支合并，不构成F-INS与其他Feature的实现冲突，也不阻断`e13feca7`的独立复核。
 - `Q-GOV-20260901-002`：F-COM-001存在两套大范围、低重叠实现；不得按提交时间或分支Done整体选择。
 - CUT活动分支同时承载COM、IMP和CUT多个未收口Feature，且在前序未交接时继续启动后续Feature，是当前最严重的任务飘移。
+- F-INS Task 5已在无有效DU时产生4项脏改动，且临时`V148`与CUT分支提交`37723669`编号相同；这是共享Flyway的串行收口问题，不是两个Feature的领域实现冲突。
 - Worktree脏改动和stash均未被提升为提交证据；原内容保持不变。
 
 ## 投影规则
