@@ -190,7 +190,7 @@ class CutoverApprovalDecisionServiceTest {
             this.actor = actor;
             when(reviews.insert(any(CutoverApprovalReviewItemDO.class))).thenReturn(1);
             when(nodes.updateStatusIfMatch(any())).thenReturn(1);
-            when(instances.updateById(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
+            when(instances.updateStateIfMatch(any())).thenReturn(1);
             when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
             when(history.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
             doAnswer(invocation -> {

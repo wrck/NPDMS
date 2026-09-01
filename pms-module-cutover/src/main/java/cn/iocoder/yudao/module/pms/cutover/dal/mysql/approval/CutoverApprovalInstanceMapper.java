@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceStateUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,4 +15,5 @@ public interface CutoverApprovalInstanceMapper extends BaseMapperX<CutoverApprov
     CutoverApprovalInstanceDO selectByIdForUpdate(@Param("query") ApprovalInstanceLockQuery query);
     CutoverApprovalInstanceDO selectCurrentByTask(@Param("query") ApprovalTaskQuery query);
     int updateAfterReassignmentIfMatch(@Param("query") ApprovalInstanceReassignmentUpdate query);
+    int updateStateIfMatch(@Param("query") ApprovalInstanceStateUpdate query);
 }

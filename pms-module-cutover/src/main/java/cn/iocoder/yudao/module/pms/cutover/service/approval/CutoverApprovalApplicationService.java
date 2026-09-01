@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalRev
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceStateUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskApprovalTransitionUpdate;
@@ -281,11 +282,9 @@ public class CutoverApprovalApplicationService {
                 && Objects.equals(current.getCurrentApproverUserId(), actorId), STATE_CONFLICT,
                 "NOT_CURRENT_NODE", "当前用户不是待审批人");
         if (!revalidateApprover(instance, current, actorId)) {
-            int oldVersion = instance.getVersion();
             instance.setHoldReasonCode("APPROVER_UNAVAILABLE");
             instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(LocalDateTime.now(clock));
-            require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
-            instance.setVersion(oldVersion + 1);
+            updateInstance(instance);
             return decisionResult(instance, task, current.getNodeNo(), "PENDING", task.getVersion(),
                     task.getCurrentStage(), task.getTaskStatus());
         }
@@ -353,7 +352,7 @@ public class CutoverApprovalApplicationService {
         LocalDateTime now = LocalDateTime.now(clock);
         instance.setStatusCode("PAUSED_SOURCE_INVALIDATED"); instance.setHoldReasonCode(null);
         instance.setDecisionAt(null); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
-        require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
+        updateInstance(instance);
         List<CutoverApprovalNodeDO> nodes = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
                 .eq(CutoverApprovalNodeDO::getTenantId, command.tenantId())
                 .eq(CutoverApprovalNodeDO::getApprovalInstanceId, command.approvalInstanceId())
@@ -473,7 +472,7 @@ public class CutoverApprovalApplicationService {
                         && previous.getReplacementApprovalInstanceId() == null,
                 STATE_CONFLICT, "前序审批不可被替代");
         previous.setReplacementApprovalInstanceId(replacementId);
-        require(instanceMapper.updateById(previous) == 1, VERSION_CONFLICT, "前序审批并发变化");
+        updateInstance(previous);
     }
 
     private void insertNotification(CutoverApprovalStartCommand command, long instanceId, Long nodeId,
@@ -645,10 +644,8 @@ public class CutoverApprovalApplicationService {
                 next.getCandidateFactSnapshot(), next.getProjectScopeVersion(), null, null, null, null,
                 String.valueOf(actorId), now)) == 1,
                 VERSION_CONFLICT, "下一审批节点并发变化");
-        int oldVersion = instance.getVersion();
         instance.setCurrentNodeNo(next.getNodeNo()); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
-        require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
-        instance.setVersion(oldVersion + 1);
+        updateInstance(instance);
         insertPendingNotification(instance, next, actorId, now);
         return decisionResult(instance, task, decidedNodeNo, "PENDING", task.getVersion(),
                 task.getCurrentStage(), task.getTaskStatus());
@@ -663,11 +660,9 @@ public class CutoverApprovalApplicationService {
                 .eq(CutoverApprovalNodeDO::getStatusCode, "WAITING")
                 .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
         for (CutoverApprovalNodeDO node : future) updateNode(node, "CANCELLED", null, null, null, actorId, now);
-        int oldVersion = instance.getVersion();
         instance.setStatusCode("REJECTED"); instance.setDecisionAt(now); instance.setRejectionReason(feedback);
         instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
-        require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
-        instance.setVersion(oldVersion + 1);
+        updateInstance(instance);
         transitionTask(task, "P4", "PLAN_DRAFTING", "P5_APPROVAL_REJECTED", instance.getId(),
                 actorId, correlationId, now);
         return decisionResult(instance, task, current.getNodeNo(), "REJECTED", task.getVersion() + 1,
@@ -676,15 +671,23 @@ public class CutoverApprovalApplicationService {
 
     private CutoverApprovalDecisionResult approveFinal(CutoverApprovalInstanceDO instance, CutoverTaskDO task,
             int decidedNodeNo, String correlationId, long actorId, LocalDateTime now) {
-        int oldVersion = instance.getVersion();
         instance.setStatusCode("APPROVED"); instance.setDecisionAt(now); instance.setRejectionReason(null);
         instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
-        require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
-        instance.setVersion(oldVersion + 1);
+        updateInstance(instance);
         transitionTask(task, "P6", "CLOSURE_IN_PROGRESS", "P5_APPROVAL_APPROVED", instance.getId(),
                 actorId, correlationId, now);
         return decisionResult(instance, task, decidedNodeNo, "APPROVED", task.getVersion() + 1,
                 "P6", "CLOSURE_IN_PROGRESS");
+    }
+
+    private void updateInstance(CutoverApprovalInstanceDO instance) {
+        int expectedVersion = instance.getVersion();
+        require(instanceMapper.updateStateIfMatch(new ApprovalInstanceStateUpdate(instance.getTenantId(),
+                instance.getId(), expectedVersion, instance.getStatusCode(), instance.getCurrentNodeNo(),
+                instance.getDecisionAt(), instance.getRejectionReason(), instance.getReplacementApprovalInstanceId(),
+                instance.getHoldReasonCode(), instance.getUpdater(), instance.getUpdateTime())) == 1,
+                VERSION_CONFLICT, "审批实例并发变化");
+        instance.setVersion(expectedVersion + 1);
     }
 
     private void transitionTask(CutoverTaskDO task, String stage, String status, String triggerType,

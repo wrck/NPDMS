@@ -93,7 +93,7 @@ class CutoverApprovalStartServiceTest {
         pending.setPlanRevisionNo(1); pending.setStatusCode("PENDING"); pending.setSourceSnapshotVersion(1);
         pending.setVersion(3);
         when(instances.selectByIdForUpdate(any())).thenReturn(pending);
-        when(instances.updateById(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
+        when(instances.updateStateIfMatch(any())).thenReturn(1);
         when(nodes.selectList(any())).thenReturn(List.of());
         CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(
                 mock(CutoverApprovalSourceAssembler.class), instances, nodes,

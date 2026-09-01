@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverCheck
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
@@ -15,6 +17,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChec
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
@@ -25,6 +30,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -37,20 +43,25 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 
 /** 从同一CUT事务内已锁定的P2/P3/P4事实组装审批不可变来源。 */
 public class CutoverApprovalSourceAssembler {
+    private static final long MAX_SAFE_WIRE_LONG = 9_007_199_254_740_991L;
     private final CutoverTaskMapper taskMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverChecklistMapper checklistMapper;
     private final CutoverChecklistItemMapper itemMapper;
     private final CutoverChecklistItemResultMapper resultMapper;
     private final CutoverPlanRevisionMapper planMapper;
+    private final CutoverPlanStepMapper stepMapper;
+    private final CutoverSupportArrangementMapper supportMapper;
     private final CutoverApprovalSourceSnapshotCodec codec;
 
     public CutoverApprovalSourceAssembler(CutoverTaskMapper taskMapper, CutoverAssessmentMapper assessmentMapper,
             CutoverChecklistMapper checklistMapper, CutoverChecklistItemMapper itemMapper,
             CutoverChecklistItemResultMapper resultMapper, CutoverPlanRevisionMapper planMapper,
+            CutoverPlanStepMapper stepMapper, CutoverSupportArrangementMapper supportMapper,
             CutoverApprovalSourceSnapshotCodec codec) {
         this.taskMapper = taskMapper; this.assessmentMapper = assessmentMapper; this.checklistMapper = checklistMapper;
-        this.itemMapper = itemMapper; this.resultMapper = resultMapper; this.planMapper = planMapper; this.codec = codec;
+        this.itemMapper = itemMapper; this.resultMapper = resultMapper; this.planMapper = planMapper;
+        this.stepMapper = stepMapper; this.supportMapper = supportMapper; this.codec = codec;
     }
 
     public LockedSource lockAndAssemble(CutoverApprovalStartCommand command) {
@@ -92,7 +103,7 @@ public class CutoverApprovalSourceAssembler {
         }
         CutoverPlanRevisionDO plan = planMapper.selectByIdForUpdate(new CutoverPlanRevisionQuery(
                 command.tenantId(), command.taskId(), command.planRevisionId()));
-        require(plan != null && "SUBMITTED".equals(plan.getStatusCode())
+        require(plan != null && "DRAFT".equals(plan.getStatusCode())
                 && Objects.equals(plan.getRevisionNo(), command.planRevisionNo())
                 && Objects.equals(plan.getGradeCode(), command.grade()), SOURCE_STALE, "P4方案事实已变化");
 
@@ -116,8 +127,41 @@ public class CutoverApprovalSourceAssembler {
                         serviceLevel, assessment.getManualGrade(), assessment.getSubmittedBy(),
                         assessment.getSubmittedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                        JsonUtils.parseTree(plan.getSourceSnapshot()), JsonUtils.parseTree(plan.getContentSnapshot())));
+                        normalizedPlanSource(plan.getSourceSnapshot()), completePlanContent(task.getTenantId(), plan)));
         return new LockedSource(task, assessment, checklist, plan, codec.encode(snapshot));
+    }
+
+    private JsonNode normalizedPlanSource(String sourceSnapshot) {
+        ObjectNode source = (ObjectNode) JsonUtils.parseTree(sourceSnapshot);
+        if (!source.has("checklistId")) source.putNull("checklistId");
+        if (!source.has("checklistVersion")) source.putNull("checklistVersion");
+        return source;
+    }
+
+    private JsonNode completePlanContent(Long tenantId, CutoverPlanRevisionDO plan) {
+        ObjectNode content = (ObjectNode) JsonUtils.parseTree(plan.getContentSnapshot());
+        CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
+        var steps = content.putArray("steps");
+        for (CutoverPlanStepDO row : stepMapper.selectListByPlanForUpdate(query)) {
+            steps.addObject().put("sectionCode", row.getSectionCode()).put("stepNo", row.getStepNo())
+                    .put("content", row.getContent());
+        }
+        if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
+            var supports = content.putArray("supportArrangements");
+            for (CutoverSupportArrangementDO row : supportMapper.selectListByPlanForUpdate(query)) {
+                ObjectNode support = supports.addObject();
+                putWireLong(support, "arrangementId", row.getId()); support.put("roleCode", row.getRoleCode());
+                support.put("personName", row.getPersonName()); support.put("dutyDescription", row.getDutyDescription());
+                support.put("phone", row.getPhone());
+                support.put("arrivalTime", row.getArrivalTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            }
+        }
+        return content;
+    }
+
+    private static void putWireLong(ObjectNode node, String field, long value) {
+        if (value > -MAX_SAFE_WIRE_LONG && value < MAX_SAFE_WIRE_LONG) node.put(field, value);
+        else node.put(field, Long.toString(value));
     }
 
     private static ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {

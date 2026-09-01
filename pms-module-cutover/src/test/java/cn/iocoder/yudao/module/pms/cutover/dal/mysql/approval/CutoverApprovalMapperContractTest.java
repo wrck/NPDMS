@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReas
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceStateUpdate;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -37,6 +38,9 @@ class CutoverApprovalMapperContractTest {
                 new ApprovalTaskQuery(1L, 10L));
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "updateAfterReassignmentIfMatch",
                 new ApprovalInstanceReassignmentUpdate(1L, 4L, 0, null, "9", NOW));
+        assertBindings(configuration, CutoverApprovalInstanceMapper.class, "updateStateIfMatch",
+                new ApprovalInstanceStateUpdate(1L, 4L, 0, "PENDING", 2, null, null,
+                        null, null, "9", NOW));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectByInstanceAndNodeForUpdate",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoPage",
