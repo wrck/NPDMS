@@ -45,12 +45,12 @@
 
 - 仅当前任务处于`PLAN_DRAFTING`且操作人为当前任务负责人并具备项目`ACTION_EDIT`时可创建或修改草稿。
 - A/B/C必须引用当前有效`SUBMITTED`清单；D级必须没有清单引用。所有等级均引用当前有效最终评估。
-- 首个revision冻结任务/评估/清单、项目/设备、任务创建时配置revision、方案模板章节及输入快照；D级仅清单身份为空，配置与适用的操作/回退模板章节仍须冻结。来源变化不得静默刷新草稿或已提交内容。
+- 首个revision冻结任务/评估/清单、项目/设备、任务创建时配置revision、方案模板章节及完整CUT-03失败风险Owner集合；D级仅清单身份为空且失败风险集合为空，配置与适用的操作/回退模板章节仍须冻结。后续保存、初稿生成和提交必须从持久`source_snapshot`重建完整期望来源后锁定重验，不得从草稿缺行或当前Owner查询反推冻结事实；来源变化不得静默刷新草稿或已提交内容。
 - CUT-03未通过风险项必须全部进入风险措施明细；每项提交前必须有非空措施。
 
 ### BR-FCUT004-002 编辑方式与内容
 
-- `FULL_FILE_UPLOAD`只冻结经PLT校验的`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`及人工归属确认，不强制填写在线模板章节。
+- `createDraft`是按`editMode`封闭的请求联合：两种在线模式仅提交`editMode`并由服务端生成合法空骨架；`FULL_FILE_UPLOAD`必须在创建时同时提交完整`fileArtifactFact`和`ownershipConfirmed=true`。上传分支以请求文件事实为期望，创建前inspect并在写事务内锁定重验，仅冻结匹配的PLT Owner `artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`及人工归属确认，不先插入不完整文件根，也不强制填写在线模板章节。
 - `ONLINE_TEMPLATE`按冻结模板章节保存割接概述、计划、拓扑/组网文件引用、设备清单快照、操作/验证/收尾/测试/回退/保障内容。
 - `DRAFT`暂存与提交完整性分层：标准/简易草稿始终使用判别联合的exact keys；项目说明可为空字符串，计划表、步骤、风险措施和保障人员可为空或合法子集，已出现元素仍须字段完整、Owner身份匹配且稳定排序。未填写风险以缺少对应`RiskMitigation`表示，不使用`null`或空措施占位；未填写保障角色以缺少该角色行表示。生成初稿和提交时才要求标准方案项目说明/计划表、六类步骤、全部当前未通过风险措施及四类保障齐全，简易方案要求操作/回退两类步骤齐全。
 - D级选择在线填写时仅允许`ONLINE_TEMPLATE_SIMPLE_D`的阶段操作步骤和回退步骤，不得生成A/B/C完整章节或风险清单；D级选择已有完整方案时可使用`FULL_FILE_UPLOAD`，不强制解析在线章节。

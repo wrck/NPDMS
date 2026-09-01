@@ -37,7 +37,7 @@
 
 ### 1.1 正向业务链
 
-1. P4任务负责人读取当前方案；无方案时按等级选择`FULL_FILE_UPLOAD`、`ONLINE_TEMPLATE_STANDARD`或`ONLINE_TEMPLATE_SIMPLE_D`创建唯一DRAFT。
+1. P4任务负责人读取当前方案；无方案时按等级选择`ONLINE_TEMPLATE_STANDARD`或`ONLINE_TEMPLATE_SIMPLE_D`由服务端创建空骨架，选择`FULL_FILE_UPLOAD`时连同完整文件期望事实与人工归属确认创建唯一合法DRAFT。
 2. 保存命令一次CAS原子更新根、步骤和保障安排；上传模式冻结PLT单文件事实，在线模式按严格联合保存内容。
 3. 下载命令基于当前DRAFT生成文件并把文件事实、操作人、revision和时间写入平台审计，不推进状态。
 4. 提交命令锁定所有来源与方案子行，验证完整性，调用`CutoverApprovalFactApi.start`，再把revision置`SUBMITTED`并将任务P4→P5；任一步失败整体回滚。
@@ -144,10 +144,12 @@
 - Create: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/plan/CutoverPlanApplicationServiceTest.java`
 - Create: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/plan/CutoverPlanQueryServiceTest.java`
 
+**实施前合同补全：** `createDraft`使用封闭请求联合：在线模式仅`editMode`，完整文件模式必须连同完整`fileArtifactFact`与`ownershipConfirmed=true`进入创建事务并以PLT锁定事实落库。`PlanSourceSnapshot`冻结完整`failedRiskFacts`；后续保存、初稿生成和提交从持久快照重建`SourceFacts`，不得从风险措施缺行或当前Owner查询猜测冻结集合。本补全先过独立机器合同Gate，再开始本Task运行实现。
+
 **Steps:**
 
 - [ ] 实现命令边界：受信tenant、非空规范`Idempotency-Key/correlationId`、task/plan版本；digest排除correlationId但SuccessFacts保留它。
-- [ ] 实现create/save NEW事务：复用1.2锁序、revisionNo单调分配、唯一当前DRAFT、根版本CAS、子行整组替换；任何子行失败整体回滚。
+- [ ] 实现create/save NEW事务：复用1.2锁序、冻结完整失败风险集合、revisionNo单调分配、唯一当前DRAFT、根版本CAS、子行整组替换；在线模式生成空骨架，上传模式在事务内锁定重验请求文件事实；任何子行失败整体回滚。
 - [ ] 实现详情与`allowedActions`，只依据服务端权限、任务负责人、stage、plan状态和审批投影；LEGACY_FORWARD只读。
 - [ ] 实现完成后用Task 3受控端口补正向测试：A级标准草稿、D级简易草稿、D级完整文件草稿，保存后根/步骤/保障原子一致，详情按子表组装。
 - [ ] 运行：`mvn -pl pms-module-cutover -am -Dtest=CutoverPlanApplicationServiceTest,CutoverPlanQueryServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
