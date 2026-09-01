@@ -190,6 +190,28 @@ class CutoverPlanApplicationServiceTest {
         assertThat(saved.get().getRoleCode()).isEqualTo("CUSTOMER");
     }
 
+    @Test
+    void reportsEachFrozenSourceAxisWithItsStableCode() {
+        assertSourceAxis("assessmentVersion", 3, CutoverPlanApplicationException.Code.ASSESSMENT_STALE);
+        assertSourceAxis("checklistVersion", 4, CutoverPlanApplicationException.Code.CHECKLIST_STALE);
+        assertSourceAxis("projectVersion", 7, CutoverPlanApplicationException.Code.PROJECT_OR_DEVICE_STALE);
+        assertSourceAxis("configurationRevisionNo", 2,
+                CutoverPlanApplicationException.Code.CONFIGURATION_OR_TEMPLATE_STALE);
+    }
+
+    @Test
+    void treatsPersistedSourceSnapshotDamageAsOwnerDataCorruption() {
+        Fixture fixture = fixture("D");
+        fixture.service.createDraft(command("ONLINE_TEMPLATE_SIMPLE_D", null, null));
+        CutoverPlanRevisionDO plan = fixture.inserted.get(); plan.setSourceSnapshot("{broken");
+        when(fixture.planMapper.selectCurrent(any())).thenReturn(plan);
+
+        assertThatThrownBy(() -> fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(
+                1L, 8L, 50L, 4, 0, 30L, simpleContent(false), "bad-source", "corr-bad")))
+                .isInstanceOfSatisfying(CutoverPlanApplicationException.class, ex ->
+                        assertThat(ex.code()).isEqualTo(CutoverPlanApplicationException.Code.OWNER_DATA_CORRUPTED));
+    }
+
     private static Fixture fixture(String grade) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
@@ -295,6 +317,25 @@ class CutoverPlanApplicationServiceTest {
         file.set("fileFactVersion", JsonUtils.getObjectMapper().valueToTree(fact.fileFactVersion()));
         file.put("scopeVersion", fact.scopeVersion()); file.put("sha256", fact.sha256());
         root.put("ownershipConfirmed", true); return root;
+    }
+
+    private static void assertSourceAxis(String field, int value, CutoverPlanApplicationException.Code code) {
+        Fixture fixture = fixture("A");
+        CutoverPlanSourcePort.SourceFacts current = mutate(facts("A"), field, value);
+        when(fixture.sourcePort.lockAndRevalidate(eq(1L), eq(8L), any())).thenReturn(current);
+        assertThatThrownBy(() -> fixture.service.createDraft(command("ONLINE_TEMPLATE_STANDARD", null, null)))
+                .isInstanceOfSatisfying(CutoverPlanApplicationException.class,
+                        ex -> assertThat(ex.code()).isEqualTo(code));
+    }
+
+    private static CutoverPlanSourcePort.SourceFacts mutate(CutoverPlanSourcePort.SourceFacts original,
+                                                             String field, int value) {
+        tools.jackson.databind.node.ObjectNode node = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseObject(
+                JsonUtils.toJsonString(original.snapshot()), tools.jackson.databind.JsonNode.class);
+        node.put(field, value);
+        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
+                JsonUtils.toJsonString(node), CutoverPlanSourcePort.SourceSnapshot.class);
+        return new CutoverPlanSourcePort.SourceFacts(snapshot, snapshot.failedRiskFacts());
     }
 
     private static class Fixture {
