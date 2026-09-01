@@ -33,7 +33,7 @@
 ## 物理Owner支撑Task
 
 - `T-FCUT005-PROJ-01`：PROJ拥有`ProjectCutoverServiceManagerFactApi`公开事实、锁定实现和合入顺序；当前仅预留合同，Provider未实施。
-- `T-FCUT005-SYSTEM-01`：SYSTEM角色/成员/用户状态保持权威来源；由PMS平台扩展交付`CutoverApprovalRoleCandidateFactApi`合同与适配Provider，当前仅预留，禁止修改Yudao基础模块或直读其表。
+- `T-FCUT005-SYSTEM-01`：SYSTEM角色/成员/用户状态保持权威来源；当前`PermissionApi/RoleApi/AdminUserApi`不足以形成版本化锁定事实，Task自起点`BLOCKED_BY_DEPENDENCY`。只有SYSTEM物理Owner获明确授权并交付公开合同/Provider Gate后才恢复，禁止PMS平台自造版本、修改Yudao或直读其表。
 - 两项Provider缺失不阻断Feature Ready后的CUT内核及`src/test`正向闭环，持续阻断完整生产装配、真实浏览器和Implementation Done。
 
 ## 依赖边界

@@ -374,9 +374,9 @@ Controller本Task不加生产`@RestController/@Component/@Bean`；测试通过te
 - Consumes: Task 7 API；既有P4工作台和PLT文件只读组件。
 - Produces: P5完整/最终结果/管理员改派三种UI与五项评审交互。
 
-- [ ] **Step 1: 先挂载组件固定正向交互**
+- [ ] **Step 1: 实现组件与页面接线**
 
-覆盖A/B/C/D路由、当前审批人五项评审、服务经理复核、驳回返回P4、全部通过P6、管理员队列/改派。
+先完成A/B/C/D路由展示、当前审批人五项评审、服务经理复核、管理员队列/改派及页面数据流，不在实现前挂载测试。
 
 - [ ] **Step 2: 实现Wire类型和冻结快照展示**
 
@@ -390,9 +390,9 @@ Snowflake ID保持string，时间为epoch毫秒双向格式化；networkMode nul
 
 未知响应/处理中保留同一Idempotency-Key；业务成功后刷新失败只重试刷新，禁止重发通过/驳回/改派。
 
-- [ ] **Step 5: 验证组件和布局**
+- [ ] **Step 5: 在实现完成后验证组件和布局**
 
-运行定向Vitest、`pnpm ts:check`和`pnpm build:local`；320/768/1024/1440通过真实mount验证，不使用源码字符串匹配。
+运行定向Vitest、`pnpm ts:check`和`pnpm build:local`；真实mount验证A/B/C/D、合法驳回、最终通过、改派与320/768/1024/1440布局，不使用源码字符串匹配。
 
 ---
 
@@ -474,16 +474,16 @@ SYSTEM返回多人候选，CUT按项目范围得到唯一交集并完成审批�
 - Test: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactApiMySqlTest.java`
 
 **Interfaces:**
-- Consumes: PROJ项目主行、当前服务经理/项目参与者权威事实和`F-CUT-005-approval-owner-contract.json`。
-- Produces: `ProjectCutoverServiceManagerFactApi.inspect/lockAndRevalidate`、稳定DTO/异常及独立Provider Gate。
+- Consumes: PROJ项目主行、当前服务经理/项目参与者权威事实和`F-CUT-005-candidate-owner-contract.json`。
+- Produces: `ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAndRevalidate`、稳定DTO/异常及独立Provider Gate。
 
 - [ ] **Step 1: 先形成公开机器合同候选并申请Contract Gate**
 
-锁定受信tenant、projectId、唯一当前SERVICE_MANAGER、用户状态、projectVersion/participantFactVersion、锁序、VALID/STALE/INVALID和Provider不可用边界；未GO前不写Provider。
+锁定受信tenant、projectId、唯一当前`SERVICE_MANAGER_L1|SERVICE_MANAGER_L2`、projectVersion/participantFactVersion、锁序、`inspectCurrent=FOUND|NOT_UNIQUE`、`lockAndRevalidate=VALID|STALE`和Provider不可用边界；未GO前不写Provider。
 
 - [ ] **Step 2: Contract Gate GO后实现最小Provider**
 
-使用PROJ场景化Query/Mapper XML及独立事务Executor；公共Facade在事务获取前验证tenant，`lockAndRevalidate`保持`PROPAGATION_REQUIRED`并按锁定项目顺序持锁。
+使用PROJ场景化Query/Mapper XML及独立事务Executor；公共Facade在事务获取前验证tenant，`lockAndRevalidate`严格使用`MANDATORY`并加入CUT外层写事务，按锁定项目顺序持锁。
 
 - [ ] **Step 3: 验证正常事实与真实锁**
 
@@ -497,26 +497,24 @@ SYSTEM返回多人候选，CUT按项目范围得到唯一交集并完成审批�
 
 ## Task 12：T-FCUT005-SYSTEM-01 审批候选公开合同与Provider
 
-**Files:**
-- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApi.java`
-- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactException.java`
-- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/dto/`下Query/CandidateSet/RevalidationResult
-- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiImpl.java`
-- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactTransactionExecutor.java`
-- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiContractTest.java`
-- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiMySqlTest.java`
+**Current status:** `BLOCKED_BY_DEPENDENCY`
+
+**Deferred Owner artifacts (only after explicit SYSTEM authorization and Gate):**
+- SYSTEM-owned public `CutoverApprovalRoleCandidateFactApi`、DTO、稳定异常与Provider提交
+- SYSTEM-owned versioned role-membership/user-status projection and mandatory lock implementation
+- Contract test、真实事务/锁证据及独立Provider Gate
 
 **Interfaces:**
-- Consumes: 既有Yudao SYSTEM公开角色、成员和用户状态查询能力及`F-CUT-005-candidate-owner-contract.json`；不修改Yudao源码或直读其表。
-- Produces: PMS平台扩展拥有的SYSTEM权威事实适配API，提供完整候选集、显式候选锁定重验、稳定DTO/异常及独立Provider Gate。
+- Consumes: `F-CUT-005-candidate-owner-contract.json`及未来经明确授权、独立Gate通过的SYSTEM版本化成员/用户状态锁定事实；当前`PermissionApi/RoleApi/AdminUserApi`不足以形成该事实。
+- Produces: SYSTEM物理Owner的`CutoverApprovalRoleCandidateFactApi`，提供完整候选集、显式候选锁定重验、稳定DTO/异常及独立Provider Gate；PMS平台不得自行制造成员或用户版本。
 
-- [ ] **Step 1: 先形成外部授权机器合同候选并申请Contract Gate**
+- [ ] **Step 1: 等待唯一恢复输入**
 
-锁定受信tenant、`SECOND_LINE_APPROVER/RND_APPROVER`角色组、完整候选集、候选排序、成员/用户版本水位、`inspectCandidates/lockAndRevalidate/lockExplicitCandidate`和公共异常；未GO前不写Provider。
+恢复输入固定为：SYSTEM物理Owner明确授权的公开合同与产物提交，覆盖受信tenant、`CUT_SECOND_LINE_APPROVER/CUT_RND_APPROVER`、完整候选集、roleMembershipVersion/userStatusVersion、`MANDATORY`锁定重验、稳定异常，并通过独立Contract Gate。该输入缺失时本Task保持阻断。
 
-- [ ] **Step 2: Contract Gate GO后实现最小Provider**
+- [ ] **Step 2: SYSTEM Contract Gate GO后实现最小Provider**
 
-仅调用已存在的SYSTEM公开API形成PMS事实投影；如现有公开API不能形成锁定合同，Task保持`BLOCKED_BY_DEPENDENCY`并登记唯一缺失SYSTEM产物，不得改Yudao、直表或返回fallback。
+Provider必须由获授权的SYSTEM物理Owner实现`inspectCandidates/lockAndRevalidate/lockExplicitCandidate`；当前计划不得修改Yudao、直表、通过PMS平台拼造版本或返回fallback。
 
 - [ ] **Step 3: 验证正常完整候选与显式候选重验**
 
@@ -557,7 +555,7 @@ CutoverApprovalFactApi cutoverApprovalFactApi(CutoverApprovalFactApiImpl impleme
 
 - [ ] **Step 3: 真实Spring传播测试**
 
-验证P4 submit→approval start共享事务；Owner失败时方案仍DRAFT/任务仍P4/无审批；成功时方案SUBMITTED/任务P5/审批PENDING同成同败。
+验证真实Owner成功接通时P4 submit→approval start共享事务，方案SUBMITTED、任务P5与审批PENDING在同一正常提交中形成。
 
 - [ ] **Step 4: 独立申请生产装配Gate**
 
@@ -584,7 +582,7 @@ Gate未通过前不激活Controller/Job、不运行真实浏览器、不更新Im
 
 - [ ] **Step 2: 激活通知Job**
 
-使用新的前向迁移把唯一Job从PAUSED改为NORMAL，并在同一提交加入Quartz同步；真实Spring验证发送成功/失败传播边界。
+使用新的前向迁移把唯一Job从PAUSED改为NORMAL，并在同一提交加入Quartz同步；真实Spring验证站内通知正常投递为SENT。
 
 - [ ] **Step 3: 运行真实MySQL与浏览器正向验收**
 
