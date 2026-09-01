@@ -7,7 +7,7 @@
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`CUT-04@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-004-p4-cutover-plan-authoring.md`
-> 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`
+> 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`
 > 旧实现审计：`specs/features/F-CUT-004-legacy-reuse-audit.md`
 
 ## 当前最小工作单元
@@ -23,4 +23,4 @@
 - [ ] API/Physical/Legacy Machine Contract Gate通过。
 - [ ] Feature Ready最终裁决通过。
 
-> 检查点：基线=`83cc20d7`；当前Gate=API/Physical/Legacy候选；边界裁决GO、Feature Ready NO-GO；阻塞=机器合同与旧表精确迁移待审；下一步=完成规格校验并提交独立Gate，不生成Technical Plan或实现。
+> 检查点：候选=`04b650df`独立复审NO-GO；A-E整改已补P4/P5/P6物理状态、CUT-05精确Owner合同、七路由DTO、三表JSON/不可变规则及旧表PLT前向合同。当前Gate仍为机器合同复审；不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。

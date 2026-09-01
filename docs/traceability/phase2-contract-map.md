@@ -1681,16 +1681,16 @@
 - 数据对象：CutoverPlan、CutoverSupportArrangement
 - 数据表：cut_plan_revision、cut_step、cut_cutover_support_arrangement
 - API：/cutover-tasks/{id}/plan、/cutover-tasks/{id}/plan/actions/{create-draft|download-draft|submit|revise}
-- 事件：N/A（P4通过同步CutoverApprovalStartPort创建CUT-05审批实例；CutoverApproved仅由CUT-05发布）
+- 事件：N/A（P4同步调用CutoverApprovalFactApi创建/暂停/建立替代CUT-05审批链；CutoverApproved仅由CUT-05发布）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：P4方案编制、不可变revision和与P5审批实例原子交接；审批状态由CUT-05拥有
+- 工作流/状态：P4方案编制、不可变revision和与P5审批实例原子交接；来源失效原子暂停审批并将任务P5返回P4，恢复办理创建替代revision/审批；审批状态由CUT-05拥有
 - 授权与数据范围：CutoverTaskScope；方案查询/保存/下载/提交权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接-一线工程师在割接任务中发起方案编审；THEN 页面展示"是否已有割接方案"选项，风险考察结果从上一步P3流程带入展示，业务调研录入结果+风险考察录入结果+割接项目+用户资产库等信息字段可被引用和带入；WHEN 割接-一线工程师选择"是否已有割接方案"为"是"；THEN 系统提供"上传完整方案"按钮，直接上传完整方案文件，跳过模板填写环节；AND 平台校验文件有效性、安全性、方案归属和人工确认，不强制解析或补齐在线模板字段；校验通过后形成方案版本并流转至CUT-05；WHEN 割接-一线工程师选择"是否已有割接方案"为"否"；THEN 系统展示方案模板，方案分为割接概述和执行操作两大章节；AND 割接概述含项目割接描述（带入）、计划表、割接前拓扑上传、割接后拓扑上传、设备清单（带入）、组网配置上传、割接保障人员安排表等子章节；AND 执行操作含预估风险及应对措施、割接前操作清单、执行操作清单、收尾收集清单、后业务测试表、回退方案说明、回退步骤、割接后保障等子章节；WHEN 割接-一线工程师填写割接保障人员安排表；THEN 系统展示客户/迪普一线工程师/迪普二线工程师/迪普研发四类角色，并保存每类角色的姓名、任务描述、联系电话和到位时间；WHEN 割接-一线工程师填写预估风险及应对措施；THEN 系统加载CUT-03中所有结果为"否"的风险项，保存每个风险项与应对措施的一一关联及未填写状态；WHEN 割接-一线工程师点击"下载割接初稿"按钮；THEN 系统生成并返回当前方案版本的初稿文件，记录下载人、下载时间和方案版本；WHEN 割接任务等级为D级（简易流程）；THEN 系统仅展示割接各阶段操作步骤与回退步骤填写窗口，不加载A/B/C级完整方案章节；AND 割接-一线工程师填写完毕提交后，方案按D级简易审批层级（发起人→服务经理）流转至CUT-05分级审批；WHEN 割接-一线工程师填写完毕点击"下一步"；THEN 系统将方案状态更新为"待审批"，保存提交版本并创建CUT-05分级审批实例；WHEN A/B/C级方案缺少必需章节、存在未填写应对措施的风险项、上传文件校验失败或引用的采集清单版本已失效；THEN 平台阻止提交并保持方案草稿状态，展示缺失章节、未处置风险、文件错误或失效来源，不创建CUT-05审批实例
 - Phase 3授权拒绝断言：越权按“CutoverTaskScope；方案查询/保存/下载/提交权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“P4方案编制、不可变revision和与P5审批实例原子交接；审批状态由CUT-05拥有”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan、CutoverSupportArrangement”及数据表“cut_plan_revision、cut_step、cut_cutover_support_arrangement”；事件边界为“N/A（P4通过同步CutoverApprovalStartPort创建CUT-05审批实例；CutoverApproved仅由CUT-05发布）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3业务守卫断言：按“P4方案编制、不可变revision和与P5审批实例原子交接；来源失效原子暂停审批并将任务P5返回P4，恢复办理创建替代revision/审批；审批状态由CUT-05拥有”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan、CutoverSupportArrangement”及数据表“cut_plan_revision、cut_step、cut_cutover_support_arrangement”；事件边界为“N/A（P4同步调用CutoverApprovalFactApi创建/暂停/建立替代CUT-05审批链；CutoverApproved仅由CUT-05发布）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-05

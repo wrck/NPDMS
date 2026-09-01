@@ -49,11 +49,11 @@
   "enums": {
     "taskOrigin": ["NEW_PLATFORM", "LEGACY_FORWARD"],
     "intakeSourceType": ["SELF_CREATED", "ITR", "PROJECT_EVENT", "LEGACY_FORWARD"],
-    "stageCode": ["P1", "P2", "P3", "P4"],
-    "taskStatus": ["GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "LEGACY_UNKNOWN"],
+    "stageCode": ["P1", "P2", "P3", "P4", "P5", "P6"],
+    "taskStatus": ["GRADE_CONFIRMING", "SURVEYING", "PLAN_DRAFTING", "APPROVING", "CLOSURE_IN_PROGRESS", "LEGACY_UNKNOWN"],
     "manualGrade": ["A", "B", "C", "D"],
     "assessmentStatus": ["DRAFT", "SUBMITTED", "INVALIDATED"],
-    "stageTriggerType": ["P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED", "P2_ASSESSMENT_INVALIDATED"]
+    "stageTriggerType": ["P1_ACCEPTED", "P2_ASSESSMENT_SUBMITTED", "P2_ASSESSMENT_INVALIDATED", "P4_PLAN_SUBMITTED", "P5_SOURCE_INVALIDATED", "P5_APPROVAL_REJECTED", "P5_APPROVAL_APPROVED"]
   },
   "tables": {
     "cut_task": {
@@ -147,7 +147,7 @@
         "LEGACY_FORWARD": "task_origin is LEGACY_FORWARD; source_system, source_business_no and business_event_id are null"
       },
       "originUnion": {
-        "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present; current_stage is P2, P3 or P4; task_status is not LEGACY_UNKNOWN",
+        "NEW_PLATFORM": "legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are null; all required new-platform facts are present; stage/status pair is exactly one of P2/GRADE_CONFIRMING, P3/SURVEYING, P4/PLAN_DRAFTING, P5/APPROVING or P6/CLOSURE_IN_PROGRESS",
         "LEGACY_FORWARD": "legacy_task_id, legacy_cutover_type_raw, legacy_status_value, legacy_source_version and legacy_mapping_version are present; intake_source_type is LEGACY_FORWARD; task_status is LEGACY_UNKNOWN; previous_task_id, background, cutover_type, network_mode, configuration_revision_id, configuration_code, configuration_revision_no, owner_user_id, customer_id, current_stage, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, project_context_snapshot, device_scope_watermark, customer_context_snapshot, readiness_context_snapshot, manual_grade and current_assessment_id are all null; legacy_network_mode_raw may be null; no business command is allowed"
       },
       "configurationBinding": {
@@ -164,8 +164,9 @@
         "version >= 0",
         "task_origin IN taskOrigin",
         "intake_source_type IN intakeSourceType and satisfies intakeSourceUnion",
-        "current_stage IS NULL OR current_stage IN ('P2','P3','P4')",
+        "current_stage IS NULL OR current_stage IN ('P2','P3','P4','P5','P6')",
         "task_status IN taskStatus",
+        "NEW_PLATFORM stage/status pair is exactly P2/GRADE_CONFIRMING, P3/SURVEYING, P4/PLAN_DRAFTING, P5/APPROVING or P6/CLOSURE_IN_PROGRESS",
         "manual_grade IS NULL OR manual_grade IN manualGrade",
         "NEW_PLATFORM requires configuration_revision_id > 0, nonblank configuration_code and configuration_revision_no > 0; LEGACY_FORWARD requires all three null",
         "previous_task_id IS NULL OR previous_task_id <> id",
@@ -240,7 +241,11 @@
         "sequence_no > 0 and actor_id >= 0",
         "P1_ACCEPTED requires P1 -> P2 and to_status GRADE_CONFIRMING",
         "P2_ASSESSMENT_SUBMITTED requires P2 -> P3/SURVEYING for A/B/C or P2 -> P4/PLAN_DRAFTING for D",
-        "P2_ASSESSMENT_INVALIDATED requires P3 or P4 -> P2 and to_status GRADE_CONFIRMING"
+        "P2_ASSESSMENT_INVALIDATED requires P3 or P4 -> P2 and to_status GRADE_CONFIRMING",
+        "P4_PLAN_SUBMITTED is written only by F-CUT-004 after the immutable plan revision and F-CUT-005 approval instance are both created; requires P4/PLAN_DRAFTING -> P5/APPROVING",
+        "P5_SOURCE_INVALIDATED is written only by F-CUT-004 when the submitted plan is invalidated and F-CUT-005 approval is paused in the same transaction; requires P5/APPROVING -> P4/PLAN_DRAFTING",
+        "P5_APPROVAL_REJECTED is written only by the F-CUT-005 final reject command; requires P5/APPROVING -> P4/PLAN_DRAFTING",
+        "P5_APPROVAL_APPROVED is written only by the F-CUT-005 all-nodes-approved command; requires P5/APPROVING -> P6/CLOSURE_IN_PROGRESS"
       ],
       "immutability": "insert-only; no update, soft delete or synthesized history",
       "legacyRule": "never synthesize P1-P6 history from pms_cut_task.status or timestamps"
@@ -308,6 +313,18 @@
       "invalidationCommandBoundary": "a later CUT continuation command that proves a stored submitted context stale invokes the CUT Owner invalidation transition in its write transaction: invalidate the old current row, insert the next-version DRAFT, reset cut_task manual_grade to null and stage/status to P2/GRADE_CONFIRMING, repoint current_assessment_id, increment task version and append P2_ASSESSMENT_INVALIDATED history; no GET or external Provider performs this write",
       "legacyRule": "pms_cut_risk and pms_cut_task.risk_level never create questionnaire answers, an assessment revision or a manual grade"
     }
+  },
+  "downstreamStageForwardContract": {
+    "ownerTable": "cut_task and cut_task_stage_history remain CutoverTask aggregate facts",
+    "writeOwners": {
+      "P4_TO_P5": "F-CUT-004 submit command",
+      "P5_TO_P4_SOURCE_INVALIDATED": "F-CUT-004 source invalidation command",
+      "P5_TO_P4": "F-CUT-005 final reject command",
+      "P5_TO_P6": "F-CUT-005 all-nodes-approved command"
+    },
+    "migration": "a future forward Flyway must, before F-CUT-004 production assembly, drop and recreate V146/V149 stage/status/origin/history checks with the exact extended sets; it must not update existing rows or modify V146/V149",
+    "preflight": "every existing NEW_PLATFORM row must already satisfy one of the original P2/P3/P4 pairs and every LEGACY_FORWARD row must keep null stage with LEGACY_UNKNOWN; otherwise fail before any constraint DDL",
+    "sourceInvalidationDuringP5": "F-CUT-004 atomically invalidates the plan, pauses the F-CUT-005 approval and moves cut_task P5/APPROVING -> P4/PLAN_DRAFTING with P5_SOURCE_INVALIDATED history; recovery creates a replacement revision and approval, never restores old facts"
   },
   "crossTableInvariants": [
     "cut_task.current_assessment_id is null before the first draft and otherwise points to the same tenant/task current_marker=1 assessment; invalidation atomically replaces the marker before commit so no committed state has a dangling current_assessment_id",

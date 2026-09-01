@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "contractId": "CUTOVER_APPROVAL_OWNER_V1",
+  "status": "REVIEW_REQUIRED",
+  "ownerFeatureId": "F-CUT-005",
+  "consumerFeatureIds": ["F-CUT-004", "F-CUT-006"],
+  "requirementSlices": ["CUT-04@V1=SUPPORT", "CUT-05@V1=OWNER"],
+  "javaPackage": "cn.iocoder.yudao.module.pms.cutover.api.approval",
+  "api": "CutoverApprovalFactApi",
+  "trustedTenant": "every query/command carries positive tenantId and must equal TenantContextHolder.getRequiredTenantId before platform idempotency, locks or business reads; mismatch is TENANT_CONTEXT_MISMATCH",
+  "types": {
+    "CutoverApprovalStartCommand": {
+      "exactFields": {
+        "tenantId": "positive Long",
+        "taskId": "positive Long",
+        "expectedTaskVersion": "non-negative Integer",
+        "planRevisionId": "positive Long",
+        "planRevisionNo": "positive Integer",
+        "grade": "A|B|C|D",
+        "assessmentId": "positive Long",
+        "assessmentVersion": "positive Integer",
+        "checklistId": "positive Long|null; required for A/B/C and null for D",
+        "checklistVersion": "positive Integer|null; required for A/B/C and null for D",
+        "sourceSnapshotVersion": "positive Integer",
+        "previousApprovalInstanceId": "positive Long|null; allowed only when the previous fact is REJECTED or PAUSED_SOURCE_INVALIDATED",
+        "idempotencyKey": "non-blank String 1..128",
+        "correlationId": "non-blank String 1..128"
+      }
+    },
+    "CutoverApprovalFactQuery": {
+      "exactFields": {
+        "tenantId": "positive Long",
+        "taskId": "positive Long",
+        "planRevisionId": "positive Long"
+      }
+    },
+    "ExpectedCutoverApprovalFact": {
+      "exactFields": {
+        "approvalInstanceId": "positive Long",
+        "approvalVersion": "non-negative Integer",
+        "taskId": "positive Long",
+        "planRevisionId": "positive Long",
+        "planRevisionNo": "positive Integer",
+        "status": "ApprovalStatus",
+        "sourceSnapshotVersion": "positive Integer",
+        "replacementApprovalInstanceId": "positive Long|null",
+        "decisionAt": "epoch milliseconds|null",
+        "rejectionReason": "non-blank String 1..1000|null"
+      }
+    },
+    "CutoverApprovalRevalidationQuery": {
+      "exactFields": {
+        "tenantId": "positive Long",
+        "expected": "ExpectedCutoverApprovalFact"
+      }
+    },
+    "CutoverApprovalPauseCommand": {
+      "exactFields": {
+        "tenantId": "positive Long",
+        "approvalInstanceId": "positive Long",
+        "expectedApprovalVersion": "non-negative Integer",
+        "planRevisionId": "positive Long",
+        "expectedSourceSnapshotVersion": "positive Integer",
+        "reasonCode": "SOURCE_FACT_INVALIDATED",
+        "idempotencyKey": "non-blank String 1..128",
+        "correlationId": "non-blank String 1..128"
+      }
+    },
+    "CutoverApprovalFact": {
+      "exactFields": {
+        "approvalInstanceId": "positive Long",
+        "approvalVersion": "non-negative Integer",
+        "taskId": "positive Long",
+        "planRevisionId": "positive Long",
+        "planRevisionNo": "positive Integer",
+        "status": "ApprovalStatus",
+        "sourceSnapshotVersion": "positive Integer",
+        "replacementApprovalInstanceId": "positive Long|null",
+        "decisionAt": "epoch milliseconds|null",
+        "rejectionReason": "non-blank String 1..1000|null"
+      }
+    },
+    "CutoverApprovalStartResult": {
+      "exactFields": {
+        "outcome": "STARTED|REPLAYED",
+        "fact": "CutoverApprovalFact"
+      }
+    },
+    "CutoverApprovalInspectResult": {
+      "exactFields": {
+        "status": "FOUND|NOT_FOUND",
+        "fact": "CutoverApprovalFact|null; required for FOUND and null for NOT_FOUND"
+      }
+    },
+    "CutoverApprovalRevalidationResult": {
+      "exactFields": {
+        "status": "VALID|STALE",
+        "currentFact": "CutoverApprovalFact"
+      }
+    },
+    "CutoverApprovalCommandResult": {
+      "exactFields": {
+        "outcome": "APPLIED|REPLAYED",
+        "fact": "CutoverApprovalFact"
+      }
+    }
+  },
+  "enums": {
+    "ApprovalStatus": ["PENDING", "PAUSED_SOURCE_INVALIDATED", "APPROVED", "REJECTED"],
+    "InspectStatus": ["FOUND", "NOT_FOUND"],
+    "RevalidationStatus": ["VALID", "STALE"],
+    "StartOutcome": ["STARTED", "REPLAYED"],
+    "CommandOutcome": ["APPLIED", "REPLAYED"]
+  },
+  "operations": {
+    "start": {
+      "signature": "CutoverApprovalStartResult start(CutoverApprovalStartCommand command)",
+      "transaction": "MANDATORY; joins F-CUT-004 submission; creates one PENDING approval and returns its fact",
+      "resultUnion": {
+        "STARTED": "fact required",
+        "REPLAYED": "same original fact required"
+      },
+      "idempotency": "tenant + CUTOVER_APPROVAL_START + taskId + planRevisionId + idempotencyKey; same key and canonical command returns REPLAYED, different canonical command is IDEMPOTENCY_CONFLICT",
+      "previousRule": "null for initial submission; a replacement may reference exactly one same-task prior REJECTED or PAUSED_SOURCE_INVALIDATED instance. The new PENDING instance and prior replacementApprovalInstanceId are written atomically; the prior status and history are not overwritten"
+    },
+    "inspect": {
+      "signature": "CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query)",
+      "resultUnion": {
+        "FOUND": "fact required",
+        "NOT_FOUND": "fact must be null"
+      }
+    },
+    "lockAndRevalidate": {
+      "signature": "CutoverApprovalRevalidationResult lockAndRevalidate(CutoverApprovalRevalidationQuery query)",
+      "transaction": "MANDATORY; locks the approval instance and compares every ExpectedCutoverApprovalFact field",
+      "resultUnion": {
+        "VALID": "currentFact exactly equals expected",
+        "STALE": "currentFact required and differs from expected"
+      }
+    },
+    "pauseForSourceInvalidation": {
+      "signature": "CutoverApprovalCommandResult pauseForSourceInvalidation(CutoverApprovalPauseCommand command)",
+      "transaction": "MANDATORY; PENDING -> PAUSED_SOURCE_INVALIDATED only while F-CUT-004 atomically invalidates the same plan revision and moves the task P5/APPROVING -> P4/PLAN_DRAFTING",
+      "idempotency": "same key/payload returns original paused fact; different payload conflicts"
+    }
+  },
+  "taskTransitions": {
+    "start": "F-CUT-004 owns P4/PLAN_DRAFTING -> P5/APPROVING after start returns STARTED or REPLAYED in the same transaction",
+    "reject": "F-CUT-005 final reject owns P5/APPROVING -> P4/PLAN_DRAFTING and appends P5_APPROVAL_REJECTED history",
+    "approve": "F-CUT-005 all-nodes-approved owns P5/APPROVING -> P6/CLOSURE_IN_PROGRESS and appends P5_APPROVAL_APPROVED history",
+    "pause": "F-CUT-005 changes only its approval fact; F-CUT-004 owns the same-transaction task P5 -> P4 change and P5_SOURCE_INVALIDATED history; PAUSED_SOURCE_INVALIDATED is terminal for that invalidated plan revision"
+  },
+  "sourceInvalidationRecovery": "F-CUT-004 creates a replacement DRAFT from the invalidated revision and calls start with previousApprovalInstanceId after the replacement is submitted; start atomically links replacementApprovalInstanceId on the paused fact. The invalidated revision and paused approval never return to SUBMITTED/PENDING and are never overwritten",
+  "errors": ["INVALID_REQUEST", "TENANT_CONTEXT_MISMATCH", "NOT_FOUND", "STATE_CONFLICT", "VERSION_CONFLICT", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "OWNER_DATA_CORRUPTED", "PROVIDER_UNAVAILABLE"],
+  "productionBoundary": "contract only; F-CUT-004 may use src/test controlled implementation. No production Provider, Fake, fallback, approval node, todo or notification is authorized by this Gate"
+}

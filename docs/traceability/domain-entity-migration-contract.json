@@ -2323,7 +2323,7 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_plan",
           "disposition": "CURRENT_FORWARD",
-          "transform": "map only qualified legacy task/code/name and provable pre-check/operation/verification/rollback/level/remark/audit content into read-only LEGACY_FORWARD revisions; never infer edit mode, assessment, checklist, device, configuration, file, risk mitigation, support arrangement or CUT-05 approval facts; keep unqualified rows with migration issues",
+          "transform": "through PLT migration evidence, resolve the qualified same-tenant legacy task mapping and create one read-only LEGACY_FORWARD revision; map pre_check/procedure/verification/rollback to PRE_OPERATION/OPERATION/POST_BUSINESS_TEST/ROLLBACK step 1, retain raw status/version/mapping identity, and never infer edit mode, assessment, checklist, device, configuration, template, file, risk mitigation, support arrangement, task stage or CUT-05 approval facts; keep unqualified rows with stable issues/retained classification",
           "mappingStatus": "FEATURE_MAPPING_DEFINED",
           "gate": "F-CUT-004_FEATURE_READY_REVIEW",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"

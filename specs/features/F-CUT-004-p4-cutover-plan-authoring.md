@@ -7,7 +7,7 @@
 > Owner Context：`CUT（变更切换与稳定治理）`
 > 前置Feature：`F-CUT-001`、`F-CUT-002`；A/B/C另依赖`F-CUT-003`
 > 后置Feature：`F-CUT-005（CUT-05分级审批）`
-> 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`
+> 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-004-legacy-reuse-audit.md`
 > 边界裁决：独立Feature `GO`；Feature Ready `NO-GO`（锁定基线`83cc20d7`）
 
@@ -26,7 +26,7 @@
 - 草稿保存、初稿生成与下载审计、完整方案文件事实冻结；
 - 只追加方案revision、步骤、风险措施、保障人员及联系人变更审计；
 - 幂等提交、并发单胜、来源失效、审批驳回派生新revision及批准后保障人员变更规则；
-- CUT-05审批创建与审批结果读取/回执的双向内部合同；
+- CUT-05审批创建、读取、锁定重验、来源失效暂停与替代审批恢复链的内部Owner合同；
 - P4查询、保存、下载、提交权限和任务范围。
 
 ### 2.2 不包含
@@ -43,7 +43,7 @@
 
 - 仅当前任务处于`PLAN_DRAFTING`且操作人为当前任务负责人并具备项目`ACTION_EDIT`时可创建或修改草稿。
 - A/B/C必须引用当前有效`SUBMITTED`清单；D级必须没有清单引用。所有等级均引用当前有效最终评估。
-- 首个revision冻结任务/评估/清单、项目/设备、任务创建时配置revision、方案模板章节及输入快照。来源变化不得静默刷新草稿或已提交内容。
+- 首个revision冻结任务/评估/清单、项目/设备、任务创建时配置revision、方案模板章节及输入快照；D级仅清单身份为空，配置与适用的操作/回退模板章节仍须冻结。来源变化不得静默刷新草稿或已提交内容。
 - CUT-03未通过风险项必须全部进入风险措施明细；每项提交前必须有非空措施。
 
 ### BR-FCUT004-002 编辑方式与内容
@@ -56,13 +56,13 @@
 ### BR-FCUT004-003 revision与审批交接
 
 - 同一任务revision编号从1单调递增；`DRAFT/SUBMITTED/INVALIDATED`是P4本地生命周期。提交后正文、步骤、风险措施和职责不可覆盖。
-- 提交在一个外层CUT事务内锁定任务、来源、当前revision和项目范围，将revision置`SUBMITTED`并调用`CutoverApprovalStartPort.start`。只有审批实例创建成功并返回稳定`approvalInstanceId/approvalVersion`后，任务才进入P5；否则全部回滚。
+- 提交在一个外层CUT事务内锁定任务、来源、当前revision和项目范围，将revision置`SUBMITTED`并调用`CutoverApprovalFactApi.start`。只有审批实例创建成功并返回稳定`approvalInstanceId/approvalVersion`后，任务才进入P5；否则全部回滚。
 - 同一`Idempotency-Key + taskId + revisionNo + normalizedPayload`重放返回原结果；异载荷冲突。`If-Match`陈旧或并发提交仅一方成功。
-- `SUBMITTED`来源失效时追加失效事实并将revision置`INVALIDATED`；不得把审批`REJECTED`当作失效。
+- `SUBMITTED`来源失效时追加失效人、时间和原因，将revision置`INVALIDATED`，并在同一事务调用CUT-05将同一审批实例`PENDING -> PAUSED_SOURCE_INVALIDATED`，同时由F-CUT-004把任务`P5/APPROVING -> P4/PLAN_DRAFTING`并追加`P5_SOURCE_INVALIDATED`历史。该revision和审批不恢复原状态；恢复办理必须派生新方案revision并在提交时创建引用旧实例的替代审批；不得把审批`REJECTED`当作失效。
 
 ### BR-FCUT004-004 审批结果后的P4规则
 
-- CUT-05通过只产生审批事实和`CutoverApproved`，不得改写方案正文；CUT读取/消费明确的审批结果合同投影审批状态。
+- CUT-05通过只产生审批事实和`CutoverApproved`，不得改写方案正文；CUT读取并锁定重验明确的审批事实。CUT-05最终驳回拥有`P5/APPROVING -> P4/PLAN_DRAFTING`，全部通过拥有`P5/APPROVING -> P6/CLOSURE_IN_PROGRESS`；来源失效的P5→P4由F-CUT-004在暂停审批的同一事务拥有。
 - CUT-05驳回后，工程师以原提交revision为`source_plan_revision_id`创建新DRAFT，原revision与审批意见保持不可变。
 - 批准后仅姓名、联系电话、到位时间变更可在原批准revision的保障安排投影上更新并追加前后审计，不重审。
 - 角色或任务职责变化必须创建引用原批准revision的新DRAFT，并通过同一提交合同重新进入P5。
@@ -89,14 +89,15 @@
 
 内部端口：
 
-- `CutoverApprovalStartPort.start(command)`：接收受信租户、任务、不可变方案revision、最终等级、评估/清单版本、来源快照、幂等键和关联ID；成功返回审批实例身份。生产Provider归F-CUT-005。
-- `CutoverApprovalResultPort.inspect/lockAndRevalidate(query)`：返回`PENDING/APPROVED/REJECTED/TERMINATED`审批事实及版本；版本变化为`STALE`，不可用失败关闭。审批正文、节点与待办不由F-CUT-004保存。
+- `CutoverApprovalFactApi.start/inspect/lockAndRevalidate/pauseForSourceInvalidation`的精确Java签名、DTO、版本、幂等与结果联合见`F-CUT-005-approval-owner-contract.json`。审批状态封闭为`PENDING/PAUSED_SOURCE_INVALIDATED/APPROVED/REJECTED`四态；来源失效后的恢复通过新方案revision与替代审批链完成。
+- `src/test`可实现该合同的确定性受控替身，模拟P4提交、P5驳回/批准、来源失效暂停及替代审批链的CUT规则；生产Provider、节点、待办和通知仍归F-CUT-005。
 - `src/test`可提供确定性受控替身完成P4正向提交和驳回/批准后的CUT规则测试；不得进入生产装配或作为真实浏览器/Implementation Done证据。
 
 ## 5. 数据与迁移
 
-- 新平台仅写`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`及保障人员联系人变更审计表；精确合同见physical JSON。
-- `pms_cut_plan`保持原表、源码、API、页面和权限不变。合格旧行只可经PLT迁移证据形成只读`LEGACY_FORWARD` revision；不补造编辑方式、评估/清单/设备/模板/文件/风险/保障人员或审批事实。
+- 新平台仅写`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`三张方案业务表；联系人类变更复用平台操作审计保存前后快照，不新增第四张CUT业务表。
+- `pms_cut_plan`保持原表、源码、API、页面和权限不变。受控Release导入器先把原始行写入PLT不可变来源记录；CUT迁移Job只领取`STAGED_READY`批次。合格旧行通过`pms_cut_task`既有PLT映射解析同租户目标任务，形成只读`LEGACY_FORWARD` revision和`pre_check/procedure/verification/rollback -> PRE_OPERATION/OPERATION/POST_BUSINESS_TEST/ROLLBACK`步骤；旧`status/approved_* /baseline_version`只保留为原始迁移证据。
+- 根身份、原始状态、来源版本、字段资格、目标冲突、逐行issue/retained及同一外层事务内目标写+PLT分类+批次完成规则见physical contract；正常CUT生产Bean不连接或直读遗留表。
 - `CutoverSupportArrangement`为`NEW_ONLY`；旧表没有可证明的角色、职责、电话和到位时间来源。
 - Flyway版本在实际串行合入时确定；Feature Ready不预约DDL。
 

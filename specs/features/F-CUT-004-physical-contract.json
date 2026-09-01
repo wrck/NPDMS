@@ -1,72 +1,188 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "featureId": "F-CUT-004",
   "status": "REVIEW_REQUIRED",
   "requirementSlices": ["CUT-04@V1=FULL"],
   "owner": "CUT",
   "aggregate": "CutoverPlan",
   "lifecycles": {
-    "planRevision": ["DRAFT","SUBMITTED","INVALIDATED"],
-    "approvalProjectionOwner": "F-CUT-005; PENDING/APPROVED/REJECTED/TERMINATED are not plan revision states"
+    "planRevision": ["DRAFT", "SUBMITTED", "INVALIDATED"],
+    "allowedTransitions": [
+      "DRAFT -> SUBMITTED by F-CUT-004 submit in the same transaction as F-CUT-005 approval start",
+      "SUBMITTED -> INVALIDATED only when a frozen source fact becomes invalid and the linked approval is paused in the same transaction"
+    ],
+    "bodyImmutability": "SUBMITTED and INVALIDATED revision body, steps, risk facts, file facts, source snapshot and duties are immutable; INVALIDATED only appends invalidated_by, invalidated_at and invalidation_reason_code",
+    "approvalProjectionOwner": "F-CUT-005; PENDING/PAUSED_SOURCE_INVALIDATED/APPROVED/REJECTED are approval facts, not plan revision states",
+    "legacyProjection": "LEGACY_READ_ONLY is derived from origin_code=LEGACY_FORWARD and is not persisted as a new-platform lifecycle state"
+  },
+  "jsonContracts": {
+    "source_snapshot": "PlanSourceSnapshot from F-CUT-004-api-contract.json; NEW_PLATFORM A/B/C/D all freeze task, assessment, project, device, configuration revision and template sections; only checklist identity is null for D",
+    "content_snapshot": "exact PlanContentUnion from F-CUT-004-api-contract.json; ONLINE_TEMPLATE_STANDARD or ONLINE_TEMPLATE_SIMPLE_D only",
+    "file_fact_version": "exact FileFactVersion from F-CUT-004-api-contract.json",
+    "legacy_source_snapshot": {
+      "exactKeys": ["sourceTable", "sourceId", "sourceTenantId", "sourceTaskId", "sourceVersion", "sourceStatusRaw", "mappingVersion"],
+      "fields": {
+        "sourceTable": "literal pms_cut_plan",
+        "sourceId": "positive Long",
+        "sourceTenantId": "positive Long",
+        "sourceTaskId": "positive Long",
+        "sourceVersion": "non-negative Integer",
+        "sourceStatusRaw": "Integer 0..4",
+        "mappingVersion": "literal FCUT004_LEGACY_V1"
+      }
+    }
   },
   "tables": [
     {
       "name": "cut_plan_revision",
       "strategy": "CURRENT_FORWARD_PLUS_NEW_PLATFORM",
-      "requiredFields": ["id","tenant_id","cutover_task_id","revision_no","origin_code","edit_mode_code","grade_code","assessment_id","assessment_version","source_snapshot","status_code","current_marker","version","creator","create_time","updater","update_time","deleted"],
-      "conditionalFields": {
-        "ABC": ["checklist_id","checklist_version","configuration_revision_id","template_section_snapshot"],
-        "D": ["checklist_id IS NULL","checklist_version IS NULL"],
-        "FULL_FILE_UPLOAD": ["file_artifact_id","file_version_no","file_reference_key","file_fact_version","file_scope_version","file_sha256","ownership_confirmed=true"],
-        "ONLINE_TEMPLATE": ["content_snapshot"],
-        "SUBMITTED": ["submitted_by","submitted_at","approval_instance_id","approval_version"],
-        "DERIVED_REVISION": ["source_plan_revision_id","revision_reason_code"]
+      "columns": {
+        "id": "BIGINT NOT NULL",
+        "tenant_id": "BIGINT NOT NULL",
+        "cutover_task_id": "BIGINT NOT NULL",
+        "revision_no": "INT NOT NULL CHECK > 0",
+        "origin_code": "VARCHAR(32) NOT NULL CHECK IN (NEW_PLATFORM,LEGACY_FORWARD)",
+        "edit_mode_code": "VARCHAR(32) NULL",
+        "grade_code": "VARCHAR(8) NULL",
+        "assessment_id": "BIGINT NULL",
+        "assessment_version": "INT NULL",
+        "checklist_id": "BIGINT NULL",
+        "checklist_version": "INT NULL",
+        "configuration_revision_id": "BIGINT NULL",
+        "configuration_code": "VARCHAR(64) NULL",
+        "configuration_revision_no": "INT NULL",
+        "template_section_snapshot": "JSON NULL",
+        "source_snapshot": "JSON NOT NULL",
+        "content_snapshot": "JSON NULL",
+        "file_artifact_id": "BIGINT NULL",
+        "file_version_no": "INT NULL",
+        "file_reference_key": "VARCHAR(128) NULL",
+        "file_fact_version": "JSON NULL",
+        "file_scope_version": "BIGINT NULL",
+        "file_sha256": "CHAR(64) NULL",
+        "ownership_confirmed": "BIT(1) NULL",
+        "status_code": "VARCHAR(32) NULL",
+        "current_marker": "TINYINT NULL",
+        "submitted_by": "BIGINT NULL",
+        "submitted_at": "DATETIME(3) NULL",
+        "approval_instance_id": "BIGINT NULL",
+        "approval_version": "INT NULL",
+        "source_plan_revision_id": "BIGINT NULL",
+        "revision_reason_code": "VARCHAR(32) NULL",
+        "invalidated_by": "BIGINT NULL",
+        "invalidated_at": "DATETIME(3) NULL",
+        "invalidation_reason_code": "VARCHAR(64) NULL",
+        "legacy_plan_id": "BIGINT NULL",
+        "legacy_status_raw": "TINYINT NULL",
+        "legacy_source_version": "INT NULL",
+        "legacy_mapping_version": "VARCHAR(64) NULL",
+        "version": "INT NOT NULL",
+        "creator/create_time/updater/update_time/deleted": "Yudao audit columns"
       },
-      "uniqueKeys": [["tenant_id","cutover_task_id","revision_no"],["tenant_id","cutover_task_id","current_marker"]],
-      "appendOnlyAfterSubmit": true,
-      "originCodes": ["NEW_PLATFORM","LEGACY_FORWARD"]
+      "uniqueKeys": [
+        ["tenant_id", "cutover_task_id", "revision_no"],
+        ["tenant_id", "cutover_task_id", "current_marker"],
+        ["tenant_id", "legacy_plan_id"]
+      ],
+      "conditionalContracts": {
+        "NEW_PLATFORM_COMMON": "edit_mode_code, grade_code, assessment_id/version, configuration_revision_id/code/no, template_section_snapshot and exact PlanSourceSnapshot are non-null; legacy_* are null",
+        "NEW_PLATFORM_ABC": "checklist_id/version are non-null and source snapshot contains all frozen template sections",
+        "NEW_PLATFORM_D": "checklist_id/version are null; configuration and D-applicable OPERATION/ROLLBACK template sections remain frozen",
+        "FULL_FILE_UPLOAD": "grade is A/B/C; file identity/version/reference/fact/scope/hash are non-null, ownership_confirmed=1 and content_snapshot is null",
+        "ONLINE_TEMPLATE_STANDARD": "content_snapshot is exact StandardPlanContent, file root columns are null and grade is A/B/C",
+        "ONLINE_TEMPLATE_SIMPLE_D": "content_snapshot is exact SimplePlanContent, file root columns are null and grade is D",
+        "DRAFT": "current_marker=1; submit, approval and invalidation fields are null",
+        "SUBMITTED": "submitted and approval identity/version are non-null; invalidation fields are null; current_marker=1 until invalidated/replaced",
+        "INVALIDATED": "submitted, approval and invalidation fields are non-null; current_marker is null",
+        "DERIVED_REVISION": "source_plan_revision_id and revision_reason_code are both non-null; initial revision has both null",
+        "LEGACY_FORWARD": "edit mode, grade, assessment, checklist, configuration, template, content, file, lifecycle, approval, derivation and invalidation fields are null; legacy identity/raw status/source version/mapping version and exact legacy source snapshot are non-null; current_marker is null"
+      }
     },
     {
       "name": "cut_step",
       "strategy": "CURRENT_FORWARD_PLUS_NEW_PLATFORM",
-      "requiredFields": ["id","tenant_id","plan_revision_id","section_code","step_no","content","version","creator","create_time","updater","update_time","deleted"],
-      "sectionCodes": ["PRE_OPERATION","OPERATION","CLOSING_COLLECTION","POST_BUSINESS_TEST","ROLLBACK","POST_CUTOVER_SUPPORT"],
-      "uniqueKeys": [["tenant_id","plan_revision_id","section_code","step_no"]],
-      "forbidden": ["executionStatus","startedAt","completedAt","runtimeAssignee"]
+      "requiredFields": ["id", "tenant_id", "plan_revision_id", "section_code", "step_no", "content", "version", "creator", "create_time", "updater", "update_time", "deleted"],
+      "sectionCodes": ["PRE_OPERATION", "OPERATION", "CLOSING_COLLECTION", "POST_BUSINESS_TEST", "ROLLBACK", "POST_CUTOVER_SUPPORT"],
+      "uniqueKeys": [["tenant_id", "plan_revision_id", "section_code", "step_no"]],
+      "newPlatformRule": "exact PlanStep projection; D permits only OPERATION and ROLLBACK",
+      "legacyRule": "one non-blank legacy text field becomes at most one immutable step with step_no=1 according to legacyMigration.fieldMappings",
+      "forbidden": ["executionStatus", "startedAt", "completedAt", "runtimeAssignee"]
     },
     {
       "name": "cut_cutover_support_arrangement",
       "strategy": "NEW_ONLY",
-      "requiredFields": ["id","tenant_id","plan_revision_id","role_code","person_name","duty_description","phone","arrival_time","version","creator","create_time","updater","update_time","deleted"],
-      "roleCodes": ["CUSTOMER","DP_FIRST_LINE","DP_SECOND_LINE","DP_RND"],
-      "uniqueKeys": [["tenant_id","plan_revision_id","role_code"]],
-      "immutableAfterSubmitExcept": ["person_name","phone","arrival_time"],
+      "requiredFields": ["id", "tenant_id", "plan_revision_id", "role_code", "person_name", "duty_description", "phone", "arrival_time", "version", "creator", "create_time", "updater", "update_time", "deleted"],
+      "roleCodes": ["CUSTOMER", "DP_FIRST_LINE", "DP_SECOND_LINE", "DP_RND"],
+      "uniqueKeys": [["tenant_id", "plan_revision_id", "role_code"]],
+      "standardPlanRule": "exactly one row per role; simple D and full-file upload create no rows",
+      "immutableAfterSubmitExcept": ["person_name", "phone", "arrival_time"],
       "dutyChange": "must create a new plan revision"
     }
   ],
+  "taskStagePhysicalDependency": {
+    "ownerContract": "specs/features/F-CUT-002-physical-contract.json downstreamStageForwardContract",
+    "requiredPairs": ["P4/PLAN_DRAFTING", "P5/APPROVING", "P6/CLOSURE_IN_PROGRESS"],
+    "requiredHistoryTriggers": ["P4_PLAN_SUBMITTED", "P5_SOURCE_INVALIDATED", "P5_APPROVAL_REJECTED", "P5_APPROVAL_APPROVED"],
+    "migrationRule": "a future serial Flyway must preflight existing cut_task and cut_task_stage_history values, then replace V146/V149 CHECK constraints; never edit executed migrations or rewrite history"
+  },
   "additionalFacts": {
-    "riskMitigations": "stored in plan content snapshot as exact checklist item result identity + risk fact snapshot + mitigation; every current failed risk item exactly once",
-    "supportArrangementAudit": "PlatformCommandExecution/operation audit stores before/after snapshots for personName, phone and arrivalTime; no fourth CUT business table",
-    "downloadAudit": "platform operation audit plus generated FileArtifact reference records actor, time and plan revision",
-    "approval": "approval instance and node tables are owned by F-CUT-005 and never written by F-CUT-004 except through public ports"
+    "riskMitigations": "exact RiskMitigation array inside StandardPlanContent; every current failed CUT-03 risk exactly once",
+    "supportArrangementAudit": "PlatformCommandExecution operation audit stores before/after personName, phone and arrivalTime plus actor, reason, correlationId and time; no fourth CUT business table",
+    "downloadAudit": "platform operation audit plus generated PLT FileArtifact fact records actor, time and plan revision",
+    "approval": "approval instance, nodes, opinions, todo and notification are F-CUT-005 facts and are accessed only through F-CUT-005-approval-owner-contract.json"
   },
   "transactionAndLocks": [
+    "validate trusted tenant and functional permission before platform idempotency",
     "ProjectScopeApi.lockAndRevalidate ACTION_EDIT",
-    "lock CutoverTask",
-    "lock current submitted assessment",
-    "for ABC lock current submitted checklist; for D assert no checklist is required",
-    "lock current plan revision",
-    "on submit freeze revision then call mandatory CutoverApprovalStartPort in the same transaction",
-    "store approval instance identity and transition task PLAN_DRAFTING -> APPROVING only after successful start result"
+    "lock CutoverTask and validate exact task version plus P4/PLAN_DRAFTING",
+    "lock current submitted assessment; for A/B/C lock current submitted checklist; for D assert checklist identity is null",
+    "lock current plan revision and revalidate frozen project, device, configuration, template and PLT file facts",
+    "on submit freeze revision, call mandatory F-CUT-005 start and transition task P4 -> P5 in one outer CUT transaction",
+    "on source invalidation transition SUBMITTED -> INVALIDATED, call F-CUT-005 pause and move task P5/APPROVING -> P4/PLAN_DRAFTING with P5_SOURCE_INVALIDATED history in one transaction; recovery creates a replacement plan revision and approval rather than restoring old facts"
   ],
   "legacyMigration": {
     "source": "pms_cut_plan",
+    "sourceColumns": ["id", "task_id", "code", "name", "pre_check", "procedure", "verification", "rollback", "level", "status", "approved_by", "approved_time", "approval_opinion", "baseline_version", "remark", "version", "creator", "create_time", "updater", "update_time", "deleted", "tenant_id"],
     "disposition": "PRESERVE_LEGACY_CURRENT_FORWARD_FIELD_LEVEL",
-    "qualifiedFields": ["task_id","code","name","pre_check","procedure","verification","rollback","level","remark","creator","create_time","updater","update_time"],
-    "forbiddenInference": ["edit_mode","assessment","checklist","device","configuration","fileFact","riskMitigation","supportArrangement","approvalInstance","approvalStatus"],
-    "legacyApprovalFields": ["status","approved_by","approved_time","approval_opinion","baseline_version"],
-    "legacyApprovalDisposition": "migration evidence only; never mapped to CUT-05 facts",
-    "unqualifiedRows": "retain source and append PLT migration issue; no delete, dual write or default fabrication"
+    "qualificationOrder": [
+      "source row deleted=0 and tenant/id/task_id are positive",
+      "PLT external mapping resolves pms_cut_plan.task_id through the already-qualified pms_cut_task source to exactly one same-tenant cut_task origin LEGACY_FORWARD",
+      "trimmed code length 1..64 and name length 1..128",
+      "level after trim+uppercase is one of A/B/C/D",
+      "status is retained only as raw Integer 0..4 and never interpreted as new lifecycle or approval",
+      "at least one of pre_check/procedure/verification/rollback is non-blank",
+      "version and creator/create_time/updater/update_time are present and valid"
+    ],
+    "rootMappings": {
+      "cutover_task_id": "resolved target cut_task id from PLT mapping, never legacy task_id directly",
+      "revision_no": "1 within the LEGACY_FORWARD task chain; conflict is TARGET_IDENTITY_CONFLICT",
+      "origin_code": "LEGACY_FORWARD",
+      "source_snapshot": "exact legacy_source_snapshot",
+      "legacy_plan_id": "pms_cut_plan.id",
+      "legacy_status_raw": "pms_cut_plan.status",
+      "legacy_source_version": "pms_cut_plan.version",
+      "legacy_mapping_version": "FCUT004_LEGACY_V1",
+      "audit": "original creator/create_time/updater/update_time; no current actor fabrication"
+    },
+    "fieldMappings": {
+      "pre_check": "trimmed non-blank -> cut_step PRE_OPERATION/1",
+      "procedure": "trimmed non-blank -> cut_step OPERATION/1",
+      "verification": "trimmed non-blank -> cut_step POST_BUSINESS_TEST/1",
+      "rollback": "trimmed non-blank -> cut_step ROLLBACK/1",
+      "code/name/level/remark": "stored only in the immutable legacy source snapshot/read projection and never used to infer new lifecycle"
+    },
+    "legacyApprovalFields": ["status", "approved_by", "approved_time", "approval_opinion", "baseline_version"],
+    "legacyApprovalDisposition": "migration evidence only; never mapped to F-CUT-005 approval, task stage, plan lifecycle or approved fact",
+    "platformBatchProtocol": {
+      "intake": "a controlled release importer appends immutable raw source records to PlatformMigrationEvidenceApi and marks the batch STAGED_READY; normal CUT production beans never read legacy tables",
+      "claim": "migration job claims one STAGED_READY batch in an outer transaction and receives RECONCILING batch version",
+      "success": "target revision/steps, external mapping or retained classification, issues and completeReconciliation commit atomically after unique-source counts reconcile",
+      "temporaryFailure": "Provider or infrastructure failure rolls the entire outer transaction back to STAGED_READY for same-batch retry",
+      "rowFailure": "invalid qualification creates a stable migration issue/retained classification; target identity conflict is a stable issue and never overwrites target",
+      "terminal": "COMPLETED batch is immutable; issue closure only appends approved resolution evidence and a new target attempt requires a new batch referencing the prior issue"
+    },
+    "forbiddenInference": ["edit_mode", "assessment", "checklist", "device", "configuration", "template", "fileFact", "riskMitigation", "supportArrangement", "approvalInstance", "approvalStatus", "taskStage"],
+    "unqualifiedRows": "retain pms_cut_plan and classify through PLT evidence; no delete, dual write, default, parsing of approval text or direct SQL cross-context lookup"
   },
   "featureReadyGate": "REVIEW_REQUIRED"
 }

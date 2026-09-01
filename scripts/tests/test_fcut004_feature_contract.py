@@ -6,6 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).parents[2]
 API = ROOT / "specs/features/F-CUT-004-api-contract.json"
 PHYSICAL = ROOT / "specs/features/F-CUT-004-physical-contract.json"
+APPROVAL = ROOT / "specs/features/F-CUT-005-approval-owner-contract.json"
+TASK_PHYSICAL = ROOT / "specs/features/F-CUT-002-physical-contract.json"
 TRACE = ROOT / "docs/traceability/domain-entity-migration-contract.json"
 PHASE2 = ROOT / "docs/traceability/phase2-contract-map.md"
 
@@ -16,18 +18,32 @@ class FCut004FeatureContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.api = json.loads(API.read_text(encoding="utf-8"))
         cls.physical = json.loads(PHYSICAL.read_text(encoding="utf-8"))
+        cls.approval = json.loads(APPROVAL.read_text(encoding="utf-8"))
+        cls.task_physical = json.loads(TASK_PHYSICAL.read_text(encoding="utf-8"))
         cls.trace = json.loads(TRACE.read_text(encoding="utf-8"))
         cls.phase2 = PHASE2.read_text(encoding="utf-8")
 
     def test_p4_submit_and_p5_start_are_atomic_without_approval_ownership_drift(self):
-        start = self.api["approvalStartPort"]
-        self.assertEqual("F-CUT-005", start["owner"])
-        self.assertIn("atomic", start["transaction"])
-        self.assertIn("no Fake/fallback", start["production"])
+        self.assertEqual("F-CUT-005", self.approval["ownerFeatureId"])
+        start = self.approval["operations"]["start"]
+        self.assertIn("MANDATORY", start["transaction"])
+        self.assertIn("No production Provider, Fake, fallback", self.approval["productionBoundary"])
         self.assertEqual(
-            {"PENDING", "APPROVED", "REJECTED", "TERMINATED"},
-            set(self.api["approvalResultPort"]["statuses"]),
+            {"PENDING", "PAUSED_SOURCE_INVALIDATED", "APPROVED", "REJECTED"},
+            set(self.approval["enums"]["ApprovalStatus"]),
         )
+        self.assertNotIn("TERMINATED", json.dumps(self.approval))
+
+    def test_task_physical_contract_reaches_p5_and_p6_with_single_transition_owners(self):
+        self.assertIn("P5", self.task_physical["enums"]["stageCode"])
+        self.assertIn("P6", self.task_physical["enums"]["stageCode"])
+        self.assertIn("APPROVING", self.task_physical["enums"]["taskStatus"])
+        self.assertIn("CLOSURE_IN_PROGRESS", self.task_physical["enums"]["taskStatus"])
+        owners = self.task_physical["downstreamStageForwardContract"]["writeOwners"]
+        self.assertEqual("F-CUT-004 submit command", owners["P4_TO_P5"])
+        self.assertEqual("F-CUT-004 source invalidation command", owners["P5_TO_P4_SOURCE_INVALIDATED"])
+        self.assertEqual("F-CUT-005 final reject command", owners["P5_TO_P4"])
+        self.assertEqual("F-CUT-005 all-nodes-approved command", owners["P5_TO_P6"])
 
     def test_plan_revision_lifecycle_does_not_impersonate_approval(self):
         self.assertEqual(
@@ -45,9 +61,26 @@ class FCut004FeatureContractTest(unittest.TestCase):
         self.assertIn("no fourth CUT business table", self.physical["additionalFacts"]["supportArrangementAudit"])
 
     def test_grade_d_never_requires_a_checklist(self):
-        grade_d = self.physical["tables"][0]["conditionalFields"]["D"]
-        self.assertIn("checklist_id IS NULL", grade_d)
-        self.assertIn("checklist_version IS NULL", grade_d)
+        grade_d = self.physical["tables"][0]["conditionalContracts"]["NEW_PLATFORM_D"]
+        self.assertIn("checklist_id/version are null", grade_d)
+        self.assertIn("configuration", grade_d)
+        self.assertIn("OPERATION/ROLLBACK", grade_d)
+
+    def test_all_seven_rest_operations_have_exact_requests_and_error_contracts(self):
+        operations = self.api["operations"]
+        self.assertEqual(
+            {"detail", "createDraft", "saveDraft", "downloadDraft", "submit", "patchApprovedContacts", "revise"},
+            set(operations),
+        )
+        for operation in operations.values():
+            self.assertIn("headers", operation)
+            self.assertIn("request", operation)
+            self.assertIn("success", operation)
+            self.assertIsInstance(operation["errors"], dict)
+        self.assertEqual(
+            ["sequenceNo", "plannedAt", "content"],
+            self.api["commonTypes"]["PlanScheduleRow"]["exactKeys"],
+        )
 
     def test_legacy_approval_fields_never_become_cut05_facts(self):
         migration = self.physical["legacyMigration"]
@@ -58,6 +91,15 @@ class FCut004FeatureContractTest(unittest.TestCase):
         self.assertIn("never mapped", migration["legacyApprovalDisposition"])
         plan = next(item for item in self.trace["records"] if item["object"] == "CutoverPlan")
         self.assertEqual("FEATURE_MAPPING_DEFINED", plan["sources"][0]["mappingStatus"])
+
+    def test_legacy_forward_has_exact_identity_step_mapping_and_batch_protocol(self):
+        migration = self.physical["legacyMigration"]
+        self.assertEqual("pms_cut_plan", migration["source"])
+        self.assertEqual("LEGACY_FORWARD", migration["rootMappings"]["origin_code"])
+        self.assertEqual("trimmed non-blank -> cut_step PRE_OPERATION/1", migration["fieldMappings"]["pre_check"])
+        self.assertEqual("trimmed non-blank -> cut_step OPERATION/1", migration["fieldMappings"]["procedure"])
+        self.assertIn("STAGED_READY", migration["platformBatchProtocol"]["intake"])
+        self.assertIn("atomically", migration["platformBatchProtocol"]["success"])
 
     def test_support_arrangements_are_new_only_and_cut04_has_no_approved_event(self):
         support = next(item for item in self.trace["records"] if item["object"] == "CutoverSupportArrangement")
