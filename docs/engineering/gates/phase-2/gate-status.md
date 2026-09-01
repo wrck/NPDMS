@@ -28,7 +28,7 @@
 | 追溯 | PASS | `phase2-contract-map.md`保留100个稳定Requirement锚点并显式登记111个切片键；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 | F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |
-| F-PROJ-008 PM-03阶段准出与相邻推进 | IN_REVIEW | 原S0→S4推进、六类Owner、空Gate、原子状态/快照/事件和`NO_PHYSICAL_DELTA`结论保持；修订011影响补充已移除PMS流程版本输入，改为定义key默认最新生效、授权用户可选同key历史processDefinitionId、实例实际定义ID留痕，待同一SDS/P3-E09聚焦独立复审 |
+| F-PROJ-008 PM-03阶段准出与相邻推进 | READY / GO | 原S0→S4推进、六类Owner、空Gate、原子状态/快照/事件和`NO_PHYSICAL_DELTA`结论保持；修订011影响补充以`dda6683e`获独立GO，已移除PMS流程版本输入，并锁定定义key默认最新生效、项目Gate范围内选择同key历史processDefinitionId及实例实际定义ID留痕；允许进入Feature同步Gate |
 
 ## 3. 不变的后置边界
 

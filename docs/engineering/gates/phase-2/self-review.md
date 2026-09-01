@@ -21,7 +21,7 @@
 | S2-V18-10 | F-PLT-002将共享动态表单基础归PLT并保持旧实现不变 | 候选形成时为90对象/101来源绑定/1排除源，修订007当前总体为93对象/104来源绑定/1排除源；PLT三对象为新真值，旧`pms_eng_form_*`仅COMPATIBILITY_ONLY且零迁移/双写；等待Feature Ready独立复审 |
 | S2-V18-11 | F-CUS-001客户主档、地点引用和五维权限切片按实现补丁回写 | 当前契约为93对象/104来源绑定/1排除源；V106～V108证据已锁定，前向表不进入当前核心DDL精确表集 |
 | S2-V18-12 | 修订007新增11个补充V2切片，并确认CUT-07/09/10为V1配置基础 | 契约图保留100个Requirement锚点并显式登记111/111切片；PM-08/11、ACC-01/02、CUT-01/03/05、INT-02/05/12、NFR-02及配置基础契约均已差量落位 |
-| S2-V18-13 | F-PROJ-008补齐PM-03冻结GateRef评估和S0→S4通用相邻推进 | IN_REVIEW；原六类Owner、满足谓词、专用发起授权、整数状态及空Gate结论保持；修订011影响补充把PMS窄版本化命令收敛为定义key默认最新生效、可选同key历史processDefinitionId、实例实际定义ID留痕，仍为NO_PHYSICAL_DELTA；待聚焦独立复审 |
+| S2-V18-13 | F-PROJ-008补齐PM-03冻结GateRef评估和S0→S4通用相邻推进 | READY / GO；原六类Owner、满足谓词、专用发起授权、整数状态及空Gate结论保持；修订011影响补充以`dda6683e`获独立GO，已收敛为定义key默认最新生效、项目Gate范围内可选同key历史processDefinitionId、实例实际定义ID留痕，仍为NO_PHYSICAL_DELTA |
 
 ## 2. 可复现校验
 
