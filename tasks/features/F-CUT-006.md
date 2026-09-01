@@ -20,12 +20,12 @@
 - Task 1闭环领域类型、PLT/INT-12消费端口及`src/test`受控替身已通过独立复审：`PASS / GO@35c8462d`；未注册生产Bean、Fake或fallback。
 - Task 1最小整改已在采集恢复事实中加入不含`transientSecret`的稳定请求摘要；同一意图只能恢复同摘要外部任务，异摘要按幂等冲突失败关闭。
 - Task 1聚焦证据：`CutoverClosurePortContractTest` 6/6通过；`pms-module-cutover`及依赖模块打包通过。
-- Task 2候选：`CODE_REVIEW_REQUIRED / NO-GO@cb5098f3`。V155已创建CUT自有闭环、附件和采集证据三表，前向扩展`P6/ARCHIVED`与`P6_CLOSURE_SUBMITTED`，并补齐闭环/附件/证据、任务归档和设备释放的场景化Mapper/XML。
+- Task 2三表Schema、任务归档前向约束与Mapper合同已通过独立复审：`PASS / GO@6c3dd424`。V155已创建CUT自有闭环、附件和采集证据三表，前向扩展`P6/ARCHIVED`与`P6_CLOSURE_SUBMITTED`，并补齐闭环/附件/证据、任务归档和设备释放的场景化Mapper/XML。
 - Task 2聚焦证据：`Fcut006MigrationContractTest`与`CutoverClosureMapperContractTest`共5/5通过；独立MySQL 8.4空卷从V1全量迁移至V155，合法DRAFT、终态采集证据、SUCCESS/FAILED归档及P6阶段历史均写入成功；异常结果无说明和回退无原因均由CHECK拒绝且原行不变。
 - Task 2物理可执行纠偏：五个最长4000字符的闭环文本字段改用`TEXT + CHAR_LENGTH<=4000`，避免utf8mb4行大小超限，不改变API长度语义。
 - Task 2最小整改候选：外部任务、回调、PLT引用及结果身份均使用显式大小写敏感存储/比较，保留Owner原值；`file_hash`统一为`VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin`并以case-sensitive正则约束小写SHA-256。
 - Task 2最小整改MySQL证据：空卷再次全量迁移至V155；信息架构确认全部不透明身份使用`utf8mb4_bin`、哈希为`VARCHAR(64)/ascii_bin`；`CaseTask`与`casetask`可作为两个Owner任务并存，大小写错误的SUCCESS resultRef及大写哈希均由CHECK拒绝且原值不变。
-- 最近Gate：Task 2三表Schema、任务归档前向约束与Mapper合同独立Schema/MySQL复审。
+- 最近Gate：Task 3创建、保存、详情与文件事实正常链独立Application/MySQL复审。
 
 ## 状态边界
 
