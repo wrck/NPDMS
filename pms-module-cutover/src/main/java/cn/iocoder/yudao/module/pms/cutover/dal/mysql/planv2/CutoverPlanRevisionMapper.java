@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHis
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanVersionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -22,4 +23,5 @@ public interface CutoverPlanRevisionMapper extends BaseMapperX<CutoverPlanRevisi
     Integer selectMaxRevisionNo(@Param("query") CutoverPlanHistoryQuery query);
     int replaceDraftIfMatch(@Param("query") CutoverPlanDraftUpdate query);
     int advanceDraftVersionIfMatch(@Param("query") CutoverPlanVersionUpdate query);
+    int submitDraftIfMatch(@Param("query") CutoverPlanSubmitUpdate query);
 }

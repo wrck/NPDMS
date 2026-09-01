@@ -4,9 +4,13 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChi
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanVersionUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverSupportContactUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -39,6 +43,13 @@ class CutoverPlanMapperContractTest {
                 new CutoverPlanDraftUpdate(1L, 3L, 0, 1, "ONLINE_TEMPLATE_STANDARD", "{}",
                         null, null, null, null, null, null, null, "9",
                         LocalDateTime.parse("2026-09-01T09:00:00")));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "submitDraftIfMatch",
+                new CutoverPlanSubmitUpdate(1L, 3L, 0, 1, 9L,
+                        LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0));
+        assertBindings(configuration, CutoverTaskMapper.class, "submitPlanIfMatch",
+                new CutoverTaskPlanSubmitUpdate(1L, 2L, 3));
+        assertBindings(configuration, CutoverTaskMapper.class, "selectMaxStageHistorySequence",
+                new CutoverTaskRowQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",
                 new CutoverPlanChildrenQuery(1L, 3L));
         assertBindings(configuration, CutoverSupportArrangementMapper.class, "deleteDraftRows",
@@ -67,6 +78,7 @@ class CutoverPlanMapperContractTest {
         parse(configuration, "CutoverPlanRevisionMapper.xml");
         parse(configuration, "CutoverPlanStepMapper.xml");
         parse(configuration, "CutoverSupportArrangementMapper.xml");
+        parse(configuration, "../taskv2/CutoverTaskMapper.xml");
         return configuration;
     }
 
