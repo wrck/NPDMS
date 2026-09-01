@@ -1,5 +1,5 @@
--- Chronologically replayed from e2fa3cdd8440fed5e762e0e557771661eca4b510 (codex/f-cut-001-matrices), original sql/migrations/V150__fcut004_p4_cutover_plan.sql.
--- Renumbered after current master; Feature status is not promoted by this receipt.
+-- Chronological code-fact replay update from ddda602faadc72b6726ad20902b313acc84adc10 (codex/f-cut-001-matrices).
+-- Feature remains governed separately from code reception.
 
 -- F-CUT-004 P4割接方案revision、步骤和保障安排。
 -- 先验证V146/V149现存任务与阶段历史，再前向开放P4/P5/P6；不更新业务行。
@@ -94,13 +94,15 @@ ALTER TABLE `cut_task_stage_history`
   DROP CHECK `chk_cut_stage_trigger`,
   ADD CONSTRAINT `chk_cut_stage_code` CHECK (`from_stage` IN ('P1','P2','P3','P4','P5') AND `to_stage` IN ('P2','P3','P4','P5','P6')),
   ADD CONSTRAINT `chk_cut_stage_trigger` CHECK (
-    (`trigger_type` = 'P1_ACCEPTED' AND `from_stage` = 'P1' AND `to_stage` = 'P2' AND `to_status` = 'GRADE_CONFIRMING') OR
-    (`trigger_type` = 'P2_ASSESSMENT_SUBMITTED' AND `from_stage` = 'P2' AND ((`to_stage` = 'P3' AND `to_status` = 'SURVEYING') OR (`to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING'))) OR
-    (`trigger_type` = 'P2_ASSESSMENT_INVALIDATED' AND `from_stage` IN ('P3','P4') AND `to_stage` = 'P2' AND `to_status` = 'GRADE_CONFIRMING') OR
-    (`trigger_type` = 'P3_CHECKLIST_SUBMITTED' AND `from_stage` = 'P3' AND `to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING') OR
-    (`trigger_type` = 'P4_PLAN_SUBMITTED' AND `from_stage` = 'P4' AND `from_status` = 'PLAN_DRAFTING' AND `to_stage` = 'P5' AND `to_status` = 'APPROVING') OR
-    (`trigger_type` IN ('P5_SOURCE_INVALIDATED','P5_APPROVAL_REJECTED') AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING') OR
-    (`trigger_type` = 'P5_APPROVAL_APPROVED' AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P6' AND `to_status` = 'CLOSURE_IN_PROGRESS')
+    COALESCE((
+      (`trigger_type` = 'P1_ACCEPTED' AND `from_stage` = 'P1' AND `to_stage` = 'P2' AND `to_status` = 'GRADE_CONFIRMING') OR
+      (`trigger_type` = 'P2_ASSESSMENT_SUBMITTED' AND `from_stage` = 'P2' AND ((`to_stage` = 'P3' AND `to_status` = 'SURVEYING') OR (`to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING'))) OR
+      (`trigger_type` = 'P2_ASSESSMENT_INVALIDATED' AND `from_stage` IN ('P3','P4') AND `to_stage` = 'P2' AND `to_status` = 'GRADE_CONFIRMING') OR
+      (`trigger_type` = 'P3_CHECKLIST_SUBMITTED' AND `from_stage` = 'P3' AND `to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING') OR
+      (`trigger_type` = 'P4_PLAN_SUBMITTED' AND `from_stage` = 'P4' AND `from_status` = 'PLAN_DRAFTING' AND `to_stage` = 'P5' AND `to_status` = 'APPROVING') OR
+      (`trigger_type` IN ('P5_SOURCE_INVALIDATED','P5_APPROVAL_REJECTED') AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING') OR
+      (`trigger_type` = 'P5_APPROVAL_APPROVED' AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P6' AND `to_status` = 'CLOSURE_IN_PROGRESS')
+    ), FALSE)
   );
 
 CREATE TABLE `cut_plan_revision` (
@@ -141,10 +143,12 @@ CREATE TABLE `cut_plan_revision` (
     AND (`legacy_source_version` IS NULL OR `legacy_source_version` >= 0)),
   CONSTRAINT `chk_cut_plan_marker` CHECK (`current_marker` IS NULL OR `current_marker` = 1),
   CONSTRAINT `chk_cut_plan_origin` CHECK (`origin_code` IN ('NEW_PLATFORM','LEGACY_FORWARD')),
-  CONSTRAINT `chk_cut_plan_derivation` CHECK ((`source_plan_revision_id` IS NULL AND `revision_reason_code` IS NULL)
-    OR (`source_plan_revision_id` IS NOT NULL AND `revision_reason_code` IN ('APPROVAL_REJECTED','DUTY_CHANGED','SOURCE_REPLACED'))),
+  CONSTRAINT `chk_cut_plan_derivation` CHECK (
+    COALESCE((`source_plan_revision_id` IS NULL AND `revision_reason_code` IS NULL), FALSE)
+    OR COALESCE((`source_plan_revision_id` IS NOT NULL
+      AND `revision_reason_code` IN ('APPROVAL_REJECTED','DUTY_CHANGED','SOURCE_REPLACED')), FALSE)),
   CONSTRAINT `chk_cut_plan_union` CHECK (
-    (`origin_code` = 'LEGACY_FORWARD' AND `edit_mode_code` IS NULL AND `grade_code` IS NULL
+    COALESCE((`origin_code` = 'LEGACY_FORWARD' AND `edit_mode_code` IS NULL AND `grade_code` IS NULL
       AND `assessment_id` IS NULL AND `assessment_version` IS NULL AND `checklist_id` IS NULL
       AND `checklist_version` IS NULL AND `configuration_revision_id` IS NULL AND `configuration_code` IS NULL
       AND `configuration_revision_no` IS NULL AND `template_section_snapshot` IS NULL
@@ -156,8 +160,8 @@ CREATE TABLE `cut_plan_revision` (
       AND `source_plan_revision_id` IS NULL AND `revision_reason_code` IS NULL
       AND `invalidated_by` IS NULL AND `invalidated_at` IS NULL AND `invalidation_reason_code` IS NULL
       AND `legacy_plan_id` > 0 AND `legacy_status_raw` BETWEEN 0 AND 4
-      AND `legacy_source_version` >= 0 AND CHAR_LENGTH(TRIM(`legacy_mapping_version`)) BETWEEN 1 AND 64)
-    OR (`origin_code` = 'NEW_PLATFORM' AND `grade_code` IN ('A','B','C','D')
+      AND `legacy_source_version` >= 0 AND CHAR_LENGTH(TRIM(`legacy_mapping_version`)) BETWEEN 1 AND 64), FALSE)
+    OR COALESCE((`origin_code` = 'NEW_PLATFORM' AND `grade_code` IN ('A','B','C','D')
       AND `assessment_id` > 0 AND `assessment_version` > 0
       AND `configuration_revision_id` > 0 AND CHAR_LENGTH(TRIM(`configuration_code`)) BETWEEN 1 AND 64
       AND `configuration_revision_no` > 0 AND `template_section_snapshot` IS NOT NULL
@@ -184,7 +188,7 @@ CREATE TABLE `cut_plan_revision` (
         OR (`status_code` = 'INVALIDATED' AND `current_marker` IS NULL AND `submitted_by` > 0
           AND `submitted_at` IS NOT NULL AND `approval_instance_id` > 0 AND `approval_version` >= 0
           AND `invalidated_by` > 0 AND `invalidated_at` IS NOT NULL
-          AND CHAR_LENGTH(TRIM(`invalidation_reason_code`)) BETWEEN 1 AND 64)))
+          AND CHAR_LENGTH(TRIM(`invalidation_reason_code`)) BETWEEN 1 AND 64))), FALSE)
   )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='F-CUT-004 P4方案revision';
 
