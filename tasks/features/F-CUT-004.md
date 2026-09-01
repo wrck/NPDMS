@@ -119,3 +119,15 @@
 - [x] 通过Task 8 Migration/MySQL独立Gate（`GO@258549d8`）。
 
 > 检查点：独立复审确认目标ID、冻结旧任务ID与F-CUT-002正式映射版本在同一行锁内闭合；生产迁移服务不直读`pms_cut_plan`，跨模块映射按最窄端口受控模拟。测试fixture仅证明转换和事务闭环，不作为生产迁移完成证据；正式映射Provider继续阻断生产激活。
+
+## Task 9：P4工作台与组件交互
+
+状态：`CODE_REVIEW_REQUIRED`
+
+- [x] 后端只读投影补齐六类`allowedActions`及CUT-05审批事实，独立实施前Gate通过（`GO@5fee04d1`）。
+- [x] 在现有割接工作台挂载P4/P5/P6方案面板，覆盖标准、D级简易与完整文件三种编辑模式。
+- [x] 七条API按WireLong、epoch毫秒、精确Header和PLT文件事实接线，不提交URL或文件正文。
+- [x] 操作按钮只消费服务端`allowedActions`及四项功能权限；统一write barrier保证成功后刷新失败不重发业务命令。
+- [x] 使用真实组件mount完成正向交互测试；候选进入Task 9 Frontend Gate复审。
+
+> 检查点：组件候选不注册后端生产Controller、Service或跨模块Fake/fallback，不启动真实浏览器。生产PLT/CUT-05 Provider继续阻断生产装配、浏览器正向闭环与Implementation Done。

@@ -19,11 +19,13 @@ const stateLabel = { CURRENT: '当前阶段', COMPLETED: '已完成', FUTURE: '�
 </script>
 
 <style scoped>
-.step-list { display: grid; grid-template-columns: repeat(5, minmax(8rem, 1fr)); gap: 12px; padding: 0; list-style: none; overflow-x: auto; }
-.step-item { display: flex; gap: 10px; min-width: 8rem; padding: 12px; border: 1px solid var(--el-border-color); border-radius: var(--el-border-radius-base); }
+.step-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 0; list-style: none; }
+.step-item { display: flex; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--el-border-color); border-radius: var(--el-border-radius-base); }
 .step-code { font-weight: 700; color: var(--el-text-color-secondary); }
 .step-item strong, .step-item small { display: block; }
 .step-item small { margin-top: 4px; color: var(--el-text-color-secondary); }
 .step-item.is-current { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
 .step-item.is-completed .step-code { color: var(--el-color-success); }
+@media (max-width: 1023px) { .step-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .step-list { grid-template-columns: 1fr; } }
 </style>

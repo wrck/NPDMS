@@ -75,7 +75,55 @@ export const gradeDestination = (grade: ManualGrade | null) =>
   grade === 'D' ? 'P4 方案编制' : grade ? 'P3 现场调研' : '保存后不推进阶段'
 
 export const activeCutoverStagePanel = (stage: CutoverStage | null) =>
-  stage === 'P2' ? 'ASSESSMENT' : stage === 'P3' ? 'CHECKLIST' : 'EMPTY'
+  stage === 'P2'
+    ? 'ASSESSMENT'
+    : stage === 'P3'
+      ? 'CHECKLIST'
+      : ['P4', 'P5', 'P6'].includes(stage || '')
+        ? 'PLAN'
+        : 'EMPTY'
+
+export const createCutoverPlanIntentStore = (factory: () => string = newIntentKey) => {
+  const keys = new Map<string, string>()
+  return {
+    key(intent: string) {
+      const existing = keys.get(intent)
+      if (existing) return existing
+      const created = factory()
+      keys.set(intent, created)
+      return created
+    },
+    complete(intent: string) {
+      keys.delete(intent)
+    }
+  }
+}
+
+export const createCutoverPlanWriteBarrier = () => {
+  let pendingRefresh: (() => Promise<void>) | null = null
+  return {
+    register(refresh: () => Promise<void>) {
+      pendingRefresh = refresh
+    },
+    async beforeWrite() {
+      if (!pendingRefresh) return 'PROCEED' as const
+      try {
+        await pendingRefresh()
+        pendingRefresh = null
+        return 'REFRESHED' as const
+      } catch {
+        return 'REFRESH_FAILED' as const
+      }
+    }
+  }
+}
+
+export const cutoverPlanRecoveryAction = (error: unknown) => {
+  const action = (error as any)?.response?.data?.data?.recoveryAction
+  if (['REFRESH_AGGREGATE', 'REFRESH_OWNER_FACTS', 'RETRY_SAME_KEY', 'START_NEW_INTENT']
+    .includes(action)) return action as string
+  return (error as any)?.response ? 'SURFACE_ERROR' : 'RETRY_SAME_KEY'
+}
 
 export const encodeChecklistDirectAnswer = (value: string) => JSON.stringify({ value })
 

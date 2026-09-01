@@ -8,11 +8,11 @@
       <el-form :model="query" label-position="top" class="filter-grid">
         <el-form-item label="项目ID"><el-input v-model="query.projectId" clearable /></el-form-item>
         <el-form-item label="当前阶段">
-          <el-select v-model="query.currentStage" clearable><el-option v-for="stage in ['P2', 'P3', 'P4']" :key="stage" :label="stage" :value="stage" /></el-select>
+          <el-select v-model="query.currentStage" clearable><el-option v-for="stage in ['P2', 'P3', 'P4', 'P5', 'P6']" :key="stage" :label="stage" :value="stage" /></el-select>
         </el-form-item>
         <el-form-item label="任务状态">
           <el-select v-model="query.taskStatus" clearable>
-            <el-option label="人工分级中" value="GRADE_CONFIRMING" /><el-option label="现场调研" value="SURVEYING" /><el-option label="方案编制" value="PLAN_DRAFTING" />
+            <el-option label="人工分级中" value="GRADE_CONFIRMING" /><el-option label="现场调研" value="SURVEYING" /><el-option label="方案编制" value="PLAN_DRAFTING" /><el-option label="审批中" value="APPROVING" /><el-option label="关闭处理中" value="CLOSURE_IN_PROGRESS" />
           </el-select>
         </el-form-item>
         <el-form-item label=" "><el-button type="primary" @click="loadPage">查询</el-button><el-button @click="resetQuery">重置</el-button></el-form-item>
@@ -62,6 +62,13 @@
             :detail="detail"
             @submitted="handleChecklistSubmitted"
           />
+          <CutoverPlanPanel
+            v-else-if="activeStagePanel === 'PLAN'"
+            :task-id="detail.task.id"
+            :task-version="detail.task.version"
+            :manual-grade="detail.task.manualGrade"
+            @changed="handlePlanChanged"
+          />
           <el-empty v-else description="当前阶段暂无可编辑内容" />
         </template>
       </div>
@@ -79,6 +86,7 @@ import type { AssessmentAnswers, CutoverTaskDetail, CutoverTaskSummary, ManualGr
 import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
 import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
+import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
 import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
 import {
   activeCutoverStagePanel,
@@ -104,7 +112,7 @@ const drawerSize = computed(() => (width.value < 768 ? '100%' : width.value < 12
 const detailColumns = computed(() => (width.value < 768 ? 1 : 2))
 const activeStagePanel = computed(() => activeCutoverStagePanel(detail.value?.task.currentStage || null))
 const sourceLabels: Record<string, string> = { SELF_CREATED: '一线自建', ITR: 'ITR', PROJECT_EVENT: '项目事件', LEGACY_FORWARD: '历史只读' }
-const statusLabels: Record<string, string> = { GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制', LEGACY_UNKNOWN: '历史状态' }
+const statusLabels: Record<string, string> = { GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制', APPROVING: '审批中', CLOSURE_IN_PROGRESS: '关闭处理中', LEGACY_UNKNOWN: '历史状态' }
 
 function emptyAnswers(): AssessmentAnswers { return { businessImportanceLevel: null, operationComplexityLevel: null, hiddenRiskLevel: null, sparePartApplied: null } }
 
@@ -152,6 +160,7 @@ const submitAssessment = async () => {
 }
 
 const handleChecklistSubmitted = async () => { await refreshDetail(); await loadPage() }
+const handlePlanChanged = async () => { await refreshDetail(); await loadPage() }
 
 onMounted(loadPage)
 </script>

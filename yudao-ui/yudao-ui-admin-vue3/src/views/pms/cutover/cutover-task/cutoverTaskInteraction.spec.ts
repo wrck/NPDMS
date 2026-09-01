@@ -122,7 +122,9 @@ describe('cutover task positive interaction', () => {
   it('selects the workbench panel from the current stage only', () => {
     expect(activeCutoverStagePanel('P2')).toBe('ASSESSMENT')
     expect(activeCutoverStagePanel('P3')).toBe('CHECKLIST')
-    expect(activeCutoverStagePanel('P4')).toBe('EMPTY')
+    expect(activeCutoverStagePanel('P4')).toBe('PLAN')
+    expect(activeCutoverStagePanel('P5')).toBe('PLAN')
+    expect(activeCutoverStagePanel('P6')).toBe('PLAN')
   })
 
   it('mounts the P2 assessment and emits the positive save and submit actions', async () => {
