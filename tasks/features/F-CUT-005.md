@@ -1,6 +1,6 @@
 # F-CUT-005 P5分级审批
 
-> Feature实施状态：`NOT_STARTED`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO @ 2e3fdba3`
 > Technical Plan Gate：`PASS / GO @ 912d0cdb`
@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，当前进入Task 1最小实现。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1实现候选已形成并等待独立Code Review。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -21,6 +21,7 @@
 - [x] API/Physical/Candidate/Legacy Machine Contract Gate。
 - [x] Feature Ready最终裁决：`GO @ 2e3fdba3`。
 - [x] 唯一Technical Plan独立复审：`PASS / GO @ 912d0cdb`。
+- [ ] Task 1 CUT领域合同、消费端口与快照Codec：`CODE_REVIEW_REQUIRED`。
 
 ## 最近检查点
 
@@ -29,6 +30,7 @@
 - `2e3fdba3`关闭剩余两项并获Feature Ready正式GO；最近Gate为唯一Technical Plan独立复审。
 - `1a45569f` Technical Plan首轮NO-GO仅指出生产Owner产出路径缺失与测试顺序冲突；当前候选只整改这两项。
 - `912d0cdb`关闭Owner合同/SYSTEM阻断表达与实施顺序残留，Technical Plan正式GO；最近实施单元为Task 1。
+- Task 1只新增CUT领域规则、三类消费端口、Owner异常、精确快照Codec与`src/test`受控正向事实；无生产Bean、DDL、COM或Yudao修改。
 - 整改只改Feature/API/Physical/Candidate/Authorization等正式规格，不新增DDL、运行代码或测试实现。
 
 ## 物理Owner支撑Task
