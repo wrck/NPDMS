@@ -13,7 +13,7 @@
 > 串行资源：`V132 Flyway;open-questions;Feature Task;Feature索引;追溯投影`
 > 旧功能范围：`NONE`
 > 验证：`适配分支后端Reactor 115项（0失败、0错误、2跳过），CUT模块41项全过；前端矩阵Vitest 6项、ESLint/Prettier/Stylelint、全仓TypeScript与build:local通过；治理49项、追溯、DU与旧实现清单校验通过`
-> 集成记录：`源候选codex/integrate-f-cut-001@72ccb83f8052758e70fc585b1226403b6a825311；适配候选07b6eb065be74c4c4d2b545350469d77aa00ec3b待master选择性集成`
+> 集成记录：`源候选codex/integrate-f-cut-001@72ccb83f8052758e70fc585b1226403b6a825311；适配候选07b6eb063ab9a54fe419930c8417581eeb983f05待master选择性集成`
 
 ## 审计结论
 
@@ -21,7 +21,7 @@
 
 ## 交接
 
-- 最后提交：`07b6eb065be74c4c4d2b545350469d77aa00ec3b`。
+- 最后提交：`07b6eb063ab9a54fe419930c8417581eeb983f05`。
 - 已完成：选择性迁移F-CUT-001风险/调研矩阵代码、V132契约、测试及历史证据；Code Review修正重复维度组合可仅改优先级发布、停用规则导致错误索引偏移两类缺陷。
 - 明确排除：候选分支Task、Feature索引和追溯状态未直接覆盖master；`codex/f-cut-001-matrices`后续F-CUT-002～005增量未进入本候选。
 - 剩余：幂等V133示例迁移及合入master后的独立MySQL/真实浏览器最终DoD；因此本次仅允许`INTEGRATED_PARTIAL`，不得标记Feature Done。
