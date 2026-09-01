@@ -28,7 +28,7 @@
 - [x] Task 5 详情、本人待办、改派队列与管理员改派：`PASS / GO @ 0142e01e`。
 - [x] Task 6 站内通知提交后投递与暂停Job：`PASS / GO @ e5aff408`。
 - [x] Task 7 六路由REST、严格请求Codec与错误合同：`PASS / GO @ eefb40ec`。
-- [ ] Task 8 P5审批工作台与组件交互：`REVIEW_REQUIRED`。
+- [x] Task 8 P5审批工作台与组件交互：`PASS / GO @ ac8a6e5f`。
 
 ## 最近检查点
 
@@ -48,6 +48,7 @@
 - `0f98d527`关闭审批成功后Owner刷新与结构化错误合同问题；`eefb40ec`进一步冻结实际决定节点并使同键同载荷重放直接复用平台结果，Task 7独立复审正式GO；最近Gate为Task 8实施前边界核验。
 - Task 8候选已完成P5完整/最终结果/管理员改派三种投影、本人待办与改派队列入口、五项评审及服务经理复核、合法驳回和统一写后刷新屏障；跨模块Owner仅使用正式接口与测试模拟，无生产Fake/fallback。当前等待独立Code Review／组件交互Gate。
 - `327d1477`首轮Task 8独立复审为`NO-GO`；整改已改为审批专用抽屉直达三种投影，补齐冻结P2五维和风险/业务项正文，使用`REFRESH_APPROVAL/REFRESH_SOURCES`恢复动作，并按任务、节点与改派版本重置本地状态。39项正向组件交互和低并发原命令`build:local`均通过，等待最小整改复审。
+- `ac8a6e5f`关闭审批专用入口、冻结依据展示、正式恢复动作与组件身份重置四项阻断，独立复审正式`GO`；Task 8 Gate回写`PASS`，最近实施单元为Task 9字典、菜单、权限、通知模板与暂停Job种子。
 
 ## 物理Owner支撑Task
 
