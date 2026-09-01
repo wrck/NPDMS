@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNode
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReassignmentPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalTodoPageRow;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalReassignmentPageRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -16,5 +18,9 @@ public interface CutoverApprovalNodeMapper extends BaseMapperX<CutoverApprovalNo
     CutoverApprovalNodeDO selectByInstanceAndNodeForUpdate(@Param("query") ApprovalNodeLockQuery query);
     List<CutoverApprovalNodeDO> selectTodoPage(@Param("query") ApprovalTodoPageQuery query);
     List<CutoverApprovalNodeDO> selectReassignmentPage(@Param("query") ApprovalReassignmentPageQuery query);
+    List<ApprovalTodoPageRow> selectTodoProjectionPage(@Param("query") ApprovalTodoPageQuery query);
+    long countTodos(@Param("query") ApprovalTodoPageQuery query);
+    List<ApprovalReassignmentPageRow> selectReassignmentProjectionPage(@Param("query") ApprovalReassignmentPageQuery query);
+    long countReassignmentCandidates(@Param("query") ApprovalReassignmentPageQuery query);
     int updateStatusIfMatch(@Param("query") ApprovalNodeStatusUpdate query);
 }

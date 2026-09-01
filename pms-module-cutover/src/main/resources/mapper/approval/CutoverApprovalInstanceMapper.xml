@@ -18,4 +18,14 @@
           AND deleted = b'0'
         FOR UPDATE
     </select>
+    <select id="selectCurrentByTask"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO">
+        SELECT * FROM cut_approval_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND task_id = #{query.taskId}
+          AND replacement_approval_instance_id IS NULL
+          AND deleted = b'0'
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
 </mapper>

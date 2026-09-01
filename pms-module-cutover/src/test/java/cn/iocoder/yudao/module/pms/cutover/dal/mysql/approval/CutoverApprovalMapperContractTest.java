@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNoti
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationDeliveryUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReassignmentPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -31,11 +32,21 @@ class CutoverApprovalMapperContractTest {
                 new ApprovalInstanceLockQuery(1L, null, 2L, 3L));
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "selectByIdForUpdate",
                 new ApprovalInstanceLockQuery(1L, 4L, null, null));
+        assertBindings(configuration, CutoverApprovalInstanceMapper.class, "selectCurrentByTask",
+                new ApprovalTaskQuery(1L, 10L));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectByInstanceAndNodeForUpdate",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoPage",
                 new ApprovalTodoPageQuery(1L, 9L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectReassignmentPage",
+                new ApprovalReassignmentPageQuery(1L, 0, 20));
+        assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoProjectionPage",
+                new ApprovalTodoPageQuery(1L, 9L, 0, 20));
+        assertBindings(configuration, CutoverApprovalNodeMapper.class, "countTodos",
+                new ApprovalTodoPageQuery(1L, 9L, 0, 20));
+        assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectReassignmentProjectionPage",
+                new ApprovalReassignmentPageQuery(1L, 0, 20));
+        assertBindings(configuration, CutoverApprovalNodeMapper.class, "countReassignmentCandidates",
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "updateStatusIfMatch",
                 new ApprovalNodeStatusUpdate(1L, 5L, 0, "PENDING", "APPROVED", 9L,
