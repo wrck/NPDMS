@@ -37,6 +37,8 @@ class Fcut004MigrationContractTest {
     @Test
     void locksPlanLifecycleAndContentUnions() {
         assertThat(sql).contains("`chk_cut_stage_trigger` CHECK (\n    COALESCE((")
+                .contains("'P5_APPROVAL_APPROVED' AND `from_stage` = 'P5'")
+                .contains("AND `to_stage` = 'P6' AND `to_status` = 'CLOSURE_IN_PROGRESS')\n    ), FALSE) = TRUE\n  );")
                 .contains("`chk_cut_plan_derivation` CHECK (\n    COALESCE((")
                 .contains("`chk_cut_plan_union` CHECK (\n    COALESCE((")
                 .contains("`status_code` = 'DRAFT'")

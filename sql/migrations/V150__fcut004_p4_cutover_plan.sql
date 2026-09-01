@@ -99,7 +99,7 @@ ALTER TABLE `cut_task_stage_history`
       (`trigger_type` = 'P4_PLAN_SUBMITTED' AND `from_stage` = 'P4' AND `from_status` = 'PLAN_DRAFTING' AND `to_stage` = 'P5' AND `to_status` = 'APPROVING') OR
       (`trigger_type` IN ('P5_SOURCE_INVALIDATED','P5_APPROVAL_REJECTED') AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P4' AND `to_status` = 'PLAN_DRAFTING') OR
       (`trigger_type` = 'P5_APPROVAL_APPROVED' AND `from_stage` = 'P5' AND `from_status` = 'APPROVING' AND `to_stage` = 'P6' AND `to_status` = 'CLOSURE_IN_PROGRESS')
-    ), FALSE)
+    ), FALSE) = TRUE
   );
 
 CREATE TABLE `cut_plan_revision` (

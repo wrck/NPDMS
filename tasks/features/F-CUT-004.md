@@ -45,6 +45,8 @@
 
 > 检查点：独立复审确认V150、三表、Mapper及两值CHECK约束成立；Task 2 Gate通过，进入Task 3。
 
+> 迁移整改检查点：Task 4隔离MySQL 8.4.10空库复验发现原V150的`chk_cut_stage_trigger`顶层`COALESCE`被判为非布尔表达式；独立裁决授权仅追加显式`= TRUE`，Task 2暂记`MIGRATION_REMEDIATION_REQUIRED`，待新空卷V1→V150复审通过后恢复PASS。
+
 ## Task 3：内容Codec、来源冻结与PLT文件事实消费端口
 
 状态：`PASS / GO@b6ca8f71`
