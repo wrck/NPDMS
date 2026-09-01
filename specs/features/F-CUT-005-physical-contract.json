@@ -67,7 +67,7 @@
   ],
   "routeMatrix": {"A":["INITIATOR","SERVICE_MANAGER","SECOND_LINE","RND"],"B":["INITIATOR","SERVICE_MANAGER","SECOND_LINE"],"C":["INITIATOR","SERVICE_MANAGER"],"D":["INITIATOR","SERVICE_MANAGER"]},
   "jsonContracts": {
-    "source_snapshot": "exact immutable ApprovalSourceSnapshot from F-CUT-005-api-contract.json: exact eleven-field project fact, collectionAnalysis{cutoverType,networkMode,scheduledTime}, stable ordered submitted risk/business-survey ChecklistResultSnapshot arrays, exact five-dimension AssessmentApprovalSnapshot plus manualGrade, and exact submitted F-CUT-004 PlanSourceSnapshot+PlanContentUnion; no missing/extra keys and no current Owner refresh",
+    "source_snapshot": "exact immutable ApprovalSourceSnapshot from F-CUT-005-api-contract.json: exact eleven-field project fact, collectionAnalysis{cutoverType,networkMode,scheduledTime} with networkMode preserving legal JSON null, stable ordered submitted risk/business-survey ChecklistResultSnapshot arrays, exact five-dimension AssessmentApprovalSnapshot plus manualGrade, and exact submitted F-CUT-004 PlanSourceSnapshot+PlanContentUnion; no missing/extra keys, no default inference and no current Owner refresh",
     "route_snapshot": "exact grade, ordered nodeCode array and each node frozen candidate identity/fact versions; unresolved candidates use explicit null identities and stable reason",
     "candidate_fact_snapshot": "INITIATOR uses exact userId/projectId/ACTION_EDIT/treeVersion; SERVICE_MANAGER uses exact PROJ fact; SECOND_LINE/RND contain the complete stable SYSTEM candidate set, every candidate's ProjectScope ACTION_VIEW result/treeVersion and the uniquely intersected subject or explicit NOT_UNIQUE from F-CUT-005-candidate-owner-contract.json"
   },
@@ -87,7 +87,7 @@
     "currentApprover": "current node approver + node-specific current Owner/project scope fact may read FULL and receives APPROVE/REJECT only when root/node are executable",
     "readOnlyProjectMember": "current ProjectScope ACTION_VIEW may read FINAL_RESULT_ONLY only after APPROVED/REJECTED; source snapshot and node review bodies are never projected",
     "todo": "only executable PENDING node for current user after the same current Owner/scope revalidation; no partial page on Provider failure",
-    "administrator": "REASSIGN only for WAITING/PENDING nodes; permission alone never grants approve/reject or FULL detail"
+    "administrator": "a dedicated stable-paged reassignment-candidates query and REASSIGNMENT_ONLY detail expose only instance/task/open-node/current-assignment/version metadata; REASSIGN only for WAITING/PENDING nodes; permission alone never grants approve/reject or FULL detail; reassign response remains REASSIGNMENT_ONLY"
   },
   "migration": {"strategy":"NEW_ONLY","legacyTables":["pms_cut_task","pms_cut_plan"],"rule":"no legacy approval field is copied, upgraded or dual-written; Flyway number is chosen only at serial merge"},
   "hardDependencies": ["F-CUT-002 task/assessment facts","F-CUT-003 checklist facts for A/B/C","F-CUT-004 submitted immutable plan","PROJ service-manager candidate support Task","SYSTEM second-line/RND candidate support Task","ProjectScopeApi","PlatformCommandExecutionApi","platform Outbox","NotifyMessageSendApi"],
