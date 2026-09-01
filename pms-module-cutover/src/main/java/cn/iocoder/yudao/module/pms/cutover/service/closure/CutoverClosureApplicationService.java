@@ -583,7 +583,7 @@ public class CutoverClosureApplicationService {
                 new CutoverTaskDeviceListQuery(tenantId, task.getId()));
         if (devices.stream().noneMatch(value -> Objects.equals(value.getDeviceId(), deviceId)
                 && Objects.equals(value.getProjectId(), task.getProjectId()))) {
-            throw failure(SOURCE_STALE, "设备不在任务冻结范围");
+            throw failure(SOURCE_STALE, DEVICE_SCOPE_STALE, "AST", "设备不在任务冻结范围");
         }
     }
 

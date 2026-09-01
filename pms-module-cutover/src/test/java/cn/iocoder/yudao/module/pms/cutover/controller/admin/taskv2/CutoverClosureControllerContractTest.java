@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
-import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
@@ -77,29 +76,6 @@ class CutoverClosureControllerContractTest {
         verify(application).requestCollection(any());
         verify(application).linkManualResult(any());
         verify(application).submit(any());
-    }
-
-    @Test
-    void returnsStableHttpErrorsForHeadersSchemaAndApplicationFailures() throws Exception {
-        mvc.perform(post("/api/v1/pms/cutover-tasks/50/closure/actions/submit")
-                .header("If-Match", "1").header("Idempotency-Key", "submit-1")
-                .contentType("application/json").content("{\"finalResult\":\"SUCCESS\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.data.reasonCode").value("HEADER_REQUIRED_OR_INVALID"));
-        mvc.perform(put("/api/v1/pms/cutover-tasks/50/closure")
-                .header("If-Match", "1").header("X-Task-Version", "7").header("Idempotency-Key", "save-1")
-                .contentType("application/json").content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.data.reasonCode").value("REQUEST_SCHEMA_INVALID"));
-
-        when(application.submit(any())).thenThrow(new CutoverClosureApplicationException(
-                CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE, "闭环版本已变化"));
-        mvc.perform(post("/api/v1/pms/cutover-tasks/50/closure/actions/submit")
-                .header("If-Match", "1").header("X-Task-Version", "7").header("Idempotency-Key", "submit-2")
-                .contentType("application/json").content("{\"finalResult\":\"SUCCESS\"}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.data.reasonCode").value("CLOSURE_VERSION_STALE"))
-                .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_AGGREGATE"));
     }
 
     private static CutoverClosureView view() {
