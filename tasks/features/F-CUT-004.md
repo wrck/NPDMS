@@ -60,9 +60,10 @@
 状态：`IN_PROGRESS / CONTRACT_REVIEW_REQUIRED`
 
 - [x] 根据独立裁决形成`createDraft`封闭请求联合与`PlanSourceSnapshot.failedRiskFacts`完整冻结规格候选。
+- [x] 补齐创建事务的`ASSESSMENT_STALE/CHECKLIST_STALE`来源陈旧错误闭包；D级不产生清单陈旧。
 - [ ] 通过Task 4可执行性机器合同最小补丁独立复审后再写运行实现。
 - [ ] 实现创建/保存命令、版本与幂等事务边界。
 - [ ] 实现当前详情、legacy只读投影与服务端`allowedActions`。
 - [ ] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate。
 
-> 检查点：基线`d30544d1`；Task 1～3已PASS；Task 4发现上传创建与风险冻结两项可执行性缺口并取得独立GO，当前仅形成规格/机器合同补丁候选待复审。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
+> 检查点：基线`b903e730`；Task 1～3已PASS；Task 4两项可执行性补丁方向获认可，当前仅补齐createDraft评估/清单来源陈旧错误闭包并等待单点复审。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
