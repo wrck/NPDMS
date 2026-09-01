@@ -10,12 +10,12 @@
 
 **Locked Inputs:**
 
-- 锁定实施输入提交：`6719ab94`；该提交包含PRD V1.8修订011、Q-FINS001-003正式裁决回写、重新GO的F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态；实施前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
+- 锁定实施输入提交：`27b5b4b3`；该提交包含PRD V1.8修订012、Q-FINS001-003/004正式裁决回写、重新GO的F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态。Task 5继续前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
 
 - Requirement：`INS-03@V2=PARTIAL`、`INS-09@V2=FULL`、`NFR-02@V2`支撑
 - Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 - 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
-- Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-02`
+- Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-03`
 - 正式SDS：`docs/design/04-module-design.md`、`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`14-security-design.md`、`20-test-design.md`
 - 查询规范：`docs/coding/database-query-interface.md`
 
@@ -27,9 +27,9 @@
 - 新实现位于现有SRV物理模块`pms-module-service`，不创建空`-api`模块，不依赖其他模块的`-biz`、Service、Mapper、Repository或业务表。
 - 旧`pms_srv_rule`、`SrvRuleController`、`SrvRuleServiceImpl`、旧前端`srv-rule`页面、旧菜单、旧字典和旧权限保持原样；新实现不删除、不改名、不代理、不双写。
 - 正式状态只允许`DRAFT -> PUBLISHED -> DISABLED`；客户端不得直接提交状态，发布和停用只能通过action API。
-- 已发布和已停用revision只读；修改必须复制为同一稳定身份的新草稿。
+- 已发布和已停用revision只读；修改必须复制为同一稳定身份的新草稿。规则名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放；复制revision必须沿用原名称，任何revision改名拒绝。
 - 单命令超时默认30秒，只允许1～30秒正整数；不实现31秒及以上或任何超时审批分支。
-- 发布时必须重新校验字典、AST产品类型、安全审核摘要、正则、阈值、命令顺序、秘密扫描、租户、权限和CAS；任一失败保持草稿，旧发布revision继续有效。
+- 稳定身份创建只强制检测ID和规则名称；DRAFT其余八字段、命令、判定配置和适用产品类型允许为空或不完整并可保存。发布时必须重新校验完整性、字典、AST产品类型、安全审核摘要、正则、固定`NUMBER`阈值、命令顺序、秘密扫描、租户、权限和CAS；安全审核结论只允许`PASSED/REJECTED`且仅`PASSED`可发布，任一失败保持草稿，旧发布revision继续有效。
 - 产品类型由AST公开契约提供；Inspection只保存稳定编码和发布时显示名称快照，不新增产品类型表或从`ast_*`表直读。
 - 安全审核只记录具备`pms:inspection-rule:security-review`专用权限的当前用户对命令与正则内容摘要作出的结论；不新增审批流程、节点、固定组织角色或规则生命周期状态。
 - 所有新增查询遵守“一场景一Query对象”；简单单表查询使用`LambdaQueryWrapperX`，联表、动态集合、锁查询和并发发布SQL进入Mapper XML；禁止SQL注解、`${}`和`.last(...)`。
@@ -57,7 +57,7 @@ Task 1 静态实施门禁与唯一性检查
 
 - Task 2仅验收AST Owner独立交付的公开契约、API形状、模块依赖和后续消费所需事实字段，不创建Inspection生产消费组件，也不创建、修改或迁移任何AST文件。未知、停用、未解析、跨租户、空设备范围及契约不可用下的Inspection真实失败关闭，分别由Task 7/8发布预检与发布、Task 9工程师选择的生产入口验证。对应AST Feature Spec与当前Task未建立时标记`BLOCKED_BY_SPEC`并登记`docs/decisions/open-questions.md`；不得宣称发布、选择或Feature闭环完成。
 - Task 3未通过时，不得以硬编码角色、仅前端按钮替代服务端审核守卫。审核主体采用租户内显式授予`pms:inspection-rule:security-review`的动态权限包成员，不要求追溯“哪个角色贡献权限”，不新增固定角色。
-- Task 5最终Flyway编号必须在实施当日重新扫描；当前按已存在V1～V131且F-CUT-001计划占用V132～V133，预留V134～V136。若编号已占用，只允许前向改为新的连续空闲编号，不修改已执行迁移。
+- Task 5已于2026-09-01重新扫描Flyway编号：当前最高为V147，锁定使用连续空闲编号V148～V150。集成前必须再次扫描；若编号已占用，只允许将三个文件整体前向顺延到新的连续空闲编号，不修改已执行迁移。
 
 ## 3. 文件职责
 
@@ -69,7 +69,7 @@ Task 1 静态实施门禁与唯一性检查
 | `pms-module-service/.../dal/mysql/inspectionrule` | 场景化Query、Mapper与并发锁SQL |
 | `pms-module-service/.../controller/admin/inspectionrule` | `/api/v1/pms/inspection-rules` HTTP契约和权限注解 |
 | AST Owner独立Feature/Task交付的`pms-module-asset-api`产品分类契约 | Task 2仅作外部Gate输入与消费验收；本计划不创建、不修改、不迁移AST文件 |
-| `sql/migrations/V134...V136` | 新表、字典/菜单/权限/示例数据、旧完整记录受控前向迁移与不完整记录旧兼容只读保护 |
+| `sql/migrations/V148...V150` | 新表、字典/菜单/权限/受控示例边界、旧完整记录受控前向迁移与不完整记录旧兼容只读保护 |
 | `yudao-ui/.../api/pms/service/inspection-rule` | 新API类型、If-Match与action请求 |
 | `yudao-ui/.../views/pms/service/inspection-rule` | revision管理页、编辑器、审核记录、发布校验和工程师选择演示入口 |
 | `scripts/tests/test_fins001_*` | 唯一计划、旧实现保护、迁移、Owner边界、查询与秘密静态门禁 |
@@ -265,11 +265,11 @@ public record ValidationError(String location, String code, String message) {
 
 - [x] **Step 1A: 实现不依赖未决规格的最小领域规则**
 
-完成只有草稿可编辑、检测ID/规则名称/检测项目/描述/分类/严重度/排序等稳定字段必填、命令稳定键、命令顺序、1～30秒超时、阈值完整结构与六种正式运算符、产品类型非空且不重复和JDK正则语法编译校验；分类、严重度和阈值数据类型当前只做必填，不猜测机器码或枚举。
+已完成的Task 4按当时规格将检测ID/规则名称/检测项目/描述/分类/严重度/排序、命令、阈值和产品类型统一作为领域必填。修订012差量现明确：稳定身份创建只要求检测ID和规则名称，DRAFT其余字段及从属内容可为空或不完整；发布校验才要求完整。阈值数据类型固定为`NUMBER`，不再仅做非空校验。Task 5后续实施前必须先在后续Task 7/8测试与实现中承接该差量；本轮只修订计划，不修改已完成Task 4代码。
 
 - [x] **Step 2A: 补充状态、字段和命令边界定向测试**
 
-覆盖非草稿拒绝、稳定字段必填、至少一条命令、顺序从1连续且逐项定位、稳定命令键不重复、空命令、0和31秒拒绝、阈值完整结构与正式运算符，以及产品类型必填和重复编码拒绝。
+既有测试覆盖非草稿拒绝、稳定字段必填、至少一条命令、顺序从1连续且逐项定位、稳定命令键不重复、空命令、0和31秒拒绝、阈值完整结构与正式运算符，以及产品类型必填和重复编码拒绝。修订012后，这些完整性断言应保留为发布校验测试；草稿保存新增空值和部分填写正向测试，阈值新增只接受`NUMBER`测试。
 
 - [x] **Step 3A: 补充JDK正则语法定向测试**
 
@@ -303,12 +303,12 @@ Expected：17项测试PASS；覆盖稳定字段路径、十类分类/三级严�
 
 **Files:**
 
-- Create: `sql/migrations/V134__fins001_inspection_rule_revision.sql`
-- Create: `sql/migrations/V135__fins001_inspection_rule_seed_and_menu.sql`
-- Create: `sql/migrations/V136__fins001_legacy_rule_forward_migration.sql`
+- Create: `sql/migrations/V148__fins001_inspection_rule_revision.sql`
+- Create: `sql/migrations/V149__fins001_inspection_rule_seed_and_menu.sql`
+- Create: `sql/migrations/V150__fins001_legacy_rule_forward_migration.sql`
 - Create: `scripts/tests/test_fins001_migrations.py`
 
-- [ ] **Step 1: 实施前重新扫描Flyway编号**
+- [x] **Step 1: 实施前重新扫描Flyway编号**
 
 Run:
 
@@ -316,13 +316,15 @@ Run:
 Get-ChildItem sql/migrations/V*.sql | ForEach-Object { if ($_.Name -match '^V(\d+)__') { [int]$Matches[1] } } | Sort-Object | Select-Object -Last 20
 ```
 
-Expected：确认V134～V136仍连续空闲；如已占用，将本Task三个文件整体顺延到新的连续空闲编号，并同步本计划、Task引用和测试，不修改历史迁移。
+Expected：已确认V148～V150连续空闲；集成前如被占用，将本Task三个文件整体顺延到新的连续空闲编号，并同步本计划、Task引用和测试，不修改历史迁移。
 
-- [ ] **Step 2: 创建V134目标表**
+- [x] **Step 2: 创建V148目标表**
 
-使用生成列`current_published_marker`仅在`status_code='PUBLISHED'`时取1，并建立`uk(tenant_id, rule_id, current_published_marker)`；状态CHECK仅允许`DRAFT/PUBLISHED/DISABLED`。命令表保存稳定命令键、内容、顺序、1～30秒超时和继续决定；产品类型表保存编码与发布名称快照；审核表保存摘要、审核用户、权限码、可选稳定授权来源ID、结论和审核时间，不保存秘密。
+按修订012将`rule_name`置于`srv_inspection_rule`稳定身份表并建立`uk(tenant_id, rule_name)`；软删除不释放名称。revision保留不可变`rule_name_snapshot`用于八字段版本解释，Service与数据库约束保证其与稳定身份一致。不得把唯一键落在`revision_id/revision_no + rule_name`上，也不得新增共享规则库版本。
 
-- [ ] **Step 3: 创建V135字典、菜单、权限和示例数据**
+使用生成列`current_published_marker`仅在`status_code='PUBLISHED'`时取1，并建立`uk(tenant_id, rule_id, current_published_marker)`；状态CHECK仅允许`DRAFT/PUBLISHED/DISABLED`。revision字段空值策略须允许DRAFT除稳定名称快照外的发布字段为空或不完整，不以数据库NOT NULL提前阻止草稿保存；Service在发布时全量校验。阈值数据类型只允许`NUMBER`。命令表保存稳定命令键、内容、顺序、1～30秒超时和继续决定；产品类型表保存编码与发布名称快照；审核表保存摘要、审核用户、权限码、可选稳定授权来源ID、`PASSED/REJECTED`结论和审核时间，不保存秘密。
+
+- [x] **Step 3: 创建V149字典、菜单与权限种子**
 
 新增十类检测分类、三级严重级别、独立“巡检规则版本”菜单以及六个权限：
 
@@ -337,11 +339,11 @@ pms:inspection-rule:select
 
 示例数据使用高段ID或专用前缀、`creator='fins001-seed'`，至少覆盖：草稿、当前发布、已停用历史、多命令顺序、1秒/30秒边界、继续/停止、不同分类/严重级别。产品类型编码和适用/不适用组合只能引用已通过Task 2外部Gate验收、由AST Owner独立Feature/Task批准并落库的明确测试种子；Gate仍为`BLOCKED_BY_SPEC`时不得创建产品类型相关示例数据，禁止使用旧字典、手工替身或猜造值。示例安全审核使用测试用户与专用权限快照及不可逆摘要，不预置生产角色、不包含高风险命令或秘密。
 
-- [ ] **Step 4: 创建V136旧规则受控迁移**
+- [x] **Step 4: 创建V150旧规则受控迁移**
 
-只迁移全部正式字段与安全审核事实均可由权威来源完整证明的记录。当前旧`pms_srv_rule.content`是非结构化长文本，缺少十类分类、八字段、命令顺序、产品类型和安全审核事实，固定视为不完整记录：保留在旧接口、旧页面和旧表的兼容只读路径，不写入任何`srv_inspection_rule*`目标表，不生成草稿、发布revision、迁移问题对象或新增兼容标识。禁止解析示例文本、旧字典或其他弱证据猜造命令、阈值、产品类型及审核事实；旧记录保持原始值和来源追溯。
+只迁移全部正式字段与安全审核事实均可由权威来源完整证明的记录。当前旧`pms_srv_rule.content`是非结构化长文本，缺少十类分类、八字段、命令顺序、产品类型和安全审核事实，固定视为不完整记录：保留在旧接口、旧页面和旧表的兼容只读路径，不写入任何`srv_inspection_rule*`目标表，不生成草稿、发布revision、迁移问题对象或新增兼容标识。禁止解析示例文本、旧字典或其他弱证据猜造命令、阈值、产品类型及审核事实；旧记录保持原始值和来源追溯。MySQL 8.4.10隔离库空库迁移至V150；V148/V149/V150 checksum分别为`693950374/496760418/-1451955653`，旧表30行聚合指纹为`f6e82032ff2482b382768ca1cd8894d09d27f4bb9d8d5a9ec042e6c0d3151c54`且迁移前后一致，五张目标表逐表行数均为0，临时过程无残留，Flyway validate与重复migrate通过。
 
-- [ ] **Step 5: 补充Schema静态定向测试**
+- [x] **Step 5: 补充Schema静态定向测试**
 
 断言五张表及关键约束存在：
 
@@ -353,9 +355,9 @@ srv_inspection_rule_product_type_revision
 srv_inspection_rule_security_review
 ```
 
-关键约束包括：租户内检测ID永久唯一、规则内revision号唯一、revision内命令顺序唯一、revision内产品类型唯一、安全审核引用唯一、一个规则最多一个当前发布revision、乐观锁版本、租户字段、审计字段和软删除字段。
+关键约束包括：租户内检测ID和规则名称均永久唯一且软删除不释放、revision名称快照与稳定身份一致、规则内revision号唯一、revision内命令顺序唯一、revision内产品类型唯一、安全审核引用唯一、一个规则最多一个当前发布revision、乐观锁版本、租户字段、审计字段和软删除字段。
 
-- [ ] **Step 6: 空库与重复迁移验证**
+- [x] **Step 6: 空库与重复迁移验证**
 
 Run:
 
@@ -368,7 +370,7 @@ python -m unittest scripts.tests.test_fins001_migrations
 
 Expected：Flyway成功到最终编号；五表、约束、字典、菜单、权限、示例和受控迁移断言PASS；重复`migrate`无新增变更。
 
-- [ ] **Step 7: 建议逻辑分组**
+- [x] **Step 7: 建议逻辑分组**
 
 建议提交信息：`feat(service): 增加巡检规则版本前向Schema`
 
@@ -432,11 +434,11 @@ Expected：PASS；不出现SQL注解、`${}`、`.last(...)`、长位置参数或
 
 - [ ] **Step 1: 实现最小应用Service**
 
-创建和保存只做本地可验证校验；保存产品类型输入时可保留用户选择编码，但发布预检必须通过AST重新解析有效编码和权威显示名称。整体保存采用单事务替换从属草稿行；CAS更新影响行数不是1时抛版本冲突。
+创建稳定身份只校验检测ID和规则名称；保存DRAFT允许其余八字段、命令、正则、阈值和产品类型为空或部分填写，只对已填写值执行局部格式校验，不运行发布完整性校验。保存产品类型输入时可保留用户选择编码，但发布预检必须通过AST重新解析有效编码和权威显示名称。整体保存采用单事务替换从属草稿行；CAS更新影响行数不是1时抛版本冲突。
 
 - [ ] **Step 2: 补充草稿与整体保存定向测试**
 
-覆盖新稳定身份草稿、同一稳定身份新revision、租户内检测ID冲突、非草稿拒绝保存、`If-Match`陈旧拒绝、命令与产品类型整体替换、任何失败事务回滚。
+覆盖新稳定身份草稿、仅检测ID和规则名称的最小草稿、八字段全空/部分填写保存、同一稳定身份新revision、租户内检测ID/规则名称冲突、非草稿拒绝保存、`If-Match`陈旧拒绝、命令与产品类型整体替换、任何失败事务回滚。
 
 - [ ] **Step 3: 补充复制定向测试**
 
@@ -444,7 +446,7 @@ Expected：PASS；不出现SQL注解、`${}`、`.last(...)`、长位置参数或
 
 - [ ] **Step 4: 补充预检定向测试**
 
-预检返回全部字段级错误，不写revision、不写审核、不改变版本；通过真实`InspectionAssetProductTypeApi`调用覆盖有效、停用、未知编码和契约不可用，任一不可用事实在产品类型位置返回稳定依赖错误，草稿仍可继续编辑。
+预检按发布完整性返回全部字段级错误，不写revision、不写审核、不改变版本；空描述/命令/正则/阈值/产品类型必须在预检失败但仍允许此前草稿保存；阈值数据类型不是`NUMBER`必须失败。通过真实`InspectionAssetProductTypeApi`调用覆盖有效、停用、未知编码和契约不可用，任一不可用事实在产品类型位置返回稳定依赖错误，草稿仍可继续编辑。
 
 - [ ] **Step 5: 运行定向测试**
 
@@ -483,11 +485,11 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 
 - [ ] **Step 3: 补充安全审核定向测试**
 
-覆盖无审核权限、跨租户、非草稿、拒绝结论、摘要不一致和重复请求。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
+覆盖无审核权限、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
 
 - [ ] **Step 4: 补充发布原子性定向测试**
 
-覆盖有效审核发布成功、审核缺失/拒绝/失效/摘要不一致失败、通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败、旧发布版本在新发布成功后才停用、任何失败不产生半发布。
+覆盖字段完整且当前摘要审核结论为`PASSED`时发布成功；草稿字段不完整、阈值非`NUMBER`、审核缺失/`REJECTED`/失效/摘要不一致失败；通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败；旧发布版本在新发布成功后才停用，任何失败不产生半发布。
 
 - [ ] **Step 5: 补充并发发布MySQL定向测试**
 
@@ -672,7 +674,7 @@ Expected：PASS；不得用全仓格式化修复无关文件，只修复本Featu
 
 - [ ] **Step 5: 真实MySQL业务断言**
 
-使用固定测试库验证：同租户检测ID唯一、revision号唯一、命令顺序唯一、产品类型唯一、单一当前发布、31秒CHECK/Service拒绝、并发发布最多一个成功、停用后历史可读、旧`pms_srv_rule`行数与内容未被新运行时写入。
+使用固定测试库验证：同租户检测ID和规则名称永久唯一、跨租户同名允许、停用/软删除后名称不可复用、revision改名拒绝、同名并发创建最多一个成功且无孤立记录、revision号唯一、命令顺序唯一、产品类型唯一、单一当前发布、31秒CHECK/Service拒绝、并发发布最多一个成功、停用后历史可读、旧`pms_srv_rule`行数与内容未被新运行时写入。
 
 - [ ] **Step 6: 建议逻辑分组**
 
@@ -799,14 +801,15 @@ Expected：无空白错误；所有变更可追溯到F-INS-001；未产生提交
 
 | Feature AC | 实施Task | 主要证据 |
 |---|---|---|
-| AC-FINS001-001～003 | Task 4、5、7、10 | 领域测试、Schema、草稿Service、页面 |
+| AC-FINS001-001～003 | Task 4、5、7、10 | 领域测试、名称稳定身份/永久唯一Schema、草稿Service、页面 |
 | AC-FINS001-004～006 | Task 4、7、11 | 命令/超时/正则/阈值测试 |
 | AC-FINS001-007、012A | Task 3、8、10、12 | 专用权限守卫、摘要、审核API、浏览器权限负向 |
 | AC-FINS001-008～010 | Task 5、7、8、12 | 不可变revision、复制、并发发布、停用历史 |
 | AC-FINS001-011 | Task 2、9、12 | AST契约、设备授权选择测试、浏览器选择 |
 | AC-FINS001-012 | Task 7、8、10、12 | 服务端权限、If-Match、状态字段拒绝 |
 | AC-FINS001-013 | Task 1、5、11、12 | 旧文件保护、受控迁移、旧入口回归 |
-| AC-FINS001-014 | Task 11、12 | 后端/迁移/前端/真实浏览器四视口证据 |
+| AC-FINS001-014 | Task 5、7、11、12 | 名称永久唯一、不可复用、改名拒绝与并发创建 |
+| AC-FINS001-015 | Task 11、12 | 后端/迁移/前端/真实浏览器四视口证据 |
 
 ## 5. 主要风险与处理
 
