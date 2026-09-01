@@ -820,9 +820,11 @@ public class CutoverClosureApplicationService {
             String resultRef = "CUTOVER_CLOSURE:" + result.closureId() + ":" + result.closureVersion();
             String eventId = "CUTOVER_COMPLETED:" + result.closureId() + ":" + result.closureVersion();
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("eventId", eventId); payload.put("taskId", result.taskId());
+            payload.put("eventId", eventId); payload.put("tenantId", command.tenantId());
+            payload.put("taskId", result.taskId()); payload.put("closureId", result.closureId());
             payload.put("closureRevision", result.closureVersion());
-            payload.put("resultRef", resultRef); payload.put("archivedAt", submittedAt);
+            payload.put("finalResult", command.finalResult()); payload.put("resultRef", resultRef);
+            payload.put("archivedAt", submittedAt); payload.put("correlationId", command.correlationId());
             events = List.of(new BusinessEvent(eventId, "CutoverCompleted", JsonUtils.toJsonString(payload)));
         }
         return new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_CLOSURE_SUBMIT", "CutoverClosure",

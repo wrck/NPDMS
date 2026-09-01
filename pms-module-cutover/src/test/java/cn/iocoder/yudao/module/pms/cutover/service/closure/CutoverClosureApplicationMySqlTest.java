@@ -286,6 +286,20 @@ class CutoverClosureApplicationMySqlTest {
         assertEquals(0, count("SELECT COUNT(*) FROM cut_task_device_scope WHERE tenant_id=? AND active_marker=1", tenantId));
         assertEquals(1, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? AND trigger_type='P6_CLOSURE_SUBMITTED'", tenantId));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverCompleted'", tenantId));
+        String payloadJson = jdbc.queryForObject("SELECT payload FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverCompleted'",
+                String.class, tenantId);
+        Map<?, ?> payload = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(payloadJson, Map.class);
+        assertEquals(java.util.Set.of("eventId", "tenantId", "taskId", "closureId", "closureRevision",
+                "finalResult", "resultRef", "archivedAt", "correlationId"), payload.keySet());
+        assertEquals("CUTOVER_COMPLETED:" + closureId + ":3", payload.get("eventId"));
+        assertEquals(String.valueOf(tenantId), String.valueOf(payload.get("tenantId")));
+        assertEquals(String.valueOf(taskId), String.valueOf(payload.get("taskId")));
+        assertEquals(String.valueOf(closureId), String.valueOf(payload.get("closureId")));
+        assertEquals("3", String.valueOf(payload.get("closureRevision")));
+        assertEquals("SUCCESS", payload.get("finalResult"));
+        assertEquals("CUTOVER_CLOSURE:" + closureId + ":3", payload.get("resultRef"));
+        assertEquals(1788278400000L, ((Number) payload.get("archivedAt")).longValue());
+        assertEquals("corr-submit-success", payload.get("correlationId"));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='submit-success' AND status='COMPLETED'", tenantId));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND correlation_id='corr-submit-success'", tenantId));
     }
