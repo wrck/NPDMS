@@ -10,7 +10,7 @@
 
 **Locked Inputs:**
 
-- 锁定规格提交：`829a00ac`；实施前必须确认该提交中的Feature Spec、SDS和PRD修订009未被后续未评审变更替代
+- 锁定实施输入提交：`68bc56ec`；该提交包含PRD V1.8修订010、当前F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态；实施前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
 
 - Requirement：`INS-03@V2=PARTIAL`、`INS-09@V2=FULL`、`NFR-02@V2`支撑
 - Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
@@ -41,7 +41,7 @@
 
 ```text
 Task 1 静态实施门禁与唯一性检查
-  -> Task 2 AST产品分类公开契约前置验收
+  -> Task 2 AST产品分类外部Gate与API边界预验收
   -> Task 3 安全审核专用权限与内容摘要契约
   -> Task 4 纯领域规则
   -> Task 5 前向Schema、字典、菜单和受控迁移
@@ -55,7 +55,7 @@ Task 1 静态实施门禁与唯一性检查
   -> Task 13 追溯、自审和Feature收口
 ```
 
-- Task 2仅验收AST Owner独立交付的公开契约与Inspection消费结果，不创建、修改或迁移任何AST文件。对应AST Feature Spec与当前Task未建立时标记`BLOCKED_BY_SPEC`并登记`docs/decisions/open-questions.md`；只允许完成不依赖AST的领域规则和草稿保存代码，不得宣称发布、选择或Feature闭环完成。
+- Task 2仅验收AST Owner独立交付的公开契约、API形状、模块依赖和后续消费所需事实字段，不创建Inspection生产消费组件，也不创建、修改或迁移任何AST文件。未知、停用、未解析、跨租户、空设备范围及契约不可用下的Inspection真实失败关闭，分别由Task 7/8发布预检与发布、Task 9工程师选择的生产入口验证。对应AST Feature Spec与当前Task未建立时标记`BLOCKED_BY_SPEC`并登记`docs/decisions/open-questions.md`；不得宣称发布、选择或Feature闭环完成。
 - Task 3未通过时，不得以硬编码角色、仅前端按钮替代服务端审核守卫。审核主体采用租户内显式授予`pms:inspection-rule:security-review`的动态权限包成员，不要求追溯“哪个角色贡献权限”，不新增固定角色。
 - Task 5最终Flyway编号必须在实施当日重新扫描；当前按已存在V1～V131且F-CUT-001计划占用V132～V133，预留V134～V136。若编号已占用，只允许前向改为新的连续空闲编号，不修改已执行迁移。
 
@@ -97,7 +97,7 @@ assert current_plan_candidates("F-INS-001") == [PLAN]
 
 - [ ] **Step 2: 编写旧实现保护检查**
 
-记录以下旧文件实施前SHA-256，并让测试在本Feature实施期间断言内容不变：
+将以下旧资产纳入相对锁定实施输入提交的Git差异保护，并让测试在本Feature实施期间拒绝已提交、暂存、未暂存或未跟踪变化：
 
 ```text
 pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvrule/SrvRuleController.java
@@ -113,11 +113,11 @@ sql/migrations/V20__pms_test_data_expansion.sql
 sql/migrations/V43__pms_dict_types.sql
 ```
 
-测试同时扫描新`inspectionrule`包，禁止出现对旧`SrvRuleService`、`SrvRuleMapper`的依赖或对`pms_srv_rule`的运行时写入。
+测试按复用审计锁定旧后端Controller/Service/Mapper/DO/VO目录、旧前端API与页面目录，以及V14/V15/V16/V19/V20/V43迁移文件相对锁定输入提交均无已提交、暂存、未暂存或未跟踪变化；同时扫描新`inspectionrule`包，禁止出现对旧`SrvRuleService`、`SrvRuleMapper`的依赖或对`pms_srv_rule`的运行时写入。
 
 - [ ] **Step 3: 编写Owner与查询规则检查**
 
-扫描新增Service/Mapper/XML：允许访问`srv_inspection_rule*`五张Inspection自有表和公开`-api`；禁止直接出现`ast_`、`proj_`、`cus_`、`cut_`业务表，禁止SQL注解、`${}`、`.last(...)`、Mapper接收Controller VO或`Map`查询条件。
+扫描新增Service/Mapper/XML：允许访问`srv_inspection_rule*`五张Inspection自有表和公开`-api`；禁止直接出现`ast_`、`proj_`、`cus_`、`cut_`业务表，禁止SQL注解、`${}`、`.last(...)`、Mapper接收Controller VO或`Map`查询条件。查询方法默认只允许零或一个参数，主键及稳定复合唯一键例外必须显式白名单，不得统一放行两个参数。测试还必须核对本Task列出的测试资产均由当前Plan认领，且当前Task保留`INS-03/INS-09` Requirement ID。
 
 - [ ] **Step 4: 运行静态保护测试**
 
@@ -135,7 +135,7 @@ Expected：唯一计划、锁定提交和旧文件SHA检查立即PASS；Owner/�
 
 ---
 
-### Task 2: 验收AST设备产品分类外部独立Gate与消费契约
+### Task 2: 预验收AST设备产品分类外部Gate与API边界
 
 **Files:**
 
@@ -160,11 +160,11 @@ AST Owner契约自动化与真实数据来源证据
 
 仅在AST独立Feature/Task已建立后，验收其公开契约位于`pms-module-asset-api`且输入输出不暴露DO；批量查询须对每个请求编码返回存在/启用事实，授权设备查询须按租户与设备范围返回稳定产品类型编码和显示名称，未知编码不返回猜测名称，无法访问的设备不泄露其是否存在。AST实现测试、迁移和来源映射证据由AST Owner任务维护，本Task只引用，不修改。
 
-- [ ] **Step 3: 补充Inspection消费契约测试**
+- [ ] **Step 3: 补充Inspection API边界契约测试**
 
-测试覆盖批量空集合、有效/停用/未知编码、跨租户、无设备范围、外部契约不可用与未知结果失败关闭；只验证F-INS消费行为，不复制AST实现测试，不直读`ast_*`表。
+测试只覆盖专用双查询API形状、Query不携带`tenantId/serviceIdentity`、空集合规范化、结果DTO具备后续发布与选择所需的存在/启用/名称/解析/同步事实，以及Service只依赖`pms-module-asset-api`。不得用测试私有判定函数、替身或AST Provider测试冒充Inspection生产失败关闭；真实消费行为留在Task 7/8/9对应生产入口实现后验证。
 
-- [ ] **Step 4: 运行Inspection消费契约测试**
+- [ ] **Step 4: 运行Inspection API边界契约测试**
 
 Run:
 
@@ -172,11 +172,11 @@ Run:
 mvn.cmd -pl pms-module-service -am -Dtest=AssetProductTypeContractTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeContractTest`实际执行；外部Feature/Task或契约未建立时保持`BLOCKED_BY_SPEC`，不以跳过、替身或本Feature内AST改动冒充通过。
+Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeContractTest`实际执行；本Task只关闭AST外部交付、API形状和模块依赖前置，不关闭Task 7/8/9的生产消费验收。外部Feature/Task或契约未建立时保持`BLOCKED_BY_SPEC`，不以跳过、替身或本Feature内AST改动冒充通过。
 
 - [ ] **Step 5: 建议逻辑分组**
 
-建议提交信息：`test(service): 验收AST产品类型消费契约`
+建议提交信息：`test(service): 预验收AST产品类型API边界`
 
 ---
 
@@ -444,7 +444,7 @@ Expected：PASS；不出现SQL注解、`${}`、`.last(...)`、长位置参数或
 
 - [ ] **Step 4: 补充预检定向测试**
 
-预检返回全部字段级错误，不写revision、不写审核、不改变版本；AST不可用时产品类型位置返回稳定依赖错误，草稿仍可继续编辑。
+预检返回全部字段级错误，不写revision、不写审核、不改变版本；通过真实`InspectionAssetProductTypeApi`调用覆盖有效、停用、未知编码和契约不可用，任一不可用事实在产品类型位置返回稳定依赖错误，草稿仍可继续编辑。
 
 - [ ] **Step 5: 运行定向测试**
 
@@ -487,7 +487,7 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 
 - [ ] **Step 4: 补充发布原子性定向测试**
 
-覆盖有效审核发布成功、审核缺失/拒绝/失效/摘要不一致失败、AST未知或停用产品类型失败、旧发布版本在新发布成功后才停用、任何失败不产生半发布。
+覆盖有效审核发布成功、审核缺失/拒绝/失效/摘要不一致失败、通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败、旧发布版本在新发布成功后才停用、任何失败不产生半发布。
 
 - [ ] **Step 5: 补充并发发布MySQL定向测试**
 
@@ -523,7 +523,7 @@ Expected：PASS；数据库唯一约束和Service CAS共同保证单一当前发
 
 - [ ] **Step 1: 实现AST授权设备查询**
 
-Service调用`getAuthorizedDeviceProductType(deviceId, actorId)`取得可信租户与产品类型，不接受客户端直接提交产品类型作为授权依据。
+Service从服务端认证上下文取得当前用户，构造`AuthorizedDeviceProductTypeQuery(subjectUserId, deviceIds)`并调用`InspectionAssetProductTypeApi.getAuthorizedDeviceProductType`取得可信产品类型；不接受客户端直接提交产品类型作为授权依据。
 
 - [ ] **Step 2: 实现只读投影**
 
@@ -531,7 +531,7 @@ Service调用`getAuthorizedDeviceProductType(deviceId, actorId)`取得可信租�
 
 - [ ] **Step 3: 补充选择范围定向测试**
 
-覆盖授权设备当前产品类型精确匹配、跨租户设备、无设备范围、未知产品类型、不适用规则、已停用规则、历史发布规则和空产品类型集合。
+通过真实`InspectionAssetProductTypeApi`调用覆盖授权设备当前产品类型精确匹配、跨租户设备、无设备范围、未知/停用/未解析产品类型、契约不可用、不适用规则、已停用规则、历史发布规则和空产品类型集合；无权或不可见设备返回空且不泄露存在性。
 
 - [ ] **Step 4: 运行定向测试**
 
