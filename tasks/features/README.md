@@ -36,7 +36,7 @@
 | `ProjectSystemQualificationFactApi` | `b4f16bdf`定义契约 → `f4aa1ad2`实现Provider与测试 | `5f5148a9` | 公共API、生产Provider、单元/契约/MySQL测试源已集成；master聚焦测试通过，真实MySQL未在本工作树重跑 | 仅支撑F-IMP-002；不产生Feature Done |
 | `ProjectDeliveryScopeQualificationFactApi` | `9d029976`初始契约 → `319a616e`机器合同 → `86ea27de`最终判定顺序 | `f1cf7920` | 公共API、机器合同和契约测试已集成；生产Provider未实现 | 仅支撑F-COM-001；不解决COM-A/COM-B冲突，不产生Feature Done |
 | `ProjectCutoverContextFactApi` | `e68ad4e0`提出合同 → `f04650b6/17c826e1/5d334050/15c25e89`收敛 → `8eb36222`冻结 | `e2f51762` | ADR和机器合同已集成；公共Java接口、生产Provider未实现 | 仅支撑F-CUT-002；不产生Feature Ready或Done |
-| `ProjectCutoverServiceManagerFactApi` | `5e3ce44c`提出候选合同 → `2efad8ce/2e3fdba3/d990c205`收敛 → `912d0cdb`计划Gate | `e2f51762` | 候选Owner机器合同已集成；公共Java接口、生产Provider未实现 | 仅支撑F-CUT-005；不产生Feature Ready或Done |
+| `ProjectCutoverServiceManagerFactApi` | `5e3ce44c`提出候选合同 → `2efad8ce/2e3fdba3/d990c205`收敛 → `912d0cdb`计划Gate | `e2f51762` | 共址候选Owner机器合同已原样集成，其中SYSTEM组合结构只用于保持判定完整性；PROJ公共Java接口与生产Provider、SYSTEM Provider/实现均未集成 | 仅支撑F-CUT-005；不产生Feature Ready或Done |
 
 当前没有有效写入认领；`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界，`DU-20260901-FSOL003-DEPRECATION`已完整集成。其他历史活动分支均未被倒签为有效认领。
 

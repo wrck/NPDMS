@@ -13,7 +13,7 @@
 > 串行资源：`PROJ公共契约;SDS跨Context契约;master Feature任务矩阵`
 > 旧功能范围：`NONE`
 > 验证：`ProjectSystemQualification与ProjectDeliveryScopeQualification聚焦测试；pms-module-project编译；SDS与Delivery Unit校验；分支时间线重生成`
-> 集成记录：`codex/f-cut-001-matrices的四组PROJ Owner carve-out已选择性进入master@5f5148a9/f1cf7920/e2f51762；其余CUT/COM/IMP/SYSTEM内容未接收`
+> 集成记录：`codex/f-cut-001-matrices的四组PROJ Owner carve-out已选择性进入master@5f5148a9/f1cf7920/e2f51762；其余CUT/COM/IMP实现及SYSTEM Provider/实现未接收`
 
 ## 目标与边界
 
@@ -34,5 +34,5 @@
 - `ProjectSystemQualificationFactApi`：来源`b4f16bdf`、`f4aa1ad2`，进入`master@5f5148a9`；公共API、生产Provider及聚焦测试已集成。
 - `ProjectDeliveryScopeQualificationFactApi`：来源`9d029976`、`319a616e`、`86ea27de`，进入`master@f1cf7920`；只集成公共API、机器合同及契约测试，无生产Provider。
 - `ProjectCutoverContextFactApi`：来源`e68ad4e0`、`f04650b6`、`17c826e1`、`5d334050`、`15c25e89`、`8eb36222`，进入`master@e2f51762`；只集成ADR和机器合同，无公共Java接口或生产Provider。
-- `ProjectCutoverServiceManagerFactApi`：来源`5e3ce44c`、`2efad8ce`、`2e3fdba3`、`d990c205`、`912d0cdb`，进入`master@e2f51762`；只集成候选Owner机器合同，无公共Java接口或生产Provider。
+- `ProjectCutoverServiceManagerFactApi`：来源`5e3ce44c`、`2efad8ce`、`2e3fdba3`、`d990c205`、`912d0cdb`，进入`master@e2f51762`；为保持候选判定的完整组合语义，原样保留同一机器合同内不可拆分的SYSTEM候选结构，但未接收SYSTEM Provider或实现；PROJ侧无公共Java接口或生产Provider。
 - 结论：`INTEGRATED_PARTIAL`。该结论只释放本DU写边界，不改变F-COM-001、F-IMP-002、F-CUT-002、F-CUT-005的Implementation Done状态，也不解除来源分支其余内容的隔离。
