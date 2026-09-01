@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-005",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
+  "featureReadyGate": "GO@2e3fdba3",
   "requirementSlices": ["CUT-05@V1=SUPPORT"],
   "purpose": "resolve and revalidate frozen P5 approvers without CUT reading PROJ or SYSTEM tables",
   "trustedTenant": "tenantId must equal TenantContextHolder.getRequiredTenantId before Owner calls",

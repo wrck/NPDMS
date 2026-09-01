@@ -1,7 +1,8 @@
 {
   "schemaVersion": 2,
   "featureId": "F-CUT-005",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
+  "featureReadyGate": "GO@2e3fdba3",
   "requirementSlices": ["CUT-05@V1=FULL"],
   "ownerContext": "CUT",
   "aggregate": "CutoverApproval",

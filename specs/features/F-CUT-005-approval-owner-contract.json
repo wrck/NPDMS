@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractId": "CUTOVER_APPROVAL_OWNER_V1",
   "status": "CONSUMER_CONTRACT_BASELINE",
-  "ownerFeatureReady": "REVIEW_REQUIRED",
+  "ownerFeatureReady": "READY_GO_2E3FDBA3",
   "ownerFeatureId": "F-CUT-005",
   "consumerFeatureIds": ["F-CUT-004", "F-CUT-006"],
   "requirementSlices": ["CUT-04@V1=SUPPORT", "CUT-05@V1=OWNER"],

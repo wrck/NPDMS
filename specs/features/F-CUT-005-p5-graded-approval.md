@@ -1,7 +1,7 @@
 # F-CUT-005 P5分级审批 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO @ 2e3fdba3`
 > Requirement：`CUT-05（V1/P0）`
 > Requirement切片覆盖：`CUT-05@V1=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -90,4 +90,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。最近Gate为本Feature的API/Physical/Candidate/Legacy Machine Contract及Feature Ready独立复审；通过前不得生成Technical Plan或实施。
+当前：`BASELINE / READY / GO / NOT_STARTED`。Feature Ready独立复审已在锁定提交`2e3fdba3`通过；允许生成唯一Technical Plan并送独立复审，Technical Plan通过前不得实施。
