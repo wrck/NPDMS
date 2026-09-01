@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～5均已通过；当前进入Task 6的REJECTED、SOURCE_REPLACED与批准后联系人变更正向闭环；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
+- Task 1～6均已通过；当前进入Task 7七路由REST、精确错误合同与测试激活外壳；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -83,11 +83,13 @@
 
 ## Task 6：修订链与批准后联系人变更
 
-状态：`IN_PROGRESS / DUTY_CHANGED_BLOCKED_BY_SPEC`
+状态：`PASS / GO@c6c295cb / DUTY_CHANGED_BLOCKED_BY_SPEC`
 
-- [ ] REJECTED派生新DRAFT并保留旧提交/审批历史。
-- [ ] PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED，新revision提交时引用旧审批实例。
-- [ ] 派生DRAFT以当前锁定Owner事实重建设备/风险投影，只继承允许的用户内容；等级/编辑方式或模板不可唯一映射时插入前失败关闭。
-- [ ] APPROVED后仅联系人、电话、到位时间按方案根If-Match更新并保存平台前后审计。
+- [x] REJECTED派生新DRAFT并保留旧提交/审批历史。
+- [x] PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED，新revision提交时引用旧审批实例。
+- [x] 派生DRAFT以当前锁定Owner事实重建设备/风险投影，只继承允许的用户内容；等级/编辑方式或模板不可唯一映射时插入前失败关闭。
+- [x] APPROVED后仅联系人、电话、到位时间按方案根If-Match更新并保存平台前后审计。
 - [ ] `DUTY_CHANGED`等待`Q-FCUT004-001`锁定P6→P4 Owner、历史触发器与旧批准/闭环处置；不得实现替代迁移。
-- [ ] 通过Task 6 Lifecycle/MySQL独立Gate。
+- [x] 通过Task 6 Lifecycle/MySQL独立Gate（`GO@d4a827c0+c6c295cb`）。
+
+> 检查点：独立整体Gate确认REJECTED、SOURCE_REPLACED、当前Owner投影重建、替代审批及批准后联系人PATCH闭环成立；非IT聚焦20/20、隔离MySQL 8.4应用3/3通过。Task 6 Gate通过；DUTY_CHANGED继续作为已登记规格阻断排除在本Task已授权实现范围外。
