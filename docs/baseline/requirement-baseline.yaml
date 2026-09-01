@@ -2,7 +2,7 @@ baseline:
   product: project-delivery-platform
   version: V1.8
   revision: CHG-PRD-2026-09-01-011
-  status: candidate-in-review
+  status: formal-baseline
   frozen_at: 2026-09-01
   source: 需求/PRD-项目实施交付管理平台.md
   snapshot: docs/baseline/prd-v1.8.md

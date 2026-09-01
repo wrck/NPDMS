@@ -1,8 +1,8 @@
 # PRD V1.8修订011：并行基线收敛与BPM定义身份
 
 > 修订编号：`CHG-PRD-2026-09-01-011`<br>
-> 候选日期：2026-09-01<br>
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 批准日期：2026-09-01<br>
+> 状态：`APPROVED`<br>
 > 输入一：`CHG-PRD-2026-08-30-008`（提交`61949f92`，CUT双机97项）<br>
 > 输入二：`CHG-PRD-2026-08-30-010`（提交`c69a53a4`，包含2026-08-29修订008/009及修订010）
 
@@ -22,4 +22,4 @@
 
 ## 3. Gate边界
 
-本候选只申请PRD Baseline Gate独立审批。GO前不得形成受影响SDS、Feature或Technical Plan结论，不修改产品代码、Flyway、BPM/Yudao基础平台或其他并行Feature实现。
+本修订已通过PRD Baseline Gate。该GO只批准修订011成为正式基线；后续仅可进入工程链中最近未满足的下游Gate，不自动批准SDS、Feature、Technical Plan、产品代码、Flyway、BPM/Yudao基础平台或其他并行Feature实现。
