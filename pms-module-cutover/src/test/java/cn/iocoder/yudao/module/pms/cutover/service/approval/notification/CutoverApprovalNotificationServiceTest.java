@@ -10,7 +10,6 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNod
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationDeliveryUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.system.api.notify.NotifyMessageSendApi;
 import cn.iocoder.yudao.module.system.api.notify.dto.NotifySendSingleToUserReqDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
@@ -40,13 +39,13 @@ class CutoverApprovalNotificationServiceTest {
     void sendsPendingNotificationAndPersistsSentResult() {
         Fixture f = new Fixture();
         f.givenPending();
-        when(f.notify.sendSingleMessageToAdmin(any())).thenReturn(900L);
+        when(f.provider.send(any())).thenReturn(900L);
 
         var result = f.service.deliverDue(1L, f.now, 50);
 
         assertThat(result).isEqualTo(new CutoverApprovalNotificationService.DeliveryResult(1, 0));
         ArgumentCaptor<NotifySendSingleToUserReqDTO> request = ArgumentCaptor.forClass(NotifySendSingleToUserReqDTO.class);
-        verify(f.notify).sendSingleMessageToAdmin(request.capture());
+        verify(f.provider).send(request.capture());
         assertThat(request.getValue().getDeliveryKey()).isEqualTo("CUT_APPROVAL:100:1:0");
         assertThat(request.getValue().getTemplateParams()).containsEntry("taskCode", "CUT-10")
                 .containsEntry("nodeCode", "INITIATOR")
@@ -58,7 +57,7 @@ class CutoverApprovalNotificationServiceTest {
     void schedulesFirstRetryWithoutChangingApprovalFacts() {
         Fixture f = new Fixture();
         f.givenPending();
-        when(f.notify.sendSingleMessageToAdmin(any())).thenThrow(new IllegalStateException("system unavailable"));
+        when(f.provider.send(any())).thenThrow(new IllegalStateException("system unavailable"));
 
         var result = f.service.deliverDue(1L, f.now, 50);
 
@@ -83,9 +82,9 @@ class CutoverApprovalNotificationServiceTest {
         final CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         final CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
         final CutoverTaskMapper tasks = mock(CutoverTaskMapper.class);
-        final NotifyMessageSendApi notify = mock(NotifyMessageSendApi.class);
+        final CutoverApprovalNotificationProviderExecutor provider = mock(CutoverApprovalNotificationProviderExecutor.class);
         final CutoverApprovalNotificationService service = new CutoverApprovalNotificationService(
-                notifications, instances, nodes, tasks, notify);
+                notifications, instances, nodes, tasks, provider);
         final LocalDateTime now = LocalDateTime.of(2026, 9, 2, 10, 0);
 
         void givenPending() {

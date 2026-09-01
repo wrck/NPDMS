@@ -11,7 +11,6 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNot
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationClaimQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationDeliveryUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.system.api.notify.NotifyMessageSendApi;
 import cn.iocoder.yudao.module.system.api.notify.dto.NotifySendSingleToUserReqDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +31,7 @@ public class CutoverApprovalNotificationService {
     private final CutoverApprovalInstanceMapper instanceMapper;
     private final CutoverApprovalNodeMapper nodeMapper;
     private final CutoverTaskMapper taskMapper;
-    private final NotifyMessageSendApi notifyMessageSendApi;
+    private final CutoverApprovalNotificationProviderExecutor providerExecutor;
 
     @Transactional
     public DeliveryResult deliverDue(long tenantId, LocalDateTime dueAt, int batchSize) {
@@ -84,7 +83,7 @@ public class CutoverApprovalNotificationService {
                 "nodeCode", node.getNodeCode(),
                 "link", "/pms/cutover/cutover-task?taskId=" + task.getId()));
         try {
-            Long messageId = notifyMessageSendApi.sendSingleMessageToAdmin(request);
+            Long messageId = providerExecutor.send(request);
             if (messageId == null || messageId <= 0) throw new IllegalStateException("站内信消息编号无效");
             return messageId;
         } catch (RuntimeException ex) {
