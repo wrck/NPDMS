@@ -1,7 +1,7 @@
 # SDS Phase 3：测试设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订010、SDS Phase 1/2/3 BASELINE；本次落位引用`CHG-PRD-2026-08-30-010`
+> 适用基线：PRD V1.8修订011、SDS Phase 1/2/3 BASELINE；巡检规则安全差量引用`CHG-PRD-2026-09-01-011`
 > Requirement ID：附录A.1全部100项正式Requirement及附录A.1.1的111个目标版本切片；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
@@ -98,6 +98,13 @@ AST产品类型模块契约专项（修订010）：
 - 带完整来源证据的受控导入覆盖未认证、缺少独立`pms:asset-product-type:controlled-import`权限、请求伪造租户/操作者字段不可表达、权限未默认绑定角色，以及首次、更早`sourceUpdatedAt`拒绝、同水位且`sourceVersion + payloadHash + targetProductTypeCode`全同幂等、同水位任一事实不同冲突、更晚水位更新、同源多目标、空响应和部分失败；断言`sourceVersion`不参与字符串/数字/语义版本排序，最近成功副本不被清空，冲突摘要在导入拒绝后仍可查询；
 - Inspection消费者契约覆盖草稿离线可编辑、发布重新校验并冻结编码/名称快照、按授权设备选择重新校验、未知/停用/来源缺失/契约不可用失败关闭、旧发布revision继续有效；禁止使用`conpType`、旧字典、型号、自由文本、替身或直接数据库读取作为通过证据；
 - F-AST-002证据不得包含CRM/MES协议适配、网络、调度、游标、重试、补偿或对账实现，也不得宣称EQP-04、INS-03、INS-09、外部联调或Release完成。
+
+F-INS-001规则安全专项：
+
+- 字典测试逐项覆盖十类分类和三级严重度的机器码、标签、排序、启用、停用、未知和字典能力不可用；只接受正式机器码，停用/未知阻止新发布且历史快照可解释；
+- 正则测试覆盖1024长度、32分组、8层嵌套、31分支、64量词和区间上界1000的通过/越界，逐项覆盖反向引用、环视、命名捕获、原子组、局部标志、嵌套量词、分支分组量化、无上界区间和PCRE专有结构；发布校验不得对不可信文本试匹配；
+- 秘密扫描测试覆盖私钥头、认证头、URL用户名密码和四种密码键赋值，以及`${NAME}`、`{{NAME}}`、`<PASSWORD>`、`***`、`REDACTED`占位符；断言只返回字段路径和`SECRET_DETECTED`，浏览器、DB、缓存、消息、日志、Trace、异常和审计均不出现命中正文；
+- 完整revision校验覆盖分类/严重度`UNSUPPORTED_VALUE`、`REGEX_TOO_LONG`、`REGEX_UNSUPPORTED_FEATURE`、`REGEX_COMPLEXITY_EXCEEDED`和`SECRET_DETECTED`，任一失败保持草稿和旧发布revision有效。
 
 INT-12专项：
 

@@ -24,7 +24,7 @@
 | [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `a9f8b7c5`；自动化、真实MySQL、查询计划、真实浏览器与合并后复审通过） |
 | [F-AST-002](F-AST-002-device-product-type-copy-and-public-query.md) | 设备产品类型受控副本与公开查询 | EQP-01（PARTIAL，V1） | BASELINE | READY（`NPDMS-FAST002-FEATURE-READY-20260830-01`） | IMPLEMENTATION_DONE（`NPDMS-FAST002-IMPLEMENTATION-DONE-20260831-01`；NPDMS `68bc56ec`；不含CRM/MES连接器） |
 | [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | TECHNICAL_PLAN_READY（`NPDMS-FCUT001-TECHPLAN-20260830-02`；原CUT-07证据保留，CUT-09/10未完成前不恢复Done） |
-| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（PARTIAL）、INS-09（FULL）（V2） | BASELINE | READY（`NPDMS-FINS001-FEATURE-READY-20260830-01`） | IMPLEMENTATION_IN_PROGRESS（`NPDMS-FINS001-TECHPLAN-20260830-01`；F-AST-002外部交付依赖已关闭，Task 1/2前置单元收口中） |
+| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（PARTIAL）、INS-09（FULL）（V2） | BASELINE | READY（`NPDMS-FINS001-FEATURE-READY-20260901-02`） | IMPLEMENTATION_IN_PROGRESS（`NPDMS-FINS001-TECHPLAN-20260830-01`；Q-FINS001-003已关闭，当前实施Task 4领域安全校验） |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 

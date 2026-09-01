@@ -459,6 +459,20 @@
 - Decision owner: 需求方；AST Owner负责交付，SRV/Inspection作为消费方参与契约验收
 - Decision date: 2026-08-30
 
+### Q-FINS001-003
+
+- Status: RESOLVED
+- Requirement IDs: INS-03、INS-09、NFR-02
+- Area: F-INS-001纯领域校验的受控值与安全预算
+- Question: 十类检测分类和三级严重度的机器编码、JDK正则兼容子集与复杂度预算、秘密扫描精确模式及稳定错误码分别采用什么正式口径？
+- Why it blocks design/implementation: Task 4若自行选择编码、长度、嵌套深度、模式或错误码会臆造业务与安全规则；但不阻断状态、必填、命令顺序、1～30秒超时、阈值结构和JDK正则语法等独立工作。
+- Options: A. 在正式SDS冻结受控值和预算；B. 仅依赖未来字典/安全能力返回结果；C. 实现自行设定默认值。
+- Recommended technical default: A；分类与严重度机器码应由正式字典种子冻结，正则预算和秘密模式应由安全Owner批准并形成可测试常量。
+- Business decision required: 已完成。
+- Resolution: 采用A，批准`NPDMS-Q-FINS001-003-GO-20260901-01`及`CHG-PRD-2026-09-01-011`。正式SDS已冻结两类字典及13个机器码、JDK 25受限正则预算、四类秘密模式和稳定字段错误码；Feature Ready重新裁决后解除Task 4B阻断。
+- Decision owner: 业务Owner、安全Owner、SRV Owner（独立裁决）
+- Decision date: 2026-09-01
+
 ### Q-FAST002-001
 
 - Status: RESOLVED

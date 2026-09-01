@@ -1,7 +1,7 @@
 # V1.8需求追溯矩阵
 
 > 本文件是111个正式Requirement目标版本切片到工程资产的自动派生索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与Owner生成。
-> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8修订010；领域决策：`docs/design/phase-1-domain-ownership.md`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。
+> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8修订011；领域决策：`docs/design/phase-1-domain-ownership.md`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。
 > 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。
 > 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。
 > 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。
@@ -18,7 +18,7 @@
 - 正式需求：100项（主版本V1 53项，V2 47项）
 - 正式目标版本切片：111个（V1 53个，V2 58个）
 - 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner
-- 当前状态：PRD V1.8修订010重新基线化；既有Feature实施结论只关闭其机器可读声明覆盖的切片或子闭环，不因Feature完成自动关闭整个Requirement
+- 当前状态：PRD V1.8修订011重新基线化；既有Feature实施结论只关闭其机器可读声明覆盖的切片或子闭环，不因Feature完成自动关闭整个Requirement
 - 当前规格阻断：无；VS-001～VS-011均已裁决关闭，配置基础前置原则适用，但正文明确V2、V3或延后的内容保持原版本
 
 ## 字段状态约定

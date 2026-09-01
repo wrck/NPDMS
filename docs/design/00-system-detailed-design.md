@@ -1,7 +1,7 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订007（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8修订011（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8附录A.1的100项正式Requirement及附录A.1.1的111个目标版本切片
 > Owner：SDS 总编
 > 定位：本文件是 SDS 各分册的总册与索引，不复制分册内容；分册结论以其自身和对应门禁记录为准。

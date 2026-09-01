@@ -1,8 +1,9 @@
 # SDS Phase 3 Review
 
 > 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8修订007正式基线、SDS Phase 1/2 `APPROVED / READY_FOR_PHASE_3_V1.8`<br>
-> 结论：`READY_FOR_SDS_BASELINE_V1.8`
+> 依据：PRD V1.8修订011正式基线、SDS Phase 1/2 `APPROVED / READY_FOR_PHASE_3_V1.8`<br>
+> 结论：`READY_FOR_SDS_BASELINE_V1.8`<br>
+> 适用修订：`PRD_V1.8_REVISION_011`
 
 ## 1. 当前结论
 
@@ -21,6 +22,10 @@
 | Q08候选索引 | DEFERRED_TO_FEATURE_VALIDATION | 仍只是候选，不代表性能验收 |
 | 生产运行证据 | DOWNSTREAM-GATED（P3-E01、P3-E02、P3-E03、P3-E04、P3-E05、P3-E06、P3-E07、P3-E08） | KMS、Telemetry、容量、恢复、集成和发布证据在对应环境/专项/发布门禁关闭 |
 
-## 3. 放行原则
+## 3. F-INS-001修订011差量
+
+`NPDMS-Q-FINS001-003-GO-20260901-01`冻结正则结构预算、四类秘密扫描和不回显Secret的证据边界，14、20分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE3-DELTA-20260901-01`。该结论只放行F-INS-001重新执行Feature Ready和Task 4领域安全校验，不代表INS-02运行时执行、UI、Deployment或Release完成。
+
+## 4. 放行原则
 
 当前状态为`APPROVED / READY_FOR_SDS_BASELINE_V1.8`，只放行下游按正式SDS开展Feature Ready评估，不自动批准任何Feature或实施。P3-E01～P3-E08继续在部署、联调、专项验收或发布阶段关闭；P3-E09保持`MODEL_BASELINE_READY`且不构成迁移批准；Q08仍由Feature查询计划和P3-E06验证；适用Release的`AI-MIG-000`、UAT、生产部署、切换和Release门禁均未关闭。

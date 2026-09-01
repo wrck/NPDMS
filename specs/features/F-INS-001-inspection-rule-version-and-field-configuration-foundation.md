@@ -1,14 +1,14 @@
 ﻿# F-INS-001 巡检规则版本与字段配置基础 Feature Spec
 
 > 规格状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260830-01`
+> Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-02`
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Requirement切片覆盖：`INS-03@V2=PARTIAL；INS-09@V2=FULL`
 > Owner Context：`Inspection（SRV物理模块）`
 > 前置Feature：`F-AST-002`设备产品类型受控副本与公开查询（发布、工程师选择和Implementation Done实施Gate）；基础平台字典能力
 > 后续Feature：F-INS-002巡检任务准备与规则冻结（覆盖INS-01及INS-03剩余任务内选择/命令清单义务）、INS-02在线/离线执行、INS-05报告、INS-06问题标注、INS-08误报修订
-> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`、`Q-FINS001-002`均已关闭
-> 适用基线：PRD V1.8修订010；SDS Phase 1/2/3 `BASELINE`
+> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`、`Q-FINS001-002`均已关闭；`Q-FINS001-003`已由`NPDMS-Q-FINS001-003-GO-20260901-01`关闭
+> 适用基线：PRD V1.8修订011；SDS Phase 1/2/3 `BASELINE`（含Q-FINS001-003裁决回写）
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：Feature Ready规格提交锁定后生成唯一计划
 
@@ -69,14 +69,14 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 ### 4.2 字段不变量
 
 - 规则名称在租户和revision内唯一；检测ID在租户内唯一。
-- 每条规则必须属于十类检测分类之一，并具有一般、严重或致命严重级别。
+- 检测分类使用`pms_inspection_rule_category`，稳定值为`BASIC/OPERATING_STATUS/LOG/BUSINESS_STATUS/REDUNDANCY/ROUTING/SECURITY/FORWARDING_CHANNEL/LOAD_BALANCING/TRAFFIC_CLEANING`；严重度使用`pms_inspection_rule_severity`，稳定值为`GENERAL/SEVERE/FATAL`。发布只接受当前启用值，机器码不得改义、复用或删除。
 - 命令列表至少一条；顺序从1开始连续且不得重复。
 - 每条命令超时阈值必须为1～30秒正整数；31秒及以上拒绝。
 - 后续命令继续/停止决定必须随已发布revision冻结，不由执行时临时猜测。
-- 正则必须通过语法和复杂度校验；阈值必须同时具有数据类型、运算符、数值和单位，运算符仅允许`>`、`<`、`≥`、`≤`、`=`、`≠`。
+- 正则引擎固定为JDK 25 `Pattern`，最多1024个UTF-16代码单元、32个分组、8层嵌套、31个分支符、64个量词节点和1000区间上界；禁止反向引用、环视、命名捕获、原子组、局部标志、嵌套量词、分支分组量化、无上界区间及PCRE专有结构。阈值必须同时具有数据类型、运算符、数值和单位，运算符仅允许`>`、`<`、`≥`、`≤`、`=`、`≠`。
 - 至少一个适用产品类型；引用必须存在且可用，发布时冻结编码和显示名称快照。
 - 命令、正则、阈值或适用范围任何变化都形成新revision，不覆盖历史。
-- 规则及文件不得包含设备密码、凭证明文、认证头或私钥。
+- 发布前扫描全部用户输入文本中的私钥头、认证头、URL内嵌用户名密码和密码赋值；明确占位符不按明文Secret处理。命中只返回字段路径和`SECRET_DETECTED`，不得回显或记录秘密正文。
 
 ## 5. 权限与数据范围
 
@@ -167,6 +167,6 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 
 ## 12. Feature Ready Gate
 
-当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260830-01`。
+当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-02`，替代`NPDMS-FINS001-FEATURE-READY-20260830-01`。
 
-INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。PRD修订009已关闭超时上限冲突；Q-PRD-VS-009已关闭超时后的后续命令策略。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结，无直接Open Question阻断。F-AST-002规格与Task已建立并关闭Q-FINS001-002；其实际契约交付仍是本Feature发布、工程师选择和Implementation Done的实施Gate。本结论不表示代码、迁移、测试、浏览器验收或Implementation Done已通过。
+INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。PRD修订009已关闭超时上限冲突，Q-PRD-VS-009已关闭超时后的后续命令策略；`Q-FINS001-003`已由`NPDMS-Q-FINS001-003-GO-20260901-01`冻结字典机器码、受限JDK正则预算、秘密扫描模式和字段错误码。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结，无直接Open Question阻断。F-AST-002实际契约交付仍是本Feature发布、工程师选择和Implementation Done的实施Gate。本结论不表示代码、迁移、测试、浏览器验收或Implementation Done已通过。

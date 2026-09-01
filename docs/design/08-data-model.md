@@ -224,6 +224,8 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Service Operations | ServiceStatus | 设备客观服务状态和来源提示 | 不提供续保空间或续保率管理 |
 | Service Operations | ServiceHandoverReference | 对 ACC 交接结果的只读引用和处理状态 | 不回写 ACC 交接原记录 |
 
+InspectionRule的检测分类和严重度由基础平台字典提供：分类字典类型为`pms_inspection_rule_category`，稳定值为`BASIC/OPERATING_STATUS/LOG/BUSINESS_STATUS/REDUNDANCY/ROUTING/SECURITY/FORWARDING_CHANNEL/LOAD_BALANCING/TRAFFIC_CLEANING`；严重度字典类型为`pms_inspection_rule_severity`，稳定值为`GENERAL/SEVERE/FATAL`。机器码发布后不得改义、复用或删除；不存在或停用时阻止新发布，历史revision按机器码和显示名称快照解释。
+
 InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；受控副本包含稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态。Inspection只保存产品类型稳定编码及发布时名称快照。产品类型停用阻止新发布和新选择，历史revision继续按快照解释；AST契约不可用时发布失败关闭。规则安全审核作为InspectionRule revision的发布前置事实，记录审核引用、审核主体角色组、审核时间、结论及命令内容摘要；不新增业务生命周期状态。
 
 ## 9. Customer、Asset、Commerce 与 Resource

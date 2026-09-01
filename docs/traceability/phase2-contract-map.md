@@ -1,7 +1,7 @@
 # SDS Phase 2 显式需求契约映射
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8 修订010（`docs/baseline/prd-v1.8.md`）；批准依据`docs/baseline/prd-v1.8-amendment-010-asset-product-type-public-contract.md`
+> 适用基线：PRD V1.8 修订011（`docs/baseline/prd-v1.8.md`）；物理/API契约沿用修订010，修订011安全与异常差量由14、16、20分册承载
 > Requirement ID：附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片（V1 53个、V2 58个）
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
 > Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`（仅表示SDS设计可进入Phase 3，不批准DDL、Feature或Release）

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-010",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-09-01-011",
   "sources": {
     "prd": "需求/PRD-项目实施交付管理平台.md",
     "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
@@ -95,7 +95,7 @@
       "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
       "taskPath": "tasks/features/F-INS-001.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "TECHNICAL_PLAN_READY",
+      "taskStatusRaw": "IMPLEMENTATION_IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "INS-03@V2",
