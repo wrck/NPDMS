@@ -65,6 +65,22 @@ class FCut004FeatureContractTest(unittest.TestCase):
         self.assertIn("checklist_id/version are null", grade_d)
         self.assertIn("configuration", grade_d)
         self.assertIn("OPERATION/ROLLBACK", grade_d)
+        self.assertIn("A/B/C/D", self.physical["tables"][0]["conditionalContracts"]["FULL_FILE_UPLOAD"])
+        create_mode = self.api["operations"]["createDraft"]["request"]["body"]["fields"]["editMode"]
+        self.assertIn("D allows FULL_FILE_UPLOAD or ONLINE_TEMPLATE_SIMPLE_D", create_mode)
+
+    def test_steps_and_support_arrangements_have_one_authoritative_storage(self):
+        root_json = self.physical["jsonContracts"]["content_snapshot"]
+        self.assertIn("steps and supportArrangements are never stored", root_json["exclusions"])
+        step = next(table for table in self.physical["tables"] if table["name"] == "cut_step")
+        support = next(
+            table for table in self.physical["tables"]
+            if table["name"] == "cut_cutover_support_arrangement"
+        )
+        self.assertIn("only business truth", step["authority"])
+        self.assertIn("only business truth", support["authority"])
+        self.assertIn("atomically replaces", self.physical["draftAndReadConsistency"]["save"])
+        self.assertIn("overlays", self.physical["draftAndReadConsistency"]["approvedContactChange"])
 
     def test_all_seven_rest_operations_have_exact_requests_and_error_contracts(self):
         operations = self.api["operations"]
@@ -96,6 +112,8 @@ class FCut004FeatureContractTest(unittest.TestCase):
         migration = self.physical["legacyMigration"]
         self.assertEqual("pms_cut_plan", migration["source"])
         self.assertEqual("LEGACY_FORWARD", migration["rootMappings"]["origin_code"])
+        legacy_snapshot = self.api["commonTypes"]["LegacyPlanSourceSnapshot"]
+        self.assertTrue({"code", "name", "level", "remark"}.issubset(legacy_snapshot["exactKeys"]))
         self.assertEqual("trimmed non-blank -> cut_step PRE_OPERATION/1", migration["fieldMappings"]["pre_check"])
         self.assertEqual("trimmed non-blank -> cut_step OPERATION/1", migration["fieldMappings"]["procedure"])
         self.assertIn("STAGED_READY", migration["platformBatchProtocol"]["intake"])
