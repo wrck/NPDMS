@@ -19,7 +19,7 @@
     "source_snapshot": "PlanSourceSnapshot from F-CUT-004-api-contract.json; NEW_PLATFORM A/B/C/D all freeze task, assessment, project, device, configuration revision and template sections; only checklist identity is null for D",
     "content_snapshot": {
       "standardRootExactKeys": ["editMode", "overview", "riskMitigations"],
-      "standardRootFields": {"editMode": "literal ONLINE_TEMPLATE_STANDARD", "overview": "exact StandardOverview", "riskMitigations": "exact RiskMitigation[]"},
+      "standardRootFields": {"editMode": "literal ONLINE_TEMPLATE_STANDARD", "overview": "exact StandardOverview or StandardDraftOverview while DRAFT", "riskMitigations": "exact RiskMitigation[]; DRAFT may contain a unique Owner-matching subset"},
       "simpleRootExactKeys": ["editMode"],
       "simpleRootFields": {"editMode": "literal ONLINE_TEMPLATE_SIMPLE_D"},
       "exclusions": "steps and supportArrangements are never stored in content_snapshot; cut_step and cut_cutover_support_arrangement are their only business truth"
@@ -138,7 +138,7 @@
     "migrationRule": "a future serial Flyway must preflight existing cut_task and cut_task_stage_history values, then replace V146/V149 CHECK constraints; never edit executed migrations or rewrite history"
   },
   "additionalFacts": {
-    "riskMitigations": "exact RiskMitigation array inside StandardPlanContent; every current failed CUT-03 risk exactly once",
+    "riskMitigations": "exact RiskMitigation array inside StandardPlanContent; DRAFT may omit not-yet-mitigated facts, but each stored row is complete and Owner-matching; draft generation and submit require every current failed CUT-03 risk exactly once",
     "supportArrangementAudit": "PlatformCommandExecution operation audit stores before/after personName, phone and arrivalTime plus actor, reason, correlationId and time; no fourth CUT business table",
     "downloadAudit": "platform operation audit plus generated PLT FileArtifact fact records actor, time and plan revision",
     "approval": "approval instance, nodes, opinions, todo and notification are F-CUT-005 facts and are accessed only through F-CUT-005-approval-owner-contract.json"

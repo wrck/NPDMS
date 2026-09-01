@@ -121,7 +121,7 @@
 
 **Steps:**
 
-- [ ] 实现exact-key Codec与规范序列化；数组保留业务顺序，步骤按section/stepNo、保障按role稳定排序，未知/缺键失败关闭。
+- [ ] 实现exact-key草稿Codec、提交完整性校验与规范序列化；草稿允许项目说明为空、计划/步骤/风险/保障为合法子集，已出现元素仍完整；生成初稿/提交才校验全量。数组保留业务顺序，步骤按section/stepNo、保障按role稳定排序，未知/缺键失败关闭。
 - [ ] `CutoverPlanSourcePort`只组合既有CUT-002/003只读投影：任务、评估、清单、项目/设备、配置和模板章节；不查询COM、不访问其他模块表。
 - [ ] `CutoverPlanFilePort`定义inspect/lock/downloadDraft最窄事实。生产Adapter只可直接调用`FileArtifactApi`已存在的公开方法；若“生成初稿”缺PLT公开创建合同，保持该Adapter分支`BLOCKED_BY_DEPENDENCY`，测试用受控端口返回确定文件事实，不修改PLT。
 - [ ] 实现完成后补聚焦测试：A/B/C标准内容完整装配、D仅OPERATION/ROLLBACK、完整文件事实冻结、步骤/保障只从子表组装，并确认Owner原值保留且比较使用合同规范键。

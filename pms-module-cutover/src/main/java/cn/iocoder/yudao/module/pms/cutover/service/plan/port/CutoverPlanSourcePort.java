@@ -52,8 +52,9 @@ public interface CutoverPlanSourcePort {
                     .thenComparing(TemplateSectionSnapshot::stableSectionKey)).toList();
             require(new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList()).size()
                     == templateSections.size(), "stableSectionKey");
-            if ("D".equals(grade)) require(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList()
-                    .equals(SIMPLE_SECTIONS), "D templateSections");
+            if ("D".equals(grade)) require(templateSections.size() == SIMPLE_SECTIONS.size()
+                    && new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList())
+                    .equals(new HashSet<>(SIMPLE_SECTIONS)), "D templateSections");
         }
     }
     record DeviceSnapshot(Long deviceId, String serialNumber, Long projectAssignmentVersion,

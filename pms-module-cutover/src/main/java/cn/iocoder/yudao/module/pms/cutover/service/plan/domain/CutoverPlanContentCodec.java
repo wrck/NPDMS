@@ -55,21 +55,21 @@ public final class CutoverPlanContentCodec {
     private DecodedContent decodeOnline(JsonNode body, boolean standard, CutoverPlanSourcePort.SourceFacts sourceFacts) {
         exact(body, standard ? STANDARD : SIMPLE, "content");
         List<PlanStep> steps = steps(body.get("steps"), standard ? CutoverPlanRules.STANDARD_SECTIONS : CutoverPlanRules.SIMPLE_SECTIONS);
-        List<SupportArrangement> support = standard ? support(body.get("supportArrangements")) : List.of();
+        List<SupportArrangement> support = standard ? supportDraft(body.get("supportArrangements")) : List.of();
         ObjectNode root = JsonUtils.getObjectMapper().createObjectNode();
         root.put("editMode", standard ? "ONLINE_TEMPLATE_STANDARD" : "ONLINE_TEMPLATE_SIMPLE_D");
         if (standard) {
-            root.set("overview", overview(body.get("overview"), sourceFacts.snapshot()));
-            root.set("riskMitigations", riskMitigations(body.get("riskMitigations"), sourceFacts.failedRiskFacts()));
+            root.set("overview", overviewDraft(body.get("overview"), sourceFacts.snapshot()));
+            root.set("riskMitigations", riskMitigationsDraft(body.get("riskMitigations"), sourceFacts.failedRiskFacts()));
         }
         return new DecodedContent(root, steps, support, null, false);
     }
 
-    private ObjectNode overview(JsonNode node, CutoverPlanSourcePort.SourceSnapshot source) {
+    private ObjectNode overviewDraft(JsonNode node, CutoverPlanSourcePort.SourceSnapshot source) {
         exact(node, OVERVIEW, "overview");
         ObjectNode result = JsonUtils.getObjectMapper().createObjectNode();
-        result.put("projectDescription", text(node, "projectDescription", 4000));
-        result.set("scheduleTable", schedule(node.get("scheduleTable")));
+        result.put("projectDescription", draftText(node, "projectDescription", 4000));
+        result.set("scheduleTable", scheduleDraft(node.get("scheduleTable")));
         result.set("preTopologyFile", nullableFile(node.get("preTopologyFile")));
         result.set("postTopologyFile", nullableFile(node.get("postTopologyFile")));
         result.set("deviceSummary", deviceSummary(node.get("deviceSummary"), source));
@@ -77,8 +77,8 @@ public final class CutoverPlanContentCodec {
         return result;
     }
 
-    private ArrayNode schedule(JsonNode array) {
-        require(array != null && array.isArray() && !array.isEmpty(), "scheduleTable");
+    private ArrayNode scheduleDraft(JsonNode array) {
+        require(array != null && array.isArray(), "scheduleTable");
         List<ObjectNode> rows = new ArrayList<>();
         Set<Integer> numbers = new HashSet<>();
         array.forEach(node -> {
@@ -101,7 +101,7 @@ public final class CutoverPlanContentCodec {
             exact(node, DEVICE, "deviceSummaryItem");
             long id = positiveLong(node, "deviceId");
             CutoverPlanSourcePort.DeviceSnapshot owner = expected.remove(id); require(owner != null, "deviceId");
-            require(CutoverPlanRules.comparisonKey(text(node, "serialNumber", 128))
+            require(CutoverPlanRules.comparisonKey(identityText(node, "serialNumber", 128))
                     .equals(CutoverPlanRules.comparisonKey(owner.serialNumber())), "serialNumber");
             require(nonNegativeLong(node, "projectAssignmentVersion") == owner.projectAssignmentVersion(), "projectAssignmentVersion");
             require(text(node, "deviceTypeCode", 64).equals(owner.deviceTypeCode()), "deviceTypeCode");
@@ -114,8 +114,8 @@ public final class CutoverPlanContentCodec {
         ArrayNode result = JsonUtils.getObjectMapper().createArrayNode(); rows.forEach(result::add); return result;
     }
 
-    private ArrayNode riskMitigations(JsonNode array, List<CutoverPlanSourcePort.RiskFactSnapshot> ownerFacts) {
-        require(array != null && array.isArray() && array.size() == ownerFacts.size(), "riskMitigations");
+    private ArrayNode riskMitigationsDraft(JsonNode array, List<CutoverPlanSourcePort.RiskFactSnapshot> ownerFacts) {
+        require(array != null && array.isArray() && array.size() <= ownerFacts.size(), "riskMitigations");
         Map<String, CutoverPlanSourcePort.RiskFactSnapshot> expected = new HashMap<>();
         ownerFacts.forEach(fact -> expected.put(fact.stableItemKey(), fact));
         List<ObjectNode> rows = new ArrayList<>();
@@ -135,7 +135,6 @@ public final class CutoverPlanContentCodec {
             ObjectNode row = JsonUtils.getObjectMapper().createObjectNode(); row.set("riskFact", frozen);
             row.put("mitigation", text(node, "mitigation", 4000)); rows.add(row);
         });
-        require(expected.isEmpty(), "riskMitigations");
         rows.sort(Comparator.comparing(row -> row.path("riskFact").path("stableItemKey").asText()));
         ArrayNode result = JsonUtils.getObjectMapper().createArrayNode(); rows.forEach(result::add); return result;
     }
@@ -189,8 +188,34 @@ public final class CutoverPlanContentCodec {
         return result;
     }
 
+    public void validateComplete(DecodedContent content, CutoverPlanSourcePort.SourceFacts sourceFacts) {
+        require(content != null && sourceFacts != null, "complete content");
+        if (content.fileFact() != null) {
+            require(content.ownershipConfirmed(), "ownershipConfirmed");
+            return;
+        }
+        String mode = content.rootSnapshot().path("editMode").asText();
+        if ("ONLINE_TEMPLATE_SIMPLE_D".equals(mode)) {
+            require(hasEverySection(content.steps(), CutoverPlanRules.SIMPLE_SECTIONS), "plan sections");
+            return;
+        }
+        require("ONLINE_TEMPLATE_STANDARD".equals(mode), "editMode");
+        JsonNode overview = content.rootSnapshot().path("overview");
+        require(!overview.path("projectDescription").asText().isBlank()
+                && !overview.path("scheduleTable").isEmpty(), "standard overview");
+        require(hasEverySection(content.steps(), CutoverPlanRules.STANDARD_SECTIONS), "plan sections");
+        require(content.rootSnapshot().path("riskMitigations").size() == sourceFacts.failedRiskFacts().size(),
+                "risk mitigations");
+        require(content.supportArrangements().size() == CutoverPlanRules.SUPPORT_ROLES.size(),
+                "support arrangements");
+    }
+
+    private static boolean hasEverySection(List<PlanStep> steps, List<String> sections) {
+        return sections.stream().allMatch(section -> steps.stream().anyMatch(step -> step.sectionCode().equals(section)));
+    }
+
     private List<PlanStep> steps(JsonNode array, List<String> allowed) {
-        require(array != null && array.isArray() && !array.isEmpty(), "steps");
+        require(array != null && array.isArray(), "steps");
         List<PlanStep> result = new ArrayList<>();
         Set<String> unique = new HashSet<>();
         array.forEach(node -> {
@@ -201,21 +226,22 @@ public final class CutoverPlanContentCodec {
             require(unique.add(section + ':' + no), "step identity");
             result.add(new PlanStep(section, no, text(node, "content", 4000)));
         });
-        allowed.forEach(section -> require(result.stream().anyMatch(step -> step.sectionCode().equals(section)), section));
         return result.stream().sorted(Comparator.comparingInt((PlanStep s) -> SECTION_ORDER.indexOf(s.sectionCode())).thenComparingInt(PlanStep::stepNo)).toList();
     }
 
-    private List<SupportArrangement> support(JsonNode array) {
-        require(array != null && array.isArray() && array.size() == 4, "supportArrangements");
+    private List<SupportArrangement> supportDraft(JsonNode array) {
+        require(array != null && array.isArray() && array.size() <= CutoverPlanRules.SUPPORT_ROLES.size(), "supportArrangements");
         List<SupportArrangement> result = new ArrayList<>();
         array.forEach(node -> {
             exact(node, SUPPORT, "supportArrangement");
             String role = text(node, "roleCode", 32);
+            require(CutoverPlanRules.SUPPORT_ROLES.contains(role), "roleCode");
             result.add(new SupportArrangement(nullablePositiveLong(node.get("arrangementId")), role,
                     text(node, "personName", 128), text(node, "dutyDescription", 1000),
                     text(node, "phone", 64), positiveLong(node, "arrivalTime")));
         });
-        require(result.stream().map(SupportArrangement::roleCode).collect(java.util.stream.Collectors.toSet()).equals(new HashSet<>(CutoverPlanRules.SUPPORT_ROLES)), "support roles");
+        require(result.stream().map(SupportArrangement::roleCode).collect(java.util.stream.Collectors.toSet()).size()
+                == result.size(), "support roles");
         return result.stream().sorted(Comparator.comparingInt(a -> CutoverPlanRules.SUPPORT_ROLES.indexOf(a.roleCode()))).toList();
     }
 
@@ -225,6 +251,8 @@ public final class CutoverPlanContentCodec {
         require(actual.equals(keys), field + " keys");
     }
     private static String text(JsonNode n, String f, int max) { String v=n.path(f).isTextual()?n.path(f).asText():null; require(v!=null&&!v.isBlank()&&v.equals(v.trim())&&v.length()<=max,f); return v; }
+    private static String identityText(JsonNode n, String f, int max) { String v=n.path(f).isTextual()?n.path(f).asText():null; require(v!=null&&!v.trim().isEmpty()&&v.length()<=max,f); return v; }
+    private static String draftText(JsonNode n, String f, int max) { String v=n.path(f).isTextual()?n.path(f).asText():null; require(v!=null&&v.equals(v.trim())&&v.length()<=max,f); return v; }
     private static int positiveInt(JsonNode n,String f){int v=n.path(f).isInt()?n.path(f).asInt():0;require(v>0,f);return v;}
     private static int nonNegativeInt(JsonNode n,String f){int v=n.path(f).isInt()?n.path(f).asInt():-1;require(v>=0,f);return v;}
     private static long positiveLong(JsonNode n,String f){long v=wireLong(n.path(f),f);require(v>0,f);return v;}

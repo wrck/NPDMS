@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CutoverPlanContentCodecTest {
     private final CutoverPlanContentCodec codec = new CutoverPlanContentCodec();
@@ -18,6 +17,7 @@ class CutoverPlanContentCodecTest {
     void assemblesAbcStandardContentAndKeepsChildrenOutsideRootSnapshot() {
         for (String grade : List.of("A", "B", "C")) {
             var decoded = codec.decodeWritable(JsonUtils.parseTree(standardJson()), source(grade));
+            codec.validateComplete(decoded, source(grade));
             assertThat(decoded.rootSnapshot().propertyNames())
                     .containsExactly("editMode", "overview", "riskMitigations");
             assertThat(decoded.steps()).extracting(CutoverPlanContentCodec.PlanStep::sectionCode)
@@ -42,6 +42,9 @@ class CutoverPlanContentCodecTest {
         assertThat(decoded.steps()).extracting(CutoverPlanContentCodec.PlanStep::sectionCode)
                 .containsExactly("OPERATION", "ROLLBACK");
         assertThat(decoded.rootSnapshot().propertyNames()).containsExactly("editMode");
+        assertThat(source("D").snapshot().templateSections())
+                .extracting(CutoverPlanSourcePort.TemplateSectionSnapshot::stableSectionKey)
+                .containsExactly("ROLLBACK", "OPERATION");
     }
 
     @Test
@@ -77,21 +80,27 @@ class CutoverPlanContentCodecTest {
     }
 
     @Test
-    void rejectsGradeModeMismatchAndIncompleteFailedRiskFacts() {
-        assertThatThrownBy(() -> codec.decodeWritable(JsonUtils.parseTree("""
-                {"editMode":"ONLINE_TEMPLATE_SIMPLE_D","steps":[
-                {"sectionCode":"OPERATION","stepNo":1,"content":"操作"},
-                {"sectionCode":"ROLLBACK","stepNo":1,"content":"回退"}]}
-                """), source("A"))).isInstanceOf(IllegalArgumentException.class);
-        var missingRisk = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(standardJson());
-        missingRisk.set("riskMitigations", JsonUtils.getObjectMapper().createArrayNode());
-        assertThatThrownBy(() -> codec.decodeWritable(missingRisk, source("A")))
-                .isInstanceOf(IllegalArgumentException.class);
+    void savesIncrementalStandardDraftWithCompleteOwnerDeviceFact() {
+        var draft = codec.decodeWritable(JsonUtils.parseTree("""
+                {"editMode":"ONLINE_TEMPLATE_STANDARD","overview":{"projectDescription":"","scheduleTable":[],
+                "preTopologyFile":null,"postTopologyFile":null,
+                "deviceSummary":[{"deviceId":50,"serialNumber":" sn-001 ","projectAssignmentVersion":6,
+                "deviceTypeCode":"ROUTER","deviceTypeSourceVersion":"ast-v1"}],"networkConfigurationFile":null},
+                "steps":[{"sectionCode":"OPERATION","stepNo":1,"content":"先填写操作"}],
+                "riskMitigations":[],"supportArrangements":[]}
+                """), source("A"));
+        assertThat(draft.rootSnapshot().path("overview").path("projectDescription").asText()).isEmpty();
+        assertThat(draft.steps()).extracting(CutoverPlanContentCodec.PlanStep::sectionCode)
+                .containsExactly("OPERATION");
+        assertThat(draft.rootSnapshot().path("riskMitigations")).isEmpty();
+        assertThat(draft.supportArrangements()).isEmpty();
+        assertThat(draft.rootSnapshot().path("overview").path("deviceSummary").get(0).path("serialNumber").asText())
+                .isEqualTo("Sn-001");
     }
 
     private static CutoverPlanSourcePort.SourceFacts source(String grade) {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> sections = ("D".equals(grade)
-                ? List.of(section("OPERATION", 1, grade), section("ROLLBACK", 2, grade))
+                ? List.of(section("ROLLBACK", 1, grade), section("OPERATION", 2, grade))
                 : CutoverPlanRules.STANDARD_SECTIONS.stream().map(code -> section(code,
                         CutoverPlanRules.STANDARD_SECTIONS.indexOf(code) + 1, grade)).toList());
         var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2, 20L, 1, grade,
