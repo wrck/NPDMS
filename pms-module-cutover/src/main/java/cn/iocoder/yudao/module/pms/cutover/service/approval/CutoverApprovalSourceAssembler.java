@@ -139,6 +139,19 @@ public class CutoverApprovalSourceAssembler {
     }
 
     private JsonNode completePlanContent(Long tenantId, CutoverPlanRevisionDO plan) {
+        if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
+            ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
+            content.put("editMode", plan.getEditModeCode());
+            ObjectNode file = content.putObject("fileArtifactFact");
+            putWireLong(file, "artifactId", plan.getFileArtifactId());
+            file.put("versionNo", plan.getFileVersionNo());
+            file.put("referenceKey", plan.getFileReferenceKey());
+            file.set("fileFactVersion", JsonUtils.parseTree(plan.getFileFactVersion()));
+            putWireLong(file, "scopeVersion", plan.getFileScopeVersion());
+            file.put("sha256", plan.getFileSha256());
+            content.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
+            return content;
+        }
         ObjectNode content = (ObjectNode) JsonUtils.parseTree(plan.getContentSnapshot());
         CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
         var steps = content.putArray("steps");

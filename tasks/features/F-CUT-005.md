@@ -53,7 +53,7 @@
 - `ac8a6e5f`关闭审批专用入口、冻结依据展示、正式恢复动作与组件身份重置四项阻断，独立复审正式`GO`；Task 8 Gate回写`PASS`，最近实施单元为Task 9字典、菜单、权限、通知模板与暂停Job种子。
 - Task 9候选以串行`V154`新增P5封闭字典、既有割接工作台下三个权限、`CUT_APPROVAL_PENDING`站内信模板及初始暂停的`cutoverApprovalNotificationJob`；不写角色授权、不修改旧菜单/权限、不同步Quartz。迁移合同5/5通过；隔离MySQL 8.4从空库全量至V154并重复执行原脚本后，8类字典/27项数据、3项权限、0角色授权、1模板和1个PAUSED Job保持稳定，等待独立Gate。
 - `6be558c4`的8类字典、27项字典值、三个按钮权限、站内信模板和初始暂停通知Job通过独立迁移证据复审并正式`GO`；最近实施单元为Task 10真实MySQL受控正向闭环。
-- Task 10候选在独立MySQL 8.4空卷全量执行150个迁移至V154后，以CUT真实方案、审批、FactApi、MyBatis、平台幂等/审计/Outbox和通知服务完成5项闭环：A/B/C/D四级分别按4/3/2/2节点到P6并各形成唯一`CutoverApproved`事件；驳回回P4后新修订重新审批，旧方案快照与评审历史保持不可变；多候选交集稳定选中唯一用户；待发通知经`src/test` SYSTEM发送替身全部推进SENT。联跑同时修复P4提交事务内审批冻结读取、方案子表完整快照、wire-long身份及审批实例显式CAS。当前结果只标记`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，等待独立Code Review／MySQL Gate；不作为生产Owner、真实浏览器或Implementation Done证据。
+- Task 10候选在独立MySQL 8.4空卷全量执行150个迁移至V154后，以CUT真实方案、审批、FactApi、MyBatis、平台幂等/审计/Outbox和通知服务完成6项闭环：A/B/C/D四级分别按4/3/2/2节点到P6并各形成唯一`CutoverApproved`事件；`FULL_FILE_UPLOAD`按精确三键内容冻结并完成P4提交、P5四节点审批至P6，不混入模板子行；驳回回P4后新修订重新审批，旧方案快照与评审历史保持不可变；多候选交集稳定选中唯一用户；待发通知经`src/test` SYSTEM发送替身全部推进SENT。联跑同时修复P4提交事务内审批冻结读取、方案联合分支及子表完整快照、wire-long身份和审批实例显式CAS。当前结果只标记`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，等待独立Code Review／MySQL Gate；不作为生产Owner、真实浏览器或Implementation Done证据。
 
 ## 物理Owner支撑Task
 

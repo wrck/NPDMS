@@ -184,6 +184,31 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 second.planRevisionId(), first.planRevisionId()));
     }
 
+    @Test
+    void fullFileUploadReachesP6WithoutTemplateChildrenInFrozenContent() {
+        insertP4Facts("A");
+        owners.reset(taskId, projectId(), assessmentId(), checklistId("A"), "A");
+        CutoverPlanFilePort.FileFact file = owners.fileFact();
+        CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                "create-upload", "corr-create-upload"));
+        SubmitCutoverPlanResult submitted = planService.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, created.planVersion(), "submit-upload", "corr-submit-upload"));
+        SubmittedRoute route = new SubmittedRoute(submitted.planRevisionId(), submitted.approvalInstanceId());
+        approveAll(route, 4);
+
+        String frozen = jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance " +
+                "WHERE tenant_id=? AND id=?", String.class, tenantId, route.approvalInstanceId());
+        var content = JsonUtils.parseTree(frozen).path("plan").path("content");
+        assertEquals("FULL_FILE_UPLOAD", content.path("editMode").asText());
+        assertTrue(content.path("ownershipConfirmed").asBoolean());
+        assertEquals(file.referenceKey(), content.path("fileArtifactFact").path("referenceKey").asText());
+        assertFalse(content.has("steps"));
+        assertFalse(content.has("supportArrangements"));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task WHERE tenant_id=? AND id=? " +
+                "AND current_stage='P6' AND task_status='CLOSURE_IN_PROGRESS'", tenantId, taskId));
+    }
+
     private SubmittedRoute submit(String grade, String key) {
         insertP4Facts(grade);
         owners.reset(taskId, projectId(), assessmentId(), checklistId(grade), grade);
@@ -338,9 +363,19 @@ class CutoverApprovalPositiveLoopMySqlTest {
         @Override public Set<Long> resolveAllCurrent(Long actorId, String action) { return Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { throw new UnsupportedOperationException(); }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { throw new UnsupportedOperationException(); }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { throw new UnsupportedOperationException(); }
+        FileFact fileFact() {
+            return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1),
+                    1L, "a".repeat(64));
+        }
+        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+            return fileFact();
+        }
+        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+            return fileFact();
+        }
+        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) {
+            return fileFact();
+        }
     }
 
     @SpringBootConfiguration
