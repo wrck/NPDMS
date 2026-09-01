@@ -14,14 +14,14 @@
 
 ## 当前最小工作单元
 
-- `DU-20260901-FCUT001-INTEGRATION`正在专属工作树选择性适配候选`08457e39..72ccb83f`。实现与历史验收证据已进入复验范围；只有候选提交边界、最新master构建、后端/前端测试、迁移与最终运行DoD全部裁决后，才能恢复Implementation Done。
+- `DU-20260901-FCUT001-INTEGRATION`已把候选适配提交`07b6eb06`选择性集成为`master@c61e5b1e`，状态为`INTEGRATED_PARTIAL`并释放写边界。下一最小工作单元必须新建DU，只完成V133幂等示例迁移与合入后独立MySQL/真实浏览器最终DoD；完成前不得恢复Implementation Done。
 
 ## master协调与分支候选
 
 - 2026-09-01 16:59:30 +08:00审计截点的`TECHNICAL_PLAN_READY`结论是冻结历史；当前权威状态由本Task更新为`IN_PROGRESS / MASTER_REVALIDATION`，Requirement覆盖继续保持`NOT_STARTED`。
 - `codex/integrate-f-cut-001@72ccb83f8052`仅作为干净候选来源；`codex/f-cut-001-matrices@85b93828eb04`继承候选后继续实施其他Feature，二者都不是master状态源。
-- 当前有效认领是`DU-20260901-FCUT001-INTEGRATION`；只迁移F-CUT-001代码、迁移、测试和证据，候选Task、Feature索引与追溯投影不覆盖master。
-- 下一动作：完成最新master上的后端、前端、迁移与追溯验证，提交候选适配并经master Code Review选择性集成；最终运行DoD仍由master另行裁决。
+- `DU-20260901-FCUT001-INTEGRATION`仅迁移F-CUT-001代码、V132迁移、测试和历史证据；候选Task、Feature索引与追溯投影未覆盖master，CUT多Feature分支后续增量未进入本次集成。
+- `master@c61e5b1e`已通过适用自动化验证，但V133示例迁移及合入后独立MySQL/真实浏览器最终DoD尚未完成；下一动作必须先形成新的有效DU认领。
 
 ## 已完成
 
@@ -41,7 +41,7 @@
 - 历史候选在专用Compose项目`npdms-e-fcut001-test`完成V1～V132迁移，并完成24/24、五类97/97、缺项拒绝、覆盖缺口、调研必填、背景依赖、发布历史只读、无权限拒绝与多视口真实浏览器验收。
 - 候选验收证据已纳入复验输入：`docs/engineering/evidence/f-cut-001-runtime-evidence.json`、`output/f-cut-001-v18/browser-current/result.json`及同目录截图；这些历史结果不替代最新master最终DoD。
 - 专属适配分支Code Review补齐同项同维度组合仅改优先级仍可重复发布、风险错误索引受前置停用规则偏移两类缺口，并新增3项失败回归；修正后CUT模块41项测试全部通过。
-- 最新master适配内容的后端Reactor共115项测试通过（0失败、0错误、2跳过）；前端矩阵Vitest 6项、变更文件ESLint/Prettier/Stylelint、全仓TypeScript检查和`build:local`均通过。
+- 合入后的`master@c61e5b1e`后端Reactor共115项测试通过（0失败、0错误、2跳过）；前端矩阵Vitest 6项、变更文件ESLint/Prettier/Stylelint、全仓TypeScript检查和`build:local`均通过。
 - 工程治理49项追溯/Delivery Unit/旧实现清单回归、追溯只读重建、DU边界和旧实现清单校验通过；Feature仍因下述初始化迁移与最终运行DoD缺口保持`IN_PROGRESS`。
 
 ## 阻断

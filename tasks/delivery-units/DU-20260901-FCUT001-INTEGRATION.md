@@ -1,6 +1,6 @@
 # DU-20260901-FCUT001-INTEGRATION F-CUT-001串行集成
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`INTEGRATED_PARTIAL`
 > DU类型：`FEATURE`
 > Feature协调：`F-CUT-001=FEATURE_EXCLUSIVE`
 > Task范围：`适配并集成历史完成候选08457e39..72ccb83f；master最终Done复验另行裁决`
@@ -13,7 +13,7 @@
 > 串行资源：`V132 Flyway;open-questions;Feature Task;Feature索引;追溯投影`
 > 旧功能范围：`NONE`
 > 验证：`适配分支后端Reactor 115项（0失败、0错误、2跳过），CUT模块41项全过；前端矩阵Vitest 6项、ESLint/Prettier/Stylelint、全仓TypeScript与build:local通过；治理49项、追溯、DU与旧实现清单校验通过`
-> 集成记录：`源候选codex/integrate-f-cut-001@72ccb83f8052758e70fc585b1226403b6a825311；适配候选07b6eb063ab9a54fe419930c8417581eeb983f05待master选择性集成`
+> 集成记录：`适配候选07b6eb063ab9a54fe419930c8417581eeb983f05已选择性集成至master@c61e5b1efceae13f091f2191184a6301ad32061e`
 
 ## 审计结论
 
@@ -26,3 +26,12 @@
 - 明确排除：候选分支Task、Feature索引和追溯状态未直接覆盖master；`codex/f-cut-001-matrices`后续F-CUT-002～005增量未进入本候选。
 - 剩余：幂等V133示例迁移及合入master后的独立MySQL/真实浏览器最终DoD；因此本次仅允许`INTEGRATED_PARTIAL`，不得标记Feature Done。
 - 已知失败：无构建或自动化测试失败；长Windows工作树的pnpm虚拟存储路径问题已通过工程链约束和短稳定路径验证处理。
+
+## 集成回执
+
+- master提交：`c61e5b1efceae13f091f2191184a6301ad32061e`。
+- 集成范围：仅适配候选`07b6eb06`的41个F-CUT-001受控文件；未合并候选分支或CUT多Feature分支历史。
+- master验证：治理49项、追溯、DU、旧实现清单通过；后端Reactor 115项（0失败、0错误、2跳过），其中CUT模块41项全过；前端矩阵Vitest 6项、ESLint、Prettier、Stylelint、全仓TypeScript与`build:local`通过。
+- 未开放入口：无新增独立业务入口；增量复用既有配置页，F-CUT-001的Implementation Done和发布资格仍未开放。
+- 剩余Task：实现V133幂等示例迁移；在合入后的master独立环境完成Flyway与真实浏览器最终DoD。
+- 结论：`INTEGRATED_PARTIAL`；本DU写边界释放，剩余工作必须新建DU后实施。
