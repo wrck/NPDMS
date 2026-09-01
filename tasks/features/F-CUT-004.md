@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1审批消费Java合同已通过；当前进入Task 2三表Schema、阶段前向约束与Mapper合同，不写业务Service。
+- Task 1审批消费Java合同与Task 2物理基础均已通过；当前进入Task 3内容Codec、来源冻结与PLT文件事实消费端口。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -37,10 +37,20 @@
 
 ## Task 2：三表Schema、阶段前向约束与Mapper合同
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@ddda602f`
 
 - [x] 使用实际下一空闲Flyway版本`V150`前向创建三表并收敛P4/P5/P6阶段约束。
 - [x] 实现DO、场景Query、Mapper XML及迁移/Mapper合同测试（6/6通过）。
-- [ ] 通过独立Schema/迁移Gate；不写业务Service。
+- [x] 通过独立Schema/迁移Gate；不写业务Service（`GO@ddda602f`）。
 
-> 检查点：Task 2候选已完成；隔离MySQL 8.4空卷全量146项迁移到V150，三表/9项CHECK及P4→P5→P4历史正向验证通过，专用容器/网络/卷已清理。当前申请独立Schema/迁移Gate。
+> 检查点：独立复审确认V150、三表、Mapper及两值CHECK约束成立；Task 2 Gate通过，进入Task 3。
+
+## Task 3：内容Codec、来源冻结与PLT文件事实消费端口
+
+状态：`IN_PROGRESS`
+
+- [ ] 实现三种可写方案联合、legacy只读联合及严格内容Codec。
+- [ ] 实现来源冻结和值对象，并预留最窄`CutoverPlanFilePort`。
+- [ ] 使用`src/test`受控端口完成正向聚焦测试并通过独立Domain/Port Gate。
+
+> 检查点：生产PLT初稿生成合同缺失不阻断CUT消费端候选；不注册生产Fake/fallback，不把测试文件事实作为生产或浏览器证据。
