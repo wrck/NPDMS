@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～3均已通过；当前进入Task 4创建、保存与详情正向闭环。
+- Task 1～4均已通过；当前进入Task 5初稿下载、提交P5与来源失效正向闭环。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -59,13 +59,24 @@
 
 ## Task 4：创建、保存与详情正向闭环
 
-状态：`IN_PROGRESS`
+状态：`PASS / GO@08d98e0b`
 
 - [x] 根据独立裁决形成`createDraft`封闭请求联合与`PlanSourceSnapshot.failedRiskFacts`完整冻结规格候选。
 - [x] 补齐创建事务的`ASSESSMENT_STALE/CHECKLIST_STALE`来源陈旧错误闭包；D级不产生清单陈旧。
 - [x] Task 4可执行性机器合同最小补丁独立复审通过（`GO@94157db2`）。
 - [x] 实现创建/保存命令、版本与幂等事务边界；同键同载荷重放在可变Owner/聚合重验前返回首次结果。
 - [x] 实现当前详情、legacy只读投影与服务端`allowedActions`。
-- [ ] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate。
+- [x] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate（`GO@08d98e0b`）。
 
-> 检查点：第三轮Application/MySQL Gate对`c9de3fac`仅剩NEW_PLATFORM来源快照未知键可能泄漏；当前单点整改已改为强类型构造后重新序列化规范`PlanSourceSnapshot`。正向聚焦测试17/17和既有隔离MySQL真实平台命令1/1证据沿用，等待最终单点复审。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
+> 检查点：独立复审确认NEW_PLATFORM来源快照规范投影闭包，Task 4 Application/MySQL Gate通过。正向聚焦测试17/17、隔离MySQL真实平台命令1/1；生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
+
+## Task 5：初稿下载、提交P5与来源失效
+
+状态：`IN_PROGRESS`
+
+- [ ] 实现下载初稿文件事实但不推进plan/task版本。
+- [ ] 实现提交与CUT-05审批启动同成同败、DRAFT→SUBMITTED、P4→P5及阶段历史。
+- [ ] 实现来源失效暂停审批、SUBMITTED→INVALIDATED、P5→P4及阶段历史。
+- [ ] 使用受控PLT/CUT-05端口完成正向链并通过独立Submission/MySQL Gate。
+
+> 检查点：Task 4已GO，开始Task 5 CUT侧正向实现；生产PLT初稿生成与CUT-05审批Provider缺失继续阻断生产装配、真实浏览器和Feature Implementation Done。
