@@ -30,6 +30,35 @@ public final class CutoverPlanContentCodec {
             "itemName", "resultCode", "factDescription");
     private static final List<String> SECTION_ORDER = CutoverPlanRules.STANDARD_SECTIONS;
 
+    public DecodedContent createInitialOnlineDraft(String editMode, CutoverPlanSourcePort.SourceFacts sourceFacts) {
+        require(sourceFacts != null, "sourceFacts");
+        ObjectNode body = JsonUtils.getObjectMapper().createObjectNode();
+        body.put("editMode", editMode);
+        body.putArray("steps");
+        if ("ONLINE_TEMPLATE_SIMPLE_D".equals(editMode)) {
+            return decodeWritable(body, sourceFacts);
+        }
+        require("ONLINE_TEMPLATE_STANDARD".equals(editMode), "editMode");
+        ObjectNode overview = body.putObject("overview");
+        overview.put("projectDescription", "");
+        overview.putArray("scheduleTable");
+        overview.putNull("preTopologyFile");
+        overview.putNull("postTopologyFile");
+        ArrayNode devices = overview.putArray("deviceSummary");
+        sourceFacts.snapshot().devices().forEach(device -> {
+            ObjectNode row = devices.addObject();
+            putWireLong(row, "deviceId", device.deviceId());
+            row.put("serialNumber", device.serialNumber());
+            putWireLong(row, "projectAssignmentVersion", device.projectAssignmentVersion());
+            row.put("deviceTypeCode", device.deviceTypeCode());
+            row.put("deviceTypeSourceVersion", device.deviceTypeSourceVersion());
+        });
+        overview.putNull("networkConfigurationFile");
+        body.putArray("riskMitigations");
+        body.putArray("supportArrangements");
+        return decodeWritable(body, sourceFacts);
+    }
+
     public DecodedContent decodeWritable(JsonNode body, CutoverPlanSourcePort.SourceFacts sourceFacts) {
         require(body != null && body.isObject(), "content");
         require(sourceFacts != null, "sourceFacts");

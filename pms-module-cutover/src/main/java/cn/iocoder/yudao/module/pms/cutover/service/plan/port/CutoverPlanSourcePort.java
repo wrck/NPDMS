@@ -19,6 +19,7 @@ public interface CutoverPlanSourcePort {
             require(new HashSet<>(failedRiskFacts.stream().map(RiskFactSnapshot::stableItemKey).toList()).size()
                     == failedRiskFacts.size(), "failedRiskFacts.stableItemKey");
             require(!"D".equals(snapshot.grade()) || failedRiskFacts.isEmpty(), "failedRiskFacts.grade");
+            require(snapshot.failedRiskFacts().equals(failedRiskFacts), "failedRiskFacts.snapshot");
         }
     }
 
@@ -28,7 +29,8 @@ public interface CutoverPlanSourcePort {
                           Integer projectVersion, Long projectScopeVersion,
                           List<DeviceSnapshot> devices, Long configurationRevisionId,
                           String configurationCode, Integer configurationRevisionNo,
-                          List<TemplateSectionSnapshot> templateSections) {
+                          List<TemplateSectionSnapshot> templateSections,
+                          List<RiskFactSnapshot> failedRiskFacts) {
         public SourceSnapshot {
             require(snapshotVersion != null && snapshotVersion > 0, "snapshotVersion");
             require(taskId != null && taskId > 0 && taskVersion != null && taskVersion >= 0, "task");
@@ -55,6 +57,12 @@ public interface CutoverPlanSourcePort {
             if ("D".equals(grade)) require(templateSections.size() == SIMPLE_SECTIONS.size()
                     && new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList())
                     .equals(new HashSet<>(SIMPLE_SECTIONS)), "D templateSections");
+            require(failedRiskFacts != null, "failedRiskFacts");
+            failedRiskFacts = failedRiskFacts.stream()
+                    .sorted(Comparator.comparing(RiskFactSnapshot::stableItemKey)).toList();
+            require(new HashSet<>(failedRiskFacts.stream().map(RiskFactSnapshot::stableItemKey).toList()).size()
+                    == failedRiskFacts.size(), "failedRiskFacts.stableItemKey");
+            require(!"D".equals(grade) || failedRiskFacts.isEmpty(), "failedRiskFacts.grade");
         }
     }
     record DeviceSnapshot(Long deviceId, String serialNumber, Long projectAssignmentVersion,

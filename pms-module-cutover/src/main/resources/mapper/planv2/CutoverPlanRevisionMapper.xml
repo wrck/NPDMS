@@ -29,6 +29,26 @@
         SELECT COALESCE(MAX(revision_no), 0) FROM cut_plan_revision
         WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
     </select>
+    <update id="replaceDraftIfMatch">
+        UPDATE cut_plan_revision
+        SET edit_mode_code = #{query.editModeCode},
+            content_snapshot = CASE WHEN #{query.contentSnapshot} IS NULL THEN NULL
+                ELSE CAST(#{query.contentSnapshot} AS JSON) END,
+            file_artifact_id = #{query.fileArtifactId},
+            file_version_no = #{query.fileVersionNo},
+            file_reference_key = #{query.fileReferenceKey},
+            file_fact_version = CASE WHEN #{query.fileFactVersion} IS NULL THEN NULL
+                ELSE CAST(#{query.fileFactVersion} AS JSON) END,
+            file_scope_version = #{query.fileScopeVersion},
+            file_sha256 = #{query.fileSha256},
+            ownership_confirmed = #{query.ownershipConfirmed},
+            version = #{query.newVersion},
+            updater = #{query.updater},
+            update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}
+          AND status_code = 'DRAFT' AND current_marker = 1
+          AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
     <update id="advanceDraftVersionIfMatch">
         UPDATE cut_plan_revision SET version = #{query.newVersion}, update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}

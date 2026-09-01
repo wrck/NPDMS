@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
@@ -32,6 +33,10 @@ class CutoverPlanMapperContractTest {
                 new CutoverPlanHistoryQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceDraftVersionIfMatch",
                 new CutoverPlanVersionUpdate(1L, 3L, 0, 1));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceDraftIfMatch",
+                new CutoverPlanDraftUpdate(1L, 3L, 0, 1, "ONLINE_TEMPLATE_STANDARD", "{}",
+                        null, null, null, null, null, null, null, "9",
+                        LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",
                 new CutoverPlanChildrenQuery(1L, 3L));
         assertBindings(configuration, CutoverSupportArrangementMapper.class, "deleteDraftRows",

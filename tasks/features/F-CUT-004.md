@@ -64,8 +64,8 @@
 - [x] 根据独立裁决形成`createDraft`封闭请求联合与`PlanSourceSnapshot.failedRiskFacts`完整冻结规格候选。
 - [x] 补齐创建事务的`ASSESSMENT_STALE/CHECKLIST_STALE`来源陈旧错误闭包；D级不产生清单陈旧。
 - [x] Task 4可执行性机器合同最小补丁独立复审通过（`GO@94157db2`）。
-- [ ] 实现创建/保存命令、版本与幂等事务边界。
-- [ ] 实现当前详情、legacy只读投影与服务端`allowedActions`。
+- [x] 实现创建/保存命令、版本与幂等事务边界；同键同载荷重放在可变Owner/聚合重验前返回首次结果。
+- [x] 实现当前详情、legacy只读投影与服务端`allowedActions`。
 - [ ] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate。
 
-> 检查点：基线`94157db2`；Task 1～3及Task 4可执行性合同Gate已PASS；当前进入创建、保存、详情运行实现。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
+> 检查点：创建、保存与详情候选已形成；聚焦测试13/13及隔离MySQL真实平台命令1/1通过，根、步骤、保障、幂等与审计正向闭环成立，等待独立Application/MySQL Gate。生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。

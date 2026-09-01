@@ -98,18 +98,31 @@ class CutoverPlanContentCodecTest {
                 .isEqualTo("Sn-001");
     }
 
+    @Test
+    void createsOnlineDraftSkeletonsFromFrozenSourceFacts() {
+        var standard = codec.createInitialOnlineDraft("ONLINE_TEMPLATE_STANDARD", source("A"));
+        assertThat(standard.rootSnapshot().path("overview").path("projectDescription").asText()).isEmpty();
+        assertThat(standard.rootSnapshot().path("overview").path("deviceSummary")).hasSize(1);
+        assertThat(standard.steps()).isEmpty();
+        assertThat(standard.supportArrangements()).isEmpty();
+
+        var simple = codec.createInitialOnlineDraft("ONLINE_TEMPLATE_SIMPLE_D", source("D"));
+        assertThat(simple.rootSnapshot().path("editMode").asText()).isEqualTo("ONLINE_TEMPLATE_SIMPLE_D");
+        assertThat(simple.steps()).isEmpty();
+    }
+
     private static CutoverPlanSourcePort.SourceFacts source(String grade) {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> sections = ("D".equals(grade)
                 ? List.of(section("ROLLBACK", 1, grade), section("OPERATION", 2, grade))
                 : CutoverPlanRules.STANDARD_SECTIONS.stream().map(code -> section(code,
                         CutoverPlanRules.STANDARD_SECTIONS.indexOf(code) + 1, grade)).toList());
-        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2, 20L, 1, grade,
-                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1,
-                40L, 3, 4L, List.of(new CutoverPlanSourcePort.DeviceSnapshot(
-                50L, "Sn-001", 6L, "ROUTER", "ast-v1")), 60L, "DEFAULT", 1, sections);
         List<CutoverPlanSourcePort.RiskFactSnapshot> risks = "D".equals(grade) ? List.of()
                 : List.of(new CutoverPlanSourcePort.RiskFactSnapshot(71L, "risk-1", 1,
                 "风险", "FAILED", "描述"));
+        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2, 20L, 1, grade,
+                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1,
+                40L, 3, 4L, List.of(new CutoverPlanSourcePort.DeviceSnapshot(
+                50L, "Sn-001", 6L, "ROUTER", "ast-v1")), 60L, "DEFAULT", 1, sections, risks);
         var facts = new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
         var controlledPort = new CutoverPlanControlledPorts.SourcePort(facts);
         return controlledPort.inspect(1L, 2L, 10L);
