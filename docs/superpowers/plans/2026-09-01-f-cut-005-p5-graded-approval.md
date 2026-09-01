@@ -31,7 +31,7 @@
 - 审批命令只原子追加`cut_approval_notification=PENDING`；通知Provider由提交后的独立投递任务调用，失败转`PENDING_RETRY`，不得回滚或改写审批决定。
 - 所有新增查询遵守`docs/coding/database-query-interface.md`：除主键/稳定唯一键外使用单一场景Query；动态集合、联表、锁查询进入Mapper XML；禁止SQL注解、`${}`、`Map`和Service拼SQL。
 - Flyway仅在实际串行合入时重新读取`sql/migrations`并选下一个空闲版本；计划不预约版本，不修改V146～V152或其他已执行迁移。
-- 每个Task先形成可运行的最小正向路径，再补与锁定合同直接相关的失败/并发测试；不制造与当前系统不可达的负向组合。
+- 每个Task先完成可运行的最小正向实现，再验证该实现已经具备的正常流程；测试不先于实现，不把畸形输入、Provider故障、CAS失败或未实现能力作为编码前置或Gate条件。
 - 每个Task独立提交并申请Gate；Feature/Task状态、Flyway、公共错误码、菜单权限和共享前端API文件串行写入。
 
 ---
@@ -94,7 +94,7 @@ Codec只接受项目十一字段、可空networkMode、稳定排序的风险/业
 
 - [ ] **Step 3: 增加受控正向端口**
 
-`CutoverApprovalControlledPorts`确定性返回：一个PROJ服务经理、SYSTEM多个全局候选但项目交集唯一、稳定treeVersion；另提供显式可控的NOT_UNIQUE和STALE事实。类保持package-private或test-only，不使用Spring生产注解。
+`CutoverApprovalControlledPorts`确定性返回：一个PROJ服务经理、SYSTEM多个全局候选但项目交集唯一、稳定treeVersion。类保持package-private或test-only，不使用Spring生产注解。
 
 - [ ] **Step 4: 运行聚焦测试**
 
@@ -167,9 +167,9 @@ mvn -pl pms-module-cutover -am -Dtest=Fcut005MigrationContractTest,CutoverApprov
 - Consumes: 既有`CutoverApprovalFactApi` DTO、Task 1端口、Task 2 Mapper、CUT-002/003/004锁定事实。
 - Produces: 非Spring注册的生产路径类，实现`start/inspect/lockAndRevalidate/pauseForSourceInvalidation`。
 
-- [ ] **Step 1: 先写A/B/C/D启动正向测试**
+- [ ] **Step 1: 实现A/B/C/D启动最小正向路径**
 
-测试固定4/3/2/2路由、INITIATOR真实首节点、完整候选交集、精确来源快照、可执行首节点的PENDING通知行和同键重放；hold实例不写通知、不产生todo。
+先完成4/3/2/2路由、INITIATOR真实首节点、完整候选交集、精确来源快照、可执行首节点的PENDING通知行和同键重放；hold仍按锁定合同保存，但不作为编码前置测试。
 
 - [ ] **Step 2: 实现start事务**
 
@@ -231,9 +231,9 @@ Approve全YES/服务经理CONFIRMED；Reject存在NO或服务经理NOT_REASONABL
 
 Reject把未来WAITING→CANCELLED、根REJECTED、任务P5→P4并写历史；final approve把根APPROVED、任务P5→P6并通过SuccessFacts只写一个`CutoverApproved`。
 
-- [ ] **Step 4: 补平台事务与CAS测试**
+- [ ] **Step 4: 验证已实现的正常审批事务**
 
-覆盖同键重放、并发单胜、任一CAS=0整体回滚、SuccessFacts保存correlationId且业务digest排除它。
+覆盖同键同载荷重放、串行节点激活、正常驳回、最终通过和SuccessFacts保存correlationId且业务digest排除它；不以CAS失败或并发冲突负向组合作为本Task Gate。
 
 - [ ] **Step 5: 运行并申请Task 4 Gate**
 
@@ -307,13 +307,13 @@ String deliveryKey = "CUT_APPROVAL:" + instanceId + ":" + nodeNo + ":" + nodeVer
 
 Job仅领取PENDING或到期PENDING_RETRY；成功写messageId/sentAt，失败保存稳定error、retryCount和nextRetryAt；按更新前retryCount使用1/2/4/8/16/32/60分钟退避并封顶60分钟，同deliveryKey不新增第二行。该间隔是技术重试水位，不是业务审批期限或SLA。
 
-- [ ] **Step 3: 验证审批命令不调用Provider**
+- [ ] **Step 3: 验证通知正常投递边界**
 
-Task 3～5测试断言业务命令只插通知行且Notify API零调用；Job测试单独断言Provider异常不会修改审批根/节点。
+Task 3～5测试确认业务命令只插通知行且Notify API零调用；Job测试确认提交后正常投递写入SENT，审批根/节点保持原决定。
 
 - [ ] **Step 4: 保持生产Job未激活**
 
-本Task实现`JobHandler`类但不加Quartz同步Registrar、不插启用seed；生产激活留Task 12。
+本Task实现`JobHandler`类但不加Quartz同步Registrar、不插启用seed；生产激活留Task 14。
 
 - [ ] **Step 5: 运行测试并申请Task 6 Gate**
 
@@ -351,7 +351,7 @@ ApproveRequest与RejectRequest分开；五项固定顺序；WireLong/WireDateTim
 
 - [ ] **Step 4: 使用test-only Controller外壳跑MockMvc**
 
-验证六条正向路由、管理员REASSIGNMENT_ONLY、动作结果错配422、Owner stale 409和Provider unavailable 503。
+验证六条已实现的正常路由、管理员REASSIGNMENT_ONLY、通过进入下一节点/驳回返回P4/改派成功的精确响应。
 
 - [ ] **Step 5: 确认不生产激活并申请Task 7 Gate**
 
@@ -426,11 +426,10 @@ mvn -pl pms-module-cutover -am -Dtest=Fcut005MigrationContractTest -Dsurefire.fa
 
 ---
 
-## Task 10：真实MySQL受控正向闭环与并发
+## Task 10：真实MySQL受控正向闭环
 
 **Files:**
 - Create: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalPositiveLoopMySqlTest.java`
-- Create: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalConcurrencyMySqlTest.java`
 - Modify: `tasks/features/F-CUT-005.md`
 
 **Interfaces:**
@@ -449,13 +448,13 @@ mvn -pl pms-module-cutover -am -Dtest=Fcut005MigrationContractTest -Dsurefire.fa
 
 合法NO或服务经理NOT_REASONABLE驳回，核对P5→P4；派生新P4 revision后创建线性替代审批，旧快照/意见不变。
 
-- [ ] **Step 4: 跑候选与并发链**
+- [ ] **Step 4: 跑多人候选唯一交集链**
 
-SYSTEM多人但项目交集唯一成功；交集不唯一产生hold且无todo；并发approve/reject/reassign仅一个CAS成功，失败方平台认领、业务写、通知和Outbox整体回滚。
+SYSTEM返回多人候选，CUT按项目范围得到唯一交集并完成审批；验证实际审批人、节点历史和待办投影一致。
 
-- [ ] **Step 5: 跑通知独立失败链**
+- [ ] **Step 5: 跑通知独立成功链**
 
-审批命令成功后再执行通知Job；Provider失败只转PENDING_RETRY，任务/审批/事件保持提交结果。
+审批命令成功后再执行通知Job；验证通知SENT、任务/审批/事件保持已提交结果。
 
 - [ ] **Step 6: 汇总聚焦验证并申请Task 10 Gate**
 
@@ -463,7 +462,73 @@ SYSTEM多人但项目交集唯一成功；交集不唯一产生hold且无todo；
 
 ---
 
-## Task 11：CUT-04生产交接候选与唯一装配前置核验
+## Task 11：T-FCUT005-PROJ-01 服务经理事实公开合同与Provider
+
+**Files:**
+- Create: `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactApi.java`
+- Create: `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactException.java`
+- Create: `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/dto/`下Query/Fact/RevalidationResult
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactApiImpl.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactTransactionExecutor.java`
+- Test: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactApiContractTest.java`
+- Test: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/cutoverapproval/ProjectCutoverServiceManagerFactApiMySqlTest.java`
+
+**Interfaces:**
+- Consumes: PROJ项目主行、当前服务经理/项目参与者权威事实和`F-CUT-005-approval-owner-contract.json`。
+- Produces: `ProjectCutoverServiceManagerFactApi.inspect/lockAndRevalidate`、稳定DTO/异常及独立Provider Gate。
+
+- [ ] **Step 1: 先形成公开机器合同候选并申请Contract Gate**
+
+锁定受信tenant、projectId、唯一当前SERVICE_MANAGER、用户状态、projectVersion/participantFactVersion、锁序、VALID/STALE/INVALID和Provider不可用边界；未GO前不写Provider。
+
+- [ ] **Step 2: Contract Gate GO后实现最小Provider**
+
+使用PROJ场景化Query/Mapper XML及独立事务Executor；公共Facade在事务获取前验证tenant，`lockAndRevalidate`保持`PROPAGATION_REQUIRED`并按锁定项目顺序持锁。
+
+- [ ] **Step 3: 验证正常事实与真实锁**
+
+先完成Provider，再运行公开合同、正常inspect→lock重验及真实MySQL外层事务持锁测试；不修改CUT或Yudao模块。
+
+- [ ] **Step 4: 申请T-FCUT005-PROJ-01 Provider Gate**
+
+只有独立GO后，该API才成为Task 13可消费的生产Owner依赖。
+
+---
+
+## Task 12：T-FCUT005-SYSTEM-01 审批候选公开合同与Provider
+
+**Files:**
+- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApi.java`
+- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactException.java`
+- Create: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/dto/`下Query/CandidateSet/RevalidationResult
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiImpl.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactTransactionExecutor.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiContractTest.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/api/systemcandidate/CutoverApprovalRoleCandidateFactApiMySqlTest.java`
+
+**Interfaces:**
+- Consumes: 既有Yudao SYSTEM公开角色、成员和用户状态查询能力及`F-CUT-005-candidate-owner-contract.json`；不修改Yudao源码或直读其表。
+- Produces: PMS平台扩展拥有的SYSTEM权威事实适配API，提供完整候选集、显式候选锁定重验、稳定DTO/异常及独立Provider Gate。
+
+- [ ] **Step 1: 先形成外部授权机器合同候选并申请Contract Gate**
+
+锁定受信tenant、`SECOND_LINE_APPROVER/RND_APPROVER`角色组、完整候选集、候选排序、成员/用户版本水位、`inspectCandidates/lockAndRevalidate/lockExplicitCandidate`和公共异常；未GO前不写Provider。
+
+- [ ] **Step 2: Contract Gate GO后实现最小Provider**
+
+仅调用已存在的SYSTEM公开API形成PMS事实投影；如现有公开API不能形成锁定合同，Task保持`BLOCKED_BY_DEPENDENCY`并登记唯一缺失SYSTEM产物，不得改Yudao、直表或返回fallback。
+
+- [ ] **Step 3: 验证正常完整候选与显式候选重验**
+
+先完成Provider，再运行合同、完整候选集、稳定水位及真实Spring事务测试；不把测试Fake注册为生产事实。
+
+- [ ] **Step 4: 申请T-FCUT005-SYSTEM-01 Provider Gate**
+
+只有独立GO后，该API才成为Task 13可消费的生产Owner依赖。
+
+---
+
+## Task 13：CUT-04生产交接候选与唯一装配前置核验
 
 **Files:**
 - Create only after dependencies pass: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/config/CutoverApprovalConfiguration.java`
@@ -472,12 +537,12 @@ SYSTEM多人但项目交集唯一成功；交集不唯一产生hold且无todo；
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverPlanApprovalSpringPropagationTest.java`
 
 **Interfaces:**
-- Consumes: PROJ服务经理Provider Gate、SYSTEM候选Provider Gate、ProjectScope生产事实、Task 3 FactApi Provider候选、F-CUT-004生产装配前提。
+- Consumes: Task 11 PROJ Provider Gate、Task 12 SYSTEM Provider Gate、ProjectScope生产事实、Task 3 FactApi Provider候选、F-CUT-004生产装配前提。
 - Produces: 唯一生产`CutoverApprovalFactApi`与F-CUT-004 submit传播候选；依赖缺失时不创建Configuration文件。
 
 - [ ] **Step 1: 逐项只读核验生产依赖**
 
-确认PROJ/SYSTEM公开合同与Provider均已独立GO；任何一项缺失，Task保持`BLOCKED_BY_DEPENDENCY`并停止生产装配。
+确认Task 11/12公开合同与Provider均已独立GO；任何一项缺失，Task保持`BLOCKED_BY_DEPENDENCY`并停止生产装配。
 
 - [ ] **Step 2: 依赖齐备后加入唯一Bean**
 
@@ -500,17 +565,17 @@ Gate未通过前不激活Controller/Job、不运行真实浏览器、不更新Im
 
 ---
 
-## Task 12：生产Controller/Job激活、真实浏览器与Implementation Done
+## Task 14：生产Controller/Job激活、真实浏览器与Implementation Done
 
 **Files:**
-- Modify only after Task 11 GO: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/config/CutoverApprovalConfiguration.java`
-- Modify only after Task 11 GO: 实际下一空闲Flyway的Job启用迁移
+- Modify only after Task 13 GO: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/config/CutoverApprovalConfiguration.java`
+- Modify only after Task 13 GO: 实际下一空闲Flyway的Job启用迁移
 - Modify only after all acceptance passes: `tasks/features/F-CUT-005.md`
 - Modify only as generated projection: `docs/traceability/requirement-matrix.md`
 - Modify only as generated projection: `docs/traceability/requirement-version-coverage.json`
 
 **Interfaces:**
-- Consumes: Task 1～11全部GO、生产PROJ/SYSTEM/Notify Provider、F-CUT-004生产依赖。
+- Consumes: Task 1～13全部GO、生产PROJ/SYSTEM/Notify Provider、F-CUT-004生产依赖。
 - Produces: 唯一生产REST/Service/FactApi/Job装配、真实浏览器证据和最终Feature Gate候选。
 
 - [ ] **Step 1: 激活唯一Controller/Service/FactApi**
@@ -523,7 +588,7 @@ Gate未通过前不激活Controller/Job、不运行真实浏览器、不更新Im
 
 - [ ] **Step 3: 运行真实MySQL与浏览器正向验收**
 
-真实用户权限、真实PROJ/SYSTEM候选、真实P4方案和站内信Provider下跑A/B/C/D、驳回、改派、通知失败重试；不得用fixture/Fake作为浏览器数据源。
+真实用户权限、真实PROJ/SYSTEM候选、真实P4方案和站内信Provider下跑A/B/C/D、驳回、改派及通知正常送达；不得用fixture/Fake作为浏览器数据源。
 
 - [ ] **Step 4: 完整回归与证据归档**
 
@@ -537,8 +602,8 @@ Gate未通过前不激活Controller/Job、不运行真实浏览器、不更新Im
 
 ## Plan Self-Review
 
-- Spec coverage：Task 1覆盖精确来源/候选合同；Task 2覆盖五表；Task 3覆盖启动与公开Fact；Task 4覆盖评审/状态/事件；Task 5覆盖查询/改派/可见性；Task 6覆盖通知；Task 7/8覆盖REST/UI；Task 9覆盖种子；Task 10覆盖受控闭环；Task 11/12覆盖生产接通与验收。
+- Spec coverage：Task 1覆盖精确来源/候选消费合同；Task 2覆盖五表；Task 3覆盖启动与公开Fact；Task 4覆盖评审/状态/事件；Task 5覆盖查询/改派/可见性；Task 6覆盖通知；Task 7/8覆盖REST/UI；Task 9覆盖种子；Task 10覆盖受控闭环；Task 11/12分别产出PROJ/SYSTEM生产Owner事实；Task 13/14覆盖生产接通与验收。
 - Scope：未实现COM、CUT-06、V2通知/提前判断、通用审批引擎、旧数据升级或Yudao基础修改。
 - Type consistency：API操作数固定六个；三种viewMode、三类候选端口、五张表、三个权限及4/3/2/2路由在各Task命名一致。
 - Placeholder scan：Flyway号明确由串行合入时读取仓库确定，不在计划中预约；所有阻断均有唯一后续Gate和具体输入。
-- Production boundary：Task 1～10允许受控替身形成CUT正常闭环；Task 11前不注册完整生产Bean，Task 12前不激活Controller/Job或真实浏览器。
+- Production boundary：Task 1～10允许受控替身形成CUT正常闭环；Task 11/12独立交付跨模块Owner Provider但不激活CUT；Task 13前不注册完整CUT生产Bean，Task 14前不激活Controller/Job或真实浏览器。

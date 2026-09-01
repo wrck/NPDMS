@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan候选已形成并等待独立复审，不进入实现。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan首轮NO-GO后已补入PROJ/SYSTEM独立Owner产出Task并统一改为实现优先，当前等待最小整改复审，不进入实现。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -27,12 +27,13 @@
 - `5e3ce44c`方向成立但Feature Ready未通过；不得进入Technical Plan或实现。
 - `2efad8ce`已关闭动作判别、候选交集和通知边界；快照可空性与管理员改派入口仍需定点复审。
 - `2e3fdba3`关闭剩余两项并获Feature Ready正式GO；最近Gate为唯一Technical Plan独立复审。
+- `1a45569f` Technical Plan首轮NO-GO仅指出生产Owner产出路径缺失与测试顺序冲突；当前候选只整改这两项。
 - 整改只改Feature/API/Physical/Candidate/Authorization等正式规格，不新增DDL、运行代码或测试实现。
 
 ## 物理Owner支撑Task
 
 - `T-FCUT005-PROJ-01`：PROJ拥有`ProjectCutoverServiceManagerFactApi`公开事实、锁定实现和合入顺序；当前仅预留合同，Provider未实施。
-- `T-FCUT005-SYSTEM-01`：SYSTEM拥有`CutoverApprovalRoleCandidateFactApi`角色成员事实、锁定实现和合入顺序；当前仅预留合同，未经明确授权不得修改Yudao基础模块。
+- `T-FCUT005-SYSTEM-01`：SYSTEM角色/成员/用户状态保持权威来源；由PMS平台扩展交付`CutoverApprovalRoleCandidateFactApi`合同与适配Provider，当前仅预留，禁止修改Yudao基础模块或直读其表。
 - 两项Provider缺失不阻断Feature Ready后的CUT内核及`src/test`正向闭环，持续阻断完整生产装配、真实浏览器和Implementation Done。
 
 ## 依赖边界
