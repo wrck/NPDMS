@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.ControlledCutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.DownloadCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.InvalidateCutoverPlanSourceCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.ReviseCutoverPlanCommand;
@@ -163,8 +164,13 @@ class CutoverPlanApplicationMySqlTest {
     }
 
     @Test
-    void uploadSubmitAndSourceInvalidationKeepPlanTaskHistoryAndPlatformFactsConsistent() {
+    void standardDownloadSubmitAndSourceInvalidationKeepPlanTaskHistoryAndPlatformFactsConsistent() {
         CutoverPlanCommandResult created = createSavedStandardPlan("source-replacement");
+        var downloaded = service.downloadDraft(new DownloadCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, created.planVersion(), "download-source-replacement",
+                "corr-download-source-replacement"));
+        assertEquals(created.planVersion(), downloaded.planVersion());
+        assertEquals(owners.fileFact(), downloaded.fileArtifactFact());
 
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
                 tenantId, 8L, taskId, 4, created.planVersion(), "submit-1", "corr-submit-1"));
@@ -193,8 +199,8 @@ class CutoverPlanApplicationMySqlTest {
                 "AND current_stage='P4' AND task_status='PLAN_DRAFTING' AND version=6", tenantId, taskId));
         assertEquals(2, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? " +
                 "AND cutover_task_id=?", tenantId, taskId));
-        assertEquals(4, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
-        assertEquals(4, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+        assertEquals(5, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
+        assertEquals(5, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
 
         owners.replaceDeviceAndTaskVersion(6);
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
@@ -225,8 +231,64 @@ class CutoverPlanApplicationMySqlTest {
                 tenantId, taskId, submitted.planRevisionId())).fact();
         assertEquals(ApprovalStatus.PAUSED_SOURCE_INVALIDATED, prior.status());
         assertEquals(resubmitted.approvalInstanceId(), prior.replacementApprovalInstanceId());
-        assertEquals(7, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
+        assertEquals(8, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
                 tenantId));
+    }
+
+    @Test
+    void simpleDPositiveLoopPersistsOnlyOperationAndRollbackBeforeSubmission() {
+        owners.useGrade("D");
+        jdbc.update("UPDATE cut_task SET manual_grade='D' WHERE tenant_id=? AND id=?", tenantId, taskId);
+        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, 30L, "ONLINE_TEMPLATE_SIMPLE_D", null, null,
+                "create-simple-d", "corr-create-simple-d"));
+        tools.jackson.databind.node.ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
+        content.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D");
+        content.putArray("steps").addObject().put("sectionCode", "OPERATION").put("stepNo", 1)
+                .put("content", "D级割接操作");
+        content.withArray("steps").addObject().put("sectionCode", "ROLLBACK").put("stepNo", 1)
+                .put("content", "D级回退操作");
+        CutoverPlanCommandResult saved = service.saveDraft(new SaveCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, created.planVersion(), 30L, content,
+                "save-simple-d", "corr-save-simple-d"));
+
+        SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-simple-d", "corr-submit-simple-d"));
+
+        assertEquals("P5", submitted.taskStage());
+        assertEquals("PENDING", submitted.approvalStatus());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND checklist_id IS NULL AND edit_mode_code='ONLINE_TEMPLATE_SIMPLE_D' AND status_code='SUBMITTED'",
+                tenantId, submitted.planRevisionId()));
+        assertEquals(2, count("SELECT COUNT(*) FROM cut_step WHERE tenant_id=? AND plan_revision_id=? " +
+                "AND section_code IN ('OPERATION','ROLLBACK')", tenantId, submitted.planRevisionId()));
+        assertEquals(2, count("SELECT COUNT(*) FROM cut_step WHERE tenant_id=? AND plan_revision_id=?",
+                tenantId, submitted.planRevisionId()));
+        assertEquals(0, count("SELECT COUNT(*) FROM cut_cutover_support_arrangement WHERE tenant_id=? " +
+                "AND plan_revision_id=?", tenantId, submitted.planRevisionId()));
+    }
+
+    @Test
+    void fullFilePositiveLoopFreezesFileFactWithoutOnlineChildren() {
+        CutoverPlanFilePort.FileFact file = owners.fileFact();
+        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                "create-full-file", "corr-create-full-file"));
+        var downloaded = service.downloadDraft(new DownloadCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, created.planVersion(), "download-full-file", "corr-download-full-file"));
+        SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, created.planVersion(), "submit-full-file", "corr-submit-full-file"));
+
+        assertEquals(file, downloaded.fileArtifactFact());
+        assertEquals("P5", submitted.taskStage());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND edit_mode_code='FULL_FILE_UPLOAD' AND content_snapshot IS NULL " +
+                "AND file_artifact_id=? AND file_version_no=? AND ownership_confirmed=b'1'",
+                tenantId, submitted.planRevisionId(), file.artifactId(), file.versionNo()));
+        assertEquals(0, count("SELECT COUNT(*) FROM cut_step WHERE tenant_id=? AND plan_revision_id=?",
+                tenantId, submitted.planRevisionId()));
+        assertEquals(0, count("SELECT COUNT(*) FROM cut_cutover_support_arrangement WHERE tenant_id=? " +
+                "AND plan_revision_id=?", tenantId, submitted.planRevisionId()));
     }
 
     @Test
@@ -328,6 +390,21 @@ class CutoverPlanApplicationMySqlTest {
                     "SWITCH", "type-v2")), source.configurationRevisionId(), source.configurationCode(),
                     source.configurationRevisionNo(), source.templateSections(), source.failedRiskFacts()),
                     facts.failedRiskFacts());
+        }
+        void useGrade(String grade) {
+            SourceSnapshot source = facts.snapshot();
+            List<TemplateSectionSnapshot> sections = "D".equals(grade)
+                    ? CutoverPlanRules.SIMPLE_SECTIONS.stream().map(key -> new TemplateSectionSnapshot(
+                            key, key, CutoverPlanRules.SIMPLE_SECTIONS.indexOf(key) + 1,
+                            List.of("NETWORK_CUTOVER"), List.of("D"), true)).toList()
+                    : source.templateSections();
+            facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion(), source.taskId(), source.taskVersion(),
+                    source.assessmentId(), source.assessmentVersion(), grade,
+                    "D".equals(grade) ? null : source.checklistId(),
+                    "D".equals(grade) ? null : source.checklistVersion(), source.projectId(), source.projectVersion(),
+                    source.projectScopeVersion(), source.devices(), source.configurationRevisionId(),
+                    source.configurationCode(), source.configurationRevisionNo(), sections,
+                    source.failedRiskFacts()), facts.failedRiskFacts());
         }
         FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
         @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }

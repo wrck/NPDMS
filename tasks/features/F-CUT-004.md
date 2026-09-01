@@ -143,3 +143,16 @@
 - [x] 通过Task 10 Seed/MySQL独立Gate（`GO@501cae2a`）。
 
 > 检查点：独立复审确认V152只新增CUT方案封闭字典和四项权限；隔离库重复执行后字典类型5、字典项21、权限4、角色授权0，legacy方案核对Job仍为PAUSED。Task 10 Gate通过；生产PLT/CUT-05 Provider、浏览器与Implementation Done边界不变。
+
+## Task 11：CUT受控正向集成回归
+
+状态：`CODE_REVIEW_REQUIRED / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES_CANDIDATE`
+
+- [x] 复用Task 4～6已通过的真实Spring事务、生产`PlatformCommandExecutionApiImpl`、真实MyBatis与MySQL测试装配，不重复创建第二套集成框架。
+- [x] 标准方案补齐初稿下载后提交P5，并核对方案、任务、审批PENDING、阶段历史、平台幂等与审计事实。
+- [x] 补齐D级简易方案与完整文件方案真实MySQL正向链：D只保存OPERATION/ROLLBACK且无清单/保障；上传模式只冻结PLT文件事实且无在线子项。
+- [x] 复用已通过的REJECTED修订、来源失效/替代提交与APPROVED联系人PATCH回归，所有跨模块Owner仅在`src/test`显式装配。
+- [x] CUT方案聚焦后端46/46（另5项MySQL按`skipITs=true`预期跳过）、隔离MySQL应用5/5、前端组件24/24、类型检查、后端package与前端build均通过；Flyway空卷已验证至V152。
+- [ ] 通过Task 11 CUT受控正向集成回归独立Gate。
+
+> 检查点候选：Task 11只证明CUT自有代码在受控Owner下形成正向事务闭环，候选状态最多为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`。生产PLT/CUT-05及F-CUT-002/003所需Owner、唯一生产装配、真实浏览器与Implementation Done继续留待Task 12。
