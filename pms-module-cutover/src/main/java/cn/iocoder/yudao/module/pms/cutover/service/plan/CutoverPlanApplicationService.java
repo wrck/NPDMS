@@ -17,12 +17,14 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRev
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.DownloadCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SaveCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -109,6 +111,40 @@ public class CutoverPlanApplicationService {
         requireCompleted(execution.decision());
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public DownloadCutoverPlanDraftResult downloadDraft(DownloadCutoverPlanDraftCommand command) {
+        requireDownload(command);
+        PlatformCommandExecutionApi.ExecutionResult<DownloadCutoverPlanDraftResult> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "CUT:PLAN_DRAFT_DOWNLOAD:" + command.taskId(), command.actorId(), command.idempotencyKey()),
+                sha256(JsonUtils.toJsonString(Map.of("taskId", command.taskId(),
+                        "planVersion", command.expectedPlanVersion()))), DownloadCutoverPlanDraftResult.class,
+                () -> downloadNew(command),
+                result -> downloadSuccessFacts(command, result));
+        requireCompleted(execution.decision());
+        return execution.response();
+    }
+
+    private DownloadCutoverPlanDraftResult downloadNew(DownloadCutoverPlanDraftCommand command) {
+        CutoverTaskDO task = requireVisibleTask(command.tenantId(), command.actorId(), command.taskId());
+        CutoverPlanRevisionDO plan = requireDraft(planMapper.selectCurrent(new CutoverPlanRevisionQuery(
+                command.tenantId(), command.taskId(), null)), command.expectedPlanVersion());
+        CutoverPlanSourcePort.SourceSnapshot snapshot = parseSource(plan.getSourceSnapshot());
+        CutoverPlanSourcePort.SourceFacts sourceFacts = new CutoverPlanSourcePort.SourceFacts(
+                snapshot, snapshot.failedRiskFacts());
+        CutoverPlanContentCodec.DecodedContent content = storedContent(command.tenantId(), plan, sourceFacts);
+        try {
+            codec.validateComplete(content, sourceFacts);
+        } catch (IllegalArgumentException ex) {
+            throw failure(INVALID_REQUEST, "方案内容尚未完整");
+        }
+        CutoverPlanFilePort.FileFact file = filePort.downloadDraft(command.tenantId(), command.actorId(),
+                task.getProjectId(), plan.getId());
+        if (file == null) throw failure(OWNER_DATA_CORRUPTED, "PLT未返回初稿文件事实");
+        return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), file,
+                clock.instant().toEpochMilli());
     }
 
     private CutoverPlanCommandResult createNew(CreateCutoverPlanDraftCommand command) {
@@ -344,6 +380,57 @@ public class CutoverPlanApplicationService {
         catch (RuntimeException ex) { throw new CutoverPlanApplicationException(OWNER_DATA_CORRUPTED, "冻结来源事实损坏"); }
     }
 
+    private CutoverPlanContentCodec.DecodedContent storedContent(Long tenantId, CutoverPlanRevisionDO plan,
+                                                                  CutoverPlanSourcePort.SourceFacts sourceFacts) {
+        if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
+            CutoverPlanFilePort.FileFact file = new CutoverPlanFilePort.FileFact(plan.getFileArtifactId(),
+                    plan.getFileVersionNo(), plan.getFileReferenceKey(), JsonUtils.parseObject(
+                    plan.getFileFactVersion(), CutoverPlanFilePort.FileFactVersion.class),
+                    plan.getFileScopeVersion(), plan.getFileSha256());
+            return new CutoverPlanContentCodec.DecodedContent(null, List.of(), List.of(), file,
+                    Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
+        }
+        try {
+            ObjectNode root = (ObjectNode) JsonUtils.parseObject(plan.getContentSnapshot(), JsonNode.class);
+            ArrayNode steps = root.putArray("steps");
+            stepMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).forEach(value -> {
+                ObjectNode row = steps.addObject();
+                row.put("sectionCode", value.getSectionCode());
+                row.put("stepNo", value.getStepNo());
+                row.put("content", value.getContent());
+            });
+            if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
+                ArrayNode support = root.putArray("supportArrangements");
+                supportMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).forEach(value -> {
+                    ObjectNode row = support.addObject();
+                    putWireLong(row, "arrangementId", value.getId());
+                    row.put("roleCode", value.getRoleCode());
+                    row.put("personName", value.getPersonName());
+                    row.put("dutyDescription", value.getDutyDescription());
+                    row.put("phone", value.getPhone());
+                    row.put("arrivalTime", value.getArrivalTime().atZone(ZoneId.systemDefault())
+                            .toInstant().toEpochMilli());
+                });
+            }
+            return codec.decodeWritable(root, sourceFacts);
+        } catch (CutoverPlanApplicationException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw failure(OWNER_DATA_CORRUPTED, "持久化方案内容损坏");
+        }
+    }
+
+    private CutoverTaskDO requireVisibleTask(Long tenantId, Long actorId, Long taskId) {
+        CutoverTaskDO task = taskMapper.selectById(taskId);
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)
+                || !CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())) {
+            throw failure(NOT_FOUND, "任务不可见");
+        }
+        CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_VIEW");
+        if (scope == null || !scope.allowed()) throw failure(NOT_FOUND, "任务不可见");
+        return task;
+    }
+
     private static void setFile(CutoverPlanRevisionDO row, CutoverPlanFilePort.FileFact file) {
         row.setFileArtifactId(file.artifactId()); row.setFileVersionNo(file.versionNo());
         row.setFileReferenceKey(file.referenceKey()); row.setFileFactVersion(JsonUtils.toJsonString(file.fileFactVersion()));
@@ -464,6 +551,19 @@ public class CutoverPlanApplicationService {
                 String.valueOf(result.planRevisionId()), correlationId, JsonUtils.toJsonString(result), List.of());
     }
 
+    private static PlatformCommandExecutionApi.SuccessFacts downloadSuccessFacts(
+            DownloadCutoverPlanDraftCommand command, DownloadCutoverPlanDraftResult result) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("actorId", command.actorId());
+        detail.put("planRevisionId", result.planRevisionId());
+        detail.put("planVersion", result.planVersion());
+        detail.put("fileArtifactFact", result.fileArtifactFact());
+        detail.put("downloadedAt", result.downloadedAt());
+        return new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_PLAN_DRAFT_DOWNLOAD",
+                "CutoverPlanRevision", String.valueOf(result.planRevisionId()), command.correlationId(),
+                JsonUtils.toJsonString(detail), List.of());
+    }
+
     private static void requireCreate(CreateCutoverPlanDraftCommand command) {
         if (command == null || !positive(command.tenantId()) || !positive(command.actorId()) || !positive(command.taskId())
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
@@ -486,6 +586,20 @@ public class CutoverPlanApplicationService {
                 || command.expectedProjectScopeVersion() == null || command.expectedProjectScopeVersion() < 0
                 || command.content() == null || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) throw failure(INVALID_REQUEST, "保存草稿命令非法");
+    }
+
+    private static void requireDownload(DownloadCutoverPlanDraftCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "下载初稿命令非法");
+        }
+    }
+
+    private static void putWireLong(ObjectNode node, String field, Long value) {
+        if (value > -9_007_199_254_740_991L && value < 9_007_199_254_740_991L) node.put(field, value);
+        else node.put(field, Long.toString(value));
     }
 
     private static void requireCompleted(PlatformCommandExecutionApi.Decision decision) {
