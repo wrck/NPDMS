@@ -23,4 +23,4 @@
 - [ ] API/Physical/Legacy Machine Contract Gate通过。
 - [ ] Feature Ready最终裁决通过。
 
-> 检查点：候选=`04b650df`独立复审NO-GO；A-E整改已补P4/P5/P6物理状态、CUT-05精确Owner合同、七路由DTO、三表JSON/不可变规则及旧表PLT前向合同。当前Gate仍为机器合同复审；不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。
+> 检查点：`a5334616`复审A/B已关闭、C/D/E仍NO-GO；本轮最小整改恢复D级完整文件上传，消除步骤/保障人员双事实，并补齐旧方案code/name/level/remark机器承载。当前仍为同一机器合同复审；不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。

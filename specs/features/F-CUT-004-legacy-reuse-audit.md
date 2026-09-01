@@ -20,7 +20,7 @@
 
 - 旧表真实列固定为`id/task_id/code/name/pre_check/procedure/verification/rollback/level/status/approved_by/approved_time/approval_opinion/baseline_version/remark/version`及Yudao租户、审计、删除列；不得假定存在文件、方案来源、评估、清单或保障人员列。
 - 可证明并需按序同时满足：`deleted=0`；租户、`id/task_id`有效；通过PLT已确认的`pms_cut_task -> cut_task`外部映射解析到同租户`LEGACY_FORWARD`任务；规范化`code`长度1..64、`name`长度1..128、`level`为A/B/C/D；`status`仅允许0..4原样保留；四个正文列至少一项非空；`version`和创建/更新审计完整。
-- 根映射：`legacy_plan_id=pms_cut_plan.id`、`legacy_status_raw=status`、`legacy_source_version=version`、`legacy_mapping_version=FCUT004_LEGACY_V1`；新平台编辑方式、等级事实、生命周期、current marker和审批身份全部为空。`code/name/level/remark`只进入不可变旧来源快照/只读投影。
+- 根映射：`legacy_plan_id=pms_cut_plan.id`、`legacy_status_raw=status`、`legacy_source_version=version`、`legacy_mapping_version=FCUT004_LEGACY_V1`；精确`LegacyPlanSourceSnapshot`同时保存规范化`code/name/level/remark`并由PlanView返回。新平台编辑方式、等级事实、生命周期、current marker和审批身份全部为空；旧`level`只是来源字段，不成为CUT-02评估事实。
 - 步骤映射：非空`pre_check -> PRE_OPERATION/1`、`procedure -> OPERATION/1`、`verification -> POST_BUSINESS_TEST/1`、`rollback -> ROLLBACK/1`；每列最多形成一个不可变步骤，不解析为运行执行状态。
 - 禁止映射：`status/approved_by/approved_time/approval_opinion/baseline_version`到新审批状态、审批实例或锁定事实；这些字段只留在迁移来源证据。
 - 受控Release导入器只通过`PlatformMigrationEvidenceApi`暂存不可变来源记录并推进至`STAGED_READY`；正常CUT Bean不得连接或直读遗留库。CUT迁移Job在外层事务中claim为`RECONCILING`，原子完成目标写、external mapping/issue/retained和最终计数核对；暂时Provider失败整体回滚到`STAGED_READY`。

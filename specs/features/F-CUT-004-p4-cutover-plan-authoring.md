@@ -19,7 +19,7 @@
 
 ### 2.1 包含
 
-- A/B/C在线模板与完整方案上传两种编辑方式；D级仅填写阶段操作步骤和回退步骤；
+- A/B/C可选择在线标准模板或完整方案上传；D级可选择完整方案上传，选择在线填写时仅填写阶段操作步骤和回退步骤；
 - 冻结任务、最终评估、项目、设备、配置revision及CUT-07方案模板章节快照；A/B/C同时冻结有效CUT-03清单，D级不要求清单；
 - CUT-03所有未通过风险项与应对措施一一对应；
 - 客户、迪普一线、迪普二线、迪普研发四类保障人员的姓名、任务描述、电话和到位时间；
@@ -50,7 +50,7 @@
 
 - `FULL_FILE_UPLOAD`只冻结经PLT校验的`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`及人工归属确认，不强制填写在线模板章节。
 - `ONLINE_TEMPLATE`按冻结模板章节保存割接概述、计划、拓扑/组网文件引用、设备清单快照、操作/验证/收尾/测试/回退/保障内容。
-- D级仅允许`ONLINE_TEMPLATE`的阶段操作步骤和回退步骤；不得生成A/B/C完整章节或风险清单。
+- D级选择在线填写时仅允许`ONLINE_TEMPLATE_SIMPLE_D`的阶段操作步骤和回退步骤，不得生成A/B/C完整章节或风险清单；D级选择已有完整方案时可使用`FULL_FILE_UPLOAD`，不强制解析在线章节。
 - 方案步骤是已审批方案内容，不是运行时执行状态，不建立执行步骤生命周期。
 
 ### BR-FCUT004-003 revision与审批交接
@@ -95,7 +95,7 @@
 
 ## 5. 数据与迁移
 
-- 新平台仅写`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`三张方案业务表；联系人类变更复用平台操作审计保存前后快照，不新增第四张CUT业务表。
+- 新平台仅写`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`三张方案业务表。`content_snapshot`只保存标准方案概述/风险措施或简易方案根判别，不复制步骤与保障人员；`cut_step`是步骤唯一事实，`cut_cutover_support_arrangement`是职责和当前联系人唯一事实。草稿保存原子更新根与从表，读取时组装REST内容；批准后联系人合法变更只更新保障人员行并写平台前后审计，不改不可变正文或职责，不新增第四张CUT业务表。
 - `pms_cut_plan`保持原表、源码、API、页面和权限不变。受控Release导入器先把原始行写入PLT不可变来源记录；CUT迁移Job只领取`STAGED_READY`批次。合格旧行通过`pms_cut_task`既有PLT映射解析同租户目标任务，形成只读`LEGACY_FORWARD` revision和`pre_check/procedure/verification/rollback -> PRE_OPERATION/OPERATION/POST_BUSINESS_TEST/ROLLBACK`步骤；旧`status/approved_* /baseline_version`只保留为原始迁移证据。
 - 根身份、原始状态、来源版本、字段资格、目标冲突、逐行issue/retained及同一外层事务内目标写+PLT分类+批次完成规则见physical contract；正常CUT生产Bean不连接或直读遗留表。
 - `CutoverSupportArrangement`为`NEW_ONLY`；旧表没有可证明的角色、职责、电话和到位时间来源。
@@ -103,7 +103,7 @@
 
 ## 6. 验收标准
 
-- AC-FCUT004-001：A/B/C以冻结评估、清单和配置创建标准DRAFT，D级不读取清单且只生成简易步骤/回退内容。
+- AC-FCUT004-001：A/B/C以冻结评估、清单和配置创建标准或完整文件DRAFT；D级不读取清单，可上传完整方案，选择在线填写时只生成简易步骤/回退内容。
 - AC-FCUT004-002：上传分支只冻结有效PLT文件事实并可直接提交；在线分支完整保存章节、未通过风险措施和四类保障人员。
 - AC-FCUT004-003：保存与初稿下载不推进状态；下载审计包含人、时间、revision和文件事实。
 - AC-FCUT004-004：提交revision与CUT-05审批实例同成同败，重放不重复，并发单胜，失败保持P4草稿。
