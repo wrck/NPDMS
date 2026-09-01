@@ -104,6 +104,14 @@ public class CutoverApprovalQueryService {
                 nodeMapper.countReassignmentCandidates(query), pageNo, pageSize);
     }
 
+    public ReassignmentCommandContext reassignmentCommandContext(long tenantId, long taskId, long actorId) {
+        CutoverApprovalViews.ApprovalView view = detail(tenantId, taskId, actorId, false, true);
+        require(view instanceof CutoverApprovalViews.ApprovalReassignmentView, STATE_CONFLICT, "审批不可改派");
+        CutoverTaskDO task = taskMapper.selectById(taskId);
+        require(task != null && Objects.equals(task.getTenantId(), tenantId), OWNER_DATA_CORRUPTED, "审批任务缺失");
+        return new ReassignmentCommandContext((CutoverApprovalViews.ApprovalReassignmentView) view, task.getVersion());
+    }
+
     private CutoverApprovalViews.ApprovalDetail full(CutoverApprovalInstanceDO root, CutoverTaskDO task,
             List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible) {
         Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalReviewItemDO>()
@@ -200,4 +208,7 @@ public class CutoverApprovalQueryService {
     private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code, String message) {
         return new CutoverApprovalApplicationException(code, message);
     }
+
+    public record ReassignmentCommandContext(CutoverApprovalViews.ApprovalReassignmentView view,
+                                             Integer taskVersion) { }
 }

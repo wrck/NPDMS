@@ -42,7 +42,8 @@ class CutoverApprovalQueryServiceTest {
         when(f.tasks.selectById(10L)).thenReturn(task());
         when(f.nodes.selectList(any())).thenReturn(List.of(node()));
 
-        var view = f.service.detail(1L, 10L, 99L, false, true);
+        var commandContext = f.service.reassignmentCommandContext(1L, 10L, 99L);
+        var view = commandContext.view();
 
         assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalReassignmentView.class, result -> {
             assertThat(result.viewMode()).isEqualTo("REASSIGNMENT_ONLY");
@@ -50,6 +51,7 @@ class CutoverApprovalQueryServiceTest {
             assertThat(result.nodes()).singleElement().extracting(CutoverApprovalViews.ReassignmentNode::nodeCode)
                     .isEqualTo("INITIATOR");
         });
+        assertThat(commandContext.taskVersion()).isEqualTo(3);
         verifyNoInteractions(f.scopes, f.managers, f.candidates);
     }
 
