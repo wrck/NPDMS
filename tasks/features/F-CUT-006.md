@@ -1,10 +1,10 @@
 # F-CUT-006 P6割接跟踪与闭环
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@4e390d4f`
 > Technical Plan Gate：`PASS / GO@354471f1`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`BLOCKED_BY_DEPENDENCY`
 > Requirement：`CUT-06@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-006-p6-cutover-closure.md`
 > 机器合同：`specs/features/F-CUT-006-api-contract.json`、`specs/features/F-CUT-006-physical-contract.json`
@@ -54,8 +54,9 @@
 - Task 8最小整改已在`de2fdb49`通过独立复审；PLT附件与人工结果统一绑定服务端`closureId`，首次DRAFT顺序阻断关闭。Task 8 Frontend Code Review／组件交互Gate现为`PASS / GO@de2fdb49`。
 - Task 9候选新增真实Spring事务代理、MyBatis、`PlatformCommandExecutionApiImpl`与MySQL 8.4下的P6完整正向闭环：DRAFT、两类PLT附件、单设备采集成功、SUCCESS归档、活动设备释放、P6历史、平台审计与`CutoverCompleted` Outbox；同键已完成重放保持单一事件/审计。
 - Task 9补齐既有正向验证缺口：`CALLBACK_FAILED`可关联一份人工结果；与既有FAILED归档、`DISPATCH_FAILED`人工结果、同意图外部任务恢复和平台重放场景组成7条真实MySQL闭环。
-- Task 9回归证据：CUT-002～005及P6聚焦套件共120次执行、104通过、16个MySQL用例按`skipITs=true`预期跳过；独立Compose项目`npdms-fcut006-task9`在33406端口使用MySQL 8.4空卷执行152个迁移至V156，P6真实MySQL 7/7通过，专用容器、网络和卷已全部清理。候选保持`REVIEW_REQUIRED`。
-- 最近Gate：Task 9 Backend/MySQL独立复审；通过后状态仅可收敛为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`。
+- Task 9回归证据：CUT-002～005及P6聚焦套件共120次执行、104通过、16个MySQL用例按`skipITs=true`预期跳过；独立Compose项目`npdms-fcut006-task9`在33406端口使用MySQL 8.4空卷执行152个迁移至V156，P6真实MySQL 7/7通过，专用容器、网络和卷已全部清理。
+- Task 9已在`ee891fa6`通过独立Backend/MySQL复审，Gate现为`PASS / GO@ee891fa6`；Feature实现状态按裁决收敛为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产ProjectScope/PLT/INT-12与真实浏览器仍阻断Implementation Done。
+- 最近Gate：Task 10 Entry Gate，当前`BLOCKED_BY_DEPENDENCY`，不创建生产Fake/fallback或提前装配。
 
 ## 状态边界
 
