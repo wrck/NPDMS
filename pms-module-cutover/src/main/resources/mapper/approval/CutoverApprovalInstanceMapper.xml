@@ -28,4 +28,16 @@
         ORDER BY id DESC
         LIMIT 1
     </select>
+    <update id="updateAfterReassignmentIfMatch">
+        UPDATE cut_approval_instance
+        SET hold_reason_code = #{query.holdReasonCode},
+            version = #{query.expectedVersion} + 1,
+            updater = #{query.updater},
+            update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.approvalInstanceId}
+          AND status_code = 'PENDING'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
 </mapper>

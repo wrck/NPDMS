@@ -80,6 +80,7 @@
         UPDATE cut_approval_node
         SET status_code = #{query.newStatusCode},
             current_approver_user_id = #{query.currentApproverUserId},
+            candidate_fact_snapshot = #{query.candidateFactSnapshot},
             project_scope_version = #{query.projectScopeVersion},
             assessment_review_decision_code = #{query.assessmentReviewDecisionCode},
             assessment_review_reason = #{query.assessmentReviewReason},

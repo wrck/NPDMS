@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNoti
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReassignmentPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -34,6 +35,8 @@ class CutoverApprovalMapperContractTest {
                 new ApprovalInstanceLockQuery(1L, 4L, null, null));
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "selectCurrentByTask",
                 new ApprovalTaskQuery(1L, 10L));
+        assertBindings(configuration, CutoverApprovalInstanceMapper.class, "updateAfterReassignmentIfMatch",
+                new ApprovalInstanceReassignmentUpdate(1L, 4L, 0, null, "9", NOW));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectByInstanceAndNodeForUpdate",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoPage",
@@ -50,7 +53,7 @@ class CutoverApprovalMapperContractTest {
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "updateStatusIfMatch",
                 new ApprovalNodeStatusUpdate(1L, 5L, 0, "PENDING", "APPROVED", 9L,
-                        11L, "CONFIRMED", null, "approved", NOW, "9", NOW));
+                        "{}", 11L, "CONFIRMED", null, "approved", NOW, "9", NOW));
         assertBindings(configuration, CutoverApprovalReassignmentMapper.class, "selectMaxReassignmentNo",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNotificationMapper.class,

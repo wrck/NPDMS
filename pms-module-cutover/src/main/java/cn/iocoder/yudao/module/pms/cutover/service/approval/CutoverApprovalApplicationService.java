@@ -8,12 +8,14 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalReviewItemDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalReassignmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReviewItemMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
@@ -26,6 +28,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 
 import java.nio.charset.StandardCharsets;
@@ -54,6 +57,7 @@ public class CutoverApprovalApplicationService {
     private final CutoverApprovalReviewItemMapper reviewItemMapper;
     private final CutoverTaskMapper taskMapper;
     private final CutoverTaskStageHistoryMapper historyMapper;
+    private final CutoverApprovalReassignmentMapper reassignmentMapper;
     private final ProjectCutoverServiceManagerPort serviceManagerPort;
     private final CutoverApprovalRoleCandidatePort roleCandidatePort;
     private final CutoverApprovalProjectScopePort projectScopePort;
@@ -72,7 +76,7 @@ public class CutoverApprovalApplicationService {
         this.notificationMapper = notificationMapper; this.serviceManagerPort = serviceManagerPort;
         this.roleCandidatePort = roleCandidatePort; this.projectScopePort = projectScopePort;
         this.commandExecutionApi = commandExecutionApi; this.currentUserId = currentUserId; this.clock = clock;
-        this.reviewItemMapper = null; this.taskMapper = null; this.historyMapper = null;
+        this.reviewItemMapper = null; this.taskMapper = null; this.historyMapper = null; this.reassignmentMapper = null;
     }
 
     public CutoverApprovalApplicationService(CutoverApprovalSourceAssembler sourceAssembler,
@@ -86,6 +90,22 @@ public class CutoverApprovalApplicationService {
         this.sourceAssembler = sourceAssembler; this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper;
         this.notificationMapper = notificationMapper; this.reviewItemMapper = reviewItemMapper;
         this.taskMapper = taskMapper; this.historyMapper = historyMapper;
+        this.reassignmentMapper = null;
+        this.serviceManagerPort = serviceManagerPort; this.roleCandidatePort = roleCandidatePort;
+        this.projectScopePort = projectScopePort; this.commandExecutionApi = commandExecutionApi;
+        this.currentUserId = currentUserId; this.clock = clock;
+    }
+
+    public CutoverApprovalApplicationService(CutoverApprovalSourceAssembler sourceAssembler,
+            CutoverApprovalInstanceMapper instanceMapper, CutoverApprovalNodeMapper nodeMapper,
+            CutoverApprovalNotificationMapper notificationMapper, CutoverApprovalReviewItemMapper reviewItemMapper,
+            CutoverApprovalReassignmentMapper reassignmentMapper, CutoverTaskMapper taskMapper,
+            CutoverTaskStageHistoryMapper historyMapper, ProjectCutoverServiceManagerPort serviceManagerPort,
+            CutoverApprovalRoleCandidatePort roleCandidatePort, CutoverApprovalProjectScopePort projectScopePort,
+            PlatformCommandExecutionApi commandExecutionApi, LongSupplier currentUserId, Clock clock) {
+        this.sourceAssembler = sourceAssembler; this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper;
+        this.notificationMapper = notificationMapper; this.reviewItemMapper = reviewItemMapper;
+        this.reassignmentMapper = reassignmentMapper; this.taskMapper = taskMapper; this.historyMapper = historyMapper;
         this.serviceManagerPort = serviceManagerPort; this.roleCandidatePort = roleCandidatePort;
         this.projectScopePort = projectScopePort; this.commandExecutionApi = commandExecutionApi;
         this.currentUserId = currentUserId; this.clock = clock;
@@ -113,6 +133,94 @@ public class CutoverApprovalApplicationService {
         return decide(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.assessmentReview(), command.feedback(), command.idempotencyKey(), command.correlationId(), false);
+    }
+
+    public CutoverApprovalViews.ApprovalReassignmentView reassign(ReassignCutoverApprovalCommand command) {
+        require(command != null && command.tenantId() != null && command.tenantId() > 0
+                        && command.taskId() != null && command.taskId() > 0
+                        && command.expectedTaskVersion() != null && command.expectedTaskVersion() >= 0
+                        && command.approvalInstanceId() != null && command.approvalInstanceId() > 0
+                        && command.expectedApprovalVersion() != null && command.expectedApprovalVersion() >= 0
+                        && command.nodeNo() != null && command.nodeNo() > 0
+                        && command.newApproverUserId() != null && command.newApproverUserId() > 0,
+                INVALID_REQUEST, "改派命令身份非法");
+        require(nonBlank(command.reason(), 1000), BUSINESS_INCOMPLETE, "REASSIGN_REASON_REQUIRED");
+        require(nonBlank(command.idempotencyKey(), 128) && nonBlank(command.correlationId(), 128),
+                INVALID_REQUEST, "改派命令头非法");
+        long actorId = currentUserId.getAsLong();
+        require(actorId > 0, INVALID_REQUEST, "缺少受信当前用户");
+        ReassignmentBusinessInput digest = new ReassignmentBusinessInput(command.tenantId(), command.taskId(),
+                command.expectedTaskVersion(), command.approvalInstanceId(), command.expectedApprovalVersion(),
+                command.nodeNo(), command.newApproverUserId(), command.reason());
+        var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                        "CUTOVER_APPROVAL_REASSIGN:" + command.approvalInstanceId(), actorId, command.idempotencyKey()),
+                sha256(JsonUtils.toJsonString(digest)), CutoverApprovalViews.ApprovalReassignmentView.class,
+                () -> reassignNew(command, actorId), result -> new PlatformCommandExecutionApi.SuccessFacts(
+                        "CUTOVER_APPROVAL_REASSIGNED", "CUTOVER_APPROVAL", String.valueOf(result.approvalInstanceId()),
+                        command.correlationId(), JsonUtils.toJsonString(Map.of("approvalInstanceId", result.approvalInstanceId(),
+                        "taskId", result.taskId(), "nodeNo", command.nodeNo(), "newApproverUserId", command.newApproverUserId())),
+                        null, null));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT)
+            throw failure(IDEMPOTENCY_CONFLICT, "改派幂等载荷冲突");
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
+            throw failure(IDEMPOTENCY_IN_PROGRESS, "改派命令处理中");
+        return execution.response();
+    }
+
+    private CutoverApprovalViews.ApprovalReassignmentView reassignNew(ReassignCutoverApprovalCommand command,
+                                                                       long actorId) {
+        require(reassignmentMapper != null && taskMapper != null, OWNER_DATA_CORRUPTED, "改派持久化组件未装配");
+        CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
+        require(task != null && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus()),
+                STATE_CONFLICT, "任务不在P5审批中");
+        require(Objects.equals(task.getVersion(), command.expectedTaskVersion()), VERSION_CONFLICT, "任务版本已变化");
+        CutoverApprovalInstanceDO root = instanceMapper.selectByIdForUpdate(new ApprovalInstanceLockQuery(
+                command.tenantId(), command.approvalInstanceId(), null, null));
+        require(root != null && Objects.equals(root.getTaskId(), command.taskId()) && "PENDING".equals(root.getStatusCode()),
+                STATE_CONFLICT, "审批实例不可改派");
+        require(Objects.equals(root.getVersion(), command.expectedApprovalVersion()), VERSION_CONFLICT, "审批版本已变化");
+        CutoverApprovalNodeDO node = nodeMapper.selectByInstanceAndNodeForUpdate(new ApprovalNodeLockQuery(
+                command.tenantId(), command.approvalInstanceId(), command.nodeNo()));
+        require(node != null && List.of("WAITING", "PENDING").contains(node.getStatusCode()),
+                STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN");
+        require(!Objects.equals(node.getCurrentApproverUserId(), command.newApproverUserId()),
+                STATE_CONFLICT, "改派目标未变化");
+        ReassignmentCandidate candidate = lockReassignmentCandidate(root, node, command.newApproverUserId());
+        LocalDateTime now = LocalDateTime.now(clock);
+        require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(node.getTenantId(), node.getId(),
+                node.getVersion(), node.getStatusCode(), node.getStatusCode(), command.newApproverUserId(),
+                candidate.snapshot(), candidate.projectScopeVersion(), node.getAssessmentReviewDecisionCode(),
+                node.getAssessmentReviewReason(), node.getFeedback(), node.getDecisionAt(), String.valueOf(actorId), now)) == 1,
+                VERSION_CONFLICT, "审批节点并发变化");
+        int nextNodeVersion = node.getVersion() + 1;
+        Long from = node.getCurrentApproverUserId();
+        node.setCurrentApproverUserId(command.newApproverUserId()); node.setCandidateFactSnapshot(candidate.snapshot());
+        node.setProjectScopeVersion(candidate.projectScopeVersion()); node.setVersion(nextNodeVersion);
+        CutoverApprovalReassignmentDO history = new CutoverApprovalReassignmentDO();
+        history.setId(IDS.nextId()); history.setTenantId(command.tenantId()); history.setApprovalInstanceId(root.getId());
+        history.setApprovalNodeId(node.getId()); history.setReassignmentNo(
+                reassignmentMapper.selectMaxReassignmentNo(new ApprovalNodeLockQuery(command.tenantId(), root.getId(), node.getNodeNo())) + 1);
+        history.setFromApproverUserId(from); history.setToApproverUserId(command.newApproverUserId());
+        history.setReason(command.reason()); history.setCandidateFactSnapshot(candidate.snapshot());
+        history.setOperatedBy(actorId); history.setOperatedAt(now); history.setCreator(String.valueOf(actorId));
+        history.setUpdater(String.valueOf(actorId)); history.setCreateTime(now); history.setUpdateTime(now);
+        require(reassignmentMapper.insert(history) == 1, STATE_CONFLICT, "改派历史创建失败");
+        List<CutoverApprovalNodeDO> openNodes = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
+                .eq(CutoverApprovalNodeDO::getTenantId, command.tenantId())
+                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, root.getId())
+                .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
+                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+        int oldRootVersion = root.getVersion();
+        if (Objects.equals(root.getCurrentNodeNo(), node.getNodeNo())
+                && openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null))
+            root.setHoldReasonCode(null);
+        root.setUpdater(String.valueOf(actorId)); root.setUpdateTime(now);
+        require(instanceMapper.updateAfterReassignmentIfMatch(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate(
+                root.getTenantId(), root.getId(), oldRootVersion, root.getHoldReasonCode(),
+                String.valueOf(actorId), now)) == 1, VERSION_CONFLICT, "审批实例并发变化");
+        root.setVersion(oldRootVersion + 1);
+        if ("PENDING".equals(node.getStatusCode())) insertPendingNotification(root, node, actorId, now);
+        return reassignmentView(root, task, openNodes);
     }
 
     private CutoverApprovalDecisionResult decide(long tenantId, long taskId, int expectedTaskVersion,
@@ -427,6 +535,72 @@ public class CutoverApprovalApplicationService {
         };
     }
 
+    private ReassignmentCandidate lockReassignmentCandidate(CutoverApprovalInstanceDO root,
+            CutoverApprovalNodeDO node, long targetUserId) {
+        return switch (node.getNodeCode()) {
+            case "INITIATOR" -> {
+                var expected = projectScopePort.inspect(root.getTenantId(), root.getProjectId(), targetUserId,
+                        "ACTION_EDIT");
+                var locked = projectScopePort.lockAndRevalidate(expected);
+                require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
+                        SOURCE_STALE, "改派目标项目范围已变化");
+                require(locked.current().allowed(), STATE_CONFLICT, "改派目标不具备项目编辑范围");
+                yield new ReassignmentCandidate(JsonUtils.toJsonString(locked.current()), locked.current().treeVersion());
+            }
+            case "SERVICE_MANAGER" -> {
+                var expected = serviceManagerPort.inspectCurrent(root.getTenantId(), root.getProjectId(),
+                        LocalDateTime.now(clock));
+                var locked = serviceManagerPort.lockAndRevalidate(expected);
+                require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID,
+                        SOURCE_STALE, "服务经理事实已变化");
+                require(locked.current().outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND
+                                && Objects.equals(locked.current().userId(), targetUserId),
+                        STATE_CONFLICT, "改派目标不是当前唯一服务经理");
+                yield new ReassignmentCandidate(JsonUtils.toJsonString(locked.current()), 0L);
+            }
+            case "SECOND_LINE", "RND" -> {
+                String group = "SECOND_LINE".equals(node.getNodeCode())
+                        ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
+                var inspected = roleCandidatePort.inspectCandidates(root.getTenantId(), group);
+                var lockedCandidates = roleCandidatePort.lockAndRevalidate(inspected);
+                require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID,
+                        SOURCE_STALE, "审批角色候选事实已变化");
+                List<FrozenProjectScope> scopes = new ArrayList<>();
+                Long selectedScopeVersion = null;
+                boolean targetCandidate = false;
+                for (var candidate : lockedCandidates.current().candidates()) {
+                    var expectedScope = projectScopePort.inspect(root.getTenantId(), root.getProjectId(),
+                            candidate.adminUserId(), "ACTION_VIEW");
+                    var lockedScope = projectScopePort.lockAndRevalidate(expectedScope);
+                    require(lockedScope.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
+                            SOURCE_STALE, "审批候选项目范围已变化");
+                    scopes.add(new FrozenProjectScope(candidate.adminUserId(), lockedScope.current().allowed(),
+                            lockedScope.current().treeVersion()));
+                    if (candidate.adminUserId() == targetUserId && lockedScope.current().allowed()) {
+                        targetCandidate = true; selectedScopeVersion = lockedScope.current().treeVersion();
+                    }
+                }
+                require(targetCandidate, STATE_CONFLICT, "改派目标不是当前合格候选");
+                FrozenRoleSnapshot snapshot = new FrozenRoleSnapshot(group,
+                        lockedCandidates.current().candidates(), List.copyOf(scopes), targetUserId);
+                yield new ReassignmentCandidate(JsonUtils.toJsonString(snapshot), selectedScopeVersion);
+            }
+            default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
+        };
+    }
+
+    private static CutoverApprovalViews.ApprovalReassignmentView reassignmentView(
+            CutoverApprovalInstanceDO root, CutoverTaskDO task, List<CutoverApprovalNodeDO> nodes) {
+        List<CutoverApprovalViews.ReassignmentNode> open = nodes.stream()
+                .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode()))
+                .map(node -> new CutoverApprovalViews.ReassignmentNode(node.getId(), node.getNodeNo(),
+                        node.getNodeCode(), node.getStatusCode(), node.getCurrentApproverUserId(), node.getVersion()))
+                .toList();
+        return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", root.getId(), root.getVersion(),
+                task.getId(), root.getProjectId(), task.getTaskNo(), task.getTaskName(), root.getGradeCode(),
+                root.getStatusCode(), root.getHoldReasonCode(), open, List.of("REASSIGN"));
+    }
+
     private void insertReviewItems(long tenantId, long instanceId, long nodeId, List<ReviewItemInput> items,
                                    long actorId, LocalDateTime now) {
         for (ReviewItemInput item : items) {
@@ -443,7 +617,8 @@ public class CutoverApprovalApplicationService {
                             String feedback, LocalDateTime decisionAt, long actorId, LocalDateTime now) {
         require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(node.getTenantId(), node.getId(),
                 node.getVersion(), node.getStatusCode(), status, node.getCurrentApproverUserId(),
-                node.getProjectScopeVersion(), assessment == null ? null : assessment.decision(),
+                node.getCandidateFactSnapshot(), node.getProjectScopeVersion(),
+                assessment == null ? null : assessment.decision(),
                 assessment == null ? null : assessment.reason(), feedback, decisionAt, String.valueOf(actorId), now)) == 1,
                 VERSION_CONFLICT, "审批节点并发变化");
     }
@@ -453,7 +628,8 @@ public class CutoverApprovalApplicationService {
         require("WAITING".equals(next.getStatusCode()), STATE_CONFLICT, "下一审批节点状态异常");
         require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(next.getTenantId(), next.getId(),
                 next.getVersion(), "WAITING", "PENDING", next.getCurrentApproverUserId(),
-                next.getProjectScopeVersion(), null, null, null, null, String.valueOf(actorId), now)) == 1,
+                next.getCandidateFactSnapshot(), next.getProjectScopeVersion(), null, null, null, null,
+                String.valueOf(actorId), now)) == 1,
                 VERSION_CONFLICT, "下一审批节点并发变化");
         int oldVersion = instance.getVersion();
         instance.setCurrentNodeNo(next.getNodeNo()); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
@@ -642,6 +818,10 @@ public class CutoverApprovalApplicationService {
                                          long approvalInstanceId, int expectedApprovalVersion, String action,
                                          List<ReviewItemInput> reviewItems,
                                          AssessmentReviewInput assessmentReview, String feedback) { }
+    private record ReassignmentBusinessInput(long tenantId, long taskId, int expectedTaskVersion,
+                                             long approvalInstanceId, int expectedApprovalVersion,
+                                             int nodeNo, long newApproverUserId, String reason) { }
+    private record ReassignmentCandidate(String snapshot, long projectScopeVersion) { }
     private record FrozenRoleSnapshot(String roleGroupCode,
                                       List<CutoverApprovalRoleCandidatePort.Candidate> candidates,
                                       List<FrozenProjectScope> projectScopes, Long selectedUserId) { }
