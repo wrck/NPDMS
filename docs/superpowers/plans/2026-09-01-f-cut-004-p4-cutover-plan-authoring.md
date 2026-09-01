@@ -28,7 +28,7 @@
 - `content_snapshot`只保存标准根概述/风险措施或简易模式判别；步骤与保障安排只从子表读取，不双写JSON。
 - 所有新增查询遵守`docs/coding/database-query-interface.md`：场景Query单参数，联表/动态集合/锁查询进入Mapper XML，禁止SQL注解、`${}`、`Map`和Service拼SQL。
 - Flyway文件仅在实际串行合入时读取`sql/migrations`并选下一个空闲版本；计划不预约版本、不修改V146/V149或任何已执行迁移。
-- 复杂核心单元先写能证明目标行为的聚焦失败测试，再做最小实现；优先完成正向链，不扩建低收益异常组合矩阵。
+- 每个Task先完成最小正向实现，再补实现后的单元测试与正向闭环验证；不执行RED、预期失败或负向异常组合测试。
 - 每个Task完成后只提交本Task文件并申请对应Gate；共享Task/Feature状态文件串行更新，不与其他Feature并行改写。
 
 ---
@@ -71,10 +71,10 @@
 
 **Steps:**
 
-- [ ] 先写合同测试，反射固定四个方法签名、record精确字段、四态枚举、稳定错误码和MANDATORY语义说明；运行：`mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalFactApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`，确认因类型缺失失败。
 - [ ] 最小实现接口、records和公共异常；构造器在公共输入边界稳定返回`INVALID_REQUEST`，不泄漏NPE，不实现Bean。
 - [ ] 在`src/test`创建`ControlledCutoverApprovalFactApi`测试夹具：可确定性返回PENDING/REJECTED/APPROVED/PAUSED链，保持同键重放；禁止放入`src/main`。
-- [ ] 重跑合同测试并执行`mvn -pl pms-module-cutover-api,pms-module-cutover -am -DskipTests package`。
+- [ ] 实现完成后补合同测试，反射固定四个方法签名、record精确字段、四态枚举、稳定错误码和MANDATORY语义说明；运行：`mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalFactApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- [ ] 执行`mvn -pl pms-module-cutover-api,pms-module-cutover -am -DskipTests package`。
 - [ ] 自审：搜索`@Service|@Component|@Bean`确认本Task没有审批生产Provider或Fake；提交并申请Task 1 Contract Gate。
 
 ---
@@ -96,10 +96,10 @@
 
 **Steps:**
 
-- [ ] 先写迁移/Mapper合同测试，固定physical contract全部列、联合CHECK、唯一键、P4/P5/P6与四个history trigger，以及XML动态集合和CAS参数绑定；确认当前失败。
 - [ ] 实施前重新读取最高Flyway版本并使用实际下一个空闲号。迁移先在任何DDL前预检`cut_task/cut_task_stage_history`现值，再创建三表并以前向方式替换阶段CHECK；不更新业务行。
 - [ ] 实现DO、场景Query、Mapper XML：当前revision、revisionNo分配、根CAS、子行稳定锁/替换、直接后继查询和只读历史投影。
-- [ ] 用独立MySQL 8.4空卷执行全量Flyway，验证三表信息架构、CHECK/唯一键、P4→P5/P5→P4历史值；再构造非法旧阶段值，验证在任何DDL前失败且repair后原脚本可重跑。
+- [ ] 实现完成后补迁移/Mapper合同测试，固定physical contract全部列、联合CHECK、唯一键、P4/P5/P6与四个history trigger，以及XML动态集合和CAS参数绑定。
+- [ ] 用独立MySQL 8.4空卷执行全量Flyway，正向验证三表信息架构、CHECK/唯一键以及P4→P5/P5→P4可用字段。
 - [ ] 运行聚焦测试：`mvn -pl pms-module-cutover -am -Dtest=Fcut004MigrationContractTest,CutoverPlanMapperContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
 - [ ] 自审无跨Context表查询、无已执行迁移修改；提交并申请Task 2 Schema/MySQL Gate。
 
@@ -121,11 +121,10 @@
 
 **Steps:**
 
-- [ ] 先写聚焦测试：A/B/C标准内容完整装配、D仅OPERATION/ROLLBACK、完整文件事实冻结、步骤/保障不进入`content_snapshot`、legacy联合拒绝写入；运行并确认失败。
 - [ ] 实现exact-key Codec与规范序列化；数组保留业务顺序，步骤按section/stepNo、保障按role稳定排序，未知/缺键失败关闭。
 - [ ] `CutoverPlanSourcePort`只组合既有CUT-002/003只读投影：任务、评估、清单、项目/设备、配置和模板章节；不查询COM、不访问其他模块表。
 - [ ] `CutoverPlanFilePort`定义inspect/lock/downloadDraft最窄事实。生产Adapter只可直接调用`FileArtifactApi`已存在的公开方法；若“生成初稿”缺PLT公开创建合同，保持该Adapter分支`BLOCKED_BY_DEPENDENCY`，测试用受控端口返回确定文件事实，不修改PLT。
-- [ ] 重跑`CutoverPlanContentCodecTest`，确认Owner原值保留且比较使用合同规范键。
+- [ ] 实现完成后补聚焦测试：A/B/C标准内容完整装配、D仅OPERATION/ROLLBACK、完整文件事实冻结、步骤/保障只从子表组装，并确认Owner原值保留且比较使用合同规范键。
 - [ ] 自审无URL、文件正文、客户端扫描结论或重复子表JSON；提交并申请Task 3 Domain/Port Gate。
 
 ---
@@ -147,10 +146,10 @@
 
 **Steps:**
 
-- [ ] 用Task 3受控端口先写正向测试：A级标准草稿、D级简易草稿、D级完整文件草稿，保存后根/步骤/保障原子一致，详情按子表组装。
 - [ ] 实现命令边界：受信tenant、非空规范`Idempotency-Key/correlationId`、task/plan版本；digest排除correlationId但SuccessFacts保留它。
 - [ ] 实现create/save NEW事务：复用1.2锁序、revisionNo单调分配、唯一当前DRAFT、根版本CAS、子行整组替换；任何子行失败整体回滚。
 - [ ] 实现详情与`allowedActions`，只依据服务端权限、任务负责人、stage、plan状态和审批投影；LEGACY_FORWARD只读。
+- [ ] 实现完成后用Task 3受控端口补正向测试：A级标准草稿、D级简易草稿、D级完整文件草稿，保存后根/步骤/保障原子一致，详情按子表组装。
 - [ ] 运行：`mvn -pl pms-module-cutover -am -Dtest=CutoverPlanApplicationServiceTest,CutoverPlanQueryServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
 - [ ] 增加真实MySQL聚焦测试，证明根、步骤、保障及平台幂等/审计同事务，保存重放不重复。
 - [ ] 提交并申请Task 4 Application/MySQL Gate；本Gate不注册生产Service Bean。
@@ -178,7 +177,7 @@
 - [ ] 实现下载SuccessFacts，detail snapshot固定actor、planRevision、文件事实和时间，不把下载成功当提交。
 - [ ] 实现submit外层事务：锁完整来源与子行，调用MANDATORY `start`，写approval identity，revision DRAFT→SUBMITTED，任务P4→P5并追加`P4_PLAN_SUBMITTED`；同键重放返回原审批。
 - [ ] 实现内部来源失效命令：同事务调用`pauseForSourceInvalidation`、SUBMITTED→INVALIDATED、任务P5→P4并追加`P5_SOURCE_INVALIDATED`；不恢复旧事实。
-- [ ] 真实MySQL测试证明审批端口抛错、任务CAS失败或SuccessFacts失败时方案、任务、历史、幂等认领全部回滚。
+- [ ] 真实MySQL正向验证方案提交、审批PENDING、任务P5、阶段历史和平台成功事实在同一事务结果中一致。
 - [ ] 提交并申请Task 5 Submission/MySQL Gate；受控审批替身只存在测试源码。
 
 ---
@@ -196,10 +195,10 @@
 
 **Steps:**
 
-- [ ] 先写正向生命周期测试：REJECTED派生revisionNo+1；PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED并把旧approval传给替代start；APPROVED职责变化派生DUTY_CHANGED。
 - [ ] 实现revise：锁当前任务、来源revision和审批事实，复制不可变正文/步骤/职责到新DRAFT，重新冻结当前来源，不覆盖旧revision。
-- [ ] 先写联系人PATCH测试：根`If-Match`单一版本Owner，CAS根+1后只更新personName/phone/arrivalTime；role/duty保持不变；SuccessFacts保存before/after、actor、reason、correlationId和时间。
 - [ ] 实现PATCH，不接受arrangementVersion；锁根和目标保障行，任一步失败使根、子行、审计整体回滚。
+- [ ] 实现完成后补正向生命周期测试：REJECTED派生revisionNo+1；PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED并把旧approval传给替代start；APPROVED职责变化派生DUTY_CHANGED。
+- [ ] 实现完成后补联系人PATCH测试：根`If-Match`单一版本Owner，CAS根+1后只更新personName/phone/arrivalTime；role/duty保持不变；SuccessFacts保存before/after、actor、reason、correlationId和时间。
 - [ ] 用受控审批事实跑“提交→APPROVED→联系人PATCH”和“提交→REJECTED→新DRAFT→替代提交”两条CUT正向链。
 - [ ] 提交并申请Task 6 Lifecycle/MySQL Gate。
 
@@ -220,9 +219,9 @@
 
 **Steps:**
 
-- [ ] 先写RequestCodec测试，固定顶层/嵌套判别联合exact keys、WireLong/WireDateTime、Header和禁止LEGACY_READ_ONLY写入。
 - [ ] 实现七路由与四权限注解；Controller只解析Header/VO、调用Service和投影CommonResult，不拼业务状态。
-- [ ] 用测试激活外壳真实MockMvc验证七条正向路由及400/403/404/409/422/503精确envelope；稳定异常按结构字段映射，不按message猜测。
+- [ ] 实现RequestCodec与结构化异常投影，固定顶层/嵌套判别联合exact keys、WireLong/WireDateTime、Header及稳定错误合同；异常映射按结构字段，不按message猜测。
+- [ ] 实现完成后用测试激活外壳真实MockMvc验证七条正向路由的请求、Header、CommonResult与响应DTO。
 - [ ] 确认Controller在本Task不加生产`@RestController/@Component`，或仅通过test-only configuration注册；正式装配留Task 12。
 - [ ] 运行：`mvn -pl pms-module-cutover -am -Dtest=CutoverPlanControllerContractTest,CutoverPlanRequestCodecTest -Dsurefire.failIfNoSpecifiedTests=false test`。
 - [ ] 提交并申请Task 7 REST Contract Gate。
@@ -244,11 +243,11 @@
 
 **Steps:**
 
-- [ ] 先写converter测试，固定legacy source snapshot及四字段→四step映射；旧审批字段只能进入迁移证据。
 - [ ] 实现服务：外层事务claim STAGED_READY批次，分页读PLT冻结source records，通过既有`pms_cut_task`外部映射解析目标任务，写LEGACY_FORWARD root/steps并追加mapping/issue/retained，计数一致后complete。
 - [ ] 正常CUT代码不得查询`pms_cut_plan`；受控Release导入器属于发布工具边界，不在本Feature生产Bean内实现legacy datasource。
 - [ ] 注册Job代码但以实际下一个空闲Flyway版本在`infra_job`幂等种子为`status=2/PAUSED`；不加Quartz自动同步Registrar。
-- [ ] 真实MySQL验证合格行、不可迁行、同批重试和任一步失败整体回到STAGED_READY；测试fixture只证明转换，不作为生产迁移完成证据。
+- [ ] 实现完成后补converter测试，固定合格legacy source snapshot及四字段→四step映射；旧审批字段只能进入迁移证据。
+- [ ] 真实MySQL正向验证合格行从STAGED_READY完成LEGACY_FORWARD root/steps、PLT mapping和批次COMPLETED；测试fixture只证明转换，不作为生产迁移完成证据。
 - [ ] 提交并申请Task 8 Migration/MySQL Gate。
 
 ---
@@ -313,7 +312,7 @@
 - [ ] 跑标准链：P4创建→保存根/步骤/保障→下载→提交P5，核对审批PENDING、平台幂等/审计、任务历史。
 - [ ] 跑简易D与完整文件链，确认D无清单、简易仅两类步骤、上传只冻结文件事实。
 - [ ] 跑修订链：REJECTED→新DRAFT→替代PENDING；来源失效→INVALIDATED/PAUSED/P4→替代提交；APPROVED联系人PATCH不重审。
-- [ ] 验证审批端口失败、文件重验失败、CAS冲突和SuccessFacts失败均零部分写；不扩展全仓异常矩阵。
+- [ ] 只核对每条正向链的方案、任务、审批、平台成功事实和审计结果完整一致。
 - [ ] 运行CUT聚焦后端、前端组件、Flyway validate和受影响reactor package；记录精确测试数与报告路径。
 - [ ] Task 11通过后仅把CUT候选记为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，不得宣称生产装配、浏览器或Implementation Done。
 
@@ -335,7 +334,7 @@
 
 - [ ] Gate前置：F-CUT-005生产`CutoverApprovalFactApi`已通过Owner Gate；PLT能正式生成/冻结初稿文件并通过合同测试；F-CUT-002/003所需生产Owner已接通。
 - [ ] 同一提交接入正式Adapter、唯一Application/Query Service Bean和唯一`@RestController`；缺任一Provider时Spring失败关闭，不注册fallback。
-- [ ] 用真实Spring上下文验证F-CUT-004→F-CUT-005 MANDATORY事务传播，以及Provider异常时CUT写与平台记录回滚。
+- [ ] 用真实Spring上下文正向验证F-CUT-004→F-CUT-005 MANDATORY事务传播及同事务完成结果。
 - [ ] 激活legacy Job须另经正式迁移批次/Release证据Gate；未激活不阻断新平台P4正向链，但阻断“历史迁移完成”声明。
 - [ ] 启动真实MySQL/Redis、宿主机后端与前端，用正式权限和生产Provider完成标准P4→P5正向浏览器链；审批后续状态只由F-CUT-005正式实现提供。
 - [ ] 核对数据库根/子表、任务历史、平台幂等/审计和文件事实；浏览器HTTP 200本身不作为完成证据。
@@ -349,7 +348,7 @@
 |---|---|---|---|
 | 机器合同 | Java/JSON/DDL/REST字段与封闭联合一致 | 不适用 | 对应Contract Gate可审 |
 | CUT单元/组件 | 内容Codec、命令、状态、页面交互 | `src/test`受控Owner | CUT实现候选，不是生产闭环 |
-| CUT真实MySQL集成 | 三表、任务阶段、幂等、审计、回滚 | `src/test`受控Owner | `IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES` |
+| CUT真实MySQL集成 | 三表、任务阶段、幂等、审计及同事务正向结果 | `src/test`受控Owner | `IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES` |
 | 生产Spring/浏览器 | 正式PROJ/PLT/F-CUT-005事实和真实权限 | 禁止 | 才可申请Implementation Done |
 
 Feature完成必须同时满足：
