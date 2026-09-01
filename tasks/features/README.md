@@ -8,6 +8,8 @@
 
 本轮CUT内PROJ Owner选择性集成审计输入为`master@2dd62f1d0f81492b77a5ea0f27a41aaff13e7886`、截点`2026-09-01T22:41:49+08:00`，见[CUT-PROJ集成后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-01-cut-proj-integration.md)。报告覆盖22个本地分支、全部Worktree、470条master外提交与2个stash；`codex/f-cut-001-matrices@85b93828`仍按整支隔离，只承认下表四组PROJ物理Owner carve-out已进入master。
 
+本轮PRE/SOL权威审计输入为`master@75a489902f423bd1c929a279e3751a9c76d662a0`、截点`2026-09-01T23:23:14.4365352+08:00`，见[PRE/SOL集成后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md)。报告覆盖22个本地分支、16个Worktree、470条master外分支提交与2个stash；裁决确认不存在master缺失的PRE/SOL物理Owner增量，不得用补丁等价、树等价、ACC专用适配或临时副本制造重复合并。
+
 ## master权威Feature状态
 
 | Feature | Feature Task | master实施状态 | 当前有效DU | Requirement投影 |

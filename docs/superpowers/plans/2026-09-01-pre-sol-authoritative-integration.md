@@ -90,7 +90,7 @@ Expected: all tests pass；固定章节候选不得重新成为新实施入口�
 
 **Step 3: 生成全分支时间线**
 
-Run: `python scripts/generate_branch_history_audit.py --snapshot-at <ISO-8601> --master-input <closure-commit> --output docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md`
+Run: `python scripts/generate_branch_history_audit.py --snapshot-at "2026-09-01T23:23:14.4365352+08:00" --master-input 75a489902f423bd1c929a279e3751a9c76d662a0 --output docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md`
 Expected: 覆盖全部本地分支、Worktree、master 外提交和 stash；报告中的 DU/分支状态与矩阵一致。
 
 ### Task 5: 自审、验证和提交
@@ -101,7 +101,7 @@ Expected: 覆盖全部本地分支、Worktree、master 外提交和 stash；报�
 **Step 1: 运行最终校验**
 
 Run: `python scripts/validate_delivery_units.py --write-index --check-index`
-Run: `python scripts/generate_branch_history_audit.py --snapshot-at <ISO-8601> --master-input <closure-commit> --output docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md --check`
+Run: `python scripts/generate_branch_history_audit.py --snapshot-at "2026-09-01T23:23:14.4365352+08:00" --master-input 75a489902f423bd1c929a279e3751a9c76d662a0 --output docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md --check`
 Expected: all checks pass。
 
 **Step 2: 审查差异**

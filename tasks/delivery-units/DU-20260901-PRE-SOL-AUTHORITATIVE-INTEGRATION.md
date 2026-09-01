@@ -38,6 +38,7 @@
 ## 交接
 
 - 已完成：审查全部本地分支、master外提交、全部Worktree脏项和stash；有效的F-SOL-001、F-SOL-002、F-SOL-003实现均已存在于master，因此不产生新的源码提交。
+- 权威快照：以`master@75a489902f423bd1c929a279e3751a9c76d662a0`和截点`2026-09-01T23:23:14.4365352+08:00`生成[PRE/SOL集成后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-01-pre-sol-integration.md)，覆盖22个本地分支、16个Worktree、470条master外分支提交与2个stash。
 - 旧功能：`LegacyProjectDurationWrites`、`LegacySiteSurveyWrites`、`LegacyRequirementAnalysisFixedSections`继续以`tasks/implementation-baseline-inventory.json`中的`DEPRECATED_READ_ONLY`为权威；不得回到旧入口继续实施。
 - 验证：50项Python工程链测试通过；Maven 28模块`test-compile`通过；加Byte Buddy agent后15个PRE/SOL测试类共73项通过；前端7个聚焦spec共42项通过。
 - 环境说明：JDK 25下Mockito inline无法自行附加agent，显式使用仓库依赖的Byte Buddy agent后同一测试集合通过；这是测试进程启动条件，不构成产品代码缺陷。
