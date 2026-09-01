@@ -22,9 +22,9 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-CUT-001 | [Task](F-CUT-001.md) | TECHNICAL_PLAN_READY | [集成候选DU](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)不占写权 | CUT-07/09/10保持NOT_STARTED |
+| F-CUT-001 | [Task](F-CUT-001.md) | TECHNICAL_PLAN_READY | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已认领 | CUT-07/09/10保持NOT_STARTED；集成完成前不得声明Done |
 
-当前没有有效写入认领；`DU-20260901-FSOL003-DEPRECATION`已完成选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
+当前唯一有效写入认领为`DU-20260901-FCUT001-INTEGRATION`，用于把历史候选选择性适配到最新master；`DU-20260901-FSOL003-DEPRECATION`已完成选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 
