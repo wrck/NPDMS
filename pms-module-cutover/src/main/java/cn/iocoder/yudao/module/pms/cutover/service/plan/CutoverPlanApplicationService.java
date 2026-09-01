@@ -1354,6 +1354,16 @@ public class CutoverPlanApplicationService {
         }
     }
 
+    private static void requireSubmit(SubmitCutoverPlanCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "提交方案命令非法");
+        }
+    }
+
     private static void putWireLong(ObjectNode node, String field, Long value) {
         if (value > -9_007_199_254_740_991L && value < 9_007_199_254_740_991L) node.put(field, value);
         else node.put(field, Long.toString(value));
