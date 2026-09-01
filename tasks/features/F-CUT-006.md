@@ -52,7 +52,10 @@
 - Task 8候选证据：P6挂载组件与阶段交互12/12通过，`pnpm ts:check`通过。
 - Task 8首轮独立复审对`c8a793f0`裁决`NO-GO`：PLT附件错误使用`taskId`作为Owner对象身份。最小整改已收敛为先创建无附件DRAFT并刷新取得`closureId`，随后全部关闭附件与人工采集结果均以该`closureId`执行Uploader及FileApi事实查询；现有正向挂载测试固定上述顺序和Owner键。
 - Task 8最小整改已在`de2fdb49`通过独立复审；PLT附件与人工结果统一绑定服务端`closureId`，首次DRAFT顺序阻断关闭。Task 8 Frontend Code Review／组件交互Gate现为`PASS / GO@de2fdb49`。
-- 最近Gate：Task 9 CUT聚焦回归与真实MySQL正常闭环Gate。
+- Task 9候选新增真实Spring事务代理、MyBatis、`PlatformCommandExecutionApiImpl`与MySQL 8.4下的P6完整正向闭环：DRAFT、两类PLT附件、单设备采集成功、SUCCESS归档、活动设备释放、P6历史、平台审计与`CutoverCompleted` Outbox；同键已完成重放保持单一事件/审计。
+- Task 9补齐既有正向验证缺口：`CALLBACK_FAILED`可关联一份人工结果；与既有FAILED归档、`DISPATCH_FAILED`人工结果、同意图外部任务恢复和平台重放场景组成7条真实MySQL闭环。
+- Task 9回归证据：CUT-002～005及P6聚焦套件共120次执行、104通过、16个MySQL用例按`skipITs=true`预期跳过；独立Compose项目`npdms-fcut006-task9`在33406端口使用MySQL 8.4空卷执行152个迁移至V156，P6真实MySQL 7/7通过，专用容器、网络和卷已全部清理。候选保持`REVIEW_REQUIRED`。
+- 最近Gate：Task 9 Backend/MySQL独立复审；通过后状态仅可收敛为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`。
 
 ## 状态边界
 

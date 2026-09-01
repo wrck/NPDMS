@@ -232,6 +232,30 @@ class CutoverClosureApplicationMySqlTest {
     }
 
     @Test
+    void callbackFailureCanBeCompletedByOneManualResult() {
+        Long closureId = prepareDraftWithDevice("create-callback-fallback");
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+                deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
+                "test-check", 2L, "callback-fallback-dispatch", "corr-callback-fallback-dispatch"));
+        String collectionTaskId = jdbc.queryForObject("""
+                SELECT collection_task_id FROM cut_cutover_collection_evidence
+                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_ACCEPTED'
+                """, String.class, tenantId, closureId);
+        service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
+                deviceId, CollectionStage.TEST, "callback-failed", collectionTaskId, false,
+                "failed-result", "v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-failed"));
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 2,
+                collectionTaskId, deviceId, CollectionStage.TEST,
+                file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 504L, "ref-callback-manual"),
+                "callback-manual", "corr-callback-manual"));
+
+        assertEquals(3, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND evidence_type_code='CALLBACK_FAILED'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND evidence_type_code='MANUAL_UPLOAD' AND original_failed_collection_task_id=?", tenantId, collectionTaskId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=? AND purpose_code='MANUAL_COLLECTION_RESULT'", tenantId));
+    }
+
+    @Test
     void retriesSameIntentAfterLocalProjectionFailureWithoutCreatingSecondExternalTask() {
         Long closureId = prepareDraftWithDevice("create-recovery");
         CollectionIntentIdentity identity = new CollectionIntentIdentity(tenantId, taskId, closureId, deviceId,
