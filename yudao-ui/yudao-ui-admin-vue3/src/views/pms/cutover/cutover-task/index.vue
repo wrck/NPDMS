@@ -26,7 +26,7 @@
         <el-table-column prop="projectName" label="项目" min-width="180" show-overflow-tooltip />
         <el-table-column label="来源" min-width="120"><template #default="{ row }">{{ sourceLabels[row.intakeSourceType] }}</template></el-table-column>
         <el-table-column label="办事处" min-width="150"><template #default="{ row }">{{ row.officeName || '—' }}</template></el-table-column>
-        <el-table-column label="计划时间" min-width="170"><template #default="{ row }">{{ formatWireDateTime(row.scheduledTime) }}</template></el-table-column>
+        <el-table-column label="生成时间" min-width="170"><template #default="{ row }">{{ formatWireDateTime(row.generatedAt) }}</template></el-table-column>
         <el-table-column label="状态" min-width="140"><template #default="{ row }"><el-tag>{{ statusLabels[row.taskStatus] }}</el-tag></template></el-table-column>
         <el-table-column label="人工等级" width="100"><template #default="{ row }">{{ row.manualGrade || '—' }}</template></el-table-column>
         <el-table-column label="操作" width="90" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row)">详情</el-button></template></el-table-column>

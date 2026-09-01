@@ -7,17 +7,18 @@
     <el-form label-position="top">
       <template v-if="step === 0">
         <el-form-item label="设备序列号">
-          <el-input v-model="serialText" type="textarea" :rows="6" placeholder="每行一个 SN，也支持逗号分隔" />
+          <el-input v-model="serialText" data-testid="create-serials" type="textarea" :rows="6" placeholder="每行一个 SN，也支持逗号分隔" />
         </el-form-item>
         <el-alert title="系统将按当前设备归属解析可创建的项目候选。" type="info" :closable="false" />
       </template>
 
       <template v-else-if="step === 1">
-        <el-radio-group v-model="selectedProjectId" class="candidate-list">
+        <el-radio-group v-model="selectedProjectId" data-testid="create-project-candidates" class="candidate-list">
           <el-radio v-for="candidate in candidates" :key="String(candidate.project.projectId)" :value="String(candidate.project.projectId)" class="candidate-card">
             <strong>{{ candidate.project.projectName }}</strong>
             <span>{{ candidate.project.projectCode }} · {{ candidate.project.officeName }}</span>
-            <span>{{ candidate.devices.length }} 台设备 · {{ candidate.implementationReadiness.decision }}</span>
+            <span>{{ candidate.devices.length }} 台设备 · {{ candidate.devices.map((device) => device.serialNumber).join('、') }}</span>
+            <span>实施就绪：{{ candidate.implementationReadiness.decision }}</span>
             <span>客户等级：{{ candidate.customerServiceLevel.serviceLevelCode || '未配置' }}</span>
           </el-radio>
         </el-radio-group>
@@ -29,9 +30,12 @@
           <el-descriptions-item label="办事处">{{ selectedCandidate.project.officeName }}</el-descriptions-item>
           <el-descriptions-item label="设备">{{ selectedCandidate.devices.length }} 台</el-descriptions-item>
           <el-descriptions-item label="实施就绪">{{ selectedCandidate.implementationReadiness.decision }}</el-descriptions-item>
+          <el-descriptions-item label="设备序列号" :span="2">
+            {{ selectedCandidate.devices.map((device) => device.serialNumber).join('、') }}
+          </el-descriptions-item>
         </el-descriptions>
         <el-form-item label="配置修订">
-          <el-select v-model="form.configurationCode" placeholder="请选择当前生效配置">
+          <el-select v-model="form.configurationCode" data-testid="create-configuration" placeholder="请选择当前生效配置">
             <el-option
               v-for="choice in configurationChoices"
               :key="String(choice.revisionId)"
@@ -40,12 +44,12 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="任务名称"><el-input v-model="form.taskName" maxlength="128" /></el-form-item>
-        <el-form-item label="割接背景"><el-input v-model="form.background" type="textarea" :rows="3" maxlength="4000" /></el-form-item>
+        <el-form-item label="任务名称"><el-input v-model="form.taskName" data-testid="create-task-name" maxlength="128" /></el-form-item>
+        <el-form-item label="割接背景"><el-input v-model="form.background" data-testid="create-background" type="textarea" :rows="3" maxlength="4000" /></el-form-item>
         <div class="form-grid">
-          <el-form-item label="割接类型"><el-input v-model="form.cutoverType" placeholder="选择启用的割接类型代码" /></el-form-item>
+          <el-form-item label="割接类型"><el-input v-model="form.cutoverType" data-testid="create-cutover-type" placeholder="选择启用的割接类型代码" /></el-form-item>
           <el-form-item label="组网方式"><el-input v-model="form.networkMode" clearable placeholder="可选" /></el-form-item>
-          <el-form-item label="计划时间"><el-date-picker v-model="form.scheduledTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" class="!w-full" /></el-form-item>
+          <el-form-item label="计划时间"><el-date-picker v-model="form.scheduledTime" data-testid="create-scheduled-time" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" class="!w-full" /></el-form-item>
         </div>
       </template>
     </el-form>

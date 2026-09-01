@@ -101,9 +101,9 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 **Produces：** 生产 Owner 接通后，用户可从新页面完成自建和人工分级；形成一个 F-CUT-002 Implementation Done 候选。
 
 - [ ] 核验IMP/AST/CUS Provider及`ProjectCutoverContextFactApi`真实PROJ Provider已合入；实现只调用正式API的生产Adapter，注册唯一应用服务和Controller。缺任一依赖即停止真实运行，不加fallback/Fake。
-- [ ] 新建 `cutover-task` API client 和独立页面；首页展示来源、办事处、生成时间、状态与人工等级，不修改旧 `cut-task`。
-- [ ] 创建向导按 SN 调用 context 解析，显式选择候选项目，展示设备、客户等级和 IMP READY 上下文后提交；客户端不生成 Owner、状态、等级或快照。
-- [ ] 详情固定展示 P2～P6；P2 只按服务端 `allowedActions` 提供四项问卷、草稿和人工 A/B/C/D，不显示系统建议；P3/P4只显示已进入状态，P5/P6不伪造完成。
+- [x] 新建 `cutover-task` API client 和独立页面；首页展示来源、办事处、生成时间、状态与人工等级，不修改旧 `cut-task`。
+- [x] 创建向导按 SN 调用 context 解析，显式选择候选项目，展示设备、客户等级和 IMP READY 上下文后提交；客户端不生成 Owner、状态、等级或快照。
+- [x] 详情固定展示 P2～P6；P2 只按服务端 `allowedActions` 提供四项问卷、草稿和人工 A/B/C/D，不显示系统建议；P3/P4只显示已进入状态，P5/P6不伪造完成。
 - [ ] 实现后补最小前端验证：候选选择、草稿不推进、A/B/C 与 D 两种提交响应、刷新持久化及 320/768/1440 基本可用；运行定向组件测试、`ts:check`和 `build:local`。
 - [ ] 生产 IMP、AST、CUS、PROJ Provider 到位后，使用正式权限身份和真实 MySQL/Chromium完成一条主正向链“SN解析 → 选择项目 → READY自建 → P2草稿 → 人工A级提交 → P3”，并以定向后端正向测试证明 D → P4。浏览器只验证该成功链的展示与刷新事实。
 - [ ] 更新唯一Task检查点和追溯，形成一个候选提交并申请一次独立Implementation Done审核；旧页面继续由“不修改旧运行面”的实现边界保护，不新增验证任务。

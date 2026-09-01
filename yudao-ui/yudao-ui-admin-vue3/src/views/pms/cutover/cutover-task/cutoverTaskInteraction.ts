@@ -75,7 +75,7 @@ export const gradeDestination = (grade: ManualGrade | null) =>
   grade === 'D' ? 'P4 方案编制' : grade ? 'P3 现场调研' : '保存后不推进阶段'
 
 export const activeCutoverStagePanel = (stage: CutoverStage | null) =>
-  stage === 'P2' ? 'ASSESSMENT' : stage === 'P3' || stage === 'P4' ? 'CHECKLIST' : 'EMPTY'
+  stage === 'P2' ? 'ASSESSMENT' : stage === 'P3' ? 'CHECKLIST' : 'EMPTY'
 
 export const encodeChecklistDirectAnswer = (value: string) => JSON.stringify({ value })
 
