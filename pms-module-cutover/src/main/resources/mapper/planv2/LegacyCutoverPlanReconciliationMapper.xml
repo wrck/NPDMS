@@ -7,6 +7,8 @@
         FROM cut_task
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.targetTaskId}
+          AND legacy_task_id = #{query.legacyTaskId}
+          AND legacy_mapping_version = 'F-CUT-002-PMS-CUT-TASK-V1'
           AND task_origin = 'LEGACY_FORWARD'
           AND intake_source_type = 'LEGACY_FORWARD'
           AND deleted = b'0'

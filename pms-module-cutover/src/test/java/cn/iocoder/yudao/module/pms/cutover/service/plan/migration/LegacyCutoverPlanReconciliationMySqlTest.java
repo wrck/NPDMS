@@ -105,7 +105,7 @@ class LegacyCutoverPlanReconciliationMySqlTest {
         target.setLegacyNetworkModeRaw("DUAL");
         target.setLegacyStatusValue(2);
         target.setLegacySourceVersion(6);
-        target.setLegacyMappingVersion("FCUT002_LEGACY_V1");
+        target.setLegacyMappingVersion("F-CUT-002-PMS-CUT-TASK-V1");
         target.setVersion(0);
         target.setCreator("10");
         target.setUpdater("11");

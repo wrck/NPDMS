@@ -25,6 +25,8 @@ class Fcut004LegacyPlanMigrationContractTest {
                 "src/main/resources/mapper/planv2/LegacyCutoverPlanReconciliationMapper.xml"));
 
         assertThat(mapper).contains("FROM cut_task", "FROM cut_plan_revision")
+                .contains("legacy_task_id = #{query.legacyTaskId}")
+                .contains("legacy_mapping_version = 'F-CUT-002-PMS-CUT-TASK-V1'")
                 .doesNotContain("FROM pms_cut_plan", "JOIN pms_cut_plan");
     }
 }

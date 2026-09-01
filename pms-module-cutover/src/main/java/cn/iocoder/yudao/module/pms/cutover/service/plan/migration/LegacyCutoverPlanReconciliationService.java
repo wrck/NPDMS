@@ -106,7 +106,7 @@ public class LegacyCutoverPlanReconciliationService {
         }
         Long targetTaskId = taskMappingPort.resolveTargetTaskId(tenantId, converted.legacyTaskId());
         CutoverTaskDO target = targetTaskId == null ? null : reconciliationMapper.selectQualifiedTargetForUpdate(
-                LegacyCutoverPlanTargetQuery.target(tenantId, targetTaskId));
+                LegacyCutoverPlanTargetQuery.target(tenantId, targetTaskId, converted.legacyTaskId()));
         if (target == null) {
             appendIssue(tenantId, batchId, source, "TARGET_TASK_MAPPING_MISSING", correlationId, List.of());
             return Outcome.ISSUE;

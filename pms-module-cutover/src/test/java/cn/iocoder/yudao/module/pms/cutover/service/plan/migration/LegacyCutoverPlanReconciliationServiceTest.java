@@ -62,6 +62,7 @@ class LegacyCutoverPlanReconciliationServiceTest {
                 ArgumentCaptor.forClass(LegacyCutoverPlanTargetQuery.class);
         verify(reconciliationMapper).selectQualifiedTargetForUpdate(targetQuery.capture());
         assertThat(targetQuery.getValue().targetTaskId()).isEqualTo(501L);
+        assertThat(targetQuery.getValue().legacyTaskId()).isEqualTo(41L);
         ArgumentCaptor<CutoverPlanRevisionDO> plan = ArgumentCaptor.forClass(CutoverPlanRevisionDO.class);
         verify(planMapper).insert(plan.capture());
         assertThat(plan.getValue().getCutoverTaskId()).isEqualTo(501L);
