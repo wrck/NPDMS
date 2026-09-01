@@ -218,9 +218,9 @@
 - Question: 在保持Yudao平台接口上游定义、禁止PMS读取BPM内部Service/Mapper/DO/表且不建立第二映射真值的前提下，哪个合法Owner接口提供冻结流程定义的`startUserIds/startDeptIds`为空及不存在发起人自选审批人策略的可重验事实？
 - Why it blocks design/implementation: Flowable只公开定义与BPMN事实，不包含Yudao两类发起白名单；当前BPM公共API也未公开该事实。Technical Plan无法同时满足“必须证明三项禁用配置为空”和“不修改Yudao、不越过BPM Owner边界”。
 - Options: A. 新增Yudao BPM定义策略Fact API；B. 复用Flowable既有定义版本事实，并把Yudao两类白名单继续限定在通用发起入口。
-- Recommended technical default: 采用B；PMS不复制版本模型、不新增Yudao接口或字段，只以Gate Reference既有`refVersion`冻结引用Flowable的key+version，并从精确BPMN拒绝`START_USER_SELECT(35)`。
+- Recommended technical default: 采用B；PMS不复制版本模型、不新增Yudao接口或字段，Gate Reference只保存BPM定义key；默认启动最新生效定义，授权发起人可显式选择同key历史`processDefinitionId`。
 - Business decision required: 已完成。需求方明确BPM已有流程版本控制，不需要新增版本字段和接口。
-- Resolution: 采用B。PMS专用Gate唯一发起授权为`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`；Yudao `startUserIds/startDeptIds`继续只约束通用发起入口，PMS不查询或证明其为空。已批准的`ProjectStageGateProcessOwnerApi`仅作PMS反腐适配边界，以同一Flowable key+version完成冻结定义检查与按definitionId启动，不形成第二版本真值。
+- Resolution: 采用B，并按PRD修订011收敛。PMS专用Gate唯一发起授权为`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`；Yudao `startUserIds/startDeptIds`继续只约束通用发起入口，PMS不查询或证明其为空。`ProjectStageGateProcessOwnerApi`仅作PMS反腐适配边界：未显式选择时按key启动最新生效定义，显式选择时校验历史`processDefinitionId`属于同一key并按该ID启动；实例实际`processDefinitionId`和完整`taskDefinitionKey`是历史事实。PMS不解析`taskDefinitionKey`，不使用Gate Reference既有`refVersion`，也不形成第二版本真值。
 - Decision owner: 需求方（业务与平台边界）；BPM与PROJ Owner（契约落位）
 - Decision date: 2026-09-01
 

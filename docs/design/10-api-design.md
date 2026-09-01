@@ -483,6 +483,8 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 
 内部 `StageAdvanceCommand`的规范摘要冻结tenant、actor、projectId、期望阶段/Project/tree版本。相同键同摘要返回原结果；同键异摘要冲突。
 
+`POST /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process`使用`If-Match + Idempotency-Key`启动关联Gate流程。Body只允许可空`processDefinitionId`：为空时按Gate Reference冻结的`processDefinitionKey`选择最新生效定义；非空时仅作为授权用户对同key历史定义的显式选择，服务端必须重验定义ID归属和可启动状态。tenant、actor、definitionKey、businessKey及系统变量均由服务端构造，客户端不得覆盖。
+
 ### Gate Reference Owner Fact SPI
 
 既有`pms-module-project-api`加性声明类型化SPI，稳定方法为：
@@ -492,31 +494,31 @@ String providerKey();
 ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query);
 ```
 
-`ProjectStageGateFactQuery`只由PROJ服务端构造，固定包含`tenantId/projectId/currentStageCode/gateId/gateCode/gateVersion/gateReferenceId/gateReferenceVersion/refType/refCode/refVersion`；其中Gate、Reference版本来自已锁定实例，`refCode/refVersion`来自创建时冻结值。`ProjectStageGateFact`固定返回`providerKey/refType/ownerObjectKey/ownerBusinessVersion/factVersion/outcome/unmetCode`，三个Owner身份/版本字段均为非空String：本地/ACC行用稳定ID、业务状态/定义版本和十进制row.version，BPM用processInstanceId、processDefinitionId和`status:endTime`（运行中使用`status:startTime`）组成可重验事实版本，不使用摘要或当前时间。outcome封闭为`SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`。Provider以`MANDATORY`加入推进事务；Registry只接受02d分册的固定一对一providerKey，不接受调用方指定、通配或重复实现。
+`ProjectStageGateFactQuery`只由PROJ服务端构造，固定包含`tenantId/projectId/currentStageCode/gateId/gateCode/gateVersion/gateReferenceId/gateReferenceVersion/refType/refCode`；其中Gate、Reference版本来自已锁定实例，`refCode`来自创建时冻结值，既有`refVersion`不得进入Query。`ProjectStageGateFact`固定返回`providerKey/refType/ownerObjectKey/ownerBusinessVersion/factVersion/outcome/unmetCode`，三个Owner身份/版本字段均为非空String：本地/ACC行用稳定ID、业务状态和十进制row.version，BPM用processInstanceId、实际processDefinitionId和`status:endTime`（运行中使用`status:startTime`）组成可重验事实版本，不使用摘要或当前时间。outcome封闭为`SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`。Provider以`MANDATORY`加入推进事务；Registry只接受02d分册的固定一对一providerKey，不接受调用方指定、通配或重复实现。
 
 | refType / providerKey | 精确Owner对象键与版本 | 唯一`SATISFIED`谓词 | 其他稳定结果 |
 |---|---|---|---|
-| `TASK / PROJ_TASK` | 同租户同项目唯一`task_code=refCode`的ProjectTask；`factVersion=row.version`，`refVersion`必须缺失 | `status=DONE` | `CLOSED -> TASK_CLOSED_NOT_COMPLETED`；其余已知状态`TASK_NOT_DONE`；缺失/重复/未知状态为依赖不可判定 |
-| `MILESTONE / PROJ_MILESTONE` | 同租户同项目唯一`milestone_code=refCode`的ProjectMilestone；`factVersion=row.version`，`refVersion`必须缺失 | `status=ACHIEVED` | `PENDING -> MILESTONE_NOT_ACHIEVED`；缺失/重复/未知状态为依赖不可判定 |
-| `DELIVERABLE / ACC_DELIVERABLE` | ACC中同租户同项目唯一`deliverable_code=refCode`的应交根；`factVersion=row.version`，`refVersion`必须缺失 | `status=ACCEPTED` | `PENDING/SUBMITTED -> DELIVERABLE_NOT_ACCEPTED`；缺失/重复/未知状态为依赖不可判定 |
-| `STATE / PROJ_STATE` | 受控状态目录项；V1阶段完成码仅允许`S0_COMPLETED`～`S6_COMPLETED`并精确映射同项目对应ProjectStage，`factVersion=stage.version`；`refVersion`必须缺失 | 对应Stage `status=DONE` | 其他已知状态`STATE_NOT_REACHED`；未登记状态码在模板发布时拒绝，运行时出现则依赖不可判定 |
-| `APPROVAL / BPM_APPROVAL` | `refCode=processDefinitionKey`、`refVersion=v<正整数>`，并按下述固定businessKey/变量唯一关联的最新审批尝试 | 精确定义版本实例已结束且状态原值等于`BpmProcessInstanceStatusEnum.APPROVE(2)` | 未启动、`RUNNING(1)`、`REJECT(3)`、`CANCEL(4)`分别为`APPROVAL_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；身份冲突、多个活动实例或未知状态为依赖不可判定 |
-| `PROCESS / BPM_PROCESS` | `refCode=processDefinitionKey`、`refVersion=v<正整数>`，并按下述固定businessKey/变量唯一关联的最新流程尝试 | 精确定义版本实例已结束且状态原值等于`BpmProcessInstanceStatusEnum.APPROVE(2)` | 未启动、`RUNNING(1)`、`REJECT(3)`、`CANCEL(4)`分别为`PROCESS_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；身份冲突、多个活动实例或未知状态为依赖不可判定 |
+| `TASK / PROJ_TASK` | 同租户同项目唯一`task_code=refCode`的ProjectTask；`factVersion=row.version` | `status=DONE` | `CLOSED -> TASK_CLOSED_NOT_COMPLETED`；其余已知状态`TASK_NOT_DONE`；缺失/重复/未知状态为依赖不可判定 |
+| `MILESTONE / PROJ_MILESTONE` | 同租户同项目唯一`milestone_code=refCode`的ProjectMilestone；`factVersion=row.version` | `status=ACHIEVED` | `PENDING -> MILESTONE_NOT_ACHIEVED`；缺失/重复/未知状态为依赖不可判定 |
+| `DELIVERABLE / ACC_DELIVERABLE` | ACC中同租户同项目唯一`deliverable_code=refCode`的应交根；`factVersion=row.version` | `status=ACCEPTED` | `PENDING/SUBMITTED -> DELIVERABLE_NOT_ACCEPTED`；缺失/重复/未知状态为依赖不可判定 |
+| `STATE / PROJ_STATE` | 受控状态目录项；V1阶段完成码仅允许`S0_COMPLETED`～`S6_COMPLETED`并精确映射同项目对应ProjectStage，`factVersion=stage.version` | 对应Stage `status=DONE` | 其他已知状态`STATE_NOT_REACHED`；未登记状态码在模板发布时拒绝，运行时出现则依赖不可判定 |
+| `APPROVAL / BPM_APPROVAL` | `refCode=processDefinitionKey`，按固定businessKey/变量唯一关联最新审批尝试并读取实例实际processDefinitionId | 关联实例已结束且状态原值等于`BpmProcessInstanceStatusEnum.APPROVE(2)` | 未启动、`RUNNING(1)`、`REJECT(3)`、`CANCEL(4)`分别为`APPROVAL_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；定义key/实例身份冲突、多个活动实例或未知状态为依赖不可判定 |
+| `PROCESS / BPM_PROCESS` | `refCode=processDefinitionKey`，按固定businessKey/变量唯一关联最新流程尝试并读取实例实际processDefinitionId | 关联实例已结束且状态原值等于`BpmProcessInstanceStatusEnum.APPROVE(2)` | 未启动、`RUNNING(1)`、`REJECT(3)`、`CANCEL(4)`分别为`PROCESS_NOT_STARTED/RUNNING/REJECTED/CANCELLED`；定义key/实例身份冲突、多个活动实例或未知状态为依赖不可判定 |
 
-APPROVAL/PROCESS版本化启动使用同一公共模块的PMS窄Owner命令：
+APPROVAL/PROCESS启动使用同一公共模块的PMS窄Owner命令：
 
 ```java
-ProjectStageGateProcessDefinitionFact inspectFrozenDefinition(
+ProjectStageGateProcessDefinitionFact inspectDefinitionKey(
         ProjectStageGateProcessDefinitionQuery query);
-ProjectStageGateProcessStartFact startFrozenProcess(ProjectStageGateProcessStartCommand command);
+ProjectStageGateProcessStartFact startProcess(ProjectStageGateProcessStartCommand command);
 ```
 
-检查Query只携带受信tenant及Gate Reference冻结的`processDefinitionKey/processDefinitionVersion`；同一适配器按key+version解析唯一活动definitionId并检查精确BPMN，存在任一UserTask候选策略`START_USER_SELECT(35)`即返回不支持。Gate Reference既有`refVersion=v<正整数>`只是对Flowable现有版本的冻结引用，不新增BPM版本字段、版本表或第二映射真值。
+检查Query只携带受信tenant及Gate Reference冻结的`processDefinitionKey`；同一适配器检查该key存在当前生效定义，并检查其BPMN，存在任一UserTask候选策略`START_USER_SELECT(35)`即返回不支持。Gate Reference既有`refVersion`只保留历史，新写为空且不进入接口；不新增BPM版本字段、版本表、解析规则或第二映射真值。
 
-Command仅由PROJ服务端构造，包含`tenantId/actorUserId/projectId/currentStageCode/gateId/gateReferenceId/refType/processDefinitionKey/processDefinitionVersion/businessKey/variables/operationId`；definitionVersion由既有`refVersion`解析，businessKey必须等于`PROJECT_STAGE_GATE:{gateReferenceId}`，variables只允许Gate冻结身份，客户端不得覆盖。调用前PROJ必须重新校验`pms:project:update`、`ProjectScopeApi.ACTION_MANAGE`和当前有效`PROJECT_MANAGER`，三者是PMS专用Gate流程的唯一正式发起授权；缺任一项不调用Owner。Yudao `startUserIds/startDeptIds`继续只约束通用Yudao发起入口，PMS不查询或复制该事实；启动时再次检查精确BPMN不存在`START_USER_SELECT(35)`。
+Command仅由PROJ服务端构造，包含`tenantId/actorUserId/projectId/currentStageCode/gateId/gateReferenceId/refType/processDefinitionKey/selectedProcessDefinitionId?/businessKey/variables/operationId`；businessKey必须等于`PROJECT_STAGE_GATE:{gateReferenceId}`，variables只允许Gate冻结身份，客户端除可选定义ID外不得覆盖。调用前PROJ必须重新校验`pms:project:update`、`ProjectScopeApi.ACTION_MANAGE`和当前有效`PROJECT_MANAGER`，三者是PMS专用Gate流程的唯一正式发起授权；缺任一项不调用Owner。Yudao `startUserIds/startDeptIds`继续只约束通用Yudao发起入口，PMS不查询或复制该事实；启动时再次检查本次实际定义的BPMN不存在`START_USER_SELECT(35)`。
 
-Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/processDefinitionVersion/businessKey/outcome=STARTED|REPLAYED`。接口位于`pms-module-project-api`，`pms-module-integration`增加对该API模块的单向依赖并使用Flowable RepositoryService按key+version唯一解析活动定义ID，再由RuntimeService按definitionId启动。启动前通过Flowable `Authentication.setAuthenticatedUserId(String.valueOf(actorUserId))`设置发起人并在finally清除；服务端强制写入`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`。Command不提供`startUserSelectAssignees`，Gate冻结variables若占用任一系统变量即拒绝。同operation同摘要重放原Fact且不得再次启动，异摘要冲突。不得依赖Yudao BPM内部Service/Mapper/DO，不得调用只能按key选择当前活动定义的Yudao `BpmProcessInstanceApi`，不得修改Yudao API/Service，也不得以当前最新版替代冻结版本。
+Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/businessKey/outcome=STARTED|REPLAYED`，不返回独立版本号。接口位于`pms-module-project-api`，`pms-module-integration`增加对该API模块的单向依赖：selectedProcessDefinitionId为空时使用Flowable RepositoryService按key取得最新生效定义，非空时按ID取得定义并校验同key和可启动状态，再由RuntimeService按实际definitionId启动。启动前通过Flowable `Authentication.setAuthenticatedUserId(String.valueOf(actorUserId))`设置发起人并在finally清除；服务端强制写入`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`。Command不提供`startUserSelectAssignees`，Gate冻结variables若占用任一系统变量即拒绝。同operation同摘要重放原Fact且不得再次启动，异摘要冲突。不得依赖Yudao BPM内部Service/Mapper/DO，不得修改Yudao API/Service，也不得解析processDefinitionId或taskDefinitionKey生成PMS版本。
 
-BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义ID/key/数字version。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
+BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key和实例实际processDefinitionId。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
-模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用，并按表中字段域校验refVersion及Provider存在性；APPROVAL/PROCESS通过`inspectFrozenDefinition`验证精确Flowable定义活动且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用、Provider存在性，并拒绝新APPROVAL/PROCESS引用写入refVersion；APPROVAL/PROCESS通过`inspectDefinitionKey`验证当前生效Flowable定义存在且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。

@@ -1,6 +1,6 @@
 # ADR-0043：项目阶段准出门禁评估与相邻推进
 
-> 状态：`ACCEPTED`<br>
+> 状态：`ACCEPTED`（修订011影响补充：`PROPOSED_FOR_INDEPENDENT_REVIEW`）<br>
 > 日期：2026-08-31<br>
 > Requirement：`PM-03@V1`<br>
 > 候选 Feature：`F-PROJ-008 项目阶段准出门禁与正向推进`
@@ -12,10 +12,10 @@
 ## 2. 权威输入与评估结果
 
 1. 仅项目创建时从已发布模板冻结到项目实例的 `ProjectStage/ProjectGate/ProjectGateReference/ProjectTask/ProjectMilestone/ProjectDeliverable/ExecutionContract` 事实参与评估；模板当前版本、名称相似对象、旧 `pms_project_phase` 和客户端门禁结论均不是运行时真值。
-2. Gate Reference 稳定类型为 `TASK/DELIVERABLE/MILESTONE/APPROVAL/PROCESS/STATE`。模板发布必须拒绝未知类型、重复引用、缺失稳定对象键、缺失该refType契约要求的`refVersion`、没有已登记 Owner Provider 的引用、S0～S3任一阶段缺少EXIT Gate或任一EXIT Gate没有引用；已发布模板修订保持不可变。运行时若实例数据损坏并出现同类空集合，稳定返回`DEPENDENCY_UNAVAILABLE / EXIT_GATE_MISSING|EXIT_GATE_REFERENCE_MISSING`，不得以空集真值放行。TASK/MILESTONE/DELIVERABLE等实例事实版本在命令锁内从精确实例取得，不能要求模板提前猜测运行时行版本。
-3. PROJ直接评估本 Context 的TASK、MILESTONE、STATE；DELIVERABLE由ACC Owner公共事实接口提供；APPROVAL/PROCESS由BPM Owner的类型化Provider提供。冻结版本流程不调用只能按key启动当前活动定义的Yudao `BpmProcessInstanceApi`，而由PMS窄版本化流程Owner命令按key+正整数version解析精确定义ID后启动；接口位于`pms-module-project-api`，真实Provider位于`pms-module-integration`，不得修改Yudao基础源码。六类引用的稳定键、Owner和唯一满足谓词统一冻结在10分册；PROJ不得读取其他Context业务表，Provider不得返回或复制外域业务正文。
-4. 每个引用只产生 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`之一；同一 Gate 全部引用满足才通过，同阶段全部 EXIT Gate 通过才允许推进。已知业务未满足返回稳定未满足引用；Owner未知、不可用、重复或事实不可判定必须失败关闭，且不得伪装成业务未满足。PROCESS/APPROVAL没有精确关联实例时是`*_NOT_STARTED`，运行中、驳回或撤回均不满足，只有精确版本实例批准完成才满足。
-5. APPROVAL/PROCESS是PMS专用项目阶段Gate流程，其唯一发起授权为`pms:project:update + ProjectScope ACTION_MANAGE + 当前PROJECT_MANAGER`，由PROJ在调用流程Owner命令前按当前事实重验。Yudao `startUserIds/startDeptIds`继续只约束Yudao通用流程发起入口，PMS专用Gate路径不查询或复制该事实；专用定义仍禁止BPMN UserTask使用`START_USER_SELECT(35)`，模板发布和启动均由同一PMS Integration适配器按精确key+version检查。此规则不替代项目服务端授权，也不改变非Gate流程。
+2. Gate Reference 稳定类型为 `TASK/DELIVERABLE/MILESTONE/APPROVAL/PROCESS/STATE`。模板发布必须拒绝未知类型、重复引用、缺失稳定对象键、没有已登记 Owner Provider 的引用、S0～S3任一阶段缺少EXIT Gate或任一EXIT Gate没有引用；APPROVAL/PROCESS只保存BPM `processDefinitionKey`，新写`refVersion`必须为空。既有`refVersion`仅保留历史值，不参与发布、启动、节点解析或门禁判断。已发布模板修订保持不可变。运行时若实例数据损坏并出现同类空集合，稳定返回`DEPENDENCY_UNAVAILABLE / EXIT_GATE_MISSING|EXIT_GATE_REFERENCE_MISSING`，不得以空集真值放行。TASK/MILESTONE/DELIVERABLE等实例事实版本在命令锁内从精确实例取得，不能要求模板提前猜测运行时行版本。
+3. PROJ直接评估本 Context 的TASK、MILESTONE、STATE；DELIVERABLE由ACC Owner公共事实接口提供；APPROVAL/PROCESS由BPM Owner的类型化Provider提供。PMS流程Owner命令接收冻结的`processDefinitionKey`和可空的`processDefinitionId`：未指定定义ID时由BPM按key选取最新生效定义，授权发起人显式指定时必须校验该ID属于同一key且可启动。接口位于`pms-module-project-api`，真实Provider位于`pms-module-integration`，不得修改Yudao基础源码，也不得建立PMS流程版本接口或第二版本真值。六类引用的稳定键、Owner和唯一满足谓词统一冻结在10分册；PROJ不得读取其他Context业务表，Provider不得返回或复制外域业务正文。
+4. 每个引用只产生 `SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`之一；同一 Gate 全部引用满足才通过，同阶段全部 EXIT Gate 通过才允许推进。已知业务未满足返回稳定未满足引用；Owner未知、不可用、重复或事实不可判定必须失败关闭，且不得伪装成业务未满足。PROCESS/APPROVAL没有精确关联实例时是`*_NOT_STARTED`，运行中、驳回或撤回均不满足，只有关联BPM实例批准完成才满足；门禁事实记录该实例实际`processDefinitionId`，完整`taskDefinitionKey`原样留痕且不得解析。
+5. APPROVAL/PROCESS是PMS专用项目阶段Gate流程，其唯一发起授权为`pms:project:update + ProjectScope ACTION_MANAGE + 当前PROJECT_MANAGER`，由PROJ在调用流程Owner命令前按当前事实重验。Yudao `startUserIds/startDeptIds`继续只约束Yudao通用流程发起入口，PMS专用Gate路径不查询或复制该事实；专用定义仍禁止BPMN UserTask使用`START_USER_SELECT(35)`，模板发布按key检查当前生效定义，启动时按本次实际选定的definitionId再次检查。此规则不替代项目服务端授权，也不改变非Gate流程。
 
 ## 3. 命令与原子结果
 
@@ -35,7 +35,7 @@
 - `COPY_THEN_ENHANCE`：既有阶段快照/事件应用模式可复制增强为 `STAGE_ADVANCE`，但不得改变已批准的 PM-10 与 S4→S5 专用路径。
 - `DO_NOT_REUSE_RUNTIME / PRESERVE_EXISTING`：旧 `pms_project_phase`、旧阶段服务及旧任务/交付件平行真值。
 
-P3-E09结论为 `NO_PHYSICAL_DELTA`：现有引用类型列可承载新增受控枚举，现有阶段快照已具备 before/after stage、门禁快照、Owner事实、treeVersion、operationId、actor和唯一键；APPROVAL/PROCESS由PMS集成Provider按key+version解析Flowable精确定义ID，以固定businessKey、冻结变量和运行/历史事实形成权威关联，不新增PMS流程映射表。实现若不能从这些既有事实唯一解析精确关联，必须失败关闭并回到SDS复审，不得静默增加物理事实、推断或任选实例。
+P3-E09结论为 `NO_PHYSICAL_DELTA`：现有引用类型列可承载新增受控枚举，现有阶段快照已具备 before/after stage、门禁快照、Owner事实、treeVersion、operationId、actor和唯一键；APPROVAL/PROCESS由PMS集成Provider按冻结key和本次可空显式definitionId启动BPM实例，以固定businessKey、冻结变量和运行/历史事实形成权威关联，并以实例实际`processDefinitionId`作为定义身份，不新增PMS流程映射表或版本字段。既有流程版本列仅保留历史值，新写入为空且不参与运行判断。实现若不能从这些既有事实唯一解析精确关联，必须失败关闭并回到SDS复审，不得静默增加物理事实、推断或任选实例。
 
 ## 6. 后续 Gate
 
