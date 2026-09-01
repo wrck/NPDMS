@@ -40,6 +40,7 @@
 3. PM-10“回退”保持`lifecycle_status=ACTIVE`，将`current_stage`回到S0并按规则置为待指派；PM-10“异常关闭”才写入`EXCEPTION_CLOSED`并保存关闭依据。
 4. CLO-02审批全部通过后才写入`NORMAL_CLOSED`并形成不可变闭环事实；任何其他接口、同步回调或通知不得产生该终态。
 5. 仅允许对`EXCEPTION_CLOSED`项目执行受控重开并恢复为`ACTIVE`；重开必须记录重开原因，恢复关闭前最后一个可恢复阶段并创建新的责任处理事项，不得自动恢复已终止的外部任务。`NORMAL_CLOSED`不得通过PM-10直接重开。正常闭环后的巡检、割接保障和其他售后活动使用独立领域任务，不新增项目维护阶段。
+6. EXE-01豁免到期内部命令不得沿用历史审批人或消费方冻结版本作为当前授权。PROJ以`ProjectSystemQualificationFactApi`锁定根项目、目标项目和当前根树版本，只在目标项目为`ACTIVE/S4`且当前项目经理、项目版本和树版本完整时返回系统资格事实；该契约不授予任何用户`ACTION_EDIT`。
 
 ## 3. 版本化
 

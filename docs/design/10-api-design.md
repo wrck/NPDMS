@@ -196,6 +196,8 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 到货、安装、质量和安全接口按聚合独立分页和状态；不得恢复为一个通用“现场执行单” CRUD。
 
+F-IMP-002的无用户主体豁免到期命令使用PROJ支撑Task `T-FIMP002-PROJ-01`公开的`ProjectSystemQualificationFactApi.lockCurrentForSystem`。该操作只接收项目ID和固定`ACTIVE/S4`资格要求，在同一事务中按根项目、目标项目、当前活动树版本顺序锁定，并返回当前项目经理、项目版本、参与者事实版本与树版本；不接收用户主体、`ACTION_EDIT`或消费方冻结版本，不改变`ProjectParticipantFactApi/ProjectScopeApi`的用户授权语义。
+
 ## 8. ACC：验收与项目闭环 API
 
 适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。
