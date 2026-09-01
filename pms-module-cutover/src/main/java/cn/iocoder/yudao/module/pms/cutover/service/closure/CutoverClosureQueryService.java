@@ -89,7 +89,8 @@ public class CutoverClosureQueryService {
                 closure == null ? null : closure.getId(), closure == null ? null : closure.getVersion(),
                 closure == null ? null : closure.getStatusCode(), approval.getId(), approval.getVersion(),
                 plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                closure == null ? null : content(closure, attachments), evidence.stream().map(this::evidence).toList(),
+                closure == null ? null : content(closure, attachments), evidence.stream()
+                .map(value -> evidence(value, attachments)).toList(),
                 closure == null ? null : closure.getResultRef(), closure == null ? null : closure.getSubmittedBy(),
                 closure == null ? null : closure.getSubmittedAt(), closure == null ? null : closure.getArchivedAt(),
                 actions);
@@ -157,10 +158,19 @@ public class CutoverClosureQueryService {
                 row.getFileVersionNo(), row.getReferenceKey(), version, row.getFileScopeVersion(), row.getFileHash());
     }
 
-    private CollectionEvidenceView evidence(CutoverCollectionEvidenceDO row) {
+    private CollectionEvidenceView evidence(CutoverCollectionEvidenceDO row,
+                                            List<CutoverClosureAttachmentDO> attachments) {
+        AttachmentInput manualFile = null;
+        if (row.getManualAttachmentId() != null) {
+            CutoverClosureAttachmentDO attachment = attachments.stream()
+                    .filter(value -> Objects.equals(value.getId(), row.getManualAttachmentId()))
+                    .findFirst().orElseThrow(() -> new CutoverClosureApplicationException(
+                            OWNER_DATA_CORRUPTED, "人工采集附件事实损坏"));
+            manualFile = attachment(attachment);
+        }
         return new CollectionEvidenceView(row.getId(), row.getDeviceId(), row.getCollectionStageCode(),
                 row.getEvidenceTypeCode(), row.getCollectionTaskId(), row.getCallbackEventId(), row.getResultRef(),
-                row.getResultVersion(), row.getOriginalFailedCollectionTaskId(), row.getManualAttachmentId(),
+                row.getResultVersion(), row.getOriginalFailedCollectionTaskId(), manualFile,
                 row.getOccurredAt());
     }
 

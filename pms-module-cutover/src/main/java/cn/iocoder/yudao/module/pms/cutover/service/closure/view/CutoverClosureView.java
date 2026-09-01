@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure.view;
 
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,7 +17,7 @@ public record CutoverClosureView(Long taskId, String taskStage, String taskStatu
     public record CollectionEvidenceView(Long evidenceId, Long deviceId, String collectionStage,
                                          String evidenceType, String collectionTaskId,
                                          String callbackEventId, String resultRef, String resultVersion,
-                                         String originalFailedCollectionTaskId, Long manualAttachmentId,
+                                         String originalFailedCollectionTaskId, AttachmentInput manualFile,
                                          LocalDateTime occurredAt) {
     }
 }
