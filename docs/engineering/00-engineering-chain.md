@@ -60,7 +60,7 @@ Feature是唯一实施和Implementation Done单元。一个Requirement切片可�
 
 覆盖映射的机器可读权威位于对应Feature Spec的`Requirement切片覆盖`行，格式为`Requirement@V1|V2=FULL|PARTIAL`；多项使用中文分号分隔。`FULL`表示该Feature完整覆盖该切片，`PARTIAL`表示只覆盖合法子闭环。关联Requirement、支撑需求、依赖和历史说明均不自动产生覆盖。Implementation Done只从`tasks/features/F-*.md`的Feature实施状态读取；缺少对应任务记录时不得仅凭Feature Spec中的实施说明派生完成。`scripts/generate_requirement_traceability.py`据此生成结构化覆盖JSON和Markdown矩阵，禁止再维护脚本人工完成覆盖值。
 
-状态权威按维度唯一：Feature Spec记录Feature Ready；当前实施任务记录Feature Implementation Done并引用Git、CI、测试和运行证据；Technical Plan或其当前任务记录保存Task认领与交接事实。Feature索引、追溯矩阵、CI结果和浏览器证据只作投影或证据，不得成为同一状态的第二来源。
+状态权威按维度唯一：`master`是工程协调、状态记录和代码集成的唯一分支；Feature Spec在`master`记录Feature Ready；当前Feature实施任务记录在`master`保存Feature协调责任、Feature/Task工作单元认领与交接以及Feature Implementation Done，并引用Git、CI、测试和运行证据。并行Feature/Task分支或Worktree中的同名治理文件只是从`master`检出的只读快照，不得维护当前状态或作为合入来源。Feature索引、追溯矩阵、CI结果和浏览器证据只作投影或证据，不得成为同一状态的第二来源。
 
 需求缺失、歧义或冲突时不得猜测：将受影响事项标记为`BLOCKED_BY_SPEC`，记录到`docs/decisions/open-questions.md`，并继续推进不依赖该问题的独立工作。业务语义问题必须经确认回写PRD/CHG；实现设计问题回写SDS并在需要时形成ADR；对应`gate-status.md`同步证据后才能解除阻断。
 
@@ -81,10 +81,12 @@ PRD Baseline
 -> Requirement ID + 目标版本切片覆盖映射（Capability无状态）
 -> 多个纵向业务Feature并行进入Feature Ready
 -> 每个Feature一个当前有效Technical Plan
--> Feature内多个Task在独立分支/Worktree并行实施
--> Feature内Task集成
--> 公共契约、Flyway最终编号和共享文件跨Feature串行合入
--> Feature适用验证与Code Review
+-> master登记Feature协调责任、工作模式与Feature/Task工作单元排他认领
+-> 多个Feature或同一Feature内多个Task在独立分支/Worktree并行实施
+-> Feature/Task工作单元提交、测试和交接
+-> 工作单元增量逐个串行合入master
+-> 公共契约、Flyway最终编号和共享文件在master串行收口
+-> master最终合入状态的Feature适用验证与Code Review
 -> 单一Feature Implementation Done
 -> 选择多个已Done Feature组成Release Candidate
 -> Deployment
@@ -93,7 +95,7 @@ PRD Baseline
 -> Release
 ```
 
-主链描述平台软件从设计到发布的顺序。满足实施前提且没有相互硬依赖的Feature可以同时推进；同一Feature内按一个当前有效Technical Plan拆分的Task也可以并行。并行开发不改变收口单位：Task先在Feature内集成，公共契约、Flyway最终编号和共享文件只在合入阶段串行收口，每个Feature在最终合入状态完成适用验证后独立产生一次Implementation Done。
+主链描述平台软件从设计到发布的顺序。满足实施前提且没有相互硬依赖的Feature可以分别在独立Worktree同时推进；一个Feature也可以按当前有效Technical Plan拆分为多个Task Worktree并行推进。`master`允许包含已通过本工作单元适用验证、保持工程可构建且不破坏已合入能力，但所属Feature尚未Implementation Done的增量；这类增量不得被投影为Feature完成，也不得提前暴露不可用业务入口或替代仍有效的旧功能。并行开发不改变收口单位：Feature/Task工作单元增量逐个串行合入`master`，公共契约、Flyway最终编号和共享文件在`master`合入窗口串行收口，每个Feature只在`master`最终合入状态完成适用验证后独立产生一次Implementation Done。
 
 Release Candidate是从已Done Feature中选择本次发布范围的集合，不是新Gate或Feature状态；Feature Done只表示具备被选择的资格，不自动进入Deployment。历史数据迁移不是所有版本的固定阶段：只有发布包含历史迁移或数据切换时，`AI-MIG-000`才作为Release前置门禁并在批准窗口内执行。平台业务中的生产网络割接不是软件发布阶段，其任务、方案、审批和闭环遵循CUT领域业务流程；实际设备配置变更另行执行高影响操作授权。
 
@@ -126,7 +128,7 @@ Release Candidate是从已Done Feature中选择本次发布范围的集合，不
 |PRD Baseline|正式PRD、快照、范围与哈希校验|`BASELINE`或`BLOCKED`|`docs/baseline/`|SDS Phase 1|
 |SDS Phase 1/2/3|对应正式分册、Open Question处理结果、必要测试或复审|`READY`或`BLOCKED`|对应`docs/engineering/gates/phase-<n>/gate-status.md`|下一SDS阶段或SDS Baseline|
 |Feature Ready|Feature Spec、Requirement版本切片追溯、适用设计契约、依赖与物理Owner、无相关阻断问题|`READY`或`NOT_READY`|Feature Spec|生成一个当前有效Technical Plan并进入并行Implementation|
-|Implementation Done|全部Task交付、最终合入代码、适用测试、Code Review、公共契约与迁移验证、追溯更新|`PASS`或`BLOCKED`|当前Feature实施任务记录；Git/CI/测试只作引用证据|进入Release Candidate候选池|
+|Implementation Done|全部Task交付、最终合入代码、适用测试、Code Review、公共契约与迁移验证、追溯更新|`PASS`或`BLOCKED`|`master`中的当前Feature实施任务记录；Git/CI/测试只作引用证据|进入Release Candidate候选池|
 |Deployment|可部署制品、配置契约、应用Schema前向迁移制品及验证结果、环境准备结果|`PASS`或`BLOCKED`|部署流水线或版本化部署记录|SIT|
 |SIT/UAT|环境、用例、缺陷和复测结果|`PASS`或`BLOCKED`|测试或发布记录|下一验证阶段|
 |AI-MIG-000|真实批次、范围、水位、程序、校验、演练、对账、回退和执行授权|`VERIFIED`或`BLOCKED`|批次迁移计划及运行证据|仅允许该批次迁移/切换|
@@ -231,18 +233,19 @@ P3-E09通过、SDS Baseline、DDL哈希、Git提交、ADR或Schema执行成功�
 ## 6. Feature研发循环
 
 ```text
-多个Feature并行
-├─ Feature A：Feature Ready -> 单一Technical Plan -> Task A1/A2/A3并行
-├─ Feature B：Feature Ready -> 单一Technical Plan -> Task B1/B2并行
-└─ Feature C：Feature Ready -> 单一Technical Plan -> Task C1/C2/C3并行
+并行工作单元
+├─ Feature A：FEATURE_EXCLUSIVE -> 独立Feature Worktree整体实施
+├─ Feature B：TASK_COORDINATED -> Task B1/B2独立Worktree并行实施
+└─ Feature C：FEATURE_EXCLUSIVE -> 独立Feature Worktree整体实施
 
-每个Feature内部
-Task排他认领 -> 独立分支/Worktree实施 -> Task测试/提交/交接
--> Feature内Task集成 -> Feature候选
+每个活动Feature
+master登记工作模式与Feature/Task排他认领 -> 独立分支/Worktree实施
+-> 工作单元测试/提交/交接 -> 工作单元增量逐个串行合入master
+-> master更新工作单元状态
 
 跨Feature共享资源
-Feature候选 -> 更新目标分支 -> 公共契约/Flyway/共享文件串行收口
--> 最终合入状态的Feature适用验证 -> Code Review
+Feature/Task候选 -> 更新到最新master -> 公共契约/Flyway/共享文件串行收口
+-> master最终合入状态的Feature适用验证 -> Code Review
 -> 单一Feature Implementation Done
 ```
 
@@ -251,28 +254,36 @@ Feature必须形成可独立验收的业务闭环，相关内容集中，避免�
 ### 6.1 多Feature并行
 
 - Requirement覆盖映射必须先登记Feature依赖、Domain Owner和物理Owner；没有相互硬依赖且各自达到Feature Ready的Feature可以同时实施。
+- 一个并行Worktree可以排他承担一个完整Feature，也可以承担某个Feature中的一个Task；选择完整Feature时使用`FEATURE_EXCLUSIVE`，选择Feature内多Task协调并行时使用`TASK_COORDINATED`。
+- `FEATURE_EXCLUSIVE`和`TASK_COORDINATED`只标识当前排他写入粒度，不是新的Feature/Task生命周期、Gate或完成状态，不得进入Requirement覆盖计算。
+- 同一Feature同一时刻只能采用一种工作模式：`FEATURE_EXCLUSIVE`下不得另设并行Task写入者，`TASK_COORDINATED`下不得另设覆盖整个Feature的写入者；模式切换必须先在`master`完成现有工作单元交接、释放原写入权并提交新的认领事实。
 - Feature间存在硬依赖时，后置Feature可以完成不依赖该结果的计划、编码和受控替身验证，但不得在前置契约或事实尚未形成时声明自身Implementation Done。
 - 一个Feature完成不等待无关Feature；多个已Done Feature可以进入同一或不同Release Candidate。
 - 公共契约的物理Owner只裁决该契约的最终形态和合入顺序，不把公共契约变成新的Capability Gate。
 
-### 6.2 Feature内多Task协调式并行
+### 6.2 Feature/Task工作单元认领与交接
 
-每个Feature只能有一个当前有效Technical Plan。被替代计划必须归档或明确标记`SUPERSEDED`，不得由多个会话或人员维护互相竞争的现行计划。多人或多个会话可以共同参与一个Feature，但实际排他认领发生在Task层：
+每个Feature只能有一个当前有效Technical Plan。被替代计划必须归档或明确标记`SUPERSEDED`，不得由多个会话或人员维护互相竞争的现行计划。实际排他认领单元可以是整个Feature，也可以是Feature内Task，并由`master`中的当前Feature实施任务记录统一协调：
 
-- 每个活动Feature在当前Technical Plan或任务记录中登记一个协调责任，负责Task划分、依赖协调、交接和最终集成，不得修改Feature Scope、业务规则或验收标准；
-- 一个Task同一时刻只允许一个主要执行者；结对、评审和测试参与者可以并行，但不能形成第二个写入Owner；
-- 每个并行写入Task使用独立分支或Worktree，禁止多个执行者同时写同一工作树；
-- Task必须声明Feature ID、Task ID、执行者或会话、分支/Worktree、修改边界、依赖、公共契约与数据库影响、验收输出和测试；
-- Task移交必须记录最后提交、已完成范围、剩余工作、测试结果和已知失败，再转移唯一执行权；
-- Task完成只表示可交给Feature集成，不得更新Requirement覆盖、宣称Feature Done或以局部浏览器证据代替Feature闭环。
+- 每个活动Feature在`master`的当前Technical Plan或当前Feature实施任务记录中登记一个协调责任，负责选择工作模式、划分Task、协调依赖、交接和最终集成，不得修改Feature Scope、业务规则或验收标准；
+- 一个Feature/Task工作单元同一时刻只允许一个主要执行者；结对、评审和测试参与者可以并行，但不能形成第二个写入Owner；
+- 每个并行写入工作单元使用独立分支或Worktree，禁止多个执行者同时写同一工作树；
+- 工作单元开始写入前，协调者必须先在`master`声明工作模式、工作单元类型、Feature ID、适用时的Task ID、执行者或会话、分支/Worktree、认领基线、修改边界、依赖、公共契约与数据库影响、验收输出和测试，并提交该认领事实；分支/Worktree必须从包含该认领事实的`master`提交创建或更新；
+- `FEATURE_EXCLUSIVE`的修改边界是Feature Spec锁定的完整Scope，但不自动取得跨Feature公共文件的最终写入权；`TASK_COORDINATED`的每个Task必须声明互不竞争的排他修改边界；
+- Feature/Task分支或Worktree只维护认领边界内的实现和工作单元专属测试；工程链、Feature Spec、当前Feature实施任务记录、Feature索引和追溯矩阵等治理与状态文件只从`master`读取，不得在并行分支中更新当前事实或将其状态修改合回`master`；
+- 发现必须改变规格、公共契约或工作单元边界时，暂停依赖该变化的实现，由协调者先按上游到下游顺序在`master`修订并提交，并行分支更新到该提交后再继续；
+- 工作单元移交通过Git提交和协调报告完成，必须记录最后提交、已完成范围、剩余工作、测试结果和已知失败；协调者在`master`核对后更新当前Feature实施任务记录，再转移唯一执行权；
+- 工作单元完成只表示具备串行合入`master`的资格；Feature工作单元也必须在最终合入状态通过完整DoD后才能宣称Feature Done，不得以分支内状态、局部浏览器证据或工作单元完成更新Requirement覆盖。
 
-Task认领和交接复用当前Technical Plan、任务系统或实施任务记录，不新建Feature认领台账、Task状态平台或第二套Git元数据。
+Feature/Task工作单元的认领和交接复用`master`中的当前Technical Plan和当前Feature实施任务记录以及Git自然提交事实，不新建Feature认领台账、Task状态平台或第二套Git元数据。分支的存在、Worktree目录、未合入提交或分支内状态文本均不能替代`master`上的认领和交接记录。
 
-### 6.3 两级集成与串行收口
+### 6.3 master单一集成与串行收口
 
-第一级在Feature内部完成：Task按依赖顺序合入Feature集成分支或等价隔离候选，统一处理接口、模型、权限、状态流和UI衔接，并运行Feature候选的聚焦验证。
+`master`是唯一集成分支，不建立长期Feature集成分支或由并行分支维护的状态源。Feature分支和Task分支均可以并行准备，实际合入由`master`协调者按依赖和共享资源边界逐个串行执行。每个工作单元候选在合入前必须更新到最新`master`，核对工作模式、认领边界、提交和交接事实，完成该工作单元适用的构建与回归；不满足时不合入，并保留所属Feature原状态。
 
-第二级在目标分支完成：多个Feature候选仍可等待和准备，但影响公共契约、Flyway版本、共享配置或生成文件的写入必须逐个串行合入。每个候选在合入前更新到最新目标分支，由物理Owner确认公共契约，使用下一个未占用Flyway版本确定最终文件名，完成共享文件更新后再执行最终验证。不得建立Flyway版本预约台账；版本只在实际合入时确定。
+`master`可以承载所属Feature尚未Done的Feature/Task增量，但每次合入后必须保持工程可构建、受影响回归通过且已合入能力不被破坏；未完成业务路径不得伪装为完成、绕过既有门禁或提前替代现行入口。影响公共契约、Flyway版本、共享配置或生成文件的写入必须在`master`合入窗口逐个串行处理：由物理Owner确认公共契约，使用下一个未占用Flyway版本确定最终文件名，完成共享文件更新后执行适用验证。不得建立Flyway版本预约台账；版本只在实际合入时确定。
+
+工作单元增量合入后，协调者只更新`master`中的Feature/Task实施进度和证据，所属Feature继续保持`IN_PROGRESS`。当前Technical Plan的全部实施义务均已交付后，必须基于`master`当前内容统一检查接口、模型、权限、状态流和UI衔接，运行Feature完整的适用验证和Code Review；只有该最终状态可以申请Implementation Done。
 
 每个任务执行：
 
@@ -298,8 +309,8 @@ Feature进入开发前必须明确：
 
 按Feature实际影响范围至少满足：
 
-- 当前Technical Plan中的全部Task已交付并完成Feature内集成，不存在第二个现行计划或未交接写入者；
-- Feature候选已更新到最新目标分支，公共契约、共享配置和生成文件已按物理Owner完成最终收口；
+- 当前Technical Plan中的全部Task已交付并串行合入`master`，不存在第二个现行计划、未交接写入者或仅存在于Task分支的必需实现；
+- `master`已包含本Feature全部实现，公共契约、共享配置和生成文件已按物理Owner完成最终收口；
 - Build、静态检查和适用的Unit/Integration Test通过；
 - 业务规则、权限拒绝、异常、幂等和并发场景得到验证；
 - API Contract和数据库Migration Test在涉及变更时通过；
@@ -307,7 +318,7 @@ Feature进入开发前必须明确：
 - 审计、日志、Secret保护及数据范围满足设计；
 - UI变更通过真实浏览器验证，外部集成通过真实契约或受控替身验证；
 - Requirement Traceability和必要文档已更新；
-- 最终合入状态重新完成本Feature适用验证，并在唯一实施任务记录中登记Implementation Done及证据引用；
+- `master`最终合入状态重新完成本Feature适用验证，并在`master`唯一当前Feature实施任务记录中登记Implementation Done及证据引用；
 - 不通过降低校验、放宽权限或绕过状态机使测试变绿。
 
 上述每一项均按Feature实际影响适用；不适用时必须标记`N/A`并给出一句理由，不得为了模板完整虚构测试，也不得无理由跳过适用验证。
@@ -319,7 +330,7 @@ DoD只证明Feature工程实现完整并具备进入Release Candidate的资格�
 - Feature是唯一Implementation Done单元；任何Task、Capability、接口、表、Provider、适配器、测试证据或局部页面均不得单独产生Feature Done。
 - Requirement实施覆盖按`RequirementImplementationCoverage(Requirement ID, Target Version)`派生。所有业务义务均已映射且全部必需Feature完成时为`COMPLETE`；部分完成或存在未覆盖义务时为`PARTIAL`；尚无覆盖Feature完成时为`NOT_STARTED`。
 - Requirement存在业务语义缺失或冲突时另行记录`BLOCKED_BY_SPEC`，不得用人工完成值覆盖阻断。
-- Feature索引和追溯矩阵只展示权威来源的投影；浏览器、CI、Git提交和评审记录只提供证据。任何投影与权威来源冲突时，先纠正投影，不能反向修改权威事实。
+- Feature索引和追溯矩阵只在`master`从权威来源生成或更新；浏览器、CI、Git提交和评审记录只提供证据。Feature/Task并行分支中的索引、矩阵和状态文本不是当前投影；任何投影与权威来源冲突时，先纠正`master`投影，不能反向修改权威事实。
 - Release Candidate只是本次选择的已Done Feature集合。Deployment、SIT、UAT和Release在版本化发布记录中独立推进，不把通过结果复制回Feature或Capability状态。
 
 ### 8.2 实现不可绕过边界
@@ -331,6 +342,7 @@ DoD只证明Feature工程实现完整并具备进入Release Candidate的资格�
 - 明文设备密码、私钥、Token和Secret不得持久化或出现在日志、文档和提交中；
 - 通知发送成功、外部HTTP成功或任务被受理，不得在契约未定义时解释为业务完成；
 - 不得通过降低校验强度、放宽权限或关闭质量检查来获得通过结果。
+- 替代Feature尚未完成时，已合入的新实现增量不得提前废弃、切断或覆盖仍承载业务的旧入口；只有替代Feature在`master`完成入口切换和完整适用验证后，才可按正式规格将明确被替代的旧实现标记为废弃并禁止新增实施，历史数据、快照、迁移和审计事实继续保留。
 
 ## 9. 变更与不可逆操作治理
 
@@ -414,4 +426,4 @@ V1.8不自动关闭任何当前Gate。现有Phase 3文档、生成器、validato
 - 能独立使用、独立验收且拥有明确公共业务结果的公共能力可以保留为Feature；其消费者接入仍由消费者Feature负责；
 - “双轨”等术语只允许描述存量收口期，存量完成后必须删除，不能形成长期并行状态体系。
 
-修订007已建立完整的111个Requirement目标版本切片输入、Feature Spec覆盖声明、Feature Task状态读取、结构化JSON投影和回归校验。追溯矩阵仍是生成投影，不是新的状态权威；任何覆盖调整必须先修改对应Feature Spec，任何实施状态调整必须先修改对应Feature任务记录，再由生成器重建，禁止直接编辑矩阵或JSON晋级状态。
+修订007已建立完整的111个Requirement目标版本切片输入、Feature Spec覆盖声明、Feature Task状态读取、结构化JSON投影和回归校验。追溯矩阵仍是生成投影，不是新的状态权威；任何覆盖调整必须先修改`master`中的对应Feature Spec，任何实施状态调整必须先修改`master`中的对应Feature任务记录，再由生成器在`master`重建，禁止直接编辑矩阵或JSON晋级状态，禁止从Feature/Task并行分支状态反向覆盖`master`。
