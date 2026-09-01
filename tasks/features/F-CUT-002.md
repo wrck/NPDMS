@@ -16,7 +16,7 @@
 ## 当前最小工作单元
 
 - Task 1：`PASS / COMPLETE@9b1a613e`（独立整体状态关闭`GO`）。
-- Task 2：`IN_PROGRESS / CODE_REVIEW_REQUIRED / BLOCKED_BY_DEPENDENCY`。CUT自有新工作台、创建向导、P2人工分级和P4只读阶段投影已形成候选；生产Adapter、唯一应用装配、真实浏览器及Implementation Done继续等待PROJ/IMP/AST/CUS/PLT正式Owner事实。
+- Task 2：`IN_PROGRESS / PAGE_UNIT_PASS / BLOCKED_BY_DEPENDENCY`。CUT自有新工作台、创建向导、P2人工分级和P4只读阶段投影已通过独立复审（`9f791d64 + 0c18ed0f`）；生产Adapter、唯一应用装配、真实浏览器及Implementation Done继续等待PROJ/IMP/AST/CUS/PLT正式Owner事实。
 
 ## 已完成
 
@@ -40,4 +40,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`f397f4bc`；Task 2页面候选已收口列表生成时间、设备/READY上下文、显式项目选择与P4不加载P3清单，受控Owner模拟7/7、typecheck、build:local通过。当前Gate=Task 2页面独立Code Review；生产Owner装配、真实浏览器及Implementation Done仍阻断。
+> 检查点：基线=`0c18ed0f`；Task 2页面单元独立复审`GO`，正向组件7/7、typecheck、build:local通过。当前Gate=生产Owner依赖与Adapter/唯一装配核验；Task 2整体仍`IN_PROGRESS/BLOCKED_BY_DEPENDENCY`，不得用替身形成真实浏览器证据。
