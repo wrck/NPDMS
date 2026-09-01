@@ -621,7 +621,8 @@ public class CutoverClosureApplicationService {
                 || !Objects.equals(approval.getPlanRevisionId(), plan.getId())
                 || !Objects.equals(approval.getPlanRevisionNo(), plan.getRevisionNo())
                 || !Objects.equals(plan.getApprovalInstanceId(), approval.getId())
-                || !Objects.equals(plan.getApprovalVersion(), approval.getVersion())) {
+                || approval.getVersion() == null
+                || plan.getApprovalVersion() > approval.getVersion()) {
             throw failure(SOURCE_STALE, APPROVAL_OR_PLAN_STALE, "CUT", "审批或方案事实已变化");
         }
         return approval;

@@ -210,7 +210,8 @@ public class CutoverClosureQueryService {
                 || !"APPROVED".equals(approval.getStatusCode())
                 || !Objects.equals(plan.getId(), approval.getPlanRevisionId())
                 || !Objects.equals(plan.getApprovalInstanceId(), approval.getId())
-                || !Objects.equals(plan.getApprovalVersion(), approval.getVersion())
+                || plan.getApprovalVersion() == null || approval.getVersion() == null
+                || plan.getApprovalVersion() > approval.getVersion()
                 || !Objects.equals(plan.getCutoverTaskId(), task.getId())) {
             throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
                     "CUT", "P6审批方案事实损坏");
