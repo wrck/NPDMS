@@ -309,9 +309,9 @@
     {
       "featureId": "F-PROJ-008",
       "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
-      "taskPath": null,
-      "taskStatus": "NO_TASK",
-      "taskStatusRaw": null,
+      "taskPath": "tasks/features/F-PROJ-008.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "PM-03@V1",
@@ -441,9 +441,9 @@
         {
           "featureId": "F-PROJ-008",
           "coverage": "PARTIAL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-PROJ-008.md"
         }
       ]
     },

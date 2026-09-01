@@ -1,7 +1,7 @@
 # F-PROJ-008 项目阶段准出门禁与正向推进 Technical Plan
 
 > Technical Plan ID：`NPDMS-FPROJ008-TECHPLAN-20260901-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO`（独立裁决锁定候选`8778b963`）
 > Feature：`F-PROJ-008`（`BASELINE / READY / NOT_STARTED`）
 > Requirement：`PM-03@V1=PARTIAL`
 > 基线：`d78e06403d1104fb7d383ee893d2c83f7697c38c`
@@ -225,4 +225,4 @@ Chromium证据只记录：当前/目标阶段、所选与实际processDefinition
 - 边界：无Yudao源码、无CUT、无Flyway、无新权限、无S4→S5、无第三方审批实现。
 - BPM身份：只使用definitionKey、显式可空processDefinitionId和实例实际definitionId；无PMS版本模型，无taskDefinitionKey解析。
 - 顺序：实现优先，测试后置且聚焦；浏览器只保留一条正向业务链。
-- 状态：当前仅为`REVIEW_REQUIRED`候选；本文件不授权创建Task或进入Implementation。
+- 状态：独立Technical Plan Gate已`PASS / GO`；允许创建唯一Feature Task并按Task 1→2→3串行进入Implementation，不代表任何Task或Implementation Done通过。
