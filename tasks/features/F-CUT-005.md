@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～5均已独立GO，当前进入Task 6。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～6均已独立GO，当前进入Task 7。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -26,7 +26,8 @@
 - [x] Task 3 审批启动、来源冻结与公开FactApi Provider候选：`PASS / GO @ df406b0c`。
 - [x] Task 4 通过/驳回状态机与任务P4/P6原子迁移：`PASS / GO @ 6dae8751`。
 - [x] Task 5 详情、本人待办、改派队列与管理员改派：`PASS / GO @ 0142e01e`。
-- [ ] Task 6 站内通知提交后投递与暂停Job：`IN_PROGRESS`。
+- [x] Task 6 站内通知提交后投递与暂停Job：`PASS / GO @ e5aff408`。
+- [ ] Task 7 六路由REST、严格请求Codec与错误合同：`IN_PROGRESS`。
 
 ## 最近检查点
 
@@ -42,6 +43,7 @@
 - `df406b0c`关闭通知/暂停物理约束、业务摘要、路由快照及公开事务异常边界，Task 3正式GO；最近Gate为Task 4通过/驳回及P4/P6原子推进。
 - `6dae8751`关闭Task 4锁序、冻结Owner事实重验、当前候选交集、根挂起及业务错误分类，独立复审正式GO；最近Gate为Task 5查询、allowedActions与改派正向实现。
 - `0142e01e`关闭Task 5完整候选交集、hold恢复、通知版本键及待办投影身份一致性，独立复审正式GO；最近Gate为Task 6站内通知提交后投递与暂停Job。
+- `e5aff408`以独立`REQUIRES_NEW` Provider Bean隔离SYSTEM通知事务，证明Provider失败回滚不影响CUT外层持久化`PENDING_RETRY`，独立复审正式GO；最近Gate为Task 7六路由REST与严格请求合同。
 
 ## 物理Owner支撑Task
 
