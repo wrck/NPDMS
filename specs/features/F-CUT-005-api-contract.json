@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-005",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-05@V1=FULL"],
+  "wire": {
+    "WireLong": "JSON number only when -9007199254740991 < value < 9007199254740991; otherwise plain decimal JSON string",
+    "WireDateTime": "positive epoch milliseconds following WireLong",
+    "Idempotency-Key": "required non-blank String 1..128; canonical business digest excludes correlationId and headers",
+    "If-Match": "required non-negative Integer equal to cut_approval_instance.version",
+    "X-Task-Version": "required non-negative Integer equal to cut_task.version"
+  },
+  "enums": {
+    "ApprovalStatus": ["PENDING","PAUSED_SOURCE_INVALIDATED","APPROVED","REJECTED"],
+    "NodeStatus": ["WAITING","PENDING","APPROVED","REJECTED","CANCELLED"],
+    "NodeCode": ["INITIATOR","SERVICE_MANAGER","SECOND_LINE","RND"],
+    "ReviewItemCode": ["PREPARATION","BUSINESS_TEST","EXECUTION","ROLLBACK","OTHER"],
+    "ReviewDecision": ["YES","NO"],
+    "AssessmentReviewDecision": ["CONFIRMED","NOT_REASONABLE"],
+    "AllowedAction": ["APPROVE","REJECT","REASSIGN"],
+    "HoldReason": ["ROUTE_CANDIDATE_NOT_UNIQUE","APPROVER_UNAVAILABLE"],
+    "ErrorCategory": ["INVALID_REQUEST","FUNCTION_OR_SCOPE_DENIED","NOT_VISIBLE_OR_NOT_FOUND","STATE_CONFLICT","VERSION_CONFLICT","SOURCE_STALE","BUSINESS_INCOMPLETE","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","OWNER_PROVIDER_UNAVAILABLE","OWNER_DATA_CORRUPTED"]
+  },
+  "commonTypes": {
+    "CommonResult<T>": {"exactKeys":["code","msg","data"],"fields":{"code":"Integer","msg":"String","data":"T|null"}},
+    "ErrorData": {"exactKeys":["category","reasonCode","recoveryAction","ownerContext","currentApprovalVersion","currentTaskVersion"],"fields":{"category":"ErrorCategory","reasonCode":"member of reasonCodesByCategory[category]","recoveryAction":"FIX_REQUEST|REQUEST_ACCESS|REFRESH_APPROVAL|REFRESH_SOURCES|RETRY_SAME_KEY|CONTACT_ADMIN|RETRY_LATER|CONTACT_SUPPORT","ownerContext":"PROJ|SYSTEM|NOTIFY|null","currentApprovalVersion":"non-negative Integer|null","currentTaskVersion":"non-negative Integer|null"}},
+    "ReviewItemView": {"exactKeys":["itemCode","decision","unreasonableReason"],"fields":{"itemCode":"ReviewItemCode","decision":"ReviewDecision","unreasonableReason":"String 1..1000 for NO; JSON null for YES"}},
+    "AssessmentReviewView": {"exactKeys":["decision","reason"],"fields":{"decision":"AssessmentReviewDecision","reason":"String 1..1000 for NOT_REASONABLE; JSON null for CONFIRMED"}},
+    "ReviewItemInput": {"exactKeys":["itemCode","decision","unreasonableReason"],"fields":{"itemCode":"ReviewItemCode","decision":"ReviewDecision","unreasonableReason":"String 1..1000 required for NO; JSON null for YES"},"ordering":"fixed ReviewItemCode order; exactly five unique items"},
+    "AssessmentReviewInput": {"exactKeys":["decision","reason"],"fields":{"decision":"AssessmentReviewDecision","reason":"String 1..1000 required for NOT_REASONABLE; JSON null for CONFIRMED"}},
+    "NodeView": {"exactKeys":["nodeId","nodeNo","nodeCode","status","originalApproverUserId","currentApproverUserId","decisionAt","feedback","reviewItems","assessmentReview"],"fields":{"nodeId":"positive WireLong","nodeNo":"positive Integer","nodeCode":"NodeCode","status":"NodeStatus","originalApproverUserId":"positive WireLong|null","currentApproverUserId":"positive WireLong|null","decisionAt":"WireDateTime|null","feedback":"String 1..1000|null","reviewItems":"ReviewItemView[5] only after decision; otherwise []","assessmentReview":"AssessmentReviewView only for decided SERVICE_MANAGER; otherwise null"}},
+    "ApprovalDetail": {"exactKeys":["approvalInstanceId","approvalVersion","taskId","taskVersion","planRevisionId","planRevisionNo","grade","status","holdReason","currentNodeNo","nodes","sourceSnapshot","decisionAt","rejectionReason","allowedActions"],"fields":{"approvalInstanceId":"positive WireLong","approvalVersion":"non-negative Integer","taskId":"positive WireLong","taskVersion":"non-negative Integer","planRevisionId":"positive WireLong","planRevisionNo":"positive Integer","grade":"A|B|C|D","status":"ApprovalStatus","holdReason":"HoldReason|null","currentNodeNo":"positive Integer|null","nodes":"NodeView[] in nodeNo order","sourceSnapshot":"typed frozen P2/P3/P4 approval page projection","decisionAt":"WireDateTime|null","rejectionReason":"String 1..1000|null","allowedActions":"AllowedAction[] fixed enum order"}},
+    "TodoItem": {"exactKeys":["approvalInstanceId","approvalVersion","taskId","projectId","taskCode","taskName","grade","nodeNo","nodeCode","createdAt"],"fields":{"approvalInstanceId":"positive WireLong","approvalVersion":"non-negative Integer","taskId":"positive WireLong","projectId":"positive WireLong","taskCode":"String 1..64","taskName":"String 1..128","grade":"A|B|C|D","nodeNo":"positive Integer","nodeCode":"NodeCode","createdAt":"WireDateTime"}}
+    ,"TodoPage": {"exactKeys":["list","total","pageNo","pageSize"],"fields":{"list":"TodoItem[] stable ordered by createdAt then approvalInstanceId ascending","total":"non-negative WireLong","pageNo":"positive Integer","pageSize":"Integer 1..100"}}
+  },
+  "requests": {
+    "DecisionRequest": {"exactKeys":["reviewItems","assessmentReview","feedback"],"fields":{"reviewItems":"ReviewItemInput[5]","assessmentReview":"AssessmentReviewInput required only at SERVICE_MANAGER, otherwise JSON null","feedback":"non-blank String 1..1000"}},
+    "ReassignRequest": {"exactKeys":["nodeNo","newApproverUserId","reason"],"fields":{"nodeNo":"positive Integer","newApproverUserId":"positive WireLong","reason":"non-blank String 1..1000"}}
+  },
+  "reasonCodesByCategory": {
+    "INVALID_REQUEST": ["REQUEST_SCHEMA_INVALID","HEADER_REQUIRED_OR_INVALID"],
+    "FUNCTION_OR_SCOPE_DENIED": ["APPROVAL_PERMISSION_OR_PROJECT_SCOPE_DENIED"],
+    "NOT_VISIBLE_OR_NOT_FOUND": ["APPROVAL_NOT_VISIBLE"],
+    "STATE_CONFLICT": ["NOT_CURRENT_NODE","APPROVAL_NOT_PENDING","APPROVER_UNAVAILABLE","REASSIGN_TARGET_NOT_OPEN"],
+    "VERSION_CONFLICT": ["APPROVAL_VERSION_STALE","TASK_VERSION_STALE"],
+    "SOURCE_STALE": ["PLAN_OR_ASSESSMENT_OR_CHECKLIST_STALE","APPROVER_FACT_STALE"],
+    "BUSINESS_INCOMPLETE": ["REVIEW_ITEMS_INCOMPLETE","NO_REASON_REQUIRED","ASSESSMENT_REVIEW_REQUIRED","FEEDBACK_REQUIRED"],
+    "IDEMPOTENCY_CONFLICT": ["IDEMPOTENCY_PAYLOAD_CONFLICT"],
+    "IDEMPOTENCY_IN_PROGRESS": ["IDEMPOTENCY_OPERATION_IN_PROGRESS"],
+    "OWNER_PROVIDER_UNAVAILABLE": ["PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE","NOTIFY_PROVIDER_UNAVAILABLE"],
+    "OWNER_DATA_CORRUPTED": ["OWNER_FACT_CORRUPTED"]
+  },
+  "operations": {
+    "detail": {"method":"GET","path":"/api/v1/pms/cutover-tasks/{taskId}/approval","permission":"pms:cutover-task:query-approval","headers":[],"success":"CommonResult<ApprovalDetail>","errors":["FUNCTION_OR_SCOPE_DENIED","NOT_VISIBLE_OR_NOT_FOUND","OWNER_PROVIDER_UNAVAILABLE"]},
+    "myTodos": {"method":"GET","path":"/api/v1/pms/cutover-approvals/todos","permission":"pms:cutover-task:query-approval","headers":[],"query":{"pageNo":"positive Integer","pageSize":"Integer 1..100"},"success":"CommonResult<TodoPage>","errors":["INVALID_REQUEST","FUNCTION_OR_SCOPE_DENIED"]},
+    "approve": {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/approval-actions/approve","permission":"pms:cutover-task:approve","headers":["If-Match","X-Task-Version","Idempotency-Key"],"body":"DecisionRequest","success":"CommonResult<ApprovalDetail>","errors":["INVALID_REQUEST","FUNCTION_OR_SCOPE_DENIED","NOT_VISIBLE_OR_NOT_FOUND","STATE_CONFLICT","VERSION_CONFLICT","SOURCE_STALE","BUSINESS_INCOMPLETE","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","OWNER_PROVIDER_UNAVAILABLE","OWNER_DATA_CORRUPTED"]},
+    "reject": {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/approval-actions/reject","permission":"pms:cutover-task:approve","headers":["If-Match","X-Task-Version","Idempotency-Key"],"body":"DecisionRequest","success":"CommonResult<ApprovalDetail>","errors":["INVALID_REQUEST","FUNCTION_OR_SCOPE_DENIED","NOT_VISIBLE_OR_NOT_FOUND","STATE_CONFLICT","VERSION_CONFLICT","SOURCE_STALE","BUSINESS_INCOMPLETE","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","OWNER_PROVIDER_UNAVAILABLE","OWNER_DATA_CORRUPTED"]},
+    "reassign": {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/approval-actions/reassign","permission":"pms:cutover-task:reassign-approval","headers":["If-Match","Idempotency-Key"],"body":"ReassignRequest","success":"CommonResult<ApprovalDetail>","errors":["INVALID_REQUEST","FUNCTION_OR_SCOPE_DENIED","NOT_VISIBLE_OR_NOT_FOUND","STATE_CONFLICT","VERSION_CONFLICT","SOURCE_STALE","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","OWNER_PROVIDER_UNAVAILABLE","OWNER_DATA_CORRUPTED"]}
+  },
+  "errorEnvelope": "all operation failures use CommonResult<ErrorData> with the operation's real HTTP status from errorHttpMapping; Controller-local mapping must not change the global Yudao handler",
+  "errorHttpMapping": {"INVALID_REQUEST":400,"FUNCTION_OR_SCOPE_DENIED":403,"NOT_VISIBLE_OR_NOT_FOUND":404,"STATE_CONFLICT":409,"VERSION_CONFLICT":409,"SOURCE_STALE":409,"BUSINESS_INCOMPLETE":422,"IDEMPOTENCY_CONFLICT":409,"IDEMPOTENCY_IN_PROGRESS":409,"OWNER_PROVIDER_UNAVAILABLE":503,"OWNER_DATA_CORRUPTED":500},
+  "strictJson": "every request and nested union rejects missing keys, extra keys, unknown enums and wrong wire types",
+  "productionActivation": "no production Controller or full Service bean until candidate Owner Providers are connected; src/test controlled substitutes only"
+}

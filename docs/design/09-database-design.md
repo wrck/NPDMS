@@ -358,7 +358,7 @@ Q-FIMP002-002的后继身份修正使用下一实际空闲Flyway版本：新增�
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_approval_instance`、`cut_approval_node`、`cut_approval_review_item`、`cut_approval_reassignment`、`cut_approval_notification`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；P5审批、节点、评审、改派和通知由F-CUT-005拥有；P6闭环一任务一版本递增，提交后只读 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
@@ -371,6 +371,8 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 `cut_cutover_support_arrangement`只是`cut_plan_revision`从属明细，不得拥有派单/接管/转单/挂起状态。联系人、联系方式、到位时间变化在原批准方案下更新并写业务审计；角色或任务职责变化不得直接覆盖，必须创建新方案revision并按原人工等级重新进入P5。
 
 F-CUT-004仅新增`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`三张CUT业务表；联系人变更复用平台操作审计，不增加第四张业务表。NEW_PLATFORM的A/B/C/D方案均冻结任务、评估、项目、设备、配置revision和适用方案模板章节，D仅清单身份为空；D与A/B/C均可上传已有完整方案，D在线填写才限定为操作/回退步骤。在线根快照不复制步骤或保障人员：`cut_step`是步骤唯一事实，`cut_cutover_support_arrangement`是职责和当前联系人唯一事实，草稿保存原子更新并在读取时组装REST内容。`SUBMITTED`正文只读；批准后联系人PATCH以方案根`If-Match`为唯一公开版本Owner，先CAS递增根版本，再更新人员行内部版本和平台前后审计，整体同事务，不接受客户端从表版本。来源失效只追加失效元数据并转`INVALIDATED`，不得覆盖正文或把审批驳回改名为失效。`pms_cut_plan`只经PLT迁移证据形成`LEGACY_FORWARD`只读revision及四类步骤映射，精确旧来源快照承载code/name/level/remark，原审核字段不产生CUT-05事实。
+
+F-CUT-005以前向`NEW_ONLY`新增`cut_approval_instance/node/review_item/reassignment/notification`五表。实例按任务+方案revision唯一，节点按实例+序号唯一且每个实例最多一个PENDING节点；五项评审与改派历史追加保存。精确字段、可空联合、生成标记、路由和锁序由`specs/features/F-CUT-005-physical-contract.json`锁定。旧`pms_cut_task/pms_cut_plan`审批字段不迁移、不双写，也不产生新审批或批准事件。
 
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 

@@ -123,7 +123,7 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
 | `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
-| `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
+| `CutoverApproved` | CUT | Todo/DAC | eventId、tenantId、taskId、planRevisionId、approvalInstanceId、approvalVersion、approvedAt、sourceSnapshotVersion、correlationId | 仅全部冻结节点通过时与审批/任务P5→P6同事务写Outbox；不自动下发采集任务，通知成功也不得替代该事件 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
 | `CutoverChecklistItemResultLinked` | CUT | ProjectTask Query/CUT Read Model | taskId、checklistId/checklistVersion、stableItemKey/itemVersion、collectionTaskId、resultRef/resultVersion、resultSourceCode | P3同工作台已选择一个结果版本；只引用DAC技术结果，不复制其状态，不表示采集项通过或CUT阶段完成 |
 

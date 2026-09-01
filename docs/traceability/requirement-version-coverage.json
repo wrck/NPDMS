@@ -125,10 +125,23 @@
       "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
       "taskPath": "tasks/features/F-CUT-004.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
       "mappings": [
         {
           "sliceKey": "CUT-04@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-005",
+      "featurePath": "specs/features/F-CUT-005-p5-graded-approval.md",
+      "taskPath": "tasks/features/F-CUT-005.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "CUT-05@V1",
           "coverage": "FULL"
         }
       ]
@@ -1366,7 +1379,15 @@
       "businessResult": "割接分级审批的V1主交付业务结果",
       "versionBoundary": "V1分级审批；V2 A/B级专项提前时间判断（含原10.12提前时间合规判断）",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-005",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-CUT-005-p5-graded-approval.md",
+          "taskPath": "tasks/features/F-CUT-005.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-06@V1",
