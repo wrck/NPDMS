@@ -1,6 +1,6 @@
 # DU-20260901-FSOL003-DEPRECATION 固定章节实现废弃标记
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`TASK`
 > Feature协调：`F-SOL-003=TASK_COORDINATED`
 > Task范围：`只补齐已被动态表单替代的固定章节代码废弃标记与防回流测试`
@@ -13,7 +13,7 @@
 > 串行资源：`specs/features/README.md;scripts/generate_requirement_traceability.py`
 > 旧功能范围：`LegacyRequirementAnalysisFixedSections`
 > 验证：`58项F-SOL-003/追溯/DU/旧实现清单测试通过；追溯、DU、旧实现清单校验通过；mvn -pl pms-module-engineering -am -DskipTests compile BUILD SUCCESS`
-> 集成记录：`候选3e27f047abb5771507985102786ce34d72ca7f0a；待master串行集成`
+> 集成记录：`候选3e27f047abb5771507985102786ce34d72ca7f0a已选择性集成至master@2bdbb04cadefe0c80684db0b1366de8e35fc814b`
 
 ## 目标与边界
 
@@ -30,5 +30,12 @@
 - 最后提交：`3e27f047abb5771507985102786ce34d72ca7f0a`
 - 已完成：21个受控文件；旧固定章节Java/TypeScript/Vue标记废弃；新增防回流与Feature索引漂移检查。
 - 明确排除：来源工作树中的`.run`删除和`specs/features/README.md`分支状态回写均未迁移。
-- 剩余：master选择该单一提交集成并在最终内容上复验。
+- 剩余：本DU无；F-SOL-003业务Feature状态保持既有IMPLEMENTATION_COMPLETE，不由本废弃整改重复产生Done。
 - 已知失败：无；前端改动仅增加`@deprecated`注释，未改变可执行TypeScript/Vue逻辑。
+
+## 集成回执
+
+- master提交：`2bdbb04cadefe0c80684db0b1366de8e35fc814b`
+- 集成范围：仅候选`3e27f047`的21个受控文件。
+- 未集成：原PROJ分支、`.run`删除、分支PRD/Feature状态回写及其他Feature历史。
+- 结论：`INTEGRATED_COMPLETE`；写边界释放。
