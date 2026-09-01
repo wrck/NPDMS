@@ -10,7 +10,7 @@
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`
 > 上位决策：`ADR-0043（ACCEPTED）`
 > 适用基线：PRD V1.8；F-PROJ-008 SDS Phase 2 / P3-E09 `READY / GO`
-> Technical Plan：`PENDING_FORMATION`；`Q-FPROJ-008`已关闭，允许形成唯一计划，计划GO前不得进入Implementation
+> Technical Plan：`REVIEW_REQUIRED`；唯一候选`docs/superpowers/plans/2026-09-01-f-proj-008-project-stage-gate-and-forward-advance.md`，计划GO前不得创建Task或进入Implementation
 
 ## 1. 业务价值与最小正向闭环
 
@@ -155,4 +155,4 @@
 | 最小正向UI/浏览器验收 | PASS（已定义，未实施） |
 | 独立Feature Ready裁决 | PASS（3ec0f743） |
 
-结论：`BASELINE / READY / NOT_STARTED`。修订011影响同步已获独立GO；允许形成并独立审核唯一Technical Plan，计划GO前不得创建Task或修改产品代码。
+结论：`BASELINE / READY / NOT_STARTED`。唯一Technical Plan候选已形成并等待独立审核；计划GO前不得创建Task或修改产品代码。
