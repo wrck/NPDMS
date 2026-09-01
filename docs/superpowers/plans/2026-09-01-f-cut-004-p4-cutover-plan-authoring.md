@@ -186,7 +186,7 @@
 
 ## 7. Task 6：修订链与批准后联系人变更
 
-**Produces：** 驳回/失效/职责变化派生新DRAFT；批准方案只变更联系人类字段并留平台前后审计。
+**Produces：** 驳回/来源失效派生新DRAFT；批准方案只变更联系人类字段并留平台前后审计。职责变化保持规格阻断。
 
 **实施定点裁决：** `DUTY_CHANGED`因`Q-FCUT004-001`缺少P6→P4物理Owner、历史触发器及旧批准/闭环处置而保持`BLOCKED_BY_SPEC`；本Task当前只实施REJECTED、SOURCE_REPLACED与批准后联系人PATCH，不用其他已批准转换替代职责变化。
 
@@ -201,7 +201,7 @@
 
 - [ ] 实现revise：锁当前任务、来源revision和审批事实，复制不可变正文/步骤/职责到新DRAFT，重新冻结当前来源，不覆盖旧revision。
 - [ ] 实现PATCH，不接受arrangementVersion；锁根和目标保障行，任一步失败使根、子行、审计整体回滚。
-- [ ] 实现完成后补正向生命周期测试：REJECTED派生revisionNo+1；PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED并把旧approval传给替代start；APPROVED职责变化派生DUTY_CHANGED。
+- [ ] 实现完成后补正向生命周期测试：REJECTED派生revisionNo+1；PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED并把旧approval传给替代start；DUTY_CHANGED只验证阻断登记，不进入运行实现。
 - [ ] 实现完成后补联系人PATCH测试：根`If-Match`单一版本Owner，CAS根+1后只更新personName/phone/arrivalTime；role/duty保持不变；SuccessFacts保存before/after、actor、reason、correlationId和时间。
 - [ ] 用受控审批事实跑“提交→APPROVED→联系人PATCH”和“提交→REJECTED→新DRAFT→替代提交”两条CUT正向链。
 - [ ] 提交并申请Task 6 Lifecycle/MySQL Gate。
