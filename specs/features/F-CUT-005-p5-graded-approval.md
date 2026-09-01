@@ -39,17 +39,17 @@
 
 ### BR-FCUT005-001 路由与来源冻结
 
-- `CutoverApprovalFactApi.start`以`MANDATORY`加入F-CUT-004提交事务；受信当前用户冻结为`INITIATOR`。审批实例固定引用同租户任务、已提交方案revision、最终评估、A/B/C有效清单、人工等级和P4来源快照版本。
+- `CutoverApprovalFactApi.start`以`MANDATORY`加入F-CUT-004提交事务；受信当前用户须在同事务锁定同项目`ProjectScopeApi.ACTION_EDIT`，并把`userId/projectId/ACTION_EDIT/treeVersion`冻结为`INITIATOR`机器事实。审批实例固定引用同租户任务、已提交方案revision、最终评估、A/B/C有效清单、人工等级和P4来源快照版本。
 - 节点固定为：A四节点、B三节点、C/D两节点；首节点`INITIATOR`创建为`PENDING`，后续节点为`WAITING`。P4提交不替代发起人节点评审。
-- 服务经理由PROJ当前唯一主责服务经理事实解析；二线/研发分别由SYSTEM审批角色组解析，并叠加该候选人的项目`ACTION_VIEW`。Owner明确返回零个或多个候选时，实例仍以`PENDING`进入P5但写入`holdReason`，整条实例暂停且不产生可执行待办；Owner事实修复或管理员把所有未决节点改派为合格候选后恢复当前节点。Provider不可用或Owner事实损坏不是合法候选结果，`start`整体失败并使P4提交回滚；不得任选一人、读取跨模块表或用全局角色单独替代项目范围。
-- 路由、候选、来源和审批页面引用内容在实例创建时冻结。来源版本变化不得静默刷新；F-CUT-004来源失效命令把实例置`PAUSED_SOURCE_INVALIDATED`，旧实例和节点不恢复。
+- 服务经理由PROJ当前唯一主责服务经理事实解析；二线/研发先由SYSTEM返回完整、稳定排序的启用角色成员集合，再由CUT逐人读取同项目`ProjectScopeApi.ACTION_VIEW`，只在交集恰有一人时冻结该审批人。SYSTEM全局候选多人但项目交集唯一时必须成功；项目交集为零或多人时实例仍以`PENDING`进入P5但写入`holdReason`，整条实例暂停且不产生可执行待办。候选快照保存完整SYSTEM成员身份/版本、逐人项目范围结果/treeVersion及交集结论；处理前按用户ID稳定锁定完整角色成员事实和项目范围事实并重算交集。Owner事实修复或管理员把所有未决节点改派为合格候选后恢复当前节点。Provider不可用或Owner事实损坏不是合法候选结果，`start`整体失败并使P4提交回滚；不得在项目范围过滤前任选一人、读取跨模块表或用全局角色单独替代项目范围。
+- 路由、候选、来源和审批页面引用内容在实例创建时冻结。`ApprovalSourceSnapshot`的精确键、类型、可空性和排序见API机器合同：项目为F-CUT-002原样十一字段；采集分析只含割接类型、组网方式、计划操作时间；风险和业务问卷分别冻结CUT-03当前已提交结果并按`stableItemKey`排序；P2冻结四项答案、客户服务等级和人工等级；方案冻结F-CUT-004完整`PlanSourceSnapshot + PlanContentUnion`。审批详情只能读取该不可变快照，不得刷新当前PROJ、CUT-03或CUT-04事实。来源版本变化不得静默刷新；F-CUT-004来源失效命令把实例置`PAUSED_SOURCE_INVALIDATED`，旧实例和节点不恢复。
 
 ### BR-FCUT005-002 评审与服务经理复核
 
 - 每个处理节点必须提交五项封闭评审：`PREPARATION/BUSINESS_TEST/EXECUTION/ROLLBACK/OTHER`。每项只能`YES/NO`；`NO`必须有1..1000字符原因，`YES`原因必须为空。
-- 通过和驳回均须填写1..1000字符反馈意见。通过要求五项全部`YES`；驳回允许一个或多个`NO`，服务经理也可因P2复核不合理驳回。
+- 通过和驳回使用两个精确请求判别支：`APPROVE`要求五项全部`YES`且服务经理复核为`CONFIRMED`；`REJECT`要求至少一项`NO`，或仅服务经理可在五项全`YES`时以`NOT_REASONABLE`驳回。动作与评审结果不一致稳定返回`DECISION_ACTION_RESULT_MISMATCH`，不得由Controller或状态机猜测。两者均须填写1..1000字符反馈意见。
 - `SERVICE_MANAGER`节点必须额外提交`CONFIRMED/NOT_REASONABLE`的P2问卷与人工等级复核结果；`NOT_REASONABLE`必须驳回并填写复核原因，其他节点不得提交该字段。服务经理不修改P2答案或等级。
-- 当前节点只允许冻结的当前审批人且仍具备节点Owner资格和项目范围者处理。Owner明确证明候选/范围失效时保持实例`PENDING`并写`APPROVER_UNAVAILABLE`暂停原因，业务决定零写，等待改派；Provider不可用只返回503并保持原实例不变，不得伪装为候选失效或自动换人。
+- 当前节点只允许冻结的当前审批人且仍具备节点Owner资格和项目范围者处理。原始或改派后的`INITIATOR`均须锁定重验同项目`ACTION_EDIT`和冻结treeVersion；其他节点按候选机器合同锁定重验。Owner明确证明候选/范围失效时保持实例`PENDING`并写`APPROVER_UNAVAILABLE`暂停原因，业务决定零写，等待改派；Provider不可用只返回503并保持原实例不变，不得伪装为候选失效或自动换人。
 
 ### BR-FCUT005-003 串行推进、驳回和全部通过
 
@@ -61,14 +61,15 @@
 ### BR-FCUT005-004 改派、待办与通知
 
 - 具备`reassign-approval`权限的审批管理员只能改派`WAITING/PENDING`节点。`INITIATOR`替代处理人须具备同项目`ACTION_EDIT`，节点身份与原发起人历史不变；`SERVICE_MANAGER`目标必须等于PROJ当前唯一主责服务经理；`SECOND_LINE/RND`目标必须通过SYSTEM显式角色成员锁定和项目`ACTION_VIEW`。改派追加原审批人、新审批人、原因、操作者、时间和候选事实版本，不覆盖历史。
-- 节点表是CUT待办的唯一业务事实；本人待办只返回`PENDING`且`currentApproverUserId`为受信当前用户的节点。前端按钮和站内信不产生审批资格。
-- 每次首节点创建、下一节点激活或改派成功均追加唯一通知记录并调用现有`NotifyMessageSendApi`。发送失败不回滚审批动作，记录`PENDING_RETRY`并按同一deliveryKey重试；通知成功不等于节点已处理。
+- 节点表是CUT待办的唯一业务事实；本人待办只返回根`PENDING`、无hold、节点`PENDING`且`currentApproverUserId`为受信当前用户，并通过同一当前Owner/项目范围重验的节点。Provider不可用使整页失败，不得返回部分待办。前端按钮和站内信不产生审批资格。
+- 审批详情/动作矩阵固定为：原始发起人且当前有`ACTION_VIEW`可看完整进度但不因此获得审批权；当前审批人通过节点Owner/范围重验后可看完整冻结审批页并在节点可执行时获得通过/驳回；其他只读项目成员仅在终态查看不含来源快照和节点评审正文的最终结果；审批管理员只有未处理节点改派权。`allowedActions`必须与命令的权限、主体事实、项目范围、根/节点状态同构。
+- 每次首节点创建、下一节点激活或改派成功只在业务事务内追加唯一`PENDING`通知记录并返回成功；事务提交后的独立投递动作才调用现有`NotifyMessageSendApi`。发送失败只把通知改为`PENDING_RETRY`并按同一deliveryKey重试，不回滚或改写审批动作；通知Provider失败不属于通过/驳回/改派错误合同，通知成功也不等于节点已处理。
 
 ## 4. API与Owner合同
 
 - 用户REST及精确wire/error/幂等见`F-CUT-005-api-contract.json`：审批详情、本人待办、通过、驳回、改派五类操作。
 - F-CUT-004/F-CUT-006消费的`start/inspect/lockAndRevalidate/pauseForSourceInvalidation`保持`F-CUT-005-approval-owner-contract.json`的既有签名；本Feature实现唯一生产Provider。
-- 候选解析见`F-CUT-005-candidate-owner-contract.json`。当前只授权CUT消费端口与`src/test`受控实现；PROJ/SYSTEM物理Owner Provider未形成时不注册生产完整Service/Controller，不得使用旧项目团队表、SYSTEM直表或空候选fallback。
+- 候选解析见`F-CUT-005-candidate-owner-contract.json`。当前只授权CUT消费端口与`src/test`受控实现；PROJ/SYSTEM物理Owner Provider未形成时不注册生产完整Service/Controller，不得使用旧项目团队表、SYSTEM直表或空候选fallback。SYSTEM接口返回完整候选集而不是预先挑选单人，唯一性由CUT在项目范围交集后判断。
 - PROJ候选合同作为本Feature内的物理Owner支撑Task交付，不新建纯Provider Feature或新表；PROJ实现可复用现有ProjectParticipant聚合与锁序，但必须提供`FOUND/NOT_UNIQUE/STALE`稳定结果，不能把既有混合异常直接泄漏给CUT。
 - SYSTEM候选合同同样只登记为物理Owner支撑Task；当前不授权修改Yudao基础模块。正式Provider形成前，CUT内核通过测试作用域受控事实跑正向链，生产装配保持失败关闭。
 

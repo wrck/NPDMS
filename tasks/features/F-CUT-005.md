@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- 形成完整F-CUT-005 Feature Ready候选并申请独立复审。
+- 首版Feature Ready候选`5e3ce44c`独立复审为NO-GO；当前仅关闭冻结审批页、动作判别、候选交集、发起人/可见性和通知投递五项机器合同阻断后重新送审。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -21,6 +21,11 @@
 - [ ] API/Physical/Candidate/Legacy Machine Contract Gate。
 - [ ] Feature Ready最终裁决。
 - [ ] Feature Ready通过后生成唯一Technical Plan。
+
+## 最近检查点
+
+- `5e3ce44c`方向成立但Feature Ready未通过；不得进入Technical Plan或实现。
+- 整改只改Feature/API/Physical/Candidate/Authorization等正式规格，不新增DDL、运行代码或测试实现。
 
 ## 物理Owner支撑Task
 

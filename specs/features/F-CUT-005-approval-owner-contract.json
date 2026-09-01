@@ -9,7 +9,7 @@
   "javaPackage": "cn.iocoder.yudao.module.pms.cutover.api.approval",
   "api": "CutoverApprovalFactApi",
   "trustedTenant": "every query/command carries positive tenantId and must equal TenantContextHolder.getRequiredTenantId before platform idempotency, locks or business reads; mismatch is TENANT_CONTEXT_MISMATCH",
-  "initiatorRule": "start freezes the trusted current user from the enclosing F-CUT-004 submit transaction as the real first INITIATOR node; P4 submit never auto-approves that node",
+  "initiatorRule": "start resolves the trusted current user from the enclosing F-CUT-004 submit transaction, locks ProjectScopeApi ACTION_EDIT for the task project, and freezes userId/projectId/ACTION_EDIT/treeVersion as the real first INITIATOR node; P4 submit never auto-approves that node",
   "types": {
     "CutoverApprovalStartCommand": {
       "exactFields": {
@@ -117,7 +117,7 @@
   "operations": {
     "start": {
       "signature": "CutoverApprovalStartResult start(CutoverApprovalStartCommand command)",
-      "transaction": "MANDATORY; joins F-CUT-004 submission; creates one PENDING approval and returns its fact",
+      "transaction": "MANDATORY; joins F-CUT-004 submission; locks the task/assessment/checklist/plan roots and initiator ACTION_EDIT fact, assembles the exact immutable F-CUT-005 ApprovalSourceSnapshot from those locked CUT facts, creates one PENDING approval and returns its fact",
       "resultUnion": {
         "STARTED": "fact required",
         "REPLAYED": "same original fact required"
