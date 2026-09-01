@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1审批消费Java合同与Task 2物理基础均已通过；当前进入Task 3内容Codec、来源冻结与PLT文件事实消费端口。
+- Task 1～3均已通过；当前进入Task 4创建、保存与详情正向闭环。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -47,10 +47,20 @@
 
 ## Task 3：内容Codec、来源冻结与PLT文件事实消费端口
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@b6ca8f71`
 
 - [x] 实现三种可写方案联合、legacy只读联合及严格内容Codec。
 - [x] 实现来源冻结和值对象，并预留最窄`CutoverPlanFilePort`。
-- [ ] 使用`src/test`受控端口完成正向聚焦测试并通过独立Domain/Port Gate（候选5/5通过，待独立复审）。
+- [x] 使用`src/test`受控端口完成正向聚焦测试并通过独立Domain/Port Gate（5/5通过，`GO@b6ca8f71`）。
 
-> 检查点：按独立NO-GO完成DRAFT解码/提交完整性分层，D模板按集合验资格并保留Owner排序，移除负向测试；增量草稿及完整内容正向测试5/5通过。仅有`src/test`受控端口，生产PLT初稿生成仍阻断后续生产闭环。
+> 检查点：独立复审确认DRAFT/完整性分层、D模板集合语义和正向受控测试成立；Task 3 Gate通过。生产PLT初稿生成仍阻断后续生产闭环。
+
+## Task 4：创建、保存与详情正向闭环
+
+状态：`IN_PROGRESS`
+
+- [ ] 实现创建/保存命令、版本与幂等事务边界。
+- [ ] 实现当前详情、legacy只读投影与服务端`allowedActions`。
+- [ ] 使用Task 3受控端口完成标准/简易/上传正向聚焦测试及真实MySQL原子性证据，并通过独立Application/MySQL Gate。
+
+> 检查点：仅推进CUT应用闭环；生产Service Bean、PLT初稿生成及CUT-05审批Provider仍不接通，受控替身只用于`src/test`。
