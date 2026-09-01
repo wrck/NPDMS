@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～4均已通过；Task 5初稿下载、提交P5与来源失效正向闭环已形成实现候选，等待独立Submission/MySQL Gate复审。
+- Task 1～5均已通过；当前进入Task 6修订链与批准后联系人变更正向闭环。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -72,11 +72,11 @@
 
 ## Task 5：初稿下载、提交P5与来源失效
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@d559c02c`
 
 - [x] 实现下载初稿文件事实但不推进plan/task版本（`bd4ead05`）。
 - [x] 实现提交与CUT-05审批启动同成同败、DRAFT→SUBMITTED、P4→P5及阶段历史（`a9b87b47`）。
 - [x] 实现来源失效暂停审批、SUBMITTED→INVALIDATED、P5→P4及阶段历史（`fe50aaf9`）。
-- [ ] 使用受控PLT/CUT-05端口完成正向链并通过独立Submission/MySQL Gate。
+- [x] 使用受控PLT/CUT-05端口完成正向链并通过独立Submission/MySQL Gate（`GO@d559c02c`）。
 
-> 检查点：CUT侧实现候选已完成；正向聚焦测试12/12、隔离MySQL 8.4空库V1→V150及真实Spring/MyBatis/平台命令2/2通过。受控PLT/CUT-05仅位于`src/test`；生产PLT初稿生成与CUT-05审批Provider缺失继续阻断生产装配、真实浏览器和Feature Implementation Done。最近Gate为Task 5独立Submission/MySQL复审。
+> 检查点：独立复审确认下载前锁定重验冻结来源、提交/失效状态与事务闭环成立；正向聚焦12/12、隔离MySQL 2/2通过。Task 5 Gate通过，生产PLT/CUT-05仍阻断生产装配、浏览器和Implementation Done。
