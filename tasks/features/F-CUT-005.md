@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～7均已独立GO，当前进入Task 8。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～8均已独立GO，当前进入Task 9。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -29,6 +29,7 @@
 - [x] Task 6 站内通知提交后投递与暂停Job：`PASS / GO @ e5aff408`。
 - [x] Task 7 六路由REST、严格请求Codec与错误合同：`PASS / GO @ eefb40ec`。
 - [x] Task 8 P5审批工作台与组件交互：`PASS / GO @ ac8a6e5f`。
+- [ ] Task 9 字典、权限、通知模板与暂停Job种子：`CODE_REVIEW_REQUIRED`。
 
 ## 最近检查点
 
@@ -49,6 +50,7 @@
 - Task 8候选已完成P5完整/最终结果/管理员改派三种投影、本人待办与改派队列入口、五项评审及服务经理复核、合法驳回和统一写后刷新屏障；跨模块Owner仅使用正式接口与测试模拟，无生产Fake/fallback。当前等待独立Code Review／组件交互Gate。
 - `327d1477`首轮Task 8独立复审为`NO-GO`；整改已改为审批专用抽屉直达三种投影，补齐冻结P2五维和风险/业务项正文，使用`REFRESH_APPROVAL/REFRESH_SOURCES`恢复动作，并按任务、节点与改派版本重置本地状态。39项正向组件交互和低并发原命令`build:local`均通过，等待最小整改复审。
 - `ac8a6e5f`关闭审批专用入口、冻结依据展示、正式恢复动作与组件身份重置四项阻断，独立复审正式`GO`；Task 8 Gate回写`PASS`，最近实施单元为Task 9字典、菜单、权限、通知模板与暂停Job种子。
+- Task 9候选以串行`V154`新增P5封闭字典、既有割接工作台下三个权限、`CUT_APPROVAL_PENDING`站内信模板及初始暂停的`cutoverApprovalNotificationJob`；不写角色授权、不修改旧菜单/权限、不同步Quartz。迁移合同5/5通过；隔离MySQL 8.4从空库全量至V154并重复执行原脚本后，8类字典/27项数据、3项权限、0角色授权、1模板和1个PAUSED Job保持稳定，等待独立Gate。
 
 ## 物理Owner支撑Task
 

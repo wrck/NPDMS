@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class Fcut005MigrationContractTest {
     private final String sql = readMigration();
+    private final String seedSql = readSeedMigration();
 
     @Test
     void createsOnlyTheFiveLockedApprovalTables() {
@@ -45,9 +46,52 @@ class Fcut005MigrationContractTest {
                 .contains("`grade_code` = 'D'");
     }
 
+    @Test
+    void seedsOnlyTheLockedApprovalDictionariesAndPermissions() {
+        assertThat(seedSql)
+                .contains("'pms_cutover_approval_status'")
+                .contains("'PAUSED_SOURCE_INVALIDATED', 'pms_cutover_approval_status'")
+                .contains("'pms_cutover_approval_node_status'")
+                .contains("'CANCELLED', 'pms_cutover_approval_node_status'")
+                .contains("'PREPARATION', 'pms_cutover_approval_review_item'")
+                .contains("'OTHER', 'pms_cutover_approval_review_item'")
+                .contains("'ROUTE_CANDIDATE_NOT_UNIQUE', 'pms_cutover_approval_hold_reason'")
+                .contains("'APPROVER_UNAVAILABLE', 'pms_cutover_approval_hold_reason'")
+                .contains("'SENT', 'pms_cutover_approval_notification_status'")
+                .contains("'PENDING_RETRY', 'pms_cutover_approval_notification_status'")
+                .contains("'pms:cutover-task:query-approval'")
+                .contains("'pms:cutover-task:approve'")
+                .contains("'pms:cutover-task:reassign-approval'")
+                .contains("992602050001")
+                .doesNotContain("system_role_menu")
+                .doesNotContain("pms:cutover-task:query-plan'")
+                .doesNotContain("pms:cutover-task:query'");
+    }
+
+    @Test
+    void seedsTheLockedNotificationTemplateAndKeepsTheJobPaused() {
+        assertThat(seedSql)
+                .contains("'CUT_APPROVAL_PENDING'")
+                .contains("[\"taskId\",\"taskCode\",\"taskName\",\"approvalInstanceId\",\"nodeNo\",\"nodeCode\",\"link\"]")
+                .contains("'cutoverApprovalNotificationJob'")
+                .contains("'0/30 * * * * ?'")
+                .contains("'割接P5审批站内信投递', 2")
+                .contains("SET `name`='割接P5审批站内信投递', `status`=2")
+                .doesNotContain("syncEnabledJobByHandlerName")
+                .doesNotContain("status`=1");
+    }
+
     private static String readMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V153__fcut005_p5_graded_approval.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readSeedMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V154__fcut005_p5_approval_seed.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
