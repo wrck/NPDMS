@@ -159,10 +159,10 @@
 
 ## Task 12：生产依赖接通、唯一装配与真实验收
 
-状态：`BLOCKED_BY_DEPENDENCY / PRECONDITION_REVIEW_REQUIRED`
+状态：`BLOCKED_BY_DEPENDENCY / NO-GO@b058edb3`
 
 - [ ] 核验F-CUT-005生产`CutoverApprovalFactApi` Owner Gate及PLT正式初稿生成/冻结合同是否已通过。
 - [ ] 核验F-CUT-002/003所需生产Owner与唯一生产装配前提；缺任一项时保持失败关闭，不注册fallback。
 - [ ] 正式Owner齐备后，另行提交唯一Service/Controller装配、真实Spring传播、浏览器与数据库证据。
 
-> 最近Gate：Task 12生产依赖接通前置核验。当前受控替身不得用于生产装配、Job激活或真实浏览器验收。
+> 检查点：独立前置核验确认F-CUT-005生产Owner、CUT渲染与PLT文件创建/冻结交接合同、F-CUT-002/003生产Owner接线均未形成；F-CUT-004无自身整改项，保持失败关闭。当前受控替身不得用于生产装配、Job激活或真实浏览器验收；最近CUT主线Gate为F-CUT-005完整Feature Ready。
