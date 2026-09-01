@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～6均已通过；当前进入Task 7七路由REST、精确错误合同与测试激活外壳；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
+- Task 1～7均已通过；当前进入Task 8旧方案前向核对与暂停Job；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -106,3 +106,16 @@
 - [x] 通过Task 7 REST Contract独立Gate（`GO@359be6bd`）。
 
 > 检查点：独立复审确认submit任务CAS、P4来源Provider、PLT空/损坏事实及WireLong/受信租户边界均已闭合；七路由正向及Controller/Codec/Application聚焦测试14/14通过，Task 7 Gate通过。Task 12前继续不激活生产Controller与完整Service装配。
+
+## Task 8：受控legacy前向迁移与暂停Job
+
+状态：`CODE_REVIEW_REQUIRED / PRODUCTION_ACTIVATION_BLOCKED_BY_MAPPING_PROVIDER`
+
+- [x] 只通过`PlatformMigrationEvidenceApi`消费`STAGED_READY`的`pms_cut_plan`冻结来源，正常CUT代码不读取旧表。
+- [x] 预留`LegacyCutoverTaskMappingPort`解析已确认的`pms_cut_task -> cut_task`目标映射；CUT只按解析后的目标ID锁表，`src/test`受控实现完成正向闭环，生产不注册Fake/fallback。
+- [x] 合格来源形成只读`LEGACY_FORWARD`根与四类步骤，并在同一事务追加PLT mapping、核对计数及完成批次。
+- [x] 使用实际下一空闲版本`V151`幂等登记`legacyCutoverPlanReconciliationJob`为`status=2/PAUSED`；不注册Quartz启动同步，正式映射Provider接通前不装配生产Handler。
+- [x] Converter/Service/Migration合同聚焦测试5/5通过；隔离MySQL 8.4空卷V1→V151及应用正向1/1通过。
+- [ ] 通过Task 8 Migration/MySQL独立Gate。
+
+> 候选检查点：生产迁移服务不直读`pms_cut_plan`、不以旧`task_id`直接命中目标任务；跨模块映射按最窄端口受控模拟。测试fixture仅证明转换和事务闭环，不作为生产迁移完成证据。
