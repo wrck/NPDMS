@@ -1,7 +1,7 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订011（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8修订012（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8附录A.1的100项正式Requirement及附录A.1.1的111个目标版本切片
 > Owner：SDS 总编
 > 定位：本文件是 SDS 各分册的总册与索引，不复制分册内容；分册结论以其自身和对应门禁记录为准。
@@ -14,7 +14,7 @@
 | SDS Phase 2 | `BASELINE` | `READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
 | SDS Phase 3 | `BASELINE` | `READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7及修订007前三阶段历史审查证据保留。V1.8修订007已按100项正式Requirement和111个目标版本切片完成三阶段差量复核并纳入SDS基线，可作为下游Feature Ready评估输入；这不表示任何Feature、环境、性能、集成、迁移、切换、UAT或Release门禁已经通过。
+V1.7及修订007前三阶段历史审查证据保留。V1.8修订007已按100项正式Requirement和111个目标版本切片完成三阶段差量复核；修订012已完成F-INS-001规则名称稳定身份与唯一性差量回写并纳入SDS基线，可作为下游Feature Ready评估输入；这不表示任何Feature、环境、性能、集成、迁移、切换、UAT或Release门禁已经通过。
 
 ## 2. 分册索引
 

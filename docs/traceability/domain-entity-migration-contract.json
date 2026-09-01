@@ -562,7 +562,9 @@
       "targetTables": [
         "srv_inspection_rule",
         "srv_inspection_rule_revision",
-        "srv_inspection_rule_product_type_revision"
+        "srv_inspection_rule_command_revision",
+        "srv_inspection_rule_product_type_revision",
+        "srv_inspection_rule_security_review"
       ]
     },
     "InspectionReport": {
@@ -2397,7 +2399,9 @@
       "targetTables": [
         "srv_inspection_rule",
         "srv_inspection_rule_revision",
-        "srv_inspection_rule_product_type_revision"
+        "srv_inspection_rule_command_revision",
+        "srv_inspection_rule_product_type_revision",
+        "srv_inspection_rule_security_review"
       ],
       "sources": [
         {

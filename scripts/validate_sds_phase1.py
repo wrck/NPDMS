@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the PRD V1.8 revision 007 Phase 1 SDS gate."""
+"""Validate the current PRD V1.8 Phase 1 SDS gate."""
 
 from __future__ import annotations
 
@@ -673,13 +673,13 @@ def validate(root: Path) -> list[str]:
         "结论": "READY_FOR_PHASE_2_V1.8",
         "机器门禁": "PASS",
         "需求方批准": "GO",
-        "适用修订": "PRD_V1.8_REVISION_007",
+        "适用修订": "PRD_V1.8_REVISION_012",
     }
     if (
         any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())
         or has_conflicting_gate_pending_claim(gate)
     ):
-        errors.append("Phase 1 gate must keep one exact revision 007 APPROVED/READY/GO metadata set without pending claims")
+        errors.append("Phase 1 gate must keep one exact current revision APPROVED/READY/GO metadata set without pending claims")
 
     self_review = read(root / "docs/engineering/gates/phase-1/self-review.md")
     require_markers(
@@ -707,7 +707,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] PRD V1.8 revision 007 Phase 1 gate: 100 requirements, 111 version slices, 13 unique Owners")
+    print("[PASS] Current PRD V1.8 Phase 1 gate: 100 requirements, 111 version slices, 13 unique Owners")
     return 0
 
 

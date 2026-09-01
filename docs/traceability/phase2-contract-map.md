@@ -1,7 +1,7 @@
 # SDS Phase 2 显式需求契约映射
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8 修订011（`docs/baseline/prd-v1.8.md`）；物理/API契约沿用修订010，修订011安全与异常差量由14、16、20分册承载
+> 适用基线：PRD V1.8 修订012（`docs/baseline/prd-v1.8.md`）；修订011安全差量与修订012规则名称稳定身份差量已回写正式SDS
 > Requirement ID：附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片（V1 53个、V2 58个）
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
 > Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`（仅表示SDS设计可进入Phase 3，不批准DDL、Feature或Release）
@@ -1907,7 +1907,7 @@
 | INS-03@V2 | V2 | 巡检规则管理的V2主交付业务结果 | V2 |
 
 - 数据对象：InspectionRule
-- 数据表：srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision
+- 数据表：srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_command_revision、srv_inspection_rule_product_type_revision、srv_inspection_rule_security_review
 - API：/inspection-rules、/{id}/revisions、/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}、/selectable；消费AssetProductTypeApi.getByCodes和getAuthorizedDeviceProductType
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1919,7 +1919,7 @@
 - 修订010增量验收：规则草稿保存不把AST可用性当作前置；发布必须对全部稳定编码取得AST当前存在且启用事实并冻结显示名称快照；未知、停用、来源证据缺失或契约不可用时发布失败且旧revision不变。工程师按授权设备选择时重新查询当前产品类型，只返回适用的已发布规则；无权设备、未知映射、停用或契约不可用时失败关闭，不使用历史名称快照替代当前选择事实。
 - Phase 3授权拒绝断言：越权按“AssignedProjectDeviceScope；规则维护/使用分离；AST产品类型服务身份和设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“规则配置、发布版本和任务冻结；发布/选择回源AST当前产品类型事实并失败关闭”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_command_revision、srv_inspection_rule_product_type_revision、srv_inspection_rule_security_review”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录
 
 ### INS-04
@@ -2058,7 +2058,7 @@
 | INS-09@V2 | V2 | 巡检规则配置字段的V2主交付业务结果 | V2 |
 
 - 数据对象：InspectionRule
-- 数据表：srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision
+- 数据表：srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_command_revision、srv_inspection_rule_product_type_revision、srv_inspection_rule_security_review
 - API：/inspection-rules、/{id}/revisions、/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}、/selectable；消费AssetProductTypeApi.getByCodes和getAuthorizedDeviceProductType
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -2066,11 +2066,11 @@
 - 工作流/状态：规则配置、发布版本和任务冻结；发布/选择回源AST当前产品类型事实并失败关闭
 - 授权与数据范围：AssignedProjectDeviceScope；规则维护/使用分离；AST产品类型服务身份和设备范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试
-- Phase 3 PRD验收基线：WHEN 管理员在后台巡检规则配置页面新增或编辑巡检规则；THEN 系统提供8个配置字段（规则名称/描述/命令列表/执行顺序/超时时间/预期结果正则/结果阈值/适用产品类型）的录入界面；AND 每个字段含输入校验（如规则名称必填且唯一、超时时间为正整数≤30、预期结果正则为合法正则表达式、适用产品类型关联产品类型库）；WHEN 管理员配置命令列表与执行顺序；THEN 系统支持单条或多条命令配置，多条命令按执行顺序依次执行；AND 命令格式校验通过并发布后保存版本，INS-02在线巡检时按顺序通过INT-12下发、离线巡检时按顺序打包至巡检脚本；WHEN 管理员配置预期结果正则与结果阈值；THEN 系统校验正则表达式合法性，校验阈值格式（比较运算符+数值）；AND INS-02巡检执行后按正则与阈值判定检测结果（通过/异常），异常项按严重级别（INS-03）标注；WHEN 管理员配置适用产品类型；THEN 一线工程师前端勾选规则时，平台通过AST公开契约按授权设备的当前产品类型筛选并展示适用规则；AND 不适用规则在前端置灰或隐藏，避免误选；WHEN 管理员保存规则配置；THEN 平台保存草稿；通过校验与安全审核并发布后生成新规则版本，历史版本保留可回溯；AND INS-03规则库展示最新配置，INS-08误报反馈机制可基于误报分析优化这8个字段；WHEN 正则存在语法/超时风险、阈值单位冲突、命令顺序重复、适用产品缺失或用户无发布权限；THEN 平台拒绝发布并保持旧版本有效，返回字段级错误供管理员修正后重新校验
+- Phase 3 PRD验收基线：WHEN 管理员在后台巡检规则配置页面新增或编辑巡检规则；THEN 系统提供8个配置字段（规则名称/描述/命令列表/执行顺序/超时时间/预期结果正则/结果阈值/适用产品类型）的录入界面；AND 草稿保存允许除稳定身份检测ID和规则名称外的字段暂为空或不完整；发布校验要求八字段及从属内容完整（规则名称在租户内永久唯一且停用、软删除和新revision不释放；超时时间为1～30秒正整数；预期结果正则符合JDK 25受限子集并通过语法、安全限制和复杂度校验；结果阈值数据类型固定为`NUMBER`并具备运算符、数值、单位；适用产品类型通过AST公开契约校验）；WHEN 管理员配置命令列表与执行顺序；THEN 系统支持单条或多条命令配置，多条命令按执行顺序依次执行；AND 命令格式校验通过并发布后保存版本，INS-02在线巡检时按顺序通过INT-12下发、离线巡检时按顺序打包至巡检脚本；WHEN 管理员配置预期结果正则与结果阈值；THEN 系统校验正则表达式合法性，校验阈值格式（固定数据类型`NUMBER`+比较运算符+数值+单位）；AND INS-02巡检执行后按正则与阈值判定检测结果（通过/异常），异常项按严重级别（INS-03）标注；WHEN 管理员配置适用产品类型；THEN 一线工程师前端勾选规则时，平台通过AST公开契约按授权设备的当前产品类型筛选并展示适用规则；AND 不适用规则在前端置灰或隐藏，避免误选；WHEN 管理员保存规则配置；THEN 平台允许保存字段暂为空或不完整的草稿；仅当八字段及从属内容完整、命令与正则安全审核结论为绑定当前内容摘要的`PASSED`且其他发布校验通过时生成新规则版本，历史版本保留可回溯；AND INS-03规则库展示最新配置，INS-08误报反馈机制可基于误报分析优化这8个字段；WHEN 正则存在语法/超时风险、阈值单位冲突、命令顺序重复、适用产品缺失或用户无发布权限；THEN 平台拒绝发布并保持旧版本有效，返回字段级错误供管理员修正后重新校验
 - 修订010增量验收：适用产品类型必须为AST稳定编码；草稿可在契约暂不可用时继续编辑，但发布和按设备选择必须重验当前存在、启用、来源可证明及设备授权事实。未知、停用、来源证据缺失、无权设备或契约不可用均失败关闭；历史revision继续按冻结编码和名称快照解释。
 - Phase 3授权拒绝断言：越权按“AssignedProjectDeviceScope；规则维护/使用分离；AST产品类型服务身份和设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“规则配置、发布版本和任务冻结；发布/选择回源AST当前产品类型事实并失败关闭”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_product_type_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision、srv_inspection_rule_command_revision、srv_inspection_rule_product_type_revision、srv_inspection_rule_security_review”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、AST未知/停用/不可用、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录
 
 ### INT-01

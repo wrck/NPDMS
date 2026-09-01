@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—011）；批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-011-inspection-regex-subset.md`<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—012）；批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-012-inspection-rule-name-identity.md`<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 结构化覆盖：`docs/traceability/requirement-version-coverage.json`<br>

@@ -1,11 +1,11 @@
 # SDS Phase 2 Review
 
 > 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8修订011正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、需求方推进批准<br>
+> 依据：PRD V1.8修订012正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、需求方推进批准<br>
 > 结论：`READY_FOR_PHASE_3_V1.8`<br>
 > 机器门禁：`PASS`<br>
 > 需求方批准：`GO`<br>
-> 适用修订：`PRD_V1.8_REVISION_011`<br>
+> 适用修订：`PRD_V1.8_REVISION_012`<br>
 > 当前范围：主版本V1 53项、V2 47项、正式Requirement 100项；111个目标版本切片（V1 53个、V2 58个）；已编号V3 31项、跨需求演进方向5项；`OUT_OF_SCOPE` 9项
 
 ## 1. 当前结论
@@ -34,13 +34,17 @@
 
 `CHG-PRD-2026-09-01-011`与`NPDMS-Q-FINS001-003-GO-20260901-01`冻结InspectionRule分类/严重度稳定机器码、JDK 25受限正则预算和字段错误码。08、16分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE2-DELTA-20260901-01`；不新增API、数据库对象、状态机、权限或第三方连接器，可进入Phase 3测试安全差量复核。
 
-## 4. 不变的后置边界
+## 4. F-INS-001修订012差量
+
+`CHG-PRD-2026-09-01-012`与`NPDMS-Q-FINS001-004-GO-20260901-01`明确InspectionRule名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放，历史revision不可改名。数据、数据库、并发与测试分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE2-DELTA-20260901-02`；不新增Context、Owner、API、权限、状态机、共享规则库版本或第三方集成。
+
+## 5. 不变的后置边界
 
 - P3-E09模型基线与Q08候选索引不因本次PRD发布自动批准或自动否定；`AI-MIG-000`按具体Release范围判断，未包含历史迁移或数据切换时为`NOT_APPLICABLE`。
 - 历史工单/工时仍无V1/V2用户入口；V3和`OUT_OF_SCOPE`不得回流。
 - 环境参数、生产拓扑、KMS、SIT/UAT和真实迁移/切换证据继续在各自最晚安全门禁关闭。
 - 本次新增逻辑事实影响当前物理模型时，P3-E09必须复核差量DDL；在此之前旧DDL只作历史模型证据，不能放行相关Feature实现。
 
-当前Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`，批准修订007及F-INS-001修订011差量进入Phase 3设计评审。
+当前Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`，批准修订007及F-INS-001修订011及012差量进入Phase 3设计评审。
 
 本结论不批准DDL执行、Feature实现或完成、历史迁移、数据切换、SIT/UAT或Release。

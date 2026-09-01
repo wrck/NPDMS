@@ -44,7 +44,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CutoverChecklist": ("cut_cutover_checklist", "cut_cutover_checklist_item", "cut_cutover_checklist_item_result"),
     "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverConfigurationRevision": ("cut_cutover_configuration_revision", "cut_cutover_checklist_item_definition_revision", "cut_cutover_checklist_binding_rule_revision"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
     "CutoverClosure": ("cut_cutover_closure",),
-    "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision", "srv_inspection_rule_product_type_revision"),
+    "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision", "srv_inspection_rule_command_revision", "srv_inspection_rule_product_type_revision", "srv_inspection_rule_security_review"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
     "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer_master", "cus_customer_external_mapping", "cus_customer_field_history"),
     "MarketRelation": ("cus_market_relation",), "CustomerLocationReference": ("cus_customer_location_reference",),

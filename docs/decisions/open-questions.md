@@ -473,6 +473,21 @@
 - Decision owner: 业务Owner、安全Owner、SRV Owner（独立裁决）
 - Decision date: 2026-09-01
 
+### Q-FINS001-004
+
+- Status: RESOLVED
+- Requirement IDs: INS-03、INS-09
+- Area: 巡检规则名称唯一性的物理作用域
+- Question: PRD所称“规则名称在租户和版本内唯一”中的“版本”，是共享规则库版本、单条稳定规则身份的revision，还是实际意图为租户内稳定规则名称唯一？
+- Why it blocks design/implementation: 当前数据模型只有单条规则revision；`uk(tenant_id, revision_id, rule_name)`是无业务作用的空约束，`uk(tenant_id, revision_no, rule_name)`会按各规则独立序号产生偶然冲突，提升为租户内永久唯一又会静默扩大PRD语义。
+- Options: A. 规则名称归属稳定规则身份并在租户内永久唯一；B. 新增共享规则库版本后在该版本内唯一；C. 明确单条revision只有一个名称，不落额外名称唯一键。
+- Recommended technical default: A；最符合规则名称作为用户稳定识别信息的用途，但需PRD明确是否允许停用后复用名称及历史revision改名。
+- Business decision required: 已完成。
+- Resolution: 采用A，批准`NPDMS-Q-FINS001-004-GO-20260901-01`及`CHG-PRD-2026-09-01-012`。规则名称归属稳定规则身份并在租户内永久唯一；停用、软删除和新revision不释放名称，同一稳定身份后续revision沿用原名称，历史revision不可改名。revision可保存不可变名称快照，但唯一性由稳定身份负责；不新增共享规则库版本。
+- Blocking scope: 已解除。Task 5须按修订012调整目标Schema、并发与验收设计；本次规格同步不修改任何代码或迁移。
+- Decision owner: 业务Owner、SRV Owner（独立裁决）
+- Decision date: 2026-09-01
+
 ### Q-FAST002-001
 
 - Status: RESOLVED

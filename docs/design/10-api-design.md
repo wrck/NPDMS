@@ -240,7 +240,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 | Context | API | 约束 |
 |---|---|---|
-| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 草稿整体维护命令项和产品适用关系；安全审核事实绑定当前revision与命令摘要；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
+| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 创建稳定身份要求检测ID和规则名称；草稿整体保存允许其余八字段及命令/判定/产品适用关系为空或不完整，`validate/publish`按发布完整性返回字段级错误；阈值数据类型只接受`NUMBER`；安全审核结论只接受`PASSED/REJECTED`并绑定当前revision与命令/正则摘要，只有`PASSED`允许发布；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
 | Inspection | `/inspection-tasks`、`/{id}/actions/{precheck|dispatch|complete|archive}` | 在线通过 DAC；离线文件走受控上传；模式互斥 |
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |

@@ -1,7 +1,7 @@
 # SDS Phase 1：模块设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-23-002`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -36,4 +36,5 @@
 - `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
 - AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。
 - F-AST-002在`pms-module-asset-api`提供产品类型公开查询，`pms-module-asset`拥有受控副本、设备当前引用和来源映射；Inspection只依赖API模块。CRM/MES连接器仍由EQP-04或后续独立Feature拥有，不进入F-AST-002。
+- F-INS-001规则名称归属规则稳定身份并在租户内永久唯一；停用、软删除和新revision不释放名称，同一稳定身份的后续revision沿用原名称，历史revision不可改名。
 - F-INS-001检测分类使用基础平台字典`pms_inspection_rule_category`，稳定值依次为`BASIC/OPERATING_STATUS/LOG/BUSINESS_STATUS/REDUNDANCY/ROUTING/SECURITY/FORWARDING_CHANNEL/LOAD_BALANCING/TRAFFIC_CLEANING`；严重度使用`pms_inspection_rule_severity`，稳定值为`GENERAL/SEVERE/FATAL`。Inspection只保存机器码和发布时显示名称快照，不修改基础平台字典实现、不维护第二套主数据；不存在、停用或字典能力不可用时发布失败关闭。
