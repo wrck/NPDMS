@@ -37,7 +37,7 @@
 
 ## Task 2：三表Schema、阶段前向约束与Mapper合同
 
-状态：`PASS / GO@ddda602f`
+状态：`PASS / GO@e8134586`
 
 - [x] 使用实际下一空闲Flyway版本`V150`前向创建三表并收敛P4/P5/P6阶段约束。
 - [x] 实现DO、场景Query、Mapper XML及迁移/Mapper合同测试（6/6通过）。
@@ -45,7 +45,7 @@
 
 > 检查点：独立复审确认V150、三表、Mapper及两值CHECK约束成立；Task 2 Gate通过，进入Task 3。
 
-> 迁移整改检查点：Task 4隔离MySQL 8.4.10空库复验发现原V150的`chk_cut_stage_trigger`顶层`COALESCE`被判为非布尔表达式；独立裁决授权仅追加显式`= TRUE`，Task 2暂记`MIGRATION_REMEDIATION_REQUIRED`，待新空卷V1→V150复审通过后恢复PASS。
+> 迁移整改检查点：Task 4隔离MySQL 8.4.10空库复验发现原V150的`chk_cut_stage_trigger`顶层`COALESCE`被判为非布尔表达式；`e8134586`仅追加显式`= TRUE`，新空卷V1→V150、三表和原七条转换复验通过，独立裁决恢复Task 2 `PASS / GO`。
 
 ## Task 3：内容Codec、来源冻结与PLT文件事实消费端口
 
