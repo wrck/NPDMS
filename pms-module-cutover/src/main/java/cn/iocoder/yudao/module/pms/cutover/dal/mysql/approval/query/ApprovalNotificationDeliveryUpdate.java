@@ -7,5 +7,5 @@ public record ApprovalNotificationDeliveryUpdate(Long tenantId, Long notificatio
                                                   String newStatusCode, Long messageId,
                                                   Integer retryCount, LocalDateTime nextRetryAt,
                                                   String lastErrorCode, LocalDateTime sentAt,
-                                                  Long updater, LocalDateTime updateTime) {
+                                                  String updater, LocalDateTime updateTime) {
 }

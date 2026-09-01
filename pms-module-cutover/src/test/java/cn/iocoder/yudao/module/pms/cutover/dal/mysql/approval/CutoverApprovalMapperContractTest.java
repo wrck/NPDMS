@@ -39,14 +39,14 @@ class CutoverApprovalMapperContractTest {
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "updateStatusIfMatch",
                 new ApprovalNodeStatusUpdate(1L, 5L, 0, "PENDING", "APPROVED", 9L,
-                        11L, "CONFIRMED", null, "approved", NOW, 9L, NOW));
+                        11L, "CONFIRMED", null, "approved", NOW, "9", NOW));
         assertBindings(configuration, CutoverApprovalReassignmentMapper.class, "selectMaxReassignmentNo",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNotificationMapper.class,
                 "selectDueForUpdateSkipLocked", new ApprovalNotificationClaimQuery(1L, NOW, 20));
         assertBindings(configuration, CutoverApprovalNotificationMapper.class, "updateDeliveryIfMatch",
                 new ApprovalNotificationDeliveryUpdate(1L, 6L, 0, "PENDING", "SENT",
-                        7L, 0, null, null, NOW, 9L, NOW));
+                        7L, 0, null, null, NOW, "9", NOW));
     }
 
     @Test
@@ -58,7 +58,7 @@ class CutoverApprovalMapperContractTest {
         assertThat(instance).contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE")
                 .doesNotContain("${");
         assertThat(node).contains("n.tenant_id = #{query.tenantId}", "n.deleted = b'0'",
-                        "FOR UPDATE", "ORDER BY n.create_time ASC, n.id ASC")
+                        "FOR UPDATE", "ORDER BY i.create_time ASC, i.id ASC, n.id ASC")
                 .doesNotContain("${");
         assertThat(reassignment).contains("tenant_id = #{query.tenantId}", "deleted = b'0'")
                 .doesNotContain("${");

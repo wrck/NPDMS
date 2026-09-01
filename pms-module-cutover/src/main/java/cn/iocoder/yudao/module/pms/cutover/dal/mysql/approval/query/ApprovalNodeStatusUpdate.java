@@ -6,6 +6,6 @@ public record ApprovalNodeStatusUpdate(Long tenantId, Long approvalNodeId, Integ
                                        String expectedStatusCode, String newStatusCode,
                                        Long currentApproverUserId, Long projectScopeVersion,
                                        String assessmentReviewDecisionCode, String assessmentReviewReason,
-                                       String feedback, LocalDateTime decisionAt, Long updater,
+                                       String feedback, LocalDateTime decisionAt, String updater,
                                        LocalDateTime updateTime) {
 }

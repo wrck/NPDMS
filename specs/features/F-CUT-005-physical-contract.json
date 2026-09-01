@@ -25,7 +25,7 @@
         "source_snapshot_version": "INT NOT NULL CHECK > 0", "source_snapshot": "JSON NOT NULL", "route_snapshot": "JSON NOT NULL",
         "status_code": "VARCHAR(40) NOT NULL", "hold_reason_code": "VARCHAR(40) NULL", "current_node_no": "INT NULL",
         "previous_approval_instance_id": "BIGINT NULL", "replacement_approval_instance_id": "BIGINT NULL", "decision_at": "DATETIME(3) NULL", "rejection_reason": "VARCHAR(1000) NULL",
-        "version": "INT NOT NULL CHECK >= 0", "creator/updater": "BIGINT NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
+        "version": "INT NOT NULL CHECK >= 0", "creator/updater": "VARCHAR(64) NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
       },
       "uniqueKeys": ["uk(tenant_id,task_id,plan_revision_id)","uk(tenant_id,previous_approval_instance_id)"],
       "checks": ["checklist identity is positive for A/B/C and entirely null for D","hold reason is null unless status=PENDING","APPROVED requires decision_at and null rejection reason; REJECTED requires both decision_at and non-blank rejection reason; non-terminal states require both null","previous/replacement identities reference the same task and form a linear replacement chain"]
@@ -39,7 +39,7 @@
         "candidate_fact_snapshot": "JSON NOT NULL", "project_scope_version": "BIGINT NULL CHECK >= 0", "assessment_review_decision_code": "VARCHAR(24) NULL",
         "assessment_review_reason": "VARCHAR(1000) NULL", "feedback": "VARCHAR(1000) NULL", "decision_at": "DATETIME(3) NULL",
         "pending_marker": "TINYINT GENERATED AS (CASE WHEN status_code='PENDING' THEN 1 ELSE NULL END) STORED", "version": "INT NOT NULL CHECK >= 0",
-        "creator/updater": "BIGINT NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
+        "creator/updater": "VARCHAR(64) NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
       },
       "uniqueKeys": ["uk(tenant_id,approval_instance_id,node_no)","uk(tenant_id,approval_instance_id,pending_marker)"],
       "checks": ["original/current approver are both positive or both null for unresolved candidate","APPROVED/REJECTED require decision_at and feedback; WAITING/PENDING/CANCELLED require both null","assessment review is null outside SERVICE_MANAGER; CONFIRMED has null reason; NOT_REASONABLE requires reason and REJECTED","route node count and order equal the frozen grade route"]
@@ -47,21 +47,21 @@
     {
       "name": "cut_approval_review_item",
       "strategy": "NEW_ONLY_APPEND_ONLY",
-      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","item_code":"VARCHAR(32) NOT NULL","decision_code":"VARCHAR(8) NOT NULL CHECK IN (YES,NO)","unreasonable_reason":"VARCHAR(1000) NULL","creator/updater":"BIGINT NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","item_code":"VARCHAR(32) NOT NULL","decision_code":"VARCHAR(8) NOT NULL CHECK IN (YES,NO)","unreasonable_reason":"VARCHAR(1000) NULL","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
       "uniqueKeys": ["uk(tenant_id,approval_node_id,item_code)"],
       "checks": ["item_code is one of the exact five review items","NO requires non-blank reason and YES requires null reason"]
     },
     {
       "name": "cut_approval_reassignment",
       "strategy": "NEW_ONLY_APPEND_ONLY",
-      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","reassignment_no":"INT NOT NULL CHECK > 0","from_approver_user_id":"BIGINT NULL","to_approver_user_id":"BIGINT NOT NULL","reason":"VARCHAR(1000) NOT NULL","candidate_fact_snapshot":"JSON NOT NULL","operated_by":"BIGINT NOT NULL","operated_at":"DATETIME(3) NOT NULL","creator/updater":"BIGINT NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","reassignment_no":"INT NOT NULL CHECK > 0","from_approver_user_id":"BIGINT NULL","to_approver_user_id":"BIGINT NOT NULL","reason":"VARCHAR(1000) NOT NULL","candidate_fact_snapshot":"JSON NOT NULL","operated_by":"BIGINT NOT NULL","operated_at":"DATETIME(3) NOT NULL","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
       "uniqueKeys": ["uk(tenant_id,approval_node_id,reassignment_no)"],
       "checks": ["to approver is positive","from may be null only for an unresolved frozen candidate","from and to differ when from is non-null"]
     },
     {
       "name": "cut_approval_notification",
       "strategy": "NEW_ONLY",
-      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","recipient_user_id":"BIGINT NOT NULL","delivery_key":"VARCHAR(128) NOT NULL","template_code":"VARCHAR(64) NOT NULL","status_code":"VARCHAR(24) NOT NULL","message_id":"BIGINT NULL","retry_count":"INT NOT NULL CHECK >= 0","next_retry_at":"DATETIME(3) NULL","last_error_code":"VARCHAR(64) NULL","sent_at":"DATETIME(3) NULL","version":"INT NOT NULL CHECK >= 0","creator/updater":"BIGINT NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","recipient_user_id":"BIGINT NOT NULL","delivery_key":"VARCHAR(128) NOT NULL","template_code":"VARCHAR(64) NOT NULL","status_code":"VARCHAR(24) NOT NULL","message_id":"BIGINT NULL","retry_count":"INT NOT NULL CHECK >= 0","next_retry_at":"DATETIME(3) NULL","last_error_code":"VARCHAR(64) NULL","sent_at":"DATETIME(3) NULL","version":"INT NOT NULL CHECK >= 0","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
       "uniqueKeys": ["uk(tenant_id,delivery_key)"],
       "checks": ["SENT requires message_id/sent_at and clears retry fields","PENDING_RETRY requires next_retry_at/last_error_code","PENDING has no provider result"]
     }

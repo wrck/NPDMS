@@ -22,7 +22,7 @@
           AND n.deleted = b'0'
           AND i.status_code = 'PENDING'
           AND i.hold_reason_code IS NULL
-        ORDER BY n.create_time ASC, n.id ASC
+        ORDER BY i.create_time ASC, i.id ASC, n.id ASC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
     <select id="selectReassignmentPage"
