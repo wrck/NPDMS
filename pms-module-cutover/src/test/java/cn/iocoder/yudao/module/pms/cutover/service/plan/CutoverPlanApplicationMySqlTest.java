@@ -28,6 +28,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanComman
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -70,6 +71,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class CutoverPlanApplicationMySqlTest {
     @Resource JdbcTemplate jdbc;
     @Resource CutoverTaskMapper taskMapper;
+    @Resource CutoverPlanRevisionMapper planMapper;
+    @Resource CutoverPlanStepMapper stepMapper;
+    @Resource CutoverSupportArrangementMapper supportMapper;
     @Resource CutoverPlanApplicationService service;
     @Resource ControlledOwners owners;
     @Resource ControlledCutoverApprovalFactApi approval;
@@ -160,10 +164,7 @@ class CutoverPlanApplicationMySqlTest {
 
     @Test
     void uploadSubmitAndSourceInvalidationKeepPlanTaskHistoryAndPlatformFactsConsistent() {
-        CutoverPlanFilePort.FileFact file = owners.fileFact();
-        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
-                "create-upload-1", "corr-create-upload-1"));
+        CutoverPlanCommandResult created = createSavedStandardPlan("source-replacement");
 
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
                 tenantId, 8L, taskId, 4, created.planVersion(), "submit-1", "corr-submit-1"));
@@ -192,15 +193,26 @@ class CutoverPlanApplicationMySqlTest {
                 "AND current_stage='P4' AND task_status='PLAN_DRAFTING' AND version=6", tenantId, taskId));
         assertEquals(2, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? " +
                 "AND cutover_task_id=?", tenantId, taskId));
-        assertEquals(3, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
-        assertEquals(3, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+        assertEquals(4, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
+        assertEquals(4, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
 
-        owners.setTaskVersion(6);
+        owners.replaceDeviceAndTaskVersion(6);
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
                 tenantId, 8L, taskId, 6, submitted.planRevisionId(), "SOURCE_REPLACED",
                 "revise-source-1", "corr-revise-source-1"));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
+                owners, owners, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
+                new CutoverPlanQueryService.PlanAccess(true, true, true));
+        assertEquals(302L, detail.sourceSnapshot().path("devices").get(0).path("deviceId").asLong());
+        assertEquals(302L, detail.content().path("overview").path("deviceSummary").get(0)
+                .path("deviceId").asLong());
+        assertEquals("SN-2", detail.content().path("overview").path("deviceSummary").get(0)
+                .path("serialNumber").asText());
+        CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, detail.content(),
+                "save-source-2", "corr-save-source-2"));
         SubmitCutoverPlanResult resubmitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, replacement.planVersion(),
+                tenantId, 8L, taskId, 6, savedReplacement.planVersion(),
                 "submit-source-2", "corr-submit-source-2"));
 
         assertEquals(2, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND cutover_task_id=?",
@@ -213,7 +225,7 @@ class CutoverPlanApplicationMySqlTest {
                 tenantId, taskId, submitted.planRevisionId())).fact();
         assertEquals(ApprovalStatus.PAUSED_SOURCE_INVALIDATED, prior.status());
         assertEquals(resubmitted.approvalInstanceId(), prior.replacementApprovalInstanceId());
-        assertEquals(5, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
+        assertEquals(7, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
                 tenantId));
     }
 
@@ -307,14 +319,15 @@ class CutoverPlanApplicationMySqlTest {
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
-        void setTaskVersion(int taskVersion) {
+        void replaceDeviceAndTaskVersion(int taskVersion) {
             SourceSnapshot source = facts.snapshot();
-            facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion(), source.taskId(), taskVersion,
+            facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion() + 1, source.taskId(), taskVersion,
                     source.assessmentId(), source.assessmentVersion(), source.grade(), source.checklistId(),
                     source.checklistVersion(), source.projectId(), source.projectVersion(),
-                    source.projectScopeVersion(), source.devices(), source.configurationRevisionId(),
-                    source.configurationCode(), source.configurationRevisionNo(), source.templateSections(),
-                    source.failedRiskFacts()), facts.failedRiskFacts());
+                    source.projectScopeVersion(), List.of(new DeviceSnapshot(302L, "SN-2", 10L,
+                    "SWITCH", "type-v2")), source.configurationRevisionId(), source.configurationCode(),
+                    source.configurationRevisionNo(), source.templateSections(), source.failedRiskFacts()),
+                    facts.failedRiskFacts());
         }
         FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
         @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }

@@ -44,8 +44,54 @@ public final class CutoverPlanContentCodec {
         overview.putArray("scheduleTable");
         overview.putNull("preTopologyFile");
         overview.putNull("postTopologyFile");
-        ArrayNode devices = overview.putArray("deviceSummary");
-        sourceFacts.snapshot().devices().forEach(device -> {
+        overview.set("deviceSummary", ownerDevices(sourceFacts.snapshot()));
+        overview.putNull("networkConfigurationFile");
+        body.putArray("riskMitigations");
+        body.putArray("supportArrangements");
+        return decodeWritable(body, sourceFacts);
+    }
+
+    public DecodedContent rebaseDerivedDraft(DecodedContent source,
+                                             CutoverPlanSourcePort.SourceFacts currentFacts) {
+        require(source != null && currentFacts != null, "derived draft");
+        if (source.fileFact() != null) {
+            return source;
+        }
+        String editMode = source.rootSnapshot().path("editMode").asText();
+        ObjectNode body = JsonUtils.getObjectMapper().createObjectNode();
+        body.put("editMode", editMode);
+        ArrayNode steps = body.putArray("steps");
+        source.steps().forEach(step -> {
+            ObjectNode row = steps.addObject();
+            row.put("sectionCode", step.sectionCode());
+            row.put("stepNo", step.stepNo());
+            row.put("content", step.content());
+        });
+        if ("ONLINE_TEMPLATE_SIMPLE_D".equals(editMode)) {
+            return decodeWritable(body, currentFacts);
+        }
+        require("ONLINE_TEMPLATE_STANDARD".equals(editMode), "derived editMode");
+        ObjectNode overview = (ObjectNode) source.rootSnapshot().path("overview").deepCopy();
+        overview.set("deviceSummary", ownerDevices(currentFacts.snapshot()));
+        body.set("overview", overview);
+        body.set("riskMitigations", rebasedRiskMitigations(source.rootSnapshot().path("riskMitigations"),
+                currentFacts.failedRiskFacts()));
+        ArrayNode support = body.putArray("supportArrangements");
+        source.supportArrangements().forEach(arrangement -> {
+            ObjectNode row = support.addObject();
+            row.putNull("arrangementId");
+            row.put("roleCode", arrangement.roleCode());
+            row.put("personName", arrangement.personName());
+            row.put("dutyDescription", arrangement.dutyDescription());
+            row.put("phone", arrangement.phone());
+            putWireLong(row, "arrivalTime", arrangement.arrivalTime());
+        });
+        return decodeWritable(body, currentFacts);
+    }
+
+    private static ArrayNode ownerDevices(CutoverPlanSourcePort.SourceSnapshot source) {
+        ArrayNode devices = JsonUtils.getObjectMapper().createArrayNode();
+        source.devices().forEach(device -> {
             ObjectNode row = devices.addObject();
             putWireLong(row, "deviceId", device.deviceId());
             row.put("serialNumber", device.serialNumber());
@@ -53,10 +99,29 @@ public final class CutoverPlanContentCodec {
             row.put("deviceTypeCode", device.deviceTypeCode());
             row.put("deviceTypeSourceVersion", device.deviceTypeSourceVersion());
         });
-        overview.putNull("networkConfigurationFile");
-        body.putArray("riskMitigations");
-        body.putArray("supportArrangements");
-        return decodeWritable(body, sourceFacts);
+        return devices;
+    }
+
+    private static ArrayNode rebasedRiskMitigations(JsonNode source,
+                                                     List<CutoverPlanSourcePort.RiskFactSnapshot> currentFacts) {
+        Map<String, String> mitigationByKey = new HashMap<>();
+        source.forEach(row -> mitigationByKey.put(row.path("riskFact").path("stableItemKey").asText(),
+                row.path("mitigation").asText()));
+        ArrayNode result = JsonUtils.getObjectMapper().createArrayNode();
+        currentFacts.forEach(fact -> {
+            String mitigation = mitigationByKey.get(fact.stableItemKey());
+            if (mitigation == null) return;
+            ObjectNode row = result.addObject();
+            ObjectNode frozen = row.putObject("riskFact");
+            putWireLong(frozen, "checklistItemId", fact.checklistItemId());
+            frozen.put("stableItemKey", fact.stableItemKey());
+            frozen.put("itemResultVersion", fact.itemResultVersion());
+            frozen.put("itemName", fact.itemName());
+            frozen.put("resultCode", fact.resultCode());
+            frozen.put("factDescription", fact.factDescription());
+            row.put("mitigation", mitigation);
+        });
+        return result;
     }
 
     public DecodedContent decodeWritable(JsonNode body, CutoverPlanSourcePort.SourceFacts sourceFacts) {

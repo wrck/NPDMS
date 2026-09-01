@@ -105,7 +105,7 @@
         "DRAFT": "current_marker=1; submit, approval and invalidation fields are null",
         "SUBMITTED": "submitted and approval identity/version are non-null; invalidation fields are null; current_marker=1 until invalidated/replaced",
         "INVALIDATED": "submitted, approval and invalidation fields are non-null; current_marker is null",
-        "DERIVED_REVISION": "source_plan_revision_id and revision_reason_code are both non-null; initial revision has both null",
+        "DERIVED_REVISION": "source_plan_revision_id and revision_reason_code are both non-null; initial revision has both null; source_snapshot and every source-bound content projection use the current locked Owner facts, while only user-authored business content is inherited; online grade/edit-mode incompatibility or changed applicable template sections fails before insert",
         "LEGACY_FORWARD": "edit mode, grade, assessment, checklist, configuration, template, content, file, lifecycle, approval, derivation and invalidation fields are null; legacy identity/raw status/source version/mapping version and exact legacy source snapshot are non-null; current_marker is null"
       }
     },

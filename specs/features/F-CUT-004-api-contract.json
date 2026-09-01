@@ -2,7 +2,8 @@
   "schemaVersion": 2,
   "featureId": "F-CUT-004",
   "status": "BASELINE_READY",
-  "implementationBlockers": {"DUTY_CHANGED":"BLOCKED_BY_SPEC Q-FCUT004-001; request shape is reserved but no runtime stage transition is authorized","executableReviseReasons":["APPROVAL_REJECTED","SOURCE_REPLACED"]},
+  "implementationBlockers": {"DUTY_CHANGED":"BLOCKED_BY_SPEC Q-FCUT004-001; request shape is reserved but no runtime stage transition is authorized","DERIVED_DRAFT_GRADE_OR_TEMPLATE_REMAP":"BLOCKED_BY_SPEC; no unique mapping is authorized when the current grade no longer matches the source editMode or applicable templateSections changed; revise fails closed before insert","executableReviseReasons":["APPROVAL_REJECTED","SOURCE_REPLACED"]},
+  "derivedDraftRebase": {"sourceFacts":"freeze the current locked Owner facts, never copy the old source-bound projection under a new snapshot","inheritedUserContent":["projectDescription","scheduleTable","file references","step content","mitigation text by stableItemKey","support arrangements"],"rebuiltOwnerProjection":["deviceSummary from all current devices","riskFact from current failed facts for retained stableItemKey"],"removedAndAddedRisks":"remove obsolete risks; newly failed risks remain absent in DRAFT until the user supplies mitigation","failClosed":"online grade/editMode incompatibility or changed applicable templateSections returns CONFIGURATION_OR_TEMPLATE_STALE before inserting a revision"},
   "requirementSlices": ["CUT-04@V1=FULL"],
   "wire": {
     "WireLong": "JSON number only when -9007199254740991 < value < 9007199254740991; otherwise plain decimal JSON string",

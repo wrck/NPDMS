@@ -73,10 +73,7 @@ class CutoverPlanRevisionLifecycleTest {
         assertThat(replacement.getValue().planRevisionId()).isEqualTo(601L);
         assertThat(fixture.copiedSteps).extracting(CutoverPlanStepDO::getContent)
                 .containsExactly("执行割接", "执行回退");
-        assertThat(fixture.copiedSupport).singleElement().satisfies(row -> {
-            assertThat(row.getRoleCode()).isEqualTo("CUSTOMER");
-            assertThat(row.getDutyDescription()).isEqualTo("现场协调");
-        });
+        assertThat(fixture.copiedSupport).isEmpty();
 
         CutoverPlanRevisionDO derived = fixture.derived.get();
         when(fixture.planMapper.selectCurrent(any())).thenReturn(derived);

@@ -111,6 +111,32 @@ class CutoverPlanContentCodecTest {
         assertThat(simple.steps()).isEmpty();
     }
 
+    @Test
+    void rebasesOwnerBoundDeviceAndRiskFactsWhileKeepingUserContent() {
+        var source = codec.decodeWritable(JsonUtils.parseTree(standardJson()), source("A"));
+        var current = changedSource();
+
+        var derived = codec.rebaseDerivedDraft(source, current);
+
+        assertThat(derived.rootSnapshot().path("overview").path("projectDescription").asText())
+                .isEqualTo("项目说明");
+        var device = derived.rootSnapshot().path("overview").path("deviceSummary").get(0);
+        assertThat(device.path("deviceId").asLong()).isEqualTo(51L);
+        assertThat(device.path("serialNumber").asText()).isEqualTo("SN-NEW");
+        assertThat(device.path("projectAssignmentVersion").asLong()).isEqualTo(7L);
+        assertThat(derived.rootSnapshot().path("riskMitigations")).singleElement().satisfies(row -> {
+            assertThat(row.path("riskFact").path("checklistItemId").asLong()).isEqualTo(72L);
+            assertThat(row.path("riskFact").path("itemResultVersion").asInt()).isEqualTo(2);
+            assertThat(row.path("riskFact").path("factDescription").asText()).isEqualTo("当前描述");
+            assertThat(row.path("mitigation").asText()).isEqualTo("措施");
+        });
+        assertThat(derived.steps()).extracting(CutoverPlanContentCodec.PlanStep::content)
+                .contains("OPERATION内容", "ROLLBACK内容");
+        assertThat(derived.supportArrangements())
+                .extracting(CutoverPlanContentCodec.SupportArrangement::arrangementId)
+                .containsOnlyNulls();
+    }
+
     private static CutoverPlanSourcePort.SourceFacts source(String grade) {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> sections = ("D".equals(grade)
                 ? List.of(section("ROLLBACK", 1, grade), section("OPERATION", 2, grade))
@@ -126,6 +152,22 @@ class CutoverPlanContentCodecTest {
         var facts = new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
         var controlledPort = new CutoverPlanControlledPorts.SourcePort(facts);
         return controlledPort.inspect(1L, 2L, 10L);
+    }
+
+    private static CutoverPlanSourcePort.SourceFacts changedSource() {
+        CutoverPlanSourcePort.SourceSnapshot old = source("A").snapshot();
+        List<CutoverPlanSourcePort.RiskFactSnapshot> risks = List.of(
+                new CutoverPlanSourcePort.RiskFactSnapshot(72L, "risk-1", 2,
+                        "当前风险", "FAILED", "当前描述"),
+                new CutoverPlanSourcePort.RiskFactSnapshot(73L, "risk-2", 1,
+                        "新增风险", "FAILED", "待填写措施"));
+        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(2, old.taskId(), old.taskVersion(),
+                old.assessmentId(), old.assessmentVersion(), old.grade(), old.checklistId(), 2,
+                old.projectId(), old.projectVersion(), old.projectScopeVersion(),
+                List.of(new CutoverPlanSourcePort.DeviceSnapshot(51L, "SN-NEW", 7L,
+                        "SWITCH", "ast-v2")), old.configurationRevisionId(), old.configurationCode(),
+                old.configurationRevisionNo(), old.templateSections(), risks);
+        return new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
     }
 
     private static CutoverPlanSourcePort.TemplateSectionSnapshot section(String code, int order, String grade) {

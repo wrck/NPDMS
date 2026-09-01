@@ -87,6 +87,7 @@
 
 - [ ] REJECTED派生新DRAFT并保留旧提交/审批历史。
 - [ ] PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED，新revision提交时引用旧审批实例。
+- [ ] 派生DRAFT以当前锁定Owner事实重建设备/风险投影，只继承允许的用户内容；等级/编辑方式或模板不可唯一映射时插入前失败关闭。
 - [ ] APPROVED后仅联系人、电话、到位时间按方案根If-Match更新并保存平台前后审计。
 - [ ] `DUTY_CHANGED`等待`Q-FCUT004-001`锁定P6→P4 Owner、历史触发器与旧批准/闭环处置；不得实现替代迁移。
 - [ ] 通过Task 6 Lifecycle/MySQL独立Gate。

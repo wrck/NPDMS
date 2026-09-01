@@ -338,6 +338,19 @@ public class CutoverPlanApplicationService {
         CutoverPlanChildrenQuery children = new CutoverPlanChildrenQuery(command.tenantId(), source.getId());
         List<CutoverPlanStepDO> sourceSteps = stepMapper.selectListByPlanForUpdate(children);
         List<CutoverSupportArrangementDO> sourceSupport = supportMapper.selectListByPlanForUpdate(children);
+        CutoverPlanSourcePort.SourceSnapshot sourceSnapshot = parseSource(source.getSourceSnapshot());
+        CutoverPlanSourcePort.SourceFacts sourceFacts = new CutoverPlanSourcePort.SourceFacts(
+                sourceSnapshot, sourceSnapshot.failedRiskFacts());
+        requireDerivedContentCompatibility(source, sourceSnapshot, currentFacts.snapshot());
+        CutoverPlanContentCodec.DecodedContent derivedContent;
+        try {
+            derivedContent = codec.rebaseDerivedDraft(
+                    storedContent(source, sourceFacts, sourceSteps, sourceSupport), currentFacts);
+        } catch (CutoverPlanApplicationException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw failure(OWNER_DATA_CORRUPTED, "修订来源内容无法按当前事实重建");
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         if (approval.status() == ApprovalStatus.REJECTED
                 && planMapper.replaceSubmittedIfMatch(new CutoverPlanReplacementUpdate(command.tenantId(),
@@ -346,10 +359,10 @@ public class CutoverPlanApplicationService {
         }
         Integer maxRevision = planMapper.selectMaxRevisionNo(new CutoverPlanHistoryQuery(
                 command.tenantId(), command.taskId()));
-        CutoverPlanRevisionDO derived = newDerivedPlan(command, task, currentFacts,
-                source, (maxRevision == null ? 0 : maxRevision) + 1);
+        CutoverPlanRevisionDO derived = newDerivedPlan(command, task, currentFacts, source, derivedContent,
+                (maxRevision == null ? 0 : maxRevision) + 1);
         if (planMapper.insert(derived) != 1) throw failure(STATE_CONFLICT, "修订草稿创建失败");
-        copyRevisionChildren(command, derived.getId(), sourceSteps, sourceSupport);
+        insertDerivedChildren(command, derived.getId(), derivedContent);
         return result(task, derived, 0);
     }
 
@@ -549,7 +562,8 @@ public class CutoverPlanApplicationService {
 
     private CutoverPlanRevisionDO newDerivedPlan(ReviseCutoverPlanCommand command, CutoverTaskDO task,
                                                    CutoverPlanSourcePort.SourceFacts facts,
-                                                   CutoverPlanRevisionDO source, int revisionNo) {
+                                                   CutoverPlanRevisionDO source,
+                                                   CutoverPlanContentCodec.DecodedContent content, int revisionNo) {
         CutoverPlanSourcePort.SourceSnapshot snapshot = facts.snapshot();
         CutoverPlanRevisionDO row = new CutoverPlanRevisionDO();
         row.setId(nextId());
@@ -568,14 +582,9 @@ public class CutoverPlanApplicationService {
         row.setConfigurationRevisionNo(snapshot.configurationRevisionNo());
         row.setTemplateSectionSnapshot(JsonUtils.toJsonString(snapshot.templateSections()));
         row.setSourceSnapshot(JsonUtils.toJsonString(snapshot));
-        row.setContentSnapshot(source.getContentSnapshot());
-        row.setFileArtifactId(source.getFileArtifactId());
-        row.setFileVersionNo(source.getFileVersionNo());
-        row.setFileReferenceKey(source.getFileReferenceKey());
-        row.setFileFactVersion(source.getFileFactVersion());
-        row.setFileScopeVersion(source.getFileScopeVersion());
-        row.setFileSha256(source.getFileSha256());
-        row.setOwnershipConfirmed(source.getOwnershipConfirmed());
+        row.setContentSnapshot(content.rootSnapshot() == null ? null : JsonUtils.toJsonString(content.rootSnapshot()));
+        if (content.fileFact() != null) setFile(row, content.fileFact());
+        row.setOwnershipConfirmed(content.fileFact() == null ? null : content.ownershipConfirmed());
         row.setStatusCode(DRAFT);
         row.setCurrentMarker(1);
         row.setSourcePlanRevisionId(source.getId());
@@ -588,36 +597,47 @@ public class CutoverPlanApplicationService {
         return row;
     }
 
-    private void copyRevisionChildren(ReviseCutoverPlanCommand command, Long planRevisionId,
-                                      List<CutoverPlanStepDO> sourceSteps,
-                                      List<CutoverSupportArrangementDO> sourceSupport) {
-        for (CutoverPlanStepDO source : sourceSteps) {
+    private void insertDerivedChildren(ReviseCutoverPlanCommand command, Long planRevisionId,
+                                       CutoverPlanContentCodec.DecodedContent content) {
+        for (CutoverPlanContentCodec.PlanStep source : content.steps()) {
             CutoverPlanStepDO row = new CutoverPlanStepDO();
             row.setId(nextId());
             row.setTenantId(command.tenantId());
             row.setPlanRevisionId(planRevisionId);
-            row.setSectionCode(source.getSectionCode());
-            row.setStepNo(source.getStepNo());
-            row.setContent(source.getContent());
+            row.setSectionCode(source.sectionCode());
+            row.setStepNo(source.stepNo());
+            row.setContent(source.content());
             row.setVersion(0);
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
             if (stepMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "修订步骤复制失败");
         }
-        for (CutoverSupportArrangementDO source : sourceSupport) {
+        for (CutoverPlanContentCodec.SupportArrangement source : content.supportArrangements()) {
             CutoverSupportArrangementDO row = new CutoverSupportArrangementDO();
             row.setId(nextId());
             row.setTenantId(command.tenantId());
             row.setPlanRevisionId(planRevisionId);
-            row.setRoleCode(source.getRoleCode());
-            row.setPersonName(source.getPersonName());
-            row.setDutyDescription(source.getDutyDescription());
-            row.setPhone(source.getPhone());
-            row.setArrivalTime(source.getArrivalTime());
+            row.setRoleCode(source.roleCode());
+            row.setPersonName(source.personName());
+            row.setDutyDescription(source.dutyDescription());
+            row.setPhone(source.phone());
+            row.setArrivalTime(LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()),
+                    ZoneId.systemDefault()));
             row.setVersion(0);
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
             if (supportMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "修订保障安排复制失败");
+        }
+    }
+
+    private static void requireDerivedContentCompatibility(CutoverPlanRevisionDO source,
+                                                            CutoverPlanSourcePort.SourceSnapshot before,
+                                                            CutoverPlanSourcePort.SourceSnapshot after) {
+        if (("ONLINE_TEMPLATE_SIMPLE_D".equals(source.getEditModeCode()) && !"D".equals(after.grade()))
+                || ("ONLINE_TEMPLATE_STANDARD".equals(source.getEditModeCode()) && "D".equals(after.grade()))
+                || (!"FULL_FILE_UPLOAD".equals(source.getEditModeCode())
+                && !Objects.equals(before.templateSections(), after.templateSections()))) {
+            throw failure(CONFIGURATION_OR_TEMPLATE_STALE, "等级、编辑方式或模板章节变化无法自动派生修订草稿");
         }
     }
 
@@ -885,6 +905,15 @@ public class CutoverPlanApplicationService {
 
     private CutoverPlanContentCodec.DecodedContent storedContent(Long tenantId, CutoverPlanRevisionDO plan,
                                                                   CutoverPlanSourcePort.SourceFacts sourceFacts) {
+        CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
+        return storedContent(plan, sourceFacts, stepMapper.selectListByPlan(query),
+                supportMapper.selectListByPlan(query));
+    }
+
+    private CutoverPlanContentCodec.DecodedContent storedContent(CutoverPlanRevisionDO plan,
+                                                                  CutoverPlanSourcePort.SourceFacts sourceFacts,
+                                                                  List<CutoverPlanStepDO> storedSteps,
+                                                                  List<CutoverSupportArrangementDO> storedSupport) {
         if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
             CutoverPlanFilePort.FileFact file = new CutoverPlanFilePort.FileFact(plan.getFileArtifactId(),
                     plan.getFileVersionNo(), plan.getFileReferenceKey(), JsonUtils.parseObject(
@@ -896,7 +925,7 @@ public class CutoverPlanApplicationService {
         try {
             ObjectNode root = (ObjectNode) JsonUtils.parseObject(plan.getContentSnapshot(), JsonNode.class);
             ArrayNode steps = root.putArray("steps");
-            stepMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).forEach(value -> {
+            storedSteps.forEach(value -> {
                 ObjectNode row = steps.addObject();
                 row.put("sectionCode", value.getSectionCode());
                 row.put("stepNo", value.getStepNo());
@@ -904,7 +933,7 @@ public class CutoverPlanApplicationService {
             });
             if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
                 ArrayNode support = root.putArray("supportArrangements");
-                supportMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).forEach(value -> {
+                storedSupport.forEach(value -> {
                     ObjectNode row = support.addObject();
                     putWireLong(row, "arrangementId", value.getId());
                     row.put("roleCode", value.getRoleCode());
