@@ -2,7 +2,7 @@
 
 本矩阵只投影`master`当前Feature Task状态。Feature Ready以Feature Spec为权威，Implementation状态与Done以对应`tasks/features/F-*.md`为权威；认领、写边界、Worktree交接和集成回执见[`tasks/delivery-units/`](../delivery-units/README.md)。Git分支、提交、测试和浏览器结果只作候选证据。
 
-审计输入：`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`；分支截点：`2026-09-01T16:59:30+08:00`，CUT含`85b93828eb041db3b21611edf52b9180b673a5e0`。完整去重提交时间线见[`docs/generated/branch-history-audit-2026-09-01.md`](../../docs/generated/branch-history-audit-2026-09-01.md)。截点后新增提交必须增量复审。
+首次冻结审计输入为`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`、截点`2026-09-01T16:59:30+08:00`，见[原始时间线](../../docs/generated/branch-history-audit-2026-09-01.md)。本轮增量审计输入为`master@133f7b8132e0f9f496ba4dbe79a4cce43a04019e`、截点`2026-09-01T17:59:19+08:00`，见[合入后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-post-governance.md)；CUT仍停在`85b93828`，INS新增未认领提交`6719ab94`。后续分支前进必须继续增量复审，不覆盖任一冻结快照。
 
 ## master权威Feature状态
 
@@ -33,7 +33,7 @@
 | COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | 顺序完成候选，但与COM-B竞争且PRD Change ID冲突 | 关闭`Q-GOV-20260901-001/002`后逐项选择提交，禁止整支合入 |
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始 | `CONFLICTED_IMPLEMENTATION / IN_PROGRESS` | 与COM-A按PRD、Spec、公共契约逐项裁决 |
 | F-AST-002 | `a52b22b4..68bc56ec` | 独立完成候选；不是F-INS-001脏改动的一部分 | PRD冲突关闭后更新master并复验 |
-| F-INS-001 | `feat-inspection-feature-xkjuCC@974d9da1`及7项未提交Task 4A改动 | `QUARANTINED / IN_PROGRESS` | 保留工作树，完成DU交接后继续；Task 4B仍阻塞 |
+| F-INS-001 | `feat-inspection-feature-xkjuCC@6719ab94`及7项未提交Task 4实现；新增提交复用冲突的修订011 | `QUARANTINED / IN_PROGRESS`；分支Ready/Task 4B解阻不进入master | 保留工作树；先关闭`Q-GOV-20260901-001`，再从master建立有效DU和锁定输入 |
 | F-CUT-001 | `08457e39..72ccb83f` -> `07b6eb06` -> `master@c61e5b1e` | `INTEGRATED_PARTIAL`；Feature权威状态仍为`IN_PROGRESS / MASTER_REVALIDATION` | 新建DU完成V133示例迁移与合入后独立MySQL/真实浏览器最终DoD |
 | F-CUT-002/003 | `codex/f-cut-001-matrices@85b93828`继承文本与实现 | `QUARANTINED / IN_PROGRESS` | 从多Feature分支拆分DU，不按分支头推断Owner |
 | F-CUT-004 | 同上 | `IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产依赖未满足 | 不得声明Done或激活完整生产入口 |
@@ -45,7 +45,8 @@
 
 ## 全部分支分类
 
-- 当前候选：`codex/integrate-f-cut-001`。
+- 已完成本轮选择性集成：`codex/f-cut-001-master-integration`为`PATCH_EQUIVALENT / INTEGRATED_PARTIAL`，`codex/f-sol-003-legacy-deprecation`为`PATCH_EQUIVALENT / INTEGRATED_COMPLETE`。
+- 历史来源候选：`codex/integrate-f-cut-001`；其适配范围已进入master，不能再作为当前状态源或新实施基础。
 - 活动但隔离：`codex/f-cut-001-matrices`、`codex/f-proj-008-stage-advance`、`feat-inspection-feature-xkjuCC`、`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`。
 - 完成候选祖先：`codex/f-com-001-feature-ready`、F-AST-002提交段。
 - 已被master包含或补丁/树等价：`engineering-chain-phase-TmrsP0`、`feat-inspection-feature-Q7yA35`、`feat-parallel-features-akPsDH`、`codex/merge-engineering-chain-phase-tmrsp0`、`codex/v1-8-feature-revalidation-50eb`及已包含的chore/import/spec历史分支。
