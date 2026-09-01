@@ -285,7 +285,7 @@ const prevalidate = async (row: CutoverConfiguration) => {
   }
   if (editorVisible.value && form.value.id === row.id) {
     validationErrors.value = result.errors
-    editorRef.value?.showValidation()
+    editorRef.value?.showValidation(result.errors)
   }
 }
 const publish = async (row: CutoverConfiguration) => {

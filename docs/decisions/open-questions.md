@@ -474,6 +474,21 @@
 - Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
 - Decision date: 2026-08-30
 
+### Q-FCUT001-004
+
+- Status: REJECTED
+- Requirement IDs: CUT-07、CUT-09
+- Area: 五类双机部署规范性检查正式初始化名称与说明
+- Question: 正式发布数量已固定为VSM双机17项、静默双机25项、DRP双机23项、普通双机24项、集群8项，合计97项；但当前本地参考材料仅有15/24/21/23/8项具名明细，缺少`VSM 016-017`、`SILENT_DUAL 025`、`DRP_DUAL 022-023`、`NORMAL_DUAL 024`六项的正式业务名称与说明。完整正式初始化应采用哪六项名称与说明？
+- Why it blocks design/implementation: 不阻断。该问题把参考材料的缺名误当成正式需求缺失，违反AC-FCUT001-015和已关闭的`Q-FCUT001-001`；参考材料不得参与需求、不一致、完成或阻断裁决。
+- Options: A. 按正式PRD、SDS和Feature Spec实施并验收97项CRUD、分类计数和发布规则，参考材料仅用于已有名称与界面参考；B. 以参考材料反向要求补齐业务名称并阻断Feature。
+- Recommended technical default: A；不创建缺少正式业务定义的生产占位种子，隔离验收数据可以使用明确标识的测试名称验证97项能力。
+- Business decision required: 已完成；需求方再次确认参考材料不参与任何裁决或阻断。
+- Resolution: 采用A，拒绝B。撤销`BLOCKED_BY_SPEC`；不再解析参考材料形成阻断项，也不因其缺名、缺行或数量差异改变Feature状态。生产初始化继续遵守`Q-FCUT001-001`，只落正式需求明确定义的字典和示例组合；97项完整能力使用隔离验收数据验证。
+- Blocking scope: 无。
+- Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
+- Decision date: 2026-08-30
+
 ## 并行分支权威收敛阻断
 
 ### Q-GOV-20260901-001

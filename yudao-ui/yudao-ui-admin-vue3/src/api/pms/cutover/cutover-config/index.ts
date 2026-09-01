@@ -24,6 +24,7 @@ export interface CutoverPlanSection {
 export interface CutoverChecklistItem {
   stableItemKey: string
   itemType: 'BUSINESS_SURVEY' | 'RISK' | 'DUAL_MACHINE_CHECK'
+  businessCategoryCode?: string
   itemName: string
   itemDescription?: string
   interfaceFormat: string
@@ -42,6 +43,7 @@ export interface CutoverBindingRule {
   stableItemKey: string
   dimensionConditions: Record<string, unknown>
   priority: number
+  requiredResult?: boolean
   enabled: boolean
 }
 

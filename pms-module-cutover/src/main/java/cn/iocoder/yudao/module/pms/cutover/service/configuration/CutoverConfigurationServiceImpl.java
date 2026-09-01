@@ -22,6 +22,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.Cutover
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationItemHistoryQuery;
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverConfigurationRules;
+import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverMatrixValidationContext;
+import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverRiskMatrixRules;
+import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverSurveyMatrixRules;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -119,14 +122,48 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
     @Override
     public CutoverConfigurationValidationRespVO validate(Long revisionId) {
         CutoverConfigurationRespVO detail = get(revisionId);
-        List<CutoverConfigurationRules.ValidationError> errors = new ArrayList<>(CutoverConfigurationRules.validate(
-                toDomainDimensions(detail.getDimensions()), toDomainItems(detail.getItems()),
-                toDomainRules(detail.getBindingRules()), toDomainSections(detail.getPlanTemplateSections())));
-        validateDictionaryReferences(detail, errors);
-        validateExternalSourceDefinitions(detail, errors);
+        CutoverMatrixValidationContext context = loadMatrixContext();
+        List<CutoverConfigurationRules.DimensionDefinition> dimensions = toDomainDimensions(detail.getDimensions());
+        List<CutoverConfigurationRules.ItemDefinition> items = toDomainItems(detail.getItems());
+        List<CutoverConfigurationRules.BindingRule> rules = toDomainRules(detail.getBindingRules());
+        List<CutoverConfigurationRules.PlanTemplateSection> sections =
+                toDomainSections(detail.getPlanTemplateSections());
+        List<CutoverConfigurationRules.ValidationError> errors = new ArrayList<>();
+        List<CutoverConfigurationRules.ValidationError> baseErrors = new ArrayList<>(
+                CutoverConfigurationRules.validate(dimensions, items, rules, sections));
+        validateDictionaryReferences(detail, baseErrors);
+        validateExternalSourceDefinitions(detail, baseErrors);
+        addPrefixed(errors, CutoverConfigurationValidationRespVO.BASE_LOCATION_PREFIX, baseErrors);
+        addPrefixed(errors, CutoverConfigurationValidationRespVO.RISK_LOCATION_PREFIX,
+                CutoverRiskMatrixRules.validate(items, rules, context));
+        addPrefixed(errors, CutoverConfigurationValidationRespVO.SURVEY_LOCATION_PREFIX,
+                CutoverSurveyMatrixRules.validate(items, rules, context));
         return new CutoverConfigurationValidationRespVO(errors.isEmpty(), errors.stream()
                 .map(error -> new CutoverConfigurationValidationRespVO.ValidationErrorVO(
                         error.location(), error.message())).toList());
+    }
+
+    private CutoverMatrixValidationContext loadMatrixContext() {
+        return new CutoverMatrixValidationContext(
+                enabledDictionaryValues("pms_cutover_type"),
+                enabledDictionaryValues("pms_network_mode"),
+                enabledDictionaryValues("pms_device_type"),
+                enabledDictionaryValues("pms_risk_level"));
+    }
+
+    private Set<String> enabledDictionaryValues(String dictType) {
+        return dictDataApi.getDictDataList(dictType).stream()
+                .filter(value -> CommonStatusEnum.ENABLE.getStatus().equals(value.getStatus()))
+                .map(DictDataRespDTO::getValue)
+                .filter(Objects::nonNull)
+                .filter(value -> !value.isBlank())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private void addPrefixed(List<CutoverConfigurationRules.ValidationError> target, String prefix,
+                             List<CutoverConfigurationRules.ValidationError> source) {
+        source.forEach(error -> target.add(new CutoverConfigurationRules.ValidationError(
+                prefix + "." + error.location(), error.message())));
     }
 
     private void validateExternalSourceDefinitions(CutoverConfigurationRespVO detail,
@@ -170,7 +207,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             }
             String dictType = source.substring(5);
             dimensionDictTypes.put(dimension.getCode(), dictType);
-            if (dictDataApi.getDictDataList(dictType).isEmpty()) {
+            if (enabledDictionaryValues(dictType).isEmpty()) {
                 errors.add(new CutoverConfigurationRules.ValidationError(
                         "dimensions[" + i + "].valueSource", "引用的字典不存在或没有启用值：" + dictType));
             }
@@ -343,6 +380,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             item.setStableItemKey(value.getStableItemKey());
             item.setItemDefinitionVersion(1);
             item.setItemTypeCode(value.getItemType());
+            item.setBusinessCategoryCode(value.getBusinessCategoryCode());
             item.setItemName(value.getItemName());
             item.setItemDescription(value.getItemDescription());
             item.setInterfaceFormatCode(value.getInterfaceFormat());
@@ -371,6 +409,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             rule.setItemDefinitionVersion(item.getItemDefinitionVersion());
             rule.setDimensionConditionSnapshot(JsonUtils.toJsonString(value.getDimensionConditions()));
             rule.setPriority(value.getPriority());
+            rule.setRequiredResult(value.getRequiredResult());
             rule.setStatusCode(Boolean.FALSE.equals(value.getEnabled()) ? "DISABLED" : "ENABLED");
             ruleMapper.insert(rule);
         }
@@ -458,6 +497,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             CutoverConfigurationSaveReqVO.ItemVO view = new CutoverConfigurationSaveReqVO.ItemVO();
             view.setStableItemKey(item.getStableItemKey());
             view.setItemType(item.getItemTypeCode());
+            view.setBusinessCategoryCode(item.getBusinessCategoryCode());
             view.setItemName(item.getItemName());
             view.setItemDescription(item.getItemDescription());
             view.setInterfaceFormat(item.getInterfaceFormatCode());
@@ -480,6 +520,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
                     view.setStableItemKey(itemKeys.get(rule.getItemDefinitionId()));
                     view.setDimensionConditions(JsonUtils.parseObject(rule.getDimensionConditionSnapshot(), Map.class));
                     view.setPriority(rule.getPriority());
+                    view.setRequiredResult(rule.getRequiredResult());
                     view.setEnabled("ENABLED".equals(rule.getStatusCode()));
                     return view;
                 }).toList();
@@ -513,8 +554,9 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
     private List<CutoverConfigurationRules.ItemDefinition> toDomainItems(
             List<CutoverConfigurationSaveReqVO.ItemVO> values) {
         return values.stream().map(value -> new CutoverConfigurationRules.ItemDefinition(value.getStableItemKey(),
-                value.getItemType(), value.getItemName(), value.getInterfaceFormat(), value.getFeedbackFormat(),
-                Boolean.TRUE.equals(value.getRequired()), value.getWorkMode(),
+                value.getItemType(), value.getBusinessCategoryCode(), value.getItemName(), value.getInterfaceFormat(),
+                value.getInterfaceSchema(), value.getFeedbackFormat(), Boolean.TRUE.equals(value.getRequired()),
+                value.getWorkMode(),
                 value.getExternalSourceConfig() == null ? null : JsonUtils.toJsonString(value.getExternalSourceConfig()),
                 value.getSubtableCode(), Boolean.TRUE.equals(value.getEnabled()))).toList();
     }
@@ -523,7 +565,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             List<CutoverConfigurationSaveReqVO.BindingRuleVO> values) {
         return values.stream().map(value -> new CutoverConfigurationRules.BindingRule(value.getStableRuleKey(),
                 value.getStableItemKey(), canonicalJson(value.getDimensionConditions()),
-                value.getPriority(), Boolean.TRUE.equals(value.getEnabled()))).toList();
+                value.getPriority(), value.getRequiredResult(), Boolean.TRUE.equals(value.getEnabled()))).toList();
     }
 
     private String canonicalJson(Object value) {

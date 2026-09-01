@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.domain.configuration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -76,6 +77,12 @@ public final class CutoverConfigurationRules {
             if (!ITEM_TYPES.contains(item.itemType())) {
                 errors.add(new ValidationError(location + ".itemType", "采集项类型不受支持"));
             }
+            if (blank(item.businessCategoryCode())) {
+                errors.add(new ValidationError(location + ".businessCategoryCode", "业务分类码不能为空"));
+            }
+            if (item.interfaceSchema() == null) {
+                errors.add(new ValidationError(location + ".interfaceSchema", "界面Schema不能为空"));
+            }
             if (blank(item.itemName()) || blank(item.interfaceFormat()) || blank(item.feedbackFormat())) {
                 errors.add(new ValidationError(location, "项命名、界面格式和反馈格式必须完整"));
             }
@@ -111,6 +118,9 @@ public final class CutoverConfigurationRules {
             if (blank(rule.dimensionConditionSnapshot())) {
                 errors.add(new ValidationError(location + ".dimensionConditionSnapshot", "维度条件不能为空"));
             }
+            if (rule.requiredResult() == null) {
+                errors.add(new ValidationError(location + ".requiredResult", "绑定级必填结果不能为空"));
+            }
             String decision = rule.stableItemKey() + "|" + rule.dimensionConditionSnapshot() + "|" + rule.priority();
             if (!decisions.add(decision)) {
                 errors.add(new ValidationError(location, "同一采集项存在条件和优先级完全相同的冲突规则"));
@@ -144,14 +154,29 @@ public final class CutoverConfigurationRules {
                                       String owner, String contextPath, boolean enabled) {
     }
 
-    public record ItemDefinition(String stableItemKey, String itemType, String itemName,
-                                 String interfaceFormat, String feedbackFormat, boolean required,
+    public record ItemDefinition(String stableItemKey, String itemType, String businessCategoryCode,
+                                 String itemName, String interfaceFormat, Map<String, Object> interfaceSchema,
+                                 String feedbackFormat, boolean required,
                                  String workMode, String externalSourceConfig, String subtableCode,
                                  boolean enabled) {
+
+        public ItemDefinition(String stableItemKey, String itemType, String itemName,
+                              String interfaceFormat, String feedbackFormat, boolean required,
+                              String workMode, String externalSourceConfig, String subtableCode,
+                              boolean enabled) {
+            this(stableItemKey, itemType, null, itemName, interfaceFormat, null, feedbackFormat,
+                    required, workMode, externalSourceConfig, subtableCode, enabled);
+        }
     }
 
     public record BindingRule(String stableRuleKey, String stableItemKey,
-                              String dimensionConditionSnapshot, int priority, boolean enabled) {
+                              String dimensionConditionSnapshot, int priority,
+                              Boolean requiredResult, boolean enabled) {
+
+        public BindingRule(String stableRuleKey, String stableItemKey,
+                           String dimensionConditionSnapshot, int priority, boolean enabled) {
+            this(stableRuleKey, stableItemKey, dimensionConditionSnapshot, priority, null, enabled);
+        }
     }
 
     public record PlanTemplateSection(String stableSectionKey, String title, int sortOrder,

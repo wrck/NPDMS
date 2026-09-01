@@ -112,6 +112,10 @@
             ><template #default="{ row }"
               ><el-input v-model="row.itemName" :disabled="readonly" /></template
           ></el-table-column>
+          <el-table-column label="业务分类码" min-width="190"
+            ><template #default="{ row }"
+              ><el-input v-model="row.businessCategoryCode" :disabled="readonly" /></template
+          ></el-table-column>
           <el-table-column label="业务含义" min-width="190"
             ><template #default="{ row }"
               ><el-input v-model="row.itemDescription" :disabled="readonly" /></template
@@ -184,6 +188,22 @@
         </el-table>
       </el-tab-pane>
 
+      <el-tab-pane label="风险矩阵" name="risk">
+        <CutoverRiskMatrixEditor
+          v-model="model"
+          :readonly="readonly"
+          :validation-errors="validationErrors"
+        />
+      </el-tab-pane>
+
+      <el-tab-pane label="调研矩阵" name="survey">
+        <CutoverSurveyMatrixEditor
+          v-model="model"
+          :readonly="readonly"
+          :validation-errors="validationErrors"
+        />
+      </el-tab-pane>
+
       <el-tab-pane :label="`绑定规则（${model.bindingRules.length}）`" name="rules">
         <div class="table-actions"
           ><el-button v-if="!readonly" type="primary" plain @click="addRule"
@@ -222,6 +242,10 @@
                 :disabled="readonly"
                 :min="0"
                 controls-position="right" /></template
+          ></el-table-column>
+          <el-table-column label="必填" width="72" align="center"
+            ><template #default="{ row }"
+              ><el-switch v-model="row.requiredResult" :disabled="readonly" /></template
           ></el-table-column>
           <el-table-column label="启用" width="72" align="center"
             ><template #default="{ row }"
@@ -315,7 +339,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import type {
   CutoverBindingRule,
@@ -325,6 +349,9 @@ import type {
 } from '@/api/pms/cutover/cutover-config'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
+import CutoverRiskMatrixEditor from './CutoverRiskMatrixEditor.vue'
+import CutoverSurveyMatrixEditor from './CutoverSurveyMatrixEditor.vue'
+import { validationTarget } from './cutoverMatrix'
 
 const props = defineProps<{ readonly: boolean; validationErrors: CutoverValidationError[] }>()
 const message = useMessage()
@@ -362,6 +389,7 @@ const addItem = () =>
   model.value.items.push({
     stableItemKey: '',
     itemType: 'BUSINESS_SURVEY',
+    businessCategoryCode: '',
     itemName: '',
     interfaceFormat: 'INPUT',
     interfaceSchema: {},
@@ -377,6 +405,7 @@ const addRule = () =>
     stableItemKey: '',
     dimensionConditions: {},
     priority: 0,
+    requiredResult: false,
     enabled: true
   })
 const addSection = () =>
@@ -417,9 +446,15 @@ const parseJsonObject = (value: string, label: string): Record<string, unknown> 
   return { __INVALID_JSON__: value }
 }
 const validate = () => formRef.value?.validate()
-const showValidation = () => {
-  activeTab.value = 'validation'
+const showValidation = (errors: CutoverValidationError[] = props.validationErrors) => {
+  activeTab.value = validationTarget(errors)
 }
+watch(
+  () => props.validationErrors,
+  (errors) => {
+    if (errors.length > 0) showValidation(errors)
+  }
+)
 defineExpose({ validate, showValidation })
 </script>
 
