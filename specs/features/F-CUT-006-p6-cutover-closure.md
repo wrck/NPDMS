@@ -1,7 +1,7 @@
 # F-CUT-006 P6割接跟踪与闭环 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO@4e390d4f`
 > Requirement：`CUT-06（V1/P0）`
 > Requirement切片覆盖：`CUT-06@V1=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -98,4 +98,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。最近Gate为本Feature规格、API/physical机器合同、旧实现复用审计和依赖边界的独立Feature Ready复审；GO前不得生成Technical Plan或实现。
+当前：`BASELINE / READY / GO@4e390d4f / NOT_STARTED`。独立最小整改复审已关闭采集基数、归档回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项阻断。最近Gate为本Feature唯一Technical Plan独立复审；Technical Plan GO前不得实现。

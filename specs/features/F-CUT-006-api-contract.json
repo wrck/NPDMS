@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-006",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "wire": {
     "WireLong": "JSON number only when -9007199254740991 < value < 9007199254740991; otherwise plain decimal JSON string",
     "WireDateTime": "positive epoch milliseconds following WireLong",
