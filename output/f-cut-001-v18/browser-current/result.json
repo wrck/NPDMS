@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checks": [
+    "risk matrix displays 24 categories and five-mode total 97/97 without V2 auto assignment",
+    "16/17 VSM is rejected while the old published revision remains published",
+    "an all-situation device coverage gap is rejected and located in the risk matrix",
+    "a null survey required-result is rejected and displayed in the survey matrix",
+    "a broken survey background dependency is rejected and displayed",
+    "the repaired revision is published through the UI",
+    "published history is readonly at 320/768/1024/1440 widths",
+    "a user without cutover permissions cannot open the configuration route"
+  ],
+  "consoleErrors": [],
+  "requestFailures": [],
+  "publishedRevisionId": "970000000000150013"
+}

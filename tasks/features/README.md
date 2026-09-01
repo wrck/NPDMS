@@ -22,7 +22,7 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-CUT-001 | [Task](F-CUT-001.md) | TECHNICAL_PLAN_READY | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已认领 | CUT-07/09/10保持NOT_STARTED；集成完成前不得声明Done |
+| F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已认领 | 历史候选正在最新master复验；最终DoD前不得声明Done |
 
 当前唯一有效写入认领为`DU-20260901-FCUT001-INTEGRATION`，用于把历史候选选择性适配到最新master；`DU-20260901-FSOL003-DEPRECATION`已完成选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
 
@@ -34,7 +34,7 @@
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始 | `CONFLICTED_IMPLEMENTATION / IN_PROGRESS` | 与COM-A按PRD、Spec、公共契约逐项裁决 |
 | F-AST-002 | `a52b22b4..68bc56ec` | 独立完成候选；不是F-INS-001脏改动的一部分 | PRD冲突关闭后更新master并复验 |
 | F-INS-001 | `feat-inspection-feature-xkjuCC@974d9da1`及7项未提交Task 4A改动 | `QUARANTINED / IN_PROGRESS` | 保留工作树，完成DU交接后继续；Task 4B仍阻塞 |
-| F-CUT-001 | `08457e39..72ccb83f` | 边界清晰的完整Feature集成候选 | 更新最新master、串行处理共享资源并执行完整DoD |
+| F-CUT-001 | `08457e39..72ccb83f` | 已由专属DU选择性适配，权威状态为`IN_PROGRESS / MASTER_REVALIDATION` | 完成验证、Code Review与master集成；最终运行DoD另行裁决 |
 | F-CUT-002/003 | `codex/f-cut-001-matrices@85b93828`继承文本与实现 | `QUARANTINED / IN_PROGRESS` | 从多Feature分支拆分DU，不按分支头推断Owner |
 | F-CUT-004 | 同上 | `IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产依赖未满足 | 不得声明Done或激活完整生产入口 |
 | F-CUT-005 | `2e3fdba3` Ready；`912d0cdb` Plan GO；Task 1/2候选至`85b93828` | `QUARANTINED / IN_PROGRESS / Task 3` | Task 1/2按提交边界拆出集成DU；Task 3继续写入前必须先形成有效认领，不得借CUT整支历史认领 |

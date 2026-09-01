@@ -25,13 +25,11 @@ class CutoverConfigurationRulesTest {
     @Test
     void rejectsInvalidSubtableAndConflictingRule() {
         var invalidItems = List.of(
-                new CutoverConfigurationRules.ItemDefinition("SURVEY-1", "BUSINESS_SURVEY", "割接背景",
-                        "INPUT", "TEXT", true, "MANUAL", null, "VSM", true),
-                new CutoverConfigurationRules.ItemDefinition("DUAL-1", "DUAL_MACHINE_CHECK", "双机检查",
-                        "TABLE", "BOOLEAN_REMARK", true, "MANUAL", null, null, true));
+                item("SURVEY-1", "BUSINESS_SURVEY", "CUTOVER_BACKGROUND", "VSM", true),
+                item("DUAL-1", "DUAL_MACHINE_CHECK", "VSM", null, true));
         var duplicateRules = List.of(
-                new CutoverConfigurationRules.BindingRule("RULE-1", "SURVEY-1", "{\"CUTOVER_LEVEL\":\"A\"}", 10, true),
-                new CutoverConfigurationRules.BindingRule("RULE-2", "SURVEY-1", "{\"CUTOVER_LEVEL\":\"A\"}", 10, true));
+                rule("RULE-1", "SURVEY-1", true),
+                rule("RULE-2", "SURVEY-1", false));
 
         var errors = CutoverConfigurationRules.validate(dimensions(), invalidItems, duplicateRules, sections());
 
@@ -42,8 +40,8 @@ class CutoverConfigurationRulesTest {
 
     @Test
     void rejectsMissingBaseDimensionAndExternalSourceDefinition() {
-        var externalItem = new CutoverConfigurationRules.ItemDefinition("RISK-1", "RISK", "公告检查",
-                "TABLE", "TABLE", true, "EXTERNAL", null, null, true);
+        var externalItem = new CutoverConfigurationRules.ItemDefinition("RISK-1", "RISK", "SYSTEM_LOG",
+                "公告检查", "TABLE", java.util.Map.of(), "TABLE", true, "EXTERNAL", null, null, true);
 
         var errors = CutoverConfigurationRules.validate(dimensions().subList(0, 3),
                 List.of(externalItem), List.of(), sections());
@@ -59,9 +57,7 @@ class CutoverConfigurationRulesTest {
                 "CUT", "assessment.level", false);
         var dimensions = new java.util.ArrayList<>(dimensions());
         dimensions.set(3, disabledDimension);
-        var disabledItem = new CutoverConfigurationRules.ItemDefinition(
-                "SURVEY-1", "BUSINESS_SURVEY", "割接背景", "INPUT", "TEXT",
-                true, "MANUAL", null, null, false);
+        var disabledItem = item("SURVEY-1", "BUSINESS_SURVEY", "CUTOVER_BACKGROUND", null, false);
 
         var errors = CutoverConfigurationRules.validate(dimensions, List.of(disabledItem), rules(), sections());
 
@@ -85,15 +81,23 @@ class CutoverConfigurationRulesTest {
 
     private List<CutoverConfigurationRules.ItemDefinition> items() {
         return List.of(
-                new CutoverConfigurationRules.ItemDefinition("SURVEY-1", "BUSINESS_SURVEY", "割接背景",
-                        "INPUT", "TEXT", true, "MANUAL", null, null, true),
-                new CutoverConfigurationRules.ItemDefinition("DUAL-1", "DUAL_MACHINE_CHECK", "双机检查",
-                        "TABLE", "BOOLEAN_REMARK", true, "MANUAL", null, "VSM", true));
+                item("SURVEY-1", "BUSINESS_SURVEY", "CUTOVER_BACKGROUND", null, true),
+                item("DUAL-1", "DUAL_MACHINE_CHECK", "VSM", "VSM", true));
     }
 
     private List<CutoverConfigurationRules.BindingRule> rules() {
-        return List.of(new CutoverConfigurationRules.BindingRule("RULE-1", "SURVEY-1",
-                "{\"CUTOVER_LEVEL\":\"A\"}", 10, true));
+        return List.of(rule("RULE-1", "SURVEY-1", true));
+    }
+
+    private CutoverConfigurationRules.ItemDefinition item(String key, String type, String category,
+                                                           String subtableCode, boolean enabled) {
+        return new CutoverConfigurationRules.ItemDefinition(key, type, category, key,
+                "TABLE", java.util.Map.of(), "TEXT", true, "MANUAL", null, subtableCode, enabled);
+    }
+
+    private CutoverConfigurationRules.BindingRule rule(String key, String itemKey, Boolean requiredResult) {
+        return new CutoverConfigurationRules.BindingRule(key, itemKey,
+                "{\"CUTOVER_LEVEL\":\"A\"}", 10, requiredResult, true);
     }
 
     private List<CutoverConfigurationRules.PlanTemplateSection> sections() {
