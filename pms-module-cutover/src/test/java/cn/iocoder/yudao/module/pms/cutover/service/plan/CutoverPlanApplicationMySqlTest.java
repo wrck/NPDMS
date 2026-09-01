@@ -292,6 +292,62 @@ class CutoverPlanApplicationMySqlTest {
     }
 
     @Test
+    void rejectedApprovalCreatesSavedReplacementAndNewPendingApprovalAtomically() {
+        CutoverPlanCommandResult saved = createSavedStandardPlan("approval-rejected");
+        SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, saved.planVersion(),
+                "submit-approval-rejected", "corr-submit-approval-rejected"));
+        approval.reject(submitted.approvalInstanceId(), 1_788_192_000_000L, "补充回退步骤");
+        owners.advanceTaskVersion(6);
+        assertEquals(1, jdbc.update("UPDATE cut_task SET current_stage='P4', task_status='PLAN_DRAFTING', " +
+                "version=6, updater='0' WHERE tenant_id=? AND id=? AND current_stage='P5' AND version=5",
+                tenantId, taskId));
+        assertEquals(1, jdbc.update("INSERT INTO cut_task_stage_history " +
+                        "(id,tenant_id,cutover_task_id,sequence_no,from_stage,to_stage,from_status,to_status," +
+                        "trigger_type,trigger_reference_id,actor_id,correlation_id,occurred_at,creator,create_time) " +
+                        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                taskId + 1, tenantId, taskId, 2, "P5", "P4", "APPROVING", "PLAN_DRAFTING",
+                "P5_APPROVAL_REJECTED", submitted.approvalInstanceId(), 0L,
+                "controlled-approval-rejected", LocalDateTime.of(2026, 9, 1, 8, 5), "0",
+                LocalDateTime.of(2026, 9, 1, 8, 5)));
+
+        CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
+                tenantId, 8L, taskId, 6, submitted.planRevisionId(), "APPROVAL_REJECTED",
+                "revise-approval-rejected", "corr-revise-approval-rejected"));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
+                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
+                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, detail.content(),
+                "save-approval-rejected-r2", "corr-save-approval-rejected-r2"));
+        SubmitCutoverPlanResult resubmitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 6, savedReplacement.planVersion(),
+                "resubmit-approval-rejected", "corr-resubmit-approval-rejected"));
+
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND status_code='SUBMITTED' AND current_marker IS NULL AND approval_instance_id=?",
+                tenantId, submitted.planRevisionId(), submitted.approvalInstanceId()));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND source_plan_revision_id=? AND revision_reason_code='APPROVAL_REJECTED' " +
+                "AND status_code='SUBMITTED' AND current_marker=1 AND approval_instance_id=?",
+                tenantId, resubmitted.planRevisionId(), submitted.planRevisionId(),
+                resubmitted.approvalInstanceId()));
+        CutoverApprovalFact previous = approval.inspect(new CutoverApprovalFactQuery(
+                tenantId, taskId, submitted.planRevisionId())).fact();
+        assertEquals(ApprovalStatus.REJECTED, previous.status());
+        assertEquals(resubmitted.approvalInstanceId(), previous.replacementApprovalInstanceId());
+        assertEquals(ApprovalStatus.PENDING, approval.inspect(new CutoverApprovalFactQuery(
+                tenantId, taskId, resubmitted.planRevisionId())).fact().status());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task WHERE tenant_id=? AND id=? " +
+                "AND current_stage='P5' AND task_status='APPROVING' AND version=7", tenantId, taskId));
+        assertEquals(3, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? " +
+                "AND cutover_task_id=?", tenantId, taskId));
+        assertEquals(6, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? " +
+                "AND status='COMPLETED'", tenantId));
+        assertEquals(6, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+    }
+
+    @Test
     void approvedContactPatchKeepsApprovedBodyAndPersistsAuditFacts() {
         CutoverPlanCommandResult saved = createSavedStandardPlan("approved-contact");
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
@@ -390,6 +446,15 @@ class CutoverPlanApplicationMySqlTest {
                     "SWITCH", "type-v2")), source.configurationRevisionId(), source.configurationCode(),
                     source.configurationRevisionNo(), source.templateSections(), source.failedRiskFacts()),
                     facts.failedRiskFacts());
+        }
+        void advanceTaskVersion(int taskVersion) {
+            SourceSnapshot source = facts.snapshot();
+            facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion(), source.taskId(), taskVersion,
+                    source.assessmentId(), source.assessmentVersion(), source.grade(), source.checklistId(),
+                    source.checklistVersion(), source.projectId(), source.projectVersion(),
+                    source.projectScopeVersion(), source.devices(), source.configurationRevisionId(),
+                    source.configurationCode(), source.configurationRevisionNo(), source.templateSections(),
+                    source.failedRiskFacts()), facts.failedRiskFacts());
         }
         void useGrade(String grade) {
             SourceSnapshot source = facts.snapshot();
