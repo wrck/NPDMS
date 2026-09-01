@@ -56,6 +56,7 @@
 - Task 9补齐既有正向验证缺口：`CALLBACK_FAILED`可关联一份人工结果；与既有FAILED归档、`DISPATCH_FAILED`人工结果、同意图外部任务恢复和平台重放场景组成7条真实MySQL闭环。
 - Task 9回归证据：CUT-002～005及P6聚焦套件共120次执行、104通过、16个MySQL用例按`skipITs=true`预期跳过；独立Compose项目`npdms-fcut006-task9`在33406端口使用MySQL 8.4空卷执行152个迁移至V156，P6真实MySQL 7/7通过，专用容器、网络和卷已全部清理。
 - Task 9已在`ee891fa6`通过独立Backend/MySQL复审，Gate现为`PASS / GO@ee891fa6`；Feature实现状态按裁决收敛为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产ProjectScope/PLT/INT-12与真实浏览器仍阻断Implementation Done。
+- Task 9跨Feature受控集成证据已在`4d54f4e1`通过独立复审：同一生成任务经测试作用域受控Owner事实，在真实Spring事务、MyBatis、`PlatformCommandExecutionApiImpl`与MySQL 8.4中完成P1自建、P2人工A、P3清单、P4标准方案、P5四节点批准、P6成功归档及同键重放；六段历史、活动设备释放、`CutoverApproved`/`CutoverCompleted`和平台审计均成立，聚焦套件5/5通过。该证据仅证明CUT自有代码的受控正向数据库闭环，不改变F-CUT-002～006现有Implementation Status，也不替代生产Owner、真实浏览器或Implementation Done证据。
 - 最近Gate：Task 10 Entry Gate，当前`BLOCKED_BY_DEPENDENCY`，不创建生产Fake/fallback或提前装配。
 
 ## 状态边界
