@@ -1,10 +1,10 @@
 # F-CUT-002 割接任务接入与人工分级
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
 > Technical Plan Gate：`PASS / GO@8eb36222`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`BLOCKED_BY_DEPENDENCY`
 > `pms_cut_task -> cut_task` Migration Contract Gate：`PASS`（`36d1b37f`）
 > API/Physical Machine Contract Gate：`PASS / b7f49166`
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
@@ -16,7 +16,7 @@
 ## 当前最小工作单元
 
 - Task 1：`PASS / COMPLETE@9b1a613e`（独立整体状态关闭`GO`）。
-- Task 2：`IN_PROGRESS / CONTROLLED_POSITIVE_LOOP_REVIEW_REQUIRED / BLOCKED_BY_DEPENDENCY`。CUT自有新工作台、创建向导、P2人工分级和P4只读阶段投影已通过独立复审（`9f791d64 + 0c18ed0f`）；新增真实Spring事务、MyBatis、平台幂等/审计与MySQL 8.4下的受控Owner正向链候选，覆盖A级进入P3、D级进入P4及提交重放。生产Adapter、唯一应用装配、真实浏览器及Implementation Done继续等待PROJ/IMP/AST/CUS/PLT正式Owner事实。
+- Task 2：`PASS / GO@d80ace31 / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`。CUT自有新工作台、创建向导、P2人工分级和P4只读阶段投影已通过独立复审（`9f791d64 + 0c18ed0f`）；真实Spring事务、MyBatis、平台幂等/审计与MySQL 8.4下的受控Owner正向链覆盖A级进入P3、D级进入P4及提交重放，并通过独立Backend/MySQL Gate。生产Adapter、唯一应用装配、真实浏览器及Implementation Done继续等待PROJ/IMP/AST/CUS/PLT正式Owner事实。
 
 ## 已完成
 
@@ -40,4 +40,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：基线=`0c18ed0f`；Task 2页面单元独立复审`GO`，正向组件7/7、typecheck、build:local通过。受控正向链候选在隔离MySQL 8.4空卷执行152个迁移至V156后2/2通过，另有CUT-002应用正向单元3/3通过；当前最近Gate为该候选独立Backend/MySQL复审。Task 2整体仍`IN_PROGRESS/BLOCKED_BY_DEPENDENCY`，不得用替身形成生产装配或真实浏览器证据。
+> 检查点：Task 2受控正向闭环Backend/MySQL Gate已在`d80ace31`独立复审`PASS / GO`；隔离MySQL 8.4空卷执行152个迁移至V156后2/2通过，另有CUT-002应用正向单元3/3通过。当前最近Gate为生产Owner依赖满足后的Adapter与唯一装配Entry Gate；Feature保持`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`，不得用替身形成生产装配或真实浏览器证据。
