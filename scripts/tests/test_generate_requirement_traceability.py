@@ -138,7 +138,10 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
             for slice_key in ("PM-02@V1", "PM-10@V1", "PRE-01@V1", "PRE-02@V1", "PLT-02@V1"):
                 self.assertIn("IMPLEMENTATION_COMPLETE", self.requirement_row(content, slice_key))
             self.assertIn("NOT_STARTED", self.requirement_row(content, "PM-08@V2"))
-            self.assertIn("NO_TASK，不派生完成", self.requirement_row(content, "EQP-01@V1"))
+            asset_row = self.requirement_row(content, "EQP-01@V1")
+            self.assertIn("F-AST-001 Task", asset_row)
+            self.assertIn("IN_PROGRESS", asset_row)
+            self.assertTrue(asset_row.endswith("| NOT_STARTED | NOT_STARTED |"), asset_row)
 
     def test_coverage_json_contains_all_111_unique_slices(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

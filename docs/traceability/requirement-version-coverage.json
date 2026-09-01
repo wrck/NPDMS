@@ -33,9 +33,9 @@
     {
       "featureId": "F-AST-001",
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
-      "taskPath": null,
-      "taskStatus": "NO_TASK",
-      "taskStatusRaw": null,
+      "taskPath": "tasks/features/F-AST-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "REVALIDATION_REQUIRED",
       "mappings": [
         {
           "sliceKey": "EQP-01@V1",
@@ -981,9 +981,9 @@
         {
           "featureId": "F-AST-001",
           "coverage": "PARTIAL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-AST-001.md"
         }
       ]
     },

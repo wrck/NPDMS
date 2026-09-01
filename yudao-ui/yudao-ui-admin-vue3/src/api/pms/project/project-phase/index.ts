@@ -43,11 +43,6 @@ export const deleteProjectPhase = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const getProjectPhaseListByProjectId = (projectId: number) =>
   request.get({ url: `${baseUrl}/list-by-project`, params: { projectId } })
-export const instantiatePhaseFromTemplate = (projectId: number, templateId: number) =>
-  request.post({
-    url: `${baseUrl}/instantiate-from-template`,
-    params: { projectId, templateId }
-  })
 export const validatePhaseSequence = (phaseId: number) =>
   request.get({ url: `${baseUrl}/validate-sequence`, params: { phaseId } })
 export const checkPhaseCompletionGate = (phaseId: number) =>

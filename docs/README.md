@@ -10,7 +10,7 @@
 | 正式系统设计 | `docs/design/` | 是 | 只保留规划中的正式 SDS 分册；不为一次评审新建临时设计副本 |
 | 已批准决策、待确认问题 | `docs/decisions/` | 决策文件是 | 重要决策使用 ADR；问题关闭后回写正式 PRD/SDS |
 | 编码与实现约束 | `docs/coding/` | 是 | 记录所有后续开发必须遵守的工程编码规则；变更规则时同步更新仓库级入口 |
-| Feature规格、实施任务与追溯投影 | `specs/features/`、`tasks/features/`、`docs/traceability/` | 规格与当前任务记录是；README和生成矩阵否 | Feature Ready以Feature Spec为权威，Implementation状态及认领以master当前任务记录为权威，索引与矩阵只作投影 |
+| Feature规格、实施任务、Delivery Unit与追溯投影 | `specs/features/`、`tasks/features/`、`tasks/delivery-units/`、`docs/traceability/` | Feature Spec、Feature Task和`DU-*.md`分别是各自维度权威；README和生成矩阵否 | Ready以Feature Spec为权威，Implementation状态以Feature Task为权威，认领/写边界/集成回执以master的Delivery Unit为权威，索引与矩阵只作投影 |
 | 阶段门禁、评审结论、评审输入 | `docs/engineering/gates/<phase>/` | 仅当前门禁状态可作为放行依据 | 当前汇总、输入证据和历史归档分层保存 |
 | 工程计划、规格草案 | `docs/superpowers/specs/`、`docs/superpowers/plans/` | 否 | 必须指向目标正式资产；完成后更新正式文档，计划本身不替代 SDS |
 | 脚本生成的报告或快照 | `docs/generated/` 或对应门禁目录 | 否 | 标注生成时间、脚本版本和输入哈希；禁止伪装成正式设计 |

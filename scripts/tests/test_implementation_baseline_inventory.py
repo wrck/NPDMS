@@ -183,6 +183,28 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         self.assertIn("CUS-03", items["CustomerMasterCurrentRuntime"]["requirementRefs"])
         self.assertIn("pms-module-customer/", items["CustomerMasterCurrentRuntime"]["codePaths"])
 
+    def test_completed_project_foundations_are_no_longer_marked_for_revalidation(self) -> None:
+        items = self._items()
+
+        self.assertEqual("ADAPTED", items["ProjectManualCreation"]["classification"])
+        self.assertEqual("ADAPTED", items["ProjectTemplateFoundation"]["classification"])
+
+    def test_explicit_legacy_cutovers_forbid_new_feature_work(self) -> None:
+        cutovers = {item["legacyKey"]: item for item in self.inventory["legacyCutovers"]}
+
+        self.assertEqual(
+            "HISTORICAL_READ_ONLY_ONLY",
+            cutovers["LegacyCustomerWriteRoutes"]["newImplementationPolicy"],
+        )
+        self.assertEqual(
+            ["F-SOL-003"],
+            cutovers["LegacyRequirementAnalysisFixedSections"]["replacementFeatureRefs"],
+        )
+        self.assertEqual(
+            "FORBIDDEN",
+            cutovers["LegacyCutExecutionObservation"]["newImplementationPolicy"],
+        )
+
     def test_cut_execution_and_observation_runtime_is_retired(self) -> None:
         items = self._items()
 

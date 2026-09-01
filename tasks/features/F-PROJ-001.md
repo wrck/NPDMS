@@ -1,6 +1,6 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
-> Feature 实施状态：`IMPLEMENTATION_COMPLETE`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`PASS`
 > 当前阻断：无

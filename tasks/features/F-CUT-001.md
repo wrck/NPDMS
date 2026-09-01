@@ -14,13 +14,13 @@
 
 ## 当前最小工作单元
 
-- 分支候选`72ccb83f8052758e70fc585b1226403b6a825311`已自报完成CUT-07/09/10，但尚未合入master；先更新到最新master并核对提交边界，再串行集成、执行Feature完整验证和Code Review。完成这些步骤前不得恢复Implementation Done。
+- `DU-20260901-FCUT001-INTEGRATION`登记分支候选`08457e39..72ccb83f`，但尚未合入master；先更新到最新master并核对提交边界，再串行集成、执行Feature完整验证和Code Review。完成这些步骤前不得恢复Implementation Done。
 
 ## master协调与分支候选
 
-- 2026-09-01 15:29 +08:00审计时，master中的权威状态仍为`TECHNICAL_PLAN_READY`，Requirement覆盖保持`NOT_STARTED`。
-- `codex/integrate-f-cut-001@72ccb83f8052`是干净的完成候选；`codex/f-cut-001-matrices@f4ecbfdd7236`继承该候选后继续实施其他CUT Feature，不能作为F-CUT-001的第二份状态源。
-- 原实施未在master当前任务记录中登记符合新工程链的排他认领事实；本记录只登记审计与待集成事实，不追认分支内Implementation Done。
+- 2026-09-01 16:59:30 +08:00审计截点，master权威状态仍为`TECHNICAL_PLAN_READY`，Requirement覆盖保持`NOT_STARTED`。
+- `codex/integrate-f-cut-001@72ccb83f8052`是干净的完成候选；`codex/f-cut-001-matrices@85b93828eb04`只继承该候选后继续实施其他Feature，不能作为F-CUT-001的第二份状态源。
+- 原实施早于Delivery Unit规则，不能倒签活动认领；`INTEGRATION_CANDIDATE`只登记审计与待集成范围，不追认分支内Implementation Done。
 - 下一动作：在master串行集成窗口核对候选相对最新master的公共契约、Flyway、共享文件与回归边界；只有最终合入状态通过完整DoD后才能更新本文件的Implementation Done Gate。
 
 ## 已完成

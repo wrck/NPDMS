@@ -1,6 +1,6 @@
 # F-PROJ-002 项目拆分、项目树与进度汇总
 
-> Feature 实施状态：`IMPLEMENTATION_COMPLETE`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`PASS`

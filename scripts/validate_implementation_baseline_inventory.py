@@ -35,8 +35,24 @@ BLOCKING_CLASSIFICATIONS = frozenset(
         "BLOCKED_BY_SPEC",
     }
 )
+ALLOWED_LEGACY_STATUSES = frozenset(
+    {"DEPRECATED_READ_ONLY", "RUNTIME_REMOVED", "HISTORICAL_ONLY"}
+)
+ALLOWED_LEGACY_POLICIES = frozenset({"FORBIDDEN", "HISTORICAL_READ_ONLY_ONLY"})
+LEGACY_SHAPE = frozenset(
+    {
+        "legacyKey",
+        "status",
+        "requirementRefs",
+        "replacementFeatureRefs",
+        "legacyPaths",
+        "replacementPaths",
+        "cutoverEvidence",
+        "newImplementationPolicy",
+    }
+)
 REQ_PATTERN = re.compile(
-    r"^(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}$"
+    r"^(?:PM|PRE|PLN|SCH|SOL|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|PLT|NFR)-\d{2}$"
 )
 RUNTIME_SOURCE_ROOTS = (
     "pms-module-cutover/src/main",
@@ -290,13 +306,16 @@ def find_retired_project_tree_write_runtime_surfaces(repository: Path) -> list[s
 def validate_inventory(repository: Path, inventory: dict) -> list[str]:
     errors = find_retired_cutover_runtime_surfaces(repository)
     errors.extend(find_retired_maintenance_runtime_surfaces(repository))
+    errors.extend(find_retired_template_runtime_surfaces(repository))
     errors.extend(find_retired_project_write_runtime_surfaces(repository))
     errors.extend(find_retired_project_tree_write_runtime_surfaces(repository))
-    if set(inventory) != {"schemaVersion", "status", "items"}:
-        errors.append("inventory must contain only schemaVersion, status, and items")
+    if set(inventory) != {"schemaVersion", "status", "items", "legacyCutovers"}:
+        errors.append(
+            "inventory must contain only schemaVersion, status, items, and legacyCutovers"
+        )
         return errors
-    if inventory.get("schemaVersion") != 1:
-        errors.append("inventory schemaVersion must be 1")
+    if inventory.get("schemaVersion") != 2:
+        errors.append("inventory schemaVersion must be 2")
     items = inventory.get("items")
     if not isinstance(items, list):
         return [*errors, "inventory items must be a list"]
@@ -381,6 +400,79 @@ def validate_inventory(repository: Path, inventory: dict) -> list[str]:
         errors.append("FEATURE_READY is forbidden while reconciliation items exist")
     if inventory.get("status") != "BASELINE_SYNCED_IMPLEMENTATION_RECONCILIATION_REQUIRED":
         errors.append("inventory status must remain reconciliation-required")
+
+    legacy_cutovers = inventory.get("legacyCutovers")
+    if not isinstance(legacy_cutovers, list):
+        errors.append("legacyCutovers must be a list")
+        return errors
+    legacy_keys: list[str] = []
+    for cutover in legacy_cutovers:
+        if not isinstance(cutover, dict) or set(cutover) != LEGACY_SHAPE:
+            errors.append("each legacy cutover has an invalid shape")
+            continue
+        key = cutover["legacyKey"]
+        status = cutover["status"]
+        refs = cutover["requirementRefs"]
+        feature_refs = cutover["replacementFeatureRefs"]
+        legacy_paths = cutover["legacyPaths"]
+        replacement_paths = cutover["replacementPaths"]
+        evidence = cutover["cutoverEvidence"]
+        policy = cutover["newImplementationPolicy"]
+        if not isinstance(key, str) or not key:
+            errors.append("legacyKey must be a non-empty string")
+            continue
+        legacy_keys.append(key)
+        if status not in ALLOWED_LEGACY_STATUSES:
+            errors.append(f"{key} has invalid legacy status: {status}")
+        if policy not in ALLOWED_LEGACY_POLICIES:
+            errors.append(f"{key} has invalid new implementation policy: {policy}")
+        if status == "RUNTIME_REMOVED" and policy != "FORBIDDEN":
+            errors.append(f"{key} removed runtime must forbid new implementation")
+        if status == "DEPRECATED_READ_ONLY" and policy != "HISTORICAL_READ_ONLY_ONLY":
+            errors.append(f"{key} deprecated read-only surface must remain historical read-only")
+        if not isinstance(refs, list) or not refs:
+            errors.append(f"{key} requirementRefs must be a non-empty list")
+        else:
+            for ref in refs:
+                if not isinstance(ref, str) or not REQ_PATTERN.fullmatch(ref) or ref not in known_requirements:
+                    errors.append(f"{key} has unknown Requirement: {ref}")
+        if not isinstance(feature_refs, list):
+            errors.append(f"{key} replacementFeatureRefs must be a list")
+        else:
+            for feature_id in feature_refs:
+                task_path = repository / "tasks" / "features" / f"{feature_id}.md"
+                if not isinstance(feature_id, str) or not re.fullmatch(r"F-[A-Z]+-\d{3}", feature_id):
+                    errors.append(f"{key} has invalid replacement Feature: {feature_id}")
+                elif not task_path.is_file():
+                    errors.append(f"{key} replacement Feature has no master Task: {feature_id}")
+                else:
+                    task = task_path.read_text(encoding="utf-8")
+                    if not re.search(
+                        r"^> (?:Feature\s*)?实施状态：`[^`]*(?:IMPLEMENTATION_COMPLETE|IMPLEMENTATION_DONE)[^`]*`",
+                        task,
+                        re.MULTILINE,
+                    ):
+                        errors.append(f"{key} replacement Feature is not Done: {feature_id}")
+        for label, paths in (("legacyPaths", legacy_paths), ("replacementPaths", replacement_paths)):
+            if not isinstance(paths, list) or (label == "legacyPaths" and not paths):
+                errors.append(f"{key} {label} must be {'a non-empty' if label == 'legacyPaths' else 'a'} list")
+                continue
+            for raw_path in paths:
+                if (
+                    not isinstance(raw_path, str)
+                    or not raw_path
+                    or raw_path.startswith("/")
+                    or "\\" in raw_path
+                    or ".." in PurePosixPath(raw_path).parts
+                ):
+                    errors.append(f"{key} has invalid {label} entry: {raw_path}")
+        if feature_refs and not replacement_paths:
+            errors.append(f"{key} replacementPaths cannot be empty when a replacement Feature exists")
+        if not isinstance(evidence, str) or not evidence:
+            errors.append(f"{key} cutoverEvidence must be non-empty")
+
+    if legacy_keys != sorted(legacy_keys) or len(legacy_keys) != len(set(legacy_keys)):
+        errors.append("legacyKey values must be sorted and unique")
     return errors
 
 

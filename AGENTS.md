@@ -25,7 +25,8 @@
 
 - 业务规则缺失、歧义或冲突时不得猜测：标记`BLOCKED_BY_SPEC`，登记到`docs/decisions/open-questions.md`，只继续不依赖该问题的独立工作。
 - 每个Feature、API、数据库变更、事件、工作流和测试必须引用一个或多个Requirement ID，并维护`Requirement -> SDS -> Feature -> Code -> Test`链路。
-- Feature Ready只由Feature Spec维护；Implementation Status只由当前Feature任务记录维护；索引、追溯矩阵、Git、CI和浏览器结果只作投影或证据。
+- Feature Ready只由Feature Spec维护；Implementation Status只由当前Feature任务记录维护；并行认领、写边界、Worktree交接和master集成回执只由`tasks/delivery-units/DU-*.md`维护。一个Delivery Unit可以覆盖多个Feature或Task，但Feature仍是唯一Done单元；索引、追溯矩阵、Git、CI和浏览器结果只作投影或证据。
+- 任何实现写入前必须先在master提交Delivery Unit认领，并让目标分支包含该认领提交；分支名、Worktree目录、分支内Task状态和继承提交均不构成认领。废弃路径不得承接新Feature，只能由声明`旧功能范围`的DU执行废弃补强、安全修复、历史只读、迁移解释或删除。
 - 外部集成必须定义系统Owner、方向、权威字段、映射、来源键、幂等键、超时、重试、补偿、对账、降级和审计。
 
 ## 任务执行协议

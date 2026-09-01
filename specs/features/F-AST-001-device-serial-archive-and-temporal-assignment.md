@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
-> 实施状态：`IMPLEMENTATION_COMPLETE / PASS`（NPDMS `a9f8b7c5`；2026-08-28合并后复审通过）
+> 历史实施证据：NPDMS `a9f8b7c5`（2026-08-28合并后复审记录）；当前Implementation状态只读取`tasks/features/F-AST-001.md`
 > Requirement：`EQP-01（V1）`
 > Requirement切片覆盖：`EQP-01@V1=PARTIAL`
 > 关联Requirement：`EQP-02`、`EQP-03`、`EQP-04`、`CUS-03`、`INT-02`、`INT-04`；不宣称关联Requirement完成
@@ -278,4 +278,4 @@ F-AST-001消费外部系统已写入Owner本地副本后的稳定事实，不承
 | 相关Open Question全部关闭 | PASS |
 | 独立Feature Ready裁决 | READY |
 
-结论：`IMPLEMENTATION_COMPLETE / PASS`。EQP-01设备身份、稳定主档与高频当前事实投影、来源消费、统一软件版本领域模型、KNO官网信息、项目/客户时态归属、装配关系、客观维保记录、分Tab DTO、权限、下载和前向迁移边界已通过自动化、真实MySQL、查询计划、真实浏览器与合并后复审；本结论不代表外部同步Feature、Deployment、SIT、UAT或Release完成。
+规格结论：`BASELINE / READY`。历史记录表明EQP-01设备身份、稳定主档与高频当前事实投影、来源消费、统一软件版本领域模型、KNO官网信息、项目/客户时态归属、装配关系、客观维保记录、分Tab DTO、权限、下载和前向迁移边界曾通过自动化、真实MySQL、查询计划、真实浏览器与合并后复审；该记录只作Implementation候选证据，必须由master Feature Task完成当前状态复核后才能产生Done，且不代表外部同步Feature、Deployment、SIT、UAT或Release完成。
