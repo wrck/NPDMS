@@ -43,8 +43,9 @@
 - Task 5候选证据：Application与Mapper合同4/4通过；隔离MySQL 8.4空库执行151个迁移至V155后，既有采集链及SUCCESS/FAILED提交共5/5通过，验证真实`PlatformCommandExecutionApiImpl`下归档、设备释放、P6历史、幂等审计和Outbox原子提交，临时数据库已删除。候选保持`REVIEW_REQUIRED`，不提前回写PASS。
 - Task 5首轮独立复审对`3a790c41`裁决`NO-GO`：`CutoverCompleted`缺少物理机器合同规定的`tenantId/closureId/finalResult/correlationId`。单点整改候选已补齐九个精确载荷字段，并在既有SUCCESS正向MySQL流程断言字段集合和值；Task 5仍保持`REVIEW_REQUIRED`。
 - Task 5单点整改已在`39083446`通过独立复审；`CutoverCompleted`九字段精确载荷阻断关闭。Task 5 SUCCESS/FAILED提交、归档、设备释放、P6历史、平台幂等审计与完成事件Gate现为`PASS / GO@39083446`。
-- Task 6首轮独立复审对`df1b7830`裁决`NO-GO`：应用异常将Owner、来源陈旧、状态及业务不完整原因有损折叠，且候选含负向测试。整改候选已由实际守卫携带封闭reasonCode、ownerContext和当前版本，Controller仅结构化投影；负向测试及Gate证据已移除，五路由、Codec与既有闭环正向聚焦验证5/5通过。生产Controller/Service仍未注册，Task 6保持`REVIEW_REQUIRED`。
-- 最近Gate：Task 6五路由REST、严格请求/错误合同与测试激活外壳独立REST Contract Gate。
+- Task 6首轮独立复审对`df1b7830`裁决`NO-GO`：应用异常将Owner、来源陈旧、状态及业务不完整原因有损折叠，且候选含负向测试。整改已由实际守卫携带封闭reasonCode、ownerContext和当前版本，Controller仅结构化投影；负向测试及Gate证据已移除，五路由、Codec与既有闭环正向聚焦验证5/5通过。
+- Task 6最小整改已在`97ee0904`通过独立复审；错误身份无损投影与正向验证边界阻断均已关闭。生产Controller/Service仍未注册，Task 6 REST Contract/Code Review Gate现为`PASS / GO@97ee0904`。
+- 最近Gate：Task 7受控legacy前向分类与暂停Job的Migration/MySQL Gate。
 
 ## 状态边界
 
