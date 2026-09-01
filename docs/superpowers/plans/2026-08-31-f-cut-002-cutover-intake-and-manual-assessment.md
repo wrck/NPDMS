@@ -86,13 +86,13 @@
 
 **Produces：** 可编译、可由受控测试装配执行的完整 CUT 自建与 P2 提交内核；生产代码不含 Fake，任何未具备的跨模块Provider都不以跨表读取替代。
 
-- [ ] 建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，在CUT内部定义PROJ/IMP/AST/CUS/PLT最窄消费端口；合同独立GO后按完整Expected Fact实现消费映射。`src/test`模拟正常FOUND/READY/AVAILABLE路径，生产代码不实现跨模块Provider或fallback。
-- [ ] 落四张新表的 DO、场景化 Query、Mapper/XML、状态规则和聚合应用服务；使用数据库唯一键与 CAS 保证来源、活动设备、当前评估和版本唯一。
-- [ ] 实现 resolve-create-context、list、create、detail、save-assessment、submit-assessment 的应用服务与严格 Wire/Header/错误模型；Controller 只在 Task 2 生产 Owner 接通后注册。
-- [ ] 实现同一自建编排供 SELF_CREATED 与内部 ITR/PROJECT_EVENT Provider 复用；内部来源只接受受信 engineer/source identity，不增加 Producer。
-- [ ] SELF_CREATED、ITR/PROJECT_EVENT与评估提交全部调用3.1同一锁序组件；禁止Controller、内部Provider或评估Service各自重排Owner/CUT锁。
-- [ ] 增加下一连续 Flyway：四表、索引/约束、新菜单与四权限；实现 CURRENT_FORWARD 批次消费服务，保留旧表和旧页面。
-- [ ] 全部正向实现完成后再补聚焦后端验证：使用受控跨模块模拟完成Schema/Mapper绑定、READY自建进入P2、草稿刷新、A/B/C进入P3、D进入P4、同键同载荷重放，以及合格旧行正向转换为只读投影。只运行CUT相关reactor构建及这些正向测试。
+- [x] 建立`pms-module-cutover-api`和`CutoverTaskIntakeApi` DTO/Provider，在CUT内部定义PROJ/IMP/AST/CUS/PLT最窄消费端口；合同独立GO后按完整Expected Fact实现消费映射。`src/test`模拟正常FOUND/READY/AVAILABLE路径，生产代码不实现跨模块Provider或fallback。
+- [x] 落四张新表的 DO、场景化 Query、Mapper/XML、状态规则和聚合应用服务；使用数据库唯一键与 CAS 保证来源、活动设备、当前评估和版本唯一。
+- [x] 实现 resolve-create-context、list、create、detail、save-assessment、submit-assessment 的应用服务与严格 Wire/Header/错误模型；Controller 只在 Task 2 生产 Owner 接通后注册。
+- [x] 实现同一自建编排供 SELF_CREATED 与内部 ITR/PROJECT_EVENT Provider 复用；内部来源只接受受信 engineer/source identity，不增加 Producer。
+- [x] SELF_CREATED、ITR/PROJECT_EVENT与评估提交全部调用3.1同一锁序组件；禁止Controller、内部Provider或评估Service各自重排Owner/CUT锁。
+- [x] 增加下一连续 Flyway：四表、索引/约束、新菜单与四权限；实现 CURRENT_FORWARD 批次消费服务，保留旧表和旧页面。
+- [x] 全部正向实现完成后再补聚焦后端验证：使用受控跨模块模拟完成Schema/Mapper绑定、READY自建进入P2、草稿刷新、A/B/C进入P3、D进入P4、同键同载荷重放，以及合格旧行正向转换为只读投影。只运行CUT相关reactor构建及这些正向测试。
 
 Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task 2 继续接通正式页面。
 

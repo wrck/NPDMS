@@ -15,10 +15,8 @@
 
 ## 当前最小工作单元
 
-- `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
-- `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
-- `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- `ProjectCutoverContextFactApi`公共Owner合同与唯一Technical Plan已在`8eb36222`独立复审`PASS / GO`；当前授权进入Task 1，仅恢复CUT自有实现。
+- Task 1：`PASS / COMPLETE@9b1a613e`（独立整体状态关闭`GO`）。
+- Task 2：`IN_PROGRESS / BLOCKED_BY_DEPENDENCY`。当前先完成CUT自有新工作台前端闭环；生产Adapter、唯一应用装配、真实浏览器及Implementation Done继续等待PROJ/IMP/AST/CUS/PLT正式Owner事实。
 
 ## 已完成
 
@@ -42,4 +40,4 @@
 - CUT单元/集成测试可使用受控`ImplementationReadinessApi`替身验证消费边界。
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
-> 检查点：Task 1整体复审A/B整改已分别在`a5734d00`、`744105da`获独立`PASS / GO`；P2动作资格与确定性PROJ迁移问题归类闭合，CUT非IT 64/64。Task 1整体仅余V149物理CHECK及合法数据真实MySQL正向证据；当前Docker存储I/O故障，C保持独立未满足Gate，不进入Task 2。
+> 检查点：基线=`9b1a613e`；Task 1=`PASS/COMPLETE`，A/B/C独立GO，CUT非IT64/64、前端6/6+typecheck、隔离MySQL 8.4.10至V149通过。当前Gate=Task 2页面正向单元，阻塞仅生产Owner装配与真实浏览器；下一步实现独立API client、列表、创建向导、详情及P2交互。
