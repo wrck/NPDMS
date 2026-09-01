@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task with the listed review checkpoints. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > 计划 ID：`NPDMS-FCUT006-TECHPLAN-20260902-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@354471f1`
 > Feature Ready：`READY / GO@4e390d4f`
 > Feature Spec：`specs/features/F-CUT-006-p6-cutover-closure.md`
 > API Contract：`specs/features/F-CUT-006-api-contract.json`
@@ -252,6 +252,6 @@ interface CutoverClosureCollectionPort {
 
 ## 13. Gate与执行方式
 
-本文件是F-CUT-006唯一当前Technical Plan候选。独立Technical Plan Gate GO前不得执行Task 1。GO后按Task 1→10串行实施；Task 10在生产Owner依赖形成前保持阻断，但不阻断Task 1→9使用受控替身形成CUT自有正常闭环。
+本文件是F-CUT-006唯一当前有效Technical Plan，已通过`PASS / GO@354471f1`。按Task 1→10串行实施；Task 10在生产Owner依赖形成前保持阻断，但不阻断Task 1→9使用受控替身形成CUT自有正常闭环。
 
-锁定候选`e0fb30fe`首次复审为NO-GO；本版仅整改正向实施顺序、DISPATCH_FAILED/CALLBACK_FAILED人工替代覆盖及INT-12外部任务同意图恢复语义，Gate继续`REVIEW_REQUIRED`。
+锁定候选`e0fb30fe`首次复审为NO-GO；`354471f1`关闭正向实施顺序、DISPATCH_FAILED/CALLBACK_FAILED人工替代覆盖及INT-12外部任务同意图恢复三项阻断，独立复审为GO。

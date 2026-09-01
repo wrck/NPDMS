@@ -1,9 +1,9 @@
 # F-CUT-006 P6割接跟踪与闭环
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN`
+> 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@4e390d4f`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@354471f1`
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`CUT-06@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-006-p6-cutover-closure.md`
@@ -16,9 +16,8 @@
 - 形成CUT-06完整纵向Feature，不拆成INT-12专用Provider碎片。
 - 跨模块仅保留`ProjectScopeApi/FileArtifactApi/INT-12`消费端口；正常正向闭环使用`src/test`受控替身，不修改其他Owner或Yudao。
 - Feature Ready独立最小整改复审已在`4e390d4f`裁决`GO`，采集基数、归档/晚到回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项阻断均已关闭。
-- 唯一Technical Plan候选已生成，Gate保持`REVIEW_REQUIRED`；GO前不实现代码或DDL。
-- 最近Gate：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`独立Technical Plan复审。
-- 锁定候选`e0fb30fe`独立复审为`NO-GO`；当前仅整改正向实施顺序、两类失败采集的人工替代及INT-12外部任务同意图恢复三项计划阻断。
+- 唯一Technical Plan已通过`PASS / GO@354471f1`；正向实施顺序、两类失败采集的人工替代及INT-12外部任务同意图恢复三项计划阻断已关闭。
+- 最近Gate：Task 1闭环领域类型、消费端口及`src/test`受控替身合同独立Contract Gate；当前不得进入Task 2。
 
 ## 状态边界
 

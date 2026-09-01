@@ -9,7 +9,7 @@
 > 支撑依赖：`ProjectScopeApi`、`FileArtifactApi`、`INT-12设备连接与采集公开契约`、平台幂等/审计/Outbox
 > 机器合同：`specs/features/F-CUT-006-api-contract.json`、`specs/features/F-CUT-006-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-006-legacy-reuse-audit.md`
-> 唯一Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`（`REVIEW_REQUIRED`；`e0fb30fe` NO-GO后最小整改）
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`（`PASS / GO@354471f1`）
 
 ## 1. 业务目标
 
@@ -99,4 +99,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`BASELINE / READY / GO@4e390d4f / NOT_STARTED`。独立最小整改复审已关闭采集基数、归档回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项阻断。最近Gate为本Feature唯一Technical Plan独立复审；Technical Plan GO前不得实现。
+当前：`BASELINE / READY / GO@4e390d4f / NOT_STARTED`。唯一Technical Plan已通过`PASS / GO@354471f1`，授权从Task 1按正向实施顺序执行；生产依赖继续阻断真实装配和Implementation Done。
