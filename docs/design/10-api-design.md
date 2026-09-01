@@ -236,6 +236,10 @@ F-IMP-002的无用户主体豁免到期命令使用PROJ支撑Task `T-FIMP002-PRO
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 | `/cutover-config/{types|network-modes|checklist-items|binding-rules|navigation-rules}` | CRUD + `actions/publish` | CUT-07/09/10的V1动态模板、表单和匹配配置先于或不晚于首个消费能力交付；CUT-03 V2可增加受控跳转规则 | 发布版本不可覆盖；稳定编码、引用启用状态、条件可判定性和目标流程状态不合法时整版拒绝 |
 
+PROJ公开`ProjectCutoverContextFactApi.inspect(ProjectCutoverContextFactQuery)`与`lockAndRevalidate(ProjectCutoverContextFactRevalidationQuery)`。inspect Query固定携带正数`tenantId/projectId`；重验Query携带从前次`FOUND`原样复制的完整`ExpectedProjectCutoverContextFact`，tenant必须与受信运行时上下文一致。`FOUND`返回同一ProjectMaster行的`tenantId/projectId/projectVersion/projectCode/projectName/customerId/customerCode/customerName/departmentId/departmentCode/departmentName`完整事实；三个编码字段最大64字符，`projectName/customerName/departmentName`最大255字符。`NOT_FOUND/INACTIVE`无Fact，写重验的`VERSION_CONFLICT`返回当前完整Fact。锁定方法以`MANDATORY`加入CUT写事务并锁定项目当前行，锁后逐字段比较完整Expected与currentFact；任一字段变化均返回`VERSION_CONFLICT`，Expected只作并发守卫，CUT只冻结Owner返回的currentFact。Owner损坏和Provider不可用分别使用公共稳定失败。客户字段和部门字段是项目发生时展示快照，CUT仍分别以`ProjectScopeApi.treeVersion`做用户范围重验、以`CustomerServiceLevelFactApi`取得当前服务等级；不得跨Context读表、拼接Summary或以projectVersion替代treeVersion。精确机器合同见`specs/features/F-CUT-002-project-context-fact-contract.json`。当前master尚未包含公共Java接口或生产Provider。
+
+PROJ为F-CUT-005预留`ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAndRevalidate`：按受信tenant和projectId返回并冻结当前唯一PRIMARY `SERVICE_MANAGER_L1/L2`、roleCode、projectVersion与participantFactVersion；零个或多个当前事实均为`NOT_UNIQUE`，不得任选人员。锁定重验以`MANDATORY`加入CUT事务，变化返回携带当前`FOUND/NOT_UNIQUE`的`STALE`；服务经理节点改派目标必须等于再次锁定的唯一当前事实。该能力复用ProjectParticipant聚合且不创建独立Feature或表，精确候选合同见`specs/features/F-CUT-005-candidate-owner-contract.json`；当前master尚未包含公共Java接口或生产Provider。
+
 ## 10. SRV：巡检与服务状态 API
 
 适用 Requirement：INS-01～INS-09、SRV-01。

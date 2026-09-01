@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-005",
+  "status": "BASELINE_READY",
+  "featureReadyGate": "GO@2e3fdba3",
+  "requirementSlices": ["CUT-05@V1=SUPPORT"],
+  "purpose": "resolve and revalidate frozen P5 approvers without CUT reading PROJ or SYSTEM tables",
+  "trustedTenant": "tenantId must equal TenantContextHolder.getRequiredTenantId before Owner calls",
+  "interfaces": {
+    "ProjectCutoverServiceManagerFactApi": {
+      "physicalOwner": "PROJ",
+      "deliveryUnit": "F-CUT-005 PROJ physical-owner support Task; no separate Feature or table; Provider may reuse the existing ProjectParticipant aggregate and locking rules",
+      "operations": {
+        "inspectCurrent": {
+          "input": {"tenantId":"positive Long","projectId":"positive Long","checkedAt":"server LocalDateTime"},
+          "output": "FOUND|NOT_UNIQUE; FOUND carries exactly one current primary SERVICE_MANAGER_L1 or SERVICE_MANAGER_L2 user, projectVersion, participantFactVersion and roleCode"
+        },
+        "lockAndRevalidate": {
+          "transaction": "MANDATORY",
+          "input": "the complete prior FOUND fact",
+          "output": "VALID|STALE; STALE carries current FOUND or NOT_UNIQUE result"
+        }
+      },
+      "failures": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"]
+    },
+    "CutoverApprovalRoleCandidateFactApi": {
+      "physicalOwner": "SYSTEM",
+      "supportedRoleGroupCodes": ["CUT_SECOND_LINE_APPROVER","CUT_RND_APPROVER"],
+      "operations": {
+        "inspectCandidates": {
+          "input": {"tenantId":"positive Long","roleGroupCode":"supported enum"},
+          "output": "CANDIDATES carrying every enabled member as adminUserId, roleGroupId, roleMembershipVersion and userStatusVersion, sorted by adminUserId ascending with unique adminUserId; empty is valid; partial or duplicate output is OWNER_DATA_CORRUPTED"
+        },
+        "lockAndRevalidate": {
+          "transaction": "MANDATORY",
+          "input": "the complete prior CANDIDATES fact",
+          "locking": "SYSTEM locks the role group then every previously/currently relevant membership and user-status fact in adminUserId order; CUT separately locks ProjectScope ACTION_VIEW facts in the same user order",
+          "output": "VALID only when the complete current enabled candidate set is identical to the frozen SYSTEM set; STALE carries the complete current CANDIDATES fact for CUT to recompute the project-visible intersection after its separate ProjectScope locks"
+        },
+        "lockExplicitCandidate": {
+          "transaction": "MANDATORY",
+          "input": {"tenantId":"positive Long","roleGroupCode":"supported enum","subjectUserId":"positive Long"},
+          "output": "ELIGIBLE carrying roleGroupId, roleMembershipVersion and userStatusVersion | INELIGIBLE"
+        }
+      },
+      "failures": ["INVALID_REQUEST","TENANT_CONTEXT_MISMATCH","OWNER_DATA_CORRUPTED","PROVIDER_UNAVAILABLE"],
+      "projectScopeComposition": "CUT must first inspect the complete SYSTEM candidate set, then inspect ProjectScopeApi ACTION_VIEW for every candidate, and choose a subject only when the intersection contains exactly one user. Zero or multiple intersected users is NOT_UNIQUE. Global multiplicity alone does not reject a route and global role membership alone never grants project approval. The frozen candidate snapshot contains the complete SYSTEM member identities/versions, every inspected ProjectScope result/treeVersion and the single intersected subject or explicit NOT_UNIQUE. Transactional revalidation locks the same complete facts and recomputes the intersection; no pre-scope arbitrary user selection is allowed"
+    }
+  },
+  "routeMapping": {
+    "INITIATOR": "trusted current user from F-CUT-004 submit transaction plus ProjectScopeApi ACTION_EDIT; freeze userId, projectId, ACTION_EDIT and treeVersion from one locked fact before creating the node",
+    "SERVICE_MANAGER": "ProjectCutoverServiceManagerFactApi",
+    "SECOND_LINE": "CutoverApprovalRoleCandidateFactApi CUT_SECOND_LINE_APPROVER plus ProjectScopeApi ACTION_VIEW",
+    "RND": "CutoverApprovalRoleCandidateFactApi CUT_RND_APPROVER plus ProjectScopeApi ACTION_VIEW"
+  },
+  "reassignmentRules": {
+    "INITIATOR": "explicit target must pass ProjectScopeApi ACTION_EDIT for the same project; nodeCode and original initiator history remain unchanged",
+    "SERVICE_MANAGER": "explicit target must equal the current unique FOUND user from ProjectCutoverServiceManagerFactApi and its fact is locked again",
+    "SECOND_LINE_RND": "explicit target must be ELIGIBLE from CutoverApprovalRoleCandidateFactApi.lockExplicitCandidate and pass ProjectScopeApi ACTION_VIEW"
+  },
+  "initiatorMachineContract": {
+    "snapshotExactKeys": ["userId","projectId","requiredAction","treeVersion"],
+    "snapshotFields": {"userId":"positive Long","projectId":"positive Long","requiredAction":"literal ACTION_EDIT","treeVersion":"non-negative Long"},
+    "processingRevalidation": "the currentApproverUserId, whether original or reassigned, must lock ProjectScopeApi ACTION_EDIT for the same project and frozen treeVersion before approve/reject; a changed treeVersion is STALE, explicit scope denial is APPROVER_UNAVAILABLE, and Provider failure remains PROVIDER_UNAVAILABLE",
+    "visibility": "the original initiator may view progress only while current ProjectScopeApi ACTION_VIEW is valid; reassignment changes processing identity only and never overwrites original initiator history"
+  },
+  "notUniqueRule": "PROJ service-manager zero/multiple result, or SYSTEM complete-candidate-set intersect ProjectScope ACTION_VIEW producing zero/multiple users, creates/retains the approval instance in PENDING with holdReason=ROUTE_CANDIDATE_NOT_UNIQUE and no executable todo for that node; SYSTEM global multiplicity is never evaluated before the project-scope intersection and no arbitrary candidate is selected",
+  "controlledSubstituteBoundary": "src/test may deterministically return valid candidates and watermarks; no production Fake, fallback, direct table read or Yudao foundation modification is authorized"
+}
