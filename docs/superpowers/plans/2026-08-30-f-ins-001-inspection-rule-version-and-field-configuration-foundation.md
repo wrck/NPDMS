@@ -10,12 +10,12 @@
 
 **Locked Inputs:**
 
-- 锁定实施输入提交：`68bc56ec`；该提交包含PRD V1.8修订010、当前F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态；实施前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
+- 锁定实施输入提交：`6719ab94`；该提交包含PRD V1.8修订011、Q-FINS001-003正式裁决回写、重新GO的F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态；实施前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
 
 - Requirement：`INS-03@V2=PARTIAL`、`INS-09@V2=FULL`、`NFR-02@V2`支撑
 - Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 - 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
-- Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260830-01`
+- Feature Ready：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-02`
 - 正式SDS：`docs/design/04-module-design.md`、`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`14-security-design.md`、`20-test-design.md`
 - 查询规范：`docs/coding/database-query-interface.md`
 
@@ -236,9 +236,9 @@ Expected：PASS；摘要为小写64位十六进制，任何秘密值不得进入
 
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRevisionRules.java`
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRegexValidator.java`
-- Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleSecretScanner.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRevisionRulesTest.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRegexValidatorTest.java`
+- Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleSecretScanner.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleSecretScannerTest.java`
 
 **Required domain records:**
@@ -263,37 +263,37 @@ public record ValidationError(String location, String code, String message) {
 }
 ```
 
-- [ ] **Step 1: 实现最小领域规则**
+- [x] **Step 1A: 实现不依赖未决规格的最小领域规则**
 
-完成状态、八字段、命令顺序与超时、正则预算、阈值和秘密扫描的最小纯领域实现。
+完成只有草稿可编辑、检测ID/规则名称/检测项目/描述/分类/严重度/排序等稳定字段必填、命令稳定键、命令顺序、1～30秒超时、阈值完整结构与六种正式运算符、产品类型非空且不重复和JDK正则语法编译校验；分类、严重度和阈值数据类型当前只做必填，不猜测机器码或枚举。
 
-- [ ] **Step 2: 补充状态和八字段定向测试**
+- [x] **Step 2A: 补充状态、字段和命令边界定向测试**
 
-覆盖只有草稿可编辑、检测ID必填、规则名称必填、十类分类、三级严重级别、描述、排序、至少一个产品类型、正则和阈值完整性。
+覆盖非草稿拒绝、稳定字段必填、至少一条命令、顺序从1连续且逐项定位、稳定命令键不重复、空命令、0和31秒拒绝、阈值完整结构与正式运算符，以及产品类型必填和重复编码拒绝。
 
-- [ ] **Step 3: 补充命令边界定向测试**
+- [x] **Step 3A: 补充JDK正则语法定向测试**
 
-覆盖至少一条命令、顺序从1连续且不重复、稳定命令键不重复、空命令拒绝、默认30秒、1和30通过、0和31拒绝、继续/停止决定必须冻结。
+只编译表达式验证JDK语法，不在校验阶段对不可信文本执行匹配，也不自行设定长度、分组、量词、嵌套深度或分支预算。
 
-- [ ] **Step 4: 补充正则预算定向测试**
+- [x] **Step 4B: 实施受控机器码和正则复杂度预算**
 
-使用JDK正则语法编译校验，并以结构复杂度预算拒绝明显嵌套量词、过长表达式和可预见灾难性回溯模式；不在校验阶段对不可信大文本执行无上限匹配。
+按`NPDMS-Q-FINS001-003-GO-20260901-01`和修订011实施十类分类、三级严重度机器码、JDK 25受限子集及1024长度、32分组、8层嵌套、31分支、64量词和1000区间上界预算；不得扩张为运行时执行引擎。
 
-- [ ] **Step 5: 补充秘密扫描定向测试**
+- [x] **Step 5B: 实施秘密扫描模式与稳定错误码**
 
-最小扫描面覆盖私钥头、认证头、URL内嵌凭证和明确密码赋值模式；结果只返回字段位置和稳定错误码，不回显命中的秘密正文。
+按批准口径实施私钥头、认证头、URL内嵌凭证和密码赋值四类扫描及明确占位符；只返回字段位置和`SECRET_DETECTED`，不回显命中正文，不增加未经批准的通用DLP模式。
 
-- [ ] **Step 6: 运行定向测试**
+- [x] **Step 6: 运行Task 4定向测试**
 
 Run:
 
 ```powershell
-mvn.cmd -pl pms-module-service -Dtest=InspectionRuleRevisionRulesTest,InspectionRuleRegexValidatorTest,InspectionRuleSecretScannerTest test
+mvn.cmd -pl pms-module-service -am "-Dtest=InspectionRuleRevisionRulesTest,InspectionRuleRegexValidatorTest,InspectionRuleSecretScannerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Expected：PASS；错误位置使用`commands[0].timeoutSeconds`、`threshold.operator`、`productTypes[0]`等稳定路径。
+Expected：17项测试PASS；覆盖稳定字段路径、十类分类/三级严重度、正则精确边界与越界、禁止结构、四类Secret模式、五类占位符及不回显契约。
 
-- [ ] **Step 7: 建议逻辑分组**
+- [x] **Step 7: 建议逻辑分组**
 
 建议提交信息：`feat(service): 实现巡检规则revision领域校验`
 
@@ -810,7 +810,7 @@ Expected：无空白错误；所有变更可追溯到F-INS-001；未产生提交
 
 ## 5. 主要风险与处理
 
-- **AST产品类型契约当前缺失：** 这是已发现的正式规格与任务缺口。Task 2只验收AST Owner独立Feature/Task交付的公开契约和F-INS消费结果，不创建或修改AST文件；对应Feature Spec或当前Task未建立时标记`BLOCKED_BY_SPEC`并登记Open Question，发布和选择闭环保持阻断。
+- **AST产品类型真实消费后置：** F-AST-002公开契约及Implementation Done已由Task 2验收；Task 7/8/9只通过公开`-api`完成发布预检、发布和工程师选择的真实消费验证，不创建或修改AST文件，不直读AST业务表。
 - **安全审核不绑定固定角色编码：** 不硬编码角色代码、不建设BPM。采用租户内专用`pms:inspection-rule:security-review`动态权限包；Service重复校验，审核事实保存用户、权限码及可获得的稳定授权来源，不要求解析角色贡献关系。
 - **Flyway并行编号冲突：** 当前预留V134～V136，实施前和集成前各扫描一次；冲突只通过新增编号顺延解决，不修改已执行文件。
 - **正则ReDoS与命令秘密：** 发布前执行语法、结构复杂度、长度预算和秘密扫描；错误不回显命中正文，运行时执行预算由后续INS-02负责，本Feature不伪装为执行引擎。

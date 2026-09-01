@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md"
 TASK = ROOT / "tasks/features/F-INS-001.md"
-LOCKED_INPUT = "68bc56ec"
+LOCKED_INPUT = "6719ab94"
 REQUIREMENT_IDS = {"INS-03", "INS-09", "NFR-02"}
 LOCKED_FILES = (
     "docs/baseline/prd-v1.8.md",

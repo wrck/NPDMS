@@ -3,16 +3,16 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 1/2前置单元已通过`GO NPDMS-FINS001-TASK1-2-CLOSEOUT-REVIEW-20260901-01`，F-AST-002外部交付依赖已关闭；Inspection真实失败关闭消费待Task 7/8/9生产入口实现后验证
+> 当前阻断：无；Task 4已通过`GO NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`，当前最近Gate为Task 5前向Schema与正式字典
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md`
-> 锁定实施输入提交：`68bc56ec`
+> 锁定实施输入提交：`6719ab94`
 
 ## 当前最小工作单元
 
-- Task 3巡检侧显式审核授权端口、失败关闭守卫与纯内容摘要契约已完成并独立复审GO；当前最小工作单元为提交Task 3，随后进入Task 4纯领域校验。
+- Task 4已完成纯领域闭环：草稿可编辑、稳定字段/命令/阈值/产品类型校验、十类分类与三级严重度、JDK 25受限正则静态预算、四类Secret扫描和稳定错误码均已实现。当前最小工作单元切换为Task 5前向Schema、正式字典、菜单权限与受控迁移。
 
 ## 已完成
 
@@ -29,6 +29,7 @@
 - 唯一Technical Plan已明确Task 2只做外部Gate/API边界预验收，不核销未知、停用、未解析、跨租户、空设备范围或AST异常下的Inspection生产消费行为；这些义务分别在Task 7/8发布预检与发布、Task 9工程师选择入口实现后验证；`git diff --check` PASS。
 - Task 3已冻结巡检侧`InspectionRuleExplicitAuthorizationApi`端口；守卫核对当前租户、用户、专用权限码和`RBAC_PERMISSION`并失败关闭，System侧适配器及守卫Bean装配按外部能力后置，未提供虚假默认实现。
 - Task 3纯内容摘要只覆盖按执行顺序规范化的命令、超时、继续策略和预期正则，拒绝重复或非正数顺序，输出小写64位SHA-256；7项Java定向测试、9项Python门禁和38模块server package PASS，独立复审GO。
+- Task 4已完成revision纯领域校验：正式机器码、受限正则预算与禁止结构、四类Secret扫描和稳定错误码均已实现；17项定向测试、35项service全量测试、9项Python门禁、22模块测试Reactor、38模块server package、追溯与差异检查PASS；独立复审核销编号`NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`。
 
 ## 首轮Technical Plan评审核销
 
@@ -45,7 +46,7 @@
 
 ## 阻断
 
-无。Task 1/2前置单元已通过`GO NPDMS-FINS001-TASK1-2-CLOSEOUT-REVIEW-20260901-01`，Task 3内部契约已独立复审GO。F-AST-002公开契约、迁移、真实MySQL和Implementation Done证据已完成，AST外部交付依赖已关闭。Task 2只验收API形状、模块依赖和后续消费所需事实字段，不把测试辅助逻辑或AST Provider测试替代为Inspection生产消费证据。F-INS-001仍不得代建AST或System外部适配器；显式审核授权适配器和守卫Bean装配待外部能力完备后继续实施。命令安全审核仍要求租户内显式授予`pms:inspection-rule:security-review`，在Inspection revision上记录并绑定内容摘要；不新增固定角色、审批节点或状态。
+无。`Q-FINS001-003`已关闭并由锁定实施输入`6719ab94`承载；Task 4已通过`NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`。外部适配器与Task 7/8/9真实消费继续后置，当前进入Task 5前向Schema与正式字典。
 
 ## 已知边界
 
@@ -56,4 +57,4 @@
 
 ## 检查点
 
-基线=ec80c924；当前Gate=Task3内部契约提交；证据=7项Java、9项Python、38模块server package及独立复审GO；阻塞=无，System授权适配器与外部消费后置；下一步=提交后进入Task4纯领域校验。
+基线=6719ab94；当前Gate=Task5前向Schema与正式字典；证据=Task4 17项定向、35项service全量、9项Python、22模块测试、38模块package及独立复审GO；阻塞=无，外部适配器及Task7/8/9真实消费后置；下一步=扫描Flyway空闲编号并实施五表、正式字典与受控迁移。

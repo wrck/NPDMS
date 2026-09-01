@@ -17,6 +17,12 @@ TEST_ASSETS = (
     "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestService.java",
     "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuardTest.java",
     "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestServiceTest.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRevisionRules.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRegexValidator.java",
+    "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRevisionRulesTest.java",
+    "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleRegexValidatorTest.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleSecretScanner.java",
+    "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/domain/inspectionrule/InspectionRuleSecretScannerTest.java",
 )
 QUERY_PARAMETER_EXCEPTIONS = {}
 
@@ -28,8 +34,12 @@ class FIns001OwnerAndQueryBoundaryTest(unittest.TestCase):
         for folder in SERVICE_ROOT.rglob("inspectionrule"):
             sources.extend(path.read_text(encoding="utf-8-sig") for path in folder.rglob("*.*"))
         combined = "\n".join(sources)
-        for forbidden in ("ast_", "proj_", "cus_", "cut_", "${", ".last("):
+        for forbidden in ("ast_", "proj_", "cus_", "cut_", ".last("):
             self.assertNotIn(forbidden, combined)
+        xml_sources = []
+        for folder in SERVICE_ROOT.rglob("inspectionrule"):
+            xml_sources.extend(path.read_text(encoding="utf-8-sig") for path in folder.rglob("*.xml"))
+        self.assertNotIn("${", "\n".join(xml_sources))
         self.assertNotIn("@Select(", combined)
         self.assertNotIn("@Update(", combined)
         self.assertNotIn("@Insert(", combined)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCKED_INPUT = "68bc56ec"
+LOCKED_INPUT = "6719ab94"
 LEGACY_PATHS = (
     "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvrule",
     "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/srvrule",
