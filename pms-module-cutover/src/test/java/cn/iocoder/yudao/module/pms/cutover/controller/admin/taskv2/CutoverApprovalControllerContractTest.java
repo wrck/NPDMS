@@ -53,6 +53,11 @@ class CutoverApprovalControllerContractTest {
     void servesSixPositiveRoutesWithExactHeadersAndEpochResponses() throws Exception {
         var detail = detail();
         when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail);
+        when(query.decisionResponse(anyLong(), anyLong(), anyLong(), anyInt(), anyLong())).thenReturn(detail);
+        var decisionResult = new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(
+                1L, 100L, 1, 10L, 5, 70L, 1, "PENDING", null, 2, "P5", "APPROVING", null);
+        when(application.approve(any())).thenReturn(decisionResult);
+        when(application.reject(any())).thenReturn(decisionResult);
         when(query.myTodos(1L, 8L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
                 new CutoverApprovalViews.TodoItem(100L, 0, 10L, 20L, "CUT-10", "核心割接", "A", 1,
                         "INITIATOR", LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
@@ -112,6 +117,21 @@ class CutoverApprovalControllerContractTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.data.category").value("SOURCE_STALE"))
                 .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_SOURCES"));
+    }
+
+    @Test
+    void mapsTaskAndApprovalVersionsFromStructuredApplicationErrors() throws Exception {
+        when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail());
+        when(application.approve(any())).thenThrow(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException(
+                cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.VERSION_CONFLICT,
+                "TASK_VERSION_STALE", null, 3, 7, "任务版本变化"));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/approve")
+                .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "approve-1")
+                .contentType("application/json").content(decision("APPROVE", "YES", null)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.data.reasonCode").value("TASK_VERSION_STALE"))
+                .andExpect(jsonPath("$.data.currentApprovalVersion").value(3))
+                .andExpect(jsonPath("$.data.currentTaskVersion").value(7));
     }
 
     private static CutoverApprovalViews.ApprovalDetail detail() {

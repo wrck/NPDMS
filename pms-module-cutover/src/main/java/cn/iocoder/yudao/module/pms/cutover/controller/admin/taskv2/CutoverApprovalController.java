@@ -76,11 +76,12 @@ public class CutoverApprovalController {
             @RequestHeader("X-Task-Version") String taskVersion,
             @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
         var trusted = trusted(taskId); var current = currentFull(trusted, taskId); var request = codec.approve(body);
-        applicationService.approve(new ApproveCutoverApprovalCommand(trusted.tenantId(), taskId,
+        var result = applicationService.approve(new ApproveCutoverApprovalCommand(trusted.tenantId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), current.approvalInstanceId(),
                 codec.version(approvalVersion, "If-Match"), request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryDetail(trusted, taskId)));
+        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
+                result.approvalInstanceId(), current.currentNodeNo(), trusted.actorId())));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reject")
@@ -90,11 +91,12 @@ public class CutoverApprovalController {
             @RequestHeader("X-Task-Version") String taskVersion,
             @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
         var trusted = trusted(taskId); var current = currentFull(trusted, taskId); var request = codec.reject(body);
-        applicationService.reject(new RejectCutoverApprovalCommand(trusted.tenantId(), taskId,
+        var result = applicationService.reject(new RejectCutoverApprovalCommand(trusted.tenantId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), current.approvalInstanceId(),
                 codec.version(approvalVersion, "If-Match"), request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryDetail(trusted, taskId)));
+        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
+                result.approvalInstanceId(), current.currentNodeNo(), trusted.actorId())));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reassign")
@@ -199,15 +201,15 @@ public class CutoverApprovalController {
 
     private static CutoverApprovalContractException contract(CutoverApprovalApplicationException ex) {
         return switch (ex.code()) {
-            case INVALID_REQUEST -> ce(400, "INVALID_REQUEST", "REQUEST_SCHEMA_INVALID", "FIX_REQUEST", null);
-            case STATE_CONFLICT -> ce(409, "STATE_CONFLICT", "APPROVAL_NOT_PENDING", "REFRESH_APPROVAL", null);
-            case VERSION_CONFLICT -> ce(409, "VERSION_CONFLICT", "APPROVAL_VERSION_STALE", "REFRESH_APPROVAL", null);
-            case SOURCE_STALE -> ce(409, "SOURCE_STALE", "PLAN_OR_ASSESSMENT_OR_CHECKLIST_STALE", "REFRESH_SOURCES", null);
-            case BUSINESS_INCOMPLETE -> ce(422, "BUSINESS_INCOMPLETE", "DECISION_ACTION_RESULT_MISMATCH", "FIX_REQUEST", null);
-            case IDEMPOTENCY_CONFLICT -> ce(409, "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_PAYLOAD_CONFLICT", "CONTACT_ADMIN", null);
-            case IDEMPOTENCY_IN_PROGRESS -> ce(409, "IDEMPOTENCY_IN_PROGRESS", "IDEMPOTENCY_OPERATION_IN_PROGRESS", "RETRY_SAME_KEY", null);
-            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, "OWNER_PROVIDER_UNAVAILABLE", "PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE", "RETRY_LATER", "PROJ");
-            case OWNER_DATA_CORRUPTED -> ce(500, "OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED", "CONTACT_SUPPORT", null);
+            case INVALID_REQUEST -> ce(400, "INVALID_REQUEST", ex.reasonCode(), "FIX_REQUEST", ex.ownerContext(), ex);
+            case STATE_CONFLICT -> ce(409, "STATE_CONFLICT", ex.reasonCode(), "REFRESH_APPROVAL", ex.ownerContext(), ex);
+            case VERSION_CONFLICT -> ce(409, "VERSION_CONFLICT", ex.reasonCode(), "REFRESH_APPROVAL", ex.ownerContext(), ex);
+            case SOURCE_STALE -> ce(409, "SOURCE_STALE", ex.reasonCode(), "REFRESH_SOURCES", ex.ownerContext(), ex);
+            case BUSINESS_INCOMPLETE -> ce(422, "BUSINESS_INCOMPLETE", ex.reasonCode(), "FIX_REQUEST", ex.ownerContext(), ex);
+            case IDEMPOTENCY_CONFLICT -> ce(409, "IDEMPOTENCY_CONFLICT", ex.reasonCode(), "CONTACT_ADMIN", ex.ownerContext(), ex);
+            case IDEMPOTENCY_IN_PROGRESS -> ce(409, "IDEMPOTENCY_IN_PROGRESS", ex.reasonCode(), "RETRY_SAME_KEY", ex.ownerContext(), ex);
+            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, "OWNER_PROVIDER_UNAVAILABLE", ex.reasonCode(), "RETRY_LATER", ex.ownerContext(), ex);
+            case OWNER_DATA_CORRUPTED -> ce(500, "OWNER_DATA_CORRUPTED", ex.reasonCode(), "CONTACT_SUPPORT", ex.ownerContext(), ex);
         };
     }
 
@@ -215,6 +217,13 @@ public class CutoverApprovalController {
                                                          String recovery, String owner) {
         return new CutoverApprovalContractException(status, 1_011_010_000 + status, reason,
                 new CutoverApprovalContractException.ErrorData(category, reason, recovery, owner, null, null));
+    }
+
+    private static CutoverApprovalContractException ce(int status, String category, String reason,
+            String recovery, String owner, CutoverApprovalApplicationException ex) {
+        return new CutoverApprovalContractException(status, 1_011_010_000 + status, reason,
+                new CutoverApprovalContractException.ErrorData(category, reason, recovery, owner,
+                        ex.currentApprovalVersion(), ex.currentTaskVersion()));
     }
 
     private static ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> error(

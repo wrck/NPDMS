@@ -116,7 +116,7 @@ public class CutoverApprovalApplicationService {
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.feedback(), command.idempotencyKey(), command.correlationId());
         require(command.reviewItems().stream().allMatch(item -> "YES".equals(item.decision())),
-                BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH");
+                BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH", "审批动作与评审结果不一致");
         return decide(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.assessmentReview(), command.feedback(), command.idempotencyKey(), command.correlationId(), true);
@@ -129,7 +129,8 @@ public class CutoverApprovalApplicationService {
         boolean anyNo = command.reviewItems().stream().anyMatch(item -> "NO".equals(item.decision()));
         boolean assessmentReject = command.assessmentReview() != null
                 && "NOT_REASONABLE".equals(command.assessmentReview().decision());
-        require(anyNo || assessmentReject, BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH");
+        require(anyNo || assessmentReject, BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH",
+                "审批动作与评审结果不一致");
         return decide(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.assessmentReview(), command.feedback(), command.idempotencyKey(), command.correlationId(), false);
@@ -143,12 +144,12 @@ public class CutoverApprovalApplicationService {
                         && command.expectedApprovalVersion() != null && command.expectedApprovalVersion() >= 0
                         && command.nodeNo() != null && command.nodeNo() > 0
                         && command.newApproverUserId() != null && command.newApproverUserId() > 0,
-                INVALID_REQUEST, "改派命令身份非法");
-        require(nonBlank(command.reason(), 1000), BUSINESS_INCOMPLETE, "REASSIGN_REASON_REQUIRED");
+                INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "改派命令身份非法");
+        require(nonBlank(command.reason(), 1000), BUSINESS_INCOMPLETE, "FEEDBACK_REQUIRED", "改派原因缺失");
         require(nonBlank(command.idempotencyKey(), 128) && nonBlank(command.correlationId(), 128),
-                INVALID_REQUEST, "改派命令头非法");
+                INVALID_REQUEST, "HEADER_REQUIRED_OR_INVALID", "改派命令头非法");
         long actorId = currentUserId.getAsLong();
-        require(actorId > 0, INVALID_REQUEST, "缺少受信当前用户");
+        require(actorId > 0, INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "缺少受信当前用户");
         ReassignmentBusinessInput digest = new ReassignmentBusinessInput(command.tenantId(), command.taskId(),
                 command.expectedTaskVersion(), command.approvalInstanceId(), command.expectedApprovalVersion(),
                 command.nodeNo(), command.newApproverUserId(), command.reason());
@@ -161,9 +162,9 @@ public class CutoverApprovalApplicationService {
                         "taskId", result.taskId(), "nodeNo", command.nodeNo(), "newApproverUserId", command.newApproverUserId())),
                         null, null));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT)
-            throw failure(IDEMPOTENCY_CONFLICT, "改派幂等载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, "IDEMPOTENCY_PAYLOAD_CONFLICT", "改派幂等载荷冲突");
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
-            throw failure(IDEMPOTENCY_IN_PROGRESS, "改派命令处理中");
+            throw failure(IDEMPOTENCY_IN_PROGRESS, "IDEMPOTENCY_OPERATION_IN_PROGRESS", "改派命令处理中");
         return execution.response();
     }
 
@@ -172,19 +173,21 @@ public class CutoverApprovalApplicationService {
         require(reassignmentMapper != null && taskMapper != null, OWNER_DATA_CORRUPTED, "改派持久化组件未装配");
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
         require(task != null && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus()),
-                STATE_CONFLICT, "任务不在P5审批中");
-        require(Objects.equals(task.getVersion(), command.expectedTaskVersion()), VERSION_CONFLICT, "任务版本已变化");
+                STATE_CONFLICT, "APPROVAL_NOT_PENDING", "任务不在P5审批中");
+        if (!Objects.equals(task.getVersion(), command.expectedTaskVersion()))
+            throw failure(VERSION_CONFLICT, "TASK_VERSION_STALE", null, null, task.getVersion(), "任务版本已变化");
         CutoverApprovalInstanceDO root = instanceMapper.selectByIdForUpdate(new ApprovalInstanceLockQuery(
                 command.tenantId(), command.approvalInstanceId(), null, null));
         require(root != null && Objects.equals(root.getTaskId(), command.taskId()) && "PENDING".equals(root.getStatusCode()),
-                STATE_CONFLICT, "审批实例不可改派");
-        require(Objects.equals(root.getVersion(), command.expectedApprovalVersion()), VERSION_CONFLICT, "审批版本已变化");
+                STATE_CONFLICT, "APPROVAL_NOT_PENDING", "审批实例不可改派");
+        if (!Objects.equals(root.getVersion(), command.expectedApprovalVersion()))
+            throw failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", null, root.getVersion(), task.getVersion(), "审批版本已变化");
         CutoverApprovalNodeDO node = nodeMapper.selectByInstanceAndNodeForUpdate(new ApprovalNodeLockQuery(
                 command.tenantId(), command.approvalInstanceId(), command.nodeNo()));
         require(node != null && List.of("WAITING", "PENDING").contains(node.getStatusCode()),
-                STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN");
+                STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标节点未开放");
         require(!Objects.equals(node.getCurrentApproverUserId(), command.newApproverUserId()),
-                STATE_CONFLICT, "改派目标未变化");
+                STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标未变化");
         ReassignmentCandidate candidate = lockReassignmentCandidate(root, node, command.newApproverUserId());
         LocalDateTime now = LocalDateTime.now(clock);
         require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(node.getTenantId(), node.getId(),
@@ -229,7 +232,7 @@ public class CutoverApprovalApplicationService {
             AssessmentReviewInput assessmentReview, String feedback, String idempotencyKey,
             String correlationId, boolean approve) {
         long actorId = currentUserId.getAsLong();
-        require(actorId > 0, INVALID_REQUEST, "缺少受信当前用户");
+        require(actorId > 0, INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "缺少受信当前用户");
         DecisionBusinessInput digest = new DecisionBusinessInput(tenantId, taskId, expectedTaskVersion,
                 approvalInstanceId, expectedApprovalVersion, approve ? "APPROVE" : "REJECT",
                 reviewItems, assessmentReview, feedback);
@@ -241,11 +244,11 @@ public class CutoverApprovalApplicationService {
                         correlationId, actorId, approve),
                 result -> decisionSuccessFacts(result, correlationId));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT)
-            throw failure(IDEMPOTENCY_CONFLICT, "审批决定幂等载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, "IDEMPOTENCY_PAYLOAD_CONFLICT", "审批决定幂等载荷冲突");
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
-            throw failure(IDEMPOTENCY_IN_PROGRESS, "审批决定命令处理中");
+            throw failure(IDEMPOTENCY_IN_PROGRESS, "IDEMPOTENCY_OPERATION_IN_PROGRESS", "审批决定命令处理中");
         if (execution.response().holdReason() != null)
-            throw failure(STATE_CONFLICT, "APPROVER_UNAVAILABLE");
+            throw failure(STATE_CONFLICT, "APPROVER_UNAVAILABLE", "审批人当前不可用");
         return execution.response();
     }
 
@@ -257,18 +260,22 @@ public class CutoverApprovalApplicationService {
                 OWNER_DATA_CORRUPTED, "审批决定持久化组件未装配");
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(tenantId, taskId));
         require(task != null && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus()),
-                STATE_CONFLICT, "任务不在P5审批中");
-        require(Objects.equals(task.getVersion(), expectedTaskVersion), VERSION_CONFLICT, "任务版本已变化");
+                STATE_CONFLICT, "APPROVAL_NOT_PENDING", "任务不在P5审批中");
+        if (!Objects.equals(task.getVersion(), expectedTaskVersion))
+            throw failure(VERSION_CONFLICT, "TASK_VERSION_STALE", null, null, task.getVersion(), "任务版本已变化");
         CutoverApprovalInstanceDO instance = instanceMapper.selectByIdForUpdate(
                 new ApprovalInstanceLockQuery(tenantId, approvalInstanceId, null, null));
-        require(instance != null && Objects.equals(instance.getTaskId(), taskId), STATE_CONFLICT, "审批实例不存在");
+        require(instance != null && Objects.equals(instance.getTaskId(), taskId), STATE_CONFLICT,
+                "APPROVAL_NOT_PENDING", "审批实例不存在");
         require("PENDING".equals(instance.getStatusCode()) && instance.getHoldReasonCode() == null,
-                STATE_CONFLICT, "审批实例不可决定");
-        require(Objects.equals(instance.getVersion(), expectedApprovalVersion), VERSION_CONFLICT, "审批版本已变化");
+                STATE_CONFLICT, "APPROVAL_NOT_PENDING", "审批实例不可决定");
+        if (!Objects.equals(instance.getVersion(), expectedApprovalVersion))
+            throw failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", null, instance.getVersion(), task.getVersion(), "审批版本已变化");
         CutoverApprovalNodeDO current = nodeMapper.selectByInstanceAndNodeForUpdate(
                 new ApprovalNodeLockQuery(tenantId, approvalInstanceId, instance.getCurrentNodeNo()));
         require(current != null && "PENDING".equals(current.getStatusCode())
-                && Objects.equals(current.getCurrentApproverUserId(), actorId), STATE_CONFLICT, "当前用户不是待审批人");
+                && Objects.equals(current.getCurrentApproverUserId(), actorId), STATE_CONFLICT,
+                "NOT_CURRENT_NODE", "当前用户不是待审批人");
         if (!revalidateApprover(instance, current, actorId)) {
             int oldVersion = instance.getVersion();
             instance.setHoldReasonCode("APPROVER_UNAVAILABLE");
@@ -484,7 +491,7 @@ public class CutoverApprovalApplicationService {
                 var locked = projectScopePort.lockAndRevalidate(expected);
                 if (!locked.current().allowed()) yield false;
                 require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                        SOURCE_STALE, "发起人项目范围版本已变化");
+                        SOURCE_STALE, "APPROVER_FACT_STALE", "发起人项目范围版本已变化");
                 yield true;
             }
             case "SERVICE_MANAGER" -> {
@@ -494,7 +501,7 @@ public class CutoverApprovalApplicationService {
                 if (locked.current().outcome() != ProjectCutoverServiceManagerPort.Outcome.FOUND
                         || !Objects.equals(locked.current().userId(), actorId)) yield false;
                 require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID,
-                        SOURCE_STALE, "服务经理事实版本已变化");
+                        SOURCE_STALE, "APPROVER_FACT_STALE", "服务经理事实版本已变化");
                 yield true;
             }
             case "SECOND_LINE", "RND" -> {
@@ -529,7 +536,7 @@ public class CutoverApprovalApplicationService {
                 }
                 if (allowed.size() != 1 || allowed.getFirst() != actorId) yield false;
                 require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID
-                                && !scopeStale, SOURCE_STALE, "审批候选事实版本已变化");
+                                && !scopeStale, SOURCE_STALE, "APPROVER_FACT_STALE", "审批候选事实版本已变化");
                 yield true;
             }
             default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
@@ -544,8 +551,9 @@ public class CutoverApprovalApplicationService {
                         "ACTION_EDIT");
                 var locked = projectScopePort.lockAndRevalidate(expected);
                 require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                        SOURCE_STALE, "改派目标项目范围已变化");
-                require(locked.current().allowed(), STATE_CONFLICT, "改派目标不具备项目编辑范围");
+                        SOURCE_STALE, "APPROVER_FACT_STALE", "改派目标项目范围已变化");
+                require(locked.current().allowed(), STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN",
+                        "改派目标不具备项目编辑范围");
                 yield new ReassignmentCandidate(JsonUtils.toJsonString(locked.current()), locked.current().treeVersion());
             }
             case "SERVICE_MANAGER" -> {
@@ -553,10 +561,10 @@ public class CutoverApprovalApplicationService {
                         LocalDateTime.now(clock));
                 var locked = serviceManagerPort.lockAndRevalidate(expected);
                 require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID,
-                        SOURCE_STALE, "服务经理事实已变化");
+                        SOURCE_STALE, "APPROVER_FACT_STALE", "服务经理事实已变化");
                 require(locked.current().outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND
                                 && Objects.equals(locked.current().userId(), targetUserId),
-                        STATE_CONFLICT, "改派目标不是当前唯一服务经理");
+                        STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标不是当前唯一服务经理");
                 yield new ReassignmentCandidate(JsonUtils.toJsonString(locked.current()), 0L);
             }
             case "SECOND_LINE", "RND" -> {
@@ -565,7 +573,7 @@ public class CutoverApprovalApplicationService {
                 var inspected = roleCandidatePort.inspectCandidates(root.getTenantId(), group);
                 var lockedCandidates = roleCandidatePort.lockAndRevalidate(inspected);
                 require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID,
-                        SOURCE_STALE, "审批角色候选事实已变化");
+                        SOURCE_STALE, "APPROVER_FACT_STALE", "审批角色候选事实已变化");
                 List<FrozenProjectScope> scopes = new ArrayList<>();
                 Long selectedScopeVersion = null;
                 boolean targetCandidate = false;
@@ -574,14 +582,14 @@ public class CutoverApprovalApplicationService {
                             candidate.adminUserId(), "ACTION_VIEW");
                     var lockedScope = projectScopePort.lockAndRevalidate(expectedScope);
                     require(lockedScope.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                            SOURCE_STALE, "审批候选项目范围已变化");
+                            SOURCE_STALE, "APPROVER_FACT_STALE", "审批候选项目范围已变化");
                     scopes.add(new FrozenProjectScope(candidate.adminUserId(), lockedScope.current().allowed(),
                             lockedScope.current().treeVersion()));
                     if (candidate.adminUserId() == targetUserId && lockedScope.current().allowed()) {
                         targetCandidate = true; selectedScopeVersion = lockedScope.current().treeVersion();
                     }
                 }
-                require(targetCandidate, STATE_CONFLICT, "改派目标不是当前合格候选");
+                require(targetCandidate, STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标不是当前合格候选");
                 FrozenRoleSnapshot snapshot = new FrozenRoleSnapshot(group,
                         lockedCandidates.current().candidates(), List.copyOf(scopes), targetUserId);
                 yield new ReassignmentCandidate(JsonUtils.toJsonString(snapshot), selectedScopeVersion);
@@ -735,35 +743,39 @@ public class CutoverApprovalApplicationService {
         require(tenantId != null && tenantId > 0 && taskId != null && taskId > 0
                 && approvalInstanceId != null && approvalInstanceId > 0 && expectedTaskVersion != null
                 && expectedTaskVersion >= 0 && expectedApprovalVersion != null && expectedApprovalVersion >= 0,
-                INVALID_REQUEST, "审批命令身份或版本非法");
-        require(nonBlank(idempotencyKey, 128) && nonBlank(correlationId, 128), INVALID_REQUEST, "审批命令头非法");
-        require(nonBlank(feedback, 1000), BUSINESS_INCOMPLETE, "FEEDBACK_REQUIRED");
-        require(items != null && items.size() == 5, BUSINESS_INCOMPLETE, "REVIEW_ITEMS_INCOMPLETE");
+                INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "审批命令身份或版本非法");
+        require(nonBlank(idempotencyKey, 128) && nonBlank(correlationId, 128), INVALID_REQUEST,
+                "HEADER_REQUIRED_OR_INVALID", "审批命令头非法");
+        require(nonBlank(feedback, 1000), BUSINESS_INCOMPLETE, "FEEDBACK_REQUIRED", "审批反馈缺失");
+        require(items != null && items.size() == 5, BUSINESS_INCOMPLETE,
+                "REVIEW_ITEMS_INCOMPLETE", "审批评审项不完整");
         Set<String> codes = new java.util.LinkedHashSet<>();
         for (int index = 0; index < items.size(); index++) {
             ReviewItemInput item = items.get(index);
             require(item != null && CutoverApprovalRules.REVIEW_ITEM_CODES.get(index).equals(item.itemCode())
                     && List.of("YES", "NO").contains(item.decision()) && codes.add(item.itemCode()),
-                    INVALID_REQUEST, "审批评审项非法");
+                    INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "审批评审项非法");
             require("YES".equals(item.decision()) ? item.unreasonableReason() == null
-                    : nonBlank(item.unreasonableReason(), 1000), BUSINESS_INCOMPLETE, "NO_REASON_REQUIRED");
+                    : nonBlank(item.unreasonableReason(), 1000), BUSINESS_INCOMPLETE,
+                    "NO_REASON_REQUIRED", "否决项必须填写原因");
         }
     }
 
     private static void validateAssessmentReview(String nodeCode, AssessmentReviewInput input,
                                                  boolean approve, boolean anyNo) {
         if (!"SERVICE_MANAGER".equals(nodeCode)) {
-            require(input == null, INVALID_REQUEST, "非服务经理节点不得复核P2");
+            require(input == null, INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "非服务经理节点不得复核P2");
             return;
         }
-        require(input != null, BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED");
-        require(List.of("CONFIRMED", "NOT_REASONABLE").contains(input.decision()), INVALID_REQUEST, "复核决定非法");
+        require(input != null, BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED", "服务经理必须复核P2");
+        require(List.of("CONFIRMED", "NOT_REASONABLE").contains(input.decision()), INVALID_REQUEST,
+                "REQUEST_SCHEMA_INVALID", "复核决定非法");
         require(("CONFIRMED".equals(input.decision()) && input.reason() == null)
                 || ("NOT_REASONABLE".equals(input.decision()) && nonBlank(input.reason(), 1000)),
-                BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED");
+                BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED", "P2复核原因不完整");
         require((approve && "CONFIRMED".equals(input.decision()))
                         || (!approve && (anyNo || "NOT_REASONABLE".equals(input.decision()))), BUSINESS_INCOMPLETE,
-                "DECISION_ACTION_RESULT_MISMATCH");
+                "DECISION_ACTION_RESULT_MISMATCH", "审批动作与复核结果不一致");
     }
 
     private static boolean nonBlank(String value, int max) {
@@ -806,8 +818,22 @@ public class CutoverApprovalApplicationService {
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {
         if (!condition) throw failure(code, message);
     }
+    private static void require(boolean condition, CutoverApprovalApplicationException.Code code,
+                                String reasonCode, String message) {
+        if (!condition) throw failure(code, reasonCode, message);
+    }
     private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code, String message) {
         return new CutoverApprovalApplicationException(code, message);
+    }
+    private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code,
+                                                                 String reasonCode, String message) {
+        return new CutoverApprovalApplicationException(code, reasonCode, null, null, null, message);
+    }
+    private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code,
+            String reasonCode, String ownerContext, Integer currentApprovalVersion, Integer currentTaskVersion,
+            String message) {
+        return new CutoverApprovalApplicationException(code, reasonCode, ownerContext,
+                currentApprovalVersion, currentTaskVersion, message);
     }
     private record NodeDraft(String nodeCode, Long approverUserId, long treeVersion, String candidateSnapshot,
                              String unresolvedReason) { }

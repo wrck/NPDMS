@@ -102,6 +102,26 @@ class CutoverApprovalQueryServiceTest {
         verify(f.scopes).inspect(1L, 20L, 23L, "ACTION_VIEW");
     }
 
+    @Test
+    void returnsFrozenDecisionResponseAfterCurrentNodeAdvances() {
+        Fixture f = new Fixture();
+        CutoverApprovalInstanceDO root = root("PENDING"); root.setCurrentNodeNo(2);
+        CutoverApprovalNodeDO decided = node(); decided.setStatusCode("APPROVED"); decided.setDecisionAt(LocalDateTime.now());
+        CutoverApprovalNodeDO next = node(); next.setId(102L); next.setNodeNo(2); next.setNodeCode("SERVICE_MANAGER");
+        next.setOriginalApproverUserId(22L); next.setCurrentApproverUserId(22L);
+        when(f.instances.selectById(100L)).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.selectList(any())).thenReturn(List.of(decided, next));
+        when(f.reviews.selectList(any())).thenReturn(List.of());
+
+        var response = f.service.decisionResponse(1L, 10L, 100L, 1, 11L);
+
+        assertThat(response.approvalInstanceId()).isEqualTo(100L);
+        assertThat(response.currentNodeNo()).isEqualTo(2);
+        assertThat(response.allowedActions()).isEmpty();
+        verifyNoInteractions(f.scopes, f.managers, f.candidates);
+    }
+
     private static CutoverApprovalInstanceDO root(String status) {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(100L); row.setTenantId(1L); row.setTaskId(10L); row.setProjectId(20L); row.setPlanRevisionId(200L);
@@ -129,7 +149,8 @@ class CutoverApprovalQueryServiceTest {
         final ProjectCutoverServiceManagerPort managers = mock(ProjectCutoverServiceManagerPort.class);
         final CutoverApprovalRoleCandidatePort candidates = mock(CutoverApprovalRoleCandidatePort.class);
         final CutoverApprovalProjectScopePort scopes = mock(CutoverApprovalProjectScopePort.class);
+        final CutoverApprovalSourceSnapshotCodec codec = mock(CutoverApprovalSourceSnapshotCodec.class);
         final CutoverApprovalQueryService service = new CutoverApprovalQueryService(instances, nodes, reviews, tasks,
-                managers, candidates, scopes, new CutoverApprovalSourceSnapshotCodec());
+                managers, candidates, scopes, codec);
     }
 }

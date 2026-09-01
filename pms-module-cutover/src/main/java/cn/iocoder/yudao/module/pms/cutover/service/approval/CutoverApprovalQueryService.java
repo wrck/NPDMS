@@ -112,6 +112,26 @@ public class CutoverApprovalQueryService {
         return new ReassignmentCommandContext((CutoverApprovalViews.ApprovalReassignmentView) view, task.getVersion());
     }
 
+    public CutoverApprovalViews.ApprovalDetail decisionResponse(long tenantId, long taskId,
+            long approvalInstanceId, int decidedNodeNo, long actorId) {
+        require(tenantId > 0 && taskId > 0 && approvalInstanceId > 0 && decidedNodeNo > 0 && actorId > 0,
+                INVALID_REQUEST, "审批结果身份非法");
+        CutoverApprovalInstanceDO root = instanceMapper.selectById(approvalInstanceId);
+        require(root != null && Objects.equals(root.getTenantId(), tenantId)
+                && Objects.equals(root.getTaskId(), taskId), OWNER_DATA_CORRUPTED, "审批结果根损坏");
+        CutoverTaskDO task = taskMapper.selectById(taskId);
+        require(task != null && Objects.equals(task.getTenantId(), tenantId), OWNER_DATA_CORRUPTED, "审批结果任务损坏");
+        List<CutoverApprovalNodeDO> nodes = nodes(tenantId, approvalInstanceId);
+        CutoverApprovalNodeDO decided = nodes.stream().filter(node -> Objects.equals(node.getNodeNo(), decidedNodeNo))
+                .findFirst().orElseThrow(() -> failure(OWNER_DATA_CORRUPTED, "审批结果节点缺失"));
+        require(Objects.equals(decided.getCurrentApproverUserId(), actorId)
+                && List.of("APPROVED", "REJECTED").contains(decided.getStatusCode()),
+                OWNER_DATA_CORRUPTED, "审批结果节点身份损坏");
+        CutoverApprovalNodeDO current = nodes.stream()
+                .filter(node -> Objects.equals(node.getNodeNo(), root.getCurrentNodeNo())).findFirst().orElse(null);
+        return full(root, task, nodes, current, false);
+    }
+
     private CutoverApprovalViews.ApprovalDetail full(CutoverApprovalInstanceDO root, CutoverTaskDO task,
             List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible) {
         Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalReviewItemDO>()

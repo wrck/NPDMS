@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -106,6 +107,23 @@ class CutoverApprovalDecisionServiceTest {
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
         assertThat(result.taskStage()).isEqualTo("P4");
+    }
+
+    @Test
+    void exposesStructuredTaskVersionAndReviewReasonCodes() {
+        Fixture f = new Fixture(11L);
+        f.givenRoot(1, "INITIATOR");
+
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 2, 100L, 0,
+                yesItems(), null, "同意", "key-version", "corr-version")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex -> {
+                    assertThat(ex.reasonCode()).isEqualTo("TASK_VERSION_STALE");
+                    assertThat(ex.currentTaskVersion()).isEqualTo(3);
+                });
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+                List.of(), null, "同意", "key-items", "corr-items")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex ->
+                        assertThat(ex.reasonCode()).isEqualTo("REVIEW_ITEMS_INCOMPLETE"));
     }
 
     private static List<ReviewItemInput> yesItems() {
