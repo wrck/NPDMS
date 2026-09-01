@@ -82,6 +82,15 @@ class FCut004FeatureContractTest(unittest.TestCase):
         self.assertIn("atomically replaces", self.physical["draftAndReadConsistency"]["save"])
         self.assertIn("overlays", self.physical["draftAndReadConsistency"]["approvedContactChange"])
 
+    def test_approved_contact_patch_uses_plan_version_as_only_public_cas(self):
+        patch = self.api["operations"]["patchApprovedContacts"]
+        self.assertIn("sole public version Owner", patch["concurrency"])
+        self.assertIn("CAS cut_plan_revision.version", patch["concurrency"])
+        self.assertNotIn("arrangementVersion", json.dumps(patch["request"]))
+        physical = self.physical["draftAndReadConsistency"]["approvedContactChange"]
+        self.assertIn("If-Match+1", physical)
+        self.assertIn("any failure rolls back root, child and audit", physical)
+
     def test_all_seven_rest_operations_have_exact_requests_and_error_contracts(self):
         operations = self.api["operations"]
         self.assertEqual(
