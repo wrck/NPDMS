@@ -30,6 +30,8 @@ class CutoverApprovalSourceSnapshotCodecTest {
         assertNull(decoded.collectionAnalysis().networkMode());
         assertEquals(List.of("risk-1", "risk-2"), decoded.riskItems().stream()
                 .map(ChecklistResultSnapshot::stableItemKey).toList());
+        assertEquals(5102L, decoded.riskItems().get(1).collectionResultReferenceId());
+        assertEquals(3L, decoded.riskItems().get(1).collectionResultVersion());
         assertEquals(List.of("survey-1"), decoded.businessSurveyItems().stream()
                 .map(ChecklistResultSnapshot::stableItemKey).toList());
         assertEquals(4, CutoverApprovalRules.routeFor("A").size());
@@ -65,7 +67,8 @@ class CutoverApprovalSourceSnapshotCodecTest {
 
     private static ApprovalSourceSnapshot snapshot(String grade, String networkMode) {
         List<ChecklistResultSnapshot> riskItems = "D".equals(grade) ? List.of() : List.of(
-                checklist(102L, "risk-2", "RISK"), checklist(101L, "risk-1", "DUAL_MACHINE_CHECK"));
+                collectionChecklist(102L, "risk-2", "RISK"),
+                checklist(101L, "risk-1", "DUAL_MACHINE_CHECK"));
         List<ChecklistResultSnapshot> surveys = "D".equals(grade) ? List.of()
                 : List.of(checklist(201L, "survey-1", "BUSINESS_SURVEY"));
         return new ApprovalSourceSnapshot(1, 1001L, 5,
@@ -84,6 +87,12 @@ class CutoverApprovalSourceSnapshotCodecTest {
         return new ChecklistResultSnapshot(id, key, id + 1000, 1, type, "Item " + key,
                 true, 1, "DIRECT", "{\"answer\":\"YES\"}", "confirmed",
                 null, null, null, null, null);
+    }
+
+    private static ChecklistResultSnapshot collectionChecklist(long id, String key, String type) {
+        return new ChecklistResultSnapshot(id, key, id + 1000, 1, type, "Item " + key,
+                true, 1, "COLLECTION", "{\"answer\":\"YES\"}", "confirmed",
+                4102L, 5102L, 3L, null, null);
     }
 
     private static String planSource(String grade) {

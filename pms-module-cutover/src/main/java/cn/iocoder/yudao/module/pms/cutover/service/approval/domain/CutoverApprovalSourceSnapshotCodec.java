@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalRules.GRADES;
@@ -195,7 +196,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
                 nonNegativeInt(node, "planVersion"), canonical(node.get("sourceSnapshot")), canonical(node.get("content")));
     }
 
-    private CutoverPlanSourcePort.SourceFacts validatedPlanSource(JsonNode node) {
+    private static CutoverPlanSourcePort.SourceFacts validatedPlanSource(JsonNode node) {
         exact(node, PLAN_SOURCE, "plan.sourceSnapshot");
         List<CutoverPlanSourcePort.DeviceSnapshot> devices = new ArrayList<>();
         JsonNode deviceArray = node.get("devices"); require(deviceArray != null && deviceArray.isArray(), "plan.devices");
@@ -309,6 +310,20 @@ public final class CutoverApprovalSourceSnapshotCodec {
             riskItems = sortedItems(riskItems, Set.of("RISK", "DUAL_MACHINE_CHECK"));
             businessSurveyItems = sortedItems(businessSurveyItems, Set.of("BUSINESS_SURVEY"));
             require(!"D".equals(assessment.manualGrade()) || (riskItems.isEmpty() && businessSurveyItems.isEmpty()), "gradeDItems");
+            CutoverPlanSourcePort.SourceSnapshot planSource = validatedPlanSource(plan.sourceSnapshot()).snapshot();
+            require(planSource.taskId() == taskId && planSource.taskVersion() == taskVersion,
+                    "planTaskIdentity");
+            require(planSource.projectId() == project.projectId()
+                            && planSource.projectVersion() == project.projectVersion()
+                            && planSource.projectScopeVersion() == project.projectScopeVersion(),
+                    "planProjectIdentity");
+            require(Objects.equals(planSource.checklistId(), checklistId)
+                            && Objects.equals(planSource.checklistVersion(), checklistVersion),
+                    "planChecklistIdentity");
+            require(planSource.assessmentId() == assessment.assessmentId()
+                            && planSource.assessmentVersion() == assessment.assessmentVersion()
+                            && planSource.grade().equals(assessment.manualGrade()),
+                    "planAssessmentIdentity");
         }
     }
 
@@ -322,7 +337,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
                                             long customerId,String customerCode,String customerName,long officeDepartmentId,
                                             String officeCode,String officeName,long projectScopeVersion){public ProjectApprovalSnapshot{require(projectId>0&&projectVersion>=0&&customerId>0&&officeDepartmentId>0&&projectScopeVersion>=0,"project");requireText(projectCode,64,"projectCode");requireText(projectName,255,"projectName");requireText(customerCode,64,"customerCode");requireText(customerName,255,"customerName");requireText(officeCode,64,"officeCode");requireText(officeName,255,"officeName");}}
     public record CollectionAnalysisSnapshot(String cutoverType,String networkMode,long scheduledTime){public CollectionAnalysisSnapshot{requireText(cutoverType,64,"cutoverType");if(networkMode!=null)requireText(networkMode,64,"networkMode");require(scheduledTime>0,"scheduledTime");}}
-    public record ChecklistResultSnapshot(long checklistItemId,String stableItemKey,Long itemDefinitionId,Integer itemDefinitionVersion,String itemTypeCode,String itemName,boolean required,int itemResultVersion,String resultSourceCode,String answerSnapshot,String factDescription,Long collectionTaskId,Long collectionResultReferenceId,Long collectionResultVersion,String externalSourceCode,String manualEvidenceFileReference){public ChecklistResultSnapshot{require(checklistItemId>0&&itemResultVersion>0,"checklistItem");requireText(stableItemKey,128,"stableItemKey");require(ITEM_TYPES.contains(itemTypeCode),"itemTypeCode");requireText(itemName,255,"itemName");require(RESULT_SOURCES.contains(resultSourceCode),"resultSourceCode");require(answerSnapshot!=null&&!answerSnapshot.isBlank(),"answerSnapshot");if(factDescription!=null)requireText(factDescription,4000,"factDescription");require((itemDefinitionId==null)==(itemDefinitionVersion==null),"itemDefinition");require(itemDefinitionId==null||itemDefinitionId>0,"itemDefinitionId");require(itemDefinitionVersion==null||itemDefinitionVersion>0,"itemDefinitionVersion");require(("COLLECTION".equals(resultSourceCode)&&collectionTaskId!=null&&collectionTaskId>0)||(!"COLLECTION".equals(resultSourceCode)&&collectionTaskId==null&&collectionResultReferenceId==null&&collectionResultVersion==null),"collectionIdentity");require(("EXTERNAL".equals(resultSourceCode))==(externalSourceCode!=null),"externalSourceCode");if(externalSourceCode!=null)requireText(externalSourceCode,64,"externalSourceCode");if(manualEvidenceFileReference!=null)require("MANUAL".equals(resultSourceCode)&&manualEvidenceFileReference.length()<=128&&!manualEvidenceFileReference.isBlank(),"manualEvidenceFileReference");}}
+    public record ChecklistResultSnapshot(long checklistItemId,String stableItemKey,Long itemDefinitionId,Integer itemDefinitionVersion,String itemTypeCode,String itemName,boolean required,int itemResultVersion,String resultSourceCode,String answerSnapshot,String factDescription,Long collectionTaskId,Long collectionResultReferenceId,Long collectionResultVersion,String externalSourceCode,String manualEvidenceFileReference){public ChecklistResultSnapshot{require(checklistItemId>0&&itemResultVersion>0,"checklistItem");requireText(stableItemKey,128,"stableItemKey");require(ITEM_TYPES.contains(itemTypeCode),"itemTypeCode");requireText(itemName,255,"itemName");require(RESULT_SOURCES.contains(resultSourceCode),"resultSourceCode");require(answerSnapshot!=null&&!answerSnapshot.isBlank(),"answerSnapshot");if(factDescription!=null)requireText(factDescription,4000,"factDescription");require((itemDefinitionId==null)==(itemDefinitionVersion==null),"itemDefinition");require(itemDefinitionId==null||itemDefinitionId>0,"itemDefinitionId");require(itemDefinitionVersion==null||itemDefinitionVersion>0,"itemDefinitionVersion");require(("COLLECTION".equals(resultSourceCode)&&collectionTaskId!=null&&collectionTaskId>0)||(!"COLLECTION".equals(resultSourceCode)&&collectionTaskId==null&&collectionResultReferenceId==null&&collectionResultVersion==null),"collectionIdentity");require(collectionResultReferenceId==null||collectionResultReferenceId>0,"collectionResultReferenceId");require(collectionResultVersion==null||collectionResultVersion>0,"collectionResultVersion");require(("EXTERNAL".equals(resultSourceCode))==(externalSourceCode!=null),"externalSourceCode");if(externalSourceCode!=null)requireText(externalSourceCode,64,"externalSourceCode");if(manualEvidenceFileReference!=null)require("MANUAL".equals(resultSourceCode)&&manualEvidenceFileReference.length()<=128&&!manualEvidenceFileReference.isBlank(),"manualEvidenceFileReference");}}
     public record AssessmentApprovalSnapshot(long assessmentId,int assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}
     public record PlanApprovalSnapshot(long planRevisionId,int planRevisionNo,int planVersion,JsonNode sourceSnapshot,JsonNode content){public PlanApprovalSnapshot{require(planRevisionId>0&&planRevisionNo>0&&planVersion>=0,"plan");require(sourceSnapshot!=null&&sourceSnapshot.isObject()&&content!=null&&content.isObject(),"planContent");sourceSnapshot=canonical(sourceSnapshot);content=canonical(content);}}
 }
