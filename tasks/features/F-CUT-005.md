@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1/2均已独立GO，当前进入Task 3。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～3均已独立GO，当前进入Task 4。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
@@ -23,7 +23,8 @@
 - [x] 唯一Technical Plan独立复审：`PASS / GO @ 912d0cdb`。
 - [x] Task 1 CUT领域合同、消费端口与快照Codec：`PASS / GO @ e6dac9fe`。
 - [x] Task 2 五表Schema、DO、Mapper与锁查询：`PASS / GO @ 367438e6`。
-- [ ] Task 3 审批启动、来源冻结与公开FactApi Provider候选：`IN_PROGRESS`。
+- [x] Task 3 审批启动、来源冻结与公开FactApi Provider候选：`PASS / GO @ df406b0c`。
+- [ ] Task 4 通过/驳回状态机与任务P4/P6原子迁移：`IN_PROGRESS`。
 
 ## 最近检查点
 
@@ -36,6 +37,7 @@
 - `e6dac9fe`关闭冻结快照跨子事实身份一致性与COLLECTION可选引用正数约束，Task 1正式GO；最近Gate为Task 2 Schema/迁移与隔离MySQL正向验证。
 - Task 2候选使用串行V153创建五张CUT Owner表，补齐DO、场景化Query、Mapper XML、节点CAS与通知领取；静态合同5/5及隔离MySQL 8.4全量迁移和正向约束验证通过，等待独立Gate。
 - `367438e6`统一Yudao审计字段物理类型与本人待办稳定排序，Task 2正式GO；最近Gate为Task 3启动/冻结/FactApi正向实现审查。
+- `df406b0c`关闭通知/暂停物理约束、业务摘要、路由快照及公开事务异常边界，Task 3正式GO；最近Gate为Task 4通过/驳回及P4/P6原子推进。
 
 ## 物理Owner支撑Task
 
