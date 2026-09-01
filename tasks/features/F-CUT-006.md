@@ -25,6 +25,8 @@
 - Task 2物理可执行纠偏：五个最长4000字符的闭环文本字段改用`TEXT + CHAR_LENGTH<=4000`，避免utf8mb4行大小超限，不改变API长度语义。
 - Task 2最小整改候选：外部任务、回调、PLT引用及结果身份均使用显式大小写敏感存储/比较，保留Owner原值；`file_hash`统一为`VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin`并以case-sensitive正则约束小写SHA-256。
 - Task 2最小整改MySQL证据：空卷再次全量迁移至V155；信息架构确认全部不透明身份使用`utf8mb4_bin`、哈希为`VARCHAR(64)/ascii_bin`；`CaseTask`与`casetask`可作为两个Owner任务并存，大小写错误的SUCCESS resultRef及大写哈希均由CHECK拒绝且原值不变。
+- Task 3候选已形成CUT自有创建、CAS保存、详情与附件事实正常链：首次保存冻结任务/批准方案/设备水位，后续保存拒绝刷新冻结来源；ProjectScope与PLT仅经消费端口调用，测试使用`src/test`受控替身，未注册生产Service、Fake或fallback。
+- Task 3候选聚焦证据：Application/Query/Port/Mapper共10/10通过；独立MySQL 8.4空卷全量迁移至V155后，首次创建、同键重放、版本化保存、附件替换及平台幂等/审计同事务1/1通过。候选仍等待独立Application/MySQL复审，不提前回写PASS。
 - 最近Gate：Task 3创建、保存、详情与文件事实正常链独立Application/MySQL复审。
 
 ## 状态边界

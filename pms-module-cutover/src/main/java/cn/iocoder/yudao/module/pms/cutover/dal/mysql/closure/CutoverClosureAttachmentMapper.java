@@ -12,4 +12,5 @@ import java.util.List;
 public interface CutoverClosureAttachmentMapper extends BaseMapperX<CutoverClosureAttachmentDO> {
     List<CutoverClosureAttachmentDO> selectListByClosure(@Param("query") CutoverClosureChildrenQuery query);
     List<CutoverClosureAttachmentDO> selectListByClosureForUpdate(@Param("query") CutoverClosureChildrenQuery query);
+    int deleteDraftRows(@Param("query") CutoverClosureChildrenQuery query);
 }

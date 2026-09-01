@@ -3,6 +3,12 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure.domain;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 
 /** F-CUT-006 闭环字段与预留端口的最小机器规则。 */
 public final class CutoverClosureRules {
@@ -64,6 +70,51 @@ public final class CutoverClosureRules {
     public static LocalDateTime occurredAt(LocalDateTime value) {
         require(value != null, "occurredAt");
         return value;
+    }
+
+    public static void validateDraftContent(ClosureContent content) {
+        requireValue(content, "content");
+        optionalText(content.preCheckDetail(), 4000, "preCheckDetail");
+        optionalText(content.executionDetail(), 4000, "executionDetail");
+        optionalText(content.testDetail(), 4000, "testDetail");
+        optionalText(content.rollbackReason(), 4000, "rollbackReason");
+        optionalText(content.legacyItems(), 4000, "legacyItems");
+        require(content.finalResult() == null || List.of("SUCCESS", "FAILED").contains(content.finalResult()),
+                "finalResult");
+        require(content.preCheckNormal() == null || content.preCheckNormal()
+                || hasText(content.preCheckDetail()), "preCheckDetail");
+        require(content.executionNormal() == null || content.executionNormal()
+                || hasText(content.executionDetail()), "executionDetail");
+        require(content.testNormal() == null || content.testNormal()
+                || hasText(content.testDetail()), "testDetail");
+        if (content.rollbackOccurred() == null || !content.rollbackOccurred()) {
+            require(content.rollbackSuccessful() == null && content.rollbackReason() == null, "rollbackUnion");
+        } else {
+            require(content.rollbackSuccessful() != null && hasText(content.rollbackReason()), "rollbackUnion");
+        }
+        Set<String> identities = new HashSet<>();
+        for (AttachmentInput attachment : content.attachments()) {
+            requireValue(attachment, "attachment");
+            requireValue(attachment.purposeCode(), "purposeCode");
+            require(attachment.purposeCode() != AttachmentPurpose.MANUAL_COLLECTION_RESULT,
+                    "manualCollectionResultForbidden");
+            positive(attachment.artifactId(), "artifactId");
+            positive(attachment.versionNo(), "versionNo");
+            normalizedText(attachment.referenceKey(), 128, "referenceKey");
+            requireValue(attachment.fileFactVersion(), "fileFactVersion");
+            nonNegative(attachment.scopeVersion(), "scopeVersion");
+            sha256(attachment.sha256());
+            require(identities.add(attachment.purposeCode() + "\u0000" + attachment.referenceKey()),
+                    "attachmentIdentity");
+        }
+    }
+
+    private static void optionalText(String value, int maxLength, String field) {
+        require(value == null || value.equals(value.trim()) && value.length() <= maxLength, field);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     public static <T> T requireValue(T value, String field) {
