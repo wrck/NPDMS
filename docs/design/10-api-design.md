@@ -483,7 +483,9 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 
 内部 `StageAdvanceCommand`的规范摘要冻结tenant、actor、projectId、期望阶段/Project/tree版本。相同键同摘要返回原结果；同键异摘要冲突。
 
-`POST /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process`使用`If-Match + Idempotency-Key`启动关联Gate流程。Body只允许可空`processDefinitionId`：为空时按Gate Reference冻结的`processDefinitionKey`选择最新生效定义；非空时仅作为授权用户对同key历史定义的显式选择，服务端必须重验定义ID归属和可启动状态。tenant、actor、definitionKey、businessKey及系统变量均由服务端构造，客户端不得覆盖。
+`GET /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/process-definitions`列出该Gate可选择的BPM定义。PROJ先锁定项目、Gate与Reference，并重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`；随后只以受信tenant和Reference冻结的`processDefinitionKey`调用Owner。响应按BPM定义身份稳定排序，仅返回`processDefinitionId/processDefinitionKey/name/selectable`，且只包含同租户、同key、当前可启动并通过本Gate定义约束的记录；不得复用或要求管理端`bpm:process-definition:query`，不得返回其他流程管理字段。
+
+`POST /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process`使用`If-Match + Idempotency-Key`启动关联Gate流程。Body只允许可空`processDefinitionId`：为空时按Gate Reference冻结的`processDefinitionKey`选择最新生效定义；非空时仅作为授权用户从上述同key列表选择的历史定义ID，服务端仍必须重验定义ID归属和可启动状态。tenant、actor、definitionKey、businessKey及系统变量均由服务端构造，客户端不得覆盖；规范摘要包含可空processDefinitionId，同operation异选择稳定冲突。
 
 ### Gate Reference Owner Fact SPI
 
@@ -510,10 +512,12 @@ APPROVAL/PROCESS启动使用同一公共模块的PMS窄Owner命令：
 ```java
 ProjectStageGateProcessDefinitionFact inspectDefinitionKey(
         ProjectStageGateProcessDefinitionQuery query);
+List<ProjectStageGateProcessDefinitionFact> listSelectableDefinitions(
+        ProjectStageGateProcessDefinitionSelectionQuery query);
 ProjectStageGateProcessStartFact startProcess(ProjectStageGateProcessStartCommand command);
 ```
 
-检查Query只携带受信tenant及Gate Reference冻结的`processDefinitionKey`；同一适配器检查该key存在当前生效定义，并检查其BPMN，存在任一UserTask候选策略`START_USER_SELECT(35)`即返回不支持。Gate Reference既有`refVersion`只保留历史，新写为空且不进入接口；不新增BPM版本字段、版本表、解析规则或第二映射真值。
+检查Query只携带受信tenant及Gate Reference冻结的`processDefinitionKey`；同一适配器检查该key存在当前生效定义，并检查其BPMN，存在任一UserTask候选策略`START_USER_SELECT(35)`即返回不支持。历史选择Query同样只携带受信tenant和冻结key，Provider按租户与key裁剪Flowable定义，并逐项计算`selectable`；只返回当前可启动且BPMN满足Gate约束的定义身份，不返回Flowable version作为PMS输入。Gate Reference既有`refVersion`只保留历史，新写为空且不进入接口；不新增BPM版本字段、版本表、解析规则或第二映射真值。
 
 Command仅由PROJ服务端构造，包含`tenantId/actorUserId/projectId/currentStageCode/gateId/gateReferenceId/refType/processDefinitionKey/selectedProcessDefinitionId?/businessKey/variables/operationId`；businessKey必须等于`PROJECT_STAGE_GATE:{gateReferenceId}`，variables只允许Gate冻结身份，客户端除可选定义ID外不得覆盖。调用前PROJ必须重新校验`pms:project:update`、`ProjectScopeApi.ACTION_MANAGE`和当前有效`PROJECT_MANAGER`，三者是PMS专用Gate流程的唯一正式发起授权；缺任一项不调用Owner。Yudao `startUserIds/startDeptIds`继续只约束通用Yudao发起入口，PMS不查询或复制该事实；启动时再次检查本次实际定义的BPMN不存在`START_USER_SELECT(35)`。
 

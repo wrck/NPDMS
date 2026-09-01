@@ -220,7 +220,7 @@
 - Options: A. 新增Yudao BPM定义策略Fact API；B. 复用Flowable既有定义版本事实，并把Yudao两类白名单继续限定在通用发起入口。
 - Recommended technical default: 采用B；PMS不复制版本模型、不新增Yudao接口或字段，Gate Reference只保存BPM定义key；默认启动最新生效定义，授权发起人可显式选择同key历史`processDefinitionId`。
 - Business decision required: 已完成。需求方明确BPM已有流程版本控制，不需要新增版本字段和接口。
-- Resolution: 采用B，并按PRD修订011收敛。PMS专用Gate唯一发起授权为`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`；Yudao `startUserIds/startDeptIds`继续只约束通用发起入口，PMS不查询或证明其为空。`ProjectStageGateProcessOwnerApi`仅作PMS反腐适配边界：未显式选择时按key启动最新生效定义，显式选择时校验历史`processDefinitionId`属于同一key并按该ID启动；实例实际`processDefinitionId`和完整`taskDefinitionKey`是历史事实。PMS不解析`taskDefinitionKey`，不使用Gate Reference既有`refVersion`，也不形成第二版本真值。
+- Resolution: 采用B，并按PRD修订011收敛。PMS专用Gate的历史定义查询与启动均使用`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`，不授予BPM全局定义查询权限；`ProjectStageGateProcessOwnerApi`仅按Gate冻结key返回同租户可启动历史定义身份。未显式选择时按key启动最新生效定义，显式选择时校验历史`processDefinitionId`属于同一key并按该ID启动；实例实际`processDefinitionId`和完整`taskDefinitionKey`是历史事实。Yudao `startUserIds/startDeptIds`继续只约束通用发起入口，PMS不查询或证明其为空，不解析`taskDefinitionKey`，不使用Gate Reference既有`refVersion`，也不形成第二版本真值。
 - Decision owner: 需求方（业务与平台边界）；BPM与PROJ Owner（契约落位）
 - Decision date: 2026-09-01
 
