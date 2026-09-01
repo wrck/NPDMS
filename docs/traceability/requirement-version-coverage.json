@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-008",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-09-01-011",
   "sources": {
     "prd": "需求/PRD-项目实施交付管理平台.md",
     "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
