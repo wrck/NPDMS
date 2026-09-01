@@ -10,7 +10,7 @@
 > 支撑依赖：`PROJ当前服务经理事实`、`SYSTEM割接二线/研发审批角色候选事实`、`ProjectScopeApi`、`NotifyMessageSendApi`
 > 机器合同：`specs/features/F-CUT-005-api-contract.json`、`specs/features/F-CUT-005-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`、`specs/features/F-CUT-005-candidate-owner-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-005-legacy-reuse-audit.md`
-> 唯一Technical Plan：`docs/superpowers/plans/2026-09-01-f-cut-005-p5-graded-approval.md（REVIEW_REQUIRED）`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-01-f-cut-005-p5-graded-approval.md（PASS / GO @ 912d0cdb）`
 
 ## 1. 业务目标
 

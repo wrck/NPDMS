@@ -1,9 +1,9 @@
 # F-CUT-005 P5分级审批
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN`
+> 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO @ 2e3fdba3`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO @ 912d0cdb`
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`CUT-05@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-005-p5-graded-approval.md`
@@ -13,14 +13,14 @@
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan首轮NO-GO后已补入PROJ/SYSTEM独立Owner产出Task并统一改为实现优先，当前等待最小整改复审，不进入实现。
+- Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，当前进入Task 1最小实现。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 
 ## Gate清单
 
 - [x] API/Physical/Candidate/Legacy Machine Contract Gate。
 - [x] Feature Ready最终裁决：`GO @ 2e3fdba3`。
-- [ ] 唯一Technical Plan独立复审（当前`REVIEW_REQUIRED`）。
+- [x] 唯一Technical Plan独立复审：`PASS / GO @ 912d0cdb`。
 
 ## 最近检查点
 
@@ -28,6 +28,7 @@
 - `2efad8ce`已关闭动作判别、候选交集和通知边界；快照可空性与管理员改派入口仍需定点复审。
 - `2e3fdba3`关闭剩余两项并获Feature Ready正式GO；最近Gate为唯一Technical Plan独立复审。
 - `1a45569f` Technical Plan首轮NO-GO仅指出生产Owner产出路径缺失与测试顺序冲突；当前候选只整改这两项。
+- `912d0cdb`关闭Owner合同/SYSTEM阻断表达与实施顺序残留，Technical Plan正式GO；最近实施单元为Task 1。
 - 整改只改Feature/API/Physical/Candidate/Authorization等正式规格，不新增DDL、运行代码或测试实现。
 
 ## 物理Owner支撑Task

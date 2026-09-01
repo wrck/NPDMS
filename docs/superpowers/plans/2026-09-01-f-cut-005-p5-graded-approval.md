@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > 计划 ID：`NPDMS-FCUT005-TECHPLAN-20260901-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO @ 912d0cdb`
 > Feature Ready：`READY / GO@2e3fdba3`
 > Feature Spec：`specs/features/F-CUT-005-p5-graded-approval.md`
 > API Contract：`specs/features/F-CUT-005-api-contract.json`
