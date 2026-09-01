@@ -7,6 +7,7 @@ export type RequirementAnalysisAction =
   | 'COMPLETE'
   | 'CREATE_DRAFT'
 
+/** @deprecated 固定章节字段类型已由动态表单schema替代。 */
 export type RequirementAnalysisFieldType =
   | 'RICH_TEXT'
   | 'TEXT'
@@ -15,11 +16,13 @@ export type RequirementAnalysisFieldType =
   | 'SINGLE_SELECT'
   | 'MULTI_SELECT'
 
+/** @deprecated 固定章节选项已由动态表单schema替代。 */
 export interface RequirementAnalysisOptionVO {
   code: string
   label: string
 }
 
+/** @deprecated 固定章节附件快照已由动态表单fileReferences替代。 */
 export interface RequirementAnalysisAttachmentVO {
   artifactId: number
   versionNo: number
@@ -38,8 +41,10 @@ export interface RequirementAnalysisAttachmentVO {
   scopeVersion: number
 }
 
+/** @deprecated SOL与PLT不再维护附件同步双真值。 */
 export type RequirementAnalysisAttachmentSyncStatus = 'IN_SYNC' | 'PENDING' | 'UNKNOWN'
 
+/** @deprecated SOL与PLT不再维护附件同步双真值。 */
 export type RequirementAnalysisAttachmentSyncErrorCode =
   | 'ATTACHMENT_SET_PENDING'
   | 'FACT_PROVIDER_UNAVAILABLE'
@@ -77,6 +82,7 @@ export interface RequirementAnalysisVersionSummaryVO {
   allowedActions: RequirementAnalysisAction[]
 }
 
+/** @deprecated 使用动态表单实例的schema、values与fileReferences。 */
 export interface RequirementAnalysisSectionVO {
   sectionId: number
   sourceSectionId?: number
@@ -129,6 +135,7 @@ export interface RequirementAnalysisHistoryVO {
   hasMore: boolean
 }
 
+/** @deprecated 使用RequirementAnalysisFieldDiffVO。 */
 export interface RequirementAnalysisSectionDiffVO {
   sectionCode: string
   changeType: 'ADDED' | 'REMOVED' | 'CHANGED' | 'UNCHANGED'
@@ -159,6 +166,7 @@ export interface PatchRequirementAnalysisFormReqVO {
   values: JsonObject
 }
 
+/** @deprecated 使用PatchRequirementAnalysisFormReqVO。 */
 export interface PatchRequirementAnalysisSectionReqVO {
   submittedFields: Array<'value' | 'attachments'>
   value?: unknown
@@ -194,6 +202,7 @@ export const getDetail = (preparationId: number) =>
     params: { type: 'PRE_04' }
   })
 
+/** @deprecated 使用patchForm；固定章节PATCH已退出当前F-SOL-003契约。 */
 export const patchSection = (
   preparationId: number,
   sectionId: number,

@@ -85,6 +85,7 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.PLAT
 
 @Service
 @RequiredArgsConstructor
+@Deprecated // 使用RequirementAnalysisDynamicFormCommandService；固定章节写模型不得扩展。
 public class RequirementAnalysisCommandService {
 
     private static final String ACTIVE = "ACTIVE";

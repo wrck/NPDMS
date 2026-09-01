@@ -53,6 +53,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.R
 
 @Service
 @RequiredArgsConstructor
+@Deprecated // 使用RequirementAnalysisDynamicFormQueryService；固定章节查询不得承接新功能。
 public class RequirementAnalysisQueryService {
 
     public static final String TYPE = "PRE_04_REQUIREMENT_ANALYSIS";

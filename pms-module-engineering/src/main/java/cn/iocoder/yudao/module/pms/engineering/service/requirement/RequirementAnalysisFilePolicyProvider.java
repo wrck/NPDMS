@@ -34,6 +34,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Deprecated // 使用RequirementAnalysisDynamicFormPolicyProvider；仅保留历史候选文件事实解释。
 public class RequirementAnalysisFilePolicyProvider implements FileBusinessObjectPolicyProvider {
 
     static final String OWNER_CONTEXT = "SOL";

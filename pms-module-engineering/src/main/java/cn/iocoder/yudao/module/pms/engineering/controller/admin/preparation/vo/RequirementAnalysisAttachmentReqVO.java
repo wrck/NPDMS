@@ -9,6 +9,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 @Data
+@Deprecated // 固定章节附件快照已由PLT动态表单文件引用替代。
 public class RequirementAnalysisAttachmentReqVO {
     @NotNull @Positive private Long artifactId;
     @NotNull @Positive private Integer versionNo;

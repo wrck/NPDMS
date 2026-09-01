@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 @Data
+@Deprecated // 使用RequirementAnalysisFormPatchReqVO。
 public class RequirementAnalysisSectionPatchReqVO {
     @NotEmpty private Set<String> submittedFields;
     private JsonNode value;

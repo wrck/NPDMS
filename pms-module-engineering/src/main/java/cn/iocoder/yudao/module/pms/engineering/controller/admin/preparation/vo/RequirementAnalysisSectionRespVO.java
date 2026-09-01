@@ -5,6 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
+@Deprecated // 使用动态表单实例schema、values与fileReferences。
 public class RequirementAnalysisSectionRespVO {
     private Long sectionId;
     private Long sourceSectionId;

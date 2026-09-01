@@ -6,6 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
+@Deprecated // 使用动态表单实例差异投影。
 public class RequirementAnalysisCompareRespVO {
     private Long sourcePreparationId;
     private Integer sourceBusinessVersion;

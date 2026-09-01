@@ -20,6 +20,7 @@ export const sameRequirementValue = (left: unknown, right: unknown) =>
 export const containsEmbeddedMedia = (html: string) =>
   /<(?:img|video|audio|source|picture|iframe|object|embed)\b/i.test(html)
 
+/** @deprecated 固定章节编辑状态已由dynamicFormRuntime替代。 */
 export interface RequirementAnalysisSectionEditState {
   sectionId: number
   bodyDirty: boolean
@@ -27,12 +28,14 @@ export interface RequirementAnalysisSectionEditState {
   guardsNavigation: boolean
 }
 
+/** @deprecated 固定章节导航守卫已由动态表单实例状态替代。 */
 export type RequirementAnalysisTransitionDecision =
   | 'ALLOW'
   | 'SAVE_ATTACHMENT_SET'
   | 'CONFIRM_DISCARD_BODY'
   | 'BLOCK_UNKNOWN_ATTACHMENT_FACTS'
 
+/** @deprecated 固定章节导航守卫已由动态表单实例状态替代。 */
 export const requirementAnalysisTransitionDecision = (
   state: RequirementAnalysisSectionEditState
 ): RequirementAnalysisTransitionDecision => {
@@ -45,6 +48,7 @@ export const requirementAnalysisTransitionDecision = (
   return state.bodyDirty ? 'CONFIRM_DISCARD_BODY' : 'ALLOW'
 }
 
+/** @deprecated 使用动态表单schema。 */
 export const parseSectionOptions = (section: RequirementAnalysisSectionVO) => {
   try {
     const schema = JSON.parse(section.schemaSnapshot || '{}') as {
@@ -57,6 +61,7 @@ export const parseSectionOptions = (section: RequirementAnalysisSectionVO) => {
   }
 }
 
+/** @deprecated 使用动态表单values。 */
 export const parseSectionValue = (section: RequirementAnalysisSectionVO): any => {
   const fallback = section.fieldType === 'MULTI_SELECT' ? [] : null
   if (
@@ -73,6 +78,7 @@ export const parseSectionValue = (section: RequirementAnalysisSectionVO): any =>
   }
 }
 
+/** @deprecated SOL与PLT不再维护附件同步双真值。 */
 export type AttachmentIntentRecovery = 'NONE' | 'CONFIRMED' | 'RETRY' | 'CONFLICT'
 
 const attachmentVector = (attachments: RequirementAnalysisAttachmentVO[]) =>
@@ -86,6 +92,7 @@ const attachmentVector = (attachments: RequirementAnalysisAttachmentVO[]) =>
     }))
     .sort((left, right) => left.referenceKey.localeCompare(right.referenceKey))
 
+/** @deprecated SOL与PLT不再维护附件同步双真值。 */
 export const resolveAttachmentIntentRecovery = (
   savedSnapshot: RequirementAnalysisAttachmentVO[],
   currentActiveFacts: RequirementAnalysisAttachmentVO[] | null,
@@ -104,6 +111,7 @@ export const resolveAttachmentIntentRecovery = (
   return 'CONFLICT'
 }
 
+/** @deprecated 使用reconcileInstancePatch与patchForm。 */
 export const buildSectionPatch = (
   expectedPreparationVersion: number,
   expectedContentVersion: number,

@@ -520,6 +520,48 @@ def task_states(task_root: Path) -> dict[str, dict[str, str]]:
     return result
 
 
+def feature_index_states(path: Path) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for line in read(path).splitlines():
+        match = re.match(r"^\|\s*\[(F-[A-Z]+-\d{3})\]\([^)]+\)\s*\|", line)
+        if not match:
+            continue
+        columns = line.split("|")
+        if len(columns) < 4:
+            raise SystemExit(f"invalid Feature index row: {line}")
+        feature_id = match.group(1)
+        if feature_id in result:
+            raise SystemExit(f"duplicate Feature index row: {feature_id}")
+        result[feature_id] = columns[-2].strip()
+    return result
+
+
+def normalized_index_status(raw_status: str) -> str:
+    if "IMPLEMENTATION_COMPLETE" in raw_status or "IMPLEMENTATION_DONE" in raw_status:
+        return "COMPLETE"
+    if "NOT_STARTED" in raw_status or "REPLAN_REQUIRED" in raw_status:
+        return "NOT_STARTED"
+    return "IN_PROGRESS"
+
+
+def validate_feature_index(path: Path, tasks: dict[str, dict[str, str]]) -> None:
+    if not path.is_file():
+        raise SystemExit(f"Feature index not found: {path}")
+    index = feature_index_states(path)
+    drift: list[str] = []
+    for feature_id, task in tasks.items():
+        index_status = index.get(feature_id)
+        if index_status is None:
+            drift.append(f"{feature_id}: missing index row")
+            continue
+        if normalized_index_status(index_status) != task["status"]:
+            drift.append(f"{feature_id}: task={task['raw_status']} index={index_status}")
+    for feature_id in sorted(set(index) - set(tasks)):
+        drift.append(f"{feature_id}: index row has no master Feature Task")
+    if drift:
+        raise SystemExit("[FAIL] FEATURE INDEX DRIFT: " + "; ".join(drift))
+
+
 def feature_coverages(
     feature_root: Path,
     task_root: Path,
@@ -767,11 +809,13 @@ def main() -> int:
     parser.add_argument("--domains", type=Path, required=True)
     parser.add_argument("--features", type=Path, default=Path("specs/features"))
     parser.add_argument("--tasks", type=Path, default=Path("tasks/features"))
+    parser.add_argument("--feature-index", type=Path, default=Path("specs/features/README.md"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--coverage-output", type=Path)
     parser.add_argument("--check", action="store_true", help="compare generated content without writing")
     args = parser.parse_args()
     coverage_output = args.coverage_output or args.output.with_name("requirement-version-coverage.json")
+    validate_feature_index(args.feature_index, task_states(args.tasks))
     generated_matrix, generated_coverage = render(
         args.prd,
         args.domains,

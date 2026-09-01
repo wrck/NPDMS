@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 
 @TableName("sol_requirement_analysis_section")
 @Data
+@Deprecated // F-SOL-003已改用PLT动态表单实例；本DO仅保留历史候选解释。
 public class RequirementAnalysisSectionDO implements Serializable {
     @TableId private Long id;
     private Long preparationId;
