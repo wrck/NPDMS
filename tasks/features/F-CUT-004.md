@@ -27,10 +27,10 @@
 
 ## Task 1：CUT-05审批消费Java合同
 
-状态：`IN_PROGRESS`
+状态：`CODE_REVIEW_REQUIRED`
 
-- [ ] 实现`CutoverApprovalFactApi`、精确Command/Query/Fact/Result records与稳定公共异常。
-- [ ] 在`src/test`提供确定性受控审批事实实现并补实现后的合同测试。
+- [x] 实现`CutoverApprovalFactApi`、精确Command/Query/Fact/Result records与稳定公共异常。
+- [x] 在`src/test`提供确定性受控审批事实实现并补实现后的合同测试（5/5通过）。
 - [ ] 通过独立Contract/Code Review Gate；不注册生产审批Bean。
 
-> 检查点：Technical Plan以`9ef7545d`独立复审`PASS/GO`，Feature实施进入`IN_PROGRESS`。当前只执行Task 1审批消费Java合同；不重复COM，生产审批业务及完整装配仍不在本Task。
+> 检查点：Task 1审批消费Java合同候选已完成，接口、精确DTO/枚举/异常与`src/test`受控正向链5/5通过；当前申请独立Contract/Code Review。未注册生产Bean，不重复COM，生产审批业务及完整装配仍不在本Task。
