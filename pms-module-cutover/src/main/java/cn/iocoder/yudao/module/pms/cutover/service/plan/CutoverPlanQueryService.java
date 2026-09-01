@@ -149,7 +149,9 @@ public class CutoverPlanQueryService {
                 LegacyPlanSourceSnapshot legacy = JsonUtils.parseObject(plan.getSourceSnapshot(), LegacyPlanSourceSnapshot.class);
                 legacy.validate();
             } else {
-                JsonUtils.parseObject(plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+                CutoverPlanSourcePort.SourceSnapshot source = JsonUtils.parseObject(
+                        plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+                return JsonUtils.getObjectMapper().valueToTree(source);
             }
             return snapshot;
         } catch (CutoverPlanApplicationException ex) {
