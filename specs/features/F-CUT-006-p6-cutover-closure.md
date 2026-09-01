@@ -9,7 +9,7 @@
 > 支撑依赖：`ProjectScopeApi`、`FileArtifactApi`、`INT-12设备连接与采集公开契约`、平台幂等/审计/Outbox
 > 机器合同：`specs/features/F-CUT-006-api-contract.json`、`specs/features/F-CUT-006-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-006-legacy-reuse-audit.md`
-> 唯一Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`（`REVIEW_REQUIRED`）
+> 唯一Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`（`REVIEW_REQUIRED`；`e0fb30fe` NO-GO后最小整改）
 
 ## 1. 业务目标
 
