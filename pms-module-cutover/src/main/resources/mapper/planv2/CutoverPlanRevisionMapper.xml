@@ -7,6 +7,14 @@
           AND current_marker = 1 AND deleted = b'0'
         <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
     </select>
+    <select id="selectListLegacyByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
+        SELECT * FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+          AND origin_code = 'LEGACY_FORWARD' AND current_marker IS NULL AND deleted = b'0'
+        <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
+        ORDER BY revision_no ASC, legacy_plan_id ASC, id ASC
+        LIMIT 2
+    </select>
     <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
         SELECT * FROM cut_plan_revision
         WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}

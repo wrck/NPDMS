@@ -52,13 +52,40 @@ public class CutoverPlanQueryService {
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_VIEW");
         if (scope == null || !scope.allowed()) throw notFound();
-        CutoverPlanRevisionDO plan = planMapper.selectCurrent(new CutoverPlanRevisionQuery(tenantId, taskId, null));
-        List<String> actions = allowedActions(tenantId, actorId, task, plan, access);
-        if (plan == null) return new CutoverPlanView(taskId, task.getVersion(), null, null, null,
+        CutoverPlanRevisionDO plan = selectReadablePlan(tenantId, task);
+        boolean editAllowed = inspectEditAllowed(actorId, task, plan);
+        List<String> actions = allowedActions(tenantId, actorId, task, plan, access, editAllowed);
+        if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(),
+                null, null, null, null, null, null, null, null, null,
                 null, null, null, actions);
+        boolean legacy = "LEGACY_FORWARD".equals(plan.getOriginCode());
+        JsonNode sourceSnapshot = parseSourceSnapshot(plan);
         JsonNode content = assemble(tenantId, plan);
-        return new CutoverPlanView(taskId, task.getVersion(), plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                plan.getEditModeCode(), plan.getStatusCode(), content, actions);
+        return new CutoverPlanView(taskId, legacy ? null : task.getCurrentStage(), task.getVersion(),
+                plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getOriginCode(),
+                legacy ? "LEGACY_READ_ONLY" : plan.getStatusCode(), plan.getLegacyPlanId(),
+                plan.getLegacyStatusRaw(), plan.getSourcePlanRevisionId(), plan.getRevisionReasonCode(),
+                sourceSnapshot, content, null, actions);
+    }
+
+    private CutoverPlanRevisionDO selectReadablePlan(Long tenantId, CutoverTaskDO task) {
+        CutoverPlanRevisionQuery query = new CutoverPlanRevisionQuery(tenantId, task.getId(), null);
+        if (!"LEGACY_FORWARD".equals(task.getTaskOrigin())) return planMapper.selectCurrent(query);
+        List<CutoverPlanRevisionDO> legacy = planMapper.selectListLegacyByTask(query);
+        if (legacy.size() > 1) throw corrupted("legacy方案身份不唯一");
+        return legacy.isEmpty() ? null : legacy.getFirst();
+    }
+
+    private boolean inspectEditAllowed(Long actorId, CutoverTaskDO task, CutoverPlanRevisionDO plan) {
+        if ("LEGACY_FORWARD".equals(task.getTaskOrigin())) return false;
+        boolean couldWrite = plan == null || "DRAFT".equals(plan.getStatusCode());
+        if (!couldWrite) return false;
+        try {
+            CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_EDIT");
+            return fact != null && fact.allowed();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private JsonNode assemble(Long tenantId, CutoverPlanRevisionDO plan) {
@@ -97,17 +124,29 @@ public class CutoverPlanQueryService {
     }
 
     private List<String> allowedActions(Long tenantId, Long actorId, CutoverTaskDO task,
-                                        CutoverPlanRevisionDO plan, PlanAccess access) {
+                                        CutoverPlanRevisionDO plan, PlanAccess access, boolean editAllowed) {
         List<String> actions = new ArrayList<>();
         boolean ownerP4 = CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 && CutoverTaskRules.STAGE_P4.equals(task.getCurrentStage())
                 && CutoverTaskRules.STATUS_PLAN_DRAFTING.equals(task.getTaskStatus())
                 && Objects.equals(task.getOwnerUserId(), actorId);
-        if (ownerP4 && plan == null && access.create()) actions.add("CREATE_DRAFT");
-        if (ownerP4 && plan != null && "DRAFT".equals(plan.getStatusCode()) && access.save()
+        if (ownerP4 && editAllowed && plan == null && access.create()) actions.add("CREATE_DRAFT");
+        if (ownerP4 && editAllowed && plan != null && "DRAFT".equals(plan.getStatusCode()) && access.save()
                 && comparableSource(tenantId, actorId, task, plan)) actions.add("SAVE_DRAFT");
         if (plan != null && "DRAFT".equals(plan.getStatusCode()) && access.download()) actions.add("DOWNLOAD_DRAFT");
         return List.copyOf(actions);
+    }
+
+    private static JsonNode parseSourceSnapshot(CutoverPlanRevisionDO plan) {
+        try {
+            JsonNode snapshot = JsonUtils.parseObject(plan.getSourceSnapshot(), JsonNode.class);
+            if (snapshot == null || !snapshot.isObject()) throw corrupted("方案来源快照损坏");
+            return snapshot;
+        } catch (CutoverPlanApplicationException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw corrupted("方案来源快照损坏");
+        }
     }
 
     private boolean comparableSource(Long tenantId, Long actorId, CutoverTaskDO task, CutoverPlanRevisionDO plan) {
@@ -132,6 +171,11 @@ public class CutoverPlanQueryService {
 
     private static CutoverPlanApplicationException notFound() {
         return new CutoverPlanApplicationException(NOT_FOUND, "方案不可见");
+    }
+
+    private static CutoverPlanApplicationException corrupted(String message) {
+        return new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.OWNER_DATA_CORRUPTED, message);
     }
 
     public record PlanAccess(boolean create, boolean save, boolean download) {}

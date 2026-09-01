@@ -15,6 +15,7 @@ import java.util.List;
 @Mapper
 public interface CutoverPlanRevisionMapper extends BaseMapperX<CutoverPlanRevisionDO> {
     CutoverPlanRevisionDO selectCurrent(@Param("query") CutoverPlanRevisionQuery query);
+    List<CutoverPlanRevisionDO> selectListLegacyByTask(@Param("query") CutoverPlanRevisionQuery query);
     CutoverPlanRevisionDO selectCurrentForUpdate(@Param("query") CutoverPlanRevisionQuery query);
     List<CutoverPlanRevisionDO> selectListDirectSuccessors(@Param("query") CutoverPlanSuccessorQuery query);
     List<CutoverPlanRevisionDO> selectListHistory(@Param("query") CutoverPlanHistoryQuery query);

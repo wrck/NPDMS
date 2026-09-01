@@ -27,6 +27,8 @@ class CutoverPlanMapperContractTest {
         Configuration configuration = configuration();
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectCurrentForUpdate",
                 new CutoverPlanRevisionQuery(1L, 2L, 3L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectListLegacyByTask",
+                new CutoverPlanRevisionQuery(1L, 2L, 3L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectListDirectSuccessors",
                 new CutoverPlanSuccessorQuery(1L, 2L, 3L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectMaxRevisionNo",
@@ -52,7 +54,8 @@ class CutoverPlanMapperContractTest {
         String step = Files.readString(Path.of("src/main/resources/mapper/planv2/CutoverPlanStepMapper.xml"));
         String support = Files.readString(Path.of("src/main/resources/mapper/planv2/CutoverSupportArrangementMapper.xml"));
         assertThat(root).contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE",
-                "ORDER BY revision_no ASC, id ASC").doesNotContain("${");
+                "ORDER BY revision_no ASC, id ASC", "origin_code = 'LEGACY_FORWARD'",
+                "current_marker IS NULL").doesNotContain("${");
         assertThat(step).contains("tenant_id = #{query.tenantId}", "FOR UPDATE", "step_no ASC, id ASC")
                 .doesNotContain("${");
         assertThat(support).contains("tenant_id = #{query.tenantId}", "FOR UPDATE", "role_code")
