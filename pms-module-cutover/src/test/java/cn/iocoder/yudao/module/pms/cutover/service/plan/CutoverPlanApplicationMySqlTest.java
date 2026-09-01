@@ -12,9 +12,12 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrang
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
+import cn.iocoder.yudao.module.pms.cutover.api.approval.ControlledCutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.InvalidateCutoverPlanSourceCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.ReviseCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SaveCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
@@ -23,6 +26,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
@@ -68,6 +72,7 @@ class CutoverPlanApplicationMySqlTest {
     @Resource CutoverTaskMapper taskMapper;
     @Resource CutoverPlanApplicationService service;
     @Resource ControlledOwners owners;
+    @Resource ControlledCutoverApprovalFactApi approval;
 
     long tenantId;
     long taskId;
@@ -189,6 +194,94 @@ class CutoverPlanApplicationMySqlTest {
                 "AND cutover_task_id=?", tenantId, taskId));
         assertEquals(3, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
         assertEquals(3, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+
+        owners.setTaskVersion(6);
+        CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
+                tenantId, 8L, taskId, 6, submitted.planRevisionId(), "SOURCE_REPLACED",
+                "revise-source-1", "corr-revise-source-1"));
+        SubmitCutoverPlanResult resubmitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 6, replacement.planVersion(),
+                "submit-source-2", "corr-submit-source-2"));
+
+        assertEquals(2, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND cutover_task_id=?",
+                tenantId, taskId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND source_plan_revision_id=? AND revision_reason_code='SOURCE_REPLACED' " +
+                "AND status_code='SUBMITTED' AND current_marker=1", tenantId, resubmitted.planRevisionId(),
+                submitted.planRevisionId()));
+        CutoverApprovalFact prior = approval.inspect(new CutoverApprovalFactQuery(
+                tenantId, taskId, submitted.planRevisionId())).fact();
+        assertEquals(ApprovalStatus.PAUSED_SOURCE_INVALIDATED, prior.status());
+        assertEquals(resubmitted.approvalInstanceId(), prior.replacementApprovalInstanceId());
+        assertEquals(5, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
+                tenantId));
+    }
+
+    @Test
+    void approvedContactPatchKeepsApprovedBodyAndPersistsAuditFacts() {
+        CutoverPlanCommandResult saved = createSavedStandardPlan("approved-contact");
+        SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, saved.planVersion(),
+                "submit-approved-contact", "corr-submit-approved-contact"));
+        approval.approve(submitted.approvalInstanceId(), 1_788_192_000_000L);
+        jdbc.update("UPDATE cut_task SET current_stage='P6', task_status='CLOSURE_IN_PROGRESS', version=6 " +
+                "WHERE tenant_id=? AND id=?", tenantId, taskId);
+        long arrangementId = jdbc.queryForObject("SELECT id FROM cut_cutover_support_arrangement " +
+                "WHERE tenant_id=? AND plan_revision_id=? AND role_code='CUSTOMER'", Long.class,
+                tenantId, submitted.planRevisionId());
+        LocalDateTime arrival = LocalDateTime.of(2026, 9, 2, 9, 0);
+
+        PatchApprovedContactResult patched = service.patchApprovedContact(new PatchApprovedContactCommand(
+                tenantId, 8L, taskId, arrangementId, submitted.planVersion(), "李工", "13900000000",
+                arrival, "patch-approved-contact", "corr-patch-approved-contact"));
+
+        assertEquals(submitted.planVersion() + 1, patched.planVersion());
+        assertEquals("APPROVED_CONTACT_CHANGED", patched.reasonCode());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND status_code='SUBMITTED' AND version=? AND updater='8'", tenantId,
+                submitted.planRevisionId(), patched.planVersion()));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_support_arrangement WHERE tenant_id=? AND id=? " +
+                "AND role_code='CUSTOMER' AND duty_description='现场确认' AND person_name='李工' " +
+                "AND phone='13900000000' AND arrival_time=? AND version=1", tenantId, arrangementId, arrival));
+        String audit = jdbc.queryForObject("SELECT detail_snapshot FROM plt_operation_audit WHERE tenant_id=? " +
+                "AND operation_code='CUTOVER_PLAN_APPROVED_CONTACT_PATCH'", String.class, tenantId);
+        org.assertj.core.api.Assertions.assertThat(audit).contains("客户经理", "李工", "APPROVED_CONTACT_CHANGED");
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? " +
+                "AND operation_code='CUTOVER_PLAN_APPROVED_CONTACT_PATCH' " +
+                "AND correlation_id='corr-patch-approved-contact'", tenantId));
+    }
+
+    private CutoverPlanCommandResult createSavedStandardPlan(String key) {
+        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, 30L, "ONLINE_TEMPLATE_STANDARD", null, null,
+                "create-" + key, "corr-create-" + key));
+        tools.jackson.databind.node.ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
+        content.put("editMode", "ONLINE_TEMPLATE_STANDARD");
+        tools.jackson.databind.node.ObjectNode overview = content.putObject("overview");
+        overview.put("projectDescription", "项目说明");
+        overview.putArray("scheduleTable").addObject().put("sequenceNo", 1)
+                .put("plannedAt", 1_788_192_000_000L).put("content", "实施计划");
+        overview.putNull("preTopologyFile"); overview.putNull("postTopologyFile");
+        tools.jackson.databind.node.ObjectNode device = overview.putArray("deviceSummary").addObject();
+        device.put("deviceId", 301L); device.put("serialNumber", "SN-1");
+        device.put("projectAssignmentVersion", 9L); device.put("deviceTypeCode", "ROUTER");
+        device.put("deviceTypeSourceVersion", "type-v1"); overview.putNull("networkConfigurationFile");
+        tools.jackson.databind.node.ArrayNode steps = content.putArray("steps");
+        for (String section : CutoverPlanRules.STANDARD_SECTIONS) {
+            steps.addObject().put("sectionCode", section).put("stepNo", 1)
+                    .put("content", section + "执行内容");
+        }
+        content.putArray("riskMitigations");
+        tools.jackson.databind.node.ArrayNode supports = content.putArray("supportArrangements");
+        for (String role : CutoverPlanRules.SUPPORT_ROLES) {
+            tools.jackson.databind.node.ObjectNode support = supports.addObject();
+            support.putNull("arrangementId"); support.put("roleCode", role);
+            support.put("personName", "CUSTOMER".equals(role) ? "客户经理" : role + "负责人");
+            support.put("dutyDescription", "CUSTOMER".equals(role) ? "现场确认" : role + "保障");
+            support.put("phone", "13800000000"); support.put("arrivalTime", 1_788_192_000_000L);
+        }
+        return service.saveDraft(new SaveCutoverPlanDraftCommand(tenantId, 8L, taskId, 4,
+                created.planVersion(), 30L, content, "save-" + key, "corr-save-" + key));
     }
 
     int count(String sql, Object... args) { return jdbc.queryForObject(sql, Integer.class, args); }
@@ -214,28 +307,19 @@ class CutoverPlanApplicationMySqlTest {
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
+        void setTaskVersion(int taskVersion) {
+            SourceSnapshot source = facts.snapshot();
+            facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion(), source.taskId(), taskVersion,
+                    source.assessmentId(), source.assessmentVersion(), source.grade(), source.checklistId(),
+                    source.checklistVersion(), source.projectId(), source.projectVersion(),
+                    source.projectScopeVersion(), source.devices(), source.configurationRevisionId(),
+                    source.configurationCode(), source.configurationRevisionNo(), source.templateSections(),
+                    source.failedRiskFacts()), facts.failedRiskFacts());
+        }
         FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
         @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
         @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
         @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { return fileFact(); }
-    }
-
-    static final class ControlledApproval implements CutoverApprovalFactApi {
-        CutoverApprovalFact fact;
-        @Override public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
-            fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
-                    command.planRevisionNo(), ApprovalStatus.PENDING, command.sourceSnapshotVersion(),
-                    null, null, null);
-            return new CutoverApprovalStartResult(StartOutcome.STARTED, fact);
-        }
-        @Override public CutoverApprovalCommandResult pauseForSourceInvalidation(CutoverApprovalPauseCommand command) {
-            fact = new CutoverApprovalFact(fact.approvalInstanceId(), fact.approvalVersion() + 1,
-                    fact.taskId(), fact.planRevisionId(), fact.planRevisionNo(),
-                    ApprovalStatus.PAUSED_SOURCE_INVALIDATED, fact.sourceSnapshotVersion(), null, null, null);
-            return new CutoverApprovalCommandResult(CommandOutcome.APPLIED, fact);
-        }
-        @Override public CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query) { throw new AssertionError(); }
-        @Override public CutoverApprovalRevalidationResult lockAndRevalidate(CutoverApprovalRevalidationQuery query) { throw new AssertionError(); }
     }
 
     @SpringBootConfiguration
@@ -251,7 +335,7 @@ class CutoverPlanApplicationMySqlTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean ControlledOwners controlledOwners() { return new ControlledOwners(); }
-        @Bean ControlledApproval controlledApproval() { return new ControlledApproval(); }
+        @Bean ControlledCutoverApprovalFactApi controlledApproval() { return new ControlledCutoverApprovalFactApi(); }
         @Bean Clock clock() { return Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC); }
         @Bean CutoverPlanApplicationService service(CutoverTaskMapper taskMapper,
                                                     CutoverPlanRevisionMapper planMapper,
@@ -259,7 +343,7 @@ class CutoverPlanApplicationMySqlTest {
                                                     CutoverSupportArrangementMapper supportMapper,
                                                     CutoverTaskStageHistoryMapper historyMapper,
                                                     ControlledOwners owners,
-                                                    ControlledApproval approval,
+                                                    ControlledCutoverApprovalFactApi approval,
                                                     PlatformCommandExecutionApi platform, Clock clock) {
             return new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper, supportMapper,
                     owners, owners, owners, new CutoverPlanContentCodec(), platform, approval, historyMapper, clock);

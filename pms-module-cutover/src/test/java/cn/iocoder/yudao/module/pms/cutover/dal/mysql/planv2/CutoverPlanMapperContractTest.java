@@ -1,10 +1,12 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverApprovedContactVersionUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanReplacementUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanVersionUpdate;
@@ -33,6 +35,8 @@ class CutoverPlanMapperContractTest {
         Configuration configuration = configuration();
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectCurrentForUpdate",
                 new CutoverPlanRevisionQuery(1L, 2L, 3L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectByIdForUpdate",
+                new CutoverPlanRevisionQuery(1L, 2L, 3L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectListLegacyByTask",
                 new CutoverPlanRevisionQuery(1L, 2L, 3L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectListDirectSuccessors",
@@ -41,6 +45,12 @@ class CutoverPlanMapperContractTest {
                 new CutoverPlanHistoryQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceDraftVersionIfMatch",
                 new CutoverPlanVersionUpdate(1L, 3L, 0, 1));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceApprovedVersionIfMatch",
+                new CutoverApprovedContactVersionUpdate(1L, 3L, 0, 1, "9",
+                        LocalDateTime.parse("2026-09-01T09:00:00")));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceSubmittedIfMatch",
+                new CutoverPlanReplacementUpdate(1L, 3L, 0, 1, "9",
+                        LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceDraftIfMatch",
                 new CutoverPlanDraftUpdate(1L, 3L, 0, 1, "ONLINE_TEMPLATE_STANDARD", "{}",
                         null, null, null, null, null, null, null, "9",

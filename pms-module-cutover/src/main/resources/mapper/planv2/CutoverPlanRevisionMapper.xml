@@ -22,6 +22,12 @@
         <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
         FOR UPDATE
     </select>
+    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
+        SELECT * FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+          AND id = #{query.planRevisionId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
     <select id="selectListDirectSuccessors" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
         SELECT * FROM cut_plan_revision
         WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
@@ -58,9 +64,25 @@
           AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
     <update id="advanceDraftVersionIfMatch">
-        UPDATE cut_plan_revision SET version = #{query.newVersion}, update_time = NOW(3)
+        UPDATE cut_plan_revision
+        SET version = #{query.newVersion}, update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}
           AND status_code = 'DRAFT' AND current_marker = 1 AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+    <update id="advanceApprovedVersionIfMatch">
+        UPDATE cut_plan_revision
+        SET version = #{query.newVersion}, updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}
+          AND status_code = 'SUBMITTED' AND current_marker = 1
+          AND approval_instance_id IS NOT NULL AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+    <update id="replaceSubmittedIfMatch">
+        UPDATE cut_plan_revision
+        SET current_marker = NULL, version = #{query.newVersion},
+            updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}
+          AND status_code = 'SUBMITTED' AND current_marker = 1
+          AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
     <update id="submitDraftIfMatch">
         UPDATE cut_plan_revision

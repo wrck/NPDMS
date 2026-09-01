@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /** 仅供CUT正向测试显式装配的确定性F-CUT-005事实实现。 */
-final class ControlledCutoverApprovalFactApi implements CutoverApprovalFactApi {
+public final class ControlledCutoverApprovalFactApi implements CutoverApprovalFactApi {
 
     private final Map<Long, CutoverApprovalFact> facts = new LinkedHashMap<>();
     private final Map<PlanKey, Long> planIndex = new LinkedHashMap<>();
@@ -96,14 +96,14 @@ final class ControlledCutoverApprovalFactApi implements CutoverApprovalFactApi {
         return new CutoverApprovalCommandResult(CommandOutcome.APPLIED, paused);
     }
 
-    CutoverApprovalFact reject(long approvalInstanceId, long decisionAt, String reason) {
+    public CutoverApprovalFact reject(long approvalInstanceId, long decisionAt, String reason) {
         CutoverApprovalFact rejected = change(requireFact(approvalInstanceId), ApprovalStatus.REJECTED,
                 decisionAt, reason);
         facts.put(approvalInstanceId, rejected);
         return rejected;
     }
 
-    CutoverApprovalFact approve(long approvalInstanceId, long decisionAt) {
+    public CutoverApprovalFact approve(long approvalInstanceId, long decisionAt) {
         CutoverApprovalFact approved = change(requireFact(approvalInstanceId), ApprovalStatus.APPROVED,
                 decisionAt, null);
         facts.put(approvalInstanceId, approved);
