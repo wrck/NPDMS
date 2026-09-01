@@ -1,6 +1,6 @@
 # F-CUT-004 P4割接方案编制与版本提交
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@644816f2`
 > Technical Plan Gate：`PASS / GO@9ef7545d`
@@ -13,8 +13,8 @@
 
 ## 当前最小工作单元
 
-- Task 1～10均已通过；当前进入Task 11 CUT受控正向集成回归；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
-- 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
+- Task 1～11均已通过；当前进入Task 12生产依赖接通前置核验；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
+- CUT自有实现已在受控Owner下形成正向闭环；生产CUT-05/PLT及F-CUT-002/003所需Owner缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
 
@@ -146,13 +146,23 @@
 
 ## Task 11：CUT受控正向集成回归
 
-状态：`CODE_REVIEW_REQUIRED / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES_CANDIDATE`
+状态：`PASS / GO@0e9065fa / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 
 - [x] 复用Task 4～6已通过的真实Spring事务、生产`PlatformCommandExecutionApiImpl`、真实MyBatis与MySQL测试装配，不重复创建第二套集成框架。
 - [x] 标准方案补齐初稿下载后提交P5，并核对方案、任务、审批PENDING、阶段历史、平台幂等与审计事实。
 - [x] 补齐D级简易方案与完整文件方案真实MySQL正向链：D只保存OPERATION/ROLLBACK且无清单/保障；上传模式只冻结PLT文件事实且无在线子项。
 - [x] 补齐REJECTED→新DRAFT→保存→替代PENDING真实MySQL链，并复用来源失效/替代提交与APPROVED联系人PATCH回归；所有跨模块Owner仅在`src/test`显式装配。
 - [x] CUT方案聚焦后端46/46（另5项MySQL按`skipITs=true`预期跳过）、隔离MySQL应用6/6、前端组件24/24、类型检查、后端package与前端build均通过；Flyway空卷已验证至V152。
-- [ ] 通过Task 11 CUT受控正向集成回归独立Gate。
+- [x] 通过Task 11 CUT受控正向集成回归独立Gate（`GO@0e9065fa`）。
 
-> 检查点候选：Task 11只证明CUT自有代码在受控Owner下形成正向事务闭环，候选状态最多为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`。生产PLT/CUT-05及F-CUT-002/003所需Owner、唯一生产装配、真实浏览器与Implementation Done继续留待Task 12。
+> 检查点：独立复审确认Task 11证明CUT自有代码在受控Owner下形成正向事务闭环，Feature实施状态更新为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`。生产PLT/CUT-05及F-CUT-002/003所需Owner、唯一生产装配、真实浏览器与Implementation Done继续留待Task 12。
+
+## Task 12：生产依赖接通、唯一装配与真实验收
+
+状态：`BLOCKED_BY_DEPENDENCY / PRECONDITION_REVIEW_REQUIRED`
+
+- [ ] 核验F-CUT-005生产`CutoverApprovalFactApi` Owner Gate及PLT正式初稿生成/冻结合同是否已通过。
+- [ ] 核验F-CUT-002/003所需生产Owner与唯一生产装配前提；缺任一项时保持失败关闭，不注册fallback。
+- [ ] 正式Owner齐备后，另行提交唯一Service/Controller装配、真实Spring传播、浏览器与数据库证据。
+
+> 最近Gate：Task 12生产依赖接通前置核验。当前受控替身不得用于生产装配、Job激活或真实浏览器验收。
