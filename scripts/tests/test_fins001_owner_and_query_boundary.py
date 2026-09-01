@@ -12,6 +12,11 @@ TEST_ASSETS = (
     "scripts/tests/test_fins001_legacy_preservation.py",
     "scripts/tests/test_fins001_owner_and_query_boundary.py",
     "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/integration/asset/AssetProductTypeContractTest.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java",
+    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestService.java",
+    "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuardTest.java",
+    "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestServiceTest.java",
 )
 QUERY_PARAMETER_EXCEPTIONS = {}
 

@@ -184,6 +184,7 @@ Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeCon
 
 **Files:**
 
+- Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java`
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java`
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestService.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuardTest.java`
@@ -191,11 +192,11 @@ Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeCon
 
 - [ ] **Step 1: 实现最小解析与摘要服务**
 
-复用Yudao System公开权限检查与`SecurityFrameworkUtils`，Controller权限注解之外由Service再次检查专用权限；不直读`system_*`表，不新增System公开契约，不要求解析角色—权限贡献关系。审核事实中的`authorizationType`固定为`RBAC_PERMISSION`，`authorizationSourceId`仅在平台自然提供稳定来源时保存。
+巡检模块定义`InspectionRuleExplicitAuthorizationApi`端口，按当前租户、当前登录用户和专用权限码查询“显式RBAC授予”事实；守卫不得直接复用会对超级管理员或权限跳过上下文自动放行的通用`SecurityFrameworkService.hasPermission`。本Task只冻结巡检侧端口、未注册容器的守卫和消费测试，不直读`system_*`表、不修改Yudao基础平台、不实现System侧适配器；适配器及守卫Bean装配待外部授权能力完备后继续实施，当前不得提供虚假默认实现。审核事实中的`authorizationType`固定为`RBAC_PERMISSION`，`authorizationSourceId`仅在平台自然提供稳定来源时保存。
 
 - [ ] **Step 2: 补充专用权限定向测试**
 
-测试必须证明：只有当前请求时被租户内RBAC显式授予`pms:inspection-rule:security-review`的用户才可记录审核；维护、发布或平台管理员身份本身不自动通过。不追溯或硬编码“哪个角色贡献权限”，审核事实保存审核用户、权限码和平台可提供的稳定授权来源ID；平台暂不能返回来源ID时留空，不伪造角色编码。
+测试必须证明：守卫只接受端口返回的当前租户、当前用户、专用权限码显式授权事实；无授权、租户/用户/权限码不匹配均失败关闭，维护、发布或平台管理员身份不得由守卫自行推断通过。不追溯或硬编码“哪个角色贡献权限”，审核事实保存审核用户、权限码和平台可提供的稳定授权来源ID；平台暂不能返回来源ID时留空，不伪造角色编码。
 
 ```java
 assertThrows(SecurityException.class, () -> guard.check(actorWithManageOnly()));
@@ -204,10 +205,9 @@ assertDoesNotThrow(() -> guard.check(actorWithExplicitReviewPermission()));
 
 - [ ] **Step 3: 补充规范化摘要定向测试**
 
-摘要输入只包含按执行顺序稳定排序后的命令内容、超时、继续/停止决定和预期结果正则；不包含数据库ID、维护时间或显示名称。相同业务内容产生相同SHA-256，不同命令、顺序、超时、继续策略或正则必须改变摘要。
+摘要输入只包含按执行顺序稳定排序后的命令内容、超时、继续/停止决定和预期结果正则；revision绑定由审核事实中的revision标识单独承担，摘要不包含revision键、数据库ID、维护时间或显示名称。重复或非正数执行顺序失败关闭。相同业务内容产生相同SHA-256，不同命令、顺序、超时、继续策略或正则必须改变摘要。
 
 ```text
-revision-business-key
 command[1].content
 command[1].timeoutSeconds
 command[1].continueOnTimeout
