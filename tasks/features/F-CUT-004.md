@@ -93,3 +93,16 @@
 - [x] 通过Task 6 Lifecycle/MySQL独立Gate（`GO@d4a827c0+c6c295cb`）。
 
 > 检查点：独立整体Gate确认REJECTED、SOURCE_REPLACED、当前Owner投影重建、替代审批及批准后联系人PATCH闭环成立；非IT聚焦20/20、隔离MySQL 8.4应用3/3通过。Task 6 Gate通过；DUTY_CHANGED继续作为已登记规格阻断排除在本Task已授权实现范围外。
+
+## Task 7：七路由REST与测试激活外壳
+
+状态：`CODE_REVIEW_REQUIRED`
+
+- [x] 实现详情、创建草稿、保存、下载、提交、批准后联系人PATCH与修订七条路由。
+- [x] 四项权限键只声明在Controller方法；Controller不注册生产`@RestController/@Component/@Bean`。
+- [x] Header、WireLong/WireDateTime、顶层判别联合及稳定错误Envelope由HTTP边界解析。
+- [x] 创建时项目范围水位由服务端当前事实取得；保存时使用草稿冻结水位重验，不增加未锁定HTTP字段。
+- [x] 测试专用`@RestController`外壳以MockMvc跑通七条正向路由；生产无Fake/fallback。
+- [ ] 通过Task 7 REST Contract独立Gate。
+
+> 候选检查点：定向Controller/Codec测试3/3通过；Task 12前继续不激活生产Controller与完整Service装配。

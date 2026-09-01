@@ -461,8 +461,7 @@ public class CutoverPlanApplicationService {
 
     private CutoverPlanCommandResult createNew(CreateCutoverPlanDraftCommand command) {
         CutoverTaskDO task = requireOwnedP4(taskMapper.selectById(command.taskId()), command);
-        CutoverProjectScopePort.ProjectScopeFact scope = inspectScope(command.actorId(), task.getProjectId(),
-                command.expectedProjectScopeVersion());
+        CutoverProjectScopePort.ProjectScopeFact scope = inspectCurrentScope(command.actorId(), task.getProjectId());
         CutoverPlanSourcePort.SourceFacts facts = inspectSource(command.tenantId(), command.actorId(), command.taskId());
         requireSource(facts, task);
         CutoverPlanFilePort.FileFact inspectedFile = inspectCreateFile(command, task);
@@ -472,11 +471,11 @@ public class CutoverPlanApplicationService {
     private CutoverPlanCommandResult saveNew(SaveCutoverPlanDraftCommand command) {
         CutoverTaskDO task = requireOwnedP4(taskMapper.selectById(command.taskId()), command.tenantId(),
                 command.actorId(), command.expectedTaskVersion());
-        CutoverProjectScopePort.ProjectScopeFact scope = inspectScope(command.actorId(), task.getProjectId(),
-                command.expectedProjectScopeVersion());
         CutoverPlanRevisionDO plan = requireDraft(planMapper.selectCurrent(new CutoverPlanRevisionQuery(
                 command.tenantId(), command.taskId(), null)), command.expectedPlanVersion());
         CutoverPlanSourcePort.SourceSnapshot snapshot = parseSource(plan.getSourceSnapshot());
+        CutoverProjectScopePort.ProjectScopeFact scope = inspectScope(command.actorId(), task.getProjectId(),
+                snapshot.projectScopeVersion());
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(snapshot, snapshot.failedRiskFacts());
         CutoverPlanContentCodec.DecodedContent decoded = decode(command.content(), facts);
         CutoverPlanFilePort.FileFact inspectedFile = inspectSaveFile(command, task, decoded);
@@ -716,6 +715,12 @@ public class CutoverPlanApplicationService {
         CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, projectId, ACTION_EDIT);
         if (fact == null || !fact.allowed()) throw failure(NOT_FOUND, "任务不可见");
         if (!Objects.equals(fact.projectScopeVersion(), expected)) throw failure(PROJECT_SCOPE_STALE, "项目范围已变化");
+        return fact;
+    }
+
+    private CutoverProjectScopePort.ProjectScopeFact inspectCurrentScope(Long actorId, Long projectId) {
+        CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, projectId, "ACTION_EDIT");
+        if (fact == null || !fact.allowed()) throw failure(NOT_FOUND, "任务不可见");
         return fact;
     }
 
@@ -1119,7 +1124,7 @@ public class CutoverPlanApplicationService {
 
     private static Map<String, Object> createDigest(CreateCutoverPlanDraftCommand command) {
         Map<String, Object> value = new LinkedHashMap<>(); value.put("taskId", command.taskId());
-        value.put("taskVersion", command.expectedTaskVersion()); value.put("projectScopeVersion", command.expectedProjectScopeVersion());
+        value.put("taskVersion", command.expectedTaskVersion());
         value.put("editMode", command.editMode()); value.put("fileFact", command.expectedFileFact());
         value.put("ownershipConfirmed", command.ownershipConfirmed()); return value;
     }
@@ -1127,7 +1132,6 @@ public class CutoverPlanApplicationService {
     private static Map<String, Object> saveDigest(SaveCutoverPlanDraftCommand command) {
         Map<String, Object> value = new LinkedHashMap<>(); value.put("taskId", command.taskId());
         value.put("taskVersion", command.expectedTaskVersion()); value.put("planVersion", command.expectedPlanVersion());
-        value.put("projectScopeVersion", command.expectedProjectScopeVersion());
         value.put("content", canonicalJson(command.content())); return value;
     }
 
@@ -1243,7 +1247,6 @@ public class CutoverPlanApplicationService {
     private static void requireCreate(CreateCutoverPlanDraftCommand command) {
         if (command == null || !positive(command.tenantId()) || !positive(command.actorId()) || !positive(command.taskId())
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
-                || command.expectedProjectScopeVersion() == null || command.expectedProjectScopeVersion() < 0
                 || !List.of("ONLINE_TEMPLATE_STANDARD", "ONLINE_TEMPLATE_SIMPLE_D", "FULL_FILE_UPLOAD").contains(command.editMode())
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "创建草稿命令非法");
@@ -1259,7 +1262,6 @@ public class CutoverPlanApplicationService {
         if (command == null || !positive(command.tenantId()) || !positive(command.actorId()) || !positive(command.taskId())
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
                 || command.expectedPlanVersion() == null || command.expectedPlanVersion() < 0
-                || command.expectedProjectScopeVersion() == null || command.expectedProjectScopeVersion() < 0
                 || command.content() == null || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) throw failure(INVALID_REQUEST, "保存草稿命令非法");
     }
