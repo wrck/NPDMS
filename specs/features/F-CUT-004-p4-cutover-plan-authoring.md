@@ -10,6 +10,7 @@
 > 后置Feature：`F-CUT-005（CUT-05分级审批）`
 > 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-004-legacy-reuse-audit.md`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-01-f-cut-004-p4-cutover-plan-authoring.md`（`REVIEW_REQUIRED`）
 > 最终裁决：Feature Ready `GO`（状态基线`644816f2`；独立正式裁决）
 
 ## 1. 业务目标
