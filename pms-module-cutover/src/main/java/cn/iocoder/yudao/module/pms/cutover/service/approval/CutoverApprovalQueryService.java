@@ -77,9 +77,15 @@ public class CutoverApprovalQueryService {
             require(nodes.size() == rows.size(), OWNER_DATA_CORRUPTED, "待办投影身份损坏");
             for (int index = 0; index < nodes.size(); index++) {
                 ApprovalTodoPageRow row = rows.get(index);
+                CutoverApprovalNodeDO node = nodes.get(index);
+                require(Objects.equals(row.getNodeId(), node.getId())
+                                && Objects.equals(row.getApprovalInstanceId(), node.getApprovalInstanceId())
+                                && Objects.equals(row.getNodeNo(), node.getNodeNo())
+                                && Objects.equals(row.getNodeCode(), node.getNodeCode()),
+                        OWNER_DATA_CORRUPTED, "待办节点投影身份损坏");
                 CutoverApprovalInstanceDO root = instanceMapper.selectById(row.getApprovalInstanceId());
                 require(root != null && Objects.equals(root.getTenantId(), tenantId), OWNER_DATA_CORRUPTED, "待办审批根缺失");
-                if (eligible(root, nodes.get(index), actorId)) eligible.add(todo(row));
+                if (eligible(root, node, actorId)) eligible.add(todo(row));
             }
             if (nodes.size() < SCAN_SIZE) break;
         }
@@ -126,9 +132,13 @@ public class CutoverApprovalQueryService {
             }
             case "SECOND_LINE", "RND" -> {
                 String group = "SECOND_LINE".equals(node.getNodeCode()) ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-                boolean candidate = roleCandidatePort.inspectCandidates(root.getTenantId(), group).candidates().stream()
-                        .anyMatch(value -> value.adminUserId() == actorId);
-                yield candidate && projectScopePort.inspect(root.getTenantId(), root.getProjectId(), actorId, "ACTION_VIEW").allowed();
+                List<Long> allowed = new ArrayList<>();
+                for (var candidate : roleCandidatePort.inspectCandidates(root.getTenantId(), group).candidates()) {
+                    var scope = projectScopePort.inspect(root.getTenantId(), root.getProjectId(),
+                            candidate.adminUserId(), "ACTION_VIEW");
+                    if (scope.allowed()) allowed.add(candidate.adminUserId());
+                }
+                yield allowed.size() == 1 && allowed.getFirst() == actorId;
             }
             default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
         };

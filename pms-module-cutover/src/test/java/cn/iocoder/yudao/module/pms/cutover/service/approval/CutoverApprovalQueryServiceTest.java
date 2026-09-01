@@ -58,6 +58,7 @@ class CutoverApprovalQueryServiceTest {
         Fixture f = new Fixture();
         CutoverApprovalNodeDO node = node();
         ApprovalTodoPageRow row = new ApprovalTodoPageRow();
+        row.setNodeId(101L);
         row.setApprovalInstanceId(100L); row.setApprovalVersion(0); row.setTaskId(10L); row.setProjectId(20L);
         row.setTaskCode("CUT-10"); row.setTaskName("割接任务"); row.setGrade("A"); row.setNodeNo(1);
         row.setNodeCode("INITIATOR"); row.setCreatedAt(LocalDateTime.now());
@@ -71,6 +72,32 @@ class CutoverApprovalQueryServiceTest {
         assertThat(page.total()).isEqualTo(1);
         assertThat(page.list()).singleElement().extracting(CutoverApprovalViews.TodoItem::taskCode)
                 .isEqualTo("CUT-10");
+    }
+
+    @Test
+    void returnsSecondLineTodoOnlyWhenFullCandidateIntersectionIsUnique() {
+        Fixture f = new Fixture();
+        CutoverApprovalNodeDO node = node(); node.setNodeCode("SECOND_LINE"); node.setCurrentApproverUserId(22L);
+        ApprovalTodoPageRow row = new ApprovalTodoPageRow();
+        row.setNodeId(101L); row.setApprovalInstanceId(100L); row.setApprovalVersion(0);
+        row.setTaskId(10L); row.setProjectId(20L); row.setTaskCode("CUT-10"); row.setTaskName("割接任务");
+        row.setGrade("A"); row.setNodeNo(1); row.setNodeCode("SECOND_LINE"); row.setCreatedAt(LocalDateTime.now());
+        when(f.nodes.selectTodoPage(any())).thenReturn(List.of(node));
+        when(f.nodes.selectTodoProjectionPage(any())).thenReturn(List.of(row));
+        when(f.instances.selectById(100L)).thenReturn(root("PENDING"));
+        when(f.candidates.inspectCandidates(1L, "CUT_SECOND_LINE_APPROVER")).thenReturn(
+                new CutoverApprovalRoleCandidatePort.CandidateSet(1L, "CUT_SECOND_LINE_APPROVER", List.of(
+                        new CutoverApprovalRoleCandidatePort.Candidate(22L, 2L, 1L, 1L),
+                        new CutoverApprovalRoleCandidatePort.Candidate(23L, 2L, 1L, 1L))));
+        when(f.scopes.inspect(1L, 20L, 22L, "ACTION_VIEW")).thenReturn(scope(22L, "ACTION_VIEW"));
+        when(f.scopes.inspect(1L, 20L, 23L, "ACTION_VIEW")).thenReturn(
+                new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, 23L, "ACTION_VIEW", false, 7L));
+
+        var page = f.service.myTodos(1L, 22L, 1, 20);
+
+        assertThat(page.list()).singleElement().extracting(CutoverApprovalViews.TodoItem::nodeCode)
+                .isEqualTo("SECOND_LINE");
+        verify(f.scopes).inspect(1L, 20L, 23L, "ACTION_VIEW");
     }
 
     private static CutoverApprovalInstanceDO root(String status) {

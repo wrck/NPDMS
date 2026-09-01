@@ -40,7 +40,7 @@
     </select>
     <select id="selectTodoProjectionPage"
             resultType="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalTodoPageRow">
-        SELECT i.id approval_instance_id, i.version approval_version, i.task_id, i.project_id,
+        SELECT n.id node_id, i.id approval_instance_id, i.version approval_version, i.task_id, i.project_id,
                t.task_no task_code, t.task_name, i.grade_code grade, n.node_no, n.node_code, i.create_time created_at
         FROM cut_approval_node n
         JOIN cut_approval_instance i ON i.tenant_id=n.tenant_id AND i.id=n.approval_instance_id AND i.deleted=b'0'

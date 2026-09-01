@@ -211,15 +211,16 @@ public class CutoverApprovalApplicationService {
                 .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
                 .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
         int oldRootVersion = root.getVersion();
-        if (Objects.equals(root.getCurrentNodeNo(), node.getNodeNo())
-                && openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null))
-            root.setHoldReasonCode(null);
+        boolean allOpenNodesAssigned = openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null);
+        if (allOpenNodesAssigned && ("ROUTE_CANDIDATE_NOT_UNIQUE".equals(root.getHoldReasonCode())
+                || ("APPROVER_UNAVAILABLE".equals(root.getHoldReasonCode())
+                && Objects.equals(root.getCurrentNodeNo(), node.getNodeNo())))) root.setHoldReasonCode(null);
         root.setUpdater(String.valueOf(actorId)); root.setUpdateTime(now);
         require(instanceMapper.updateAfterReassignmentIfMatch(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate(
                 root.getTenantId(), root.getId(), oldRootVersion, root.getHoldReasonCode(),
                 String.valueOf(actorId), now)) == 1, VERSION_CONFLICT, "审批实例并发变化");
         root.setVersion(oldRootVersion + 1);
-        if ("PENDING".equals(node.getStatusCode())) insertPendingNotification(root, node, actorId, now);
+        if ("PENDING".equals(node.getStatusCode())) insertPendingNotification(root, node, node.getVersion(), actorId, now);
         return reassignmentView(root, task, openNodes);
     }
 
@@ -685,11 +686,16 @@ public class CutoverApprovalApplicationService {
     }
 
     private void insertPendingNotification(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
-                                           long actorId, LocalDateTime now) {
+                                             long actorId, LocalDateTime now) {
+        insertPendingNotification(instance, node, node.getVersion() + 1, actorId, now);
+    }
+
+    private void insertPendingNotification(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
+                                             int committedNodeVersion, long actorId, LocalDateTime now) {
         CutoverApprovalNotificationDO row = new CutoverApprovalNotificationDO();
         row.setId(IDS.nextId()); row.setTenantId(instance.getTenantId()); row.setApprovalInstanceId(instance.getId());
         row.setApprovalNodeId(node.getId()); row.setRecipientUserId(node.getCurrentApproverUserId());
-        row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + (node.getVersion() + 1));
+        row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + committedNodeVersion);
         row.setTemplateCode("CUT_APPROVAL_PENDING"); row.setStatusCode("PENDING"); row.setRetryCount(0);
         row.setNextRetryAt(null); row.setVersion(0); row.setCreator(String.valueOf(actorId));
         row.setUpdater(String.valueOf(actorId)); row.setCreateTime(now); row.setUpdateTime(now);

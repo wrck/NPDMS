@@ -70,7 +70,54 @@ class CutoverApprovalReassignmentTest {
                 row.getFromApproverUserId().equals(11L) && row.getToApproverUserId().equals(44L)
                         && row.getReassignmentNo() == 1 && row.getOperatedBy().equals(99L)));
         verify(notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
-                row.getRecipientUserId().equals(44L) && "PENDING".equals(row.getStatusCode())));
+                row.getRecipientUserId().equals(44L) && "PENDING".equals(row.getStatusCode())
+                        && "CUT_APPROVAL:100:1:1".equals(row.getDeliveryKey())));
+    }
+
+    @Test
+    void reassigningLastFutureNodeClearsRouteCandidateHold() {
+        CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
+        CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
+        CutoverApprovalReassignmentMapper reassignments = mock(CutoverApprovalReassignmentMapper.class);
+        CutoverTaskMapper tasks = mock(CutoverTaskMapper.class);
+        ProjectCutoverServiceManagerPort managers = mock(ProjectCutoverServiceManagerPort.class);
+        CutoverApprovalProjectScopePort scopes = mock(CutoverApprovalProjectScopePort.class);
+        PlatformCommandExecutionApi platform = mock(PlatformCommandExecutionApi.class);
+        CutoverTaskDO task = task(); CutoverApprovalInstanceDO root = root();
+        root.setHoldReasonCode("ROUTE_CANDIDATE_NOT_UNIQUE");
+        CutoverApprovalNodeDO current = node();
+        CutoverApprovalNodeDO future = node(); future.setId(102L); future.setNodeNo(2);
+        future.setNodeCode("SERVICE_MANAGER"); future.setStatusCode("WAITING");
+        future.setOriginalApproverUserId(null); future.setCurrentApproverUserId(null);
+        when(tasks.selectForUpdate(any())).thenReturn(task);
+        when(instances.selectByIdForUpdate(any())).thenReturn(root);
+        when(nodes.selectByInstanceAndNodeForUpdate(any())).thenReturn(future);
+        when(nodes.updateStatusIfMatch(any())).thenReturn(1);
+        when(reassignments.selectMaxReassignmentNo(any())).thenReturn(0);
+        when(reassignments.insert(any(CutoverApprovalReassignmentDO.class))).thenReturn(1);
+        when(instances.updateAfterReassignmentIfMatch(any())).thenReturn(1);
+        when(nodes.selectList(any())).thenAnswer(ignored -> List.of(current, future));
+        var manager = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
+                ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, 44L,
+                "SERVICE_MANAGER_L1", 3, 4L, java.time.LocalDateTime.now());
+        when(managers.inspectCurrent(anyLong(), anyLong(), any())).thenReturn(manager);
+        when(managers.lockAndRevalidate(manager)).thenReturn(new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
+                ProjectCutoverServiceManagerPort.Revalidation.VALID, manager));
+        when(platform.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked") java.util.function.Supplier<Object> operation = invocation.getArgument(3);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
+        });
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
+                mock(CutoverApprovalNotificationMapper.class), mock(CutoverApprovalReviewItemMapper.class),
+                reassignments, tasks, mock(CutoverTaskStageHistoryMapper.class), managers,
+                mock(CutoverApprovalRoleCandidatePort.class), scopes, platform, () -> 99L,
+                Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC));
+
+        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+                2, 44L, "补齐后续服务经理", "key-r2", "corr-r2"));
+
+        assertThat(result.holdReason()).isNull();
+        verify(instances).updateAfterReassignmentIfMatch(argThat(query -> query.holdReasonCode() == null));
     }
 
     private static CutoverTaskDO task() {
