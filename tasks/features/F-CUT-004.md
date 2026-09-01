@@ -37,10 +37,10 @@
 
 ## Task 2：三表Schema、阶段前向约束与Mapper合同
 
-状态：`IN_PROGRESS`
+状态：`CODE_REVIEW_REQUIRED`
 
-- [ ] 使用实际下一空闲Flyway版本前向创建三表并收敛P4/P5/P6阶段约束。
-- [ ] 实现DO、场景Query、Mapper XML及迁移/Mapper合同测试。
+- [x] 使用实际下一空闲Flyway版本`V150`前向创建三表并收敛P4/P5/P6阶段约束。
+- [x] 实现DO、场景Query、Mapper XML及迁移/Mapper合同测试（6/6通过）。
 - [ ] 通过独立Schema/迁移Gate；不写业务Service。
 
-> 检查点：Task 1以`38fd6cfd`独立复审`PASS/GO`；当前只进入Task 2物理基础，不接通生产CUT-05/PLT依赖。
+> 检查点：Task 2候选已完成；隔离MySQL 8.4空卷全量146项迁移到V150，三表/9项CHECK及P4→P5→P4历史正向验证通过，专用容器/网络/卷已清理。当前申请独立Schema/迁移Gate。
