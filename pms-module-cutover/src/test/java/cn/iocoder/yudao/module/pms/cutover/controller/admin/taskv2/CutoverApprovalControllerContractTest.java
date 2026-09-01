@@ -55,7 +55,7 @@ class CutoverApprovalControllerContractTest {
         when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail);
         when(query.decisionResponse(anyLong(), anyLong(), anyLong(), anyInt(), anyLong())).thenReturn(detail);
         var decisionResult = new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(
-                1L, 100L, 1, 10L, 5, 70L, 1, "PENDING", null, 2, "P5", "APPROVING", null);
+                1L, 100L, 1, 10L, 5, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null);
         when(application.approve(any())).thenReturn(decisionResult);
         when(application.reject(any())).thenReturn(decisionResult);
         when(query.myTodos(1L, 8L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
@@ -77,8 +77,15 @@ class CutoverApprovalControllerContractTest {
                 .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "approve-1")
                 .contentType("application/json").content(decision("APPROVE", "YES", null)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.allowedActions[0]").value("APPROVE"));
-        verify(application).approve(argThat(command -> command.approvalInstanceId() == 100L
-                && command.expectedTaskVersion() == 4 && "corr-approval-1".equals(command.correlationId())));
+        verify(application).approve(argThat(command -> command.expectedTaskVersion() == 4
+                && "corr-approval-1".equals(command.correlationId())));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/approve")
+                .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "approve-1")
+                .contentType("application/json").content(decision("APPROVE", "YES", null)))
+                .andExpect(status().isOk());
+        verify(application, times(2)).approve(any());
+        verify(query, times(2)).decisionResponse(1L, 10L, 100L, 1, 8L);
+        verify(query, times(1)).detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean());
 
         mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/reject")
                 .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "reject-1")

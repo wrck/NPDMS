@@ -75,13 +75,13 @@ public class CutoverApprovalController {
             @RequestHeader("If-Match") String approvalVersion,
             @RequestHeader("X-Task-Version") String taskVersion,
             @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
-        var trusted = trusted(taskId); var current = currentFull(trusted, taskId); var request = codec.approve(body);
+        var trusted = trusted(taskId); var request = codec.approve(body);
         var result = applicationService.approve(new ApproveCutoverApprovalCommand(trusted.tenantId(), taskId,
-                codec.version(taskVersion, "X-Task-Version"), current.approvalInstanceId(),
-                codec.version(approvalVersion, "If-Match"), request.reviewItems(), request.assessmentReview(),
+                codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
+                request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
         return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
-                result.approvalInstanceId(), current.currentNodeNo(), trusted.actorId())));
+                result.approvalInstanceId(), result.decidedNodeNo(), trusted.actorId())));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reject")
@@ -90,13 +90,13 @@ public class CutoverApprovalController {
             @RequestHeader("If-Match") String approvalVersion,
             @RequestHeader("X-Task-Version") String taskVersion,
             @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
-        var trusted = trusted(taskId); var current = currentFull(trusted, taskId); var request = codec.reject(body);
+        var trusted = trusted(taskId); var request = codec.reject(body);
         var result = applicationService.reject(new RejectCutoverApprovalCommand(trusted.tenantId(), taskId,
-                codec.version(taskVersion, "X-Task-Version"), current.approvalInstanceId(),
-                codec.version(approvalVersion, "If-Match"), request.reviewItems(), request.assessmentReview(),
+                codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
+                request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
         return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
-                result.approvalInstanceId(), current.currentNodeNo(), trusted.actorId())));
+                result.approvalInstanceId(), result.decidedNodeNo(), trusted.actorId())));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reassign")
@@ -166,17 +166,6 @@ public class CutoverApprovalController {
             }
             throw ex;
         }
-    }
-
-    private CutoverApprovalViews.ApprovalDetail currentFull(CutoverApprovalRequestContext.TrustedContext trusted,
-                                                             long taskId) {
-        try {
-            var view = queryService.detail(trusted.tenantId(), taskId, trusted.actorId(), true, false);
-            if (view instanceof CutoverApprovalViews.ApprovalDetail detail) return detail;
-        } catch (CutoverApprovalApplicationException ex) {
-            if (ex.code() != CutoverApprovalApplicationException.Code.STATE_CONFLICT) throw ex;
-        }
-        throw ce(404, "NOT_VISIBLE_OR_NOT_FOUND", "APPROVAL_NOT_VISIBLE", "REQUEST_ACCESS", null);
     }
 
     private CutoverApprovalQueryService.ReassignmentCommandContext currentReassignment(

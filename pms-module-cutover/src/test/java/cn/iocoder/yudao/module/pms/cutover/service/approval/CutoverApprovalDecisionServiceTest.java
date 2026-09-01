@@ -36,7 +36,7 @@ class CutoverApprovalDecisionServiceTest {
         CutoverApprovalNodeDO next = node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L);
         doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
 
-        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
                 yesItems(), null, "同意进入下一节点", "key-1", "corr-1"));
 
         assertThat(result.approvalStatus()).isEqualTo("PENDING");
@@ -51,6 +51,25 @@ class CutoverApprovalDecisionServiceTest {
     }
 
     @Test
+    void replaysIntermediateDecisionWithoutReenteringCurrentNodeGuard() {
+        Fixture f = new Fixture(11L);
+        f.givenRoot(1, "INITIATOR");
+        CutoverApprovalNodeDO next = node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L);
+        doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
+        var command = new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
+                yesItems(), null, "同意进入下一节点", "key-replay", "corr-replay");
+
+        var first = f.service.approve(command);
+        var replay = f.service.approve(command);
+
+        assertThat(first.decidedNodeNo()).isEqualTo(1);
+        assertThat(first.currentNodeNo()).isEqualTo(2);
+        assertThat(replay).isEqualTo(first);
+        verify(f.instances, times(1)).selectCurrentByTask(any());
+        verify(f.reviews, times(5)).insert(any(CutoverApprovalReviewItemDO.class));
+    }
+
+    @Test
     void rejectReturnsTaskToP4AndCancelsFutureNodes() {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");
@@ -58,7 +77,7 @@ class CutoverApprovalDecisionServiceTest {
         when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
         when(f.tasks.selectMaxStageHistorySequence(any())).thenReturn(4);
 
-        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3, 0,
                 noItems(), null, "方案需修改", "key-2", "corr-2"));
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
@@ -82,7 +101,7 @@ class CutoverApprovalDecisionServiceTest {
         when(f.managers.lockAndRevalidate(manager)).thenReturn(new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
                 ProjectCutoverServiceManagerPort.Revalidation.VALID, manager));
 
-        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
                 yesItems(), new AssessmentReviewInput("CONFIRMED", null), "全部通过", "key-3", "corr-3"));
 
         assertThat(result.approvalStatus()).isEqualTo("APPROVED");
@@ -102,7 +121,7 @@ class CutoverApprovalDecisionServiceTest {
         when(f.nodes.selectList(any())).thenReturn(List.of());
         when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
 
-        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3, 0,
                 noItems(), new AssessmentReviewInput("CONFIRMED", null), "准备项需完善", "key-4", "corr-4"));
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
@@ -114,13 +133,13 @@ class CutoverApprovalDecisionServiceTest {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");
 
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 2, 100L, 0,
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 2, 0,
                 yesItems(), null, "同意", "key-version", "corr-version")))
                 .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex -> {
                     assertThat(ex.reasonCode()).isEqualTo("TASK_VERSION_STALE");
                     assertThat(ex.currentTaskVersion()).isEqualTo(3);
                 });
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
                 List.of(), null, "同意", "key-items", "corr-items")))
                 .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex ->
                         assertThat(ex.reasonCode()).isEqualTo("REVIEW_ITEMS_INCOMPLETE"));
@@ -164,6 +183,7 @@ class CutoverApprovalDecisionServiceTest {
         final Clock clock = Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC);
         final long actor;
         PlatformCommandExecutionApi.SuccessFacts successFacts;
+        Object completedResponse;
         final CutoverApprovalApplicationService service;
 
         Fixture(long actor) {
@@ -174,9 +194,13 @@ class CutoverApprovalDecisionServiceTest {
             when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
             when(history.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
             doAnswer(invocation -> {
+                if (completedResponse != null) {
+                    return new PlatformCommandExecutionApi.ExecutionResult<>(
+                            PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, completedResponse);
+                }
                 @SuppressWarnings("unchecked") java.util.function.Supplier<Object> operation = invocation.getArgument(3);
                 @SuppressWarnings("unchecked") java.util.function.Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
-                Object response = operation.get(); successFacts = facts.apply(response);
+                Object response = operation.get(); completedResponse = response; successFacts = facts.apply(response);
                 return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
             }).when(platform).execute(any(), anyString(), any(), any(), any());
             service = new CutoverApprovalApplicationService(null, instances, nodes, notifications, reviews, tasks,
@@ -189,6 +213,7 @@ class CutoverApprovalDecisionServiceTest {
             instance.setPlanRevisionId(200L); instance.setSourceSnapshotVersion(1); instance.setStatusCode("PENDING");
             instance.setCurrentNodeNo(currentNo); instance.setVersion(0);
             when(instances.selectByIdForUpdate(any())).thenReturn(instance);
+            when(instances.selectCurrentByTask(any())).thenReturn(instance);
             CutoverTaskDO task = new CutoverTaskDO(); task.setId(10L); task.setTenantId(1L); task.setVersion(3);
             task.setCurrentStage("P5"); task.setTaskStatus("APPROVING");
             when(tasks.selectForUpdate(any())).thenReturn(task);
