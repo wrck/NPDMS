@@ -119,7 +119,9 @@ describe('cutover task positive interaction', () => {
   it('creates only from the devices of the selected project candidate', () => {
     const selected = {
       ...candidate,
-      devices: [{ deviceId: '9007199254742002', serialNumber: 'SN-SELECTED', projectAssignmentVersion: '7' }]
+      devices: [
+        { deviceId: '9007199254742002', serialNumber: 'SN-SELECTED', projectAssignmentVersion: '7' }
+      ]
     }
     const request = buildCreateRequest(selected, {
       configurationCode: 'CORE_STANDARD',
