@@ -124,6 +124,10 @@
 - `sol_requirement_analysis_section`、固定`RequirementAnalysisCatalog`运行时展开、SOL正文/附件快照及附件同步状态不再是新流程真值。已执行的候选迁移不原位修改；实施只以前向迁移增加组合字段并停止新流程写入该表，不把现有候选数据自动迁移成正式业务数据。
 - 旧`pms_eng_requirement`及其后端、前端、CRUD、状态、菜单、数据和内置`super_admin`访问完全不变；不迁移、不双写、不解释为PRE-04当前真值。
 
+已由动态表单组合闭环明确替代的候选实现统一标记为`DEPRECATED`：固定`RequirementAnalysisCatalog`、`RequirementAnalysisCommandService/QueryService/FilePolicyProvider`、`RequirementAnalysisSectionDO/Mapper`及其固定章节VO、前端`patchSection`与`RequirementAnalysisSectionCard`。替代实现固定为`RequirementAnalysisDynamicFormCommandService/QueryService/PolicyProvider`、`DynamicFormBusinessInstanceApi`、`PATCH /preparations/{id}/form`和`RequirementAnalysisDynamicForm`。废弃实现只允许保留历史读取、回归和已执行迁移解释，不得再承接新需求、扩展新字段、增加调用方或作为新Feature实施基础。
+
+上述`DEPRECATED`不覆盖仍被本规格明确要求原样保留的旧`pms_eng_requirement`独立功能；该旧功能没有被本Feature批准退役，不能因名称相近被静默删除、迁移或改写。
+
 ## 4. API与模块契约
 
 ### 4.1 用户REST

@@ -10,6 +10,27 @@ FEATURE_SPEC = REPOSITORY_ROOT / "specs/features/F-SOL-003-requirement-analysis-
 PHYSICAL_CONTRACT = REPOSITORY_ROOT / "specs/features/F-SOL-003-physical-contract.json"
 PLATFORM_CONTRACT = REPOSITORY_ROOT / "specs/features/F-PLT-002-physical-contract.json"
 FEATURE_INDEX = REPOSITORY_ROOT / "specs/features/README.md"
+LEGACY_JAVA = [
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/requirement/RequirementAnalysisCatalog.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/preparation/RequirementAnalysisSectionDO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/preparation/RequirementAnalysisSectionMapper.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisCommandService.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisQueryService.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisFilePolicyProvider.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisAttachmentReqVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisAttachmentRespVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisCompareRespVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisCompletionBlockerRespVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisSectionPatchReqVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisSectionRespVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisVersionRespVO.java",
+    REPOSITORY_ROOT / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysisWorkspaceRespVO.java",
+]
+LEGACY_FRONTEND = [
+    REPOSITORY_ROOT / "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requirement-analysis/index.ts",
+    REPOSITORY_ROOT / "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisSectionCard.vue",
+    REPOSITORY_ROOT / "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/requirementAnalysisInteraction.ts",
+]
 
 
 class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
@@ -32,7 +53,10 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         self.assertIn("旧Technical Plan和旧Implementation审查不能驱动实施", self.feature_spec)
         self.assertIn("全新的中文Technical Plan", self.feature_spec)
         self.assertIn("F-SOL-003", self.feature_index)
-        self.assertIn("REPLAN_REQUIRED", self.feature_index)
+        feature_row = next(
+            line for line in self.feature_index.splitlines() if line.startswith("| [F-SOL-003]")
+        )
+        self.assertIn("IMPLEMENTATION_COMPLETE", feature_row)
 
     def test_work_binding_freezes_one_revision_without_project_user_selection(self) -> None:
         binding = self.contract["workBinding"]
@@ -162,6 +186,21 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         self.assertIn("sol_requirement_analysis_section", reuse["notCurrentTruth"])
         self.assertIn("pms_eng_requirement backend/frontend/API/data/state/menu", reuse["legacyUnchanged"])
         self.assertIn("built-in super_admin access", reuse["legacyUnchanged"])
+
+    def test_superseded_fixed_section_runtime_is_marked_deprecated(self) -> None:
+        self.assertIn("统一标记为`DEPRECATED`", self.feature_spec)
+        self.assertIn("RequirementAnalysisDynamicFormCommandService", self.feature_spec)
+        self.assertIn("不得再承接新需求", self.feature_spec)
+        for path in LEGACY_JAVA:
+            self.assertIn("@Deprecated", path.read_text(encoding="utf-8"), path.as_posix())
+        for path in LEGACY_FRONTEND:
+            self.assertIn("@deprecated", path.read_text(encoding="utf-8"), path.as_posix())
+
+        active_command = (
+            REPOSITORY_ROOT
+            / "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDynamicFormCommandService.java"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("@Deprecated", active_command)
 
 
 if __name__ == "__main__":

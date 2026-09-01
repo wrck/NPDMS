@@ -10,7 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** F-SOL-003固定核心章节与项目冻结扩展项解析器。 */
+/**
+ * F-SOL-003固定核心章节与项目冻结扩展项解析器。
+ *
+ * @deprecated 已由PLT动态表单冻结修订与SOL业务策略替代；不得用于新实现。
+ */
+@Deprecated
 public final class RequirementAnalysisCatalog {
 
     public static final String CATALOG_CODE = "PRE_04_REQUIREMENT_ANALYSIS";

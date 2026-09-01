@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Deprecated // 使用动态表单声明式校验与SOL完成阻断投影。
 public class RequirementAnalysisCompletionBlockerRespVO {
     private String code;
     private String sectionCode;

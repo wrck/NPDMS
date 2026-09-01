@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
+@Deprecated // 使用RequirementAnalysisDynamicFormQueryService.Detail。
 public class RequirementAnalysisVersionRespVO {
     private Long preparationId;
     private Long projectId;

@@ -15,11 +15,18 @@ PRD = REPOSITORY_ROOT / "docs/baseline/prd-v1.8.md"
 DOMAINS = REPOSITORY_ROOT / "specs/001-project-delivery-platform/domains"
 MATRIX = REPOSITORY_ROOT / "docs/traceability/requirement-matrix.md"
 COVERAGE = REPOSITORY_ROOT / "docs/traceability/requirement-version-coverage.json"
+FEATURE_INDEX = REPOSITORY_ROOT / "specs/features/README.md"
 
 
 class GenerateRequirementTraceabilityTest(unittest.TestCase):
 
-    def run_generator(self, output: Path, *, check: bool) -> subprocess.CompletedProcess[str]:
+    def run_generator(
+        self,
+        output: Path,
+        *,
+        check: bool,
+        feature_index: Path = FEATURE_INDEX,
+    ) -> subprocess.CompletedProcess[str]:
         coverage_output = output.with_name("requirement-version-coverage.json")
         command = [
             sys.executable,
@@ -32,10 +39,33 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
             str(output),
             "--coverage-output",
             str(coverage_output),
+            "--feature-index",
+            str(feature_index),
         ]
         if check:
             command.append("--check")
         return subprocess.run(command, cwd=REPOSITORY_ROOT, text=True, capture_output=True, check=False)
+
+    def test_check_detects_feature_index_status_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "requirement-matrix.md"
+            feature_index = Path(temporary) / "feature-index.md"
+            shutil.copyfile(MATRIX, output)
+            shutil.copyfile(COVERAGE, output.with_name("requirement-version-coverage.json"))
+            lines = FEATURE_INDEX.read_text(encoding="utf-8-sig").splitlines()
+            row_index = next(
+                index for index, line in enumerate(lines) if line.startswith("| [F-SOL-003]")
+            )
+            self.assertIn("IMPLEMENTATION_COMPLETE", lines[row_index])
+            lines[row_index] = lines[row_index].replace(
+                "IMPLEMENTATION_COMPLETE", "NOT_STARTED", 1
+            )
+            feature_index.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            result = self.run_generator(output, check=True, feature_index=feature_index)
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("FEATURE INDEX DRIFT", result.stdout + result.stderr)
 
     def requirement_row(self, content: str, slice_key: str) -> str:
         prefix = f"| {slice_key} |"

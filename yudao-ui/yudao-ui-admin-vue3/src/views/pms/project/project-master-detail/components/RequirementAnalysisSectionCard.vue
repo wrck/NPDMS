@@ -1,3 +1,4 @@
+<!-- @deprecated 使用RequirementAnalysisDynamicForm.vue；固定章节卡片不得承接新功能。 -->
 <template>
   <article class="section-card" :aria-labelledby="`section-${section.sectionId}`">
     <header class="section-heading">
