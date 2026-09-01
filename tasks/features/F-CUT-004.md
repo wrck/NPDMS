@@ -96,13 +96,13 @@
 
 ## Task 7：七路由REST与测试激活外壳
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@359be6bd`
 
 - [x] 实现详情、创建草稿、保存、下载、提交、批准后联系人PATCH与修订七条路由。
 - [x] 四项权限键只声明在Controller方法；Controller不注册生产`@RestController/@Component/@Bean`。
 - [x] Header、WireLong/WireDateTime、顶层判别联合及稳定错误Envelope由HTTP边界解析。
 - [x] 创建时项目范围水位由服务端当前事实取得；保存时使用草稿冻结水位重验，不增加未锁定HTTP字段。
 - [x] 测试专用`@RestController`外壳以MockMvc跑通七条正向路由；生产无Fake/fallback。
-- [ ] 通过Task 7 REST Contract独立Gate。
+- [x] 通过Task 7 REST Contract独立Gate（`GO@359be6bd`）。
 
-> 整改候选检查点：`7c0cba23`复审确认WireLong/受信租户边界已关闭，稳定错误合同仍有submit任务CAS、P4来源Provider及PLT空/损坏事实三处分支`NO-GO`；最新候选已补齐三处分轴错误映射，七路由正向及Controller/Codec/Application聚焦测试14/14通过。Task 7仍为`CODE_REVIEW_REQUIRED`；Task 12前继续不激活生产Controller与完整Service装配。
+> 检查点：独立复审确认submit任务CAS、P4来源Provider、PLT空/损坏事实及WireLong/受信租户边界均已闭合；七路由正向及Controller/Codec/Application聚焦测试14/14通过，Task 7 Gate通过。Task 12前继续不激活生产Controller与完整Service装配。
