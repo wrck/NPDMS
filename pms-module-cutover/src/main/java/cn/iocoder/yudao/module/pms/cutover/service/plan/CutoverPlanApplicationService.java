@@ -205,11 +205,14 @@ public class CutoverPlanApplicationService {
         CutoverPlanSourcePort.SourceSnapshot snapshot = parseSource(plan.getSourceSnapshot());
         CutoverPlanSourcePort.SourceFacts sourceFacts = new CutoverPlanSourcePort.SourceFacts(
                 snapshot, snapshot.failedRiskFacts());
+        CutoverPlanSourcePort.SourceFacts lockedSource = lockSource(
+                command.tenantId(), command.actorId(), sourceFacts);
+        requireSameSource(sourceFacts, lockedSource);
         CutoverPlanContentCodec.DecodedContent content = storedContent(command.tenantId(), plan, sourceFacts);
         try {
             codec.validateComplete(content, sourceFacts);
         } catch (IllegalArgumentException ex) {
-            throw failure(INVALID_REQUEST, "方案内容尚未完整");
+            throw failure(PLAN_SECTION_INCOMPLETE, "方案内容尚未完整");
         }
         CutoverPlanFilePort.FileFact file = filePort.downloadDraft(command.tenantId(), command.actorId(),
                 task.getProjectId(), plan.getId());

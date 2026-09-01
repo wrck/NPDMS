@@ -50,20 +50,26 @@ class CutoverPlanSubmissionTest {
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
         CutoverSupportArrangementMapper supportMapper = mock(CutoverSupportArrangementMapper.class);
         CutoverProjectScopePort projectScope = mock(CutoverProjectScopePort.class);
+        CutoverPlanSourcePort sourcePort = mock(CutoverPlanSourcePort.class);
         CutoverPlanFilePort filePort = mock(CutoverPlanFilePort.class);
         CutoverTaskDO task = task();
         CutoverPlanRevisionDO plan = simplePlan();
+        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
+                plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+        CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(
+                snapshot, snapshot.failedRiskFacts());
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         when(planMapper.selectCurrent(any())).thenReturn(plan);
+        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
         when(stepMapper.selectListByPlan(any())).thenReturn(List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退")));
         CutoverPlanFilePort.FileFact generated = fileFact();
         when(filePort.downloadDraft(1L, 8L, 70L, 80L)).thenReturn(generated);
         DirectPlatform platform = new DirectPlatform();
         CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
-                stepMapper, supportMapper, projectScope, mock(CutoverPlanSourcePort.class), filePort,
+                stepMapper, supportMapper, projectScope, sourcePort, filePort,
                 new CutoverPlanContentCodec(), platform,
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
@@ -78,6 +84,8 @@ class CutoverPlanSubmissionTest {
         assertThat(plan.getVersion()).isEqualTo(3);
         assertThat(platform.lastFacts.get().correlationId()).isEqualTo("corr-download-1");
         assertThat(platform.lastFacts.get().detailSnapshot()).contains("fileArtifactFact", "downloadedAt", "actorId");
+        verify(sourcePort).lockAndRevalidate(1L, 8L, facts);
+        verify(filePort).downloadDraft(1L, 8L, 70L, 80L);
     }
 
     @Test
