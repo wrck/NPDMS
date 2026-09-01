@@ -135,6 +135,8 @@ public class CutoverApprovalApplicationService {
             throw failure(IDEMPOTENCY_CONFLICT, "审批决定幂等载荷冲突");
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
             throw failure(IDEMPOTENCY_IN_PROGRESS, "审批决定命令处理中");
+        if (execution.response().holdReason() != null)
+            throw failure(STATE_CONFLICT, "APPROVER_UNAVAILABLE");
         return execution.response();
     }
 
@@ -144,22 +146,30 @@ public class CutoverApprovalApplicationService {
             long actorId, boolean approve) {
         require(reviewItemMapper != null && taskMapper != null && historyMapper != null,
                 OWNER_DATA_CORRUPTED, "审批决定持久化组件未装配");
+        CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(tenantId, taskId));
+        require(task != null && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus()),
+                STATE_CONFLICT, "任务不在P5审批中");
+        require(Objects.equals(task.getVersion(), expectedTaskVersion), VERSION_CONFLICT, "任务版本已变化");
         CutoverApprovalInstanceDO instance = instanceMapper.selectByIdForUpdate(
                 new ApprovalInstanceLockQuery(tenantId, approvalInstanceId, null, null));
         require(instance != null && Objects.equals(instance.getTaskId(), taskId), STATE_CONFLICT, "审批实例不存在");
         require("PENDING".equals(instance.getStatusCode()) && instance.getHoldReasonCode() == null,
                 STATE_CONFLICT, "审批实例不可决定");
         require(Objects.equals(instance.getVersion(), expectedApprovalVersion), VERSION_CONFLICT, "审批版本已变化");
-        CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(tenantId, taskId));
-        require(task != null && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus()),
-                STATE_CONFLICT, "任务不在P5审批中");
-        require(Objects.equals(task.getVersion(), expectedTaskVersion), VERSION_CONFLICT, "任务版本已变化");
         CutoverApprovalNodeDO current = nodeMapper.selectByInstanceAndNodeForUpdate(
                 new ApprovalNodeLockQuery(tenantId, approvalInstanceId, instance.getCurrentNodeNo()));
         require(current != null && "PENDING".equals(current.getStatusCode())
                 && Objects.equals(current.getCurrentApproverUserId(), actorId), STATE_CONFLICT, "当前用户不是待审批人");
-        revalidateApprover(instance, current, actorId);
-        validateAssessmentReview(current.getNodeCode(), assessmentReview, approve);
+        if (!revalidateApprover(instance, current, actorId)) {
+            int oldVersion = instance.getVersion();
+            instance.setHoldReasonCode("APPROVER_UNAVAILABLE");
+            instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(LocalDateTime.now(clock));
+            require(instanceMapper.updateById(instance) == 1, VERSION_CONFLICT, "审批实例并发变化");
+            instance.setVersion(oldVersion + 1);
+            return decisionResult(instance, task, "PENDING", task.getVersion(), task.getCurrentStage(), task.getTaskStatus());
+        }
+        boolean anyNo = reviewItems.stream().anyMatch(item -> "NO".equals(item.decision()));
+        validateAssessmentReview(current.getNodeCode(), assessmentReview, approve, anyNo);
         LocalDateTime now = LocalDateTime.now(clock);
         insertReviewItems(tenantId, approvalInstanceId, current.getId(), reviewItems, actorId, now);
         updateNode(current, approve ? "APPROVED" : "REJECTED", assessmentReview, feedback, now, actorId, now);
@@ -357,50 +367,51 @@ public class CutoverApprovalApplicationService {
         require(notificationMapper.insert(row) == 1, STATE_CONFLICT, "首节点通知创建失败");
     }
 
-    private void revalidateApprover(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node, long actorId) {
-        switch (node.getNodeCode()) {
+    private boolean revalidateApprover(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node, long actorId) {
+        return switch (node.getNodeCode()) {
             case "INITIATOR" -> {
-                var inspected = projectScopePort.inspect(instance.getTenantId(), instance.getProjectId(), actorId,
-                        "ACTION_EDIT");
-                var locked = projectScopePort.lockAndRevalidate(inspected);
-                require(inspected.allowed() && Objects.equals(inspected.treeVersion(), node.getProjectScopeVersion())
-                                && locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                        SOURCE_STALE, "发起人项目范围已变化");
+                var expected = new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
+                        instance.getProjectId(), actorId, "ACTION_EDIT", true, node.getProjectScopeVersion());
+                var locked = projectScopePort.lockAndRevalidate(expected);
+                if (!locked.current().allowed()) yield false;
+                require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
+                        SOURCE_STALE, "发起人项目范围版本已变化");
+                yield true;
             }
             case "SERVICE_MANAGER" -> {
-                var inspected = serviceManagerPort.inspectCurrent(instance.getTenantId(), instance.getProjectId(),
-                        LocalDateTime.now(clock));
-                var locked = serviceManagerPort.lockAndRevalidate(inspected);
-                require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID
-                        && locked.current().outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND
-                        && Objects.equals(locked.current().userId(), actorId), SOURCE_STALE, "服务经理事实已变化");
+                var expected = JsonUtils.parseObject(node.getCandidateFactSnapshot(),
+                        ProjectCutoverServiceManagerPort.ServiceManagerFact.class);
+                var locked = serviceManagerPort.lockAndRevalidate(expected);
+                if (locked.current().outcome() != ProjectCutoverServiceManagerPort.Outcome.FOUND
+                        || !Objects.equals(locked.current().userId(), actorId)) yield false;
+                require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID,
+                        SOURCE_STALE, "服务经理事实版本已变化");
+                yield true;
             }
             case "SECOND_LINE", "RND" -> {
                 String group = "SECOND_LINE".equals(node.getNodeCode())
                         ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-                var candidates = roleCandidatePort.inspectCandidates(instance.getTenantId(), group);
-                var lockedCandidates = roleCandidatePort.lockAndRevalidate(candidates);
+                FrozenRoleSnapshot snapshot = JsonUtils.parseObject(node.getCandidateFactSnapshot(), FrozenRoleSnapshot.class);
+                require(group.equals(snapshot.roleGroupCode()) && snapshot.candidates() != null
+                                && snapshot.projectScopes() != null, OWNER_DATA_CORRUPTED, "冻结候选快照损坏");
+                var expectedCandidates = new CutoverApprovalRoleCandidatePort.CandidateSet(instance.getTenantId(),
+                        group, snapshot.candidates());
+                var lockedCandidates = roleCandidatePort.lockAndRevalidate(expectedCandidates);
                 require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID,
-                        SOURCE_STALE, "审批角色候选事实已变化");
+                        SOURCE_STALE, "审批角色候选事实版本已变化");
                 List<Long> allowed = new ArrayList<>();
-                long selectedTreeVersion = -1;
-                for (var candidate : candidates.candidates()) {
-                    var inspected = projectScopePort.inspect(instance.getTenantId(), instance.getProjectId(),
-                            candidate.adminUserId(), "ACTION_VIEW");
-                    var locked = projectScopePort.lockAndRevalidate(inspected);
+                for (FrozenProjectScope frozen : snapshot.projectScopes()) {
+                    var expected = new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
+                            instance.getProjectId(), frozen.userId(), "ACTION_VIEW", frozen.allowed(), frozen.treeVersion());
+                    var locked = projectScopePort.lockAndRevalidate(expected);
                     require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                            SOURCE_STALE, "审批候选项目范围已变化");
-                    if (inspected.allowed()) {
-                        allowed.add(candidate.adminUserId());
-                        if (candidate.adminUserId() == actorId) selectedTreeVersion = inspected.treeVersion();
-                    }
+                            SOURCE_STALE, "审批候选项目范围版本已变化");
+                    if (locked.current().allowed()) allowed.add(frozen.userId());
                 }
-                require(allowed.size() == 1 && allowed.getFirst() == actorId
-                                && Objects.equals(selectedTreeVersion, node.getProjectScopeVersion()),
-                        SOURCE_STALE, "审批角色与项目范围交集已变化");
+                yield allowed.size() == 1 && allowed.getFirst() == actorId;
             }
             default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
-        }
+        };
     }
 
     private void insertReviewItems(long tenantId, long instanceId, long nodeId, List<ReviewItemInput> items,
@@ -519,7 +530,7 @@ public class CutoverApprovalApplicationService {
             String status, int taskVersion, String stage, String taskStatus) {
         return new CutoverApprovalDecisionResult(instance.getTenantId(), instance.getId(), instance.getVersion(),
                 task.getId(), taskVersion, instance.getPlanRevisionId(), instance.getSourceSnapshotVersion(), status,
-                instance.getCurrentNodeNo(), stage, taskStatus, instance.getDecisionAt() == null ? null
+                instance.getHoldReasonCode(), instance.getCurrentNodeNo(), stage, taskStatus, instance.getDecisionAt() == null ? null
                 : instance.getDecisionAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
     }
 
@@ -530,9 +541,9 @@ public class CutoverApprovalApplicationService {
                 && approvalInstanceId != null && approvalInstanceId > 0 && expectedTaskVersion != null
                 && expectedTaskVersion >= 0 && expectedApprovalVersion != null && expectedApprovalVersion >= 0,
                 INVALID_REQUEST, "审批命令身份或版本非法");
-        require(nonBlank(feedback, 1000) && nonBlank(idempotencyKey, 128) && nonBlank(correlationId, 128),
-                INVALID_REQUEST, "审批命令文本非法");
-        require(items != null && items.size() == 5, INVALID_REQUEST, "审批评审项必须恰好五项");
+        require(nonBlank(idempotencyKey, 128) && nonBlank(correlationId, 128), INVALID_REQUEST, "审批命令头非法");
+        require(nonBlank(feedback, 1000), BUSINESS_INCOMPLETE, "FEEDBACK_REQUIRED");
+        require(items != null && items.size() == 5, BUSINESS_INCOMPLETE, "REVIEW_ITEMS_INCOMPLETE");
         Set<String> codes = new java.util.LinkedHashSet<>();
         for (int index = 0; index < items.size(); index++) {
             ReviewItemInput item = items.get(index);
@@ -540,21 +551,23 @@ public class CutoverApprovalApplicationService {
                     && List.of("YES", "NO").contains(item.decision()) && codes.add(item.itemCode()),
                     INVALID_REQUEST, "审批评审项非法");
             require("YES".equals(item.decision()) ? item.unreasonableReason() == null
-                    : nonBlank(item.unreasonableReason(), 1000), INVALID_REQUEST, "不合理项必须填写原因");
+                    : nonBlank(item.unreasonableReason(), 1000), BUSINESS_INCOMPLETE, "NO_REASON_REQUIRED");
         }
     }
 
-    private static void validateAssessmentReview(String nodeCode, AssessmentReviewInput input, boolean approve) {
+    private static void validateAssessmentReview(String nodeCode, AssessmentReviewInput input,
+                                                 boolean approve, boolean anyNo) {
         if (!"SERVICE_MANAGER".equals(nodeCode)) {
             require(input == null, INVALID_REQUEST, "非服务经理节点不得复核P2");
             return;
         }
-        require(input != null && List.of("CONFIRMED", "NOT_REASONABLE").contains(input.decision()),
-                INVALID_REQUEST, "服务经理必须复核P2");
+        require(input != null, BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED");
+        require(List.of("CONFIRMED", "NOT_REASONABLE").contains(input.decision()), INVALID_REQUEST, "复核决定非法");
         require(("CONFIRMED".equals(input.decision()) && input.reason() == null)
                 || ("NOT_REASONABLE".equals(input.decision()) && nonBlank(input.reason(), 1000)),
-                INVALID_REQUEST, "服务经理复核原因非法");
-        require(approve == "CONFIRMED".equals(input.decision()), INVALID_REQUEST,
+                BUSINESS_INCOMPLETE, "ASSESSMENT_REVIEW_REQUIRED");
+        require((approve && "CONFIRMED".equals(input.decision()))
+                        || (!approve && (anyNo || "NOT_REASONABLE".equals(input.decision()))), BUSINESS_INCOMPLETE,
                 "DECISION_ACTION_RESULT_MISMATCH");
     }
 
@@ -616,4 +629,8 @@ public class CutoverApprovalApplicationService {
                                          long approvalInstanceId, int expectedApprovalVersion, String action,
                                          List<ReviewItemInput> reviewItems,
                                          AssessmentReviewInput assessmentReview, String feedback) { }
+    private record FrozenRoleSnapshot(String roleGroupCode,
+                                      List<CutoverApprovalRoleCandidatePort.Candidate> candidates,
+                                      List<FrozenProjectScope> projectScopes, Long selectedUserId) { }
+    private record FrozenProjectScope(long userId, boolean allowed, long treeVersion) { }
 }

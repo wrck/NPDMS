@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHist
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -22,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -93,6 +95,45 @@ class CutoverApprovalDecisionServiceTest {
         verify(f.history).insert(argThat((CutoverTaskStageHistoryDO row) -> "P5_APPROVAL_APPROVED".equals(row.getTriggerType())));
     }
 
+    @Test
+    void serviceManagerCanRejectNoReviewWhileConfirmingAssessment() {
+        Fixture f = new Fixture(22L);
+        f.givenRoot(2, "SERVICE_MANAGER");
+        when(f.nodes.selectList(any())).thenReturn(List.of());
+        when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
+
+        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+                noItems(), new AssessmentReviewInput("CONFIRMED", null), "准备项需完善", "key-4", "corr-4"));
+
+        assertThat(result.approvalStatus()).isEqualTo("REJECTED");
+        assertThat(result.taskStage()).isEqualTo("P4");
+    }
+
+    @Test
+    void unavailableApproverPersistsRootHoldWithoutDecisionWrites() {
+        Fixture f = new Fixture(22L);
+        f.givenRoot(2, "SERVICE_MANAGER");
+        var unavailable = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
+                ProjectCutoverServiceManagerPort.Outcome.NOT_UNIQUE, 1L, 20L, null,
+                null, null, null, java.time.LocalDateTime.now(f.clock));
+        when(f.managers.lockAndRevalidate(any())).thenReturn(
+                new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
+                        ProjectCutoverServiceManagerPort.Revalidation.STALE, unavailable));
+
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+                yesItems(), new AssessmentReviewInput("CONFIRMED", null), "全部通过", "key-5", "corr-5")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, error -> {
+                    assertThat(error.code()).isEqualTo(CutoverApprovalApplicationException.Code.STATE_CONFLICT);
+                    assertThat(error.getMessage()).isEqualTo("APPROVER_UNAVAILABLE");
+                });
+
+        verify(f.instances).updateById(argThat((CutoverApprovalInstanceDO row) ->
+                "APPROVER_UNAVAILABLE".equals(row.getHoldReasonCode())));
+        verify(f.reviews, never()).insert(any(CutoverApprovalReviewItemDO.class));
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+        verify(f.tasks, never()).transitionFromApprovalIfMatch(any());
+    }
+
     private static List<ReviewItemInput> yesItems() {
         return List.of(new ReviewItemInput("PREPARATION", "YES", null),
                 new ReviewItemInput("BUSINESS_TEST", "YES", null),
@@ -159,7 +200,17 @@ class CutoverApprovalDecisionServiceTest {
             CutoverTaskDO task = new CutoverTaskDO(); task.setId(10L); task.setTenantId(1L); task.setVersion(3);
             task.setCurrentStage("P5"); task.setTaskStatus("APPROVING");
             when(tasks.selectForUpdate(any())).thenReturn(task);
-            doReturn(node(100L + currentNo, currentNo, nodeCode, "PENDING", actor)).when(nodes)
+            CutoverApprovalNodeDO current = node(100L + currentNo, currentNo, nodeCode, "PENDING", actor);
+            if ("SERVICE_MANAGER".equals(nodeCode)) {
+                var manager = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
+                        ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, actor,
+                        "SERVICE_MANAGER_L1", 3, 4L, java.time.LocalDateTime.now(clock));
+                current.setCandidateFactSnapshot(JsonUtils.toJsonString(manager));
+                when(managers.lockAndRevalidate(manager)).thenReturn(
+                        new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
+                                ProjectCutoverServiceManagerPort.Revalidation.VALID, manager));
+            }
+            doReturn(current).when(nodes)
                     .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == currentNo));
             var scope = new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, actor,
                     "ACTION_EDIT", true, 7L);
