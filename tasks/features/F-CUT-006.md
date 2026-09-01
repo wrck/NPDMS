@@ -49,9 +49,10 @@
 - Task 7聚焦证据：Classifier与迁移合同5/5通过；隔离MySQL 8.4空库执行152个迁移至V156后，正式暂存来源正常分类与完成链1/1通过，批次`mapped=0/issue=0/retained=1`且CUT闭环零写；临时容器、网络和卷均已清理。独立Migration/MySQL Gate现为`PASS / GO@739aad09`。
 - Task 8候选已接入P6关闭工作台、五条CUT闭环API、三组结果/回退/遗留事项/PLT附件、单设备采集、失败采集人工补件及SUCCESS/FAILED归档交互；动作由服务端`allowedActions`与四项权限共同投影，P6归档后只读。
 - Task 8跨模块边界保持为接口消费：PLT文件事实、INT-12采集结果在组件测试中使用受控替身；未新增COM/AST/PLT/INT-12生产实现、Fake、fallback或旧割接页面改动，临时Secret发送后立即清空。
-- Task 8候选证据：P6挂载组件与阶段交互12/12通过，`pnpm ts:check`通过；候选仍保持`REVIEW_REQUIRED`，最近Gate为Task 8独立Frontend Code Review／组件交互Gate。
+- Task 8候选证据：P6挂载组件与阶段交互12/12通过，`pnpm ts:check`通过。
 - Task 8首轮独立复审对`c8a793f0`裁决`NO-GO`：PLT附件错误使用`taskId`作为Owner对象身份。最小整改已收敛为先创建无附件DRAFT并刷新取得`closureId`，随后全部关闭附件与人工采集结果均以该`closureId`执行Uploader及FileApi事实查询；现有正向挂载测试固定上述顺序和Owner键。
-- 最近Gate：Task 8 P6工作台与组件交互的独立Frontend Gate。
+- Task 8最小整改已在`de2fdb49`通过独立复审；PLT附件与人工结果统一绑定服务端`closureId`，首次DRAFT顺序阻断关闭。Task 8 Frontend Code Review／组件交互Gate现为`PASS / GO@de2fdb49`。
+- 最近Gate：Task 9 CUT聚焦回归与真实MySQL正常闭环Gate。
 
 ## 状态边界
 
