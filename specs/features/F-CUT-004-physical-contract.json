@@ -147,7 +147,7 @@
     "save": "one plan version CAS transaction atomically replaces the DRAFT root content_snapshot, exact cut_step rows and exact support arrangement rows; partial root/child writes roll back",
     "submit": "locks root and all child rows, validates one assembled PlanContentUnion, then freezes root and child business fields in the same transaction as approval start",
     "read": "PlanView content is assembled from root content_snapshot plus cut_step and cut_cutover_support_arrangement; no read path trusts duplicated child arrays",
-    "approvedContactChange": "only person_name, phone and arrival_time update the authoritative support row with version CAS and platform before/after audit; role_code and duty_description remain frozen, content_snapshot remains unchanged, and PlanView overlays the current authoritative contact fields"
+    "approvedContactChange": "cut_plan_revision.version is the sole public version Owner: in one transaction CAS the locked root from request If-Match to If-Match+1, then update only person_name, phone and arrival_time on the locked authoritative support row and increment its internal version, append platform before/after audit, and return the new planVersion; any failure rolls back root, child and audit. No arrangementVersion is accepted from clients; role_code and duty_description remain frozen, content_snapshot remains unchanged, and PlanView overlays the current authoritative contact fields"
   },
   "transactionAndLocks": [
     "validate trusted tenant and functional permission before platform idempotency",

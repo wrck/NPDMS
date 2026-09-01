@@ -64,7 +64,7 @@
 
 - CUT-05通过只产生审批事实和`CutoverApproved`，不得改写方案正文；CUT读取并锁定重验明确的审批事实。CUT-05最终驳回拥有`P5/APPROVING -> P4/PLAN_DRAFTING`，全部通过拥有`P5/APPROVING -> P6/CLOSURE_IN_PROGRESS`；来源失效的P5→P4由F-CUT-004在暂停审批的同一事务拥有。
 - CUT-05驳回后，工程师以原提交revision为`source_plan_revision_id`创建新DRAFT，原revision与审批意见保持不可变。
-- 批准后仅姓名、联系电话、到位时间变更可在原批准revision的保障安排投影上更新并追加前后审计，不重审。
+- 批准后仅姓名、联系电话、到位时间变更可在原批准revision的保障安排投影上更新并追加前后审计，不重审。该PATCH只接受方案根`If-Match`：事务先CAS递增`cut_plan_revision.version`，再更新锁定人员行内部版本与审计；任一步失败整体回滚，不接受客户端从表版本。
 - 角色或任务职责变化必须创建引用原批准revision的新DRAFT，并通过同一提交合同重新进入P5。
 
 ### BR-FCUT004-005 文件、下载与权限

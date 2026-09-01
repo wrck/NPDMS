@@ -23,4 +23,4 @@
 - [ ] API/Physical/Legacy Machine Contract Gate通过。
 - [ ] Feature Ready最终裁决通过。
 
-> 检查点：`a5334616`复审A/B已关闭、C/D/E仍NO-GO；本轮最小整改恢复D级完整文件上传，消除步骤/保障人员双事实，并补齐旧方案code/name/level/remark机器承载。当前仍为同一机器合同复审；不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。
+> 检查点：`9c13fcf3`复审C/E及D双事实已关闭，仅联系人PATCH版本Owner仍NO-GO；本轮统一由方案根`If-Match`先CAS递增，再同事务更新人员行与审计。当前仍为机器合同单点复审；不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。
