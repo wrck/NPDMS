@@ -95,7 +95,7 @@ const resolve = async () => {
     form.configurationCode = result.configurationChoices.length === 1
       ? result.configurationChoices[0].configurationCode
       : ''
-    selectedProjectId.value = ''
+    selectedProjectId.value = result.candidates.length === 1 ? String(result.candidates[0].project.projectId) : ''
     step.value = 1
   } finally { resolving.value = false }
 }
