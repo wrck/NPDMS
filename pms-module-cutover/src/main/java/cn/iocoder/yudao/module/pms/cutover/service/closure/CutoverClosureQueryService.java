@@ -22,10 +22,10 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverCl
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort.FileFactVersion;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView.CollectionEvidenceView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -175,13 +175,15 @@ public class CutoverClosureQueryService {
                 throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实身份损坏");
             }
             return fact;
-        } catch (CutoverClosureOwnerFactException ex) {
-            if (ex.code() == CutoverClosureOwnerFactException.Code.PROVIDER_UNAVAILABLE) {
-                throw new CutoverClosureApplicationException(
+        } catch (CutoverOwnerFactException ex) {
+            throw switch (ex.code()) {
+                case PROVIDER_UNAVAILABLE -> new CutoverClosureApplicationException(
                         CutoverClosureApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE,
                         "项目范围Provider不可用");
-            }
-            throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实损坏");
+                case DATA_SCOPE_FORBIDDEN -> notFound();
+                case INVALID_FACT, STALE -> new CutoverClosureApplicationException(
+                        OWNER_DATA_CORRUPTED, "项目范围事实损坏");
+            };
         } catch (CutoverClosureApplicationException ex) {
             throw ex;
         } catch (RuntimeException ex) {

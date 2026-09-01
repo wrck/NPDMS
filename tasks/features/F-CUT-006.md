@@ -30,6 +30,7 @@
 - Task 3首轮独立复审对`6d6f0e46`裁决`NO-GO`：DRAFT最终结果、人工采集附件保留、详情冻结来源/ProjectScope错误映射三项需最小整改；Task 3保持`REVIEW_REQUIRED`。
 - Task 3整改候选已按上游到下游收敛：DRAFT保存固定`final_result_code=NULL`且提交命令显式携带最终结果；普通保存仅替换普通附件并保留`MANUAL_COLLECTION_RESULT`；详情逐项验证冻结任务/审批/方案/设备水位和ProjectScope身份，并区分Provider不可用与Owner事实损坏。
 - Task 3整改证据：两份机器JSON可解析；Application/Query/Port/Mapper 10/10通过；独立MySQL 8.4空卷全量迁移至V155后，合法NULL结果DRAFT、同键重放、CAS保存、人工采集附件保留及平台幂等/审计同事务1/1通过。整改仍等待独立复审，不提前回写PASS。
+- Task 3 A/B/C最小整改复审对`4d7e4235`确认A、B及冻结来源核对已关闭，仅剩详情误捕获闭环文件端口异常类型；单点候选已改为捕获ProjectScope正式`CutoverOwnerFactException`，将`PROVIDER_UNAVAILABLE`稳定映射为Owner Provider不可用、数据范围拒绝保持不可见，其余事实异常失败关闭为Owner数据损坏。
 - 最近Gate：Task 3创建、保存、详情与文件事实正常链独立Application/MySQL复审。
 
 ## 状态边界
