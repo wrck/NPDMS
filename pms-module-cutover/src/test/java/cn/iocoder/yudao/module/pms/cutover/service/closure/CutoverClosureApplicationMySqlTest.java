@@ -144,11 +144,22 @@ class CutoverClosureApplicationMySqlTest {
         SaveCutoverClosureCommand create = command(null, "create-p6", "first", oneAttachment());
         service.save(create);
         service.save(create);
+        Long closureId = jdbc.queryForObject(
+                "SELECT id FROM cut_cutover_closure WHERE tenant_id=? AND task_id=?", Long.class, tenantId, taskId);
+        jdbc.update("""
+                INSERT INTO cut_cutover_closure_attachment
+                  (id,tenant_id,closure_id,purpose_code,reference_key,artifact_id,file_version_no,file_fact_version,
+                   file_scope_version,file_hash,version,creator,create_time,updater,update_time,deleted)
+                VALUES (?,?,?,?,?,?,?,?,?,?,0,'8',NOW(3),'8',NOW(3),b'0')
+                """, 980001L, tenantId, closureId, "MANUAL_COLLECTION_RESULT", "manual-ref", 599L, 1,
+                "{\"artifactVersion\":1,\"referenceVersion\":2,\"availabilityVersion\":3}", 4L,
+                "b".repeat(64));
         service.save(command(0, "save-p6", "second", twoAttachments()));
 
         assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_closure WHERE tenant_id=? AND task_id=?", tenantId, taskId));
         assertEquals(1, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND task_id=?", tenantId, taskId));
-        assertEquals(2, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=?", tenantId));
+        assertEquals(3, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=?", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=? AND purpose_code='MANUAL_COLLECTION_RESULT'", tenantId));
         assertEquals(2, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
         assertEquals(2, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
     }

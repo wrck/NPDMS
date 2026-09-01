@@ -4,7 +4,6 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOw
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
@@ -79,8 +78,7 @@ public final class CutoverClosureRules {
         optionalText(content.testDetail(), 4000, "testDetail");
         optionalText(content.rollbackReason(), 4000, "rollbackReason");
         optionalText(content.legacyItems(), 4000, "legacyItems");
-        require(content.finalResult() == null || List.of("SUCCESS", "FAILED").contains(content.finalResult()),
-                "finalResult");
+        require(content.finalResult() == null, "draftFinalResult");
         require(content.preCheckNormal() == null || content.preCheckNormal()
                 || hasText(content.preCheckDetail()), "preCheckDetail");
         require(content.executionNormal() == null || content.executionNormal()

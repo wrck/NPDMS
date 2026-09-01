@@ -17,7 +17,7 @@
             test_normal = #{query.testNormal}, test_detail = #{query.testDetail},
             rollback_occurred = #{query.rollbackOccurred}, rollback_successful = #{query.rollbackSuccessful},
             rollback_reason = #{query.rollbackReason}, legacy_items = #{query.legacyItems},
-            final_result_code = #{query.finalResultCode}, version = version + 1,
+            version = version + 1,
             updater = #{query.updater}, update_time = #{query.updateTime}
         WHERE tenant_id = #{query.tenantId} AND id = #{query.closureId}
           AND version = #{query.expectedVersion} AND status_code = 'DRAFT' AND deleted = b'0'

@@ -47,7 +47,7 @@
         "rollbackSuccessful": "Boolean|null; required iff rollbackOccurred=true",
         "rollbackReason": "trimmed String 1..4000 iff rollbackOccurred=true, otherwise null",
         "legacyItems": "trimmed String 0..4000|null",
-        "finalResult": "SUCCESS|FAILED|null in draft; required at submit",
+        "finalResult": "literal JSON null while saving DRAFT; SUCCESS|FAILED is supplied only by submit",
         "attachments": "FileArtifactExpectation[] restricted to POST_COLLECTION_CHECKLIST|IMPLEMENTATION_COMMITMENT|OTHER_EVIDENCE, unique purposeCode+referenceKey, stable purposeCode then referenceKey; MANUAL_COLLECTION_RESULT is forbidden here and may only be created by linkManualResult"
       }
     },
@@ -187,7 +187,7 @@
       "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/submit",
       "permission": "pms:cutover-task:submit-closure",
       "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
-      "request": {"exactKeys": [], "fields": {}},
+      "request": {"exactKeys": ["finalResult"], "fields": {"finalResult": "SUCCESS|FAILED, required and selected by the trusted engineer request"}},
       "success": "CommonResult<ClosureView> with SUBMITTED/ARCHIVED",
       "errors": {"400": ["HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE", "REQUIRED_ATTACHMENT_MISSING", "FILE_FACT_INVALID", "COLLECTION_EVIDENCE_MISMATCH"], "500": ["OWNER_FACT_CORRUPTED"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE"]}
     }

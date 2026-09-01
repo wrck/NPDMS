@@ -52,7 +52,7 @@
 - `preCheckNormal/executionNormal/testNormal`均为必填布尔值，各自说明为0..4000字符；值为`false`时对应说明必填。
 - `rollbackOccurred`必填；未发生回退时`rollbackSuccessful/rollbackReason`均为空；发生回退时二者必填，原因1..4000字符。
 - `legacyItems`为0..4000字符快照文本，可空，不产生独立生命周期或阻断提交。
-- `finalResult`只能`SUCCESS/FAILED`，由一线工程师明确提交，平台不得从通知、采集HTTP结果或附件自动推导。
+- DRAFT中的`finalResult`固定为`null`且普通保存不得提前持久化最终结果；提交命令必须由一线工程师明确携带`SUCCESS/FAILED`，平台不得从通知、采集HTTP结果或附件自动推导。
 - 提交必须各有一个`POST_COLLECTION_CHECKLIST`和`IMPLEMENTATION_COMMITMENT`当前文件revision；可附加`OTHER_EVIDENCE`。文件以`ownerContext=CUT/objectType=CUTOVER_CLOSURE/objectId=closureId`绑定，保存时inspect，提交时按冻结`artifactId/referenceKey/versionNo/FileFactVersion/scopeVersion`锁定重验。客户端不得提交URL或正文。
 
 ### BR-FCUT006-003 INT-12证据与人工降级
@@ -67,6 +67,7 @@
 ### BR-FCUT006-004 保存、提交与归档
 
 - 保存、采集请求、人工结果关联和提交只允许`DRAFT`，以闭环`If-Match`和任务`X-Task-Version`执行CAS；任务、闭环、附件/证据投影、平台幂等和审计同事务。
+- 普通保存只替换`POST_COLLECTION_CHECKLIST/IMPLEMENTATION_COMMITMENT/OTHER_EVIDENCE`附件；Task 4追加的`MANUAL_COLLECTION_RESULT`为历史采集证据，后续普通保存不得删除或覆盖。
 - 用户写命令先校验受信租户和请求结构，再由`PlatformCommandExecutionApi`认领幂等键；仅`NEW`进入CUT业务锁序：任务→审批/方案引用→闭环→附件/采集证据→ProjectScope/PLT Owner事实→设备活动范围。业务成功后在同一外层事务完成平台幂等`COMPLETED`、操作审计及必要Outbox；`REPLAY_COMPLETED`不访问CUT业务行。任一步失败整体回滚。
 - 提交成功把闭环`DRAFT→SUBMITTED`并保存提交人、提交时间、归档时间；任务保持`currentStage=P6`并从`CLOSURE_IN_PROGRESS→ARCHIVED`，追加`P6_CLOSURE_SUBMITTED`阶段历史，同时将本任务全部`cut_task_device_scope.active_marker`置空。
 - 最终`SUCCESS`同事务生成并持久化不可变`resultRef=CUTOVER_CLOSURE:{closureId}:{submittedClosureVersion}`，写入唯一`CutoverCompleted` Outbox并原样携带该引用；`FAILED`同样归档但`resultRef`为空且不写该事件。下游项目/资产/ITR处理失败不得回滚CUT归档。

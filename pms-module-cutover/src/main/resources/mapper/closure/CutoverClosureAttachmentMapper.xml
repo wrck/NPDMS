@@ -15,5 +15,6 @@
     <delete id="deleteDraftRows">
         DELETE FROM cut_cutover_closure_attachment
         WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId}
+          AND purpose_code &lt;&gt; 'MANUAL_COLLECTION_RESULT'
     </delete>
 </mapper>

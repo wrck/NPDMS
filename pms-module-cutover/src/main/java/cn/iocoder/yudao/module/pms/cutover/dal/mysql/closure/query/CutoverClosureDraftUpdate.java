@@ -7,6 +7,6 @@ public record CutoverClosureDraftUpdate(Long tenantId, Long closureId, Integer e
                                         Boolean executionNormal, String executionDetail,
                                         Boolean testNormal, String testDetail,
                                         Boolean rollbackOccurred, Boolean rollbackSuccessful,
-                                        String rollbackReason, String legacyItems, String finalResultCode,
+                                        String rollbackReason, String legacyItems,
                                         String updater, LocalDateTime updateTime) {
 }

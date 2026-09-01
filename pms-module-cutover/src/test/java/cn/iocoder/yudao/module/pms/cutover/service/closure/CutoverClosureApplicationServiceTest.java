@@ -71,7 +71,6 @@ class CutoverClosureApplicationServiceTest {
                 closure.get().setTestNormal(update.testNormal());
                 closure.get().setRollbackOccurred(update.rollbackOccurred());
                 closure.get().setLegacyItems(update.legacyItems());
-                closure.get().setFinalResultCode(update.finalResultCode());
                 closure.get().setVersion(update.expectedVersion() + 1);
                 return 1;
             }

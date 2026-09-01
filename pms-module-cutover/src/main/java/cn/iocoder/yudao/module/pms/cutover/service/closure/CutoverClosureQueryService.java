@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverCl
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort.FileFactVersion;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView.CollectionEvidenceView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
@@ -64,13 +65,8 @@ public class CutoverClosureQueryService {
                 || access == null) throw notFound();
         CutoverTaskDO task = taskMapper.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
-        CutoverProjectScopePort.ProjectScopeFact viewScope;
-        try {
-            viewScope = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_VIEW");
-        } catch (RuntimeException ex) {
-            throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实不可用");
-        }
-        if (viewScope == null || !viewScope.allowed()) throw notFound();
+        CutoverProjectScopePort.ProjectScopeFact viewScope = inspectScope(actorId, task.getProjectId(), "ACTION_VIEW");
+        if (!viewScope.allowed()) throw notFound();
 
         CutoverClosureDO closure = closureMapper.selectByTask(new CutoverClosureRowQuery(tenantId, taskId));
         CutoverPlanRevisionDO plan;
@@ -124,7 +120,7 @@ public class CutoverClosureQueryService {
             ClosureContent content = content(closure, attachments);
             CutoverClosureRules.validateDraftContent(content);
             if (content.preCheckNormal() == null || content.executionNormal() == null || content.testNormal() == null
-                    || content.rollbackOccurred() == null || content.finalResult() == null) return false;
+                    || content.rollbackOccurred() == null) return false;
             long checklist = attachments.stream().filter(value ->
                     "POST_COLLECTION_CHECKLIST".equals(value.getPurposeCode())).count();
             long commitment = attachments.stream().filter(value ->
@@ -169,11 +165,27 @@ public class CutoverClosureQueryService {
     }
 
     private boolean inspectEdit(Long actorId, Long projectId) {
+        return inspectScope(actorId, projectId, "ACTION_EDIT").allowed();
+    }
+
+    private CutoverProjectScopePort.ProjectScopeFact inspectScope(Long actorId, Long projectId, String action) {
         try {
-            CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, projectId, "ACTION_EDIT");
-            return fact != null && fact.allowed();
-        } catch (RuntimeException ignored) {
-            return false;
+            CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, projectId, action);
+            if (fact == null || !Objects.equals(fact.projectId(), projectId)) {
+                throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实身份损坏");
+            }
+            return fact;
+        } catch (CutoverClosureOwnerFactException ex) {
+            if (ex.code() == CutoverClosureOwnerFactException.Code.PROVIDER_UNAVAILABLE) {
+                throw new CutoverClosureApplicationException(
+                        CutoverClosureApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE,
+                        "项目范围Provider不可用");
+            }
+            throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实损坏");
+        } catch (CutoverClosureApplicationException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "项目范围事实损坏");
         }
     }
 
@@ -188,7 +200,14 @@ public class CutoverClosureQueryService {
             throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "P6审批方案事实损坏");
         }
         if (closure != null && (!Objects.equals(closure.getPlanRevisionId(), plan.getId())
-                || !Objects.equals(closure.getApprovalInstanceId(), approval.getId()))) {
+                || !Objects.equals(closure.getTaskId(), task.getId())
+                || !Objects.equals(closure.getProjectId(), task.getProjectId())
+                || !Objects.equals(closure.getTaskVersionAtP6(), task.getVersion())
+                || !Objects.equals(closure.getApprovalInstanceId(), approval.getId())
+                || !Objects.equals(closure.getApprovalVersion(), approval.getVersion())
+                || !Objects.equals(closure.getPlanRevisionNo(), plan.getRevisionNo())
+                || !Objects.equals(closure.getPlanVersion(), plan.getVersion())
+                || !Objects.equals(closure.getDeviceScopeWatermark(), task.getDeviceScopeWatermark()))) {
             throw new CutoverClosureApplicationException(OWNER_DATA_CORRUPTED, "闭环冻结来源损坏");
         }
     }

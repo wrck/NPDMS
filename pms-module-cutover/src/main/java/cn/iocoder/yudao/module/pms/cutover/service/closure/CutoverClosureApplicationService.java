@@ -162,7 +162,7 @@ public class CutoverClosureApplicationService {
                 command.expectedClosureVersion(), content.preCheckNormal(), content.preCheckDetail(),
                 content.executionNormal(), content.executionDetail(), content.testNormal(), content.testDetail(),
                 content.rollbackOccurred(), content.rollbackSuccessful(), content.rollbackReason(),
-                content.legacyItems(), content.finalResult(), String.valueOf(command.actorId()), now)) != 1) {
+                content.legacyItems(), String.valueOf(command.actorId()), now)) != 1) {
             throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
         }
         CutoverClosureChildrenQuery children = new CutoverClosureChildrenQuery(command.tenantId(), closure.getId());
@@ -324,7 +324,7 @@ public class CutoverClosureApplicationService {
         row.setTestNormal(content.testNormal()); row.setTestDetail(content.testDetail());
         row.setRollbackOccurred(content.rollbackOccurred()); row.setRollbackSuccessful(content.rollbackSuccessful());
         row.setRollbackReason(content.rollbackReason()); row.setLegacyItems(content.legacyItems());
-        row.setFinalResultCode(content.finalResult());
+        row.setFinalResultCode(null);
     }
 
     private static void requireCommand(SaveCutoverClosureCommand command) {

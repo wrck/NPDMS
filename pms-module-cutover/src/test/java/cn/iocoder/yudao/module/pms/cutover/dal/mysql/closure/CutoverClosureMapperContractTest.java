@@ -35,6 +35,7 @@ class CutoverClosureMapperContractTest {
         var children = new CutoverClosureChildrenQuery(1L, 3L);
         assertBindings(configuration, CutoverClosureAttachmentMapper.class, "selectListByClosure", children);
         assertBindings(configuration, CutoverClosureAttachmentMapper.class, "selectListByClosureForUpdate", children);
+        assertBindings(configuration, CutoverClosureAttachmentMapper.class, "deleteDraftRows", children);
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectListByClosure", children);
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectListByClosureForUpdate", children);
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectUnresolvedDispatchCount", children);
@@ -51,7 +52,8 @@ class CutoverClosureMapperContractTest {
                 .contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE", "version = #{query.expectedVersion}")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverClosureAttachmentMapper.xml"))
-                .contains("ORDER BY purpose_code, reference_key, id", "FOR UPDATE")
+                .contains("ORDER BY purpose_code, reference_key, id", "FOR UPDATE",
+                        "purpose_code &lt;&gt; 'MANUAL_COLLECTION_RESULT'")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverCollectionEvidenceMapper.xml"))
                 .contains("ORDER BY occurred_at, id", "FOR UPDATE", "NOT EXISTS")

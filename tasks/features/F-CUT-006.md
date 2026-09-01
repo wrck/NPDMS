@@ -27,6 +27,9 @@
 - Task 2最小整改MySQL证据：空卷再次全量迁移至V155；信息架构确认全部不透明身份使用`utf8mb4_bin`、哈希为`VARCHAR(64)/ascii_bin`；`CaseTask`与`casetask`可作为两个Owner任务并存，大小写错误的SUCCESS resultRef及大写哈希均由CHECK拒绝且原值不变。
 - Task 3候选已形成CUT自有创建、CAS保存、详情与附件事实正常链：首次保存冻结任务/批准方案/设备水位，后续保存拒绝刷新冻结来源；ProjectScope与PLT仅经消费端口调用，测试使用`src/test`受控替身，未注册生产Service、Fake或fallback。
 - Task 3候选聚焦证据：Application/Query/Port/Mapper共10/10通过；独立MySQL 8.4空卷全量迁移至V155后，首次创建、同键重放、版本化保存、附件替换及平台幂等/审计同事务1/1通过。候选仍等待独立Application/MySQL复审，不提前回写PASS。
+- Task 3首轮独立复审对`6d6f0e46`裁决`NO-GO`：DRAFT最终结果、人工采集附件保留、详情冻结来源/ProjectScope错误映射三项需最小整改；Task 3保持`REVIEW_REQUIRED`。
+- Task 3整改候选已按上游到下游收敛：DRAFT保存固定`final_result_code=NULL`且提交命令显式携带最终结果；普通保存仅替换普通附件并保留`MANUAL_COLLECTION_RESULT`；详情逐项验证冻结任务/审批/方案/设备水位和ProjectScope身份，并区分Provider不可用与Owner事实损坏。
+- Task 3整改证据：两份机器JSON可解析；Application/Query/Port/Mapper 10/10通过；独立MySQL 8.4空卷全量迁移至V155后，合法NULL结果DRAFT、同键重放、CAS保存、人工采集附件保留及平台幂等/审计同事务1/1通过。整改仍等待独立复审，不提前回写PASS。
 - 最近Gate：Task 3创建、保存、详情与文件事实正常链独立Application/MySQL复审。
 
 ## 状态边界

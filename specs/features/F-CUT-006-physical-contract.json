@@ -52,7 +52,7 @@
       "uniqueKeys": ["uk(tenant_id,task_id)"],
       "checks": [
         "source identities are positive and immutable after insert",
-        "DRAFT requires final_result/submission/archive/result_ref fields null and permits incomplete result fields",
+        "DRAFT requires final_result/submission/archive/result_ref fields null and permits incomplete result fields; ordinary draft save never writes final_result_code",
         "SUBMITTED requires all three normal flags, rollback_occurred, final_result, positive submitted_by and submitted_at=archived_at",
         "SUBMITTED SUCCESS requires result_ref exactly CUTOVER_CLOSURE:{id}:{submitted closure version}; SUBMITTED FAILED requires result_ref null",
         "a false normal flag requires its non-blank detail",
