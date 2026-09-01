@@ -6,7 +6,7 @@
 
 本轮PROJ权威审计输入为`master@158118d0a085d0ee1dc08c7c74fe10936537752c`、截点`2026-09-01T22:05:15+08:00`，见[PROJ选择性集成后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-proj-integration.md)。本轮同时裁决`codex/v1-8-feature-revalidation-50eb`、`codex/f-proj-001-atomic-alignment`与`codex/f-proj-008-stage-advance`，不得再以“仅审查008”的局部结论覆盖该快照。
 
-本轮CUT内PROJ Owner选择性集成审计输入为`master@e2f51762b544e8ec9631a177c092493ca470d9eb`、截点`2026-09-01T22:38:40+08:00`，见[CUT-PROJ集成后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-01-cut-proj-integration.md)。报告覆盖22个本地分支、全部Worktree、470条master外提交与2个stash；`codex/f-cut-001-matrices@85b93828`仍按整支隔离，只承认下表四组PROJ物理Owner carve-out已进入master。
+本轮CUT内PROJ Owner选择性集成审计输入为`master@2dd62f1d0f81492b77a5ea0f27a41aaff13e7886`、截点`2026-09-01T22:41:49+08:00`，见[CUT-PROJ集成后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-01-cut-proj-integration.md)。报告覆盖22个本地分支、全部Worktree、470条master外提交与2个stash；`codex/f-cut-001-matrices@85b93828`仍按整支隔离，只承认下表四组PROJ物理Owner carve-out已进入master。
 
 ## master权威Feature状态
 
