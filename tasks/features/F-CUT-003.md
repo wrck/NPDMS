@@ -31,7 +31,7 @@
 
 ## Task 2：P3工作台与一次正向验收
 
-状态：`IN_PROGRESS / FRONTEND_CONTROLLED_LOOP_REVIEW_REQUIRED / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
+状态：`IN_PROGRESS / FRONTEND_CONTROLLED_LOOP_PASS_GO@ec268ab9 / PRODUCTION_ACTIVATION_BLOCKED_BY_DEPENDENCY`
 
 - [x] 已用显式测试装配实现CUT清单REST与文件策略候选；生产Owner未就绪时不注册生产Controller/Service/Fake，生产激活保持`BLOCKED_BY_DEPENDENCY`。
 - [x] 在现有P3工作台接入Schema控件、冲突选择、DIRECT填写、CUSTOM增删、COLLECTION请求/刷新、MANUAL证据、暂存和提交；服务端`allowedActions`控制入口。
@@ -47,4 +47,4 @@ Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收�
 - Implementation Done只在两项Task完成、生产Owner真实接通、一次正式工作台正向链和数据库事实一致后申请。
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
-> 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`真实MySQL受控闭环已获独立裁决`GO`。本轮补齐挂载组件MANUAL证据→刷新→提交P4交互并通过5/5、类型检查与本地构建，等待独立复审；生产Owner联调、唯一生产装配、正式身份浏览器和Done仍阻断。
+> 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`真实MySQL受控闭环与`ec268ab9`挂载组件MANUAL证据→刷新→提交P4交互均获独立裁决`GO`。最近Gate为跨模块生产Owner依赖关闭后的唯一生产装配；正式身份真实MySQL/浏览器和Done仍阻断。
