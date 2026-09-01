@@ -494,6 +494,11 @@ const handleApprovalWorkspaceChanged = async () => {
   if (todoVisible.value) await loadApprovalTodos()
   if (reassignmentQueueVisible.value) await loadReassignmentQueue()
 }
+const handleApprovalWorkspaceChanged = async () => {
+  await loadPage()
+  if (todoVisible.value) await loadApprovalTodos()
+  if (reassignmentQueueVisible.value) await loadReassignmentQueue()
+}
 
 onMounted(refreshListAndKpis)
 </script>
