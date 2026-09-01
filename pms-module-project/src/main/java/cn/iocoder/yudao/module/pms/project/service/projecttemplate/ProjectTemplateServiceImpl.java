@@ -7,6 +7,9 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionQuery;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
@@ -39,6 +42,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplatePublishValida
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
+import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,6 +103,10 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private ProjectTemplateGateDefinitionMapper gateDefinitionMapper;
     @Resource
     private ProjectTemplateGateReferenceMapper gateReferenceMapper;
+    @Resource
+    private ProjectStageGateProviderRegistry stageGateProviderRegistry;
+    @Resource
+    private ProjectStageGateProcessOwnerApi stageGateProcessOwnerApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -158,7 +166,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         updateObj.setImplementationMethod(content.getImplementationMethod());
         updateObj.setMajorProjectLevel(content.getMajorProjectLevel());
         updateObj.setProcessDefinitionKey(content.getProcessDefinitionKey());
-        updateObj.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
+        updateObj.setProcessDefinitionVersion("");
         revisionMapper.updateById(updateObj);
         // 定义行整体替换（物理删除+重插，规避 uk 与逻辑删除冲突）
         replaceDefinitionRows(draft.getId(), content);
@@ -247,6 +255,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId());
         failures.addAll(TemplatePublishValidator.validate(
                 content, fixedFormCatalog, approvedPreparationItemCodes));
+        failures.addAll(validateStageGateOwners(content, TenantContextHolder.getRequiredTenantId()));
         if (!failures.isEmpty()) {
             String summary = String.join("；", failures);
             // 校验结果留痕到草稿行
@@ -267,7 +276,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         published.setImplementationMethod(draft.getImplementationMethod());
         published.setMajorProjectLevel(draft.getMajorProjectLevel());
         published.setProcessDefinitionKey(draft.getProcessDefinitionKey());
-        published.setProcessDefinitionVersion(draft.getProcessDefinitionVersion());
+        published.setProcessDefinitionVersion(null);
         published.setValidationSummary("发布校验通过");
         published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
         published.setPublishedTime(LocalDateTime.now());
@@ -278,6 +287,61 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         statusUpdate.setId(id);
         statusUpdate.setStatus(TemplateRules.STATUS_ACTIVE);
         projectTemplateMapper.updateById(statusUpdate);
+    }
+
+    List<String> validateStageGateOwners(TemplateDefinitionContent content, Long tenantId) {
+        List<String> failures = new ArrayList<>();
+        List<TemplateDefinitionContent.GateDef> gates = content.getGates() == null ? List.of() : content.getGates();
+        for (int stage = 0; stage <= 3; stage++) {
+            String stageCode = "S" + stage;
+            boolean hasExitGate = gates.stream().filter(Objects::nonNull)
+                    .anyMatch(gate -> TemplateDefinitionContent.GATE_TYPE_EXIT.equals(gate.getGateType())
+                            && stageCode.equals(gate.getStageCode()));
+            if (!hasExitGate) {
+                failures.add("阶段【" + stageCode + "】缺少EXIT Gate");
+            }
+        }
+        for (TemplateDefinitionContent.GateDef gate : gates) {
+            if (gate == null || gate.getReferences() == null) {
+                continue;
+            }
+            for (TemplateDefinitionContent.GateRef reference : gate.getReferences()) {
+                if (reference == null || reference.getRefType() == null || reference.getRefCode() == null) {
+                    continue;
+                }
+                String providerKey = gateProviderKey(reference.getRefType());
+                if (providerKey == null || !stageGateProviderRegistry.hasProvider(providerKey)) {
+                    failures.add("门禁【" + gate.getGateCode() + "】引用类型【" + reference.getRefType()
+                            + "】缺少唯一Owner Provider");
+                    continue;
+                }
+                if (TemplateDefinitionContent.REF_TYPE_PROCESS.equals(reference.getRefType())
+                        || TemplateDefinitionContent.REF_TYPE_APPROVAL.equals(reference.getRefType())) {
+                    try {
+                        stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
+                                tenantId, reference.getRefCode()));
+                    } catch (RuntimeException ex) {
+                        failures.add("门禁【" + gate.getGateCode() + "】流程定义【" + reference.getRefCode()
+                                + "】不可用于阶段门禁");
+                    }
+                }
+            }
+        }
+        return failures;
+    }
+
+    private static String gateProviderKey(String refType) {
+        return switch (refType) {
+            case TemplateDefinitionContent.REF_TYPE_TASK -> ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK;
+            case TemplateDefinitionContent.REF_TYPE_MILESTONE ->
+                    ProjectStageGateFactProviderApi.PROVIDER_PROJ_MILESTONE;
+            case TemplateDefinitionContent.REF_TYPE_DELIVERABLE ->
+                    ProjectStageGateFactProviderApi.PROVIDER_ACC_DELIVERABLE;
+            case TemplateDefinitionContent.REF_TYPE_STATE -> ProjectStageGateFactProviderApi.PROVIDER_PROJ_STATE;
+            case TemplateDefinitionContent.REF_TYPE_APPROVAL -> ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL;
+            case TemplateDefinitionContent.REF_TYPE_PROCESS -> ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS;
+            default -> null;
+        };
     }
 
     private Set<String> getApprovedPreparationItemCodes() {

@@ -48,9 +48,9 @@ public final class TemplatePublishValidator {
         validateProcessReference(content, failures);
         Set<String> stageCodes = validateStages(content.getStages(), failures);
         Set<String> taskCodes = validateTasks(content.getTasks(), stageCodes, failures);
-        validateMilestones(content.getMilestones(), stageCodes, failures);
+        Set<String> milestoneCodes = validateMilestones(content.getMilestones(), stageCodes, failures);
         Set<String> deliverableCodes = validateDeliverables(content.getDeliverables(), stageCodes, taskCodes, failures);
-        validateGates(content.getGates(), stageCodes, taskCodes, deliverableCodes, failures);
+        validateGates(content.getGates(), stageCodes, taskCodes, milestoneCodes, deliverableCodes, failures);
         validateTaskGateRefs(content.getTasks(), content.getGates(), failures);
         validatePreparationBindings(content.getTasks(), fixedFormCatalogJson,
                 approvedPreparationItemCodes, failures);
@@ -74,8 +74,8 @@ public final class TemplatePublishValidator {
         if (StringUtils.isBlank(content.getProcessDefinitionKey())) {
             failures.add("流程定义引用缺失：模板级流程定义ID为空");
         }
-        if (StringUtils.isBlank(content.getProcessDefinitionVersion())) {
-            failures.add("流程定义引用缺失：流程定义版本为空");
+        if (StringUtils.isNotBlank(content.getProcessDefinitionVersion())) {
+            failures.add("流程定义引用无效：不得写入PMS流程版本，实例以Flowable流程定义ID冻结版本");
         }
     }
 
@@ -152,12 +152,12 @@ public final class TemplatePublishValidator {
         return taskCodes;
     }
 
-    private static void validateMilestones(List<TemplateDefinitionContent.MilestoneDef> milestones,
-                                           Set<String> stageCodes, List<String> failures) {
-        if (milestones == null) {
-            return;
-        }
+    private static Set<String> validateMilestones(List<TemplateDefinitionContent.MilestoneDef> milestones,
+                                                  Set<String> stageCodes, List<String> failures) {
         Set<String> codes = new HashSet<>();
+        if (milestones == null) {
+            return codes;
+        }
         for (TemplateDefinitionContent.MilestoneDef milestone : milestones) {
             if (milestone == null || StringUtils.isBlank(milestone.getMilestoneCode())) {
                 failures.add("里程碑编码不能为空");
@@ -172,6 +172,7 @@ public final class TemplatePublishValidator {
                         + milestone.getStageCode() + "】不存在");
             }
         }
+        return codes;
     }
 
     private static Set<String> validateDeliverables(List<TemplateDefinitionContent.DeliverableDef> deliverables,
@@ -203,7 +204,8 @@ public final class TemplatePublishValidator {
     }
 
     private static void validateGates(List<TemplateDefinitionContent.GateDef> gates, Set<String> stageCodes,
-                                      Set<String> taskCodes, Set<String> deliverableCodes, List<String> failures) {
+                                      Set<String> taskCodes, Set<String> milestoneCodes,
+                                      Set<String> deliverableCodes, List<String> failures) {
         if (gates == null) {
             return;
         }
@@ -224,12 +226,13 @@ public final class TemplatePublishValidator {
             if (!stageCodes.contains(gate.getStageCode())) {
                 failures.add("门禁【" + gate.getGateCode() + "】引用的阶段【" + gate.getStageCode() + "】不存在");
             }
-            validateGateReferences(gate, taskCodes, deliverableCodes, failures);
+            validateGateReferences(gate, taskCodes, milestoneCodes, deliverableCodes, failures);
         }
     }
 
     private static void validateGateReferences(TemplateDefinitionContent.GateDef gate, Set<String> taskCodes,
-                                               Set<String> deliverableCodes, List<String> failures) {
+                                               Set<String> milestoneCodes, Set<String> deliverableCodes,
+                                               List<String> failures) {
         List<TemplateDefinitionContent.GateRef> references = gate.getReferences();
         if (references == null || references.isEmpty()) {
             failures.add("门禁【" + gate.getGateCode() + "】缺少引用行（任务/交付件/状态/流程）");
@@ -246,6 +249,12 @@ public final class TemplatePublishValidator {
                         failures.add("门禁【" + gate.getGateCode() + "】引用的任务【" + ref.getRefCode() + "】不存在");
                     }
                     break;
+                case TemplateDefinitionContent.REF_TYPE_MILESTONE:
+                    if (!milestoneCodes.contains(ref.getRefCode())) {
+                        failures.add("门禁【" + gate.getGateCode() + "】引用的里程碑【"
+                                + ref.getRefCode() + "】不存在");
+                    }
+                    break;
                 case TemplateDefinitionContent.REF_TYPE_DELIVERABLE:
                     if (!deliverableCodes.contains(ref.getRefCode())) {
                         failures.add("门禁【" + gate.getGateCode() + "】引用的交付件【" + ref.getRefCode() + "】不存在");
@@ -255,8 +264,10 @@ public final class TemplatePublishValidator {
                     // 状态码引用平台状态集合，发布时仅要求非空
                     break;
                 case TemplateDefinitionContent.REF_TYPE_PROCESS:
-                    if (StringUtils.isBlank(ref.getRefVersion())) {
-                        failures.add("门禁【" + gate.getGateCode() + "】的流程引用【" + ref.getRefCode() + "】缺少版本");
+                case TemplateDefinitionContent.REF_TYPE_APPROVAL:
+                    if (StringUtils.isNotBlank(ref.getRefVersion())) {
+                        failures.add("门禁【" + gate.getGateCode() + "】的流程引用【" + ref.getRefCode()
+                                + "】不得写入PMS流程版本");
                     }
                     break;
                 default:

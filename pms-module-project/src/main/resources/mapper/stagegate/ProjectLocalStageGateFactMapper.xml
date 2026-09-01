@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.stagegate.ProjectLocalStageGateFactMapper">
+
+    <select id="selectTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND task_code = #{query.ownerCode}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectMilestoneForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO">
+        SELECT *
+        FROM proj_project_milestone
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND milestone_code = #{query.ownerCode}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectStageForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO">
+        SELECT *
+        FROM proj_project_stage
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND stage_code = #{query.ownerCode}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+</mapper>

@@ -22,12 +22,16 @@ public class TemplateDefinitionContent {
 
     /** 门禁引用类型：任务 */
     public static final String REF_TYPE_TASK = "TASK";
+    /** 门禁引用类型：里程碑 */
+    public static final String REF_TYPE_MILESTONE = "MILESTONE";
     /** 门禁引用类型：交付件 */
     public static final String REF_TYPE_DELIVERABLE = "DELIVERABLE";
     /** 门禁引用类型：状态码 */
     public static final String REF_TYPE_STATE = "STATE";
     /** 门禁引用类型：流程 */
     public static final String REF_TYPE_PROCESS = "PROCESS";
+    /** 门禁引用类型：审批流程 */
+    public static final String REF_TYPE_APPROVAL = "APPROVAL";
 
     /** 匹配条件：签约方式（字典 pms_signing_method，null=不限） */
     private String signingMethod;
@@ -40,7 +44,7 @@ public class TemplateDefinitionContent {
 
     /** 模板级流程定义引用（仅存引用，发布要求非空，不校验流程内部） */
     private String processDefinitionKey;
-    /** 流程定义版本引用 */
+    /** 历史兼容字段；新模板保持空，不参与流程定义选择或实例冻结 */
     private String processDefinitionVersion;
 
     /** 阶段定义（S0～S6，顺序） */
@@ -165,7 +169,7 @@ public class TemplateDefinitionContent {
         private String refType;
         /** 引用编码 */
         private String refCode;
-        /** 引用版本（流程引用时使用） */
+        /** 历史兼容字段；新流程引用保持空 */
         private String refVersion;
     }
 }

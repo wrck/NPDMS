@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：`无`
-> 当前任务：`Task 1 六类Gate Owner、Flowable定义身份与模板发布校验`
+> 当前任务：`Task 2 readiness、Gate流程启动REST与原子相邻推进`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
 > Feature物理契约：`specs/features/F-PROJ-008-physical-contract.json`
@@ -14,13 +14,13 @@
 
 ## 串行任务
 
-- [ ] Task 1：六类Gate Owner、Flowable定义身份与模板发布校验（`IN_PROGRESS`）
-- [ ] Task 2：readiness、Gate流程启动REST与原子相邻推进（`PENDING`）
+- [x] Task 1：六类Gate Owner、Flowable定义身份与模板发布校验（`COMPLETED`）
+- [ ] Task 2：readiness、Gate流程启动REST与原子相邻推进（`IN_PROGRESS`）
 - [ ] Task 3：项目工作区与一次真实Chromium正向闭环（`PENDING`）
 
 ## 当前检查点
 
-基线`8778b963`；Technical Plan已GO；追溯、机器JSON、占位与diff检查PASS；无规格阻断；下一步先实现Task 1公共SPI及PROJ/ACC/BPM Owner正向链，再补最小直接验证。
+基线`b36f709a`；Task 1六类Owner、Flowable定义选择/启动/重放及模板发布校验已完成；聚焦33/33、受影响reactor package PASS；无阻断；下一步实现Task 2 readiness、流程启动REST和原子相邻推进。
 
 ## 边界
 
