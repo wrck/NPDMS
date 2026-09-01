@@ -105,4 +105,4 @@
 - [x] 测试专用`@RestController`外壳以MockMvc跑通七条正向路由；生产无Fake/fallback。
 - [ ] 通过Task 7 REST Contract独立Gate。
 
-> 整改候选检查点：`e38aaa8a`独立初审对稳定错误合同与WireLong/受信租户边界裁决`NO-GO`；本候选已按锁定reasonCode/recoveryAction/owner/version投影及JavaScript安全整数线协议完成最小整改，Controller/Codec/Application聚焦测试14/14通过。Task 7仍为`CODE_REVIEW_REQUIRED`；Task 12前继续不激活生产Controller与完整Service装配。
+> 整改候选检查点：`7c0cba23`复审确认WireLong/受信租户边界已关闭，稳定错误合同仍有submit任务CAS、P4来源Provider及PLT空/损坏事实三处分支`NO-GO`；最新候选已补齐三处分轴错误映射，七路由正向及Controller/Codec/Application聚焦测试14/14通过。Task 7仍为`CODE_REVIEW_REQUIRED`；Task 12前继续不激活生产Controller与完整Service装配。

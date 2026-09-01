@@ -52,6 +52,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPla
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePortException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
@@ -387,7 +388,7 @@ public class CutoverPlanApplicationService {
         }
         CutoverPlanFilePort.FileFact file = fileCall(() -> filePort.downloadDraft(command.tenantId(), command.actorId(),
                 task.getProjectId(), plan.getId()));
-        if (file == null) throw failure(OWNER_DATA_CORRUPTED, "PLT未返回初稿文件事实");
+        if (file == null) throw fileOwnerCorrupted("PLT未返回初稿文件事实");
         return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), file,
                 clock.instant().toEpochMilli());
     }
@@ -428,7 +429,8 @@ public class CutoverPlanApplicationService {
         }
         if (taskMapper.submitPlanIfMatch(new CutoverTaskPlanSubmitUpdate(command.tenantId(), task.getId(),
                 task.getVersion())) != 1) {
-            throw failure(VERSION_CONFLICT, "任务版本已变化");
+            throw failure(VERSION_CONFLICT, "TASK_VERSION_STALE", null,
+                    task.getVersion(), null, null, "任务版本已变化");
         }
         insertStageHistory(command.tenantId(), task, plan.getId(), command.actorId(), command.correlationId(),
                 "P4", "P5", "PLAN_DRAFTING", "APPROVING", "P4_PLAN_SUBMITTED", now);
@@ -682,6 +684,7 @@ public class CutoverPlanApplicationService {
         if (!"FULL_FILE_UPLOAD".equals(command.editMode())) return null;
         CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(command.tenantId(), command.actorId(),
                 task.getProjectId(), command.expectedFileFact().handle()));
+        if (actual == null) throw fileOwnerCorrupted("PLT返回空文件事实");
         if (!actual.equals(command.expectedFileFact())) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return actual;
     }
@@ -691,6 +694,7 @@ public class CutoverPlanApplicationService {
         if (decoded.fileFact() == null) return null;
         CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(command.tenantId(), command.actorId(),
                 task.getProjectId(), decoded.fileFact().handle()));
+        if (actual == null) throw fileOwnerCorrupted("PLT返回空文件事实");
         if (!actual.equals(decoded.fileFact())) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return actual;
     }
@@ -700,6 +704,7 @@ public class CutoverPlanApplicationService {
         if (inspected == null) return null;
         CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(command.tenantId(),
                 command.actorId(), task.getProjectId(), inspected.handle()));
+        if (locked == null) throw fileOwnerCorrupted("PLT返回空文件事实");
         if (!locked.equals(inspected)) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return locked;
     }
@@ -710,6 +715,7 @@ public class CutoverPlanApplicationService {
         if (inspected == null) return null;
         CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(command.tenantId(),
                 command.actorId(), task.getProjectId(), decoded.fileFact().handle()));
+        if (locked == null) throw fileOwnerCorrupted("PLT返回空文件事实");
         if (!locked.equals(inspected)) throw failure(FILE_FACT_STALE, "文件事实已变化");
         return locked;
     }
@@ -1043,6 +1049,7 @@ public class CutoverPlanApplicationService {
                                    CutoverPlanFilePort.FileFact expected) {
         CutoverPlanFilePort.FileFact current = fileCall(() -> filePort.lockAndRevalidate(tenantId, actorId, projectId,
                 expected.handle()));
+        if (current == null) throw fileOwnerCorrupted("PLT返回空文件事实");
         if (!Objects.equals(expected, current)) throw failure(FILE_FACT_STALE, "文件事实已变化");
     }
 
@@ -1183,7 +1190,8 @@ public class CutoverPlanApplicationService {
 
     private static CutoverPlanApplicationException ownerFailure(CutoverPlanOwnerFactException ex) {
         if (ex.code() == CutoverPlanOwnerFactException.Code.PROVIDER_UNAVAILABLE) {
-            return new CutoverPlanApplicationException(OWNER_PROVIDER_UNAVAILABLE, ex.getMessage());
+            return failure(OWNER_PROVIDER_UNAVAILABLE, "SOURCE_PROVIDER_UNAVAILABLE", "CUT",
+                    null, null, null, ex.getMessage());
         }
         if (ex.code() == CutoverPlanOwnerFactException.Code.ASSESSMENT_STALE) {
             return new CutoverPlanApplicationException(ASSESSMENT_STALE, ex.getMessage());
@@ -1380,10 +1388,19 @@ public class CutoverPlanApplicationService {
             return operation.get();
         } catch (CutoverPlanApplicationException ex) {
             throw ex;
+        } catch (CutoverPlanFilePortException ex) {
+            if (ex.code() == CutoverPlanFilePortException.Code.PROVIDER_UNAVAILABLE) {
+                throw failure(OWNER_PROVIDER_UNAVAILABLE, "PLT_PROVIDER_UNAVAILABLE", "PLT",
+                        null, null, null, ex.getMessage());
+            }
+            throw fileOwnerCorrupted(ex.getMessage());
         } catch (RuntimeException ex) {
-            throw failure(OWNER_PROVIDER_UNAVAILABLE, "PLT_PROVIDER_UNAVAILABLE", "PLT",
-                    null, null, null, "PLT文件Provider不可用");
+            throw fileOwnerCorrupted("PLT文件事实损坏");
         }
+    }
+    private static CutoverPlanApplicationException fileOwnerCorrupted(String message) {
+        return failure(OWNER_DATA_CORRUPTED, "OWNER_FACT_CORRUPTED", "PLT",
+                null, null, null, message);
     }
     private static String sha256(String value) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
