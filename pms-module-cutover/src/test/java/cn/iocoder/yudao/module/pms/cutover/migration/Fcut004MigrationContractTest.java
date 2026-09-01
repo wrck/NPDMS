@@ -36,7 +36,10 @@ class Fcut004MigrationContractTest {
 
     @Test
     void locksPlanLifecycleAndContentUnions() {
-        assertThat(sql).contains("`status_code` = 'DRAFT'")
+        assertThat(sql).contains("`chk_cut_stage_trigger` CHECK (\n    COALESCE((")
+                .contains("`chk_cut_plan_derivation` CHECK (\n    COALESCE((")
+                .contains("`chk_cut_plan_union` CHECK (\n    COALESCE((")
+                .contains("`status_code` = 'DRAFT'")
                 .contains("`status_code` = 'SUBMITTED'")
                 .contains("`status_code` = 'INVALIDATED'")
                 .contains("`edit_mode_code` = 'FULL_FILE_UPLOAD'")
