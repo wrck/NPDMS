@@ -38,7 +38,10 @@
 - Task 4最小整改候选已补齐人工结果的`collectionTaskId + deviceId + collectionStage + failure type`精确匹配；callback/manual改用封闭业务摘要，明确排除关联标识与平台幂等键，人工摘要包含PLT文件冻结事实。
 - Task 4 A/B最小整改已在`c6fe303e`通过独立复审；人工结果联合身份和callback/manual封闭业务摘要两项阻断均已关闭。Task 4采集请求、同意图恢复、回调与人工结果替代正向闭环Gate现为`PASS / GO@c6fe303e`。
 - Task 4整改证据：Application与Mapper合同4/4通过；隔离MySQL 8.4空库全量迁移至V155后，dispatch/callback/manual、同关联标识变化重放及外部任务恢复链3/3通过，临时数据库已删除。
-- 最近Gate：Task 5 SUCCESS/FAILED提交、归档、设备释放与`CutoverCompleted`事件独立Submission/真实MySQL Gate。
+- Task 5候选已形成SUCCESS/FAILED提交正常链：写前锁定P6任务、DRAFT闭环、批准方案/审批、ProjectScope、两类必需PLT附件、全部采集终态及活动设备；同一平台NEW事务提交闭环、归档任务、释放设备、追加P6历史和幂等审计。仅SUCCESS形成`CUTOVER_CLOSURE:{closureId}:{submittedClosureVersion}`并发布一个`CutoverCompleted`，FAILED不发布完成事件。
+- Task 5跨模块事实仍只经CUT消费端口调用；聚焦测试显式组装受控ProjectScope/PLT替身，未注册生产Fake、fallback或其他Owner实现。
+- Task 5候选证据：Application与Mapper合同4/4通过；隔离MySQL 8.4空库执行151个迁移至V155后，既有采集链及SUCCESS/FAILED提交共5/5通过，验证真实`PlatformCommandExecutionApiImpl`下归档、设备释放、P6历史、幂等审计和Outbox原子提交，临时数据库已删除。候选保持`REVIEW_REQUIRED`，不提前回写PASS。
+- 最近Gate：Task 5 SUCCESS/FAILED提交、归档、设备释放与`CutoverCompleted`事件独立Code Review/真实MySQL Gate。
 
 ## 状态边界
 

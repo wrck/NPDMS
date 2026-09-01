@@ -14,10 +14,12 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMappe
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.LinkClosureManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SubmitCutoverClosureCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
@@ -151,9 +153,11 @@ class CutoverClosureApplicationMySqlTest {
         jdbc.update("DELETE FROM cut_cutover_closure_attachment WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_closure WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_task_device_scope WHERE tenant_id=?", tenantId);
+        jdbc.update("DELETE FROM cut_task_stage_history WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_approval_instance WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_plan_revision WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM plt_operation_audit WHERE tenant_id=?", tenantId);
+        jdbc.update("DELETE FROM plt_outbox_event WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM plt_idempotency_record WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_task WHERE tenant_id=?", tenantId);
         TenantContextHolder.clear();
@@ -259,8 +263,51 @@ class CutoverClosureApplicationMySqlTest {
         assertEquals(1, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
     }
 
+    @Test
+    void submitsSuccessfulClosureAndPublishesCompletion() {
+        Long closureId = prepareDraftWithDevice("create-success-submit");
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+                deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
+                "post-check", 2L, "collect-submit", "corr-collect-submit"));
+        String collectionTaskId = jdbc.queryForObject("""
+                SELECT collection_task_id FROM cut_cutover_collection_evidence
+                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_ACCEPTED'
+                """, String.class, tenantId, closureId);
+        service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
+                deviceId, CollectionStage.POST_COLLECTION, "callback-submit", collectionTaskId, true,
+                "result-submit", "v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-submit"));
+
+        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7, closureId, 2,
+                "SUCCESS", "submit-success", "corr-submit-success"));
+
+        assertEquals(3, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=? AND status_code='SUBMITTED' AND final_result_code='SUCCESS' AND result_ref=?",
+                tenantId, closureId, "CUTOVER_CLOSURE:" + closureId + ":3"));
+        assertEquals(8, count("SELECT version FROM cut_task WHERE tenant_id=? AND id=? AND task_status='ARCHIVED'", tenantId, taskId));
+        assertEquals(0, count("SELECT COUNT(*) FROM cut_task_device_scope WHERE tenant_id=? AND active_marker=1", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? AND trigger_type='P6_CLOSURE_SUBMITTED'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverCompleted'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='submit-success' AND status='COMPLETED'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND correlation_id='corr-submit-success'", tenantId));
+    }
+
+    @Test
+    void submitsFailedClosureWithoutCompletionEvent() {
+        Long closureId = prepareDraftWithDevice("create-failed-submit");
+
+        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7, closureId, 0,
+                "FAILED", "submit-failed", "corr-submit-failed"));
+
+        assertEquals(1, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=? AND status_code='SUBMITTED' AND final_result_code='FAILED' AND result_ref IS NULL",
+                tenantId, closureId));
+        assertEquals(8, count("SELECT version FROM cut_task WHERE tenant_id=? AND id=? AND task_status='ARCHIVED'", tenantId, taskId));
+        assertEquals(0, count("SELECT COUNT(*) FROM cut_task_device_scope WHERE tenant_id=? AND active_marker=1", tenantId));
+        assertEquals(0, count("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverCompleted'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='submit-failed' AND status='COMPLETED'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND correlation_id='corr-submit-failed'", tenantId));
+    }
+
     private Long prepareDraftWithDevice(String idempotencyKey) {
-        service.save(command(null, idempotencyKey, "draft", oneAttachment()));
+        service.save(command(null, idempotencyKey, "draft", twoAttachments()));
         Long closureId = jdbc.queryForObject(
                 "SELECT id FROM cut_cutover_closure WHERE tenant_id=? AND task_id=?", Long.class, tenantId, taskId);
         jdbc.update("""
@@ -343,12 +390,13 @@ class CutoverClosureApplicationMySqlTest {
                                                         CutoverClosureAttachmentMapper attachmentMapper,
                                                         CutoverCollectionEvidenceMapper evidenceMapper,
                                                         CutoverTaskDeviceScopeMapper deviceScopeMapper,
+                                                        CutoverTaskStageHistoryMapper stageHistoryMapper,
                                                         CutoverProjectScopePort projectScopePort,
                                                         CutoverClosureFilePort filePort,
                                                         CutoverClosureCollectionPort collectionPort,
                                                         PlatformCommandExecutionApi platform, Clock clock) {
             return new CutoverClosureApplicationService(taskMapper, approvalMapper, planMapper, closureMapper,
-                    attachmentMapper, evidenceMapper, deviceScopeMapper, projectScopePort, filePort,
+                    attachmentMapper, evidenceMapper, deviceScopeMapper, stageHistoryMapper, projectScopePort, filePort,
                     collectionPort, platform, clock);
         }
     }
