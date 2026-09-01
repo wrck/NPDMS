@@ -42,13 +42,18 @@ class Fcut006MigrationContractTest {
                 .contains("CHAR_LENGTH(`legacy_items`) <= 4000")
                 .contains("COALESCE(CHAR_LENGTH(TRIM(`pre_check_detail`)) BETWEEN 1 AND 4000, FALSE)")
                 .contains("CHAR_LENGTH(TRIM(`rollback_reason`)) BETWEEN 1 AND 4000), FALSE")
-                .contains("`result_ref` = CONCAT('CUTOVER_CLOSURE:', `id`, ':', `version`)")
+                .contains("`result_ref` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
+                .contains("CAST(`result_ref` AS BINARY) = CAST(CONCAT('CUTOVER_CLOSURE:', `id`, ':', `version`) AS BINARY)")
                 .contains("`final_result_code` = 'FAILED' AND `result_ref` IS NULL")
                 .contains("UNIQUE KEY `uk_cut_closure_attachment`")
-                .contains("`file_hash` REGEXP '^[0-9a-f]{64}$'")
+                .contains("`reference_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
+                .contains("`file_hash` varchar(64) CHARACTER SET ascii COLLATE ascii_bin")
+                .contains("REGEXP_LIKE(`file_hash`, _ascii'^[0-9a-f]{64}$', 'c')")
                 .contains("GENERATED ALWAYS AS (CASE WHEN `evidence_type_code` IN ('DISPATCH_ACCEPTED','DISPATCH_FAILED')")
                 .contains("UNIQUE KEY `uk_cut_collection_callback_event`")
-                .contains("`collection_task_id` = `original_failed_collection_task_id`");
+                .contains("`collection_task_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
+                .contains("`callback_event_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
+                .contains("CAST(`collection_task_id` AS BINARY) = CAST(`original_failed_collection_task_id` AS BINARY)");
     }
 
     private static String readMigration() {
