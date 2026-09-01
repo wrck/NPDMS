@@ -67,6 +67,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Code.*;
+import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Reason.*;
 
 /** F-CUT-006 Task 3/4应用内核；跨模块Provider接通前不注册生产Bean。 */
 public class CutoverClosureApplicationService {
@@ -150,10 +151,10 @@ public class CutoverClosureApplicationService {
                 submitCommandDigest(command), CutoverClosureCommandResult.class,
                 () -> submitNew(command, submittedAt), result -> submitSuccessFacts(command, result, submittedAt));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
-            throw failure(IDEMPOTENCY_CONFLICT, "幂等键载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "幂等键载荷冲突");
         }
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null) {
-            throw failure(IDEMPOTENCY_IN_PROGRESS, "闭环提交命令处理中");
+            throw failure(IDEMPOTENCY_IN_PROGRESS, IDEMPOTENCY_OPERATION_IN_PROGRESS, "闭环提交命令处理中");
         }
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
@@ -168,10 +169,10 @@ public class CutoverClosureApplicationService {
                 sha256(JsonUtils.toJsonString(digest(command))), CutoverClosureCommandResult.class,
                 () -> saveNew(command), result -> successFacts(result, command.correlationId()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
-            throw failure(IDEMPOTENCY_CONFLICT, "幂等键载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "幂等键载荷冲突");
         }
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null) {
-            throw failure(IDEMPOTENCY_IN_PROGRESS, "闭环保存命令处理中");
+            throw failure(IDEMPOTENCY_IN_PROGRESS, IDEMPOTENCY_OPERATION_IN_PROGRESS, "闭环保存命令处理中");
         }
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
@@ -229,15 +230,16 @@ public class CutoverClosureApplicationService {
         try {
             var lookup = collectionPort.inspectByIntent(identity);
             if (lookup.status() == CutoverClosureCollectionPort.LookupStatus.UNKNOWN) {
-                throw failure(OWNER_PROVIDER_UNAVAILABLE, "采集Provider状态未知");
+                throw failure(OWNER_PROVIDER_UNAVAILABLE, INT12_PROVIDER_UNAVAILABLE,
+                        "INT-12", "采集Provider状态未知");
             }
             fact = lookup.status() == CutoverClosureCollectionPort.LookupStatus.FOUND
                     ? lookup.fact() : collectionPort.request(request);
         } catch (CutoverClosureOwnerFactException ex) {
-            throw ownerFailure(ex);
+            throw ownerFailure(ex, "INT-12");
         }
         if (!Objects.equals(fact.requestDigest(), request.requestDigest())) {
-            throw failure(IDEMPOTENCY_CONFLICT, "采集意图载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "采集意图载荷冲突");
         }
         insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
                 fact.outcome() == CutoverClosureCollectionPort.DispatchOutcome.ACCEPTED
@@ -249,7 +251,8 @@ public class CutoverClosureApplicationService {
 
     private CutoverClosureCommandResult callbackNew(HandleClosureCollectionCallbackCommand command) {
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
-        if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())) throw failure(NOT_FOUND, "任务不存在");
+        if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())) throw failure(
+                NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
         CutoverClosureDO closure = requireDraftClosure(command.tenantId(), command.taskId(), command.closureId(), null);
         List<CutoverCollectionEvidenceDO> evidence = evidenceMapper.selectListByClosureForUpdate(
                 new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
@@ -258,7 +261,8 @@ public class CutoverClosureApplicationService {
                         && Objects.equals(value.getCollectionTaskId(), command.collectionTaskId())
                         && Objects.equals(value.getDeviceId(), command.deviceId())
                         && Objects.equals(value.getCollectionStageCode(), command.collectionStage().name()));
-        if (!dispatchExists) throw failure(STATE_CONFLICT, "采集下发事实不匹配");
+        if (!dispatchExists) throw failure(COLLECTION_INVALID, COLLECTION_EVIDENCE_MISMATCH,
+                "INT-12", "采集下发事实不匹配");
         insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
                 command.succeeded() ? "CALLBACK_SUCCEEDED" : "CALLBACK_FAILED", command.collectionTaskId(),
                 command.callbackEventId(), command.resultRef(), command.resultVersion(), null, null,
@@ -280,7 +284,8 @@ public class CutoverClosureApplicationService {
                                 && Objects.equals(value.getDeviceId(), command.deviceId())
                                 && Objects.equals(value.getCollectionStageCode(), command.collectionStage().name())
                                 && List.of("DISPATCH_FAILED", "CALLBACK_FAILED").contains(value.getEvidenceTypeCode()))
-                .findFirst().orElseThrow(() -> failure(STATE_CONFLICT, "失败采集事实不存在"));
+                .findFirst().orElseThrow(() -> failure(COLLECTION_INVALID,
+                        FAILED_COLLECTION_REQUIRED_FOR_MANUAL_RESULT, "INT-12", "失败采集事实不存在"));
         lockProjectScope(command.actorId(), task);
         AttachmentInput input = command.attachment();
         CutoverClosureFilePort.FileExpectation expectation = expectation(command.tenantId(), command.actorId(),
@@ -290,7 +295,7 @@ public class CutoverClosureApplicationService {
             file = filePort.lockAndRevalidate(expectation);
             requireSameFile(expectation, file);
         } catch (CutoverClosureOwnerFactException ex) {
-            throw ownerFailure(ex);
+            throw ownerFailure(ex, "PLT");
         }
         long attachmentId = insertAttachment(command.tenantId(), command.actorId(), closure.getId(), input, file,
                 LocalDateTime.now(clock));
@@ -325,20 +330,26 @@ public class CutoverClosureApplicationService {
         requireTerminalCollections(evidence);
         List<CutoverTaskDeviceScopeDO> activeDevices = deviceScopeMapper.selectActiveByTaskForUpdate(
                 new CutoverTaskDeviceListQuery(command.tenantId(), command.taskId()));
-        if (activeDevices.isEmpty()) throw failure(BUSINESS_INCOMPLETE, "闭环任务没有活动设备范围");
+        if (activeDevices.isEmpty()) throw failure(BUSINESS_INCOMPLETE, CLOSURE_RESULT_INCOMPLETE,
+                "闭环任务没有活动设备范围");
 
         int submittedVersion = closure.getVersion() + 1;
         String resultRef = "SUCCESS".equals(command.finalResult())
                 ? "CUTOVER_CLOSURE:" + closure.getId() + ":" + submittedVersion : null;
         if (closureMapper.submitIfMatch(new CutoverClosureSubmitUpdate(command.tenantId(), closure.getId(),
                 closure.getVersion(), command.finalResult(), resultRef, command.actorId(), submittedAt)) != 1) {
-            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+            throw failure(CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, task.getVersion(), closure.getVersion(), "闭环版本已变化");
         }
         if (taskMapper.archiveFromP6IfMatch(new CutoverTaskArchiveUpdate(command.tenantId(), task.getId(),
-                task.getVersion())) != 1) throw failure(TASK_VERSION_STALE, "任务版本已变化");
+                task.getVersion())) != 1) throw failure(CutoverClosureApplicationException.Code.TASK_VERSION_STALE,
+                CutoverClosureApplicationException.Reason.TASK_VERSION_STALE,
+                null, task.getVersion(), closure.getVersion(), "任务版本已变化");
         int released = deviceScopeMapper.releaseActiveByTask(
                 new CutoverTaskDeviceReleaseUpdate(command.tenantId(), task.getId()));
-        if (released != activeDevices.size()) throw failure(STATE_CONFLICT, "活动设备释放不完整");
+        if (released != activeDevices.size()) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
+                "活动设备释放不完整");
         insertSubmissionHistory(command, task, closure, submittedAt);
         return new CutoverClosureCommandResult(task.getId(), task.getVersion() + 1, closure.getId(),
                 submittedVersion, "SUBMITTED", false);
@@ -358,7 +369,8 @@ public class CutoverClosureApplicationService {
         row.setStatusCode("DRAFT"); setContent(row, command.content()); row.setVersion(0);
         row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
         row.setCreateTime(now); row.setUpdateTime(now); row.setDeleted(false);
-        if (closureMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "闭环草稿创建失败");
+        if (closureMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
+                "闭环草稿创建失败");
         insertAttachments(command, closureId, files, now);
         return result(task, closureId, 0);
     }
@@ -366,7 +378,8 @@ public class CutoverClosureApplicationService {
     private CutoverClosureCommandResult updateClosure(SaveCutoverClosureCommand command, CutoverTaskDO task,
                                                        CutoverClosureDO closure,
                                                        List<CutoverClosureFilePort.FileFact> files) {
-        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT, "闭环已归档");
+        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT,
+                CLOSURE_ALREADY_SUBMITTED, "闭环已归档");
         LocalDateTime now = LocalDateTime.now(clock);
         ClosureContent content = command.content();
         if (closureMapper.updateDraftIfMatch(new CutoverClosureDraftUpdate(command.tenantId(), closure.getId(),
@@ -374,7 +387,9 @@ public class CutoverClosureApplicationService {
                 content.executionNormal(), content.executionDetail(), content.testNormal(), content.testDetail(),
                 content.rollbackOccurred(), content.rollbackSuccessful(), content.rollbackReason(),
                 content.legacyItems(), String.valueOf(command.actorId()), now)) != 1) {
-            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+            throw failure(CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, task.getVersion(), closure.getVersion(), "闭环版本已变化");
         }
         CutoverClosureChildrenQuery children = new CutoverClosureChildrenQuery(command.tenantId(), closure.getId());
         attachmentMapper.deleteDraftRows(children);
@@ -400,7 +415,8 @@ public class CutoverClosureApplicationService {
         row.setFileScopeVersion(file.scopeVersion()); row.setFileHash(file.sha256()); row.setVersion(0);
         row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
         row.setCreateTime(now); row.setUpdateTime(now); row.setDeleted(false);
-        if (attachmentMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "闭环附件写入失败");
+        if (attachmentMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
+                "闭环附件写入失败");
         return row.getId();
     }
 
@@ -416,13 +432,16 @@ public class CutoverClosureApplicationService {
         row.setOriginalFailedCollectionTaskId(originalFailedTaskId); row.setManualAttachmentId(manualAttachmentId);
         row.setOccurredAt(occurredAt); row.setRecordedBy(actorId); row.setCreator(String.valueOf(actorId));
         row.setCreateTime(LocalDateTime.now(clock)); row.setDeleted(false);
-        if (evidenceMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "采集证据写入失败");
+        if (evidenceMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
+                "采集证据写入失败");
     }
 
     private void advanceClosure(Long tenantId, CutoverClosureDO closure, Long actorId) {
         if (closureMapper.advanceDraftVersionIfMatch(new CutoverClosureVersionUpdate(tenantId, closure.getId(),
                 closure.getVersion(), String.valueOf(actorId), LocalDateTime.now(clock))) != 1) {
-            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+            throw failure(CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, null, closure.getVersion(), "闭环版本已变化");
         }
     }
 
@@ -435,7 +454,7 @@ public class CutoverClosureApplicationService {
                 requireSameFile(expectation, fact);
                 return new InspectedAttachment(expectation, fact);
             } catch (CutoverClosureOwnerFactException ex) {
-                throw ownerFailure(ex);
+                throw ownerFailure(ex, "PLT");
             }
         }).toList();
     }
@@ -450,7 +469,7 @@ public class CutoverClosureApplicationService {
                 requireSameFile(value.expectation(), current);
                 return current;
             } catch (CutoverClosureOwnerFactException ex) {
-                throw ownerFailure(ex);
+                throw ownerFailure(ex, "PLT");
             }
         }).toList();
     }
@@ -477,35 +496,56 @@ public class CutoverClosureApplicationService {
             CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.lockAndRevalidate(actorId,
                     task.getProjectId(), ACTION_EDIT, task.getProjectScopeVersion());
             if (fact == null || !fact.allowed() || !Objects.equals(fact.projectId(), task.getProjectId())) {
-                throw failure(NOT_FOUND, "任务不可见");
+                throw failure(FUNCTION_OR_SCOPE_DENIED, PROJECT_OR_TASK_SCOPE_DENIED,
+                        "PROJ", "任务不可见");
             }
             if (fact.projectScopeVersion() != task.getProjectScopeVersion()) {
-                throw failure(SOURCE_STALE, "项目范围已变化");
+                throw failure(SOURCE_STALE, PROJECT_SCOPE_STALE, "PROJ", "项目范围已变化");
             }
         } catch (CutoverClosureApplicationException ex) {
             throw ex;
+        } catch (cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException ex) {
+            throw switch (ex.code()) {
+                case PROVIDER_UNAVAILABLE -> failure(OWNER_PROVIDER_UNAVAILABLE,
+                        PROJECT_SCOPE_PROVIDER_UNAVAILABLE, "PROJ", "项目范围Provider不可用");
+                case DATA_SCOPE_FORBIDDEN -> failure(FUNCTION_OR_SCOPE_DENIED,
+                        PROJECT_OR_TASK_SCOPE_DENIED, "PROJ", "项目范围无权编辑");
+                case STALE -> failure(SOURCE_STALE, PROJECT_SCOPE_STALE, "PROJ", "项目范围已变化");
+                case INVALID_FACT -> failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
+                        "PROJ", "项目范围事实损坏");
+            };
         } catch (RuntimeException ex) {
-            throw failure(OWNER_PROVIDER_UNAVAILABLE, "项目范围Provider不可用");
+            throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PROJ", "项目范围事实损坏");
         }
     }
 
     private CutoverClosureDO requireDraftClosure(Long tenantId, Long taskId, Long closureId,
                                                   Integer expectedVersion) {
         CutoverClosureDO closure = closureMapper.selectByTaskForUpdate(new CutoverClosureRowQuery(tenantId, taskId));
-        if (closure == null || !Objects.equals(closure.getId(), closureId)) throw failure(NOT_FOUND, "闭环不存在");
-        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT, "闭环已归档");
+        if (closure == null || !Objects.equals(closure.getId(), closureId)) throw failure(
+                NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "闭环不存在");
+        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT,
+                CLOSURE_ALREADY_SUBMITTED, "闭环已归档");
         if (expectedVersion != null && !Objects.equals(closure.getVersion(), expectedVersion)) {
-            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+            throw failure(CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, null, closure.getVersion(), "闭环版本已变化");
         }
         return closure;
     }
 
     private CutoverTaskDO requireP6Task(CutoverTaskDO task, Long tenantId, Long actorId, Integer expectedVersion) {
-        if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw failure(NOT_FOUND, "任务不存在");
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw failure(
+                NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
         if (!"NEW_PLATFORM".equals(task.getTaskOrigin()) || !"P6".equals(task.getCurrentStage())
-                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) throw failure(STATE_CONFLICT, "任务不在P6闭环中");
-        if (!Objects.equals(task.getOwnerUserId(), actorId)) throw failure(NOT_FOUND, "任务不可见");
-        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(TASK_VERSION_STALE, "任务版本已变化");
+                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) throw failure(
+                STATE_CONFLICT, TASK_NOT_IN_P6, "任务不在P6闭环中");
+        if (!Objects.equals(task.getOwnerUserId(), actorId)) throw failure(
+                FUNCTION_OR_SCOPE_DENIED, NOT_TASK_OWNER, "任务不属于当前工程师");
+        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(
+                CutoverClosureApplicationException.Code.TASK_VERSION_STALE,
+                CutoverClosureApplicationException.Reason.TASK_VERSION_STALE,
+                null, task.getVersion(), null, "任务版本已变化");
         return task;
     }
 
@@ -514,7 +554,7 @@ public class CutoverClosureApplicationService {
                 new CutoverTaskDeviceListQuery(tenantId, task.getId()));
         if (devices.stream().noneMatch(value -> Objects.equals(value.getDeviceId(), deviceId)
                 && Objects.equals(value.getProjectId(), task.getProjectId()))) {
-            throw failure(SOURCE_STALE, "设备不在任务冻结范围");
+            throw failure(SOURCE_STALE, DEVICE_SCOPE_STALE, "AST", "设备不在任务冻结范围");
         }
     }
 
@@ -526,7 +566,7 @@ public class CutoverClosureApplicationService {
                 || !Objects.equals(expected.fileFactVersion(), actual.fileFactVersion())
                 || !Objects.equals(expected.scopeVersion(), actual.scopeVersion())
                 || !Objects.equals(expected.sha256(), actual.sha256())) {
-            throw failure(FILE_INVALID, "PLT文件事实不匹配");
+            throw failure(FILE_INVALID, FILE_FACT_INVALID, "PLT", "PLT文件事实不匹配");
         }
     }
 
@@ -541,19 +581,25 @@ public class CutoverClosureApplicationService {
                 || !Objects.equals(closure.getPlanRevisionNo(), plan.getRevisionNo())
                 || !Objects.equals(closure.getPlanVersion(), plan.getVersion())
                 || !Objects.equals(closure.getDeviceScopeWatermark(), task.getDeviceScopeWatermark())) {
-            throw failure(SOURCE_STALE, "P6冻结来源已变化");
+            throw failure(SOURCE_STALE, APPROVAL_OR_PLAN_STALE, "CUT", "P6冻结来源已变化");
         }
     }
 
     private static CutoverTaskDO requireTask(CutoverTaskDO task, SaveCutoverClosureCommand command) {
-        if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())) throw failure(NOT_FOUND, "任务不存在");
+        if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())) throw failure(
+                NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
         if (!"NEW_PLATFORM".equals(task.getTaskOrigin()) || !"P6".equals(task.getCurrentStage())
-                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) throw failure(STATE_CONFLICT, "任务不在P6闭环中");
-        if (!Objects.equals(task.getOwnerUserId(), command.actorId())) throw failure(NOT_FOUND, "任务不可见");
-        if (!Objects.equals(task.getVersion(), command.expectedTaskVersion())) throw failure(TASK_VERSION_STALE, "任务版本已变化");
+                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) throw failure(
+                STATE_CONFLICT, TASK_NOT_IN_P6, "任务不在P6闭环中");
+        if (!Objects.equals(task.getOwnerUserId(), command.actorId())) throw failure(
+                FUNCTION_OR_SCOPE_DENIED, NOT_TASK_OWNER, "任务不属于当前工程师");
+        if (!Objects.equals(task.getVersion(), command.expectedTaskVersion())) throw failure(
+                CutoverClosureApplicationException.Code.TASK_VERSION_STALE,
+                CutoverClosureApplicationException.Reason.TASK_VERSION_STALE,
+                null, task.getVersion(), null, "任务版本已变化");
         if (task.getProjectScopeVersion() == null || task.getProjectScopeVersion() < 0
                 || task.getDeviceScopeWatermark() == null || task.getDeviceScopeWatermark().isBlank()) {
-            throw failure(OWNER_DATA_CORRUPTED, "任务P6来源水位损坏");
+            throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "CUT", "任务P6来源水位损坏");
         }
         return task;
     }
@@ -561,7 +607,7 @@ public class CutoverClosureApplicationService {
     private static CutoverPlanRevisionDO requireApprovedPlan(CutoverPlanRevisionDO plan) {
         if (plan == null || !"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
                 || plan.getApprovalInstanceId() == null || plan.getApprovalVersion() == null) {
-            throw failure(SOURCE_STALE, "已批准方案不存在");
+            throw failure(SOURCE_STALE, APPROVAL_OR_PLAN_STALE, "CUT", "已批准方案不存在");
         }
         return plan;
     }
@@ -576,21 +622,27 @@ public class CutoverClosureApplicationService {
                 || !Objects.equals(approval.getPlanRevisionNo(), plan.getRevisionNo())
                 || !Objects.equals(plan.getApprovalInstanceId(), approval.getId())
                 || !Objects.equals(plan.getApprovalVersion(), approval.getVersion())) {
-            throw failure(SOURCE_STALE, "审批或方案事实已变化");
+            throw failure(SOURCE_STALE, APPROVAL_OR_PLAN_STALE, "CUT", "审批或方案事实已变化");
         }
         return approval;
     }
 
     private static void requireExpectedClosureVersion(SaveCutoverClosureCommand command, CutoverClosureDO closure) {
         if (closure == null) {
-            if (command.expectedClosureVersion() != null) throw failure(CLOSURE_VERSION_STALE, "闭环尚未创建");
+            if (command.expectedClosureVersion() != null) throw failure(
+                    CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, null, null, "闭环尚未创建");
             return;
         }
         if (command.expectedClosureVersion() == null
                 || !Objects.equals(command.expectedClosureVersion(), closure.getVersion())) {
-            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+            throw failure(CutoverClosureApplicationException.Code.CLOSURE_VERSION_STALE,
+                    CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                    null, null, closure.getVersion(), "闭环版本已变化");
         }
-        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT, "闭环已归档");
+        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT,
+                CLOSURE_ALREADY_SUBMITTED, "闭环已归档");
     }
 
     private static void setContent(CutoverClosureDO row, ClosureContent content) {
@@ -609,12 +661,12 @@ public class CutoverClosureApplicationService {
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
                 || command.expectedClosureVersion() != null && command.expectedClosureVersion() < 0
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, "闭环保存命令非法");
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "闭环保存命令非法");
         }
         try {
             CutoverClosureRules.validateDraftContent(command.content());
         } catch (CutoverClosureOwnerFactException ex) {
-            throw failure(INVALID_REQUEST, ex.getMessage());
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, ex.getMessage());
         }
     }
 
@@ -628,7 +680,7 @@ public class CutoverClosureApplicationService {
                 || command.authentication() == null || command.templateVersion() == null || command.templateVersion() < 0
                 || !validText(command.templateCode(), 64) || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, "采集请求非法");
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "采集请求非法");
         }
     }
 
@@ -639,7 +691,7 @@ public class CutoverClosureApplicationService {
                 || !validText(command.callbackEventId(), 128) || !validText(command.collectionTaskId(), 128)
                 || !validText(command.resultRef(), 256) || !validText(command.resultVersion(), 128)
                 || command.occurredAt() == null || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, "采集回调非法");
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "采集回调非法");
         }
     }
 
@@ -654,7 +706,7 @@ public class CutoverClosureApplicationService {
                 || command.attachment() == null
                 || command.attachment().purposeCode() != CutoverClosureRules.AttachmentPurpose.MANUAL_COLLECTION_RESULT
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, "人工采集结果非法");
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "人工采集结果非法");
         }
         try {
             AttachmentInput input = command.attachment();
@@ -665,7 +717,7 @@ public class CutoverClosureApplicationService {
             CutoverClosureRules.nonNegative(input.scopeVersion(), "scopeVersion");
             CutoverClosureRules.sha256(input.sha256());
         } catch (CutoverClosureOwnerFactException ex) {
-            throw failure(INVALID_REQUEST, ex.getMessage());
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, ex.getMessage());
         }
     }
 
@@ -678,7 +730,7 @@ public class CutoverClosureApplicationService {
                 || command.expectedClosureVersion() == null || command.expectedClosureVersion() < 0
                 || !List.of("SUCCESS", "FAILED").contains(command.finalResult())
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, "闭环提交请求非法");
+            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "闭环提交请求非法");
         }
     }
 
@@ -691,7 +743,7 @@ public class CutoverClosureApplicationService {
                     CutoverClosureFilePort.FileFactVersion.class);
             purpose = CutoverClosureRules.AttachmentPurpose.valueOf(attachment.getPurposeCode());
         } catch (RuntimeException ex) {
-            throw failure(OWNER_DATA_CORRUPTED, "闭环文件冻结事实损坏");
+            throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PLT", "闭环文件冻结事实损坏");
         }
         CutoverClosureFilePort.FileExpectation expectation = new CutoverClosureFilePort.FileExpectation(
                 command.tenantId(), command.actorId(), task.getProjectId(), closure.getId(), purpose,
@@ -700,7 +752,7 @@ public class CutoverClosureApplicationService {
         try {
             requireSameFile(expectation, filePort.lockAndRevalidate(expectation));
         } catch (CutoverClosureOwnerFactException ex) {
-            throw ownerFailure(ex);
+            throw ownerFailure(ex, "PLT");
         }
     }
 
@@ -708,18 +760,18 @@ public class CutoverClosureApplicationService {
                                                  List<CutoverClosureAttachmentDO> attachments) {
         if (closure.getPreCheckNormal() == null || closure.getExecutionNormal() == null
                 || closure.getTestNormal() == null || closure.getRollbackOccurred() == null) {
-            throw failure(BUSINESS_INCOMPLETE, "闭环必填结果未完成");
+            throw failure(BUSINESS_INCOMPLETE, CLOSURE_RESULT_INCOMPLETE, "闭环必填结果未完成");
         }
         if (Boolean.TRUE.equals(closure.getRollbackOccurred())
                 && (closure.getRollbackSuccessful() == null || !validText(closure.getRollbackReason(), 4000))) {
-            throw failure(BUSINESS_INCOMPLETE, "回退结果未完成");
+            throw failure(BUSINESS_INCOMPLETE, ROLLBACK_DETAIL_INCOMPLETE, "回退结果未完成");
         }
         long checklist = attachments.stream().filter(value ->
                 "POST_COLLECTION_CHECKLIST".equals(value.getPurposeCode())).count();
         long commitment = attachments.stream().filter(value ->
                 "IMPLEMENTATION_COMMITMENT".equals(value.getPurposeCode())).count();
         if (checklist != 1 || commitment != 1) {
-            throw failure(BUSINESS_INCOMPLETE, "闭环必需附件不完整");
+            throw failure(FILE_INVALID, REQUIRED_ATTACHMENT_MISSING, "PLT", "闭环必需附件不完整");
         }
     }
 
@@ -732,7 +784,8 @@ public class CutoverClosureApplicationService {
                             && Objects.equals(value.getCollectionStageCode(), dispatch.getCollectionStageCode())
                             && List.of("CALLBACK_SUCCEEDED", "CALLBACK_FAILED")
                             .contains(value.getEvidenceTypeCode())).count();
-            if (terminals != 1) throw failure(COLLECTION_INVALID, "采集终态证据不完整");
+            if (terminals != 1) throw failure(COLLECTION_INVALID, COLLECTION_EVIDENCE_MISMATCH,
+                    "INT-12", "采集终态证据不完整");
         }
     }
 
@@ -748,7 +801,8 @@ public class CutoverClosureApplicationService {
         history.setActorId(command.actorId()); history.setCorrelationId(command.correlationId());
         history.setOccurredAt(submittedAt); history.setCreator(String.valueOf(command.actorId()));
         history.setCreateTime(submittedAt);
-        if (stageHistoryMapper.insert(history) != 1) throw failure(STATE_CONFLICT, "闭环阶段历史创建失败");
+        if (stageHistoryMapper.insert(history) != 1) throw failure(OWNER_DATA_CORRUPTED,
+                OWNER_FACT_CORRUPTED, "闭环阶段历史创建失败");
     }
 
     private CutoverClosureCommandResult executeCommand(Long tenantId, String scopeCode, Long actorId,
@@ -760,10 +814,10 @@ public class CutoverClosureApplicationService {
                 result -> new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverClosure",
                         String.valueOf(result.closureId()), correlationId, JsonUtils.toJsonString(result), List.of()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
-            throw failure(IDEMPOTENCY_CONFLICT, "幂等键载荷冲突");
+            throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "幂等键载荷冲突");
         }
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null) {
-            throw failure(IDEMPOTENCY_IN_PROGRESS, "闭环命令处理中");
+            throw failure(IDEMPOTENCY_IN_PROGRESS, IDEMPOTENCY_OPERATION_IN_PROGRESS, "闭环命令处理中");
         }
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
@@ -860,14 +914,21 @@ public class CutoverClosureApplicationService {
                 closureVersion, "DRAFT", false);
     }
 
-    private static CutoverClosureApplicationException ownerFailure(CutoverClosureOwnerFactException ex) {
+    private static CutoverClosureApplicationException ownerFailure(CutoverClosureOwnerFactException ex,
+                                                                    String ownerContext) {
+        CutoverClosureApplicationException.Reason providerReason = "PLT".equals(ownerContext)
+                ? PLT_PROVIDER_UNAVAILABLE : INT12_PROVIDER_UNAVAILABLE;
         return switch (ex.code()) {
-            case PROVIDER_UNAVAILABLE -> failure(OWNER_PROVIDER_UNAVAILABLE, ex.getMessage());
-            case FILE_INVALID, SOURCE_STALE -> failure(FILE_INVALID, ex.getMessage());
-            case COLLECTION_INVALID -> failure(COLLECTION_INVALID, ex.getMessage());
-            case IDEMPOTENCY_CONFLICT -> failure(IDEMPOTENCY_CONFLICT, ex.getMessage());
-            case INVALID_REQUEST -> failure(INVALID_REQUEST, ex.getMessage());
-            default -> failure(OWNER_DATA_CORRUPTED, ex.getMessage());
+            case PROVIDER_UNAVAILABLE -> failure(OWNER_PROVIDER_UNAVAILABLE, providerReason,
+                    ownerContext, ex.getMessage());
+            case FILE_INVALID, SOURCE_STALE -> failure(FILE_INVALID, FILE_FACT_INVALID,
+                    ownerContext, ex.getMessage());
+            case COLLECTION_INVALID -> failure(COLLECTION_INVALID, COLLECTION_EVIDENCE_MISMATCH,
+                    ownerContext, ex.getMessage());
+            case IDEMPOTENCY_CONFLICT -> failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT,
+                    ownerContext, ex.getMessage());
+            case INVALID_REQUEST -> failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, ownerContext, ex.getMessage());
+            default -> failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, ownerContext, ex.getMessage());
         };
     }
 
@@ -889,8 +950,23 @@ public class CutoverClosureApplicationService {
     }
 
     private static CutoverClosureApplicationException failure(CutoverClosureApplicationException.Code code,
+                                                               CutoverClosureApplicationException.Reason reason,
                                                                String message) {
-        return new CutoverClosureApplicationException(code, message);
+        return failure(code, reason, null, null, null, message);
+    }
+
+    private static CutoverClosureApplicationException failure(CutoverClosureApplicationException.Code code,
+                                                               CutoverClosureApplicationException.Reason reason,
+                                                               String ownerContext, String message) {
+        return failure(code, reason, ownerContext, null, null, message);
+    }
+
+    private static CutoverClosureApplicationException failure(CutoverClosureApplicationException.Code code,
+                                                               CutoverClosureApplicationException.Reason reason,
+                                                               String ownerContext, Integer currentTaskVersion,
+                                                               Integer currentClosureVersion, String message) {
+        return new CutoverClosureApplicationException(code, reason, ownerContext,
+                currentTaskVersion, currentClosureVersion, message);
     }
 
     private record InspectedAttachment(CutoverClosureFilePort.FileExpectation expectation,

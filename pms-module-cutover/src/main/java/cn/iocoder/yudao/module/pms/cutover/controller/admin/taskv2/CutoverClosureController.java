@@ -156,7 +156,9 @@ public class CutoverClosureController {
 
     private static long requireClosure(cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView view) {
         if (view.closureId() == null) throw new CutoverClosureApplicationException(
-                CutoverClosureApplicationException.Code.NOT_FOUND, "闭环不存在");
+                CutoverClosureApplicationException.Code.NOT_FOUND,
+                CutoverClosureApplicationException.Reason.TASK_OR_CLOSURE_NOT_VISIBLE,
+                null, view.taskVersion(), view.closureVersion(), "闭环不存在");
         return view.closureId();
     }
 
@@ -165,21 +167,26 @@ public class CutoverClosureController {
     }
 
     private static CutoverClosureContractException contract(CutoverClosureApplicationException ex) {
-        return switch (ex.code()) {
-            case INVALID_REQUEST -> ce(400, ex.getMessage(), "INVALID_REQUEST", "REQUEST_SCHEMA_INVALID", "FIX_REQUEST", null);
-            case NOT_FOUND -> ce(404, ex.getMessage(), "NOT_VISIBLE_OR_NOT_FOUND", "TASK_OR_CLOSURE_NOT_VISIBLE", "REFRESH_AGGREGATE", null);
-            case STATE_CONFLICT -> ce(409, ex.getMessage(), "STATE_CONFLICT", "CLOSURE_ALREADY_SUBMITTED", "REFRESH_AGGREGATE", null);
-            case TASK_VERSION_STALE -> ce(409, ex.getMessage(), "VERSION_CONFLICT", "TASK_VERSION_STALE", "REFRESH_AGGREGATE", null);
-            case CLOSURE_VERSION_STALE -> ce(409, ex.getMessage(), "VERSION_CONFLICT", "CLOSURE_VERSION_STALE", "REFRESH_AGGREGATE", null);
-            case SOURCE_STALE -> ce(409, ex.getMessage(), "SOURCE_STALE", "APPROVAL_OR_PLAN_STALE", "REFRESH_OWNER_FACTS", null);
-            case FILE_INVALID -> ce(422, ex.getMessage(), "FILE_INVALID", "FILE_FACT_INVALID", "FIX_REQUEST", "PLT");
-            case COLLECTION_INVALID -> ce(422, ex.getMessage(), "COLLECTION_INVALID", "COLLECTION_EVIDENCE_MISMATCH", "FIX_REQUEST", "INT-12");
-            case BUSINESS_INCOMPLETE -> ce(422, ex.getMessage(), "BUSINESS_INCOMPLETE", "CLOSURE_RESULT_INCOMPLETE", "FIX_REQUEST", null);
-            case IDEMPOTENCY_CONFLICT -> ce(409, ex.getMessage(), "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_PAYLOAD_CONFLICT", "START_NEW_INTENT", null);
-            case IDEMPOTENCY_IN_PROGRESS -> ce(409, ex.getMessage(), "IDEMPOTENCY_IN_PROGRESS", "IDEMPOTENCY_OPERATION_IN_PROGRESS", "RETRY_SAME_KEY", null);
-            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, ex.getMessage(), "OWNER_PROVIDER_UNAVAILABLE", "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "RETRY_SAME_KEY", null);
-            case OWNER_DATA_CORRUPTED -> ce(500, ex.getMessage(), "OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED", "CONTACT_ADMIN", null);
+        String reason = ex.reason().name();
+        CutoverClosureContractException base = switch (ex.code()) {
+            case INVALID_REQUEST -> ce(400, ex.getMessage(), "INVALID_REQUEST", reason, "FIX_REQUEST", ex.ownerContext());
+            case FUNCTION_OR_SCOPE_DENIED -> ce(403, ex.getMessage(), "FUNCTION_OR_SCOPE_DENIED", reason, "CONTACT_ADMIN", ex.ownerContext());
+            case NOT_FOUND -> ce(404, ex.getMessage(), "NOT_VISIBLE_OR_NOT_FOUND", reason, "REFRESH_AGGREGATE", ex.ownerContext());
+            case STATE_CONFLICT -> ce(409, ex.getMessage(), "STATE_CONFLICT", reason, "REFRESH_AGGREGATE", ex.ownerContext());
+            case TASK_VERSION_STALE, CLOSURE_VERSION_STALE -> ce(409, ex.getMessage(), "VERSION_CONFLICT", reason, "REFRESH_AGGREGATE", ex.ownerContext());
+            case SOURCE_STALE -> ce(409, ex.getMessage(), "SOURCE_STALE", reason, "REFRESH_OWNER_FACTS", ex.ownerContext());
+            case FILE_INVALID -> ce(422, ex.getMessage(), "FILE_INVALID", reason, "FIX_REQUEST", ex.ownerContext());
+            case COLLECTION_INVALID -> ce(422, ex.getMessage(), "COLLECTION_INVALID", reason, "FIX_REQUEST", ex.ownerContext());
+            case BUSINESS_INCOMPLETE -> ce(422, ex.getMessage(), "BUSINESS_INCOMPLETE", reason, "FIX_REQUEST", ex.ownerContext());
+            case IDEMPOTENCY_CONFLICT -> ce(409, ex.getMessage(), "IDEMPOTENCY_CONFLICT", reason, "START_NEW_INTENT", ex.ownerContext());
+            case IDEMPOTENCY_IN_PROGRESS -> ce(409, ex.getMessage(), "IDEMPOTENCY_IN_PROGRESS", reason, "RETRY_SAME_KEY", ex.ownerContext());
+            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, ex.getMessage(), "OWNER_PROVIDER_UNAVAILABLE", reason, "RETRY_SAME_KEY", ex.ownerContext());
+            case OWNER_DATA_CORRUPTED -> ce(500, ex.getMessage(), "OWNER_DATA_CORRUPTED", reason, "CONTACT_ADMIN", ex.ownerContext());
         };
+        return new CutoverClosureContractException(base.httpStatus(), base.errorCode(), base.getMessage(),
+                new CutoverClosureContractException.ErrorData(base.errorData().category(), reason,
+                        base.errorData().recoveryAction(), ex.ownerContext(), ex.currentTaskVersion(),
+                        ex.currentClosureVersion()));
     }
 
     private static CutoverClosureContractException ce(int status, String message, String category,
