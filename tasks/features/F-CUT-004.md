@@ -122,12 +122,12 @@
 
 ## Task 9：P4工作台与组件交互
 
-状态：`CODE_REVIEW_REQUIRED`
+状态：`PASS / GO@b51963ff`
 
 - [x] 后端只读投影补齐六类`allowedActions`及CUT-05审批事实，独立实施前Gate通过（`GO@5fee04d1`）。
 - [x] 在现有割接工作台挂载P4/P5/P6方案面板，覆盖标准、D级简易与完整文件三种编辑模式。
 - [x] 七条API按WireLong、epoch毫秒、精确Header和PLT文件事实接线，不提交URL或文件正文。
 - [x] 操作按钮只消费服务端`allowedActions`及四项功能权限；统一write barrier保证成功后刷新失败不重发业务命令。
-- [x] 使用真实组件mount完成正向交互测试；候选进入Task 9 Frontend Gate复审。
+- [x] 使用真实组件mount完成正向交互测试；Task 9 Frontend Gate通过（`GO@b51963ff`）。
 
-> 检查点：组件候选不注册后端生产Controller、Service或跨模块Fake/fallback，不启动真实浏览器。生产PLT/CUT-05 Provider继续阻断生产装配、浏览器正向闭环与Implementation Done。
+> 检查点：独立复审确认批准联系人实际编辑、多步骤稳定身份、标准方案三个PLT文件槽及初稿访问票据下载闭环成立；聚焦组件24/24、类型检查与生产构建通过。组件不注册后端生产Controller、Service或跨模块Fake/fallback，不启动真实浏览器；生产PLT/CUT-05 Provider继续阻断生产装配、浏览器正向闭环与Implementation Done。
