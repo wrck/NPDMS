@@ -25,4 +25,24 @@
         ORDER BY device_id ASC
         FOR UPDATE
     </select>
+
+    <select id="selectActiveByTaskForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO">
+        SELECT *
+        FROM cut_task_device_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND cutover_task_id = #{query.taskId}
+          AND active_marker = 1
+          AND deleted = b'0'
+        ORDER BY device_id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="releaseActiveByTask">
+        UPDATE cut_task_device_scope
+        SET active_marker = NULL, version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND cutover_task_id = #{query.taskId}
+          AND active_marker = 1
+          AND deleted = b'0'
+    </update>
 </mapper>

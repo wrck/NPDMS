@@ -20,7 +20,10 @@
 - Task 1闭环领域类型、PLT/INT-12消费端口及`src/test`受控替身已通过独立复审：`PASS / GO@35c8462d`；未注册生产Bean、Fake或fallback。
 - Task 1最小整改已在采集恢复事实中加入不含`transientSecret`的稳定请求摘要；同一意图只能恢复同摘要外部任务，异摘要按幂等冲突失败关闭。
 - Task 1聚焦证据：`CutoverClosurePortContractTest` 6/6通过；`pms-module-cutover`及依赖模块打包通过。
-- 最近Gate：Task 2三表Schema、任务归档前向约束与Mapper合同独立Schema/MySQL Gate。
+- Task 2候选：`CODE_REVIEW_REQUIRED`。V155已创建CUT自有闭环、附件和采集证据三表，前向扩展`P6/ARCHIVED`与`P6_CLOSURE_SUBMITTED`，并补齐闭环/附件/证据、任务归档和设备释放的场景化Mapper/XML。
+- Task 2聚焦证据：`Fcut006MigrationContractTest`与`CutoverClosureMapperContractTest`共5/5通过；独立MySQL 8.4空卷从V1全量迁移至V155，合法DRAFT、终态采集证据、SUCCESS/FAILED归档及P6阶段历史均写入成功；异常结果无说明和回退无原因均由CHECK拒绝且原行不变。
+- Task 2物理可执行纠偏：五个最长4000字符的闭环文本字段改用`TEXT + CHAR_LENGTH<=4000`，避免utf8mb4行大小超限，不改变API长度语义。
+- 最近Gate：Task 2三表Schema、任务归档前向约束与Mapper合同独立Schema/MySQL复审。
 
 ## 状态边界
 

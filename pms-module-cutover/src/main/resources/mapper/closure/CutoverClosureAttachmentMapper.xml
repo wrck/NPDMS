@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper">
+    <select id="selectListByClosure" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO">
+        SELECT * FROM cut_cutover_closure_attachment
+        WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
+        ORDER BY purpose_code, reference_key, id
+    </select>
+    <select id="selectListByClosureForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO">
+        SELECT * FROM cut_cutover_closure_attachment
+        WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
+        ORDER BY purpose_code, reference_key, id
+        FOR UPDATE
+    </select>
+</mapper>

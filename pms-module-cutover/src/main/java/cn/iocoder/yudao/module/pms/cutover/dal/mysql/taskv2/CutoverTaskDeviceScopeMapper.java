@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverActiveDeviceQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceListQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceReleaseUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,4 +15,8 @@ public interface CutoverTaskDeviceScopeMapper extends BaseMapperX<CutoverTaskDev
     List<CutoverTaskDeviceScopeDO> selectActiveByTask(@Param("query") CutoverTaskDeviceListQuery query);
 
     List<CutoverTaskDeviceScopeDO> selectActiveForUpdate(@Param("query") CutoverActiveDeviceQuery query);
+
+    List<CutoverTaskDeviceScopeDO> selectActiveByTaskForUpdate(@Param("query") CutoverTaskDeviceListQuery query);
+
+    int releaseActiveByTask(@Param("query") CutoverTaskDeviceReleaseUpdate query);
 }

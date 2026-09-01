@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper">
+    <select id="selectByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO">
+        SELECT * FROM cut_cutover_closure
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND deleted = b'0'
+    </select>
+    <select id="selectByTaskForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO">
+        SELECT * FROM cut_cutover_closure
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <update id="submitIfMatch">
+        UPDATE cut_cutover_closure
+        SET status_code = 'SUBMITTED', final_result_code = #{query.finalResultCode},
+            result_ref = #{query.resultRef}, submitted_by = #{query.submittedBy},
+            submitted_at = #{query.submittedAt}, archived_at = #{query.submittedAt},
+            version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.closureId}
+          AND version = #{query.expectedVersion} AND status_code = 'DRAFT' AND deleted = b'0'
+    </update>
+</mapper>
