@@ -38,7 +38,18 @@
 | `ProjectCutoverContextFactApi` | `e68ad4e0`提出合同 → `f04650b6/17c826e1/5d334050/15c25e89`收敛 → `8eb36222`冻结 | `e2f51762` | ADR和机器合同已集成；公共Java接口、生产Provider未实现 | 仅支撑F-CUT-002；不产生Feature Ready或Done |
 | `ProjectCutoverServiceManagerFactApi` | `5e3ce44c`提出候选合同 → `2efad8ce/2e3fdba3/d990c205`收敛 → `912d0cdb`计划Gate | `e2f51762` | 共址候选Owner机器合同已原样集成，其中SYSTEM组合结构只用于保持判定完整性；PROJ公共Java接口与生产Provider、SYSTEM Provider/实现均未集成 | 仅支撑F-CUT-005；不产生Feature Ready或Done |
 
-当前没有有效写入认领；`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界，`DU-20260901-FSOL003-DEPRECATION`已完整集成。其他历史活动分支均未被倒签为有效认领。
+### PRE/SOL全时间线集成裁决
+
+| Feature/Requirement | master权威事实 | 分支与Worktree候选裁决 | 后续实施边界 |
+|---|---|---|---|
+| F-SOL-001 / PRE-01 | `IMPLEMENTATION_COMPLETE`；旧工期写入口为`DEPRECATED_READ_ONLY` | 未发现master缺失增量 | 只可从master新建DU，不得恢复旧写入口 |
+| F-SOL-002 / PRE-02 | `IMPLEMENTATION_COMPLETE`；旧现场勘察写入口为`DEPRECATED_READ_ONLY` | `29111833`的6个相关路径与master树等价 | 不重复合并，不在旧现场勘察入口继续实施 |
+| F-SOL-003 / PRE-04 | `IMPLEMENTATION_COMPLETE`且Requirement覆盖仍为`PARTIAL`；固定章节载体为`DEPRECATED_READ_ONLY` | `3e27f047`与`master@2bdbb04c`补丁等价；7a76工作树18项相同副本无需迁移，4项共享投影为`STALE_COPY` | 新能力只进入动态表单链；不得恢复固定章节实施入口 |
+| PRE-03 / PRE-05 | 无正式Feature/Task实施链，`NOT_STARTED` | 全部分支、Worktree和stash均无可接收Owner增量 | 先建立Feature Spec、Task和DU，再实施 |
+| SOL-01 | F-PLT-002仅形成`PARTIAL`覆盖 | 未发现可把SOL-01提升为完成的权威候选 | 保持`PARTIAL`，不得从相邻平台能力推导Done |
+| 临时/跨Feature命中 | 不属于PRE/SOL实现事实 | 50eb的914项命中均在`.codex-tmp/qa/`；`486727a3`为ACC分支9参数测试适配，均不适用master | 临时副本不得提交；ACC适配不得移植到8参数master合同 |
+
+当前没有有效写入认领；`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决且确认无缺失源码增量，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界，`DU-20260901-FSOL003-DEPRECATION`已完整集成。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 
@@ -55,6 +66,7 @@
 | F-CUT-005 | `2e3fdba3` Ready；`912d0cdb` Plan GO；Task 1/2候选至`85b93828`；PROJ服务经理合同`5e3ce44c..912d0cdb` | `QUARANTINED / IN_PROGRESS / Task 3`；仅PROJ候选Owner机器合同已进入`master@e2f51762`，无Java接口/Provider | CUT Task 1/2仍按提交边界拆出集成DU；Task 3继续写入前必须先形成有效认领；PROJ Provider另建物理Owner DU |
 | F-IMP-001 | CUT共享线API/DTO/测试提交 | Ready NO-GO、Task NOT_STARTED下发生实施 | 隔离候选，Ready前代码不得作为正常认领或Done |
 | F-IMP-002 | CUT共享线；PROJ系统资格合同/Provider提交`b4f16bdf/f4aa1ad2` | `QUARANTINED / IN_PROGRESS`；仅PROJ支撑API、生产Provider和测试已进入`master@5f5148a9` | IMP消费实现仍须拆分DU并确认依赖、边界和交接；不得因Provider存在声明Feature Done |
+| PRE/SOL物理Owner候选 | `3e27f047`、`29111833`、`486727a3`及7a76/50eb工作树 | `PATCH_EQUIVALENT / ALREADY_IN_MASTER / CROSS_FEATURE_NOT_APPLICABLE / STALE_COPY`；不存在`MISSING_VALID_DELTA` | 不移植源码；后续PRE/SOL实施只从master新建Feature/Task/DU，不回旧分支继续写入 |
 | F-PROJ-001旧原子对齐线 | `codex/f-proj-001-atomic-alignment@8bbaf69a`；`298a2340`～`8bbaf69a`六条提交发生于2026-08-21 14:42～15:43 | `SUPERSEDED / DO_NOT_MERGE`；旧Task仅推进到中段，master后续V1.8重做已完成Task 0～9与AC 1～10 | 禁止继续在旧分支实施；后续PROJ工作只从master当前权威Task建立新DU |
 | V1.8独立裁决线 | `codex/v1-8-feature-revalidation-50eb@68db25b3`；仅一条2026-08-29 04:54提交 | `ALREADY_IN_MASTER / SUPERSEDED`；补丁等价于master`29e9a415`，且master已由`0b0f9f9a`继续修订 | 无需合并、无需新认领；保留只读历史 |
 | F-PROJ-008 | `codex/f-proj-008-stage-advance@48175aa0`；Task 1=`0c7a9634`、Task 2=`d69b3ff8`、Task 3=`a3bd0043` | `INTEGRATED_PARTIAL / IN_PROGRESS`；Task 1-2已选择性进入master，Task 3未集成 | 等待`Q-FPROJ-009`业务裁决；关闭后从最新master新建DU，不回旧分支继续写入 |
