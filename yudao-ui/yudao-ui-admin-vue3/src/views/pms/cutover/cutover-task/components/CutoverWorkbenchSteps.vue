@@ -1,6 +1,6 @@
 <template>
   <ol class="step-list" aria-label="割接工作台阶段">
-    <li v-for="step in steps" :key="step.stage" :class="['step-item', `is-${step.state.toLowerCase()}`]">
+    <li v-for="step in steps" :key="step.stage" :class="['step-item', `is-${step.state.toLowerCase()}`]" :aria-current="step.state === 'CURRENT' ? 'step' : undefined">
       <span class="step-code">{{ step.stage }}</span>
       <div>
         <strong>{{ step.label }}</strong>

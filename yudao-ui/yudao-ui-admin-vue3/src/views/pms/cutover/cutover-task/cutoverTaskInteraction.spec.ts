@@ -126,7 +126,7 @@ describe('cutover task positive interaction', () => {
     expect(activeCutoverStagePanel('P3')).toBe('CHECKLIST')
     expect(activeCutoverStagePanel('P4')).toBe('PLAN')
     expect(activeCutoverStagePanel('P5')).toBe('APPROVAL')
-    expect(activeCutoverStagePanel('P6')).toBe('PLAN')
+    expect(activeCutoverStagePanel('P6')).toBe('CLOSURE')
   })
 
   it('mounts the P2 assessment and emits the positive save and submit actions', async () => {

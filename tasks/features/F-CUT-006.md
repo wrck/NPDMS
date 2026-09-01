@@ -47,7 +47,10 @@
 - Task 6最小整改已在`97ee0904`通过独立复审；错误身份无损投影与正向验证边界阻断均已关闭。生产Controller/Service仍未注册，Task 6 REST Contract/Code Review Gate现为`PASS / GO@97ee0904`。
 - Task 7已形成CUT受控legacy前向分类：生产代码只领取PLT `STAGED_READY`冻结批次，结构合法旧步骤归为`RETAINED`，冻结来源载荷损坏归为`FCUT006_SOURCE_RECORD_INVALID`，不读取旧表且不创建CUT闭环；V156仅将`legacyCutoverClosureReconciliationJob`登记为`status=2/PAUSED`。
 - Task 7聚焦证据：Classifier与迁移合同5/5通过；隔离MySQL 8.4空库执行152个迁移至V156后，正式暂存来源正常分类与完成链1/1通过，批次`mapped=0/issue=0/retained=1`且CUT闭环零写；临时容器、网络和卷均已清理。独立Migration/MySQL Gate现为`PASS / GO@739aad09`。
-- 最近Gate：Task 8 P6工作台与组件交互的前端组件交互Gate。
+- Task 8候选已接入P6关闭工作台、五条CUT闭环API、三组结果/回退/遗留事项/PLT附件、单设备采集、失败采集人工补件及SUCCESS/FAILED归档交互；动作由服务端`allowedActions`与四项权限共同投影，P6归档后只读。
+- Task 8跨模块边界保持为接口消费：PLT文件事实、INT-12采集结果在组件测试中使用受控替身；未新增COM/AST/PLT/INT-12生产实现、Fake、fallback或旧割接页面改动，临时Secret发送后立即清空。
+- Task 8候选证据：P6挂载组件与阶段交互12/12通过，`pnpm ts:check`通过；候选仍保持`REVIEW_REQUIRED`，最近Gate为Task 8独立Frontend Code Review／组件交互Gate。
+- 最近Gate：Task 8 P6工作台与组件交互的独立Frontend Gate。
 
 ## 状态边界
 

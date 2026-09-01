@@ -81,9 +81,11 @@ export const activeCutoverStagePanel = (stage: CutoverStage | null) =>
       ? 'CHECKLIST'
       : stage === 'P5'
         ? 'APPROVAL'
-        : ['P4', 'P6'].includes(stage || '')
+        : stage === 'P4'
           ? 'PLAN'
-          : 'EMPTY'
+          : stage === 'P6'
+            ? 'CLOSURE'
+            : 'EMPTY'
 
 export const createCutoverPlanIntentStore = (factory: () => string = newIntentKey) => {
   const keys = new Map<string, string>()

@@ -44,6 +44,7 @@
               label="审批中"
               value="APPROVING"
             /><el-option label="关闭处理中" value="CLOSURE_IN_PROGRESS" />
+            <el-option label="已归档" value="ARCHIVED" />
           </el-select>
         </el-form-item>
         <el-form-item label=" "
@@ -156,6 +157,11 @@
             :task-id="detail.task.id"
             @changed="handleApprovalChanged"
           />
+          <CutoverClosurePanel
+            v-else-if="activeStagePanel === 'CLOSURE'"
+            :task-id="detail.task.id"
+            @changed="handlePlanChanged"
+          />
           <el-empty v-else description="当前阶段暂无可编辑内容" />
         </template>
       </div>
@@ -251,6 +257,7 @@ import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
 import CutoverApprovalPanel from './components/CutoverApprovalPanel.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
 import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
+import CutoverClosurePanel from './components/CutoverClosurePanel.vue'
 import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
 import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
 import { activeCutoverStagePanel, formatWireDateTime, newIntentKey } from './cutoverTaskInteraction'
@@ -306,6 +313,7 @@ const statusLabels: Record<string, string> = {
   PLAN_DRAFTING: '方案编制',
   APPROVING: '审批中',
   CLOSURE_IN_PROGRESS: '关闭处理中',
+  ARCHIVED: '已归档',
   LEGACY_UNKNOWN: '历史状态'
 }
 

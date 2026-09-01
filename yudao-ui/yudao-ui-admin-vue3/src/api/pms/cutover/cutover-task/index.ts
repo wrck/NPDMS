@@ -9,6 +9,7 @@ export type CutoverStatus =
   | 'PLAN_DRAFTING'
   | 'APPROVING'
   | 'CLOSURE_IN_PROGRESS'
+  | 'ARCHIVED'
   | 'LEGACY_UNKNOWN'
 export type ManualGrade = 'A' | 'B' | 'C' | 'D'
 
@@ -671,6 +672,108 @@ export interface CreateCutoverTaskRequest {
   expectedCustomerServiceLevelEffectiveTo: WireDateTime | null
 }
 
+export type CutoverClosureAction =
+  | 'CREATE_CLOSURE'
+  | 'SAVE_CLOSURE'
+  | 'REQUEST_COLLECTION'
+  | 'LINK_MANUAL_RESULT'
+  | 'SUBMIT_CLOSURE'
+export type CutoverClosureStage = 'PRE_CHECK' | 'EXECUTION' | 'TEST' | 'ROLLBACK' | 'POST_COLLECTION'
+export type CutoverClosureFilePurpose =
+  | 'POST_COLLECTION_CHECKLIST'
+  | 'IMPLEMENTATION_COMMITMENT'
+  | 'OTHER_EVIDENCE'
+  | 'MANUAL_COLLECTION_RESULT'
+
+export interface CutoverClosureFileFact {
+  purposeCode: CutoverClosureFilePurpose
+  artifactId: WireLong
+  versionNo: number
+  referenceKey: string
+  fileFactVersion: { artifactVersion: number; referenceVersion: number; availabilityVersion: number }
+  scopeVersion: WireLong
+  sha256: string
+}
+
+export interface CutoverClosureContent {
+  preCheckNormal: boolean | null
+  preCheckDetail: string | null
+  executionNormal: boolean | null
+  executionDetail: string | null
+  testNormal: boolean | null
+  testDetail: string | null
+  rollbackOccurred: boolean | null
+  rollbackSuccessful: boolean | null
+  rollbackReason: string | null
+  legacyItems: string | null
+  finalResult: 'SUCCESS' | 'FAILED' | null
+  attachments: CutoverClosureFileFact[]
+}
+
+export interface CutoverClosureEvidence {
+  evidenceId: WireLong
+  deviceId: WireLong
+  collectionStage: CutoverClosureStage
+  evidenceType: 'DISPATCH_ACCEPTED' | 'DISPATCH_FAILED' | 'CALLBACK_SUCCEEDED' | 'CALLBACK_FAILED' | 'MANUAL_UPLOAD'
+  collectionTaskId: string
+  callbackEventId: string | null
+  resultRef: string | null
+  resultVersion: string | null
+  originalFailedCollectionTaskId: string | null
+  manualFile: CutoverClosureFileFact | null
+  occurredAt: WireDateTime
+}
+
+export interface CutoverClosureView {
+  taskId: WireLong
+  taskStage: 'P6'
+  taskStatus: 'CLOSURE_IN_PROGRESS' | 'ARCHIVED'
+  taskVersion: number
+  closureId: WireLong | null
+  closureVersion: number | null
+  closureStatus: 'DRAFT' | 'SUBMITTED' | null
+  approvalInstanceId: WireLong
+  approvalVersion: number
+  planRevisionId: WireLong
+  planRevisionNo: number
+  planVersion: number
+  content: CutoverClosureContent | null
+  collectionEvidence: CutoverClosureEvidence[]
+  resultRef: string | null
+  submittedBy: WireLong | null
+  submittedAt: WireDateTime | null
+  archivedAt: WireDateTime | null
+  allowedActions: CutoverClosureAction[]
+}
+
+export type CutoverClosureCollectionRequest =
+  | {
+      authenticationMode: 'SAVED_CREDENTIAL'
+      deviceId: WireLong
+      collectionStage: CutoverClosureStage
+      credentialId: WireLong
+      credentialVersion: WireLong
+      templateCode: string
+      templateVersion: WireLong
+    }
+  | {
+      authenticationMode: 'TRANSIENT_CREDENTIAL'
+      deviceId: WireLong
+      collectionStage: CutoverClosureStage
+      loginName: string
+      transientSecret: string
+      saveAsCredential: boolean
+      templateCode: string
+      templateVersion: WireLong
+    }
+
+export interface LinkCutoverClosureManualResultRequest {
+  originalFailedCollectionTaskId: string
+  deviceId: WireLong
+  collectionStage: CutoverClosureStage
+  file: CutoverClosureFileFact
+}
+
 const baseUrl = '/api/v1/pms/cutover-tasks'
 
 export const resolveCreateContext = (serialNumbers: string[]) =>
@@ -925,6 +1028,62 @@ export const reviseCutoverPlan = (
     url: `${baseUrl}/${taskId}/plan/actions/revise`,
     data,
     headers: { 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export const getCutoverClosure = (taskId: WireLong) =>
+  request.get<CutoverClosureView>({ url: `${baseUrl}/${taskId}/closure` })
+
+export const saveCutoverClosure = (
+  taskId: WireLong,
+  taskVersion: number,
+  closureVersion: number | null,
+  data: CutoverClosureContent,
+  idempotencyKey: string
+) =>
+  request.put<CutoverClosureView>({
+    url: `${baseUrl}/${taskId}/closure`,
+    data,
+    headers: {
+      ...(closureVersion === null ? {} : { 'If-Match': String(closureVersion) }),
+      'X-Task-Version': String(taskVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
+
+export const requestCutoverClosureCollection = (
+  taskId: WireLong,
+  taskVersion: number,
+  closureVersion: number,
+  data: CutoverClosureCollectionRequest,
+  idempotencyKey: string
+) =>
+  request.post<CutoverClosureView>({
+    url: `${baseUrl}/${taskId}/closure/actions/request-collection`, data,
+    headers: { 'If-Match': String(closureVersion), 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export const linkCutoverClosureManualResult = (
+  taskId: WireLong,
+  taskVersion: number,
+  closureVersion: number,
+  data: LinkCutoverClosureManualResultRequest,
+  idempotencyKey: string
+) =>
+  request.post<CutoverClosureView>({
+    url: `${baseUrl}/${taskId}/closure/actions/link-manual-result`, data,
+    headers: { 'If-Match': String(closureVersion), 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export const submitCutoverClosure = (
+  taskId: WireLong,
+  taskVersion: number,
+  closureVersion: number,
+  finalResult: 'SUCCESS' | 'FAILED',
+  idempotencyKey: string
+) =>
+  request.post<CutoverClosureView>({
+    url: `${baseUrl}/${taskId}/closure/actions/submit`, data: { finalResult },
+    headers: { 'If-Match': String(closureVersion), 'X-Task-Version': String(taskVersion), 'Idempotency-Key': idempotencyKey }
   })
 
 export const getCutoverApproval = (taskId: WireLong) =>
