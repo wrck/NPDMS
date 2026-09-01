@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class Fcut006MigrationContractTest {
     private final String sql = readMigration();
+    private final String jobSql = readJobMigration();
 
     @Test
     void preflightsBeforeCreatingClosureTablesAndNeverUpdatesExistingRows() {
@@ -56,9 +57,26 @@ class Fcut006MigrationContractTest {
                 .contains("CAST(`collection_task_id` AS BINARY) = CAST(`original_failed_collection_task_id` AS BINARY)");
     }
 
+    @Test
+    void registersLegacyClosureReconciliationJobPausedAndWithoutActivation() {
+        assertThat(jobSql).contains("'legacyCutoverClosureReconciliationJob'")
+                .contains("'割接闭环旧数据核对', 2")
+                .contains("SET `name`='割接闭环旧数据核对', `status`=2")
+                .doesNotContain("status`=1")
+                .doesNotContain("QRTZ_");
+    }
+
     private static String readMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V155__fcut006_p6_cutover_closure.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readJobMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V156__fcut006_legacy_closure_job.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
