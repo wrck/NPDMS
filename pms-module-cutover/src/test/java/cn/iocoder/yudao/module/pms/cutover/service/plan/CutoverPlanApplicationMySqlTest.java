@@ -10,13 +10,20 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionM
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
+import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.InvalidateCutoverPlanSourceCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SaveCutoverPlanDraftCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -105,6 +112,7 @@ class CutoverPlanApplicationMySqlTest {
         jdbc.update("DELETE FROM cut_step WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_support_arrangement WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_plan_revision WHERE tenant_id=?", tenantId);
+        jdbc.update("DELETE FROM cut_task_stage_history WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM plt_operation_audit WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM plt_idempotency_record WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_task WHERE tenant_id=?", tenantId);
@@ -145,6 +153,44 @@ class CutoverPlanApplicationMySqlTest {
         assertEquals(1, count("SELECT version FROM cut_plan_revision WHERE tenant_id=?", tenantId));
     }
 
+    @Test
+    void uploadSubmitAndSourceInvalidationKeepPlanTaskHistoryAndPlatformFactsConsistent() {
+        CutoverPlanFilePort.FileFact file = owners.fileFact();
+        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
+                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                "create-upload-1", "corr-create-upload-1"));
+
+        SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
+                tenantId, 8L, taskId, 4, created.planVersion(), "submit-1", "corr-submit-1"));
+
+        assertEquals("P5", submitted.taskStage());
+        assertEquals("PENDING", submitted.approvalStatus());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND status_code='SUBMITTED' AND approval_instance_id=? AND approval_version=0",
+                tenantId, submitted.planRevisionId(), submitted.approvalInstanceId()));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task WHERE tenant_id=? AND id=? " +
+                "AND current_stage='P5' AND task_status='APPROVING' AND version=5", tenantId, taskId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? " +
+                "AND cutover_task_id=? AND trigger_type='P4_PLAN_SUBMITTED'", tenantId, taskId));
+
+        InvalidateCutoverPlanSourceResult invalidated = service.invalidateSource(
+                new InvalidateCutoverPlanSourceCommand(tenantId, 9L, taskId, 5, submitted.planVersion(),
+                        "invalidate-1", "corr-invalidate-1"));
+
+        assertEquals("P4", invalidated.taskStage());
+        assertEquals("INVALIDATED", invalidated.planStatus());
+        assertEquals("PAUSED_SOURCE_INVALIDATED", invalidated.approvalStatus());
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
+                "AND status_code='INVALIDATED' AND current_marker IS NULL AND approval_version=1 " +
+                "AND invalidation_reason_code='SOURCE_FACT_INVALIDATED'", tenantId, submitted.planRevisionId()));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_task WHERE tenant_id=? AND id=? " +
+                "AND current_stage='P4' AND task_status='PLAN_DRAFTING' AND version=6", tenantId, taskId));
+        assertEquals(2, count("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? " +
+                "AND cutover_task_id=?", tenantId, taskId));
+        assertEquals(3, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
+        assertEquals(3, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+    }
+
     int count(String sql, Object... args) { return jdbc.queryForObject(sql, Integer.class, args); }
     static String required(Map<String, String> env, String key) {
         String value = env.get(key); if (value == null || value.isBlank()) throw new IllegalStateException(key + " is required");
@@ -168,9 +214,28 @@ class CutoverPlanApplicationMySqlTest {
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { throw new AssertionError(); }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { throw new AssertionError(); }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { throw new AssertionError(); }
+        FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
+        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
+        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
+        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { return fileFact(); }
+    }
+
+    static final class ControlledApproval implements CutoverApprovalFactApi {
+        CutoverApprovalFact fact;
+        @Override public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
+            fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
+                    command.planRevisionNo(), ApprovalStatus.PENDING, command.sourceSnapshotVersion(),
+                    null, null, null);
+            return new CutoverApprovalStartResult(StartOutcome.STARTED, fact);
+        }
+        @Override public CutoverApprovalCommandResult pauseForSourceInvalidation(CutoverApprovalPauseCommand command) {
+            fact = new CutoverApprovalFact(fact.approvalInstanceId(), fact.approvalVersion() + 1,
+                    fact.taskId(), fact.planRevisionId(), fact.planRevisionNo(),
+                    ApprovalStatus.PAUSED_SOURCE_INVALIDATED, fact.sourceSnapshotVersion(), null, null, null);
+            return new CutoverApprovalCommandResult(CommandOutcome.APPLIED, fact);
+        }
+        @Override public CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query) { throw new AssertionError(); }
+        @Override public CutoverApprovalRevalidationResult lockAndRevalidate(CutoverApprovalRevalidationQuery query) { throw new AssertionError(); }
     }
 
     @SpringBootConfiguration
@@ -186,15 +251,18 @@ class CutoverPlanApplicationMySqlTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean ControlledOwners controlledOwners() { return new ControlledOwners(); }
+        @Bean ControlledApproval controlledApproval() { return new ControlledApproval(); }
         @Bean Clock clock() { return Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC); }
         @Bean CutoverPlanApplicationService service(CutoverTaskMapper taskMapper,
                                                     CutoverPlanRevisionMapper planMapper,
                                                     CutoverPlanStepMapper stepMapper,
                                                     CutoverSupportArrangementMapper supportMapper,
+                                                    CutoverTaskStageHistoryMapper historyMapper,
                                                     ControlledOwners owners,
+                                                    ControlledApproval approval,
                                                     PlatformCommandExecutionApi platform, Clock clock) {
             return new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper, supportMapper,
-                    owners, owners, owners, new CutoverPlanContentCodec(), platform, clock);
+                    owners, owners, owners, new CutoverPlanContentCodec(), platform, approval, historyMapper, clock);
         }
     }
 }

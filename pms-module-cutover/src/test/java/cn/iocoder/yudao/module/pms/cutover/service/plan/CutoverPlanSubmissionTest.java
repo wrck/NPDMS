@@ -9,18 +9,22 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionM
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.DownloadCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.InvalidateCutoverPlanSourceCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
@@ -109,7 +113,7 @@ class CutoverPlanSubmissionTest {
         DirectPlatform platform = new DirectPlatform();
         CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
                 stepMapper, supportMapper, projectScope, sourcePort, mock(CutoverPlanFilePort.class),
-                new CutoverPlanContentCodec(), platform, approvalApi(), historyMapper,
+                new CutoverPlanContentCodec(), platform, new ControlledApprovalApi(), historyMapper,
                 Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC));
 
         SubmitCutoverPlanResult result = service.submit(
@@ -133,6 +137,57 @@ class CutoverPlanSubmissionTest {
                         CutoverTaskStageHistoryDO::getFromStage, CutoverTaskStageHistoryDO::getToStage,
                         CutoverTaskStageHistoryDO::getTriggerType)
                 .containsExactly(3, "P4", "P5", "P4_PLAN_SUBMITTED");
+    }
+
+    @Test
+    void pausesApprovalAndReturnsTaskToP4WhenSubmittedSourceIsInvalidated() {
+        CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
+        CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
+        CutoverTaskStageHistoryMapper historyMapper = mock(CutoverTaskStageHistoryMapper.class);
+        CutoverTaskDO task = task();
+        task.setCurrentStage("P5"); task.setTaskStatus("APPROVING"); task.setVersion(5);
+        CutoverPlanRevisionDO plan = simplePlan();
+        plan.setStatusCode("SUBMITTED"); plan.setSubmittedBy(8L);
+        plan.setSubmittedAt(java.time.LocalDateTime.parse("2026-09-01T02:00:00"));
+        plan.setApprovalInstanceId(70001L); plan.setApprovalVersion(0); plan.setVersion(4);
+        when(taskMapper.selectForUpdate(any())).thenReturn(task);
+        when(planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
+        when(planMapper.invalidateSubmittedIfMatch(any())).thenReturn(1);
+        when(taskMapper.returnToPlanForSourceInvalidation(any())).thenReturn(1);
+        when(taskMapper.selectMaxStageHistorySequence(any())).thenReturn(3);
+        when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
+        ControlledApprovalApi approval = new ControlledApprovalApi();
+        approval.seed(plan);
+        DirectPlatform platform = new DirectPlatform();
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
+                mock(CutoverPlanStepMapper.class), mock(CutoverSupportArrangementMapper.class),
+                mock(CutoverProjectScopePort.class), mock(CutoverPlanSourcePort.class),
+                mock(CutoverPlanFilePort.class), new CutoverPlanContentCodec(), platform, approval, historyMapper,
+                Clock.fixed(Instant.parse("2026-09-01T03:00:00Z"), ZoneOffset.UTC));
+
+        InvalidateCutoverPlanSourceResult result = service.invalidateSource(
+                new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5, 4,
+                        "invalidate-1", "corr-invalidate-1"));
+
+        assertThat(result.taskStage()).isEqualTo("P4");
+        assertThat(result.taskVersion()).isEqualTo(6);
+        assertThat(result.planStatus()).isEqualTo("INVALIDATED");
+        assertThat(result.planVersion()).isEqualTo(5);
+        assertThat(result.approvalStatus()).isEqualTo("PAUSED_SOURCE_INVALIDATED");
+        var planUpdate = org.mockito.ArgumentCaptor.forClass(CutoverPlanInvalidationUpdate.class);
+        verify(planMapper).invalidateSubmittedIfMatch(planUpdate.capture());
+        assertThat(planUpdate.getValue()).extracting(CutoverPlanInvalidationUpdate::expectedApprovalVersion,
+                        CutoverPlanInvalidationUpdate::newApprovalVersion,
+                        CutoverPlanInvalidationUpdate::reasonCode)
+                .containsExactly(0, 1, "SOURCE_FACT_INVALIDATED");
+        verify(taskMapper).returnToPlanForSourceInvalidation(
+                new CutoverTaskSourceInvalidationUpdate(1L, 50L, 5));
+        var history = org.mockito.ArgumentCaptor.forClass(CutoverTaskStageHistoryDO.class);
+        verify(historyMapper).insert(history.capture());
+        assertThat(history.getValue()).extracting(CutoverTaskStageHistoryDO::getFromStage,
+                        CutoverTaskStageHistoryDO::getToStage, CutoverTaskStageHistoryDO::getTriggerType)
+                .containsExactly("P5", "P4", "P5_SOURCE_INVALIDATED");
+        assertThat(platform.lastFacts.get().correlationId()).isEqualTo("corr-invalidate-1");
     }
 
     private static CutoverTaskDO task() {
@@ -169,26 +224,39 @@ class CutoverPlanSubmissionTest {
                 new CutoverPlanFilePort.FileFactVersion(1, 1, 1), 1L, "a".repeat(64));
     }
 
-    private static CutoverApprovalFactApi approvalApi() {
-        return new CutoverApprovalFactApi() {
-            @Override
-            public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
-                return new CutoverApprovalStartResult(StartOutcome.STARTED,
-                        new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
-                                command.planRevisionNo(), ApprovalStatus.PENDING,
-                                command.sourceSnapshotVersion(), null, null, null));
-            }
+    private static final class ControlledApprovalApi implements CutoverApprovalFactApi {
+        private CutoverApprovalFact fact;
 
-            @Override public CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query) {
-                throw new UnsupportedOperationException();
-            }
-            @Override public CutoverApprovalRevalidationResult lockAndRevalidate(CutoverApprovalRevalidationQuery query) {
-                throw new UnsupportedOperationException();
-            }
-            @Override public CutoverApprovalCommandResult pauseForSourceInvalidation(CutoverApprovalPauseCommand command) {
-                throw new UnsupportedOperationException();
-            }
-        };
+        @Override
+        public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
+            fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
+                    command.planRevisionNo(), ApprovalStatus.PENDING,
+                    command.sourceSnapshotVersion(), null, null, null);
+            return new CutoverApprovalStartResult(StartOutcome.STARTED, fact);
+        }
+
+        void seed(CutoverPlanRevisionDO plan) {
+            CutoverPlanSourcePort.SourceSnapshot source = JsonUtils.parseObject(
+                    plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+            fact = new CutoverApprovalFact(plan.getApprovalInstanceId(), plan.getApprovalVersion(),
+                    plan.getCutoverTaskId(), plan.getId(), plan.getRevisionNo(), ApprovalStatus.PENDING,
+                    source.snapshotVersion(), null, null, null);
+        }
+
+        @Override
+        public CutoverApprovalCommandResult pauseForSourceInvalidation(CutoverApprovalPauseCommand command) {
+            fact = new CutoverApprovalFact(fact.approvalInstanceId(), fact.approvalVersion() + 1,
+                    fact.taskId(), fact.planRevisionId(), fact.planRevisionNo(),
+                    ApprovalStatus.PAUSED_SOURCE_INVALIDATED, fact.sourceSnapshotVersion(), null, null, null);
+            return new CutoverApprovalCommandResult(CommandOutcome.APPLIED, fact);
+        }
+
+        @Override public CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public CutoverApprovalRevalidationResult lockAndRevalidate(CutoverApprovalRevalidationQuery query) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

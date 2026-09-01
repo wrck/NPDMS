@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
@@ -11,6 +12,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverSupport
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -46,8 +48,13 @@ class CutoverPlanMapperContractTest {
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "submitDraftIfMatch",
                 new CutoverPlanSubmitUpdate(1L, 3L, 0, 1, 9L,
                         LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "invalidateSubmittedIfMatch",
+                new CutoverPlanInvalidationUpdate(1L, 3L, 1, 2, 0, 1, 9L,
+                        LocalDateTime.parse("2026-09-01T10:00:00"), "SOURCE_FACT_INVALIDATED"));
         assertBindings(configuration, CutoverTaskMapper.class, "submitPlanIfMatch",
                 new CutoverTaskPlanSubmitUpdate(1L, 2L, 3));
+        assertBindings(configuration, CutoverTaskMapper.class, "returnToPlanForSourceInvalidation",
+                new CutoverTaskSourceInvalidationUpdate(1L, 2L, 4));
         assertBindings(configuration, CutoverTaskMapper.class, "selectMaxStageHistorySequence",
                 new CutoverTaskRowQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",

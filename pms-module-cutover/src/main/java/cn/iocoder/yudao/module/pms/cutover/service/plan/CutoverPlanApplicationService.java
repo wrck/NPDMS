@@ -14,20 +14,25 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrang
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactException;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.ApprovalStatus;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFact;
+import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalPauseCommand;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.DownloadCutoverPlanDraftCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.command.InvalidateCutoverPlanSourceCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SaveCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
@@ -37,6 +42,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanOwnerFac
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
@@ -173,6 +179,25 @@ public class CutoverPlanApplicationService {
         return execution.response();
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public InvalidateCutoverPlanSourceResult invalidateSource(InvalidateCutoverPlanSourceCommand command) {
+        requireInvalidation(command);
+        PlatformCommandExecutionApi.ExecutionResult<InvalidateCutoverPlanSourceResult> execution =
+                commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
+                                "CUT:PLAN_SOURCE_INVALIDATE:" + command.taskId(), command.actorId(),
+                                command.idempotencyKey()),
+                        sha256(JsonUtils.toJsonString(Map.of("taskId", command.taskId(),
+                                "taskVersion", command.expectedTaskVersion(),
+                                "planVersion", command.expectedPlanVersion(),
+                                "reasonCode", "SOURCE_FACT_INVALIDATED"))),
+                        InvalidateCutoverPlanSourceResult.class, () -> invalidateSourceNew(command),
+                        result -> new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_PLAN_SOURCE_INVALIDATE",
+                                "CutoverPlanRevision", String.valueOf(result.planRevisionId()),
+                                command.correlationId(), JsonUtils.toJsonString(result), List.of()));
+        requireCompleted(execution.decision());
+        return execution.response();
+    }
+
     private DownloadCutoverPlanDraftResult downloadNew(DownloadCutoverPlanDraftCommand command) {
         CutoverTaskDO task = requireVisibleTask(command.tenantId(), command.actorId(), command.taskId());
         CutoverPlanRevisionDO plan = requireDraft(planMapper.selectCurrent(new CutoverPlanRevisionQuery(
@@ -236,6 +261,31 @@ public class CutoverPlanApplicationService {
         return new SubmitCutoverPlanResult(task.getId(), "P5", task.getVersion() + 1, plan.getId(),
                 plan.getRevisionNo(), newPlanVersion, approval.fact().approvalInstanceId(),
                 approval.fact().approvalVersion(), approval.fact().status().name());
+    }
+
+    private InvalidateCutoverPlanSourceResult invalidateSourceNew(InvalidateCutoverPlanSourceCommand command) {
+        CutoverTaskDO task = requireP5(taskMapper.selectForUpdate(new CutoverTaskRowQuery(
+                command.tenantId(), command.taskId())), command.tenantId(), command.expectedTaskVersion());
+        CutoverPlanRevisionDO plan = requireSubmitted(planMapper.selectCurrentForUpdate(new CutoverPlanRevisionQuery(
+                command.tenantId(), command.taskId(), null)), command.expectedPlanVersion());
+        CutoverPlanSourcePort.SourceSnapshot source = parseSource(plan.getSourceSnapshot());
+        CutoverApprovalCommandResult paused = pauseApproval(command, plan, source);
+        LocalDateTime now = LocalDateTime.now(clock);
+        int newPlanVersion = plan.getVersion() + 1;
+        if (planMapper.invalidateSubmittedIfMatch(new CutoverPlanInvalidationUpdate(command.tenantId(), plan.getId(),
+                plan.getVersion(), newPlanVersion, plan.getApprovalVersion(), paused.fact().approvalVersion(),
+                command.actorId(), now, "SOURCE_FACT_INVALIDATED")) != 1) {
+            throw failure(VERSION_CONFLICT, "已提交方案版本已变化");
+        }
+        if (taskMapper.returnToPlanForSourceInvalidation(new CutoverTaskSourceInvalidationUpdate(
+                command.tenantId(), task.getId(), task.getVersion())) != 1) {
+            throw failure(VERSION_CONFLICT, "任务版本已变化");
+        }
+        insertStageHistory(command.tenantId(), task, plan.getId(), command.actorId(), command.correlationId(),
+                "P5", "P4", "APPROVING", "PLAN_DRAFTING", "P5_SOURCE_INVALIDATED", now);
+        return new InvalidateCutoverPlanSourceResult(task.getId(), "P4", task.getVersion() + 1,
+                plan.getId(), newPlanVersion, "INVALIDATED", paused.fact().approvalInstanceId(),
+                paused.fact().approvalVersion(), paused.fact().status().name());
     }
 
     private CutoverPlanCommandResult createNew(CreateCutoverPlanDraftCommand command) {
@@ -450,6 +500,29 @@ public class CutoverPlanApplicationService {
         return plan;
     }
 
+    private static CutoverTaskDO requireP5(CutoverTaskDO task, Long tenantId, Integer expectedVersion) {
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)
+                || !CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())) {
+            throw failure(NOT_FOUND, "任务不存在");
+        }
+        if (!"P5".equals(task.getCurrentStage()) || !"APPROVING".equals(task.getTaskStatus())) {
+            throw failure(STATE_CONFLICT, "任务当前不在P5审批中");
+        }
+        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "任务版本已变化");
+        return task;
+    }
+
+    private static CutoverPlanRevisionDO requireSubmitted(CutoverPlanRevisionDO plan, Integer expectedVersion) {
+        if (plan == null) throw failure(NOT_FOUND, "当前已提交方案不存在");
+        if (!"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
+                || !positive(plan.getApprovalInstanceId()) || plan.getApprovalVersion() == null
+                || plan.getApprovalVersion() < 0) {
+            throw failure(STATE_CONFLICT, "当前方案不可执行来源失效");
+        }
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "方案版本已变化");
+        return plan;
+    }
+
     private static void requireSource(CutoverPlanSourcePort.SourceFacts facts, CutoverTaskDO task) {
         if (facts == null || !Objects.equals(facts.snapshot().taskId(), task.getId())
                 || !Objects.equals(facts.snapshot().projectId(), task.getProjectId())) {
@@ -590,6 +663,31 @@ public class CutoverPlanApplicationService {
                     || !Objects.equals(fact.planRevisionNo(), plan.getRevisionNo())
                     || !Objects.equals(fact.sourceSnapshotVersion(), source.snapshotVersion())) {
                 throw failure(OWNER_DATA_CORRUPTED, "CUT-05审批事实身份损坏");
+            }
+            return result;
+        } catch (CutoverApprovalFactException ex) {
+            throw approvalFailure(ex);
+        }
+    }
+
+    private CutoverApprovalCommandResult pauseApproval(InvalidateCutoverPlanSourceCommand command,
+                                                        CutoverPlanRevisionDO plan,
+                                                        CutoverPlanSourcePort.SourceSnapshot source) {
+        if (approvalFactApi == null) throw failure(OWNER_PROVIDER_UNAVAILABLE, "CUT-05审批Provider不可用");
+        try {
+            CutoverApprovalCommandResult result = approvalFactApi.pauseForSourceInvalidation(
+                    new CutoverApprovalPauseCommand(command.tenantId(), plan.getApprovalInstanceId(),
+                            plan.getApprovalVersion(), plan.getId(), source.snapshotVersion(),
+                            "SOURCE_FACT_INVALIDATED", command.idempotencyKey(), command.correlationId()));
+            CutoverApprovalFact fact = result == null ? null : result.fact();
+            if (fact == null || fact.status() != ApprovalStatus.PAUSED_SOURCE_INVALIDATED
+                    || !Objects.equals(fact.approvalInstanceId(), plan.getApprovalInstanceId())
+                    || !Objects.equals(fact.taskId(), plan.getCutoverTaskId())
+                    || !Objects.equals(fact.planRevisionId(), plan.getId())
+                    || !Objects.equals(fact.planRevisionNo(), plan.getRevisionNo())
+                    || !Objects.equals(fact.sourceSnapshotVersion(), source.snapshotVersion())
+                    || fact.approvalVersion() <= plan.getApprovalVersion()) {
+                throw failure(OWNER_DATA_CORRUPTED, "CUT-05暂停审批事实身份损坏");
             }
             return result;
         } catch (CutoverApprovalFactException ex) {
@@ -798,6 +896,16 @@ public class CutoverPlanApplicationService {
                 || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "提交方案命令非法");
+        }
+    }
+
+    private static void requireInvalidation(InvalidateCutoverPlanSourceCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "来源失效命令非法");
         }
     }
 
