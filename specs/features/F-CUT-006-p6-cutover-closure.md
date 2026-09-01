@@ -57,16 +57,18 @@
 ### BR-FCUT006-003 INT-12证据与人工降级
 
 - CUT消费端口只接受任务、设备、采集阶段、认证方式和业务相关ID，不拥有凭证明文。临时密码只在一次同步下发调用内传递，不进入CUT草稿、日志、摘要、审计或数据库。
-- 采集阶段封闭为`PRE_CHECK/EXECUTION/TEST/ROLLBACK/POST_COLLECTION`。每次正式下发结果按`collectionTaskId`唯一保存；回调按`callbackEventId`幂等追加结果引用，乱序不得覆盖已保存终态证据。
-- INT-12不可用或下发失败时，保留`DISPATCH_FAILED`证据。授权工程师可关联同任务、设备、阶段和原失败`collectionTaskId`追加`MANUAL_UPLOAD`文件事实；原失败记录保持不变。
+- 采集阶段封闭为`PRE_CHECK/EXECUTION/TEST/ROLLBACK/POST_COLLECTION`。一次请求只允许一个`deviceId`并产生一个`collectionTaskId`；请求前必须已有同任务`DRAFT`闭环并携带闭环`If-Match`，下发投影追加到该闭环并递增闭环版本，不允许无闭环证据或从多设备中任选一台落表。
+- 每次正式下发结果按`collectionTaskId`唯一保存；回调按`callbackEventId`幂等追加结果引用，乱序不得覆盖已保存终态证据。提交前，所有`DISPATCH_ACCEPTED`都必须已有同任务终态`CALLBACK_SUCCEEDED/CALLBACK_FAILED`；`DISPATCH_FAILED`本身为终态，不等待回调。
+- 闭环`SUBMITTED`后，附件和采集证据投影均不可变。同`callbackEventId`同载荷仍按平台幂等返回既有结果且不访问CUT业务行；新的晚到回调稳定返回永久`CLOSURE_ARCHIVED`，不改写归档，原始回调仍由INT-12 Owner保留，不能被CUT伪装成成功或丢失事实。
+- INT-12不可用或下发失败时，保留`DISPATCH_FAILED`证据。授权工程师可关联同任务、设备、阶段和原失败`collectionTaskId`，通过`linkManualResult`锁定PLT文件事实并追加`MANUAL_UPLOAD`；原失败记录保持不变。普通闭环保存不得直接提交`MANUAL_COLLECTION_RESULT`附件。
 - 正常闭环的CUT代码只依赖消费端口。正式Provider未形成时，仅`src/test`替身可返回受控成功/失败事实；不得注册生产Fake、空成功或fallback，也不得据此声明生产浏览器或Implementation Done。
 
 ### BR-FCUT006-004 保存、提交与归档
 
-- 保存只允许`DRAFT`，以闭环`If-Match`和任务`X-Task-Version`执行CAS；任务、闭环、附件/证据投影、平台幂等和审计同事务。
-- 提交锁序固定为任务→审批/方案引用→闭环→附件/采集证据→ProjectScope/PLT Owner事实→设备活动范围→平台幂等/审计/Outbox。任一步失败整体回滚。
+- 保存、采集请求、人工结果关联和提交只允许`DRAFT`，以闭环`If-Match`和任务`X-Task-Version`执行CAS；任务、闭环、附件/证据投影、平台幂等和审计同事务。
+- 用户写命令先校验受信租户和请求结构，再由`PlatformCommandExecutionApi`认领幂等键；仅`NEW`进入CUT业务锁序：任务→审批/方案引用→闭环→附件/采集证据→ProjectScope/PLT Owner事实→设备活动范围。业务成功后在同一外层事务完成平台幂等`COMPLETED`、操作审计及必要Outbox；`REPLAY_COMPLETED`不访问CUT业务行。任一步失败整体回滚。
 - 提交成功把闭环`DRAFT→SUBMITTED`并保存提交人、提交时间、归档时间；任务保持`currentStage=P6`并从`CLOSURE_IN_PROGRESS→ARCHIVED`，追加`P6_CLOSURE_SUBMITTED`阶段历史，同时将本任务全部`cut_task_device_scope.active_marker`置空。
-- 最终`SUCCESS`同事务写唯一`CutoverCompleted` Outbox；`FAILED`同样归档但不写该事件。下游项目/资产/ITR处理失败不得回滚CUT归档。
+- 最终`SUCCESS`同事务生成并持久化不可变`resultRef=CUTOVER_CLOSURE:{closureId}:{submittedClosureVersion}`，写入唯一`CutoverCompleted` Outbox并原样携带该引用；`FAILED`同样归档但`resultRef`为空且不写该事件。下游项目/资产/ITR处理失败不得回滚CUT归档。
 - 相同`Idempotency-Key`同摘要返回既有结果；异摘要永久冲突，处理中返回可重试冲突。并发提交只有一个CAS胜出。
 
 ## 4. API、权限与Owner边界
@@ -80,7 +82,8 @@
 
 - 新增`cut_cutover_closure`、`cut_cutover_closure_attachment`、`cut_cutover_collection_evidence`三张CUT Owner表，精确字段、联合、唯一键和锁序见physical contract。
 - 前向扩展`cut_task`允许`P6/ARCHIVED`，扩展阶段历史`P6_CLOSURE_SUBMITTED`，不改写现有任务；提交命令显式释放设备活动标记。
-- `pms_cut_execution`是逐步骤模型，缺少闭环级唯一身份、四项完整结果、最终结果和合法PLT文件事实；当前任何旧行均不得单独迁成闭环。旧行保留并登记迁移问题，不以状态、文本、URL或时间猜测。
+- `pms_cut_execution`是逐步骤模型，缺少闭环级唯一身份、四项完整结果、最终结果和合法PLT文件事实；当前任何旧行均不得单独迁成闭环，不以状态、文本、URL或时间猜测。正式迁移只消费`PlatformMigrationEvidenceApi`已暂存的批次：`ownerContext=CUT`、`purpose=CUTOVER_CLOSURE_CURRENT_FORWARD`、`sourceSystem=NPDMS_LEGACY`、`sourceTable=pms_cut_execution`，稳定来源键为旧行十进制`id`。
+- 原始旧行只能由Release受控迁移导入器通过`PlatformMigrationEvidenceApi.createImportBatch/appendSourceRecord/markStagedReady`形成不可变来源批次；CUT生产Bean不读取旧表、文件或第二数据源。CUT在调用方外层事务中领取`STAGED_READY`批次，逐页读取冻结来源；结构合法但无法形成闭环的正常旧步骤行追加`RETAINED`分类，只有冻结来源身份或载荷损坏才追加`FCUT006_SOURCE_RECORD_INVALID`问题，不创建CUT闭环。CUT目标写（当前为零）、PLT mapping/issue/retained结果与`completeReconciliation`计数核对同事务；临时PLT/数据库失败整体回滚并使批次保持`STAGED_READY`，不得写永久问题。无正式暂存批次时迁移Job保持暂停/无操作，测试fixture不得冒充生产迁移证据。
 - `pms_cut_observation`整表排除；`pms_cut_task.actual_time/remark/status`不推导闭环。旧页面和接口保持不变。
 - Flyway仅在实施串行合入时取下一空闲版本；Feature Ready不预约版本。
 

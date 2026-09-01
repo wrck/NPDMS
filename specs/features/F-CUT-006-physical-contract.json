@@ -40,6 +40,7 @@
         "rollback_reason": "VARCHAR(4000) NULL",
         "legacy_items": "VARCHAR(4000) NULL",
         "final_result_code": "VARCHAR(16) NULL",
+        "result_ref": "VARCHAR(128) NULL",
         "submitted_by": "BIGINT NULL",
         "submitted_at": "DATETIME(3) NULL",
         "archived_at": "DATETIME(3) NULL",
@@ -51,8 +52,9 @@
       "uniqueKeys": ["uk(tenant_id,task_id)"],
       "checks": [
         "source identities are positive and immutable after insert",
-        "DRAFT requires final_result/submission/archive fields null and permits incomplete result fields",
+        "DRAFT requires final_result/submission/archive/result_ref fields null and permits incomplete result fields",
         "SUBMITTED requires all three normal flags, rollback_occurred, final_result, positive submitted_by and submitted_at=archived_at",
+        "SUBMITTED SUCCESS requires result_ref exactly CUTOVER_CLOSURE:{id}:{submitted closure version}; SUBMITTED FAILED requires result_ref null",
         "a false normal flag requires its non-blank detail",
         "rollback_occurred=false requires rollback_successful/reason null; true requires rollback_successful and non-blank reason",
         "final_result_code is null or SUCCESS/FAILED"
@@ -101,8 +103,10 @@
         "result_ref": "VARCHAR(256) NULL",
         "result_version": "VARCHAR(128) NULL",
         "original_failed_collection_task_id": "VARCHAR(128) NULL",
-        "manual_file_reference_key": "VARCHAR(128) NULL",
+        "manual_attachment_id": "BIGINT NULL",
         "dispatch_marker": "TINYINT GENERATED AS (CASE WHEN evidence_type_code IN ('DISPATCH_ACCEPTED','DISPATCH_FAILED') THEN 1 ELSE NULL END) STORED",
+        "callback_marker": "TINYINT GENERATED AS (CASE WHEN evidence_type_code IN ('CALLBACK_SUCCEEDED','CALLBACK_FAILED') THEN 1 ELSE NULL END) STORED",
+        "manual_marker": "TINYINT GENERATED AS (CASE WHEN evidence_type_code='MANUAL_UPLOAD' THEN 1 ELSE NULL END) STORED",
         "occurred_at": "DATETIME(3) NOT NULL",
         "recorded_by": "BIGINT NOT NULL CHECK >= 0",
         "creator": "VARCHAR(64) NOT NULL",
@@ -111,13 +115,16 @@
       },
       "uniqueKeys": [
         "uk(tenant_id,collection_task_id,dispatch_marker)",
+        "uk(tenant_id,collection_task_id,callback_marker)",
+        "uk(tenant_id,original_failed_collection_task_id,manual_marker)",
         "uk(tenant_id,callback_event_id)"
       ],
       "checks": [
         "stage and evidence type use the closed enums",
-        "callback types require callback_event_id and immutable result identity",
-        "MANUAL_UPLOAD requires original failed task plus manual PLT reference and never changes the failed row",
-        "dispatch types have no callback identity; recorded_by=0 only for trusted callbacks"
+        "callback types require callback_event_id and immutable result identity; one collectionTaskId has at most one terminal callback",
+        "MANUAL_UPLOAD uses collection_task_id=original_failed_collection_task_id, requires original failed task plus manual_attachment_id referencing a MANUAL_COLLECTION_RESULT closure attachment, permits at most one manual result per failed task and never changes the failed row",
+        "dispatch types have no callback identity; recorded_by=0 only for trusted callbacks",
+        "dispatch, callback and manual rows may append only while their closure is DRAFT; SUBMITTED closure evidence is immutable"
       ]
     }
   ],
@@ -130,31 +137,52 @@
     "device_scope_watermark": "exact frozen task watermark, stable deviceId ascending; never refreshed from current Owner facts",
     "file_fact_version": "exact keys artifactVersion/referenceVersion/availabilityVersion, each non-negative Integer"
   },
-  "lockOrder": [
-    "cut_task by tenant+taskId",
-    "cut_approval_instance and submitted cut_plan_revision source identities",
-    "cut_cutover_closure by tenant+taskId",
-    "closure attachments and collection evidence by stable identity",
-    "ProjectScope then PLT Owner locks",
-    "cut_task_device_scope by deviceId ascending",
-    "platform idempotency/audit/outbox in the same outer transaction"
-  ],
+  "transactionOrder": {
+    "beforeBusinessLocks": [
+      "validate trusted tenant and structural request",
+      "PlatformCommandExecutionApi reserves/claims tenant+scope+Idempotency-Key; REPLAY_COMPLETED returns without CUT row access"
+    ],
+    "newOperationBusinessLocks": [
+      "cut_task by tenant+taskId",
+      "cut_approval_instance and submitted cut_plan_revision source identities",
+      "cut_cutover_closure by tenant+taskId",
+      "closure attachments and collection evidence by stable identity",
+      "ProjectScope then PLT Owner locks",
+      "cut_task_device_scope by deviceId ascending"
+    ],
+    "successCompletion": "inside the same caller-owned transaction persist business writes, mark platform idempotency COMPLETED, append operation audit and append required Outbox; any failure rolls back reservation and all writes"
+  },
   "stateTransitions": {
     "createDraft": "P6/CLOSURE_IN_PROGRESS with approved source -> DRAFT closure; task unchanged",
     "saveDraft": "DRAFT version CAS; task unchanged",
+    "requestCollection": "existing DRAFT version CAS; one device request appends one DISPATCH_ACCEPTED or DISPATCH_FAILED row and increments closure version",
+    "collectionCallback": "new callback may append only to a matching DISPATCH_ACCEPTED of a DRAFT closure and increments closure version; same callback replay is no-op; new callback after SUBMITTED returns CLOSURE_ARCHIVED with zero CUT writes",
+    "linkManualResult": "DRAFT version CAS; atomically append one MANUAL_COLLECTION_RESULT attachment and one MANUAL_UPLOAD evidence pointing to it; increment closure version",
     "submitSuccess": "DRAFT->SUBMITTED and task P6/CLOSURE_IN_PROGRESS->P6/ARCHIVED; release device markers; append history and CutoverCompleted outbox",
     "submitFailure": "DRAFT->SUBMITTED and task P6/CLOSURE_IN_PROGRESS->P6/ARCHIVED; release device markers; append history; no CutoverCompleted"
   },
   "eventOutbox": {
     "eventType": "CutoverCompleted",
     "payload": "eventId,tenantId,taskId,closureId,closureRevision,finalResult,resultRef,archivedAt,correlationId",
-    "rule": "SUCCESS submit only; unique per closure; downstream failure cannot roll back CUT archive"
+    "rule": "SUCCESS submit only; unique per closure; resultRef is copied unchanged from cut_cutover_closure.result_ref; downstream failure cannot roll back CUT archive"
   },
   "migration": {
     "source": "pms_cut_execution",
     "strategy": "CURRENT_FORWARD",
     "qualification": "a source unit must independently prove one complete closure with all result unions, final result and valid immutable file facts",
-    "currentDisposition": "no existing row shape qualifies; retain source and append migration issue, insert no closure",
+    "platformBatchIdentity": {
+      "ownerContextCode": "CUT",
+      "purposeCode": "CUTOVER_CLOSURE_CURRENT_FORWARD",
+      "sourceSystem": "NPDMS_LEGACY",
+      "sourceTable": "pms_cut_execution",
+      "sourceStableKey": "canonical decimal legacy id",
+      "ruleVersion": "FCUT006_LEGACY_V1"
+    },
+    "lifecycle": "CUT caller-owned outer transaction claims one STAGED_READY batch to RECONCILING, pages frozen sources, appends exactly one classification per source, and calls completeReconciliation with the claim-returned batch version and recomputed unique-source counts",
+    "sourceIntake": "a controlled Release migration importer alone calls PlatformMigrationEvidenceApi createImportBatch/appendSourceRecord/markStagedReady; CUT production beans never read the legacy table, files or a legacy datasource, and test fixtures are not production migration evidence",
+    "currentDisposition": "qualified target writes=0; structurally valid legacy step rows append ExternalMapping with resultType=RETAINED and empty targets; only corrupted frozen source identity/payload appends issueType=FCUT006_SOURCE_RECORD_INVALID",
+    "counts": "mappedCount=0 and sourceCount=retainedCount+issueCount; CUT target writes, PLT classifications and final count completion share the same transaction",
+    "retry": "temporary PLT/DataAccess failure rolls back the caller transaction so the batch remains STAGED_READY and writes no permanent issue; no staged batch means paused/no-op processing",
     "excluded": ["pms_cut_observation", "pms_cut_task.actual_time", "pms_cut_task.remark", "pms_cut_task.status", "evidence_url as file fact"]
   },
   "hardDependencies": [

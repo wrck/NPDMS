@@ -15,6 +15,7 @@
 - 形成CUT-06完整纵向Feature，不拆成INT-12专用Provider碎片。
 - 跨模块仅保留`ProjectScopeApi/FileArtifactApi/INT-12`消费端口；正常正向闭环使用`src/test`受控替身，不修改其他Owner或Yudao。
 - 最近Gate：F-CUT-006 Feature Ready独立复审。GO前不生成Technical Plan、不实现代码或DDL。
+- 锁定提交`d52acdfb`独立复审为`NO-GO`；当前仅整改一设备一采集任务、归档/晚到回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项规格阻断。
 
 ## 状态边界
 

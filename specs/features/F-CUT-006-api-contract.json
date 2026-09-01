@@ -48,11 +48,11 @@
         "rollbackReason": "trimmed String 1..4000 iff rollbackOccurred=true, otherwise null",
         "legacyItems": "trimmed String 0..4000|null",
         "finalResult": "SUCCESS|FAILED|null in draft; required at submit",
-        "attachments": "FileArtifactExpectation[] unique purposeCode+referenceKey, stable purposeCode then referenceKey"
+        "attachments": "FileArtifactExpectation[] restricted to POST_COLLECTION_CHECKLIST|IMPLEMENTATION_COMMITMENT|OTHER_EVIDENCE, unique purposeCode+referenceKey, stable purposeCode then referenceKey; MANUAL_COLLECTION_RESULT is forbidden here and may only be created by linkManualResult"
       }
     },
     "ClosureView": {
-      "exactKeys": ["taskId", "taskStage", "taskStatus", "taskVersion", "closureId", "closureVersion", "closureStatus", "approvalInstanceId", "approvalVersion", "planRevisionId", "planRevisionNo", "planVersion", "content", "collectionEvidence", "submittedBy", "submittedAt", "archivedAt", "allowedActions"],
+      "exactKeys": ["taskId", "taskStage", "taskStatus", "taskVersion", "closureId", "closureVersion", "closureStatus", "approvalInstanceId", "approvalVersion", "planRevisionId", "planRevisionNo", "planVersion", "content", "collectionEvidence", "resultRef", "submittedBy", "submittedAt", "archivedAt", "allowedActions"],
       "fields": {
         "taskId": "positive WireLong",
         "taskStage": "literal P6",
@@ -68,6 +68,7 @@
         "planVersion": "non-negative Integer",
         "content": "ClosureContent|null",
         "collectionEvidence": "CollectionEvidenceView[] stable occurredAt then evidenceId",
+        "resultRef": "literal CUTOVER_CLOSURE:{closureId}:{submittedClosureVersion} only for submitted SUCCESS, otherwise null",
         "submittedBy": "positive WireLong|null",
         "submittedAt": "WireDateTime|null",
         "archivedAt": "WireDateTime|null",
@@ -91,10 +92,10 @@
       }
     },
     "SavedCredentialCollectionRequest": {
-      "exactKeys": ["authenticationMode", "deviceIds", "collectionStage", "credentialId", "credentialVersion", "templateCode", "templateVersion"],
+      "exactKeys": ["authenticationMode", "deviceId", "collectionStage", "credentialId", "credentialVersion", "templateCode", "templateVersion"],
       "fields": {
         "authenticationMode": "literal SAVED_CREDENTIAL",
-        "deviceIds": "positive WireLong[] non-empty, unique ascending and all in frozen task scope",
+        "deviceId": "positive WireLong in frozen task scope; one request creates exactly one collectionTaskId",
         "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
         "credentialId": "positive WireLong",
         "credentialVersion": "non-negative WireLong",
@@ -103,10 +104,10 @@
       }
     },
     "TransientCredentialCollectionRequest": {
-      "exactKeys": ["authenticationMode", "deviceIds", "collectionStage", "loginName", "transientSecret", "saveAsCredential", "templateCode", "templateVersion"],
+      "exactKeys": ["authenticationMode", "deviceId", "collectionStage", "loginName", "transientSecret", "saveAsCredential", "templateCode", "templateVersion"],
       "fields": {
         "authenticationMode": "literal TRANSIENT_CREDENTIAL",
-        "deviceIds": "positive WireLong[] non-empty, unique ascending and all in frozen task scope",
+        "deviceId": "positive WireLong in frozen task scope; one request creates exactly one collectionTaskId",
         "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
         "loginName": "non-blank String 1..128",
         "transientSecret": "non-blank transient String accepted only for the synchronous INT-12 call and never persisted/logged/audited/returned",
@@ -134,7 +135,7 @@
     "INVALID_REQUEST": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"],
     "FUNCTION_OR_SCOPE_DENIED": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"],
     "NOT_VISIBLE_OR_NOT_FOUND": ["TASK_OR_CLOSURE_NOT_VISIBLE"],
-    "STATE_CONFLICT": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC"],
+    "STATE_CONFLICT": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "CLOSURE_ARCHIVED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC"],
     "VERSION_CONFLICT": ["TASK_VERSION_STALE", "CLOSURE_VERSION_STALE"],
     "SOURCE_STALE": ["APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE"],
     "FILE_INVALID": ["FILE_FACT_INVALID", "REQUIRED_ATTACHMENT_MISSING"],
@@ -167,10 +168,10 @@
       "method": "POST",
       "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/request-collection",
       "permission": "pms:cutover-task:request-collection",
-      "headers": ["X-Task-Version", "Idempotency-Key"],
-      "request": "exactly SavedCredentialCollectionRequest or TransientCredentialCollectionRequest; transientSecret excluded from persistence, response and audit, while the digest includes authenticationMode, deviceIds, stage, loginName, saveAsCredential and template identity",
-      "success": "CommonResult<CollectionEvidenceView>",
-      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "409": ["TASK_NOT_IN_P6", "TASK_VERSION_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["COLLECTION_EVIDENCE_MISMATCH"], "503": ["INT12_PROVIDER_UNAVAILABLE"]}
+      "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
+      "request": "exactly SavedCredentialCollectionRequest or TransientCredentialCollectionRequest; existing DRAFT closure is required; transientSecret excluded from persistence, response and audit, while the digest includes authenticationMode, deviceId, stage, loginName, saveAsCredential and template identity",
+      "success": "CommonResult<ClosureView> with one appended dispatch evidence and incremented closureVersion",
+      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["COLLECTION_EVIDENCE_MISMATCH"], "503": ["INT12_PROVIDER_UNAVAILABLE"]}
     },
     "linkManualResult": {
       "method": "POST",
@@ -178,7 +179,7 @@
       "permission": "pms:cutover-task:save-closure",
       "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
       "request": "LinkManualResultRequest",
-      "success": "CommonResult<CollectionEvidenceView>",
+      "success": "CommonResult<ClosureView> with appended manual evidence and incremented closureVersion",
       "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["FAILED_COLLECTION_REQUIRED_FOR_MANUAL_RESULT", "FILE_FACT_INVALID"], "503": ["PLT_PROVIDER_UNAVAILABLE"]}
     },
     "submit": {
@@ -188,21 +189,22 @@
       "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
       "request": {"exactKeys": [], "fields": {}},
       "success": "CommonResult<ClosureView> with SUBMITTED/ARCHIVED",
-      "errors": {"400": ["HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE", "REQUIRED_ATTACHMENT_MISSING", "FILE_FACT_INVALID", "COLLECTION_EVIDENCE_MISMATCH"], "500": ["OWNER_FACT_CORRUPTED"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE", "INT12_PROVIDER_UNAVAILABLE"]}
+      "errors": {"400": ["HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE", "REQUIRED_ATTACHMENT_MISSING", "FILE_FACT_INVALID", "COLLECTION_EVIDENCE_MISMATCH"], "500": ["OWNER_FACT_CORRUPTED"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE"]}
     }
   },
   "internalCollectionCallback": {
     "owner": "CUT",
     "input": "trusted tenant context, callbackEventId, collectionTaskId, deviceId, collectionStage, terminal outcome, resultRef/resultVersion, occurredAt, correlationId",
-    "idempotency": "callbackEventId unique; same payload replays, different payload conflicts; never overwrites dispatch failure or earlier callback evidence",
+    "idempotency": "callbackEventId is claimed before CUT business locks; same payload replays without CUT row access, different payload conflicts; for a new event only DRAFT may append one terminal callback, while SUBMITTED/ARCHIVED returns permanent CLOSURE_ARCHIVED with zero CUT writes; never overwrites dispatch failure or earlier callback evidence",
+    "stateGuard": "callback identity must match one DISPATCH_ACCEPTED row in the same DRAFT closure; submit requires every DISPATCH_ACCEPTED to have CALLBACK_SUCCEEDED or CALLBACK_FAILED, while DISPATCH_FAILED is already terminal",
     "productionBoundary": "INT-12 producer is external to this Feature; src/test callback driver may exercise the positive closure"
   },
   "allowedActionsRules": {
     "CREATE_CLOSURE": "P6/CLOSURE_IN_PROGRESS, no closure, task owner, save permission and current ACTION_EDIT",
     "SAVE_CLOSURE": "DRAFT, task owner, save permission and current ACTION_EDIT",
-    "REQUEST_COLLECTION": "P6/CLOSURE_IN_PROGRESS with request permission, task owner and current ACTION_EDIT",
+    "REQUEST_COLLECTION": "existing DRAFT, matching closure/task versions, P6/CLOSURE_IN_PROGRESS with request permission, task owner and current ACTION_EDIT",
     "LINK_MANUAL_RESULT": "DRAFT plus matching failed collection evidence, task owner and save permission",
-    "SUBMIT_CLOSURE": "complete DRAFT with required attachments, task owner, submit permission and all source/file facts current"
+    "SUBMIT_CLOSURE": "complete DRAFT with required attachments, no DISPATCH_ACCEPTED lacking a terminal callback, task owner, submit permission and all source/file facts current"
   },
   "controlledSubstituteBoundary": "ProjectScope, PLT and INT-12 may be deterministic src/test facts for CUT unit/integration/MySQL positive closure only; no production Bean, fallback or real-browser/Implementation Done claim"
 }

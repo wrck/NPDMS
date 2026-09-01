@@ -16,6 +16,7 @@
 
 ## 迁移结论
 
-- 正式迁移契约保持`pms_cut_execution -> cut_cutover_closure / CURRENT_FORWARD`，但资格谓词要求同一旧来源能无歧义证明闭环级唯一身份、三项正常性、回退联合、最终结果和文件事实；当前旧表结构无法满足，故现有行全部保留并形成明确`PENDING_RECONCILIATION`迁移问题，不插入新表。
+- 正式迁移契约保持`pms_cut_execution -> cut_cutover_closure / CURRENT_FORWARD`，但资格谓词要求同一旧来源能无歧义证明闭环级唯一身份、三项正常性、回退联合、最终结果和文件事实；当前旧表结构无法满足，故现有结构合法的旧步骤行在PLT迁移证据批次中分类为`RETAINED`，不插入新表。只有冻结来源身份或载荷损坏才追加`FCUT006_SOURCE_RECORD_INVALID`迁移问题，不能把“不满足新闭环资格”本身冒充数据损坏。
+- 批次固定为`ownerContext=CUT`、`purpose=CUTOVER_CLOSURE_CURRENT_FORWARD`、`sourceSystem=NPDMS_LEGACY`、`sourceTable=pms_cut_execution`，来源键为旧行十进制`id`，规则版本为`FCUT006_LEGACY_V1`。原始旧行先由Release受控迁移导入器经PLT API冻结，CUT生产Bean不读取旧表/文件/第二数据源。CUT外层事务执行`STAGED_READY→claim(RECONCILING)→逐源RETAINED/issue→completeReconciliation(COMPLETED)`；当前`mappedCount=0`，`sourceCount=retainedCount+issueCount`。临时Provider/数据库失败回滚整批至可重领状态，不落永久issue。
 - 禁止按`status=2/3/4`、`step_name`、`result`文本、`evidence_url`、`actual_time`或测试种子补造SUCCESS/FAILED及归档事实。
 - `pms_cut_observation`、旧Controller/Service/UI/权限继续由旧路径拥有；新Feature不改写、不双写、不删除。

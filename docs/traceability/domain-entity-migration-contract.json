@@ -2395,7 +2395,7 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_execution",
           "disposition": "CURRENT_FORWARD",
-          "transform": "F-CUT-006 qualification requires one source unit to prove a complete closure identity, three result flags, rollback union, final result and immutable PLT file facts; the legacy step-row schema proves none, so retain every current row with an explicit migration issue and insert no closure; exclude pms_cut_observation and task status/text/time inference",
+          "transform": "after a controlled Release importer freezes legacy rows through PlatformMigrationEvidenceApi batch CUT/CUTOVER_CLOSURE_CURRENT_FORWARD/NPDMS_LEGACY/pms_cut_execution with decimal legacy id source keys and FCUT006_LEGACY_V1 rules, require one source unit to prove a complete closure identity, three result flags, rollback union, final result and immutable PLT file facts; CUT production never reads the legacy table or datasource; the legacy step-row schema proves no closure, so classify structurally valid rows as RETAINED with no target, append FCUT006_SOURCE_RECORD_INVALID only for corrupted frozen source identity or payload, and insert no closure; claim/classify/complete counts share the CUT caller transaction and temporary provider failure rolls the batch back; exclude pms_cut_observation and task status/text/time inference",
           "mappingStatus": "FEATURE_MAPPING_DEFINED",
           "gate": "F-CUT-006_FEATURE_READY_REVIEW",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
