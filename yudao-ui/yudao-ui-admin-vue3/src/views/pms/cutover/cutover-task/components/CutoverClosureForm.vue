@@ -73,17 +73,17 @@
       <div v-for="slot in attachmentSlots" :key="slot.purposeCode" class="attachment-row">
         <span>{{ slot.label }}</span>
         <PmsFileUploader
-          v-if="editable"
+          v-if="editable && closureId !== null"
           :data-testid="`closure-file-${slot.purposeCode}`"
           owner-context="CUT"
           object-type="CUTOVER_CLOSURE"
-          :object-id="String(taskId)"
+          :object-id="String(closureId)"
           :purpose-code="slot.purposeCode"
-          :reference-key="`cutover-closure-${taskId}-${slot.referenceSuffix}`"
+          :reference-key="`cutover-closure-${closureId}-${slot.referenceSuffix}`"
           category-code="CUTOVER_CLOSURE"
           @completed="completeUpload(slot.purposeCode, $event)"
         />
-        <small>{{ attachment(slot.purposeCode)?.referenceKey || '未选择' }}</small>
+        <small>{{ closureId === null ? '请先创建关闭草稿' : attachment(slot.purposeCode)?.referenceKey || '未选择' }}</small>
       </div>
     </section>
   </section>
@@ -95,7 +95,7 @@ import type { CutoverClosureContent, CutoverClosureFileFact, CutoverClosureFileP
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
 
-const props = defineProps<{ modelValue: CutoverClosureContent; taskId: WireLong; editable: boolean }>()
+const props = defineProps<{ modelValue: CutoverClosureContent; closureId: WireLong | null; editable: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: CutoverClosureContent] }>()
 
 type BooleanKey = 'preCheckNormal' | 'executionNormal' | 'testNormal' | 'rollbackOccurred' | 'rollbackSuccessful'
@@ -122,7 +122,7 @@ const update = (key: BooleanKey | StringKey, value: unknown) => {
 const attachment = (purposeCode: CutoverClosureFilePurpose) =>
   props.modelValue.attachments.find((row) => row.purposeCode === purposeCode)
 const fileKey = (purposeCode: CutoverClosureFilePurpose, referenceKey: string) => ({
-  ownerContext: 'CUT', objectType: 'CUTOVER_CLOSURE', objectId: String(props.taskId), purposeCode, referenceKey
+  ownerContext: 'CUT', objectType: 'CUTOVER_CLOSURE', objectId: String(props.closureId), purposeCode, referenceKey
 })
 const completeUpload = async (purposeCode: CutoverClosureFilePurpose, selection: FileSelection) => {
   const key = fileKey(purposeCode, selection.referenceKey)

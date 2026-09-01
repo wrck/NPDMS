@@ -7,7 +7,7 @@
     <template v-if="closure">
       <CutoverClosureForm
         v-model="content"
-        :task-id="taskId"
+        :closure-id="closure.closureId"
         :editable="canSave"
       />
       <div class="closure-actions">
@@ -37,7 +37,8 @@
         >确认失败并归档</el-button>
       </div>
       <CutoverClosureEvidencePanel
-        :task-id="taskId"
+        v-if="closure.closureId !== null"
+        :closure-id="closure.closureId"
         :evidence="closure.collectionEvidence"
         :can-request="closure.allowedActions.includes('REQUEST_COLLECTION')"
         :can-link-manual="closure.allowedActions.includes('LINK_MANUAL_RESULT')"

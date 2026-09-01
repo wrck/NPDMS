@@ -45,9 +45,9 @@
         data-testid="manual-result-uploader"
         owner-context="CUT"
         object-type="CUTOVER_CLOSURE"
-        :object-id="String(taskId)"
+        :object-id="String(closureId)"
         purpose-code="MANUAL_COLLECTION_RESULT"
-        :reference-key="`cutover-closure-${taskId}-manual-result`"
+        :reference-key="`cutover-closure-${closureId}-manual-result`"
         category-code="CUTOVER_CLOSURE"
         @completed="completeManualUpload"
       />
@@ -63,7 +63,7 @@ import type { CutoverClosureCollectionRequest, CutoverClosureEvidence, CutoverCl
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
 
-const props = defineProps<{ taskId: WireLong; evidence: CutoverClosureEvidence[]; canRequest: boolean; canLinkManual: boolean }>()
+const props = defineProps<{ closureId: WireLong; evidence: CutoverClosureEvidence[]; canRequest: boolean; canLinkManual: boolean }>()
 const emit = defineEmits<{ request: [value: CutoverClosureCollectionRequest]; manual: [value: LinkCutoverClosureManualResultRequest] }>()
 const stages: CutoverClosureStage[] = ['PRE_CHECK', 'EXECUTION', 'TEST', 'ROLLBACK', 'POST_COLLECTION']
 const collectionVisible = ref(false)
@@ -87,7 +87,7 @@ const submitCollection = () => {
   collection.transientSecret = ''
   collectionVisible.value = false
 }
-const fileKey = (referenceKey: string) => ({ ownerContext: 'CUT', objectType: 'CUTOVER_CLOSURE', objectId: String(props.taskId), purposeCode: 'MANUAL_COLLECTION_RESULT', referenceKey })
+const fileKey = (referenceKey: string) => ({ ownerContext: 'CUT', objectType: 'CUTOVER_CLOSURE', objectId: String(props.closureId), purposeCode: 'MANUAL_COLLECTION_RESULT', referenceKey })
 const completeManualUpload = async (selection: FileSelection) => {
   const key = fileKey(selection.referenceKey)
   const artifact = await FileApi.getArtifact(selection.artifactId, key)

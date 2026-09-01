@@ -45,11 +45,20 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
   })
 
   it('creates a DRAFT with three result groups, rollback facts and both required PLT files', async () => {
-    api.getCutoverClosure.mockResolvedValue(view(['CREATE_CLOSURE']))
+    api.getCutoverClosure
+      .mockResolvedValueOnce(view(['CREATE_CLOSURE']))
+      .mockResolvedValue(view(['SAVE_CLOSURE', 'SUBMIT_CLOSURE'], 1))
     api.saveCutoverClosure.mockResolvedValue(view(['SAVE_CLOSURE'], 1))
     const mounted = mount(CutoverClosurePanel, { taskId: '9007199254740995' }, controls)
     await flush()
 
+    await click(mounted.root, 'save-closure')
+    await flush()
+
+    expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
+      1, '9007199254740995', 7, null,
+      expect.objectContaining({ attachments: [] }), expect.any(String)
+    )
     await setValue(mounted.root, 'closure-precheck-normal', true)
     await setValue(mounted.root, 'closure-execution-normal', true)
     await setValue(mounted.root, 'closure-test-normal', true)
@@ -59,8 +68,8 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     await click(mounted.root, 'save-closure')
     await flush()
 
-    expect(api.saveCutoverClosure).toHaveBeenCalledWith(
-      '9007199254740995', 7, null,
+    expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
+      2, '9007199254740995', 7, 1,
       expect.objectContaining({
         preCheckNormal: true, executionNormal: true, testNormal: true, rollbackOccurred: false,
         finalResult: null,
@@ -70,14 +79,17 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
         ])
       }), expect.any(String)
     )
-    expect(typeof api.saveCutoverClosure.mock.calls[0][3].attachments[0].artifactId).toBe('string')
+    expect(fileApi.getArtifact).toHaveBeenCalledWith(
+      '9007199254740993', expect.objectContaining({ objectId: '501' })
+    )
+    expect(typeof api.saveCutoverClosure.mock.calls[1][3].attachments[0].artifactId).toBe('string')
     mounted.app.unmount()
   })
 
   it('requests one device with a transient credential and clears the secret after emitting', async () => {
     const requests: unknown[] = []
     const mounted = mount(CutoverClosureEvidencePanel, {
-      taskId: '101', evidence: [], 'can-request': true, 'can-link-manual': false,
+      closureId: '501', evidence: [], 'can-request': true, 'can-link-manual': false,
       onRequest: (value: unknown) => requests.push(value)
     }, controls)
     await click(mounted.root, 'open-collection')
@@ -101,7 +113,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
       originalFailedCollectionTaskId: null, manualFile: null, occurredAt: 1788220800000
     }]
     const mounted = mount(CutoverClosureEvidencePanel, {
-      taskId: '101', evidence, 'can-request': false, 'can-link-manual': true,
+      closureId: '501', evidence, 'can-request': false, 'can-link-manual': true,
       onManual: (value: unknown) => results.push(value)
     }, controls)
     await click(mounted.root, 'open-manual-result')
@@ -114,6 +126,9 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
       originalFailedCollectionTaskId: 'collect-1',
       file: { purposeCode: 'MANUAL_COLLECTION_RESULT', artifactId: '9007199254740993' }
     })
+    expect(fileApi.getArtifact).toHaveBeenCalledWith(
+      '9007199254740993', expect.objectContaining({ objectId: '501' })
+    )
     mounted.app.unmount()
   })
 
@@ -134,7 +149,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
   })
 
   it('keeps the form and stage navigation responsive at the locked 320/768/1024/1440 breakpoints', () => {
-    const mounted = mount(CutoverClosureForm, { modelValue: content(), taskId: '101', editable: false }, controls)
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: false }, controls)
     expect(textOf(mounted.root)).toContain('割接关闭记录')
     expect(textOf(mounted.root)).toContain('割接后检查清单')
     expect(textOf(mounted.root)).toContain('实施承诺')
