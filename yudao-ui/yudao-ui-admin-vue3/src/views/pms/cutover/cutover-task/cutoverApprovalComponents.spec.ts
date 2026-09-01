@@ -462,6 +462,118 @@ describe('F-CUT-005 mounted approval workbench', () => {
     mounted.app.unmount()
   })
 
+  it.each([
+    ['open-approval-from-task', 'FINAL_RESULT_ONLY'],
+    ['open-approval-from-reassignment', 'REASSIGNMENT_ONLY']
+  ])('opens %s through the approval-only route as %s', async (testId, viewMode) => {
+    api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0, pageNo: 1, pageSize: 20 })
+    api.getCutoverApproval.mockResolvedValue(
+      viewMode === 'FINAL_RESULT_ONLY' ? finalResult() : reassignment()
+    )
+    api.getCutoverApprovalReassignmentCandidates.mockResolvedValue({
+      list: [],
+      total: 0,
+      pageNo: 1,
+      pageSize: 10
+    })
+    const mounted = mount(
+      CutoverTaskWorkbench,
+      {},
+      {
+        ...controls,
+        ElTableColumn: actionableTableColumn,
+        ElDialog: passthrough,
+        ElSelect: passthrough,
+        ElOption: passthrough,
+        CutoverCreateWizard: passthrough,
+        CutoverAssessmentPanel: passthrough,
+        CutoverChecklistPanel: passthrough,
+        CutoverPlanPanel: passthrough,
+        CutoverWorkbenchSteps: passthrough
+      }
+    )
+    await flush()
+    if (viewMode === 'REASSIGNMENT_ONLY') {
+      await click(mounted.root, 'open-reassignment-queue')
+      await flush()
+    }
+    await click(mounted.root, testId)
+    await flush()
+    expect(api.getCutoverApproval).toHaveBeenCalledWith('9007199254740993')
+    expect(api.getCutoverTaskDetail).not.toHaveBeenCalled()
+    expect(textOf(mounted.root)).toContain(
+      viewMode === 'FINAL_RESULT_ONLY' ? '审批已通过' : '审批改派'
+    )
+    mounted.app.unmount()
+  })
+
+  it('clears decision state when the same component switches tasks', async () => {
+    api.getCutoverApproval.mockResolvedValueOnce(full('A')).mockResolvedValueOnce({
+      ...full('B'),
+      approvalInstanceId: '702',
+      taskId: '9007199254740994'
+    })
+    const host = defineComponent({
+      setup(_, { expose }) {
+        const taskId = ref('9007199254740993')
+        expose({
+          switchTask: () => {
+            taskId.value = '9007199254740994'
+          }
+        })
+        return () => h(CutoverApprovalPanel, { taskId: taskId.value })
+      }
+    })
+    const mounted = mount(host, {}, controls)
+    await flush()
+    await update(mounted.root, 'approval-feedback', '上一任务意见')
+    ;(mounted.vm as any).switchTask()
+    await flush()
+    expect(api.getCutoverApproval).toHaveBeenLastCalledWith('9007199254740994')
+    await vi.waitFor(() =>
+      expect(findLatestByTestId(mounted.root, 'approval-feedback')?.props?.modelValue).toBe('')
+    )
+    mounted.app.unmount()
+  })
+
+  it('clears the decision form when approval advances to the next node', async () => {
+    const first = full('A')
+    const second: CutoverApprovalDetail = {
+      ...full('A'),
+      approvalVersion: 5,
+      currentNodeNo: 2,
+      nodes: [
+        { ...first.nodes[0], status: 'APPROVED', decisionAt: 1788220800000 },
+        { ...first.nodes[0], nodeId: '712', nodeNo: 2, nodeCode: 'SERVICE_MANAGER' }
+      ]
+    }
+    api.getCutoverApproval.mockResolvedValueOnce(first).mockResolvedValueOnce(second)
+    api.approveCutoverApproval.mockResolvedValue(second)
+    const mounted = mount(CutoverApprovalPanel, { taskId: first.taskId }, controls)
+    await flush()
+    await update(mounted.root, 'approval-feedback', '第一节点意见')
+    await click(mounted.root, 'approve-approval')
+    await flush()
+    expect(findByTestId(mounted.root, 'approval-feedback')?.props?.modelValue).toBe('')
+    mounted.app.unmount()
+  })
+
+  it('clears reassignment input after the approval version changes', async () => {
+    const first = reassignment()
+    const second = { ...reassignment(), approvalVersion: 5 }
+    api.getCutoverApproval.mockResolvedValueOnce(first).mockResolvedValueOnce(second)
+    api.reassignCutoverApproval.mockResolvedValue(second)
+    const mounted = mount(CutoverApprovalPanel, { taskId: first.taskId }, controls)
+    await flush()
+    await update(mounted.root, 'new-approver-id', '9007199254740995')
+    await update(mounted.root, 'reassignment-reason', '当前审批人请假')
+    await click(mounted.root, 'submit-reassignment')
+    await flush()
+    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.modelValue).toBe('')
+    expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.modelValue).toBe('')
+    mounted.app.unmount()
+  })
+
   it.each([320, 768, 1024, 1440])('mounts decision and reassignment controls at %ipx', (width) => {
     vi.stubGlobal('innerWidth', width)
     const decision = mount(
