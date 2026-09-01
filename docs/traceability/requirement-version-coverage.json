@@ -147,6 +147,19 @@
       ]
     },
     {
+      "featureId": "F-CUT-006",
+      "featurePath": "specs/features/F-CUT-006-p6-cutover-closure.md",
+      "taskPath": "tasks/features/F-CUT-006.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "CUT-06@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-IMP-001",
       "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
       "taskPath": "tasks/features/F-IMP-001.md",
@@ -1399,7 +1412,15 @@
       "businessResult": "割接跟踪与闭环的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-006",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-CUT-006-p6-cutover-closure.md",
+          "taskPath": "tasks/features/F-CUT-006.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-07@V1",

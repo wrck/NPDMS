@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-006",
+  "status": "REVIEW_REQUIRED",
+  "wire": {
+    "WireLong": "JSON number only when -9007199254740991 < value < 9007199254740991; otherwise plain decimal JSON string",
+    "WireDateTime": "positive epoch milliseconds following WireLong",
+    "Idempotency-Key": "required non-blank String 1..128 for every command; same key+digest replays and different digest conflicts",
+    "If-Match": "required non-negative Integer equal to closure.version",
+    "X-Task-Version": "required non-negative Integer equal to cut_task.version"
+  },
+  "commonTypes": {
+    "CommonResult<T>": {
+      "exactKeys": ["code", "msg", "data"],
+      "fields": {"code": "Integer", "msg": "String", "data": "T|null"}
+    },
+    "FileFactVersion": {
+      "exactKeys": ["artifactVersion", "referenceVersion", "availabilityVersion"],
+      "fields": {
+        "artifactVersion": "non-negative Integer",
+        "referenceVersion": "non-negative Integer",
+        "availabilityVersion": "non-negative Integer"
+      }
+    },
+    "FileArtifactExpectation": {
+      "exactKeys": ["purposeCode", "artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "sha256"],
+      "fields": {
+        "purposeCode": "POST_COLLECTION_CHECKLIST|IMPLEMENTATION_COMMITMENT|OTHER_EVIDENCE|MANUAL_COLLECTION_RESULT",
+        "artifactId": "positive WireLong",
+        "versionNo": "positive Integer",
+        "referenceKey": "non-blank String 1..128",
+        "fileFactVersion": "FileFactVersion",
+        "scopeVersion": "non-negative WireLong",
+        "sha256": "64 lowercase hex String"
+      }
+    },
+    "ClosureContent": {
+      "exactKeys": ["preCheckNormal", "preCheckDetail", "executionNormal", "executionDetail", "testNormal", "testDetail", "rollbackOccurred", "rollbackSuccessful", "rollbackReason", "legacyItems", "finalResult", "attachments"],
+      "fields": {
+        "preCheckNormal": "Boolean|null in draft; required at submit",
+        "preCheckDetail": "trimmed String 0..4000|null; required when false",
+        "executionNormal": "Boolean|null in draft; required at submit",
+        "executionDetail": "trimmed String 0..4000|null; required when false",
+        "testNormal": "Boolean|null in draft; required at submit",
+        "testDetail": "trimmed String 0..4000|null; required when false",
+        "rollbackOccurred": "Boolean|null in draft; required at submit",
+        "rollbackSuccessful": "Boolean|null; required iff rollbackOccurred=true",
+        "rollbackReason": "trimmed String 1..4000 iff rollbackOccurred=true, otherwise null",
+        "legacyItems": "trimmed String 0..4000|null",
+        "finalResult": "SUCCESS|FAILED|null in draft; required at submit",
+        "attachments": "FileArtifactExpectation[] unique purposeCode+referenceKey, stable purposeCode then referenceKey"
+      }
+    },
+    "ClosureView": {
+      "exactKeys": ["taskId", "taskStage", "taskStatus", "taskVersion", "closureId", "closureVersion", "closureStatus", "approvalInstanceId", "approvalVersion", "planRevisionId", "planRevisionNo", "planVersion", "content", "collectionEvidence", "submittedBy", "submittedAt", "archivedAt", "allowedActions"],
+      "fields": {
+        "taskId": "positive WireLong",
+        "taskStage": "literal P6",
+        "taskStatus": "CLOSURE_IN_PROGRESS|ARCHIVED",
+        "taskVersion": "non-negative Integer",
+        "closureId": "positive WireLong|null before draft exists",
+        "closureVersion": "non-negative Integer|null",
+        "closureStatus": "DRAFT|SUBMITTED|null",
+        "approvalInstanceId": "positive WireLong",
+        "approvalVersion": "non-negative Integer",
+        "planRevisionId": "positive WireLong",
+        "planRevisionNo": "positive Integer",
+        "planVersion": "non-negative Integer",
+        "content": "ClosureContent|null",
+        "collectionEvidence": "CollectionEvidenceView[] stable occurredAt then evidenceId",
+        "submittedBy": "positive WireLong|null",
+        "submittedAt": "WireDateTime|null",
+        "archivedAt": "WireDateTime|null",
+        "allowedActions": "AllowedAction[] stable enum order"
+      }
+    },
+    "CollectionEvidenceView": {
+      "exactKeys": ["evidenceId", "deviceId", "collectionStage", "evidenceType", "collectionTaskId", "callbackEventId", "resultRef", "resultVersion", "originalFailedCollectionTaskId", "manualFile", "occurredAt"],
+      "fields": {
+        "evidenceId": "positive WireLong",
+        "deviceId": "positive WireLong",
+        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
+        "evidenceType": "DISPATCH_ACCEPTED|DISPATCH_FAILED|CALLBACK_SUCCEEDED|CALLBACK_FAILED|MANUAL_UPLOAD",
+        "collectionTaskId": "non-blank String 1..128",
+        "callbackEventId": "non-blank String 1..128 for callback types, otherwise null",
+        "resultRef": "non-blank String 1..256 for callback types, otherwise null",
+        "resultVersion": "non-blank String 1..128 for callback types, otherwise null",
+        "originalFailedCollectionTaskId": "non-blank String 1..128 only for MANUAL_UPLOAD, otherwise null",
+        "manualFile": "FileArtifactExpectation with purpose MANUAL_COLLECTION_RESULT only for MANUAL_UPLOAD, otherwise null",
+        "occurredAt": "WireDateTime"
+      }
+    },
+    "SavedCredentialCollectionRequest": {
+      "exactKeys": ["authenticationMode", "deviceIds", "collectionStage", "credentialId", "credentialVersion", "templateCode", "templateVersion"],
+      "fields": {
+        "authenticationMode": "literal SAVED_CREDENTIAL",
+        "deviceIds": "positive WireLong[] non-empty, unique ascending and all in frozen task scope",
+        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
+        "credentialId": "positive WireLong",
+        "credentialVersion": "non-negative WireLong",
+        "templateCode": "non-blank String 1..64",
+        "templateVersion": "non-negative WireLong"
+      }
+    },
+    "TransientCredentialCollectionRequest": {
+      "exactKeys": ["authenticationMode", "deviceIds", "collectionStage", "loginName", "transientSecret", "saveAsCredential", "templateCode", "templateVersion"],
+      "fields": {
+        "authenticationMode": "literal TRANSIENT_CREDENTIAL",
+        "deviceIds": "positive WireLong[] non-empty, unique ascending and all in frozen task scope",
+        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
+        "loginName": "non-blank String 1..128",
+        "transientSecret": "non-blank transient String accepted only for the synchronous INT-12 call and never persisted/logged/audited/returned",
+        "saveAsCredential": "Boolean; when true credential creation remains INT-12-owned",
+        "templateCode": "non-blank String 1..64",
+        "templateVersion": "non-negative WireLong"
+      }
+    },
+    "LinkManualResultRequest": {
+      "exactKeys": ["originalFailedCollectionTaskId", "deviceId", "collectionStage", "file"],
+      "fields": {
+        "originalFailedCollectionTaskId": "non-blank String 1..128",
+        "deviceId": "positive WireLong in frozen task scope",
+        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
+        "file": "FileArtifactExpectation with literal MANUAL_COLLECTION_RESULT"
+      }
+    }
+  },
+  "enums": {
+    "AllowedAction": ["CREATE_CLOSURE", "SAVE_CLOSURE", "REQUEST_COLLECTION", "LINK_MANUAL_RESULT", "SUBMIT_CLOSURE"],
+    "ErrorCategory": ["INVALID_REQUEST", "FUNCTION_OR_SCOPE_DENIED", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "VERSION_CONFLICT", "SOURCE_STALE", "FILE_INVALID", "COLLECTION_INVALID", "BUSINESS_INCOMPLETE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "OWNER_PROVIDER_UNAVAILABLE", "OWNER_DATA_CORRUPTED"],
+    "RecoveryAction": ["FIX_REQUEST", "REFRESH_AGGREGATE", "REFRESH_OWNER_FACTS", "RETRY_SAME_KEY", "START_NEW_INTENT", "CONTACT_ADMIN"]
+  },
+  "reasonCodesByCategory": {
+    "INVALID_REQUEST": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"],
+    "FUNCTION_OR_SCOPE_DENIED": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"],
+    "NOT_VISIBLE_OR_NOT_FOUND": ["TASK_OR_CLOSURE_NOT_VISIBLE"],
+    "STATE_CONFLICT": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC"],
+    "VERSION_CONFLICT": ["TASK_VERSION_STALE", "CLOSURE_VERSION_STALE"],
+    "SOURCE_STALE": ["APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE"],
+    "FILE_INVALID": ["FILE_FACT_INVALID", "REQUIRED_ATTACHMENT_MISSING"],
+    "COLLECTION_INVALID": ["COLLECTION_EVIDENCE_MISMATCH", "FAILED_COLLECTION_REQUIRED_FOR_MANUAL_RESULT"],
+    "BUSINESS_INCOMPLETE": ["CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE"],
+    "IDEMPOTENCY_CONFLICT": ["IDEMPOTENCY_PAYLOAD_CONFLICT"],
+    "IDEMPOTENCY_IN_PROGRESS": ["IDEMPOTENCY_OPERATION_IN_PROGRESS"],
+    "OWNER_PROVIDER_UNAVAILABLE": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE", "INT12_PROVIDER_UNAVAILABLE"],
+    "OWNER_DATA_CORRUPTED": ["OWNER_FACT_CORRUPTED"]
+  },
+  "operations": {
+    "detail": {
+      "method": "GET",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure",
+      "permission": "pms:cutover-task:query-closure",
+      "headers": [],
+      "success": "CommonResult<ClosureView>",
+      "errors": {"403": ["PROJECT_OR_TASK_SCOPE_DENIED"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE"]}
+    },
+    "save": {
+      "method": "PUT",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure",
+      "permission": "pms:cutover-task:save-closure",
+      "headers": ["If-Match when draft exists", "X-Task-Version", "Idempotency-Key"],
+      "request": "ClosureContent exact keys",
+      "success": "CommonResult<ClosureView>",
+      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["FILE_FACT_INVALID", "CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE"]}
+    },
+    "requestCollection": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/request-collection",
+      "permission": "pms:cutover-task:request-collection",
+      "headers": ["X-Task-Version", "Idempotency-Key"],
+      "request": "exactly SavedCredentialCollectionRequest or TransientCredentialCollectionRequest; transientSecret excluded from persistence, response and audit, while the digest includes authenticationMode, deviceIds, stage, loginName, saveAsCredential and template identity",
+      "success": "CommonResult<CollectionEvidenceView>",
+      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "409": ["TASK_NOT_IN_P6", "TASK_VERSION_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["COLLECTION_EVIDENCE_MISMATCH"], "503": ["INT12_PROVIDER_UNAVAILABLE"]}
+    },
+    "linkManualResult": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/link-manual-result",
+      "permission": "pms:cutover-task:save-closure",
+      "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
+      "request": "LinkManualResultRequest",
+      "success": "CommonResult<CollectionEvidenceView>",
+      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["FAILED_COLLECTION_REQUIRED_FOR_MANUAL_RESULT", "FILE_FACT_INVALID"], "503": ["PLT_PROVIDER_UNAVAILABLE"]}
+    },
+    "submit": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/submit",
+      "permission": "pms:cutover-task:submit-closure",
+      "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
+      "request": {"exactKeys": [], "fields": {}},
+      "success": "CommonResult<ClosureView> with SUBMITTED/ARCHIVED",
+      "errors": {"400": ["HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "P6_DUTY_CHANGE_BLOCKED_BY_SPEC", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE", "REQUIRED_ATTACHMENT_MISSING", "FILE_FACT_INVALID", "COLLECTION_EVIDENCE_MISMATCH"], "500": ["OWNER_FACT_CORRUPTED"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE", "INT12_PROVIDER_UNAVAILABLE"]}
+    }
+  },
+  "internalCollectionCallback": {
+    "owner": "CUT",
+    "input": "trusted tenant context, callbackEventId, collectionTaskId, deviceId, collectionStage, terminal outcome, resultRef/resultVersion, occurredAt, correlationId",
+    "idempotency": "callbackEventId unique; same payload replays, different payload conflicts; never overwrites dispatch failure or earlier callback evidence",
+    "productionBoundary": "INT-12 producer is external to this Feature; src/test callback driver may exercise the positive closure"
+  },
+  "allowedActionsRules": {
+    "CREATE_CLOSURE": "P6/CLOSURE_IN_PROGRESS, no closure, task owner, save permission and current ACTION_EDIT",
+    "SAVE_CLOSURE": "DRAFT, task owner, save permission and current ACTION_EDIT",
+    "REQUEST_COLLECTION": "P6/CLOSURE_IN_PROGRESS with request permission, task owner and current ACTION_EDIT",
+    "LINK_MANUAL_RESULT": "DRAFT plus matching failed collection evidence, task owner and save permission",
+    "SUBMIT_CLOSURE": "complete DRAFT with required attachments, task owner, submit permission and all source/file facts current"
+  },
+  "controlledSubstituteBoundary": "ProjectScope, PLT and INT-12 may be deterministic src/test facts for CUT unit/integration/MySQL positive closure only; no production Bean, fallback or real-browser/Implementation Done claim"
+}

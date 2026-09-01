@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-006",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-06@V1=FULL"],
+  "ownerContext": "CUT",
+  "aggregate": "CutoverClosure",
+  "enums": {
+    "closureStatus": ["DRAFT", "SUBMITTED"],
+    "finalResult": ["SUCCESS", "FAILED"],
+    "attachmentPurpose": ["POST_COLLECTION_CHECKLIST", "IMPLEMENTATION_COMMITMENT", "OTHER_EVIDENCE", "MANUAL_COLLECTION_RESULT"],
+    "collectionStage": ["PRE_CHECK", "EXECUTION", "TEST", "ROLLBACK", "POST_COLLECTION"],
+    "collectionEvidenceType": ["DISPATCH_ACCEPTED", "DISPATCH_FAILED", "CALLBACK_SUCCEEDED", "CALLBACK_FAILED", "MANUAL_UPLOAD"]
+  },
+  "tables": [
+    {
+      "name": "cut_cutover_closure",
+      "strategy": "NEW_ONLY",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "task_id": "BIGINT NOT NULL",
+        "project_id": "BIGINT NOT NULL",
+        "approval_instance_id": "BIGINT NOT NULL",
+        "approval_version": "INT NOT NULL CHECK >= 0",
+        "plan_revision_id": "BIGINT NOT NULL",
+        "plan_revision_no": "INT NOT NULL CHECK > 0",
+        "plan_version": "INT NOT NULL CHECK >= 0",
+        "task_version_at_p6": "INT NOT NULL CHECK >= 0",
+        "device_scope_watermark": "JSON NOT NULL",
+        "status_code": "VARCHAR(16) NOT NULL",
+        "pre_check_normal": "BIT(1) NULL",
+        "pre_check_detail": "VARCHAR(4000) NULL",
+        "execution_normal": "BIT(1) NULL",
+        "execution_detail": "VARCHAR(4000) NULL",
+        "test_normal": "BIT(1) NULL",
+        "test_detail": "VARCHAR(4000) NULL",
+        "rollback_occurred": "BIT(1) NULL",
+        "rollback_successful": "BIT(1) NULL",
+        "rollback_reason": "VARCHAR(4000) NULL",
+        "legacy_items": "VARCHAR(4000) NULL",
+        "final_result_code": "VARCHAR(16) NULL",
+        "submitted_by": "BIGINT NULL",
+        "submitted_at": "DATETIME(3) NULL",
+        "archived_at": "DATETIME(3) NULL",
+        "version": "INT NOT NULL CHECK >= 0",
+        "creator/updater": "VARCHAR(64) NOT NULL",
+        "create_time/update_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT(1) NOT NULL DEFAULT b'0'"
+      },
+      "uniqueKeys": ["uk(tenant_id,task_id)"],
+      "checks": [
+        "source identities are positive and immutable after insert",
+        "DRAFT requires final_result/submission/archive fields null and permits incomplete result fields",
+        "SUBMITTED requires all three normal flags, rollback_occurred, final_result, positive submitted_by and submitted_at=archived_at",
+        "a false normal flag requires its non-blank detail",
+        "rollback_occurred=false requires rollback_successful/reason null; true requires rollback_successful and non-blank reason",
+        "final_result_code is null or SUCCESS/FAILED"
+      ]
+    },
+    {
+      "name": "cut_cutover_closure_attachment",
+      "strategy": "NEW_ONLY",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "closure_id": "BIGINT NOT NULL",
+        "purpose_code": "VARCHAR(40) NOT NULL",
+        "reference_key": "VARCHAR(128) NOT NULL",
+        "artifact_id": "BIGINT NOT NULL",
+        "file_version_no": "INT NOT NULL CHECK > 0",
+        "file_fact_version": "JSON NOT NULL",
+        "file_scope_version": "BIGINT NOT NULL CHECK >= 0",
+        "file_hash": "VARCHAR(64) NOT NULL",
+        "version": "INT NOT NULL CHECK >= 0",
+        "creator/updater": "VARCHAR(64) NOT NULL",
+        "create_time/update_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT(1) NOT NULL DEFAULT b'0'"
+      },
+      "uniqueKeys": ["uk(tenant_id,closure_id,purpose_code,reference_key)"],
+      "checks": [
+        "purpose is one of the closed attachmentPurpose values",
+        "artifact/reference/version/scope/hash are copied from one PLT fact and never inferred from URL",
+        "POST_COLLECTION_CHECKLIST and IMPLEMENTATION_COMMITMENT each have exactly one current reference at submit"
+      ]
+    },
+    {
+      "name": "cut_cutover_collection_evidence",
+      "strategy": "NEW_ONLY_APPEND_ONLY",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY",
+        "tenant_id": "BIGINT NOT NULL",
+        "closure_id": "BIGINT NOT NULL",
+        "task_id": "BIGINT NOT NULL",
+        "project_id": "BIGINT NOT NULL",
+        "device_id": "BIGINT NOT NULL",
+        "collection_stage_code": "VARCHAR(24) NOT NULL",
+        "evidence_type_code": "VARCHAR(32) NOT NULL",
+        "collection_task_id": "VARCHAR(128) NOT NULL",
+        "callback_event_id": "VARCHAR(128) NULL",
+        "result_ref": "VARCHAR(256) NULL",
+        "result_version": "VARCHAR(128) NULL",
+        "original_failed_collection_task_id": "VARCHAR(128) NULL",
+        "manual_file_reference_key": "VARCHAR(128) NULL",
+        "dispatch_marker": "TINYINT GENERATED AS (CASE WHEN evidence_type_code IN ('DISPATCH_ACCEPTED','DISPATCH_FAILED') THEN 1 ELSE NULL END) STORED",
+        "occurred_at": "DATETIME(3) NOT NULL",
+        "recorded_by": "BIGINT NOT NULL CHECK >= 0",
+        "creator": "VARCHAR(64) NOT NULL",
+        "create_time": "DATETIME(3) NOT NULL",
+        "deleted": "BIT(1) NOT NULL DEFAULT b'0'"
+      },
+      "uniqueKeys": [
+        "uk(tenant_id,collection_task_id,dispatch_marker)",
+        "uk(tenant_id,callback_event_id)"
+      ],
+      "checks": [
+        "stage and evidence type use the closed enums",
+        "callback types require callback_event_id and immutable result identity",
+        "MANUAL_UPLOAD requires original failed task plus manual PLT reference and never changes the failed row",
+        "dispatch types have no callback identity; recorded_by=0 only for trusted callbacks"
+      ]
+    }
+  ],
+  "taskForwardChange": {
+    "cut_task": "add ARCHIVED to task_status and allow only P6/ARCHIVED for NEW_PLATFORM terminal tasks",
+    "cut_task_stage_history": "add P6_CLOSURE_SUBMITTED with P6/CLOSURE_IN_PROGRESS -> P6/ARCHIVED",
+    "cut_task_device_scope": "submit explicitly clears active_marker for every row of the archived task; no implicit trigger"
+  },
+  "jsonContracts": {
+    "device_scope_watermark": "exact frozen task watermark, stable deviceId ascending; never refreshed from current Owner facts",
+    "file_fact_version": "exact keys artifactVersion/referenceVersion/availabilityVersion, each non-negative Integer"
+  },
+  "lockOrder": [
+    "cut_task by tenant+taskId",
+    "cut_approval_instance and submitted cut_plan_revision source identities",
+    "cut_cutover_closure by tenant+taskId",
+    "closure attachments and collection evidence by stable identity",
+    "ProjectScope then PLT Owner locks",
+    "cut_task_device_scope by deviceId ascending",
+    "platform idempotency/audit/outbox in the same outer transaction"
+  ],
+  "stateTransitions": {
+    "createDraft": "P6/CLOSURE_IN_PROGRESS with approved source -> DRAFT closure; task unchanged",
+    "saveDraft": "DRAFT version CAS; task unchanged",
+    "submitSuccess": "DRAFT->SUBMITTED and task P6/CLOSURE_IN_PROGRESS->P6/ARCHIVED; release device markers; append history and CutoverCompleted outbox",
+    "submitFailure": "DRAFT->SUBMITTED and task P6/CLOSURE_IN_PROGRESS->P6/ARCHIVED; release device markers; append history; no CutoverCompleted"
+  },
+  "eventOutbox": {
+    "eventType": "CutoverCompleted",
+    "payload": "eventId,tenantId,taskId,closureId,closureRevision,finalResult,resultRef,archivedAt,correlationId",
+    "rule": "SUCCESS submit only; unique per closure; downstream failure cannot roll back CUT archive"
+  },
+  "migration": {
+    "source": "pms_cut_execution",
+    "strategy": "CURRENT_FORWARD",
+    "qualification": "a source unit must independently prove one complete closure with all result unions, final result and valid immutable file facts",
+    "currentDisposition": "no existing row shape qualifies; retain source and append migration issue, insert no closure",
+    "excluded": ["pms_cut_observation", "pms_cut_task.actual_time", "pms_cut_task.remark", "pms_cut_task.status", "evidence_url as file fact"]
+  },
+  "hardDependencies": [
+    "F-CUT-002 task/device facts",
+    "F-CUT-004 submitted plan",
+    "F-CUT-005 approved instance",
+    "ProjectScopeApi",
+    "FileArtifactApi",
+    "INT-12 collection contract",
+    "PlatformCommandExecutionApi and platform Outbox"
+  ],
+  "controlledSubstituteBoundary": "CUT src/test may simulate valid ProjectScope, PLT file and INT-12 dispatch/callback facts for the normal closure; no substitute may be registered in production or used as real-browser/Implementation Done evidence"
+}
