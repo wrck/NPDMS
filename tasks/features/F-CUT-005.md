@@ -22,7 +22,7 @@
 - [x] Feature Ready最终裁决：`GO @ 2e3fdba3`。
 - [x] 唯一Technical Plan独立复审：`PASS / GO @ 912d0cdb`。
 - [x] Task 1 CUT领域合同、消费端口与快照Codec：`PASS / GO @ e6dac9fe`。
-- [ ] Task 2 五表Schema、DO、Mapper与锁查询：`IN_PROGRESS`。
+- [ ] Task 2 五表Schema、DO、Mapper与锁查询：`CODE_REVIEW_REQUIRED`。
 
 ## 最近检查点
 
@@ -33,6 +33,7 @@
 - `912d0cdb`关闭Owner合同/SYSTEM阻断表达与实施顺序残留，Technical Plan正式GO；最近实施单元为Task 1。
 - Task 1只新增CUT领域规则、三类消费端口、Owner异常、精确快照Codec与`src/test`受控正向事实；无生产Bean、DDL、COM或Yudao修改。
 - `e6dac9fe`关闭冻结快照跨子事实身份一致性与COLLECTION可选引用正数约束，Task 1正式GO；最近Gate为Task 2 Schema/迁移与隔离MySQL正向验证。
+- Task 2候选使用串行V153创建五张CUT Owner表，补齐DO、场景化Query、Mapper XML、节点CAS与通知领取；静态合同5/5及隔离MySQL 8.4全量迁移和正向约束验证通过，等待独立Gate。
 
 ## 物理Owner支撑Task
 

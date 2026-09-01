@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper">
+    <select id="selectByInstanceAndNodeForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
+        SELECT * FROM cut_approval_node
+        WHERE tenant_id = #{query.tenantId}
+          AND approval_instance_id = #{query.approvalInstanceId}
+          AND node_no = #{query.nodeNo}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectTodoPage"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
+        SELECT n.*
+        FROM cut_approval_node n
+        JOIN cut_approval_instance i
+          ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
+        WHERE n.tenant_id = #{query.tenantId}
+          AND n.current_approver_user_id = #{query.currentUserId}
+          AND n.status_code = 'PENDING'
+          AND n.deleted = b'0'
+          AND i.status_code = 'PENDING'
+          AND i.hold_reason_code IS NULL
+        ORDER BY n.create_time ASC, n.id ASC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <select id="selectReassignmentPage"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
+        SELECT n.*
+        FROM cut_approval_node n
+        JOIN cut_approval_instance i
+          ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
+        WHERE n.tenant_id = #{query.tenantId}
+          AND n.status_code IN ('WAITING','PENDING')
+          AND n.deleted = b'0'
+          AND i.status_code = 'PENDING'
+        ORDER BY i.create_time ASC, i.id ASC, n.node_no ASC, n.id ASC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <update id="updateStatusIfMatch">
+        UPDATE cut_approval_node
+        SET status_code = #{query.newStatusCode},
+            current_approver_user_id = #{query.currentApproverUserId},
+            project_scope_version = #{query.projectScopeVersion},
+            assessment_review_decision_code = #{query.assessmentReviewDecisionCode},
+            assessment_review_reason = #{query.assessmentReviewReason},
+            feedback = #{query.feedback},
+            decision_at = #{query.decisionAt},
+            version = #{query.expectedVersion} + 1,
+            updater = #{query.updater},
+            update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.approvalNodeId}
+          AND status_code = #{query.expectedStatusCode}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

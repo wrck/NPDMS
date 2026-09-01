@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper">
+    <select id="selectByTaskAndPlanForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO">
+        SELECT * FROM cut_approval_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND task_id = #{query.taskId}
+          AND plan_revision_id = #{query.planRevisionId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO">
+        SELECT * FROM cut_approval_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.approvalInstanceId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+</mapper>
