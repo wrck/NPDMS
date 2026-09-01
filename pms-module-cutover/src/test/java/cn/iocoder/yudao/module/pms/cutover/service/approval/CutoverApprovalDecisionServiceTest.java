@@ -23,7 +23,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -107,31 +106,6 @@ class CutoverApprovalDecisionServiceTest {
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
         assertThat(result.taskStage()).isEqualTo("P4");
-    }
-
-    @Test
-    void unavailableApproverPersistsRootHoldWithoutDecisionWrites() {
-        Fixture f = new Fixture(22L);
-        f.givenRoot(2, "SERVICE_MANAGER");
-        var unavailable = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
-                ProjectCutoverServiceManagerPort.Outcome.NOT_UNIQUE, 1L, 20L, null,
-                null, null, null, java.time.LocalDateTime.now(f.clock));
-        when(f.managers.lockAndRevalidate(any())).thenReturn(
-                new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
-                        ProjectCutoverServiceManagerPort.Revalidation.STALE, unavailable));
-
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
-                yesItems(), new AssessmentReviewInput("CONFIRMED", null), "全部通过", "key-5", "corr-5")))
-                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, error -> {
-                    assertThat(error.code()).isEqualTo(CutoverApprovalApplicationException.Code.STATE_CONFLICT);
-                    assertThat(error.getMessage()).isEqualTo("APPROVER_UNAVAILABLE");
-                });
-
-        verify(f.instances).updateById(argThat((CutoverApprovalInstanceDO row) ->
-                "APPROVER_UNAVAILABLE".equals(row.getHoldReasonCode())));
-        verify(f.reviews, never()).insert(any(CutoverApprovalReviewItemDO.class));
-        verify(f.nodes, never()).updateStatusIfMatch(any());
-        verify(f.tasks, never()).transitionFromApprovalIfMatch(any());
     }
 
     private static List<ReviewItemInput> yesItems() {

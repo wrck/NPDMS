@@ -96,7 +96,7 @@ public class CutoverApprovalApplicationService {
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.feedback(), command.idempotencyKey(), command.correlationId());
         require(command.reviewItems().stream().allMatch(item -> "YES".equals(item.decision())),
-                INVALID_REQUEST, "DECISION_ACTION_RESULT_MISMATCH");
+                BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH");
         return decide(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.assessmentReview(), command.feedback(), command.idempotencyKey(), command.correlationId(), true);
@@ -109,7 +109,7 @@ public class CutoverApprovalApplicationService {
         boolean anyNo = command.reviewItems().stream().anyMatch(item -> "NO".equals(item.decision()));
         boolean assessmentReject = command.assessmentReview() != null
                 && "NOT_REASONABLE".equals(command.assessmentReview().decision());
-        require(anyNo || assessmentReject, INVALID_REQUEST, "DECISION_ACTION_RESULT_MISMATCH");
+        require(anyNo || assessmentReject, BUSINESS_INCOMPLETE, "DECISION_ACTION_RESULT_MISMATCH");
         return decide(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
                 command.approvalInstanceId(), command.expectedApprovalVersion(), command.reviewItems(),
                 command.assessmentReview(), command.feedback(), command.idempotencyKey(), command.correlationId(), false);
@@ -397,18 +397,31 @@ public class CutoverApprovalApplicationService {
                 var expectedCandidates = new CutoverApprovalRoleCandidatePort.CandidateSet(instance.getTenantId(),
                         group, snapshot.candidates());
                 var lockedCandidates = roleCandidatePort.lockAndRevalidate(expectedCandidates);
-                require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID,
-                        SOURCE_STALE, "审批角色候选事实版本已变化");
+                Map<Long, FrozenProjectScope> frozenScopes = new LinkedHashMap<>();
+                for (FrozenProjectScope frozen : snapshot.projectScopes())
+                    require(frozenScopes.putIfAbsent(frozen.userId(), frozen) == null,
+                            OWNER_DATA_CORRUPTED, "冻结项目范围快照重复");
+                Set<Long> currentCandidateIds = lockedCandidates.current().candidates().stream()
+                        .map(CutoverApprovalRoleCandidatePort.Candidate::adminUserId)
+                        .collect(java.util.stream.Collectors.toSet());
+                Set<Long> usersToLock = new java.util.TreeSet<>(frozenScopes.keySet());
+                usersToLock.addAll(currentCandidateIds);
                 List<Long> allowed = new ArrayList<>();
-                for (FrozenProjectScope frozen : snapshot.projectScopes()) {
-                    var expected = new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
-                            instance.getProjectId(), frozen.userId(), "ACTION_VIEW", frozen.allowed(), frozen.treeVersion());
+                boolean scopeStale = false;
+                for (Long userId : usersToLock) {
+                    FrozenProjectScope frozen = frozenScopes.get(userId);
+                    var expected = frozen == null
+                            ? projectScopePort.inspect(instance.getTenantId(), instance.getProjectId(), userId, "ACTION_VIEW")
+                            : new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
+                                    instance.getProjectId(), userId, "ACTION_VIEW", frozen.allowed(), frozen.treeVersion());
                     var locked = projectScopePort.lockAndRevalidate(expected);
-                    require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                            SOURCE_STALE, "审批候选项目范围版本已变化");
-                    if (locked.current().allowed()) allowed.add(frozen.userId());
+                    scopeStale |= locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.STALE;
+                    if (currentCandidateIds.contains(userId) && locked.current().allowed()) allowed.add(userId);
                 }
-                yield allowed.size() == 1 && allowed.getFirst() == actorId;
+                if (allowed.size() != 1 || allowed.getFirst() != actorId) yield false;
+                require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID
+                                && !scopeStale, SOURCE_STALE, "审批候选事实版本已变化");
+                yield true;
             }
             default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
         };
