@@ -1,7 +1,7 @@
 # F-CUT-004 P4割接方案编制与版本提交 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO@644816f2`
 > API/Physical/Legacy Machine Contract Gate：`PASS / GO@87b0b066`
 > Requirement：`CUT-04（V1/P0）`
 > Requirement切片覆盖：`CUT-04@V1=FULL`
@@ -10,7 +10,7 @@
 > 后置Feature：`F-CUT-005（CUT-05分级审批）`
 > 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-004-legacy-reuse-audit.md`
-> 边界裁决：独立Feature `GO`；Feature Ready `NO-GO`（锁定基线`83cc20d7`）
+> 最终裁决：Feature Ready `GO`（状态基线`644816f2`；独立正式裁决）
 
 ## 1. 业务目标
 
@@ -113,4 +113,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。API/Physical/Legacy Machine Contract已在`87b0b066`独立复审`PASS / GO`；最近Gate为Feature Ready最终关闭。不得提前生成Technical Plan或实现。
+最终：`BASELINE / READY / GO / NOT_STARTED`。API/Physical/Legacy Machine Contract已在`87b0b066`独立复审`PASS / GO`，Feature Ready最终关闭以状态基线`644816f2`取得独立`GO`。允许生成唯一当前Technical Plan并申请独立Plan Gate；本结论不授权DDL、运行实现、生产CUT-05 Provider、真实浏览器或Implementation Done。

@@ -1,8 +1,8 @@
 # F-CUT-004 P4割接方案编制与版本提交
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`FEATURE_READY`
-> Feature Ready Gate：`NOT_READY / REVIEW_REQUIRED`
+> 总体工程阶段：`TECHNICAL_PLAN`
+> Feature Ready Gate：`READY / GO@644816f2`
 > Technical Plan Gate：`NOT_STARTED`
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`CUT-04@V1=FULL`
@@ -21,6 +21,6 @@
 - [x] CUT-04完整义务、CUT-04/CUT-05双向交接与P4/P5/P6状态Owner合同通过（`87b0b066`）。
 - [x] `pms_cut_plan`字段/状态/完整性与不可迁行处置通过（`87b0b066`）。
 - [x] API/Physical/Legacy Machine Contract Gate通过（`87b0b066`）。
-- [ ] Feature Ready最终裁决通过。
+- [x] Feature Ready最终裁决通过（状态基线`644816f2`）。
 
-> 检查点：Machine Contract在`87b0b066`独立复审`PASS/GO`，A-E全部关闭。当前最近Gate=Feature Ready最终关闭；Feature仍DRAFT/NOT_READY/NOT_STARTED，不重复COM、不生成Technical Plan或实现，跨模块正向链仅允许未来`src/test`受控替身。
+> 检查点：Feature Ready以状态基线`644816f2`独立裁决`READY/GO`；实施仍`NOT_STARTED`。当前阶段进入`TECHNICAL_PLAN`，下一Gate为唯一Technical Plan独立复审；不重复COM、不写实现，跨模块正向链仅允许未来`src/test`受控替身。
