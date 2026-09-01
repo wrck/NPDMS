@@ -32,6 +32,9 @@
 - Task 3整改证据：两份机器JSON可解析；Application/Query/Port/Mapper 10/10通过；独立MySQL 8.4空卷全量迁移至V155后，合法NULL结果DRAFT、同键重放、CAS保存、人工采集附件保留及平台幂等/审计同事务1/1通过。整改仍等待独立复审，不提前回写PASS。
 - Task 3 A/B/C最小整改复审对`4d7e4235`确认A、B及冻结来源核对已关闭，仅剩详情误捕获闭环文件端口异常类型；单点候选已改为捕获ProjectScope正式`CutoverOwnerFactException`，将`PROVIDER_UNAVAILABLE`稳定映射为Owner Provider不可用、数据范围拒绝保持不可见，其余事实异常失败关闭为Owner数据损坏。
 - Task 3最终单点复审已对`a99ddf5b`裁决`GO`，ProjectScope正式异常映射阻断关闭；Task 3创建、保存、详情与文件事实正常链Gate现为`PASS / GO@a99ddf5b`。
+- Task 4候选已形成CUT自有采集请求、回调与人工结果替代正向链：DRAFT单设备请求追加下发事实，成功回调追加终态事实；下发/回调失败可锁定PLT文件事实追加人工结果，原失败证据保持不可变。INT-12仅经消费端口调用，受控实现位于`src/test`，未注册生产Bean、Fake或fallback。
+- Task 4恢复链已按同一`CollectionIntentIdentity`先查询外部任务：CUT本地事务失败后，重试复用同一`collectionTaskId`补齐本地投影，不创建第二外部任务；请求摘要不包含`transientSecret`。
+- Task 4聚焦证据：Application与Mapper合同4/4通过；独立MySQL 8.4空库全量迁移至V155后，正常dispatch/callback/manual持久链及“外部任务已存在、本地投影失败、同意图恢复”共3/3通过，平台幂等/审计与CUT写保持事务一致。候选仍等待独立Code Review/MySQL复审，不提前回写PASS。
 - 最近Gate：Task 4采集请求、回调与人工结果替代正向运行单元独立Code Review/MySQL复审。
 
 ## 状态边界

@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosure
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureDraftUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureVersionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -13,5 +14,6 @@ public interface CutoverClosureMapper extends BaseMapperX<CutoverClosureDO> {
     CutoverClosureDO selectByTask(@Param("query") CutoverClosureRowQuery query);
     CutoverClosureDO selectByTaskForUpdate(@Param("query") CutoverClosureRowQuery query);
     int updateDraftIfMatch(@Param("query") CutoverClosureDraftUpdate query);
+    int advanceDraftVersionIfMatch(@Param("query") CutoverClosureVersionUpdate query);
     int submitIfMatch(@Param("query") CutoverClosureSubmitUpdate query);
 }

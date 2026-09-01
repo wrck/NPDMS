@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureVersionUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskArchiveUpdate;
@@ -31,6 +32,9 @@ class CutoverClosureMapperContractTest {
         assertBindings(configuration, CutoverClosureMapper.class, "selectByTaskForUpdate", new CutoverClosureRowQuery(1L, 2L));
         assertBindings(configuration, CutoverClosureMapper.class, "submitIfMatch",
                 new CutoverClosureSubmitUpdate(1L, 3L, 4, "SUCCESS", "CUTOVER_CLOSURE:3:5", 6L,
+                        LocalDateTime.parse("2026-09-02T10:00:00")));
+        assertBindings(configuration, CutoverClosureMapper.class, "advanceDraftVersionIfMatch",
+                new CutoverClosureVersionUpdate(1L, 3L, 4, "6",
                         LocalDateTime.parse("2026-09-02T10:00:00")));
         var children = new CutoverClosureChildrenQuery(1L, 3L);
         assertBindings(configuration, CutoverClosureAttachmentMapper.class, "selectListByClosure", children);

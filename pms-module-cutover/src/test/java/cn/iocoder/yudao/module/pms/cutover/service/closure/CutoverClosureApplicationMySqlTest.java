@@ -9,14 +9,25 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevi
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.LinkClosureManualResultCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.CollectionStage;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.DispatchOutcome;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.SavedCredential;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionIntentIdentity;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionRequest;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort.FileFactVersion;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -52,6 +63,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = CutoverClosureApplicationMySqlTest.TestApplication.class,
@@ -62,11 +74,14 @@ class CutoverClosureApplicationMySqlTest {
     @Resource CutoverPlanRevisionMapper planMapper;
     @Resource CutoverApprovalInstanceMapper approvalMapper;
     @Resource CutoverClosureApplicationService service;
+    @Resource CutoverClosureControlledPorts.Collections collections;
 
     long tenantId;
     long taskId;
     long planId;
     long approvalId;
+    long projectId;
+    long deviceId;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -87,15 +102,18 @@ class CutoverClosureApplicationMySqlTest {
 
     @BeforeEach
     void setUp() {
+        collections.nextDispatch(DispatchOutcome.ACCEPTED, null);
         long suffix = Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
         tenantId = 991_100_000_000L + suffix;
         taskId = 991_200_000_000L + suffix;
         planId = 991_300_000_000L + suffix;
         approvalId = 991_400_000_000L + suffix;
+        projectId = 991_500_000_000L + suffix;
+        deviceId = 991_600_000_000L + suffix;
         TenantContextHolder.setTenantId(tenantId);
         LocalDateTime now = LocalDateTime.of(2026, 9, 2, 8, 0);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(taskId); task.setTenantId(tenantId);
-        task.setProjectId(991_500_000_000L + suffix); task.setTaskNo("CUT-P6-" + suffix);
+        task.setProjectId(projectId); task.setTaskNo("CUT-P6-" + suffix);
         task.setTaskName("P6闭环"); task.setBackground("P6正向链"); task.setCutoverType("NETWORK_CUTOVER");
         task.setNetworkMode("DUAL"); task.setScheduledTime(now); task.setTaskOrigin("NEW_PLATFORM");
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P6"); task.setTaskStatus("CLOSURE_IN_PROGRESS");
@@ -129,8 +147,10 @@ class CutoverClosureApplicationMySqlTest {
 
     @AfterEach
     void tearDown() {
+        jdbc.update("DELETE FROM cut_cutover_collection_evidence WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_closure_attachment WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_closure WHERE tenant_id=?", tenantId);
+        jdbc.update("DELETE FROM cut_task_device_scope WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_approval_instance WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_plan_revision WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM plt_operation_audit WHERE tenant_id=?", tenantId);
@@ -162,6 +182,86 @@ class CutoverClosureApplicationMySqlTest {
         assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=? AND purpose_code='MANUAL_COLLECTION_RESULT'", tenantId));
         assertEquals(2, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
         assertEquals(2, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+    }
+
+    @Test
+    void collectionCallbackAndManualFallbackPersistPositiveClosureFacts() {
+        Long closureId = prepareDraftWithDevice("create-collection");
+
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+                deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
+                "post-check", 2L, "collect-ok", "corr-collect-ok"));
+        String acceptedTaskId = jdbc.queryForObject("""
+                SELECT collection_task_id FROM cut_cutover_collection_evidence
+                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_ACCEPTED'
+                """, String.class, tenantId, closureId);
+        service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
+                deviceId, CollectionStage.POST_COLLECTION, "callback-ok", acceptedTaskId, true,
+                "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-ok"));
+
+        collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 2,
+                deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
+                "test-check", 2L, "collect-failed", "corr-collect-failed"));
+        String failedTaskId = jdbc.queryForObject("""
+                SELECT collection_task_id FROM cut_cutover_collection_evidence
+                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_FAILED'
+                """, String.class, tenantId, closureId);
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 3,
+                failedTaskId, file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
+                "manual-result", "corr-manual-result"));
+
+        assertEquals(4, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
+        assertEquals(4, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=?", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND evidence_type_code='CALLBACK_SUCCEEDED'", tenantId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND evidence_type_code='MANUAL_UPLOAD' AND original_failed_collection_task_id=?", tenantId, failedTaskId));
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_closure_attachment WHERE tenant_id=? AND purpose_code='MANUAL_COLLECTION_RESULT'", tenantId));
+        assertEquals(5, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+    }
+
+    @Test
+    void retriesSameIntentAfterLocalProjectionFailureWithoutCreatingSecondExternalTask() {
+        Long closureId = prepareDraftWithDevice("create-recovery");
+        CollectionIntentIdentity identity = new CollectionIntentIdentity(tenantId, taskId, closureId, deviceId,
+                CollectionStage.PRE_CHECK, "collect-recovery");
+        CollectionRequest externalRequest = new CollectionRequest(identity, 8L, projectId,
+                new SavedCredential(71L, 3L), "pre-check", 2L, "corr-collect-recovery");
+        var externalFact = collections.request(externalRequest);
+        jdbc.update("""
+                INSERT INTO cut_cutover_collection_evidence
+                  (id,tenant_id,closure_id,task_id,project_id,device_id,collection_stage_code,evidence_type_code,
+                   collection_task_id,occurred_at,recorded_by,creator,create_time,deleted)
+                VALUES (?,?,?,?,?,?,'PRE_CHECK','DISPATCH_FAILED',?,NOW(3),8,'8',NOW(3),b'0')
+                """, 993_000_000_000L + Math.floorMod(deviceId, 1_000_000L), tenantId, closureId, taskId,
+                projectId, deviceId, externalFact.collectionTaskId());
+        RequestClosureCollectionCommand command = new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7,
+                closureId, 0, deviceId, CollectionStage.PRE_CHECK, new SavedCredential(71L, 3L),
+                "pre-check", 2L, "collect-recovery", "corr-collect-recovery");
+
+        assertThrows(RuntimeException.class, () -> service.requestCollection(command));
+        assertEquals(0, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='collect-recovery'", tenantId));
+        assertEquals(0, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
+        jdbc.update("DELETE FROM cut_cutover_collection_evidence WHERE tenant_id=? AND collection_task_id=?",
+                tenantId, externalFact.collectionTaskId());
+
+        service.requestCollection(command);
+
+        assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND collection_task_id=? AND evidence_type_code='DISPATCH_ACCEPTED'", tenantId, externalFact.collectionTaskId()));
+        assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='collect-recovery' AND status='COMPLETED'", tenantId));
+        assertEquals(1, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
+    }
+
+    private Long prepareDraftWithDevice(String idempotencyKey) {
+        service.save(command(null, idempotencyKey, "draft", oneAttachment()));
+        Long closureId = jdbc.queryForObject(
+                "SELECT id FROM cut_cutover_closure WHERE tenant_id=? AND task_id=?", Long.class, tenantId, taskId);
+        jdbc.update("""
+                INSERT INTO cut_task_device_scope
+                  (id,tenant_id,cutover_task_id,project_id,device_id,serial_number_snapshot,
+                   project_assignment_version,active_marker,version,creator,create_time,updater,update_time,deleted)
+                VALUES (?,?,?,?,?,'SN-P6-1',1,1,0,'8',NOW(3),'8',NOW(3),b'0')
+                """, 992_000_000_000L + Math.floorMod(deviceId, 1_000_000L), tenantId, taskId, projectId, deviceId);
+        return closureId;
     }
 
     private SaveCutoverClosureCommand command(Integer version, String key, String legacy,
@@ -225,16 +325,23 @@ class CutoverClosureApplicationMySqlTest {
             };
         }
         @Bean CutoverClosureFilePort filePort() { return new CutoverClosureControlledPorts.Files(); }
+        @Bean CutoverClosureControlledPorts.Collections collectionPort(Clock clock) {
+            return new CutoverClosureControlledPorts.Collections(clock);
+        }
         @Bean CutoverClosureApplicationService service(CutoverTaskMapper taskMapper,
                                                         CutoverApprovalInstanceMapper approvalMapper,
                                                         CutoverPlanRevisionMapper planMapper,
                                                         CutoverClosureMapper closureMapper,
                                                         CutoverClosureAttachmentMapper attachmentMapper,
+                                                        CutoverCollectionEvidenceMapper evidenceMapper,
+                                                        CutoverTaskDeviceScopeMapper deviceScopeMapper,
                                                         CutoverProjectScopePort projectScopePort,
                                                         CutoverClosureFilePort filePort,
+                                                        CutoverClosureCollectionPort collectionPort,
                                                         PlatformCommandExecutionApi platform, Clock clock) {
             return new CutoverClosureApplicationService(taskMapper, approvalMapper, planMapper, closureMapper,
-                    attachmentMapper, projectScopePort, filePort, platform, clock);
+                    attachmentMapper, evidenceMapper, deviceScopeMapper, projectScopePort, filePort,
+                    collectionPort, platform, clock);
         }
     }
 }
