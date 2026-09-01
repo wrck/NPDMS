@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskApprovalTransitionUpdate;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -65,6 +66,8 @@ class CutoverPlanMapperContractTest {
                 new CutoverTaskPlanSubmitUpdate(1L, 2L, 3));
         assertBindings(configuration, CutoverTaskMapper.class, "returnToPlanForSourceInvalidation",
                 new CutoverTaskSourceInvalidationUpdate(1L, 2L, 4));
+        assertBindings(configuration, CutoverTaskMapper.class, "transitionFromApprovalIfMatch",
+                new CutoverTaskApprovalTransitionUpdate(1L, 2L, 4, "P6", "CLOSURE_IN_PROGRESS"));
         assertBindings(configuration, CutoverTaskMapper.class, "selectMaxStageHistorySequence",
                 new CutoverTaskRowQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",

@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskTra
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskChecklistSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskApprovalTransitionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -38,4 +39,5 @@ public interface CutoverTaskMapper extends BaseMapperX<CutoverTaskDO> {
     int submitPlanIfMatch(@Param("query") CutoverTaskPlanSubmitUpdate query);
     Integer selectMaxStageHistorySequence(@Param("query") CutoverTaskRowQuery query);
     int returnToPlanForSourceInvalidation(@Param("query") CutoverTaskSourceInvalidationUpdate query);
+    int transitionFromApprovalIfMatch(@Param("query") CutoverTaskApprovalTransitionUpdate query);
 }
