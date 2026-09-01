@@ -1,13 +1,13 @@
 # DU-20260901-FSOL003-DEPRECATION 固定章节实现废弃标记
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`TASK`
 > Feature协调：`F-SOL-003=TASK_COORDINATED`
 > Task范围：`只补齐已被动态表单替代的固定章节代码废弃标记与防回流测试`
 > Owner：`Codex本次master工程链调整会话`
 > 分支：`codex/f-sol-003-legacy-deprecation`
 > Worktree：`M:/AICoding/CodexData/worktrees/fsol003-deprecation/NPDMS`
-> 认领基线：`e4b7c863b202320eed9c012c16a4a56e0e3ffe49`
+> 认领基线：`60054c1b420009f76b85d951a5c47e89cdccc818`
 > 认领提交：`SELF`
 > 修改边界：`pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/preparation/vo/RequirementAnalysis*.java;pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/preparation/RequirementAnalysisSectionDO.java;pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/preparation/RequirementAnalysisSectionMapper.java;pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/requirement/RequirementAnalysisCatalog.java;pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysis*.java;scripts/generate_requirement_traceability.py;scripts/tests/test_fsol003_dynamic_form_amendment.py;scripts/tests/test_generate_requirement_traceability.py;specs/features/F-SOL-003-requirement-analysis-versioning.md;specs/features/README.md;yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requirement-analysis/index.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisSectionCard.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/requirementAnalysisInteraction.ts`
 > 串行资源：`specs/features/README.md;scripts/generate_requirement_traceability.py`

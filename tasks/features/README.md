@@ -17,14 +17,14 @@
 | F-PROJ-007 | [Task](F-PROJ-007.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-001 | [Task](F-SOL-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-002 | [Task](F-SOL-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
-| F-SOL-003 | [Task](F-SOL-003.md) | IMPLEMENTATION_COMPLETE | [废弃标记DU](../delivery-units/DU-20260901-FSOL003-DEPRECATION.md)待激活 | PRE-04保持PARTIAL覆盖 |
+| F-SOL-003 | [Task](F-SOL-003.md) | IMPLEMENTATION_COMPLETE | [废弃标记DU](../delivery-units/DU-20260901-FSOL003-DEPRECATION.md) | PRE-04保持PARTIAL覆盖 |
 | F-PLT-001 | [Task](F-PLT-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | TECHNICAL_PLAN_READY | [集成候选DU](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)不占写权 | CUT-07/09/10保持NOT_STARTED |
 
-当前没有有效写入认领；`DU-20260901-FSOL003-DEPRECATION`仍为`PLANNED`，将在目标工作树创建后单独激活。其他历史活动分支均未被倒签为有效认领。
+当前唯一有效写入认领是`DU-20260901-FSOL003-DEPRECATION`，且只允许补齐已明确替代路径的废弃约束，不允许扩展F-SOL-003业务。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 
