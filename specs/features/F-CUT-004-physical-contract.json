@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-004",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-04@V1=FULL"],
+  "owner": "CUT",
+  "aggregate": "CutoverPlan",
+  "lifecycles": {
+    "planRevision": ["DRAFT","SUBMITTED","INVALIDATED"],
+    "approvalProjectionOwner": "F-CUT-005; PENDING/APPROVED/REJECTED/TERMINATED are not plan revision states"
+  },
+  "tables": [
+    {
+      "name": "cut_plan_revision",
+      "strategy": "CURRENT_FORWARD_PLUS_NEW_PLATFORM",
+      "requiredFields": ["id","tenant_id","cutover_task_id","revision_no","origin_code","edit_mode_code","grade_code","assessment_id","assessment_version","source_snapshot","status_code","current_marker","version","creator","create_time","updater","update_time","deleted"],
+      "conditionalFields": {
+        "ABC": ["checklist_id","checklist_version","configuration_revision_id","template_section_snapshot"],
+        "D": ["checklist_id IS NULL","checklist_version IS NULL"],
+        "FULL_FILE_UPLOAD": ["file_artifact_id","file_version_no","file_reference_key","file_fact_version","file_scope_version","file_sha256","ownership_confirmed=true"],
+        "ONLINE_TEMPLATE": ["content_snapshot"],
+        "SUBMITTED": ["submitted_by","submitted_at","approval_instance_id","approval_version"],
+        "DERIVED_REVISION": ["source_plan_revision_id","revision_reason_code"]
+      },
+      "uniqueKeys": [["tenant_id","cutover_task_id","revision_no"],["tenant_id","cutover_task_id","current_marker"]],
+      "appendOnlyAfterSubmit": true,
+      "originCodes": ["NEW_PLATFORM","LEGACY_FORWARD"]
+    },
+    {
+      "name": "cut_step",
+      "strategy": "CURRENT_FORWARD_PLUS_NEW_PLATFORM",
+      "requiredFields": ["id","tenant_id","plan_revision_id","section_code","step_no","content","version","creator","create_time","updater","update_time","deleted"],
+      "sectionCodes": ["PRE_OPERATION","OPERATION","CLOSING_COLLECTION","POST_BUSINESS_TEST","ROLLBACK","POST_CUTOVER_SUPPORT"],
+      "uniqueKeys": [["tenant_id","plan_revision_id","section_code","step_no"]],
+      "forbidden": ["executionStatus","startedAt","completedAt","runtimeAssignee"]
+    },
+    {
+      "name": "cut_cutover_support_arrangement",
+      "strategy": "NEW_ONLY",
+      "requiredFields": ["id","tenant_id","plan_revision_id","role_code","person_name","duty_description","phone","arrival_time","version","creator","create_time","updater","update_time","deleted"],
+      "roleCodes": ["CUSTOMER","DP_FIRST_LINE","DP_SECOND_LINE","DP_RND"],
+      "uniqueKeys": [["tenant_id","plan_revision_id","role_code"]],
+      "immutableAfterSubmitExcept": ["person_name","phone","arrival_time"],
+      "dutyChange": "must create a new plan revision"
+    }
+  ],
+  "additionalFacts": {
+    "riskMitigations": "stored in plan content snapshot as exact checklist item result identity + risk fact snapshot + mitigation; every current failed risk item exactly once",
+    "supportArrangementAudit": "PlatformCommandExecution/operation audit stores before/after snapshots for personName, phone and arrivalTime; no fourth CUT business table",
+    "downloadAudit": "platform operation audit plus generated FileArtifact reference records actor, time and plan revision",
+    "approval": "approval instance and node tables are owned by F-CUT-005 and never written by F-CUT-004 except through public ports"
+  },
+  "transactionAndLocks": [
+    "ProjectScopeApi.lockAndRevalidate ACTION_EDIT",
+    "lock CutoverTask",
+    "lock current submitted assessment",
+    "for ABC lock current submitted checklist; for D assert no checklist is required",
+    "lock current plan revision",
+    "on submit freeze revision then call mandatory CutoverApprovalStartPort in the same transaction",
+    "store approval instance identity and transition task PLAN_DRAFTING -> APPROVING only after successful start result"
+  ],
+  "legacyMigration": {
+    "source": "pms_cut_plan",
+    "disposition": "PRESERVE_LEGACY_CURRENT_FORWARD_FIELD_LEVEL",
+    "qualifiedFields": ["task_id","code","name","pre_check","procedure","verification","rollback","level","remark","creator","create_time","updater","update_time"],
+    "forbiddenInference": ["edit_mode","assessment","checklist","device","configuration","fileFact","riskMitigation","supportArrangement","approvalInstance","approvalStatus"],
+    "legacyApprovalFields": ["status","approved_by","approved_time","approval_opinion","baseline_version"],
+    "legacyApprovalDisposition": "migration evidence only; never mapped to CUT-05 facts",
+    "unqualifiedRows": "retain source and append PLT migration issue; no delete, dual write or default fabrication"
+  },
+  "featureReadyGate": "REVIEW_REQUIRED"
+}

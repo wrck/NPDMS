@@ -2323,9 +2323,9 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_plan",
           "disposition": "CURRENT_FORWARD",
-          "transform": "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
+          "transform": "map only qualified legacy task/code/name and provable pre-check/operation/verification/rollback/level/remark/audit content into read-only LEGACY_FORWARD revisions; never infer edit mode, assessment, checklist, device, configuration, file, risk mitigation, support arrangement or CUT-05 approval facts; keep unqualified rows with migration issues",
+          "mappingStatus": "FEATURE_MAPPING_DEFINED",
+          "gate": "F-CUT-004_FEATURE_READY_REVIEW",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
         }
       ]
@@ -2370,13 +2370,13 @@
       ],
       "sources": [
         {
-          "sourceType": "CURRENT_TABLE",
-          "sourceObject": "pms_cut_plan",
-          "disposition": "CURRENT_FORWARD",
-          "transform": "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CutoverSupportArrangement",
+          "disposition": "NEW_ONLY",
+          "transform": "create support role, person, duty, phone and arrival facts only from new-platform F-CUT-004 commands; pms_cut_plan has no proven source fields and must not be used to infer arrangements",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CutoverSupportArrangement"
         }
       ]
     },

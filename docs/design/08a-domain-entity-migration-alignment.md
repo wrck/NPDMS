@@ -107,8 +107,8 @@
 | `CutoverAssessment` | 新建`cut_assessment`；无可证明历史来源 | NEW_ONLY | 只从新平台P2问卷与人工等级命令创建；`pms_cut_risk`是旧风险/调研运行记录，不迁入评估聚合 |
 | `CutoverChecklist` | 当前`pms_cut_risk`中的风险/调研候选记录；新平台CUT-03清单版本 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁可证明的任务引用、原编码/名称/类型、说明和填写事实；不得推断采集项版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口；新清单版本和结果引用由前向Feature产生 |
 | `CutoverConfigurationRevision` | 无可靠旧来源；新平台CUT-07 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由CUT-07 Feature新建配置、采集项定义和绑定规则版本；类型/组网/设备复用基础平台字典，不从旧方案或风险项反推配置主数据 |
-| `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
-| `CutoverSupportArrangement` | 当前`pms_cut_plan`中可证明的保障人员字段；缺少逐字段证据时不迁 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 作为`CutoverPlan`从属明细；不得推导派单、状态、当前责任人或责任区间 |
+| `CutoverPlan` | 当前`pms_cut_plan`中可证明的任务、编码、名称、前检、操作、验证、回退、等级、备注和审计字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 仅形成只读LEGACY_FORWARD revision/步骤；旧审核字段不产生CUT-05审批事实，不补造编辑方式、评估、清单、设备、配置、文件或风险措施 |
+| `CutoverSupportArrangement` | 无可证明旧来源 | NEW_ONLY | 仅由F-CUT-004新平台命令创建；`pms_cut_plan`没有角色、姓名、职责、电话和到位时间字段，不得推导 |
 | `CutoverClosure` | 当前`pms_cut_execution`中可证明的P6结果字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁割接前/执行/测试结果、回退说明、附件、遗留项文本和最终结果；`pms_cut_execution_step`、`pms_cut_observation`不进入当前目标，不能把步骤状态或观察状态改名迁入 |
 | `InspectionTask` | 当前`pms_srv_task/execution/offline_file` | CURRENT_FORWARD | 当前巡检结构前向迁移；不从已排除维护表导入任何记录 |
 | `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |

@@ -48,6 +48,7 @@
 | 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；业务实例由消费Context外层命令持有唯一幂等记录，PLT写/持锁API以`MANDATORY`加入且不得自开事务；完成/克隆同时校验PLT与Owner双版本 |
 | 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 实施就绪评估 | `Idempotency-Key` | tenant + `IMP_READINESS_EVALUATE` + project + actor | 同键同规范化项目/设备/方案请求返回原快照；同键异请求冲突；Provider失败不产生READY或成功事件 |
+| CUT-04方案命令 | `Idempotency-Key` + `If-Match` | tenant + task + plan command + actor | 保存/下载/提交/派生同键同摘要返回原结果；提交只在不可变revision与CUT-05审批实例同成同败后成功，Provider失败或版本冲突不推进P5 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
 | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |
@@ -121,6 +122,8 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/stableItemKey/itemVersion/设备相符的结果，其余进入待核对，不覆盖当前答案、不复制DAC技术状态 |
 | CUT-03自动采集失败后人工降级 | 自动失败结果正文和原因保持不变；授权工程师在同一事务关闭旧选择区间并追加带人工证据的MANUAL结果，唯一当前选择冲突则整体回滚，不把原CollectionTask改写为成功 |
 | CUT-03已提交版本再次编辑 | VERSION_CONFLICT/BUSINESS_GATE；创建新清单版本并使下游未审批方案按PRD失效，不原位解锁或覆盖 |
+| CUT-04提交与CUT-05审批实例创建任一步失败 | 整个P4提交事务回滚；revision保持DRAFT、任务保持P4，不留下孤立SUBMITTED或孤立审批实例 |
+| CUT-04来源失效、P5驳回或批准后职责变化 | 来源失效置INVALIDATED；驳回或职责变化派生新DRAFT；三者均不覆盖原提交正文，不把REJECTED伪装为INVALIDATED |
 | CUT任务创建缺少配置代码、代码在任务创建时点无适用发布修订或出现多个适用修订 | BUSINESS_GATE/CONFIGURATION_CONFLICT；任务、设备范围、阶段历史和成功审计零写入，不使用种子代码、当前时间或任意候选降级 |
 | V146后既有NEW_PLATFORM任务配置身份前向补齐为零候选或多候选 | MIGRATION_INPUT_CONFLICT；任何任务更新前整批失败，保留原任务；LEGACY_FORWARD保持配置身份为空且不可进入CUT-03 |
 

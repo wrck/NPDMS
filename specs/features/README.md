@@ -31,6 +31,7 @@
 | [F-IMP-005](F-IMP-005-joint-debugging-configuration.md) | 业务联调配置收集 | EXE-04（V1） | DRAFT | NOT_READY | NOT_STARTED |
 | [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/02（V1，PARTIAL） | BASELINE | READY（GO@cad8088a；生产Owner事实继续阻断真实浏览器与Implementation Done） | IN_PROGRESS（以Task权威状态为准） |
 | [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级闭环 | CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | IN_PROGRESS（Task 1 PASS；Task 2正向REST/UI候选GO@c8c75ce5） |
+| [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL候选） | DRAFT | NOT_READY / REVIEW_REQUIRED | NOT_STARTED |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 

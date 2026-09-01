@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-004",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-04@V1=FULL"],
+  "wire": {
+    "ids": "positive Long using repository WireLong rule",
+    "dateTime": "epoch milliseconds",
+    "idempotencyKey": "required non-blank 1..128 header",
+    "ifMatch": "required positive aggregate version header for writes"
+  },
+  "permissions": {
+    "query": "pms:cutover-task:query-plan",
+    "save": "pms:cutover-task:save-plan",
+    "download": "pms:cutover-task:download-plan",
+    "submit": "pms:cutover-task:submit-plan"
+  },
+  "restApis": [
+    {"method":"GET","path":"/api/v1/pms/cutover-tasks/{taskId}/plan","permission":"query"},
+    {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/plan/actions/create-draft","permission":"save","headers":["Idempotency-Key"]},
+    {"method":"PUT","path":"/api/v1/pms/cutover-tasks/{taskId}/plan","permission":"save","headers":["If-Match","Idempotency-Key"]},
+    {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/plan/actions/download-draft","permission":"download","headers":["If-Match","Idempotency-Key"]},
+    {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/plan/actions/submit","permission":"submit","headers":["If-Match","Idempotency-Key"]},
+    {"method":"PATCH","path":"/api/v1/pms/cutover-tasks/{taskId}/plan/support-arrangements/{arrangementId}","permission":"save","headers":["If-Match","Idempotency-Key"]},
+    {"method":"POST","path":"/api/v1/pms/cutover-tasks/{taskId}/plan/actions/revise","permission":"save","headers":["Idempotency-Key"]}
+  ],
+  "discriminatedInputs": {
+    "editMode": {
+      "FULL_FILE_UPLOAD": ["fileArtifactFact", "ownershipConfirmed=true"],
+      "ONLINE_TEMPLATE_STANDARD": ["overviewSections", "executionSections", "riskMitigations", "supportArrangements"],
+      "ONLINE_TEMPLATE_SIMPLE_D": ["operationSteps", "rollbackSteps"]
+    },
+    "revisionReason": ["INITIAL", "APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED"]
+  },
+  "approvalStartPort": {
+    "owner": "F-CUT-005",
+    "operation": "start",
+    "requiredInput": ["tenantId","taskId","planRevisionId","revisionNo","grade","assessmentId","assessmentVersion","checklistIdOrNull","checklistVersionOrNull","sourceSnapshot","idempotencyKey","correlationId"],
+    "result": ["approvalInstanceId","approvalVersion","approvalStatus=PENDING"],
+    "transaction": "MANDATORY; joins F-CUT-004 submit transaction; plan submit and approval instance are atomic",
+    "controlledTest": "src/test deterministic provider allowed",
+    "production": "no Fake/fallback; missing F-CUT-005 provider blocks production assembly and Implementation Done"
+  },
+  "approvalResultPort": {
+    "owner": "F-CUT-005",
+    "operations": ["inspect", "lockAndRevalidate"],
+    "statuses": ["PENDING", "APPROVED", "REJECTED", "TERMINATED"],
+    "requiredFact": ["approvalInstanceId","approvalVersion","planRevisionId","status","decisionAtOrNull","rejectionReasonOrNull"],
+    "stale": "expected approval fact differs from current fact",
+    "failure": "provider unavailable or owner data corrupted fail closed"
+  },
+  "errors": [
+    "INVALID_REQUEST","NOT_VISIBLE_OR_NOT_FOUND","STATE_CONFLICT","AGGREGATE_VERSION_STALE","SOURCE_FACT_STALE","FILE_FACT_INVALID","PLAN_INCOMPLETE","RISK_MITIGATION_INCOMPLETE","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","OWNER_PROVIDER_UNAVAILABLE","OWNER_DATA_CORRUPTED"
+  ],
+  "allowedActionsInputs": ["functionalPermissions","projectTaskScope","taskStatusAndVersion","planRevisionStatusAndVersion","approvalFact","sourceValidity","editMode","grade"]
+}

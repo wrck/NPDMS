@@ -188,6 +188,8 @@ Device Access & Collection
 | `TechnicalNoticeSynchronized` | Knowledge | Asset/CUT/Inspection | ITR sourceKey + sourceVersion |
 | `NotificationRequested` | 任意 Owner | 基础平台通知适配器 | businessObject + notificationType + recipient + revision |
 
+`CutoverApproved`只由CUT-05在冻结审批路由的全部节点通过后发布；F-CUT-004提交方案不发布该事件。P4通过同步`CutoverApprovalStartPort`与P5审批实例创建同成同败，不额外发明`CutoverPlanSubmitted`。CUT-05不得通过审批事件改写F-CUT-004已提交方案正文。
+
 F-PROJ-002使用的`DeliveryScopeAssigned/Released`载荷至少包含`eventId/tenantId/orderLineId/projectId/scopeId/scopeVersion/allocatedQty/dimensionDigest/occurredAt`。`dimensionDigest`只用于一致性和审计，不包含SN明文列表或商务正文；事件与COM范围事实同事务进入COM Outbox。Project拆分确认失败时不得出现任何已分配事件；重复、乱序或旧`scopeVersion`不得覆盖新范围投影。
 | `NotificationDelivered/Failed` | 通知适配器 | Owner/运维 | providerMessageId + attemptNo；只表示交付结果 |
 
