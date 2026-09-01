@@ -224,6 +224,20 @@
 - Decision owner: 需求方（业务与平台边界）；BPM与PROJ Owner（契约落位）
 - Decision date: 2026-09-01
 
+### Q-FPROJ-009
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-01@V1、PM-03@V1、PM-09@V2
+- Area: 新建项目首次项目经理指派与S0准出
+- Question: 新建项目尚无`PROJECT_MANAGER`时，应由哪个合法主体、通过哪个唯一命令完成首次项目经理指派，并与`T-ASSIGN-PM`完成及`assignment_status`转换形成一致业务结果？
+- Why it blocks design/implementation: S0准出要求`T-ASSIGN-PM`完成，但现有`TASK_NATIVE COMPLETE`只允许当前项目经理执行；项目创建和现有公开指派命令只形成`SERVICE_MANAGER_L1/L2`，没有V1首次项目经理写入入口，形成循环依赖。
+- Options: A. 当前一级服务经理通过`T-ASSIGN-PM`特殊完成命令选择目标项目经理，成员事实与任务同事务形成；B. 当前一级服务经理先调用独立项目经理确认命令，再由正式项目经理完成`T-ASSIGN-PM`。
+- Recommended technical default: A；任务本身即首次项目经理指派业务动作，可避免第二条命令和中间状态，但必须冻结操作者、权限、项目范围、SYSTEM人员及组织Owner校验。
+- Business decision required: 是。该选择改变V1业务命令、完成主体、成员Owner写入、`assignment_status`和审计/幂等边界，Implementation不得自行决定。
+- Blocking scope: 只阻断F-PROJ-008 Task 3新建项目S0→S1正向Chromium链；已提交Task 1/2及不依赖该问题的工作台UI不回退。
+- Decision owner: 需求方；PROJ、SYSTEM与权限Owner参与影响分析
+- Decision date: 待确认
+
 ### Q-FCUS-001
 
 - Status: RESOLVED

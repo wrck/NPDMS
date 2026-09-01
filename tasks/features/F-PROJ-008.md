@@ -5,7 +5,7 @@
 > Feature Ready Gate：`BASELINE / READY / GO`
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`无`
+> 当前阻断：`BLOCKED_BY_SPEC（Q-FPROJ-009：首次项目经理指派循环依赖）`
 > 当前任务：`Task 3 项目工作区与真实Chromium正向闭环`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
@@ -20,7 +20,7 @@
 
 ## 当前检查点
 
-基线`0c7a9634`；Task 2已完成readiness、Flowable流程启动REST及S0～S4相邻推进原子写链；聚焦6/6、受影响reactor package PASS；无阻断；下一步接入项目工作区并完成一次真实Chromium正向闭环。
+基线`d69b3ff8`；Task 1/2已提交，聚焦6/6与受影响reactor package PASS；Task 3工作台UI及组件3/3、前端build:local已通过；Q-FPROJ-009阻断新建项目S0→S1正向验收；下一步待需求方锁定首次项目经理指派命令后补规格、实现并完成Chromium闭环。
 
 ## 边界
 
