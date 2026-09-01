@@ -47,10 +47,10 @@
 
 ## Task 3：内容Codec、来源冻结与PLT文件事实消费端口
 
-状态：`IN_PROGRESS`
+状态：`CODE_REVIEW_REQUIRED`
 
-- [ ] 实现三种可写方案联合、legacy只读联合及严格内容Codec。
-- [ ] 实现来源冻结和值对象，并预留最窄`CutoverPlanFilePort`。
-- [ ] 使用`src/test`受控端口完成正向聚焦测试并通过独立Domain/Port Gate。
+- [x] 实现三种可写方案联合、legacy只读联合及严格内容Codec。
+- [x] 实现来源冻结和值对象，并预留最窄`CutoverPlanFilePort`。
+- [ ] 使用`src/test`受控端口完成正向聚焦测试并通过独立Domain/Port Gate（候选5/5通过，待独立复审）。
 
-> 检查点：生产PLT初稿生成合同缺失不阻断CUT消费端候选；不注册生产Fake/fallback，不把测试文件事实作为生产或浏览器证据。
+> 检查点：A/B/C标准、D简易、上传与legacy只读联合已形成，CUT-03失败项全集和WireLong均严格核验；聚焦测试5/5通过。仅有`src/test`受控端口，生产PLT初稿生成仍阻断后续生产闭环。
