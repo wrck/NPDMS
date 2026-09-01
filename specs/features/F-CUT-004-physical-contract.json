@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "featureId": "F-CUT-004",
   "status": "BASELINE_READY",
+  "implementationBlockers": {"DUTY_CHANGED":"Q-FCUT004-001 must first assign P6->P4 Owner, history trigger, plan/approval/closure CAS and old current projection handling; no current DDL or state transition authorizes this branch"},
   "requirementSlices": ["CUT-04@V1=FULL"],
   "owner": "CUT",
   "aggregate": "CutoverPlan",

@@ -188,6 +188,8 @@
 
 **Produces：** 驳回/失效/职责变化派生新DRAFT；批准方案只变更联系人类字段并留平台前后审计。
 
+**实施定点裁决：** `DUTY_CHANGED`因`Q-FCUT004-001`缺少P6→P4物理Owner、历史触发器及旧批准/闭环处置而保持`BLOCKED_BY_SPEC`；本Task当前只实施REJECTED、SOURCE_REPLACED与批准后联系人PATCH，不用其他已批准转换替代职责变化。
+
 **Files:**
 
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/plan/command/ReviseCutoverPlanCommand.java`

@@ -69,6 +69,7 @@
 - CUT-05驳回后，工程师以原提交revision为`source_plan_revision_id`创建新DRAFT，原revision与审批意见保持不可变。
 - 批准后仅姓名、联系电话、到位时间变更可在原批准revision的保障安排投影上更新并追加前后审计，不重审。该PATCH只接受方案根`If-Match`：事务先CAS递增`cut_plan_revision.version`，再更新锁定人员行内部版本与审计；任一步失败整体回滚，不接受客户端从表版本。
 - 角色或任务职责变化必须创建引用原批准revision的新DRAFT，并通过同一提交合同重新进入P5。
+- `DUTY_CHANGED`的上述业务义务保持不变，但当前正式状态机尚未分配`P6/CLOSURE_IN_PROGRESS -> P4/PLAN_DRAFTING`的物理Owner、历史触发器、旧APPROVED事实及可能存在的CUT-06闭环处置；在`Q-FCUT004-001`关闭前，该分支为`BLOCKED_BY_SPEC`，不得用来源失效、审批驳回或联系人PATCH替代。Task 6可独立交付REJECTED、SOURCE_REPLACED和批准后联系人PATCH。
 
 ### BR-FCUT004-005 文件、下载与权限
 

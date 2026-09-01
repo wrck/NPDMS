@@ -506,6 +506,22 @@
 - Decision owner: 需求方；AST、SYSTEM、CUT领域Owner参与裁决
 - Decision date: 2026-08-31
 
+## F-CUT-004 Task 6 待裁决项
+
+### Q-FCUT004-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: CUT-04
+- Area: 已批准方案职责变化后的阶段回退与重新审批
+- Question: 任务已由CUT-05批准进入`P6/CLOSURE_IN_PROGRESS`后，角色或任务职责变化应由哪个物理Owner以什么状态迁移、历史触发器和事务边界返回P4并重新进入P5？
+- Why it blocks design/implementation: 正式业务规则要求职责变化创建新DRAFT并重走P5，但当前状态机只定义F-CUT-004的P4→P5与P5来源失效→P4，以及F-CUT-005的P5驳回→P4、批准→P6；不存在P6→P4 Owner/触发器。CUT-05的`previousApprovalInstanceId`又只允许引用REJECTED或PAUSED事实，不能引用或改写APPROVED事实；当前也未定义在途CUT-06闭环及旧批准revision的current_marker处置。
+- Options: A. 正式批准F-CUT-004拥有P6职责变化回退，并补齐task/plan/approval/closure CAS、历史触发器与新审批引用；B. 指定CUT-05或CUT-06拥有回退命令并向F-CUT-004提供稳定结果事实；C. 调整业务要求，不允许P6职责变化重新审批。
+- Recommended technical default: B，由拥有P6闭环/审批协调语义的Owner先形成回退事实；F-CUT-004只在任务已权威返回P4后派生新DRAFT。
+- Business decision required: 是；该选择改变P6状态迁移Owner、审批链及可能存在的闭环在途事实处置。
+- Blocking scope: 仅`revise(reason=DUTY_CHANGED)`运行实现与对应REST动作；REJECTED、SOURCE_REPLACED、批准后联系人PATCH及其受控正向验证不阻断。
+- Decision owner: 需求方；CUT-04、CUT-05、CUT-06领域Owner及数据Owner参与裁决
+- Decision date: 待定
+
 ## F-IMP-002 Task 5B 裁决项
 
 ### Q-FIMP002-001

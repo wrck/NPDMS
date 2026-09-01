@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "featureId": "F-CUT-004",
   "status": "BASELINE_READY",
+  "implementationBlockers": {"DUTY_CHANGED":"BLOCKED_BY_SPEC Q-FCUT004-001; request shape is reserved but no runtime stage transition is authorized","executableReviseReasons":["APPROVAL_REJECTED","SOURCE_REPLACED"]},
   "requirementSlices": ["CUT-04@V1=FULL"],
   "wire": {
     "WireLong": "JSON number only when -9007199254740991 < value < 9007199254740991; otherwise plain decimal JSON string",

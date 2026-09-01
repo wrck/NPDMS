@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Task 1～5均已通过；当前进入Task 6修订链与批准后联系人变更正向闭环。
+- Task 1～5均已通过；当前进入Task 6的REJECTED、SOURCE_REPLACED与批准后联系人变更正向闭环；DUTY_CHANGED按`Q-FCUT004-001`保持`BLOCKED_BY_SPEC`。
 - 后续按计划先完成每个Task最小正向实现，再补正向验证；生产CUT-05/PLT Provider缺失继续阻断生产装配、浏览器和Implementation Done。
 
 ## Gate清单
@@ -80,3 +80,13 @@
 - [x] 使用受控PLT/CUT-05端口完成正向链并通过独立Submission/MySQL Gate（`GO@d559c02c`）。
 
 > 检查点：独立复审确认下载前锁定重验冻结来源、提交/失效状态与事务闭环成立；正向聚焦12/12、隔离MySQL 2/2通过。Task 5 Gate通过，生产PLT/CUT-05仍阻断生产装配、浏览器和Implementation Done。
+
+## Task 6：修订链与批准后联系人变更
+
+状态：`IN_PROGRESS / DUTY_CHANGED_BLOCKED_BY_SPEC`
+
+- [ ] REJECTED派生新DRAFT并保留旧提交/审批历史。
+- [ ] PAUSED_SOURCE_INVALIDATED派生SOURCE_REPLACED，新revision提交时引用旧审批实例。
+- [ ] APPROVED后仅联系人、电话、到位时间按方案根If-Match更新并保存平台前后审计。
+- [ ] `DUTY_CHANGED`等待`Q-FCUT004-001`锁定P6→P4 Owner、历史触发器与旧批准/闭环处置；不得实现替代迁移。
+- [ ] 通过Task 6 Lifecycle/MySQL独立Gate。

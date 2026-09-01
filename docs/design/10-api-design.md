@@ -246,6 +246,8 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | `/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection` | POST | 输入checklistVersion、itemVersion、deviceId、commandTemplateId和Idempotency-Key，为设备采集项创建DAC CollectionTask | 绑定任务、清单版本、采集项、设备和命令模板；DAC回调只生成技术结果，CUT经版本匹配后追加/选择ItemResult，不直接判定采集项通过 |
 | `/cutover-tasks/{id}/plan`、`/plan/actions/{create-draft|download-draft|submit|revise}` | P4 detail、save、download、submit、revise | F-CUT-004拥有方案正文、步骤、风险措施、文件引用、保障人员和revision；上传分支不强制解析在线模板；submit必须通过`CutoverApprovalFactApi.start`与CUT-05审批实例创建同成同败 |
 | `/cutover-tasks/{id}/plan/support-arrangements/{arrangementId}` | PATCH contacts | 批准后仅姓名、联系方式、到位时间变化留前后审计且不重审；角色/职责变化禁止PATCH，必须生成新方案revision并重走P5 |
+
+`revise(reason=DUTY_CHANGED)`在`Q-FCUT004-001`关闭前仅保留公开请求形状，不得接入生产运行路径；当前可执行修订原因只有`APPROVAL_REJECTED`与`SOURCE_REPLACED`。不得用P5来源失效或审批驳回语义伪造P6职责变化回退。
 | `/cutover-tasks/{id}/actions/request-collection` | POST | 兼容非清单级采集入口 | 新P3采集项使用item级入口；均不读取凭证明文，不创建独立采集阶段 |
 | `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因；V2对A/B级校验专项提前时间并按INT-10/INT-05发送已定义提醒，提醒失败不改变审批状态 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
