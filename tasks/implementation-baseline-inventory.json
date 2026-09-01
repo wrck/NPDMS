@@ -408,7 +408,7 @@
     {
       "legacyKey": "LegacyProjectSingularWrites",
       "status": "DEPRECATED_READ_ONLY",
-      "requirementRefs": ["PM-01"],
+      "requirementRefs": ["PM-01", "PM-03"],
       "replacementFeatureRefs": ["F-PROJ-001"],
       "legacyPaths": [
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/project/ProjectController.java",
@@ -417,10 +417,13 @@
       ],
       "replacementPaths": [
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/ProjectStageAdvanceController.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue"
       ],
-      "cutoverEvidence": "F-PROJ-001 Implementation Done 1c76050；旧/pms/project仅保留查询",
+      "cutoverEvidence": "F-PROJ-001 Implementation Done 1c76050；F-PROJ-008 Task 2已集成158118d0且Feature仍IN_PROGRESS；旧/pms/project仅保留查询",
       "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
     },
     {

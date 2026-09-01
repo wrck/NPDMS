@@ -5,7 +5,7 @@
 > Feature Ready Gate：`BASELINE / READY / GO`
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`Q-FPROJ-009（Task 3 项目工作区展示边界未获权威规格批准）`
+> 当前阻断：`Q-FPROJ-009（新建项目首次PROJECT_MANAGER指派与T-ASSIGN-PM完成形成循环依赖）`
 > 当前任务：`Task 3 BLOCKED_BY_SPEC；不得迁入源分支UI提交`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
@@ -20,7 +20,7 @@
 
 ## 当前检查点
 
-master已从源提交`0c7a9634`、`d69b3ff8`选择性迁入Task 1、Task 2，并完成master侧复核修订；Task 2计划要求的Readiness、Application、Controller与真实MySQL测试共10项全部PASS、无跳过，`pms-module-project,pms-module-integration`受影响模块package PASS。Task 1、2完成不等于Feature Implementation Done；源提交`a3bd0043`的Task 3 UI因`Q-FPROJ-009`仍为`BLOCKED_BY_SPEC`，不得迁入master。
+master已从源提交`0c7a9634`、`d69b3ff8`选择性迁入Task 1、Task 2，并完成master侧复核修订；Task 2计划要求的Readiness、Application、Controller与真实MySQL测试共10项全部PASS、无跳过，`pms-module-project,pms-module-integration`受影响模块package PASS。Task 1、2完成不等于Feature Implementation Done；新建项目尚无`PROJECT_MANAGER`，而`T-ASSIGN-PM`现有完成动作又只允许当前项目经理执行，`Q-FPROJ-009`尚未批准首次指派命令与合法操作者。故源提交`a3bd0043`的Task 3 UI不得迁入master。
 
 ## 边界
 

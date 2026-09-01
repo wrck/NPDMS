@@ -155,6 +155,11 @@ PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
 )
+PROJECT_WRITE_PERMISSION_ALLOWED_PATHS = frozenset({
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/ProjectStageAdvanceController.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
+})
 RETIRED_PROJECT_TREE_PATTERNS = (
     (
         "route",
@@ -282,9 +287,13 @@ def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
             PROJECT_WRITE_FRAGMENT_PATTERN.search(content)
         ):
             errors.append(f"retired project write route composition: {relative_path}")
-        if PROJECT_WRITE_PERMISSION_PATTERN.search(content) and not any(
-            relative_path.startswith(prefix)
-            for prefix in PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES
+        if (
+            PROJECT_WRITE_PERMISSION_PATTERN.search(content)
+            and relative_path not in PROJECT_WRITE_PERMISSION_ALLOWED_PATHS
+            and not any(
+                relative_path.startswith(prefix)
+                for prefix in PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES
+            )
         ):
             errors.append(f"retired project write permission: {relative_path}")
     return errors

@@ -199,6 +199,19 @@
       ]
     },
     {
+      "featureId": "F-PROJ-008",
+      "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
+      "taskPath": "tasks/features/F-PROJ-008.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "PM-03@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-SOL-001",
       "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
       "taskPath": "tasks/features/F-SOL-001.md",
@@ -308,6 +321,13 @@
           "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
           "taskPath": "tasks/features/F-PROJ-001.md"
+        },
+        {
+          "featureId": "F-PROJ-008",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
+          "taskPath": "tasks/features/F-PROJ-008.md"
         }
       ]
     },

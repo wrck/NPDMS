@@ -576,6 +576,22 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
                 "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
                 "v-hasPermi=\"['pms:project:create', 'pms:project:assign']\"",
             ),
+            "stage-controller": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/ProjectStageAdvanceController.java",
+                '@RequestMapping("/api/v1/pms/projects") class ProjectStageAdvanceController { '
+                '@PreAuthorize("@ss.hasPermission(\'pms:project:update\')") '
+                '@PostMapping("/{projectId}/stage-advance") void advance() {} }',
+            ),
+            "stage-application-service": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
+                "class ProjectStageAdvanceApplicationService { "
+                "boolean allowed = permissionApi.hasAnyPermissions(userId, 'pms:project:update'); }",
+            ),
+            "stage-readiness-service": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
+                "class ProjectStageReadinessService { "
+                "boolean allowed = permissionApi.hasAnyPermissions(userId, 'pms:project:update'); }",
+            ),
         }
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)

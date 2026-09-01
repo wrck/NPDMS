@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO（3ec0f743对来源修订011影响同步独立复审通过；master修订009已选择收敛）`
-> Implementation：`NOT_STARTED`
+> Implementation：`以tasks/features/F-PROJ-008.md为唯一权威；当前IN_PROGRESS，Spec不维护独立实施状态`
 > Requirement：`PM-03（V1阶段门禁正向运行切片）`
 > Requirement切片覆盖：`PM-03@V1=PARTIAL`
 > 关联Requirement：`PM-01`、`PM-04`、`PM-11`；不宣称关联Requirement完成

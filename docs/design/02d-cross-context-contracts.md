@@ -17,7 +17,6 @@
 | CollectionResultAvailable | INT-12、EXE-03、EXE-04、CUT-03、INS-02、INS-04 | Device Access & Collection | Implementation Execution/Cutover/Inspection | 返回CollectionTask、来源业务/项目/设备、原始状态和结果引用；CUT按清单版本与采集项引用回填P3工作台并独立判定业务结果 |
 | ConfigurationLogPublished | EXE-03、EXE-04、EQP-02 | Implementation Execution | Asset Management | 实施域发布采集业务结果、原始文件引用、来源设备和实施解析状态；资产域幂等接收并形成ConfigurationLog及不可变解析版本，双方均不得覆盖来源证据 |
 | ImplementationQualityGateChanged | IMP-01、CLO-01 | Implementation Execution | Project/ACC | 阶段质量检查通过、整改中或阻断的门禁事实；不包含已退出的IMP-02安全检查 |
-
 | DeviceAssigned | EQP-01、EQP-03 | AST | Implementation Execution/Project | 设备当前最具体项目归属及生效版本 |
 | EquipmentLocationEffective | EXE-02、EQP-01 | AST | Implementation Execution/Project | IMP通过`AssetLocationApi`公开命令提交已确认安装/迁移/拆除事实；AST在调用方事务内幂等更新设备当前地点和版本历史，AST不反向读取IMP表 |
 | DeviceComponentRelationChanged | EXE-03、EQP-02、EQP-03 | AST | Implementation Execution/Cutover | 机框、槽位、板卡当前关系、生效区间、解析/人工绑定证据和关系版本 |
@@ -32,6 +31,8 @@
 | `AssetLocationApi.validateCustomerLocations(references)` | CUS-03 | AST | CUS | 批量校验Address/Site的租户、对象类型、存在性和版本；CUS自行维护地点时态引用 |
 | `DeviceCustomerAssigned` | EQP-01、CUS-03 | AST | CUS/PROJ | 设备当前客户直接归属及版本已生效；租用/共管不形成第二个当前直接归属 |
 | `KnowledgePublicProductInfoQueryApi` | EQP-01 | KNO | AST | 按产品/设备映射查询已发布官网信息版本、来源URL、核验时间和摘要；无记录返回NOT_AVAILABLE |
+| `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
+| `ProjectStageGateProcessOwnerApi` | PM-03@V1 | PMS Integration / Flowable | Project | 位于`pms-module-project-api`，由`pms-module-integration`实现；提供按`processDefinitionKey`检查当前生效定义、列出同租户可启动历史定义身份，以及按“冻结key + 可空显式processDefinitionId”启动Gate流程的反腐适配。PROJ对查询和启动均先重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`，不复用需要BPM全局定义查询权限的管理端接口；Provider只返回同key的`processDefinitionId/processDefinitionKey/name/selectable`。未显式选择时由BPM按key选取最新生效定义；显式选择时必须验证定义ID属于同一key且可启动。启动按固定businessKey/变量返回流程实例及实际定义ID；服务端设置Flowable authenticated initiator、start-user及RUNNING状态。既有Gate Reference `refVersion`仅保留历史且不得参与调用，不新增PMS流程版本接口、字段或解析规则，也不得修改Yudao接口或实现。 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 
@@ -42,10 +43,5 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 与客户和设备主档相关的命令和查询只传稳定ID、来源版本、期望版本、权限快照与幂等键。`INT-02`、`INT-03`、`INT-04`及`EQP-04`保持独立同步Feature。
 
 ## F-PROJ-008 阶段门禁 Owner Fact 基线（GO）
-
-| 契约 | Requirement ID | Producer | Consumer | 语义 |
-|---|---|---|---|---|
-| `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
-| `ProjectStageGateProcessOwnerApi` | PM-03@V1 | PMS Integration / Flowable | Project | 位于`pms-module-project-api`，由`pms-module-integration`实现；提供按`processDefinitionKey`检查当前生效定义、列出同租户可启动历史定义身份，以及按“冻结key + 可空显式processDefinitionId”启动Gate流程的反腐适配。PROJ对查询和启动均先重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`，不复用需要BPM全局定义查询权限的管理端接口；Provider只返回同key的`processDefinitionId/processDefinitionKey/name/selectable`。未显式选择时由BPM按key选取最新生效定义；显式选择时必须验证定义ID属于同一key且可启动。启动按固定businessKey/变量返回流程实例及实际定义ID；服务端设置Flowable authenticated initiator、start-user及RUNNING状态。既有Gate Reference `refVersion`仅保留历史且不得参与调用，不新增PMS流程版本接口、字段或解析规则，也不得修改Yudao接口或实现。 |
 
 Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。
