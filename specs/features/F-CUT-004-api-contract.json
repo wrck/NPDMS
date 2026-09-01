@@ -78,5 +78,5 @@
   "errorEnvelope": "all endpoint errors use CommonResult<ErrorData> and true HTTP status: 400 invalid input/header, 403 functional/data scope, 404 invisible/not found, 409 state/version/idempotency/source stale, 422 file or business incomplete, 503 provider unavailable; internal corruption remains 500",
   "internalApprovalContract": "specs/features/F-CUT-005-approval-owner-contract.json",
   "productionBoundary": "no product Controller/Service/Bean, Fake or fallback is authorized before Feature Ready and Technical Plan Gates",
-  "task4ExecutableAmendmentGate": "REVIEW_REQUIRED"
+  "task4ExecutableAmendmentGate": "PASS / GO@94157db2"
 }

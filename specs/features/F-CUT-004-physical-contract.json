@@ -205,5 +205,5 @@
   },
   "machineContractGate": "PASS / GO@87b0b066",
   "featureReadyGate": "REVIEW_REQUIRED",
-  "task4ExecutableAmendmentGate": "REVIEW_REQUIRED"
+  "task4ExecutableAmendmentGate": "PASS / GO@94157db2"
 }
