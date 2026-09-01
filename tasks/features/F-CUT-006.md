@@ -9,13 +9,15 @@
 > Feature Spec：`specs/features/F-CUT-006-p6-cutover-closure.md`
 > 机器合同：`specs/features/F-CUT-006-api-contract.json`、`specs/features/F-CUT-006-physical-contract.json`
 > 旧实现审计：`specs/features/F-CUT-006-legacy-reuse-audit.md`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`
 
 ## 当前最小工作单元
 
 - 形成CUT-06完整纵向Feature，不拆成INT-12专用Provider碎片。
 - 跨模块仅保留`ProjectScopeApi/FileArtifactApi/INT-12`消费端口；正常正向闭环使用`src/test`受控替身，不修改其他Owner或Yudao。
 - Feature Ready独立最小整改复审已在`4e390d4f`裁决`GO`，采集基数、归档/晚到回调、平台事务顺序/resultRef及PLT迁移证据生命周期四项阻断均已关闭。
-- 最近Gate：生成并独立复审F-CUT-006唯一Technical Plan；GO前不实现代码或DDL。
+- 唯一Technical Plan候选已生成，Gate保持`REVIEW_REQUIRED`；GO前不实现代码或DDL。
+- 最近Gate：`docs/superpowers/plans/2026-09-02-f-cut-006-p6-cutover-closure.md`独立Technical Plan复审。
 
 ## 状态边界
 
