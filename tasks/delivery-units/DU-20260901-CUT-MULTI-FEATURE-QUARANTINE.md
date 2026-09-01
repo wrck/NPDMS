@@ -13,7 +13,7 @@
 > 串行资源：`PRD;COM/CUT/IMP公共契约;Flyway;Feature任务与矩阵`
 > 旧功能范围：`NONE`
 > 验证：`仅保留各分支提交与局部测试为候选证据`
-> 集成记录：`截止85b93828整支禁止集成；必须按Feature/Task重新拆分DU`
+> 集成记录：`截止85b93828整支仍禁止集成；仅四组PROJ Owner carve-out由DU-20260901-CUT-PROJ-OWNER-INTEGRATION进入master，其余内容继续隔离`
 
 ## 审计结论
 
@@ -21,5 +21,6 @@
 - F-CUT-004仅达到受控替身闭环，生产依赖未满足。
 - F-CUT-005在`912d0cdb`通过Technical Plan；其后Task 1在`e6dac9fe`、Task 2在`367438e6`分别自报Gate通过，`85b93828`时Feature为IN_PROGRESS且Task 3已开始。这些提交发生在有效DU认领前，只能作为待拆分候选，不能倒签Owner或解除整支隔离。
 - F-IMP-001在Ready NO-GO与Task NOT_STARTED时已有API/DTO/契约测试提交，属于Ready前实施。
+- 已完成的例外拆分仅限PROJ物理Owner：`b4f16bdf/f4aa1ad2`、`9d029976/319a616e/86ea27de`、`e68ad4e0..8eb36222`、`5e3ce44c..912d0cdb`分别选择性进入`master@5f5148a9/f1cf7920/e2f51762`。其中只有项目系统资格锁含生产Provider；其余均保持公共契约或机器合同成熟度，不构成消费Feature完成。
 
-本记录只隔离历史事实，不倒签认领；任何继续实施必须新建范围明确的DU，并从包含认领提交的master更新分支。
+本记录只隔离历史事实，不倒签认领；上述PROJ carve-out不解除分支其余COM、IMP、CUT、SYSTEM实现与状态文件的隔离。任何继续实施必须新建范围明确的DU，并从包含认领提交的master更新分支。

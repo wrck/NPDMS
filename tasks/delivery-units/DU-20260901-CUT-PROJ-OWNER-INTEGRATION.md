@@ -1,6 +1,6 @@
 # DU-20260901-CUT-PROJ-OWNER-INTEGRATION CUT分支PROJ Owner支撑集成
 
-> DU状态：`IN_PROGRESS`
+> DU状态：`INTEGRATED_PARTIAL`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`T-FCOM001-PROJ-01;T-FIMP002-PROJ-01;F-CUT-002项目上下文支撑合同;T-FCUT005-PROJ-01`
@@ -13,7 +13,7 @@
 > 串行资源：`PROJ公共契约;SDS跨Context契约;master Feature任务矩阵`
 > 旧功能范围：`NONE`
 > 验证：`ProjectSystemQualification与ProjectDeliveryScopeQualification聚焦测试；pms-module-project编译；SDS与Delivery Unit校验；分支时间线重生成`
-> 集成记录：`IN_PROGRESS；只选择性接收codex/f-cut-001-matrices中的PROJ Owner内容，不接收CUT/COM/IMP实现`
+> 集成记录：`codex/f-cut-001-matrices的四组PROJ Owner carve-out已选择性进入master@5f5148a9/f1cf7920/e2f51762；其余CUT/COM/IMP/SYSTEM内容未接收`
 
 ## 目标与边界
 
@@ -23,12 +23,16 @@
 
 ## 交接
 
-- 最后提交：`NONE`
-- 已完成：已按时间线识别四条PROJ Owner能力及最终文件边界。
-- 剩余：选择性集成、聚焦验证、权威矩阵回写和集成提交。
-- 测试：未开始。
-- 已知失败：`ProjectDeliveryScopeQualificationFactApi`、`ProjectCutoverContextFactApi`、`ProjectCutoverServiceManagerFactApi`均无生产Provider；这是冻结的未完成事实，不以替身关闭。
+- 最后提交：`5f5148a9122c15acaf54682bfa6646aa3aa0501f`、`f1cf7920bcfc8da2c37ead6b281b75cf374cd447`、`e2f51762b544e8ec9631a177c092493ca470d9eb`。
+- 已完成：按完整分支时间线拆出并集成项目系统资格锁的公共API、生产Provider与测试；交付范围项目资格公共API、机器合同与契约测试；项目割接上下文ADR/机器合同；割接服务经理候选机器合同。SDS和Requirement追溯已从master权威输入重生成。
+- 剩余：`ProjectDeliveryScopeQualificationFactApi`生产Provider、`ProjectCutoverContextFactApi`公共Java接口及生产Provider、`ProjectCutoverServiceManagerFactApi`公共Java接口及生产Provider；四个消费Feature仍须各自建立有效DU并按其权威Task完成。
+- 测试：master聚焦Maven Reactor成功，3个测试类共16项（0失败、0错误、0跳过）；SDS Phase 1、追溯生成检查、JSON解析、Delivery Unit校验和分支时间线生成通过。
+- 已知失败：master未配置Compose要求的`NPDMS_DB_USER`、`NPDMS_DB_PASSWORD`、`NPDMS_MYSQL_ROOT_PASSWORD`，因此未重复运行真实MySQL测试；来源提交`f4aa1ad2`中的MySQL结果仅保留为来源证据，不晋级为本次master运行证据。后三项缺失Provider是冻结的未完成事实，不以替身关闭。
 
 ## 集成回执
 
-待本DU完成后由master协调者记录选中的来源提交、目标提交和验证结果；结论最多为`INTEGRATED_PARTIAL`，不改变四个消费Feature的Implementation Done状态。
+- `ProjectSystemQualificationFactApi`：来源`b4f16bdf`、`f4aa1ad2`，进入`master@5f5148a9`；公共API、生产Provider及聚焦测试已集成。
+- `ProjectDeliveryScopeQualificationFactApi`：来源`9d029976`、`319a616e`、`86ea27de`，进入`master@f1cf7920`；只集成公共API、机器合同及契约测试，无生产Provider。
+- `ProjectCutoverContextFactApi`：来源`e68ad4e0`、`f04650b6`、`17c826e1`、`5d334050`、`15c25e89`、`8eb36222`，进入`master@e2f51762`；只集成ADR和机器合同，无公共Java接口或生产Provider。
+- `ProjectCutoverServiceManagerFactApi`：来源`5e3ce44c`、`2efad8ce`、`2e3fdba3`、`d990c205`、`912d0cdb`，进入`master@e2f51762`；只集成候选Owner机器合同，无公共Java接口或生产Provider。
+- 结论：`INTEGRATED_PARTIAL`。该结论只释放本DU写边界，不改变F-COM-001、F-IMP-002、F-CUT-002、F-CUT-005的Implementation Done状态，也不解除来源分支其余内容的隔离。
