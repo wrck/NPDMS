@@ -154,7 +154,8 @@ public class CutoverPlanController {
 
     private CutoverPlanView view(CutoverPlanRequestContext.TrustedContext trusted, Long taskId) {
         return queryService.detail(trusted.tenantId(), trusted.actorId(), taskId,
-                new CutoverPlanQueryService.PlanAccess(trusted.canCreate(), trusted.canSave(), trusted.canDownload()));
+                new CutoverPlanQueryService.PlanAccess(trusted.canCreate(), trusted.canSave(),
+                        trusted.canSubmit(), trusted.canDownload()));
     }
 
     private CutoverPlanRequestContext.TrustedContext trusted(Long taskId) { requireId(taskId); return requestContext.current(); }

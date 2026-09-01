@@ -30,7 +30,7 @@ class CutoverPlanControllerContractTest {
         application = mock(CutoverPlanApplicationService.class);
         query = mock(CutoverPlanQueryService.class);
         CutoverPlanRequestContext context = () -> new CutoverPlanRequestContext.TrustedContext(
-                1L, 8L, "corr-1", true, true, true);
+                1L, 8L, "corr-1", true, true, true, true);
         CutoverPlanController controller = new TestController(application, query, context,
                 new CutoverPlanRequestCodec());
         when(query.detail(any(), any(), any(), any())).thenReturn(new CutoverPlanView(
@@ -57,6 +57,7 @@ class CutoverPlanControllerContractTest {
         when(application.revise(any())).thenReturn(new CutoverPlanCommandResult(50L,6,61L,2,0,"DRAFT",false));
 
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan")).andExpect(status().isOk()).andExpect(jsonPath("$.data.taskId").value(50));
+        verify(query).detail(1L, 8L, 50L, new CutoverPlanQueryService.PlanAccess(true, true, true, true));
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
                 .header("X-Task-Version","4").header("Idempotency-Key","i1")
                 .contentType("application/json").content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))

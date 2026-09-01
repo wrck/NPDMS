@@ -201,8 +201,8 @@ class CutoverPlanApplicationMySqlTest {
                 tenantId, 8L, taskId, 6, submitted.planRevisionId(), "SOURCE_REPLACED",
                 "revise-source-1", "corr-revise-source-1"));
         CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
-                owners, owners, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
-                new CutoverPlanQueryService.PlanAccess(true, true, true));
+                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
+                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
         assertEquals(302L, detail.sourceSnapshot().path("devices").get(0).path("deviceId").asLong());
         assertEquals(302L, detail.content().path("overview").path("deviceSummary").get(0)
                 .path("deviceId").asLong());

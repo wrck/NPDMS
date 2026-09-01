@@ -5,7 +5,7 @@ public interface CutoverPlanRequestContext {
     TrustedContext current();
 
     record TrustedContext(Long tenantId, Long actorId, String correlationId,
-                          boolean canCreate, boolean canSave, boolean canDownload) {
+                          boolean canCreate, boolean canSave, boolean canSubmit, boolean canDownload) {
         public TrustedContext {
             if (tenantId == null || tenantId <= 0 || actorId == null || actorId <= 0
                     || correlationId == null || correlationId.isBlank()

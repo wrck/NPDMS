@@ -62,6 +62,6 @@ class CutoverPlanRequestCodecTest {
     @Test
     void rejectsZeroTrustedTenant() {
         assertThatThrownBy(() -> new CutoverPlanRequestContext.TrustedContext(
-                0L, 8L, "corr-1", true, true, true)).isInstanceOf(IllegalArgumentException.class);
+                0L, 8L, "corr-1", true, true, true, true)).isInstanceOf(IllegalArgumentException.class);
     }
 }
