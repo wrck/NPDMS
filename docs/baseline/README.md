@@ -13,7 +13,7 @@
 
 | 文件 | 用途 |
 |---|---|
-| `prd-v1.8.md` | PRD V1.8修订008的当前内容快照，已合并修订001—008，供SDS、Feature和测试读取；不得直接编辑 |
+| `prd-v1.8.md` | PRD V1.8修订009的当前内容快照，已合并修订001—009，供SDS、Feature和测试读取；不得直接编辑 |
 | `prd-v1.8-amendment-001-no-manual-project-draft.md` | 已批准增量：手动项目创建失败不保留草稿 |
 | `prd-v1.8-amendment-002-organization-and-asset-location.md` | 已批准增量：组织主数据与AST地点所有权 |
 | `prd-v1.8-amendment-003-pm07-template-match-decision-history.md` | 已批准增量：PM-07模板匹配决策历史与影响识别 |
@@ -22,6 +22,7 @@
 | `prd-v1.8-amendment-006-selective-mapping-and-baseline-repair.md` | 已批准修订：PRE-04选择性映射、修订004回写与基线一致性修复 |
 | `prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md` | 已批准修订：111个Requirement目标版本切片、配置基础前置规则及自动派生覆盖 |
 | `prd-v1.8-amendment-008-cutover-dual-machine-count-correction.md` | 已批准修订：五类双机部署规范性检查按明细校准为97项，124不再作为发布或验收数量 |
+| `prd-v1.8-amendment-009-project-bpm-definition-identity.md` | 已批准修订：选择PROJ分支已批准的BPM定义身份语义进入master，不导入并行COM/ACC修订 |
 | `prd-v1.7.md` | 已被V1.8替代的历史快照；仅用于差异和审计追溯 |
 | `requirement-baseline.yaml` | 版本、Requirement/切片数量、哈希、范围分类和校验命令 |
 | `baseline-signoff.md` | 基线批准、适用范围和签署记录；不虚构签署人 |

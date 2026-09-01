@@ -90,6 +90,7 @@
 ### 5.5 Stage—ProjectTask工作台
 
 - 工作台导航投影只从ProjectStage和ProjectTask真值生成，`treeVersion/templateRevision`变化后切换新版本，不维护独立导航缓存真值。
+
 - 绑定业务组件的数据由Owner API返回；缓存只保存无敏感信息的绑定摘要。编辑、创建、审批、文件和设备采集操作必须回源授权。
 - ProjectTask完成以`taskVersion + executionContractId/contractVersion + factVersion + Idempotency-Key`为并发边界。服务端锁定任务并重新读取当前执行契约和Owner事实；任一版本变化即拒绝，不用旧判定结果推进。成功判定、`TaskCompletionEvaluation`和任务状态迁移同事务提交。
 - 执行契约换版使用`projectTaskId + current contractVersion`乐观锁：新版本插入与旧版本关闭有效区间在同一事务，数据库当前标记唯一键防止两个当前版本。模板发布后任务定义不可原位更新。
@@ -189,3 +190,9 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 | 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 | Phase 3 性能验证后登记，不作为业务规则臆造；不构成 Phase 2 未决项 |
 
 本分册满足 Phase 2 并发契约；实现时不得通过关闭乐观锁、放宽唯一键、共享跨租户缓存或忽略版本冲突来使测试通过。
+
+## F-PROJ-008 锁序与CAS基线（GO）
+
+阶段推进的稳定顺序为：Project当前行 → 当前/下一Stage（按sort/id）→ 当前Stage EXIT Gate（gateId）→ Gate Reference（gateId/refType/refCode/id）→ PROJ本地事实稳定键或外域Owner Provider。Provider以`MANDATORY`加入同一MySQL事务；取得后序Owner锁后不得回头补锁前序PROJ对象。ProjectVersion、treeVersion、StageVersion、Gate/Reference版本及Owner FactVersion任一变化均整体失败；缓存和readiness预览不得替代锁内事实。BPM启动先锁定Gate Reference的定义key；未显式选择定义ID时解析最新生效定义，显式选择时验证该processDefinitionId属于同一key，再固定businessKey并启动。事实重验以gateReferenceId固定businessKey取得同一引用的尝试集合，按`startTime/processInstanceId`稳定选择最新并核对实例实际processDefinitionId；多个活动实例或定义key/实例身份不一致失败关闭，既有refVersion不参与并发身份。
+
+成功事务原子提交Gate结果、两Stage状态、Project.current_stage/version、不可变Snapshot、审计、Outbox及幂等完成点；影响行数不为预期即回滚。并发同项目推进只能有一个成功。

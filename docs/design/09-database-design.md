@@ -627,3 +627,11 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
 
 下载链接不落业务表；由文件能力按用户和文件生成默认5分钟、可配置的短期授权。具体列长、索引名和DDL由Technical Plan按本契约生成前向迁移。
+
+## F-PROJ-008 P3-E09聚焦基线（GO）
+
+结论：`NO_PHYSICAL_DELTA`。
+
+阶段推进直接复用`proj_project`、`proj_project_stage`、`proj_project_gate`、`proj_project_gate_reference`、`proj_project_task`、`proj_project_milestone`、ACC唯一应交根、执行契约、`proj_project_stage_snapshot`及既有Outbox/审计载体。`proj_project_stage_snapshot`现有before/after stage、guard snapshot、provider facts、treeVersion、operationId、actor及唯一键足以承载`operation_type=STAGE_ADVANCE`。`ref_type`现有字符列加性使用受控`MILESTONE/APPROVAL`值不需要DDL。
+
+APPROVAL/PROCESS不新建PMS映射表：`ref_code`只冻结Flowable `processDefinitionKey`；新写`ref_version`保持NULL，既有非空值仅保留历史且不得参与发布、启动、节点解析或门禁判断。`pms-module-integration`的流程Owner Provider在未显式选择定义ID时按key解析最新生效定义，显式选择历史`processDefinitionId`时验证其属于同一key且可启动，再以RuntimeService按实际定义ID启动；固定`businessKey=PROJECT_STAGE_GATE:{gateReferenceId}`并冻结tenantId、projectId、stageCode、gateId、gateReferenceId、refType、refCode、actor和实际processDefinitionId变量。启动时由服务端设置`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`，并通过Flowable `Authentication.setAuthenticatedUserId`在try/finally中设置、清除发起人；命令不接收可覆盖这些字段的客户端变量或自选审批人。事实Provider只按该businessKey、冻结变量和BPM实例实际定义ID读取Flowable运行/历史事实；没有实例、整数状态1运行中、3驳回、4撤回、2批准完成和未知分别按10/16分册判定。既有受管模板的历史`ref_version`不迁移、不覆盖，运行时按同一`ref_code`处理。禁止新增第二门禁结果表、阶段历史表、流程版本字段或修改旧Flyway；若实现期证明既有Flowable事实无法唯一承载上述关联，必须回到本Gate复审必要的加性事实，不得在Technical Plan静默补表。
