@@ -139,10 +139,10 @@ class TemplatePublishValidatorTest {
     }
 
     @Test
-    void gateProcessReferenceWithoutVersionRejected() {
+    void gateProcessReferenceWithPmsVersionRejected() {
         TemplateDefinitionContent content = buildValidContent();
-        content.getGates().get(0).getReferences().get(3).setRefVersion(null);
-        assertHasFailure(content, "缺少版本");
+        content.getGates().get(0).getReferences().get(3).setRefVersion("1");
+        assertHasFailure(content, "不得写入PMS流程版本");
     }
 
     @Test
@@ -229,7 +229,7 @@ class TemplatePublishValidatorTest {
         content.setSigningMethod("DIRECT_SIGN");
         content.setProjectCategory("GENERAL");
         content.setProcessDefinitionKey("pms-standard-delivery");
-        content.setProcessDefinitionVersion("1");
+        content.setProcessDefinitionVersion(null);
 
         TemplateDefinitionContent.StageDef s0 = new TemplateDefinitionContent.StageDef();
         s0.setStageCode("S0"); s0.setName("启动"); s0.setSortOrder(0);
@@ -269,7 +269,7 @@ class TemplatePublishValidatorTest {
         stateRef.setRefType(TemplateDefinitionContent.REF_TYPE_STATE); stateRef.setRefCode("TASK_COMPLETED");
         TemplateDefinitionContent.GateRef processRef = new TemplateDefinitionContent.GateRef();
         processRef.setRefType(TemplateDefinitionContent.REF_TYPE_PROCESS);
-        processRef.setRefCode("pms-approval"); processRef.setRefVersion("1");
+        processRef.setRefCode("pms-approval"); processRef.setRefVersion(null);
         g1.setReferences(new ArrayList<>(List.of(taskRef, deliverableRef, stateRef, processRef)));
         content.setGates(List.of(g1));
         return content;
