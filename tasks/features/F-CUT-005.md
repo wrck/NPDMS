@@ -47,6 +47,7 @@
 - `e5aff408`以独立`REQUIRES_NEW` Provider Bean隔离SYSTEM通知事务，证明Provider失败回滚不影响CUT外层持久化`PENDING_RETRY`，独立复审正式GO；最近Gate为Task 7六路由REST与严格请求合同。
 - `0f98d527`关闭审批成功后Owner刷新与结构化错误合同问题；`eefb40ec`进一步冻结实际决定节点并使同键同载荷重放直接复用平台结果，Task 7独立复审正式GO；最近Gate为Task 8实施前边界核验。
 - Task 8候选已完成P5完整/最终结果/管理员改派三种投影、本人待办与改派队列入口、五项评审及服务经理复核、合法驳回和统一写后刷新屏障；跨模块Owner仅使用正式接口与测试模拟，无生产Fake/fallback。当前等待独立Code Review／组件交互Gate。
+- `327d1477`首轮Task 8独立复审为`NO-GO`；整改已改为审批专用抽屉直达三种投影，补齐冻结P2五维和风险/业务项正文，使用`REFRESH_APPROVAL/REFRESH_SOURCES`恢复动作，并按任务、节点与改派版本重置本地状态。39项正向组件交互和低并发原命令`build:local`均通过，等待最小整改复审。
 
 ## 物理Owner支撑Task
 

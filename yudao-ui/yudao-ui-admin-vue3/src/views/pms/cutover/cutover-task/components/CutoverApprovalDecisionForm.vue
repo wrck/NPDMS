@@ -81,6 +81,7 @@ import type {
 } from '@/api/pms/cutover/cutover-task'
 
 const props = defineProps<{
+  identity?: string
   nodeCode: CutoverApprovalNodeCode
   allowedActions: CutoverApprovalAction[]
   busy: boolean
@@ -103,6 +104,21 @@ const reviewItems = reactive<CutoverApprovalReviewItem[]>(
 const assessmentDecision = ref<'CONFIRMED' | 'NOT_REASONABLE'>('CONFIRMED')
 const assessmentReason = ref('')
 const feedback = ref('')
+const reset = () => {
+  reviewItems.forEach((item) => {
+    item.decision = 'YES'
+    item.unreasonableReason = null
+  })
+  assessmentDecision.value = 'CONFIRMED'
+  assessmentReason.value = ''
+  feedback.value = ''
+}
+watch(
+  () => props.identity,
+  (current, previous) => {
+    if (previous !== undefined && current !== previous) reset()
+  }
+)
 const everyNoHasReason = computed(() =>
   reviewItems.every((item) => item.decision === 'YES' || Boolean(item.unreasonableReason?.trim()))
 )

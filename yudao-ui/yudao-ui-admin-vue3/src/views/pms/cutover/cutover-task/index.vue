@@ -79,9 +79,17 @@
         <el-table-column label="人工等级" width="100"
           ><template #default="{ row }">{{ row.manualGrade || '—' }}</template></el-table-column
         >
-        <el-table-column label="操作" width="90" fixed="right"
+        <el-table-column label="操作" width="150" fixed="right"
           ><template #default="{ row }"
-            ><el-button link type="primary" @click="openDetail(row)">详情</el-button></template
+            ><el-button link type="primary" @click="openDetail(row)">详情</el-button
+            ><el-button
+              data-testid="open-approval-from-task"
+              link
+              type="primary"
+              v-hasPermi="['pms:cutover-task:query-approval']"
+              @click="openApproval(row.id)"
+              >审批</el-button
+            ></template
           ></el-table-column
         >
       </el-table>
@@ -168,7 +176,11 @@
         >
         <el-table-column label="操作" width="90"
           ><template #default="{ row }"
-            ><el-button link type="primary" @click="openApprovalFromQueue(row.taskId)"
+            ><el-button
+              data-testid="open-approval-from-todo"
+              link
+              type="primary"
+              @click="openApprovalFromQueue(row.taskId)"
               >办理</el-button
             ></template
           ></el-table-column
@@ -196,7 +208,11 @@
         >
         <el-table-column label="操作" width="90"
           ><template #default="{ row }"
-            ><el-button link type="primary" @click="openApprovalFromQueue(row.taskId)"
+            ><el-button
+              data-testid="open-approval-from-reassignment"
+              link
+              type="primary"
+              @click="openApprovalFromQueue(row.taskId)"
               >改派</el-button
             ></template
           ></el-table-column
@@ -209,6 +225,15 @@
         @pagination="loadReassignmentQueue"
       />
     </el-dialog>
+
+    <el-drawer v-model="approvalVisible" title="P5 分级审批" :size="drawerSize">
+      <CutoverApprovalPanel
+        v-if="approvalTaskId !== null"
+        :key="String(approvalTaskId)"
+        :task-id="approvalTaskId"
+        @changed="handleApprovalWorkspaceChanged"
+      />
+    </el-drawer>
   </main>
 </template>
 
@@ -240,6 +265,8 @@ const createVisible = ref(false)
 const detailVisible = ref(false)
 const todoVisible = ref(false)
 const reassignmentQueueVisible = ref(false)
+const approvalVisible = ref(false)
+const approvalTaskId = ref<CutoverApi.WireLong | null>(null)
 const approvalQueueLoading = ref(false)
 const rows = ref<CutoverTaskSummary[]>([])
 const approvalTodos = ref<CutoverApi.CutoverApprovalTodoItem[]>([])
@@ -343,10 +370,14 @@ const openReassignmentQueue = async () => {
   reassignmentQueueVisible.value = true
   await loadReassignmentQueue()
 }
+const openApproval = (taskId: CutoverApi.WireLong) => {
+  approvalTaskId.value = taskId
+  approvalVisible.value = true
+}
 const openApprovalFromQueue = async (taskId: CutoverApi.WireLong) => {
   todoVisible.value = false
   reassignmentQueueVisible.value = false
-  await openDetail({ id: taskId })
+  openApproval(taskId)
 }
 
 const openDetail = async (row: { id: CutoverApi.WireLong }) => {
@@ -413,6 +444,11 @@ const handlePlanChanged = async () => {
 const handleApprovalChanged = async () => {
   await refreshDetail()
   await loadPage()
+}
+const handleApprovalWorkspaceChanged = async () => {
+  await loadPage()
+  if (todoVisible.value) await loadApprovalTodos()
+  if (reassignmentQueueVisible.value) await loadReassignmentQueue()
 }
 
 onMounted(loadPage)

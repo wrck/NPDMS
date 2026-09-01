@@ -97,6 +97,9 @@ export const createCutoverPlanIntentStore = (factory: () => string = newIntentKe
     },
     complete(intent: string) {
       keys.delete(intent)
+    },
+    reset() {
+      keys.clear()
     }
   }
 }
@@ -116,6 +119,9 @@ export const createCutoverPlanWriteBarrier = () => {
       } catch {
         return 'REFRESH_FAILED' as const
       }
+    },
+    reset() {
+      pendingRefresh = null
     }
   }
 }
@@ -144,12 +150,14 @@ export const createCutoverApprovalWriteCoordinator = (factory: () => string = ne
       try {
         result = await write(key)
       } catch (error) {
-        const recovery = cutoverPlanRecoveryAction(error)
-        if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
-          await refresh()
+        const recovery = cutoverApprovalRecoveryAction(error)
+        if (recovery === 'REFRESH_APPROVAL' || recovery === 'REFRESH_SOURCES') {
           intents.complete(intent)
-        } else if (recovery === 'START_NEW_INTENT') {
-          intents.complete(intent)
+          try {
+            await refresh()
+          } catch {
+            barrier.register(refresh)
+          }
         }
         throw error
       }
@@ -161,8 +169,20 @@ export const createCutoverApprovalWriteCoordinator = (factory: () => string = ne
         barrier.register(refresh)
         return { writeCalled: true, refreshSucceeded: false, result } as const
       }
+    },
+    reset() {
+      intents.reset()
+      barrier.reset()
     }
   }
+}
+
+export const cutoverApprovalRecoveryAction = (error: unknown) => {
+  const action = (error as any)?.response?.data?.data?.recoveryAction
+  if (['REFRESH_APPROVAL', 'REFRESH_SOURCES', 'RETRY_SAME_KEY'].includes(action)) {
+    return action as 'REFRESH_APPROVAL' | 'REFRESH_SOURCES' | 'RETRY_SAME_KEY'
+  }
+  return (error as any)?.response ? 'SURFACE_ERROR' : 'RETRY_SAME_KEY'
 }
 
 export const encodeChecklistDirectAnswer = (value: string) => JSON.stringify({ value })

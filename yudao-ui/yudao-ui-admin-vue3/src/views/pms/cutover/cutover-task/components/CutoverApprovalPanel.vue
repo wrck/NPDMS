@@ -32,6 +32,21 @@
         <el-descriptions-item label="人工等级">{{
           view.sourceSnapshot.assessment.manualGrade
         }}</el-descriptions-item>
+        <el-descriptions-item label="业务重要程度">{{
+          view.sourceSnapshot.assessment.businessImportanceLevel
+        }}</el-descriptions-item>
+        <el-descriptions-item label="操作复杂程度">{{
+          view.sourceSnapshot.assessment.operationComplexityLevel
+        }}</el-descriptions-item>
+        <el-descriptions-item label="隐患风险程度">{{
+          view.sourceSnapshot.assessment.hiddenRiskLevel
+        }}</el-descriptions-item>
+        <el-descriptions-item label="是否申请备件">{{
+          view.sourceSnapshot.assessment.sparePartApplied ? '是' : '否'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="客户服务等级">{{
+          view.sourceSnapshot.assessment.customerServiceLevelCode
+        }}</el-descriptions-item>
       </el-descriptions>
       <ol class="approval-route" aria-label="审批路径">
         <li
@@ -56,10 +71,33 @@
       </ol>
       <div class="frozen-evidence">
         <h3>冻结审批依据</h3>
-        <p
-          >风险检查 {{ view.sourceSnapshot.riskItems.length }} 项，业务调研
-          {{ view.sourceSnapshot.businessSurveyItems.length }} 项。</p
+        <section
+          v-if="view.sourceSnapshot.riskItems.length"
+          class="evidence-list"
+          aria-label="冻结风险检查"
         >
+          <h4>风险检查</h4>
+          <article v-for="item in view.sourceSnapshot.riskItems" :key="item.stableItemKey">
+            <strong>{{ item.itemName }}</strong>
+            <pre>{{ item.answerSnapshot }}</pre>
+            <p v-if="item.factDescription">{{ item.factDescription }}</p>
+          </article>
+        </section>
+        <section
+          v-if="view.sourceSnapshot.businessSurveyItems.length"
+          class="evidence-list"
+          aria-label="冻结业务调研"
+        >
+          <h4>业务调研</h4>
+          <article
+            v-for="item in view.sourceSnapshot.businessSurveyItems"
+            :key="item.stableItemKey"
+          >
+            <strong>{{ item.itemName }}</strong>
+            <pre>{{ item.answerSnapshot }}</pre>
+            <p v-if="item.factDescription">{{ item.factDescription }}</p>
+          </article>
+        </section>
         <CutoverPlanEditor
           v-if="writableContent"
           :model-value="writableContent"
@@ -70,6 +108,8 @@
       </div>
       <CutoverApprovalDecisionForm
         v-if="currentNode && hasDecisionAction"
+        :key="`${view.approvalInstanceId}:${currentNode.nodeNo}`"
+        :identity="`${view.approvalInstanceId}:${currentNode.nodeNo}`"
         :node-code="currentNode.nodeCode"
         :allowed-actions="view.allowedActions"
         :busy="writing"
@@ -85,6 +125,7 @@
     </template>
     <CutoverApprovalReassignmentPanel
       v-else-if="view?.viewMode === 'REASSIGNMENT_ONLY'"
+      :key="`${view.approvalInstanceId}:${view.approvalVersion}`"
       :view="view"
       :busy="writing"
       @reassign="reassign"
@@ -236,6 +277,16 @@ const reassign = async (request: {
     writing.value = false
   }
 }
+watch(
+  () => props.taskId,
+  async () => {
+    view.value = null
+    errorText.value = ''
+    coordinator.reset()
+    await nextTick()
+    await load()
+  }
+)
 onMounted(load)
 </script>
 
@@ -302,6 +353,26 @@ onMounted(load)
 .frozen-evidence {
   display: grid;
   gap: 14px;
+}
+
+.evidence-list {
+  display: grid;
+  gap: 10px;
+}
+
+.evidence-list h4 {
+  margin: 0;
+}
+
+.evidence-list article {
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+}
+
+.evidence-list pre {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 @media (width <= 1023px) {

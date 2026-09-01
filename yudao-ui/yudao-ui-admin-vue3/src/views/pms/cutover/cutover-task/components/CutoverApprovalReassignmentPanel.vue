@@ -70,6 +70,14 @@ const emit = defineEmits<{
 const selectedNodeNo = ref(props.view.nodes[0]?.nodeNo || 1)
 const newApproverUserId = ref('')
 const reason = ref('')
+watch(
+  () => `${props.view.approvalInstanceId}:${props.view.approvalVersion}`,
+  () => {
+    selectedNodeNo.value = props.view.nodes[0]?.nodeNo || 1
+    newApproverUserId.value = ''
+    reason.value = ''
+  }
+)
 const canSubmit = computed(
   () => /^[1-9]\d*$/.test(newApproverUserId.value.trim()) && Boolean(reason.value.trim())
 )
