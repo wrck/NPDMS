@@ -31,7 +31,7 @@
 | [F-IMP-005](F-IMP-005-joint-debugging-configuration.md) | 业务联调配置收集 | EXE-04（V1） | DRAFT | NOT_READY | NOT_STARTED |
 | [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/02（V1，PARTIAL） | BASELINE | READY（GO@cad8088a） | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（生产Owner事实继续阻断Implementation Done） |
 | [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级闭环 | CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Backend/MySQL GO@d3161d9d；Frontend GO@ec268ab9） |
-| [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL） | BASELINE | READY / GO@644816f2 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 12生产依赖阻断Done） |
+| [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL） | BASELINE | READY / GO@644816f2 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Q-FCUT004-001规格阻断；Task 12生产依赖阻断Done） |
 | [F-CUT-005](F-CUT-005-p5-graded-approval.md) | P5分级审批 | CUT-05（V1，FULL） | BASELINE | READY / GO@2e3fdba3 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 10 GO@a7e5b7b3；生产Owner阻断Done） |
 | [F-CUT-006](F-CUT-006-p6-cutover-closure.md) | P6割接跟踪、结果归档与闭环 | CUT-06（V1，FULL） | BASELINE | READY / GO@4e390d4f | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 9 GO@ee891fa6；生产依赖阻断Done） |
 
