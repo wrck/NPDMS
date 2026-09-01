@@ -10,14 +10,15 @@
           <el-input
             :data-testid="`support-name-${row.roleCode}`"
             :model-value="row.personName"
-            :disabled="readonly"
+            :disabled="contactReadonly"
             @update:model-value="update(index, 'personName', $event)"
           />
         </el-form-item>
         <el-form-item label="联系电话">
           <el-input
+            :data-testid="`support-phone-${row.roleCode}`"
             :model-value="row.phone"
-            :disabled="readonly"
+            :disabled="contactReadonly"
             @update:model-value="update(index, 'phone', $event)"
           />
         </el-form-item>
@@ -31,8 +32,9 @@
         </el-form-item>
         <el-form-item label="到场时间">
           <el-date-picker
+            :data-testid="`support-arrival-${row.roleCode}`"
             :model-value="row.arrivalTime"
-            :disabled="readonly"
+            :disabled="contactReadonly"
             type="datetime"
             value-format="x"
             @update:model-value="updateArrival(index, $event)"
@@ -63,6 +65,7 @@ const emit = defineEmits<{
 }>()
 
 const rows = computed(() => props.modelValue)
+const contactReadonly = computed(() => props.readonly && !props.patchApproved)
 const roleLabels: Record<CutoverPlanSupportArrangement['roleCode'], string> = {
   CUSTOMER: '客户方',
   DP_FIRST_LINE: '数通一线',

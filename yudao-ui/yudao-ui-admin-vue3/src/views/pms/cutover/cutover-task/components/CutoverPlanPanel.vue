@@ -177,6 +177,8 @@ const refresh = async () => {
   loading.value = true
   try {
     plan.value = await CutoverApi.getCutoverPlan(props.taskId)
+    if (downloaded.value && (String(downloaded.value.planRevisionId) !== String(plan.value.planRevisionId)
+      || downloaded.value.planVersion !== plan.value.planVersion)) downloaded.value = null
     const content = plan.value.content
     draftContent.value = content && content.editMode !== 'LEGACY_READ_ONLY'
       ? hydrateContent(JSON.parse(JSON.stringify(content)) as WritableCutoverPlanContent)
@@ -263,9 +265,44 @@ const contentForSave = (content: WritableCutoverPlanContent): WritableCutoverPla
 }
 const download = async () => {
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined) return
+  if (downloaded.value && String(downloaded.value.planRevisionId) === String(plan.value.planRevisionId)
+    && downloaded.value.planVersion === plan.value.planVersion) {
+    return accessGeneratedDraft(downloaded.value)
+  }
+  const target = openDownloadTarget()
+  if (!target) return
   const result = await runIntent(`download:${plan.value.planRevisionId}:${plan.value.planVersion}`,
     (key) => CutoverApi.downloadCutoverPlanDraft(props.taskId, plan.value!.planVersion!, key))
-  if (result) { downloaded.value = result; message.success('初稿已生成') }
+  if (!result) return target.close()
+  downloaded.value = result
+  await accessGeneratedDraft(result, target)
+}
+const openDownloadTarget = () => {
+  const target = window.open('about:blank', '_blank')
+  if (!target) {
+    message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
+    return null
+  }
+  target.opener = null
+  return target
+}
+const accessGeneratedDraft = async (result: DownloadCutoverPlanDraftResult, openedTarget?: Window) => {
+  const target = openedTarget || openDownloadTarget()
+  if (!target) return
+  try {
+    const fact = result.fileArtifactFact
+    const ticket = await FileApi.createAccessTicket(
+      fact.artifactId as number,
+      fact.versionNo,
+      'DOWNLOAD',
+      fileKey(fact.referenceKey)
+    )
+    target.location.replace(ticket.shortLivedUrl)
+    message.success('初稿已生成并开始下载')
+  } catch {
+    target.close()
+    message.warning('初稿已生成，但文件访问暂不可用；再次点击只重试下载，不会重新生成初稿')
+  }
 }
 const submit = async () => {
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined) return

@@ -1,5 +1,5 @@
 import { defineComponent, h, nextTick } from 'vue'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CutoverPlanView } from '@/api/pms/cutover/cutover-task'
 import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
 import CutoverPlanEditor from './components/CutoverPlanEditor.vue'
@@ -21,7 +21,7 @@ const api = vi.hoisted(() => ({
   patchApprovedCutoverPlanContact: vi.fn(),
   reviseCutoverPlan: vi.fn()
 }))
-const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), createAccessTicket: vi.fn() }))
 vi.mock('@/api/pms/cutover/cutover-task', () => api)
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({
@@ -35,7 +35,8 @@ vi.mock('@/components/PmsFileArtifact', () => ({
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {
-          artifactId: '9007199254740993', versionNo: 4, referenceKey: 'cutover-plan-file'
+          artifactId: '9007199254740993', versionNo: 4,
+          referenceKey: String(attrs.referenceKey ?? attrs['reference-key'])
         })
       }, 'upload')
     }
@@ -53,6 +54,14 @@ const controls = {
 }
 
 describe('F-CUT-004 mounted plan workbench', () => {
+  const accessTarget = { opener: {} as unknown, location: { replace: vi.fn() }, close: vi.fn() }
+  beforeEach(() => {
+    vi.clearAllMocks()
+    accessTarget.location.replace.mockReset()
+    accessTarget.close.mockReset()
+    vi.stubGlobal('window', { open: vi.fn(() => accessTarget) })
+  })
+
   it('edits and saves the complete A/B/C standard content exposed by server actions', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN']))
     api.saveCutoverPlanDraft.mockResolvedValue(standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN']))
@@ -61,7 +70,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
 
     const description = findByTestId(mounted.root, 'plan-project-description')!
     await (description.props?.['onUpdate:modelValue'] as (value: string) => void)('核心网割接实施方案')
-    const operation = findByTestId(mounted.root, 'plan-step-OPERATION')!
+    const operation = findByTestId(mounted.root, 'plan-step-OPERATION-1')!
     await (operation.props?.['onUpdate:modelValue'] as (value: string) => void)('执行割接命令')
     await click(mounted.root, 'save-plan')
     await flush()
@@ -97,7 +106,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       'onUpdate:modelValue': (value: unknown) => updates.push(value)
     }, controls)
 
-    const rollback = findByTestId(mounted.root, 'plan-step-ROLLBACK')!
+    const rollback = findByTestId(mounted.root, 'plan-step-ROLLBACK-1')!
     await (rollback.props?.['onUpdate:modelValue'] as (value: string) => void)('恢复原配置')
     expect(updates.at(-1)).toEqual({
       editMode: 'ONLINE_TEMPLATE_SIMPLE_D',
@@ -136,7 +145,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       fileArtifactFact: {
         artifactId: '9007199254740993',
         versionNo: 4,
-        referenceKey: 'cutover-plan-file',
+        referenceKey: 'cutover-plan-101',
         scopeVersion: 17,
         sha256: 'a'.repeat(64),
         fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
@@ -155,6 +164,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     })
     api.submitCutoverPlan.mockResolvedValue({ taskId: '101' })
     api.reviseCutoverPlan.mockResolvedValue(standardPlan([]))
+    fileApi.createAccessTicket.mockResolvedValue({ shortLivedUrl: 'https://download.local/ticket' })
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
@@ -163,6 +173,11 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'revise-plan'); await flush()
 
     expect(api.downloadCutoverPlanDraft).toHaveBeenCalledWith('101', 1, expect.any(String))
+    expect(fileApi.createAccessTicket).toHaveBeenCalledWith(
+      '9007199254740993', 4, 'DOWNLOAD',
+      expect.objectContaining({ ownerContext: 'CUT', purposeCode: 'FULL_PLAN', referenceKey: 'cutover-plan-file' })
+    )
+    expect(accessTarget.location.replace).toHaveBeenCalledWith('https://download.local/ticket')
     expect(api.submitCutoverPlan).toHaveBeenCalledWith('101', 7, 1, expect.any(String))
     expect(api.reviseCutoverPlan).toHaveBeenCalledWith('101', 7,
       { sourcePlanRevisionId: '501', reason: 'APPROVAL_REJECTED' }, expect.any(String))
@@ -175,12 +190,63 @@ describe('F-CUT-004 mounted plan workbench', () => {
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 9, manualGrade: 'A' }, controls)
     await flush()
 
+    const name = findByTestId(mounted.root, 'support-name-CUSTOMER')!
+    expect(name.props?.disabled).toBe(false)
+    await (name.props?.['onUpdate:modelValue'] as (value: string) => void)('新客户经理')
+    await nextTick()
     await click(mounted.root, 'patch-support-CUSTOMER')
     await flush()
 
     expect(api.patchApprovedCutoverPlanContact).toHaveBeenCalledWith('101', '601', 1, {
-      personName: '客户经理', phone: '13800000000', arrivalTime: 1788220800000
+      personName: '新客户经理', phone: '13800000000', arrivalTime: 1788220800000
     }, expect.any(String))
+    mounted.app.unmount()
+  })
+
+  it('preserves multiple ordered steps in the same section when one step is edited', async () => {
+    const content = standardPlan([]).content!
+    if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    content.steps = [
+      { sectionCode: 'OPERATION', stepNo: 1, content: '第一步' },
+      { sectionCode: 'OPERATION', stepNo: 2, content: '第二步' }
+    ]
+    const updates: any[] = []
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': (value: unknown) => updates.push(value)
+    }, controls)
+
+    const second = findByTestId(mounted.root, 'plan-step-OPERATION-2')!
+    await (second.props?.['onUpdate:modelValue'] as (value: string) => void)('调整后的第二步')
+
+    expect(updates.at(-1).steps).toEqual([
+      { sectionCode: 'OPERATION', stepNo: 1, content: '第一步' },
+      { sectionCode: 'OPERATION', stepNo: 2, content: '调整后的第二步' }
+    ])
+    mounted.app.unmount()
+  })
+
+  it('fills all three standard plan file slots with PLT facts', async () => {
+    api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
+    api.saveCutoverPlanDraft.mockResolvedValue(standardPlan([]))
+    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'b'.repeat(64) }] })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    await flush()
+
+    for (const field of ['preTopologyFile', 'postTopologyFile', 'networkConfigurationFile']) {
+      await click(mounted.root, `plan-file-${field}`)
+      await flush()
+    }
+    await click(mounted.root, 'save-plan')
+    await flush()
+
+    expect(api.saveCutoverPlanDraft).toHaveBeenCalledWith('101', 7, 1,
+      expect.objectContaining({ overview: expect.objectContaining({
+        preTopologyFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-pre-topology' }),
+        postTopologyFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-post-topology' }),
+        networkConfigurationFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-network-configuration' })
+      }) }), expect.any(String))
     mounted.app.unmount()
   })
 
