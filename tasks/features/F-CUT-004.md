@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@644816f2`
 > Technical Plan Gate：`PASS / GO@9ef7545d`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`BLOCKED_BY_DEPENDENCY`
 > Requirement：`CUT-04@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-004-p4-cutover-plan-authoring.md`
 > 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`

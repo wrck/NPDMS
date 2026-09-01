@@ -1,10 +1,10 @@
 # F-CUT-005 P5分级审批
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO @ 2e3fdba3`
 > Technical Plan Gate：`PASS / GO @ 912d0cdb`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`BLOCKED_BY_DEPENDENCY`
 > Requirement：`CUT-05@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-005-p5-graded-approval.md`
 > 机器合同：`specs/features/F-CUT-005-api-contract.json`、`specs/features/F-CUT-005-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`、`specs/features/F-CUT-005-candidate-owner-contract.json`

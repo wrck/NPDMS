@@ -29,11 +29,11 @@
 | [F-IMP-003](F-IMP-003-hardware-installation-record.md) | 硬件安装与位置生效 | EXE-02（V1） | DRAFT | NOT_READY | NOT_STARTED |
 | [F-IMP-004](F-IMP-004-configuration-log-collection.md) | 配置Log采集解析 | EXE-03（V1） | DRAFT | NOT_READY | NOT_STARTED |
 | [F-IMP-005](F-IMP-005-joint-debugging-configuration.md) | 业务联调配置收集 | EXE-04（V1） | DRAFT | NOT_READY | NOT_STARTED |
-| [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/02（V1，PARTIAL） | BASELINE | READY（GO@cad8088a；生产Owner事实继续阻断真实浏览器与Implementation Done） | IN_PROGRESS（以Task权威状态为准） |
-| [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级闭环 | CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | IN_PROGRESS（Task 1 PASS；Task 2正向REST/UI候选GO@c8c75ce5） |
-| [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL） | BASELINE | READY / GO@644816f2 | IN_PROGRESS |
-| [F-CUT-005](F-CUT-005-p5-graded-approval.md) | P5分级审批 | CUT-05（V1，FULL） | BASELINE | READY / GO | NOT_STARTED |
-| [F-CUT-006](F-CUT-006-p6-cutover-closure.md) | P6割接跟踪、结果归档与闭环 | CUT-06（V1，FULL） | BASELINE | READY / GO@4e390d4f | NOT_STARTED |
+| [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/02（V1，PARTIAL） | BASELINE | READY（GO@cad8088a） | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（生产Owner事实继续阻断Implementation Done） |
+| [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级闭环 | CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Backend/MySQL GO@d3161d9d；Frontend GO@ec268ab9） |
+| [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL） | BASELINE | READY / GO@644816f2 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 12生产依赖阻断Done） |
+| [F-CUT-005](F-CUT-005-p5-graded-approval.md) | P5分级审批 | CUT-05（V1，FULL） | BASELINE | READY / GO@2e3fdba3 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 10 GO@a7e5b7b3；生产Owner阻断Done） |
+| [F-CUT-006](F-CUT-006-p6-cutover-closure.md) | P6割接跟踪、结果归档与闭环 | CUT-06（V1，FULL） | BASELINE | READY / GO@4e390d4f | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 9 GO@ee891fa6；生产依赖阻断Done） |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
