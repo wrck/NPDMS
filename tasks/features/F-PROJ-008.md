@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：`无`
-> 当前任务：`Task 2 readiness、Gate流程启动REST与原子相邻推进`
+> 当前任务：`Task 3 项目工作区与真实Chromium正向闭环`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
 > Feature物理契约：`specs/features/F-PROJ-008-physical-contract.json`
@@ -15,12 +15,12 @@
 ## 串行任务
 
 - [x] Task 1：六类Gate Owner、Flowable定义身份与模板发布校验（`COMPLETED`）
-- [ ] Task 2：readiness、Gate流程启动REST与原子相邻推进（`IN_PROGRESS`）
-- [ ] Task 3：项目工作区与一次真实Chromium正向闭环（`PENDING`）
+- [x] Task 2：readiness、Gate流程启动REST与原子相邻推进（`COMPLETED`）
+- [ ] Task 3：项目工作区与一次真实Chromium正向闭环（`IN_PROGRESS`）
 
 ## 当前检查点
 
-基线`b36f709a`；Task 1六类Owner、Flowable定义选择/启动/重放及模板发布校验已完成；聚焦33/33、受影响reactor package PASS；无阻断；下一步实现Task 2 readiness、流程启动REST和原子相邻推进。
+基线`0c7a9634`；Task 2已完成readiness、Flowable流程启动REST及S0～S4相邻推进原子写链；聚焦6/6、受影响reactor package PASS；无阻断；下一步接入项目工作区并完成一次真实Chromium正向闭环。
 
 ## 边界
 

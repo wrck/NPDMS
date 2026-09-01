@@ -3,7 +3,10 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStagePairForUpdateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -28,4 +31,10 @@ public interface ProjectStageInstanceMapper extends BaseMapperX<ProjectStageInst
                 .eq(ProjectStageInstanceDO::getProjectId, projectId)
                 .eq(ProjectStageInstanceDO::getStageCode, stageCode));
     }
+
+    List<ProjectStageInstanceDO> selectStagePair(@Param("query") ProjectStagePairForUpdateQuery query);
+
+    List<ProjectStageInstanceDO> selectStagePairForUpdate(@Param("query") ProjectStagePairForUpdateQuery query);
+
+    int updateStatusIfMatch(@Param("query") ProjectStageStatusUpdate query);
 }

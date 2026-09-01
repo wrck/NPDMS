@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Created
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessAttributeUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGovernanceStateUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageAdvanceUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -48,6 +49,8 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
     int updateBusinessAttributesIfMatch(@Param("query") ProjectBusinessAttributeUpdate query);
 
     int updateGovernanceStateIfMatch(@Param("query") ProjectGovernanceStateUpdate query);
+
+    int advanceStageIfMatch(@Param("query") ProjectStageAdvanceUpdate query);
 
     /** F-PROJ-001创建人只读基础范围；空候选集合不得扩大为租户全量。 */
     default List<ProjectMasterDO> selectListCreatedBy(CreatedProjectScopeQuery query) {
