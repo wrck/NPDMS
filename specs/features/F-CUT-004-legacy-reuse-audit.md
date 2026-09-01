@@ -1,6 +1,6 @@
 # F-CUT-004 旧实现复用审计
 
-> 状态：`REVIEW_REQUIRED`
+> 状态：`BASELINE_READY / GO@87b0b066`
 > Requirement：`CUT-04@V1`
 > 审计对象：后端、前端、配置、数据/迁移、状态、权限及测试
 

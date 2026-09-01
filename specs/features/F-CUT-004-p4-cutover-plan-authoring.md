@@ -2,6 +2,7 @@
 
 > 文档状态：`DRAFT`
 > Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> API/Physical/Legacy Machine Contract Gate：`PASS / GO@87b0b066`
 > Requirement：`CUT-04（V1/P0）`
 > Requirement切片覆盖：`CUT-04@V1=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -112,4 +113,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。最近Gate为`F-CUT-004 API/Physical/Legacy Machine Contract Gate`；该Gate通过后再申请Feature Ready最终裁决。不得提前生成Technical Plan或实现。
+当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。API/Physical/Legacy Machine Contract已在`87b0b066`独立复审`PASS / GO`；最近Gate为Feature Ready最终关闭。不得提前生成Technical Plan或实现。

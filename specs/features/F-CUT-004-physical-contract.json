@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "featureId": "F-CUT-004",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "requirementSlices": ["CUT-04@V1=FULL"],
   "owner": "CUT",
   "aggregate": "CutoverPlan",
@@ -202,5 +202,6 @@
     "forbiddenInference": ["edit_mode", "assessment", "checklist", "device", "configuration", "template", "fileFact", "riskMitigation", "supportArrangement", "approvalInstance", "approvalStatus", "taskStage"],
     "unqualifiedRows": "retain pms_cut_plan and classify through PLT evidence; no delete, dual write, default, parsing of approval text or direct SQL cross-context lookup"
   },
+  "machineContractGate": "PASS / GO@87b0b066",
   "featureReadyGate": "REVIEW_REQUIRED"
 }
