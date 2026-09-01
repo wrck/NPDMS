@@ -6,6 +6,8 @@ public final class CutoverApprovalApplicationException extends RuntimeException 
         INVALID_REQUEST,
         STATE_CONFLICT,
         VERSION_CONFLICT,
+        IDEMPOTENCY_CONFLICT,
+        IDEMPOTENCY_IN_PROGRESS,
         SOURCE_STALE,
         BUSINESS_INCOMPLETE,
         OWNER_PROVIDER_UNAVAILABLE,
