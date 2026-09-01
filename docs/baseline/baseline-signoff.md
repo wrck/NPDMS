@@ -10,7 +10,7 @@
 | 状态 | `IN_REVIEW`（需求方已确认，待独立PRD Baseline Gate） |
 | 源文件 | `需求/PRD-项目实施交付管理平台.md` |
 | 快照 | `docs/baseline/prd-v1.8.md` |
-| SHA-256 | `E0178818891106EC4DB32A5C735D04D7C505848843F0DCC1DD11FEF688A5A1BD` |
+| SHA-256 | `8E944A7A31B44BB6E4FF1DCBA7204F2B0A4DB319BE9409D3D67A38952F3FD486` |
 | 候选日期 | 2026-09-01 |
 | 变更报告 | `docs/reports/2026-09-01-PRD-V1.8修订011基线变更报告.md` |
 

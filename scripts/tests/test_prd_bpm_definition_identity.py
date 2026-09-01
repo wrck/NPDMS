@@ -42,6 +42,17 @@ class PrdBpmDefinitionIdentityTest(unittest.TestCase):
         self.assertIn("BPM流程只承载其中需要审批的子流程，不替代项目状态机和门禁", pm03)
         self.assertIn("既有项目模板、项目和门禁记录中的流程版本列仅保留历史值", pm03)
 
+    def test_consumers_use_key_and_actual_bpm_instance_identity(self) -> None:
+        pm03 = requirement_block(self.prd, "PM-03")
+        acc02 = requirement_block(self.prd, "ACC-02")
+        clo02 = requirement_block(self.prd, "CLO-02")
+        self.assertIn("准入/准出条件、BPM流程定义key", pm03)
+        self.assertNotIn("流程定义ID及版本", pm03)
+        self.assertIn("项目模板版本与BPM流程定义key引用冻结（PM-03）", acc02)
+        self.assertIn("实际processDefinitionId、完整taskDefinitionKey", clo02)
+        self.assertIn("审批节点由本次BPM流程实例的实际定义决定", clo02)
+        self.assertNotIn("平台记录流程版本", clo02)
+
 
 if __name__ == "__main__":
     unittest.main()
