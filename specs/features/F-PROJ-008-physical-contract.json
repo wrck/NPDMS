@@ -6,7 +6,7 @@
   "relatedRequirementSlices": ["PM-01", "PM-04", "PM-11"],
   "status": "BASELINE_READY",
   "contractType": "NO_PHYSICAL_DELTA_FEATURE_CONTRACT",
-  "phaseGateImpact": "FPROJ008_FEATURE_READY_GO_744C70A0_TECHNICAL_PLAN_BLOCKED_BY_SPEC_Q_FPROJ_008",
+  "phaseGateImpact": "FPROJ008_FEATURE_READY_GO_744C70A0_Q_FPROJ_008_RESOLVED_TECHNICAL_PLAN_PENDING",
   "v1Scope": {
     "included": ["S0_TO_S4_ADJACENT_ADVANCE", "EXIT_GATE_READINESS", "SIX_TYPED_OWNER_FACTS", "FROZEN_VERSION_GATE_PROCESS", "ATOMIC_STAGE_ADVANCE", "PROJECT_WORKSPACE_POSITIVE_CLOSURE"],
     "deferred": ["S4_TO_S5", "S5_TO_S6", "ROLLBACK", "EXCEPTION_CLOSE", "REOPEN", "THIRD_PARTY_APPROVAL"]
@@ -56,7 +56,8 @@
       "statusValues": {"RUNNING": 1, "APPROVE": 2, "REJECT": 3, "CANCEL": 4},
       "startAuthorization": ["pms:project:update", "PROJECT_MANAGE", "CURRENT_PROJECT_MANAGER"],
       "serverVariables": ["PROCESS_START_USER_ID", "PROCESS_STATUS", "_FLOWABLE_SKIP_EXPRESSION_ENABLED"],
-      "forbiddenDefinitionFeatures": ["Yudao_startUserIds", "Yudao_startDeptIds", "startUserSelectAssignees"],
+      "genericYudaoStartWhitelistPolicy": "APPLIES_ONLY_TO_GENERIC_YUDAO_START_ENTRY_NOT_QUERIED_OR_COPIED_BY_PMS",
+      "forbiddenDefinitionFeatures": ["BPMN_START_USER_SELECT_35"],
       "physicalPolicy": "NO_PMS_MAPPING_TABLE"
     }
   },
@@ -97,7 +98,7 @@
     "ProjectStageGateProcessOwnerApi": {
       "module": "pms-module-project-api",
       "providerModule": "pms-module-integration",
-      "method": "startFrozenProcess(ProjectStageGateProcessStartCommand)",
+      "methods": ["inspectFrozenDefinition(ProjectStageGateProcessDefinitionQuery)", "startFrozenProcess(ProjectStageGateProcessStartCommand)"],
       "definitionResolution": "REPOSITORY_SERVICE_KEY_PLUS_VERSION_TO_EXACT_ID",
       "start": "RUNTIME_SERVICE_BY_DEFINITION_ID_WITH_SERVER_INITIATOR_AND_VARIABLES",
       "idempotency": "SAME_OPERATION_SAME_DIGEST_REPLAYS_ORIGINAL_FACT_DIFFERENT_DIGEST_CONFLICTS"

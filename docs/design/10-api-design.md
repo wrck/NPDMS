@@ -506,13 +506,17 @@ ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query);
 APPROVAL/PROCESS版本化启动使用同一公共模块的PMS窄Owner命令：
 
 ```java
+ProjectStageGateProcessDefinitionFact inspectFrozenDefinition(
+        ProjectStageGateProcessDefinitionQuery query);
 ProjectStageGateProcessStartFact startFrozenProcess(ProjectStageGateProcessStartCommand command);
 ```
 
-Command仅由PROJ服务端构造，包含`tenantId/actorUserId/projectId/currentStageCode/gateId/gateReferenceId/refType/processDefinitionKey/processDefinitionVersion/businessKey/variables/operationId`；definitionVersion由`refVersion=v<正整数>`解析，businessKey必须等于`PROJECT_STAGE_GATE:{gateReferenceId}`，variables只允许Gate冻结身份，客户端不得覆盖。调用前PROJ必须重新校验`pms:project:update`、`ProjectScopeApi.ACTION_MANAGE`和当前有效`PROJECT_MANAGER`，三者是PMS专用Gate流程的唯一正式发起授权；缺任一项不调用Owner。专用Gate定义不得配置Yudao `startUserIds/startDeptIds`或发起人自选审批人策略，BPM Provider在模板发布检查中不能证明这些配置均为空即拒绝该引用；通用Yudao流程仍保持原发起规则，不受本契约影响。
+检查Query只携带受信tenant及Gate Reference冻结的`processDefinitionKey/processDefinitionVersion`；同一适配器按key+version解析唯一活动definitionId并检查精确BPMN，存在任一UserTask候选策略`START_USER_SELECT(35)`即返回不支持。Gate Reference既有`refVersion=v<正整数>`只是对Flowable现有版本的冻结引用，不新增BPM版本字段、版本表或第二映射真值。
+
+Command仅由PROJ服务端构造，包含`tenantId/actorUserId/projectId/currentStageCode/gateId/gateReferenceId/refType/processDefinitionKey/processDefinitionVersion/businessKey/variables/operationId`；definitionVersion由既有`refVersion`解析，businessKey必须等于`PROJECT_STAGE_GATE:{gateReferenceId}`，variables只允许Gate冻结身份，客户端不得覆盖。调用前PROJ必须重新校验`pms:project:update`、`ProjectScopeApi.ACTION_MANAGE`和当前有效`PROJECT_MANAGER`，三者是PMS专用Gate流程的唯一正式发起授权；缺任一项不调用Owner。Yudao `startUserIds/startDeptIds`继续只约束通用Yudao发起入口，PMS不查询或复制该事实；启动时再次检查精确BPMN不存在`START_USER_SELECT(35)`。
 
 Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/processDefinitionVersion/businessKey/outcome=STARTED|REPLAYED`。接口位于`pms-module-project-api`，`pms-module-integration`增加对该API模块的单向依赖并使用Flowable RepositoryService按key+version唯一解析活动定义ID，再由RuntimeService按definitionId启动。启动前通过Flowable `Authentication.setAuthenticatedUserId(String.valueOf(actorUserId))`设置发起人并在finally清除；服务端强制写入`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`。Command不提供`startUserSelectAssignees`，Gate冻结variables若占用任一系统变量即拒绝。同operation同摘要重放原Fact且不得再次启动，异摘要冲突。不得依赖Yudao BPM内部Service/Mapper/DO，不得调用只能按key选择当前活动定义的Yudao `BpmProcessInstanceApi`，不得修改Yudao API/Service，也不得以当前最新版替代冻结版本。
 
 BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义ID/key/数字version。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
-模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用，并按表中字段域校验refVersion及Provider存在性；运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用，并按表中字段域校验refVersion及Provider存在性；APPROVAL/PROCESS通过`inspectFrozenDefinition`验证精确Flowable定义活动且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。

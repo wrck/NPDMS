@@ -10,7 +10,7 @@
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`
 > 上位决策：`ADR-0043（ACCEPTED）`
 > 适用基线：PRD V1.8；F-PROJ-008 SDS Phase 2 / P3-E09 `READY / GO`
-> Technical Plan：`BLOCKED_BY_SPEC（Q-FPROJ-008）`；Feature Ready既有GO保持有效，Owner事实补充GO前不得生成计划或进入Implementation
+> Technical Plan：`PENDING_FORMATION`；`Q-FPROJ-008`已按需求方决定关闭，允许形成唯一计划，计划GO前不得进入Implementation
 
 ## 1. 业务价值与最小正向闭环
 
@@ -70,7 +70,7 @@
 ### BR-FPROJ008-003 Gate流程启动
 
 - 公共PMS `ProjectStageGateProcessOwnerApi`位于`pms-module-project-api`，真实Provider位于`pms-module-integration`；按key+version解析精确定义ID，再由Flowable按definitionId启动。
-- 唯一发起授权是`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`。专用定义禁止Yudao start-user用户/部门白名单和发起人自选审批人；不能证明禁用项为空时不得发布或启动。
+- 唯一发起授权是`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`。Yudao start-user用户/部门白名单继续只约束通用发起入口，PMS不查询或复制；专用定义的精确BPMN含`START_USER_SELECT(35)`时不得发布或启动。
 - businessKey固定为`PROJECT_STAGE_GATE:{gateReferenceId}`；tenant、project、stage、gate、reference、refType、refCode、refVersion及actor均由服务端冻结。
 - 服务端设置Flowable authenticated initiator、`PROCESS_START_USER_ID`、`PROCESS_STATUS=RUNNING(1)`及skip-expression变量；客户端不能覆盖。
 - 同operation同摘要返回原实例且不得再次启动；异摘要冲突。不得退化为按key启动当前最新版。
@@ -154,4 +154,4 @@
 | 最小正向UI/浏览器验收 | PASS（已定义，未实施） |
 | 独立Feature Ready裁决 | PASS（744c70a0） |
 
-结论：`BASELINE / READY / NOT_STARTED`。Feature Ready既有GO保持有效；`Q-FPROJ-008`关闭并完成上游最小补充前，不得形成Technical Plan、创建Task或修改产品代码。
+结论：`BASELINE / READY / NOT_STARTED`。Feature Ready既有GO保持有效，`Q-FPROJ-008`已关闭；允许形成并独立审核唯一Technical Plan，计划GO前不得创建Task或修改产品代码。
