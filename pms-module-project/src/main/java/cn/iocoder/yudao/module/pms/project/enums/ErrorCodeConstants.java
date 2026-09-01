@@ -205,5 +205,11 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TASK_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_045, "无权访问该项目任务");
     ErrorCode PROJECT_TASK_COMMAND_INVALID = new ErrorCode(1_014_024_046, "项目任务命令不符合当前规则");
     ErrorCode PROJECT_TASK_VERSION_CONFLICT = new ErrorCode(1_014_024_047, "项目任务版本冲突");
+    ErrorCode PROJECT_STAGE_ADVANCE_INVALID = new ErrorCode(1_014_024_048, "项目阶段推进条件不合法：{}");
+    ErrorCode PROJECT_STAGE_GATE_UNSATISFIED = new ErrorCode(1_014_024_049, "项目阶段准出条件未满足：{}");
+    ErrorCode PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE = new ErrorCode(1_014_024_050, "项目阶段准出事实暂不可判定：{}");
+    ErrorCode PROJECT_STAGE_ADVANCE_PERSISTENCE_FAILED = new ErrorCode(1_014_024_051, "项目阶段推进写入失败");
+    ErrorCode PROJECT_STAGE_PROCESS_INVALID = new ErrorCode(1_014_024_052, "项目阶段Gate流程请求不合法");
+    ErrorCode PROJECT_STAGE_ACTION_FORBIDDEN = new ErrorCode(1_014_024_053, "无权执行项目阶段Gate动作");
 
 }

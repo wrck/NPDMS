@@ -8,6 +8,7 @@ public final class ProjectStageSnapshotRules {
     public static final String ROLLBACK = "ROLLBACK";
     public static final String EXCEPTION_CLOSE = "EXCEPTION_CLOSE";
     public static final String REOPEN = "REOPEN";
+    public static final String STAGE_ADVANCE = "STAGE_ADVANCE";
 
     private ProjectStageSnapshotRules() {
     }
@@ -31,6 +32,7 @@ public final class ProjectStageSnapshotRules {
                 requireGuard(snapshot);
             }
             case REOPEN -> requireValue(snapshot.getRelatedSnapshotId(), "relatedSnapshotId");
+            case STAGE_ADVANCE -> requireGuard(snapshot);
             default -> throw new IllegalArgumentException("unsupported operationType: " + snapshot.getOperationType());
         }
     }

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper">
+
+    <sql id="stagePair">
+        SELECT s.*
+        FROM proj_project_stage s
+        WHERE s.tenant_id = #{query.tenantId}
+          AND s.project_id = #{query.projectId}
+          AND s.deleted = b'0'
+          AND (s.stage_code = #{query.currentStageCode}
+            OR s.sort_order = (SELECT MIN(next_stage.sort_order)
+                               FROM proj_project_stage next_stage
+                               WHERE next_stage.tenant_id = #{query.tenantId}
+                                 AND next_stage.project_id = #{query.projectId}
+                                 AND next_stage.deleted = b'0'
+                                 AND next_stage.sort_order &gt; (SELECT current_stage.sort_order
+                                                                FROM proj_project_stage current_stage
+                                                                WHERE current_stage.tenant_id = #{query.tenantId}
+                                                                  AND current_stage.project_id = #{query.projectId}
+                                                                  AND current_stage.stage_code = #{query.currentStageCode}
+                                                                  AND current_stage.deleted = b'0')))
+        ORDER BY s.sort_order, s.id
+    </sql>
+
+    <select id="selectStagePair" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO">
+        <include refid="stagePair"/>
+    </select>
+
+    <select id="selectStagePairForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO">
+        <include refid="stagePair"/>
+        FOR UPDATE
+    </select>
+
+    <update id="updateStatusIfMatch">
+        UPDATE proj_project_stage
+        SET status = #{query.targetStatus}, version = version + 1,
+            updater = #{query.updater}, update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.stageId}
+          AND version = #{query.expectedVersion} AND status = #{query.expectedStatus} AND deleted = b'0'
+    </update>
+</mapper>

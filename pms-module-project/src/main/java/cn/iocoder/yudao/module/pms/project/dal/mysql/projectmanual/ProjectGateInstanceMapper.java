@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateForUpdateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectExitGateForUpdateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateStatusUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -27,4 +29,10 @@ public interface ProjectGateInstanceMapper extends BaseMapperX<ProjectGateInstan
     }
 
     ProjectGateInstanceDO selectByCodeForUpdate(@Param("query") ProjectGateForUpdateQuery query);
+
+    List<ProjectGateInstanceDO> selectExitGates(@Param("query") ProjectExitGateForUpdateQuery query);
+
+    List<ProjectGateInstanceDO> selectExitGatesForUpdate(@Param("query") ProjectExitGateForUpdateQuery query);
+
+    int updateStatusIfMatch(@Param("query") ProjectGateStatusUpdate query);
 }
