@@ -383,7 +383,7 @@ def phase1_design(identifier: str, domain: str) -> tuple[str, ...]:
 
 
 CROSS_CONTEXT_REQUIREMENT_IDS = {
-    "ACC-02", "ACC-04", "ACC-06", "CLO-01", "CLO-02", "CUS-03", "CUT-01", "CUT-03", "CUT-06",
+    "ACC-02", "ACC-04", "ACC-06", "CLO-01", "CLO-02", "COM-01", "CUS-03", "CUT-01", "CUT-03", "CUT-06",
     "EQP-01", "EQP-02", "EQP-03", "EQP-04", "EXE-01", "EXE-02", "EXE-03", "EXE-04",
     "EXE-05", "EXE-06", "IMP-01", "INS-02", "INS-04", "INT-01", "INT-02", "INT-03",
     "INT-06", "INT-12", "PM-03", "SRV-01", "SUB-03",
