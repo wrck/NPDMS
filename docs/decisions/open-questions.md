@@ -510,7 +510,7 @@
 
 ### Q-GOV-20260901-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: CLOSED
 - Requirement IDs: ACC-02、EQP-01、INS-02、INS-03、INS-09、NFR-02、PM-03
 - Area: 并行PRD Change ID唯一性与master串行收敛
 - Question: `CHG-PRD-2026-08-30-010`在ACC分支表示“ACC-02可配置问卷基础”，在INS/AST分支表示“EQP-01设备产品类型公开契约”；`CHG-PRD-2026-09-01-011`又在PROJ分支表示“并行基线收敛与BPM定义身份”，在INS分支`6719ab94`表示“巡检正则受限子集”。INS/AST分支还包含独立的巡检命令1～30秒修订009。应如何在不改写已批准历史的前提下为这些语义形成唯一Change ID和完整后续基线？
@@ -531,8 +531,8 @@
 - Question: COM-A以`F-COM-001-contract-order-association-and-delivery-scope-allocation.md`实现项目办事处部门快照和验收阶段范围绑定；COM-B以`F-COM-001-contract-order-and-delivery-scope.md`独立实现另一套AST站点/位置优先语义。哪一套Spec、公共契约和持久化模型是COM-01后续唯一权威？
 - Why it blocks design/implementation: COM-A和COM-B分别变更157和142个实现路径，重叠仅4个文件；COM-A已在分支记录Done并被ACC-001/002消费，COM-B仍在CUT/PROJ共享线IN_PROGRESS。按“更新提交”或分支自报Done整体选择都会丢失另一线能力或引入与PRD不一致的地点Owner。
 - Options: A. 以COM-A业务语义和Spec为权威，逐项审查并仅吸收COM-B中不冲突的迁移/公共契约；B. 以COM-B为权威，重新评审COM-A及ACC消费链；C. 基于当前唯一PRD重新形成一份合并Feature Spec和迁移计划，再按文件/表/API逐项选择实现。
-- Recommended technical default: 在业务裁决前采用C的审计方法，但不预设最终业务选择；两条实现都保持`CONFLICTED_IMPLEMENTATION`，禁止整支合入或继续作为新Feature基础。
+- Recommended technical default: 已由业务选择覆盖；历史审计方法仍用于证明两线并非继承关系和控制选择性集成边界。
 - Business decision required: 是；必须确认交付范围地点、公司/部门快照、阶段触发与AST位置事实的唯一Owner和业务语义。
-- Resolution: 待确认。关闭前，F-COM-001、F-ACC-001和F-ACC-002均只保留完成候选，不产生master Done或Requirement完成。
+- Resolution: 需求方于2026-09-02选择B，以当前PRD COM-01的AST结构化地点权威语义和`F-COM-001-contract-order-and-delivery-scope.md`作为F-COM-001唯一后续规格。COM-A的项目办事处部门快照、验收阶段范围绑定Spec及其分支Done记录裁决为`SUPERSEDED / DO_NOT_MERGE`；Git证据表明COM-B未继承COM-A，因此不得把COM-A完成证据转记为COM-B完成。COM-B只按已通过Gate的提交增量进入master，原分支Task 5 `18237796`仍为`NO-GO / REVIEW_REQUIRED`。ACC-001/002必须基于COM-B公共契约重新评审，且继续受`Q-GOV-20260901-001`影响，本问题关闭不产生任何Feature Done或Requirement完成。
 - Decision owner: 需求方/产品组；COM、ACC、PROJ、AST领域Owner参与影响分析
-- Decision date: 待确认
+- Decision date: 2026-09-02

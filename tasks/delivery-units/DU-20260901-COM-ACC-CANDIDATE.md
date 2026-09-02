@@ -1,6 +1,6 @@
 # DU-20260901-COM-ACC-CANDIDATE COM-A与ACC顺序完成候选
 
-> DU状态：`BLOCKED`
+> DU状态：`QUARANTINED`
 > DU类型：`MULTI_FEATURE_SLICE`
 > Feature协调：`F-COM-001=FEATURE_EXCLUSIVE;F-ACC-001=FEATURE_EXCLUSIVE;F-ACC-002=FEATURE_EXCLUSIVE`
 > Task范围：`三个Feature按COM-A→ACC-001→ACC-002顺序交付`
@@ -11,10 +11,10 @@
 > 认领提交：`NONE`
 > 修改边界：`UNRESOLVED`
 > 串行资源：`PRD;COM公共契约;ACC公共契约;Flyway;Feature状态`
-> 旧功能范围：`NONE`
+> 旧功能范围：`COM-A`
 > 验证：`COM 563daac1；ACC-001 ad5b401f；ACC-002 8ed75093`
-> 集成记录：`259b2612..58576666候选；受Q-GOV-20260901-001与Q-GOV-20260901-002阻断`
+> 集成记录：`COM-A已由2026-09-02业务选择裁决为SUPERSEDED / DO_NOT_MERGE；ACC-001/002须基于COM-B重新评审并继续受Q-GOV-20260901-001影响`
 
 ## 审计结论
 
-该分支形成顺序多Feature交付包，不是任意混写；但COM-A与另一条COM-B实现竞争，且ACC修订与INS/AST修订复用了同一PRD Change ID。逐项裁决前不能提升为master Done。
+该分支形成顺序多Feature交付包，不是任意混写；但COM-A与COM-B不存在Git继承关系，且当前PRD的AST结构化地点权威语义已选择COM-B。COM-A及其Done记录只读保留为被替代历史，不得继续实施或合入。ACC-001/002消费了COM-A公共契约，必须基于COM-B重新评审；其重复PRD Change ID问题仍由`Q-GOV-20260901-001`阻断。

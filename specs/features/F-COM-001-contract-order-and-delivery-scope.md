@@ -10,6 +10,7 @@
 > 外部协作Context：`PROJ`、`AST`、`IMP`、`ACC`、`PLT`、ERP集成Owner
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`（`PASS / GO`；锁定提交`8f5ec1c1`）
+> 权威选择：`Q-GOV-20260901-002`已于2026-09-02关闭；本COM-B规格是F-COM-001唯一后续权威，COM-A规格及分支Done记录为`SUPERSEDED / DO_NOT_MERGE`，不得继续实施或转记完成证据
 
 ## 1. 业务目标
 

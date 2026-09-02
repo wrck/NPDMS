@@ -11,6 +11,8 @@
 
 唯一Technical Plan在锁定提交`8f5ec1c1`通过独立正式裁决，Gate为`PASS / GO`。实施状态仍`NOT_STARTED`；最近Gate为Task 1“COM公开API与错误机器合同”独立Contract/Code Review Gate，未通过前不得进入后续实现。
 
+`Q-GOV-20260901-002`已选择本COM-B任务链为唯一后续实施基础。COM-A分支任务与Done证据为`SUPERSEDED / DO_NOT_MERGE`，不得继续实施、合并或用于推导本Feature状态；COM-B未Git继承COM-A。
+
 ## Gate输入
 
 - `specs/features/F-COM-001-contract-order-and-delivery-scope.md`
