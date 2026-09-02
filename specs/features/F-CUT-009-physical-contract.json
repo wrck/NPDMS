@@ -35,7 +35,7 @@
     "auditOwner": "PlatformCommandExecution/operation audit without changing CUT aggregate version",
     "allowedItemTypes": ["BUSINESS_SURVEY", "RISK"],
     "forbiddenItemTypes": ["DUAL_MACHINE_CHECK"],
-    "workbookContract": "F-CUT-009-api-contract.json AuthorizedChecklistWorkbook",
+    "workbookContract": "F-CUT-009-api-contract.json AuthorizedChecklistWorkbook and AuthorizedAnswerDisplay; raw answerSnapshot is exportable only for DIRECT and must be forced to XLSX text",
     "stableOrder": ["sheet order BUSINESS_SURVEY,RISK", "item sort_order with null as 0", "stable_item_key"],
     "forbiddenData": ["device credentials", "PLT internal ids", "file bytes from CUT tables", "external raw response", "unselected result history", "fields absent from the authorized detail projection"]
   },

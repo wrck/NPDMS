@@ -15,7 +15,7 @@
 
 - 形成完整CUT-03@V2 Feature边界：授权清单导出与流程跳转配置优化必须共同承接，不拆成Provider或导出碎片。
 - 跨模块只预留正式消费端口，CUT单元/集成测试可用`src/test`受控替身推进正常正向闭环；不实现外部Provider，不修改Yudao。
-- 最近Gate：导出范围、导航机器语义与XLSX线协议最小整改复审。
+- 最近Gate：XLSX授权答案显示与F-CUT-001现有端点形状单点整改复审。
 
 ## 检查点
 
@@ -28,8 +28,8 @@
 
 ## 阻断
 
-- Feature Ready仍为`REVIEW_REQUIRED`：须先通过导出范围、无条件导航结构与XLSX线协议的最小整改复审。
+- Feature Ready仍为`REVIEW_REQUIRED`：须先通过授权答案显示与配置端点真实形状的单点整改复审。
 
 ## Phase-switch checkpoint
 
-基线7bc8f98d；独立裁决确认CUT-03@V2完整Feature及导航方案A。现已移除双机导出、锁定无条件双目标和XLSX线协议；跨模块仍仅端口+src/test替身。当前Gate为机器合同最小整改复审；未GO前不建计划、不写代码。
+基线8ab118f8；导出范围、导航方案A和前向物理列已通过定点审查。当前只收敛授权答案显示及create/copy原响应形状；跨模块仍仅端口+src/test替身。最近Gate为A/B单点复审；未GO前不建计划、不写代码。

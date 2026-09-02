@@ -34,12 +34,14 @@
     },
     "configurationExtension": {
       "base": "F-CUT-001 revision CRUD/copy/validate/publish/disable",
-      "addedField": "navigationRule in draft/detail/copy/publish aggregate",
-      "create": "new blank draft returns navigationRule JSON null",
-      "saveDraftRequest": "adds exact key navigationRule with NavigationRule OR JSON null; omitted key and extra keys fail closed",
-      "detailResponse": "adds navigationRule with the stored NavigationRule OR JSON null",
-      "copyResponse": "new DRAFT detail containing the source navigationRule unchanged",
-      "publishResponse": "published revision summary containing navigationRule unchanged; validation rejects unknown target or any condition/list/priority/state field",
+      "addedField": "navigationRule in the existing complete configuration request and CutoverConfigurationRespVO",
+      "create": "POST /cutover-config/revisions keeps CommonResult<WireLong>; the existing complete create request adds required exact key navigationRule with NavigationRule OR JSON null",
+      "saveDraft": "PUT /cutover-config/revisions/{revisionId} keeps If-Match and CommonResult<Boolean>; the existing complete request adds required exact key navigationRule with NavigationRule OR JSON null",
+      "detail": "GET /cutover-config/revisions/{revisionId} keeps CommonResult<CutoverConfigurationRespVO>; response adds navigationRule with the stored NavigationRule OR JSON null",
+      "copy": "POST /cutover-config/revisions/{revisionId}/actions/copy keeps If-Match, no request body and CommonResult<WireLong>; copied value is verified by GET of the returned revisionId",
+      "validate": "keeps CommonResult<CutoverConfigurationValidationRespVO>; unknown target or any condition/list/priority/state field is reported at navigationRule or navigationRule.target",
+      "publish": "keeps If-Match and CommonResult<CutoverConfigurationRespVO>; response adds the unchanged stored navigationRule",
+      "disable": "keeps If-Match and CommonResult<CutoverConfigurationRespVO>; response adds the unchanged stored navigationRule",
       "permissions": "existing pms:cutover-config:query/manage/publish/disable only"
     }
   },
@@ -75,13 +77,25 @@
         {"index": 5, "header": "工作模式", "type": "text; workModeCode"},
         {"index": 6, "header": "是否必填", "type": "text enum 是,否; required"},
         {"index": 7, "header": "来源", "type": "text; sourceCode"},
-        {"index": 8, "header": "当前答案", "type": "text; currentResult.answerSnapshot; null is empty cell"},
+        {"index": 8, "header": "当前答案", "type": "text; AuthorizedAnswerDisplay; null currentResult is empty cell"},
         {"index": 9, "header": "事实说明", "type": "text; currentResult.factDescription; null is empty cell"},
         {"index": 10, "header": "证据状态", "type": "text enum 人工附件已关联,采集结果已关联,empty; never contains reference keys or ids"}
       ],
       "sheetFilters": {
         "业务调研": "applicable=true AND itemTypeCode=BUSINESS_SURVEY",
         "风险考察": "applicable=true AND itemTypeCode=RISK"
+      }
+    },
+    "AuthorizedAnswerDisplay": {
+      "DIRECT": "the authorized currentResult.answerSnapshot is emitted exactly as an XLSX text cell, never as a formula; null is empty cell",
+      "MANUAL": "constant 人工结果已提交; answerSnapshot and every artifactId/referenceKey/fileFactVersion/scopeVersion/sha256 are forbidden",
+      "COLLECTION": "constant 采集结果已形成; answerSnapshot, collectionTaskId and collectionResultReferenceId/version are forbidden",
+      "EXTERNAL": "constant 外部结果已形成; answerSnapshot and every external raw response/identity are forbidden",
+      "unknownSource": "fail with EXPORT_PROJECTION_INVALID; never fall back to raw answerSnapshot",
+      "evidenceStatus": {
+        "MANUAL with an authorized current manual evidence reference": "人工附件已关联",
+        "COLLECTION with an authorized current collection result reference": "采集结果已关联",
+        "otherwise": "empty cell"
       }
     }
   },
