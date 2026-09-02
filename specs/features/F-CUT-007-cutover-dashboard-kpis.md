@@ -77,7 +77,7 @@
 ## 4. API、权限与Owner边界
 
 - 精确REST、wire、错误和聚合合同见`F-CUT-007-api-contract.json`。
-- 错误响应固定为`CommonResult<null>`及`ErrorData{category,reasonCode,recoveryAction,ownerContext}`；Provider不可用为503并重试Owner恢复，Owner事实损坏为500并联系支持，任何错误均不返回部分计数。
+- 错误响应固定为`CommonResult<ErrorData>`；HTTP 403/500/503的`data`非空且精确为`ErrorData{category,reasonCode,recoveryAction,ownerContext}`。Provider不可用为503并重试Owner恢复，Owner事实损坏为500并联系支持，任何错误均不返回部分计数。
 - 本Feature只复用`pms:cutover-task:query`，不新增功能权限。
 - ProjectScope仍归PROJ物理Owner；CUT只消费公开接口。本Feature不修改PROJ、其他Context或Yudao。
 - KPI返回计数和服务端时间，不返回任务明细、项目清单、审批正文或设备信息。

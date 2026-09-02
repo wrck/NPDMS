@@ -28,6 +28,7 @@
 ## 最近Gate
 
 - `3c7e9192`首轮Feature Ready复审为NO-GO，唯一阻断是跨Owner动作守卫失败被错误压扁为CUT；本候选已按真实物理Owner补齐封闭ErrorData和依赖传播。
+- `2d337775`单点复审确认Owner传播已关闭，仅指出`CommonResult<null>`无法承载ErrorData；当前已统一为403/500/503均返回非空`CommonResult<ErrorData>`。
 - 最近Gate：`F-CUT-007跨Owner失败传播API/Physical Machine Contract最小整改复审`。
 - 当前状态：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。
 - 通过前不得生成Technical Plan；通过后才允许按正向闭环顺序实施CUT查询、REST和工作台，测试使用受控跨模块替身。

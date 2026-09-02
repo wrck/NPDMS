@@ -10,7 +10,7 @@
     "partialSuccess": false
   },
   "errorContract": {
-    "envelope": "CommonResult<null> with ErrorData",
+    "envelope": "CommonResult<ErrorData>; HTTP 403/500/503 responses require non-null data containing exactly ErrorData",
     "ErrorData": {
       "exactKeys": ["category", "reasonCode", "recoveryAction", "ownerContext"],
       "fields": {
