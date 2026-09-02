@@ -9,7 +9,7 @@
 > 支撑依赖：`ProjectScopeApi.ACTION_VIEW`、各阶段既有CUT查询动作守卫
 > 机器合同：`specs/features/F-CUT-007-api-contract.json`、`specs/features/F-CUT-007-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-007-legacy-reuse-audit.md`
-> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-007-cutover-dashboard-kpis.md`（`REVIEW_REQUIRED`）
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-007-cutover-dashboard-kpis.md`（`PASS / GO@fad19d81`）
 
 ## 1. 业务目标
 
@@ -99,4 +99,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`BASELINE / READY / GO@f6141e21 / NOT_STARTED`。Feature Ready最终状态关闭已通过；下一Gate为生成并复审唯一Technical Plan。当前不授权DDL、后端、前端或运行实现。
+当前：`BASELINE / READY / GO@f6141e21 / IN_PROGRESS`。唯一Technical Plan已在`fad19d81`通过独立复审；当前按计划进入Task 1共享P2～P6动作策略与批量事实合同的正常正向实现。Implementation Done继续`NOT_READY`。

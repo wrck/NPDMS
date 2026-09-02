@@ -163,8 +163,8 @@
       "featureId": "F-CUT-007",
       "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
       "taskPath": "tasks/features/F-CUT-007.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-01@V2",
@@ -1901,7 +1901,7 @@
         {
           "featureId": "F-CUT-007",
           "coverage": "FULL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
           "taskPath": "tasks/features/F-CUT-007.md"
         }
