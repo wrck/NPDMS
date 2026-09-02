@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan、Task 1～4及correlation provenance Machine Contract均已独立复审GO；当前实施Task 4A Schema/Writer Amendment，Task 5继续等待本Gate。
+- Feature Ready、唯一Technical Plan、Task 1～4A均已独立复审GO；当前实施Task 5受控外部消费端口、投递服务与暂停Job候选。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -27,12 +27,9 @@
 - [x] Task 3审批创建冻结与FULL详情投影独立Code Review／正向组合验证Gate：`PASS / GO @ 1edc713e`。
 - [x] Task 4节点激活三渠道请求创建独立Code Review／聚焦测试Gate：`PASS / GO @ aa2376d2`。
 - [x] Task 5 correlation provenance Machine Contract Gate：`PASS / GO @ 1c181df8`。
-- [ ] Task 4A Schema/Writer Amendment Code Review／正向闭环Gate：`REVIEW_REQUIRED`。
+- [x] Task 4A Schema/Writer Amendment Code Review／正向闭环Gate：`PASS / GO @ 8889fe96`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- Task 4候选`aa2376d2`已获独立复审GO：首节点、下一节点激活和当前PENDING改派均在既有站内信后追加SMS/EMAIL/DINGTALK三条PENDING请求；WAITING改派零提醒，后续激活使用当前recipient和已提交nodeVersion。
-- 聚焦验证：`CutoverApprovalExternalNotificationCreationTest`、`CutoverApprovalDecisionServiceTest`、`CutoverApprovalReassignmentTest`共11/11通过；候选未增加生产Provider、Job、Bean、Fake或fallback。
-- 独立单点裁决确认通知行是`correlationId`唯一权威载体：先同步Feature/external/physical/plan合同，再以前向ALTER和Task 4三个创建入口冻结同组四行的受信correlationId；不得从deliveryKey、日志或平台审计反推。
-- 当前最近Gate为Task 4A Schema/Writer Amendment独立Code Review／实现后单元与正常正向闭环验证；该Gate GO前不得进入Task 5投递服务实现。INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
+- 基线`8889fe96`；Task 4A Gate=`PASS / GO`。证据：14/14服务测试、6/6隔离MySQL正向闭环，V158列宽/可空/无默认符合合同，同节点四行冻结同一correlationId。当前实施Task 5受控端口/投递服务/暂停Job候选；生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
