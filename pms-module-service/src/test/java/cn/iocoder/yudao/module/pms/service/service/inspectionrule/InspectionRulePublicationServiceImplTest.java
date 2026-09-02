@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.Insp
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.audit.InspectionRulePublicationAuditService;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleActionPermissionGuard;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleSecurityReviewPermissionGuard;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -53,13 +55,18 @@ class InspectionRulePublicationServiceImplTest {
     private InspectionRulePublicationAuditService publicationAuditService;
     @Mock
     private InspectionRuleActionPermissionGuard permissionGuard;
+    @Mock
+    private InspectionRulePublicationTransactionService transactionService;
+    @Mock
+    private InspectionRuleSecurityReviewPermissionGuard securityReviewPermissionGuard;
 
     private InspectionRulePublicationServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new InspectionRulePublicationServiceImpl(
-                revisionMapper, commandExecutionApi, publicationAuditService, permissionGuard);
+                revisionMapper, commandExecutionApi, publicationAuditService, permissionGuard,
+                transactionService, securityReviewPermissionGuard);
         TenantContextHolder.setTenantId(TENANT_ID);
         LoginUser loginUser = new LoginUser();
         loginUser.setId(ACTOR_ID);
@@ -83,6 +90,93 @@ class InspectionRulePublicationServiceImplTest {
 
         verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
         verify(revisionMapper, never()).selectById(any());
+    }
+
+    @Test
+    void shouldRecordSecurityReviewThroughDedicatedPermissionAndPlatformCommand() {
+        InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization authorization =
+                new InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization(
+                        ACTOR_ID, "pms:inspection-rule:security-review", "RBAC_PERMISSION", null);
+        when(securityReviewPermissionGuard.check()).thenReturn(authorization);
+        when(transactionService.recordSecurityReview(any())).thenReturn(
+                new InspectionRulePublicationTransactionService.SecurityReviewResult(
+                        "review-1", REVISION_ID, "a".repeat(64), "PASSED",
+                        LocalDateTime.of(2026, 9, 3, 0, 0)));
+        doAnswer(invocation -> {
+            Supplier<InspectionRulePublicationService.ReviewResult> operation = invocation.getArgument(3);
+            Function<InspectionRulePublicationService.ReviewResult, PlatformCommandExecutionApi.SuccessFacts> facts =
+                    invocation.getArgument(4);
+            InspectionRulePublicationService.ReviewResult response = operation.get();
+            PlatformCommandExecutionApi.SuccessFacts successFacts = facts.apply(response);
+            assertEquals("INSPECTION_RULE_SECURITY_REVIEW", successFacts.operationCode());
+            assertFalse(successFacts.detailSnapshot().contains("show status"));
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, response);
+        }).when(commandExecutionApi).execute(
+                any(), any(), eq(InspectionRulePublicationService.ReviewResult.class), any(), any());
+
+        InspectionRulePublicationService.ReviewResult result = service.recordSecurityReview(
+                new InspectionRulePublicationService.ReviewCommand(
+                        REVISION_ID, 3, "PASSED", "review-key", "review-corr"));
+
+        assertEquals("review-1", result.reviewReference());
+        assertFalse(result.replayed());
+        ArgumentCaptor<PlatformCommandExecutionApi.IdempotencyScope> scope =
+                ArgumentCaptor.forClass(PlatformCommandExecutionApi.IdempotencyScope.class);
+        verify(commandExecutionApi).execute(
+                scope.capture(), any(), eq(InspectionRulePublicationService.ReviewResult.class), any(), any());
+        assertEquals("INSPECTION_RULE_SECURITY_REVIEW", scope.getValue().scopeCode());
+        verify(securityReviewPermissionGuard).check();
+    }
+
+    @Test
+    void shouldNotEnterCommandExecutionWhenSecurityReviewPermissionIsDenied() {
+        doThrow(new ServiceException(1_013_002_013, "forbidden"))
+                .when(securityReviewPermissionGuard).check();
+
+        ServiceException failure = assertThrows(ServiceException.class, () -> service.recordSecurityReview(
+                new InspectionRulePublicationService.ReviewCommand(
+                        REVISION_ID, 3, "PASSED", "review-denied", "review-denied-corr")));
+
+        assertEquals(1_013_002_013, failure.getCode());
+        verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
+        verify(transactionService, never()).recordSecurityReview(any());
+    }
+
+    @Test
+    void shouldPublishApprovedDraftThroughBaselineCasAndPlatformCommand() {
+        when(revisionMapper.selectById(REVISION_ID)).thenReturn(revision("DRAFT", 3));
+        InspectionRuleRevisionDO current = revision("PUBLISHED", 4);
+        current.setId(21L);
+        when(revisionMapper.selectCurrentPublishedByRule(any())).thenReturn(current);
+        when(transactionService.publishApproved(any())).thenReturn(
+                new InspectionRulePublicationTransactionService.ApprovedPublishResult(
+                        REVISION_ID, 4, 21L, "b".repeat(64), "review-2"));
+        doAnswer(invocation -> {
+            Supplier<InspectionRulePublicationService.PublishResult> operation = invocation.getArgument(3);
+            Function<InspectionRulePublicationService.PublishResult, PlatformCommandExecutionApi.SuccessFacts> facts =
+                    invocation.getArgument(4);
+            InspectionRulePublicationService.PublishResult response = operation.get();
+            PlatformCommandExecutionApi.SuccessFacts successFacts = facts.apply(response);
+            assertEquals("INSPECTION_RULE_PUBLISH", successFacts.operationCode());
+            assertFalse(successFacts.detailSnapshot().contains("expectedResultRegex"));
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, response);
+        }).when(commandExecutionApi).execute(
+                any(), any(), eq(InspectionRulePublicationService.PublishResult.class), any(), any());
+
+        InspectionRulePublicationService.PublishResult result = service.publish(
+                new InspectionRulePublicationService.PublishCommand(
+                        REVISION_ID, 3, "publish-key", "publish-corr"));
+
+        assertEquals("PUBLISHED", result.statusCode());
+        assertEquals(21L, result.disabledRevisionId());
+        assertFalse(result.replayed());
+        verify(permissionGuard).checkPublish();
+        ArgumentCaptor<InspectionRulePublicationTransactionService.ApprovedPublishCommand> internal =
+                ArgumentCaptor.forClass(InspectionRulePublicationTransactionService.ApprovedPublishCommand.class);
+        verify(transactionService).publishApproved(internal.capture());
+        assertEquals(21L, internal.getValue().expectedPublishedRevisionId());
     }
 
     @Test

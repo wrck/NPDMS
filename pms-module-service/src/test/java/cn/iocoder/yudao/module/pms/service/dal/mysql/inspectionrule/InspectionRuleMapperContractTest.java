@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.Inspec
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleNameQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionKeyQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionPageQuery;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleSecurityReviewQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.SelectableInspectionRuleQuery;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ class InspectionRuleMapperContractTest {
         assertParameterType(InspectionRuleMapper.class, "selectByTenantAndRuleName", InspectionRuleNameQuery.class);
         assertParameterType(InspectionRuleMapper.class, "selectByIdForUpdate", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectByRuleIdAndRevisionNo", InspectionRuleRevisionKeyQuery.class);
+        assertParameterType(InspectionRuleRevisionMapper.class, "selectCurrentPublishedByRule", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectPage", InspectionRuleRevisionPageQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "updateDraftIfMatch", InspectionRuleDraftUpdate.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "publishDraftIfMatch", InspectionRulePublishUpdate.class);
@@ -43,7 +45,7 @@ class InspectionRuleMapperContractTest {
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "updateNameSnapshot", InspectionRuleProductTypeNameUpdate.class);
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);
-        assertParameterType(InspectionRuleSecurityReviewMapper.class, "selectListValidByRevisionIds", InspectionRuleChildrenQuery.class);
+        assertParameterType(InspectionRuleSecurityReviewMapper.class, "selectLatestByRevisionAndDigest", InspectionRuleSecurityReviewQuery.class);
         assertParameterType(SelectableInspectionRuleMapper.class, "selectListSelectable", SelectableInspectionRuleQuery.class);
     }
 
@@ -68,7 +70,6 @@ class InspectionRuleMapperContractTest {
     void emptyRevisionAndProductTypeScopesMustReturnEmptyWithoutExecutingSql() {
         InspectionRuleCommandRevisionMapper commandMapper = rejectingSqlProxy(InspectionRuleCommandRevisionMapper.class);
         InspectionRuleProductTypeRevisionMapper productTypeMapper = rejectingSqlProxy(InspectionRuleProductTypeRevisionMapper.class);
-        InspectionRuleSecurityReviewMapper securityReviewMapper = rejectingSqlProxy(InspectionRuleSecurityReviewMapper.class);
         SelectableInspectionRuleMapper selectableMapper = rejectingSqlProxy(SelectableInspectionRuleMapper.class);
 
         InspectionRuleChildrenQuery emptyChildren = new InspectionRuleChildrenQuery(1L, Set.of(), null);
@@ -78,7 +79,6 @@ class InspectionRuleMapperContractTest {
         assertEquals(0, commandMapper.hardDeleteByRevisionIds(emptyChildren));
         assertEquals(List.of(), productTypeMapper.selectListByRevisionIds(emptyChildren));
         assertEquals(0, productTypeMapper.hardDeleteByRevisionIds(emptyChildren));
-        assertEquals(List.of(), securityReviewMapper.selectListValidByRevisionIds(emptyChildren));
         assertEquals(List.of(), selectableMapper.selectListSelectable(emptySelectable));
     }
 
@@ -122,6 +122,15 @@ class InspectionRuleMapperContractTest {
         assertTrue(selectableXml.contains("r.status_code = 'PUBLISHED'"));
         assertTrue(selectableXml.contains("collection=\"query.productTypeCodes\""));
         assertTrue(selectableXml.contains("ORDER BY r.sort_order, i.detection_id, r.id"));
+
+        String securityReviewXml = Files.readString(
+                Path.of("src/main/resources/mapper/inspectionrule/InspectionRuleSecurityReviewMapper.xml"));
+        assertTrue(securityReviewXml.contains("tenant_id = #{query.tenantId}"));
+        assertTrue(securityReviewXml.contains("revision_id = #{query.revisionId}"));
+        assertTrue(securityReviewXml.contains("content_digest = #{query.contentDigest}"));
+        assertTrue(securityReviewXml.contains("ORDER BY reviewed_at DESC, id DESC"));
+        assertTrue(securityReviewXml.contains("LIMIT 1"));
+        assertTrue(!securityReviewXml.contains("conclusion_code = 'PASSED'"));
     }
 
     private static void assertParameterType(Class<?> mapperType, String methodName, Class<?> parameterType) throws Exception {

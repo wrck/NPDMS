@@ -29,6 +29,7 @@ public interface ErrorCodeConstants {
     ErrorCode INSPECTION_RULE_PUBLISH_FORBIDDEN = new ErrorCode(1_013_002_010, "无巡检规则发布权限");
     ErrorCode INSPECTION_RULE_IDEMPOTENCY_CONFLICT = new ErrorCode(1_013_002_011, "巡检规则操作幂等键冲突");
     ErrorCode INSPECTION_RULE_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_013_002_012, "巡检规则操作正在处理中");
+    ErrorCode INSPECTION_RULE_SECURITY_REVIEW_FORBIDDEN = new ErrorCode(1_013_002_013, "无巡检规则安全审核权限");
 
     // ========== 巡检执行记录 1-013-003-000 ==========
     ErrorCode SRV_EXECUTION_NOT_EXISTS = new ErrorCode(1_013_003_000, "巡检执行记录不存在");

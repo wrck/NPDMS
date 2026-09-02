@@ -1,6 +1,6 @@
 # DU-20260902-FINS001-TASK8-REVIEW-PUBLISH F-INS-001审核与发布闭环
 
-> DU状态：`CLAIMED`
+> DU状态：`HANDOFF_READY`
 > DU类型：`TASK`
 > Feature协调：`F-INS-001=TASK_COORDINATED`
 > Task范围：`Task 8现有PermissionApi审核守卫、最后审核事实查询、生产审核入口与完整发布；保留已集成停用和发布CAS基础`
@@ -23,11 +23,11 @@
 
 ## 交接
 
-- 最后提交：`NONE`
-- 已完成：无
-- 剩余：全部
-- 测试：未开始
-- 已知失败：无
+- 最后提交：`SELF（本次候选提交）`
+- 已完成：直接复用System现有`PermissionApi.hasAnyPermissions`完成目标租户审核权限判定；删除已被修订013替代且未装配的`InspectionRuleExplicitAuthorizationApi`，将前序内部`publishVerified`入口标记为待删除；实现DRAFT审核事实只追加、同聚合锁、最后审核事实精确查询、发布时完整领域/字典/AST重验、权威名称快照、旧发布版停用与新修订发布原子提交，并接入平台幂等、成功审计和失败审计。
+- 剩余：由master协调者复核候选提交并以`--ff-only`集成；集成后更新本DU回执、F-INS-001 Task权威进度和生成索引。Task 9～13及Feature最终DoD不在本DU内。
+- 测试：F-INS Python门禁26项PASS；service精确全量19个测试类共103项`Failures: 0 / Errors: 0 / Skipped: 19`；真实`npdms_test` MySQL公共服务审核/发布/停用5项及事务最后事实/原子发布5项均`Skipped: 0`、全部PASS；23模块package与聚焦28项Java测试PASS；`git diff --check` PASS；五轴自审PASS。
+- 已知失败：直接执行23模块无筛选全量测试会在进入service前被既有`FileArtifactMigrationContractTest`阻断；根因为Windows工作树将V92 SQL检出为CRLF，而该测试写死LF字符串。当前DU未修改`pms-module-platform`或`sql/migrations`，故不在本DU扩大修复；service适用全量已用精确类集合独立通过。
 
 ## 集成回执
 

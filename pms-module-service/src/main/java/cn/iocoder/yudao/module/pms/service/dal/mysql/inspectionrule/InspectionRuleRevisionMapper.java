@@ -27,6 +27,13 @@ public interface InspectionRuleRevisionMapper extends BaseMapperX<InspectionRule
                 .eq(InspectionRuleRevisionDO::getRevisionNo, query.revisionNo()));
     }
 
+    default InspectionRuleRevisionDO selectCurrentPublishedByRule(InspectionRuleIdentityLockQuery query) {
+        return selectOne(new LambdaQueryWrapperX<InspectionRuleRevisionDO>()
+                .eq(InspectionRuleRevisionDO::getTenantId, query.tenantId())
+                .eq(InspectionRuleRevisionDO::getRuleId, query.ruleId())
+                .eq(InspectionRuleRevisionDO::getStatusCode, "PUBLISHED"));
+    }
+
     default PageResult<InspectionRuleRevisionDO> selectPage(InspectionRuleRevisionPageQuery query) {
         long total = selectPageCount(query);
         return total == 0 ? PageResult.empty() : new PageResult<>(selectPageList(query), total);

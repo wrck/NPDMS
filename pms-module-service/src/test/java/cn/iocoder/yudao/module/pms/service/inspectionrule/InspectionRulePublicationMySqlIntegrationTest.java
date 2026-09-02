@@ -16,11 +16,19 @@ import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecu
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationService;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationServiceImpl;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionService;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.audit.InspectionRulePublicationAuditService;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleActionPermissionGuard;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleContentDigestService;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleSecurityReviewPermissionGuard;
+import cn.iocoder.yudao.module.pms.asset.api.producttype.inspection.InspectionAssetProductTypeApi;
+import cn.iocoder.yudao.module.pms.asset.api.producttype.dto.ProductTypeCodeResult;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +53,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -56,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = InspectionRulePublicationMySqlIntegrationTest.TestApplication.class,
@@ -71,6 +82,10 @@ class InspectionRulePublicationMySqlIntegrationTest {
     private JdbcTemplate jdbcTemplate;
     @Resource
     private PlatformWriteFault platformWriteFault;
+    @Resource
+    private InspectionAssetProductTypeApi assetProductTypeApi;
+    @Resource
+    private DictDataApi dictDataApi;
 
     private long ruleId;
     private long revisionId;
@@ -112,10 +127,23 @@ class InspectionRulePublicationMySqlIntegrationTest {
     void tearDown() {
         try {
             platformWriteFault.clear();
+            reset(assetProductTypeApi, dictDataApi);
             jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE correlation_id LIKE ?",
-                    "fins001-disable-corr-" + testPrefix + "%");
+                    "%" + testPrefix + "%");
             jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?",
-                    "fins001-disable-" + testPrefix + "%");
+                    "%" + testPrefix + "%");
+            jdbcTemplate.update("DELETE FROM srv_inspection_rule_security_review WHERE tenant_id=? "
+                            + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision "
+                            + "WHERE tenant_id=? AND rule_id=?)",
+                    TENANT_ID, TENANT_ID, ruleId);
+            jdbcTemplate.update("DELETE FROM srv_inspection_rule_command_revision WHERE tenant_id=? "
+                            + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision "
+                            + "WHERE tenant_id=? AND rule_id=?)",
+                    TENANT_ID, TENANT_ID, ruleId);
+            jdbcTemplate.update("DELETE FROM srv_inspection_rule_product_type_revision WHERE tenant_id=? "
+                            + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision "
+                            + "WHERE tenant_id=? AND rule_id=?)",
+                    TENANT_ID, TENANT_ID, ruleId);
             jdbcTemplate.update("DELETE FROM srv_inspection_rule_revision WHERE tenant_id=? AND rule_id=?",
                     TENANT_ID, ruleId);
             jdbcTemplate.update("DELETE FROM srv_inspection_rule WHERE tenant_id=? AND id=?", TENANT_ID, ruleId);
@@ -190,6 +218,66 @@ class InspectionRulePublicationMySqlIntegrationTest {
         assertEquals(1L, auditCount(correlationId, "REJECTED"));
     }
 
+    @Test
+    void reviewAndPublishCommitWithPlatformIdempotencyAndRejectNewReviewAfterPublication() {
+        long draftRevisionId = insertCompleteDraft();
+        when(dictDataApi.getDictDataList("pms_inspection_rule_category"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_category", "BASIC", "基础检测")));
+        when(dictDataApi.getDictDataList("pms_inspection_rule_severity"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_severity", "GENERAL", "一般")));
+        when(assetProductTypeApi.getByCodes(any())).thenReturn(List.of(new ProductTypeCodeResult(
+                "A", true, true, "权威产品A", "CRM", "v1", "SYNCED",
+                LocalDateTime.now().minusDays(1), false)));
+        String reviewKey = "fins001-review-" + testPrefix;
+        String reviewCorrelation = "fins001-review-corr-" + testPrefix;
+        InspectionRulePublicationService.ReviewCommand reviewCommand =
+                new InspectionRulePublicationService.ReviewCommand(
+                        draftRevisionId, 0, "PASSED", reviewKey, reviewCorrelation);
+
+        InspectionRulePublicationService.ReviewResult firstReview =
+                publicationService.recordSecurityReview(reviewCommand);
+        InspectionRulePublicationService.ReviewResult replayedReview =
+                publicationService.recordSecurityReview(reviewCommand);
+
+        assertFalse(firstReview.replayed());
+        assertTrue(replayedReview.replayed());
+        assertEquals(firstReview.reviewReference(), replayedReview.reviewReference());
+        assertEquals(1L, securityReviewCount(draftRevisionId));
+        assertEquals(1L, commandFactCount("INSPECTION_RULE_SECURITY_REVIEW", reviewKey));
+        assertEquals(1L, operationAuditCount(
+                "INSPECTION_RULE_SECURITY_REVIEW", draftRevisionId, reviewCorrelation, "SUCCESS"));
+
+        String publishKey = "fins001-publish-" + testPrefix;
+        String publishCorrelation = "fins001-publish-corr-" + testPrefix;
+        InspectionRulePublicationService.PublishCommand publishCommand =
+                new InspectionRulePublicationService.PublishCommand(
+                        draftRevisionId, 0, publishKey, publishCorrelation);
+        InspectionRulePublicationService.PublishResult firstPublish = publicationService.publish(publishCommand);
+        InspectionRulePublicationService.PublishResult replayedPublish = publicationService.publish(publishCommand);
+
+        assertFalse(firstPublish.replayed());
+        assertTrue(replayedPublish.replayed());
+        assertEquals(firstReview.reviewReference(), firstPublish.reviewReference());
+        assertRevision(revisionId, "DISABLED", 2);
+        assertRevision(draftRevisionId, "PUBLISHED", 1);
+        assertEquals(1L, commandFactCount("INSPECTION_RULE_PUBLISH", publishKey));
+        assertEquals(1L, operationAuditCount(
+                "INSPECTION_RULE_PUBLISH", draftRevisionId, publishCorrelation, "SUCCESS"));
+        String successDetail = operationAuditDetail(
+                "INSPECTION_RULE_PUBLISH", draftRevisionId, publishCorrelation, "SUCCESS");
+        assertFalse(successDetail.contains("show cpu"));
+        assertFalse(successDetail.contains("^CPU: [0-9]+$"));
+
+        String rejectedCorrelation = "fins001-review-after-publish-corr-" + testPrefix;
+        assertThrows(ServiceException.class, () -> publicationService.recordSecurityReview(
+                new InspectionRulePublicationService.ReviewCommand(
+                        draftRevisionId, 1, "REJECTED", "fins001-review-after-publish-" + testPrefix,
+                        rejectedCorrelation)));
+        assertEquals(1L, securityReviewCount(draftRevisionId));
+        assertEquals(1L, operationAuditCount(
+                "INSPECTION_RULE_SECURITY_REVIEW", draftRevisionId, rejectedCorrelation, "REJECTED"));
+    }
+
     private InspectionRulePublicationService.DisableCommand command(
             int expectedVersion,
             String key,
@@ -218,11 +306,39 @@ class InspectionRulePublicationMySqlIntegrationTest {
                 Long.class, TENANT_ID, ruleId);
     }
 
+    private long insertCompleteDraft() {
+        jdbcTemplate.update("INSERT INTO srv_inspection_rule_revision "
+                        + "(rule_id,revision_no,status_code,rule_name_snapshot,inspection_item,description,"
+                        + "category_code,category_name_snapshot,severity_code,severity_name_snapshot,sort_order,"
+                        + "expected_result_regex,threshold_data_type,threshold_operator,threshold_value,threshold_unit,"
+                        + "version,creator,updater,tenant_id) "
+                        + "VALUES (?,2,'DRAFT',?,'CPU利用率','检查CPU利用率','BASIC','草稿分类',"
+                        + "'GENERAL','草稿严重度',10,'^CPU: [0-9]+$','NUMBER','≤',80,'%',0,'it','it',?)",
+                ruleId, "发布事务规则-" + testPrefix, TENANT_ID);
+        long draftRevisionId = jdbcTemplate.queryForObject(
+                "SELECT id FROM srv_inspection_rule_revision WHERE tenant_id=? AND rule_id=? AND revision_no=2",
+                Long.class, TENANT_ID, ruleId);
+        jdbcTemplate.update("INSERT INTO srv_inspection_rule_command_revision "
+                        + "(id,revision_id,stable_command_key,command_content,execution_order,timeout_seconds,"
+                        + "continue_on_timeout,version,creator,updater,tenant_id) "
+                        + "VALUES (?,?,'cpu','show cpu',1,30,b'0',0,'it','it',?)",
+                IdWorker.getId(), draftRevisionId, TENANT_ID);
+        jdbcTemplate.update("INSERT INTO srv_inspection_rule_product_type_revision "
+                        + "(id,revision_id,product_type_code,product_type_name_snapshot,version,creator,updater,tenant_id) "
+                        + "VALUES (?,?,'A','草稿产品A',0,'it','it',?)",
+                IdWorker.getId(), draftRevisionId, TENANT_ID);
+        return draftRevisionId;
+    }
+
     private void assertRevision(String status, int version) {
+        assertRevision(revisionId, status, version);
+    }
+
+    private void assertRevision(long targetRevisionId, String status, int version) {
         Map<String, Object> row = jdbcTemplate.queryForMap(
                 "SELECT status_code,version,disabled_by,disabled_at FROM srv_inspection_rule_revision "
                         + "WHERE tenant_id=? AND id=?",
-                TENANT_ID, revisionId);
+                TENANT_ID, targetRevisionId);
         assertEquals(status, row.get("status_code"));
         assertEquals(version, ((Number) row.get("version")).intValue());
         if ("DISABLED".equals(status)) {
@@ -235,10 +351,14 @@ class InspectionRulePublicationMySqlIntegrationTest {
     }
 
     private long idempotencyCount(String key) {
+        return commandFactCount("INSPECTION_RULE_DISABLE", key);
+    }
+
+    private long commandFactCount(String scope, String key) {
         return jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND scope_code=? "
                         + "AND actor_id=? AND idempotency_key=?",
-                Long.class, TENANT_ID, "INSPECTION_RULE_DISABLE", ACTOR_ID, key);
+                Long.class, TENANT_ID, scope, ACTOR_ID, key);
     }
 
     private String idempotencyStatus(String key) {
@@ -249,20 +369,51 @@ class InspectionRulePublicationMySqlIntegrationTest {
     }
 
     private long auditCount(String correlation, String resultCode) {
+        return operationAuditCount("INSPECTION_RULE_DISABLE", revisionId, correlation, resultCode);
+    }
+
+    private long operationAuditCount(
+            String operation,
+            long aggregateId,
+            String correlation,
+            String resultCode) {
         return jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND operation_code=? "
                         + "AND aggregate_type=? AND aggregate_key=? AND actor_id=? AND correlation_id=? "
                         + "AND result_code=?",
-                Long.class, TENANT_ID, "INSPECTION_RULE_DISABLE", "InspectionRuleRevision",
-                String.valueOf(revisionId), ACTOR_ID, correlation, resultCode);
+                Long.class, TENANT_ID, operation, "InspectionRuleRevision",
+                String.valueOf(aggregateId), ACTOR_ID, correlation, resultCode);
     }
 
     private String auditDetail(String correlation, String resultCode) {
+        return operationAuditDetail("INSPECTION_RULE_DISABLE", revisionId, correlation, resultCode);
+    }
+
+    private String operationAuditDetail(
+            String operation,
+            long aggregateId,
+            String correlation,
+            String resultCode) {
         return jdbcTemplate.queryForObject(
                 "SELECT detail_snapshot FROM plt_operation_audit WHERE tenant_id=? AND operation_code=? "
                         + "AND aggregate_key=? AND correlation_id=? AND result_code=?",
-                String.class, TENANT_ID, "INSPECTION_RULE_DISABLE", String.valueOf(revisionId),
+                String.class, TENANT_ID, operation, String.valueOf(aggregateId),
                 correlation, resultCode);
+    }
+
+    private long securityReviewCount(long targetRevisionId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM srv_inspection_rule_security_review WHERE tenant_id=? AND revision_id=?",
+                Long.class, TENANT_ID, targetRevisionId);
+    }
+
+    private static DictDataRespDTO dictData(String dictType, String value, String label) {
+        DictDataRespDTO data = new DictDataRespDTO();
+        data.setDictType(dictType);
+        data.setValue(value);
+        data.setLabel(label);
+        data.setStatus(0);
+        return data;
     }
 
     private void setRequestContext() {
@@ -298,8 +449,11 @@ class InspectionRulePublicationMySqlIntegrationTest {
             PlatformTransactionalOutboxWriter.class,
             OperationAuditApiImpl.class,
             InspectionRulePublicationServiceImpl.class,
+            InspectionRulePublicationTransactionService.class,
             InspectionRulePublicationAuditService.class,
-            InspectionRuleActionPermissionGuard.class
+            InspectionRuleActionPermissionGuard.class,
+            InspectionRuleSecurityReviewPermissionGuard.class,
+            InspectionRuleContentDigestService.class
     })
     static class TestApplication {
 
@@ -313,6 +467,16 @@ class InspectionRulePublicationMySqlIntegrationTest {
             PermissionApi permissionApi = mock(PermissionApi.class);
             when(permissionApi.hasAnyPermissions(any(), any())).thenReturn(true);
             return permissionApi;
+        }
+
+        @Bean
+        InspectionAssetProductTypeApi inspectionAssetProductTypeApi() {
+            return mock(InspectionAssetProductTypeApi.class);
+        }
+
+        @Bean
+        DictDataApi dictDataApi() {
+            return mock(DictDataApi.class);
         }
 
         @Bean

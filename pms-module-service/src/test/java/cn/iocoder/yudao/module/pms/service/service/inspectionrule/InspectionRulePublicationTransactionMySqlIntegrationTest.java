@@ -8,10 +8,14 @@ import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.inspection.InspectionAssetProductTypeApi;
+import cn.iocoder.yudao.module.pms.asset.api.producttype.dto.ProductTypeCodeResult;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRulePublishUpdate;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleManagePermissionGuard;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleContentDigestService;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleSecurityReviewPermissionGuard;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
@@ -59,6 +63,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
+import static org.mockito.ArgumentMatchers.any;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = InspectionRulePublicationTransactionMySqlIntegrationTest.TestApplication.class,
@@ -77,6 +83,12 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
     private JdbcTemplate jdbcTemplate;
     @Resource
     private PublicationWriteFault writeFault;
+    @Resource
+    private InspectionAssetProductTypeApi assetProductTypeApi;
+    @Resource
+    private DictDataApi dictDataApi;
+    @Resource
+    private InspectionRuleContentDigestService contentDigestService;
 
     private long ruleId;
     private long currentRevisionId;
@@ -124,6 +136,13 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
     @AfterEach
     void tearDown() {
         writeFault.clear();
+        reset(assetProductTypeApi, dictDataApi);
+        jdbcTemplate.update("DELETE FROM srv_inspection_rule_security_review WHERE tenant_id=? "
+                + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision WHERE tenant_id=? AND rule_id=?)",
+                TENANT_ID, TENANT_ID, ruleId);
+        jdbcTemplate.update("DELETE FROM srv_inspection_rule_command_revision WHERE tenant_id=? "
+                + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision WHERE tenant_id=? AND rule_id=?)",
+                TENANT_ID, TENANT_ID, ruleId);
         jdbcTemplate.update("DELETE FROM srv_inspection_rule_product_type_revision WHERE tenant_id=? "
                 + "AND revision_id IN (SELECT id FROM srv_inspection_rule_revision WHERE tenant_id=? AND rule_id=?)",
                 TENANT_ID, TENANT_ID, ruleId);
@@ -173,6 +192,58 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
                         + "WHERE tenant_id=? AND revision_id=? AND product_type_code='A'",
                 String.class, TENANT_ID, firstDraftId));
         assertEquals(1L, publishedCount());
+    }
+
+    @Test
+    void latestExactDigestReviewControlsPublicationAndReviewClosesAfterPublish() {
+        insertCommand(firstDraftId);
+        when(dictDataApi.getDictDataList("pms_inspection_rule_category"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_category", "BASIC", "权威分类")));
+        when(dictDataApi.getDictDataList("pms_inspection_rule_severity"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_severity", "GENERAL", "权威严重度")));
+        when(assetProductTypeApi.getByCodes(any())).thenReturn(List.of(new ProductTypeCodeResult(
+                "A", true, true, "权威产品A", "CRM", "v1", "SYNCED",
+                PUBLISHED_AT.minusDays(1), false)));
+        String digest = contentDigestService.digest(new InspectionRuleContentDigestService.ReviewContent(
+                List.of(new InspectionRuleContentDigestService.CommandContent(
+                        "show cpu", 1, 30, false)),
+                "^CPU: [0-9]+$"));
+
+        insertReview(IdWorker.getId(), firstDraftId, "0".repeat(64), "PASSED", PUBLISHED_AT.minusMinutes(2));
+        assertThrows(ServiceException.class, () -> service.publishApproved(approvedCommand(firstDraftId)));
+        assertRevision(currentRevisionId, "PUBLISHED", 4);
+        assertRevision(firstDraftId, "DRAFT", 3);
+
+        long passedId = IdWorker.getId();
+        insertReview(passedId, firstDraftId, digest, "PASSED", PUBLISHED_AT.minusMinutes(1));
+        insertReview(passedId + 1, firstDraftId, digest, "REJECTED", PUBLISHED_AT.minusMinutes(1));
+        assertThrows(ServiceException.class, () -> service.publishApproved(approvedCommand(firstDraftId)));
+        assertRevision(currentRevisionId, "PUBLISHED", 4);
+        assertRevision(firstDraftId, "DRAFT", 3);
+
+        InspectionRulePublicationTransactionService.SecurityReviewResult review =
+                service.recordSecurityReview(new InspectionRulePublicationTransactionService.SecurityReviewCommand(
+                        TENANT_ID, firstDraftId, 3, "PASSED",
+                        new InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization(
+                                ACTOR_ID, "pms:inspection-rule:security-review", "RBAC_PERMISSION", null),
+                        PUBLISHED_AT));
+        assertEquals(digest, review.contentDigest());
+        assertEquals(null, jdbcTemplate.queryForObject(
+                "SELECT authorization_source_id FROM srv_inspection_rule_security_review "
+                        + "WHERE tenant_id=? AND review_reference=?",
+                String.class, TENANT_ID, review.reviewReference()));
+
+        InspectionRulePublicationTransactionService.ApprovedPublishResult published =
+                service.publishApproved(approvedCommand(firstDraftId));
+        assertEquals(review.reviewReference(), published.reviewReference());
+        assertRevision(currentRevisionId, "DISABLED", 5);
+        assertRevision(firstDraftId, "PUBLISHED", 4);
+        assertThrows(ServiceException.class, () -> service.recordSecurityReview(
+                new InspectionRulePublicationTransactionService.SecurityReviewCommand(
+                        TENANT_ID, firstDraftId, 4, "REJECTED",
+                        new InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization(
+                                ACTOR_ID, "pms:inspection-rule:security-review", "RBAC_PERMISSION", null),
+                        PUBLISHED_AT.plusSeconds(1))));
     }
 
     @Test
@@ -310,6 +381,11 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
                 PUBLISHED_AT);
     }
 
+    private InspectionRulePublicationTransactionService.ApprovedPublishCommand approvedCommand(long revisionId) {
+        return new InspectionRulePublicationTransactionService.ApprovedPublishCommand(
+                TENANT_ID, revisionId, 3, currentRevisionId, ACTOR_ID, PUBLISHED_AT);
+    }
+
     private void insertRule() {
         jdbcTemplate.update("INSERT INTO srv_inspection_rule "
                         + "(id, detection_id, rule_name, version, creator, updater, tenant_id) VALUES (?, ?, ?, 0, 'it', 'it', ?)",
@@ -333,6 +409,39 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
                         + "(id, revision_id, product_type_code, product_type_name_snapshot, version, creator, updater, tenant_id) "
                         + "VALUES (?, ?, ?, ?, 0, 'it', 'it', ?)",
                 IdWorker.getId(), revisionId, code, name, TENANT_ID);
+    }
+
+    private void insertCommand(long revisionId) {
+        jdbcTemplate.update("INSERT INTO srv_inspection_rule_command_revision "
+                        + "(id, revision_id, stable_command_key, command_content, execution_order, timeout_seconds, "
+                        + "continue_on_timeout, version, creator, updater, tenant_id) "
+                        + "VALUES (?, ?, 'cpu', 'show cpu', 1, 30, b'0', 0, 'it', 'it', ?)",
+                IdWorker.getId(), revisionId, TENANT_ID);
+    }
+
+    private void insertReview(
+            long reviewId,
+            long revisionId,
+            String contentDigest,
+            String conclusion,
+            LocalDateTime reviewedAt) {
+        jdbcTemplate.update("INSERT INTO srv_inspection_rule_security_review "
+                        + "(id, review_reference, revision_id, content_digest, reviewed_by, permission_code, "
+                        + "authorization_type, authorization_source_id, conclusion_code, reviewed_at, version, "
+                        + "creator, updater, tenant_id) "
+                        + "VALUES (?, ?, ?, ?, ?, 'pms:inspection-rule:security-review', 'RBAC_PERMISSION', NULL, "
+                        + "?, ?, 0, 'it', 'it', ?)",
+                reviewId, "IT-REVIEW-" + reviewId, revisionId, contentDigest, ACTOR_ID,
+                conclusion, reviewedAt, TENANT_ID);
+    }
+
+    private static DictDataRespDTO dictData(String dictType, String value, String label) {
+        DictDataRespDTO data = new DictDataRespDTO();
+        data.setDictType(dictType);
+        data.setValue(value);
+        data.setLabel(label);
+        data.setStatus(0);
+        return data;
     }
 
     private void assertRevision(long revisionId, String status, int version) {
@@ -365,6 +474,7 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             InspectionRuleManagePermissionGuard.class,
+            InspectionRuleContentDigestService.class,
             InspectionRuleRevisionServiceImpl.class,
             InspectionRulePublicationTransactionService.class})
     static class TestApplication {

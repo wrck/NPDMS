@@ -12,7 +12,6 @@ TEST_ASSETS = (
     "scripts/tests/test_fins001_legacy_preservation.py",
     "scripts/tests/test_fins001_owner_and_query_boundary.py",
     "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/integration/asset/AssetProductTypeContractTest.java",
-    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java",
     "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java",
     "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestService.java",
     "pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuardTest.java",
@@ -83,6 +82,14 @@ class FIns001OwnerAndQueryBoundaryTest(unittest.TestCase):
         pom = (ROOT / "pms-module-service/pom.xml").read_text(encoding="utf-8-sig")
         self.assertIn("<artifactId>pms-module-asset-api</artifactId>", pom)
         self.assertNotIn("<artifactId>pms-module-asset</artifactId>", pom)
+
+    def test_security_review_reuses_system_permission_api_without_system_internals(self):
+        guard = (SERVICE_ROOT / "java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java").read_text(encoding="utf-8-sig")
+        self.assertIn("PermissionApi", guard)
+        self.assertIn("hasAnyPermissions", guard)
+        self.assertNotIn("SecurityFrameworkService", guard)
+        self.assertNotIn("system_", guard)
+        self.assertFalse((SERVICE_ROOT / "java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java").exists())
 
     def test_test_assets_are_traced_by_plan_and_task(self):
         plan = PLAN.read_text(encoding="utf-8-sig")

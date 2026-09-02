@@ -10,8 +10,10 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRu
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDisableUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRulePublicationLockQuery;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.audit.InspectionRulePublicationAuditService;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleActionPermissionGuard;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleSecurityReviewPermissionGuard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.INSPECTION_RULE_DRAFT_INVALID;
@@ -35,6 +38,10 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.INSPE
 @RequiredArgsConstructor
 public class InspectionRulePublicationServiceImpl implements InspectionRulePublicationService {
 
+    static final String REVIEW_SCOPE = "INSPECTION_RULE_SECURITY_REVIEW";
+    static final String REVIEW_OPERATION = "INSPECTION_RULE_SECURITY_REVIEW";
+    static final String PUBLISH_SCOPE = "INSPECTION_RULE_PUBLISH";
+    static final String PUBLISH_OPERATION = "INSPECTION_RULE_PUBLISH";
     static final String DISABLE_SCOPE = "INSPECTION_RULE_DISABLE";
     static final String DISABLE_OPERATION = "INSPECTION_RULE_DISABLE";
     private static final String AGGREGATE_TYPE = "InspectionRuleRevision";
@@ -43,6 +50,102 @@ public class InspectionRulePublicationServiceImpl implements InspectionRulePubli
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final InspectionRulePublicationAuditService publicationAuditService;
     private final InspectionRuleActionPermissionGuard permissionGuard;
+    private final InspectionRulePublicationTransactionService transactionService;
+    private final InspectionRuleSecurityReviewPermissionGuard securityReviewPermissionGuard;
+
+    @Override
+    public ReviewResult recordSecurityReview(ReviewCommand command) {
+        validateReviewCommand(command);
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        Long actorId = SecurityFrameworkUtils.getLoginUserId();
+        try {
+            InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization authorization =
+                    securityReviewPermissionGuard.check();
+            actorId = authorization.actorId();
+            Long auditedActorId = actorId;
+            PlatformCommandExecutionApi.ExecutionResult<ReviewResult> execution = commandExecutionApi.execute(
+                    new PlatformCommandExecutionApi.IdempotencyScope(
+                            tenantId, REVIEW_SCOPE, auditedActorId, command.idempotencyKey()),
+                    requestDigest(command), ReviewResult.class,
+                    () -> {
+                        InspectionRulePublicationTransactionService.SecurityReviewResult result =
+                                transactionService.recordSecurityReview(
+                                        new InspectionRulePublicationTransactionService.SecurityReviewCommand(
+                                                tenantId, command.revisionId(), command.expectedVersion(),
+                                                command.conclusionCode(), authorization, LocalDateTime.now()));
+                        return new ReviewResult(
+                                result.reviewReference(), result.revisionId(), result.contentDigest(),
+                                result.conclusionCode(), result.reviewedAt(), false);
+                    },
+                    result -> reviewSuccessFacts(command, result, authorization));
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
+                throw exception(INSPECTION_RULE_IDEMPOTENCY_CONFLICT);
+            }
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                    || execution.response() == null) {
+                throw exception(INSPECTION_RULE_IDEMPOTENCY_IN_PROGRESS);
+            }
+            ReviewResult result = execution.response();
+            return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
+                    ? new ReviewResult(
+                    result.reviewReference(), result.revisionId(), result.contentDigest(),
+                    result.conclusionCode(), result.reviewedAt(), true)
+                    : result;
+        } catch (RuntimeException failure) {
+            auditRejected(
+                    tenantId, actorId, command.revisionId(), command.expectedVersion(),
+                    command.correlationId(), REVIEW_OPERATION, failure,
+                    Map.of("conclusionCode", command.conclusionCode()));
+            throw failure;
+        }
+    }
+
+    @Override
+    public PublishResult publish(PublishCommand command) {
+        validatePublishCommand(command);
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        Long actorId = SecurityFrameworkUtils.getLoginUserId();
+        try {
+            permissionGuard.checkPublish();
+            InspectionRuleRevisionDO target = requireRevision(command.revisionId(), tenantId);
+            InspectionRuleRevisionDO currentPublished = revisionMapper.selectCurrentPublishedByRule(
+                    new InspectionRuleIdentityLockQuery(tenantId, target.getRuleId()));
+            Long expectedPublishedRevisionId = currentPublished == null ? null : currentPublished.getId();
+            PlatformCommandExecutionApi.ExecutionResult<PublishResult> execution = commandExecutionApi.execute(
+                    new PlatformCommandExecutionApi.IdempotencyScope(
+                            tenantId, PUBLISH_SCOPE, actorId, command.idempotencyKey()),
+                    requestDigest(command), PublishResult.class,
+                    () -> {
+                        InspectionRulePublicationTransactionService.ApprovedPublishResult result =
+                                transactionService.publishApproved(
+                                        new InspectionRulePublicationTransactionService.ApprovedPublishCommand(
+                                                tenantId, command.revisionId(), command.expectedVersion(),
+                                                expectedPublishedRevisionId, actorId, LocalDateTime.now()));
+                        return new PublishResult(
+                                result.revisionId(), "PUBLISHED", result.version(), result.disabledRevisionId(),
+                                result.contentDigest(), result.reviewReference(), false);
+                    },
+                    result -> publishSuccessFacts(command, result, actorId));
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
+                throw exception(INSPECTION_RULE_IDEMPOTENCY_CONFLICT);
+            }
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                    || execution.response() == null) {
+                throw exception(INSPECTION_RULE_IDEMPOTENCY_IN_PROGRESS);
+            }
+            PublishResult result = execution.response();
+            return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
+                    ? new PublishResult(
+                    result.revisionId(), result.statusCode(), result.version(), result.disabledRevisionId(),
+                    result.contentDigest(), result.reviewReference(), true)
+                    : result;
+        } catch (RuntimeException failure) {
+            auditRejected(
+                    tenantId, actorId, command.revisionId(), command.expectedVersion(),
+                    command.correlationId(), PUBLISH_OPERATION, failure, Map.of());
+            throw failure;
+        }
+    }
 
     @Override
     public DisableResult disable(DisableCommand command) {
@@ -104,6 +207,45 @@ public class InspectionRulePublicationServiceImpl implements InspectionRulePubli
         return new DisableResult(inspected.getId(), "DISABLED", command.expectedVersion() + 1, false);
     }
 
+    private PlatformCommandExecutionApi.SuccessFacts reviewSuccessFacts(
+            ReviewCommand command,
+            ReviewResult result,
+            InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization authorization) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("revisionId", result.revisionId());
+        detail.put("contentDigest", result.contentDigest());
+        detail.put("reviewReference", result.reviewReference());
+        detail.put("conclusionCode", result.conclusionCode());
+        detail.put("reviewedAt", result.reviewedAt());
+        detail.put("actorId", authorization.actorId());
+        detail.put("permissionCode", authorization.permissionCode());
+        detail.put("authorizationType", authorization.authorizationType());
+        detail.put("authorizationSourceId", authorization.authorizationSourceId());
+        detail.put("revisionVersion", command.expectedVersion());
+        return new PlatformCommandExecutionApi.SuccessFacts(
+                REVIEW_OPERATION, AGGREGATE_TYPE, String.valueOf(result.revisionId()),
+                command.correlationId(), JsonUtils.toJsonString(detail), null, null);
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts publishSuccessFacts(
+            PublishCommand command,
+            PublishResult result,
+            Long actorId) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("revisionId", result.revisionId());
+        detail.put("statusBefore", "DRAFT");
+        detail.put("statusAfter", result.statusCode());
+        detail.put("revisionVersionBefore", command.expectedVersion());
+        detail.put("revisionVersionAfter", result.version());
+        detail.put("disabledRevisionId", result.disabledRevisionId());
+        detail.put("contentDigest", result.contentDigest());
+        detail.put("reviewReference", result.reviewReference());
+        detail.put("actorId", actorId);
+        return new PlatformCommandExecutionApi.SuccessFacts(
+                PUBLISH_OPERATION, AGGREGATE_TYPE, String.valueOf(result.revisionId()),
+                command.correlationId(), JsonUtils.toJsonString(detail), null, null);
+    }
+
     private PlatformCommandExecutionApi.SuccessFacts successFacts(
             DisableCommand command,
             DisableResult result,
@@ -121,16 +263,31 @@ public class InspectionRulePublicationServiceImpl implements InspectionRulePubli
     }
 
     private void auditRejected(Long tenantId, Long actorId, DisableCommand command, RuntimeException failure) {
+        auditRejected(
+                tenantId, actorId, command.revisionId(), command.expectedVersion(),
+                command.correlationId(), DISABLE_OPERATION, failure, Map.of());
+    }
+
+    private void auditRejected(
+            Long tenantId,
+            Long actorId,
+            Long revisionId,
+            Integer expectedVersion,
+            String correlationId,
+            String operation,
+            RuntimeException failure,
+            Map<String, ?> additionalDetail) {
         if (actorId == null || actorId <= 0) {
             return;
         }
         Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("revisionId", command.revisionId());
-        detail.put("expectedVersion", command.expectedVersion());
+        detail.put("revisionId", revisionId);
+        detail.put("expectedVersion", expectedVersion);
+        detail.putAll(additionalDetail);
         detail.put("errorCode", failure instanceof ServiceException serviceException
-                ? String.valueOf(serviceException.getCode()) : "INSPECTION_RULE_DISABLE_FAILED");
-        publicationAuditService.recordRejected(tenantId, actorId, command.correlationId(), DISABLE_OPERATION,
-                String.valueOf(command.revisionId()), detail);
+                ? String.valueOf(serviceException.getCode()) : operation + "_FAILED");
+        publicationAuditService.recordRejected(
+                tenantId, actorId, correlationId, operation, String.valueOf(revisionId), detail);
     }
 
     private InspectionRuleRevisionDO requireRevision(Long revisionId, Long tenantId) {
@@ -152,7 +309,46 @@ public class InspectionRulePublicationServiceImpl implements InspectionRulePubli
         }
     }
 
+    private static void validateReviewCommand(ReviewCommand command) {
+        if (command == null
+                || command.revisionId() == null || command.revisionId() <= 0
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || !Set.of("PASSED", "REJECTED").contains(command.conclusionCode())
+                || invalidCommandIdentity(command.idempotencyKey(), command.correlationId())) {
+            throw exception(INSPECTION_RULE_DRAFT_INVALID);
+        }
+    }
+
+    private static void validatePublishCommand(PublishCommand command) {
+        if (command == null
+                || command.revisionId() == null || command.revisionId() <= 0
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || invalidCommandIdentity(command.idempotencyKey(), command.correlationId())) {
+            throw exception(INSPECTION_RULE_DRAFT_INVALID);
+        }
+    }
+
+    private static boolean invalidCommandIdentity(String idempotencyKey, String correlationId) {
+        return idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128
+                || correlationId == null || correlationId.isBlank() || correlationId.length() > 128;
+    }
+
     private static String requestDigest(DisableCommand command) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("revisionId", command.revisionId());
+        payload.put("expectedVersion", command.expectedVersion());
+        return sha256(JsonUtils.toJsonString(payload));
+    }
+
+    private static String requestDigest(ReviewCommand command) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("revisionId", command.revisionId());
+        payload.put("expectedVersion", command.expectedVersion());
+        payload.put("conclusionCode", command.conclusionCode());
+        return sha256(JsonUtils.toJsonString(payload));
+    }
+
+    private static String requestDigest(PublishCommand command) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("revisionId", command.revisionId());
         payload.put("expectedVersion", command.expectedVersion());

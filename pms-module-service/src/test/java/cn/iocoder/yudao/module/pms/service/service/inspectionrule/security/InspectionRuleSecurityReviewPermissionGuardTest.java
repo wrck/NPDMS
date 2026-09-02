@@ -1,8 +1,10 @@
 package cn.iocoder.yudao.module.pms.service.service.inspectionrule.security;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,15 +13,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class InspectionRuleSecurityReviewPermissionGuardTest {
@@ -28,13 +31,13 @@ class InspectionRuleSecurityReviewPermissionGuardTest {
     private static final long ACTOR_ID = 9L;
 
     @Mock
-    private InspectionRuleExplicitAuthorizationApi authorizationApi;
+    private PermissionApi permissionApi;
 
     private InspectionRuleSecurityReviewPermissionGuard guard;
 
     @BeforeEach
     void setUp() {
-        guard = new InspectionRuleSecurityReviewPermissionGuard(authorizationApi);
+        guard = new InspectionRuleSecurityReviewPermissionGuard(permissionApi);
         TenantContextHolder.setTenantId(TENANT_ID);
         LoginUser loginUser = new LoginUser();
         loginUser.setId(ACTOR_ID);
@@ -49,67 +52,61 @@ class InspectionRuleSecurityReviewPermissionGuardTest {
     }
 
     @Test
-    void shouldRemainOutsideSpringUntilExplicitAuthorizationAdapterExists() {
-        assertNull(InspectionRuleSecurityReviewPermissionGuard.class.getAnnotation(Component.class));
-        assertNull(InspectionRuleSecurityReviewPermissionGuard.class.getAnnotation(Service.class));
+    void shouldBeSpringServiceUsingExistingPermissionApi() {
+        assertNotNull(InspectionRuleSecurityReviewPermissionGuard.class.getAnnotation(Service.class));
     }
 
     @Test
-    void shouldRejectUnauthenticatedActorBeforeAuthorizationQuery() {
+    void shouldRejectUnauthenticatedActorBeforePermissionQuery() {
         SecurityContextHolder.clearContext();
 
-        assertThrows(SecurityException.class, guard::check);
+        ServiceException failure = assertThrows(ServiceException.class, guard::check);
 
-        verifyNoInteractions(authorizationApi);
+        assertEquals(1_013_002_013, failure.getCode());
+        verifyNoInteractions(permissionApi);
     }
 
     @Test
-    void shouldRejectMissingOrMismatchedExplicitAuthorization() {
-        when(authorizationApi.findExplicitAuthorization(
-                TENANT_ID,
-                ACTOR_ID,
-                InspectionRuleSecurityReviewPermissionGuard.REVIEW_PERMISSION))
-                .thenReturn(null)
-                .thenReturn(authorization(8L, ACTOR_ID, "pms:inspection-rule:security-review"))
-                .thenReturn(authorization(TENANT_ID, 10L, "pms:inspection-rule:security-review"))
-                .thenReturn(authorization(TENANT_ID, ACTOR_ID, "pms:inspection-rule:publish"));
+    void shouldRejectMissingTenantBeforePermissionQuery() {
+        TenantContextHolder.clear();
 
-        assertThrows(SecurityException.class, guard::check);
-        assertThrows(SecurityException.class, guard::check);
-        assertThrows(SecurityException.class, guard::check);
-        assertThrows(SecurityException.class, guard::check);
+        assertThrows(RuntimeException.class, guard::check);
+
+        verifyNoInteractions(permissionApi);
     }
 
     @Test
-    void shouldReturnExplicitAuthorizationWithoutInventedSource() {
-        when(authorizationApi.findExplicitAuthorization(
-                TENANT_ID,
+    void shouldRejectDeniedOrFailedPermissionQuery() {
+        when(permissionApi.hasAnyPermissions(
                 ACTOR_ID,
                 InspectionRuleSecurityReviewPermissionGuard.REVIEW_PERMISSION))
-                .thenReturn(authorization(TENANT_ID, ACTOR_ID,
-                        InspectionRuleSecurityReviewPermissionGuard.REVIEW_PERMISSION));
+                .thenReturn(false)
+                .thenThrow(new IllegalStateException("permission unavailable"));
 
-        InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization authorization = guard.check();
+        ServiceException denied = assertThrows(ServiceException.class, guard::check);
+        ServiceException unavailable = assertThrows(ServiceException.class, guard::check);
 
-        assertEquals(ACTOR_ID, authorization.actorId());
-        assertEquals("pms:inspection-rule:security-review", authorization.permissionCode());
-        assertEquals("RBAC_PERMISSION", authorization.authorizationType());
-        assertNull(authorization.authorizationSourceId());
-        verify(authorizationApi).findExplicitAuthorization(
-                TENANT_ID,
+        assertEquals(1_013_002_013, denied.getCode());
+        assertEquals(1_013_002_013, unavailable.getCode());
+    }
+
+    @Test
+    void shouldAllowBothRoleAndSuperAdminBooleanResultsWithoutInventedSource() {
+        when(permissionApi.hasAnyPermissions(
+                ACTOR_ID,
+                InspectionRuleSecurityReviewPermissionGuard.REVIEW_PERMISSION))
+                .thenReturn(true, true);
+
+        InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization roleAuthorization = guard.check();
+        InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization superAdminAuthorization = guard.check();
+
+        assertEquals(ACTOR_ID, roleAuthorization.actorId());
+        assertEquals("pms:inspection-rule:security-review", roleAuthorization.permissionCode());
+        assertEquals("RBAC_PERMISSION", roleAuthorization.authorizationType());
+        assertNull(roleAuthorization.authorizationSourceId());
+        assertEquals(roleAuthorization, superAdminAuthorization);
+        verify(permissionApi, times(2)).hasAnyPermissions(
                 ACTOR_ID,
                 InspectionRuleSecurityReviewPermissionGuard.REVIEW_PERMISSION);
-    }
-
-    private static InspectionRuleExplicitAuthorizationApi.ExplicitAuthorization authorization(
-            Long tenantId,
-            Long actorId,
-            String permissionCode) {
-        return new InspectionRuleExplicitAuthorizationApi.ExplicitAuthorization(
-                tenantId,
-                actorId,
-                permissionCode,
-                "RBAC_PERMISSION",
-                null);
     }
 }
