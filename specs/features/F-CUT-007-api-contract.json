@@ -9,6 +9,28 @@
     "exactKeysOnly": true,
     "partialSuccess": false
   },
+  "errorContract": {
+    "envelope": "CommonResult<null> with ErrorData",
+    "ErrorData": {
+      "exactKeys": ["category", "reasonCode", "recoveryAction", "ownerContext"],
+      "fields": {
+        "category": "FUNCTION_PERMISSION_DENIED|OWNER_PROVIDER_UNAVAILABLE|OWNER_DATA_CORRUPTED",
+        "reasonCode": "member of reasonCodesByCategory[category]",
+        "recoveryAction": "REQUEST_PERMISSION|RETRY_AFTER_OWNER_RECOVERY|CONTACT_SUPPORT",
+        "ownerContext": "PROJ|AST|CUS|IMP|PLT|SYSTEM|INT12|CUT|null"
+      }
+    },
+    "reasonCodesByCategory": {
+      "FUNCTION_PERMISSION_DENIED": ["CUTOVER_DASHBOARD_QUERY_FORBIDDEN"],
+      "OWNER_PROVIDER_UNAVAILABLE": ["PROJ_PROVIDER_UNAVAILABLE", "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "AST_PROVIDER_UNAVAILABLE", "CUS_PROVIDER_UNAVAILABLE", "IMP_PROVIDER_UNAVAILABLE", "SOURCE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE", "CUT05_PROVIDER_UNAVAILABLE", "PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE", "INT12_PROVIDER_UNAVAILABLE"],
+      "OWNER_DATA_CORRUPTED": ["OWNER_FACT_CORRUPTED"]
+    },
+    "categoryRules": {
+      "FUNCTION_PERMISSION_DENIED": {"httpStatus": 403, "recoveryAction": "REQUEST_PERMISSION", "ownerContext": null},
+      "OWNER_PROVIDER_UNAVAILABLE": {"httpStatus": 503, "recoveryAction": "RETRY_AFTER_OWNER_RECOVERY", "ownerContext": "the failing physical Owner"},
+      "OWNER_DATA_CORRUPTED": {"httpStatus": 500, "recoveryAction": "CONTACT_SUPPORT", "ownerContext": "the failing physical Owner; CUT only for corrupted CUT-owned projection/guard facts"}
+    }
+  },
   "endpoint": {
     "operationId": "getCutoverDashboardKpis",
     "method": "GET",
@@ -63,11 +85,11 @@
     },
     "overlap": "metrics are independently defined and may overlap; never sum them as a total"
   },
-  "errors": {
-    "FUNCTION_PERMISSION_DENIED": {"httpStatus": 403, "reasonCode": "CUTOVER_DASHBOARD_QUERY_FORBIDDEN"},
-    "PROJECT_SCOPE_PROVIDER_UNAVAILABLE": {"httpStatus": 503, "reasonCode": "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "ownerContext": "PROJ"},
-    "OWNER_ACTION_FACT_UNAVAILABLE": {"httpStatus": 503, "reasonCode": "CUTOVER_ACTION_FACT_UNAVAILABLE", "ownerContext": "CUT"},
-    "OWNER_FACT_CORRUPTED": {"httpStatus": 500, "reasonCode": "CUTOVER_DASHBOARD_OWNER_FACT_CORRUPTED"}
+  "inheritedOwnerFailures": {
+    "rule": "each reused P2-P6 action guard preserves the existing F-CUT-002 through F-CUT-006 failure category and physical owner; the KPI layer may remove version fields that do not exist in its response but must not relabel or flatten owner identity",
+    "ownerRule": "reasonCode remains the stable code emitted by the reused source contract; ownerContext is independently set to the physical Owner that failed, so combined legacy reason codes such as SOURCE_PROVIDER_UNAVAILABLE or PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE never erase Owner identity",
+    "sourceContracts": ["F-CUT-002-rest-api-contract.json", "F-CUT-003 current checklist action contract", "F-CUT-004-api-contract.json", "F-CUT-005-api-contract.json", "F-CUT-006-api-contract.json"],
+    "partialCountOnFailure": "FORBIDDEN"
   },
   "sideEffects": "NONE",
   "controlledSubstituteBoundary": "test-scoped deterministic cross-context facts may exercise the normal CUT aggregation; no production Fake/fallback/empty-success provider and no substitute-based Implementation Done evidence"

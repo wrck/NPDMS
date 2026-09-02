@@ -14,7 +14,8 @@
     {"source": "current P2 assessment/checklist, P4 plan, P5 approval and P6 closure facts", "purpose": "reuse existing write-action eligibility without creating a second action model", "owner": "CUT"}
   ],
   "externalFacts": [
-    {"api": "ProjectScopeApi", "action": "ACTION_VIEW", "owner": "PROJ", "failureRule": "provider unavailable or corrupted fact fails the entire KPI request"}
+    {"api": "ProjectScopeApi", "action": "ACTION_VIEW", "owner": "PROJ", "failureRule": "provider unavailable or corrupted fact fails the entire KPI request with ownerContext=PROJ"},
+    {"api": "inherited P2-P6 action-guard Owner contracts", "action": "read-only eligibility evaluation", "owner": "PROJ|AST|CUS|IMP|PLT|SYSTEM|INT12", "failureRule": "preserve the failing physical Owner and inherited reason category; never relabel as CUT and never return partial counts"}
   ],
   "queryContract": {
     "visibleProjectInput": "non-empty trusted ACTION_VIEW project id set; empty set short-circuits to all-zero",
@@ -46,5 +47,17 @@
     "dualWrite": "FORBIDDEN"
   },
   "hardDependencies": ["F-CUT-002 through F-CUT-006 current CUT facts and action guards", "ProjectScopeApi.ACTION_VIEW"],
+  "inheritedActionGuardDependencies": {
+    "actionContractSources": {
+      "P2": "F-CUT-002-rest-api-contract.json",
+      "P3": "F-CUT-003 current checklist action contract and physical contract",
+      "P4": "F-CUT-004-api-contract.json",
+      "P5": "F-CUT-005-api-contract.json",
+      "P6": "F-CUT-006-api-contract.json"
+    },
+    "possiblePhysicalOwners": ["CUT", "PROJ", "AST", "CUS", "IMP", "PLT", "SYSTEM", "INT12"],
+    "activationRule": "an Owner is a runtime dependency only when the reused action guard for that candidate invokes its existing public contract; F-CUT-007 must not add new Owner calls merely because the Owner appears in this union",
+    "failureRule": "any invoked Provider unavailable or Owner fact corrupted fails the whole KPI response using the inherited stable reasonCode and the actual physical ownerContext; CUT is used only for CUT-owned projection/guard corruption"
+  },
   "controlledSubstituteBoundary": "CUT tests may simulate deterministic ProjectScope and other reserved cross-context facts while exercising real CUT queries and guards; no substitute is registered in production or accepted as real-browser/Implementation Done evidence"
 }

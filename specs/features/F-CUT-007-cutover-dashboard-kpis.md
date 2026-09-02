@@ -43,6 +43,7 @@
 - 调用者必须通过`pms:cutover-task:query`功能权限；租户从受信上下文取得。
 - CUT先取得当前用户`ProjectScopeApi.ACTION_VIEW`可见项目集合，再在该集合内聚合。空集合返回四项计数均为0，禁止省略项目条件后扩大查询。
 - ProjectScope不可用、返回损坏事实或身份不一致时，整个KPI请求失败关闭；不得返回部分计数，也不得把未知事实投影为0。
+- 复用P2～P6动作守卫时，PROJ、AST、CUS、IMP、PLT、SYSTEM、INT12任一实际物理Owner不可用或事实损坏，必须沿用对应既有Feature合同的错误类别并在`ErrorData.ownerContext`标识真实Owner；不得压扁成CUT错误。只有CUT自有投影或动作事实损坏时才使用`ownerContext=CUT`。
 - 查询权只产生KPI可见性，不自动产生待办。待办必须另行满足本Feature锁定的真实写动作守卫。
 
 ### BR-FCUT007-002 三项状态KPI
@@ -76,6 +77,7 @@
 ## 4. API、权限与Owner边界
 
 - 精确REST、wire、错误和聚合合同见`F-CUT-007-api-contract.json`。
+- 错误响应固定为`CommonResult<null>`及`ErrorData{category,reasonCode,recoveryAction,ownerContext}`；Provider不可用为503并重试Owner恢复，Owner事实损坏为500并联系支持，任何错误均不返回部分计数。
 - 本Feature只复用`pms:cutover-task:query`，不新增功能权限。
 - ProjectScope仍归PROJ物理Owner；CUT只消费公开接口。本Feature不修改PROJ、其他Context或Yudao。
 - KPI返回计数和服务端时间，不返回任务明细、项目清单、审批正文或设备信息。
