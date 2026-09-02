@@ -3,16 +3,17 @@
 > Feature实施状态：`NOT_STARTED`
 > 总体工程阶段：`TECHNICAL_PLAN`
 > Feature Ready Gate：`READY / GO @ d9b43077`
-> Technical Plan Gate：`NOT_CREATED`
+> Technical Plan Gate：`REVIEW_REQUIRED`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-05@V2=FULL`
 > Feature Spec：`specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md`
 > 机器合同：`specs/features/F-CUT-008-api-contract.json`、`specs/features/F-CUT-008-physical-contract.json`、`specs/features/F-CUT-008-external-notification-contract.json`
 > 旧实现审计：`specs/features/F-CUT-008-legacy-reuse-audit.md`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-008-p5-lead-time-external-reminders.md`
 
 ## 当前最小工作单元
 
-- Feature Ready已在锁定提交`d9b43077`独立复审GO；当前生成唯一Technical Plan并送独立复审，计划GO前不得实施。
+- Feature Ready已在锁定提交`d9b43077`独立复审GO；唯一Technical Plan候选已形成并等待独立复审，计划GO前不得实施。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -25,4 +26,4 @@
 
 ## 最近检查点
 
-- 基线`d9b43077`；Feature Ready整改复审GO，阈值、快照、FULL投影、V1兼容、节点通知时点和失败重试均已锁定。当前Gate为唯一Technical Plan；无实现授权，下一步生成计划并独立送审。
+- 基线`b5155fcf`；Feature Ready状态已回写，唯一Technical Plan候选覆盖规则、Schema、审批接入、渠道端口、UI、暂停Job与受控MySQL闭环。当前Gate为Technical Plan独立复审；无DDL或实现授权。

@@ -9,6 +9,7 @@
 > 支撑依赖：`INT-10短信/邮件发送契约`、`INT-05钉钉通知契约`
 > 机器合同：`specs/features/F-CUT-008-api-contract.json`、`specs/features/F-CUT-008-physical-contract.json`、`specs/features/F-CUT-008-external-notification-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-008-legacy-reuse-audit.md`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-008-p5-lead-time-external-reminders.md（REVIEW_REQUIRED）`
 
 ## 1. 业务目标
 
