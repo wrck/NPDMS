@@ -3,7 +3,11 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistBindingRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
@@ -28,18 +32,26 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverCheckli
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverCollectionPort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverRiskMatrixRules;
+import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverSurveyMatrixRules;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationService;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationServiceImpl;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.MockedStatic;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
@@ -57,6 +69,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +77,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = CutoverChecklistPositiveLoopMySqlTest.TestApplication.class,
@@ -82,6 +98,8 @@ class CutoverChecklistPositiveLoopMySqlTest {
     @Resource CutoverChecklistItemDefinitionRevisionMapper definitionMapper;
     @Resource CutoverChecklistBindingRuleRevisionMapper ruleMapper;
     @Resource CutoverChecklistApplicationService service;
+    @Resource CutoverConfigurationService configurationApplicationService;
+    @Resource DictDataApi dictDataApi;
 
     private long tenantId;
     private long taskId;
@@ -174,6 +192,168 @@ class CutoverChecklistPositiveLoopMySqlTest {
         assertEquals(2, number("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
         assertEquals(0, number("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? "
                 + "AND response_payload LIKE '%navigationDecision%'", tenantId));
+    }
+
+    @Test
+    void createsReadsCopiesAndPublishesNavigationRuleThroughConfigurationApplicationService() {
+        stubEnabledDictionaries();
+        CutoverConfigurationSaveReqVO request = completeConfigurationRequest();
+
+        try (MockedStatic<SecurityFrameworkUtils> security = mockStatic(SecurityFrameworkUtils.class)) {
+            security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(ACTOR_ID);
+            Long createdId = configurationApplicationService.create(request);
+            CutoverConfigurationRespVO created = configurationApplicationService.get(createdId);
+
+            Long copiedId = configurationApplicationService.copyRevision(createdId, created.getVersion());
+            CutoverConfigurationRespVO copied = configurationApplicationService.get(copiedId);
+            CutoverConfigurationRespVO published = configurationApplicationService.publish(
+                    copiedId, copied.getVersion());
+
+            assertEquals("TASK_OVERVIEW", created.getNavigationRule().getTarget());
+            assertEquals("TASK_OVERVIEW", copied.getNavigationRule().getTarget());
+            assertEquals("PUBLISHED", published.getStatusCode());
+            assertEquals("TASK_OVERVIEW", published.getNavigationRule().getTarget());
+            assertEquals(2, published.getRevisionNo());
+        }
+    }
+
+    private CutoverConfigurationSaveReqVO completeConfigurationRequest() {
+        CutoverConfigurationSaveReqVO request = new CutoverConfigurationSaveReqVO();
+        request.setConfigurationCode("CUT-POSITIVE-" + tenantId);
+        request.setConfigurationName("CUT-009配置正向闭环");
+        request.setDictionarySnapshot(Map.of());
+        request.setDimensions(List.of(
+                dimension("CUTOVER_TYPE", "pms_cutover_type"),
+                dimension("NETWORK_MODE", "pms_network_mode"),
+                dimension("DEVICE_TYPE", "pms_device_type"),
+                dimension("CUTOVER_LEVEL", "pms_risk_level")));
+        request.setPlanTemplateSections(List.of());
+        List<CutoverConfigurationSaveReqVO.ItemVO> items = completeConfigurationItems();
+        request.setItems(items);
+        request.setBindingRules(completeConfigurationRules(items));
+        CutoverConfigurationSaveReqVO.NavigationRuleVO navigation =
+                new CutoverConfigurationSaveReqVO.NavigationRuleVO();
+        navigation.setTarget("TASK_OVERVIEW");
+        request.setNavigationRule(navigation);
+        return request;
+    }
+
+    private CutoverConfigurationSaveReqVO.DimensionVO dimension(String code, String dictType) {
+        CutoverConfigurationSaveReqVO.DimensionVO value = new CutoverConfigurationSaveReqVO.DimensionVO();
+        value.setCode(code);
+        value.setName(code);
+        value.setDataType("STRING");
+        value.setValueSource("DICT:" + dictType);
+        value.setOwner("CUT");
+        value.setContextPath("task." + code.toLowerCase());
+        value.setEnabled(true);
+        return value;
+    }
+
+    private List<CutoverConfigurationSaveReqVO.ItemVO> completeConfigurationItems() {
+        List<CutoverConfigurationSaveReqVO.ItemVO> items = new ArrayList<>();
+        for (String category : CutoverRiskMatrixRules.REQUIRED_RISK_CATEGORIES) {
+            items.add(configurationItem("RISK_" + category, "RISK", category, null, Map.of()));
+        }
+        for (Map.Entry<String, Integer> entry : CutoverRiskMatrixRules.DUAL_COUNTS.entrySet()) {
+            for (int index = 1; index <= entry.getValue(); index++) {
+                items.add(configurationItem("DUAL_" + entry.getKey() + "_" + "%03d".formatted(index),
+                        "DUAL_MACHINE_CHECK", entry.getKey(), entry.getKey(), Map.of()));
+            }
+        }
+        for (String category : CutoverSurveyMatrixRules.CORE_SURVEY_CATEGORIES) {
+            items.add(configurationItem("SURVEY_" + category, "BUSINESS_SURVEY", category, null,
+                    "CUTOVER_BACKGROUND".equals(category) ? backgroundSchema() : Map.of()));
+        }
+        return items;
+    }
+
+    private CutoverConfigurationSaveReqVO.ItemVO configurationItem(
+            String key, String type, String category, String subtable, Map<String, Object> schema) {
+        CutoverConfigurationSaveReqVO.ItemVO item = new CutoverConfigurationSaveReqVO.ItemVO();
+        item.setStableItemKey(key);
+        item.setItemType(type);
+        item.setBusinessCategoryCode(category);
+        item.setItemName(key);
+        item.setInterfaceFormat("TABLE");
+        item.setInterfaceSchema(schema);
+        item.setFeedbackFormat("BOOLEAN_REMARK");
+        item.setRequired(true);
+        item.setWorkMode("MANUAL");
+        item.setSubtableCode(subtable);
+        item.setEnabled(true);
+        return item;
+    }
+
+    private List<CutoverConfigurationSaveReqVO.BindingRuleVO> completeConfigurationRules(
+            List<CutoverConfigurationSaveReqVO.ItemVO> items) {
+        List<CutoverConfigurationSaveReqVO.BindingRuleVO> rules = new ArrayList<>();
+        for (String category : CutoverRiskMatrixRules.ALL_SITUATION_REQUIRED) {
+            rules.add(configurationRule("RISK_" + category, Map.of(
+                    "CUTOVER_TYPE", List.of("VERSION_UPGRADE", "CONFIGURATION_CHANGE"),
+                    "DEVICE_TYPE", List.of("FW", "SW", "ADX"),
+                    "CUTOVER_LEVEL", List.of("A", "B", "C")), true));
+        }
+        rules.add(configurationRule("RISK_TARGET_VERSION_BULLETIN",
+                Map.of("CUTOVER_TYPE", List.of("VERSION_UPGRADE")), true));
+        for (String category : CutoverRiskMatrixRules.REQUIRED_RISK_CATEGORIES) {
+            String itemKey = "RISK_" + category;
+            if (rules.stream().noneMatch(rule -> itemKey.equals(rule.getStableItemKey()))) {
+                rules.add(configurationRule(itemKey,
+                        Map.of("CUTOVER_LEVEL", List.of("A", "B", "C")), false));
+            }
+        }
+        items.stream().filter(item -> "DUAL_MACHINE_CHECK".equals(item.getItemType()))
+                .forEach(item -> rules.add(configurationRule(item.getStableItemKey(),
+                        Map.of("NETWORK_MODE", List.of(item.getSubtableCode())), true)));
+        items.stream().filter(item -> "BUSINESS_SURVEY".equals(item.getItemType()))
+                .forEach(item -> rules.add(configurationRule(item.getStableItemKey(),
+                        Map.of("CUTOVER_LEVEL", List.of("A", "B", "C")), true)));
+        return rules;
+    }
+
+    private CutoverConfigurationSaveReqVO.BindingRuleVO configurationRule(
+            String itemKey, Map<String, Object> conditions, boolean required) {
+        CutoverConfigurationSaveReqVO.BindingRuleVO rule = new CutoverConfigurationSaveReqVO.BindingRuleVO();
+        rule.setStableRuleKey("RULE_" + itemKey);
+        rule.setStableItemKey(itemKey);
+        rule.setDimensionConditions(conditions);
+        rule.setPriority(10);
+        rule.setRequiredResult(required);
+        rule.setEnabled(true);
+        return rule;
+    }
+
+    private Map<String, Object> backgroundSchema() {
+        return Map.of("fields", List.of(
+                Map.of("code", "solvesOnlineIssue"),
+                Map.of("code", "issueTicketNo", "visibleWhen",
+                        Map.of("field", "solvesOnlineIssue", "equals", true)),
+                Map.of("code", "issueHandler", "visibleWhen",
+                        Map.of("field", "solvesOnlineIssue", "equals", true)),
+                Map.of("code", "repeatCutover"),
+                Map.of("code", "firstCutoverOwner", "visibleWhen",
+                        Map.of("field", "repeatCutover", "equals", true)),
+                Map.of("code", "backgroundDescription")));
+    }
+
+    private void stubEnabledDictionaries() {
+        when(dictDataApi.getDictDataList("pms_cutover_type")).thenReturn(List.of(
+                enabledDict("VERSION_UPGRADE"), enabledDict("CONFIGURATION_CHANGE")));
+        when(dictDataApi.getDictDataList("pms_network_mode")).thenReturn(
+                CutoverRiskMatrixRules.DUAL_COUNTS.keySet().stream().map(this::enabledDict).toList());
+        when(dictDataApi.getDictDataList("pms_device_type")).thenReturn(List.of(
+                enabledDict("FW"), enabledDict("SW"), enabledDict("ADX")));
+        when(dictDataApi.getDictDataList("pms_risk_level")).thenReturn(List.of(
+                enabledDict("A"), enabledDict("B"), enabledDict("C"), enabledDict("D")));
+    }
+
+    private DictDataRespDTO enabledDict(String value) {
+        DictDataRespDTO data = new DictDataRespDTO();
+        data.setValue(value);
+        data.setLabel(value);
+        data.setStatus(0);
+        return data;
     }
 
     private void insertConfiguration() {
@@ -275,10 +455,18 @@ class CutoverChecklistPositiveLoopMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
+            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class,
+            CutoverConfigurationServiceImpl.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean Clock clock() { return Clock.fixed(Instant.parse("2026-08-31T02:00:00Z"), ZoneOffset.UTC); }
+        @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
+        @Bean OptimisticLockerInnerInterceptor optimisticLockerInnerInterceptor(
+                MybatisPlusInterceptor interceptor) {
+            OptimisticLockerInnerInterceptor optimisticLocker = new OptimisticLockerInnerInterceptor();
+            interceptor.addInnerInterceptor(optimisticLocker);
+            return optimisticLocker;
+        }
         @Bean CutoverProjectScopePort projectScopePort() {
             return new CutoverProjectScopePort() {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {

@@ -7,11 +7,14 @@ import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.Cut
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationValidationRespVO;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationService;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverNavigationRuleException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.module.pms.cutover.enums.ErrorCodeConstants.CUTOVER_NAVIGATION_RULE_INVALID;
 
 @Tag(name = "管理后台 - CUT-07割接统一配置")
 @RestController
@@ -93,5 +97,11 @@ public class CutoverConfigurationController {
     public CommonResult<CutoverConfigurationRespVO> disable(@PathVariable Long revisionId,
                                                             @RequestHeader("If-Match") Integer expectedVersion) {
         return success(service.disable(revisionId, expectedVersion));
+    }
+
+    @ExceptionHandler(CutoverNavigationRuleException.class)
+    public ResponseEntity<CommonResult<Void>> handleNavigationRule(CutoverNavigationRuleException exception) {
+        return ResponseEntity.unprocessableEntity()
+                .body(CommonResult.error(CUTOVER_NAVIGATION_RULE_INVALID.getCode(), exception.getMessage()));
     }
 }

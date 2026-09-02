@@ -551,7 +551,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     private void requireNavigationRuleSpecified(CutoverConfigurationSaveReqVO request) {
         if (!request.isNavigationRuleSpecified()) {
-            throw exception(CUTOVER_CONFIG_VALIDATION_FAILED, "navigationRule");
+            throw new CutoverNavigationRuleException("导航规则字段必须显式提供");
         }
     }
 

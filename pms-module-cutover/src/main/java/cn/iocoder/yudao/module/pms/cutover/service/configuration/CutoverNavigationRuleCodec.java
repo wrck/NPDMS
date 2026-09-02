@@ -59,8 +59,8 @@ public final class CutoverNavigationRuleCodec {
         }
     }
 
-    private static IllegalStateException invalid(Throwable cause) {
-        return new IllegalStateException("导航规则快照非法", cause);
+    private static CutoverNavigationRuleException invalid(Throwable cause) {
+        return new CutoverNavigationRuleException("导航规则快照非法", cause);
     }
 
     public enum NavigationTarget {
