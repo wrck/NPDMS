@@ -74,7 +74,7 @@
 - [ ] 修改四个现有QueryService使用Policy；保持原详情、`myTodos`、动作顺序和返回结构不变。
 - [ ] 受控实现只放`src/test/.../service/dashboard/ControlledCutoverDashboardActionFactPort.java`，一次返回完整正常事实；`src/main`不提供实现或Bean。
 - [ ] 完成正常路径后运行现有QueryService聚焦回归，证明重构前后动作投影一致。
-- [ ] 增加`CutoverDashboardPolicyTest`，只固定正常P2～P6动作并集、排除`UPDATE_APPROVED_CONTACTS`及同任务多动作去重所需输入。
+- [ ] 增加`CutoverDashboardPolicyTest`，只固定正常P2～P6批准动作集合及同任务多动作去重所需输入。
 - [ ] 提交并申请Task 1共享动作语义/Port Contract Gate。
 
 **Verify**
@@ -95,7 +95,7 @@ mvn -pl pms-module-cutover -am -DskipITs=true -Dsurefire.failIfNoSpecifiedTests=
 - [ ] 实现服务正常链：先`resolveAllCurrent(actorId,ACTION_VIEW)`；空集合直接返回四项0；非空按稳定游标批量读取，汇总三项状态KPI并收集TODO候选。
 - [ ] 将TODO候选一次性交给ActionFact端口，调用Task 1 Policy，按taskId去重；P5输入必须来自与`myTodos`相同的当前节点/候选资格事实。
 - [ ] 实现Owner异常透传：保留既有reasonCode和实际ownerContext；CUT投影损坏才转`ownerContext=CUT`；任何失败丢弃已算计数。
-- [ ] 完成正常服务后增加`CutoverDashboardQueryServiceTest`，覆盖四项正向计数、指标重叠、仅可见不可写不计TODO、空范围全0和单次批量事实调用。
+- [ ] 完成正常服务后增加`CutoverDashboardQueryServiceTest`，覆盖四项正向计数、指标重叠、合法空范围全0、任务去重和单次批量事实调用。
 - [ ] 增加`CutoverDashboardMapperContractTest`，用`XMLMapperBuilder + BoundSql + MetaObject`固定动态项目集合、游标、当前审批谓词及空集合不执行SQL。
 - [ ] 提交并申请Task 2 Query/Mapper Gate。
 
@@ -117,7 +117,7 @@ mvn -pl pms-module-cutover -am -DskipITs=true -Dsurefire.failIfNoSpecifiedTests=
 - [ ] 实现无`@RestController/@Component`的Controller候选、受信RequestContext和响应VO；测试通过显式Bean激活外壳装配。
 - [ ] 将`CutoverDashboardException`无损映射到封闭ErrorData；权限拒绝为403，Provider不可用为503，Owner损坏为500。
 - [ ] 不捕获并重分类未知RuntimeException，不按消息文本猜Owner。
-- [ ] 正向接口完成后增加Controller合同与MockMvc测试，固定200五字段及403/500/503非空ErrorData，并断言失败响应没有部分计数。
+- [ ] 正向接口完成后增加Controller合同与MockMvc测试，固定200响应的五字段、字段类型和正常KPI投影。
 - [ ] 提交并申请Task 3 REST Contract/Code Review Gate。
 
 **Verify**
@@ -137,7 +137,7 @@ mvn -pl pms-module-cutover -am -DskipITs=true -Dsurefire.failIfNoSpecifiedTests=
 - [ ] 实现四张只读卡片：待办、已归档、审批中、驳回待修改；格式化`generatedAt`，无数据时显示加载态，错误时显示明确失败而非0。
 - [ ] 将卡片挂入新`cutover-task/index.vue`；初次进入与手工刷新并行加载列表/KPI，P1～P6业务写成功后的既有工作台刷新同时刷新KPI。
 - [ ] KPI刷新失败不得回滚或重发已成功业务命令；沿用当前工作台写后刷新屏障，只重试读刷新。
-- [ ] 正向页面完成后补真实mount组件交互测试，固定四卡渲染、WireLong字符串、生成时间、业务写后刷新和失败不伪0。
+- [ ] 正向页面完成后补真实mount组件交互测试，固定四卡渲染、WireLong字符串、生成时间和业务写成功后的只读刷新。
 - [ ] 提交并申请Task 4 Frontend Code Review/Component Gate。
 
 **Verify**
@@ -159,7 +159,7 @@ pnpm ts:check
 - [ ] 用独立MySQL 8.4空卷执行全量Flyway；不新增F-CUT-007迁移。
 - [ ] 在真实MyBatis与Spring只读事务中准备可见项目的P2/P4/P5/P6/ARCHIVED任务，以受控ActionFact端口提供正常跨模块事实，验证四项计数、重叠和任务/审批/方案/闭环前后不变。
 - [ ] 真实页面测试挂载生产`cutover-task/index.vue`，使用同形受控API返回KPI与现有任务数据，验证首次加载、P2～P6写后刷新及归档后卡片变化均由真实页面接线触发。
-- [ ] 运行CUT既有聚焦回归，确认旧页面、旧接口和F-CUT-002～006动作无回归。
+- [ ] 正常闭环实现完成后运行适用的CUT单元测试与既有聚焦回归，确认旧页面、旧接口和F-CUT-002～006动作无回归；不扩展失败注入或未实现功能验证。
 - [ ] 独立审查通过后把Feature实施状态最多回写为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；生产Owner适配、Controller/Service Bean、真实浏览器和Implementation Done继续`BLOCKED_BY_DEPENDENCY`。
 
 **Verify**
