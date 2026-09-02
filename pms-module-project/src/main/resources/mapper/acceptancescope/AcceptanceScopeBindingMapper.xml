@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancescope.AcceptanceScopeBindingMapper">
+
+    <select id="selectByIdentityForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO">
+        SELECT *
+        FROM acc_acceptance_scope_binding
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND project_stage_snapshot_id = #{query.projectStageSnapshotId}
+          AND delivery_scope_id = #{query.deliveryScopeId}
+          AND scope_allocation_version = #{query.scopeAllocationVersion}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentByScopeForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO">
+        SELECT *
+        FROM acc_acceptance_scope_binding
+        WHERE tenant_id = #{query.tenantId}
+          AND delivery_scope_id = #{query.deliveryScopeId}
+          AND effective_to IS NULL
+          AND binding_status = 'LOCKED'
+          AND deleted = b'0'
+        ORDER BY id ASC
+        FOR UPDATE
+    </select>
+
+</mapper>
