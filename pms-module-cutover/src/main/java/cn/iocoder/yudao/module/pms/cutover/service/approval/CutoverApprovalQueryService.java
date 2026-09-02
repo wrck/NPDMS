@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLead
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
+import cn.iocoder.yudao.module.pms.cutover.service.spare.CutoverSpareQueryService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -35,6 +36,7 @@ public class CutoverApprovalQueryService {
     private final CutoverApprovalProjectScopePort projectScopePort;
     private final CutoverApprovalSourceSnapshotCodec snapshotCodec;
     private final CutoverApprovalEligibilityPolicy eligibilityPolicy;
+    private final CutoverSpareQueryService spareQueryService;
 
     public CutoverApprovalQueryService(CutoverApprovalInstanceMapper instanceMapper,
             CutoverApprovalNodeMapper nodeMapper, CutoverApprovalReviewItemMapper reviewMapper,
@@ -42,9 +44,21 @@ public class CutoverApprovalQueryService {
             CutoverApprovalRoleCandidatePort roleCandidatePort,
             CutoverApprovalProjectScopePort projectScopePort,
             CutoverApprovalSourceSnapshotCodec snapshotCodec) {
+        this(instanceMapper, nodeMapper, reviewMapper, taskMapper, serviceManagerPort, roleCandidatePort,
+                projectScopePort, snapshotCodec, null);
+    }
+
+    public CutoverApprovalQueryService(CutoverApprovalInstanceMapper instanceMapper,
+            CutoverApprovalNodeMapper nodeMapper, CutoverApprovalReviewItemMapper reviewMapper,
+            CutoverTaskMapper taskMapper, ProjectCutoverServiceManagerPort serviceManagerPort,
+            CutoverApprovalRoleCandidatePort roleCandidatePort,
+            CutoverApprovalProjectScopePort projectScopePort,
+            CutoverApprovalSourceSnapshotCodec snapshotCodec,
+            CutoverSpareQueryService spareQueryService) {
         this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper; this.reviewMapper = reviewMapper;
         this.taskMapper = taskMapper; this.projectScopePort = projectScopePort;
         this.snapshotCodec = snapshotCodec;
+        this.spareQueryService = spareQueryService;
         this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(serviceManagerPort, roleCandidatePort,
                 projectScopePort, LocalDateTime::now);
     }
@@ -67,7 +81,7 @@ public class CutoverApprovalQueryService {
             full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         else if (full && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
             currentEligible = eligibilityPolicy.eligible(root, current, actorId);
-        if (full) return full(root, task, nodes, current, currentEligible);
+        if (full) return full(root, task, nodes, current, currentEligible, actorId);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
         if (reassignPermission && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
         throw failure(STATE_CONFLICT, "审批详情不可见");
@@ -136,11 +150,11 @@ public class CutoverApprovalQueryService {
                 OWNER_DATA_CORRUPTED, "审批结果节点身份损坏");
         CutoverApprovalNodeDO current = nodes.stream()
                 .filter(node -> Objects.equals(node.getNodeNo(), root.getCurrentNodeNo())).findFirst().orElse(null);
-        return full(root, task, nodes, current, false);
+        return full(root, task, nodes, current, false, actorId);
     }
 
     private CutoverApprovalViews.ApprovalDetail full(CutoverApprovalInstanceDO root, CutoverTaskDO task,
-            List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible) {
+            List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible, long viewerId) {
         Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalReviewItemDO>()
                 .eq(CutoverApprovalReviewItemDO::getTenantId, root.getTenantId())
                 .eq(CutoverApprovalReviewItemDO::getApprovalInstanceId, root.getId())
@@ -160,7 +174,8 @@ public class CutoverApprovalQueryService {
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),
                 nodes.stream().map(node -> node(node, reviews.getOrDefault(node.getId(), List.of()))).toList(),
                 snapshotCodec.decode(root.getSourceSnapshot()), leadTime(root), root.getDecisionAt(),
-                root.getRejectionReason(), actions);
+                root.getRejectionReason(), spareQueryService == null ? null
+                        : spareQueryService.approvalSummary(root.getTenantId(), root.getTaskId(), viewerId), actions);
     }
 
     private static CutoverLeadTimeCompliance leadTime(CutoverApprovalInstanceDO root) {

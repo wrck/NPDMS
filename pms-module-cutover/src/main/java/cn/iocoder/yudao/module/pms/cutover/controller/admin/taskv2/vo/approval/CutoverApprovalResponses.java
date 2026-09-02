@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.approval;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,7 +23,15 @@ public final class CutoverApprovalResponses {
                          String status, String holdReason, Integer currentNodeNo, List<Node> nodes,
                          CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
                          CutoverLeadTimeCompliance leadTimeCompliance, Long decisionAt, String rejectionReason,
+                         SpareSupportApprovalSummary spareSupport,
                          List<String> allowedActions) implements View { }
+    public record SpareSupportApprovalSummary(Boolean required,
+                                              List<SpareApplicationApprovalSummary> applications,
+                                              List<SpareEvidenceApprovalSummary> manualEvidence) { }
+    public record SpareApplicationApprovalSummary(String integrationStatus, String externalSystemCode,
+                                                  String externalApplicationNo, String externalStatusRaw,
+                                                  Long observedAt, String lastFailureCode) { }
+    public record SpareEvidenceApprovalSummary(String displayName, String description, Long uploadedAt) { }
     public record FinalResult(String viewMode, Long approvalInstanceId, Long taskId, Long planRevisionId,
                               String grade, String status, Long decisionAt, String rejectionReason,
                               List<String> allowedActions) implements View { }
@@ -50,7 +59,8 @@ public final class CutoverApprovalResponses {
                     value.approvalVersion(), value.taskId(), value.taskVersion(), value.planRevisionId(),
                     value.planRevisionNo(), value.grade(), value.status(), value.holdReason(), value.currentNodeNo(),
                     value.nodes().stream().map(CutoverApprovalResponses::node).toList(), value.sourceSnapshot(),
-                    value.leadTimeCompliance(), epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());
+                    value.leadTimeCompliance(), epoch(value.decisionAt()), value.rejectionReason(),
+                    spare(value.spareSupport()), value.allowedActions());
             case CutoverApprovalViews.ApprovalFinalResult value -> new FinalResult(value.viewMode(),
                     value.approvalInstanceId(), value.taskId(), value.planRevisionId(), value.grade(), value.status(),
                     epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());
@@ -88,6 +98,16 @@ public final class CutoverApprovalResponses {
                 item.itemCode(), item.decision(), item.unreasonableReason())).toList(),
                 value.assessmentReview() == null ? null : new AssessmentReview(
                         value.assessmentReview().decision(), value.assessmentReview().reason()));
+    }
+
+    private static SpareSupportApprovalSummary spare(CutoverSpareViews.ApprovalSummary value) {
+        if (value == null) return null;
+        return new SpareSupportApprovalSummary(value.required(), value.applications().stream().map(item ->
+                new SpareApplicationApprovalSummary(item.integrationStatus(), item.externalSystemCode(),
+                        item.externalApplicationNo(), item.externalStatusRaw(), epoch(item.observedAt()),
+                        item.lastFailureCode())).toList(), value.manualEvidence().stream().map(item ->
+                new SpareEvidenceApprovalSummary(item.displayName(), item.description(),
+                        epoch(item.uploadedAt()))).toList());
     }
 
     private static Long epoch(LocalDateTime value) {

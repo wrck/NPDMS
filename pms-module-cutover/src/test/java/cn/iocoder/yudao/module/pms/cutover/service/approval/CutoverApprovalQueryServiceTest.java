@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.pms.cutover.service.spare.CutoverSpareQueryService;
+import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -148,6 +150,28 @@ class CutoverApprovalQueryServiceTest {
         });
     }
 
+    @Test
+    void addsSafeSpareSummaryOnlyToFullProjection() {
+        Fixture f = new Fixture();
+        CutoverApprovalInstanceDO root = root("PENDING");
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.selectList(any())).thenReturn(List.of());
+        when(f.reviews.selectList(any())).thenReturn(List.of());
+        when(f.scopes.inspect(1L, 20L, 11L, "ACTION_VIEW")).thenReturn(scope(11L, "ACTION_VIEW"));
+        var summary = new CutoverSpareViews.ApprovalSummary(true,
+                List.of(new CutoverSpareViews.ApplicationApprovalSummary("EXTERNAL_REFERENCED", "SPARE", "APP-1",
+                        "PROCESSING", LocalDateTime.of(2026, 9, 2, 8, 0), null)),
+                List.of(new CutoverSpareViews.EvidenceApprovalSummary("签收单.pdf", "现场签收",
+                        LocalDateTime.of(2026, 9, 2, 8, 1))));
+        when(f.spare.approvalSummary(1L, 10L, 11L)).thenReturn(summary);
+
+        var view = f.service.detail(1L, 10L, 11L, true, false);
+
+        assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class,
+                detail -> assertThat(detail.spareSupport()).isEqualTo(summary));
+    }
+
     private static CutoverApprovalInstanceDO root(String status) {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(100L); row.setTenantId(1L); row.setTaskId(10L); row.setProjectId(20L); row.setPlanRevisionId(200L);
@@ -176,7 +200,8 @@ class CutoverApprovalQueryServiceTest {
         final CutoverApprovalRoleCandidatePort candidates = mock(CutoverApprovalRoleCandidatePort.class);
         final CutoverApprovalProjectScopePort scopes = mock(CutoverApprovalProjectScopePort.class);
         final CutoverApprovalSourceSnapshotCodec codec = mock(CutoverApprovalSourceSnapshotCodec.class);
+        final CutoverSpareQueryService spare = mock(CutoverSpareQueryService.class);
         final CutoverApprovalQueryService service = new CutoverApprovalQueryService(instances, nodes, reviews, tasks,
-                managers, candidates, scopes, codec);
+                managers, candidates, scopes, codec, spare);
     }
 }

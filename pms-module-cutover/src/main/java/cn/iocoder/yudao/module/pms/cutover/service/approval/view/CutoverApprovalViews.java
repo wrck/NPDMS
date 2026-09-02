@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval.view;
 
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
+import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +21,7 @@ public final class CutoverApprovalViews {
                                  String grade, String status, String holdReason, Integer currentNodeNo,
                                  List<Node> nodes, CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
                                  CutoverLeadTimeCompliance leadTimeCompliance, LocalDateTime decisionAt, String rejectionReason,
+                                 CutoverSpareViews.ApprovalSummary spareSupport,
                                  List<String> allowedActions) implements ApprovalView { }
     public record ApprovalFinalResult(String viewMode, Long approvalInstanceId, Long taskId,
                                       Long planRevisionId, String grade, String status,

@@ -151,7 +151,7 @@ class CutoverApprovalControllerContractTest {
                 null, 1, List.of(new CutoverApprovalViews.Node(101L, 1, "INITIATOR", "PENDING", 8L, 8L,
                 null, null, List.of(), null)), null, new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE",
                 LocalDateTime.of(2026, 9, 5, 8, 0), LocalDateTime.of(2026, 9, 3, 18, 0)),
-                null, null, List.of("APPROVE", "REJECT"));
+                null, null, null, List.of("APPROVE", "REJECT"));
     }
 
     private static CutoverApprovalViews.ApprovalReassignmentView reassignment() {

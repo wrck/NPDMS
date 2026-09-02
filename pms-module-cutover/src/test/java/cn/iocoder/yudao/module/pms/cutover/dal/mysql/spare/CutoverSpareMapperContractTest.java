@@ -63,7 +63,7 @@ class CutoverSpareMapperContractTest {
         assertThat(status).contains("tenant_id = #{query.tenantId}", "current_marker = 1", "FOR UPDATE",
                         "ORDER BY status_version ASC, id ASC")
                 .doesNotContain("${");
-        assertThat(evidence).contains("tenant_id = #{query.tenantId}", "ORDER BY id ASC")
+        assertThat(evidence).contains("tenant_id = #{query.tenantId}", "ORDER BY created_at ASC, id ASC")
                 .doesNotContain("${");
     }
 
