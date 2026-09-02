@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5Act
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.BatchQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.CandidateNeed;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardOwnerFactException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -74,6 +75,18 @@ class CutoverDashboardPolicyTest {
                 new CandidateNeed(20L, 200L, 2, "P6", 2000L, 3))));
 
         assertThat(result).containsExactly(first, second);
+    }
+
+    @Test
+    void preservesApprovedOwnerFailureIdentityAndCause() {
+        RuntimeException cause = new RuntimeException("owner unavailable");
+        CutoverDashboardOwnerFactException failure = new CutoverDashboardOwnerFactException(
+                "OWNER_PROVIDER_UNAVAILABLE", "PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE", "SYSTEM", cause);
+
+        assertThat(failure.category()).isEqualTo("OWNER_PROVIDER_UNAVAILABLE");
+        assertThat(failure.reasonCode()).isEqualTo("PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE");
+        assertThat(failure.ownerContext()).isEqualTo("SYSTEM");
+        assertThat(failure).hasCause(cause);
     }
 
     private static CutoverDashboardCandidate candidate(Long taskId, String stage, String status, String grade) {

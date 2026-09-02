@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalEligibilityPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
 
@@ -28,10 +29,9 @@ public class CutoverApprovalQueryService {
     private final CutoverApprovalNodeMapper nodeMapper;
     private final CutoverApprovalReviewItemMapper reviewMapper;
     private final CutoverTaskMapper taskMapper;
-    private final ProjectCutoverServiceManagerPort serviceManagerPort;
-    private final CutoverApprovalRoleCandidatePort roleCandidatePort;
     private final CutoverApprovalProjectScopePort projectScopePort;
     private final CutoverApprovalSourceSnapshotCodec snapshotCodec;
+    private final CutoverApprovalEligibilityPolicy eligibilityPolicy;
 
     public CutoverApprovalQueryService(CutoverApprovalInstanceMapper instanceMapper,
             CutoverApprovalNodeMapper nodeMapper, CutoverApprovalReviewItemMapper reviewMapper,
@@ -40,9 +40,10 @@ public class CutoverApprovalQueryService {
             CutoverApprovalProjectScopePort projectScopePort,
             CutoverApprovalSourceSnapshotCodec snapshotCodec) {
         this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper; this.reviewMapper = reviewMapper;
-        this.taskMapper = taskMapper; this.serviceManagerPort = serviceManagerPort;
-        this.roleCandidatePort = roleCandidatePort; this.projectScopePort = projectScopePort;
+        this.taskMapper = taskMapper; this.projectScopePort = projectScopePort;
         this.snapshotCodec = snapshotCodec;
+        this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(serviceManagerPort, roleCandidatePort,
+                projectScopePort, LocalDateTime::now);
     }
 
     public CutoverApprovalViews.ApprovalView detail(long tenantId, long taskId, long actorId,
@@ -60,9 +61,9 @@ public class CutoverApprovalQueryService {
         boolean full = projectView && Objects.equals(root.getInitiatorUserId(), actorId);
         boolean currentEligible = false;
         if (!full && queryPermission && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
-            full = currentEligible = eligible(root, current, actorId);
+            full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         else if (full && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
-            currentEligible = eligible(root, current, actorId);
+            currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         if (full) return full(root, task, nodes, current, currentEligible);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
         if (reassignPermission && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
@@ -88,7 +89,7 @@ public class CutoverApprovalQueryService {
                         OWNER_DATA_CORRUPTED, "待办节点投影身份损坏");
                 CutoverApprovalInstanceDO root = instanceMapper.selectById(row.getApprovalInstanceId());
                 require(root != null && Objects.equals(root.getTenantId(), tenantId), OWNER_DATA_CORRUPTED, "待办审批根缺失");
-                if (eligible(root, node, actorId)) eligible.add(todo(row));
+                if (eligibilityPolicy.eligible(root, node, actorId)) eligible.add(todo(row));
             }
             if (nodes.size() < SCAN_SIZE) break;
         }
@@ -156,29 +157,6 @@ public class CutoverApprovalQueryService {
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),
                 nodes.stream().map(node -> node(node, reviews.getOrDefault(node.getId(), List.of()))).toList(),
                 snapshotCodec.decode(root.getSourceSnapshot()), root.getDecisionAt(), root.getRejectionReason(), actions);
-    }
-
-    private boolean eligible(CutoverApprovalInstanceDO root, CutoverApprovalNodeDO node, long actorId) {
-        if (!Objects.equals(node.getCurrentApproverUserId(), actorId)) return false;
-        return switch (node.getNodeCode()) {
-            case "INITIATOR" -> projectScopePort.inspect(root.getTenantId(), root.getProjectId(), actorId, "ACTION_EDIT").allowed();
-            case "SERVICE_MANAGER" -> {
-                var fact = serviceManagerPort.inspectCurrent(root.getTenantId(), root.getProjectId(), LocalDateTime.now());
-                yield fact.outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND
-                        && Objects.equals(fact.userId(), actorId);
-            }
-            case "SECOND_LINE", "RND" -> {
-                String group = "SECOND_LINE".equals(node.getNodeCode()) ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-                List<Long> allowed = new ArrayList<>();
-                for (var candidate : roleCandidatePort.inspectCandidates(root.getTenantId(), group).candidates()) {
-                    var scope = projectScopePort.inspect(root.getTenantId(), root.getProjectId(),
-                            candidate.adminUserId(), "ACTION_VIEW");
-                    if (scope.allowed()) allowed.add(candidate.adminUserId());
-                }
-                yield allowed.size() == 1 && allowed.getFirst() == actorId;
-            }
-            default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
-        };
     }
 
     private List<CutoverApprovalNodeDO> nodes(long tenantId, long instanceId) {
