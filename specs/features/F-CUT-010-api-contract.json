@@ -46,7 +46,7 @@
       "tenant": "trusted TenantContextHolder must equal command.tenantId before Inbox claim",
       "identity": "lock tenantId + platformRequestId; frozen externalSystemCode and externalRequestId must match before binding externalApplicationNo",
       "idempotency": "scope CUT:SPARE_REFERENCE_BINDING, actorId=0, key=eventId, digest includes every normalized field",
-      "success": "SpareExternalReferenceBindingResult APPLIED|REPLAYED"
+      "success": "first binding atomically changes REQUEST_PENDING to EXTERNAL_REFERENCED and returns APPLIED; same-value replay returns the existing EXTERNAL_REFERENCED and REPLAYED"
     },
     "acceptStatus": {
       "kind": "internal Business API called only by INT-06 Integration ACL",
@@ -67,7 +67,7 @@
       "fields": {"required": "Boolean", "sources": "SpareNeedSource[] stable sourceType,sourceId"},
       "sourceUnion": {
         "ASSESSMENT": {"exactKeys": ["sourceType", "sourceId", "sourceVersion", "sparePartApplied"], "fields": {"sourceType": "literal ASSESSMENT", "sourceId": "positive WireLong equal to submitted cut_assessment.id", "sourceVersion": "positive Integer equal to submitted cut_assessment.assessment_version", "sparePartApplied": "literal true"}},
-        "CHECKLIST_RISK": {"exactKeys": ["sourceType", "sourceId", "sourceVersion", "stableItemKey", "applicable"], "fields": {"sourceType": "literal CHECKLIST_RISK", "sourceId": "positive WireLong equal to current cut_cutover_checklist_item.id", "sourceVersion": "positive Integer equal to current submitted item_result_version", "stableItemKey": "literal MAJOR_PROJECT_SPARES", "applicable": "literal true"}}
+        "CHECKLIST_RISK": {"exactKeys": ["sourceType", "sourceId", "sourceVersion", "stableItemKey", "applicable"], "fields": {"sourceType": "literal CHECKLIST_RISK", "sourceId": "positive WireLong equal to current cut_cutover_checklist_item.id", "sourceVersion": "non-negative Integer equal to current cut_cutover_checklist_item.version and independent of result revisions", "stableItemKey": "literal MAJOR_PROJECT_SPARES", "applicable": "literal true"}}
       }
     },
     "SpareInitiationResult": {
@@ -93,8 +93,8 @@
       "conflicts": "tenant/task/request/external-system mismatch, a different already-bound application number, or tenant+system+application unique-key collision fails closed without status write"
     },
     "SpareExternalReferenceBindingResult": {
-      "exactKeys": ["applicationReferenceId", "externalApplicationNo", "outcome"],
-      "fields": {"applicationReferenceId": "positive WireLong", "externalApplicationNo": "trimmed string 1..128 equal to the bound value", "outcome": "APPLIED|REPLAYED"}
+      "exactKeys": ["applicationReferenceId", "externalApplicationNo", "integrationStatus", "outcome"],
+      "fields": {"applicationReferenceId": "positive WireLong", "externalApplicationNo": "trimmed string 1..128 equal to the bound value", "integrationStatus": "literal EXTERNAL_REFERENCED", "outcome": "APPLIED|REPLAYED"}
     },
     "SpareStatusCallbackResult": {
       "exactKeys": ["applicationReferenceId", "statusVersion", "outcome"],

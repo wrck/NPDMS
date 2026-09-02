@@ -170,7 +170,7 @@ INT完成来源定位后可按稳定`projectId`调用PROJ内部`ProjectAttribute
 
 外部系统拥有申请、库存、发货、借还、补库、调拨和 RMA 事实；平台只保存申请映射、RMA替换关系、门禁、回调和对账。失败走线下申请后补录，必须关联原业务单据和核验结果。
 
-CUT-08由CUT保存平台请求、外部申请引用、原始状态版本和人工证据；INT-06 Integration ACL拥有连接器、认证、超时及第三方字段映射。CUT发起使用稳定平台requestId和Idempotency-Key，携带任务、项目、设备及冻结需求来源；INT-06接受发起时必须返回不可变externalRequestId，并可返回launchUrl、externalApplicationNo和原始状态。只有跳转地址时保持`REQUEST_PENDING`；后续由INT-06按受信tenantId、platformRequestId、externalSystemCode和externalRequestId调用`bindExternalReference`首次绑定申请号，身份错配或不同申请号冲突不得覆盖。只有非空外部申请号才允许状态回调或显式刷新；超时/结果未知保留`RETRY_PENDING`并按同一平台requestId查询或重试，不创建第二个意图。
+CUT-08由CUT保存平台请求、外部申请引用、原始状态版本和人工证据；INT-06 Integration ACL拥有连接器、认证、超时及第三方字段映射。CUT发起使用稳定平台requestId和Idempotency-Key，携带任务、项目、设备及冻结需求来源；INT-06接受发起时必须返回不可变externalRequestId，并可返回launchUrl、externalApplicationNo和原始状态。只有跳转地址时保持`REQUEST_PENDING`；后续由INT-06按受信tenantId、platformRequestId、externalSystemCode和externalRequestId调用`bindExternalReference`首次绑定申请号，并在同一CUT事务内原子迁移为`EXTERNAL_REFERENCED`，同值重放返回既有`EXTERNAL_REFERENCED`且不写业务行，身份错配、不同申请号或已绑定仍为`REQUEST_PENDING`均失败关闭。只有非空外部申请号才允许状态回调或显式刷新；超时/结果未知保留`RETRY_PENDING`并按同一平台requestId查询或重试，不创建第二个意图。
 
 回调身份固定为受信租户、externalSystemCode、externalApplicationNo、eventId和正数单调statusVersion。同eventId同载荷重放、异载荷冲突；同申请同版本同载荷重放、异载荷冲突；低版本只审计，高版本追加并成为当前快照。原始状态不映射为CUT库存、审批、到货、领用或P6门禁。生产INT-06尚未实现时，CUT实现只保留端口并在测试域用确定性替身完成正向闭环；线下证据经PLT文件事实关联，恢复后必须按外部申请号核验，不冒充接口成功。
 

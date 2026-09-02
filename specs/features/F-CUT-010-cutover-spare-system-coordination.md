@@ -41,7 +41,7 @@
 ### BR-FCUT010-001 备件需求来源
 
 - `SpareNeedSnapshot.required=true`只允许由两类当前CUT事实得出：当前已提交P2评估`answerSnapshot.sparePartApplied=true`；或当前未失效P3清单包含`applicableFlag=true/sourceCode=SYSTEM_MATCHED/stableItemKey=MAJOR_PROJECT_SPARES`的风险项。
-- 两类来源可同时存在，按`sourceType/sourceId/sourceVersion`稳定排序并冻结；CUT不解析参考附件、自由文本或未知清单项猜测需求。
+- 两类来源可同时存在，按`sourceType/sourceId/sourceVersion`稳定排序并冻结；P3清单风险来源固定使用当前适用`cut_cutover_checklist_item.id`与该清单项自身非负`version`，不依赖可能尚不存在的结果或结果revision；CUT不解析参考附件、自由文本或未知清单项猜测需求。
 - `required=false`时只允许查询既有历史引用和证据，不允许发起新外部申请。D级无P3清单时仍可由P2事实发起。
 
 ### BR-FCUT010-002 发起与授权
@@ -50,7 +50,7 @@
 - 发起命令携带`Idempotency-Key`、任务聚合版本和受信请求上下文`correlationId`。同键同业务载荷重放返回同一`applicationReferenceId`；同键异载荷永久冲突；处理中返回可重试冲突。
 - CUT在调用INT-06前写入稳定平台`requestId`和请求上下文快照。超时或结果未知不得生成第二个requestId；后续重试复用同一意图和requestId。
 - INT-06成功响应必须返回与本次意图关联且不可变的`externalRequestId`，允许`launchUrl`和`externalApplicationNo`分别为空，但二者不得同时为空。只有非空外部申请号才建立外部业务引用；仅有跳转地址时保持`REQUEST_PENDING`等待回写。
-- 首次申请号回写只允许受信INT-06调用`bindExternalReference`，携带`eventId + tenantId + platformRequestId + externalSystemCode + externalRequestId + externalApplicationNo`。CUT按`tenantId + platformRequestId`锁定唯一申请引用，并严格匹配已冻结的外部系统、外部请求标识、任务和租户；同eventId同载荷或同申请号重放无副作用，不同申请号、跨任务/租户、外部请求标识错配或外部唯一键冲突均失败关闭。绑定成功后才允许按外部申请号接收状态回调或显式刷新。
+- 首次申请号回写只允许受信INT-06调用`bindExternalReference`，携带`eventId + tenantId + platformRequestId + externalSystemCode + externalRequestId + externalApplicationNo`。CUT按`tenantId + platformRequestId`锁定唯一申请引用，并严格匹配已冻结的外部系统、外部请求标识、任务和租户；首次成功绑定必须在同一CUT事务内原子写入申请号并将集成状态从`REQUEST_PENDING`迁移为`EXTERNAL_REFERENCED`，同eventId同载荷或同申请号重放返回既有`EXTERNAL_REFERENCED`且无副作用。已绑定不同申请号、已绑定却仍为`REQUEST_PENDING`、跨任务/租户、外部请求标识错配或外部唯一键冲突均失败关闭。绑定成功后才允许按外部申请号接收状态回调或显式刷新。
 
 ### BR-FCUT010-003 外部引用与状态快照
 

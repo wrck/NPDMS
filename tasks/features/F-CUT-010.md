@@ -26,4 +26,4 @@
 
 ## Phase-switch checkpoint
 
-基线ee632ba5；当前Gate为F-CUT-010 Feature Ready A-D整改复审。已补首次引用绑定、P5 FULL安全摘要、INT-06精确DTO及Phase 2/迁移生成源。阻断：整改尚未取得独立GO。下一步：提交锁定候选并送最小复审，GO前不生成Technical Plan或实现。
+基线1a37a546；当前Gate为F-CUT-010 Feature Ready A/C单点整改复审。已锁定首次申请号绑定与`REQUEST_PENDING -> EXTERNAL_REFERENCED`原子迁移，并将P3清单需求来源改为清单项自身`id + version`；前次B/D不重开。阻断：本轮整改尚未取得独立GO。下一步：提交锁定候选并送最小复审，GO前不生成Technical Plan或实现。
