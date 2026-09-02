@@ -164,7 +164,7 @@
       "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
       "taskPath": "tasks/features/F-CUT-007.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
       "mappings": [
         {
           "sliceKey": "CUT-01@V2",

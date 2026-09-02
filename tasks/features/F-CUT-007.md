@@ -1,6 +1,6 @@
 # F-CUT-007 割接首页授权KPI
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@f6141e21`
 > Technical Plan Gate：`PASS / GO@fad19d81`
@@ -16,7 +16,7 @@
 - 形成CUT-01@V2授权KPI完整纵向Feature，不重复实现COM-01或拆出跨模块Provider碎片。
 - CUT自有范围固定为只读实时聚合、REST、四张KPI卡片和真实动作守卫复用。
 - 跨模块预留接口按正常闭环在CUT测试/受控验收中模拟；生产Fake、fallback和空成功Provider禁止注册。
-- Feature Ready、唯一Technical Plan及Task 1～4均已通过；当前进入Task 5受控正向MySQL与统一页面闭环。
+- Feature Ready、唯一Technical Plan及Task 1～5均已通过；CUT自有闭环已在受控跨模块事实下形成，生产依赖接通仍阻断Implementation Done。
 
 ## 候选边界
 
@@ -36,9 +36,9 @@
 - Task 2批量候选查询与KPI服务已在`d80fd05c`通过独立复审：`PASS / GO`。
 - Task 3 KPI REST契约与受控正向MockMvc已在`f5fd52f8`通过独立复审：`PASS / GO`。
 - Task 4统一工作台KPI卡片已在`da1ea93e`通过独立复审：`PASS / GO`。
-- Task 5候选已完成独立MySQL 8.4全量迁移、真实MyBatis聚合与生产页面受控正向接线：MySQL 1/1、CUT后端聚焦28项（27通过、1项按`skipITs=true`跳过）、前端8文件53/53及`pnpm ts:check`通过；当前等待独立复审。
-- 最近Gate：`Task 5 Controlled Positive MySQL / Unified Page Acceptance Gate = REVIEW_REQUIRED`。
-- 当前状态：`BASELINE / READY / IN_PROGRESS`。按正向闭环顺序实施CUT查询、REST和工作台；跨模块预留接口只在测试与受控验收中使用确定性替身。
+- Task 5在`7f1f44ed`完成独立MySQL 8.4全量迁移、真实MyBatis聚合与生产页面受控正向接线：MySQL 1/1、CUT后端聚焦28项（27通过、1项按`skipITs=true`跳过）、前端8文件53/53及`pnpm ts:check`通过；独立复审结论为`PASS / GO`。
+- 最近Gate：生产Owner适配、唯一QueryService/Controller Bean与真实浏览器运行验收，继续`BLOCKED_BY_DEPENDENCY`。
+- 当前状态：`BASELINE / READY / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`。跨模块预留接口仅在测试与受控验收中使用确定性替身，不构成生产事实。
 
 ## 状态边界
 

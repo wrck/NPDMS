@@ -34,7 +34,7 @@
 | [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1，FULL） | BASELINE | READY / GO@644816f2 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Q-FCUT004-001规格阻断；Task 12生产依赖阻断Done） |
 | [F-CUT-005](F-CUT-005-p5-graded-approval.md) | P5分级审批 | CUT-05（V1，FULL） | BASELINE | READY / GO@2e3fdba3 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 10 GO@a7e5b7b3；生产Owner阻断Done） |
 | [F-CUT-006](F-CUT-006-p6-cutover-closure.md) | P6割接跟踪、结果归档与闭环 | CUT-06（V1，FULL） | BASELINE | READY / GO@4e390d4f | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 9 GO@ee891fa6；生产依赖阻断Done） |
-| [F-CUT-007](F-CUT-007-cutover-dashboard-kpis.md) | 割接首页授权KPI | CUT-01（V2，FULL） | BASELINE | READY / GO@f6141e21 | IN_PROGRESS（Technical Plan GO@fad19d81；当前Task 1） |
+| [F-CUT-007](F-CUT-007-cutover-dashboard-kpis.md) | 割接首页授权KPI | CUT-01（V2，FULL） | BASELINE | READY / GO@f6141e21 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 1～5 GO；生产依赖未接通） |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
