@@ -1,7 +1,7 @@
 # F-CUT-009 P3授权清单导出与受控流程跳转 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO`
 > Requirement：`CUT-03（V2/P0）`
 > Requirement切片覆盖：`CUT-03@V2=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -87,4 +87,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED`。`Q-FCUT009-001`已采用方案A；最近Gate为导出范围、导航机器语义与XLSX线协议最小整改复审，通过前不得生成Technical Plan或实施。
+最终裁决：`READY / GO`。独立裁决以`51239c53c31696de8c58ac47955195152c577187`为锁定基线，确认纵向Feature、方案A、导出/XLSX合同、配置端点形状和前向物理列已闭合。授权生成一个当前有效Technical Plan；计划独立复审GO前不得实施。

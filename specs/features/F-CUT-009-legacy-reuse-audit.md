@@ -1,7 +1,7 @@
 # F-CUT-009 旧实现与现有实现复用审计
 
 > Requirement：`CUT-03@V2`
-> 状态：`DRAFT / REVIEW_REQUIRED`
+> 状态：`BASELINE / PASS`
 
 | 资产 | 当前事实 | 判定 | F-CUT-009边界 |
 |---|---|---|---|
