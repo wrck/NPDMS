@@ -39,6 +39,8 @@
 | SatisfactionResultRecorded | ACC-02、SUB-03 | Acceptance & Closure | ProjectClosure/Supplier & Subcontract | 满意度任务、业务对象、冻结规则版本和不可变判定引用；消费者不得修改答卷 |
 | ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |
 | CutoverCompleted | CUT-06 | Cutover | Project Delivery/Acceptance/Analytics | CUT任务、P6闭环版本、最终成功结果和归档引用；失败或仅完成采集不得发布完成事件 |
+| `SpareApplicationGateway.initiate/queryStatus` | CUT-08、INT-06 | INT-06 Integration ACL | CUT | CUT提交任务、项目、稳定设备和备件需求来源快照；INT-06只返回外部请求标识、可选受控跳转地址、外部申请号及原始状态事实，不返回库存、审批、到货或领用明细。CUT单元/集成可用测试替身验证正常链，生产Provider由INT-06物理Owner交付 |
+| `CutoverSpareCallbackApi.acceptStatus` | CUT-08、INT-06 | CUT | INT-06 Integration ACL | 按受信租户、外部系统、外部申请号和单调状态版本追加只读快照；同版本同载荷重放，同版本异载荷冲突，旧版本只审计不回退当前快照 |
 | MasterDataSynchronized | INT-01、INT-02、INT-03、INT-06、EQP-04 | CRM/ERP/MES/ITR/Integration ACL | Customer & Relationship/Asset Management/Contract & Fulfillment | 来源主键、来源版本、同步时间、同步状态和本地副本版本 |
 | ProjectClosureCompleted | CLO-01、CLO-02、ACC-06、SRV-01 | Acceptance & Closure | Project Delivery/Service Operations | 闭环门禁快照、闭环版本和交接事实；不直接写 Project 状态 |
 | `CustomerMasterDataApi.upsertFromCrm(command)` | CUS-03、INT-03 | CUS | INT-03 | 按租户、CRM客户ID、来源版本和eventId幂等写CRM权威字段；同版本不同载荷进入冲突，不覆盖平台扩展字段 |

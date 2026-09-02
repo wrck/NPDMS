@@ -358,7 +358,7 @@ Q-FIMP002-002的后继身份修正使用下一实际空闲Flyway版本：新增�
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_approval_instance`、`cut_approval_node`、`cut_approval_review_item`、`cut_approval_reassignment`、`cut_approval_notification`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；P5审批、节点、评审、改派和通知由F-CUT-005拥有；P6闭环一任务一版本递增，提交后只读 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_approval_instance`、`cut_approval_node`、`cut_approval_review_item`、`cut_approval_reassignment`、`cut_approval_notification`、`cut_cutover_closure`、`cut_spare_application_reference`、`cut_spare_status_revision`、`cut_spare_manual_evidence`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；P5审批、节点、评审、改派和通知由F-CUT-005拥有；P6闭环一任务一版本递增，提交后只读；CUT-08只保存外部引用、原始状态快照和人工证据，不复制备件业务明细 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
@@ -375,6 +375,8 @@ F-CUT-004仅新增`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrang
 F-CUT-005以前向`NEW_ONLY`新增`cut_approval_instance/node/review_item/reassignment/notification`五表。实例按任务+方案revision唯一，冻结原发起人项目范围版本和精确`ApprovalSourceSnapshot`；节点按实例+序号唯一且每个实例最多一个PENDING节点，候选快照包含完整SYSTEM成员集合、逐人项目范围版本和交集结论；五项评审与改派历史追加保存。通知只在审批事务内追加`PENDING`，提交后独立投递失败转`PENDING_RETRY`，不改变审批结果。精确字段、可空联合、生成标记、路由和锁序由`specs/features/F-CUT-005-physical-contract.json`锁定。旧`pms_cut_task/pms_cut_plan`审批字段不迁移、不双写，也不产生新审批或批准事件。
 
 F-CUT-008以前向ALTER扩展上述两张Owner表，不新建第二套审批或通知表：`cut_approval_instance`增加`lead_time_enabled/lead_time_snapshot`，仅新建A/B实例冻结`CUT_LEAD_TIME_R034_V1`判断；既有实例及新C/D实例保持空快照。`cut_approval_notification`增加渠道、外部Provider引用和最后尝试时间；既有记录只确定性标记为`IN_PLATFORM`，不改deliveryKey、messageId、状态或历史时间。SMS/EMAIL/DINGTALK按节点版本和渠道唯一，外部受理、明确失败或未知结果均不得更新审批事实。精确联合、迁移和锁序见`specs/features/F-CUT-008-physical-contract.json`。
+
+F-CUT-011以前向`NEW_ONLY`新增三张CUT-08表。`cut_spare_application_reference`按平台请求ID唯一保存任务、需求来源快照、外部系统、请求标识、可选跳转地址和外部申请号；外部申请身份按`tenant_id+external_system_code+external_application_no`唯一，多个合法申请以不同平台请求ID并存。`cut_spare_status_revision`按申请+正数外部状态版本只追加，当前标记只指向最高已接受版本，原始状态和只读JSON不得被CUT编辑。`cut_spare_manual_evidence`只保存PLT不可变文件事实引用、说明和操作审计，可关联任务或具体外部申请；人工证据不得生成外部申请号、状态版本或成功事实。三表不保存备件型号、数量、库存、审批、到货、领用或RMA明细，不迁移或双写旧`pms_cut_*`。精确列、可空联合、唯一键与锁序由`specs/features/F-CUT-011-physical-contract.json`锁定。
 
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 

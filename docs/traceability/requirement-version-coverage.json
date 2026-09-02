@@ -190,10 +190,23 @@
       "featurePath": "specs/features/F-CUT-009-p3-authorized-export-and-navigation.md",
       "taskPath": "tasks/features/F-CUT-009.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
       "mappings": [
         {
           "sliceKey": "CUT-03@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-011",
+      "featurePath": "specs/features/F-CUT-011-cutover-spare-system-coordination.md",
+      "taskPath": "tasks/features/F-CUT-011.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "CUT-08@V2",
           "coverage": "FULL"
         }
       ]
@@ -1491,7 +1504,15 @@
       "businessResult": "割接备件系统集成的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-011",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-CUT-011-cutover-spare-system-coordination.md",
+          "taskPath": "tasks/features/F-CUT-011.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-09@V1",

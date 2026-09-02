@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-011",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-08@V2=FULL"],
+  "wireContract": {
+    "wireLong": "existing Yudao conditional JSON number/string Long serialization",
+    "wireDateTime": "positive epoch-millisecond WireLong",
+    "errorEnvelope": "existing CUT CommonResult and controller-local HTTP mapping",
+    "strictRequests": "all top-level and nested objects use exact keys; missing or extra keys fail closed"
+  },
+  "operations": {
+    "detail": {
+      "method": "GET",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/spare-support",
+      "permission": "pms:cutover-task:query + ProjectScopeApi.ACTION_VIEW",
+      "success": "CommonResult<SpareSupportDetail>"
+    },
+    "initiate": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/spare-support/actions/initiate",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "permission": "pms:cutover-task:manage-spare + current ownerUserId + ProjectScopeApi.ACTION_EDIT",
+      "request": {"exactKeys": [], "fields": {}},
+      "success": "CommonResult<SpareInitiationResult>"
+    },
+    "refresh": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/spare-support/applications/{applicationReferenceId}/actions/refresh",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "permission": "pms:cutover-task:manage-spare + current ownerUserId + ProjectScopeApi.ACTION_EDIT",
+      "request": {"exactKeys": ["expectedStatusVersion"], "fields": {"expectedStatusVersion": "positive WireLong OR JSON null when no status exists"}},
+      "success": "CommonResult<SpareApplicationView>"
+    },
+    "addEvidence": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/spare-support/evidence",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "permission": "pms:cutover-task:manage-spare + current ownerUserId + ProjectScopeApi.ACTION_EDIT",
+      "request": {"exactKeys": ["applicationReferenceId", "fileFact", "description"], "fields": {"applicationReferenceId": "positive WireLong OR JSON null", "fileFact": "FrozenFileFact", "description": "trimmed string 1..1000"}},
+      "success": "CommonResult<SpareManualEvidenceView>"
+    },
+    "acceptStatus": {
+      "kind": "internal Business API called only by INT-06 Integration ACL",
+      "signature": "CutoverSpareCallbackApi.acceptStatus(SpareStatusCallbackCommand)",
+      "tenant": "trusted TenantContextHolder must equal command.tenantId before Inbox claim",
+      "idempotency": "scope CUT:SPARE_STATUS_CALLBACK, actorId=0, key=eventId, digest includes every normalized field",
+      "success": "SpareStatusCallbackResult APPLIED|REPLAYED|IGNORED_OLD_VERSION"
+    }
+  },
+  "types": {
+    "SpareSupportDetail": {
+      "exactKeys": ["taskId", "taskVersion", "need", "applications", "manualEvidence", "allowedActions"],
+      "fields": {"taskId": "positive WireLong", "taskVersion": "non-negative Integer", "need": "SpareNeedSnapshot", "applications": "SpareApplicationView[] stable applicationReferenceId ASC", "manualEvidence": "SpareManualEvidenceView[] stable createdAt,id ASC", "allowedActions": "subset of INITIATE,REFRESH,ADD_EVIDENCE"}
+    },
+    "SpareNeedSnapshot": {
+      "exactKeys": ["required", "sources"],
+      "fields": {"required": "Boolean", "sources": "SpareNeedSource[] stable sourceType,sourceId"},
+      "sourceUnion": {
+        "ASSESSMENT": ["sourceType", "sourceId", "sourceVersion", "sparePartApplied"],
+        "CHECKLIST_RISK": ["sourceType", "sourceId", "sourceVersion", "stableItemKey", "applicable"]
+      }
+    },
+    "SpareInitiationResult": {
+      "exactKeys": ["applicationReferenceId", "requestId", "integrationStatus", "externalSystemCode", "externalApplicationNo", "launchUrl"],
+      "fields": {"applicationReferenceId": "positive WireLong", "requestId": "trimmed string 1..128", "integrationStatus": "REQUEST_PENDING|EXTERNAL_REFERENCED|RETRY_PENDING", "externalSystemCode": "trimmed string 1..64", "externalApplicationNo": "trimmed string 1..128 OR JSON null", "launchUrl": "trusted provider HTTPS URL 1..2048 OR JSON null"},
+      "invariant": "externalApplicationNo and launchUrl cannot both be null for an accepted provider response"
+    },
+    "SpareApplicationView": {
+      "exactKeys": ["applicationReferenceId", "requestId", "integrationStatus", "externalSystemCode", "externalApplicationNo", "launchUrl", "currentStatus", "lastFailureCode", "retryCount", "updatedAt"],
+      "fields": {"currentStatus": "SpareStatusView OR JSON null", "retryCount": "non-negative Integer", "updatedAt": "WireDateTime"}
+    },
+    "SpareStatusView": {
+      "exactKeys": ["statusVersion", "externalStatusRaw", "snapshot", "sourceType", "externalOccurredAt", "observedAt"],
+      "fields": {"statusVersion": "positive WireLong", "externalStatusRaw": "trimmed string 1..128", "snapshot": "JSON object maximum 16 KiB after validation; read-only display subset", "sourceType": "INITIATE_RESPONSE|CALLBACK|REFRESH", "externalOccurredAt": "WireDateTime OR JSON null", "observedAt": "WireDateTime"}
+    },
+    "SpareStatusCallbackCommand": {
+      "exactKeys": ["eventId", "tenantId", "externalSystemCode", "externalApplicationNo", "statusVersion", "externalStatusRaw", "statusSnapshot", "externalOccurredAt", "correlationId"],
+      "fields": {"eventId": "trimmed string 1..128", "tenantId": "positive WireLong", "externalSystemCode": "trimmed string 1..64", "externalApplicationNo": "trimmed string 1..128", "statusVersion": "positive WireLong", "externalStatusRaw": "trimmed string 1..128", "statusSnapshot": "JSON object maximum 16 KiB", "externalOccurredAt": "WireDateTime OR JSON null", "correlationId": "trimmed string 1..128"}
+    },
+    "FrozenFileFact": {
+      "exactKeys": ["artifactId", "referenceKey", "versionNo", "artifactVersion", "referenceVersion", "availabilityVersion", "scopeVersion"],
+      "fields": {"artifactId": "positive WireLong", "referenceKey": "trimmed string 1..128", "versionNo": "positive Integer", "artifactVersion": "non-negative Integer", "referenceVersion": "non-negative Integer", "availabilityVersion": "non-negative Integer", "scopeVersion": "non-negative WireLong"},
+      "fixedScope": "ownerContext=CUT, objectType=CUTOVER_TASK, objectId=taskId, purposeCode=SPARE_MANUAL_EVIDENCE, requiredAction=READ"
+    },
+    "SpareManualEvidenceView": {
+      "exactKeys": ["evidenceId", "applicationReferenceId", "fileFact", "description", "uploadedBy", "createdAt"],
+      "fields": {"evidenceId": "positive WireLong", "applicationReferenceId": "positive WireLong OR JSON null", "uploadedBy": "positive WireLong", "createdAt": "WireDateTime"}
+    }
+  },
+  "integrationPort": {
+    "owner": "INT-06 physical Owner",
+    "consumer": "CUT",
+    "methods": ["initiate(SpareInitiationCommand)", "queryStatus(SpareStatusQuery)"],
+    "successMapping": "provider facts map without inventing status semantics",
+    "testBoundary": "src/test deterministic substitute only; no production fallback or empty-success implementation"
+  },
+  "stableErrors": {
+    "INVALID_REQUEST": {"http": 400, "recovery": "FIX_REQUEST"},
+    "NOT_VISIBLE_OR_NOT_FOUND": {"http": 404, "recovery": "NONE"},
+    "FUNCTION_PERMISSION_DENIED": {"http": 403, "recovery": "NONE"},
+    "DATA_SCOPE_DENIED": {"http": 403, "recovery": "NONE"},
+    "SPARE_NOT_REQUIRED": {"http": 422, "recovery": "REFRESH_TASK"},
+    "TASK_VERSION_STALE": {"http": 409, "recovery": "REFRESH_TASK"},
+    "OWNER_FACT_STALE": {"http": 409, "recovery": "REFRESH_OWNER_FACTS"},
+    "IDEMPOTENCY_CONFLICT": {"http": 409, "recovery": "START_NEW_INTENT"},
+    "IDEMPOTENCY_IN_PROGRESS": {"http": 409, "recovery": "RETRY_SAME_KEY"},
+    "EXTERNAL_REFERENCE_CONFLICT": {"http": 409, "recovery": "RECONCILE"},
+    "STATUS_VERSION_CONFLICT": {"http": 409, "recovery": "RECONCILE"},
+    "OWNER_PROVIDER_UNAVAILABLE": {"http": 503, "recovery": "RETRY_SAME_KEY"},
+    "OWNER_DATA_CORRUPTED": {"http": 500, "recovery": "CONTACT_SUPPORT"}
+  }
+}
