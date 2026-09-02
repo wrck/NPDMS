@@ -20,6 +20,8 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.Project
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,7 @@ class ProjectTaskLifecycleServiceTest {
     @Mock ProjectTaskProgressService progressService;
     @Mock PermissionApi permissionApi;
     @Mock AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
+    @Mock ProjectScopeApi projectScopeApi;
 
     private ProjectTaskLifecycleService service;
     private PlatformCommandExecutionApi.SuccessFacts successFacts;
@@ -67,7 +70,7 @@ class ProjectTaskLifecycleServiceTest {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper, gateMapper,
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
-                permissionApi, acceptanceActivityCompletionFactApi);
+                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi);
     }
 
     @Test
@@ -205,6 +208,50 @@ class ProjectTaskLifecycleServiceTest {
         verify(evaluationMapper).insertEvaluation(any());
     }
 
+    @Test
+    void acceptanceStartUsesProjectStateMachineWithoutCallingBindingProviders() {
+        allowAcceptanceAction("PENDING_START", "START", "IN_PROGRESS");
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        TaskCommandResult result = service.act(command("start", 3, null, null), actor());
+
+        assertEquals("IN_PROGRESS", result.status());
+        verify(nativeProvider, never()).inspect(any());
+        verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
+    }
+
+    @Test
+    void acceptanceSubmitUsesProjectStateMachineWithoutCallingBindingProviders() {
+        allowAcceptanceAction("IN_PROGRESS", "SUBMIT", "PENDING_ACCEPT");
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        TaskCommandResult result = service.act(command("submit", 3, null, null), actor());
+
+        assertEquals("PENDING_ACCEPT", result.status());
+        verify(nativeProvider, never()).inspect(any());
+        verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
+    }
+
+    @Test
+    void acceptanceCompletionAllowsCurrentAssigneeWithManageScope() {
+        allowAcceptanceAction();
+        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of());
+        ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
+        assignment.setAssigneeUserId(9L);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:acceptance:report:complete")).thenReturn(true);
+        when(acceptanceActivityCompletionFactApi.lockAndComplete(any())).thenReturn(
+                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1, 61L, 1));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        TaskCommandResult result = service.act(acceptanceCommand(), actor());
+
+        assertEquals("DONE", result.status());
+        verify(acceptanceActivityCompletionFactApi).lockAndComplete(any());
+    }
+
     @SuppressWarnings("unchecked")
     private void allowAction(String status, String action, String target) {
         ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
@@ -272,7 +319,11 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     private void allowAcceptanceAction() {
-        allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
+        allowAcceptanceAction("PENDING_ACCEPT", "COMPLETE", "DONE");
+    }
+
+    private void allowAcceptanceAction(String status, String action, String target) {
+        allowAction(status, action, target);
         ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
         contract.setId(91L);
         contract.setTenantId(0L);
@@ -283,6 +334,9 @@ class ProjectTaskLifecycleServiceTest {
         contract.setTargetObjectKey("51");
         contract.setContractVersion(2);
         when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+        lenient().when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        lenient().when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
     }
 
     private TaskActionCommand acceptanceCommand() {

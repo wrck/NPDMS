@@ -55,6 +55,9 @@ import cn.iocoder.yudao.module.pms.project.service.acceptance.application.Projec
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.InitializeProjectDeliverablesCommand;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityInitializationCommand;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
@@ -109,6 +112,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
     @Resource
     private AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
+    @Resource
+    private SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
     @Resource
     private ProjectTaskTreePathMapper taskTreePathMapper;
     @Resource
@@ -200,6 +205,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
             validateCustomerAvailable(draft.getCustomerId());
+            draft.setProjectType(ProjectRules.DEFAULT_PROJECT_TYPE);
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
             draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
             draft.setProjectSequence(ProjectCodeRules.ROOT_PROJECT_SEQUENCE);
@@ -254,6 +260,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(
                 content, draft.getId(), stateMachineRevision.getId(), IdWorker::getId);
         insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
+        freezeSatisfactionFacts(draft, instantiation);
         // 任务ID已在落库前确定；先写完整任务集合，再写闭包和一任务一当前执行契约。
         instantiation.getTasks().forEach(taskInstanceMapper::insert);
         insertIfNotEmpty(instantiation.getTaskTreePaths(), taskTreePathMapper::insertBatch);
@@ -545,6 +552,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (draft.getProjectCategory() == null) draft.setProjectCategory(parent.getProjectCategory());
         if (draft.getImplementationMode() == null) draft.setImplementationMode(parent.getImplementationMode());
         if (draft.getMajorProjectLevel() == null) draft.setMajorProjectLevel(parent.getMajorProjectLevel());
+        if (draft.getProjectType() == null) draft.setProjectType(parent.getProjectType());
         if (draft.getCompanyCode() == null) draft.setCompanyCode(parent.getCompanyCode());
         if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
         if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
@@ -579,7 +587,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         fresh.setProjectId(command.projectId());
         fresh.setUserId(command.managerId());
         AdminUserRespDTO manager = adminUserApi.getUser(command.managerId());
-        DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
+        DeptRespDTO department = deptApi.getDept(command.departmentId());
         fresh.setMemberName(manager == null ? null : manager.getNickname());
         fresh.setCompanyId(project.getCompanyId());
         fresh.setCompanyCode(project.getCompanyCode());
@@ -674,6 +682,31 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
      * 模板选择结果（冻结上下文：templateId/revisionNo/加载方式）
      */
     private record SelectedTemplate(Long templateId, Long revisionId, Integer revisionNo, String loadMethod) {
+    }
+
+    private void freezeSatisfactionFacts(ProjectMasterDO project, ProjectInstantiation instantiation) {
+        for (var task : instantiation.getTasks()) {
+            if (task.getSatisfactionTiming() == null || task.getSatisfactionTiming().isBlank()) {
+                continue;
+            }
+            if (!"AFTER_INITIAL_ACCEPTANCE".equals(task.getSatisfactionTiming())) {
+                throw new IllegalStateException("SATISFACTION_TIMING_OWNER_NOT_AVAILABLE");
+            }
+            SatisfactionTemplateFact fact = satisfactionQuestionnaireTemplateApi.resolvePublished(
+                    new SatisfactionTemplateResolveQuery(project.getTenantId(), project.getProjectType(),
+                            project.getSigningMethod(), project.getImplementationMode(), "ACCEPTANCE",
+                            task.getSatisfactionTiming()));
+            if (fact == null || !"FOUND".equals(fact.outcome()) || fact.templateId() == null
+                    || fact.templateRevisionId() == null || fact.templateVersion() == null
+                    || fact.ruleVersion() == null || fact.threshold() == null) {
+                throw new IllegalStateException("SATISFACTION_TEMPLATE_NOT_UNIQUE");
+            }
+            task.setAccSatisfactionTemplateId(fact.templateId());
+            task.setTemplateRevisionId(fact.templateRevisionId());
+            task.setTemplateVersion(fact.templateVersion());
+            task.setSatisfactionRuleVersion(fact.ruleVersion());
+            task.setSatisfactionThreshold(fact.threshold());
+        }
     }
 
     private AcceptanceTaskMapping acceptanceTaskMapping(String taskCode) {

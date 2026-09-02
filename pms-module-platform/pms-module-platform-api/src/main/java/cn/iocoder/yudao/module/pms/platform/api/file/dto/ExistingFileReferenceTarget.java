@@ -29,7 +29,11 @@ public record ExistingFileReferenceTarget(
         boolean acceptanceReportAttachment = "ACC".equals(ownerContext)
                 && "ACCEPTANCE_REPORT_VERSION".equals(objectType)
                 && "ACCEPTANCE_REPORT_ATTACHMENT".equals(purposeCode);
-        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment)
+        boolean satisfactionResponseFile = "ACC".equals(ownerContext)
+                && "SATISFACTION_RESPONSE".equals(objectType)
+                && ("SATISFACTION_SIGNATURE".equals(purposeCode)
+                || "SATISFACTION_ATTACHMENT".equals(purposeCode));
+        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile)
                 || !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }

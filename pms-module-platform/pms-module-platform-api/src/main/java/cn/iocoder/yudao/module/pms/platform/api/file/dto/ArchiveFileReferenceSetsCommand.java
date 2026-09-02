@@ -30,7 +30,17 @@ public record ArchiveFileReferenceSetsCommand(
                 && "ACCEPTANCE_REPORT_VERSION".equals(attachmentSetKey.objectType())
                 && "ACCEPTANCE_REPORT_ATTACHMENT".equals(attachmentSetKey.purposeCode())
                 && "ACCEPTANCE_REPORT_ARCHIVE".equals(archiveSetKey.purposeCode());
-        if (!sameObject || !acceptanceReport) {
+        boolean satisfactionArchive = "ACC".equals(attachmentSetKey.ownerContext())
+                && "ACC".equals(archiveSetKey.ownerContext())
+                && "SATISFACTION_RESULT".equals(archiveSetKey.objectType())
+                && "SATISFACTION_ARCHIVE".equals(archiveSetKey.purposeCode())
+                && (("SATISFACTION_RESULT".equals(attachmentSetKey.objectType())
+                    && attachmentSetKey.objectId().equals(archiveSetKey.objectId())
+                    && "SATISFACTION_RESULT_DOCUMENT".equals(attachmentSetKey.purposeCode()))
+                    || ("SATISFACTION_RESPONSE".equals(attachmentSetKey.objectType())
+                    && ("SATISFACTION_SIGNATURE".equals(attachmentSetKey.purposeCode())
+                    || "SATISFACTION_ATTACHMENT".equals(attachmentSetKey.purposeCode()))));
+        if (!(sameObject && acceptanceReport) && !satisfactionArchive) {
             throw new IllegalArgumentException("unsupported archive reference set target");
         }
         orderedExpectedPublicFileFacts = List.copyOf(orderedExpectedPublicFileFacts);

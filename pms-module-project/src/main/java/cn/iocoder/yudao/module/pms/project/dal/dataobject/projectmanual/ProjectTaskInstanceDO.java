@@ -94,6 +94,12 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      * 满意度适用时点（快照，由 ACC-02 消费）
      */
     private String satisfactionTiming;
+    /** ACC满意度模板冻结事实。 */
+    private Long accSatisfactionTemplateId;
+    private Long templateRevisionId;
+    private Integer templateVersion;
+    private String satisfactionRuleVersion;
+    private BigDecimal satisfactionThreshold;
     /**
      * 任务说明（快照）
      */

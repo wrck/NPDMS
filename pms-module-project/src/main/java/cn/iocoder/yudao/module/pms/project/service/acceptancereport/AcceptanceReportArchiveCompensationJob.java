@@ -6,13 +6,14 @@ import cn.iocoder.yudao.framework.tenant.core.job.TenantJob;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceTypeQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.core.env.Environment;
 
 import java.util.List;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -40,8 +41,9 @@ public class AcceptanceReportArchiveCompensationJob implements JobHandler {
 
     private String archivePendingSources() {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        List<ProjectDeliverableSourceVersionDO> sources = sourceMapper.selectPendingArchive(
-                new PendingArchiveSourceQuery(tenantId, BATCH_SIZE));
+        List<ProjectDeliverableSourceVersionDO> sources = sourceMapper.selectPendingArchiveBySourceType(
+                new PendingArchiveSourceTypeQuery(tenantId, "AcceptanceReportVersion",
+                        Set.of("CURRENT", "SUPERSEDED"), BATCH_SIZE));
         int archived = 0;
         int pending = 0;
         for (ProjectDeliverableSourceVersionDO source : sources) {

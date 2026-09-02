@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.AccProjectDeliverableGateFactQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.DeliverableCurrentSourceClearQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdentityLockQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -32,4 +33,6 @@ public interface AccProjectDeliverableMapper extends BaseMapperX<AccProjectDeliv
             @Param("query") ProjectDeliverableIdentityLockQuery query);
 
     AccProjectDeliverableDO selectByIdForUpdate(@Param("query") ProjectDeliverableIdLockQuery query);
+
+    int clearCurrentSource(@Param("query") DeliverableCurrentSourceClearQuery query);
 }

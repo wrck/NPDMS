@@ -6,7 +6,9 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.Proje
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableSourceIdLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableSourceIdentityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableSourceObjectIdentityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceTypeQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,8 +27,14 @@ public interface ProjectDeliverableSourceVersionMapper extends BaseMapperX<Proje
     ProjectDeliverableSourceVersionDO selectIdentityForUpdate(
             @Param("query") DeliverableSourceIdentityQuery query);
 
+    ProjectDeliverableSourceVersionDO selectSourceObjectIdentityForUpdate(
+            @Param("query") DeliverableSourceObjectIdentityQuery query);
+
     ProjectDeliverableSourceVersionDO selectByIdForUpdate(@Param("query") DeliverableSourceIdLockQuery query);
 
     java.util.List<ProjectDeliverableSourceVersionDO> selectPendingArchive(
             @Param("query") PendingArchiveSourceQuery query);
+
+    java.util.List<ProjectDeliverableSourceVersionDO> selectPendingArchiveBySourceType(
+            @Param("query") PendingArchiveSourceTypeQuery query);
 }

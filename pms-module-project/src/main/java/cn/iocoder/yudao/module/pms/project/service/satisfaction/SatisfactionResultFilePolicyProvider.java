@@ -1,0 +1,164 @@
+package cn.iocoder.yudao.module.pms.project.service.satisfaction;
+
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.*;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
+import java.util.Objects;
+
+@Component
+@RequiredArgsConstructor
+public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectPolicyProvider {
+    static final String OWNER = "ACC";
+    static final String TYPE = "SATISFACTION_RESULT";
+    static final String PURPOSE = "SATISFACTION_RESULT_DOCUMENT";
+    static final String ARCHIVE_PURPOSE = "SATISFACTION_ARCHIVE";
+    private final SatisfactionCollectionTaskMapper taskMapper;
+    private final SatisfactionQuestionnaireMapper questionnaireMapper;
+    private final SatisfactionResponseMapper responseMapper;
+    private final SatisfactionResultMapper resultMapper;
+    private final ProjectScopeApi projectScopeApi;
+
+    @Override public String ownerContext() { return OWNER; }
+    @Override public String objectType() { return TYPE; }
+    @Override
+    public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
+        if (!isDownload(query)) return denied();
+        Long resultId = positiveLong(query.objectId());
+        SatisfactionResultDO result = resultMapper.selectById(resultId);
+        SatisfactionCollectionTaskDO task = result == null ? null : taskMapper.selectById(result.getCollectionTaskId());
+        if (result == null || task == null) return denied();
+        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),
+                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(task.getProjectId())) return denied();
+        return downloadPolicy(scope.treeVersion());
+    }
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
+        if (query == null || !(PURPOSE.equals(query.purposeCode()) || ARCHIVE_PURPOSE.equals(query.purposeCode()))) {
+            return denied();
+        }
+        Long resultId = positiveLong(query.objectId());
+        SatisfactionResultDO result = resultMapper.selectByIdForUpdate(query.tenantId(), resultId);
+        SatisfactionCollectionTaskDO task = result == null ? null
+                : taskMapper.selectByIdForUpdate(query.tenantId(), result.getCollectionTaskId());
+        if (FileActionCodes.DOWNLOAD.equals(query.requiredAction())) {
+            if (result == null || task == null) return denied();
+            var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
+                    query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_VIEW,
+                    query.expectedScopeVersion()));
+            if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
+                    || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(task.getProjectId())) {
+                return denied();
+            }
+            return downloadPolicy(scope.treeVersion());
+        }
+        if (!FileActionCodes.ARCHIVE.equals(query.requiredAction())) return denied();
+        if (result == null || task == null || !Objects.equals(result.getArchiveActorUserId(), query.actorUserId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_OWNER_CONFLICT");
+        }
+        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
+                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
+                query.expectedScopeVersion()));
+        if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_SCOPE_CONFLICT");
+        }
+        return new FileBusinessObjectPolicyFact(true, scope.treeVersion(), "IMMUTABLE", "MULTIPLE",
+                Set.of(PURPOSE, ARCHIVE_PURPOSE), Set.of("application/pdf", "image/png", "image/jpeg"),
+                52_428_800L, "CONFIDENTIAL");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        FileReferenceSetKey key = query.key();
+        if (key == null || !OWNER.equals(key.ownerContext()) || !TYPE.equals(key.objectType())) return denied();
+        return lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                query.tenantId(), query.actorUserId(), key.ownerContext(), key.objectType(), key.objectId(),
+                key.purposeCode(), "REFERENCE_SET", query.requiredAction(), query.expectedScopeVersion()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(
+            GeneratedBusinessFilePolicyRevalidationQuery query) {
+        requireShape(query);
+        SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(query.tenantId(), query.collectionTaskId());
+        if (task == null || !query.questionnaireId().equals(task.getQuestionnaireId())
+                || !"PENDING_DECISION".equals(task.getTaskStatus())
+                || !query.expectedTaskVersion().equals(task.getVersion())
+                || !query.actorUserId().equals(task.getAssignedToUserId()) || task.getResultId() != null) {
+            throw new IllegalStateException("SATISFACTION_RESULT_FILE_TASK_CONFLICT");
+        }
+        SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectByIdForUpdate(
+                query.tenantId(), query.questionnaireId());
+        if (questionnaire == null || !task.getId().equals(questionnaire.getCollectionTaskId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_FILE_QUESTIONNAIRE_CONFLICT");
+        }
+        SatisfactionResponseDO response = responseMapper.selectByIdForUpdate(query.tenantId(), query.responseId());
+        if (response == null || !questionnaire.getId().equals(response.getQuestionnaireId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_FILE_RESPONSE_CONFLICT");
+        }
+        if (resultMapper.selectByIdForUpdate(query.tenantId(), query.resultId()) != null) {
+            throw new IllegalStateException("SATISFACTION_RESULT_FILE_RESULT_OCCUPIED");
+        }
+        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
+                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT, query.expectedScopeVersion()));
+        if (scope == null || !query.expectedScopeVersion().equals(scope.treeVersion())
+                || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw new IllegalStateException("SATISFACTION_RESULT_FILE_SCOPE_CONFLICT");
+        }
+        return new FileBusinessObjectPolicyFact(true, scope.treeVersion(), "IMMUTABLE", "SINGLE",
+                Set.of(PURPOSE), Set.of("application/pdf"), 5_242_880L, "INTERNAL");
+    }
+
+    private void requireShape(GeneratedBusinessFilePolicyRevalidationQuery query) {
+        if (query == null || query.tenantId() == null || query.actorUserId() == null || query.resultId() == null
+                || query.collectionTaskId() == null || query.questionnaireId() == null || query.responseId() == null
+                || query.expectedTaskVersion() == null || query.expectedTaskVersion() < 0
+                || !OWNER.equals(query.ownerContext()) || !TYPE.equals(query.objectType())
+                || !PURPOSE.equals(query.purposeCode()) || !FileActionCodes.UPLOAD.equals(query.requiredAction())
+                || !(("satisfaction-result-" + query.resultId()).equals(query.referenceKey()))
+                || query.expectedScopeVersion() == null || query.expectedScopeVersion() < 0) {
+            throw new IllegalArgumentException("SATISFACTION_RESULT_FILE_POLICY_INVALID");
+        }
+    }
+
+    private FileBusinessObjectPolicyFact denied() {
+        return new FileBusinessObjectPolicyFact(false, null, "IMMUTABLE", "SINGLE",
+                Set.of(), Set.of(), 0L, "INTERNAL");
+    }
+
+    private boolean isDownload(FileBusinessObjectPolicyQuery query) {
+        return query != null && FileActionCodes.DOWNLOAD.equals(query.requiredAction())
+                && PURPOSE.equals(query.purposeCode());
+    }
+
+    private FileBusinessObjectPolicyFact downloadPolicy(Long scopeVersion) {
+        return new FileBusinessObjectPolicyFact(true, scopeVersion, "IMMUTABLE", "SINGLE",
+                Set.of(PURPOSE), Set.of("application/pdf"), 5_242_880L, "INTERNAL");
+    }
+
+    private Long positiveLong(String value) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed > 0) return parsed;
+        } catch (NumberFormatException ignored) {
+        }
+        throw new IllegalArgumentException("SATISFACTION_RESULT_FILE_OBJECT_INVALID");
+    }
+}
