@@ -234,6 +234,45 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreatio
 
 ---
 
+### Task 4A：correlation provenance Schema/Writer Amendment
+
+**Files:**
+- Create: `sql/migrations/V158__fcut008_notification_correlation_provenance.sql`（若串行合入前出现新迁移，则使用届时实际下一空闲版本并同步文件名）
+- Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalNotificationDO.java`
+- Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/CutoverExternalNotificationRequestFactory.java`
+- Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java`
+- Modify: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java`
+- Modify: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalExternalNotificationCreationTest.java`
+- Modify: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalStartServiceTest.java`
+- Modify: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalDecisionServiceTest.java`
+- Modify: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalReassignmentTest.java`
+
+**Interfaces:**
+- Consumes: 已通过Task 4的四行通知创建入口与各自受信命令`correlationId`。
+- Produces: 通知行不可变`correlationId`权威来源；Task 5必须等待本Task独立Gate PASS。
+
+- [ ] **Step 1: 实现失败关闭的前向ALTER**
+
+在任何ALTER前以临时过程检查`cut_approval_notification`全部历史行（不得按`deleted`过滤）；只要存在`channel_code IN ('SMS','EMAIL','DINGTALK')`即`SIGNAL SQLSTATE '45000'`并保持原结构。脚本在CREATE前和成功后都`DROP PROCEDURE IF EXISTS`，支持数据证据化处置、Flyway repair后原样重跑。
+
+当前串行下一版本为V158。新增`correlation_id VARCHAR(128) NULL`且无默认值；CHECK要求非NULL值长度1～128且`CHAR_LENGTH(value)=CHAR_LENGTH(TRIM(value))`，避免PAD SPACE绕过，并要求三类外部渠道非NULL。仅有IN_PLATFORM历史行时保留NULL，不执行任何UPDATE补造。
+
+- [ ] **Step 2: 三个创建入口原样冻结受信值**
+
+DO增加`correlationId`。首节点start、下一节点approve、当前PENDING改派reassign只在各自`PlatformCommandExecutionApi`的NEW operation内，把已校验命令`correlationId`传给通知创建；同组IN_PLATFORM/SMS/EMAIL/DINGTALK四行原样一致。业务重放不进入operation，不覆盖首次值；WAITING改派继续零通知。
+
+- [ ] **Step 3: 验证迁移与正向写入**
+
+静态合同与隔离MySQL 8.4覆盖：仅IN_PLATFORM历史升级成功且NULL保留；存在任一外部历史行时任何DDL前失败、原结构/数据不变；处置并repair后原脚本可重跑；合法1/128字符接受，空白/首尾空白/129字符拒绝。审批聚焦验证覆盖start、next activation、PENDING reassign四行同值及WAITING reassign零通知。
+
+- [ ] **Step 4: 运行并申请Task 4A Gate**
+
+```powershell
+mvn -pl pms-module-cutover -am -Dtest=Fcut008MigrationContractTest,CutoverApprovalExternalNotificationCreationTest,CutoverApprovalStartServiceTest,CutoverApprovalDecisionServiceTest,CutoverApprovalReassignmentTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+---
+
 ### Task 5：外部消费端口、投递服务与暂停Job候选
 
 **Files:**
@@ -249,7 +288,8 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreatio
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/job/CutoverExternalApprovalNotificationJobTest.java`
 
 **Interfaces:**
-- Consumes: Task 2外部领取/CAS、机器合同精确请求联合。
+- Prerequisite Gate: Task 4A Schema/Writer Amendment必须先独立`PASS / GO`；否则Task 5保持`BLOCKED_BY_SPEC`，不得实现或从其他事实推导correlationId。
+- Consumes: Task 2外部领取/CAS、Task 4A锁定通知行correlationId、机器合同精确请求联合。
 - Produces: 受控可组装的发送服务；不产生生产Provider Bean。
 
 - [ ] **Step 1: 定义最窄端口与结果联合**
