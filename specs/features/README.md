@@ -36,6 +36,7 @@
 | [F-CUT-006](F-CUT-006-p6-cutover-closure.md) | P6割接跟踪、结果归档与闭环 | CUT-06（V1，FULL） | BASELINE | READY / GO@4e390d4f | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 9 GO@ee891fa6；生产依赖阻断Done） |
 | [F-CUT-007](F-CUT-007-cutover-dashboard-kpis.md) | 割接首页授权KPI | CUT-01（V2，FULL） | BASELINE | READY / GO@f6141e21 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 1～5 GO；生产依赖未接通） |
 | [F-CUT-008](F-CUT-008-p5-lead-time-and-external-reminders.md) | P5提前时间判断与外部提醒 | CUT-05（V2，FULL） | BASELINE | READY / GO@d9b43077 | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES（Task 8 GO@7219532a；生产INT-10/INT-05依赖阻断Done） |
+| [F-CUT-009](F-CUT-009-p3-authorized-export-and-navigation.md) | P3授权清单导出与受控流程跳转 | CUT-03（V2，FULL） | DRAFT | NOT_READY / REVIEW_REQUIRED | NOT_STARTED |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 

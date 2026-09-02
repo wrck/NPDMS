@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-009",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-03@V2=FULL"],
+  "ownerContext": "CUT",
+  "extends": ["F-CUT-001-physical-contract.json", "F-CUT-003-physical-contract.json"],
+  "ownerTables": {
+    "cut_cutover_configuration_revision": {
+      "reuseColumn": "navigation_rule_snapshot JSON NULL",
+      "lifecycle": "editable only in DRAFT; copied with revision; immutable in PUBLISHED/DISABLED",
+      "nullMeaning": "use the existing V1 post-submit navigation; never arbitrary jump",
+      "migration": "no new table; only forward wiring if current DO/request mapping does not yet round-trip the existing column"
+    },
+    "cut_cutover_checklist": {
+      "usage": "read requested immutable/versioned checklist identity and status for export",
+      "changes": "NONE"
+    },
+    "cut_cutover_checklist_item": {
+      "usage": "read authorized applicable item projection for export",
+      "changes": "NONE"
+    },
+    "cut_cutover_checklist_item_result": {
+      "usage": "read only the authorized current selected result for export",
+      "changes": "NONE"
+    },
+    "cut_task": {
+      "usage": "read task/project/frozen configuration identity and authoritative current stage",
+      "changes": "NONE; submit transition remains SURVEYING -> PLAN_DRAFTING"
+    }
+  },
+  "export": {
+    "businessTablesReadOnly": true,
+    "auditOwner": "PlatformCommandExecution/operation audit without changing CUT aggregate version",
+    "stableOrder": ["section order BUSINESS_SURVEY,RISK,DUAL_MACHINE_CHECK", "item sort_order", "stable_item_key"],
+    "forbiddenData": ["device credentials", "PLT internal ids", "file bytes from CUT tables", "external raw response", "unselected result history", "fields absent from the authorized detail projection"]
+  },
+  "navigation": {
+    "decisionSource": "task-frozen configuration_revision_id and immutable navigation_rule_snapshot",
+    "evaluationPoint": "after all existing checklist submit guards and business writes succeed; returned only when that transaction commits",
+    "stateIsolation": "the decision cannot insert/update cut_task, stage history, checklist or result rows",
+    "targetContract": "BLOCKED_BY_Q_FCUT009_001"
+  },
+  "dependencies": {
+    "F-CUT-001": "configuration revision lifecycle and existing navigation_rule_snapshot carrier",
+    "F-CUT-003": "checklist facts, authorized detail projection and submit state transition",
+    "PROJ": "ProjectScopeApi ACTION_VIEW reserved consumer contract",
+    "PLT": "not used for export artifacts; existing checklist evidence references remain governed by F-CUT-003"
+  },
+  "controlledPositiveLoop": "CUT tests may assemble a deterministic PROJ scope substitute to prove export and post-submit navigation orchestration; production Owner facts and real browser completion remain separate gates"
+}

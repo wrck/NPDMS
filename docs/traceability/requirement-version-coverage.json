@@ -186,6 +186,19 @@
       ]
     },
     {
+      "featureId": "F-CUT-009",
+      "featurePath": "specs/features/F-CUT-009-p3-authorized-export-and-navigation.md",
+      "taskPath": "tasks/features/F-CUT-009.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "CUT-03@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-IMP-001",
       "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
       "taskPath": "tasks/features/F-IMP-001.md",
@@ -1930,7 +1943,15 @@
       "businessResult": "授权清单导出与流程跳转配置优化",
       "versionBoundary": "V1生成、填写、暂存、提交及基础跳转保持不变",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-009",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-CUT-009-p3-authorized-export-and-navigation.md",
+          "taskPath": "tasks/features/F-CUT-009.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-05@V2",

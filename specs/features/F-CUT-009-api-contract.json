@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-009",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-03@V2=FULL"],
+  "extends": "F-CUT-003-physical-contract.json",
+  "wireContract": {
+    "wireLong": "existing Yudao conditional JSON number/string Long serialization",
+    "wireDateTime": "positive epoch-millisecond WireLong",
+    "errorEnvelope": "existing CUT CommonResult and controller-local HTTP mapping"
+  },
+  "operations": {
+    "exportChecklist": {
+      "method": "POST",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/checklist/actions/export",
+      "permission": "pms:cutover-task:query + ProjectScopeApi.ACTION_VIEW",
+      "request": {
+        "exactKeys": ["checklistVersion"],
+        "fields": {"checklistVersion": "positive Integer"}
+      },
+      "success": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet bytes with RFC-compatible Content-Disposition filename",
+      "projection": "exactly the same authorized checklist/task/device/field projection visible to the caller for the requested version; grouped BUSINESS_SURVEY,RISK,DUAL_MACHINE_CHECK and stably sorted",
+      "sideEffects": "platform operation audit only; no persistent export artifact and no CUT business row insert/update/version touch"
+    },
+    "submitExtension": {
+      "base": "F-CUT-003 submit request, headers, idempotency, guards and ChecklistCommandResult",
+      "addedField": "navigationDecision",
+      "fieldType": "NavigationDecision OR JSON null",
+      "businessResult": "always the existing SUBMITTED checklist and PLAN_DRAFTING task before navigation is evaluated"
+    },
+    "configurationExtension": {
+      "base": "F-CUT-001 revision CRUD/copy/validate/publish/disable",
+      "addedField": "navigationRuleSnapshot in draft/detail/copy/publish aggregate",
+      "permissions": "existing pms:cutover-config:query/manage/publish/disable only"
+    }
+  },
+  "types": {
+    "NavigationDecision": {
+      "status": "BLOCKED_BY_Q_FCUT009_001",
+      "exactKeys": ["ruleKey", "configurationRevisionId", "target"],
+      "fields": {
+        "ruleKey": "normalized nonblank String 1..64",
+        "configurationRevisionId": "positive WireLong equal to the task-frozen revision",
+        "target": "closed enum to be fixed by Q-FCUT009-001; must not itself mutate task state"
+      }
+    }
+  },
+  "stableErrors": {
+    "NOT_VISIBLE_OR_NOT_FOUND": "404",
+    "CHECKLIST_VERSION_STALE": "409",
+    "OWNER_FACT_STALE": "409",
+    "INVALID_EXPORT_REQUEST": "400",
+    "EXPORT_PROJECTION_INVALID": "500",
+    "OWNER_PROVIDER_UNAVAILABLE": "503",
+    "NAVIGATION_RULE_INVALID": "422"
+  },
+  "strictBoundary": "unknown or extra request keys fail closed; export never falls back to another checklist version or unfiltered projection"
+}
