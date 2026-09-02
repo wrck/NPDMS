@@ -13,7 +13,7 @@
 > 串行资源：`PRD修订号;F-INS-001与F-CUT-002～010正式规格;Flyway V173起连续编号;CUT公开API模块;Requirement追溯投影`
 > 旧功能范围：`F-INS-001和F-CUT-002～010规格均要求PRESERVE_EXISTING；旧巡检规则、旧cut-task/cut-risk/cut-plan页面、接口和数据不作为新实现基础，也不在未形成完整替代闭环前标记废弃或删除`
 > 验证：`分支提交时间线与patch边界;Feature/Task/Gate一致性;数据库查询规范;迁移静态合同;INS与CUT聚焦测试及受影响Reactor构建;CUT前端定向测试/类型检查/构建;git diff --check;五轴代码审查`
-> 集成记录：`master链回执6eb7c89e（F-INS-001）+ c9066332（F-CUT-002～010及必需PLT迁移证据）；F-PROJ-008 Task 3继续由Q-FPROJ-009阻断且未迁入；本DU已释放全部写边界`
+> 集成记录：`master链回执6eb7c89e（F-INS-001）+ c9066332（F-CUT-002～010及必需PLT迁移证据）；F-PROJ-008 Task 3继续由Q-FPROJ-009阻断且未迁入；F-INS来源在冻结后新增1895a5e7但未获master业务/平台裁决，继续隔离；本DU已释放全部写边界`
 
 ## 初始裁决
 
@@ -34,6 +34,13 @@
 - `codex/f-cut-001-matrices@faed8387`：选择性接收F-CUT-002～009受控正向闭环、F-CUT-010已完成Task 1～3、CUT公开API模块、CUT前端及旧数据核对必需的PLT迁移证据，代码回执`c9066332`；来源PLT V144与CUT V146～V161重排为master V176～V192。COM/IMP继承历史和其他旁支未随分支接收。
 - `codex/f-proj-008-stage-advance@48175aa0`：Task 1/2继续以既有master回执`db876b43/158118d0`为准；Task 3候选`a3bd0043`因`Q-FPROJ-009`未关闭拒绝集成，不创建空merge。
 - 追溯重建发现F-AST-002、F-ACC-001、F-ACC-002仍引用已关闭的`Q-GOV-20260901-001`。本DU只撤销该过期规格阻断并恢复三者已有来源Feature Ready裁决；三者继续`IN_PROGRESS`，真实MySQL/Chromium和独立Done裁决缺口不变。
+
+## 冻结后晚到提交裁决
+
+- `feat-inspection-feature-xkjuCC`在本DU冻结并完成代码集成后，于`2026-09-02T20:34:01+08:00`从`7fe168af`前进到`1895a5e7 docs(inspection): baseline security review semantics`。
+- 该提交只含28个规格、SDS、Gate、生成投影及校验文件，没有新的业务代码；核心差量是分支自行宣告`Q-FINS001-005/006`已批准、引入源分支PRD修订013并授权最小扩展Yudao System公开权限API。
+- master现有权威基线仍为修订011，当前会话没有上述两项业务/安全/平台Owner的明确批准。依据`PRD > SDS > Feature Spec > Task`和“未批准不得改变PRD语义”，裁决为`QUARANTINED_PENDING_EXPLICIT_APPROVAL / NOT_INTEGRATED`；不得以分支提交标题、Feature Ready自报或Gate自报关闭master Open Question。
+- 该来源工作树另有Technical Plan与F-INS Task共2个未提交修改，继续按`UNCOMMITTED_NOT_EVIDENCE`排除。若后续获得明确裁决，须从最新master新建DU，将源修订013重新编号为master下一修订并按上游到下游选择性落位，禁止整支合并。
 
 ## master复验
 

@@ -53,6 +53,8 @@
 
 * master已从`feat-inspection-feature-xkjuCC@7fe168af`选择性接收Task 4～7、Task 8停用及内部发布CAS基础，来源迁移V148～V150重编号为V173～V175；未接收源工作树未提交变更，也未把分支Gate转记为Feature Done。master复验PRD语义/基线与DU校验PASS，F-INS Python门禁24项PASS，JDK 25 Maven定向测试85项`Failures: 0 / Errors: 0 / Skipped: 17`且23模块Reactor `BUILD SUCCESS`；17项MySQL用例因本次未启用外部测试库而保持跳过，沿用来源提交内已记录的真实MySQL证据但不将本次结果伪报为重跑通过。
 
+* 来源分支在上述冻结点后新增`1895a5e7`，自行宣告`Q-FINS001-005/006`批准并授权扩展Yudao System公开权限API；该变更没有当前master业务/安全/平台Owner的明确裁决，故未集成且不能改变本Task阻断。来源工作树另有Technical Plan与本Task共2个未提交修改，均不构成提交证据。
+
 ## 首轮Technical Plan评审核销
 
 | 原问题                  | 整改位置                      | 核销方式                                                     |
@@ -82,4 +84,4 @@
 
 ## 检查点
 
-基线=master修订011；当前Gate=Task8；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试；阻塞=Q-FINS001-005审核生效语义、Q-FINS001-006显式RBAC Provider；下一步=裁决后闭合安全审核与完整发布，未裁决前不得增加生产入口或宣称Feature Done。
+基线=master修订011；当前Gate=Task8；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试，晚到`1895a5e7`已审查但未集成；阻塞=Q-FINS001-005审核生效语义、Q-FINS001-006显式RBAC Provider；下一步=取得明确裁决后从最新master新建DU闭合安全审核与完整发布，未裁决前不得增加生产入口或宣称Feature Done。

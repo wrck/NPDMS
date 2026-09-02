@@ -14,7 +14,7 @@
 
 本轮2026-08-21起非排除分支审计输入为`master@dff24f780f531a712c92c7da1b687f980b475824`、截点`2026-09-02T09:59:14.3053640+08:00`，见[2026-08-21起分支Feature收口时间线](../../docs/generated/branch-history-audit-2026-09-02-post-20260821-feature-convergence.md)。时间范围包含2026-08-21当日，明确排除`codex/f-cut-001-matrices`与`feat-inspection-feature-xkjuCC`的Feature/代码合并裁决，但完整报告仍冻结二者HEAD以防通过继承关系绕过排除。报告共记录22个分支、16个Worktree、567条master外提交和2个stash；19个非排除、非master分支中10个已是master祖先，9个仍显示分支外历史。去除master及两个排除分支已包含的提交后共有179条去重候选提交，最终`MERGE_APPROVED=0`，不制造空merge或重复代码。
 
-本轮剩余Feature选择性集成以`DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION`冻结三条来源：`feat-inspection-feature-xkjuCC@7fe168af`、`codex/f-cut-001-matrices@faed8387`、`codex/f-proj-008-stage-advance@48175aa0`。F-INS-001由`6eb7c89e`接收Task 4～7、Task 8停用及内部发布CAS基础；CUT/PLT由`c9066332`接收F-CUT-002～009受控闭环和F-CUT-010 Task 1～3，Flyway统一重排为V173～V192。F-PROJ-008 Task 3因`Q-FPROJ-009`未关闭继续拒绝集成。三条分支HEAD、提交标题和历史Gate只作来源证据，均不得覆盖下列master Task状态。
+本轮剩余Feature选择性集成以`DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION`冻结三条接收截点：`feat-inspection-feature-xkjuCC@7fe168af`、`codex/f-cut-001-matrices@faed8387`、`codex/f-proj-008-stage-advance@48175aa0`。F-INS-001由`6eb7c89e`接收Task 4～7、Task 8停用及内部发布CAS基础；CUT/PLT由`c9066332`接收F-CUT-002～009受控闭环和F-CUT-010 Task 1～3，Flyway统一重排为V173～V192。F-PROJ-008 Task 3因`Q-FPROJ-009`未关闭继续拒绝集成。F-INS来源随后于`2026-09-02T20:34:01+08:00`前进到`1895a5e7`并出现2个未提交文件；晚到提交自行改变PRD与Yudao System授权边界，当前无master明确裁决，故登记为`QUARANTINED_PENDING_EXPLICIT_APPROVAL`且不改变接收截点。分支HEAD、提交标题和历史Gate只作来源证据，均不得覆盖下列master Task状态。
 
 ### 2026-08-21起非排除分支逐项裁决
 
@@ -123,7 +123,7 @@
 | COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | COM-A=`SELECTIVELY_INTEGRATED@4ee98f05`；ACC-001=`SELECTIVELY_INTEGRATED@e53f7243`；ACC-002=`SELECTIVELY_INTEGRATED@b3e7c76e`；历史Done未倒签到master | 后续COM或ACC运行复验均须新建DU；三个Feature状态按各自Task维护 |
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始；已通过Task 1～4 Gate至`3e26a537`；PROJ资格契约最终提交`86ea27de` | 非重复需求能力=`SELECTIVELY_INTEGRATED@4ee98f05`；Spec/Task/Plan保留为历史需求来源；PROJ公共契约`master@f1cf7920`已独立接收 | 不得恢复原整段cherry-pick；后续只以master统一Feature继续 |
 | F-AST-002 | `a52b22b4..68bc56ec` | `SELECTIVELY_INTEGRATED@524a70e7 / IN_PROGRESS`；不是F-INS-001脏改动的一部分 | 已接收AST能力和Inspection只读适配并释放边界；Feature Ready已恢复，仍待master运行复验和独立Done裁决 |
-| F-INS-001 | `feat-inspection-feature-xkjuCC@7fe168af` | `SELECTIVELY_INTEGRATED@6eb7c89e / IMPLEMENTATION_IN_PROGRESS`；Task 4～7、Task 8停用及内部发布CAS基础已接收 | 等待Q-FINS001-005/006裁决；从最新master新建DU闭合安全审核和完整发布，不回来源分支续写 |
+| F-INS-001 | 接收截点`feat-inspection-feature-xkjuCC@7fe168af`；晚到HEAD=`1895a5e7` | `SELECTIVELY_INTEGRATED@6eb7c89e / IMPLEMENTATION_IN_PROGRESS`；Task 4～7、Task 8停用及内部发布CAS基础已接收；`1895a5e7`未集成 | 晚到提交宣告关闭Q-FINS001-005/006并授权Yudao System扩展，但master未明确批准；等待裁决后从最新master新建DU，不回来源分支续写 |
 | F-CUT-001 | `08457e39..72ccb83f` -> `07b6eb06` -> `master@c61e5b1e` -> merge `dc55b92a` | `INTEGRATED_PARTIAL / SOURCE_BRANCH_IN_MASTER`；Feature权威状态仍为`IN_PROGRESS / MASTER_REVALIDATION` | 新建DU完成V133示例迁移与合入后独立MySQL/真实浏览器最终DoD |
 | F-CUT-002～009 | `codex/f-cut-001-matrices@faed8387` | `SELECTIVELY_INTEGRATED@c9066332 / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；各Task的BLOCKED/NOT_READY状态保持 | 先补各生产Owner、真实MySQL和浏览器证据，再独立裁决；不得用受控替身声明Done |
 | F-CUT-010 | `codex/f-cut-001-matrices@faed8387` | `SELECTIVELY_INTEGRATED@c9066332 / IN_PROGRESS`；仅Task 1～3已接收 | 从最新master新建DU继续Task 4，不回多Feature来源分支续写 |
@@ -137,9 +137,9 @@
 
 ## 全部分支分类
 
-- 已完成本轮选择性集成：`feat-inspection-feature-xkjuCC@7fe168af`的批准切片由`6eb7c89e`接收，`codex/f-cut-001-matrices@faed8387`的CUT/PLT切片由`c9066332`接收；两条来源分支都未整支合并。`codex/f-proj-008-stage-advance`仍只迁入Task 1-2，Task 3继续拒绝。
+- 已完成本轮选择性集成：`feat-inspection-feature-xkjuCC@7fe168af`的批准切片由`6eb7c89e`接收，`codex/f-cut-001-matrices@faed8387`的CUT/PLT切片由`c9066332`接收；两条来源分支都未整支合并。F-INS晚到`1895a5e7`与2个未提交文件继续隔离；`codex/f-proj-008-stage-advance`仍只迁入Task 1-2，Task 3继续拒绝。
 - 历史来源候选：`codex/integrate-f-cut-001`；其适配范围已进入master，不能再作为当前状态源或新实施基础。
-- 冻结而不再承接实施：`codex/f-cut-001-matrices@faed8387`、`feat-inspection-feature-xkjuCC@7fe168af`和`codex/f-proj-008-stage-advance@48175aa0`。已接收范围以master回执为准，未接收的继承历史、旁支Feature、Task 3和工作树脏改动继续隔离。
+- 冻结而不再承接实施：`codex/f-cut-001-matrices@faed8387`、`feat-inspection-feature-xkjuCC`（接收截点`7fe168af`，当前晚到HEAD`1895a5e7`）和`codex/f-proj-008-stage-advance@48175aa0`。已接收范围以master回执为准，未接收的继承历史、旁支Feature、晚到PRD候选、Task 3和工作树脏改动继续隔离。
 - COM选择性来源：`codex/f-acc-001-sds`中的COM-A祖先段与COM-B共享线；仅由当前Requirement合并DU按能力接收，禁止任一整支覆盖master。F-AST-002提交段仍为独立完成候选。
 - 已被master包含或补丁/树等价：`engineering-chain-phase-TmrsP0`、`feat-inspection-feature-Q7yA35`、`feat-parallel-features-akPsDH`、`codex/merge-engineering-chain-phase-tmrsp0`、`codex/v1-8-feature-revalidation-50eb`及已包含的chore/import/spec历史分支。
 - 已替代实施基础：`codex/f-proj-001-atomic-alignment`。其六条旧提交及旧任务链全部只读保留，不得再承接F-PROJ-001或其他PROJ新实施。
