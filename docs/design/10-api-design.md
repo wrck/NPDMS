@@ -239,6 +239,8 @@ F-IMP-002的确认后差异矩阵封闭为current `REJECTED -> SUPPLEMENT/EXEMPT
 | `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
 | `/cutover-tasks/actions/resolve-create-context` | POST只读解析 | 按SN及`projectId`稳定顺序返回全部本人授权项目候选、办事处、稳定设备、CUS客户服务等级、IMP就绪事实及当前时点适用的已发布配置代码选项；项目和配置均由工程师明确选择，不创建任务或成功审计 |
 | `/cutover-dashboard/kpis` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
+
+F-CUT-007将该接口固定为`GET /api/v1/pms/cutover-dashboard/kpis`，响应只含`todoCount/archivedCount/approvingCount/rejectedPendingModificationCount/generatedAt`。四项按`taskId`独立去重且允许重叠：归档=`ARCHIVED`，审批中=`P5/APPROVING`，驳回待修改=`P4/PLAN_DRAFTING`且当前未替换审批实例为`REJECTED`；待办只统计`NEW_PLATFORM`非归档任务，并复用P2～P6当前真实写动作守卫，P5取`myTodos`与`ACTION_VIEW`范围交集。空范围返回全0，任一Owner/动作事实不可判定时整体失败，禁止N+1、逐任务HTTP或阶段/状态粗略近似。精确合同见`specs/features/F-CUT-007-api-contract.json`。
 | `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
 | `/cutover-tasks/{id}/checklist/actions/rematch` | POST | 输入checklistVersion、inputSnapshotHash和新维度，预览或应用差异 | 保留stableItemKey未变的有效答案；移出项仅留历史，不进入当前提交；已提交版本不得原位重匹配 |

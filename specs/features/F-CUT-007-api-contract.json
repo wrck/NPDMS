@@ -1,0 +1,74 @@
+{
+  "featureId": "F-CUT-007",
+  "requirementSlice": "CUT-01@V2=FULL",
+  "status": "REVIEW_REQUIRED",
+  "basePath": "/api/v1/pms/cutover-dashboard",
+  "wireRules": {
+    "wireLong": "Long values with -9007199254740991 < value < 9007199254740991 serialize as JSON number; boundary and out-of-range values serialize as an unformatted decimal JSON string",
+    "wireDateTime": "non-negative epoch milliseconds serialized with wireLong",
+    "exactKeysOnly": true,
+    "partialSuccess": false
+  },
+  "endpoint": {
+    "operationId": "getCutoverDashboardKpis",
+    "method": "GET",
+    "path": "/kpis",
+    "permission": "pms:cutover-task:query",
+    "request": {
+      "query": [],
+      "headers": [],
+      "body": null,
+      "tenant": "trusted TenantContextHolder only",
+      "actor": "trusted authenticated user only"
+    },
+    "success": {
+      "httpStatus": 200,
+      "envelope": "CommonResult<CutoverDashboardKpiData>",
+      "data": {
+        "exactKeys": ["todoCount", "archivedCount", "approvingCount", "rejectedPendingModificationCount", "generatedAt"],
+        "fields": {
+          "todoCount": "NON_NEGATIVE_WIRE_LONG",
+          "archivedCount": "NON_NEGATIVE_WIRE_LONG",
+          "approvingCount": "NON_NEGATIVE_WIRE_LONG",
+          "rejectedPendingModificationCount": "NON_NEGATIVE_WIRE_LONG",
+          "generatedAt": "WIRE_DATETIME"
+        }
+      }
+    }
+  },
+  "visibility": {
+    "projectFact": "ProjectScopeApi.ACTION_VIEW for trusted actor and tenant",
+    "emptyVisibleProjects": "RETURN_ALL_ZERO_WITHOUT_TASK_QUERY_WIDENING",
+    "providerUnavailable": "FAIL_ENTIRE_RESPONSE",
+    "ownerDataCorrupted": "FAIL_ENTIRE_RESPONSE",
+    "forbiddenOutput": ["task details", "project ids", "approval content", "device identities", "partial counts"]
+  },
+  "metricRules": {
+    "archivedCount": "COUNT_DISTINCT_TASK_ID where taskStatus=ARCHIVED",
+    "approvingCount": "COUNT_DISTINCT_TASK_ID where currentStage=P5 and taskStatus=APPROVING",
+    "rejectedPendingModificationCount": "COUNT_DISTINCT_TASK_ID where currentStage=P4 and taskStatus=PLAN_DRAFTING and current non-replaced approval instance status=REJECTED",
+    "todoCount": {
+      "basePredicate": "taskOrigin=NEW_PLATFORM and taskStatus!=ARCHIVED and project is ACTION_VIEW visible",
+      "deduplicateBy": "taskId",
+      "stageActions": {
+        "P2": ["SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT"],
+        "P3": ["GENERATE_CHECKLIST", "SAVE_CHECKLIST", "REQUEST_COLLECTION", "SUBMIT_CHECKLIST"],
+        "P4": ["CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN", "REVISE_PLAN"],
+        "P5": ["APPROVE", "REJECT"],
+        "P6": ["CREATE_CLOSURE", "SAVE_CLOSURE", "REQUEST_COLLECTION", "LINK_MANUAL_RESULT", "SUBMIT_CLOSURE"]
+      },
+      "guardRule": "reuse the existing server-side action guards including current state, owner qualification, function permission, project scope, source comparability, revision, completeness, hold and node state",
+      "p5Rule": "existing myTodos eligibility intersected with KPI ACTION_VIEW visible projects",
+      "excluded": ["read/detail/download", "UPDATE_APPROVED_CONTACTS", "approval administrator reassignment", "future nodes", "terminal or hold-with-no-action tasks", "legacy-origin tasks"]
+    },
+    "overlap": "metrics are independently defined and may overlap; never sum them as a total"
+  },
+  "errors": {
+    "FUNCTION_PERMISSION_DENIED": {"httpStatus": 403, "reasonCode": "CUTOVER_DASHBOARD_QUERY_FORBIDDEN"},
+    "PROJECT_SCOPE_PROVIDER_UNAVAILABLE": {"httpStatus": 503, "reasonCode": "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "ownerContext": "PROJ"},
+    "OWNER_ACTION_FACT_UNAVAILABLE": {"httpStatus": 503, "reasonCode": "CUTOVER_ACTION_FACT_UNAVAILABLE", "ownerContext": "CUT"},
+    "OWNER_FACT_CORRUPTED": {"httpStatus": 500, "reasonCode": "CUTOVER_DASHBOARD_OWNER_FACT_CORRUPTED"}
+  },
+  "sideEffects": "NONE",
+  "controlledSubstituteBoundary": "test-scoped deterministic cross-context facts may exercise the normal CUT aggregation; no production Fake/fallback/empty-success provider and no substitute-based Implementation Done evidence"
+}
