@@ -79,6 +79,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(CutoverConfigurationSaveReqVO request) {
+        requireNavigationRuleSpecified(request);
         CutoverConfigurationRevisionDO latest = revisionMapper.selectLatestByCode(
                 new CutoverConfigurationByCodeQuery(request.getConfigurationCode(), null));
         validateStableItemTypeHistory(-1L, request);
@@ -98,6 +99,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         if (!Objects.equals(existing.getConfigurationCode(), request.getConfigurationCode())) {
             throw exception(CUTOVER_CONFIG_CODE_CHANGED);
         }
+        requireNavigationRuleSpecified(request);
         validateStableItemTypeHistory(revisionId, request);
         CutoverConfigurationRevisionDO update = toDraftRoot(request);
         update.setId(revisionId);
@@ -365,6 +367,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         row.setDictionarySnapshot(JsonUtils.toJsonString(request.getDictionarySnapshot()));
         row.setDimensionDefinitionSnapshot(JsonUtils.toJsonString(request.getDimensions()));
         row.setPlanTemplateSectionSnapshot(JsonUtils.toJsonString(request.getPlanTemplateSections()));
+        row.setNavigationRuleSnapshot(CutoverNavigationRuleCodec.encode(request.getNavigationRule()));
         row.setChangeSummary(request.getChangeSummary());
         return row;
     }
@@ -479,6 +482,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         response.setCreateTime(row.getCreateTime());
         response.setUpdateTime(row.getUpdateTime());
         response.setDictionarySnapshot(JsonUtils.parseObject(row.getDictionarySnapshot(), Map.class));
+        response.setNavigationRule(CutoverNavigationRuleCodec.decode(row.getNavigationRuleSnapshot()));
         return response;
     }
 
@@ -541,7 +545,14 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         request.setPlanTemplateSections(response.getPlanTemplateSections());
         request.setItems(response.getItems());
         request.setBindingRules(response.getBindingRules());
+        request.setNavigationRule(response.getNavigationRule());
         return request;
+    }
+
+    private void requireNavigationRuleSpecified(CutoverConfigurationSaveReqVO request) {
+        if (!request.isNavigationRuleSpecified()) {
+            throw new CutoverNavigationRuleException("导航规则字段必须显式提供");
+        }
     }
 
     private List<CutoverConfigurationRules.DimensionDefinition> toDomainDimensions(

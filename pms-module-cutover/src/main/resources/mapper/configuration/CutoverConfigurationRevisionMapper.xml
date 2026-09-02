@@ -13,4 +13,39 @@
         ORDER BY revision_no DESC
         LIMIT 1
     </select>
+
+    <select id="selectFrozen"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
+        SELECT *
+        FROM cut_cutover_configuration_revision
+        WHERE tenant_id = #{tenantId}
+          AND id = #{configurationRevisionId}
+          AND configuration_code = #{configurationCode}
+          AND revision_no = #{configurationRevisionNo}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectEffectivePublished"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
+        SELECT *
+        FROM cut_cutover_configuration_revision
+        WHERE tenant_id = #{tenantId}
+          AND configuration_code = #{configurationCode}
+          AND status_code = 'PUBLISHED'
+          AND effective_from &lt;= #{taskCreatedAt}
+          AND (effective_to IS NULL OR effective_to &gt; #{taskCreatedAt})
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectEffectivePublishedList"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
+        SELECT *
+        FROM cut_cutover_configuration_revision
+        WHERE tenant_id = #{tenantId}
+          AND status_code = 'PUBLISHED'
+          AND effective_from &lt;= #{effectiveAt}
+          AND (effective_to IS NULL OR effective_to &gt; #{effectiveAt})
+          AND deleted = b'0'
+        ORDER BY configuration_code ASC, revision_no DESC, id DESC
+    </select>
 </mapper>

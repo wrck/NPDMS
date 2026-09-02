@@ -36,6 +36,19 @@
               />
             </el-form-item>
           </el-col>
+          <el-col :span="24">
+            <el-form-item label="P3提交后去向">
+              <el-radio-group
+                v-model="navigationTarget"
+                data-testid="post-submit-navigation-target"
+                :disabled="readonly"
+              >
+                <el-radio value="CURRENT_STAGE_WORKBENCH">P4方案工作台</el-radio>
+                <el-radio value="TASK_OVERVIEW">割接任务总览</el-radio>
+              </el-radio-group>
+              <p class="navigation-help">仅决定P3提交成功后的界面去向，不改变任务进入P4的业务结果。</p>
+            </el-form-item>
+          </el-col>
         </el-row>
       </el-tab-pane>
 
@@ -345,6 +358,7 @@ import type {
   CutoverBindingRule,
   CutoverChecklistItem,
   CutoverConfiguration,
+  CutoverNavigationTarget,
   CutoverValidationError
 } from '@/api/pms/cutover/cutover-config'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
@@ -359,6 +373,10 @@ const model = defineModel<CutoverConfiguration>({ required: true })
 const formRef = ref<FormInstance>()
 const activeTab = ref('basic')
 const itemFilter = ref('ALL')
+const navigationTarget = computed<CutoverNavigationTarget>({
+  get: () => model.value.navigationRule?.target || 'CURRENT_STAGE_WORKBENCH',
+  set: (target) => { model.value.navigationRule = { target } }
+})
 const rules = {
   configurationCode: [{ required: true, message: '请输入配置编码', trigger: 'blur' }],
   configurationName: [{ required: true, message: '请输入配置名称', trigger: 'blur' }]
@@ -468,6 +486,12 @@ defineExpose({ validate, showValidation })
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.navigation-help {
+  margin: 6px 0 0;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 
 @media (width <= 768px) {

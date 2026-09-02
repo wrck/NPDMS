@@ -1,10 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.domain.configuration;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -77,27 +75,5 @@ final class CutoverMatrixRuleSupport {
             strictlyNarrower |= candidateValues.size() < entry.getValue().size();
         }
         return strictlyNarrower;
-    }
-
-    static void validateUniqueCombinations(List<CutoverConfigurationRules.BindingRule> rules,
-                                           Set<String> itemKeys,
-                                           List<CutoverConfigurationRules.ValidationError> errors,
-                                           String matrixLabel) {
-        Set<BindingCombination> combinations = new HashSet<>();
-        for (int index = 0; index < rules.size(); index++) {
-            CutoverConfigurationRules.BindingRule rule = rules.get(index);
-            if (!rule.enabled() || !itemKeys.contains(rule.stableItemKey())) {
-                continue;
-            }
-            BindingCombination combination = new BindingCombination(rule.stableItemKey(), conditions(rule));
-            if (!combinations.add(combination)) {
-                errors.add(new CutoverConfigurationRules.ValidationError(
-                        "bindingRules[" + index + "].dimensionConditionSnapshot",
-                        "同一" + matrixLabel + "项的维度组合重复"));
-            }
-        }
-    }
-
-    private record BindingCombination(String stableItemKey, Map<String, Set<String>> conditions) {
     }
 }

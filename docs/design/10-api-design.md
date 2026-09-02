@@ -300,6 +300,17 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 | SYSTEM | INT-09 | `/system/companies`、`/system/departments` | Company与Department独立；Department响应包含统一`code`和`version`；办事处按Department表达 |
 | SYSTEM | INT-09、PM-01 | 内部`CompanyApi/DeptApi/OrganizationScopeApi` | 按稳定ID/编码查询；用户公司—部门范围必须命中同一有效行，不由部门推导公司 |
 
+PLT内部`PlatformMigrationEvidenceApi`由PLT物理Owner前向交付，边界如下：
+
+- 八个写动作固定为`createImportBatch/appendSourceRecord/markStagedReady/claimStagedBatch/appendExternalMapping/appendMigrationIssue/completeReconciliation/closeMigrationIssue`；另有只读`pageSourceRecords`按`sourceRecordId`升序读取冻结来源，页大小为1～500，空页不放大范围；
+- 所有输入tenant必须与`TenantContextHolder`一致。批次由`ownerContextCode + purposeCode + releaseId + sourceSystem + sourceTable`定位，重跑通过幂等键判定，不以文件路径或当前时间作为业务身份；
+- `appendSourceRecord`只允许在`IMPORTING`追加，且命令的tenant、`sourceSystem/sourceTable`必须与锁定批次完全一致；不一致分别形成租户、来源身份或批次状态冲突；
+- `markStagedReady`是严格判别联合：`READY`携带并校验manifest事实后进入`STAGED_READY`；`FAIL_IMPORT`禁止携带成功manifest事实，必须携带封闭导入失败码并进入`FAILED`。可重试基础设施失败不得写成终止导入失败；
+- `claimStagedBatch`要求调用方已有外层事务，按`createTime,id`稳定领取一个`STAGED_READY`批次并返回权威版本。后续分类登记和`completeReconciliation`加入同一事务，失败整体回滚到领取前；
+- `appendExternalMapping`为严格判别联合：`MAPPED`必须携带稳定排序的至少一个目标，`RETAINED`禁止携带目标。映射和问题只能引用同tenant、同`RECONCILING`批次的冻结来源；
+- `completeReconciliation`按唯一来源行重算并要求`sourceCount = mappedCount + issueCount + retainedCount`且每个来源恰有一种最终分类，再以领取版本一次CAS进入`COMPLETED`；完成后禁止追加来源、改变分类、覆盖映射或重算批次；
+- `closeMigrationIssue`只允许最终`COMPLETED`批次的当前`OPEN`问题以CAS关闭；同键同载荷重放返回原结果，同键异载荷冲突，需要重新迁移时创建引用原问题的新批次。
+
 周报/日报不提供独立 API；周期性展示复用指标快照。
 
 F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`DynamicFormBusinessInstanceApi`与`DynamicFormBusinessObjectPolicyProvider`。动作封闭为修订发布/冻结使用及实例CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE，inspect与锁定重验不得换动作。对受信业务Owner实例，动态表单文件Provider将`ARCHIVE/INVALIDATE`委托为`FILE_WRITE`；它们只能从F-PLT-001现有文件管理REST进入，命令端另行校验`pms:file:archive`，手工实例和动态表单页面均不获得该能力。SOL只能经该API组合实例；业务实例无用户REST，不得访问PLATFORM Service、Mapper或表。外层SOL命令拥有唯一幂等和业务审计，PLT写方法/持锁重验必须加入既有事务。

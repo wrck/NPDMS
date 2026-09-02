@@ -116,7 +116,6 @@ public final class CutoverSurveyMatrixRules {
         Set<String> itemKeys = items.stream()
                 .map(CutoverConfigurationRules.ItemDefinition::stableItemKey)
                 .collect(java.util.stream.Collectors.toSet());
-        CutoverMatrixRuleSupport.validateUniqueCombinations(rules, itemKeys, errors, "调研");
         List<IndexedRule> enabledRules = new ArrayList<>();
         for (int index = 0; index < rules.size(); index++) {
             CutoverConfigurationRules.BindingRule rule = rules.get(index);

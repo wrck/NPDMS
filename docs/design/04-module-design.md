@@ -13,7 +13,7 @@
 | 交付准备与方案 | 工勘、需求分析、计划、方案审核 | Preparation、Plan、Solution | Project、字典、文件 | PlanApproved、SolutionApproved | 直接改项目状态 |
 | 实施执行 | 到货签收、工勘地点维护、安装/迁移/拆除及位置生效事实、配置Log采集业务结果、联调、风险、阶段质量检查、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | Project、Device、AssetLocationApi、CollectionTask、File | ConfigurationLogPublished、DeliveryEvidenceUploaded、ImplementationQualityChecked | 直接执行设备命令、持有AST地点DO/Mapper/Repository、拥有ConfigurationLog原始文件/不可变解析版本、直接改变验收归档状态；IMP-02安全检查不属于当前模块 |
 | 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、SatisfactionCollection、ProjectClosure、Artifact | Project、DeliveryEvidence、File、Questionnaire | SatisfactionResultRecorded、ArtifactAccepted、ProjectClosureCompleted、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
-| 割接 | CUT-01任务、问卷评估、P3同工作台清单匹配/填写/采集回填、CUT-07后台配置版本、方案、审批和P6闭环 | CutoverTask、CutoverAssessment、CutoverConfigurationRevision、CutoverPlan、CutoverClosure | Project、Device、CollectionTask、基础平台字典 | CutoverConfigurationPublished、CutoverApproved、CutoverCompleted | 直接访问采集引擎、建设通用工单或独立采集阶段、逐步骤执行或稳定观察 |
+| 割接 | CUT-01任务、问卷评估、P3同工作台清单匹配/填写/采集回填、CUT-07后台配置版本、方案、审批和P6闭环 | CutoverTask、CutoverAssessment、CutoverConfigurationRevision、CutoverPlan、CutoverClosure | Project、Device、CollectionTask、基础平台字典、PlatformMigrationEvidenceApi | CutoverConfigurationPublished、CutoverApproved、CutoverCompleted；跨模块稳定合同由`pms-module-cutover-api`承载 | 直接访问采集引擎或PLT迁移证据表、建设通用工单或独立采集阶段、逐步骤执行或稳定观察 |
 | 巡检 | INS-01～INS-09巡检任务、规则、报告和问题 | InspectionTask、InspectionRule、ServiceIssue | Device、Device Access & Collection、UMC、基础平台字典、AssetProductTypeApi | InspectionCompleted、IssueCreated | 读取凭证明文、维护第二套检测分类/严重度或产品类型主数据 |
 | 服务运营 | SRV-01设备服务状态；ACC-05持续服务跟踪仅为V3方向 | ServiceStatus、ServiceHandoverReference | Device、Customer、ProjectClosureCompleted、ServiceHandoverCreated | ServiceStatusChanged | 当前不创建持续服务跟踪对象，不直接改变设备主档核心身份 |
 | 客户与关系 | 客户、联系人、客户关系、服务等级时态版本、客户地点引用和同步副本 | Customer、Contact、AssetRelation、CustomerServiceLevelRevision | CRM、Project、AssetLocationApi、基础平台字典 | CustomerUpdated、CustomerServiceLevelChanged、CustomerSyncCompleted | 拥有物理地点实体或表、直接改变项目流程、回写历史业务等级快照 |
@@ -22,12 +22,14 @@
 | 资源外包 | 服务商、转包、付款满意度门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、SatisfactionCollection | SubcontractApproved | 直接放行付款、修改满意度事实 |
 | 经营分析 | 项目组合、项目状态和经批准指标视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作、以其他事实伪造工时/人效指标 |
 | 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskAccepted、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
-| 基础平台能力 | 公司、部门、用户公司—部门范围、待办、文件、授权、变更、字典、审计及共享动态表单模板/实例通用能力 | Company、Department、UserCompanyDepartmentScope、Todo、FileArtifact、Grant、ChangeRequest、DynamicFormTemplate、DynamicFormInstance | LDAP/AD及所有模块 | CompanyApi、DeptApi、OrganizationScopeApi、TodoCreated、AuditRecorded；F-SOL-003形成首个真实调用方后提供窄`DynamicFormBusinessInstanceApi`及Owner策略Provider | 由部门推导公司、拥有业务域状态、把通用表单保存解释为业务完成 |
+| 基础平台能力 | 公司、部门、用户公司—部门范围、待办、文件、授权、变更、字典、审计、迁移证据及共享动态表单模板/实例通用能力 | Company、Department、UserCompanyDepartmentScope、Todo、FileArtifact、Grant、ChangeRequest、MigrationBatch、DynamicFormTemplate、DynamicFormInstance | LDAP/AD及所有模块 | CompanyApi、DeptApi、OrganizationScopeApi、PlatformMigrationEvidenceApi、TodoCreated、AuditRecorded；F-SOL-003形成首个真实调用方后提供窄`DynamicFormBusinessInstanceApi`及Owner策略Provider | 由部门推导公司、拥有消费方业务状态、把迁移分类或通用表单保存解释为消费方业务完成 |
 | 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表或访问业务模块Service/Mapper/Repository |
 
 ## 服务边界
 
 所有公共服务必须暴露应用级命令/查询；领域内部规则由聚合或领域服务执行。跨模块写入必须携带 Requirement ID、操作者、数据范围和幂等键。
+
+`pms-module-cutover-api`只承载CUT对其他模块公开的稳定合同，`pms-module-cutover`承载CUT实现并只依赖其他Owner的API模块。CUT旧任务、旧方案和旧闭环的前向核对只能调用`pms-module-platform-api`中的`PlatformMigrationEvidenceApi`，不得依赖PLT Service、Mapper、Repository或业务表。
 
 ## CUS与AST主档Feature模块增量契约
 

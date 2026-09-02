@@ -13,6 +13,7 @@ import {
 const fixtureConfiguration = (): CutoverConfiguration => ({
   configurationCode: 'CUTOVER-V1',
   configurationName: '割接配置',
+  navigationRule: { target: 'CURRENT_STAGE_WORKBENCH' },
   dictionarySnapshot: {},
   dimensions: [],
   planTemplateSections: [],

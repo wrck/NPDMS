@@ -41,5 +41,6 @@ public interface ErrorCodeConstants {
     ErrorCode CUTOVER_CONFIG_VERSION_CONFLICT = new ErrorCode(1_012_004_003, "配置版本已变化，请刷新后重试");
     ErrorCode CUTOVER_CONFIG_VALIDATION_FAILED = new ErrorCode(1_012_004_004, "配置发布校验失败：{}处存在问题");
     ErrorCode CUTOVER_CONFIG_STATUS_INVALID = new ErrorCode(1_012_004_005, "配置当前状态不允许该操作");
+    ErrorCode CUTOVER_NAVIGATION_RULE_INVALID = new ErrorCode(1_012_004_006, "导航规则非法");
 
 }

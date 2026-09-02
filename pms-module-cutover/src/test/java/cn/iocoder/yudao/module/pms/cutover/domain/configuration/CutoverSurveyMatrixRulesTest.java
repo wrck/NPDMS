@@ -96,18 +96,4 @@ class CutoverSurveyMatrixRulesTest {
 
         assertTrue(errors.stream().anyMatch(error -> error.message().contains("具体组合优先级")));
     }
-
-    @Test
-    void rejectsDuplicateSurveyBindingEvenWhenPriorityDiffers() {
-        var rules = new ArrayList<>(CutoverMatrixFixtures.surveyRules());
-        var source = rules.getFirst();
-        rules.add(new CutoverConfigurationRules.BindingRule("RULE_SURVEY_DUPLICATE",
-                source.stableItemKey(), source.dimensionConditionSnapshot(), source.priority() + 1,
-                source.requiredResult(), true));
-
-        var errors = CutoverSurveyMatrixRules.validate(CutoverMatrixFixtures.completeSurveyItems(), rules,
-                CutoverMatrixFixtures.context());
-
-        assertTrue(errors.stream().anyMatch(error -> error.message().contains("维度组合重复")));
-    }
 }

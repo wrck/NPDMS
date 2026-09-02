@@ -52,19 +52,15 @@ public final class CutoverRiskMatrixRules {
         List<CutoverConfigurationRules.ItemDefinition> enabledItems = safe(items).stream()
                 .filter(CutoverConfigurationRules.ItemDefinition::enabled)
                 .toList();
-        List<CutoverConfigurationRules.BindingRule> allRules = safe(rules);
+        List<CutoverConfigurationRules.BindingRule> enabledRules = safe(rules).stream()
+                .filter(CutoverConfigurationRules.BindingRule::enabled)
+                .toList();
 
-        validateEnabledItemsHaveBinding(enabledItems, allRules, errors);
+        validateEnabledItemsHaveBinding(enabledItems, enabledRules, errors);
         validateRequiredCategories(enabledItems, errors);
         validateDualMachineCounts(enabledItems, errors);
-        Set<String> matrixItemKeys = enabledItems.stream()
-                .filter(item -> "RISK".equals(item.itemType())
-                        || "DUAL_MACHINE_CHECK".equals(item.itemType()))
-                .map(CutoverConfigurationRules.ItemDefinition::stableItemKey)
-                .collect(java.util.stream.Collectors.toSet());
-        CutoverMatrixRuleSupport.validateUniqueCombinations(allRules, matrixItemKeys, errors, "风险");
-        validateDedicatedConditions(enabledItems, allRules, errors);
-        validateAllSituationCoverage(enabledItems, allRules, safe(context), errors);
+        validateDedicatedConditions(enabledItems, enabledRules, errors);
+        validateAllSituationCoverage(enabledItems, enabledRules, safe(context), errors);
         return List.copyOf(errors);
     }
 
@@ -73,7 +69,6 @@ public final class CutoverRiskMatrixRules {
             List<CutoverConfigurationRules.BindingRule> rules,
             List<ValidationError> errors) {
         Set<String> boundItemKeys = rules.stream()
-                .filter(CutoverConfigurationRules.BindingRule::enabled)
                 .map(CutoverConfigurationRules.BindingRule::stableItemKey)
                 .collect(java.util.stream.Collectors.toSet());
         items.stream()
@@ -134,9 +129,6 @@ public final class CutoverRiskMatrixRules {
                         CutoverConfigurationRules.ItemDefinition::stableItemKey, item -> item, (left, right) -> left));
         for (int index = 0; index < rules.size(); index++) {
             CutoverConfigurationRules.BindingRule rule = rules.get(index);
-            if (!rule.enabled()) {
-                continue;
-            }
             CutoverConfigurationRules.ItemDefinition item = itemByKey.get(rule.stableItemKey());
             if (item == null) {
                 continue;
@@ -171,7 +163,6 @@ public final class CutoverRiskMatrixRules {
                         java.util.stream.Collectors.mapping(CutoverConfigurationRules.ItemDefinition::stableItemKey,
                                 java.util.stream.Collectors.toSet())));
         Map<String, List<Map<String, Set<String>>>> conditionsByItem = rules.stream()
-                .filter(CutoverConfigurationRules.BindingRule::enabled)
                 .filter(rule -> Boolean.TRUE.equals(rule.requiredResult()))
                 .collect(java.util.stream.Collectors.groupingBy(
                         CutoverConfigurationRules.BindingRule::stableItemKey,

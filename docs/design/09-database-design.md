@@ -554,6 +554,10 @@ proj_project
 | `plt_operation_audit` | 业务操作、权限决策和敏感动作审计 | 追加写；详情先脱敏再落库 |
 | `plt_todo` | 统一待办身份、业务引用和同步状态 | 业务对象+节点+责任人+版本幂等；待办完成不能直接改业务状态 |
 | `plt_authorization_grant` | `subject_type_code/subject_id/resource_context_code/resource_type_code/resource_id/action_code/scope_code/effective_from/effective_to/status_code/source_context_code/source_object_type/source_object_id/granted_by/granted_at/revoked_by/revoked_at/revoke_reason/version/current_marker` | `current_marker=1`占用当前授权键，撤权或已确认到期时置空；查询始终校验有效区间；唯一键为`(tenant_id, subject_type_code, subject_id, resource_context_code, resource_type_code, resource_id, action_code, scope_code, current_marker)`，并为主体、资源、动作、状态和有效区间建立组合索引；不代替DAC凭证授权 |
+| `plt_migration_batch` | 迁移批次身份、manifest事实、状态、唯一来源分类计数和规则版本 | `uk(tenant_id, owner_context_code, purpose_code, release_id, source_system, source_table)`；只允许`IMPORTING/STAGED_READY/RECONCILING/COMPLETED/FAILED`，完成计数必须与来源总数相等 |
+| `plt_migration_source_record` | 批次内不可变来源行、业务键、原始载荷和来源校验值 | `uk(tenant_id, batch_id, source_system, source_table, source_record_key)`；只允许在`IMPORTING`追加，游标按`tenant_id,batch_id,id`稳定读取 |
+| `plt_external_key_mapping` | 来源行的`MAPPED`目标向量或`RETAINED`分类 | `uk(tenant_id, source_record_id, result_key)`；`MAPPED`必须有完整目标，`RETAINED`禁止携带目标，二者不得混合 |
+| `plt_migration_issue` | 来源行确定性问题及追加式关闭事实 | `uk(tenant_id, source_record_id, issue_key)`；`OPEN`不得携带关闭事实，`CLOSED`必须携带处理人、规则版本、目标结果和完成时间 |
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 

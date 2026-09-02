@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO">
+        SELECT *
+        FROM cut_task
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="linkAssessmentIfMatch">
+        UPDATE cut_task
+        SET current_assessment_id = #{query.assessmentId},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND current_assessment_id IS NULL
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P2'
+          AND task_status = 'GRADE_CONFIRMING'
+          AND deleted = b'0'
+    </update>
+
+    <update id="transitionIfMatch">
+        UPDATE cut_task
+        SET current_assessment_id = #{query.assessmentId},
+            manual_grade = #{query.manualGrade},
+            current_stage = #{query.currentStage},
+            task_status = #{query.taskStatus},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P2'
+          AND task_status = 'GRADE_CONFIRMING'
+          AND deleted = b'0'
+    </update>
+
+    <update id="submitChecklistIfMatch">
+        UPDATE cut_task
+        SET current_stage = 'P4',
+            task_status = 'PLAN_DRAFTING',
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P3'
+          AND task_status = 'SURVEYING'
+          AND manual_grade IN ('A', 'B', 'C')
+          AND deleted = b'0'
+    </update>
+
+    <update id="submitPlanIfMatch">
+        UPDATE cut_task
+        SET current_stage = 'P5',
+            task_status = 'APPROVING',
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P4'
+          AND task_status = 'PLAN_DRAFTING'
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectMaxStageHistorySequence" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(sequence_no), 0)
+        FROM cut_task_stage_history
+        WHERE tenant_id = #{query.tenantId}
+          AND cutover_task_id = #{query.taskId}
+    </select>
+
+    <update id="returnToPlanForSourceInvalidation">
+        UPDATE cut_task
+        SET current_stage = 'P4',
+            task_status = 'PLAN_DRAFTING',
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P5'
+          AND task_status = 'APPROVING'
+          AND deleted = b'0'
+    </update>
+
+    <update id="transitionFromApprovalIfMatch">
+        UPDATE cut_task
+        SET current_stage = #{query.targetStage},
+            task_status = #{query.targetStatus},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P5'
+          AND task_status = 'APPROVING'
+          AND deleted = b'0'
+    </update>
+
+    <update id="archiveFromP6IfMatch">
+        UPDATE cut_task
+        SET task_status = 'ARCHIVED', version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND task_origin = 'NEW_PLATFORM'
+          AND current_stage = 'P6'
+          AND task_status = 'CLOSURE_IN_PROGRESS'
+          AND deleted = b'0'
+    </update>
+</mapper>
