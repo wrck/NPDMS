@@ -156,10 +156,10 @@ pnpm ts:check
 - 新增`yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverDashboardIntegration.spec.ts`。
 - 修改`tasks/features/F-CUT-007.md`记录各Gate和证据。
 
-- [ ] 用独立MySQL 8.4空卷执行全量Flyway；不新增F-CUT-007迁移。
-- [ ] 在真实MyBatis与Spring只读事务中准备可见项目的P2/P4/P5/P6/ARCHIVED任务，以受控ActionFact端口提供正常跨模块事实，验证四项计数、重叠和任务/审批/方案/闭环前后不变。
-- [ ] 真实页面测试挂载生产`cutover-task/index.vue`，使用同形受控API返回KPI与现有任务数据，验证首次加载、P2～P6写后刷新及归档后卡片变化均由真实页面接线触发。
-- [ ] 正常闭环实现完成后运行适用的CUT单元测试与既有聚焦回归，确认旧页面、旧接口和F-CUT-002～006动作无回归；不扩展失败注入或未实现功能验证。
+- [x] 用独立MySQL 8.4空卷执行全量Flyway；不新增F-CUT-007迁移。
+- [x] 在真实MyBatis与Spring只读事务中准备可见项目的P2/P4/P5/P6/ARCHIVED任务，以受控ActionFact端口提供正常跨模块事实，验证四项计数、重叠和任务/审批/方案/闭环前后不变。
+- [x] 真实页面测试挂载生产`cutover-task/index.vue`，使用同形受控API返回KPI与现有任务数据，验证首次加载、P2～P6写后刷新及归档后卡片变化均由真实页面接线触发。
+- [x] 正常闭环实现完成后运行适用的CUT单元测试与既有聚焦回归，确认旧页面、旧接口和F-CUT-002～006动作无回归；不扩展失败注入或未实现功能验证。
 - [ ] 独立审查通过后把Feature实施状态最多回写为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；生产Owner适配、Controller/Service Bean、真实浏览器和Implementation Done继续`BLOCKED_BY_DEPENDENCY`。
 
 **Verify**

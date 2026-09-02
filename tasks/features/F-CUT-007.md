@@ -36,7 +36,8 @@
 - Task 2批量候选查询与KPI服务已在`d80fd05c`通过独立复审：`PASS / GO`。
 - Task 3 KPI REST契约与受控正向MockMvc已在`f5fd52f8`通过独立复审：`PASS / GO`。
 - Task 4统一工作台KPI卡片已在`da1ea93e`通过独立复审：`PASS / GO`。
-- 最近Gate：`Task 5 Controlled Positive MySQL / Unified Page Acceptance Gate`。
+- Task 5候选已完成独立MySQL 8.4全量迁移、真实MyBatis聚合与生产页面受控正向接线：MySQL 1/1、CUT后端聚焦28项（27通过、1项按`skipITs=true`跳过）、前端8文件53/53及`pnpm ts:check`通过；当前等待独立复审。
+- 最近Gate：`Task 5 Controlled Positive MySQL / Unified Page Acceptance Gate = REVIEW_REQUIRED`。
 - 当前状态：`BASELINE / READY / IN_PROGRESS`。按正向闭环顺序实施CUT查询、REST和工作台；跨模块预留接口只在测试与受控验收中使用确定性替身。
 
 ## 状态边界
