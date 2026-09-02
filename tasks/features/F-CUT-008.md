@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan、Task 1～7均已独立复审GO；当前进入Task 8受控真实MySQL正向闭环收口候选。
+- Feature Ready、唯一Technical Plan、Task 1～7均已独立复审GO；Task 8已形成受控真实MySQL正向闭环候选，等待独立Code Review。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -31,8 +31,9 @@
 - [x] Task 5受控外部端口、投递服务与未装配Job独立Code Review／正向闭环Gate：`PASS / GO @ 373a7883`。
 - [x] Task 6 P5提前时间展示卡片组件／正向交互Gate：`PASS / GO @ 8d09fdc3`。
 - [x] Task 7暂停Job种子与迁移合同／隔离MySQL Gate：`PASS / GO @ aa281aa0`。
+- [ ] Task 8受控真实MySQL正向闭环／聚焦回归Gate：`REVIEW_REQUIRED`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- Task 7 Gate=`PASS / GO @ aa281aa0`：V159全量迁移及seed重放后外部/站内Job均唯一暂停、审批与通知行均为0，合同5/5。当前进入Task 8受控MySQL收口；生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
+- Task 8候选：隔离MySQL 8.4全量至V159，A/B阈值快照、C/D不适用、P5→P6及站内+三外部渠道闭环4/4；受控EMAIL同键重试、DINGTALK未知态且审批事实不变。聚焦后端34/34、前端22/22及类型检查通过；待独立复审。

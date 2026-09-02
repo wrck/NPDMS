@@ -176,8 +176,8 @@
       "featureId": "F-CUT-008",
       "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
       "taskPath": "tasks/features/F-CUT-008.md",
-      "taskStatus": "NOT_STARTED",
-      "taskStatusRaw": "NOT_STARTED",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-05@V2",
@@ -1946,7 +1946,7 @@
         {
           "featureId": "F-CUT-008",
           "coverage": "FULL",
-          "taskStatus": "NOT_STARTED",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
           "taskPath": "tasks/features/F-CUT-008.md"
         }

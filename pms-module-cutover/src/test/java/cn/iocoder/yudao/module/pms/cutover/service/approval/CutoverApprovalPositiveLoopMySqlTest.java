@@ -276,8 +276,12 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 "AND current_stage='P6' AND task_status='CLOSURE_IN_PROGRESS'", tenantId, taskId));
     }
 
-    private SubmittedRoute submit(String grade, String key) {
-        insertP4Facts(grade);
+    SubmittedRoute submit(String grade, String key) {
+        return submit(grade, key, LocalDateTime.of(2026, 9, 3, 10, 0));
+    }
+
+    SubmittedRoute submit(String grade, String key, LocalDateTime scheduledTime) {
+        insertP4Facts(grade, scheduledTime);
         owners.reset(taskId, projectId(), assessmentId(), checklistId(grade), grade);
         CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
                 tenantId, 8L, taskId, 4, 30L, "D".equals(grade)
@@ -303,7 +307,7 @@ class CutoverApprovalPositiveLoopMySqlTest {
         return new SubmittedRoute(result.planRevisionId(), result.approvalInstanceId());
     }
 
-    private void approveAll(SubmittedRoute route, int expectedNodes) {
+    void approveAll(SubmittedRoute route, int expectedNodes) {
         List<Map<String, Object>> nodes = jdbc.queryForList("SELECT node_no,node_code,current_approver_user_id " +
                 "FROM cut_approval_node WHERE tenant_id=? AND approval_instance_id=? ORDER BY node_no",
                 tenantId, route.approvalInstanceId());
@@ -321,12 +325,16 @@ class CutoverApprovalPositiveLoopMySqlTest {
     }
 
     private void insertP4Facts(String grade) {
+        insertP4Facts(grade, LocalDateTime.of(2026, 9, 3, 10, 0));
+    }
+
+    private void insertP4Facts(String grade, LocalDateTime scheduledTime) {
         LocalDateTime now = LocalDateTime.of(2026, 9, 1, 8, 0);
         CutoverTaskDO task = new CutoverTaskDO();
         task.setId(taskId); task.setTenantId(tenantId); task.setProjectId(projectId()); task.setTaskNo("CUT-" + taskId);
         task.setTaskName(grade + "级审批闭环"); task.setBackground("受控Owner事实正向闭环");
         task.setCutoverType("NETWORK_TOPOLOGY_CHANGE"); task.setNetworkMode("DUAL");
-        task.setScheduledTime(LocalDateTime.of(2026, 9, 3, 10, 0)); task.setTaskOrigin("NEW_PLATFORM");
+        task.setScheduledTime(scheduledTime); task.setTaskOrigin("NEW_PLATFORM");
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P4"); task.setTaskStatus("PLAN_DRAFTING");
         task.setOwnerUserId(8L); task.setCustomerId(99L); task.setImplementationReadinessSnapshotId(7L);
         task.setImplementationReadinessSnapshotVersion(1L); task.setProjectScopeVersion(30L);
@@ -409,7 +417,7 @@ class CutoverApprovalPositiveLoopMySqlTest {
         return value;
     }
 
-    private record SubmittedRoute(long planRevisionId, long approvalInstanceId) { }
+    record SubmittedRoute(long planRevisionId, long approvalInstanceId) { }
 
     static final class CurrentActor {
         private final AtomicLong value = new AtomicLong(8L);
@@ -549,15 +557,31 @@ class CutoverApprovalPositiveLoopMySqlTest {
     }
 
     static final class ControlledExternalNotificationPort implements CutoverExternalApprovalNotificationPort {
+        private enum Mode { ALL_ACCEPTED, CONTROLLED_CHANNEL_RESULTS }
+
         private final AtomicLong references = new AtomicLong(2_000);
         private final AtomicInteger calls = new AtomicInteger();
+        private final Map<String, AtomicInteger> deliveryAttempts = new ConcurrentHashMap<>();
+        private final List<ExternalApprovalNotificationRequest> requests = new CopyOnWriteArrayList<>();
+        private volatile Mode mode = Mode.ALL_ACCEPTED;
         private volatile CountDownLatch firstDeliveryStarted = new CountDownLatch(0);
         private volatile CountDownLatch firstDeliveryReleased = new CountDownLatch(0);
 
         void reset() {
             calls.set(0);
+            deliveryAttempts.clear();
+            requests.clear();
+            mode = Mode.ALL_ACCEPTED;
             firstDeliveryStarted = new CountDownLatch(0);
             firstDeliveryReleased = new CountDownLatch(0);
+        }
+
+        void useControlledChannelResults() {
+            mode = Mode.CONTROLLED_CHANNEL_RESULTS;
+        }
+
+        List<ExternalApprovalNotificationRequest> requests() {
+            return List.copyOf(requests);
         }
 
         void blockFirstDelivery() {
@@ -580,6 +604,7 @@ class CutoverApprovalPositiveLoopMySqlTest {
         @Override
         public ExternalApprovalNotificationResult send(ExternalApprovalNotificationRequest request) {
             int call = calls.incrementAndGet();
+            requests.add(request);
             if (call == 1 && firstDeliveryStarted.getCount() > 0) {
                 firstDeliveryStarted.countDown();
                 try {
@@ -589,6 +614,17 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException("controlled external delivery interrupted", exception);
+                }
+            }
+            if (mode == Mode.CONTROLLED_CHANNEL_RESULTS) {
+                int attempt = deliveryAttempts.computeIfAbsent(request.deliveryKey(), ignored -> new AtomicInteger())
+                        .incrementAndGet();
+                if ("EMAIL".equals(request.channel()) && attempt == 1) {
+                    return new ExternalApprovalNotificationResult.ExplicitFailure("CONTROLLED_RETRY");
+                }
+                if ("DINGTALK".equals(request.channel())) {
+                    return new ExternalApprovalNotificationResult.DeliveryUnknown(
+                            "controlled-unknown-" + references.incrementAndGet());
                 }
             }
             return new ExternalApprovalNotificationResult.Accepted(
