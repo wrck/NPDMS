@@ -7,6 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md"
 TASK = ROOT / "tasks/features/F-INS-001.md"
+FEATURE = ROOT / "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md"
+Q005_AMENDMENT = ROOT / "docs/baseline/prd-v1.8-amendment-012-inspection-security-review-last-fact.md"
+OPEN_QUESTIONS = ROOT / "docs/decisions/open-questions.md"
 LOCKED_INPUT = "27b5b4b3"
 REQUIREMENT_IDS = {"INS-03", "INS-09", "NFR-02"}
 LOCKED_FILES = (
@@ -63,6 +66,23 @@ class FIns001PlanAndScopeTest(unittest.TestCase):
         self.assertRegex(plan, re.compile(r"不实现INS-01.*INS-02.*INT-12", re.DOTALL))
         self.assertIn("不新增产品类型表或从`ast_*`表直读", plan)
         self.assertIn("旧`pms_srv_rule`", plan)
+
+    def test_q005_last_review_fact_is_closed_without_closing_q006(self):
+        amendment = Q005_AMENDMENT.read_text(encoding="utf-8-sig")
+        feature = FEATURE.read_text(encoding="utf-8-sig")
+        task = TASK.read_text(encoding="utf-8-sig")
+        questions = OPEN_QUESTIONS.read_text(encoding="utf-8-sig")
+
+        for text in (amendment, feature, task):
+            self.assertIn("reviewed_at DESC, id DESC", text)
+        self.assertIn("Q-FINS001-005`方案A", amendment)
+        self.assertIn("不关闭`Q-FINS001-006`", amendment)
+        self.assertIn("Q-FINS001-006`保持`OPEN / BLOCKED_BY_SPEC", feature)
+        self.assertIn("`Q-FINS001-006`阻断Task 8", task)
+        q005 = questions.split("### Q-FINS001-005", 1)[1].split("### Q-FINS001-006", 1)[0]
+        q006 = questions.split("### Q-FINS001-006", 1)[1].split("### ", 1)[0]
+        self.assertIn("Status: RESOLVED", q005)
+        self.assertIn("Status: OPEN / BLOCKED_BY_SPEC", q006)
 
 
 if __name__ == "__main__":

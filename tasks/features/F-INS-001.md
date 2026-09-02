@@ -3,17 +3,17 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`Q-FINS001-005/006`阻断Task 8安全审核有效性、发布放行和生产审核入口；停用切片与内部发布CAS基础已分别通过独立GO，当前最近Gate仍为Task 8
+> 当前阻断：`Q-FINS001-006`阻断Task 8生产审核授权Provider、公开审核入口和完整发布放行；Q-FINS001-005已由master修订012关闭但对应代码/测试尚未实施，停用切片与内部发布CAS基础已分别通过独立GO，当前最近Gate仍为Task 8
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 锁定实施输入提交：`27b5b4b3`
-> master集成映射：`来源分支PRD修订009～012统一收口为master修订011；来源Flyway V148～V150重编号为master V173～V175`
+> master集成映射：`来源分支PRD修订009～012统一收口为master修订011；Q-FINS001-005由master修订012独立关闭；来源Flyway V148～V150重编号为master V173～V175`
 
 ## 当前最小工作单元
 
-* Task 8为当前最小工作单元：实现安全审核、原子发布、停用、幂等和审计。Task 7已通过`NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`；Task 8发布事务必须重新读取基础平台字典与AST权威名称并刷新发布快照，不得信任草稿名称。
+* Task 8为当前最小工作单元：在Q-FINS001-006关闭后实现生产安全审核与完整发布。Task 7已通过`NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`；审核/发布必须共享聚合锁，发布事务重新读取基础平台字典、AST权威名称及同租户同revision同摘要按`reviewed_at DESC, id DESC`确定的最后审核事实，不得信任草稿名称或锁外预读结论。
 
 ## 已完成
 
@@ -26,6 +26,8 @@
 * 已由独立裁决关闭30秒上限冲突，并由master `CHG-PRD-2026-09-02-011`统一承接：只允许1～30秒，不建设未定义的超30秒审批分支。
 
 * 已在正式SDS冻结规则状态、八字段、命令从属关系、产品适用关系、安全审核事实、权限、API、数据、页面和验收边界；master修订011补齐草稿/发布完整性、`NUMBER`和`PASSED/REJECTED`。
+
+* 需求方于2026-09-02确认Q-FINS001-005采用方案A，master修订012已冻结审核事实只追加、仅DRAFT可审核、同revision同摘要最后事实生效、摘要/新revision重审、权限撤销不回写历史及审核/发布共享聚合锁边界。该规格关闭不等于实现完成。
 
 * 已明确第三方采集平台、设备凭证和任务执行不在本Feature实现范围。
 
@@ -53,7 +55,7 @@
 
 * master已从`feat-inspection-feature-xkjuCC@7fe168af`选择性接收Task 4～7、Task 8停用及内部发布CAS基础，来源迁移V148～V150重编号为V173～V175；未接收源工作树未提交变更，也未把分支Gate转记为Feature Done。master复验PRD语义/基线与DU校验PASS，F-INS Python门禁24项PASS，JDK 25 Maven定向测试85项`Failures: 0 / Errors: 0 / Skipped: 17`且23模块Reactor `BUILD SUCCESS`；17项MySQL用例因本次未启用外部测试库而保持跳过，沿用来源提交内已记录的真实MySQL证据但不将本次结果伪报为重跑通过。
 
-* 来源分支在上述冻结点后新增`1895a5e7`，自行宣告`Q-FINS001-005/006`批准并授权扩展Yudao System公开权限API；该变更没有当前master业务/安全/平台Owner的明确裁决，故未集成且不能改变本Task阻断。来源工作树另有Technical Plan与本Task共2个未提交修改，均不构成提交证据。
+* 来源分支在上述冻结点后新增`1895a5e7`，将`Q-FINS001-005/006`捆绑批准并授权扩展Yudao System公开权限API；master未整合该提交，只依据需求方本次明确选择，将Q-FINS001-005语义重编号并独立落为修订012。Q-FINS001-006、Yudao System扩展和来源工作树Technical Plan/Task两项未提交修改继续隔离，不构成实现或提交证据。
 
 ## 首轮Technical Plan评审核销
 
@@ -70,7 +72,7 @@
 
 ## 阻断
 
-`Q-FINS001-005`待确认同一revision与摘要多次审核的生效/覆盖语义；`Q-FINS001-006`待确认显式RBAC审核授权事实Provider及是否批准扩展Yudao System公开API。两项仅阻断安全审核生产入口、审核有效性选择和发布放行；Task 8停用、平台幂等、拒绝/成功审计及发布CAS基础可独立继续。Task 4～7均已有独立GO。
+`Q-FINS001-005`已由master修订012关闭，但最后事实选择、DRAFT审核限制及审核/发布并发测试尚未实现。现有`InspectionRuleSecurityReviewMapper.xml#selectListValidByRevisionIdsInternal`在排序前过滤`conclusion_code = 'PASSED'`，只能证明“存在通过”，不满足最后事实语义；该查询当前没有公开发布调用方，不构成已放行行为，但Task 8实现前必须替换并补真实MySQL顺序/并发证据。`Q-FINS001-006`继续等待显式RBAC审核授权事实Provider及Yudao System公开API是否获批；其阻断生产审核入口和完整发布放行。Task 8停用、平台幂等、拒绝/成功审计及发布CAS基础保持既有GO，Task 4～7均已有独立GO。
 
 ## 已知边界
 
@@ -84,4 +86,4 @@
 
 ## 检查点
 
-基线=master修订011；当前Gate=Task8；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试，晚到`1895a5e7`已审查但未集成；阻塞=Q-FINS001-005审核生效语义、Q-FINS001-006显式RBAC Provider；下一步=取得明确裁决后从最新master新建DU闭合安全审核与完整发布，未裁决前不得增加生产入口或宣称Feature Done。
+基线=master修订012；当前Gate=Task8；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试，Q-FINS001-005方案A已正式落位；阻塞=Q-FINS001-006显式RBAC Provider，且Q005对应实现/测试未完成；下一步=先取得Q006明确裁决，再从最新master新建DU实现审核入口、最后事实选择与完整发布，未裁决前不得增加生产入口或宣称Feature Done。

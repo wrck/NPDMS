@@ -1,6 +1,6 @@
 # F-INS-001 巡检规则版本与字段配置基础 Implementation Plan
 
-> master集成映射：来源分支PRD修订009～012由`CHG-PRD-2026-09-02-011`统一承接；来源迁移V148～V150在master重编号为V173～V175。下文保留原Gate与来源验证编号作为历史证据，实际主干路径以V173～V175为准。
+> master集成映射：来源分支PRD修订009～012由`CHG-PRD-2026-09-02-011`统一承接；`CHG-PRD-2026-09-02-012`仅关闭Q-FINS001-005最后审核事实生效语义，Q-FINS001-006保持阻断；来源迁移V148～V150在master重编号为V173～V175。下文保留原Gate与来源验证编号作为历史证据，实际主干路径以V173～V175为准。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -31,7 +31,7 @@
 - 正式状态只允许`DRAFT -> PUBLISHED -> DISABLED`；客户端不得直接提交状态，发布和停用只能通过action API。
 - 已发布和已停用revision只读；修改必须复制为同一稳定身份的新草稿。规则名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放；复制revision必须沿用原名称，任何revision改名拒绝。
 - 单命令超时默认30秒，只允许1～30秒正整数；不实现31秒及以上或任何超时审批分支。
-- 稳定身份创建只强制检测ID和规则名称；DRAFT其余八字段、命令、判定配置和适用产品类型允许为空或不完整并可保存。发布时必须重新校验完整性、字典、AST产品类型、安全审核摘要、正则、固定`NUMBER`阈值、命令顺序、秘密扫描、租户、权限和CAS；安全审核结论只允许`PASSED/REJECTED`且仅`PASSED`可发布，任一失败保持草稿，旧发布revision继续有效。
+- 稳定身份创建只强制检测ID和规则名称；DRAFT其余八字段、命令、判定配置和适用产品类型允许为空或不完整并可保存。发布时必须重新校验完整性、字典、AST产品类型、安全审核摘要、正则、固定`NUMBER`阈值、命令顺序、秘密扫描、租户、权限和CAS；安全审核事实只追加且仅DRAFT可追加，同租户同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`可发布，任一失败保持草稿，旧发布revision继续有效。Q-FINS001-006关闭前不得提供生产审核入口或完整发布放行。
 - 产品类型由AST公开契约提供；Inspection只保存稳定编码和发布时显示名称快照，不新增产品类型表或从`ast_*`表直读。
 - 安全审核只记录具备`pms:inspection-rule:security-review`专用权限的当前用户对命令与正则内容摘要作出的结论；不新增审批流程、节点、固定组织角色或规则生命周期状态。
 - 所有新增查询遵守“一场景一Query对象”；简单单表查询使用`LambdaQueryWrapperX`，联表、动态集合、锁查询和并发发布SQL进入Mapper XML；禁止SQL注解、`${}`和`.last(...)`。
@@ -479,7 +479,7 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 
 - [ ] **Step 1: 实现事务编排**
 
-审核、发布和停用统一通过`PlatformCommandExecutionApi.execute`，scopeCode分别固定为`INSPECTION_RULE_SECURITY_REVIEW`、`INSPECTION_RULE_PUBLISH`、`INSPECTION_RULE_DISABLE`，requestDigest由规范化业务请求计算；禁止新增Inspection私有幂等表或直读`plt_*`。发布operation内顺序固定为：锁定规则稳定身份与当前发布revision -> 校验CAS -> 加载完整草稿 -> 本地领域校验 -> AST批量重验并刷新名称快照 -> 计算摘要 -> 校验有效审核事实 -> 停用旧当前发布 -> CAS发布新revision。`SuccessFacts`只携带安全摘要、聚合键和必要事件；额外失败/拒绝审计通过`OperationAuditApi`写safeDetail。平台命令契约负责幂等、成功审计与领域写入同事务；任一步异常回滚全部业务写入。
+审核、发布和停用统一通过`PlatformCommandExecutionApi.execute`，scopeCode分别固定为`INSPECTION_RULE_SECURITY_REVIEW`、`INSPECTION_RULE_PUBLISH`、`INSPECTION_RULE_DISABLE`，requestDigest由规范化业务请求计算；禁止新增Inspection私有幂等表或直读`plt_*`。记录审核与发布采用同一规则稳定身份聚合锁顺序；审核只允许锁内对DRAFT追加事实。发布operation内顺序固定为：锁定规则稳定身份与当前发布revision -> 校验CAS -> 加载完整草稿 -> 本地领域校验 -> AST批量重验并刷新名称快照 -> 计算摘要 -> 按`reviewed_at DESC, id DESC`重新读取同租户同revision同摘要最后审核事实 -> 停用旧当前发布 -> CAS发布新revision。`SuccessFacts`只携带安全摘要、聚合键和必要事件；额外失败/拒绝审计通过`OperationAuditApi`写safeDetail。平台命令契约负责幂等、成功审计与领域写入同事务；任一步异常回滚全部业务写入。
 
 - [ ] **Step 2: 审计数据最小化**
 
@@ -487,11 +487,11 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 
 - [ ] **Step 3: 补充安全审核定向测试**
 
-覆盖无审核权限、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
+覆盖无审核权限、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求；增加同摘要`PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、`reviewed_at`相同按更大ID生效、内容变化/新revision重审以及发布后拒绝追加审核。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
 
 - [ ] **Step 4: 补充发布原子性定向测试**
 
-覆盖字段完整且当前摘要审核结论为`PASSED`时发布成功；草稿字段不完整、阈值非`NUMBER`、审核缺失/`REJECTED`/失效/摘要不一致失败；通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败；旧发布版本在新发布成功后才停用，任何失败不产生半发布。
+覆盖字段完整且同租户同revision同摘要最后审核事实为`PASSED`时发布成功；最后事实为`REJECTED`、草稿字段不完整、阈值非`NUMBER`、审核缺失/失效/摘要不一致失败；增加审核与发布并发用例，证明发布在聚合锁内重新选择最后事实且不得按过期`PASSED`发布；通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败；旧发布版本在新发布成功后才停用，任何失败不产生半发布。
 
 - [ ] **Step 5: 补充并发发布MySQL定向测试**
 

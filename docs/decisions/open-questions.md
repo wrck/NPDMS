@@ -529,16 +529,16 @@
 
 ### Q-FINS001-005
 
-- Status: OPEN / BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: INS-03、INS-09
 - Area: 同一revision与内容摘要的多次安全审核生效语义
 - Question: 同一revision和内容摘要存在多条`PASSED/REJECTED`审核事实时，哪条事实决定发布资格，后续结论是否撤销或覆盖既有结论？
 - Why it blocks design/implementation: 当前模型允许追加多条审核事实；选择“存在通过”或“最新结论”都会改变发布业务结果与审计解释，Implementation不得静默决定。
 - Recommended technical default: 按`reviewed_at DESC, id DESC`最后一条事实为当前结论；内容变化或新revision必须重新审核，历史事实不覆盖。
-- Resolution: 待确认。
-- Blocking scope: F-INS-001 Task 8安全审核有效性查询、完整发布放行及相关验收；不阻断停用、普通权限守卫和CAS基础。
+- Resolution: 需求方于2026-09-02确认采用方案A，master以`CHG-PRD-2026-09-02-012`冻结：审核事实只追加，仅`DRAFT`可追加；同租户、同revision、同摘要按`reviewed_at DESC, id DESC`最后事实生效，最后`PASSED`允许发布、最后`REJECTED`阻断；摘要变化或新revision必须重审，权限撤销不追溯改写历史，需要撤销时追加`REJECTED`；审核与发布共享聚合锁/CAS，发布后纠正走新草稿revision。
+- Blocking scope: 已解除审核事实选择语义阻断；生产审核授权Provider与完整发布仍由`Q-FINS001-006`阻断。
 - Decision owner: 需求方、安全Owner、SRV Owner
-- Decision date: 待确认
+- Decision date: 2026-09-02
 
 ### Q-FINS001-006
 
@@ -582,7 +582,7 @@
 - Options: A. 保留ACC修订010编号，以新的正式Change ID重新批准INS/AST两项语义；B. 保留INS/AST修订010编号，以新的正式Change ID重新批准ACC问卷语义；C. 发布新的并行基线收敛修订，完整引用两条原始提交与冲突编号，为每项语义给出唯一后续身份，并明确修订011是被替代的部分候选。
 - Recommended technical default: C；保留原分支提交为不可变历史，不直接重编号或覆盖其文本，在新的收敛修订中为010/011全部语义给出唯一后续身份和完整输入清单。
 - Business decision required: 是；需要需求方决定两项业务语义是否均保留及其正式Change ID，并重新形成完整PRD Baseline Gate。
-- Resolution: 需求方于2026-09-02确认继续选择性集成。master以`CHG-PRD-2026-09-02-011`统一承接F-INS来源分支修订009～012，保留master既有PROJ修订009和COM修订010；所有来源编号只作不可变历史证据，不再作为master正式引用。该收敛不转记任何Feature Done，Q-FINS001-005/006继续独立阻断完整发布。
+- Resolution: 需求方于2026-09-02确认继续选择性集成。master以`CHG-PRD-2026-09-02-011`统一承接F-INS来源分支修订009～012，保留master既有PROJ修订009和COM修订010；所有来源编号只作不可变历史证据，不再作为master正式引用。该收敛不转记任何Feature Done；其后Q-FINS001-005由`CHG-PRD-2026-09-02-012`独立关闭，Q-FINS001-006继续阻断完整发布。
 - Blocking scope: 已解除Change ID与全局基线阻断；F-INS完整发布仍受其Feature专属问题约束。
 - Decision owner: 需求方/产品组；ACC、AST、INS、PROJ领域Owner参与影响分析
 - Decision date: 2026-09-02

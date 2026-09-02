@@ -1,7 +1,7 @@
 # SDS Phase 3：测试设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订009、SDS Phase 1/2/3 BASELINE
+> 适用基线：PRD V1.8修订012、SDS Phase 1/2/3 BASELINE；巡检安全审核生效引用`CHG-PRD-2026-09-02-012`
 > Requirement ID：附录A.1全部100项正式Requirement及附录A.1.1的111个目标版本切片；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
@@ -216,6 +216,7 @@ docker compose run --rm migrate validate
 | INT-02@V2 | ITR故障入向幂等；仅回传ITR来源CUT归档结果；出向失败不回滚本地归档；技术公告仍归INT-04 | sourceKey/版本、Inbox/Outbox、重试/对账记录及本地归档事实 |
 | INT-05@V2 | OA领料/外采流程引用和转包待办链接可追溯；OA/钉钉完成不改写平台审批与业务状态 | 外部键映射、脱敏请求响应、待办链接及平台状态前后对照 |
 | INT-12@V2 | 在线巡检复用统一设备连接、凭证、任务和采集契约；不得形成第二套凭证或采集引擎 | 同一凭证/授权/CollectionTask标识、回调消费与权限审计 |
+| INS-03@V2 / INS-09@V2 | 安全审核事实只追加且仅`DRAFT`可追加；同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`允许发布；内容变化/新revision重审，审核与发布共享聚合锁/CAS，发布后不追加审核 | `PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、同时间ID倒序、摘要/revision隔离、非DRAFT拒绝及审核/发布并发真实MySQL证据 |
 | NFR-02@V2 | 当前命令超时终止并失败；后续命令由冻结的已发布规则决定并留痕 | 超时注入、冻结规则版本、命令序列结果、审计及秘密零明文记录 |
 
 ## 14. 缺陷、豁免与退出

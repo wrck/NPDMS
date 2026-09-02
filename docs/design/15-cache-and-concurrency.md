@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：缓存与并发设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8修订012（`docs/baseline/prd-v1.8.md`）；巡检审核/发布并发引用`CHG-PRD-2026-09-02-012`
 > Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
@@ -110,6 +110,13 @@
 - 新建规则稳定身份时，以`tenantId + ruleName`数据库唯一约束作为最终互斥边界；Service预检只改善错误定位，不能替代数据库约束。
 - 同租户同名并发创建最多一个成功；唯一键冲突映射为稳定字段错误，失败事务不得留下孤立规则身份或草稿revision。
 - 停用、软删除和创建新revision均不释放名称；复制revision只能在原稳定身份下沿用原名称，任何改名输入均拒绝。不同租户可使用相同名称。
+
+### 5.8 InspectionRule审核与发布并发
+
+- 记录审核事实与发布使用同一规则稳定身份聚合锁顺序；审核先锁定稳定身份和目标`DRAFT` revision，再校验CAS、当前摘要并追加事实。
+- 发布在同一锁内重算当前摘要，并按`reviewed_at DESC, id DESC`重新读取最后审核事实；不得使用锁外预读的`PASSED`决定发布。
+- 审核与发布并发时，发布要么读取到已经提交的最后事实并据此裁决，要么因状态/CAS冲突失败；不得形成“审核已拒绝但仍按旧通过事实发布”的混合快照。
+- revision进入`PUBLISHED`后拒绝追加审核；纠正通过复制新草稿revision并重新审核完成，不回写已发布内容或历史事实。
 
 ## 6. 设备唯一归属并发
 

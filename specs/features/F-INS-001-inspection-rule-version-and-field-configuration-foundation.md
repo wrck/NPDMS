@@ -7,8 +7,8 @@
 > Owner Context：`Inspection（SRV物理模块）`
 > 前置Feature：`F-AST-002`设备产品类型受控副本与公开查询（发布、工程师选择和Implementation Done实施Gate）；基础平台字典能力
 > 后续Feature：F-INS-002巡检任务准备与规则冻结（覆盖INS-01及INS-03剩余任务内选择/命令清单义务）、INS-02在线/离线执行、INS-05报告、INS-06问题标注、INS-08误报修订
-> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`、`Q-FINS001-002`均已关闭；`Q-FINS001-003`已由`NPDMS-Q-FINS001-003-GO-20260901-01`关闭；`Q-FINS001-004`已由`NPDMS-Q-FINS001-004-GO-20260901-01`关闭
-> 适用基线：master PRD V1.8修订011；该修订统一承接来源分支修订009～012的巡检超时、AST产品类型、正则子集和规则名称身份裁决；SDS Phase 1/2/3 `BASELINE`
+> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001～005`均已关闭；`Q-FINS001-006`保持`OPEN / BLOCKED_BY_SPEC`
+> 适用基线：master PRD V1.8修订012；修订011统一承接来源巡检基础语义，修订012只关闭Q-FINS001-005最后审核事实生效；SDS Phase 1/2/3 `BASELINE`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：Feature Ready规格提交锁定后生成唯一计划
 
@@ -48,7 +48,7 @@
 - 基础平台拥有字典能力；Inspection只使用正式检测分类和严重级别字典值，不修改Yudao基础平台实现。
 - CRM/MES拥有产品和设备来源事实；F-AST-002由AST保存设备可解析的产品分类受控副本并提供公开查询。Inspection保存稳定编码与发布时名称快照，不维护第二套产品类型库，不实现连接器。
 - Device Access & Collection拥有凭证、授权、CollectionTask和外部执行证据；本Feature不连接设备、不下发命令。
-- 命令安全审核由PRD定义的审批/任务角色组在Inspection规则revision上记录，绑定命令/正则内容摘要；本Feature不新增审批角色、节点或生命周期状态。
+- 命令安全审核由PRD定义的审批/任务角色组在Inspection规则revision上记录，绑定命令/正则内容摘要；事实只追加，同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效。本Feature不新增审批角色、节点或生命周期状态；审核授权事实Provider仍由Q-FINS001-006阻断。
 - 旧实现结论见复用审计，固定为`COPY_THEN_ENHANCE / PRESERVE_LEGACY / CURRENT_FORWARD_FIELD_REVIEW`。
 
 ## 4. 状态与不变量
@@ -77,6 +77,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - DRAFT允许命令、正则、阈值和适用产品类型尚未填写或不完整；发布时至少一个命令和一个适用产品类型，全部引用必须存在且可用，并冻结编码和显示名称快照。
 - 命令、正则、阈值或适用范围任何变化都形成新revision，不覆盖历史。
 - 发布前扫描全部用户输入文本中的私钥头、认证头、URL内嵌用户名密码和密码赋值；明确占位符不按明文Secret处理。命中只返回字段路径和`SECRET_DETECTED`，不得回显或记录秘密正文。
+- 安全审核事实只允许在`DRAFT`追加；同租户、同revision、同摘要按`reviewed_at DESC, id DESC`选择最后结论，仅最后`PASSED`允许发布。`reviewed_at`由服务端生成，时间相同时更大事实ID生效；内容变化或新revision必须重审，权限撤销不回写历史，需要撤销时追加`REJECTED`。
 
 ## 5. 权限与数据范围
 
@@ -102,7 +103,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - `PUT /revisions/{revisionId}`：按`If-Match`整体保存草稿、命令列表、判定配置和产品类型快照。
 - `POST /revisions/{revisionId}/actions/copy`：复制历史revision为同一稳定身份的新草稿。
 - `POST /revisions/{revisionId}/actions/validate`：执行无副作用发布预检并返回字段级错误。
-- `POST /revisions/{revisionId}/actions/record-security-review`：由PRD定义的审批/任务角色组记录当前命令/正则内容摘要的审核结论。
+- `POST /revisions/{revisionId}/actions/record-security-review`：由PRD定义的审批/任务角色组对`DRAFT`追加当前命令/正则内容摘要的审核结论；不覆盖旧事实。
 - `POST /revisions/{revisionId}/actions/publish`：按`If-Match`发布。
 - `POST /revisions/{revisionId}/actions/disable`：按`If-Match`停用。
 - `GET /selectable`：按授权设备和产品类型返回当前有效已发布规则，不返回停用或不适用项。
@@ -117,7 +118,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - `srv_inspection_rule_revision`：不可变发布revision、包含稳定名称的八字段快照、发布停用和审计事实；名称快照必须与稳定身份一致。
 - `srv_inspection_rule_command_revision`：revision从属命令项，revision内执行顺序唯一。
 - `srv_inspection_rule_product_type_revision`：revision从属产品类型编码及名称快照，revision内产品类型唯一。
-- `srv_inspection_rule_security_review`：绑定revision、内容摘要、审核主体角色组、`PASSED/REJECTED`结论和时间的发布前置事实；只有`PASSED`可发布。
+- `srv_inspection_rule_security_review`：绑定revision、内容摘要、审核主体角色组、`PASSED/REJECTED`结论和时间的追加发布前置事实；同租户同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效，只有最后`PASSED`可发布。
 
 Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物理关系、唯一约束和Owner。
 
@@ -139,6 +140,7 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 - 重复发布、停用或复制请求按业务幂等键处理，不重复生成有效revision。
 - 审计记录八字段前后值、命令前后值、校验结果、安全审核引用、发布停用、失败原因、操作者和时间，不记录秘密明文。
 - AST产品分类查询或安全审核校验不可用、未知时失败关闭，不用缓存猜测有效性；草稿保存不要求依赖校验成功，发布必须重验。
+- 记录审核与发布遵循相同规则聚合锁顺序；发布在锁内重算摘要并重新选择最后事实。发布后拒绝追加审核，纠正通过新草稿revision完成。
 
 ## 10. 验收标准
 
@@ -148,7 +150,7 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 - AC-FINS001-004：多命令顺序从1连续且不重复；缺号、重复或空命令阻止发布并定位到命令项。
 - AC-FINS001-005：超时默认30秒，可配置1～30秒；30秒通过，0秒和31秒拒绝。
 - AC-FINS001-006：正则语法或复杂度风险、阈值数据类型不是`NUMBER`、运算符/数值/单位缺失或冲突均阻止发布；相同不完整内容允许保留为草稿，旧发布版本保持有效。
-- AC-FINS001-007：安全审核结论只允许`PASSED/REJECTED`；事实缺失、`REJECTED`、失效或不适用于当前revision及内容摘要时拒绝发布，不生成未授权命令清单。
+- AC-FINS001-007：安全审核结论只允许`PASSED/REJECTED`且事实只追加；同租户同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`允许发布。最后`REJECTED`、事实缺失、摘要变化或新revision未重审时拒绝发布，不生成未授权命令清单。
 - AC-FINS001-008：发布后全部字段不可修改；复制历史revision只能在原稳定身份下沿用原名称并形成新草稿，历史版本保持可读，任何revision改名请求拒绝。
 - AC-FINS001-009：同一规则并发发布最多一个成功；失败请求不产生半发布或提前停用旧版本。
 - AC-FINS001-010：停用规则不再出现在新任务可选列表，但历史revision仍可查询和解释。
@@ -162,7 +164,7 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 ## 11. 测试与证据
 
 - 正向优先：草稿创建→八字段维护→校验→发布→工程师按产品类型选择→复制新revision→停用→历史读取。
-- 必要负向仅覆盖会改变决策的风险：权限/租户、0与31秒边界、命令顺序、正则复杂度、阈值冲突、安全审核、陈旧版本和并发发布。
+- 必要负向仅覆盖会改变决策的风险：权限/租户、0与31秒边界、命令顺序、正则复杂度、阈值冲突、审核`PASSED -> REJECTED`/`REJECTED -> PASSED`、同时间ID倒序、摘要与revision隔离、非DRAFT审核、陈旧版本和并发发布。
 - 不为未实现的INS-01/02/04/05/06/07/08预写业务测试，不以第三方平台不可用阻断本Feature内部闭环。
 - UI完成后必须使用真实浏览器验证管理与选择路径，编译和单测不能替代业务验收。
 
@@ -170,4 +172,4 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 
 当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-03`，替代`NPDMS-FINS001-FEATURE-READY-20260901-02`。
 
-INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。master PRD修订011已统一关闭超时上限、AST产品类型来源、受限JDK正则子集和规则名称稳定身份四项冲突；Q-PRD-VS-009已关闭超时后的后续命令策略。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结；`Q-FINS001-005/006`只阻断安全审核生产入口、完整发布放行和Implementation Done。F-AST-002实际契约交付仍是发布、工程师选择和Done的实施Gate。本结论不表示完整发布、浏览器验收或Implementation Done已通过。
+INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。master PRD修订011已统一关闭超时上限、AST产品类型来源、受限JDK正则子集和规则名称稳定身份四项冲突；修订012已关闭Q-FINS001-005并冻结最后审核事实生效、重审与并发边界。Requirement切片、Owner、状态、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结；`Q-FINS001-006`继续阻断审核授权事实Provider、生产审核入口、完整发布放行和Implementation Done。F-AST-002实际契约交付仍是发布、工程师选择和Done的实施Gate。本结论不表示完整发布、浏览器验收或Implementation Done已通过。

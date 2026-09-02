@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择引用`CHG-PRD-2026-09-02-012`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -218,7 +218,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
-| Inspection | InspectionRule | 租户内永久唯一的稳定检测ID和规则名称、十类分类、严重级别、八字段、命令项、产品类型适用关系、安全审核事实和不可变revision | 规则名称由稳定身份持有，停用、软删除和新revision不释放；revision保存不可变名称快照且不得改名；命令项与产品适用关系从属revision；发布前审核事实必须绑定当前revision；任务冻结规则版本；规则发布后不可覆盖 |
+| Inspection | InspectionRule | 租户内永久唯一的稳定检测ID和规则名称、十类分类、严重级别、八字段、命令项、产品类型适用关系、安全审核事实和不可变revision | 规则名称由稳定身份持有，停用、软删除和新revision不释放；revision保存不可变名称快照且不得改名；命令项与产品适用关系从属revision；审核事实只追加，同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效；任务冻结规则版本；规则发布后不可覆盖 |
 | Inspection | InspectionReport | 结果摘要、异常、来源和报告版本 | 外部原始数据保存引用；报告可重建但已发布版本不可覆盖 |
 | Inspection | ServiceIssue | 巡检问题、整改、复核和关闭证据 | 不与通用工单状态混写 |
 | Service Operations | ServiceStatus | 设备客观服务状态和来源提示 | 不提供续保空间或续保率管理 |
@@ -226,7 +226,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 InspectionRule稳定身份持有规则名称并在租户内永久唯一；停用、软删除和新revision均不释放名称，同一稳定身份的后续revision沿用原名称，历史revision不可改名。稳定身份创建时检测ID和规则名称必填；DRAFT revision的其余业务字段及从属命令、产品类型允许暂为空或不完整。进入PUBLISHED前必须全量补齐并校验；阈值数据类型固定为`NUMBER`，同时具备运算符、数值和单位。
 
-InspectionRule的检测分类和严重度由基础平台字典提供，产品类型引用使用AST公开查询；Inspection只保存稳定机器码和发布时名称快照。规则安全审核作为revision发布前置事实，结论只允许`PASSED/REJECTED`并绑定当前revision及命令/正则内容摘要；只有`PASSED`允许发布。字典值或产品类型不存在、停用以及Owner契约不可用时新发布失败关闭，历史revision仍按快照解释。
+InspectionRule的检测分类和严重度由基础平台字典提供，产品类型引用使用AST公开查询；Inspection只保存稳定机器码和发布时名称快照。规则安全审核作为revision发布前置追加事实，结论只允许`PASSED/REJECTED`并绑定当前revision及命令/正则内容摘要；同一租户、同一revision和同一摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论，仅最后`PASSED`允许发布。内容摘要变化或新revision必须重新审核；审核权限撤销不追溯改写历史，需要撤销当前结论时追加`REJECTED`。字典值或产品类型不存在、停用以及Owner契约不可用时新发布失败关闭，历史revision仍按快照解释。
 
 ## 9. Customer、Asset、Commerce 与 Resource
 
