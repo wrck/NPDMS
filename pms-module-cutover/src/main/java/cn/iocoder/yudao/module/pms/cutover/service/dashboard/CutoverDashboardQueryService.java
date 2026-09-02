@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboa
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.CandidateNeed;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.view.CutoverDashboardKpiView;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 
 import java.time.Clock;
@@ -58,10 +59,7 @@ public class CutoverDashboardQueryService {
         if (tenantId <= 0 || actorId <= 0 || permissions == null) {
             throw corrupted("dashboard request identity is invalid");
         }
-        Set<Long> visibleProjectIds = projectScopePort.resolveAllCurrent(actorId, ACTION_VIEW);
-        if (visibleProjectIds == null) {
-            throw ownerCorrupted("PROJ", "project scope result is missing");
-        }
+        Set<Long> visibleProjectIds = resolveVisibleProjects(actorId);
         if (visibleProjectIds.isEmpty()) {
             return new CutoverDashboardKpiView(0, 0, 0, 0, LocalDateTime.now(clock));
         }
@@ -78,6 +76,23 @@ public class CutoverDashboardQueryService {
         long todo = todoCandidates.isEmpty() ? 0
                 : countTodos(tenantId, actorId, permissions, todoCandidates);
         return new CutoverDashboardKpiView(todo, archived, approving, rejected, LocalDateTime.now(clock));
+    }
+
+    private Set<Long> resolveVisibleProjects(long actorId) {
+        try {
+            Set<Long> projectIds = projectScopePort.resolveAllCurrent(actorId, ACTION_VIEW);
+            if (projectIds == null || projectIds.stream().anyMatch(id -> id == null || id <= 0)) {
+                throw ownerCorrupted("PROJ", "project scope result is corrupted");
+            }
+            return Set.copyOf(projectIds);
+        } catch (CutoverOwnerFactException ex) {
+            throw switch (ex.code()) {
+                case PROVIDER_UNAVAILABLE -> new CutoverDashboardOwnerFactException(
+                        "OWNER_PROVIDER_UNAVAILABLE", "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PROJ", ex);
+                case INVALID_FACT, DATA_SCOPE_FORBIDDEN, STALE -> new CutoverDashboardOwnerFactException(
+                        "OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED", "PROJ", ex);
+            };
+        }
     }
 
     private List<CutoverDashboardCandidateRow> loadAll(long tenantId, Set<Long> visibleProjectIds) {
