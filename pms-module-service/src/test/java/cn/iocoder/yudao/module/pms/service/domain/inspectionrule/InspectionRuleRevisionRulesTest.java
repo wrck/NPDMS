@@ -127,6 +127,22 @@ class InspectionRuleRevisionRulesTest {
     }
 
     @Test
+    void shouldRejectThresholdDataTypeOtherThanNumber() {
+        InspectionRuleRevisionRules.RevisionDefinition revision =
+                new InspectionRuleRevisionRules.RevisionDefinition(
+                        "DRAFT", "DET-1", "Rule", "Item", "Description", "BASIC", "GENERAL", 1,
+                        List.of(new InspectionRuleRevisionRules.CommandDefinition("CMD-1", "show", 1, 30, false)),
+                        "OK",
+                        new InspectionRuleRevisionRules.ThresholdDefinition(
+                                "STRING", "=", new BigDecimal("1"), "value"),
+                        List.of("TYPE-A"));
+
+        assertEquals(
+                List.of("threshold.dataType:UNSUPPORTED_VALUE"),
+                locationsAndCodes(rules.validate(revision)));
+    }
+
+    @Test
     void shouldRejectMissingStableFieldsThresholdAndInvalidRegex() {
         InspectionRuleRevisionRules.RevisionDefinition revision =
                 new InspectionRuleRevisionRules.RevisionDefinition(

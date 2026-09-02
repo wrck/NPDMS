@@ -4,7 +4,9 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleRevisionDO;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRulePublicationLockQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionKeyQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionPageQuery;
@@ -31,6 +33,10 @@ public interface InspectionRuleRevisionMapper extends BaseMapperX<InspectionRule
     List<InspectionRuleRevisionDO> selectPageList(@Param("query") InspectionRuleRevisionPageQuery query);
 
     long selectPageCount(@Param("query") InspectionRuleRevisionPageQuery query);
+
+    int updateDraftIfMatch(@Param("command") InspectionRuleDraftUpdate command);
+
+    Integer selectMaxRevisionNoByRule(@Param("query") InspectionRuleIdentityLockQuery query);
 
     InspectionRulePublicationLockProjection selectPublicationLockForUpdate(
             @Param("query") InspectionRulePublicationLockQuery query);

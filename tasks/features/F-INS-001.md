@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 6已通过`GO NPDMS-FINS001-TASK6-SECOND-REVIEW-20260902-01`，当前最近Gate为Task 7草稿、整体保存、复制和无副作用发布预检
+> 当前阻断：无；Task 7已通过`GO NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`，当前最近Gate为Task 8安全审核、原子发布、停用、幂等和审计
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
@@ -12,7 +12,7 @@
 
 ## 当前最小工作单元
 
-* Task 6已完成五表DO、稳定键与分页场景Query、子项批量读取、可选规则投影及发布锁查询；稳定键显式携带租户，空集合直接返回空，发布锁同时定位稳定身份、目标revision和当前发布revision。当前最小工作单元为Task 7草稿创建、整体保存、复制和无副作用发布预检；跨表发布原子性仍由Task 8关闭。
+* Task 8为当前最小工作单元：实现安全审核、原子发布、停用、幂等和审计。Task 7已通过`NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`；Task 8发布事务必须重新读取基础平台字典与AST权威名称并刷新发布快照，不得信任草稿名称。
 
 ## 已完成
 
@@ -44,6 +44,8 @@
 
 * Task 4已完成revision纯领域校验：正式机器码、受限正则预算与禁止结构、四类Secret扫描和稳定错误码均已实现；17项定向测试、35项service全量测试、9项Python门禁、22模块测试Reactor、38模块server package、追溯与差异检查PASS；独立复审核销编号`NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`。
 
+* Task 7已实现新稳定身份草稿创建、DRAFT整体保存、已发布/停用revision复制和无副作用发布预检：数据库唯一约束兜底身份并发，CAS失败不替换从属行，命令和产品类型在事务内硬替换；四入口服务层维护权限守卫、字典/AST失败关闭及权威名称候选已补齐。Java定向46项、service全量69项（其中MySQL默认跳过8项）、Python门禁24项、22模块package和diff检查PASS；随后真实`npdms_test` MySQL 8项以`Skipped: 0`独立执行PASS。故障注入仅存在于测试`TestApplication`。
+
 ## 首轮Technical Plan评审核销
 
 | 原问题                  | 整改位置                      | 核销方式                                                     |
@@ -59,7 +61,7 @@
 
 ## 阻断
 
-无。`Q-FINS001-003/004`及修订012已由锁定实施输入`27b5b4b3`承载；Task 4已通过`NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`，Task 5已通过`NPDMS-FINS001-TASK5-CLOSEOUT-REVIEW-20260902-02`。仓库全量3项既有失败已在锁定基线复现且与本Feature无关；外部适配器与Task 7/8/9真实消费继续后置，当前进入Task 6。
+无。`Q-FINS001-003/004`及修订012由锁定实施输入`27b5b4b3`承载；Task 4、Task 5、Task 6和Task 7均已有独立GO。外部适配器与Task 9工程师选择继续后置，当前进入Task 8发布事务闭环。
 
 ## 已知边界
 
@@ -73,4 +75,4 @@
 
 ## 检查点
 
-基线=27b5b4b3；当前Gate=Task7草稿/整体保存/复制/无副作用预检；证据=Task6二次复审GO，五DO、七Query、六Mapper、五XML，定向7项、service39项、22模块test/package、Python24项与diff检查通过；阻塞=无；下一步=按需读取Task7相关Service/事务/CAS惯例，先完成草稿正向保存闭环。
+基线=27b5b4b3；当前Gate=Task8安全审核/原子发布/停用/幂等/审计；证据=Task7独立GO，Java定向46项、service全量69项、Python24项、真实MySQL8项、22模块package通过；阻塞=无；下一步=提交Task7后审计Task8平台幂等审计与发布事务惯例。

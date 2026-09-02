@@ -81,7 +81,11 @@ public class InspectionRuleRevisionRules {
             errors.add(error("threshold", "REQUIRED"));
             return;
         }
-        required(errors, "threshold.dataType", threshold.dataType());
+        if (isBlank(threshold.dataType())) {
+            errors.add(error("threshold.dataType", "REQUIRED"));
+        } else if (!"NUMBER".equals(threshold.dataType())) {
+            errors.add(error("threshold.dataType", "UNSUPPORTED_VALUE"));
+        }
         if (isBlank(threshold.operator()) || !THRESHOLD_OPERATORS.contains(threshold.operator())) {
             errors.add(error("threshold.operator", "INVALID"));
         }

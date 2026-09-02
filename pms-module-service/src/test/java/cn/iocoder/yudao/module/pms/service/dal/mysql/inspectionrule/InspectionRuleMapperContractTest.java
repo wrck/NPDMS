@@ -1,7 +1,9 @@
 package cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule;
 
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleChildrenQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleDetectionIdQuery;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleNameQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionKeyQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleRevisionPageQuery;
@@ -26,10 +28,15 @@ class InspectionRuleMapperContractTest {
     void mapperQueriesMustUseScenarioQueryObjects() throws Exception {
         assertParameterType(InspectionRuleMapper.class, "selectByTenantAndDetectionId", InspectionRuleDetectionIdQuery.class);
         assertParameterType(InspectionRuleMapper.class, "selectByTenantAndRuleName", InspectionRuleNameQuery.class);
+        assertParameterType(InspectionRuleMapper.class, "selectByIdForUpdate", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectByRuleIdAndRevisionNo", InspectionRuleRevisionKeyQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectPage", InspectionRuleRevisionPageQuery.class);
+        assertParameterType(InspectionRuleRevisionMapper.class, "updateDraftIfMatch", InspectionRuleDraftUpdate.class);
+        assertParameterType(InspectionRuleRevisionMapper.class, "selectMaxRevisionNoByRule", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleCommandRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
+        assertParameterType(InspectionRuleCommandRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
+        assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleSecurityReviewMapper.class, "selectListValidByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(SelectableInspectionRuleMapper.class, "selectListSelectable", SelectableInspectionRuleQuery.class);
     }
@@ -62,13 +69,20 @@ class InspectionRuleMapperContractTest {
         SelectableInspectionRuleQuery emptySelectable = new SelectableInspectionRuleQuery(1L, Set.of());
 
         assertEquals(List.of(), commandMapper.selectListByRevisionIds(emptyChildren));
+        assertEquals(0, commandMapper.hardDeleteByRevisionIds(emptyChildren));
         assertEquals(List.of(), productTypeMapper.selectListByRevisionIds(emptyChildren));
+        assertEquals(0, productTypeMapper.hardDeleteByRevisionIds(emptyChildren));
         assertEquals(List.of(), securityReviewMapper.selectListValidByRevisionIds(emptyChildren));
         assertEquals(List.of(), selectableMapper.selectListSelectable(emptySelectable));
     }
 
     @Test
     void xmlQueriesMustKeepTenantDeletionFilteringStableOrderAndLocking() throws Exception {
+        String ruleXml = Files.readString(Path.of("src/main/resources/mapper/inspectionrule/InspectionRuleMapper.xml"));
+        assertTrue(ruleXml.contains("tenant_id = #{query.tenantId}"));
+        assertTrue(ruleXml.contains("id = #{query.ruleId}"));
+        assertTrue(ruleXml.contains("FOR UPDATE"));
+
         String revisionXml = Files.readString(Path.of("src/main/resources/mapper/inspectionrule/InspectionRuleRevisionMapper.xml"));
         assertTrue(revisionXml.contains("r.tenant_id = #{query.tenantId}"));
         assertTrue(revisionXml.contains("r.deleted = b'0'"));
@@ -77,6 +91,12 @@ class InspectionRuleMapperContractTest {
         assertTrue(revisionXml.contains("p.product_type_code = #{query.productTypeCode}"));
         assertTrue(revisionXml.contains("ORDER BY r.rule_id, r.revision_no DESC, r.id DESC"));
         assertTrue(revisionXml.contains("LIMIT #{query.offset}, #{query.pageSize}"));
+        assertTrue(revisionXml.contains("tenant_id = #{command.tenantId}"));
+        assertTrue(revisionXml.contains("status_code = 'DRAFT'"));
+        assertTrue(revisionXml.contains("version = #{command.expectedVersion}"));
+        assertTrue(revisionXml.contains("version = version + 1"));
+        assertTrue(revisionXml.contains("SELECT MAX(revision_no)"));
+        assertTrue(revisionXml.contains("rule_id = #{query.ruleId}"));
         assertTrue(revisionXml.contains("target.id = #{query.targetRevisionId}"));
         assertTrue(revisionXml.contains("target.deleted = b'0'"));
         assertTrue(revisionXml.contains("FOR UPDATE"));

@@ -15,4 +15,13 @@
         ORDER BY revision_id, product_type_code, id
     </select>
 
+    <delete id="hardDeleteByRevisionIdsInternal">
+        DELETE FROM srv_inspection_rule_product_type_revision
+        WHERE tenant_id = #{query.tenantId}
+          AND revision_id IN
+        <foreach collection="query.revisionIds" item="revisionId" open="(" separator="," close=")">
+            #{revisionId}
+        </foreach>
+    </delete>
+
 </mapper>

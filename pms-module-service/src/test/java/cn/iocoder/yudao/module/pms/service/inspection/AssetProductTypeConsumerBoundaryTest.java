@@ -48,10 +48,9 @@ class AssetProductTypeConsumerBoundaryTest {
                     .toList();
             assertTrue(sources.stream().noneMatch(source -> source.contains(
                     "cn.iocoder.yudao.module.pms.asset.api.producttype.AssetProductTypeApi")));
-            assertTrue(sources.stream().noneMatch(source -> source.contains(".dal.")
-                    || source.contains("Mapper")
-                    || source.contains("DO;")
-                    || source.contains(".service.producttype")
+            assertTrue(sources.stream().noneMatch(source -> source.contains(
+                    "cn.iocoder.yudao.module.pms.asset.dal.")
+                    || source.contains("cn.iocoder.yudao.module.pms.asset.service.producttype")
                     || source.contains("ast_")));
         }
     }

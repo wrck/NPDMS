@@ -50,6 +50,36 @@
         <include refid="revisionPageFromWhere"/>
     </select>
 
+    <update id="updateDraftIfMatch">
+        UPDATE srv_inspection_rule_revision
+        SET inspection_item = #{command.inspectionItem},
+            description = #{command.description},
+            category_code = #{command.categoryCode},
+            category_name_snapshot = #{command.categoryNameSnapshot},
+            severity_code = #{command.severityCode},
+            severity_name_snapshot = #{command.severityNameSnapshot},
+            sort_order = #{command.sortOrder},
+            expected_result_regex = #{command.expectedResultRegex},
+            threshold_data_type = #{command.thresholdDataType},
+            threshold_operator = #{command.thresholdOperator},
+            threshold_value = #{command.thresholdValue},
+            threshold_unit = #{command.thresholdUnit},
+            version = version + 1
+        WHERE tenant_id = #{command.tenantId}
+          AND id = #{command.revisionId}
+          AND status_code = 'DRAFT'
+          AND version = #{command.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectMaxRevisionNoByRule" resultType="java.lang.Integer">
+        SELECT MAX(revision_no)
+        FROM srv_inspection_rule_revision
+        WHERE tenant_id = #{query.tenantId}
+          AND rule_id = #{query.ruleId}
+          AND deleted = b'0'
+    </select>
+
     <select id="selectPublicationLockForUpdate"
             resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection">
         SELECT i.id AS rule_id,

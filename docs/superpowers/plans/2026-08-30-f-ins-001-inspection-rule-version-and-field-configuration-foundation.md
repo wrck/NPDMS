@@ -432,23 +432,23 @@ Expected：PASS；不出现SQL注解、`${}`、`.last(...)`、长位置参数或
 - Modify: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/enums/ErrorCodeConstants.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/InspectionRuleRevisionServiceImplTest.java`
 
-- [ ] **Step 1: 实现最小应用Service**
+- [x] **Step 1: 实现最小应用Service**
 
 创建稳定身份只校验检测ID和规则名称；保存DRAFT允许其余八字段、命令、正则、阈值和产品类型为空或部分填写，只对已填写值执行局部格式校验，不运行发布完整性校验。保存产品类型输入时可保留用户选择编码，但发布预检必须通过AST重新解析有效编码和权威显示名称。整体保存采用单事务替换从属草稿行；CAS更新影响行数不是1时抛版本冲突。
 
-- [ ] **Step 2: 补充草稿与整体保存定向测试**
+- [x] **Step 2: 补充草稿与整体保存定向测试**
 
 覆盖新稳定身份草稿、仅检测ID和规则名称的最小草稿、八字段全空/部分填写保存、同一稳定身份新revision、租户内检测ID/规则名称冲突、非草稿拒绝保存、`If-Match`陈旧拒绝、命令与产品类型整体替换、任何失败事务回滚。
 
-- [ ] **Step 3: 补充复制定向测试**
+- [x] **Step 3: 补充复制定向测试**
 
 复制已发布/停用revision必须保留八字段、命令稳定键/顺序/超时/继续策略和产品类型编码/名称快照，但生成新草稿revision号，不复制发布、停用或安全审核事实。
 
-- [ ] **Step 4: 补充预检定向测试**
+- [x] **Step 4: 补充预检定向测试**
 
 预检按发布完整性返回全部字段级错误，不写revision、不写审核、不改变版本；空描述/命令/正则/阈值/产品类型必须在预检失败但仍允许此前草稿保存；阈值数据类型不是`NUMBER`必须失败。通过真实`InspectionAssetProductTypeApi`调用覆盖有效、停用、未知编码和契约不可用，任一不可用事实在产品类型位置返回稳定依赖错误，草稿仍可继续编辑。
 
-- [ ] **Step 5: 运行定向测试**
+- [x] **Step 5: 运行定向测试**
 
 Run:
 
@@ -458,7 +458,7 @@ mvn.cmd -pl pms-module-service -Dtest=InspectionRuleRevisionServiceImplTest test
 
 Expected：PASS；预检无副作用，历史revision不可修改，旧Service无交互。
 
-- [ ] **Step 6: 建议逻辑分组**
+- [x] **Step 6: 建议逻辑分组**
 
 建议提交信息：`feat(service): 实现巡检规则草稿与发布预检`
 

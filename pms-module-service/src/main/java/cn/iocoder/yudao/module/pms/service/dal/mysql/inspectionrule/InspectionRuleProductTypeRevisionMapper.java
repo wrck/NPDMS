@@ -20,4 +20,13 @@ public interface InspectionRuleProductTypeRevisionMapper extends BaseMapperX<Ins
 
     List<InspectionRuleProductTypeRevisionDO> selectListByRevisionIdsInternal(
             @Param("query") InspectionRuleChildrenQuery query);
+
+    default int hardDeleteByRevisionIds(InspectionRuleChildrenQuery query) {
+        if (query.revisionIds() == null || query.revisionIds().isEmpty()) {
+            return 0;
+        }
+        return hardDeleteByRevisionIdsInternal(query);
+    }
+
+    int hardDeleteByRevisionIdsInternal(@Param("query") InspectionRuleChildrenQuery query);
 }
