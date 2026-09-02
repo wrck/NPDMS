@@ -130,6 +130,7 @@ class InspectionRuleMapperContractTest {
         assertTrue(securityReviewXml.contains("content_digest = #{query.contentDigest}"));
         assertTrue(securityReviewXml.contains("ORDER BY reviewed_at DESC, id DESC"));
         assertTrue(securityReviewXml.contains("LIMIT 1"));
+        assertTrue(securityReviewXml.contains("FOR UPDATE"));
         assertTrue(!securityReviewXml.contains("conclusion_code = 'PASSED'"));
     }
 

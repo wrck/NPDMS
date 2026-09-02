@@ -12,6 +12,7 @@
           AND content_digest = #{query.contentDigest}
         ORDER BY reviewed_at DESC, id DESC
         LIMIT 1
+        FOR UPDATE
     </select>
 
 </mapper>

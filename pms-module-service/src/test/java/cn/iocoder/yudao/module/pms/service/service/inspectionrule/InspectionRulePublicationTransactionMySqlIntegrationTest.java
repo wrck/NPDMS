@@ -56,6 +56,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -89,6 +91,8 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
     private DictDataApi dictDataApi;
     @Resource
     private InspectionRuleContentDigestService contentDigestService;
+    @Resource
+    private BlockingContentDigestService blockingContentDigestService;
 
     private long ruleId;
     private long currentRevisionId;
@@ -135,6 +139,7 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        blockingContentDigestService.clear();
         writeFault.clear();
         reset(assetProductTypeApi, dictDataApi);
         jdbcTemplate.update("DELETE FROM srv_inspection_rule_security_review WHERE tenant_id=? "
@@ -247,6 +252,59 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
     }
 
     @Test
+    void concurrentRejectedReviewHoldingAggregateLockBlocksPublication() throws Exception {
+        insertCommand(firstDraftId);
+        when(dictDataApi.getDictDataList("pms_inspection_rule_category"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_category", "BASIC", "权威分类")));
+        when(dictDataApi.getDictDataList("pms_inspection_rule_severity"))
+                .thenReturn(List.of(dictData("pms_inspection_rule_severity", "GENERAL", "权威严重度")));
+        when(assetProductTypeApi.getByCodes(any())).thenReturn(List.of(new ProductTypeCodeResult(
+                "A", true, true, "权威产品A", "CRM", "v1", "SYNCED",
+                PUBLISHED_AT.minusDays(1), false)));
+        String digest = contentDigestService.digest(new InspectionRuleContentDigestService.ReviewContent(
+                List.of(new InspectionRuleContentDigestService.CommandContent("show cpu", 1, 30, false)),
+                "^CPU: [0-9]+$"));
+        insertReview(IdWorker.getId(), firstDraftId, digest, "PASSED", PUBLISHED_AT.minusMinutes(1));
+
+        CountDownLatch reviewInsideAggregateLock = new CountDownLatch(1);
+        CountDownLatch allowReviewToCommit = new CountDownLatch(1);
+        blockingContentDigestService.blockNextDigest(reviewInsideAggregateLock, allowReviewToCommit);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Throwable> review = executor.submit(() -> invokeRejectedReview(firstDraftId));
+            assertTrue(reviewInsideAggregateLock.await(5, TimeUnit.SECONDS));
+
+            CountDownLatch publishCalling = new CountDownLatch(1);
+            Future<Throwable> publish = executor.submit(() -> {
+                publishCalling.countDown();
+                try {
+                    service.publishApproved(approvedCommand(firstDraftId));
+                    return null;
+                } catch (Throwable failure) {
+                    return failure;
+                }
+            });
+            assertTrue(publishCalling.await(5, TimeUnit.SECONDS));
+            allowReviewToCommit.countDown();
+
+            assertEquals(null, review.get(5, TimeUnit.SECONDS));
+            Throwable publishFailure = publish.get(5, TimeUnit.SECONDS);
+            assertInstanceOf(ServiceException.class, publishFailure);
+            assertEquals(1_013_002_006, ((ServiceException) publishFailure).getCode());
+            assertRevision(currentRevisionId, "PUBLISHED", 4);
+            assertRevision(firstDraftId, "DRAFT", 3);
+            assertEquals("REJECTED", jdbcTemplate.queryForObject(
+                    "SELECT conclusion_code FROM srv_inspection_rule_security_review "
+                            + "WHERE tenant_id=? AND revision_id=? AND content_digest=? "
+                            + "ORDER BY reviewed_at DESC, id DESC LIMIT 1",
+                    String.class, TENANT_ID, firstDraftId, digest));
+        } finally {
+            allowReviewToCommit.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void concurrentDraftsVerifiedAgainstSameCurrentRevisionAllowAtMostOneCommit() throws Exception {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -350,6 +408,23 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
                     List.of(new InspectionRuleRevisionService.CommandDraft(
                             "CMD-SAVE", "save command", 1, 30, true)),
                     List.of(new InspectionRuleRevisionService.ProductTypeDraft("A", "保存产品A"))));
+            return null;
+        } catch (Throwable failure) {
+            return failure;
+        } finally {
+            TenantContextHolder.clear();
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private Throwable invokeRejectedReview(long revisionId) {
+        setRequestContext();
+        try {
+            service.recordSecurityReview(new InspectionRulePublicationTransactionService.SecurityReviewCommand(
+                    TENANT_ID, revisionId, 3, "REJECTED",
+                    new InspectionRuleSecurityReviewPermissionGuard.ReviewAuthorization(
+                            ACTOR_ID, "pms:inspection-rule:security-review", "RBAC_PERMISSION", null),
+                    PUBLISHED_AT));
             return null;
         } catch (Throwable failure) {
             return failure;
@@ -510,6 +585,12 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
 
         @Bean
         @Primary
+        BlockingContentDigestService blockingContentDigestService() {
+            return new BlockingContentDigestService();
+        }
+
+        @Bean
+        @Primary
         InspectionRuleRevisionMapper faultingRevisionMapper(
                 @Qualifier("inspectionRuleRevisionMapper") InspectionRuleRevisionMapper delegate,
                 PublicationWriteFault fault) {
@@ -552,6 +633,48 @@ class InspectionRulePublicationTransactionMySqlIntegrationTest {
 
         void clear() {
             publishAfterWrite = false;
+        }
+    }
+
+    static final class BlockingContentDigestService extends InspectionRuleContentDigestService {
+        private final AtomicBoolean blockNext = new AtomicBoolean();
+        private volatile CountDownLatch entered;
+        private volatile CountDownLatch release;
+
+        void blockNextDigest(CountDownLatch entered, CountDownLatch release) {
+            this.entered = entered;
+            this.release = release;
+            blockNext.set(true);
+        }
+
+        void clear() {
+            CountDownLatch currentRelease = release;
+            if (currentRelease != null) {
+                currentRelease.countDown();
+            }
+            blockNext.set(false);
+            entered = null;
+            release = null;
+        }
+
+        @Override
+        public String digest(ReviewContent content) {
+            if (blockNext.compareAndSet(true, false)) {
+                CountDownLatch currentEntered = entered;
+                CountDownLatch currentRelease = release;
+                if (currentEntered != null) {
+                    currentEntered.countDown();
+                }
+                if (currentRelease != null) {
+                    try {
+                        currentRelease.await();
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("INSPECTION_RULE_DIGEST_WAIT_INTERRUPTED_TEST", exception);
+                    }
+                }
+            }
+            return super.digest(content);
         }
     }
 }
