@@ -15,10 +15,12 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRu
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleProductTypeRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleChildrenQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleDetectionIdQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleNameQuery;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRulePublicationLockQuery;
 import cn.iocoder.yudao.module.pms.service.domain.inspectionrule.InspectionRuleRevisionRules;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleManagePermissionGuard;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
@@ -119,6 +121,17 @@ public class InspectionRuleRevisionServiceImpl implements InspectionRuleRevision
         }
         if (!"DRAFT".equals(current.getStatusCode())) {
             throw exception(INSPECTION_RULE_DRAFT_INVALID);
+        }
+        InspectionRulePublicationLockProjection locked = revisionMapper.selectPublicationLockForUpdate(
+                new InspectionRulePublicationLockQuery(tenantId, current.getRuleId(), current.getId()));
+        if (locked == null || !Objects.equals(locked.targetRevisionId(), current.getId())) {
+            throw exception(INSPECTION_RULE_REVISION_NOT_EXISTS);
+        }
+        if (!"DRAFT".equals(locked.targetRevisionStatusCode())) {
+            throw exception(INSPECTION_RULE_DRAFT_INVALID);
+        }
+        if (!Objects.equals(locked.targetRevisionVersion(), command.expectedVersion())) {
+            throw exception(INSPECTION_RULE_REVISION_VERSION_CONFLICT);
         }
         InspectionRuleDraftUpdate update = toRevisionUpdate(command, current);
         if (revisionMapper.updateDraftIfMatch(update) != 1) {

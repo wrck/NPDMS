@@ -72,6 +72,23 @@
           AND deleted = b'0'
     </update>
 
+    <update id="publishDraftIfMatch">
+        UPDATE srv_inspection_rule_revision
+        SET status_code = 'PUBLISHED',
+            category_name_snapshot = #{command.categoryNameSnapshot},
+            severity_name_snapshot = #{command.severityNameSnapshot},
+            published_by = #{command.publishedBy},
+            published_at = #{command.publishedAt},
+            disabled_by = NULL,
+            disabled_at = NULL,
+            version = version + 1
+        WHERE tenant_id = #{command.tenantId}
+          AND id = #{command.revisionId}
+          AND status_code = 'DRAFT'
+          AND version = #{command.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
     <update id="disablePublishedIfMatch">
         UPDATE srv_inspection_rule_revision
         SET status_code = 'DISABLED',

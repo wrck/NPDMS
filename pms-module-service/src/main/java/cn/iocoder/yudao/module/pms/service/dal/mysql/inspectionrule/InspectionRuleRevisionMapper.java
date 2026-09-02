@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDisableUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRulePublishUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRulePublicationLockQuery;
@@ -36,6 +37,8 @@ public interface InspectionRuleRevisionMapper extends BaseMapperX<InspectionRule
     long selectPageCount(@Param("query") InspectionRuleRevisionPageQuery query);
 
     int updateDraftIfMatch(@Param("command") InspectionRuleDraftUpdate command);
+
+    int publishDraftIfMatch(@Param("command") InspectionRulePublishUpdate command);
 
     int disablePublishedIfMatch(@Param("command") InspectionRuleDisableUpdate command);
 

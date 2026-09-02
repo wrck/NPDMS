@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`Q-FINS001-005/006`阻断Task 8安全审核有效性、发布放行和生产审核入口；Task 8停用切片已通过`GO NPDMS-FINS001-TASK8-DISABLE-SUBMIT-GO-20260902-02`，当前最近Gate仍为Task 8
+> 当前阻断：`Q-FINS001-005/006`阻断Task 8安全审核有效性、发布放行和生产审核入口；停用切片与内部发布CAS基础已分别通过独立GO，当前最近Gate仍为Task 8
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
@@ -48,6 +48,8 @@
 
 * Task 8停用切片已实现独立停用权限、当前`PUBLISHED -> DISABLED`聚合锁与If-Match/CAS、平台幂等重放/冲突、成功审计及`REQUIRES_NEW`拒绝审计；真实`npdms_test` MySQL证明停用业务写、幂等完成和成功审计共同提交，成功审计或幂等完成故障时共同回滚且只保留拒绝审计。相关真实MySQL矩阵25项`Failures: 0 / Errors: 0 / Skipped: 0`，补充跨租户与权限依赖异常后聚焦单元14项通过，`git diff --check` PASS，提交终审`GO NPDMS-FINS001-TASK8-DISABLE-SUBMIT-GO-20260902-02`。
 
+* Task 8内部发布CAS基础已实现共享聚合锁、权威字典/产品类型名称快照更新、旧当前发布版停用与目标草稿发布CAS；草稿保存同步采用相同锁顺序。真实`npdms_test` MySQL 17项全部通过，其中4项证明原子换版、最终写故障整体回滚、两个草稿并发最多一个成功及保存/发布无混合快照；service非IT单测93项和23模块package通过，独立终审`GO NPDMS-FINS001-TASK8-PUBLISH-CAS-FOUNDATION-GO-20260902-01`。该基础无公开Service/Controller调用方，不代表发布放行。
+
 ## 首轮Technical Plan评审核销
 
 | 原问题                  | 整改位置                      | 核销方式                                                     |
@@ -77,4 +79,4 @@
 
 ## 检查点
 
-基线=5f25b1df；当前Gate=Task8；证据=停用切片25项通过、真实MySQL共同提交/回滚、独立GO；阻塞=Q-FINS001-005多次审核生效语义、Q-FINS001-006显式RBAC授权Provider；下一步=提交已通过的停用切片，再推进不依赖裁决的发布CAS基础，裁决后闭合审核与发布。
+基线=a2626f92；当前Gate=Task8；证据=停用切片已提交，内部发布CAS基础17项真实MySQL及独立GO；阻塞=Q-FINS001-005审核生效语义、Q-FINS001-006显式RBAC Provider；下一步=提交CAS基础，裁决后闭合安全审核与完整发布。

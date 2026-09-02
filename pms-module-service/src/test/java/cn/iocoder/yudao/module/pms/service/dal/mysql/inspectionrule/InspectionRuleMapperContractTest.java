@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule;
 
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDisableUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleProductTypeNameUpdate;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRulePublishUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleChildrenQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleDetectionIdQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
@@ -33,11 +35,13 @@ class InspectionRuleMapperContractTest {
         assertParameterType(InspectionRuleRevisionMapper.class, "selectByRuleIdAndRevisionNo", InspectionRuleRevisionKeyQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectPage", InspectionRuleRevisionPageQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "updateDraftIfMatch", InspectionRuleDraftUpdate.class);
+        assertParameterType(InspectionRuleRevisionMapper.class, "publishDraftIfMatch", InspectionRulePublishUpdate.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "disablePublishedIfMatch", InspectionRuleDisableUpdate.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectMaxRevisionNoByRule", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleCommandRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleCommandRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
+        assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "updateNameSnapshot", InspectionRuleProductTypeNameUpdate.class);
         assertParameterType(InspectionRuleProductTypeRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleSecurityReviewMapper.class, "selectListValidByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(SelectableInspectionRuleMapper.class, "selectListSelectable", SelectableInspectionRuleQuery.class);
@@ -95,6 +99,9 @@ class InspectionRuleMapperContractTest {
         assertTrue(revisionXml.contains("LIMIT #{query.offset}, #{query.pageSize}"));
         assertTrue(revisionXml.contains("tenant_id = #{command.tenantId}"));
         assertTrue(revisionXml.contains("status_code = 'DRAFT'"));
+        assertTrue(revisionXml.contains("SET status_code = 'PUBLISHED'"));
+        assertTrue(revisionXml.contains("category_name_snapshot = #{command.categoryNameSnapshot}"));
+        assertTrue(revisionXml.contains("severity_name_snapshot = #{command.severityNameSnapshot}"));
         assertTrue(revisionXml.contains("version = #{command.expectedVersion}"));
         assertTrue(revisionXml.contains("version = version + 1"));
         assertTrue(revisionXml.contains("SELECT MAX(revision_no)"));
@@ -102,6 +109,13 @@ class InspectionRuleMapperContractTest {
         assertTrue(revisionXml.contains("target.id = #{query.targetRevisionId}"));
         assertTrue(revisionXml.contains("target.deleted = b'0'"));
         assertTrue(revisionXml.contains("FOR UPDATE"));
+
+        String productTypeXml = Files.readString(
+                Path.of("src/main/resources/mapper/inspectionrule/InspectionRuleProductTypeRevisionMapper.xml"));
+        assertTrue(productTypeXml.contains("product_type_name_snapshot = #{command.productTypeNameSnapshot}"));
+        assertTrue(productTypeXml.contains("revision_id = #{command.revisionId}"));
+        assertTrue(productTypeXml.contains("product_type_code = #{command.productTypeCode}"));
+        assertTrue(productTypeXml.contains("tenant_id = #{command.tenantId}"));
 
         String selectableXml = Files.readString(Path.of("src/main/resources/mapper/inspectionrule/SelectableInspectionRuleMapper.xml"));
         assertTrue(selectableXml.contains("r.tenant_id = #{query.tenantId}"));

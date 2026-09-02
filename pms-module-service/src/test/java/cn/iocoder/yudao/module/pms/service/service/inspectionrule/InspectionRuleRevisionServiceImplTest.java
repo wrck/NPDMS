@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRu
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleProductTypeRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.projection.InspectionRulePublicationLockProjection;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleManagePermissionGuard;
 import org.junit.jupiter.api.AfterEach;
@@ -154,6 +155,8 @@ class InspectionRuleRevisionServiceImplTest {
         draft.setRuleNameSnapshot("核心状态检查");
         draft.setVersion(2);
         when(revisionMapper.selectById(20L)).thenReturn(draft);
+        when(revisionMapper.selectPublicationLockForUpdate(any())).thenReturn(
+                new InspectionRulePublicationLockProjection(10L, 0, 20L, 2, "DRAFT", null, null, null));
         when(revisionMapper.updateDraftIfMatch(any(InspectionRuleDraftUpdate.class))).thenReturn(1);
         when(commandMapper.insert(any(InspectionRuleCommandRevisionDO.class))).thenReturn(1);
         when(productTypeMapper.insert(any(InspectionRuleProductTypeRevisionDO.class))).thenReturn(1);
@@ -178,6 +181,7 @@ class InspectionRuleRevisionServiceImplTest {
                                 "CMD-CPU", "show cpu", 1, 30, true)),
                         List.of(new InspectionRuleRevisionService.ProductTypeDraft("FW", "防火墙"))));
 
+        verify(revisionMapper).selectPublicationLockForUpdate(any());
         verify(commandMapper).hardDeleteByRevisionIds(any());
         verify(productTypeMapper).hardDeleteByRevisionIds(any());
         verify(commandMapper).insert(any(InspectionRuleCommandRevisionDO.class));
@@ -196,13 +200,15 @@ class InspectionRuleRevisionServiceImplTest {
         draft.setStatusCode("DRAFT");
         draft.setVersion(2);
         when(revisionMapper.selectById(20L)).thenReturn(draft);
-        when(revisionMapper.updateDraftIfMatch(any(InspectionRuleDraftUpdate.class))).thenReturn(0);
+        when(revisionMapper.selectPublicationLockForUpdate(any())).thenReturn(
+                new InspectionRulePublicationLockProjection(10L, 0, 20L, 2, "DRAFT", null, null, null));
 
         assertThrows(RuntimeException.class, () -> service.saveDraft(
                 new InspectionRuleRevisionService.SaveDraftCommand(
                         20L, 1, null, null, null, null, null, null, null,
                         null, null, null, null, null, List.of(), List.of())));
 
+        verify(revisionMapper, never()).updateDraftIfMatch(any());
         verify(commandMapper, never()).hardDeleteByRevisionIds(any());
         verify(productTypeMapper, never()).hardDeleteByRevisionIds(any());
     }

@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule;
 
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleProductTypeRevisionDO;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleProductTypeNameUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleChildrenQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -20,6 +21,8 @@ public interface InspectionRuleProductTypeRevisionMapper extends BaseMapperX<Ins
 
     List<InspectionRuleProductTypeRevisionDO> selectListByRevisionIdsInternal(
             @Param("query") InspectionRuleChildrenQuery query);
+
+    int updateNameSnapshot(@Param("command") InspectionRuleProductTypeNameUpdate command);
 
     default int hardDeleteByRevisionIds(InspectionRuleChildrenQuery query) {
         if (query.revisionIds() == null || query.revisionIds().isEmpty()) {
