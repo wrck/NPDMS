@@ -266,7 +266,7 @@ F-CUT-004用户REST、P4判别联合、文件事实、revision、错误与幂等
 
 F-CUT-008不新增用户写路由，只扩展`GET /cutover-tasks/{id}/approval`的`FULL`投影：新V2 A/B实例返回不可变`leadTimeCompliance`，C/D和旧实例返回JSON null；最终结果与管理员改派投影不暴露该字段。判断结果不得进入五项评审、`allowedActions`、通过/驳回守卫或状态迁移。精确wire结构、十类阈值和自然日计算见`specs/features/F-CUT-008-api-contract.json`。
 
-F-CUT-011只在CUT任务工作台增加备件协同区，并把同一只读投影加入P5完整审批详情。发起动作统一调用INT-06预留`SpareApplicationGateway.initiate`，响应可同时包含外部申请号和受控跳转地址；没有外部申请号时保持待回填，不以HTTP成功解释为外部申请成功。外部状态通过回调或显式刷新进入同一版本化追加路径。CUT不提供外部状态编辑接口，P5显示不改变五项评审、审批动作或P6门禁。精确请求、响应、WireLong/时间、错误与恢复动作见`specs/features/F-CUT-011-api-contract.json`。
+F-CUT-010只在CUT任务工作台增加备件协同区，并把同一只读投影加入P5完整审批详情。发起动作统一调用INT-06预留`SpareApplicationGateway.initiate`，响应可同时包含外部申请号和受控跳转地址；没有外部申请号时保持待回填，不以HTTP成功解释为外部申请成功。外部状态通过回调或显式刷新进入同一版本化追加路径。CUT不提供外部状态编辑接口，P5显示不改变五项评审、审批动作或P6门禁。精确请求、响应、WireLong/时间、错误与恢复动作见`specs/features/F-CUT-010-api-contract.json`。
 
 F-CUT-005的精确用户REST、wire Long/时间、`APPROVE/REJECT`动作—评审结果判别联合、冻结`ApprovalSourceSnapshot`（合法`networkMode=null`原值保留）、FULL/FINAL_RESULT_ONLY/REASSIGNMENT_ONLY可见性、管理员改派候选队列、`allowedActions`同构守卫、错误恢复和分页由`specs/features/F-CUT-005-api-contract.json`锁定；候选Owner预留合同由`specs/features/F-CUT-005-candidate-owner-contract.json`锁定。SYSTEM返回完整候选集，CUT叠加逐人项目`ACTION_VIEW`后才判断交集唯一并冻结/锁定完整成员与treeVersion事实；发起人处理事实固定为同项目`ACTION_EDIT`及treeVersion。通知Provider仅由业务提交后的独立投递动作调用，失败不进入通过/驳回错误联合。CUT可在单元/集成测试中用`src/test`确定性PROJ/SYSTEM事实完成A/B/C/D正向链，但生产Provider未接通时不得注册完整审批Service/Controller或把替身当真实浏览器证据。
 

@@ -199,9 +199,9 @@
       ]
     },
     {
-      "featureId": "F-CUT-011",
-      "featurePath": "specs/features/F-CUT-011-cutover-spare-system-coordination.md",
-      "taskPath": "tasks/features/F-CUT-011.md",
+      "featureId": "F-CUT-010",
+      "featurePath": "specs/features/F-CUT-010-cutover-spare-system-coordination.md",
+      "taskPath": "tasks/features/F-CUT-010.md",
       "taskStatus": "NOT_STARTED",
       "taskStatusRaw": "NOT_STARTED",
       "mappings": [
@@ -1506,11 +1506,11 @@
       "implementationStatus": "NOT_STARTED",
       "features": [
         {
-          "featureId": "F-CUT-011",
+          "featureId": "F-CUT-010",
           "coverage": "FULL",
           "taskStatus": "NOT_STARTED",
-          "featurePath": "specs/features/F-CUT-011-cutover-spare-system-coordination.md",
-          "taskPath": "tasks/features/F-CUT-011.md"
+          "featurePath": "specs/features/F-CUT-010-cutover-spare-system-coordination.md",
+          "taskPath": "tasks/features/F-CUT-010.md"
         }
       ]
     },

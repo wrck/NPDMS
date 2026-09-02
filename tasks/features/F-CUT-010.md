@@ -1,4 +1,4 @@
-# F-CUT-011 割接备件系统协同
+# F-CUT-010 割接备件系统协同
 
 > Feature实施状态：`NOT_STARTED`
 > 总体工程阶段：`FEATURE_READY_REVIEW`
@@ -6,9 +6,9 @@
 > Technical Plan Gate：`NOT_STARTED`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-08@V2=FULL`
-> Feature Spec：`specs/features/F-CUT-011-cutover-spare-system-coordination.md`
-> 机器合同：`specs/features/F-CUT-011-api-contract.json`、`specs/features/F-CUT-011-physical-contract.json`
-> 旧实现审计：`specs/features/F-CUT-011-legacy-reuse-audit.md`
+> Feature Spec：`specs/features/F-CUT-010-cutover-spare-system-coordination.md`
+> 机器合同：`specs/features/F-CUT-010-api-contract.json`、`specs/features/F-CUT-010-physical-contract.json`
+> 旧实现审计：`specs/features/F-CUT-010-legacy-reuse-audit.md`
 
 ## 当前最小工作单元
 
@@ -26,4 +26,4 @@
 
 ## Phase-switch checkpoint
 
-基线cd2d6e04；当前Gate为F-CUT-011 Feature Ready规格候选。F-CUT-010保留给既有V1内容；CUT-08@V2由本Feature承接，COM及F-CUT-007～009不重做。阻断：独立评审未通过。下一步：校验规格/追溯后提交候选并送Feature Ready审批。
+基线cd2d6e04；当前Gate为F-CUT-010 Feature Ready规格整改。CUT-08@V2由本Feature承接，COM及F-CUT-007～009不重做。阻断：独立复审A-D未关闭。下一步：按首次引用绑定、P5安全投影、INT-06 DTO及Phase 2 SDS同步形成最小整改。

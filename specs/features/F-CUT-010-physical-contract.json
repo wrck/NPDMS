@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "featureId": "F-CUT-011",
+  "featureId": "F-CUT-010",
   "status": "REVIEW_REQUIRED",
   "requirementSlices": ["CUT-08@V2=FULL"],
   "ownerContext": "CUT",
@@ -35,7 +35,7 @@
     }
   },
   "jsonContracts": {
-    "need_snapshot": "exact SpareNeedSnapshot from F-CUT-011-api-contract.json",
+    "need_snapshot": "exact SpareNeedSnapshot from F-CUT-010-api-contract.json",
     "request_context_snapshot": {"exactKeys": ["taskId", "taskNo", "taskVersion", "projectId", "projectVersion", "projectScopeVersion", "devices", "need"], "deviceOrder": "deviceId ASC", "deviceFields": ["deviceId", "serialNumber", "projectAssignmentVersion"]},
     "status_snapshot": "validated JSON object maximum 16 KiB; no credentials, secrets, file bytes or instruction execution",
     "file_fact_version": "exact keys artifactVersion,referenceVersion,availabilityVersion; non-negative integers"
