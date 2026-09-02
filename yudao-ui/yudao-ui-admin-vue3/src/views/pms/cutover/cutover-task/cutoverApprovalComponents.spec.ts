@@ -36,6 +36,7 @@ vi.mock('@/hooks/web/useMessage', () => ({
 vi.mock('./components/CutoverCreateWizard.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/CutoverAssessmentPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/CutoverChecklistPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('./components/CutoverClosurePanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/CutoverPlanPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/CutoverWorkbenchSteps.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/CutoverPlanEditor.vue', () => ({
