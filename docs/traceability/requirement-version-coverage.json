@@ -31,11 +31,58 @@
   ],
   "features": [
     {
+      "featureId": "F-ACC-001",
+      "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+      "taskPath": "tasks/features/F-ACC-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "ACC-03@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "ACC-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-ACC-002",
+      "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+      "taskPath": "tasks/features/F-ACC-002.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "ACC-02@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "ACC-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-AST-001",
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "taskPath": "tasks/features/F-AST-001.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "REVALIDATION_REQUIRED",
+      "mappings": [
+        {
+          "sliceKey": "EQP-01@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-AST-002",
+      "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
+      "taskPath": "tasks/features/F-AST-002.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "EQP-01@V1",
@@ -818,7 +865,15 @@
       "businessResult": "满意度收集与结果管理的V1主交付业务结果",
       "versionBoundary": "V1问卷与结果闭环；V2自动触达",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-002",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+          "taskPath": "tasks/features/F-ACC-002.md"
+        }
+      ]
     },
     {
       "sliceKey": "ACC-03@V1",
@@ -830,7 +885,15 @@
       "businessResult": "验收报告管理的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-001",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+          "taskPath": "tasks/features/F-ACC-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "ACC-04@V1",
@@ -842,7 +905,22 @@
       "businessResult": "交付件归档管理的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+          "taskPath": "tasks/features/F-ACC-001.md"
+        },
+        {
+          "featureId": "F-ACC-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md",
+          "taskPath": "tasks/features/F-ACC-002.md"
+        }
+      ]
     },
     {
       "sliceKey": "CLO-01@V1",
@@ -1025,6 +1103,13 @@
           "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
           "taskPath": "tasks/features/F-AST-001.md"
+        },
+        {
+          "featureId": "F-AST-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-AST-002-device-product-type-copy-and-public-query.md",
+          "taskPath": "tasks/features/F-AST-002.md"
         }
       ]
     },
