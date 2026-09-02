@@ -1,6 +1,6 @@
 # F-CUT-009 P3授权清单导出与受控流程跳转
 
-> Feature实施状态：`IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO`
 > Technical Plan Gate：`PASS / GO`
@@ -18,7 +18,8 @@
 - 跨模块只预留正式消费端口，CUT单元/集成测试可用`src/test`受控替身推进正常正向闭环；不实现外部Provider，不修改Yudao。
 - Task 1导航列、配置聚合与决定内核已通过独立Code Review Gate（`PASS / GO@2b30664d`）。
 - Task 2授权XLSX导出内核、REST与安全审计已通过独立Code Review Gate（`PASS / GO@f9022765`）。
-- 最近Gate：Task 3“配置UI、P3导出与受控正向闭环”实施及独立Code Review。
+- Task 3配置UI、P3导出与受控正向闭环已通过独立Code Review Gate（`PASS / GO@dc0e6d39`）。
+- 最近Gate：Implementation Done前生产Owner依赖与真实浏览器证据核验。
 
 ## 检查点
 
@@ -28,12 +29,12 @@
 - [x] Feature Ready独立复审GO（锁定基线`51239c53`）。
 - [x] 已生成唯一Technical Plan候选。
 - [x] Technical Plan独立复审GO（锁定基线`e9b2a25c`）。
-- [ ] 按计划实施、测试、Code Review及状态回写（Task 1、2已完成）。
+- [x] 已按计划完成Task 1–3实施、聚焦测试、独立Code Review及受控正向闭环状态回写。
 
 ## 阻断
 
-- Task 3只可汇总受控`ProjectScope`替身下的CUT正向闭环；生产Owner依赖仍阻断生产装配、真实浏览器与Implementation Done。
+- 已汇总受控`ProjectScope`替身下的CUT正向闭环；生产Owner依赖仍阻断生产装配、真实浏览器与Implementation Done，不得将替身证据解释为生产完成。
 
 ## Phase-switch checkpoint
 
-基线f9022765；Task 1、2独立复审GO，导航决定内核与授权XLSX导出/安全审计已完成。当前进入Task 3配置UI、P3导出与受控正向闭环；跨模块仍仅预留端口+`src/test`受控替身。最近Gate为Task 3 Code Review。
+基线dc0e6d39；Task 1–3独立复审全部GO，CUT导航规则、授权XLSX导出/安全审计、配置UI与P3受控正向交互已完成。状态收口为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；跨模块仍仅预留端口+`src/test`受控替身。最近Gate为Implementation Done前生产Owner依赖与真实浏览器证据核验。
