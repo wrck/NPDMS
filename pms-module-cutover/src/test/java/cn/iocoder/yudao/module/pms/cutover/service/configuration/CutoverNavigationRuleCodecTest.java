@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CutoverNavigationRuleCodecTest {
 
@@ -15,6 +16,14 @@ class CutoverNavigationRuleCodecTest {
         assertNull(CutoverNavigationRuleCodec.decode(null));
         assertEquals(CutoverNavigationRuleCodec.NavigationTarget.CURRENT_STAGE_WORKBENCH,
                 CutoverNavigationRuleCodec.targetOrDefault(null));
+    }
+
+    @Test
+    void rejectsUnknownTargetsAndAdditionalKeys() {
+        assertThrows(IllegalStateException.class,
+                () -> CutoverNavigationRuleCodec.decode("{\"target\":\"UNKNOWN\"}"));
+        assertThrows(IllegalStateException.class,
+                () -> CutoverNavigationRuleCodec.decode("{\"target\":\"TASK_OVERVIEW\",\"condition\":{}}"));
     }
 
     private static String roundTrip(String target) {
