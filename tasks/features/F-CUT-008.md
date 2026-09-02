@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan及Task 1、Task 2均已独立复审GO；当前进入Task 3“审批创建冻结与FULL详情投影”。
+- Feature Ready、唯一Technical Plan及Task 1、Task 2均已独立复审GO；Task 3“审批创建冻结与FULL详情投影”候选已形成，等待独立Code Review Gate。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -28,4 +28,6 @@
 
 ## 最近检查点
 
-- 基线`5804f57b`；Task 2独立复审GO。当前最近Gate为Task 3审批创建冻结与FULL详情投影实现候选；INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
+- Task 3候选：A/B在审批创建时从锁定任务计划冻结提前时间快照，C/D及V1根保持禁用空投影；仅`FULL`详情返回冻结判断，最终结果与改派响应不暴露该字段，提前/正常提交不改变审批决策。
+- 聚焦验证：`CutoverApprovalStartServiceTest`、`CutoverApprovalQueryServiceTest`、`CutoverApprovalControllerContractTest`、`CutoverApprovalDecisionServiceTest`共20/20通过，Failures=0、Errors=0、Skipped=0，Reactor `BUILD SUCCESS`。
+- 当前最近Gate为Task 3独立Code Review／聚焦测试复审；INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。

@@ -5,16 +5,19 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,8 +40,12 @@ class CutoverApprovalStartServiceTest {
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setProjectId(10L);
+        task.setCutoverType("VERSION_UPGRADE");
+        task.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
+        CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
+        plan.setSubmittedAt(LocalDateTime.of(2026, 9, 3, 18, 0));
         when(assembler.lockAndAssemble(any())).thenReturn(
-                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, null, "{}"));
+                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, "{}"));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
@@ -76,12 +83,46 @@ class CutoverApprovalStartServiceTest {
         assertEquals(List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND"),
                 StreamSupport.stream(routeSnapshot.path("nodes").spliterator(), false)
                         .map(node -> node.path("nodeCode").asText()).toList());
+        assertTrue(instanceCaptor.getValue().getLeadTimeEnabled());
+        var leadTime = new CutoverLeadTimeSnapshotCodec().decode(instanceCaptor.getValue().getLeadTimeSnapshot());
+        assertEquals("VERSION_UPGRADE", leadTime.cutoverType());
+        assertEquals(2, leadTime.requiredDays());
+        assertEquals(2, leadTime.actualNaturalDays());
+        assertFalse(leadTime.lateSubmission());
         ArgumentCaptor<CutoverApprovalNotificationDO> notificationCaptor =
                 ArgumentCaptor.forClass(CutoverApprovalNotificationDO.class);
         verify(notifications).insert(notificationCaptor.capture());
+        assertEquals("IN_PLATFORM", notificationCaptor.getValue().getChannelCode());
         assertNull(notificationCaptor.getValue().getNextRetryAt());
         assertEquals(1, platform.facts.size());
         assertEquals(CutoverApprovalApplicationException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
+    }
+
+    @Test
+    void keepsGradeDLeadTimeDisabledWithoutReadingUnavailableInputs() {
+        CutoverApprovalSourceAssembler assembler = mock(CutoverApprovalSourceAssembler.class);
+        CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
+        CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
+        CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
+        CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setProjectId(10L);
+        when(assembler.lockAndAssemble(any())).thenReturn(
+                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, null, "{}"));
+        when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
+        when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
+        when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler, instances,
+                nodes, notifications, CutoverApprovalControlledPorts.serviceManager(301L),
+                CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
+                new DirectPlatform(), () -> 202L,
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+
+        service.start(new CutoverApprovalStartCommand(1L, 100L, 5, 900L, 1,
+                "D", 600L, 2, null, null, 1, null, "start-d", "corr-d"));
+
+        ArgumentCaptor<CutoverApprovalInstanceDO> root = ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
+        verify(instances).insert(root.capture());
+        assertFalse(root.getValue().getLeadTimeEnabled());
+        assertNull(root.getValue().getLeadTimeSnapshot());
     }
 
     @Test

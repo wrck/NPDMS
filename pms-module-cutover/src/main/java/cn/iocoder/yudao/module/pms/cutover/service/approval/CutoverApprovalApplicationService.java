@@ -27,6 +27,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInst
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalRules;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult;
@@ -52,6 +55,8 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 /** P5审批应用内核；跨模块事实只经端口消费，完整生产装配留待依赖Gate。 */
 public class CutoverApprovalApplicationService {
     private static final Snowflake IDS = IdUtil.getSnowflake();
+    private static final CutoverLeadTimeCalculator LEAD_TIME_CALCULATOR = new CutoverLeadTimeCalculator();
+    private static final CutoverLeadTimeSnapshotCodec LEAD_TIME_CODEC = new CutoverLeadTimeSnapshotCodec();
     private final CutoverApprovalSourceAssembler sourceAssembler;
     private final CutoverApprovalInstanceMapper instanceMapper;
     private final CutoverApprovalNodeMapper nodeMapper;
@@ -383,8 +388,8 @@ public class CutoverApprovalApplicationService {
         instance.setChecklistVersion(command.checklistVersion()); instance.setGradeCode(command.grade());
         instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(route.getFirst().treeVersion());
         instance.setSourceSnapshotVersion(command.sourceSnapshotVersion()); instance.setSourceSnapshot(source.sourceSnapshot());
-        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); instance.setLeadTimeEnabled(false);
-        instance.setLeadTimeSnapshot(null); instance.setStatusCode("PENDING");
+        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); freezeLeadTime(instance, source, command.grade());
+        instance.setStatusCode("PENDING");
         instance.setHoldReasonCode(hold); instance.setCurrentNodeNo(1);
         instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0);
         instance.setCreator(String.valueOf(actorId)); instance.setUpdater(String.valueOf(actorId));
@@ -407,6 +412,26 @@ public class CutoverApprovalApplicationService {
         }
         if (hold == null) insertNotification(command, instanceId, firstNodeId, actorId, now);
         return new CutoverApprovalStartResult(StartOutcome.STARTED, fact(instance));
+    }
+
+    private static void freezeLeadTime(CutoverApprovalInstanceDO instance,
+                                       CutoverApprovalSourceAssembler.LockedSource source, String grade) {
+        if (!List.of("A", "B").contains(grade)) {
+            instance.setLeadTimeEnabled(false);
+            instance.setLeadTimeSnapshot(null);
+            return;
+        }
+        require(source.task() != null && source.plan() != null && source.task().getScheduledTime() != null
+                        && source.plan().getSubmittedAt() != null,
+                OWNER_DATA_CORRUPTED, "提前时间来源事实缺失");
+        try {
+            CutoverLeadTimeCompliance compliance = LEAD_TIME_CALCULATOR.calculate(grade,
+                    source.task().getCutoverType(), source.task().getScheduledTime(), source.plan().getSubmittedAt());
+            instance.setLeadTimeEnabled(true);
+            instance.setLeadTimeSnapshot(LEAD_TIME_CODEC.encode(compliance));
+        } catch (IllegalArgumentException exception) {
+            throw failure(OWNER_DATA_CORRUPTED, "提前时间来源事实损坏");
+        }
     }
 
     private List<NodeDraft> resolveRoute(long tenantId, long projectId, long actorId, String grade) {

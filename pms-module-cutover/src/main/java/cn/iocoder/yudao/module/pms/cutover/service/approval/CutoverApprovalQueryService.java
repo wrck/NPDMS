@@ -11,6 +11,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalEligibilityPolicy;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
 
@@ -22,6 +24,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 /** P5审批只读编排；生产Bean留待Owner依赖接通。 */
 public class CutoverApprovalQueryService {
     private static final CutoverP5ActionPolicy ACTION_POLICY = new CutoverP5ActionPolicy();
+    private static final CutoverLeadTimeSnapshotCodec LEAD_TIME_CODEC = new CutoverLeadTimeSnapshotCodec();
     private static final int SCAN_SIZE = 100;
     private static final List<String> REVIEW_ORDER = List.of("PREPARATION", "BUSINESS_TEST", "EXECUTION", "ROLLBACK", "OTHER");
 
@@ -156,7 +159,23 @@ public class CutoverApprovalQueryService {
                 task.getVersion(), root.getPlanRevisionId(), root.getPlanRevisionNo(), root.getGradeCode(),
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),
                 nodes.stream().map(node -> node(node, reviews.getOrDefault(node.getId(), List.of()))).toList(),
-                snapshotCodec.decode(root.getSourceSnapshot()), root.getDecisionAt(), root.getRejectionReason(), actions);
+                snapshotCodec.decode(root.getSourceSnapshot()), leadTime(root), root.getDecisionAt(),
+                root.getRejectionReason(), actions);
+    }
+
+    private static CutoverLeadTimeCompliance leadTime(CutoverApprovalInstanceDO root) {
+        if (Boolean.FALSE.equals(root.getLeadTimeEnabled())) {
+            require(root.getLeadTimeSnapshot() == null, OWNER_DATA_CORRUPTED, "禁用提前时间的审批根包含快照");
+            return null;
+        }
+        require(Boolean.TRUE.equals(root.getLeadTimeEnabled()) && List.of("A", "B").contains(root.getGradeCode())
+                        && root.getLeadTimeSnapshot() != null,
+                OWNER_DATA_CORRUPTED, "审批提前时间根字段损坏");
+        try {
+            return LEAD_TIME_CODEC.decode(root.getLeadTimeSnapshot());
+        } catch (IllegalArgumentException exception) {
+            throw failure(OWNER_DATA_CORRUPTED, "审批提前时间快照损坏");
+        }
     }
 
     private List<CutoverApprovalNodeDO> nodes(long tenantId, long instanceId) {

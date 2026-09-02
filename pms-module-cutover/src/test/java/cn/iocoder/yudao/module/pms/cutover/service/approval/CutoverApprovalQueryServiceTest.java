@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.Approva
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import org.junit.jupiter.api.Test;
 
@@ -118,15 +120,39 @@ class CutoverApprovalQueryServiceTest {
 
         assertThat(response.approvalInstanceId()).isEqualTo(100L);
         assertThat(response.currentNodeNo()).isEqualTo(2);
+        assertThat(response.leadTimeCompliance()).isNull();
         assertThat(response.allowedActions()).isEmpty();
         verifyNoInteractions(f.scopes, f.managers, f.candidates);
+    }
+
+    @Test
+    void returnsFrozenLeadTimeOnlyFromFullProjection() {
+        Fixture f = new Fixture();
+        CutoverApprovalInstanceDO root = root("PENDING");
+        root.setLeadTimeEnabled(true);
+        root.setLeadTimeSnapshot(new CutoverLeadTimeSnapshotCodec().encode(new CutoverLeadTimeCalculator().calculate(
+                "A", "SIGNATURE_UPGRADE", LocalDateTime.of(2026, 9, 2, 8, 0),
+                LocalDateTime.of(2026, 9, 2, 18, 0))));
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.selectList(any())).thenReturn(List.of());
+        when(f.reviews.selectList(any())).thenReturn(List.of());
+        when(f.scopes.inspect(1L, 20L, 11L, "ACTION_VIEW")).thenReturn(scope(11L, "ACTION_VIEW"));
+
+        var view = f.service.detail(1L, 10L, 11L, true, false);
+
+        assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class, detail -> {
+            assertThat(detail.leadTimeCompliance()).isNotNull();
+            assertThat(detail.leadTimeCompliance().lateSubmission()).isTrue();
+            assertThat(detail.leadTimeCompliance().requiredDays()).isEqualTo(1);
+        });
     }
 
     private static CutoverApprovalInstanceDO root(String status) {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(100L); row.setTenantId(1L); row.setTaskId(10L); row.setProjectId(20L); row.setPlanRevisionId(200L);
         row.setPlanRevisionNo(1); row.setGradeCode("A"); row.setInitiatorUserId(11L); row.setStatusCode(status);
-        row.setCurrentNodeNo(1); row.setVersion(0); return row;
+        row.setLeadTimeEnabled(false); row.setCurrentNodeNo(1); row.setVersion(0); return row;
     }
     private static CutoverTaskDO task() {
         CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setTaskNo("CUT-10");

@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -129,6 +132,29 @@ class CutoverApprovalDecisionServiceTest {
     }
 
     @Test
+    void leadTimeDisplayFactDoesNotChangeTheSameApprovalDecision() {
+        Fixture late = new Fixture(11L);
+        Fixture onTime = new Fixture(11L);
+        late.givenRoot(1, "INITIATOR");
+        onTime.givenRoot(1, "INITIATOR");
+        late.setLeadTime(LocalDateTime.of(2026, 9, 4, 8, 0));
+        onTime.setLeadTime(LocalDateTime.of(2026, 9, 5, 8, 0));
+        doReturn(node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L)).when(late.nodes)
+                .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
+        doReturn(node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L)).when(onTime.nodes)
+                .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
+        var command = new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
+                yesItems(), null, "同意进入下一节点", "same-decision", "same-correlation");
+
+        var lateResult = late.service.approve(command);
+        var onTimeResult = onTime.service.approve(command);
+
+        assertThat(lateResult.approvalStatus()).isEqualTo(onTimeResult.approvalStatus()).isEqualTo("PENDING");
+        assertThat(lateResult.currentNodeNo()).isEqualTo(onTimeResult.currentNodeNo()).isEqualTo(2);
+        assertThat(lateResult.taskStage()).isEqualTo(onTimeResult.taskStage()).isEqualTo("P5");
+    }
+
+    @Test
     void exposesStructuredTaskVersionAndReviewReasonCodes() {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");
@@ -184,6 +210,7 @@ class CutoverApprovalDecisionServiceTest {
         final long actor;
         PlatformCommandExecutionApi.SuccessFacts successFacts;
         Object completedResponse;
+        CutoverApprovalInstanceDO root;
         final CutoverApprovalApplicationService service;
 
         Fixture(long actor) {
@@ -212,6 +239,7 @@ class CutoverApprovalDecisionServiceTest {
             instance.setId(100L); instance.setTenantId(1L); instance.setTaskId(10L); instance.setProjectId(20L);
             instance.setPlanRevisionId(200L); instance.setSourceSnapshotVersion(1); instance.setStatusCode("PENDING");
             instance.setCurrentNodeNo(currentNo); instance.setVersion(0);
+            root = instance;
             when(instances.selectByIdForUpdate(any())).thenReturn(instance);
             when(instances.selectCurrentByTask(any())).thenReturn(instance);
             CutoverTaskDO task = new CutoverTaskDO(); task.setId(10L); task.setTenantId(1L); task.setVersion(3);
@@ -234,6 +262,13 @@ class CutoverApprovalDecisionServiceTest {
             when(scopes.inspect(1L, 20L, actor, "ACTION_EDIT")).thenReturn(scope);
             when(scopes.lockAndRevalidate(scope)).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeRevalidation(
                     CutoverApprovalProjectScopePort.Revalidation.VALID, scope));
+        }
+
+        void setLeadTime(LocalDateTime scheduledTime) {
+            root.setLeadTimeEnabled(true);
+            root.setLeadTimeSnapshot(new CutoverLeadTimeSnapshotCodec().encode(
+                    new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE", scheduledTime,
+                            LocalDateTime.of(2026, 9, 3, 18, 0))));
         }
     }
 }

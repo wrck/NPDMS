@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.approval;
 
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,8 @@ public final class CutoverApprovalResponses {
                          Integer taskVersion, Long planRevisionId, Integer planRevisionNo, String grade,
                          String status, String holdReason, Integer currentNodeNo, List<Node> nodes,
                          CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
-                         Long decisionAt, String rejectionReason, List<String> allowedActions) implements View { }
+                         CutoverLeadTimeCompliance leadTimeCompliance, Long decisionAt, String rejectionReason,
+                         List<String> allowedActions) implements View { }
     public record FinalResult(String viewMode, Long approvalInstanceId, Long taskId, Long planRevisionId,
                               String grade, String status, Long decisionAt, String rejectionReason,
                               List<String> allowedActions) implements View { }
@@ -48,7 +50,7 @@ public final class CutoverApprovalResponses {
                     value.approvalVersion(), value.taskId(), value.taskVersion(), value.planRevisionId(),
                     value.planRevisionNo(), value.grade(), value.status(), value.holdReason(), value.currentNodeNo(),
                     value.nodes().stream().map(CutoverApprovalResponses::node).toList(), value.sourceSnapshot(),
-                    epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());
+                    value.leadTimeCompliance(), epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());
             case CutoverApprovalViews.ApprovalFinalResult value -> new FinalResult(value.viewMode(),
                     value.approvalInstanceId(), value.taskId(), value.planRevisionId(), value.grade(), value.status(),
                     epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());

@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -67,7 +68,9 @@ class CutoverApprovalControllerContractTest {
                         LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
 
         mvc.perform(get("/api/v1/pms/cutover-tasks/10/approval"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.viewMode").value("FULL"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.viewMode").value("FULL"))
+                .andExpect(jsonPath("$.data.leadTimeCompliance.ruleVersion").value("CUT_LEAD_TIME_R034_V1"))
+                .andExpect(jsonPath("$.data.leadTimeCompliance.scheduledTime").isNumber());
         mvc.perform(get("/api/v1/pms/cutover-approvals/todos"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.list[0].createdAt").isNumber());
         mvc.perform(get("/api/v1/pms/cutover-approvals/reassignment-candidates"))
@@ -101,7 +104,9 @@ class CutoverApprovalControllerContractTest {
                 .header("If-Match", "0").header("Idempotency-Key", "reassign-1")
                 .contentType("application/json")
                 .content("{\"nodeNo\":1,\"newApproverUserId\":9,\"reason\":\"当前审批人请假\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.viewMode").value("REASSIGNMENT_ONLY"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.viewMode").value("REASSIGNMENT_ONLY"))
+                .andExpect(jsonPath("$.data.leadTimeCompliance").doesNotExist());
         verify(application).reassign(argThat(command -> command.expectedTaskVersion() == 4
                 && command.approvalInstanceId() == 100L));
     }
@@ -144,7 +149,9 @@ class CutoverApprovalControllerContractTest {
     private static CutoverApprovalViews.ApprovalDetail detail() {
         return new CutoverApprovalViews.ApprovalDetail("FULL", 100L, 0, 10L, 4, 70L, 1, "A", "PENDING",
                 null, 1, List.of(new CutoverApprovalViews.Node(101L, 1, "INITIATOR", "PENDING", 8L, 8L,
-                null, null, List.of(), null)), null, null, null, List.of("APPROVE", "REJECT"));
+                null, null, List.of(), null)), null, new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE",
+                LocalDateTime.of(2026, 9, 5, 8, 0), LocalDateTime.of(2026, 9, 3, 18, 0)),
+                null, null, List.of("APPROVE", "REJECT"));
     }
 
     private static CutoverApprovalViews.ApprovalReassignmentView reassignment() {
