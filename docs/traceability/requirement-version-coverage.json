@@ -177,7 +177,7 @@
       "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
       "taskPath": "tasks/features/F-CUT-008.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
       "mappings": [
         {
           "sliceKey": "CUT-05@V2",
