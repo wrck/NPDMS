@@ -7,7 +7,10 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AcceptanceD
 
 /**
  * 初验/终验 Service 接口
+ *
+ * @deprecated 旧V17单行验收模型仅保留历史兼容；新实施使用F-ACC-001验收活动与报告版本服务。
  */
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public interface AcceptanceService {
 
     /**

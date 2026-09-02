@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 @Schema(description = "管理后台 - 初验/终验 Response VO")
 @Data
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptanceRespVO {
 
     @Schema(description = "主键编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1024")

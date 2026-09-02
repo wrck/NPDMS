@@ -23,6 +23,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/acc-acceptance")
 @Validated
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptanceController {
 
     @Resource

@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Schema(description = "管理后台 - 初验/终验分页 Request VO")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptancePageReqVO extends PageParam {
 
     @Schema(description = "所属项目编号", example = "100")

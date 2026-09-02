@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper">
+    <select id="selectByIdentityForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
+        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+               activity_status, current_report_version_id, version,
+               creator, create_time, updater, update_time, deleted, tenant_id
+        FROM acc_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND acceptance_type = #{query.acceptanceType}
+          AND deleted = 0
+        FOR UPDATE
+    </select>
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
+        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+               activity_status, current_report_version_id, version,
+               creator, create_time, updater, update_time, deleted, tenant_id
+        FROM acc_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.acceptanceId}
+          AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectByProjectScope"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
+        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+               activity_status, current_report_version_id, version,
+               creator, create_time, updater, update_time, deleted, tenant_id
+        FROM acc_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = 0
+          AND project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        ORDER BY project_id, FIELD(acceptance_type, 'PRELIMINARY', 'FINAL'), id
+    </select>
+
+    <update id="completeIfPending">
+        UPDATE acc_acceptance
+        SET activity_status = 'COMPLETED',
+            version = version + 1,
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.acceptanceId}
+          AND version = #{update.expectedVersion}
+          AND activity_status = 'PENDING'
+          AND deleted = 0
+    </update>
+</mapper>

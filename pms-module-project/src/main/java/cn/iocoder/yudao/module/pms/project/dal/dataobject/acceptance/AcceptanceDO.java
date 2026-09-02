@@ -16,10 +16,13 @@ import java.time.LocalDateTime;
  * 状态机：0草稿 → 1待提交 → 2审批中 → 3已通过 → 4已驳回 → 5已归档
  * 验收类型：PRELIMINARY 初验 / FINAL 终验
  * 门禁：验收通过（pass 2→3）前校验交付件完整性（FR-ACC-005）
+ *
+ * @deprecated 旧V17历史载体；不得作为F-ACC-001及后续能力的实现基础。
  */
 @TableName("pms_acc_acceptance")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptanceDO extends TenantBaseDO {
 
     /**

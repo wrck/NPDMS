@@ -1,5 +1,12 @@
 <template>
   <ContentWrap>
+    <el-alert
+      title="此页面为旧V17验收功能，仅保留历史兼容；新验收报告请使用F-ACC-001验收报告页面。"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="mb-16px"
+    />
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
       <el-form-item label="项目" prop="projectId">
         <PmsEntitySelect

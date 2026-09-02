@@ -27,9 +27,12 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_A
  * <p>
  * 状态机：0草稿 → 1待提交 → 2审批中 → 3已通过 → 4已驳回 → 5已归档
  * 门禁：验收通过（pass 2→3）前校验交付件完整性（FR-ACC-005），必交交付件必须全部通过
+ *
+ * @deprecated 旧V17单行验收模型仅保留历史兼容；新实施使用F-ACC-001验收活动与报告版本服务。
  */
 @Service
 @Validated
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptanceServiceImpl implements AcceptanceService {
 
     /**
