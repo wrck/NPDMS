@@ -49,8 +49,16 @@ class CutoverApprovalDecisionServiceTest {
         verify(f.nodes, times(2)).updateStatusIfMatch(updates.capture());
         assertThat(updates.getAllValues()).extracting(ApprovalNodeStatusUpdate::newStatusCode)
                 .containsExactly("APPROVED", "PENDING");
-        verify(f.notifications).insert(argThat((CutoverApprovalNotificationDO row) -> row.getRecipientUserId().equals(22L)
-                && "PENDING".equals(row.getStatusCode()) && row.getNextRetryAt() == null));
+        ArgumentCaptor<CutoverApprovalNotificationDO> notifications =
+                ArgumentCaptor.forClass(CutoverApprovalNotificationDO.class);
+        verify(f.notifications, times(4)).insert(notifications.capture());
+        assertThat(notifications.getAllValues()).extracting(CutoverApprovalNotificationDO::getChannelCode)
+                .containsExactly("IN_PLATFORM", "SMS", "EMAIL", "DINGTALK");
+        assertThat(notifications.getAllValues()).allSatisfy(row -> {
+            assertThat(row.getRecipientUserId()).isEqualTo(22L);
+            assertThat(row.getStatusCode()).isEqualTo("PENDING");
+            assertThat(row.getNextRetryAt()).isNull();
+        });
     }
 
     @Test
@@ -70,6 +78,22 @@ class CutoverApprovalDecisionServiceTest {
         assertThat(replay).isEqualTo(first);
         verify(f.instances, times(1)).selectCurrentByTask(any());
         verify(f.reviews, times(5)).insert(any(CutoverApprovalReviewItemDO.class));
+    }
+
+    @Test
+    void activatingReassignedWaitingNodeUsesItsCurrentRecipientAndCommittedVersion() {
+        Fixture f = new Fixture(11L);
+        f.givenRoot(1, "INITIATOR");
+        CutoverApprovalNodeDO next = node(102L, 2, "SERVICE_MANAGER", "WAITING", 44L);
+        next.setVersion(1);
+        doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
+
+        f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3, 0,
+                yesItems(), null, "同意进入已改派节点", "key-reassigned-next", "corr-reassigned-next"));
+
+        verify(f.notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
+                row.getRecipientUserId().equals(44L)
+                        && "CUT_APPROVAL_EXT:100:2:2:SMS".equals(row.getDeliveryKey())));
     }
 
     @Test

@@ -72,6 +72,10 @@ class CutoverApprovalReassignmentTest {
         verify(notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
                 row.getRecipientUserId().equals(44L) && "PENDING".equals(row.getStatusCode())
                         && "CUT_APPROVAL:100:1:1".equals(row.getDeliveryKey())));
+        verify(notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
+                row.getRecipientUserId().equals(44L)
+                        && "CUT_APPROVAL_EXT:100:1:1:SMS".equals(row.getDeliveryKey())));
+        verify(notifications, times(4)).insert(any(CutoverApprovalNotificationDO.class));
     }
 
     @Test
@@ -107,8 +111,9 @@ class CutoverApprovalReassignmentTest {
             @SuppressWarnings("unchecked") java.util.function.Supplier<Object> operation = invocation.getArgument(3);
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
         });
+        CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
         CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
-                mock(CutoverApprovalNotificationMapper.class), mock(CutoverApprovalReviewItemMapper.class),
+                notifications, mock(CutoverApprovalReviewItemMapper.class),
                 reassignments, tasks, mock(CutoverTaskStageHistoryMapper.class), managers,
                 mock(CutoverApprovalRoleCandidatePort.class), scopes, platform, () -> 99L,
                 Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC));
@@ -118,6 +123,7 @@ class CutoverApprovalReassignmentTest {
 
         assertThat(result.holdReason()).isNull();
         verify(instances).updateAfterReassignmentIfMatch(argThat(query -> query.holdReasonCode() == null));
+        verify(notifications, never()).insert(any(CutoverApprovalNotificationDO.class));
     }
 
     private static CutoverTaskDO task() {
