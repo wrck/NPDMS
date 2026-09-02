@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverNavigationRuleException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -51,6 +52,7 @@ public class CutoverConfigurationSaveReqVO {
     }
 
     @JsonIgnore
+    @AssertTrue(message = "导航规则字段必须显式提供")
     public boolean isNavigationRuleSpecified() {
         return navigationRuleSpecified;
     }
