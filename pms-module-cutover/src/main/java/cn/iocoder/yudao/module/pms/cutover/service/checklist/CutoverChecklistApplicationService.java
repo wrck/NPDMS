@@ -42,6 +42,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitCheck
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverCollectionPort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistSubmissionFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
@@ -99,6 +100,7 @@ public class CutoverChecklistApplicationService {
     private final CutoverCollectionPort collectionPort;
     private final CutoverChecklistFilePort filePort;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final CutoverNavigationDecisionQueryService navigationDecisionQueryService;
     private final Clock clock;
 
     public CutoverChecklistApplicationService(CutoverTaskMapper taskMapper,
@@ -114,6 +116,7 @@ public class CutoverChecklistApplicationService {
                                               CutoverCollectionPort collectionPort,
                                               CutoverChecklistFilePort filePort,
                                               PlatformCommandExecutionApi commandExecutionApi,
+                                              CutoverNavigationDecisionQueryService navigationDecisionQueryService,
                                               Clock clock) {
         this.taskMapper = taskMapper;
         this.deviceMapper = deviceMapper;
@@ -128,6 +131,7 @@ public class CutoverChecklistApplicationService {
         this.collectionPort = collectionPort;
         this.filePort = filePort;
         this.commandExecutionApi = commandExecutionApi;
+        this.navigationDecisionQueryService = navigationDecisionQueryService;
         this.clock = clock;
     }
 
@@ -352,10 +356,9 @@ public class CutoverChecklistApplicationService {
                 item.getId(), item.getStableItemKey(), resultVersion);
     }
 
-    @Transactional(rollbackFor = Exception.class)
     public ChecklistCommandResult submit(SubmitChecklistCommand command) {
         requireSubmit(command);
-        PlatformCommandExecutionApi.ExecutionResult<ChecklistCommandResult> execution = commandExecutionApi.execute(
+        PlatformCommandExecutionApi.ExecutionResult<ChecklistSubmissionFacts> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUT:CHECKLIST_SUBMIT:" + command.taskId(), command.actorId(), command.idempotencyKey()),
                 sha256(JsonUtils.toJsonString(Map.of("taskId", command.taskId(),
@@ -364,11 +367,12 @@ public class CutoverChecklistApplicationService {
                         "checklistId", command.checklistId(),
                         "checklistVersion", command.expectedChecklistVersion(),
                         "projectScopeVersion", command.expectedProjectScopeVersion()))),
-                ChecklistCommandResult.class, () -> submitOnce(command),
+                ChecklistSubmissionFacts.class, () -> submitOnce(command),
                 result -> successFacts("CUTOVER_CHECKLIST_SUBMIT", result, command.correlationId()));
         requireCompleted(execution.decision());
-        return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
-                ? execution.response().replayedCopy() : execution.response();
+        ChecklistCommandResult result = execution.response().toCommandResult(
+                execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED);
+        return result.withNavigationDecision(navigationDecisionQueryService.decide(command.tenantId(), command.taskId()));
     }
 
     private ChecklistCommandResult generateOnce(GenerateChecklistCommand command, CutoverTaskDO snapshot,
@@ -465,7 +469,7 @@ public class CutoverChecklistApplicationService {
                 command.expectedChecklistVersion() + 1, "DRAFT", task.getCurrentStage(), task.getVersion(), false);
     }
 
-    private ChecklistCommandResult submitOnce(SubmitChecklistCommand command) {
+    private ChecklistSubmissionFacts submitOnce(SubmitChecklistCommand command) {
         CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(command.taskId()), command.tenantId(),
                 command.actorId(), command.expectedTaskVersion());
         lockScope(command.actorId(), snapshot, command.expectedProjectScopeVersion());
@@ -499,7 +503,7 @@ public class CutoverChecklistApplicationService {
         require(taskMapper.submitChecklistIfMatch(new CutoverTaskChecklistSubmitUpdate(command.tenantId(),
                 task.getId(), command.expectedTaskVersion())) == 1, VERSION_CONFLICT, "任务版本已变化");
         insertHistory(command, checklist, now);
-        return new ChecklistCommandResult(task.getId(), checklist.getId(), checklist.getChecklistVersion(),
+        return new ChecklistSubmissionFacts(task.getId(), checklist.getId(), checklist.getChecklistVersion(),
                 command.expectedChecklistVersion() + 1, "SUBMITTED", CutoverTaskRules.STAGE_P4,
                 task.getVersion() + 1, false);
     }
@@ -857,6 +861,12 @@ public class CutoverChecklistApplicationService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(String action, ChecklistCommandResult result,
+                                                                  String correlationId) {
+        return new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverChecklist",
+                String.valueOf(result.checklistId()), correlationId, JsonUtils.toJsonString(result), List.of());
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts successFacts(String action, ChecklistSubmissionFacts result,
                                                                   String correlationId) {
         return new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverChecklist",
                 String.valueOf(result.checklistId()), correlationId, JsonUtils.toJsonString(result), List.of());

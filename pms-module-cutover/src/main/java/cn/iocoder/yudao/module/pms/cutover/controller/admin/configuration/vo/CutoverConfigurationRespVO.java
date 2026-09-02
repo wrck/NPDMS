@@ -28,5 +28,6 @@ public class CutoverConfigurationRespVO {
     private List<CutoverConfigurationSaveReqVO.PlanTemplateSectionVO> planTemplateSections;
     private List<CutoverConfigurationSaveReqVO.ItemVO> items;
     private List<CutoverConfigurationSaveReqVO.BindingRuleVO> bindingRules;
+    private CutoverConfigurationSaveReqVO.NavigationRuleVO navigationRule;
     private List<CutoverConfigurationValidationRespVO.ValidationErrorVO> validationErrors;
 }

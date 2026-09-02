@@ -32,6 +32,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistConfigurationQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistMatcher;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverNavigationDecisionPolicy;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverNavigationDecisionQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SubmitChecklistCommand;
@@ -493,6 +495,12 @@ class CutoverFullFlowPositiveLoopMySqlTest {
             return new CutoverChecklistConfigurationQueryService(revisions, definitions, rules);
         }
 
+        @Bean CutoverNavigationDecisionQueryService checklistNavigation(
+                CutoverTaskMapper tasks, CutoverConfigurationRevisionMapper revisions) {
+            return new CutoverNavigationDecisionQueryService(tasks, revisions,
+                    new CutoverNavigationDecisionPolicy());
+        }
+
         @Bean CutoverChecklistFilePort checklistFilePort() {
             return (tenantId, actorId, projectId, checklistItemId, expectedScopeVersion, handle) ->
                     new CutoverChecklistFilePort.FileFact(handle.artifactId(), handle.versionNo(),
@@ -513,9 +521,11 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 CutoverChecklistConfigurationQueryService configuration,
                 CutoverApprovalPositiveLoopMySqlTest.ControlledOwners scopes,
                 CutoverCollectionPort collection, CutoverChecklistFilePort files,
-                PlatformCommandExecutionApi platform, java.time.Clock clock) {
+                PlatformCommandExecutionApi platform, CutoverNavigationDecisionQueryService navigation,
+                java.time.Clock clock) {
             return new CutoverChecklistApplicationService(tasks, devices, assessments, history, checklists, items,
-                    results, configuration, new CutoverChecklistMatcher(), scopes, collection, files, platform, clock);
+                    results, configuration, new CutoverChecklistMatcher(), scopes, collection, files, platform,
+                    navigation, clock);
         }
 
         @Bean CutoverClosureFilePort closureFilePort() {

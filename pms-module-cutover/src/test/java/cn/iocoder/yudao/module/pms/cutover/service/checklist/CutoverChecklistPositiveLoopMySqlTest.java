@@ -156,7 +156,9 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
+        assertEquals("TASK_OVERVIEW", submitted.navigationDecision().target());
         assertTrue(replayed.replayed());
+        assertEquals("TASK_OVERVIEW", replayed.navigationDecision().target());
         assertEquals("PLAN_DRAFTING", text("SELECT task_status FROM cut_task WHERE tenant_id=? AND id=?", tenantId, taskId));
         assertEquals(3, number("SELECT version FROM cut_task WHERE tenant_id=? AND id=?", tenantId, taskId));
         assertEquals(2, number("SELECT COUNT(*) FROM cut_cutover_checklist_item WHERE tenant_id=? AND checklist_id=?", tenantId, generated.checklistId()));
@@ -170,6 +172,8 @@ class CutoverChecklistPositiveLoopMySqlTest {
         assertEquals(0, number("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverChecklistItemResultLinked'", tenantId));
         assertEquals(2, number("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
         assertEquals(2, number("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+        assertEquals(0, number("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? "
+                + "AND response_payload LIKE '%navigationDecision%'", tenantId));
     }
 
     private void insertConfiguration() {
@@ -179,6 +183,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         revision.setStatusCode("PUBLISHED"); revision.setEffectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0));
         revision.setDictionarySnapshot("{}"); revision.setDimensionDefinitionSnapshot("[]");
         revision.setPlanTemplateSectionSnapshot("[]"); revision.setValidationResultSnapshot("[]");
+        revision.setNavigationRuleSnapshot("{\"target\":\"TASK_OVERVIEW\"}");
         revision.setPublishedBy(ACTOR_ID); revision.setPublishedAt(LocalDateTime.of(2026, 8, 1, 0, 0));
         revision.setVersion(0); revision.setCreator("8"); revision.setUpdater("8");
         assertEquals(1, configurationMapper.insert(revision));
@@ -303,6 +308,11 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 CutoverChecklistBindingRuleRevisionMapper ruleMapper) {
             return new CutoverChecklistConfigurationQueryService(revisionMapper, itemMapper, ruleMapper);
         }
+        @Bean CutoverNavigationDecisionQueryService navigationDecisionQueryService(
+                CutoverTaskMapper taskMapper, CutoverConfigurationRevisionMapper revisionMapper) {
+            return new CutoverNavigationDecisionQueryService(taskMapper, revisionMapper,
+                    new CutoverNavigationDecisionPolicy());
+        }
         @Bean CutoverChecklistApplicationService service(CutoverTaskMapper taskMapper,
                                                           CutoverTaskDeviceScopeMapper deviceMapper,
                                                           CutoverAssessmentMapper assessmentMapper,
@@ -314,10 +324,12 @@ class CutoverChecklistPositiveLoopMySqlTest {
                                                           CutoverProjectScopePort projectScopePort,
                                                           CutoverCollectionPort collectionPort,
                                                           CutoverChecklistFilePort filePort,
-                                                          PlatformCommandExecutionApi platform, Clock clock) {
+                                                          PlatformCommandExecutionApi platform,
+                                                          CutoverNavigationDecisionQueryService navigation,
+                                                          Clock clock) {
             return new CutoverChecklistApplicationService(taskMapper, deviceMapper, assessmentMapper, historyMapper,
                     checklistMapper, itemMapper, resultMapper, configurationService, new CutoverChecklistMatcher(),
-                    projectScopePort, collectionPort, filePort, platform, clock);
+                    projectScopePort, collectionPort, filePort, platform, navigation, clock);
         }
     }
 }

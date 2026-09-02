@@ -1,8 +1,13 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -35,6 +40,34 @@ public class CutoverConfigurationSaveReqVO {
     @Valid
     @NotNull(message = "绑定规则不能为空")
     private List<BindingRuleVO> bindingRules = new ArrayList<>();
+    @Valid
+    private NavigationRuleVO navigationRule;
+    @JsonIgnore
+    private boolean navigationRuleSpecified;
+
+    @JsonSetter("navigationRule")
+    public void setNavigationRule(NavigationRuleVO navigationRule) {
+        this.navigationRule = navigationRule;
+        this.navigationRuleSpecified = true;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "导航规则字段必须显式提供")
+    public boolean isNavigationRuleSpecified() {
+        return navigationRuleSpecified;
+    }
+
+    @Data
+    public static class NavigationRuleVO {
+        @NotBlank(message = "导航目标不能为空")
+        @Pattern(regexp = "CURRENT_STAGE_WORKBENCH|TASK_OVERVIEW", message = "导航目标非法")
+        private String target;
+
+        @JsonAnySetter
+        public void rejectUnknown(String key, Object value) {
+            throw new IllegalArgumentException("导航规则包含未知字段：" + key);
+        }
+    }
 
     @Data
     public static class DimensionVO {

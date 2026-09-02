@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -91,6 +92,9 @@ class CutoverChecklistApplicationServiceTest {
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
                 1L, 8L, 1000L, 2, 1, generated.checklistId(), collection.checklistVersion(), 7L,
                 "submit-1", "corr-submit-1"));
+        ChecklistCommandResult replayed = fixture.service.submit(new SubmitChecklistCommand(
+                1L, 8L, 1000L, 2, 1, generated.checklistId(), collection.checklistVersion(), 7L,
+                "submit-1", "corr-submit-1"));
 
         assertEquals("DRAFT", generated.checklistStatus());
         assertEquals(3, saved.checklistFactVersion());
@@ -106,12 +110,19 @@ class CutoverChecklistApplicationServiceTest {
                 .findFirst().orElseThrow().currentResult().collectionResultReferenceId());
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
+        assertEquals("TASK_OVERVIEW", submitted.navigationDecision().target());
+        assertTrue(replayed.replayed());
+        assertEquals("TASK_OVERVIEW", replayed.navigationDecision().target());
         assertEquals("PLAN_DRAFTING", fixture.task.get().getTaskStatus());
         assertEquals(List.of("P3_CHECKLIST_SUBMITTED"), fixture.history.stream()
                 .map(CutoverTaskStageHistoryDO::getTriggerType).toList());
         assertEquals("ACCEPTED", accepted.technicalStatus());
         assertEquals("COMPLETED", collection.technicalStatus());
         assertEquals(5, fixture.platform.facts.size());
+        PlatformCommandExecutionApi.SuccessFacts submitFacts = fixture.platform.facts.stream()
+                .filter(fact -> "CUTOVER_CHECKLIST_SUBMIT".equals(fact.operationCode()))
+                .findFirst().orElseThrow();
+        assertFalse(submitFacts.detailSnapshot().contains("navigationDecision"));
         assertEquals(List.of("CutoverChecklistItemResultLinked", "CutoverChecklistItemResultLinked"),
                 fixture.platform.facts.stream().flatMap(fact -> fact.businessEvents().stream())
                         .map(PlatformCommandExecutionApi.BusinessEvent::eventType).toList());
@@ -134,6 +145,8 @@ class CutoverChecklistApplicationServiceTest {
         CutoverProjectScopePort scopePort = mock(CutoverProjectScopePort.class);
         CutoverCollectionPort collectionPort = mock(CutoverCollectionPort.class);
         CutoverChecklistFilePort filePort = mock(CutoverChecklistFilePort.class);
+        CutoverNavigationDecisionQueryService navigationDecisionQueryService =
+                mock(CutoverNavigationDecisionQueryService.class);
         DirectPlatform platform = new DirectPlatform();
         AtomicReference<CutoverTaskDO> task = new AtomicReference<>(task());
         AtomicReference<CutoverChecklistDO> checklist = new AtomicReference<>();
@@ -294,10 +307,14 @@ class CutoverChecklistApplicationServiceTest {
                         new CutoverCollectionPort.CollectionFact(9000L,
                                 CutoverCollectionPort.TechnicalStatus.COMPLETED, 9100L, 1L,
                                 "{\"status\":\"ok\"}", null));
+        when(navigationDecisionQueryService.decide(1L, 1000L)).thenReturn(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.result.NavigationDecision(
+                        "POST_SUBMIT", 3000L, "TASK_OVERVIEW"));
 
         CutoverChecklistApplicationService service = new CutoverChecklistApplicationService(taskMapper,
                 deviceMapper, assessmentMapper, historyMapper, checklistMapper, itemMapper, resultMapper, configurationService,
                 new CutoverChecklistMatcher(), scopePort, collectionPort, filePort, platform,
+                navigationDecisionQueryService,
                 Clock.fixed(Instant.parse("2026-08-31T02:00:00Z"), ZoneOffset.UTC));
         return new Fixture(service, task, results, history, platform, collectionPort);
     }
