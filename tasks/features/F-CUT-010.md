@@ -3,12 +3,13 @@
 > Feature实施状态：`NOT_STARTED`
 > 总体工程阶段：`TECHNICAL_PLAN`
 > Feature Ready Gate：`READY / GO@c4b1a939`
-> Technical Plan Gate：`NOT_STARTED`
+> Technical Plan Gate：`REVIEW_REQUIRED`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-08@V2=FULL`
 > Feature Spec：`specs/features/F-CUT-010-cutover-spare-system-coordination.md`
 > 机器合同：`specs/features/F-CUT-010-api-contract.json`、`specs/features/F-CUT-010-physical-contract.json`
 > 旧实现审计：`specs/features/F-CUT-010-legacy-reuse-audit.md`
+> Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-010-cutover-spare-system-coordination.md`
 
 ## 当前最小工作单元
 
@@ -26,4 +27,4 @@
 
 ## Phase-switch checkpoint
 
-基线c4b1a939；Feature Ready已独立GO，实施仍NOT_STARTED。当前Gate为唯一Technical Plan编制与复审；跨模块生产Provider仍只预留，计划内以受控替身设计正向闭环。下一步：状态回写后生成计划，计划GO前不实施。
+基线20c382e2；Feature Ready已GO，实施仍NOT_STARTED。唯一Technical Plan候选已形成，跨模块生产Provider只预留，CUT正向闭环由`src/test`受控替身驱动。当前阻断：计划尚未独立GO。下一步：送Technical Plan复审，GO前不实施。

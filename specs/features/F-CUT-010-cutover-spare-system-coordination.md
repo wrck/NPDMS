@@ -10,6 +10,7 @@
 > 支撑依赖：`INT-06 SpareApplicationGateway`、`ProjectScopeApi`、`FileArtifactApi`
 > 机器合同：`specs/features/F-CUT-010-api-contract.json`、`specs/features/F-CUT-010-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-010-legacy-reuse-audit.md`
+> Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-010-cutover-spare-system-coordination.md`
 
 ## 1. 业务目标
 
