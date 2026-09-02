@@ -261,14 +261,14 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreatio
 
 DO增加`correlationId`。首节点start、下一节点approve、当前PENDING改派reassign只在各自`PlatformCommandExecutionApi`的NEW operation内，把已校验命令`correlationId`传给通知创建；同组IN_PLATFORM/SMS/EMAIL/DINGTALK四行原样一致。业务重放不进入operation，不覆盖首次值；WAITING改派继续零通知。
 
-- [ ] **Step 3: 验证迁移与正向写入**
+- [ ] **Step 3: 实现完成后验证正常升级与正向写入**
 
-静态合同与隔离MySQL 8.4覆盖：仅IN_PLATFORM历史升级成功且NULL保留；存在任一外部历史行时任何DDL前失败、原结构/数据不变；处置并repair后原脚本可重跑；合法1/128字符接受，空白/首尾空白/129字符拒绝。审批聚焦验证覆盖start、next activation、PENDING reassign四行同值及WAITING reassign零通知。
+隔离MySQL 8.4仅验证正常正向路径：只有IN_PLATFORM历史时升级成功、历史`correlation_id=NULL`保持不变；合法规范的1字符和128字符correlationId可正常写入。审批正向闭环覆盖start、next activation、PENDING reassign同组四行原样写入同一值，以及WAITING reassign零通知。外部历史preflight、非法值约束和repair/rerun只通过SQL与静态迁移合同审查确认，本Task不新增或执行故意制造失败的数据库/业务用例。
 
 - [ ] **Step 4: 运行并申请Task 4A Gate**
 
 ```powershell
-mvn -pl pms-module-cutover -am -Dtest=Fcut008MigrationContractTest,CutoverApprovalExternalNotificationCreationTest,CutoverApprovalStartServiceTest,CutoverApprovalDecisionServiceTest,CutoverApprovalReassignmentTest -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreationTest,CutoverApprovalStartServiceTest,CutoverApprovalDecisionServiceTest,CutoverApprovalReassignmentTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 ---
