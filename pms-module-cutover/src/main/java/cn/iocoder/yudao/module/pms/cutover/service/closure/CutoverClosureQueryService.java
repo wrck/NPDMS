@@ -26,8 +26,9 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureVi
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView.CollectionEvidenceView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosure
 
 /** F-CUT-006 Task 3只读详情内核；生产依赖接通前不注册Bean。 */
 public class CutoverClosureQueryService {
+    private static final CutoverP6ActionPolicy ACTION_POLICY = new CutoverP6ActionPolicy();
     private final CutoverTaskMapper taskMapper;
     private final CutoverApprovalInstanceMapper approvalMapper;
     private final CutoverPlanRevisionMapper planMapper;
@@ -102,19 +104,19 @@ public class CutoverClosureQueryService {
                                         List<CutoverClosureAttachmentDO> attachments,
                                         List<CutoverCollectionEvidenceDO> evidence,
                                         ClosureAccess access, boolean editAllowed, Long actorId) {
-        List<String> result = new ArrayList<>();
-        boolean ownerP6 = "NEW_PLATFORM".equals(task.getTaskOrigin()) && "P6".equals(task.getCurrentStage())
-                && "CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())
-                && Objects.equals(task.getOwnerUserId(), actorId) && editAllowed;
-        if (ownerP6 && closure == null && access.save()) result.add("CREATE_CLOSURE");
-        if (ownerP6 && closure != null && "DRAFT".equals(closure.getStatusCode())) {
-            if (access.save()) result.add("SAVE_CLOSURE");
-            if (access.requestCollection()) result.add("REQUEST_COLLECTION");
-            if (access.save() && evidence.stream().anyMatch(value -> "DISPATCH_FAILED".equals(value.getEvidenceTypeCode())
-                    || "CALLBACK_FAILED".equals(value.getEvidenceTypeCode()))) result.add("LINK_MANUAL_RESULT");
-            if (access.submit() && complete(closure, attachments, evidence)) result.add("SUBMIT_CLOSURE");
-        }
-        return List.copyOf(result);
+        CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
+                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
+        boolean failedCollection = evidence.stream().anyMatch(value ->
+                "DISPATCH_FAILED".equals(value.getEvidenceTypeCode())
+                        || "CALLBACK_FAILED".equals(value.getEvidenceTypeCode()));
+        boolean closureComplete = closure != null && "DRAFT".equals(closure.getStatusCode())
+                && access.submit() && complete(closure, attachments, evidence);
+        var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
+                .p6(closure == null ? null : closure.getStatusCode(), editAllowed,
+                        closureComplete, failedCollection);
+        var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
+                .p6(access.save(), access.requestCollection(), access.submit());
+        return List.copyOf(ACTION_POLICY.allowedActions(candidate, facts, permissions));
     }
 
     private static boolean complete(CutoverClosureDO closure, List<CutoverClosureAttachmentDO> attachments,

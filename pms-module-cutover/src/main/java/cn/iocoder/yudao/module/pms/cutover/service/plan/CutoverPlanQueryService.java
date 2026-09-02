@@ -23,6 +23,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP4ActionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import tools.jackson.databind.JsonNode;
@@ -41,6 +43,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplic
 
 /** Task 4只读详情内核；不注册生产Bean。 */
 public class CutoverPlanQueryService {
+    private static final CutoverP4ActionPolicy ACTION_POLICY = new CutoverP4ActionPolicy();
     private final CutoverTaskMapper taskMapper;
     private final CutoverPlanRevisionMapper planMapper;
     private final CutoverPlanStepMapper stepMapper;
@@ -148,25 +151,25 @@ public class CutoverPlanQueryService {
     private List<String> allowedActions(Long tenantId, Long actorId, CutoverTaskDO task,
                                         CutoverPlanRevisionDO plan, CutoverApprovalFact approval,
                                         PlanAccess access, boolean editAllowed) {
-        List<String> actions = new ArrayList<>();
         boolean ownerP4 = CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 && CutoverTaskRules.STAGE_P4.equals(task.getCurrentStage())
                 && CutoverTaskRules.STATUS_PLAN_DRAFTING.equals(task.getTaskStatus())
                 && Objects.equals(task.getOwnerUserId(), actorId);
-        if (ownerP4 && editAllowed && plan == null && access.create()) actions.add("CREATE_DRAFT");
-        if (ownerP4 && editAllowed && plan != null && "DRAFT".equals(plan.getStatusCode()) && access.save()
-                && comparableSource(tenantId, actorId, task, plan)) actions.add("SAVE_DRAFT");
-        if (ownerP4 && editAllowed && plan != null && "DRAFT".equals(plan.getStatusCode()) && access.submit()
-                && approvalFactApi != null && comparableSource(tenantId, actorId, task, plan)
-                && complete(tenantId, plan)) actions.add("SUBMIT_PLAN");
-        if (ownerP4 && editAllowed && plan != null && access.save() && approval != null
-                && canRevise(tenantId, actorId, task, plan, approval)) actions.add("REVISE_PLAN");
-        boolean ownerP6 = CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
-                && "P6".equals(task.getCurrentStage()) && "CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())
-                && Objects.equals(task.getOwnerUserId(), actorId);
-        if (ownerP6 && editAllowed && plan != null && access.save() && "SUBMITTED".equals(plan.getStatusCode())
-                && Objects.equals(plan.getCurrentMarker(), 1) && approval != null
-                && approval.status() == ApprovalStatus.APPROVED) actions.add("UPDATE_APPROVED_CONTACTS");
+        boolean draftActionRequested = ownerP4 && editAllowed && plan != null
+                && "DRAFT".equals(plan.getStatusCode()) && (access.save() || access.submit());
+        boolean comparable = draftActionRequested && comparableSource(tenantId, actorId, task, plan);
+        boolean contentComplete = comparable && access.submit() && approvalFactApi != null && complete(tenantId, plan);
+        boolean revisable = ownerP4 && editAllowed && plan != null && access.save() && approval != null
+                && canRevise(tenantId, actorId, task, plan, approval);
+        CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
+                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
+        var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
+                .p4(plan == null ? null : plan.getStatusCode(), plan == null ? null : plan.getCurrentMarker(),
+                        approval == null || approval.status() == null ? null : approval.status().name(), editAllowed,
+                        comparable, contentComplete, revisable);
+        var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
+                .p4(access.create(), access.save(), access.submit());
+        List<String> actions = new ArrayList<>(ACTION_POLICY.allowedActions(candidate, facts, permissions));
         if (plan != null && "DRAFT".equals(plan.getStatusCode()) && access.download()) actions.add("DOWNLOAD_DRAFT");
         return List.copyOf(actions);
     }

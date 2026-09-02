@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -18,6 +20,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 
 /** P5审批只读编排；生产Bean留待Owner依赖接通。 */
 public class CutoverApprovalQueryService {
+    private static final CutoverP5ActionPolicy ACTION_POLICY = new CutoverP5ActionPolicy();
     private static final int SCAN_SIZE = 100;
     private static final List<String> REVIEW_ORDER = List.of("PREPARATION", "BUSINESS_TEST", "EXECUTION", "ROLLBACK", "OTHER");
 
@@ -139,9 +142,15 @@ public class CutoverApprovalQueryService {
                 .eq(CutoverApprovalReviewItemDO::getApprovalInstanceId, root.getId())
                 .orderByAsc(CutoverApprovalReviewItemDO::getApprovalNodeId, CutoverApprovalReviewItemDO::getId))
                 .stream().collect(java.util.stream.Collectors.groupingBy(CutoverApprovalReviewItemDO::getApprovalNodeId));
-        List<String> actions = current != null && currentEligible && "PENDING".equals(root.getStatusCode())
-                && root.getHoldReasonCode() == null && "PENDING".equals(current.getStatusCode())
-                ? List.of("APPROVE", "REJECT") : List.of();
+        Long actorId = currentEligible && current != null ? current.getCurrentApproverUserId() : null;
+        CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
+                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
+        var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
+                .p5(root.getStatusCode(), current == null ? null : current.getStatusCode(), root.getHoldReasonCode(),
+                        current == null ? null : current.getCurrentApproverUserId(), currentEligible);
+        List<String> actions = List.copyOf(ACTION_POLICY.allowedActions(candidate, facts,
+                cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
+                        .p5()));
         return new CutoverApprovalViews.ApprovalDetail("FULL", root.getId(), root.getVersion(), root.getTaskId(),
                 task.getVersion(), root.getPlanRevisionId(), root.getPlanRevisionNo(), root.getGradeCode(),
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),

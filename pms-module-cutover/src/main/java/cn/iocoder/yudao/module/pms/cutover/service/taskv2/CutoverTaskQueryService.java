@@ -25,6 +25,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectCon
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessPort;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.view.CutoverTaskViews;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP2P3ActionPolicy;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -49,6 +51,8 @@ import static cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskAppl
 
 /** CUT只读查询编排；生产Bean在正式Owner依赖接通后统一注册。 */
 public class CutoverTaskQueryService {
+
+    private static final CutoverP2P3ActionPolicy ACTION_POLICY = new CutoverP2P3ActionPolicy();
 
     private static final String ACTION_VIEW = "ACTION_VIEW";
     private static final String ACTION_EDIT = "ACTION_EDIT";
@@ -232,48 +236,17 @@ public class CutoverTaskQueryService {
                                         boolean canSaveAssessment, boolean canSubmitAssessment,
                                         boolean canSaveChecklist, boolean canRequestCollection,
                                         boolean canSubmitChecklist, P2ActionEligibility p2Eligibility) {
-        if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
-                || !actorId.equals(task.getOwnerUserId())) {
-            return List.of();
-        }
-        if (CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
-                && CutoverTaskRules.STATUS_SURVEYING.equals(task.getTaskStatus())
-                && Set.of("A", "B", "C").contains(task.getManualGrade())) {
-            List<String> actions = new ArrayList<>();
-            if (checklist == null) {
-                if (canSaveChecklist) {
-                    actions.add("GENERATE_CHECKLIST");
-                }
-                return List.copyOf(actions);
-            }
-            if (!"DRAFT".equals(checklist.getStatusCode())) {
-                return List.of();
-            }
-            if (canSaveChecklist) {
-                actions.add("SAVE_CHECKLIST");
-            }
-            if (canRequestCollection) {
-                actions.add("REQUEST_COLLECTION");
-            }
-            if (canSubmitChecklist) {
-                actions.add("SUBMIT_CHECKLIST");
-            }
-            return List.copyOf(actions);
-        }
-        if (!CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
-                || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())) {
-            return List.of();
-        }
-        List<String> actions = new ArrayList<>();
-        boolean submitted = assessment != null && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus());
-        if (canSaveAssessment && p2Eligibility.editAllowed() && !submitted) {
-            actions.add("SAVE_ASSESSMENT");
-        }
-        if (canSubmitAssessment && assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
-                && assessment.getManualGrade() != null && p2Eligibility.submitAllowed()) {
-            actions.add("SUBMIT_ASSESSMENT");
-        }
-        return List.copyOf(actions);
+        CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
+                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
+        var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
+                .p2p3(assessment == null ? null : assessment.getAssessmentStatus(),
+                        assessment != null && assessment.getManualGrade() != null,
+                        checklist == null ? null : checklist.getStatusCode(),
+                        p2Eligibility.editAllowed(), p2Eligibility.submitAllowed());
+        var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
+                .p2p3(canSaveAssessment, canSubmitAssessment, canSaveChecklist,
+                        canRequestCollection, canSubmitChecklist);
+        return List.copyOf(ACTION_POLICY.allowedActions(candidate, facts, permissions));
     }
 
     private P2ActionEligibility p2ActionEligibility(
