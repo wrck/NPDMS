@@ -1,7 +1,7 @@
 # F-CUT-010 割接备件系统协同
 
 > Feature实施状态：`IN_PROGRESS`
-> 总体工程阶段：`IMPLEMENTATION_TASK_1`
+> 总体工程阶段：`IMPLEMENTATION_TASK_2`
 > Feature Ready Gate：`READY / GO@c4b1a939`
 > Technical Plan Gate：`PASS / GO@f840cbbc`
 > Implementation Done Gate：`NOT_READY`
@@ -22,9 +22,10 @@
 - [ ] API/Physical/Legacy/SDS Machine Contract Gate。
 - [x] Feature Ready独立复审（GO@c4b1a939）。
 - [x] 唯一Technical Plan独立复审（GO@f840cbbc）。
+- [x] Task 1公共合同、消费端口与需求Codec独立复审（GO@26c02ac2）。
 - [ ] CUT领域、Schema、应用/REST、UI、受控MySQL正向闭环各Task Gate。
 - [ ] 生产INT-06 Provider、唯一装配、真实浏览器与Implementation Done。
 
 ## Phase-switch checkpoint
 
-基线aa803a52；Task 1首轮复审NO-GO，仅整改状态JSON深度规范化与受信HTTPS URI校验；无Bean、Mapper、DDL或生产Provider。下一步：完成A/B正向聚焦验证并送最小复审，GO前不进入Task 2。
+基线26c02ac2；Task 1独立复审GO，公共回调、INT/PLT端口、需求Codec合同已锁定；无生产Provider/Bean。当前进入Task 2，仅实现三表Schema、DO与Mapper合同并做隔离MySQL验证，GO前不进入应用编排。
