@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-008",
+  "status": "REVIEW_REQUIRED",
+  "owner": "CUT owns request orchestration and records; INT-10 owns SMS/EMAIL Provider; INT-05 owns DINGTALK Provider",
+  "channels": ["SMS", "EMAIL", "DINGTALK"],
+  "port": {
+    "name": "CutoverExternalApprovalNotificationPort",
+    "operation": "send(ExternalApprovalNotificationRequest): ExternalApprovalNotificationResult",
+    "requestExactFields": {
+      "tenantId": "positive Long equal to trusted TenantContext",
+      "recipientUserId": "positive Long frozen on the active approval node",
+      "channel": "SMS|EMAIL|DINGTALK",
+      "templateCode": "literal CUT_APPROVAL_PENDING_V2",
+      "deliveryKey": "CUT_APPROVAL_EXT:{approvalInstanceId}:{nodeNo}:{nodeVersion}:{channel}",
+      "taskId": "positive Long",
+      "approvalInstanceId": "positive Long",
+      "nodeNo": "positive Integer",
+      "taskLink": "non-blank internal platform route without external contact data",
+      "variables": "exact non-sensitive map {taskCode,taskName,grade,nodeName}",
+      "correlationId": "normalized non-blank String 1..128"
+    },
+    "resultUnion": {
+      "ACCEPTED": "providerReferenceId non-blank String 1..128 and acceptedAt server timestamp",
+      "DELIVERY_UNKNOWN": "providerReferenceId nullable; no automatic retry",
+      "EXPLICIT_FAILURE": "stable errorCode non-blank String 1..64; retryable=true and no providerReferenceId"
+    }
+  },
+  "errorBoundary": {
+    "providerUnavailable": "treated as EXPLICIT_FAILURE for this delivery record and scheduled for retry; never escapes into or rolls back an already committed approval command",
+    "invalidRequestOrOwnerCorruption": "fails the delivery attempt and records a stable internal audit error; no empty success",
+    "forbidden": "CUT never accepts phone, email address, DingTalk account, access token or provider secret"
+  },
+  "delivery": {
+    "creation": "each V2 node activation/reassignment appends exactly one record per channel in the approval business transaction after the mandatory existing IN_PLATFORM record",
+    "claim": "stable by tenantId,dueAt,id with FOR UPDATE SKIP LOCKED; version CAS",
+    "retry": "PENDING or PENDING_RETRY reuses the same deliveryKey; explicit failure uses server backoff; DELIVERY_UNKNOWN is excluded from automatic claim",
+    "idempotency": "unique tenantId+deliveryKey; approval-command replay produces no new record"
+  },
+  "controlledSubstitute": "src/test may supply deterministic accepted/failure/unknown results and prove the CUT positive loop; no production Fake/fallback/empty-success bean",
+  "productionBoundary": "until INT-10/INT-05 Providers exist, the external delivery Job remains PAUSED; the existing IN_PLATFORM delivery remains active and authoritative for the platform todo"
+}

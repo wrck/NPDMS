@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-008",
+  "status": "REVIEW_REQUIRED",
+  "requirementSlices": ["CUT-05@V2=FULL"],
+  "ownerContext": "CUT",
+  "extends": "F-CUT-005-physical-contract.json",
+  "tables": [
+    {
+      "name": "cut_approval_instance",
+      "strategy": "FEATURE_FORWARD_ALTER",
+      "newColumns": {
+        "lead_time_enabled": "BIT(1) NOT NULL NO DEFAULT after migration",
+        "lead_time_snapshot": "JSON NULL"
+      },
+      "checks": [
+        "lead_time_enabled=b'1' requires grade_code IN ('A','B') and lead_time_snapshot IS NOT NULL",
+        "lead_time_enabled=b'0' requires lead_time_snapshot IS NULL",
+        "new V2 A/B creation always writes enabled=1; new C/D writes enabled=0"
+      ],
+      "jsonContract": "exact LeadTimeCompliance from F-CUT-008-api-contract.json; immutable after insert"
+    },
+    {
+      "name": "cut_approval_notification",
+      "strategy": "FEATURE_FORWARD_ALTER",
+      "newColumns": {
+        "channel_code": "VARCHAR(24) NOT NULL NO DEFAULT after migration",
+        "provider_reference_id": "VARCHAR(128) NULL",
+        "last_attempt_at": "DATETIME(3) NULL"
+      },
+      "extendedEnums": {
+        "channel_code": ["IN_PLATFORM", "SMS", "EMAIL", "DINGTALK"],
+        "status_code": ["PENDING", "SENT", "PENDING_RETRY", "ACCEPTED", "DELIVERY_UNKNOWN"]
+      },
+      "checks": [
+        "IN_PLATFORM uses the existing message_id/SENT semantics and provider_reference_id is null",
+        "external channels keep message_id null; ACCEPTED requires provider_reference_id and last_attempt_at",
+        "external DELIVERY_UNKNOWN requires last_attempt_at and is not automatically retried",
+        "PENDING_RETRY requires retry_count>0,next_retry_at,last_attempt_at,last_error_code",
+        "PENDING has no provider result or attempt timestamp"
+      ],
+      "uniqueKeys": ["existing uk(tenant_id,delivery_key) remains authoritative"]
+    }
+  ],
+  "migration": {
+    "instanceRows": "existing rows are deterministically backfilled lead_time_enabled=b'0', lead_time_snapshot remains null; no historical calculation",
+    "notificationRows": "existing rows are deterministically backfilled channel_code='IN_PLATFORM'; delivery_key,message_id,status,retry/time fields are not rewritten",
+    "defaults": "temporary defaults used only inside the forward migration are removed before completion; application writes all new fields explicitly",
+    "legacy": "pms_cut_task/pms_cut_plan are not read, migrated or dual-written"
+  },
+  "ruleSnapshot": {
+    "version": "CUT_LEAD_TIME_R034_V1",
+    "timezoneId": "Asia/Shanghai",
+    "mapping": "exact leadTimeRules from F-CUT-008-api-contract.json",
+    "allocation": "calculated once inside F-CUT-005 start outer transaction before approval insert; never recomputed in query"
+  },
+  "notificationStateTransitions": {
+    "create": "node activation transaction appends external PENDING rows without provider call",
+    "accepted": "PENDING|PENDING_RETRY -> ACCEPTED by version CAS",
+    "explicitFailure": "PENDING|PENDING_RETRY -> PENDING_RETRY with same deliveryKey and server retry time",
+    "unknown": "PENDING|PENDING_RETRY -> DELIVERY_UNKNOWN; excluded from automatic retry",
+    "approvalIsolation": "none of these transitions updates cut_approval_instance/node/task"
+  },
+  "lockOrder": [
+    "existing F-CUT-005 task/plan/approval/node locks",
+    "append external channel rows in channel enum order",
+    "delivery Job locks notification rows only after approval transaction commits"
+  ],
+  "hardDependencies": [
+    "F-CUT-005 approval instance and node activation",
+    "PlatformCommandExecutionApi for approval command idempotency/audit",
+    "INT-10 SMS/EMAIL reserved port",
+    "INT-05 DINGTALK reserved port"
+  ],
+  "controlledPositiveLoop": "CUT tests use deterministic ports for all three channels; production providers and job activation are outside this Feature implementation scope"
+}

@@ -374,6 +374,8 @@ F-CUT-004仅新增`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrang
 
 F-CUT-005以前向`NEW_ONLY`新增`cut_approval_instance/node/review_item/reassignment/notification`五表。实例按任务+方案revision唯一，冻结原发起人项目范围版本和精确`ApprovalSourceSnapshot`；节点按实例+序号唯一且每个实例最多一个PENDING节点，候选快照包含完整SYSTEM成员集合、逐人项目范围版本和交集结论；五项评审与改派历史追加保存。通知只在审批事务内追加`PENDING`，提交后独立投递失败转`PENDING_RETRY`，不改变审批结果。精确字段、可空联合、生成标记、路由和锁序由`specs/features/F-CUT-005-physical-contract.json`锁定。旧`pms_cut_task/pms_cut_plan`审批字段不迁移、不双写，也不产生新审批或批准事件。
 
+F-CUT-008以前向ALTER扩展上述两张Owner表，不新建第二套审批或通知表：`cut_approval_instance`增加`lead_time_enabled/lead_time_snapshot`，仅新建A/B实例冻结`CUT_LEAD_TIME_R034_V1`判断；既有实例及新C/D实例保持空快照。`cut_approval_notification`增加渠道、外部Provider引用和最后尝试时间；既有记录只确定性标记为`IN_PLATFORM`，不改deliveryKey、messageId、状态或历史时间。SMS/EMAIL/DINGTALK按节点版本和渠道唯一，外部受理、明确失败或未知结果均不得更新审批事实。精确联合、迁移和锁序见`specs/features/F-CUT-008-physical-contract.json`。
+
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 
 `pms_cut_task -> cut_task`采用来源联合而非把旧字段冒充新流程：新平台任务使用`task_origin=NEW_PLATFORM`并满足CUT-07正式类型、设备范围、IMP就绪快照、项目水位和负责人等写入守卫；经资格校验的旧行使用`task_origin=LEGACY_FORWARD/task_status=LEGACY_UNKNOWN`，只在`legacy_cutover_type_raw/legacy_network_mode_raw/legacy_task_id/legacy_status_value/legacy_mapping_version`保留旧原值。LEGACY_FORWARD的当前类型/组网、负责人、客户、IMP快照、项目水位、人工等级和当前评估必须为NULL；旧`0..8`状态不映射为`GRADE_CONFIRMING/SURVEYING/PLAN_DRAFTING`，旧默认等级不映射人工等级。只读行不生成设备范围、阶段历史或评估，也不占用新路径活动设备唯一性。损坏、软删除、跨租户/项目无法解析或目标身份冲突行保留旧表并记录迁移问题，不补默认事实。

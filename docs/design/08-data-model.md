@@ -221,6 +221,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverApproval | P5审批实例、冻结来源/路由、当前节点、暂停原因、替代链和最终决定 | F-CUT-005唯一Owner；驳回或来源失效后的旧实例不可恢复或覆盖 |
 | Cutover | CutoverApprovalNode / ReviewItem / Reassignment / Notification | 串行节点、五项评审、服务经理P2复核、改派历史和站内通知投递 | 决定与改派历史追加保存；通知失败不回滚审批；节点事实而非通知是待办真值 |
+| Cutover | CutoverApprovalLeadTimeSnapshot / ExternalNotificationDelivery | CUT-05@V2的A/B专项提前时间冻结判断与短信、邮件、钉钉渠道记录 | 判断只作审批参考；外部渠道失败或未知不改变审批、节点、待办或站内通知 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
 | Inspection | InspectionRule | 可执行规则、参数和版本 | 任务冻结规则版本；规则发布后不可覆盖 |

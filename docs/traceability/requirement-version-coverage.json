@@ -173,6 +173,19 @@
       ]
     },
     {
+      "featureId": "F-CUT-008",
+      "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
+      "taskPath": "tasks/features/F-CUT-008.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "CUT-05@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-IMP-001",
       "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
       "taskPath": "tasks/features/F-IMP-001.md",
@@ -1929,7 +1942,15 @@
       "businessResult": "A/B级专项提前时间判断及经定义的外部提醒",
       "versionBoundary": "不新增平台通用SLA；短信/邮件走INT-10、钉钉走INT-05",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-008",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
+          "taskPath": "tasks/features/F-CUT-008.md"
+        }
+      ]
     },
     {
       "sliceKey": "INT-02@V2",

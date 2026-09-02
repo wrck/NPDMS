@@ -199,6 +199,8 @@ UMC只负责巡检结果解析和报告文件生成；设备连接和原始采�
 - 接口受理、渠道送达与业务完成分别记录；未知送达状态不重复轰炸。
 - 渠道失败时站内消息立即保留，按策略使用钉钉兜底；通知失败不延长或改变业务节点状态。
 
+F-CUT-008对每次P5节点激活继续保留F-CUT-005站内通知，并追加`SMS/EMAIL/DINGTALK`三条渠道记录。CUT只传受信租户、recipientUserId、内部任务链接、白名单变量、deliveryKey和correlationId；手机号、邮箱、钉钉账号及密钥由INT-10/INT-05物理Owner解析。第三方接口只预留消费端口，生产Provider缺失时外部投递Job保持暂停；CUT以受控替身验证受理、明确失败和未知结果，不注册生产Fake。精确合同见`specs/features/F-CUT-008-external-notification-contract.json`。
+
 ## 11. Device Access & Collection 子应用集成
 
 适用 Requirement：INT-12、EXE-03～04、CUT-03、CUT-06、INS-02/04、NFR-02。
