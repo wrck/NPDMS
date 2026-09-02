@@ -16,13 +16,13 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
         sourceKey = text(sourceKey, 128, "sourceKey");
         expectedPreviousSourceVersion = expectedVersion(expectedPreviousSourceVersion);
         sourceVersion = version(sourceVersion, "sourceVersion");
-        companyCode = text(companyCode, 32, "companyCode");
+        companyCode = text(companyCode, 64, "companyCode");
         orderNo = text(orderNo, 64, "orderNo");
         orderType = text(orderType, 32, "orderType");
         customerCode = optionalText(customerCode, 64, "customerCode");
-        customerName = optionalText(customerName, 255, "customerName");
+        customerName = optionalText(customerName, 512, "customerName");
         amount = nonNegative(amount, "amount");
-        currencyCode = optionalText(currencyCode, 16, "currencyCode");
+        currencyCode = optionalText(currencyCode, 32, "currencyCode");
         if (lifecycleStatus == null) {
             throw invalid("lifecycleStatus must not be null");
         }

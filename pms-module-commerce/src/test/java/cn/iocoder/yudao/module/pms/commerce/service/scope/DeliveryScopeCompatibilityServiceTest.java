@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineD
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
@@ -42,12 +43,32 @@ class DeliveryScopeCompatibilityServiceTest {
     @Mock private ProjectOfficeFactApi projectOfficeFactApi;
     @Mock private AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     @Mock private AssetDeviceScopeApi assetDeviceScopeApi;
+    @Mock private DeliveryScopeProjectVersionService projectVersionService;
     private DeliveryScopeCompatibilityService service;
 
     @BeforeEach
     void setUp() {
         service = new DeliveryScopeCompatibilityService(orderLineMapper, scopeMapper, detailMapper,
-                outboxMapper, projectOfficeFactApi, acceptanceBindingCoordinator, assetDeviceScopeApi);
+                outboxMapper, projectOfficeFactApi, acceptanceBindingCoordinator, assetDeviceScopeApi,
+                projectVersionService);
+        lenient().when(projectVersionService.current(1L, 100L)).thenReturn(4L);
+        lenient().when(projectVersionService.lockExisting(eq(1L), anyLong()))
+                .thenAnswer(invocation -> projectVersion(invocation.getArgument(1)));
+        lenient().when(projectVersionService.lock(eq(1L), anyLong(), anyString(), any()))
+                .thenAnswer(invocation -> projectVersion(invocation.getArgument(1)));
+        lenient().when(projectVersionService.advance(any(), anyString(), anyString(), any())).thenAnswer(
+                invocation -> invocation.<DeliveryScopeProjectVersionDO>getArgument(0).getScopeVersion() + 1);
+    }
+
+    private DeliveryScopeProjectVersionDO projectVersion(Long projectId) {
+        DeliveryScopeProjectVersionDO row = new DeliveryScopeProjectVersionDO();
+        row.setId(700L + projectId);
+        row.setTenantId(1L);
+        row.setProjectId(projectId);
+        row.setScopeVersion(projectId == 100L ? 4L : 0L);
+        row.setPayloadVersion(projectId == 100L ? 4 : 0);
+        row.setVersion(0);
+        return row;
     }
 
     @Test
@@ -103,6 +124,11 @@ class DeliveryScopeCompatibilityServiceTest {
                         && detail.getSerialNo() == null && detail.getDetailSequence() == 1));
         assertEquals(new BigDecimal("3"), detailCaptor.getAllValues().get(0).getAllocatedQty());
         assertEquals(new BigDecimal("2"), detailCaptor.getAllValues().get(1).getAllocatedQty());
+        InOrder commerceLockOrder = inOrder(orderLineMapper, scopeMapper, projectVersionService);
+        commerceLockOrder.verify(orderLineMapper).selectByIdsForUpdate(any());
+        commerceLockOrder.verify(scopeMapper).selectActiveByProjectIdForUpdate(any());
+        commerceLockOrder.verify(projectVersionService).lockExisting(1L, 100L);
+        commerceLockOrder.verify(projectVersionService).lockExisting(1L, 101L);
     }
 
     @Test
@@ -124,7 +150,7 @@ class DeliveryScopeCompatibilityServiceTest {
 
         assertTrue(result.valid());
         verify(acceptanceBindingCoordinator).bindIfRequired(parentStage, 500L, 5L, "idem");
-        verify(acceptanceBindingCoordinator).bindIfRequired(childStage, 501L, 5L, "idem");
+        verify(acceptanceBindingCoordinator).bindIfRequired(childStage, 501L, 1L, "idem");
     }
 
     @Test
@@ -141,6 +167,7 @@ class DeliveryScopeCompatibilityServiceTest {
         verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
         verifyNoInteractions(detailMapper);
         verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+        verifyNoInteractions(projectVersionService);
     }
 
     @Test
@@ -181,6 +208,7 @@ class DeliveryScopeCompatibilityServiceTest {
         verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
         verifyNoInteractions(detailMapper);
         verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+        verifyNoInteractions(projectVersionService);
     }
 
     @Test

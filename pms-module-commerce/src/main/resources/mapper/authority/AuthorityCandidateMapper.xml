@@ -23,21 +23,22 @@
     <select id="selectConfirmedOwnerForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.AuthorityCandidateOwnerFact">
         <choose>
             <when test="objectType == 'CONTRACT'">
-                SELECT id owner_id, 'com_contract' owner_table, company_code, source_version, authority_status
+                SELECT id owner_id, 'CONTRACT' owner_type, company_code,
+                       master_source_version source_version, authority_status
                 FROM com_contract
                 WHERE tenant_id = #{tenantId} AND id = #{ownerId} AND deleted = b'0'
                 FOR UPDATE
             </when>
             <when test="objectType == 'SALES_ORDER'">
-                SELECT id owner_id, 'com_sales_order' owner_table, company_code, source_version, authority_status
+                SELECT id owner_id, 'SALES_ORDER' owner_type, company_code, source_version, authority_status
                 FROM com_sales_order
                 WHERE tenant_id = #{tenantId} AND id = #{ownerId} AND deleted = b'0'
                 FOR UPDATE
             </when>
             <otherwise>
-                SELECT l.id owner_id, 'com_order_line' owner_table, o.company_code, l.source_version,
+                SELECT l.id owner_id, 'ORDER_LINE' owner_type, o.company_code, l.source_version,
                        l.quantity_status authority_status
-                FROM com_order_line l
+                FROM com_sales_order_line l
                 JOIN com_sales_order o ON o.tenant_id = l.tenant_id AND o.id = l.order_id AND o.deleted = b'0'
                 WHERE l.tenant_id = #{tenantId} AND l.id = #{ownerId} AND l.deleted = b'0'
                 FOR UPDATE
@@ -47,9 +48,9 @@
 
     <update id="decideByVersion">
         UPDATE com_authority_candidate
-        SET candidate_status = #{candidateStatus}, matched_owner_table = #{matchedOwnerTable},
+        SET candidate_status = #{candidateStatus}, matched_owner_type = #{matchedOwnerType},
             matched_owner_id = #{matchedOwnerId}, matched_owner_source_version = #{matchedOwnerSourceVersion},
-            decided_by = #{decidedBy}, decided_at = #{decidedAt}, version = version + 1,
+            decision_reason = #{decisionReason}, decided_by = #{decidedBy}, decided_at = #{decidedAt}, version = version + 1,
             updater = CAST(#{decidedBy} AS CHAR), update_time = #{decidedAt}
         WHERE tenant_id = #{tenantId} AND id = #{candidateId} AND version = #{expectedVersion}
           AND candidate_status = 'PENDING_RECONCILIATION' AND deleted = b'0'

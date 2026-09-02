@@ -4,8 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
-import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.AuthorityWriteResult;
-import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAuthorityWriteCommand;
+import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
 import cn.iocoder.yudao.module.pms.commerce.controller.admin.authority.vo.CommerceAuthorityImportBatchReqVO;
 import cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityImportApplicationService;
 import jakarta.validation.Valid;
@@ -36,42 +35,52 @@ public class CommerceAuthorityImportController {
 
     @PostMapping
     @PreAuthorize("@ss.hasPermission('pms:commerce:authority:write')")
-    public CommonResult<AuthorityWriteResult> create(
+    public CommonResult<CommerceAuthorityBatchResult> create(
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String operationId,
             @RequestHeader("X-Source-System") @NotBlank @Size(max = 32)
             @jakarta.validation.constraints.Pattern(regexp = "[A-Z0-9][A-Z0-9_-]*") String sourceSystem,
+            @RequestHeader("X-Correlation-Id") @NotBlank @Size(max = 128) String correlationId,
             @Valid @RequestBody CommerceAuthorityImportBatchReqVO request) {
         return withTenant(() -> {
             Long tenantId = currentTenantId();
             Long actorUserId = currentUserId();
-            CommerceAuthorityWriteCommand command = toCommand(
-                    tenantId, sourceSystem.trim(), operationId.trim(), request);
+            CommerceAuthorityBatchCommand command = toCommand(
+                    tenantId, sourceSystem.trim(), operationId.trim(), correlationId.trim(), request);
             return success(applicationService.execute(command,
                     new CommerceAuthorityImportApplicationService.Actor(tenantId, actorUserId)));
         });
     }
 
-    CommerceAuthorityWriteCommand toCommand(Long tenantId, String sourceSystem, String operationId,
-                                             CommerceAuthorityImportBatchReqVO request) {
-        List<CommerceAuthorityWriteCommand.ContractSourceRecord> contracts = safe(request.contracts()).stream()
-                .map(value -> new CommerceAuthorityWriteCommand.ContractSourceRecord(
-                        sourceSystem, value.sourceRecordKey(), value.sourceVersion(), value.companyCode(),
-                        value.contractNo(), value.contractName(), value.status(), value.sourceUpdatedAt()))
+    CommerceAuthorityBatchCommand toCommand(Long tenantId, String sourceSystem, String operationId,
+                                             String correlationId, CommerceAuthorityImportBatchReqVO request) {
+        List<CommerceContractFact> contracts = safe(request.contracts()).stream()
+                .map(value -> new CommerceContractFact(value.sourceRecordKey(),
+                        value.expectedPreviousSourceVersion(), value.sourceVersion(), value.companyCode(),
+                        value.contractNo(), value.contractName(), value.customerCode(), value.customerName(),
+                        value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt()))
                 .toList();
-        List<CommerceAuthorityWriteCommand.SalesOrderSourceRecord> orders = safe(request.salesOrders()).stream()
-                .map(value -> new CommerceAuthorityWriteCommand.SalesOrderSourceRecord(
-                        sourceSystem, value.sourceRecordKey(), value.sourceVersion(), value.companyCode(),
-                        value.orderType(), value.orderNo(), value.status(), value.sourceUpdatedAt()))
+        List<CommerceSalesOrderFact> orders = safe(request.salesOrders()).stream()
+                .map(value -> new CommerceSalesOrderFact(value.sourceRecordKey(),
+                        value.expectedPreviousSourceVersion(), value.sourceVersion(), value.companyCode(),
+                        value.orderNo(), value.orderType(), value.customerCode(), value.customerName(),
+                        value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt()))
                 .toList();
-        List<CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord> lines = safe(request.salesOrderLines()).stream()
-                .map(value -> new CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord(
-                        sourceSystem, value.sourceRecordKey(), value.sourceVersion(), value.orderSourceRecordKey(),
+        List<CommerceOrderLineFact> lines = safe(request.salesOrderLines()).stream()
+                .map(value -> new CommerceOrderLineFact(value.sourceRecordKey(),
+                        value.expectedPreviousSourceVersion(), value.sourceVersion(), value.orderSourceRecordKey(),
                         value.lineNo(), value.itemCode(), value.itemDescription(), value.productCode(),
-                        value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(), value.unitCode(),
-                        value.unitScale(), value.quantityStatus(), value.status(), value.sourceUpdatedAt()))
+                        value.modelCode(), value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(),
+                        value.unitCode(), value.unitScale(), value.quantityStatus(), value.lifecycleStatus(),
+                        value.sourceUpdatedAt()))
                 .toList();
-        return new CommerceAuthorityWriteCommand(tenantId, request.sourceBatchId(), operationId,
-                contracts, orders, lines);
+        List<CommerceOrderContractRelationFact> relations = safe(request.orderContractRelations()).stream()
+                .map(value -> new CommerceOrderContractRelationFact(value.salesOrderSourceKey(),
+                        value.contractSourceKey(), value.expectedPreviousSourceVersion(), value.sourceVersion(),
+                        value.effectiveFrom(), value.effectiveTo()))
+                .toList();
+        return new CommerceAuthorityBatchCommand(tenantId, operationId, request.batchId(), sourceSystem,
+                request.sourceWatermark(), contracts, orders, lines, relations,
+                request.occurredAt(), correlationId);
     }
 
     private Long currentTenantId() {

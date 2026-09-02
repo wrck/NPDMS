@@ -10,6 +10,7 @@ public record DeliveryScopeChangeCommand(
         Long projectId,
         Integer expectedProjectVersion,
         Long expectedProjectScopeVersion,
+        Long expectedDeliveryScopeVersion,
         Long expectedAllocationVersion,
         String expectedOrderLineSourceVersion,
         BigDecimal proposedAllocatedQuantity,

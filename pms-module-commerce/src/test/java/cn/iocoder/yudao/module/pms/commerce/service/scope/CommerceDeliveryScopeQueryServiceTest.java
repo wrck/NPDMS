@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDe
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,13 @@ class CommerceDeliveryScopeQueryServiceTest {
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private DeliveryScopeMapper scopeMapper;
     @Mock private DeliveryScopeDetailMapper detailMapper;
+    @Mock private DeliveryScopeProjectVersionService projectVersionService;
     private CommerceDeliveryScopeQueryService service;
 
     @BeforeEach
     void setUp() {
-        service = new CommerceDeliveryScopeQueryService(projectScopeApi, scopeMapper, detailMapper);
+        service = new CommerceDeliveryScopeQueryService(
+                projectScopeApi, scopeMapper, detailMapper, projectVersionService);
     }
 
     @Test
@@ -71,5 +74,17 @@ class CommerceDeliveryScopeQueryServiceTest {
         assertEquals(0L, service.page(1L, 7L, null, null, true, 0, 20).getTotal());
 
         verifyNoInteractions(scopeMapper, detailMapper);
+    }
+
+    @Test
+    void shouldExposeCurrentDeliveryScopeVersionOnlyForVisibleProject() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(projectVersionService.current(1L, 10L)).thenReturn(6L);
+
+        assertEquals(6L, service.currentVersion(1L, 7L, 10L));
+        assertEquals(DeliveryScopeFactException.Code.PROJECT_NOT_VISIBLE_OR_INELIGIBLE,
+                assertThrows(DeliveryScopeFactException.class,
+                        () -> service.currentVersion(1L, 7L, 11L)).getCode());
+        verify(projectVersionService).current(1L, 10L);
     }
 }

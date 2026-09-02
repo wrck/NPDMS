@@ -55,7 +55,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
     "AssetSyncSnapshot": ("ast_asset_sync_batch", "ast_asset_sync_item", "ast_device"), "MaintenanceFact": ("ast_maintenance_fact",),
     "RMAReplacement": ("ast_rma_replacement",), "Contract": ("com_contract",), "SalesOrder": ("com_sales_order",),
-    "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "Supplier": ("res_supplier", "res_qualification"),
+    "OrderLine": ("com_sales_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "Supplier": ("res_supplier", "res_qualification"),
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
     "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
@@ -252,7 +252,30 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         ],
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="MERGE_ONLY_DETERMINISTIC_BUSINESS_KEY_GROUPS;CONFLICTING_GROUPS_REMAIN_MIGRATION_ISSUES")],
-    "OrderLine": [source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
+    "OrderLine": [
+        source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+            targetFieldBindings=[
+                binding("pm_order_line_from_erp.source", "com_sales_order_line.source_system", "normalize the declared ERP source code; empty source becomes a migration issue", "data-elements://schema-records.jsonl#系统支撑!A786"),
+                binding("pm_order_line_from_erp.compCode", "com_sales_order_line.company_code", "direct after company-code normalization; empty code becomes a migration issue", "data-elements://schema-records.jsonl#系统支撑!A783"),
+                binding("pm_order_line_from_erp.orderNumber", "com_sales_order_line.order_no", "direct after resolving the parent order by the full approved business key", "data-elements://schema-records.jsonl#系统支撑!A774"),
+                binding("pm_order_line_from_erp.lineNum", "com_sales_order_line.line_no", "direct after normalization; empty or duplicate line numbers become migration issues", "data-elements://schema-records.jsonl#系统支撑!A775"),
+                binding("pm_order_line_from_erp.lineType", "com_sales_order_line.line_type", "map only through the approved AI-MIG-000 line-type value map", "data-elements://schema-records.jsonl#系统支撑!A782"),
+                binding("pm_order_line_from_erp.itemCode", "com_sales_order_line.item_code", "copy as the legacy ERP item code; never promote it to product_code", "data-elements://schema-records.jsonl#系统支撑!A776"),
+                binding("pm_order_line_from_erp.itemDesc", "com_sales_order_line.item_desc", "copy the source item description independently from its code", "data-elements://schema-records.jsonl#系统支撑!A777"),
+                binding("pm_order_line_from_erp.orderQuantity", "com_sales_order_line.order_qty", "decimal conversion preserving sign and source value", "data-elements://schema-records.jsonl#系统支撑!A778"),
+                binding("pm_order_line_from_erp.openQuantity", "com_sales_order_line.open_qty", "decimal conversion preserving sign and source value", "data-elements://schema-records.jsonl#系统支撑!A779"),
+                binding("pm_order_line_from_erp.bundleCode", "com_sales_order_line.bundle_code", "copy as the source bundle code", "data-elements://schema-records.jsonl#系统支撑!A780"),
+                binding("pm_order_line_from_erp.warrantyMonth", "com_sales_order_line.warranty_month", "integer conversion; invalid values become migration issues", "data-elements://schema-records.jsonl#系统支撑!A781"),
+                binding("pm_order_line_from_erp.profitCenter", "com_sales_order_line.profit_center", "copy as the source profit-center code", "data-elements://schema-records.jsonl#系统支撑!A784"),
+                binding("pm_order_line_from_erp.realOrderExecNumber", "com_sales_order_line.real_execution_no", "copy as the source actual execution number", "data-elements://schema-records.jsonl#系统支撑!A785"),
+                binding("pm_order_line_from_erp.syncTime", "com_sales_order_line.source_sync_time", "preserve the latest successful source synchronization time", "data-elements://schema-records.jsonl#系统支撑!A788"),
+            ],
+            statusMapping={"policy": "NO_SOURCE_STATUS_TARGET_STATUS_REQUIRES_APPROVED_CONSTANT", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+            terminalDisposition="CREATE_LINE_ONLY_AFTER_PARENT_ORDER_FULL_KEY_AND_REQUIRED_LINE_FACTS_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE"),
+        source("CURRENT_FORWARD_TABLE", "com_order_line@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical sales-order-line Owner", "APPROVED", "F-COM-001",
+            requiredTargetMappings={"com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"},
+            evidenceRef="feature-contract://F-COM-001#v70Conversion"),
+    ],
     "DeliveryScope": [source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
         targetFieldBindings=[
             binding("pm_project_product_line.projectId", "com_delivery_scope.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the target project key", "data-elements://schema-records.jsonl#项目管理!A166"),
@@ -262,8 +285,26 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
             binding("pm_project_product_line.orderNumber|lineNum", "com_delivery_scope.order_line_id", "TARGET_KEY_LOOKUP resolves the order line using the full approved business key", "data-elements://schema-records.jsonl#项目管理!A174:A175"),
         ],
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
-        terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS")],
-    "DeliveryScopeDetail": [source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE")],
+        terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS"),
+        source("CURRENT_FORWARD_TABLE", "com_delivery_scope@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical delivery-scope Owner", "APPROVED", "F-COM-001",
+            requiredTargetMappings={
+                "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+                "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            },
+            evidenceRef="feature-contract://F-COM-001#v70Conversion"),
+    ],
+    "DeliveryScopeDetail": [
+        source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE"),
+        source("CURRENT_FORWARD_TABLE", "com_delivery_scope_detail@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical delivery-scope-detail Owner", "APPROVED", "F-COM-001",
+            requiredTargetMappings={"com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE"},
+            evidenceRef="feature-contract://F-COM-001#v70Conversion"),
+    ],
     "Supplier": [source("LEGACY_TABLE", "pm_subcontract_facilitator", "STRUCTURED", "map supplier identity and qualification evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "SubcontractRequest": [source("LEGACY_TABLE", "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback", "STRUCTURED", "map request scope, price revision and approval/callback evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "PaymentGate": [source("LEGACY_TABLE", "pm_subcontract_project_payment|pm_subcontract_project_payment_sse", "STRUCTURED", "map approved prerequisites and external finance result reference", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
@@ -445,6 +486,9 @@ def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[s
             if table not in current_catalog:
                 raise ValueError(f"current implementation source table not found: {table}")
             entry["evidenceRef"] = f"implementation://{commit}/{current_catalog[table]}#field-pattern={entry['sourceObject']}"
+        elif source_type == "CURRENT_FORWARD_TABLE":
+            if not entry.get("evidenceRef"):
+                raise ValueError(f"current-forward source requires explicit feature evidence: {entry['sourceObject']}")
         elif source_type in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}:
             tables = [name.split(".", 1)[0] for name in source_objects]
             missing = [name for name in tables if not matches_any(name, legacy_catalog)]

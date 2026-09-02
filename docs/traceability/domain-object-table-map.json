@@ -777,7 +777,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "com_order_line"
+        "com_sales_order_line"
       ]
     },
     "DeliveryScope": {

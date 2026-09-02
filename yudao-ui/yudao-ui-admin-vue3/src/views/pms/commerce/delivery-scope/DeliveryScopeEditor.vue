@@ -13,7 +13,7 @@
       show-icon
     />
     <template v-else>
-      <el-descriptions :column="narrow ? 1 : 3" border class="mb-18px">
+      <el-descriptions :column="narrow ? 1 : 4" border class="mb-18px">
         <el-descriptions-item label="项目 ID">{{ projectContext.projectId }}</el-descriptions-item>
         <el-descriptions-item label="项目版本">{{
           projectContext.projectVersion
@@ -21,6 +21,7 @@
         <el-descriptions-item label="范围版本">{{
           projectContext.projectScopeVersion
         }}</el-descriptions-item>
+        <el-descriptions-item label="交付范围水位">{{ deliveryScopeVersion }}</el-descriptions-item>
       </el-descriptions>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="订单行" prop="orderLineId">
@@ -140,7 +141,10 @@ import {
 } from '../commerceInteraction'
 
 defineOptions({ name: 'PmsCommerceDeliveryScopeEditor' })
-const props = defineProps<{ projectContext?: ProjectRouteContext }>()
+const props = defineProps<{
+  projectContext?: ProjectRouteContext
+  deliveryScopeVersion?: number
+}>()
 const emit = defineEmits<{ success: [] }>()
 const message = useMessage()
 const { width } = useWindowSize()
@@ -205,11 +209,18 @@ const openAdjust = async (scope: DeliveryScopeRespVO) => {
   }
 }
 const requestOf = () => {
-  if (!props.projectContext || !selectedLine.value || !form.quantity) return undefined
+  if (
+    !props.projectContext ||
+    props.deliveryScopeVersion === undefined ||
+    !selectedLine.value ||
+    !form.quantity
+  )
+    return undefined
   return {
     projectId: props.projectContext.projectId,
     expectedProjectVersion: props.projectContext.projectVersion,
     expectedProjectScopeVersion: props.projectContext.projectScopeVersion,
+    expectedDeliveryScopeVersion: props.deliveryScopeVersion,
     orderLineId: selectedLine.value.id,
     expectedOrderLineSourceVersion: selectedLine.value.sourceVersion,
     proposedQuantity: form.quantity,
@@ -236,6 +247,7 @@ const submit = async () => {
       const data: DeliveryScopeAssignReqVO = {
         projectId: request.projectId,
         expectedProjectScopeVersion: request.expectedProjectScopeVersion,
+        expectedDeliveryScopeVersion: request.expectedDeliveryScopeVersion,
         orderLineId: request.orderLineId,
         expectedOrderLineSourceVersion: request.expectedOrderLineSourceVersion,
         allocatedQuantity: request.proposedQuantity,
@@ -254,6 +266,7 @@ const submit = async () => {
         projectId: request.projectId,
         expectedProjectVersion: request.expectedProjectVersion,
         expectedProjectScopeVersion: request.expectedProjectScopeVersion,
+        expectedDeliveryScopeVersion: request.expectedDeliveryScopeVersion,
         expectedOrderLineSourceVersion: request.expectedOrderLineSourceVersion,
         proposedQuantity: request.proposedQuantity,
         serialNumbers: request.serialNumbers,

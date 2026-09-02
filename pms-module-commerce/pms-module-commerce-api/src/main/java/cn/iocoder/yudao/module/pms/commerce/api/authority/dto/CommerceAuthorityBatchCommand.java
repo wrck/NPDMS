@@ -18,7 +18,9 @@ public record CommerceAuthorityBatchCommand(Long tenantId, String eventId, Strin
                                             LocalDateTime occurredAt, String correlationId) {
 
     public CommerceAuthorityBatchCommand {
-        positive(tenantId, "tenantId");
+        if (tenantId == null || tenantId < 0) {
+            throw invalid("tenantId must be non-negative");
+        }
         eventId = text(eventId, 128, "eventId");
         batchId = text(batchId, 128, "batchId");
         sourceSystem = text(sourceSystem, 32, "sourceSystem");

@@ -6,7 +6,7 @@
   "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
-    "allBindingCount": 40,
+    "allBindingCount": 54,
     "v17BindingCount": 18,
     "v17LegacyBindingCount": 14,
     "v17LegacySourceTableCount": 8,
@@ -808,7 +808,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "com_order_line"
+        "com_sales_order_line"
       ]
     },
     "DeliveryScope": {
@@ -3079,7 +3079,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "com_order_line"
+        "com_sales_order_line"
       ],
       "sources": [
         {
@@ -3089,7 +3089,110 @@
           "transform": "map stable order-line key and signed quantities; empty/ambiguous keys become issues",
           "mappingStatus": "READY_FOR_FIELD_MAPPING",
           "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_order_line_from_erp.source",
+              "targetField": "com_sales_order_line.source_system",
+              "transform": "normalize the declared ERP source code; empty source becomes a migration issue",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A786"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.compCode",
+              "targetField": "com_sales_order_line.company_code",
+              "transform": "direct after company-code normalization; empty code becomes a migration issue",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A783"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.orderNumber",
+              "targetField": "com_sales_order_line.order_no",
+              "transform": "direct after resolving the parent order by the full approved business key",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A774"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.lineNum",
+              "targetField": "com_sales_order_line.line_no",
+              "transform": "direct after normalization; empty or duplicate line numbers become migration issues",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A775"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.lineType",
+              "targetField": "com_sales_order_line.line_type",
+              "transform": "map only through the approved AI-MIG-000 line-type value map",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A782"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.itemCode",
+              "targetField": "com_sales_order_line.item_code",
+              "transform": "copy as the legacy ERP item code; never promote it to product_code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A776"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.itemDesc",
+              "targetField": "com_sales_order_line.item_desc",
+              "transform": "copy the source item description independently from its code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A777"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.orderQuantity",
+              "targetField": "com_sales_order_line.order_qty",
+              "transform": "decimal conversion preserving sign and source value",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A778"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.openQuantity",
+              "targetField": "com_sales_order_line.open_qty",
+              "transform": "decimal conversion preserving sign and source value",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A779"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.bundleCode",
+              "targetField": "com_sales_order_line.bundle_code",
+              "transform": "copy as the source bundle code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A780"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.warrantyMonth",
+              "targetField": "com_sales_order_line.warranty_month",
+              "transform": "integer conversion; invalid values become migration issues",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A781"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.profitCenter",
+              "targetField": "com_sales_order_line.profit_center",
+              "transform": "copy as the source profit-center code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A784"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.realOrderExecNumber",
+              "targetField": "com_sales_order_line.real_execution_no",
+              "transform": "copy as the source actual execution number",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A785"
+            },
+            {
+              "sourceField": "pm_order_line_from_erp.syncTime",
+              "targetField": "com_sales_order_line.source_sync_time",
+              "transform": "preserve the latest successful source synchronization time",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A788"
+            }
+          ],
+          "statusMapping": {
+            "policy": "NO_SOURCE_STATUS_TARGET_STATUS_REQUIRES_APPROVED_CONSTANT",
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_LINE_ONLY_AFTER_PARENT_ORDER_FULL_KEY_AND_REQUIRED_LINE_FACTS_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE",
           "evidenceRef": "data-elements://schema-records.jsonl#table=pm_order_line_from_erp"
+        },
+        {
+          "sourceType": "CURRENT_FORWARD_TABLE",
+          "sourceObject": "com_order_line@V70",
+          "disposition": "STRUCTURED",
+          "transform": "F-COM-001 controlled forward conversion to the canonical sales-order-line Owner",
+          "mappingStatus": "APPROVED",
+          "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"
+          },
+          "evidenceRef": "feature-contract://F-COM-001#v70Conversion"
         }
       ]
     },
@@ -3149,6 +3252,25 @@
           },
           "terminalDisposition": "CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS",
           "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_product_line"
+        },
+        {
+          "sourceType": "CURRENT_FORWARD_TABLE",
+          "sourceObject": "com_delivery_scope@V70",
+          "disposition": "STRUCTURED",
+          "transform": "F-COM-001 controlled forward conversion to the canonical delivery-scope Owner",
+          "mappingStatus": "APPROVED",
+          "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"
+          },
+          "evidenceRef": "feature-contract://F-COM-001#v70Conversion"
         }
       ]
     },
@@ -3171,6 +3293,18 @@
           "mappingStatus": "NEW_ONLY",
           "gate": "FEATURE_RELEASE",
           "evidenceRef": "phase2-contract://object=DeliveryScopeDetail"
+        },
+        {
+          "sourceType": "CURRENT_FORWARD_TABLE",
+          "sourceObject": "com_delivery_scope_detail@V70",
+          "disposition": "STRUCTURED",
+          "transform": "F-COM-001 controlled forward conversion to the canonical delivery-scope-detail Owner",
+          "mappingStatus": "APPROVED",
+          "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE"
+          },
+          "evidenceRef": "feature-contract://F-COM-001#v70Conversion"
         }
       ]
     },

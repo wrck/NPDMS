@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineD
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
@@ -29,7 +30,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -54,6 +54,7 @@ public class DeliveryScopeCompatibilityService {
     private final ProjectOfficeFactApi projectOfficeFactApi;
     private final AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     private final AssetDeviceScopeApi assetDeviceScopeApi;
+    private final DeliveryScopeProjectVersionService projectVersionService;
 
     public List<DeliveryScopeSliceDTO> getAvailableSlices(Long parentProjectId, Long expectedScopeVersion) {
         Long tenantId = TenantContextHolder.getTenantId();
@@ -61,7 +62,7 @@ public class DeliveryScopeCompatibilityService {
             return List.of();
         }
         List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(parentProjectId);
-        long currentVersion = currentScopeVersion(scopes);
+        long currentVersion = projectVersionService.current(tenantId, parentProjectId);
         if (expectedScopeVersion != null && !Objects.equals(expectedScopeVersion, currentVersion)) {
             throw new IllegalStateException("COM_SCOPE_VERSION_CONFLICT");
         }
@@ -91,7 +92,8 @@ public class DeliveryScopeCompatibilityService {
         Map<Long, SalesOrderLineDO> lines = linesById(orderLineMapper.selectByIds(
                 new SalesOrderLineIdsQuery(command.tenantId(), lineIds)));
         List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(command.parentProjectId());
-        validateScopeVersion(command.expectedScopeVersion(), scopes, errors);
+        long currentVersion = projectVersionService.current(command.tenantId(), command.parentProjectId());
+        validateScopeVersion(command.expectedScopeVersion(), currentVersion, errors);
         validateQuantities(command.allocations(), lines, scopes, errors);
         validateNoSerialSubjects(command.allocations(), lines, errors);
         validateRemainderSubjects(command.allocations(), lines, scopes, errors);
@@ -101,7 +103,7 @@ public class DeliveryScopeCompatibilityService {
         }
         List<SplitScopeApplyResult.AppliedScope> preview = command.allocations().stream()
                 .map(item -> new SplitScopeApplyResult.AppliedScope(item.clientItemKey(), null, null)).toList();
-        return new SplitScopeApplyResult(true, false, currentScopeVersion(scopes), preview, List.of());
+        return new SplitScopeApplyResult(true, false, currentVersion, preview, List.of());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -138,7 +140,6 @@ public class DeliveryScopeCompatibilityService {
         List<SplitScopePreviewCommand.Allocation> previewAllocations = command.allocations().stream()
                 .map(item -> new SplitScopePreviewCommand.Allocation(item.clientItemKey(), item.orderLineId(),
                         item.quantity(), item.officeDepartmentCode(), item.serialNumbers())).toList();
-        validateScopeVersion(command.expectedScopeVersion(), currentScopes, errors);
         validateQuantities(previewAllocations, lockedLines, currentScopes, errors);
         validateNoSerialSubjects(previewAllocations, lockedLines, errors);
         validateRemainderSubjects(previewAllocations, lockedLines, currentScopes, errors);
@@ -146,8 +147,41 @@ public class DeliveryScopeCompatibilityService {
             return invalid(errors);
         }
 
-        long newScopeVersion = currentScopeVersion(currentScopes) + 1;
         LocalDateTime now = LocalDateTime.now();
+        Map<Long, DeliveryScopeProjectVersionDO> projectVersions = new LinkedHashMap<>();
+        Set<Long> affectedProjectIds = new java.util.TreeSet<>();
+        affectedProjectIds.add(command.parentProjectId());
+        affectedProjectIds.addAll(command.projectIdsByClientItemKey().values());
+        List<Long> missingVersionRows = new ArrayList<>();
+        for (Long projectId : affectedProjectIds) {
+            DeliveryScopeProjectVersionDO row = projectVersionService.lockExisting(command.tenantId(), projectId);
+            long expected = Objects.equals(projectId, command.parentProjectId())
+                    ? command.expectedScopeVersion() : 0L;
+            if (row == null) {
+                if (expected == 0L) {
+                    missingVersionRows.add(projectId);
+                } else {
+                    errors.add("SCOPE_VERSION_CONFLICT:" + projectId);
+                }
+            } else if (!Objects.equals(row.getScopeVersion(), expected)) {
+                errors.add("SCOPE_VERSION_CONFLICT:" + projectId);
+            } else {
+                projectVersions.put(projectId, row);
+            }
+        }
+        if (!errors.isEmpty()) {
+            return invalid(errors);
+        }
+        for (Long projectId : missingVersionRows) {
+            DeliveryScopeProjectVersionDO row = projectVersionService.lock(
+                    command.tenantId(), projectId, "0", now);
+            if (!Objects.equals(row.getScopeVersion(), 0L)) {
+                throw new IllegalStateException("COM_SCOPE_VERSION_CONFLICT:" + projectId);
+            }
+            projectVersions.put(projectId, row);
+        }
+
+        long newScopeVersion = projectVersions.get(command.parentProjectId()).getScopeVersion() + 1;
         Map<Long, BigDecimal> requestedByLine = previewAllocations.stream().collect(Collectors.groupingBy(
                 SplitScopePreviewCommand.Allocation::orderLineId,
                 Collectors.reducing(BigDecimal.ZERO, SplitScopePreviewCommand.Allocation::quantity, BigDecimal::add)));
@@ -177,14 +211,19 @@ public class DeliveryScopeCompatibilityService {
         List<SplitScopeApplyResult.AppliedScope> applied = new ArrayList<>();
         for (SplitScopeApplyCommand.Allocation item : command.allocations()) {
             Long projectId = command.projectIdsByClientItemKey().get(item.clientItemKey());
+            long targetScopeVersion = projectVersions.get(projectId).getScopeVersion() + 1;
             SalesOrderLineDO line = lockedLines.get(item.orderLineId());
             DeliveryScopeDO scope = insertScope(command, line, projectFacts.get(projectId), item.quantity(),
-                    newScopeVersion, item.clientItemKey(), now);
+                    targetScopeVersion, item.clientItemKey(), now);
             insertDetails(command.tenantId(), scope.getId(), item, line.getProductCode());
-            insertAssignedOutbox(command, item, scope, newScopeVersion, eventIndex++, now);
+            insertAssignedOutbox(command, item, scope, targetScopeVersion, eventIndex++, now);
             acceptanceBindingCoordinator.bindIfRequired(acceptanceStages.get(projectId), scope.getId(),
                     scope.getAllocationVersion(), command.idempotencyKey());
             applied.add(new SplitScopeApplyResult.AppliedScope(item.clientItemKey(), projectId, scope.getId()));
+        }
+        for (Map.Entry<Long, DeliveryScopeProjectVersionDO> entry : projectVersions.entrySet()) {
+            projectVersionService.advance(entry.getValue(), Objects.equals(entry.getKey(), command.parentProjectId())
+                    ? "SPLIT_SOURCE_CHANGED" : "SPLIT_TARGET_ASSIGNED", "0", now);
         }
         return new SplitScopeApplyResult(true, false, newScopeVersion, List.copyOf(applied), List.of());
     }
@@ -340,8 +379,8 @@ public class DeliveryScopeCompatibilityService {
         }
     }
 
-    private void validateScopeVersion(Long expected, List<DeliveryScopeDO> scopes, List<String> errors) {
-        if (expected != null && !Objects.equals(expected, currentScopeVersion(scopes))) {
+    private void validateScopeVersion(Long expected, long currentVersion, List<String> errors) {
+        if (expected != null && !Objects.equals(expected, currentVersion)) {
             errors.add("SCOPE_VERSION_CONFLICT");
         }
     }
@@ -523,11 +562,6 @@ public class DeliveryScopeCompatibilityService {
     private Map<Long, BigDecimal> allocatedByOrderLine(List<DeliveryScopeDO> scopes) {
         return scopes.stream().collect(Collectors.groupingBy(DeliveryScopeDO::getOrderLineId,
                 Collectors.reducing(BigDecimal.ZERO, DeliveryScopeDO::getAllocatedQty, BigDecimal::add)));
-    }
-
-    private long currentScopeVersion(List<DeliveryScopeDO> scopes) {
-        return scopes.stream().map(DeliveryScopeDO::getAllocationVersion).filter(Objects::nonNull)
-                .max(Comparator.naturalOrder()).orElse(0L);
     }
 
     private List<Long> sortedIds(Set<Long> ids) {

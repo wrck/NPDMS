@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.AuthorityWriteResu
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAuthorityWriteCommand;
 
 /** COM受控权威副本写入边界，不包含第三方连接器。 */
+@Deprecated(since = "2026.09")
 public interface CommerceAuthorityWriteApi {
 
     AuthorityWriteResult apply(CommerceAuthorityWriteCommand command);

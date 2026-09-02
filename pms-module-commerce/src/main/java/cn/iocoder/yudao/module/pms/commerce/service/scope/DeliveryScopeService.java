@@ -36,8 +36,12 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated 已由 {@link DeliveryScopeCompatibilityService} 基于统一 COM Owner 表和项目级水位实现。
+ */
 @Service
 @RequiredArgsConstructor
+@Deprecated(since = "2026.09", forRemoval = true)
 public class DeliveryScopeService {
 
     private final OrderLineMapper orderLineMapper;

@@ -2,12 +2,12 @@ package cn.iocoder.yudao.module.pms.commerce.service.authority;
 
 import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.ContractDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.OrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.*;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +38,7 @@ class CommerceAuthorityIngestServiceTest {
     @Mock private OrderLineAuthorityMapper orderLineMapper;
     @Mock private OrderContractRelationAuthorityMapper relationMapper;
     @Mock private AuthorityScopeImpactMapper scopeImpactMapper;
+    @Mock private cn.iocoder.yudao.module.pms.commerce.service.scope.DeliveryScopeConflictNotifier conflictNotifier;
 
     private RecordingCommandApi commandApi;
     private CommerceAuthorityIngestService service;
@@ -47,6 +48,7 @@ class CommerceAuthorityIngestServiceTest {
         commandApi = new RecordingCommandApi();
         service = new CommerceAuthorityIngestService(commandApi, new AuthorityPayloadCanonicalizer(),
                 contractMapper, salesOrderMapper, orderLineMapper, relationMapper, scopeImpactMapper,
+                conflictNotifier,
                 Clock.fixed(Instant.parse("2026-08-30T12:00:00Z"), ZoneOffset.UTC));
     }
 
@@ -137,7 +139,7 @@ class CommerceAuthorityIngestServiceTest {
     @Test
     void quantityDecreaseFreezesActiveScopeAndIncrementsWatermark() {
         SalesOrderDO order = orderRow("O-1", "V1");
-        OrderLineDO line = lineRow(order.getId(), "L-1", "V1", "10");
+        SalesOrderLineDO line = lineRow(order.getId(), "L-1", "V1", "10");
         DeliveryScopeDO active = activeScope(line.getId(), 701L, 901L, "8");
         DeliveryScopeDetailDO detail = activeDetail(active.getId(), "8");
         DeliveryScopeProjectVersionDO watermark = watermark(901L, 4L);
@@ -159,7 +161,7 @@ class CommerceAuthorityIngestServiceTest {
                 List.of(), List.of(line("L-1", "V1", "V2", "O-1", "5"))));
 
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
-        verify(scopeImpactMapper).insert(argThat((DeliveryScopeDO row) -> "CONFLICT".equals(row.getScopeStatus())
+        verify(scopeImpactMapper).insert(argThat((DeliveryScopeDO row) -> "CONFLICT_FROZEN".equals(row.getScopeStatus())
                 && row.getAllocationVersion() == 2L && row.getAllocatedQty().compareTo(new BigDecimal("8")) == 0));
         verify(scopeImpactMapper).updateProjectVersionById(argThat(row -> row.getScopeVersion() == 5L
                 && "SOURCE_CONFLICT".equals(row.getLastChangeType())));
@@ -214,8 +216,8 @@ class CommerceAuthorityIngestServiceTest {
         return row;
     }
 
-    private OrderLineDO lineRow(Long orderId, String key, String version, String quantity) {
-        OrderLineDO row = new OrderLineDO();
+    private SalesOrderLineDO lineRow(Long orderId, String key, String version, String quantity) {
+        SalesOrderLineDO row = new SalesOrderLineDO();
         row.setId(301L); row.setTenantId(1L); row.setOrderId(orderId); row.setSourceSystem("ERP");
         row.setSourceKey(key); row.setSourceVersion(version); row.setLineCode("10"); row.setItemCode("ITEM-1");
         row.setQuantity(new BigDecimal(quantity)); row.setUnitCode("PCS"); row.setSourceLifecycleStatus("ACTIVE");
@@ -234,7 +236,7 @@ class CommerceAuthorityIngestServiceTest {
     private DeliveryScopeDetailDO activeDetail(Long scopeId, String quantity) {
         DeliveryScopeDetailDO row = new DeliveryScopeDetailDO();
         row.setId(801L); row.setTenantId(1L); row.setDeliveryScopeId(scopeId);
-        row.setAllocatedQty(new BigDecimal(quantity)); row.setUnitCode("PCS"); row.setProductCode("ITEM-1");
+        row.setAllocatedQty(new BigDecimal(quantity)); row.setProductCode("ITEM-1");
         row.setDetailStatus("ACTIVE"); row.setVersion(0);
         return row;
     }

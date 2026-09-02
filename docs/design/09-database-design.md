@@ -445,6 +445,20 @@ F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯�
 
 新增`com_authority_candidate`保存`PLATFORM_MANUAL`的合同/订单/行候选：不可变来源键、版本、payload和证据，状态限定`PENDING_RECONCILIATION/MATCHED/REJECTED`；MATCHED只引用已存在的CONFIRMED ERP Owner表/id/sourceVersion，不把候选晋升为权威主档。新增`com_delivery_scope_project_version`以`uk(tenant_id,project_id)`保存不可删除的项目`scope_version`，任何当前集合、返回载荷、冲突或清空变化在同一事务只递增一次。当前关系与当前范围分别通过显式current marker唯一键约束；SN明细数量固定为1，规范化SN在当前项目/订单行范围唯一。
 
+F-COM-001统一物理差量如下；字段定义是Feature前向DDL的批准输入，不表示迁移已执行：
+
+| 表 | 批准字段差量 | 约束说明 |
+|---|---|---|
+| `com_contract` | `master_source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`source_updated_at datetime(3) NULL` | ERP来源版本与发生时间只由权威批次推进 |
+| `com_sales_order` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`source_updated_at datetime(3) NULL` | `tenant_id/source_system/source_record_key`唯一 |
+| `com_sales_order_line` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`unit_code varchar(32) NOT NULL`；`unit_scale tinyint unsigned NOT NULL`；`quantity_status varchar(32) NOT NULL`；`source_updated_at datetime(3) NULL`；`product_code varchar(64) NULL`；`order_qty/open_qty/delivered_qty decimal(18,6) NULL` | 数量、单位、产品及来源版本均来自ERP Owner；不得由itemCode推断productCode |
+| `com_delivery_scope` | `allocated_qty decimal(18,6) NOT NULL`；`allocation_version bigint NOT NULL`；`office_department_id bigint NOT NULL`；`office_department_code varchar(64) NOT NULL`；`office_department_name varchar(255) NOT NULL`；`office_department_version int unsigned NOT NULL`；`source_evidence varchar(255) NULL`；`effective_from datetime(3) NOT NULL`；`effective_to datetime(3) NULL` | 办事处为PROJ发生时快照；不保存AST地点真值 |
+| `com_delivery_scope_detail` | `serial_no varchar(128) NULL`；`detail_status varchar(32) NOT NULL`；`source_snapshot json NULL`；`version int unsigned NOT NULL DEFAULT 0`；`allocated_qty decimal(18,6) NOT NULL` | SN明细数量为1；无SN明细使用锁定ERP productCode |
+| `com_order_contract_relation` | `source_system varchar(32) COLLATE utf8mb4_0900_bin NOT NULL`；`sales_order_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`contract_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`source_evidence json NOT NULL` | 关系独立于订单头，不固化唯一合同 |
+| `com_authority_candidate` | `object_type varchar(32) NOT NULL`；`candidate_source_system varchar(32) NOT NULL`；`candidate_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`candidate_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`candidate_payload json NOT NULL`；`evidence_reference json NOT NULL`；`candidate_status varchar(32) NOT NULL`；`matched_owner_type varchar(32) NULL`；`matched_owner_id bigint NULL`；`matched_owner_source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`decision_reason varchar(512) NULL`；`version int unsigned NOT NULL DEFAULT 0` | 候选不可晋级为ERP Owner，只能关联已确认Owner |
+| `com_delivery_scope_project_version` | `project_id bigint NOT NULL`；`scope_version bigint unsigned NOT NULL`；`payload_version int unsigned NOT NULL`；`last_change_type varchar(32) NOT NULL`；`version int unsigned NOT NULL DEFAULT 0` | `tenant_id/project_id`唯一；同一事务至多推进一次 |
+| `acc_acceptance_scope_binding` | `id bigint NOT NULL`；`tenant_id bigint NOT NULL`；`project_id bigint NOT NULL`；`project_stage_snapshot_id bigint NOT NULL`；`delivery_scope_id bigint NOT NULL`；`scope_allocation_version bigint NOT NULL`；`binding_trigger varchar(32) NOT NULL`；`binding_status varchar(32) NOT NULL`；`effective_from datetime(3) NOT NULL`；`effective_to datetime(3) NULL`；`acceptance_fact_version int unsigned NOT NULL DEFAULT 1`；`version int unsigned NOT NULL DEFAULT 0`；`creator/updater varchar(64) NOT NULL DEFAULT ''`；`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`；`deleted tinyint NOT NULL DEFAULT 0` | 不含`acceptance_id`；由ACC Provider以项目阶段快照身份追加绑定 |
+
 预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
 ### 8.3 项目—合同—订单行—设备迁移主链

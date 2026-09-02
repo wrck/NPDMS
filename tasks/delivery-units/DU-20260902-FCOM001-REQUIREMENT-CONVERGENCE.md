@@ -1,6 +1,6 @@
 # DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE COM需求能力整体合并
 
-> DU状态：`CLAIMED`
+> DU状态：`IN_PROGRESS`
 > DU类型：`FEATURE`
 > Feature协调：`F-COM-001=FEATURE_EXCLUSIVE`
 > Task范围：`统一COM-01闭环并完成PLT迁移证据与IMP/AST实施地点的边界拆分；未形成独立Requirement前不实施拆出能力，不接收ACC-001/002业务实现`
@@ -13,7 +13,7 @@
 > 串行资源：`COM-01 Feature状态;COM公共契约;PROJ/ACC窄Owner契约;V160起Flyway;PRD修订010;master追溯投影`
 > 旧功能范围：`COM-A与COM-B并行Feature规格和重复DeliveryScope模型；统一能力可用后标记废弃，不在旧实现上继续扩展`
 > 验证：`PRD/SDS/Feature/DU校验;COM与PROJ聚焦测试;后端模块构建;前端测试与构建;Flyway静态及可用环境升级校验;五轴代码审查`
-> 集成记录：`PENDING；COM-A闭环作为代码基础，COM-B仅按Requirement吸收非重复能力；全部历史Done需在master重新验证`
+> 集成记录：`PENDING_COMMIT；COM-A纵向闭环与COM-B非重复需求已在master工作树完成统一适配，静态/单元/前端验证通过；待提交后登记准确回执`
 
 ## 目标与裁决
 
@@ -25,6 +25,7 @@
 
 ## 交接
 
-- 当前：已完成需求方地点Owner裁决和合并方案批准，开始上游规格收敛。
-- 下一步：完成PRD修订010与统一Feature Spec，随后选择性迁入COM-A代码并按COM-B能力增补。
+- 当前：PRD修订010、统一Feature Spec、COM-A纵向闭环和COM-B非重复需求已完成master适配；旧写入口/旧订单行载体已明确废弃，锁序与项目范围水位已统一。
+- 验证：后端commerce reactor 106项测试中95通过、11项MySQL测试因无隔离凭据跳过；前端类型检查、7项Vitest与生产构建通过；工程链和迁移静态校验通过。
+- 下一步：提交可构建增量并登记准确提交回执；具备隔离MySQL与浏览器环境后补齐运行证据，再申请Implementation Done独立裁决。
 - 完成口径：master可构建增量可以先提交，但F-COM-001仅在统一规格全部AC、MySQL和真实浏览器证据重新通过后恢复Implementation Done。

@@ -4,10 +4,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql/migrations/V126__fcom001_stage_entry_acceptance_seed.sql"
+MIGRATION = ROOT / "sql/migrations/V162__fcom001_stage_entry_acceptance_seed.sql"
 
 
-class Fcom001V126MigrationTest(unittest.TestCase):
+class Fcom001V162MigrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:

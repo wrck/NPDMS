@@ -22,7 +22,7 @@
         :closable="false"
         show-icon
       />
-      <el-descriptions v-else :column="narrow ? 1 : 3" border>
+      <el-descriptions v-else :column="narrow ? 1 : 4" border>
         <el-descriptions-item label="项目 ID">{{ projectContext.projectId }}</el-descriptions-item>
         <el-descriptions-item label="项目版本">{{
           projectContext.projectVersion
@@ -30,6 +30,7 @@
         <el-descriptions-item label="项目范围版本">{{
           projectContext.projectScopeVersion
         }}</el-descriptions-item>
+        <el-descriptions-item label="交付范围水位">{{ deliveryScopeVersion }}</el-descriptions-item>
       </el-descriptions>
     </ContentWrap>
 
@@ -97,7 +98,12 @@
       />
     </ContentWrap>
 
-    <DeliveryScopeEditor ref="editorRef" :project-context="projectContext" @success="load" />
+    <DeliveryScopeEditor
+      ref="editorRef"
+      :project-context="projectContext"
+      :delivery-scope-version="deliveryScopeVersion"
+      @success="load"
+    />
     <DeliveryScopeHistoryDrawer ref="historyRef" />
   </div>
 </template>
@@ -127,6 +133,7 @@ const projectContext = computed(() => parseProjectRouteContext(route.query))
 const loading = ref(false)
 const rows = ref<DeliveryScopeRespVO[]>([])
 const total = ref(0)
+const deliveryScopeVersion = ref(0)
 const editorRef = ref<InstanceType<typeof DeliveryScopeEditor>>()
 const historyRef = ref<InstanceType<typeof DeliveryScopeHistoryDrawer>>()
 const intents = createCommerceIntentStore()
@@ -136,16 +143,21 @@ const load = async () => {
   if (!projectContext.value) {
     rows.value = []
     total.value = 0
+    deliveryScopeVersion.value = 0
     return
   }
   loading.value = true
   try {
-    const data = await CommerceApi.getDeliveryScopePage({
-      ...query,
-      projectId: projectContext.value.projectId
-    })
+    const [data, version] = await Promise.all([
+      CommerceApi.getDeliveryScopePage({
+        ...query,
+        projectId: projectContext.value.projectId
+      }),
+      CommerceApi.getDeliveryScopeVersion(projectContext.value.projectId)
+    ])
     rows.value = data.list
     total.value = data.total
+    deliveryScopeVersion.value = version
   } finally {
     loading.value = false
   }
@@ -177,6 +189,7 @@ const release = async (scope: DeliveryScopeRespVO) => {
     projectId: projectContext.value.projectId,
     expectedProjectVersion: projectContext.value.projectVersion,
     expectedProjectScopeVersion: projectContext.value.projectScopeVersion,
+    expectedDeliveryScopeVersion: deliveryScopeVersion.value,
     expectedOrderLineSourceVersion: await sourceVersionOf(scope),
     reason: value.trim()
   }

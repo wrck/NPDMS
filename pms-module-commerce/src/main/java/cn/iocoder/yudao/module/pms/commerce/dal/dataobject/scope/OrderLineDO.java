@@ -11,9 +11,14 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * @deprecated V160起由统一权威订单行载体
+ * {@link cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO}替代。
+ */
 @TableName("com_order_line")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@Deprecated(since = "2026.09", forRemoval = true)
 public class OrderLineDO extends TenantBaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;

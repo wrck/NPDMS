@@ -51,6 +51,10 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
 
     List<DeliveryScopeDO> selectActiveByProjectIdForUpdate(@Param("query") DeliveryScopeProjectQuery query);
 
+    List<DeliveryScopeDO> selectCurrentByProjectId(@Param("query") DeliveryScopeProjectQuery query);
+
+    List<DeliveryScopeDO> selectCurrentByProjectIdForUpdate(@Param("query") DeliveryScopeProjectQuery query);
+
     List<DeliveryScopeDO> selectActiveByOrderLineIdsForUpdate(
             @Param("query") DeliveryScopeOrderLineQuery query);
 

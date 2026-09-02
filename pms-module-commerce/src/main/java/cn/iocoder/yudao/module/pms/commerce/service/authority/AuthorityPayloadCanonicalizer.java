@@ -2,10 +2,10 @@ package cn.iocoder.yudao.module.pms.commerce.service.authority;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.OrderLineDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -44,6 +44,7 @@ public class AuthorityPayloadCanonicalizer {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("companyCode", row.getCompanyCode());
         value.put("contractNo", row.getContractNo());
+        value.put("contractName", row.getContractName());
         value.put("customerCode", row.getCustomerCode());
         value.put("customerName", row.getCustomerName());
         value.put("amount", decimal(row.getContractAmount()));
@@ -75,14 +76,20 @@ public class AuthorityPayloadCanonicalizer {
         return JsonUtils.toJsonString(line(fact));
     }
 
-    public String linePayload(OrderLineDO row, String salesOrderSourceKey) {
+    public String linePayload(SalesOrderLineDO row, String salesOrderSourceKey) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("salesOrderSourceKey", salesOrderSourceKey);
         value.put("lineCode", row.getLineCode());
         value.put("itemCode", row.getItemCode());
+        value.put("itemDescription", row.getItemDesc());
+        value.put("productCode", row.getProductCode());
         value.put("modelCode", row.getModelCode());
-        value.put("quantity", decimal(row.getQuantity()));
+        value.put("orderQuantity", decimal(row.getOrderQty()));
+        value.put("openQuantity", decimal(row.getOpenQty()));
+        value.put("deliveredQuantity", decimal(row.getDeliveredQty()));
         value.put("unitCode", row.getUnitCode());
+        value.put("unitScale", row.getUnitScale());
+        value.put("quantityStatus", row.getQuantityStatus());
         value.put("lifecycleStatus", row.getSourceLifecycleStatus());
         value.put("sourceUpdatedAt", second(row.getSourceUpdatedAt()));
         return JsonUtils.toJsonString(value);
@@ -131,6 +138,7 @@ public class AuthorityPayloadCanonicalizer {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("companyCode", fact.companyCode());
         value.put("contractNo", fact.contractNo());
+        value.put("contractName", fact.contractName());
         value.put("customerCode", fact.customerCode());
         value.put("customerName", fact.customerName());
         value.put("amount", decimal(fact.amount()));
@@ -159,9 +167,15 @@ public class AuthorityPayloadCanonicalizer {
         value.put("salesOrderSourceKey", fact.salesOrderSourceKey());
         value.put("lineCode", fact.lineCode());
         value.put("itemCode", fact.itemCode());
+        value.put("itemDescription", fact.itemDescription());
+        value.put("productCode", fact.productCode());
         value.put("modelCode", fact.modelCode());
-        value.put("quantity", decimal(fact.quantity()));
+        value.put("orderQuantity", decimal(fact.orderQuantity()));
+        value.put("openQuantity", decimal(fact.openQuantity()));
+        value.put("deliveredQuantity", decimal(fact.deliveredQuantity()));
         value.put("unitCode", fact.unitCode());
+        value.put("unitScale", fact.unitScale());
+        value.put("quantityStatus", fact.quantityStatus());
         value.put("lifecycleStatus", fact.lifecycleStatus().name());
         value.put("sourceUpdatedAt", second(fact.sourceUpdatedAt()));
         return value;

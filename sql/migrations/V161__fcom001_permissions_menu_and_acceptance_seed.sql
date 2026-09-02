@@ -27,7 +27,7 @@ UPDATE `com_sales_order_line`
    AND `deleted` = b'0';
 
 DELIMITER $$
-CREATE PROCEDURE `fcom001_verify_v125_managed_product_codes`()
+CREATE PROCEDURE `fcom001_verify_v161_managed_product_codes`()
 BEGIN
   IF (SELECT COUNT(*)
         FROM `com_sales_order_line`
@@ -47,13 +47,13 @@ BEGIN
          AND `updater` = 'seed'
          AND `deleted` = b'0') <> 4 THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'F-COM-001 V125 managed seed identity is incomplete';
+      SET MESSAGE_TEXT = 'F-COM-001 V161 managed seed identity is incomplete';
   END IF;
 END$$
 DELIMITER ;
 
-CALL `fcom001_verify_v125_managed_product_codes`();
-DROP PROCEDURE `fcom001_verify_v125_managed_product_codes`;
+CALL `fcom001_verify_v161_managed_product_codes`();
+DROP PROCEDURE `fcom001_verify_v161_managed_product_codes`;
 
 INSERT INTO `system_menu`
 (`id`, `name`, `permission`, `type`, `sort`, `parent_id`, `path`, `icon`,
@@ -77,6 +77,8 @@ VALUES
 (930906, '交付范围释放', 'pms:commerce:scope:release', 3, 30, 930903, '', '', NULL, NULL,
  0, b'1', b'1', b'1', 'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
 (930907, '商务权威写入', 'pms:commerce:authority:write', 3, 40, 930900, '', '', NULL, NULL,
+ 0, b'0', b'1', b'1', 'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
+(930908, '人工候选核对', 'pms:commerce:authority:reconcile', 3, 50, 930900, '', '', NULL, NULL,
  0, b'0', b'1', b'1', 'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0')
 ON DUPLICATE KEY UPDATE
  `name`=VALUES(`name`), `permission`=VALUES(`permission`), `type`=VALUES(`type`),
@@ -122,7 +124,7 @@ SELECT 992002800001, grant_row.`menu_id`, 'fcom001_seed', NOW(), 'fcom001_seed',
 FROM (
  SELECT 19260 AS `menu_id` UNION ALL SELECT 930900 UNION ALL SELECT 930901 UNION ALL SELECT 930902
  UNION ALL SELECT 930903 UNION ALL SELECT 930904 UNION ALL SELECT 930905 UNION ALL SELECT 930906
- UNION ALL SELECT 930907
+ UNION ALL SELECT 930907 UNION ALL SELECT 930908
 ) grant_row
 WHERE NOT EXISTS (SELECT 1 FROM `system_role_menu` existing
  WHERE existing.`role_id`=992002800001 AND existing.`menu_id`=grant_row.`menu_id`

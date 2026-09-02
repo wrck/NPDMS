@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.OrderLineAuthorityMapper">
-    <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.OrderLineDO">
-        SELECT * FROM com_order_line
+    <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO">
+        SELECT * FROM com_sales_order_line
         WHERE tenant_id = #{tenantId} AND source_system = #{sourceSystem}
-          AND source_key = #{sourceKey} AND deleted = b'0'
+          AND source_record_key = #{sourceKey} AND deleted = b'0'
         FOR UPDATE
     </select>
     <update id="updateOwnerByVersion">
-        UPDATE com_order_line
-        SET order_id = #{row.orderId}, line_code = #{row.lineCode}, item_code = #{row.itemCode},
-            model_code = #{row.modelCode}, quantity = #{row.quantity}, unit_code = #{row.unitCode},
+        UPDATE com_sales_order_line
+        SET order_id = #{row.orderId}, line_no = #{row.lineCode}, item_code = #{row.itemCode},
+            item_desc = #{row.itemDesc}, product_code = #{row.productCode},
+            model_code = #{row.modelCode}, order_qty = #{row.quantity}, open_qty = #{row.openQty},
+            delivered_qty = #{row.deliveredQty}, unit_code = #{row.unitCode}, unit_scale = #{row.unitScale},
             quantity_status = #{row.quantityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
             source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
-            synced_at = #{row.syncedAt}, version = version + 1,
+            source_sync_time = #{row.syncedAt}, status = #{row.status}, version = version + 1,
             updater = #{row.updater}, update_time = #{row.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{row.id} AND version = #{expectedVersion} AND deleted = b'0'
     </update>

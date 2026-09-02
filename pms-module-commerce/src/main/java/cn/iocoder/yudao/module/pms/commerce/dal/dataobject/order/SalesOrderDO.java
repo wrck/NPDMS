@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @TableName("com_sales_order")
@@ -30,9 +31,29 @@ public class SalesOrderDO extends TenantBaseDO {
     private String customerName;
     private String sourceProjectName;
     private String orderComment;
+    private BigDecimal orderAmount;
+    private String currencyCode;
+    private String authorityStatus;
+    private String sourceLifecycleStatus;
     private LocalDateTime sourceSyncTime;
     private LocalDateTime sourceUpdatedAt;
     private String status;
     @Version
     private Integer version;
+
+    public String getSourceKey() {
+        return sourceRecordKey;
+    }
+
+    public void setSourceKey(String sourceKey) {
+        this.sourceRecordKey = sourceKey;
+    }
+
+    public LocalDateTime getSyncedAt() {
+        return sourceSyncTime;
+    }
+
+    public void setSyncedAt(LocalDateTime syncedAt) {
+        this.sourceSyncTime = syncedAt;
+    }
 }

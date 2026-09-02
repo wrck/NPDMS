@@ -4,19 +4,19 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql/migrations/V127__fcom001_acceptance_identity_authorization_fix.sql"
-V126_MIGRATION = ROOT / "sql/migrations/V126__fcom001_stage_entry_acceptance_seed.sql"
+MIGRATION = ROOT / "sql/migrations/V163__fcom001_acceptance_identity_authorization_fix.sql"
+V162_MIGRATION = ROOT / "sql/migrations/V162__fcom001_stage_entry_acceptance_seed.sql"
 
 
-class Fcom001V127MigrationTest(unittest.TestCase):
+class Fcom001V163MigrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.sql = MIGRATION.read_text(encoding="utf-8")
 
-    def test_v126_remains_immutable_and_v127_is_forward_only(self) -> None:
-        self.assertTrue(V126_MIGRATION.exists())
-        self.assertNotIn("V126__", self.sql)
+    def test_v162_remains_immutable_and_v163_is_forward_only(self) -> None:
+        self.assertTrue(V162_MIGRATION.exists())
+        self.assertNotIn("V162__", self.sql)
         self.assertIn("START TRANSACTION", self.sql)
         self.assertIn("COMMIT", self.sql)
         self.assertIn("ROLLBACK", self.sql)
@@ -25,7 +25,7 @@ class Fcom001V127MigrationTest(unittest.TestCase):
         for token in (
                 "992002800002", "'fcom001_acceptance'", "'fcom001acceptance'",
                 "`creator` = 'fcom001_seed'", "`nickname` = 'FCOM001全权限验收'",
-                "`dept_id` = 930851", "`updater` = 'fcom001_v127'"):
+                "`dept_id` = 930851", "`updater` = 'fcom001_v163'"):
             with self.subTest(token=token):
                 self.assertIn(token, self.sql)
         self.assertNotRegex(self.sql, r"UPDATE\s+`system_users`[\s\S]*?SET[\s\S]*?`password`\s*=")

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeProjectVersionMapper">
+    <insert id="insertIfAbsent">
+        INSERT IGNORE INTO com_delivery_scope_project_version
+            (id, tenant_id, project_id, scope_version, payload_version, last_change_type, version,
+             creator, create_time, updater, update_time, deleted)
+        VALUES
+            (#{id}, #{tenantId}, #{projectId}, 0, 0, 'INITIALIZED', 0,
+             #{actor}, #{now}, #{actor}, #{now}, b'0')
+    </insert>
+
+    <select id="selectCurrent"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        SELECT * FROM com_delivery_scope_project_version
+        WHERE tenant_id = #{tenantId} AND project_id = #{projectId} AND deleted = b'0'
+    </select>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">
+        SELECT * FROM com_delivery_scope_project_version
+        WHERE tenant_id = #{tenantId} AND project_id = #{projectId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="advance">
+        UPDATE com_delivery_scope_project_version
+        SET scope_version = #{newScopeVersion}, payload_version = #{newPayloadVersion},
+            last_change_type = #{changeType}, version = version + 1,
+            updater = #{actor}, update_time = #{now}
+        WHERE tenant_id = #{tenantId} AND project_id = #{projectId}
+          AND scope_version = #{expectedScopeVersion} AND version = #{expectedRowVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

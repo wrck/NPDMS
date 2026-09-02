@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineD
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
@@ -58,12 +59,14 @@ public class CommerceDeliveryScopeCommandService {
     private final DeliveryScopeDetailMapper detailMapper;
     private final CommerceOutboxEventMapper outboxMapper;
     private final OperationAuditApi operationAuditApi;
+    private final DeliveryScopeProjectVersionService projectVersionService;
 
     @Transactional(rollbackFor = Exception.class)
     public DeliveryScopePreviewResult preview(DeliveryScopePreviewCommand command) {
         validatePreview(command);
         ProjectOfficeFact project = lockProject(command.tenantId(), command.subjectUserId(), command.projectId(),
                 command.expectedProjectVersion(), command.expectedProjectScopeVersion());
+        requireProjectScopeVersion(command.tenantId(), command.projectId(), command.expectedDeliveryScopeVersion());
         SalesOrderLineDO line = lockLine(command.tenantId(), command.orderLineId(),
                 command.expectedOrderLineSourceVersion());
         List<DeliveryScopeDO> current = lockCurrentByLine(command.tenantId(), line.getId());
@@ -116,10 +119,12 @@ public class CommerceDeliveryScopeCommandService {
                 || current.stream().anyMatch(scope -> Objects.equals(scope.getProjectId(), command.projectId()))) {
             throw conflict("DELIVERY_SCOPE_CURRENT_CONFLICT");
         }
-        validateTotal(line, current, null, command.allocatedQuantity());
-        long version = current.stream().map(DeliveryScopeDO::getAllocationVersion).filter(Objects::nonNull)
-                .max(Comparator.naturalOrder()).orElse(0L) + 1;
         LocalDateTime now = LocalDateTime.now();
+        DeliveryScopeProjectVersionDO projectScopeVersion = lockProjectScopeVersion(
+                command.tenantId(), command.projectId(), command.expectedDeliveryScopeVersion(),
+                command.subjectUserId(), now);
+        validateTotal(line, current, null, command.allocatedQuantity());
+        long version = projectScopeVersion.getScopeVersion() + 1;
         DeliveryScopeDO created = insertScope(command.tenantId(), line, project, command.allocatedQuantity(),
                 version, "DIRECT_ASSIGN", command.reason(), command.operationId(), now);
         insertDetails(command.tenantId(), created.getId(), command.allocatedQuantity(),
@@ -130,6 +135,8 @@ public class CommerceDeliveryScopeCommandService {
                 created.getAllocationVersion(), command.operationId());
         audit(command.tenantId(), command.subjectUserId(), command.operationId(), "COM_SCOPE_ASSIGN",
                 created, BigDecimal.ZERO, command.allocatedQuantity(), command.reason());
+        projectVersionService.advance(projectScopeVersion, "ASSIGNED",
+                String.valueOf(command.subjectUserId()), now);
         return new DeliveryScopeCommandResult(created.getId(), created.getAllocationVersion(), false);
     }
 
@@ -169,6 +176,10 @@ public class CommerceDeliveryScopeCommandService {
         if (!validCurrent(current, observed, command)) {
             throw conflict("DELIVERY_SCOPE_VERSION_CONFLICT");
         }
+        LocalDateTime now = LocalDateTime.now();
+        DeliveryScopeProjectVersionDO projectScopeVersion = lockProjectScopeVersion(
+                command.tenantId(), command.projectId(), command.expectedDeliveryScopeVersion(),
+                command.subjectUserId(), now);
         BigDecimal proposed = "RELEASE".equals(operation) ? BigDecimal.ZERO : command.proposedAllocatedQuantity();
         if (proposed.compareTo(current.getAllocatedQty()) > 0
                 && currentByLine.stream().anyMatch(scope -> "CONFLICT_FROZEN".equals(scope.getScopeStatus()))) {
@@ -181,7 +192,6 @@ public class CommerceDeliveryScopeCommandService {
             validateSubject(command.tenantId(), command.projectId(), proposed, command.serialNumbers(), line);
             validateTotal(line, currentByLine, current, proposed);
         }
-        LocalDateTime now = LocalDateTime.now();
         current.setScopeStatus("RELEASED");
         current.setEffectiveTo(now);
         scopeMapper.updateById(current);
@@ -190,10 +200,12 @@ public class CommerceDeliveryScopeCommandService {
                     current, requestKey, now);
             audit(command.tenantId(), command.subjectUserId(), command.operationId(), "COM_SCOPE_RELEASE",
                     current, current.getAllocatedQty(), BigDecimal.ZERO, command.reason());
+            projectVersionService.advance(projectScopeVersion, "RELEASED",
+                    String.valueOf(command.subjectUserId()), now);
             return new DeliveryScopeCommandResult(current.getId(), current.getAllocationVersion(), false);
         }
         DeliveryScopeDO replacement = insertScope(command.tenantId(), line, project, proposed,
-                current.getAllocationVersion() + 1, "DIRECT_ADJUST", command.reason(), command.operationId(), now);
+                projectScopeVersion.getScopeVersion() + 1, "DIRECT_ADJUST", command.reason(), command.operationId(), now);
         insertDetails(command.tenantId(), replacement.getId(), proposed, command.serialNumbers(),
                 line.getProductCode(), command.operationId());
         insertEvent(command.tenantId(), command.operationId(), "ADJUST_RELEASE", "DeliveryScopeReleased",
@@ -204,7 +216,27 @@ public class CommerceDeliveryScopeCommandService {
                 replacement.getAllocationVersion(), command.operationId());
         audit(command.tenantId(), command.subjectUserId(), command.operationId(), "COM_SCOPE_ADJUST",
                 replacement, current.getAllocatedQty(), proposed, command.reason());
+        projectVersionService.advance(projectScopeVersion, "ADJUSTED",
+                String.valueOf(command.subjectUserId()), now);
         return new DeliveryScopeCommandResult(replacement.getId(), replacement.getAllocationVersion(), false);
+    }
+
+    private void requireProjectScopeVersion(Long tenantId, Long projectId, Long expectedScopeVersion) {
+        if (expectedScopeVersion == null || expectedScopeVersion < 0
+                || projectVersionService.current(tenantId, projectId) != expectedScopeVersion) {
+            throw conflict("DELIVERY_SCOPE_PROJECT_VERSION_CONFLICT");
+        }
+    }
+
+    private DeliveryScopeProjectVersionDO lockProjectScopeVersion(Long tenantId, Long projectId,
+                                                                  Long expectedScopeVersion,
+                                                                  Long actorId, LocalDateTime now) {
+        DeliveryScopeProjectVersionDO row = projectVersionService.lock(
+                tenantId, projectId, String.valueOf(actorId), now);
+        if (expectedScopeVersion == null || !Objects.equals(row.getScopeVersion(), expectedScopeVersion)) {
+            throw conflict("DELIVERY_SCOPE_PROJECT_VERSION_CONFLICT");
+        }
+        return row;
     }
 
     private ProjectOfficeFact lockProject(Long tenantId, Long subjectUserId, Long projectId,
@@ -535,6 +567,7 @@ public class CommerceDeliveryScopeCommandService {
 
     private RuntimeException conflict(String reason) {
         if ("DELIVERY_SCOPE_VERSION_CONFLICT".equals(reason)
+                || "DELIVERY_SCOPE_PROJECT_VERSION_CONFLICT".equals(reason)
                 || "ORDER_LINE_AUTHORITY_INVALID".equals(reason)) {
             return exception(COMMERCE_SCOPE_VERSION_CONFLICT, reason);
         }

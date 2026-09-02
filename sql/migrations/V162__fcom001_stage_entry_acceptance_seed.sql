@@ -1,10 +1,10 @@
 -- F-COM-001 / COM-01：公开REST进入验收阶段的独立受管正向夹具。
 -- 固定身份要么全新原子写入，要么完整一致地幂等复核；部分占用或普通数据冲突一律失败。
 
-DROP PROCEDURE IF EXISTS `fcom001_apply_v126_stage_entry_seed`;
+DROP PROCEDURE IF EXISTS `fcom001_apply_v162_stage_entry_seed`;
 
 DELIMITER $$
-CREATE PROCEDURE `fcom001_apply_v126_stage_entry_seed`()
+CREATE PROCEDURE `fcom001_apply_v162_stage_entry_seed`()
 BEGIN
   DECLARE existing_identity_count INT DEFAULT 0;
 
@@ -213,12 +213,12 @@ BEGIN
     OR (SELECT COUNT(*) FROM `pms_acc_acceptance`
        WHERE `tenant_id` = 0 AND `project_id` = 992002900001 AND `deleted` = b'0') <> 0 THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'F-COM-001 V126 managed stage-entry seed is incomplete or conflicting';
+      SET MESSAGE_TEXT = 'F-COM-001 V162 managed stage-entry seed is incomplete or conflicting';
   END IF;
 
   COMMIT;
 END$$
 DELIMITER ;
 
-CALL `fcom001_apply_v126_stage_entry_seed`();
-DROP PROCEDURE `fcom001_apply_v126_stage_entry_seed`;
+CALL `fcom001_apply_v162_stage_entry_seed`();
+DROP PROCEDURE `fcom001_apply_v162_stage_entry_seed`;

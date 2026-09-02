@@ -13,7 +13,7 @@
 
 | 文件 | 用途 |
 |---|---|
-| `prd-v1.8.md` | PRD V1.8修订009的当前内容快照，已合并修订001—009，供SDS、Feature和测试读取；不得直接编辑 |
+| `prd-v1.8.md` | PRD V1.8修订010的当前内容快照，已合并修订001—010，供SDS、Feature和测试读取；不得直接编辑 |
 | `prd-v1.8-amendment-001-no-manual-project-draft.md` | 已批准增量：手动项目创建失败不保留草稿 |
 | `prd-v1.8-amendment-002-organization-and-asset-location.md` | 已批准增量：组织主数据与AST地点所有权 |
 | `prd-v1.8-amendment-003-pm07-template-match-decision-history.md` | 已批准增量：PM-07模板匹配决策历史与影响识别 |

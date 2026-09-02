@@ -79,6 +79,8 @@ class Fcom001ApplicationMySqlIntegrationTest {
     @MockitoBean private OperationAuditApi operationAuditApi;
 
     private int projectVersion;
+    private long deliveryScopeVersion;
+    private Map<String, Object> deliveryScopeVersionState;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
@@ -103,6 +105,11 @@ class Fcom001ApplicationMySqlIntegrationTest {
         clean();
         projectVersion = jdbcTemplate.queryForObject(
                 "SELECT version FROM proj_project WHERE tenant_id = 0 AND id = ?", Integer.class, PROJECT_ID);
+        deliveryScopeVersionState = jdbcTemplate.queryForMap(
+                "SELECT scope_version, payload_version, last_change_type, version, updater, update_time "
+                        + "FROM com_delivery_scope_project_version WHERE tenant_id = 0 AND project_id = ?",
+                PROJECT_ID);
+        deliveryScopeVersion = ((Number) deliveryScopeVersionState.get("scope_version")).longValue();
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(PROJECT_ID, PROJECT_SCOPE_VERSION, Set.of(PROJECT_ID), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
@@ -117,6 +124,7 @@ class Fcom001ApplicationMySqlIntegrationTest {
     void tearDown() {
         try {
             clean();
+            restoreDeliveryScopeVersion();
         } finally {
             SecurityContextHolder.clearContext();
             TenantContextHolder.clear();
@@ -227,7 +235,7 @@ class Fcom001ApplicationMySqlIntegrationTest {
 
     private DeliveryScopeAssignCommand command(String operationId, BigDecimal quantity) {
         return new DeliveryScopeAssignCommand(TENANT_ID, USER_ID, PROJECT_ID, projectVersion,
-                PROJECT_SCOPE_VERSION, ORDER_LINE_ID, SOURCE_VERSION, quantity, List.of(),
+                PROJECT_SCOPE_VERSION, deliveryScopeVersion, ORDER_LINE_ID, SOURCE_VERSION, quantity, List.of(),
                 "真实MySQL事务验证", operationId);
     }
 
@@ -250,6 +258,21 @@ class Fcom001ApplicationMySqlIntegrationTest {
                 EVIDENCE_PREFIX + "%");
     }
 
+    private void restoreDeliveryScopeVersion() {
+        if (deliveryScopeVersionState == null) {
+            return;
+        }
+        jdbcTemplate.update("UPDATE com_delivery_scope_project_version "
+                        + "SET scope_version = ?, payload_version = ?, last_change_type = ?, version = ?, "
+                        + "updater = ?, update_time = ? WHERE tenant_id = 0 AND project_id = ?",
+                deliveryScopeVersionState.get("scope_version"),
+                deliveryScopeVersionState.get("payload_version"),
+                deliveryScopeVersionState.get("last_change_type"),
+                deliveryScopeVersionState.get("version"),
+                deliveryScopeVersionState.get("updater"),
+                deliveryScopeVersionState.get("update_time"), PROJECT_ID);
+    }
+
     private static void login() {
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(USER_ID).setTenantId(TENANT_ID).setUserType(2),
                 new MockHttpServletRequest());
@@ -267,7 +290,7 @@ class Fcom001ApplicationMySqlIntegrationTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            CommerceDeliveryScopeCommandService.class})
+            CommerceDeliveryScopeCommandService.class, DeliveryScopeProjectVersionService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);

@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailM
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeDetailIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,17 @@ public class CommerceDeliveryScopeQueryService {
     private final ProjectScopeApi projectScopeApi;
     private final DeliveryScopeMapper scopeMapper;
     private final DeliveryScopeDetailMapper detailMapper;
+    private final DeliveryScopeProjectVersionService projectVersionService;
+
+    public long currentVersion(Long tenantId, Long subjectUserId, Long projectId) {
+        validate(tenantId, subjectUserId, projectId, null, 0, 1);
+        if (!visibleProjectIds(tenantId, subjectUserId).contains(projectId)) {
+            throw new DeliveryScopeFactException(
+                    DeliveryScopeFactException.Code.PROJECT_NOT_VISIBLE_OR_INELIGIBLE,
+                    "project is outside the current subject scope");
+        }
+        return projectVersionService.current(tenantId, projectId);
+    }
 
     public PageResult<DeliveryScopeView> page(Long tenantId, Long subjectUserId, Long projectId,
                                                Long orderLineId, boolean includeHistory, int offset, int limit) {
