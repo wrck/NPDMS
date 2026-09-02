@@ -38,6 +38,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigur
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationServiceImpl;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
@@ -74,6 +76,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -98,6 +102,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
     @Resource CutoverChecklistItemDefinitionRevisionMapper definitionMapper;
     @Resource CutoverChecklistBindingRuleRevisionMapper ruleMapper;
     @Resource CutoverChecklistApplicationService service;
+    @Resource CutoverChecklistExportService exportService;
     @Resource CutoverConfigurationService configurationApplicationService;
     @Resource DictDataApi dictDataApi;
 
@@ -171,6 +176,8 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
         ChecklistCommandResult submitted = service.submit(submit);
         ChecklistCommandResult replayed = service.submit(submit);
+        var exported = exportService.export(tenantId, ACTOR_ID, taskId,
+                submitted.checklistVersion(), "corr-export-loop");
 
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
@@ -189,7 +196,23 @@ class CutoverChecklistPositiveLoopMySqlTest {
         assertEquals(1, number("SELECT COUNT(*) FROM cut_task_stage_history WHERE tenant_id=? AND trigger_type='P3_CHECKLIST_SUBMITTED'", tenantId));
         assertEquals(0, number("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? AND event_type='CutoverChecklistItemResultLinked'", tenantId));
         assertEquals(2, number("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
-        assertEquals(2, number("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+        assertEquals("cutover-checklist-" + taskId + "-v" + submitted.checklistVersion() + ".xlsx",
+                exported.fileName());
+        assertEquals(2, exported.businessSurveyRowCount());
+        assertEquals(0, exported.riskRowCount());
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(exported.content()))) {
+            assertEquals("业务调研", workbook.getSheetName(0));
+            assertEquals("风险考察", workbook.getSheetName(1));
+            assertEquals(3, workbook.getSheetAt(0).getPhysicalNumberOfRows());
+            assertEquals(1, workbook.getSheetAt(1).getPhysicalNumberOfRows());
+        } catch (Exception exception) {
+            throw new AssertionError(exception);
+        }
+        assertEquals(3, number("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
+        String exportAudit = text("SELECT detail_snapshot FROM plt_operation_audit WHERE tenant_id=? "
+                + "AND operation_code='CUTOVER_CHECKLIST_EXPORTED'", tenantId);
+        assertTrue(exportAudit.contains("businessSurveyRowCount"));
+        assertTrue(!exportAudit.contains("10.0.0.1") && !exportAudit.contains("ref-90"));
         assertEquals(0, number("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? "
                 + "AND response_payload LIKE '%navigationDecision%'", tenantId));
     }
@@ -456,6 +479,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class,
+            OperationAuditApiImpl.class,
             CutoverConfigurationServiceImpl.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
@@ -518,6 +542,10 @@ class CutoverChecklistPositiveLoopMySqlTest {
             return new CutoverChecklistApplicationService(taskMapper, deviceMapper, assessmentMapper, historyMapper,
                     checklistMapper, itemMapper, resultMapper, configurationService, new CutoverChecklistMatcher(),
                     projectScopePort, collectionPort, filePort, platform, navigation, clock);
+        }
+        @Bean CutoverChecklistExportService exportService(CutoverChecklistApplicationService service,
+                                                            OperationAuditApi auditApi) {
+            return new CutoverChecklistExportService(service, new CutoverChecklistWorkbookWriter(), auditApi);
         }
     }
 }

@@ -1,5 +1,10 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist;
 
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportException;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSetter;
+
 import java.util.List;
 import java.util.Map;
 
@@ -62,5 +67,38 @@ public final class CutoverChecklistReqVO {
     public record Submit(Integer expectedTaskVersion, Integer expectedAssessmentVersion,
                          Long expectedProjectScopeVersion, Long checklistId,
                          Integer expectedChecklistVersion) {
+    }
+
+    public static final class Export {
+        private Integer checklistVersion;
+        private boolean checklistVersionSpecified;
+
+        public Export() {
+        }
+
+        public Export(Integer checklistVersion) {
+            setChecklistVersion(checklistVersion);
+        }
+
+        public Integer checklistVersion() {
+            return checklistVersion;
+        }
+
+        @JsonSetter("checklistVersion")
+        public void setChecklistVersion(Integer checklistVersion) {
+            this.checklistVersion = checklistVersion;
+            this.checklistVersionSpecified = true;
+        }
+
+        @JsonIgnore
+        public boolean isChecklistVersionSpecified() {
+            return checklistVersionSpecified;
+        }
+
+        @JsonAnySetter
+        public void rejectUnknown(String key, Object value) {
+            throw new CutoverChecklistExportException(
+                    CutoverChecklistExportException.Code.INVALID_EXPORT_REQUEST, "导出请求包含未知字段：" + key);
+        }
     }
 }

@@ -2,11 +2,13 @@ package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist.CutoverChecklistReqVO;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RequestCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistExportResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpHeaders;
 
 import java.util.List;
 import java.util.Map;
@@ -40,9 +43,10 @@ class CutoverChecklistControllerContractTest {
     @Test
     void mapsTrustedContextAndVersionsIntoGenerateAndSaveCommands() {
         CutoverChecklistApplicationService service = mock(CutoverChecklistApplicationService.class);
+        CutoverChecklistExportService exportService = mock(CutoverChecklistExportService.class);
         CutoverChecklistRequestContext context = () ->
                 new CutoverChecklistRequestContext.TrustedContext(9L, 12L, "corr-1");
-        CutoverChecklistController controller = new CutoverChecklistController(service, context);
+        CutoverChecklistController controller = new CutoverChecklistController(service, exportService, context);
         when(service.generate(org.mockito.ArgumentMatchers.any())).thenReturn(
                 new ChecklistCommandResult(31L, 41L, 1, 0, "DRAFT", "P3", 7, false));
 
@@ -85,5 +89,15 @@ class CutoverChecklistControllerContractTest {
             assertThat(command.idempotencyKey()).isEqualTo("collect-intent");
             assertThat(command.correlationId()).isEqualTo("corr-1");
         });
+
+        when(exportService.export(9L, 12L, 31L, 3, "corr-1"))
+                .thenReturn(new CutoverChecklistExportResult(new byte[]{1, 2},
+                        "cutover-checklist-31-v3.xlsx", 1, 0));
+        var response = controller.export(31L, new CutoverChecklistReqVO.Export(3));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE))
+                .isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                .isEqualTo("attachment; filename=\"cutover-checklist-31-v3.xlsx\"");
+        assertThat(response.getBody()).containsExactly(1, 2);
     }
 }

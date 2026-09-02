@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist.CutoverChecklistReqVO;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistException;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportException;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
@@ -17,8 +19,11 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCom
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CollectionRequestCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistExportResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,12 +50,18 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @ResponseBody
 public class CutoverChecklistController {
 
+    private static final MediaType XLSX = MediaType.parseMediaType(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
     private final CutoverChecklistApplicationService service;
+    private final CutoverChecklistExportService exportService;
     private final CutoverChecklistRequestContext requestContext;
 
     public CutoverChecklistController(CutoverChecklistApplicationService service,
+                                      CutoverChecklistExportService exportService,
                                       CutoverChecklistRequestContext requestContext) {
         this.service = Objects.requireNonNull(service);
+        this.exportService = Objects.requireNonNull(exportService);
         this.requestContext = Objects.requireNonNull(requestContext);
     }
 
@@ -60,6 +71,25 @@ public class CutoverChecklistController {
         requireId(taskId);
         var trusted = requestContext.current();
         return success(service.getView(trusted.tenantId(), trusted.actorId(), taskId));
+    }
+
+    @PostMapping("/actions/export")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    public ResponseEntity<byte[]> export(@PathVariable("taskId") Long taskId,
+                                         @RequestBody CutoverChecklistReqVO.Export request) {
+        requireId(taskId);
+        if (request == null || !request.isChecklistVersionSpecified()
+                || request.checklistVersion() == null || request.checklistVersion() <= 0) {
+            throw new CutoverChecklistExportException(
+                    CutoverChecklistExportException.Code.INVALID_EXPORT_REQUEST, "导出清单版本非法");
+        }
+        var trusted = requestContext.current();
+        CutoverChecklistExportResult result = exportService.export(trusted.tenantId(), trusted.actorId(), taskId,
+                request.checklistVersion(), trusted.correlationId());
+        return ResponseEntity.ok()
+                .contentType(XLSX)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.fileName() + "\"")
+                .body(result.content());
     }
 
     @PostMapping("/actions/generate")
@@ -193,6 +223,20 @@ public class CutoverChecklistController {
             case INVALID_REQUEST, FROZEN_CONFIGURATION_NOT_FOUND, FROZEN_CONFIGURATION_INVALID -> 400;
         };
         CommonResult<Void> result = CommonResult.error(1_011_005_000 + exception.getCode().ordinal(),
+                exception.getMessage());
+        return ResponseEntity.status(status).body(result);
+    }
+
+    @ExceptionHandler(CutoverChecklistExportException.class)
+    public ResponseEntity<CommonResult<Void>> handleExportException(CutoverChecklistExportException exception) {
+        int status = switch (exception.getCode()) {
+            case NOT_VISIBLE_OR_NOT_FOUND -> 404;
+            case CHECKLIST_VERSION_STALE, OWNER_FACT_STALE -> 409;
+            case INVALID_EXPORT_REQUEST -> 400;
+            case EXPORT_PROJECTION_INVALID -> 500;
+            case OWNER_PROVIDER_UNAVAILABLE -> 503;
+        };
+        CommonResult<Void> result = CommonResult.error(1_011_005_100 + exception.getCode().ordinal(),
                 exception.getMessage());
         return ResponseEntity.status(status).body(result);
     }
