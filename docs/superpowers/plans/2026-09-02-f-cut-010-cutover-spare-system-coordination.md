@@ -24,7 +24,7 @@
 - 生产INT-06 Provider、PROJ/AST/PLT正式接线和唯一生产装配未形成时，服务、Controller和页面只通过显式测试装配验证；不得注册生产Fake/fallback。
 - 新查询遵守`docs/coding/database-query-interface.md`：场景Query单参数，动态集合/锁查询进入Mapper XML，显式tenant/deleted条件。
 - Flyway只在实际串行合入时选择下一个空闲版本；不修改已执行迁移，不预约V161。
-- 先完成可运行正向能力，再补本Feature风险直接对应的聚焦验证；每个Task独立Code Review后才进入下一Task。
+- 每个Task先完成已批准的最小正向实现，再运行与该正向路径直接相关的合同、Mapper、单元、MySQL或组件验证；不得把RED、拒绝矩阵、故障注入或未实现能力测试作为编码前置或Gate条件。
 
 ---
 
@@ -34,7 +34,7 @@
 |---|---|---|
 | CUT公共回调合同 | `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/spare/` | 新增`CutoverSpareCallbackApi`、绑定/状态命令、结果和封闭公共异常；不暴露DO |
 | INT-06消费端口 | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/SpareApplicationGateway.java` | 定义`initiate/queryStatus`精确命令、结果和异常；无生产实现 |
-| PLT消费端口 | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/CutoverSpareFilePort.java` | 最窄`inspect/lockAndRevalidate`，固定CUT文件scope；生产Adapter须消费`FileArtifactApi`，不读PLT表 |
+| PLT消费端口 | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/CutoverSpareFilePort.java` | Task 1先定义最窄`inspect/lockAndRevalidate`；Task 3查询冻结artifact/version的授权displayName，Task 4写前锁定重验；生产Adapter须消费`FileArtifactApi`，不读PLT表 |
 | 领域与编排 | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/` | 需求快照、发起/刷新/证据、首次绑定、状态回调、查询、稳定错误分类 |
 | CUT物理Owner | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/`、`pms-module-cutover/src/main/resources/mapper/spare/` | 三张Owner表、场景Query、锁查询和条件CAS |
 | REST | `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverSpareController.java`、`pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/vo/spare/` | 四个用户端点、严格请求、真实HTTP错误Envelope；不承接内部回调 |
@@ -73,11 +73,15 @@ public interface CutoverSpareCallbackApi {
 - 状态回调锁外部引用，按正数`statusVersion`追加不可变revision；低版本只审计、同版本同载荷重放、同版本异载荷永久冲突。
 - 公共API实现不读取INT表，不调用第三方，不自行切换租户；生产Bean装配与完整CUT服务一起留到依赖接通Gate。
 
-### 2.3 用户命令事务
+### 2.3 用户命令两阶段事务与重放恢复
 
-- `initiate/refresh/addEvidence`使用`PlatformCommandExecutionApi.execute`；平台幂等记录、CUT业务写和SuccessFacts在同一事务。
-- 外部`initiate/queryStatus`调用发生在CUT数据库事务外；先持久化稳定意图，再调用Provider，再以身份/version CAS收口，超时保留同requestId重试。
-- PLT文件先inspect，进入写事务后以冻结轴lockAndRevalidate；失败发生在证据插入前。
+- `initiate`第一阶段固定使用`scope=CUT:SPARE_INITIATE_INTENT`和用户`Idempotency-Key`调用`PlatformCommandExecutionApi.execute`。该平台事务只完成权限/Owner重验、稳定`platformRequestId`分配、`REQUEST_PENDING`意图插入和Intent SuccessFacts；不得调用INT-06。`REPLAY_COMPLETED`返回同一`applicationReferenceId/platformRequestId`。
+- 第一阶段提交后，公共编排读取当前意图：已有`externalRequestId`表示Provider结果已收口，直接返回当前投影；仍无`externalRequestId`的`REQUEST_PENDING/RETRY_PENDING`才在事务外以同一platformRequestId调用`SpareApplicationGateway.initiate`。
+- Provider接受结果由第二阶段`scope=CUT:SPARE_INITIATE_RESULT`、`key=platformRequestId`的独立`PlatformCommandExecutionApi.execute`收口；digest覆盖规范化结果，事务内以身份/version CAS写外部request/application/launch/status和Result SuccessFacts。同平台请求出现不同Provider结果形成永久冲突；同结果重放只返回当前投影，不重复revision。
+- Provider暂时失败或结果未知由`scope=CUT:SPARE_INITIATE_ATTEMPT`、`key=applicationReferenceId:retryCount`的独立平台事务锁当前意图，原子写`RETRY_PENDING/retryCount+1/lastFailure`和Attempt SuccessFacts；不完成Result scope。用户以原Idempotency-Key重放时第一阶段返回既有意图，随后仍用同platformRequestId再次调用Provider，避免永久停留。
+- `refresh`第一阶段固定使用`scope=CUT:SPARE_REFRESH_INTENT`和用户`Idempotency-Key`，事务内只验证已绑定引用、冻结`applicationReferenceId/externalApplicationNo/expectedStatusVersion`并完成Intent SuccessFacts；不调用INT-06。重放取得同一冻结查询身份。
+- refresh第一阶段提交后，若当前statusVersion已经高于冻结expectedStatusVersion，则直接返回当前投影；否则在事务外用同一申请身份调用`queryStatus`。结果统一经`scope=CUT:SPARE_STATUS_RESULT`、`key=applicationReferenceId:statusVersion`收口，事务内追加revision、切换current pointer并完成Result SuccessFacts；暂时失败经`scope=CUT:SPARE_REFRESH_ATTEMPT`、`key=applicationReferenceId:retryCount`原子写`RETRY_PENDING/retryCount+1`，原Intent重放可再次查询。
+- `addEvidence`是单阶段平台事务：PLT先inspect，`PlatformCommandExecutionApi.execute`事务内以冻结轴lockAndRevalidate后插入证据并完成SuccessFacts。
 - 锁序固定：`cut_task -> PROJ/AST Owner facts -> cut_spare_application_reference -> cut_spare_status_revision current`；回调只锁申请引用和当前revision。
 
 ## 3. Task 1：公共回调合同、INT端口与领域Codec
@@ -87,16 +91,16 @@ public interface CutoverSpareCallbackApi {
 - Create: `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/spare/CutoverSpareCallbackException.java`
 - Create: `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/spare/dto/*.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/SpareApplicationGateway.java`
+- Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/CutoverSpareFilePort.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/SpareNeedSnapshotCodec.java`
 - Test: `pms-module-cutover-api/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/spare/CutoverSpareCallbackApiContractTest.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/SpareNeedSnapshotCodecTest.java`
 
 **Produces:** 后续Schema、应用和回调实现唯一使用的Java合同；不产生Bean或业务写。
 
-- [ ] 先写合同测试，固定所有record精确字段、trim/长度、WireLong/时间、封闭结果与异常；运行并确认因类型缺失失败。
-- [ ] 实现最小公共API/DTO和INT端口类型；不增加INT模块实现、HTTP客户端或第三方配置。
+- [ ] 实现最小公共API/DTO、INT端口和`CutoverSpareFilePort`类型；文件端口的`inspect/lockAndRevalidate`返回`artifactId/referenceKey/versionNo/FileFactVersion/scopeVersion/displayName`，不增加INT模块实现、HTTP客户端或第三方配置。
 - [ ] 实现`SpareNeedSnapshotCodec`，固定ASSESSMENT与CHECKLIST_RISK判别联合、稳定排序和P3 `item.id + item.version`。
-- [ ] 运行合同/Codec测试并执行`mvn -pl pms-module-cutover-api,pms-module-cutover -am -DskipITs -Dtest=CutoverSpareCallbackApiContractTest,SpareNeedSnapshotCodecTest test`；预期全部PASS。
+- [ ] 实现完成后补合同/Codec单元验证，固定record字段、文件displayName事实、trim/长度、WireLong/时间及正向编解码；执行`mvn -pl pms-module-cutover-api,pms-module-cutover -am -DskipITs -Dtest=CutoverSpareCallbackApiContractTest,SpareNeedSnapshotCodecTest test`并确认PASS。
 - [ ] 提交并申请Task 1 Contract/Code Review Gate；GO前不建表。
 
 ## 4. Task 2：三表Schema、DO与Mapper合同
@@ -117,9 +121,9 @@ public interface CutoverSpareCallbackApi {
 **Produces:** `cut_spare_application_reference`、`cut_spare_status_revision`、`cut_spare_manual_evidence`和运行时可解析Mapper。
 
 - [ ] 在合入时重查最高Flyway号，写三表DDL、唯一键、封闭CHECK和`pms:cutover-task:manage-spare`幂等权限种子；不授角色、不回填历史。
-- [ ] 先写迁移/Mapper失败测试，固定`REQUEST_PENDING/EXTERNAL_REFERENCED/RETRY_PENDING`、状态current marker、文件版本轴、trim与不可变历史约束。
 - [ ] 实现DO、单场景Query和XML锁/CAS；禁止SQL注解、`${}`、Map参数和跨Context表。
-- [ ] 用`XMLMapperBuilder + BoundSql + MetaObject`验证动态参数；隔离MySQL 8.4从空库升级并验证同platform request、外部request/application、statusVersion唯一性。
+- [ ] 实现完成后用静态合同固定`REQUEST_PENDING/EXTERNAL_REFERENCED/RETRY_PENDING`、current marker、文件版本轴与不可变历史约束。
+- [ ] 用`XMLMapperBuilder + BoundSql + MetaObject`验证正向动态参数；隔离MySQL 8.4从空库升级并写入一次合法意图、引用、状态revision和人工证据。
 - [ ] 提交并申请Task 2 Schema/Mapper/MySQL Gate。
 
 ## 5. Task 3：需求快照、查询与P5安全投影
@@ -132,15 +136,16 @@ public interface CutoverSpareCallbackApi {
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/view/CutoverApprovalViews.java`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/vo/approval/CutoverApprovalResponses.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/CutoverSpareQueryServiceTest.java`
+- Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/ControlledCutoverSpareFilePort.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalQueryServiceTest.java`
 
 **Produces:** 工作台详情和P5 `FULL`安全摘要；不提供写命令。
 
-- [ ] 写失败测试：P2真/P3假、P2假/P3真、双来源、无来源，以及P3无结果仍以item version成立。
 - [ ] 实现Assembler，只读取CUT现有assessment/checklist Mapper与当前未失效事实；未知形状失败关闭。
 - [ ] 实现详情稳定排序和`INITIATE/REFRESH/ADD_EVIDENCE` allowedActions投影；required=false不返回INITIATE。
+- [ ] 查询人工证据时用冻结`artifactId/versionNo/referenceKey/FileFactVersion/scopeVersion`调用`CutoverSpareFilePort.inspect`，`displayName`只取返回的授权`FileArtifactVersionFact.name`投影；显式受控端口用于Task测试，禁止从referenceKey猜名称或新增名称列。
 - [ ] 给`ApprovalDetail`增加`SpareSupportApprovalSummary`，仅`full(...)`读取；final/reassignment records保持原字段集合。
-- [ ] 测试安全裁剪：不含allowedActions、launchUrl、platform/external request id、内部行id、PLT版本轴和原始响应正文。
+- [ ] 实现完成后验证P2来源、P3无result来源、双来源，以及带PLT displayName的工作台/P5 FULL正向投影和安全裁剪。
 - [ ] 提交并申请Task 3 Query/P5 Projection Gate。
 
 ## 6. Task 4：发起、刷新和人工证据应用服务
@@ -152,18 +157,16 @@ public interface CutoverSpareCallbackApi {
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/command/RefreshSpareApplicationCommand.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/command/AddSpareManualEvidenceCommand.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/result/CutoverSpareCommandResults.java`
-- Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/spare/port/CutoverSpareFilePort.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/CutoverSpareApplicationServiceTest.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/ControlledSpareApplicationGateway.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/spare/ControlledCutoverSpareFilePort.java`
 
 **Produces:** 显式组装即可运行的CUT写编排；`src/main`无INT Fake，无完整生产Bean。
 
-- [ ] 先以失败测试固定授权、ownerUserId、If-Match、需求快照、任务/设备Owner重验、平台幂等重放与同键冲突。
-- [ ] 实现稳定platformRequestId先持久化、事务外Provider调用、事务内身份CAS收口；launch-only为REQUEST_PENDING，已有申请号为EXTERNAL_REFERENCED。
-- [ ] 实现refresh，只查询已绑定申请号；高版本追加、低版本审计且不回退，同版本异载荷冲突。
+- [ ] 按2.3实现`InitiateIntentExecutor/InitiateResultExecutor/SpareRetryExecutor`和公共编排：Intent平台事务提交后才调用Provider，Result与Attempt各用独立scope/key收口；launch-only为REQUEST_PENDING，已有申请号为EXTERNAL_REFERENCED。
+- [ ] 按2.3实现refresh Intent与Status Result两阶段；只查询已绑定申请号，高版本追加并成为当前revision。
 - [ ] 实现人工证据的PLT inspect→锁定重验→不可变插入，scope固定`CUT/CUTOVER_TASK/{taskId}/SPARE_MANUAL_EVIDENCE/READ`。
-- [ ] 验证Provider超时复用同requestId、PLT失败零证据写、平台SuccessFacts失败全事务回滚；测试替身只位于`src/test`。
+- [ ] 实现完成后用受控Provider验证正常initiate的INT调用发生在Intent事务提交后、Result事务收口、同用户键重放返回同一platformRequestId；再验证正常refresh和人工证据追加。测试替身只位于`src/test`。
 - [ ] 提交并申请Task 4 Application/Idempotency Gate。
 
 ## 7. Task 5：首次引用绑定与状态回调
@@ -176,10 +179,9 @@ public interface CutoverSpareCallbackApi {
 
 **Produces:** CUT拥有的内部回调路径；未接INT生产调用方也可由合同测试和受控调用验证。
 
-- [ ] 写失败测试覆盖首次绑定、同值重放、不同申请号、错tenant/system/externalRequestId、绑定后仍REQUEST_PENDING数据损坏。
 - [ ] 以平台Inbox语义实现绑定，确保申请号和状态在同一CAS中更新；BindingResult固定返回EXTERNAL_REFERENCED。
 - [ ] 实现状态回调eventId幂等、版本序列、current marker切换和审计详情；回调不得改变P2～P6状态。
-- [ ] 真实MySQL验证并发首次绑定仅一个成功、同版本重放一行、异载荷回滚平台认领/业务写/审计。
+- [ ] 实现完成后用单元与真实MySQL验证一次正常首次绑定、同值重放和一次递增状态回调，断言申请引用、current revision和P2～P6事实正确。
 - [ ] 保持实现类无生产`@Service/@Component/@Bean`，直至完整依赖装配Gate；提交并申请Task 5 Callback Gate。
 
 ## 8. Task 6：严格REST和错误合同
@@ -195,10 +197,9 @@ public interface CutoverSpareCallbackApi {
 
 **Produces:** 四个用户REST操作的可执行外壳；仍通过测试配置显式装配。
 
-- [ ] 写真实MockMvc失败测试，固定Header缺失/非法、exactKeys、WireLong、权限、404/409/422/503和CommonResult ErrorData。
 - [ ] 实现detail/initiate/refresh/addEvidence，correlationId来自受信请求上下文，不作为业务请求字段；五权限只新增`manage-spare`。
 - [ ] 以稳定异常类型映射幂等冲突、版本陈旧、业务门禁、PLT/INT Provider不可用和外部身份冲突；禁止按消息文本猜测。
-- [ ] 验证错误零副作用及成功响应精确字段；不注册生产Controller Bean。
+- [ ] 实现完成后用真实MockMvc验证四个正常端点的Header、exactKeys、WireLong和CommonResult成功Envelope；不注册生产Controller Bean。
 - [ ] 提交并申请Task 6 REST/MockMvc Gate。
 
 ## 9. Task 7：工作台UI与组件交互
@@ -229,7 +230,7 @@ public interface CutoverSpareCallbackApi {
 - [ ] 在隔离MySQL 8.4全量Flyway上显式组装真实Mapper、平台幂等/审计和受控INT/PROJ/AST/PLT端口。
 - [ ] 跑通`P2或P3需求 -> initiate launch-only -> bindExternalReference -> status callback/refresh -> manual evidence -> workbench/P5 FULL`。
 - [ ] 断言FINAL_RESULT_ONLY/REASSIGNMENT_ONLY无备件字段，P5决定/P6门禁及旧`pms_cut_*`表零变化。
-- [ ] 验证并发绑定/回调、平台失败回滚和三个Owner表不可变历史；清理独立容器/网络/卷。
+- [ ] 验证同键正常重放不重复业务行、三个Owner表保留不可变历史；清理独立容器/网络/卷。
 - [ ] 汇总后端、MySQL、MockMvc、Vitest证据并申请Task 8 Gate；若生产Provider未接通，Feature只可记`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`。
 
 ## 11. 验证命令与完成口径

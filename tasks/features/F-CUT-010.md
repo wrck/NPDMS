@@ -27,4 +27,4 @@
 
 ## Phase-switch checkpoint
 
-基线20c382e2；Feature Ready已GO，实施仍NOT_STARTED。唯一Technical Plan候选已形成，跨模块生产Provider只预留，CUT正向闭环由`src/test`受控替身驱动。当前阻断：计划尚未独立GO。下一步：送Technical Plan复审，GO前不实施。
+基线810c54b4；Feature Ready已GO，实施仍NOT_STARTED。Technical Plan正在A-C最小整改：正向实现后验证、PLT授权displayName来源、initiate/refresh两阶段事务与幂等恢复。当前阻断：计划尚未独立GO。下一步：提交整改并复审，GO前不实施。
