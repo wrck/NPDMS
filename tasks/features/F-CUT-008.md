@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan及Task 1均已独立复审GO；Task 2“两表前向Schema、DO、既有V1写入口兼容及渠道隔离Mapper”候选已形成，等待独立Code Review／隔离MySQL Gate。
+- Feature Ready、唯一Technical Plan及Task 1、Task 2均已独立复审GO；当前进入Task 3“审批创建冻结与FULL详情投影”。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -23,8 +23,9 @@
 - [x] Feature Ready独立复审：`READY / GO @ d9b43077`。
 - [x] 唯一Technical Plan独立复审：`PASS / GO @ e09b150a`。
 - [x] Task 1领域规则与不可变快照Codec独立Code Review Gate：`PASS / GO @ a3443210`。
+- [x] Task 2 Schema、DO、V1兼容与渠道隔离Mapper独立Code Review／隔离MySQL Gate：`PASS / GO @ 5804f57b`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- 基线`3f87003b`；Task 2首次复审仅发现外部`PENDING_RETRY`未禁止`provider_reference_id`的单点Schema阻断，现按外部端口机器合同收敛为明确失败时Provider受理编号必须为空，并补迁移合同断言。当前最近Gate为该单点整改复审；本记录不提前宣告PASS。INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
+- 基线`5804f57b`；Task 2独立复审GO。当前最近Gate为Task 3审批创建冻结与FULL详情投影实现候选；INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
