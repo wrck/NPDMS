@@ -26,4 +26,4 @@
 
 ## 最近检查点
 
-- 基线`b5155fcf`；Feature Ready状态已回写，唯一Technical Plan候选覆盖规则、Schema、审批接入、渠道端口、UI、暂停Job与受控MySQL闭环。当前Gate为Technical Plan独立复审；无DDL或实现授权。
+- 基线`ff1dc761`；Technical Plan首次独立复审NO-GO，仅剩迁移中间态写入兼容、外部领取真实事务所有权和前端测试配置三项计划可执行性整改。当前仅修订唯一计划并重送最小复审；无DDL或实现授权。

@@ -98,6 +98,7 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverLeadTimeCalculatorTest,CutoverLeadT
 - Create at serial merge: `sql/migrations/`下实际下一空闲版本的`fcut008_p5_lead_time_notification.sql`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalInstanceDO.java`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalNotificationDO.java`
+- Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/approval/CutoverApprovalNotificationMapper.java`
 - Modify: `pms-module-cutover/src/main/resources/mapper/approval/CutoverApprovalNotificationMapper.xml`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/approval/query/ExternalApprovalNotificationClaimQuery.java`
@@ -126,6 +127,8 @@ private LocalDateTime lastAttemptAt;
 ```
 
 - [ ] **Step 3: 隔离站内与外部领取**
+
+先保持迁移后既有V1写路径可用：`CutoverApprovalApplicationService.startNew`创建根时显式写`leadTimeEnabled=false/leadTimeSnapshot=null`；现有首节点、下一节点和PENDING改派站内通知入口全部显式写`channelCode=IN_PLATFORM`。Task 2 Gate必须先证明迁移后既有F-CUT-005正常创建/审批仍可写入，Task 3再把A/B根升级为真实V2快照，Task 4再追加外部渠道行；不得依赖数据库默认或把兼容写入口留到后续Task。
 
 现有`selectDueForUpdateSkipLocked`必须增加`channel_code='IN_PLATFORM'`；新增`selectExternalDueForUpdateSkipLocked(query)`只取三外部渠道的PENDING/到期PENDING_RETRY，排除DELIVERY_UNKNOWN。两个Query均按`COALESCE(next_retry_at,create_time),id`排序并在XML使用`FOR UPDATE SKIP LOCKED`。
 
@@ -238,7 +241,9 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreatio
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/ExternalApprovalNotificationRequest.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/ExternalApprovalNotificationResult.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/CutoverExternalApprovalNotificationService.java`
+- Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/CutoverExternalApprovalNotificationTransactionExecutor.java`
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/job/CutoverExternalApprovalNotificationJob.java`
+- Create test config: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/ControlledExternalNotificationTransactionConfiguration.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/ControlledCutoverExternalApprovalNotificationPort.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/CutoverExternalApprovalNotificationServiceTest.java`
 - Test: `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/job/CutoverExternalApprovalNotificationJobTest.java`
@@ -262,13 +267,13 @@ public sealed interface ExternalApprovalNotificationResult {
 
 Request只含合同字段，不含phone/email/ding account/token。
 
-- [ ] **Step 2: 实现投递服务**
+- [ ] **Step 2: 实现唯一事务执行边界**
 
-领取后从锁定CUT根/节点/任务组装请求；Accepted→ACCEPTED，Unknown→DELIVERY_UNKNOWN，ExplicitFailure/端口异常/请求或Owner损坏→PENDING_RETRY。退避复用现有1/2/4/8/16/32/60分钟规则并保持同deliveryKey。
+`CutoverExternalApprovalNotificationService`作为无事务公共Facade调用独立`CutoverExternalApprovalNotificationTransactionExecutor`；Executor的`deliverBatch` public方法标注`@Transactional`（默认REQUIRED），事务必须在`selectExternalDueForUpdateSkipLocked`前开始，并在每行端口结果完成`updateExternalDeliveryIfMatch`后才提交。领取后从锁定CUT根/节点/任务组装请求；Accepted→ACCEPTED，Unknown→DELIVERY_UNKNOWN，ExplicitFailure/端口异常/请求或Owner损坏→PENDING_RETRY。退避复用现有1/2/4/8/16/32/60分钟规则并保持同deliveryKey；任何CAS=0使该批事务回滚，不得在锁释放后盲写。
 
 - [ ] **Step 3: 保持生产装配边界**
 
-Service和Job不加`@Service/@Component/@Bean`，没有端口Provider、可选注入、空成功或旧Notify API降级。测试显式new并传入Controlled Port；未来INT-10/INT-05接通提交再注册唯一生产装配。
+Facade、Executor和Job均不加`@Service/@Component`，没有端口Provider、可选注入、空成功或旧Notify API降级。受控MySQL测试用test-only `@Configuration`分别声明Facade、Executor和Controlled Port Bean，并从Spring上下文取得经过真实事务代理的Executor；禁止显式`new Executor`冒充锁测试。未来INT-10/INT-05接通提交再注册唯一生产装配。
 
 - [ ] **Step 4: 验证三种正常结果**
 
@@ -289,6 +294,7 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverExternalApprovalNotificationService
 - Create: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/components/CutoverLeadTimeComplianceCard.vue`
 - Modify: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/components/CutoverApprovalPanel.vue`
 - Modify test: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts`
+- Reuse test config: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/vitest.config.mjs`
 
 **Interfaces:**
 - Consumes: `CutoverApprovalDetail.leadTimeCompliance`。
@@ -324,7 +330,7 @@ export interface CutoverLeadTimeCompliance {
 挂载A/B详情验证时间格式和迟交/合规文本，挂载null详情验证不展示；触发原approve事件并断言请求体不含leadTime字段。
 
 ```powershell
-pnpm vitest run src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts --config vitest.config.cutover.ts
+pnpm vitest run --config src/views/pms/cutover/cutover-task/vitest.config.mjs src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts
 pnpm ts:check
 ```
 
@@ -396,7 +402,7 @@ C/D正常审批不产生提前时间快照但仍产生外部请求；迁移前A/
 
 ```powershell
 mvn -pl pms-module-cutover -am -Dtest=CutoverLeadTimeCalculatorTest,CutoverLeadTimeSnapshotCodecTest,Fcut008MigrationContractTest,CutoverApprovalStartServiceTest,CutoverApprovalDecisionServiceTest,CutoverApprovalReassignmentTest,CutoverApprovalQueryServiceTest,CutoverApprovalNotificationServiceTest,CutoverExternalApprovalNotificationServiceTest,CutoverLeadTimeExternalNotificationPositiveLoopMySqlTest -Dsurefire.failIfNoSpecifiedTests=false test
-pnpm vitest run src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts --config vitest.config.cutover.ts
+pnpm vitest run --config src/views/pms/cutover/cutover-task/vitest.config.mjs src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts
 pnpm ts:check
 ```
 
