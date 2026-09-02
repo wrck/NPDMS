@@ -9,7 +9,7 @@
 > 支撑依赖：`ProjectScopeApi.ACTION_VIEW`、各阶段既有CUT查询动作守卫
 > 机器合同：`specs/features/F-CUT-007-api-contract.json`、`specs/features/F-CUT-007-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-007-legacy-reuse-audit.md`
-> 唯一Technical Plan：`未生成；Feature Ready通过前禁止生成`
+> 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-007-cutover-dashboard-kpis.md`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标
 
