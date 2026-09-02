@@ -378,6 +378,8 @@ F-CUT-008以前向ALTER扩展上述两张Owner表，不新建第二套审批或�
 
 F-CUT-010以前向`NEW_ONLY`新增三张CUT-08表。`cut_spare_application_reference`按平台请求ID唯一保存任务、需求来源快照、外部系统、请求标识、可选跳转地址和外部申请号；外部申请身份按`tenant_id+external_system_code+external_application_no`唯一，多个合法申请以不同平台请求ID并存。`cut_spare_status_revision`按申请+正数外部状态版本只追加，当前标记只指向最高已接受版本，原始状态和只读JSON不得被CUT编辑。`cut_spare_manual_evidence`只保存PLT不可变文件事实引用、说明和操作审计，可关联任务或具体外部申请；人工证据不得生成外部申请号、状态版本或成功事实。三表不保存备件型号、数量、库存、审批、到货、领用或RMA明细，不迁移或双写旧`pms_cut_*`。精确列、可空联合、唯一键与锁序由`specs/features/F-CUT-010-physical-contract.json`锁定。
 
+CutoverSpareApplicationReference物理表由CUT-08 Feature前向迁移确定；CutoverSpareStatusRevision物理表由CUT-08 Feature前向迁移确定；CutoverSpareManualEvidence物理表由CUT-08 Feature前向迁移确定。三者均为`NEW_ONLY`，不得从旧CUT、工程物料、URL、备注或状态文本反推外部申请、状态版本或人工证据。
+
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 
 `pms_cut_task -> cut_task`采用来源联合而非把旧字段冒充新流程：新平台任务使用`task_origin=NEW_PLATFORM`并满足CUT-07正式类型、设备范围、IMP就绪快照、项目水位和负责人等写入守卫；经资格校验的旧行使用`task_origin=LEGACY_FORWARD/task_status=LEGACY_UNKNOWN`，只在`legacy_cutover_type_raw/legacy_network_mode_raw/legacy_task_id/legacy_status_value/legacy_mapping_version`保留旧原值。LEGACY_FORWARD的当前类型/组网、负责人、客户、IMP快照、项目水位、人工等级和当前评估必须为NULL；旧`0..8`状态不映射为`GRADE_CONFIRMING/SURVEYING/PLAN_DRAFTING`，旧默认等级不映射人工等级。只读行不生成设备范围、阶段历史或评估，也不占用新路径活动设备唯一性。损坏、软删除、跨租户/项目无法解析或目标身份冲突行保留旧表并记录迁移问题，不补默认事实。

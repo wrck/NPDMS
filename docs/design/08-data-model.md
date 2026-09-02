@@ -216,6 +216,9 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverChecklistItem（版本内实体） | 稳定项键、采集项定义/界面/条件/工作方式快照、必填性、设备/命令模板引用、自定义来源和当前适用性 | 系统必填项不可删除；重匹配按稳定项键保留或移出，前端不按名称硬编码 |
 | Cutover | CutoverChecklistItemResult（追加事实） | 直接填写、自动采集、外部加载或人工降级结果，CollectionTask/结果版本、失败与人工证据引用、选择有效区间 | 结果正文不可覆盖；每项只允许一个未结束的当前选择区间；DAC技术状态不复制为CUT状态；回调成功不直接产生业务通过 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
+| Cutover | CutoverSpareApplicationReference | CUT-08平台请求、冻结任务/项目/设备/需求上下文、INT-06外部请求标识、可选跳转地址和首次绑定的外部申请号 | 仅为集成引用；首次绑定后外部系统/请求/申请身份不可改写，不建立备件业务生命周期 |
+| Cutover | CutoverSpareStatusRevision | 外部申请原始状态、来源版本、外部发生时间、观察时间与来源方式 | 只追加；同版本异载荷冲突，低版本不回退当前快照，原始状态不映射本地到货/就位/完成 |
+| Cutover | CutoverSpareManualEvidence | 任务或申请关联的PLT不可变文件事实、人工说明、上传人和时间 | 只追加；P5仅投影展示名称/说明/时间，不暴露PLT内部身份或冒充接口成功 |
 | Cutover | CutoverConfigurationRevision | CUT-07/09/10的V1后台配置版本、统一采集项定义版本、风险/调研匹配规则及基础平台字典维度快照；CUT-03 V2可追加受控流程跳转规则 | 首批配置基础先于或不晚于首个消费能力交付；草稿发布后不可覆盖；类型/组网/设备使用基础平台字典；不归入CutoverPlan |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |

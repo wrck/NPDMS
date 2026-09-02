@@ -1779,20 +1779,20 @@
 |---|---|---|---|
 | CUT-08@V2 | V2 | 割接备件系统集成的V2主交付业务结果 | V2 |
 
-- 数据对象：CutoverTask
-- 数据表：cut_task、ast_asset_sync_item
-- API：/cutover-tasks
+- 数据对象：CutoverTask、CutoverSpareApplicationReference、CutoverSpareStatusRevision、CutoverSpareManualEvidence
+- 数据表：cut_task、cut_spare_application_reference、cut_spare_status_revision、cut_spare_manual_evidence
+- API：/api/v1/pms/cutover-tasks/{id}/spare-support、内部CutoverSpareCallbackApi
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
-- 外部集成：备件系统
-- 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：备件申请映射、回调、门禁和对账
-- 授权与数据范围：CutoverTaskScope；外部备件范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；外部集成映射、超时/重试/对账/降级测试
+- 外部集成：备件系统（INT-06拥有连接器和第三方事实）
+- 文件契约：FileArtifact
+- 工作流/状态：备件需求识别、外部申请发起/首次引用绑定、只读状态版本、人工证据和对账；不建立本地备件生命周期或P6门禁
+- 授权与数据范围：CutoverTaskScope；任务负责人、项目/设备范围及外部回调受信租户
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN V2中有权割接-一线工程师对需要备件的割接任务发起外部申请；THEN 平台携带已授权的割接、项目和设备上下文进入备件系统，返回后保存外部业务号及来源；WHEN 外部备件系统返回状态更新；THEN 平台按外部申请号幂等更新只读状态快照，记录来源原值和同步时间，不产生本地库存或到货业务记录；WHEN 外部系统不可用、未返回申请号或字段映射失败；THEN CUT保持原流程数据，记录失败并允许后续重试或上传人工证据，不伪造外部申请成功
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；外部备件范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“备件申请映射、回调、门禁和对账”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask”及数据表“cut_task、ast_asset_sync_item”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“备件系统”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；任务负责人、项目/设备范围及外部回调受信租户”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“备件需求识别、外部申请发起/首次引用绑定、只读状态版本、人工证据和对账；不建立本地备件生命周期或P6门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverSpareApplicationReference、CutoverSpareStatusRevision、CutoverSpareManualEvidence”及数据表“cut_task、cut_spare_application_reference、cut_spare_status_revision、cut_spare_manual_evidence”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“备件系统（INT-06拥有连接器和第三方事实）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-09
 

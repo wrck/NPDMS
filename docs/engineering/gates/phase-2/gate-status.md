@@ -25,6 +25,7 @@
 | F-PROJ-004聚焦迁移增量 | READY / GO | 当前契约为88对象/99来源绑定/1排除源；`ProjectTemplateMatchHistory`为NONE_NEW/FEATURE_FORWARD_MIGRATION(PM-07)，已进入受管生成链；Feature Ready独立裁决`NPDMS-FPROJ004-FEATURE-READY-20260825-06`为GO |
 | F-PLT-002聚焦动态表单候选 | IN_REVIEW | 候选形成时为90对象/101来源绑定/1排除源，修订007当前总体为93对象/104来源绑定/1排除源；PLT模板、修订、通用实例与Preparation专用实例分离，旧`pms_eng_form_*`仅作复用审计证据且不迁移、不双写；不代表Feature Ready通过 |
 | F-CUS-001规格回写 | READY | 当前契约为93对象/104来源绑定/1排除源；客户主档、地点引用、五维权限切片及V106～V108实现证据已进入受管生成链，Feature前向表不冒充当前核心DDL |
+| F-CUT-010聚焦CUT-08候选 | IN_REVIEW | 当前契约为96对象/107来源绑定/1排除源；外部申请引用、状态revision和人工证据为NONE_NEW/FEATURE_FORWARD_MIGRATION(CUT-08)，仅关闭Phase 2载体冲突，不代表Feature Ready通过 |
 | 追溯 | PASS | `phase2-contract-map.md`保留100个稳定Requirement锚点并显式登记111个切片键；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 | F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |

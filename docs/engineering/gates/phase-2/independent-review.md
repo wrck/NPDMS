@@ -18,6 +18,8 @@ Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式�
 
 2026-08-28 F-CUS-001实现补丁完成正式回写后，客户主档目标表、MarketRelation、地点引用和五维权限切片进入受管生成链，当前契约为93对象/104来源绑定/1排除源；实现证据锁定NPDMS `a9f8b7c568546839d3d641531f8036bb75889a82`及V106～V108。该回写不改变当前核心DDL精确表集。
 
+2026-09-02 F-CUT-010 Feature Ready整改候选将CUT-08三项CUT Owner载体纳入受管生成链，当前契约为96对象/107来源绑定/1排除源；三对象均为NONE_NEW/FEATURE_FORWARD_MIGRATION。本段只登记候选机器合同同步，不替代F-CUT-010独立Feature Ready裁决。
+
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 
 ## 2. 复审发现与关闭

@@ -26,4 +26,4 @@
 
 ## Phase-switch checkpoint
 
-基线cd2d6e04；当前Gate为F-CUT-010 Feature Ready规格整改。CUT-08@V2由本Feature承接，COM及F-CUT-007～009不重做。阻断：独立复审A-D未关闭。下一步：按首次引用绑定、P5安全投影、INT-06 DTO及Phase 2 SDS同步形成最小整改。
+基线ee632ba5；当前Gate为F-CUT-010 Feature Ready A-D整改复审。已补首次引用绑定、P5 FULL安全摘要、INT-06精确DTO及Phase 2/迁移生成源。阻断：整改尚未取得独立GO。下一步：提交锁定候选并送最小复审，GO前不生成Technical Plan或实现。

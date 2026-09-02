@@ -479,9 +479,12 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
             "MarketRelation": ["cus_market_relation"],
             "CustomerLocationReference": ["cus_customer_location_reference"],
             "CustomerScopeSlice": ["cus_customer_scope_slice"],
+            "CutoverSpareApplicationReference": ["cut_spare_application_reference"],
+            "CutoverSpareStatusRevision": ["cut_spare_status_revision"],
+            "CutoverSpareManualEvidence": ["cut_spare_manual_evidence"],
         }
 
-        self.assertEqual(93, len(self.records))
+        self.assertEqual(96, len(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])

@@ -444,6 +444,39 @@
         "cut_task"
       ]
     },
+    "CutoverSpareApplicationReference": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_application_reference"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
+    "CutoverSpareStatusRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_status_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
+    "CutoverSpareManualEvidence": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_manual_evidence"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
     "CutoverAssessment": {
       "owner": "CUT",
       "requirementIds": [
