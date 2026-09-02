@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan、Task 1～5均已独立复审GO；Task 6 P5提前时间展示卡片候选等待独立复审。
+- Feature Ready、唯一Technical Plan、Task 1～6均已独立复审GO；当前进入Task 7暂停Job种子与迁移合同候选。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -29,9 +29,9 @@
 - [x] Task 5 correlation provenance Machine Contract Gate：`PASS / GO @ 1c181df8`。
 - [x] Task 4A Schema/Writer Amendment Code Review／正向闭环Gate：`PASS / GO @ 8889fe96`。
 - [x] Task 5受控外部端口、投递服务与未装配Job独立Code Review／正向闭环Gate：`PASS / GO @ 373a7883`。
-- [ ] Task 6 P5提前时间展示卡片组件／正向交互Gate：`REVIEW_REQUIRED`。
+- [x] Task 6 P5提前时间展示卡片组件／正向交互Gate：`PASS / GO @ 8d09fdc3`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- Task 6候选待复审：FULL详情增加A/B只读提前时间卡片，C/D与旧实例不占位，审批写请求不携带提前时间字段；组件22/22及`pnpm ts:check`通过。生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
+- Task 6 Gate=`PASS / GO @ 8d09fdc3`：A/B只读提前时间卡片、C/D与旧实例空投影及审批请求隔离均通过，组件22/22、`pnpm ts:check`通过。当前进入Task 7暂停Job种子；生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
