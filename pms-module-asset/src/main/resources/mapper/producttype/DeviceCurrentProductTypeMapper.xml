@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.DeviceCurrentProductTypeMapper">
+
+    <select id="selectAuthorizedCurrentInternal"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.producttype.projection.AuthorizedDeviceProductTypeProjection">
+        SELECT d.id AS device_id,
+               current_type.product_type_code,
+               product_type.display_name,
+               product_type.enabled,
+               current_type.source_version,
+               current_type.resolution_status,
+               product_type.sync_status,
+               product_type.synced_at AS last_successful_sync_time
+        FROM ast_device d
+        LEFT JOIN ast_device_current_product_type current_type
+          ON current_type.tenant_id = d.tenant_id
+         AND current_type.device_id = d.id
+         AND current_type.current_marker = 1
+         AND current_type.deleted = b'0'
+        LEFT JOIN ast_product_type product_type
+          ON product_type.tenant_id = current_type.tenant_id
+         AND product_type.id = current_type.product_type_id
+         AND product_type.deleted = b'0'
+         AND product_type.type_code = current_type.product_type_code
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND d.id IN
+          <foreach collection="query.deviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+          </foreach>
+          AND (
+            d.project_id IN
+            <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+              #{projectId}
+            </foreach>
+            OR EXISTS (
+              SELECT 1
+              FROM ast_device_project_relationship relation
+              WHERE relation.tenant_id = d.tenant_id
+                AND relation.device_sn = d.sn
+                AND relation.project_id IN
+                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                  #{projectId}
+                </foreach>
+                AND relation.effective_from &lt;= #{query.effectiveAt}
+                AND (relation.effective_to IS NULL OR relation.effective_to &gt; #{query.effectiveAt})
+                AND relation.deleted = b'0'
+            )
+          )
+        ORDER BY d.id
+    </select>
+
+    <select id="selectCurrentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.DeviceCurrentProductTypeDO">
+        SELECT id,
+               device_id,
+               product_type_id,
+               product_type_code,
+               source_mapping_id,
+               resolution_status,
+               source_version,
+               source_updated_at,
+               effective_from,
+               effective_to,
+               version,
+               creator,
+               create_time,
+               updater,
+               update_time,
+               deleted,
+               tenant_id
+        FROM ast_device_current_product_type
+        WHERE tenant_id = #{query.tenantId}
+          AND device_id = #{query.deviceId}
+          AND current_marker = 1
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="closeCurrent">
+        UPDATE ast_device_current_product_type
+        SET effective_to = #{update.effectiveTo},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND device_id = #{update.deviceId}
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+
+</mapper>
