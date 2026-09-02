@@ -59,7 +59,7 @@
 ### BR-FCUT004-003 revision与审批交接
 
 - 同一任务revision编号从1单调递增；`DRAFT/SUBMITTED/INVALIDATED`是P4本地生命周期。提交后正文、步骤、风险措施和职责不可覆盖。
-- 提交在一个外层CUT事务内锁定任务、来源、当前revision和项目范围，将revision置`SUBMITTED`并调用`CutoverApprovalFactApi.start`。只有审批实例创建成功并返回稳定`approvalInstanceId/approvalVersion`后，任务才进入P5；否则全部回滚。
+- 提交在一个外层CUT事务内锁定任务、来源、当前revision和项目范围，先分配唯一服务端`planSubmittedAt`并将其作为受信内部事实传入`CutoverApprovalFactApi.start`；审批实例创建成功后，同一时间原样写入revision并置`SUBMITTED`。只有审批实例返回稳定`approvalInstanceId/approvalVersion`后，任务才进入P5；否则全部回滚。
 - 同一`Idempotency-Key + taskId + revisionNo + normalizedPayload`重放返回原结果；异载荷冲突。`If-Match`陈旧或并发提交仅一方成功。
 - `SUBMITTED`来源失效时追加失效人、时间和原因，将revision置`INVALIDATED`，并在同一事务调用CUT-05将同一审批实例`PENDING -> PAUSED_SOURCE_INVALIDATED`，同时由F-CUT-004把任务`P5/APPROVING -> P4/PLAN_DRAFTING`并追加`P5_SOURCE_INVALIDATED`历史。该revision和审批不恢复原状态；恢复办理必须派生新方案revision并在提交时创建引用旧实例的替代审批；不得把审批`REJECTED`当作失效。
 

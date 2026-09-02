@@ -4,7 +4,7 @@
   "status": "CONSUMER_CONTRACT_BASELINE",
   "ownerFeatureReady": "READY_GO_2E3FDBA3",
   "ownerFeatureId": "F-CUT-005",
-  "consumerFeatureIds": ["F-CUT-004", "F-CUT-006"],
+  "consumerFeatureIds": ["F-CUT-004", "F-CUT-006", "F-CUT-008"],
   "requirementSlices": ["CUT-04@V1=SUPPORT", "CUT-05@V1=OWNER"],
   "javaPackage": "cn.iocoder.yudao.module.pms.cutover.api.approval",
   "api": "CutoverApprovalFactApi",
@@ -24,6 +24,7 @@
         "checklistId": "positive Long|null; required for A/B/C and null for D",
         "checklistVersion": "positive Integer|null; required for A/B/C and null for D",
         "sourceSnapshotVersion": "positive Integer",
+        "planSubmittedAt": "required LocalDateTime; trusted server time allocated once by the enclosing P4 submit transaction and persisted unchanged to the plan revision after approval start succeeds",
         "previousApprovalInstanceId": "positive Long|null; allowed only when the previous fact is REJECTED or PAUSED_SOURCE_INVALIDATED",
         "idempotencyKey": "non-blank String 1..128",
         "correlationId": "non-blank String 1..128"
@@ -117,12 +118,12 @@
   "operations": {
     "start": {
       "signature": "CutoverApprovalStartResult start(CutoverApprovalStartCommand command)",
-      "transaction": "MANDATORY; joins F-CUT-004 submission; locks the task/assessment/checklist/plan roots and initiator ACTION_EDIT fact, assembles the exact immutable F-CUT-005 ApprovalSourceSnapshot from those locked CUT facts, creates one PENDING approval and returns its fact",
+      "transaction": "MANDATORY; joins F-CUT-004 submission; locks the task/assessment/checklist/plan roots and initiator ACTION_EDIT fact, accepts the enclosing transaction's single trusted planSubmittedAt, assembles the exact immutable F-CUT-005 ApprovalSourceSnapshot from locked CUT facts, creates one PENDING approval and returns its fact; the same planSubmittedAt is then persisted unchanged to the submitted plan revision",
       "resultUnion": {
         "STARTED": "fact required",
         "REPLAYED": "same original fact required"
       },
-      "idempotency": "tenant + CUTOVER_APPROVAL_START + taskId + planRevisionId + idempotencyKey; same key and canonical command returns REPLAYED, different canonical command is IDEMPOTENCY_CONFLICT",
+      "idempotency": "tenant + CUTOVER_APPROVAL_START + taskId + planRevisionId + idempotencyKey; canonical command digest includes planSubmittedAt; same key and canonical command returns REPLAYED, different canonical command is IDEMPOTENCY_CONFLICT",
       "previousRule": "null for initial submission; a replacement may reference exactly one same-task prior REJECTED or PAUSED_SOURCE_INVALIDATED instance. The new PENDING instance and prior replacementApprovalInstanceId are written atomically; the prior status and history are not overwritten"
     },
     "inspect": {

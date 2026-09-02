@@ -28,6 +28,7 @@
 
 ## 最近检查点
 
-- Task 3候选：A/B在审批创建时从锁定任务计划冻结提前时间快照，C/D及V1根保持禁用空投影；仅`FULL`详情返回冻结判断，最终结果与改派响应不暴露该字段，提前/正常提交不改变审批决策。
-- 聚焦验证：`CutoverApprovalStartServiceTest`、`CutoverApprovalQueryServiceTest`、`CutoverApprovalControllerContractTest`、`CutoverApprovalDecisionServiceTest`共20/20通过，Failures=0、Errors=0、Skipped=0，Reactor `BUILD SUCCESS`。
-- 当前最近Gate为Task 3独立Code Review／聚焦测试复审；INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
+- Task 3首轮候选`2011aa5a`独立复审NO-GO：P4提交原先在审批启动后才写方案`submitted_at`，A/B无法从DRAFT方案行取得提交时间。
+- 单点整改候选：P4提交外层事务先分配唯一服务端`planSubmittedAt`，同值进入审批启动命令及幂等摘要，并在审批启动成功后原样写入方案revision；审批继续锁定方案身份但不从尚未提交的方案行读取该时间。C/D、FULL投影、最终结果/改派隔离及决策不受影响边界保持不变。
+- 聚焦验证：审批/方案/API八个测试类共35/35通过；独立MySQL 8.4空库迁移至V157后，`CutoverApprovalPositiveLoopMySqlTest`6/6通过，并证明方案`submitted_at`与审批快照`planSubmittedAt`完全一致。专用容器、网络和卷已清理。
+- 当前最近Gate为Task 3该单点运行整改Code Review／正向组合验证复审；INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。

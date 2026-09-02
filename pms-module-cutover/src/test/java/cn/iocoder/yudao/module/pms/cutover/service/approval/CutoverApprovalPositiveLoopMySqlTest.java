@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationProviderExecutor;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationService;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.*;
@@ -223,6 +224,14 @@ class CutoverApprovalPositiveLoopMySqlTest {
         SubmitCutoverPlanResult result = planService.submit(new SubmitCutoverPlanCommand(
                 tenantId, 8L, taskId, 4, saved.planVersion(), "submit-" + key, "corr-submit-" + key));
         assertEquals("P5", result.taskStage());
+        if (List.of("A", "B").contains(grade)) {
+            LocalDateTime submittedAt = jdbc.queryForObject("SELECT submitted_at FROM cut_plan_revision " +
+                    "WHERE tenant_id=? AND id=?", LocalDateTime.class, tenantId, result.planRevisionId());
+            String snapshot = jdbc.queryForObject("SELECT lead_time_snapshot FROM cut_approval_instance " +
+                    "WHERE tenant_id=? AND id=?", String.class, tenantId, result.approvalInstanceId());
+            assertEquals(submittedAt.atZone(ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli(),
+                    new CutoverLeadTimeSnapshotCodec().decode(snapshot).planSubmittedAt());
+        }
         return new SubmittedRoute(result.planRevisionId(), result.approvalInstanceId());
     }
 
@@ -248,7 +257,7 @@ class CutoverApprovalPositiveLoopMySqlTest {
         CutoverTaskDO task = new CutoverTaskDO();
         task.setId(taskId); task.setTenantId(tenantId); task.setProjectId(projectId()); task.setTaskNo("CUT-" + taskId);
         task.setTaskName(grade + "级审批闭环"); task.setBackground("受控Owner事实正向闭环");
-        task.setCutoverType("NETWORK_CUTOVER"); task.setNetworkMode("DUAL");
+        task.setCutoverType("NETWORK_TOPOLOGY_CHANGE"); task.setNetworkMode("DUAL");
         task.setScheduledTime(LocalDateTime.of(2026, 9, 3, 10, 0)); task.setTaskOrigin("NEW_PLATFORM");
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P4"); task.setTaskStatus("PLAN_DRAFTING");
         task.setOwnerUserId(8L); task.setCustomerId(99L); task.setImplementationReadinessSnapshotId(7L);

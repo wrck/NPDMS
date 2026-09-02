@@ -419,8 +419,8 @@ public class CutoverPlanApplicationService {
         supportMapper.selectListByPlanForUpdate(children);
         requireComplete(storedContent(command.tenantId(), plan, currentSource), currentSource);
 
-        CutoverApprovalStartResult approval = startApproval(command, task, plan, currentSource.snapshot());
         LocalDateTime now = LocalDateTime.now(clock);
+        CutoverApprovalStartResult approval = startApproval(command, task, plan, currentSource.snapshot(), now);
         int newPlanVersion = plan.getVersion() + 1;
         if (planMapper.submitDraftIfMatch(new CutoverPlanSubmitUpdate(command.tenantId(), plan.getId(),
                 plan.getVersion(), newPlanVersion, command.actorId(), now, approval.fact().approvalInstanceId(),
@@ -1055,14 +1055,15 @@ public class CutoverPlanApplicationService {
 
     private CutoverApprovalStartResult startApproval(SubmitCutoverPlanCommand command, CutoverTaskDO task,
                                                       CutoverPlanRevisionDO plan,
-                                                      CutoverPlanSourcePort.SourceSnapshot source) {
+                                                      CutoverPlanSourcePort.SourceSnapshot source,
+                                                      LocalDateTime planSubmittedAt) {
         if (approvalFactApi == null) throw cut05Unavailable();
         try {
             Long previousApprovalInstanceId = previousApprovalInstanceId(command.tenantId(), task.getId(), plan);
             CutoverApprovalStartResult result = approvalFactApi.start(new CutoverApprovalStartCommand(
                     command.tenantId(), task.getId(), task.getVersion(), plan.getId(), plan.getRevisionNo(),
                     source.grade(), source.assessmentId(), source.assessmentVersion(), source.checklistId(),
-                    source.checklistVersion(), source.snapshotVersion(), previousApprovalInstanceId,
+                    source.checklistVersion(), source.snapshotVersion(), planSubmittedAt, previousApprovalInstanceId,
                     command.idempotencyKey(),
                     command.correlationId()));
             CutoverApprovalFact fact = result == null ? null : result.fact();

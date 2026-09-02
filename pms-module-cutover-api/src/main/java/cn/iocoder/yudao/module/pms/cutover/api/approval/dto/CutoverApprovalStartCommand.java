@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.api.approval.dto;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public record CutoverApprovalStartCommand(
@@ -14,6 +15,7 @@ public record CutoverApprovalStartCommand(
         Long checklistId,
         Integer checklistVersion,
         Integer sourceSnapshotVersion,
+        LocalDateTime planSubmittedAt,
         Long previousApprovalInstanceId,
         String idempotencyKey,
         String correlationId) {
@@ -40,6 +42,9 @@ public record CutoverApprovalStartCommand(
             ApprovalContractRules.positive(checklistVersion, "checklistVersion");
         }
         ApprovalContractRules.positive(sourceSnapshotVersion, "sourceSnapshotVersion");
+        if (planSubmittedAt == null) {
+            throw ApprovalContractRules.invalid("planSubmittedAt is required");
+        }
         ApprovalContractRules.nullablePositive(previousApprovalInstanceId, "previousApprovalInstanceId");
         ApprovalContractRules.normalized(idempotencyKey, 128, "idempotencyKey");
         ApprovalContractRules.normalized(correlationId, 128, "correlationId");

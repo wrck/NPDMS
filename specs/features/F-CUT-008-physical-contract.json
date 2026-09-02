@@ -52,7 +52,7 @@
     "version": "CUT_LEAD_TIME_R034_V1",
     "timezoneId": "Asia/Shanghai",
     "mapping": "exact leadTimeRules from F-CUT-008-api-contract.json",
-    "allocation": "calculated once inside F-CUT-005 start outer transaction before approval insert; never recomputed in query"
+    "allocation": "calculated once inside F-CUT-005 start outer transaction before approval insert from the trusted P4 submit planSubmittedAt; the same timestamp is persisted unchanged to the plan revision; never recomputed in query"
   },
   "notificationStateTransitions": {
     "create": "initial or next-node activation appends external PENDING rows; current PENDING-node reassignment appends rows for the new recipient/nodeVersion; WAITING-node reassignment appends none until its later activation",

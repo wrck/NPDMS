@@ -119,9 +119,10 @@ class CutoverPlanSubmissionTest {
         when(taskMapper.selectMaxStageHistorySequence(any())).thenReturn(2);
         when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
+        ControlledApprovalApi approval = new ControlledApprovalApi();
         CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
                 stepMapper, supportMapper, projectScope, sourcePort, mock(CutoverPlanFilePort.class),
-                new CutoverPlanContentCodec(), platform, new ControlledApprovalApi(), historyMapper,
+                new CutoverPlanContentCodec(), platform, approval, historyMapper,
                 Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC));
 
         SubmitCutoverPlanResult result = service.submit(
@@ -136,6 +137,7 @@ class CutoverPlanSubmissionTest {
         verify(planMapper).submitDraftIfMatch(planUpdate.capture());
         assertThat(planUpdate.getValue().approvalInstanceId()).isEqualTo(70001L);
         assertThat(planUpdate.getValue().newVersion()).isEqualTo(4);
+        assertThat(planUpdate.getValue().submittedAt()).isEqualTo(approval.command.planSubmittedAt());
         var taskUpdate = org.mockito.ArgumentCaptor.forClass(CutoverTaskPlanSubmitUpdate.class);
         verify(taskMapper).submitPlanIfMatch(taskUpdate.capture());
         assertThat(taskUpdate.getValue().expectedVersion()).isEqualTo(4);
@@ -234,9 +236,11 @@ class CutoverPlanSubmissionTest {
 
     private static final class ControlledApprovalApi implements CutoverApprovalFactApi {
         private CutoverApprovalFact fact;
+        private CutoverApprovalStartCommand command;
 
         @Override
         public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
+            this.command = command;
             fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
                     command.planRevisionNo(), ApprovalStatus.PENDING,
                     command.sourceSnapshotVersion(), null, null, null);

@@ -164,8 +164,8 @@ class CutoverPlanRevisionLifecycleTest {
         CutoverPlanSourcePort.SourceFacts frozenFacts = sourceFacts(4);
         CutoverPlanRevisionDO source = sourcePlan(status, currentMarker, frozenFacts.snapshot());
         CutoverApprovalFact started = approval.start(new CutoverApprovalStartCommand(1L, 50L, 4,
-                601L, 1, "D", 100L, 2, null, null, 1, null,
-                "approval-start", "approval-corr")).fact();
+                601L, 1, "D", 100L, 2, null, null, 1,
+                java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "approval-start", "approval-corr")).fact();
         CutoverApprovalFact decided = switch (approvalStatus) {
             case REJECTED -> approval.reject(started.approvalInstanceId(), 1000L, "补充回退步骤");
             case APPROVED -> approval.approve(started.approvalInstanceId(), 1000L);

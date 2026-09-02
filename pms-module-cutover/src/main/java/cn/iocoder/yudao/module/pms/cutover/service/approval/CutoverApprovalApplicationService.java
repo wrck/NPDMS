@@ -388,7 +388,8 @@ public class CutoverApprovalApplicationService {
         instance.setChecklistVersion(command.checklistVersion()); instance.setGradeCode(command.grade());
         instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(route.getFirst().treeVersion());
         instance.setSourceSnapshotVersion(command.sourceSnapshotVersion()); instance.setSourceSnapshot(source.sourceSnapshot());
-        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); freezeLeadTime(instance, source, command.grade());
+        instance.setRouteSnapshot(routeSnapshot(command.grade(), route));
+        freezeLeadTime(instance, source, command.grade(), command.planSubmittedAt());
         instance.setStatusCode("PENDING");
         instance.setHoldReasonCode(hold); instance.setCurrentNodeNo(1);
         instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0);
@@ -415,18 +416,18 @@ public class CutoverApprovalApplicationService {
     }
 
     private static void freezeLeadTime(CutoverApprovalInstanceDO instance,
-                                       CutoverApprovalSourceAssembler.LockedSource source, String grade) {
+                                       CutoverApprovalSourceAssembler.LockedSource source, String grade,
+                                       LocalDateTime planSubmittedAt) {
         if (!List.of("A", "B").contains(grade)) {
             instance.setLeadTimeEnabled(false);
             instance.setLeadTimeSnapshot(null);
             return;
         }
-        require(source.task() != null && source.plan() != null && source.task().getScheduledTime() != null
-                        && source.plan().getSubmittedAt() != null,
+        require(source.task() != null && source.plan() != null && source.task().getScheduledTime() != null,
                 OWNER_DATA_CORRUPTED, "提前时间来源事实缺失");
         try {
             CutoverLeadTimeCompliance compliance = LEAD_TIME_CALCULATOR.calculate(grade,
-                    source.task().getCutoverType(), source.task().getScheduledTime(), source.plan().getSubmittedAt());
+                    source.task().getCutoverType(), source.task().getScheduledTime(), planSubmittedAt);
             instance.setLeadTimeEnabled(true);
             instance.setLeadTimeSnapshot(LEAD_TIME_CODEC.encode(compliance));
         } catch (IllegalArgumentException exception) {
@@ -839,7 +840,7 @@ public class CutoverApprovalApplicationService {
         return sha256(JsonUtils.toJsonString(new StartBusinessInput(command.tenantId(), command.taskId(),
                 command.expectedTaskVersion(), command.planRevisionId(), command.planRevisionNo(), command.grade(),
                 command.assessmentId(), command.assessmentVersion(), command.checklistId(), command.checklistVersion(),
-                command.sourceSnapshotVersion(), command.previousApprovalInstanceId())));
+                command.sourceSnapshotVersion(), command.planSubmittedAt(), command.previousApprovalInstanceId())));
     }
     private static String pauseDigest(CutoverApprovalPauseCommand command) {
         return sha256(JsonUtils.toJsonString(new PauseBusinessInput(command.tenantId(), command.approvalInstanceId(),
@@ -883,7 +884,7 @@ public class CutoverApprovalApplicationService {
     private record StartBusinessInput(long tenantId, long taskId, int expectedTaskVersion, long planRevisionId,
                                       int planRevisionNo, String grade, long assessmentId, int assessmentVersion,
                                       Long checklistId, Integer checklistVersion, int sourceSnapshotVersion,
-                                      Long previousApprovalInstanceId) { }
+                                      LocalDateTime planSubmittedAt, Long previousApprovalInstanceId) { }
     private record PauseBusinessInput(long tenantId, long approvalInstanceId, int expectedApprovalVersion,
                                       long planRevisionId, int expectedSourceSnapshotVersion, String reasonCode) { }
     private record DecisionBusinessInput(long tenantId, long taskId, int expectedTaskVersion,

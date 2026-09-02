@@ -68,7 +68,8 @@ class CutoverApprovalFactApiImplTest {
 
         CutoverApprovalFactException conflict = assertThrows(CutoverApprovalFactException.class,
                 () -> api.start(new CutoverApprovalStartCommand(1L, 100L, 5, 900L, 1,
-                        "A", 600L, 2, 700L, 3, 1, null, "start-1", "corr-1")));
+                        "A", 600L, 2, 700L, 3, 1, java.time.LocalDateTime.of(2026, 9, 3, 18, 0),
+                        null, "start-1", "corr-1")));
 
         assertEquals(CutoverApprovalFactException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
     }

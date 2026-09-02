@@ -19,7 +19,7 @@
         "timezoneId": "literal Asia/Shanghai",
         "cutoverType": "member of leadTimeRules keys",
         "scheduledTime": "WireDateTime frozen from the locked task",
-        "planSubmittedAt": "WireDateTime frozen from the submitted immutable plan revision",
+        "planSubmittedAt": "WireDateTime allocated once by the trusted P4 submit transaction, carried in CutoverApprovalStartCommand, frozen here, and persisted unchanged to the plan revision",
         "requiredDays": "positive Integer",
         "actualNaturalDays": "Integer; scheduled business date epochDay minus plan-submitted business date epochDay",
         "lateSubmission": "Boolean; actualNaturalDays < requiredDays"

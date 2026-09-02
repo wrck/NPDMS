@@ -40,7 +40,7 @@
 ### BR-FCUT008-001 封闭规则与自然日计算
 
 - 规则版本固定为`CUT_LEAD_TIME_R034_V1`，映射为：`DEVICE_REPLACE_WHOLE=5`、`DEVICE_REPLACE_BOARD=3`、`DEVICE_REPLACE_VENDOR=7`、`DEVICE_ONBOARD=7`、`VERSION_UPGRADE=2`、`DISASTER_RECOVERY_DRILL=2`、`CONFIGURATION_CHANGE=2`、`NETWORK_TOPOLOGY_CHANGE=3`、`VERSION_PATCH=2`、`SIGNATURE_UPGRADE=1`。
-- A/B级在`CutoverApprovalFactApi.start`事务内，从已锁定任务取得`cutoverType/scheduledTime`，从本次已提交不可变方案revision取得`submittedAt`。两者按平台业务时区`Asia/Shanghai`转换为业务日期，`actualNaturalDays=scheduledDate.toEpochDay-planSubmittedDate.toEpochDay`。
+- A/B级由P4提交外层事务先分配唯一服务端`planSubmittedAt`，通过`CutoverApprovalStartCommand`受信内部字段传给`CutoverApprovalFactApi.start`；审批启动成功后，同一值原样持久化为方案revision的`submittedAt`。审批从已锁定任务取得`cutoverType/scheduledTime`，不得从尚为DRAFT的方案行读取空提交时间或另取当前时间。两者按平台业务时区`Asia/Shanghai`转换为业务日期，`actualNaturalDays=scheduledDate.toEpochDay-planSubmittedDate.toEpochDay`。
 - `actualNaturalDays >= requiredDays`时`lateSubmission=false`；否则为`true`。负值仍按公式保存并判定为迟交，不修改计划操作时间或阻止P5创建。
 - 十类之外的A/B割接类型视为Owner数据损坏，P4提交整体失败；不得补默认阈值。C/D不读取规则、不计算，物理快照保持空。
 - 冻结快照精确包含`ruleVersion/timezoneId/cutoverType/scheduledTime/planSubmittedAt/requiredDays/actualNaturalDays/lateSubmission`，创建后不可覆盖；方案驳回后新revision创建的新审批实例重新计算，旧实例不变。

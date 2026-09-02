@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CutoverApprovalFactApiContractTest {
 
@@ -49,7 +50,7 @@ class CutoverApprovalFactApiContractTest {
         assertThat(componentNames(CutoverApprovalStartCommand.class)).containsExactly(
                 "tenantId", "taskId", "expectedTaskVersion", "planRevisionId", "planRevisionNo", "grade",
                 "assessmentId", "assessmentVersion", "checklistId", "checklistVersion", "sourceSnapshotVersion",
-                "previousApprovalInstanceId", "idempotencyKey", "correlationId");
+                "planSubmittedAt", "previousApprovalInstanceId", "idempotencyKey", "correlationId");
         assertThat(componentNames(CutoverApprovalFactQuery.class)).containsExactly(
                 "tenantId", "taskId", "planRevisionId");
         assertThat(componentNames(CutoverApprovalFact.class)).containsExactly(
@@ -68,6 +69,15 @@ class CutoverApprovalFactApiContractTest {
         assertThat(componentNames(CutoverApprovalRevalidationResult.class)).containsExactly(
                 "status", "currentFact");
         assertThat(componentNames(CutoverApprovalCommandResult.class)).containsExactly("outcome", "fact");
+    }
+
+    @Test
+    void requiresTheTrustedPlanSubmissionTime() {
+        assertThatThrownBy(() -> new CutoverApprovalStartCommand(
+                9L, 101L, 3, 201L, 1, "A", 301L, 2, 401L, 4,
+                5, null, null, "start-1", "corr-1"))
+                .isInstanceOfSatisfying(CutoverApprovalFactException.class,
+                        error -> assertThat(error.code()).isEqualTo(CutoverApprovalFactException.Code.INVALID_REQUEST));
     }
 
     @Test
@@ -96,7 +106,7 @@ class CutoverApprovalFactApiContractTest {
         ControlledCutoverApprovalFactApi api = new ControlledCutoverApprovalFactApi();
         CutoverApprovalStartCommand start = new CutoverApprovalStartCommand(
                 9L, 101L, 3, 201L, 1, "A", 301L, 2, 401L, 4,
-                5, null, "start-1", "corr-1");
+                5, java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "start-1", "corr-1");
 
         CutoverApprovalStartResult started = api.start(start);
         assertThat(started.outcome()).isEqualTo(StartOutcome.STARTED);
@@ -122,12 +132,13 @@ class CutoverApprovalFactApiContractTest {
         ControlledCutoverApprovalFactApi api = new ControlledCutoverApprovalFactApi();
         CutoverApprovalFact first = api.start(new CutoverApprovalStartCommand(
                 9L, 101L, 3, 201L, 1, "D", 301L, 2, null, null,
-                5, null, "start-1", "corr-1")).fact();
+                5, java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "start-1", "corr-1")).fact();
         CutoverApprovalFact rejected = api.reject(first.approvalInstanceId(), 1000L, "revise plan");
 
         CutoverApprovalFact replacement = api.start(new CutoverApprovalStartCommand(
                 9L, 101L, 4, 202L, 2, "D", 301L, 2, null, null,
-                6, rejected.approvalInstanceId(), "start-2", "corr-2")).fact();
+                6, java.time.LocalDateTime.of(2026, 9, 4, 18, 0), rejected.approvalInstanceId(),
+                "start-2", "corr-2")).fact();
         CutoverApprovalFact approved = api.approve(replacement.approvalInstanceId(), 2000L);
 
         assertThat(api.inspect(new CutoverApprovalFactQuery(9L, 101L, 201L)).fact()
