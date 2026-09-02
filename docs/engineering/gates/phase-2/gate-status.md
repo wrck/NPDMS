@@ -1,11 +1,11 @@
 # SDS Phase 2 Review
 
 > 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8修订012正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、需求方推进批准<br>
+> 依据：PRD V1.8修订013正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、需求方推进批准<br>
 > 结论：`READY_FOR_PHASE_3_V1.8`<br>
 > 机器门禁：`PASS`<br>
 > 需求方批准：`GO`<br>
-> 适用修订：`PRD_V1.8_REVISION_012`<br>
+> 适用修订：`PRD_V1.8_REVISION_013`<br>
 > 当前范围：主版本V1 53项、V2 47项、正式Requirement 100项；111个目标版本切片（V1 53个、V2 58个）；已编号V3 31项、跨需求演进方向5项；`OUT_OF_SCOPE` 9项
 
 ## 1. 当前结论
@@ -38,13 +38,17 @@
 
 `CHG-PRD-2026-09-01-012`与`NPDMS-Q-FINS001-004-GO-20260901-01`明确InspectionRule名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放，历史revision不可改名。数据、数据库、并发与测试分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE2-DELTA-20260901-02`；不新增Context、Owner、API、权限、状态机、共享规则库版本或第三方集成。
 
-## 5. 不变的后置边界
+## 5. F-INS-001修订013差量
+
+`CHG-PRD-2026-09-02-013`、`NPDMS-Q-FINS001-005-GO-20260902-01`与`NPDMS-Q-FINS001-006-GO-20260902-01`冻结审核事实查询、授权与公开API契约。System只允许当前认证租户/用户自查单一精确权限码；多条有效授权路径按`role_id ASC, menu_id ASC, user_role.id ASC, role_menu.id ASC`稳定择一，响应为单一`RBAC_PERMISSION`事实及可空来源；无事实、上下文不一致或契约异常失败关闭。07～10、14、20分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE2-DELTA-20260902-03`；不改变现有通用权限API、认证链路、数据权限框架或Inspection状态机。
+
+## 6. 不变的后置边界
 
 - P3-E09模型基线与Q08候选索引不因本次PRD发布自动批准或自动否定；`AI-MIG-000`按具体Release范围判断，未包含历史迁移或数据切换时为`NOT_APPLICABLE`。
 - 历史工单/工时仍无V1/V2用户入口；V3和`OUT_OF_SCOPE`不得回流。
 - 环境参数、生产拓扑、KMS、SIT/UAT和真实迁移/切换证据继续在各自最晚安全门禁关闭。
 - 本次新增逻辑事实影响当前物理模型时，P3-E09必须复核差量DDL；在此之前旧DDL只作历史模型证据，不能放行相关Feature实现。
 
-当前Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`，批准修订007及F-INS-001修订011及012差量进入Phase 3设计评审。
+当前Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`，批准修订007及F-INS-001修订011、012及013差量进入Phase 3设计评审。
 
 本结论不批准DDL执行、Feature实现或完成、历史迁移、数据切换、SIT/UAT或Release。

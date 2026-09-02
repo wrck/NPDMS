@@ -490,33 +490,33 @@
 
 ### Q-FINS001-005
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: INS-03、INS-09、AC-FINS001-007
 - Area: 巡检规则同一revision与内容摘要的多次安全审核生效语义
 - Question: 同一租户、revision和命令/正则内容摘要存在多条`PASSED/REJECTED`审核事实时，哪条事实决定发布资格；后续`REJECTED`是否撤销既有`PASSED`，后续`PASSED`是否覆盖既有`REJECTED`，权限撤销是否追溯影响历史审核？
-- Why it blocks design/implementation: 当前DDL允许同一revision与摘要追加多条事实，现有查询只筛选历史`PASSED`；任意选择“存在通过”或“最新结论”都会改变发布业务结果和审计解释，不能由实现静默决定。该问题只阻断安全审核有效性选择和发布放行，不阻断停用、平台幂等及CAS基础工作。
+- Why it blocks design/implementation: 已由业务、安全与SRV Owner裁决关闭；实现不得继续使用“存在任一历史PASSED”作为发布资格。
 - Options: A. 审核事实追加不可变，同一revision与摘要按`reviewed_at DESC, id DESC`的最后一条事实为当前结论；B. 任意历史`PASSED`持续有效；C. 任一`REJECTED`永久否决；D. 建立多人会签或独立撤销流程。
-- Recommended technical default: A；内容变化或新revision必须重新审核，历史事实不覆盖；权限后续撤销不追溯篡改既有审核，除非未来批准独立撤销动作。该方案最小且可审计，但需业务与安全Owner批准后回写正式SDS。
-- Business decision required: 是。
-- Resolution:
-- Blocking scope: Task 8安全审核有效性查询、发布放行及相关验收。
+- Recommended technical default: A；内容变化或新revision必须重新审核，历史事实不覆盖；权限后续撤销不追溯篡改既有审核，除非未来批准独立撤销动作。
+- Business decision required: 已完成。
+- Resolution: 采用A。审核事实只追加、不覆盖；发布时在同一租户、同一revision和当前命令/正则内容摘要范围内，按`reviewed_at DESC, id DESC`确定唯一当前结论。最后一条为`PASSED`才允许发布，最后一条为`REJECTED`则拒绝；后续结论替代前序结论的当前效力但不改写历史。内容摘要变化或形成新revision必须重新审核。审核人权限后续撤销不追溯篡改已形成的历史审核事实；如需撤销既有结论，追加新的`REJECTED`事实，不新增会签、覆盖更新或独立撤销流程。
+- Blocking scope: 已解除；Task 8按最后事实语义实现审核有效性查询、发布放行和验收。
 - Decision owner: 业务Owner、安全Owner、SRV Owner
-- Decision date:
+- Decision date: 2026-09-02
 
 ### Q-FINS001-006
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: INS-03、INS-09、AC-FINS001-007
 - Area: 巡检安全审核显式RBAC授权事实适配
 - Question: `InspectionRuleExplicitAuthorizationApi`应由哪个权威公开能力提供当前租户、用户、专用权限码的显式授权事实，以及`authorizationSourceId`采用何种稳定来源标识？
-- Why it blocks design/implementation: 当前System公开`PermissionApi`仅返回布尔值且包含超级管理员放行，Platform授权契约又未定义功能权限映射；Inspection不得直读`system_*`表、硬编码角色或提供默认放行适配器。该问题只阻断生产安全审核入口及守卫Bean装配，不阻断发布/停用普通权限守卫和其他独立工作。
+- Why it blocks design/implementation: 已由业务、安全与平台权限Owner裁决关闭；System成为显式功能权限授权事实的唯一Provider，Inspection只消费公开契约。
 - Options: A. 由System新增公开只读显式权限授权事实API；B. 批准Platform AuthorizationGrant到功能权限的正式映射；C. 允许现有布尔权限API作为审核授权事实；D. Inspection直读System权限表。
-- Recommended technical default: A；只认当前租户有效用户—角色—菜单显式关系，不应用超级管理员或skip放行；能稳定提供来源ID时返回，否则为空，不伪造角色编码。该方案涉及Yudao基础平台，未经明确批准不得实施。
-- Business decision required: 是，同时需要明确允许修改Yudao基础平台公开API。
-- Resolution:
-- Blocking scope: Task 8安全审核生产入口、审核事实写入及相关验收。
+- Recommended technical default: A；只认当前租户有效用户—角色—菜单显式关系，不应用超级管理员或skip放行；能稳定提供来源ID时返回，否则为空，不伪造角色编码。
+- Business decision required: 已完成；批准为此最小扩展Yudao System公开只读API，不改变通用权限API语义。
+- Resolution: 采用A，批准`NPDMS-Q-FINS001-006-GO-20260902-01`并由`CHG-PRD-2026-09-02-013`合并正式业务语义。`pms:inspection-rule:security-review`专用权限包是审批/任务角色组的正式机器映射；由System公开只读显式权限授权事实API，只允许当前认证租户、当前认证用户自查单一精确权限码，并按有效用户、有效角色、有效用户—角色关系、有效角色—菜单关系和有效菜单返回`RBAC_PERMISSION`事实。超级管理员身份、`skipPermissionCheck`或其他隐式放行不得产生该事实。多条合法路径按`role_id ASC, menu_id ASC, user_role.id ASC, role_menu.id ASC`稳定选择唯一事实。System负责访问`system_*`表并校验上下文、租户与有效性，Inspection不得跨模块查表或硬编码角色。`authorizationSourceId`为可空审计字段；System自然取得稳定`userRoleId`与`roleMenuId`时返回`RBAC_ROLE_MENU:{userRoleId}:{roleMenuId}`，确实无法稳定提供关系主键时返回空，不得以角色编码、角色名称或猜造值替代。无事实、上下文不一致、契约异常或返回主体/租户/权限码不一致时失败关闭。
+- Blocking scope: 已解除；允许实现System公开只读事实API、Inspection适配器与守卫Bean装配，并完成安全审核生产入口和相关验收。
 - Decision owner: 业务Owner、安全Owner、平台权限Owner
-- Decision date:
+- Decision date: 2026-09-02
 
 ### Q-FAST002-001
 

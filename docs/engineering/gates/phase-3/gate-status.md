@@ -1,9 +1,9 @@
-# SDS Phase 3 Review
+﻿# SDS Phase 3 Review
 
 > 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8修订012正式基线、SDS Phase 1/2 `APPROVED / READY_FOR_PHASE_3_V1.8`<br>
+> 依据：PRD V1.8修订013正式基线、SDS Phase 1/2 `APPROVED / READY_FOR_PHASE_3_V1.8`<br>
 > 结论：`READY_FOR_SDS_BASELINE_V1.8`<br>
-> 适用修订：`PRD_V1.8_REVISION_012`
+> 适用修订：`PRD_V1.8_REVISION_013`
 
 ## 1. 当前结论
 
@@ -30,6 +30,10 @@
 
 `CHG-PRD-2026-09-01-012`与`NPDMS-Q-FINS001-004-GO-20260901-01`明确InspectionRule名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放，历史revision不可改名。数据、数据库、并发与测试分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE3-DELTA-20260901-02`；不新增Context、Owner、API、权限、状态机、共享规则库版本或第三方集成。
 
-## 5. 放行原则
+## 5. F-INS-001修订013差量
+
+`CHG-PRD-2026-09-02-013`冻结最后审核事实、显式RBAC失败关闭、当前身份绑定、稳定授权来源和最小Yudao System扩展边界。14、20分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE3-DELTA-20260902-03`；测试必须覆盖`PASSED→REJECTED`、`REJECTED→PASSED`、同时间ID决胜、摘要/revision隔离、多路径稳定择一、超级管理员/skip/替代权限不放行、关系停用、上下文不一致及Provider异常。
+
+## 6. 放行原则
 
 当前状态为`APPROVED / READY_FOR_SDS_BASELINE_V1.8`，只放行下游按正式SDS开展Feature Ready评估，不自动批准任何Feature或实施。P3-E01～P3-E08继续在部署、联调、专项验收或发布阶段关闭；P3-E09保持`MODEL_BASELINE_READY`且不构成迁移批准；Q08仍由Feature查询计划和P3-E06验证；适用Release的`AI-MIG-000`、UAT、生产部署、切换和Release门禁均未关闭。

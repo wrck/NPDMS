@@ -1,7 +1,7 @@
 # SDS Phase 2：API 设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检显式授权API引用`CHG-PRD-2026-09-02-013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
@@ -240,11 +240,13 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 | Context | API | 约束 |
 |---|---|---|
-| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 创建稳定身份要求检测ID和规则名称；草稿整体保存允许其余八字段及命令/判定/产品适用关系为空或不完整，`validate/publish`按发布完整性返回字段级错误；阈值数据类型只接受`NUMBER`；安全审核结论只接受`PASSED/REJECTED`并绑定当前revision与命令/正则摘要，只有`PASSED`允许发布；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
+| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 创建稳定身份要求检测ID和规则名称；草稿整体保存允许其余八字段及命令/判定/产品适用关系为空或不完整，`validate/publish`按发布完整性返回字段级错误；阈值数据类型只接受`NUMBER`；`record-security-review`必须消费SYSTEM公开只读显式权限事实，超级管理员、`skip`、维护权或发布权不自动通过，事实缺失或契约异常失败关闭；安全审核只接受`PASSED/REJECTED`并追加绑定当前revision与命令/正则摘要，发布按`reviewed_at DESC, id DESC`最后结论判定且仅`PASSED`放行；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
 | Inspection | `/inspection-tasks`、`/{id}/actions/{precheck|dispatch|complete|archive}` | 在线通过 DAC；离线文件走受控上传；模式互斥 |
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
-| Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
+| Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间或续保率接口 |
+
+SYSTEM通过公开`PermissionApi`提供只读显式RBAC授权事实查询，请求仅包含由服务端当前认证上下文派生的`tenantId/userId`及单一`permissionCode`；System必须主动校验请求租户、用户与当前认证上下文一致，不支持代理查询其他租户或用户。`permissionCode`必须非空并精确匹配单一菜单权限码；仅当当前租户内用户、用户—角色关系、角色、角色—菜单关系和菜单均有效时返回`tenantId/userId/permissionCode/authorizationType/authorizationSourceId`，其中`authorizationType`固定为`RBAC_PERMISSION`。超级管理员、`skipPermissionCheck`、空权限码、通配/前缀权限及其他隐式放行不产生事实。存在多条合法授权路径或同权限码多个有效菜单时，按`role_id ASC, menu_id ASC, user_role.id ASC, role_menu.id ASC`选择唯一事实；System自然取得稳定`userRoleId`与`roleMenuId`时，来源为`RBAC_ROLE_MENU:{userRoleId}:{roleMenuId}`，确实无法稳定提供关系主键时来源可空。无显式事实返回空结果；上下文不一致、非法参数或契约异常按稳定错误失败，Inspection对空结果、异常及主体字段不一致均失败关闭。该契约不改变现有`hasAnyPermissions`及认证链路语义，Inspection不得访问SYSTEM Service、Mapper或表。
 
 历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
 

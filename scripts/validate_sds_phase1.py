@@ -673,7 +673,7 @@ def validate(root: Path) -> list[str]:
         "结论": "READY_FOR_PHASE_2_V1.8",
         "机器门禁": "PASS",
         "需求方批准": "GO",
-        "适用修订": "PRD_V1.8_REVISION_012",
+        "适用修订": "PRD_V1.8_REVISION_013",
     }
     if (
         any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())

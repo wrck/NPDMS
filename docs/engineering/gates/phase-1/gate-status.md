@@ -5,7 +5,7 @@
 > 结论：`READY_FOR_PHASE_2_V1.8`<br>
 > 机器门禁：`PASS`<br>
 > 需求方批准：`GO`<br>
-> 适用修订：`PRD_V1.8_REVISION_012`
+> 适用修订：`PRD_V1.8_REVISION_013`
 
 ## 1. V1.8差量结果
 
@@ -51,8 +51,12 @@
 
 `CHG-PRD-2026-09-01-012`与`NPDMS-Q-FINS001-004-GO-20260901-01`明确InspectionRule名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放，历史revision不可改名。数据、数据库、并发与测试分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE1-DELTA-20260901-02`；不新增Context、Owner、API、权限、状态机、共享规则库版本或第三方集成。
 
-## 6. 放行结论
+## 6. F-INS-001修订013差量
 
-当前Phase 1状态为`APPROVED / READY_FOR_PHASE_2_V1.8`，批准修订007及F-INS-001修订011及012差量进入Phase 2契约复核。
+`CHG-PRD-2026-09-02-013`、`NPDMS-Q-FINS001-005-GO-20260902-01`与`NPDMS-Q-FINS001-006-GO-20260902-01`冻结安全审核最后事实生效语义，并将专用权限包确认为审批/任务角色组的机器映射；System仍拥有权限关系，Inspection仍拥有规则、审核和发布事实，不新增Context、聚合、状态、事件、第三方集成或业务角色。04、07分册差量复审`PASS / GO NPDMS-FINS001-SDS-PHASE1-DELTA-20260902-03`，可进入Phase 2契约复核。
+
+## 7. 放行结论
+
+当前Phase 1状态为`APPROVED / READY_FOR_PHASE_2_V1.8`，批准修订007及F-INS-001修订011、012及013差量进入Phase 2契约复核。
 
 本结论不批准数据库迁移、历史数据迁移、数据切换、Feature实现或生产发布。

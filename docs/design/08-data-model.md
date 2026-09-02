@@ -1,7 +1,7 @@
 # SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-23-002`；本次落位引用`CHG-PRD-2026-09-01-012`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检差量引用`CHG-PRD-2026-09-01-012`和`CHG-PRD-2026-09-02-013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -226,11 +226,11 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 InspectionRule稳定身份持有规则名称并在租户内永久唯一；停用、软删除和新revision均不释放名称，同一稳定身份的后续revision沿用原名称，历史revision不可改名。revision保存发布时名称快照用于八字段版本解释，但不形成第二套可变名称真值。
 
-InspectionRule稳定身份创建时检测ID和规则名称必填；DRAFT revision的描述、检测项目、分类、严重度、排序、预期正则、阈值、命令和适用产品类型允许暂为空或不完整，以支持持续编辑。进入PUBLISHED前必须全量补齐并校验；阈值数据类型固定为`NUMBER`，并同时具备运算符、数值和单位。发布前命令与正则安全审核结论只允许`PASSED/REJECTED`，仅当前revision及当前内容摘要对应的`PASSED`可作为发布前置事实；该结论不替代INS-02运行时“通过/异常”判定。
+InspectionRule稳定身份创建时检测ID和规则名称必填；DRAFT revision的描述、检测项目、分类、严重度、排序、预期正则、阈值、命令和适用产品类型允许暂为空或不完整，以支持持续编辑。进入PUBLISHED前必须全量补齐并校验；阈值数据类型固定为`NUMBER`，并同时具备运算符、数值和单位。发布前命令与正则安全审核结论只允许`PASSED/REJECTED`；审核事实只追加、不覆盖，同一租户、同一revision和当前内容摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论，仅最后结论为`PASSED`可作为发布前置事实。内容摘要变化或新revision必须重新审核；权限后续撤销不追溯改写历史审核。该结论不替代INS-02运行时“通过/异常”判定。
 
 InspectionRule的检测分类和严重度由基础平台字典提供：分类字典类型为`pms_inspection_rule_category`，稳定值为`BASIC/OPERATING_STATUS/LOG/BUSINESS_STATUS/REDUNDANCY/ROUTING/SECURITY/FORWARDING_CHANNEL/LOAD_BALANCING/TRAFFIC_CLEANING`；严重度字典类型为`pms_inspection_rule_severity`，稳定值为`GENERAL/SEVERE/FATAL`。机器码发布后不得改义、复用或删除；不存在或停用时阻止新发布，历史revision按机器码和显示名称快照解释。
 
-InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；受控副本包含稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态。Inspection只保存产品类型稳定编码及发布时名称快照。产品类型停用阻止新发布和新选择，历史revision继续按快照解释；AST契约不可用时发布失败关闭。规则安全审核作为InspectionRule revision的发布前置事实，记录审核引用、审核主体角色组、审核时间、`PASSED/REJECTED`结论及命令内容摘要；不新增业务生命周期状态。
+InspectionRule的产品类型引用使用AST公开的设备产品分类查询：CRM/MES仍是产品和设备来源事实Owner，AST保存当前设备可解析的产品编码、名称、型号和产品类型受控副本；受控副本包含稳定编码、显示名称、存在/停用事实、来源键、来源版本和同步状态。Inspection只保存产品类型稳定编码及发布时名称快照。产品类型停用阻止新发布和新选择，历史revision继续按快照解释；AST契约不可用时发布失败关闭。规则安全审核作为InspectionRule revision的发布前置追加事实，记录审核用户、专用权限码、`RBAC_PERMISSION`、可空`authorizationSourceId`、审核时间、`PASSED/REJECTED`结论及命令/正则内容摘要；System自然取得稳定`userRoleId`与`roleMenuId`时，授权来源保存为`RBAC_ROLE_MENU:{userRoleId}:{roleMenuId}`，确实无法稳定提供关系主键时为空，不得以角色编码、角色名称或猜造值替代。显式授权事实由System公开只读契约提供，不新增业务生命周期状态。
 
 ## 9. Customer、Asset、Commerce 与 Resource
 

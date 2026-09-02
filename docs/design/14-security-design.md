@@ -1,7 +1,7 @@
 # SDS Phase 3：安全设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012（含批准增量`CHG-PRD-2026-08-27-004`）
+> 适用基线：PRD V1.8修订013（含批准增量`CHG-PRD-2026-08-27-004`及巡检差量`CHG-PRD-2026-09-02-013`）
 > Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部100项正式Requirement、111个目标版本切片的认证、授权、数据隔离、文件、集成和审计安全
 > Owner：SDS Phase 3安全架构；业务授权Owner继承07，凭证Owner继承Device Access & Collection
 > 前置设计：07、10、12、13、15、16分册
@@ -122,14 +122,15 @@ Browser
 
 ## 6.1 巡检规则命令与正则安全
 
-- INS-03/09规则revision发布前必须完成命令与正则安全审核；审核事实绑定tenantId、ruleRevisionId、命令/正则内容摘要、审核主体角色组、结论和时间。结论机器码只允许`PASSED/REJECTED`，不得使用巡检运行结果“通过/异常”或其他自由值替代。
-- 只有绑定当前revision与当前内容摘要的`PASSED`允许发布；未审核、`REJECTED`、摘要不一致或审核事实失效时拒绝发布，旧发布revision继续有效；审核事实不引入新的规则生命周期状态。
+- INS-03/09规则revision发布前必须完成命令与正则安全审核；审核事实绑定tenantId、ruleRevisionId、命令/正则内容摘要、审核用户、专用权限码、`RBAC_PERMISSION`、可空`authorizationSourceId`、结论和时间。System自然取得稳定`userRoleId`与`roleMenuId`时，授权来源为`RBAC_ROLE_MENU:{userRoleId}:{roleMenuId}`；确实无法稳定提供关系主键时为空，不得以角色编码、角色名称或猜造值替代。结论机器码只允许`PASSED/REJECTED`，不得使用巡检运行结果“通过/异常”或其他自由值替代。
+- 审核事实只追加、不覆盖；同一租户、同一revision和当前内容摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论。只有最后结论为`PASSED`允许发布；最后结论为`REJECTED`、未审核、摘要不一致或契约失效时拒绝发布，旧发布revision继续有效。内容摘要变化或新revision必须重新审核；审核人权限后续撤销不追溯修改历史事实，如需撤销结论则追加`REJECTED`。审核事实不引入新的规则生命周期状态。
+- `pms:inspection-rule:security-review`专用权限包是审批/任务角色组的正式机器映射；安全审核授权只接受System公开只读事实API返回的当前认证租户、当前认证用户经有效用户—角色—菜单关系取得的单一精确权限事实。System主动拒绝请求上下文不一致，不支持代理查询；多条合法路径按`role_id ASC, menu_id ASC, user_role.id ASC, role_menu.id ASC`稳定择一。超级管理员身份、`skipPermissionCheck`、维护权或发布权不得生成审核授权事实。System负责访问权限表并校验有效性，Inspection不得直读`system_*`表、硬编码角色或在契约失败时默认放行。
 - 服务端正则语法基线固定为JDK 25 `java.util.regex.Pattern`，不承诺PCRE专有语法；表达式最多1024个UTF-16代码单元，分组总数最多32、嵌套深度最多8、分支符最多31、量词节点最多64、区间量词上界最多1000。发布校验只解析和编译，不对不可信设备输出试匹配。
 - 正则禁止数字或命名反向引用、前瞻/后瞻、命名捕获、原子组、分组范围局部内联标志、嵌套量词、带分支分组的量化、无上界或上界超过1000的区间量词及PCRE专有结构；仅允许表达式开头一次全局`(?i)`、`(?m)`、`(?s)`或其组合。INS-02运行时输入长度和匹配超时预算由后续执行Feature冻结，本Feature不提前建设执行引擎。
 - 发布前扫描规则名称、检测项目、描述、命令正文、预期正则、阈值数据类型和单位等全部用户可输入文本。私钥头使用大小写敏感模式`-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----`及`-----BEGIN ENCRYPTED PRIVATE KEY-----`；认证头使用`(?im)^\s*(?:Authorization|Proxy-Authorization)\s*:\s*\S+`；URL凭证使用`(?i)\b[a-z][a-z0-9+.-]*://[^\s/@:]+:[^\s/@]+@`。
 - 密码赋值按大小写不敏感键`password/passwd/pwd/passphrase`识别，键和值之间必须为`=`或`:`且右侧非空；右侧去除成对引号和首尾空白后，完整等于`${NAME}`、`{{NAME}}`、`<PASSWORD>`、`***`或`REDACTED`时允许，否则命中。不得由实现自行增加其他豁免。
 - 任一秘密模式命中即拒绝发布，不自动删除、替换或脱敏后继续；对外只返回字段路径和`SECRET_DETECTED`，审计只记录`PRIVATE_KEY_HEADER/AUTHORIZATION_HEADER/URL_CREDENTIAL/PASSWORD_ASSIGNMENT`之一、字段路径、规则版本和时间，不保存或回显命中正文。扫描是结构化禁止Secret进入日志、APM、异常、消息和回调之外的辅助控制，不能替代主要控制。
-- 高风险或交互式命令只有在PRD定义的审批/任务角色组明确批准当前内容摘要后才可发布；本设计不新增审批节点或固定组织角色。
+- 高风险或交互式命令只有在System显式RBAC事实确认的PRD审批/任务角色组成员审核当前内容摘要，且最后结论为`PASSED`时才可发布；本设计不新增审批节点或固定组织角色。
 
 ## 7. API、输入、输出与浏览器安全
 
