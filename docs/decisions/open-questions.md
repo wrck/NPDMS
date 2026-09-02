@@ -510,7 +510,7 @@
 
 ### Q-GOV-20260901-001
 
-- Status: CLOSED
+- Status: BLOCKED_BY_SPEC
 - Requirement IDs: ACC-02、EQP-01、INS-02、INS-03、INS-09、NFR-02、PM-03
 - Area: 并行PRD Change ID唯一性与master串行收敛
 - Question: `CHG-PRD-2026-08-30-010`在ACC分支表示“ACC-02可配置问卷基础”，在INS/AST分支表示“EQP-01设备产品类型公开契约”；`CHG-PRD-2026-09-01-011`又在PROJ分支表示“并行基线收敛与BPM定义身份”，在INS分支`6719ab94`表示“巡检正则受限子集”。INS/AST分支还包含独立的巡检命令1～30秒修订009。应如何在不改写已批准历史的前提下为这些语义形成唯一Change ID和完整后续基线？
@@ -525,7 +525,7 @@
 
 ### Q-GOV-20260901-002
 
-- Status: BLOCKED_BY_SPEC
+- Status: CLOSED
 - Requirement IDs: COM-01
 - Area: F-COM-001双实现与交付范围地点权威语义
 - Question: COM-A以`F-COM-001-contract-order-association-and-delivery-scope-allocation.md`实现项目办事处部门快照和验收阶段范围绑定；COM-B以`F-COM-001-contract-order-and-delivery-scope.md`独立实现另一套AST站点/位置优先语义。哪一套Spec、公共契约和持久化模型是COM-01后续唯一权威？
