@@ -131,6 +131,36 @@ describe('F-CUT-005 mounted approval workbench', () => {
       }),
       expect.any(String)
     )
+    expect(api.approveCutoverApproval.mock.calls[0]?.[3]).not.toHaveProperty('leadTimeCompliance')
+    mounted.app.unmount()
+  })
+
+  it.each([
+    ['A', '迟交：是', '0 个自然日'],
+    ['B', '迟交：否', '2 个自然日']
+  ] as const)(
+    'renders frozen lead-time compliance for grade %s',
+    async (grade, status, actualDays) => {
+      api.getCutoverApproval.mockResolvedValue(full(grade))
+      const mounted = mount(CutoverApprovalPanel, { taskId: '9007199254740993' }, controls)
+      await flush()
+
+      expect(findByTestId(mounted.root, 'lead-time-card')).toBeDefined()
+      expect(textOf(findByTestId(mounted.root, 'lead-time-status')!)).toContain(status)
+      expect(textOf(mounted.root)).toContain('1 个自然日')
+      expect(textOf(mounted.root)).toContain(actualDays)
+      expect(textOf(findByTestId(mounted.root, 'lead-time-scheduled')!)).not.toBe('—')
+      expect(textOf(findByTestId(mounted.root, 'lead-time-submitted')!)).not.toBe('—')
+      mounted.app.unmount()
+    }
+  )
+
+  it('does not reserve a lead-time placeholder when the frozen fact is not applicable', async () => {
+    api.getCutoverApproval.mockResolvedValue(full('C'))
+    const mounted = mount(CutoverApprovalPanel, { taskId: '9007199254740993' }, controls)
+    await flush()
+
+    expect(findByTestId(mounted.root, 'lead-time-card')).toBeUndefined()
     mounted.app.unmount()
   })
 
@@ -566,6 +596,19 @@ const full = (
       }
     }
   },
+  leadTimeCompliance:
+    grade === 'A' || grade === 'B'
+      ? {
+          ruleVersion: 'CUT_LEAD_TIME_R034_V1',
+          timezoneId: 'Asia/Shanghai',
+          cutoverType: 'SIGNATURE_UPGRADE',
+          scheduledTime: 1788220800000,
+          planSubmittedAt: grade === 'A' ? 1788210000000 : 1788048000000,
+          requiredDays: 1,
+          actualNaturalDays: grade === 'A' ? 0 : 2,
+          lateSubmission: grade === 'A'
+        }
+      : null,
   decisionAt: null,
   rejectionReason: null,
   allowedActions: ['APPROVE', 'REJECT']

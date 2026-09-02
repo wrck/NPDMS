@@ -48,6 +48,10 @@
           view.sourceSnapshot.assessment.customerServiceLevelCode
         }}</el-descriptions-item>
       </el-descriptions>
+      <CutoverLeadTimeComplianceCard
+        v-if="view.leadTimeCompliance"
+        :compliance="view.leadTimeCompliance"
+      />
       <ol class="approval-route" aria-label="审批路径">
         <li
           v-for="node in view.nodes"
@@ -150,6 +154,7 @@ import {
   formatWireDateTime
 } from '../cutoverTaskInteraction'
 import CutoverApprovalDecisionForm from './CutoverApprovalDecisionForm.vue'
+import CutoverLeadTimeComplianceCard from './CutoverLeadTimeComplianceCard.vue'
 import CutoverApprovalReassignmentPanel from './CutoverApprovalReassignmentPanel.vue'
 import CutoverPlanEditor from './CutoverPlanEditor.vue'
 

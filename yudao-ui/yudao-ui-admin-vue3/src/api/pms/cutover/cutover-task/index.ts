@@ -540,6 +540,17 @@ export interface CutoverApprovalSourceSnapshot {
   }
 }
 
+export interface CutoverLeadTimeCompliance {
+  ruleVersion: 'CUT_LEAD_TIME_R034_V1'
+  timezoneId: 'Asia/Shanghai'
+  cutoverType: string
+  scheduledTime: WireDateTime
+  planSubmittedAt: WireDateTime
+  requiredDays: number
+  actualNaturalDays: number
+  lateSubmission: boolean
+}
+
 export interface CutoverApprovalDetail {
   viewMode: 'FULL'
   approvalInstanceId: WireLong
@@ -554,6 +565,7 @@ export interface CutoverApprovalDetail {
   currentNodeNo: number | null
   nodes: CutoverApprovalNode[]
   sourceSnapshot: CutoverApprovalSourceSnapshot
+  leadTimeCompliance: CutoverLeadTimeCompliance | null
   decisionAt: WireDateTime | null
   rejectionReason: string | null
   allowedActions: CutoverApprovalAction[]
