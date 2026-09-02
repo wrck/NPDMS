@@ -1,7 +1,7 @@
 # F-CUT-010 割接备件系统协同 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO@c4b1a939`
 > Requirement：`CUT-08（V2/P2）`
 > Requirement切片覆盖：`CUT-08@V2=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -97,6 +97,4 @@
 
 ## 7. Feature Ready Gate
 
-当前状态：`NOT_READY / REVIEW_REQUIRED`。
-
-送审输入：本Feature Spec、两份机器合同、旧实现复用审计、适用SDS修订、Requirement追溯和Task记录。通过前不得生成Technical Plan或实施。
+最终裁决：`READY / GO@c4b1a939`。独立复审确认首次外部申请号绑定、P3清单项来源版本、P5安全投影、INT-06消费合同及Phase 2/迁移链均已闭合。授权生成唯一当前Technical Plan；计划独立复审GO前不得实施。

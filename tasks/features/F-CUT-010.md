@@ -1,8 +1,8 @@
 # F-CUT-010 割接备件系统协同
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`FEATURE_READY_REVIEW`
-> Feature Ready Gate：`NOT_READY / REVIEW_REQUIRED`
+> 总体工程阶段：`TECHNICAL_PLAN`
+> Feature Ready Gate：`READY / GO@c4b1a939`
 > Technical Plan Gate：`NOT_STARTED`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-08@V2=FULL`
@@ -14,16 +14,16 @@
 
 - 形成CUT-08完整纵向Feature：需求识别、外部申请发起/跳转、引用与状态回填、人工证据、P5展示共同承接，不拆成Provider或单页碎片。
 - INT-06只预留生产端口；CUT实施阶段以`src/test`受控替身完成正常正向闭环，不实现第三方、COM或Yudao。
-- 当前只完成规格、机器合同、复用审计、追溯和Feature Ready送审；GO前不生成Technical Plan或实现。
+- 已完成规格、机器合同、复用审计、追溯和Feature Ready；当前只生成唯一Technical Plan，计划GO前不实现。
 
 ## Gate清单
 
 - [ ] API/Physical/Legacy/SDS Machine Contract Gate。
-- [ ] Feature Ready独立复审。
+- [x] Feature Ready独立复审（GO@c4b1a939）。
 - [ ] 唯一Technical Plan独立复审。
 - [ ] CUT领域、Schema、应用/REST、UI、受控MySQL正向闭环各Task Gate。
 - [ ] 生产INT-06 Provider、唯一装配、真实浏览器与Implementation Done。
 
 ## Phase-switch checkpoint
 
-基线1a37a546；当前Gate为F-CUT-010 Feature Ready A/C单点整改复审。已锁定首次申请号绑定与`REQUEST_PENDING -> EXTERNAL_REFERENCED`原子迁移，并将P3清单需求来源改为清单项自身`id + version`；前次B/D不重开。阻断：本轮整改尚未取得独立GO。下一步：提交锁定候选并送最小复审，GO前不生成Technical Plan或实现。
+基线c4b1a939；Feature Ready已独立GO，实施仍NOT_STARTED。当前Gate为唯一Technical Plan编制与复审；跨模块生产Provider仍只预留，计划内以受控替身设计正向闭环。下一步：状态回写后生成计划，计划GO前不实施。

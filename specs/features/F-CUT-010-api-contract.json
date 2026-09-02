@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-010",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "requirementSlices": ["CUT-08@V2=FULL"],
   "wireContract": {
     "wireLong": "existing Yudao conditional JSON number/string Long serialization",
