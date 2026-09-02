@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.CutoverSpareApplicationReferenceMapper">
+    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
+        SELECT * FROM cut_spare_application_reference
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectByPlatformRequestForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
+        SELECT * FROM cut_spare_application_reference
+        WHERE tenant_id = #{query.tenantId} AND platform_request_id = #{query.platformRequestId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectByExternalApplicationForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
+        SELECT * FROM cut_spare_application_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND external_system_code = #{query.externalSystemCode}
+          AND external_application_no = #{query.externalApplicationNo}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
+        SELECT * FROM cut_spare_application_reference
+        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.cutoverTaskId} AND deleted = b'0'
+        ORDER BY id ASC
+    </select>
+    <update id="storeInitiateResultIfMatch">
+        UPDATE cut_spare_application_reference
+        SET integration_status = #{query.integrationStatus}, external_request_id = #{query.externalRequestId},
+            external_application_no = #{query.externalApplicationNo}, launch_url = #{query.launchUrl},
+            last_failure_code = NULL, last_failure_detail = NULL, last_attempt_at = #{query.lastAttemptAt},
+            version = #{query.expectedVersion} + 1, updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
+          AND integration_status = #{query.expectedStatus} AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+    <update id="storeFailureIfMatch">
+        UPDATE cut_spare_application_reference
+        SET integration_status = #{query.integrationStatus}, retry_count = #{query.retryCount},
+            last_failure_code = #{query.failureCode}, last_failure_detail = #{query.failureDetail},
+            last_attempt_at = #{query.lastAttemptAt}, version = #{query.expectedVersion} + 1,
+            updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
+          AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+    <update id="bindExternalReferenceIfMatch">
+        UPDATE cut_spare_application_reference
+        SET external_application_no = #{query.externalApplicationNo}, integration_status = 'EXTERNAL_REFERENCED',
+            version = #{query.expectedVersion} + 1, updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
+          AND external_request_id = #{query.externalRequestId} AND external_application_no IS NULL
+          AND integration_status = 'REQUEST_PENDING' AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+    <update id="moveCurrentStatusIfMatch">
+        UPDATE cut_spare_application_reference
+        SET current_status_revision_id = #{query.currentStatusRevisionId}, version = #{query.expectedVersion} + 1,
+            updater = #{query.updater}, update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
+          AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>
