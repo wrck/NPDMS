@@ -1,17 +1,11 @@
-import { defineComponent, h, nextTick, reactive, ref } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import CutoverAssessmentPanel from './components/CutoverAssessmentPanel.vue'
-import CutoverApprovalPanel from './components/CutoverApprovalPanel.vue'
-import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
-import CutoverClosurePanel from './components/CutoverClosurePanel.vue'
-import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
-import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
+import CutoverTaskWorkbench from './index.vue'
 import {
   button,
   findByTestId,
   mount,
   passthrough,
-  tableColumn,
   textOf,
   type TestNode
 } from '../../platform/dynamic-form/components/runtimeTestHarness'
@@ -26,6 +20,10 @@ const runtime = {
 const api = vi.hoisted(() => ({
   resolveCreateContext: vi.fn(),
   createCutoverTask: vi.fn(),
+  getCutoverTaskPage: vi.fn(),
+  getCutoverTaskDetail: vi.fn(),
+  getCutoverApprovalTodos: vi.fn(),
+  getCutoverApprovalReassignmentCandidates: vi.fn(),
   saveCutoverAssessment: vi.fn(),
   submitCutoverAssessment: vi.fn(),
   getCutoverChecklist: vi.fn(),
@@ -76,6 +74,13 @@ const dialog = defineComponent({
   }
 })
 
+const workbenchTableColumn = defineComponent({
+  inheritAttrs: false,
+  setup(_, { slots }) {
+    return () => h('span', slots.default?.({ row: taskSummary() }))
+  }
+})
+
 const controls = {
   Dialog: dialog,
   ElSteps: passthrough,
@@ -93,13 +98,18 @@ const controls = {
   ElDescriptionsItem: passthrough,
   ElResult: passthrough,
   ElTable: passthrough,
-  ElTableColumn: tableColumn
+  ElTableColumn: workbenchTableColumn,
+  ElDialog: passthrough
 }
 
 describe('CUT P1-P6 controlled UI integration', () => {
   it('runs the existing mounted workbench components through one A-grade archived task', async () => {
     configureControlledApi()
-    const mounted = mount(ControlledCutoverFlow, {}, controls)
+    const mounted = mount(CutoverTaskWorkbench, {}, controls)
+
+    await flush()
+    await clickLabel(mounted.root, '创建割接任务')
+    await flush()
 
     await update('create-serials', ' sn-001 ', mounted.root)
     await clickLabel(mounted.root, '解析项目')
@@ -111,6 +121,8 @@ describe('CUT P1-P6 controlled UI integration', () => {
     await update('create-cutover-type', 'CORE_REPLACEMENT', mounted.root)
     await update('create-scheduled-time', '2026-09-03T10:00:00', mounted.root)
     await clickLabel(mounted.root, '创建并进入 P2')
+    await flush()
+    await clickLabel(mounted.root, '详情')
     await flush()
 
     await clickLabel(mounted.root, '保存草稿')
@@ -150,64 +162,10 @@ describe('CUT P1-P6 controlled UI integration', () => {
     expect(runtime.closureStatus).toBe('SUBMITTED')
     expect(textOf(mounted.root)).toContain('ARCHIVED')
     expect(textOf(mounted.root)).toContain('cutover-closure:801:1')
+    expect(api.getCutoverTaskPage.mock.calls.length).toBeGreaterThanOrEqual(7)
+    expect(api.getCutoverTaskDetail.mock.calls.length).toBeGreaterThanOrEqual(7)
     mounted.app.unmount()
   })
-})
-
-const ControlledCutoverFlow = defineComponent({
-  setup() {
-    const stage = ref(runtime.stage)
-    const assessment = reactive({
-      answers: {
-        businessImportanceLevel: 'HIGH',
-        operationComplexityLevel: 'MEDIUM',
-        hiddenRiskLevel: 'LOW',
-        sparePartApplied: true
-      },
-      manualGrade: 'A' as const
-    })
-    const syncStage = () => {
-      stage.value = runtime.stage
-    }
-    return () => {
-      if (stage.value === 'P1') {
-        return h(CutoverCreateWizard, {
-          modelValue: true,
-          'onUpdate:modelValue': () => undefined,
-          onCreated: syncStage
-        })
-      }
-      if (stage.value === 'P2') {
-        return h(CutoverAssessmentPanel, {
-          model: assessment,
-          editable: true,
-          submittable: true,
-          saving: false,
-          submitting: false,
-          onSave: async () => api.saveCutoverAssessment('101', 1, 0, assessment),
-          onSubmit: async () => {
-            await api.submitCutoverAssessment('101', 1, 1, 'controlled-p2')
-            syncStage()
-          }
-        })
-      }
-      if (stage.value === 'P3') {
-        return h(CutoverChecklistPanel, { detail: taskDetail('P3'), onSubmitted: syncStage })
-      }
-      if (stage.value === 'P4') {
-        return h(CutoverPlanPanel, {
-          taskId: '101',
-          taskVersion: 3,
-          manualGrade: 'A',
-          onChanged: syncStage
-        })
-      }
-      if (stage.value === 'P5') {
-        return h(CutoverApprovalPanel, { taskId: '101', onChanged: syncStage })
-      }
-      return h(CutoverClosurePanel, { taskId: '101', onChanged: syncStage })
-    }
-  }
 })
 
 function configureControlledApi() {
@@ -226,6 +184,21 @@ function configureControlledApi() {
     runtime.stage = 'P2'
     return { taskId: '101', version: 1 }
   })
+  api.getCutoverTaskPage.mockImplementation(async () => {
+    trace.push(`read:workbench:list:${runtime.stage}`)
+    return {
+      list: runtime.stage === 'P1' ? [] : [taskSummary()],
+      total: runtime.stage === 'P1' ? 0 : 1,
+      pageNo: 1,
+      pageSize: 20
+    }
+  })
+  api.getCutoverTaskDetail.mockImplementation(async () => {
+    trace.push(`read:workbench:detail:${runtime.stage}`)
+    return taskDetail()
+  })
+  api.getCutoverApprovalTodos.mockResolvedValue({ list: [], total: 0, pageNo: 1, pageSize: 20 })
+  api.getCutoverApprovalReassignmentCandidates.mockResolvedValue([])
   api.saveCutoverAssessment.mockImplementation(async () => {
     trace.push('write:P2:save')
     return { taskId: '101', taskVersion: 1, assessmentVersion: 1, assessmentRowVersion: 1 }
@@ -336,15 +309,69 @@ const createContext = () => ({
   configurationSelectionRequired: false
 })
 
-const taskDetail = (currentStage: 'P3') =>
+const stageVersion = () => ({ P1: 0, P2: 1, P3: 2, P4: 3, P5: 4, P6: 5 })[runtime.stage] ?? 0
+
+const taskStatus = () => {
+  if (runtime.stage === 'P6') {
+    return runtime.closureStatus === 'SUBMITTED' ? 'ARCHIVED' : 'IN_PROGRESS'
+  }
+  return runtime.stage === 'P1' ? 'DRAFT' : 'IN_PROGRESS'
+}
+
+const taskSummary = () => ({
+  id: '101',
+  taskNo: 'CUT-001',
+  taskName: '核心网割接',
+  projectId: '9007199254741001',
+  projectName: '核心网扩容',
+  intakeSourceType: 'SELF_CREATED',
+  officeName: '华东办事处',
+  generatedAt: 1788400800000,
+  currentStage: runtime.stage === 'P1' ? 'P2' : runtime.stage,
+  taskStatus: taskStatus(),
+  manualGrade: runtime.stage === 'P1' ? null : 'A',
+  version: stageVersion()
+})
+
+const taskDetail = () =>
   ({
-    task: { id: '101', currentStage, taskVersion: 2, version: 2, manualGrade: 'A' },
-    project: { projectScopeVersion: '12' },
+    task: {
+      ...taskSummary(),
+      scheduledTime: 1788400800000
+    },
+    source: { intakeSourceType: 'SELF_CREATED' },
+    project: { projectName: '核心网扩容', projectScopeVersion: '12' },
     devices: [
       { deviceId: '9007199254742001', serialNumber: 'SN-001', projectAssignmentVersion: '6' }
     ],
-    assessment: { assessmentId: '201', assessmentVersion: 1 },
-    allowedActions: ['SAVE_CHECKLIST', 'SUBMIT_CHECKLIST']
+    assessment: {
+      assessmentId: '201',
+      assessmentVersion: 1,
+      rowVersion: 1,
+      manualGrade: 'A',
+      answers: {
+        businessImportanceLevel: 'HIGH',
+        operationComplexityLevel: 'MEDIUM',
+        hiddenRiskLevel: 'LOW',
+        sparePartApplied: true
+      }
+    },
+    customerServiceLevel: { serviceLevelCode: 'GOLD' },
+    implementationReadiness: { decision: 'READY' },
+    workbenchSteps: ['P2', 'P3', 'P4', 'P5', 'P6'].map((stage, index) => {
+      const currentIndex = ['P2', 'P3', 'P4', 'P5', 'P6'].indexOf(runtime.stage)
+      return {
+        stage,
+        label: `${stage} 阶段`,
+        state: index === currentIndex ? 'CURRENT' : index < currentIndex ? 'COMPLETED' : 'FUTURE'
+      }
+    }),
+    allowedActions:
+      runtime.stage === 'P2'
+        ? ['SAVE_ASSESSMENT', 'SUBMIT_ASSESSMENT']
+        : runtime.stage === 'P3'
+          ? ['SAVE_CHECKLIST', 'SUBMIT_CHECKLIST']
+          : []
   }) as any
 
 const checklistView = () => ({
