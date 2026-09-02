@@ -12,6 +12,7 @@ class Fcut008MigrationContractTest {
 
     private final String sql = readMigration();
     private final String correlationSql = readCorrelationMigration();
+    private final String externalJobSql = readExternalJobMigration();
 
     @Test
     void addsAndBackfillsTheLockedForwardColumnsWithoutBusinessDefaults() {
@@ -63,6 +64,20 @@ class Fcut008MigrationContractTest {
                 .doesNotContain("DEFAULT");
     }
 
+    @Test
+    void registersOnlyTheExternalDeliveryJobAsPaused() {
+        assertThat(externalJobSql)
+                .contains("992602073002")
+                .contains("'cutoverExternalApprovalNotificationJob'")
+                .contains("'0/30 * * * * ?'")
+                .contains("'割接P5审批外部提醒投递', 2")
+                .contains("`status`=2")
+                .contains("WHERE NOT EXISTS")
+                .doesNotContain("cutoverApprovalNotificationJob'")
+                .doesNotContain("syncEnabledJobByHandlerName")
+                .doesNotContain("INSERT INTO `cut_approval_");
+    }
+
     private static String readMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V157__fcut008_p5_lead_time_notification.sql"));
@@ -74,6 +89,14 @@ class Fcut008MigrationContractTest {
     private static String readCorrelationMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V158__fcut008_notification_correlation_provenance.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readExternalJobMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V159__fcut008_external_notification_job_seed.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

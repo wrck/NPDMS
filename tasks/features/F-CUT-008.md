@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan、Task 1～6均已独立复审GO；当前进入Task 7暂停Job种子与迁移合同候选。
+- Feature Ready、唯一Technical Plan、Task 1～6均已独立复审GO；Task 7暂停Job种子与迁移合同候选等待独立复审。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -30,8 +30,9 @@
 - [x] Task 4A Schema/Writer Amendment Code Review／正向闭环Gate：`PASS / GO @ 8889fe96`。
 - [x] Task 5受控外部端口、投递服务与未装配Job独立Code Review／正向闭环Gate：`PASS / GO @ 373a7883`。
 - [x] Task 6 P5提前时间展示卡片组件／正向交互Gate：`PASS / GO @ 8d09fdc3`。
+- [ ] Task 7暂停Job种子与迁移合同／隔离MySQL Gate：`REVIEW_REQUIRED`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- Task 6 Gate=`PASS / GO @ 8d09fdc3`：A/B只读提前时间卡片、C/D与旧实例空投影及审批请求隔离均通过，组件22/22、`pnpm ts:check`通过。当前进入Task 7暂停Job种子；生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
+- Task 7候选待复审：V159仅幂等登记外部提醒Job为暂停；合同5/5，隔离MySQL 8.4全量至V159并重放seed后外部/站内Job均唯一暂停、审批与通知行均为0。生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
