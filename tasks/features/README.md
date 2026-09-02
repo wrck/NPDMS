@@ -12,6 +12,34 @@
 
 本轮已集成任务代码收口输入为`master@dc55b92af86c95b518195accb365487485f7c3ba`、截点`2026-09-02T00:09:35.6762162+08:00`，见[代码收口后全部分支时间线](../../docs/generated/branch-history-audit-2026-09-02-integrated-code-convergence.md)。报告覆盖22个本地分支、16个Worktree、468条master外提交与2个stash；七个已集成master回执均为主干祖先，116个去重后的实现、测试、迁移和校验路径当前全部存在。`codex/f-cut-001-master-integration@07b6eb06`已通过标准双亲merge进入`master@dc55b92a`；PROJ/CUT多Feature分支仍只承认选择性master代码回执，不因源提交未成为祖先而整支合并。
 
+本轮2026-08-21起非排除分支审计输入为`master@dff24f780f531a712c92c7da1b687f980b475824`、截点`2026-09-02T09:59:14.3053640+08:00`，见[2026-08-21起分支Feature收口时间线](../../docs/generated/branch-history-audit-2026-09-02-post-20260821-feature-convergence.md)。时间范围包含2026-08-21当日，明确排除`codex/f-cut-001-matrices`与`feat-inspection-feature-xkjuCC`的Feature/代码合并裁决，但完整报告仍冻结二者HEAD以防通过继承关系绕过排除。报告共记录22个分支、16个Worktree、567条master外提交和2个stash；19个非排除、非master分支中10个已是master祖先，9个仍显示分支外历史。去除master及两个排除分支已包含的提交后共有179条去重候选提交，最终`MERGE_APPROVED=0`，不制造空merge或重复代码。
+
+### 2026-08-21起非排除分支逐项裁决
+
+| 分支 | 截点HEAD | Feature/Task事实 | 时间范围内差量 | master裁决 |
+|---|---|---|---|---|
+| `chore/merge-spec-revision-005` | `2dc8063b` | PRD修订005整理 | `IN_MASTER` | 已在master，不重复合并 |
+| `chore/single-repository-governance` | `98ef4a41` | 单仓治理计划证据 | `IN_MASTER` | 已在master，不重复合并 |
+| `codex/f-acc-001-sds` | `58576666` | 分支自报F-COM-001、F-ACC-001、F-ACC-002完成；master无三者当前Feature Task | 142条提交、560个路径，其中478个代码/测试路径；F-COM-001的62条提交为其祖先 | `BLOCKED_BY_SPEC`：`Q-GOV-20260901-001/002`仍开放；ACC依赖的COM-A地点Owner与当前PRD COM-01的AST结构化地点权威冲突，禁止整支或按Done倒签 |
+| `codex/f-com-001-feature-ready` | `21423d9c` | COM-A实现候选；分支Task自报Done，master仅有另一条PROJ资格支撑合同 | 62条提交、215个路径，其中162个代码/测试路径 | `BLOCKED_BY_SPEC`：与COM-B竞争且当前PRD地点Owner不一致；关闭`Q-GOV-20260901-002`前不接收代码、Spec或Task状态 |
+| `codex/f-cut-001-master-integration` | `07b6eb06` | F-CUT-001矩阵增量来源 | `IN_MASTER@dc55b92a` | 已形成标准双亲merge；Feature保持`IN_PROGRESS` |
+| `codex/f-proj-001-atomic-alignment` | `8bbaf69a` | 2026-08-21旧F-PROJ-001 Task只完成中段，Task 0/6～10及全部AC未闭合 | 6条提交、170个路径，其中90个代码/测试路径 | `SUPERSEDED / DO_NOT_MERGE`：master当前F-PROJ-001已按后续V1.8 Task 0～9、AC 1～10完成，旧V60/Yudao基础改造不得覆盖当前实现 |
+| `codex/f-proj-008-stage-advance` | `48175aa0` | F-PROJ-008 Task 1/2已接收，Task 3 UI未接收 | 原始203条master外提交；剔除排除分支继承后24条PROJ提交、106个路径，其中65个代码/测试路径 | `INTEGRATED_PARTIAL`：Task 1/2由`db876b43`、`158118d0`适配承载；Task 3继续受`Q-FPROJ-009`阻断，禁止迁入`a3bd0043`或整支合并 |
+| `codex/f-sol-003-legacy-deprecation` | `3e27f047` | F-SOL-003固定章节废弃整改 | `IN_MASTER@c1bbae90` | 已形成标准双亲merge；旧固定章节继续只读废弃 |
+| `codex/integrate-f-cut-001` | `72ccb83f` | F-CUT-001原始候选来源 | 9条提交全部也在已排除CUT共享线；适配代码已由`07b6eb06`进入master | `ALREADY_RECEIVED`：不得通过该历史分支绕过排除边界或重复合并 |
+| `codex/merge-engineering-chain-phase-tmrsp0` | `29111833` | 历史工程链合并线 | 1条merge提交；tree `9e76104c`与master历史`00db759c`完全相同 | `TREE_EQUIVALENT`：无master缺失树差量，不合并 |
+| `codex/v1-8-feature-revalidation-50eb` | `68db25b3` | V1.8独立裁决规则 | 1条文档提交 | `PATCH_EQUIVALENT`：已由master`29e9a415`等价接收并继续修订，不合并 |
+| `engineering-chain-phase-TmrsP0` | `abbc3fa0` | 旧工程链实施历史 | `IN_MASTER` | 已在master，不重复合并 |
+| `feat-inspection-feature-Q7yA35` | `08457e39` | F-CUT-001早期规格/计划基线，不是本轮排除的INS活动分支 | `IN_MASTER` | 已在master，不重复合并 |
+| `feat-parallel-features-akPsDH` | `4060039c` | 历史并行Feature实现 | `IN_MASTER` | 已在master，不重复合并 |
+| `feat/feature-01` | `28d44fe5` | 工程执行资料归档 | `IN_MASTER` | 已在master，不重复合并 |
+| `feat/specification-baseline-sync` | `91ba833a` | 规格基线同步 | `IN_MASTER` | 已在master，不重复合并 |
+| `import/spec-prd-v1.8-revision-005` | `aaed378a` | PRD V1.8修订005导入 | `IN_MASTER` | 已在master，不重复合并 |
+| `prd-audit-v1-8-LAR2Ap` | `48156a8a` | 旧PRD审核报告与整理稿 | 1条提交、3个报告文件，无代码 | `REPORT_ONLY / SUPERSEDED`：不能覆盖当前修订001～007合并基线，且旧`docs/reports`不符合当前生成报告目录规则 |
+| `prereq-parallel-check-kKiAdn` | `cdfbd71a` | F-INT-012 Device Ops/凭证/回调候选；无master Feature Task、无有效认领 | 4条提交、112个路径，其中91个代码/测试路径；前两批实现早于Feature Spec提交 | `QUARANTINED / NO_TASK`：不得倒签认领；候选还直接改动Yudao Infra文件基础能力，须先由master建立Feature Task、Owner边界和新DU后重新实施/迁移裁决 |
+
+非排除Worktree在截点仍有用户脏改动：F-COM/ACC 2项、旧F-PROJ-001 1项、F-PROJ-008 24项、F-INT-012 2项、PRD审计2项、50eb临时目录1项。它们不属于提交证据，本轮未修改、清理、暂存或迁移。
+
 ## master权威Feature状态
 
 | Feature | Feature Task | master实施状态 | 当前有效DU | Requirement投影 |
@@ -65,7 +93,7 @@
 | SOL-01 | F-PLT-002仅形成`PARTIAL`覆盖 | 未发现可把SOL-01提升为完成的权威候选 | 保持`PARTIAL`，不得从相邻平台能力推导Done |
 | 临时/跨Feature命中 | 不属于PRE/SOL实现事实 | 50eb的914项命中均在`.codex-tmp/qa/`；`486727a3`为ACC分支9参数测试适配，均不适用master | 临时副本不得提交；ACC适配不得移植到8参数master合同 |
 
-当前没有有效写入认领；`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
+当前没有有效写入认领；`DU-20260902-POST-20260821-BRANCH-FEATURE-CONVERGENCE`已完成2026-08-21起19个非排除分支的逐项裁决，以零新增代码合并释放治理边界。`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 
