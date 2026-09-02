@@ -21,6 +21,11 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationProviderExecutor;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationService;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.external.CutoverExternalApprovalNotificationPort;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.external.CutoverExternalApprovalNotificationService;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.external.CutoverExternalApprovalNotificationTransactionExecutor;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.external.ExternalApprovalNotificationRequest;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.external.ExternalApprovalNotificationResult;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationService;
@@ -61,6 +66,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,6 +84,8 @@ class CutoverApprovalPositiveLoopMySqlTest {
     @Resource CutoverPlanApplicationService planService;
     @Resource CutoverApprovalApplicationService approvalService;
     @Resource CutoverApprovalNotificationService notificationService;
+    @Resource CutoverExternalApprovalNotificationService externalNotificationService;
+    @Resource ControlledExternalNotificationPort externalNotificationPort;
     @Resource ControlledOwners owners;
     @Resource CurrentActor actor;
 
@@ -107,6 +116,48 @@ class CutoverApprovalPositiveLoopMySqlTest {
         taskId = 995_200_000_000L + suffix;
         TenantContextHolder.setTenantId(tenantId);
         actor.use(8L);
+        externalNotificationPort.reset();
+    }
+
+    @Test
+    void externalDueRowsAreClaimedOnceAcrossConcurrentWorkers() throws Exception {
+        SubmittedRoute route = submit("D", "external-concurrent");
+        externalNotificationPort.blockFirstDelivery();
+        LocalDateTime dueAt = LocalDateTime.of(2026, 9, 2, 0, 0);
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            Future<CutoverExternalApprovalNotificationService.DeliveryResult> first = workers.submit(() -> {
+                TenantContextHolder.setTenantId(tenantId);
+                try {
+                    return externalNotificationService.deliverDue(tenantId, dueAt, 100);
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            assertTrue(externalNotificationPort.awaitFirstDelivery());
+            Future<CutoverExternalApprovalNotificationService.DeliveryResult> second = workers.submit(() -> {
+                TenantContextHolder.setTenantId(tenantId);
+                try {
+                    return externalNotificationService.deliverDue(tenantId, dueAt, 100);
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            CutoverExternalApprovalNotificationService.DeliveryResult skipped = second.get(10, TimeUnit.SECONDS);
+            assertEquals(0, skipped.accepted());
+            assertEquals(0, skipped.deliveryUnknown());
+            assertEquals(0, skipped.retryScheduled());
+            externalNotificationPort.releaseFirstDelivery();
+            CutoverExternalApprovalNotificationService.DeliveryResult delivered = first.get(10, TimeUnit.SECONDS);
+            assertEquals(3, delivered.accepted());
+            assertEquals(3, externalNotificationPort.calls());
+            assertEquals(3, count("SELECT COUNT(*) FROM cut_approval_notification WHERE tenant_id=? " +
+                    "AND approval_instance_id=? AND channel_code IN ('SMS','EMAIL','DINGTALK') " +
+                    "AND status_code='ACCEPTED'", tenantId, route.approvalInstanceId()));
+        } finally {
+            externalNotificationPort.releaseFirstDelivery();
+            workers.shutdownNow();
+        }
     }
 
     @AfterEach
@@ -151,6 +202,15 @@ class CutoverApprovalPositiveLoopMySqlTest {
         assertEquals(0, delivery.retried());
         assertEquals(expectedNodes, count("SELECT COUNT(*) FROM cut_approval_notification WHERE tenant_id=? " +
                 "AND approval_instance_id=? AND status_code='SENT'", tenantId, route.approvalInstanceId()));
+        var externalDelivery = externalNotificationService.deliverDue(tenantId,
+                LocalDateTime.of(2026, 9, 2, 0, 0), 100);
+        assertEquals(expectedNodes * 3, externalDelivery.accepted());
+        assertEquals(0, externalDelivery.deliveryUnknown());
+        assertEquals(0, externalDelivery.retryScheduled());
+        assertEquals(expectedNodes * 3, count("SELECT COUNT(*) FROM cut_approval_notification WHERE tenant_id=? " +
+                "AND approval_instance_id=? AND channel_code IN ('SMS','EMAIL','DINGTALK') " +
+                "AND status_code='ACCEPTED' AND provider_reference_id IS NOT NULL", tenantId,
+                route.approvalInstanceId()));
         if (List.of("A", "B").contains(grade)) {
             assertEquals(202L, jdbc.queryForObject("SELECT current_approver_user_id FROM cut_approval_node " +
                     "WHERE tenant_id=? AND approval_instance_id=? AND node_code='SECOND_LINE'", Long.class,
@@ -471,6 +531,68 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 CutoverApprovalInstanceMapper instances, CutoverApprovalNodeMapper nodes, CutoverTaskMapper tasks,
                 CutoverApprovalNotificationProviderExecutor provider) {
             return new CutoverApprovalNotificationService(notifications, instances, nodes, tasks, provider);
+        }
+        @Bean ControlledExternalNotificationPort externalNotificationPort() {
+            return new ControlledExternalNotificationPort();
+        }
+        @Bean CutoverExternalApprovalNotificationTransactionExecutor externalNotificationTransactions(
+                CutoverApprovalNotificationMapper notifications, CutoverApprovalInstanceMapper instances,
+                CutoverApprovalNodeMapper nodes, CutoverTaskMapper tasks,
+                CutoverExternalApprovalNotificationPort port) {
+            return new CutoverExternalApprovalNotificationTransactionExecutor(
+                    notifications, instances, nodes, tasks, port);
+        }
+        @Bean CutoverExternalApprovalNotificationService externalNotificationService(
+                CutoverExternalApprovalNotificationTransactionExecutor executor) {
+            return new CutoverExternalApprovalNotificationService(executor);
+        }
+    }
+
+    static final class ControlledExternalNotificationPort implements CutoverExternalApprovalNotificationPort {
+        private final AtomicLong references = new AtomicLong(2_000);
+        private final AtomicInteger calls = new AtomicInteger();
+        private volatile CountDownLatch firstDeliveryStarted = new CountDownLatch(0);
+        private volatile CountDownLatch firstDeliveryReleased = new CountDownLatch(0);
+
+        void reset() {
+            calls.set(0);
+            firstDeliveryStarted = new CountDownLatch(0);
+            firstDeliveryReleased = new CountDownLatch(0);
+        }
+
+        void blockFirstDelivery() {
+            firstDeliveryStarted = new CountDownLatch(1);
+            firstDeliveryReleased = new CountDownLatch(1);
+        }
+
+        boolean awaitFirstDelivery() throws InterruptedException {
+            return firstDeliveryStarted.await(10, TimeUnit.SECONDS);
+        }
+
+        void releaseFirstDelivery() {
+            firstDeliveryReleased.countDown();
+        }
+
+        int calls() {
+            return calls.get();
+        }
+
+        @Override
+        public ExternalApprovalNotificationResult send(ExternalApprovalNotificationRequest request) {
+            int call = calls.incrementAndGet();
+            if (call == 1 && firstDeliveryStarted.getCount() > 0) {
+                firstDeliveryStarted.countDown();
+                try {
+                    if (!firstDeliveryReleased.await(10, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("controlled external delivery release timed out");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("controlled external delivery interrupted", exception);
+                }
+            }
+            return new ExternalApprovalNotificationResult.Accepted(
+                    "controlled-" + references.incrementAndGet(), LocalDateTime.of(2026, 9, 2, 0, 0));
         }
     }
 }

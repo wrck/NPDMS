@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- Feature Ready、唯一Technical Plan、Task 1～4A均已独立复审GO；当前实施Task 5受控外部消费端口、投递服务与暂停Job候选。
+- Feature Ready、唯一Technical Plan、Task 1～4A均已独立复审GO；Task 5受控外部消费端口、投递服务与未装配Job候选等待独立复审。
 - 本Feature覆盖完整`CUT-05@V2`：A/B专项提前时间判断与INT-10/INT-05定义渠道提醒，不拆成单一计算器或Provider碎片。
 - 跨模块发送只预留端口，并以`src/test`受控实现完成正常正向闭环；不修改Yudao、不实现第三方Provider、不注册生产Fake/fallback。
 
@@ -28,8 +28,9 @@
 - [x] Task 4节点激活三渠道请求创建独立Code Review／聚焦测试Gate：`PASS / GO @ aa2376d2`。
 - [x] Task 5 correlation provenance Machine Contract Gate：`PASS / GO @ 1c181df8`。
 - [x] Task 4A Schema/Writer Amendment Code Review／正向闭环Gate：`PASS / GO @ 8889fe96`。
+- [ ] Task 5受控外部端口、投递服务与未装配Job独立Code Review／正向闭环Gate：`REVIEW_REQUIRED`。
 - [ ] 实现、适用验证、独立Code Review与状态回写。
 
 ## 最近检查点
 
-- 基线`8889fe96`；Task 4A Gate=`PASS / GO`。证据：14/14服务测试、6/6隔离MySQL正向闭环，V158列宽/可空/无默认符合合同，同节点四行冻结同一correlationId。当前实施Task 5受控端口/投递服务/暂停Job候选；生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。
+- Task 5候选待复审：受控端口三结果、事务领取/CAS/退避及未装配Job已实现；单元3/3、隔离MySQL 8.4空库至V158且正向6/6。生产Provider、Job激活、真实渠道/浏览器及Implementation Done继续排除。

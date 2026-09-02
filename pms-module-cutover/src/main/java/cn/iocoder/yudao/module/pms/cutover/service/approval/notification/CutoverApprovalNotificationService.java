@@ -112,7 +112,7 @@ public class CutoverApprovalNotificationService {
                 "通知待投递事实损坏");
     }
 
-    static long retryDelayMinutes(int retryCount) {
+    public static long retryDelayMinutes(int retryCount) {
         int exponent = Math.min(Math.max(retryCount, 0), 6);
         return Math.min(1L << exponent, 60L);
     }
