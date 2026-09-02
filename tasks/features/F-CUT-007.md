@@ -16,7 +16,7 @@
 - 形成CUT-01@V2授权KPI完整纵向Feature，不重复实现COM-01或拆出跨模块Provider碎片。
 - CUT自有范围固定为只读实时聚合、REST、四张KPI卡片和真实动作守卫复用。
 - 跨模块预留接口按正常闭环在CUT测试/受控验收中模拟；生产Fake、fallback和空成功Provider禁止注册。
-- Feature Ready、唯一Technical Plan及Task 1均已通过；当前进入Task 2批量候选查询与KPI服务正常链实现。
+- Feature Ready、唯一Technical Plan及Task 1～2均已通过；当前进入Task 3 KPI REST正常链实现。
 
 ## 候选边界
 
@@ -33,7 +33,8 @@
 - Feature Ready最终状态关闭已在`f6141e21`通过独立复审：`READY / GO`。
 - 唯一Technical Plan验证编排整改已在`fad19d81`通过独立复审：`PASS / GO`。
 - Task 1共享P2～P6动作语义与批量事实合同已在`b9a3ab32`通过独立复审：`PASS / GO`。
-- 最近Gate：`Task 2批量候选查询 / Query/Mapper Gate`。
+- Task 2批量候选查询与KPI服务已在`d80fd05c`通过独立复审：`PASS / GO`。
+- 最近Gate：`Task 3 KPI REST Contract / Code Review Gate`。
 - 当前状态：`BASELINE / READY / IN_PROGRESS`。按正向闭环顺序实施CUT查询、REST和工作台；跨模块预留接口只在测试与受控验收中使用确定性替身。
 
 ## 状态边界
