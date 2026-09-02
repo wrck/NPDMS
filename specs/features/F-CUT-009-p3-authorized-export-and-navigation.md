@@ -8,6 +8,7 @@
 > 前置Feature：`F-CUT-001（配置版本）`、`F-CUT-003（P3清单）`
 > 机器合同：`specs/features/F-CUT-009-api-contract.json`、`specs/features/F-CUT-009-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-009-legacy-reuse-audit.md`
+> Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-009-p3-authorized-export-and-navigation.md`
 > 已决问题：`Q-FCUT009-001（RESOLVED / OPTION_A）`
 
 ## 1. 业务目标
