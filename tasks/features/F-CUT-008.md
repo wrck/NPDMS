@@ -25,4 +25,4 @@
 
 ## 最近检查点
 
-- 基线`75dc5500`；F-CUT-007受控正向闭环已GO。当前Gate为F-CUT-008 Feature Ready规格候选；证据为PRD十类阈值、SDS通知边界及F-CUT-005现有审批闭环；无业务阻断，待独立复审后生成唯一Technical Plan。
+- 基线`f5c66d57`；Feature Ready首轮NO-GO仅要求WAITING改派不得提前通知，以及合同/Owner错误落入同键`PENDING_RETRY`。当前Gate为两项最小整改复审；其余阈值、快照、FULL投影、V1兼容和三渠道方向不重开。

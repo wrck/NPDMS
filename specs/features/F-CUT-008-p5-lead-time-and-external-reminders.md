@@ -21,7 +21,7 @@
 - 十类正式割接类型与1/2/3/5/7自然日阈值的封闭规则版本；
 - A/B级在P4提交并创建P5实例时，以方案提交时间和计划操作时间计算、冻结提前时间判断；
 - P5完整审批页展示规则版本、要求天数、实际自然日差和“是否未按规定提前提交”；
-- 首节点、下一节点和改派节点激活时，在既有站内通知之外追加短信、邮件、钉钉三类外部提醒请求；
+- 首节点、下一节点和当前PENDING节点改派后，在既有站内通知之外追加短信、邮件、钉钉三类外部提醒请求；WAITING节点改派不提前通知；
 - 外部提醒端口、渠道级幂等、受理/明确失败/结果未知、重试及审计；
 - CUT单元、集成、真实MySQL和组件测试中以受控端口实现完成A/B正常审批提醒闭环。
 
@@ -53,14 +53,15 @@
 ### BR-FCUT008-003 外部提醒请求
 
 - F-CUT-005原`IN_PLATFORM`通知保持每个激活节点必建且语义不变。V2对同一激活节点另外追加`SMS`、`EMAIL`、`DINGTALK`各一条CUT渠道记录；外部渠道不可用不影响站内待办和站内通知。
+- 初始PENDING节点和中间通过后新激活的PENDING节点按激活时的recipient/nodeVersion创建提醒。只有当前PENDING节点改派会按改派后的recipient和新nodeVersion创建新提醒；WAITING节点改派只保存改派事实，不创建任何通知，待其以后真正`WAITING→PENDING`时才使用届时的recipient/nodeVersion创建。
 - 外部渠道记录与节点激活/改派在同一业务事务中追加为`PENDING`；不得在审批写事务内调用第三方Provider。唯一键为`CUT_APPROVAL_EXT:{approvalInstanceId}:{nodeNo}:{nodeVersion}:{channel}`。
 - 发送端口只接收受信租户、recipientUserId、渠道、模板、deliveryKey、审批任务链接、correlationId和必要非敏感变量。手机号、邮箱和钉钉账号由对应外部Owner解析，CUT不接收、不持久化、不直读其表。
-- Provider明确受理后记录`ACCEPTED`及providerReferenceId；明确失败记录`PENDING_RETRY`和退避时间；调用结果不确定记录`DELIVERY_UNKNOWN`且不自动重复发送。上述状态都不改变审批、节点、待办或站内消息。
+- Provider明确受理后记录`ACCEPTED`及providerReferenceId；明确失败、请求合同错误或Owner事实损坏统一记录`PENDING_RETRY`，保存稳定错误码、retryCount、nextRetryAt和lastAttemptAt并沿同一deliveryKey退避；调用结果不确定记录`DELIVERY_UNKNOWN`且不自动重复发送。上述状态都不改变审批、节点、待办或站内消息。
 - `PENDING/PENDING_RETRY`以同一deliveryKey重试；Provider未形成时生产外部投递Job保持暂停，不注册Fake或fallback。受控替身仅存在于测试装配。
 
 ### BR-FCUT008-004 幂等、并发与审计
 
-- 同一节点版本和渠道只允许一条外部提醒记录；审批命令重放不得追加第二条。节点改派产生新nodeVersion和新deliveryKey，旧记录保留。
+- 同一节点版本和渠道只允许一条外部提醒记录；审批命令重放不得追加第二条。当前PENDING节点改派产生新nodeVersion和新deliveryKey，旧记录保留；WAITING节点改派不产生deliveryKey，直到节点实际激活。
 - 渠道投递领取按`tenantId + dueAt + id`稳定排序并使用`FOR UPDATE SKIP LOCKED`；状态/version CAS与尝试结果同事务，重复Job不得重复受理同一条记录。
 - 审计保存审批实例/节点/规则版本、提前时间输入与结果、渠道、recipientUserId、deliveryKey、providerReferenceId、尝试时间、结果、重试次数、错误码及correlationId；不保存完整业务正文或联系方式。
 
@@ -80,7 +81,7 @@
 
 - AC-FCUT008-001：十类阈值逐项匹配；A/B在`差值=阈值-1/阈值/阈值+1`分别得到`true/false/false`，规则版本和输入快照不可变。
 - AC-FCUT008-002：C/D和旧V1实例不计算且详情返回null；提前时间结果任意取值都不改变审批动作、五项评审、状态或P6推进。
-- AC-FCUT008-003：节点激活原子形成一个站内通知和SMS/EMAIL/DINGTALK三条外部请求；业务命令重放不重复，改派只为新节点版本形成新请求。
+- AC-FCUT008-003：节点激活原子形成一个站内通知和SMS/EMAIL/DINGTALK三条外部请求；业务命令重放不重复；当前PENDING节点改派为新节点版本形成新请求，WAITING节点改派保持零通知直到实际激活。
 - AC-FCUT008-004：三类外部渠道在受控替身下可受理并留providerReferenceId；明确失败可按同键重试，未知结果不自动重发，任一路径都不回滚审批。
 - AC-FCUT008-005：P5页面对A/B展示冻结判断，对C/D不展示；组件正向交互不依赖真实第三方账号或网络。
 - AC-FCUT008-006：真实MySQL证明快照联合约束、旧行前向兼容、渠道唯一性、并发领取单胜及审批事实前后不变。

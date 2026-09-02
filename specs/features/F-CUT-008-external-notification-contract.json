@@ -28,11 +28,11 @@
   },
   "errorBoundary": {
     "providerUnavailable": "treated as EXPLICIT_FAILURE for this delivery record and scheduled for retry; never escapes into or rolls back an already committed approval command",
-    "invalidRequestOrOwnerCorruption": "fails the delivery attempt and records a stable internal audit error; no empty success",
+    "invalidRequestOrOwnerCorruption": "moves the record to PENDING_RETRY with stable errorCode,retryCount,nextRetryAt,lastAttemptAt and retries with the same deliveryKey; never remains immediately claimable PENDING, never records success and never creates a new intent",
     "forbidden": "CUT never accepts phone, email address, DingTalk account, access token or provider secret"
   },
   "delivery": {
-    "creation": "each V2 node activation/reassignment appends exactly one record per channel in the approval business transaction after the mandatory existing IN_PLATFORM record",
+    "creation": "initial PENDING activation, next-node WAITING-to-PENDING activation, and reassignment of the current PENDING node append exactly one record per channel after the mandatory IN_PLATFORM record; reassignment of a still-WAITING node appends no notification, and its later activation uses the then-current recipient and nodeVersion",
     "claim": "stable by tenantId,dueAt,id with FOR UPDATE SKIP LOCKED; version CAS",
     "retry": "PENDING or PENDING_RETRY reuses the same deliveryKey; explicit failure uses server backoff; DELIVERY_UNKNOWN is excluded from automatic claim",
     "idempotency": "unique tenantId+deliveryKey; approval-command replay produces no new record"

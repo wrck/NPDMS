@@ -55,9 +55,9 @@
     "allocation": "calculated once inside F-CUT-005 start outer transaction before approval insert; never recomputed in query"
   },
   "notificationStateTransitions": {
-    "create": "node activation transaction appends external PENDING rows without provider call",
+    "create": "initial or next-node activation appends external PENDING rows; current PENDING-node reassignment appends rows for the new recipient/nodeVersion; WAITING-node reassignment appends none until its later activation",
     "accepted": "PENDING|PENDING_RETRY -> ACCEPTED by version CAS",
-    "explicitFailure": "PENDING|PENDING_RETRY -> PENDING_RETRY with same deliveryKey and server retry time",
+    "explicitFailure": "explicit provider failure, request contract error or Owner data corruption moves PENDING|PENDING_RETRY -> PENDING_RETRY with the same deliveryKey, stable errorCode, incremented retryCount and server retry time",
     "unknown": "PENDING|PENDING_RETRY -> DELIVERY_UNKNOWN; excluded from automatic retry",
     "approvalIsolation": "none of these transitions updates cut_approval_instance/node/task"
   },
