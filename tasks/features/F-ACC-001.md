@@ -4,9 +4,9 @@
 > 总体工程阶段：`IMPLEMENTATION`<br>
 > Feature Ready Gate：`SOURCE PASS / MASTER BLOCKED_BY_SPEC`（来源`bde0feac`；当前`Q-GOV-20260901-001`）<br>
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
-> Implementation Done Gate：`PENDING_MASTER_INTEGRATION_REVALIDATION`<br>
-> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC；来源候选尚未完整进入master；历史分支Done只作证据`<br>
-> 当前任务：`由DU-20260902-ACC-AST-SELECTIVE-INTEGRATION选择性集成并复验`<br>
+> Implementation Done Gate：`NOT_ESTABLISHED / BLOCKED_BY_SPEC`<br>
+> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC；代码已选择性集成至master；当前master真实MySQL、Chromium与独立Done裁决未完成；历史分支Done只作证据`<br>
+> 当前任务：`master@e53f7243代码回执后的运行复验与独立裁决`<br>
 > Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-001-acceptance-report-version-deliverable-sync.md`<br>
@@ -43,7 +43,8 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局�
 ## Task 3：master选择性集成与复验
 
 - [x] 排除COM-A祖先、来源工作树脏改动和旧Flyway编号，选择性集成全部F-ACC-001能力；迁移收敛为V166～V170。
-- [ ] 在当前master复核公共契约、旧功能废弃边界、迁移、权限、后端、前端和浏览器证据。
-- [ ] 更新Requirement矩阵、DU回执并申请独立Implementation Done裁决。
+- [x] 在当前master复核公共契约、旧功能废弃边界、迁移、权限、后端、前端类型和聚焦测试。
+- [ ] 在当前master完成真实MySQL与Chromium复验并申请独立Implementation Done裁决；`Q-GOV-20260901-001`关闭前不得晋级。
+- [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / BLOCKED_BY_SPEC`。
 
-> 检查点：基线=`caaf008c`；当前Gate=master集成；已通过=来源候选`ad5b401f`历史独立复审；阻塞=候选尚未完整进入master；下一步=按有效DU选择性集成并重新验证。
+> 检查点（2026-09-02）：代码回执=`e53f7243`；当前Gate=`IN_PROGRESS / BLOCKED_BY_SPEC`；已通过=Feature契约12项、27模块依赖构建、后端44项适用测试（4项MySQL跳过）、前端3项测试与类型检查；阻塞=`Q-GOV-20260901-001`、当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=规格阻断关闭后补齐运行证据并申请独立裁决。

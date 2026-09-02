@@ -3,8 +3,8 @@
 > Feature实施状态：`IN_PROGRESS`
 > Feature Ready Gate：`SOURCE PASS / MASTER BLOCKED_BY_SPEC`（当前`Q-GOV-20260901-001`）
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
-> Implementation Done Gate：`PENDING_MASTER_INTEGRATION_REVALIDATION`
-> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC`；来源候选尚未完整进入master，历史分支Done只作证据，Requirement投影保持`EQP-01@V1=PARTIAL`
+> Implementation Done Gate：`NOT_ESTABLISHED / BLOCKED_BY_SPEC`
+> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC`；代码已选择性集成至master，当前master真实MySQL复验和独立Done裁决未完成，历史分支Done只作证据，Requirement投影保持`EQP-01@V1=PARTIAL`
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
@@ -14,7 +14,7 @@
 
 ## 当前最小工作单元
 
-- 由`DU-20260902-ACC-AST-SELECTIVE-INTEGRATION`只接收`a52b22b4..68bc56ec`中的F-AST-002能力，排除夹带迁移、F-INS提交和来源工作树脏改动。
+- `DU-20260902-ACC-AST-SELECTIVE-INTEGRATION`已将`a52b22b4..68bc56ec`中的F-AST-002能力选择性集成至`master@524a70e7`，排除夹带迁移、F-INS提交和来源工作树脏改动。
 
 ## 来源分支已完成候选（只作证据）
 
@@ -39,9 +39,10 @@
 
 ## Task 10：master选择性集成与复验
 
-- [ ] 仅集成产品类型受控副本、公开查询、受控导入和Inspection只读适配器，重编号Flyway。
-- [ ] 在当前master复核权限、来源水位、冲突事务、授权范围、后端构建及可用MySQL证据。
-- [ ] 更新Requirement矩阵、DU回执并申请独立Implementation Done裁决。
+- [x] 仅集成产品类型受控副本、公开查询、受控导入和Inspection只读适配器，Flyway重编号为V164～V165。
+- [x] 在当前master复核权限、来源水位、冲突事务、授权范围、后端构建和聚焦测试。
+- [ ] 在当前master完成真实MySQL复验并申请独立Implementation Done裁决；`Q-GOV-20260901-001`关闭前不得晋级。
+- [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / BLOCKED_BY_SPEC`。
 
 > master迁移裁决：来源分支的V146/V147只作为历史证据；进入master时按当前最大版本之后前移为V164/V165，不接收来源区间夹带的V132～V145。
 
@@ -70,4 +71,4 @@
 - F-INS-001消费契约可在不直读AST表、不依赖连接器的情况下验证。
 - 更新Feature索引与Requirement追溯后，才可记录唯一Implementation Done Gate。
 
-> master检查点（2026-09-02）：基线=`caaf008c`；当前Gate=master集成；已通过=来源候选`68bc56ec`历史独立复审；阻塞=候选尚未进入master；下一步=按有效DU选择性集成并重新验证。
+> master检查点（2026-09-02）：代码回执=`524a70e7`；当前Gate=`IN_PROGRESS / BLOCKED_BY_SPEC`；已通过=27模块依赖构建、Service 8项与Asset 192项适用测试（27项MySQL跳过）；阻塞=`Q-GOV-20260901-001`、当前master真实MySQL与独立Done裁决未完成；下一步=规格阻断关闭后补齐运行证据并申请独立裁决。

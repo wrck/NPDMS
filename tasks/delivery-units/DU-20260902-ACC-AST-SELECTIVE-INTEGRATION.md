@@ -1,6 +1,6 @@
 # DU-20260902-ACC-AST-SELECTIVE-INTEGRATION ACC与AST选择性集成
 
-> DU状态：`CLAIMED`
+> DU状态：`INTEGRATED_PARTIAL`
 > DU类型：`MULTI_FEATURE_SLICE`
 > Feature协调：`F-ACC-001=FEATURE_EXCLUSIVE;F-ACC-002=FEATURE_EXCLUSIVE;F-AST-002=FEATURE_EXCLUSIVE`
 > Task范围：`按Requirement选择性集成F-ACC-001初验/终验报告、F-ACC-002满意度闭环与F-AST-002产品类型受控副本；不接收COM重复实现、F-INS实现或来源工作树未提交改动`
@@ -13,7 +13,7 @@
 > 串行资源：`ACC公共契约;AST产品类型公共契约;PLT文件与导出契约;PROJ任务契约;V164起Flyway;Requirement追溯投影`
 > 旧功能范围：`F-ACC-001明确替代的V17验收报告入口仅保留历史读取并标记废弃；旧电子完工证明、旧满意度/回访原始事实按规格PRESERVE_EXISTING/PRESERVE_RAW，不作为新能力基础；AST不得以conpType、旧字典、型号或自由文本替代产品类型稳定编码`
 > 验证：`Feature与物理契约校验;Flyway静态及可用环境验证;ACC/AST/PLT/PROJ聚焦测试与Reactor构建;前端类型检查、测试与生产构建;五轴代码审查`
-> 集成记录：`PENDING；ACC权威来源codex/f-acc-001-sds@58576666，AST仅取a52b22b4..68bc56ec；排除来源工作树脏改动及F-INS提交`
+> 集成记录：`AST=master@524a70e7；F-ACC-001=master@e53f7243；F-ACC-002=master@b3e7c76e；排除COM-A祖先、来源工作树脏改动、F-INS实现、来源生成矩阵与冲突Flyway编号；三个Feature均保持IN_PROGRESS / BLOCKED_BY_SPEC`
 
 ## 集成裁决
 
@@ -25,6 +25,7 @@
 
 ## 交接
 
-- 当前：完成最新分支时间线、脏工作树和共享路径审计，建立master排他认领。
-- 下一步：先集成并验证F-AST-002独立切片，再按F-ACC-001→F-ACC-002顺序集成；每个切片保持可构建并形成独立提交。
-- 完成口径：代码、前向迁移、公共契约、UI和追溯进入master且适用验证通过；缺少的MySQL/浏览器证据必须如实保留，不据历史分支倒签Done。
+- 当前：AST、F-ACC-001、F-ACC-002已按独立提交顺序进入master；V17单行验收栈已标记废弃，旧电子完工证明及旧满意度/回访原始事实继续保留且禁止作为新能力实施基础。
+- 验证：AST 27模块依赖构建及200项适用单元测试通过；F-ACC-001契约12项、后端44项适用测试、前端3项测试与类型检查通过；F-ACC-002契约20项、后端117项适用测试、前端类型检查与生产构建通过。MySQL分类测试分别跳过27/4/8项，未倒签真实运行证据。
+- 后续：本DU释放排他写边界；`Q-GOV-20260901-001`关闭后须新建运行复验DU，补齐当前master真实MySQL、Chromium（ACC）和独立Implementation Done裁决。
+- 完成口径：本DU只完成可构建代码增量、前向迁移、公共契约、UI和治理投影的选择性集成，不产生Feature Ready或Implementation Done。

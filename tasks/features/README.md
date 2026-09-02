@@ -59,9 +59,9 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-AST-002 | [Task](F-AST-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；仅形成EQP-01局部覆盖，不接收F-INS实现 |
-| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS / BLOCKED_BY_SPEC；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-03完整、ACC-04报告来源局部 |
-| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；等待F-ACC-001后选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-02完整、ACC-04满意度来源局部 |
+| F-AST-002 | [Task](F-AST-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；代码已选择性集成至`524a70e7` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；仅形成EQP-01局部覆盖，不接收F-INS实现；master真实MySQL与独立裁决待补 |
+| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS / BLOCKED_BY_SPEC；代码已选择性集成至`e53f7243` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-03完整、ACC-04报告来源局部；master真实MySQL/Chromium与独立裁决待补 |
+| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；代码已选择性集成至`b3e7c76e` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-02完整、ACC-04满意度来源局部；master真实MySQL/Chromium与独立裁决待补 |
 | F-COM-001 | [Task](F-COM-001.md) | IN_PROGRESS；master已形成COM-A/COM-B Requirement合并的可构建增量，待MySQL/浏览器/独立裁决 | [DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE](../delivery-units/DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE.md)已部分集成并释放边界 | 统一规格全部AC通过前不派生COM-01完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已部分集成并释放边界 | V133示例迁移与master最终运行DoD未完成；不得声明Done |
 
@@ -76,6 +76,9 @@
 | `T-FIMP002-PROJ-01`系统资格支撑 | `b4f16bdf`、`f4aa1ad2` | `5f5148a9` | 7个公共API、生产Provider及单元/契约/MySQL测试路径当前存在 | 仅该PROJ支撑代码已集成，不接收IMP消费实现 |
 | `T-FCOM001-PROJ-01`交付范围资格支撑 | `9d029976`、`319a616e`、`86ea27de` | `f1cf7920` | 7个公共API、DTO、异常与契约测试路径当前存在；生产Provider仍未实现 | 仅该PROJ公共契约代码已集成，不接收COM实现 |
 | F-CUT-002/F-CUT-005 PROJ候选合同 | `e68ad4e0..8eb36222`、`5e3ce44c..912d0cdb` | `e2f51762` | `CONTRACT_ONLY`：ADR、机器合同和追溯生成器变更已集成；没有可声称已完成的Java接口或Provider | 不把合同回执伪装成生产代码；缺失实现须另建物理Owner DU |
+| F-AST-002产品类型受控副本 | `a52b22b4..68bc56ec` | `524a70e7` | AST公共契约、受控副本/导入、查询及Inspection只读适配已集成；迁移重排为V164～V165 | 排除F-INS实现、夹带迁移和来源脏改动；Feature保持`IN_PROGRESS / BLOCKED_BY_SPEC` |
+| F-ACC-001验收报告版本闭环 | `21423d9c..7f3e3c62` | `e53f7243` | 初验/终验活动、不可变报告版本、交付来源同步、归档补偿及新UI已集成；迁移重排为V166～V170 | COM-A祖先未重复接收；V17单行验收栈已废弃；Feature保持`IN_PROGRESS / BLOCKED_BY_SPEC` |
+| F-ACC-002满意度闭环 | `7f3e3c62..58576666` | `b3e7c76e` | 问卷、达标判定、整改重收、归档、统一异步导出及新UI已集成；迁移重排为V171～V172 | 旧问卷/回访/电子完工证明继续保留，不在旧载体实施；Feature保持`IN_PROGRESS / BLOCKED_BY_SPEC` |
 
 ### master已接收的CUT分支PROJ物理Owner增量
 
@@ -97,15 +100,15 @@
 | SOL-01 | F-PLT-002仅形成`PARTIAL`覆盖 | 未发现可把SOL-01提升为完成的权威候选 | 保持`PARTIAL`，不得从相邻平台能力推导Done |
 | 临时/跨Feature命中 | 不属于PRE/SOL实现事实 | 50eb的914项命中均在`.codex-tmp/qa/`；`486727a3`为ACC分支9参数测试适配，均不适用master | 临时副本不得提交；ACC适配不得移植到8参数master合同 |
 
-当前有效写入认领为`DU-20260902-ACC-AST-SELECTIVE-INTEGRATION`，覆盖F-ACC-001、F-ACC-002和F-AST-002的Requirement级选择性集成，排除F-INS与来源脏改动。`DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE`已把COM-A与COM-B按Requirement选择性集成至`master@4ee98f05`并释放F-COM排他写边界；Feature仍为`IN_PROGRESS`。原COM-B单线DU已停止并释放边界。`DU-20260902-POST-20260821-BRANCH-FEATURE-CONVERGENCE`已完成2026-08-21起19个非排除分支的逐项裁决，以零新增代码合并释放治理边界。`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
+当前无有效排他写入认领。`DU-20260902-ACC-AST-SELECTIVE-INTEGRATION`已将F-AST-002、F-ACC-001、F-ACC-002的Requirement级代码增量分别集成至`master@524a70e7/e53f7243/b3e7c76e`并释放边界，排除F-INS、COM-A祖先与来源脏改动；三个Feature仍为`IN_PROGRESS / BLOCKED_BY_SPEC`。`DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE`已把COM-A与COM-B按Requirement选择性集成至`master@4ee98f05`并释放F-COM排他写边界；Feature仍为`IN_PROGRESS`。原COM-B单线DU已停止并释放边界。`DU-20260902-POST-20260821-BRANCH-FEATURE-CONVERGENCE`已完成2026-08-21起19个非排除分支的逐项裁决，以零新增代码合并释放治理边界。`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 
 | Feature/工作包 | 提交或分支证据 | 更正后的master裁决 | 下一动作 |
 |---|---|---|---|
-| COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | COM-A=`SELECTIVELY_INTEGRATED@4ee98f05`；ACC-001/002=`QUARANTINED`；历史Done不自动进入master | 后续COM运行复验须新建DU；ACC实现不随COM进入 |
+| COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | COM-A=`SELECTIVELY_INTEGRATED@4ee98f05`；ACC-001=`SELECTIVELY_INTEGRATED@e53f7243`；ACC-002=`SELECTIVELY_INTEGRATED@b3e7c76e`；历史Done未倒签到master | 后续COM或ACC运行复验均须新建DU；三个Feature状态按各自Task维护 |
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始；已通过Task 1～4 Gate至`3e26a537`；PROJ资格契约最终提交`86ea27de` | 非重复需求能力=`SELECTIVELY_INTEGRATED@4ee98f05`；Spec/Task/Plan保留为历史需求来源；PROJ公共契约`master@f1cf7920`已独立接收 | 不得恢复原整段cherry-pick；后续只以master统一Feature继续 |
-| F-AST-002 | `a52b22b4..68bc56ec` | `INTEGRATION_IN_PROGRESS`；独立完成候选，不是F-INS-001脏改动的一部分 | 当前DU只接收AST能力和Inspection只读适配，排除夹带迁移与F-INS状态 |
+| F-AST-002 | `a52b22b4..68bc56ec` | `SELECTIVELY_INTEGRATED@524a70e7 / BLOCKED_BY_SPEC`；不是F-INS-001脏改动的一部分 | 已接收AST能力和Inspection只读适配并释放边界；F-INS实现、夹带迁移与来源脏改动未接收 |
 | F-INS-001 | `feat-inspection-feature-xkjuCC@e13feca7`及4项未提交Task 5变更；`e13feca7`聚焦提交Task 4实现与验证记录 | Task 4=`INTEGRATION_CANDIDATE`；Task 5=`UNCLAIMED_DIRTY`；无跨Feature领域实现冲突 | 独立复核并选择性集成Task 4；保留Task 5脏改动，先在最新master建立有效DU，再处理`Q-FINS001-004`和Flyway最终编号 |
 | F-CUT-001 | `08457e39..72ccb83f` -> `07b6eb06` -> `master@c61e5b1e` -> merge `dc55b92a` | `INTEGRATED_PARTIAL / SOURCE_BRANCH_IN_MASTER`；Feature权威状态仍为`IN_PROGRESS / MASTER_REVALIDATION` | 新建DU完成V133示例迁移与合入后独立MySQL/真实浏览器最终DoD |
 | F-CUT-002 | `codex/f-cut-001-matrices@85b93828`；PROJ上下文合同时间线`e68ad4e0..8eb36222` | `QUARANTINED / IN_PROGRESS`；仅PROJ ADR和机器合同已进入`master@e2f51762`，无Java接口/Provider | CUT实现仍须从多Feature分支拆分DU；PROJ Provider另建物理Owner DU |
