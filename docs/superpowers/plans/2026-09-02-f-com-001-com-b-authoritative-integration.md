@@ -33,17 +33,17 @@
 - Consumes: `master@870071f4`、用户选择COM-B的业务指令、`Q-GOV-20260901-002`。
 - Produces: `F-COM-001=FEATURE_EXCLUSIVE`有效认领，以及COM-A `SUPERSEDED / DO_NOT_MERGE`裁决。
 
-- [ ] **Step 1: 创建Delivery Unit并重建索引**
+- [x] **Step 1: 创建Delivery Unit并重建索引**
 
   Run: `python -B scripts/validate_delivery_units.py --write-index`
 
   Expected: 新DU为`CLAIMED`且索引校验通过。
 
-- [ ] **Step 2: 提交master认领**
+- [x] **Step 2: 提交master认领**
 
   仅提交本计划、DU和DU索引；认领提交必须先于规格或代码写入。
 
-- [ ] **Step 3: 关闭双实现Open Question**
+- [x] **Step 3: 关闭双实现Open Question**
 
   将`Q-GOV-20260901-002`关闭为COM-B权威、COM-A被替代；明确该决定不证明两线继承，也不自动解除ACC-001/002及`Q-GOV-20260901-001`。
 
@@ -66,11 +66,11 @@
 - Consumes: 源提交`c21745a9..f309c9f3`和当前PRD COM-01。
 - Produces: `BASELINE / READY`的COM-B Feature Spec、通过Gate的唯一Technical Plan及`IN_PROGRESS` Feature Task。
 
-- [ ] **Step 1: 按源提交顺序接收规格修订**
+- [x] **Step 1: 按源提交顺序接收规格修订**
 
   逐提交审查共享SDS和投影冲突；当前master事实优先，禁止旧分支覆盖新工程链或其他Feature状态。
 
-- [ ] **Step 2: 校验Feature物理契约与追溯**
+- [x] **Step 2: 校验Feature物理契约与追溯**
 
   Run: `python -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --features specs/features --tasks tasks/features --output docs/traceability/requirement-matrix.md --coverage-output docs/traceability/requirement-version-coverage.json --check`
 

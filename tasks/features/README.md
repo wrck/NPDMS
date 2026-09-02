@@ -59,7 +59,7 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-COM-001 | [Task](F-COM-001.md) | NOT_STARTED；COM-B为唯一权威，Task 1～4待选择性集成 | [DU-20260902-FCOM001-COMB-INTEGRATION](../delivery-units/DU-20260902-FCOM001-COMB-INTEGRATION.md)已规划、尚未激活认领 | COM-01@V1由本Feature FULL覆盖，但不派生完成 |
+| F-COM-001 | [Task](F-COM-001.md) | NOT_STARTED；COM-B为唯一权威，Task 1～4待选择性集成 | [DU-20260902-FCOM001-COMB-INTEGRATION](../delivery-units/DU-20260902-FCOM001-COMB-INTEGRATION.md)已激活排他认领 | COM-01@V1由本Feature FULL覆盖，但不派生完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已部分集成并释放边界 | V133示例迁移与master最终运行DoD未完成；不得声明Done |
 
 ### master已集成Task代码收口回执
@@ -94,7 +94,7 @@
 | SOL-01 | F-PLT-002仅形成`PARTIAL`覆盖 | 未发现可把SOL-01提升为完成的权威候选 | 保持`PARTIAL`，不得从相邻平台能力推导Done |
 | 临时/跨Feature命中 | 不属于PRE/SOL实现事实 | 50eb的914项命中均在`.codex-tmp/qa/`；`486727a3`为ACC分支9参数测试适配，均不适用master | 临时副本不得提交；ACC适配不得移植到8参数master合同 |
 
-当前没有有效写入认领；`DU-20260902-FCOM001-COMB-INTEGRATION`已登记为`PLANNED`，须在COM-B Feature Task进入master后单独切换为`CLAIMED`才占用F-COM-001边界。`DU-20260902-POST-20260821-BRANCH-FEATURE-CONVERGENCE`已完成2026-08-21起19个非排除分支的逐项裁决，以零新增代码合并释放治理边界。`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
+当前有效写入认领仅为`DU-20260902-FCOM001-COMB-INTEGRATION`，以`F-COM-001=FEATURE_EXCLUSIVE`占用本DU列出的COM-B Task 1～4集成边界；不包含COM-A、ACC、CUT或Task 5。`DU-20260902-POST-20260821-BRANCH-FEATURE-CONVERGENCE`已完成2026-08-21起19个非排除分支的逐项裁决，以零新增代码合并释放治理边界。`DU-20260902-MASTER-INTEGRATED-CODE-CONVERGENCE`已完成全部已集成代码回执核验和F-CUT-001隔离代码分支真实合入并释放边界。`DU-20260901-PRE-SOL-CODE-BRANCH-MERGE`已把F-SOL-003废弃代码分支真实合入master并释放边界，`DU-20260901-PRE-SOL-AUTHORITATIVE-INTEGRATION`已完成全时间线裁决，`DU-20260901-CUT-PROJ-OWNER-INTEGRATION`、`DU-20260901-FCUT001-INTEGRATION`与`DU-20260901-FPROJ008-MIGRATION`已完成可构建增量的选择性集成并释放边界。其他历史活动分支均未被倒签为有效认领。
 
 ## 分支Feature候选裁决
 

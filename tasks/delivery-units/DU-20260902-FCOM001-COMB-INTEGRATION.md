@@ -1,14 +1,14 @@
 # DU-20260902-FCOM001-COMB-INTEGRATION COM-B权威增量集成
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`FEATURE`
 > Feature协调：`F-COM-001=FEATURE_EXCLUSIVE`
 > Task范围：`COM-B已通过Gate的Task 1～4；排除Task 5候选18237796及后续未完成范围`
 > Owner：`Codex本次master COM-B权威增量集成会话`
 > 分支：`master`
 > Worktree：`M:/AICoding/CodexData/worktrees/master-governance/NPDMS`
-> 认领基线：`870071f495b0bd10f60a98f59fd1ff7d6b5caff1`
-> 认领提交：`NONE`
+> 认领基线：`4ba927d29e629ab828a0a9e4f12bf3041e0b627d`
+> 认领提交：`SELF`
 > 修改边界：`docs/decisions/open-questions.md;docs/design/02d-cross-context-contracts.md;docs/design/07-authorization-design.md;docs/design/09-database-design.md;docs/design/10-api-design.md;docs/design/12-integration-design.md;docs/design/16-exception-and-idempotency.md;docs/superpowers/plans/2026-09-02-f-com-001-com-b-authoritative-integration.md;specs/features/F-COM-001-*;tasks/features/F-COM-001.md;tasks/features/README.md;tasks/delivery-units/DU-20260902-FCOM001-COMB-INTEGRATION.md;tasks/delivery-units/README.md;pms-framework/pms-common/**;pms-module-commerce-api/**;pms-module-commerce/**;sql/migrations/**`
 > 串行资源：`F-COM-001 Feature状态;COM公共契约;COM Flyway;迁移证据公共契约/Flyway;共享SDS;master追溯投影`
 > 旧功能范围：`COM-A@codex/f-com-001-feature-ready及其在codex/f-acc-001-sds中的继承段，裁决为SUPERSEDED / DO_NOT_MERGE；分支历史不删除`
