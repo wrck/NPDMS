@@ -1,9 +1,9 @@
 # F-CUT-010 割接备件系统协同
 
-> Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN`
+> Feature实施状态：`IN_PROGRESS`
+> 总体工程阶段：`IMPLEMENTATION_TASK_1`
 > Feature Ready Gate：`READY / GO@c4b1a939`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@f840cbbc`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-08@V2=FULL`
 > Feature Spec：`specs/features/F-CUT-010-cutover-spare-system-coordination.md`
@@ -21,10 +21,10 @@
 
 - [ ] API/Physical/Legacy/SDS Machine Contract Gate。
 - [x] Feature Ready独立复审（GO@c4b1a939）。
-- [ ] 唯一Technical Plan独立复审。
+- [x] 唯一Technical Plan独立复审（GO@f840cbbc）。
 - [ ] CUT领域、Schema、应用/REST、UI、受控MySQL正向闭环各Task Gate。
 - [ ] 生产INT-06 Provider、唯一装配、真实浏览器与Implementation Done。
 
 ## Phase-switch checkpoint
 
-基线810c54b4；Feature Ready已GO，实施仍NOT_STARTED。Technical Plan正在A-C最小整改：正向实现后验证、PLT授权displayName来源、initiate/refresh两阶段事务与幂等恢复。当前阻断：计划尚未独立GO。下一步：提交整改并复审，GO前不实施。
+基线f840cbbc；Feature Ready与Technical Plan均已GO，实施进入Task 1。当前单元：公共回调合同、INT/PLT消费端口和需求Codec；生产Provider/Bean仍阻断Done。下一步：完成最小正向实现与聚焦验证后送Task 1独立复审。

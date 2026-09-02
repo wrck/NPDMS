@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > 计划 ID：`NPDMS-FCUT010-TECHPLAN-20260902-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@f840cbbc`
 > Feature Ready：`READY / GO@c4b1a939`
 
 **Goal:** 交付`CUT-08@V2=FULL`的CUT完整正向闭环：从P2/P3权威事实识别备件需求，发起外部协同，保存外部申请引用与不可变状态版本，追加人工证据，并在任务工作台和P5完整详情安全展示。
@@ -257,4 +257,4 @@ git diff --check
 
 ## 13. Technical Plan Gate
 
-当前：`REVIEW_REQUIRED`。本计划只授权送独立Technical Plan复审；GO前不得实施Task 1或任何DDL、后端、前端、测试代码。
+当前：`PASS / GO@f840cbbc`。授权按Task 1→8串行实施并逐Task独立复审；本结论不代表任何Task、生产Provider/Bean、真实浏览器或Feature Implementation Done。
