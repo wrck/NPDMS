@@ -1,8 +1,8 @@
 # F-CUT-007 割接首页授权KPI
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`FEATURE_READY`
-> Feature Ready Gate：`NOT_READY / REVIEW_REQUIRED`
+> 总体工程阶段：`TECHNICAL_PLAN`
+> Feature Ready Gate：`READY / GO@f6141e21`
 > Technical Plan Gate：`NOT_CREATED`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`CUT-01@V2=FULL`
@@ -16,7 +16,7 @@
 - 形成CUT-01@V2授权KPI完整纵向Feature，不重复实现COM-01或拆出跨模块Provider碎片。
 - CUT自有范围固定为只读实时聚合、REST、四张KPI卡片和真实动作守卫复用。
 - 跨模块预留接口按正常闭环在CUT测试/受控验收中模拟；生产Fake、fallback和空成功Provider禁止注册。
-- 当前仅形成规格候选并申请Feature Ready复审，不进入Technical Plan、代码、迁移或测试实现。
+- Feature Ready最终状态关闭已通过；当前仅允许生成并复审唯一Technical Plan，不进入代码、迁移或测试实现。
 
 ## 候选边界
 
@@ -30,9 +30,9 @@
 - `3c7e9192`首轮Feature Ready复审为NO-GO，唯一阻断是跨Owner动作守卫失败被错误压扁为CUT；本候选已按真实物理Owner补齐封闭ErrorData和依赖传播。
 - `2d337775`单点复审确认Owner传播已关闭，仅指出`CommonResult<null>`无法承载ErrorData；当前已统一为403/500/503均返回非空`CommonResult<ErrorData>`。
 - 错误Envelope单点机器合同整改已在`b65af8e4`通过独立复审：`PASS / GO`。
-- 最近Gate：`F-CUT-007 Feature Ready最终状态关闭`。
-- 当前状态：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。
-- 通过前不得生成Technical Plan；通过后才允许按正向闭环顺序实施CUT查询、REST和工作台，测试使用受控跨模块替身。
+- Feature Ready最终状态关闭已在`f6141e21`通过独立复审：`READY / GO`。
+- 最近Gate：`F-CUT-007唯一Technical Plan独立复审`。
+- 当前状态：`BASELINE / READY / NOT_STARTED`。仅允许生成计划；计划通过后才可按正向闭环顺序实施CUT查询、REST和工作台，测试使用受控跨模块替身。
 
 ## 状态边界
 

@@ -1,7 +1,7 @@
 {
   "featureId": "F-CUT-007",
   "requirementSlice": "CUT-01@V2=FULL",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "ownerContext": "CUT",
   "schemaChange": "NONE",
   "newTables": [],

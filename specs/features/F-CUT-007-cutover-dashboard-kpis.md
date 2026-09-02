@@ -1,7 +1,7 @@
 # F-CUT-007 割接首页授权KPI Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO@f6141e21`
 > Requirement：`CUT-01（V2/P0）`
 > Requirement切片覆盖：`CUT-01@V2=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -99,4 +99,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。本候选只申请Feature Ready独立复审；通过前不得生成Technical Plan或进入实现。
+当前：`BASELINE / READY / GO@f6141e21 / NOT_STARTED`。Feature Ready最终状态关闭已通过；下一Gate为生成并复审唯一Technical Plan。当前不授权DDL、后端、前端或运行实现。

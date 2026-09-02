@@ -1,7 +1,7 @@
 {
   "featureId": "F-CUT-007",
   "requirementSlice": "CUT-01@V2=FULL",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "basePath": "/api/v1/pms/cutover-dashboard",
   "wireRules": {
     "wireLong": "Long values with -9007199254740991 < value < 9007199254740991 serialize as JSON number; boundary and out-of-range values serialize as an unformatted decimal JSON string",
