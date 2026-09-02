@@ -57,6 +57,7 @@
 - Task 9回归证据：CUT-002～005及P6聚焦套件共120次执行、104通过、16个MySQL用例按`skipITs=true`预期跳过；独立Compose项目`npdms-fcut006-task9`在33406端口使用MySQL 8.4空卷执行152个迁移至V156，P6真实MySQL 7/7通过，专用容器、网络和卷已全部清理。
 - Task 9已在`ee891fa6`通过独立Backend/MySQL复审，Gate现为`PASS / GO@ee891fa6`；Feature实现状态按裁决收敛为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`，生产ProjectScope/PLT/INT-12与真实浏览器仍阻断Implementation Done。
 - Task 9跨Feature受控集成证据已在`4d54f4e1`通过独立复审：同一生成任务经测试作用域受控Owner事实，在真实Spring事务、MyBatis、`PlatformCommandExecutionApiImpl`与MySQL 8.4中完成P1自建、P2人工A、P3清单、P4标准方案、P5四节点批准、P6成功归档及同键重放；六段历史、活动设备释放、`CutoverApproved`/`CutoverCompleted`和平台审计均成立，聚焦套件5/5通过。该证据仅证明CUT自有代码的受控正向数据库闭环，不改变F-CUT-002～006现有Implementation Status，也不替代生产Owner、真实浏览器或Implementation Done证据。
+- Task 9统一工作台`CONTROLLED_UI_INTEGRATION`已在`b3c50150`通过独立复审：测试直接挂载生产`cutover-task/index.vue`，在Vitest测试环境与受控同形API下，由真实页面/阶段组件按钮完成P1创建、列表刷新、详情打开、P2保存/提交、P3/P4提交、P5四节点批准及P6保存/成功归档；11次业务写均由现有页面接线触发，列表/详情在各阶段实际重载并最终投影`ARCHIVED`与`cutover-closure:801:1`，CUT工作台聚焦套件50/50通过。Gate为`PASS / GO@b3c50150`；该证据不是Chromium/真实浏览器、生产Provider或生产装配证据，不改变F-CUT-002～006的`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`状态。
 - 最近Gate：Task 10 Entry Gate，当前`BLOCKED_BY_DEPENDENCY`，不创建生产Fake/fallback或提前装配。
 
 ## 状态边界
