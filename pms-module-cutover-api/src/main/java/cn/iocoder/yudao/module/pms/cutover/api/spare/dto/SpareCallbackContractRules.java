@@ -1,11 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.api.spare.dto;
 
 import cn.iocoder.yudao.module.pms.cutover.api.spare.CutoverSpareCallbackException;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 final class SpareCallbackContractRules {
@@ -24,17 +19,11 @@ final class SpareCallbackContractRules {
     }
 
     static Map<String, Object> jsonObject(Map<String, Object> value, String field) {
-        if (value == null) throw invalid(field);
-        String json;
         try {
-            json = JsonUtils.toJsonString(value);
+            return SpareStatusSnapshotNormalizer.normalize(value);
         } catch (RuntimeException exception) {
             throw invalid(field);
         }
-        if (json.getBytes(StandardCharsets.UTF_8).length > 16 * 1024) {
-            throw invalid(field);
-        }
-        return Collections.unmodifiableMap(new LinkedHashMap<>(value));
     }
 
     static CutoverSpareCallbackException invalid(String field) {

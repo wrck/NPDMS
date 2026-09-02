@@ -1,13 +1,12 @@
 package cn.iocoder.yudao.module.pms.cutover.service.spare.port;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.cutover.api.spare.dto.SpareStatusSnapshotNormalizer;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.model.SpareNeedSnapshot;
 
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +54,7 @@ public interface SpareApplicationGateway {
             optionalText(externalApplicationNo, 128, "externalApplicationNo");
             optionalText(launchUrl, 2048, "launchUrl");
             require(externalApplicationNo != null || launchUrl != null, "provider result");
-            if (launchUrl != null) require(launchUrl.startsWith("https://"), "launchUrl");
+            if (launchUrl != null) requireHttpsLaunchUrl(launchUrl);
         }
     }
 
@@ -111,15 +110,22 @@ public interface SpareApplicationGateway {
     }
 
     private static Map<String, Object> jsonObject(Map<String, Object> value, String field) {
-        require(value != null, field);
-        String json;
         try {
-            json = JsonUtils.toJsonString(value);
+            return SpareStatusSnapshotNormalizer.normalize(value);
         } catch (RuntimeException exception) {
             throw new IllegalArgumentException("invalid " + field, exception);
         }
-        require(json.getBytes(StandardCharsets.UTF_8).length <= 16 * 1024, field);
-        return Collections.unmodifiableMap(new LinkedHashMap<>(value));
+    }
+
+    private static void requireHttpsLaunchUrl(String value) {
+        try {
+            URI uri = new URI(value);
+            require(uri.isAbsolute() && "https".equalsIgnoreCase(uri.getScheme())
+                    && uri.getHost() != null && !uri.getHost().isBlank()
+                    && uri.getRawUserInfo() == null && uri.getRawFragment() == null, "launchUrl");
+        } catch (URISyntaxException exception) {
+            throw new IllegalArgumentException("invalid launchUrl", exception);
+        }
     }
 
     private static void require(boolean condition, String field) {

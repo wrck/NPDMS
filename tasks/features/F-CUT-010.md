@@ -27,4 +27,4 @@
 
 ## Phase-switch checkpoint
 
-基线ab5bc4f3；Task 1正向实现完成，公共API、INT/PLT端口和需求Codec聚焦验证8/8通过；无Bean、Mapper、DDL或生产Provider。下一步：提交候选并申请Task 1 Contract/Code Review Gate，GO前不进入Task 2。
+基线aa803a52；Task 1首轮复审NO-GO，仅整改状态JSON深度规范化与受信HTTPS URI校验；无Bean、Mapper、DDL或生产Provider。下一步：完成A/B正向聚焦验证并送最小复审，GO前不进入Task 2。

@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -69,6 +71,32 @@ class CutoverSpareCallbackApiContractTest {
     }
 
     @Test
+    void canonicalizesEquivalentStatusObjectsAndDetachesNestedValues() {
+        Map<String, Object> nested = new LinkedHashMap<>();
+        nested.put("z", "last");
+        nested.put("a", "first");
+        List<Object> stages = new ArrayList<>(List.of("CREATED", "ACCEPTED"));
+        Map<String, Object> first = new LinkedHashMap<>();
+        first.put("stages", stages);
+        first.put("detail", nested);
+        Map<String, Object> second = new LinkedHashMap<>();
+        second.put("detail", Map.of("a", "first", "z", "last"));
+        second.put("stages", List.of("CREATED", "ACCEPTED"));
+
+        SpareStatusCallbackCommand firstCommand = statusCommand("event-1", first);
+        SpareStatusCallbackCommand secondCommand = statusCommand("event-2", second);
+        nested.put("a", "mutated");
+        stages.add("MUTATED");
+
+        assertThat(firstCommand.statusSnapshot()).isEqualTo(secondCommand.statusSnapshot());
+        assertThat(firstCommand.statusSnapshot().keySet()).containsExactly("detail", "stages");
+        assertThat(firstCommand.statusSnapshot().get("detail"))
+                .isEqualTo(Map.of("a", "first", "z", "last"));
+        assertThat(firstCommand.statusSnapshot().get("stages"))
+                .isEqualTo(List.of("CREATED", "ACCEPTED"));
+    }
+
+    @Test
     void exposesOnlyTheLockedOutcomesAndPublicErrors() {
         assertThat(SpareReferenceBindingOutcome.values()).containsExactly(
                 SpareReferenceBindingOutcome.APPLIED, SpareReferenceBindingOutcome.REPLAYED);
@@ -109,5 +137,10 @@ class CutoverSpareCallbackApiContractTest {
     private static void assertSignature(Method method, Class<?> returnType, Class<?> parameterType) {
         assertThat(method.getReturnType()).isEqualTo(returnType);
         assertThat(method.getParameterTypes()).containsExactly(parameterType);
+    }
+
+    private static SpareStatusCallbackCommand statusCommand(String eventId, Map<String, Object> snapshot) {
+        return new SpareStatusCallbackCommand(eventId, 1L, "SPARE_SYSTEM", "application-1", 1L,
+                "WAITING_DELIVERY", snapshot, LocalDateTime.of(2026, 9, 2, 10, 30), "correlation-1");
     }
 }

@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.spare.port.SpareApplicationGa
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,5 +67,22 @@ class SpareNeedSnapshotCodecTest {
         assertThat(fact.artifactId()).isEqualTo(expected.artifactId());
         assertThat(fact.fileFactVersion()).isEqualTo(expected.fileFactVersion());
         assertThat(fact.displayName()).isEqualTo("备件协同证据.pdf");
+    }
+
+    @Test
+    void preservesCanonicalProviderStatusAndTrustedHttpsLaunch() {
+        Map<String, Object> nested = new LinkedHashMap<>();
+        nested.put("z", "last");
+        nested.put("a", "first");
+        var status = new cn.iocoder.yudao.module.pms.cutover.service.spare.port.SpareApplicationGateway
+                .SpareProviderStatusFact(1L, "WAITING_DELIVERY", Map.of("detail", nested), null,
+                java.time.LocalDateTime.of(2026, 9, 2, 10, 30));
+        nested.put("a", "mutated");
+        var launch = new SpareInitiationProviderResult("SPARE_SYSTEM", "external-request-1", null,
+                "https://spare.example/launch/request-1?tenant=1", status);
+
+        assertThat(status.statusSnapshot().get("detail"))
+                .isEqualTo(Map.of("a", "first", "z", "last"));
+        assertThat(launch.launchUrl()).isEqualTo("https://spare.example/launch/request-1?tenant=1");
     }
 }
