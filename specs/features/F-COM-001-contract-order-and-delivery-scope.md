@@ -1,7 +1,7 @@
 # F-COM-001 合同订单副本与交付范围管理 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO`
+> 文档状态：`SUPERSEDED`
+> Feature Ready：`NOT_READY / SUPERSEDED`
 > 实施状态：`NOT_STARTED`
 > Requirement：`COM-01（V1）`
 > Requirement切片覆盖：`COM-01@V1=FULL`
@@ -9,8 +9,8 @@
 > Owner Context：`COM（合同订单履约）`
 > 外部协作Context：`PROJ`、`AST`、`IMP`、`ACC`、`PLT`、ERP集成Owner
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`（`PASS / GO`；锁定提交`8f5ec1c1`）
-> 权威选择：`Q-GOV-20260901-002`已于2026-09-02关闭；本COM-B规格是F-COM-001唯一后续权威，COM-A规格及分支Done记录为`SUPERSEDED / DO_NOT_MERGE`，不得继续实施或转记完成证据
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`（历史COM-B计划，已被替代）
+> 权威选择：`Q-GOV-20260901-002`已于2026-09-02关闭为“按Requirement合并COM-A与COM-B”；本文件仅保留COM-B历史需求来源，后续由统一F-COM-001规格承接，不能单独驱动实现或完成状态
 
 ## 1. 业务目标
 

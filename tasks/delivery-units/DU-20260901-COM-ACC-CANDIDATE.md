@@ -11,10 +11,10 @@
 > 认领提交：`NONE`
 > 修改边界：`UNRESOLVED`
 > 串行资源：`PRD;COM公共契约;ACC公共契约;Flyway;Feature状态`
-> 旧功能范围：`COM-A`
+> 旧功能范围：`NONE`
 > 验证：`COM 563daac1；ACC-001 ad5b401f；ACC-002 8ed75093`
-> 集成记录：`COM-A已由2026-09-02业务选择裁决为SUPERSEDED / DO_NOT_MERGE；ACC-001/002须基于COM-B重新评审并继续受Q-GOV-20260901-001影响`
+> 集成记录：`该顺序交付包只作为COM-A与ACC来源证据；F-COM-001改由master新DU按Requirement选择性集成，不整支合并`
 
 ## 审计结论
 
-该分支形成顺序多Feature交付包，不是任意混写；但COM-A与COM-B不存在Git继承关系，且当前PRD的AST结构化地点权威语义已选择COM-B。COM-A及其Done记录只读保留为被替代历史，不得继续实施或合入。ACC-001/002消费了COM-A公共契约，必须基于COM-B重新评审；其重复PRD Change ID问题仍由`Q-GOV-20260901-001`阻断。
+该分支形成COM-A→ACC-001→ACC-002顺序多Feature交付包，不是任意混写。需求方已确认COM-A与COM-B需求不同并要求能力级合并，因此本DU不再代表F-COM-001唯一来源，也不倒签历史分支认领或自动产生master Done。F-COM-001由master新DU选择性接收COM-A闭环与COM-B非重复能力；ACC-001/002仍保持隔离，禁止随COM整支进入master。

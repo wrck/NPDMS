@@ -1,17 +1,17 @@
 # F-COM-001 合同订单副本与交付范围管理任务
 
 > Requirement：`COM-01@V1`
-> Feature Ready Gate：`READY / GO`
+> Feature Ready Gate：`REBASELINING`
 > Feature实施状态：`NOT_STARTED`
-> 当前阶段：`IMPLEMENTATION`
-> Technical Plan Gate：`PASS / GO`
+> 当前阶段：`REQUIREMENT_CONVERGENCE`
+> Technical Plan Gate：`SUPERSEDED`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-com-001-contract-order-delivery-scope.md`
 
 ## 当前检查点
 
-唯一Technical Plan在锁定提交`8f5ec1c1`通过独立正式裁决，Gate为`PASS / GO`。实施状态仍`NOT_STARTED`；最近Gate为Task 1“COM公开API与错误机器合同”独立Contract/Code Review Gate，未通过前不得进入后续实现。
+需求方已确认COM-A与COM-B承载不同需求，要求按Requirement整体合并。COM-B单线Task和Technical Plan停止，实施状态保持`NOT_STARTED`；未完成的Task 1 cherry-pick已中止，没有COM-B业务代码进入master。当前先形成统一PRD、Feature Spec、物理契约和实施计划，再选择性接收代码。
 
-`Q-GOV-20260901-002`已选择本COM-B任务链为唯一后续实施基础。COM-A分支任务与Done证据为`SUPERSEDED / DO_NOT_MERGE`，不得继续实施、合并或用于推导本Feature状态；COM-B未Git继承COM-A。
+COM-A与COM-B不存在Git继承关系，历史完成证据不得相互转记。统一实现以COM-A闭环为基础，吸收COM-B的批量来源、人工候选/对账、项目范围版本、当前范围查询与冲突处理；AST地点迁出COM，PLT迁移证据独立落位。
 
 ## Gate输入
 

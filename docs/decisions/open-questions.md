@@ -531,8 +531,8 @@
 - Question: COM-A以`F-COM-001-contract-order-association-and-delivery-scope-allocation.md`实现项目办事处部门快照和验收阶段范围绑定；COM-B以`F-COM-001-contract-order-and-delivery-scope.md`独立实现另一套AST站点/位置优先语义。哪一套Spec、公共契约和持久化模型是COM-01后续唯一权威？
 - Why it blocks design/implementation: COM-A和COM-B分别变更157和142个实现路径，重叠仅4个文件；COM-A已在分支记录Done并被ACC-001/002消费，COM-B仍在CUT/PROJ共享线IN_PROGRESS。按“更新提交”或分支自报Done整体选择都会丢失另一线能力或引入与PRD不一致的地点Owner。
 - Options: A. 以COM-A业务语义和Spec为权威，逐项审查并仅吸收COM-B中不冲突的迁移/公共契约；B. 以COM-B为权威，重新评审COM-A及ACC消费链；C. 基于当前唯一PRD重新形成一份合并Feature Spec和迁移计划，再按文件/表/API逐项选择实现。
-- Recommended technical default: 已由业务选择覆盖；历史审计方法仍用于证明两线并非继承关系和控制选择性集成边界。
+- Recommended technical default: 已由需求方最新业务选择覆盖；历史审计方法仍用于证明两线并非继承关系和控制后续选择性集成边界。
 - Business decision required: 是；必须确认交付范围地点、公司/部门快照、阶段触发与AST位置事实的唯一Owner和业务语义。
-- Resolution: 需求方于2026-09-02选择B，以当前PRD COM-01的AST结构化地点权威语义和`F-COM-001-contract-order-and-delivery-scope.md`作为F-COM-001唯一后续规格。COM-A的项目办事处部门快照、验收阶段范围绑定Spec及其分支Done记录裁决为`SUPERSEDED / DO_NOT_MERGE`；Git证据表明COM-B未继承COM-A，因此不得把COM-A完成证据转记为COM-B完成。COM-B只按已通过Gate的提交增量进入master，原分支Task 5 `18237796`仍为`NO-GO / REVIEW_REQUIRED`。ACC-001/002必须基于COM-B公共契约重新评审，且继续受`Q-GOV-20260901-001`影响，本问题关闭不产生任何Feature Done或Requirement完成。
+- Resolution: 需求方于2026-09-02确认COM-A与COM-B承载不同需求，要求按Requirement能力整体合并，不再二选一。统一F-COM-001以ERP权威副本、人工待核对与对账、合同/订单/项目显式关系、项目级范围版本、DeliveryScope命令/查询/冲突、ACC范围绑定组成单一闭环；COM地点唯一采用目标项目办事处发生时快照。COM-B的AST `site/location/text`迁入IMP/AST实施地点能力，不作为COM第二套地点真值；平台迁移证据拆为PLT能力。两条分支的历史Done或Gate不得相互转记，代码必须按能力选择性集成并重新验证。该决定关闭COM地点和来源选择冲突，但不自动产生Feature Done。
 - Decision owner: 需求方/产品组；COM、ACC、PROJ、AST领域Owner参与影响分析
 - Decision date: 2026-09-02

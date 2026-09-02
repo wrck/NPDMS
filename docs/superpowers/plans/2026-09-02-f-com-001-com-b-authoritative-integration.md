@@ -1,5 +1,7 @@
 # F-COM-001 COM-B权威增量集成实施计划
 
+> 计划状态：`SUPERSEDED`；需求方已改为按Requirement合并COM-A与COM-B，本计划的“COM-B单线权威”前提失效，后续由`2026-09-02-f-com-001-requirement-convergence.md`替代
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 以当前PRD的AST结构化地点语义选择COM-B为F-COM-001唯一后续实现线，将其已通过Gate且可构建的Task 1～4增量选择性集成到`master`，并把COM-A标记为被替代。
