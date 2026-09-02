@@ -16,7 +16,8 @@
 
 - 形成完整CUT-03@V2 Feature边界：授权清单导出与流程跳转配置优化必须共同承接，不拆成Provider或导出碎片。
 - 跨模块只预留正式消费端口，CUT单元/集成测试可用`src/test`受控替身推进正常正向闭环；不实现外部Provider，不修改Yudao。
-- 最近Gate：生成F-CUT-009唯一Technical Plan并独立复审。
+- Task 1导航列、配置聚合与决定内核已通过独立Code Review Gate（`PASS / GO@2b30664d`）。
+- 最近Gate：Task 2“授权XLSX导出内核与REST”最小实施及独立Code Review。
 
 ## 检查点
 
@@ -26,12 +27,12 @@
 - [x] Feature Ready独立复审GO（锁定基线`51239c53`）。
 - [x] 已生成唯一Technical Plan候选。
 - [x] Technical Plan独立复审GO（锁定基线`e9b2a25c`）。
-- [ ] 按计划实施、测试、Code Review及状态回写。
+- [ ] 按计划实施、测试、Code Review及状态回写（Task 1已完成）。
 
 ## 阻断
 
-- Task 1实施中；Task 1 Code Review GO前不得进入Task 2。
+- Task 2只在受控`ProjectScope`替身下验证CUT导出正向闭环；生产Owner依赖仍阻断Implementation Done。
 
 ## Phase-switch checkpoint
 
-基线e9b2a25c；Feature Ready与Technical Plan均GO，Implementation进入IN_PROGRESS。当前只实施Task 1导航列/配置/决定内核；跨模块仍仅端口+src/test替身。最近Gate为Task 1 Code Review。
+基线2b30664d；Task 1独立复审GO，导航规则、配置应用链与提交后决定内核已完成。当前进入Task 2授权XLSX导出内核与REST；跨模块仍仅预留端口+`src/test`受控替身。最近Gate为Task 2 Code Review。
