@@ -20,6 +20,7 @@ const runtime = {
 const api = vi.hoisted(() => ({
   resolveCreateContext: vi.fn(),
   createCutoverTask: vi.fn(),
+  getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
   getCutoverTaskDetail: vi.fn(),
   getCutoverApprovalTodos: vi.fn(),
@@ -163,6 +164,7 @@ describe('CUT P1-P6 controlled UI integration', () => {
     expect(textOf(mounted.root)).toContain('ARCHIVED')
     expect(textOf(mounted.root)).toContain('cutover-closure:801:1')
     expect(api.getCutoverTaskPage.mock.calls.length).toBeGreaterThanOrEqual(7)
+    expect(api.getCutoverDashboardKpis.mock.calls.length).toBeGreaterThanOrEqual(7)
     expect(api.getCutoverTaskDetail.mock.calls.length).toBeGreaterThanOrEqual(7)
     mounted.app.unmount()
   })
@@ -184,6 +186,13 @@ function configureControlledApi() {
     runtime.stage = 'P2'
     return { taskId: '101', version: 1 }
   })
+  api.getCutoverDashboardKpis.mockImplementation(async () => ({
+    todoCount: runtime.stage === 'P1' || runtime.stage === 'P6' ? 0 : 1,
+    archivedCount: runtime.closureStatus === 'SUBMITTED' ? 1 : 0,
+    approvingCount: runtime.stage === 'P5' ? 1 : 0,
+    rejectedPendingModificationCount: 0,
+    generatedAt: 1788314400000
+  }))
   api.getCutoverTaskPage.mockImplementation(async () => {
     trace.push(`read:workbench:list:${runtime.stage}`)
     return {

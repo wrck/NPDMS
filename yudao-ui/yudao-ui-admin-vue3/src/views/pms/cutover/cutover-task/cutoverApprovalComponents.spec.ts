@@ -26,6 +26,7 @@ const api = vi.hoisted(() => ({
   reassignCutoverApproval: vi.fn(),
   getCutoverApprovalReassignmentCandidates: vi.fn(),
   getCutoverApprovalTodos: vi.fn(),
+  getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
   getCutoverTaskDetail: vi.fn()
 }))
@@ -72,7 +73,16 @@ const actionableTableColumn = defineComponent({
 })
 
 describe('F-CUT-005 mounted approval workbench', () => {
-  beforeEach(() => Object.values(api).forEach((mock) => mock.mockReset()))
+  beforeEach(() => {
+    Object.values(api).forEach((mock) => mock.mockReset())
+    api.getCutoverDashboardKpis.mockResolvedValue({
+      todoCount: 0,
+      archivedCount: 0,
+      approvingCount: 0,
+      rejectedPendingModificationCount: 0,
+      generatedAt: 1788314400000
+    })
+  })
 
   it.each(['A', 'B', 'C', 'D'] as ManualGrade[])(
     'renders the %s route from the frozen FULL projection',

@@ -2,6 +2,14 @@ import request from '@/config/axios'
 
 export type WireLong = number | string
 export type WireDateTime = WireLong
+
+export interface CutoverDashboardKpiData {
+  todoCount: WireLong
+  archivedCount: WireLong
+  approvingCount: WireLong
+  rejectedPendingModificationCount: WireLong
+  generatedAt: WireDateTime
+}
 export type CutoverStage = 'P2' | 'P3' | 'P4' | 'P5' | 'P6'
 export type CutoverStatus =
   | 'GRADE_CONFIRMING'
@@ -775,6 +783,9 @@ export interface LinkCutoverClosureManualResultRequest {
 }
 
 const baseUrl = '/api/v1/pms/cutover-tasks'
+
+export const getCutoverDashboardKpis = () =>
+  request.get<CutoverDashboardKpiData>({ url: '/api/v1/pms/cutover-dashboard/kpis' })
 
 export const resolveCreateContext = (serialNumbers: string[]) =>
   request.post<CreateContextData>({

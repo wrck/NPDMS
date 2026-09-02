@@ -5,6 +5,12 @@
         <div><h1>割接任务工作台</h1><p>创建任务、完成人工分级，并查看 P2～P6 进度。</p></div>
         <div class="heading-actions">
           <el-button
+            data-testid="refresh-workbench"
+            :loading="loading || kpiLoading"
+            @click="refreshListAndKpis"
+            >刷新</el-button
+          >
+          <el-button
             data-testid="open-approval-todos"
             v-hasPermi="['pms:cutover-task:query-approval']"
             @click="openApprovalTodos"
@@ -24,6 +30,7 @@
           >
         </div>
       </header>
+      <CutoverDashboardKpis :data="kpis" :loading="kpiLoading" :error="kpiError" />
       <el-form :model="query" label-position="top" class="filter-grid">
         <el-form-item label="项目ID"><el-input v-model="query.projectId" clearable /></el-form-item>
         <el-form-item label="当前阶段">
@@ -167,7 +174,7 @@
       </div>
     </el-drawer>
 
-    <CutoverCreateWizard v-model="createVisible" @created="loadPage" />
+    <CutoverCreateWizard v-model="createVisible" @created="refreshListAndKpis" />
 
     <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)">
       <el-table v-loading="approvalQueueLoading" :data="approvalTodos" row-key="approvalInstanceId">
@@ -249,6 +256,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as CutoverApi from '@/api/pms/cutover/cutover-task'
 import type {
   AssessmentAnswers,
+  CutoverDashboardKpiData,
   CutoverTaskDetail,
   CutoverTaskSummary,
   ManualGrade
@@ -258,6 +266,7 @@ import CutoverApprovalPanel from './components/CutoverApprovalPanel.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
 import CutoverChecklistPanel from './components/CutoverChecklistPanel.vue'
 import CutoverClosurePanel from './components/CutoverClosurePanel.vue'
+import CutoverDashboardKpis from './components/CutoverDashboardKpis.vue'
 import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
 import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
 import { activeCutoverStagePanel, formatWireDateTime, newIntentKey } from './cutoverTaskInteraction'
@@ -265,6 +274,9 @@ import { activeCutoverStagePanel, formatWireDateTime, newIntentKey } from './cut
 const message = useMessage()
 const { width } = useWindowSize()
 const loading = ref(false)
+const kpiLoading = ref(false)
+const kpis = ref<CutoverDashboardKpiData | null>(null)
+const kpiError = ref<string | null>(null)
 const detailLoading = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
@@ -343,6 +355,22 @@ const loadPage = async () => {
   }
 }
 
+const loadKpis = async () => {
+  kpiLoading.value = true
+  kpiError.value = null
+  try {
+    kpis.value = await CutoverApi.getCutoverDashboardKpis()
+  } catch {
+    kpiError.value = '割接任务概览加载失败，请稍后重试'
+  } finally {
+    kpiLoading.value = false
+  }
+}
+
+const refreshListAndKpis = async () => {
+  await Promise.all([loadPage(), loadKpis()])
+}
+
 const resetQuery = () => {
   Object.assign(query, { projectId: '', currentStage: undefined, taskStatus: undefined, pageNo: 1 })
   loadPage()
@@ -416,6 +444,7 @@ const saveAssessment = async () => {
     )
     message.success('人工评估草稿已保存，任务阶段未推进')
     await refreshDetail()
+    await loadKpis()
   } finally {
     saving.value = false
   }
@@ -435,7 +464,7 @@ const submitAssessment = async () => {
       assessmentModel.manualGrade === 'D' ? '已进入 P4 方案编制' : '已进入 P3 现场调研'
     )
     await refreshDetail()
-    await loadPage()
+    await refreshListAndKpis()
   } finally {
     submitting.value = false
   }
@@ -443,23 +472,23 @@ const submitAssessment = async () => {
 
 const handleChecklistSubmitted = async () => {
   await refreshDetail()
-  await loadPage()
+  await refreshListAndKpis()
 }
 const handlePlanChanged = async () => {
   await refreshDetail()
-  await loadPage()
+  await refreshListAndKpis()
 }
 const handleApprovalChanged = async () => {
   await refreshDetail()
-  await loadPage()
+  await refreshListAndKpis()
 }
 const handleApprovalWorkspaceChanged = async () => {
-  await loadPage()
+  await refreshListAndKpis()
   if (todoVisible.value) await loadApprovalTodos()
   if (reassignmentQueueVisible.value) await loadReassignmentQueue()
 }
 
-onMounted(loadPage)
+onMounted(refreshListAndKpis)
 </script>
 
 <style scoped>
