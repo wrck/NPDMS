@@ -1,6 +1,6 @@
 # DU-20260902-FINS001-TASK8-REVIEW-PUBLISH F-INS-001审核与发布闭环
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`TASK`
 > Feature协调：`F-INS-001=TASK_COORDINATED`
 > Task范围：`Task 8现有PermissionApi审核守卫、最后审核事实查询、生产审核入口与完整发布；保留已集成停用和发布CAS基础`
