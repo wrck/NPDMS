@@ -6,6 +6,19 @@
         SELECT * FROM cut_approval_notification
         WHERE tenant_id = #{query.tenantId}
           AND deleted = b'0'
+          AND channel_code = 'IN_PLATFORM'
+          AND (status_code = 'PENDING'
+            OR (status_code = 'PENDING_RETRY' AND next_retry_at &lt;= #{query.dueAt}))
+        ORDER BY COALESCE(next_retry_at, create_time) ASC, id ASC
+        LIMIT #{query.batchSize}
+        FOR UPDATE SKIP LOCKED
+    </select>
+    <select id="selectExternalDueForUpdateSkipLocked"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO">
+        SELECT * FROM cut_approval_notification
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = b'0'
+          AND channel_code IN ('SMS','EMAIL','DINGTALK')
           AND (status_code = 'PENDING'
             OR (status_code = 'PENDING_RETRY' AND next_retry_at &lt;= #{query.dueAt}))
         ORDER BY COALESCE(next_retry_at, create_time) ASC, id ASC
@@ -25,6 +38,26 @@
             update_time = #{query.updateTime}
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.notificationId}
+          AND channel_code = 'IN_PLATFORM'
+          AND status_code = #{query.expectedStatusCode}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="updateExternalDeliveryIfMatch">
+        UPDATE cut_approval_notification
+        SET status_code = #{query.newStatusCode},
+            provider_reference_id = #{query.providerReferenceId},
+            retry_count = #{query.retryCount},
+            next_retry_at = #{query.nextRetryAt},
+            last_error_code = #{query.lastErrorCode},
+            last_attempt_at = #{query.lastAttemptAt},
+            version = #{query.expectedVersion} + 1,
+            updater = #{query.updater},
+            update_time = #{query.updateTime}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.notificationId}
+          AND channel_code = #{query.channelCode}
+          AND channel_code IN ('SMS','EMAIL','DINGTALK')
           AND status_code = #{query.expectedStatusCode}
           AND version = #{query.expectedVersion}
           AND deleted = b'0'

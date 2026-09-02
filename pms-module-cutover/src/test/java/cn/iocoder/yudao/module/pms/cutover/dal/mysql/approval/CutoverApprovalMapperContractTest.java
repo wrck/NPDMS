@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNoti
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationDeliveryUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReassignmentPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationClaimQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationDeliveryUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceReassignmentUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceStateUpdate;
@@ -65,6 +67,11 @@ class CutoverApprovalMapperContractTest {
         assertBindings(configuration, CutoverApprovalNotificationMapper.class, "updateDeliveryIfMatch",
                 new ApprovalNotificationDeliveryUpdate(1L, 6L, 0, "PENDING", "SENT",
                         7L, 0, null, null, NOW, "9", NOW));
+        assertBindings(configuration, CutoverApprovalNotificationMapper.class,
+                "selectExternalDueForUpdateSkipLocked", new ExternalApprovalNotificationClaimQuery(1L, NOW, 20));
+        assertBindings(configuration, CutoverApprovalNotificationMapper.class, "updateExternalDeliveryIfMatch",
+                new ExternalApprovalNotificationDeliveryUpdate(1L, 6L, "SMS", 0, "PENDING", "ACCEPTED",
+                        "provider-1", 0, null, null, NOW, "9", NOW));
     }
 
     @Test
@@ -81,8 +88,25 @@ class CutoverApprovalMapperContractTest {
         assertThat(reassignment).contains("tenant_id = #{query.tenantId}", "deleted = b'0'")
                 .doesNotContain("${");
         assertThat(notification).contains("tenant_id = #{query.tenantId}", "deleted = b'0'",
-                        "FOR UPDATE SKIP LOCKED", "ORDER BY COALESCE(next_retry_at, create_time) ASC, id ASC")
+                        "channel_code = 'IN_PLATFORM'", "channel_code IN ('SMS','EMAIL','DINGTALK')",
+                        "FOR UPDATE SKIP LOCKED", "ORDER BY COALESCE(next_retry_at, create_time) ASC, id ASC",
+                        "channel_code = #{query.channelCode}")
                 .doesNotContain("${");
+    }
+
+    @Test
+    void separatesPlatformAndExternalDeliveryCasByChannel() throws IOException {
+        Configuration configuration = configuration();
+        String platformSql = boundSql(configuration, CutoverApprovalNotificationMapper.class,
+                "updateDeliveryIfMatch", new ApprovalNotificationDeliveryUpdate(1L, 6L, 0,
+                        "PENDING", "SENT", 7L, 0, null, null, NOW, "9", NOW)).getSql();
+        String externalSql = boundSql(configuration, CutoverApprovalNotificationMapper.class,
+                "updateExternalDeliveryIfMatch", new ExternalApprovalNotificationDeliveryUpdate(1L, 6L,
+                        "SMS", 0, "PENDING", "ACCEPTED", "provider-1", 0,
+                        null, null, NOW, "9", NOW)).getSql();
+
+        assertThat(platformSql).contains("channel_code = 'IN_PLATFORM'");
+        assertThat(externalSql).contains("channel_code = ?", "channel_code IN ('SMS','EMAIL','DINGTALK')");
     }
 
     private static Configuration configuration() throws IOException {
@@ -107,10 +131,14 @@ class CutoverApprovalMapperContractTest {
 
     private static void assertBindings(Configuration configuration, Class<?> mapper, String method, Object query) {
         Map<String, Object> parameters = Map.of("query", query);
-        BoundSql boundSql = configuration.getMappedStatement(mapper.getName() + "." + method)
-                .getBoundSql(parameters);
+        BoundSql boundSql = boundSql(configuration, mapper, method, query);
         assertThat(boundSql.getParameterMappings()).isNotEmpty();
         boundSql.getParameterMappings().forEach(mapping ->
                 configuration.newMetaObject(parameters).getValue(mapping.getProperty()));
+    }
+
+    private static BoundSql boundSql(Configuration configuration, Class<?> mapper, String method, Object query) {
+        return configuration.getMappedStatement(mapper.getName() + "." + method)
+                .getBoundSql(Map.of("query", query));
     }
 }

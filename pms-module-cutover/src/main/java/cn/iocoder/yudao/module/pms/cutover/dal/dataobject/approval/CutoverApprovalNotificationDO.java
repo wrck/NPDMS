@@ -20,11 +20,14 @@ public class CutoverApprovalNotificationDO extends TenantBaseDO {
     private Long recipientUserId;
     private String deliveryKey;
     private String templateCode;
+    private String channelCode;
     private String statusCode;
     private Long messageId;
+    private String providerReferenceId;
     private Integer retryCount;
     private LocalDateTime nextRetryAt;
     private String lastErrorCode;
+    private LocalDateTime lastAttemptAt;
     private LocalDateTime sentAt;
     @Version
     private Integer version;

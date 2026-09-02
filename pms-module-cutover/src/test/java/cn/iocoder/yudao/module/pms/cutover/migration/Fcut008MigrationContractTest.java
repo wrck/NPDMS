@@ -1,0 +1,58 @@
+package cn.iocoder.yudao.module.pms.cutover.migration;
+
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class Fcut008MigrationContractTest {
+
+    private final String sql = readMigration();
+
+    @Test
+    void addsAndBackfillsTheLockedForwardColumnsWithoutBusinessDefaults() {
+        assertThat(sql)
+                .contains("ADD COLUMN `lead_time_enabled` bit(1) NULL")
+                .contains("ADD COLUMN `lead_time_snapshot` json NULL")
+                .contains("SET `lead_time_enabled` = b'0'")
+                .contains("MODIFY COLUMN `lead_time_enabled` bit(1) NOT NULL")
+                .contains("ADD COLUMN `channel_code` varchar(24) NULL")
+                .contains("SET `channel_code` = 'IN_PLATFORM'")
+                .contains("MODIFY COLUMN `channel_code` varchar(24) NOT NULL")
+                .doesNotContain("DEFAULT b'0'")
+                .doesNotContain("DEFAULT 'IN_PLATFORM'")
+                .doesNotContain("pms_cut_");
+    }
+
+    @Test
+    void keepsHistoricalInstancesDisabledAndOnlyAllowsNewABSnapshots() {
+        assertThat(sql)
+                .contains("`lead_time_enabled` = b'0' AND `lead_time_snapshot` IS NULL")
+                .contains("`lead_time_enabled` = b'1' AND `grade_code` IN ('A','B')")
+                .contains("`lead_time_snapshot` IS NOT NULL");
+    }
+
+    @Test
+    void separatesInPlatformAndExternalDeliveryStateUnions() {
+        assertThat(sql)
+                .contains("'IN_PLATFORM','SMS','EMAIL','DINGTALK'")
+                .contains("`channel_code` = 'IN_PLATFORM'")
+                .contains("`channel_code` IN ('SMS','EMAIL','DINGTALK')")
+                .contains("`status_code` = 'ACCEPTED'")
+                .contains("`status_code` = 'DELIVERY_UNKNOWN'")
+                .contains("`status_code` = 'PENDING_RETRY' AND `retry_count` > 0")
+                .contains("`last_attempt_at` IS NOT NULL")
+                .contains("DROP CHECK `chk_cut_approval_notification_status`");
+    }
+
+    private static String readMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V157__fcut008_p5_lead_time_notification.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+}

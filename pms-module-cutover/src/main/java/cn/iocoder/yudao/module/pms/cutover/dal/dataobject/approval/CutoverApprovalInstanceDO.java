@@ -29,6 +29,8 @@ public class CutoverApprovalInstanceDO extends TenantBaseDO {
     private Integer sourceSnapshotVersion;
     private String sourceSnapshot;
     private String routeSnapshot;
+    private Boolean leadTimeEnabled;
+    private String leadTimeSnapshot;
     private String statusCode;
     private String holdReasonCode;
     private Integer currentNodeNo;

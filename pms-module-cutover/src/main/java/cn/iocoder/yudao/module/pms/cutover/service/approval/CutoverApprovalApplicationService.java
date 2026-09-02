@@ -383,7 +383,8 @@ public class CutoverApprovalApplicationService {
         instance.setChecklistVersion(command.checklistVersion()); instance.setGradeCode(command.grade());
         instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(route.getFirst().treeVersion());
         instance.setSourceSnapshotVersion(command.sourceSnapshotVersion()); instance.setSourceSnapshot(source.sourceSnapshot());
-        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); instance.setStatusCode("PENDING");
+        instance.setRouteSnapshot(routeSnapshot(command.grade(), route)); instance.setLeadTimeEnabled(false);
+        instance.setLeadTimeSnapshot(null); instance.setStatusCode("PENDING");
         instance.setHoldReasonCode(hold); instance.setCurrentNodeNo(1);
         instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0);
         instance.setCreator(String.valueOf(actorId)); instance.setUpdater(String.valueOf(actorId));
@@ -481,7 +482,8 @@ public class CutoverApprovalApplicationService {
         row.setId(IDS.nextId()); row.setTenantId(command.tenantId()); row.setApprovalInstanceId(instanceId);
         row.setApprovalNodeId(nodeId); row.setRecipientUserId(actorId);
         row.setDeliveryKey("CUT_APPROVAL:" + instanceId + ":1:0"); row.setTemplateCode("CUT_APPROVAL_PENDING");
-        row.setStatusCode("PENDING"); row.setRetryCount(0); row.setNextRetryAt(null); row.setVersion(0);
+        row.setChannelCode("IN_PLATFORM"); row.setStatusCode("PENDING"); row.setRetryCount(0);
+        row.setNextRetryAt(null); row.setVersion(0);
         row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
         row.setCreateTime(now); row.setUpdateTime(now);
         require(notificationMapper.insert(row) == 1, STATE_CONFLICT, "首节点通知创建失败");
@@ -715,7 +717,8 @@ public class CutoverApprovalApplicationService {
         row.setId(IDS.nextId()); row.setTenantId(instance.getTenantId()); row.setApprovalInstanceId(instance.getId());
         row.setApprovalNodeId(node.getId()); row.setRecipientUserId(node.getCurrentApproverUserId());
         row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + committedNodeVersion);
-        row.setTemplateCode("CUT_APPROVAL_PENDING"); row.setStatusCode("PENDING"); row.setRetryCount(0);
+        row.setTemplateCode("CUT_APPROVAL_PENDING"); row.setChannelCode("IN_PLATFORM");
+        row.setStatusCode("PENDING"); row.setRetryCount(0);
         row.setNextRetryAt(null); row.setVersion(0); row.setCreator(String.valueOf(actorId));
         row.setUpdater(String.valueOf(actorId)); row.setCreateTime(now); row.setUpdateTime(now);
         require(notificationMapper.insert(row) == 1, STATE_CONFLICT, "下一节点通知创建失败");
