@@ -150,7 +150,8 @@
           <CutoverChecklistPanel
             v-else-if="activeStagePanel === 'CHECKLIST'"
             :detail="detail"
-            @submitted="handleChecklistSubmitted"
+            :refresh-workspace="refreshAfterChecklistSubmit"
+            @navigate="handleChecklistNavigation"
           />
           <CutoverPlanPanel
             v-else-if="activeStagePanel === 'PLAN'"
@@ -470,9 +471,15 @@ const submitAssessment = async () => {
   }
 }
 
-const handleChecklistSubmitted = async () => {
+const refreshAfterChecklistSubmit = async () => {
   await refreshDetail()
   await refreshListAndKpis()
+  if (detail.value?.task.currentStage !== 'P4') {
+    throw new Error('任务尚未进入P4')
+  }
+}
+const handleChecklistNavigation = (target: CutoverApi.CutoverNavigationTarget) => {
+  if (target === 'TASK_OVERVIEW') detailVisible.value = false
 }
 const handlePlanChanged = async () => {
   await refreshDetail()

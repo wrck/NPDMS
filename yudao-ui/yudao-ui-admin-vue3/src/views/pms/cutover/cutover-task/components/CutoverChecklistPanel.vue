@@ -5,7 +5,16 @@
         <h3 id="cutover-checklist-title">P3 动态采集清单</h3>
         <p>{{ checklist ? `清单版本 ${checklist.checklistVersion}` : '按任务冻结配置生成清单' }}</p>
       </div>
-      <el-tag v-if="checklist">{{ checklist.status }}</el-tag>
+      <div class="heading-actions">
+        <el-button
+          v-if="canExport"
+          data-testid="checklist-export"
+          v-hasPermi="['pms:cutover-task:query']"
+          :loading="exporting"
+          @click="exportChecklist"
+        >导出当前清单</el-button>
+        <el-tag v-if="checklist">{{ checklist.status }}</el-tag>
+      </div>
     </header>
 
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
@@ -65,17 +74,27 @@
 
 <script setup lang="ts">
 import { useMessage } from '@/hooks/web/useMessage'
+import download from '@/utils/download'
 import * as CutoverApi from '@/api/pms/cutover/cutover-task'
-import type { ChecklistFileHandle, CutoverChecklistView, CutoverTaskDetail } from '@/api/pms/cutover/cutover-task'
+import type {
+  ChecklistFileHandle,
+  CutoverChecklistView,
+  CutoverNavigationTarget,
+  CutoverTaskDetail
+} from '@/api/pms/cutover/cutover-task'
 import {
+  createCutoverPlanWriteBarrier,
   decodeChecklistDirectAnswer,
   encodeChecklistDirectAnswer,
   newIntentKey
 } from '../cutoverTaskInteraction'
 import CutoverChecklistField from './CutoverChecklistField.vue'
 
-const props = defineProps<{ detail: CutoverTaskDetail }>()
-const emit = defineEmits<{ submitted: [] }>()
+const props = defineProps<{
+  detail: CutoverTaskDetail
+  refreshWorkspace?: () => Promise<void>
+}>()
+const emit = defineEmits<{ navigate: [target: CutoverNavigationTarget] }>()
 const message = useMessage()
 const checklist = ref<CutoverChecklistView | null>(null)
 const answers = reactive<Record<string, string>>({})
@@ -83,6 +102,8 @@ const loading = ref(false)
 const generating = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
+const exporting = ref(false)
+const submitBarrier = createCutoverPlanWriteBarrier()
 const customItem = reactive({ itemName: '', itemDescription: '', required: false })
 const hasAction = (action: CutoverTaskDetail['allowedActions'][number]) =>
   props.detail.allowedActions.includes(action)
@@ -90,6 +111,8 @@ const canGenerate = computed(() => hasAction('GENERATE_CHECKLIST'))
 const canSave = computed(() => hasAction('SAVE_CHECKLIST'))
 const canRequestCollection = computed(() => hasAction('REQUEST_COLLECTION'))
 const canSubmit = computed(() => hasAction('SUBMIT_CHECKLIST'))
+const canExport = computed(() => checklist.value !== null
+  && ['DRAFT', 'SUBMITTED'].includes(checklist.value.status))
 const readonly = computed(() => props.detail.task.currentStage !== 'P3'
   || props.detail.task.manualGrade === 'D' || checklist.value?.status !== 'DRAFT')
 const applicableItems = computed(() => checklist.value?.items.filter((item) => item.applicable) || [])
@@ -119,8 +142,24 @@ const load = async () => {
     loading.value = false
   }
 }
+const refreshAfterSubmit = async () => {
+  if (!props.refreshWorkspace) throw new Error('提交后刷新未接通')
+  await props.refreshWorkspace()
+}
+const beforeWrite = async () => {
+  const state = await submitBarrier.beforeWrite()
+  if (state === 'PROCEED') return true
+  if (state === 'REFRESHED') {
+    message.warning('已确认任务进入P4，本次未重发业务命令')
+    emit('navigate', 'TASK_OVERVIEW')
+  } else {
+    message.warning('提交结果仍在确认中，本次未重发业务命令')
+  }
+  return false
+}
 const generate = async () => {
   if (!props.detail.assessment || !props.detail.project.projectScopeVersion) return
+  if (!(await beforeWrite())) return
   generating.value = true
   try {
     await CutoverApi.generateCutoverChecklist(props.detail.task.id, {
@@ -136,6 +175,7 @@ const generate = async () => {
 const setAnswer = (stableItemKey: string, value: string) => { answers[stableItemKey] = value }
 const save = async () => {
   if (!checklist.value) return
+  if (!(await beforeWrite())) return
   saving.value = true
   try {
     await CutoverApi.saveCutoverChecklist(props.detail.task.id, {
@@ -156,6 +196,7 @@ const save = async () => {
 }
 const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, factDescription: string) => {
   if (!checklist.value) return
+  if (!(await beforeWrite())) return
   await CutoverApi.saveManualChecklistResult(props.detail.task.id, stableItemKey, {
     expectedTaskVersion: checklist.value.taskVersion,
     expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -169,6 +210,7 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
 }
 const addCustom = async () => {
   if (!checklist.value || !customItem.itemName.trim()) return
+  if (!(await beforeWrite())) return
   await CutoverApi.addCustomChecklistItem(props.detail.task.id, {
     expectedTaskVersion: checklist.value.taskVersion,
     expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -190,6 +232,7 @@ const addCustom = async () => {
 }
 const removeCustom = async (stableItemKey: string) => {
   if (!checklist.value) return
+  if (!(await beforeWrite())) return
   await CutoverApi.removeCustomChecklistItem(props.detail.task.id, stableItemKey, {
     expectedTaskVersion: checklist.value.taskVersion,
     expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -201,6 +244,7 @@ const removeCustom = async (stableItemKey: string) => {
 }
 const requestCollection = async (stableItemKey: string, deviceId: string, commandTemplateId: string) => {
   if (!checklist.value) return
+  if (!(await beforeWrite())) return
   await CutoverApi.requestChecklistCollection(props.detail.task.id, stableItemKey, {
     expectedTaskVersion: checklist.value.taskVersion,
     expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -212,11 +256,28 @@ const requestCollection = async (stableItemKey: string, deviceId: string, comman
   message.success('采集请求已形成当前结果')
   await load()
 }
+const exportChecklist = async () => {
+  if (!checklist.value) return
+  exporting.value = true
+  try {
+    const content = await CutoverApi.exportCutoverChecklist(
+      props.detail.task.id,
+      checklist.value.checklistVersion
+    )
+    download.excel(
+      content,
+      `cutover-checklist-${props.detail.task.id}-v${checklist.value.checklistVersion}.xlsx`
+    )
+  } finally {
+    exporting.value = false
+  }
+}
 const submit = async () => {
   if (!checklist.value || !props.detail.assessment) return
+  if (!(await beforeWrite())) return
   submitting.value = true
   try {
-    await CutoverApi.submitCutoverChecklist(props.detail.task.id, {
+    const result = await CutoverApi.submitCutoverChecklist(props.detail.task.id, {
       expectedTaskVersion: checklist.value.taskVersion,
       expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
       expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -224,7 +285,18 @@ const submit = async () => {
       expectedChecklistVersion: checklist.value.checklistFactVersion
     }, newIntentKey())
     message.success('P3 清单已提交，任务进入 P4')
-    emit('submitted')
+    try {
+      await refreshAfterSubmit()
+      emit('navigate', result.navigationDecision.target)
+    } catch {
+      submitBarrier.register(refreshAfterSubmit)
+      message.warning('业务提交结果待刷新确认，请再次操作以仅重试刷新')
+    }
+  } catch (error) {
+    const status = (error as { response?: { status?: number } })?.response?.status
+    if (status && status !== 500) throw error
+    submitBarrier.register(refreshAfterSubmit)
+    message.warning('提交响应未确认，请再次操作以仅刷新任务状态')
   } finally { submitting.value = false }
 }
 
@@ -236,9 +308,14 @@ watch(() => props.detail.task.id, load, { immediate: true })
 .panel-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .panel-heading h3, .panel-heading p { margin: 0; }
 .panel-heading p { margin-top: 4px; color: var(--el-text-color-secondary); }
+.heading-actions { display: flex; align-items: center; gap: 10px; }
 .panel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .custom-item-area { margin-top: 14px; padding: 12px; border: 1px dashed var(--el-border-color); border-radius: 8px; }
 .custom-item-area summary { margin-bottom: 10px; cursor: pointer; }
 .custom-item-area :deep(.el-input) { margin-bottom: 10px; }
-@media (max-width: 767px) { .panel-actions { display: grid; grid-template-columns: 1fr; } }
+@media (max-width: 767px) {
+  .panel-heading { flex-direction: column; }
+  .heading-actions { justify-content: space-between; width: 100%; }
+  .panel-actions { display: grid; grid-template-columns: 1fr; }
+}
 </style>

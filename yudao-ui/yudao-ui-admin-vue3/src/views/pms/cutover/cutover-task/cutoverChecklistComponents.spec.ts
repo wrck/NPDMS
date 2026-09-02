@@ -13,6 +13,7 @@ import {
 } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
 const checklistApi = vi.hoisted(() => ({
   getCutoverChecklist: vi.fn(),
   saveCutoverChecklist: vi.fn(),
@@ -21,12 +22,14 @@ const checklistApi = vi.hoisted(() => ({
   removeCustomChecklistItem: vi.fn(),
   requestChecklistCollection: vi.fn(),
   saveManualChecklistResult: vi.fn(),
+  exportCutoverChecklist: vi.fn(),
   submitCutoverChecklist: vi.fn()
 }))
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/api/pms/cutover/cutover-task', () => checklistApi)
+vi.mock('@/utils/download', () => ({ default: downloadFile }))
 vi.mock('@/hooks/web/useMessage', () => ({
-  useMessage: () => ({ success: vi.fn() })
+  useMessage: () => ({ success: vi.fn(), warning: vi.fn() })
 }))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
@@ -175,7 +178,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     mounted.app.unmount()
   })
 
-  it('selects MANUAL evidence and submits the refreshed checklist into P4', async () => {
+  it('selects MANUAL evidence and consumes the server navigation decision after P4 refresh', async () => {
     fileApi.getArtifact.mockResolvedValue({
       artifactVersion: 2,
       reference: { scopeVersion: 17, referenceVersion: 3 }
@@ -188,11 +191,20 @@ describe('F-CUT-003 mounted checklist field', () => {
       .mockResolvedValueOnce(checklistView(null, 3))
       .mockResolvedValueOnce(checklistView(null, 4))
     checklistApi.saveManualChecklistResult.mockResolvedValue(undefined)
-    checklistApi.submitCutoverChecklist.mockResolvedValue(undefined)
-    const submitted: unknown[][] = []
+    checklistApi.submitCutoverChecklist.mockResolvedValue({
+      replayed: false,
+      navigationDecision: {
+        ruleKey: 'POST_SUBMIT',
+        configurationRevisionId: '301',
+        target: 'CURRENT_STAGE_WORKBENCH'
+      }
+    })
+    const navigated: unknown[][] = []
+    const refreshWorkspace = vi.fn().mockResolvedValue(undefined)
     const mounted = mount(CutoverChecklistPanel, {
       detail: taskDetail,
-      onSubmitted: (...args: unknown[]) => submitted.push(args)
+      refreshWorkspace,
+      onNavigate: (...args: unknown[]) => navigated.push(args)
     }, controls)
     await flush()
 
@@ -223,7 +235,77 @@ describe('F-CUT-003 mounted checklist field', () => {
       checklistId: '201',
       expectedChecklistVersion: 4
     }, expect.any(String))
-    expect(submitted).toHaveLength(1)
+    expect(refreshWorkspace).toHaveBeenCalledOnce()
+    expect(navigated).toEqual([['CURRENT_STAGE_WORKBENCH']])
+    mounted.app.unmount()
+  })
+
+  it('downloads the current authorized checklist with the locked filename', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.exportCutoverChecklist.mockResolvedValue(new Blob(['xlsx']))
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+
+    const exportButton = findByTestId(mounted.root, 'checklist-export')!
+    await (exportButton.props?.onClick as () => Promise<void>)()
+
+    expect(checklistApi.exportCutoverChecklist).toHaveBeenCalledWith('101', 1)
+    expect(downloadFile.excel).toHaveBeenCalledWith(
+      expect.any(Blob),
+      'cutover-checklist-101-v1.xlsx'
+    )
+    mounted.app.unmount()
+  })
+
+  it('retries only workspace refresh after an uncertain submit response', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.submitCutoverChecklist.mockReset()
+    checklistApi.submitCutoverChecklist.mockRejectedValue(new Error('navigation read failed'))
+    const refreshWorkspace = vi.fn().mockResolvedValue(undefined)
+    const navigated: unknown[][] = []
+    const mounted = mount(CutoverChecklistPanel, {
+      detail: taskDetail,
+      refreshWorkspace,
+      onNavigate: (...args: unknown[]) => navigated.push(args)
+    }, controls)
+    await flush()
+
+    const submit = findByTestId(mounted.root, 'checklist-submit')!
+    await (submit.props?.onClick as () => Promise<void>)()
+    await (submit.props?.onClick as () => Promise<void>)()
+
+    expect(checklistApi.submitCutoverChecklist).toHaveBeenCalledOnce()
+    expect(refreshWorkspace).toHaveBeenCalledOnce()
+    expect(navigated).toEqual([['TASK_OVERVIEW']])
+    mounted.app.unmount()
+  })
+
+  it('consumes the same navigation decision from an idempotent submit replay', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.submitCutoverChecklist.mockReset()
+    checklistApi.submitCutoverChecklist.mockResolvedValue({
+      replayed: true,
+      navigationDecision: {
+        ruleKey: 'POST_SUBMIT',
+        configurationRevisionId: '301',
+        target: 'TASK_OVERVIEW'
+      }
+    })
+    const navigated: unknown[][] = []
+    const mounted = mount(CutoverChecklistPanel, {
+      detail: taskDetail,
+      refreshWorkspace: vi.fn().mockResolvedValue(undefined),
+      onNavigate: (...args: unknown[]) => navigated.push(args)
+    }, controls)
+    await flush()
+
+    await (findByTestId(mounted.root, 'checklist-submit')?.props?.onClick as () => Promise<void>)()
+
+    expect(checklistApi.submitCutoverChecklist).toHaveBeenCalledOnce()
+    expect(navigated).toEqual([['TASK_OVERVIEW']])
     mounted.app.unmount()
   })
 })

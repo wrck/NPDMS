@@ -249,6 +249,26 @@ export interface CutoverChecklistView {
   items: CutoverChecklistItem[]
 }
 
+export type CutoverNavigationTarget = 'CURRENT_STAGE_WORKBENCH' | 'TASK_OVERVIEW'
+
+export interface CutoverNavigationDecision {
+  ruleKey: 'POST_SUBMIT'
+  configurationRevisionId: WireLong
+  target: CutoverNavigationTarget
+}
+
+export interface CutoverChecklistCommandResult {
+  taskId: WireLong
+  checklistId: WireLong
+  checklistVersion: number
+  checklistFactVersion: number
+  checklistStatus: string
+  taskStage: string
+  taskVersion: number
+  replayed: boolean
+  navigationDecision: CutoverNavigationDecision
+}
+
 export interface CutoverPlanFileFactVersion {
   artifactVersion: number
   referenceVersion: number
@@ -948,6 +968,13 @@ export const saveManualChecklistResult = (
     data
   })
 
+export const exportCutoverChecklist = (taskId: WireLong, checklistVersion: number) =>
+  request.download<Blob>({
+    url: `${baseUrl}/${taskId}/checklist/actions/export`,
+    method: 'POST',
+    data: { checklistVersion }
+  })
+
 export const submitCutoverChecklist = (
   taskId: WireLong,
   data: {
@@ -959,7 +986,7 @@ export const submitCutoverChecklist = (
   },
   idempotencyKey: string
 ) =>
-  request.post({
+  request.post<CutoverChecklistCommandResult>({
     url: `${baseUrl}/${taskId}/checklist/actions/submit`,
     data,
     headers: { 'Idempotency-Key': idempotencyKey }
