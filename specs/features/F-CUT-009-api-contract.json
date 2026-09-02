@@ -18,30 +18,70 @@
         "exactKeys": ["checklistVersion"],
         "fields": {"checklistVersion": "positive Integer"}
       },
-      "success": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet bytes with RFC-compatible Content-Disposition filename",
-      "projection": "exactly the same authorized checklist/task/device/field projection visible to the caller for the requested version; grouped BUSINESS_SURVEY,RISK,DUAL_MACHINE_CHECK and stably sorted",
+      "success": {
+        "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "contentDisposition": "attachment; filename=\"cutover-checklist-{taskId}-v{checklistVersion}.xlsx\"",
+        "workbook": "AuthorizedChecklistWorkbook"
+      },
+      "projection": "only applicable BUSINESS_SURVEY and RISK rows from the same authorized checklist detail projection; DUAL_MACHINE_CHECK and every other item type are excluded",
       "sideEffects": "platform operation audit only; no persistent export artifact and no CUT business row insert/update/version touch"
     },
     "submitExtension": {
       "base": "F-CUT-003 submit request, headers, idempotency, guards and ChecklistCommandResult",
       "addedField": "navigationDecision",
-      "fieldType": "NavigationDecision OR JSON null",
+      "fieldType": "NavigationDecision; never null after a successful checklist submit",
       "businessResult": "always the existing SUBMITTED checklist and PLAN_DRAFTING task before navigation is evaluated"
     },
     "configurationExtension": {
       "base": "F-CUT-001 revision CRUD/copy/validate/publish/disable",
-      "addedField": "navigationRuleSnapshot in draft/detail/copy/publish aggregate",
+      "addedField": "navigationRule in draft/detail/copy/publish aggregate",
+      "create": "new blank draft returns navigationRule JSON null",
+      "saveDraftRequest": "adds exact key navigationRule with NavigationRule OR JSON null; omitted key and extra keys fail closed",
+      "detailResponse": "adds navigationRule with the stored NavigationRule OR JSON null",
+      "copyResponse": "new DRAFT detail containing the source navigationRule unchanged",
+      "publishResponse": "published revision summary containing navigationRule unchanged; validation rejects unknown target or any condition/list/priority/state field",
       "permissions": "existing pms:cutover-config:query/manage/publish/disable only"
     }
   },
   "types": {
     "NavigationDecision": {
-      "status": "BLOCKED_BY_Q_FCUT009_001",
       "exactKeys": ["ruleKey", "configurationRevisionId", "target"],
       "fields": {
-        "ruleKey": "normalized nonblank String 1..64",
+        "ruleKey": "constant POST_SUBMIT",
         "configurationRevisionId": "positive WireLong equal to the task-frozen revision",
-        "target": "closed enum to be fixed by Q-FCUT009-001; must not itself mutate task state"
+        "target": "NavigationTarget"
+      }
+    },
+    "NavigationRule": {
+      "exactKeys": ["target"],
+      "fields": {"target": "NavigationTarget"},
+      "semantics": "one unconditional post-submit UI target; no condition, priority, list, state or action field"
+    },
+    "NavigationTarget": {
+      "enum": ["CURRENT_STAGE_WORKBENCH", "TASK_OVERVIEW"],
+      "CURRENT_STAGE_WORKBENCH": "navigate to the authoritative P4 workbench after submit",
+      "TASK_OVERVIEW": "navigate to the cutover task overview",
+      "defaultForNullOrMissingHistoricalRule": "CURRENT_STAGE_WORKBENCH"
+    },
+    "AuthorizedChecklistWorkbook": {
+      "sheetOrder": ["业务调研", "风险考察"],
+      "emptySheet": "header row only",
+      "rowOrder": ["sortOrder ASC with null treated as 0", "stableItemKey ASC"],
+      "columns": [
+        {"index": 1, "header": "序号", "type": "positive Integer starting at 1 within each sheet"},
+        {"index": 2, "header": "稳定项键", "type": "text; stableItemKey"},
+        {"index": 3, "header": "项目名称", "type": "text; itemName"},
+        {"index": 4, "header": "项目说明", "type": "text; itemDescription; null is empty cell"},
+        {"index": 5, "header": "工作模式", "type": "text; workModeCode"},
+        {"index": 6, "header": "是否必填", "type": "text enum 是,否; required"},
+        {"index": 7, "header": "来源", "type": "text; sourceCode"},
+        {"index": 8, "header": "当前答案", "type": "text; currentResult.answerSnapshot; null is empty cell"},
+        {"index": 9, "header": "事实说明", "type": "text; currentResult.factDescription; null is empty cell"},
+        {"index": 10, "header": "证据状态", "type": "text enum 人工附件已关联,采集结果已关联,empty; never contains reference keys or ids"}
+      ],
+      "sheetFilters": {
+        "业务调研": "applicable=true AND itemTypeCode=BUSINESS_SURVEY",
+        "风险考察": "applicable=true AND itemTypeCode=RISK"
       }
     }
   },

@@ -8,7 +8,7 @@
 > 前置Feature：`F-CUT-001（配置版本）`、`F-CUT-003（P3清单）`
 > 机器合同：`specs/features/F-CUT-009-api-contract.json`、`specs/features/F-CUT-009-physical-contract.json`
 > 旧实现复用审计：`specs/features/F-CUT-009-legacy-reuse-audit.md`
-> Open Question：`Q-FCUT009-001`
+> 已决问题：`Q-FCUT009-001（RESOLVED / OPTION_A）`
 
 ## 1. 业务目标
 
@@ -20,9 +20,9 @@
 
 - 导出当前任务的指定清单版本，导出内容与调用人当次获权的P3详情投影同源；
 - 按项目、任务、设备、清单项和字段可见性裁剪导出，不以导出扩大查询范围；
-- 导出风险考察、业务调研和适用双机检查项，保留来源、必填性、当前选择结果、事实说明及允许导出的证据引用摘要；
+- 导出业务调研项和风险考察项，保留来源、必填性、当前选择结果、事实说明及允许导出的证据状态摘要；双机检查项不属于本导出范围；
 - 导出请求审计；导出不修改清单、任务、结果选择、配置或流程状态；
-- 在既有`CutoverConfigurationRevision.navigationRuleSnapshot`中维护、复制、校验并发布受控导航规则；
+- 按既有SDS预留在`CutoverConfigurationRevision.navigationRuleSnapshot`中维护、复制、校验并发布受控导航规则；当前迁移/DO尚未落字段，由本Feature前向接通；
 - 清单提交继续先执行F-CUT-003全部守卫并原子推进`SURVEYING -> PLAN_DRAFTING`，提交成功后仅按冻结配置规则返回服务端导航决定；
 - 跨模块范围/文件能力只通过既有或最窄消费端口调用，`src/test`可用受控替身完成正常正向闭环。
 
@@ -42,16 +42,19 @@
 - 导出只接受`NEW_PLATFORM`任务上已存在且未删除的清单版本；D级与`LEGACY_FORWARD`无清单可导出。调用人必须同时具备`pms:cutover-task:query`和任务项目`ACTION_VIEW`范围。
 - 只允许导出任务当前未失效的DRAFT或SUBMITTED清单版本。请求`checklistVersion`必须精确等于当前版本；INVALIDATED历史版本不属于“当前授权清单”，不得通过本接口导出。调用人不可见的资源返回不可见/不存在，不泄露其身份；版本不一致时失败并要求刷新，不回退到其他版本。
 - 导出投影复用同一清单详情查询和服务端字段裁剪策略：只包含调用人可见的适用项、设备和字段。清单详情未返回的敏感字段、文件内部标识、设备凭证、外部原始响应和不可见历史结果不得进入导出。
-- 输出格式固定为XLSX；工作表顺序固定为业务调研、风险考察、双机检查，分组内按`sortOrder/stableItemKey`稳定排序。不存在某类适用项时不生成伪数据行。
+- 输出格式固定为XLSX，文件名固定为`cutover-checklist-{taskId}-v{checklistVersion}.xlsx`。工作簿始终按顺序包含`业务调研`、`风险考察`两个Sheet；无数据的Sheet只保留表头，不生成伪数据行。
+- 两个Sheet使用同一十列合同：`序号/稳定项键/项目名称/项目说明/工作模式/是否必填/来源/当前答案/事实说明/证据状态`。`序号`为从1开始的整数，其余均为文本；可空值输出空单元格，布尔值固定为`是/否`，证据状态只允许空、`人工附件已关联`、`采集结果已关联`。不得输出文件引用键、采集任务/结果ID或文件正文。
+- 行先按`sortOrder`升序、再按`stableItemKey`升序；`sortOrder`为空按0处理。只导出`applicable=true`的`BUSINESS_SURVEY`或`RISK`项，其他类型不得进入工作簿。
 - 导出是只读业务动作，只追加操作审计；不得更新清单、任务、结果、配置revision、`updated_at`或任何业务version。重复导出可产生独立审计，但输出必须由同一授权事实和同一清单版本确定。
 
 ### BR-FCUT009-002 受控导航配置
 
-- 导航规则属于`CutoverConfigurationRevision`根内不可变`navigationRuleSnapshot`，只在DRAFT编辑，随既有配置整体发布；复制修订原样复制，已发布/停用修订不得覆盖。
-- 发布校验必须拒绝未知动作、未知目标、不可判定条件、重复优先级冲突及任何试图改变CUT任务状态的规则；失败保持草稿和当前已发布修订不变。
+- 导航规则属于`CutoverConfigurationRevision`根内不可变`navigationRuleSnapshot`，V2只允许一个无条件提交后目标，精确结构为`{"target":"CURRENT_STAGE_WORKBENCH|TASK_OVERVIEW"}`或JSON null；不提供条件、优先级、多规则或状态目标。
+- 导航字段只在DRAFT整体保存，随既有配置整体发布；复制修订原样复制，已发布/停用修订不得覆盖。创建空白草稿时为null；读取详情原样返回；保存、复制、发布的请求/响应扩展均按机器合同执行。
+- 发布校验必须拒绝额外字段、未知目标及任何试图表达条件或改变CUT任务状态的结构；失败保持草稿和当前已发布修订不变。
 - F-CUT-002任务已冻结配置revision，因此F-CUT-003提交后只读取该任务冻结revision中的导航规则；后续配置发布不改变既有任务。
 - 导航判断只在F-CUT-003全部提交守卫和业务写成功后执行，并且只有事务提交成功才随响应返回。提交命令仍只产生`SUBMITTED + PLAN_DRAFTING`业务结果；导航规则只形成响应中的导航决定，不参与提交资格、状态CAS或平台幂等业务摘要。
-- `Q-FCUT009-001`关闭前，不锁定可执行目标枚举，不得实现导航运行分支。推荐方案为：只允许跳转到与当前权威任务阶段一致的既有任务详情锚点或任务总览，不允许规则驱动状态迁移。
+- `CURRENT_STAGE_WORKBENCH`表示导航到提交后权威P4工作台；`TASK_OVERVIEW`表示导航到任务总览。冻结修订的字段为null或历史字段缺失时确定性使用`CURRENT_STAGE_WORKBENCH`，不得读取当前新发布修订，也不得返回任意目标。
 
 ### BR-FCUT009-003 跨模块与受控替身
 
@@ -67,14 +70,14 @@
 
 ## 5. 数据与迁移
 
-- 复用`cut_cutover_configuration_revision.navigation_rule_snapshot`，不新增导航规则表。
+- 按SDS在`cut_cutover_configuration_revision`增加/接通可空JSON列`navigation_rule_snapshot`，不新增导航规则表；当前代码与既有迁移尚未落该列，实施时必须使用实际下一个可用Flyway前向增加并同步DO/Mapper。
 - 不为导出新增业务表；导出审计复用平台操作审计，业务表保持只读。
-- 只有现有DO或配置请求尚未暴露既有`navigation_rule_snapshot`列时才做最窄前向接线；不得修改已执行迁移或补造历史规则。既有修订空值表示使用V1基础导航，不表示任意跳转。
+- 不得修改已执行迁移或补造历史规则。既有修订新增列后保持null，表示确定性使用`CURRENT_STAGE_WORKBENCH`，不表示任意跳转。
 - `cut_cutover_checklist`三表、`cut_task`及其状态/版本列不做结构改变。
 
 ## 6. 验收标准
 
-- AC-FCUT009-001：获权用户可导出明确的当前DRAFT或SUBMITTED清单版本；三类分组、顺序、值和允许的证据摘要与同次授权详情投影一致，INVALIDATED历史版本被拒绝。
+- AC-FCUT009-001：获权用户可导出明确的当前DRAFT或SUBMITTED清单版本；业务调研、风险考察两个Sheet的列、顺序、值和证据状态与同次授权详情投影一致，双机检查不进入导出，INVALIDATED历史版本被拒绝。
 - AC-FCUT009-002：跨项目、跨租户、不可见设备/字段和不存在版本不进入导出；拒绝路径不修改任何CUT业务事实。
 - AC-FCUT009-003：导出前后清单、结果、任务阶段/状态/version完全不变，只留下可对账审计。
 - AC-FCUT009-004：导航规则在草稿中编辑并随配置整体发布；非法规则整版拒绝，已发布版本不可覆盖，任务只消费冻结revision。
@@ -83,4 +86,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED`。最近Gate为`Q-FCUT009-001`业务语义裁决及本Feature/API/物理/旧实现复用边界独立复审；通过前不得生成Technical Plan或实施。
+当前：`DRAFT / NOT_READY / REVIEW_REQUIRED`。`Q-FCUT009-001`已采用方案A；最近Gate为导出范围、导航机器语义与XLSX线协议最小整改复审，通过前不得生成Technical Plan或实施。

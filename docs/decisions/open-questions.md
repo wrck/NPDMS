@@ -510,17 +510,18 @@
 
 ### Q-FCUT009-001
 
-- Status: OPEN / BLOCKED_BY_SPEC
+- Status: RESOLVED / OPTION_A
 - Requirement IDs: CUT-03@V2
 - Area: P3清单提交后的可配置流程跳转语义
 - Question: “更灵活的流程跳转配置”只决定提交成功后的界面导航，还是允许配置改变CUT业务状态迁移；其合法目标集合和触发时点是什么？
 - Why it blocks design/implementation: PRD明确V2不改变清单版本、必填校验和D级跳过规则，但未给出跳转目标；API SDS只要求目标流程状态合法。若允许规则驱动状态迁移，将改变P3→P4状态机、下游P4/P5门禁和审计Owner；若只是界面导航，则必须禁止配置写状态。两者不能由Feature或代码静默选择。
 - Options: A. 配置只产生提交成功后的服务端导航决定，目标限于当前权威任务阶段对应的既有工作台锚点或任务总览；F-CUT-003仍唯一执行`SURVEYING -> PLAN_DRAFTING`，规则不得改变状态。B. 配置可选择多个业务目标阶段并驱动状态迁移；须先正式补齐PRD/SDS状态机、允许目标、跳过门禁、回退和审计。C. V2只交付导出，暂不交付流程跳转配置；CUT-03@V2保持PARTIAL。
 - Recommended technical default: A。它保留PRD明确的V1业务事实，只把“跳转配置优化”实现为可配置导航，避免无依据绕过P4/P5/P6。
-- Business decision required: 是；该选择决定是否改变业务状态机和下游门禁。
-- Blocking scope: F-CUT-009 Feature Ready及导航运行分支；不影响已完成F-CUT-003 V1，也不授权先拆出导出Feature。
+- Business decision required: 已完成；独立Feature Ready裁决确认采用方案A。
+- Resolution: 采用A。V2只允许一个无条件提交后导航目标：`CURRENT_STAGE_WORKBENCH`或`TASK_OVERVIEW`。规则只返回界面导航决定，不写CUT状态；F-CUT-003仍唯一执行`SURVEYING -> PLAN_DRAFTING`。冻结修订缺少规则或规则为null时确定性返回`CURRENT_STAGE_WORKBENCH`。
+- Blocking scope: 已解除语义阻断；F-CUT-009仍须通过API/Physical Machine Contract最小整改复审及Feature Ready Gate。
 - Decision owner: 需求方；CUT-03、CUT-04及状态机Owner参与影响分析
-- Decision date: 待定
+- Decision date: 2026-09-02
 
 ## F-CUT-004 Task 6 待裁决项
 
