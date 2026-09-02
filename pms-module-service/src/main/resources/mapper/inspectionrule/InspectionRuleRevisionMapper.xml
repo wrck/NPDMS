@@ -72,6 +72,19 @@
           AND deleted = b'0'
     </update>
 
+    <update id="disablePublishedIfMatch">
+        UPDATE srv_inspection_rule_revision
+        SET status_code = 'DISABLED',
+            disabled_by = #{command.disabledBy},
+            disabled_at = #{command.disabledAt},
+            version = version + 1
+        WHERE tenant_id = #{command.tenantId}
+          AND id = #{command.revisionId}
+          AND status_code = 'PUBLISHED'
+          AND version = #{command.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
     <select id="selectMaxRevisionNoByRule" resultType="java.lang.Integer">
         SELECT MAX(revision_no)
         FROM srv_inspection_rule_revision

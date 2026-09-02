@@ -3,7 +3,7 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无；Task 7已通过`GO NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`，当前最近Gate为Task 8安全审核、原子发布、停用、幂等和审计
+> 当前阻断：`Q-FINS001-005/006`阻断Task 8安全审核有效性、发布放行和生产审核入口；Task 8停用切片已通过`GO NPDMS-FINS001-TASK8-DISABLE-SUBMIT-GO-20260902-02`，当前最近Gate仍为Task 8
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
@@ -46,6 +46,8 @@
 
 * Task 7已实现新稳定身份草稿创建、DRAFT整体保存、已发布/停用revision复制和无副作用发布预检：数据库唯一约束兜底身份并发，CAS失败不替换从属行，命令和产品类型在事务内硬替换；四入口服务层维护权限守卫、字典/AST失败关闭及权威名称候选已补齐。Java定向46项、service全量69项（其中MySQL默认跳过8项）、Python门禁24项、22模块package和diff检查PASS；随后真实`npdms_test` MySQL 8项以`Skipped: 0`独立执行PASS。故障注入仅存在于测试`TestApplication`。
 
+* Task 8停用切片已实现独立停用权限、当前`PUBLISHED -> DISABLED`聚合锁与If-Match/CAS、平台幂等重放/冲突、成功审计及`REQUIRES_NEW`拒绝审计；真实`npdms_test` MySQL证明停用业务写、幂等完成和成功审计共同提交，成功审计或幂等完成故障时共同回滚且只保留拒绝审计。相关真实MySQL矩阵25项`Failures: 0 / Errors: 0 / Skipped: 0`，补充跨租户与权限依赖异常后聚焦单元14项通过，`git diff --check` PASS，提交终审`GO NPDMS-FINS001-TASK8-DISABLE-SUBMIT-GO-20260902-02`。
+
 ## 首轮Technical Plan评审核销
 
 | 原问题                  | 整改位置                      | 核销方式                                                     |
@@ -61,7 +63,7 @@
 
 ## 阻断
 
-无。`Q-FINS001-003/004`及修订012由锁定实施输入`27b5b4b3`承载；Task 4、Task 5、Task 6和Task 7均已有独立GO。外部适配器与Task 9工程师选择继续后置，当前进入Task 8发布事务闭环。
+`Q-FINS001-005`待确认同一revision与摘要多次审核的生效/覆盖语义；`Q-FINS001-006`待确认显式RBAC审核授权事实Provider及是否批准扩展Yudao System公开API。两项仅阻断安全审核生产入口、审核有效性选择和发布放行；Task 8停用、平台幂等、拒绝/成功审计及发布CAS基础可独立继续。Task 4～7均已有独立GO。
 
 ## 已知边界
 
@@ -75,4 +77,4 @@
 
 ## 检查点
 
-基线=27b5b4b3；当前Gate=Task8安全审核/原子发布/停用/幂等/审计；证据=Task7独立GO，Java定向46项、service全量69项、Python24项、真实MySQL8项、22模块package通过；阻塞=无；下一步=提交Task7后审计Task8平台幂等审计与发布事务惯例。
+基线=5f25b1df；当前Gate=Task8；证据=停用切片25项通过、真实MySQL共同提交/回滚、独立GO；阻塞=Q-FINS001-005多次审核生效语义、Q-FINS001-006显式RBAC授权Provider；下一步=提交已通过的停用切片，再推进不依赖裁决的发布CAS基础，裁决后闭合审核与发布。

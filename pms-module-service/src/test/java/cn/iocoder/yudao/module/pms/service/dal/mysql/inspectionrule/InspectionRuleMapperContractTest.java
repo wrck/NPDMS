@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule;
 
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDisableUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDraftUpdate;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleChildrenQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.query.InspectionRuleDetectionIdQuery;
@@ -32,6 +33,7 @@ class InspectionRuleMapperContractTest {
         assertParameterType(InspectionRuleRevisionMapper.class, "selectByRuleIdAndRevisionNo", InspectionRuleRevisionKeyQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectPage", InspectionRuleRevisionPageQuery.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "updateDraftIfMatch", InspectionRuleDraftUpdate.class);
+        assertParameterType(InspectionRuleRevisionMapper.class, "disablePublishedIfMatch", InspectionRuleDisableUpdate.class);
         assertParameterType(InspectionRuleRevisionMapper.class, "selectMaxRevisionNoByRule", InspectionRuleIdentityLockQuery.class);
         assertParameterType(InspectionRuleCommandRevisionMapper.class, "selectListByRevisionIds", InspectionRuleChildrenQuery.class);
         assertParameterType(InspectionRuleCommandRevisionMapper.class, "hardDeleteByRevisionIds", InspectionRuleChildrenQuery.class);

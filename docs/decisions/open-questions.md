@@ -488,6 +488,36 @@
 - Decision owner: 业务Owner、SRV Owner（独立裁决）
 - Decision date: 2026-09-01
 
+### Q-FINS001-005
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: INS-03、INS-09、AC-FINS001-007
+- Area: 巡检规则同一revision与内容摘要的多次安全审核生效语义
+- Question: 同一租户、revision和命令/正则内容摘要存在多条`PASSED/REJECTED`审核事实时，哪条事实决定发布资格；后续`REJECTED`是否撤销既有`PASSED`，后续`PASSED`是否覆盖既有`REJECTED`，权限撤销是否追溯影响历史审核？
+- Why it blocks design/implementation: 当前DDL允许同一revision与摘要追加多条事实，现有查询只筛选历史`PASSED`；任意选择“存在通过”或“最新结论”都会改变发布业务结果和审计解释，不能由实现静默决定。该问题只阻断安全审核有效性选择和发布放行，不阻断停用、平台幂等及CAS基础工作。
+- Options: A. 审核事实追加不可变，同一revision与摘要按`reviewed_at DESC, id DESC`的最后一条事实为当前结论；B. 任意历史`PASSED`持续有效；C. 任一`REJECTED`永久否决；D. 建立多人会签或独立撤销流程。
+- Recommended technical default: A；内容变化或新revision必须重新审核，历史事实不覆盖；权限后续撤销不追溯篡改既有审核，除非未来批准独立撤销动作。该方案最小且可审计，但需业务与安全Owner批准后回写正式SDS。
+- Business decision required: 是。
+- Resolution:
+- Blocking scope: Task 8安全审核有效性查询、发布放行及相关验收。
+- Decision owner: 业务Owner、安全Owner、SRV Owner
+- Decision date:
+
+### Q-FINS001-006
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: INS-03、INS-09、AC-FINS001-007
+- Area: 巡检安全审核显式RBAC授权事实适配
+- Question: `InspectionRuleExplicitAuthorizationApi`应由哪个权威公开能力提供当前租户、用户、专用权限码的显式授权事实，以及`authorizationSourceId`采用何种稳定来源标识？
+- Why it blocks design/implementation: 当前System公开`PermissionApi`仅返回布尔值且包含超级管理员放行，Platform授权契约又未定义功能权限映射；Inspection不得直读`system_*`表、硬编码角色或提供默认放行适配器。该问题只阻断生产安全审核入口及守卫Bean装配，不阻断发布/停用普通权限守卫和其他独立工作。
+- Options: A. 由System新增公开只读显式权限授权事实API；B. 批准Platform AuthorizationGrant到功能权限的正式映射；C. 允许现有布尔权限API作为审核授权事实；D. Inspection直读System权限表。
+- Recommended technical default: A；只认当前租户有效用户—角色—菜单显式关系，不应用超级管理员或skip放行；能稳定提供来源ID时返回，否则为空，不伪造角色编码。该方案涉及Yudao基础平台，未经明确批准不得实施。
+- Business decision required: 是，同时需要明确允许修改Yudao基础平台公开API。
+- Resolution:
+- Blocking scope: Task 8安全审核生产入口、审核事实写入及相关验收。
+- Decision owner: 业务Owner、安全Owner、平台权限Owner
+- Decision date:
+
 ### Q-FAST002-001
 
 - Status: RESOLVED

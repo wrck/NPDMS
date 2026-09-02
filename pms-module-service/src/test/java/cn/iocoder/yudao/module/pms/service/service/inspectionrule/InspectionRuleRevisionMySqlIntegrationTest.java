@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.Inspect
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleProductTypeRevisionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.InspectionRuleRevisionMapper;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspectionrule.command.InspectionRuleDisableUpdate;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.security.InspectionRuleManagePermissionGuard;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -64,6 +65,8 @@ class InspectionRuleRevisionMySqlIntegrationTest {
 
     @Resource
     private InspectionRuleRevisionService service;
+    @Resource
+    private InspectionRuleRevisionMapper revisionMapper;
     @Resource
     private JdbcTemplate jdbcTemplate;
     @Resource
@@ -204,6 +207,26 @@ class InspectionRuleRevisionMySqlIntegrationTest {
                 "SELECT product_type_code FROM srv_inspection_rule_product_type_revision "
                         + "WHERE tenant_id=? AND revision_id=? ORDER BY product_type_code",
                 String.class, TENANT_ID, revisionId));
+    }
+
+    @Test
+    void disablePublishedIfMatchChangesLifecycleOnceAndRejectsStaleVersion() {
+        service.saveDraft(saveCommand(0, "原命令", "OLD", "旧产品"));
+        jdbcTemplate.update("UPDATE srv_inspection_rule_revision SET status_code='PUBLISHED', "
+                        + "published_by=?, published_at=CURRENT_TIMESTAMP(3) WHERE tenant_id=? AND id=?",
+                9L, TENANT_ID, revisionId);
+
+        assertEquals(1, revisionMapper.disablePublishedIfMatch(new InspectionRuleDisableUpdate(
+                TENANT_ID, revisionId, 1, 9L, java.time.LocalDateTime.now())));
+        assertEquals(0, revisionMapper.disablePublishedIfMatch(new InspectionRuleDisableUpdate(
+                TENANT_ID, revisionId, 1, 9L, java.time.LocalDateTime.now())));
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT status_code, version, disabled_by, disabled_at FROM srv_inspection_rule_revision "
+                        + "WHERE tenant_id=? AND id=?", TENANT_ID, revisionId);
+        assertEquals("DISABLED", row.get("status_code"));
+        assertEquals(2, ((Number) row.get("version")).intValue());
+        assertEquals(9L, ((Number) row.get("disabled_by")).longValue());
+        assertTrue(row.get("disabled_at") != null);
     }
 
     @Test
