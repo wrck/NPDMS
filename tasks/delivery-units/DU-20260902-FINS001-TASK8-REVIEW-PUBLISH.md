@@ -1,6 +1,6 @@
 # DU-20260902-FINS001-TASK8-REVIEW-PUBLISH F-INS-001审核与发布闭环
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`TASK`
 > Feature协调：`F-INS-001=TASK_COORDINATED`
 > Task范围：`Task 8现有PermissionApi审核守卫、最后审核事实查询、生产审核入口与完整发布；保留已集成停用和发布CAS基础`
@@ -13,7 +13,7 @@
 > 串行资源：`pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/enums/ErrorCodeConstants.java;tasks/features/F-INS-001.md;tasks/features/README.md;tasks/delivery-units/README.md;docs/traceability/requirement-*`
 > 旧功能范围：`NONE；旧pms_srv_rule、SrvRule Controller/Service/Mapper、旧页面、旧接口、旧菜单与旧迁移全部PRESERVE_EXISTING且不作为本DU实施基础`
 > 验证：`F-INS Python门禁；InspectionRuleSecurityReviewPermissionGuardTest；InspectionRulePublicationServiceImplTest；InspectionRulePublicationMySqlIntegrationTest；pms-module-service适用测试与package；Requirement追溯；git diff --check；五轴代码审查`
-> 集成记录：`NONE`
+> 集成记录：`master以--ff-only接收99213cef完整审核/发布实现、1c04f43f最后审核事实当前读并发修复及1057f083收口边界；本DU仅核销Task 8，不提升Feature Done`
 
 ## 目标与边界
 
@@ -23,12 +23,12 @@
 
 ## 交接
 
-- 最后提交：`SELF（本次候选提交）`
+- 最后提交：`99213cef（审核/发布实现）；1c04f43f（最后审核事实并发修复）；1057f083（收口边界）；SELF（工程链回执）`
 - 已完成：直接复用System现有`PermissionApi.hasAnyPermissions`完成目标租户审核权限判定；删除已被修订013替代且未装配的`InspectionRuleExplicitAuthorizationApi`，将前序内部`publishVerified`入口标记为待删除；实现DRAFT审核事实只追加、同聚合锁、最后审核事实精确查询、发布时完整领域/字典/AST重验、权威名称快照、旧发布版停用与新修订发布原子提交，并接入平台幂等、成功审计和失败审计。
-- 剩余：由master协调者复核候选提交并以`--ff-only`集成；集成后更新本DU回执、F-INS-001 Task权威进度和生成索引。Task 9～13及Feature最终DoD不在本DU内。
-- 测试：F-INS Python门禁26项PASS；service精确全量19个测试类共103项`Failures: 0 / Errors: 0 / Skipped: 19`；真实`npdms_test` MySQL公共服务审核/发布/停用5项及事务最后事实/原子发布5项均`Skipped: 0`、全部PASS；23模块package与聚焦28项Java测试PASS；`git diff --check` PASS；五轴自审PASS。
+- 剩余：Task 9工程师可选规则投影、Task 10管理端API与页面、Task 11～13全量验证/真实浏览器/最终追溯收口及Feature最终DoD不在本DU内，后续须从最新master新建DU。
+- 测试：F-INS Python门禁26项PASS；service精确全量19个测试类共104项`Failures: 0 / Errors: 0 / Skipped: 20`；真实`npdms_test` MySQL公开审核/发布/停用5项及事务最后事实/原子发布/审核发布并发6项均`Skipped: 0`、全部PASS；23模块package与聚焦Java测试PASS；`git diff --check` PASS；五轴自审PASS。
 - 已知失败：直接执行23模块无筛选全量测试会在进入service前被既有`FileArtifactMigrationContractTest`阻断；根因为Windows工作树将V92 SQL检出为CRLF，而该测试写死LF字符串。当前DU未修改`pms-module-platform`或`sql/migrations`，故不在本DU扩大修复；service适用全量已用精确类集合独立通过。
 
 ## 集成回执
 
-由master协调者记录选中的提交范围、验证结果和`INTEGRATED_PARTIAL|INTEGRATED_COMPLETE`结论。分支自报不能填写master集成结论。
+`INTEGRATED_COMPLETE`：master已按线性快进接收Task 8全部生产代码、测试和最后审核事实并发修复。集成结论只说明Task 8交付单元完成；F-INS-001仍为`IMPLEMENTATION_IN_PROGRESS`、Implementation Done仍为`NOT_STARTED`，当前最近Gate转为Task 9。

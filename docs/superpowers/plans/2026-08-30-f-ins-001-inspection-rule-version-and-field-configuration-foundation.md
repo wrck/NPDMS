@@ -87,7 +87,7 @@ Task 1 静态实施门禁与唯一性检查
 - Create: `scripts/tests/test_fins001_legacy_preservation.py`
 - Create: `scripts/tests/test_fins001_owner_and_query_boundary.py`
 
-- [ ] **Step 1: 编写唯一Technical Plan检查**
+- [x] **Step 1: 编写唯一Technical Plan检查**
 
 测试扫描`docs/superpowers/plans`、`features`和仓库Markdown，断言F-INS-001只有本文件一个当前Technical Plan；允许Feature Spec、Task和索引引用该路径，不允许第二个`f-ins-001`计划或任何并行临时副本。
 
@@ -97,7 +97,7 @@ assert Path(PLAN).is_file()
 assert current_plan_candidates("F-INS-001") == [PLAN]
 ```
 
-- [ ] **Step 2: 编写旧实现保护检查**
+- [x] **Step 2: 编写旧实现保护检查**
 
 将以下旧资产纳入相对锁定实施输入提交的Git差异保护，并让测试在本Feature实施期间拒绝已提交、暂存、未暂存或未跟踪变化：
 
@@ -117,11 +117,11 @@ sql/migrations/V43__pms_dict_types.sql
 
 测试按复用审计锁定旧后端Controller/Service/Mapper/DO/VO目录、旧前端API与页面目录，以及V14/V15/V16/V19/V20/V43迁移文件相对锁定输入提交均无已提交、暂存、未暂存或未跟踪变化；同时扫描新`inspectionrule`包，禁止出现对旧`SrvRuleService`、`SrvRuleMapper`的依赖或对`pms_srv_rule`的运行时写入。
 
-- [ ] **Step 3: 编写Owner与查询规则检查**
+- [x] **Step 3: 编写Owner与查询规则检查**
 
 扫描新增Service/Mapper/XML：允许访问`srv_inspection_rule*`五张Inspection自有表和公开`-api`；禁止直接出现`ast_`、`proj_`、`cus_`、`cut_`业务表，禁止SQL注解、`${}`、`.last(...)`、Mapper接收Controller VO或`Map`查询条件。查询方法默认只允许零或一个参数，主键及稳定复合唯一键例外必须显式白名单，不得统一放行两个参数。测试还必须核对本Task列出的测试资产均由当前Plan认领，且当前Task保留`INS-03/INS-09` Requirement ID。
 
-- [ ] **Step 4: 运行静态保护测试**
+- [x] **Step 4: 运行静态保护测试**
 
 Run:
 
@@ -154,19 +154,19 @@ pms-module-asset-api公开产品分类查询契约
 AST Owner契约自动化与真实数据来源证据
 ```
 
-- [ ] **Step 1: 核验AST独立Feature与Task**
+- [x] **Step 1: 核验AST独立Feature与Task**
 
 确认AST Owner已建立独立Feature Spec和当前Task，明确产品分类系统Owner、稳定编码、显示名称、存在/停用事实、设备授权查询、来源版本、CRM/MES映射、租户与数据范围、降级和审计。当前仓库若缺少任一正式资产，将Task 2标记`BLOCKED_BY_SPEC`并登记`docs/decisions/open-questions.md`；不得在F-INS-001计划、分支或迁移中代建AST契约、字段、投影、种子或测试，也不得以现有设备摘要、`conpType`、产品编码、型号、旧`pms_product_type`或手工数据猜测补齐。
 
-- [ ] **Step 2: 核验外部Gate交付证据**
+- [x] **Step 2: 核验外部Gate交付证据**
 
 仅在AST独立Feature/Task已建立后，验收其公开契约位于`pms-module-asset-api`且输入输出不暴露DO；批量查询须对每个请求编码返回存在/启用事实，授权设备查询须按租户与设备范围返回稳定产品类型编码和显示名称，未知编码不返回猜测名称，无法访问的设备不泄露其是否存在。AST实现测试、迁移和来源映射证据由AST Owner任务维护，本Task只引用，不修改。
 
-- [ ] **Step 3: 补充Inspection API边界契约测试**
+- [x] **Step 3: 补充Inspection API边界契约测试**
 
 测试只覆盖专用双查询API形状、Query不携带`tenantId/serviceIdentity`、空集合规范化、结果DTO具备后续发布与选择所需的存在/启用/名称/解析/同步事实，以及Service只依赖`pms-module-asset-api`。不得用测试私有判定函数、替身或AST Provider测试冒充Inspection生产失败关闭；真实消费行为留在Task 7/8/9对应生产入口实现后验证。
 
-- [ ] **Step 4: 运行Inspection API边界契约测试**
+- [x] **Step 4: 运行Inspection API边界契约测试**
 
 Run:
 
@@ -176,7 +176,7 @@ mvn.cmd -pl pms-module-service -am -Dtest=AssetProductTypeContractTest -Dsurefir
 
 Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeContractTest`实际执行；本Task只关闭AST外部交付、API形状和模块依赖前置，不关闭Task 7/8/9的生产消费验收。外部Feature/Task或契约未建立时保持`BLOCKED_BY_SPEC`，不以跳过、替身或本Feature内AST改动冒充通过。
 
-- [ ] **Step 5: 建议逻辑分组**
+- [x] **Step 5: 建议逻辑分组**
 
 建议提交信息：`test(service): 预验收AST产品类型API边界`
 
@@ -193,11 +193,11 @@ Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeCon
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestServiceTest.java`
 - Modify in Task 8: `scripts/tests/test_fins001_owner_and_query_boundary.py`
 
-- [ ] **Step 1: 实现最小解析与摘要服务**
+- [x] **Step 1: 实现最小解析与摘要服务**
 
 历史Task 3曾冻结未装配的`InspectionRuleExplicitAuthorizationApi`显式来源端口；master修订013已替代该设计。Task 8必须删除或收口该端口，使守卫在`TenantContextHolder`目标租户上下文建立后，从受信认证上下文取得当前用户并直接调用System现有`PermissionApi.hasAnyPermissions(actorId, REVIEW_PERMISSION)`。不得仅复用会在租户访问阶段命中`skipPermissionCheck`的`SecurityFrameworkService.hasPermission`，不得直读`system_*`表或修改Yudao基础平台。布尔`true`沿用普通角色—菜单与System超级管理员语义；审核事实中的`authorizationType`固定为`RBAC_PERMISSION`，`authorizationSourceId`为空。
 
-- [ ] **Step 2: 补充专用权限定向测试**
+- [x] **Step 2: 补充专用权限定向测试**
 
 测试必须证明：目标租户普通角色—菜单授权和System超级管理员两种`true`均通过；无授权`false`、System异常、认证用户缺失和目标租户缺失均失败关闭；租户访问`skip`不能替代直接`PermissionApi`调用。维护或发布权限不得由守卫自行推断通过。不追溯或硬编码“哪个角色贡献权限”，审核事实保存审核用户、精确权限码和`RBAC_PERMISSION`，`authorizationSourceId`为空。
 
@@ -207,7 +207,7 @@ assertDoesNotThrow(() -> guard.check(actorWithReviewPermission()));
 assertDoesNotThrow(() -> guard.check(superAdmin()));
 ```
 
-- [ ] **Step 3: 补充规范化摘要定向测试**
+- [x] **Step 3: 补充规范化摘要定向测试**
 
 摘要输入只包含按执行顺序稳定排序后的命令内容、超时、继续/停止决定和预期结果正则；revision绑定由审核事实中的revision标识单独承担，摘要不包含revision键、数据库ID、维护时间或显示名称。重复或非正数执行顺序失败关闭。相同业务内容产生相同SHA-256，不同命令、顺序、超时、继续策略或正则必须改变摘要。
 
@@ -218,7 +218,7 @@ command[1].continueOnTimeout
 expectedResultRegex
 ```
 
-- [ ] **Step 4: 运行定向测试**
+- [x] **Step 4: 运行定向测试**
 
 Run:
 
@@ -228,7 +228,7 @@ mvn.cmd -pl pms-module-service -am -Dtest=InspectionRuleSecurityReviewPermission
 
 Expected：PASS；摘要为小写64位十六进制，任何秘密值不得进入日志或断言输出。
 
-- [ ] **Step 5: 建议逻辑分组**
+- [x] **Step 5: 建议逻辑分组**
 
 建议提交信息：`feat(service): 冻结巡检规则安全审核契约`
 
@@ -405,7 +405,7 @@ Expected：Flyway成功到最终编号；五表、约束、字典、菜单、权
 
 将以下查询放入XML：发布时锁定规则与当前发布revision、按revision批量加载命令/产品类型/有效审核、工程师可选规则联表投影。所有动态集合使用`#{}`和`<foreach>`，空集合在Service或Mapper入口返回空。
 
-- [ ] **Step 3: 补充Mapper契约定向测试**
+- [x] **Step 3: 补充Mapper契约定向测试**
 
 断言分页只接收`InspectionRuleRevisionPageQuery`；子项批量读取只接收`InspectionRuleChildrenQuery`；可选规则只接收`SelectableInspectionRuleQuery`。权限产品类型集合为空时必须直接返回空，不得省略条件扩大范围。
 
@@ -482,31 +482,31 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 - Remove: `pms-module-service/.../security/InspectionRuleExplicitAuthorizationApi.java`
 - Modify: `pms-module-service/.../security/InspectionRuleSecurityReviewPermissionGuard.java`
 
-- [ ] **Step 1: 实现事务编排**
+- [x] **Step 1: 实现事务编排**
 
 审核、发布和停用统一通过`PlatformCommandExecutionApi.execute`，scopeCode分别固定为`INSPECTION_RULE_SECURITY_REVIEW`、`INSPECTION_RULE_PUBLISH`、`INSPECTION_RULE_DISABLE`，requestDigest由规范化业务请求计算；禁止新增Inspection私有幂等表或直读`plt_*`。审核入口先确认目标租户上下文与当前认证用户，再直接调用System现有`PermissionApi.hasAnyPermissions`判定专用权限；`false`或异常不进入命令执行且不追加事实，`true`时记录`RBAC_PERMISSION`和空`authorizationSourceId`。记录审核与发布采用同一规则稳定身份聚合锁顺序；审核只允许锁内对DRAFT追加事实。发布operation内顺序固定为：锁定规则稳定身份与当前发布revision -> 校验CAS -> 加载完整草稿 -> 本地领域校验 -> AST批量重验并刷新名称快照 -> 计算摘要 -> 按`reviewed_at DESC, id DESC`重新读取同租户同revision同摘要最后审核事实 -> 停用旧当前发布 -> CAS发布新revision。`SuccessFacts`只携带安全摘要、聚合键和必要事件；额外失败/拒绝审计通过`OperationAuditApi`写safeDetail。平台命令契约负责幂等、成功审计与领域写入同事务；任一步异常回滚全部业务写入。
 
-- [ ] **Step 2: 审计数据最小化**
+- [x] **Step 2: 审计数据最小化**
 
 `PlatformCommandExecutionApi.SuccessFacts.detailSnapshot`与`OperationAuditApi.safeDetail`只记录八字段结构化摘要、命令内容摘要、审核引用、发布/停用、失败码、操作者和时间；不得记录密码、私钥、认证头、完整命令正文或正则敏感内容。
 
-- [ ] **Step 3: 补充安全审核定向测试**
+- [x] **Step 3: 补充安全审核定向测试**
 
 覆盖目标租户普通授权用户、System超级管理员、无审核权限、System异常、认证用户缺失、目标租户缺失、仅租户访问`skip`、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求；断言每次审核均直接调用`PermissionApi`，成功事实的`authorizationSourceId`为空。增加同摘要`PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、`reviewed_at`相同按更大ID生效、内容变化/新revision重审以及发布后拒绝追加审核。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
 
-- [ ] **Step 4: 补充发布原子性定向测试**
+- [x] **Step 4: 补充发布原子性定向测试**
 
 覆盖字段完整且同租户同revision同摘要最后审核事实为`PASSED`时发布成功；最后事实为`REJECTED`、草稿字段不完整、阈值非`NUMBER`、审核缺失/失效/摘要不一致失败；增加审核与发布并发用例，证明发布在聚合锁内重新选择最后事实且不得按过期`PASSED`发布；通过真实`InspectionAssetProductTypeApi`批量重验时AST未知/停用/契约不可用失败；旧发布版本在新发布成功后才停用，任何失败不产生半发布。
 
-- [ ] **Step 5: 补充并发发布MySQL定向测试**
+- [x] **Step 5: 补充并发发布MySQL定向测试**
 
 使用两个独立事务同时发布同一规则的两个草稿，断言最多一个成功，最终只有一个`PUBLISHED`，失败请求保持草稿或明确冲突，旧有效版本不会提前停用。
 
-- [ ] **Step 6: 补充停用与幂等定向测试**
+- [x] **Step 6: 补充停用与幂等定向测试**
 
 只有当前`PUBLISHED`可停用；陈旧`If-Match`拒绝；重复同一幂等键不重复写审计；停用后历史读取仍可用。
 
-- [ ] **Step 7: 运行单元与MySQL集成定向测试**
+- [x] **Step 7: 运行单元与MySQL集成定向测试**
 
 Run:
 
@@ -516,7 +516,7 @@ mvn.cmd -pl pms-module-service -Dtest=InspectionRulePublicationServiceImplTest,I
 
 Expected：PASS；数据库唯一约束和Service CAS共同保证单一当前发布revision。
 
-- [ ] **Step 8: 建议逻辑分组**
+- [x] **Step 8: 建议逻辑分组**
 
 建议提交信息：`feat(service): 实现巡检规则安全审核与原子发布`
 
