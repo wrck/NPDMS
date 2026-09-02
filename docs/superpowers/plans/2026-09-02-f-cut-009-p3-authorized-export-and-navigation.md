@@ -1,7 +1,7 @@
 # F-CUT-009 P3授权清单导出与受控流程跳转 Implementation Plan
 
 > 计划 ID：`NPDMS-FCUT009-TECHPLAN-20260902-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO@e9b2a25c`
 > Feature Ready：`READY / GO@51239c53`
 > Feature Spec：`specs/features/F-CUT-009-p3-authorized-export-and-navigation.md`
 > API Contract：`specs/features/F-CUT-009-api-contract.json`
@@ -118,4 +118,4 @@
 
 ## 9. Technical Plan Gate
 
-当前：`REVIEW_REQUIRED`。最近Gate为本唯一Technical Plan独立复审；GO前不得实施Task 1～3。
+当前：`PASS / GO@e9b2a25c`。授权按Task 1→2→3串行实施；本结论不代表任何Task或Feature Implementation Done。
