@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-008",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "owner": "CUT owns request orchestration and records; INT-10 owns SMS/EMAIL Provider; INT-05 owns DINGTALK Provider",
   "channels": ["SMS", "EMAIL", "DINGTALK"],
   "port": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-CUT-008",
-  "status": "REVIEW_REQUIRED",
+  "status": "BASELINE_READY",
   "requirementSlices": ["CUT-05@V2=FULL"],
   "ownerContext": "CUT",
   "extends": "F-CUT-005-physical-contract.json",

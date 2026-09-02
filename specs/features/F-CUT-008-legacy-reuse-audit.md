@@ -1,7 +1,7 @@
 # F-CUT-008 旧实现与现有实现复用审计
 
 > Requirement：`CUT-05@V2`
-> 结论状态：`REVIEW_REQUIRED`
+> 结论状态：`BASELINE / GO @ d9b43077`
 
 | 资产 | 当前事实 | 判定 | F-CUT-008边界 |
 |---|---|---|---|

@@ -1,7 +1,7 @@
 # F-CUT-008 P5提前时间判断与外部提醒 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`NOT_READY / REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO @ d9b43077`
 > Requirement：`CUT-05（V2/P0）`
 > Requirement切片覆盖：`CUT-05@V2=FULL`
 > Owner Context：`CUT（变更切换与稳定治理）`
@@ -88,4 +88,4 @@
 
 ## 7. Feature Ready Gate
 
-当前：`DRAFT / NOT_READY / REVIEW_REQUIRED / NOT_STARTED`。最近Gate为Feature Ready独立复审；通过前不得生成Technical Plan或实施。
+当前：`BASELINE / READY / GO / NOT_STARTED`。Feature Ready独立复审已在锁定提交`d9b43077`通过；允许生成唯一Technical Plan并送独立复审，计划通过前不得实施。
