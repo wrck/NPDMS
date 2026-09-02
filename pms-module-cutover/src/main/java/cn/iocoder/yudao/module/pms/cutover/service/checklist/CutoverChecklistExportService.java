@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistExportResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 
 import java.util.LinkedHashMap;
@@ -41,6 +42,8 @@ public final class CutoverChecklistExportService {
             view = checklistService.getView(tenantId, actorId, taskId);
         } catch (CutoverChecklistException exception) {
             throw translate(exception);
+        } catch (CutoverOwnerFactException exception) {
+            throw translate(exception);
         }
         require(Objects.equals(view.checklistVersion(), checklistVersion), CHECKLIST_VERSION_STALE,
                 "清单版本已变化，请刷新后重试");
@@ -64,6 +67,16 @@ public final class CutoverChecklistExportService {
             case VERSION_CONFLICT -> CHECKLIST_VERSION_STALE;
             case INVALID_REQUEST -> INVALID_EXPORT_REQUEST;
             default -> CutoverChecklistExportException.Code.EXPORT_PROJECTION_INVALID;
+        };
+        return new CutoverChecklistExportException(code, exception.getMessage(), exception);
+    }
+
+    private static CutoverChecklistExportException translate(CutoverOwnerFactException exception) {
+        CutoverChecklistExportException.Code code = switch (exception.code()) {
+            case DATA_SCOPE_FORBIDDEN -> NOT_VISIBLE_OR_NOT_FOUND;
+            case STALE -> CutoverChecklistExportException.Code.OWNER_FACT_STALE;
+            case PROVIDER_UNAVAILABLE -> CutoverChecklistExportException.Code.OWNER_PROVIDER_UNAVAILABLE;
+            case INVALID_FACT -> CutoverChecklistExportException.Code.EXPORT_PROJECTION_INVALID;
         };
         return new CutoverChecklistExportException(code, exception.getMessage(), exception);
     }
