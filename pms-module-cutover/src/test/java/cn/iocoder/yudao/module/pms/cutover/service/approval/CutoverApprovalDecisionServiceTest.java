@@ -56,6 +56,7 @@ class CutoverApprovalDecisionServiceTest {
                 .containsExactly("IN_PLATFORM", "SMS", "EMAIL", "DINGTALK");
         assertThat(notifications.getAllValues()).allSatisfy(row -> {
             assertThat(row.getRecipientUserId()).isEqualTo(22L);
+            assertThat(row.getCorrelationId()).isEqualTo("corr-1");
             assertThat(row.getStatusCode()).isEqualTo("PENDING");
             assertThat(row.getNextRetryAt()).isNull();
         });
@@ -93,6 +94,7 @@ class CutoverApprovalDecisionServiceTest {
 
         verify(f.notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
                 row.getRecipientUserId().equals(44L)
+                        && "corr-reassigned-next".equals(row.getCorrelationId())
                         && "CUT_APPROVAL_EXT:100:2:2:SMS".equals(row.getDeliveryKey())));
     }
 

@@ -19,6 +19,7 @@ public class CutoverApprovalNotificationDO extends TenantBaseDO {
     private Long approvalNodeId;
     private Long recipientUserId;
     private String deliveryKey;
+    private String correlationId;
     private String templateCode;
     private String channelCode;
     private String statusCode;

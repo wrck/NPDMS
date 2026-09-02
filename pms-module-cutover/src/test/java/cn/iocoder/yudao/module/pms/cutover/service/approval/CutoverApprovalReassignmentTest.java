@@ -71,6 +71,7 @@ class CutoverApprovalReassignmentTest {
                         && row.getReassignmentNo() == 1 && row.getOperatedBy().equals(99L)));
         verify(notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
                 row.getRecipientUserId().equals(44L) && "PENDING".equals(row.getStatusCode())
+                        && "corr-r1".equals(row.getCorrelationId())
                         && "CUT_APPROVAL:100:1:1".equals(row.getDeliveryKey())));
         verify(notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
                 row.getRecipientUserId().equals(44L)

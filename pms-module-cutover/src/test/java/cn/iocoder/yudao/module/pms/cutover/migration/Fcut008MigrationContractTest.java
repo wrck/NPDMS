@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Fcut008MigrationContractTest {
 
     private final String sql = readMigration();
+    private final String correlationSql = readCorrelationMigration();
 
     @Test
     void addsAndBackfillsTheLockedForwardColumnsWithoutBusinessDefaults() {
@@ -49,9 +50,30 @@ class Fcut008MigrationContractTest {
                 .contains("DROP CHECK `chk_cut_approval_notification_status`");
     }
 
+    @Test
+    void locksCorrelationProvenanceWithoutFabricatingHistoricalValues() {
+        assertThat(correlationSql)
+                .contains("DROP PROCEDURE IF EXISTS `fcut008_require_no_external_notification_history`")
+                .contains("`channel_code` IN ('SMS','EMAIL','DINGTALK')")
+                .contains("ADD COLUMN `correlation_id` varchar(128) NULL")
+                .contains("CHAR_LENGTH(`correlation_id`) BETWEEN 1 AND 128")
+                .contains("CHAR_LENGTH(`correlation_id`) = CHAR_LENGTH(TRIM(`correlation_id`))")
+                .doesNotContain("`deleted`")
+                .doesNotContain("UPDATE `cut_approval_notification`")
+                .doesNotContain("DEFAULT");
+    }
+
     private static String readMigration() {
         try {
             return Files.readString(Path.of("../sql/migrations/V157__fcut008_p5_lead_time_notification.sql"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readCorrelationMigration() {
+        try {
+            return Files.readString(Path.of("../sql/migrations/V158__fcut008_notification_correlation_provenance.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

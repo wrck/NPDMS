@@ -14,21 +14,26 @@ public final class CutoverExternalNotificationRequestFactory {
     public List<CutoverApprovalNotificationDO> createForActivatedNode(CutoverApprovalInstanceDO instance,
                                                                        CutoverApprovalNodeDO node,
                                                                        int committedNodeVersion,
+                                                                       String correlationId,
                                                                        long actorId,
                                                                        LocalDateTime now) {
         if (instance == null || node == null || instance.getTenantId() == null || instance.getTenantId() <= 0
                 || instance.getId() == null || instance.getId() <= 0 || node.getId() == null || node.getId() <= 0
                 || node.getNodeNo() == null || node.getNodeNo() <= 0 || node.getCurrentApproverUserId() == null
-                || node.getCurrentApproverUserId() <= 0 || committedNodeVersion < 0 || actorId <= 0 || now == null) {
+                || node.getCurrentApproverUserId() <= 0 || committedNodeVersion < 0
+                || correlationId == null || correlationId.isBlank() || !correlationId.equals(correlationId.trim())
+                || correlationId.length() > 128 || actorId <= 0 || now == null) {
             throw new IllegalArgumentException("外部提醒请求来源事实不完整");
         }
-        return CHANNELS.stream().map(channel -> create(instance, node, committedNodeVersion, actorId, now, channel))
+        return CHANNELS.stream().map(channel -> create(instance, node, committedNodeVersion, correlationId,
+                        actorId, now, channel))
                 .toList();
     }
 
     private CutoverApprovalNotificationDO create(CutoverApprovalInstanceDO instance,
                                                    CutoverApprovalNodeDO node,
                                                    int committedNodeVersion,
+                                                   String correlationId,
                                                    long actorId,
                                                    LocalDateTime now,
                                                    String channel) {
@@ -39,6 +44,7 @@ public final class CutoverExternalNotificationRequestFactory {
         row.setRecipientUserId(node.getCurrentApproverUserId());
         row.setDeliveryKey("CUT_APPROVAL_EXT:" + instance.getId() + ":" + node.getNodeNo() + ":"
                 + committedNodeVersion + ":" + channel);
+        row.setCorrelationId(correlationId);
         row.setTemplateCode("CUT_APPROVAL_PENDING_V2");
         row.setChannelCode(channel);
         row.setStatusCode("PENDING");

@@ -138,6 +138,12 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 "AND event_type='CutoverApproved'", tenantId));
         assertTrue(count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'",
                 tenantId) >= expectedNodes + 3);
+        assertEquals(expectedNodes * 4, count("SELECT COUNT(*) FROM cut_approval_notification WHERE tenant_id=? " +
+                "AND approval_instance_id=? AND correlation_id IS NOT NULL", tenantId, route.approvalInstanceId()));
+        assertEquals(expectedNodes, count("SELECT COUNT(*) FROM (SELECT approval_node_id " +
+                "FROM cut_approval_notification WHERE tenant_id=? AND approval_instance_id=? " +
+                "GROUP BY approval_node_id HAVING COUNT(*)=4 AND COUNT(DISTINCT correlation_id)=1) grouped_notifications",
+                tenantId, route.approvalInstanceId()));
 
         var delivery = notificationService.deliverDue(tenantId,
                 LocalDateTime.of(2026, 9, 2, 0, 0), 50);
@@ -221,8 +227,10 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 tenantId, 8L, taskId, 4, created.planVersion(), 30L,
                 "D".equals(grade) ? simpleContent() : standardContent(),
                 "save-" + key, "corr-save-" + key));
+        String submitCorrelationId = "positive-A".equals(key) ? "A".repeat(128)
+                : "positive-B".equals(key) ? "B" : "corr-submit-" + key;
         SubmitCutoverPlanResult result = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-" + key, "corr-submit-" + key));
+                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-" + key, submitCorrelationId));
         assertEquals("P5", result.taskStage());
         if (List.of("A", "B").contains(grade)) {
             LocalDateTime submittedAt = jdbc.queryForObject("SELECT submitted_at FROM cut_plan_revision " +

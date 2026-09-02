@@ -94,6 +94,8 @@ class CutoverApprovalStartServiceTest {
         verify(notifications, times(4)).insert(notificationCaptor.capture());
         assertEquals(List.of("IN_PLATFORM", "SMS", "EMAIL", "DINGTALK"),
                 notificationCaptor.getAllValues().stream().map(CutoverApprovalNotificationDO::getChannelCode).toList());
+        assertTrue(notificationCaptor.getAllValues().stream()
+                .allMatch(value -> "corr-1".equals(value.getCorrelationId())));
         assertTrue(notificationCaptor.getAllValues().stream().allMatch(value -> value.getNextRetryAt() == null));
         assertEquals(1, platform.facts.size());
         assertEquals(CutoverApprovalApplicationException.Code.IDEMPOTENCY_CONFLICT, conflict.code());

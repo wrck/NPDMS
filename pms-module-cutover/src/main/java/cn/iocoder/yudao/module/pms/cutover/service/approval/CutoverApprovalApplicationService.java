@@ -233,7 +233,8 @@ public class CutoverApprovalApplicationService {
                 root.getTenantId(), root.getId(), oldRootVersion, root.getHoldReasonCode(),
                 String.valueOf(actorId), now)) == 1, VERSION_CONFLICT, "审批实例并发变化");
         root.setVersion(oldRootVersion + 1);
-        if ("PENDING".equals(node.getStatusCode())) insertPendingNotification(root, node, node.getVersion(), actorId, now);
+        if ("PENDING".equals(node.getStatusCode())) insertPendingNotification(root, node, node.getVersion(),
+                command.correlationId(), actorId, now);
         return reassignmentView(root, task, openNodes);
     }
 
@@ -304,7 +305,8 @@ public class CutoverApprovalApplicationService {
         if (!approve) return rejectNew(instance, task, current, feedback, correlationId, actorId, now);
         CutoverApprovalNodeDO next = nodeMapper.selectByInstanceAndNodeForUpdate(
                 new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1));
-        if (next != null) return approveIntermediate(instance, task, current.getNodeNo(), next, actorId, now);
+        if (next != null) return approveIntermediate(instance, task, current.getNodeNo(), next,
+                correlationId, actorId, now);
         return approveFinal(instance, task, current.getNodeNo(), correlationId, actorId, now);
     }
 
@@ -414,7 +416,8 @@ public class CutoverApprovalApplicationService {
             require(nodeMapper.insert(node) == 1, STATE_CONFLICT, "审批节点创建失败");
             if (index == 0) firstNode = node;
         }
-        if (hold == null) insertPendingNotifications(instance, firstNode, 0, actorId, now, "首节点通知创建失败");
+        if (hold == null) insertPendingNotifications(instance, firstNode, 0, command.correlationId(),
+                actorId, now, "首节点通知创建失败");
         return new CutoverApprovalStartResult(StartOutcome.STARTED, fact(instance));
     }
 
@@ -506,12 +509,14 @@ public class CutoverApprovalApplicationService {
     }
 
     private void insertPendingNotifications(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
-                                            int committedNodeVersion, long actorId, LocalDateTime now,
+                                            int committedNodeVersion, String correlationId,
+                                            long actorId, LocalDateTime now,
                                             String failureMessage) {
         CutoverApprovalNotificationDO row = new CutoverApprovalNotificationDO();
         row.setId(IDS.nextId()); row.setTenantId(instance.getTenantId()); row.setApprovalInstanceId(instance.getId());
         row.setApprovalNodeId(node.getId()); row.setRecipientUserId(node.getCurrentApproverUserId());
         row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + committedNodeVersion);
+        row.setCorrelationId(correlationId);
         row.setTemplateCode("CUT_APPROVAL_PENDING");
         row.setChannelCode("IN_PLATFORM"); row.setStatusCode("PENDING"); row.setRetryCount(0);
         row.setNextRetryAt(null); row.setVersion(0);
@@ -520,7 +525,7 @@ public class CutoverApprovalApplicationService {
         require(notificationMapper.insert(row) == 1, STATE_CONFLICT, failureMessage);
         for (CutoverApprovalNotificationDO external :
                 EXTERNAL_NOTIFICATION_FACTORY.createForActivatedNode(instance, node, committedNodeVersion,
-                        actorId, now)) {
+                        correlationId, actorId, now)) {
             external.setId(IDS.nextId());
             require(notificationMapper.insert(external) == 1, STATE_CONFLICT, "外部提醒请求创建失败");
         }
@@ -676,7 +681,8 @@ public class CutoverApprovalApplicationService {
     }
 
     private CutoverApprovalDecisionResult approveIntermediate(CutoverApprovalInstanceDO instance,
-            CutoverTaskDO task, int decidedNodeNo, CutoverApprovalNodeDO next, long actorId, LocalDateTime now) {
+            CutoverTaskDO task, int decidedNodeNo, CutoverApprovalNodeDO next, String correlationId,
+            long actorId, LocalDateTime now) {
         require("WAITING".equals(next.getStatusCode()), STATE_CONFLICT, "下一审批节点状态异常");
         require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(next.getTenantId(), next.getId(),
                 next.getVersion(), "WAITING", "PENDING", next.getCurrentApproverUserId(),
@@ -685,7 +691,7 @@ public class CutoverApprovalApplicationService {
                 VERSION_CONFLICT, "下一审批节点并发变化");
         instance.setCurrentNodeNo(next.getNodeNo()); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
         updateInstance(instance);
-        insertPendingNotification(instance, next, actorId, now);
+        insertPendingNotification(instance, next, correlationId, actorId, now);
         return decisionResult(instance, task, decidedNodeNo, "PENDING", task.getVersion(),
                 task.getCurrentStage(), task.getTaskStatus());
     }
@@ -744,13 +750,15 @@ public class CutoverApprovalApplicationService {
     }
 
     private void insertPendingNotification(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
-                                             long actorId, LocalDateTime now) {
-        insertPendingNotification(instance, node, node.getVersion() + 1, actorId, now);
+                                             String correlationId, long actorId, LocalDateTime now) {
+        insertPendingNotification(instance, node, node.getVersion() + 1, correlationId, actorId, now);
     }
 
     private void insertPendingNotification(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
-                                             int committedNodeVersion, long actorId, LocalDateTime now) {
-        insertPendingNotifications(instance, node, committedNodeVersion, actorId, now, "下一节点通知创建失败");
+                                             int committedNodeVersion, String correlationId,
+                                             long actorId, LocalDateTime now) {
+        insertPendingNotifications(instance, node, committedNodeVersion, correlationId,
+                actorId, now, "下一节点通知创建失败");
     }
 
     private PlatformCommandExecutionApi.SuccessFacts decisionSuccessFacts(CutoverApprovalDecisionResult result,

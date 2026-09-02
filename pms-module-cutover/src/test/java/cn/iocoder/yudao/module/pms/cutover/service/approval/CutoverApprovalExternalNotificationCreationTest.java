@@ -23,7 +23,7 @@ class CutoverApprovalExternalNotificationCreationTest {
         LocalDateTime now = LocalDateTime.of(2026, 9, 2, 9, 0);
 
         var rows = new CutoverExternalNotificationRequestFactory()
-                .createForActivatedNode(instance, node, 3, 99L, now);
+                .createForActivatedNode(instance, node, 3, "corr-node-3", 99L, now);
 
         assertThat(rows).extracting(value -> value.getChannelCode())
                 .containsExactly("SMS", "EMAIL", "DINGTALK");
@@ -37,6 +37,7 @@ class CutoverApprovalExternalNotificationCreationTest {
             assertThat(row.getApprovalNodeId()).isEqualTo(101L);
             assertThat(row.getRecipientUserId()).isEqualTo(22L);
             assertThat(row.getTemplateCode()).isEqualTo("CUT_APPROVAL_PENDING_V2");
+            assertThat(row.getCorrelationId()).isEqualTo("corr-node-3");
             assertThat(row.getStatusCode()).isEqualTo("PENDING");
             assertThat(row.getRetryCount()).isZero();
             assertThat(row.getMessageId()).isNull();
