@@ -30,8 +30,8 @@
 
 ## 阻断
 
-- Technical Plan处于`REVIEW_REQUIRED`；独立复审GO前不得进入DDL、后端、前端或测试实现。
+- Technical Plan处于`REVIEW_REQUIRED`；当前只复审提交事务外壳与OperationAuditApi八参数签名，GO前不得进入实现。
 
 ## Phase-switch checkpoint
 
-基线24d2cff4；Feature Ready已GO，唯一Technical Plan候选已形成，Implementation仍NOT_STARTED。计划按导航内核→授权导出→UI正向链推进；跨模块仅端口+src/test替身，生产Provider继续阻断真实联调/Done。
+基线b3713bca；Feature Ready已GO，Implementation仍NOT_STARTED。计划已明确平台execute独占提交事务、提交后组装导航及CUT八参数导出审计；跨模块仅端口+src/test替身。最近Gate为A/B计划单点复审。
