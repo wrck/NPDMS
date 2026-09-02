@@ -56,6 +56,7 @@
 - F-CUT-005原`IN_PLATFORM`通知保持每个激活节点必建且语义不变。V2对同一激活节点另外追加`SMS`、`EMAIL`、`DINGTALK`各一条CUT渠道记录；外部渠道不可用不影响站内待办和站内通知。
 - 初始PENDING节点和中间通过后新激活的PENDING节点按激活时的recipient/nodeVersion创建提醒。只有当前PENDING节点改派会按改派后的recipient和新nodeVersion创建新提醒；WAITING节点改派只保存改派事实，不创建任何通知，待其以后真正`WAITING→PENDING`时才使用届时的recipient/nodeVersion创建。
 - 外部渠道记录与节点激活/改派在同一业务事务中追加为`PENDING`；不得在审批写事务内调用第三方Provider。唯一键为`CUT_APPROVAL_EXT:{approvalInstanceId}:{nodeNo}:{nodeVersion}:{channel}`。
+- 每组通知意图把触发其创建的受信命令`correlationId`原样冻结到通知行。首次节点使用start命令、下一节点使用approve命令、当前PENDING改派使用reassign命令；同组`IN_PLATFORM/SMS/EMAIL/DINGTALK`四行值完全一致，创建后及重试时均不可改写。`correlationId`与`deliveryKey`是独立事实，不得彼此派生。
 - 发送端口只接收受信租户、recipientUserId、渠道、模板、deliveryKey、审批任务链接、correlationId和必要非敏感变量。手机号、邮箱和钉钉账号由对应外部Owner解析，CUT不接收、不持久化、不直读其表。
 - Provider明确受理后记录`ACCEPTED`及providerReferenceId；明确失败、请求合同错误或Owner事实损坏统一记录`PENDING_RETRY`，保存稳定错误码、retryCount、nextRetryAt和lastAttemptAt并沿同一deliveryKey退避；调用结果不确定记录`DELIVERY_UNKNOWN`且不自动重复发送。上述状态都不改变审批、节点、待办或站内消息。
 - `PENDING/PENDING_RETRY`以同一deliveryKey重试；Provider未形成时生产外部投递Job保持暂停，不注册Fake或fallback。受控替身仅存在于测试装配。
@@ -75,7 +76,8 @@
 ## 5. 数据与迁移
 
 - `cut_approval_instance`前向增加`lead_time_enabled BIT(1) NOT NULL`与`lead_time_snapshot JSON NULL`。既有行确定性标记`lead_time_enabled=0`且快照为空；迁移完成后移除默认值。新A/B实例为1且快照非空，新C/D实例为0且快照为空。
-- `cut_approval_notification`前向增加`channel_code`、`provider_reference_id`和`last_attempt_at`，扩展渠道/状态约束。既有记录确定性回填`channel_code=IN_PLATFORM`，不改deliveryKey、messageId、状态或历史时间；外部记录不得填写`message_id`。
+- `cut_approval_notification`前向增加`channel_code`、`provider_reference_id`、`last_attempt_at`和`correlation_id`，扩展渠道/状态约束。既有记录确定性回填`channel_code=IN_PLATFORM`，不改deliveryKey、messageId、状态或历史时间；既有IN_PLATFORM记录允许`correlation_id=NULL`，所有新通知四行均写入规范化1～128字符correlationId，外部记录不得填写`message_id`。
+- `correlation_id`迁移不得补造历史值；ALTER前检查包括逻辑删除历史在内的全部SMS/EMAIL/DINGTALK行，只要存在即失败关闭并保持原结构。仅有IN_PLATFORM历史行时允许升级并保持NULL；外部历史数据须另行证据化处置和审批，不得删除、取消或用deliveryKey/eventId/日志回填。
 - 不新增业务表，不迁移或双写`pms_cut_task/pms_cut_plan`，不修改已经执行的迁移；Flyway编号只在实际串行合入时确定。
 
 ## 6. 验收标准

@@ -212,7 +212,7 @@ String deliveryKey(long instanceId, int nodeNo, int nodeVersion, String channel)
 }
 ```
 
-每行模板`CUT_APPROVAL_PENDING_V2`、status=PENDING、retryCount=0、messageId/provider引用/尝试/重试字段为空。
+每行模板`CUT_APPROVAL_PENDING_V2`、status=PENDING、retryCount=0、messageId/provider引用/尝试/重试字段为空。首节点、下一节点激活和当前PENDING改派分别把对应start/approve/reassign受信命令的`correlationId`原样写入同组四行；不得由deliveryKey或日志反推。
 
 - [ ] **Step 2: 接入三个合法时点**
 
@@ -269,7 +269,7 @@ Request只含合同字段，不含phone/email/ding account/token。
 
 - [ ] **Step 2: 实现唯一事务执行边界**
 
-`CutoverExternalApprovalNotificationService`作为无事务公共Facade调用独立`CutoverExternalApprovalNotificationTransactionExecutor`；Executor的`deliverBatch` public方法标注`@Transactional`（默认REQUIRED），事务必须在`selectExternalDueForUpdateSkipLocked`前开始，并在每行端口结果完成`updateExternalDeliveryIfMatch`后才提交。领取后从锁定CUT根/节点/任务组装请求；Accepted→ACCEPTED，Unknown→DELIVERY_UNKNOWN，ExplicitFailure/端口异常/请求或Owner损坏→PENDING_RETRY。退避复用现有1/2/4/8/16/32/60分钟规则并保持同deliveryKey；任何CAS=0使该批事务回滚，不得在锁释放后盲写。
+`CutoverExternalApprovalNotificationService`作为无事务公共Facade调用独立`CutoverExternalApprovalNotificationTransactionExecutor`；Executor的`deliverBatch` public方法标注`@Transactional`（默认REQUIRED），事务必须在`selectExternalDueForUpdateSkipLocked`前开始，并在每行端口结果完成`updateExternalDeliveryIfMatch`后才提交。领取后从锁定CUT通知行读取不可变`correlationId`，并从根/节点/任务组装其余请求；Accepted→ACCEPTED，Unknown→DELIVERY_UNKNOWN，ExplicitFailure/端口异常/请求或Owner损坏→PENDING_RETRY。退避复用现有1/2/4/8/16/32/60分钟规则并保持同deliveryKey/correlationId；任何CAS=0使该批事务回滚，不得在锁释放后盲写。
 
 - [ ] **Step 3: 保持生产装配边界**
 

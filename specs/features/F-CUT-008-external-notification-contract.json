@@ -37,6 +37,12 @@
     "retry": "PENDING or PENDING_RETRY reuses the same deliveryKey; explicit failure uses server backoff; DELIVERY_UNKNOWN is excluded from automatic claim",
     "idempotency": "unique tenantId+deliveryKey; approval-command replay produces no new record"
   },
+  "correlationProvenance": {
+    "source": "the trusted correlationId of the NEW start, approve-next-node, or reassign-current-PENDING command that creates the notification intent",
+    "persistence": "the same value is stored atomically on the IN_PLATFORM, SMS, EMAIL and DINGTALK rows for that intent and is immutable",
+    "delivery": "Task 5 reads correlationId only from the locked external notification row and reuses it unchanged for every retry",
+    "forbiddenDerivation": ["deliveryKey", "eventId", "log", "currentTime", "currentNodeState", "platform audit lookup"]
+  },
   "controlledSubstitute": "src/test may supply deterministic accepted/failure/unknown results and prove the CUT positive loop; no production Fake/fallback/empty-success bean",
   "productionBoundary": "until INT-10/INT-05 Providers exist, the external delivery Job remains PAUSED; the existing IN_PLATFORM delivery remains active and authoritative for the platform todo"
 }
