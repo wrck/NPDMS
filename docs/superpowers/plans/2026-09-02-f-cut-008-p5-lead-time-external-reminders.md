@@ -44,7 +44,7 @@
 
 ---
 
-### Task 1：提前时间领域规则与不可变快照Codec
+### Task 1：提前时间领域规则与不可变快照Codec（PASS / GO @ a3443210）
 
 **Files:**
 - Create: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/leadtime/CutoverLeadTimeCalculator.java`
@@ -57,7 +57,7 @@
 - Consumes: grade、task cutoverType/scheduledTime、plan submittedAt。
 - Produces: `LeadTimeCompliance calculate(String grade,String cutoverType,LocalDateTime scheduledAt,LocalDateTime submittedAt)`及`encode/decode`。
 
-- [ ] **Step 1: 实现封闭值对象与计算器**
+- [x] **Step 1: 实现封闭值对象与计算器**
 
 ```java
 public record CutoverLeadTimeCompliance(String ruleVersion, String timezoneId, String cutoverType,
@@ -72,21 +72,21 @@ public CutoverLeadTimeCompliance calculate(String grade, String cutoverType,
 
 Map严格使用API合同十个代码；不读取字典标签、附件或当前时间，不提供默认阈值。
 
-- [ ] **Step 2: 实现精确JSON Codec**
+- [x] **Step 2: 实现精确JSON Codec**
 
 `encode`稳定输出八个exact keys；`decode`拒绝缺键/额外键、未知版本/类型及不一致的`lateSubmission`，round-trip逐字段相等。
 
-- [ ] **Step 3: 补已实现正向边界测试**
+- [x] **Step 3: 补已实现正向边界测试**
 
 覆盖十类映射及每种阈值的`required-1/required/required+1`；验证跨午夜按自然日而非24小时；C/D跳过由调用服务测试覆盖。
 
-- [ ] **Step 4: 运行聚焦测试**
+- [x] **Step 4: 运行聚焦测试**
 
 ```powershell
 mvn -pl pms-module-cutover -am -Dtest=CutoverLeadTimeCalculatorTest,CutoverLeadTimeSnapshotCodecTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-- [ ] **Step 5: 自审并提交Task 1 Gate**
+- [x] **Step 5: 自审并提交Task 1 Gate**
 
 确认计算器无Spring/Mapper/Clock依赖，规则版本与十类代码逐项等于机器合同。
 
