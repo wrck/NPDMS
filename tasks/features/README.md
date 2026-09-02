@@ -59,7 +59,7 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-COM-001 | [Task](F-COM-001.md) | NOT_STARTED；COM-A与COM-B正在按Requirement统一收敛 | [DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE](../delivery-units/DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE.md)已排他认领 | 统一规格与master验证完成前不派生COM-01完成 |
+| F-COM-001 | [Task](F-COM-001.md) | IN_PROGRESS；COM-A与COM-B按Requirement选择性集成并在master重新验证 | [DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE](../delivery-units/DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE.md)已排他认领 | 统一规格全部AC通过前不派生COM-01完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已部分集成并释放边界 | V133示例迁移与master最终运行DoD未完成；不得声明Done |
 
 ### master已集成Task代码收口回执

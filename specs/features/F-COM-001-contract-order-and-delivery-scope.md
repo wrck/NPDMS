@@ -4,7 +4,7 @@
 > Feature Ready：`NOT_READY / SUPERSEDED`
 > 实施状态：`NOT_STARTED`
 > Requirement：`COM-01（V1）`
-> Requirement切片覆盖：`COM-01@V1=FULL`
+> 历史覆盖声明（已失效）：`COM-01@V1=FULL`；不得进入当前追溯派生
 > 关联Requirement：`INT-01`、`PM-02`、`PM-04`、`EXE-01`、`ACC-04`；不宣称关联Requirement完成
 > Owner Context：`COM（合同订单履约）`
 > 外部协作Context：`PROJ`、`AST`、`IMP`、`ACC`、`PLT`、ERP集成Owner

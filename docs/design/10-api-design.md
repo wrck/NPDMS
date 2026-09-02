@@ -260,7 +260,7 @@ PROJ为F-CUT-005预留`ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAn
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |
 | AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements` | 设备归属用`actions/assign-project`；地点由AST拥有；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
-| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；F-PROJ-002先落查询、预览和分配公开契约切片，不宣称合同/订单全量同步、人工补录、对账或管理页面完成 |
+| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/commerce-authority/import-batches`、`/commerce-authority-candidates`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；COM维护人工待核对候选、显式对账、项目范围水位和范围分配/调整/释放。地点只返回项目办事处发生时快照，实施站点/位置由IMP/AST独立提供 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
@@ -278,7 +278,7 @@ F-PROJ-002另使用以下Owner公开契约：
 
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
-- `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：租户取受信上下文，项目须通过`ProjectScopeApi.ACTION_VIEW`。期望版本为null时只读inspect；非null时按项目水位→订单行→范围→明细稳定锁序重验。返回行按`scopeId+scopeDetailId`分组并稳定排序，不聚合不同产品/型号/地点；明确SN用`trim + Locale.ROOT uppercase`比较，有SN时数量等于SN数。待核对、取消、退货或释放量排除，但存在任一未解决冲突时整体失败关闭。持久项目水位覆盖空结果，版本陈旧、冲突、Owner损坏及Provider不可用分别返回稳定分类；
+- `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：租户取受信上下文，项目须通过`ProjectScopeApi.ACTION_VIEW`。期望版本为null时只读inspect；非null时按订单行→范围→明细→项目水位稳定锁序重验（写命令在进入COM前已先锁PROJ项目行，ACC绑定最后执行）。返回行按`scopeId+scopeDetailId`分组并稳定排序，不聚合不同产品/型号/序列号主体；地点只返回主范围的项目办事处发生时快照，不返回AST站点或文本位置。待核对、取消、退货或释放量排除，但存在任一未解决冲突时整体失败关闭。持久项目水位覆盖空结果，版本陈旧、冲突、Owner损坏及Provider不可用分别返回稳定分类；
 - `ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`：PROJ在受信租户下为COM交付范围写命令返回current项目经理、生命周期/阶段、项目/参与者/树版本和直管目标项目`ACTION_EDIT`组合事实；该编辑资格只由锁定目标项目行的current manager证明，不读取授权Grant或后代范围。锁定重验按根项目→目标项目→当前树版本执行，并比较经理、根身份及全部冻结轴。`NORMAL_CLOSED`只允许S6，树版本必须为正；存在的当前Owner事实必须先通过结构校验，损坏时返回Owner损坏，只有结构合法后与冻结事实不一致才返回`FACT_STALE`。当前只有公共接口和机器合同，未注册生产Provider；
 - `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
 - `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
