@@ -44,6 +44,7 @@ class Fcut008MigrationContractTest {
                 .contains("`status_code` = 'ACCEPTED'")
                 .contains("`status_code` = 'DELIVERY_UNKNOWN'")
                 .contains("`status_code` = 'PENDING_RETRY' AND `retry_count` > 0")
+                .contains("`provider_reference_id` IS NULL AND `next_retry_at` IS NOT NULL")
                 .contains("`last_attempt_at` IS NOT NULL")
                 .contains("DROP CHECK `chk_cut_approval_notification_status`");
     }

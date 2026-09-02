@@ -27,4 +27,4 @@
 
 ## 最近检查点
 
-- 基线`57e6d3db`；Task 2候选完成两表前向扩展、旧V1写入口显式`IN_PLATFORM`兼容及站内/外部领取和CAS隔离。聚焦测试18/18通过；隔离MySQL 8.4已验证V156→V157升级、旧行确定性回填、无伪默认值、四种外部状态合法路径与非法`DELIVERY_UNKNOWN`更新失败关闭。当前最近Gate为Task 2独立Code Review／隔离MySQL复审；本记录不提前宣告PASS。INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。
+- 基线`3f87003b`；Task 2首次复审仅发现外部`PENDING_RETRY`未禁止`provider_reference_id`的单点Schema阻断，现按外部端口机器合同收敛为明确失败时Provider受理编号必须为空，并补迁移合同断言。当前最近Gate为该单点整改复审；本记录不提前宣告PASS。INT-10/INT-05生产Provider、Job激活、真实渠道/浏览器与Implementation Done继续排除。

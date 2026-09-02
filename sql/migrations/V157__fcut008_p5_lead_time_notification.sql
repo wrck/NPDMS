@@ -40,7 +40,8 @@ ALTER TABLE `cut_approval_notification`
       AND ((`status_code` = 'PENDING' AND `retry_count` = 0 AND `provider_reference_id` IS NULL
           AND `next_retry_at` IS NULL AND `last_error_code` IS NULL AND `last_attempt_at` IS NULL)
         OR COALESCE((`status_code` = 'PENDING_RETRY' AND `retry_count` > 0
-          AND `next_retry_at` IS NOT NULL AND `last_attempt_at` IS NOT NULL
+          AND `provider_reference_id` IS NULL AND `next_retry_at` IS NOT NULL
+          AND `last_attempt_at` IS NOT NULL
           AND CHAR_LENGTH(TRIM(`last_error_code`)) BETWEEN 1 AND 64), FALSE)
         OR COALESCE((`status_code` = 'ACCEPTED'
           AND CHAR_LENGTH(TRIM(`provider_reference_id`)) BETWEEN 1 AND 128
