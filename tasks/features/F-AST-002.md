@@ -1,15 +1,16 @@
 # F-AST-002 设备产品类型受控副本与公开查询
 
 > Feature实施状态：`IN_PROGRESS`
+> Feature Ready Gate：`SOURCE PASS / MASTER BLOCKED_BY_SPEC`（当前`Q-GOV-20260901-001`）
 > Technical Plan Gate：`PASS / NPDMS-FAST002-TECHPLAN-20260830-01`；身份契约差量`PASS / NPDMS-FAST002-IDENTITY-CONTRACT-DELTA-20260830-FINAL`
 > Implementation Done Gate：`PENDING_MASTER_INTEGRATION_REVALIDATION`
-> 当前阻断：来源候选尚未完整进入master；历史分支Done只作证据，Requirement投影保持`EQP-01@V1=PARTIAL`
+> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC`；来源候选尚未完整进入master，历史分支Done只作证据，Requirement投影保持`EQP-01@V1=PARTIAL`
 > Requirement ID：`EQP-01（V1/P0）`
 > Feature Spec：`specs/features/F-AST-002-device-product-type-copy-and-public-query.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ast-002-device-product-type-copy-and-public-query.md`
 > 锁定规格提交：`a52b22b4`
 > 关联消费：`F-INS-001`发布与工程师选择外部Gate
-> 适用基线：`CHG-PRD-2026-08-30-010`
+> 适用基线：master `CHG-PRD-2026-09-02-010`；来源AST同号修订待唯一Change ID收敛
 
 ## 当前最小工作单元
 
@@ -41,6 +42,8 @@
 - [ ] 仅集成产品类型受控副本、公开查询、受控导入和Inspection只读适配器，重编号Flyway。
 - [ ] 在当前master复核权限、来源水位、冲突事务、授权范围、后端构建及可用MySQL证据。
 - [ ] 更新Requirement矩阵、DU回执并申请独立Implementation Done裁决。
+
+> master迁移裁决：来源分支的V146/V147只作为历史证据；进入master时按当前最大版本之后前移为V164/V165，不接收来源区间夹带的V132～V145。
 
 ## 实施范围
 

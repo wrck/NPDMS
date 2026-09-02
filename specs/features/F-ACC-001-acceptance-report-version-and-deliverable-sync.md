@@ -1,13 +1,13 @@
 # F-ACC-001 初验/终验报告版本与交付件同步 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY`
+> 文档状态：`IN_REVIEW / BLOCKED_BY_SPEC`
+> Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`
 > 实施状态：`IN_PROGRESS`
 > Requirement：`ACC-03（V1）`、`ACC-04（V1局部）`
 > Requirement切片覆盖：`ACC-03@V1=FULL；ACC-04@V1=PARTIAL`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project`及其内嵌`pms-module-project-api`；ACC与PROJ语义Owner保持分离，不新增第二套项目任务或应交清单真值
-> 适用基线：PRD V1.8修订010（ACC-03/04语义沿用修订009）；SDS Phase 2/P3-E09聚焦差量及文件事实/活动初始化补充均`READY / GO`；ADR-0039、ADR-0040 `ACCEPTED`
+> 适用基线：master PRD V1.8修订010；ACC来源分支的同号修订语义只作待收敛候选；ADR-0039、ADR-0040 `ACCEPTED`
 > Technical Plan：`NPDMS-FACC001-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`fca9626c4fce4ccf4b03efdebe997343ce7b5a42`）
 
 ## 1. 业务目标
@@ -148,7 +148,7 @@ PROJ初验/终验任务与执行契约
 | Owner/API/权限/事务与锁序 | PASS |
 | 状态、物理差量和迁移边界 | PASS |
 | 旧实现复用审计 | PASS（见独立审计文件） |
-| Open Question | Q-FCOM-002仅阻断Out of Scope退出/回退关闭路径 |
-| 独立Feature Ready裁决 | PASS（整改提交`bde0feac019baf820634ecc6a0e88272672b601d`独立复审GO） |
+| Open Question | `Q-GOV-20260901-001`阻断重复编号的ACC修订成为master全局基线；Q-FCOM-002仅阻断Out of Scope退出/回退关闭路径 |
+| 独立Feature Ready裁决 | 来源分支PASS（`bde0feac019baf820634ecc6a0e88272672b601d`）；master当前`BLOCKED_BY_SPEC` |
 
-检查点：基线=PRD修订010；当前Gate=master集成复验；已通过=来源分支Technical Plan与历史独立复审；阻塞=候选代码尚未进入master；下一步=由有效DU选择性集成并在master重新验证，不沿用旧Flyway编号或倒签Done。
+检查点：基线=master PRD修订010；当前Gate=master候选集成；已通过=来源分支Technical Plan与历史独立复审；阻塞=`Q-GOV-20260901-001`及候选代码尚未完整进入master；下一步=选择性集成并重新验证，待唯一Change ID批准后再恢复Feature Ready，不沿用旧Flyway编号或倒签Done。

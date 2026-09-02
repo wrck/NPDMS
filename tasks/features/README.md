@@ -59,9 +59,9 @@
 | F-PLT-002 | [Task](F-PLT-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
-| F-AST-002 | [Task](F-AST-002.md) | IN_PROGRESS；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | 仅形成EQP-01局部覆盖，不接收F-INS实现 |
-| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | ACC-03完整、ACC-04报告来源局部；不倒签Done |
-| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS；等待F-ACC-001后选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | ACC-02完整、ACC-04满意度来源局部；不倒签Done |
+| F-AST-002 | [Task](F-AST-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；仅形成EQP-01局部覆盖，不接收F-INS实现 |
+| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS / BLOCKED_BY_SPEC；来源Done候选待master选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-03完整、ACC-04报告来源局部 |
+| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS / BLOCKED_BY_SPEC；等待F-ACC-001后选择性集成复验 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已排他认领 | `Q-GOV-20260901-001`关闭前不恢复Ready/Done；ACC-02完整、ACC-04满意度来源局部 |
 | F-COM-001 | [Task](F-COM-001.md) | IN_PROGRESS；master已形成COM-A/COM-B Requirement合并的可构建增量，待MySQL/浏览器/独立裁决 | [DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE](../delivery-units/DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE.md)已部分集成并释放边界 | 统一规格全部AC通过前不派生COM-01完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已部分集成并释放边界 | V133示例迁移与master最终运行DoD未完成；不得声明Done |
 

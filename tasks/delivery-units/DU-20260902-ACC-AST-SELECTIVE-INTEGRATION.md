@@ -20,6 +20,7 @@
 - F-ACC-001先于F-ACC-002集成；两者只接收`21423d9c`之后的ACC/PLT/PROJ需求能力，不重复接收COM-A祖先。
 - F-AST-002只接收`a52b22b4..68bc56ec`中产品类型受控副本、公共查询、受控导入和Inspection只读适配器；排除同提交夹带的CUT/IMP/COM迁移及F-INS任务状态。
 - PRD修订010和master现行SDS优先；来源分支的生成矩阵、Gate投影和旧Flyway编号不得覆盖master，均在集成后重新生成或重编号。
+- `Q-GOV-20260901-001`保持`BLOCKED_BY_SPEC`：来源ACC/AST同号修订010不进入master；本DU只形成可构建候选增量，不恢复Feature Ready或Implementation Done。
 - 历史分支Implementation Done只作候选证据；三个Feature须在master最终内容上重新验证后再分别登记当前状态。
 
 ## 交接

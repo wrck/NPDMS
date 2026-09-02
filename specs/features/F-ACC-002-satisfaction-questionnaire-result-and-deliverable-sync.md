@@ -1,13 +1,13 @@
 # F-ACC-002 满意度问卷、达标判定与归档同步 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY`
+> 文档状态：`IN_REVIEW / BLOCKED_BY_SPEC`
+> Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`
 > 实施状态：`IN_PROGRESS`
 > Requirement切片覆盖：`ACC-02@V1=FULL；ACC-04@V1=PARTIAL`
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件与统一导出契约仅作PMS加性扩展
-> 适用基线：PRD V1.8修订010；ADR-0041、ADR-0042 `ACCEPTED`；F-ACC-002 SDS Phase 2/P3-E09 `READY / GO`（含Result失效及双向乱序补充`c1e7354c`、Result生成文件Owner补充`afa37d66`、统一异步导出补充`1df9b392`、可配置问卷与确定性计分补充`4ecc9d3b`）
+> 适用基线：master PRD V1.8修订010；ACC来源分支的同号修订语义只作待收敛候选；ADR-0041、ADR-0042 `ACCEPTED`
 > Technical Plan：`NPDMS-FACC002-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`41f92526919e8c18b11c04f188365be2105240ac`）
 
 ## 1. 业务目标
@@ -173,7 +173,7 @@
 | Owner/API/权限/事务与锁序 | PASS |
 | 状态、物理差量和迁移边界 | PASS |
 | 旧实现复用审计 | COMPLETE（见独立审计文件） |
-| Open Question | 无当前正向闭环阻断；AI-MIG-000仅阻断旧源迁移 |
-| 独立Feature Ready裁决 | GO（候选`145e4a61ea936d0679f2ec41a7d412975572e5a3`） |
+| Open Question | `Q-GOV-20260901-001`阻断重复编号的ACC修订成为master全局基线；AI-MIG-000仅阻断旧源迁移 |
+| 独立Feature Ready裁决 | 来源分支GO（`145e4a61ea936d0679f2ec41a7d412975572e5a3`）；master当前`BLOCKED_BY_SPEC` |
 
-检查点：基线=`338dcc97`；当前Gate=Implementation Done整改复审；已通过=正式工作台Response预留/签字上传/同ID提交、低分整改、匿名达标、来源归档、历史文件真实下载和统一导出同次Chromium正向闭环；阻塞=无实现阻塞；下一步=提交独立整改复审，GO前保持实施中。
+检查点：基线=master PRD修订010；当前Gate=master候选集成；已通过=来源分支正式工作台与历史独立复审；阻塞=`Q-GOV-20260901-001`及前置F-ACC-001尚未完成master复验；下一步=按有效DU串行集成并重新验证，待唯一Change ID批准后再恢复Feature Ready。

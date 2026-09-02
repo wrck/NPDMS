@@ -2,10 +2,10 @@
 
 > Feature实施状态：`IN_PROGRESS`<br>
 > 总体工程阶段：`IMPLEMENTATION`<br>
-> Feature Ready Gate：`PASS / GO`（`bde0feac`）<br>
+> Feature Ready Gate：`SOURCE PASS / MASTER BLOCKED_BY_SPEC`（来源`bde0feac`；当前`Q-GOV-20260901-001`）<br>
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
 > Implementation Done Gate：`PENDING_MASTER_INTEGRATION_REVALIDATION`<br>
-> 当前阻断：`来源候选尚未完整进入master；历史分支Done只作证据`<br>
+> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC；来源候选尚未完整进入master；历史分支Done只作证据`<br>
 > 当前任务：`由DU-20260902-ACC-AST-SELECTIVE-INTEGRATION选择性集成并复验`<br>
 > Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
