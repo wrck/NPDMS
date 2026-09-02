@@ -1,7 +1,7 @@
 # SDS Phase 3：测试设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012、SDS Phase 1/2/3 BASELINE；巡检安全审核生效引用`CHG-PRD-2026-09-02-012`
+> 适用基线：PRD V1.8修订013、SDS Phase 1/2/3 BASELINE；巡检安全审核事实与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
 > Requirement ID：附录A.1全部100项正式Requirement及附录A.1.1的111个目标版本切片；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
@@ -97,6 +97,8 @@ F-INS-001规则名称、发布与安全专项：
 - 正则覆盖1024长度、32分组、8层嵌套、31分支、64量词和区间上界1000的通过/越界，以及所有禁止结构；发布校验不得对不可信文本试匹配。
 - 秘密扫描覆盖私钥头、认证头、URL用户名密码和密码键赋值；断言只返回字段路径和`SECRET_DETECTED`，浏览器、DB、缓存、消息、日志、Trace、异常和审计均不出现命中正文。
 - AST消费者契约覆盖草稿离线编辑、发布重新校验并冻结编码/名称快照、按授权设备选择重新校验、未知/停用/来源缺失/契约不可用失败关闭、旧发布revision继续有效。
+- 安全审核权限覆盖目标租户普通角色—菜单授权和System超级管理员两条`true`路径、普通无权用户`false`、System异常、认证用户缺失及目标租户缺失；断言每次审核均在租户切换后直接调用`PermissionApi`，仅命中`SecurityFrameworkService`的`skip`不能记录事实。
+- 审核审计断言`permissionCode`精确、`authorizationType=RBAC_PERMISSION`且`authorizationSourceId`为空；不得生成`RBAC_ROLE_MENU:*`或新增System显式来源查询。
 
 INT-12专项：
 
@@ -216,7 +218,7 @@ docker compose run --rm migrate validate
 | INT-02@V2 | ITR故障入向幂等；仅回传ITR来源CUT归档结果；出向失败不回滚本地归档；技术公告仍归INT-04 | sourceKey/版本、Inbox/Outbox、重试/对账记录及本地归档事实 |
 | INT-05@V2 | OA领料/外采流程引用和转包待办链接可追溯；OA/钉钉完成不改写平台审批与业务状态 | 外部键映射、脱敏请求响应、待办链接及平台状态前后对照 |
 | INT-12@V2 | 在线巡检复用统一设备连接、凭证、任务和采集契约；不得形成第二套凭证或采集引擎 | 同一凭证/授权/CollectionTask标识、回调消费与权限审计 |
-| INS-03@V2 / INS-09@V2 | 安全审核事实只追加且仅`DRAFT`可追加；同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`允许发布；内容变化/新revision重审，审核与发布共享聚合锁/CAS，发布后不追加审核 | `PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、同时间ID倒序、摘要/revision隔离、非DRAFT拒绝及审核/发布并发真实MySQL证据 |
+| INS-03@V2 / INS-09@V2 | 安全审核事实只追加且仅`DRAFT`可追加；同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`允许发布；内容变化/新revision重审，审核与发布共享聚合锁/CAS，发布后不追加审核；审核权限在目标租户上下文直接调用System现有`PermissionApi`，普通授权和超级管理员均可通过，`false`或异常失败关闭，布尔结果不伪造授权来源 | `PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、同时间ID倒序、摘要/revision隔离、非DRAFT拒绝、审核/发布并发真实MySQL证据，以及普通授权/超级管理员/无权/System异常/租户访问skip不直接放行的权限矩阵 |
 | NFR-02@V2 | 当前命令超时终止并失败；后续命令由冻结的已发布规则决定并留痕 | 超时注入、冻结规则版本、命令序列结果、审计及秘密零明文记录 |
 
 ## 14. 缺陷、豁免与退出

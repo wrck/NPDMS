@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择引用`CHG-PRD-2026-09-02-012`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -352,7 +352,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
 | Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
-| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份的检测ID和规则名称均在租户内永久唯一，软删除不释放；revision号在规则内唯一，revision名称快照必须与稳定身份一致且不可改名；DRAFT除稳定身份字段外允许不完整，PUBLISHED由Service全量校验；阈值类型只允许`NUMBER`；命令顺序在revision内唯一且连续；产品类型在revision内唯一；安全审核事实只追加，结论只允许`PASSED/REJECTED`并绑定revision及命令/正则内容摘要，当前结论由Mapper XML按同租户、同revision、同摘要以`reviewed_at DESC, id DESC`选择，只有最后一条为`PASSED`可发布，不新增覆盖更新或额外唯一约束；同一规则最多一个当前发布revision；任务规则快照唯一；报告revision只追加 |
+| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份的检测ID和规则名称均在租户内永久唯一，软删除不释放；revision号在规则内唯一，revision名称快照必须与稳定身份一致且不可改名；DRAFT除稳定身份字段外允许不完整，PUBLISHED由Service全量校验；阈值类型只允许`NUMBER`；命令顺序在revision内唯一且连续；产品类型在revision内唯一；安全审核事实只追加，结论只允许`PASSED/REJECTED`并绑定revision及命令/正则内容摘要，当前结论由Mapper XML按同租户、同revision、同摘要以`reviewed_at DESC, id DESC`选择，只有最后一条为`PASSED`可发布；权限审计保存精确`permission_code`和`RBAC_PERMISSION`，现有System布尔接口不提供贡献路径，`authorization_source_id`保持`NULL`，不新增来源表、唯一约束或推断写入；同一规则最多一个当前发布revision；任务规则快照唯一；报告revision只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。

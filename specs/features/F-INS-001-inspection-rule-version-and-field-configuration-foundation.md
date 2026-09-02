@@ -7,8 +7,8 @@
 > Owner Context：`Inspection（SRV物理模块）`
 > 前置Feature：`F-AST-002`设备产品类型受控副本与公开查询（发布、工程师选择和Implementation Done实施Gate）；基础平台字典能力
 > 后续Feature：F-INS-002巡检任务准备与规则冻结（覆盖INS-01及INS-03剩余任务内选择/命令清单义务）、INS-02在线/离线执行、INS-05报告、INS-06问题标注、INS-08误报修订
-> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001～005`均已关闭；`Q-FINS001-006`保持`OPEN / BLOCKED_BY_SPEC`
-> 适用基线：master PRD V1.8修订012；修订011统一承接来源巡检基础语义，修订012只关闭Q-FINS001-005最后审核事实生效；SDS Phase 1/2/3 `BASELINE`
+> Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001～006`均已关闭
+> 适用基线：master PRD V1.8修订013；修订011统一承接来源巡检基础语义，修订012关闭Q-FINS001-005最后审核事实生效，修订013关闭Q-FINS001-006并批准复用System现有布尔权限接口及超级管理员语义；SDS Phase 1/2/3 `BASELINE`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：Feature Ready规格提交锁定后生成唯一计划
 
@@ -48,7 +48,7 @@
 - 基础平台拥有字典能力；Inspection只使用正式检测分类和严重级别字典值，不修改Yudao基础平台实现。
 - CRM/MES拥有产品和设备来源事实；F-AST-002由AST保存设备可解析的产品分类受控副本并提供公开查询。Inspection保存稳定编码与发布时名称快照，不维护第二套产品类型库，不实现连接器。
 - Device Access & Collection拥有凭证、授权、CollectionTask和外部执行证据；本Feature不连接设备、不下发命令。
-- 命令安全审核由PRD定义的审批/任务角色组在Inspection规则revision上记录，绑定命令/正则内容摘要；事实只追加，同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效。本Feature不新增审批角色、节点或生命周期状态；审核授权事实Provider仍由Q-FINS001-006阻断。
+- 命令安全审核由PRD定义的审批/任务角色组在Inspection规则revision上记录，绑定命令/正则内容摘要；事实只追加，同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效。租户访问拦截器建立目标租户上下文后，Inspection以当前审核人直接调用System现有`PermissionApi.hasAnyPermissions`判定专用权限；普通角色—菜单授权或System超级管理员返回`true`均允许审核，`false`或异常失败关闭。`SecurityFrameworkService`的租户访问`skip`不能单独作为审核结论。本Feature不新增审批角色、节点、生命周期状态或System接口。
 - 旧实现结论见复用审计，固定为`COPY_THEN_ENHANCE / PRESERVE_LEGACY / CURRENT_FORWARD_FIELD_REVIEW`。
 
 ## 4. 状态与不变量
@@ -78,6 +78,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - 命令、正则、阈值或适用范围任何变化都形成新revision，不覆盖历史。
 - 发布前扫描全部用户输入文本中的私钥头、认证头、URL内嵌用户名密码和密码赋值；明确占位符不按明文Secret处理。命中只返回字段路径和`SECRET_DETECTED`，不得回显或记录秘密正文。
 - 安全审核事实只允许在`DRAFT`追加；同租户、同revision、同摘要按`reviewed_at DESC, id DESC`选择最后结论，仅最后`PASSED`允许发布。`reviewed_at`由服务端生成，时间相同时更大事实ID生效；内容变化或新revision必须重审，权限撤销不回写历史，需要撤销时追加`REJECTED`。
+- 审核事实保存当前目标`tenantId`、审核人、精确权限码和`authorizationType=RBAC_PERMISSION`；System现有布尔接口不提供权限贡献路径且可能由超级管理员命中，因此`authorizationSourceId`为空，不得伪造角色—菜单来源。
 
 ## 5. 权限与数据范围
 
@@ -86,7 +87,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 | 查询规则与历史 | `pms:inspection-rule:query` | 当前租户；已发布/停用历史只读 |
 | 创建/编辑草稿 | `pms:inspection-rule:manage` | 当前租户、DRAFT、If-Match一致 |
 | 校验草稿 | `pms:inspection-rule:manage` | 当前租户、DRAFT；无业务副作用 |
-| 记录安全审核 | `pms:inspection-rule:security-review` | 当前租户、DRAFT、PRD定义的审批/任务角色组、revision与内容摘要一致；维护或发布权限不自动授予审核权 |
+| 记录安全审核 | `pms:inspection-rule:security-review` | 目标租户上下文、当前认证用户、DRAFT、revision与内容摘要一致；直接调用System现有`PermissionApi.hasAnyPermissions`，普通角色—菜单授权或System超级管理员返回`true`均允许，`false`或异常失败关闭；维护或发布权限不自动授予审核权 |
 | 发布规则 | `pms:inspection-rule:publish` | 当前租户、DRAFT、字段校验、安全审核事实、发布CAS |
 | 停用规则 | `pms:inspection-rule:disable` | 当前租户、PUBLISHED、停用CAS |
 | 工程师选择 | `pms:inspection-rule:select` | 当前租户、授权设备、当前有效revision、产品类型适用 |
@@ -108,7 +109,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - `POST /revisions/{revisionId}/actions/disable`：按`If-Match`停用。
 - `GET /selectable`：按授权设备和产品类型返回当前有效已发布规则，不返回停用或不适用项。
 
-所有列表分页并稳定排序；发布与停用不接受客户端状态字段。外部产品类型和安全审核契约不可用时，发布失败关闭且旧版本继续有效。
+所有列表分页并稳定排序；发布与停用不接受客户端状态字段。AST产品类型契约不可用时发布失败关闭且旧版本继续有效。安全审核直接复用System现有布尔权限接口，不新增System API；现有未装配`InspectionRuleExplicitAuthorizationApi`合同不得继续作为生产入口实现基础。
 
 ## 7. 数据与前向迁移边界
 
@@ -118,7 +119,7 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 - `srv_inspection_rule_revision`：不可变发布revision、包含稳定名称的八字段快照、发布停用和审计事实；名称快照必须与稳定身份一致。
 - `srv_inspection_rule_command_revision`：revision从属命令项，revision内执行顺序唯一。
 - `srv_inspection_rule_product_type_revision`：revision从属产品类型编码及名称快照，revision内产品类型唯一。
-- `srv_inspection_rule_security_review`：绑定revision、内容摘要、审核主体角色组、`PASSED/REJECTED`结论和时间的追加发布前置事实；同租户同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效，只有最后`PASSED`可发布。
+- `srv_inspection_rule_security_review`：绑定revision、内容摘要、审核用户、精确权限码、`RBAC_PERMISSION`、可空授权来源、`PASSED/REJECTED`结论和时间的追加发布前置事实；同租户同revision同摘要按`reviewed_at DESC, id DESC`最后事实生效，只有最后`PASSED`可发布。复用System布尔接口时授权来源保持空值。
 
 Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物理关系、唯一约束和Owner。
 
@@ -139,7 +140,7 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 - 同一草稿并发保存或发布使用`If-Match`/乐观锁；陈旧请求拒绝且无半发布。
 - 重复发布、停用或复制请求按业务幂等键处理，不重复生成有效revision。
 - 审计记录八字段前后值、命令前后值、校验结果、安全审核引用、发布停用、失败原因、操作者和时间，不记录秘密明文。
-- AST产品分类查询或安全审核校验不可用、未知时失败关闭，不用缓存猜测有效性；草稿保存不要求依赖校验成功，发布必须重验。
+- AST产品分类查询不可用、未知时发布失败关闭，不用缓存猜测有效性；安全审核权限由目标租户上下文中的System现有`PermissionApi`即时判定，返回`false`、无上下文或调用异常时不追加事实。草稿保存不要求依赖校验成功，发布必须重验AST与最后审核事实。
 - 记录审核与发布遵循相同规则聚合锁顺序；发布在锁内重算摘要并重新选择最后事实。发布后拒绝追加审核，纠正通过新草稿revision完成。
 
 ## 10. 验收标准
@@ -156,7 +157,7 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 - AC-FINS001-010：停用规则不再出现在新任务可选列表，但历史revision仍可查询和解释。
 - AC-FINS001-011：工程师只能选择适用于授权设备产品类型的当前已发布规则；跨租户、无设备范围、不适用和已停用规则均拒绝。
 - AC-FINS001-012：无发布权限、错误If-Match、直接写状态和旧接口越权均被服务端拒绝且无业务副作用。
-- AC-FINS001-012A：无`pms:inspection-rule:security-review`权限、非PRD审批/任务角色组、跨租户或内容摘要不一致时拒绝记录安全审核；维护者和发布者不因自身权限自动获得审核权。
+- AC-FINS001-012A：目标租户普通授权用户或System超级管理员经现有`PermissionApi.hasAnyPermissions`返回`true`时可记录安全审核；无专用权限、无认证用户、无目标租户、System异常、仅命中租户访问`skip`或内容摘要不一致时拒绝且无业务副作用。维护者和发布者不因自身权限自动获得审核权；审核事实的`authorizationSourceId`为空。
 - AC-FINS001-013：旧接口和页面保持原功能不变且不双写；旧`pms_srv_rule`只按可证明字段受控前向迁移，缺失字段不推断，不完整记录不得成为可选发布revision。
 - AC-FINS001-014：同租户同名规则并发创建最多一个成功；跨租户同名允许，停用或软删除后同租户仍不得复用名称，失败请求无孤立身份或revision。
 - AC-FINS001-015：后端自动化、真实MySQL前向迁移、前端检查和真实浏览器四档视口通过，控制台无错误。
@@ -172,4 +173,4 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 
 当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-03`，替代`NPDMS-FINS001-FEATURE-READY-20260901-02`。
 
-INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。master PRD修订011已统一关闭超时上限、AST产品类型来源、受限JDK正则子集和规则名称稳定身份四项冲突；修订012已关闭Q-FINS001-005并冻结最后审核事实生效、重审与并发边界。Requirement切片、Owner、状态、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结；`Q-FINS001-006`继续阻断审核授权事实Provider、生产审核入口、完整发布放行和Implementation Done。F-AST-002实际契约交付仍是发布、工程师选择和Done的实施Gate。本结论不表示完整发布、浏览器验收或Implementation Done已通过。
+INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。master PRD修订011已统一关闭超时上限、AST产品类型来源、受限JDK正则子集和规则名称稳定身份四项冲突；修订012已关闭Q-FINS001-005并冻结最后审核事实生效、重审与并发边界；修订013已关闭Q-FINS001-006，批准目标租户上下文内复用System现有布尔权限接口并保留超级管理员语义。Requirement切片、Owner、状态、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结。当前无F-INS-001规格阻断，但Task 8仍须替换未装配显式来源端口、实现最后事实查询、生产审核入口与完整发布，并完成真实MySQL和浏览器验证。F-AST-002实际契约交付仍是发布、工程师选择和Done的实施Gate。本结论不表示完整发布、浏览器验收或Implementation Done已通过。

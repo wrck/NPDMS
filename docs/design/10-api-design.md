@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：API 设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核权限差量引用`CHG-PRD-2026-09-02-013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
@@ -246,11 +246,13 @@ PROJ为F-CUT-005预留`ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAn
 
 | Context | API | 约束 |
 |---|---|---|
-| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 创建稳定身份要求检测ID和规则名称；草稿允许其余八字段及命令/判定/产品适用关系为空或不完整，`validate/publish`按发布完整性返回字段级错误；阈值数据类型只接受`NUMBER`；安全审核结论只接受`PASSED/REJECTED`并绑定当前revision与命令/正则摘要，只有`PASSED`允许发布；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
+| Inspection | `/inspection-rules`、`/{id}/revisions`、`/revisions/{revisionId}/actions/{validate|record-security-review|publish|disable}`、`/selectable` | 创建稳定身份要求检测ID和规则名称；草稿允许其余八字段及命令/判定/产品适用关系为空或不完整，`validate/publish`按发布完整性返回字段级错误；阈值数据类型只接受`NUMBER`；`record-security-review`在目标租户上下文以当前审核人直接调用System现有`PermissionApi.hasAnyPermissions`判定专用权限，普通授权或System超级管理员返回`true`均放行，`false`或异常失败关闭；安全审核只接受`PASSED/REJECTED`并追加绑定当前revision与命令/正则摘要，发布按`reviewed_at DESC, id DESC`最后结论判定且仅`PASSED`放行；发布revision只读；选择查询按授权设备的AST产品类型过滤；任务冻结规则版本 |
 | Inspection | `/inspection-tasks`、`/{id}/actions/{precheck|dispatch|complete|archive}` | 在线通过 DAC；离线文件走受控上传；模式互斥 |
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
+
+Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String... permissions)`，不新增System接口、DTO或查询。审核入口必须从受信认证上下文取得`userId`，在租户访问拦截器已设置的目标`TenantContextHolder`内仅传入精确权限码`pms:inspection-rule:security-review`；不得接收客户端提交的租户、审核人或替代权限码。该直接调用不经过`SecurityFrameworkService`的租户访问`skipPermissionCheck`短路，返回`true`时沿用System既有角色—菜单与超级管理员语义，返回`false`或抛出异常时Inspection不追加审核事实。布尔结果只记录`authorizationType=RBAC_PERMISSION`，`authorizationSourceId`为空。现有内部`InspectionRuleExplicitAuthorizationApi`不得继续扩展为第二套契约，Task 8应删除或收口该未装配端口。
 
 历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
 

@@ -536,22 +536,22 @@
 - Why it blocks design/implementation: 当前模型允许追加多条审核事实；选择“存在通过”或“最新结论”都会改变发布业务结果与审计解释，Implementation不得静默决定。
 - Recommended technical default: 按`reviewed_at DESC, id DESC`最后一条事实为当前结论；内容变化或新revision必须重新审核，历史事实不覆盖。
 - Resolution: 需求方于2026-09-02确认采用方案A，master以`CHG-PRD-2026-09-02-012`冻结：审核事实只追加，仅`DRAFT`可追加；同租户、同revision、同摘要按`reviewed_at DESC, id DESC`最后事实生效，最后`PASSED`允许发布、最后`REJECTED`阻断；摘要变化或新revision必须重审，权限撤销不追溯改写历史，需要撤销时追加`REJECTED`；审核与发布共享聚合锁/CAS，发布后纠正走新草稿revision。
-- Blocking scope: 已解除审核事实选择语义阻断；生产审核授权Provider与完整发布仍由`Q-FINS001-006`阻断。
+- Blocking scope: 已解除审核事实选择语义阻断；`Q-FINS001-006`随后由master修订013关闭，当前剩余Task 8实现与验收缺口。
 - Decision owner: 需求方、安全Owner、SRV Owner
 - Decision date: 2026-09-02
 
 ### Q-FINS001-006
 
-- Status: OPEN / BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: INS-03、INS-09
-- Area: 巡检安全审核显式RBAC授权事实适配
-- Question: 哪个公开Owner能力提供当前租户、用户、专用权限码的显式授权事实及稳定`authorizationSourceId`？
-- Why it blocks design/implementation: 现有System布尔权限接口包含超级管理员放行，Inspection不得直读`system_*`表、硬编码角色或提供默认放行适配器；涉及Yudao基础平台，未经批准不得修改。
-- Recommended technical default: System新增公开只读显式权限事实API，只认当前租户有效用户—角色—菜单显式关系，不应用超级管理员或skip放行。
-- Resolution: 待确认。
-- Blocking scope: F-INS-001 Task 8安全审核生产入口、审核事实写入及相关验收；不阻断发布/停用普通权限守卫和其他独立工作。
+- Area: 巡检安全审核复用System现有布尔权限判定
+- Question: 安全审核是否必须新增显式角色—菜单来源事实接口，还是复用现有布尔权限接口，并如何处理超级管理员、租户访问`skip`及`authorizationSourceId`？
+- Why it blocks design/implementation: 生产审核入口必须区分租户访问上下文切换阶段的`skipPermissionCheck`与切换后的目标租户全新权限判定，同时确认超级管理员是否属于合法审核主体；否则Task 8无法确定守卫和审计合同。
+- Recommended technical default: 已由需求方裁决覆盖；不得继续采用新增System显式事实API且排除超级管理员的来源方案。
+- Resolution: 需求方于2026-09-02确认支持超级管理员，并认定System现有布尔权限接口满足需求。master以`CHG-PRD-2026-09-02-013`冻结：租户访问拦截器先完成目标租户上下文切换，Inspection再以当前审核人直接调用`PermissionApi.hasAnyPermissions(actorId, "pms:inspection-rule:security-review")`执行目标租户全新判定；显式角色—菜单授权或System超级管理员任一返回`true`均可审核。`SecurityFrameworkService`的`skipPermissionCheck`只服务租户切换，不能单独作为审核结论。无用户、无租户、返回`false`或System异常时失败关闭且不追加事实。审核记录使用`authorizationType=RBAC_PERMISSION`，现有布尔结果不提供贡献路径且可能来自超级管理员，故`authorizationSourceId`为空，不伪造角色—菜单来源。不新增或修改Yudao System接口、Mapper、表或权限语义。
+- Blocking scope: 规格阻断已解除；允许从最新master新建DU实施Task 8的直接`PermissionApi`守卫、最后事实查询、审核入口和完整发布。现有`InspectionRuleExplicitAuthorizationApi`合同已被替代，必须在该实现切片删除或收口；Feature仍须完成代码、MySQL、浏览器和DoD验证后才能Done。
 - Decision owner: 需求方、安全Owner、平台权限Owner
-- Decision date: 待确认
+- Decision date: 2026-09-02
 
 ## F-PROJ-008 实施阻断
 
@@ -582,7 +582,7 @@
 - Options: A. 保留ACC修订010编号，以新的正式Change ID重新批准INS/AST两项语义；B. 保留INS/AST修订010编号，以新的正式Change ID重新批准ACC问卷语义；C. 发布新的并行基线收敛修订，完整引用两条原始提交与冲突编号，为每项语义给出唯一后续身份，并明确修订011是被替代的部分候选。
 - Recommended technical default: C；保留原分支提交为不可变历史，不直接重编号或覆盖其文本，在新的收敛修订中为010/011全部语义给出唯一后续身份和完整输入清单。
 - Business decision required: 是；需要需求方决定两项业务语义是否均保留及其正式Change ID，并重新形成完整PRD Baseline Gate。
-- Resolution: 需求方于2026-09-02确认继续选择性集成。master以`CHG-PRD-2026-09-02-011`统一承接F-INS来源分支修订009～012，保留master既有PROJ修订009和COM修订010；所有来源编号只作不可变历史证据，不再作为master正式引用。该收敛不转记任何Feature Done；其后Q-FINS001-005由`CHG-PRD-2026-09-02-012`独立关闭，Q-FINS001-006继续阻断完整发布。
+- Resolution: 需求方于2026-09-02确认继续选择性集成。master以`CHG-PRD-2026-09-02-011`统一承接F-INS来源分支修订009～012，保留master既有PROJ修订009和COM修订010；所有来源编号只作不可变历史证据，不再作为master正式引用。该收敛不转记任何Feature Done；其后Q-FINS001-005由`CHG-PRD-2026-09-02-012`独立关闭，Q-FINS001-006由`CHG-PRD-2026-09-02-013`按现有布尔权限与超级管理员方向独立关闭，完整发布仍待Task 8实现和验证。
 - Blocking scope: 已解除Change ID与全局基线阻断；F-INS完整发布仍受其Feature专属问题约束。
 - Decision owner: 需求方/产品组；ACC、AST、INS、PROJ领域Owner参与影响分析
 - Decision date: 2026-09-02

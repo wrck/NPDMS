@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择引用`CHG-PRD-2026-09-02-012`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -226,7 +226,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 InspectionRule稳定身份持有规则名称并在租户内永久唯一；停用、软删除和新revision均不释放名称，同一稳定身份的后续revision沿用原名称，历史revision不可改名。稳定身份创建时检测ID和规则名称必填；DRAFT revision的其余业务字段及从属命令、产品类型允许暂为空或不完整。进入PUBLISHED前必须全量补齐并校验；阈值数据类型固定为`NUMBER`，同时具备运算符、数值和单位。
 
-InspectionRule的检测分类和严重度由基础平台字典提供，产品类型引用使用AST公开查询；Inspection只保存稳定机器码和发布时名称快照。规则安全审核作为revision发布前置追加事实，结论只允许`PASSED/REJECTED`并绑定当前revision及命令/正则内容摘要；同一租户、同一revision和同一摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论，仅最后`PASSED`允许发布。内容摘要变化或新revision必须重新审核；审核权限撤销不追溯改写历史，需要撤销当前结论时追加`REJECTED`。字典值或产品类型不存在、停用以及Owner契约不可用时新发布失败关闭，历史revision仍按快照解释。
+InspectionRule的检测分类和严重度由基础平台字典提供，产品类型引用使用AST公开查询；Inspection只保存稳定机器码和发布时名称快照。规则安全审核作为revision发布前置追加事实，结论只允许`PASSED/REJECTED`并绑定当前revision及命令/正则内容摘要；同一租户、同一revision和同一摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论，仅最后`PASSED`允许发布。审核权限由目标租户上下文中的System现有`PermissionApi`布尔结果判定，普通角色—菜单授权和System超级管理员均可通过；审核事实保存`permissionCode`与`authorizationType=RBAC_PERMISSION`，`authorizationSourceId`固定为空，不从布尔结果推断关系来源。内容摘要变化或新revision必须重新审核；审核权限撤销不追溯改写历史，需要撤销当前结论时追加`REJECTED`。字典值或产品类型不存在、停用以及Owner契约不可用时新发布失败关闭，历史revision仍按快照解释。
 
 ## 9. Customer、Asset、Commerce 与 Resource
 

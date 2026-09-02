@@ -6,13 +6,13 @@
 |---|---|
 | 产品 | 项目实施交付管理平台 |
 | 版本 | V1.8 |
-| 当前修订 | `CHG-PRD-2026-09-02-012`（V1.8修订012） |
+| 当前修订 | `CHG-PRD-2026-09-02-013`（V1.8修订013） |
 | 状态 | 正式基线 |
 | 源文件 | `需求/PRD-项目实施交付管理平台.md` |
 | 快照 | `docs/baseline/prd-v1.8.md` |
-| SHA-256 | `6E1BF4731DE8467817FF74523C0603F03874CB4C48A25891807BB10ADB137F9E` |
+| SHA-256 | `23DFCC0218861570A0DE80BC8A830F62A6312BE9AC7D08125E25AD74B3396FE2` |
 | 生效日期 | 2026-09-02 |
-| 变更报告 | `docs/reports/2026-09-02-PRD-V1.8修订012基线变更报告.md` |
+| 变更报告 | `docs/reports/2026-09-02-PRD-V1.8修订013基线变更报告.md` |
 
 ## 批准范围
 
@@ -29,7 +29,8 @@
 - 五类双机部署规范性检查按明细固定为VSM双机17项、静默双机25项、DRP双机23项、普通双机24项、集群8项，合计97项；原124不再作为CUT-07/CUT-09发布或验收数量，也不推定其组成。
 - 项目BPM定义身份只冻结定义key并保存实例实际`processDefinitionId`与完整`taskDefinitionKey`；既有流程版本列仅作历史，新写为空，不新增PMS流程版本模型。
 - COM-01按Requirement合并COM-A与COM-B：交付范围地点唯一冻结项目办事处部门发生时快照，AST站点/位置属于IMP/AST；同时纳入人工候选对账、项目范围版本、当前范围查询和ACC精确版本绑定。
-- F-INS-001在修订011基础上由修订012关闭Q-FINS001-005：同租户、同revision、同摘要按`reviewed_at DESC, id DESC`最后审核事实决定发布资格，并冻结追加事实及审核/发布锁边界。Q-FINS001-006继续阻断生产审核授权Provider与完整发布，不因基线批准转记Feature Done。
+- F-INS-001在修订011基础上由修订012关闭Q-FINS001-005：同租户、同revision、同摘要按`reviewed_at DESC, id DESC`最后审核事实决定发布资格，并冻结追加事实及审核/发布锁边界；修订012当时未处理Q-FINS001-006，后续由修订013独立关闭。
+- F-INS-001由修订013关闭Q-FINS001-006：租户访问完成目标租户上下文切换后，Inspection直接复用System现有`PermissionApi.hasAnyPermissions`重新判定专用权限；普通授权和System超级管理员均可审核，`authorizationSourceId`为空，不新增Yudao System接口。Task 8实现、生产入口与Feature Done仍须独立验证。
 - Requirement覆盖由Feature Spec覆盖声明和Feature Task权威状态自动派生；PRD签署不冻结或反向覆盖当前实现计数。
 
 ## 校验记录
@@ -47,7 +48,7 @@
 
 | 责任域 | 批准人 | 批准时间 | 备注 |
 |---|---|---|---|
-| 业务范围 | 需求方确认COM Requirement合并、剩余Feature选择性集成及Q-FINS001-005方案A | 2026-09-02 | 保留修订009/010；修订011收敛F-INS基础语义；修订012只关闭Q005，Q006与Yudao System扩展不在批准范围 |
+| 业务范围 | 需求方确认COM Requirement合并、剩余Feature选择性集成、Q-FINS001-005方案A及Q-FINS001-006现有布尔权限方案 | 2026-09-02 | 保留修订009/010；修订011收敛F-INS基础语义；修订012关闭Q005；修订013关闭Q006并拒绝新增Yudao System接口 |
 | 领域规格 | 生成一致性校验通过 | 2026-09-02 | 正式Requirement数量与唯一Owner未漂移；COM-01及INS-03/09派生规格均保持同步 |
 | 技术架构 | F-PROJ-008下游Gate独立通过 | 2026-09-01 | ADR/SDS/Feature Ready/Technical Plan分别留证；PRD修订本身不批准Implementation Done |
 | 数据迁移 | 【待补充】 | 【待补充】 | 仅迁移/切换发布由AI-MIG-000单独放行，并绑定批准窗口 |

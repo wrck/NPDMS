@@ -1,12 +1,12 @@
 baseline:
   product: project-delivery-platform
   version: V1.8
-  revision: CHG-PRD-2026-09-02-012
+  revision: CHG-PRD-2026-09-02-013
   status: formal-baseline
   frozen_at: 2026-09-02
   source: 需求/PRD-项目实施交付管理平台.md
   snapshot: docs/baseline/prd-v1.8.md
-  sha256: 6E1BF4731DE8467817FF74523C0603F03874CB4C48A25891807BB10ADB137F9E
+  sha256: 23DFCC0218861570A0DE80BC8A830F62A6312BE9AC7D08125E25AD74B3396FE2
 
 scope:
   formal_requirements: 100
@@ -32,7 +32,7 @@ ownership:
 
 validation:
   semantic: "py -3.13 -B scripts/validate_prd_semantics.py --prd 需求/PRD-项目实施交付管理平台.md"
-  baseline_structure: "py -3.13 -B scripts/validate_prd_baseline.py --prd 需求/PRD-项目实施交付管理平台.md --report docs/reports/2026-09-02-PRD-V1.8修订012基线变更报告.md --expected-version V1.8 --expected-status 正式基线"
+  baseline_structure: "py -3.13 -B scripts/validate_prd_baseline.py --prd 需求/PRD-项目实施交付管理平台.md --report docs/reports/2026-09-02-PRD-V1.8修订013基线变更报告.md --expected-version V1.8 --expected-status 正式基线"
   domain_generation: "py -3.13 -B scripts/validate_prd_domain_generation.py --prd 需求/PRD-项目实施交付管理平台.md --domains specs/001-project-delivery-platform/domains"
   requirement_traceability: "py -3.13 -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md --coverage-output docs/traceability/requirement-version-coverage.json --check"
   unit: "py -3.13 -B scripts/tests/test_validate_prd_semantics.py"

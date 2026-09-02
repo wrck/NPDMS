@@ -14,7 +14,7 @@
 
 本轮2026-08-21起非排除分支审计输入为`master@dff24f780f531a712c92c7da1b687f980b475824`、截点`2026-09-02T09:59:14.3053640+08:00`，见[2026-08-21起分支Feature收口时间线](../../docs/generated/branch-history-audit-2026-09-02-post-20260821-feature-convergence.md)。时间范围包含2026-08-21当日，明确排除`codex/f-cut-001-matrices`与`feat-inspection-feature-xkjuCC`的Feature/代码合并裁决，但完整报告仍冻结二者HEAD以防通过继承关系绕过排除。报告共记录22个分支、16个Worktree、567条master外提交和2个stash；19个非排除、非master分支中10个已是master祖先，9个仍显示分支外历史。去除master及两个排除分支已包含的提交后共有179条去重候选提交，最终`MERGE_APPROVED=0`，不制造空merge或重复代码。
 
-本轮剩余Feature选择性集成以`DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION`冻结三条接收截点：`feat-inspection-feature-xkjuCC@7fe168af`、`codex/f-cut-001-matrices@faed8387`、`codex/f-proj-008-stage-advance@48175aa0`。F-INS-001由`6eb7c89e`接收Task 4～7、Task 8停用及内部发布CAS基础；CUT/PLT由`c9066332`接收F-CUT-002～009受控闭环和F-CUT-010 Task 1～3，Flyway统一重排为V173～V192。F-PROJ-008 Task 3因`Q-FPROJ-009`未关闭继续拒绝集成。F-INS来源随后前进到`1895a5e7`并将Q-FINS001-005/006与Yudao System扩展捆绑，整提交继续隔离；需求方现已单独批准方案A，master通过`DU-20260902-FINS001-Q005-DECISION-CLOSURE`重建修订012并只关闭Q-FINS001-005。Q-FINS001-006、来源System投影和2个未提交文件仍未接收。分支HEAD、提交标题和历史Gate只作来源证据，均不得覆盖下列master Task状态。
+本轮剩余Feature选择性集成以`DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION`冻结三条接收截点：`feat-inspection-feature-xkjuCC@7fe168af`、`codex/f-cut-001-matrices@faed8387`、`codex/f-proj-008-stage-advance@48175aa0`。F-INS-001由`6eb7c89e`接收Task 4～7、Task 8停用及内部发布CAS基础；CUT/PLT由`c9066332`接收F-CUT-002～009受控闭环和F-CUT-010 Task 1～3，Flyway统一重排为V173～V192。F-PROJ-008 Task 3因`Q-FPROJ-009`未关闭继续拒绝集成。F-INS来源随后前进到`1895a5e7`并将Q-FINS001-005/006与Yudao System扩展捆绑，整提交继续隔离；master通过Q005/Q006两个独立治理DU分别重建修订012/013，关闭最后事实语义并批准现有布尔权限接口与超级管理员方向。来源System新增API、排除超级管理员、稳定角色—菜单来源和2个未提交文件仍未接收。分支HEAD、提交标题和历史Gate只作来源证据，均不得覆盖下列master Task状态。
 
 ### 2026-08-21起非排除分支逐项裁决
 
@@ -75,14 +75,14 @@
 | F-CUT-008 | [Task](F-CUT-008.md) | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY；代码已进入`c9066332` | 同上 | 外部通知生产端口与最终验收未闭合 |
 | F-CUT-009 | [Task](F-CUT-009.md) | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY；代码已进入`c9066332` | 同上 | 生产授权事实与最终验收未闭合 |
 | F-CUT-010 | [Task](F-CUT-010.md) | IN_PROGRESS / IMPLEMENTATION_TASK_4；仅Task 1～3代码进入`c9066332` | 同上 | Task 4及以后未完成，不得倒签Implementation Done |
-| F-INS-001 | [Task](F-INS-001.md) | IMPLEMENTATION_IN_PROGRESS；Task 4～7、Task 8停用及内部发布CAS基础已进入`6eb7c89e` | [Q005裁决DU](../delivery-units/DU-20260902-FINS001-Q005-DECISION-CLOSURE.md)已完成规格收口 | Q-FINS001-005已关闭但实现/测试未完成；Q-FINS001-006继续阻断生产审核、完整发布和Implementation Done |
+| F-INS-001 | [Task](F-INS-001.md) | IMPLEMENTATION_IN_PROGRESS；Task 4～7、Task 8停用及内部发布CAS基础已进入`6eb7c89e` | [Q005裁决DU](../delivery-units/DU-20260902-FINS001-Q005-DECISION-CLOSURE.md)与[Q006裁决DU](../delivery-units/DU-20260902-FINS001-Q006-DECISION-CLOSURE.md)已完成规格收口 | Q-FINS001-005/006均已关闭；Task 8仍缺现有布尔权限守卫、最后事实查询、生产审核入口、完整发布和Implementation Done验证 |
 
 ### master已集成Task代码收口回执
 
 | 已集成单元 | 来源实现 | master代码回执 | 当前代码事实 | 分支合并裁决 |
 |---|---|---|---|---|
 | F-CUT-001矩阵增量 | `07b6eb06` | `c61e5b1e` | 23个Java/SQL/Python/TypeScript/Vue实现与测试路径当前存在；来源与回执稳定patch-id相同 | 隔离代码分支已通过`master@dc55b92a`真实双亲merge进入主干；Feature仍为`IN_PROGRESS` |
-| F-INS-001 Task 4～8独立基础 | `feat-inspection-feature-xkjuCC@7fe168af` | `6eb7c89e` | Task 4～7、Task 8停用及内部发布CAS基础已选择性进入master链；来源V148～V150重排为V173～V175 | Q-FINS001-005已由master修订012关闭但尚无代码回执；Q-FINS001-006仍阻断生产审核和完整发布；Feature保持`IMPLEMENTATION_IN_PROGRESS` |
+| F-INS-001 Task 4～8独立基础 | `feat-inspection-feature-xkjuCC@7fe168af` | `6eb7c89e` | Task 4～7、Task 8停用及内部发布CAS基础已选择性进入master链；来源V148～V150重排为V173～V175 | Q-FINS001-005/006已由master修订012/013关闭；尚无权限守卫、最后事实、生产审核/完整发布代码回执，Feature保持`IMPLEMENTATION_IN_PROGRESS` |
 | F-CUT-002～010与PLT迁移证据 | `codex/f-cut-001-matrices@faed8387` | `c9066332` | 556个正式SDS、Java/XML/POM、SQL、TypeScript/Vue与测试路径；来源PLT V144、CUT V146～V161重排为master V176～V192 | 只接收CUT/PLT所需切片，不接收共享线COM/IMP等旁支；F-CUT-002～009保持受控替身/阻断状态，F-CUT-010只接收Task 1～3 |
 | F-PROJ-008 Task 1 | `0c7a9634` | `db876b43` | 30个Java/XML/POM实现与测试路径当前存在；master适配补强PROCESS正向谓词与未知Provider失败关闭 | 源分支继承其他Feature历史，禁止整支merge；以master适配回执为代码集成事实 |
 | F-PROJ-008 Task 2 | `d69b3ff8` | `158118d0` | 30个Java/XML实现与测试路径当前存在；master适配补强REST前缀、幂等、相邻阶段和失败关闭 | 源分支Task 3及继承历史未批准，禁止整支merge；Task 1/2代码已真实位于master |
@@ -123,7 +123,7 @@
 | COM-A、ACC-001、ACC-002 | `codex/f-acc-001-sds@58576666`；完成证据`563daac1/ad5b401f/8ed75093` | COM-A=`SELECTIVELY_INTEGRATED@4ee98f05`；ACC-001=`SELECTIVELY_INTEGRATED@e53f7243`；ACC-002=`SELECTIVELY_INTEGRATED@b3e7c76e`；历史Done未倒签到master | 后续COM或ACC运行复验均须新建DU；三个Feature状态按各自Task维护 |
 | COM-B | CUT/PROJ共享线，自`c21745a9`开始；已通过Task 1～4 Gate至`3e26a537`；PROJ资格契约最终提交`86ea27de` | 非重复需求能力=`SELECTIVELY_INTEGRATED@4ee98f05`；Spec/Task/Plan保留为历史需求来源；PROJ公共契约`master@f1cf7920`已独立接收 | 不得恢复原整段cherry-pick；后续只以master统一Feature继续 |
 | F-AST-002 | `a52b22b4..68bc56ec` | `SELECTIVELY_INTEGRATED@524a70e7 / IN_PROGRESS`；不是F-INS-001脏改动的一部分 | 已接收AST能力和Inspection只读适配并释放边界；Feature Ready已恢复，仍待master运行复验和独立Done裁决 |
-| F-INS-001 | 接收截点`feat-inspection-feature-xkjuCC@7fe168af`；晚到HEAD=`1895a5e7` | `SELECTIVELY_INTEGRATED@6eb7c89e / IMPLEMENTATION_IN_PROGRESS`；Task 4～7、Task 8停用及内部发布CAS基础已接收；`1895a5e7`未整合 | master修订012只重建Q-FINS001-005方案A；Q-FINS001-006、System扩展及来源未提交文件继续隔离。下一实施须从最新master新建DU，不回来源分支续写 |
+| F-INS-001 | 接收截点`feat-inspection-feature-xkjuCC@7fe168af`；晚到HEAD=`1895a5e7` | `SELECTIVELY_INTEGRATED@6eb7c89e / IMPLEMENTATION_IN_PROGRESS`；Task 4～7、Task 8停用及内部发布CAS基础已接收；`1895a5e7`未整合 | master修订012/013分别重建Q005最后事实和Q006现有布尔权限方案；来源System扩展及未提交文件继续隔离。下一实施须从最新master新建DU，不回来源分支续写 |
 | F-CUT-001 | `08457e39..72ccb83f` -> `07b6eb06` -> `master@c61e5b1e` -> merge `dc55b92a` | `INTEGRATED_PARTIAL / SOURCE_BRANCH_IN_MASTER`；Feature权威状态仍为`IN_PROGRESS / MASTER_REVALIDATION` | 新建DU完成V133示例迁移与合入后独立MySQL/真实浏览器最终DoD |
 | F-CUT-002～009 | `codex/f-cut-001-matrices@faed8387` | `SELECTIVELY_INTEGRATED@c9066332 / IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；各Task的BLOCKED/NOT_READY状态保持 | 先补各生产Owner、真实MySQL和浏览器证据，再独立裁决；不得用受控替身声明Done |
 | F-CUT-010 | `codex/f-cut-001-matrices@faed8387` | `SELECTIVELY_INTEGRATED@c9066332 / IN_PROGRESS`；仅Task 1～3已接收 | 从最新master新建DU继续Task 4，不回多Feature来源分支续写 |
@@ -137,7 +137,7 @@
 
 ## 全部分支分类
 
-- 已完成本轮选择性集成：`feat-inspection-feature-xkjuCC@7fe168af`的批准代码切片由`6eb7c89e`接收，`codex/f-cut-001-matrices@faed8387`的CUT/PLT切片由`c9066332`接收；两条来源分支都未整支合并。F-INS晚到`1895a5e7`继续整提交隔离，仅Q-FINS001-005方案A由master修订012独立重建；Q-FINS001-006和2个未提交文件未接收。`codex/f-proj-008-stage-advance`仍只迁入Task 1-2，Task 3继续拒绝。
+- 已完成本轮选择性集成：`feat-inspection-feature-xkjuCC@7fe168af`的批准代码切片由`6eb7c89e`接收，`codex/f-cut-001-matrices@faed8387`的CUT/PLT切片由`c9066332`接收；两条来源分支都未整支合并。F-INS晚到`1895a5e7`继续整提交隔离，Q-FINS001-005/006分别由master修订012/013独立重建；来源System扩展和2个未提交文件未接收。`codex/f-proj-008-stage-advance`仍只迁入Task 1-2，Task 3继续拒绝。
 - 历史来源候选：`codex/integrate-f-cut-001`；其适配范围已进入master，不能再作为当前状态源或新实施基础。
 - 冻结而不再承接实施：`codex/f-cut-001-matrices@faed8387`、`feat-inspection-feature-xkjuCC`（接收截点`7fe168af`，当前晚到HEAD`1895a5e7`）和`codex/f-proj-008-stage-advance@48175aa0`。已接收范围以master回执为准，未接收的继承历史、旁支Feature、晚到PRD候选、Task 3和工作树脏改动继续隔离。
 - COM选择性来源：`codex/f-acc-001-sds`中的COM-A祖先段与COM-B共享线；仅由当前Requirement合并DU按能力接收，禁止任一整支覆盖master。F-AST-002提交段仍为独立完成候选。

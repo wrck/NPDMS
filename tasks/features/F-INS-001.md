@@ -3,17 +3,17 @@
 > Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`Q-FINS001-006`阻断Task 8生产审核授权Provider、公开审核入口和完整发布放行；Q-FINS001-005已由master修订012关闭但对应代码/测试尚未实施，停用切片与内部发布CAS基础已分别通过独立GO，当前最近Gate仍为Task 8
+> 当前阻断：`Q-FINS001-005/006`规格问题均已关闭；Task 8仍缺目标租户`PermissionApi`审核守卫、最后审核事实查询、生产审核入口和完整发布放行代码/测试。停用切片与内部发布CAS基础已分别通过独立GO，当前最近Gate仍为Task 8实施
 > Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
 > Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md`
 > 锁定实施输入提交：`27b5b4b3`
-> master集成映射：`来源分支PRD修订009～012统一收口为master修订011；Q-FINS001-005由master修订012独立关闭；来源Flyway V148～V150重编号为master V173～V175`
+> master集成映射：`来源分支PRD修订009～012统一收口为master修订011；Q-FINS001-005/006分别由master修订012/013独立关闭；来源Flyway V148～V150重编号为master V173～V175`
 
 ## 当前最小工作单元
 
-* Task 8为当前最小工作单元：在Q-FINS001-006关闭后实现生产安全审核与完整发布。Task 7已通过`NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`；审核/发布必须共享聚合锁，发布事务重新读取基础平台字典、AST权威名称及同租户同revision同摘要按`reviewed_at DESC, id DESC`确定的最后审核事实，不得信任草稿名称或锁外预读结论。
+* Task 8为当前最小工作单元：从最新master新建DU，删除或收口未装配`InspectionRuleExplicitAuthorizationApi`，使安全审核守卫在目标租户上下文中直接调用System现有`PermissionApi.hasAnyPermissions`，并实现最后审核事实查询、生产审核入口与完整发布。Task 7已通过`NPDMS-FINS001-TASK7-SECOND-REVIEW-20260902-01`；审核/发布必须共享聚合锁，发布事务重新读取基础平台字典、AST权威名称及同租户同revision同摘要按`reviewed_at DESC, id DESC`确定的最后审核事实，不得信任草稿名称或锁外预读结论。
 
 ## 已完成
 
@@ -29,6 +29,8 @@
 
 * 需求方于2026-09-02确认Q-FINS001-005采用方案A，master修订012已冻结审核事实只追加、仅DRAFT可审核、同revision同摘要最后事实生效、摘要/新revision重审、权限撤销不回写历史及审核/发布共享聚合锁边界。该规格关闭不等于实现完成。
 
+* 需求方于2026-09-02确认Q-FINS001-006支持超级管理员并复用现有布尔权限接口，master修订013已冻结：租户访问拦截器完成目标租户上下文切换后，Inspection以当前审核人直接调用System现有`PermissionApi.hasAnyPermissions`重新判定专用权限；普通授权或System超级管理员返回`true`均允许审核，`false`或异常失败关闭；`authorizationSourceId`为空，不新增Yudao System接口。该规格关闭不等于Task 8实现完成。
+
 * 已明确第三方采集平台、设备凭证和任务执行不在本Feature实现范围。
 
 * 已生成并自审唯一Technical Plan，覆盖AST外部Gate、安全审核、后端、迁移、前端、测试、真实浏览器和追溯收口；历次NO-GO问题已整改，独立复审GO。
@@ -41,7 +43,7 @@
 
 * 唯一Technical Plan已明确Task 2只做外部Gate/API边界预验收，不核销未知、停用、未解析、跨租户、空设备范围或AST异常下的Inspection生产消费行为；这些义务分别在Task 7/8发布预检与发布、Task 9工程师选择入口实现后验证；`git diff --check` PASS。
 
-* Task 3已冻结巡检侧`InspectionRuleExplicitAuthorizationApi`端口；守卫核对当前租户、用户、专用权限码和`RBAC_PERMISSION`并失败关闭，System侧适配器及守卫Bean装配按外部能力后置，未提供虚假默认实现。
+* Task 3历史提交曾冻结巡检侧`InspectionRuleExplicitAuthorizationApi`端口；该端口未装配、未形成生产入口。master修订013已替代其“显式来源事实”设计，Task 8必须删除或收口该端口，改为与现有管理/发布守卫一致地直接消费`PermissionApi`，并同步权限测试；历史摘要服务与失败关闭边界继续有效。
 
 * Task 3纯内容摘要只覆盖按执行顺序规范化的命令、超时、继续策略和预期正则，拒绝重复或非正数顺序，输出小写64位SHA-256；7项Java定向测试、9项Python门禁和38模块server package PASS，独立复审GO。
 
@@ -55,7 +57,7 @@
 
 * master已从`feat-inspection-feature-xkjuCC@7fe168af`选择性接收Task 4～7、Task 8停用及内部发布CAS基础，来源迁移V148～V150重编号为V173～V175；未接收源工作树未提交变更，也未把分支Gate转记为Feature Done。master复验PRD语义/基线与DU校验PASS，F-INS Python门禁24项PASS，JDK 25 Maven定向测试85项`Failures: 0 / Errors: 0 / Skipped: 17`且23模块Reactor `BUILD SUCCESS`；17项MySQL用例因本次未启用外部测试库而保持跳过，沿用来源提交内已记录的真实MySQL证据但不将本次结果伪报为重跑通过。
 
-* 来源分支在上述冻结点后新增`1895a5e7`，将`Q-FINS001-005/006`捆绑批准并授权扩展Yudao System公开权限API；master未整合该提交，只依据需求方本次明确选择，将Q-FINS001-005语义重编号并独立落为修订012。Q-FINS001-006、Yudao System扩展和来源工作树Technical Plan/Task两项未提交修改继续隔离，不构成实现或提交证据。
+* 来源分支在上述冻结点后新增`1895a5e7`，将`Q-FINS001-005/006`捆绑批准并授权扩展Yudao System公开权限API；master未整合该提交。master先将Q-FINS001-005方案A独立重建为修订012，再按需求方最新裁决将Q-FINS001-006以“复用现有布尔接口并支持超级管理员”重建为修订013；来源提交中的新System API、排除超级管理员、稳定角色—菜单来源及来源工作树未提交修改继续拒绝接收，不构成实现或提交证据。
 
 ## 首轮Technical Plan评审核销
 
@@ -72,7 +74,7 @@
 
 ## 阻断
 
-`Q-FINS001-005`已由master修订012关闭，但最后事实选择、DRAFT审核限制及审核/发布并发测试尚未实现。现有`InspectionRuleSecurityReviewMapper.xml#selectListValidByRevisionIdsInternal`在排序前过滤`conclusion_code = 'PASSED'`，只能证明“存在通过”，不满足最后事实语义；该查询当前没有公开发布调用方，不构成已放行行为，但Task 8实现前必须替换并补真实MySQL顺序/并发证据。`Q-FINS001-006`继续等待显式RBAC审核授权事实Provider及Yudao System公开API是否获批；其阻断生产审核入口和完整发布放行。Task 8停用、平台幂等、拒绝/成功审计及发布CAS基础保持既有GO，Task 4～7均已有独立GO。
+`Q-FINS001-005/006`规格问题均已关闭，不再存在`BLOCKED_BY_SPEC`。实现仍未闭环：现有`InspectionRuleSecurityReviewMapper.xml#selectListValidByRevisionIdsInternal`在排序前过滤`conclusion_code = 'PASSED'`，只能证明“存在通过”，不满足最后事实语义；未装配`InspectionRuleExplicitAuthorizationApi`也不符合修订013的现有布尔权限方案。二者当前均无公开发布调用方，不构成已放行行为。Task 8必须替换查询、删除或收口该端口、直接装配`PermissionApi`守卫，并补普通授权/超级管理员/无权/System异常/租户访问skip、最后事实顺序和审核/发布并发的真实MySQL及服务测试。Task 8停用、平台幂等、拒绝/成功审计及发布CAS基础保持既有GO，Task 4～7均已有独立GO。
 
 ## 已知边界
 
@@ -82,8 +84,8 @@
 
 * `srv_inspection_task_rule_snapshot`及INS-01/02运行时消费后置，不提前实现。
 
-* Yudao基础平台未获明确允许不得修改；仅复用其现有通用能力。
+* Yudao基础平台不得修改；修订013明确只复用其现有`PermissionApi.hasAnyPermissions`能力。
 
 ## 检查点
 
-基线=master修订012；当前Gate=Task8；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试，Q-FINS001-005方案A已正式落位；阻塞=Q-FINS001-006显式RBAC Provider，且Q005对应实现/测试未完成；下一步=先取得Q006明确裁决，再从最新master新建DU实现审核入口、最后事实选择与完整发布，未裁决前不得增加生产入口或宣称Feature Done。
+基线=master修订013；当前Gate=Task8实施；证据=来源`7fe168af`的停用与内部发布CAS基础已选择性集成并在master完成JDK25构建/85项定向测试，Q-FINS001-005/006已分别由修订012/013正式关闭；阻塞=无规格阻断，剩余为现有布尔权限守卫、最后事实查询、生产审核入口与完整发布的代码/测试缺口；下一步=从最新master新建DU实施Task8，不回来源分支续写，不修改Yudao System，不得提前宣称Feature Done。

@@ -37,7 +37,7 @@
 | [F-CUT-008](F-CUT-008-p5-lead-time-and-external-reminders.md) | P5提前时间判断与外部提醒 | CUT-05（V2） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY（代码回执`c9066332`） |
 | [F-CUT-009](F-CUT-009-p3-authorized-export-and-navigation.md) | P3授权清单导出与受控流程跳转 | CUT-03（V2） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY（代码回执`c9066332`） |
 | [F-CUT-010](F-CUT-010-cutover-spare-system-coordination.md) | 割接备件系统协同 | CUT-08（V2） | BASELINE | READY / GO | IN_PROGRESS / IMPLEMENTATION_TASK_4（仅Task 1～3进入`c9066332`） |
-| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（V2局部）、INS-09（V2） | BASELINE（master修订012关闭Q-FINS001-005） | READY / GO | IMPLEMENTATION_IN_PROGRESS（代码回执`6eb7c89e`；Q-FINS001-006及Q005实现缺口阻断完整发布） |
+| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（V2局部）、INS-09（V2） | BASELINE（master修订012/013关闭Q-FINS001-005/006） | READY / GO | IMPLEMENTATION_IN_PROGRESS（代码回执`6eb7c89e`；无规格阻断，Task 8权限守卫、最后事实查询和生产审核/发布仍待实现） |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 

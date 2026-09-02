@@ -9,6 +9,7 @@ PLAN = ROOT / "docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-versi
 TASK = ROOT / "tasks/features/F-INS-001.md"
 FEATURE = ROOT / "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md"
 Q005_AMENDMENT = ROOT / "docs/baseline/prd-v1.8-amendment-012-inspection-security-review-last-fact.md"
+Q006_AMENDMENT = ROOT / "docs/baseline/prd-v1.8-amendment-013-inspection-security-review-boolean-permission.md"
 OPEN_QUESTIONS = ROOT / "docs/decisions/open-questions.md"
 LOCKED_INPUT = "27b5b4b3"
 REQUIREMENT_IDS = {"INS-03", "INS-09", "NFR-02"}
@@ -67,22 +68,33 @@ class FIns001PlanAndScopeTest(unittest.TestCase):
         self.assertIn("不新增产品类型表或从`ast_*`表直读", plan)
         self.assertIn("旧`pms_srv_rule`", plan)
 
-    def test_q005_last_review_fact_is_closed_without_closing_q006(self):
-        amendment = Q005_AMENDMENT.read_text(encoding="utf-8-sig")
+    def test_q005_and_q006_are_closed_with_distinct_decisions(self):
+        q005_amendment = Q005_AMENDMENT.read_text(encoding="utf-8-sig")
+        q006_amendment = Q006_AMENDMENT.read_text(encoding="utf-8-sig")
         feature = FEATURE.read_text(encoding="utf-8-sig")
         task = TASK.read_text(encoding="utf-8-sig")
+        plan = PLAN.read_text(encoding="utf-8-sig")
         questions = OPEN_QUESTIONS.read_text(encoding="utf-8-sig")
 
-        for text in (amendment, feature, task):
+        for text in (q005_amendment, feature, task):
             self.assertIn("reviewed_at DESC, id DESC", text)
-        self.assertIn("Q-FINS001-005`方案A", amendment)
-        self.assertIn("不关闭`Q-FINS001-006`", amendment)
-        self.assertIn("Q-FINS001-006`保持`OPEN / BLOCKED_BY_SPEC", feature)
-        self.assertIn("`Q-FINS001-006`阻断Task 8", task)
+        self.assertIn("Q-FINS001-005`方案A", q005_amendment)
+        self.assertIn("不关闭`Q-FINS001-006`", q005_amendment)
+        for text in (q006_amendment, feature, task, plan):
+            self.assertIn("PermissionApi.hasAnyPermissions", text)
+            self.assertIn("超级管理员", text)
+        self.assertIn("不新增System API", q006_amendment)
+        self.assertIn("authorizationSourceId`保持为空", q006_amendment)
+        self.assertIn("当前无F-INS-001规格阻断", feature)
+        self.assertIn("无规格阻断", task)
+        self.assertIn("InspectionRuleExplicitAuthorizationApi", plan)
+        self.assertIn("删除或收口", plan)
         q005 = questions.split("### Q-FINS001-005", 1)[1].split("### Q-FINS001-006", 1)[0]
         q006 = questions.split("### Q-FINS001-006", 1)[1].split("### ", 1)[0]
         self.assertIn("Status: RESOLVED", q005)
-        self.assertIn("Status: OPEN / BLOCKED_BY_SPEC", q006)
+        self.assertIn("Status: RESOLVED", q006)
+        self.assertIn("PermissionApi.hasAnyPermissions", q006)
+        self.assertIn("authorizationSourceId`为空", q006)
 
 
 if __name__ == "__main__":

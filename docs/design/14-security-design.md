@@ -1,7 +1,7 @@
 ﻿# SDS Phase 3：安全设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订012及批准增量`CHG-PRD-2026-08-27-004`；巡检安全审核生效引用`CHG-PRD-2026-09-02-012`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-27-004`；巡检安全审核事实与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
 > Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部100项正式Requirement、111个目标版本切片的认证、授权、数据隔离、文件、集成和审计安全
 > Owner：SDS Phase 3安全架构；业务授权Owner继承07，凭证Owner继承Device Access & Collection
 > 前置设计：07、10、12、13、15、16分册
@@ -121,12 +121,15 @@ Browser
 
 ## 6.1 巡检规则命令与正则安全
 
-- INS-03/09规则revision发布前必须完成命令与正则安全审核；审核事实绑定tenantId、ruleRevisionId、命令/正则内容摘要、审核主体角色组、结论和时间。结论机器码只允许`PASSED/REJECTED`。
+- INS-03/09规则revision发布前必须完成命令与正则安全审核；审核事实绑定tenantId、ruleRevisionId、命令/正则内容摘要、审核用户、精确权限码、`RBAC_PERMISSION`、可空授权来源、结论和时间。结论机器码只允许`PASSED/REJECTED`。
 - 审核事实只追加、不覆盖，且仅`DRAFT`可追加。同一租户、同一revision和同一内容摘要按`reviewed_at DESC, id DESC`最后一条事实确定当前结论；只有最后`PASSED`允许发布，最后`REJECTED`、未审核或摘要不一致时拒绝发布。内容变化或新revision必须重新审核；权限撤销不追溯修改历史事实，需要撤销时追加`REJECTED`。
 - 审核与发布共享规则聚合锁/CAS，发布事务在锁内重新选择最后事实；发布后不得继续追加审核，纠正通过新草稿revision完成。旧发布revision继续有效，审核事实不引入新的规则生命周期状态。
+- 安全审核授权复用System现有`PermissionApi.hasAnyPermissions`。租户访问拦截器先完成目标租户上下文切换，Inspection再以受信认证上下文中的当前审核人和精确权限码`pms:inspection-rule:security-review`直接调用该API；不得把客户端tenant/user输入或`SecurityFrameworkService`的租户访问`skipPermissionCheck`短路作为审核依据。
+- System布尔结果保留既有角色—菜单和超级管理员语义，任一返回`true`均可审核；返回`false`、无认证用户、无目标租户或调用异常时失败关闭且不追加事实。布尔结果不提供贡献路径且可能来自超级管理员，故`authorizationSourceId`为空，不得伪造`RBAC_ROLE_MENU:*`、角色编码或角色名称。
+- Inspection不得直读`system_*`表、硬编码角色或建立默认放行；本裁决不新增System API、DTO、Mapper、表或授权状态。现有未装配`InspectionRuleExplicitAuthorizationApi`合同已被替代，Task 8必须改为直接消费`PermissionApi`并删除或收口该端口。
 - 服务端正则语法基线固定为JDK 25 `java.util.regex.Pattern`受限子集：最多1024个UTF-16代码单元、32个分组、8层嵌套、31个分支符、64个量词节点、区间量词上界1000。禁止反向引用、环视、命名捕获、原子组、局部内联标志、嵌套量词、带分支分组量化、无上界区间量词和PCRE专有结构；发布校验只解析和编译，不对不可信设备输出试匹配。
 - 发布前扫描所有用户可输入文本中的私钥头、认证头、URL凭证和密码赋值；命中即拒绝发布，对外只返回字段路径和`SECRET_DETECTED`，审计不得保存或回显命中正文。规则、审核、日志和导出不得包含设备密码、私钥、认证头或其他Secret。
-- 高风险或交互式命令只有在PRD定义的审批/任务角色组明确批准当前内容摘要后才可发布；本设计不新增审批节点或固定组织角色。
+- 高风险或交互式命令只有在专用权限布尔判定通过的审批/任务角色组成员或System超级管理员审核当前内容摘要，且最后结论为`PASSED`时才可发布；本设计不新增审批节点或固定组织角色。
 
 ## 7. API、输入、输出与浏览器安全
 

@@ -1,12 +1,12 @@
 # F-INS-001 巡检规则版本与字段配置基础 Implementation Plan
 
-> master集成映射：来源分支PRD修订009～012由`CHG-PRD-2026-09-02-011`统一承接；`CHG-PRD-2026-09-02-012`仅关闭Q-FINS001-005最后审核事实生效语义，Q-FINS001-006保持阻断；来源迁移V148～V150在master重编号为V173～V175。下文保留原Gate与来源验证编号作为历史证据，实际主干路径以V173～V175为准。
+> master集成映射：来源分支PRD修订009～012由`CHG-PRD-2026-09-02-011`统一承接；`CHG-PRD-2026-09-02-012`关闭Q-FINS001-005最后审核事实生效语义，`CHG-PRD-2026-09-02-013`关闭Q-FINS001-006并批准目标租户上下文内复用System现有布尔权限接口及超级管理员语义；来源迁移V148～V150在master重编号为V173～V175。下文保留原Gate与来源验证编号作为历史证据，实际主干路径以V173～V175为准。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在`pms-module-service`内建立Inspection领域唯一的巡检规则稳定身份与不可变revision真值，完成八字段、命令列表、产品类型适用范围、安全审核、原子发布、停用、历史读取和工程师选择闭环，同时保持旧`srv-rule`实现不变。
 
-**Architecture:** 新实现使用独立`inspectionrule`包和`/api/v1/pms/inspection-rules`接口，不修改、不双写旧`pms_srv_rule`、旧Controller、旧页面和旧权限。规则稳定身份、revision、命令、产品类型快照与安全审核事实分别持久化；领域纯规则负责字段、命令、正则、阈值和秘密扫描，应用Service负责租户、专用权限、AST前置、CAS、摘要、事务和审计编排。AST设备产品分类公开查询契约是发布和选择闭环的前置门禁；安全审核由服务端再次校验`pms:inspection-rule:security-review`，不解析角色贡献关系，不在Inspection内建立第二套产品类型或角色主数据。
+**Architecture:** 新实现使用独立`inspectionrule`包和`/api/v1/pms/inspection-rules`接口，不修改、不双写旧`pms_srv_rule`、旧Controller、旧页面和旧权限。规则稳定身份、revision、命令、产品类型快照与安全审核事实分别持久化；领域纯规则负责字段、命令、正则、阈值和秘密扫描，应用Service负责租户、专用权限、AST前置、CAS、摘要、事务和审计编排。AST设备产品分类公开查询契约是发布和选择闭环的前置门禁；安全审核在租户访问拦截器完成目标租户上下文切换后，直接调用System现有`PermissionApi.hasAnyPermissions`校验`pms:inspection-rule:security-review`，沿用普通角色—菜单和超级管理员布尔语义，不解析角色贡献关系，不新增System接口，也不在Inspection内建立第二套产品类型或角色主数据。
 
 **Tech Stack:** Java 25、Spring Boot 4.1、Spring Security、MyBatis-Plus/XML、MySQL 8.4、Flyway 11、JUnit 5、Mockito、Vue 3.5、TypeScript 6、Element Plus、pnpm 9.15、Vitest、Chrome DevTools真实浏览器。
 
@@ -31,9 +31,9 @@
 - 正式状态只允许`DRAFT -> PUBLISHED -> DISABLED`；客户端不得直接提交状态，发布和停用只能通过action API。
 - 已发布和已停用revision只读；修改必须复制为同一稳定身份的新草稿。规则名称归属稳定身份并在租户内永久唯一，停用、软删除和新revision不释放；复制revision必须沿用原名称，任何revision改名拒绝。
 - 单命令超时默认30秒，只允许1～30秒正整数；不实现31秒及以上或任何超时审批分支。
-- 稳定身份创建只强制检测ID和规则名称；DRAFT其余八字段、命令、判定配置和适用产品类型允许为空或不完整并可保存。发布时必须重新校验完整性、字典、AST产品类型、安全审核摘要、正则、固定`NUMBER`阈值、命令顺序、秘密扫描、租户、权限和CAS；安全审核事实只追加且仅DRAFT可追加，同租户同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`可发布，任一失败保持草稿，旧发布revision继续有效。Q-FINS001-006关闭前不得提供生产审核入口或完整发布放行。
+- 稳定身份创建只强制检测ID和规则名称；DRAFT其余八字段、命令、判定配置和适用产品类型允许为空或不完整并可保存。发布时必须重新校验完整性、字典、AST产品类型、安全审核摘要、正则、固定`NUMBER`阈值、命令顺序、秘密扫描、租户、权限和CAS；安全审核事实只追加且仅DRAFT可追加，同租户同revision同摘要按`reviewed_at DESC, id DESC`最后结论生效，仅最后`PASSED`可发布，任一失败保持草稿，旧发布revision继续有效。Q-FINS001-006已由master修订013关闭，Task 8须按该裁决完成生产审核入口和完整发布放行。
 - 产品类型由AST公开契约提供；Inspection只保存稳定编码和发布时显示名称快照，不新增产品类型表或从`ast_*`表直读。
-- 安全审核只记录具备`pms:inspection-rule:security-review`专用权限的当前用户对命令与正则内容摘要作出的结论；不新增审批流程、节点、固定组织角色或规则生命周期状态。
+- 安全审核只记录目标租户上下文中经System现有`PermissionApi.hasAnyPermissions`返回`true`的当前用户对命令与正则内容摘要作出的结论；普通角色—菜单授权和System超级管理员均允许。审核事实保存`RBAC_PERMISSION`且`authorizationSourceId`为空；不新增审批流程、节点、固定组织角色、System接口或规则生命周期状态。
 - 所有新增查询遵守“一场景一Query对象”；简单单表查询使用`LambdaQueryWrapperX`，联表、动态集合、锁查询和并发发布SQL进入Mapper XML；禁止SQL注解、`${}`和`.last(...)`。
 - 新能力按“最小正向实现 -> 补充定向测试 -> 运行定向测试 -> 必要整改 -> 完整回归”推进；修复既有缺陷时可先补可稳定复现该缺陷的测试。
 - 每个Task先完成该工作单元列出的最小实现，再补同Task所列测试并运行；静态保护门禁可在实现前建立，但不得因新目录或新文件尚不存在而失败。
@@ -58,7 +58,7 @@ Task 1 静态实施门禁与唯一性检查
 ```
 
 - Task 2仅验收AST Owner独立交付的公开契约、API形状、模块依赖和后续消费所需事实字段，不创建Inspection生产消费组件，也不创建、修改或迁移任何AST文件。未知、停用、未解析、跨租户、空设备范围及契约不可用下的Inspection真实失败关闭，分别由Task 7/8发布预检与发布、Task 9工程师选择的生产入口验证。对应AST Feature Spec与当前Task未建立时标记`BLOCKED_BY_SPEC`并登记`docs/decisions/open-questions.md`；不得宣称发布、选择或Feature闭环完成。
-- Task 3未通过时，不得以硬编码角色、仅前端按钮替代服务端审核守卫。审核主体采用租户内显式授予`pms:inspection-rule:security-review`的动态权限包成员，不要求追溯“哪个角色贡献权限”，不新增固定角色。
+- Task 3/8不得以硬编码角色、仅前端按钮或`SecurityFrameworkService`租户访问`skip`替代服务端审核守卫。目标租户上下文建立后必须直接调用System现有`PermissionApi`；普通专用权限成员和System超级管理员均按现有布尔结果通过，不要求追溯“哪个角色贡献权限”，不新增固定角色。
 - Task 5已于2026-09-01重新扫描Flyway编号：当前最高为V147，锁定使用连续空闲编号V148～V150。集成前必须再次扫描；若编号已占用，只允许将三个文件整体前向顺延到新的连续空闲编号，不修改已执行迁移。
 
 ## 3. 文件职责
@@ -182,27 +182,29 @@ Expected：外部Gate已具备时PASS，且Maven报告确认`AssetProductTypeCon
 
 ---
 
-### Task 3: 实现专用权限动态授权与内容摘要契约
+### Task 3: 实现专用权限判定与内容摘要契约
 
 **Files:**
 
-- Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java`
-- Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java`
+- Remove in Task 8: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleExplicitAuthorizationApi.java`
+- Modify: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuard.java`
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestService.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleSecurityReviewPermissionGuardTest.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/security/InspectionRuleContentDigestServiceTest.java`
+- Modify in Task 8: `scripts/tests/test_fins001_owner_and_query_boundary.py`
 
 - [ ] **Step 1: 实现最小解析与摘要服务**
 
-巡检模块定义`InspectionRuleExplicitAuthorizationApi`端口，按当前租户、当前登录用户和专用权限码查询“显式RBAC授予”事实；守卫不得直接复用会对超级管理员或权限跳过上下文自动放行的通用`SecurityFrameworkService.hasPermission`。本Task只冻结巡检侧端口、未注册容器的守卫和消费测试，不直读`system_*`表、不修改Yudao基础平台、不实现System侧适配器；适配器及守卫Bean装配待外部授权能力完备后继续实施，当前不得提供虚假默认实现。审核事实中的`authorizationType`固定为`RBAC_PERMISSION`，`authorizationSourceId`仅在平台自然提供稳定来源时保存。
+历史Task 3曾冻结未装配的`InspectionRuleExplicitAuthorizationApi`显式来源端口；master修订013已替代该设计。Task 8必须删除或收口该端口，使守卫在`TenantContextHolder`目标租户上下文建立后，从受信认证上下文取得当前用户并直接调用System现有`PermissionApi.hasAnyPermissions(actorId, REVIEW_PERMISSION)`。不得仅复用会在租户访问阶段命中`skipPermissionCheck`的`SecurityFrameworkService.hasPermission`，不得直读`system_*`表或修改Yudao基础平台。布尔`true`沿用普通角色—菜单与System超级管理员语义；审核事实中的`authorizationType`固定为`RBAC_PERMISSION`，`authorizationSourceId`为空。
 
 - [ ] **Step 2: 补充专用权限定向测试**
 
-测试必须证明：守卫只接受端口返回的当前租户、当前用户、专用权限码显式授权事实；无授权、租户/用户/权限码不匹配均失败关闭，维护、发布或平台管理员身份不得由守卫自行推断通过。不追溯或硬编码“哪个角色贡献权限”，审核事实保存审核用户、权限码和平台可提供的稳定授权来源ID；平台暂不能返回来源ID时留空，不伪造角色编码。
+测试必须证明：目标租户普通角色—菜单授权和System超级管理员两种`true`均通过；无授权`false`、System异常、认证用户缺失和目标租户缺失均失败关闭；租户访问`skip`不能替代直接`PermissionApi`调用。维护或发布权限不得由守卫自行推断通过。不追溯或硬编码“哪个角色贡献权限”，审核事实保存审核用户、精确权限码和`RBAC_PERMISSION`，`authorizationSourceId`为空。
 
 ```java
 assertThrows(SecurityException.class, () -> guard.check(actorWithManageOnly()));
-assertDoesNotThrow(() -> guard.check(actorWithExplicitReviewPermission()));
+assertDoesNotThrow(() -> guard.check(actorWithReviewPermission()));
+assertDoesNotThrow(() -> guard.check(superAdmin()));
 ```
 
 - [ ] **Step 3: 补充规范化摘要定向测试**
@@ -476,10 +478,13 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/inspectionrule/InspectionRulePublicationMySqlIntegrationTest.java`
 - Reuse: `pms-module-platform-api/.../command/PlatformCommandExecutionApi.java`
 - Reuse: `pms-module-platform-api/.../audit/OperationAuditApi.java`
+- Reuse: `yudao-module-system/.../api/permission/PermissionApi.java`
+- Remove: `pms-module-service/.../security/InspectionRuleExplicitAuthorizationApi.java`
+- Modify: `pms-module-service/.../security/InspectionRuleSecurityReviewPermissionGuard.java`
 
 - [ ] **Step 1: 实现事务编排**
 
-审核、发布和停用统一通过`PlatformCommandExecutionApi.execute`，scopeCode分别固定为`INSPECTION_RULE_SECURITY_REVIEW`、`INSPECTION_RULE_PUBLISH`、`INSPECTION_RULE_DISABLE`，requestDigest由规范化业务请求计算；禁止新增Inspection私有幂等表或直读`plt_*`。记录审核与发布采用同一规则稳定身份聚合锁顺序；审核只允许锁内对DRAFT追加事实。发布operation内顺序固定为：锁定规则稳定身份与当前发布revision -> 校验CAS -> 加载完整草稿 -> 本地领域校验 -> AST批量重验并刷新名称快照 -> 计算摘要 -> 按`reviewed_at DESC, id DESC`重新读取同租户同revision同摘要最后审核事实 -> 停用旧当前发布 -> CAS发布新revision。`SuccessFacts`只携带安全摘要、聚合键和必要事件；额外失败/拒绝审计通过`OperationAuditApi`写safeDetail。平台命令契约负责幂等、成功审计与领域写入同事务；任一步异常回滚全部业务写入。
+审核、发布和停用统一通过`PlatformCommandExecutionApi.execute`，scopeCode分别固定为`INSPECTION_RULE_SECURITY_REVIEW`、`INSPECTION_RULE_PUBLISH`、`INSPECTION_RULE_DISABLE`，requestDigest由规范化业务请求计算；禁止新增Inspection私有幂等表或直读`plt_*`。审核入口先确认目标租户上下文与当前认证用户，再直接调用System现有`PermissionApi.hasAnyPermissions`判定专用权限；`false`或异常不进入命令执行且不追加事实，`true`时记录`RBAC_PERMISSION`和空`authorizationSourceId`。记录审核与发布采用同一规则稳定身份聚合锁顺序；审核只允许锁内对DRAFT追加事实。发布operation内顺序固定为：锁定规则稳定身份与当前发布revision -> 校验CAS -> 加载完整草稿 -> 本地领域校验 -> AST批量重验并刷新名称快照 -> 计算摘要 -> 按`reviewed_at DESC, id DESC`重新读取同租户同revision同摘要最后审核事实 -> 停用旧当前发布 -> CAS发布新revision。`SuccessFacts`只携带安全摘要、聚合键和必要事件；额外失败/拒绝审计通过`OperationAuditApi`写safeDetail。平台命令契约负责幂等、成功审计与领域写入同事务；任一步异常回滚全部业务写入。
 
 - [ ] **Step 2: 审计数据最小化**
 
@@ -487,7 +492,7 @@ Expected：PASS；预检无副作用，历史revision不可修改，旧Service�
 
 - [ ] **Step 3: 补充安全审核定向测试**
 
-覆盖无审核权限、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求；增加同摘要`PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、`reviewed_at`相同按更大ID生效、内容变化/新revision重审以及发布后拒绝追加审核。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
+覆盖目标租户普通授权用户、System超级管理员、无审核权限、System异常、认证用户缺失、目标租户缺失、仅租户访问`skip`、跨租户、非草稿、`PASSED/REJECTED`两种合法结论、其他结论机器码拒绝、摘要不一致和重复请求；断言每次审核均直接调用`PermissionApi`，成功事实的`authorizationSourceId`为空。增加同摘要`PASSED -> REJECTED`阻断、`REJECTED -> PASSED`恢复、`reviewed_at`相同按更大ID生效、内容变化/新revision重审以及发布后拒绝追加审核。重复相同幂等键与相同载荷返回同一审核结果；相同键不同载荷拒绝。
 
 - [ ] **Step 4: 补充发布原子性定向测试**
 
@@ -816,7 +821,7 @@ Expected：无空白错误；所有变更可追溯到F-INS-001；未产生提交
 ## 5. 主要风险与处理
 
 - **AST产品类型真实消费后置：** F-AST-002公开契约及Implementation Done已由Task 2验收；Task 7/8/9只通过公开`-api`完成发布预检、发布和工程师选择的真实消费验证，不创建或修改AST文件，不直读AST业务表。
-- **安全审核不绑定固定角色编码：** 不硬编码角色代码、不建设BPM。采用租户内专用`pms:inspection-rule:security-review`动态权限包；Service重复校验，审核事实保存用户、权限码及可获得的稳定授权来源，不要求解析角色贡献关系。
+- **安全审核不绑定固定角色编码：** 不硬编码角色代码、不建设BPM。采用目标租户内专用`pms:inspection-rule:security-review`权限并直接复用System现有`PermissionApi`；普通角色—菜单授权和System超级管理员均按布尔结果通过。审核事实保存用户、权限码与`RBAC_PERMISSION`，授权来源为空，不解析角色贡献关系，不新增System接口。
 - **Flyway并行编号冲突：** 当前预留V134～V136，实施前和集成前各扫描一次；冲突只通过新增编号顺延解决，不修改已执行文件。
 - **正则ReDoS与命令秘密：** 发布前执行语法、结构复杂度、长度预算和秘密扫描；错误不回显命中正文，运行时执行预算由后续INS-02负责，本Feature不伪装为执行引擎。
 - **旧表字段不完整：** 固定留在旧接口、旧页面和旧表的兼容只读路径，不写入新目标表，不生成草稿、发布revision、迁移问题对象或新增兼容标识；仅完整可证记录才允许受控迁移，全程零猜测。
