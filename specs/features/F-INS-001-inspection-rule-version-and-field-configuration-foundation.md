@@ -8,7 +8,7 @@
 > 前置Feature：`F-AST-002`设备产品类型受控副本与公开查询（发布、工程师选择和Implementation Done实施Gate）；基础平台字典能力
 > 后续Feature：F-INS-002巡检任务准备与规则冻结（覆盖INS-01及INS-03剩余任务内选择/命令清单义务）、INS-02在线/离线执行、INS-05报告、INS-06问题标注、INS-08误报修订
 > Open Questions：`Q-PRD-VS-009`、`Q-FINS001-001`、`Q-FINS001-002`均已关闭；`Q-FINS001-003`已由`NPDMS-Q-FINS001-003-GO-20260901-01`关闭；`Q-FINS001-004`已由`NPDMS-Q-FINS001-004-GO-20260901-01`关闭
-> 适用基线：PRD V1.8修订012；SDS Phase 1/2/3 `BASELINE`（含Q-FINS001-003/004裁决回写）
+> 适用基线：master PRD V1.8修订011；该修订统一承接来源分支修订009～012的巡检超时、AST产品类型、正则子集和规则名称身份裁决；SDS Phase 1/2/3 `BASELINE`
 > 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
 > Technical Plan：Feature Ready规格提交锁定后生成唯一计划
 
@@ -170,4 +170,4 @@ Technical Plan只确定实现步骤和最终Flyway编号，不得改变上述物
 
 当前结论：`READY / GO NPDMS-FINS001-FEATURE-READY-20260901-03`，替代`NPDMS-FINS001-FEATURE-READY-20260901-02`。
 
-INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。PRD修订009已关闭超时上限冲突，Q-PRD-VS-009已关闭超时后的后续命令策略；`Q-FINS001-003`已由`NPDMS-Q-FINS001-003-GO-20260901-01`冻结字典机器码、受限JDK正则预算、秘密扫描模式和字段错误码；`Q-FINS001-004`已由`NPDMS-Q-FINS001-004-GO-20260901-01`冻结规则名称稳定身份与租户内永久唯一边界。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结，无直接Open Question阻断。F-AST-002实际契约交付仍是本Feature发布、工程师选择和Implementation Done的实施Gate。本结论不表示代码、迁移、测试、浏览器验收或Implementation Done已通过。
+INS-03与INS-09属于同一InspectionRule主数据；本Feature完整覆盖INS-09，并覆盖INS-03的规则维护、发布、只读选择投影和历史解释子闭环。INS-03任务内勾选提交、命令清单生成及规则快照由后续F-INS-002覆盖。master PRD修订011已统一关闭超时上限、AST产品类型来源、受限JDK正则子集和规则名称稳定身份四项冲突；Q-PRD-VS-009已关闭超时后的后续命令策略。Requirement切片、Owner、状态、权限、API、数据边界、旧实现保留边界、第三方接口边界和验收标准已冻结；`Q-FINS001-005/006`只阻断安全审核生产入口、完整发布放行和Implementation Done。F-AST-002实际契约交付仍是发布、工程师选择和Done的实施Gate。本结论不表示完整发布、浏览器验收或Implementation Done已通过。

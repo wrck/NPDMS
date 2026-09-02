@@ -1,5 +1,7 @@
 # F-INS-001 巡检规则版本与字段配置基础 Implementation Plan
 
+> master集成映射：来源分支PRD修订009～012由`CHG-PRD-2026-09-02-011`统一承接；来源迁移V148～V150在master重编号为V173～V175。下文保留原Gate与来源验证编号作为历史证据，实际主干路径以V173～V175为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在`pms-module-service`内建立Inspection领域唯一的巡检规则稳定身份与不可变revision真值，完成八字段、命令列表、产品类型适用范围、安全审核、原子发布、停用、历史读取和工程师选择闭环，同时保持旧`srv-rule`实现不变。
@@ -10,7 +12,7 @@
 
 **Locked Inputs:**
 
-- 锁定实施输入提交：`27b5b4b3`；该提交包含PRD V1.8修订012、Q-FINS001-003/004正式裁决回写、重新GO的F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态。Task 5继续前必须确认该提交是当前HEAD祖先，且下列正式输入未被后续未评审变更替代
+- 锁定实施输入提交：`27b5b4b3`；该来源提交包含分支PRD V1.8修订012、Q-FINS001-003/004正式裁决回写、重新GO的F-INS-001 Feature Spec与SDS、F-AST-002公开契约及其Implementation Done状态。master通过DU选择性集成，不建立虚假的Git祖先关系；来源修订009～012统一映射为master修订011，且下列正式输入不得被未评审变更替代
 
 - Requirement：`INS-03@V2=PARTIAL`、`INS-09@V2=FULL`、`NFR-02@V2`支撑
 - Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
@@ -265,11 +267,11 @@ public record ValidationError(String location, String code, String message) {
 
 - [x] **Step 1A: 实现不依赖未决规格的最小领域规则**
 
-已完成的Task 4按当时规格将检测ID/规则名称/检测项目/描述/分类/严重度/排序、命令、阈值和产品类型统一作为领域必填。修订012差量现明确：稳定身份创建只要求检测ID和规则名称，DRAFT其余字段及从属内容可为空或不完整；发布校验才要求完整。阈值数据类型固定为`NUMBER`，不再仅做非空校验。Task 5后续实施前必须先在后续Task 7/8测试与实现中承接该差量；本轮只修订计划，不修改已完成Task 4代码。
+已完成的Task 4按当时规格将检测ID/规则名称/检测项目/描述/分类/严重度/排序、命令、阈值和产品类型统一作为领域必填。master修订011（承接来源修订012）明确：稳定身份创建只要求检测ID和规则名称，DRAFT其余字段及从属内容可为空或不完整；发布校验才要求完整。阈值数据类型固定为`NUMBER`，不再仅做非空校验。Task 7/8实现已承接该差量。
 
 - [x] **Step 2A: 补充状态、字段和命令边界定向测试**
 
-既有测试覆盖非草稿拒绝、稳定字段必填、至少一条命令、顺序从1连续且逐项定位、稳定命令键不重复、空命令、0和31秒拒绝、阈值完整结构与正式运算符，以及产品类型必填和重复编码拒绝。修订012后，这些完整性断言应保留为发布校验测试；草稿保存新增空值和部分填写正向测试，阈值新增只接受`NUMBER`测试。
+既有测试覆盖非草稿拒绝、稳定字段必填、至少一条命令、顺序从1连续且逐项定位、稳定命令键不重复、空命令、0和31秒拒绝、阈值完整结构与正式运算符，以及产品类型必填和重复编码拒绝。master修订011后，这些完整性断言保留为发布校验测试；草稿保存增加空值和部分填写正向测试，阈值只接受`NUMBER`。
 
 - [x] **Step 3A: 补充JDK正则语法定向测试**
 
@@ -303,9 +305,9 @@ Expected：17项测试PASS；覆盖稳定字段路径、十类分类/三级严�
 
 **Files:**
 
-- Create: `sql/migrations/V148__fins001_inspection_rule_revision.sql`
-- Create: `sql/migrations/V149__fins001_inspection_rule_seed_and_menu.sql`
-- Create: `sql/migrations/V150__fins001_legacy_rule_forward_migration.sql`
+- Create: `sql/migrations/V173__fins001_inspection_rule_revision.sql`（来源分支V148）
+- Create: `sql/migrations/V174__fins001_inspection_rule_seed_and_menu.sql`（来源分支V149）
+- Create: `sql/migrations/V175__fins001_legacy_rule_forward_migration.sql`（来源分支V150）
 - Create: `scripts/tests/test_fins001_migrations.py`
 
 - [x] **Step 1: 实施前重新扫描Flyway编号**
@@ -320,7 +322,7 @@ Expected：已确认V148～V150连续空闲；集成前如被占用，将本Task
 
 - [x] **Step 2: 创建V148目标表**
 
-按修订012将`rule_name`置于`srv_inspection_rule`稳定身份表并建立`uk(tenant_id, rule_name)`；软删除不释放名称。revision保留不可变`rule_name_snapshot`用于八字段版本解释，Service与数据库约束保证其与稳定身份一致。不得把唯一键落在`revision_id/revision_no + rule_name`上，也不得新增共享规则库版本。
+按master修订011将`rule_name`置于`srv_inspection_rule`稳定身份表并建立`uk(tenant_id, rule_name)`；软删除不释放名称。revision保留不可变`rule_name_snapshot`用于八字段版本解释，Service与数据库约束保证其与稳定身份一致。不得把唯一键落在`revision_id/revision_no + rule_name`上，也不得新增共享规则库版本。
 
 使用生成列`current_published_marker`仅在`status_code='PUBLISHED'`时取1，并建立`uk(tenant_id, rule_id, current_published_marker)`；状态CHECK仅允许`DRAFT/PUBLISHED/DISABLED`。revision字段空值策略须允许DRAFT除稳定名称快照外的发布字段为空或不完整，不以数据库NOT NULL提前阻止草稿保存；Service在发布时全量校验。阈值数据类型只允许`NUMBER`。命令表保存稳定命令键、内容、顺序、1～30秒超时和继续决定；产品类型表保存编码与发布名称快照；审核表保存摘要、审核用户、权限码、可选稳定授权来源ID、`PASSED/REJECTED`结论和审核时间，不保存秘密。
 

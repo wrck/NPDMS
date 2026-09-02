@@ -49,7 +49,7 @@
 |---|---|---|
 | Project/ProjectTask | aggregateVersion + treeVersion（移动时） | 重新加载树和当前版本后由用户重试 |
 | ProjectTask Completion | aggregateVersion + bindingVersion + ruleVersion + businessFactVersion | 任一版本变化即重新读取事实并评估；不得按旧快照完成 |
-| ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本 |
+| ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本；InspectionRule名称由稳定身份持有且不可通过revision改名 |
 | DynamicFormTemplate/Revision | templateVersion + draftVersion；发布revision不可变 | 新建模板初始DISABLED；发布、创建下一草稿和启停锁定模板及当前指针，冲突重新读取，不替换请求中的修订 |
 | DynamicFormInstance | instanceVersion + frozen revision identity | 普通字段部分PATCH只按CAS更新请求字段；后到请求不覆盖，模板发布/停用不改既有实例 |
 | Arrival/Installation/Quality | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
@@ -104,6 +104,12 @@
 - `ProjectAttributeSourceCorrectionCommand`还校验受信任服务身份、来源键和单调来源版本；旧版/重复来源事件不更新当前值，不重复追加历史，同一来源版本不同摘要进入冲突处置。
 - 同键同请求重放，同键不同请求拒绝，进行中重复返回409；并发冲突整体回滚，不产生与当前值不一致的历史。
 - 历史查询按`tenant + projectId + recordedAt/id`游标或受控分页，不缓存敏感全量历史；缓存不可用不能跳过ProjectTreeScope。
+
+### 5.7 InspectionRule名称唯一并发
+
+- 新建规则稳定身份时，以`tenantId + ruleName`数据库唯一约束作为最终互斥边界；Service预检只改善错误定位，不能替代数据库约束。
+- 同租户同名并发创建最多一个成功；唯一键冲突映射为稳定字段错误，失败事务不得留下孤立规则身份或草稿revision。
+- 停用、软删除和创建新revision均不释放名称；复制revision只能在原稳定身份下沿用原名称，任何改名输入均拒绝。不同租户可使用相同名称。
 
 ## 6. 设备唯一归属并发
 

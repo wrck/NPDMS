@@ -40,6 +40,12 @@
 
 领域实现需扩展具体错误，但不得以一个 `OPERATION_FAILED` 吞掉权限、状态、并发、外部拒绝和数据质量差异。
 
+### 2.1 F-INS-001字段级校验码
+
+巡检规则校验返回稳定字段路径、稳定字段码和可本地化公开消息。保留`REQUIRED/NOT_EDITABLE/DUPLICATE/INVALID/OUT_OF_RANGE/NOT_CONTINUOUS/INVALID_SYNTAX`，新增`UNSUPPORTED_VALUE`、`REGEX_TOO_LONG`、`REGEX_UNSUPPORTED_FEATURE`、`REGEX_COMPLEXITY_EXCEEDED`和`SECRET_DETECTED`。字段路径使用`categoryCode`、`severityCode`、`expectedResultRegex`、`commands[0].content`等稳定形式。
+
+秘密扫描内部可区分模式类型，但对外统一为`SECRET_DETECTED`；响应、日志和审计不得包含命中片段、秘密值、正则解析堆栈或完整上下文。顶层仍使用`PMS-COMMON-VALIDATION-0001`及`fieldErrors`，不为每个字段创建重复顶层错误码。
+
 ## 3. 幂等作用域与记录
 
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |

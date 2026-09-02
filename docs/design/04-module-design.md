@@ -14,7 +14,7 @@
 | 实施执行 | 到货签收、工勘地点维护、安装/迁移/拆除及位置生效事实、配置Log采集业务结果、联调、风险、阶段质量检查、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | Project、Device、AssetLocationApi、CollectionTask、File | ConfigurationLogPublished、DeliveryEvidenceUploaded、ImplementationQualityChecked | 直接执行设备命令、持有AST地点DO/Mapper/Repository、拥有ConfigurationLog原始文件/不可变解析版本、直接改变验收归档状态；IMP-02安全检查不属于当前模块 |
 | 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、SatisfactionCollection、ProjectClosure、Artifact | Project、DeliveryEvidence、File、Questionnaire | SatisfactionResultRecorded、ArtifactAccepted、ProjectClosureCompleted、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
 | 割接 | CUT-01任务、问卷评估、P3同工作台清单匹配/填写/采集回填、CUT-07后台配置版本、方案、审批和P6闭环 | CutoverTask、CutoverAssessment、CutoverConfigurationRevision、CutoverPlan、CutoverClosure | Project、Device、CollectionTask、基础平台字典 | CutoverConfigurationPublished、CutoverApproved、CutoverCompleted | 直接访问采集引擎、建设通用工单或独立采集阶段、逐步骤执行或稳定观察 |
-| 巡检 | INS-01～INS-09巡检任务、规则、报告和问题 | InspectionTask、InspectionRule、ServiceIssue | Device、Device Access & Collection、UMC | InspectionCompleted、IssueCreated | 读取凭证明文 |
+| 巡检 | INS-01～INS-09巡检任务、规则、报告和问题 | InspectionTask、InspectionRule、ServiceIssue | Device、Device Access & Collection、UMC、基础平台字典、AssetProductTypeApi | InspectionCompleted、IssueCreated | 读取凭证明文、维护第二套检测分类/严重度或产品类型主数据 |
 | 服务运营 | SRV-01设备服务状态；ACC-05持续服务跟踪仅为V3方向 | ServiceStatus、ServiceHandoverReference | Device、Customer、ProjectClosureCompleted、ServiceHandoverCreated | ServiceStatusChanged | 当前不创建持续服务跟踪对象，不直接改变设备主档核心身份 |
 | 客户与关系 | 客户、联系人、客户关系、服务等级时态版本、客户地点引用和同步副本 | Customer、Contact、AssetRelation、CustomerServiceLevelRevision | CRM、Project、AssetLocationApi、基础平台字典 | CustomerUpdated、CustomerServiceLevelChanged、CustomerSyncCompleted | 拥有物理地点实体或表、直接改变项目流程、回写历史业务等级快照 |
 | 资产管理 | 设备档案、归属、维保基本信息、ConfigurationLog原始文件/不可变解析版本和同步副本、Address/Site/SiteLocation、来源与区划映射及设备当前地点 | Address、Site、SiteLocation、Device、DeviceArchive、RMAReplacement、ConfigurationLog | IMP位置生效命令、ConfigurationLogPublished、MES、ITR、备件、Project | AssetLocationApi、ConfigurationLogVersionPublished、DeviceAssigned、AssetSyncCompleted | 反向依赖IMP的Service/Mapper/Repository/表、改写IMP实施结论、直接改变项目状态 |
@@ -35,3 +35,6 @@
 - `CustomerMasterDataApi`承接CRM权威字段入向写入；集成适配模块不得直接访问CUS Service、Mapper、Repository或业务表。
 - `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
 - AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。
+- F-AST-002在`pms-module-asset-api`提供产品类型公开查询，Inspection只依赖API模块；CRM/MES连接器仍由EQP-04或后续独立Feature拥有。
+- F-INS-001规则名称归属规则稳定身份并在租户内永久唯一；停用、软删除和新revision不释放名称，同一稳定身份的后续revision沿用原名称，历史revision不可改名。
+- F-INS-001检测分类使用基础平台字典`pms_inspection_rule_category`，严重度使用`pms_inspection_rule_severity`；Inspection只保存机器码和发布时显示名称快照，不修改基础平台字典实现、不维护第二套主数据。产品类型只通过AST公开契约校验并冻结编码/名称快照；不存在、停用或Owner能力不可用时发布失败关闭。

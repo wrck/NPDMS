@@ -352,7 +352,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
 | Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
-| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
+| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份的检测ID和规则名称均在租户内永久唯一，软删除不释放；revision号在规则内唯一，revision名称快照必须与稳定身份一致且不可改名；DRAFT除稳定身份字段外允许不完整，PUBLISHED由Service全量校验；阈值类型只允许`NUMBER`；命令顺序在revision内唯一且连续；产品类型在revision内唯一；安全审核结论只允许`PASSED/REJECTED`并绑定当前内容摘要；同一规则最多一个当前发布revision；任务规则快照唯一；报告revision只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。

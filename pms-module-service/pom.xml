@@ -46,6 +46,12 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-platform</artifactId>
+            <version>${revision}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>yudao-spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
