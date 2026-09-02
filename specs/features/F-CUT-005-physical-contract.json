@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "featureId": "F-CUT-005",
+  "status": "BASELINE_READY",
+  "featureReadyGate": "GO@2e3fdba3",
+  "requirementSlices": ["CUT-05@V1=FULL"],
+  "ownerContext": "CUT",
+  "aggregate": "CutoverApproval",
+  "enums": {
+    "approvalStatus": ["PENDING","PAUSED_SOURCE_INVALIDATED","APPROVED","REJECTED"],
+    "nodeStatus": ["WAITING","PENDING","APPROVED","REJECTED","CANCELLED"],
+    "nodeCode": ["INITIATOR","SERVICE_MANAGER","SECOND_LINE","RND"],
+    "holdReason": ["ROUTE_CANDIDATE_NOT_UNIQUE","APPROVER_UNAVAILABLE"],
+    "notificationStatus": ["PENDING","SENT","PENDING_RETRY"]
+  },
+  "tables": [
+    {
+      "name": "cut_approval_instance",
+      "strategy": "NEW_ONLY",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY", "tenant_id": "BIGINT NOT NULL", "task_id": "BIGINT NOT NULL", "project_id": "BIGINT NOT NULL",
+        "plan_revision_id": "BIGINT NOT NULL", "plan_revision_no": "INT NOT NULL CHECK > 0", "assessment_id": "BIGINT NOT NULL", "assessment_version": "INT NOT NULL CHECK > 0",
+        "checklist_id": "BIGINT NULL", "checklist_version": "INT NULL", "grade_code": "VARCHAR(8) NOT NULL CHECK IN (A,B,C,D)",
+        "initiator_user_id": "BIGINT NOT NULL CHECK > 0", "initiator_project_scope_version": "BIGINT NOT NULL CHECK >= 0",
+        "source_snapshot_version": "INT NOT NULL CHECK > 0", "source_snapshot": "JSON NOT NULL", "route_snapshot": "JSON NOT NULL",
+        "status_code": "VARCHAR(40) NOT NULL", "hold_reason_code": "VARCHAR(40) NULL", "current_node_no": "INT NULL",
+        "previous_approval_instance_id": "BIGINT NULL", "replacement_approval_instance_id": "BIGINT NULL", "decision_at": "DATETIME(3) NULL", "rejection_reason": "VARCHAR(1000) NULL",
+        "version": "INT NOT NULL CHECK >= 0", "creator/updater": "VARCHAR(64) NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
+      },
+      "uniqueKeys": ["uk(tenant_id,task_id,plan_revision_id)","uk(tenant_id,previous_approval_instance_id)"],
+      "checks": ["checklist identity is positive for A/B/C and entirely null for D","hold reason is null unless status=PENDING","APPROVED requires decision_at and null rejection reason; REJECTED requires both decision_at and non-blank rejection reason; non-terminal states require both null","previous/replacement identities reference the same task and form a linear replacement chain"]
+    },
+    {
+      "name": "cut_approval_node",
+      "strategy": "NEW_ONLY",
+      "columns": {
+        "id": "BIGINT NOT NULL PRIMARY KEY", "tenant_id": "BIGINT NOT NULL", "approval_instance_id": "BIGINT NOT NULL", "node_no": "INT NOT NULL CHECK > 0",
+        "node_code": "VARCHAR(32) NOT NULL", "status_code": "VARCHAR(16) NOT NULL", "original_approver_user_id": "BIGINT NULL", "current_approver_user_id": "BIGINT NULL",
+        "candidate_fact_snapshot": "JSON NOT NULL", "project_scope_version": "BIGINT NULL CHECK >= 0", "assessment_review_decision_code": "VARCHAR(24) NULL",
+        "assessment_review_reason": "VARCHAR(1000) NULL", "feedback": "VARCHAR(1000) NULL", "decision_at": "DATETIME(3) NULL",
+        "pending_marker": "TINYINT GENERATED AS (CASE WHEN status_code='PENDING' THEN 1 ELSE NULL END) STORED", "version": "INT NOT NULL CHECK >= 0",
+        "creator/updater": "VARCHAR(64) NOT NULL", "create_time/update_time": "DATETIME(3) NOT NULL", "deleted": "BIT(1) NOT NULL"
+      },
+      "uniqueKeys": ["uk(tenant_id,approval_instance_id,node_no)","uk(tenant_id,approval_instance_id,pending_marker)"],
+      "checks": ["original/current approver are both positive or both null for unresolved candidate","APPROVED/REJECTED require decision_at and feedback; WAITING/PENDING/CANCELLED require both null","assessment review is null outside SERVICE_MANAGER; CONFIRMED has null reason; NOT_REASONABLE requires reason and REJECTED","route node count and order equal the frozen grade route"]
+    },
+    {
+      "name": "cut_approval_review_item",
+      "strategy": "NEW_ONLY_APPEND_ONLY",
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","item_code":"VARCHAR(32) NOT NULL","decision_code":"VARCHAR(8) NOT NULL CHECK IN (YES,NO)","unreasonable_reason":"VARCHAR(1000) NULL","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "uniqueKeys": ["uk(tenant_id,approval_node_id,item_code)"],
+      "checks": ["item_code is one of the exact five review items","NO requires non-blank reason and YES requires null reason"]
+    },
+    {
+      "name": "cut_approval_reassignment",
+      "strategy": "NEW_ONLY_APPEND_ONLY",
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","reassignment_no":"INT NOT NULL CHECK > 0","from_approver_user_id":"BIGINT NULL","to_approver_user_id":"BIGINT NOT NULL","reason":"VARCHAR(1000) NOT NULL","candidate_fact_snapshot":"JSON NOT NULL","operated_by":"BIGINT NOT NULL","operated_at":"DATETIME(3) NOT NULL","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "uniqueKeys": ["uk(tenant_id,approval_node_id,reassignment_no)"],
+      "checks": ["to approver is positive","from may be null only for an unresolved frozen candidate","from and to differ when from is non-null"]
+    },
+    {
+      "name": "cut_approval_notification",
+      "strategy": "NEW_ONLY",
+      "columns": {"id":"BIGINT NOT NULL PRIMARY KEY","tenant_id":"BIGINT NOT NULL","approval_instance_id":"BIGINT NOT NULL","approval_node_id":"BIGINT NOT NULL","recipient_user_id":"BIGINT NOT NULL","delivery_key":"VARCHAR(128) NOT NULL","template_code":"VARCHAR(64) NOT NULL","status_code":"VARCHAR(24) NOT NULL","message_id":"BIGINT NULL","retry_count":"INT NOT NULL CHECK >= 0","next_retry_at":"DATETIME(3) NULL","last_error_code":"VARCHAR(64) NULL","sent_at":"DATETIME(3) NULL","version":"INT NOT NULL CHECK >= 0","creator/updater":"VARCHAR(64) NOT NULL","create_time/update_time":"DATETIME(3) NOT NULL","deleted":"BIT(1) NOT NULL"},
+      "uniqueKeys": ["uk(tenant_id,delivery_key)"],
+      "checks": ["SENT requires message_id/sent_at and clears retry fields","PENDING_RETRY requires next_retry_at/last_error_code","PENDING has no provider result"]
+    }
+  ],
+  "routeMatrix": {"A":["INITIATOR","SERVICE_MANAGER","SECOND_LINE","RND"],"B":["INITIATOR","SERVICE_MANAGER","SECOND_LINE"],"C":["INITIATOR","SERVICE_MANAGER"],"D":["INITIATOR","SERVICE_MANAGER"]},
+  "jsonContracts": {
+    "source_snapshot": "exact immutable ApprovalSourceSnapshot from F-CUT-005-api-contract.json: exact eleven-field project fact, collectionAnalysis{cutoverType,networkMode,scheduledTime} with networkMode preserving legal JSON null, stable ordered submitted risk/business-survey ChecklistResultSnapshot arrays, exact five-dimension AssessmentApprovalSnapshot plus manualGrade, and exact submitted F-CUT-004 PlanSourceSnapshot+PlanContentUnion; no missing/extra keys, no default inference and no current Owner refresh",
+    "route_snapshot": "exact grade, ordered nodeCode array and each node frozen candidate identity/fact versions; unresolved candidates use explicit null identities and stable reason",
+    "candidate_fact_snapshot": "INITIATOR uses exact userId/projectId/ACTION_EDIT/treeVersion; SERVICE_MANAGER uses exact PROJ fact; SECOND_LINE/RND contain the complete stable SYSTEM candidate set, every candidate's ProjectScope ACTION_VIEW result/treeVersion and the uniquely intersected subject or explicit NOT_UNIQUE from F-CUT-005-candidate-owner-contract.json"
+  },
+  "lockOrder": ["cut_task by tenant+taskId","cut_plan_revision by tenant+planRevisionId","cut_approval_instance by tenant+id","cut_approval_node by tenant+instance+nodeNo","PROJ then SYSTEM then ProjectScope Owner locks","platform idempotency/audit/outbox in the same outer transaction"],
+  "stateTransitions": {
+    "start": "lock and freeze the trusted initiator ProjectScope ACTION_EDIT fact, then create PENDING instance and complete frozen route; INITIATOR=PENDING and later nodes=WAITING; any unresolved candidate sets root holdReason and suppresses all executable todos until correction/reassignment clears it",
+    "approveIntermediate": "current PENDING->APPROVED and next WAITING->PENDING; instance remains PENDING and version increments once",
+    "reject": "current PENDING->REJECTED, future WAITING->CANCELLED, instance->REJECTED and task P5/APPROVING->P4/PLAN_DRAFTING atomically",
+    "approveFinal": "current PENDING->APPROVED, instance->APPROVED, task P5/APPROVING->P6/CLOSURE_IN_PROGRESS and one CutoverApproved outbox atomically",
+    "sourceInvalidation": "instance PENDING->PAUSED_SOURCE_INVALIDATED and open nodes->CANCELLED; F-CUT-004 owns same-transaction task P5->P4",
+    "reassign": "WAITING/PENDING candidate CAS plus append reassignment; when the complete route is valid clear holdReason and expose only the current PENDING todo"
+  },
+  "eventOutbox": {"eventType":"CutoverApproved","payload":"eventId,tenantId,taskId,planRevisionId,approvalInstanceId,approvalVersion,approvedAt,sourceSnapshotVersion,correlationId","rule":"final approval only; unique per approval instance; notification delivery is unrelated"},
+  "notificationRetry": {"provider":"NotifyMessageSendApi","deliveryKey":"CUT_APPROVAL:{approvalInstanceId}:{nodeNo}:{nodeVersion}","commandTransaction":"start/approve/reassign only append PENDING notification in the same business transaction and return the business result; they never call the notification provider synchronously","deliveryRule":"a separate post-commit delivery action changes PENDING to SENT, or PENDING_RETRY with server retry time/error when provider invocation fails; failure never changes the already committed approval command and same deliveryKey is reused","apiBoundary":"notification provider failures are not members of approve/reject/reassign error unions; retry delivery has its own operational evidence and production activation requires real provider propagation evidence"},
+  "authorizationProjection": {
+    "initiator": "original initiator + current ProjectScope ACTION_VIEW may read FULL progress but has no approval action unless also the current qualified node approver",
+    "currentApprover": "current node approver + node-specific current Owner/project scope fact may read FULL and receives APPROVE/REJECT only when root/node are executable",
+    "readOnlyProjectMember": "current ProjectScope ACTION_VIEW may read FINAL_RESULT_ONLY only after APPROVED/REJECTED; source snapshot and node review bodies are never projected",
+    "todo": "only executable PENDING node for current user after the same current Owner/scope revalidation; no partial page on Provider failure",
+    "administrator": "a dedicated stable-paged reassignment-candidates query and REASSIGNMENT_ONLY detail expose only instance/task/open-node/current-assignment/version metadata; REASSIGN only for WAITING/PENDING nodes; permission alone never grants approve/reject or FULL detail; reassign response remains REASSIGNMENT_ONLY"
+  },
+  "migration": {"strategy":"NEW_ONLY","legacyTables":["pms_cut_task","pms_cut_plan"],"rule":"no legacy approval field is copied, upgraded or dual-written; Flyway number is chosen only at serial merge"},
+  "hardDependencies": ["F-CUT-002 task/assessment facts","F-CUT-003 checklist facts for A/B/C","F-CUT-004 submitted immutable plan","PROJ service-manager candidate support Task","SYSTEM second-line/RND candidate support Task","ProjectScopeApi","PlatformCommandExecutionApi","platform Outbox","NotifyMessageSendApi"],
+  "controlledSubstituteBoundary": "CUT unit/integration tests may use deterministic src/test Owner facts and notifications for full positive routes; they cannot register production beans or prove real-browser/Implementation Done"
+}

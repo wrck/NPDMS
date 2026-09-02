@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "consumerFeatureId": "F-CUT-002",
+  "supportingRequirement": "CUS-02@V2",
+  "requirementCoverage": "NONE_SUPPORTING_CONTRACT_ONLY",
+  "status": "PASS",
+  "owner": "CUS",
+  "consumer": "CUT",
+  "api": "CustomerServiceLevelFactApi",
+  "operations": {
+    "inspectCurrent": {
+      "input": "CustomerServiceLevelFactQuery",
+      "transaction": "READ_ONLY_NO_BUSINESS_WRITE",
+      "result": "AVAILABLE or NOT_CONFIGURED; never STALE"
+    },
+    "lockAndRevalidate": {
+      "input": "CustomerServiceLevelFactRevalidationQuery with a separate ExpectedCustomerServiceLevelFact copied from the complete previously inspected fact",
+      "transaction": "PROPAGATION_REQUIRED; joins the CUT write transaction and locks the CUS customer timeline",
+      "result": "same AVAILABLE/NOT_CONFIGURED fact when exact, otherwise STALE carrying the complete current fact"
+    }
+  },
+  "trustedTenant": "query.tenantId must equal TenantContextHolder.getRequiredTenantId before Owner access; no tenant switching",
+  "factUnion": {
+    "common": "tenantId/customerId positive and factVersion non-negative",
+    "AVAILABLE": "positive serviceLevelRevisionId, normalized nonblank serviceLevelCode max64, nonnull effectiveFrom and optional exclusive effectiveTo strictly after effectiveFrom; Provider selects the fact at its trusted server Clock",
+    "NOT_CONFIGURED": "serviceLevelRevisionId/serviceLevelCode/effectiveFrom/effectiveTo are all null; factVersion remains a comparable customer service-level timeline watermark and no placeholder is allowed",
+    "factVersion": "version of the revision selected at the trusted server Clock; when NOT_CONFIGURED use the greatest revision version whose interval has already started, or zero when none has started; status and the complete nullable union remain part of equality"
+  },
+  "revalidation": {
+    "inputOwnership": "malformed caller ExpectedCustomerServiceLevelFact is INVALID_REQUEST; malformed CUS current fact/result is OWNER_DATA_CORRUPTED",
+    "cutCreateInput": "the client repeats status/revisionId/code/factVersion/effectiveFrom/effectiveTo from resolve-create-context; AVAILABLE carries the full union and NOT_CONFIGURED carries null revision/code/interval. tenantId/customerId are added only from trusted server project context",
+    "exactComparison": "status, tenantId, customerId, revisionId, code, factVersion and effective interval",
+    "match": "return AVAILABLE or NOT_CONFIGURED with the locked current fact",
+    "mismatch": "return STALE with the locked complete current fact; no business write",
+    "customerMissing": "CUSTOMER_NOT_FOUND; never fabricate NOT_CONFIGURED"
+  },
+  "stableFailures": [
+    "INVALID_REQUEST",
+    "TENANT_CONTEXT_MISMATCH",
+    "CUSTOMER_NOT_FOUND",
+    "OWNER_DATA_CORRUPTED",
+    "PROVIDER_UNAVAILABLE"
+  ],
+  "consumerMapping": {
+    "AVAILABLE": "CUT may freeze the fact and may submit P2 when all other guards pass",
+    "NOT_CONFIGURED": "CUT may create and save P2 draft but returns CUSTOMER_SERVICE_LEVEL_NOT_CONFIGURED when submitting",
+    "STALE": "SCOPE_STALE/CUSTOMER_SERVICE_LEVEL_STALE/HTTP_409 and refresh Owner facts",
+    "CUSTOMER_NOT_FOUND": "CUSTOMER_CONTEXT_INVALID/BUSINESS_CONTEXT_INVALID/HTTP_422",
+    "PROVIDER_UNAVAILABLE": "OWNER_PROVIDER_UNAVAILABLE/CUS_PROVIDER_UNAVAILABLE/HTTP_503",
+    "OWNER_DATA_CORRUPTED": "internal failure; never masquerade as NOT_CONFIGURED or STALE"
+  },
+  "controlledSimulation": {
+    "allowed": "after this contract passes, F-CUT-002 unit and integration test assembly may provide deterministic AVAILABLE, NOT_CONFIGURED and changed-current-fact responses",
+    "forbidden": "no double in src/main or production Bean assembly; no simulated level is CUS-02 completion, real browser evidence or Implementation Done"
+  },
+  "providerImplementation": "NOT_STARTED_BY_THIS_CONTRACT",
+  "implementationGate": "PUBLIC_MACHINE_CONTRACT_PASS_64E3DBBD"
+}

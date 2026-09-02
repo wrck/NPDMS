@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-008",
+  "status": "BASELINE_READY",
+  "requirementSlices": ["CUT-05@V2=FULL"],
+  "extends": "F-CUT-005-api-contract.json",
+  "wireContract": {
+    "wireDateTime": "positive epoch-millisecond WireLong using the existing Yudao Long serializer",
+    "approvalDetailExtension": "only FULL projection adds leadTimeCompliance; all F-CUT-005 fields, permissions, headers, error mappings and allowedActions remain unchanged"
+  },
+  "enums": {
+    "leadTimeRuleVersion": ["CUT_LEAD_TIME_R034_V1"]
+  },
+  "commonTypes": {
+    "LeadTimeCompliance": {
+      "exactKeys": ["ruleVersion", "timezoneId", "cutoverType", "scheduledTime", "planSubmittedAt", "requiredDays", "actualNaturalDays", "lateSubmission"],
+      "fields": {
+        "ruleVersion": "literal CUT_LEAD_TIME_R034_V1",
+        "timezoneId": "literal Asia/Shanghai",
+        "cutoverType": "member of leadTimeRules keys",
+        "scheduledTime": "WireDateTime frozen from the locked task",
+        "planSubmittedAt": "WireDateTime allocated once by the trusted P4 submit transaction, carried in CutoverApprovalStartCommand, frozen here, and persisted unchanged to the plan revision",
+        "requiredDays": "positive Integer",
+        "actualNaturalDays": "Integer; scheduled business date epochDay minus plan-submitted business date epochDay",
+        "lateSubmission": "Boolean; actualNaturalDays < requiredDays"
+      }
+    },
+    "ApprovalDetailV2": {
+      "base": "F-CUT-005 ApprovalDetail",
+      "addedExactKey": "leadTimeCompliance",
+      "field": "LeadTimeCompliance for new V2 A/B approval instances; JSON null for C/D and pre-F-CUT-008 instances"
+    }
+  },
+  "leadTimeRules": {
+    "DEVICE_REPLACE_WHOLE": 5,
+    "DEVICE_REPLACE_BOARD": 3,
+    "DEVICE_REPLACE_VENDOR": 7,
+    "DEVICE_ONBOARD": 7,
+    "VERSION_UPGRADE": 2,
+    "DISASTER_RECOVERY_DRILL": 2,
+    "CONFIGURATION_CHANGE": 2,
+    "NETWORK_TOPOLOGY_CHANGE": 3,
+    "VERSION_PATCH": 2,
+    "SIGNATURE_UPGRADE": 1
+  },
+  "operations": {
+    "detail": {
+      "method": "GET",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/approval",
+      "successExtension": "CommonResult<ApprovalDetailV2> for FULL; FINAL_RESULT_ONLY and REASSIGNMENT_ONLY remain exact F-CUT-005 projections",
+      "sideEffects": "none; reads immutable lead_time_snapshot only"
+    }
+  },
+  "decisionIsolation": "leadTimeCompliance is display-only and is not an input to review items, allowedActions, route, approve/reject guards or task state transitions",
+  "strictJson": "the snapshot codec rejects missing/extra keys, unknown rule versions/types and wrong wire types"
+}

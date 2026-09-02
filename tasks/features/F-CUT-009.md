@@ -1,0 +1,40 @@
+# F-CUT-009 P3授权清单导出与受控流程跳转
+
+> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> 总体工程阶段：`IMPLEMENTATION`
+> Feature Ready Gate：`READY / GO`
+> Technical Plan Gate：`PASS / GO`
+> Implementation Done Gate：`NOT_READY`
+> Requirement：`CUT-03@V2=FULL`
+> Feature Spec：`specs/features/F-CUT-009-p3-authorized-export-and-navigation.md`
+> 机器合同：`specs/features/F-CUT-009-api-contract.json`、`specs/features/F-CUT-009-physical-contract.json`
+> 旧实现审计：`specs/features/F-CUT-009-legacy-reuse-audit.md`
+> Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-009-p3-authorized-export-and-navigation.md`
+> 已决问题：`Q-FCUT009-001（RESOLVED / OPTION_A）`
+
+## 当前最小工作单元
+
+- 形成完整CUT-03@V2 Feature边界：授权清单导出与流程跳转配置优化必须共同承接，不拆成Provider或导出碎片。
+- 跨模块只预留正式消费端口，CUT单元/集成测试可用`src/test`受控替身推进正常正向闭环；不实现外部Provider，不修改Yudao。
+- Task 1导航列、配置聚合与决定内核已通过独立Code Review Gate（`PASS / GO@2b30664d`）。
+- Task 2授权XLSX导出内核、REST与安全审计已通过独立Code Review Gate（`PASS / GO@f9022765`）。
+- Task 3配置UI、P3导出与受控正向闭环已通过独立Code Review Gate（`PASS / GO@dc0e6d39`）。
+- 最近Gate：Implementation Done前生产Owner依赖与真实浏览器证据核验。
+
+## 检查点
+
+- [x] 已核对PRD CUT-03 V2、SDS API/数据库/权限/测试设计与F-CUT-003/F-CUT-001现状。
+- [x] 已完成现有配置、清单、旧风险页面、跨模块端口及导出技术模式复用审计。
+- [x] `Q-FCUT009-001`采用方案A并回写导航目标机器合同。
+- [x] Feature Ready独立复审GO（锁定基线`51239c53`）。
+- [x] 已生成唯一Technical Plan候选。
+- [x] Technical Plan独立复审GO（锁定基线`e9b2a25c`）。
+- [x] 已按计划完成Task 1–3实施、聚焦测试、独立Code Review及受控正向闭环状态回写。
+
+## 阻断
+
+- 已汇总受控`ProjectScope`替身下的CUT正向闭环；生产Owner依赖仍阻断生产装配、真实浏览器与Implementation Done，不得将替身证据解释为生产完成。
+
+## Phase-switch checkpoint
+
+基线dc0e6d39；Task 1–3独立复审全部GO，CUT导航规则、授权XLSX导出/安全审计、配置UI与P3受控正向交互已完成。状态收口为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；跨模块仍仅预留端口+`src/test`受控替身。最近Gate为Implementation Done前生产Owner依赖与真实浏览器证据核验。

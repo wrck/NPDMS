@@ -1,0 +1,63 @@
+{
+  "featureId": "F-CUT-007",
+  "requirementSlice": "CUT-01@V2=FULL",
+  "status": "BASELINE_READY",
+  "ownerContext": "CUT",
+  "schemaChange": "NONE",
+  "newTables": [],
+  "modifiedTables": [],
+  "migrations": [],
+  "events": [],
+  "cache": "NONE",
+  "readModels": [
+    {"source": "cut_task", "purpose": "visible task identity, origin, stage and status", "owner": "CUT"},
+    {"source": "current P2 assessment/checklist, P4 plan, P5 approval and P6 closure facts", "purpose": "reuse existing write-action eligibility without creating a second action model", "owner": "CUT"}
+  ],
+  "externalFacts": [
+    {"api": "ProjectScopeApi", "action": "ACTION_VIEW", "owner": "PROJ", "failureRule": "provider unavailable or corrupted fact fails the entire KPI request with ownerContext=PROJ"},
+    {"api": "inherited P2-P6 action-guard Owner contracts", "action": "read-only eligibility evaluation", "owner": "PROJ|AST|CUS|IMP|PLT|SYSTEM|INT12", "failureRule": "preserve the failing physical Owner and inherited reason category; never relabel as CUT and never return partial counts"}
+  ],
+  "queryContract": {
+    "visibleProjectInput": "non-empty trusted ACTION_VIEW project id set; empty set short-circuits to all-zero",
+    "candidateQuery": "CUT-owned scenario Query objects and Mapper XML for joins or dynamic collections",
+    "forbidden": ["SQL annotations", "Map query parameters", "unscoped query when visible project set is empty", "per-task HTTP or Controller calls", "N+1", "coarse stage/status/owner/permission approximation of TODO", "copied second action semantics"],
+    "todoEvaluation": "batch candidate/projection reads followed by the same reusable P2-P6 action guards; distinct by taskId",
+    "approvalTodo": "existing P5 myTodos eligibility intersected with KPI visible projects",
+    "readOnly": true,
+    "businessLocks": false,
+    "writes": false
+  },
+  "metricPredicates": {
+    "ARCHIVED": "task_status=ARCHIVED",
+    "APPROVING": "current_stage=P5 AND task_status=APPROVING",
+    "REJECTED_PENDING_MODIFICATION": "current_stage=P4 AND task_status=PLAN_DRAFTING AND current non-replaced approval instance status=REJECTED",
+    "TODO": "NEW_PLATFORM, non-archived, ACTION_VIEW visible, actor has at least one approved P2-P6 write action under the existing full guard"
+  },
+  "consistency": {
+    "response": "all four counts are returned together from committed CUT facts",
+    "generatedAt": "service Clock at response construction",
+    "partialResult": "FORBIDDEN",
+    "overlap": "ALLOWED_ACROSS_METRICS",
+    "deduplicate": "COUNT_DISTINCT_TASK_ID_PER_METRIC"
+  },
+  "legacy": {
+    "newPlatformTodoOnly": true,
+    "statusMetrics": "count only current CUT rows that already satisfy the exact current predicates; never infer from legacy tinyint or text",
+    "migration": "NONE",
+    "dualWrite": "FORBIDDEN"
+  },
+  "hardDependencies": ["F-CUT-002 through F-CUT-006 current CUT facts and action guards", "ProjectScopeApi.ACTION_VIEW"],
+  "inheritedActionGuardDependencies": {
+    "actionContractSources": {
+      "P2": "F-CUT-002-rest-api-contract.json",
+      "P3": "F-CUT-003 current checklist action contract and physical contract",
+      "P4": "F-CUT-004-api-contract.json",
+      "P5": "F-CUT-005-api-contract.json",
+      "P6": "F-CUT-006-api-contract.json"
+    },
+    "possiblePhysicalOwners": ["CUT", "PROJ", "AST", "CUS", "IMP", "PLT", "SYSTEM", "INT12"],
+    "activationRule": "an Owner is a runtime dependency only when the reused action guard for that candidate invokes its existing public contract; F-CUT-007 must not add new Owner calls merely because the Owner appears in this union",
+    "failureRule": "any invoked Provider unavailable or Owner fact corrupted fails the whole KPI response using the inherited stable reasonCode and the actual physical ownerContext; CUT is used only for CUT-owned projection/guard corruption"
+  },
+  "controlledSubstituteBoundary": "CUT tests may simulate deterministic ProjectScope and other reserved cross-context facts while exercising real CUT queries and guards; no substitute is registered in production or accepted as real-browser/Implementation Done evidence"
+}
