@@ -11,4 +11,16 @@
     <artifactId>pms-module-cutover-api</artifactId>
     <name>${project.artifactId}</name>
     <description>PMS 割接公开业务接口</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>yudao-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>yudao-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

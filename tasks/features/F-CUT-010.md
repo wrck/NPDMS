@@ -15,7 +15,7 @@
 
 - 形成CUT-08完整纵向Feature：需求识别、外部申请发起/跳转、引用与状态回填、人工证据、P5展示共同承接，不拆成Provider或单页碎片。
 - INT-06只预留生产端口；CUT实施阶段以`src/test`受控替身完成正常正向闭环，不实现第三方、COM或Yudao。
-- 已完成规格、机器合同、复用审计、追溯和Feature Ready；当前只生成唯一Technical Plan，计划GO前不实现。
+- 已完成规格、机器合同、复用审计、追溯、Feature Ready与Technical Plan；Task 1候选仅建立公共回调合同、INT/PLT消费端口和需求快照Codec，不注册生产Bean或Provider。
 
 ## Gate清单
 
@@ -27,4 +27,4 @@
 
 ## Phase-switch checkpoint
 
-基线f840cbbc；Feature Ready与Technical Plan均已GO，实施进入Task 1。当前单元：公共回调合同、INT/PLT消费端口和需求Codec；生产Provider/Bean仍阻断Done。下一步：完成最小正向实现与聚焦验证后送Task 1独立复审。
+基线ab5bc4f3；Task 1正向实现完成，公共API、INT/PLT端口和需求Codec聚焦验证8/8通过；无Bean、Mapper、DDL或生产Provider。下一步：提交候选并申请Task 1 Contract/Code Review Gate，GO前不进入Task 2。
