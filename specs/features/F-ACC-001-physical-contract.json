@@ -1,7 +1,7 @@
 {
   "featureId": "F-ACC-001",
-  "status": "IN_REVIEW_BLOCKED_BY_SPEC",
-  "masterBlocker": "Q-GOV-20260901-001",
+  "status": "BASELINE_READY",
+  "masterBlocker": null,
   "sourceFeatureReadyDecision": "GO_BDE0FEAC019BAF820634ECC6A0E88272672B601D",
   "sourceTechnicalPlanPrerequisiteAmendment":"GO_701BDF701539A0D65F3C67EB10AA0605DE58C4A7",
   "requirements": {"ACC-03@V1": "FULL", "ACC-04@V1": "PARTIAL_REPORT_SOURCES_ONLY"},

@@ -2,10 +2,10 @@
 
 > Feature实施状态：`IN_PROGRESS`<br>
 > 总体工程阶段：`IMPLEMENTATION`<br>
-> Feature Ready Gate：`SOURCE PASS / MASTER BLOCKED_BY_SPEC`（来源`145e4a61`；当前`Q-GOV-20260901-001`）<br>
+> Feature Ready Gate：`READY / GO`（来源`145e4a61`；master修订011已关闭`Q-GOV-20260901-001`）<br>
 > Technical Plan Gate：`PASS / GO`（`41f92526`）<br>
-> Implementation Done Gate：`NOT_ESTABLISHED / BLOCKED_BY_SPEC`<br>
-> 当前阻断：`Q-GOV-20260901-001 / BLOCKED_BY_SPEC；代码已选择性集成至master；当前master真实MySQL、Chromium与独立Done裁决未完成；历史分支Done只作证据`<br>
+> Implementation Done Gate：`NOT_ESTABLISHED`<br>
+> 当前阻断：`代码已选择性集成至master；当前master真实MySQL、Chromium与独立Done裁决未完成；历史分支Done只作证据`<br>
 > 当前任务：`master@b3e7c76e代码回执后的运行复验与独立裁决`<br>
 > Requirement ID：`ACC-02@V1=FULL`；`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`<br>
 > Feature Spec：`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`<br>
@@ -45,7 +45,7 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1�
 
 - [x] 在F-ACC-001基础上集成满意度、归档和统一异步导出，不接收旧源推断或外部连接器；迁移收敛为V171～V172。
 - [x] 在当前master复核迁移、权限、幂等/并发控制、后端、前端类型和生产构建。
-- [ ] 在当前master完成真实MySQL与Chromium复验并申请独立Implementation Done裁决；`Q-GOV-20260901-001`关闭前不得晋级。
-- [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / BLOCKED_BY_SPEC`。
+- [ ] 在当前master完成真实MySQL与Chromium复验并申请独立Implementation Done裁决。
+- [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / NOT_ESTABLISHED`。
 
-> 检查点（2026-09-02）：代码回执=`b3e7c76e`；当前Gate=`IN_PROGRESS / BLOCKED_BY_SPEC`；已通过=Feature契约20项、27模块依赖构建、后端117项适用测试（8项MySQL跳过）、前端类型检查与生产构建；阻塞=`Q-GOV-20260901-001`、当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=规格阻断关闭后补齐运行证据并申请独立裁决。
+> 检查点（2026-09-02）：代码回执=`b3e7c76e`；当前Gate=`IN_PROGRESS / NOT_ESTABLISHED`；已通过=Feature契约20项、27模块依赖构建、后端117项适用测试（8项MySQL跳过）、前端类型检查与生产构建；阻塞=当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=补齐运行证据并申请独立裁决。

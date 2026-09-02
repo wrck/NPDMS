@@ -1,14 +1,14 @@
 # F-AST-002 设备产品类型受控副本与公开查询 Feature Spec
 
-> 规格状态：`IN_REVIEW / BLOCKED_BY_SPEC`
-> Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`
+> 规格状态：`BASELINE`
+> Feature Ready：`READY / GO`（来源裁决`NPDMS-FAST002-FEATURE-READY-20260830-01`；master修订011关闭Change ID冲突）
 > Requirement ID：`EQP-01（V1/P0）`
 > Requirement切片覆盖：`EQP-01@V1=PARTIAL`
 > 关联Requirement：`INS-03（V2）`、`INS-09（V2）`、`EQP-04（V2）`；不宣称关联Requirement完成
 > Owner Context：`AST（资产管理）`
 > 消费Context：`Inspection（SRV物理模块）`
-> Open Question：来源分支以`CHG-PRD-2026-08-30-010`关闭`Q-FINS001-002`，但该Change ID与master正式修订010冲突，当前受`Q-GOV-20260901-001`阻断；`Q-FAST002-001`由ADR-0036关闭
-> 适用基线：master PRD V1.8修订010；来源产品类型语义仅作待收敛候选；ADR-0036
+> Open Question：`Q-GOV-20260901-001`已由master修订011关闭；`Q-FAST002-001`由ADR-0036关闭
+> 适用基线：master PRD V1.8修订011；ADR-0036
 
 ## 1. 目标与业务结果
 
@@ -104,6 +104,6 @@
 
 ## 10. Feature Ready Gate
 
-当前结论：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`。
+当前结论：`READY / GO`；该结论只恢复Feature Ready，不产生Implementation Done。
 
-来源分支曾以其本地修订010冻结Owner、来源、数据、公开契约、权限、停用历史、异常与验收边界，并形成`NPDMS-FAST002-FEATURE-READY-20260830-01`；该结论只作候选证据。master的正式修订010属于COM需求收敛，重复Change ID由`Q-GOV-20260901-001`保持`BLOCKED_BY_SPEC`，因此本规格和实现可选择性集成、构建和复核，但在新唯一Change ID获批前不得恢复当前Feature Ready或Implementation Done。ADR-0036仍作为进程内调用边界的有效技术裁决。
+来源分支以其本地修订010冻结Owner、来源、数据、公开契约、权限、停用历史、异常与验收边界，并形成`NPDMS-FAST002-FEATURE-READY-20260830-01`。master修订011现已为该语义形成唯一后续身份并关闭`Q-GOV-20260901-001`，故Feature Ready恢复为GO；当前master真实MySQL复验和独立Done裁决仍未完成，不得由Ready反推Implementation Done。ADR-0036继续作为进程内调用边界的有效技术裁决。

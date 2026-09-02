@@ -52,7 +52,7 @@ LEGACY_SHAPE = frozenset(
     }
 )
 REQ_PATTERN = re.compile(
-    r"^(?:PM|PRE|PLN|SCH|SOL|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|PLT|NFR)-\d{2}$"
+    r"^(?:PM|PRE|PLN|SCH|SOL|EXE|ACC|CLO|COM|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|PLT|NFR)-\d{2}$"
 )
 RUNTIME_SOURCE_ROOTS = (
     "pms-module-cutover/src/main",
@@ -156,7 +156,9 @@ PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
 )
 PROJECT_WRITE_PERMISSION_ALLOWED_PATHS = frozenset({
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectstage/ProjectAcceptanceStageEntryController.java",
     "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/ProjectStageAdvanceController.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectstage/ProjectAcceptanceStageEntryService.java",
     "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
     "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
 })

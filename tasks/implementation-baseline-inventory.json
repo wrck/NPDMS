@@ -21,6 +21,23 @@
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
+      "objectKey": "CommerceCurrentRuntime",
+      "classification": "ADAPTED",
+      "requirementRefs": ["COM-01"],
+      "codePaths": [
+        "pms-module-commerce/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectstage/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectstage/",
+        "sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql",
+        "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql",
+        "sql/migrations/V162__fcom001_stage_entry_acceptance_seed.sql",
+        "sql/migrations/V163__fcom001_acceptance_identity_authorization_fix.sql",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/commerce/"
+      ],
+      "requiredAction": "F_COM_001_BUILDABLE_INCREMENT_PENDING_RUNTIME_REVALIDATION"
+    },
+    {
       "objectKey": "CustomerMasterCurrentRuntime",
       "classification": "ADAPTED",
       "requirementRefs": ["CUS-03"],
@@ -250,10 +267,6 @@
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectprogress/vo/ProjectProgressPolicyReqVO.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectprogress/vo/ProjectProgressRespVO.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectTreeMoveReqVO.java",
-        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/outbox/CommerceOutboxEventDO.java",
-        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDO.java",
-        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDetailDO.java",
-        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/OrderLineDO.java",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/"
       ],

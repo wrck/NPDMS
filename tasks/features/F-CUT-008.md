@@ -10,6 +10,8 @@
 > 机器合同：`specs/features/F-CUT-008-api-contract.json`、`specs/features/F-CUT-008-physical-contract.json`、`specs/features/F-CUT-008-external-notification-contract.json`
 > 旧实现审计：`specs/features/F-CUT-008-legacy-reuse-audit.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-008-p5-lead-time-external-reminders.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V157/V158/V159 -> master V188/V189/V190`
+> master复验：`CUT共享后端242项（跳过MySQL 27）与前端68项零失败；外部通知生产端口、真实MySQL与真实浏览器未闭合，Implementation Done Gate保持NOT_READY`
 
 ## 当前最小工作单元
 

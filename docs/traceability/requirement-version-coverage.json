@@ -138,6 +138,144 @@
       ]
     },
     {
+      "featureId": "F-CUT-002",
+      "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
+      "taskPath": "tasks/features/F-CUT-002.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-01@V1",
+          "coverage": "PARTIAL"
+        },
+        {
+          "sliceKey": "CUT-02@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-003",
+      "featurePath": "specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md",
+      "taskPath": "tasks/features/F-CUT-003.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-03@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-004",
+      "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
+      "taskPath": "tasks/features/F-CUT-004.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-04@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-005",
+      "featurePath": "specs/features/F-CUT-005-p5-graded-approval.md",
+      "taskPath": "tasks/features/F-CUT-005.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-05@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-006",
+      "featurePath": "specs/features/F-CUT-006-p6-cutover-closure.md",
+      "taskPath": "tasks/features/F-CUT-006.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-06@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-007",
+      "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
+      "taskPath": "tasks/features/F-CUT-007.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-01@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-008",
+      "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
+      "taskPath": "tasks/features/F-CUT-008.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-05@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-009",
+      "featurePath": "specs/features/F-CUT-009-p3-authorized-export-and-navigation.md",
+      "taskPath": "tasks/features/F-CUT-009.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "mappings": [
+        {
+          "sliceKey": "CUT-03@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-010",
+      "featurePath": "specs/features/F-CUT-010-cutover-spare-system-coordination.md",
+      "taskPath": "tasks/features/F-CUT-010.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "CUT-08@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-INS-001",
+      "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+      "taskPath": "tasks/features/F-INS-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTATION_IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "INS-03@V2",
+          "coverage": "PARTIAL"
+        },
+        {
+          "sliceKey": "INS-09@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-PLT-001",
       "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
       "taskPath": "tasks/features/F-PLT-001.md",
@@ -1243,7 +1381,15 @@
       "businessResult": "割接任务管理的V1主交付业务结果",
       "versionBoundary": "V1任务闭环；V2首页KPI",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
+          "taskPath": "tasks/features/F-CUT-002.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-02@V1",
@@ -1255,7 +1401,15 @@
       "businessResult": "割接分级评估的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
+          "taskPath": "tasks/features/F-CUT-002.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-03@V1",
@@ -1267,7 +1421,15 @@
       "businessResult": "割接采集清单动态多维绑定生成的V1主交付业务结果",
       "versionBoundary": "V1清单管理；V2导出与流程跳转",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-003",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md",
+          "taskPath": "tasks/features/F-CUT-003.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-04@V1",
@@ -1279,7 +1441,15 @@
       "businessResult": "割接方案编审的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-004",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
+          "taskPath": "tasks/features/F-CUT-004.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-05@V1",
@@ -1291,7 +1461,15 @@
       "businessResult": "割接分级审批的V1主交付业务结果",
       "versionBoundary": "V1分级审批；V2 A/B级专项提前时间判断（含原10.12提前时间合规判断）",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-005",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-005-p5-graded-approval.md",
+          "taskPath": "tasks/features/F-CUT-005.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-06@V1",
@@ -1303,7 +1481,15 @@
       "businessResult": "割接跟踪与闭环的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-006",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-006-p6-cutover-closure.md",
+          "taskPath": "tasks/features/F-CUT-006.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-07@V1",
@@ -1335,7 +1521,15 @@
       "businessResult": "割接备件系统集成的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-010",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-010-cutover-spare-system-coordination.md",
+          "taskPath": "tasks/features/F-CUT-010.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-09@V1",
@@ -1411,7 +1605,15 @@
       "businessResult": "巡检规则管理的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-INS-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+          "taskPath": "tasks/features/F-INS-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "INS-04@V2",
@@ -1483,7 +1685,15 @@
       "businessResult": "巡检规则配置字段的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-INS-001",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
+          "taskPath": "tasks/features/F-INS-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "INT-01@V1",
@@ -1767,7 +1977,15 @@
       "businessResult": "按授权范围展示割接首页KPI",
       "versionBoundary": "不改变CUT任务状态和P1～P6流程",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-007",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
+          "taskPath": "tasks/features/F-CUT-007.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-03@V2",
@@ -1779,7 +1997,15 @@
       "businessResult": "授权清单导出与流程跳转配置优化",
       "versionBoundary": "V1生成、填写、暂存、提交及基础跳转保持不变",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-009",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-009-p3-authorized-export-and-navigation.md",
+          "taskPath": "tasks/features/F-CUT-009.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-05@V2",
@@ -1791,7 +2017,15 @@
       "businessResult": "A/B级专项提前时间判断及经定义的外部提醒",
       "versionBoundary": "不新增平台通用SLA；短信/邮件走INT-10、钉钉走INT-05",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-008",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
+          "taskPath": "tasks/features/F-CUT-008.md"
+        }
+      ]
     },
     {
       "sliceKey": "INT-02@V2",

@@ -10,6 +10,8 @@
 > 机器合同：`specs/features/F-CUT-010-api-contract.json`、`specs/features/F-CUT-010-physical-contract.json`
 > 旧实现审计：`specs/features/F-CUT-010-legacy-reuse-audit.md`
 > Technical Plan候选：`docs/superpowers/plans/2026-09-02-f-cut-010-cutover-spare-system-coordination.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V161 -> master V192；只接收已完成Task 1～3，不把Task 4倒签完成`
+> master复验：`CUT API 6项、CUT共享后端242项（跳过MySQL 27）与前端68项零失败；当前仍为Task 4正向实现，生产INT-06端口、真实MySQL与真实浏览器未闭合`
 
 ## 当前最小工作单元
 

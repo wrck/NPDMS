@@ -10,6 +10,8 @@
 > 机器合同：`specs/features/F-CUT-005-api-contract.json`、`specs/features/F-CUT-005-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`、`specs/features/F-CUT-005-candidate-owner-contract.json`
 > 旧实现审计：`specs/features/F-CUT-005-legacy-reuse-audit.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-09-01-f-cut-005-p5-graded-approval.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V153/V154 -> master V184/V185`
+> master复验：`CUT API 6项、CUT共享后端242项（跳过MySQL 27）与前端68项零失败；生产PROJ/SYSTEM Owner与真实验收未闭合，状态保持IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`
 
 ## 当前最小工作单元
 

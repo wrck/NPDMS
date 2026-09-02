@@ -76,7 +76,7 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     if provisioning.get("bothTerminal") != "UNCHANGED_PRESERVE_HISTORY" or \
             provisioning.get("mixedTerminalNonTerminal") != "FAIL_BATCH":
         errors.append("terminal-partition")
-    for marker in ("Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`",
+    for marker in ("Feature Ready：`READY / GO`", "Q-GOV-20260901-001`已由master修订011关闭",
                    "ACC-03@V1=FULL", "ACC-04@V1=PARTIAL", "Q-FCOM-002",
                    "ADR-0040", "ACCEPTANCE_REPORT_ARCHIVE", "AcceptanceActivityInitializationApi"):
         if marker not in spec:
@@ -95,10 +95,10 @@ class Facc001FeatureContractTest(unittest.TestCase):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.audit = AUDIT.read_text(encoding="utf-8")
 
-    def test_source_feature_ready_and_master_blocker_are_recorded(self) -> None:
+    def test_source_feature_ready_is_adopted_by_master_baseline(self) -> None:
         self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
-        self.assertEqual("IN_REVIEW_BLOCKED_BY_SPEC", self.contract["status"])
-        self.assertEqual("Q-GOV-20260901-001", self.contract["masterBlocker"])
+        self.assertEqual("BASELINE_READY", self.contract["status"])
+        self.assertIsNone(self.contract["masterBlocker"])
         self.assertEqual("GO_BDE0FEAC019BAF820634ECC6A0E88272672B601D",
                          self.contract["sourceFeatureReadyDecision"])
         self.assertEqual("GO_701BDF701539A0D65F3C67EB10AA0605DE58C4A7",

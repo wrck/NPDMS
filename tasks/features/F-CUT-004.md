@@ -10,6 +10,8 @@
 > 机器合同：`specs/features/F-CUT-004-api-contract.json`、`specs/features/F-CUT-004-physical-contract.json`、`specs/features/F-CUT-005-approval-owner-contract.json`
 > 旧实现审计：`specs/features/F-CUT-004-legacy-reuse-audit.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-09-01-f-cut-004-p4-cutover-plan-authoring.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V150/V151/V152 -> master V181/V182/V183`
+> master复验：`CUT共享后端242项（跳过MySQL 27）与前端68项零失败；Q-FCUT004-001、生产依赖、真实MySQL与真实浏览器缺口不因代码入主干关闭`
 
 ## 当前最小工作单元
 

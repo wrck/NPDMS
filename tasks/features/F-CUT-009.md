@@ -11,6 +11,8 @@
 > 旧实现审计：`specs/features/F-CUT-009-legacy-reuse-audit.md`
 > Technical Plan：`docs/superpowers/plans/2026-09-02-f-cut-009-p3-authorized-export-and-navigation.md`
 > 已决问题：`Q-FCUT009-001（RESOLVED / OPTION_A）`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V160 -> master V191`
+> master复验：`CUT共享后端242项（跳过MySQL 27）与前端68项零失败；生产授权事实、真实MySQL与真实浏览器未闭合，Implementation Done Gate保持NOT_READY`
 
 ## 当前最小工作单元
 

@@ -17,8 +17,8 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         "ACC-02@V1": "FULL", "ACC-04@V1": "PARTIAL_SATISFACTION_SOURCE_ONLY"
     }:
         errors.append("coverage")
-    if contract.get("status") != "IN_REVIEW_BLOCKED_BY_SPEC" or \
-            contract.get("masterBlocker") != "Q-GOV-20260901-001" or \
+    if contract.get("status") != "BASELINE_READY" or \
+            contract.get("masterBlocker") is not None or \
             contract.get("sourceFeatureReadyDecision") != \
             "GO_145e4a61ea936d0679f2ec41a7d412975572e5a3":
         errors.append("feature-ready-state")
@@ -167,8 +167,8 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("completion-certificate")
     if contract.get("legacyDisposition", {}).get("currentForward") != "NEW_ONLY_EXPLICIT_COMMANDS":
         errors.append("legacy")
-    for marker in ("文档状态：`IN_REVIEW / BLOCKED_BY_SPEC`",
-                   "Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`",
+    for marker in ("文档状态：`BASELINE`",
+                   "Feature Ready：`READY / GO`", "Q-GOV-20260901-001`已由master修订011关闭",
                    "ACC-02@V1=FULL",
                    "PARTIAL_SATISFACTION_SOURCE_ONLY", "T-SAT-SURVEY", "SatisfactionRemediationFact",
                    "actions/invalidate", "createGeneratedBusinessFile", "ProjectScopeApi/Impl", "sha256", "pms_acc_completion_certificate",
@@ -192,7 +192,7 @@ class Facc002FeatureContractTest(unittest.TestCase):
         cls.audit = AUDIT.read_text(encoding="utf-8")
         cls.plan = PLAN.read_text(encoding="utf-8")
 
-    def test_source_go_contract_keeps_master_blocker(self) -> None:
+    def test_source_go_contract_is_adopted_by_master_baseline(self) -> None:
         self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
 
     def test_rejects_original_trigger_reuse_for_remediation(self) -> None:

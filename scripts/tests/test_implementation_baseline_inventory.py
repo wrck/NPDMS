@@ -183,6 +183,18 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         self.assertIn("CUS-03", items["CustomerMasterCurrentRuntime"]["requirementRefs"])
         self.assertIn("pms-module-customer/", items["CustomerMasterCurrentRuntime"]["codePaths"])
 
+    def test_commerce_runtime_is_owned_by_com_requirement(self) -> None:
+        items = self._items()
+        commerce = items["CommerceCurrentRuntime"]
+
+        self.assertEqual("ADAPTED", commerce["classification"])
+        self.assertEqual(["COM-01"], commerce["requirementRefs"])
+        self.assertIn("pms-module-commerce/", commerce["codePaths"])
+        self.assertFalse(any(
+            path.startswith("pms-module-commerce/")
+            for path in items["ProjectTreeAdaptedRuntime"]["codePaths"]
+        ))
+
     def test_completed_project_foundations_are_no_longer_marked_for_revalidation(self) -> None:
         items = self._items()
 
@@ -590,6 +602,17 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
             "stage-readiness-service": (
                 "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
                 "class ProjectStageReadinessService { "
+                "boolean allowed = permissionApi.hasAnyPermissions(userId, 'pms:project:update'); }",
+            ),
+            "acceptance-stage-controller": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectstage/ProjectAcceptanceStageEntryController.java",
+                '@RequestMapping("/api/v1/pms/projects") class ProjectAcceptanceStageEntryController { '
+                '@PreAuthorize("@ss.hasPermission(\'pms:project:update\')") '
+                '@PostMapping("/{id}/actions/enter-acceptance-stage") void enter() {} }',
+            ),
+            "acceptance-stage-service": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectstage/ProjectAcceptanceStageEntryService.java",
+                "class ProjectAcceptanceStageEntryService { "
                 "boolean allowed = permissionApi.hasAnyPermissions(userId, 'pms:project:update'); }",
             ),
         }

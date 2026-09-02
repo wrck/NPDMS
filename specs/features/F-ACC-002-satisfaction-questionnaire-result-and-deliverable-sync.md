@@ -1,13 +1,13 @@
 # F-ACC-002 满意度问卷、达标判定与归档同步 Feature Spec
 
-> 文档状态：`IN_REVIEW / BLOCKED_BY_SPEC`
-> Feature Ready：`SOURCE_READY_ONLY / MASTER_BLOCKED_BY_SPEC (Q-GOV-20260901-001)`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO`（来源`145e4a61`；master修订011关闭Change ID冲突）
 > 实施状态：`IN_PROGRESS`
 > Requirement切片覆盖：`ACC-02@V1=FULL；ACC-04@V1=PARTIAL`
 > Coverage Profile：`ACC-04@V1=PARTIAL_SATISFACTION_SOURCE_ONLY`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project-api/pms-module-project`；PLT公共文件与统一导出契约仅作PMS加性扩展
-> 适用基线：master PRD V1.8修订010；ACC来源分支的同号修订语义只作待收敛候选；ADR-0041、ADR-0042 `ACCEPTED`
+> 适用基线：master PRD V1.8修订011；ACC来源分支的同号修订语义只作历史候选；ADR-0041、ADR-0042 `ACCEPTED`
 > Technical Plan：`NPDMS-FACC002-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`41f92526919e8c18b11c04f188365be2105240ac`）
 
 ## 1. 业务目标
@@ -173,7 +173,7 @@
 | Owner/API/权限/事务与锁序 | PASS |
 | 状态、物理差量和迁移边界 | PASS |
 | 旧实现复用审计 | COMPLETE（见独立审计文件） |
-| Open Question | `Q-GOV-20260901-001`阻断重复编号的ACC修订成为master全局基线；AI-MIG-000仅阻断旧源迁移 |
-| 独立Feature Ready裁决 | 来源分支GO（`145e4a61ea936d0679f2ec41a7d412975572e5a3`）；master当前`BLOCKED_BY_SPEC` |
+| Open Question | `Q-GOV-20260901-001`已由master修订011关闭；AI-MIG-000仅阻断旧源迁移 |
+| 独立Feature Ready裁决 | `READY / GO`（来源`145e4a61ea936d0679f2ec41a7d412975572e5a3`；master收敛复核） |
 
-检查点：基线=master PRD修订010；当前Gate=master候选集成；已通过=来源分支正式工作台与历史独立复审；阻塞=`Q-GOV-20260901-001`及前置F-ACC-001尚未完成master复验；下一步=按有效DU串行集成并重新验证，待唯一Change ID批准后再恢复Feature Ready。
+检查点：基线=master PRD修订011；当前Gate=Implementation Done复验；已通过=Feature Ready、Technical Plan、代码选择性集成；阻塞=前置F-ACC-001及本Feature的master真实MySQL、Chromium与独立Done裁决未完成；下一步=从最新master新建DU串行完成运行复验。

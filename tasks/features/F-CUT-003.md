@@ -8,8 +8,10 @@
 > Requirement：`CUT-03@V1=FULL`
 > Feature Spec：`specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-003-p3-dynamic-checklist.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源V147/V148 -> master V178/V179`
+> master复验：`CUT共享后端242项（跳过MySQL 27）与前端68项零失败；真实MySQL、生产Owner装配和真实浏览器未复验，状态保持IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`
 > 前置Feature：`F-CUT-001`、`F-CUT-002`
-> 外部硬依赖：F-AST-002已在独立分支完成公开产品类型查询；当前CUT分支只预留消费端口，并用`src/test`受控替身推进设备类型匹配。生产API集成及原子重验合同只阻断生产Controller装配、真实浏览器和Implementation Done
+> 外部硬依赖：F-AST-002公开产品类型能力已选择性进入master，但CUT生产写事务内原子重验合同与唯一装配尚未闭合；`src/test`受控替身只支撑CUT自身正向验证。生产API接线继续阻断生产Controller装配、真实浏览器和Implementation Done
 
 ## 当前最小工作单元
 

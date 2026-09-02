@@ -10,6 +10,8 @@
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > 唯一Technical Plan：`docs/superpowers/plans/2026-08-31-f-cut-002-cutover-intake-and-manual-assessment.md`
+> master集成映射：`codex/f-cut-001-matrices@faed8387 -> master代码回执c9066332；来源PLT V144/CUT V146/V149 -> master V176/V177/V180`
+> master复验：`PLT 28项（跳过MySQL 4）、CUT API 6项、CUT 242项（跳过MySQL 27）、CUT前端68项均零失败；生产Owner、真实MySQL与真实浏览器未在本DU复验，状态保持IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`
 > 外部硬依赖：PROJ、IMP、AST、CUS、PLT生产Provider（仅阻断生产装配、真实浏览器和Implementation Done）
 > 既有复用基线：`F-PROJ-003`已交付的`ProjectScopeApi`；其余跨模块能力仅预留消费端口并在`src/test`受控模拟，不由CUT实现Owner Provider
 
