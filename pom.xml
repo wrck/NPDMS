@@ -24,6 +24,7 @@
         <module>pms-module-commerce/pms-module-commerce-api</module>
         <module>pms-module-engineering-api</module>
         <module>pms-module-cutover-api</module>
+        <module>pms-module-integration/pms-module-integration-api</module>
         <module>pms-module-platform</module>
         <module>pms-module-customer</module>
         <module>pms-module-project</module>
