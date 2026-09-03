@@ -1,0 +1,267 @@
+name: Code-fact final hunk reconciliation
+
+on:
+  push:
+    branches:
+      - codex/code-fact-selective-integration-acc-int-cut-20260903
+    paths:
+      - .github/workflows/code-fact-hunk-reconcile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-selective-integration-acc-int-cut-20260903
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Reconcile final source trees at file and hunk granularity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.quotepath false
+          git fetch --no-tags origin \
+            +refs/heads/master:refs/remotes/origin/master \
+            +refs/heads/codex/f-acc-001-sds:refs/remotes/origin/codex/f-acc-001-sds \
+            +refs/heads/prereq-parallel-check-kKiAdn:refs/remotes/origin/prereq-parallel-check-kKiAdn \
+            +refs/heads/codex/f-cut-001-matrices:refs/remotes/origin/codex/f-cut-001-matrices
+
+          BEFORE="$(git rev-parse HEAD)"
+          TMP="$(mktemp -d)"
+          export TMP
+
+          python3 - <<'PY'
+          from __future__ import annotations
+          import csv, os, re, subprocess, tempfile
+          from pathlib import Path
+
+          root = Path.cwd()
+          sources = [
+              "codex/f-acc-001-sds",
+              "prereq-parallel-check-kKiAdn",
+              "codex/f-cut-001-matrices",
+          ]
+          excluded_prefixes = (".github/", "docs/", "specs/", "tasks/", "features/", "output/", "prompts/", ".superpowers/", ".run/")
+          exts = {".java", ".kt", ".kts", ".xml", ".sql", ".vue", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".properties", ".gradle", ".groovy", ".sh", ".py", ".css", ".scss", ".less", ".html", ".bpmn", ".ftl", ".vm"}
+          names = {"pom.xml", "package.json", "pnpm-lock.yaml", "tsconfig.json", "Dockerfile"}
+          duplicate_owner = {
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/ArtifactFileApi.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/dto/ArtifactFileCreateCommand.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/dto/ArtifactFileVersionDTO.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/dataobject/file/FileArtifactDO.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/dataobject/file/FileVersionDO.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/mysql/file/FileArtifactMapper.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/mysql/file/FileVersionMapper.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileApiImpl.java",
+              "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileService.java",
+              "yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileServiceTest.java",
+          }
+
+          def run(*args: str, check: bool = True, data: bytes | None = None):
+              p = subprocess.run(["git", *args], cwd=root, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              if check and p.returncode:
+                  raise RuntimeError(f"git {' '.join(args)} failed: {p.stderr.decode(errors='replace')}")
+              return p
+
+          def out(*args: str) -> str:
+              return run(*args).stdout.decode().strip()
+
+          def blob(ref: str, path: str) -> bytes | None:
+              p = run("show", f"{ref}:{path}", check=False)
+              return p.stdout if p.returncode == 0 else None
+
+          def current(path: str) -> bytes | None:
+              p = root / path
+              return p.read_bytes() if p.is_file() else None
+
+          def write(path: str, data: bytes):
+              p = root / path
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(data)
+
+          def code_path(path: str) -> bool:
+              if path.startswith(excluded_prefixes) or path in {"AGENTS.md", "CLAUDE.md", "README.md", "LICENSE"}:
+                  return False
+              p = Path(path)
+              return p.name in names or p.suffix.lower() in exts
+
+          def binary(data: bytes | None) -> bool:
+              return data is not None and b"\0" in data
+
+          def merge_file(ours: bytes, base: bytes, theirs: bytes) -> bytes | None:
+              with tempfile.TemporaryDirectory() as td:
+                  d = Path(td)
+                  (d/"ours").write_bytes(ours); (d/"base").write_bytes(base); (d/"theirs").write_bytes(theirs)
+                  p = subprocess.run(["git", "merge-file", "-p", str(d/"ours"), str(d/"base"), str(d/"theirs")], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                  return p.stdout if p.returncode == 0 else None
+
+          def changed_paths(base: str, source: str):
+              raw = out("diff", "--name-status", "-M", base, source)
+              for line in raw.splitlines():
+                  parts = line.split("\t")
+                  if not parts: continue
+                  status = parts[0]
+                  if status.startswith(("R", "C")):
+                      yield status, parts[2], parts[1]
+                  else:
+                      yield status, parts[1], None
+
+          def migration_is_old(path: str) -> bool:
+              m = re.match(r"sql/migrations/V(\d+)__", path)
+              if not m: return False
+              maxv = 0
+              for p in (root/"sql/migrations").glob("V*.sql"):
+                  mm = re.match(r"V(\d+)__", p.name)
+                  if mm: maxv = max(maxv, int(mm.group(1)))
+              return int(m.group(1)) <= maxv and not (root/path).exists()
+
+          rows = []
+          for branch in sources:
+              src = f"origin/{branch}"
+              base = out("merge-base", "origin/master", src)
+              for status, path, old_path in changed_paths(base, src):
+                  if not code_path(path):
+                      continue
+                  if path in duplicate_owner:
+                      rows.append((branch, path, "EXCLUDED_DUPLICATE_OWNER", "current PLT owner retained")); continue
+                  theirs = blob(src, path)
+                  base_blob = blob(base, old_path or path)
+                  ours = current(path)
+                  if binary(theirs) or binary(base_blob) or binary(ours):
+                      rows.append((branch, path, "EXCLUDED_BINARY", "binary path")); continue
+                  if path.startswith("sql/migrations/") and migration_is_old(path):
+                      rows.append((branch, path, "MIGRATION_ADAPT_REQUIRED", "old source version; existing received migrations remain authoritative")); continue
+                  if theirs is None:
+                      if ours is not None and base_blob == ours:
+                          (root/path).unlink(); rows.append((branch, path, "APPLIED_DELETE", "current matched merge base"))
+                      else:
+                          rows.append((branch, path, "DELETE_SKIPPED", "current diverged or already absent"))
+                      continue
+                  if ours == theirs:
+                      rows.append((branch, path, "NOOP_EXACT", "same blob")); continue
+                  if ours is None:
+                      write(path, theirs); rows.append((branch, path, "APPLIED_NEW_FILE", "source tip file missing")); continue
+                  if ours == base_blob:
+                      write(path, theirs); rows.append((branch, path, "APPLIED_FAST_FORWARD", "current matched merge base")); continue
+                  merged = merge_file(ours, base_blob or b"", theirs)
+                  if merged is not None:
+                      write(path, merged); rows.append((branch, path, "APPLIED_THREE_WAY", "clean file merge")); continue
+
+                  patch = run("diff", "--binary", "--full-index", base, src, "--", path, check=False).stdout
+                  before = current(path)
+                  p = subprocess.run(["git", "apply", "--reject", "--whitespace=nowarn", "--recount", "-"], cwd=root, input=patch, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                  after = current(path)
+                  rejects = list(root.glob(path + ".rej"))
+                  for r in rejects: r.unlink(missing_ok=True)
+                  if before != after:
+                      rows.append((branch, path, "APPLIED_PARTIAL_HUNKS", f"rejected={bool(rejects) or p.returncode != 0}"))
+                  else:
+                      rows.append((branch, path, "CONFLICT_ADAPT_REQUIRED", p.stderr.decode(errors="replace")[-300:]))
+
+          duplicate_methods = {
+              "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java": "readSeedMigration",
+              "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut005MigrationContractTest.java": "readSeedMigration",
+              "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java": "readJobMigration",
+              "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java": "readExternalJobMigration",
+          }
+          for path, name in duplicate_methods.items():
+              p = root/path
+              if not p.exists(): continue
+              text = p.read_text(encoding="utf-8")
+              starts = [m.start() for m in re.finditer(rf"(?m)^    private static String {re.escape(name)}\(\) \{{", text)]
+              while len(starts) > 1:
+                  start = starts[-1]
+                  brace = text.find("{", start); depth = 0; end = None
+                  for i in range(brace, len(text)):
+                      if text[i] == "{": depth += 1
+                      elif text[i] == "}":
+                          depth -= 1
+                          if depth == 0:
+                              end = i + 1
+                              while end < len(text) and text[end] in "\r\n": end += 1
+                              break
+                  if end is None: break
+                  text = text[:start] + text[end:]
+                  starts = [m.start() for m in re.finditer(rf"(?m)^    private static String {re.escape(name)}\(\) \{{", text)]
+                  rows.append(("integration-fix", path, "APPLIED_REMOVE_DUPLICATE_HELPER", name))
+              p.write_text(text, encoding="utf-8")
+
+          report = root/"docs/traceability/code-fact-hunk-reconcile-2026-09-03.csv"
+          report.parent.mkdir(parents=True, exist_ok=True)
+          with report.open("w", encoding="utf-8", newline="") as f:
+              w = csv.writer(f); w.writerow(["branch", "path", "decision", "detail"]); w.writerows(rows)
+          PY
+
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(integration): reconcile remaining branch code hunks' \
+              -m 'Apply final source-tree changes at file/non-conflicting-hunk granularity; retain only path-scoped conflicts.'
+          fi
+
+          CODE_HEAD="$(git rev-parse HEAD)"
+          LOG_DIR="$TMP/logs"; mkdir -p "$LOG_DIR"
+          set +e
+          MVN_CMD=mvn; [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true \
+            -pl pms-module-project,pms-module-customer,pms-module-cutover-api,pms-module-cutover,pms-module-engineering-api,pms-module-engineering,pms-module-integration,pms-module-platform,yudao-module-infra \
+            -am package > "$LOG_DIR/maven.log" 2>&1
+          MVN_RC=$?
+          set -e
+
+          set +e
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains specs/001-project-delivery-platform/domains \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            > "$LOG_DIR/traceability.log" 2>&1
+          TRACE_RC=$?
+          set -e
+
+          REPORT=docs/traceability/code-fact-three-branch-integration-2026-09-03.md
+          {
+            echo
+            echo '## 适配Pass 3：最终源码树与非冲突hunk复核'
+            echo
+            echo "- 代码Head：\`$CODE_HEAD\`"
+            echo '- 对三条来源分支的最终源码树重新三方比较；冲突文件内可独立应用的hunk继续接收。'
+            echo '- 仅保留逐文件冲突；不形成整提交或整分支拒绝。'
+            echo '- 四个CUT迁移合同测试的重复辅助方法已去重，保留当前主干迁移路径。'
+            echo "- Requirement追溯生成退出码：\`$TRACE_RC\`"
+            echo "- Maven受影响Reactor构建退出码：\`$MVN_RC\`"
+            echo
+            echo '### Maven日志'
+            echo '```text'; tail -260 "$LOG_DIR/maven.log"; echo '```'
+            echo
+            echo '### 追溯日志'
+            echo '```text'; tail -100 "$LOG_DIR/traceability.log"; echo '```'
+          } >> "$REPORT"
+
+          git add -A docs/traceability tasks/features
+          git rm .github/workflows/code-fact-hunk-reconcile.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs(traceability): record final code-hunk reconciliation' \
+              -m "Feature statuses remain in progress where gates are open. Traceability rc=$TRACE_RC; Maven rc=$MVN_RC."
+          fi
+          git push origin HEAD:codex/code-fact-selective-integration-acc-int-cut-20260903
+          echo "BEFORE=$BEFORE"
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "MAVEN_RC=$MVN_RC"
+          echo "TRACE_RC=$TRACE_RC"
