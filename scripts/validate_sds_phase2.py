@@ -801,7 +801,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "SatisfactionResultFactApi.inspect/lockAndRevalidate",
             "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload",
             "FileArtifactApi.createGeneratedBusinessFile",
-            "ExportTaskApi.request/getFact",
+            "ExportTaskApi.request/getFact/retry",
             "ExportBusinessDataProvider",
         ),
         "09-database-design.md": (
@@ -816,6 +816,8 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "task_code=T-SAT-SURVEY",
             "plt_export_task",
             "plt_export_audit",
+            "failure_retryable/retry_count",
+            "FAILED + failure_retryable=1",
         ),
         "10-api-design.md": (
             "/satisfaction-tasks/{id}/access-grants",
@@ -832,6 +834,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "D-SAT-REPORT",
             "/api/v1/pms/export-tasks/{id}/access-ticket",
             "ownerContext=ACC/exportType=SATISFACTION_RESULT",
+            "/api/v1/pms/export-tasks/{id}/actions/retry",
         ),
         "11-event-design.md": (
             "SatisfactionResultVersionChanged",
@@ -842,7 +845,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
         ),
         "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE",
                               "createGeneratedBusinessFile", "未引用对象", "PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE"),
-        "15-cache-and-concurrency.md": ("createGeneratedBusinessFile", "MANDATORY", "同operation同摘要", "plt_export_task.version"),
+        "15-cache-and-concurrency.md": ("createGeneratedBusinessFile", "MANDATORY", "同operation同摘要", "plt_export_task.version", "FAILED(retryable)→REQUESTED"),
         "16-exception-and-idempotency.md": (
             "Result与结果文档已经共同提交后，来源投影或归档失败",
             "该规则不适用于Result文档生成失败或对象已写后ACC外层事务回滚",
@@ -851,6 +854,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "同operation同摘要复用存储回执",
             "统一异步导出异常",
             "TTL清理失败",
+            "retry_count+1",
         ),
     }
     for name, tokens in required.items():
