@@ -8,8 +8,7 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM `com_delivery_scope`
-        WHERE `deleted` = b'0'
-          AND `scope_status` IN ('ACTIVE', 'CONFLICT')
+        WHERE `scope_status` IN ('ACTIVE', 'CONFLICT')
           AND `effective_to` IS NULL
         GROUP BY `tenant_id`, `order_line_id`, `project_id`
         HAVING COUNT(*) > 1
@@ -34,7 +33,7 @@ CREATE TABLE `com_contract` (
     `source_lifecycle_status` varchar(32) NOT NULL,
     `source_system` varchar(32) NOT NULL,
     `source_key` varchar(128) NOT NULL,
-    `source_version` varchar(128) NOT NULL,
+    `source_version` varchar(64) NOT NULL,
     `source_updated_at` datetime(3) NOT NULL,
     `synced_at` datetime(3) NOT NULL,
     `version` int NOT NULL,
@@ -65,7 +64,7 @@ CREATE TABLE `com_sales_order` (
     `source_lifecycle_status` varchar(32) NOT NULL,
     `source_system` varchar(32) NOT NULL,
     `source_key` varchar(128) NOT NULL,
-    `source_version` varchar(128) NOT NULL,
+    `source_version` varchar(64) NOT NULL,
     `source_updated_at` datetime(3) NOT NULL,
     `synced_at` datetime(3) NOT NULL,
     `version` int NOT NULL,
@@ -142,7 +141,7 @@ CREATE TABLE `com_authority_candidate` (
     `candidate_status` varchar(32) NOT NULL,
     `matched_owner_table` varchar(64) DEFAULT NULL,
     `matched_owner_id` bigint DEFAULT NULL,
-    `matched_owner_source_version` varchar(128) DEFAULT NULL,
+    `matched_owner_source_version` varchar(64) DEFAULT NULL,
     `submitted_by` bigint NOT NULL,
     `submitted_at` datetime(3) NOT NULL,
     `decided_by` bigint DEFAULT NULL,
