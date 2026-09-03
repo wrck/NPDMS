@@ -14,6 +14,9 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectT
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact;
+import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
@@ -55,6 +58,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -137,6 +141,8 @@ class ProjectManualCreationServiceImplTest {
     private ProjectTreeScopeService projectTreeScopeService;
     @Mock
     private CustomerQueryApi customerQueryApi;
+    @Mock
+    private SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
@@ -244,7 +250,11 @@ class ProjectManualCreationServiceImplTest {
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
         TemplateDefinitionContent content = contentWithOneGateAndReference();
+        content.getTasks().getFirst().setSatisfactionTiming("AFTER_INITIAL_ACCEPTANCE");
         when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(content);
+        when(satisfactionQuestionnaireTemplateApi.resolvePublished(any())).thenReturn(
+                new SatisfactionTemplateFact("FOUND", 992005100001L, 992005110001L,
+                        1, "FACC002-RULE-V1", new BigDecimal("80.00")));
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000007");
         when(taskExecutionContractFactory.create(any(), any(), any(), any()))
                 .thenReturn(new ProjectTaskExecutionContractDO());
@@ -288,7 +298,17 @@ class ProjectManualCreationServiceImplTest {
 
         // 五要素实例化批量落库
         verify(stageInstanceMapper).insertBatch(anyCollection());
-        verify(taskInstanceMapper).insert(any(ProjectTaskInstanceDO.class));
+        ArgumentCaptor<ProjectTaskInstanceDO> taskCaptor = ArgumentCaptor.forClass(ProjectTaskInstanceDO.class);
+        verify(taskInstanceMapper).insert(taskCaptor.capture());
+        assertEquals(992005100001L, taskCaptor.getValue().getAccSatisfactionTemplateId());
+        assertEquals(992005110001L, taskCaptor.getValue().getTemplateRevisionId());
+        assertEquals(1, taskCaptor.getValue().getTemplateVersion());
+        assertEquals("FACC002-RULE-V1", taskCaptor.getValue().getSatisfactionRuleVersion());
+        assertEquals(new BigDecimal("80.00"), taskCaptor.getValue().getSatisfactionThreshold());
+        ArgumentCaptor<SatisfactionTemplateResolveQuery> satisfactionQueryCaptor =
+                ArgumentCaptor.forClass(SatisfactionTemplateResolveQuery.class);
+        verify(satisfactionQuestionnaireTemplateApi).resolvePublished(satisfactionQueryCaptor.capture());
+        assertEquals("AFTER_INITIAL_ACCEPTANCE", satisfactionQueryCaptor.getValue().applicableTimingCode());
         verify(taskExecutionContractFactory).create(any(), any(), any(), any());
         ArgumentCaptor<ProjectTaskExecutionContractDO> contractCaptor =
                 ArgumentCaptor.forClass(ProjectTaskExecutionContractDO.class);

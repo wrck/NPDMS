@@ -171,6 +171,7 @@ function newDraft(): CutoverConfiguration {
     configurationCode: '',
     configurationName: '',
     changeSummary: '',
+    navigationRule: { target: 'CURRENT_STAGE_WORKBENCH' },
     dictionarySnapshot: {
       cutoverType: 'pms_cutover_type',
       networkMode: 'pms_network_mode',

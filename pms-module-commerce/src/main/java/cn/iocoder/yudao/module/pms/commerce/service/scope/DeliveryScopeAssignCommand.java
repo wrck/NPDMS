@@ -9,6 +9,7 @@ public record DeliveryScopeAssignCommand(
         Long projectId,
         Integer expectedProjectVersion,
         Long expectedProjectScopeVersion,
+        Long expectedDeliveryScopeVersion,
         Long orderLineId,
         String expectedOrderLineSourceVersion,
         BigDecimal allocatedQuantity,

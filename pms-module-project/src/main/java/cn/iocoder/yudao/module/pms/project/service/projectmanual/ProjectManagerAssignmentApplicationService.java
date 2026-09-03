@@ -4,10 +4,6 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
-import cn.iocoder.yudao.module.system.api.dept.DeptApi;
-import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
-import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
-import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.IdempotencyScope;
@@ -27,7 +23,6 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ORGANIZATION_SCOPE_INVALID;
 
 /** 服务经理人工确认的幂等、授权与审计应用入口。 */
 @Service
@@ -44,11 +39,7 @@ public class ProjectManagerAssignmentApplicationService {
     @Resource
     private ProjectCreationAuthorizationService authorizationService;
     @Resource
-    private AdminUserApi adminUserApi;
-    @Resource
-    private DeptApi deptApi;
-    @Resource
-    private OrganizationScopeApi organizationScopeApi;
+    private ProjectServiceManagerCandidateValidator managerCandidateValidator;
     @Resource
     private AssetLocationApi assetLocationApi;
     @Resource
@@ -154,14 +145,8 @@ public class ProjectManagerAssignmentApplicationService {
         if (levelTwo && command.siteId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "L2服务经理必须指定当前项目站点");
         }
-        adminUserApi.validateUser(command.managerId());
-        DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
-        if (department == null || !java.util.Objects.equals(department.getId(), command.departmentId())) {
-            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "办事处部门不存在或已停用");
-        }
-        if (!organizationScopeApi.hasScope(command.managerId(), project.getCompanyId(), command.departmentId())) {
-            throw exception(PROJECT_ORGANIZATION_SCOPE_INVALID, "候选服务经理不具备项目公司与办事处的联合范围");
-        }
+        managerCandidateValidator.validate(command.managerId(), project.getCompanyId(),
+                command.departmentId(), command.departmentCode());
     }
 
     public record Actor(Long tenantId, Long actorId, String correlationId) {

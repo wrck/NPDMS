@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /** 受控本地来源批次；ERP认证、HTTP、调度和游标不属于该契约。 */
+@Deprecated(since = "2026.09")
 public record CommerceAuthorityWriteCommand(
         Long tenantId,
         String sourceBatchId,

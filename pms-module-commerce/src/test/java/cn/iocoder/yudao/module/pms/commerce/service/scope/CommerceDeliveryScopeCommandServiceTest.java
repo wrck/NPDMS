@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineD
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -50,6 +52,7 @@ class CommerceDeliveryScopeCommandServiceTest {
     @Mock private DeliveryScopeDetailMapper detailMapper;
     @Mock private CommerceOutboxEventMapper outboxMapper;
     @Mock private OperationAuditApi operationAuditApi;
+    @Mock private DeliveryScopeProjectVersionService projectVersionService;
     private CommerceDeliveryScopeCommandService service;
 
     @BeforeEach
@@ -57,7 +60,11 @@ class CommerceDeliveryScopeCommandServiceTest {
         TenantContextHolder.setTenantId(1L);
         service = new CommerceDeliveryScopeCommandService(projectScopeApi, projectOfficeFactApi,
                 acceptanceBindingCoordinator, assetDeviceScopeApi, acceptanceScopeGuardApi, orderLineMapper,
-                scopeMapper, detailMapper, outboxMapper, operationAuditApi);
+                scopeMapper, detailMapper, outboxMapper, operationAuditApi, projectVersionService);
+        lenient().when(projectVersionService.current(1L, 501L)).thenReturn(7L);
+        lenient().when(projectVersionService.lock(eq(1L), eq(501L), anyString(), any()))
+                .thenReturn(projectVersion(7L));
+        lenient().when(projectVersionService.advance(any(), anyString(), anyString(), any())).thenReturn(8L);
     }
 
     @AfterEach
@@ -78,7 +85,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         DeliveryScopeCommandResult result = service.assign(assignCommand());
 
         assertEquals(401L, result.deliveryScopeId());
-        assertEquals(1L, result.allocationVersion());
+        assertEquals(8L, result.allocationVersion());
         ArgumentCaptor<DeliveryScopeDO> scope = ArgumentCaptor.forClass(DeliveryScopeDO.class);
         verify(scopeMapper).insert(scope.capture());
         assertEquals("P-501", scope.getValue().getProjectCode());
@@ -94,6 +101,32 @@ class CommerceDeliveryScopeCommandServiceTest {
     }
 
     @Test
+    void shouldReportProjectWatermarkMismatchAsVersionConflict() {
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
+        when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
+                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of());
+        when(projectVersionService.lock(eq(1L), eq(501L), anyString(), any()))
+                .thenReturn(projectVersion(8L));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.assign(assignCommand()));
+
+        assertEquals(COMMERCE_SCOPE_VERSION_CONFLICT.getCode(), error.getCode());
+        verify(outboxMapper).selectByEventId(anyString());
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+        InOrder commerceLockOrder = inOrder(orderLineMapper, scopeMapper, projectVersionService);
+        commerceLockOrder.verify(orderLineMapper).selectByIdsForUpdate(any());
+        commerceLockOrder.verify(scopeMapper).selectCurrentByOrderLineIdsForUpdate(any());
+        commerceLockOrder.verify(projectVersionService).lock(eq(1L), eq(501L), anyString(), any());
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+        verifyNoInteractions(detailMapper, operationAuditApi);
+    }
+
+    @Test
     void shouldPreviewAvailableQuantityAndOwnerSnapshotWithoutWrites() {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
@@ -105,7 +138,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(occupied));
 
         DeliveryScopePreviewResult result = service.preview(new DeliveryScopePreviewCommand(
-                1L, 99L, 501L, 3, 12L, 301L, "erp-v2", new BigDecimal("15"), List.of()));
+                1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2", new BigDecimal("15"), List.of()));
 
         assertTrue(result.allowed());
         assertEquals(new BigDecimal("90"), result.availableQuantity());
@@ -132,7 +165,11 @@ class CommerceDeliveryScopeCommandServiceTest {
 
         service.assign(assignCommand());
 
-        verify(acceptanceBindingCoordinator).bindIfRequired(stage, 401L, 1L, "op-assign");
+        verify(acceptanceBindingCoordinator).bindIfRequired(stage, 401L, 8L, "op-assign");
+        InOrder commerceLockOrder = inOrder(orderLineMapper, scopeMapper, projectVersionService);
+        commerceLockOrder.verify(orderLineMapper).selectByIdsForUpdate(any());
+        commerceLockOrder.verify(scopeMapper).selectCurrentByOrderLineIdsForUpdate(any());
+        commerceLockOrder.verify(projectVersionService).lock(eq(1L), eq(501L), anyString(), any());
     }
 
     @Test
@@ -318,7 +355,7 @@ class CommerceDeliveryScopeCommandServiceTest {
                 new cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult(
                         false, List.of("SN-NOT-FOUND"), List.of(), List.of()));
 
-        DeliveryScopeAssignCommand command = new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 301L,
+        DeliveryScopeAssignCommand command = new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 7L, 301L,
                 "erp-v2", BigDecimal.ONE, List.of("SN-NOT-FOUND"), "序列号校验", "op-invalid-sn");
         ServiceException error = assertThrows(ServiceException.class, () -> service.assign(command));
 
@@ -338,13 +375,24 @@ class CommerceDeliveryScopeCommandServiceTest {
     }
 
     private DeliveryScopeAssignCommand assignCommand() {
-        return new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 301L,
+        return new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 7L, 301L,
                 "erp-v2", new BigDecimal("10"), List.of(), "首次分配", "op-assign");
     }
 
     private DeliveryScopeChangeCommand changeCommand(BigDecimal proposed, String operationId) {
-        return new DeliveryScopeChangeCommand(1L, 99L, 401L, 501L, 3, 12L, 7L,
+        return new DeliveryScopeChangeCommand(1L, 99L, 401L, 501L, 3, 12L, 7L, 7L,
                 "erp-v2", proposed, List.of(), "范围调整", operationId);
+    }
+
+    private DeliveryScopeProjectVersionDO projectVersion(long scopeVersion) {
+        DeliveryScopeProjectVersionDO row = new DeliveryScopeProjectVersionDO();
+        row.setId(701L);
+        row.setTenantId(1L);
+        row.setProjectId(501L);
+        row.setScopeVersion(scopeVersion);
+        row.setPayloadVersion((int) scopeVersion);
+        row.setVersion(0);
+        return row;
     }
 
     private SalesOrderLineDO line() {

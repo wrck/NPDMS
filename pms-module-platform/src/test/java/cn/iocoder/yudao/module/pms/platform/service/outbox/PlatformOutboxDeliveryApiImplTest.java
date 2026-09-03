@@ -70,6 +70,20 @@ class PlatformOutboxDeliveryApiImplTest {
     }
 
     @Test
+    void claimDueSupportsAcceptanceReportVersionChangedWithoutOpeningClosureEvents() {
+        LocalDateTime dueAt = LocalDateTime.of(2026, 8, 30, 12, 0);
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+        service.claimDue(new PlatformOutboxClaimQuery(
+                "AcceptanceReportVersionChanged", dueAt, 10));
+
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(
+                7L, Set.of("AcceptanceReportVersionChanged"), dueAt, 10));
+        assertThrows(IllegalArgumentException.class, () -> service.claimDue(
+                new PlatformOutboxClaimQuery("ClosureGateRecheckRequested", dueAt, 10)));
+    }
+
+    @Test
     void claimDueSupportsDeviceAssignedEventType() {
         LocalDateTime dueAt = LocalDateTime.of(2026, 8, 27, 12, 0);
         when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());

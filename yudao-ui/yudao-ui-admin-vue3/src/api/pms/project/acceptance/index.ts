@@ -1,5 +1,6 @@
 import request from '@/config/axios'
 
+/** @deprecated 旧V17单行验收API仅保留历史兼容；新实施使用 acceptance-report API。 */
 export interface AcceptanceVO {
   id?: number
   projectId: number
@@ -16,6 +17,7 @@ export interface AcceptanceVO {
   createTime?: Date
 }
 
+/** @deprecated 不得以此旧端点实施新Feature。 */
 const baseUrl = '/pms/acc-acceptance'
 
 export const getAcceptancePage = (params: PmsProjectPageParam) =>

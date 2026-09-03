@@ -233,6 +233,53 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
     def test_generator_resolves_head_to_canonical_commit(self) -> None:
         self.assertEqual(self.pinned_commit, GENERATOR.resolve_git_commit(self.impl, "HEAD"))
 
+    def test_requirement_owner_parser_supports_version_slices(self) -> None:
+        matrix = self.root / "slice-matrix.md"
+        matrix.write_text(
+            "| Requirement切片 | 名称 | 版本边界 | Owner |\n"
+            "|---|---|---|---|\n"
+            "| PM-01@V1 | 项目 | V1 | PROJ（项目治理） |\n"
+            "| PM-01@V2 | 项目 | V2 | PROJ（项目治理） |\n",
+            encoding="utf-8",
+        )
+
+        self.assertEqual({"PM-01": "PROJ"}, VALIDATOR.requirement_owners(matrix))
+
+    def test_current_forward_source_accepts_frozen_feature_mapping(self) -> None:
+        self.contract["records"][0]["sources"].append({
+            "sourceType": "CURRENT_FORWARD_TABLE",
+            "sourceObject": "pms_project@V70",
+            "evidenceRef": "feature-contract://F-PROJ-001#v70Conversion",
+            "disposition": "STRUCTURED",
+            "transform": "controlled forward conversion",
+            "mappingStatus": "APPROVED",
+            "gate": "F-PROJ-001",
+            "requiredTargetMappings": {
+                "proj_project.source_project_id": "SOURCE_ID:EXACT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            },
+        })
+        self._save_contract()
+
+        self.assertEqual([], self._validate())
+
+    def test_current_forward_source_requires_feature_evidence_and_mapping(self) -> None:
+        self.contract["records"][0]["sources"].append({
+            "sourceType": "CURRENT_FORWARD_TABLE",
+            "sourceObject": "pms_project",
+            "evidenceRef": "",
+            "disposition": "STRUCTURED",
+            "transform": "controlled forward conversion",
+            "mappingStatus": "APPROVED",
+            "gate": "F-PROJ-001",
+            "requiredTargetMappings": {},
+        })
+        self._save_contract()
+
+        errors = self._validate()
+        self.assertTrue(any("freeze table and migration version" in error for error in errors), errors)
+        self.assertTrue(any("structured Feature evidence" in error for error in errors), errors)
+        self.assertTrue(any("no required target mappings" in error for error in errors), errors)
+
     def test_validator_rejects_noncanonical_commit_references(self) -> None:
         subprocess.run(["git", "branch", "evidence-ref", self.pinned_commit], cwd=self.impl, check=True)
         for invalid_ref in ("HEAD", "evidence-ref", self.pinned_commit[:8]):

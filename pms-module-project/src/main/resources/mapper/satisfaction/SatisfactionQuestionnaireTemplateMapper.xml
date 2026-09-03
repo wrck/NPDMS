@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateMapper">
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateDO">
+        SELECT * FROM acc_satisfaction_questionnaire_template
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectPublishedCandidates"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.satisfaction.SatisfactionTemplateCandidateRecord">
+        SELECT t.id AS templateId,
+               r.id AS templateRevisionId,
+               r.revision_no AS templateVersion,
+               r.rule_version AS ruleVersion,
+               r.frozen_threshold AS threshold,
+               r.priority AS priority
+        FROM acc_satisfaction_questionnaire_template t
+        JOIN acc_satisfaction_questionnaire_template_revision r
+          ON r.tenant_id = t.tenant_id
+         AND r.template_id = t.id
+         AND r.id = t.current_revision_id
+         AND r.deleted = b'0'
+        WHERE t.tenant_id = #{query.tenantId}
+          AND t.status = 'PUBLISHED'
+          AND t.deleted = b'0'
+          AND r.revision_status = 'PUBLISHED'
+          AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+          AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+          AND r.project_type = #{query.projectType}
+          AND r.signing_mode = #{query.signingMode}
+          AND r.implementation_mode = #{query.implementationMode}
+          AND r.business_purpose_code = #{query.businessPurposeCode}
+          AND r.applicable_timing_code = #{query.applicableTimingCode}
+        ORDER BY r.priority DESC, r.id
+    </select>
+</mapper>

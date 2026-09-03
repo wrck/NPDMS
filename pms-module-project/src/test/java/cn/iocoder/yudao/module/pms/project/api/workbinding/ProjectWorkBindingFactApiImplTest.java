@@ -6,6 +6,9 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskIdentityQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
@@ -13,6 +16,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectSatisfactionTaskFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -197,6 +202,42 @@ class ProjectWorkBindingFactApiImplTest {
                 new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
     }
 
+    @Test
+    void satisfactionTaskFactReturnsFrozenOwnerFactsAndCurrentAssignee() {
+        when(factMapper.selectSatisfactionTaskForUpdate(any())).thenReturn(List.of(satisfactionRecord(7)));
+        when(factMapper.selectProjectSatisfactionTaskForUpdate(any())).thenReturn(List.of(satisfactionRecord(7)));
+
+        var fact = api.lockAndRevalidateSatisfactionTask(
+                new ProjectSatisfactionTaskFactQuery(100L, 101L, 7));
+        var frozen = api.lockCurrentSatisfactionTask(new ProjectSatisfactionTaskIdentityQuery(100L, 101L));
+        var resolved = api.lockCurrentSatisfactionTaskByProject(new ProjectSatisfactionTaskProjectQuery(100L));
+
+        assertEquals("T-SAT-SURVEY", fact.taskCode());
+        assertEquals("AFTER_INITIAL_ACCEPTANCE", fact.satisfactionTiming());
+        assertEquals(900L, fact.templateId());
+        assertEquals(901L, fact.templateRevisionId());
+        assertEquals(1000L, fact.currentAssigneeUserId());
+        assertEquals(7, frozen.projectTaskVersion());
+        assertEquals(101L, resolved.projectTaskId());
+        assertEquals(7, resolved.projectTaskVersion());
+    }
+
+    @Test
+    void satisfactionTaskFactRejectsDuplicateMissingAndVersionConflict() {
+        when(factMapper.selectSatisfactionTaskForUpdate(any())).thenReturn(List.of());
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidateSatisfactionTask(
+                new ProjectSatisfactionTaskFactQuery(100L, 101L, 7)));
+
+        when(factMapper.selectSatisfactionTaskForUpdate(any()))
+                .thenReturn(List.of(satisfactionRecord(7), satisfactionRecord(7)));
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidateSatisfactionTask(
+                new ProjectSatisfactionTaskFactQuery(100L, 101L, 7)));
+
+        when(factMapper.selectSatisfactionTaskForUpdate(any())).thenReturn(List.of(satisfactionRecord(8)));
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidateSatisfactionTask(
+                new ProjectSatisfactionTaskFactQuery(100L, 101L, 7)));
+    }
+
     private static ProjectWorkBindingFactRecord record(long tenantId, String binding) {
         return new ProjectWorkBindingFactRecord(tenantId, 100L, 11, 101L, 7, 501L,
                 102L, 501L, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
@@ -245,6 +286,12 @@ class ProjectWorkBindingFactApiImplTest {
 
     private static ProjectTemplateRevisionFactRecord templateRevision() {
         return new ProjectTemplateRevisionFactRecord(501L, 900L, 2);
+    }
+
+    private static ProjectSatisfactionTaskFactRecord satisfactionRecord(int version) {
+        return new ProjectSatisfactionTaskFactRecord(0L, 100L, 101L, "T-SAT-SURVEY", version,
+                "AFTER_INITIAL_ACCEPTANCE", 900L, 901L, 1, "FACC002-RULE-V1",
+                new BigDecimal("80.00"), 1000L);
     }
 
     private static ProjectTaskExecutionContractDO requirementAnalysisContract() {

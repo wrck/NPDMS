@@ -48,6 +48,7 @@ main: BEGIN
      WHERE table_schema = DATABASE() AND table_name IN (
        'com_contract', 'com_sales_order', 'com_sales_order_line',
        'com_order_contract_relation', 'com_project_contract_relation',
+       'com_authority_candidate', 'com_delivery_scope_project_version',
        'acc_acceptance_scope_binding');
     SELECT COUNT(*) INTO v_archives FROM information_schema.tables
      WHERE table_schema = DATABASE() AND table_name IN (
@@ -58,7 +59,7 @@ main: BEGIN
 
     -- 原子发布已完成但Flyway元数据未写入时只做只读幂等复核。
     IF v_old_order_line = 0 AND v_old_scope = 1 AND v_old_detail = 1
-       AND v_new_targets = 6 AND v_archives = 3 AND v_shadows = 0 THEN
+       AND v_new_targets = 8 AND v_archives = 3 AND v_shadows = 0 THEN
         SELECT
           ((SELECT COUNT(*) FROM `fcom001_v70_com_order_line`) <> 4)
           + ((SELECT COUNT(*) FROM `fcom001_v70_com_delivery_scope`) <> 2)
@@ -69,6 +70,8 @@ main: BEGIN
           + ((SELECT COUNT(*) FROM `com_delivery_scope_detail`) <> 4)
           + ((SELECT COUNT(*) FROM `com_order_contract_relation`) <> 0)
           + ((SELECT COUNT(*) FROM `com_project_contract_relation`) <> 0)
+          + ((SELECT COUNT(*) FROM `com_authority_candidate`) <> 0)
+          + ((SELECT COUNT(*) FROM `com_delivery_scope_project_version`) <> 1)
           + ((SELECT COUNT(*) FROM `acc_acceptance_scope_binding`) <> 0)
           INTO v_count;
         IF v_count <> 0 THEN
@@ -188,6 +191,8 @@ main: BEGIN
     DROP TABLE IF EXISTS `fcom001_shadow_acc_acceptance_scope_binding`;
     DROP TABLE IF EXISTS `fcom001_shadow_com_delivery_scope_detail`;
     DROP TABLE IF EXISTS `fcom001_shadow_com_delivery_scope`;
+    DROP TABLE IF EXISTS `fcom001_shadow_com_delivery_scope_project_version`;
+    DROP TABLE IF EXISTS `fcom001_shadow_com_authority_candidate`;
     DROP TABLE IF EXISTS `fcom001_shadow_com_project_contract_relation`;
     DROP TABLE IF EXISTS `fcom001_shadow_com_order_contract_relation`;
     DROP TABLE IF EXISTS `fcom001_shadow_com_sales_order_line`;
@@ -203,7 +208,9 @@ main: BEGIN
       `master_source_version` VARCHAR(64) COLLATE utf8mb4_0900_bin NULL,
       `contract_type` VARCHAR(32) NULL, `customer_id` BIGINT NULL,
       `customer_code` VARCHAR(64) NULL, `customer_name` VARCHAR(512) NULL,
-      `contract_name` VARCHAR(512) NULL, `currency_code` VARCHAR(32) NULL,
+      `contract_name` VARCHAR(512) NULL, `contract_amount` DECIMAL(20, 2) NULL,
+      `currency_code` VARCHAR(32) NULL, `authority_status` VARCHAR(32) NOT NULL DEFAULT 'CONFIRMED',
+      `source_lifecycle_status` VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
       `effective_date` DATE NULL, `expiry_date` DATE NULL,
       `source_sync_time` DATETIME(3) NULL, `source_updated_at` DATETIME(3) NULL,
       `status` VARCHAR(32) NOT NULL, `version` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -219,6 +226,8 @@ main: BEGIN
       KEY `idx_contract_customer` (`tenant_id`, `customer_id`, `status`),
       KEY `idx_contract_no` (`tenant_id`, `contract_no`, `company_code`),
       CONSTRAINT `chk_contract_dates` CHECK (`expiry_date` IS NULL OR `effective_date` IS NULL OR `expiry_date` >= `effective_date`),
+      CONSTRAINT `chk_contract_authority_status` CHECK (`authority_status` IN ('PENDING_AUTHORITY', 'CONFIRMED')),
+      CONSTRAINT `chk_contract_source_lifecycle` CHECK (`source_lifecycle_status` IN ('ACTIVE', 'CANCELLED', 'RETURNED')),
       CONSTRAINT `chk_contract_deleted` CHECK (`deleted` IN (0, 1))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='合同主档';
 
@@ -232,7 +241,10 @@ main: BEGIN
       `order_no` VARCHAR(64) NOT NULL, `sales_type` VARCHAR(32) NULL,
       `customer_id` BIGINT NULL, `customer_code` VARCHAR(64) NULL,
       `customer_name` VARCHAR(512) NULL, `source_project_name` VARCHAR(512) NULL,
-      `order_comment` VARCHAR(2048) NULL, `order_create_time` DATETIME(3) NULL,
+      `order_comment` VARCHAR(2048) NULL, `order_amount` DECIMAL(20, 2) NULL,
+      `currency_code` VARCHAR(32) NULL, `authority_status` VARCHAR(32) NOT NULL DEFAULT 'CONFIRMED',
+      `source_lifecycle_status` VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+      `order_create_time` DATETIME(3) NULL,
       `customer_required_time` DATETIME(3) NULL, `source_sync_time` DATETIME(3) NULL,
       `source_updated_at` DATETIME(3) NULL, `status` VARCHAR(32) NOT NULL,
       `version` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -248,6 +260,8 @@ main: BEGIN
       KEY `idx_sales_order_customer` (`tenant_id`, `customer_code`, `status`),
       KEY `idx_sales_order_no` (`tenant_id`, `order_no`),
       KEY `idx_sales_order_time` (`tenant_id`, `order_create_time`, `status`),
+      CONSTRAINT `chk_sales_order_authority_status` CHECK (`authority_status` IN ('PENDING_AUTHORITY', 'CONFIRMED')),
+      CONSTRAINT `chk_sales_order_source_lifecycle` CHECK (`source_lifecycle_status` IN ('ACTIVE', 'CANCELLED', 'RETURNED')),
       CONSTRAINT `chk_sales_order_deleted` CHECK (`deleted` IN (0, 1))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='ERP销售订单主档';
 
@@ -259,7 +273,7 @@ main: BEGIN
       `company_id` BIGINT NULL, `company_code` VARCHAR(64) NOT NULL,
       `company_name` VARCHAR(255) NULL, `order_type` VARCHAR(32) NOT NULL,
       `order_no` VARCHAR(64) NOT NULL, `line_no` VARCHAR(32) NOT NULL,
-      `line_type` VARCHAR(32) NULL, `item_code` VARCHAR(64) NULL,
+      `line_type` VARCHAR(32) NULL, `item_code` VARCHAR(64) NULL, `model_code` VARCHAR(64) NULL,
       `item_desc` VARCHAR(512) NULL, `product_id` BIGINT NULL,
       `bundle_code` VARCHAR(64) NULL, `profit_center` VARCHAR(64) NULL,
       `real_execution_no` VARCHAR(64) NULL, `warranty_month` INT NULL,
@@ -268,6 +282,7 @@ main: BEGIN
       `order_qty` DECIMAL(18, 6) NULL, `open_qty` DECIMAL(18, 6) NULL,
       `delivered_qty` DECIMAL(18, 6) NULL, `unit_code` VARCHAR(32) NOT NULL,
       `unit_scale` TINYINT UNSIGNED NOT NULL, `quantity_status` VARCHAR(32) NOT NULL,
+      `source_lifecycle_status` VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
       `source_sync_time` DATETIME(3) NULL, `source_updated_at` DATETIME(3) NULL,
       `status` VARCHAR(32) NOT NULL, `version` INT UNSIGNED NOT NULL DEFAULT 0,
       `creator` VARCHAR(64) NOT NULL DEFAULT '',
@@ -291,6 +306,7 @@ main: BEGIN
         AND (`open_qty` IS NULL OR ROUND(`open_qty`, `unit_scale`) = `open_qty`)
         AND (`delivered_qty` IS NULL OR ROUND(`delivered_qty`, `unit_scale`) = `delivered_qty`)),
       CONSTRAINT `chk_sales_order_line_authority` CHECK (`quantity_status` <> 'CONFIRMED' OR `order_qty` IS NOT NULL)
+      ,CONSTRAINT `chk_sales_order_line_source_lifecycle` CHECK (`source_lifecycle_status` IN ('ACTIVE', 'CANCELLED', 'RETURNED'))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='ERP销售订单行及数量快照';
 
     CREATE TABLE `fcom001_shadow_com_order_contract_relation` (
@@ -298,6 +314,13 @@ main: BEGIN
       `order_id` BIGINT NOT NULL, `contract_id` BIGINT NOT NULL,
       `relation_role` VARCHAR(32) NOT NULL DEFAULT 'RELATED',
       `relation_source` VARCHAR(32) NOT NULL,
+      `source_system` VARCHAR(32) COLLATE utf8mb4_0900_bin NOT NULL,
+      `sales_order_source_key` VARCHAR(128) COLLATE utf8mb4_0900_bin NOT NULL,
+      `contract_source_key` VARCHAR(128) COLLATE utf8mb4_0900_bin NOT NULL,
+      `source_version` VARCHAR(64) COLLATE utf8mb4_0900_bin NOT NULL,
+      `source_evidence` JSON NOT NULL,
+      `effective_from` DATETIME(3) NOT NULL,
+      `effective_to` DATETIME(3) NULL,
       `creator` VARCHAR(64) NOT NULL DEFAULT '',
       `create_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
       `updater` VARCHAR(64) NOT NULL DEFAULT '',
@@ -305,11 +328,14 @@ main: BEGIN
       `deleted` TINYINT NOT NULL DEFAULT 0,
       PRIMARY KEY (`id`), UNIQUE KEY `uk_order_contract_rel_tenant_row` (`tenant_id`, `id`),
       UNIQUE KEY `uk_order_contract` (`tenant_id`, `order_id`, `contract_id`, `relation_role`),
+      UNIQUE KEY `uk_order_contract_source_pair`
+        (`tenant_id`, `source_system`, `sales_order_source_key`, `contract_source_key`),
       KEY `idx_order_contract_reverse` (`tenant_id`, `contract_id`, `order_id`),
       CONSTRAINT `fk_order_contract_order` FOREIGN KEY (`tenant_id`, `order_id`)
         REFERENCES `fcom001_shadow_com_sales_order` (`tenant_id`, `id`),
       CONSTRAINT `fk_order_contract_contract` FOREIGN KEY (`tenant_id`, `contract_id`)
         REFERENCES `fcom001_shadow_com_contract` (`tenant_id`, `id`),
+      CONSTRAINT `chk_order_contract_dates` CHECK (`effective_to` IS NULL OR `effective_to` > `effective_from`),
       CONSTRAINT `chk_order_contract_deleted` CHECK (`deleted` IN (0, 1))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='销售订单与合同关系';
 
@@ -334,6 +360,47 @@ main: BEGIN
       CONSTRAINT `chk_project_contract_dates` CHECK (`effective_to` IS NULL OR `effective_from` IS NULL OR `effective_to` >= `effective_from`),
       CONSTRAINT `chk_project_contract_deleted` CHECK (`deleted` IN (0, 1))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目与合同直接关系';
+
+    CREATE TABLE `fcom001_shadow_com_authority_candidate` (
+      `id` BIGINT NOT NULL, `tenant_id` BIGINT NOT NULL,
+      `object_type` VARCHAR(32) NOT NULL,
+      `candidate_source_system` VARCHAR(32) NOT NULL,
+      `candidate_source_key` VARCHAR(128) COLLATE utf8mb4_0900_bin NOT NULL,
+      `candidate_version` VARCHAR(64) COLLATE utf8mb4_0900_bin NOT NULL,
+      `candidate_payload` JSON NOT NULL, `evidence_reference` JSON NOT NULL,
+      `candidate_status` VARCHAR(32) NOT NULL,
+      `matched_owner_type` VARCHAR(32) NULL, `matched_owner_id` BIGINT NULL,
+      `matched_owner_source_version` VARCHAR(64) COLLATE utf8mb4_0900_bin NULL,
+      `decision_reason` VARCHAR(512) NULL,
+      `submitted_by` BIGINT NOT NULL, `submitted_at` DATETIME(3) NOT NULL,
+      `decided_by` BIGINT NULL, `decided_at` DATETIME(3) NULL,
+      `version` INT UNSIGNED NOT NULL DEFAULT 0,
+      `creator` VARCHAR(64) NOT NULL DEFAULT '',
+      `create_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      `updater` VARCHAR(64) NOT NULL DEFAULT '',
+      `update_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      `deleted` TINYINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `uk_authority_candidate_source`
+        (`tenant_id`, `object_type`, `candidate_source_system`, `candidate_source_key`, `candidate_version`),
+      CONSTRAINT `chk_authority_candidate_source` CHECK (`candidate_source_system` = 'PLATFORM_MANUAL'),
+      CONSTRAINT `chk_authority_candidate_object` CHECK (`object_type` IN ('CONTRACT', 'SALES_ORDER', 'ORDER_LINE')),
+      CONSTRAINT `chk_authority_candidate_status` CHECK (`candidate_status` IN ('PENDING_RECONCILIATION', 'MATCHED', 'REJECTED')),
+      CONSTRAINT `chk_authority_candidate_deleted` CHECK (`deleted` IN (0, 1))
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='人工权威候选及对账历史';
+
+    CREATE TABLE `fcom001_shadow_com_delivery_scope_project_version` (
+      `id` BIGINT NOT NULL, `tenant_id` BIGINT NOT NULL, `project_id` BIGINT NOT NULL,
+      `scope_version` BIGINT UNSIGNED NOT NULL, `payload_version` INT UNSIGNED NOT NULL,
+      `last_change_type` VARCHAR(32) NOT NULL, `version` INT UNSIGNED NOT NULL DEFAULT 0,
+      `creator` VARCHAR(64) NOT NULL DEFAULT '',
+      `create_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      `updater` VARCHAR(64) NOT NULL DEFAULT '',
+      `update_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      `deleted` TINYINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (`id`), UNIQUE KEY `uk_scope_project_version` (`tenant_id`, `project_id`),
+      CONSTRAINT `chk_scope_project_version_deleted` CHECK (`deleted` = 0)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目交付范围版本水位';
 
     CREATE TABLE `fcom001_shadow_com_delivery_scope` (
       `id` BIGINT NOT NULL, `tenant_id` BIGINT NOT NULL,
@@ -503,6 +570,16 @@ main: BEGIN
       n.updater, n.update_time, n.deleted
       FROM numbered n;
 
+    INSERT INTO `fcom001_shadow_com_delivery_scope_project_version` (
+      id, tenant_id, project_id, scope_version, payload_version, last_change_type,
+      version, creator, create_time, updater, update_time, deleted)
+    SELECT 992160000000 + ROW_NUMBER() OVER (ORDER BY tenant_id, project_id),
+      tenant_id, project_id, MAX(allocation_version), 1, 'FORWARD_MIGRATION',
+      0, 'migration', NOW(3), 'migration', NOW(3), 0
+      FROM `fcom001_shadow_com_delivery_scope`
+     WHERE deleted = b'0' AND effective_to IS NULL
+     GROUP BY tenant_id, project_id;
+
     -- 装载后全量对账：分类行数、ID、父子闭包、数量、区间、版本和唯一键。
     SELECT COUNT(*) INTO v_count FROM `fcom001_shadow_com_sales_order_line`;
     IF v_count <> 4 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'FCOM001_RECONCILIATION_FAILED'; END IF;
@@ -597,6 +674,8 @@ main: BEGIN
       `fcom001_shadow_com_sales_order_line` TO `com_sales_order_line`,
       `fcom001_shadow_com_order_contract_relation` TO `com_order_contract_relation`,
       `fcom001_shadow_com_project_contract_relation` TO `com_project_contract_relation`,
+      `fcom001_shadow_com_authority_candidate` TO `com_authority_candidate`,
+      `fcom001_shadow_com_delivery_scope_project_version` TO `com_delivery_scope_project_version`,
       `fcom001_shadow_com_delivery_scope` TO `com_delivery_scope`,
       `fcom001_shadow_com_delivery_scope_detail` TO `com_delivery_scope_detail`,
       `fcom001_shadow_acc_acceptance_scope_binding` TO `acc_acceptance_scope_binding`;

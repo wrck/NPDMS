@@ -31,6 +31,11 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskSta
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskCompletedMessage;
+import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,6 +56,9 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_I
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_COMMAND_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_DEPENDENCY_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_INCOMPLETE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_VERSION_CONFLICT;
 
 /** TASK_NATIVE动作、完成判定、审计与Outbox应用服务。 */
 @Service
@@ -71,6 +79,9 @@ public class ProjectTaskLifecycleService {
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
     private final ProjectTaskProgressService progressService;
+    private final PermissionApi permissionApi;
+    private final AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
+    private final ProjectScopeApi projectScopeApi;
 
     public TaskCommandResult act(TaskActionCommand command, TaskWorkbenchActor actor) {
         AtomicReference<ActionFacts> facts = new AtomicReference<>();
@@ -120,16 +131,24 @@ public class ProjectTaskLifecycleService {
         } catch (IllegalArgumentException ex) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
-        TaskBindingInspection inspection = nativeProvider.inspect(new TaskBindingInspectionQuery(
-                actor.tenantId(), task.getId(), actor.actorId(), actor.correlationId()));
-        if (inspection.recoverableError() != null || !inspection.allowedActions().contains(action)) {
-            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        ProjectTaskExecutionContractDO contract = requireCurrentContract(task, actor.tenantId());
+        boolean acceptanceContract = isAcceptanceContract(contract);
+        if (acceptanceContract) {
+            requireAcceptanceActionAccess(action, task, actor);
+        } else {
+            TaskBindingInspection inspection = nativeProvider.inspect(new TaskBindingInspectionQuery(
+                    actor.tenantId(), task.getId(), actor.actorId(), actor.correlationId()));
+            if (inspection.recoverableError() != null || !inspection.allowedActions().contains(action)) {
+                throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+            }
         }
-        ProjectTaskExecutionContractDO contract = requireNativeContract(task, actor.tenantId());
         LocalDateTime occurredAt = LocalDateTime.now();
-        requireCurrentSubject(action, task, actor, occurredAt);
+        requireCurrentSubject(action, task, actor, occurredAt, acceptanceContract);
         CompletionDecision completion = "COMPLETE".equals(action)
-                ? evaluateCompletion(command, task, contract, actor, occurredAt) : CompletionDecision.notApplicable();
+                ? acceptanceContract
+                ? completeAcceptance(command, task, contract, actor, occurredAt)
+                : evaluateCompletion(command, task, contract, actor, occurredAt)
+                : CompletionDecision.notApplicable();
         if ("COMPLETE".equals(action)) insertEvaluation(command, task, contract, actor, occurredAt, completion);
         if (!completion.satisfied()) {
             ActionFacts facts = ActionFacts.evaluated(task, contract, completion, occurredAt);
@@ -153,22 +172,96 @@ public class ProjectTaskLifecycleService {
                 nextStatus, "NEW");
     }
 
-    private ProjectTaskExecutionContractDO requireNativeContract(ProjectTaskInstanceDO task, Long tenantId) {
+    private ProjectTaskExecutionContractDO requireCurrentContract(ProjectTaskInstanceDO task, Long tenantId) {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskIdForUpdate(
                 new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
-                || !"TASK_NATIVE".equals(contract.getWorkBindingTypeCode())) {
+                || (!"TASK_NATIVE".equals(contract.getWorkBindingTypeCode()) && !isAcceptanceContract(contract))) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
         return contract;
     }
 
-    private void requireCurrentSubject(String action, ProjectTaskInstanceDO task,
-                                       TaskWorkbenchActor actor, LocalDateTime effectiveAt) {
+    private boolean isAcceptanceContract(ProjectTaskExecutionContractDO contract) {
+        return contract != null && "ACC".equals(contract.getTargetContextCode())
+                && "AcceptanceActivity".equals(contract.getTargetObjectType())
+                && contract.getTargetObjectKey() != null && !contract.getTargetObjectKey().isBlank();
+    }
+
+    private void requireAcceptancePermissions(Long actorId) {
+        if (!permissionApi.hasAnyPermissions(actorId, "pms:project-task:execute")
+                || !permissionApi.hasAnyPermissions(actorId, "pms:acceptance:report:complete")) {
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private void requireAcceptanceActionAccess(String action, ProjectTaskInstanceDO task,
+                                               TaskWorkbenchActor actor) {
         if ("START".equals(action) || "SUBMIT".equals(action)) {
-            var assignment = assignmentMapper.selectCurrentForUpdate(
-                    new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
-            if (assignment == null || !Objects.equals(assignment.getAssigneeUserId(), actor.actorId())) {
+            requirePermission(actor.actorId(), "pms:project-task:execute");
+            requireProjectScope(task, actor, ProjectScopeApi.ACTION_EDIT);
+            return;
+        }
+        if ("COMPLETE".equals(action)) {
+            requireAcceptancePermissions(actor.actorId());
+            requireProjectScope(task, actor, ProjectScopeApi.ACTION_MANAGE);
+            return;
+        }
+        throw exception(PROJECT_TASK_COMMAND_INVALID);
+    }
+
+    private void requirePermission(Long actorId, String permission) {
+        if (!permissionApi.hasAnyPermissions(actorId, permission)) {
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private void requireProjectScope(ProjectTaskInstanceDO task, TaskWorkbenchActor actor, String action) {
+        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                actor.tenantId(), actor.actorId(), task.getProjectId(), action));
+        if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(task.getProjectId())) {
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private CompletionDecision completeAcceptance(TaskActionCommand command, ProjectTaskInstanceDO task,
+                                                  ProjectTaskExecutionContractDO contract,
+                                                  TaskWorkbenchActor actor, LocalDateTime occurredAt) {
+        if (!Objects.equals(command.executionContractId(), contract.getId())
+                || !Objects.equals(command.contractVersion(), contract.getContractVersion())
+                || command.expectedActivityVersion() == null || command.expectedActivityVersion() < 0
+                || command.expectedReportVersion() == null || command.expectedReportVersion() <= 0
+                || !Objects.equals(command.factObjectKey(), contract.getTargetObjectKey())) {
+            throw exception(PROJECT_TASK_COMMAND_INVALID);
+        }
+        Long acceptanceId;
+        try {
+            acceptanceId = Long.valueOf(contract.getTargetObjectKey());
+        } catch (NumberFormatException ex) {
+            throw exception(PROJECT_TASK_COMMAND_INVALID);
+        }
+        var fact = acceptanceActivityCompletionFactApi.lockAndComplete(
+                new AcceptanceActivityCompletionCommand(actor.tenantId(), task.getProjectId(), task.getId(),
+                        task.getVersion(), contract.getId(), acceptanceId, command.expectedActivityVersion(),
+                        command.expectedReportVersion(), command.idempotencyKey()));
+        if (fact == null || "DEPENDENCY_UNAVAILABLE".equals(fact.outcome())) {
+            throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+        }
+        if ("REPORT_INCOMPLETE".equals(fact.outcome())) throw exception(ACC_REPORT_INCOMPLETE);
+        if ("VERSION_CONFLICT".equals(fact.outcome())) throw exception(ACC_REPORT_VERSION_CONFLICT);
+        if (!"COMPLETED".equals(fact.outcome()) || !Objects.equals(fact.acceptanceId(), acceptanceId)) {
+            throw exception(PROJECT_TASK_COMMAND_INVALID);
+        }
+        return new CompletionDecision(true, List.of(), IdWorker.getId(),
+                "ACC:" + fact.acceptanceId() + ":" + fact.activityVersion()
+                        + ":REPORT:" + fact.reportVersionId() + ":" + fact.reportVersion(), occurredAt);
+    }
+
+    private void requireCurrentSubject(String action, ProjectTaskInstanceDO task,
+                                       TaskWorkbenchActor actor, LocalDateTime effectiveAt,
+                                       boolean acceptanceContract) {
+        if ("START".equals(action) || "SUBMIT".equals(action)) {
+            if (!isCurrentAssignee(task, actor)) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             }
             return;
@@ -178,7 +271,19 @@ public class ProjectTaskLifecycleService {
                                 actor.actorId(), effectiveAt)).stream()
                 .map(ProjectMemberAssignmentDO::getMemberRole)
                 .anyMatch("PROJECT_MANAGER"::equals);
+        if (acceptanceContract && "COMPLETE".equals(action)) {
+            if (!projectManager && !isCurrentAssignee(task, actor)) {
+                throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+            }
+            return;
+        }
         if (!projectManager) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+    }
+
+    private boolean isCurrentAssignee(ProjectTaskInstanceDO task, TaskWorkbenchActor actor) {
+        var assignment = assignmentMapper.selectCurrentForUpdate(
+                new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
+        return assignment != null && Objects.equals(assignment.getAssigneeUserId(), actor.actorId());
     }
 
     private CompletionDecision evaluateCompletion(TaskActionCommand command, ProjectTaskInstanceDO task,

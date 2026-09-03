@@ -10,6 +10,7 @@ import java.time.LocalDate;
 
 @Schema(description = "管理后台 - 初验/终验创建/修改 Request VO")
 @Data
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public class AcceptanceSaveReqVO {
 
     @Schema(description = "主键编号", example = "1024")

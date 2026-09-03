@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -352,7 +352,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
 | Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
-| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
+| Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_rule_command_revision`、`srv_inspection_rule_product_type_revision`、`srv_inspection_rule_security_review`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；规则稳定身份的检测ID和规则名称均在租户内永久唯一，软删除不释放；revision号在规则内唯一，revision名称快照必须与稳定身份一致且不可改名；DRAFT除稳定身份字段外允许不完整，PUBLISHED由Service全量校验；阈值类型只允许`NUMBER`；命令顺序在revision内唯一且连续；产品类型在revision内唯一；安全审核事实只追加，结论只允许`PASSED/REJECTED`并绑定revision及命令/正则内容摘要，当前结论由Mapper XML按同租户、同revision、同摘要以`reviewed_at DESC, id DESC`选择，只有最后一条为`PASSED`可发布；权限审计保存精确`permission_code`和`RBAC_PERMISSION`，现有System布尔接口不提供贡献路径，`authorization_source_id`保持`NULL`，不新增来源表、唯一约束或推断写入；同一规则最多一个当前发布revision；任务规则快照唯一；报告revision只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。
@@ -444,6 +444,20 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 F-COM-001前向完成时，V70 `com_order_line.quantity_status`继续作为唯一数量权威字段（`CONFIRMED/PENDING_AUTHORITY`），不得改名或与`authority_status`双写。`source_updated_at`和DeliveryScopeDetail的`serial_no/detail_status/source_snapshot`均为V70既有列；统一目标新建`com_sales_order_line`并在DeliveryScope主记录冻结项目办事处部门ID/编码/名称/版本，明细只保存产品/设备类型、序列号、批次和数量。COM表不得新增或保留`site_id/site_location_id/location_text/location_resolution_status`第二地点真值。V70允许订单行quantity为NULL/0、scope.source_evidence为NULL及detail缺新维度；转换缺少必填Owner事实时整批失败或进入PLT迁移问题，不用默认值补造。
 
 新增`com_authority_candidate`保存`PLATFORM_MANUAL`的合同/订单/行候选：不可变来源键、版本、payload和证据，状态限定`PENDING_RECONCILIATION/MATCHED/REJECTED`；MATCHED只引用已存在的CONFIRMED ERP Owner表/id/sourceVersion，不把候选晋升为权威主档。新增`com_delivery_scope_project_version`以`uk(tenant_id,project_id)`保存不可删除的项目`scope_version`，任何当前集合、返回载荷、冲突或清空变化在同一事务只递增一次。当前关系与当前范围分别通过显式current marker唯一键约束；SN明细数量固定为1，规范化SN在当前项目/订单行范围唯一。
+
+F-COM-001统一物理差量如下；字段定义是Feature前向DDL的批准输入，不表示迁移已执行：
+
+| 表 | 批准字段差量 | 约束说明 |
+|---|---|---|
+| `com_contract` | `master_source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`source_updated_at datetime(3) NULL` | ERP来源版本与发生时间只由权威批次推进 |
+| `com_sales_order` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`source_updated_at datetime(3) NULL` | `tenant_id/source_system/source_record_key`唯一 |
+| `com_sales_order_line` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`unit_code varchar(32) NOT NULL`；`unit_scale tinyint unsigned NOT NULL`；`quantity_status varchar(32) NOT NULL`；`source_updated_at datetime(3) NULL`；`product_code varchar(64) NULL`；`order_qty/open_qty/delivered_qty decimal(18,6) NULL` | 数量、单位、产品及来源版本均来自ERP Owner；不得由itemCode推断productCode |
+| `com_delivery_scope` | `allocated_qty decimal(18,6) NOT NULL`；`allocation_version bigint NOT NULL`；`office_department_id bigint NOT NULL`；`office_department_code varchar(64) NOT NULL`；`office_department_name varchar(255) NOT NULL`；`office_department_version int unsigned NOT NULL`；`source_evidence varchar(255) NULL`；`effective_from datetime(3) NOT NULL`；`effective_to datetime(3) NULL` | 办事处为PROJ发生时快照；不保存AST地点真值 |
+| `com_delivery_scope_detail` | `serial_no varchar(128) NULL`；`detail_status varchar(32) NOT NULL`；`source_snapshot json NULL`；`version int unsigned NOT NULL DEFAULT 0`；`allocated_qty decimal(18,6) NOT NULL` | SN明细数量为1；无SN明细使用锁定ERP productCode |
+| `com_order_contract_relation` | `source_system varchar(32) COLLATE utf8mb4_0900_bin NOT NULL`；`sales_order_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`contract_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`source_evidence json NOT NULL` | 关系独立于订单头，不固化唯一合同 |
+| `com_authority_candidate` | `object_type varchar(32) NOT NULL`；`candidate_source_system varchar(32) NOT NULL`；`candidate_source_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`；`candidate_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`；`candidate_payload json NOT NULL`；`evidence_reference json NOT NULL`；`candidate_status varchar(32) NOT NULL`；`matched_owner_type varchar(32) NULL`；`matched_owner_id bigint NULL`；`matched_owner_source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`；`decision_reason varchar(512) NULL`；`version int unsigned NOT NULL DEFAULT 0` | 候选不可晋级为ERP Owner，只能关联已确认Owner |
+| `com_delivery_scope_project_version` | `project_id bigint NOT NULL`；`scope_version bigint unsigned NOT NULL`；`payload_version int unsigned NOT NULL`；`last_change_type varchar(32) NOT NULL`；`version int unsigned NOT NULL DEFAULT 0` | `tenant_id/project_id`唯一；同一事务至多推进一次 |
+| `acc_acceptance_scope_binding` | `id bigint NOT NULL`；`tenant_id bigint NOT NULL`；`project_id bigint NOT NULL`；`project_stage_snapshot_id bigint NOT NULL`；`delivery_scope_id bigint NOT NULL`；`scope_allocation_version bigint NOT NULL`；`binding_trigger varchar(32) NOT NULL`；`binding_status varchar(32) NOT NULL`；`effective_from datetime(3) NOT NULL`；`effective_to datetime(3) NULL`；`acceptance_fact_version int unsigned NOT NULL DEFAULT 1`；`version int unsigned NOT NULL DEFAULT 0`；`creator/updater varchar(64) NOT NULL DEFAULT ''`；`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`；`deleted tinyint NOT NULL DEFAULT 0` | 不含`acceptance_id`；由ACC Provider以项目阶段快照身份追加绑定 |
 
 预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
@@ -540,6 +554,10 @@ proj_project
 | `plt_operation_audit` | 业务操作、权限决策和敏感动作审计 | 追加写；详情先脱敏再落库 |
 | `plt_todo` | 统一待办身份、业务引用和同步状态 | 业务对象+节点+责任人+版本幂等；待办完成不能直接改业务状态 |
 | `plt_authorization_grant` | `subject_type_code/subject_id/resource_context_code/resource_type_code/resource_id/action_code/scope_code/effective_from/effective_to/status_code/source_context_code/source_object_type/source_object_id/granted_by/granted_at/revoked_by/revoked_at/revoke_reason/version/current_marker` | `current_marker=1`占用当前授权键，撤权或已确认到期时置空；查询始终校验有效区间；唯一键为`(tenant_id, subject_type_code, subject_id, resource_context_code, resource_type_code, resource_id, action_code, scope_code, current_marker)`，并为主体、资源、动作、状态和有效区间建立组合索引；不代替DAC凭证授权 |
+| `plt_migration_batch` | 迁移批次身份、manifest事实、状态、唯一来源分类计数和规则版本 | `uk(tenant_id, owner_context_code, purpose_code, release_id, source_system, source_table)`；只允许`IMPORTING/STAGED_READY/RECONCILING/COMPLETED/FAILED`，完成计数必须与来源总数相等 |
+| `plt_migration_source_record` | 批次内不可变来源行、业务键、原始载荷和来源校验值 | `uk(tenant_id, batch_id, source_system, source_table, source_record_key)`；只允许在`IMPORTING`追加，游标按`tenant_id,batch_id,id`稳定读取 |
+| `plt_external_key_mapping` | 来源行的`MAPPED`目标向量或`RETAINED`分类 | `uk(tenant_id, source_record_id, result_key)`；`MAPPED`必须有完整目标，`RETAINED`禁止携带目标，二者不得混合 |
+| `plt_migration_issue` | 来源行确定性问题及追加式关闭事实 | `uk(tenant_id, source_record_id, issue_key)`；`OPEN`不得携带关闭事实，`CLOSED`必须携带处理人、规则版本、目标结果和完成时间 |
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 

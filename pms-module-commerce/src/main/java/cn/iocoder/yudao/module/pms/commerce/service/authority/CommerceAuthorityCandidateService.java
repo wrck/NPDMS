@@ -141,6 +141,7 @@ public class CommerceAuthorityCandidateService {
         }
         requireText(command.idempotencyKey(), 128, "idempotencyKey");
         requireText(command.correlationId(), 128, "correlationId");
+        requireText(command.decisionReason(), 512, "decisionReason");
         AuthorityCandidateDO visible = candidateMapper.selectCandidateById(
                 new AuthorityCandidateIdQuery(command.tenantId(), command.candidateId()));
         if (visible == null) throw failure(Code.NOT_FOUND, "候选不存在");
@@ -152,6 +153,7 @@ public class CommerceAuthorityCandidateService {
         digestInput.put("candidateId", command.candidateId());
         digestInput.put("expectedVersion", command.expectedVersion());
         digestInput.put("ownerId", matched ? command.ownerId() : null);
+        digestInput.put("decisionReason", command.decisionReason());
         return execute(command.tenantId(), command.actorId(), action, command.idempotencyKey(),
                 digest(digestInput), command.correlationId(), () -> {
                     AuthorityCandidateDO current = candidateMapper.selectByIdForUpdate(
@@ -180,13 +182,14 @@ public class CommerceAuthorityCandidateService {
                     LocalDateTime now = LocalDateTime.now(clock);
                     AuthorityCandidateDecisionUpdate update = new AuthorityCandidateDecisionUpdate(command.tenantId(),
                             current.getId(), current.getVersion(), matched ? "MATCHED" : "REJECTED",
-                            matched ? owner.ownerTable() : null, matched ? owner.ownerId() : null,
-                            matched ? owner.sourceVersion() : null, command.actorId(), now);
+                            matched ? owner.ownerType() : null, matched ? owner.ownerId() : null,
+                            matched ? owner.sourceVersion() : null, command.decisionReason(), command.actorId(), now);
                     requireWrite(candidateMapper.decideByVersion(update), "候选决定并发冲突");
                     current.setCandidateStatus(update.candidateStatus());
-                    current.setMatchedOwnerTable(update.matchedOwnerTable());
+                    current.setMatchedOwnerType(update.matchedOwnerType());
                     current.setMatchedOwnerId(update.matchedOwnerId());
                     current.setMatchedOwnerSourceVersion(update.matchedOwnerSourceVersion());
+                    current.setDecisionReason(update.decisionReason());
                     current.setDecidedBy(update.decidedBy());
                     current.setDecidedAt(update.decidedAt());
                     current.setVersion(current.getVersion() + 1);
@@ -270,8 +273,8 @@ public class CommerceAuthorityCandidateService {
 
     private CandidateResult view(AuthorityCandidateDO row) {
         return new CandidateResult(row.getId(), row.getObjectType(), row.getCandidateSourceKey(),
-                row.getCandidateVersion(), row.getCandidateStatus(), row.getMatchedOwnerTable(),
-                row.getMatchedOwnerId(), row.getMatchedOwnerSourceVersion(), row.getVersion());
+                row.getCandidateVersion(), row.getCandidateStatus(), row.getMatchedOwnerType(),
+                row.getMatchedOwnerId(), row.getMatchedOwnerSourceVersion(), row.getDecisionReason(), row.getVersion());
     }
 
     private void requireWrite(int affected, String message) {
@@ -320,7 +323,8 @@ public class CommerceAuthorityCandidateService {
     }
 
     public record DecideCandidateCommand(Long tenantId, Long actorId, Long candidateId, Integer expectedVersion,
-                                         Long ownerId, String idempotencyKey, String correlationId) {
+                                         Long ownerId, String decisionReason,
+                                         String idempotencyKey, String correlationId) {
     }
 
     public record ListCandidatesQuery(Long tenantId, Long actorId, String objectType, String candidateStatus,
@@ -328,8 +332,8 @@ public class CommerceAuthorityCandidateService {
     }
 
     public record CandidateResult(Long candidateId, String objectType, String sourceKey, String candidateVersion,
-                                  String candidateStatus, String matchedOwnerTable, Long matchedOwnerId,
-                                  String matchedOwnerSourceVersion, Integer version) {
+                                  String candidateStatus, String matchedOwnerType, Long matchedOwnerId,
+                                  String matchedOwnerSourceVersion, String decisionReason, Integer version) {
     }
 
     public enum Code {

@@ -12,6 +12,7 @@ public record ManualProjectCreateCommand(
         List<ProjectSiteCommand> sites,
         Long templateRevisionId,
         String candidateWatermark,
+        Long serviceManagerUserId,
         String idempotencyKey,
         String requestDigest) {
 }

@@ -5,8 +5,13 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationByCodeQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverFrozenConfigurationQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectivePublishedConfigurationQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectiveConfigurationListQuery;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 @Mapper
 public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverConfigurationRevisionDO> {
@@ -21,4 +26,11 @@ public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverC
     }
 
     CutoverConfigurationRevisionDO selectLatestByCode(CutoverConfigurationByCodeQuery query);
+
+    CutoverConfigurationRevisionDO selectFrozen(CutoverFrozenConfigurationQuery query);
+
+    CutoverConfigurationRevisionDO selectEffectivePublished(CutoverEffectivePublishedConfigurationQuery query);
+
+    List<CutoverConfigurationRevisionDO> selectEffectivePublishedList(
+            CutoverEffectiveConfigurationListQuery query);
 }

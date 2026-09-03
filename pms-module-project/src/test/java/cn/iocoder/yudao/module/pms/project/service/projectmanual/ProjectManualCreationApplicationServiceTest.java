@@ -194,7 +194,7 @@ class ProjectManualCreationApplicationServiceTest {
         ManualProjectCreateCommand base = command();
         ManualProjectCreateCommand invalid = new ManualProjectCreateCommand(
                 base.draft(), 10L, 20L, java.util.List.of(), base.templateRevisionId(),
-                null, base.idempotencyKey(), base.requestDigest());
+                null, null, base.idempotencyKey(), base.requestDigest());
 
         assertThrows(IllegalArgumentException.class, () -> service.create(invalid, actor()));
 
@@ -251,7 +251,7 @@ class ProjectManualCreationApplicationServiceTest {
         ManualProjectCreateCommand base = command();
         base.draft().setParentId(100L);
         ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), 10L, 20L,
-                java.util.List.of(), null, null, base.idempotencyKey(), base.requestDigest());
+                java.util.List.of(), null, null, null, base.idempotencyKey(), base.requestDigest());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
                 new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.IN_PROGRESS, null));
@@ -269,7 +269,7 @@ class ProjectManualCreationApplicationServiceTest {
         draft.setProjectCategory("GENERAL");
         draft.setImplementationMode("DIRECT_SERVICE");
         return new ManualProjectCreateCommand(draft, 10L, 20L, java.util.List.of(), 9002L, "candidate-watermark-v1",
-                "key-1", "a".repeat(64));
+                null, "key-1", "a".repeat(64));
     }
 
     private TemplateMatchDecision decision() {

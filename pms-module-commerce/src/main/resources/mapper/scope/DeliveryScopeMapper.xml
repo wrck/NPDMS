@@ -28,6 +28,27 @@
         FOR UPDATE
     </select>
 
+    <select id="selectCurrentByProjectId"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT * FROM com_delivery_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        ORDER BY order_line_id, id
+    </select>
+
+    <select id="selectCurrentByProjectIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT * FROM com_delivery_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        ORDER BY order_line_id, id
+        FOR UPDATE
+    </select>
+
     <select id="selectActiveByOrderLineIdsForUpdate"
             resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
         SELECT *

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper">
+    <select id="selectListByPlan" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO">
+        SELECT * FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(role_code,'CUSTOMER','DP_FIRST_LINE','DP_SECOND_LINE','DP_RND'), id ASC
+    </select>
+    <select id="selectListByPlanForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO">
+        SELECT * FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(role_code,'CUSTOMER','DP_FIRST_LINE','DP_SECOND_LINE','DP_RND'), id ASC FOR UPDATE
+    </select>
+    <delete id="deleteDraftRows">
+        DELETE a FROM cut_cutover_support_arrangement a
+        JOIN cut_plan_revision p ON p.id = a.plan_revision_id AND p.tenant_id = a.tenant_id
+        WHERE a.tenant_id = #{query.tenantId} AND a.plan_revision_id = #{query.planRevisionId}
+          AND p.status_code = 'DRAFT' AND p.current_marker = 1
+    </delete>
+    <update id="updateApprovedContactIfMatch">
+        UPDATE cut_cutover_support_arrangement
+        SET person_name = #{query.personName}, phone = #{query.phone}, arrival_time = #{query.arrivalTime},
+            updater = #{query.updater}, update_time = #{query.updateTime}, version = version + 1
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.arrangementId}
+          AND plan_revision_id = #{query.planRevisionId} AND version = #{query.expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>

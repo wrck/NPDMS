@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.platform.service.file.FileAccessTicketService
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileQueryService;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -376,5 +377,6 @@ class FileQueryAndAccessMySqlIntegrationTest {
         @Bean FileBusinessObjectPolicyRegistry policyRegistry() { return mock(FileBusinessObjectPolicyRegistry.class); }
         @Bean FileStorageReceiptApi storageReceiptApi() { return mock(FileStorageReceiptApi.class); }
         @Bean SecurityFrameworkService securityFrameworkService() { return mock(SecurityFrameworkService.class); }
+        @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
     }
 }

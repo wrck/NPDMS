@@ -3,10 +3,10 @@ package cn.iocoder.yudao.module.pms.commerce.service.authority;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.OrderLineDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.ContractAu
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.OrderLineAuthorityUpdate;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.SalesOrderAuthorityUpdate;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.commerce.service.scope.DeliveryScopeConflictNotifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,6 @@ public class CommerceAuthorityIngestService {
 
     private static final String SCOPE_CODE = "COM:AUTHORITY:INGEST";
     private static final String CONFIRMED = "CONFIRMED";
-    private static final String PENDING_AUTHORITY = "PENDING_AUTHORITY";
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final AuthorityPayloadCanonicalizer canonicalizer;
@@ -55,6 +55,7 @@ public class CommerceAuthorityIngestService {
     private final OrderLineAuthorityMapper orderLineMapper;
     private final OrderContractRelationAuthorityMapper relationMapper;
     private final AuthorityScopeImpactMapper scopeImpactMapper;
+    private final DeliveryScopeConflictNotifier conflictNotifier;
     private final Clock clock;
 
     @Autowired
@@ -64,9 +65,10 @@ public class CommerceAuthorityIngestService {
                                           SalesOrderAuthorityMapper salesOrderMapper,
                                           OrderLineAuthorityMapper orderLineMapper,
                                           OrderContractRelationAuthorityMapper relationMapper,
-                                          AuthorityScopeImpactMapper scopeImpactMapper) {
+                                          AuthorityScopeImpactMapper scopeImpactMapper,
+                                          DeliveryScopeConflictNotifier conflictNotifier) {
         this(commandExecutionApi, canonicalizer, contractMapper, salesOrderMapper, orderLineMapper,
-                relationMapper, scopeImpactMapper, Clock.systemDefaultZone());
+                relationMapper, scopeImpactMapper, conflictNotifier, Clock.systemDefaultZone());
     }
 
     CommerceAuthorityIngestService(PlatformCommandExecutionApi commandExecutionApi,
@@ -76,6 +78,7 @@ public class CommerceAuthorityIngestService {
                                    OrderLineAuthorityMapper orderLineMapper,
                                    OrderContractRelationAuthorityMapper relationMapper,
                                    AuthorityScopeImpactMapper scopeImpactMapper,
+                                   DeliveryScopeConflictNotifier conflictNotifier,
                                    Clock clock) {
         this.commandExecutionApi = commandExecutionApi;
         this.canonicalizer = canonicalizer;
@@ -84,6 +87,7 @@ public class CommerceAuthorityIngestService {
         this.orderLineMapper = orderLineMapper;
         this.relationMapper = relationMapper;
         this.scopeImpactMapper = scopeImpactMapper;
+        this.conflictNotifier = conflictNotifier;
         this.clock = clock;
     }
 
@@ -184,10 +188,10 @@ public class CommerceAuthorityIngestService {
         if (order == null) {
             throw failure(OWNER_DATA_CORRUPTED, "订单行引用的销售订单Owner不存在");
         }
-        OrderLineDO current = orderLineMapper.selectBySourceForUpdate(sourceQuery(command, fact.sourceKey()));
+        SalesOrderLineDO current = orderLineMapper.selectBySourceForUpdate(sourceQuery(command, fact.sourceKey()));
         if (current == null) {
             requireCreate(fact.expectedPreviousSourceVersion(), "orderLine", fact.sourceKey());
-            OrderLineDO row = base(new OrderLineDO(), command.tenantId());
+            SalesOrderLineDO row = base(new SalesOrderLineDO(), command.tenantId());
             copyOrderLine(row, command, fact, order.getId());
             row.setVersion(0);
             requireWrite(orderLineMapper.insert(row), "订单行Owner创建失败");
@@ -275,11 +279,13 @@ public class CommerceAuthorityIngestService {
                               CommerceContractFact fact) {
         row.setCompanyCode(fact.companyCode());
         row.setContractNo(fact.contractNo());
+        row.setContractName(fact.contractName());
         row.setCustomerCode(fact.customerCode());
         row.setCustomerName(fact.customerName());
         row.setContractAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
+        row.setStatus(fact.lifecycleStatus().name());
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
     }
 
@@ -293,10 +299,11 @@ public class CommerceAuthorityIngestService {
         row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
+        row.setStatus(fact.lifecycleStatus().name());
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
     }
 
-    private void copyOrderLine(OrderLineDO row, CommerceAuthorityBatchCommand command,
+    private void copyOrderLine(SalesOrderLineDO row, CommerceAuthorityBatchCommand command,
                                CommerceOrderLineFact fact, Long orderId) {
         row.setSourceSystem(command.sourceSystem());
         row.setSourceKey(fact.sourceKey());
@@ -304,13 +311,17 @@ public class CommerceAuthorityIngestService {
         row.setOrderId(orderId);
         row.setLineCode(fact.lineCode());
         row.setItemCode(fact.itemCode());
+        row.setItemDesc(fact.itemDescription());
+        row.setProductCode(fact.productCode());
         row.setModelCode(fact.modelCode());
-        row.setQuantity(fact.quantity());
+        row.setQuantity(fact.orderQuantity());
+        row.setOpenQty(fact.openQuantity());
+        row.setDeliveredQty(fact.deliveredQuantity());
         row.setUnitCode(fact.unitCode());
-        boolean qualified = fact.quantity() != null && fact.quantity().signum() > 0
-                && fact.unitCode() != null && (fact.itemCode() != null || fact.modelCode() != null);
-        row.setQuantityStatus(qualified ? CONFIRMED : PENDING_AUTHORITY);
+        row.setUnitScale(fact.unitScale());
+        row.setQuantityStatus(fact.quantityStatus());
         row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus().name());
         row.setSourceUpdatedAt(fact.sourceUpdatedAt());
         row.setSyncedAt(LocalDateTime.now(clock));
     }
@@ -320,6 +331,8 @@ public class CommerceAuthorityIngestService {
         row.setSalesOrderId(orderId);
         row.setContractId(contractId);
         row.setRelationStatus(fact.effectiveTo() == null ? "ACTIVE" : "ENDED");
+        row.setRelationRole("RELATED");
+        row.setRelationSource(command.sourceSystem());
         row.setSourceSystem(command.sourceSystem());
         row.setSalesOrderSourceKey(fact.salesOrderSourceKey());
         row.setContractSourceKey(fact.contractSourceKey());
@@ -329,7 +342,7 @@ public class CommerceAuthorityIngestService {
         row.setEffectiveTo(fact.effectiveTo());
     }
 
-    private boolean requiresScopeConflict(OrderLineDO current, CommerceOrderLineFact incoming) {
+    private boolean requiresScopeConflict(SalesOrderLineDO current, CommerceOrderLineFact incoming) {
         if (incoming.lifecycleStatus() != CommerceSourceLifecycleStatus.ACTIVE) {
             return true;
         }
@@ -369,12 +382,36 @@ public class CommerceAuthorityIngestService {
             DeliveryScopeDO conflict = base(new DeliveryScopeDO(), command.tenantId());
             conflict.setOrderLineId(active.getOrderLineId());
             conflict.setProjectId(active.getProjectId());
+            conflict.setProjectCode(active.getProjectCode());
+            conflict.setProjectName(active.getProjectName());
+            conflict.setProjectCompanyCode(active.getProjectCompanyCode());
+            conflict.setProjectCompanyName(active.getProjectCompanyName());
+            conflict.setProjectDepartmentCode(active.getProjectDepartmentCode());
+            conflict.setProjectDepartmentName(active.getProjectDepartmentName());
+            conflict.setProjectCustomerCode(active.getProjectCustomerCode());
+            conflict.setProjectCustomerName(active.getProjectCustomerName());
+            conflict.setProjectManagerEmployeeNo(active.getProjectManagerEmployeeNo());
+            conflict.setProjectManagerName(active.getProjectManagerName());
+            conflict.setOrderSourceSystem(active.getOrderSourceSystem());
+            conflict.setOrderCompanyCode(active.getOrderCompanyCode());
+            conflict.setOrderCompanyName(active.getOrderCompanyName());
+            conflict.setOrderType(active.getOrderType());
+            conflict.setOrderNo(active.getOrderNo());
+            conflict.setLineNo(active.getLineNo());
+            conflict.setItemCode(active.getItemCode());
             conflict.setAllocatedQty(active.getAllocatedQty());
-            conflict.setScopeStatus("CONFLICT");
+            conflict.setScopeStatus("CONFLICT_FROZEN");
             conflict.setAllocationVersion(active.getAllocationVersion() + 1);
+            conflict.setAllocationSource("ERP_AUTHORITY_CHANGE");
+            conflict.setChangeReason("SOURCE_AUTHORITY_CHANGED");
+            conflict.setOfficeDepartmentId(active.getOfficeDepartmentId());
+            conflict.setOfficeDepartmentCode(active.getOfficeDepartmentCode());
+            conflict.setOfficeDepartmentName(active.getOfficeDepartmentName());
+            conflict.setOfficeDepartmentVersion(active.getOfficeDepartmentVersion());
             conflict.setSourceEvidence(conflictEvidence(command, incoming));
             conflict.setEffectiveFrom(now);
             conflict.setEffectiveTo(null);
+            conflict.setStatus(active.getStatus());
             conflict.setVersion(0);
             requireWrite(scopeImpactMapper.insert(conflict), "追加CONFLICT范围失败");
 
@@ -382,6 +419,9 @@ public class CommerceAuthorityIngestService {
                 DeliveryScopeDetailDO copy = copyDetail(detail, conflict.getId(), command.tenantId());
                 requireWrite(scopeImpactMapper.insertScopeDetail(copy), "复制CONFLICT范围明细失败");
             }
+            conflictNotifier.request(command.tenantId(), conflict, incoming.sourceVersion(),
+                    allocated, incoming.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
+                            && incoming.quantity() != null ? incoming.quantity() : BigDecimal.ZERO, now);
             affectedProjects.add(active.getProjectId());
         }
         for (Long projectId : affectedProjects) {
@@ -393,16 +433,17 @@ public class CommerceAuthorityIngestService {
         DeliveryScopeDetailDO copy = base(new DeliveryScopeDetailDO(), tenantId);
         copy.setId(IdWorker.getId());
         copy.setDeliveryScopeId(scopeId);
+        copy.setDetailSequence(source.getDetailSequence());
         copy.setOfficeDepartmentCode(source.getOfficeDepartmentCode());
         copy.setSerialNo(source.getSerialNo());
         copy.setAllocatedQty(source.getAllocatedQty());
-        copy.setUnitCode(source.getUnitCode());
         copy.setProductCode(source.getProductCode());
-        copy.setModelCode(source.getModelCode());
-        copy.setSiteId(source.getSiteId());
-        copy.setSiteLocationId(source.getSiteLocationId());
-        copy.setLocationText(source.getLocationText());
-        copy.setLocationResolutionStatus(source.getLocationResolutionStatus());
+        copy.setProductName(source.getProductName());
+        copy.setDeviceTypeCode(source.getDeviceTypeCode());
+        copy.setDeviceTypeName(source.getDeviceTypeName());
+        copy.setDeliveryBatchNo(source.getDeliveryBatchNo());
+        copy.setSourceRecordKey(source.getSourceRecordKey());
+        copy.setRemark(source.getRemark());
         copy.setDetailStatus(source.getDetailStatus());
         copy.setSourceSnapshot(source.getSourceSnapshot());
         copy.setVersion(0);

@@ -22,5 +22,7 @@ public class AccProjectDeliverableDO extends TenantBaseDO {
     private Boolean required;
     private Long sourceDefinitionId;
     private String status;
+    private Long currentSourceVersionId;
+    private String archiveStatus;
     private Integer version;
 }

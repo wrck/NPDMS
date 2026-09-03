@@ -28,14 +28,14 @@
 
     <insert id="insertScopeDetail" parameterType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO">
         INSERT INTO com_delivery_scope_detail
-        (id, delivery_scope_id, office_department_code, serial_no, allocated_qty, unit_code,
-         product_code, model_code, site_id, site_location_id, location_text,
-         location_resolution_status, detail_status, source_snapshot, version,
+        (id, delivery_scope_id, detail_sequence, office_department_code, serial_no, allocated_qty,
+         product_code, product_name, device_type_code, device_type_name, delivery_batch_no,
+         source_record_key, detail_status, source_snapshot, remark, version,
          creator, create_time, updater, update_time, deleted, tenant_id)
         VALUES
-        (#{id}, #{deliveryScopeId}, #{officeDepartmentCode}, #{serialNo}, #{allocatedQty}, #{unitCode},
-         #{productCode}, #{modelCode}, #{siteId}, #{siteLocationId}, #{locationText},
-         #{locationResolutionStatus}, #{detailStatus}, #{sourceSnapshot}, #{version},
+        (#{id}, #{deliveryScopeId}, #{detailSequence}, #{officeDepartmentCode}, #{serialNo}, #{allocatedQty},
+         #{productCode}, #{productName}, #{deviceTypeCode}, #{deviceTypeName}, #{deliveryBatchNo},
+         #{sourceRecordKey}, #{detailStatus}, #{sourceSnapshot}, #{remark}, #{version},
          #{creator}, #{createTime}, #{updater}, #{updateTime}, #{deleted}, #{tenantId})
     </insert>
 

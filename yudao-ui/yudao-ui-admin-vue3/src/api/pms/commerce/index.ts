@@ -148,6 +148,7 @@ export interface DeliveryScopePreviewReqVO {
   projectId: number
   expectedProjectVersion: number
   expectedProjectScopeVersion: number
+  expectedDeliveryScopeVersion: number
   orderLineId: number
   expectedOrderLineSourceVersion: string
   proposedQuantity: number
@@ -191,6 +192,7 @@ export interface DeliveryScopeChangeReqVO {
   projectId: number
   expectedProjectVersion: number
   expectedProjectScopeVersion: number
+  expectedDeliveryScopeVersion: number
   expectedOrderLineSourceVersion: string
   reason: string
 }
@@ -233,6 +235,9 @@ export const getSalesOrderLinePage = (params: SalesOrderLinePageReqVO) =>
 
 export const getDeliveryScopePage = (params: DeliveryScopePageReqVO) =>
   request.get({ url: `${baseUrl}/delivery-scopes`, params })
+
+export const getDeliveryScopeVersion = (projectId: number) =>
+  request.get<number>({ url: `${baseUrl}/delivery-scopes/projects/${projectId}/version` })
 
 export const previewDeliveryScope = (data: DeliveryScopePreviewReqVO) =>
   request.post({ url: `${baseUrl}/delivery-scopes/actions/preview`, data })

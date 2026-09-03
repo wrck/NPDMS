@@ -58,6 +58,8 @@ public class ProjectManualCreationApplicationService {
     @Resource
     private ProjectCreationAuthorizationService authorizationService;
     @Resource
+    private ProjectServiceManagerCandidateValidator managerCandidateValidator;
+    @Resource
     private CompanyApi companyApi;
     @Resource
     private DeptApi deptApi;
@@ -81,6 +83,9 @@ public class ProjectManualCreationApplicationService {
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
         authorizationService.assertCanCreate(actor.actorId());
+        if (command.serviceManagerUserId() != null) {
+            authorizationService.assertCanAssign(actor.actorId());
+        }
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), CREATE_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
@@ -98,6 +103,10 @@ public class ProjectManualCreationApplicationService {
     private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command, Actor actor) {
         CompanyRespDTO company = resolveCompany(command.orderOfficeCompanyId());
         DeptRespDTO department = resolveDepartment(command.orderOfficeDepartmentId());
+        if (command.serviceManagerUserId() != null) {
+            managerCandidateValidator.validate(command.serviceManagerUserId(), company.getId(),
+                    department.getId(), department.getCode());
+        }
         command.draft().setTenantId(actor.tenantId());
         command.draft().setCompanyId(company.getId());
         command.draft().setCompanyCode(company.getCode());
@@ -113,9 +122,9 @@ public class ProjectManualCreationApplicationService {
                 : null;
         ProjectMasterDO project = matchDecision == null
                 ? projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
-                        command.templateRevisionId(), command.candidateWatermark(), null)
+                        command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId())
                 : projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
-                        matchDecision, null);
+                        matchDecision, command.serviceManagerUserId());
         if (project.getParentId() == null) {
             projectTreeProjectionService.publish(project.getId(), 1L, "PROJECT_CREATE:" + project.getId());
         }
@@ -175,6 +184,12 @@ public class ProjectManualCreationApplicationService {
         detail.put("matchResult", result.matchResult());
         detail.put("matchDecisionMode", result.matchDecisionMode());
         detail.put("matchOperationId", result.matchOperationId());
+        detail.put("serviceManagerUserId", command.serviceManagerUserId());
+        detail.put("serviceManagerCompanyId", command.serviceManagerUserId() == null
+                ? null : command.orderOfficeCompanyId());
+        detail.put("serviceManagerDepartmentId", command.serviceManagerUserId() == null
+                ? null : command.orderOfficeDepartmentId());
+        detail.put("serviceManagerConfirmedBy", command.serviceManagerUserId() == null ? null : actor.actorId());
         return new SuccessFacts("PROJECT_CREATE", "Project", String.valueOf(result.id()),
                 actor.correlationId(), JsonUtils.toJsonString(detail),
                 "ProjectCreated", JsonUtils.toJsonString(result));
@@ -184,6 +199,7 @@ public class ProjectManualCreationApplicationService {
         if (command == null || command.draft() == null || command.idempotencyKey() == null
                 || command.idempotencyKey().isBlank() || command.requestDigest() == null
                 || command.orderOfficeCompanyId() == null || command.orderOfficeDepartmentId() == null
+                || command.serviceManagerUserId() != null && command.serviceManagerUserId() <= 0
                 || command.draft().getParentId() == null
                     && (command.candidateWatermark() == null || command.candidateWatermark().isBlank())
                 || actor == null || actor.tenantId() == null || actor.actorId() == null

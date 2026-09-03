@@ -50,12 +50,20 @@ public class DeliveryScopeController {
         });
     }
 
+    @GetMapping("/projects/{projectId}/version")
+    @PreAuthorize("@ss.hasPermission('pms:commerce:scope:query')")
+    public CommonResult<Long> currentVersion(@PathVariable @Positive Long projectId) {
+        return withTenant(() -> success(queryService.currentVersion(
+                currentTenantId(), currentUserId(), projectId)));
+    }
+
     @PostMapping("/actions/preview")
     @PreAuthorize("@ss.hasPermission('pms:commerce:scope:query')")
     public CommonResult<DeliveryScopePreviewResult> preview(@Valid @RequestBody DeliveryScopePreviewReqVO request) {
         return withTenant(() -> success(commandService.preview(new DeliveryScopePreviewCommand(currentTenantId(),
                 currentUserId(), request.projectId(), request.expectedProjectVersion(),
-                request.expectedProjectScopeVersion(), request.orderLineId(), request.expectedOrderLineSourceVersion(),
+                request.expectedProjectScopeVersion(), request.expectedDeliveryScopeVersion(),
+                request.orderLineId(), request.expectedOrderLineSourceVersion(),
                 request.proposedQuantity(), request.serialNumbers()))));
     }
 
@@ -67,6 +75,7 @@ public class DeliveryScopeController {
             @Valid @RequestBody DeliveryScopeAssignReqVO request) {
         return withTenant(() -> success(commandService.assign(new DeliveryScopeAssignCommand(currentTenantId(),
                 currentUserId(), request.projectId(), parseVersion(ifMatch), request.expectedProjectScopeVersion(),
+                request.expectedDeliveryScopeVersion(),
                 request.orderLineId(), request.expectedOrderLineSourceVersion(), request.allocatedQuantity(),
                 request.serialNumbers(), request.reason(), operationId))));
     }
@@ -80,7 +89,7 @@ public class DeliveryScopeController {
             @Valid @RequestBody DeliveryScopeAdjustReqVO request) {
         return withTenant(() -> success(commandService.adjust(new DeliveryScopeChangeCommand(currentTenantId(),
                 currentUserId(), id, request.projectId(), request.expectedProjectVersion(),
-                request.expectedProjectScopeVersion(), parseLongVersion(ifMatch),
+                request.expectedProjectScopeVersion(), request.expectedDeliveryScopeVersion(), parseLongVersion(ifMatch),
                 request.expectedOrderLineSourceVersion(), request.proposedQuantity(), request.serialNumbers(),
                 request.reason(), operationId))));
     }
@@ -94,7 +103,7 @@ public class DeliveryScopeController {
             @Valid @RequestBody DeliveryScopeReleaseReqVO request) {
         return withTenant(() -> success(commandService.release(new DeliveryScopeChangeCommand(currentTenantId(),
                 currentUserId(), id, request.projectId(), request.expectedProjectVersion(),
-                request.expectedProjectScopeVersion(), parseLongVersion(ifMatch),
+                request.expectedProjectScopeVersion(), request.expectedDeliveryScopeVersion(), parseLongVersion(ifMatch),
                 request.expectedOrderLineSourceVersion(), BigDecimal.ZERO, java.util.List.of(),
                 request.reason(), operationId))));
     }

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AcceptanceD
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
+@Deprecated(since = "F-ACC-001", forRemoval = false)
 public interface AcceptanceMapper extends BaseMapperX<AcceptanceDO> {
 
     default AcceptanceDO selectByProjectIdAndCode(Long projectId, String code) {

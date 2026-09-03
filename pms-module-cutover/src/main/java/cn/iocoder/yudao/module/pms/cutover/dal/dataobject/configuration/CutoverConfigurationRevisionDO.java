@@ -25,6 +25,7 @@ public class CutoverConfigurationRevisionDO extends TenantBaseDO {
     private String dictionarySnapshot;
     private String dimensionDefinitionSnapshot;
     private String planTemplateSectionSnapshot;
+    private String navigationRuleSnapshot;
     private String validationResultSnapshot;
     private String changeSummary;
     private Long publishedBy;

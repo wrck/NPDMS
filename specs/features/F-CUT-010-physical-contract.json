@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-CUT-010",
+  "status": "BASELINE_READY",
+  "requirementSlices": ["CUT-08@V2=FULL"],
+  "ownerContext": "CUT",
+  "extends": ["F-CUT-002-physical-contract.json", "F-CUT-003-physical-contract.json", "F-CUT-005-physical-contract.json"],
+  "ownerTables": {
+    "cut_spare_application_reference": {
+      "purpose": "CUT-owned integration intent and external reference; never a spare application lifecycle",
+      "requiredFields": ["id", "tenant_id", "cutover_task_id", "project_id", "platform_request_id", "integration_status", "external_system_code", "need_snapshot", "request_context_snapshot", "retry_count", "version", "creator", "create_time", "updater", "update_time", "deleted"],
+      "nullableFields": ["external_request_id", "external_application_no", "launch_url", "current_status_revision_id", "last_failure_code", "last_failure_detail", "last_attempt_at"],
+      "types": {"platform_request_id": "VARCHAR(128)", "integration_status": "VARCHAR(32)", "external_system_code": "VARCHAR(64)", "external_request_id": "VARCHAR(128)", "external_application_no": "VARCHAR(128)", "launch_url": "VARCHAR(2048)", "need_snapshot": "JSON", "request_context_snapshot": "JSON", "last_failure_code": "VARCHAR(64)", "last_failure_detail": "VARCHAR(1000)"},
+      "enums": {"integration_status": ["REQUEST_PENDING", "EXTERNAL_REFERENCED", "RETRY_PENDING"]},
+      "uniqueKeys": ["tenant_id,platform_request_id", "tenant_id,external_system_code,external_request_id where external_request_id is non-null", "tenant_id,external_system_code,external_application_no where external_application_no is non-null"],
+      "checks": ["retry_count>=0 and version>=0", "external_request_id, external_application_no and launch_url are trimmed when non-null", "an accepted initiate response atomically stores non-null external_request_id and at least one of external_application_no/launch_url", "EXTERNAL_REFERENCED requires external_request_id and external_application_no", "bindExternalReference first binding requires REQUEST_PENDING plus null external_application_no and atomically changes external_application_no to the matching first value plus integration_status to EXTERNAL_REFERENCED in one CAS", "same-value bind replay requires and returns EXTERNAL_REFERENCED without write; a bound application remaining REQUEST_PENDING is invalid", "bindExternalReference never changes tenant/task/project/platform_request_id/external_system_code/external_request_id", "deleted is always false for business history"],
+      "indexes": ["tenant_id,cutover_task_id,id", "tenant_id,integration_status,last_attempt_at,id"]
+    },
+    "cut_spare_status_revision": {
+      "purpose": "immutable external raw status version",
+      "requiredFields": ["id", "tenant_id", "application_reference_id", "status_version", "external_status_raw", "status_snapshot", "source_type", "observed_at", "event_id", "correlation_id", "created_by", "created_at"],
+      "nullableFields": ["external_occurred_at", "current_marker"],
+      "types": {"status_version": "BIGINT", "external_status_raw": "VARCHAR(128)", "status_snapshot": "JSON", "source_type": "VARCHAR(32)", "event_id": "VARCHAR(128)", "correlation_id": "VARCHAR(128)", "current_marker": "TINYINT NULL"},
+      "enums": {"source_type": ["INITIATE_RESPONSE", "CALLBACK", "REFRESH"]},
+      "uniqueKeys": ["tenant_id,application_reference_id,status_version", "tenant_id,event_id", "tenant_id,application_reference_id,current_marker"],
+      "checks": ["status_version>0", "current_marker is null or 1", "external_status_raw is trimmed non-empty", "rows are append-only and never soft-deleted"]
+    },
+    "cut_spare_manual_evidence": {
+      "purpose": "immutable PLT file fact reference for manual fallback evidence",
+      "requiredFields": ["id", "tenant_id", "cutover_task_id", "file_artifact_id", "file_reference_key", "file_version_no", "file_fact_version", "file_scope_version", "description", "uploaded_by", "created_at"],
+      "nullableFields": ["application_reference_id"],
+      "types": {"file_artifact_id": "BIGINT", "file_reference_key": "VARCHAR(128)", "file_version_no": "INT", "file_fact_version": "JSON exact artifactVersion/referenceVersion/availabilityVersion", "file_scope_version": "BIGINT", "description": "VARCHAR(1000)"},
+      "uniqueKeys": ["tenant_id,cutover_task_id,file_artifact_id,file_version_no"],
+      "checks": ["all file versions are non-negative and file_version_no>0", "uploaded_by>0", "description is trimmed non-empty", "rows are append-only and never soft-deleted"]
+    }
+  },
+  "jsonContracts": {
+    "need_snapshot": "exact SpareNeedSnapshot from F-CUT-010-api-contract.json",
+    "request_context_snapshot": {"exactKeys": ["taskId", "taskNo", "taskVersion", "projectId", "projectVersion", "projectScopeVersion", "devices", "need"], "deviceOrder": "deviceId ASC", "deviceFields": ["deviceId", "serialNumber", "projectAssignmentVersion"]},
+    "status_snapshot": "validated JSON object maximum 16 KiB; no credentials, secrets, file bytes or instruction execution",
+    "file_fact_version": "exact keys artifactVersion,referenceVersion,availabilityVersion; non-negative integers"
+  },
+  "sourceAndVersionRules": {
+    "request": "platform_request_id allocated once before first provider call and reused for the same intent",
+    "firstReferenceBinding": "trusted INT-06 event locks tenant + platform_request_id and requires exact frozen external_system_code + external_request_id; first binding atomically changes null application plus REQUEST_PENDING to the bound application plus EXTERNAL_REFERENCED; same application replay returns existing EXTERNAL_REFERENCED without write; any different application, bound REQUEST_PENDING state, or cross-task/tenant identity fails closed",
+    "externalReference": "tenant + external_system_code + external_application_no",
+    "status": "positive monotonic status_version per external application; lower is audit-only, equal same payload replay, equal different payload conflict, higher append",
+    "currentPointer": "application current_status_revision_id and status current_marker update atomically after append"
+  },
+  "lockOrder": ["cut_task", "ProjectScope/DeviceScope Owner facts", "cut_spare_application_reference", "cut_spare_status_revision current"],
+  "migration": {
+    "strategy": "NEW_ONLY through the actual next available Flyway version",
+    "legacyTables": "none; pms_cut_task/risk/plan/execution/observation remain unchanged",
+    "backfill": "none",
+    "seed": "add only pms:cutover-task:manage-spare under the existing cutover workbench; no role grant and no provider configuration"
+  },
+  "dependencies": {
+    "INT-06": "SpareApplicationGateway production Provider; blocks production activation and Implementation Done, not CUT controlled implementation",
+    "PROJ/AST": "existing project/device lock revalidation paths from F-CUT-002",
+    "PLT": "existing FileArtifactApi immutable file fact validation",
+    "F-CUT-005": "read-only FULL approval projection extension only"
+  },
+  "forbiddenFacts": ["spare model", "spare quantity", "inventory", "external approval", "shipment", "arrival", "issue/receipt", "RMA detail", "local ready/completed gate"],
+  "controlledPositiveLoop": "CUT tests may assemble deterministic INT-06, PROJ/AST and PLT substitutes to prove initiate -> external reference -> status callback/refresh -> P5 display; substitutes never enter src/main production assembly"
+}

@@ -140,7 +140,7 @@ class CommercePublicContractTest {
                         null, null, BigDecimal.valueOf(-1), null,
                         CommerceSourceLifecycleStatus.ACTIVE, NOW));
         CommerceOrderLineFact pendingAuthority = new CommerceOrderLineFact("L-2", null, "1", "O-1",
-                "20", null, null, null, null, CommerceSourceLifecycleStatus.ACTIVE, NOW);
+                "20", null, null, null, "PCS", CommerceSourceLifecycleStatus.ACTIVE, NOW);
         assertNull(pendingAuthority.quantity());
     }
 

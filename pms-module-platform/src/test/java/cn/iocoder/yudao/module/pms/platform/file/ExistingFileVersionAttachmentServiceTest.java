@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -73,6 +74,16 @@ class ExistingFileVersionAttachmentServiceTest {
     void clear() {
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void acceptsAcceptanceReportAttachmentTargetWithoutChangingExistingTargets() {
+        assertDoesNotThrow(() -> new ExistingFileReferenceTarget(
+                "ACC", "ACCEPTANCE_REPORT_VERSION", "200", "ACCEPTANCE_REPORT_ATTACHMENT",
+                TARGET_SLOT, 9L));
+        assertDoesNotThrow(() -> new ExistingFileReferenceTarget(
+                "SOL", "REQUIREMENT_ANALYSIS_SECTION", "200", "SECTION_ATTACHMENT",
+                TARGET_SLOT, 9L));
     }
 
     @Test

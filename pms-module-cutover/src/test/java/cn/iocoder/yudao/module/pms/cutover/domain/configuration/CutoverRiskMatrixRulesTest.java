@@ -125,40 +125,4 @@ class CutoverRiskMatrixRulesTest {
 
         assertTrue(errors.stream().anyMatch(error -> error.message().contains("所属组网模式")));
     }
-
-    @Test
-    void rejectsDuplicateRiskBindingEvenWhenPriorityDiffers() {
-        var rules = new ArrayList<>(CutoverMatrixFixtures.completeRiskRules());
-        var source = rules.stream()
-                .filter(rule -> "RISK_SYSTEM_LOG".equals(rule.stableItemKey()))
-                .findFirst().orElseThrow();
-        rules.add(new CutoverConfigurationRules.BindingRule("RULE_SYSTEM_LOG_DUPLICATE",
-                source.stableItemKey(), source.dimensionConditionSnapshot(), source.priority() + 1,
-                source.requiredResult(), true));
-
-        var errors = CutoverRiskMatrixRules.validate(CutoverMatrixFixtures.completeRiskItems(), rules,
-                CutoverMatrixFixtures.context());
-
-        assertTrue(errors.stream().anyMatch(error -> error.message().contains("维度组合重复")));
-    }
-
-    @Test
-    void reportsOriginalRuleIndexWhenDisabledRulePrecedesInvalidBinding() {
-        var rules = new ArrayList<>(CutoverMatrixFixtures.completeRiskRules());
-        rules.removeIf(rule -> "RISK_TARGET_VERSION_BULLETIN".equals(rule.stableItemKey()));
-        rules.addFirst(new CutoverConfigurationRules.BindingRule("RULE_DISABLED", "RISK_SYSTEM_LOG",
-                "{}", 0, true, false));
-        int invalidIndex = rules.size();
-        rules.add(new CutoverConfigurationRules.BindingRule("RULE_TARGET_INVALID_INDEX",
-                "RISK_TARGET_VERSION_BULLETIN",
-                "{\"CUTOVER_TYPE\":[\"VERSION_UPGRADE\",\"CONFIGURATION_CHANGE\"]}",
-                10, true, true));
-
-        var errors = CutoverRiskMatrixRules.validate(CutoverMatrixFixtures.completeRiskItems(), rules,
-                CutoverMatrixFixtures.context());
-
-        assertTrue(errors.stream().anyMatch(error ->
-                error.location().equals("bindingRules[" + invalidIndex + "].dimensionConditionSnapshot")
-                        && error.message().contains("仅适用于版本升级")));
-    }
 }

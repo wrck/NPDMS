@@ -55,7 +55,9 @@ class CutoverConfigurationServiceImplTest {
 
     @Test
     void copyShouldPreserveAllMatrixChildren() {
-        when(revisionMapper.selectById(10L)).thenReturn(draft(10L));
+        CutoverConfigurationRevisionDO source = draft(10L);
+        source.setNavigationRuleSnapshot("{\"target\":\"TASK_OVERVIEW\"}");
+        when(revisionMapper.selectById(10L)).thenReturn(source);
         CutoverChecklistItemDefinitionRevisionDO item = new CutoverChecklistItemDefinitionRevisionDO();
         item.setId(20L);
         item.setStableItemKey("RISK-SYSTEM-LOG");
@@ -95,6 +97,11 @@ class CutoverConfigurationServiceImplTest {
                 ArgumentCaptor.forClass(CutoverChecklistBindingRuleRevisionDO.class);
         verify(ruleMapper).insert(copiedRule.capture());
         org.junit.jupiter.api.Assertions.assertTrue(Boolean.TRUE.equals(copiedRule.getValue().getRequiredResult()));
+        ArgumentCaptor<CutoverConfigurationRevisionDO> copiedRoot =
+                ArgumentCaptor.forClass(CutoverConfigurationRevisionDO.class);
+        verify(revisionMapper).insert(copiedRoot.capture());
+        org.junit.jupiter.api.Assertions.assertEquals("{\"target\":\"TASK_OVERVIEW\"}",
+                copiedRoot.getValue().getNavigationRuleSnapshot());
     }
 
     @Test
@@ -214,6 +221,7 @@ class CutoverConfigurationServiceImplTest {
         when(itemMapper.selectHistoryByStableKeys(any())).thenReturn(List.of(history));
         CutoverConfigurationSaveReqVO request = new CutoverConfigurationSaveReqVO();
         request.setConfigurationCode("CUTOVER_DEFAULT");
+        request.setNavigationRule(null);
         CutoverConfigurationSaveReqVO.ItemVO item = new CutoverConfigurationSaveReqVO.ItemVO();
         item.setStableItemKey("ITEM-1");
         item.setItemType("BUSINESS_SURVEY");

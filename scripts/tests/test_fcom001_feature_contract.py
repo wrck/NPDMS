@@ -12,7 +12,7 @@ DATABASE_DESIGN = ROOT / "docs/design/09-database-design.md"
 MODULE_MAPPING = ROOT / "specs/001-project-delivery-platform/appendices/module-boundary-and-naming.md"
 REUSE_AUDIT = ROOT / "specs/features/F-COM-001-legacy-reuse-audit.md"
 FEATURE_INDEX = ROOT / "specs/features/README.md"
-V125_MIGRATION = ROOT / "sql/migrations/V125__fcom001_permissions_menu_and_acceptance_seed.sql"
+V161_MIGRATION = ROOT / "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
 
 
 REQUIRED_PROVIDER_REUSE_AUDIT = {
@@ -296,15 +296,16 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         cls.module_mapping = MODULE_MAPPING.read_text(encoding="utf-8")
         cls.reuse_audit = REUSE_AUDIT.read_text(encoding="utf-8")
         cls.feature_index = FEATURE_INDEX.read_text(encoding="utf-8")
-        cls.v125_migration = V125_MIGRATION.read_text(encoding="utf-8")
+        cls.v161_migration = V161_MIGRATION.read_text(encoding="utf-8")
 
     def test_feature_ready_go_is_recorded_after_contract_scope_resolution(self) -> None:
         self.assertEqual("BASELINE_READY", self.contract["status"])
-        self.assertEqual("GO_C57EE7B5F5226F5DC902D817C034FF1A8F6618C3", self.contract["featureReadyDecision"])
+        self.assertEqual("GO_REQUIREMENT_CONVERGENCE_APPROVED_2026_09_02",
+                         self.contract["featureReadyDecision"])
         self.assertEqual([], contract_administrator_scope_errors(self.contract, self.feature_spec))
         self.assertIn("不得由Technical Plan发明", self.feature_spec)
         self.assertIn("BASELINE", self.feature_index)
-        self.assertIn("完整全新审核GO", self.feature_index)
+        self.assertIn("REQUIREMENT_CONVERGENCE_APPROVED", self.feature_index)
 
     def test_contract_scope_gate_rejects_missing_owner_provider_or_sensitive_permission(self) -> None:
         missing_provider = deepcopy(self.contract)
@@ -353,10 +354,10 @@ class Fcom001FeatureContractTest(unittest.TestCase):
 
     def test_no_serial_compatibility_uses_only_locked_erp_product_code(self) -> None:
         self.assertEqual([], product_code_compatibility_errors(self.contract, self.feature_spec))
-        self.assertIn("ADD COLUMN `product_code` varchar(64) NULL", self.v125_migration)
+        self.assertIn("ADD COLUMN `product_code` varchar(64) NULL", self.v161_migration)
         for order_line_id in (992002300001, 992002300002, 992002300003, 992002300004):
-            self.assertIn(str(order_line_id), self.v125_migration)
-        self.assertIn("fcom001_verify_v125_managed_product_codes", self.v125_migration)
+            self.assertIn(str(order_line_id), self.v161_migration)
+        self.assertIn("fcom001_verify_v161_managed_product_codes", self.v161_migration)
         self.assertIn("pm_order_line_from_erp", self.reuse_audit)
         self.assertIn("pm_project_product_line", self.reuse_audit)
 
@@ -385,23 +386,28 @@ class Fcom001FeatureContractTest(unittest.TestCase):
             "expectedParentProjectVersion")
         self.assertTrue(product_code_compatibility_errors(missing_parent_version, self.feature_spec))
 
-    def test_v125_registers_exact_permissions_and_controlled_acceptance_identity(self) -> None:
+    def test_v161_registers_exact_permissions_and_controlled_acceptance_identity(self) -> None:
         permissions = set(self.contract["permissions"]["functional"])
-        self.assertEqual(8, len(permissions))
+        self.assertEqual(9, len(permissions))
         for permission in permissions:
             with self.subTest(permission=permission):
-                self.assertIn(f"'{permission}'", self.v125_migration)
-        self.assertIn("fcom001_acceptance_full", self.v125_migration)
-        self.assertIn("仅用于F-COM-001本地真实浏览器正向闭环", self.v125_migration)
-        self.assertNotIn("pm_order_data_from_erp", self.v125_migration)
-        self.assertNotIn("pm_order_line_from_erp", self.v125_migration)
-        self.assertNotIn("pm_project_product_line", self.v125_migration)
+                self.assertIn(f"'{permission}'", self.v161_migration)
+        self.assertIn("fcom001_acceptance_full", self.v161_migration)
+        self.assertIn("仅用于F-COM-001本地真实浏览器正向闭环", self.v161_migration)
+        self.assertNotIn("pm_order_data_from_erp", self.v161_migration)
+        self.assertNotIn("pm_order_line_from_erp", self.v161_migration)
+        self.assertNotIn("pm_project_product_line", self.v161_migration)
 
     def test_office_snapshot_replaces_ast_location_without_inference(self) -> None:
         self.assertNotIn("AssetLocationApi", self.contract["moduleApis"])
-        self.assertNotIn("siteId", self.feature_spec)
-        self.assertNotIn("siteLocationId", self.feature_spec)
-        self.assertNotIn("UNRESOLVED", self.feature_spec)
+        physical_fields = {
+            field
+            for table in self.contract["physicalDelta"]["tables"].values()
+            for field in table.get("fields", {})
+        }
+        self.assertTrue({"site_id", "site_location_id", "location_text"}.isdisjoint(physical_fields))
+        self.assertIn("在COM范围或明细保存`siteId/siteLocationId/locationText`第二套地点真值",
+                      self.feature_spec)
         office = self.contract["officeSnapshot"]
         self.assertEqual("PROJ", office["owner"])
         self.assertEqual(
@@ -442,7 +448,8 @@ class Fcom001FeatureContractTest(unittest.TestCase):
                 self.assertIn(api, apis)
                 self.assertEqual("REAL_PROVIDER_REQUIRED", apis[api]["provider"])
         self.assertEqual(
-            ["PROJ_PROJECT", "COM_ORDER_LINE_IF_APPLICABLE", "COM_DELIVERY_SCOPE_BY_STABLE_ID", "ACC_SCOPE_BINDING"],
+            ["PROJ_PROJECT", "COM_ORDER_LINE_IF_APPLICABLE", "COM_DELIVERY_SCOPE_BY_STABLE_ID",
+             "COM_DELIVERY_SCOPE_PROJECT_VERSION_BY_PROJECT_ID", "ACC_SCOPE_BINDING"],
             self.contract["transactionBoundary"]["lockOrder"],
         )
         self.assertIn("PROJECT_STAGE_ENTRY", self.contract["acceptanceBinding"]["triggers"])

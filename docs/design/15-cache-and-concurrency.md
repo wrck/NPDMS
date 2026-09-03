@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：缓存与并发设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8修订013（`docs/baseline/prd-v1.8.md`）；巡检审核/发布并发继续引用`CHG-PRD-2026-09-02-012`
 > Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
@@ -49,7 +49,7 @@
 |---|---|---|
 | Project/ProjectTask | aggregateVersion + treeVersion（移动时） | 重新加载树和当前版本后由用户重试 |
 | ProjectTask Completion | aggregateVersion + bindingVersion + ruleVersion + businessFactVersion | 任一版本变化即重新读取事实并评估；不得按旧快照完成 |
-| ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本 |
+| ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本；InspectionRule名称由稳定身份持有且不可通过revision改名 |
 | DynamicFormTemplate/Revision | templateVersion + draftVersion；发布revision不可变 | 新建模板初始DISABLED；发布、创建下一草稿和启停锁定模板及当前指针，冲突重新读取，不替换请求中的修订 |
 | DynamicFormInstance | instanceVersion + frozen revision identity | 普通字段部分PATCH只按CAS更新请求字段；后到请求不覆盖，模板发布/停用不改既有实例 |
 | Arrival/Installation/Quality | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
@@ -104,6 +104,19 @@
 - `ProjectAttributeSourceCorrectionCommand`还校验受信任服务身份、来源键和单调来源版本；旧版/重复来源事件不更新当前值，不重复追加历史，同一来源版本不同摘要进入冲突处置。
 - 同键同请求重放，同键不同请求拒绝，进行中重复返回409；并发冲突整体回滚，不产生与当前值不一致的历史。
 - 历史查询按`tenant + projectId + recordedAt/id`游标或受控分页，不缓存敏感全量历史；缓存不可用不能跳过ProjectTreeScope。
+
+### 5.7 InspectionRule名称唯一并发
+
+- 新建规则稳定身份时，以`tenantId + ruleName`数据库唯一约束作为最终互斥边界；Service预检只改善错误定位，不能替代数据库约束。
+- 同租户同名并发创建最多一个成功；唯一键冲突映射为稳定字段错误，失败事务不得留下孤立规则身份或草稿revision。
+- 停用、软删除和创建新revision均不释放名称；复制revision只能在原稳定身份下沿用原名称，任何改名输入均拒绝。不同租户可使用相同名称。
+
+### 5.8 InspectionRule审核与发布并发
+
+- 记录审核事实与发布使用同一规则稳定身份聚合锁顺序；审核先锁定稳定身份和目标`DRAFT` revision，再校验CAS、当前摘要并追加事实。
+- 发布在同一锁内重算当前摘要，并按`reviewed_at DESC, id DESC`重新读取最后审核事实；不得使用锁外预读的`PASSED`决定发布。
+- 审核与发布并发时，发布要么读取到已经提交的最后事实并据此裁决，要么因状态/CAS冲突失败；不得形成“审核已拒绝但仍按旧通过事实发布”的混合快照。
+- revision进入`PUBLISHED`后拒绝追加审核；纠正通过复制新草稿revision并重新审核完成，不回写已发布内容或历史事实。
 
 ## 6. 设备唯一归属并发
 

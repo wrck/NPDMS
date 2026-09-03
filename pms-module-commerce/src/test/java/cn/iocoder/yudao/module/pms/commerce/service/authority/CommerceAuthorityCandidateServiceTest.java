@@ -174,7 +174,7 @@ class CommerceAuthorityCandidateServiceTest {
         when(candidateMapper.selectCandidateById(any())).thenReturn(current);
         when(candidateMapper.selectByIdForUpdate(any())).thenReturn(current);
         when(candidateMapper.selectConfirmedOwnerForUpdate(any())).thenReturn(
-                new AuthorityCandidateOwnerFact(201L, "com_contract", "ACME", "ERP-V3", "CONFIRMED"));
+                new AuthorityCandidateOwnerFact(201L, "CONTRACT", "ACME", "ERP-V3", "CONFIRMED"));
         when(candidateMapper.decideByVersion(any())).thenReturn(1);
 
         var result = service.reconcile(decide(101L, 2, 201L, "IDEM-M", "CORR-M"));
@@ -182,7 +182,7 @@ class CommerceAuthorityCandidateServiceTest {
         assertEquals("MATCHED", result.candidateStatus());
         assertEquals("ERP-V3", result.matchedOwnerSourceVersion());
         verify(candidateMapper).decideByVersion(argThat(update -> "MATCHED".equals(update.candidateStatus())
-                && "com_contract".equals(update.matchedOwnerTable()) && update.matchedOwnerId() == 201L));
+                && "CONTRACT".equals(update.matchedOwnerType()) && update.matchedOwnerId() == 201L));
     }
 
     @Test
@@ -192,7 +192,7 @@ class CommerceAuthorityCandidateServiceTest {
         when(candidateMapper.selectCandidateById(any())).thenReturn(current);
         when(candidateMapper.selectByIdForUpdate(any())).thenReturn(current);
         when(candidateMapper.selectConfirmedOwnerForUpdate(any())).thenReturn(
-                new AuthorityCandidateOwnerFact(201L, "com_contract", "OTHER", "ERP-V3", "CONFIRMED"));
+                new AuthorityCandidateOwnerFact(201L, "CONTRACT", "OTHER", "ERP-V3", "CONFIRMED"));
 
         var error = assertThrows(CommerceAuthorityCandidateService.CandidateException.class,
                 () -> service.reconcile(decide(101L, 2, 201L, "IDEM-M", "CORR-M")));
@@ -214,7 +214,7 @@ class CommerceAuthorityCandidateServiceTest {
 
         assertEquals("REJECTED", result.candidateStatus());
         verify(candidateMapper).decideByVersion(argThat(update -> update.matchedOwnerId() == null
-                && update.matchedOwnerTable() == null && update.matchedOwnerSourceVersion() == null));
+                && update.matchedOwnerType() == null && update.matchedOwnerSourceVersion() == null));
     }
 
     private CommerceAuthorityCandidateService.CreateCandidateCommand create(
@@ -227,7 +227,7 @@ class CommerceAuthorityCandidateServiceTest {
     private CommerceAuthorityCandidateService.DecideCandidateCommand decide(
             Long candidateId, int version, Long ownerId, String idempotencyKey, String correlationId) {
         return new CommerceAuthorityCandidateService.DecideCandidateCommand(
-                1L, 11L, candidateId, version, ownerId, idempotencyKey, correlationId);
+                1L, 11L, candidateId, version, ownerId, "人工核对结论", idempotencyKey, correlationId);
     }
 
     private AuthorityCandidateDO candidate(Long id, String key, String version, String company,

@@ -1,0 +1,93 @@
+# F-INS-001 巡检规则版本与字段配置基础
+
+> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
+> Technical Plan Gate：`PASS / NPDMS-FINS001-TECHPLAN-20260830-01`
+> Implementation Done Gate：`NOT_STARTED`
+> 当前阻断：`无规格阻断；Task 8已完整集成，当前最近Gate为Task 9工程师可选规则投影实施，尚缺服务端认证用户驱动的AST授权设备查询、只读投影及失败关闭测试`
+> Requirement ID：`INS-03（V2/P1）`、`INS-09（V2/P1）`、`NFR-02@V2（支撑）`
+> Feature Spec：`specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md`
+> 复用审计：`specs/features/F-INS-001-legacy-reuse-audit.md`
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-ins-001-inspection-rule-version-and-field-configuration-foundation.md`
+> 锁定实施输入提交：`27b5b4b3`
+> master集成映射：`来源分支PRD修订009～012统一收口为master修订011；Q-FINS001-005/006分别由master修订012/013独立关闭；来源Flyway V148～V150重编号为master V173～V175`
+
+## 当前最小工作单元
+
+* Task 9为当前最小工作单元：从最新master新建DU，服务端从认证上下文取得当前用户，以`AuthorizedDeviceProductTypeQuery(subjectUserId, deviceIds)`调用AST授权设备产品类型查询；只返回当前`PUBLISHED`且产品类型匹配的规则摘要。跨租户、空设备范围、未知/停用/未解析类型或AST不可用必须失败关闭或返回空，不能接受客户端产品类型作为授权依据，也不能泄露设备存在性、审核内部信息或秘密命令正文。
+
+## 已完成
+
+* 已读取PRD V1.8、工程链、文档治理、SRV领域规格及巡检相关SDS。
+
+* 已确认最近适用Gate为Feature Ready，INS-03与INS-09应合并为一个纵向业务Feature。
+
+* 已完成旧规则后端、前端、迁移、菜单、字典和测试审计，结论为`COPY_THEN_ENHANCE / PRESERVE_LEGACY / CURRENT_FORWARD_FIELD_REVIEW`。
+
+* 已由独立裁决关闭30秒上限冲突，并由master `CHG-PRD-2026-09-02-011`统一承接：只允许1～30秒，不建设未定义的超30秒审批分支。
+
+* 已在正式SDS冻结规则状态、八字段、命令从属关系、产品适用关系、安全审核事实、权限、API、数据、页面和验收边界；master修订011补齐草稿/发布完整性、`NUMBER`和`PASSED/REJECTED`。
+
+* 需求方于2026-09-02确认Q-FINS001-005采用方案A，master修订012已冻结审核事实只追加、仅DRAFT可审核、同revision同摘要最后事实生效、摘要/新revision重审、权限撤销不回写历史及审核/发布共享聚合锁边界。该规格关闭不等于实现完成。
+
+* 需求方于2026-09-02确认Q-FINS001-006支持超级管理员并复用现有布尔权限接口，master修订013已冻结：租户访问拦截器完成目标租户上下文切换后，Inspection以当前审核人直接调用System现有`PermissionApi.hasAnyPermissions`重新判定专用权限；普通授权或System超级管理员返回`true`均允许审核，`false`或异常失败关闭；`authorizationSourceId`为空，不新增Yudao System接口。该规格关闭不等于Task 8实现完成。
+
+* 已明确第三方采集平台、设备凭证和任务执行不在本Feature实现范围。
+
+* 已生成并自审唯一Technical Plan，覆盖AST外部Gate、安全审核、后端、迁移、前端、测试、真实浏览器和追溯收口；历次NO-GO问题已整改，独立复审GO。
+
+* 已通过master `CHG-PRD-2026-09-02-011`和`F-AST-002` Spec/Task关闭AST状态源缺口；F-INS-001仅验收消费，不允许Inspection猜测产品类型、直读AST业务表或实现CRM/MES连接器。
+
+* Task 1已建立仓库级唯一计划与临时副本扫描、锁定输入祖先及正式输入漂移检查、复用审计旧资产相对锁定提交的Git差异保护、Owner/查询/Mapper参数边界及显式Requirement ID追溯门禁；9项Python定向测试PASS。
+
+* Task 2已验收F-AST-002 Implementation Done证据、Inspection专用双查询API形状、Query身份边界、结果事实字段及Service仅依赖`pms-module-asset-api`边界；3项Maven契约测试实际执行PASS，22模块Reactor BUILD SUCCESS，依赖树仅包含`pms-module-asset-api`。
+
+* 唯一Technical Plan已明确Task 2只做外部Gate/API边界预验收，不核销未知、停用、未解析、跨租户、空设备范围或AST异常下的Inspection生产消费行为；这些义务分别在Task 7/8发布预检与发布、Task 9工程师选择入口实现后验证；`git diff --check` PASS。
+
+* Task 3历史提交曾冻结巡检侧`InspectionRuleExplicitAuthorizationApi`端口；该端口未装配、未形成生产入口。master修订013已替代其“显式来源事实”设计，Task 8必须删除或收口该端口，改为与现有管理/发布守卫一致地直接消费`PermissionApi`，并同步权限测试；历史摘要服务与失败关闭边界继续有效。
+
+* Task 3纯内容摘要只覆盖按执行顺序规范化的命令、超时、继续策略和预期正则，拒绝重复或非正数顺序，输出小写64位SHA-256；7项Java定向测试、9项Python门禁和38模块server package PASS，独立复审GO。
+
+* Task 4已完成revision纯领域校验：正式机器码、受限正则预算与禁止结构、四类Secret扫描和稳定错误码均已实现；17项定向测试、35项service全量测试、9项Python门禁、22模块测试Reactor、38模块server package、追溯与差异检查PASS；独立复审核销编号`NPDMS-FINS001-TASK4-CLOSEOUT-REVIEW-20260901-01`。
+
+* Task 7已实现新稳定身份草稿创建、DRAFT整体保存、已发布/停用revision复制和无副作用发布预检：数据库唯一约束兜底身份并发，CAS失败不替换从属行，命令和产品类型在事务内硬替换；四入口服务层维护权限守卫、字典/AST失败关闭及权威名称候选已补齐。Java定向46项、service全量69项（其中MySQL默认跳过8项）、Python门禁24项、22模块package和diff检查PASS；随后真实`npdms_test` MySQL 8项以`Skipped: 0`独立执行PASS。故障注入仅存在于测试`TestApplication`。
+
+* Task 8停用切片已实现独立停用权限、当前`PUBLISHED -> DISABLED`聚合锁与If-Match/CAS、平台幂等重放/冲突、成功审计及`REQUIRES_NEW`拒绝审计；真实`npdms_test` MySQL证明停用业务写、幂等完成和成功审计共同提交，成功审计或幂等完成故障时共同回滚且只保留拒绝审计。相关真实MySQL矩阵25项`Failures: 0 / Errors: 0 / Skipped: 0`，补充跨租户与权限依赖异常后聚焦单元14项通过，`git diff --check` PASS，提交终审`GO NPDMS-FINS001-TASK8-DISABLE-SUBMIT-GO-20260902-02`。
+
+* Task 8内部发布CAS基础已实现共享聚合锁、权威字典/产品类型名称快照更新、旧当前发布版停用与目标草稿发布CAS；草稿保存同步采用相同锁顺序。真实`npdms_test` MySQL 17项全部通过，其中4项证明原子换版、最终写故障整体回滚、两个草稿并发最多一个成功及保存/发布无混合快照；service非IT单测93项和23模块package通过，独立终审`GO NPDMS-FINS001-TASK8-PUBLISH-CAS-FOUNDATION-GO-20260902-01`。该基础无公开Service/Controller调用方，不代表发布放行。
+
+* Task 8完整审核与发布已由master代码回执`99213cef`、并发修复`1c04f43f`集成：审核守卫直接复用System现有`PermissionApi.hasAnyPermissions`，普通角色授权与System超级管理员沿用同一布尔`true`，失败或异常关闭；未装配的显式授权端口已删除，审核事实只追加且仅允许DRAFT。发布在同一聚合锁内完成完整草稿、字典、AST、摘要及最后审核事实重验，最后事实以`reviewed_at DESC, id DESC`确定并使用锁内当前读，避免MySQL可重复读旧快照越过并发`REJECTED`；旧当前发布版停用与新revision发布、平台幂等和审计原子提交。F-INS Python门禁26项、service精确全量104项、真实MySQL事务6项与公开入口5项全部PASS且MySQL均无跳过；Task 8完成不等于Feature Done。
+
+* master已从`feat-inspection-feature-xkjuCC@7fe168af`选择性接收Task 4～7、Task 8停用及内部发布CAS基础，来源迁移V148～V150重编号为V173～V175；未接收源工作树未提交变更，也未把分支Gate转记为Feature Done。master复验PRD语义/基线与DU校验PASS，F-INS Python门禁24项PASS，JDK 25 Maven定向测试85项`Failures: 0 / Errors: 0 / Skipped: 17`且23模块Reactor `BUILD SUCCESS`；17项MySQL用例因本次未启用外部测试库而保持跳过，沿用来源提交内已记录的真实MySQL证据但不将本次结果伪报为重跑通过。
+
+* 来源分支在上述冻结点后新增`1895a5e7`，将`Q-FINS001-005/006`捆绑批准并授权扩展Yudao System公开权限API；master未整合该提交。master先将Q-FINS001-005方案A独立重建为修订012，再按需求方最新裁决将Q-FINS001-006以“复用现有布尔接口并支持超级管理员”重建为修订013；来源提交中的新System API、排除超级管理员、稳定角色—菜单来源及来源工作树未提交修改继续拒绝接收，不构成实现或提交证据。
+
+## 首轮Technical Plan评审核销
+
+| 原问题                  | 整改位置                      | 核销方式                                                     |
+| -------------------- | ------------------------- | -------------------------------------------------------- |
+| 1. 锁定规格提交未产生         | Plan Locked Inputs、Task头部 | 历史锁定值`829a00ac`已由包含修订010及F-AST-002 Done的实施输入`68bc56ec`替代 |
+| 2. AST DTO、文件和责任不闭合  | Plan Task 2、Q-FINS001-002 | Owner边界已明确并转外部Gate；AST交付缺口持续阻断发布/选择/Done，F-INS仅验收消费      |
+| 3. 安全审核依赖无法提供的角色贡献解析 | Plan Task 3、8             | 改为服务端专用权限守卫，不解析角色贡献关系                                    |
+| 4. 幂等与审计未绑定平台公开API   | Plan Task 8               | 复用`PlatformCommandExecutionApi`、`OperationAuditApi`      |
+| 5. 产品类型示例可能猜造        | Plan Task 2、5             | 只引用AST Owner批准值；未确认则阻断                                   |
+| 6. 前端测试位置不符合惯例       | Plan Task 10              | 测试放在页面目录`inspection-rule.spec.ts`                        |
+| 7. 静态门禁伪造RED         | Plan实施边界、Task 1           | 新目录不存在时PASS；新能力先实现后测试                                    |
+| 8. 分页名称与产品类型筛选语义不明   | Plan Task 6               | 固定`ruleNameKeyword`包含匹配和XML `EXISTS`                     |
+
+## 阻断
+
+`Q-FINS001-005/006`均已关闭，不存在`BLOCKED_BY_SPEC`，Task 8实现与集成缺口也已关闭。Feature尚未闭环的最近缺口为Task 9：当前没有生产`SelectableInspectionRuleService`从认证用户和设备范围调用AST授权设备产品类型契约，也没有只返回当前`PUBLISHED`匹配规则的失败关闭投影测试。Task 10～13的Controller/前端、全量验证、真实浏览器验收和最终追溯收口仍未开始；因此Feature保持`IMPLEMENTATION_IN_PROGRESS`，Implementation Done保持`NOT_STARTED`。
+
+## 已知边界
+
+* 旧接口、页面、菜单和旧类保持不变且不双写；本Feature交付旧`pms_srv_rule`可证明字段的受控前向迁移，不完整记录进入迁移问题或兼容只读。
+
+* 附件或旧页面只帮助取得名称和界面样式，缺行、缺名或数量差异不构成阻断。
+
+* `srv_inspection_task_rule_snapshot`及INS-01/02运行时消费后置，不提前实现。
+
+* Yudao基础平台不得修改；修订013明确只复用其现有`PermissionApi.hasAnyPermissions`能力。
+
+## 检查点
+
+基线=master修订013；当前Gate=Task9实施；证据=Task8代码`99213cef`、并发修复`1c04f43f`，104项service与真实MySQL 6+5项通过；阻塞=无规格阻断，缺AST授权设备查询和只读选择投影；下一步=从最新master新建Task9 DU，不修改Yudao System/AST Owner实现，不提前宣称Feature Done。

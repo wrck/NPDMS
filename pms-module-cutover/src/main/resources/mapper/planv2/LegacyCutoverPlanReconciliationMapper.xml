@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.migration.LegacyCutoverPlanReconciliationMapper">
+    <select id="selectQualifiedTargetForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO">
+        SELECT *
+        FROM cut_task
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.targetTaskId}
+          AND legacy_task_id = #{query.legacyTaskId}
+          AND legacy_mapping_version = 'F-CUT-002-PMS-CUT-TASK-V1'
+          AND task_origin = 'LEGACY_FORWARD'
+          AND intake_source_type = 'LEGACY_FORWARD'
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectIdentityConflictForUpdate" resultType="java.lang.Long">
+        SELECT id
+        FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = b'0'
+          AND (legacy_plan_id = #{query.legacyPlanId}
+            OR (cutover_task_id = #{query.targetTaskId} AND revision_no = 1))
+        ORDER BY id
+        LIMIT 1
+        FOR UPDATE
+    </select>
+</mapper>

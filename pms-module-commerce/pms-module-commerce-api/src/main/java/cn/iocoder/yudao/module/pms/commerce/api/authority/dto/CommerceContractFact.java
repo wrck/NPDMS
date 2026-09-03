@@ -7,7 +7,7 @@ import static cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAut
 
 public record CommerceContractFact(String sourceKey, String expectedPreviousSourceVersion,
                                    String sourceVersion, String companyCode, String contractNo,
-                                   String customerCode, String customerName, BigDecimal amount,
+                                   String contractName, String customerCode, String customerName, BigDecimal amount,
                                    String currencyCode, CommerceSourceLifecycleStatus lifecycleStatus,
                                    LocalDateTime sourceUpdatedAt) {
 
@@ -15,15 +15,25 @@ public record CommerceContractFact(String sourceKey, String expectedPreviousSour
         sourceKey = text(sourceKey, 128, "sourceKey");
         expectedPreviousSourceVersion = expectedVersion(expectedPreviousSourceVersion);
         sourceVersion = version(sourceVersion, "sourceVersion");
-        companyCode = text(companyCode, 32, "companyCode");
+        companyCode = text(companyCode, 64, "companyCode");
         contractNo = text(contractNo, 64, "contractNo");
+        contractName = optionalText(contractName, 512, "contractName");
         customerCode = optionalText(customerCode, 64, "customerCode");
-        customerName = optionalText(customerName, 255, "customerName");
+        customerName = optionalText(customerName, 512, "customerName");
         amount = nonNegative(amount, "amount");
-        currencyCode = optionalText(currencyCode, 16, "currencyCode");
+        currencyCode = optionalText(currencyCode, 32, "currencyCode");
         if (lifecycleStatus == null) {
             throw invalid("lifecycleStatus must not be null");
         }
         sourceUpdatedAt = time(sourceUpdatedAt, "sourceUpdatedAt");
+    }
+
+    public CommerceContractFact(String sourceKey, String expectedPreviousSourceVersion,
+                                String sourceVersion, String companyCode, String contractNo,
+                                String customerCode, String customerName, BigDecimal amount,
+                                String currencyCode, CommerceSourceLifecycleStatus lifecycleStatus,
+                                LocalDateTime sourceUpdatedAt) {
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, contractNo,
+                null, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt);
     }
 }

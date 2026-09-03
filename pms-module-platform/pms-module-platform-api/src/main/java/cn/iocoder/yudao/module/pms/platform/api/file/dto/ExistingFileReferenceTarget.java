@@ -26,7 +26,15 @@ public record ExistingFileReferenceTarget(
                 && "DYNAMIC_FORM_INSTANCE".equals(objectType)
                 && purposeCode.startsWith("FORM_FIELD_ATTACHMENT/")
                 && purposeCode.length() > "FORM_FIELD_ATTACHMENT/".length();
-        if ((!requirementSection && !dynamicFormField) || !objectId.matches("[1-9][0-9]*")) {
+        boolean acceptanceReportAttachment = "ACC".equals(ownerContext)
+                && "ACCEPTANCE_REPORT_VERSION".equals(objectType)
+                && "ACCEPTANCE_REPORT_ATTACHMENT".equals(purposeCode);
+        boolean satisfactionResponseFile = "ACC".equals(ownerContext)
+                && "SATISFACTION_RESPONSE".equals(objectType)
+                && ("SATISFACTION_SIGNATURE".equals(purposeCode)
+                || "SATISFACTION_ATTACHMENT".equals(purposeCode));
+        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile)
+                || !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }
         try {

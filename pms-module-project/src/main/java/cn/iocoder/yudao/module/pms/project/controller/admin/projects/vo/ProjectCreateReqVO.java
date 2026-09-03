@@ -7,6 +7,7 @@ import lombok.Data;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 /**
@@ -39,6 +40,10 @@ public class ProjectCreateReqVO {
     @Schema(description = "下单办事处部门稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "下单办事处部门不能为空")
     private Long orderOfficeDepartmentId;
+
+    @Schema(description = "创建时确认的一级服务经理用户ID；为空时保持待指派")
+    @Positive(message = "一级服务经理用户无效")
+    private Long serviceManagerUserId;
 
     @Schema(description = "实施站点；为空时必须填写兼容实施地点")
     @Valid

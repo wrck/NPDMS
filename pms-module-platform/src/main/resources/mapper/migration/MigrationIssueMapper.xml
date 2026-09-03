@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationIssueMapper">
+
+    <select id="selectByTenantAndIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationIssueDO">
+        SELECT * FROM plt_migration_issue
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.issueId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="close">
+        UPDATE plt_migration_issue
+        SET issue_status = 'CLOSED',
+            resolver_user_id = #{update.resolverUserId},
+            rule_version = #{update.ruleVersion},
+            target_result = #{update.targetResult},
+            resolved_at = #{update.resolvedAt},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.issueId}
+          AND issue_status = 'OPEN'
+          AND version = #{update.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

@@ -267,7 +267,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         }
         return new ManualProjectCreateCommand(draft, 1L, 1L, java.util.List.of(),
                 match.getMatched().getTemplateRevisionId(), match.getCandidateWatermark(),
-                idempotencyKey, requestDigest);
+                null, idempotencyKey, requestDigest);
     }
 
     ProjectManualCreationApplicationService.Actor newActor() {

@@ -34,6 +34,30 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/satisfaction-questionnaires/:token',
+    name: 'PmsSatisfactionQuestionnairePublic',
+    component: () => import('@/views/pms/project/satisfaction/questionnaire.vue'),
+    meta: {
+      hidden: true,
+      noTagsView: true,
+      title: '项目满意度问卷'
+    }
+  },
+  {
+    path: '/pms/project/satisfaction',
+    component: Layout,
+    name: 'SatisfactionWorkbenchRoot',
+    meta: { hidden: true },
+    children: [
+      {
+        path: '',
+        name: 'PmsSatisfactionWorkbench',
+        component: () => import('@/views/pms/project/satisfaction/index.vue'),
+        meta: { canTo: true, hidden: true, title: '满意度管理' }
+      }
+    ]
+  },
+  {
     path: '/redirect',
     component: Layout,
     name: 'RedirectRoot',

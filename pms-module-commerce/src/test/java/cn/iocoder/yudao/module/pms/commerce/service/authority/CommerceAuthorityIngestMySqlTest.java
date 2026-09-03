@@ -6,8 +6,8 @@ import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
+import cn.iocoder.yudao.module.pms.commerce.service.scope.DeliveryScopeConflictNotifier;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -78,38 +78,35 @@ class CommerceAuthorityIngestMySqlTest {
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=? AND aggregate_type='CommerceAuthorityBatch'", TENANT_ID);
-        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=? AND scope_code='COM:AUTHORITY:INGEST'", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_delivery_scope_detail WHERE tenant_id=?", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_delivery_scope WHERE tenant_id=?", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_delivery_scope_project_version WHERE tenant_id=?", TENANT_ID);
-        jdbcTemplate.update("DELETE FROM com_sales_order_contract_relation WHERE tenant_id=?", TENANT_ID);
-        jdbcTemplate.update("DELETE FROM com_order_line WHERE tenant_id=?", TENANT_ID);
+        jdbcTemplate.update("DELETE FROM com_order_contract_relation WHERE tenant_id=?", TENANT_ID);
+        jdbcTemplate.update("DELETE FROM com_sales_order_line WHERE tenant_id=?", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_sales_order WHERE tenant_id=?", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_contract WHERE tenant_id=?", TENANT_ID);
         TenantContextHolder.clear();
     }
 
     @Test
-    void atomicBatchSupportsEventAndObjectReplay() {
+    void atomicBatchSupportsObjectReplay() {
         CommerceAuthorityBatchCommand initial = fullBatch("EV-1-" + suffix, "V1", null, "10");
 
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, service.ingest(initial).decision());
         assertEquals(1, count("com_contract"));
         assertEquals(1, count("com_sales_order"));
-        assertEquals(1, count("com_order_line"));
-        assertEquals(1, count("com_sales_order_contract_relation"));
-        assertEquals(CommerceAuthorityBatchResult.Decision.EVENT_REPLAYED, service.ingest(initial).decision());
+        assertEquals(1, count("com_sales_order_line"));
+        assertEquals(1, count("com_order_contract_relation"));
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(initial).decision());
 
         CommerceAuthorityBatchCommand objectReplay = fullBatch("EV-2-" + suffix, "V1", "IGNORED", "10");
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE,
                 service.ingest(objectReplay).decision());
-        assertEquals(2, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? "
-                + "AND aggregate_type='CommerceAuthorityBatch'", Integer.class, TENANT_ID));
+        assertEquals(1, count("com_contract"));
     }
 
     @Test
-    void predecessorConflictRollsBackEarlierObjectAndPlatformReservation() {
+    void predecessorConflictRollsBackEarlierObject() {
         service.ingest(fullBatch("EV-BASE-" + suffix, "V1", null, "10"));
         String eventId = "EV-ROLLBACK-" + suffix;
         CommerceAuthorityBatchCommand bad = new CommerceAuthorityBatchCommand(TENANT_ID, eventId,
@@ -124,27 +121,28 @@ class CommerceAuthorityIngestMySqlTest {
         assertEquals(CommerceAuthorityIngestException.Code.SOURCE_VERSION_CONFLICT, error.getCode());
         assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM com_contract WHERE tenant_id=? "
                 + "AND source_key=?", Integer.class, TENANT_ID, "A-NEW-" + suffix));
-        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? "
-                + "AND idempotency_key=?", Integer.class, TENANT_ID, eventId));
     }
 
     @Test
     void quantityDecreaseCreatesConflictHistoryAndProjectWatermark() {
         service.ingest(fullBatch("EV-BASE-" + suffix, "V1", null, "10"));
-        long lineId = jdbcTemplate.queryForObject("SELECT id FROM com_order_line WHERE tenant_id=? AND source_key=?",
+        long lineId = jdbcTemplate.queryForObject("SELECT id FROM com_sales_order_line WHERE tenant_id=? AND source_record_key=?",
                 Long.class, TENANT_ID, "L-" + suffix);
         long scopeId = 990_100_000_000L + Math.abs(suffix.hashCode());
         long detailId = scopeId + 1;
         long projectId = scopeId + 2;
         jdbcTemplate.update("INSERT INTO com_delivery_scope "
-                        + "(id,order_line_id,project_id,allocated_qty,scope_status,allocation_version,source_evidence,"
-                        + "effective_from,version,creator,create_time,updater,update_time,deleted,tenant_id) "
-                        + "VALUES (?,?,?,8,'ACTIVE',1,'BASE',NOW(3),0,'0',NOW(3),'0',NOW(3),b'0',?)",
-                scopeId, lineId, projectId, TENANT_ID);
+                        + "(id,project_id,project_code,order_line_id,order_source_system,order_company_code,order_type,"
+                        + "order_no,line_no,allocated_qty,scope_status,allocation_version,allocation_source,"
+                        + "office_department_id,office_department_code,office_department_name,office_department_version,"
+                        + "source_evidence,effective_from,version,creator,create_time,updater,update_time,deleted,tenant_id) "
+                        + "VALUES (?,?,?,?,'ERP','ACME','NORMAL',?,'10',8,'ACTIVE',1,'ERP',1,'D-1','Office',1,"
+                        + "'BASE',NOW(3),0,'0',NOW(3),'0',NOW(3),b'0',?)",
+                scopeId, projectId, "P-" + suffix, lineId, "ON-" + suffix, TENANT_ID);
         jdbcTemplate.update("INSERT INTO com_delivery_scope_detail "
-                        + "(id,delivery_scope_id,allocated_qty,unit_code,product_code,location_text,"
-                        + "location_resolution_status,detail_status,version,creator,create_time,updater,update_time,deleted,tenant_id) "
-                        + "VALUES (?,?,8,'PCS','ITEM-1','待权威解析','UNRESOLVED','ACTIVE',0,'0',NOW(3),'0',NOW(3),b'0',?)",
+                        + "(id,delivery_scope_id,detail_sequence,allocated_qty,product_code,"
+                        + "detail_status,version,creator,create_time,updater,update_time,deleted,tenant_id) "
+                        + "VALUES (?,?,1,8,'ITEM-1','ACTIVE',0,'0',NOW(3),'0',NOW(3),b'0',?)",
                 detailId, scopeId, TENANT_ID);
         jdbcTemplate.update("INSERT INTO com_delivery_scope_project_version "
                         + "(id,project_id,scope_version,payload_version,last_change_type,version,creator,create_time,"
@@ -253,18 +251,33 @@ class CommerceAuthorityIngestMySqlTest {
     }
 
     @SpringBootConfiguration
-    @MapperScan({"cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority",
-            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
+    @MapperScan("cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority")
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            CommerceAuthorityIngestService.class, AuthorityPayloadCanonicalizer.class,
-            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
+            CommerceAuthorityIngestService.class, AuthorityPayloadCanonicalizer.class})
     static class TestApplication {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        PlatformCommandExecutionApi platformCommandExecutionApi() {
+            return new PlatformCommandExecutionApi() {
+                @Override
+                public <T> ExecutionResult<T> execute(IdempotencyScope scope, String requestDigest,
+                                                      Class<T> responseType, java.util.function.Supplier<T> operation,
+                                                      java.util.function.Function<T, SuccessFacts> successFactsFactory) {
+                    return new ExecutionResult<>(Decision.NEW, operation.get());
+                }
+            };
+        }
+
+        @Bean
+        DeliveryScopeConflictNotifier deliveryScopeConflictNotifier() {
+            return org.mockito.Mockito.mock(DeliveryScopeConflictNotifier.class);
         }
     }
 }

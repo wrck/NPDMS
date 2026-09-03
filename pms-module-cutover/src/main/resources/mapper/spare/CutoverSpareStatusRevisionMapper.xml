@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.CutoverSpareStatusRevisionMapper">
+    <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareStatusRevisionDO">
+        SELECT * FROM cut_spare_status_revision
+        WHERE tenant_id = #{query.tenantId} AND application_reference_id = #{query.applicationReferenceId}
+          AND current_marker = 1
+        FOR UPDATE
+    </select>
+    <select id="selectByEvent" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareStatusRevisionDO">
+        SELECT * FROM cut_spare_status_revision
+        WHERE tenant_id = #{query.tenantId} AND event_id = #{query.eventId}
+    </select>
+    <select id="selectByApplication" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareStatusRevisionDO">
+        SELECT * FROM cut_spare_status_revision
+        WHERE tenant_id = #{query.tenantId} AND application_reference_id = #{query.applicationReferenceId}
+        ORDER BY status_version ASC, id ASC
+    </select>
+    <update id="clearCurrentMarkerIfMatch">
+        UPDATE cut_spare_status_revision
+        SET current_marker = NULL
+        WHERE tenant_id = #{query.tenantId} AND application_reference_id = #{query.applicationReferenceId}
+          AND id = #{query.expectedRevisionId} AND current_marker = 1
+    </update>
+</mapper>

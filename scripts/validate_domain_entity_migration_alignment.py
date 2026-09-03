@@ -16,7 +16,7 @@ from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
 from generate_domain_entity_migration_contract import git_sql_blobs, is_canonical_git_sha
 
 
-ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
+ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "CURRENT_FORWARD_TABLE", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
 ALLOWED_DISPOSITIONS = {"STRUCTURED", "RELATION", "SNAPSHOT", "EXTERNAL_SYNC", "CURRENT_FORWARD", "REBUILD", "COMPATIBILITY_ONLY", "NEW_ONLY", "PENDING_SOURCE_CONFIRMATION", "PENDING_SOURCE_IDENTIFICATION", "EXCLUDED"}
 USER_EXCLUDED_LEGACY_TABLES = {"pm_project_maintenance"}
 EXTERNAL_MARKERS = {
@@ -76,10 +76,25 @@ def phase2_contracts(path: Path) -> dict[str, dict[str, set[str]]]:
 
 def requirement_owners(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
+    requirement_index: int | None = None
+    owner_index: int | None = None
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) >= 3 and re.fullmatch(r"[A-Z]+-\d+", cells[0]):
-            result[cells[0]] = cells[2].split("（", 1)[0].strip()
+        if "Owner" in cells and ("Requirement切片" in cells or "Requirement" in cells):
+            requirement_index = cells.index("Requirement切片") if "Requirement切片" in cells else cells.index("Requirement")
+            owner_index = cells.index("Owner")
+            continue
+        if requirement_index is None or owner_index is None or len(cells) <= max(requirement_index, owner_index):
+            continue
+        match = re.fullmatch(r"([A-Z]+-\d+)(?:@V\d+)?", cells[requirement_index])
+        if not match:
+            continue
+        requirement_id = match.group(1)
+        owner = cells[owner_index].split("（", 1)[0].strip()
+        previous = result.get(requirement_id)
+        if previous and previous != owner:
+            raise ValueError(f"requirement slices have conflicting Owners: {requirement_id}")
+        result[requirement_id] = owner
     return result
 
 
@@ -443,7 +458,7 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
                 errors.append(f"{object_name} must not attach pm_project_maintenance to a business object")
             if disposition == "EXCLUDED" and bindings:
                 errors.append(f"{object_name} EXCLUDED source must have zero target field bindings")
-            requires_field_bindings = disposition in {"STRUCTURED", "RELATION"} and any(
+            requires_field_bindings = source_type != "CURRENT_FORWARD_TABLE" and disposition in {"STRUCTURED", "RELATION"} and any(
                 table in physical_target_tables for table in target_tables
             )
             if requires_field_bindings:
@@ -500,6 +515,21 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
                 expected_ref = f"implementation://{payload.get('implementationCommit', '')}/{current_tables.get(table, '')}#field-pattern={source_object}"
                 if expected_ref not in evidence:
                     errors.append(f"{object_name} current field evidence is unstable: {source_object}")
+            elif source_type == "CURRENT_FORWARD_TABLE":
+                if not re.fullmatch(r"[a-z][a-z0-9_]*@V\d+", source_object):
+                    errors.append(f"{object_name} current-forward source must freeze table and migration version: {source_object}")
+                if disposition != "STRUCTURED" or not evidence.startswith("feature-contract://"):
+                    errors.append(f"{object_name} current-forward source must use structured Feature evidence: {source_object}")
+                required_mappings = source.get("requiredTargetMappings")
+                if not isinstance(required_mappings, dict) or not required_mappings:
+                    errors.append(f"{object_name} current-forward source has no required target mappings: {source_object}")
+                else:
+                    for target_field, rule in required_mappings.items():
+                        target_table, target_column = target_field.split(".", 1) if "." in target_field else ("", "")
+                        if target_table not in target_tables or not target_column or not rule:
+                            errors.append(f"{object_name} current-forward source has invalid target mapping: {target_field}")
+                        elif target_table in physical_target_columns and target_column not in physical_target_columns[target_table]:
+                            errors.append(f"{object_name} current-forward source maps missing physical target field: {target_field}")
             elif source_type in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}:
                 for part in source_parts:
                     table_pattern, field_pattern = part.split(".", 1) if "." in part else (part, "")

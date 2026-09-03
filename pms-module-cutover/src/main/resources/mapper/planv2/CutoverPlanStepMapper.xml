@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper">
+    <select id="selectListByPlan" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO">
+        SELECT * FROM cut_step WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(section_code,'PRE_OPERATION','OPERATION','CLOSING_COLLECTION','POST_BUSINESS_TEST','ROLLBACK','POST_CUTOVER_SUPPORT'), step_no ASC, id ASC
+    </select>
+    <select id="selectListByPlanForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO">
+        SELECT * FROM cut_step WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(section_code,'PRE_OPERATION','OPERATION','CLOSING_COLLECTION','POST_BUSINESS_TEST','ROLLBACK','POST_CUTOVER_SUPPORT'), step_no ASC, id ASC FOR UPDATE
+    </select>
+    <delete id="deleteDraftRows">
+        DELETE s FROM cut_step s JOIN cut_plan_revision p ON p.id = s.plan_revision_id AND p.tenant_id = s.tenant_id
+        WHERE s.tenant_id = #{query.tenantId} AND s.plan_revision_id = #{query.planRevisionId}
+          AND p.status_code = 'DRAFT' AND p.current_marker = 1
+    </delete>
+</mapper>

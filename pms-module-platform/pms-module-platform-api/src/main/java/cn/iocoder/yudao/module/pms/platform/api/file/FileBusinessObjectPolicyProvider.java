@@ -5,6 +5,15 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.GeneratedBusinessFilePolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantFileRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadCompletePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadInitializePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantUploadPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFileRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompletePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
 
 public interface FileBusinessObjectPolicyProvider {
 
@@ -23,5 +32,40 @@ public interface FileBusinessObjectPolicyProvider {
     default FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
             FileBusinessObjectReferenceSetRevalidationQuery query) {
         throw new UnsupportedOperationException("reference set locking is not implemented");
+    }
+
+    default FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(
+            GeneratedBusinessFilePolicyRevalidationQuery query) {
+        throw new UnsupportedOperationException("generated business file policy is not implemented");
+    }
+
+    default BusinessGrantUploadPolicyFact initializeBusinessGrantUploadPolicy(
+            BusinessGrantUploadInitializePolicyQuery query) {
+        throw new UnsupportedOperationException("business grant upload initialization is not implemented");
+    }
+
+    default BusinessGrantUploadPolicyFact lockAndRevalidateBusinessGrantUpload(
+            BusinessGrantUploadCompletePolicyQuery query) {
+        throw new UnsupportedOperationException("business grant upload completion is not implemented");
+    }
+
+    default BusinessGrantUploadPolicyFact lockAndRevalidateBusinessGrantFiles(
+            BusinessGrantFileRevalidationQuery query) {
+        throw new UnsupportedOperationException("business grant file revalidation is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact initializeAuthenticatedAssistedUploadPolicy(
+            AuthenticatedAssistedUploadInitializePolicyQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted upload initialization is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedUpload(
+            AuthenticatedAssistedUploadCompletePolicyQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted upload completion is not implemented");
+    }
+
+    default AuthenticatedAssistedUploadPolicyFact lockAndRevalidateAuthenticatedAssistedFiles(
+            AuthenticatedAssistedFileRevalidationQuery query) {
+        throw new UnsupportedOperationException("authenticated assisted file revalidation is not implemented");
     }
 }

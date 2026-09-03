@@ -111,7 +111,7 @@
 | `CutoverSupportArrangement` | 当前`pms_cut_plan`中可证明的保障人员字段；缺少逐字段证据时不迁 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 作为`CutoverPlan`从属明细；不得推导派单、状态、当前责任人或责任区间 |
 | `CutoverClosure` | 当前`pms_cut_execution`中可证明的P6结果字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁割接前/执行/测试结果、回退说明、附件、遗留项文本和最终结果；`pms_cut_execution_step`、`pms_cut_observation`不进入当前目标，不能把步骤状态或观察状态改名迁入 |
 | `InspectionTask` | 当前`pms_srv_task/execution/offline_file` | CURRENT_FORWARD | 当前巡检结构前向迁移；不从已排除维护表导入任何记录 |
-| `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |
+| `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 仅迁移可证明的稳定编码、名称、原版本、状态、生效时间、备注和原始content来源证据；只有能够完整映射十类分类、八字段、命令顺序、产品适用范围及安全审核事实的已发布记录才转换为可选发布revision，其他记录进入迁移问题或兼容只读，不推断缺失业务字段；新规则由Feature前向创建 |
 | `InspectionReport` | 当前`pms_srv_report`及外部采集报告 | CURRENT_FORWARD+EXTERNAL_SYNC | 发布版本只追加；原始结果保存受控引用 |
 | `ServiceIssue` | 当前`pms_srv_issue`、ITR问题候选 | CURRENT_FORWARD+EXTERNAL_SYNC | 按来源类型区分巡检问题与ITR问题；问题Owner不因项目引用改变 |
 | `ServiceStatus` | `fb_service`、`view_warranty*`、`warranty_info/change_logs`及当前维保表的客观字段 | STRUCTURED+EXTERNAL_SYNC | 只计算客观在保/在维/停产停维提示；续保动作、空间和报表全部排除 |

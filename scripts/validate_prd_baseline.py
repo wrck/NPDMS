@@ -106,30 +106,36 @@ def project_workbench_contract(text: str) -> dict[str, bool]:
         "模板定义StageTask绑定": all(
             marker in pm03
             for marker in (
-                "StageDefinition → TaskDefinition",
+                "TemplateStageDefinition",
+                "TemplateTaskDefinition",
+                "StageWorkBinding",
+                "TaskWorkBinding",
+                "StageTransitionDefinition",
                 "WorkBinding",
                 "PermissionPolicy",
                 "CompletionRule",
                 "GateRef",
             )
         ),
-        "不重复配置业务导航": "不再维护一套与ProjectTask重复的“业务导航配置”" in pm03,
+        "不重复配置业务导航": "项目工作区导航只由ProjectStage和ProjectTask实例投影" in pm03
+        and "不建立第二套菜单或导航配置" in pm03,
         "WorkBinding类型完整": all(kind in pm03 for kind in binding_kinds),
-        "WorkBinding统一必填": "每个ProjectTask必须且只能有一个当前有效`WorkBinding`" in pm03
-        and "默认`TASK_NATIVE`" in pm03
-        and "通用任务必须显式使用TASK_NATIVE" in pm03,
-        "StageTask导航不限制树深": "阶段作为一级导航、ProjectTask作为二级业务导航" in pm11
-        and "不把业务任务限制为固定两层" in pm11,
-        "通用任务详情基础能力": "`TASK_NATIVE`直接使用ProjectTask通用详情执行" in pm11
-        and "ProjectTask既是执行编排节点，也是`TASK_NATIVE`默认业务实体" in pm11,
-        "绑定任务按关系执行": "其他`WorkBinding`类型" in pm11
+        "WorkBinding统一必填": "每个可执行ProjectStage和ProjectTask必须且只能有一个当前有效主`WorkBinding`" in pm03
+        and "阶段缺省使用`STAGE_NATIVE`" in pm03
+        and "任务缺省使用`TASK_NATIVE`" in pm03,
+        "StageTask导航不限制树深": "ProjectStage作为一级业务导航、ProjectTask作为二级及可展开的深层任务导航" in pm11
+        and "任务导航可按需展开任意深度" in pm11,
+        "通用任务详情基础能力": "`STAGE_NATIVE`/`TASK_NATIVE`使用通用界面" in pm11
+        and "任务工作台展示通用基础信息、任务交付件和本人获权操作，按ProjectTask自身状态机及完成规则执行" in pm11,
+        "绑定任务按关系执行": "其他绑定按业务实体类型、稳定目标引用和`BusinessViewKey`装载领域业务界面" in pm11
         and all(marker in pm11 for marker in ("业务对象", "业务组件", "动态表单", "审批", "组合视图")),
-        "通用详情不替代绑定业务": "通用基础信息不得替代非`TASK_NATIVE`绑定的业务执行" in pm11,
+        "通用详情不替代绑定业务": "不得用通用内容替代、伪造或完成绑定业务" in pm11,
         "项目概览六页签": all(tab in pm11 for tab in overview_tabs),
         "任务完成按绑定类型判定": "CompletionRule" in pm11
-        and "`TASK_NATIVE`校验ProjectTask自身必填信息与合法状态" in pm11
-        and "其他类型校验绑定业务事实" in pm11
-        and "非`TASK_NATIVE`任务不得通过通用“完成任务”动作绕过目标业务事实" in pm11,
+        and "任务完成由Task `CompletionRule`判定" in pm11
+        and "非原生绑定不得通过通用“完成”操作绕过目标事实" in pm11
+        and "原生绑定校验节点自身状态和必填数据" in pm03
+        and "其他绑定校验目标业务实体事实" in pm03,
         "割接入口与五步工作台": "P1是任务接入入口" in cut01
         and "五步工作台按P2～P6展示" in cut01,
         "CUT03同一P3工作台": "同一个P3任务工作台" in cut03

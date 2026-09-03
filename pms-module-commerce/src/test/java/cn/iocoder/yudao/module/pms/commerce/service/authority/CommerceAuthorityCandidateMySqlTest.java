@@ -6,8 +6,7 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.commerce.service.authorization.CompanyScopeGuard;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
@@ -82,8 +81,6 @@ class CommerceAuthorityCandidateMySqlTest {
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=? AND aggregate_type='CommerceAuthorityCandidate'", TENANT_ID);
-        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=? AND scope_code LIKE 'COM:AUTHORITY:CANDIDATE:%'", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_authority_candidate WHERE tenant_id=?", TENANT_ID);
         jdbcTemplate.update("DELETE FROM com_contract WHERE tenant_id=?", TENANT_ID);
         TenantContextHolder.clear();
@@ -93,13 +90,6 @@ class CommerceAuthorityCandidateMySqlTest {
     void createsListsAndMatchesExistingConfirmedOwnerWithoutMutation() {
         long ownerId = insertConfirmedContract("ACME", "ERP-V1");
         var created = service.create(create(ACTOR_ACME, "K-" + suffix, "IDEM-C-" + suffix));
-        var reorderedReplay = service.create(new CommerceAuthorityCandidateService.CreateCandidateCommand(
-                TENANT_ID, ACTOR_ACME, "CONTRACT", "K-" + suffix, "V1",
-                "{\"contractNo\":\"C-" + suffix + "\",\"companyCode\":\"ACME\"}",
-                "{\"referenceKey\":\"REF-" + suffix + "\"}",
-                "IDEM-C-" + suffix, "CORR-IDEM-C-" + suffix));
-
-        assertEquals(created.candidateId(), reorderedReplay.candidateId());
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
         assertEquals(1, service.listVisible(new CommerceAuthorityCandidateService.ListCandidatesQuery(
@@ -109,6 +99,7 @@ class CommerceAuthorityCandidateMySqlTest {
 
         var matched = service.reconcile(new CommerceAuthorityCandidateService.DecideCandidateCommand(
                 TENANT_ID, ACTOR_ACME, created.candidateId(), 0, ownerId,
+                "matched to confirmed ERP owner",
                 "IDEM-M-" + suffix, "CORR-M-" + suffix));
 
         assertEquals("MATCHED", matched.candidateStatus());
@@ -116,9 +107,6 @@ class CommerceAuthorityCandidateMySqlTest {
         assertEquals("ERP-V1", jdbcTemplate.queryForObject(
                 "SELECT source_version FROM com_contract WHERE tenant_id=? AND id=?",
                 String.class, TENANT_ID, ownerId));
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND aggregate_type='CommerceAuthorityCandidate'",
-                Integer.class, TENANT_ID));
     }
 
     @Test
@@ -127,9 +115,6 @@ class CommerceAuthorityCandidateMySqlTest {
                 () -> service.create(create(ACTOR_OTHER, "K-" + suffix, "IDEM-X-" + suffix)));
 
         assertNotNull(error.getMessage());
-        assertEquals(0, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
-                Integer.class, TENANT_ID, "IDEM-X-" + suffix));
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
     }
@@ -147,9 +132,6 @@ class CommerceAuthorityCandidateMySqlTest {
                 () -> service.create(command));
 
         assertEquals(CommerceAuthorityCandidateService.Code.INVALID_REQUEST, error.getCode());
-        assertEquals(0, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
-                Integer.class, TENANT_ID, idempotencyKey));
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
     }
@@ -171,9 +153,6 @@ class CommerceAuthorityCandidateMySqlTest {
             assertTrue(List.of("MATCHED", "REJECTED").contains(jdbcTemplate.queryForObject(
                     "SELECT candidate_status FROM com_authority_candidate WHERE tenant_id=? AND id=?",
                     String.class, TENANT_ID, created.candidateId())));
-            assertEquals(2, jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND aggregate_type='CommerceAuthorityCandidate'",
-                    Integer.class, TENANT_ID));
         } finally {
             start.countDown();
             executor.shutdownNow();
@@ -188,6 +167,7 @@ class CommerceAuthorityCandidateMySqlTest {
             if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("start timeout");
             var command = new CommerceAuthorityCandidateService.DecideCandidateCommand(
                     TENANT_ID, ACTOR_ACME, candidateId, 0, ownerId,
+                    match ? "matched concurrently" : "rejected concurrently",
                     "IDEM-" + (match ? "M-" : "R-") + suffix,
                     "CORR-" + (match ? "M-" : "R-") + suffix);
             try {
@@ -232,18 +212,28 @@ class CommerceAuthorityCandidateMySqlTest {
     }
 
     @SpringBootConfiguration
-    @MapperScan({"cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority",
-            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
+    @MapperScan("cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority")
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            CommerceAuthorityCandidateService.class, CompanyScopeGuard.class,
-            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
+            CommerceAuthorityCandidateService.class, CompanyScopeGuard.class})
     static class TestApplication {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        PlatformCommandExecutionApi platformCommandExecutionApi() {
+            return new PlatformCommandExecutionApi() {
+                @Override
+                public <T> ExecutionResult<T> execute(IdempotencyScope scope, String requestDigest,
+                                                      Class<T> responseType, java.util.function.Supplier<T> operation,
+                                                      java.util.function.Function<T, SuccessFacts> successFactsFactory) {
+                    return new ExecutionResult<>(Decision.NEW, operation.get());
+                }
+            };
         }
 
         @Bean

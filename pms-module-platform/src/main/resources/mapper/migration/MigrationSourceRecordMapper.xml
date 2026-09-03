@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper">
+
+    <select id="selectByBatchAndIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO">
+        SELECT * FROM plt_migration_source_record
+        WHERE tenant_id = #{query.tenantId}
+          AND batch_id = #{query.batchId}
+          AND id = #{query.sourceRecordId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCursorPage"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO">
+        SELECT s.*,
+               CASE
+                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
+                                  AND m.result_type = 'MAPPED' AND m.deleted = b'0') THEN 'MAPPED'
+                   WHEN EXISTS (SELECT 1 FROM plt_migration_issue i
+                                WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id
+                                  AND i.deleted = b'0') THEN 'ISSUE'
+                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
+                                  AND m.result_type = 'RETAINED' AND m.deleted = b'0') THEN 'RETAINED'
+                   ELSE NULL
+               END AS result_type
+        FROM plt_migration_source_record s
+        WHERE s.tenant_id = #{query.tenantId}
+          AND s.batch_id = #{query.batchId}
+          AND s.deleted = b'0'
+          <if test="query.afterSourceRecordId != null">
+              AND s.id &gt; #{query.afterSourceRecordId}
+          </if>
+        ORDER BY s.id ASC
+        LIMIT #{query.limit}
+    </select>
+
+    <select id="selectClassificationSummary"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchClassificationSummary">
+        SELECT COUNT(*) AS source_count,
+               COALESCE(SUM(has_mapped), 0) AS mapped_count,
+               COALESCE(SUM(has_issue), 0) AS issue_count,
+               COALESCE(SUM(has_retained), 0) AS retained_count,
+               COALESCE(SUM(has_mapped + has_issue + has_retained = 0), 0) AS unclassified_count,
+               COALESCE(SUM(has_mapped + has_issue + has_retained &gt; 1), 0) AS conflicting_count
+        FROM (
+            SELECT s.id,
+                   EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
+                             AND m.result_type = 'MAPPED' AND m.deleted = b'0') AS has_mapped,
+                   EXISTS (SELECT 1 FROM plt_migration_issue i
+                           WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id
+                             AND i.deleted = b'0') AS has_issue,
+                   EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
+                             AND m.result_type = 'RETAINED' AND m.deleted = b'0') AS has_retained
+            FROM plt_migration_source_record s
+            WHERE s.tenant_id = #{query.tenantId}
+              AND s.batch_id = #{query.batchId}
+              AND s.deleted = b'0'
+        ) classified
+    </select>
+</mapper>

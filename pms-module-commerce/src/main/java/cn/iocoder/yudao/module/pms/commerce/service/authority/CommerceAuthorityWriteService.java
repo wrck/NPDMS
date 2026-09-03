@@ -1,385 +1,127 @@
 package cn.iocoder.yudao.module.pms.commerce.service.authority;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestApi;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityWriteApi;
-import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.AuthorityWriteResult;
-import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAuthorityWriteCommand;
+import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
-import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.common.query.AuthoritySourceLockQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper;
-import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
-import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
-import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderLineQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
+import java.util.TreeSet;
 
+/** 旧受控导入契约的兼容适配；所有Owner写入统一委托批次CAS入口。 */
+@Deprecated(since = "2026.09")
 @Service
 @RequiredArgsConstructor
 public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi {
-
-    private static final String CONFLICT_FROZEN = "CONFLICT_FROZEN";
-    private static final String NOTIFICATION_TYPE = "DELIVERY_SCOPE_CONFLICT_FROZEN";
-
+    private final CommerceAuthorityIngestApi ingestApi;
     private final ContractMapper contractMapper;
     private final SalesOrderMapper orderMapper;
     private final SalesOrderLineMapper lineMapper;
-    private final DeliveryScopeMapper scopeMapper;
-    private final CommerceOutboxEventMapper outboxMapper;
-    private final ProjectParticipantFactApi participantFactApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AuthorityWriteResult apply(CommerceAuthorityWriteCommand command) {
-        validateCommand(command);
-        boolean replayed = true;
+        if (command == null || command.tenantId() == null || blank(command.sourceBatchId())
+                || blank(command.operationId())) {
+            throw new IllegalArgumentException("COMMERCE_AUTHORITY_IMPORT_INVALID_ARGUMENT");
+        }
+        String sourceSystem = sourceSystem(command);
+        List<CommerceContractFact> contracts = new ArrayList<>();
         for (CommerceAuthorityWriteCommand.ContractSourceRecord source : safe(command.contracts())) {
-            replayed &= !writeContract(command.tenantId(), source);
+            ContractDO current = contractMapper.selectBySourceForUpdate(new AuthoritySourceLockQuery(
+                    command.tenantId(), sourceSystem, source.sourceRecordKey()));
+            contracts.add(new CommerceContractFact(source.sourceRecordKey(),
+                    current == null ? null : current.getMasterSourceVersion(), source.sourceVersion(),
+                    source.companyCode(), source.contractNo(), source.contractName(), null, null, null, null,
+                    lifecycle(source.status()), source.sourceUpdatedAt()));
         }
-        Map<String, SalesOrderDO> orders = new HashMap<>();
+        List<CommerceSalesOrderFact> orders = new ArrayList<>();
         for (CommerceAuthorityWriteCommand.SalesOrderSourceRecord source : safe(command.salesOrders())) {
-            WriteResult result = writeOrder(command.tenantId(), source);
-            replayed &= !result.changed();
-            orders.put(sourceKey(source.sourceSystem(), source.sourceRecordKey()), result.order());
+            SalesOrderDO current = orderMapper.selectBySourceForUpdate(new AuthoritySourceLockQuery(
+                    command.tenantId(), sourceSystem, source.sourceRecordKey()));
+            orders.add(new CommerceSalesOrderFact(source.sourceRecordKey(),
+                    current == null ? null : current.getSourceVersion(), source.sourceVersion(),
+                    source.companyCode(), source.orderNo(), source.orderType(), null, null, null, null,
+                    lifecycle(source.status()), source.sourceUpdatedAt()));
         }
+        List<CommerceOrderLineFact> lines = new ArrayList<>();
         for (CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord source : safe(command.salesOrderLines())) {
-            SalesOrderDO parent = orders.get(sourceKey(source.sourceSystem(), source.orderSourceRecordKey()));
-            if (parent == null) {
-                parent = orderMapper.selectBySourceForUpdate(new AuthoritySourceLockQuery(
-                        command.tenantId(), source.sourceSystem(), source.orderSourceRecordKey()));
-                if (parent == null) {
-                    throw new IllegalStateException("COMMERCE_AUTHORITY_PARENT_ORDER_MISSING");
-                }
-            }
-            replayed &= !writeLine(command.tenantId(), parent, source);
+            SalesOrderLineDO current = lineMapper.selectBySourceForUpdate(new AuthoritySourceLockQuery(
+                    command.tenantId(), sourceSystem, source.sourceRecordKey()));
+            lines.add(new CommerceOrderLineFact(source.sourceRecordKey(),
+                    current == null ? null : current.getSourceVersion(), source.sourceVersion(),
+                    source.orderSourceRecordKey(), source.lineNo(), source.itemCode(), source.itemDescription(),
+                    source.productCode(), null, source.orderQuantity(), source.openQuantity(),
+                    source.deliveredQuantity(), source.unitCode(), source.unitScale(), source.quantityStatus(),
+                    lifecycle(source.status()), source.sourceUpdatedAt()));
         }
-        return new AuthorityWriteResult(command.sourceBatchId(), replayed,
-                safe(command.contracts()).size(), safe(command.salesOrders()).size(),
-                safe(command.salesOrderLines()).size());
+        LocalDateTime occurredAt = occurredAt(command);
+        CommerceAuthorityBatchResult result = ingestApi.ingestBatch(new CommerceAuthorityBatchCommand(
+                command.tenantId(), command.operationId().trim(), command.sourceBatchId().trim(),
+                sourceSystem, command.sourceBatchId().trim(), contracts, orders, lines, List.of(),
+                occurredAt, command.operationId().trim()));
+        boolean replayed = result.decision() != CommerceAuthorityBatchResult.Decision.ACCEPTED;
+        return new AuthorityWriteResult(result.batchId(), replayed,
+                contracts.size(), orders.size(), lines.size());
     }
 
-    private boolean writeContract(Long tenantId, CommerceAuthorityWriteCommand.ContractSourceRecord source) {
-        validateSource(source.sourceSystem(), source.sourceRecordKey(), source.sourceVersion(), source.sourceUpdatedAt());
-        ContractDO current = contractMapper.selectBySourceForUpdate(
-                new AuthoritySourceLockQuery(tenantId, source.sourceSystem(), source.sourceRecordKey()));
-        if (current != null && (!Objects.equals(current.getCompanyCode(), source.companyCode())
-                || !Objects.equals(current.getContractNo(), source.contractNo()))) {
-            throw new IllegalStateException("COMMERCE_AUTHORITY_IDENTITY_CONFLICT");
+    private String sourceSystem(CommerceAuthorityWriteCommand command) {
+        Set<String> systems = new TreeSet<>();
+        safe(command.contracts()).forEach(value -> systems.add(required(value.sourceSystem())));
+        safe(command.salesOrders()).forEach(value -> systems.add(required(value.sourceSystem())));
+        safe(command.salesOrderLines()).forEach(value -> systems.add(required(value.sourceSystem())));
+        if (systems.size() != 1) {
+            throw new IllegalArgumentException("COMMERCE_AUTHORITY_IMPORT_REQUIRES_ONE_SOURCE_SYSTEM");
         }
-        if (current != null && !shouldApply(current.getMasterSourceVersion(), current.getSourceUpdatedAt(),
-                source.sourceVersion(), source.sourceUpdatedAt(), sameContract(current, source))) {
-            return false;
-        }
-        ContractDO target = current == null ? new ContractDO() : current;
-        target.setTenantId(tenantId);
-        target.setMasterSourceSystem(source.sourceSystem());
-        target.setMasterSourceRecordKey(source.sourceRecordKey());
-        target.setMasterSourceVersion(source.sourceVersion());
-        target.setCompanyCode(required(source.companyCode()));
-        target.setContractNo(required(source.contractNo()));
-        target.setContractName(source.contractName());
-        target.setStatus(required(source.status()));
-        target.setSourceUpdatedAt(source.sourceUpdatedAt());
-        target.setSourceSyncTime(LocalDateTime.now());
-        if (current == null) {
-            target.setVersion(0);
-            contractMapper.insert(target);
-        } else {
-            contractMapper.updateById(target);
-        }
-        return true;
+        return systems.iterator().next();
     }
 
-    private WriteResult writeOrder(Long tenantId, CommerceAuthorityWriteCommand.SalesOrderSourceRecord source) {
-        validateSource(source.sourceSystem(), source.sourceRecordKey(), source.sourceVersion(), source.sourceUpdatedAt());
-        SalesOrderDO current = orderMapper.selectBySourceForUpdate(
-                new AuthoritySourceLockQuery(tenantId, source.sourceSystem(), source.sourceRecordKey()));
-        if (current != null && (!Objects.equals(current.getCompanyCode(), source.companyCode())
-                || !Objects.equals(current.getOrderType(), source.orderType())
-                || !Objects.equals(current.getOrderNo(), source.orderNo()))) {
-            throw new IllegalStateException("COMMERCE_AUTHORITY_IDENTITY_CONFLICT");
-        }
-        if (current != null && !shouldApply(current.getSourceVersion(), current.getSourceUpdatedAt(),
-                source.sourceVersion(), source.sourceUpdatedAt(), sameOrder(current, source))) {
-            return new WriteResult(current, false);
-        }
-        SalesOrderDO target = current == null ? new SalesOrderDO() : current;
-        target.setTenantId(tenantId);
-        target.setSourceSystem(source.sourceSystem());
-        target.setSourceRecordKey(source.sourceRecordKey());
-        target.setSourceVersion(source.sourceVersion());
-        target.setCompanyCode(required(source.companyCode()));
-        target.setOrderType(required(source.orderType()));
-        target.setOrderNo(required(source.orderNo()));
-        target.setStatus(required(source.status()));
-        target.setSourceUpdatedAt(source.sourceUpdatedAt());
-        target.setSourceSyncTime(LocalDateTime.now());
-        if (current == null) {
-            target.setVersion(0);
-            orderMapper.insert(target);
-        } else {
-            orderMapper.updateById(target);
-        }
-        return new WriteResult(target, true);
+    private LocalDateTime occurredAt(CommerceAuthorityWriteCommand command) {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.concat(safe(command.contracts()).stream()
+                                        .map(CommerceAuthorityWriteCommand.ContractSourceRecord::sourceUpdatedAt),
+                                safe(command.salesOrders()).stream()
+                                        .map(CommerceAuthorityWriteCommand.SalesOrderSourceRecord::sourceUpdatedAt)),
+                        safe(command.salesOrderLines()).stream()
+                                .map(CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord::sourceUpdatedAt))
+                .filter(java.util.Objects::nonNull).max(LocalDateTime::compareTo)
+                .orElseThrow(() -> new IllegalArgumentException("COMMERCE_AUTHORITY_IMPORT_REQUIRES_SOURCE_TIME"));
     }
 
-    private boolean writeLine(Long tenantId, SalesOrderDO parent,
-                              CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord source) {
-        validateSource(source.sourceSystem(), source.sourceRecordKey(), source.sourceVersion(), source.sourceUpdatedAt());
-        if (source.unitScale() == null || source.unitScale() < 0 || source.unitScale() > 6) {
-            throw new IllegalArgumentException("COMMERCE_AUTHORITY_UNIT_SCALE_INVALID");
-        }
-        validateQuantities(source);
-        SalesOrderLineDO current = lineMapper.selectBySourceForUpdate(
-                new AuthoritySourceLockQuery(tenantId, source.sourceSystem(), source.sourceRecordKey()));
-        if (current != null && (!Objects.equals(current.getOrderId(), parent.getId())
-                || !Objects.equals(current.getLineNo(), source.lineNo()))) {
-            throw new IllegalStateException("COMMERCE_AUTHORITY_IDENTITY_CONFLICT");
-        }
-        if (current != null && !shouldApply(current.getSourceVersion(), current.getSourceUpdatedAt(),
-                source.sourceVersion(), source.sourceUpdatedAt(), sameLine(current, parent.getId(), source))) {
-            return false;
-        }
-        SalesOrderLineDO target = current == null ? new SalesOrderLineDO() : current;
-        target.setTenantId(tenantId);
-        target.setOrderId(parent.getId());
-        target.setSourceSystem(source.sourceSystem());
-        target.setSourceRecordKey(source.sourceRecordKey());
-        target.setSourceVersion(source.sourceVersion());
-        target.setLineNo(required(source.lineNo()));
-        target.setItemCode(source.itemCode());
-        target.setItemDesc(source.itemDescription());
-        target.setProductCode(source.productCode());
-        target.setOrderQty(source.orderQuantity());
-        target.setOpenQty(source.openQuantity());
-        target.setDeliveredQty(source.deliveredQuantity());
-        target.setUnitCode(required(source.unitCode()));
-        target.setUnitScale(source.unitScale());
-        target.setQuantityStatus(required(source.quantityStatus()));
-        target.setStatus(required(source.status()));
-        target.setSourceUpdatedAt(source.sourceUpdatedAt());
-        target.setSourceSyncTime(LocalDateTime.now());
-        target.setCompanyId(parent.getCompanyId());
-        target.setCompanyCode(parent.getCompanyCode());
-        target.setCompanyName(parent.getCompanyName());
-        target.setOrderType(parent.getOrderType());
-        target.setOrderNo(parent.getOrderNo());
-        if (current == null) {
-            target.setVersion(0);
-            lineMapper.insert(target);
-        } else {
-            lineMapper.updateById(target);
-            freezeConflictingScopes(tenantId, target, source.sourceVersion());
-        }
-        return true;
-    }
-
-    private void freezeConflictingScopes(Long tenantId, SalesOrderLineDO line, String erpSourceVersion) {
-        List<DeliveryScopeDO> scopes = scopeMapper.selectActiveByOrderLineIdsForUpdate(
-                new DeliveryScopeOrderLineQuery(tenantId, List.of(line.getId())));
-        BigDecimal allocated = scopes.stream().map(DeliveryScopeDO::getAllocatedQty)
-                .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal effectiveQuantity = "ENABLED".equals(line.getStatus())
-                && "CONFIRMED".equals(line.getQuantityStatus()) && line.getOrderQty() != null
-                ? line.getOrderQty() : BigDecimal.ZERO;
-        if (allocated.compareTo(effectiveQuantity) <= 0) {
-            return;
-        }
-        LocalDateTime requestedAt = LocalDateTime.now();
-        Map<Long, NotificationRecipient> recipients = new HashMap<>();
-        for (DeliveryScopeDO scope : scopes) {
-            scope.setScopeStatus(CONFLICT_FROZEN);
-            scopeMapper.updateById(scope);
-            NotificationRecipient recipient = recipients.computeIfAbsent(scope.getProjectId(),
-                    projectId -> resolveProjectManager(projectId, requestedAt));
-            insertConflictNotification(tenantId, scope, erpSourceVersion, allocated,
-                    effectiveQuantity, recipient, requestedAt);
-        }
-    }
-
-    private NotificationRecipient resolveProjectManager(Long projectId, LocalDateTime requestedAt) {
-        try {
-            ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                    projectId, null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), requestedAt));
-            if (fact != null && Objects.equals(projectId, fact.projectId()) && fact.userId() != null
-                    && fact.userId() > 0 && fact.projectVersion() != null && fact.factVersion() != null
-                    && fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
-                return new NotificationRecipient(fact.userId(), fact.projectVersion(), fact.factVersion());
-            }
-        } catch (RuntimeException ignored) {
-            // 收件人事实不可用时保留可重试逻辑角色，不能回滚已冻结的业务事实。
-        }
-        return new NotificationRecipient(null, null, null);
-    }
-
-    private void insertConflictNotification(Long tenantId, DeliveryScopeDO scope, String erpSourceVersion,
-                                            BigDecimal allocatedQuantity, BigDecimal effectiveQuantity,
-                                            NotificationRecipient recipient, LocalDateTime requestedAt) {
-        CommerceOutboxEventDO event = new CommerceOutboxEventDO();
-        event.setTenantId(tenantId);
-        event.setEventId(notificationEventId(scope, erpSourceVersion));
-        event.setEventType("NotificationRequested");
-        event.setAggregateType("DeliveryScope");
-        event.setAggregateKey(String.valueOf(scope.getId()));
-        event.setScopeVersion(scope.getAllocationVersion());
-        event.setPayload(JsonUtils.toJsonString(notificationPayload(
-                tenantId, scope, erpSourceVersion, allocatedQuantity, effectiveQuantity, recipient)));
-        event.setStatus("PENDING");
-        event.setOccurredAt(requestedAt);
-        event.setRetryCount(0);
-        outboxMapper.insert(event);
-    }
-
-    private Map<String, Object> notificationPayload(Long tenantId, DeliveryScopeDO scope,
-                                                    String erpSourceVersion,
-                                                    BigDecimal allocatedQuantity,
-                                                    BigDecimal effectiveQuantity,
-                                                    NotificationRecipient recipient) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("notificationType", NOTIFICATION_TYPE);
-        payload.put("tenantId", tenantId);
-        payload.put("projectId", scope.getProjectId());
-        payload.put("orderLineId", scope.getOrderLineId());
-        payload.put("deliveryScopeId", scope.getId());
-        payload.put("allocationVersion", scope.getAllocationVersion());
-        payload.put("erpSourceVersion", erpSourceVersion);
-        payload.put("allocatedQuantity", allocatedQuantity);
-        payload.put("effectiveQuantity", effectiveQuantity);
-        payload.put("conflictReason", "ERP_EFFECTIVE_QUANTITY_BELOW_CURRENT_ALLOCATION");
-        payload.put("recipientRole", ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
-        if (recipient.userId() != null) {
-            payload.put("recipientUserId", recipient.userId());
-            payload.put("recipientProjectVersion", recipient.projectVersion());
-            payload.put("recipientFactVersion", recipient.factVersion());
-        } else {
-            payload.put("recipientResolution", "RETRYABLE_ROLE");
-        }
-        return payload;
-    }
-
-    private String notificationEventId(DeliveryScopeDO scope, String erpSourceVersion) {
-        String key = NOTIFICATION_TYPE + ':' + scope.getId() + ':' + scope.getAllocationVersion()
-                + ':' + erpSourceVersion;
-        return UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
-    }
-
-    private boolean shouldApply(String currentVersion, LocalDateTime currentTime,
-                                String sourceVersion, LocalDateTime sourceTime, boolean samePayload) {
-        if (Objects.equals(currentVersion, sourceVersion)) {
-            if (!samePayload) {
-                throw new IllegalStateException("COMMERCE_AUTHORITY_SAME_VERSION_CONFLICT");
-            }
-            return false;
-        }
-        if (currentTime != null && !sourceTime.isAfter(currentTime)) {
-            if (sourceTime.isEqual(currentTime)) {
-                throw new IllegalStateException("COMMERCE_AUTHORITY_SOURCE_ORDER_CONFLICT");
-            }
-            return false;
-        }
-        return true;
-    }
-
-    private boolean sameContract(ContractDO current, CommerceAuthorityWriteCommand.ContractSourceRecord source) {
-        return Objects.equals(current.getCompanyCode(), source.companyCode())
-                && Objects.equals(current.getContractNo(), source.contractNo())
-                && Objects.equals(current.getContractName(), source.contractName())
-                && Objects.equals(current.getStatus(), source.status());
-    }
-
-    private boolean sameOrder(SalesOrderDO current, CommerceAuthorityWriteCommand.SalesOrderSourceRecord source) {
-        return Objects.equals(current.getCompanyCode(), source.companyCode())
-                && Objects.equals(current.getOrderType(), source.orderType())
-                && Objects.equals(current.getOrderNo(), source.orderNo())
-                && Objects.equals(current.getStatus(), source.status());
-    }
-
-    private boolean sameLine(SalesOrderLineDO current, Long orderId,
-                             CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord source) {
-        return Objects.equals(current.getOrderId(), orderId)
-                && Objects.equals(current.getLineNo(), source.lineNo())
-                && Objects.equals(current.getItemCode(), source.itemCode())
-                && Objects.equals(current.getItemDesc(), source.itemDescription())
-                && Objects.equals(current.getProductCode(), source.productCode())
-                && decimalEquals(current.getOrderQty(), source.orderQuantity())
-                && decimalEquals(current.getOpenQty(), source.openQuantity())
-                && decimalEquals(current.getDeliveredQty(), source.deliveredQuantity())
-                && Objects.equals(current.getUnitCode(), source.unitCode())
-                && Objects.equals(current.getUnitScale(), source.unitScale())
-                && Objects.equals(current.getQuantityStatus(), source.quantityStatus())
-                && Objects.equals(current.getStatus(), source.status());
-    }
-
-    private void validateCommand(CommerceAuthorityWriteCommand command) {
-        if (command == null || command.tenantId() == null || required(command.sourceBatchId()) == null
-                || required(command.operationId()) == null) {
-            throw new IllegalArgumentException("COMMERCE_AUTHORITY_INVALID_ARGUMENT");
-        }
-    }
-
-    private void validateSource(String system, String key, String version, LocalDateTime updatedAt) {
-        if (required(system) == null || required(key) == null || required(version) == null || updatedAt == null) {
-            throw new IllegalArgumentException("COMMERCE_AUTHORITY_INVALID_SOURCE");
-        }
+    private CommerceSourceLifecycleStatus lifecycle(String value) {
+        String normalized = required(value).toUpperCase(java.util.Locale.ROOT);
+        return switch (normalized) {
+            case "ACTIVE", "ENABLED" -> CommerceSourceLifecycleStatus.ACTIVE;
+            case "CANCELLED", "CANCELED", "DISABLED" -> CommerceSourceLifecycleStatus.CANCELLED;
+            case "RETURNED" -> CommerceSourceLifecycleStatus.RETURNED;
+            default -> throw new IllegalArgumentException("COMMERCE_AUTHORITY_IMPORT_LIFECYCLE_INVALID");
+        };
     }
 
     private String required(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
+        if (blank(value)) {
+            throw new IllegalArgumentException("COMMERCE_AUTHORITY_IMPORT_REQUIRED_FIELD");
         }
-        return value;
+        return value.trim();
     }
 
-    private String sourceKey(String sourceSystem, String sourceRecordKey) {
-        return sourceSystem + '\u0000' + sourceRecordKey;
-    }
-
-    private boolean decimalEquals(java.math.BigDecimal left, java.math.BigDecimal right) {
-        return left == null ? right == null : right != null && left.compareTo(right) == 0;
-    }
-
-    private void validateQuantities(CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord source) {
-        if ("CONFIRMED".equals(source.quantityStatus()) && source.orderQuantity() == null) {
-            throw new IllegalArgumentException("COMMERCE_AUTHORITY_CONFIRMED_QUANTITY_REQUIRED");
-        }
-        for (java.math.BigDecimal quantity : new java.math.BigDecimal[]{
-                source.orderQuantity(), source.openQuantity(), source.deliveredQuantity()}) {
-            if (quantity == null) {
-                continue;
-            }
-            if (quantity.signum() < 0 || Math.max(quantity.stripTrailingZeros().scale(), 0) > source.unitScale()) {
-                throw new IllegalArgumentException("COMMERCE_AUTHORITY_QUANTITY_PRECISION_INVALID");
-            }
-        }
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private <T> List<T> safe(List<T> values) {
         return values == null ? List.of() : values;
-    }
-
-    private record WriteResult(SalesOrderDO order, boolean changed) {
-    }
-
-    private record NotificationRecipient(Long userId, Integer projectVersion, Long factVersion) {
     }
 }

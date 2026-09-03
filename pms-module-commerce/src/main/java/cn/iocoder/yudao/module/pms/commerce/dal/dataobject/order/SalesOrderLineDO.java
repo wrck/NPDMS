@@ -29,6 +29,7 @@ public class SalesOrderLineDO extends TenantBaseDO {
     private String lineNo;
     private String lineType;
     private String itemCode;
+    private String modelCode;
     private String itemDesc;
     private Long productId;
     private String productCode;
@@ -38,9 +39,42 @@ public class SalesOrderLineDO extends TenantBaseDO {
     private String unitCode;
     private Integer unitScale;
     private String quantityStatus;
+    private String sourceLifecycleStatus;
     private LocalDateTime sourceSyncTime;
     private LocalDateTime sourceUpdatedAt;
     private String status;
     @Version
     private Integer version;
+
+    public String getSourceKey() {
+        return sourceRecordKey;
+    }
+
+    public void setSourceKey(String sourceKey) {
+        this.sourceRecordKey = sourceKey;
+    }
+
+    public String getLineCode() {
+        return lineNo;
+    }
+
+    public void setLineCode(String lineCode) {
+        this.lineNo = lineCode;
+    }
+
+    public BigDecimal getQuantity() {
+        return orderQty;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.orderQty = quantity;
+    }
+
+    public LocalDateTime getSyncedAt() {
+        return sourceSyncTime;
+    }
+
+    public void setSyncedAt(LocalDateTime syncedAt) {
+        this.sourceSyncTime = syncedAt;
+    }
 }

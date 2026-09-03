@@ -1,6 +1,11 @@
 import request from '@/config/axios'
 
 export type CutoverConfigStatus = 'DRAFT' | 'PUBLISHED' | 'DISABLED'
+export type CutoverNavigationTarget = 'CURRENT_STAGE_WORKBENCH' | 'TASK_OVERVIEW'
+
+export interface CutoverNavigationRule {
+  target: CutoverNavigationTarget
+}
 
 export interface CutoverDimension {
   code: string
@@ -59,6 +64,7 @@ export interface CutoverConfiguration {
   revisionNo?: number
   statusCode?: CutoverConfigStatus
   changeSummary?: string
+  navigationRule: CutoverNavigationRule | null
   dictionarySnapshot: Record<string, unknown>
   dimensions: CutoverDimension[]
   planTemplateSections: CutoverPlanSection[]

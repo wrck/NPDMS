@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper">
+    <select id="selectListForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO">
+        SELECT *
+        FROM cut_cutover_checklist_item
+        WHERE tenant_id = #{query.tenantId}
+          AND checklist_id = #{query.checklistId}
+          AND deleted = b'0'
+        ORDER BY stable_item_key, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectListByChecklist"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO">
+        SELECT *
+        FROM cut_cutover_checklist_item
+        WHERE tenant_id = #{query.tenantId}
+          AND checklist_id = #{query.checklistId}
+          AND deleted = b'0'
+        ORDER BY sort_order, stable_item_key, id
+    </select>
+
+    <update id="updateApplicability">
+        UPDATE cut_cutover_checklist_item
+        SET applicable_flag = #{query.applicable},
+            required_flag = #{query.required},
+            item_definition_id = #{query.itemDefinitionId},
+            item_definition_version = #{query.itemDefinitionVersion},
+            item_type_code = #{query.itemTypeCode},
+            item_name = #{query.itemName},
+            item_description = #{query.itemDescription},
+            interface_format_code = #{query.interfaceFormatCode},
+            interface_schema_snapshot = #{query.interfaceSchemaSnapshot},
+            display_condition_snapshot = #{query.displayConditionSnapshot},
+            work_mode_code = #{query.workModeCode},
+            matched_rule_id = #{query.matchedRuleId},
+            matched_rule_version = #{query.matchedRuleVersion},
+            sort_order = #{query.sortOrder},
+            updater = #{query.actorId},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.itemId}
+          AND source_code = 'SYSTEM_MATCHED'
+          AND deleted = b'0'
+    </update>
+
+    <update id="removeCustomIfMatch">
+        UPDATE cut_cutover_checklist_item
+        SET applicable_flag = b'0',
+            updater = #{query.actorId},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.itemId}
+          AND source_code = 'CUSTOM'
+          AND custom_creator_user_id = #{query.actorId}
+          AND applicable_flag = b'1'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

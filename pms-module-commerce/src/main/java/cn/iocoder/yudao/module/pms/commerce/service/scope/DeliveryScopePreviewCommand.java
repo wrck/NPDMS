@@ -5,7 +5,8 @@ import java.util.List;
 
 public record DeliveryScopePreviewCommand(
         Long tenantId, Long subjectUserId, Long projectId, Integer expectedProjectVersion,
-        Long expectedProjectScopeVersion, Long orderLineId, String expectedOrderLineSourceVersion,
+        Long expectedProjectScopeVersion, Long expectedDeliveryScopeVersion,
+        Long orderLineId, String expectedOrderLineSourceVersion,
         BigDecimal proposedQuantity, List<String> serialNumbers) {
 
     public DeliveryScopePreviewCommand {

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper">
+    <select id="selectListByClosure" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO">
+        SELECT * FROM cut_cutover_collection_evidence
+        WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
+        ORDER BY occurred_at, id
+    </select>
+    <select id="selectListByClosureForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO">
+        SELECT * FROM cut_cutover_collection_evidence
+        WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
+        ORDER BY occurred_at, id
+        FOR UPDATE
+    </select>
+    <select id="selectUnresolvedDispatchCount" resultType="long">
+        SELECT COUNT(*)
+        FROM cut_cutover_collection_evidence dispatch
+        WHERE dispatch.tenant_id = #{query.tenantId}
+          AND dispatch.closure_id = #{query.closureId}
+          AND dispatch.evidence_type_code = 'DISPATCH_ACCEPTED'
+          AND dispatch.deleted = b'0'
+          AND NOT EXISTS (
+            SELECT 1 FROM cut_cutover_collection_evidence callback
+            WHERE callback.tenant_id = dispatch.tenant_id
+              AND callback.collection_task_id = dispatch.collection_task_id
+              AND callback.evidence_type_code IN ('CALLBACK_SUCCEEDED','CALLBACK_FAILED')
+              AND callback.deleted = b'0'
+          )
+    </select>
+</mapper>
