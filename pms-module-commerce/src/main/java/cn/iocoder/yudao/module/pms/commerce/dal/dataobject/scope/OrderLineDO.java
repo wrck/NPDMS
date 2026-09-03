@@ -28,9 +28,11 @@ public class OrderLineDO extends TenantBaseDO {
     private Long orderId;
     private String lineCode;
     private String itemCode;
+    private String modelCode;
     private BigDecimal quantity;
     private String unitCode;
     private String quantityStatus;
+    private String sourceLifecycleStatus;
     private LocalDateTime sourceUpdatedAt;
     private LocalDateTime syncedAt;
     @Version

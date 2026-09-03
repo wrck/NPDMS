@@ -102,11 +102,4 @@ class Fcut008MigrationContractTest {
         }
     }
 
-    private static String readExternalJobMigration() {
-        try {
-            return Files.readString(Path.of("../sql/migrations/V159__fcut008_external_notification_job_seed.sql"));
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
-        }
-    }
 }

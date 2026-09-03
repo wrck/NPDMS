@@ -107,11 +107,4 @@ class Fcut004MigrationContractTest {
         }
     }
 
-    private static String readSeedMigration() {
-        try {
-            return Files.readString(Path.of("../sql/migrations/V152__fcut004_plan_seed.sql"));
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
-        }
-    }
 }
