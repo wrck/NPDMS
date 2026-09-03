@@ -167,7 +167,7 @@ FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS = {
         "同一幂等键后续重试必须重新读取当前scope",
     ),
     "docs/decisions/0038-commerce-contract-administrator-company-scope.md": (
-        "PROPOSED_FOR_INDEPENDENT_REVIEW",
+        "ACCEPTED",
         "不修改Yudao基础平台",
         "NO_PHYSICAL_DELTA",
     ),
