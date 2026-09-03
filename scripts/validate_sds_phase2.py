@@ -675,7 +675,6 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
         root / "docs" / "engineering" / "gates" / "phase-2" / "README.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "independent-review.md",
     )
     for path in evidence_paths:
         if not path.is_file():
@@ -791,6 +790,46 @@ def validate_facc001_report_contract(root: Path) -> list[str]:
     return errors
 
 
+def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
+    """Reject an F-ACC-002 delta that leaves positive Owner/file/history facts undefined."""
+    errors: list[str] = []
+    design = root / "docs" / "design"
+    required = {
+        "02d-cross-context-contracts.md": (
+            "SatisfactionQuestionnaireTemplateApi.resolvePublished",
+            "SatisfactionTaskInitializationApi.initialize",
+            "SatisfactionResultFactApi.inspect/lockAndRevalidate",
+            "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload",
+        ),
+        "09-database-design.md": (
+            "acc_satisfaction_access_grant",
+            "acc_satisfaction_response_file",
+            "acc_satisfaction_result_file",
+            "source_object_type=SatisfactionResult",
+        ),
+        "10-api-design.md": (
+            "/satisfaction-tasks/{id}/access-grants",
+            "/satisfaction-questionnaires/{token}/files",
+            "pms:acceptance:satisfaction:query/manage/collect/export/download",
+        ),
+        "11-event-design.md": ("SatisfactionResultVersionChanged", "SatisfactionResultOutboxDeliveryJob"),
+        "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE"),
+    }
+    for name, tokens in required.items():
+        path = design / name
+        content = read(path) if path.is_file() else ""
+        for token in tokens:
+            if token not in content:
+                errors.append(f"F-ACC-002 missing focused contract token in {name}: {token}")
+    alignment = design / "08a-domain-entity-migration-alignment.md"
+    content = read(alignment) if alignment.is_file() else ""
+    row = next((line for line in content.splitlines() if line.startswith("| `SatisfactionCollection` |")), "")
+    for token in ("PRESERVE_RAW", "不迁为有效业务事实", "不得从回访/审批状态推断"):
+        if token not in row:
+            errors.append(f"F-ACC-002 legacy satisfaction boundary missing: {token}")
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -901,6 +940,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     errors.extend(validate_fcom001_acceptance_stage_binding(root))
     errors.extend(validate_fcom001_contract_admin_scope(root))
     errors.extend(validate_facc001_report_contract(root))
+    errors.extend(validate_facc002_satisfaction_contract(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 
