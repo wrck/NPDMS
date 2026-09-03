@@ -1,0 +1,85 @@
+name: Code-fact build repair pass 5
+
+on:
+  push:
+    branches:
+      - codex/code-fact-selective-integration-acc-int-cut-20260903
+    paths:
+      - .github/workflows/code-fact-build-repair-pass5.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-selective-integration-acc-int-cut-20260903
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Remove the exact second module declaration and rebuild
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('pom.xml')
+          text = p.read_text(encoding='utf-8')
+          needle = '        <module>pms-module-integration/pms-module-integration-api</module>\n'
+          count = text.count(needle)
+          if count != 2:
+              raise SystemExit(f'expected exactly two integration-api module lines, found {count}')
+          first = text.find(needle)
+          second = text.find(needle, first + len(needle))
+          text = text[:second] + text[second + len(needle):]
+          if text.count(needle) != 1:
+              raise SystemExit('exact deduplication postcondition failed')
+          p.write_text(text, encoding='utf-8')
+          PY
+
+          git add pom.xml
+          git commit -m 'fix(build): remove duplicate integration API reactor entry' \
+            -m 'Delete only the second duplicate module line introduced by hunk reconciliation; retain all received source code.'
+
+          LOG_DIR="$(mktemp -d)"
+          set +e
+          MVN_CMD=mvn; [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true \
+            -pl pms-module-project,pms-module-customer,pms-module-cutover-api,pms-module-cutover,pms-module-engineering-api,pms-module-engineering,pms-module-integration,pms-module-platform,yudao-module-infra \
+            -am package > "$LOG_DIR/maven.log" 2>&1
+          MVN_RC=$?
+          set -e
+
+          REPORT=docs/traceability/code-fact-three-branch-integration-2026-09-03.md
+          {
+            echo
+            echo '## 适配Pass 5：精确去除第二个Reactor模块登记'
+            echo
+            echo '- 精确前置条件：同一integration-api模块行恰好出现两次。'
+            echo '- 处理：仅删除第二次出现；业务源码与依赖内容未回退。'
+            echo "- Maven受影响Reactor构建退出码：\`$MVN_RC\`"
+            echo '```text'
+            tail -320 "$LOG_DIR/maven.log"
+            echo '```'
+          } >> "$REPORT"
+
+          git add "$REPORT"
+          git rm .github/workflows/code-fact-build-repair-pass5.yml
+          git commit -m 'docs(traceability): record build repair pass 5' \
+            -m "Removed exact duplicate reactor entry; Maven rc=$MVN_RC. Feature statuses remain unchanged."
+          git push origin HEAD:codex/code-fact-selective-integration-acc-int-cut-20260903
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "MAVEN_RC=$MVN_RC"
