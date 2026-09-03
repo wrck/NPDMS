@@ -237,7 +237,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "报告状态/历史不回滚、不删除",
     ),
     "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md": (
-        "`PROPOSED_FOR_INDEPENDENT_REVIEW`",
+        "`ACCEPTED`",
         "`DO_NOT_REUSE`",
         "`DIRECT_REUSE` + `COPY_THEN_ENHANCE`",
         "F-COM-001 AcceptanceScopeBinding真实Provider",
