@@ -1,0 +1,105 @@
+name: Code-fact adaptation pass 1
+
+on:
+  push:
+    branches:
+      - codex/code-fact-selective-integration-acc-int-cut-20260903
+    paths:
+      - .github/workflows/code-fact-adaptation-pass1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  adapt-and-build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-selective-integration-acc-int-cut-20260903
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Remove merge artefacts and validate current code
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.quotepath false
+          git fetch --no-tags origin +refs/heads/master:refs/remotes/origin/master
+          LOG_DIR="$(mktemp -d)"
+          REPORT="docs/traceability/code-fact-three-branch-integration-2026-09-03.md"
+
+          # Root module composition and baseline/Feature documents remain owned by current master.
+          git checkout origin/master -- pom.xml
+          for P in \
+            '需求/PRD-项目实施交付管理平台.md' \
+            'specs/001-project-delivery-platform/domains/ACC-验收与项目闭环需求规格.md' \
+            'specs/001-project-delivery-platform/domains/COM-合同订单履约需求规格.md' \
+            'docs/reports/2026-08-29-PRD-V1.8修订008基线变更报告.md' \
+            'docs/reports/2026-08-29-PRD-V1.8修订009基线变更报告.md' \
+            'docs/reports/2026-08-30-PRD-V1.8修订010基线变更报告.md'; do
+            if git cat-file -e "origin/master:$P" 2>/dev/null; then
+              git checkout origin/master -- "$P"
+            else
+              git rm -f --ignore-unmatch -- "$P" >/dev/null 2>&1 || true
+              rm -f -- "$P"
+            fi
+          done
+
+          set +e
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains docs/design/phase-1-domain-ownership.md \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            > "$LOG_DIR/traceability.log" 2>&1
+          TRACE_RC=$?
+          set -e
+
+          set +e
+          MVN_CMD=mvn
+          [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true \
+            -pl pms-module-project,pms-module-commerce,pms-module-customer,pms-module-cutover-api,pms-module-cutover,pms-module-engineering-api,pms-module-engineering,pms-module-integration,pms-module-platform,yudao-module-infra \
+            -am package > "$LOG_DIR/maven-pass1.log" 2>&1
+          MVN_RC=$?
+          set -e
+
+          {
+            echo
+            echo '## 适配Pass 1：主干基线恢复与构建'
+            echo
+            echo '- 已恢复：根POM、正式PRD、ACC/COM领域规格及误带入的旧基线报告。'
+            echo "- Requirement追溯生成退出码：\`$TRACE_RC\`"
+            echo "- Maven受影响Reactor构建退出码：\`$MVN_RC\`"
+            echo
+            echo '### Requirement追溯生成日志'
+            echo '```text'
+            tail -80 "$LOG_DIR/traceability.log"
+            echo '```'
+            echo
+            echo '### Maven日志'
+            echo '```text'
+            tail -220 "$LOG_DIR/maven-pass1.log"
+            echo '```'
+          } >> "$REPORT"
+
+          git add -A
+          git rm .github/workflows/code-fact-adaptation-pass1.yml
+          git commit -m 'fix(integration): restore master-owned baselines and validate received code' \
+            -m "Remove only merge artefacts; retain file-level code receipts from all three source branches. Traceability rc=$TRACE_RC, Maven rc=$MVN_RC."
+          git push origin HEAD:codex/code-fact-selective-integration-acc-int-cut-20260903
+          echo "TRACE_RC=$TRACE_RC"
+          echo "MVN_RC=$MVN_RC"
