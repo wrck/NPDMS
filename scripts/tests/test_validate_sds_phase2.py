@@ -899,8 +899,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
+                    "95对象/112来源绑定/1排除源",
                     "94对象/111来源绑定/1排除源",
-                    "93对象/110来源绑定/1排除源",
                     1,
                 ),
                 encoding="utf-8",
@@ -1081,6 +1081,21 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_v18_physical_carriers(root)
 
             self.assertTrue(any("selection interval" in error for error in errors), errors)
+
+    def test_facc002_export_contract_rejects_missing_real_platform_api(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            contract = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace("ExportTaskApi.request/getFact", "ExportTaskAdapter"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("ExportTaskApi.request/getFact" in error for error in errors), errors)
 
 
 if __name__ == "__main__":
