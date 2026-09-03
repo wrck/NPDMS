@@ -1946,3 +1946,1739 @@ WROTE docs/traceability/requirement-version-coverage.json
 [INFO] Finished at: 2026-09-03T16:41:39Z
 [INFO] ------------------------------------------------------------------------
 ```
+
+## 适配Pass 7：迁移Owner收敛与专项验证
+
+- V207仅保留三张独立INT边缘/审计表。
+- V208删除：其PLT列、索引与消费确认表已由V203等价且更完整地提供。
+| 检查 | 退出码 |
+|---|---:|
+| `commerce_unit` | `1` |
+| `customer_contract` | `0` |
+| `cutover_contract` | `0` |
+| `engineering_contract` | `0` |
+| `platform_unit` | `0` |
+| `python_contract` | `1` |
+| `migrations` | `1` |
+| `commerce_mysql` | `99` |
+| `engineering_mysql` | `99` |
+| `frontend_install` | `0` |
+| `frontend_type` | `2` |
+| `frontend_test` | `1` |
+| `frontend_build` | `1` |
+
+### commerce_unit
+```text
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[314,12] cannot find symbol
+[ERROR]   symbol:   method setItemDesc(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[315,12] cannot find symbol
+[ERROR]   symbol:   method setProductCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[316,12] cannot find symbol
+[ERROR]   symbol:   method setModelCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[318,12] cannot find symbol
+[ERROR]   symbol:   method setOpenQty(java.math.BigDecimal)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[319,12] cannot find symbol
+[ERROR]   symbol:   method setDeliveredQty(java.math.BigDecimal)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[320,12] cannot find symbol
+[ERROR]   symbol:   method setUnitCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[321,12] cannot find symbol
+[ERROR]   symbol:   method setUnitScale(java.lang.Integer)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[322,12] cannot find symbol
+[ERROR]   symbol:   method setQuantityStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[323,12] cannot find symbol
+[ERROR]   symbol:   method setSourceLifecycleStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[324,12] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[325,12] cannot find symbol
+[ERROR]   symbol:   method setSourceUpdatedAt(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[332,12] cannot find symbol
+[ERROR]   symbol:   method setContractId(java.lang.Long)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[334,12] cannot find symbol
+[ERROR]   symbol:   method setRelationRole(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[335,12] cannot find symbol
+[ERROR]   symbol:   method setRelationSource(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[336,12] cannot find symbol
+[ERROR]   symbol:   method setSourceSystem(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[337,12] cannot find symbol
+[ERROR]   symbol:   method setSalesOrderSourceKey(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[338,12] cannot find symbol
+[ERROR]   symbol:   method setContractSourceKey(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[339,12] cannot find symbol
+[ERROR]   symbol:   method setSourceVersion(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[340,12] cannot find symbol
+[ERROR]   symbol:   method setSourceEvidence(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[341,12] cannot find symbol
+[ERROR]   symbol:   method setEffectiveFrom(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[342,12] cannot find symbol
+[ERROR]   symbol:   method setEffectiveTo(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[362,58] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getAllocatedQty()
+[ERROR]     location: class cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[368,57] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getId()
+[ERROR]     location: class cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[373,50] cannot find symbol
+[ERROR]   symbol:   method getDeliveryScopeId()
+[ERROR]   location: variable detail of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[379,79] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[379,95] cannot find symbol
+[ERROR]   symbol:   method getVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[383,43] cannot find symbol
+[ERROR]   symbol:   method getOrderLineId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[384,41] cannot find symbol
+[ERROR]   symbol:   method getProjectId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[385,43] cannot find symbol
+[ERROR]   symbol:   method getProjectCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[386,43] cannot find symbol
+[ERROR]   symbol:   method getProjectName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[387,50] cannot find symbol
+[ERROR]   symbol:   method getProjectCompanyCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[388,50] cannot find symbol
+[ERROR]   symbol:   method getProjectCompanyName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[389,53] cannot find symbol
+[ERROR]   symbol:   method getProjectDepartmentCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[390,53] cannot find symbol
+[ERROR]   symbol:   method getProjectDepartmentName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[391,51] cannot find symbol
+[ERROR]   symbol:   method getProjectCustomerCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[392,51] cannot find symbol
+[ERROR]   symbol:   method getProjectCustomerName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[393,56] cannot find symbol
+[ERROR]   symbol:   method getProjectManagerEmployeeNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[394,50] cannot find symbol
+[ERROR]   symbol:   method getProjectManagerName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[395,49] cannot find symbol
+[ERROR]   symbol:   method getOrderSourceSystem()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[396,48] cannot find symbol
+[ERROR]   symbol:   method getOrderCompanyCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[397,48] cannot find symbol
+[ERROR]   symbol:   method getOrderCompanyName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[398,41] cannot find symbol
+[ERROR]   symbol:   method getOrderType()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[399,39] cannot find symbol
+[ERROR]   symbol:   method getOrderNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[400,38] cannot find symbol
+[ERROR]   symbol:   method getLineNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[401,40] cannot find symbol
+[ERROR]   symbol:   method getItemCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[402,44] cannot find symbol
+[ERROR]   symbol:   method getAllocatedQty()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[403,21] cannot find symbol
+[ERROR]   symbol:   method setScopeStatus(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[404,49] cannot find symbol
+[ERROR]   symbol:   method getAllocationVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[405,21] cannot find symbol
+[ERROR]   symbol:   method setAllocationSource(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[406,21] cannot find symbol
+[ERROR]   symbol:   method setChangeReason(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[407,50] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[408,52] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[409,52] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[410,55] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[411,21] cannot find symbol
+[ERROR]   symbol:   method setSourceEvidence(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[412,21] cannot find symbol
+[ERROR]   symbol:   method setEffectiveFrom(java.time.LocalDateTime)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :pms-module-commerce
+```
+
+### customer_contract
+```text
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-spring-boot-starter-biz-tenant:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-biz-data-permission/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-test ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-test ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-test/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-test ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-test ---
+[INFO] No tests to run.
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-biz-tenant/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --------< cn.iocoder.boot:yudao-spring-boot-starter-websocket >---------
+[INFO] Building yudao-spring-boot-starter-websocket 2026.06-jdk25-SNAPSHOT [20/23]
+[INFO]   from yudao-framework/yudao-spring-boot-starter-websocket/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-spring-boot-starter-websocket ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-spring-boot-starter-websocket ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-spring-boot-starter-websocket:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-websocket ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-websocket ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-websocket/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-websocket ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-websocket ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:yudao-module-infra >-----------------
+[INFO] Building yudao-module-infra 2026.06-jdk25-SNAPSHOT               [21/23]
+[INFO]   from yudao-module-infra/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-infra ---
+[INFO] Copying 103 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-infra ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-infra:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-infra ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-module-infra/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-infra ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:yudao-module-system >-----------------
+[INFO] Building yudao-module-system 2026.06-jdk25-SNAPSHOT              [22/23]
+[INFO]   from yudao-module-system/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-system ---
+[INFO] Copying 38 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-system ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-system:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-system ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-system ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:pms-module-customer >-----------------
+[INFO] Building pms-module-customer 2026.06-jdk25-SNAPSHOT              [23/23]
+[INFO]   from pms-module-customer/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-customer ---
+[INFO] Copying 2 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-customer ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-customer:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-customer ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 62 source files with javac [target 25] to target/classes
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by lombok.permit.Permit
+WARNING: Please consider reporting this to the maintainers of class lombok.permit.Permit
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-customer ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-customer ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 23 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java: /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-customer ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] Artifact org.opentest4j:opentest4j:jar:1.3.0 is present in the local repository, but cached from a remote repository ID that is unavailable in current build context, verifying that is downloadable from [central (https://repo.maven.apache.org/maven2, default, releases)]
+[INFO] Artifact org.apiguardian:apiguardian-api:jar:1.1.2 is present in the local repository, but cached from a remote repository ID that is unavailable in current build context, verifying that is downloadable from [central (https://repo.maven.apache.org/maven2, default, releases)]
+[INFO] Artifact org.opentest4j:opentest4j:jar:1.3.0 is present in the local repository, but cached from a remote repository ID that is unavailable in current build context, verifying that is downloadable from [central (https://repo.maven.apache.org/maven2, default, releases)]
+[INFO] Artifact org.apiguardian:apiguardian-api:jar:1.1.2 is present in the local repository, but cached from a remote repository ID that is unavailable in current build context, verifying that is downloadable from [central (https://repo.maven.apache.org/maven2, default, releases)]
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running cn.iocoder.yudao.module.pms.customer.api.servicelevel.CustomerServiceLevelFactApiContractTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.082 s -- in cn.iocoder.yudao.module.pms.customer.api.servicelevel.CustomerServiceLevelFactApiContractTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for yudao 2026.06-jdk25-SNAPSHOT:
+[INFO] 
+[INFO] yudao .............................................. SUCCESS [  0.269 s]
+[INFO] yudao-framework .................................... SUCCESS [  0.085 s]
+[INFO] yudao-common ....................................... SUCCESS [  0.623 s]
+[INFO] yudao-spring-boot-starter-web ...................... SUCCESS [  0.295 s]
+[INFO] yudao-spring-boot-starter-security ................. SUCCESS [  0.261 s]
+[INFO] yudao-spring-boot-starter-mybatis .................. SUCCESS [  0.340 s]
+[INFO] yudao-spring-boot-starter-redis .................... SUCCESS [  0.379 s]
+[INFO] yudao-spring-boot-starter-mq ....................... SUCCESS [  0.434 s]
+[INFO] yudao-spring-boot-starter-job ...................... SUCCESS [  0.219 s]
+[INFO] yudao-spring-boot-starter-biz-tenant ............... SUCCESS [  0.184 s]
+[INFO] yudao-spring-boot-starter-websocket ................ SUCCESS [  0.142 s]
+[INFO] yudao-spring-boot-starter-monitor .................. SUCCESS [  0.304 s]
+[INFO] yudao-spring-boot-starter-biz-ip ................... SUCCESS [  0.157 s]
+[INFO] yudao-spring-boot-starter-excel .................... SUCCESS [  0.208 s]
+[INFO] yudao-spring-boot-starter-test ..................... SUCCESS [  0.178 s]
+[INFO] yudao-spring-boot-starter-biz-data-permission ...... SUCCESS [  0.116 s]
+[INFO] yudao-module-infra ................................. SUCCESS [  0.303 s]
+[INFO] yudao-module-system ................................ SUCCESS [  0.312 s]
+[INFO] pms-module-customer-api ............................ SUCCESS [  0.707 s]
+[INFO] pms-module-platform-api ............................ SUCCESS [  0.191 s]
+[INFO] pms-module-project-api ............................. SUCCESS [  0.190 s]
+[INFO] pms-module-asset-api ............................... SUCCESS [  0.208 s]
+[INFO] pms-module-customer ................................ SUCCESS [ 10.090 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  13.462 s (Wall Clock)
+[INFO] Finished at: 2026-09-03T16:53:59Z
+[INFO] ------------------------------------------------------------------------
+```
+
+### cutover_contract
+```text
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-websocket ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-websocket ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-websocket/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-websocket ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-websocket ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:yudao-module-infra >-----------------
+[INFO] Building yudao-module-infra 2026.06-jdk25-SNAPSHOT               [22/25]
+[INFO]   from yudao-module-infra/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-infra ---
+[INFO] Copying 103 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-infra ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-infra:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-infra ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-module-infra/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-infra ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:yudao-module-system >-----------------
+[INFO] Building yudao-module-system 2026.06-jdk25-SNAPSHOT              [23/25]
+[INFO]   from yudao-module-system/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-system ---
+[INFO] Copying 38 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-system ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-system:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-system ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-system ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:pms-module-platform >-----------------
+[INFO] Building pms-module-platform 2026.06-jdk25-SNAPSHOT              [24/25]
+[INFO]   from pms-module-platform/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-platform ---
+[INFO] Copying 23 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-platform ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-platform:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-platform ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-platform ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-platform ---
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by lombok.permit.Permit
+WARNING: Please consider reporting this to the maintainers of class lombok.permit.Permit
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 54 source files with javac [target 25] to target/test-classes
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-cutover-api ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-cutover-api/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-cutover-api ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [target 25] to target/test-classes
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-cutover-api ---
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-platform ---
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:pms-module-cutover >-----------------
+[INFO] Building pms-module-cutover 2026.06-jdk25-SNAPSHOT               [25/25]
+[INFO]   from pms-module-cutover/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-cutover ---
+[INFO] Copying 26 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-cutover ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-cutover:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-cutover ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 343 source files with javac [target 25] to target/classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/leadtime/CutoverLeadTimeSnapshotCodec.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/leadtime/CutoverLeadTimeSnapshotCodec.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java: /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-cutover ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-cutover ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 95 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverPlanControllerContractTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverPlanControllerContractTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/governance/CutoverGovernanceGuardProviderTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/governance/CutoverGovernanceGuardProviderTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-cutover ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running cn.iocoder.yudao.module.pms.cutover.migration.Fcut006MigrationContractTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.152 s -- in cn.iocoder.yudao.module.pms.cutover.migration.Fcut006MigrationContractTest
+[INFO] Running cn.iocoder.yudao.module.pms.cutover.migration.Fcut005MigrationContractTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in cn.iocoder.yudao.module.pms.cutover.migration.Fcut005MigrationContractTest
+[INFO] Running cn.iocoder.yudao.module.pms.cutover.migration.Fcut008MigrationContractTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in cn.iocoder.yudao.module.pms.cutover.migration.Fcut008MigrationContractTest
+[INFO] Running cn.iocoder.yudao.module.pms.cutover.migration.Fcut004MigrationContractTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in cn.iocoder.yudao.module.pms.cutover.migration.Fcut004MigrationContractTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for yudao 2026.06-jdk25-SNAPSHOT:
+[INFO] 
+[INFO] yudao .............................................. SUCCESS [  0.255 s]
+[INFO] yudao-framework .................................... SUCCESS [  0.174 s]
+[INFO] yudao-common ....................................... SUCCESS [  0.449 s]
+[INFO] yudao-spring-boot-starter-web ...................... SUCCESS [  0.389 s]
+[INFO] yudao-spring-boot-starter-security ................. SUCCESS [  0.173 s]
+[INFO] yudao-spring-boot-starter-mybatis .................. SUCCESS [  0.462 s]
+[INFO] yudao-spring-boot-starter-redis .................... SUCCESS [  0.426 s]
+[INFO] yudao-spring-boot-starter-mq ....................... SUCCESS [  0.421 s]
+[INFO] yudao-spring-boot-starter-job ...................... SUCCESS [  0.169 s]
+[INFO] yudao-spring-boot-starter-biz-tenant ............... SUCCESS [  0.213 s]
+[INFO] yudao-spring-boot-starter-websocket ................ SUCCESS [  0.141 s]
+[INFO] yudao-spring-boot-starter-monitor .................. SUCCESS [  0.206 s]
+[INFO] yudao-spring-boot-starter-biz-ip ................... SUCCESS [  0.192 s]
+[INFO] yudao-spring-boot-starter-excel .................... SUCCESS [  0.182 s]
+[INFO] yudao-spring-boot-starter-test ..................... SUCCESS [  0.185 s]
+[INFO] yudao-spring-boot-starter-biz-data-permission ...... SUCCESS [  0.114 s]
+[INFO] yudao-module-infra ................................. SUCCESS [  0.341 s]
+[INFO] yudao-module-system ................................ SUCCESS [  0.317 s]
+[INFO] pms-module-customer-api ............................ SUCCESS [  0.625 s]
+[INFO] pms-module-platform-api ............................ SUCCESS [  0.120 s]
+[INFO] pms-module-project-api ............................. SUCCESS [  0.232 s]
+[INFO] pms-module-integration-api ......................... SUCCESS [  0.624 s]
+[INFO] pms-module-platform ................................ SUCCESS [  5.165 s]
+[INFO] pms-module-cutover-api ............................. SUCCESS [  2.979 s]
+[INFO] pms-module-cutover ................................. SUCCESS [ 10.290 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18.825 s (Wall Clock)
+[INFO] Finished at: 2026-09-03T16:54:19Z
+[INFO] ------------------------------------------------------------------------
+```
+
+### engineering_contract
+```text
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-system ---
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-engineering-api ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-engineering-api/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-engineering-api ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-engineering-api ---
+[INFO] No tests to run.
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-system ---
+[INFO] 
+[INFO] 
+[INFO] ------------------< cn.iocoder.boot:yudao-module-bpm >------------------
+[INFO] ----------------< cn.iocoder.boot:pms-module-platform >-----------------
+[INFO] Building yudao-module-bpm 2026.06-jdk25-SNAPSHOT                 [26/29]
+[INFO] Building pms-module-platform 2026.06-jdk25-SNAPSHOT              [27/29]
+[INFO]   from yudao-module-bpm/pom.xml
+[INFO]   from pms-module-platform/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-platform ---
+[INFO] Copying 23 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-platform ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-platform:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-platform ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-platform ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-platform ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 54 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-platform ---
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-bpm ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/resources
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-bpm ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-bpm:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-bpm ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 223 source files with javac [target 25] to target/classes
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/java/cn/iocoder/yudao/module/bpm/convert/definition/BpmProcessDefinitionConvert.java:[97,10] Unmapped target properties: "type, version, name, key, categoryName, formName, suspensionState, deploymentTime, bpmnXml".
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/java/cn/iocoder/yudao/module/bpm/convert/task/BpmProcessInstanceConvert.java:[124,10] Unmapped target properties: "type, version, name, key, categoryName, formName, suspensionState, deploymentTime, bpmnXml".
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-bpm ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-bpm ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 19 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java: /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java uses or overrides a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-bpm ---
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:pms-module-project >-----------------
+[INFO] Building pms-module-project 2026.06-jdk25-SNAPSHOT               [28/29]
+[INFO]   from pms-module-project/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-project ---
+[INFO] Copying 30 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-project ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-project:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-project ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 683 source files with javac [target 25] to target/classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-project ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-project ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 139 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureStateAdapterTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureStateAdapterTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceGuardServiceTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceGuardServiceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-project ---
+[INFO] 
+[INFO] ---------------< cn.iocoder.boot:pms-module-engineering >---------------
+[INFO] Building pms-module-engineering 2026.06-jdk25-SNAPSHOT           [29/29]
+[INFO]   from pms-module-engineering/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-engineering ---
+[INFO] Copying 17 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-engineering ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-engineering:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-engineering ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 433 source files with javac [target 25] to target/classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/arrivalacceptance/ArrivalDifferenceScopeCodec.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/arrivalacceptance/ArrivalDifferenceScopeCodec.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/preparation/PreparationSourceService.java: /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/preparation/PreparationSourceService.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/preparation/PreparationSourceService.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-engineering ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-engineering ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 72 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/arrivalacceptance/ArrivalAcceptanceControllerContractTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/arrivalacceptance/ArrivalAcceptanceControllerContractTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeApplicationServiceTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeApplicationServiceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-engineering ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.ImplementationReadinessApiContractTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.076 s -- in cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.ImplementationReadinessApiContractTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for yudao 2026.06-jdk25-SNAPSHOT:
+[INFO] 
+[INFO] yudao .............................................. SUCCESS [  0.268 s]
+[INFO] yudao-framework .................................... SUCCESS [  0.133 s]
+[INFO] yudao-common ....................................... SUCCESS [  0.443 s]
+[INFO] yudao-spring-boot-starter-web ...................... SUCCESS [  0.184 s]
+[INFO] yudao-spring-boot-starter-security ................. SUCCESS [  0.250 s]
+[INFO] yudao-spring-boot-starter-mybatis .................. SUCCESS [  0.475 s]
+[INFO] yudao-spring-boot-starter-redis .................... SUCCESS [  0.338 s]
+[INFO] yudao-spring-boot-starter-mq ....................... SUCCESS [  0.466 s]
+[INFO] yudao-spring-boot-starter-job ...................... SUCCESS [  0.147 s]
+[INFO] yudao-spring-boot-starter-biz-tenant ............... SUCCESS [  0.237 s]
+[INFO] yudao-spring-boot-starter-websocket ................ SUCCESS [  0.137 s]
+[INFO] yudao-spring-boot-starter-monitor .................. SUCCESS [  0.189 s]
+[INFO] yudao-spring-boot-starter-biz-ip ................... SUCCESS [  0.193 s]
+[INFO] yudao-spring-boot-starter-excel .................... SUCCESS [  0.216 s]
+[INFO] yudao-spring-boot-starter-test ..................... SUCCESS [  0.240 s]
+[INFO] yudao-spring-boot-starter-biz-data-permission ...... SUCCESS [  0.196 s]
+[INFO] yudao-module-infra ................................. SUCCESS [  0.362 s]
+[INFO] yudao-module-system ................................ SUCCESS [  0.372 s]
+[INFO] yudao-module-bpm ................................... SUCCESS [ 36.135 s]
+[INFO] pms-module-customer-api ............................ SUCCESS [  0.672 s]
+[INFO] pms-module-platform-api ............................ SUCCESS [  0.166 s]
+[INFO] pms-module-project-api ............................. SUCCESS [  0.189 s]
+[INFO] pms-module-asset-api ............................... SUCCESS [  0.187 s]
+[INFO] pms-module-engineering-api ......................... SUCCESS [  3.282 s]
+[INFO] pms-module-commerce-api ............................ SUCCESS [  0.667 s]
+[INFO] pms-module-integration-api ......................... SUCCESS [  0.535 s]
+[INFO] pms-module-platform ................................ SUCCESS [  4.647 s]
+[INFO] pms-module-project ................................. SUCCESS [ 12.213 s]
+[INFO] pms-module-engineering ............................. SUCCESS [ 10.523 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:02 min (Wall Clock)
+[INFO] Finished at: 2026-09-03T16:55:23Z
+[INFO] ------------------------------------------------------------------------
+```
+
+### platform_unit
+```text
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-test ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] Copying 2 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-spring-boot-starter-biz-tenant:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-biz-data-permission/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-biz-data-permission ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-biz-tenant/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-biz-tenant ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --------< cn.iocoder.boot:yudao-spring-boot-starter-websocket >---------
+[INFO] Building yudao-spring-boot-starter-websocket 2026.06-jdk25-SNAPSHOT [18/21]
+[INFO]   from yudao-framework/yudao-spring-boot-starter-websocket/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-spring-boot-starter-websocket ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-spring-boot-starter-websocket ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-spring-boot-starter-websocket:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-spring-boot-starter-websocket ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-spring-boot-starter-websocket ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-framework/yudao-spring-boot-starter-websocket/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-spring-boot-starter-websocket ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-spring-boot-starter-websocket ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:yudao-module-infra >-----------------
+[INFO] Building yudao-module-infra 2026.06-jdk25-SNAPSHOT               [19/21]
+[INFO]   from yudao-module-infra/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-infra ---
+[INFO] Copying 103 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-infra ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-infra:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-infra ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-module-infra/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-infra ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-infra ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:yudao-module-system >-----------------
+[INFO] Building yudao-module-system 2026.06-jdk25-SNAPSHOT              [20/21]
+[INFO]   from yudao-module-system/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-system ---
+[INFO] Copying 38 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-system ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-system:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-system ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-system ---
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:pms-module-platform >-----------------
+[INFO] Building pms-module-platform 2026.06-jdk25-SNAPSHOT              [21/21]
+[INFO]   from pms-module-platform/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-platform ---
+[INFO] Copying 23 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-platform ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-platform:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-platform ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-platform ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-platform ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 54 source files with javac [target 25] to target/test-classes
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by lombok.permit.Permit
+WARNING: Please consider reporting this to the maintainers of class lombok.permit.Permit
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-platform ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running cn.iocoder.yudao.module.pms.platform.service.outbox.PlatformOutboxDeliveryApiImplTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/runner/.m2/repository/net/bytebuddy/byte-buddy-agent/1.18.10/byte-buddy-agent-1.18.10.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.454 s -- in cn.iocoder.yudao.module.pms.platform.service.outbox.PlatformOutboxDeliveryApiImplTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for yudao 2026.06-jdk25-SNAPSHOT:
+[INFO] 
+[INFO] yudao .............................................. SUCCESS [  0.251 s]
+[INFO] yudao-framework .................................... SUCCESS [  0.105 s]
+[INFO] yudao-common ....................................... SUCCESS [  0.572 s]
+[INFO] yudao-spring-boot-starter-web ...................... SUCCESS [  0.380 s]
+[INFO] yudao-spring-boot-starter-security ................. SUCCESS [  0.288 s]
+[INFO] yudao-spring-boot-starter-mybatis .................. SUCCESS [  0.350 s]
+[INFO] yudao-spring-boot-starter-redis .................... SUCCESS [  0.327 s]
+[INFO] yudao-spring-boot-starter-mq ....................... SUCCESS [  0.456 s]
+[INFO] yudao-spring-boot-starter-job ...................... SUCCESS [  0.247 s]
+[INFO] yudao-spring-boot-starter-biz-tenant ............... SUCCESS [  0.214 s]
+[INFO] yudao-spring-boot-starter-websocket ................ SUCCESS [  0.138 s]
+[INFO] yudao-spring-boot-starter-monitor .................. SUCCESS [  0.326 s]
+[INFO] yudao-spring-boot-starter-biz-ip ................... SUCCESS [  0.219 s]
+[INFO] yudao-spring-boot-starter-excel .................... SUCCESS [  0.215 s]
+[INFO] yudao-spring-boot-starter-test ..................... SUCCESS [  0.123 s]
+[INFO] yudao-spring-boot-starter-biz-data-permission ...... SUCCESS [  0.182 s]
+[INFO] yudao-module-infra ................................. SUCCESS [  0.305 s]
+[INFO] yudao-module-system ................................ SUCCESS [  0.318 s]
+[INFO] pms-module-platform-api ............................ SUCCESS [  0.197 s]
+[INFO] pms-module-integration-api ......................... SUCCESS [  0.560 s]
+[INFO] pms-module-platform ................................ SUCCESS [  7.568 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  10.933 s (Wall Clock)
+[INFO] Finished at: 2026-09-03T16:55:35Z
+[INFO] ------------------------------------------------------------------------
+```
+
+### python_contract
+```text
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase1.py", line 638, in test_project_manager_may_query_closed_projects
+    self.assertEqual([], errors)
+AssertionError: Lists differ: [] != ["cross-context contracts must have unique[123 chars]4']"]
+
+Second list contains 1 additional elements.
+First extra element 0:
+"cross-context contracts must have unique Producer rows and exact Requirement traceability; malformed=[] invalid=[] contractErrors=[] missingLinks=['CUT-02', 'CUT-04']"
+
+- []
++ ['cross-context contracts must have unique Producer rows and exact Requirement '
++  'traceability; malformed=[] invalid=[] contractErrors=[] '
++  "missingLinks=['CUT-02', 'CUT-04']"]
+
+======================================================================
+FAIL: test_test_pass_statement_may_explicitly_deny_release_meaning (test_validate_sds_phase1.ValidateSdsPhase1Test.test_test_pass_statement_may_explicitly_deny_release_meaning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase1.py", line 647, in test_test_pass_statement_may_explicitly_deny_release_meaning
+    self.assertEqual([], errors)
+AssertionError: Lists differ: [] != ["cross-context contracts must have unique[123 chars]4']"]
+
+Second list contains 1 additional elements.
+First extra element 0:
+"cross-context contracts must have unique Producer rows and exact Requirement traceability; malformed=[] invalid=[] contractErrors=[] missingLinks=['CUT-02', 'CUT-04']"
+
+- []
++ ['cross-context contracts must have unique Producer rows and exact Requirement '
++  'traceability; malformed=[] invalid=[] contractErrors=[] '
++  "missingLinks=['CUT-02', 'CUT-04']"]
+
+======================================================================
+FAIL: test_valid_fence_info_characters_do_not_expose_code_table (test_validate_sds_phase1.ValidateSdsPhase1Test.test_valid_fence_info_characters_do_not_expose_code_table) (opening='```~markdown')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase1.py", line 514, in test_valid_fence_info_characters_do_not_expose_code_table
+    self.assertEqual([], errors)
+AssertionError: Lists differ: [] != ["cross-context contracts must have unique[123 chars]4']"]
+
+Second list contains 1 additional elements.
+First extra element 0:
+"cross-context contracts must have unique Producer rows and exact Requirement traceability; malformed=[] invalid=[] contractErrors=[] missingLinks=['CUT-02', 'CUT-04']"
+
+- []
++ ['cross-context contracts must have unique Producer rows and exact Requirement '
++  'traceability; malformed=[] invalid=[] contractErrors=[] '
++  "missingLinks=['CUT-02', 'CUT-04']"]
+
+======================================================================
+FAIL: test_valid_fence_info_characters_do_not_expose_code_table (test_validate_sds_phase1.ValidateSdsPhase1Test.test_valid_fence_info_characters_do_not_expose_code_table) (opening='~~~`markdown`')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase1.py", line 514, in test_valid_fence_info_characters_do_not_expose_code_table
+    self.assertEqual([], errors)
+AssertionError: Lists differ: [] != ["cross-context contracts must have unique[123 chars]4']"]
+
+Second list contains 1 additional elements.
+First extra element 0:
+"cross-context contracts must have unique Producer rows and exact Requirement traceability; malformed=[] invalid=[] contractErrors=[] missingLinks=['CUT-02', 'CUT-04']"
+
+- []
++ ['cross-context contracts must have unique Producer rows and exact Requirement '
++  'traceability; malformed=[] invalid=[] contractErrors=[] '
++  "missingLinks=['CUT-02', 'CUT-04']"]
+
+======================================================================
+FAIL: test_current_facc001_report_contract_is_complete (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_facc001_report_contract_is_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 839, in test_current_facc001_report_contract_is_complete
+    self.assertEqual([], MODULE.validate_facc001_report_contract(repository_root))
+AssertionError: Lists differ: [] != ['F-ACC-001 report contract missing: docs/[7999 chars]ord']
+
+Second list contains 73 additional elements.
+First extra element 0:
+'F-ACC-001 report contract missing: docs/design/08-data-model.md: 活动根以PROJ ProjectTask/WorkBinding为唯一外部身份'
+
+Diff is 8756 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_current_fcom001_acceptance_stage_binding_contract_is_complete (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_fcom001_acceptance_stage_binding_contract_is_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 829, in test_current_fcom001_acceptance_stage_binding_contract_is_complete
+    self.assertEqual([], MODULE.validate_fcom001_acceptance_stage_binding(repository_root))
+AssertionError: Lists differ: [] != ['F-COM-001 acceptance-stage contract miss[2715 chars]ock']
+
+Second list contains 21 additional elements.
+First extra element 0:
+'F-COM-001 acceptance-stage contract missing: docs/design/08-data-model.md: 项目验收阶段快照对DeliveryScope及其分配版本的锁定事实'
+
+Diff is 2992 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_current_fcom001_contract_admin_scope_is_complete (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_fcom001_contract_admin_scope_is_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 834, in test_current_fcom001_contract_admin_scope_is_complete
+    self.assertEqual([], MODULE.validate_fcom001_contract_admin_scope(repository_root))
+AssertionError: Lists differ: [] != ['F-COM-001 contract-admin scope missing: [2057 chars].md']
+
+Second list contains 19 additional elements.
+First extra element 0:
+'F-COM-001 contract-admin scope missing: docs/design/02d-cross-context-contracts.md: OrganizationScopeApi.getActiveScopes(userId)'
+
+Diff is 2304 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_current_fcom001_v70_required_target_mappings_are_complete (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_fcom001_v70_required_target_mappings_are_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 824, in test_current_fcom001_v70_required_target_mappings_are_complete
+    self.assertEqual([], MODULE.validate_fcom001_v70_required_mappings(repository_root))
+AssertionError: Lists differ: [] != ['F-COM-001 V70 required target mapping mi[890 chars]nce']
+
+Second list contains 10 additional elements.
+First extra element 0:
+'F-COM-001 V70 required target mapping missing or changed: com_sales_order_line.status'
+
+Diff is 1032 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_current_v18_baseline_state_is_coherent_and_ready_for_phase3_design (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_v18_baseline_state_is_coherent_and_ready_for_phase3_design)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 803, in test_current_v18_baseline_state_is_coherent_and_ready_for_phase3_design
+    self.assertEqual([], MODULE.validate(repository_root))
+AssertionError: Lists differ: [] != ['Phase 2 migration gate evidence does not[22118 chars]态推断']
+
+Second list contains 204 additional elements.
+First extra element 0:
+'Phase 2 migration gate evidence does not match current contract: docs/engineering/gates/phase-2/README.md expected=93对象/107来源绑定/1排除源'
+
+Diff is 24072 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_current_v18_migration_gate_evidence_matches_generated_contract (test_validate_sds_phase2.ValidateSdsPhase2Test.test_current_v18_migration_gate_evidence_matches_generated_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase2.py", line 819, in test_current_v18_migration_gate_evidence_matches_generated_contract
+    self.assertEqual([], MODULE.validate_v18_migration_gate_evidence(repository_root))
+AssertionError: Lists differ: [] != ['Phase 2 migration gate evidence does not[371 chars]排除源']
+
+Second list contains 3 additional elements.
+First extra element 0:
+'Phase 2 migration gate evidence does not match current contract: docs/engineering/gates/phase-2/README.md expected=93对象/107来源绑定/1排除源'
+
+- []
++ ['Phase 2 migration gate evidence does not match current contract: '
++  'docs/engineering/gates/phase-2/README.md expected=93对象/107来源绑定/1排除源',
++  'Phase 2 migration gate evidence does not match current contract: '
++  'docs/engineering/gates/phase-2/gate-status.md expected=93对象/107来源绑定/1排除源',
++  'Phase 2 migration gate evidence does not match current contract: '
++  'docs/engineering/gates/phase-2/self-review.md expected=93对象/107来源绑定/1排除源']
+
+======================================================================
+FAIL: test_current_v18_revision_007_state_is_coherent_and_ready (test_validate_sds_phase3.Phase3ValidatorTest.test_current_v18_revision_007_state_is_coherent_and_ready)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/NPDMS/NPDMS/scripts/tests/test_validate_sds_phase3.py", line 446, in test_current_v18_revision_007_state_is_coherent_and_ready
+    self.assertEqual([], VALIDATOR.validate(repository_root))
+AssertionError: Lists differ: [] != ['COM-01 Phase 3 PRD acceptance must exact[429 chars]ock']
+
+Second list contains 6 additional elements.
+First extra element 0:
+'COM-01 Phase 3 PRD acceptance must exactly match the authoritative PRD block'
+
+- []
++ ['COM-01 Phase 3 PRD acceptance must exactly match the authoritative PRD block',
++  'COM-01 declares unknown target table for its objects: com_order_line',
++  'PM-03 Phase 3 PRD acceptance must exactly match the authoritative PRD block',
++  'SCH-05 Phase 3 PRD acceptance must exactly match the authoritative PRD block',
++  'EXE-06 declares unknown target table for its objects: '
++  'proj_project_stage_snapshot',
++  'INS-09 Phase 3 PRD acceptance must exactly match the authoritative PRD block']
+
+----------------------------------------------------------------------
+Ran 716 tests in 33.732s
+
+FAILED (failures=26, errors=31)
+```
+
+### migrations
+```text
+APPLY sql/migrations/V43__pms_dict_types.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V44__pms_supplement_dict_types.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V45__pms_supplement_dict_types2.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V46__pms_project_risk_phase_issue_dict.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V47__pms_project_template.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V48__pms_team_member_user_id_nullable.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V49__pms_project_missing_permissions.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V50__retire_excluded_cutover_runtime_surfaces.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V51__retire_semantic_rework_maintenance_runtime_surfaces.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V52__proj_project_template_foundation.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V53__retire_legacy_template_runtime_surfaces.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V54__fpm03_template_demo_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V55__fpm03_template_demo_seed_fullchain.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V56__fpm03_template_draft_backfill.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V57__proj_project_manual_creation.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V58__freeze_legacy_project_runtime_surfaces.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V59__fpm01_manual_match_demo_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V60__fpm02_project_tree_progress.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V61__fpm02_project_tree_demo_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V62__fpm02_project_tree_fullchain_template.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V63__fproj001_v18_atomic_project_creation.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V64__system_company_department_scope.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V65__asset_location_core.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V66__project_site_location_resolution.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V67__engineering_asset_location_fact.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V68__organization_location_menu_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V69__organization_location_single_tenant_defaults.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V70__commerce_delivery_scope_slice.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V71__fproj002_split_tree_progress_carriers.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V72__fproj002_v18_seed_and_menu.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V73__fproj002_v18_visibility_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V74__fproj002_v18_organization_scope_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V75__fproj002_v18_parent_template_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V76__fproj002_project_code_sequence_repair.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V77__fproj003_authorization_grant.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V78__fproj003_authorization_seed_and_menu.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V79__fproj003_authorization_demo_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V80__fproj004_template_match_history.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V81__fproj004_template_match_seed_and_permission.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V82__fproj004_project_category_deduplicate.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V83__fproj005_service_manager_assignment.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V84__fproj005_service_manager_notification_template.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V85__fproj005_tenant_consistent_acceptance_project.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V86__fproj006_project_governance_foundation.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V87__fproj006_project_governance_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V88__fproj007_project_task_runtime.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V89__fproj007_project_task_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V90__fsol001_construction_plan_duration.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V91__fsol001_duration_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V92__fplt001_file_artifact.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V93__fplt001_file_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V94__quartz_2_5_2_mysql_schema.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V95__fsol001_file_artifact_freeze.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V96__fsol002_preparation_readiness.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V97__fsol002_preparation_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V98__fplt001_optional_security_scan.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V99__fsol003_requirement_analysis.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V100__fsol003_requirement_analysis_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V101__fsol003_retire_legacy_requirement_role_grants.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V102__fplt002_dynamic_form.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V103__fplt002_dynamic_form_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V104__fsol003_dynamic_form_composition.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V105__fsol003_dynamic_form_composition_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V106__fcus001_customer_master.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V107__fcus001_customer_classification_scope.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V108__fcus001_customer_menu_and_permissions.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V109__fast001_device_master_and_source_facts.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V110__fast001_device_shipments_and_software_versions.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V111__fast001_device_temporal_assignments.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V112__fast001_device_relationship_location_warranty.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V113__fast001_device_download_grant.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V114__fast001_legacy_equipment_forward_migration.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V115__fast001_device_ancestor_projection_operations.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V116__fast001_device_ancestor_projection_event_watermark.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V117__fast001_device_ancestor_projection_job.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V118__fast001_device_menu_permissions_and_legacy_access.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V119__fast001_device_acceptance_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V120__fast001_browser_acceptance_users.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V121__fast001_browser_acceptance_login_names.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V122__fast001_customer_summary_acceptance_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V123__fcus001_acceptance_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V128__fcut001_cutover_configuration.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V129__fcut001_cutover_configuration_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V130__fcut001_cutover_configuration_menu_parent.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V131__fcut001_cutover_configuration_auto_increment.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V132__fcut001_matrix_contract.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+APPLY sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+migration_state
+FCOM001_STATE_FRESH_V123
+APPLY sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1364 (HY000) at line 172: Field 'source_system' doesn't have a default value
+FAILED sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql
+```
+
+### commerce_mysql
+```text
+not run: migration chain failed
+```
+
+### engineering_mysql
+```text
+not run: migration chain failed
+```
+
+### frontend_install
+```text
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +1053
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 1053, reused 0, downloaded 42, added 38
+Progress: resolved 1053, reused 0, downloaded 128, added 123
+Progress: resolved 1053, reused 0, downloaded 240, added 239
+Progress: resolved 1053, reused 0, downloaded 354, added 347
+Progress: resolved 1053, reused 0, downloaded 622, added 625
+Progress: resolved 1053, reused 0, downloaded 705, added 709
+Progress: resolved 1053, reused 0, downloaded 927, added 930
+Progress: resolved 1053, reused 0, downloaded 1048, added 1052
+Progress: resolved 1053, reused 0, downloaded 1049, added 1053, done
+.../es5-ext@0.10.64/node_modules/es5-ext postinstall$  node -e "try{require('./_postinstall')}catch(e){}" || exit 0
+.../node_modules/@parcel/watcher install$ node scripts/build-from-source.js
+.../node_modules/core-js-pure postinstall$ node -e "try{require('./postinstall')}catch(e){}"
+.../es5-ext@0.10.64/node_modules/es5-ext postinstall: Done
+.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+.../node_modules/@parcel/watcher install: Done
+.../node_modules/core-js-pure postinstall: Done
+.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+
+dependencies:
++ @element-plus/icons-vue 2.3.2
++ @form-create/designer 3.4.0
++ @form-create/element-ui 3.2.38
++ @iconify/utils 3.1.0
++ @iconify/vue 5.0.1
++ @microsoft/fetch-event-source 2.0.1
++ @videojs-player/vue 1.0.0
++ @vueuse/core 14.3.0
++ @wangeditor-next/editor 5.7.0
++ @wangeditor-next/editor-for-vue 5.1.14
++ @wangeditor-next/plugin-mention 2.0.0
++ @zxcvbn-ts/core 3.0.4
++ animate.css 4.1.1
++ axios 1.16.0
++ benz-amr-recorder 1.1.5
++ bpmn-js-token-simulation 0.39.3
++ camunda-bpmn-moddle 7.0.1
++ cropperjs 2.1.1
++ crypto-js 4.2.0
++ dayjs 1.11.20
++ dhtmlx-gantt 9.1.4
++ diagram-js 15.14.0
++ driver.js 1.4.0
++ echarts 6.0.0
++ echarts-wordcloud 2.1.0
++ element-plus 2.13.7
++ fast-xml-parser 4.5.6
++ highlight.js 11.11.1
++ jsbarcode 3.12.3
++ jsencrypt 3.5.4
++ jsoneditor 10.4.3
++ livekit-client 2.19.1
++ lodash-es 4.18.1
++ markdown-it 14.1.1
++ markmap-common 0.18.9
++ markmap-lib 0.18.12
++ markmap-toolbar 0.18.12
++ markmap-view 0.18.12
++ min-dash 5.0.0
++ mitt 3.0.1
++ nprogress 0.2.0
++ pinia 3.0.4
++ pinia-plugin-persistedstate 4.7.1
++ qrcode 1.5.4
++ qs 6.15.1
++ snabbdom 3.6.3
++ sortablejs 1.15.7
++ steady-xml 0.1.0
++ tyme4ts 1.4.6
++ url 0.11.4
++ video.js 8.23.8
++ vue 3.5.34
++ vue-dompurify-html 5.3.0
++ vue-i18n 11.4.0
++ vue-router 5.0.6
++ vue-types 6.0.0
++ vue3-print-nb 0.1.4
++ vue3-signature 0.4.4
++ vuedraggable 4.1.0
++ web-storage-cache 1.1.1
++ xml-js 1.6.11
+
+devDependencies:
++ @commitlint/cli 20.5.3
++ @commitlint/config-conventional 20.5.3
++ @iconify/json 2.2.470
++ @types/jsoneditor 9.9.6
++ @types/lodash-es 4.17.12
++ @types/node 25.6.0
++ @types/nprogress 0.2.3
++ @types/qrcode 1.5.6
++ @types/qs 6.15.0
++ @unocss/eslint-config 66.6.8
++ @unocss/eslint-plugin 66.6.8
++ @unocss/transformer-variant-group 66.6.8
++ @vitejs/plugin-vue 6.0.6
++ @vitejs/plugin-vue-jsx 5.1.5
++ autoprefixer 10.5.0
++ bpmn-js 18.16.1
++ bpmn-js-properties-panel 5.54.0
++ consola 3.4.2
++ eslint 10.3.0
++ eslint-plugin-vue 10.9.1
++ lint-staged 16.4.0
++ postcss 8.5.14
++ postcss-html 1.8.1
++ postcss-scss 4.0.9
++ prettier 3.8.3
++ prettier-eslint 16.4.2
++ rimraf 6.1.3
++ rollup 4.60.3
++ sass 1.99.0
++ stylelint 17.11.0
++ stylelint-config-html 1.1.0
++ stylelint-config-recommended 18.0.0
++ stylelint-config-standard 40.0.0
++ stylelint-order 8.1.1
++ typescript 6.0.3
++ typescript-eslint 8.59.2
++ unocss 66.6.8
++ unplugin-auto-import 21.0.0
++ unplugin-element-plus 0.11.2
++ unplugin-vue-components 32.0.0
++ vite 8.1.4
++ vite-plugin-compression 0.5.1
++ vite-plugin-svg-icons-ng 1.9.0
++ vitest 4.1.11
++ vue-eslint-parser 10.4.0
++ vue-tsc 3.2.8
+
+Done in 9.4s
+```
+
+### frontend_type
+```text
+src/views/wms/order/check/CheckOrderForm.vue(252,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(253,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(254,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(255,26): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(256,32): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(262,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(271,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/check/CheckOrderForm.vue(276,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(277,22): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(278,26): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderForm.vue(279,27): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/check/CheckOrderForm.vue(283,28): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/check/CheckOrderForm.vue(312,23): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(313,79): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'CheckOrderFormDetail'.
+  Type 'unknown' is not assignable to type 'CheckOrderDetailVO'.
+src/views/wms/order/check/CheckOrderForm.vue(315,20): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(316,67): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'CheckOrderFormDetail'.
+  Type 'unknown' is not assignable to type 'CheckOrderDetailVO'.
+src/views/wms/order/check/CheckOrderForm.vue(318,21): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(319,69): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'CheckOrderFormDetail'.
+  Type 'unknown' is not assignable to type 'CheckOrderDetailVO'.
+src/views/wms/order/check/CheckOrderForm.vue(321,25): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(322,24): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(327,29): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderForm.vue(343,11): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/CheckOrderForm.vue(372,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/CheckOrderForm.vue(666,3): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/CheckOrderPrint.vue(100,59): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/check/CheckOrderPrint.vue(104,59): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/check/CheckOrderPrint.vue(107,56): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/check/CheckOrderPrint.vue(155,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderPrint.vue(156,24): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderPrint.vue(158,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderPrint.vue(159,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/CheckOrderPrint.vue(197,19): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderPrint.vue(208,33): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderPrint.vue(209,44): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/check/CheckOrderPrint.vue(211,30): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/check/CheckOrderPrint.vue(212,41): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/check/CheckOrderPrint.vue(217,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/CheckOrderPrint.vue(218,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/CheckOrderPrint.vue(234,11): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/check/index.vue(419,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/check/index.vue(420,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/check/index.vue(432,29): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(441,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(442,14): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(443,15): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(466,21): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/check/index.vue(467,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(468,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/check/index.vue(569,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(575,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(581,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/check/index.vue(615,1): error TS2304: Cannot find name 'onMounted'.
+src/views/wms/order/movement/MovementOrderDetail.vue(96,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderDetail.vue(97,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderDetail.vue(98,20): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderDetail.vue(104,20): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/movement/MovementOrderForm.vue(206,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/movement/MovementOrderForm.vue(207,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/movement/MovementOrderForm.vue(209,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(210,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(211,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(212,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(213,26): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(214,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(224,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/movement/MovementOrderForm.vue(230,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(231,28): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderForm.vue(233,24): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/movement/MovementOrderForm.vue(238,29): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/movement/MovementOrderForm.vue(244,22): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/movement/MovementOrderForm.vue(501,3): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/movement/MovementOrderPrint.vue(71,59): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/movement/MovementOrderPrint.vue(75,56): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/movement/MovementOrderPrint.vue(110,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderPrint.vue(111,24): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderPrint.vue(113,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderPrint.vue(114,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/MovementOrderPrint.vue(126,19): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/movement/MovementOrderPrint.vue(135,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/movement/MovementOrderPrint.vue(136,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/movement/MovementOrderPrint.vue(152,11): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/movement/index.vue(384,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/movement/index.vue(385,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/movement/index.vue(405,29): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(415,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(416,14): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(417,15): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(439,21): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/movement/index.vue(440,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(441,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/movement/index.vue(519,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(525,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(531,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/movement/index.vue(565,1): error TS2304: Cannot find name 'onMounted'.
+src/views/wms/order/receipt/ReceiptOrderDetail.vue(118,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderDetail.vue(119,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderDetail.vue(120,20): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderDetail.vue(121,20): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(215,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(216,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(218,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(219,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(220,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(221,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(222,26): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(223,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(235,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(241,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(242,22): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(244,24): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(249,29): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/receipt/ReceiptOrderForm.vue(488,3): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(75,59): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(79,56): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(114,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(115,24): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(117,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(118,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(130,19): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(139,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(140,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/receipt/ReceiptOrderPrint.vue(156,11): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/receipt/index.vue(431,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/receipt/index.vue(432,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/receipt/index.vue(454,29): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(465,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(466,14): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(467,15): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(491,21): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/receipt/index.vue(492,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(493,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/receipt/index.vue(576,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(582,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(588,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/receipt/index.vue(622,1): error TS2304: Cannot find name 'onMounted'.
+src/views/wms/order/shipment/ShipmentOrderDetail.vue(118,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderDetail.vue(119,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderDetail.vue(120,20): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderDetail.vue(121,20): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(226,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(227,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(229,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(230,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(231,21): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(232,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(233,26): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(234,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(246,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(252,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(253,28): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(255,24): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(260,29): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/shipment/ShipmentOrderForm.vue(518,3): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(75,59): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(79,56): error TS18046: 'detail' is of type 'unknown'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(114,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(115,24): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(117,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(118,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(130,19): error TS2304: Cannot find name 'computed'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(139,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(140,9): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/shipment/ShipmentOrderPrint.vue(156,11): error TS2304: Cannot find name 'nextTick'.
+src/views/wms/order/shipment/index.vue(431,17): error TS2304: Cannot find name 'useMessage'.
+src/views/wms/order/shipment/index.vue(432,15): error TS2304: Cannot find name 'useI18n'.
+src/views/wms/order/shipment/index.vue(454,29): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(465,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(466,14): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(467,15): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(491,21): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/shipment/index.vue(492,23): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(493,19): error TS2304: Cannot find name 'reactive'.
+src/views/wms/order/shipment/index.vue(576,17): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(582,19): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(588,18): error TS2304: Cannot find name 'ref'.
+src/views/wms/order/shipment/index.vue(622,1): error TS2304: Cannot find name 'onMounted'.
+ ELIFECYCLE  Command failed with exit code 2.
+```
+
+### frontend_test
+```text
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3[39m
+
+ [31m❯[39m src/views/pms/cutover/cutover-task/cutoverTaskInteraction.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/views/pms/cutover/cutover-task/cutoverTaskInteraction.spec.ts[2m [ src/views/pms/cutover/cutover-task/cutoverTaskInteraction.spec.ts ][22m
+[31m[1mTypeError[22m: Unknown file extension ".css" for /home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/element-plus@2.13.7_typescript@6.0.3_vue@3.5.34_typescript@6.0.3_/node_modules/element-plus/theme-chalk/base.css[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 16:57:57
+[2m   Duration [22m 1.06s[2m (transform 325ms, setup 0ms, import 0ms, tests 0ms, environment 0ms)[22m
+
+```
+
+### frontend_build
+```text
+
+> yudao-ui-admin-vue3@2026.06-snapshot build:test /home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3
+> pnpm icons:check && node --max_old_space_size=8192 ./node_modules/vite/bin/vite.js build --mode test
+
+
+> yudao-ui-admin-vue3@2026.06-snapshot icons:check /home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3
+> node scripts/generate-iconify-collections.cjs --check
+
+Offline Iconify collection is current (36 collections).
+[36mvite v8.1.4 [32mbuilding client environment for test...[36m[39m
+[2Ktransforming...[33m[1m(!) %VITE_APP_TITLE% is not defined in env variables found in /index.html. Is the variable mistyped?[22m[39m
+[33m[1m(!) %VITE_APP_TITLE% is not defined in env variables found in /index.html. Is the variable mistyped?[22m[39m
+✓ 8518 modules transformed.
+[31m✗[39m Build failed in 22.27s
+[31merror during build:
+[31mBuild failed with 1 error:
+
+[plugin vite:vue] /home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/index.vue:244:6
+SyntaxError: [vue/compiler-sfc] Identifier 'handleApprovalWorkspaceChanged' has already been declared. (244:6)
+
+/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/index.vue
+495|    if (reassignmentQueueVisible.value) await loadReassignmentQueue()
+496|  }
+497|  const handleApprovalWorkspaceChanged = async () => {
+   |        ^
+498|    await loadPage()
+499|    if (todoVisible.value) await loadApprovalTodos()
+    at constructor (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:365:19)
+    at TypeScriptParserMixin.raise (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:6616:19)
+    at TypeScriptScopeHandler.checkRedeclarationInScope (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:1619:19)
+    at TypeScriptScopeHandler.declareName (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:1585:12)
+    at TypeScriptScopeHandler.declareName (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:4892:11)
+    at TypeScriptParserMixin.declareNameFromIdentifier (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:7584:16)
+    at TypeScriptParserMixin.checkIdentifier (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:7580:12)
+    at TypeScriptParserMixin.checkLVal (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:7517:12)
+    at TypeScriptParserMixin.parseVarId (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:13429:10)
+    at TypeScriptParserMixin.parseVarId (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:9769:11)
+    at TypeScriptParserMixin.parseVar (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:13400:12)
+    at TypeScriptParserMixin.parseVarStatement (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:13247:10)
+    at TypeScriptParserMixin.parseVarStatement (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:9425:31)
+    at TypeScriptParserMixin.parseStatementContent (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:12868:23)
+    at TypeScriptParserMixin.parseStatementContent (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:9525:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:12784:17)
+    at TypeScriptParserMixin.parseModuleItem (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:12761:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:13333:36)
+    at TypeScriptParserMixin.parseBlockBody (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:13326:10)
+    at TypeScriptParserMixin.parseProgram (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:12639:10)
+    at TypeScriptParserMixin.parseTopLevel (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:12629:25)
+    at TypeScriptParserMixin.parse (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:14505:25)
+    at TypeScriptParserMixin.parse (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:10143:18)
+    at Object.parse (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@babel+parser@7.29.3/node_modules/@babel/parser/lib/index.js:14539:38)
+    at parse (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vue+compiler-sfc@3.5.34/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19874:25)
+    at new ScriptCompileContext (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vue+compiler-sfc@3.5.34/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19891:53)
+    at Object.compileScript (/home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vue+compiler-sfc@3.5.34/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:24921:15)
+    at resolveScript (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitejs+plugin-vue@6.0.6_vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0__sg2c2qr7e3zvnmuvffxjczpbta/node_modules/@vitejs/plugin-vue/dist/index.mjs:276:36)
+    at genScriptCode (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitejs+plugin-vue@6.0.6_vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0__sg2c2qr7e3zvnmuvffxjczpbta/node_modules/@vitejs/plugin-vue/dist/index.mjs:1430:17)
+    at transformMain (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitejs+plugin-vue@6.0.6_vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0__sg2c2qr7e3zvnmuvffxjczpbta/node_modules/@vitejs/plugin-vue/dist/index.mjs:1312:53)
+    at TransformPluginContextImpl.handler (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitejs+plugin-vue@6.0.6_vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0__sg2c2qr7e3zvnmuvffxjczpbta/node_modules/@vitejs/plugin-vue/dist/index.mjs:1714:27)
+    at TransformPluginContextImpl.handler (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0_terser@5.46.2_yaml@2.8.4/node_modules/vite/dist/node/chunks/node.js:33254:13)
+    at plugin (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/rolldown@1.1.5/node_modules/rolldown/dist/shared/bindingify-input-options-XPJLJOD0.mjs:1511:30)
+    at plugin.<computed> (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/rolldown@1.1.5/node_modules/rolldown/dist/shared/bindingify-input-options-XPJLJOD0.mjs:1959:18)[31m
+    at aggregateBindingErrorsIntoJsError (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/rolldown@1.1.5/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:48:18)
+    at unwrapBindingResult (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/rolldown@1.1.5/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:18:128)
+    at #build (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/rolldown@1.1.5/node_modules/rolldown/dist/shared/rolldown-build-CtPvmZgJ.mjs:3276:34)
+    at async buildEnvironment (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0_terser@5.46.2_yaml@2.8.4/node_modules/vite/dist/node/chunks/node.js:33011:66)
+    at async Object.build (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0_terser@5.46.2_yaml@2.8.4/node_modules/vite/dist/node/chunks/node.js:33433:19)
+    at async Object.buildApp (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0_terser@5.46.2_yaml@2.8.4/node_modules/vite/dist/node/chunks/node.js:33430:153)
+    at async CAC.<anonymous> (file:///home/runner/work/NPDMS/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/vite@8.1.4_@types+node@25.6.0_esbuild@0.27.3_jiti@2.6.1_sass@1.99.0_terser@5.46.2_yaml@2.8.4/node_modules/vite/dist/node/cli.js:776:3) {
+  errors: [Getter/Setter]
+}[39m
+ ELIFECYCLE  Command failed with exit code 1.
+```
