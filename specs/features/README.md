@@ -15,7 +15,7 @@
 | [F-PROJ-005](F-PROJ-005-service-manager-manual-assignment.md) | 服务经理人工指派与责任分布 | PM-08（V1） | BASELINE | READY（`NPDMS-FPROJ005-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `25230ce`；整改复审GO） |
 | [F-PROJ-006](F-PROJ-006-project-rollback-exception-close-and-reopen.md) | 项目回退、异常关闭与受控重开 | PM-10（V1） | BASELINE | READY（`NPDMS-FPROJ006-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `fc9f8b1`；独立复审GO） |
 | [F-PROJ-007](F-PROJ-007-project-task-tree-and-native-workbench.md) | 项目任务树与原生任务工作台 | PM-11（V1） | BASELINE | READY（`NPDMS-FPROJ007-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `b559978`；独立复审GO） |
-| [F-PROJ-008](F-PROJ-008-project-stage-gate-and-forward-advance.md) | 项目阶段准出门禁与正向推进 | PM-03（V1，PARTIAL） | BASELINE | READY / GO（master修订009选择收敛） | IN_PROGRESS（Task 1-2已集成；尚未进入Implementation Done；Task 3受`Q-FPROJ-009`阻断） |
+| [F-PROJ-008](F-PROJ-008-project-stage-gate-and-forward-advance.md) | 项目阶段准出门禁与正向推进 | PM-03（V1，PARTIAL） | BASELINE | READY / GO（master修订009选择收敛） | IN_PROGRESS（Task 1、2、3A已进入master；Task 3B受规格缺口阻断；尚未进入Implementation Done） |
 | [F-SOL-001](F-SOL-001-project-duration-baseline-and-change-approval.md) | 项目工期基线与变更审批 | PRE-01（V1） | BASELINE | READY（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） | IMPLEMENTATION_COMPLETE（NPDMS `c417dee`；独立复审GO） |
 | [F-SOL-002](F-SOL-002-site-survey-assignment-and-readiness.md) | 工勘分工信息采集与实施就绪 | PRE-02（V1） | BASELINE | READY（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） | IMPLEMENTATION_COMPLETE（NPDMS `7243727f`；独立复审GO） |
 | [F-SOL-003](F-SOL-003-requirement-analysis-versioning.md) | 需求分析动态表单与版本冻结 | PRE-04（V1） | BASELINE | READY（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） | IMPLEMENTATION_COMPLETE（`NPDMS-FSOL003-DYNAMICFORM-IMPLEMENTATION-20260828-01-R1`；Requirement覆盖仍按PARTIAL映射派生） |
@@ -26,8 +26,8 @@
 | [F-AST-002](F-AST-002-device-product-type-copy-and-public-query.md) | 设备产品类型受控副本与公开查询 | EQP-01（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待master真实MySQL与独立Done裁决） |
 | [F-ACC-001](F-ACC-001-acceptance-report-version-and-deliverable-sync.md) | 初验/终验报告版本与交付件同步 | ACC-03（V1）、ACC-04（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待master真实MySQL、Chromium与独立Done裁决） |
 | [F-ACC-002](F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md) | 满意度问卷、达标判定与归档同步 | ACC-02（V1）、ACC-04（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待F-ACC-001及自身运行复验与独立Done裁决） |
-| [F-COM-001](F-COM-001-contract-order-association-and-delivery-scope-allocation.md) | 合同订单关联与交付范围管理（[COM-B历史规格](F-COM-001-contract-order-and-delivery-scope.md)） | COM-01（V1） | BASELINE | READY / REQUIREMENT_CONVERGENCE_APPROVED | IN_PROGRESS（master选择性集成与重新验证中） |
-| [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | IN_PROGRESS（`master@c61e5b1e`已部分集成；V133示例迁移与master最终运行DoD前不恢复Done） |
+| [F-COM-001](F-COM-001-contract-order-association-and-delivery-scope-allocation.md) | 合同订单关联与交付范围管理（[COM-B历史规格](F-COM-001-contract-order-and-delivery-scope.md)） | COM-01（V1） | BASELINE | READY / REQUIREMENT_CONVERGENCE_APPROVED | IN_PROGRESS（生产代码已进入master并有后继增强；待当前master真实MySQL、运行复验与独立Done裁决） |
+| [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | IN_PROGRESS（矩阵生产代码与V132已进入master并有后继修正；V133示例迁移及当前master最终运行DoD待完成） |
 | [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/CUT-02（V1局部） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY（代码回执`c9066332`） |
 | [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级 | CUT-03（V1） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY（代码回执`c9066332`） |
 | [F-CUT-004](F-CUT-004-p4-cutover-plan-authoring.md) | P4割接方案编制与版本提交 | CUT-04（V1） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_SPEC / BLOCKED_BY_DEPENDENCY（代码回执`c9066332`） |
@@ -40,7 +40,7 @@
 | [F-IMP-001](F-IMP-001-implementation-readiness-snapshot.md) | 割接上线实施就绪快照 | EXE-06（V1局部） | DRAFT | NOT_READY / NO-GO | IN_PROGRESS（基础支撑已实现；核心就绪快照待实施） |
 | [F-IMP-002](F-IMP-002-arrival-acceptance.md) | 到货签收与里程碑事实 | EXE-01（V1） | BASELINE | READY / GO | IN_PROGRESS（Task 1～11已进入master；Task 12生产装配待完成） |
 | [F-INT-012](F-INT-012-device-ops-collection-integration.md) | 设备连接与采集平台集成 | INT-12（V1） | BASELINE | READY | IN_PROGRESS（PLT核心已进入master；INT边缘与E2E待完成） |
-| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（V2局部）、INS-09（V2） | BASELINE（master修订012/013关闭Q-FINS001-005/006） | READY / GO | IMPLEMENTATION_IN_PROGRESS（代码回执`6eb7c89e`；无规格阻断，Task 8权限守卫、最后事实查询和生产审核/发布仍待实现） |
+| [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（V2局部）、INS-09（V2） | BASELINE（master修订012/013关闭Q-FINS001-005/006） | READY / GO | IMPLEMENTATION_IN_PROGRESS（Task 1～8已进入master；Task 9最终验证、真实运行证据与独立Done裁决待完成） |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 

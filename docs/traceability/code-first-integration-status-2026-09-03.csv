@@ -1,0 +1,11 @@
+Feature,CodeMergeDecision,CodeState,FeatureStatus,RequirementSlices,ExpectedTraceStatus,RemainingGate
+F-PROJ-001,REJECT_BACK_MERGE_SUPERSEDED,Current master owns the complete replacement implementation,IMPLEMENTATION_COMPLETE,PM-01@V1; PM-03@V1(partial mapping),generator-derived; no regression,None for this Feature
+F-PROJ-008,NO_OP,"Tasks 1,2,3A in master; no Task 3B production commit",IN_PROGRESS,PM-03@V1=PARTIAL,IMPLEMENTATION_PARTIAL/IN_PROGRESS per aggregate mappings,Task 3B spec closure and implementation
+F-ACC-001,NO_OP_EXACT_IN_MASTER,Production implementation and migrations received,IN_PROGRESS,ACC-03@V1=FULL; ACC-04@V1=PARTIAL,IMPLEMENTATION_IN_PROGRESS,"Current-master MySQL, Chromium and independent Done"
+F-ACC-002,NO_OP_EXACT_IN_MASTER,Production implementation and migrations received,IN_PROGRESS,ACC-02@V1=FULL; ACC-04@V1=PARTIAL,IMPLEMENTATION_IN_PROGRESS,Runtime revalidation and independent Done
+F-COM-001,NO_OP_MASTER_SUPERSET,Source implementation received; master has successor enhancements,IN_PROGRESS,COM-01@V1=FULL,IMPLEMENTATION_IN_PROGRESS,Current-master runtime revalidation and independent Done
+F-CUT-001,NO_OP_MASTER_SUPERSET,Matrix code and V132 received; master contains later fixes,IN_PROGRESS,CUT-07@V1; CUT-09@V1; CUT-10@V1,IMPLEMENTATION_IN_PROGRESS,V133 seed migration and final current-master DoD
+F-IMP-001,REJECT_CONTRACT_ONLY,AST support in master; old branch contains only orphan public contract,IN_PROGRESS,EXE-06@V1=PARTIAL,IMPLEMENTATION_IN_PROGRESS,Core readiness snapshot aggregate/provider/event/consumer
+F-IMP-002,NO_OP,Tasks 1-11 in master; no Task 12 production assembly,IN_PROGRESS,EXE-01@V1=FULL,IMPLEMENTATION_IN_PROGRESS,"Task 12 production registration, jobs and real infrastructure"
+F-INT-012,NO_OP_CORE_REJECT_OLD_INFRA,PLT core received; old Infra owner/migrations conflict with current architecture,IN_PROGRESS,INT-12@V1=FULL,IMPLEMENTATION_IN_PROGRESS,"INT edge, real gateway and E2E"
+F-INS-001,NO_OP_MASTER_SUPERSET,Tasks 1-8 in master; master has successor publication fixes,IN_PROGRESS,INS-03@V2=PARTIAL; INS-09@V2=FULL,IMPLEMENTATION_IN_PROGRESS,Task 9 final validation and independent Done
