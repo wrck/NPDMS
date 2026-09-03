@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
 > Requirement：`INT-12（V1）`
+> Requirement切片覆盖：`INT-12@V1=FULL`
 > 关联Requirement：`EXE-03`、`EXE-04`、`CUT-03`、`CUT-06`、`INS-02`、`INS-04`、`NFR-02`；不宣称关联Requirement完成
 > Owner Context：`PLT（平台公共能力 / Device Access & Collection）`
 > 外部协作Context：`INT（集成域）`、`Device Ops`、`PLT（基础文件平台）`、`IMP（现场实施）`、`CUT（割接管理）`、`SRV（服务运营）`
