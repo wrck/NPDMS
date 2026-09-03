@@ -19,14 +19,16 @@
     },
     "slicesByImplementationStatus": {
       "IMPLEMENTATION_COMPLETE": 5,
+      "IMPLEMENTATION_IN_PROGRESS": 23,
       "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 97
+      "NOT_STARTED": 74
     }
   },
   "derivationRules": [
     "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
     "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
-    "No completed authoritative task mapping => NOT_STARTED",
+    "In-progress authoritative task mapping => IMPLEMENTATION_IN_PROGRESS",
+    "No completed or in-progress authoritative task mapping => NOT_STARTED",
     "Feature association, dependency and support text do not create coverage"
   ],
   "features": [
@@ -259,6 +261,32 @@
       ]
     },
     {
+      "featureId": "F-IMP-001",
+      "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
+      "taskPath": "tasks/features/F-IMP-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "EXE-06@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-IMP-002",
+      "featurePath": "specs/features/F-IMP-002-arrival-acceptance.md",
+      "taskPath": "tasks/features/F-IMP-002.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "EXE-01@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-INS-001",
       "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
       "taskPath": "tasks/features/F-INS-001.md",
@@ -271,6 +299,19 @@
         },
         {
           "sliceKey": "INS-09@V2",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-INT-012",
+      "featurePath": "specs/features/F-INT-012-device-ops-collection-integration.md",
+      "taskPath": "tasks/features/F-INT-012.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "INT-12@V1",
           "coverage": "FULL"
         }
       ]
@@ -459,7 +500,7 @@
       "ownerName": "合同订单履约",
       "businessResult": "合同订单关联与范围分配的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-COM-001",
@@ -906,8 +947,16 @@
       "ownerName": "现场实施",
       "businessResult": "到货签收的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
-      "features": []
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
+      "features": [
+        {
+          "featureId": "F-IMP-002",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-IMP-002-arrival-acceptance.md",
+          "taskPath": "tasks/features/F-IMP-002.md"
+        }
+      ]
     },
     {
       "sliceKey": "EXE-02@V1",
@@ -966,8 +1015,16 @@
       "ownerName": "现场实施",
       "businessResult": "割接上线门禁的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
-      "features": []
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
+      "features": [
+        {
+          "featureId": "F-IMP-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-IMP-001-implementation-readiness-snapshot.md",
+          "taskPath": "tasks/features/F-IMP-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "IMP-01@V2",
@@ -1002,7 +1059,7 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "满意度收集与结果管理的V1主交付业务结果",
       "versionBoundary": "V1问卷与结果闭环；V2自动触达",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-ACC-002",
@@ -1022,7 +1079,7 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "验收报告管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-ACC-001",
@@ -1042,7 +1099,7 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "交付件归档管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-ACC-001",
@@ -1233,7 +1290,7 @@
       "ownerName": "资产管理",
       "businessResult": "设备序列号档案的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-AST-001",
@@ -1380,7 +1437,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接任务管理的V1主交付业务结果",
       "versionBoundary": "V1任务闭环；V2首页KPI",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-002",
@@ -1400,7 +1457,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接分级评估的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-002",
@@ -1420,7 +1477,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接采集清单动态多维绑定生成的V1主交付业务结果",
       "versionBoundary": "V1清单管理；V2导出与流程跳转",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-003",
@@ -1440,7 +1497,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接方案编审的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-004",
@@ -1460,7 +1517,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接分级审批的V1主交付业务结果",
       "versionBoundary": "V1分级审批；V2 A/B级专项提前时间判断（含原10.12提前时间合规判断）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-005",
@@ -1480,7 +1537,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接跟踪与闭环的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-006",
@@ -1500,7 +1557,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接后台配置的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-001",
@@ -1520,7 +1577,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接备件系统集成的V2主交付业务结果",
       "versionBoundary": "V2",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-010",
@@ -1540,7 +1597,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接风险项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-001",
@@ -1560,7 +1617,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接调研项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-001",
@@ -1604,7 +1661,7 @@
       "ownerName": "服务运营",
       "businessResult": "巡检规则管理的V2主交付业务结果",
       "versionBoundary": "V2",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-INS-001",
@@ -1684,7 +1741,7 @@
       "ownerName": "服务运营",
       "businessResult": "巡检规则配置字段的V2主交付业务结果",
       "versionBoundary": "V2",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-INS-001",
@@ -1812,8 +1869,16 @@
       "ownerName": "平台公共能力",
       "businessResult": "设备连接与采集平台集成的V1主交付业务结果",
       "versionBoundary": "V1实施/割接公共能力；V2巡检入口",
-      "implementationStatus": "NOT_STARTED",
-      "features": []
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
+      "features": [
+        {
+          "featureId": "F-INT-012",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-INT-012-device-ops-collection-integration.md",
+          "taskPath": "tasks/features/F-INT-012.md"
+        }
+      ]
     },
     {
       "sliceKey": "NFR-01@V1",
@@ -1976,7 +2041,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "按授权范围展示割接首页KPI",
       "versionBoundary": "不改变CUT任务状态和P1～P6流程",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-007",
@@ -1996,7 +2061,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "授权清单导出与流程跳转配置优化",
       "versionBoundary": "V1生成、填写、暂存、提交及基础跳转保持不变",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-009",
@@ -2016,7 +2081,7 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "A/B级专项提前时间判断及经定义的外部提醒",
       "versionBoundary": "不新增平台通用SLA；短信/邮件走INT-10、钉钉走INT-05",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
       "features": [
         {
           "featureId": "F-CUT-008",

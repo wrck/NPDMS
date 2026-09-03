@@ -630,6 +630,8 @@ def derived_status(mappings: list[dict[str, str]]) -> str:
         return "IMPLEMENTATION_COMPLETE"
     if completed:
         return "IMPLEMENTATION_PARTIAL"
+    if any(item["task_status"] == "IN_PROGRESS" for item in mappings):
+        return "IMPLEMENTATION_IN_PROGRESS"
     return "NOT_STARTED"
 
 
@@ -730,7 +732,8 @@ def render(
         "derivationRules": [
             "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
             "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
-            "No completed authoritative task mapping => NOT_STARTED",
+            "In-progress authoritative task mapping => IMPLEMENTATION_IN_PROGRESS",
+            "No completed or in-progress authoritative task mapping => NOT_STARTED",
             "Feature association, dependency and support text do not create coverage",
         ],
         "features": feature_records,
@@ -766,7 +769,8 @@ def render(
         "|---|---|",
         "| `IMPLEMENTATION_COMPLETE` | 当前Requirement目标版本切片的已知业务义务均已映射，且全部必需Feature已完成；不代表Deployment、SIT、UAT或Release通过 |",
         "| `IMPLEMENTATION_PARTIAL` | 至少一个合法Feature子闭环已完成，但该Requirement目标版本切片仍有未完成或未映射业务义务 |",
-        "| `NOT_STARTED` | 没有已完成的权威Feature任务覆盖；可包含未启动Feature、缺任务记录的Feature或尚未声明覆盖的切片，不代表需求缺失 |",
+        "| `IMPLEMENTATION_IN_PROGRESS` | 已有合法Feature覆盖且权威Task正在实施；可包含已进入master的部分代码，但尚未达到完成Gate |",
+        "| `NOT_STARTED` | 没有已完成或进行中的权威Feature任务覆盖；可包含缺任务记录的Feature或尚未声明覆盖的切片，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
         "",
