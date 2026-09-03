@@ -39,7 +39,7 @@ class DeviceCredentialControllerContractTest {
     @Test
     void exposesStableResourceWithoutSecretResponse() throws Exception {
         RequestMapping mapping = DeviceCredentialController.class.getAnnotation(RequestMapping.class);
-        assertEquals("/pms/platform/device-credentials", mapping.value()[0]);
+        assertEquals("/api/v1/pms/device-credentials", mapping.value()[0]);
 
         Method create = DeviceCredentialController.class.getDeclaredMethod("create", DeviceCredentialCreateReqVO.class);
         assertNotNull(create.getAnnotation(PostMapping.class));
