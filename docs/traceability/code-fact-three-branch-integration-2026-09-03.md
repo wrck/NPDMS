@@ -1287,3 +1287,280 @@ domain specification root not found: docs/design/phase-1-domain-ownership.md
 [ERROR] After correcting the problems, you can resume the build with the command
 [ERROR]   mvn <args> -rf :pms-module-commerce
 ```
+
+## 适配Pass 2：隔离已被主干后继实现取代的旧COM组
+
+- 仅恢复 `pms-module-commerce`、两份旧COM重排迁移及对应旧COM专项脚本。
+- ACC、CUT、IMP、INT、CUS和Infra流式文件代码继续保留。
+- Requirement追溯生成退出码：`0`
+- Maven受影响Reactor构建退出码：`1`
+
+### Requirement追溯日志
+```text
+WROTE docs/traceability/requirement-matrix.md
+WROTE docs/traceability/requirement-version-coverage.json
+```
+
+### Maven日志
+```text
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:yudao-module-system >-----------------
+[INFO] Building yudao-module-system 2026.06-jdk25-SNAPSHOT              [27/33]
+[INFO]   from yudao-module-system/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-system ---
+[INFO] Copying 38 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-system ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-system:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-system ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 439 source files with javac [target 25] to target/classes
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/convert/auth/AuthConvert.java:[82,26] Unmapped target property: "socialType".
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/convert/auth/AuthConvert.java:[84,23] Unmapped target property: "createIp".
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/redis/oauth2/OAuth2AccessTokenRedisDAO.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/redis/oauth2/OAuth2AccessTokenRedisDAO.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/controller/admin/oauth2/OAuth2OpenController.java: /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/controller/admin/oauth2/OAuth2OpenController.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/controller/admin/oauth2/OAuth2OpenController.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-system ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-system ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 13 source files with javac [target 25] to target/test-classes
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-system ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.5.0:jar (default-jar) @ yudao-module-system ---
+[INFO] Building jar: /home/runner/work/NPDMS/NPDMS/yudao-module-system/target/yudao-module-system-2026.06-jdk25-SNAPSHOT.jar
+[INFO] 
+[INFO] ------------------< cn.iocoder.boot:yudao-module-bpm >------------------
+[INFO] 
+[INFO] Building yudao-module-bpm 2026.06-jdk25-SNAPSHOT                 [28/33]
+[INFO] ----------------< cn.iocoder.boot:pms-module-customer >-----------------
+[INFO] Building pms-module-customer 2026.06-jdk25-SNAPSHOT              [29/33]
+[INFO]   from yudao-module-bpm/pom.xml
+[INFO]   from pms-module-customer/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] ----------------< cn.iocoder.boot:pms-module-platform >-----------------
+[INFO] Building pms-module-platform 2026.06-jdk25-SNAPSHOT              [30/33]
+[INFO]   from pms-module-platform/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-customer ---
+[INFO] Copying 2 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-customer ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-customer:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-customer ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 62 source files with javac [target 25] to target/classes
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-customer ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-customer ---
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-platform ---
+[INFO] Copying 23 resources from src/main/resources to target/classes
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 23 source files with javac [target 25] to target/test-classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-platform ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-platform:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-platform ---
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java: /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/controller/admin/customer/CustomerControllerContractTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-customer ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.5.0:jar (default-jar) @ pms-module-customer ---
+[INFO] Building jar: /home/runner/work/NPDMS/NPDMS/pms-module-customer/target/pms-module-customer-2026.06-jdk25-SNAPSHOT.jar
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ yudao-module-bpm ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/resources
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ yudao-module-bpm ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:yudao-module-bpm:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 234 source files with javac [target 25] to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ yudao-module-bpm ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 223 source files with javac [target 25] to target/classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormSchemaService.java: /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormSchemaService.java uses or overrides a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormSchemaService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-platform ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-platform ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 54 source files with javac [target 25] to target/test-classes
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/java/cn/iocoder/yudao/module/bpm/convert/task/BpmProcessInstanceConvert.java:[124,10] Unmapped target properties: "type, version, name, key, categoryName, formName, suspensionState, deploymentTime, bpmnXml".
+[WARNING] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/main/java/cn/iocoder/yudao/module/bpm/convert/definition/BpmProcessDefinitionConvert.java:[97,10] Unmapped target properties: "type, version, name, key, categoryName, formName, suspensionState, deploymentTime, bpmnXml".
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ yudao-module-bpm ---
+[INFO] Copying 4 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ yudao-module-bpm ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 19 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/dynamicform/DynamicFormApplicationMySqlIntegrationTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileArtifactApiImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-platform ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.5.0:jar (default-jar) @ pms-module-platform ---
+[INFO] Building jar: /home/runner/work/NPDMS/NPDMS/pms-module-platform/target/pms-module-platform-2026.06-jdk25-SNAPSHOT.jar
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:pms-module-cutover >-----------------
+[INFO] Building pms-module-cutover 2026.06-jdk25-SNAPSHOT               [31/33]
+[INFO]   from pms-module-cutover/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-cutover ---
+[INFO] Copying 26 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-cutover ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-cutover:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java: /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java uses or overrides a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/src/test/java/cn/iocoder/yudao/module/bpm/framework/flowable/core/candidate/expression/BpmTaskAssignLeaderExpressionTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ yudao-module-bpm ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.5.0:jar (default-jar) @ yudao-module-bpm ---
+[INFO] Building jar: /home/runner/work/NPDMS/NPDMS/yudao-module-bpm/target/yudao-module-bpm-2026.06-jdk25-SNAPSHOT.jar
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-cutover ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 343 source files with javac [target 25] to target/classes
+[INFO] 
+[INFO] -----------------< cn.iocoder.boot:pms-module-project >-----------------
+[INFO] Building pms-module-project 2026.06-jdk25-SNAPSHOT               [32/33]
+[INFO]   from pms-module-project/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ pms-module-project ---
+[INFO] Copying 30 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- flatten:1.7.2:flatten (flatten) @ pms-module-project ---
+[INFO] Generating flattened POM of project cn.iocoder.boot:pms-module-project:jar:2026.06-jdk25-SNAPSHOT...
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ pms-module-project ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 683 source files with javac [target 25] to target/classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/leadtime/CutoverLeadTimeSnapshotCodec.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/leadtime/CutoverLeadTimeSnapshotCodec.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java: /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java uses unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-cutover ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-cutover ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 95 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverPlanControllerContractTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverPlanControllerContractTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/governance/CutoverGovernanceGuardProviderTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/governance/CutoverGovernanceGuardProviderTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java:[110,27] method readSeedMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut004MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut005MigrationContractTest.java:[100,27] method readSeedMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut005MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java:[85,27] method readJobMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut006MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java:[105,27] method readExternalJobMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut008MigrationContractTest
+[INFO] 4 errors 
+[INFO] -------------------------------------------------------------
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ pms-module-project ---
+[INFO] skip non existing resourceDirectory /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ pms-module-project ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 139 source files with javac [target 25] to target/test-classes
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureStateAdapterTest.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureStateAdapterTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceGuardServiceTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/runner/work/NPDMS/NPDMS/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceGuardServiceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ pms-module-project ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.5.0:jar (default-jar) @ pms-module-project ---
+[INFO] Building jar: /home/runner/work/NPDMS/NPDMS/pms-module-project/target/pms-module-project-2026.06-jdk25-SNAPSHOT.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for yudao 2026.06-jdk25-SNAPSHOT:
+[INFO] 
+[INFO] yudao .............................................. SUCCESS [  0.687 s]
+[INFO] yudao-framework .................................... SUCCESS [  0.072 s]
+[INFO] yudao-common ....................................... SUCCESS [ 45.028 s]
+[INFO] yudao-spring-boot-starter-web ...................... SUCCESS [ 13.927 s]
+[INFO] yudao-spring-boot-starter-security ................. SUCCESS [ 15.240 s]
+[INFO] yudao-spring-boot-starter-mybatis .................. SUCCESS [01:14 min]
+[INFO] yudao-spring-boot-starter-redis .................... SUCCESS [ 18.410 s]
+[INFO] yudao-spring-boot-starter-mq ....................... SUCCESS [ 42.894 s]
+[INFO] yudao-spring-boot-starter-job ...................... SUCCESS [  5.459 s]
+[INFO] yudao-spring-boot-starter-biz-tenant ............... SUCCESS [  0.974 s]
+[INFO] yudao-spring-boot-starter-websocket ................ SUCCESS [  6.260 s]
+[INFO] yudao-spring-boot-starter-monitor .................. SUCCESS [ 13.169 s]
+[INFO] yudao-spring-boot-starter-biz-ip ................... SUCCESS [  1.317 s]
+[INFO] yudao-spring-boot-starter-excel .................... SUCCESS [ 15.807 s]
+[INFO] yudao-spring-boot-starter-test ..................... SUCCESS [  7.020 s]
+[INFO] yudao-spring-boot-starter-biz-data-permission ...... SUCCESS [  0.758 s]
+[INFO] yudao-module-infra ................................. SUCCESS [ 37.699 s]
+[INFO] yudao-module-system ................................ SUCCESS [ 33.297 s]
+[INFO] yudao-module-bpm ................................... SUCCESS [ 11.015 s]
+[INFO] pms-module-customer-api ............................ SUCCESS [ 19.407 s]
+[INFO] pms-module-platform-api ............................ SUCCESS [  6.866 s]
+[INFO] pms-module-project-api ............................. SUCCESS [  0.917 s]
+[INFO] pms-module-asset-api ............................... SUCCESS [  0.896 s]
+[INFO] pms-module-customer ................................ SUCCESS [  2.973 s]
+[INFO] pms-module-engineering-api ......................... SUCCESS [ 11.510 s]
+[INFO] pms-module-commerce-api ............................ SUCCESS [ 11.509 s]
+[INFO] pms-module-integration-api ......................... SUCCESS [ 11.434 s]
+[INFO] pms-module-platform ................................ SUCCESS [ 10.880 s]
+[INFO] pms-module-project ................................. SUCCESS [ 13.889 s]
+[INFO] pms-module-engineering ............................. SKIPPED
+[INFO] pms-module-cutover-api ............................. SUCCESS [  0.858 s]
+[INFO] pms-module-cutover ................................. FAILURE [  7.620 s]
+[INFO] pms-module-integration ............................. SUCCESS [ 33.897 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  04:45 min (Wall Clock)
+[INFO] Finished at: 2026-09-03T16:17:11Z
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.0:testCompile (default-testCompile) on project pms-module-cutover: Compilation failure: Compilation failure: 
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java:[110,27] method readSeedMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut004MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut005MigrationContractTest.java:[100,27] method readSeedMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut005MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java:[85,27] method readJobMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut006MigrationContractTest
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java:[105,27] method readExternalJobMigration() is already defined in class cn.iocoder.yudao.module.pms.cutover.migration.Fcut008MigrationContractTest
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :pms-module-cutover
+```
