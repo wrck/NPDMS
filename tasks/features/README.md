@@ -14,7 +14,7 @@
 
 本轮2026-08-21起非排除分支审计输入为`master@dff24f780f531a712c92c7da1b687f980b475824`、截点`2026-09-02T09:59:14.3053640+08:00`，见[2026-08-21起分支Feature收口时间线](../../docs/generated/branch-history-audit-2026-09-02-post-20260821-feature-convergence.md)。时间范围包含2026-08-21当日，明确排除`codex/f-cut-001-matrices`与`feat-inspection-feature-xkjuCC`的Feature/代码合并裁决，但完整报告仍冻结二者HEAD以防通过继承关系绕过排除。报告共记录22个分支、16个Worktree、567条master外提交和2个stash；19个非排除、非master分支中10个已是master祖先，9个仍显示分支外历史。去除master及两个排除分支已包含的提交后共有179条去重候选提交，最终`MERGE_APPROVED=0`，不制造空merge或重复代码。
 
-本轮剩余Feature选择性集成以`DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION`冻结三条接收截点：`feat-inspection-feature-xkjuCC@7fe168af`、`codex/f-cut-001-matrices@faed8387`、`codex/f-proj-008-stage-advance@48175aa0`。F-INS-001由`6eb7c89e`接收Task 4～7、Task 8停用及内部发布CAS基础；CUT/PLT由`c9066332`接收F-CUT-002～009受控闭环和F-CUT-010 Task 1～3，Flyway统一重排为V173～V192。F-PROJ-008 Task 3因`Q-FPROJ-009`未关闭继续拒绝集成。F-INS来源随后前进到`1895a5e7`并将Q-FINS001-005/006与Yudao System扩展捆绑，整提交继续隔离；master通过Q005/Q006两个独立治理DU分别重建修订012/013，关闭最后事实语义并批准现有布尔权限接口与超级管理员方向。来源System新增API、排除超级管理员、稳定角色—菜单来源和2个未提交文件仍未接收。Task 8随后由最新master新建的独立DU以`99213cef`和`1c04f43f`实现并修复审核/发布闭环，不回旧来源分支续写。分支HEAD、提交标题和历史Gate只作来源证据，均不得覆盖下列master Task状态。
+本轮S0～S6需求标记选择性接收已经继续推进：F-PROJ-008 Task 3A、F-IMP-001 AST支撑及F-IMP-002 Task 1～11由PR #3进入`master@bdcb0d39`；F-INT-012的Device Ops稳定API、PLT凭证/采集任务/回调事实/消费确认及V203由PR #4进入`master@2df41a18`，并经PR #5及`master@c1b4aac3`完成Java 25编译与聚焦测试。F-PROJ-008 Task 3B、F-IMP-002 Task 12与F-INT-012 INT边缘/E2E仍保持`IN_PROGRESS`，不得因已接收代码倒签Done。
 
 ### 2026-08-21起非排除分支逐项裁决
 
@@ -26,7 +26,7 @@
 | `codex/f-com-001-feature-ready` | `21423d9c` | COM-A完成候选；与COM-B无继承关系 | 62条提交、215个路径，其中162个代码/测试路径 | `SELECTIVELY_INTEGRATED@4ee98f05`：作为统一COM纵向闭环代码基础，不倒签Done |
 | `codex/f-cut-001-master-integration` | `07b6eb06` | F-CUT-001矩阵增量来源 | `IN_MASTER@dc55b92a` | 已形成标准双亲merge；Feature保持`IN_PROGRESS` |
 | `codex/f-proj-001-atomic-alignment` | `8bbaf69a` | 2026-08-21旧F-PROJ-001 Task只完成中段，Task 0/6～10及全部AC未闭合 | 6条提交、170个路径，其中90个代码/测试路径 | `SUPERSEDED / DO_NOT_MERGE`：master当前F-PROJ-001已按后续V1.8 Task 0～9、AC 1～10完成，旧V60/Yudao基础改造不得覆盖当前实现 |
-| `codex/f-proj-008-stage-advance` | `48175aa0` | F-PROJ-008 Task 1/2已接收，Task 3 UI未接收 | 原始203条master外提交；剔除排除分支继承后24条PROJ提交、106个路径，其中65个代码/测试路径 | `INTEGRATED_PARTIAL`：Task 1/2由`db876b43`、`158118d0`适配承载；Task 3继续受`Q-FPROJ-009`阻断，禁止迁入`a3bd0043`或整支合并 |
+| `codex/f-proj-008-stage-advance` | `48175aa0` | F-PROJ-008 Task 1/2与Task 3A工作台已接收；Task 3B真实S0→S1闭环仍受`Q-FPROJ-009`约束 | 原始203条master外提交；按Requirement边界只接收PM-03所需代码 | `INTEGRATED_PARTIAL@bdcb0d39`：Task 3A前端API、阶段面板和组件测试已进入master；Open Question只继续阻断首次项目经理指派及真实浏览器闭环 |
 | `codex/f-sol-003-legacy-deprecation` | `3e27f047` | F-SOL-003固定章节废弃整改 | `IN_MASTER@c1bbae90` | 已形成标准双亲merge；旧固定章节继续只读废弃 |
 | `codex/integrate-f-cut-001` | `72ccb83f` | F-CUT-001原始候选来源 | 9条提交全部也在已排除CUT共享线；适配代码已由`07b6eb06`进入master | `ALREADY_RECEIVED`：不得通过该历史分支绕过排除边界或重复合并 |
 | `codex/merge-engineering-chain-phase-tmrsp0` | `29111833` | 历史工程链合并线 | 1条merge提交；tree `9e76104c`与master历史`00db759c`完全相同 | `TREE_EQUIVALENT`：无master缺失树差量，不合并 |
@@ -38,7 +38,7 @@
 | `feat/specification-baseline-sync` | `91ba833a` | 规格基线同步 | `IN_MASTER` | 已在master，不重复合并 |
 | `import/spec-prd-v1.8-revision-005` | `aaed378a` | PRD V1.8修订005导入 | `IN_MASTER` | 已在master，不重复合并 |
 | `prd-audit-v1-8-LAR2Ap` | `48156a8a` | 旧PRD审核报告与整理稿 | 1条提交、3个报告文件，无代码 | `REPORT_ONLY / SUPERSEDED`：不能覆盖当前修订001～007合并基线，且旧`docs/reports`不符合当前生成报告目录规则 |
-| `prereq-parallel-check-kKiAdn` | `cdfbd71a` | F-INT-012 Device Ops/凭证/回调候选；无master Feature Task、无有效认领 | 4条提交、112个路径，其中91个代码/测试路径；前两批实现早于Feature Spec提交 | `QUARANTINED / NO_TASK`：不得倒签认领；候选还直接改动Yudao Infra文件基础能力，须先由master建立Feature Task、Owner边界和新DU后重新实施/迁移裁决 |
+| `prereq-parallel-check-kKiAdn` | `cdfbd71a` | F-INT-012 Device Ops、凭证、采集任务、回调与消费确认来源 | 4条提交、112个路径，其中91个代码/测试路径 | `SELECTIVELY_INTEGRATED@2df41a18`：已接收独立INT API与PLT核心代码并重排V203；排除旧Infra文件Owner、旧迁移号和未完成INT边缘表；Feature保持`IN_PROGRESS` |
 
 非排除Worktree在截点仍有用户脏改动：F-COM/ACC 2项、旧F-PROJ-001 1项、F-PROJ-008 24项、F-INT-012 2项、PRD审计2项、50eb临时目录1项。它们不属于提交证据，本轮未修改、清理、暂存或迁移。
 
@@ -53,7 +53,7 @@
 | F-PROJ-005 | [Task](F-PROJ-005.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PROJ-006 | [Task](F-PROJ-006.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PROJ-007 | [Task](F-PROJ-007.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
-| F-PROJ-008 | [Task](F-PROJ-008.md) | IN_PROGRESS；Task 1-2已集成，Implementation Done仍NOT_STARTED | [DU-20260901-FPROJ008-MIGRATION](../delivery-units/DU-20260901-FPROJ008-MIGRATION.md)已部分集成并释放边界 | PM-03@V1保持PARTIAL；Task 3受Q-FPROJ-009阻断 |
+| F-PROJ-008 | [Task](F-PROJ-008.md) | IN_PROGRESS；Task 1/2/3A已集成，Task 3B与Implementation Done待完成 | [迁移DU](../delivery-units/DU-20260901-FPROJ008-MIGRATION.md)及[S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | PM-03@V1由生成矩阵派生；真实S0→S1闭环仍受Q-FPROJ-009约束 |
 | F-SOL-001 | [Task](F-SOL-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-002 | [Task](F-SOL-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-003 | [Task](F-SOL-003.md) | IMPLEMENTATION_COMPLETE | [废弃标记DU](../delivery-units/DU-20260901-FSOL003-DEPRECATION.md)与[代码分支合入DU](../delivery-units/DU-20260901-PRE-SOL-CODE-BRANCH-MERGE.md)已集成 | PRE-04保持PARTIAL覆盖 |
@@ -75,6 +75,9 @@
 | F-CUT-008 | [Task](F-CUT-008.md) | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY；代码已进入`c9066332` | 同上 | 外部通知生产端口与最终验收未闭合 |
 | F-CUT-009 | [Task](F-CUT-009.md) | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / NOT_READY；代码已进入`c9066332` | 同上 | 生产授权事实与最终验收未闭合 |
 | F-CUT-010 | [Task](F-CUT-010.md) | IN_PROGRESS / IMPLEMENTATION_TASK_4；仅Task 1～3代码进入`c9066332` | 同上 | Task 4及以后未完成，不得倒签Implementation Done |
+| F-IMP-001 | [Task](F-IMP-001.md) | IN_PROGRESS；FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING | [S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | EXE-06@V1为IMPLEMENTATION_IN_PROGRESS；只接收AST支撑，不外推完整门禁完成 |
+| F-IMP-002 | [Task](F-IMP-002.md) | IN_PROGRESS；Task 1～11已完成并进入master，Task 12待完成 | [S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | EXE-01@V1为IMPLEMENTATION_IN_PROGRESS；生产装配、真实基础设施和浏览器待闭合 |
+| F-INT-012 | [Task](F-INT-012.md) | IN_PROGRESS；PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING | [F-INT-012接收DU](../delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md)已部分集成 | INT-12@V1为IMPLEMENTATION_IN_PROGRESS；INT边缘接入、文件流转和E2E待闭合 |
 | F-INS-001 | [Task](F-INS-001.md) | IMPLEMENTATION_IN_PROGRESS；Task 1～8已完成，Task 8代码回执为`99213cef`与`1c04f43f` | [Task 8审核发布DU](../delivery-units/DU-20260902-FINS001-TASK8-REVIEW-PUBLISH.md)已完整集成并释放边界 | Q-FINS001-005/006及Task 8缺口均已关闭；当前最近Gate为Task 9工程师可选规则投影，Implementation Done仍NOT_STARTED |
 
 ### master已集成Task代码收口回执
@@ -87,6 +90,10 @@
 | F-CUT-002～010与PLT迁移证据 | `codex/f-cut-001-matrices@faed8387` | `c9066332` | 556个正式SDS、Java/XML/POM、SQL、TypeScript/Vue与测试路径；来源PLT V144、CUT V146～V161重排为master V176～V192 | 只接收CUT/PLT所需切片，不接收共享线COM/IMP等旁支；F-CUT-002～009保持受控替身/阻断状态，F-CUT-010只接收Task 1～3 |
 | F-PROJ-008 Task 1 | `0c7a9634` | `db876b43` | 30个Java/XML/POM实现与测试路径当前存在；master适配补强PROCESS正向谓词与未知Provider失败关闭 | 源分支继承其他Feature历史，禁止整支merge；以master适配回执为代码集成事实 |
 | F-PROJ-008 Task 2 | `d69b3ff8` | `158118d0` | 30个Java/XML实现与测试路径当前存在；master适配补强REST前缀、幂等、相邻阶段和失败关闭 | 源分支Task 3及继承历史未批准，禁止整支merge；Task 1/2代码已真实位于master |
+| F-PROJ-008 Task 3A工作台 | `codex/f-proj-008-stage-advance@a3bd0043` | `bdcb0d39` | PM-03阶段准备度、Gate流程启动、相邻推进API调用、阶段面板与组件测试已进入master | 只接收不依赖Q-FPROJ-009裁决的UI切片；Task 3B继续进行中 |
+| F-IMP-001 AST设备范围支撑 | `codex/f-cut-001-matrices@faed8387` | `bdcb0d39` | `DeviceScopeFactApi`、AST生产Owner、Mapper与测试已进入master | 核心ImplementationReadinessSnapshot仍未完成，Feature保持IN_PROGRESS |
+| F-IMP-002 Task 1～11 | `codex/f-cut-001-matrices@eda54bd0` | `bdcb0d39` | 到货签收聚合、REST候选、前端、测试及V193～V202迁移已进入master | Task 12生产装配、Job激活和真实浏览器继续进行中 |
+| F-INT-012 PLT核心 | `prereq-parallel-check-kKiAdn@cdfbd71a` | `2df41a18`；验证`c1b4aac3` | Device Ops API、凭证、一次性令牌、采集任务、回调事实、消费确认、测试与V203已进入master | 排除第二文件Owner与未完成INT边缘；Java 25编译和聚焦测试PASS，Feature保持IN_PROGRESS |
 | F-SOL-003固定章节废弃整改 | `3e27f047` | `2bdbb04c` | 20个Java/Python/TypeScript/Vue废弃标记和防回流路径当前存在 | 已通过`master@c1bbae90`真实双亲merge；旧固定章节继续`DEPRECATED_READ_ONLY` |
 | `T-FIMP002-PROJ-01`系统资格支撑 | `b4f16bdf`、`f4aa1ad2` | `5f5148a9` | 7个公共API、生产Provider及单元/契约/MySQL测试路径当前存在 | 仅该PROJ支撑代码已集成，不接收IMP消费实现 |
 | `T-FCOM001-PROJ-01`交付范围资格支撑 | `9d029976`、`319a616e`、`86ea27de` | `f1cf7920` | 7个公共API、DTO、异常与契约测试路径当前存在；生产Provider仍未实现 | 仅该PROJ公共契约代码已集成，不接收COM实现 |

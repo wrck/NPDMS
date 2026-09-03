@@ -8,7 +8,7 @@
 > Owner Context：`PLT（平台公共能力 / Device Access & Collection）`
 > 外部协作Context：`INT（集成域）`、`Device Ops`、`PLT（基础文件平台）`、`IMP（现场实施）`、`CUT（割接管理）`、`SRV（服务运营）`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> 当前实施切片：`Task 7：Platform回调事实、结果事件和消费确认`
+> 当前实施切片：`PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING`；已实现代码进入master，Feature保持`IN_PROGRESS`
 
 ## 1. 目标
 
