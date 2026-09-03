@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionBatchMapper">
+
+    <select id="selectByTenantAndIdempotencyKey"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionBatchDO">
+        SELECT *
+        FROM plt_collection_batch
+        WHERE tenant_id = #{tenantId}
+          AND idempotency_key = #{idempotencyKey}
+          AND deleted = b'0'
+    </select>
+
+    <update id="updateProjection">
+        UPDATE plt_collection_batch
+        SET success_count = success_count + #{update.successDelta},
+            failure_count = failure_count + #{update.failureDelta},
+            status = CASE
+                WHEN success_count + failure_count
+                     + #{update.successDelta} + #{update.failureDelta} = task_count
+                    THEN CASE
+                        WHEN failure_count + #{update.failureDelta} = 0 THEN 'COMPLETED'
+                        WHEN success_count + #{update.successDelta} = 0 THEN 'FAILED'
+                        ELSE 'PARTIAL_SUCCESS'
+                    END
+                ELSE 'EXECUTING'
+            END
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.batchId}
+          AND deleted = b'0'
+    </update>
+</mapper>

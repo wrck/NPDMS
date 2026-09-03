@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionCallbackRecordMapper">
+
+    <select id="selectByTenantAndCallbackId" flushCache="true" useCache="false"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionCallbackRecordDO">
+        SELECT *
+        FROM plt_collection_callback_record
+        WHERE tenant_id = #{tenantId}
+          AND callback_id = #{callbackId}
+          AND deleted = b'0'
+    </select>
+</mapper>

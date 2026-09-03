@@ -1,6 +1,7 @@
 # F-IMP-001 割接上线实施就绪快照
 
-> Feature实施状态：`FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING`
+> Feature实施状态：`IN_PROGRESS`
+> 实施子状态：`FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING`
 > 总体工程阶段：`IMPLEMENTATION_PARTIAL`
 > Feature Ready Gate：`NO-GO（核心聚合尚未Ready）`
 > Implementation Done Gate：`NOT_READY`
@@ -28,4 +29,4 @@
 
 ## 当前裁决
 
-本Feature按实际状态登记为`FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING`。AST支撑代码可以被F-IMP-002、F-CUT-002复用，但不得将支撑Task完成外推为EXE-06完整Requirement完成。
+本Feature主状态统一为`IN_PROGRESS`，子状态为`FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING`。AST支撑代码可以被F-IMP-002、F-CUT-002复用，但不得将支撑Task完成外推为EXE-06完整Requirement完成。

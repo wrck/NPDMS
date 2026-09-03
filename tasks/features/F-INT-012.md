@@ -1,43 +1,65 @@
 # F-INT-012 设备连接与采集平台集成
 
-> Feature实施状态：`SOURCE_BACKEND_IMPLEMENTATION_EXISTS / CURRENT_MASTER_ADAPTATION_REQUIRED`
-> 总体工程阶段：`IMPLEMENTATION_PARTIAL / QUARANTINED_SOURCE`
-> Feature Ready Gate：`READY（来源规格） / MASTER_REVALIDATION_REQUIRED`
+> Feature实施状态：`IN_PROGRESS`
+> 实施子状态：`PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING`
+> 总体工程阶段：`IMPLEMENTATION_PARTIAL`
+> Feature Ready Gate：`READY / MASTER_REVALIDATION_IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`INT-12@V1=FULL`
 > 关联Requirement：`EXE-03`、`EXE-04`、`CUT-03`、`CUT-06`、`INS-02`、`INS-04`、`NFR-02`；不宣称关联Requirement完成
 > Feature Spec：`specs/features/F-INT-012-device-ops-collection-integration.md`
+> 接收DU：`tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md`
 > 来源分支：`prereq-parallel-check-kKiAdn`
 > 来源实现：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
 
-## 已实际实现于来源分支
+## 状态口径
 
-- Device Ops稳定网关API、下发命令和任务快照DTO；
-- PLT采集批次、设备任务、状态机、幂等和一次性取密基础；
-- 设备凭证、授权、加密保护、Redis令牌存储和临时密码同步派发；
-- 回调事实、任务/批次投影、结果消费确认、Outbox语义；
-- Mapper、单元测试及来源MySQL并发/回调测试；
-- 来源迁移V104～V106。
+已完成的独立代码切片允许进入master；Feature在INT边缘接入、生产装配、真实联调和最终Gate完成前保持`IN_PROGRESS`。不得因为Feature尚未Done而把已存在代码回退为`NOT_STARTED`，也不得因为代码已接收而倒签Feature完成。
 
-这些内容证明Feature并非实际未开始，后续不得再以缺少旧Task为由忽略其代码资产。
+## 已实现并进入选择性接收范围
 
-## 当前master不直接接收代码的原因
+### 稳定合同
 
-- 来源V104同时创建`infra_file_artifact/infra_file_version`，而当前master已由F-PLT-001拥有正式`FileArtifact/FileVersion`模型；直接接收将形成第二文件Owner；
-- 来源将Integration改造成新的`pms-module-integration-api`子模块，而当前master仍是单一`pms-module-integration`业务模块，须先重构依赖方向，避免PLT↔INT循环；
-- 来源V104～V106已低于master当前V202，必须拆分并重新编号；
-- 来源没有完整INT HTTP/multipart接收、Device Ops独立运行端、当前文件平台流式适配、生产装配、真实Redis/HTTP/浏览器闭环；
-- 来源规格和实现需要基于master当前PRD、F-PLT-001、F-CUT-003/006及F-INS-001重新验证。
+- 独立`pms-module-integration-api`模块；
+- `DeviceOpsGatewayApi`、下发命令、下发结果和任务快照DTO；
+- PLT采集批次、任务、回调和消费确认公开API及稳定DTO。
 
-## 后续选择性迁移边界
+### PLT物理Owner实现
 
-1. 以当前F-PLT-001为唯一文件Owner，删除旧`infra_file_*`实现和迁移；
-2. 冻结PLT调用INT的无循环API模块边界，再迁入Device Ops Gateway DTO；
-3. 将PLT凭证、批次、任务和回调表拆分为master新迁移；
-4. 迁入采集任务、凭证、回调和消费确认代码，并按当前平台幂等、审计和Outbox合同适配；
-5. 单独实现INT HTTP/multipart、验签、Receipt、文件流转及Device Ops联调；
-6. 完成真实MySQL、Redis、HTTP、并发、故障恢复和浏览器证据后再申请Implementation Done。
+- `DeviceCredential`、`CredentialGrant`和受认证加密保护；
+- Redis一次性取密令牌、绑定校验、原子消费和秘密清零；
+- `CollectionBatch`、`CollectionTask`、任务状态机和平台幂等创建；
+- 已保存凭证与临时秘密两类任务的独立派发服务，其中外部Gateway不存在时不激活派发Bean；
+- Platform回调事实、顺序校验、任务/批次投影、结果事件和业务消费确认；
+- 设备凭证管理REST入口`/api/v1/pms/device-credentials`；
+- Mapper/XML、Controller合同测试、服务单元测试、Redis测试和来源真实MySQL候选测试。
+
+### 数据库
+
+- 当前master新迁移：`V203__fint012_collection_platform_foundation.sql`；
+- 只创建`plt_device_credential`、`plt_credential_grant`、`plt_collection_batch`、`plt_collection_task`、`plt_collection_callback_record`和`plt_collection_result_consumption`；
+- 来源V104～V106未直接接收，避免低版本迁移和第二文件Owner。
+
+## 明确排除
+
+- 来源分支的`infra_file_artifact`、`infra_file_version`以及Yudao Infra文件客户端修改；F-PLT-001继续是唯一正式文件Owner；
+- INT签名HTTP/multipart回调Controller、验签、nonce/replay、不可变Receipt、Provider配置和技术对账Job；
+- 当前F-PLT-001流式文件写入适配和扫描隔离生产闭环；
+- Device Ops生产Gateway实现、真实外部任务查询/取消/重试和独立运行端联调；
+- EXE-03、EXE-04、CUT、INS或SRV消费方的完整业务闭环；
+- 真实浏览器、SIT、UAT、Deployment和Release结论。
+
+## 剩余实施任务
+
+- [ ] 基于最终master执行`pms-module-integration-api`与`pms-module-platform`受影响模块构建和全部适用测试；
+- [ ] 在当前master迁移链执行V1～V203空库和升级路径复验；
+- [ ] 以当前F-PLT-001实现INT流式文件写入与扫描隔离适配；
+- [ ] 实现INT签名multipart回调、Receipt、重放防护、顺序校验和ACK；
+- [ ] 实现Device Ops生产Gateway、查询/取消/对账及故障恢复；
+- [ ] 接通EXE-03/04、CUT-06等首批V1消费方；
+- [ ] 完成真实MySQL、Redis、HTTP/multipart、并发、故障恢复和真实浏览器闭环；
+- [ ] 基于最终master完成独立Code Review和Implementation Done裁决。
 
 ## 当前裁决
 
-`SOURCE_IMPLEMENTATION_RECOGNIZED / NO_DIRECT_CODE_MERGE`。本次把规格与实际来源状态登记进master，确保代码资产可追溯；旧架构代码在完成Owner和模块适配前不得整支合入，也不得被误记为`NOT_STARTED`。
+`IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY`。已实现代码必须保留并进入主干；未完成部分继续实施，不改变Feature未Done事实。
