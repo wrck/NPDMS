@@ -11,6 +11,8 @@
 > 来源分支：`prereq-parallel-check-kKiAdn`
 > 来源提交：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
 > master集成：`PR #4 / 2df41a187268332ea38f01ac90ea5f8302df3f34`
+> 主干适配验证：`PR #5 / Actions 33733891015 / SUCCESS`
+> 持续门禁：`.github/workflows/f-int-012-partial-reception.yml / f986ca37fed652bc68619ec091782404f6835caa`
 
 ## 目标
 
@@ -52,8 +54,11 @@
 - [x] 依赖方向、目录差量、API路径和迁移对象完成静态复核；
 - [x] 来源单元、Redis、合同和真实MySQL候选测试随代码接收；
 - [x] PR #4已合入master并登记合入提交；
-- [ ] 当前执行环境无法拉取仓库，未重新运行Maven、MySQL、Redis、HTTP或浏览器测试；最终master复验继续作为Feature Done前置。
+- [x] PR #5合并引用上以Java 25完成相关API与Platform模块编译；
+- [x] Collection、Credential及Device Ops聚焦非IT测试通过；
+- [x] V203迁移对象、唯一文件Owner和未完成INT持久化排除规则通过自动校验；
+- [ ] 尚未执行V1～V203真实MySQL空库/升级、真实Redis、HTTP/multipart、故障恢复和浏览器闭环；这些仍为Feature Done前置。
 
 ## 当前裁决
 
-`INTEGRATED_PARTIAL / FEATURE_IN_PROGRESS`。已实现代码已经进入master并可继续迭代；F-INT-012保持`IN_PROGRESS`，未完成生产边缘与端到端闭环继续实施。
+`INTEGRATED_PARTIAL / FEATURE_IN_PROGRESS / MASTER_COMPILE_AND_FOCUSED_TEST_PASS`。已实现代码已经进入master并通过主干适配编译与聚焦测试；F-INT-012保持`IN_PROGRESS`，未完成生产边缘与端到端闭环继续实施。
