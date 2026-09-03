@@ -6,7 +6,6 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverGovernanceGuardQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.LegacyCutoverSourceRowQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -47,6 +46,4 @@ public interface CutTaskMapper extends BaseMapperX<CutTaskDO> {
     }
 
     List<CutTaskDO> selectListForGovernanceGuard0(@Param("query") CutoverGovernanceGuardQuery query);
-
-    CutTaskDO selectLegacySourceForUpdate(@Param("query") LegacyCutoverSourceRowQuery query);
 }
