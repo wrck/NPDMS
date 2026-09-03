@@ -1052,3 +1052,238 @@ generate_requirement_traceability.py: error: the following arguments are require
 [ERROR] For more information about the errors and possible solutions, please read the following articles:
 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/ProjectBuildingException
 ```
+
+## 适配Pass 1：主干基线恢复与构建
+
+- 已恢复：根POM、正式PRD、ACC/COM领域规格及误带入的旧基线报告。
+- Requirement追溯生成退出码：`1`
+- Maven受影响Reactor构建退出码：`1`
+
+### Requirement追溯生成日志
+```text
+domain specification root not found: docs/design/phase-1-domain-ownership.md
+```
+
+### Maven日志
+```text
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[288,12] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[294,12] cannot find symbol
+[ERROR]   symbol:   method setCompanyCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[295,12] cannot find symbol
+[ERROR]   symbol:   method setOrderNo(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[296,12] cannot find symbol
+[ERROR]   symbol:   method setOrderType(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[297,12] cannot find symbol
+[ERROR]   symbol:   method setCustomerCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[298,12] cannot find symbol
+[ERROR]   symbol:   method setCustomerName(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[299,12] cannot find symbol
+[ERROR]   symbol:   method setOrderAmount(java.math.BigDecimal)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[300,12] cannot find symbol
+[ERROR]   symbol:   method setCurrencyCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[301,12] cannot find symbol
+[ERROR]   symbol:   method setAuthorityStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[302,12] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[308,12] cannot find symbol
+[ERROR]   symbol:   method setSourceSystem(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[310,12] cannot find symbol
+[ERROR]   symbol:   method setSourceVersion(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[311,12] cannot find symbol
+[ERROR]   symbol:   method setOrderId(java.lang.Long)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[313,12] cannot find symbol
+[ERROR]   symbol:   method setItemCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[314,12] cannot find symbol
+[ERROR]   symbol:   method setItemDesc(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[315,12] cannot find symbol
+[ERROR]   symbol:   method setProductCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[316,12] cannot find symbol
+[ERROR]   symbol:   method setModelCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[318,12] cannot find symbol
+[ERROR]   symbol:   method setOpenQty(java.math.BigDecimal)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[319,12] cannot find symbol
+[ERROR]   symbol:   method setDeliveredQty(java.math.BigDecimal)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[320,12] cannot find symbol
+[ERROR]   symbol:   method setUnitCode(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[321,12] cannot find symbol
+[ERROR]   symbol:   method setUnitScale(java.lang.Integer)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[322,12] cannot find symbol
+[ERROR]   symbol:   method setQuantityStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[323,12] cannot find symbol
+[ERROR]   symbol:   method setSourceLifecycleStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[324,12] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[325,12] cannot find symbol
+[ERROR]   symbol:   method setSourceUpdatedAt(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[332,12] cannot find symbol
+[ERROR]   symbol:   method setContractId(java.lang.Long)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[334,12] cannot find symbol
+[ERROR]   symbol:   method setRelationRole(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[335,12] cannot find symbol
+[ERROR]   symbol:   method setRelationSource(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[336,12] cannot find symbol
+[ERROR]   symbol:   method setSourceSystem(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[337,12] cannot find symbol
+[ERROR]   symbol:   method setSalesOrderSourceKey(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[338,12] cannot find symbol
+[ERROR]   symbol:   method setContractSourceKey(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[339,12] cannot find symbol
+[ERROR]   symbol:   method setSourceVersion(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[340,12] cannot find symbol
+[ERROR]   symbol:   method setSourceEvidence(java.lang.String)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[341,12] cannot find symbol
+[ERROR]   symbol:   method setEffectiveFrom(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[342,12] cannot find symbol
+[ERROR]   symbol:   method setEffectiveTo(java.time.LocalDateTime)
+[ERROR]   location: variable row of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[362,58] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getAllocatedQty()
+[ERROR]     location: class cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[368,57] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getId()
+[ERROR]     location: class cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[373,50] cannot find symbol
+[ERROR]   symbol:   method getDeliveryScopeId()
+[ERROR]   location: variable detail of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[379,79] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[379,95] cannot find symbol
+[ERROR]   symbol:   method getVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[383,43] cannot find symbol
+[ERROR]   symbol:   method getOrderLineId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[384,41] cannot find symbol
+[ERROR]   symbol:   method getProjectId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[385,43] cannot find symbol
+[ERROR]   symbol:   method getProjectCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[386,43] cannot find symbol
+[ERROR]   symbol:   method getProjectName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[387,50] cannot find symbol
+[ERROR]   symbol:   method getProjectCompanyCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[388,50] cannot find symbol
+[ERROR]   symbol:   method getProjectCompanyName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[389,53] cannot find symbol
+[ERROR]   symbol:   method getProjectDepartmentCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[390,53] cannot find symbol
+[ERROR]   symbol:   method getProjectDepartmentName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[391,51] cannot find symbol
+[ERROR]   symbol:   method getProjectCustomerCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[392,51] cannot find symbol
+[ERROR]   symbol:   method getProjectCustomerName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[393,56] cannot find symbol
+[ERROR]   symbol:   method getProjectManagerEmployeeNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[394,50] cannot find symbol
+[ERROR]   symbol:   method getProjectManagerName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[395,49] cannot find symbol
+[ERROR]   symbol:   method getOrderSourceSystem()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[396,48] cannot find symbol
+[ERROR]   symbol:   method getOrderCompanyCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[397,48] cannot find symbol
+[ERROR]   symbol:   method getOrderCompanyName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[398,41] cannot find symbol
+[ERROR]   symbol:   method getOrderType()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[399,39] cannot find symbol
+[ERROR]   symbol:   method getOrderNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[400,38] cannot find symbol
+[ERROR]   symbol:   method getLineNo()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[401,40] cannot find symbol
+[ERROR]   symbol:   method getItemCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[402,44] cannot find symbol
+[ERROR]   symbol:   method getAllocatedQty()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[403,21] cannot find symbol
+[ERROR]   symbol:   method setScopeStatus(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[404,49] cannot find symbol
+[ERROR]   symbol:   method getAllocationVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[405,21] cannot find symbol
+[ERROR]   symbol:   method setAllocationSource(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[406,21] cannot find symbol
+[ERROR]   symbol:   method setChangeReason(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[407,50] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentId()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[408,52] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentCode()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[409,52] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentName()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[410,55] cannot find symbol
+[ERROR]   symbol:   method getOfficeDepartmentVersion()
+[ERROR]   location: variable active of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] /home/runner/work/NPDMS/NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java:[411,21] cannot find symbol
+[ERROR]   symbol:   method setSourceEvidence(java.lang.String)
+[ERROR]   location: variable conflict of type cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :pms-module-commerce
+```
