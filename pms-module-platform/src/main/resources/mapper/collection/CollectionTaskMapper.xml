@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTaskMapper">
+
+    <select id="selectByTenantAndPlatformTaskId"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
+        SELECT *
+        FROM plt_collection_task
+        WHERE tenant_id = #{tenantId}
+          AND platform_task_id = #{platformTaskId}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectByTenantAndPlatformTaskIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
+        SELECT *
+        FROM plt_collection_task
+        WHERE tenant_id = #{tenantId}
+          AND platform_task_id = #{platformTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="updateDispatchState">
+        UPDATE plt_collection_task
+        SET status = #{update.status},
+            technical_stage = #{update.technicalStage},
+            external_task_id = #{update.externalTaskId},
+            external_status = #{update.externalStatus},
+            failure_category = #{update.failureCategory}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND technical_stage = #{update.expectedTechnicalStage}
+          AND deleted = b'0'
+    </update>
+
+    <update id="updateCallbackState">
+        UPDATE plt_collection_task
+        SET status = #{update.status},
+            technical_stage = #{update.technicalStage},
+            external_status = #{update.externalStatus},
+            result_version = #{update.resultVersion},
+            file_version_id = #{update.fileVersionId},
+            quarantine_evidence_id = #{update.quarantineEvidenceId},
+            failure_category = #{update.failureCategory},
+            last_callback_sequence = #{update.lastCallbackSequence}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND status = #{update.expectedStatus}
+          AND last_callback_sequence &lt;=&gt; #{update.expectedLastCallbackSequence}
+          AND deleted = b'0'
+    </update>
+
+    <update id="updateReconciliationState">
+        UPDATE plt_collection_task
+        SET technical_stage = #{update.technicalStage}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND status = #{update.expectedStatus}
+          AND last_callback_sequence &lt;=&gt; #{update.expectedLastCallbackSequence}
+          AND deleted = b'0'
+    </update>
+
+    <update id="updateConsumptionState">
+        UPDATE plt_collection_task
+        SET status = #{update.status},
+            consumed_result_version = #{update.consumedResultVersion}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND status = 'RESULT_AVAILABLE'
+          AND result_version = #{update.expectedResultVersion}
+          AND consumed_result_version IS NULL
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectListByBatchId"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
+        SELECT *
+        FROM plt_collection_task
+        WHERE batch_id = #{batchId}
+          AND deleted = b'0'
+        ORDER BY id
+    </select>
+</mapper>

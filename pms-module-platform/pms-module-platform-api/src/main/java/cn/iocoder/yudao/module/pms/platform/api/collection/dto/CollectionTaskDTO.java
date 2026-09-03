@@ -1,0 +1,31 @@
+package cn.iocoder.yudao.module.pms.platform.api.collection.dto;
+
+public record CollectionTaskDTO(
+        Long id,
+        Long batchId,
+        String platformTaskId,
+        String sourceContext,
+        String sourceObjectType,
+        String sourceObjectId,
+        String projectId,
+        String deviceId,
+        String deviceName,
+        String host,
+        Integer port,
+        String protocol,
+        String templateId,
+        String templateVersion,
+        String templateHash,
+        String credentialMode,
+        Long credentialId,
+        Long grantSnapshotId,
+        String idempotencyKey,
+        String completionMode,
+        String status,
+        String technicalStage,
+        Long resultVersion,
+        Long fileVersionId,
+        String consumerContext,
+        String consumerObjectType,
+        String consumerObjectId) {
+}
