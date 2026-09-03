@@ -88,4 +88,20 @@
                  l.device_id, l.order_line_id, l.arrival_acceptance_id, l.line_no, l.id
         FOR UPDATE
     </select>
+    <select id="selectConfirmedAcceptedByProject" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM imp_arrival_line l
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = l.tenant_id
+         AND a.id = l.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE l.tenant_id = #{query.tenantId}
+          AND a.project_id = #{query.projectId}
+          AND a.status = 'CONFIRMED'
+          AND l.status = 'ACCEPTED'
+          AND l.current_marker = 1
+          AND l.deleted = b'0'
+        ORDER BY CASE WHEN l.scope_type = 'DEVICE' THEN 0 ELSE 1 END,
+                 l.device_id, l.order_line_id, l.arrival_acceptance_id, l.line_no, l.id
+    </select>
 </mapper>
