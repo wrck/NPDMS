@@ -5,8 +5,11 @@ import cn.hutool.core.io.IORuntimeException;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.AbstractFileClient;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_PATH_INVALID;
@@ -32,6 +35,14 @@ public class LocalFileClient extends AbstractFileClient<LocalFileClientConfig> {
         String filePath = getFilePath(path);
         FileUtil.writeBytes(content, filePath);
         // 拼接返回路径
+        return super.formatFileUrl(config.getDomain(), path);
+    }
+
+    @Override
+    public String upload(InputStream content, long contentLength, String path, String type) throws Exception {
+        Path filePath = Paths.get(getFilePath(path));
+        Files.createDirectories(filePath.getParent());
+        Files.copy(content, filePath, StandardCopyOption.REPLACE_EXISTING);
         return super.formatFileUrl(config.getDomain(), path);
     }
 
