@@ -127,7 +127,7 @@ CREATE TABLE `cut_cutover_closure` (
   `rollback_reason` text DEFAULT NULL,
   `legacy_items` text DEFAULT NULL,
   `final_result_code` varchar(16) DEFAULT NULL,
-  `result_ref` varchar(128) DEFAULT NULL,
+  `result_ref` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `submitted_by` bigint DEFAULT NULL,
   `submitted_at` datetime(3) DEFAULT NULL,
   `archived_at` datetime(3) DEFAULT NULL,
@@ -169,7 +169,8 @@ CREATE TABLE `cut_cutover_closure` (
       AND `execution_normal` IS NOT NULL AND `test_normal` IS NOT NULL AND `rollback_occurred` IS NOT NULL
       AND `final_result_code` IN ('SUCCESS','FAILED') AND `submitted_by` > 0
       AND `submitted_at` IS NOT NULL AND `archived_at` = `submitted_at`
-      AND ((`final_result_code` = 'SUCCESS' AND `result_ref` = CONCAT('CUTOVER_CLOSURE:', `id`, ':', `version`))
+      AND ((`final_result_code` = 'SUCCESS'
+        AND CAST(`result_ref` AS BINARY) = CAST(CONCAT('CUTOVER_CLOSURE:', `id`, ':', `version`) AS BINARY))
         OR (`final_result_code` = 'FAILED' AND `result_ref` IS NULL))), FALSE))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='F-CUT-006 P6割接闭环';
 
@@ -178,12 +179,12 @@ CREATE TABLE `cut_cutover_closure_attachment` (
   `tenant_id` bigint NOT NULL,
   `closure_id` bigint NOT NULL,
   `purpose_code` varchar(40) NOT NULL,
-  `reference_key` varchar(128) NOT NULL,
+  `reference_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `artifact_id` bigint NOT NULL,
   `file_version_no` int NOT NULL,
   `file_fact_version` json NOT NULL,
   `file_scope_version` bigint NOT NULL,
-  `file_hash` char(64) NOT NULL,
+  `file_hash` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `version` int NOT NULL,
   `creator` varchar(64) NOT NULL,
   `create_time` datetime(3) NOT NULL,
@@ -196,7 +197,8 @@ CREATE TABLE `cut_cutover_closure_attachment` (
   CONSTRAINT `fk_cut_closure_attachment_root` FOREIGN KEY (`closure_id`) REFERENCES `cut_cutover_closure` (`id`),
   CONSTRAINT `chk_cut_closure_attachment_values` CHECK (`artifact_id` > 0 AND `file_version_no` > 0
     AND `file_scope_version` >= 0 AND `version` >= 0
-    AND CHAR_LENGTH(TRIM(`reference_key`)) BETWEEN 1 AND 128 AND `file_hash` REGEXP '^[0-9a-f]{64}$'),
+    AND CHAR_LENGTH(TRIM(`reference_key`)) BETWEEN 1 AND 128
+    AND REGEXP_LIKE(`file_hash`, _ascii'^[0-9a-f]{64}$', 'c')),
   CONSTRAINT `chk_cut_closure_attachment_purpose` CHECK (`purpose_code` IN
     ('POST_COLLECTION_CHECKLIST','IMPLEMENTATION_COMMITMENT','OTHER_EVIDENCE','MANUAL_COLLECTION_RESULT'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='F-CUT-006闭环文件事实';
@@ -210,11 +212,11 @@ CREATE TABLE `cut_cutover_collection_evidence` (
   `device_id` bigint NOT NULL,
   `collection_stage_code` varchar(24) NOT NULL,
   `evidence_type_code` varchar(32) NOT NULL,
-  `collection_task_id` varchar(128) NOT NULL,
-  `callback_event_id` varchar(128) DEFAULT NULL,
-  `result_ref` varchar(256) DEFAULT NULL,
-  `result_version` varchar(128) DEFAULT NULL,
-  `original_failed_collection_task_id` varchar(128) DEFAULT NULL,
+  `collection_task_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `callback_event_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `result_ref` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `result_version` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `original_failed_collection_task_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `manual_attachment_id` bigint DEFAULT NULL,
   `dispatch_marker` tinyint GENERATED ALWAYS AS (CASE WHEN `evidence_type_code` IN ('DISPATCH_ACCEPTED','DISPATCH_FAILED') THEN 1 ELSE NULL END) STORED,
   `callback_marker` tinyint GENERATED ALWAYS AS (CASE WHEN `evidence_type_code` IN ('CALLBACK_SUCCEEDED','CALLBACK_FAILED') THEN 1 ELSE NULL END) STORED,
@@ -248,6 +250,6 @@ CREATE TABLE `cut_cutover_collection_evidence` (
       AND `original_failed_collection_task_id` IS NULL AND `manual_attachment_id` IS NULL AND `recorded_by` = 0), FALSE)
     OR COALESCE((`evidence_type_code` = 'MANUAL_UPLOAD' AND `callback_event_id` IS NULL
       AND `result_ref` IS NULL AND `result_version` IS NULL
-      AND `collection_task_id` = `original_failed_collection_task_id`
+      AND CAST(`collection_task_id` AS BINARY) = CAST(`original_failed_collection_task_id` AS BINARY)
       AND `manual_attachment_id` > 0 AND `recorded_by` > 0), FALSE))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='F-CUT-006采集证据追加历史';
