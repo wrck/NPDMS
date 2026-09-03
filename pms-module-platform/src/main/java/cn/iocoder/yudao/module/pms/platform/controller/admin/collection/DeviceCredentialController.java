@@ -23,7 +23,7 @@ import java.util.Arrays;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
 @RestController
-@RequestMapping("/pms/platform/device-credentials")
+@RequestMapping("/api/v1/pms/device-credentials")
 @Validated
 @RequiredArgsConstructor
 public class DeviceCredentialController {
