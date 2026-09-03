@@ -26,8 +26,9 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          def replace_line(lines, predicate, replacement, label):
-              matches = [i for i, line in enumerate(lines) if predicate(line)]
+          def replace_line(lines, predicate, replacement, label, start=0, end=None):
+              stop = len(lines) if end is None else end
+              matches = [i for i in range(start, stop) if predicate(lines[i])]
               if len(matches) != 1:
                   raise SystemExit(f'{label}: expected one line, found {len(matches)}')
               lines[matches[0]] = replacement
@@ -56,11 +57,15 @@ jobs:
               'F-INT branch row',
           )
 
+          state_start = lines.index('## master权威Feature状态')
+          receipt_start = lines.index('### master已集成Task代码收口回执')
           replace_line(
               lines,
-              lambda line: line.startswith('| F-PROJ-008 |'),
+              lambda line: line.startswith('| F-PROJ-008 |') and '[Task](F-PROJ-008.md)' in line,
               '| F-PROJ-008 | [Task](F-PROJ-008.md) | IN_PROGRESS；Task 1/2/3A已集成，Task 3B与Implementation Done待完成 | [迁移DU](../delivery-units/DU-20260901-FPROJ008-MIGRATION.md)及[S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | PM-03@V1由生成矩阵派生；真实S0→S1闭环仍受Q-FPROJ-009约束 |',
               'F-PROJ state row',
+              state_start,
+              receipt_start,
           )
 
           new_state_rows = [
@@ -71,8 +76,12 @@ jobs:
           joined = '\n'.join(lines)
           missing = [row for row in new_state_rows if row not in joined]
           if missing:
-              insert_at = next(i for i, line in enumerate(lines) if line.startswith('| F-INS-001 |'))
+              insert_at = next(
+                  i for i in range(state_start, receipt_start)
+                  if lines[i].startswith('| F-INS-001 |') and '[Task](F-INS-001.md)' in lines[i]
+              )
               lines[insert_at:insert_at] = missing
+              receipt_start += len(missing)
 
           receipt_rows = [
               '| F-PROJ-008 Task 3A工作台 | `codex/f-proj-008-stage-advance@a3bd0043` | `bdcb0d39` | PM-03阶段准备度、Gate流程启动、相邻推进API调用、阶段面板与组件测试已进入master | 只接收不依赖Q-FPROJ-009裁决的UI切片；Task 3B继续进行中 |',
@@ -83,7 +92,10 @@ jobs:
           joined = '\n'.join(lines)
           missing_receipts = [row for row in receipt_rows if row not in joined]
           if missing_receipts:
-              task2_at = next(i for i, line in enumerate(lines) if line.startswith('| F-PROJ-008 Task 2 |'))
+              task2_at = next(
+                  i for i in range(receipt_start, len(lines))
+                  if lines[i].startswith('| F-PROJ-008 Task 2 |')
+              )
               lines[task2_at + 1:task2_at + 1] = missing_receipts
 
           readme.write_text('\n'.join(lines) + '\n', encoding='utf-8')
@@ -106,7 +118,9 @@ jobs:
               '- [x] GitHub Actions在`master@c16a95f3`完成Java 25编译、8组聚焦测试、追溯校验和差量检查；证据：`docs/evidence/f-int-012-master-validation-2026-09-03.md`；',
               'DU validation line',
           )
-          du_lines.append('- [ ] 真实MySQL、Redis、Device Ops HTTP/multipart、并发故障恢复和浏览器闭环继续作为Feature Done前置。')
+          real_validation = '- [ ] 真实MySQL、Redis、Device Ops HTTP/multipart、并发故障恢复和浏览器闭环继续作为Feature Done前置。'
+          if real_validation not in du_lines:
+              du_lines.append(real_validation)
           du.write_text('\n'.join(du_lines) + '\n', encoding='utf-8')
 
           spec = Path('specs/features/F-INT-012-device-ops-collection-integration.md')
