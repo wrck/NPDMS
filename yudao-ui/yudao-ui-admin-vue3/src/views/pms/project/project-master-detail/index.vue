@@ -361,6 +361,13 @@
           @tree-version="treeVersion = $event"
         />
 
+        <ProjectStageGatePanel
+          v-if="detail?.id && visitedTabs.has('stage-gates')"
+          v-show="activeTab === 'stage-gates'"
+          :project-id="detail.id"
+          @advanced="handleStageAdvanced"
+        />
+
         <ProjectDurationPanel
           v-if="detail?.id && visitedTabs.has('duration')"
           v-show="activeTab === 'duration'"
@@ -442,6 +449,7 @@ import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
+import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import ProjectPreparationPanel from './components/ProjectPreparationPanel.vue'
 import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
@@ -466,9 +474,13 @@ const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 
-const requestedTab = ['tasks', 'duration', 'preparation', 'requirement-analysis'].includes(
-  String(route.query.tab)
-)
+const requestedTab = [
+  'tasks',
+  'stage-gates',
+  'duration',
+  'preparation',
+  'requirement-analysis'
+].includes(String(route.query.tab))
   ? String(route.query.tab)
   : 'base'
 const activeTab = ref(requestedTab)
@@ -479,7 +491,8 @@ const overviewSteps = [
   { key: 'match-history', label: '匹配历史', icon: 'ep:clock' },
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
   { key: 'members', label: '成员区间', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' }
+  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
+  { key: 'stage-gates', label: '阶段门禁', icon: 'ep:guide' }
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
@@ -508,6 +521,9 @@ const loadDetail = async () => {
 const handleAttributeUpdated = async () => {
   await loadDetail()
   historyRefreshKey.value++
+}
+const handleStageAdvanced = async () => {
+  await Promise.all([loadDetail(), loadInstances()])
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)
