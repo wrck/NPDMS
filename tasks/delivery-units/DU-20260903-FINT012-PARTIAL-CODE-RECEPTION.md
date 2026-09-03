@@ -1,6 +1,6 @@
 # DU-20260903-FINT012-PARTIAL-CODE-RECEPTION F-INT-012已实现代码接收
 
-> DU状态：`READY_FOR_INTEGRATION`
+> DU状态：`INTEGRATED_PARTIAL`
 > DU类型：`FEATURE_PARTIAL_INTEGRATION`
 > Feature协调：`F-INT-012=FEATURE_EXCLUSIVE`
 > Requirement：`INT-12@V1=FULL`
@@ -10,12 +10,13 @@
 > 权威认领提交：`886bc7ce7b47c6eefc82cc4b45fe5289adcaf83a`
 > 来源分支：`prereq-parallel-check-kKiAdn`
 > 来源提交：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
+> master集成：`PR #4 / 2df41a187268332ea38f01ac90ea5f8302df3f34`
 
 ## 目标
 
 按“已完成代码可以进入master、Feature保持进行中”的口径，选择性接收F-INT-012中已经实现且不依赖未完成外部联调的独立代码切片。代码接收不等于Feature Implementation Done。
 
-## 已接收至候选分支
+## 已接收至master
 
 - 独立`pms-module-integration-api`及`DeviceOpsGatewayApi`稳定合同；
 - PLT公开采集API、DTO、凭证、授权、加密保护和Redis一次性令牌；
@@ -50,9 +51,9 @@
 - [x] Feature Task为`IN_PROGRESS`并准确列出已完成和剩余范围；
 - [x] 依赖方向、目录差量、API路径和迁移对象完成静态复核；
 - [x] 来源单元、Redis、合同和真实MySQL候选测试随代码接收；
-- [ ] 当前执行环境无法拉取仓库，未重新运行Maven、MySQL、Redis、HTTP或浏览器测试；最终master复验继续作为Feature Done前置；
-- [ ] PR合入master后将DU更新为`INTEGRATED_PARTIAL`并登记合入提交。
+- [x] PR #4已合入master并登记合入提交；
+- [ ] 当前执行环境无法拉取仓库，未重新运行Maven、MySQL、Redis、HTTP或浏览器测试；最终master复验继续作为Feature Done前置。
 
 ## 当前裁决
 
-`GO_FOR_PARTIAL_CODE_INTEGRATION`。本DU只证明已实现代码应进入master并可继续迭代；F-INT-012保持`IN_PROGRESS`。
+`INTEGRATED_PARTIAL / FEATURE_IN_PROGRESS`。已实现代码已经进入master并可继续迭代；F-INT-012保持`IN_PROGRESS`，未完成生产边缘与端到端闭环继续实施。
