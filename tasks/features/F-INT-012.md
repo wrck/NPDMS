@@ -1,9 +1,9 @@
 # F-INT-012 设备连接与采集平台集成
 
 > Feature实施状态：`IN_PROGRESS`
-> 实施子状态：`PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING`
+> 实施子状态：`PLATFORM_CORE_IMPLEMENTED / MASTER_COMPILE_AND_FOCUSED_TEST_PASS / INT_EDGE_AND_E2E_PENDING`
 > 总体工程阶段：`IMPLEMENTATION_PARTIAL`
-> Feature Ready Gate：`READY / MASTER_REVALIDATION_IN_PROGRESS`
+> Feature Ready Gate：`READY / MASTER_REVALIDATION_PARTIAL_PASS`
 > Implementation Done Gate：`NOT_READY`
 > Requirement：`INT-12@V1=FULL`
 > 关联Requirement：`EXE-03`、`EXE-04`、`CUT-03`、`CUT-06`、`INS-02`、`INS-04`、`NFR-02`；不宣称关联Requirement完成
@@ -11,12 +11,14 @@
 > 接收DU：`tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md`
 > 来源分支：`prereq-parallel-check-kKiAdn`
 > 来源实现：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
+> 代码接收：`PR #4 / 2df41a187268332ea38f01ac90ea5f8302df3f34`
+> 主干适配验证：`PR #5 / Actions 33733891015 / SUCCESS`
 
 ## 状态口径
 
 已完成的独立代码切片允许进入master；Feature在INT边缘接入、生产装配、真实联调和最终Gate完成前保持`IN_PROGRESS`。不得因为Feature尚未Done而把已存在代码回退为`NOT_STARTED`，也不得因为代码已接收而倒签Feature完成。
 
-## 已实现并进入选择性接收范围
+## 已实现并进入master
 
 ### 稳定合同
 
@@ -36,9 +38,17 @@
 
 ### 数据库
 
-- 当前master新迁移：`V203__fint012_collection_platform_foundation.sql`；
+- 当前master迁移：`V203__fint012_collection_platform_foundation.sql`；
 - 只创建`plt_device_credential`、`plt_credential_grant`、`plt_collection_batch`、`plt_collection_task`、`plt_collection_callback_record`和`plt_collection_result_consumption`；
 - 来源V104～V106未直接接收，避免低版本迁移和第二文件Owner。
+
+### 已完成的master适配验证
+
+- Java 25下`pms-module-integration-api`与`pms-module-platform`及其依赖编译通过；
+- Collection、Credential和Device Ops聚焦非IT测试通过；
+- V203只包含六张PLT Owner表的自动边界检查通过；
+- 未接收第二文件Owner、旧Infra文件客户端和未完成`int_device_ops_*`持久化的自动检查通过；
+- 验证工作流：`.github/workflows/f-int-012-partial-reception.yml`。
 
 ## 明确排除
 
@@ -51,15 +61,16 @@
 
 ## 剩余实施任务
 
-- [ ] 基于最终master执行`pms-module-integration-api`与`pms-module-platform`受影响模块构建和全部适用测试；
-- [ ] 在当前master迁移链执行V1～V203空库和升级路径复验；
+- [x] 基于当前master完成`pms-module-integration-api`与`pms-module-platform`受影响模块Java 25编译和聚焦非IT测试；
+- [ ] 在当前master迁移链执行V1～V203真实MySQL空库和升级路径复验；
+- [ ] 执行真实Redis一次性令牌、并发消费和故障恢复复验；
 - [ ] 以当前F-PLT-001实现INT流式文件写入与扫描隔离适配；
 - [ ] 实现INT签名multipart回调、Receipt、重放防护、顺序校验和ACK；
 - [ ] 实现Device Ops生产Gateway、查询/取消/对账及故障恢复；
 - [ ] 接通EXE-03/04、CUT-06等首批V1消费方；
-- [ ] 完成真实MySQL、Redis、HTTP/multipart、并发、故障恢复和真实浏览器闭环；
+- [ ] 完成真实HTTP/multipart、并发、故障恢复和真实浏览器闭环；
 - [ ] 基于最终master完成独立Code Review和Implementation Done裁决。
 
 ## 当前裁决
 
-`IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY`。已实现代码必须保留并进入主干；未完成部分继续实施，不改变Feature未Done事实。
+`IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY / MASTER_COMPILE_AND_FOCUSED_TEST_PASS`。已实现代码已经进入主干并通过主干适配编译与聚焦测试；未完成部分继续实施，不改变Feature未Done事实。
