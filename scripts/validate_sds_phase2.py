@@ -855,6 +855,9 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "统一异步导出异常",
             "TTL清理失败",
             "retry_count+1",
+            "Provider缺失、重复或载荷不符合稳定契约",
+            "Provider暂时不可用或范围版本暂时未知",
+            "Task记`REJECTED`",
         ),
     }
     for name, tokens in required.items():
