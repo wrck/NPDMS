@@ -1,6 +1,7 @@
 # F-IMP-002 到货签收与里程碑事实
 
-> Feature实施状态：`IMPLEMENTATION_TASKS_1_TO_11_COMPLETE`
+> Feature实施状态：`IN_PROGRESS`
+> 实施子状态：`TASKS_1_TO_11_COMPLETE / TASK12_PENDING`
 > 总体工程阶段：`IMPLEMENTATION_PARTIAL / PRODUCTION_ASSEMBLY_PENDING`
 > Feature Ready Gate：`READY / GO@4b5a2ac9`
 > Technical Plan Gate：`PASS / GO@e0184ac4`
@@ -58,4 +59,4 @@
 - Controller候选继续不注册`@RestController/@Component`，不得在Task 12前形成半装配生产入口；
 - Job继续保持`PAUSED`；
 - 不接收来源分支中的CUT/COM重复实现、生成追溯投影、旧迁移编号或生产Fake/fallback；
-- Task 1～11完成表示代码已实施并进入master，不等于EXE-01完整Feature Done。
+- Feature主状态保持`IN_PROGRESS`；Task 1～11完成表示代码已实施并进入master，不等于EXE-01完整Feature Done。
