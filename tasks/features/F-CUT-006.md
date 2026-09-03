@@ -67,3 +67,18 @@
 - `Q-FCUT004-001`的P6职责变化回P4分支保持`BLOCKED_BY_SPEC`，不进入正常P6闭环。
 - 生产INT-12与下游项目/资产消费者缺失阻断真实浏览器和Implementation Done，不阻断Ready后CUT自有内核及受控替身实现。
 - 旧`pms_cut_execution/pms_cut_observation`和旧页面保持不变。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`3`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `sql/migrations/V212__received_fcut006_p6_cutover_closure.sql`

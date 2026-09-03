@@ -60,3 +60,17 @@
 - Job继续保持`PAUSED`；
 - 不接收来源分支中的CUT/COM重复实现、生成追溯投影、旧迁移编号或生产Fake/fallback；
 - Feature主状态保持`IN_PROGRESS`；Task 1～11完成表示代码已实施并进入master，不等于EXE-01完整Feature Done。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`2`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/arrivalacceptance/ArrivalAcceptanceHttpException.java`
+- `pms-module-engineering/src/main/resources/mapper/arrivalacceptance/ArrivalLineMapper.xml`

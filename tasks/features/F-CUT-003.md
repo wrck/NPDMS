@@ -50,3 +50,16 @@ Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收�
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
 > 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`真实MySQL受控闭环与`ec268ab9`挂载组件MANUAL证据→刷新→提交P4交互均获独立裁决`GO`。最近Gate为跨模块生产Owner依赖关闭后的唯一生产装配；正式身份真实MySQL/浏览器和Done仍阻断。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`1`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `sql/migrations/V210__received_fcut003_p3_dynamic_checklist.sql`

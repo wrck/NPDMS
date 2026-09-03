@@ -43,3 +43,16 @@
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
 > 检查点：Task 2受控正向闭环Backend/MySQL Gate已在`d80ace31`独立复审`PASS / GO`；隔离MySQL 8.4空卷执行152个迁移至V156后2/2通过，另有CUT-002应用正向单元3/3通过。当前最近Gate为生产Owner依赖满足后的Adapter与唯一装配Entry Gate；Feature保持`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`，不得用替身形成生产装配或真实浏览器证据。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`1`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/taskv2/query/LegacyCutoverTargetIdentityQuery.java`

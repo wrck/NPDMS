@@ -58,3 +58,24 @@ Implementation Done仍受以下工程证据约束：
 - XLSX/HTML仅作为名称、字段和界面参考，不参与需求裁决、不形成不一致结论，也不作为完成门禁。
 - V2自动指派未提前实施；F-CUT-001只覆盖CUT-07/09/10的V1统一配置、风险与调研矩阵基础。
 - 浏览器及迁移数据位于隔离验收库，不作为正式业务数据。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`9`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/task/CutTaskMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/task/query/LegacyCutoverSourceRowQuery.java`
+- `pms-module-cutover/src/main/resources/mapper/task/CutTaskMapper.xml`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `scripts/tests/test_fcut002_migration_contract.py`
+- `scripts/tests/test_fcut003_feature_contract.py`
+- `scripts/tests/test_fcut004_feature_contract.py`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverTaskInteraction.spec.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/index.vue`

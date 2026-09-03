@@ -168,3 +168,20 @@
 - [ ] 正式Owner齐备后，另行提交唯一Service/Controller装配、真实Spring传播、浏览器与数据库证据。
 
 > 检查点：独立前置核验确认F-CUT-005生产Owner、CUT渲染与PLT文件创建/冻结交接合同、F-CUT-002/003生产Owner接线均未形成；F-CUT-004无自身整改项，保持失败关闭。当前受控替身不得用于生产装配、Job激活或真实浏览器验收；最近CUT主线Gate为F-CUT-005完整Feature Ready。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`5`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `scripts/generate_phase2_contract_map.py`
+- `scripts/tests/test_fcut004_feature_contract.py`
+- `sql/migrations/V211__received_fcut004_p4_cutover_plan.sql`

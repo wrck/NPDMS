@@ -49,3 +49,21 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1�
 - [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / NOT_ESTABLISHED`。
 
 > 检查点（2026-09-02）：代码回执=`b3e7c76e`；当前Gate=`IN_PROGRESS / NOT_ESTABLISHED`；已通过=Feature契约20项、27模块依赖构建、后端117项适用测试（8项MySQL跳过）、前端类型检查与生产构建；阻塞=当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=补齐运行证据并申请独立裁决。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-acc-001-sds`
+- 本轮接收路径数：`6`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/preparation/PreparationMySqlIntegrationTest.java`
+- `scripts/generate_phase2_contract_map.py`
+- `scripts/tests/test_prd_satisfaction_questionnaire_configuration.py`
+- `scripts/tests/test_validate_sds_phase2.py`
+- `scripts/validate_sds_phase2.py`
+- `sql/migrations/V206__received_facc002_satisfaction_questionnaire_result_forward.sql`

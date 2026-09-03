@@ -33,3 +33,17 @@
 ## Phase-switch checkpoint
 
 基线831a85b9；Task 3独立复审GO，P2/P3需求、详情稳定投影、受控PLT展示名与P5 FULL脱敏摘要已通过15/15聚焦测试；当前进入Task 4，仅实现CUT写命令正向闭环，INT-06/PLT继续使用src/test受控替身。
+
+## 代码事实选择性合入检查点（2026-09-03，ACC/INT/CUT三分支）
+
+> 依据提交代码事实记录；Feature状态保持原值，代码接收不自动构成Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 本轮接收路径数：`2`
+- 接收粒度：提交、文件；单个冲突或不符合文件不阻断同分支其他实现。
+- 冲突与适配项见 `docs/traceability/code-fact-three-branch-integration-2026-09-03.md`。
+
+已接收路径：
+
+- `scripts/generate_domain_entity_migration_contract.py`
+- `scripts/generate_phase2_contract_map.py`
