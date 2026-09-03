@@ -94,6 +94,18 @@ class PlatformOutboxDeliveryApiImplTest {
     }
 
     @Test
+    void claimDueSupportsImplementationEvidencePublishedEventType() {
+        LocalDateTime dueAt = LocalDateTime.of(2026, 8, 30, 12, 0);
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+        service.claimDue(new PlatformOutboxClaimQuery(
+                "ImplementationEvidencePublished", dueAt, 10));
+
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(
+                7L, Set.of("ImplementationEvidencePublished"), dueAt, 10));
+    }
+
+    @Test
     void completionAndRetryUseTenantRetryCountCas() {
         LocalDateTime next = LocalDateTime.of(2026, 8, 25, 9, 5);
         when(mapper.markDeliveredIfPending(new OutboxDeliveryUpdateQuery(7L, "evt-2", 3))).thenReturn(1);
