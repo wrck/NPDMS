@@ -153,4 +153,22 @@
         )
     </select>
 
+    <select id="selectListByScopeSerials"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT d.id,
+               d.sn,
+               d.project_id,
+               d.project_assignment_version,
+               d.status,
+               d.tenant_id
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.sn IN
+          <foreach collection="query.serialNumbers" item="serialNumber" open="(" separator="," close=")">
+            #{serialNumber}
+          </foreach>
+          AND d.deleted = b'0'
+        ORDER BY d.id
+    </select>
+
 </mapper>

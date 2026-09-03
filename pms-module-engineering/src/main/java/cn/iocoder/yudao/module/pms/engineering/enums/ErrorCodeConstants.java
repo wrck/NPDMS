@@ -66,6 +66,17 @@ public interface ErrorCodeConstants {
     ErrorCode ARRIVAL_CODE_DUPLICATE = new ErrorCode(1_011_004_001, "签收编码已存在");
     ErrorCode ARRIVAL_STATUS_INVALID = new ErrorCode(1_011_004_002, "签收当前状态不允许该操作");
     ErrorCode ARRIVAL_VERSION_NOT_MATCH = new ErrorCode(1_011_004_003, "签收版本号已变更，请刷新后重试");
+    ErrorCode ARRIVAL_ACCEPTANCE_NOT_VISIBLE = new ErrorCode(1_011_004_011, "到货签收不可见或不存在");
+    ErrorCode ARRIVAL_ACCEPTANCE_DATA_SCOPE_FORBIDDEN = new ErrorCode(1_011_004_012, "无权访问该项目到货签收");
+    ErrorCode ARRIVAL_ACCEPTANCE_STATE_CONFLICT = new ErrorCode(1_011_004_013, "到货签收状态已变化，请刷新后重试");
+    ErrorCode ARRIVAL_ACCEPTANCE_VERSION_CONFLICT = new ErrorCode(1_011_004_014, "到货签收或明细版本已变化");
+    ErrorCode ARRIVAL_DIFFERENCE_VERSION_CONFLICT = new ErrorCode(1_011_004_015, "到货差异版本已变化");
+    ErrorCode ARRIVAL_ACCEPTANCE_IDEMPOTENCY_CONFLICT = new ErrorCode(1_011_004_016, "同一幂等键对应不同请求");
+    ErrorCode ARRIVAL_ACCEPTANCE_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_011_004_017, "到货签收命令正在处理中");
+    ErrorCode ARRIVAL_ACCEPTANCE_OWNER_UNAVAILABLE = new ErrorCode(1_011_004_018, "到货签收权威来源暂不可用");
+    ErrorCode ARRIVAL_ACCEPTANCE_SCOPE_STALE = new ErrorCode(1_011_004_019, "到货签收范围事实已变化");
+    ErrorCode ARRIVAL_ACCEPTANCE_EVIDENCE_INVALID = new ErrorCode(1_011_004_020, "到货签收证据无效");
+    ErrorCode ARRIVAL_ACCEPTANCE_BUSINESS_GATE_INVALID = new ErrorCode(1_011_004_021, "到货签收业务门禁未满足");
 
     // ========== 硬件安装 installation 1-011-005-000 ==========
     ErrorCode INSTALLATION_NOT_EXISTS = new ErrorCode(1_011_005_000, "硬件安装记录不存在");

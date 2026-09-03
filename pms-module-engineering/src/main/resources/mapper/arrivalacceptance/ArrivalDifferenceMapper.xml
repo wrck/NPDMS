@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalDifferenceMapper">
+    <sql id="columns">
+        id, arrival_acceptance_id, arrival_line_id, difference_no, revision_no,
+        difference_type, resolution_status, reason, risk_description, scope_snapshot,
+        project_fact_version, fact_impact_type, approved_by, approved_at, exemption_expires_at,
+        evidence_id, evidence_revision, current_marker, version,
+        creator, create_time, updater, update_time, deleted, tenant_id
+    </sql>
+    <sql id="qualifiedColumns">
+        d.id, d.arrival_acceptance_id, d.arrival_line_id, d.difference_no, d.revision_no,
+        d.difference_type, d.resolution_status, d.reason, d.risk_description, d.scope_snapshot,
+        d.project_fact_version, d.fact_impact_type, d.approved_by, d.approved_at, d.exemption_expires_at,
+        d.evidence_id, d.evidence_revision, d.current_marker, d.version,
+        d.creator, d.create_time, d.updater, d.update_time, d.deleted, d.tenant_id
+    </sql>
+    <sql id="currentWhere">
+        tenant_id = #{query.tenantId}
+        AND arrival_acceptance_id = #{query.arrivalAcceptanceId}
+        AND current_marker = 1
+        AND deleted = b'0'
+    </sql>
+    <select id="selectCurrentList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_difference
+        WHERE <include refid="currentWhere"/>
+        ORDER BY difference_no, revision_no, id
+    </select>
+    <select id="selectCurrentListByAcceptanceIdsInternal" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_difference
+        WHERE tenant_id = #{query.tenantId}
+          AND arrival_acceptance_id IN
+          <foreach collection="query.arrivalAcceptanceIds" item="acceptanceId" open="(" separator="," close=")">
+              #{acceptanceId}
+          </foreach>
+          AND current_marker = 1
+          AND deleted = b'0'
+        ORDER BY arrival_acceptance_id, difference_no, revision_no, id
+    </select>
+    <select id="selectCurrentListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_difference
+        WHERE <include refid="currentWhere"/>
+        ORDER BY difference_no, revision_no, id
+        FOR UPDATE
+    </select>
+    <select id="selectDueExemptions" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM imp_arrival_difference d
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = d.tenant_id
+         AND a.id = d.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE a.status = 'CONFIRMED'
+          AND d.resolution_status = 'EXEMPTED'
+          AND d.current_marker = 1
+          AND d.exemption_expires_at &lt;= #{query.processingTime}
+          AND d.deleted = b'0'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM imp_arrival_acceptance successor
+              WHERE successor.tenant_id = a.tenant_id
+                AND successor.predecessor_acceptance_id = a.id
+                AND successor.deleted = b'0'
+          )
+        ORDER BY d.exemption_expires_at, d.tenant_id, d.arrival_acceptance_id,
+                 d.difference_no, d.revision_no, d.id
+        LIMIT #{query.pageSize}
+    </select>
+    <update id="clearCurrentIfMatch">
+        UPDATE imp_arrival_difference
+        SET current_marker = NULL,
+            version = version + 1,
+            updater = CAST(#{query.actorUserId} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND arrival_acceptance_id = #{query.arrivalAcceptanceId}
+          AND id = #{query.childId}
+          AND current_marker = 1
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <select id="selectEffectiveExemptionsByProject" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM imp_arrival_difference d
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = d.tenant_id
+         AND a.id = d.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE d.tenant_id = #{query.tenantId}
+          AND a.project_id = #{query.projectId}
+          AND a.status = 'CONFIRMED'
+          AND d.resolution_status = 'EXEMPTED'
+          AND d.current_marker = 1
+          AND d.approved_by IS NOT NULL
+          AND d.approved_at IS NOT NULL
+          AND d.evidence_id IS NOT NULL
+          AND d.evidence_revision IS NOT NULL
+          AND d.exemption_expires_at &gt; #{query.checkedAt}
+          AND d.deleted = b'0'
+        ORDER BY d.arrival_line_id, d.difference_no, d.revision_no, d.id
+    </select>
+    <select id="selectEffectiveExemptionsByProjectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalDifferenceDO">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM imp_arrival_difference d
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = d.tenant_id
+         AND a.id = d.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE d.tenant_id = #{query.tenantId}
+          AND a.project_id = #{query.projectId}
+          AND a.status = 'CONFIRMED'
+          AND d.resolution_status = 'EXEMPTED'
+          AND d.current_marker = 1
+          AND d.approved_by IS NOT NULL
+          AND d.approved_at IS NOT NULL
+          AND d.evidence_id IS NOT NULL
+          AND d.evidence_revision IS NOT NULL
+          AND d.exemption_expires_at &gt; #{query.checkedAt}
+          AND d.deleted = b'0'
+        ORDER BY d.arrival_line_id, d.difference_no, d.revision_no, d.id
+        FOR UPDATE
+    </select>
+    <select id="selectLatestAllocatedDifferencesForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.projection.ArrivalProjectFactAllocation">
+        SELECT d.project_fact_version,
+               'DIFFERENCE' AS source_type,
+               d.id AS source_id,
+               d.arrival_acceptance_id AS acceptance_id,
+               a.predecessor_acceptance_id
+        FROM imp_arrival_difference d
+        JOIN imp_arrival_acceptance a
+          ON a.tenant_id = d.tenant_id
+         AND a.id = d.arrival_acceptance_id
+         AND a.deleted = b'0'
+        WHERE d.tenant_id = #{query.tenantId}
+          AND a.project_id = #{query.projectId}
+          AND d.project_fact_version IS NOT NULL
+          AND d.deleted = b'0'
+        ORDER BY d.project_fact_version DESC, d.id
+        LIMIT 2
+        FOR UPDATE
+    </select>
+</mapper>

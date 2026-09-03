@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "supportTaskId": "T-FIMP001-AST-01",
+  "status": "PASS",
+  "requirementSlice": "EQP-01@V1",
+  "coverage": "PARTIAL_SUPPORT_ONLY",
+  "owner": "AST",
+  "aggregate": "F-AST-001_DEVICE",
+  "contract": "DeviceScopeFactApi",
+  "operations": {
+    "resolveBySerials": {
+      "javaSignature": "DeviceScopeResolutionResult resolveBySerials(DeviceScopeResolveQuery query)",
+      "input": ["tenantId", "projectId", "serialNumbers"],
+      "sideEffect": "NONE"
+    },
+    "lockAndRevalidate": {
+      "javaSignature": "DeviceScopeRevalidationResult lockAndRevalidate(DeviceScopeRevalidationQuery query)",
+      "input": ["tenantId", "projectId", "expectedDevices", "expectedScopeWatermark"],
+      "lockOrder": "DEVICE_ID_ASC",
+      "sideEffect": "NONE"
+    }
+  },
+  "tenantPolicy": {
+    "tenantId": "POSITIVE_TRUSTED_INPUT",
+    "runtimeGuard": "TenantContextHolder.getRequiredTenantId_EQUALS_QUERY_TENANT_ID_BEFORE_OWNER_READ",
+    "missingOrMismatch": "DeviceScopeFactException.TENANT_CONTEXT_MISMATCH",
+    "forbidden": ["SWITCH_TENANT_FROM_UNVERIFIED_PAYLOAD", "CROSS_TENANT_IDENTITY_DISCLOSURE"]
+  },
+  "serialNormalization": {
+    "steps": ["JAVA_STRING_TRIM", "UPPERCASE_LOCALE_ROOT_FOR_COMPARISON_KEY"],
+    "blank": "INVALID_REQUEST",
+    "duplicateAfterNormalization": "DUPLICATE_SERIAL",
+    "responseSerial": "OWNER_STORED_SERIAL",
+    "inputOrder": "IGNORED",
+    "outputOrder": "DEVICE_ID_ASC"
+  },
+  "eligibility": {
+    "deleted": "MUST_BE_FALSE",
+    "eligibleStatusCodes": ["ACTIVE", "IN_STOCK", "IN_USE", "FAULT", "REPAIRING"],
+    "ineligibleStatusCodes": ["RETIRED"],
+    "nullOrUnknownStatus": "STATUS_INELIGIBLE",
+    "projectRule": "CURRENT_PROJECT_ID_EQUALS_QUERY_PROJECT_ID",
+    "crossTenantSerial": "NOT_FOUND"
+  },
+  "fact": {
+    "required": ["tenantId", "projectId", "devices", "scopeWatermark"],
+    "deviceFields": ["deviceId", "serialNumber", "currentProjectId", "projectAssignmentVersion"],
+    "deviceOrder": "DEVICE_ID_ASC",
+    "scopeWatermark": {
+      "type": "ORDERED_VECTOR",
+      "fields": ["deviceId", "projectAssignmentVersion"],
+      "order": "DEVICE_ID_ASC",
+      "forbidden": ["HASH", "DIGEST", "PSEUDO_GLOBAL_VERSION", "NEW_OWNER_TABLE"]
+    },
+    "forbidden": ["AST_DO", "STATUS", "CUSTOMER_FACT", "LOCATION_FACT", "FILE_FACT"]
+  },
+  "resolution": {
+    "decisions": ["RESOLVED", "INVALID"],
+    "invalidReasons": ["NOT_FOUND", "STATUS_INELIGIBLE", "PROJECT_MISMATCH"],
+    "invalidPolicy": "NO_PARTIAL_FACT"
+  },
+  "revalidation": {
+    "decisions": ["VALID", "STALE", "INVALID"],
+    "valid": "FULL_SET_SAME_DEVICE_ID_AND_NORMALIZED_SERIAL_IDENTITY_AND_ALL_ASSIGNMENT_VERSIONS_EQUAL",
+    "stale": "FULL_SET_SAME_DEVICE_ID_AND_NORMALIZED_SERIAL_IDENTITY_REMAINS_ELIGIBLE_BUT_ANY_PROJECT_ASSIGNMENT_VERSION_CHANGED",
+    "serialIdentityInvariant": "SAME_DEVICE_ID_CURRENT_OWNER_SERIAL_COMPARISON_KEY_MUST_EQUAL_FROZEN_SERIAL_COMPARISON_KEY",
+    "serialIdentityViolation": "DeviceScopeFactException.OWNER_DATA_CORRUPTED",
+    "invalidReasons": ["NOT_FOUND", "STATUS_INELIGIBLE", "PROJECT_MISMATCH"],
+    "invalidPolicy": "NO_PARTIAL_FACT",
+    "expectedScopeWatermarkType": "DeviceScopeRevalidationQuery.ExpectedScopeWatermark",
+    "expectedSetPolicy": "EXPECTED_DEVICES_AND_EXPECTED_SCOPE_WATERMARK_MUST_DESCRIBE_THE_SAME_COMPLETE_SET"
+  },
+  "validationOwnership": {
+    "callerQueryOrExpectedWatermarkInvalid": "INVALID_REQUEST",
+    "callerNormalizedSerialDuplicate": "DUPLICATE_SERIAL",
+    "providerFactInvalid": "OWNER_DATA_CORRUPTED",
+    "providerInvalidItemInvalid": "OWNER_DATA_CORRUPTED",
+    "providerResultCombinationInvalid": "OWNER_DATA_CORRUPTED",
+    "forbidden": "REUSE_PROVIDER_SCOPE_WATERMARK_AS_CALLER_EXPECTED_WATERMARK_TYPE"
+  },
+  "stableFailures": [
+    "INVALID_REQUEST",
+    "DUPLICATE_SERIAL",
+    "TENANT_CONTEXT_MISMATCH",
+    "PROVIDER_UNAVAILABLE",
+    "OWNER_DATA_CORRUPTED"
+  ],
+  "legacyPolicy": "AssetDeviceScopeApi_MUST_NOT_BE_ADAPTED_OR_USED_AS_FALLBACK",
+  "physicalContract": "N/A_REUSE_AST_DEVICE_NO_NEW_TABLE",
+  "consumerFeatures": ["F-IMP-001", "F-IMP-002", "F-CUT-002"],
+  "implementationGate": "PROVIDER_IMPLEMENTATION_FORBIDDEN_UNTIL_PUBLIC_MACHINE_CONTRACT_GATE_GO"
+}
