@@ -1,0 +1,93 @@
+name: F-INT-012 partial code reception
+
+on:
+  push:
+    branches:
+      - codex/f-int-012-partial-reception-20260903
+    paths:
+      - 'pms-module-integration/pms-module-integration-api/**'
+      - 'pms-module-platform/**'
+      - 'pom.xml'
+      - 'sql/migrations/V203__fint012_collection_platform_foundation.sql'
+      - 'tasks/features/F-INT-012.md'
+      - 'tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md'
+      - '.github/workflows/f-int-012-partial-reception.yml'
+  pull_request:
+    paths:
+      - 'pms-module-integration/pms-module-integration-api/**'
+      - 'pms-module-platform/**'
+      - 'pom.xml'
+      - 'sql/migrations/V203__fint012_collection_platform_foundation.sql'
+      - 'tasks/features/F-INT-012.md'
+      - 'tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md'
+      - '.github/workflows/f-int-012-partial-reception.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-partial-reception:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Validate selective-integration boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f sql/migrations/V203__fint012_collection_platform_foundation.sql
+          python - <<'PY'
+          from pathlib import Path
+
+          sql = Path('sql/migrations/V203__fint012_collection_platform_foundation.sql').read_text(encoding='utf-8')
+          required = {
+              'plt_device_credential',
+              'plt_credential_grant',
+              'plt_collection_batch',
+              'plt_collection_task',
+              'plt_collection_callback_record',
+              'plt_collection_result_consumption',
+          }
+          missing = sorted(name for name in required if f'CREATE TABLE `{name}`' not in sql)
+          forbidden = sorted(token for token in ('infra_file_', 'int_device_ops_', 'pms_eng_') if token in sql)
+          table_count = sql.count('CREATE TABLE `')
+          if missing or forbidden or table_count != len(required):
+              raise SystemExit(
+                  f'invalid V203 scope: missing={missing}, forbidden={forbidden}, tableCount={table_count}'
+              )
+          PY
+          test ! -e yudao-module-infra/yudao-module-infra-biz/src/main/java/cn/iocoder/yudao/module/infra/api/file/CollectionFileApi.java
+          test ! -e yudao-module-infra/yudao-module-infra-biz/src/main/java/cn/iocoder/yudao/module/infra/api/file/CollectionFileApiImpl.java
+          if grep -R -n -E 'infra_file_artifact|infra_file_version|int_device_ops_' \
+              pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/collection \
+              pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/{controller,dal,service}/**/collection \
+              2>/dev/null; then
+            echo 'Received PLT slice contains a forbidden second file owner or unfinished INT persistence.' >&2
+            exit 1
+          fi
+
+      - name: Compile API and platform slices on Java 25
+        run: >-
+          mvn -B -ntp
+          -pl pms-module-integration/pms-module-integration-api,pms-module-platform
+          -am -DskipTests compile
+
+      - name: Run collection, credential and Device Ops contract tests
+        run: >-
+          mvn -B -ntp
+          -pl pms-module-platform
+          -am
+          -DskipITs=true
+          -Dtest='*Collection*,*Credential*,*DeviceOps*'
+          -Dsurefire.failIfNoSpecifiedTests=false
+          test
