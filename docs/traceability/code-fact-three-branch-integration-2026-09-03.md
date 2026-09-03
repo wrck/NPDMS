@@ -1597,3 +1597,24 @@ WROTE docs/traceability/requirement-version-coverage.json
 WROTE docs/traceability/requirement-matrix.md
 WROTE docs/traceability/requirement-version-coverage.json
 ```
+
+## 适配Pass 4：Reactor模块去重与重建
+
+- 仅去除根POM中重复的模块登记，不移除任何已接收源码。
+- Maven受影响Reactor构建退出码：`1`
+```text
+[INFO] Scanning for projects...
+[ERROR] [ERROR] Some problems were encountered while processing the POMs:
+[ERROR] 'modules.module[14]' specifies duplicate child module pms-module-integration/pms-module-integration-api @ cn.iocoder.boot:yudao:${revision}, /home/runner/work/NPDMS/NPDMS/pom.xml, line 28, column 17
+ @ 
+[ERROR] The build could not read 1 project -> [Help 1]
+[ERROR]   
+[ERROR]   The project cn.iocoder.boot:yudao:2026.06-jdk25-SNAPSHOT (/home/runner/work/NPDMS/NPDMS/pom.xml) has 1 error
+[ERROR]     'modules.module[14]' specifies duplicate child module pms-module-integration/pms-module-integration-api @ cn.iocoder.boot:yudao:${revision}, /home/runner/work/NPDMS/NPDMS/pom.xml, line 28, column 17
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/ProjectBuildingException
+```
