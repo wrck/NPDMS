@@ -115,6 +115,22 @@
         ORDER BY id ASC
     </select>
 
+    <select id="selectCountByCompanyScope" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM com_sales_order_line
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = 0
+          AND CAST(company_code AS BINARY) IN
+          <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
+              CAST(#{companyCode} AS BINARY)
+          </foreach>
+        <if test="query.orderId != null">
+          AND order_id = #{query.orderId}
+        </if>
+        <if test="query.lineNo != null and query.lineNo != ''">
+          AND line_no = #{query.lineNo}
+        </if>
+    </select>
+
     <select id="selectByIdsForUpdate"
             resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO">
         SELECT * FROM com_sales_order_line
