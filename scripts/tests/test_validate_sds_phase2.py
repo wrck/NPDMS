@@ -648,6 +648,37 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
         self.assertEqual([], MODULE.validate_fcom001_contract_admin_scope(repository_root))
 
+    def test_current_facc001_report_contract_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_facc001_report_contract(repository_root))
+
+    def test_facc001_report_contract_rejects_missing_and_parallel_truth(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        required_files = set(MODULE.FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS)
+        for relative, snippets in MODULE.FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in required_files:
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(repository_root / source_relative, target)
+                    target = root / relative
+                    target.write_text(target.read_text(encoding="utf-8").replace(snippet, "REMOVED_RULE"), encoding="utf-8")
+                    self.assertTrue(any(snippet in error for error in MODULE.validate_facc001_report_contract(root)))
+        for relative, snippets in MODULE.FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in required_files:
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(repository_root / source_relative, target)
+                    target = root / relative
+                    target.write_text(target.read_text(encoding="utf-8") + f"\n{snippet}\n", encoding="utf-8")
+                    self.assertTrue(any(snippet in error for error in MODULE.validate_facc001_report_contract(root)))
+
     def test_fcom001_contract_admin_scope_rejects_each_missing_rule(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         for relative, snippets in MODULE.FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS.items():
@@ -769,8 +800,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
-                    "94对象/107来源绑定/1排除源",
-                    "93对象/106来源绑定/1排除源",
+                    "94对象/109来源绑定/1排除源",
+                    "93对象/108来源绑定/1排除源",
                     1,
                 ),
                 encoding="utf-8",
