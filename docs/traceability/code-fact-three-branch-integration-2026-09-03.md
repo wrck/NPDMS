@@ -1564,3 +1564,36 @@ WROTE docs/traceability/requirement-version-coverage.json
 [ERROR] After correcting the problems, you can resume the build with the command
 [ERROR]   mvn <args> -rf :pms-module-cutover
 ```
+
+## 适配Pass 3：最终源码树与非冲突hunk复核
+
+- 代码Head：`963c734880a20f65c734c4bc346e30c8a81ae4fc`
+- 对三条来源分支的最终源码树重新三方比较；冲突文件内可独立应用的hunk继续接收。
+- 仅保留逐文件冲突；不形成整提交或整分支拒绝。
+- 四个CUT迁移合同测试的重复辅助方法已去重，保留当前主干迁移路径。
+- Requirement追溯生成退出码：`0`
+- Maven受影响Reactor构建退出码：`1`
+
+### Maven日志
+```text
+[INFO] Scanning for projects...
+[ERROR] [ERROR] Some problems were encountered while processing the POMs:
+[ERROR] 'modules.module[14]' specifies duplicate child module pms-module-integration/pms-module-integration-api @ cn.iocoder.boot:yudao:${revision}, /home/runner/work/NPDMS/NPDMS/pom.xml, line 28, column 17
+ @ 
+[ERROR] The build could not read 1 project -> [Help 1]
+[ERROR]   
+[ERROR]   The project cn.iocoder.boot:yudao:2026.06-jdk25-SNAPSHOT (/home/runner/work/NPDMS/NPDMS/pom.xml) has 1 error
+[ERROR]     'modules.module[14]' specifies duplicate child module pms-module-integration/pms-module-integration-api @ cn.iocoder.boot:yudao:${revision}, /home/runner/work/NPDMS/NPDMS/pom.xml, line 28, column 17
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/ProjectBuildingException
+```
+
+### 追溯日志
+```text
+WROTE docs/traceability/requirement-matrix.md
+WROTE docs/traceability/requirement-version-coverage.json
+```
