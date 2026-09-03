@@ -29,6 +29,21 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("external" in error.lower() or "BusinessGrantUpload" in error for error in errors), errors)
 
+    def test_facc002_rejects_missing_generated_result_file_owner_or_compensation(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            cross = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            cross.write_text(cross.read_text(encoding="utf-8").replace(
+                "FileArtifactApi.createGeneratedBusinessFile", "missing", 1), encoding="utf-8")
+            file_design = root / "docs" / "design" / "13-file-design.md"
+            file_design.write_text(file_design.read_text(encoding="utf-8").replace(
+                "未引用对象", "忽略对象"), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("createGeneratedBusinessFile" in error for error in errors), errors)
+            self.assertTrue(any("未引用对象" in error for error in errors), errors)
+
     def test_facc002_rejects_legacy_pass_inference_boundary_removal(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:
