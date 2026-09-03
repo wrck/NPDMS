@@ -1,0 +1,620 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-IMP-002",
+  "requirementSlices": ["EXE-01@V1"],
+  "status": "PASS",
+  "owner": "IMP",
+  "apiPrefix": "/api/v1/pms/arrival-acceptances",
+  "legacyRoutePolicy": "PRESERVE_/pms/eng-arrival; NEVER_ALIAS_REUSE_OR_FALLBACK",
+  "implementationGate": {
+    "task5B": "BASELINE_READY_AFTER_GO_DBF62B8F",
+    "task8": "IMPLEMENTATION_IN_PROGRESS_AFTER_TASK5B_GO_C649C424; CODE_REVIEW_REQUIRED",
+    "deviceScopeAdapterMapping": "PASS_GO_36F44719; EMPTY_EXPLICIT_SERIAL_ORCHESTRATION_PASS_GO_B20E817A",
+    "productionActivation": "BLOCKED_BY_COM_AND_AST_PRODUCTION_PROVIDERS_UNTIL_TASK12",
+    "preActivation": "EXPLICIT_TEST_ASSEMBLY_ONLY; NO_SERVICE_COMPONENT_RESTCONTROLLER_BEAN_FALLBACK_OR_FAKE_IN_SRC_MAIN"
+  },
+  "trustedContext": {
+    "correlationIdPolicy": "ALL_USER_PLATFORM_WRITE_COMMANDS_RESOLVE_OR_GENERATE_ONCE_FROM_TRUSTED_REQUEST_OBSERVABILITY_CONTEXT_BEFORE_COMMAND; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_BUSINESS_REQUEST_DIGEST; SAME_VALUE_USED_BY_SUCCESS_FACTS; CONFIRM_ALSO_PERSISTS_THE_VALUE_TO_ROOT_AND_FIRST_MESSAGE",
+    "serverOnly": [
+      "tenantId",
+      "actorUserId",
+      "status",
+      "allowedActions",
+      "approvedBy",
+      "approvedAt",
+      "projectFactVersion",
+      "factImpactType",
+      "successorReason",
+      "aggregateVersion",
+      "lineRevision",
+      "differenceRevision",
+      "ownerWatermarks"
+    ],
+    "forbiddenClientFields": [
+      "tenantId",
+      "actorUserId",
+      "creator",
+      "updater",
+      "status",
+      "resolutionStatus",
+      "allowedActions",
+      "approvedBy",
+      "approvedAt",
+      "projectFactVersion",
+      "factImpact",
+      "factImpactType",
+      "successorReason",
+      "projectVersion",
+      "projectParticipantFactVersion",
+      "projectScopeVersion",
+      "scopeWatermark"
+    ]
+  },
+  "headers": {
+    "Idempotency-Key": {
+      "type": "NORMALIZED_NON_BLANK_STRING",
+      "maxLength": 128,
+      "requiredFor": ["CREATE", "SUBMIT", "CONFIRM", "RAISE_DIFFERENCE", "RESOLVE_DIFFERENCE"]
+    },
+    "If-Match": {
+      "type": "DECIMAL_NON_NEGATIVE_INTEGER_WITHOUT_WEAK_ETAG_OR_QUOTES",
+      "requiredFor": ["PATCH", "SUBMIT", "CONFIRM", "RAISE_DIFFERENCE", "RESOLVE_DIFFERENCE"]
+    }
+  },
+  "headerFailureContract": {
+    "MISSING_OR_INVALID_IDEMPOTENCY_KEY": {"httpStatus": 400, "category": "VALIDATION", "reasonCode": "IDEMPOTENCY_KEY_INVALID", "data": null},
+    "MISSING_OR_INVALID_IF_MATCH": {"httpStatus": 400, "category": "VALIDATION", "reasonCode": "IF_MATCH_INVALID", "data": null},
+    "WELL_FORMED_STALE_IF_MATCH": {"httpStatus": 409, "category": "AGGREGATE_OR_LINE_VERSION_CONFLICT", "reasonCode": "AGGREGATE_VERSION_STALE", "data": "wireContract.schemas.ErrorData"}
+  },
+  "wireContract": {
+    "exactKeysOnly": true,
+    "dateTime": "EPOCH_MILLISECOND_LOGICAL_LONG_IN_SERVER_SYSTEM_ZONE_SERIALIZED_BY_longWireRule",
+    "longWireRule": {
+      "javaType": "long_OR_java.lang.Long",
+      "jsonNumberWhen": "value > -9007199254740991 AND value < 9007199254740991",
+      "jsonStringWhen": "value <= -9007199254740991 OR value >= 9007199254740991",
+      "stringFormat": "BASE_10_INTEGER_WITH_OPTIONAL_LEADING_MINUS_AND_NO_OTHER_FORMATTING",
+      "source": "Yudao NumberSerializer; strict safe-bound comparison",
+      "frontendRule": "ID_AND_VERSION_TYPES_MUST_ACCEPT_JSON_NUMBER_OR_DECIMAL_STRING_AND_MUST_NOT_COERCE_STRING_TO_JAVASCRIPT_NUMBER"
+    },
+    "primitiveAliases": {
+      "POSITIVE_LONG": "LOGICAL_JAVA_LONG_GREATER_THAN_0_SERIALIZED_BY_longWireRule",
+      "NON_NEGATIVE_LONG": "LOGICAL_JAVA_LONG_GREATER_THAN_OR_EQUAL_TO_0_SERIALIZED_BY_longWireRule",
+      "POSITIVE_LONG_OR_ABSENT": "DECIMAL_PATH_OR_QUERY_STRING_PARSED_AS_LOGICAL_JAVA_LONG_GREATER_THAN_0_OR_PARAMETER_ABSENT",
+      "POSITIVE_LONG_OR_JSON_NULL": "LOGICAL_JAVA_LONG_GREATER_THAN_0_SERIALIZED_BY_longWireRule_OR_JSON_NULL",
+      "NON_NEGATIVE_LONG_OR_JSON_NULL": "LOGICAL_JAVA_LONG_GREATER_THAN_OR_EQUAL_TO_0_SERIALIZED_BY_longWireRule_OR_JSON_NULL",
+      "SORTED_UNIQUE_ARRAY_OF_POSITIVE_LONG": "ARRAY_ITEMS_USE_POSITIVE_LONG_AND_ORDER_BY_LOGICAL_NUMERIC_VALUE"
+    },
+    "successEnvelope": {
+      "exactKeys": ["code", "msg", "data"],
+      "code": "INTEGER_CONSTANT_0",
+      "msg": "STRING_CONSTANT_EMPTY",
+      "data": "NON_NULL_ENDPOINT_SCHEMA"
+    },
+    "errorEnvelope": {
+      "exactKeys": ["code", "msg", "data"],
+      "code": "NON_ZERO_INTEGER_FROM_errorContract",
+      "msg": "NON_BLANK_LOCALIZED_STRING",
+      "data": "ErrorData_OR_JSON_NULL_AS_LOCKED_BY_errorContract"
+    },
+    "pageResult": {
+      "javaType": "Yudao PageResult<T>",
+      "exactKeys": ["list", "total"],
+      "list": "NON_NULL_ARRAY_IN_ENDPOINT_STABLE_ORDER",
+      "total": "NON_NEGATIVE_LONG",
+      "forbiddenResponseKeys": ["items", "pageNo", "pageSize"]
+    },
+    "enums": {
+      "BATCH_STATUS_ENUM": ["DRAFT", "PARTIALLY_ACCEPTED", "DIFFERENCE_PENDING", "ACCEPTED", "CONFIRMED"],
+      "LINE_STATUS_ENUM": ["NOT_ARRIVED", "ACCEPTED", "DIFFERENCE_PENDING", "REJECTED"],
+      "DIFFERENCE_STATUS_ENUM": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
+      "EVIDENCE_SYNC_STATUS_ENUM": ["NOT_PUBLISHED", "PUBLISHED_PENDING_ACC", "ARCHIVE_PENDING_RETRY", "ACCEPTED_PENDING_ARCHIVE", "ARCHIVE_ACK_PENDING_RETRY", "ARCHIVED"],
+      "SUCCESSOR_REASON_ENUM": ["SUPPLEMENT", "CORRECTION", "DIFFERENCE_CLOSURE", "EXEMPTION_INVALIDATION"],
+      "FACT_IMPACT_TYPE_ENUM": ["CORRECTION", "REOPEN", "EXEMPTION_INVALIDATION"],
+      "ALLOWED_ACTION_ENUM": ["EDIT_DRAFT", "SUBMIT", "CONFIRM", "RAISE_DIFFERENCE", "RESOLVE_DIFFERENCE"],
+      "ERROR_CATEGORY_ENUM": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "DIFFERENCE_VERSION_CONFLICT", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "SCOPE_STALE", "EVIDENCE_INVALID", "BUSINESS_GATE_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "schemas": {
+      "ArrivalListItem": {
+        "exactKeys": ["id", "projectId", "batchCode", "logisticsNo", "arrivedAt", "signerName", "status", "evidenceSyncStatus", "version", "allowedActions", "createTime"],
+        "fields": {
+          "id": "POSITIVE_LONG", "projectId": "POSITIVE_LONG", "batchCode": "NON_BLANK_STRING", "logisticsNo": "NON_BLANK_STRING",
+          "arrivedAt": "dateTime", "signerName": "NON_BLANK_STRING", "status": "BATCH_STATUS_ENUM", "evidenceSyncStatus": "EVIDENCE_SYNC_STATUS_ENUM_OR_JSON_NULL",
+          "version": "NON_NEGATIVE_INTEGER", "allowedActions": "SORTED_UNIQUE_ARRAY_OF_ALLOWED_ACTION_ENUM", "createTime": "dateTime"
+        }
+      },
+      "ArrivalPageData": {
+        "exactKeys": ["list", "total"],
+        "fields": {"list": "ARRAY_OF_ArrivalListItem_ORDER_arrivedAt_DESC_id_DESC", "total": "NON_NEGATIVE_LONG"}
+      },
+      "ArrivalCommandData": {
+        "exactKeys": ["id", "projectId", "status", "version", "deliveryScopeVersion", "changedLineIds", "evidenceId", "evidenceRevision", "projectFactVersion", "evidenceSyncStatus", "eventId", "successorAcceptanceId", "allowedActions"],
+        "fields": {
+          "id": "POSITIVE_LONG", "projectId": "POSITIVE_LONG", "status": "BATCH_STATUS_ENUM", "version": "NON_NEGATIVE_INTEGER", "deliveryScopeVersion": "NON_NEGATIVE_LONG",
+          "changedLineIds": "SORTED_UNIQUE_ARRAY_OF_POSITIVE_LONG", "evidenceId": "POSITIVE_LONG_OR_JSON_NULL", "evidenceRevision": "POSITIVE_INTEGER_OR_JSON_NULL",
+          "projectFactVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL", "evidenceSyncStatus": "EVIDENCE_SYNC_STATUS_ENUM_OR_JSON_NULL", "eventId": "NON_BLANK_STRING_OR_JSON_NULL",
+          "successorAcceptanceId": "POSITIVE_LONG_OR_JSON_NULL", "allowedActions": "SORTED_UNIQUE_ARRAY_OF_ALLOWED_ACTION_ENUM"
+        },
+        "nullPolicy": "NOT_APPLICABLE_FIELDS_ARE_PRESENT_AS_JSON_NULL; changedLineIds_IS_EMPTY_ARRAY_WHEN_NONE"
+      },
+      "ArrivalLineData": {
+        "exactKeys": ["id", "lineNo", "lineRevision", "scopeType", "deviceId", "deviceAssignmentVersion", "orderLineId", "productCode", "modelCode", "expectedQuantity", "acceptedQuantity", "unitCode", "status", "version"],
+        "fields": {
+          "id": "POSITIVE_LONG", "lineNo": "POSITIVE_INTEGER", "lineRevision": "POSITIVE_INTEGER", "scopeType": "DEVICE_OR_ORDER_MODEL_QUANTITY",
+          "deviceId": "POSITIVE_LONG_OR_JSON_NULL", "deviceAssignmentVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL", "orderLineId": "POSITIVE_LONG_OR_JSON_NULL",
+          "productCode": "NON_BLANK_STRING_OR_JSON_NULL", "modelCode": "NON_BLANK_STRING_OR_JSON_NULL", "expectedQuantity": "NON_NEGATIVE_DECIMAL_JSON_NUMBER",
+          "acceptedQuantity": "NON_NEGATIVE_DECIMAL_JSON_NUMBER", "unitCode": "NON_BLANK_STRING", "status": "LINE_STATUS_ENUM", "version": "NON_NEGATIVE_INTEGER"
+        }
+      },
+      "ArrivalDifferenceData": {
+        "exactKeys": ["id", "arrivalLineId", "differenceNo", "revisionNo", "differenceType", "resolutionStatus", "reason", "riskDescription", "scopeSnapshot", "approvedBy", "approvedAt", "exemptionExpiresAt", "evidenceId", "evidenceRevision", "current", "projectFactVersion", "factImpactType", "version"],
+        "fields": {
+          "id": "POSITIVE_LONG", "arrivalLineId": "POSITIVE_LONG", "differenceNo": "POSITIVE_INTEGER", "revisionNo": "POSITIVE_INTEGER", "differenceType": "ENABLED_DIFFERENCE_TYPE_CODE",
+          "resolutionStatus": "OPEN_OR_SUPPLEMENTED_OR_REJECTED_OR_EXEMPTED_OR_CLOSED", "reason": "NON_BLANK_STRING", "riskDescription": "STRING_OR_JSON_NULL", "scopeSnapshot": "commonTypes.scopeSnapshot",
+          "approvedBy": "POSITIVE_LONG_OR_JSON_NULL", "approvedAt": "dateTime_OR_JSON_NULL", "exemptionExpiresAt": "dateTime_OR_JSON_NULL", "evidenceId": "POSITIVE_LONG_OR_JSON_NULL",
+          "evidenceRevision": "POSITIVE_INTEGER_OR_JSON_NULL", "current": "BOOLEAN", "projectFactVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL", "factImpactType": "FACT_IMPACT_TYPE_ENUM_OR_JSON_NULL", "version": "NON_NEGATIVE_INTEGER"
+        }
+      },
+      "DeliveryEvidenceData": {
+        "exactKeys": ["evidenceId", "currentRevision", "artifactId", "referenceKey", "fileVersionNo", "fileFactVersion", "fileScopeVersion", "fileHash", "syncStatus", "nextRetryAt", "retryCount"],
+        "fields": {
+          "evidenceId": "POSITIVE_LONG_OR_JSON_NULL", "currentRevision": "POSITIVE_INTEGER_OR_JSON_NULL", "artifactId": "POSITIVE_LONG_OR_JSON_NULL", "referenceKey": "NON_BLANK_STRING_OR_JSON_NULL",
+          "fileVersionNo": "POSITIVE_INTEGER_OR_JSON_NULL", "fileFactVersion": "commonTypes.fileArtifactRevision.fileFactVersion_OR_JSON_NULL", "fileScopeVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL",
+          "fileHash": "NON_BLANK_STRING_OR_JSON_NULL", "syncStatus": "EVIDENCE_SYNC_STATUS_ENUM", "nextRetryAt": "dateTime_OR_JSON_NULL", "retryCount": "NON_NEGATIVE_INTEGER"
+        }
+      },
+      "ArrivalDetailData": {
+        "exactKeys": ["id", "projectId", "batchCode", "logisticsNo", "arrivedAt", "signerName", "status", "deliveryScopeVersion", "scopeWatermark", "evidenceId", "evidenceRevision", "projectFactVersion", "predecessorAcceptanceId", "successorReason", "submittedBy", "submittedAt", "confirmedBy", "confirmedAt", "version", "allowedActions", "currentLines", "differences", "evidence"],
+        "fields": {
+          "id": "POSITIVE_LONG", "projectId": "POSITIVE_LONG", "batchCode": "NON_BLANK_STRING", "logisticsNo": "NON_BLANK_STRING", "arrivedAt": "dateTime", "signerName": "NON_BLANK_STRING",
+          "status": "BATCH_STATUS_ENUM", "deliveryScopeVersion": "NON_NEGATIVE_LONG", "scopeWatermark": "commonTypes.scopeWatermark", "evidenceId": "POSITIVE_LONG_OR_JSON_NULL",
+          "evidenceRevision": "POSITIVE_INTEGER_OR_JSON_NULL", "projectFactVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL", "predecessorAcceptanceId": "POSITIVE_LONG_OR_JSON_NULL", "successorReason": "SUCCESSOR_REASON_ENUM_OR_JSON_NULL",
+          "submittedBy": "POSITIVE_LONG_OR_JSON_NULL", "submittedAt": "dateTime_OR_JSON_NULL", "confirmedBy": "POSITIVE_LONG_OR_JSON_NULL", "confirmedAt": "dateTime_OR_JSON_NULL",
+          "version": "NON_NEGATIVE_INTEGER", "allowedActions": "SORTED_UNIQUE_ARRAY_OF_ALLOWED_ACTION_ENUM", "currentLines": "ARRAY_OF_ArrivalLineData_ORDER_lineNo_ASC_id_ASC",
+          "differences": "ARRAY_OF_ArrivalDifferenceData_ORDER_differenceNo_ASC_revisionNo_ASC_id_ASC", "evidence": "DeliveryEvidenceData_OR_JSON_NULL"
+        }
+      },
+      "DifferenceCommandData": {
+        "exactKeys": ["arrivalAcceptanceId", "differenceId", "differenceNo", "revisionNo", "resolutionStatus", "aggregateStatus", "aggregateVersion", "successorAcceptanceId", "projectFactVersion", "factImpactType", "remainingScope", "allowedActions"],
+        "fields": {
+          "arrivalAcceptanceId": "POSITIVE_LONG", "differenceId": "POSITIVE_LONG_OR_JSON_NULL", "differenceNo": "POSITIVE_INTEGER_OR_JSON_NULL", "revisionNo": "POSITIVE_INTEGER_OR_JSON_NULL",
+          "resolutionStatus": "DIFFERENCE_STATUS_ENUM_OR_JSON_NULL", "aggregateStatus": "BATCH_STATUS_ENUM", "aggregateVersion": "NON_NEGATIVE_INTEGER", "successorAcceptanceId": "POSITIVE_LONG_OR_JSON_NULL",
+          "projectFactVersion": "NON_NEGATIVE_LONG_OR_JSON_NULL", "factImpactType": "FACT_IMPACT_TYPE_ENUM_OR_JSON_NULL", "remainingScope": "commonTypes.scopeSnapshot_OR_JSON_NULL", "allowedActions": "SORTED_UNIQUE_ARRAY_OF_ALLOWED_ACTION_ENUM"
+        }
+      },
+      "ErrorData": {
+        "exactKeys": ["category", "reasonCode", "recoveryAction", "currentAggregateVersion", "currentLineVersion", "currentDifferenceRevision", "currentDifferenceVersion", "ownerContext"],
+        "fields": {
+          "category": "ERROR_CATEGORY_ENUM", "reasonCode": "ENUM_FROM_errorContract.reasonCodesByCategory[category]", "recoveryAction": "REFRESH_AGGREGATE_OR_REFRESH_OWNER_FACTS_OR_CORRECT_PROJECT_GATE_OR_REPLACE_EVIDENCE_OR_RETRY_SAME_KEY_OR_START_NEW_INTENT_OR_RETRY_LATER",
+          "currentAggregateVersion": "NON_NEGATIVE_INTEGER_OR_JSON_NULL", "currentLineVersion": "NON_NEGATIVE_INTEGER_OR_JSON_NULL", "currentDifferenceRevision": "POSITIVE_INTEGER_OR_JSON_NULL",
+          "currentDifferenceVersion": "NON_NEGATIVE_INTEGER_OR_JSON_NULL", "ownerContext": "COM_OR_AST_OR_PLT_OR_PROJ_OR_JSON_NULL"
+        },
+        "nullPolicy": "ALL_KEYS_PRESENT; NON_APPLICABLE_VALUES_JSON_NULL"
+      }
+    }
+  },
+  "commonTypes": {
+    "scopeWatermark": {
+      "exactKeys": ["deliveryScopeVersion", "deviceAssignmentVersions"],
+      "deliveryScopeVersion": "NON_NEGATIVE_LONG",
+      "deviceAssignmentVersions": "ARRAY_OF_EXACT_{deviceId:POSITIVE_LONG,projectAssignmentVersion:NON_NEGATIVE_LONG}_ORDER_deviceId_ASC_WITHOUT_DUPLICATES"
+    },
+    "scopeSnapshot": {
+      "discriminator": "scopeType",
+      "exactKeysOnly": true,
+      "variants": {
+        "DEVICE": {
+          "exactKeys": ["scopeType", "deviceId"],
+          "deviceId": "POSITIVE_LONG"
+        },
+        "ORDER_MODEL_QUANTITY": {
+          "exactKeys": ["scopeType", "orderLineId", "productCode", "modelCode", "quantity", "unitCode"],
+          "orderLineId": "POSITIVE_LONG",
+          "productCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+          "modelCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+          "productOrModelGuard": "AT_LEAST_ONE_NON_NULL",
+          "quantity": "POSITIVE_DECIMAL_JSON_NUMBER",
+          "unitCode": "NORMALIZED_NON_BLANK_STRING"
+        }
+      },
+      "forbidden": ["EXTRA_KEYS", "MISSING_KEYS", "STRING_NUMBERS", "ZERO_OR_NEGATIVE_QUANTITY", "BLANK_CODES", "UNKNOWN_SCOPE_TYPE"]
+    },
+    "fileArtifactRevision": {
+      "exactKeys": ["artifactId", "referenceKey", "versionNo", "scopeVersion", "fileFactVersion", "hash"],
+      "artifactId": "POSITIVE_LONG",
+      "referenceKey": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+      "versionNo": "POSITIVE_INTEGER",
+      "scopeVersion": "NON_NEGATIVE_LONG",
+      "fileFactVersion": {
+        "exactKeys": ["artifactVersion", "referenceVersion", "availabilityVersion"],
+        "each": "NON_NEGATIVE_INTEGER"
+      },
+      "hash": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+      "fixedServerPolicy": {
+        "ownerContext": "IMP",
+        "objectType": "ARRIVAL_ACCEPTANCE",
+        "purposeCode": "RECEIPT",
+        "requiredAction": "READ",
+        "objectId": "ARRIVAL_ACCEPTANCE_ID"
+      },
+      "forbidden": ["RAW_URL", "FILE_BODY", "CLIENT_POLICY_FIELDS", "CURRENT_INSPECT_AS_FROZEN_EXPECTATION"]
+    },
+    "draftLine": {
+      "discriminator": "scopeType",
+      "identityRule": "NEW_REQUIRES_LINE_ID_AND_EXPECTED_LINE_VERSION_NULL; EXISTING_REQUIRES_BOTH_POSITIVE_LINE_ID_AND_NON_NEGATIVE_EXPECTED_LINE_VERSION",
+      "variants": {
+        "DEVICE": {
+          "exactKeys": ["scopeType", "lineId", "expectedLineVersion", "deviceId", "received"],
+          "lineId": "POSITIVE_LONG_OR_JSON_NULL",
+          "expectedLineVersion": "NON_NEGATIVE_INTEGER_OR_JSON_NULL",
+          "deviceId": "POSITIVE_LONG",
+          "received": "BOOLEAN",
+          "serverProjection": "EXPECTED_QUANTITY=1; ACCEPTED_QUANTITY=received?1:0; STATUS=received?ACCEPTED:NOT_ARRIVED; ASSIGNMENT_VERSION_FROM_FROZEN_AST_FACT"
+        },
+        "ORDER_MODEL_QUANTITY": {
+          "exactKeys": ["scopeType", "lineId", "expectedLineVersion", "orderLineId", "productCode", "modelCode", "acceptedQuantity", "unitCode"],
+          "lineId": "POSITIVE_LONG_OR_JSON_NULL",
+          "expectedLineVersion": "NON_NEGATIVE_INTEGER_OR_JSON_NULL",
+          "orderLineId": "POSITIVE_LONG",
+          "productCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+          "modelCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+          "productOrModelGuard": "AT_LEAST_ONE_NON_NULL",
+          "acceptedQuantity": "NON_NEGATIVE_DECIMAL_JSON_NUMBER",
+          "unitCode": "NORMALIZED_NON_BLANK_STRING",
+          "serverProjection": "EXPECTED_QUANTITY_AND_PRECISION_FROM_FROZEN_COM_FACT; STATUS_FROM_ACCEPTED_QUANTITY_AND_CURRENT_DIFFERENCES"
+        }
+      },
+      "writePolicy": "APPEND_NEW_LINE_REVISION_AND_MOVE_CURRENT_MARKER; NEVER_UPDATE_OR_DELETE_OLD_REVISION"
+    }
+  },
+  "permissions": {
+    "GET_COLLECTION": "pms:arrival-acceptance:query",
+    "GET_DETAIL": "pms:arrival-acceptance:query",
+    "CREATE": "pms:arrival-acceptance:create",
+    "PATCH": "pms:arrival-acceptance:edit-own-draft",
+    "SUBMIT": "pms:arrival-acceptance:edit-own-draft",
+    "CONFIRM": "pms:arrival-acceptance:confirm",
+    "RAISE_DIFFERENCE": "pms:arrival-acceptance:resolve-difference",
+    "RESOLVE_DIFFERENCE": "pms:arrival-acceptance:resolve-difference",
+    "commonWriteGuards": ["FUNCTION_PERMISSION", "PROJECT_SCOPE_ACTION_EDIT", "CURRENT_PROJECT_PARTICIPANT_FACT", "COMMAND_SPECIFIC_SUBJECT_GUARD"],
+    "queryScope": "PROJECT_SCOPE_ACTION_VIEW",
+    "globalRoleIsNotBusinessAuthority": true
+  },
+  "allowedActions": {
+    "enum": ["EDIT_DRAFT", "SUBMIT", "CONFIRM", "RAISE_DIFFERENCE", "RESOLVE_DIFFERENCE"],
+    "inputs": ["FUNCTION_PERMISSIONS", "PROJECT_SCOPE", "CURRENT_PROJECT_PARTICIPANT_FACT", "BATCH_STATUS", "CREATOR_ID", "CURRENT_OPEN_DIFFERENCES", "CURRENT_REJECTED_DIFFERENCES", "HAS_ANY_DIRECT_SUCCESSOR"],
+    "rules": {
+      "EDIT_DRAFT": {"allOf": ["VISIBLE", "PROJECT_SCOPE_ACTION_EDIT", "PERMISSION_EDIT_OWN_DRAFT", "STATUS_DRAFT", "ACTOR_IS_CREATOR", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER"]},
+      "SUBMIT": {"allOf": ["EDIT_DRAFT_RULE", "HAS_CURRENT_LINES", "HAS_CURRENT_EVIDENCE_REVISION"]},
+      "CONFIRM": {"allOf": ["VISIBLE", "PROJECT_SCOPE_ACTION_EDIT", "PERMISSION_CONFIRM", "STATUS_PARTIALLY_ACCEPTED_OR_ACCEPTED", "ACTOR_IS_CURRENT_PROJECT_MANAGER"]},
+      "RAISE_DIFFERENCE": {"allOf": ["VISIBLE", "PROJECT_SCOPE_ACTION_EDIT", "PERMISSION_RESOLVE_DIFFERENCE", "STATUS_DRAFT", "ACTOR_IS_CREATOR", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER", "CURRENT_LINE_EXISTS"]},
+      "RESOLVE_DIFFERENCE": {"allOf": ["VISIBLE", "PROJECT_SCOPE_ACTION_EDIT", "PERMISSION_RESOLVE_DIFFERENCE", "ACTOR_IS_CURRENT_PROJECT_MANAGER", "STATUS_DIFFERENCE_PENDING_OR_CONFIRMED", "IF_STATUS_CONFIRMED_THEN_NO_DIRECT_SUCCESSOR_OF_ANY_REASON"], "anyOf": ["STATUS_DIFFERENCE_PENDING_AND_CURRENT_OPEN_DIFFERENCE_EXISTS", "STATUS_CONFIRMED_AND_CURRENT_REJECTED_DIFFERENCE_EXISTS", "STATUS_CONFIRMED_AND_INFORMATION_CORRECTION_AVAILABLE"], "exemptAdditionalRule": "SAME_CURRENT_PROJECT_MANAGER_AUTHORITY_FROM_Q-FIMP002-001", "queryStrategy": "LIST_BATCH_QUERY_BY_VISIBLE_PAGE_IDS; DETAIL_SINGLE_SCENARIO_QUERY; NO_N_PLUS_ONE"}
+    },
+    "securityMeaning": "UI_PROJECTION_ONLY; EVERY_COMMAND_REVALIDATES_BEFORE_BUSINESS_WRITE"
+  },
+  "endpoints": {
+    "list": {
+      "method": "GET",
+      "path": "",
+      "query": {
+        "exactKeys": ["projectId", "batchCode", "status", "pageNo", "pageSize"],
+        "projectId": "POSITIVE_LONG_OR_ABSENT",
+        "batchCode": "NORMALIZED_NON_BLANK_STRING_OR_ABSENT; EXACT_MATCH",
+        "status": "DRAFT|PARTIALLY_ACCEPTED|DIFFERENCE_PENDING|ACCEPTED|CONFIRMED_OR_ABSENT",
+        "pageNo": "POSITIVE_INTEGER_DEFAULT_1",
+        "pageSize": "INTEGER_1_TO_100_DEFAULT_20"
+      },
+      "serverQuery": "TENANT_FROM_CONTEXT; VISIBLE_PROJECT_IDS_FROM_PROJECT_SCOPE_ACTION_VIEW; EMPTY_SCOPE_RETURNS_EMPTY_PAGE; EXACT_BATCH_CODE_MATCH_RETURNS_ALL_VISIBLE_CHAIN_RECORDS_WITH_THAT_STABLE_BUSINESS_BATCH_CODE",
+      "order": ["arrived_at DESC", "id DESC"],
+      "success": "wireContract.successEnvelope<data=ArrivalPageData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "create": {
+      "method": "POST",
+      "path": "",
+      "headers": ["Idempotency-Key"],
+      "requestExactKeys": ["projectId", "batchCode", "logisticsNo", "arrivedAt", "signerName", "expectedDeliveryScopeVersion"],
+      "request": {
+        "projectId": "POSITIVE_LONG",
+        "batchCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
+        "logisticsNo": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+        "arrivedAt": "wireContract.dateTime",
+        "signerName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
+        "expectedDeliveryScopeVersion": "NON_NEGATIVE_LONG"
+      },
+      "success": "wireContract.successEnvelope<data=ArrivalCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "BUSINESS_GATE_INVALID", "SCOPE_STALE", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"],
+      "guards": ["ACTIVE_S4_PROJECT", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER", "ACTOR_HAS_ACTION_EDIT", "EXPECTED_DELIVERY_SCOPE_VERSION_MATCHES", "NON_EMPTY_ASSIGNED_SCOPE", "AST_IDENTITIES_MATCH_PROJECT"],
+      "write": "CREATE_INITIAL_ROOT_WITH_PREDECESSOR_NULL_SUCCESSOR_REASON_NULL_AND_SERVER_BATCH_ROOT_MARKER_1; DUPLICATE_TENANT_PROJECT_BATCH_CODE_INITIAL_ROOT_CONFLICTS",
+      "idempotencyScope": "tenant+ARRIVAL_CREATE+projectId+actor+key",
+      "correlationPolicy": "TRUSTED_REQUEST_CONTEXT_RESOLVES_OR_GENERATES_ONCE_BEFORE_COMMAND; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_REQUEST_DIGEST; SAME_VALUE_FOR_SUCCESS_FACTS"
+    },
+    "detail": {
+      "method": "GET",
+      "path": "/{id}",
+      "pathParameters": {"id": "POSITIVE_LONG"},
+      "success": "wireContract.successEnvelope<data=ArrivalDetailData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "OWNER_PROVIDER_UNAVAILABLE"],
+      "notVisiblePolicy": "RETURN_ARRIVAL_ACCEPTANCE_NOT_VISIBLE_WITHOUT_EXISTENCE_DISCLOSURE"
+    },
+    "patch": {
+      "method": "PATCH",
+      "path": "/{id}",
+      "headers": ["If-Match"],
+      "requestExactKeys": ["logisticsNo", "arrivedAt", "signerName", "lines", "evidenceRevision"],
+      "request": {
+        "atLeastOnePresent": true,
+        "logisticsNo": "NORMALIZED_NON_BLANK_STRING_MAX_128_OR_ABSENT",
+        "arrivedAt": "wireContract.dateTime_OR_ABSENT",
+        "signerName": "NORMALIZED_NON_BLANK_STRING_MAX_128_OR_ABSENT",
+        "lines": "NON_EMPTY_ARRAY_OF_commonTypes.draftLine_OR_ABSENT; DUPLICATE_SCOPE_IDENTITIES_FORBIDDEN",
+        "evidenceRevision": "commonTypes.fileArtifactRevision_OR_ABSENT"
+      },
+      "serverOwnedForbidden": "trustedContext.forbiddenClientFields",
+      "guards": ["ACTOR_IS_CREATOR", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER", "STATUS_DRAFT", "AGGREGATE_IF_MATCH", "PROJECT_FACT_REVALIDATED", "COM_AST_SCOPE_REVALIDATED", "PLT_FACT_REVALIDATED_WHEN_EVIDENCE_PRESENT"],
+      "success": "wireContract.successEnvelope<data=ArrivalCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "SCOPE_STALE", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+    },
+    "submit": {
+      "method": "POST",
+      "path": "/{id}/actions/submit",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "requestExactKeys": [],
+      "correlationPolicy": "TRUSTED_REQUEST_CONTEXT_RESOLVES_OR_GENERATES_ONCE_BEFORE_COMMAND; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_REQUEST_DIGEST; SAME_VALUE_FOR_SUCCESS_FACTS",
+      "guards": ["ACTOR_IS_CREATOR", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER", "STATUS_DRAFT", "AGGREGATE_IF_MATCH", "PROJ_COM_AST_PLT_LOCK_AND_REVALIDATE", "LINES_AND_EVIDENCE_COMPLETE"],
+      "success": "wireContract.successEnvelope<data=ArrivalCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "BUSINESS_GATE_INVALID", "SCOPE_STALE", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"],
+      "idempotencyScope": "tenant+ARRIVAL_SUBMIT+id+actor+key"
+    },
+    "confirm": {
+      "method": "POST",
+      "path": "/{id}/actions/confirm",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "requestExactKeys": [],
+      "guards": ["CURRENT_PROJECT_MANAGER_IS_ACTOR", "PROJECT_SCOPE_ACTION_EDIT", "STATUS_PARTIALLY_ACCEPTED_OR_ACCEPTED", "AGGREGATE_IF_MATCH", "PROJ_COM_AST_PLT_LOCK_AND_REVALIDATE", "CANDIDATE_RECALCULATION_UNCHANGED"],
+      "success": "wireContract.successEnvelope<data=ArrivalCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "BUSINESS_GATE_INVALID", "SCOPE_STALE", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"],
+      "idempotencyScope": "tenant+ARRIVAL_CONFIRM+id+actor+key",
+      "correlationPolicy": "TRUSTED_REQUEST_CONTEXT_RESOLVES_OR_GENERATES_ONCE_BEFORE_COMMAND; NORMALIZED_COMMAND_VALUE_PERSISTS_WITH_FIRST_PUBLICATION; EXCLUDED_FROM_REQUEST_DIGEST; REPLAY_RETURNS_FIRST_PERSISTED_RESULT"
+    },
+    "raiseDifference": {
+      "method": "POST",
+      "path": "/{id}/actions/raise-difference",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "requestExactKeys": ["arrivalLineId", "expectedLineVersion", "differenceTypeCode", "scopeSnapshot", "reason", "riskDescription", "evidenceRevision"],
+      "request": {
+        "arrivalLineId": "POSITIVE_LONG",
+        "expectedLineVersion": "NON_NEGATIVE_INTEGER",
+        "differenceTypeCode": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_FOR_EXE_01_DIFFERENCE",
+        "scopeSnapshot": "commonTypes.scopeSnapshot",
+        "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000",
+        "riskDescription": "NORMALIZED_NON_BLANK_STRING_MAX_1000",
+        "evidenceRevision": "commonTypes.fileArtifactRevision"
+      },
+      "guards": ["ACTOR_IS_CREATOR", "ACTOR_IS_CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_PROJECT_TEAM_MEMBER", "STATUS_DRAFT", "AGGREGATE_IF_MATCH", "CURRENT_LINE_AND_EXPECTED_LINE_VERSION_MATCH", "SCOPE_IS_SUBSET_OF_CURRENT_LINE_AND_FROZEN_COM_AST_SCOPE", "NO_DUPLICATE_CURRENT_OPEN_DIFFERENCE_FOR_SAME_SCOPE"],
+      "write": "SERVER_ALLOCATES_DIFFERENCE_NO; INSERT_REVISION_1_STATUS_OPEN_CURRENT_MARKER_1_PROJECT_FACT_VERSION_NULL; INCREMENT_ROOT_VERSION_IN_SAME_TRANSACTION",
+      "success": "wireContract.successEnvelope<data=DifferenceCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "SCOPE_STALE", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"],
+      "idempotencyScope": "tenant+ARRIVAL_RAISE_DIFFERENCE+id+actor+key",
+      "correlationPolicy": "TRUSTED_REQUEST_CONTEXT_RESOLVES_OR_GENERATES_ONCE_BEFORE_COMMAND; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_REQUEST_DIGEST; SAME_VALUE_FOR_SUCCESS_FACTS"
+    },
+    "resolveDifference": {
+      "method": "POST",
+      "path": "/{id}/actions/resolve-difference",
+      "headers": ["Idempotency-Key", "If-Match"],
+      "discriminator": "resolutionType",
+      "variants": {
+        "SUPPLEMENT": {
+          "exactKeys": ["resolutionType", "differenceId", "expectedDifferenceRevision", "expectedDifferenceVersion", "supplementScope", "reason", "evidenceRevision"],
+          "fields": {"differenceId": "POSITIVE_LONG", "expectedDifferenceRevision": "POSITIVE_INTEGER", "expectedDifferenceVersion": "NON_NEGATIVE_INTEGER", "supplementScope": "commonTypes.scopeSnapshot", "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "evidenceRevision": "commonTypes.fileArtifactRevision"},
+          "serverStatus": "SUPPLEMENTED_IF_WHOLE_REMAINDER_ELSE_OPEN",
+          "confirmedSourceStatus": "REJECTED_ONLY",
+          "effect": "DEVICE_REQUIRES_EXACT_WHOLE_SCOPE; QUANTITY_REQUIRES_SAME_ORDER_MODEL_UNIT_AND_POSITIVE_QUANTITY_NOT_ABOVE_CURRENT_REMAINDER; APPEND_ACCEPTED_LINE_REVISION; PARTIAL_APPENDS_OPEN_DIFFERENCE_REVISION_WITH_EXACT_REMAINING_SCOPE; FULL_APPENDS_SUPPLEMENTED_REVISION; CONFIRMED_SOURCE_ALSO_CREATES_SUPPLEMENT_SUCCESSOR_DRAFT"
+        },
+        "KEEP_REJECTED": {
+          "exactKeys": ["resolutionType", "differenceId", "expectedDifferenceRevision", "expectedDifferenceVersion", "reason", "evidenceRevision"],
+          "fields": {"differenceId": "POSITIVE_LONG", "expectedDifferenceRevision": "POSITIVE_INTEGER", "expectedDifferenceVersion": "NON_NEGATIVE_INTEGER", "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "evidenceRevision": "commonTypes.fileArtifactRevision"},
+          "serverStatus": "REJECTED",
+          "sourceStatus": "DIFFERENCE_PENDING_AND_OPEN_ONLY",
+          "effect": "APPEND_REJECTED_LINE_REVISION; SCOPE_REMAINS_UNSATISFIED; CONFIRMED_SOURCE_IS_STATE_CONFLICT"
+        },
+        "EXEMPT": {
+          "exactKeys": ["resolutionType", "differenceId", "expectedDifferenceRevision", "expectedDifferenceVersion", "reason", "riskDescription", "expiresAt", "evidenceRevision"],
+          "fields": {"differenceId": "POSITIVE_LONG", "expectedDifferenceRevision": "POSITIVE_INTEGER", "expectedDifferenceVersion": "NON_NEGATIVE_INTEGER", "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "riskDescription": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "expiresAt": "wireContract.dateTime_STRICTLY_AFTER_SERVER_PROCESSING_TIME", "evidenceRevision": "commonTypes.fileArtifactRevision"},
+          "serverStatus": "EXEMPTED",
+          "serverOwned": ["approvedBy=trusted actor", "approvedAt=server clock"],
+          "authority": "Q-FIMP002-001_RESOLVED_CURRENT_PROJECT_MANAGER_PLUS_RESOLVE_PERMISSION_PLUS_PROJECT_SCOPE_ACTION_EDIT_LOCKED_BY_ProjectParticipantFactApi",
+          "confirmedSourceStatus": "REJECTED_ONLY",
+          "effect": "VALID_ONLY_FOR_LOCKED_SPECIFIC_SCOPE_AND_EXPIRY; EXPIRY_CAN_CREATE_FACT_AFFECTING_SOURCE"
+        },
+        "CLOSE": {
+          "exactKeys": ["resolutionType", "differenceId", "expectedDifferenceRevision", "expectedDifferenceVersion", "reason", "evidenceRevision"],
+          "fields": {"differenceId": "POSITIVE_LONG", "expectedDifferenceRevision": "POSITIVE_INTEGER", "expectedDifferenceVersion": "NON_NEGATIVE_INTEGER", "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "evidenceRevision": "commonTypes.fileArtifactRevision"},
+          "serverStatus": "CLOSED",
+          "confirmedSourceStatus": "REJECTED_ONLY",
+          "effect": "APPEND_CLOSED_REVISION; KEEP_LINE_AND_SCOPE_UNSATISFIED; NEVER_IMPLY_ACCEPTED_WITHOUT_ACCEPTED_LINE_OR_VALID_EXEMPTION"
+        },
+        "CORRECT_INFORMATION": {
+          "exactKeys": ["resolutionType", "expectedSourceVersion", "reason", "correctionPatch", "evidenceRevision"],
+          "fields": {
+            "expectedSourceVersion": "NON_NEGATIVE_INTEGER", "reason": "NORMALIZED_NON_BLANK_STRING_MAX_1000", "evidenceRevision": "commonTypes.fileArtifactRevision",
+            "correctionPatch": {"exactKeys": ["logisticsNo", "arrivedAt", "signerName", "lines"], "atLeastOneNonNull": true, "logisticsNo": "NORMALIZED_NON_BLANK_STRING_MAX_128_OR_JSON_NULL", "arrivedAt": "wireContract.dateTime_OR_JSON_NULL", "signerName": "NORMALIZED_NON_BLANK_STRING_MAX_128_OR_JSON_NULL", "lines": "NON_EMPTY_ARRAY_OF_commonTypes.draftLine_OR_JSON_NULL"}
+          },
+          "serverStatus": "CREATE_SUCCESSOR_DRAFT",
+          "effect": "ONLY_CONFIRMED_SOURCE; SERVER_CREATES_LINKED_SUCCESSOR_REASON_CORRECTION_AND_COPIES_PREDECESSOR_BATCH_CODE_VERBATIM_WITH_UNCHANGED_FROZEN_VALUES; BATCH_CODE_IS_NOT_PATCHABLE; CLIENT_CANNOT_WRITE_PREDECESSOR_SUCCESSOR_REASON_OR_FACT_IMPACT"
+        }
+      },
+      "guards": ["ACTOR_IS_CURRENT_PROJECT_MANAGER_LOCKED_BY_ProjectParticipantFactApi", "PROJECT_SCOPE_ACTION_EDIT", "STATUS_DIFFERENCE_PENDING_OR_CONFIRMED", "AGGREGATE_IF_MATCH", "DIFFERENCE_PENDING_BRANCH_REQUIRES_CURRENT_OPEN", "CONFIRMED_BRANCH_REQUIRES_CURRENT_REJECTED_AND_REJECTS_KEEP_REJECTED", "CONFIRMED_WITH_CURRENT_OPEN_IS_DATA_INTEGRITY_STATE_CONFLICT", "CURRENT_SUPPLEMENTED_EXEMPTED_CLOSED_CANNOT_ENTER_MANUAL_BRANCH", "DIFFERENCE_BRANCHES_REQUIRE_CURRENT_DIFFERENCE_REVISION_AND_VERSION_MATCH", "CORRECT_INFORMATION_REQUIRES_CONFIRMED_AND_EXPECTED_SOURCE_VERSION", "PROJ_COM_AST_PLT_LOCK_AND_REVALIDATE", "RESOLUTION_SCOPE_IS_SAME_IDENTITY_SUBSET_AND_PARTIAL_REMAINDER_IS_EXACT", "CLIENT_RESOLUTION_STATUS_AND_SERVER_FIELDS_FORBIDDEN"],
+      "write": {
+        "differenceBranches": "ON_DIFFERENCE_PENDING_CLEAR_OLD_CURRENT_MARKER_AND_INSERT_NEW_IMMUTABLE_REVISION_ATOMICALLY_ON_THE_SAME_ROOT; ON_CONFIRMED_LOCK_PREDECESSOR_AND_CREATE_AT_MOST_ONE_LINKED_SUCCESSOR_DRAFT_COPYING_BATCH_CODE_VERBATIM_CURRENT_FROZEN_LINES_AND_DIFFERENCE_THEN_APPEND_ONLY_ON_SUCCESSOR; APPEND_LINE_WHEN_BRANCH_REQUIRES; RECOMPUTE_CANDIDATE; INCREMENT_MUTATED_ROOT_VERSION; NEVER_APPEND_TO_CONFIRMED_SOURCE_HISTORY",
+        "correctInformation": "CREATE_AT_MOST_ONE_LINKED_CORRECTION_SUCCESSOR_DRAFT_WITH_SERVER_OWNED_PREDECESSOR_REASON_AND_VERBATIM_PREDECESSOR_BATCH_CODE; COPY_UNCHANGED_FROZEN_VALUES_AND_APPEND_REQUESTED_CORRECTIONS; DO_NOT_UPDATE_SOURCE_ROOT_LINES_DIFFERENCES_OR_EVIDENCE"
+      },
+      "success": "wireContract.successEnvelope<data=DifferenceCommandData>",
+      "errors": ["VALIDATION", "FUNCTION_PERMISSION", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "AGGREGATE_OR_LINE_VERSION_CONFLICT", "DIFFERENCE_VERSION_CONFLICT", "BUSINESS_GATE_INVALID", "SCOPE_STALE", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS"],
+      "idempotencyScope": "tenant+ARRIVAL_RESOLVE_DIFFERENCE+id+actor+key",
+      "correlationPolicy": "TRUSTED_REQUEST_CONTEXT_RESOLVES_OR_GENERATES_ONCE_BEFORE_COMMAND; NORMALIZED_NON_BLANK_1_TO_128; EXCLUDED_FROM_REQUEST_DIGEST; SAME_VALUE_FOR_SUCCESS_FACTS"
+    }
+  },
+  "internalCommands": {
+    "ExpireArrivalExemptionsCommand": {
+      "trigger": "TASK5B_PAUSED_JOB_UNTIL_TASK12_PRODUCTION_COM_AST_ADAPTERS_AND_UNIQUE_SERVICE_BEAN_EXIST",
+      "input": {"exactKeys": ["processingTime", "pageSize"], "processingTime": "SERVER_CLOCK_ONLY_NOT_EXTERNAL_INPUT", "pageSize": "POSITIVE_INTEGER_MAX_100"},
+      "claimOrder": ["exemption_expires_at ASC", "tenant_id ASC", "arrival_acceptance_id ASC", "difference_no ASC", "revision_no ASC", "id ASC"],
+      "idempotencyKey": "tenantId:arrivalAcceptanceId:differenceNo:revisionNo:EXEMPTION_INVALIDATION",
+      "correlationId": "SAME_SERVER_OWNED_STABLE_VALUE_AS_IDEMPOTENCY_KEY; NORMALIZED_NON_BLANK_MAX_128; SAME_VALUE_FOR_SUCCESS_FACTS",
+      "lockOrder": ["PROJ_AUTHORITATIVE_TENANT_PROJECT_ROW", "ARRIVAL_ACCEPTANCE_ID", "ARRIVAL_LINE_ID", "DIFFERENCE_ID"],
+      "guards": ["CURRENT_MARKER_1", "RESOLUTION_STATUS_EXEMPTED", "EXPIRES_AT_NOT_AFTER_SERVER_PROCESSING_TIME", "CURRENT_CONFIRMED_CHAIN_NODE_WITH_NO_DIRECT_SUCCESSOR_OF_ANY_REASON", "PROJECT_AND_SCOPE_IDENTITIES_MATCH", "PROJ_SYSTEM_QUALIFICATION_CURRENT_ACTIVE_S4_AND_UNIQUE_MANAGER", "COM_AST_PLT_LOCK_AND_REVALIDATE"],
+      "write": "IN_ONE_NEW_PLATFORM_COMMAND_AND_OUTER_TRANSACTION_LOCK_PREDECESSOR_AND_CREATE_AT_MOST_ONE_LINKED_SUCCESSOR_DRAFT_REASON_EXEMPTION_INVALIDATION_COPYING_BATCH_CODE_VERBATIM; APPEND_CURRENT_DIFFERENCE_REVISION_STATUS_OPEN_WITH_FACT_IMPACT_TYPE_EXEMPTION_INVALIDATION_AND_NEW_PROJECT_FACT_VERSION; KEEP_PRIOR_REVISIONS_IMMUTABLE; OLD_FACT_BECOMES_STALE",
+      "casFailure": "ROLL_BACK_PLATFORM_COMMAND_SUCCESS_FACTS_SUCCESSOR_DIFFERENCE_AND_FACT_VERSION",
+      "providerFailure": "FAIL_CLOSED_AND_KEEP_DUE_ITEM_RETRYABLE; INSPECT_OR_FACT_QUERY_NEVER_WRITES",
+      "projectQualification": {
+        "api": "PROJ:ProjectSystemQualificationFactApi.lockCurrentForSystem",
+        "input": ["trustedTenantContext", "projectId", "requiredLifecycleStatus=ACTIVE", "requiredCurrentStage=S4"],
+        "forbiddenInputs": ["subjectUserId", "actionCode", "approvedBy", "systemActor", "expectedFrozenProjectVersion", "expectedFrozenParticipantFactVersion", "expectedFrozenTreeVersion"],
+        "result": ["projectId", "currentManagerUserId", "lifecycleStatus", "currentStage", "currentProjectVersion", "currentParticipantFactVersion", "currentTreeVersion"],
+        "successorPersistence": "STORE_CURRENT_RETURNED_PROJECT_PARTICIPANT_AND_TREE_VERSIONS; DO_NOT_BACKFILL_PREDECESSOR"
+      },
+      "evidenceRevalidation": "PROVE_DELIVERY_EVIDENCE_REVISION_SOURCE_RECORD_IS_CURRENT_NODE_OR_STRICT_IMMUTABLE_CHAIN_ANCESTOR; USE_REVISION_SOURCE_RECORD_ID_AS_PLT_OBJECT_ID; NON_ANCESTOR_BROKEN_CYCLIC_OR_IDENTITY_MISMATCH_FAILS_CLOSED"
+    }
+  },
+  "successorAndFactImpact": {
+    "successorReasons": ["SUPPLEMENT", "CORRECTION", "DIFFERENCE_CLOSURE", "EXEMPTION_INVALIDATION"],
+    "serverOwned": true,
+    "batchIdentity": "Q_FIMP002_002_OPTION_B; SUCCESSOR_COPIES_DIRECT_PREDECESSOR_NORMALIZED_BATCH_CODE_VERBATIM; CORRECT_INFORMATION_CANNOT_CHANGE_BATCH_CODE; NO_SUFFIX_TRUNCATION_OR_OTHER_OWNER",
+    "physicalIdentity": "INITIAL_ROOT_BATCH_ROOT_MARKER_1; SUCCESSOR_MARKER_NULL; UNIQUE_TENANT_PROJECT_BATCH_MARKER_AND_UNIQUE_TENANT_PREDECESSOR_FORM_LINEAR_CHAIN",
+    "creationGuard": "LOCK_SAME_TENANT_PROJECT_PREDECESSOR; EXISTING_DIRECT_SUCCESSOR_IS_STATE_CONFLICT_EXCEPT_SAME_PLATFORM_REPLAY; LATER_CHANGE_STARTS_FROM_CURRENT_LATEST_CONFIRMED_CHAIN_NODE",
+    "ordinarySupplement": "NEWLY_ARRIVED_PREVIOUSLY_UNSATISFIED_SCOPE; CONFIRMATION_ALLOCATES_ROOT_PROJECT_FACT_VERSION_AND_REOPENED_FALSE",
+    "correctionOrExemptionInvalidation": "CHANGES_PREVIOUSLY_PUBLISHED_FACT; SERVER_LOCKS_PROJ_AND_ALLOCATES_VERSION; REOPENED_TRUE",
+    "differenceClosure": "CONFIRMED_HISTORY_CLOSURE_CREATES_SUCCESSOR_REASON_DIFFERENCE_CLOSURE; SUCCESSOR_CONFIRMATION_ALLOCATES_ROOT_VERSION_AND_REOPENED_TRUE; DRAFT_DOES_NOT_PUBLISH_FACT",
+    "differenceFactImpactTypes": ["CORRECTION", "REOPEN", "EXEMPTION_INVALIDATION"],
+    "nonFactAffecting": "FACT_IMPACT_TYPE_NULL_AND_PROJECT_FACT_VERSION_NULL_FOREVER",
+    "factAffecting": "NON_NULL_FACT_IMPACT_TYPE_AND_PROJECT_FACT_VERSION_ALLOCATED_AT_INSERT_IN_SAME_PROJ_LOCKED_TRANSACTION",
+    "confirmedDifferenceMatrix": {
+      "integrity": "CONFIRMED_MUST_NOT_HAVE_CURRENT_OPEN",
+      "sourceStatus": "REJECTED_ONLY",
+      "SUPPLEMENT": "DEVICE_WHOLE_OR_QUANTITY_POSITIVE_LE_REJECTED_SCOPE_REMAINDER; PARTIAL_CREATES_EXACT_OPEN_REMAINDER; FULL_CREATES_SUPPLEMENTED",
+      "EXEMPT": "SAME_REJECTED_SCOPE_PLUS_CURRENT_PROJECT_MANAGER_NEW_EVIDENCE_AND_NEW_EXPIRY_CREATES_EXEMPTED",
+      "CLOSE": "CREATES_CLOSED_WITH_UNSATISFIED_LINE_AND_SCOPE",
+      "KEEP_REJECTED": "STATE_CONFLICT_ON_CONFIRMED; ONLY_DIFFERENCE_PENDING_OPEN_TO_REJECTED",
+      "noManualMutationStatuses": ["SUPPLEMENTED", "EXEMPTED", "CLOSED"]
+    },
+    "forbidden": ["CLIENT_FACT_IMPACT", "RESOLUTION_STATUS_ONLY_INFERENCE", "BACKFILL_IMMUTABLE_REVISION", "PREDECESSOR_ID_ONLY_REOPENED_INFERENCE", "CONFIRMED_OPEN_FIXTURE_OR_WRITE"]
+  },
+  "errorContract": {
+    "envelope": "Yudao CommonResult{code,msg,data}",
+    "transport": "ARRIVAL_CONTROLLER_SCOPED_EXCEPTION_MAPPING; DO_NOT_CHANGE_GLOBAL_YUDAO_HANDLER",
+    "dataPolicy": "HTTP_409_422_503_REQUIRE_NON_NULL_wireContract.schemas.ErrorData; HTTP_400_403_404_DATA_IS_JSON_NULL",
+    "dataSchemaForRecoverableErrors": "wireContract.schemas.ErrorData",
+    "reasonCodesByCategory": {
+      "VALIDATION": ["REQUEST_BODY_INVALID", "QUERY_PARAMETER_INVALID", "IDEMPOTENCY_KEY_INVALID", "IF_MATCH_INVALID"],
+      "FUNCTION_PERMISSION": ["FUNCTION_PERMISSION_DENIED"],
+      "DATA_SCOPE_FORBIDDEN": ["PROJECT_DATA_SCOPE_DENIED"],
+      "NOT_VISIBLE_OR_NOT_FOUND": ["ARRIVAL_ACCEPTANCE_NOT_VISIBLE"],
+      "STATE_CONFLICT": ["BATCH_STATE_CONFLICT"],
+      "AGGREGATE_OR_LINE_VERSION_CONFLICT": ["AGGREGATE_VERSION_STALE", "LINE_VERSION_STALE"],
+      "DIFFERENCE_VERSION_CONFLICT": ["DIFFERENCE_REVISION_STALE", "DIFFERENCE_VERSION_STALE"],
+      "IDEMPOTENCY_CONFLICT": ["IDEMPOTENCY_PAYLOAD_CONFLICT"],
+      "IDEMPOTENCY_IN_PROGRESS": ["IDEMPOTENCY_COMMAND_IN_PROGRESS"],
+      "SCOPE_STALE": ["PROJECT_FACT_STALE", "DELIVERY_SCOPE_STALE", "DEVICE_ASSIGNMENT_STALE", "FILE_SCOPE_STALE"],
+      "EVIDENCE_INVALID": ["EVIDENCE_MISSING", "EVIDENCE_REVISION_STALE", "EVIDENCE_UNAVAILABLE", "EVIDENCE_SCOPE_INVALID"],
+      "BUSINESS_GATE_INVALID": ["PROJECT_NOT_ACTIVE", "PROJECT_STAGE_NOT_S4", "PROJECT_SUBJECT_NOT_ELIGIBLE", "ASSIGNED_SCOPE_EMPTY", "DEVICE_SCOPE_INVALID", "DIFFERENCE_REMAINS_OPEN"],
+      "OWNER_PROVIDER_UNAVAILABLE": ["PROJ_PROVIDER_UNAVAILABLE", "COM_PROVIDER_UNAVAILABLE", "AST_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE"]
+    },
+    "reasonCodeRule": "ErrorData.reasonCode MUST_EQUAL_ONE_MEMBER_OF_reasonCodesByCategory[ErrorData.category]",
+    "mappings": [
+      {"category": "VALIDATION", "httpStatus": 400, "code": 400, "source": "GLOBAL_BAD_REQUEST", "data": null},
+      {"category": "FUNCTION_PERMISSION", "httpStatus": 403, "code": 403, "source": "GLOBAL_FORBIDDEN", "data": null},
+      {"category": "DATA_SCOPE_FORBIDDEN", "httpStatus": 403, "code": 1011004012, "name": "ARRIVAL_ACCEPTANCE_DATA_SCOPE_FORBIDDEN", "data": null},
+      {"category": "NOT_VISIBLE_OR_NOT_FOUND", "httpStatus": 404, "code": 1011004011, "name": "ARRIVAL_ACCEPTANCE_NOT_VISIBLE", "data": null},
+      {"category": "STATE_CONFLICT", "httpStatus": 409, "code": 1011004013, "name": "ARRIVAL_ACCEPTANCE_STATE_CONFLICT", "recoveryAction": "REFRESH_AGGREGATE"},
+      {"category": "AGGREGATE_OR_LINE_VERSION_CONFLICT", "httpStatus": 409, "code": 1011004014, "name": "ARRIVAL_ACCEPTANCE_VERSION_CONFLICT", "recoveryAction": "REFRESH_AGGREGATE"},
+      {"category": "DIFFERENCE_VERSION_CONFLICT", "httpStatus": 409, "code": 1011004015, "name": "ARRIVAL_DIFFERENCE_VERSION_CONFLICT", "recoveryAction": "REFRESH_AGGREGATE"},
+      {"category": "IDEMPOTENCY_CONFLICT", "httpStatus": 409, "code": 1011004016, "name": "ARRIVAL_ACCEPTANCE_IDEMPOTENCY_CONFLICT", "retryable": false, "recoveryAction": "START_NEW_INTENT"},
+      {"category": "IDEMPOTENCY_IN_PROGRESS", "httpStatus": 409, "code": 1011004017, "name": "ARRIVAL_ACCEPTANCE_IDEMPOTENCY_IN_PROGRESS", "retryable": true, "recoveryAction": "RETRY_SAME_KEY"},
+      {"category": "SCOPE_STALE", "httpStatus": 409, "code": 1011004019, "name": "ARRIVAL_ACCEPTANCE_SCOPE_STALE", "recoveryAction": "REFRESH_OWNER_FACTS"},
+      {"category": "EVIDENCE_INVALID", "httpStatus": 422, "code": 1011004020, "name": "ARRIVAL_ACCEPTANCE_EVIDENCE_INVALID", "recoveryAction": "REPLACE_EVIDENCE"},
+      {"category": "BUSINESS_GATE_INVALID", "httpStatus": 422, "code": 1011004021, "name": "ARRIVAL_ACCEPTANCE_BUSINESS_GATE_INVALID", "recoveryAction": "CORRECT_PROJECT_GATE"},
+      {"category": "OWNER_PROVIDER_UNAVAILABLE", "httpStatus": 503, "code": 1011004018, "name": "ARRIVAL_ACCEPTANCE_OWNER_UNAVAILABLE", "recoveryAction": "RETRY_LATER"}
+    ],
+    "zeroSideEffectFor": ["VALIDATION", "FUNCTION_PERMISSION", "DATA_SCOPE_FORBIDDEN", "NOT_VISIBLE_OR_NOT_FOUND", "STATE_CONFLICT", "ALL_VERSION_CONFLICTS", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "SCOPE_STALE", "BUSINESS_GATE_INVALID", "EVIDENCE_INVALID", "OWNER_PROVIDER_UNAVAILABLE"]
+  },
+  "deviceScopeAdapterMapping": {
+    "status": "PASS",
+    "requirementSlice": "EXE-01@V1",
+    "trustedInputs": "PASS_TENANT_PROJECT_AND_SERIALS_OR_FROZEN_DEVICES_WITHOUT_SUBSTITUTION; NO_OLD_ASSET_DEVICE_SCOPE_API",
+    "applicability": {
+      "nonEmptyExplicitSerialUnion": "CALL_AST_WITH_THE_EXACT_NORMALIZED_UNION_ONLY",
+      "nonEmptyAssignedQuantityScopeWithEmptyExplicitSerialUnion": "AST_NOT_APPLICABLE; IMP_ORCHESTRATION_SKIPS_BOTH_AST_OPERATIONS_AND_USES_EMPTY_DEVICES_AND_EMPTY_ASSIGNMENT_WATERMARK",
+      "mixedScope": "CALL_AST_ONLY_FOR_THE_NON_EMPTY_EXPLICIT_SERIAL_UNION; QUANTITY_LINES_DO_NOT_CREATE_DEVICE_FACTS",
+      "revalidationOrder": "LOCK_AND_VALIDATE_COM_VERSION_AND_PAYLOAD_FIRST; IF_EXPLICIT_SERIAL_UNION_CHANGED_FROM_EMPTY_TO_NON_EMPTY_RETURN_DELIVERY_SCOPE_STALE_BEFORE_ANY_EMPTY_AST_PROJECTION"
+    },
+    "resolve": {
+      "RESOLVED": "MAP_EXACT_TENANT_PROJECT_SORTED_DEVICES_AND_ASSIGNMENT_VERSIONS_TO_IMP_PORT",
+      "INVALID": "BUSINESS_GATE_INVALID/DEVICE_SCOPE_INVALID; ZERO_WRITE; DO_NOT_EXPOSE_INVALID_ITEMS"
+    },
+    "lockAndRevalidate": {
+      "VALID": "MAP_CURRENT_FACT_WITHOUT_WATERMARK_REINTERPRETATION",
+      "STALE": "SCOPE_STALE/DEVICE_ASSIGNMENT_STALE",
+      "INVALID": "SCOPE_STALE/DEVICE_ASSIGNMENT_STALE"
+    },
+    "publicExceptionMapping": {
+      "PROVIDER_UNAVAILABLE": "OWNER_PROVIDER_UNAVAILABLE/AST_PROVIDER_UNAVAILABLE",
+      "OWNER_DATA_CORRUPTED": "INTERNAL_FAILURE_PRESERVE_PUBLIC_EXCEPTION_AS_CAUSE",
+      "INVALID_REQUEST": "INTERNAL_FAILURE_PRESERVE_PUBLIC_EXCEPTION_AS_CAUSE",
+      "DUPLICATE_SERIAL": "INTERNAL_FAILURE_PRESERVE_PUBLIC_EXCEPTION_AS_CAUSE",
+      "TENANT_CONTEXT_MISMATCH": "INTERNAL_FAILURE_PRESERVE_PUBLIC_EXCEPTION_AS_CAUSE"
+    },
+    "forbidden": ["INVALID_AS_STALE_DURING_INITIAL_RESOLVE", "INVALID_AS_PROVIDER_UNAVAILABLE", "OWNER_DATA_CORRUPTED_AS_PROVIDER_UNAVAILABLE", "PARTIAL_FACT", "FAKE_OR_FALLBACK", "OLD_ASSET_DEVICE_SCOPE_API", "CALL_AST_WITH_EMPTY_SERIALS", "SKIP_AST_WHEN_ANY_EXPLICIT_SERIAL_EXISTS", "TREAT_EMPTY_COM_SCOPE_AS_AST_NOT_APPLICABLE"]
+  },
+  "idempotency": {
+    "digest": "SHA-256_LOWER_HEX_OF_NORMALIZED_ROUTE_ID_EXPECTED_VERSION_AND_EXACT_REQUEST_BODY; EXCLUDE_TENANT_ACTOR_CORRELATION_AND_SERVER_FIELDS",
+    "claim": "PlatformCommandExecutionApi_IN_SAME_OUTER_TRANSACTION",
+    "decisions": {
+      "NEW": "EXECUTE_ONCE_AND_STORE_RESPONSE",
+      "REPLAY_COMPLETED": "RETURN_FIRST_RESPONSE_WITHOUT_BUSINESS_READ_OR_WRITE",
+      "CONFLICT": "PERMANENT_409_NO_BUSINESS_WRITE",
+      "IN_PROGRESS": "RETRYABLE_409_NO_BUSINESS_WRITE"
+    }
+  },
+  "queryContract": {
+    "mapperInput": "ONE_SCENARIO_QUERY_OBJECT_PER_INTENT",
+    "listQuery": "tenantId+visibleProjectIds+optionalFilters+offset+limit",
+    "emptyVisibleProjectIds": "RETURN_EMPTY_PAGE_WITHOUT_SQL_SCOPE_EXPANSION",
+    "textSql": "MAPPER_XML_ONLY",
+    "stableOrders": {
+      "page": ["arrived_at DESC", "id DESC"],
+      "lines": ["line_no ASC", "id ASC"],
+      "differences": ["difference_no ASC", "revision_no ASC", "id ASC"]
+    }
+  },
+  "resolvedDecisions": [
+    {
+      "id": "Q-FIMP002-001",
+      "decision": "CURRENT_PROJECT_MANAGER_PLUS_RESOLVE_DIFFERENCE_PERMISSION_PLUS_PROJECT_SCOPE_ACTION_EDIT",
+      "subjectLock": "ProjectParticipantFactApi.lockAndRevalidate_IN_WRITE_TRANSACTION",
+      "serverOwned": ["approvedBy=trusted actor", "approvedAt=server clock"],
+      "clientApprovalFieldsForbidden": true
+    }
+  ],
+  "acceptance": [
+    "ALL_ENDPOINTS_HAVE_EXACT_TYPED_INPUT_OUTPUT_AND_HEADERS",
+    "SUCCESS_USES_COMMON_RESULT_AND_LIST_DATA_USES_EXACT_PAGE_RESULT_LIST_TOTAL_WITH_EPOCH_MILLISECOND_TIMES",
+    "LONG_VALUES_INSIDE_STRICT_JAVASCRIPT_SAFE_RANGE_ARE_JSON_NUMBER_AND_BOUNDARY_OR_OUTSIDE_VALUES_ARE_DECIMAL_JSON_STRING",
+    "DETAIL_WITHOUT_DELIVERY_EVIDENCE_ROOT_RETURNS_EVIDENCE_JSON_NULL",
+    "HTTP_409_422_503_ERROR_DATA_HAS_STABLE_REASON_AND_RECOVERY_ACTION",
+    "EVERY_ERROR_CATEGORY_AND_REASON_CODE_IS_IN_THE_CLOSED_MACHINE_ENUM_AND_OWNER_UNAVAILABLE_DISTINGUISHES_PROJ_COM_AST_PLT",
+    "UNKNOWN_OR_SERVER_OWNED_FIELDS_REJECTED_BEFORE_COMMAND",
+    "FIVE_PERMISSIONS_MAP_TO_EVERY_ENTRY_WITHOUT_LEGACY_KEYS",
+    "PAGE_SIZE_ABOVE_100_REJECTED_AND_EMPTY_SCOPE_RETURNS_EMPTY_PAGE",
+    "CROSS_TENANT_OR_INVISIBLE_OBJECT_DOES_NOT_DISCLOSE_EXISTENCE",
+    "STALE_IF_MATCH_DIFFERENCE_REVISION_OR_OWNER_WATERMARK_HAS_ZERO_BUSINESS_SIDE_EFFECT",
+    "SAME_KEY_SAME_REQUEST_REPLAYS_AND_SAME_KEY_DIFFERENT_REQUEST_CONFLICTS",
+    "DIFFERENCE_AND_LINE_HISTORY_IS_APPEND_ONLY",
+    "ALLOWED_ACTIONS_AND_COMMAND_GUARDS_ARE_ISOMORPHIC_FOR_PERMISSION_SCOPE_SUBJECT_STATE_AND_OBJECT",
+    "PARTIAL_QUANTITY_SUPPLEMENT_PERSISTS_EXACT_POSITIVE_REMAINDER_AND_DEVICE_SUPPLEMENT_IS_WHOLE_ONLY",
+    "CORRECTION_AND_EXEMPTION_INVALIDATION_HAVE_REACHABLE_COMMANDS_AND_FACT_VERSION_ALLOCATION_NEVER_OCCURS_ON_READ",
+    "TASK5B_TWO_COLUMN_MIGRATION_FAILS_BEFORE_DDL_WHEN_IMMUTABLE_HISTORY_CANNOT_BE_PROVEN",
+    "PROVIDER_UNAVAILABLE_AND_EVIDENCE_INVALID_ARE_DISTINCT",
+    "NO_PRODUCTION_CONTROLLER_OR_SERVICE_BEAN_BEFORE_TASK12_DEPENDENCY_ACTIVATION"
+  ]
+}

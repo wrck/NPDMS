@@ -6,6 +6,8 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CustomerDeviceSummaryPageQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceScopeLockQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceScopeSerialListQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibilityQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.DeviceLocationProjectionUpdate;
@@ -32,6 +34,10 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     DeviceDO selectByTenantAndIdForUpdate(
             @Param("tenantId") Long tenantId,
             @Param("id") Long id);
+
+    List<DeviceDO> selectListByScopeSerials(@Param("query") DeviceScopeSerialListQuery query);
+
+    List<DeviceDO> selectScopeDevicesForUpdate(@Param("query") DeviceScopeLockQuery query);
 
     int updateLocationProjection(@Param("update") DeviceLocationProjectionUpdate update);
 

@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-IMP-002",
+  "status": "BASELINE_READY",
+  "task5BExtensionStatus": "BASELINE_READY",
+  "requirementSlices": ["EXE-01@V1"],
+  "coverage": "FULL",
+  "owner": "IMP",
+  "aggregate": "ArrivalAcceptance",
+  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectParticipantFactApi", "PROJ:ProjectScopeApi", "T-FIMP002-PROJ-01:ProjectSystemQualificationFactApi", "PLT:FileArtifactApi"],
+  "tables": [
+    {
+      "name": "imp_arrival_acceptance",
+      "purpose": "到货批次根、应到范围快照、里程碑事实版本和证据revision引用",
+      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "project_version", "project_participant_fact_version", "project_scope_version", "delivery_scope_version", "scope_watermark", "migration_resolution_status", "version"],
+      "qualificationVersionSources": {
+        "project_version": "PROJ:ProjectParticipantFactApi.projectVersion",
+        "project_participant_fact_version": "PROJ:ProjectParticipantFactApi.factVersion",
+        "project_scope_version": "PROJ:ProjectScopeApi.treeVersion"
+      },
+      "nullableUntilSubmit": ["evidence_id", "evidence_revision"],
+      "submitRequiredReferences": ["evidence_id", "evidence_revision"],
+      "nullableUnlessSuccessor": ["predecessor_acceptance_id", "successor_reason"],
+      "batchChainIdentityPolicy": {
+        "batchCode": "NORMALIZED_1_TO_64_STABLE_BUSINESS_BATCH_IDENTITY; SUCCESSOR_COPIES_DIRECT_PREDECESSOR_VALUE_VERBATIM; NO_SUFFIX_TRUNCATION_OR_EXTERNAL_GENERATION",
+        "batchRootMarkerColumn": "TINYINT NULL NO_DEFAULT; SERVER_OWNED; NEVER_EXPOSED_TO_REST",
+        "initialRoot": "PREDECESSOR_NULL_AND_SUCCESSOR_REASON_NULL_AND_BATCH_ROOT_MARKER_1",
+        "successor": "PREDECESSOR_NON_NULL_AND_SUCCESSOR_REASON_NON_NULL_AND_BATCH_ROOT_MARKER_NULL",
+        "linearChain": "LOCK_DIRECT_PREDECESSOR; SAME_TENANT_AND_PROJECT; AT_MOST_ONE_DIRECT_SUCCESSOR; LATER_SUCCESSOR_SOURCE_IS_CURRENT_LATEST_CONFIRMED_CHAIN_NODE",
+        "idempotency": "SAME_PLATFORM_SCOPE_KEY_DIGEST_REPLAYS_SAME_SUCCESSOR_ID; DIFFERENT_KEY_OR_INTENT_ON_OCCUPIED_PREDECESSOR_IS_STATE_CONFLICT_WITH_ZERO_WRITE",
+        "immutableInsertedFields": ["tenant_id", "project_id", "batch_code", "predecessor_acceptance_id"],
+        "ancestorEvidenceProof": "AFTER_LOCKING_CURRENT_SOURCE_READ_PREDECESSOR_CHAIN; EVERY_NODE_SAME_TENANT_PROJECT_BATCH_AND_NOT_DELETED; CYCLE_BROKEN_CHAIN_OR_IDENTITY_MISMATCH_FAILS_CLOSED; NO_MULTI_ANCESTOR_LOCK_REQUIRED"
+      },
+      "successorReasonPolicy": {
+        "values": ["SUPPLEMENT", "CORRECTION", "DIFFERENCE_CLOSURE", "EXEMPTION_INVALIDATION"],
+        "source": "SERVER_COMMAND_BRANCH; SUPPLEMENT_IS_ORDINARY_NON_REOPEN; OTHER_VALUES_PROVE_POST_PUBLICATION_REOPEN",
+        "column": "VARCHAR(32) NULL DEFAULT NULL",
+        "guards": ["CHECK_PREDECESSOR_AND_REASON_BOTH_NULL_OR_BOTH_NON_NULL", "CHECK_CLOSED_VALUE_SET", "CLIENT_WRITE_FORBIDDEN", "PREDECESSOR_ID_ALONE_DOES_NOT_PROVE_REOPENED"]
+      },
+      "nullableUntilConfirm": ["project_fact_version"],
+      "confirmRequiredReferences": ["project_fact_version", "evidence_id", "evidence_revision"],
+      "uniqueKeys": [["tenant_id", "project_id", "batch_code", "batch_root_marker"], ["tenant_id", "predecessor_acceptance_id"], ["tenant_id", "project_id", "project_fact_version"]],
+      "projectFactVersionPolicy": {
+        "timing": "SUBMIT_REMAINS_NULL; ALLOCATE_FOR_CONFIRMATION_OR_FACT_AFFECTING_SOURCE_ONLY",
+        "serializationLock": "HOLD_PROJ_AUTHORITATIVE_TENANT_PROJECT_ROW_LOCK_UNTIL_OUTER_TRANSACTION_COMMIT",
+        "allocation": "MAX_OF_ALL_NON_NULL_AUTHORITATIVE_ALLOCATION_SET_PLUS_ONE",
+        "authoritativeAllocationSet": [
+          "imp_arrival_acceptance.project_fact_version FOR_SAME_TENANT_PROJECT",
+          "imp_arrival_difference.project_fact_version JOINED_BY_ARRIVAL_ACCEPTANCE FOR_SAME_TENANT_PROJECT"
+        ],
+        "guards": ["IGNORE_NULL", "UNQUALIFIED_LEGACY_VALUE_FORBIDDEN", "UNIQUE_KEY_IS_LAST_CONFLICT_GUARD", "CONFLICT_ROLLS_BACK_WITHOUT_RENUMBER"],
+        "reopenedDerivation": "MAX_VERSION_FROM_ONE_QUALIFIED_FACT_AFFECTING_DIFFERENCE_SOURCE_IS_TRUE; MAX_VERSION_FROM_ROOT_WITHOUT_SUCCESSOR_REASON_OR_WITH_SUCCESSOR_REASON_SUPPLEMENT_IS_FALSE; MAX_VERSION_FROM_ROOT_WITH_SUCCESSOR_REASON_CORRECTION_DIFFERENCE_CLOSURE_OR_EXEMPTION_INVALIDATION_IS_TRUE; MISSING_DUPLICATED_DAMAGED_OR_UNPROVABLE_SOURCE_FAILS_CLOSED"
+      },
+      "migrationResolutionStatuses": ["NOT_APPLICABLE", "PENDING_RECONCILIATION", "RECONCILED"],
+      "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; CORRECTIONS_CREATE_LINKED_SUCCESSOR_DRAFTS"
+    },
+    {
+      "name": "imp_arrival_line",
+      "purpose": "设备或订单型号数量签收明细及追加版本",
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "line_no", "line_revision", "scope_type", "status", "expected_quantity", "accepted_quantity", "unit", "current_marker", "version"],
+      "scopeTypes": ["DEVICE", "ORDER_MODEL_QUANTITY"],
+      "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "line_no", "line_revision"], ["tenant_id", "arrival_acceptance_id", "line_no", "current_marker"]],
+      "guards": ["DEVICE_SCOPE_REQUIRES_DEVICE_ID_AND_ASSIGNMENT_VERSION", "QUANTITY_SCOPE_REQUIRES_ORDER_LINE_AND_MODEL", "NON_NEGATIVE_QUANTITY", "ACCEPTED_NOT_GREATER_THAN_CURRENT_UNACCEPTED"]
+    },
+    {
+      "name": "imp_arrival_difference",
+      "purpose": "差异、拒收处置和具体豁免的不可变版本",
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "scope_snapshot", "current_marker", "version"],
+      "nullableUnlessFactAffectingSource": ["project_fact_version", "fact_impact_type"],
+      "factImpactTypes": ["CORRECTION", "REOPEN", "EXEMPTION_INVALIDATION"],
+      "factImpactTypeColumn": "VARCHAR(32) NULL DEFAULT NULL",
+      "projectFactVersionPolicy": ["CHECK_FACT_IMPACT_TYPE_AND_PROJECT_FACT_VERSION_BOTH_NULL_OR_BOTH_NON_NULL", "CHECK_CLOSED_FACT_IMPACT_TYPE_SET", "CHECK_PROJECT_FACT_VERSION_NULL_OR_NON_NEGATIVE", "FACT_AFFECTING_SOURCE_REQUIRES_NON_NULL_FACT_IMPACT_TYPE_AND_ALLOCATED_VERSION_AT_INSERT", "NON_FACT_AFFECTING_REVISION_REQUIRES_BOTH_FIELDS_NULL", "NEVER_BACKFILL_IMMUTABLE_REVISION", "CLIENT_FACT_IMPACT_WRITE_FORBIDDEN", "RESOLUTION_STATUS_ALONE_DOES_NOT_PROVE_FACT_IMPACT"],
+      "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
+      "scopeSnapshotContract": {
+        "discriminator": "scopeType",
+        "exactKeysOnly": true,
+        "stringNumbersForbidden": true,
+        "variants": {
+          "DEVICE": {
+            "exactKeys": ["scopeType", "deviceId"],
+            "deviceId": "POSITIVE_LONG"
+          },
+          "ORDER_MODEL_QUANTITY": {
+            "exactKeys": ["scopeType", "orderLineId", "productCode", "modelCode", "quantity", "unitCode"],
+            "orderLineId": "POSITIVE_LONG",
+            "productCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+            "modelCode": "NORMALIZED_NON_BLANK_STRING_OR_JSON_NULL",
+            "productOrModelGuard": "AT_LEAST_ONE_NON_NULL",
+            "quantity": "POSITIVE_DECIMAL_JSON_NUMBER",
+            "unitCode": "NON_BLANK_STRING"
+          }
+        },
+        "readPolicy": "CURRENT_CONFIRMED_UNEXPIRED_EXEMPTED_REVISION_WITH_COMPLETE_APPROVAL_AND_EVIDENCE_ONLY; UNKNOWN_OR_INVALID_SHAPE_FAILS_CLOSED; NEVER_INFER_FROM_XLSX_REASON_OR_ARRIVAL_LINE"
+      },
+      "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "difference_no", "revision_no"], ["tenant_id", "arrival_acceptance_id", "difference_no", "current_marker"]],
+      "exemptionGuards": ["EXPLICIT_DEVICE_OR_ORDER_MODEL_QUANTITY_SCOPE", "APPROVER_AND_APPROVED_AT_REQUIRED", "EVIDENCE_REQUIRED", "EXPIRY_REVALIDATED"]
+    },
+    {
+      "name": "imp_delivery_evidence",
+      "purpose": "EXE-01签收单证据身份、来源批次和ACC同步当前投影",
+      "requiredFields": ["tenant_id", "project_id", "source_requirement", "source_object_type", "source_object_id", "current_revision_no", "acc_sync_status", "version"],
+      "nullableUntilFirstPublication": ["acc_correlation_id"],
+      "publicationCorrelationPolicy": {
+        "source": "NORMALIZED_ARRIVAL_CONFIRM_COMMAND_CORRELATION_ID",
+        "firstPublication": "NOT_PUBLISHED_TO_PUBLISHED_PENDING_ACC_WRITES_ROOT_AND_OUTBOUND_MESSAGE_ATOMICALLY",
+        "afterFirstPublication": "NON_NULL_IMMUTABLE_FOR_EVIDENCE_PUBLICATION_CHAIN",
+        "retry": "INHERIT_ACC_CORRELATION_ID_VERBATIM; NEVER_DERIVE_FROM_EVIDENCE_ID_EVENT_ID_LOG_OR_CURRENT_OWNER_FACT"
+      },
+      "scopeGuard": "SOURCE_REQUIREMENT_EXE_01_AND_SOURCE_OBJECT_TYPE_ARRIVAL_ACCEPTANCE_ONLY",
+      "uniqueKeys": [["tenant_id", "source_requirement", "source_object_type", "source_object_id"]]
+    },
+    {
+      "name": "imp_delivery_evidence_revision",
+      "purpose": "EXE-01签收单不可变FileReference、哈希与来源版本",
+      "requiredFields": ["tenant_id", "evidence_id", "revision_no", "file_artifact_id", "file_reference_id", "file_version_no", "file_scope_version", "file_fact_version", "file_hash", "source_record_id", "source_version"],
+      "fileReferenceContract": {
+        "file_artifact_id": "PLT:FileArtifactVersionFact.artifactId",
+        "file_reference_id": "PLT:FileArtifactVersionFact.referenceKey",
+        "file_version_no": "PLT:FileArtifactVersionFact.versionNo",
+        "file_scope_version": "PLT:FileArtifactVersionFact.scopeVersion",
+        "file_fact_version": {
+          "source": "PLT:FileArtifactVersionFact.fileFactVersion",
+          "exactNonNegativeIntegerKeys": ["artifactVersion", "referenceVersion", "availabilityVersion"]
+        },
+        "fixedPolicy": {"ownerContext": "IMP", "objectType": "ARRIVAL_ACCEPTANCE", "purposeCode": "RECEIPT", "requiredAction": "READ", "objectId": "source_record_id"}
+      },
+      "uniqueKeys": [["tenant_id", "evidence_id", "revision_no"]],
+      "immutability": "INSERT_ONLY; NEVER_REDOWNLOAD_OR_COPY_BINARY; REFERENCE_PLT_FILE_VERSION",
+      "publicationPolicy": "UPLOAD_OR_DRAFT_REPLACEMENT_APPENDS_REVISION; BATCH_CONFIRM_FREEZES_AND_PUBLISHES_CURRENT_REVISION"
+    }
+  ],
+  "evidence": {
+    "ownerObject": "DeliveryEvidence",
+    "featureScope": "EXE_01_ARRIVAL_RECEIPT_SLICE_ONLY; DOES_NOT_COVER_OTHER_IMP_01_OBLIGATIONS",
+    "fileReference": "PLT:FileArtifactApi",
+    "outboundEvent": "ImplementationEvidencePublished",
+    "inboundEvents": ["ArtifactAccepted", "ArtifactArchived"],
+    "inboxIdempotencyKey": "eventId",
+    "correlationKey": ["tenantId", "evidenceId", "evidenceRevision"],
+    "correlationIdPolicy": "FIRST_PUBLICATION_PERSISTS_NORMALIZED_COMMAND_CORRELATION_ID_TO_IMP_DELIVERY_EVIDENCE; ALL_RETRIES_INHERIT_VERBATIM",
+    "archiveStatuses": ["NOT_PUBLISHED", "PUBLISHED_PENDING_ACC", "ARCHIVE_PENDING_RETRY", "ACCEPTED_PENDING_ARCHIVE", "ARCHIVE_ACK_PENDING_RETRY", "ARCHIVED"],
+    "statusTransitions": {
+      "OUTBOX_QUEUED": "NOT_PUBLISHED->PUBLISHED_PENDING_ACC",
+      "PUBLISH_OR_CALLBACK_TIMEOUT": "PUBLISHED_PENDING_ACC->ARCHIVE_PENDING_RETRY",
+      "RETRY_QUEUED": "ARCHIVE_PENDING_RETRY->PUBLISHED_PENDING_ACC",
+      "ARTIFACT_ACCEPTED": "PUBLISHED_PENDING_ACC|ARCHIVE_PENDING_RETRY->ACCEPTED_PENDING_ARCHIVE",
+      "ARCHIVED_CALLBACK_TIMEOUT": "ACCEPTED_PENDING_ARCHIVE->ARCHIVE_ACK_PENDING_RETRY",
+      "ARCHIVE_ACK_RETRY_QUEUED": "ARCHIVE_ACK_PENDING_RETRY->ARCHIVE_ACK_PENDING_RETRY",
+      "DUPLICATE_ACCEPTED_WHILE_PENDING_ARCHIVE": "ACCEPTED_PENDING_ARCHIVE->ACCEPTED_PENDING_ARCHIVE",
+      "DUPLICATE_ACCEPTED_WHILE_ARCHIVE_ACK_RETRY": "ARCHIVE_ACK_PENDING_RETRY->ARCHIVE_ACK_PENDING_RETRY",
+      "ARTIFACT_ARCHIVED": "ACCEPTED_PENDING_ARCHIVE|ARCHIVE_ACK_PENDING_RETRY->ARCHIVED"
+    },
+    "transitionGuards": ["ACCEPTED_CALLBACK_MUST_MATCH_CURRENT_EVIDENCE_REVISION", "ARCHIVED_CALLBACK_REQUIRES_MATCHING_ACCEPTED_REVISION", "LATE_OR_MISMATCHED_CALLBACK_AUDIT_ONLY"],
+    "archiveFailurePolicy": "BEFORE_ACCEPTED_USE_ARCHIVE_PENDING_RETRY; AFTER_ACCEPTED_USE_ARCHIVE_ACK_PENDING_RETRY; RETRY_SAME_EVIDENCE_ID_AND_REVISION; DO_NOT_ROLL_BACK_CONFIRMED_ACCEPTANCE_AND_DO_NOT_REPORT_ARCHIVED"
+  },
+  "batchStateMachine": {
+    "states": ["DRAFT", "PARTIALLY_ACCEPTED", "DIFFERENCE_PENDING", "ACCEPTED", "CONFIRMED"],
+    "transitions": {
+      "SUBMIT_WITH_OPEN_DIFFERENCE": "DRAFT->DIFFERENCE_PENDING",
+      "SUBMIT_WITH_REMAINING_PROJECT_SCOPE": "DRAFT->PARTIALLY_ACCEPTED",
+      "SUBMIT_WITH_FULL_CANDIDATE_PROJECT_SCOPE": "DRAFT->ACCEPTED",
+      "RESOLVE_ALL_DIFFERENCES_PARTIAL": "DIFFERENCE_PENDING->PARTIALLY_ACCEPTED",
+      "RESOLVE_ALL_DIFFERENCES_FULL": "DIFFERENCE_PENDING->ACCEPTED",
+      "PROJECT_MANAGER_CONFIRM_PARTIAL": "PARTIALLY_ACCEPTED->CONFIRMED",
+      "PROJECT_MANAGER_CONFIRM_FULL": "ACCEPTED->CONFIRMED"
+    },
+    "confirmedMeaning": "BATCH_FINAL_CONFIRMATION_ONLY; PROJECT_FACT_IS_COMPUTED_SEPARATELY",
+    "reopenPolicy": "CREATE_LINKED_SUCCESSOR_DRAFT; NEVER_MOVE_CONFIRMED_BATCH_BACKWARD; INCREMENT_PROJECT_FACT_VERSION"
+  },
+  "task5BCommandPersistence": {
+    "publicCommandContract": "specs/features/F-IMP-002-rest-api-contract.json#endpoints.resolveDifference",
+    "successFactsCorrelation": "USER_COMMAND_USES_TRUSTED_CONTEXT_NORMALIZED_CORRELATION_ID_EXCLUDED_FROM_BUSINESS_DIGEST; EXEMPTION_INVALIDATION_USES_ITS_SERVER_OWNED_STABLE_IDEMPOTENCY_KEY; PLATFORM_NEW_SUCCESS_AND_AUDIT_PERSIST_THE_SAME_NON_BLANK_VALUE_IN_THE_OUTER_TRANSACTION",
+    "correction": "CORRECT_INFORMATION_ON_CONFIRMED_CREATES_SUCCESSOR_DRAFT_WITH_PREDECESSOR_AND_SUCCESSOR_REASON_CORRECTION; ORIGINAL_ROOT_LINES_DIFFERENCES_AND_EVIDENCE_REMAIN_IMMUTABLE",
+    "partialQuantitySupplement": "APPEND_ACCEPTED_LINE_REVISION_AND_APPEND_OPEN_DIFFERENCE_REVISION_WITH_EXACT_REMAINDER; FULL_REMAINDER_APPENDS_SUPPLEMENTED; DEVICE_REQUIRES_WHOLE_SCOPE",
+    "exemptionInvalidation": "ExpireArrivalExemptionsCommand_CREATES_SUCCESSOR_DRAFT_REASON_EXEMPTION_INVALIDATION_AND_APPENDS_FACT_AFFECTING_DIFFERENCE_REVISION_IN_ONE_PROJ_LOCKED_TRANSACTION",
+    "factAllocation": "ROOT_CONFIRMATION_ALLOCATES_ROOT_PROJECT_FACT_VERSION; INDEPENDENT_CORRECTION_REOPEN_OR_EXEMPTION_INVALIDATION_DIFFERENCE_SOURCE_ALLOCATES_DIFFERENCE_PROJECT_FACT_VERSION_AT_INSERT; NEVER_ALLOCATE_ON_READ",
+    "confirmedDifferenceMatrix": {
+      "integrityGuard": "CONFIRMED_WITH_CURRENT_OPEN_FAILS_STATE_CONFLICT_OR_DATA_INTEGRITY_WITH_ZERO_WRITE",
+      "onlySourceStatus": "REJECTED",
+      "SUPPLEMENT": "DEVICE_WHOLE_SCOPE_ONLY; QUANTITY_POSITIVE_NOT_GREATER_THAN_REJECTED_SCOPE_REMAINDER; PARTIAL_APPENDS_EXACT_OPEN_REMAINDER_ON_SUCCESSOR; FULL_APPENDS_SUPPLEMENTED",
+      "EXEMPT": "CURRENT_PROJECT_MANAGER_APPROVES_SAME_REJECTED_SCOPE_WITH_NEW_EVIDENCE_AND_NEW_EXPIRY; APPEND_EXEMPTED_ON_SUCCESSOR",
+      "CLOSE": "APPEND_CLOSED_ON_SUCCESSOR; LINE_AND_SCOPE_REMAIN_UNSATISFIED",
+      "KEEP_REJECTED": "FORBIDDEN_ON_CONFIRMED; DIFFERENCE_PENDING_OPEN_TO_REJECTED_ONLY",
+      "forbiddenCurrentStatuses": ["OPEN", "SUPPLEMENTED", "EXEMPTED", "CLOSED"]
+    },
+    "exemptionExpiryQualification": {
+      "supportTask": "T-FIMP002-PROJ-01",
+      "api": "PROJ:ProjectSystemQualificationFactApi.lockCurrentForSystem",
+      "input": "TRUSTED_TENANT_CONTEXT_PLUS_PROJECT_ID_PLUS_REQUIRED_ACTIVE_S4; NO_SUBJECT_ACTION_APPROVER_OR_SYSTEM_ACTOR",
+      "result": ["projectId", "currentManagerUserId", "lifecycleStatus", "currentStage", "currentProjectVersion", "currentParticipantFactVersion", "currentTreeVersion"],
+      "guard": "LOCK_CURRENT_FACTS_WITHOUT_EXPECTED_FROZEN_VERSION_EQUALITY; MISSING_DUPLICATED_OR_UNAVAILABLE_CURRENT_FACT_FAILS_CLOSED",
+      "write": "EXEMPTION_INVALIDATION_SUCCESSOR_PERSISTS_RETURNED_CURRENT_PROJECT_PARTICIPANT_AND_TREE_VERSIONS; PREDECESSOR_HISTORY_UNCHANGED",
+      "approvedBy": "HISTORICAL_APPROVAL_EVIDENCE_ONLY",
+      "platformActorZero": "IDEMPOTENCY_AND_AUDIT_ONLY_NOT_BUSINESS_QUALIFICATION"
+    },
+    "exemptionEvidenceRevalidation": {
+      "identity": "EVIDENCE_AND_REVISION_EXACT; EVIDENCE_TENANT_PROJECT_SOURCE_REQUIREMENT_EXE_01_SOURCE_OBJECT_TYPE_ARRIVAL_ACCEPTANCE_AND_SOURCE_OBJECT_ID_MATCH_REVISION_SOURCE_RECORD_ID",
+      "sourceRecord": "CURRENT_ACCEPTANCE_OR_STRICT_ANCESTOR_PROVED_BY_IMMUTABLE_PREDECESSOR_CHAIN",
+      "pltObjectId": "IMMUTABLE_REVISION_SOURCE_RECORD_ID",
+      "forbidden": ["CURRENT_SUCCESSOR_ID_SUBSTITUTION", "NON_ANCESTOR_SOURCE", "LOG_DERIVATION", "NEW_SUCCESSOR_BOUND_FILE_FACT"]
+    },
+    "dueClaim": "CURRENT_EXEMPTED_ON_CONFIRMED_NODE_WITH_NO_DIRECT_SUCCESSOR_OF_ANY_REASON"
+  },
+  "expectedScope": {
+    "orderScopeOwner": "COM:DeliveryScopeApi.getAssignedScope",
+    "deviceFactOwner": "AST:DeviceScopeFactApi",
+    "watermark": ["deliveryScopeVersion", "deviceAssignmentVersions"],
+    "pendingAuthorityPolicy": "EXCLUDED_AND_FAILS_CLOSED"
+  },
+  "migration": {
+    "strategy": "CURRENT_FORWARD",
+    "legacySources": ["pms_eng_arrival", "pms_eng_deliverable:RECEIPT_ONLY"],
+    "mappingAudit": "specs/features/F-IMP-002-legacy-reuse-audit.md",
+    "unmappableDisposition": "PRESERVE_LEGACY; WHEN_ROOT_IDENTITY_IS_VALID_RECORD_PENDING_RECONCILIATION_ON_TARGET, OTHERWISE_RECORD_MIGRATION_REJECTION_EVIDENCE; NEVER_CREATE_ACCEPTED_FACT",
+    "forbiddenInferences": ["LEGACY_TINYINT_TO_ACCEPTED", "SHIPMENT_TO_ACCEPTED", "RAW_ATTACHMENT_URL_TO_EVIDENCE", "TEST_SEED_TO_PRODUCTION_FACT"]
+  },
+  "task5BForwardMigration": {
+    "version": "NEXT_FREE_FLYWAY_VERSION_AT_SERIAL_MERGE; NEVER_RESERVE",
+    "columns": [
+      "imp_arrival_acceptance.successor_reason VARCHAR(32) NULL DEFAULT NULL",
+      "imp_arrival_difference.fact_impact_type VARCHAR(32) NULL DEFAULT NULL"
+    ],
+    "preDdlGuards": [
+      "FAIL_IF_ANY_imp_arrival_acceptance.predecessor_acceptance_id_IS_NON_NULL_BECAUSE_REASON_CANNOT_BE_INFERRED",
+      "FAIL_IF_ANY_imp_arrival_difference.project_fact_version_IS_NON_NULL_BECAUSE_FACT_IMPACT_TYPE_CANNOT_BE_INFERRED"
+    ],
+    "allowedExistingData": "ONLY_ALL_PREDECESSOR_ACCEPTANCE_ID_NULL_AND_ALL_DIFFERENCE_PROJECT_FACT_VERSION_NULL",
+    "failureSemantics": "SIGNAL_BEFORE_ALTER; PRESERVE_ROWS_AND_ORIGINAL_TABLE_SHAPE; NO_BACKFILL_OR_GUESS",
+    "retryability": "DROP_TEMPORARY_PROCEDURE_IF_EXISTS_BEFORE_CREATE; FLYWAY_REPAIR_THEN_SAME_MIGRATION_CAN_RERUN; PROCEDURE_ABSENT_AFTER_SUCCESS",
+    "tests": [
+      "EMPTY_OR_ALLOWED_DATA_ALTER_SUCCEEDS_WITH_NULL_NO_DEFAULT_AND_CLOSED_CHECKS",
+      "NON_NULL_PREDECESSOR_FAILS_WITHOUT_SCHEMA_OR_DATA_CHANGE",
+      "NON_NULL_DIFFERENCE_FACT_VERSION_FAILS_WITHOUT_SCHEMA_OR_DATA_CHANGE",
+      "FAILED_THEN_DATA_REMEDIATED_AND_FLYWAY_REPAIRED_RERUN_SUCCEEDS"
+    ]
+  },
+  "successorIdentityForwardMigration": {
+    "version": "NEXT_FREE_FLYWAY_VERSION_AT_SERIAL_MERGE; NEVER_RESERVE",
+    "column": "imp_arrival_acceptance.batch_root_marker TINYINT NULL NO_DEFAULT",
+    "preDdlGuard": "FAIL_BEFORE_ALTER_IF_ANY_PREDECESSOR_ACCEPTANCE_ID_OR_SUCCESSOR_REASON_IS_NON_NULL",
+    "allowedExistingData": "ALL_EXISTING_ROWS_PROVABLY_INITIAL_ROOTS; SET_BATCH_ROOT_MARKER_1_DETERMINISTICALLY_AFTER_COLUMN_ADD",
+    "constraints": [
+      "CHECK_BATCH_ROOT_MARKER_IS_NULL_OR_1",
+      "CHECK_INITIAL_ROOT_HAS_NULL_PREDECESSOR_AND_REASON_AND_MARKER_1",
+      "CHECK_SUCCESSOR_HAS_NON_NULL_PREDECESSOR_AND_REASON_AND_NULL_MARKER"
+    ],
+    "replaceUniqueKey": "DROP_uk_imp_arrival_batch; ADD_UNIQUE_tenant_project_batch_code_batch_root_marker",
+    "linearSuccessorUniqueKey": "ADD_UNIQUE_tenant_predecessor_acceptance_id",
+    "failureSemantics": "SIGNAL_BEFORE_FIRST_ALTER; PRESERVE_ROWS_AND_ORIGINAL_TABLE_SHAPE; NO_HISTORY_GUESS",
+    "retryability": "DROP_GUARD_PROCEDURE_IF_EXISTS_BEFORE_CREATE; FLYWAY_REPAIR_THEN_RERUN; PROCEDURE_ABSENT_AFTER_SUCCESS",
+    "tests": [
+      "PROVABLE_INITIAL_ROOTS_MIGRATE_TO_MARKER_1_AND_NEW_UNIQUES",
+      "ANY_EXISTING_SUCCESSOR_SEMANTICS_FAILS_BEFORE_SCHEMA_OR_DATA_CHANGE",
+      "FAILED_THEN_DATA_REMEDIATED_AND_FLYWAY_REPAIRED_RERUN_SUCCEEDS",
+      "SECOND_INITIAL_ROOT_SAME_TENANT_PROJECT_BATCH_CONFLICTS_WHILE_LINEAR_SUCCESSORS_WITH_NULL_MARKER_ARE_ALLOWED",
+      "SECOND_DIRECT_SUCCESSOR_FOR_SAME_TENANT_PREDECESSOR_CONFLICTS"
+    ]
+  },
+  "apiPrefix": "/api/v1/pms/arrival-acceptances",
+  "restApiContract": "specs/features/F-IMP-002-rest-api-contract.json",
+  "internalApi": "ArrivalAcceptanceFactApi",
+  "permissions": ["pms:arrival-acceptance:query", "pms:arrival-acceptance:create", "pms:arrival-acceptance:edit-own-draft", "pms:arrival-acceptance:confirm", "pms:arrival-acceptance:resolve-difference"],
+  "featureReadyDecision": "GO_FIMP002_FEATURE_READY_4B5A2AC9"
+}

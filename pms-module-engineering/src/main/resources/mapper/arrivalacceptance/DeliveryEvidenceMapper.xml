@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.DeliveryEvidenceMapper">
+    <sql id="columns">
+        id, project_id, source_requirement, source_object_type, source_object_id,
+        current_revision_no, acc_sync_status, acc_last_published_at, acc_next_retry_at,
+        acc_retry_count, acc_last_event_id, acc_correlation_id,
+        acc_accepted_record_id, acc_archived_record_id,
+        version, creator, create_time, updater, update_time, deleted, tenant_id
+    </sql>
+    <sql id="sourceWhere">
+        tenant_id = #{query.tenantId}
+        AND source_requirement = #{query.sourceRequirement}
+        AND source_object_type = #{query.sourceObjectType}
+        AND source_object_id = #{query.sourceObjectId}
+        AND deleted = b'0'
+    </sql>
+    <select id="selectBySource" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE <include refid="sourceWhere"/>
+    </select>
+    <select id="selectByArrivalAcceptanceIdsInternal" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE tenant_id = #{query.tenantId}
+          AND source_requirement = 'EXE-01'
+          AND source_object_type = 'ARRIVAL_ACCEPTANCE'
+          AND source_object_id IN
+          <foreach collection="query.arrivalAcceptanceIds" item="acceptanceId" open="(" separator="," close=")">
+              #{acceptanceId}
+          </foreach>
+          AND deleted = b'0'
+        ORDER BY source_object_id, id
+    </select>
+    <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE <include refid="sourceWhere"/>
+        FOR UPDATE
+    </select>
+    <update id="advanceRevisionIfMatch">
+        UPDATE imp_delivery_evidence
+        SET current_revision_no = current_revision_no + 1,
+            version = version + 1,
+            updater = CAST(#{query.actorUserId} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.expectedRevision}
+          AND acc_sync_status = 'NOT_PUBLISHED'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <select id="selectByIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <update id="markPublishedPendingAccIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = 'PUBLISHED_PENDING_ACC',
+            acc_last_published_at = #{query.publishedAt},
+            acc_next_retry_at = NULL,
+            acc_last_event_id = #{query.eventId},
+            acc_correlation_id = #{query.correlationId},
+            version = version + 1,
+            updater = CAST(#{query.actorUserId} AS CHAR),
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.expectedRevision}
+          AND acc_sync_status = 'NOT_PUBLISHED'
+          AND acc_correlation_id IS NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="markAcceptedPendingArchiveIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = 'ACCEPTED_PENDING_ARCHIVE',
+            acc_next_retry_at = #{query.nextRetryAt},
+            acc_retry_count = #{query.retryCount},
+            acc_last_event_id = #{query.eventId},
+            acc_accepted_record_id = #{query.reviewRecordId},
+            acc_archived_record_id = NULL,
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status IN ('PUBLISHED_PENDING_ACC', 'ARCHIVE_PENDING_RETRY')
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="markArchivedIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = 'ARCHIVED',
+            acc_next_retry_at = NULL,
+            acc_last_event_id = #{query.eventId},
+            acc_archived_record_id = #{query.archiveRecordId},
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status IN ('ACCEPTED_PENDING_ARCHIVE', 'ARCHIVE_ACK_PENDING_RETRY')
+          AND acc_accepted_record_id IS NOT NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="registerFirstCallbackWatermarkIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_next_retry_at = #{query.nextRetryAt},
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status = 'PUBLISHED_PENDING_ACC'
+          AND acc_last_event_id = #{query.eventId}
+          AND acc_retry_count = 0
+          AND acc_next_retry_at IS NULL
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <select id="selectNextDueForRetry" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO">
+        SELECT <include refid="columns"/> FROM imp_delivery_evidence
+        WHERE tenant_id = #{query.tenantId}
+          AND acc_sync_status IN ('PUBLISHED_PENDING_ACC', 'ARCHIVE_PENDING_RETRY',
+                                  'ACCEPTED_PENDING_ARCHIVE', 'ARCHIVE_ACK_PENDING_RETRY')
+          AND acc_next_retry_at IS NOT NULL
+          AND acc_next_retry_at &lt;= #{query.dueAt}
+          AND deleted = b'0'
+        ORDER BY acc_next_retry_at, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+    </select>
+    <update id="enterRetryStateIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = #{query.targetStatus},
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status = #{query.expectedStatus}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+    <update id="advanceRetryIfMatch">
+        UPDATE imp_delivery_evidence
+        SET acc_sync_status = #{query.targetStatus},
+            acc_retry_count = #{query.newRetryCount},
+            acc_next_retry_at = #{query.nextRetryAt},
+            <if test="query.eventId != null">
+                acc_last_event_id = #{query.eventId},
+                acc_last_published_at = #{query.publishedAt},
+            </if>
+            version = version + 1,
+            updater = '0',
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.evidenceId}
+          AND current_revision_no = #{query.currentRevision}
+          AND acc_sync_status = #{query.expectedStatus}
+          AND acc_retry_count = #{query.expectedRetryCount}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

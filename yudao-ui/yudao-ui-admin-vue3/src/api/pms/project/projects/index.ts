@@ -252,6 +252,73 @@ export interface ProjectInstancesVO {
   }[]
 }
 
+export type ProjectStageGateOutcome =
+  | 'SATISFIED'
+  | 'UNSATISFIED'
+  | 'VERSION_CONFLICT'
+  | 'DEPENDENCY_UNAVAILABLE'
+
+export interface ProjectStageGateFactVO {
+  providerKey: string
+  refType: string
+  ownerObjectKey?: string | null
+  ownerBusinessVersion?: string | null
+  factVersion?: string | null
+  outcome: ProjectStageGateOutcome
+  unmetCode?: string | null
+}
+
+export interface ProjectStageAdvanceReadinessVO {
+  projectId: number
+  projectVersion: number
+  treeVersion: number
+  currentStage: string
+  nextStage?: string | null
+  advanceAllowed: boolean
+  guidance?: string | null
+  gates: {
+    gateId: number
+    gateCode: string
+    name: string
+    status: string
+    satisfied: boolean
+    references: {
+      gateReferenceId: number
+      refType: string
+      refCode: string
+      fact: ProjectStageGateFactVO
+      allowedActions: string[]
+    }[]
+  }[]
+}
+
+export interface ProjectStageGateProcessDefinitionVO {
+  processDefinitionId: string
+  processDefinitionKey: string
+  name: string
+  selectable: boolean
+}
+
+export interface ProjectStageGateProcessStartVO {
+  processInstanceId: string
+  processDefinitionId: string
+  processDefinitionKey: string
+  businessKey: string
+  outcome: string
+}
+
+export interface ProjectStageAdvanceResultVO {
+  projectId: number
+  beforeStage: string
+  afterStage: string
+  projectVersion: number
+  stageSnapshotId: number
+  gateEvaluationSummary: string
+  operationId: string
+  operatedAt: string
+  replayed: boolean
+}
+
 const baseUrl = '/pms/projects'
 
 export type ProjectTreeQueryType =
@@ -505,6 +572,51 @@ export const updateProject = (data: {
 /** 实例视图（按冻结模板版本只读） */
 export const getProjectInstances = (id: number) =>
   request.get<ProjectInstancesVO>({ url: `${baseUrl}/${id}/instances` })
+
+/** 当前阶段准出门禁与相邻阶段推进准备度 */
+export const getProjectStageAdvanceReadiness = (id: number) =>
+  request.get<ProjectStageAdvanceReadinessVO>({
+    url: `${baseUrl}/${id}/stage-advance-readiness`
+  })
+
+/** 当前 Gate 可启动的 Flowable 原生流程定义；默认启动最新定义，也可选历史 definitionId */
+export const getProjectStageGateProcessDefinitions = (id: number, gateReferenceId: number) =>
+  request.get<ProjectStageGateProcessDefinitionVO[]>({
+    url: `${baseUrl}/${id}/stage-gates/${gateReferenceId}/process-definitions`
+  })
+
+export const startProjectStageGateProcess = (
+  id: number,
+  gateReferenceId: number,
+  projectVersion: number,
+  idempotencyKey: string,
+  processDefinitionId?: string
+) =>
+  request.post<ProjectStageGateProcessStartVO>({
+    url: `${baseUrl}/${id}/stage-gates/${gateReferenceId}/actions/start-process`,
+    data: { processDefinitionId: processDefinitionId || undefined },
+    headers: { 'If-Match': String(projectVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export const advanceProjectStage = (
+  id: number,
+  readiness: Pick<
+    ProjectStageAdvanceReadinessVO,
+    'projectVersion' | 'treeVersion' | 'currentStage'
+  >,
+  idempotencyKey: string
+) =>
+  request.post<ProjectStageAdvanceResultVO>({
+    url: `${baseUrl}/${id}/actions/advance-stage`,
+    data: {
+      expectedCurrentStage: readiness.currentStage,
+      expectedTreeVersion: readiness.treeVersion
+    },
+    headers: {
+      'If-Match': String(readiness.projectVersion),
+      'Idempotency-Key': idempotencyKey
+    }
+  })
 
 /** 成员区间列表（当前有效+历史） */
 export const getProjectMembers = (id: number) =>
