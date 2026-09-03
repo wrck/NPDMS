@@ -26,7 +26,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          def replace_line(lines, predicate, replacement, label, start=0, end=None):
+          def replace_one(lines, predicate, replacement, label, start=0, end=None):
               stop = len(lines) if end is None else end
               matches = [i for i in range(start, stop) if predicate(lines[i])]
               if len(matches) != 1:
@@ -36,21 +36,21 @@ jobs:
           readme = Path('tasks/features/README.md')
           lines = readme.read_text(encoding='utf-8').splitlines()
 
-          replace_line(
+          replace_one(
               lines,
               lambda line: line.startswith('本轮剩余Feature选择性集成以'),
-              '本轮S0～S6需求标记选择性接收已经继续推进：F-PROJ-008 Task 3A、F-IMP-001 AST支撑及F-IMP-002 Task 1～11由PR #3进入`master@bdcb0d39`；F-INT-012的Device Ops稳定API、PLT凭证/采集任务/回调事实/消费确认及V203由PR #4进入`master@2df41a18`，并在`master@c1b4aac3`通过Java 25编译与聚焦测试。F-PROJ-008 Task 3B、F-IMP-002 Task 12与F-INT-012 INT边缘/E2E仍保持`IN_PROGRESS`，不得因已接收代码倒签Done。',
+              '本轮S0～S6需求标记选择性接收已经继续推进：F-PROJ-008 Task 3A、F-IMP-001 AST支撑及F-IMP-002 Task 1～11由PR #3进入`master@bdcb0d39`；F-INT-012的Device Ops稳定API、PLT凭证/采集任务/回调事实/消费确认及V203由PR #4进入`master@2df41a18`，并经PR #5及`master@c1b4aac3`完成Java 25编译与聚焦测试。F-PROJ-008 Task 3B、F-IMP-002 Task 12与F-INT-012 INT边缘/E2E仍保持`IN_PROGRESS`，不得因已接收代码倒签Done。',
               'latest selective integration paragraph',
           )
 
-          replace_line(
+          replace_one(
               lines,
               lambda line: line.startswith('| `codex/f-proj-008-stage-advance` |'),
               '| `codex/f-proj-008-stage-advance` | `48175aa0` | F-PROJ-008 Task 1/2与Task 3A工作台已接收；Task 3B真实S0→S1闭环仍受`Q-FPROJ-009`约束 | 原始203条master外提交；按Requirement边界只接收PM-03所需代码 | `INTEGRATED_PARTIAL@bdcb0d39`：Task 3A前端API、阶段面板和组件测试已进入master；Open Question只继续阻断首次项目经理指派及真实浏览器闭环 |',
               'F-PROJ branch row',
           )
 
-          replace_line(
+          replace_one(
               lines,
               lambda line: line.startswith('| `prereq-parallel-check-kKiAdn` |'),
               '| `prereq-parallel-check-kKiAdn` | `cdfbd71a` | F-INT-012 Device Ops、凭证、采集任务、回调与消费确认来源 | 4条提交、112个路径，其中91个代码/测试路径 | `SELECTIVELY_INTEGRATED@2df41a18`：已接收独立INT API与PLT核心代码并重排V203；排除旧Infra文件Owner、旧迁移号和未完成INT边缘表；Feature保持`IN_PROGRESS` |',
@@ -59,7 +59,8 @@ jobs:
 
           state_start = lines.index('## master权威Feature状态')
           receipt_start = lines.index('### master已集成Task代码收口回执')
-          replace_line(
+
+          replace_one(
               lines,
               lambda line: line.startswith('| F-PROJ-008 |') and '[Task](F-PROJ-008.md)' in line,
               '| F-PROJ-008 | [Task](F-PROJ-008.md) | IN_PROGRESS；Task 1/2/3A已集成，Task 3B与Implementation Done待完成 | [迁移DU](../delivery-units/DU-20260901-FPROJ008-MIGRATION.md)及[S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | PM-03@V1由生成矩阵派生；真实S0→S1闭环仍受Q-FPROJ-009约束 |',
@@ -68,20 +69,20 @@ jobs:
               receipt_start,
           )
 
-          new_state_rows = [
+          state_rows = [
               '| F-IMP-001 | [Task](F-IMP-001.md) | IN_PROGRESS；FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING | [S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | EXE-06@V1为IMPLEMENTATION_IN_PROGRESS；只接收AST支撑，不外推完整门禁完成 |',
               '| F-IMP-002 | [Task](F-IMP-002.md) | IN_PROGRESS；Task 1～11已完成并进入master，Task 12待完成 | [S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | EXE-01@V1为IMPLEMENTATION_IN_PROGRESS；生产装配、真实基础设施和浏览器待闭合 |',
               '| F-INT-012 | [Task](F-INT-012.md) | IN_PROGRESS；PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING | [F-INT-012接收DU](../delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md)已部分集成 | INT-12@V1为IMPLEMENTATION_IN_PROGRESS；INT边缘接入、文件流转和E2E待闭合 |',
           ]
           joined = '\n'.join(lines)
-          missing = [row for row in new_state_rows if row not in joined]
-          if missing:
+          missing_state_rows = [row for row in state_rows if row not in joined]
+          if missing_state_rows:
               insert_at = next(
                   i for i in range(state_start, receipt_start)
                   if lines[i].startswith('| F-INS-001 |') and '[Task](F-INS-001.md)' in lines[i]
               )
-              lines[insert_at:insert_at] = missing
-              receipt_start += len(missing)
+              lines[insert_at:insert_at] = missing_state_rows
+              receipt_start += len(missing_state_rows)
 
           receipt_rows = [
               '| F-PROJ-008 Task 3A工作台 | `codex/f-proj-008-stage-advance@a3bd0043` | `bdcb0d39` | PM-03阶段准备度、Gate流程启动、相邻推进API调用、阶段面板与组件测试已进入master | 只接收不依赖Q-FPROJ-009裁决的UI切片；Task 3B继续进行中 |',
@@ -100,37 +101,13 @@ jobs:
 
           readme.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
-          task = Path('tasks/features/F-INT-012.md')
-          task_lines = task.read_text(encoding='utf-8').splitlines()
-          replace_line(
-              task_lines,
-              lambda line: line.startswith('- [ ] 基于最终master执行`pms-module-integration-api`'),
-              '- [x] 在`master@c16a95f3`完成Java 25受影响Maven reactor编译、8组聚焦单元/Controller合同测试、追溯只读校验与`git diff --check`；证据：`docs/evidence/f-int-012-master-validation-2026-09-03.md`；',
-              'F-INT validation task',
-          )
-          task.write_text('\n'.join(task_lines) + '\n', encoding='utf-8')
-
-          du = Path('tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md')
-          du_lines = du.read_text(encoding='utf-8').splitlines()
-          replace_line(
-              du_lines,
-              lambda line: line.startswith('- [ ] 当前执行环境无法拉取仓库'),
-              '- [x] GitHub Actions在`master@c16a95f3`完成Java 25编译、8组聚焦测试、追溯校验和差量检查；证据：`docs/evidence/f-int-012-master-validation-2026-09-03.md`；',
-              'DU validation line',
-          )
-          real_validation = '- [ ] 真实MySQL、Redis、Device Ops HTTP/multipart、并发故障恢复和浏览器闭环继续作为Feature Done前置。'
-          if real_validation not in du_lines:
-              du_lines.append(real_validation)
-          du.write_text('\n'.join(du_lines) + '\n', encoding='utf-8')
-
           spec = Path('specs/features/F-INT-012-device-ops-collection-integration.md')
           spec_lines = spec.read_text(encoding='utf-8').splitlines()
-          replace_line(
-              spec_lines,
-              lambda line: line.startswith('> 当前实施切片：'),
-              '> 当前实施切片：`PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING`；已实现代码进入master，Feature保持`IN_PROGRESS`',
-              'F-INT current implementation slice',
-          )
+          desired = '> 当前实施切片：`PLATFORM_CORE_IMPLEMENTED / INT_EDGE_AND_E2E_PENDING`；已实现代码进入master，Feature保持`IN_PROGRESS`'
+          current = [i for i, line in enumerate(spec_lines) if line.startswith('> 当前实施切片：')]
+          if len(current) != 1:
+              raise SystemExit(f'F-INT current implementation slice: expected one line, found {len(current)}')
+          spec_lines[current[0]] = desired
           spec.write_text('\n'.join(spec_lines) + '\n', encoding='utf-8')
 
           Path('.github/workflows/one-shot-feature-reception-ledger.yml').unlink()
@@ -156,8 +133,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add tasks/features/README.md \
-                  tasks/features/F-INT-012.md \
-                  tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md \
                   specs/features/F-INT-012-device-ops-collection-integration.md \
                   .github/workflows/one-shot-feature-reception-ledger.yml
           git commit -m 'chore(governance): 对齐已接收代码与进行中Feature台账'
