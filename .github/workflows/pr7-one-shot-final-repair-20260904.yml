@@ -1,136 +1,15 @@
-name: "PR #7 deterministic final repair"
+name: "PR #7 deterministic final repair (retired)"
 
 on:
-  push:
-    branches:
-      - codex/code-fact-chronological-integration-acc-int-cut-20260904
-    paths:
-      - .github/workflows/pr7-one-shot-final-repair-20260904.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair:
-    name: Remove byte-identical duplicate arrival test helpers
+  retired:
+    name: Repair workflow retired
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
-      - name: Remove only reviewed duplicate helper methods
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          targets = {
-              "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java": [
-                  "    private static DeliveryScopePort.AssignedScope quantityOnlyDeliveryScope() {",
-              ],
-              "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationServiceTest.java": [
-                  "    private static ArrivalAcceptanceDO draftTwoDevices() {",
-                  "    private static ArrivalAcceptanceDO draftQuantityScope() {",
-                  "    private static ArrivalDifferenceDO exemptedDevice(Long acceptanceId, Long deviceId) {",
-                  "    private static ArrivalDifferenceDO exemptedQuantity(BigDecimal quantity) {",
-              ],
-          }
-
-          def extract_method(text: str, signature_pos: int) -> tuple[int, str]:
-              opening = text.find("{", signature_pos)
-              if opening < 0:
-                  raise SystemExit("method opening brace not found")
-              depth = 0
-              in_string = False
-              in_char = False
-              escaped = False
-              for index in range(opening, len(text)):
-                  ch = text[index]
-                  if escaped:
-                      escaped = False
-                      continue
-                  if ch == "\\" and (in_string or in_char):
-                      escaped = True
-                      continue
-                  if ch == '"' and not in_char:
-                      in_string = not in_string
-                      continue
-                  if ch == "'" and not in_string:
-                      in_char = not in_char
-                      continue
-                  if in_string or in_char:
-                      continue
-                  if ch == "{":
-                      depth += 1
-                  elif ch == "}":
-                      depth -= 1
-                      if depth == 0:
-                          end = index + 1
-                          while end < len(text) and text[end] == "\n":
-                              end += 1
-                          return end, text[signature_pos:end]
-              raise SystemExit("method closing brace not found")
-
-          changed = []
-          for raw_path, signatures in targets.items():
-              path = Path(raw_path)
-              text = path.read_text(encoding="utf-8")
-              original = text
-              for signature in signatures:
-                  positions = []
-                  offset = 0
-                  while True:
-                      pos = text.find(signature, offset)
-                      if pos < 0:
-                          break
-                      positions.append(pos)
-                      offset = pos + len(signature)
-                  print(f"{raw_path}: {signature.strip()} definitions={len(positions)}")
-                  if len(positions) == 1:
-                      continue
-                  if len(positions) != 2:
-                      raise SystemExit(
-                          f"{raw_path}: expected one or two definitions for {signature.strip()}, found {len(positions)}"
-                      )
-                  first_end, first_block = extract_method(text, positions[0])
-                  second_end, second_block = extract_method(text, positions[1])
-                  if first_block != second_block:
-                      raise SystemExit(
-                          f"{raw_path}: duplicate definitions differ for {signature.strip()}"
-                      )
-                  text = text[:positions[1]] + text[second_end:]
-                  if text.count(signature) != 1:
-                      raise SystemExit(
-                          f"{raw_path}: postcondition failed for {signature.strip()}"
-                      )
-              if text != original:
-                  path.write_text(text, encoding="utf-8")
-                  changed.append(raw_path)
-
-          expected = sorted(targets)
-          if sorted(changed) != expected:
-              raise SystemExit(f"changed files mismatch: expected={expected}, actual={sorted(changed)}")
-          PY
-
-      - name: Verify and commit repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          mapfile -t changed < <(git diff --name-only | sort)
-          expected=(
-            "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java"
-            "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationServiceTest.java"
-          )
-          [[ "${changed[*]}" == "${expected[*]}" ]]
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${expected[@]}"
-          git diff --cached --check
-          git commit -m "fix(engineering): remove duplicate arrival test helpers"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Confirm retired state
+        run: echo "The reviewed duplicate-helper repair has been applied; this temporary workflow is pending deletion."
