@@ -1,0 +1,193 @@
+name: PR #7 integration gates
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - codex/code-fact-chronological-integration-acc-int-cut-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr7-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-traceability:
+    name: Replay and traceability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout complete integration history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate terminal replay ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/pr7-replay"
+          python3 -m py_compile scripts/validate_pr7_integration_reception.py
+          python3 scripts/validate_pr7_integration_reception.py \
+            --effective-json "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.json" \
+            --effective-csv "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.csv" \
+            --effective-md "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.md" \
+            --summary-output "${RUNNER_TEMP}/pr7-replay/validation-summary.json"
+
+      - name: Validate Requirement traceability projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains docs/design/phase-1-domain-ownership.md \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            --check
+
+      - name: Upload replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr7-effective-replay
+          path: ${{ runner.temp }}/pr7-replay
+          if-no-files-found: warn
+          retention-days: 30
+
+  migration:
+    name: Migration boundary and empty-schema execution
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout complete integration history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable master migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin master:refs/remotes/origin/master
+          changed="$(git diff --name-status origin/master...HEAD -- sql/migrations || true)"
+          if [[ -n "${changed}" ]]; then
+            echo "Existing migration history differs from master:" >&2
+            echo "${changed}" >&2
+            exit 1
+          fi
+
+      - name: Execute V1 through latest on MySQL 8.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="npdms-pr7-mysql-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() { docker rm -f "${container}" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker run -d --name "${container}" \
+            -e MYSQL_ROOT_PASSWORD=pr7-root \
+            mysql:8.4 >/dev/null
+
+          for attempt in $(seq 1 90); do
+            if docker exec "${container}" mysqladmin ping -uroot -ppr7-root --silent; then
+              break
+            fi
+            if [[ "${attempt}" == "90" ]]; then
+              docker logs "${container}" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker exec "${container}" mysql -uroot -ppr7-root -e \
+            "CREATE DATABASE npdms_pr7 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+          while IFS= read -r migration; do
+            echo "Applying ${migration}"
+            docker exec -i "${container}" \
+              mysql -uroot -ppr7-root --default-character-set=utf8mb4 --show-warnings npdms_pr7 \
+              < "${migration}"
+          done < <(find sql/migrations -maxdepth 1 -type f -name 'V*__*.sql' | sort -V)
+
+          docker exec "${container}" mysql -N -uroot -ppr7-root -e \
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='npdms_pr7';"
+
+  backend:
+    name: Backend clean verify (Java 25)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Clean compile and execute tests
+        run: mvn -B -ntp -DskipITs=true clean verify
+
+  frontend:
+    name: Frontend typecheck and production build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install pnpm 9.15.5
+        run: npm install --global pnpm@9.15.5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm run ts:check
+
+      - name: Production build
+        run: pnpm run build:prod
+
+  integration-gate:
+    name: PR #7 integration gate
+    if: always()
+    needs:
+      - replay-traceability
+      - migration
+      - backend
+      - frontend
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all automated gates
+        env:
+          REPLAY: ${{ needs.replay-traceability.result }}
+          MIGRATION: ${{ needs.migration.result }}
+          BACKEND: ${{ needs.backend.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'replay=%s\nmigration=%s\nbackend=%s\nfrontend=%s\n' \
+            "${REPLAY}" "${MIGRATION}" "${BACKEND}" "${FRONTEND}"
+          [[ "${REPLAY}" == "success" ]]
+          [[ "${MIGRATION}" == "success" ]]
+          [[ "${BACKEND}" == "success" ]]
+          [[ "${FRONTEND}" == "success" ]]

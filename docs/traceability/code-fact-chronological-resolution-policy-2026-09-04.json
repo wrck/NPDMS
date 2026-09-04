@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "title": "PR #7 ACC/INT/CUT chronological replay terminal resolution policy",
+  "rawEvidence": {
+    "json": {
+      "path": "docs/traceability/code-fact-chronological-replay-2026-09-04.json",
+      "gitBlob": "ed3497a4b4befcc8ffb01375c89183b359d879c0"
+    },
+    "csv": {
+      "path": "docs/traceability/code-fact-chronological-replay-2026-09-04.csv",
+      "gitBlob": "eb21671849e6da3ecea8aecc8267f2e417ec4ccf"
+    }
+  },
+  "expected": {
+    "totalUniqueSourceCommits": 572,
+    "branchPrimaryCommitCounts": {
+      "prereq-parallel-check-kKiAdn": 4,
+      "codex/f-acc-001-sds": 142,
+      "codex/f-cut-001-matrices": 426
+    },
+    "rawPendingDecisions": 677,
+    "rawUnmappedCommits": 47,
+    "rawUnmappedPaths": 63,
+    "effectivePendingDecisions": 0,
+    "effectiveUnmappedCommits": 0,
+    "effectiveUnmappedPaths": 0
+  },
+  "semantics": {
+    "rawEvidenceMutable": false,
+    "finalTreeSelectionClaimsEquivalence": false,
+    "description": "The effective layer gives every raw commit/path a terminal integration decision. RESOLVED_FINAL_TREE_SELECTED chooses the consolidated owner implementation over a rejected source hunk; compile, test, migration and human-review gates remain independent proof obligations."
+  },
+  "featureRules": [
+    {
+      "feature": "F-INT-012",
+      "branchRegex": "(^|,)prereq-parallel-check-kKiAdn(,|$)",
+      "reason": "INT source branch is governed by the accepted F-INT-012 partial-reception boundary"
+    },
+    {
+      "feature": "F-ACC-002",
+      "branchRegex": "(^|,)codex/f-acc-001-sds(,|$)",
+      "pathOrSubjectRegex": "facc[-_]?002|satisfaction|questionnaire|survey|满意度|问卷",
+      "reason": "ACC satisfaction/questionnaire slice maps to F-ACC-002"
+    },
+    {
+      "feature": "F-ACC-001",
+      "branchRegex": "(^|,)codex/f-acc-001-sds(,|$)",
+      "reason": "remaining ACC source facts map to F-ACC-001"
+    },
+    {
+      "feature": "F-CUT-010",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?010|spare|coordination|备用|协调",
+      "reason": "spare-system coordination slice maps to F-CUT-010"
+    },
+    {
+      "feature": "F-CUT-009",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?009|navigation|导航",
+      "reason": "navigation slice maps to F-CUT-009"
+    },
+    {
+      "feature": "F-CUT-008",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?008|notification|notify|通知",
+      "reason": "notification slice maps to F-CUT-008"
+    },
+    {
+      "feature": "F-CUT-007",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?007",
+      "reason": "explicit F-CUT-007 source identity"
+    },
+    {
+      "feature": "F-CUT-006",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?006|closure|closeout|收尾",
+      "reason": "cutover closure slice maps to F-CUT-006"
+    },
+    {
+      "feature": "F-CUT-005",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?005|approval|审批",
+      "reason": "graded approval slice maps to F-CUT-005"
+    },
+    {
+      "feature": "F-CUT-004",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?004|cutover.?plan|切换方案",
+      "reason": "cutover plan slice maps to F-CUT-004"
+    },
+    {
+      "feature": "F-CUT-003",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?003|checklist|清单",
+      "reason": "dynamic checklist slice maps to F-CUT-003"
+    },
+    {
+      "feature": "F-CUT-002",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "pathOrSubjectRegex": "fcut[-_]?002|assessment|intake|评估|受理",
+      "reason": "task intake and assessment slice maps to F-CUT-002"
+    },
+    {
+      "feature": "F-CUT-001",
+      "branchRegex": "(^|,)codex/f-cut-001-matrices(,|$)",
+      "reason": "remaining CUT source facts map to F-CUT-001"
+    }
+  ],
+  "resolutionRules": [
+    {
+      "rawDecision": "CONFLICTING_HUNKS_PENDING",
+      "pathRegex": "^sql/migrations/V(104|105|106)__device_ops_",
+      "effectiveDecision": "EXCLUDED_SUCCESSOR_MIGRATION",
+      "reason": "V203 is the approved six-table F-INT-012 successor; unfinished Device Ops and duplicate file-owner DDL stay excluded"
+    },
+    {
+      "rawDecision": "CONFLICTING_HUNKS_PENDING",
+      "pathRegex": "^yudao-module-infra/src/(main|test)/java/.*/(ArtifactFile|FileArtifact|FileVersion)",
+      "effectiveDecision": "EXCLUDED_OWNER_BOUNDARY",
+      "reason": "F-PLT-001 remains the file-artifact owner; INFRA retains technical storage clients only"
+    },
+    {
+      "rawDecision": "CONFLICTING_HUNKS_PENDING",
+      "pathRegex": "^sql/migrations/",
+      "effectiveDecision": "RESOLVED_CANONICAL_MIGRATION_SELECTED",
+      "reason": "the final active Flyway sequence is selected and independently checked for uniqueness and the V203 owner boundary"
+    },
+    {
+      "rawDecision": "CONFLICTING_HUNKS_PENDING",
+      "pathRegex": "^(docs/|tasks/|specs/|AGENTS\\.md|README\\.md)",
+      "effectiveDecision": "RESOLVED_REGENERATED_METADATA",
+      "reason": "generated or governance metadata is regenerated from the final Feature/Requirement state"
+    },
+    {
+      "rawDecision": "CONFLICTING_HUNKS_PENDING",
+      "effectiveDecision": "RESOLVED_FINAL_TREE_SELECTED",
+      "reason": "the consolidated final owner implementation is selected over the rejected source hunk; no equivalence claim is made"
+    }
+  ],
+  "repositoryAssertions": {
+    "absentPaths": [
+      "sql/migrations/V204__received_device_ops_integration_foundation.sql",
+      "sql/migrations/V205__received_device_ops_credentials_and_dispatch.sql",
+      "sql/migrations/V206__received_device_ops_callback_consumption.sql",
+      "sql/migrations/V207__received_fcom001_contract_order_scope_forward_migration.sql",
+      "sql/migrations/V208__received_fcom001_permissions_menu_and_acceptance_seed.sql",
+      "sql/migrations/V209__received_fcom001_stage_entry_acceptance_seed.sql",
+      "sql/migrations/V210__received_fcom001_acceptance_identity_authorization_fix.sql",
+      "sql/migrations/V211__received_facc001_acceptance_report_version_forward.sql",
+      "sql/migrations/V212__received_facc001_acceptance_role_menu_ancestor_fix.sql",
+      "sql/migrations/V213__received_facc001_acceptance_activity_contract_identity_fix.sql",
+      "sql/migrations/V214__received_facc001_acceptance_report_jobs.sql",
+      "sql/migrations/V215__received_facc001_acceptance_project_query_permission.sql",
+      "sql/migrations/V216__received_facc002_satisfaction_questionnaire_result_forward.sql",
+      "sql/migrations/V217__received_fcom001_contract_order_scope_schema.sql",
+      "sql/migrations/V218__received_fcom001_order_contract_relation_source_identity.sql",
+      "sql/migrations/V219__received_restore_project_task_assign_permission.sql",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/ArtifactFileApi.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/dto/ArtifactFileCreateCommand.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/dto/ArtifactFileVersionDTO.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/dataobject/file/FileArtifactDO.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/dataobject/file/FileVersionDO.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/mysql/file/FileArtifactMapper.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/mysql/file/FileVersionMapper.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileApiImpl.java",
+      "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileService.java",
+      "yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/service/file/ArtifactFileServiceTest.java"
+    ],
+    "v203": {
+      "path": "sql/migrations/V203__fint012_collection_platform_foundation.sql",
+      "requiredTables": [
+        "plt_device_credential",
+        "plt_credential_grant",
+        "plt_collection_batch",
+        "plt_collection_task",
+        "plt_collection_callback_record",
+        "plt_collection_result_consumption"
+      ],
+      "requiredTokens": [
+        "`command_template_id`",
+        "`temporary_username`",
+        "`last_callback_sequence`",
+        "UNIQUE KEY `uk_plt_callback_id`",
+        "UNIQUE KEY `uk_plt_callback_sequence`"
+      ],
+      "forbiddenTokens": [
+        "infra_file_artifact",
+        "infra_file_version",
+        "int_device_ops_",
+        "pms_eng_"
+      ]
+    },
+    "occurrenceCounts": [
+      {
+        "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileBusinessObjectPolicyRegistry.java",
+        "needle": "private BusinessGrantUploadPolicyFact requireBusinessGrantFact(",
+        "count": 1
+      },
+      {
+        "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileBusinessObjectPolicyRegistry.java",
+        "needle": "private AuthenticatedAssistedUploadPolicyFact requireAuthenticatedAssistedFact(",
+        "count": 1
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/index.vue",
+        "needle": "const handleApprovalWorkspaceChanged =",
+        "count": 1
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival-acceptance/arrivalAcceptanceInteraction.ts",
+        "needle": "export const createArrivalWriteBarrier =",
+        "count": 1
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival-acceptance/arrivalAcceptanceInteraction.ts",
+        "needle": "export const runArrivalGuardedWrite =",
+        "count": 1
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival-acceptance/arrivalAcceptanceInteraction.ts",
+        "needle": "export const runArrivalIntent =",
+        "count": 1
+      },
+      {
+        "path": ".mvn/maven.config",
+        "needle": "-Dmaven.compiler.proc=full",
+        "count": 1
+      }
+    ],
+    "forbiddenScans": [
+      {
+        "name": "second INFRA artifact owner",
+        "roots": [
+          "yudao-module-infra/src/main",
+          "yudao-module-infra/src/test"
+        ],
+        "suffixes": [
+          ".java",
+          ".xml"
+        ],
+        "regex": "\\bArtifactFile(Api|Service)|\\bFileArtifactDO\\b|\\bFileVersionDO\\b"
+      },
+      {
+        "name": "excluded received persistence",
+        "roots": [
+          "sql/migrations"
+        ],
+        "suffixes": [
+          ".sql"
+        ],
+        "regex": "infra_file_artifact|infra_file_version|int_device_ops_"
+      }
+    ]
+  }
+}
