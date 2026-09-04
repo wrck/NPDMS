@@ -108,12 +108,8 @@ class CutoverApprovalStartServiceTest {
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setProjectId(10L);
-        task.setCutoverType("VERSION_UPGRADE");
-        task.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
-        CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
-        plan.setSubmittedAt(LocalDateTime.of(2026, 9, 3, 18, 0));
         when(assembler.lockAndAssemble(any())).thenReturn(
-                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, "{}"));
+                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, null, "{}"));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
