@@ -63,7 +63,7 @@ jobs:
           retention-days: 30
 
   migration:
-    name: Migration boundary and empty-schema execution
+    name: Migration boundary, empty schema, and V160 upgrade
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -72,19 +72,80 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify immutable master migration history
+      - name: Verify immutable history with controlled V161 correction
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin master:refs/remotes/origin/master
+          path="sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
           changed="$(git diff --name-status origin/master...HEAD -- sql/migrations || true)"
-          if [[ -n "${changed}" ]]; then
-            echo "Existing migration history differs from master:" >&2
-            echo "${changed}" >&2
+          expected="$(printf 'M\t%s' "${path}")"
+          if [[ "${changed}" != "${expected}" ]]; then
+            echo "Migration history differs outside the single controlled V161 correction:" >&2
+            printf '%s\n' "${changed}" >&2
             exit 1
           fi
 
-      - name: Execute V1 through latest on MySQL 8.4
+          master_blob="$(git rev-parse "origin/master:${path}")"
+          expected_master_blob="3a4a3b5166fc5e8c2b0ff6cf169cfe27039652f7"
+          if [[ "${master_blob}" != "${expected_master_blob}" ]]; then
+            echo "Master V161 blob changed; controlled correction requires re-review." >&2
+            echo "expected=${expected_master_blob} actual=${master_blob}" >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          path = "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
+
+          def lines(*values: str) -> str:
+              return "\n".join(values) + "\n"
+
+          old = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE `relation_source`='SEED', `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
+          approved = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`,",
+              " `source_system`, `sales_order_source_key`, `contract_source_key`, `source_version`,",
+              " `source_evidence`, `effective_from`, `effective_to`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'SEED', 'FPROJ002-V18-ORDER', 'F-COM001-CONTRACT-001', '1',",
+              " JSON_OBJECT('evidenceType', 'CONTROLLED_ACCEPTANCE_SEED',",
+              "             'migrationVersion', 'V161',",
+              "             'salesOrderSourceKey', 'FPROJ002-V18-ORDER',",
+              "             'contractSourceKey', 'F-COM001-CONTRACT-001'),",
+              " '2026-08-01 00:00:00.000', NULL, 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE",
+              " `relation_source`=VALUES(`relation_source`), `source_system`=VALUES(`source_system`),",
+              " `sales_order_source_key`=VALUES(`sales_order_source_key`),",
+              " `contract_source_key`=VALUES(`contract_source_key`), `source_version`=VALUES(`source_version`),",
+              " `source_evidence`=VALUES(`source_evidence`), `effective_from`=VALUES(`effective_from`),",
+              " `effective_to`=VALUES(`effective_to`), `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
+
+          master = subprocess.check_output(
+              ["git", "show", f"origin/master:{path}"], text=True
+          )
+          if master.count(old) != 1 or master.count(approved) != 0:
+              raise SystemExit("Master V161 no longer has the reviewed pre-correction block")
+          expected = master.replace(old, approved)
+          actual = Path(path).read_text(encoding="utf-8")
+          if actual != expected:
+              raise SystemExit("V161 differs from the single approved source-evidence correction")
+          PY
+
+      - name: Execute empty schema and V160 upgrade on MySQL 8.4
         shell: bash
         run: |
           set -euo pipefail
@@ -109,18 +170,73 @@ jobs:
             sleep 1
           done
 
-          docker exec "${container}" mysql -uroot -ppr7-root -e \
-            "CREATE DATABASE npdms_pr7 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mapfile -t migrations < <(
+            find sql/migrations -maxdepth 1 -type f -name 'V*__*.sql' | sort -V
+          )
+          [[ "${#migrations[@]}" -gt 0 ]]
 
-          while IFS= read -r migration; do
-            echo "Applying ${migration}"
+          apply_migration() {
+            local database="$1"
+            local migration="$2"
+            echo "Applying ${migration} to ${database}"
             docker exec -i "${container}" \
-              mysql -uroot -ppr7-root --default-character-set=utf8mb4 --show-warnings npdms_pr7 \
+              mysql -uroot -ppr7-root --default-character-set=utf8mb4 --show-warnings "${database}" \
               < "${migration}"
-          done < <(find sql/migrations -maxdepth 1 -type f -name 'V*__*.sql' | sort -V)
+          }
+
+          verify_v161_relation() {
+            local database="$1"
+            local actual
+            actual="$(docker exec "${container}" mysql -N -uroot -ppr7-root "${database}" -e \
+              "SELECT CONCAT_WS('|', source_system, sales_order_source_key, contract_source_key, source_version, JSON_UNQUOTE(JSON_EXTRACT(source_evidence, '$.evidenceType')), JSON_UNQUOTE(JSON_EXTRACT(source_evidence, '$.migrationVersion')), DATE_FORMAT(effective_from, '%Y-%m-%d %H:%i:%s.%f')) FROM com_order_contract_relation WHERE tenant_id=0 AND id=992002390002 AND deleted=0;")"
+            expected="SEED|FPROJ002-V18-ORDER|F-COM001-CONTRACT-001|1|CONTROLLED_ACCEPTANCE_SEED|V161|2026-08-01 00:00:00.000000"
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "V161 relation evidence mismatch in ${database}" >&2
+              echo "expected=${expected}" >&2
+              echo "actual=${actual}" >&2
+              exit 1
+            fi
+          }
+
+          docker exec "${container}" mysql -uroot -ppr7-root -e \
+            "CREATE DATABASE npdms_pr7_empty CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          for migration in "${migrations[@]}"; do
+            apply_migration npdms_pr7_empty "${migration}"
+          done
+          verify_v161_relation npdms_pr7_empty
+
+          docker exec "${container}" mysql -uroot -ppr7-root -e \
+            "CREATE DATABASE npdms_pr7_upgrade CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          found_v161=false
+          for migration in "${migrations[@]}"; do
+            if [[ "$(basename "${migration}")" == "V161__fcom001_permissions_menu_and_acceptance_seed.sql" ]]; then
+              found_v161=true
+              break
+            fi
+            apply_migration npdms_pr7_upgrade "${migration}"
+          done
+          [[ "${found_v161}" == "true" ]]
+
+          required_columns="$(docker exec "${container}" mysql -N -uroot -ppr7-root -e \
+            "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='npdms_pr7_upgrade' AND table_name='com_order_contract_relation' AND column_name IN ('source_system','sales_order_source_key','contract_source_key','source_version','source_evidence','effective_from') AND is_nullable='NO';")"
+          [[ "${required_columns}" == "6" ]]
+          before_seed="$(docker exec "${container}" mysql -N -uroot -ppr7-root npdms_pr7_upgrade -e \
+            "SELECT COUNT(*) FROM com_order_contract_relation;")"
+          [[ "${before_seed}" == "0" ]]
+
+          apply_tail=false
+          for migration in "${migrations[@]}"; do
+            if [[ "$(basename "${migration}")" == "V161__fcom001_permissions_menu_and_acceptance_seed.sql" ]]; then
+              apply_tail=true
+            fi
+            if [[ "${apply_tail}" == "true" ]]; then
+              apply_migration npdms_pr7_upgrade "${migration}"
+            fi
+          done
+          verify_v161_relation npdms_pr7_upgrade
 
           docker exec "${container}" mysql -N -uroot -ppr7-root -e \
-            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='npdms_pr7';"
+            "SELECT table_schema, COUNT(*) FROM information_schema.tables WHERE table_schema IN ('npdms_pr7_empty','npdms_pr7_upgrade') GROUP BY table_schema ORDER BY table_schema;"
 
   backend:
     name: Backend clean verify (Java 25)
