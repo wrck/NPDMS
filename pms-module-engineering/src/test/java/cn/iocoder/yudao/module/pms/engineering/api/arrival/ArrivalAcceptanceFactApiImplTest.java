@@ -470,12 +470,6 @@ class ArrivalAcceptanceFactApiImplTest {
                         "P-2", "M-2", Set.of())));
     }
 
-    private static DeliveryScopePort.AssignedScope quantityOnlyDeliveryScope() {
-        return new DeliveryScopePort.AssignedScope(PROJECT_ID, 5L, List.of(
-                new DeliveryScopePort.AssignedLine(2L, BigDecimal.TEN, "EA",
-                        "P-2", "M-2", Set.of())));
-    }
-
     private static DeviceScopeFactPort.DeviceScopeFact deviceScope() {
         return deviceScope(7L, 8L);
     }

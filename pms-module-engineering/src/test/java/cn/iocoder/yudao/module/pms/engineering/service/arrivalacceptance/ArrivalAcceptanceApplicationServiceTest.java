@@ -635,25 +635,6 @@ class ArrivalAcceptanceApplicationServiceTest {
         return row;
     }
 
-    private static ArrivalAcceptanceDO draftTwoDevices() {
-        ArrivalAcceptanceDO row = draft();
-        row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20,\"assignedQuantity\":2," +
-                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"modelCode\":\"MODEL-1\"," +
-                "\"serialNumbers\":[\"SN-1\",\"SN-2\"]}],\"devices\":[{\"deviceId\":11," +
-                "\"serialNumber\":\"SN-1\",\"currentProjectId\":100,\"projectAssignmentVersion\":9}," +
-                "{\"deviceId\":12,\"serialNumber\":\"SN-2\",\"currentProjectId\":100," +
-                "\"projectAssignmentVersion\":10}]}");
-        return row;
-    }
-
-    private static ArrivalAcceptanceDO draftQuantityScope() {
-        ArrivalAcceptanceDO row = draft();
-        row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20," +
-                "\"assignedQuantity\":5,\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\"," +
-                "\"modelCode\":\"MODEL-1\",\"serialNumbers\":[]}],\"devices\":[]}");
-        return row;
-    }
-
     private static DeliveryEvidenceDO evidence() {
         DeliveryEvidenceDO row = new DeliveryEvidenceDO();
         row.setId(50L);
@@ -734,30 +715,6 @@ class ArrivalAcceptanceApplicationServiceTest {
         ArrivalDifferenceDO row = new ArrivalDifferenceDO();
         row.setArrivalAcceptanceId(900L);
         row.setResolutionStatus("OPEN");
-        return row;
-    }
-
-    private static ArrivalDifferenceDO exemptedDevice(Long acceptanceId, Long deviceId) {
-        ArrivalDifferenceDO row = new ArrivalDifferenceDO();
-        row.setArrivalAcceptanceId(acceptanceId);
-        row.setResolutionStatus("EXEMPTED");
-        row.setReason("approved reason");
-        row.setRiskDescription("accepted risk");
-        row.setScopeSnapshot(ArrivalDifferenceScopeCodec.serialize(
-                new ArrivalDifferenceScopeCodec.DeviceScope(deviceId)));
-        row.setApprovedBy(8L);
-        row.setApprovedAt(LocalDateTime.now().minusHours(1));
-        row.setEvidenceId(50L);
-        row.setEvidenceRevision(1);
-        row.setExemptionExpiresAt(LocalDateTime.now().plusDays(1));
-        return row;
-    }
-
-    private static ArrivalDifferenceDO exemptedQuantity(BigDecimal quantity) {
-        ArrivalDifferenceDO row = exemptedDevice(900L, 11L);
-        row.setScopeSnapshot(ArrivalDifferenceScopeCodec.serialize(
-                new ArrivalDifferenceScopeCodec.QuantityScope(
-                        20L, "PRODUCT-1", "MODEL-1", quantity, "台")));
         return row;
     }
 
