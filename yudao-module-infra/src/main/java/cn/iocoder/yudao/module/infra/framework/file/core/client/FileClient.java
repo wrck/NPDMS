@@ -1,7 +1,5 @@
 package cn.iocoder.yudao.module.infra.framework.file.core.client;
 
-import java.io.InputStream;
-
 /**
  * 文件客户端
  *
@@ -25,8 +23,6 @@ public interface FileClient {
      * @throws Exception 上传文件时，抛出 Exception 异常
      */
     String upload(byte[] content, String path, String type) throws Exception;
-
-    String upload(InputStream content, long contentLength, String path, String type) throws Exception;
 
     /**
      * 删除文件

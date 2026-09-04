@@ -11,7 +11,6 @@ import cn.iocoder.yudao.module.infra.framework.file.core.client.AbstractFileClie
 import com.jcraft.jsch.JSch;
 
 import java.io.File;
-import java.io.InputStream;
 
 /**
  * Sftp 文件客户端
@@ -65,25 +64,6 @@ public class SftpFileClient extends AbstractFileClient<SftpFileClientConfig> {
         }
         // 拼接返回路径
         return super.formatFileUrl(config.getDomain(), path);
-    }
-
-    @Override
-    public String upload(InputStream content, long contentLength, String path, String type) throws Exception {
-        String filePath = getFilePath(path);
-        String dir = StrUtil.removeSuffix(filePath, FileUtil.getName(filePath));
-        File temporaryFile = FileUtils.createTempFile();
-        try {
-            java.nio.file.Files.copy(content, temporaryFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            reconnectIfTimeout();
-            sftp.mkDirs(dir);
-            boolean success = sftp.upload(filePath, temporaryFile);
-            if (!success) {
-                throw new JschRuntimeException(StrUtil.format("上传文件到目标目录 ({}) 失败", filePath));
-            }
-            return super.formatFileUrl(config.getDomain(), path);
-        } finally {
-            FileUtil.del(temporaryFile);
-        }
     }
 
     @Override
