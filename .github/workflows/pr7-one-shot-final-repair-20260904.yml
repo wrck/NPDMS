@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   repair:
-    name: Remove duplicated arrival fact contract tests
+    name: Remove all byte-identical duplicate arrival fact tests
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -22,38 +22,25 @@ jobs:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
-      - name: Remove only exact duplicate test methods
+      - name: Detect and remove every exact duplicate test method
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          from collections import defaultdict
           from pathlib import Path
+          import re
 
           path = Path("pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java")
-          names = [
-              "fullDeliveryScopeRejectsAcceptedOrExemptedQuantityOverflowBeforeProjection",
-              "fullDeliveryScopeRejectsDeviceAndQuantityExemptionsOutsideCurrentAssignment",
-              "validFactsInOtherAssignedSubscopeDoNotPolluteRequestedProjection",
-              "quantityOnlyInspectAndLockUseStableEmptyDeviceWatermarkWithoutAstCalls",
-          ]
+          annotation = re.compile(
+              r"(?m)^    @Test\n(?:    @[^\n]+\n)*    void (?P<name>[A-Za-z_][A-Za-z0-9_]*)\([^\n]*\) \{"
+          )
 
-          def locate_blocks(text: str, name: str) -> list[tuple[int, int, str]]:
-              signature = f"    void {name}() {{"
-              positions = []
-              offset = 0
-              while True:
-                  pos = text.find(signature, offset)
-                  if pos < 0:
-                      break
-                  positions.append(pos)
-                  offset = pos + len(signature)
-
+          def method_blocks(text: str) -> list[tuple[str, int, int, str]]:
               blocks = []
-              for pos in positions:
-                  start = text.rfind("    @Test\n", 0, pos)
-                  if start < 0:
-                      raise SystemExit(f"{name}: missing @Test annotation")
-                  opening = text.find("{", pos)
+              for match in annotation.finditer(text):
+                  name = match.group("name")
+                  opening = text.find("{", match.start(), match.end())
                   depth = 0
                   in_string = False
                   in_char = False
@@ -85,27 +72,37 @@ jobs:
                                   end += 1
                               break
                   if end is None:
-                      raise SystemExit(f"{name}: unmatched method braces")
-                  blocks.append((start, end, text[start:end]))
+                      raise SystemExit(f"{name}: unmatched braces")
+                  blocks.append((name, match.start(), end, text[match.start():end]))
               return blocks
 
           text = path.read_text(encoding="utf-8")
-          for name in names:
-              blocks = locate_blocks(text, name)
-              print(f"{name}: definitions={len(blocks)}")
+          grouped = defaultdict(list)
+          for block in method_blocks(text):
+              grouped[block[0]].append(block)
+
+          removals = []
+          for name, blocks in sorted(grouped.items()):
               if len(blocks) == 1:
                   continue
-              if len(blocks) != 2:
-                  raise SystemExit(f"{name}: expected one or two definitions, found {len(blocks)}")
-              if blocks[0][2] != blocks[1][2]:
-                  raise SystemExit(f"{name}: duplicate definitions are not byte-identical")
-              start, end, _ = blocks[1]
+              print(f"{name}: duplicate definitions={len(blocks)}")
+              if any(block[3] != blocks[0][3] for block in blocks[1:]):
+                  raise SystemExit(f"{name}: duplicate methods are not byte-identical")
+              removals.extend((block[1], block[2]) for block in blocks[1:])
+
+          if not removals:
+              raise SystemExit("No duplicate @Test methods found; refusing empty repair")
+          for start, end in sorted(removals, reverse=True):
               text = text[:start] + text[end:]
 
-          for name in names:
-              if len(locate_blocks(text, name)) != 1:
-                  raise SystemExit(f"{name}: deduplication postcondition failed")
+          remaining = defaultdict(int)
+          for name, *_ in method_blocks(text):
+              remaining[name] += 1
+          duplicates = sorted(name for name, count in remaining.items() if count > 1)
+          if duplicates:
+              raise SystemExit(f"Duplicate tests remain: {duplicates}")
           path.write_text(text, encoding="utf-8")
+          print(f"Removed {len(removals)} exact duplicate test methods")
           PY
 
       - name: Verify and commit repair
@@ -120,5 +117,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${expected}"
           git diff --cached --check
-          git commit -m "fix(engineering): remove duplicate arrival fact tests"
+          git commit -m "fix(engineering): remove remaining duplicate arrival fact tests"
           git push origin "HEAD:${GITHUB_REF_NAME}"
