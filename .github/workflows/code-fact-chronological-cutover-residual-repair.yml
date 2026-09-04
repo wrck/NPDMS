@@ -1,0 +1,100 @@
+name: Code-fact chronological CUT residual repair
+
+on:
+  push:
+    branches:
+      - codex/code-fact-chronological-replay-acc-int-cut-20260904
+    paths:
+      - .github/workflows/code-fact-chronological-cutover-residual-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-chronological-replay-acc-int-cut-20260904
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Normalize residual CUT files without dropping other replayed code
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags origin \
+            +refs/heads/master:refs/remotes/repair/master \
+            +refs/heads/codex/f-cut-001-matrices:refs/remotes/repair/f-cut-001-matrices
+
+          SOURCE_EQUALS_MASTER=(
+            pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureQueryService.java
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalStartServiceTest.java
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/CutoverChecklistApplicationServiceTest.java
+          )
+          for file in "${SOURCE_EQUALS_MASTER[@]}"; do
+            master_blob="$(git rev-parse "refs/remotes/repair/master:$file")"
+            source_blob="$(git rev-parse "refs/remotes/repair/f-cut-001-matrices:$file")"
+            test "$master_blob" = "$source_blob"
+            git checkout refs/remotes/repair/f-cut-001-matrices -- "$file"
+          done
+
+          # These tests were accumulated from several historical migration-number edits.
+          # Keep the current-master assertions and current V181+ migration paths while
+          # removing only duplicate old helper methods introduced by chronological replay.
+          MIGRATION_TESTS=(
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut005MigrationContractTest.java
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java
+            pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java
+          )
+          git checkout refs/remotes/repair/master -- "${MIGRATION_TESTS[@]}"
+
+          cat > docs/traceability/code-fact-cutover-residual-adaptation-2026-09-04.md <<EOF
+          # CUT逐提交重放残余适配
+
+          - 基线：\`$(git rev-parse refs/remotes/repair/master)\`
+          - 来源：\`codex/f-cut-001-matrices@$(git rev-parse refs/remotes/repair/f-cut-001-matrices)\`
+          - 原则：只清理逐提交叠加导致的重复内容，不撤销其他模块或其他文件的已接收代码。
+          - 三个服务/测试文件的来源TIP Blob与master Blob完全一致，恢复为该共同最终版本。
+          - 四个迁移合同测试保留当前master的V181+迁移路径与后继断言，移除来源历史V150～V159辅助方法的重复叠加。
+          - Feature状态保持原值；本适配不构成Implementation Done。
+          EOF
+
+          git add "${SOURCE_EQUALS_MASTER[@]}" "${MIGRATION_TESTS[@]}" \
+            docs/traceability/code-fact-cutover-residual-adaptation-2026-09-04.md
+          git commit --no-verify -m 'fix(integration): normalize residual CUT replay files' \
+            -m 'Remove only intermediate duplicate accumulation; retain source-tip/master-equivalent behavior and current migration paths.'
+          git push origin HEAD:codex/code-fact-chronological-replay-acc-int-cut-20260904
+
+          mkdir -p cutover-residual-logs
+          set +e
+          MVN_CMD=mvn
+          [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true \
+            -pl pms-module-cutover -am package > cutover-residual-logs/maven-cutover.log 2>&1
+          MVN_RC=$?
+          set -e
+          printf 'HEAD=%s\nMAVEN_RC=%s\n' "$(git rev-parse HEAD)" "$MVN_RC" \
+            > cutover-residual-logs/status.env
+          cat cutover-residual-logs/status.env
+          tail -320 cutover-residual-logs/maven-cutover.log || true
+
+      - name: Upload repair diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-fact-chronological-cutover-residual-repair
+          path: cutover-residual-logs
+          if-no-files-found: warn
+          retention-days: 30
