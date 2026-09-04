@@ -18,11 +18,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class Fcom001MigrationContractTest {
 
     private static String sql;
+    private static String seedSql;
 
     @BeforeAll
     static void loadMigration() throws IOException {
         Path root = locateRepositoryRoot();
         sql = Files.readString(root.resolve("sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql"),
+                StandardCharsets.UTF_8);
+        seedSql = Files.readString(root.resolve("sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"),
                 StandardCharsets.UTF_8);
     }
 
@@ -81,6 +84,20 @@ class Fcom001MigrationContractTest {
         assertTrue(sql.contains("FCOM001_STATE_MIXED_RESTORE_SNAPSHOT"));
         assertTrue(sql.contains("DROP TABLE IF EXISTS `fcom001_shadow_acc_acceptance_scope_binding`"));
         assertTrue(sql.contains("DROP TABLE IF EXISTS `fcom001_shadow_com_contract`"));
+    }
+
+    @Test
+    void shouldSeedOrderContractRelationWithStableSourceIdentity() {
+        Pattern relationInsert = Pattern.compile(
+                "(?is)INSERT\\s+INTO\\s+`com_order_contract_relation`\\s*\\(([^)]*)\\)\\s*VALUES\\s*\\(([^)]*)\\)");
+        Matcher matcher = relationInsert.matcher(seedSql);
+        assertTrue(matcher.find(), "V161 should seed com_order_contract_relation");
+        assertTrue(matcher.group(1).contains("`source_system`"),
+                "V161 relation seed must provide the required source_system column");
+        assertTrue(matcher.group(1).contains("`source_record_key`"),
+                "V161 relation seed must provide the stable source_record_key column");
+        assertTrue(matcher.group(2).contains("'SEED'"),
+                "V161 relation seed must use the controlled SEED source identity");
     }
 
     private static int countOccurrences(String value, String expected) {
