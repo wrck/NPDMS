@@ -101,3 +101,13 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局�
 - `d67112d7b9b9a1ffd84faee3acccbc0ef30faa12`
 - `e31f08b31fe20ee9bf80b2b65d4495a6d4410940`
 - `fec7c69e3892115c8a402d78f223462c3ca81fa4`
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码逐项记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-acc-001-sds`
+- 代码事实记录：`99` 个提交-路径组合
+- 重放顺序：全局提交时间、来源稳定顺序、分支拓扑顺序。
+- 接收范围：全部模块；冲突只保留到具体文件或 hunk，不形成整提交、整模块或整分支拒绝。
+- 详细清单：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv` 与稳定化报告。

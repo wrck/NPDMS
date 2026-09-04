@@ -89,3 +89,13 @@ Implementation Done仍受以下工程证据约束：
 - `c0dcf2051a0e5d135375ad1dd9cb1f268b87cc38`
 - `e08898b57e6c7c81e43139881b53ac9d50b4154e`
 - `e1c45b02038598b5e19709909728828dbc421596`
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码逐项记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 代码事实记录：`71` 个提交-路径组合
+- 重放顺序：全局提交时间、来源稳定顺序、分支拓扑顺序。
+- 接收范围：全部模块；冲突只保留到具体文件或 hunk，不形成整提交、整模块或整分支拒绝。
+- 详细清单：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv` 与稳定化报告。

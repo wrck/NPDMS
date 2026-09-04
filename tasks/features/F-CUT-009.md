@@ -40,3 +40,13 @@
 ## Phase-switch checkpoint
 
 基线dc0e6d39；Task 1–3独立复审全部GO，CUT导航规则、授权XLSX导出/安全审计、配置UI与P3受控正向交互已完成。状态收口为`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`；跨模块仍仅预留端口+`src/test`受控替身。最近Gate为Implementation Done前生产Owner依赖与真实浏览器证据核验。
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码逐项记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 代码事实记录：`59` 个提交-路径组合
+- 重放顺序：全局提交时间、来源稳定顺序、分支拓扑顺序。
+- 接收范围：全部模块；冲突只保留到具体文件或 hunk，不形成整提交、整模块或整分支拒绝。
+- 详细清单：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv` 与稳定化报告。

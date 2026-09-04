@@ -62,3 +62,13 @@
 - `a344321013c94cc6805e1e52d51e6a9272acf3c3`
 - `aa2376d2d5ba78ce3cb9c04bd9fc2012dd7cd6af`
 - `aa281aa0f7ec5b6ad4dc72e43dcdfc87108347e0`
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码逐项记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 代码事实记录：`75` 个提交-路径组合
+- 重放顺序：全局提交时间、来源稳定顺序、分支拓扑顺序。
+- 接收范围：全部模块；冲突只保留到具体文件或 hunk，不形成整提交、整模块或整分支拒绝。
+- 详细清单：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv` 与稳定化报告。
