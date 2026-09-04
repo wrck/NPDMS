@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-09-04T01:49:26.711090+00:00",
+  "master": "refs/remotes/origin/master",
+  "sourceCommitCount": 572,
+  "operations": [],
+  "buildHistory": [
+    {
+      "stage": "production",
+      "iteration": 1,
+      "returnCode": 1,
+      "errorPaths": [
+        "NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDetailDO.java",
+        "NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandService.java",
+        "NPDMS/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java"
+      ]
+    }
+  ]
+}
