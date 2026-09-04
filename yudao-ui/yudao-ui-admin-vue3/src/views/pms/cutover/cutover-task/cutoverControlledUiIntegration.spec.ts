@@ -82,12 +82,6 @@ const workbenchTableColumn = defineComponent({
   }
 })
 
-const workbenchTableColumn = defineComponent({
-  inheritAttrs: false,
-  setup(_, { slots }) {
-    return () => h('span', slots.default?.({ row: taskSummary() }))
-  }
-})
 
 const controls = {
   Dialog: dialog,

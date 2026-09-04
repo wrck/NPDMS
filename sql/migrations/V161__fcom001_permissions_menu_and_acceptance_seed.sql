@@ -170,11 +170,23 @@ ON DUPLICATE KEY UPDATE `contract_name`=VALUES(`contract_name`), `status`='ENABL
  `updater`='fcom001_seed', `update_time`=NOW(3), `deleted`=0;
 
 INSERT INTO `com_order_contract_relation`
-(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`, `creator`, `updater`, `deleted`)
+(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`,
+ `source_system`, `sales_order_source_key`, `contract_source_key`, `source_version`,
+ `source_evidence`, `effective_from`, `effective_to`, `creator`, `updater`, `deleted`)
 VALUES
 (992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',
- 'fcom001_seed', 'fcom001_seed', 0)
-ON DUPLICATE KEY UPDATE `relation_source`='SEED', `updater`='fcom001_seed',
+ 'SEED', 'FPROJ002-V18-ORDER', 'F-COM001-CONTRACT-001', '1',
+ JSON_OBJECT('evidenceType', 'CONTROLLED_ACCEPTANCE_SEED',
+             'migrationVersion', 'V161',
+             'salesOrderSourceKey', 'FPROJ002-V18-ORDER',
+             'contractSourceKey', 'F-COM001-CONTRACT-001'),
+ '2026-08-01 00:00:00.000', NULL, 'fcom001_seed', 'fcom001_seed', 0)
+ON DUPLICATE KEY UPDATE
+ `relation_source`=VALUES(`relation_source`), `source_system`=VALUES(`source_system`),
+ `sales_order_source_key`=VALUES(`sales_order_source_key`),
+ `contract_source_key`=VALUES(`contract_source_key`), `source_version`=VALUES(`source_version`),
+ `source_evidence`=VALUES(`source_evidence`), `effective_from`=VALUES(`effective_from`),
+ `effective_to`=VALUES(`effective_to`), `updater`='fcom001_seed',
  `update_time`=NOW(3), `deleted`=0;
 
 -- 两条附加订单行分别用于验收阶段外正向写入和验收阶段内锁定负向。

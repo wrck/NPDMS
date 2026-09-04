@@ -488,16 +488,6 @@ public class ArrivalAcceptanceApplicationService {
         }
     }
 
-    private static void requireExecutionCompleted(PlatformCommandExecutionApi.Decision decision) {
-        if (decision == PlatformCommandExecutionApi.Decision.CONFLICT) {
-            throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_CONFLICT",
-                    "IDEMPOTENCY_PAYLOAD_CONFLICT", "idempotency key is bound to another request");
-        }
-        if (decision == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
-            throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_IN_PROGRESS",
-                    "IDEMPOTENCY_COMMAND_IN_PROGRESS", "idempotent command is in progress");
-        }
-    }
 
     private static void requireConfirmCommand(ConfirmCommand command) {
         if (command == null || command.tenantId() == null || command.tenantId() < 0
