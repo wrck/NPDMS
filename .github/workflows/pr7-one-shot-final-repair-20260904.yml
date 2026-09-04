@@ -1,121 +1,15 @@
-name: "PR #7 deterministic final repair"
+name: "PR #7 deterministic final repair (retired)"
 
 on:
-  push:
-    branches:
-      - codex/code-fact-chronological-integration-acc-int-cut-20260904
-    paths:
-      - .github/workflows/pr7-one-shot-final-repair-20260904.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair:
-    name: Remove all byte-identical duplicate arrival fact tests
+  retired:
+    name: Repair workflow retired
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
-      - name: Detect and remove every exact duplicate test method
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from collections import defaultdict
-          from pathlib import Path
-          import re
-
-          path = Path("pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java")
-          annotation = re.compile(
-              r"(?m)^    @Test\n(?:    @[^\n]+\n)*    void (?P<name>[A-Za-z_][A-Za-z0-9_]*)\([^\n]*\) \{"
-          )
-
-          def method_blocks(text: str) -> list[tuple[str, int, int, str]]:
-              blocks = []
-              for match in annotation.finditer(text):
-                  name = match.group("name")
-                  opening = text.find("{", match.start(), match.end())
-                  depth = 0
-                  in_string = False
-                  in_char = False
-                  escaped = False
-                  end = None
-                  for index in range(opening, len(text)):
-                      ch = text[index]
-                      if escaped:
-                          escaped = False
-                          continue
-                      if ch == "\\" and (in_string or in_char):
-                          escaped = True
-                          continue
-                      if ch == '"' and not in_char:
-                          in_string = not in_string
-                          continue
-                      if ch == "'" and not in_string:
-                          in_char = not in_char
-                          continue
-                      if in_string or in_char:
-                          continue
-                      if ch == "{":
-                          depth += 1
-                      elif ch == "}":
-                          depth -= 1
-                          if depth == 0:
-                              end = index + 1
-                              while end < len(text) and text[end] == "\n":
-                                  end += 1
-                              break
-                  if end is None:
-                      raise SystemExit(f"{name}: unmatched braces")
-                  blocks.append((name, match.start(), end, text[match.start():end]))
-              return blocks
-
-          text = path.read_text(encoding="utf-8")
-          grouped = defaultdict(list)
-          for block in method_blocks(text):
-              grouped[block[0]].append(block)
-
-          removals = []
-          for name, blocks in sorted(grouped.items()):
-              if len(blocks) == 1:
-                  continue
-              print(f"{name}: duplicate definitions={len(blocks)}")
-              if any(block[3] != blocks[0][3] for block in blocks[1:]):
-                  raise SystemExit(f"{name}: duplicate methods are not byte-identical")
-              removals.extend((block[1], block[2]) for block in blocks[1:])
-
-          if not removals:
-              raise SystemExit("No duplicate @Test methods found; refusing empty repair")
-          for start, end in sorted(removals, reverse=True):
-              text = text[:start] + text[end:]
-
-          remaining = defaultdict(int)
-          for name, *_ in method_blocks(text):
-              remaining[name] += 1
-          duplicates = sorted(name for name, count in remaining.items() if count > 1)
-          if duplicates:
-              raise SystemExit(f"Duplicate tests remain: {duplicates}")
-          path.write_text(text, encoding="utf-8")
-          print(f"Removed {len(removals)} exact duplicate test methods")
-          PY
-
-      - name: Verify and commit repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          changed="$(git diff --name-only)"
-          expected="pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java"
-          [[ "${changed}" == "${expected}" ]]
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${expected}"
-          git diff --cached --check
-          git commit -m "fix(engineering): remove remaining duplicate arrival fact tests"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Confirm retired state
+        run: echo "The deterministic repair has been applied; this temporary workflow is pending deletion."
