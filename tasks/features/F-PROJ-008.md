@@ -31,3 +31,13 @@ master已从源提交`0c7a9634`、`d69b3ff8`选择性迁入Task 1、Task 2，并
 - 不修改Yudao基础平台，不新增PMS流程版本字段、Flyway、权限键或第二阶段模型；
 - Task 3A集成不代表S0→S1可完成，也不代表Feature Implementation Done；
 - 每个Task先实现正向功能，再做聚焦验证并提交；Implementation Done独立GO前不得回写完成。
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-acc-001-sds`, `codex/f-cut-001-matrices`
+- 提交-路径事实：`42`
+- 重放方式：572 条来源提交按全局提交时间、来源稳定顺序和分支拓扑逐条生成回执。
+- 接收边界：全部模块进入扫描；不符合项仅保留到具体文件或 hunk。
+- 详细追溯：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

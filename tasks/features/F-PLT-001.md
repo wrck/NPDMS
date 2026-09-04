@@ -40,3 +40,13 @@
 - F-SOL-001 Task 10：上述材料主线闭合后返回其正式浏览器验收。
 
 > 检查点（2026-08-27）：基线规格`9328c13`；F-PLT-001 Implementation Done已通过，证据为原实现`6d6c6ea`、可选扫描`890196d2`、展示修复`24f3c1a4`及独立GO；受管基线已同步，无阻塞。下一步定位最近未通过的开发Gate，不进入Deployment/SIT/UAT/Release。
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-acc-001-sds`, `codex/f-cut-001-matrices`, `prereq-parallel-check-kKiAdn`
+- 提交-路径事实：`137`
+- 重放方式：572 条来源提交按全局提交时间、来源稳定顺序和分支拓扑逐条生成回执。
+- 接收边界：全部模块进入扫描；不符合项仅保留到具体文件或 hunk。
+- 详细追溯：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

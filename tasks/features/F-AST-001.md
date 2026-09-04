@@ -26,3 +26,13 @@
 - [ ] 只有独立Done Gate通过后，才把本文件更新为`IMPLEMENTATION_COMPLETE`并重新生成追溯投影。
 
 本记录只补齐缺失权威链，不否定或覆盖历史证据，也不提前宣布Feature完成。
+
+## 代码事实时间序重放检查点（2026-09-04）
+
+> 依据三个来源分支的实际提交代码记录；代码接收不自动构成 Implementation Done。
+
+- 来源分支：`codex/f-cut-001-matrices`
+- 提交-路径事实：`28`
+- 重放方式：572 条来源提交按全局提交时间、来源稳定顺序和分支拓扑逐条生成回执。
+- 接收边界：全部模块进入扫描；不符合项仅保留到具体文件或 hunk。
+- 详细追溯：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
