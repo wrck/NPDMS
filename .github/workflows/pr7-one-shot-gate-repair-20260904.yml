@@ -93,11 +93,18 @@ jobs:
               "                createReqVO.getServiceManagerUserId(),\n",
               "                null,\n",
           )
+
+          gate_path = ".github/workflows/integration-pr-gates.yml"
+          replace_once(
+              gate_path,
+              "            --domains docs/design/phase-1-domain-ownership.md \\\n",
+              "            --domains specs/001-project-delivery-platform/domains \\\n",
+          )
           PY
 
           python3 scripts/generate_requirement_traceability.py \
             --prd docs/baseline/prd-v1.8.md \
-            --domains docs/design/phase-1-domain-ownership.md \
+            --domains specs/001-project-delivery-platform/domains \
             --features specs/features \
             --tasks tasks/features \
             --feature-index specs/features/README.md \
@@ -111,6 +118,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
+            .github/workflows/integration-pr-gates.yml \
             pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManagerAssignmentApplicationServiceTest.java \
             pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java \
             pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java \
