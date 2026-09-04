@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V145__fcom001_order_contract_relation_source_identity.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 DROP PROCEDURE IF EXISTS `fcom001_require_empty_order_contract_relation`;
 DELIMITER $$
 CREATE PROCEDURE `fcom001_require_empty_order_contract_relation`()

@@ -104,7 +104,7 @@ class Fcut008MigrationContractTest {
 
     private static String readCorrelationMigration() {
         try {
-            return Files.readString(Path.of("../sql/migrations/V158__fcut008_notification_correlation_provenance.sql"));
+            return Files.readString(Path.of("../sql/migrations/V189__fcut008_notification_correlation_provenance.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
@@ -112,7 +112,7 @@ class Fcut008MigrationContractTest {
 
     private static String readExternalJobMigration() {
         try {
-            return Files.readString(Path.of("../sql/migrations/V159__fcut008_external_notification_job_seed.sql"));
+            return Files.readString(Path.of("../sql/migrations/V190__fcut008_external_notification_job_seed.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

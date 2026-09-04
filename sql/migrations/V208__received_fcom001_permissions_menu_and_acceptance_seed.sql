@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V125__fcom001_permissions_menu_and_acceptance_seed.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-COM-001 / COM-01：ERP订单行产品编码、八个最小权限键、菜单与受控验收种子。
 
 ALTER TABLE `com_sales_order_line`

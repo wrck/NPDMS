@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V132__facc001_acceptance_project_query_permission.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-001 / ACC-03：允许受管正式验收身份加载项目选择器。
 -- 复用V57现役项目列表菜单18067；不新增权限键、菜单、角色或业务角色模板。
 

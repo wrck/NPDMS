@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V131__facc001_acceptance_report_jobs.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-001 / ACC-03、ACC-04：正式配置报告事件投递与归档补偿任务。
 
 DROP PROCEDURE IF EXISTS `facc001_apply_v131_acceptance_report_jobs`;

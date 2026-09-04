@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V106__device_ops_callback_consumption.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 ALTER TABLE plt_collection_task
     ADD COLUMN last_callback_sequence BIGINT NULL AFTER consumed_result_version;
 

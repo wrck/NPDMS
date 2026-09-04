@@ -22,7 +22,7 @@ class FCom001RelationIdentityMigrationContractTest {
         Path repositoryDirectory = Files.exists(moduleDirectory.resolve("sql/migrations"))
                 ? moduleDirectory : moduleDirectory.resolve("..").normalize();
         sql = Files.readString(repositoryDirectory.resolve(
-                        "sql/migrations/V145__fcom001_order_contract_relation_source_identity.sql"),
+                        "sql/migrations/V218__received_fcom001_order_contract_relation_source_identity.sql"),
                 StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 

@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V104__device_ops_integration_foundation.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 CREATE TABLE IF NOT EXISTS infra_file_artifact (
     id BIGINT NOT NULL,
     tenant_id BIGINT NOT NULL,

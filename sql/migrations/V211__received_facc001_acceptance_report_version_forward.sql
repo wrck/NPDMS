@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V128__facc001_acceptance_report_version_forward.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-001 / ACC-03@V1 + ACC-04@V1(partial)
 -- 初验/终验活动、不可变报告版本、应交来源索引及受管真实验收输入。
 

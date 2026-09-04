@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V126__fcom001_stage_entry_acceptance_seed.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-COM-001 / COM-01：公开REST进入验收阶段的独立受管正向夹具。
 -- 固定身份要么全新原子写入，要么完整一致地幂等复核；部分占用或普通数据冲突一律失败。
 

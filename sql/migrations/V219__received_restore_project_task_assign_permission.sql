@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V134__restore_project_task_assign_permission.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-PROJ-007 / F-ACC-002：恢复被V108菜单ID冲突覆盖的项目任务指派权限载体。
 -- 只新增既有权限键的按钮菜单，不修改历史菜单，不在迁移中授予任何角色。
 

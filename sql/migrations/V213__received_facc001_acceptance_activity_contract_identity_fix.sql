@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V130__facc001_acceptance_activity_contract_identity_fix.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-001 / ACC-03：纠正V128活动与当前ACC执行契约的身份关系。
 -- V128、V129保持不可变；本迁移不改变活动、任务、报告或契约的状态与版本。
 

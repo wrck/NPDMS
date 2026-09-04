@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V124__fcom001_contract_order_scope_forward_migration.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-COM-001 / COM-01@V1 前向切换（Requirement: COM-01@V1）。
 -- APPLICATION_WRITE_STOP_REQUIRED：应用停写必须覆盖预检、装载、对账和发布全窗口；
 -- Flyway独占锁不能替代业务停写。失败后先repair，再在停写窗口重跑本迁移。

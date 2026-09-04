@@ -99,7 +99,7 @@ class Fcut005MigrationContractTest {
 
     private static String readSeedMigration() {
         try {
-            return Files.readString(Path.of("../sql/migrations/V154__fcut005_p5_approval_seed.sql"));
+            return Files.readString(Path.of("../sql/migrations/V185__fcut005_p5_approval_seed.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

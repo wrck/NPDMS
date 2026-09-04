@@ -84,7 +84,7 @@ class Fcut006MigrationContractTest {
 
     private static String readJobMigration() {
         try {
-            return Files.readString(Path.of("../sql/migrations/V156__fcut006_legacy_closure_job.sql"));
+            return Files.readString(Path.of("../sql/migrations/V187__fcut006_legacy_closure_job.sql"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

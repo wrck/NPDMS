@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V133__facc002_satisfaction_questionnaire_result_forward.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-002 / ACC-02、ACC-04满意度来源切片前向结构、权限与调度配置。
 
 DROP PROCEDURE IF EXISTS `facc002_preflight_v133`;

@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V127__fcom001_acceptance_identity_authorization_fix.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-COM-001 / COM-01：修正受管验收身份的公开登录名并补齐现役项目更新授权。
 -- V125、V126保持不可变；两项纠偏必须在同一事务中全有或全无。
 

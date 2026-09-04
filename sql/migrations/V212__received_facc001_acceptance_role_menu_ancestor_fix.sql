@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V129__facc001_acceptance_role_menu_ancestor_fix.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 -- F-ACC-001 / ACC-03：补齐受管验收角色的菜单祖先授权闭包。
 -- V128保持不可变；本迁移不新增权限键、菜单、角色或业务角色模板。
 

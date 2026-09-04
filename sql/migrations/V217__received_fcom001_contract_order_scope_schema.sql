@@ -1,3 +1,7 @@
+-- Chronologically received from the ACC/INT/CUT source branches.
+-- Original path: sql/migrations/V143__fcom001_contract_order_scope_schema.sql
+-- Active Flyway version reassigned after master@220486237b9570ab3d2b0663df39c89be2a5ec69.
+
 DROP PROCEDURE IF EXISTS `fcom001_preflight_scope_current`;
 DELIMITER $$
 CREATE PROCEDURE `fcom001_preflight_scope_current`()

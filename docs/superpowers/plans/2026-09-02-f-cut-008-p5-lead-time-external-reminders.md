@@ -237,7 +237,7 @@ mvn -pl pms-module-cutover -am -Dtest=CutoverApprovalExternalNotificationCreatio
 ### Task 4A：correlation provenance Schema/Writer Amendment
 
 **Files:**
-- Create: `sql/migrations/V158__fcut008_notification_correlation_provenance.sql`（若串行合入前出现新迁移，则使用届时实际下一空闲版本并同步文件名）
+- Create: `sql/migrations/V189__fcut008_notification_correlation_provenance.sql`（若串行合入前出现新迁移，则使用届时实际下一空闲版本并同步文件名）
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalNotificationDO.java`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/CutoverExternalNotificationRequestFactory.java`
 - Modify: `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java`

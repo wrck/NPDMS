@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql/migrations/V127__fcom001_acceptance_identity_authorization_fix.sql"
-V126_MIGRATION = ROOT / "sql/migrations/V126__fcom001_stage_entry_acceptance_seed.sql"
+MIGRATION = ROOT / "sql/migrations/V210__received_fcom001_acceptance_identity_authorization_fix.sql"
+V126_MIGRATION = ROOT / "sql/migrations/V209__received_fcom001_stage_entry_acceptance_seed.sql"
 
 
 class Fcom001V127MigrationTest(unittest.TestCase):
