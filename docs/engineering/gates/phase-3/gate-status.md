@@ -1,26 +1,39 @@
 # SDS Phase 3 Review
 
-> 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8修订007正式基线、SDS Phase 1/2 `APPROVED / READY_FOR_PHASE_3_V1.8`<br>
-> 结论：`READY_FOR_SDS_BASELINE_V1.8`
+> 审查状态：`REVALIDATION_REQUIRED`<br>
+> 当前依据：PRD V1.8修订001—012、014—015正式基线；Phase 1/2均待差量复核<br>
+> 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_SDS_BASELINE_V1.8`（历史证据）<br>
+> 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
+> 机器门禁：`NOT_RUN_FOR_REVISION_015`<br>
+> 适用修订：`PRD_V1.8_REVISION_015`
 
-## 1. 当前结论
+## 1. 状态说明
 
-修订007已按100项正式Requirement和111个目标版本切片完成Phase 3差量复核。安全、审计可观测、部署、性能及测试设计已重新纳入SDS V1.8基线，可作为Feature Ready评估输入；本次按需求方确认完成差量复核，不建立新的独立裁决角色。
+修订007的安全、审计、部署、性能和测试设计仍可作为历史输入，但不能证明修订015新增和改变的业务分支已经具备完整验证。Phase 3当前重开的是差量测试与运行保障范围，不将尚未变化的NFR设计无条件推翻。
 
-## 2. 差量门禁
+## 2. 必须重验证的Phase 3场景
 
-| 门禁 | 当前状态 | 修订007结论 |
+| 场景 | 当前状态 | 最小验证要求 |
 |---|---|---|
-| 修订007差量 | PASS | 11个补充V2切片已逐项复核安全、审计、部署、性能、业务断言和证据类型 |
-| Phase 1/2前置 | PASS | 两阶段已按修订007发布BASELINE；100项Requirement共享实施契约与111个目标版本切片精确同源，当前迁移契约为93对象/104来源绑定/1排除源 |
-| 测试追溯 | PASS | 100/100 Requirement具有稳定验证映射，111/111切片与PRD精确同源，11个补充V2切片已登记专项断言和最小证据 |
-| 设计分册口径 | BASELINE | 14、17、18、19、20分册已完成修订007差量复核并重新基线化 |
-| 数据模型影响 | PASS / FEATURE-GATED | PM-11复用既有`proj_task_dependency`，CUT配置/跳转继续使用`FEATURE_FORWARD_MIGRATION`对象，当前核心DDL未变化；P3-E09保持`MODEL_BASELINE_READY`，实际前向DDL仍须在对应Feature门禁复核 |
-| 历史迁移与切换 | CONDITIONAL_RELEASE_GATE | Release不含历史迁移和数据切换时为`NOT_APPLICABLE`且不阻断发布；包含任一项时，`AI-MIG-000`须在Release前达到`VERIFIED`，并只允许在批准窗口内执行 |
-| Q08候选索引 | DEFERRED_TO_FEATURE_VALIDATION | 仍只是候选，不代表性能验收 |
-| 生产运行证据 | DOWNSTREAM-GATED（P3-E01、P3-E02、P3-E03、P3-E04、P3-E05、P3-E06、P3-E07、P3-E08） | KMS、Telemetry、容量、恢复、集成和发布证据在对应环境/专项/发布门禁关闭 |
+| 完整工程主链 | REVALIDATION_REQUIRED | S0→S1→S2→S3→S4→S5→S6参考链及S4内嵌CUT P1～P6均有正常、驳回和失效场景 |
+| 模板裁剪与阶段推进 | REVALIDATION_REQUIRED | 只实例化模板阶段；当前准出、唯一后置和目标准入原子执行；无`APPLICABLE/NOT_APPLICABLE`假实例 |
+| S5验收 | REVALIDATION_REQUIRED | 直签初验后终验、非直签直接终验；模板无S5时不生成验收门禁 |
+| 三类项目退出 | REVALIDATION_REQUIRED | 有/无S6的NORMAL、代理商自服NO_TRACKING、PM-10 EXCEPTION；唯一Writer、`closed_from_stage`和不得补造事实 |
+| PM-06范围追加 | REVALIDATION_REQUIRED | S0～S5不同阶段追加、重复/超量拒绝、事务回滚、旧事实不覆盖新增范围、阶段和终验失效重算、终态项目拒绝 |
+| RPT-02全集统计 | REVALIDATION_REQUIRED | 进行中全状态、真实阶段、超期、三类终态、正常/业务闭环率、父子粒度、权限下钻、Excel导出和异常快照 |
+| S4与割接 | REVALIDATION_REQUIRED | 五类97项配置基准、V1/V2人工判级、D级跳过P3、CUT成功范围聚合及部分覆盖不放行 |
+| BPM身份与历史 | REVALIDATION_REQUIRED | definition key解析、实际定义和任务key留痕、历史定义选择、撤回/驳回/重提、通知失败不改变审批事实 |
+| 版本隔离 | REVALIDATION_REQUIRED | V2/V3能力不成为V1前置；旧E2E不能用后续能力伪造当前版本通过 |
 
-## 3. 放行原则
+## 3. 关闭动作
 
-当前状态为`APPROVED / READY_FOR_SDS_BASELINE_V1.8`，只放行下游按正式SDS开展Feature Ready评估，不自动批准任何Feature或实施。P3-E01～P3-E08继续在部署、联调、专项验收或发布阶段关闭；P3-E09保持`MODEL_BASELINE_READY`且不构成迁移批准；Q08仍由Feature查询计划和P3-E06验证；适用Release的`AI-MIG-000`、UAT、生产部署、切换和Release门禁均未关闭。
+1. Phase 1/2差量设计先形成可执行基线；
+2. 更新正式测试设计及Requirement—场景—证据映射；
+3. 为第13.1章8个关键子流程和RPT-02五类能力建立完整断言，不能只保留闭环摘要；
+4. 验证状态机、权限、幂等、并发、异常补偿、历史兼容和审计；
+5. 明确P3-E09及部署/迁移是否受影响，并在对应最晚安全门禁关闭；
+6. 运行适用Phase 3校验并把证据写入本文件后，才可恢复`READY_FOR_SDS_BASELINE_V1.8`。
+
+## 4. 当前放行边界
+
+当前不批准受影响范围以修订007测试结果进入SDS Baseline、Feature Done、SIT、UAT或Release。P3-E01～P3-E09、`AI-MIG-000`和生产发布仍按实际变更条件独立适用，不因本次重开自动通过或自动失败。
