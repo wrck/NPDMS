@@ -31,8 +31,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: pnpm
-          cache-dependency-path: yudao-ui/yudao-ui-admin-vue3/pnpm-lock.yaml
 
       - name: Replay every source commit in chronological/topological order
         id: replay
@@ -212,6 +210,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -f /tmp/validation.env
           source /tmp/validation.env
           printf '%s\n' \
             "FINAL_HEAD=$FINAL_HEAD" \
