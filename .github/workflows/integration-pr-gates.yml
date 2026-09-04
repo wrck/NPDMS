@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           python3 scripts/generate_requirement_traceability.py \
             --prd docs/baseline/prd-v1.8.md \
-            --domains docs/design/phase-1-domain-ownership.md \
+            --domains specs/001-project-delivery-platform/domains \
             --features specs/features \
             --tasks tasks/features \
             --feature-index specs/features/README.md \
@@ -141,7 +141,7 @@ jobs:
         run: mvn -B -ntp -DskipITs=true clean verify
 
   frontend:
-    name: Frontend typecheck and production build
+    name: Frontend production build and typecheck
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:
@@ -162,11 +162,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Production build and generate declarations
+        run: |
+          set -euo pipefail
+          pnpm run build:prod
+          test -s src/types/auto-imports.d.ts
+          test -s src/types/auto-components.d.ts
+
       - name: TypeScript check
         run: pnpm run ts:check
-
-      - name: Production build
-        run: pnpm run build:prod
 
   integration-gate:
     name: PR #7 integration gate
