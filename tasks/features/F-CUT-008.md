@@ -40,3 +40,25 @@
 ## 最近检查点
 
 - Task 8=`PASS / GO @ 7219532a`：隔离MySQL 8.4全量至V159，A/B阈值、C/D不适用、P5→P6与四渠道闭环4/4；后端34/34、前端22/22及类型检查通过。状态为受控替身实现完成；生产Provider、Job、真实渠道/浏览器继续阻断Done。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`9`
+- 已接收或已确认主干等价路径数：`37`
+- 仍需逐路径适配记录数：`7`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `373a78839a090abf225b3d07b7681a1096da045e`
+- `3f87003b69bf8653273e66b64bf2399c11788baf`
+- `5804f57be45d9549f70a7ba31b92b68102564d49`
+- `7219532a3058b6fb944825a3d42923af2324de10`
+- `8889fe968477c9e3443d7ec5d943adaabebca265`
+- `8d09fdc363d29cf0aa3804e8abf84376ad325d3c`
+- `a344321013c94cc6805e1e52d51e6a9272acf3c3`
+- `aa2376d2d5ba78ce3cb9c04bd9fc2012dd7cd6af`
+- `aa281aa0f7ec5b6ad4dc72e43dcdfc87108347e0`

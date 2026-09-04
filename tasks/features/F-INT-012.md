@@ -74,3 +74,26 @@
 ## 当前裁决
 
 `IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY / MASTER_COMPILE_AND_FOCUSED_TEST_PASS`。已实现代码已经进入主干并通过主干适配编译与聚焦测试；未完成部分继续实施，不改变Feature未Done事实。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`10`
+- 已接收或已确认主干等价路径数：`85`
+- 仍需逐路径适配记录数：`9`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `148af0e859d4fc4086052516e7a07527f26c6397`
+- `23dff6cdcd3c0d287bd0a26c03447522e5de257c`
+- `35c8462d90842aee663a246981b9fe880ab1b2f5`
+- `55dc8e4996b3cf424b0ccce642860cfc556c643f`
+- `76928bf8593cdbe9354a90686c2a292482f28364`
+- `8425805911703c3c75387ba7e9bea75dedd6f076`
+- `c6fe303e2ed9a677b815e11bc37ad639a150bb74`
+- `cb5098f36239f70db639f07e0564300033138f16`
+- `cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
+- `d2d1765ffe14233d8041d4b10c871d246c4a9183`

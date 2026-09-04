@@ -47,3 +47,24 @@
 - F-CUT-002～006状态保持不变。
 - Task 10生产Owner与真实浏览器阻断保持不变。
 - COM-01由其他分支/Owner推进，本Feature不得重复实现或修改。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`8`
+- 已接收或已确认主干等价路径数：`35`
+- 仍需逐路径适配记录数：`4`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `22ce22c6e913ae2e03b90e5bab95fb693eb7d2d1`
+- `7d6a2886c06abd42a1deeb87a0ef6ccd34e33efd`
+- `7f1f44ed77caadd16bb5241ac55209e8e225d51a`
+- `a96b0b6fdcd941a132757a3ac41053ba8f50a3c7`
+- `b9a3ab3259bd841b3a13bb75909e8c4e37ced51a`
+- `d80fd05c4261efa734290b69968a76e087fc7562`
+- `da1ea93e2cfa4d73bd7513d0c9ed3221058a3f09`
+- `f5fd52f8e3f52377740f3398285915868162123b`

@@ -43,3 +43,29 @@
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
 > 检查点：Task 2受控正向闭环Backend/MySQL Gate已在`d80ace31`独立复审`PASS / GO`；隔离MySQL 8.4空卷执行152个迁移至V156后2/2通过，另有CUT-002应用正向单元3/3通过。当前最近Gate为生产Owner依赖满足后的Adapter与唯一装配Entry Gate；Feature保持`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`，不得用替身形成生产装配或真实浏览器证据。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`13`
+- 已接收或已确认主干等价路径数：`70`
+- 仍需逐路径适配记录数：`28`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `2c898d661abd405bb02249b3409e11ea017d813b`
+- `3ca73f0450b98c21a10d75fca56867cd952ce4f4`
+- `3daef0f5a6561e9bf9a9cb4453b447881c9e17c5`
+- `744105da67652858801924e9189a3b5958c21cee`
+- `93accdd2cda6ba10c0e5c3f8dffb8e412a3065dc`
+- `9655336151af662c11e637e6d33fc8b4df62915d`
+- `97ac132d20a6c42c9a1dbf888142a80a1ec0210e`
+- `9b1a613ed54d2bfa58c332238bc11188ca90792f`
+- `9b3644d9e8eed22c93f5488fc9261a9d22ca7e1b`
+- `a243345bacc9e7fc23585cfcb220160db1ff0c6a`
+- `a5734d00e8578a6b74f9b711f1ffea112f1ef72a`
+- `d80ace31caf8e2f28acea83fbe0d0521658bcc07`
+- `f7d2a39414a387d7dc95cea97726ab83932ac2dc`

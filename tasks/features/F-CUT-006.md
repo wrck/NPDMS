@@ -67,3 +67,40 @@
 - `Q-FCUT004-001`的P6职责变化回P4分支保持`BLOCKED_BY_SPEC`，不进入正常P6闭环。
 - 生产INT-12与下游项目/资产消费者缺失阻断真实浏览器和Implementation Done，不阻断Ready后CUT自有内核及受控替身实现。
 - 旧`pms_cut_execution/pms_cut_observation`和旧页面保持不变。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`24`
+- 已接收或已确认主干等价路径数：`115`
+- 仍需逐路径适配记录数：`56`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `124295f9bae47ff7f67cb51a19aa180a3e154851`
+- `148af0e859d4fc4086052516e7a07527f26c6397`
+- `39083446ec8aba91e65e1788419730eaae0893a5`
+- `3a790c41743377eea35b0cd451f77606622bd616`
+- `4d54f4e1c4864869745d4b9ec89fd6a69726f8ce`
+- `4d7e42350eab7da0a4826a90a13aab0d4356c695`
+- `4e390d4f8b7b529ef54e569a05d8f33428661517`
+- `6c3dd42472dc319cc64c5b303f25104b69d57a45`
+- `6d6f0e46e22d7c50e7175eede7d9e50ccb2401e4`
+- `739aad09a6c2eca4c6dd313059dc4d27af15c9fd`
+- `76928bf8593cdbe9354a90686c2a292482f28364`
+- `8791b4cc169d5a5b8c19212a257c3cb9e56ee88a`
+- `97ee0904a20dedf2a8f0089fabef0a7cfaefa37e`
+- `b3c50150761da03a959a5a46f114fe6ed99161c2`
+- `bd4ead05eb83c62d25999af830d5928ad2a22c47`
+- `c7d3aa0fcf6099d85045002a03b71614779e972b`
+- `c8a793f048b72fd8bac2051c773a5febb9743abd`
+- `cb5098f36239f70db639f07e0564300033138f16`
+- `d52acdfbb3008d762701122b66d94582ecdabf1f`
+- `d584263f8d7a019b57a687c07677d294eaab09e1`
+- `de2fdb49624a4ea0a664bd0f9cd008a76516b678`
+- `df1b78304ec29c1b5f44e1547c4fc986cb2891ca`
+- `ee891fa6b6a9ded7ecf8226909aafaced31f321b`
+- `f3e81acd231c476e754320a2621f0b0c7c320baa`

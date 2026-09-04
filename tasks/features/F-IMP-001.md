@@ -30,3 +30,19 @@
 ## 当前裁决
 
 本Feature主状态统一为`IN_PROGRESS`，子状态为`FOUNDATION_IMPLEMENTED / CORE_FEATURE_PENDING`。AST支撑代码可以被F-IMP-002、F-CUT-002复用，但不得将支撑Task完成外推为EXE-06完整Requirement完成。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`3`
+- 已接收或已确认主干等价路径数：`8`
+- 仍需逐路径适配记录数：`0`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `0c92f3fc1c8b50fa9b26c85bae8faa8f70bc9c92`
+- `38fc0d9d6189f3860ce951174e04f3f3cdc4f162`
+- `891c6fa4feb595eecfd2752d807f1c11db07805b`

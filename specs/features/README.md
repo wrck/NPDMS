@@ -47,3 +47,29 @@
 状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement版本切片追溯、业务规则、状态、权限、API、数据变化、验收标准、依赖与物理Owner及相关Open Question全部关闭后，Feature才可进入Implementation。每个Feature只允许一个当前有效Technical Plan；多个参与者或会话必须先在master登记Delivery Unit，再按Feature、Task或跨Feature工作包使用独立分支/Worktree并行实施，DU或Task完成均不产生Feature或Requirement完成状态。
 
 Feature任务、分支候选、认领缺口和master集成判定见[`tasks/features/README.md`](../../tasks/features/README.md)。该矩阵是审计投影，不会把分支自报状态提升为master状态。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+- 专属分支：`codex/code-fact-chronological-replay-acc-int-cut-20260904`
+- 来源：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 顺序：提交时间优先、父提交先于子提交；每个来源提交均有一条重放提交记录。
+- 范围：全部PMS/Yudao模块文本代码，不进行模块级排除；文件或hunk冲突只阻断对应片段。
+- 状态：代码事实进入主干候选不自动提升Implementation Done；开放Gate继续保持IN_PROGRESS。
+
+| Feature | 来源提交 | 已接收/等价路径 | 适配记录 |
+|---|---:|---:|---:|
+| F-ACC-001 | 40 | 181 | 46 |
+| F-ACC-002 | 30 | 189 | 55 |
+| F-COM-001 | 35 | 164 | 87 |
+| F-CUT-001 | 18 | 36 | 15 |
+| F-CUT-002 | 13 | 70 | 28 |
+| F-CUT-003 | 16 | 60 | 31 |
+| F-CUT-004 | 25 | 71 | 35 |
+| F-CUT-005 | 28 | 110 | 62 |
+| F-CUT-006 | 24 | 115 | 56 |
+| F-CUT-007 | 8 | 35 | 4 |
+| F-CUT-008 | 9 | 37 | 7 |
+| F-CUT-010 | 5 | 41 | 7 |
+| F-IMP-001 | 3 | 8 | 0 |
+| F-IMP-002 | 39 | 127 | 89 |
+| F-INT-012 | 10 | 85 | 9 |

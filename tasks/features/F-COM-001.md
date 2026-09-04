@@ -55,3 +55,51 @@
 - [ ] 完成Implementation Done独立裁决。
 
 > 检查点：基线=PRD修订010；当前Gate=Implementation Done复核；已通过=master可构建增量与静态/单元/前端验证；阻塞=MySQL实库、真实浏览器、独立裁决；下一步=补齐运行证据后申请裁决。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`35`
+- 已接收或已确认主干等价路径数：`164`
+- 仍需逐路径适配记录数：`87`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `05af6f3685ce5db5a13df0ec2cc3428e789d700c`
+- `06593a42796076cb67392dcd71e4ab5ad29de665`
+- `18237796431cbf779e6aabcef5563024cdd700fa`
+- `319a616e0a135aadab8dcf675e5a81ffabe1c333`
+- `32092b115a32262070d62b60bb3d429da3e496c6`
+- `3412e38397776d471c6ea3867def2001609d5b46`
+- `3b9e680a0ede81dd20c1075d8c0ad7982afc5073`
+- `43d63dcd50b65d62ce6ec3a35de55ee7a9e22bc1`
+- `4996c75465fd57599054a305e62cddea8fb75102`
+- `563daac11db0ce09027c62b602e56e9544fdd4f6`
+- `5abbc82ba866c4f3dafc3d5b186c0afdce1e9d0d`
+- `5e56728152f642302bfee63e641465ab29b4af36`
+- `63b6efc0a149bf713da6fbd9717ab6648f4cea79`
+- `65639c9c913cf506430fb74fec88ba59be0c2501`
+- `6bd13e416a4c914e08851cf40f2a161daa0b9f6a`
+- `76a3dfc7721e427dbf0e80e89dd26aab6c87701c`
+- `7c8b11fec472fd430d5a465af551f5431655fa8e`
+- `7d578e3749e8a1262e1589d1d3342c98872d91aa`
+- `835a1a57f17b483068cbd841b4861d153ef24147`
+- `86ea27de4cf58d2b984c6c77cb7bab59c6729fd6`
+- `8c2feeff72fe452cbb81bde305826002066c7aaf`
+- `9fd37981611e926ff8bce2c39c13685e14f28499`
+- `a8418dbb6800fe892ddb1a51b9380d149574b4a5`
+- `aabf19d7009779dbd9e07c1581935390f4d56bc7`
+- `ac8a6c9a39ed6abd35b3885fbaddd601ba26868c`
+- `ae1968c63af614700bd586915e37c74ef1b0152b`
+- `b6c0176c9ad0f4c130ab4ece83e42d7595dd3c52`
+- `c541126b644ff28d72ad8735534a6b63f859c729`
+- `c57ee7b5f5226f5dc902d817c034ff1a8f6618c3`
+- `cc03787ec9c761358756da6320728928b47eaa39`
+- `d8a275619ab20b2fa49e39f4bbb24be4ddc57a82`
+- `dbfc8e5571852350d98e75da1bf0b3692df2b00d`
+- `dd0a26eed23af025ef705d989d6f28d96cbd6ba4`
+- `f25e0ebfd38c78e80937de4100a6564b35533da5`
+- `f76525efcb720df2c7de12a17c0741e6d73d98c7`

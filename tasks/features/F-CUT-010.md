@@ -33,3 +33,21 @@
 ## Phase-switch checkpoint
 
 基线831a85b9；Task 3独立复审GO，P2/P3需求、详情稳定投影、受控PLT展示名与P5 FULL脱敏摘要已通过15/15聚焦测试；当前进入Task 4，仅实现CUT写命令正向闭环，INT-06/PLT继续使用src/test受控替身。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`5`
+- 已接收或已确认主干等价路径数：`41`
+- 仍需逐路径适配记录数：`7`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `1a37a546f4d95519e8ac631c20dc91c4f01db5fb`
+- `26c02ac2883eed09b23372f2595705d61ec41e4a`
+- `750ef1abf8a88c1d6ed0c4821797ef512aa22296`
+- `831a85b9aae1913c1f25b7e2aab344b33cb0c13e`
+- `aa803a52e342f93253a0865c077f00795d14c714`

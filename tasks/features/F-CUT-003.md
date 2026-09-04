@@ -50,3 +50,32 @@ Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收�
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
 > 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`真实MySQL受控闭环与`ec268ab9`挂载组件MANUAL证据→刷新→提交P4交互均获独立裁决`GO`。最近Gate为跨模块生产Owner依赖关闭后的唯一生产装配；正式身份真实MySQL/浏览器和Done仍阻断。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`16`
+- 已接收或已确认主干等价路径数：`60`
+- 仍需逐路径适配记录数：`31`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `146254d8420199851de4145e77b51f0055ca9cad`
+- `23dff6cdcd3c0d287bd0a26c03447522e5de257c`
+- `37723669b6dd457b1e779ba0cc505a7e21ca20ad`
+- `523520c9dc79518399b39f41b73032f41bf31e55`
+- `706b6c2a7c9c861b09a3e0118877f68f0d6654a5`
+- `799b01873210e04e1e3462a00b37dbf617030b66`
+- `7e47096840751a63966481fae55a74f3c0dab3d4`
+- `96f9805baba58e515cc25f89de973074514695b7`
+- `aa29efcb1df31081949a1846ef9a965f16951e64`
+- `abc5b534edd6df8aba933f5f399a4c26aba8cddd`
+- `c477f5e672db64198e1338b59eb17553ec84fcf4`
+- `dc0e6d390152b215adbc80a44e67460a977cfd23`
+- `e08898b57e6c7c81e43139881b53ac9d50b4154e`
+- `ea986d615ad497d0939dd3d551a000d0beaf15f7`
+- `ec268ab9befc7c9e255ed63a05ecbf646cf03244`
+- `f90227655b9df37da20a59adf26203d1381494b4`

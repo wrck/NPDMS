@@ -168,3 +168,41 @@
 - [ ] 正式Owner齐备后，另行提交唯一Service/Controller装配、真实Spring传播、浏览器与数据库证据。
 
 > 检查点：独立前置核验确认F-CUT-005生产Owner、CUT渲染与PLT文件创建/冻结交接合同、F-CUT-002/003生产Owner接线均未形成；F-CUT-004无自身整改项，保持失败关闭。当前受控替身不得用于生产装配、Job激活或真实浏览器验收；最近CUT主线Gate为F-CUT-005完整Feature Ready。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`25`
+- 已接收或已确认主干等价路径数：`71`
+- 仍需逐路径适配记录数：`35`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `04b650dfdabe364d6428c5ed7e249062f439d0e2`
+- `08d98e0b3146f8c5c449b61c67bc016597579146`
+- `0e9065fae76513a2746f3670ddf5f40536c9bef2`
+- `1b461a54a6aa38a07d9d34e2b37436632fb15590`
+- `258549d819ba8cbe791baa361e44ae4b6fe35763`
+- `359be6bd75c59cff641704e6521f179c3decff09`
+- `3a32c4f7435accb061d99dc2fa98bce3af33a99b`
+- `40dfd80c61daf6bf128baa38f2a936ef6762822a`
+- `4734752e7e74d7adac9fdef4e8831c2348ffa022`
+- `501cae2a11de9f8b16e6b6597a1cd4edf6a41f81`
+- `5fee04d10cf3522f00ee056220fac7a1110d8682`
+- `7c0cba236053c32a1d50e1747152c28c1502d331`
+- `9c13fcf3ae552247f5a17b322fdb33bfd61c9e74`
+- `a5334616852cad576297977846c9d579cbd3dd26`
+- `b2aba46255a8a7e7c2bc5f1faf499bfa36f1dbaf`
+- `b51963ff56ee63fddf9dd267201af5e0e6c72124`
+- `b6ca8f7172e14878d630f643fae65240b7a64122`
+- `c6c295cb56f8c4ee4929e4d1acf4103824d34ab0`
+- `c9de3fac88aaa328be34857aae91a07786fe1332`
+- `d4a827c0149f32b6f4e1d0a265ed77de5ad97e77`
+- `d559c02cdad024b18abeb2db8b29d8288c98cf08`
+- `ddda602faadc72b6726ad20902b313acc84adc10`
+- `e2fa3cdd8440fed5e762e0e557771661eca4b510`
+- `e38aaa8aad4d9e7d8b9d8af362c0dc1758155a34`
+- `e81345864b7d39e28efe5961ec8ae76e4cbc10ab`

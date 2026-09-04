@@ -68,3 +68,44 @@
 - F-CUT-002/003/004为业务来源；当前允许在F-CUT-005单元/集成中使用已锁定合同的受控事实。
 - PROJ当前服务经理与SYSTEM二线/研发候选均作为本Feature的物理Owner支撑Task预留正式端口，不建立纯Provider Feature；不得跨模块读表、修改Yudao或注册生产Fake/fallback。
 - V2提前时间与外部通知、CUT-06闭环和`Q-FCUT004-001`均排除。
+
+## 代码事实按时间逐提交重放回执（2026-09-04）
+
+> 本节仅记录提交代码事实；存在开放Gate时Feature继续保持IN_PROGRESS，代码接收不自动构成Implementation Done。
+
+- 来源提交数：`28`
+- 已接收或已确认主干等价路径数：`110`
+- 仍需逐路径适配记录数：`62`
+- 接收范围：三个来源分支中全部模块的文本代码、测试、构建配置与可安全迁移SQL；无模块级排除。
+- 完整提交顺序和逐路径裁决：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+来源提交：
+
+- `0142e01e8240d800e90f3252351199de41752a60`
+- `0f98d5277aa203d2840a6620da331aa88a804f0b`
+- `1edc713e5975821abb4f845f76701d5954e22535`
+- `2011aa5a4baab0d64566a0f4df7a06a83ec22799`
+- `2414ac3828adb65f2b9747ce55d6c75b684791e8`
+- `327d14778d91de6f591bf9d02109db0879315d47`
+- `367438e602d01b5fbf07232804950cf26ecff52d`
+- `38fd6cfd2c9e7e23fb132562ea293da68c3e96f8`
+- `6be558c4f3fdbdd21285af6b84ba7e2be7037b49`
+- `6dae8751bb34a36074cab6515b60bfd4b70beb67`
+- `706b6c2a7c9c861b09a3e0118877f68f0d6654a5`
+- `73a4f4aba31c8d674caa323f8446ed2915474aa3`
+- `8d09fdc363d29cf0aa3804e8abf84376ad325d3c`
+- `9e812f9c8cbec1cc65a58044ec5d4da5417093dd`
+- `a7e5b7b356cc4a2f437db3bd22dc9e062cc07559`
+- `a9b87b4782317a5e164eb239a205a81491a4ee00`
+- `ac8a6e5f47f7ce550649bb6ee4571aa149ad565b`
+- `b78120e99f21a7fe650715d953d8dbec617ee92e`
+- `baaabcc4b22b7ae3b226703da41f7da53b7feeb2`
+- `d4a827c0149f32b6f4e1d0a265ed77de5ad97e77`
+- `d689703262ac196c8fb3e47c7b10d572f5b6d3c6`
+- `daee020ba85e8af3ffdcbdeb32ea79f09a23e27a`
+- `df406b0c6ec231cc41cd45c7d6b05e7a1d6accb0`
+- `e5aff40882a132fed14dea7b7c5ed514bd7fd425`
+- `e6dac9fe14ad6fade916b8ca18c2464560ea19a6`
+- `eefb40eccdcce7b727925b9c6c6f4dc592591e0c`
+- `f3177ec606a8f764586e36490d913720847d221c`
+- `fe50aaf9ab9903e49589db88fb15c368a96c58b0`
