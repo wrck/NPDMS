@@ -55,3 +55,74 @@
 - [ ] 完成Implementation Done独立裁决。
 
 > 检查点：基线=PRD修订010；当前Gate=Implementation Done复核；已通过=master可构建增量与静态/单元/前端验证；阻塞=MySQL实库、真实浏览器、独立裁决；下一步=补齐运行证据后申请裁决。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IN_PROGRESS`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`58`
+- 已处理来源提交：`28`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/authority/CommerceAuthorityWriteApi.java`
+- `pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/authority/dto/AuthorityWriteResult.java`
+- `pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/authority/dto/CommerceAuthorityWriteCommand.java`
+- `pms-module-commerce/pom.xml`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/scope/vo/DeliveryScopeAdjustReqVO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/scope/vo/DeliveryScopeAssignReqVO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/scope/vo/DeliveryScopePreviewReqVO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/scope/vo/DeliveryScopeReleaseReqVO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/authority/ContractDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/authority/SalesOrderDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/ContractDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderLineDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDetailDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/OrderLineDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/ProjectContractRelationDO.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ProjectContractRelationMapper.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderLineMapper.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/CommerceDeliveryScopeCommandMapper.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/query/CommerceDeliveryScopeCommandQuery.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeStateMachine.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/domain/scope/DeliveryScopeValidationRules.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractRelationCommandService.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandException.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandService.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommands.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeQueryService.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeAssignCommand.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeChangeCommand.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeviceAndLocationFactAdapter.java`
+- `pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/ProjectScopeQualificationAdapter.java`
+- `pms-module-commerce/src/main/resources/mapper/contract/ProjectContractRelationMapper.xml`
+- `pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml`
+- `pms-module-commerce/src/main/resources/mapper/scope/CommerceDeliveryScopeCommandMapper.xml`
+- `pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeMapper.xml`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/FCom001MigrationContractTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/FCom001MigrationMySqlTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/FCom001RelationIdentityMigrationContractTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/api/CommercePublicContractTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/CommerceDeliveryScopeCommandMapperContractTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityCandidateMySqlTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityWriteServiceTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeAuditContractTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandMySqlTest.java`
+- `pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeviceAndLocationFactAdapterTest.java`
+- `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/commerce/dto/ProjectOfficeFact.java`
+- `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/commerce/ProjectOfficeFactApiImplTest.java`
+- `scripts/tests/test_fcom001_feature_contract.py`
+- `scripts/tests/test_fcom001_v126_migration.py`
+- `scripts/tests/test_fcom001_v127_migration.py`
+- `sql/migrations/V124__fcom001_contract_order_scope_forward_migration.sql`
+- `sql/migrations/V125__fcom001_permissions_menu_and_acceptance_seed.sql`
+- `sql/migrations/V126__fcom001_stage_entry_acceptance_seed.sql`
+- `sql/migrations/V127__fcom001_acceptance_identity_authorization_fix.sql`
+- `sql/migrations/V143__fcom001_contract_order_scope_schema.sql`
+- `sql/migrations/V145__fcom001_order_contract_relation_source_identity.sql`

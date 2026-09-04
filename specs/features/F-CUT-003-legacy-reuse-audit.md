@@ -38,3 +38,10 @@
 ## 4. 结论
 
 F-CUT-003复用F-CUT-001配置真值、F-CUT-002任务内核和PLT公共文件能力；复制增强新工作台P3区域；对旧风险栈采用`DO_NOT_REUSE / PRESERVE_EXISTING`。INT-12及外部数据源只保留消费接口，不能因CUT实现需要而复制跨模块Owner。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`16`。
+- 已处理来源提交：`10`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

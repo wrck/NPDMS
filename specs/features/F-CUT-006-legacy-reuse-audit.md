@@ -20,3 +20,10 @@
 - 批次固定为`ownerContext=CUT`、`purpose=CUTOVER_CLOSURE_CURRENT_FORWARD`、`sourceSystem=NPDMS_LEGACY`、`sourceTable=pms_cut_execution`，来源键为旧行十进制`id`，规则版本为`FCUT006_LEGACY_V1`。原始旧行先由Release受控迁移导入器经PLT API冻结，CUT生产Bean不读取旧表/文件/第二数据源。CUT外层事务执行`STAGED_READY→claim(RECONCILING)→逐源RETAINED/issue→completeReconciliation(COMPLETED)`；当前`mappedCount=0`，`sourceCount=retainedCount+issueCount`。临时Provider/数据库失败回滚整批至可重领状态，不落永久issue。
 - 禁止按`status=2/3/4`、`step_name`、`result`文本、`evidence_url`、`actual_time`或测试种子补造SUCCESS/FAILED及归档事实。
 - `pms_cut_observation`、旧Controller/Service/UI/权限继续由旧路径拥有；新Feature不改写、不双写、不删除。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`17`。
+- 已处理来源提交：`11`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

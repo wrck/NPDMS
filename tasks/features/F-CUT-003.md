@@ -1,6 +1,6 @@
 # F-CUT-003 P3动态采集清单、直接填写与人工降级闭环
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@ea986d61`
 > Technical Plan Gate：`PASS / GO@ac740458`
@@ -50,3 +50,32 @@ Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收�
 - 本Task不包含INT-12/DAC Provider、V2导出、P4/P5/P6业务、旧`pms_cut_risk`改造或固定角色授权。
 
 > 检查点：Task2正向REST/UI、CUSTOM/COLLECTION工作台最小整改已分别在`c8c75ce5`、`23dff6cd`独立复审`PASS / GO`；`d3161d9d`真实MySQL受控闭环与`ec268ab9`挂载组件MANUAL证据→刷新→提交P4交互均获独立裁决`GO`。最近Gate为跨模块生产Owner依赖关闭后的唯一生产装配；正式身份真实MySQL/浏览器和Done仍阻断。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`16`
+- 已处理来源提交：`10`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/vo/checklist/CutoverChecklistReqVO.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/checklist/CutoverChecklistItemMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/checklist/CutoverChecklistItemResultMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/checklist/CutoverChecklistMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/CutoverChecklistExportService.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/port/CutoverCollectionPort.java`
+- `pms-module-cutover/src/main/resources/mapper/checklist/CutoverChecklistItemMapper.xml`
+- `pms-module-cutover/src/main/resources/mapper/checklist/CutoverChecklistItemResultMapper.xml`
+- `pms-module-cutover/src/main/resources/mapper/checklist/CutoverChecklistMapper.xml`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/checklist/CutoverChecklistMapperContractTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/CutoverChecklistApplicationServiceTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverNavigationRuleCodecTest.java`
+- `sql/migrations/V147__fcut003_p3_dynamic_checklist.sql`
+- `sql/migrations/V148__fcut_device_product_type_snapshot.sql`
+- `sql/migrations/V160__fcut009_navigation_rule.sql`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverChecklistComponents.spec.ts`

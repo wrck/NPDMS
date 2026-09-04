@@ -48,3 +48,48 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局�
 - [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / NOT_ESTABLISHED`。
 
 > 检查点（2026-09-02）：代码回执=`e53f7243`；当前Gate=`IN_PROGRESS / NOT_ESTABLISHED`；已通过=Feature契约12项、27模块依赖构建、后端44项适用测试（4项MySQL跳过）、前端3项测试与类型检查；阻塞=当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=补齐运行证据并申请独立裁决。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IN_PROGRESS<br>`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`32`
+- 已处理来源提交：`23`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/arrivalacceptance/ArrivalAcceptanceHttpException.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/ArrivalAcceptanceDO.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/ArrivalDifferenceDO.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/DeliveryEvidenceDO.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/DeliveryEvidenceRevisionDO.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/ArrivalAcceptanceMapper.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/ArrivalDifferenceMapper.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/ArrivalLineMapper.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/DeliveryEvidenceMapper.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/query/ArrivalPageQuery.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrivalacceptance/query/DeliveryEvidencePublishUpdate.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationService.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceCommandService.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/adapter/FileArtifactApiAdapter.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/port/DeviceScopeFactPort.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/port/FileArtifactFactPort.java`
+- `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/port/OwnerFactVersionMismatchException.java`
+- `pms-module-engineering/src/main/resources/mapper/arrivalacceptance/ArrivalAcceptanceMapper.xml`
+- `pms-module-engineering/src/main/resources/mapper/arrivalacceptance/ArrivalLineMapper.xml`
+- `pms-module-engineering/src/main/resources/mapper/arrivalacceptance/DeliveryEvidenceMapper.xml`
+- `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationServiceTest.java`
+- `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceQueryServiceTest.java`
+- `pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/acceptanceactivity/dto/AcceptanceActivityCompletionCommand.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/acceptancereport/AcceptanceReportVersionDO.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/acceptancereport/ProjectDeliverableSourceVersionDO.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/acceptancereport/AcceptanceActivityMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/acceptancereport/AcceptanceReportVersionMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/acceptancereport/ProjectDeliverableSourceVersionMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/AcceptanceReportOutboxDeliveryJob.java`
+- `pms-module-project/src/main/resources/mapper/acceptancereport/AcceptanceActivityMapper.xml`
+- `pms-module-project/src/main/resources/mapper/acceptancereport/AcceptanceReportVersionMapper.xml`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival-acceptance/arrivalAcceptanceInteraction.ts`

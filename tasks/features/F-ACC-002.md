@@ -49,3 +49,44 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1�
 - [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / NOT_ESTABLISHED`。
 
 > 检查点（2026-09-02）：代码回执=`b3e7c76e`；当前Gate=`IN_PROGRESS / NOT_ESTABLISHED`；已通过=Feature契约20项、27模块依赖构建、后端117项适用测试（8项MySQL跳过）、前端类型检查与生产构建；阻塞=当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=补齐运行证据并申请独立裁决。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IN_PROGRESS<br>`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`28`
+- 已处理来源提交：`18`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/preparation/PreparationMySqlIntegrationTest.java`
+- `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileBusinessObjectPolicyRegistry.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/satisfaction/SatisfactionTaskInitializationApiImpl.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/satisfaction/vo/SatisfactionPublicResponseSubmitReqVO.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionAccessGrantMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionCollectionTaskMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionQuestionnaireMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionQuestionnaireTemplateMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionQuestionnaireTemplateRevisionMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionResponseMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionResultFileMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/satisfaction/SatisfactionResultMapper.java`
+- `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/satisfaction/SatisfactionQuestionnaireDefinition.java`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionAccessGrantMapper.xml`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionCollectionTaskMapper.xml`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionQuestionnaireTemplateMapper.xml`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionQuestionnaireTemplateRevisionMapper.xml`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionResponseMapper.xml`
+- `pms-module-project/src/main/resources/mapper/satisfaction/SatisfactionResultMapper.xml`
+- `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/satisfaction/SatisfactionResultFilePolicyProviderTest.java`
+- `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/satisfaction/SatisfactionResultSourceProjectionMySqlIntegrationTest.java`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `scripts/generate_phase2_contract_map.py`
+- `scripts/tests/test_prd_satisfaction_questionnaire_configuration.py`
+- `scripts/tests/test_validate_sds_phase2.py`
+- `scripts/validate_sds_phase2.py`
+- `sql/migrations/V133__facc002_satisfaction_questionnaire_result_forward.sql`
+- `sql/migrations/V134__restore_project_task_assign_permission.sql`

@@ -1,6 +1,6 @@
 # F-CUT-002 割接任务接入与人工分级
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
 > Technical Plan Gate：`PASS / GO@8eb36222`
@@ -43,3 +43,29 @@
 - CUT隔离真实MySQL单元/集成可使用`src/test`受控正向模拟；真实浏览器、生产装配和Implementation Done必须使用生产Owner事实，替身、手工SQL、附件或测试种子不得替代。
 
 > 检查点：Task 2受控正向闭环Backend/MySQL Gate已在`d80ace31`独立复审`PASS / GO`；隔离MySQL 8.4空卷执行152个迁移至V156后2/2通过，另有CUT-002应用正向单元3/3通过。当前最近Gate为生产Owner依赖满足后的Adapter与唯一装配Entry Gate；Feature保持`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY`，不得用替身形成生产装配或真实浏览器证据。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`13`
+- 已处理来源提交：`5`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/task/CutoverTaskIntakeException.java`
+- `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/task/dto/CutoverTaskIntakeCommand.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverTaskRequestCodec.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/taskv2/CutoverTaskDO.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/taskv2/CutoverTaskDeviceScopeDO.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/taskv2/CutoverTaskDeviceScopeMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/taskv2/CutoverTaskMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/taskv2/query/LegacyCutoverTargetIdentityQuery.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/taskv2/migration/LegacyCutoverReconciliationService.java`
+- `pms-module-cutover/src/main/resources/mapper/taskv2/CutoverTaskDeviceScopeMapper.xml`
+- `pms-module-cutover/src/main/resources/mapper/taskv2/CutoverTaskMapper.xml`
+- `sql/migrations/V146__fcut002_cutover_task_intake.sql`
+- `sql/migrations/V149__fcut002_task_origin_assessment_checks.sql`

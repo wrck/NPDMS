@@ -60,3 +60,21 @@
 - Job继续保持`PAUSED`；
 - 不接收来源分支中的CUT/COM重复实现、生成追溯投影、旧迁移编号或生产Fake/fallback；
 - Feature主状态保持`IN_PROGRESS`；Task 1～11完成表示代码已实施并进入master，不等于EXE-01完整Feature Done。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IN_PROGRESS`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`5`
+- 已处理来源提交：`8`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/arrival/ArrivalAcceptanceFactApiImplTest.java`
+- `sql/migrations/V133__fimp002_arrival_acceptance.sql`
+- `sql/migrations/V140__fimp002_task5b_successor_fact_impact.sql`
+- `sql/migrations/V141__fimp002_successor_batch_identity.sql`
+- `sql/migrations/V142__fimp002_arrival_acceptance_seed.sql`
