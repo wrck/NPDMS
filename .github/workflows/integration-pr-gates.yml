@@ -1,4 +1,4 @@
-name: PR #7 integration gates
+name: "PR #7 integration gates"
 
 on:
   pull_request:
@@ -97,7 +97,9 @@ jobs:
             mysql:8.4 >/dev/null
 
           for attempt in $(seq 1 90); do
-            if docker exec "${container}" mysqladmin ping -uroot -ppr7-root --silent; then
+            if docker exec "${container}" \
+              mysql -uroot -ppr7-root --silent --skip-column-names -e "SELECT 1" \
+              >/dev/null 2>&1; then
               break
             fi
             if [[ "${attempt}" == "90" ]]; then

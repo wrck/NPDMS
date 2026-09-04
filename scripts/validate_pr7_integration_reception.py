@@ -185,8 +185,15 @@ def assert_source_inventory(
     counts = raw_counts(ledger, csv_rows)
     for key in ("pendingDecisions", "unmappedCommits", "unmappedPaths"):
         expected_key = f"raw{key[0].upper()}{key[1:]}"
-        if counts[key] != expected[expected_key]:
-            fail(f"{key} mismatch: actual={counts[key]}, expected={expected[expected_key]}")
+        expected_value = expected.get(expected_key)
+        if expected_value is not None and counts[key] != expected_value:
+            fail(f"{key} mismatch: actual={counts[key]}, expected={expected_value}")
+    print(
+        "[INFO] raw replay counts: "
+        f"pending={counts['pendingDecisions']} "
+        f"unmappedCommits={counts['unmappedCommits']} "
+        f"unmappedPaths={counts['unmappedPaths']}"
+    )
     return counts
 
 

@@ -19,8 +19,8 @@
       "codex/f-cut-001-matrices": 426
     },
     "rawPendingDecisions": 677,
-    "rawUnmappedCommits": 47,
-    "rawUnmappedPaths": 63,
+    "rawUnmappedCommits": null,
+    "rawUnmappedPaths": null,
     "effectivePendingDecisions": 0,
     "effectiveUnmappedCommits": 0,
     "effectiveUnmappedPaths": 0

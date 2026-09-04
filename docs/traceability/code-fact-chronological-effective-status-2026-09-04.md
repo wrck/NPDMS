@@ -12,7 +12,7 @@
 | 原始层 | 保存 572 次来源重放的 cherry-pick、路径、冲突和 metadata 事实 | 否 |
 | 终态层 | 给每个来源 commit/path 追加 Feature 映射与最终整合裁决 | 由生成器确定性派生 |
 
-原始层中存在的 677 个 `CONFLICTING_HUNKS_PENDING` 和 47 个未映射提交不会被删除或伪装成原始成功；终态层通过显式裁决将其转换为可审计结果。
+原始层中的 `CONFLICTING_HUNKS_PENDING` 与 `UNMAPPED` 记录不会被删除或伪装成原始成功；精确计数由不可变 JSON/CSV 现场派生，终态层再通过显式裁决将其转换为可审计结果。
 
 ## 已执行的 P0 修复
 
