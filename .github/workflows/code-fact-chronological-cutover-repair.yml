@@ -1,0 +1,78 @@
+name: Code-fact chronological CUT replay repair
+
+on:
+  push:
+    branches:
+      - codex/code-fact-chronological-replay-acc-int-cut-20260904
+    paths:
+      - .github/workflows/code-fact-chronological-cutover-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-chronological-replay-acc-int-cut-20260904
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Restore only source-tip/master-identical CUT files and rebuild
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags origin \
+            +refs/heads/master:refs/remotes/repair/master \
+            +refs/heads/codex/f-cut-001-matrices:refs/remotes/repair/f-cut-001-matrices
+
+          FILES=(
+            pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureApplicationService.java
+            pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/plan/CutoverPlanApplicationService.java
+          )
+          for file in "${FILES[@]}"; do
+            master_blob="$(git rev-parse "refs/remotes/repair/master:$file")"
+            source_blob="$(git rev-parse "refs/remotes/repair/f-cut-001-matrices:$file")"
+            test "$master_blob" = "$source_blob"
+            git checkout refs/remotes/repair/f-cut-001-matrices -- "$file"
+          done
+
+          git add "${FILES[@]}"
+          git commit --no-verify -m 'fix(integration): normalize replayed CUT services to source-tip state' \
+            -m 'The final f-cut source blobs equal current master; remove intermediate duplicate method accumulation without dropping final source functionality.'
+          git push origin HEAD:codex/code-fact-chronological-replay-acc-int-cut-20260904
+
+          mkdir -p cutover-repair-logs
+          set +e
+          MVN_CMD=mvn
+          [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true \
+            -pl pms-module-cutover -am package > cutover-repair-logs/maven-cutover.log 2>&1
+          MVN_RC=$?
+          set -e
+          echo "HEAD=$(git rev-parse HEAD)" > cutover-repair-logs/status.env
+          echo "MAVEN_RC=$MVN_RC" >> cutover-repair-logs/status.env
+          echo '=== status ==='
+          cat cutover-repair-logs/status.env
+          echo '=== Maven tail ==='
+          tail -300 cutover-repair-logs/maven-cutover.log || true
+
+      - name: Upload repair diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-fact-chronological-cutover-repair
+          path: cutover-repair-logs
+          if-no-files-found: warn
+          retention-days: 30
