@@ -29,15 +29,20 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          def lines(*values: str) -> str:
+              return "\n".join(values) + "\n"
+
           def dedupe_exact_block(path: str, block: str) -> None:
               target = Path(path)
               text = target.read_text(encoding="utf-8")
               count = text.count(block)
+              print(f"{path}: exact duplicate block count={count}")
               if count == 1:
                   return
               if count != 2:
                   raise SystemExit(f"{path}: expected one or two exact blocks, found {count}")
-              second = text.find(block, text.find(block) + len(block))
+              first = text.find(block)
+              second = text.find(block, first + len(block))
               target.write_text(text[:second] + text[second + len(block):], encoding="utf-8")
 
           def replace_exact_or_verified(path: str, old: str, new: str) -> None:
@@ -45,101 +50,124 @@ jobs:
               text = target.read_text(encoding="utf-8")
               old_count = text.count(old)
               new_count = text.count(new)
+              print(f"{path}: old block count={old_count}, approved block count={new_count}")
               if old_count == 1 and new_count == 0:
                   target.write_text(text.replace(old, new), encoding="utf-8")
                   return
               if old_count == 0 and new_count == 1:
                   return
               raise SystemExit(
-                  f"{path}: expected one old block or one verified new block; old={old_count}, new={new_count}"
+                  f"{path}: expected one old block or one verified approved block; "
+                  f"old={old_count}, approved={new_count}"
               )
 
-          command_block = '''    private void requireEvidenceSourceInLineage(ArrivalAcceptanceDO source, Long evidenceSourceId) {
-              ArrivalAcceptanceDO cursor = source;
-              Set<Long> visited = new HashSet<>();
-              while (true) {
-                  if (cursor.getId() == null || !visited.add(cursor.getId())
-                          || !Objects.equals(source.getTenantId(), cursor.getTenantId())
-                          || !Objects.equals(source.getProjectId(), cursor.getProjectId())
-                          || !Objects.equals(source.getBatchCode(), cursor.getBatchCode())) {
-                      throw new IllegalStateException("arrival acceptance predecessor lineage is invalid");
-                  }
-                  if (Objects.equals(cursor.getId(), evidenceSourceId)) return;
-                  if (cursor.getPredecessorAcceptanceId() == null) {
-                      throw new IllegalStateException("evidence source is not an arrival acceptance ancestor");
-                  }
-                  Long predecessorId = cursor.getPredecessorAcceptanceId();
-                  cursor = acceptanceMapper.selectRow(new ArrivalRowQuery(source.getTenantId(), predecessorId));
-                  if (cursor == null || !Objects.equals(predecessorId, cursor.getId())) {
-                      throw new IllegalStateException("arrival acceptance predecessor lineage is broken");
-                  }
-              }
-          }
-          '''
+          command_block = lines(
+              "    private void requireEvidenceSourceInLineage(ArrivalAcceptanceDO source, Long evidenceSourceId) {",
+              "        ArrivalAcceptanceDO cursor = source;",
+              "        Set<Long> visited = new HashSet<>();",
+              "        while (true) {",
+              "            if (cursor.getId() == null || !visited.add(cursor.getId())",
+              "                    || !Objects.equals(source.getTenantId(), cursor.getTenantId())",
+              "                    || !Objects.equals(source.getProjectId(), cursor.getProjectId())",
+              "                    || !Objects.equals(source.getBatchCode(), cursor.getBatchCode())) {",
+              "                throw new IllegalStateException(\"arrival acceptance predecessor lineage is invalid\");",
+              "            }",
+              "            if (Objects.equals(cursor.getId(), evidenceSourceId)) return;",
+              "            if (cursor.getPredecessorAcceptanceId() == null) {",
+              "                throw new IllegalStateException(\"evidence source is not an arrival acceptance ancestor\");",
+              "            }",
+              "            Long predecessorId = cursor.getPredecessorAcceptanceId();",
+              "            cursor = acceptanceMapper.selectRow(new ArrivalRowQuery(source.getTenantId(), predecessorId));",
+              "            if (cursor == null || !Objects.equals(predecessorId, cursor.getId())) {",
+              "                throw new IllegalStateException(\"arrival acceptance predecessor lineage is broken\");",
+              "            }",
+              "        }",
+              "    }",
+          )
           dedupe_exact_block(
               "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceCommandService.java",
               command_block,
           )
 
-          execution_block = '''    private static void requireExecutionCompleted(PlatformCommandExecutionApi.Decision decision) {
-              if (decision == PlatformCommandExecutionApi.Decision.CONFLICT) {
-                  throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_CONFLICT",
-                          "IDEMPOTENCY_PAYLOAD_CONFLICT", "idempotency key is bound to another request");
-              }
-              if (decision == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
-                  throw ArrivalAcceptanceContractException.simple("IDEMPOTENCY_IN_PROGRESS",
-                          "IDEMPOTENCY_COMMAND_IN_PROGRESS", "idempotent command is in progress");
-              }
-          }
-          '''
+          execution_block = lines(
+              "    private static void requireExecutionCompleted(PlatformCommandExecutionApi.Decision decision) {",
+              "        if (decision == PlatformCommandExecutionApi.Decision.CONFLICT) {",
+              "            throw ArrivalAcceptanceContractException.simple(\"IDEMPOTENCY_CONFLICT\",",
+              "                    \"IDEMPOTENCY_PAYLOAD_CONFLICT\", \"idempotency key is bound to another request\");",
+              "        }",
+              "        if (decision == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {",
+              "            throw ArrivalAcceptanceContractException.simple(\"IDEMPOTENCY_IN_PROGRESS\",",
+              "                    \"IDEMPOTENCY_COMMAND_IN_PROGRESS\", \"idempotent command is in progress\");",
+              "        }",
+              "    }",
+          )
           dedupe_exact_block(
               "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationService.java",
               execution_block,
           )
 
-          table_column_block = '''const workbenchTableColumn = defineComponent({
-            inheritAttrs: false,
-            setup(_, { slots }) {
-              return () => h('span', slots.default?.({ row: taskSummary() }))
-            }
-          })
-          '''
+          table_column_block = lines(
+              "const workbenchTableColumn = defineComponent({",
+              "  inheritAttrs: false,",
+              "  setup(_, { slots }) {",
+              "    return () => h('span', slots.default?.({ row: taskSummary() }))",
+              "  }",
+              "})",
+          )
           dedupe_exact_block(
               "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverControlledUiIntegration.spec.ts",
               table_column_block,
           )
 
           migration_path = "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
-          old_relation_seed = '''INSERT INTO `com_order_contract_relation`
-          (`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`, `creator`, `updater`, `deleted`)
-          VALUES
-          (992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',
-           'fcom001_seed', 'fcom001_seed', 0)
-          ON DUPLICATE KEY UPDATE `relation_source`='SEED', `updater`='fcom001_seed',
-           `update_time`=NOW(3), `deleted`=0;
-          '''
-          new_relation_seed = '''INSERT INTO `com_order_contract_relation`
-          (`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`,
-           `source_system`, `sales_order_source_key`, `contract_source_key`, `source_version`,
-           `source_evidence`, `effective_from`, `effective_to`, `creator`, `updater`, `deleted`)
-          VALUES
-          (992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',
-           'SEED', 'FPROJ002-V18-ORDER', 'F-COM001-CONTRACT-001', '1',
-           JSON_OBJECT('evidenceType', 'CONTROLLED_ACCEPTANCE_SEED',
-                       'migrationVersion', 'V161',
-                       'salesOrderSourceKey', 'FPROJ002-V18-ORDER',
-                       'contractSourceKey', 'F-COM001-CONTRACT-001'),
-           '2026-08-01 00:00:00.000', NULL, 'fcom001_seed', 'fcom001_seed', 0)
-          ON DUPLICATE KEY UPDATE
-           `relation_source`=VALUES(`relation_source`), `source_system`=VALUES(`source_system`),
-           `sales_order_source_key`=VALUES(`sales_order_source_key`),
-           `contract_source_key`=VALUES(`contract_source_key`), `source_version`=VALUES(`source_version`),
-           `source_evidence`=VALUES(`source_evidence`), `effective_from`=VALUES(`effective_from`),
-           `effective_to`=VALUES(`effective_to`), `updater`='fcom001_seed',
-           `update_time`=NOW(3), `deleted`=0;
-          '''
+          old_relation_seed = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE `relation_source`='SEED', `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
+          new_relation_seed = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`,",
+              " `source_system`, `sales_order_source_key`, `contract_source_key`, `source_version`,",
+              " `source_evidence`, `effective_from`, `effective_to`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'SEED', 'FPROJ002-V18-ORDER', 'F-COM001-CONTRACT-001', '1',",
+              " JSON_OBJECT('evidenceType', 'CONTROLLED_ACCEPTANCE_SEED',",
+              "             'migrationVersion', 'V161',",
+              "             'salesOrderSourceKey', 'FPROJ002-V18-ORDER',",
+              "             'contractSourceKey', 'F-COM001-CONTRACT-001'),",
+              " '2026-08-01 00:00:00.000', NULL, 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE",
+              " `relation_source`=VALUES(`relation_source`), `source_system`=VALUES(`source_system`),",
+              " `sales_order_source_key`=VALUES(`sales_order_source_key`),",
+              " `contract_source_key`=VALUES(`contract_source_key`), `source_version`=VALUES(`source_version`),",
+              " `source_evidence`=VALUES(`source_evidence`), `effective_from`=VALUES(`effective_from`),",
+              " `effective_to`=VALUES(`effective_to`), `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
           replace_exact_or_verified(migration_path, old_relation_seed, new_relation_seed)
           PY
+
+      - name: Verify repair scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only)"
+          printf '%s\n' "${changed}"
+          expected="$(cat <<'EOF'
+          pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationService.java
+          pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceCommandService.java
+          sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql
+          yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverControlledUiIntegration.spec.ts
+          EOF
+          )"
+          [[ "${changed}" == "${expected}" ]]
 
       - name: Commit deterministic repairs
         shell: bash
@@ -153,9 +181,5 @@ jobs:
             yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverControlledUiIntegration.spec.ts \
             sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql
           git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "All deterministic repairs were already present"
-          else
-            git commit -m "fix(integration): close backend frontend and migration blockers"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+          git commit -m "fix(integration): close backend frontend and migration blockers"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
