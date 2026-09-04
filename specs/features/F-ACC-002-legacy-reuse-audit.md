@@ -25,3 +25,10 @@
 | REUSE-18 | 仓库现状中的ADR-0014及全量Java/XML/SQL导出载体检索 | `NO_RUNTIME_CARRIER / BUILD_APPROVED_ADR_0042` | 当前没有`ExportTask/ExportAudit`公共API、物理表或执行Job可直接复用；按ADR-0042在PLT唯一新增`ExportTaskApi`、`ExportBusinessDataProvider`、`plt_export_task/plt_export_audit`和执行/到期Job，ACC只提供`ACC/SATISFACTION_RESULT`场景Provider，不新建第二导出真值 |
 
 迁移结论：F-ACC-002正向事实与PLT统一导出载体均为`NEW_ONLY / FEATURE_FORWARD_MIGRATION`；所有旧问卷、回访和转包载体保持原始状态并交由`AI-MIG-000`后续确认，V17/V18电子完工证明栈保持独立可达。Technical Plan不得引入旧值映射、名称/分数/状态推断、长期双写、第二应交根、第二导出Task/Audit、PLT内部主键，或把旧完工证明事实升级为新满意度真值。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`28`。
+- 已处理来源提交：`18`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

@@ -367,6 +367,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                 submitCommand());
 
         assertEquals("ACCEPTED", result.status());
+        verify(fixture.devicePort(), never()).lockAndRevalidate(any(), any(), any());
     }
 
     @Test

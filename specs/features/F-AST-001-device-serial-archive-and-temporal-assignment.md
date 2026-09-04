@@ -279,3 +279,10 @@ F-AST-001消费外部系统已写入Owner本地副本后的稳定事实，不承
 | 独立Feature Ready裁决 | READY |
 
 规格结论：`BASELINE / READY`。历史记录表明EQP-01设备身份、稳定主档与高频当前事实投影、来源消费、统一软件版本领域模型、KNO官网信息、项目/客户时态归属、装配关系、客观维保记录、分Tab DTO、权限、下载和前向迁移边界曾通过自动化、真实MySQL、查询计划、真实浏览器与合并后复审；该记录只作Implementation候选证据，必须由master Feature Task完成当前状态复核后才能产生Done，且不代表外部同步Feature、Deployment、SIT、UAT或Release完成。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`1`。
+- 已处理来源提交：`1`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

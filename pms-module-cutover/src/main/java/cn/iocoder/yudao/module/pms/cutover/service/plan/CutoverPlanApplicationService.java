@@ -917,6 +917,150 @@ public class CutoverPlanApplicationService {
         return plan;
     }
 
+    private static CutoverTaskDO requireP5(CutoverTaskDO task, Long tenantId, Integer expectedVersion) {
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)
+                || !CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())) {
+            throw failure(NOT_FOUND, "任务不存在");
+        }
+        if (!"P5".equals(task.getCurrentStage()) || !"APPROVING".equals(task.getTaskStatus())) {
+            throw failure(STATE_CONFLICT, "任务当前不在P5审批中");
+        }
+        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "任务版本已变化");
+        return task;
+    }
+
+    private static CutoverTaskDO requireOwnedP6(CutoverTaskDO task, PatchApprovedContactCommand command) {
+        if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())
+                || !Objects.equals(task.getOwnerUserId(), command.actorId())) {
+            throw failure(NOT_FOUND, "任务不可见");
+        }
+        if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
+                || !"P6".equals(task.getCurrentStage())
+                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) {
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    task.getVersion(), null, null, "任务当前不在批准后的P6阶段");
+        }
+        return task;
+    }
+
+    private static CutoverPlanRevisionDO requireApprovedPlan(CutoverPlanRevisionDO plan, Integer expectedVersion) {
+        if (plan == null) throw failure(NOT_FOUND, "当前批准方案不存在");
+        if (!"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
+                || !positive(plan.getApprovalInstanceId()) || plan.getApprovalVersion() == null
+                || plan.getApprovalVersion() < 0) {
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, plan.getVersion(), plan.getApprovalVersion(), "当前方案不可变更批准联系人");
+        }
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) {
+            throw failure(VERSION_CONFLICT, "PLAN_VERSION_STALE", null,
+                    null, plan.getVersion(), null, "方案版本已变化");
+        }
+        return plan;
+    }
+
+    private CutoverApprovalFact inspectApprovalFact(Long tenantId, CutoverPlanRevisionDO plan) {
+        if (approvalFactApi == null) throw cut05Unavailable();
+        try {
+            CutoverApprovalInspectResult result = approvalFactApi.inspect(new CutoverApprovalFactQuery(
+                    tenantId, plan.getCutoverTaskId(), plan.getId()));
+            CutoverApprovalFact fact = result == null || result.status() != InspectStatus.FOUND ? null : result.fact();
+            requireApprovalIdentity(plan, fact);
+            return fact;
+        } catch (CutoverApprovalFactException ex) {
+            throw approvalFailure(ex);
+        }
+    }
+
+    private CutoverApprovalFact lockApprovalFact(Long tenantId, CutoverPlanRevisionDO plan,
+                                                  CutoverApprovalFact expected) {
+        try {
+            ExpectedCutoverApprovalFact expectedFact = new ExpectedCutoverApprovalFact(
+                    expected.approvalInstanceId(), expected.approvalVersion(), expected.taskId(),
+                    expected.planRevisionId(), expected.planRevisionNo(), expected.status(),
+                    expected.sourceSnapshotVersion(), expected.replacementApprovalInstanceId(),
+                    expected.decisionAt(), expected.rejectionReason());
+            CutoverApprovalRevalidationResult result = approvalFactApi.lockAndRevalidate(
+                    new CutoverApprovalRevalidationQuery(tenantId, expectedFact));
+            if (result == null || result.status() != RevalidationStatus.VALID) {
+                Integer currentVersion = result == null || result.currentFact() == null
+                        ? null : result.currentFact().approvalVersion();
+                throw failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", "CUT",
+                        null, plan.getVersion(), currentVersion, "审批事实已变化");
+            }
+            requireApprovalIdentity(plan, result.currentFact());
+            return result.currentFact();
+        } catch (CutoverApprovalFactException ex) {
+            throw approvalFailure(ex);
+        }
+    }
+
+    private void lockApprovedFact(Long tenantId, CutoverPlanRevisionDO plan, CutoverApprovalFact expected) {
+        CutoverApprovalFact current = lockApprovalFact(tenantId, plan, expected);
+        if (current.status() != ApprovalStatus.APPROVED) {
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, plan.getVersion(), current.approvalVersion(), "审批事实尚未通过");
+        }
+    }
+
+    private static CutoverPlanRevisionDO requireRevisionSource(CutoverPlanRevisionDO source,
+                                                                ReviseCutoverPlanCommand command) {
+        if (source == null || !Objects.equals(source.getTenantId(), command.tenantId())
+                || !Objects.equals(source.getCutoverTaskId(), command.taskId())
+                || !Objects.equals(source.getId(), command.sourcePlanRevisionId())
+                || !"NEW_PLATFORM".equals(source.getOriginCode())
+                || !positive(source.getApprovalInstanceId())) {
+            throw failure(NOT_FOUND, "来源方案不可见");
+        }
+        return source;
+    }
+
+    private static void requireRevisionReason(String reason, CutoverPlanRevisionDO source,
+                                              CutoverApprovalFact approval) {
+        if ("DUTY_CHANGED".equals(reason)) {
+            throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                    null, source.getVersion(), approval.approvalVersion(), "批准后职责变化的P6回退合同尚未锁定");
+        }
+        if ("APPROVAL_REJECTED".equals(reason)) {
+            if (!"SUBMITTED".equals(source.getStatusCode()) || !Objects.equals(source.getCurrentMarker(), 1)
+                    || approval.status() != ApprovalStatus.REJECTED) {
+                throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                        null, source.getVersion(), approval.approvalVersion(), "来源方案不是已驳回的当前提交revision");
+            }
+            return;
+        }
+        if ("SOURCE_REPLACED".equals(reason)) {
+            if (!"INVALIDATED".equals(source.getStatusCode()) || source.getCurrentMarker() != null
+                    || approval.status() != ApprovalStatus.PAUSED_SOURCE_INVALIDATED) {
+                throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
+                        null, source.getVersion(), approval.approvalVersion(), "来源方案不是已暂停的失效revision");
+            }
+            return;
+        }
+        throw failure(INVALID_REQUEST, "修订原因非法");
+    }
+
+    private static void requireApprovalIdentity(CutoverPlanRevisionDO plan, CutoverApprovalFact fact) {
+        CutoverPlanSourcePort.SourceSnapshot source = parseSource(plan.getSourceSnapshot());
+        if (fact == null || !Objects.equals(fact.approvalInstanceId(), plan.getApprovalInstanceId())
+                || !Objects.equals(fact.taskId(), plan.getCutoverTaskId())
+                || !Objects.equals(fact.planRevisionId(), plan.getId())
+                || !Objects.equals(fact.planRevisionNo(), plan.getRevisionNo())
+                || !Objects.equals(fact.sourceSnapshotVersion(), source.snapshotVersion())) {
+            throw failure(OWNER_DATA_CORRUPTED, "CUT-05审批事实身份损坏");
+        }
+    }
+
+    private static CutoverPlanRevisionDO requireSubmitted(CutoverPlanRevisionDO plan, Integer expectedVersion) {
+        if (plan == null) throw failure(NOT_FOUND, "当前已提交方案不存在");
+        if (!"SUBMITTED".equals(plan.getStatusCode()) || !Objects.equals(plan.getCurrentMarker(), 1)
+                || !positive(plan.getApprovalInstanceId()) || plan.getApprovalVersion() == null
+                || plan.getApprovalVersion() < 0) {
+            throw failure(STATE_CONFLICT, "当前方案不可执行来源失效");
+        }
+        if (!Objects.equals(plan.getVersion(), expectedVersion)) throw failure(VERSION_CONFLICT, "方案版本已变化");
+        return plan;
+    }
+
     private static void requireSource(CutoverPlanSourcePort.SourceFacts facts, CutoverTaskDO task) {
         if (facts == null || !Objects.equals(facts.snapshot().taskId(), task.getId())
                 || !Objects.equals(facts.snapshot().projectId(), task.getProjectId())) {
@@ -1310,6 +1454,47 @@ public class CutoverPlanApplicationService {
                 || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
                 || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "下载初稿命令非法");
+        }
+    }
+
+    private static void requireSubmit(SubmitCutoverPlanCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "提交方案命令非法");
+        }
+    }
+
+    private static void requireInvalidation(InvalidateCutoverPlanSourceCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || command.expectedPlanVersion() == null
+                || command.expectedPlanVersion() < 0 || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "来源失效命令非法");
+        }
+    }
+
+    private static void requirePatchApprovedContact(PatchApprovedContactCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || !positive(command.arrangementId())
+                || command.expectedPlanVersion() == null || command.expectedPlanVersion() < 0
+                || !validText(command.personName(), 128) || !validText(command.phone(), 64)
+                || command.arrivalTime() == null || !validText(command.idempotencyKey(), 128)
+                || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "批准后联系人变更命令非法");
+        }
+    }
+
+    private static void requireRevise(ReviseCutoverPlanCommand command) {
+        if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
+                || !positive(command.taskId()) || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || !positive(command.sourcePlanRevisionId())
+                || !List.of("APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED").contains(command.reason())
+                || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
+            throw failure(INVALID_REQUEST, "修订方案命令非法");
         }
     }
 

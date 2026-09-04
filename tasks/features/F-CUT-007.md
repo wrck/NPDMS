@@ -1,6 +1,6 @@
 # F-CUT-007 割接首页授权KPI
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@f6141e21`
 > Technical Plan Gate：`PASS / GO@fad19d81`
@@ -47,3 +47,17 @@
 - F-CUT-002～006状态保持不变。
 - Task 10生产Owner与真实浏览器阻断保持不变。
 - COM-01由其他分支/Owner推进，本Feature不得重复实现或修改。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`1`
+- 已处理来源提交：`1`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/dashboard/CutoverDashboardPolicyTest.java`

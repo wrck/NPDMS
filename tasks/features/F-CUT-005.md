@@ -1,6 +1,6 @@
 # F-CUT-005 P5分级审批
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO @ 2e3fdba3`
 > Technical Plan Gate：`PASS / GO @ 912d0cdb`
@@ -68,3 +68,35 @@
 - F-CUT-002/003/004为业务来源；当前允许在F-CUT-005单元/集成中使用已锁定合同的受控事实。
 - PROJ当前服务经理与SYSTEM二线/研发候选均作为本Feature的物理Owner支撑Task预留正式端口，不建立纯Provider Feature；不得跨模块读表、修改Yudao或注册生产Fake/fallback。
 - V2提前时间与外部通知、CUT-06闭环和`Q-FCUT004-001`均排除。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`19`
+- 已处理来源提交：`11`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/approval/dto/CutoverApprovalStartCommand.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalInstanceDO.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalNotificationDO.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/approval/CutoverApprovalInstanceMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/approval/CutoverApprovalNodeMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/approval/CutoverApprovalNotificationMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationException.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/plan/CutoverPlanApplicationService.java`
+- `pms-module-cutover/src/main/resources/mapper/approval/CutoverApprovalInstanceMapper.xml`
+- `pms-module-cutover/src/main/resources/mapper/approval/CutoverApprovalNotificationMapper.xml`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut005MigrationContractTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalDecisionServiceTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalStartServiceTest.java`
+- `sql/migrations/V153__fcut005_p5_graded_approval.sql`
+- `sql/migrations/V154__fcut005_p5_approval_seed.sql`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/components/CutoverApprovalDecisionForm.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/components/CutoverApprovalReassignmentPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverApprovalComponents.spec.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverTaskInteraction.spec.ts`

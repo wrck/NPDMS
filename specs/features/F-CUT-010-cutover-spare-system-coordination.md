@@ -99,3 +99,10 @@
 ## 7. Feature Ready Gate
 
 最终裁决：`READY / GO@c4b1a939`。独立复审确认首次外部申请号绑定、P3清单项来源版本、P5安全投影、INT-06消费合同及Phase 2/迁移链均已闭合。授权生成唯一当前Technical Plan；计划独立复审GO前不得实施。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`5`。
+- 已处理来源提交：`3`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

@@ -558,6 +558,35 @@ public class CutoverClosureApplicationService {
         }
     }
 
+    private CutoverClosureDO requireDraftClosure(Long tenantId, Long taskId, Long closureId,
+                                                  Integer expectedVersion) {
+        CutoverClosureDO closure = closureMapper.selectByTaskForUpdate(new CutoverClosureRowQuery(tenantId, taskId));
+        if (closure == null || !Objects.equals(closure.getId(), closureId)) throw failure(NOT_FOUND, "闭环不存在");
+        if (!"DRAFT".equals(closure.getStatusCode())) throw failure(STATE_CONFLICT, "闭环已归档");
+        if (expectedVersion != null && !Objects.equals(closure.getVersion(), expectedVersion)) {
+            throw failure(CLOSURE_VERSION_STALE, "闭环版本已变化");
+        }
+        return closure;
+    }
+
+    private CutoverTaskDO requireP6Task(CutoverTaskDO task, Long tenantId, Long actorId, Integer expectedVersion) {
+        if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw failure(NOT_FOUND, "任务不存在");
+        if (!"NEW_PLATFORM".equals(task.getTaskOrigin()) || !"P6".equals(task.getCurrentStage())
+                || !"CLOSURE_IN_PROGRESS".equals(task.getTaskStatus())) throw failure(STATE_CONFLICT, "任务不在P6闭环中");
+        if (!Objects.equals(task.getOwnerUserId(), actorId)) throw failure(NOT_FOUND, "任务不可见");
+        if (!Objects.equals(task.getVersion(), expectedVersion)) throw failure(TASK_VERSION_STALE, "任务版本已变化");
+        return task;
+    }
+
+    private void requireActiveDevice(Long tenantId, CutoverTaskDO task, Long deviceId) {
+        List<CutoverTaskDeviceScopeDO> devices = deviceScopeMapper.selectActiveByTaskForUpdate(
+                new CutoverTaskDeviceListQuery(tenantId, task.getId()));
+        if (devices.stream().noneMatch(value -> Objects.equals(value.getDeviceId(), deviceId)
+                && Objects.equals(value.getProjectId(), task.getProjectId()))) {
+            throw failure(SOURCE_STALE, DEVICE_SCOPE_STALE, "AST", "设备不在任务冻结范围");
+        }
+    }
+
     private static void requireSameFile(CutoverClosureFilePort.FileExpectation expected,
                                         CutoverClosureFilePort.FileFact actual) {
         if (actual == null || !Objects.equals(expected.artifactId(), actual.artifactId())

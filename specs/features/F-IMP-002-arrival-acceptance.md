@@ -147,3 +147,10 @@
 已形成候选锁定输入：完整旧实现复用审计；逐字段、旧状态和不可迁行处置；COM应到范围与AST稳定设备组合水位；EXE-01最窄DeliveryEvidence两表及ACC-04双向事件；`ArrivalAcceptanceFactApi`机器契约；批次状态转换、项目里程碑判定；权限、并发、迁移和验收边界。
 
 最近Gate转为F-IMP-002 Technical Plan。只允许生成一个当前有效计划；计划通过评审后才可实施。COM/AST/PLT/ACC生产契约未形成仍阻断Implementation Done和真实浏览器正向闭环，受控替身不得进入生产装配。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`5`。
+- 已处理来源提交：`8`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

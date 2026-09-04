@@ -71,7 +71,7 @@
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "taskPath": "tasks/features/F-AST-001.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "REVALIDATION_REQUIRED",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "EQP-01@V1",
@@ -144,7 +144,7 @@
       "featurePath": "specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md",
       "taskPath": "tasks/features/F-CUT-002.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-01@V1",
@@ -161,7 +161,7 @@
       "featurePath": "specs/features/F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md",
       "taskPath": "tasks/features/F-CUT-003.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-03@V1",
@@ -174,7 +174,7 @@
       "featurePath": "specs/features/F-CUT-004-p4-cutover-plan-authoring.md",
       "taskPath": "tasks/features/F-CUT-004.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-04@V1",
@@ -187,7 +187,7 @@
       "featurePath": "specs/features/F-CUT-005-p5-graded-approval.md",
       "taskPath": "tasks/features/F-CUT-005.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-05@V1",
@@ -200,7 +200,7 @@
       "featurePath": "specs/features/F-CUT-006-p6-cutover-closure.md",
       "taskPath": "tasks/features/F-CUT-006.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-06@V1",
@@ -213,7 +213,7 @@
       "featurePath": "specs/features/F-CUT-007-cutover-dashboard-kpis.md",
       "taskPath": "tasks/features/F-CUT-007.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-01@V2",
@@ -226,7 +226,7 @@
       "featurePath": "specs/features/F-CUT-008-p5-lead-time-and-external-reminders.md",
       "taskPath": "tasks/features/F-CUT-008.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "CUT-05@V2",

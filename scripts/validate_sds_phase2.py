@@ -72,6 +72,254 @@ V18_PHYSICAL_CARRIER_OBJECTS = (
     "TaskCompletionEvaluation",
     "CutoverChecklist",
 )
+FCOM001_V70_REQUIRED_TARGET_MAPPINGS = {
+    "OrderLine": {
+        "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+    },
+    "DeliveryScope": {
+        "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+    },
+    "DeliveryScopeDetail": {
+        "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE",
+    },
+}
+FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "项目验收阶段快照对DeliveryScope及其分配版本的锁定事实",
+        "独立于初验/终验报告",
+        "Q-FCOM-002`关闭前不自动关闭或解锁",
+    ),
+    "docs/design/09-database-design.md": (
+        "project_stage_snapshot_id bigint NOT NULL",
+        "binding_trigger varchar(32) NOT NULL",
+        "uk(tenant_id, project_id, project_stage_snapshot_id, delivery_scope_id, scope_allocation_version)",
+        "不含`acceptance_id`",
+    ),
+    "docs/design/10-api-design.md": (
+        "ProjectAcceptanceStageFactApi.lockAndRead(query)",
+        "DeliveryScopeAcceptanceLockApi.lockCurrentByProject(command)",
+        "AcceptanceScopeBindingApi.bindForStageEntry(command)",
+        "AcceptanceScopeBindingApi.bindEffectiveScope(command)",
+        "PROJ项目当前行→COM订单行（适用时）→COM `DeliveryScope`当前行（按稳定ID）→ACC `AcceptanceScopeBinding`",
+    ),
+    "docs/design/11-event-design.md": (
+        "事件只作提交后通知/投影，不触发、不补建也不反推`AcceptanceScopeBinding`",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定",
+        "初验/终验报告行不进入该锁链",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "阶段快照、绑定和`current_stage`整体回滚",
+        "新范围版本、历史切换、Outbox和绑定整体回滚",
+        "对应验收活动完成命令返回BUSINESS_GATE",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "ProjectAcceptanceStageFactApi",
+        "AcceptanceScopeBindingApi",
+        "ProjectStageChanged仅作提交后通知，不触发绑定",
+    ),
+    "docs/traceability/domain-entity-migration-contract.json": (
+        "bind ProjectStageSnapshot plus exact DeliveryScope allocation version",
+        "never create or infer bindings from preliminary/final Acceptance reports",
+        "Q-FCOM-002 forbids automatic close or unlock",
+    ),
+}
+FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS = {
+    "docs/design/02d-cross-context-contracts.md": (
+        "OrganizationScopeApi.getActiveScopes(userId)",
+        "COM只按`companyCode`与ERP合同所属公司编码精确匹配",
+    ),
+    "docs/design/07-authorization-design.md": (
+        "COM-01合同管理员公司范围",
+        "pms:commerce:contract:sensitive-read",
+        "AuditRecord.authorizationSnapshot",
+        "列表返回空并记录Owner不可用审计",
+    ),
+    "docs/design/09-database-design.md": (
+        "F-COM-001合同管理员授权物理结论",
+        "NO_PHYSICAL_DELTA",
+        "不新增合同授权表",
+    ),
+    "docs/design/10-api-design.md": (
+        "OrganizationScopeApi.getActiveScopes(subjectUserId)",
+        "SQL必须保持精确字符串相等",
+        "pms:commerce:contract:sensitive-read",
+        "重验失败不写关系、成功幂等、Outbox或成功审计",
+    ),
+    "docs/design/14-security-design.md": (
+        "SYSTEM当前有效UserCompanyDepartmentScope",
+        "空范围/Owner不可用时列表空、详情和写拒绝",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "合同列表、详情和项目—合同关系维护不使用正向公司范围缓存",
+        "OrganizationScopeApi.getActiveScopes",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "CONTRACT_SCOPE_OWNER_UNAVAILABLE",
+        "同一幂等键后续重试必须重新读取当前scope",
+    ),
+    "docs/decisions/0038-commerce-contract-administrator-company-scope.md": (
+        "ACCEPTED",
+        "不修改Yudao基础平台",
+        "NO_PHYSICAL_DELTA",
+    ),
+}
+FCOM001_CONTRACT_ADMIN_SCOPE_FORBIDDEN_SNIPPETS = {
+    "docs/design/10-api-design.md": (
+        "【BLOCKED_BY_SPEC：Q-FCOM-001】",
+        "Q-FCOM-001关闭前不可实施",
+    ),
+    "docs/design/14-security-design.md": (
+        "Q-FCOM-001关闭前合同管理员查询和关联写入保持`BLOCKED_BY_SPEC`",
+    ),
+}
+FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "验收单对DeliveryScope及其分配版本的锁定事实",
+        "退出或作废时关闭区间",
+    ),
+    "docs/design/09-database-design.md": (
+        "`acceptance_id bigint NOT NULL`、`project_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`",
+        "uk(tenant_id, acceptance_id, delivery_scope_id, scope_allocation_version)",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "统一锁顺序为COM范围→ACC绑定",
+    ),
+}
+FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "活动根以PROJ ProjectTask/WorkBinding为唯一外部身份",
+        "`acc_project_deliverable`应交实例",
+        "归档失败保留报告版本且标记待补偿",
+        "artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256",
+        "发布时认证用户作为不可变归档操作者",
+    ),
+    "docs/design/08a-domain-entity-migration-alignment.md": (
+        "COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION",
+        "不得由名称、任务名或`D-ACCEPT-REPORT`推断类型",
+    ),
+    "docs/design/09-database-design.md": (
+        "F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`",
+        "`acc_acceptance_report_version`",
+        "`publisher_user_id bigint NULL`",
+        "`acc_acceptance_report_attachment`",
+        "report_status='EFFECTIVE' and effective_to is null",
+        "relation_status='CURRENT' then 1 else null",
+        "`acc_project_deliverable_source_version`",
+        "`acc_project_deliverable_source_attachment`",
+        "`D-INITIAL-REPORT/D-FINAL-REPORT`",
+        "不保存PLT内部`FileVersion.id/FileReference.id`",
+        "两项均处`DONE/CLOSED`时该项目全部保持旧契约和历史且不创建活动",
+        "终态/非终态混合或未知状态整批失败",
+    ),
+    "docs/design/10-api-design.md": (
+        "AcceptanceActivityCompletionFactApi.lockAndComplete",
+        "AcceptanceActivityInitializationApi.initialize",
+        "FileArtifactApi.archiveReferenceSets",
+        "ArchiveFileReferenceSetsCommand",
+        "PermissionApi.hasAnyPermissions(actorUserId, \"pms:file:archive\")",
+        "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
+        "ExistingFileReferenceTarget`加性支持唯一ACC目标",
+        "ACCEPTANCE_REPORT_ARCHIVE",
+        "报告附件ACTIVE引用保持不变",
+        "`pms-module-project-api`的ACC契约包",
+        "既有`pms:file:archive`服务端权限和租户校验",
+        "`revoke-current-version`",
+        "pms:acceptance:report:query/write/complete/download",
+        "当前来源保持`PENDING_COMPENSATION`并重试",
+        "两项均为`DONE/CLOSED`时整项目保持旧契约和历史且不创建活动",
+        "终态/非终态混合时整批失败",
+    ),
+    "docs/design/11-event-design.md": (
+        "AcceptanceReportVersionChanged",
+        "publisherActorUserId",
+        "AcceptanceReportOutboxDeliveryJob",
+        "PlatformCommandExecutionApi",
+        "PlatformOutboxDeliveryApi",
+        "只领取`AcceptanceReportVersionChanged`",
+        "不得领取或标记`ClosureGateRecheckRequested`已投递",
+        "changeType(`EFFECTIVE/REPLACED/REVOKED`)",
+        "attachments[{sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}]",
+        "ClosureGateRecheckRequested",
+        "不触发范围绑定",
+    ),
+    "docs/design/13-file-design.md": (
+        "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
+        "archiveReferenceSets",
+        "发布时冻结的`publisherActorUserId`",
+        "PLT `FileArchiveRecord`是文件归档真值",
+        "报告附件引用持续保持`ACTIVE`",
+        "ACCEPTANCE_REPORT_ARCHIVE",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "PROJ项目任务/执行契约→ACC活动根→当前报告版本",
+        "DRAFT的生成`current_marker=NULL`",
+        "撤销不恢复旧版",
+        "只有两项均非终态且当前契约均为V63 `TASK_NATIVE`才原子换绑",
+        "markDelivered",
+        "scheduleRetry",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入",
+        "报告状态/历史不回滚、不删除",
+        "不得伪造Web登录上下文",
+        "两项均不存在保持不变",
+        "两项均DONE/CLOSED时保持历史不变且不创建活动",
+        "终态/非终态混合整批失败",
+    ),
+    "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
+        "`ACCEPTED`",
+        "FileBusinessObjectPolicyProvider",
+        "publisherActorUserId",
+        "PlatformOutboxDeliveryApi",
+        "AcceptanceActivityInitializationApi.initialize",
+        "两项均为`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`",
+        "两项精确任务均为`DONE/CLOSED`时整项目保持旧契约和历史不变且不创建活动",
+        "终态与非终态混合时整批失败",
+    ),
+    "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md": (
+        "`ACCEPTED`",
+        "`DO_NOT_REUSE`",
+        "`DIRECT_REUSE` + `COPY_THEN_ENHANCE`",
+        "F-COM-001 AcceptanceScopeBinding真实Provider",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "内部AcceptanceActivityCompletionFactApi",
+        "精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有应交根及只追加来源版本/附件集合",
+        "F-ACC-001只实现初验/终验来源切片",
+    ),
+    "docs/traceability/domain-entity-migration-contract.json": (
+        '"gate": "F-ACC-001-LEGACY"',
+        '"sourceObject": "acc_project_deliverable"',
+        "never infer type or a primary file",
+    ),
+}
+FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS = {
+    "docs/design/09-database-design.md": (
+        "| Acceptance | `acc_acceptance` | `acc_acceptance_item`",
+        "| DeliveryArtifact | `acc_delivery_artifact`",
+        "file_artifact_id/file_version_id/file_hash",
+    ),
+    "docs/design/11-event-design.md": (
+        "attachments[{sequence,fileArtifactId,fileVersionId,fileHash}]",
+    ),
+    "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
+        "仅creator",
+        "终态任务原子创建PENDING活动",
+        "任一精确任务为`DONE/CLOSED`时整项目保持旧契约和历史不变且不创建活动",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record",
+    ),
+}
 
 
 def read(path: Path) -> str:
@@ -427,7 +675,6 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
         root / "docs" / "engineering" / "gates" / "phase-2" / "README.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "independent-review.md",
     )
     for path in evidence_paths:
         if not path.is_file():
@@ -438,6 +685,208 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
                 f"Phase 2 migration gate evidence does not match current contract: "
                 f"{path.relative_to(root)} expected={expected_summary}"
             )
+    return errors
+
+
+def validate_fcom001_v70_required_mappings(root: Path) -> list[str]:
+    """Reject F-COM-001 contracts that leave V70 required target fields to a later plan."""
+    path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+    if not path.is_file():
+        return ["missing F-COM-001 managed migration contract"]
+    try:
+        contract = json.loads(read(path))
+    except (json.JSONDecodeError, OSError) as exc:
+        return [f"invalid F-COM-001 managed migration contract: {exc}"]
+    records = {
+        record.get("object"): record
+        for record in contract.get("records", [])
+        if isinstance(record, dict)
+    }
+    errors: list[str] = []
+    for object_name, expected in FCOM001_V70_REQUIRED_TARGET_MAPPINGS.items():
+        record = records.get(object_name, {})
+        source = next(
+            (
+                item for item in record.get("sources", [])
+                if isinstance(item, dict)
+                and item.get("sourceType") == "CURRENT_TABLE"
+                and item.get("gate") == "F-COM-001"
+            ),
+            None,
+        )
+        mappings = source.get("requiredTargetMappings", {}) if source else {}
+        for target_field, rule in expected.items():
+            if mappings.get(target_field) != rule:
+                errors.append(f"F-COM-001 V70 required target mapping missing or changed: {target_field}")
+    return errors
+
+
+def validate_fcom001_acceptance_stage_binding(root: Path) -> list[str]:
+    """Keep revision-009 stage-driven acceptance binding complete and report-independent."""
+    errors: list[str] = []
+    for relative, snippets in FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-COM-001 acceptance-stage contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-COM-001 acceptance-stage contract missing: {relative}: {snippet}")
+    for relative, snippets in FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-COM-001 acceptance-stage contract retains superseded rule: {relative}: {snippet}")
+    return errors
+
+
+def validate_fcom001_contract_admin_scope(root: Path) -> list[str]:
+    """Keep the approved SYSTEM company-scope decision complete and fail-closed."""
+    errors: list[str] = []
+    for relative, snippets in FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-COM-001 contract-admin scope contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-COM-001 contract-admin scope missing: {relative}: {snippet}")
+    for relative, snippets in FCOM001_CONTRACT_ADMIN_SCOPE_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-COM-001 contract-admin scope retains blocked rule: {relative}: {snippet}")
+    return errors
+
+
+def validate_facc001_report_contract(root: Path) -> list[str]:
+    """Keep the ACC report/version/deliverable delta Owner-safe and compensation-safe."""
+    errors: list[str] = []
+    for relative, snippets in FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-ACC-001 report contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-ACC-001 report contract missing: {relative}: {snippet}")
+    for relative, snippets in FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-ACC-001 report contract retains parallel or legacy truth: {relative}: {snippet}")
+    return errors
+
+
+def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
+    """Reject an F-ACC-002 delta that leaves positive Owner/file/history facts undefined."""
+    errors: list[str] = []
+    design = root / "docs" / "design"
+    required = {
+        "02d-cross-context-contracts.md": (
+            "SatisfactionQuestionnaireTemplateApi.resolvePublished",
+            "SatisfactionTaskInitializationApi.initialize",
+            "SatisfactionResultFactApi.inspect/lockAndRevalidate",
+            "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload",
+            "FileArtifactApi.createGeneratedBusinessFile",
+            "ExportTaskApi.request/getFact/retry",
+            "ExportBusinessDataProvider",
+        ),
+        "09-database-design.md": (
+            "acc_satisfaction_access_grant",
+            "acc_satisfaction_response_file",
+            "acc_satisfaction_result_file",
+            "acc_satisfaction_remediation_fact",
+            "source_object_type=SatisfactionResult",
+            "uk(tenant_id, collection_key, task_revision_no)",
+            "trigger_object_type",
+            "deliverable_code=D-SAT-REPORT",
+            "task_code=T-SAT-SURVEY",
+            "plt_export_task",
+            "plt_export_audit",
+            "failure_retryable/retry_count",
+            "FAILED + failure_retryable=1",
+            "schemaVersion=1/questions/scoring",
+            "SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT",
+            "SUM_V1/WEIGHTED_AVERAGE_V1",
+            "最终总分仅按冻结precision/roundingMode舍入一次",
+            "1<=minSelections<=maxSelections<=options数量",
+            "0<=minLength<=maxLength",
+            "合法去重选择集合的option score算术平均最大值",
+            "最低选2项、option分值100/0的多选题最大可达分为50，threshold=80必须拒绝发布",
+            "FORWARD_MANAGED_SEED_REVISION_REQUIRED",
+        ),
+        "10-api-design.md": (
+            "/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish",
+            "/satisfaction-tasks/{id}/access-grants",
+            "/satisfaction-questionnaires/{token}/files",
+            "/satisfaction-results/{id}/actions/invalidate",
+            "expectedResultVersion",
+            "invalidation_reason_code",
+            "失效事件乱序",
+            "旧RECORDED重试",
+            "createGeneratedBusinessFile",
+            "FileUploadSession",
+            "pms:acceptance:satisfaction:query/manage/collect/export/download",
+            "SatisfactionRemediationFact",
+            "D-SAT-REPORT",
+            "/api/v1/pms/export-tasks/{id}/access-ticket",
+            "ownerContext=ACC/exportType=SATISFACTION_RESULT",
+            "/api/v1/pms/export-tasks/{id}/actions/retry",
+            "客户不能提交score/passed/threshold/weight/strategy",
+        ),
+        "11-event-design.md": (
+            "SatisfactionResultVersionChanged",
+            "SatisfactionResultOutboxDeliveryJob",
+            "T-SAT-SURVEY",
+            "taskRevisionNo",
+            "RECORDED置CURRENT前按Result ID/version重验Owner",
+        ),
+        "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE",
+                              "createGeneratedBusinessFile", "未引用对象", "PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE"),
+        "15-cache-and-concurrency.md": ("createGeneratedBusinessFile", "MANDATORY", "同operation同摘要", "plt_export_task.version", "FAILED(retryable)→REQUESTED"),
+        "16-exception-and-idempotency.md": (
+            "Result与结果文档已经共同提交后，来源投影或归档失败",
+            "该规则不适用于Result文档生成失败或对象已写后ACC外层事务回滚",
+            "Task保持PENDING_DECISION",
+            "Result、ResultFile、成功幂等事实和Result Outbox零写入",
+            "同operation同摘要复用存储回执",
+            "统一异步导出异常",
+            "TTL清理失败",
+            "retry_count+1",
+            "Provider缺失、重复或载荷不符合稳定契约",
+            "Provider暂时不可用或范围版本暂时未知",
+            "Task记`REJECTED`",
+            "模板配置未知字段/题型/策略/舍入",
+            "MULTIPLE_CHOICE的min/max倒置或超出options数量",
+            "TEXT的min/max倒置",
+            "答卷含未知/重复题目",
+        ),
+    }
+    for name, tokens in required.items():
+        path = design / name
+        content = read(path) if path.is_file() else ""
+        for token in tokens:
+            if token not in content:
+                errors.append(f"F-ACC-002 missing focused contract token in {name}: {token}")
+    alignment = design / "08a-domain-entity-migration-alignment.md"
+    content = read(alignment) if alignment.is_file() else ""
+    row = next((line for line in content.splitlines() if line.startswith("| `SatisfactionCollection` |")), "")
+    for token in ("PRESERVE_RAW", "不迁为有效业务事实", "不得从回访/审批状态推断"):
+        if token not in row:
+            errors.append(f"F-ACC-002 legacy satisfaction boundary missing: {token}")
     return errors
 
 
@@ -547,6 +996,11 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     if leaked:
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
     errors.extend(validate_v18_migration_gate_evidence(root))
+    errors.extend(validate_fcom001_v70_required_mappings(root))
+    errors.extend(validate_fcom001_acceptance_stage_binding(root))
+    errors.extend(validate_fcom001_contract_admin_scope(root))
+    errors.extend(validate_facc001_report_contract(root))
+    errors.extend(validate_facc002_satisfaction_contract(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 

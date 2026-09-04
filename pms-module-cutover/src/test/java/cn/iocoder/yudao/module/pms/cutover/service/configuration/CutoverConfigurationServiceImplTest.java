@@ -186,12 +186,58 @@ class CutoverConfigurationServiceImplTest {
     }
 
     @Test
+    void publishShouldHaveNoWriteWhenRiskOrSurveyValidationFails() {
+        CutoverConfigurationRevisionDO incomplete = draft(10L);
+        incomplete.setPlanTemplateSectionSnapshot("[]");
+        when(revisionMapper.selectById(10L)).thenReturn(incomplete);
+        when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
+        when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
+        when(dictDataApi.getDictDataList(anyString())).thenReturn(List.of(enabledDict("A")));
+
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.publish(10L, 0));
+
+        assertTrue(exception.getMessage().contains("risk."));
+        verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
+        verify(itemMapper, never()).hardDeleteByRevisionId(any());
+        verify(ruleMapper, never()).hardDeleteByRevisionId(any());
+    }
+
+    @Test
+    void publishShouldKeepCurrentPublishedWhenMatrixValidationFails() {
+        CutoverConfigurationRevisionDO incomplete = draft(10L);
+        incomplete.setPlanTemplateSectionSnapshot("[]");
+        when(revisionMapper.selectById(10L)).thenReturn(incomplete);
+        when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
+        when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
+        stubEnabledDictionaries();
+
+        assertThrows(ServiceException.class, () -> service.publish(10L, 0));
+
+        verify(revisionMapper, never()).selectLatestByCode(argThat(query -> "PUBLISHED".equals(query.statusCode())));
+        verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
+    }
+
+    @Test
     void updateShouldRejectPublishedRevisionBeforeAnyWrite() {
         CutoverConfigurationRevisionDO published = draft(10L);
         published.setStatusCode("PUBLISHED");
         when(revisionMapper.selectById(10L)).thenReturn(published);
 
         assertThrows(ServiceException.class, () -> service.update(10L, 0, new CutoverConfigurationSaveReqVO()));
+
+        verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
+        verify(itemMapper, never()).hardDeleteByRevisionId(any());
+        verify(ruleMapper, never()).hardDeleteByRevisionId(any());
+    }
+
+    @Test
+    void updateShouldRejectStaleIfMatchBeforeReplacingChildren() {
+        CutoverConfigurationRevisionDO current = draft(10L);
+        current.setVersion(3);
+        when(revisionMapper.selectById(10L)).thenReturn(current);
+
+        assertThrows(ServiceException.class,
+                () -> service.update(10L, 2, new CutoverConfigurationSaveReqVO()));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
         verify(itemMapper, never()).hardDeleteByRevisionId(any());

@@ -116,6 +116,25 @@ describe('cutover task positive interaction', () => {
     expect(request.expectedDeviceScopeWatermark).toEqual(selected.devices)
   })
 
+  it('creates only from the devices of the selected project candidate', () => {
+    const selected = {
+      ...candidate,
+      devices: [
+        { deviceId: '9007199254742002', serialNumber: 'SN-SELECTED', projectAssignmentVersion: '7' }
+      ]
+    }
+    const request = buildCreateRequest(selected, {
+      configurationCode: 'CORE_STANDARD',
+      taskName: '核心网割接',
+      background: '设备替换',
+      cutoverType: 'CORE_REPLACEMENT',
+      networkMode: null,
+      scheduledTime: '2026-09-01T01:30:00'
+    })
+    expect(request.serialNumbers).toEqual(['SN-SELECTED'])
+    expect(request.expectedDeviceScopeWatermark).toEqual(selected.devices)
+  })
+
   it('presents the locked A and D destinations', () => {
     expect(gradeDestination('A')).toBe('P3 现场调研')
     expect(gradeDestination('D')).toBe('P4 方案编制')

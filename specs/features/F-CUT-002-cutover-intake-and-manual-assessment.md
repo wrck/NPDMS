@@ -146,3 +146,10 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 当前结论：`READY / GO`（独立复审锁定基线`cad8088a`）。
 
 `F-CUT-002 API/Physical Machine Contract Gate`、IMP/CUS公共机器合同和Feature Ready既有GO均保持有效；`ProjectCutoverContextFactApi`公共Owner合同及唯一Technical Plan已在`8eb36222`独立复审`PASS / GO`。PROJ/IMP/AST/CUS/PLT只作为跨模块预留接口，CUT可在`src/test`以受控模拟推进正常闭环，但模拟不进生产装配，也不产生真实Owner或浏览器证据。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`13`。
+- 已处理来源提交：`5`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

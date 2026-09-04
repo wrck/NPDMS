@@ -74,3 +74,21 @@
 ## 当前裁决
 
 `IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY / MASTER_COMPILE_AND_FOCUSED_TEST_PASS`。已实现代码已经进入主干并通过主干适配编译与聚焦测试；未完成部分继续实施，不改变Feature未Done事实。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IN_PROGRESS`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`5`
+- 已处理来源提交：`1`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/collection/CollectionTaskDO.java`
+- `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/collection/CollectionBatchMapper.java`
+- `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/collection/CollectionTaskMapper.java`
+- `pms-module-platform/src/main/resources/mapper/collection/CollectionBatchMapper.xml`
+- `pms-module-platform/src/main/resources/mapper/collection/CollectionTaskMapper.xml`

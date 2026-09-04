@@ -1,0 +1,15 @@
+name: "PR #7 deterministic final repair (retired)"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retired:
+    name: Repair workflow retired
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Confirm retired state
+        run: echo "The reviewed duplicate-helper repair has been applied; this temporary workflow is pending deletion."

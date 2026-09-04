@@ -1,0 +1,315 @@
+name: "PR #7 integration gates"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - codex/code-fact-chronological-integration-acc-int-cut-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr7-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-traceability:
+    name: Replay and traceability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout complete integration history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate terminal replay ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/pr7-replay"
+          python3 -m py_compile scripts/validate_pr7_integration_reception.py
+          python3 scripts/validate_pr7_integration_reception.py \
+            --effective-json "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.json" \
+            --effective-csv "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.csv" \
+            --effective-md "${RUNNER_TEMP}/pr7-replay/code-fact-chronological-effective-replay-2026-09-04.md" \
+            --summary-output "${RUNNER_TEMP}/pr7-replay/validation-summary.json"
+
+      - name: Validate Requirement traceability projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains specs/001-project-delivery-platform/domains \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            --check
+
+      - name: Upload replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr7-effective-replay
+          path: ${{ runner.temp }}/pr7-replay
+          if-no-files-found: warn
+          retention-days: 30
+
+  migration:
+    name: Migration boundary, empty schema, and V160 upgrade
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout complete integration history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable history with controlled V161 correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin master:refs/remotes/origin/master
+          path="sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
+          changed="$(git diff --name-status origin/master...HEAD -- sql/migrations || true)"
+          expected="$(printf 'M\t%s' "${path}")"
+          if [[ "${changed}" != "${expected}" ]]; then
+            echo "Migration history differs outside the single controlled V161 correction:" >&2
+            printf '%s\n' "${changed}" >&2
+            exit 1
+          fi
+
+          master_blob="$(git rev-parse "origin/master:${path}")"
+          expected_master_blob="3a4a3b5166fc5e8c2b0ff6cf169cfe27039652f7"
+          if [[ "${master_blob}" != "${expected_master_blob}" ]]; then
+            echo "Master V161 blob changed; controlled correction requires re-review." >&2
+            echo "expected=${expected_master_blob} actual=${master_blob}" >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          path = "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
+
+          def lines(*values: str) -> str:
+              return "\n".join(values) + "\n"
+
+          old = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE `relation_source`='SEED', `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
+          approved = lines(
+              "INSERT INTO `com_order_contract_relation`",
+              "(`id`, `tenant_id`, `order_id`, `contract_id`, `relation_role`, `relation_source`,",
+              " `source_system`, `sales_order_source_key`, `contract_source_key`, `source_version`,",
+              " `source_evidence`, `effective_from`, `effective_to`, `creator`, `updater`, `deleted`)",
+              "VALUES",
+              "(992002390002, 0, 992002399001, 992002390001, 'RELATED', 'SEED',",
+              " 'SEED', 'FPROJ002-V18-ORDER', 'F-COM001-CONTRACT-001', '1',",
+              " JSON_OBJECT('evidenceType', 'CONTROLLED_ACCEPTANCE_SEED',",
+              "             'migrationVersion', 'V161',",
+              "             'salesOrderSourceKey', 'FPROJ002-V18-ORDER',",
+              "             'contractSourceKey', 'F-COM001-CONTRACT-001'),",
+              " '2026-08-01 00:00:00.000', NULL, 'fcom001_seed', 'fcom001_seed', 0)",
+              "ON DUPLICATE KEY UPDATE",
+              " `relation_source`=VALUES(`relation_source`), `source_system`=VALUES(`source_system`),",
+              " `sales_order_source_key`=VALUES(`sales_order_source_key`),",
+              " `contract_source_key`=VALUES(`contract_source_key`), `source_version`=VALUES(`source_version`),",
+              " `source_evidence`=VALUES(`source_evidence`), `effective_from`=VALUES(`effective_from`),",
+              " `effective_to`=VALUES(`effective_to`), `updater`='fcom001_seed',",
+              " `update_time`=NOW(3), `deleted`=0;",
+          )
+
+          master = subprocess.check_output(
+              ["git", "show", f"origin/master:{path}"], text=True
+          )
+          if master.count(old) != 1 or master.count(approved) != 0:
+              raise SystemExit("Master V161 no longer has the reviewed pre-correction block")
+          expected = master.replace(old, approved)
+          actual = Path(path).read_text(encoding="utf-8")
+          if actual != expected:
+              raise SystemExit("V161 differs from the single approved source-evidence correction")
+          PY
+
+      - name: Execute empty schema and V160 upgrade on MySQL 8.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="npdms-pr7-mysql-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() { docker rm -f "${container}" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker run -d --name "${container}" \
+            -e MYSQL_ROOT_PASSWORD=pr7-root \
+            mysql:8.4 >/dev/null
+
+          for attempt in $(seq 1 90); do
+            if docker exec "${container}" \
+              mysql -uroot -ppr7-root --silent --skip-column-names -e "SELECT 1" \
+              >/dev/null 2>&1; then
+              break
+            fi
+            if [[ "${attempt}" == "90" ]]; then
+              docker logs "${container}" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          mapfile -t migrations < <(
+            find sql/migrations -maxdepth 1 -type f -name 'V*__*.sql' | sort -V
+          )
+          [[ "${#migrations[@]}" -gt 0 ]]
+
+          apply_migration() {
+            local database="$1"
+            local migration="$2"
+            echo "Applying ${migration} to ${database}"
+            docker exec -i "${container}" \
+              mysql -uroot -ppr7-root --default-character-set=utf8mb4 --show-warnings "${database}" \
+              < "${migration}"
+          }
+
+          verify_v161_relation() {
+            local database="$1"
+            local actual
+            actual="$(docker exec "${container}" mysql -N -uroot -ppr7-root "${database}" -e \
+              "SELECT CONCAT_WS('|', source_system, sales_order_source_key, contract_source_key, source_version, JSON_UNQUOTE(JSON_EXTRACT(source_evidence, '$.evidenceType')), JSON_UNQUOTE(JSON_EXTRACT(source_evidence, '$.migrationVersion')), DATE_FORMAT(effective_from, '%Y-%m-%d %H:%i:%s.%f')) FROM com_order_contract_relation WHERE tenant_id=0 AND id=992002390002 AND deleted=0;")"
+            expected="SEED|FPROJ002-V18-ORDER|F-COM001-CONTRACT-001|1|CONTROLLED_ACCEPTANCE_SEED|V161|2026-08-01 00:00:00.000000"
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "V161 relation evidence mismatch in ${database}" >&2
+              echo "expected=${expected}" >&2
+              echo "actual=${actual}" >&2
+              exit 1
+            fi
+          }
+
+          docker exec "${container}" mysql -uroot -ppr7-root -e \
+            "CREATE DATABASE npdms_pr7_empty CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          for migration in "${migrations[@]}"; do
+            apply_migration npdms_pr7_empty "${migration}"
+          done
+          verify_v161_relation npdms_pr7_empty
+
+          docker exec "${container}" mysql -uroot -ppr7-root -e \
+            "CREATE DATABASE npdms_pr7_upgrade CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          found_v161=false
+          for migration in "${migrations[@]}"; do
+            if [[ "$(basename "${migration}")" == "V161__fcom001_permissions_menu_and_acceptance_seed.sql" ]]; then
+              found_v161=true
+              break
+            fi
+            apply_migration npdms_pr7_upgrade "${migration}"
+          done
+          [[ "${found_v161}" == "true" ]]
+
+          required_columns="$(docker exec "${container}" mysql -N -uroot -ppr7-root -e \
+            "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='npdms_pr7_upgrade' AND table_name='com_order_contract_relation' AND column_name IN ('source_system','sales_order_source_key','contract_source_key','source_version','source_evidence','effective_from') AND is_nullable='NO';")"
+          [[ "${required_columns}" == "6" ]]
+          before_seed="$(docker exec "${container}" mysql -N -uroot -ppr7-root npdms_pr7_upgrade -e \
+            "SELECT COUNT(*) FROM com_order_contract_relation;")"
+          [[ "${before_seed}" == "0" ]]
+
+          apply_tail=false
+          for migration in "${migrations[@]}"; do
+            if [[ "$(basename "${migration}")" == "V161__fcom001_permissions_menu_and_acceptance_seed.sql" ]]; then
+              apply_tail=true
+            fi
+            if [[ "${apply_tail}" == "true" ]]; then
+              apply_migration npdms_pr7_upgrade "${migration}"
+            fi
+          done
+          verify_v161_relation npdms_pr7_upgrade
+
+          docker exec "${container}" mysql -N -uroot -ppr7-root -e \
+            "SELECT table_schema, COUNT(*) FROM information_schema.tables WHERE table_schema IN ('npdms_pr7_empty','npdms_pr7_upgrade') GROUP BY table_schema ORDER BY table_schema;"
+
+  backend:
+    name: Backend clean verify (Java 25)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Clean compile and execute tests
+        run: mvn -B -ntp -DskipITs=true clean verify
+
+  frontend:
+    name: Frontend production build and typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install pnpm 9.15.5
+        run: npm install --global pnpm@9.15.5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Production build and generate declarations
+        run: |
+          set -euo pipefail
+          pnpm run build:prod
+          test -s src/types/auto-imports.d.ts
+          test -s src/types/auto-components.d.ts
+
+      - name: TypeScript check
+        run: pnpm run ts:check
+
+  integration-gate:
+    name: PR #7 integration gate
+    if: always()
+    needs:
+      - replay-traceability
+      - migration
+      - backend
+      - frontend
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all automated gates
+        env:
+          REPLAY: ${{ needs.replay-traceability.result }}
+          MIGRATION: ${{ needs.migration.result }}
+          BACKEND: ${{ needs.backend.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'replay=%s\nmigration=%s\nbackend=%s\nfrontend=%s\n' \
+            "${REPLAY}" "${MIGRATION}" "${BACKEND}" "${FRONTEND}"
+          [[ "${REPLAY}" == "success" ]]
+          [[ "${MIGRATION}" == "success" ]]
+          [[ "${BACKEND}" == "success" ]]
+          [[ "${FRONTEND}" == "success" ]]

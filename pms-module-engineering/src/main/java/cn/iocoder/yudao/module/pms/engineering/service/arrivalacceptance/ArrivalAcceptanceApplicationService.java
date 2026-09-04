@@ -488,6 +488,7 @@ public class ArrivalAcceptanceApplicationService {
         }
     }
 
+
     private static void requireConfirmCommand(ConfirmCommand command) {
         if (command == null || command.tenantId() == null || command.tenantId() < 0
                 || command.arrivalAcceptanceId() == null || command.arrivalAcceptanceId() <= 0

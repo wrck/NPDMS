@@ -285,6 +285,287 @@ def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list
     return errors
 
 
+def conflict_notification_and_serial_guard_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    asset = contract.get("moduleApis", {}).get("AssetDeviceScopeApi", {})
+    if asset.get("provider") != "EXISTING_REAL_PROVIDER":
+        errors.append("AST serial validation must use the existing real Provider")
+    if asset.get("failureMode") != "FAIL_CLOSED_WITH_ZERO_COM_WRITES":
+        errors.append("AST Provider failures must fail closed with zero COM writes")
+    version_behavior = asset.get("versionBehavior", "")
+    for rule in ("NO_VERSION_TOKEN", "PREVIEW_RESULT_NOT_REUSABLE", "FRESH_REVALIDATION_REQUIRED_BEFORE_EVERY_WRITE"):
+        if rule not in version_behavior:
+            errors.append(f"missing AST version behavior: {rule}")
+
+    recipient = contract.get("moduleApis", {}).get("ProjectParticipantFactApi", {})
+    if recipient.get("provider") != "EXISTING_REAL_PROVIDER" or recipient.get("method") != "inspect":
+        errors.append("project-manager recipient must use ProjectParticipantFactApi.inspect")
+    if not any("PROJECT_MANAGER" in value for value in recipient.get("input", [])):
+        errors.append("project-manager recipient role is not frozen")
+
+    notification = contract.get("events", {}).get("NotificationRequested", {})
+    required_notification = {
+        "notificationType": "DELIVERY_SCOPE_CONFLICT_FROZEN",
+        "recipientFact": "ProjectParticipantFactApi.inspect(PROJECT_MANAGER)",
+        "persistence": "SAME_COM_TRANSACTION_AS_CONFLICT_FREEZE_TO_COM_OUTBOX",
+        "deliveryFailure": "RETRY_WITHOUT_ROLLBACK_UNLOCK_OR_CONFLICT_STATE_CHANGE",
+    }
+    for field, expected in required_notification.items():
+        if notification.get(field) != expected:
+            errors.append(f"invalid conflict notification {field}")
+    if set(notification.get("idempotency", [])) != {
+        "notificationType", "deliveryScopeId", "allocationVersion", "erpSourceVersion"
+    }:
+        errors.append("conflict notification idempotency is incomplete")
+    for required_text in (
+        "Provider异常/超时/不可用均失败关闭并保持COM零写入",
+        "DELIVERY_SCOPE_CONFLICT_FROZEN",
+        "不得回滚冲突冻结",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing Feature rule: {required_text}")
+    return errors
+
+
+def contract_administrator_scope_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    question = contract.get("openQuestions", {}).get("Q-FCOM-001", {})
+    if question.get("status") != "RESOLVED" or question.get("blockingScope") != "NONE":
+        errors.append("Q-FCOM-001 must be resolved without a remaining blocking scope")
+
+    scope = contract.get("contractAdministratorScope", {})
+    expected_scope = {
+        "owner": "SYSTEM",
+        "authorityFact": "CURRENT_ACTIVE_USER_COMPANY_DEPARTMENT_SCOPE",
+        "companyMatch": "EXACT_NON_EMPTY_COMPANY_CODE_DISTINCT_UNION",
+        "emptyOrUnavailable": "LIST_EMPTY_DETAIL_AND_WRITE_DENIED",
+        "positiveAuthorizationCache": "NONE",
+        "sensitiveFieldPermission": "pms:commerce:contract:sensitive-read",
+    }
+    for field, expected in expected_scope.items():
+        if scope.get(field) != expected:
+            errors.append(f"invalid contract-administrator scope {field}")
+    if scope.get("departmentSemantics") != "AUTHORIZATION_CONTEXT_ONLY_NO_COMPANY_SCOPE_INFERENCE":
+        errors.append("department facts must not infer company scope")
+    if scope.get("writeRevalidation") != "REFETCH_OWNER_FACT_BEFORE_RELATION_WRITE":
+        errors.append("relation writes must revalidate the current Owner fact")
+
+    api = contract.get("moduleApis", {}).get("OrganizationScopeApi", {})
+    if api.get("provider") != "EXISTING_UNMODIFIED_REAL_PROVIDER" or api.get("method") != "getActiveScopes":
+        errors.append("contract scope must reuse OrganizationScopeApi.getActiveScopes")
+    if "pms:commerce:contract:sensitive-read" not in contract.get("permissions", {}).get("functional", []):
+        errors.append("sensitive contract fields need an independent permission key")
+
+    for required_text in (
+        "OrganizationScopeApi.getActiveScopes",
+        "部门、主范围标记、scopeRole和项目关系均不得扩大或缩小该公司集合",
+        "写入前重新读取当前scope",
+        "pms:commerce:contract:sensitive-read",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing Feature rule: {required_text}")
+    return errors
+
+
+def managed_v72_seed_disposition_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    seed = contract.get("managedV72SeedDisposition", {})
+    identity = seed.get("exactIdentity", {})
+    expected_identity = {
+        "sourceMigration": "V72__fproj002_v18_seed_and_menu.sql",
+        "tenantId": 0,
+        "creator": "seed",
+        "updater": "seed",
+        "sourceSystem": "SEED",
+        "sourceKeyPrefix": "FPROJ002-V18-",
+        "sourceEvidencePrefix": "FPROJ002-V18-",
+        "projectId": 992002000000,
+        "orderId": 992002399001,
+    }
+    for field, expected in expected_identity.items():
+        if identity.get(field) != expected:
+            errors.append(f"invalid managed V72 seed identity {field}")
+    expected_ids = {
+        "orderLineIds": [992002300001, 992002300002, 992002300003, 992002300004],
+        "deliveryScopeIds": [992002310001, 992002310004],
+        "detailIds": [992002320001, 992002320002, 992002320003, 992002320004],
+    }
+    for field, expected in expected_ids.items():
+        if identity.get(field) != expected:
+            errors.append(f"invalid managed V72 seed relation closure {field}")
+    expected_relations = {
+        "orderLineToOrder": {
+            "992002300001": 992002399001,
+            "992002300002": 992002399001,
+            "992002300003": 992002399001,
+            "992002300004": 992002399001,
+        },
+        "deliveryScopeToOrderLineAndProject": {
+            "992002310001": [992002300001, 992002000000],
+            "992002310004": [992002300004, 992002000000],
+        },
+        "detailToDeliveryScope": {
+            "992002320001": 992002310001,
+            "992002320002": 992002310001,
+            "992002320003": 992002310001,
+            "992002320004": 992002310004,
+        },
+    }
+    if identity.get("relations") != expected_relations:
+        errors.append("managed seed relation references are incomplete")
+    if identity.get("matchPolicy") != "ALL_PREDICATES_AND_COMPLETE_RELATION_CLOSURE_OR_FAIL":
+        errors.append("managed seed matching must fail on every partial identity")
+    if seed.get("businessConversionParticipation") != "EXCLUDED_ONLY_AFTER_EXACT_IDENTITY_MATCH":
+        errors.append("ordinary V70 rows must remain in strict business conversion")
+    if seed.get("disposition") != "REBUILD_EXPLICIT_TARGET_FIXTURE_IN_SAME_FORWARD_MIGRATION":
+        errors.append("managed seed fixture disposition is not explicit")
+    if seed.get("ordinaryV70Policy") != "UNCHANGED_STRICT_OWNER_MAPPING_FAIL_BATCH":
+        errors.append("ordinary V70 conversion was weakened")
+    forbidden = set(seed.get("forbidden", []))
+    for rule in (
+        "ITEM_CODE_AS_PRODUCT_CODE",
+        "PARTIAL_IDENTITY_SEED_BRANCH",
+        "UNBOUNDED_SKIP_OR_DELETE",
+        "SEED_CONSTANTS_IN_ORDINARY_V70_CONVERSION",
+    ):
+        if rule not in forbidden:
+            errors.append(f"missing managed seed negative rule: {rule}")
+    fixture = seed.get("seedOnlyTargetFixture", {})
+    expected_fixture = {
+        "preserveSourceIds": True,
+        "orderId": 992002399001,
+        "sourceSystem": "SEED",
+        "sourceRecordKey": "FPROJ002-V18-ORDER",
+        "sourceVersion": "1",
+        "companyCode": "DPTECH-DEMO",
+        "orderType": "SEED_FIXTURE",
+        "orderNo": "FPROJ002-V18-ORDER",
+        "status": "ENABLED",
+        "creator": "seed",
+        "updater": "seed",
+        "projectId": 992002000000,
+        "officeDepartmentCode": "OFFICE-HZ-DEMO",
+        "officeDepartmentOwnerResolution": "EXACT_ENABLED_SYSTEM_DEPARTMENT_BY_CODE_AND_PROJECT_VERSION",
+    }
+    for field, expected in expected_fixture.items():
+        if fixture.get(field) != expected:
+            errors.append(f"invalid seed-only target fixture {field}")
+    if set(fixture.get("detailSubjects", {})) != {
+        "992002320001", "992002320002", "992002320003", "992002320004"
+    }:
+        errors.append("seed-only detail subjects are incomplete")
+    if fixture.get("constantSemantics") != (
+            "MANAGED_ACCEPTANCE_FIXTURE_ONLY_NOT_ERP_PRODUCT_DEVICE_OR_OFFICE_BUSINESS_FACT"):
+        errors.append("seed constants are not isolated from business facts")
+
+    ordinary = contract.get("v70Conversion", {})
+    if "seedOnlyTargetFixture" in ordinary or "DPTECH-DEMO" in json.dumps(ordinary):
+        errors.append("seed constants leaked into ordinary V70 conversion")
+    for required_text in (
+        "全部身份谓词及关系闭包同时命中",
+        "部分命中或关系不完整时整批失败",
+        "非种子V70行继续执行既有逐字段Owner解析",
+        "不得用`item_code`推断产品编码",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing managed seed Feature rule: {required_text}")
+    return errors
+
+
+def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    line = contract.get("physicalDelta", {}).get("tables", {}).get("com_sales_order_line", {})
+    if line.get("fields", {}).get("product_code") != "varchar(64) NULL":
+        errors.append("SalesOrderLine ERP product_code physical field is missing")
+    authority = contract.get("moduleApis", {}).get("CommerceAuthorityWriteApi", {})
+    if "productCode" not in authority.get("salesOrderLineInputFacts", []):
+        errors.append("Authority input must carry ERP productCode")
+    if "SAME_VERSION_DIFFERENT_PRODUCT_CODE_REJECTED" not in authority.get("successFacts", []):
+        errors.append("productCode must participate in same-version payload conflict detection")
+    forbidden = set(authority.get("forbiddenProductCodeSources", []))
+    if forbidden != {"itemCode", "itemDescription", "productId", "clientField", "deliveryScopeHistory"}:
+        errors.append("forbidden runtime productCode substitutes are incomplete")
+    delivery = contract.get("moduleApis", {}).get("DeliveryScopeApi", {})
+    if delivery.get("applyCommandAdditiveInputs") != [
+            "expectedParentProjectVersion", "projectVersionsByClientItemKey"]:
+        errors.append("Apply Command parent and child project version inputs are incomplete")
+    if delivery.get("projectOfficeLockOrder") != "ALL_PARENT_AND_CHILD_PROJECT_IDS_ASC_BEFORE_ANY_COM_WRITE":
+        errors.append("parent and child ProjectOffice facts must lock in stable order before COM writes")
+    if delivery.get("remainderOfficeFact") != "EXPECTED_PARENT_PROJECT_VERSION":
+        errors.append("REMAINDER must reuse the locked parent project version fact")
+    if delivery.get("noSerialSubjectRule") != (
+            "LOCKED_CONFIRMED_SALES_ORDER_LINE_NONBLANK_PRODUCT_CODE_CREATES_ONE_DETAIL_WITH_SCOPE_QUANTITY"):
+        errors.append("no-SN compatibility detail subject is not deterministic")
+    if delivery.get("noSerialFailureMode") != (
+            "ZERO_SCOPE_HISTORY_OUTBOX_WRITES_ON_MISSING_BLANK_PENDING_AUTHORITY_OR_VERSION_CONFLICT"):
+        errors.append("no-SN Owner failures must leave zero writes")
+    fixture = contract.get("managedV72SeedDisposition", {}).get("seedOnlyTargetFixture", {})
+    if fixture.get("salesOrderLineCompatibilityProductCodes") != {
+        "992002300001": "FPROJ002-V18-COMPAT-001",
+        "992002300002": "FPROJ002-V18-COMPAT-002",
+        "992002300003": "FPROJ002-V18-COMPAT-003",
+        "992002300004": "FPROJ002-V18-COMPAT-004",
+    }:
+        errors.append("managed compatibility productCode constants are not exact")
+    legacy = contract.get("legacySourceReference", {})
+    if legacy.get("runtimeUse") != "FORBIDDEN_IN_F_COM_001" or legacy.get("futureMigrationGate") != "AI-MIG-000":
+        errors.append("legacy order tables must remain migration references only")
+    for required_text in (
+        "原子应用方法及`Allocation`语义不变",
+        "不得使用`itemCode`、`productId`、客户端值、历史明细或普通业务种子常量替代",
+        "`pm_order_data_from_erp`订单头",
+        "`pm_project_product_line`项目订单仅作为历史来源及原始子单参照",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing productCode compatibility Feature rule: {required_text}")
+    return errors
+
+
+def authority_import_rest_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    candidates = [api for api in contract.get("restApis", [])
+                  if api.get("path") == "/api/v1/pms/commerce-authority/import-batches"]
+    if len(candidates) != 1:
+        return ["controlled authority import REST must be unique"]
+    api = candidates[0]
+    expected = {
+        "method": "POST",
+        "permission": "pms:commerce:authority:write",
+        "idempotencyHeader": "Idempotency-Key",
+        "sourceHeader": "X-Source-System",
+        "recordSourceSystemInput": "FORBIDDEN",
+        "applicationService": "CommerceAuthorityImportApplicationService",
+        "ownerApi": "CommerceAuthorityWriteApi.apply",
+        "audit": "SAFE_SUMMARY_OPERATION_SOURCE_BATCH_AND_RECORD_COUNTS_ONLY",
+        "thirdPartyAdapter": "OUT_OF_SCOPE",
+    }
+    for field, expected_value in expected.items():
+        if api.get(field) != expected_value:
+            errors.append(f"invalid controlled authority import {field}")
+    if api.get("serverContextFacts") != ["tenantId", "actorUserId"]:
+        errors.append("tenant and actor must come from server authentication context")
+    execution = api.get("platformCommandExecution", {})
+    if execution.get("identity") != ["tenantId", "scope", "actorUserId", "Idempotency-Key"]:
+        errors.append("platform idempotency scope is incomplete")
+    for field, expected_value in {
+        "sameKeySamePayload": "REPLAY_COMPLETED_WITHOUT_OWNER_REEXECUTION",
+        "sameKeyDifferentPayload": "STABLE_CONFLICT",
+        "inProgress": "STABLE_CONFLICT_WITHOUT_SECOND_EXECUTION",
+        "transaction": "OWNER_OUTBOX_IDEMPOTENCY_COMPLETION_AND_SUCCESS_AUDIT_COMMIT_OR_ROLLBACK_TOGETHER",
+    }.items():
+        if execution.get(field) != expected_value:
+            errors.append(f"invalid platform command behavior {field}")
+    for required_text in (
+        "`POST /commerce-authority/import-batches`是唯一公开受控导入适配层",
+        "请求不得携带或覆盖租户、操作人及记录级来源系统",
+        "同键同载荷返回原结果且不再次调用Owner",
+        "不实现第三方适配器",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing controlled import Feature rule: {required_text}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod

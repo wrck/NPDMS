@@ -1,6 +1,6 @@
 # F-CUT-004 P4割接方案编制与版本提交
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@644816f2`
 > Technical Plan Gate：`PASS / GO@9ef7545d`
@@ -168,3 +168,28 @@
 - [ ] 正式Owner齐备后，另行提交唯一Service/Controller装配、真实Spring传播、浏览器与数据库证据。
 
 > 检查点：独立前置核验确认F-CUT-005生产Owner、CUT渲染与PLT文件创建/冻结交接合同、F-CUT-002/003生产Owner接线均未形成；F-CUT-004无自身整改项，保持失败关闭。当前受控替身不得用于生产装配、Job激活或真实浏览器验收；最近CUT主线Gate为F-CUT-005完整Feature Ready。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`12`
+- 已处理来源提交：`11`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/planv2/CutoverPlanRevisionMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/plan/CutoverPlanApplicationService.java`
+- `pms-module-cutover/src/main/resources/mapper/planv2/LegacyCutoverPlanReconciliationMapper.xml`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverPlanRequestCodecTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut004MigrationContractTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/plan/migration/LegacyCutoverPlanReconciliationServiceTest.java`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `scripts/generate_phase2_contract_map.py`
+- `scripts/tests/test_fcut004_feature_contract.py`
+- `sql/migrations/V150__fcut004_p4_cutover_plan.sql`
+- `sql/migrations/V151__fcut004_legacy_plan_job.sql`
+- `sql/migrations/V152__fcut004_plan_seed.sql`

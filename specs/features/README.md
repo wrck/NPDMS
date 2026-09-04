@@ -47,3 +47,26 @@
 状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement版本切片追溯、业务规则、状态、权限、API、数据变化、验收标准、依赖与物理Owner及相关Open Question全部关闭后，Feature才可进入Implementation。每个Feature只允许一个当前有效Technical Plan；多个参与者或会话必须先在master登记Delivery Unit，再按Feature、Task或跨Feature工作包使用独立分支/Worktree并行实施，DU或Task完成均不产生Feature或Requirement完成状态。
 
 Feature任务、分支候选、认领缺口和master集成判定见[`tasks/features/README.md`](../../tasks/features/README.md)。该矩阵是审计投影，不会把分支自报状态提升为master状态。
+
+## 三分支按提交时间代码事实接收（2026-09-04）
+
+以下状态由三个来源分支的提交与代码树重放生成，不依据旧台账否定代码事实。
+
+| Feature | 已接收路径 | 来源提交 | 状态 |
+|---|---:|---:|---|
+| F-ACC-001 | 32 | 23 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-ACC-002 | 28 | 18 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-AST-001 | 1 | 1 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-COM-001 | 58 | 28 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-001 | 12 | 16 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-002 | 13 | 5 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-003 | 16 | 10 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-004 | 12 | 11 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-005 | 19 | 11 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-006 | 17 | 11 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-007 | 1 | 1 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-008 | 4 | 4 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-CUT-010 | 5 | 3 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-IMP-001 | 8 | 3 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-IMP-002 | 5 | 8 | 代码已接收；未关闭Gate时保持IN_PROGRESS |
+| F-INT-012 | 5 | 1 | 代码已接收；未关闭Gate时保持IN_PROGRESS |

@@ -283,6 +283,7 @@ public class ArrivalAcceptanceCommandService {
         }
     }
 
+
     private ArrivalAcceptanceCommands.CommandResult raiseOnce(
             ArrivalAcceptanceCommands.RaiseDifferenceCommand command) {
         ArrivalAcceptanceDO root = lockOwnedDraft(command.tenantId(), command.arrivalAcceptanceId(),

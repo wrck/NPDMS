@@ -292,3 +292,10 @@ PLT拥有设备凭证、授权、采集批次、设备任务、Platform回调事
 - `EXE-03/04`、`CUT-03/06`、`INS-02/04`仅作为入口和消费者关联，不因本Feature完成而自动完成。
 - 当前允许实施的切片是第8节Task 7；后续INT客户端、multipart回调、Device Ops改造、管理工作台和业务消费者必须继续按本Feature边界实施与验收。
 - NPDMS实现仓库必须锁定包含本文件的规格仓库提交并通过受管快照校验后，才可将本Feature作为实现输入。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`5`。
+- 已处理来源提交：`1`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

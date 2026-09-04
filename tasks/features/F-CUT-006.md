@@ -1,6 +1,6 @@
 # F-CUT-006 P6割接跟踪与闭环
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO@4e390d4f`
 > Technical Plan Gate：`PASS / GO@354471f1`
@@ -67,3 +67,33 @@
 - `Q-FCUT004-001`的P6职责变化回P4分支保持`BLOCKED_BY_SPEC`，不进入正常P6闭环。
 - 生产INT-12与下游项目/资产消费者缺失阻断真实浏览器和Implementation Done，不阻断Ready后CUT自有内核及受控替身实现。
 - 旧`pms_cut_execution/pms_cut_observation`和旧页面保持不变。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`17`
+- 已处理来源提交：`11`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/closure/CutoverClosureAttachmentMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/closure/CutoverClosureMapper.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureApplicationService.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureQueryService.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/command/LinkClosureManualResultCommand.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/domain/CutoverClosureRules.java`
+- `pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/port/CutoverClosureOwnerFactException.java`
+- `pms-module-cutover/src/main/resources/mapper/closure/CutoverClosureAttachmentMapper.xml`
+- `pms-module-cutover/src/main/resources/mapper/closure/CutoverClosureMapper.xml`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverClosureControllerContractTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/taskv2/CutoverClosureRequestCodecTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut006MigrationContractTest.java`
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosurePortContractTest.java`
+- `scripts/generate_domain_entity_migration_contract.py`
+- `sql/migrations/V155__fcut006_p6_cutover_closure.sql`
+- `sql/migrations/V156__fcut006_legacy_closure_job.sql`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverControlledUiIntegration.spec.ts`

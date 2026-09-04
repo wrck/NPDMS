@@ -1,6 +1,6 @@
 # F-CUT-008 P5提前时间判断与外部提醒
 
-> Feature实施状态：`IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO @ d9b43077`
 > Technical Plan Gate：`PASS / GO @ e09b150a`
@@ -40,3 +40,20 @@
 ## 最近检查点
 
 - Task 8=`PASS / GO @ 7219532a`：隔离MySQL 8.4全量至V159，A/B阈值、C/D不适用、P5→P6与四渠道闭环4/4；后端34/34、前端22/22及类型检查通过。状态为受控替身实现完成；生产Provider、Job、真实渠道/浏览器继续阻断Done。
+
+## 三分支按提交时间代码事实重放（2026-09-04）
+
+> 状态以提交源码、测试、迁移、前端与构建文件为事实依据；Feature未关闭的Gate继续保留。
+
+- 原实施状态记录：`> Feature实施状态：IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES`
+- 当前实施状态：代码已接收；未完成Feature保持 `IN_PROGRESS`。
+- 已接收代码路径：`4`
+- 已处理来源提交：`4`
+- 来源分支：`codex/f-acc-001-sds`、`prereq-parallel-check-kKiAdn`、`codex/f-cut-001-matrices`。
+- 接收原则：按提交时间逐提交重放；任何单文件或单hunk冲突均不阻断其他模块代码。
+- 完整逐提交、逐文件记录：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+- `pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/migration/Fcut008MigrationContractTest.java`
+- `sql/migrations/V157__fcut008_p5_lead_time_notification.sql`
+- `sql/migrations/V158__fcut008_notification_correlation_provenance.sql`
+- `sql/migrations/V159__fcut008_external_notification_job_seed.sql`

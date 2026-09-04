@@ -17,6 +17,191 @@ SPEC.loader.exec_module(MODULE)
 
 class ValidateSdsPhase2Test(unittest.TestCase):
 
+    def test_facc002_rejects_missing_external_file_contract(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload", "missing", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("external" in error.lower() or "BusinessGrantUpload" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_generated_result_file_owner_or_compensation(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            cross = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            cross.write_text(cross.read_text(encoding="utf-8").replace(
+                "FileArtifactApi.createGeneratedBusinessFile", "missing", 1), encoding="utf-8")
+            file_design = root / "docs" / "design" / "13-file-design.md"
+            file_design.write_text(file_design.read_text(encoding="utf-8").replace(
+                "未引用对象", "忽略对象"), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("createGeneratedBusinessFile" in error for error in errors), errors)
+            self.assertTrue(any("未引用对象" in error for error in errors), errors)
+
+    def test_facc002_rejects_generated_file_failure_preserving_result(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "16-exception-and-idempotency.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "Result、ResultFile、成功幂等事实和Result Outbox零写入",
+                "Result保持已形成",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("Result、ResultFile" in error for error in errors), errors)
+
+    def test_facc002_rejects_legacy_pass_inference_boundary_removal(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "08a-domain-entity-migration-alignment.md"
+            path.write_text(path.read_text(encoding="utf-8").replace("不得从回访/审批状态推断", "允许按旧状态转换", 1), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("legacy satisfaction boundary" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_exact_satisfaction_deliverable_root(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "deliverable_code=D-SAT-REPORT", "deliverable_code=UNRESOLVED", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("D-SAT-REPORT" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_remediation_revision_identity(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "uk(tenant_id, collection_key, task_revision_no)", "uk(tenant_id, collection_key)", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("task_revision_no" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_result_invalidation_command(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "10-api-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "/satisfaction-results/{id}/actions/invalidate", "/satisfaction-results/{id}/actions/missing", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("invalidate" in error for error in errors), errors)
+
+    def test_facc002_rejects_old_recorded_reactivating_invalidated_result(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "11-event-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "RECORDED置CURRENT前按Result ID/version重验Owner", "RECORDED直接置CURRENT", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("RECORDED置CURRENT" in error for error in errors), errors)
+
+    def test_facc002_rejects_missing_configurable_scoring_catalog(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "SUM_V1/WEIGHTED_AVERAGE_V1", "IMPLEMENTATION_DEFINED", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("SUM_V1/WEIGHTED_AVERAGE_V1" in error for error in errors), errors)
+
+    def test_facc002_rejects_client_scoring_fields(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "10-api-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "客户不能提交score/passed/threshold/weight/strategy",
+                "客户可以提交score/passed",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("客户不能提交score" in error for error in errors), errors)
+
+    def test_facc002_rejects_rewriting_v133_seed(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "FORWARD_MANAGED_SEED_REVISION_REQUIRED", "REWRITE_V133", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("FORWARD_MANAGED_SEED_REVISION_REQUIRED" in error for error in errors), errors)
+
+    def test_facc002_rejects_inverted_or_oversized_multiple_choice_bounds(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "1<=minSelections<=maxSelections<=options数量",
+                "minSelections/maxSelections由实现决定",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("minSelections" in error for error in errors), errors)
+
+    def test_facc002_rejects_inverted_text_bounds(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "0<=minLength<=maxLength",
+                "minLength/maxLength由实现决定",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("minLength" in error for error in errors), errors)
+
+    def test_facc002_rejects_unreachable_multiple_choice_score_max(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            text = path.read_text(encoding="utf-8")
+            text = text.replace(
+                "合法去重选择集合的option score算术平均最大值",
+                "最大单个option score",
+                1,
+            ).replace(
+                "最低选2项、option分值100/0的多选题最大可达分为50，threshold=80必须拒绝发布",
+                "最低选2项、option分值100/0时仍允许threshold=80",
+                1,
+            )
+            path.write_text(text, encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("合法去重选择集合" in error or "threshold=80" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|
@@ -633,6 +818,157 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
         self.assertEqual([], MODULE.validate_v18_migration_gate_evidence(repository_root))
 
+    def test_current_fcom001_v70_required_target_mappings_are_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_fcom001_v70_required_mappings(repository_root))
+
+    def test_current_fcom001_acceptance_stage_binding_contract_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_fcom001_acceptance_stage_binding(repository_root))
+
+    def test_current_fcom001_contract_admin_scope_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_fcom001_contract_admin_scope(repository_root))
+
+    def test_current_facc001_report_contract_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_facc001_report_contract(repository_root))
+
+    def test_facc001_report_contract_rejects_missing_and_parallel_truth(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        required_files = set(MODULE.FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS)
+        for relative, snippets in MODULE.FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in required_files:
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(repository_root / source_relative, target)
+                    target = root / relative
+                    target.write_text(target.read_text(encoding="utf-8").replace(snippet, "REMOVED_RULE"), encoding="utf-8")
+                    self.assertTrue(any(snippet in error for error in MODULE.validate_facc001_report_contract(root)))
+        for relative, snippets in MODULE.FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in required_files:
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(repository_root / source_relative, target)
+                    target = root / relative
+                    target.write_text(target.read_text(encoding="utf-8") + f"\n{snippet}\n", encoding="utf-8")
+                    self.assertTrue(any(snippet in error for error in MODULE.validate_facc001_report_contract(root)))
+
+    def test_fcom001_contract_admin_scope_rejects_each_missing_rule(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8").replace(snippet, "REMOVED_RULE"),
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_contract_admin_scope(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
+    def test_fcom001_contract_admin_scope_rejects_blocked_rules(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_CONTRACT_ADMIN_SCOPE_FORBIDDEN_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8") + f"\n{snippet}\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_contract_admin_scope(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
+    def test_fcom001_acceptance_stage_binding_rejects_each_missing_rule(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8").replace(snippet, "REMOVED_RULE"),
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_acceptance_stage_binding(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
+    def test_fcom001_acceptance_stage_binding_rejects_superseded_rules(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8") + f"\n{snippet}\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_acceptance_stage_binding(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
+    def test_fcom001_v70_required_target_mapping_rejects_each_missing_field(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        contract_text = (
+            repository_root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+        ).read_text(encoding="utf-8")
+        for object_name, expected in MODULE.FCOM001_V70_REQUIRED_TARGET_MAPPINGS.items():
+            for target_field in expected:
+                with self.subTest(object_name=object_name, target_field=target_field), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    contract_path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+                    contract_path.parent.mkdir(parents=True)
+                    payload = json.loads(contract_text)
+                    record = next(item for item in payload["records"] if item["object"] == object_name)
+                    source = next(item for item in record["sources"] if item.get("gate") == "F-COM-001")
+                    source["requiredTargetMappings"].pop(target_field)
+                    contract_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+                    errors = MODULE.validate_fcom001_v70_required_mappings(root)
+
+                    self.assertTrue(any(target_field in error for error in errors), errors)
+
     def test_v18_migration_gate_evidence_rejects_stale_phase2_summary(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:
@@ -649,8 +985,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
-                    "93对象/104来源绑定/1排除源",
-                    "92对象/103来源绑定/1排除源",
+                    "95对象/112来源绑定/1排除源",
+                    "94对象/111来源绑定/1排除源",
                     1,
                 ),
                 encoding="utf-8",
@@ -831,6 +1167,56 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_v18_physical_carriers(root)
 
             self.assertTrue(any("selection interval" in error for error in errors), errors)
+
+    def test_facc002_export_contract_rejects_missing_real_platform_api(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            contract = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace("ExportTaskApi.request/getFact/retry", "ExportTaskAdapter"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("ExportTaskApi.request/getFact/retry" in error for error in errors), errors)
+
+    def test_facc002_export_contract_rejects_missing_retry_watermark(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            database = root / "docs" / "design" / "09-database-design.md"
+            database.write_text(
+                database.read_text(encoding="utf-8").replace("failure_retryable/retry_count", "failure_code"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("failure_retryable/retry_count" in error for error in errors), errors)
+
+    def test_facc002_export_contract_rejects_ambiguous_failure_classification(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            exceptions = root / "docs" / "design" / "16-exception-and-idempotency.md"
+            content = exceptions.read_text(encoding="utf-8")
+            content = content.replace(
+                "业务Provider缺失、重复或载荷不符合稳定契约",
+                "业务Provider缺失、重复、不可用或范围版本未知",
+            ).replace(
+                "业务Provider暂时不可用或范围版本暂时未知",
+                "业务Provider缺失、重复、不可用或范围版本未知",
+            ).replace("Task记`REJECTED`", "Task记FAILED/REJECTED")
+            exceptions.write_text(content, encoding="utf-8")
+
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+
+            self.assertTrue(any("Provider暂时不可用或范围版本暂时未知" in error for error in errors), errors)
 
 
 if __name__ == "__main__":
