@@ -1,0 +1,127 @@
+name: Code-fact chronological replay diagnostics
+
+on:
+  push:
+    branches:
+      - codex/code-fact-chronological-replay-acc-int-cut-20260904
+    paths:
+      - .github/workflows/code-fact-chronological-diagnostics.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-chronological-replay-acc-int-cut-20260904
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Fetch refs and capture exact diagnostics
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p integration-logs
+          git fetch --no-tags origin \
+            +refs/heads/master:refs/remotes/diag/master \
+            +refs/heads/codex/f-acc-001-sds:refs/remotes/diag/f-acc-001-sds \
+            +refs/heads/prereq-parallel-check-kKiAdn:refs/remotes/diag/prereq-parallel-check-kKiAdn \
+            +refs/heads/codex/f-cut-001-matrices:refs/remotes/diag/f-cut-001-matrices
+
+          git bundle create integration-logs/npdms-chronological-replay.bundle \
+            HEAD \
+            refs/remotes/diag/master \
+            refs/remotes/diag/f-acc-001-sds \
+            refs/remotes/diag/prereq-parallel-check-kKiAdn \
+            refs/remotes/diag/f-cut-001-matrices
+          git bundle verify integration-logs/npdms-chronological-replay.bundle \
+            > integration-logs/bundle-verify.log 2>&1
+
+          set +e
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains specs/001-project-delivery-platform/domains \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            > integration-logs/traceability-generate.log 2>&1
+          TRACE_GENERATE_RC=$?
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains specs/001-project-delivery-platform/domains \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json \
+            --check > integration-logs/traceability-check.log 2>&1
+          TRACE_CHECK_RC=$?
+
+          MVN_CMD=mvn
+          [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true package \
+            > integration-logs/maven-package.log 2>&1
+          MAVEN_RC=$?
+
+          corepack enable > integration-logs/corepack.log 2>&1
+          corepack prepare pnpm@9.15.5 --activate >> integration-logs/corepack.log 2>&1
+          pushd yudao-ui/yudao-ui-admin-vue3 >/dev/null
+          pnpm install --frozen-lockfile > ../../integration-logs/pnpm-install.log 2>&1
+          PNPM_INSTALL_RC=$?
+          if [[ $PNPM_INSTALL_RC -eq 0 ]]; then
+            pnpm ts:check > ../../integration-logs/frontend-ts-check.log 2>&1
+            FRONTEND_TS_RC=$?
+            pnpm build:prod > ../../integration-logs/frontend-build.log 2>&1
+            FRONTEND_BUILD_RC=$?
+          else
+            FRONTEND_TS_RC=97
+            FRONTEND_BUILD_RC=97
+          fi
+          popd >/dev/null
+          set -e
+
+          cat > integration-logs/diagnostic-status.env <<EOF
+          HEAD=$(git rev-parse HEAD)
+          TRACE_GENERATE_RC=$TRACE_GENERATE_RC
+          TRACE_CHECK_RC=$TRACE_CHECK_RC
+          MAVEN_RC=$MAVEN_RC
+          PNPM_INSTALL_RC=$PNPM_INSTALL_RC
+          FRONTEND_TS_RC=$FRONTEND_TS_RC
+          FRONTEND_BUILD_RC=$FRONTEND_BUILD_RC
+          EOF
+
+          echo '=== diagnostic status ==='
+          cat integration-logs/diagnostic-status.env
+          echo '=== Maven tail ==='
+          tail -240 integration-logs/maven-package.log || true
+          echo '=== traceability ==='
+          cat integration-logs/traceability-generate.log || true
+          cat integration-logs/traceability-check.log || true
+          echo '=== frontend tails ==='
+          tail -120 integration-logs/pnpm-install.log || true
+          tail -160 integration-logs/frontend-ts-check.log || true
+          tail -160 integration-logs/frontend-build.log || true
+
+      - name: Upload bundle and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-fact-chronological-diagnostics
+          path: integration-logs
+          if-no-files-found: error
+          retention-days: 30
