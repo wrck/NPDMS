@@ -1,0 +1,175 @@
+name: "PR #7 one-shot gate repair"
+
+on:
+  push:
+    branches:
+      - codex/code-fact-chronological-integration-acc-int-cut-20260904
+    paths:
+      - .github/workflows/pr7-one-shot-gate-repair-20260904.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    name: Apply deterministic gate repairs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Repair backend contracts and generated traceability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          test_path = "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManagerAssignmentApplicationServiceTest.java"
+          replace_once(
+              test_path,
+              "import cn.iocoder.yudao.module.system.api.dept.DeptApi;\n"
+              "import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;\n"
+              "import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;\n"
+              "import cn.iocoder.yudao.module.system.api.user.AdminUserApi;\n",
+              "",
+          )
+          replace_once(
+              test_path,
+              "    @Mock private AdminUserApi adminUserApi;\n"
+              "    @Mock private DeptApi deptApi;\n"
+              "    @Mock private OrganizationScopeApi organizationScopeApi;\n",
+              "    @Mock private ProjectServiceManagerCandidateValidator managerCandidateValidator;\n",
+          )
+          replace_once(
+              test_path,
+              "        DeptRespDTO dept = new DeptRespDTO(); dept.setId(20L); dept.setCode(\"DEP-01\");\n"
+              "        lenient().when(deptApi.getDeptByCode(\"DEP-01\")).thenReturn(dept);\n"
+              "        lenient().when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(true);\n",
+              "",
+          )
+          replace_once(
+              test_path,
+              "        verify(adminUserApi, never()).validateUser(any());\n",
+              "        verifyNoInteractions(managerCandidateValidator);\n",
+          )
+          replace_once(
+              test_path,
+              "        when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(false);\n",
+              "        doThrow(new ServiceException(PROJECT_ORGANIZATION_SCOPE_INVALID))\n"
+              "                .when(managerCandidateValidator).validate(66L, 10L, 20L, \"DEP-01\");\n",
+          )
+
+          request_path = "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java"
+          replace_once(request_path, "import jakarta.validation.constraints.Positive;\n", "")
+          replace_once(
+              request_path,
+              "    @Schema(description = \"创建时确认的一级服务经理用户ID；为空时保持待指派\")\n"
+              "    @Positive(message = \"一级服务经理用户无效\")\n"
+              "    private Long serviceManagerUserId;\n\n",
+              "",
+          )
+
+          controller_path = "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java"
+          replace_once(
+              controller_path,
+              "    @Operation(summary = \"手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）\")\n",
+              "    @Operation(summary = \"手工创建项目（Idempotency-Key 幂等；单事务创建与实例化）\")\n",
+          )
+          replace_once(
+              controller_path,
+              "                createReqVO.getServiceManagerUserId(),\n",
+              "                null,\n",
+          )
+          PY
+
+          python3 scripts/generate_requirement_traceability.py \
+            --prd docs/baseline/prd-v1.8.md \
+            --domains docs/design/phase-1-domain-ownership.md \
+            --features specs/features \
+            --tasks tasks/features \
+            --feature-index specs/features/README.md \
+            --output docs/traceability/requirement-matrix.md \
+            --coverage-output docs/traceability/requirement-version-coverage.json
+
+      - name: Commit repaired contracts and projections
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManagerAssignmentApplicationServiceTest.java \
+            pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java \
+            pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java \
+            docs/traceability/requirement-matrix.md \
+            docs/traceability/requirement-version-coverage.json
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No repair changes were required"
+          else
+            git commit -m "fix(gates): align project contracts and traceability"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Diagnose repaired backend tests
+        shell: bash
+        run: |
+          set +e
+          mvn -B -ntp -pl pms-module-project -am \
+            -DskipITs=true \
+            -Dtest=ProjectManagerAssignmentApplicationServiceTest,ProjectMasterControllerContractTest \
+            -Dsurefire.failIfNoSpecifiedTests=false test >"${RUNNER_TEMP}/pr7-backend.log" 2>&1
+          status=$?
+          echo "backend_diagnostic_status=${status}"
+          if [[ ${status} -ne 0 ]]; then
+            grep -E '^\[ERROR\]|Tests run:|BUILD (SUCCESS|FAILURE)' "${RUNNER_TEMP}/pr7-backend.log" | tail -n 120 || \
+              tail -n 120 "${RUNNER_TEMP}/pr7-backend.log"
+          fi
+          exit 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Diagnose frontend typecheck
+        shell: bash
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        run: |
+          set +e
+          npm install --global pnpm@9.15.5 >"${RUNNER_TEMP}/pr7-pnpm-install.log" 2>&1
+          pnpm install --frozen-lockfile --reporter=silent >"${RUNNER_TEMP}/pr7-frontend-install.log" 2>&1
+          install_status=$?
+          if [[ ${install_status} -ne 0 ]]; then
+            echo "frontend_install_status=${install_status}"
+            tail -n 120 "${RUNNER_TEMP}/pr7-frontend-install.log"
+            exit 0
+          fi
+          pnpm run ts:check >"${RUNNER_TEMP}/pr7-tscheck.log" 2>&1
+          status=$?
+          echo "frontend_typecheck_status=${status}"
+          if [[ ${status} -ne 0 ]]; then
+            grep -E 'error TS[0-9]+|TS[0-9]+:' "${RUNNER_TEMP}/pr7-tscheck.log" | head -n 240 || \
+              tail -n 160 "${RUNNER_TEMP}/pr7-tscheck.log"
+          fi
+          exit 0
