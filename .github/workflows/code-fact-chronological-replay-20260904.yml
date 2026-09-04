@@ -1,0 +1,237 @@
+name: Code-fact chronological replay ACC INT CUT
+
+on:
+  push:
+    branches:
+      - codex/code-fact-chronological-replay-acc-int-cut-20260904
+    paths:
+      - .github/workflows/code-fact-chronological-replay-20260904.yml
+
+permissions:
+  contents: write
+
+jobs:
+  replay:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/code-fact-chronological-replay-acc-int-cut-20260904
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: yudao-ui/yudao-ui-admin-vue3/pnpm-lock.yaml
+
+      - name: Replay every source commit in chronological/topological order
+        id: replay
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.quotepath false
+
+          git fetch --no-tags origin \
+            +refs/heads/master:refs/remotes/origin/master \
+            +refs/heads/codex/f-acc-001-sds:refs/remotes/source/f-acc-001-sds \
+            +refs/heads/prereq-parallel-check-kKiAdn:refs/remotes/source/prereq-parallel-check-kKiAdn \
+            +refs/heads/codex/f-cut-001-matrices:refs/remotes/source/f-cut-001-matrices
+
+          test "$(git rev-parse refs/remotes/source/f-acc-001-sds)" = "58576666af682bed1a5ea8e40043ff77dde4b2c7"
+          test "$(git rev-parse refs/remotes/source/prereq-parallel-check-kKiAdn)" = "cdfbd71a1722f9696c1dbb8713566de9e88ff97c"
+          test "$(git rev-parse refs/remotes/source/f-cut-001-matrices)" = "faed8387d09a82c018f5f03efbbf4b148ffbac69"
+
+          mkdir -p .integration-logs docs/traceability
+          python3 scripts/replay_code_facts_chronologically.py \
+            --repo . \
+            --master refs/remotes/origin/master \
+            --cutoff 2026-08-21T00:00:00Z \
+            --source codex/f-acc-001-sds=refs/remotes/source/f-acc-001-sds \
+            --source prereq-parallel-check-kKiAdn=refs/remotes/source/prereq-parallel-check-kKiAdn \
+            --source codex/f-cut-001-matrices=refs/remotes/source/f-cut-001-matrices \
+            --report-dir docs/traceability \
+            2>&1 | tee .integration-logs/replay.log
+
+          REPLAY_HEAD="$(git rev-parse HEAD)"
+          echo "REPLAY_HEAD=$REPLAY_HEAD" >> "$GITHUB_ENV"
+
+          set +e
+          python3 scripts/generate_requirement_traceability.py \
+            > .integration-logs/traceability-generate.log 2>&1
+          TRACE_GENERATE_RC=$?
+          python3 scripts/generate_requirement_traceability.py --check \
+            > .integration-logs/traceability-check.log 2>&1
+          TRACE_CHECK_RC=$?
+          git diff --check > .integration-logs/diff-check.log 2>&1
+          DIFF_RC=$?
+          python3 - <<'PY' > .integration-logs/flyway-check.log 2>&1
+          import re
+          from collections import defaultdict
+          from pathlib import Path
+          versions = defaultdict(list)
+          for path in Path('sql/migrations').glob('V*.sql'):
+              match = re.match(r'V(\d+)__', path.name)
+              if match:
+                  versions[int(match.group(1))].append(path.name)
+          duplicates = {version: names for version, names in versions.items() if len(names) > 1}
+          if duplicates:
+              for version, names in sorted(duplicates.items()):
+                  print(f'duplicate V{version}: {names}')
+              raise SystemExit(1)
+          print(f'PASS: {len(versions)} unique Flyway versions')
+          PY
+          FLYWAY_RC=$?
+          python3 - <<'PY' > .integration-logs/reactor-module-check.log 2>&1
+          import re
+          from collections import Counter
+          from pathlib import Path
+          text = Path('pom.xml').read_text(encoding='utf-8')
+          modules = re.findall(r'<module>([^<]+)</module>', text)
+          duplicates = [name for name, count in Counter(modules).items() if count > 1]
+          if duplicates:
+              print('duplicate reactor modules:', duplicates)
+              raise SystemExit(1)
+          print(f'PASS: {len(modules)} unique reactor modules')
+          PY
+          REACTOR_RC=$?
+          git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- \
+            'pms-module-*' 'yudao-module-*' 'yudao-framework' 'yudao-server' \
+            'yudao-dependencies' 'yudao-ui' 'scripts' 'sql' \
+            > .integration-logs/conflict-marker-check.log 2>&1
+          MARKER_GREP_RC=$?
+          if [[ $MARKER_GREP_RC -eq 1 ]]; then MARKER_RC=0; else MARKER_RC=1; fi
+          set -e
+
+          set +e
+          MVN_CMD=mvn
+          [[ -x ./mvnw ]] && MVN_CMD=./mvnw
+          $MVN_CMD -T 1C -DskipTests -Dcheckstyle.skip=true -Dspotless.check.skip=true package \
+            > .integration-logs/maven-package.log 2>&1
+          MAVEN_RC=$?
+          set -e
+
+          set +e
+          corepack enable > .integration-logs/corepack.log 2>&1
+          corepack prepare pnpm@9.15.5 --activate >> .integration-logs/corepack.log 2>&1
+          pushd yudao-ui/yudao-ui-admin-vue3 >/dev/null
+          pnpm install --frozen-lockfile > ../../../.integration-logs/pnpm-install.log 2>&1
+          PNPM_INSTALL_RC=$?
+          if [[ $PNPM_INSTALL_RC -eq 0 ]]; then
+            pnpm ts:check > ../../../.integration-logs/frontend-ts-check.log 2>&1
+            FRONTEND_TS_RC=$?
+            pnpm build:prod > ../../../.integration-logs/frontend-build.log 2>&1
+            FRONTEND_BUILD_RC=$?
+          else
+            FRONTEND_TS_RC=97
+            FRONTEND_BUILD_RC=97
+          fi
+          popd >/dev/null
+          set -e
+
+          cat > docs/traceability/code-fact-chronological-validation-2026-09-04.md <<EOF
+          # 三分支按时间逐提交重放验证
+
+          - 基线：\`$(git rev-parse refs/remotes/origin/master)\`
+          - 代码重放Head：\`$REPLAY_HEAD\`
+          - 来源固定HEAD：
+            - \`codex/f-acc-001-sds@58576666af682bed1a5ea8e40043ff77dde4b2c7\`
+            - \`prereq-parallel-check-kKiAdn@cdfbd71a1722f9696c1dbb8713566de9e88ff97c\`
+            - \`codex/f-cut-001-matrices@faed8387d09a82c018f5f03efbbf4b148ffbac69\`
+          - 原则：所有模块代码均进入逐提交扫描；一个文件或hunk不符合时，不拒绝同提交及同分支其他代码。
+
+          | 检查 | 退出码 |
+          |---|---:|
+          | Requirement追溯生成 | \`$TRACE_GENERATE_RC\` |
+          | Requirement追溯只读检查 | \`$TRACE_CHECK_RC\` |
+          | git diff --check | \`$DIFF_RC\` |
+          | Flyway版本唯一性 | \`$FLYWAY_RC\` |
+          | Maven Reactor模块唯一性 | \`$REACTOR_RC\` |
+          | 源码冲突标记检查 | \`$MARKER_RC\` |
+          | 全Reactor Maven package | \`$MAVEN_RC\` |
+          | 前端依赖安装 | \`$PNPM_INSTALL_RC\` |
+          | 前端TypeScript检查 | \`$FRONTEND_TS_RC\` |
+          | 前端生产构建 | \`$FRONTEND_BUILD_RC\` |
+
+          完整日志由本次GitHub Actions artifact保存。开放的Feature Gate继续保持IN_PROGRESS；上述检查不自动构成Implementation Done。
+          EOF
+
+          cat > .integration-logs/validation.env <<EOF
+          TRACE_GENERATE_RC=$TRACE_GENERATE_RC
+          TRACE_CHECK_RC=$TRACE_CHECK_RC
+          DIFF_RC=$DIFF_RC
+          FLYWAY_RC=$FLYWAY_RC
+          REACTOR_RC=$REACTOR_RC
+          MARKER_RC=$MARKER_RC
+          MAVEN_RC=$MAVEN_RC
+          PNPM_INSTALL_RC=$PNPM_INSTALL_RC
+          FRONTEND_TS_RC=$FRONTEND_TS_RC
+          FRONTEND_BUILD_RC=$FRONTEND_BUILD_RC
+          EOF
+
+          git add -A docs/traceability tasks/features specs/features/README.md
+          if ! git diff --cached --quiet; then
+            git commit --no-verify -m 'docs(traceability): rebuild Feature and Requirement state after chronological replay' \
+              -m "Traceability generate=$TRACE_GENERATE_RC check=$TRACE_CHECK_RC; Maven=$MAVEN_RC; frontend-ts=$FRONTEND_TS_RC; frontend-build=$FRONTEND_BUILD_RC."
+          fi
+
+          git rm .github/workflows/code-fact-chronological-replay-20260904.yml
+          git commit --no-verify -m 'ci(integration): remove one-shot chronological replay workflow'
+          git push origin HEAD:codex/code-fact-chronological-replay-acc-int-cut-20260904
+
+          cp .integration-logs/validation.env /tmp/validation.env
+          echo "FINAL_HEAD=$(git rev-parse HEAD)" >> /tmp/validation.env
+
+      - name: Upload replay and validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-fact-chronological-replay-20260904
+          path: |
+            .integration-logs
+            docs/traceability/code-fact-chronological-*.csv
+            docs/traceability/code-fact-chronological-*.json
+            docs/traceability/code-fact-chronological-*.md
+            docs/traceability/code-fact-chronological-*.patch
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce integration validation gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/validation.env
+          printf '%s\n' \
+            "FINAL_HEAD=$FINAL_HEAD" \
+            "TRACE_GENERATE_RC=$TRACE_GENERATE_RC" \
+            "TRACE_CHECK_RC=$TRACE_CHECK_RC" \
+            "DIFF_RC=$DIFF_RC" \
+            "FLYWAY_RC=$FLYWAY_RC" \
+            "REACTOR_RC=$REACTOR_RC" \
+            "MARKER_RC=$MARKER_RC" \
+            "MAVEN_RC=$MAVEN_RC" \
+            "PNPM_INSTALL_RC=$PNPM_INSTALL_RC" \
+            "FRONTEND_TS_RC=$FRONTEND_TS_RC" \
+            "FRONTEND_BUILD_RC=$FRONTEND_BUILD_RC"
+          test "$TRACE_GENERATE_RC" -eq 0
+          test "$TRACE_CHECK_RC" -eq 0
+          test "$DIFF_RC" -eq 0
+          test "$FLYWAY_RC" -eq 0
+          test "$REACTOR_RC" -eq 0
+          test "$MARKER_RC" -eq 0
+          test "$MAVEN_RC" -eq 0
+          test "$PNPM_INSTALL_RC" -eq 0
+          test "$FRONTEND_TS_RC" -eq 0
+          test "$FRONTEND_BUILD_RC" -eq 0
