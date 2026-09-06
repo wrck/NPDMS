@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：领域模型
+# SDS Phase 1：领域模型
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -107,3 +107,9 @@ PM-07复用Project既有四属性和TemplateMatcher。首次匹配决策与Proje
 - 只通过应用服务、查询接口或内部事件引用其他 Context。
 - 外部系统来源字段保留来源系统、来源单号、版本和同步时间；平台不覆盖外部 Owner 数据。
 - 设备凭证授权快照随采集任务保存，撤销不改写历史执行事实。
+
+## 修订016差量契约
+
+Project、ProjectStage/ProjectTask、模板阶段转移和绑定由PROJ拥有；闭环申请和判定由ACC/CLO拥有，CLO-02通过受控PROJ Writer形成分型终态。COM独占项目范围分配及版本，PROJ的PM-06只编排同项目追加，不拥有第二份数量真值。核心状态见05，精确范围/验收对象见08，身份来源见02c，采集见12。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：缓存与并发设计
+# SDS Phase 2：缓存与并发设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
@@ -196,3 +196,9 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 阶段推进的稳定顺序为：Project当前行 → 当前/下一Stage（按sort/id）→ 当前Stage EXIT Gate（gateId）→ Gate Reference（gateId/refType/refCode/id）→ PROJ本地事实稳定键或外域Owner Provider。Provider以`MANDATORY`加入同一MySQL事务；取得后序Owner锁后不得回头补锁前序PROJ对象。ProjectVersion、treeVersion、StageVersion、Gate/Reference版本及Owner FactVersion任一变化均整体失败；缓存和readiness预览不得替代锁内事实。BPM启动先锁定Gate Reference的定义key；未显式选择定义ID时解析最新生效定义，显式选择时验证该processDefinitionId属于同一key，再固定businessKey并启动。事实重验以gateReferenceId固定businessKey取得同一引用的尝试集合，按`startTime/processInstanceId`稳定选择最新并核对实例实际processDefinitionId；多个活动实例或定义key/实例身份不一致失败关闭，既有refVersion不参与并发身份。
 
 成功事务原子提交Gate结果、两Stage状态、Project.current_stage/version、不可变Snapshot、审计、Outbox及幂等完成点；影响行数不为预期即回滚。并发同项目推进只能有一个成功。
+
+## 修订016差量契约
+
+按05/08在同一项目命令内稳定锁定并重验project/tree/graph/scope、阶段/报告/闭环及Owner事实版本。范围追加、报告换版与CLO批准竞争时，只接受当前版本，不产生部分占用、部分任务、第二终态或过期通过快照。readiness缓存不授权写入；权限收缩与来源离职/禁用使相关缓存失效。临时密码不能因跨预检/执行任务的便利而写缓存（12）。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：数据库设计
+# SDS Phase 2：数据库设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -639,3 +639,15 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 阶段推进直接复用`proj_project`、`proj_project_stage`、`proj_project_gate`、`proj_project_gate_reference`、`proj_project_task`、`proj_project_milestone`、ACC唯一应交根、执行契约、`proj_project_stage_snapshot`及既有Outbox/审计载体。`proj_project_stage_snapshot`现有before/after stage、guard snapshot、provider facts、treeVersion、operationId、actor及唯一键足以承载`operation_type=STAGE_ADVANCE`。`ref_type`现有字符列加性使用受控`MILESTONE/APPROVAL`值不需要DDL。
 
 APPROVAL/PROCESS不新建PMS映射表：`ref_code`只冻结Flowable `processDefinitionKey`；新写`ref_version`保持NULL，既有非空值仅保留历史且不得参与发布、启动、节点解析或门禁判断。`pms-module-integration`的流程Owner Provider在未显式选择定义ID时按key解析最新生效定义，显式选择历史`processDefinitionId`时验证其属于同一key且可启动，再以RuntimeService按实际定义ID启动；固定`businessKey=PROJECT_STAGE_GATE:{gateReferenceId}`并冻结tenantId、projectId、stageCode、gateId、gateReferenceId、refType、refCode、actor和实际processDefinitionId变量。启动时由服务端设置`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`，并通过Flowable `Authentication.setAuthenticatedUserId`在try/finally中设置、清除发起人；命令不接收可覆盖这些字段的客户端变量或自选审批人。事实Provider只按该businessKey、冻结变量和BPM实例实际定义ID读取Flowable运行/历史事实；没有实例、整数状态1运行中、3驳回、4撤回、2批准完成和未知分别按10/16分册判定。既有受管模板的历史`ref_version`不迁移、不覆盖，运行时按同一`ref_code`处理。禁止新增第二门禁结果表、阶段历史表、流程版本字段或修改旧Flyway；若实现期证明既有Flowable事实无法唯一承载上述关联，必须回到本Gate复审必要的加性事实，不得在Technical Plan静默补表。
+
+## 修订016差量契约
+
+### 物理契约及迁移的差量边界
+
+阶段图必须能按templateVersion精确恢复有向转移、条件、优先级、默认分支，以及阶段/任务的主WorkBinding、CompletionRule、PermissionPolicy和交付件版本；推进锁定并重验graphVersion、projectVersion、scopeVersion及Owner事实版本。仅保存固定阶段序号、只校验EXIT Gate的旧物理合同不足以证明修订012/016覆盖。
+
+闭环记录新增/补齐的必要语义为closureType、closedFromStage、gateSnapshotRef及实际BPM定义身份；不再存在“NORMAL_CLOSED只允许S6”的约束。ACC报告与CLO快照须能精确引用范围水位和原始证据版本；COM范围水位是唯一数量版本权威。当前报告指针唯一约束维度为tenant/project/reportType，历史报告与文件不可覆盖。
+
+PM-06不使用MultiPhaseProjectGroup/MultiPhaseProjectMember/CrossPhaseContentReference或其群组API作为目标模型。既有这些表、源字段或已执行迁移仅保留历史与兼容证据，不删除、不改名替代，也不把旧数据自动转换为范围追加。前向物理方案必须逐表区分复用、新增、兼容读取、历史隔离，并在受影响Feature物理合同、迁移设计与数据库验证中关闭；本次文档修改不生成或执行Flyway，不伪造已批准DDL或真实数据库验证结果。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

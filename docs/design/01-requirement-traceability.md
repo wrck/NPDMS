@@ -1,7 +1,7 @@
-﻿# SDS Phase 1：需求追溯
+# SDS Phase 1：需求追溯
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部100项V1/V2正式Requirement，以及附录A.1.1派生的111个目标版本切片；逐项范围见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；修订007差量复核已完成并重新基线化
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -49,3 +49,9 @@ V1.8修订007已重建111个目标版本切片追溯索引，并完成模块、�
 - 需求缺失：0。
 - 设计资产完成度：Phase 1已按修订007重新基线化；Phase 2契约通过后方可进入Phase 3，Phase 3通过前不得进入Feature Ready评估。
 - 不能从旧规格直接推导的内容：数据库字段、接口契约、事件名称、组件拆分、性能实现和测试脚本。
+
+## 修订016差量契约
+
+生成追溯只读取当前PRD修订/Blob、Feature Spec覆盖与差量标记、原始Feature Task实施事实及当前Gate。文档静态一致不替代Implementation Done；受影响Spec的旧FULL映射在差量重验证关闭前必须显示REVALIDATION_REQUIRED，不能用Task历史Done恢复当前覆盖。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

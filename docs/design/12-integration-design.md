@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：集成设计
+# SDS Phase 2：集成设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：INT-01～INT-07、INT-09～INT-10、INT-12，以及 COM-01、EQP-04、CUT-08、INS-05、AUT-01～02 等关联业务需求
 > Owner：SDS Phase 2 集成架构；业务数据 Owner 继承 `02c-data-ownership-matrix.md`
 > 前置设计：`08-data-model.md`、`10-api-design.md`、`11-event-design.md`
@@ -262,3 +262,19 @@ UMC只负责巡检结果解析和报告文件生成；设备连接和原始采�
 | 数值超时/重试及环境端点 | DEFERRED_TO_FEATURE_INTEGRATION | 由各外部技术 Owner 在对应 Feature 联调前登记接口配置档案，不阻断 Phase 2 结构契约 |
 
 业务集成结构已经具备进入 Feature 设计的条件；任何具体外部接口在未完成配置档案和联调证据前不得宣称 READY_FOR_PRODUCTION。
+
+## 修订016差量契约
+
+### 采集入口、命令来源与两任务授权
+
+V1入口为独立中心、EXE-03/04、CUT-03/P3和CUT-06；V2追加INS-02/04。P3任务携带CutoverTask、checklistVersion、itemId、deviceId和选定结果版本，DAC只回填技术状态及证据引用，CUT按当前业务规则判定。暂存P3草稿不推进；提交经必填、授权、评估/清单版本校验后才进入P4。
+
+commandSourceType为PUBLISHED_TEMPLATE或APPROVED_BUSINESS_SNAPSHOT。第二类仅允许EXE-03：IMP先按来源业务记录/版本、批准依据、命令内容哈希、设备和主体权限返回受信快照，DAC再次鉴权并冻结；客户端自报approved不得替代Owner证据。独立中心、CUT和INS仍只选各自已发布模板，不因EXE例外开放任意命令；SCH-03在V2才作为可选脚本治理来源。
+
+INS-04预检与INS-02执行是两个CollectionTask，各自的授权只绑定自身taskId。预检结束使其临时秘密及执行授权失效，正式执行前必须重新输入临时密码；已保存凭证也须重新检查当前用户/设备/协议/模板/有效期并签发新任务授权。预检Fact绑定设备、端点、认证引用/用户名、有效期及对应版本；变化或过期须重新预检。禁止以后台缓存、会话草稿或自动保存凭证跨任务复用临时密码。
+
+巡检规则单命令timeoutSeconds默认30，允许1..30；超过30即拒绝，不存在批准更长的例外。超时标记当前命令失败，后续是否继续由冻结规则决定。INS-07一线工程师可申请归档及按权限确认问题闭环，最终归档由授权服务经理执行；处理权、确认权和归档权分别验证。
+
+HR与目录字段及恢复策略以02c为准。OA材料/外采及AUT-01再次申请由OA拥有外部审批结果；SUB审批在平台内，OA只收待办链接，两者不能共享“平台内审批继续”的兜底。CRM治理工作台为V3，不混入未定义V2范围。外部回调文件准入复用13。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

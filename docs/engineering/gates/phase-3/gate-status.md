@@ -1,15 +1,16 @@
 # SDS Phase 3 Review
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
-> 当前依据：PRD V1.8修订001—012、014—015正式基线；Phase 1/2均待差量复核<br>
+> PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`<br>
+> 当前依据：PRD V1.8修订001—012、014—016正式基线；Phase 1/2均待差量复核<br>
 > 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_SDS_BASELINE_V1.8`（历史证据）<br>
 > 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
-> 机器门禁：`NOT_RUN_FOR_REVISION_015`<br>
-> 适用修订：`PRD_V1.8_REVISION_015`
+> 机器门禁：`REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING`<br>
+> 适用修订：`PRD_V1.8_REVISION_016`
 
 ## 1. 状态说明
 
-修订007的安全、审计、部署、性能和测试设计仍可作为历史输入，但不能证明修订015新增和改变的业务分支已经具备完整验证。Phase 3当前重开的是差量测试与运行保障范围，不将尚未变化的NFR设计无条件推翻。
+修订007的安全、审计、部署、性能和测试设计仍可作为历史输入，但不能证明修订016新增和改变的业务分支已经具备完整验证。Phase 3当前重开的是差量测试与运行保障范围，不将尚未变化的NFR设计无条件推翻。
 
 ## 2. 必须重验证的Phase 3场景
 
@@ -37,3 +38,7 @@
 ## 4. 当前放行边界
 
 当前不批准受影响范围以修订007测试结果进入SDS Baseline、Feature Done、SIT、UAT或Release。P3-E01～P3-E09、`AI-MIG-000`和生产发布仍按实际变更条件独立适用，不因本次重开自动通过或自动失败。
+
+## 修订016联动回写证据
+
+PRD正文、来源副本、受影响SDS及生成器已同步；追溯仅从当前PRD、Feature Spec和Task派生。当前独立设计复审及受影响物理/实现证据仍未完成，不将静态文档校验当作阶段批准。证据、具体通过/失败检查和TC-PRD016断言见`../phase-1/prd-revision-016-alignment.md`。旧Task Done不改写，受影响切片不得据旧FULL映射宣称当前完整覆盖。

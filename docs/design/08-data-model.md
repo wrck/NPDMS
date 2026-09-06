@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：数据模型
+# SDS Phase 2：数据模型
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -116,9 +116,10 @@
 | BorrowedProjectConversion | 聚合根 | PM-05 转销批次、源/目标项目、正式销售业务、处理状态和汇总 | 源借货项目与目标正式项目保持独立；同一源项目只允许一个生效转销目标；全部对象成功前不得归档源项目 |
 | ConversionItem | 聚合内实体 | 一个实施对象的处理方式、来源版本、目标引用/副本、结果和失败原因 | 默认 `READ_ONLY_REFERENCE`；仅需继续编辑的派生草稿使用 `DERIVED_COPY`，且保存来源对象 ID/版本 |
 | ConversionDeviceDisposition | 聚合内实体 | 设备继续借测、转入正式项目或已归还的逐台处置 | 转入时调用 AST 唯一归属命令；部分失败不把失败设备展示为目标项目已接收 |
-| MultiPhaseProjectGroup | 聚合根 | PM-06 多期群组、关系类型、版本和展示口径 | 群组不替代各期项目，不合并项目编码、合同、状态或审计历史 |
-| MultiPhaseProjectMember | 聚合内实体 | 项目、期次号、展示顺序、有效区间和来源关系 | 同一关系类型下项目仅属于一个有效群组；群组内期次号唯一；禁止循环前后期关系 |
-| CrossPhaseContentReference | 聚合内关系 | 客户、设备视图、拓扑、方案等来源项目/版本及派生对象引用 | 引用只读；修改在新期生成派生版本，不回写历史期次 |
+
+| ContractScopeAppendRequest | 聚合根 | PM-06同一ACTIVE项目范围追加申请、批准差异及逐阶段影响 | 不创建期次群组；COM拥有分配及唯一范围水位，PROJ只编排并引用 |
+| ProjectScopeVersionReference | 跨域引用 | COM项目范围版本与精确范围快照 | 不产生第二套数量/版本真值；历史验收不自动覆盖新增范围 |
+| AcceptanceScopeEvidence | 不可变引用 | 报告版本、文件版本与精确验收范围 | 旧范围通过证据保留，新总范围须明确通过且完整覆盖 |
 
 项目树查询规则：
 
@@ -132,7 +133,6 @@ ProjectProgressSnapshot只解释直接子项目的逐级汇总。叶子项目进
 
 PM-05 是对象级可恢复转销过程，不是 Project 的普通状态更新：`BorrowedProjectConversion` 以 `sourceProjectId + formalSalesBusinessId` 幂等，状态使用 PRD 已定义的处理中、部分失败/待处理、已完成；对象项逐项保存结果。只有目标正式项目已由有效 CRM/ERP 销售业务建立、全部对象校验成功且设备处置完成后，才将源项目转为只读归档。
 
-PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。群组查询按用户对各期项目的交集权限裁剪，缺失期次必须标记“不完整”；跨期设备视图按 Device ID 去重，并区分当前归属、历史参与和跨期复用。
 
 ### 4.1 PM-07属性判定与模板匹配历史
 
@@ -430,3 +430,26 @@ CollectionTask 必须在创建时冻结完成模式：
 - MES、ITR和KNO来源副本分别保存来源键、来源版本、`dataAsOf`和统一同步状态；来源状态为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。
 - `DeviceCurrentCustomerAssignment`表达当前唯一客户直接归属；`DeviceCustomerRelationship`表达历史、租用、共管等带类型有效区间关系，区间不得重叠。
 - KNO拥有官网信息版本，保存来源URL、核验时间、摘要和发布版本；AST不复制为第二Owner。
+
+### 被替代的PM-06关系设计（仅保留历史，不是当前实现输入）
+
+> | MultiPhaseProjectGroup | 聚合根 | PM-06 多期群组、关系类型、版本和展示口径 | 群组不替代各期项目，不合并项目编码、合同、状态或审计历史 |
+> | MultiPhaseProjectMember | 聚合内实体 | 项目、期次号、展示顺序、有效区间和来源关系 | 同一关系类型下项目仅属于一个有效群组；群组内期次号唯一；禁止循环前后期关系 |
+> | CrossPhaseContentReference | 聚合内关系 | 客户、设备视图、拓扑、方案等来源项目/版本及派生对象引用 | 引用只读；修改在新期生成派生版本，不回写历史期次 |
+> PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。群组查询按用户对各期项目的交集权限裁剪，缺失期次必须标记“不完整”；跨期设备视图按 Device ID 去重，并区分当前归属、历史参与和跨期复用。
+
+## 修订016差量契约
+
+### 同项目范围追加与验收覆盖
+
+PM-06由PROJ编排ContractScopeAppendRequest，引用COM拥有的订单行分配和项目范围版本；ProjectScopeVersion是该COM项目范围水位的稳定引用，不在PROJ维护第二套数量或版本真值。请求冻结projectId、baseScopeVersion、订单行/数量/公司、原因、逐阶段影响和审批实例。同一ACTIVE项目批准追加后，由COM原子检查全项目累计分配量并推进一次范围版本，PROJ生成新增任务、交付件及绑定，ACC绑定当前适用验收范围；任一步失败整个追加动作回滚。闭环项目不得直接追加，不创建期次项目、群组或第二个项目编码。
+
+AcceptanceReportRevision保存reportType、reportVersion、结论、验收人/时间、文件版本、精确scopeVersion及范围明细。reportEvidenceValid只表示文件及字段有效；acceptancePassed必须同时满足明确通过、适用顺序和当前范围完整覆盖。前者不能替代后者。每项目/适用报告类型仍仅一个当前报告指针，草稿不切换当前指针。
+
+A追加B时，A的旧通过报告原范围不变，但不足以满足当前A+B门禁。新总体验收版本须明确引用A已有证据和B补充证据，并对当前适用总范围获得明确通过结论；单独B附件不能推导总体通过。不通过、需整改、未知结论可以归档为证据，不产生通过事实。不新增条件通过、满意度例外或第二个当前终验。
+
+ACC-04对来源证据做索引，来源当前版本/哈希/结论/范围由Owner决定；文件访问权限与客观齐套判定分离。CLO快照保存closureType、closedFromStage、模板图/规则/范围版本和所有适用来源版本，批准提交点必须重新锁定校验；变化导致旧快照失效并重提，不修改旧审批或报告事实。
+
+ProjectStage及ProjectTask分别保存主WorkBinding、PermissionPolicy、CompletionRule、交付件要求和版本；StageTransitionDefinition是前后置关系的唯一源。图发布/推进不变量见05；两个CollectionTask及命令来源字段见12。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

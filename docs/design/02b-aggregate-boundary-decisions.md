@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：聚合边界决策
+# SDS Phase 1：聚合边界决策
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -27,3 +27,9 @@
 跨聚合通过 ID、不可变版本、查询快照和领域事件关联；Phase 2 再确定数据库约束和并发策略。一个聚合只归属一个 Context；跨 Context 只通过应用服务、查询契约或事件协作。
 
 ProjectTask导航投影不是新聚合：一级Stage、二级ProjectTask来自项目实例；深层任务仍是同一ProjectTask树。CUT-03在P3内引用CollectionTask并消费结果，DAC不进入CutoverTask事务，CUT也不直接写DAC状态。
+
+## 修订016差量契约
+
+PM-06原多期关系聚合被同一projectId下的范围追加编排替代；COM范围分配与版本仍为独立Owner，PROJ不复制数量。ACC报告证据有效性、验收通过和当前范围覆盖分别建模（08）。预检和正式巡检属于两个独立CollectionTask，各自授权；P3清单答案由CUT而不是DAC拥有（12）。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：API 设计
+# SDS Phase 2：API 设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
@@ -279,7 +279,7 @@ F-PROJ-002另使用以下Owner公开契约：
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
 - `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：租户取受信上下文，项目须通过`ProjectScopeApi.ACTION_VIEW`。期望版本为null时只读inspect；非null时按订单行→范围→明细→项目水位稳定锁序重验（写命令在进入COM前已先锁PROJ项目行，ACC绑定最后执行）。返回行按`scopeId+scopeDetailId`分组并稳定排序，不聚合不同产品/型号/序列号主体；地点只返回主范围的项目办事处发生时快照，不返回AST站点或文本位置。待核对、取消、退货或释放量排除，但存在任一未解决冲突时整体失败关闭。持久项目水位覆盖空结果，版本陈旧、冲突、Owner损坏及Provider不可用分别返回稳定分类；
-- `ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`：PROJ在受信租户下为COM交付范围写命令返回current项目经理、生命周期/阶段、项目/参与者/树版本和直管目标项目`ACTION_EDIT`组合事实；该编辑资格只由锁定目标项目行的current manager证明，不读取授权Grant或后代范围。锁定重验按根项目→目标项目→当前树版本执行，并比较经理、根身份及全部冻结轴。`NORMAL_CLOSED`只允许S6，树版本必须为正；存在的当前Owner事实必须先通过结构校验，损坏时返回Owner损坏，只有结构合法后与冻结事实不一致才返回`FACT_STALE`。当前只有公共接口和机器合同，未注册生产Provider；
+- `ProjectDeliveryScopeQualificationFactApi.inspect/lockAndRevalidate`：PROJ在受信租户下为COM交付范围写命令返回current项目经理、生命周期/阶段、项目/参与者/树版本和直管目标项目`ACTION_EDIT`组合事实；该编辑资格只由锁定目标项目行的current manager证明，不读取授权Grant或后代范围。锁定重验按根项目→目标项目→当前树版本执行，并比较经理、根身份及全部冻结轴。三类闭环终态保留最后真实阶段，不限制为S6，树版本必须为正；存在的当前Owner事实必须先通过结构校验，损坏时返回Owner损坏，只有结构合法后与冻结事实不一致才返回`FACT_STALE`。当前只有公共接口和机器合同，未注册生产Provider；
 - `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
 - `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
 
@@ -483,3 +483,20 @@ Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/businessKe
 BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key和实例实际processDefinitionId。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
 模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用、Provider存在性，并拒绝新APPROVAL/PROCESS引用写入refVersion；APPROVAL/PROCESS通过`inspectDefinitionKey`验证当前生效Flowable定义存在且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+
+## 修订016差量契约
+
+| 既有命令/契约 | 修订016最小数据与处理 |
+|---|---|
+| `POST /api/v1/pms/projects/{id}/actions/advance-stage` | If-Match/Idempotency-Key及expectedCurrentStage/expectedTreeVersion/expectedGraphVersion；目标由冻结图唯一解析；响应含transitionId/graphVersion/源准出和目标准入结果。实际锁序及事务见05。 |
+| 阶段readiness | 返回实际目标或可恢复缺口，不产生授权或完成事实；无S5/S6不得虚构节点。 |
+| COM验收阶段入口 | 委托PROJ唯一推进服务，同事务完成COM范围锁定和ACC精确绑定；不直接写current_stage。 |
+| PM-06范围追加 | projectId、baseScopeVersion、合同/订单行/数量、影响及审批引用；服务端重验后才切范围、补任务/绑定；新旧范围模型见08。 |
+| ACC报告/验收Fact | 当前报告版本、结论、reportEvidenceValid、acceptancePassed、精确scopeVersion/范围及来源文件；不接受客户端直接指定通过。 |
+| CLO-01/02 | closureType、真实closedFromStage、Gate快照及来源/项目版本；提交时重新鉴权和重验快照，不能补造阶段。 |
+| CollectionTask创建 | PUBLISHED_TEMPLATE引用或仅EXE-03 APPROVED_BUSINESS_SNAPSHOT引用；P3精确上下文；预检及正式执行分别签发授权（12）。 |
+| 文件回调 | 来源身份、签名、对象/任务权限与幂等均独立校验，失败不产生可引用文件（13）。 |
+
+本节只更新契约，不声明Provider、公开Java接口、OpenAPI或数据库已实现；受影响物理合同及Feature Ready必须重验证。已有路由继续受原功能权限和领域Owner约束，不增加通用绕过入口。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

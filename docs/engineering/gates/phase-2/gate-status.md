@@ -1,17 +1,18 @@
 # SDS Phase 2 Review
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
-> 当前依据：PRD V1.8修订001—012、014—015正式基线，Phase 1当前为`REVALIDATION_REQUIRED`<br>
+> PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`<br>
+> 当前依据：PRD V1.8修订001—012、014—016正式基线，Phase 1当前为`REVALIDATION_REQUIRED`<br>
 > 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_PHASE_3_V1.8`（历史证据）<br>
 > 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
-> 机器门禁：`NOT_RUN_FOR_REVISION_015`<br>
+> 机器门禁：`REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING`<br>
 > 需求方批准：`PENDING_DELTA_REVIEW`<br>
-> 适用修订：`PRD_V1.8_REVISION_015`<br>
+> 适用修订：`PRD_V1.8_REVISION_016`<br>
 > 当前范围：正式Requirement 100项；111个目标版本切片（V1 53个、V2 58个），数量不变但部分语义义务已变化
 
 ## 1. 状态说明
 
-修订007的Phase 2批准只证明旧基线的数据、API、事件、集成、权限、异常和迁移契约。修订008—015引入或改变了可执行合同，尤其是通用阶段编排、三类闭环终态、项目内范围追加和全集统计，因此当前不能继续使用旧批准证明修订015的实现契约完整。
+修订007的Phase 2批准只证明旧基线的数据、API、事件、集成、权限、异常和迁移契约。修订008—016引入或改变了可执行合同，尤其是通用阶段编排、三类闭环终态、项目内范围追加和全集统计，因此当前不能继续使用旧批准证明修订016的实现契约完整。
 
 ## 2. 必须重验证的Phase 2契约
 
@@ -38,4 +39,8 @@
 
 ## 4. 当前放行边界
 
-当前不批准受影响DDL、API、事件或Feature按修订015宣称Ready/Done。未受影响的独立契约可以继续实施，但必须与重开范围隔离。历史迁移、数据切换、SIT/UAT和Release仍由后续门禁独立控制。
+当前不批准受影响DDL、API、事件或Feature按修订016宣称Ready/Done。未受影响的独立契约可以继续实施，但必须与重开范围隔离。历史迁移、数据切换、SIT/UAT和Release仍由后续门禁独立控制。
+
+## 修订016联动回写证据
+
+PRD正文、来源副本、受影响SDS及生成器已同步；追溯仅从当前PRD、Feature Spec和Task派生。当前独立设计复审及受影响物理/实现证据仍未完成，不将静态文档校验当作阶段批准。证据、具体通过/失败检查和TC-PRD016断言见`../phase-1/prd-revision-016-alignment.md`。旧Task Done不改写，受影响切片不得据旧FULL映射宣称当前完整覆盖。

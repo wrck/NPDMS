@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：文件设计
+# SDS Phase 2：文件设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01、ACC-01～04、ACC-06、CLO、CUT、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
 > Owner：基础平台 File Capability；业务含义、审核和归档状态仍由引用该文件的 Owner Context 持有
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
@@ -156,3 +156,13 @@ Word 文件不要求内容审计；Markdown 作为当前工程开发资料的主
 | 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 | Phase 3 按组织制度与部署方案登记；不构成 Phase 2 未决项 |
 
 本分册满足 Phase 2 文件契约要求；Feature 实施前需为具体文件用途补充允许格式、敏感等级和存储策略配置清单。
+
+## 修订016差量契约
+
+### 外部文件准入与验收判定分离
+
+外部回调必须通过来源身份认证、契约验签、任务/对象/租户范围、大小/类型/哈希及幂等校验。幂等键只是去重事实，不是认证凭据；未经认证或签名不合法，即使幂等键存在且首次出现，也不能创建FileVersion或业务引用。保持修订004扫描默认关闭、真实SKIPPED及开启时失败关闭，不把SKIPPED解释为安全通过。
+
+文件技术可用、报告证据有效、客户验收通过和项目范围覆盖分别判定。失败报告可以作为不可变证据保存；ACC/SOL/CUT等Owner的明确通过及精确范围事实不能由“上传完成/文件可下载/有哈希”替代。当前用户无下载权限不改变客观齐套或验收结果。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

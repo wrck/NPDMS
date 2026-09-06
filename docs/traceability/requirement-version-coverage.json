@@ -1,8 +1,37 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-008",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-09-06-016",
+  "baselineIdentity": {
+    "revision": "016",
+    "changeId": "CHG-PRD-2026-09-06-016",
+    "gitBlob": "ebd8f115566e0eacb20294f1b261a37f8ff81d12",
+    "path": "docs/baseline/prd-v1.8.md"
+  },
+  "engineeringGates": {
+    "phase-1": {
+      "source": "docs/engineering/gates/phase-1/gate-status.md",
+      "审查状态": "REVALIDATION_REQUIRED",
+      "当前结论": "BLOCKED_BY_PRD_DELTA",
+      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "适用修订": "PRD_V1.8_REVISION_016"
+    },
+    "phase-2": {
+      "source": "docs/engineering/gates/phase-2/gate-status.md",
+      "审查状态": "REVALIDATION_REQUIRED",
+      "当前结论": "BLOCKED_BY_PRD_DELTA",
+      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "适用修订": "PRD_V1.8_REVISION_016"
+    },
+    "phase-3": {
+      "source": "docs/engineering/gates/phase-3/gate-status.md",
+      "审查状态": "REVALIDATION_REQUIRED",
+      "当前结论": "BLOCKED_BY_PRD_DELTA",
+      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "适用修订": "PRD_V1.8_REVISION_016"
+    }
+  },
   "sources": {
-    "prd": "需求/PRD-项目实施交付管理平台.md",
+    "prd": "docs/baseline/prd-v1.8.md",
     "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
     "taskStatus": "tasks/features/F-*.md#Feature实施状态"
   },
@@ -18,13 +47,15 @@
       "V2": 58
     },
     "slicesByImplementationStatus": {
-      "IMPLEMENTATION_COMPLETE": 5,
-      "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 97
+      "IMPLEMENTATION_COMPLETE": 2,
+      "IMPLEMENTATION_PARTIAL": 5,
+      "NOT_STARTED": 96,
+      "REVALIDATION_REQUIRED": 8
     }
   },
   "derivationRules": [
-    "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
+    "Feature Spec pending PRD revalidation => REVALIDATION_REQUIRED; historical Task status is preserved",
+    "Validated Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
     "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
     "No completed authoritative task mapping => NOT_STARTED",
     "Feature association, dependency and support text do not create coverage"
@@ -33,6 +64,7 @@
     {
       "featureId": "F-AST-001",
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-AST-001.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "REVALIDATION_REQUIRED",
@@ -46,6 +78,9 @@
     {
       "featureId": "F-COM-001",
       "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
+      "revalidationSlices": [
+        "COM-01@V1"
+      ],
       "taskPath": "tasks/features/F-COM-001.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "IN_PROGRESS",
@@ -59,6 +94,7 @@
     {
       "featureId": "F-CUS-001",
       "featurePath": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-CUS-001.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -72,6 +108,7 @@
     {
       "featureId": "F-CUT-001",
       "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-CUT-001.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "IN_PROGRESS",
@@ -93,6 +130,9 @@
     {
       "featureId": "F-PLT-001",
       "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
+      "revalidationSlices": [
+        "PLT-02@V1"
+      ],
       "taskPath": "tasks/features/F-PLT-001.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -106,6 +146,7 @@
     {
       "featureId": "F-PLT-002",
       "featurePath": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-PLT-002.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -119,6 +160,10 @@
     {
       "featureId": "F-PROJ-001",
       "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+      "revalidationSlices": [
+        "PM-01@V1",
+        "PM-03@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-001.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -136,6 +181,9 @@
     {
       "featureId": "F-PROJ-002",
       "featurePath": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+      "revalidationSlices": [
+        "PM-02@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-002.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -149,6 +197,7 @@
     {
       "featureId": "F-PROJ-003",
       "featurePath": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-PROJ-003.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_DONE",
@@ -162,6 +211,7 @@
     {
       "featureId": "F-PROJ-004",
       "featurePath": "specs/features/F-PROJ-004-project-business-attribute-classification.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-PROJ-004.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -175,6 +225,9 @@
     {
       "featureId": "F-PROJ-005",
       "featurePath": "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
+      "revalidationSlices": [
+        "PM-08@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-005.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -188,6 +241,9 @@
     {
       "featureId": "F-PROJ-006",
       "featurePath": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
+      "revalidationSlices": [
+        "PM-10@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-006.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -201,6 +257,9 @@
     {
       "featureId": "F-PROJ-007",
       "featurePath": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md",
+      "revalidationSlices": [
+        "PM-11@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-007.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -214,6 +273,9 @@
     {
       "featureId": "F-PROJ-008",
       "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
+      "revalidationSlices": [
+        "PM-03@V1"
+      ],
       "taskPath": "tasks/features/F-PROJ-008.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "IN_PROGRESS",
@@ -227,6 +289,7 @@
     {
       "featureId": "F-SOL-001",
       "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-SOL-001.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -240,6 +303,7 @@
     {
       "featureId": "F-SOL-002",
       "featurePath": "specs/features/F-SOL-002-site-survey-assignment-and-readiness.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-SOL-002.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -253,6 +317,7 @@
     {
       "featureId": "F-SOL-003",
       "featurePath": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
+      "revalidationSlices": [],
       "taskPath": "tasks/features/F-SOL-003.md",
       "taskStatus": "COMPLETE",
       "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
@@ -274,12 +339,13 @@
       "ownerName": "合同订单履约",
       "businessResult": "合同订单关联与范围分配的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-COM-001",
           "coverage": "FULL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
           "taskPath": "tasks/features/F-COM-001.md"
         }
@@ -294,12 +360,13 @@
       "ownerName": "项目治理",
       "businessResult": "项目创建与指派的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-001",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
           "taskPath": "tasks/features/F-PROJ-001.md"
         }
@@ -320,6 +387,7 @@
           "featureId": "F-PROJ-004",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-PROJ-004-project-business-attribute-classification.md",
           "taskPath": "tasks/features/F-PROJ-004.md"
         }
@@ -334,12 +402,13 @@
       "ownerName": "项目治理",
       "businessResult": "项目模板与阶段门禁的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-001",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
           "taskPath": "tasks/features/F-PROJ-001.md"
         },
@@ -347,6 +416,7 @@
           "featureId": "F-PROJ-008",
           "coverage": "PARTIAL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
           "taskPath": "tasks/features/F-PROJ-008.md"
         }
@@ -361,12 +431,13 @@
       "ownerName": "项目治理",
       "businessResult": "服务经理自动指派的V1主交付业务结果",
       "versionBoundary": "V1映射配置/候选过滤/人工指派；V2唯一匹配自动生效、异常转人工",
-      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-005",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
           "taskPath": "tasks/features/F-PROJ-005.md"
         }
@@ -393,12 +464,13 @@
       "ownerName": "项目治理",
       "businessResult": "主子项目管理与进度汇总的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-002",
           "coverage": "FULL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
           "taskPath": "tasks/features/F-PROJ-002.md"
         }
@@ -419,6 +491,7 @@
           "featureId": "F-PROJ-003",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md",
           "taskPath": "tasks/features/F-PROJ-003.md"
         }
@@ -432,13 +505,14 @@
       "owner": "PROJ",
       "ownerName": "项目治理",
       "businessResult": "项目任务管理的V1主交付业务结果",
-      "versionBoundary": "V1层级模型/WorkBinding配置/基础查询；V2甘特展示与受控依赖维护",
-      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "versionBoundary": "V1任务层级/阶段与任务WorkBinding运行时/基础查询；V2甘特展示与受控依赖维护",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-007",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md",
           "taskPath": "tasks/features/F-PROJ-007.md"
         }
@@ -453,12 +527,13 @@
       "ownerName": "项目治理",
       "businessResult": "项目回退与关闭的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PROJ-006",
           "coverage": "FULL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
           "taskPath": "tasks/features/F-PROJ-006.md"
         }
@@ -491,11 +566,11 @@
     {
       "sliceKey": "PM-06@V2",
       "requirementId": "PM-06",
-      "requirementName": "多期项目合并管理",
+      "requirementName": "项目合同与实施范围追加合并",
       "version": "V2",
       "owner": "PROJ",
       "ownerName": "项目治理",
-      "businessResult": "多期项目合并管理的V2主交付业务结果",
+      "businessResult": "项目合同与实施范围追加合并的V2主交付业务结果",
       "versionBoundary": "V2",
       "implementationStatus": "NOT_STARTED",
       "features": []
@@ -515,6 +590,7 @@
           "featureId": "F-SOL-001",
           "coverage": "FULL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
           "taskPath": "tasks/features/F-SOL-001.md"
         }
@@ -535,6 +611,7 @@
           "featureId": "F-SOL-002",
           "coverage": "FULL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-SOL-002-site-survey-assignment-and-readiness.md",
           "taskPath": "tasks/features/F-SOL-002.md"
         }
@@ -555,6 +632,7 @@
           "featureId": "F-PLT-002",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
           "taskPath": "tasks/features/F-PLT-002.md"
         }
@@ -575,6 +653,7 @@
           "featureId": "F-SOL-003",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
           "taskPath": "tasks/features/F-SOL-003.md"
         }
@@ -967,6 +1046,7 @@
           "featureId": "F-CUS-001",
           "coverage": "PARTIAL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
           "taskPath": "tasks/features/F-CUS-001.md"
         }
@@ -1023,6 +1103,7 @@
           "featureId": "F-AST-001",
           "coverage": "PARTIAL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
           "taskPath": "tasks/features/F-AST-001.md"
         }
@@ -1235,6 +1316,7 @@
           "featureId": "F-CUT-001",
           "coverage": "FULL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }
@@ -1267,6 +1349,7 @@
           "featureId": "F-CUT-001",
           "coverage": "FULL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }
@@ -1287,6 +1370,7 @@
           "featureId": "F-CUT-001",
           "coverage": "FULL",
           "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }
@@ -1613,12 +1697,13 @@
       "ownerName": "平台公共能力",
       "businessResult": "统一文件身份与版本管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-PLT-001",
           "coverage": "FULL",
           "taskStatus": "COMPLETE",
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
           "taskPath": "tasks/features/F-PLT-001.md"
         }

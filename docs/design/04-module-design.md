@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：模块设计
+# SDS Phase 1：模块设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -35,3 +35,9 @@
 - `CustomerMasterDataApi`承接CRM权威字段入向写入；集成适配模块不得直接访问CUS Service、Mapper、Repository或业务表。
 - `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
 - AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。
+
+## 修订016差量契约
+
+PROJ统一配置及执行StageTransitionDefinition和Stage/Task WorkBinding（05/08）；SOL计划审批只产出版本事实（06）；IMP按当前范围聚合割接覆盖；ACC区分报告证据有效、验收通过与齐套（08/13）；DAC包含P3采集入口与EXE-03批准业务快照、巡检两个任务授权（12）；SYSTEM分别承接HR和目录Owner（02c）。PM-06不提供项目群组模块。RPT-02@V2仍提供全部状态/阶段/超期/三类退出/比例/下钻/导出，不能缩成终态摘要。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

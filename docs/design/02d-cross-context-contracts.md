@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：跨 Context 契约
+# SDS Phase 1：跨 Context 契约
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -12,7 +12,7 @@
 | ImplementationEvidencePublished | EXE-01～EXE-06、IMP-01、ACC-04 | Implementation Execution | Acceptance & Closure | 实施证据、来源版本、哈希和检查快照已发布 |
 | ImplementationReadinessSnapshot | EXE-06、CUT-01 | Implementation Execution | Cutover | 割接前实施门禁快照，仅供 CUT 校验 |
 | `ProjectSystemQualificationFactApi` | EXE-01 | Project / `T-FIMP002-PROJ-01`支撑Task | Implementation Execution / F-IMP-002 | `lockCurrentForSystem`仅供无用户主体的内部到期命令：在受信租户上下文按项目锁定当前主行、唯一`PROJECT_MANAGER`事实和当前根树版本，校验`ACTIVE/S4`并返回当前项目/参与者/树版本；不接收`subjectUserId/ACTION_EDIT/approvedBy/system actor`，不放宽现有用户授权API，也不以消费方冻结版本作相等前置。该Provider已选择性进入master，但不产生F-IMP-002 Feature Done。 |
-| `ProjectDeliveryScopeQualificationFactApi` | COM-01 | Project / `T-FCOM001-PROJ-01`支撑Task | Commerce / F-COM-001 | `inspect/lockAndRevalidate`为COM交付范围写命令组合当前项目经理、项目生命周期/阶段与直管目标项目`ACTION_EDIT`事实。该用途只由锁定目标项目行的current `PROJECT_MANAGER`证明，不读取未锁定的授权Grant，也不扩展到后代项目；冻结并重验经理、项目/参与者/树版本、根身份、生命周期和阶段。`NORMAL_CLOSED`只允许S6，树版本必须为正；S5/S6或关闭事实由COM用于把减配/释放转为`CONFLICT`。初次主体/范围失败与锁定期间任一冻结轴变化分别返回主体/范围错误和`FACT_STALE`，Owner损坏及Provider不可用不得混淆。当前master仅集成公共契约，生产Provider尚未实现。 |
+| `ProjectDeliveryScopeQualificationFactApi` | COM-01 | Project / `T-FCOM001-PROJ-01`支撑Task | Commerce / F-COM-001 | `inspect/lockAndRevalidate`为COM交付范围写命令组合当前项目经理、项目生命周期/阶段与直管目标项目`ACTION_EDIT`事实。该用途只由锁定目标项目行的current `PROJECT_MANAGER`证明，不读取未锁定的授权Grant，也不扩展到后代项目；冻结并重验经理、项目/参与者/树版本、根身份、生命周期和阶段。三类闭环终态保留最后真实阶段，不限制为S6，树版本必须为正；S5/S6或关闭事实由COM用于把减配/释放转为`CONFLICT`。初次主体/范围失败与锁定期间任一冻结轴变化分别返回主体/范围错误和`FACT_STALE`，Owner损坏及Provider不可用不得混淆。当前master仅集成公共契约，生产Provider尚未实现。 |
 | `DeliveryScopeApi.getAssignedScope` | COM-01、EXE-01 | Commerce / F-COM-001 | Implementation Execution / F-IMP-002 | 受信租户下按项目和可空期望`scopeVersion`读取；null为inspect，非null锁COM项目水位及当前范围后重验。返回以scope/detail为稳定分组的数量、单位、产品/型号及明确SN；待核对、取消、退货、释放量排除，任一未解决冲突则整体失败关闭。持久项目水位覆盖真实空范围，版本变化返回STALE，Owner损坏和Provider不可用独立分类。 |
 | `CommerceAuthorityIngestApi.ingestBatch` | COM-01、INT-01 | Integration ACL / INT-01 | Commerce / F-COM-001 | 受信租户下以eventId接收一个原子批次的合同、销售订单、订单行和订单—合同关系精确事实；同event同载荷重放、异载荷永久冲突，旧来源版本不得覆盖。只形成COM本地副本，不包含ERP连接、认证、轮询或传输运行。 |
 | `ProjectCutoverContextFactApi` / ProjectCutoverContextFact | CUT-01 | Project / PROJ | Cutover / F-CUT-002 | `inspect`按受信tenant和projectId读取同一`proj_project`行的项目编码/名称、项目发生时客户快照、发生时部门（办事处）快照及projectVersion；`lockAndRevalidate`携带从前次FOUND原样复制的完整Expected Fact，以`MANDATORY`加入CUT写事务并锁定同一项目行，锁后逐字段比较完整Fact。结果封闭为`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`，只有ACTIVE、字段完整且全部字段精确匹配可供写入；Expected只作并发守卫，CUT只冻结Owner锁后返回的currentFact。编码字段最大64字符，三个名称字段最大255字符；公共DTO沿用`departmentId/departmentCode/departmentName`，CUT只在展示层称为办事处。该Fact不替代`ProjectScopeApi`的用户范围/treeVersion，也不替代CUS当前客户服务等级时间线；CUT不得读取PROJ/SYSTEM/CUS表或拼接无版本Summary。当前master仅集成ADR和机器合同，公共Java接口及生产Provider尚未实现。 |
@@ -51,3 +51,17 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 ## F-PROJ-008 阶段门禁 Owner Fact 基线（GO）
 
 Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。
+
+## 修订016差量契约
+
+| 契约 | 必要输入/输出 | 成功与禁止边界 |
+|---|---|---|
+| PROJ阶段推进 | Project/tree/graph/scope版本、当前CompletionRule、出向转移及源/目标Gate、Owner事实版本 | 顺序及原子性见05；目标服务端唯一解析，不按S编号加一 |
+| COM范围追加→PROJ/ACC | projectId、baseScopeVersion、新范围版本、精确明细及批准变化 | 数量/水位由COM拥有；任务/绑定/当前门禁同事务更新；模型见08 |
+| ACC验收报告Fact | reportVersion、reportEvidenceValid、acceptancePassed、scopeVersion、精确覆盖和文件版本 | 字段/文件完整不等于通过；旧A不能自动覆盖A+B，见08 |
+| CLO终态命令及事件 | closureType、closedFromStage、最新Gate快照、实际BPM定义、Project版本 | CLO-02/PM-10唯一业务入口；事件只通知已提交事实，见05/11 |
+| IMP→DAC命令来源 | EXE-03批准业务快照的来源/版本/哈希/批准依据/设备/主体范围 | DAC重验；独立中心/CUT/INS仍需发布模板；见12 |
+| CUT P3→DAC→CUT | taskId、checklistVersion、itemId、deviceId、CollectionTask/resultVersion | 技术回调只生成证据，CUT决定业务通过；见12 |
+| 外部文件回调 | 来源认证、契约签名、任务/对象授权、大小/类型/哈希、幂等 | 所有校验同时成立，不能用幂等键代验签，见13 |
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

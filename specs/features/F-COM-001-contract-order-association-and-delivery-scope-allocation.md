@@ -1,15 +1,19 @@
 # F-COM-001 合同订单关联与交付范围分配 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / REQUIREMENT_CONVERGENCE_APPROVED`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / REQUIREMENT_CONVERGENCE_APPROVED`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > 实施状态：`IN_PROGRESS`
 > Requirement：`COM-01（V1）`
 > Requirement切片覆盖：`COM-01@V1=FULL`
+> PRD差量重验证：`COM-01@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联Requirement：`PM-03@V1`、`PM-10@V1`、`ACC-03@V1`；仅作为阶段快照、验收绑定与报告边界的协作依赖，不宣称关联Requirement完成
 > Owner Context：`COM（合同订单履约）`
 > 目标实现载体：COM主体为`pms-module-commerce`与`pms-module-commerce-api`；按批准物理模块映射，PROJ及ACC Owner的窄API/真实Provider增量位于`pms-module-project-api`与`pms-module-project`，语义Owner仍分别为PROJ/ACC；合同公司范围只消费现有`yudao-module-system`公开Provider且不修改Yudao基础平台
 > 适用基线：PRD V1.8修订010；SDS Phase 1/2/3 `BASELINE`；ADR-0036/0037/0038 `ACCEPTED`
-> Technical Plan：`docs/superpowers/plans/2026-09-02-f-com-001-requirement-convergence.md`（需求方已批准）
+> 上次Technical Plan（历史，不授权当前差量实施）：`docs/superpowers/plans/2026-09-02-f-com-001-requirement-convergence.md`（需求方已批准）
 > Technical Plan前置补充：V72受管F-PROJ-002验收夹具处置已由独立整改复审批准（`GO_3412E38397776D471C6EA3867DEF2001609D5B46`）
 > 来源裁决：COM-A与COM-B无Git继承关系且承载不同需求；本文件是两线按Requirement重组后的唯一F-COM-001规格，任一历史规格均不得单独继续实施或推导完成状态
 
@@ -284,3 +288,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - `Q-FCOM-002`：只阻断退出/回退验收阶段时关闭或解锁既有绑定；确认前不写`effective_to`或解锁，不反向阻断已批准的阶段进入及验收阶段内新范围绑定。
 
 Java类型、最终Flyway编号、页面组件和查询实现只能在Feature Ready后由Technical Plan基于锁定契约确定；ERP认证和协议细节属于后续INT-01集成Feature，不是本Feature输入。
+
+## 修订016覆盖资格
+
+当前受影响切片：COM-01@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：事件设计
+# SDS Phase 2：事件设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：本分册覆盖全部 100 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
 > 前置设计：`02d-cross-context-contracts.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
@@ -238,3 +238,9 @@ V1/V2 不定义 `TechnicalNoticePublishedByPlatform`，避免把 V3 本地治理
 | 补偿与对账可实现 | PASS | 第 11 节 |
 
 本分册可进入外部集成详细契约评审；Phase 2 放行前仍需与 12、15、16 的超时、重试和异常分类逐项一致。
+
+## 修订016差量契约
+
+计划/方案批准事件只载Owner业务版本，不直接推进固定S3/S4；PROJ按05校验是否推进。Cutover成功事件携带taskId、归档版本、精确范围及有效性，IMP按当前需割接范围聚合，不以一个成功任务代替全范围。范围/报告失效事件只使当前依赖门禁失效，历史快照不覆盖。项目闭环事件必须携带closureType、closedFromStage、项目版本与闭环/Gate快照引用，只通知已经由CLO-02/PM-10提交的事实；消费者不得再次写终态。事件键和聚合版本共同防重放/乱序，重试不绕过当前授权。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

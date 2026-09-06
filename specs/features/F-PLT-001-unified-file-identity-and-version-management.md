@@ -1,16 +1,20 @@
 # F-PLT-001 统一文件身份与版本管理 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / GO NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > Requirement：`PLT-02（V1/P0，FR-PLT-008）`
 > Requirement切片覆盖：`PLT-02@V1=FULL`
+> PRD差量重验证：`PLT-02@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > Owner Context：`PLT（基础平台 File Capability）`
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`；SDS Phase 1/2/3 `BASELINE`
 > 实施状态：`IMPLEMENTATION_COMPLETE`；原实现NPDMS `6d6c6ea`及独立复审GO，可选扫描增量NPDMS `890196d2`、`24f3c1a4`及独立复审GO
 > 边界裁决：`GO / NPDMS-FPLT001-BOUNDARY-20260826-01`
 > INFRA架构例外：`GO / NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`；`docs/decisions/0035-file-storage-receipt-adapter-exception.md`
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
+> 上次Technical Plan（历史，不授权当前差量实施）：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
 
 ## 1. 目标
 
@@ -206,3 +210,7 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`） |
 
 结论：`BASELINE / READY`。本规格修订合入目标分支后创建全新Technical Plan。该GO不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release通过。
+
+## 修订016覆盖资格
+
+当前受影响切片：PLT-02@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

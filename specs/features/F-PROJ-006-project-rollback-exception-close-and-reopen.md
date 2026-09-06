@@ -1,14 +1,18 @@
 # F-PROJ-006 项目回退、异常关闭与受控重开 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FPROJ006-FEATURE-READY-20260825-01`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / GO NPDMS-FPROJ006-FEATURE-READY-20260825-01`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > Requirement：`PM-10（V1）`
 > Requirement切片覆盖：`PM-10@V1=FULL`
+> PRD差量重验证：`PM-10@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联Requirement：`PM-01`、`PM-02`、`PM-04`、`PM-08`、`PM-11`、`CLO-02`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 前置Feature：`F-PROJ-001`～`F-PROJ-005`均已完成
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成；V1.7治理动作实现只作存量审计证据
+> 上次Technical Plan（历史，不授权当前差量实施）：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成；V1.7治理动作实现只作存量审计证据
 
 ## 1. 目标
 
@@ -156,3 +160,7 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPROJ006-FEATURE-READY-20260825-01`） |
 
 结论：`BASELINE / READY`。三项原NO-GO阻断均已闭环，独立Feature Ready裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，不得根据V1.7现有实现直接勾选任何AC。
+
+## 修订016覆盖资格
+
+当前受影响切片：PM-10@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

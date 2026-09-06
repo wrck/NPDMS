@@ -1,18 +1,19 @@
 # SDS Phase 1 Review
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
-> 当前依据：PRD V1.8修订001—012、014—015正式基线（PRD Blob `37c709bf49ce3813042b650eea44050537cec4e0`）<br>
+> PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`<br>
+> 当前依据：PRD V1.8修订001—012、014—016正式基线（PRD Blob `ebd8f115566e0eacb20294f1b261a37f8ff81d12`）<br>
 > 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_PHASE_2_V1.8`（历史证据）<br>
 > 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
-> 机器门禁：`NOT_RUN_FOR_REVISION_015`<br>
+> 机器门禁：`REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING`<br>
 > 需求方批准：`PENDING_DELTA_REVIEW`<br>
-> 适用修订：`PRD_V1.8_REVISION_015`
+> 适用修订：`PRD_V1.8_REVISION_016`
 
 ## 1. 状态说明
 
-修订008—015未改变100项Requirement和111个目标版本切片数量，但已改变领域、状态、工作流、范围和验收语义。修订007的Phase 1批准继续作为历史证据，不再代表当前PRD全部语义已完成Phase 1复核。受影响范围在差量复核完成前不得据旧结论进入新的Feature Ready、Implementation Done或Release覆盖声明。
+修订008—016未改变100项Requirement和111个目标版本切片数量，但已改变领域、状态、工作流、范围和验收语义。修订007的Phase 1批准继续作为历史证据，不再代表当前PRD全部语义已完成Phase 1复核。受影响范围在差量复核完成前不得据旧结论进入新的Feature Ready、Implementation Done或Release覆盖声明。
 
-差量只重开受影响范围；与下列变更无关的既有设计和Feature事实不自动撤销，但不得据此声称整个Phase 1已适配修订015。
+差量只重开受影响范围；与下列变更无关的既有设计和Feature事实不自动撤销，但不得据此声称整个Phase 1已适配修订016。
 
 ## 2. 必须重验证的Phase 1契约
 
@@ -36,4 +37,8 @@
 
 ## 4. 当前放行边界
 
-当前不批准受影响范围进入新的Phase 2定稿、Feature Ready、DDL、实现或发布。与差量无关的独立工作可以继续，但必须显式标注不依赖上述契约。本状态不撤销历史Git、测试或Feature Done事实，也不把历史事实自动提升为修订015覆盖。
+当前不批准受影响范围进入新的Phase 2定稿、Feature Ready、DDL、实现或发布。与差量无关的独立工作可以继续，但必须显式标注不依赖上述契约。本状态不撤销历史Git、测试或Feature Done事实，也不把历史事实自动提升为修订016覆盖。
+
+## 修订016联动回写证据
+
+PRD正文、来源副本、受影响SDS及生成器已同步；追溯仅从当前PRD、Feature Spec和Task派生。当前独立设计复审及受影响物理/实现证据仍未完成，不将静态文档校验当作阶段批准。证据、具体通过/失败检查和TC-PRD016断言见`../phase-1/prd-revision-016-alignment.md`。旧Task Done不改写，受影响切片不得据旧FULL映射宣称当前完整覆盖。

@@ -2,8 +2,8 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—012、014—015；当前PRD Blob：`37c709bf49ce3813042b650eea44050537cec4e0`）；修订001—007的独立批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`，修订008—015以PRD修订记录和Git历史为准<br>
-> 工程适配状态：本工程链已识别修订008—015的工程影响；Phase 1/2/3基于修订007的旧批准仅作历史证据，当前状态须按受影响范围完成差量重验证<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—012、014—016；当前PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`）；修订001—007的独立批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`，修订008—016以PRD修订记录和Git历史为准<br>
+> 工程适配状态：本工程链已识别修订008—016的工程影响；Phase 1/2/3基于修订007的旧批准仅作历史证据，当前状态须按受影响范围完成差量重验证<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 结构化覆盖：`docs/traceability/requirement-version-coverage.json`<br>
@@ -15,7 +15,7 @@
 
 将PRD转换为可设计、可实现、可测试、可验证、可发布的工程资产，并让项目在明确但不过度的Gate下推进。
 
-当前工程范围仍为PRD V1.8附录A.1的100项V1/V2正式需求（主版本V1 53项、V2 47项），按附录A.1.1派生111个正式目标版本切片（V1 53个、V2 58个）；31项已编号V3、5项跨需求演进方向与9项`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。修订008—015没有增加Requirement ID或版本切片，但已改变割接检查数量、BPM定义身份、合同/范围版本、S0～S6门禁、通用阶段编排、项目闭环终态、PM-06范围追加以及RPT-02和主流程全集语义。Requirement数量不变不得解释为工程契约无变化；受影响的SDS、Feature Spec、数据/API/事件、测试和门禁必须完成差量重验证。
+当前工程范围仍为PRD V1.8附录A.1的100项V1/V2正式需求（主版本V1 53项、V2 47项），按附录A.1.1派生111个正式目标版本切片（V1 53个、V2 58个）；31项已编号V3、5项跨需求演进方向与9项`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。修订008—016没有增加Requirement ID或版本切片，但已改变割接检查数量、BPM定义身份、合同/范围版本、S0～S6门禁、通用阶段编排、项目闭环终态、PM-06范围追加以及RPT-02和主流程全集语义。Requirement数量不变不得解释为工程契约无变化；受影响的SDS、Feature Spec、数据/API/事件、测试和门禁必须完成差量重验证。
 
 本工程链统一遵循：
 
@@ -467,14 +467,14 @@ UI -> API -> Application -> Domain -> Repository -> DB -> Permission -> Audit ->
 
 ## 12. V1.8生效与存量资产处理
 
-自V1.8基线提交生效起，V1.7工程链进入`SUPERSEDED`，本文件成为唯一正式工程链。当前工程链适配PRD修订001—012、014—015；参考稿、实施计划、评审报告以及仅基于修订007形成的Gate结论，不因PRD或本文件更新自动晋级为当前正式设计或当前放行结论。
+自V1.8基线提交生效起，V1.7工程链进入`SUPERSEDED`，本文件成为唯一正式工程链。当前工程链适配PRD修订001—012、014—016；参考稿、实施计划、评审报告以及仅基于修订007形成的Gate结论，不因PRD或本文件更新自动晋级为当前正式设计或当前放行结论。
 
 PRD修订不会自动关闭任何工程Gate，也不会保留与新语义冲突的旧批准。Phase 1/2/3当前`gate-status.md`必须区分“修订007历史批准”和“修订015当前状态”；在差量SDS、契约、测试和必要的数据模型复核完成前，受影响范围保持`REVALIDATION_REQUIRED`。现有Phase 3文档、生成器、validator或模板中如仍把四角色外部签署、迁移批准哈希或尚未产生的迁移运行事实作为SDS模型基线前置条件，仍按本工程链完成最小化修订。P3-E09不定义迁移批准哈希，也不得因本次PRD修订在未复核DDL影响时自动保持或丧失通过。
 
-工程链更新本身不创造业务规则；但修订008—015已经由PRD改变业务语义，因此现有SDS、DDL、Feature覆盖和逐项数据模型裁决只能在未受影响部分继续沿用。受影响部分必须通过SDS/必要ADR完成差量设计，涉及物理模型时重做P3-E09差量检查，涉及已实现Feature时执行影响复核或建立纠正Feature，不得用“Requirement数量未变”维持旧结论。
+工程链更新本身不创造业务规则；但修订008—016已经由PRD改变业务语义，因此现有SDS、DDL、Feature覆盖和逐项数据模型裁决只能在未受影响部分继续沿用。受影响部分必须通过SDS/必要ADR完成差量设计，涉及物理模型时重做P3-E09差量检查，涉及已实现Feature时执行影响复核或建立纠正Feature，不得用“Requirement数量未变”维持旧结论。
 
 
-### 12.1 修订008—015差量影响与重验证范围
+### 12.1 修订008—016差量影响与重验证范围
 
 | PRD修订 | 主要工程影响 | 至少重验证的工程资产 |
 |---|---|---|
@@ -511,4 +511,8 @@ PRD修订不会自动关闭任何工程Gate，也不会保留与新语义冲突�
 - 能独立使用、独立验收且拥有明确公共业务结果的公共能力可以保留为Feature；其消费者接入仍由消费者Feature负责；
 - “双轨”等术语只允许描述存量收口期，存量完成后必须删除，不能形成长期并行状态体系。
 
-修订007已建立完整的111个Requirement目标版本切片输入、Feature Spec覆盖声明、Feature Task状态读取、结构化JSON投影和回归校验。修订008—015不改变切片集合，但改变了若干切片的完整业务义务；覆盖生成器因此必须继续读取同一Requirement键，同时由受影响Feature Spec更新`FULL/PARTIAL`声明。追溯矩阵仍是生成投影，不是新的状态权威；任何覆盖调整必须先修改`master`中的对应Feature Spec，任何实施状态调整必须先修改`master`中的对应Feature任务记录，再由生成器在`master`重建，禁止直接编辑矩阵或JSON晋级状态，禁止从Feature/Task并行分支状态反向覆盖`master`。
+修订007已建立完整的111个Requirement目标版本切片输入、Feature Spec覆盖声明、Feature Task状态读取、结构化JSON投影和回归校验。修订008—016不改变切片集合，但改变了若干切片的完整业务义务；覆盖生成器因此必须继续读取同一Requirement键，同时由受影响Feature Spec更新`FULL/PARTIAL`声明。追溯矩阵仍是生成投影，不是新的状态权威；任何覆盖调整必须先修改`master`中的对应Feature Spec，任何实施状态调整必须先修改`master`中的对应Feature任务记录，再由生成器在`master`重建，禁止直接编辑矩阵或JSON晋级状态，禁止从Feature/Task并行分支状态反向覆盖`master`。
+
+## 修订016当前覆盖资格
+
+生成器从PRD修订记录和实际内容推导修订/Blob，并读取当前Phase Gate。受影响Feature Spec的`PRD差量重验证`仅限定其已声明覆盖的切片；未关闭前派生`REVALIDATION_REQUIRED`，不改写Task历史实施状态，不额外建立Capability或Task生命周期。清除标记须以对应当前修订的设计及实施证据为依据，文档生成成功本身不解除。

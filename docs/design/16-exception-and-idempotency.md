@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：异常与幂等设计
+# SDS Phase 2：异常与幂等设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订016差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：全部100项V1/V2正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
 > Owner：SDS Phase 2 应用与可靠性架构
 > 前置设计：`09-database-design.md`～`15-cache-and-concurrency.md`
@@ -241,3 +241,9 @@ TASK未DONE、MILESTONE未ACHIEVED、DELIVERABLE未ACCEPTED、STATE未到达，�
 PMS专用Gate流程发起缺`pms:project:update`、PROJECT_MANAGE范围或当前PROJECT_MANAGER关系时为`AUTHORIZATION`且零流程实例；定义key没有当前生效定义、显式definitionId与key不一致、定义不可启动或本次实际定义的BPMN含`START_USER_SELECT(35)`时为`DEPENDENCY_UNAVAILABLE`并拒绝模板发布/启动。Yudao start-user用户/部门白名单只作用于通用发起入口，不由PMS查询或复制。启动只使用服务端actor设置Flowable authenticated initiator、`PROCESS_START_USER_ID`和`RUNNING(1)`；客户端占用系统变量或同operation异摘要均零实例，同operation同摘要仅返回原实例。
 
 历史定义选择查询使用与启动相同的三重授权；缺任一授权稳定拒绝且不调用BPM Owner。Owner查询只允许受信tenant和Gate冻结key，返回其他租户/key、重复定义身份或不可判定状态时为`DEPENDENCY_UNAVAILABLE`且不向调用方暴露候选；列表为空表示当前没有可显式选择的历史定义，不改变默认启动的锁内重验规则。
+
+## 修订016差量契约
+
+授权/签名失败、当前Owner事实缺失、版本冲突和分支不唯一均失败关闭（05/12/13）。幂等重放不替代来源认证及当前操作授权；P3暂存幂等只保存草稿，不能推进。在线失败与人工结果分别留存；INS预检失败不能授权正式任务，临时密码不得用于异步补偿。范围追加失败按08整体回滚，旧通过事实只保留原范围，不伪造新范围完成。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

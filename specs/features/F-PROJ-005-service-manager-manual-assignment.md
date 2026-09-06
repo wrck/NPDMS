@@ -1,14 +1,18 @@
 # F-PROJ-005 服务经理人工指派与责任分布 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FPROJ005-FEATURE-READY-20260825-01`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / GO NPDMS-FPROJ005-FEATURE-READY-20260825-01`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > Requirement：`PM-08（V1）`
 > Requirement切片覆盖：`PM-08@V1=PARTIAL`
+> PRD差量重验证：`PM-08@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联Requirement：`PM-01`、`PM-04`、`PM-11`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-002`、`F-PROJ-003`、`F-PROJ-004`均已完成
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`；批准修订`CHG-PRD-2026-08-23-002`
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后重新生成；既有V1.7实现只作复用审计证据
+> 上次Technical Plan（历史，不授权当前差量实施）：Feature Ready独立GO且NPDMS锁定新规格提交后重新生成；既有V1.7实现只作复用审计证据
 > 实施状态：`IMPLEMENTATION_COMPLETE / GO`
 > 实施证据：NPDMS `25230ce` Task 1～6、自动化、全新MySQL V1～V84、单/多租户运行态、真实浏览器四档响应式与独立整改复审
 
@@ -144,3 +148,7 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPROJ005-FEATURE-READY-20260825-01`） |
 
 结论：`IMPLEMENTATION_COMPLETE / GO`。Feature Ready保持既有GO；Implementation Done整改复审已GO，原租户阻断已闭环且不重开Feature Ready/SDS。该结论不代表PM-08 V2自动指派、PM-11、Deployment、SIT、UAT或Release完成。
+
+## 修订016覆盖资格
+
+当前受影响切片：PM-08@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

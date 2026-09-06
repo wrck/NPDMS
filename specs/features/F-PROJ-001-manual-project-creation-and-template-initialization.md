@@ -1,13 +1,17 @@
 # F-PROJ-001 手动项目创建与模板初始化 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY`
-> Technical Plan：在本仓目标分支基于当前正式规格重新生成；禁止使用2026-08-21旧计划
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
+> 上次Technical Plan（历史，不授权当前差量实施）：在本仓目标分支基于当前正式规格重新生成；禁止使用2026-08-21旧计划
 > Implementation Start：`SATISFIED`（本仓目标分支已包含`CHG-PRD-2026-08-23-002`）
 > Implementation Done：`PASS`（NPDMS `1c76050`；2026-08-25 创建人详情访问集成回归已完成独立 `GO`）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
 > Requirement切片覆盖：`PM-01@V1=PARTIAL；PM-03@V1=PARTIAL`
+> PRD差量重验证：`PM-01@V1；PM-03@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
 > Owner Context：`PROJ（项目治理）`
 > Gate Owner：需求方关闭业务语义问题；项目治理Feature负责人关闭其余DoR并在实施启动前登记具体责任人
@@ -374,3 +378,7 @@ F-PROJ-003 的项目角色与子树授权分离模型。
 
 - `Q-FPROJ-001`：需求方选择方案B。创建失败不持久化Project或创建草稿；批准依据为`CHG-PRD-2026-08-21-001`。
 - `Q-FPROJ-002`：需求方确认创建时同步完成PROJ与ACC初始化，要么全部完成，要么全部回滚，不允许中间状态。实现必须采用同库同Spring事务的同步内部应用接口，不得改为最终一致性。
+
+## 修订016覆盖资格
+
+当前受影响切片：PM-01@V1、PM-03@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。
