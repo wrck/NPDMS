@@ -1,0 +1,59 @@
+name: PRD revision 016 alignment
+
+on:
+  push:
+    branches: [docs/prd-v1.8-p0-p1-fixes]
+    paths:
+      - scripts/close_prd_revision_016.py
+      - .github/workflows/prd-revision-016-alignment.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prd-revision-016-alignment
+  cancel-in-progress: false
+
+jobs:
+  align:
+    if: github.repository == 'wrck/NPDMS' && github.ref == 'refs/heads/docs/prd-v1.8-p0-p1-fixes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read exact branch snapshot
+        env:
+          REPOSITORY: ${{ github.repository }}
+          INPUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git clone --quiet --single-branch --branch docs/prd-v1.8-p0-p1-fixes "https://github.com/${REPOSITORY}.git" repository
+          cd repository
+          git checkout --detach "$INPUT_SHA"
+          test "$(git rev-parse HEAD:docs/baseline/prd-v1.8.md)" = 37c709bf49ce3813042b650eea44050537cec4e0
+          python3 --version
+          if test -f scripts/close_prd_revision_016.py; then
+            python3 scripts/close_prd_revision_016.py --apply
+          else
+            echo 'Alignment recipe not present; baseline unchanged.'
+          fi
+      - name: Commit verified documentation only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          INPUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd repository
+          if ! test -f scripts/close_prd_revision_016.py; then exit 0; fi
+          python3 scripts/close_prd_revision_016.py --verify
+          git diff --check
+          if test -z "$(git status --porcelain)"; then exit 0; fi
+          python3 scripts/close_prd_revision_016.py --check-write-scope
+          git add -- docs specs scripts 需求
+          git -c user.name='NPDMS documentation automation' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'docs: align PRD revision 016, affected designs and derived traceability'
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          REMOTE_SHA=$(git -c "http.extraHeader=$AUTH_HEADER" ls-remote origin refs/heads/docs/prd-v1.8-p0-p1-fixes | cut -f1)
+          test "$REMOTE_SHA" = "$INPUT_SHA"
+          git -c "http.extraHeader=$AUTH_HEADER" push origin HEAD:refs/heads/docs/prd-v1.8-p0-p1-fixes
+          unset AUTH_HEADER GH_TOKEN
