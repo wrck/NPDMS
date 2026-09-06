@@ -430,3 +430,22 @@ SUMMARY: 4 Phase 2 validation issues
 16项PRD整改及对应SDS规则、13领域派生与追溯来源一致性已按本节检查复核。Phase 1/2/3仍为REVALIDATION_REQUIRED / BLOCKED_BY_PRD_DELTA；旧校验器中要求修订007批准的断言不构成本轮放行证据。剩余物理契约、迁移、独立设计复审及运行验收须按当前Gate逐项提交证据。
 8个受影响Feature保留Spec差量标记；原Feature Task及Delivery Unit的历史字节保持不变。不把旧FULL+Done投影为新基线COMPLETE。
 一次性修订脚本及9个传输片段在本轮成功提交中删除；保留正式生成器、26项静态检查及回归测试。临时远端执行工作流由本轮结束前移除。
+
+## 6. 当前基线检查结果（最终）
+
+本节更新第5节的基线检查器结果。旧检查器固定匹配修订前工作台句式，现按TemplateStageDefinition/TemplateTaskDefinition、阶段与任务主绑定、原生执行、真实领域视图、任意深度、完成守卫、目标准入及权限边界检查；历史模型检查仍保留。新增反向用例证明删除图定义、放宽主绑定、固定树深、通用摘要替代业务、完成绕过及模板越权均被拒绝。没有修改PRD业务规则或清除任何工程Gate。
+
+| 检查命令 | 结果 | 摘要 |
+|---|---|---|
+| `/usr/bin/python3 -m unittest discover -s scripts/tests -p test_prd_workbench_contract.py -v` | PASS | Ran 8 tests in 0.019s |
+| `/usr/bin/python3 -m unittest discover -s scripts/tests -p test_generate_requirement_traceability.py -v` | PASS | Ran 10 tests in 1.206s |
+| `/usr/bin/python3 -m unittest discover -s scripts/tests -p test_prd_revision_016_alignment.py -v` | PASS | Ran 12 tests in 0.193s |
+| `/usr/bin/python3 scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --report docs/engineering/gates/phase-1/prd-revision-016-alignment.md --expected-version V1.8 --expected-status 正式基线` | PASS | PASS] 差异报告SHA-256: 当前=DF80A00713FDF63466DD0660C8ABD898424479E2F309C64EFDCD74C3624F1D2C；SUMMARY: 73 passed, 0 failed, 73 total |
+| `/usr/bin/python3 scripts/validate_prd_semantics.py --prd docs/baseline/prd-v1.8.md` | PASS | PASS] PRD semantic quality: all formal requirements；SUMMARY: 0 semantic issues |
+| `/usr/bin/python3 scripts/validate_prd_revision_016_alignment.py` | PASS | PASS] STATIC COM_CLOSED_STAGE；PASS] STATIC GRAPH_CONTRACT |
+| `/usr/bin/python3 scripts/validate_prd_domain_generation.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains` | PASS | PASS] 13 domain files; formal=100; v3=31; out_of_scope=9；PASS] PRD format sections, unique ownership, integration split and confirmed rules |
+| `/usr/bin/python3 scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md --check` | PASS | PASS] requirement traceability is current: docs/traceability/requirement-matrix.md / docs/traceability/requirement-version-coverage.json |
+| `/usr/bin/python3 scripts/generate_phase2_contract_map.py --prd docs/baseline/prd-v1.8.md --check` | PASS | PASS] Phase 2 contract map: docs/traceability/phase2-contract-map.md |
+| `git diff --check` | PASS | 退出码0 |
+
+PRD、领域生成、追溯生成与文档回归检查通过。第5节Phase 1/2/3全门禁未通过结果仍有效：独立复审、物理/迁移证据和运行验收未完成，不得解读为APPROVED、Implementation Done或Release GO。
