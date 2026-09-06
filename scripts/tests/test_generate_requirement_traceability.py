@@ -6,6 +6,8 @@ import sys
 import tempfile
 import unittest
 import json
+import hashlib
+import re
 from pathlib import Path
 
 
@@ -112,16 +114,26 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
     def test_current_prd_rebaseline_status_is_generator_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "requirement-matrix.md"
-
             result = self.run_generator(output, check=False)
-
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
             content = output.read_text(encoding="utf-8")
-            self.assertIn("CHG-PRD-2026-08-28-005", content)
-            self.assertIn("CHG-PRD-2026-08-29-006", content)
-            self.assertIn("CHG-PRD-2026-08-29-007", content)
-            self.assertIn("111个正式目标版本切片", content)
-            self.assertIn("VS-001～VS-011均已裁决关闭", content)
+            data = json.loads(output.with_name("requirement-version-coverage.json").read_text())
+            raw = PRD.read_bytes()
+            revisions = re.findall(r"(?m)^\|\s*V1\.8修订(\d+)\s*\|[^\n]*?`(CHG-PRD-\d{4}-\d{2}-\d{2}-\d+)`", raw.decode("utf-8-sig"))
+            revision, change = max(revisions, key=lambda item: int(item[0]))
+            expected_blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+            self.assertEqual(revision.zfill(3), data["baselineIdentity"]["revision"])
+            self.assertEqual(change, data["baselineIdentity"]["changeId"])
+            self.assertEqual(expected_blob, data["baselineIdentity"]["gitBlob"])
+            self.assertEqual("docs/baseline/prd-v1.8.md", data["baselineIdentity"]["path"])
+            self.assertIn(change, content)
+            self.assertIn(expected_blob, content)
+            self.assertNotIn("当前规格阻断：无", content)
+            for phase, values in data["engineeringGates"].items():
+                source = (REPOSITORY_ROOT / values["source"]).read_text()
+                match = re.search(r"(?m)^>\s*当前结论：`([^`]+)`", source)
+                self.assertIsNotNone(match, phase)
+                self.assertEqual(match.group(1), values["当前结论"])
 
     def test_customer_and_asset_feature_contracts_are_generator_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -145,33 +157,32 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
     def test_requirement_slice_statuses_are_derived_from_feature_coverage_and_tasks(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "requirement-matrix.md"
-            shutil.copyfile(MATRIX, output)
-            shutil.copyfile(COVERAGE, output.with_name("requirement-version-coverage.json"))
-
             result = self.run_generator(output, check=False)
-
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            content = output.read_text(encoding="utf-8")
-            for slice_key in (
-                "PM-01@V1",
-                "PM-03@V1",
-                "PM-04@V1",
-                "PM-07@V1",
-                "PM-08@V1",
-                "PM-11@V1",
-                "PRE-04@V1",
-                "SOL-01@V2",
-                "CUS-03@V1",
-            ):
-                row = self.requirement_row(content, slice_key)
-                self.assertIn("IMPLEMENTATION_PARTIAL", row)
-            for slice_key in ("PM-02@V1", "PM-10@V1", "PRE-01@V1", "PRE-02@V1", "PLT-02@V1"):
-                self.assertIn("IMPLEMENTATION_COMPLETE", self.requirement_row(content, slice_key))
-            self.assertIn("NOT_STARTED", self.requirement_row(content, "PM-08@V2"))
-            asset_row = self.requirement_row(content, "EQP-01@V1")
-            self.assertIn("F-AST-001 Task", asset_row)
-            self.assertIn("IN_PROGRESS", asset_row)
-            self.assertTrue(asset_row.endswith("| NOT_STARTED | NOT_STARTED |"), asset_row)
+            data = json.loads(output.with_name("requirement-version-coverage.json").read_text())
+            rows = {row["sliceKey"]: row for row in data["slices"]}
+            for key in ("PM-01@V1", "PM-03@V1", "PM-08@V1", "PM-11@V1", "PM-02@V1", "PM-10@V1", "PLT-02@V1", "COM-01@V1"):
+                self.assertTrue(any(feature["revalidationRequired"] for feature in rows[key]["features"]), key)
+                self.assertEqual("REVALIDATION_REQUIRED", rows[key]["implementationStatus"], key)
+            for key in ("PM-04@V1", "PM-07@V1", "PRE-04@V1", "SOL-01@V2", "CUS-03@V1"):
+                self.assertEqual("IMPLEMENTATION_PARTIAL", rows[key]["implementationStatus"], key)
+            for key in ("PRE-01@V1", "PRE-02@V1"):
+                self.assertEqual("IMPLEMENTATION_COMPLETE", rows[key]["implementationStatus"], key)
+            self.assertEqual("NOT_STARTED", rows["PM-08@V2"]["implementationStatus"])
+            self.assertTrue(any(feature["taskStatus"] == "COMPLETE" for feature in rows["PM-02@V1"]["features"]))
+
+    def test_absolute_and_relative_prd_paths_produce_same_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "requirement-matrix.md"
+            result = self.run_generator(output, check=False)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            absolute_md = output.read_bytes()
+            absolute_json = output.with_name("requirement-version-coverage.json").read_bytes()
+            command = [sys.executable, str(SCRIPT), "--prd", "docs/baseline/prd-v1.8.md", "--domains", str(DOMAINS), "--output", str(output), "--coverage-output", str(output.with_name("requirement-version-coverage.json")), "--feature-index", str(FEATURE_INDEX)]
+            result = subprocess.run(command, cwd=REPOSITORY_ROOT, text=True, capture_output=True)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual(absolute_md, output.read_bytes())
+            self.assertEqual(absolute_json, output.with_name("requirement-version-coverage.json").read_bytes())
 
     def test_coverage_json_contains_all_111_unique_slices(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

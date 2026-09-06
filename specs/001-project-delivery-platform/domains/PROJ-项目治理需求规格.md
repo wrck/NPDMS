@@ -246,7 +246,7 @@ ProjectStage和ProjectTask均可绑定特定业务实体。`WorkBinding`选择�
 - **THEN** 直签模板配置初验后终验，非直签模板只配置终验；有效终验和模板要求的交付件齐套后方可完成S5
 
 - **WHEN** 创建售前测试项目并完成EXE-03/04的适用要求
-- **THEN** 系统只存在S0/S4阶段，不要求安装完成事实、终验或S6，按CLO-01/02从S4闭环而不补造任务。
+- **THEN** 平台仅生成S0/S4阶段实例，保存EXE-03/04真实完成证据和closed_from_stage=S4；不要求安装完成事实、终验或S6，按CLO-01/02闭环且不生成虚假任务。
 
 **涉及数据字段：**
 模板编码/版本/状态、四维匹配条件、阶段定义编码及版本、模板阶段ID、开始/收口标识、StageTransitionDefinition（来源阶段/目标阶段/条件/优先级/默认分支/版本）、任务定义及父任务、阶段/任务交付件要求（归属范围/类型/必传标识/数量/来源/确认审批要求/版本）、WorkBinding归属、绑定类型、业务实体类型、实例解析策略、目标引用映射、BusinessViewKey、组件/表单版本、上下文参数、PermissionPolicy、CompletionRule、GateRef、里程碑、BPM流程定义key、模板冻结快照、发布/停用人与时间
@@ -574,9 +574,9 @@ PM-10只承载项目责任回退和异常关闭。回退用于将无法继续由
 - **WHEN** 工程管理部对不存在未处置在途对象和后代项目的异常项目确认关闭
 - **THEN** 平台保存依据及遗留事项快照，写入`lifecycle_status=EXCEPTION_CLOSED`、`closure_type=EXCEPTION`和`closed_from_stage`，且不计入业务闭环数量
 - **WHEN** 项目实施方式为代理商自服且用户希望不再跟踪
-- **THEN** PM-10不得直接关闭；平台应引导使用CLO-01/02的不予跟踪闭环路径
+- **THEN** PM-10保持项目ACTIVE并返回CLO-01/02不予跟踪闭环入口与资格说明，记录本次拒绝，不直接写入终态
 - **WHEN** 有权人员通过PM-10重开项目
-- **THEN** 仅`EXCEPTION_CLOSED`可以恢复为ACTIVE；`NORMAL_CLOSED`和`NO_TRACKING_CLOSED`均被拒绝
+- **THEN** 仅`EXCEPTION_CLOSED`可以更新为ACTIVE并记录重开依据；`NORMAL_CLOSED`和`NO_TRACKING_CLOSED`保持原状态，重开请求被拒绝且留痕
 
 **涉及数据字段：**
 当前阶段、生命周期状态、指派状态、闭环类型、闭环来源阶段、归档标识、操作人、操作时间、回退原因、异常关闭原因、业务依据、遗留事项及在途对象处置快照

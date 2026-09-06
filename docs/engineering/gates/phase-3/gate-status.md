@@ -1,7 +1,7 @@
 # SDS Phase 3 Review
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
-> PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`<br>
+> PRD Blob：`4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`<br>
 > 当前依据：PRD V1.8修订001—012、014—016正式基线；Phase 1/2均待差量复核<br>
 > 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_SDS_BASELINE_V1.8`（历史证据）<br>
 > 当前结论：`BLOCKED_BY_PRD_DELTA`<br>

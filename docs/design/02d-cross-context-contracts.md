@@ -39,6 +39,13 @@
 | `KnowledgePublicProductInfoQueryApi` | EQP-01 | KNO | AST | 按产品/设备映射查询已发布官网信息版本、来源URL、核验时间和摘要；无记录返回NOT_AVAILABLE |
 | `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
 | `ProjectStageGateProcessOwnerApi` | PM-03@V1 | PMS Integration / Flowable | Project | 位于`pms-module-project-api`，由`pms-module-integration`实现；提供按`processDefinitionKey`检查当前生效定义、列出同租户可启动历史定义身份，以及按“冻结key + 可空显式processDefinitionId”启动Gate流程的反腐适配。PROJ对查询和启动均先重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`，不复用需要BPM全局定义查询权限的管理端接口；Provider只返回同key的`processDefinitionId/processDefinitionKey/name/selectable`。未显式选择时由BPM按key选取最新生效定义；显式选择时必须验证定义ID属于同一key且可启动。启动按固定businessKey/变量返回流程实例及实际定义ID；服务端设置Flowable authenticated initiator、start-user及RUNNING状态。既有Gate Reference `refVersion`仅保留历史且不得参与调用，不新增PMS流程版本接口、字段或解析规则，也不得修改Yudao接口或实现。 |
+| ProjectStageAdvanceCommand | PM-03 | Project | Project | Project/tree/graph/scope版本；当前完成及准出→唯一冻结转移→目标准入→原子推进。目标由服务端解析，不按S编号加一。 |
+| ProjectScopeAppendApplied | PM-06、COM-01、ACC-03 | Commerce / Project orchestration | Project / Acceptance & Closure | COM拥有数量和范围水位；同一projectId的新精确范围、任务、绑定及门禁同事务生效。旧A验收不自动覆盖A+B。 |
+| AcceptanceReportQualificationFact | ACC-03、CLO-01 | Acceptance & Closure | Project / Closure | reportVersion、reportEvidenceValid、acceptancePassed、scopeVersion、精确范围和文件版本分别保存；字段完整不等于验收通过。 |
+| ProjectTypedClosureCommand | CLO-01、CLO-02、PM-10 | Acceptance & Closure / Project governance | Project | closureType、closedFromStage、最新Gate和BPM实际定义及项目版本；CLO-02/PM-10为唯一业务入口，事件不代替终态命令。 |
+| ApprovedImplementationCommandSnapshot | EXE-03、INT-12 | Implementation Execution | Device Access & Collection | 仅EXE-03受信批准记录/版本/哈希/设备/主体范围；DAC重验。独立中心、CUT、INS仍需要已发布命令模板。 |
+| CutoverChecklistCollectionBinding | CUT-03、INT-12 | Cutover | Device Access & Collection / Cutover | taskId、checklistVersion、itemId、deviceId、CollectionTask及resultVersion精确绑定；技术回调只提供证据，CUT判定业务通过。 |
+| AuthenticatedFileCallback | PLT-02、INT-12 | Authenticated integration caller | Platform file service | 来源身份、契约验签、任务/对象权限、大小/类型/哈希和幂等同时校验；幂等键不能替代认证。 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 
@@ -54,14 +61,6 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 
 ## 修订016差量契约
 
-| 契约 | 必要输入/输出 | 成功与禁止边界 |
-|---|---|---|
-| PROJ阶段推进 | Project/tree/graph/scope版本、当前CompletionRule、出向转移及源/目标Gate、Owner事实版本 | 顺序及原子性见05；目标服务端唯一解析，不按S编号加一 |
-| COM范围追加→PROJ/ACC | projectId、baseScopeVersion、新范围版本、精确明细及批准变化 | 数量/水位由COM拥有；任务/绑定/当前门禁同事务更新；模型见08 |
-| ACC验收报告Fact | reportVersion、reportEvidenceValid、acceptancePassed、scopeVersion、精确覆盖和文件版本 | 字段/文件完整不等于通过；旧A不能自动覆盖A+B，见08 |
-| CLO终态命令及事件 | closureType、closedFromStage、最新Gate快照、实际BPM定义、Project版本 | CLO-02/PM-10唯一业务入口；事件只通知已提交事实，见05/11 |
-| IMP→DAC命令来源 | EXE-03批准业务快照的来源/版本/哈希/批准依据/设备/主体范围 | DAC重验；独立中心/CUT/INS仍需发布模板；见12 |
-| CUT P3→DAC→CUT | taskId、checklistVersion、itemId、deviceId、CollectionTask/resultVersion | 技术回调只生成证据，CUT决定业务通过；见12 |
-| 外部文件回调 | 来源认证、契约签名、任务/对象授权、大小/类型/哈希、幂等 | 所有校验同时成立，不能用幂等键代验签，见13 |
+修订016契约已合并至本文件上方唯一契约表，分别列明Requirement、Producer、Consumer和语义；详细字段与事务见05、08、12、13分册。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

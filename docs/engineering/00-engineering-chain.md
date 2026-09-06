@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—012、014—016；当前PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`）；修订001—007的独立批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`，修订008—016以PRD修订记录和Git历史为准<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—012、014—016；当前PRD Blob：`4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`）；修订001—007的独立批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`，修订008—016以PRD修订记录和Git历史为准<br>
 > 工程适配状态：本工程链已识别修订008—016的工程影响；Phase 1/2/3基于修订007的旧批准仅作历史证据，当前状态须按受影响范围完成差量重验证<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>

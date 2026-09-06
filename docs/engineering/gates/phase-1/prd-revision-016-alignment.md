@@ -2,6 +2,7 @@
 
 > 状态：`DOCUMENT_STATIC_ALIGNMENT_VERIFIED`；独立设计复审、物理契约复核及运行验收仍由当前Gate控制。
 > PRD变更：`CHG-PRD-2026-09-06-016`；输入PRD Blob：`37c709bf49ce3813042b650eea44050537cec4e0`；输出PRD Blob：`ebd8f115566e0eacb20294f1b261a37f8ff81d12`。
+> 当前复核PRD Blob：`4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`；SHA-256：`df80a00713fdf63466dd0660c8abd898424479e2f309c64efdcd74c3624f1d2c`。
 > 输入提交：`992731aaab3e5d1d8e61e27f256524ff372bdff3`；业务基准：`641538d67d2a6b6705b1b9c04f245c18adaaffe8`。
 > 授权范围：本轮需求方明确要求PRD正文、追溯投影与受影响设计共同修订；未请求也未执行master合并、应用代码改写或部署。
 
@@ -47,7 +48,7 @@
 
 上述标记不撤销历史Implementation Done，也不把文档修订当作新实现完成。没有对应Feature的ACC/CLO/INS等义务继续显示实际未开始/未覆盖状态，不能用一个旧Feature的FULL覆盖新语义。
 
-## 4. 实际执行的检查
+## 4. 首轮实际检查（历史；当前结果见末节）
 
 | 命令 | 退出码 | 结果 |
 |---|---|---|
@@ -254,3 +255,178 @@ F-PROJ-008图/目标准入及F-COM-001非S6闭环资格的目标合同已修正�
 - `specs/features/F-PROJ-008-physical-contract.json`
 - `specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
 - `specs/features/README.md`
+
+
+## 5. 最终文档复核（修订016）
+
+本节是当前结果；第4节保留首轮失败证据。修正验收条款的可观察输出、跨域契约表的唯一Producer/Consumer结构、生成器绝对/相对路径一致性及原有V2业务义务。未把Gate改为APPROVED/GO，也未执行业务代码、数据库、浏览器、真实集成或部署。
+
+| 命令 | 退出码 | 当前结果 |
+|---|---|---|
+| `/usr/bin/python3 -m unittest discover -s scripts/tests -p test_generate_requirement_traceability.py -v` | 0 | PASS |
+| `/usr/bin/python3 -m unittest discover -s scripts/tests -p test_prd_revision_016_alignment.py -v` | 0 | PASS |
+| `/usr/bin/python3 scripts/validate_prd_revision_016_alignment.py` | 0 | PASS |
+| `/usr/bin/python3 scripts/validate_prd_semantics.py --prd docs/baseline/prd-v1.8.md` | 0 | PASS |
+| `/usr/bin/python3 scripts/validate_prd_domain_generation.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains` | 0 | PASS |
+| `/usr/bin/python3 scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md --check` | 0 | PASS |
+| `/usr/bin/python3 scripts/generate_phase2_contract_map.py --prd docs/baseline/prd-v1.8.md --check` | 0 | PASS |
+| `/usr/bin/python3 scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --report docs/engineering/gates/phase-1/prd-revision-016-alignment.md --expected-version V1.8 --expected-status 正式基线` | 1 | NOT_PASSED |
+| `/usr/bin/python3 scripts/validate_sds_phase1.py` | 1 | NOT_PASSED |
+| `/usr/bin/python3 scripts/validate_sds_phase2.py` | 1 | NOT_PASSED |
+| `/usr/bin/python3 scripts/validate_sds_phase3.py` | 1 | NOT_PASSED |
+
+### 当前未通过：`/usr/bin/python3 scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --report docs/engineering/gates/phase-1/prd-revision-016-alignment.md --expected-version V1.8 --expected-status 正式基线`
+
+```text
+[PASS] 文档版本: 期望 V1.8
+[PASS] 文档状态: 期望 正式基线
+[PASS] 活动未决标记: 0项
+[PASS] 需求编号唯一: 解析100项；重复=无
+[PASS] 逐项版本归属: 缺少=无
+[PASS] V3与正式正文分离: 仍在详细需求块=无
+[PASS] V1/V2字段-用户角色: 缺少0项：无
+[PASS] V1/V2字段-目标版本: 缺少0项：无
+[PASS] V1/V2字段-业务场景/描述: 缺少0项：无
+[PASS] V1/V2字段-核心业务规则: 缺少0项：无
+[PASS] V1/V2字段-用户故事: 缺少0项：无
+[PASS] V1/V2字段-业务验收标准: 缺少0项：无
+[PASS] V1/V2字段-涉及数据: 缺少0项：无
+[PASS] V1/V2字段-权限与数据范围: 缺少0项：无
+[PASS] V1/V2字段-异常降级留痕: 缺少0项：无
+[PASS] V1/V2字段-依赖关系: 缺少0项：无
+[PASS] V1/V2验收可观察: 缺少WHEN/THEN=无
+[PASS] V1/V2验收归属正确: 验收条款必须位于对应需求块并包含WHEN/THEN
+[PASS] 排除能力未进入正式需求: 冲突=无
+[PASS] V3演进章节: 要求存在二级章节‘V3演进范围’
+[PASS] V3无当前验收承诺: V3只保留目标、范围、前置条件和演进方向
+[PASS] 排除清单完整: 缺少=无
+[PASS] 正式索引存在: 索引100项
+[PASS] 正式索引与正文一致: 索引100项/正文100项
+[PASS] 附录A.2正式需求统计一致: 期望={'V1/V2正式需求总数': 100, 'V1主版本需求': 53, 'V2主版本需求': 47}；实际={'V1/V2正式需求总数': 100, 'V1主版本需求': 53, 'V2主版本需求': 47}
+[PASS] Requirement目标版本切片完整: 主切片=100；补充=11；总计=111；V1=53；V2=58；重复=无
+[PASS] 附录A.2目标版本切片统计一致: 期望={'Requirement目标版本切片总数': 111, 'V1目标版本切片': 53, 'V2目标版本切片': 58}；实际={'Requirement目标版本切片总数': 111, 'V1目标版本切片': 53, 'V2目标版本切片': 58}
+[PASS] 文末基线版本一致: 文末应声明PRD V1.8正式基线
+[PASS] 文末正式需求数一致: 正文=100项
+[PASS] 文末主版本统计一致: V1=53、V2=47
+[PASS] 文末目标版本切片统计一致: 期望总计111、V1 53、V2 58
+[PASS] INT-12进入正式索引: INT-12必须为V1公共能力
+[PASS] 排除编号未进正式索引: WO-07/WO-11仅用于排除追溯
+[PASS] V1.8演进统计: 编号V3=31；跨需求=5；缺少=无
+[PASS] 配置基础前置与明确延期例外: 动态模板/表单/匹配配置须前置；正文明确延期保持原版本；不得保留未定义V2效率增强
+[PASS] V1.8退出需求边界: ACC-05仅进入V3；COM-02/IMP-02不得进入正式或V3索引
+[PASS] V1.8项目状态分层: 必需标记=current_stage,lifecycle_status,NORMAL_CLOSED,EXCEPTION_CLOSED,派生展示状态
+[PASS] CUT流程-CUT-01核心任务保留: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-CUT-11退出当前范围: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-问卷人工判级: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-P3配置缺口不阻断: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-完整方案轻量校验: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-P5否项驳回: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-专项提前时间自然日: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-保障人员受控修改: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-P6提交即归档: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-无步骤观察扩张: 割接流程必须符合0807流程设计及已确认业务决策
+[PASS] CUT流程-无遗留项归档阻断: 割接流程必须符合0807流程设计及已确认业务决策
+[FAIL] 工作台-模板定义StageTask绑定: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-不重复配置业务导航: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 工作台-WorkBinding类型完整: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-WorkBinding统一必填: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-StageTask导航不限制树深: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-通用任务详情基础能力: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-绑定任务按关系执行: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-通用详情不替代绑定业务: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 工作台-项目概览六页签: 项目工作区与割接工作台必须符合已确认线框设计
+[FAIL] 工作台-任务完成按绑定类型判定: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 工作台-割接入口与五步工作台: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 工作台-CUT03同一P3工作台: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 工作台-采集结果不等于业务通过: 项目工作区与割接工作台必须符合已确认线框设计
+[PASS] 集成清单分层: 外部系统与平台组件必须分开计数
+[PASS] CRM统一命名: SMS不得作为独立外部系统
+[PASS] PMS内部边界: PMS不得作为外部系统
+[PASS] 采集平台组件边界: 采集平台作为平台组件/子应用
+[PASS] 核心对象索引: 缺少=无
+[PASS] 附录C不含工单核心对象: 工单已退出V1/V2核心对象；附录C必须与正文3.3一致
+[PASS] 附录C满意度核心对象: 必须唯一列出满意度任务与问卷并以正式需求ACC-02为主要来源
+[PASS] V1/V2语义质量: 问题0项；需求=无
+[PASS] 差异报告PRD版本: 报告应登记V1.8
+[PASS] 差异报告SHA-256: 当前=DF80A00713FDF63466DD0660C8ABD898424479E2F309C64EFDCD74C3624F1D2C
+SUMMARY: 63 passed, 8 failed, 71 total
+```
+
+### 当前未通过：`/usr/bin/python3 scripts/validate_sds_phase1.py`
+
+```text
+[FAIL] docs/design/01-requirement-traceability.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02-domain-model.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02a-context-map.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02b-aggregate-boundary-decisions.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02c-data-ownership-matrix.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02d-cross-context-contracts.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/02e-version-scope-matrix.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/04-module-design.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/05-state-machine.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/06-workflow-design.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] docs/design/07-authorization-design.md missing current Phase 1 metadata: > 文档状态：`BASELINE`
+[FAIL] SDS master Phase 1 summary missing markers: ['| SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |']
+[FAIL] Phase 1 gate README missing markers: ['APPROVED / READY_FOR_PHASE_2_V1.8', '111个目标版本切片']
+[FAIL] Phase 1 gate missing markers: ['审查状态：`APPROVED`', '结论：`READY_FOR_PHASE_2_V1.8`', '需求方批准：`GO`', '机器门禁：`PASS`']
+[FAIL] Phase 1 gate must keep one exact revision 007 APPROVED/READY/GO metadata set without pending claims
+```
+
+### 当前未通过：`/usr/bin/python3 scripts/validate_sds_phase2.py`
+
+```text
+[FAIL] V1.8 Phase 2 gate conclusion must be: NOT_READY_FOR_PHASE_3_REVISION_007
+[FAIL] V1.8 Phase 2 gate missing token: AI-MIG-000
+[FAIL] V1.8 Phase 2 contract map missing marker: Phase 3验证注记状态：`REVALIDATION_REQUIRED`
+[FAIL] Phase 2 migration gate evidence does not match current contract: docs/engineering/gates/phase-2/gate-status.md expected=93对象/104来源绑定/1排除源
+SUMMARY: 4 Phase 2 validation issues
+```
+
+### 当前未通过：`/usr/bin/python3 scripts/validate_sds_phase3.py`
+
+```text
+[FAIL] Phase 3 gate has invalid review state: REVALIDATION_REQUIRED
+[FAIL] Phase 3 gate conclusion mismatch; expected=READY_FOR_SDS_BASELINE_V1.8 actual=None
+[FAIL] Phase 3 approved gate missing required token: 111个目标版本切片
+[FAIL] 14-security-design.md missing metadata: 文档状态：`BASELINE`
+[FAIL] 20-test-design.md missing metadata: 文档状态：`BASELINE`
+[FAIL] contract map missing marker: Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`
+[FAIL] PM-03 declares unknown domain object: ProjectTemplateVersion
+[FAIL] PM-03 declares unknown domain object: StageTransitionDefinition
+[FAIL] PM-03 declares unknown domain object: Stage/TaskWorkBinding
+[FAIL] PM-03 declares unknown target table for its objects: 既有proj_project_template_revision
+[FAIL] PM-03 declares unknown target table for its objects: proj_project_template_task_definition
+[FAIL] PM-03 declares unknown target table for its objects: proj_project_stage_snapshot；图与Stage绑定的复用或新增物理差量见09分册及受影响Feature，未重验证不得声称NO_PHYSICAL_DELTA
+[FAIL] PM-11 declares unknown domain object: ProjectStage/ProjectTask
+[FAIL] PM-11 declares unknown domain object: Stage/TaskWorkBinding
+[FAIL] PM-11 declares unknown domain object: CompletionRule
+[FAIL] PM-11 declares unknown domain object: 任务树及依赖
+[FAIL] PM-11 declares unknown target table for its objects: proj_project_task
+[FAIL] PM-11 declares unknown target table for its objects: proj_project_task_execution_contract
+[FAIL] PM-11 declares unknown target table for its objects: proj_project_task_completion_evaluation
+[FAIL] PM-11 declares unknown target table for its objects: proj_task_tree_path
+[FAIL] PM-11 declares unknown target table for its objects: proj_task_dependency
+[FAIL] PM-06 declares unknown domain object: ContractScopeAppendRequest
+[FAIL] PM-06 declares unknown domain object: COM ProjectScopeVersion引用
+[FAIL] PM-06 declares unknown domain object: 范围差异与逐阶段影响
+[FAIL] PM-06 declares unknown target table for its objects: PROJ追加申请及COM唯一范围水位/分配；物理复用/新增/兼容处置见09分册，旧多期群组不作为当前输入
+[FAIL] ACC-03 declares unknown domain object: AcceptanceReportRevision
+[FAIL] ACC-03 declares unknown domain object: 验收结论及精确范围/来源证据引用
+[FAIL] ACC-03 declares unknown target table for its objects: acc_acceptance
+[FAIL] ACC-03 declares unknown target table for its objects: acc_acceptance_item
+[FAIL] ACC-03 declares unknown target table for its objects: acc_confirmation
+[FAIL] Phase 3 gate missing required token: P3-E02
+[FAIL] Phase 3 gate missing required token: P3-E03
+[FAIL] Phase 3 gate missing required token: P3-E04
+[FAIL] Phase 3 gate missing required token: P3-E05
+[FAIL] Phase 3 gate missing required token: P3-E06
+[FAIL] Phase 3 gate missing required token: P3-E08
+[FAIL] Phase 3 gate missing required token: DOWNSTREAM-GATED
+[FAIL] Phase 3 gate missing required token: MODEL_BASELINE_READY
+```
+
+### 关闭边界
+
+16项PRD整改及对应SDS规则、13领域派生与追溯来源一致性已按本节检查复核。Phase 1/2/3仍为REVALIDATION_REQUIRED / BLOCKED_BY_PRD_DELTA；旧校验器中要求修订007批准的断言不构成本轮放行证据。剩余物理契约、迁移、独立设计复审及运行验收须按当前Gate逐项提交证据。
+8个受影响Feature保留Spec差量标记；原Feature Task及Delivery Unit的历史字节保持不变。不把旧FULL+Done投影为新基线COMPLETE。
+一次性修订脚本及9个传输片段在本轮成功提交中删除；保留正式生成器、26项静态检查及回归测试。临时远端执行工作流由本轮结束前移除。
