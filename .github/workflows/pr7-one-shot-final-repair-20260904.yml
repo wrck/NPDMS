@@ -1,15 +1,43 @@
-name: "PR #7 deterministic final repair (retired)"
+name: "PR #7 read-only audit snapshot (temporary)"
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/code-fact-chronological-integration-acc-int-cut-20260904
+    paths:
+      - .github/workflows/pr7-one-shot-final-repair-20260904.yml
 
 permissions:
   contents: read
 
 jobs:
-  retired:
-    name: Repair workflow retired
+  audit:
+    name: Capture source and governance regression evidence
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - name: Confirm retired state
-        run: echo "The reviewed duplicate-helper repair has been applied; this temporary workflow is pending deletion."
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Capture audited Git objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/pr7-audit"
+          git bundle create "${RUNNER_TEMP}/pr7-audit/repository.bundle" HEAD refs/remotes/origin/master
+          git diff --stat origin/master...HEAD > "${RUNNER_TEMP}/pr7-audit/diff-stat.txt"
+          git rev-parse HEAD origin/master > "${RUNNER_TEMP}/pr7-audit/revisions.txt"
+      - name: Execute all Python governance tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/tests -v 2>&1 | tee "${RUNNER_TEMP}/pr7-audit/python-tests.log"
+      - name: Preserve source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr7-audit-source
+          path: ${{ runner.temp }}/pr7-audit
+          if-no-files-found: error
+          retention-days: 7
