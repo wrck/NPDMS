@@ -153,6 +153,8 @@ export interface DeliveryScopePreviewReqVO {
   expectedOrderLineSourceVersion: string
   proposedQuantity: number
   serialNumbers: string[]
+  deliveryScopeId?: number
+  expectedAllocationVersion?: number
 }
 
 export interface DeliveryScopePreviewResult {
@@ -182,7 +184,7 @@ export interface DeliveryScopePreviewResult {
 
 export interface DeliveryScopeAssignReqVO extends Omit<
   DeliveryScopePreviewReqVO,
-  'expectedProjectVersion' | 'proposedQuantity'
+  'expectedProjectVersion' | 'proposedQuantity' | 'deliveryScopeId' | 'expectedAllocationVersion'
 > {
   allocatedQuantity: number
   reason: string

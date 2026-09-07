@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.commerce.service.contract;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
@@ -74,8 +75,9 @@ class ContractRelationCommandServiceTest {
                 new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         when(organizationScopeApi.getActiveScopes(7L)).thenThrow(new IllegalStateException("down"));
 
-        assertThrows(IllegalStateException.class, () -> service.relate(new ContractRelationCommand(
+        ServiceException denied = assertThrows(ServiceException.class, () -> service.relate(new ContractRelationCommand(
                 1L, 7L, 99L, 100L, "RELATED", "op-1", "业务依据")));
+        assertEquals(403, denied.getCode());
 
         verifyNoInteractions(contractMapper, relationMapper, operationAuditApi);
     }
@@ -85,8 +87,9 @@ class ContractRelationCommandServiceTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(200L, 1L, Set.of(200L), Set.of()));
 
-        assertThrows(IllegalStateException.class, () -> service.relate(new ContractRelationCommand(
+        ServiceException denied = assertThrows(ServiceException.class, () -> service.relate(new ContractRelationCommand(
                 1L, 7L, 99L, 100L, "RELATED", "op-1", "业务依据")));
+        assertEquals(403, denied.getCode());
 
         verifyNoInteractions(organizationScopeApi, contractMapper, relationMapper, operationAuditApi);
     }

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.commerce.service.contract;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO;
@@ -26,6 +27,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 
 @Service
 @RequiredArgsConstructor
@@ -146,8 +149,8 @@ public class ContractAccessService {
         return limit;
     }
 
-    static IllegalStateException inaccessible() {
-        return new IllegalStateException("COMMERCE_RESOURCE_NOT_ACCESSIBLE");
+    static ServiceException inaccessible() {
+        return new ServiceException(FORBIDDEN);
     }
 
     public record ContractSearch(String companyCode, String contractNo, String contractType,

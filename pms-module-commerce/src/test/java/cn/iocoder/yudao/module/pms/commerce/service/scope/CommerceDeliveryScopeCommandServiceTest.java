@@ -138,7 +138,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(occupied));
 
         DeliveryScopePreviewResult result = service.preview(new DeliveryScopePreviewCommand(
-                1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2", new BigDecimal("15"), List.of()));
+                1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2", new BigDecimal("15"), List.of(), null, null));
 
         assertTrue(result.allowed());
         assertEquals(new BigDecimal("90"), result.availableQuantity());
@@ -149,6 +149,71 @@ class CommerceDeliveryScopeCommandServiceTest {
         verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
         verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
         verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldPreviewAdjustmentAgainstOtherAllocationsWithoutWrites() {
+        DeliveryScopeDO other = currentScope();
+        other.setId(402L);
+        other.setProjectId(502L);
+        other.setAllocatedQty(new BigDecimal("20"));
+        allowPreview(currentScope(), other);
+
+        DeliveryScopePreviewResult result = service.preview(previewCommand("80", 401L, 7L));
+
+        assertTrue(result.allowed());
+        assertEquals(new BigDecimal("30"), result.allocatedQuantity());
+        assertEquals(new BigDecimal("80"), result.availableQuantity());
+        assertTrue(service.preview(previewCommand("81", 401L, 7L)).validationErrors().contains("OVER_ALLOCATION"));
+        assertTrue(service.preview(previewCommand("10", null, null)).validationErrors()
+                .contains("DELIVERY_SCOPE_CURRENT_CONFLICT"));
+        verifyNoInteractions(detailMapper, outboxMapper, operationAuditApi, acceptanceScopeGuardApi);
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+    }
+
+    @Test
+    void shouldRejectForeignOrStaleAdjustmentPreviewTarget() {
+        DeliveryScopeDO other = currentScope();
+        other.setId(402L);
+        other.setProjectId(502L);
+        allowPreview(currentScope(), other);
+
+        for (DeliveryScopePreviewCommand command : List.of(previewCommand("10", 402L, 7L),
+                previewCommand("10", 401L, 6L), previewCommand("10", 999L, 7L))) {
+            ServiceException error = assertThrows(ServiceException.class, () -> service.preview(command));
+            assertEquals(COMMERCE_SCOPE_VERSION_CONFLICT.getCode(), error.getCode());
+        }
+        verifyNoInteractions(detailMapper, outboxMapper, operationAuditApi, acceptanceScopeGuardApi);
+    }
+
+    @Test
+    void shouldKeepAcceptanceGuardForReductionPreview() {
+        allowPreview(currentScope());
+        when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(
+                new AcceptanceScopeGuardResult(AcceptanceScopeGuardOutcome.LOCKED, 1, 701L, 401L, 7L));
+        assertTrue(service.preview(previewCommand("5", 401L, 7L)).validationErrors()
+                .contains("ACCEPTANCE_SCOPE_LOCKED"));
+
+        when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(null);
+        assertTrue(service.preview(previewCommand("5", 401L, 7L)).validationErrors()
+                .contains("ACCEPTANCE_SCOPE_UNKNOWN"));
+        verifyNoInteractions(detailMapper, outboxMapper, operationAuditApi);
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+    }
+
+    private void allowPreview(DeliveryScopeDO... scopes) {
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
+        when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
+                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(scopes));
+    }
+
+    private DeliveryScopePreviewCommand previewCommand(String quantity, Long scopeId, Long version) {
+        return new DeliveryScopePreviewCommand(1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2",
+                new BigDecimal(quantity), List.of(), scopeId, version);
     }
 
     @Test

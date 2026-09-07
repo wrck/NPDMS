@@ -224,7 +224,13 @@ const requestOf = () => {
     orderLineId: selectedLine.value.id,
     expectedOrderLineSourceVersion: selectedLine.value.sourceVersion,
     proposedQuantity: form.quantity,
-    serialNumbers: splitSerialNumbers(form.serialText)
+    serialNumbers: splitSerialNumbers(form.serialText),
+    ...(mode.value === 'adjust' && currentScope.value
+      ? {
+          deliveryScopeId: currentScope.value.id,
+          expectedAllocationVersion: currentScope.value.allocationVersion
+        }
+      : {})
   }
 }
 const preview = async () => {
