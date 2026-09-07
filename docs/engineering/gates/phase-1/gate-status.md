@@ -7,11 +7,11 @@
 > 当前输入：`docs/baseline/prd-v1.8.md`及修订018；旧Blob/报告只证明原范围<br>
 > 当前结论：`REVALIDATION_REQUIRED`<br>
 > 技术结论：`PENDING`<br>
-> 机器门禁：`PENDING`<br>
+> 机器门禁：`FAIL`<br>
 > 需求方批准：`PENDING`<br>
 > 独立复审：`PENDING`<br>
 > Gate Owner：`原SDS授权Owner；本轮ChatGPT仅执行修复、自审与机器验证，不代签独立批准`<br>
-> 当前设计差量：`docs/decisions/0045-template-business-rules-and-acceptance.md`及相关SDS修订018；尚未独立复审<br>
+> 当前设计差量：`docs/decisions/0045-template-business-rules-and-acceptance.md`及九份Phase 1分册已对齐修订018；受影响边界待独立复审<br>
 > 上次修复证据（修订017）：`docs/engineering/gates/phase-1/revision-017-review-remediation.md`
 
 ## 当前范围与结论边界
@@ -45,6 +45,14 @@
 | AI-MIG-000 | 仅实际历史迁移或数据切换适用；未执行且未授权 | 对应Release |
 
 ## 正式放行条件
+
+### 修订018项目级验收的本轮输入（2026-09-08）
+
+R2@`3d82db0b`已取得候选技术GO，仅关闭两项P2及其直接回归，记录见`../phase-2/input/template-acceptance-r2-independent-review.md`。当前Phase 1输入为[revision-018-template-acceptance-review.md](revision-018-template-acceptance-review.md)及02/02a/02b/02c/02d/04/05/06/07九份受影响正式分册；项目级主体、COM显式依赖、三类验收事实、可靠触发和权限边界已自审，尚未独立裁决。
+
+修改后运行`python -X utf8 -B scripts/validate_sds_phase1.py --technical`仍FAIL，仅报`carrier contract PRD identity is stale`；README入口问题已消除，其他检查未报错。陈旧身份位于Phase 2载体合同的PRD绑定，须随正式物理差量校准，不能仅替换身份冒充重验证。当前机器门禁如实记FAIL，本阶段维持REVALIDATION_REQUIRED，需求方和独立批准PENDING；不提前关闭Q或全量Gate。
+
+### 原有放行要求
 
 当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。
 

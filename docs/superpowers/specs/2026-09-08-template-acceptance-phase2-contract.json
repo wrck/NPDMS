@@ -763,9 +763,13 @@
   "revision": "R2",
   "review": {
     "taskId": "01a07ce8-42fa-7dd2-8991-094d0c15cc6c",
-    "reviewedCommit": "a606e3c44ea2f437856aba5cb02efd983868803b",
+    "reviewedCommit": "3d82db0ba0d12d99a334b91d4db1c03b4aa787fd",
+    "previousReviewCommit": "a606e3c44ea2f437856aba5cb02efd983868803b",
     "previousVerdict": "NO_GO",
-    "currentVerdict": "PENDING",
+    "currentVerdict": "GO",
+    "approvedCommit": "3d82db0ba0d12d99a334b91d4db1c03b4aa787fd",
+    "evidencePath": "docs/engineering/gates/phase-2/input/template-acceptance-r2-independent-review.md",
+    "scopeOfGo": "R2 remaining two P2 items and direct regressions only; not formal SDS/Phase/Q/Schema/Feature approval",
     "scope": ["R2-01_SHARED_REPORT_ARCHIVE_IDENTITY","R2-02_CAPTURE_KEY_EVENT_ID_SEPARATION"],
     "resolvedInR1": ["R1-01_LOCK_ORDER","R1-02_REPORT_LIFECYCLE","R1-03_SCOPE_PROTECTION"],
     "history": [{"reviewedCommit":"c18e5959e70ea2eef17a815b56067e4612842d6f","verdict":"NO_GO","scope":["R1-01_LOCK_ORDER","R1-02_REPORT_LIFECYCLE","R1-03_SCOPE_PROTECTION","R1-04_MULTI_TARGET_QUERY","R1-05_DURABLE_BPM_CAPTURE"]}]

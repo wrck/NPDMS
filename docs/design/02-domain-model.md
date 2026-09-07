@@ -1,7 +1,7 @@
 # SDS Phase 1：领域模型
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -37,6 +37,7 @@
 |---|---|
 | Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；模板匹配前必须形成确定属性输入，匹配决策历史只追加；正式Project创建即冻结模板并实例化，不增加待分类/待选模状态；父子关系无环且层级不设固定深度；`current_stage`仅取S0～S6，`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED，`assignment_status`独立维护，`display_status`只读派生；CLO-02唯一产生NORMAL_CLOSED或NO_TRACKING_CLOSED，PM-10唯一产生EXCEPTION_CLOSED |
 | ProjectTask | 任务父子关系无环且不限制深度；每个可执行任务必须且只能冻结一个当前WorkBinding、PermissionPolicy、CompletionRule和可选GateRef，未指定其他业务绑定时使用TASK_NATIVE；状态变化必须经过受控 transition，完成必须由对应绑定事实和规则判定；查询按项目树索引和权限范围过滤 |
+| AcceptanceActivity | ACC拥有项目级验收，稳定身份为tenant＋project＋acceptanceType（PRELIMINARY/FINAL）；报告换版沿用同一根，不按节点、订单行或设备创建第二验收根；Stage/Task/视图仅组织办理或消费结果；业务证据依赖由冻结规则决定，项目身份和授权始终必需 |
 | Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；机框、槽位、板卡当前关系唯一且按生效区间保留换板历史；历史归属通过关系版本保留 |
 | ConfigurationLog | EQP-02统一管理原始整机Log、不可变解析版本和设备/板卡关联；EXE-03/04只发布实施采集与解释事实，不得覆盖原始文件或已发布解析版本 |
 | DeviceCredential | 默认仅创建人可用；授权绑定用户、设备、协议、命令模板和有效期；任何业务不得读取明文 |
@@ -113,7 +114,7 @@ PM-07复用Project既有四属性和TemplateMatcher。首次匹配决策与Proje
 
 Project Delivery拥有项目阶段图、阶段/任务执行契约和阶段推进，公共业务视图注册由PLT维护技术注册事实，真实领域对象仍由注册Owner拥有。StageDefinition、TaskDefinition、交付件、绑定、权限与完成规则以DeliveryConfigurationRevision的受控类型表达：统一存版本身份，不统一各类型业务状态；类型内字段Schema和引用约束见08/09。
 
-COM独占ProjectScopeVersion、项目水位和数量占用。PROJ的ContractScopeAppendRequest只编排同一项目追加，保存COM返回的历史引用及差量，不复制当前数量真值。AcceptanceReportRevision由ACC拥有；完整报告证据不等于通过，当前总体范围必须有明确通过版本。
+COM独占ProjectScopeVersion、项目水位和数量占用。PROJ的ContractScopeAppendRequest只编排同一项目追加，保存COM返回的历史引用及差量，不复制当前数量真值。AcceptanceReportRevision由ACC拥有；完整报告证据不等于通过。验收冻结规则明确要求COM范围覆盖时，必须重验当前范围及明确通过版本；未直接或通过显式初验前置依赖COM时，不把合同、订单行或数量事实作为所有项目验收的隐含前置。
 
 CLO批准时ACC调用PROJ唯一终态Writer，两域以同一数据库事务分别写自己的对象；NORMAL/NO_TRACKING分别校验，不强制S6。ProjectExitRecord是PROJ的不可变退出历史，不是第二个可写生命周期。关闭事件是已提交事实通知，不承担必需写入补偿。
 

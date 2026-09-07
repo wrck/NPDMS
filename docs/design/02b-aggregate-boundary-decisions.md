@@ -1,7 +1,7 @@
 # SDS Phase 1：聚合边界决策
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -38,7 +38,9 @@ ProjectTask导航投影不是新聚合：一级Stage、二级ProjectTask来自�
 | BusinessViewRegistration | 基础平台 | 只发布受信实体/组件/命令及权限Provider版本，不拥有领域对象状态 |
 | ContractScopeAppendRequest | Project Delivery | 同一项目的批准追加申请；COM数量/水位、PROJ任务、ACC绑定共同成功或失败；不产生群组、另一期项目或组合 |
 | ProjectScopeVersion | Contract & Fulfillment | 唯一COM水位＋不可变范围版本；PROJ只持引用，不能双写当前量 |
-| AcceptanceActivity / AcceptanceReportRevision | Acceptance & Closure | 独立验收活动身份与报告当前指针/不可变版本；项目、范围、来源、文件和配置前置精确冻结，不依赖S5或固定任务编码存在 |
+| AcceptanceActivity / AcceptanceReportRevision | Acceptance & Closure | 同tenant/project/acceptanceType的项目验收根与当前报告/不可变版本；新来源冻结规则、来源及按规则适用的范围/文件，不把节点或订单行作为验收主体；不依赖S5或固定任务编码存在 |
 | ProjectExitRecord | Project Delivery | 来源闭环命令的退出历史；受控写当前生命周期并同事务追加历史，回调不能直接写终态 |
 
 旧MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference只留在Git历史，不作为PM-06当前对象、API或前向建表依据。PROJ仍是唯一current_stage Writer；COM/ACC仅在配置指定的受控业务动作中参与范围校验和绑定，不因目标阶段为S5自动增加终验或绑定义务。修订018独立验收的具体触发/范围契约见Q-TPLACC-001，旧阶段进入接口不静默改义。
+
+项目级验收根复用既有活动与报告版本，不增加多轮根。节点来源只说明谁发起/办理，不能接管ACC状态；相同意图重放返回既有结果，DIRECT不同创建意图不得只按项目合并，NODE/BPM仅在项目、验收类型和精确冻结规则兼容时关联既有根。新来源报告可在活动历史完成后换版或撤销，但历史完成不回退，当前通过事实独立重算。LEGACY_TASK仍按其原冻结契约解释，不借关联覆盖来源、规则或旧历史。

@@ -1,7 +1,7 @@
 # SDS Phase 1：模块设计
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -47,5 +47,7 @@
 PROJ统一配置及执行StageTransitionDefinition和Stage/Task WorkBinding（05/08）；SOL计划审批只产出版本事实（06）；IMP按当前范围聚合割接覆盖；ACC区分报告证据有效、验收通过与齐套（08/13）；DAC包含P3采集入口与EXE-03批准业务快照、巡检两个任务授权（12）；SYSTEM分别承接HR和目录Owner（02c）。PM-06不提供项目群组模块。RPT-02@V2仍提供全部状态/阶段/超期/三类退出/比例/下钻/导出，不能缩成终态摘要。
 
 修订018补充：ACC独立拥有验收活动，终验不与S5或任务码强制绑定；PROJ配置受控触发及结果引用，PLT只托管业务视图注册。先完成模板和ACC基础业务闭环，再接入动态适配，不另建Template、任务、导航或通用工作流。
+
+ACC项目级活动/报告继续由pms-module-project承载，语义Owner不因与PROJ共用模块而合并；COM的数量/范围真值仍在pms-module-commerce，受管审批事实适配在pms-module-integration，文件/归档/命令幂等/Outbox复用PLT。阶段、任务和业务视图不建立第二套验收Service真值；具体-api类型依赖及方法在Phase 2回写，不通过新空模块或-biz互依绕过公开边界。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

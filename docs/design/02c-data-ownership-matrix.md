@@ -1,7 +1,7 @@
 # SDS Phase 1：数据 Owner 矩阵
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -36,8 +36,10 @@
 | 企业目录账号、凭据认证及启停事实 | LDAP/AD | 与HR独立版本；任一权威离职或禁用均阻断登录并撤销会话，恢复须消除对应阻断来源 |
 | 可复用阶段/任务/交付件/绑定/权限/完成规则版本 | PROJ | DeliveryConfigurationRevision只统一版本身份；目标领域状态不在此修改 |
 | BusinessViewRegistration | PLT | 领域Owner发布实体、组件和服务端Provider契约；模板不能扩大权限 |
-| 项目范围水位及ProjectScopeVersion | COM | PM-06由PROJ编排、只引用范围；ACC按精确范围版本绑定，不生成第二个数量Owner |
-| AcceptanceActivity、AcceptanceReportRevision及当前报告指针 | ACC | 独立验收活动、版本和真实结果；消费者只引用证据有效性、完成、通过、范围及配置前置，S5和业务视图不拥有验收状态 |
+| 项目范围水位、ProjectScopeVersion及范围替换的真实前驱 | COM | PM-06由PROJ编排、只引用范围；配置适用时ACC按精确范围版本绑定；资格与保护分开，冲突换ID不抹除前驱保护；不生成第二个数量Owner |
+| AcceptanceActivity、AcceptanceReportRevision及当前报告指针 | ACC | 项目/验收类型主身份、版本和真实结果；消费者只引用证据有效性、历史完成、当前通过和按配置适用的范围；S5、节点和业务视图不拥有验收状态 |
+| 验收范围绑定及减量保护判定 | ACC | 阶段快照与验收活动是可判别来源；COM提供当前及可信前驱范围版本，ACC判定两类仍有效保护，不由报告上传反推绑定、不因范围冲突自动解锁 |
+| 同报告版本的应交满足关系与归档投影 | ACC | 多个要求复用同一报告/文件事实；PLT仍独占实际文件和归档记录。零附件不制造文件，某关系归档成功不代替其他关系重验或验收通过 |
 | ProjectExitRecord及current_stage/lifecycle_status | PROJ | CLO-02调用公开Writer形成两类业务闭环；PM-10形成异常关闭；同事务历史不被通知覆盖 |
 
 角色和范围策略继续由07定义；此表不改变13领域Requirement Owner，也不把共用技术载体变成新的业务领域。

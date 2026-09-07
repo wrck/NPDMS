@@ -1,9 +1,11 @@
-# Phase 1 修订017当前验证入口
+# Phase 1 修订018受影响边界复核入口
 
 > 当前结论：`REVALIDATION_REQUIRED`
 > 文档用途：`当前Gate投影及自审；不代替独立复审`
 
-100项正式需求、111个目标版本切片；106对象/124来源绑定/1排除源。当前结论以gate-status.md为准；修复与真实命令结果见`../phase-1/revision-017-review-remediation.md`。以下原记录仅属历史，不产生修订017批准。
+当前为`BLOCKED_BY_REVIEW`，以gate-status.md为唯一阶段结论。修订018模板/项目级验收的范围、正式分册落位及检查结果见[revision-018-template-acceptance-review.md](revision-018-template-acceptance-review.md)。R2候选技术GO不等于Phase 1正式放行。
+
+100项正式需求、111个目标版本切片保持。原修订016/017记录及106对象/124来源绑定/1排除源仅按原范围追溯；当前物理合同的修订018身份/差量仍待Phase 2校准，不以旧目录数量或原批准自动放行。
 
 ## 历史记录（原内容保留）
 

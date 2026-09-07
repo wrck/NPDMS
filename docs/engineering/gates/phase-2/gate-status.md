@@ -57,6 +57,8 @@
 
 后续R1裁决：`a606e3c4`的前三项契约已解决，剩共同归档身份及捕获eventId存储长度两项P2，整体仍NO-GO。需求方要求继续修订并先自审；当前审阅输入更新为同路径R2，完整归档命令身份和captureKey/短eventId已分离，一轮主任务自审已完成，见候选第10节。R2仍待同一独立任务复审；本阶段状态及批准字段不变，自审不作为Phase 2或Q关闭证据。
 
+R2已于`3d82db0b`获得候选技术GO，限定两项P2与直接回归，接收记录见[input/template-acceptance-r2-independent-review.md](input/template-acceptance-r2-independent-review.md)。本阶段全部批准字段保持PENDING；受影响Phase 1先复核，再回写正式SDS/API/Feature物理合同、校准carrier contract的PRD身份并形成适用Schema/P3-E09证据，不能用候选GO直接关闭Q或进入实现。
+
 ### 原有放行要求
 
 当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。

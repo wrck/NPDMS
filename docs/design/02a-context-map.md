@@ -1,7 +1,7 @@
 # SDS Phase 1：Context Map
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -30,6 +30,8 @@
 | Asset Management | Service Operations | Published Language | 提供设备服务状态和设备档案查询 |
 
 Context Map 只展示 bounded context 或外部系统，不把 `CollectionTask`、`DeliveryEvidence`、`CutoverTask` 或设备凭证当作 Context 节点。基础平台能力仅作为横向能力集合标注；共享动态表单只拥有模板修订和通用实例值，不拥有消费方业务完成、审批或领域版本事实。集成适配层不拥有外部系统或业务域事实。
+
+修订018中，PROJ向ACC提供项目上下文并通过公开命令创建/关联项目级验收；ACC向PROJ/CLO提供版本化验收事实。COM仅在冻结验收规则明确依赖范围时提供权威范围，不因阶段或导航位置形成强制依赖。受管BPM事实经集成适配层可靠捕获后调用ACC命令，BPM、PLT和视图均不成为验收Owner；这些是现有Context间的协作，不新增Context或业务工作流。
 
 V1.8当前不包含`Work Order & Time` Context。历史工单、工时、附件、审批和审计证据通过经批准的迁移契约只读保留，不暴露当前流转能力；ACC-05持续服务跟踪仅作为V3候选，不能回流为当前Context。
 

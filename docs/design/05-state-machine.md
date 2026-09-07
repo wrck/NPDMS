@@ -1,7 +1,7 @@
 # SDS Phase 1：状态机设计
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -9,7 +9,7 @@
 
 ## 1. 规则
 
-业务状态机与审批工作流分离：状态机表达业务事实，工作流表达审批节点。状态值采用基础平台可配置字典，但核心状态、终态和强制门禁不可被任意删除；扩展状态必须声明父状态映射、合法迁移、角色、进入/退出条件和版本。
+业务状态机与审批工作流分离：状态机表达业务事实，工作流表达审批节点。状态值采用基础平台可配置字典，但核心状态、终态及受控迁移完整性不可被任意删除；模板编排中的业务门禁适用性、前置和阈值按冻结配置解释，不按S5或固定任务码补加。扩展状态必须声明父状态映射、合法迁移、角色、进入/退出条件和版本。
 
 ## 2. 核心状态机
 
@@ -44,6 +44,12 @@
 
 ## 3. 版本化
 
+### 项目级验收与报告
+
+Requirement：ACC-03、ACC-04、PM-03、PM-11。项目验收活动沿用PENDING/COMPLETED；ACC按冻结规则执行完成命令，PROJ节点只消费其版本化结果。新来源报告沿用DRAFT/EFFECTIVE/SUPERSEDED/REVOKED，允许PENDING或COMPLETED活动形成新草稿、发布替换或撤销当前报告；只有草稿内容可改，历史版本不可覆盖。报告换版、撤销及适用范围变化不将历史COMPLETED重置为PENDING，不重新制造一次旧初验完成的后置动作。
+
+reportEvidenceValid、activityCompleted、acceptancePassed为不同事实。当前通过必须有明确通过结论及配置要求的有效证据，必要时重验当前范围/初验；COM未被直接或显式前置规则引用时不参与。零附件可以是配置允许的报告，不代表自动通过；归档NOT_REQUIRED只表示没有文件归档工作，不增加验收业务状态。旧任务来源保留原状态/完成契约，不能将新规则回填为历史事实。
+
 状态字典、迁移定义和门禁规则均带版本；任务实例保存绑定版本。已发布版本不可原地修改，只能新建版本并通过配置审批。
 
 ProjectTask的WorkBinding和CompletionRule版本与任务状态机版本分别冻结，且每个任务必须且只能有一个当前绑定。`TASK_NATIVE`按ProjectTask自身状态机和任务事实执行受控迁移；其他绑定的业务对象状态变化只触发重新评估，不允许业务Context直接写ProjectTask状态。Project Delivery在校验任务版本、绑定版本、事实版本和规则版本后执行受控迁移并记录完成判定快照。
@@ -56,7 +62,7 @@ ProjectTask的WorkBinding和CompletionRule版本与任务状态机版本分别�
 
 ProjectTemplateVersion以已发布StageDefinition/TaskDefinition、StageTransitionDefinition、阶段/任务交付件要求及Stage/Task WorkBinding形成不可变快照。每个执行节点只有一个主绑定，原生分别为STAGE_NATIVE/TASK_NATIVE，组合视图仍由各Owner鉴权。发布校验唯一开始、可达收口、无环、无悬空和分支可唯一判定；只实例化图中真实阶段，不使用虚假的NOT_APPLICABLE阶段。
 
-PROJ拥有唯一阶段推进命令：锁定并重验Project/当前阶段/模板图版本/范围水位，计算当前CompletionRule及准出，唯一解析出向转移，再校验目标准入；全部通过后原子关闭当前节点、激活实际目标并写current_stage、版本、不可变快照、审计及Outbox。目标来自冻结图，不来自S编号加一、SOL/CUT回调或客户端。无目标但当前为允许收口节点时使用CLO入口，不生成新阶段；零/多目标或目标准入失败不推进。修订018中，终验结果只在配置显式引用时参与，S5不自动要求终验；受控创建动作与只读判定分离，范围绑定按明确Owner事务契约执行，COM/ACC不另写阶段。具体独立验收身份与完成点见Q-TPLACC-001。
+PROJ拥有唯一阶段推进命令：锁定并重验Project/当前阶段/模板图版本及配置依赖的范围水位，计算当前CompletionRule及准出，唯一解析出向转移，再校验目标准入；全部通过后原子关闭当前节点、激活实际目标并写current_stage、版本、不可变快照、审计及Outbox。目标来自冻结图，不来自S编号加一、SOL/CUT回调或客户端。无目标但当前为允许收口节点时使用CLO入口，不生成新阶段；零/多目标或目标准入失败不推进。修订018中，终验结果只在配置显式引用时参与，S5不自动要求终验；受控创建动作与只读判定分离，范围绑定按明确Owner事务契约执行，COM/ACC不另写阶段。具体独立验收身份与完成点见Q-TPLACC-001。
 
 售前模板只有S0/S4，S4只要求EXE-03/04；没有EXE-02、S5和S6实例。其他模板仅在启用EXE-02时要求安装完成。所有场景继续校验设备、项目、命令和文件范围。后续计划/方案换版只改变Owner基线和当前门禁，不隐式移动current_stage；上游条件失效保留过去快照，并阻止依赖该条件的新动作。
 

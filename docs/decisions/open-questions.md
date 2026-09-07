@@ -743,3 +743,9 @@
 同一独立任务对`a606e3c44ea2f437856aba5cb02efd983868803b`确认R1-01/02/03契约层已解决；多目标查询及BPM事务主要设计保留，但多目标共同archiveBatchId未定义、AAP eventId可能超过既有VARCHAR(64)，因此仍NO-GO。
 
 需求方授权继续修订并要求先自审再提交复审。当前R2为新来源固定完整报告级共同归档命令，保留旧批次；BPM完整captureKey与首次新执行生成、同事务固化的36字符eventId分离，捕获请求摘要不含随机结果。一轮源码追踪、内存契约样例及50记录/16方法/10 REST结构自审已完成，定位见候选3.5、5.1和第10节；待原独立任务复审，Q及正式Gate仍不关闭。
+
+#### 2026-09-08 R2技术GO及Phase 1接续
+
+独立任务对`3d82db0ba0d12d99a334b91d4db1c03b4aa787fd`返回候选技术GO，两项剩余P2闭合，无新增必须整改项；接收记录为`docs/engineering/gates/phase-2/input/template-acceptance-r2-independent-review.md`。该结论不是本Q关闭或正式SDS/Schema放行。
+
+需求方要求下一步，当前先开展修订018受影响Phase 1边界对齐/复核，输入见`docs/engineering/gates/phase-1/revision-018-template-acceptance-review.md`。已有全量检查提示Phase 2 carrier contract的PRD身份陈旧，须随正式API/物理合同差量审查处理，不能只替换身份；该技术待办与原Schema/P3-E09条件共同保留。本Q继续OPEN/BLOCKED_BY_SPEC，仍只限制依赖它的独立验收新实现及接入。

@@ -1,7 +1,7 @@
 # SDS Phase 1：跨 Context 契约
 
-> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
-> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
+> 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -51,13 +51,15 @@
 | `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 受信命令显式携带报告发布时冻结的`actorUserId`；PLT按该用户重验既有`pms:file:archive`权限和租户/文件范围，持锁重验ACC报告附件ACTIVE集合，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按相同公共文件事实创建ARCHIVED引用并整组追加记录且写`archivedBy=actorUserId`；附件引用保持ACTIVE供历史下载，不暴露PLT内部主键，ACC只保存归档补偿投影 |
 | ProjectStageAdvanceCommand | PM-03 | Project | Project | Project/tree/graph/scope版本；当前完成及准出→唯一冻结转移→目标准入→原子推进。目标由服务端解析，不按S编号加一。 |
 | ProjectScopeAppendApplied | PM-06、COM-01、ACC-03 | Commerce | Project / Acceptance & Closure | COM拥有数量和范围水位；同一projectId的新精确范围、任务、绑定及门禁同事务生效。旧A验收不自动覆盖A+B。 |
-| AcceptanceReportQualificationFact | ACC-03、CLO-01 | Acceptance & Closure | Project / Closure | reportVersion、reportEvidenceValid、acceptancePassed、scopeVersion、精确范围和文件版本分别保存；字段完整不等于验收通过。 |
+| AcceptanceReportQualificationFact | ACC-03、CLO-01 | Acceptance & Closure | Project / Closure | 以项目级验收身份返回reportVersion、reportEvidenceValid、activityCompleted、acceptancePassed；scopeVersion、范围及文件按冻结规则适用，未配置与未知不同；字段完整或历史完成不等于当前验收通过。 |
 | ProjectTypedClosureCommand | CLO-01、CLO-02、PM-10 | Acceptance & Closure / Project governance | Project | closureType、closedFromStage、最新Gate和BPM实际定义及项目版本；CLO-02/PM-10为唯一业务入口，事件不代替终态命令。 |
 | ApprovedImplementationCommandSnapshot | EXE-03、INT-12 | Implementation Execution | Device Access & Collection | 仅EXE-03受信批准记录/版本/哈希/设备/主体范围；DAC重验。独立中心、CUT、INS仍需要已发布命令模板。 |
 | CutoverChecklistCollectionBinding | CUT-03、INT-12 | Cutover | Device Access & Collection / Cutover | taskId、checklistVersion、itemId、deviceId、CollectionTask及resultVersion精确绑定；技术回调只提供证据，CUT判定业务通过。 |
 | AuthenticatedFileCallback | PLT-02、INT-12 | Authenticated integration caller | Platform file service | 来源身份、契约验签、任务/对象权限、大小/类型/哈希和幂等同时校验；幂等键不能替代认证。 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
+
+修订018的受控验收创建是命令，不是上述只读事实查询的副作用；PROJ/ACC/COM依公开Owner契约协作，GET、readiness及视图渲染不创建业务实体。受管审批捕获的成功点与ACC创建的成功点分开：审批只证明其来源事实，ACC独立重验原执行身份和冻结配置后办理，不把消息投递或审批通过解释为验收完成。
 
 F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调用ACC公开内部应用接口，ACC加入调用方同一MySQL事务；正式Project、ProjectTask执行契约和ACC交付件实例必须全有或全无，不产生初始化中间状态。该例外不允许PROJ直接访问ACC Repository，也不改变其他跨Context契约的默认最终一致性。若部署边界不再共享同一事务资源，必须先批准创建完成语义变更，不得自行降级为Saga、异步补建或部分成功。
 

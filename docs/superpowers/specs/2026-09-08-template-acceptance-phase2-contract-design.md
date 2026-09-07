@@ -8,7 +8,7 @@
 > 结构化候选：`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract.json`
 > 实现审计基线：`3abdeb1e`；本稿只描述候选，不修改应用/接口源码、Flyway或历史数据
 > 当前DU：`DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE`
-> 当前修订：`R2`；按独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`对`a606e3c4`的两项P2意见修订，先自审再交同一任务复审
+> 当前修订：`R2`；独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`对`3d82db0b`返回候选技术GO；接收记录见`docs/engineering/gates/phase-2/input/template-acceptance-r2-independent-review.md`，不代表正式Phase或Q关闭
 
 ## 1. 主体先确定：这是项目验收
 
