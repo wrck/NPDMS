@@ -731,3 +731,9 @@
 具体候选位于`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract-design.md`及同名`2026-09-08-template-acceptance-phase2-contract.json`。已列PROJ上下文/发布定义、ACC创建/完成/事实、COM阶段无关快照、范围变化回调、来源可空约束及新旧绑定身份。现有getAssignedScope缺少allocationVersion，候选扩展原COM验收锁API，不伪造阶段ID或混用全局/分配/授权版本。
 
 本进展不关闭Q。先复核受影响Phase 1边界，再审阅具体API/物理合同并完成适用Schema验证；未形成通过证据前保持OPEN/BLOCKED_BY_SPEC。与本Q无依赖的模板基础配置仍可按自身契约推进，不扩大阻断。
+
+#### 2026-09-08 独立技术复核与R1整改
+
+独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`对候选`c18e5959e70ea2eef17a815b56067e4612842d6f`返回NO-GO：新旧报告反向锁、完成后换版/配置化/零附件消费者缺口、ERP换ID及PM-02拆分保护缺口、多目标仍单值查询、BPM可靠捕获未定稿。项目级主身份、无S5强制、可选COM、触发/事实分离等已确认边界保持。
+
+需求方确认仅整改上述五项再交同一任务复审。当前候选R1补齐统一锁序及范围参与者预锁、报告命令和状态矩阵、零附件NOT_REQUIRED与多目标查询/响应、COM可信前驱及全写路径守卫/刷新、BPM原事务捕获与提交后幂等消费。JSON/路径/类型检查仅为文档结构自审；独立复审待返回，不关闭本Q，不代替正式SDS、物理合同与适用Schema/P3-E09验证。
