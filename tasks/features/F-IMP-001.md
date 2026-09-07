@@ -9,10 +9,12 @@
 > Feature Spec：`specs/features/F-IMP-001-implementation-readiness-snapshot.md`
 > 物理契约：`specs/features/F-IMP-001-physical-contract.json`
 > AST支撑合同：`specs/features/F-IMP-001-device-scope-fact-contract.json`
+> 公共就绪API合同：`specs/features/F-IMP-001-readiness-api-contract.json`（`PASS / 38fc0d9d`；仅公开接口，不代表快照Provider完成）
 > 来源审计：`codex/f-cut-001-matrices@eda54bd0`
 
 ## 已实际实现并进入master
 
+- `ImplementationReadinessApi`、结构化查询/重验DTO、封闭失败类型和契约测试；公开机器合同已通过，CUT消费既有接口，不另建就绪合同；
 - `DeviceScopeFactApi`、DTO、稳定失败类型及契约测试；
 - AST生产Owner `DeviceScopeFactApiImpl`、稳定SN规范化、项目/设备归属版本水位与锁定重验；
 - AST Mapper查询与事务边界，以及单元、Mapper合同和真实MySQL候选测试；
