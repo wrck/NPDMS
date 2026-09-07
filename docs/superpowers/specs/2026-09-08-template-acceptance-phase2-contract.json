@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 1,
+  "contractId": "Q-TPLACC-001-CANDIDATE-20260908",
+  "status": "IN_REVIEW",
+  "authoritative": false,
+  "baseline": "CHG-PRD-2026-09-07-018",
+  "sourceCommit": "3abdeb1ea50acca70eb7c6e1b256dab8a2c1c76f",
+  "requirements": [
+    "PM-03@V1",
+    "PM-11@V1",
+    "ACC-03@V1",
+    "ACC-04@V1",
+    "COM-01@V1"
+  ],
+  "nonGoals": [
+    "APPLICATION_IMPLEMENTATION",
+    "EXECUTED_FLYWAY",
+    "HISTORICAL_CUTOVER",
+    "MULTIPLE_ACCEPTANCE_ROUNDS",
+    "SECOND_TASK_OR_NAVIGATION_MODEL",
+    "YUDAO_FOUNDATION_CHANGES",
+    "Q_FCOM_002_UNLOCK"
+  ],
+  "primitives": [
+    "Long",
+    "Integer",
+    "String",
+    "Boolean",
+    "Instant",
+    "BigDecimal",
+    "JsonObject",
+    "Void"
+  ],
+  "externalTypes": {
+    "AssignedDeliveryScopeLine": {"owner":"COM","path":"pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/dto/AssignedDeliveryScopeLine.java"},
+    "DeliveryScopeVersionFact": {"owner":"COM","path":"pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/dto/DeliveryScopeVersionFact.java"},
+    "AcceptanceScopeGuardQuery": {"owner":"ACC","path":"pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/acceptancescope/dto/AcceptanceScopeGuardQuery.java"}
+  },
+  "enums": {
+    "AcceptanceType": ["PRELIMINARY","FINAL"],
+    "NodeKind": ["STAGE","TASK"],
+    "AccessAction": ["PROJECT_VIEW","PROJECT_EDIT"],
+    "OriginKind": ["DIRECT","NODE","BPM_APPROVAL"],
+    "ProtectionSourceKind": ["STAGE_SNAPSHOT","ACCEPTANCE_ACTIVITY"],
+    "ReportField": ["ACCEPTANCE_TIME","CONCLUSION","ACCEPTOR","ATTACHMENTS"],
+    "InitialPrerequisite": ["NONE","EVIDENCE_VALID","ACCEPTANCE_PASSED"],
+    "CompletionRequirement": ["REPORT_EVIDENCE_VALID","ACCEPTANCE_PASSED"],
+    "GuardOutcome": ["LOCKED","UNLOCKED","UNKNOWN"],
+    "CommandOutcome": ["CREATED","COMPLETED","REPLAYED","RESOLVED_EXISTING"],
+    "FactOutcome": ["FOUND","NOT_FOUND","VERSION_CONFLICT","DEPENDENCY_UNAVAILABLE"],
+    "ScopeCheck": ["NOT_REQUIRED","COM_CURRENT_SCOPE"]
+  },
+  "records": {
+    "TrustedActor": {"fields":{"tenantId":"Long","userId":"Long","correlationId":"String"},"source":"SERVER_AUTHENTICATION_OR_REVALIDATED_BPM_START_USER"},
+    "DirectOrigin": {"tag":"DIRECT","fields":{"intentKey":"String"}},
+    "NodeOrigin": {"tag":"NODE","fields":{"intentKey":"String","nodeKind":"NodeKind","nodeId":"Long","nodeVersion":"Integer","executionContractId":"Long","bindingVersion":"Integer"}},
+    "BpmApprovalOrigin": {
+      "tag": "BPM_APPROVAL",
+      "fields": {"intentKey":"String","processInstanceId":"String","processDefinitionKey":"String","processDefinitionId":"String","businessKey":"String","gateReferenceId":"Long","approvedAt":"Instant","triggerRevisionId":"Long"}
+    },
+    "AcceptanceOrigin": {"discriminator":"kind","variants":["DirectOrigin","NodeOrigin","BpmApprovalOrigin"]},
+    "ProjectAcceptanceContextQuery": {"fields":{"actor":"TrustedActor","projectId":"Long","expectedProjectVersion":"Integer","expectedTreeVersion":"Long","requiredAction":"AccessAction"}},
+    "ProjectAcceptanceContextFact": {"fields":{"projectId":"Long","rootProjectId":"Long","projectVersion":"Integer","treeVersion":"Long","lifecycleStatus":"String"}},
+    "DeliveryDefinitionQuery": {"fields":{"actor":"TrustedActor","definitionRevisionId":"Long","consumerContext":"String","expectedDefinitionKind":"String","frozenUse":"FrozenDefinitionUse?"}},
+    "PublishedDeliveryDefinitionFact": {"fields":{"definitionRevisionId":"Long","definitionCode":"String","revisionNo":"Integer","schemaVersion":"Integer","definitionKind":"String","ownerContext":"String","payload":"JsonObject","disabledAt":"Instant?"}},
+    "AcceptanceRuleSnapshot": {
+      "fields": {
+        "definitionRevisionId": "Long",
+        "definitionCode": "String",
+        "revisionNo": "Integer",
+        "schemaVersion": "Integer",
+        "requiredReportFields": "List<ReportField>",
+        "minimumAttachments": "Integer",
+        "initialPrerequisite": "InitialPrerequisite",
+        "completionRequirement": "CompletionRequirement",
+        "scopeCheck": "ScopeCheck"
+      }
+    },
+    "BusinessAcceptanceScopeLockCommand": {"fields":{"tenantId":"Long","projectId":"Long","expectedScopeVersion":"Long","operationId":"String"}},
+    "BusinessAcceptanceScopeSnapshot": {"fields":{"projectId":"Long","scopeVersion":"Long","scopeVersions":"List<DeliveryScopeVersionFact>","assignedLines":"List<AssignedDeliveryScopeLine>"}},
+    "OpenAcceptanceCommand": {
+      "fields": {
+        "actor": "TrustedActor",
+        "projectId": "Long",
+        "acceptanceType": "AcceptanceType",
+        "ruleRevisionId": "Long",
+        "expectedProjectVersion": "Integer",
+        "expectedTreeVersion": "Long",
+        "expectedScopeVersion": "Long?",
+        "origin": "AcceptanceOrigin",
+        "operationId": "String"
+      }
+    },
+    "CompleteAcceptanceCommand": {
+      "fields": {
+        "actor": "TrustedActor",
+        "acceptanceId": "Long",
+        "expectedActivityVersion": "Integer",
+        "expectedReportVersionNo": "Integer",
+        "expectedProjectVersion": "Integer",
+        "expectedTreeVersion": "Long",
+        "expectedScopeVersion": "Long?",
+        "operationId": "String"
+      }
+    },
+    "AcceptanceCommandResult": {"fields":{"acceptanceId":"Long","projectId":"Long","acceptanceType":"AcceptanceType","activityVersion":"Integer","observedScopeVersion":"Long?","outcome":"CommandOutcome"}},
+    "AcceptanceFactQuery": {"fields":{"actor":"TrustedActor","acceptanceId":"Long"}},
+    "AcceptanceFactRevalidationQuery": {"fields":{"actor":"TrustedActor","acceptanceId":"Long","expectedActivityVersion":"Integer","expectedReportVersionNo":"Integer","expectedProjectVersion":"Integer","expectedTreeVersion":"Long","expectedScopeVersion":"Long?"}},
+    "AcceptanceExecutionFact": {
+      "fields": {
+        "outcome": "FactOutcome",
+        "acceptanceId": "Long",
+        "projectId": "Long?",
+        "acceptanceType": "AcceptanceType?",
+        "activityVersion": "Integer?",
+        "currentReportVersionId": "Long?",
+        "currentReportVersionNo": "Integer?",
+        "ruleRevisionId": "Long?",
+        "reportEvidenceValid": "Boolean?",
+        "activityCompleted": "Boolean?",
+        "acceptancePassed": "Boolean?",
+        "reportScopeVersion": "Long?",
+        "currentScopeVersion": "Long?",
+        "unmetCodes": "List<String>",
+        "scopeCheckRequired": "Boolean?",
+        "allowedActions": "List<String>"
+      }
+    },
+    "RefreshAcceptanceScopeCommand": {"fields":{"tenantId":"Long","projectId":"Long","scopeSnapshot":"BusinessAcceptanceScopeSnapshot","operationId":"String"}},
+    "RefreshAcceptanceScopeResult": {"fields":{"projectId":"Long","scopeVersion":"Long","updatedAcceptanceIds":"List<Long>","replayed":"Boolean"}},
+    "ProtectionSourceRef": {"fields":{"kind":"ProtectionSourceKind","sourceId":"Long"}},
+    "AcceptanceReductionGuardFact": {"fields":{"outcome":"GuardOutcome","deliveryScopeId":"Long","allocationVersion":"Long","bindingId":"Long?","source":"ProtectionSourceRef?","acceptanceFactVersion":"Integer?"}},
+    "ResolveAcceptanceBindingCommand": {
+      "fields": {
+        "actor": "TrustedActor",
+        "nodeKind": "NodeKind",
+        "nodeId": "Long",
+        "expectedNodeVersion": "Integer",
+        "expectedBindingVersion": "Integer",
+        "expectedProjectVersion": "Integer",
+        "expectedTreeVersion": "Long",
+        "expectedScopeVersion": "Long?",
+        "operationId": "String"
+      }
+    },
+    "ResolvedAcceptanceBinding": {"fields":{"nodeKind":"NodeKind","nodeId":"Long","bindingVersion":"Integer","acceptanceId":"Long","businessViewKey":"String","allowedActions":"List<String>"}},
+    "AcceptanceOriginSnapshot": {"fields":{"origin":"AcceptanceOrigin","actor":"TrustedActor","projectVersion":"Integer","treeVersion":"Long","createdAt":"Instant"}},
+    "NodeDefinitionUse": {"tag":"NODE","fields":{"projectId":"Long","nodeKind":"NodeKind","nodeId":"Long","bindingVersion":"Integer"}},
+    "GateTriggerDefinitionUse": {"tag":"GATE_TRIGGER","fields":{"projectId":"Long","gateReferenceId":"Long","triggerRevisionId":"Long"}},
+    "FrozenDefinitionUse": {"discriminator":"kind","variants":["NodeDefinitionUse","GateTriggerDefinitionUse"]}
+  },
+  "interfaces": [
+    {"owner":"PROJ","name":"ProjectAcceptanceContextApi","state":"PROPOSED","methods":[{"name":"lockAndRevalidate","input":"ProjectAcceptanceContextQuery","output":"ProjectAcceptanceContextFact","transaction":"MANDATORY"}]},
+    {
+      "owner": "PROJ",
+      "name": "DeliveryDefinitionFactApi",
+      "state": "PROPOSED_TEMPLATE_FOUNDATION_DEPENDENCY",
+      "methods": [{"name":"lockPublished","input":"DeliveryDefinitionQuery","output":"PublishedDeliveryDefinitionFact","transaction":"MANDATORY"}]
+    },
+    {
+      "owner": "COM",
+      "name": "DeliveryScopeAcceptanceLockApi",
+      "state": "ADDITIVE_METHOD_KEEP_OLD_METHOD",
+      "methods": [{"name":"lockCurrentForBusiness","input":"BusinessAcceptanceScopeLockCommand","output":"BusinessAcceptanceScopeSnapshot","transaction":"MANDATORY"}]
+    },
+    {
+      "owner": "ACC",
+      "name": "AcceptanceLifecycleApi",
+      "state": "PROPOSED",
+      "methods": [{"name":"open","input":"OpenAcceptanceCommand","output":"AcceptanceCommandResult","transaction":"REQUIRED"},{"name":"complete","input":"CompleteAcceptanceCommand","output":"AcceptanceCommandResult","transaction":"REQUIRED"}]
+    },
+    {
+      "owner": "ACC",
+      "name": "AcceptanceExecutionFactApi",
+      "state": "PROPOSED_READ_ONLY",
+      "methods": [
+        {"name":"inspect","input":"AcceptanceFactQuery","output":"AcceptanceExecutionFact","transaction":"READ_ONLY"},
+        {"name":"lockAndRevalidate","input":"AcceptanceFactRevalidationQuery","output":"AcceptanceExecutionFact","transaction":"MANDATORY_NO_BUSINESS_WRITE"}
+      ]
+    },
+    {
+      "owner": "ACC",
+      "name": "AcceptanceScopeBindingApi",
+      "state": "ADDITIVE_METHOD_KEEP_OLD_METHODS",
+      "methods": [{"name":"refreshForBusinessScope","input":"RefreshAcceptanceScopeCommand","output":"RefreshAcceptanceScopeResult","transaction":"MANDATORY_COM_CALLER"}]
+    },
+    {
+      "owner": "ACC",
+      "name": "AcceptanceScopeGuardApi",
+      "state": "ADDITIVE_METHOD_KEEP_OLD_METHOD",
+      "methods": [{"name":"checkReductionForBusiness","input":"AcceptanceScopeGuardQuery","output":"AcceptanceReductionGuardFact","transaction":"MANDATORY"}]
+    },
+    {
+      "owner": "PROJ",
+      "name": "AcceptanceWorkBindingResolver",
+      "state": "PROPOSED_OWNER_APPLICATION_SERVICE",
+      "methods": [{"name":"resolve","input":"ResolveAcceptanceBindingCommand","output":"ResolvedAcceptanceBinding","transaction":"REQUIRED"}]
+    }
+  ],
+  "rest": [
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/acceptances",
+      "command": "AcceptanceLifecycleApi.open",
+      "permission": ["pms:acceptance:report:write"],
+      "headers": ["Idempotency-Key"],
+      "bodyFields": ["projectId","acceptanceType","ruleRevisionId","expectedProjectVersion","expectedTreeVersion","expectedScopeVersion"],
+      "serverOnly": ["actor","origin=DIRECT","operationId"],
+      "projectScopeAction": "PROJECT_EDIT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/acceptances/{id}/actions/complete",
+      "command": "AcceptanceLifecycleApi.complete",
+      "permission": ["pms:acceptance:report:complete"],
+      "headers": ["Idempotency-Key","If-Match=expectedActivityVersion"],
+      "bodyFields": ["expectedReportVersionNo","expectedProjectVersion","expectedTreeVersion","expectedScopeVersion"],
+      "serverOnly": ["actor","acceptanceId","operationId"],
+      "projectScopeAction": "PROJECT_EDIT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/acceptances/{id}/execution-fact",
+      "command": "AcceptanceExecutionFactApi.inspect",
+      "permission": ["pms:acceptance:report:query"],
+      "bodyFields": [],
+      "serverOnly": ["actor","acceptanceId"],
+      "projectScopeAction": "PROJECT_VIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/project-stages/{id}/actions/resolve-work-binding",
+      "command": "AcceptanceWorkBindingResolver.resolve",
+      "permission": ["pms:project:update","pms:acceptance:report:write"],
+      "headers": ["Idempotency-Key"],
+      "bodyFields": ["expectedNodeVersion","expectedBindingVersion","expectedProjectVersion","expectedTreeVersion","expectedScopeVersion"],
+      "serverOnly": ["actor","nodeKind=STAGE","nodeId","operationId"],
+      "requiredNodeAction": "RESOLVE_WORK_BINDING",
+      "projectScopeAction": "PROJECT_EDIT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/project-tasks/{id}/actions/resolve-work-binding",
+      "command": "AcceptanceWorkBindingResolver.resolve",
+      "permission": ["pms:project-task:execute","pms:acceptance:report:write"],
+      "headers": ["Idempotency-Key"],
+      "bodyFields": ["expectedNodeVersion","expectedBindingVersion","expectedProjectVersion","expectedTreeVersion","expectedScopeVersion"],
+      "serverOnly": ["actor","nodeKind=TASK","nodeId","operationId"],
+      "requiredNodeAction": "RESOLVE_WORK_BINDING",
+      "projectScopeAction": "PROJECT_EDIT"
+    }
+  ],
+  "storage": {
+    "acc_acceptance": {
+      "preserve": ["id","tenant_id","project_id","acceptance_type","activity_status","current_report_version_id","version","audit fields","uk_acc_acceptance_project_type"],
+      "alter": [{"name":"project_task_id","type":"BIGINT","nullable":true,"meaning":"LEGACY_TASK_SOURCE_ONLY"},{"name":"execution_contract_id","type":"BIGINT","nullable":true,"meaning":"LEGACY_TASK_SOURCE_ONLY"}],
+      "add": [
+        {"name":"origin_kind","type":"VARCHAR(32)","nullable":false,"default":"LEGACY_TASK"},
+        {"name":"origin_key","type":"VARCHAR(256)","nullable":true},
+        {"name":"origin_snapshot","type":"JSON","nullable":true},
+        {"name":"rule_revision_id","type":"BIGINT","nullable":true},
+        {"name":"rule_snapshot","type":"JSON","nullable":true},
+        {"name":"observed_scope_version","type":"BIGINT","nullable":true}
+      ],
+      "constraints": [
+        "LEGACY_TASK requires original positive project_task_id/execution_contract_id; do not invent rule or scope facts for old rows",
+        "DIRECT/NODE/BPM_APPROVAL require both legacy columns NULL and non-null origin_key/origin_snapshot/rule_revision_id/rule_snapshot",
+        "New origin_snapshot and rule_snapshot are JSON OBJECT and rule_revision_id>0",
+        "scopeCheck=COM_CURRENT_SCOPE requires observed_scope_version>=0; scopeCheck=NOT_REQUIRED requires observed_scope_version NULL",
+        "origin and rule snapshots immutable after insert; applicable observed_scope_version changes with version CAS only",
+        "keep unique tenant+project+acceptance_type and unique tenant+legacy project_task_id",
+        "node IDs, order lines, delivery scopes and devices never form the acceptance root identity"
+      ],
+      "indexes": [{"name":"idx_acc_acceptance_business_scope","columns":["tenant_id","project_id","origin_kind","id"]}],
+      "originSnapshotType": "AcceptanceOriginSnapshot",
+      "ruleSnapshotType": "AcceptanceRuleSnapshot",
+      "originKindCatalogue": ["LEGACY_TASK","DIRECT","NODE","BPM_APPROVAL"]
+    },
+    "acc_acceptance_scope_binding": {
+      "alter": [{"name":"project_stage_snapshot_id","type":"BIGINT","nullable":true}],
+      "add": [{"name":"acceptance_activity_id","type":"BIGINT","nullable":true}],
+      "constraints": [
+        "exactly one of project_stage_snapshot_id or acceptance_activity_id is positive and the other is NULL",
+        "keep existing stage-source unique key",
+        "new unique tenant_id+project_id+acceptance_activity_id+delivery_scope_id+scope_allocation_version",
+        "binding_trigger catalogue adds ACCEPTANCE_OPEN and ACCEPTANCE_SCOPE_EFFECTIVE; old triggers preserved",
+        "LOCKED/effective_to IS NULL/no automatic unlock remain unchanged",
+        "same identity reuses first compatible row; never overwrite its original binding_trigger"
+      ],
+      "indexes": [{"name":"idx_acc_scope_activity","columns":["tenant_id","acceptance_activity_id","delivery_scope_id","scope_allocation_version"]}],
+      "sqlSourceCheck": "((project_stage_snapshot_id IS NOT NULL AND project_stage_snapshot_id > 0 AND acceptance_activity_id IS NULL) OR (acceptance_activity_id IS NOT NULL AND acceptance_activity_id > 0 AND project_stage_snapshot_id IS NULL))"
+    },
+    "acc_acceptance_report_version": {
+      "add": [
+        {"name":"project_scope_version","type":"BIGINT","nullable":true},
+        {"name":"acceptance_rule_revision_id","type":"BIGINT","nullable":true},
+        {"name":"acceptance_rule_snapshot","type":"JSON","nullable":true},
+        {"name":"delivery_scope_snapshot","type":"JSON","nullable":true}
+      ],
+      "constraints": [
+        "New-origin drafts freeze rule; freeze COM scope snapshot only when the rule requires COM_CURRENT_SCOPE; publication revalidates every applicable version",
+        "For new reports acceptance_rule_revision_id/snapshot are required; project_scope_version/delivery_scope_snapshot are both NULL when NOT_REQUIRED and both present when COM_CURRENT_SCOPE",
+        "Pre-existing legacy reports may keep all new columns NULL; never infer historical scope/rule snapshots",
+        "EFFECTIVE/SUPERSEDED/REVOKED business fields and snapshots remain immutable",
+        "file attachment scope_version remains authorization scope, never COM project_scope_version"
+      ],
+      "deliveryScopeSnapshotType": "BusinessAcceptanceScopeSnapshot"
+    },
+    "reuseOnly": ["plt_idempotency_record","plt_operation_audit","plt_outbox_event","proj_project_task_execution_contract","proj_project_stage_execution_contract (template foundation contract, not yet implemented)"],
+    "noExecutableMigration": true
+  },
+  "algorithms": {
+    "openLockOrder": [
+      "trusted actor + function permission",
+      "PROJ root/project and scope/tree version",
+      "frozen definition; applicable Stage/Task binding if origin NODE",
+      "COM ordered order-line facts, ordered scope rows and project watermark ONLY IF frozen rule.scopeCheck=COM_CURRENT_SCOPE",
+      "ACC activity identity",
+      "ACC binding rows",
+      "audit/idempotency/outbox"
+    ],
+    "completeLockOrder": [
+      "PROJ root/project and scope/tree",
+      "COM exact current snapshot ONLY IF frozen rule.scopeCheck=COM_CURRENT_SCOPE",
+      "ACC PRELIMINARY/FINAL roots ordered by id when prerequisite applies",
+      "ACC current report versions ordered by id",
+      "PLT file facts through existing API",
+      "ACC completion version CAS and audit/idempotency"
+    ],
+    "scopeRefresh": [
+      "COM finishes root/project and COM locks first and passes its complete immutable snapshot",
+      "ACC locks project-level new-origin roots whose frozen rule.scopeCheck=COM_CURRENT_SCOPE, including such roots opened with empty scope; other project acceptance roots are not subscribed",
+      "same observed version: replay; older supplied version: SCOPE_STALE; higher: append missing allocation bindings and CAS observed version",
+      "do not call back to PROJ or COM after ACC locks",
+      "do not rewrite old reports, historical completion or node state; current fact/version checks invalidate stale dependency results"
+    ],
+    "emptyScope": "Only for COM_CURRENT_SCOPE: scopeVersion 0 with both lists empty is a known empty fact and is persisted for later scope tracking; it does not auto-pass completion. NOT_REQUIRED instead stores NULL scope fields and never calls COM. Neither case equals provider unavailable.",
+    "duplicateIntent": "same operation+canonical payload replays; direct create with another intent for the same project/type conflicts; node/BPM resolution may return RESOLVED_EXISTING for the same project/type and compatible frozen rule, without changing original origin, rule or reports; distinct evidence scopes/intents are not silently merged",
+    "legacy": "old methods/records/data stay valid for original callers; new paths never fill fake stage/task IDs; new refresh/guard callers must distinguish both source kinds",
+    "sourceCapture": "BpmProcessInstanceStatusEvent is a signal only; verify actual ended APPROVE(2) Flowable instance, tenant, start user, definition identity, businessKey and frozen action; capture approved trigger to existing outbox, then execute independently under revalidated originating actor",
+    "scopeApplicability": "Every acceptance is project-level. COM_CURRENT_SCOPE is an explicit business-rule dependency, not a global creation prerequisite. NOT_REQUIRED never calls COM and requires expectedScopeVersion NULL; COM unavailable must not block an acceptance whose rule does not reference COM.",
+    "definitionSelection": "frozenUse NULL means a new rule selection and requires published/enabled revision; non-null frozenUse is checked against PROJ-owned frozen node/trigger references and permits historical definition interpretation without silently changing the revision. Actual writes still require the target provider's supported operation and current authorization.",
+    "existingRuleCompatibility": "projectId and acceptanceType must match and ruleRevisionId must equal the root's frozen rule_revision_id; do not merge merely semantically similar rules or replace origin/rule snapshots. Legacy roots without a frozen rule are not auto-upgraded."
+  },
+  "requiredAcceptanceCases": [
+    "PROJECT_LEVEL_ROOT_SHARED_BY_STAGE_TASK_AND_VIEW",
+    "PROJECT_ACCEPTANCE_WITHOUT_COM_RULE_DOES_NOT_CALL_COM",
+    "NO_S5_CREATE_COMPLETE_AND_FACT",
+    "S5_WITHOUT_CONFIGURED_FINAL_NO_IMPLICIT_REQUIREMENT",
+    "INITIAL_PREREQUISITE_CONFIGURED_OR_NONE",
+    "EMPTY_SCOPE_THEN_FIRST_SCOPE_EFFECTIVE",
+    "CURRENT_SCOPE_VERSION_NOT_ALLOCATION_VERSION",
+    "SCOPE_REFRESH_UNCHANGED_LINES_REUSE_BINDINGS",
+    "DUPLICATE_SOURCE_REPLAY_AND_DIFFERENT_INTENT_CONFLICT",
+    "READINESS_GET_AND_VIEW_REFRESH_ZERO_CREATE",
+    "BPM_SIGNAL_WITHOUT_TRUSTED_CONTEXT_ZERO_CREATE",
+    "ACTOR_REVOKED_BEFORE_JOB_NO_IMPERSONATION",
+    "REPORT_EVIDENCE_ACTIVITY_COMPLETION_AND_PASS_DISTINCT",
+    "SCOPE_A_TO_AB_OLD_REPORT_NOT_CURRENT_PASS",
+    "LEGACY_BINDING_AND_NEW_BINDING_REDUCTION_GUARD",
+    "OWNER_UNKNOWN_OR_STALE_NO_EMPTY_FALLBACK",
+    "OPEN_AND_BINDING_TRANSACTION_ROLLBACK",
+    "TRIGGER_SUCCESS_THEN_GATE_PENDING_PRESERVE_ENTITY",
+    "PUBLISHED_CONFIG_AND_HISTORICAL_REPORT_IMMUTABILITY",
+    "PROJECT_LEVEL_REPORT_FILE_POLICY_WITHOUT_TASK_SOURCE",
+    "UNCONFIGURED_DELIVERABLE_TARGET_NO_FALSE_COMPENSATION"
+  ],
+  "gate": {
+    "questionClosed": false,
+    "phaseReady": false,
+    "implementationPlanExecutable": false,
+    "requiredNext": ["Phase 1 affected-boundary review","Phase 2 contract/DDL review and relevant schema verification","Feature coverage/physical contract alignment","only then dependent implementation plan"]
+  },
+  "subject": {
+    "kind": "PROJECT_ACCEPTANCE",
+    "requiredIdentity": ["tenantId","projectId","acceptanceType"],
+    "nodeAndViewRole": "ENTRY_OR_FACT_CONSUMER_NOT_ACCEPTANCE_SUBJECT",
+    "scope": "Project-level acceptance only in this candidate; no per-node/order-line/device acceptance roots",
+    "userClarificationDate": "2026-09-08"
+  },
+  "apiDependencyDirection": {
+    "existingProjectApiDependencies": ["pms-module-customer-api"],
+    "proposedAdditionalProjectApiDependency": "pms-module-commerce-api",
+    "commerceApiMustNotDependOnProjectApi": true,
+    "noBizToBizDependency": true,
+    "reason": "ACC scope-refresh command references the COM-owned immutable BusinessAcceptanceScopeSnapshot instead of duplicating COM facts"
+  },
+  "ruleValidation": [
+    "schemaVersion=1 and ownerContext=ACC, definitionKind=COMPLETION_RULE; snapshots originate from the published-definition provider, never REST-supplied JSON",
+    "requiredReportFields contains only registered fields without duplicates",
+    "minimumAttachments>=0; ATTACHMENTS selected requires minimumAttachments>=1, otherwise minimumAttachments=0",
+    "PRELIMINARY rule cannot require its own initial prerequisite",
+    "Initial prerequisite consumes the same project's PRELIMINARY fact under its own frozen rule; it never substitutes FINAL's own checks",
+    "acceptancePassed always requires an explicit passing project acceptance conclusion plus configured evidence; COM equality/coverage participates only when COM_CURRENT_SCOPE is selected",
+    "expectedScopeVersion is NULL iff the rule is NOT_REQUIRED; applicable version conflicts are never configurable away",
+    "AllowedActions is computed by ACC; PROJ resolver intersects it with node authorization and registered view modes, never reconstructs ACC permissions from component visibility."
+  ],
+  "scalarRules": {
+    "identities": "Long IDs > 0; trusted tenantId follows existing multi-tenant context (>=0), never a client value",
+    "versions": "project/activity/report row versions >=0; tree/binding/definition revision >0; COM scopeVersion >=0; per-scope allocationVersion >0",
+    "optionalScope": "NULL scope version means NOT_REQUIRED only; null is never a replacement for an unavailable required fact",
+    "text": "operationId and intentKey nonblank, lengths follow platform command and origin_key contracts; no timestamp/random key per retry",
+    "nullability": "? means nullable; otherwise fields and list containers required; null elements forbidden",
+    "scopeSnapshot": "scopeVersions sorted unique by deliveryScopeId; its scope IDs exactly equal the assignedLines scope IDs; both lists may be empty together"
+  },
+  "factResultRules": [
+    "FOUND requires non-null projectId/acceptanceType/activityVersion and known booleans; applicable scope versions follow the frozen ScopeCheck",
+    "NOT_FOUND or unavailable facts may omit unknown fields; never fabricate projectId=0, false facts or fake scope versions",
+    "Consumers require outcome FOUND before using booleans; commands reject unknown/version conflict without business writes",
+    "allowedActions is always a list and empty when the fact is unavailable",
+    "Public controller maps inaccessible/missing entity to its existing not-found/authorization semantics without leaking existence"
+  ],
+  "errorSemantics": {
+    "commands": "existing AUTHORIZATION / VALIDATION / BUSINESS_GATE / VERSION_CONFLICT / IDEMPOTENCY_CONFLICT / DEPENDENCY_UNAVAILABLE categories; failures throw and map through existing CommonResult handling",
+    "facts": "explicit FactOutcome distinguishes unknown from known unmet facts; no default success",
+    "numericCodes": "not allocated by this candidate; use owner error-code registry in the approved implementation unit"
+  },
+  "adaptationPoints": [
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/AcceptanceReportFileBusinessObjectPolicyProvider.java",
+      "method": "validReport",
+      "change": "Currently requires projectTaskId>0. New project-level roots must validate project/report/origin identity instead; LEGACY_TASK retains its task-source check. Keep live ProjectScope and FileBusinessScope checks."
+    },
+    {
+      "path": "pms-module-project/src/main/resources/mapper/acceptancereport/AcceptanceActivityMapper.xml",
+      "change": "Explicit projections must include new origin/rule/scope fields; never infer new-origin data from missing selected columns."
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/AcceptanceReportQueryService.java",
+      "change": "Keep project-scope authorization; nullable task source is not a missing acceptance subject and must not be filled with 0/fake task."
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/AcceptanceReportSourceProjectionService.java",
+      "change": "For new configuration only match explicitly configured project deliverable requirements. No configured target means no target projection, not perpetual compensation; a declared but unavailable target remains a compensation failure without rolling back the report. Legacy exact-code mapping stays confined to legacy path."
+    }
+  ]
+}

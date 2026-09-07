@@ -49,6 +49,12 @@
 
 ## 正式放行条件
 
+### 修订018项目级验收候选输入（2026-09-08）
+
+需求方已确认书面逻辑设计，并明确验收主要是项目层面。当前新增审阅输入为`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract-design.md`及对应契约JSON：项目/类型主身份不变，节点不是验收主体，COM覆盖检查按规则适用，具体来源/范围/API/物理差量已有候选。本阶段状态及独立批准仍保持原值；候选、自审和JSON解析不构成Phase 1/2或P3-E09通过，Q-TPLACC-001尚未关闭。
+
+### 原有放行要求
+
 当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。
 
 本轮保留8个Feature的切片重验证标记，历史Task Done和DU认领不变；SDS技术通过不等于Feature Ready、Implementation Done、Migration、SIT、UAT或Release GO。

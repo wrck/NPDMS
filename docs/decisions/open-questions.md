@@ -723,3 +723,11 @@
 - Blocking scope: 仅新增独立触发、实体初始化、验收范围及依赖这些契约的运行接入。修订018业务/逻辑文档可以先收口；旧已实现独立切片不回退，Feature Ready/Done不自动恢复。
 - Decision owner: PROJ、ACC、COM设计Owner；涉及新增业务语义时返回需求方
 - Decision date: 未关闭；2026-09-07登记
+
+#### 2026-09-08 契约候选进展
+
+需求方已确认书面逻辑设计，并补充“验收主要是项目层面的验收”。候选保持`tenant+project+acceptanceType`身份，节点和视图只引用项目验收；COM范围只在已发布规则要求时参与，不成为所有项目验收创建的统一前置。
+
+具体候选位于`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract-design.md`及同名`2026-09-08-template-acceptance-phase2-contract.json`。已列PROJ上下文/发布定义、ACC创建/完成/事实、COM阶段无关快照、范围变化回调、来源可空约束及新旧绑定身份。现有getAssignedScope缺少allocationVersion，候选扩展原COM验收锁API，不伪造阶段ID或混用全局/分配/授权版本。
+
+本进展不关闭Q。先复核受影响Phase 1边界，再审阅具体API/物理合同并完成适用Schema验证；未形成通过证据前保持OPEN/BLOCKED_BY_SPEC。与本Q无依赖的模板基础配置仍可按自身契约推进，不扩大阻断。
