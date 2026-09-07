@@ -8,7 +8,7 @@
 > 结构化候选：`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract.json`
 > 实现审计基线：`3abdeb1e`；本稿只描述候选，不修改应用/接口源码、Flyway或历史数据
 > 当前DU：`DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE`
-> 当前修订：`R1`；按独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`对`c18e5959`的五项NO-GO意见整改，待同一任务复审
+> 当前修订：`R2`；按独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`对`a606e3c4`的两项P2意见修订，先自审再交同一任务复审
 
 ## 1. 主体先确定：这是项目验收
 
@@ -104,6 +104,23 @@ v2事件零附件只在报告冻结规则允许且报告事实匹配时合法。
 
 每个声明目标均返回deliverableId/requirementRevisionId、可空sourceVersionId/relationStatus及该关系自己的archiveStatus/failureCode/retryCount；已声明未投影返回PENDING_COMPENSATION及空sourceVersionId，不能伪装未配置。archiveSummary：无目标NOT_CONFIGURED；全部同值时返回该值；混合值MIXED。旧三个标量archive字段仅在恰一关系时返回该关系值，零/多关系时返回NULL；新视图必须使用数组/汇总，旧单目标响应不变。无目标与目标尚未投影的判断以冻结目标清单而非查询行数决定。
 
+### 3.5 多目标共同归档身份（R2-01）
+
+仅新来源、非空附件报告适用。ACC向现有`ArchiveFileReferenceSetsCommand`传递下列完整共同身份；不能仅共享文件集合、仍按sourceVersionId分配归档批次。
+
+| 字段 | 同一报告所有应交关系的固定值 |
+|---|---|
+| operationId / archiveBatchId | 均为`ACC-REPORT-ARCHIVE:{reportVersionId}`；只含不可变报告版本ID，不含deliverableId/sourceVersionId、补偿次数或当前操作者 |
+| businessDecisionRef | `ACC-REPORT:{reportVersionId}` |
+| actorUserId | 该报告版本不可变publisher_user_id；不是来源关系创建人或Job用户 |
+| attachmentSetKey / archiveSetKey | 均为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}`；purpose分别为ACCEPTANCE_REPORT_ATTACHMENT和ACCEPTANCE_REPORT_ARCHIVE |
+| expectedScopeVersion | 报告发布时冻结的完整附件事实所共有的授权scopeVersion；不换成COM版本，不在每次补偿中另取新值冒充旧事实 |
+| orderedExpectedPublicFileFacts | 从该报告不可变附件事实按原sequence读取完整集合；每个关系的附件投影须逐项一致，缺失或不同则补偿失败，不能取关系子集归档 |
+
+tenant取当前受信上下文并与报告/来源关系一致。先按4.0锁项目、活动、报告及本次目标关系，再调用PLT；所有目标竞争同一报告/归档集合锁。A首次成功形成报告级FileArchiveRecord；B（包括乱序/重试）使用相同批次、决定、actor、scope及文件事实命中原记录，通过既有requireArchiveReplay后只更新B自己的补偿投影。不得因A已ARCHIVED就跳过B的当前权限/文件重验直接伪报成功，也不新增第二份文件或归档记录。
+
+LEGACY_TASK继续使用原`ACC-ARCHIVE:{sourceVersionId}`批次/操作键、原报告决定及原发布人，不改写历史、不套用新批次重放旧归档。零附件仍按3.4为NOT_REQUIRED，不向要求非空集合的PLT接口发空命令。新报告换版使用新reportVersionId自然形成另一归档身份，不能跨报告合并。
+
 ## 4. 事务和锁序
 
 ### 4.0 所有共享写路径的闭合锁序（R1-01）
@@ -169,7 +186,11 @@ COM在自身范围锁下生成`DeliveryScopeProtectionLineageFact`，包括当�
 
 integration注册同步ApplicationEvent监听器，仅处理实际PMS Gate且APPROVE(2)信号。监听器必须处于Flowable结束处理的原Spring事务、同数据源事务管理器内；用运行/历史实例和保留变量校验来源身份，**此时不要求历史endTime已经可见**。它先以PlatformCommandExecutionApi同事务写`AcceptanceApprovalSignalCaptured`到既有Outbox；不使用@Async、AFTER_COMMIT首次落库或REQUIRES_NEW捕获，也不调用ACC或锁PROJ业务行。无法可靠读取已配置触发或捕获落库失败必须使该审批事务回滚；这是可靠捕获失败，不是验收业务门禁回滚已完成审批。
 
-捕获幂等scopeCode=`PMS_ACC_APPROVAL_CAPTURE`、actorId=经实际实例核实的startUserId、key=`AAP:{tenantId}:{processInstanceId}:{triggerRevisionId}`（原生实例ID长度≤64、总长≤128）；作为捕获eventId，payload.eventId完全相同。重放同键同冻结载荷返回原捕获，异载荷冲突；沿用PLT既有摘要协议，不另建摘要/Inbox表。捕获payload精确见JSON.AcceptanceApprovalSignalCaptured，包含冻结触发全文、实际definitionId/key、businessKey、signalStatus=2、processInstanceId；不伪造尚未核实的approvedAt。意图来自PROJ启动时的冻结intentKey，ACC操作键固定为该eventId。
+捕获幂等scopeCode=`PMS_ACC_APPROVAL_CAPTURE`、actorId=经实际实例核实的startUserId，完整captureKey=`AAP:{tenantId}:{processInstanceId}:{triggerRevisionId}`（原生实例ID长度≤64、完整键≤128）。captureKey只进入幂等键及载荷，不再作为Outbox eventId。eventId使用首次新执行中生成的标准带连字符UUID字符串（36字符），满足现有`plt_outbox_event.event_id VARCHAR(64)`，不扩列、不截断业务身份，不增加哈希框架。
+
+精确捕获顺序：先构造不含eventId的`AcceptanceApprovalCaptureRequest`，以其完整冻结字段按PLT既有协议生成请求摘要；调用PlatformCommandExecutionApi.execute，responseType为`AcceptanceApprovalCaptureResult`。仅获得新执行的operation回调内生成UUID并返回captureKey/eventId；successFactsFactory使用这个结果创建`AcceptanceApprovalSignalCaptured`完整payload，payload.eventId、BusinessEvent.eventId及Outbox列三者相同，payload.captureKey保留完整业务身份。响应JSON、成功幂等、审计及事件在原BPM事务共同提交。同键同请求重放直接返回原captureKey/eventId，不再运行回调或生成事件；异载荷/处理中不生成UUID，不把随机eventId加入请求摘要导致伪冲突。若整个事务回滚，则没有已提交的捕获身份，重试仍使用原captureKey，首次成功提交可生成新的UUID。
+
+载荷继续包含冻结触发全文、实际definitionId/key、businessKey、signalStatus=2和processInstanceId，不伪造尚未核实的approvedAt。业务intentKey保持PROJ启动时冻结值；消费者重算captureKey核对来源组合，并校验Outbox信封eventId等于payload.eventId。ACC消费操作键仍用这次已固化的短eventId，不能把captureKey截短后使用或在投递重试时重新生成ID。
 
 ### 5.2 提交后独立核验和消费
 
@@ -237,4 +258,14 @@ R1只加两个保护来源列：`protection_lineage_kind VARCHAR(16) NOT NULL DE
 | R1-04 / P2 | 3.4、列表Query/响应及空目标语义 | 同报告两个应交关系、不同归档状态可查询，不selectOne或复制文件；尚未投影不能当未配置 |
 | R1-05 / P2 | 5.1/5.2、冻结触发/捕获载荷 | 结束回调endTime尚不可见仍同事务捕获；BPM回滚不留信号；捕获后崩溃、规则改版、ACK丢失均重放原意图 |
 
-复核证据为当前仓库的AcceptanceReportCommandService、AcceptanceReportFileBusinessObjectPolicyProvider、ProjectTreeScopeService、AcceptanceReportSourceProjectionService/ArchiveCompensationService/QueryService、ProjectDeliverableSourceVersionMapper、CommerceAuthorityIngestService、CommerceDeliveryScopeCommandService、DeliveryScopeCompatibilityService及其PM-02真实调用、BpmProcessInstanceServiceImpl/EventPublisher、FlowableProjectStageGateProvider和PLT命令/Outbox接口。原技术NO-GO保留，R1是否解决由同一独立任务重新裁决，不用本表自签通过。
+复核证据为当前仓库的AcceptanceReportCommandService、AcceptanceReportFileBusinessObjectPolicyProvider、ProjectTreeScopeService、AcceptanceReportSourceProjectionService/ArchiveCompensationService/QueryService、ProjectDeliverableSourceVersionMapper、CommerceAuthorityIngestService、CommerceDeliveryScopeCommandService、DeliveryScopeCompatibilityService及其PM-02真实调用、BpmProcessInstanceServiceImpl/EventPublisher、FlowableProjectStageGateProvider和PLT命令/Outbox接口。独立任务对`a606e3c4`确认R1-01/02/03契约层已解决；R1-04查询基数已解决、R1-05主要事务设计已解决，但仍有以下两项P2。该裁决不代表已运行并发、数据库或业务验收。
+
+## 10. R2修订及提交前自审
+
+R2只处理同一独立任务的两项剩余意见（锁定R1输入`a606e3c44ea2f437856aba5cb02efd983868803b`）：R2-01为多目标共同archiveBatchId及完整归档命令身份，R2-02为捕获幂等键与Outbox事件标识的长度/重放一致性。需求方要求先完成本轮自审再提交复审；已解决的锁序、报告生命周期、范围保护以及既有业务语义不重写。
+
+自审追踪`AcceptanceReportArchiveCompensationService.archive`→`FileArtifactApiImpl.archiveReferenceSets/requireArchiveReplay`→V92归档唯一键，以及`PlatformCommandExecutionApiImpl.execute/persistSuccess`→`PlatformTransactionalOutboxWriter.write`→V63 Outbox/幂等列。检查重点是两目标命令所有重放字段相同、旧路径不换批次、UUID只在新执行回调生成、请求摘要不含随机结果、事件列/信封/payload/重放结果一致。
+
+自审状态：已完成一轮，未发现本轮两处修订遗留的契约级问题（主任务自审，不是独立批准）。50个记录类型、10个接口/应用服务、16个方法及10条REST的类型/字段引用检查通过；PLT归档命令八个字段均已对应。内存契约样例中同报告两个来源/重复执行的命令元组相同，换报告身份不同；19位报告ID的归档批次长38字符，完整AAP最大支持组合长108字符、eventId固定36字符，分别符合128/128/64列约束。
+
+自审同时确认捕获请求不含随机eventId、事件载荷保留全部请求字段、结果保存两个身份，并逐项追踪提交/回滚/同键重放/ACK丢失路径；R1已解决契约、既有REST、业务身份及原物理差量未被改写。源路径与六文件认领/差异检查另记本DU。真实双目标归档、事务崩溃、数据库/DDL及业务运行验证仍NOT_RUN；本节不签署独立GO，不关闭Q-TPLACC-001或正式Gate。

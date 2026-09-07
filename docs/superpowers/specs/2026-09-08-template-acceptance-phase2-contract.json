@@ -37,7 +37,8 @@
     "DeliveryScopeVersionFact": {"owner":"COM","path":"pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/dto/DeliveryScopeVersionFact.java"},
     "AcceptanceScopeGuardQuery": {"owner":"ACC","path":"pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/acceptancescope/dto/AcceptanceScopeGuardQuery.java"},
     "FileReferenceSetExpectation": {"owner":"PLT","path":"pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/FileReferenceSetExpectation.java"},
-    "FileArtifactVersionFact": {"owner":"PLT","path":"pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/FileArtifactVersionFact.java"}
+    "FileArtifactVersionFact": {"owner":"PLT","path":"pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/FileArtifactVersionFact.java"},
+    "ArchiveFileReferenceSetsCommand": {"owner":"PLT","path":"pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/ArchiveFileReferenceSetsCommand.java"}
   },
   "enums": {
     "AcceptanceType": ["PRELIMINARY","FINAL"],
@@ -267,6 +268,7 @@
     "AcceptanceApprovalSignalCaptured": {
       "fields": {
         "eventId": "String",
+        "captureKey": "String",
         "schemaVersion": "Integer",
         "signalStatus": "Integer",
         "processInstanceId": "String",
@@ -298,7 +300,21 @@
     },
     "AcceptanceScopeParticipantsQuery": {"fields":{"tenantId":"Long","projectIds":"List<Long>","operationId":"String"}},
     "AcceptanceScopeParticipantsFact": {"fields":{"projectIds":"List<Long>","acceptanceIds":"List<Long>"}},
-    "ReportSourceVersionRow": {"fields":{"reportVersionId":"Long","deliverableId":"Long","sourceVersionId":"Long","relationStatus":"SourceRelationStatus","archiveStatus":"ArchiveStatus","archiveFailureCode":"String?","archiveRetryCount":"Integer"}}
+    "ReportSourceVersionRow": {"fields":{"reportVersionId":"Long","deliverableId":"Long","sourceVersionId":"Long","relationStatus":"SourceRelationStatus","archiveStatus":"ArchiveStatus","archiveFailureCode":"String?","archiveRetryCount":"Integer"}},
+    "AcceptanceApprovalCaptureRequest": {
+      "owner": "INTEGRATION",
+      "fields": {
+        "captureKey": "String",
+        "schemaVersion": "Integer",
+        "signalStatus": "Integer",
+        "processInstanceId": "String",
+        "processDefinitionId": "String",
+        "processDefinitionKey": "String",
+        "businessKey": "String",
+        "trigger": "AcceptanceApprovalTriggerSnapshot"
+      }
+    },
+    "AcceptanceApprovalCaptureResult": {"owner":"INTEGRATION","fields":{"captureKey":"String","eventId":"String"}}
   },
   "interfaces": [
     {"owner":"PROJ","name":"ProjectAcceptanceContextApi","state":"PROPOSED","methods":[{"name":"lockAndRevalidate","input":"ProjectAcceptanceContextQuery","output":"ProjectAcceptanceContextFact","transaction":"MANDATORY"}]},
@@ -555,7 +571,14 @@
         "REVOKED relation remains INVALID; NOT_REQUIRED never means acceptancePassed or deliverable accepted"
       ]
     },
-    "acc_project_deliverable": {"catalogueExtension":{"column":"archive_status","addValue":"NOT_REQUIRED"},"constraints":["Current root archive projection mirrors the current relationship, not another deliverable sharing the report"]}
+    "acc_project_deliverable": {"catalogueExtension":{"column":"archive_status","addValue":"NOT_REQUIRED"},"constraints":["Current root archive projection mirrors the current relationship, not another deliverable sharing the report"]},
+    "reusedPhysicalLimits": {
+      "captureIdempotencyKey": {"column":"plt_idempotency_record.idempotency_key","maxLength":128,"source":"sql/migrations/V63__fproj001_v18_atomic_project_creation.sql"},
+      "outboxEventId": {"column":"plt_outbox_event.event_id","maxLength":64,"emittedLength":36,"source":"sql/migrations/V63__fproj001_v18_atomic_project_creation.sql"},
+      "archiveBatchId": {"column":"archive_batch_id","maxLength":128,"source":"sql/migrations/V92__fplt001_file_artifact.sql"},
+      "archiveBusinessDecisionRef": {"column":"business_decision_ref","maxLength":256,"source":"sql/migrations/V92__fplt001_file_artifact.sql"},
+      "schemaChangeRequired": false
+    }
   },
   "algorithms": {
     "openLockOrder": [
@@ -629,7 +652,11 @@
     "DECLARED_TARGET_NOT_PROJECTED_DIFFERS_FROM_NO_TARGET",
     "BPM_CAPTURE_BEFORE_END_TIME_VISIBLE_IN_SAME_TRANSACTION",
     "BPM_ROLLBACK_NO_CAPTURE_AND_POST_COMMIT_CRASH_RETRY",
-    "BPM_RETRY_FROZEN_RULE_INTENT_AND_ACK_LOSS_REPLAYS_RESULT"
+    "BPM_RETRY_FROZEN_RULE_INTENT_AND_ACK_LOSS_REPLAYS_RESULT",
+    "MULTI_TARGET_NONEMPTY_ARCHIVE_REUSES_BATCH_DECISION_PUBLISHER_AND_FACTS",
+    "LEGACY_ARCHIVE_BATCH_AND_HISTORY_UNCHANGED",
+    "CAPTURE_KEY_OVER_64_SHORT_EVENT_ID_PERSISTS_ONCE",
+    "CAPTURE_REPLAY_RETURNS_SAME_EVENT_ID_WITHOUT_RANDOM_REQUEST_DIGEST"
   ],
   "gate": {
     "questionClosed": false,
@@ -706,7 +733,7 @@
     },
     {
       "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/AcceptanceReportArchiveCompensationService.java",
-      "change": "Prelock project/report before deliverable/source locks; zero attachments => NOT_REQUIRED only for verified v2 optional report; retain original actor and real file archive for nonempty."
+      "change": "Prelock project/report before deliverable/source locks; zero attachments => NOT_REQUIRED only for verified v2 optional report; retain original actor and real file archive for nonempty. New-origin multi-target archive must bind every ArchiveFileReferenceSetsCommand field by reportProjection.sharedArchive, including the common archiveBatchId; legacy source-level batches are unchanged."
     },
     {
       "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/acceptancereport/ProjectDeliverableSourceVersionMapper.java",
@@ -726,20 +753,22 @@
     },
     {
       "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/stagegate/FlowableProjectStageGateProvider.java",
-      "change": "Add reserved typed trigger snapshot at process start; integration synchronous capture and isolated existing-outbox consumer follow bpmCapture."
+      "change": "Add reserved typed trigger snapshot at process start; integration synchronous capture and isolated existing-outbox consumer follow bpmCapture. Capture uses a full AAP idempotency key but generates/persists a separate 36-character eventId only in the new execution callback; replay returns its stored CaptureResult."
     },
     {
       "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancescope/AcceptanceScopeBindingService.java",
       "change": "New typed guard reads bindings for all COM-proven ancestor versions and both origin kinds; old lineage-less guard is not final write authorization."
     }
   ],
-  "revision": "R1",
+  "revision": "R2",
   "review": {
     "taskId": "01a07ce8-42fa-7dd2-8991-094d0c15cc6c",
-    "reviewedCommit": "c18e5959e70ea2eef17a815b56067e4612842d6f",
+    "reviewedCommit": "a606e3c44ea2f437856aba5cb02efd983868803b",
     "previousVerdict": "NO_GO",
     "currentVerdict": "PENDING",
-    "scope": ["R1-01_LOCK_ORDER","R1-02_REPORT_LIFECYCLE","R1-03_SCOPE_PROTECTION","R1-04_MULTI_TARGET_QUERY","R1-05_DURABLE_BPM_CAPTURE"]
+    "scope": ["R2-01_SHARED_REPORT_ARCHIVE_IDENTITY","R2-02_CAPTURE_KEY_EVENT_ID_SEPARATION"],
+    "resolvedInR1": ["R1-01_LOCK_ORDER","R1-02_REPORT_LIFECYCLE","R1-03_SCOPE_PROTECTION"],
+    "history": [{"reviewedCommit":"c18e5959e70ea2eef17a815b56067e4612842d6f","verdict":"NO_GO","scope":["R1-01_LOCK_ORDER","R1-02_REPORT_LIFECYCLE","R1-03_SCOPE_PROTECTION","R1-04_MULTI_TARGET_QUERY","R1-05_DURABLE_BPM_CAPTURE"]}]
   },
   "sharedLockProtocol": {
     "order": [
@@ -796,7 +825,7 @@
     "targetSource": "Frozen new-origin report deliverable_target_snapshot from instantiated explicit requirements; the event repeats it exactly. Legacy target selection remains the original precise code contract.",
     "zeroAttachments": "Validate report/rule first; create zero attachment rows, mark each non-revoked source NOT_REQUIRED with no archive time/failure/retry and do not call PLT archive. Never synthesize files, ARCHIVED success or business completion.",
     "zeroTargets": "[] means intentionally no projection. Declared missing target means retry/compensation and is never discarded.",
-    "multiTarget": "Each declared deliverable has its own source identity/status, all referring to the same report version and existing file facts. Batch prelock target roots, process by id. Idempotent archive reuses the same report attachment/archive keys, not copies.",
+    "multiTarget": "Each target retains its own source/projection status referring to the same immutable report/file facts. Use sharedArchive's entire report-level command identity, not merely the same file collection keys. Batch prelock as in sharedLockProtocol.",
     "query": {
       "mapper": "ProjectDeliverableSourceVersionMapper.selectListByReportVersions",
       "input": "ReportSourceVersionsListQuery",
@@ -812,7 +841,26 @@
     },
     "view": "ProjectAcceptanceReportVersionView preserves existing report fields; deliverableSources is ordered by deliverableId/sourceVersionId; declared but not yet projected targets have null sourceVersionId/relationStatus and PENDING_COMPENSATION.",
     "summary": "No declared targets => NOT_CONFIGURED; all relation archive statuses equal => that status; otherwise MIXED. Never derive no targets from zero materialized rows alone.",
-    "legacyScalars": "archiveStatus/archiveFailureCode/archiveRetryCount equal the sole relation only when count=1; all three NULL for count=0 or >1. New UI uses deliverableSources/archiveSummary."
+    "legacyScalars": "archiveStatus/archiveFailureCode/archiveRetryCount equal the sole relation only when count=1; all three NULL for count=0 or >1. New UI uses deliverableSources/archiveSummary.",
+    "sharedArchive": {
+      "commandType": "ArchiveFileReferenceSetsCommand",
+      "applicability": "Only DIRECT/NODE/BPM_APPROVAL reports with non-empty published attachments; tenant remains trusted context and must match the report and relation.",
+      "fieldBindings": {
+        "operationId": "ACC-REPORT-ARCHIVE:{reportVersionId}",
+        "archiveBatchId": "ACC-REPORT-ARCHIVE:{reportVersionId}",
+        "businessDecisionRef": "ACC-REPORT:{reportVersionId}",
+        "actorUserId": "report.publisher_user_id",
+        "attachmentSetKey": "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
+        "archiveSetKey": "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ARCHIVE",
+        "expectedScopeVersion": "The one authorization scopeVersion frozen in all report attachment facts; never COM or a newly substituted scope version.",
+        "orderedExpectedPublicFileFacts": "The complete immutable report attachment facts in original sequence; each source projection must equal this set, never archive a per-target subset."
+      },
+      "replay": "A and B use identical values for all eight command fields. After A commits, B finds the same FileArchiveRecord by tenant+archiveBatchId+artifactId+versionNo and passes existing businessDecisionRef/actor/scope/reference replay checks; no second file/archive fact is created.",
+      "projection": "After PLT succeeds or validates its existing archive, update only this source relationship's compensation projection and its current deliverable root. Do not infer B success solely from A status or bypass current publisher authorization/file checks.",
+      "concurrency": "Reuse sharedLockProtocol, including the report prefix, before target/source rows and PLT; never introduce a target-first report lock.",
+      "legacy": "LEGACY_TASK keeps operationId=archiveBatchId=ACC-ARCHIVE:{sourceVersionId}, businessDecisionRef=ACC-REPORT:{reportVersionId}, original publisher and old file history. Do not recapture existing archives under the new batch.",
+      "zeroAttachments": "No archive command: keep verified NOT_REQUIRED. New report versions get new reportVersionId and a distinct archive identity."
+    }
   },
   "scopeProtection": {
     "owner": "COM owns immutable predecessor identity; ACC owns protection bindings",
@@ -858,13 +906,23 @@
       "validation": "Read real instance/definition/start user and frozen variables without a finished-only query. Do not require or fabricate endTime at this stage. Configured source/capture failure rolls back original approval transaction; no ACC call or PROJ business locks.",
       "scopeCode": "PMS_ACC_APPROVAL_CAPTURE",
       "actorId": "Actual instance startUserId equal to frozen originatingActor.userId",
-      "key": "AAP:{tenantId}:{processInstanceId}:{triggerRevisionId}",
-      "eventId": "Exactly capture key, length <=128; native processInstanceId <=64",
-      "payloadEquality": "All fields immutable across duplicate signals; reuse existing PLT canonical request-digest protocol, no extra hash framework."
+      "key": "captureKey=AAP:{tenantId}:{processInstanceId}:{triggerRevisionId}; <=128, native instanceId<=64; preserved in full in idempotency key/request/payload/result, never put in the 64-character Outbox event_id.",
+      "eventId": "Canonical hyphenated UUID string, 36 characters. Generate only inside a newly reserved execute operation callback; persist it in AcceptanceApprovalCaptureResult and the same-transaction Outbox event. Never truncate/hash captureKey or generate an event ID per delivery attempt.",
+      "payloadEquality": "Request digest covers AcceptanceApprovalCaptureRequest only: all immutable source and trigger fields plus full captureKey, no generated eventId or new receipt timestamp. Same request replays original result; changed request conflicts.",
+      "requestType": "AcceptanceApprovalCaptureRequest",
+      "resultType": "AcceptanceApprovalCaptureResult",
+      "persistAndReplay": [
+        "Build CaptureRequest and its existing PLT request digest before execute; IdempotencyScope key is the full captureKey and responseType is AcceptanceApprovalCaptureResult.",
+        "Only execute's new operation callback generates eventId and returns captureKey/eventId. A duplicate completed/in-progress/conflicting reservation never runs this callback.",
+        "successFactsFactory uses that result to form AcceptanceApprovalSignalCaptured: payload repeats every request field, and payload.eventId=BusinessEvent.eventId=Outbox event_id=result.eventId.",
+        "PLT persists response_payload, audit and Outbox in the original BPM transaction. A committed retry returns the persisted result without generating another UUID or inserting another event.",
+        "If the whole transaction rolls back, no capture identity is committed; retry keeps captureKey/request and a later first successful transaction may generate a new UUID.",
+        "Consumer/ACK/retry always uses the committed short eventId; full captureKey remains a source identity, and trigger.intentKey remains the original business intent."
+      ]
     },
     "consume": {
       "eventTypeFilter": "AcceptanceApprovalSignalCaptured",
-      "identity": "Committed exact process instance has endTime and PROCESS_STATUS=2, matching tenant/actual definition ID/key/businessKey/start user and all reserved variables. approvedAt=actual endTime.",
+      "identity": "Committed exact process instance has endTime and PROCESS_STATUS=2, matching tenant/actual definition ID/key/businessKey/start user and all reserved variables. approvedAt=actual endTime. Validate envelope.eventId=payload.eventId and recompute payload.captureKey from tenant/instance/trigger revision without truncation.",
       "execution": "Original actor/current authorization; frozen trigger/rule/intent never reselected. Use eventId and fixed captured payload for the outer PLT command envelope, scopeCode=PMS_ACC_APPROVAL_EXECUTE, actorId=original user. Inside new execution only, read current Owner versions, then perform ACC open business body in this same transaction without a nested command reservation.",
       "versionPolicy": "Original project/tree/COM versions remain in immutable payload for audit. Only live optimistic expected versions are re-read inside a new execution; retries after committed execution replay its persisted result before reading changing facts.",
       "ack": "Only after ACC+idempotency commit returning CREATED/RESOLVED_EXISTING or committed replay; then markDelivered(eventId, expectedRetryCount). Lost ACK retries original envelope and result.",
@@ -876,7 +934,9 @@
       "BPM rollback leaves no outbox event",
       "Crash after capture commit before consume is replayable",
       "Rule revision changes during retry do not change captured intent",
-      "ACC success then ACK failure yields one root and original result"
+      "ACC success then ACK failure yields one root and original result",
+      "Duplicate capture replays persisted short eventId and never includes a random result in request digest",
+      "CaptureKey longer than 64 but within 128 still stores a 36-character Outbox eventId; rollback/retry does not leak an uncommitted identity"
     ]
   }
 }
