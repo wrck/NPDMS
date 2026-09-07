@@ -600,3 +600,20 @@
 - Resolution: 需求方于2026-09-02确认COM-A与COM-B承载不同需求，要求按Requirement能力整体合并，不再二选一。统一F-COM-001以ERP权威副本、人工待核对与对账、合同/订单/项目显式关系、项目级范围版本、DeliveryScope命令/查询/冲突、ACC范围绑定组成单一闭环；COM地点唯一采用目标项目办事处发生时快照。COM-B的AST `site/location/text`迁入IMP/AST实施地点能力，不作为COM第二套地点真值；平台迁移证据拆为PLT能力。两条分支的历史Done或Gate不得相互转记，代码必须按能力选择性集成并重新验证。该决定关闭COM地点和来源选择冲突，但不自动产生Feature Done。
 - Decision owner: 需求方/产品组；COM、ACC、PROJ、AST领域Owner参与影响分析
 - Decision date: 2026-09-02
+
+## COM 内部范围边界调整
+
+### Q-COM-SCOPE-20260907-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: COM-01@V1、PM-06@V2；协作PM-03、ACC-03
+- Area: 基础范围分配/调整与活动项目审批追加的入口分界
+- Question: COM-01普通分配/增量调整与PM-06合同及实施范围追加，分别依据什么业务事实选择入口？首次分配、原范围纠错、扩容/续采追加如何区分，哪些情况必须带批准申请和影响分析并同步生成任务、交付件及门禁？
+- Evidence: 当前F-COM-001 Spec的BR-FCOM001-004/005与`assign/adjust`允许基础范围变更；已获取的`origin/docs/prd-v1.8-p0-p1-fixes@4cb69b662761f54d385b491333322b225320d267`中PRD PM-06和SDS10 §5.4要求审批追加原子生效。修订016尚未合入本Worktree，该引用只定位待协调输入，不转记master基线或完成状态。
+- Why it blocks design/implementation: 两套入口未形成可执行分界时，新增审批守卫可能把V2规则提前施加于V1；完全不约束普通增量又可能绕过V2追加所需审批、任务与门禁更新。
+- Recommended technical default: 不臆造阶段、是否已有范围或数量阈值作为分流规则。保留现有V1行为，先完成不依赖分流的COM内部商业来源/Scope责任设计；V2追加接入及改变普通入口行为前由需求方明确规则并回写正式PRD/SDS。
+- Business decision required: 是；2026-09-07用户确认的是内部职责划分、不拆模块、不迁移正式Owner，不包含本问题的业务判定规则。
+- Resolution: 待确认；设计输入见`docs/superpowers/specs/2026-09-07-com-delivery-scope-boundary-design.md`。
+- Blocking scope: 仅阻断两入口的行为分流及PM-06@V2追加接入；不改变F-COM-001当前Feature状态，不阻断保留原行为的内部责任收敛。分支记录须集成master后作为正式协调依据。
+- Decision owner: 需求方/产品组；COM、PROJ、ACC领域Owner参与影响分析
+- Decision date: 待确认
