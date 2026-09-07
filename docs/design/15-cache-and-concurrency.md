@@ -245,3 +245,13 @@ PM-06锁当前项目及COM唯一scopeVersion，再按订单行ID序锁分配对�
 CLO校验快照过期、报告/文件失效、范围或实施方式变更，均拒绝旧批准写终态并要求重验。关闭时锁项目及所有消费事实，PROJ唯一Writer与ACC闭环事实同事务提交；事件消费只重建投影，不能再次关闭或重开。NO_TRACKING不以NORMAL交付事实作为前置。
 
 权限或模板视图停用后不能继续用旧缓存写入；查询缓存含tenant/project/tree/graph/scope/permission版本，未知版本回源或失败关闭。历史快照不追溯重算。
+
+## 实施就绪与CUT审批并发补充
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+| 对象 | 版本/并发键 | 行为 |
+|---|---|---|
+| ImplementationReadinessSnapshot | projectId + snapshotNo + EXE-01～04 factVersion/watermark + device assignmentVersion + approvedSolutionVersion | 评估在事务中分配唯一序号并追加快照；任一来源变化返回`STALE/NOT_READY`，不按旧READY继续 |
+
+- CUT-05按任务→方案revision→审批实例→当前节点→PROJ服务经理/SYSTEM完整角色成员集合（用户ID升序）→逐人项目范围事实的固定顺序锁定；SYSTEM全局集合与项目可见交集均须和冻结事实一致。发起人原始/改派处理人锁同项目`ACTION_EDIT`及treeVersion；同一节点通过/驳回/改派并发仅一个CAS成功，审批、任务阶段、平台幂等、审计和`CutoverApproved`整体提交或回滚；

@@ -254,3 +254,22 @@ F-ACC-002的`SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVer
 计划/方案批准事件只载Owner业务版本，不直接推进固定S3/S4；PROJ按05校验是否推进。Cutover成功事件携带taskId、归档版本、精确范围及有效性，IMP按当前需割接范围聚合，不以一个成功任务代替全范围。范围/报告失效事件只使当前依赖门禁失效，历史快照不覆盖。项目闭环事件必须携带closureType、closedFromStage、项目版本与闭环/Gate快照引用，只通知已经由CLO-02/PM-10提交的事实；消费者不得再次写终态。事件键和聚合版本共同防重放/乱序，重试不绕过当前授权。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+## IMP与CUT事件发布细则
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+- `ArrivalAccepted`由IMP发布，携带projectId、sourceAcceptanceIds、accepted quantities、factVersion、scopeWatermark；只在项目当前全部应到范围由已确认签收或有效具体豁免满足时发布，批次候选ACCEPTED、差异未处理、拒收或部分签收不代表项目齐套。
+
+| 事件 | Producer | Consumer | 冻结字段 | 条件 |
+|---|---|---|---|---|
+| `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、sourceRequirement、sourceRecordId/sourceVersion、fileReference、hash、source snapshot | IMP出向；ACC审核引用，不覆盖IMP revision；同一evidenceId+revision重复发布幂等 |
+| `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
+| `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | eventId、evidenceId、evidenceRevision、artifactId、fileVersion、review/archive record | ACC入向；IMP按eventId Inbox和evidenceId+revision幂等推进同步投影；Accepted后Archived超时进入独立归档回执重试态并重发同revision，匹配Archived仍可恢复；旧序/错配只审计，归档不改变FileArtifact内容历史或来源业务事实 |
+| `CutoverApproved` | CUT | Todo/DAC | eventId、tenantId、taskId、planRevisionId、approvalInstanceId、approvalVersion、approvedAt、sourceSnapshotVersion、correlationId | 仅全部冻结节点通过时与审批/任务P5→P6同事务写Outbox；不自动下发采集任务，通知成功也不得替代该事件 |
+| `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
+| `CutoverChecklistItemResultLinked` | CUT | ProjectTask Query/CUT Read Model | taskId、checklistId/checklistVersion、stableItemKey/itemVersion、collectionTaskId、resultRef/resultVersion、resultSourceCode | P3同工作台已选择一个结果版本；只引用DAC技术结果，不复制其状态，不表示采集项通过或CUT阶段完成 |
+
+`CutoverApproved`只由CUT-05在冻结审批路由的全部节点通过后发布；F-CUT-004提交方案不发布该事件。P4通过同步`CutoverApprovalFactApi.start`与P5审批实例创建同成同败，不额外发明`CutoverPlanSubmitted`。来源失效暂停与替代审批恢复链使用同一公开命令合同而非新增公共事件；CUT-05不得通过审批事件改写F-CUT-004已提交方案正文。
+
+CUT-05首节点创建、下一节点激活和改派只在原业务事务追加`cut_approval_notification=PENDING`；`NotifyMessageSendApi`由提交后的独立投递动作调用。投递失败仅以同一deliveryKey转`PENDING_RETRY`，不回滚、覆盖或重新解释已提交审批决定，也不作为通过/驳回命令的503结果。

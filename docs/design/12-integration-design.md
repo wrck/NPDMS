@@ -278,3 +278,11 @@ INS-04预检与INS-02执行是两个CollectionTask，各自的授权只绑定自
 HR与目录字段及恢复策略以02c为准。OA材料/外采及AUT-01再次申请由OA拥有外部审批结果；SUB审批在平台内，OA只收待办链接，两者不能共享“平台内审批继续”的兜底。CRM治理工作台为V3，不混入未定义V2范围。外部回调文件准入复用13。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+## CUT-08请求、首次引用与状态回调
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+CUT-08由CUT保存平台请求、外部申请引用、原始状态版本和人工证据；INT-06 Integration ACL拥有连接器、认证、超时及第三方字段映射。CUT发起使用稳定平台requestId和Idempotency-Key，携带任务、项目、设备及冻结需求来源；INT-06接受发起时必须返回不可变externalRequestId，并可返回launchUrl、externalApplicationNo和原始状态。只有跳转地址时保持`REQUEST_PENDING`；后续由INT-06按受信tenantId、platformRequestId、externalSystemCode和externalRequestId调用`bindExternalReference`首次绑定申请号，并在同一CUT事务内原子迁移为`EXTERNAL_REFERENCED`，同值重放返回既有`EXTERNAL_REFERENCED`且不写业务行，身份错配、不同申请号或已绑定仍为`REQUEST_PENDING`均失败关闭。只有非空外部申请号才允许状态回调或显式刷新；超时/结果未知保留`RETRY_PENDING`并按同一平台requestId查询或重试，不创建第二个意图。
+
+回调身份固定为受信租户、externalSystemCode、externalApplicationNo、eventId和正数单调statusVersion。同eventId同载荷重放、异载荷冲突；同申请同版本同载荷重放、异载荷冲突；低版本只审计，高版本追加并成为当前快照。原始状态不映射为CUT库存、审批、到货、领用或P6门禁。生产INT-06尚未实现时，CUT实现只保留端口并在测试域用确定性替身完成正向闭环；线下证据经PLT文件事实关联，恢复后必须按外部申请号核验，不冒充接口成功。

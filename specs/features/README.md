@@ -39,6 +39,9 @@
 | [F-CUT-010](F-CUT-010-cutover-spare-system-coordination.md) | 割接备件系统协同 | CUT-08（V2） | BASELINE | READY / GO | IN_PROGRESS / IMPLEMENTATION_TASK_4（仅Task 1～3进入`c9066332`） |
 | [F-IMP-001](F-IMP-001-implementation-readiness-snapshot.md) | 割接上线实施就绪快照 | EXE-06（V1局部） | DRAFT | NOT_READY / NO-GO | IN_PROGRESS（基础支撑已实现；核心就绪快照待实施） |
 | [F-IMP-002](F-IMP-002-arrival-acceptance.md) | 到货签收与里程碑事实 | EXE-01（V1） | BASELINE | READY / GO | IN_PROGRESS（Task 1～11已进入master；Task 12生产装配待完成） |
+| [F-IMP-003](F-IMP-003-hardware-installation-record.md) | 硬件安装与位置生效 | EXE-02（V1） | DRAFT | NOT_READY | NOT_STARTED（接收来源草案，不声明实现完成） |
+| [F-IMP-004](F-IMP-004-configuration-log-collection.md) | 配置Log采集解析 | EXE-03（V1） | DRAFT | NOT_READY | NOT_STARTED（安装前置按冻结模板条件适用） |
+| [F-IMP-005](F-IMP-005-joint-debugging-configuration.md) | 业务联调配置收集 | EXE-04（V1） | DRAFT | NOT_READY | NOT_STARTED（接收来源草案，不声明实现完成） |
 | [F-INT-012](F-INT-012-device-ops-collection-integration.md) | 设备连接与采集平台集成 | INT-12（V1） | BASELINE | READY | IN_PROGRESS（PLT核心已进入master；INT边缘与E2E待完成） |
 | [F-INS-001](F-INS-001-inspection-rule-version-and-field-configuration-foundation.md) | 巡检规则版本与字段配置基础 | INS-03（V2局部）、INS-09（V2） | BASELINE（master修订012/013关闭Q-FINS001-005/006） | READY / GO | IMPLEMENTATION_IN_PROGRESS（Task 1～8已进入master；Task 9最终验证、真实运行证据与独立Done裁决待完成） |
 

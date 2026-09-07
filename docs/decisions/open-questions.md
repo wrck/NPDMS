@@ -623,3 +623,88 @@
 - Blocking scope: 仅退出/回退时的绑定关闭或解锁设计；确认前不得自动写effective_to、关闭、解锁或改写既有绑定。阶段进入绑定与验收阶段内新版本绑定规则继续有效，不阻断报告版本、满意度或当前范围的既有正向路径。
 - Evidence: 当前统一F-COM-001规格BR-FCOM001-005及第13节；ADR-0038/0039，恢复原有窄问题登记，不新增业务Gate。
 - Business decision required: 是。
+
+## CUT/IMP来源裁决补登
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+## F-CUT-003 Implementation 待裁决项
+
+### Q-FCUT003-001
+
+- Status: RESOLVED / PENDING_INTEGRATION_REVIEW
+- Requirement IDs: CUT-03、CUT-07
+- Area: P3动态清单的设备类型匹配输入Owner
+- Question: 每台设备的`deviceTypeCode`应由哪个权威来源赋值并由哪个领域Owner维护，才能在割接任务创建时冻结为P3匹配输入？
+- Why it blocks design/implementation: 来源分支时点未集成F-AST-002；当前master已接收其公开API，但写事务内期望版本锁定重验和生产接线仍须按当前Feature核对。该缺口不阻断CUT按预留接口和`src/test`受控替身推进内核，只阻断生产接线、真实浏览器证据和Implementation Done。
+- Options: A. AST Device聚合拥有设备类型赋值，明确权威来源及创建/更新规则并经SYSTEM字典校验；B. 引用另一个已批准Owner的稳定设备类型Fact；C. 调整CUT-03，使V1不以设备类型作为匹配维度。
+- Recommended technical default: B；复用F-AST-002的`AssetProductTypeApi.getAuthorizedDeviceProductType`，CUT预留最窄消费端口并冻结公开合同可证明的产品类型编码和来源版本，不扩展`DeviceScopeFactApi`。
+- Business decision required: 已完成。需求方确认设备类型赋值来源为产品主数据。
+- Resolution: F-AST-002的产品主数据受控副本与`AssetProductTypeApi`公开查询已由master后继接收。CUT不重复Owner实现，不向`DeviceScopeFactApi`追加类型字段；只预留消费端口并使用公开结果已有字段。精确边界见ADR-0037。
+- Blocking scope: 生产Adapter、任务创建生产装配、真实浏览器证据和Implementation Done；CUT内核、REST/UI候选及`src/test`受控正向闭环不阻断。
+- Decision owner: 需求方；AST、SYSTEM、CUT领域Owner参与裁决
+- Decision date: 2026-08-31
+
+## F-CUT-009 Feature Ready 待裁决项
+
+### Q-FCUT009-001
+
+- Status: RESOLVED / OPTION_A
+- Requirement IDs: CUT-03@V2
+- Area: P3清单提交后的可配置流程跳转语义
+- Question: “更灵活的流程跳转配置”只决定提交成功后的界面导航，还是允许配置改变CUT业务状态迁移；其合法目标集合和触发时点是什么？
+- Why it blocks design/implementation: PRD明确V2不改变清单版本、必填校验和D级跳过规则，但未给出跳转目标；API SDS只要求目标流程状态合法。若允许规则驱动状态迁移，将改变P3→P4状态机、下游P4/P5门禁和审计Owner；若只是界面导航，则必须禁止配置写状态。两者不能由Feature或代码静默选择。
+- Options: A. 配置只产生提交成功后的服务端导航决定，目标限于当前权威任务阶段对应的既有工作台锚点或任务总览；F-CUT-003仍唯一执行`SURVEYING -> PLAN_DRAFTING`，规则不得改变状态。B. 配置可选择多个业务目标阶段并驱动状态迁移；须先正式补齐PRD/SDS状态机、允许目标、跳过门禁、回退和审计。C. V2只交付导出，暂不交付流程跳转配置；CUT-03@V2保持PARTIAL。
+- Recommended technical default: A。它保留PRD明确的V1业务事实，只把“跳转配置优化”实现为可配置导航，避免无依据绕过P4/P5/P6。
+- Business decision required: 已完成；独立Feature Ready裁决确认采用方案A。
+- Resolution: 采用A。V2只允许一个无条件提交后导航目标：`CURRENT_STAGE_WORKBENCH`或`TASK_OVERVIEW`。规则只返回界面导航决定，不写CUT状态；F-CUT-003仍唯一执行`SURVEYING -> PLAN_DRAFTING`。冻结修订缺少规则或规则为null时确定性返回`CURRENT_STAGE_WORKBENCH`。
+- Blocking scope: 已解除语义阻断；F-CUT-009仍须通过API/Physical Machine Contract最小整改复审及Feature Ready Gate。
+- Decision owner: 需求方；CUT-03、CUT-04及状态机Owner参与影响分析
+- Decision date: 2026-09-02
+
+## F-CUT-004 Task 6 待裁决项
+
+### Q-FCUT004-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: CUT-04
+- Area: 已批准方案职责变化后的阶段回退与重新审批
+- Question: 任务已由CUT-05批准进入`P6/CLOSURE_IN_PROGRESS`后，角色或任务职责变化应由哪个物理Owner以什么状态迁移、历史触发器和事务边界返回P4并重新进入P5？
+- Why it blocks design/implementation: 正式业务规则要求职责变化创建新DRAFT并重走P5，但当前状态机只定义F-CUT-004的P4→P5与P5来源失效→P4，以及F-CUT-005的P5驳回→P4、批准→P6；不存在P6→P4 Owner/触发器。CUT-05的`previousApprovalInstanceId`又只允许引用REJECTED或PAUSED事实，不能引用或改写APPROVED事实；当前也未定义在途CUT-06闭环及旧批准revision的current_marker处置。
+- Options: A. 正式批准F-CUT-004拥有P6职责变化回退，并补齐task/plan/approval/closure CAS、历史触发器与新审批引用；B. 指定CUT-05或CUT-06拥有回退命令并向F-CUT-004提供稳定结果事实；C. 调整业务要求，不允许P6职责变化重新审批。
+- Recommended technical default: B，由拥有P6闭环/审批协调语义的Owner先形成回退事实；F-CUT-004只在任务已权威返回P4后派生新DRAFT。
+- Business decision required: 是；该选择改变P6状态迁移Owner、审批链及可能存在的闭环在途事实处置。
+- Blocking scope: 仅`revise(reason=DUTY_CHANGED)`运行实现与对应REST动作；REJECTED、SOURCE_REPLACED、批准后联系人PATCH及其受控正向验证不阻断。
+- Decision owner: 需求方；CUT-04、CUT-05、CUT-06领域Owner及数据Owner参与裁决
+- Decision date: 待定
+
+## F-IMP-002 Task 5B 裁决项
+
+### Q-FIMP002-001
+
+- Status: RESOLVED / 采用方案A
+- Requirement IDs: EXE-01
+- Area: 到货差异具体豁免的审批主体事实
+- Question: V1执行`resolve-difference`的`EXEMPT`分支时，哪个正式公共事实或已定义项目内角色唯一证明调用人是PRD所述“豁免审批人”？
+- Why it blocks design/implementation: 五项锁定功能权限只提供`pms:arrival-acceptance:resolve-difference`，`ProjectScopeApi.ACTION_EDIT`只证明数据范围；二者都不单独证明调用人具有业务审批资格。客户端提交`approvedBy/approvedAt`又会伪造审批事实。
+- Options: A. V1由本人负责项目的当前`PROJECT_MANAGER`承接豁免审批，同时要求`resolve-difference + ACTION_EDIT`，批准人/时间由服务端写入；B. 引用另一个已锁定的项目内审批主体事实；C. 新增独立审批流程/角色契约并先回写PRD/SDS。
+- Decision: 采用A。V1豁免审批人固定为调用当时本人负责该项目的current `PROJECT_MANAGER`，并同时要求`pms:arrival-acceptance:resolve-difference + ProjectScopeApi.ACTION_EDIT`；`ProjectParticipantFactApi`必须在写事务中锁定重验项目经理资格。`approvedBy`取受信actor，`approvedAt`取服务端时钟，客户端不得提交。权限键、数据范围或全局角色均不能单独替代审批主体事实。
+- Decision rationale: PRD未要求审批人与项目经理职责分离；该收敛复用EXE-01已定义的项目经理职责，不新增角色、流程或表。
+- Blocking scope: 已解除本问题自身对`EXEMPT`分支的阻断；原分支Task 5B复审回执保留为历史，当前实施进度以master的F-IMP-002 Task为准。
+- Decision owner: 需求方；IMP、PROJ和权限Owner参与影响分析
+- Decision date: 2026-08-30
+
+### Q-FIMP002-002
+
+- Status: RESOLVED / OPTION_B
+- Requirement IDs: EXE-01
+- Area: 到货签收已确认批次的后继DRAFT业务编码
+- Question: `SUPPLEMENT`、`CORRECTION`、`DIFFERENCE_CLOSURE`和`EXEMPTION_INVALIDATION`创建关联后继DRAFT时，后继`batch_code`应继承哪个业务值，还是由哪个Owner按什么稳定规则生成新值？
+- Why it blocks design/implementation: `imp_arrival_acceptance`已正式锁定租户内`project_id + batch_code`唯一；直接复制前驱编码必然违反唯一键，自行拼接后缀会臆造业务编码并可能突破64字符合同。当前Feature/REST机器契约只锁定`predecessor_acceptance_id`和`successor_reason`，没有给出后继编码来源、格式、长度溢出处置或幂等重放规则。
+- Options: A. 明确由IMP服务端按正式稳定规则生成新的后继批次编码；B. 批准后继沿用业务批次编码并正式调整唯一键/引入独立实例序号；C. 引用另一个已锁定Owner提供的新批次编码。
+- Recommended technical default: 原建议A已被正式裁决B替代。
+- Business decision required: 是。该选择改变公开详情中的`batchCode`及数据库唯一性执行路径。
+- Resolution: 采用B。successor原样继承直接前驱规范化`batch_code`，禁止后缀、截断或外部生成；新增服务端`batch_root_marker`，以`tenant+project+batch_code+batch_root_marker`只约束一个初始根，并以`tenant+predecessor_acceptance_id`保证每个前驱最多一个直接后继。平台重放返回同一后继，不同key不得创建兄弟节点。
+- Blocking scope: 本问题自身已解除；相关代码和前向迁移已进入master的部分不回退，尚未完成的装配与运行范围以当前F-IMP-002 Task为准。
+- Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
+- Decision date: 2026-08-30

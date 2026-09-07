@@ -74,3 +74,17 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 修订017契约已合并至本文件上方唯一契约表，分别列明Requirement、Producer、Consumer和语义；详细字段与事务见05、08、12、13分册。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+## 实施就绪与证据回执补充
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+| 接口/事件 | Requirement | 提供方 | 消费方 | 契约 |
+|---|---|---|---|---|
+| ImplementationEvidencePublished | EXE-01～EXE-06、IMP-01、ACC-04 | Implementation Execution | Acceptance & Closure | IMP出向事件；实施`evidenceId/revision`、来源需求/记录/版本、FileReference、哈希和检查快照已发布，ACC按该不可变revision建立审核/归档引用，不覆盖IMP事实 |
+| ArtifactAccepted / ArtifactArchived | EXE-01～EXE-06、IMP-01、ACC-04 | Acceptance & Closure | Implementation Execution | ACC入向回执；回显`evidenceId/evidenceRevision/artifactId/fileVersion/reviewOrArchiveRecordId`，IMP按eventId Inbox和`evidenceId+revision`幂等推进同步投影；Accepted后Archived超时保留已接受事实并以独立归档回执重试态重发同revision，匹配Archived可恢复至已归档；旧序、错配或重复回执不得覆盖当前revision，回执失败不回滚来源业务事实 |
+| `ImplementationReadinessApi` / ImplementationReadinessSnapshot | EXE-06、CUT-01 | Implementation Execution / F-IMP-001 | Cutover / F-CUT-002 | `inspect`按受信租户、项目和完整设备归属水位读取最新CUTOVER快照并对照当前Owner事实；`lockAndRevalidate`再携带明确快照ID/版本加入CUT写事务重验。结果封闭为`READY/NOT_READY/STALE`，返回不可变快照及结构化项目、设备、批准方案和EXE-01～04来源水位；缺快照、Owner损坏和Provider不可用使用不同公共失败。CUT不得直读IMP/EXE表，测试替身不得进入生产装配或充当真实Owner证据。 |
+| `ArrivalAcceptanceFactApi` | EXE-01、EXE-02、EXE-06 | Implementation Execution / F-IMP-002 | F-IMP-003、F-IMP-001 | 按项目、设备/订单数量范围返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序`sourceAcceptanceIds`、项目级单调`factVersion`、由DeliveryScope版本和设备归属版本组成的`scopeWatermark`、已签/豁免/未满足范围与`reopened`；提供无副作用`inspect/lockAndRevalidate`，不返回DO、文件正文或签收人隐私 |
+| `InstallationCompletionFactApi` | EXE-02、EXE-06 | Implementation Execution / F-IMP-003 | F-IMP-001 | 按稳定设备范围返回`COMPLETED/NOT_COMPLETED/STALE`、安装来源对象、业务版本、范围水位及`reopened`，并按期望版本锁定重验；不以位置投影或附件替代安装完成事实 |
+| `ConfigurationCompletionFactApi` | EXE-03、EXE-06 | Implementation Execution / F-IMP-004 | F-IMP-001 | 按稳定设备和批准模板/采集版本返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；采集任务受理、原始Log存在或解析尝试不等于配置完成 |
+| `JointDebuggingCompletionFactApi` | EXE-04、EXE-06 | Implementation Execution / F-IMP-005 | F-IMP-001 | 按项目/设备/联调项范围返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；问题未闭环或证据失效时失败关闭 |

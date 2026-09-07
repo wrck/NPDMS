@@ -329,3 +329,23 @@ PMS专用Gate流程发起缺`pms:project:update`、PROJECT_MANAGE范围或当前
 | 闭环重复或晚到事件 | 同来源同结果重放原退出事实；晚到事件不能改终态 | 独立问题处置或受批准PM-10重开异常关闭；正常/不跟踪不能直接重开 |
 
 以上恢复不修改历史审批、报告、事件或原始文件；幂等键应包含租户、来源对象、命令和版本而非显示状态。
+
+## 实施就绪及CUT命令恢复补充
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+| 操作 | 输入 | 幂等范围 | 行为 |
+|---|---|---|---|
+| 实施就绪评估 | `Idempotency-Key` | tenant + `IMP_READINESS_EVALUATE` + project + actor | 同键同规范化项目/设备/方案请求返回原快照；同键异请求冲突；Provider失败不产生READY或成功事件 |
+| CUT-04方案命令 | `Idempotency-Key` + `If-Match` | tenant + task + plan command + actor | 保存/下载/提交/派生同键同摘要返回原结果；提交只在不可变revision与CUT-05审批实例同成同败后成功，Provider失败或版本冲突不推进P5 |
+| CUT-05审批命令 | `Idempotency-Key` + approval/task version | tenant + task + approval action + actor | 同键同业务摘要返回原节点/实例结果；通过、驳回和改派不因关联ID变化形成新业务意图；同键异载荷永久冲突 |
+
+批准后职责变化只保留重新编制的业务义务，运行迁移继续受已有Q-FCUT004-001限制，不在本次接收中新增P6→P4。
+
+| 场景 | 恢复与事务边界 |
+|---|---|
+| CUT-04提交与CUT-05审批实例创建任一步失败 | 整个P4提交事务回滚；revision保持DRAFT、任务保持P4，不留下孤立SUBMITTED或孤立审批实例 |
+| CUT-04来源失效、P5驳回或批准后职责变化 | 来源失效在同一事务将SUBMITTED置INVALIDATED、把PENDING审批暂停并将任务P5→P4；恢复办理派生新revision并创建替代审批，旧事实不恢复；最终驳回返回P4并派生新DRAFT；批准后职责变化的新方案处理须先关闭Q-FCUT004-001；均不覆盖原提交正文，不把REJECTED伪装为INVALIDATED |
+| CUT-05候选不唯一、当前审批人失权或候选Owner不可用 | SYSTEM先返回完整角色成员集，CUT叠加项目范围后交集零/多人或明确失权时不任选人员，实例保持PENDING并以稳定holdReason暂停待办；Provider不可用返回503且不改变实例，若发生在start则P4提交整体回滚；管理员仅可按正式候选合同改派。通过必须五项全YES且服务经理复核CONFIRMED，驳回必须有NO项或服务经理NOT_REASONABLE，动作与结果错配返回DECISION_ACTION_RESULT_MISMATCH。通知只在业务事务写PENDING并于提交后投递，失败独立转PENDING_RETRY，不进入审批命令503联合、不回滚已提交审批。 |
+
+CUT-08发起、刷新和回调分别使用平台命令幂等、平台requestId以及外部eventId/statusVersion。Provider明确拒绝记录原值但不生成外部申请引用；超时、网络失败或结果未知保留可重试事实，同一意图复用原requestId；人工证据只追加PLT引用。外部状态损坏、同版本异载荷或外部申请身份错配失败关闭并进入对账，不覆盖当前快照。

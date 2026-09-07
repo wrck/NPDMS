@@ -487,3 +487,19 @@ RPT-02@V2复用ANA指标定义/快照，不新增交易Owner。正式项目按pr
 快照冻结metricVersion、stateVersion、dataWatermark、granularity、filters及权限范围摘要。图表、下钻、导出使用同一快照及再次权限校验；若撤权改变可见集，旧快照不能直接下载，须按新权限重新计算，不返回旧数量或敏感内容。实例无S5/S6时不创建缺失项，关闭保留closed_from_stage；割接中只是派生display_status，不能改Project生命周期。
 
 设计回归至少覆盖：四个项目分别ACTIVE、NORMAL、NO_TRACKING、EXCEPTION时正常率25%、业务率50%；根/节点去重；无S5/S6的S4关闭；图表→明细→导出同水位；零分母；部分批次失败标记不完整；撤权后旧快照导出拒绝。运行及真实浏览器用例仍为NOT_RUN，模型测试不能替代UAT。
+
+## 实施就绪与CUT备件引用的补充事实
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+| 对象 | 组成 | 冻结事实 | 公开来源 |
+|---|---|---|---|
+| ImplementationReadinessSnapshot | SourceFactVector、DeviceScopeSnapshot、UnmetCode | EXE-01～04权威完成事实、来源版本/水位、项目/设备/批准方案版本和`READY/NOT_READY`判定 | ArrivalAcceptanceFactApi、InstallationCompletionFactApi、ConfigurationCompletionFactApi、JointDebuggingCompletionFactApi、ProjectScopeApi、DeviceScopeFactApi |
+
+- ImplementationReadinessSnapshot每次评估只追加，不覆盖历史；只保存稳定ID、判定、业务版本和水位，不复制EXE-01～04正文、配置Log、设备凭证或附件。
+
+| 领域 | 对象 | 数据 | 约束 |
+|---|---|---|---|
+| Cutover | CutoverSpareApplicationReference | CUT-08平台请求、冻结任务/项目/设备/需求上下文、INT-06外部请求标识、可选跳转地址和首次绑定的外部申请号 | 仅为集成引用；首次绑定后外部系统/请求/申请身份不可改写，不建立备件业务生命周期 |
+| Cutover | CutoverSpareStatusRevision | 外部申请原始状态、来源版本、外部发生时间、观察时间与来源方式 | 只追加；同版本异载荷冲突，低版本不回退当前快照，原始状态不映射本地到货/就位/完成 |
+| Cutover | CutoverSpareManualEvidence | 任务或申请关联的PLT不可变文件事实、人工说明、上传人和时间 | 只追加；P5仅投影展示名称/说明/时间，不暴露PLT内部身份或冒充接口成功 |
