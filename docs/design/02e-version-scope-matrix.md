@@ -1,7 +1,7 @@
-﻿# SDS Phase 1：版本范围矩阵
+# SDS Phase 1：版本范围矩阵
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8 修订007（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片
 > Owner：SDS Phase 1 架构设计；修订007差量复核已完成
 > 适用规则：本矩阵只收录已批准的版本结果和边界；正文明确延后、V3或OUT_OF_SCOPE的内容不前置
@@ -33,3 +33,9 @@
 | 续保经营、维保空间、独立维保档案 | — | — | OUT_OF_SCOPE |
 
 本矩阵不新增版本承诺。配置能力遵循首个消费者前置原则，但正文明确为V2、V3或延后的内容保持原版本。
+
+## 修订017差量契约
+
+100项Requirement主切片仍为V1 53/V2 47，111个正式切片仍为V1 53/V2 58。PM-05转销和RPT-02报表只在V2验收，V1售前闭环与NO_TRACKING验证不得依赖二者。EXE-03批准业务命令快照为V1，SCH-03脚本治理为V2；CUT-03/P3是既有V1入口。E2E-17/19/20为V1事实验证，E2E-22/23为对应V2增强，不增加Requirement切片。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

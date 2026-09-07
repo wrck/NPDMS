@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from collections import Counter
@@ -37,6 +38,51 @@ TASK_STATUS_LINE = re.compile(
     r"^>\s*(?:Feature\s*实施状态|功能实施状态)：`([^`]+)`",
     re.M,
 )
+
+
+
+def baseline_identity(prd: Path) -> dict[str, str]:
+    """Derive provenance from the actual PRD input, never from a release constant."""
+    # Match the repository's text eol=lf object identity without rewriting the checkout.
+    raw = prd.read_bytes().replace(b"\r\n", b"\n")
+    text = raw.decode("utf-8-sig")
+    revisions = re.findall(r"(?m)^\|\s*V1\.8修订(\d+)\s*\|[^\n]*?`(CHG-PRD-\d{4}-\d{2}-\d{2}-\d+)`", text)
+    if not revisions:
+        raise SystemExit("PRD revision identity is missing")
+    number, change_id = max(revisions, key=lambda item: int(item[0]))
+    digest = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+    repository_root = Path(__file__).resolve().parents[1]
+    try:
+        source_path = prd.resolve().relative_to(repository_root).as_posix()
+    except ValueError:
+        source_path = prd.resolve().as_posix()
+    return {"revision": number.zfill(3), "changeId": change_id, "gitBlob": digest, "path": source_path}
+
+
+def feature_revalidation_slices(text: str, valid_keys: set[str]) -> set[str]:
+    """A Spec-owned review marker suspends current coverage, not historical Task facts."""
+    markers = re.findall(r"(?m)^>\s*PRD差量重验证：`([^`]+)`\s*$", text)
+    if len(markers) > 1:
+        raise SystemExit("duplicate Feature PRD revalidation marker")
+    pending = {key.strip() for marker in markers for key in re.split(r"[；;]", marker) if key.strip()}
+    if pending - valid_keys:
+        raise SystemExit("unknown revalidation slices: " + ", ".join(sorted(pending - valid_keys)))
+    return pending
+
+
+def engineering_gate_states(prd: Path) -> dict[str, dict[str, str]]:
+    candidates = [prd.resolve().parent, *prd.resolve().parents]
+    root = next((p for p in candidates if (p / "docs/engineering/gates").is_dir()), None)
+    result: dict[str, dict[str, str]] = {}
+    for phase in ("phase-1", "phase-2", "phase-3"):
+        source = Path("docs/engineering/gates") / phase / "gate-status.md"
+        value = (root / source).read_text(encoding="utf-8-sig") if root and (root / source).is_file() else ""
+        fields = {}
+        for label in ("审查状态", "当前结论", "机器门禁", "适用修订"):
+            match = re.search(r"(?m)^>\s*" + label + r"：`([^`]+)`", value)
+            fields[label] = match.group(1) if match else "UNKNOWN"
+        result[phase] = {"source": source.as_posix(), **fields}
+    return result
 
 
 def read(path: Path) -> str:
@@ -365,6 +411,14 @@ EXACT_PHASE1_DESIGN["PRE-04"] = (
 )
 
 
+
+# Current target semantics; physical implementation remains subject to Feature/Gate review.
+EXACT_PHASE1_DESIGN["PM-03"] = ("项目治理", "ProjectTemplateVersion / StageTransitionDefinition / StageWorkBinding / TaskWorkBinding", "冻结图当前准出→唯一后置→目标准入→原子推进", "ProjectTreeScope + Owner权限", "Project阶段编排服务", "Stage/Task/Transition/Deliverable/Binding/CompletionRule版本", "裁剪/分支/目标准入/并发/无虚构阶段")
+EXACT_PHASE1_DESIGN["PM-06"] = ("项目治理", "ContractScopeAppendRequest / ProjectScopeVersion", "同一ACTIVE项目范围追加；不创建期次群组", "Project + COM范围权限", "项目范围追加命令与COM公开接口", "范围版本/差异/逐阶段影响/任务/验收引用", "数量/版本/原子回滚/补充验收")
+EXACT_PHASE1_DESIGN["CLO-01"] = ("验收与项目闭环", "ClosureGateSnapshot", "NORMAL与NO_TRACKING分型校验", "ProjectStageScope", "Closure校验服务", "closureType/closedFromStage/范围/规则/事实版本", "失败终验/不适用/快照失效")
+EXACT_PHASE1_DESIGN["CLO-02"] = ("验收与项目闭环", "ProjectClosure", "CLO-02唯一产生NORMAL_CLOSED/NO_TRACKING_CLOSED", "BPM候选与项目范围", "Closure批准命令", "不可变闭环与实际BPM定义引用", "终态唯一Writer/同事务/重校验")
+EXACT_PHASE1_DESIGN["ACC-03"] = ("验收与项目闭环", "AcceptanceReportRevision", "报告证据有效不等于验收通过", "ProjectStageScope", "验收报告提交与范围校验", "当前报告/结论/精确范围/来源文件版本", "失败报告/范围A+B/直签顺序/无伪造通过")
+
 def domain_owners(requirements: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
     result: dict[str, tuple[str, str]] = {}
     for item in requirements:
@@ -383,6 +437,7 @@ def phase1_design(identifier: str, domain: str) -> tuple[str, ...]:
 
 
 CROSS_CONTEXT_REQUIREMENT_IDS = {
+    "PM-06", "PM-10", "PLT-02",
     "ACC-02", "ACC-03", "ACC-04", "ACC-06", "CLO-01", "CLO-02", "COM-01", "CUS-03", "CUT-01", "CUT-02", "CUT-03", "CUT-04", "CUT-05", "CUT-06",
     "EQP-01", "EQP-02", "EQP-03", "EQP-04", "EXE-01", "EXE-02", "EXE-03", "EXE-04",
     "EXE-05", "EXE-06", "IMP-01", "INS-02", "INS-04", "INT-01", "INT-02", "INT-03",
@@ -444,14 +499,14 @@ def sds_reference(identifier: str) -> str:
     elif identifier == "PM-05":
         data_anchor, db_anchor, api_anchor = (
             "4-project-delivery-数据模型",
-            "44-pm-05-转销与-pm-06-多期关系",
+            "44-pm-05-转销与-pm-06-同项目范围追加",
             "51-pm-05-借货项目转销契约",
         )
     elif identifier == "PM-06":
         data_anchor, db_anchor, api_anchor = (
             "4-project-delivery-数据模型",
-            "44-pm-05-转销与-pm-06-多期关系",
-            "52-pm-06-多期项目契约",
+            "44-pm-05-转销与-pm-06-同项目范围追加",
+            "54-pm-06-同一项目范围追加-api",
         )
     references.extend([
         f"[08数据](../design/08-data-model.md#{data_anchor})",
@@ -572,7 +627,9 @@ def feature_coverages(
     features: list[dict[str, object]] = []
     seen_features: set[str] = set()
     for path in sorted(feature_root.glob("F-*.md")):
-        coverage_match = FEATURE_COVERAGE_LINE.search(read(path))
+        spec_text = read(path)
+        pending = feature_revalidation_slices(spec_text, valid_slice_keys)
+        coverage_match = FEATURE_COVERAGE_LINE.search(spec_text)
         if not coverage_match:
             continue
         feature_match = FEATURE_ID.match(path.stem)
@@ -605,13 +662,18 @@ def feature_coverages(
                 "task_path": task["path"] if task else "",
                 "task_status": task["status"] if task else "NO_TASK",
                 "task_status_raw": task["raw_status"] if task else "",
+                "revalidation_required": slice_key in pending,
             }
             mappings.append(mapping)
             by_slice[slice_key].append(mapping)
+        mapped_keys = {item["slice_key"] for item in mappings}
+        if pending - mapped_keys:
+            raise SystemExit(f"revalidation marker must reference this Feature coverage: {feature_id}")
         features.append(
             {
                 "featureId": feature_id,
                 "featurePath": path.as_posix(),
+                "revalidationSlices": sorted(pending),
                 "taskPath": task["path"] if task else None,
                 "taskStatus": task["status"] if task else "NO_TASK",
                 "taskStatusRaw": task["raw_status"] if task else None,
@@ -625,6 +687,8 @@ def feature_coverages(
 
 
 def derived_status(mappings: list[dict[str, str]]) -> str:
+    if any(item.get("revalidation_required") for item in mappings):
+        return "REVALIDATION_REQUIRED"
     completed = [item for item in mappings if item["task_status"] == "COMPLETE"]
     if any(item["coverage"] == "FULL" for item in completed):
         return "IMPLEMENTATION_COMPLETE"
@@ -669,6 +733,8 @@ def render(
     if not domain_root.is_dir():
         raise SystemExit(f"domain specification root not found: {domain_root}")
     prd_text = read(prd)
+    identity = baseline_identity(prd)
+    gates = engineering_gate_states(prd)
     requirements = extract_requirements(prd_text)
     requirement_by_id = {item["id"]: item for item in requirements}
     slices = extract_version_slices(prd_text, requirements)
@@ -707,6 +773,7 @@ def render(
                         "featureId": item["feature_id"],
                         "coverage": item["coverage"],
                         "taskStatus": item["task_status"],
+                        "revalidationRequired": item.get("revalidation_required", False),
                         "featurePath": item["feature_path"],
                         "taskPath": item["task_path"] or None,
                     }
@@ -716,9 +783,11 @@ def render(
         )
     coverage_document = {
         "schemaVersion": 1,
-        "baseline": "PRD V1.8 / CHG-PRD-2026-09-02-010",
+        "baseline": "PRD V1.8 / " + identity["changeId"],
+        "baselineIdentity": identity,
+        "engineeringGates": gates,
         "sources": {
-            "prd": "docs/baseline/prd-v1.8.md",
+            "prd": identity["path"],
             "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
             "taskStatus": "tasks/features/F-*.md#Feature实施状态",
         },
@@ -730,7 +799,8 @@ def render(
             "slicesByImplementationStatus": dict(sorted(status_counts.items())),
         },
         "derivationRules": [
-            "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
+            "Feature Spec pending PRD revalidation => REVALIDATION_REQUIRED; historical Task status is preserved",
+            "Validated Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
             "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
             "In-progress authoritative task mapping => IMPLEMENTATION_IN_PROGRESS",
             "No completed or in-progress authoritative task mapping => NOT_STARTED",
@@ -743,7 +813,7 @@ def render(
         "# V1.8需求追溯矩阵",
         "",
         "> 本文件是111个正式Requirement目标版本切片到工程资产的自动派生索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与Owner生成。",
-        "> 源基线：`docs/baseline/prd-v1.8.md` V1.8修订010；领域决策：`docs/design/phase-1-domain-ownership.md`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。",
+        f"> 源基线：`{identity['path']}` V1.8修订{identity['revision']}；CHG：`{identity['changeId']}`；Git Blob：`{identity['gitBlob']}`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。",
         "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
         "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
         "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
@@ -760,8 +830,9 @@ def render(
         f"- 正式需求：{len(requirements)}项（主版本V1 {requirement_counts['V1']}项，V2 {requirement_counts['V2']}项）",
         f"- 正式目标版本切片：{len(slices)}个（V1 {slice_counts['V1']}个，V2 {slice_counts['V2']}个）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：PRD V1.8修订010重新基线化；既有Feature实施结论只关闭其机器可读声明覆盖的切片或子闭环，不因Feature完成自动关闭整个Requirement",
-        "- 当前规格阻断：无；VS-001～VS-011均已裁决关闭，配置基础前置原则适用，但正文明确V2、V3或延后的内容保持原版本",
+        f"- 当前状态：PRD V1.8修订{identity['revision']}同源生成；历史Task完成事实不自动代表当前修订覆盖；有Spec差量标记时派生REVALIDATION_REQUIRED",
+        "- 当前工程门禁：" + "；".join(f"{name}={value['当前结论']}（{value['审查状态']}）" for name, value in gates.items()),
+        f"- Feature差量重验证切片：{sum(1 for row in coverage_slices if row['implementationStatus'] == 'REVALIDATION_REQUIRED')}；该值只从Feature Spec标记派生，不是第二套Task状态",
         "",
         "## 字段状态约定",
         "",
@@ -770,7 +841,8 @@ def render(
         "| `IMPLEMENTATION_COMPLETE` | 当前Requirement目标版本切片的已知业务义务均已映射，且全部必需Feature已完成；不代表Deployment、SIT、UAT或Release通过 |",
         "| `IMPLEMENTATION_PARTIAL` | 至少一个合法Feature子闭环已完成，但该Requirement目标版本切片仍有未完成或未映射业务义务 |",
         "| `IMPLEMENTATION_IN_PROGRESS` | 已有合法Feature覆盖且权威Task正在实施；可包含已进入master的部分代码，但尚未达到完成Gate |",
-        "| `NOT_STARTED` | 没有已完成或进行中的权威Feature任务覆盖；可包含缺任务记录的Feature或尚未声明覆盖的切片，不代表需求缺失 |",
+        "| `REVALIDATION_REQUIRED` | Feature Spec声明当前PRD差量待验证；历史Task状态保留，但不能投影为当前切片已完成 |",
+        "| `NOT_STARTED` | 没有已完成的权威Feature任务覆盖；可包含未启动Feature、缺任务记录的Feature或尚未声明覆盖的切片，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
         "",

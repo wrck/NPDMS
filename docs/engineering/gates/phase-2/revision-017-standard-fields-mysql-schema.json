@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "evidenceType": "ISOLATED_MYSQL_SCHEMA_AND_CONSTRAINT_TESTS_NOT_BUSINESS_RUNTIME",
+  "mysqlVersion": "8.4.10",
+  "containerImage": "mysql:8.4",
+  "imageId": "sha256:c592c15aaf4a1961e15d82eb31ea5987dda862d1c4b1e93424438c0e91dc1f8d",
+  "networkMode": "none",
+  "schemaCreatedEmpty": true,
+  "sourceCommit": "d20f780827bb01e29de0710d4326372375303265",
+  "actionsRunId": null,
+  "executionEnvironment": "LOCAL_WORKTREE",
+  "sourceTreeDirty": true,
+  "prdGitBlob": "fd701f153f3148001625fcfe45180b36aae719c2",
+  "contractSha256": "76c87d2dc74b022115419b2c3a3e676b904fb0869c239f3f5d78f778ba574a20",
+  "ddlSha256": "68735b46d3ad9b2e8199f05878f819af39ec12c34a4ddc5a1c8065e507f5702b",
+  "tableCount": 12,
+  "caseCount": 42,
+  "passedCount": 42,
+  "cases": [
+    {
+      "case": "published_definition",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "tenant_scoped_same_code",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "second_definition",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "duplicate_definition_revision",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "unrecognised_definition_kind",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "published_requires_timestamp",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "definition_requires_tenant",
+      "expectedError": 1048,
+      "actualError": 1048,
+      "passed": true
+    },
+    {
+      "case": "definition_payload_is_object",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "valid_definition_reference",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "cross_tenant_definition_reference",
+      "expectedError": 1452,
+      "actualError": 1452,
+      "passed": true
+    },
+    {
+      "case": "definition_self_reference",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "non_numeric_adjacent_edge",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "single_default_per_source",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "reject_stage_self_edge",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "reject_invalid_default_flag",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "frozen_edge",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "frozen_graph_single_default",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "frozen_graph_version_positive",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "stage_native_binding",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "only_one_current_stage_binding",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "historical_stage_binding",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "task_native_not_stage_native",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "binding_time_order",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "single_com_watermark",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "duplicate_com_watermark",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "immutable_scope_version",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "scope_version_duplicate",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "scope_version_nonmonotonic",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "unapplied_scope_request",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "request_operation_deduplicated",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "cannot_apply_without_approval",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "applied_request_has_approval",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "final_report_root",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "report_root_unique_type",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "failed_report_evidence_is_preserved",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "report_revision_unique",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "report_cross_tenant_root_rejected",
+      "expectedError": 1452,
+      "actualError": 1452,
+      "passed": true
+    },
+    {
+      "case": "no_tracking_exit_from_s4",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    },
+    {
+      "case": "closure_event_source_deduplicated",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true
+    },
+    {
+      "case": "no_tracking_wrong_writer_rejected",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "unknown_stage_rejected",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true
+    },
+    {
+      "case": "exception_exit_from_s1",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "NOT_AN_UPGRADE_TEST",
+    "NOT_AN_APPLICATION_TEST",
+    "NOT_INDEPENDENT_APPROVAL",
+    "NO_PRODUCTION_ACCESS"
+  ]
+}

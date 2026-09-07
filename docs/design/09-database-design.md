@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：数据库设计
+# SDS Phase 2：数据库设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -89,7 +89,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 - 表：`<domain_code>_<full_domain_object_name>`，例如`plt_collection_task`；不得增加业务系统名称`pms`前缀。
 - 主键：`pk_<table_short>`；唯一键：`uk_<table_short>_<business_semantics>`；普通索引：`idx_<table_short>_<query_semantics>`。
 - 外部来源字段统一为 `source_system/source_key/source_version/source_updated_at/synced_at`。
-- 项目生命周期不得统一压缩为一个 `status_code`：`current_stage` 使用 S0～S6，`lifecycle_status` 使用 ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status` 独立保存，`display_status` 只读派生；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
+- 项目生命周期不得统一压缩为一个 `status_code`：`current_stage` 使用 S0～S6，`lifecycle_status` 使用 ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED，`assignment_status` 独立保存，`display_status` 只读派生；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
 
 ### 3.2 索引顺序
 
@@ -137,14 +137,14 @@ F-PROJ-002以前向迁移新增`proj_project_tree_version`、`proj_project_tree_
 | 市场行业四维分类 | `market_code/market_name/system_code/system_name/expend_code/expend_name/industry_code/industry_name` | CRM权威同步；项目直接保存八个快照字段，不保存`relation_id`，历史未知值进入迁移问题 |
 | 实施方式/重大项目级别 | `implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
 | 办事处、公司、部门 | 项目组织关系表，字段统一`company_*`、`department_*` | 公司—部门作为同一关系行共同解析和对账；禁止继续生成`org_*`目标字段 |
-| 项目状态与生命周期时间 | `current_stage/lifecycle_status/assignment_status`及独立发生时间字段 | `current_stage`仅允许S0～S6；`lifecycle_status`仅允许ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED；`display_status`由服务端派生；旧时间不覆盖`create_time/update_time` |
+| 项目状态与生命周期时间 | `current_stage/lifecycle_status/assignment_status`及独立发生时间字段 | `current_stage`仅允许S0～S6；`lifecycle_status`仅允许ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED；`display_status`由服务端派生；旧时间不覆盖`create_time/update_time` |
 
 项目主表不得以单一状态字段表达多个业务维度：
 
 | 字段 | 类型/取值 | 约束 |
 |---|---|---|
-| `current_stage` | 稳定代码S0～S6 | 由阶段门禁命令迁移；正常闭环后保持S6 |
-| `lifecycle_status` | ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED | CLO-02唯一写入NORMAL_CLOSED；PM-10异常关闭写入EXCEPTION_CLOSED；不得由字典新增可执行值 |
+| `current_stage` | 稳定代码S0～S6 | 由阶段门禁命令迁移；三类退出后保留最后真实模板阶段；不要求S6 |
+| `lifecycle_status` | ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED | CLO-02唯一写入NORMAL_CLOSED或NO_TRACKING_CLOSED；PM-10异常关闭写入EXCEPTION_CLOSED；不得由字典新增可执行值 |
 | `assignment_status` | 基础平台字典映射的稳定代码 | 与项目经理/执行指派独立迁移，不改变生命周期 |
 | `display_status` | 派生只读值 | 由上述字段及查询上下文计算，不落交易真值；不得被客户端写入 |
 
@@ -220,20 +220,17 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | `proj_project_portfolio_member` | 组合成员、主组合标识、关系类型和有效区间 | 同组合/项目/关系有效区间不重叠；一个项目的默认主组合由受控唯一约束保证 |
 | `proj_project_portfolio_revision` | 组合规则、成员快照和发布版本 | `uk(tenant_id, portfolio_id, revision_no)`；发布后不可变 |
 
-### 4.4 PM-05 转销与 PM-06 多期关系
+### 4.4 PM-05 转销与 PM-06 同项目范围追加
 
 | 需求 | 表 | 关键字段 | 约束/索引 |
 |---|---|---|---|
 | PM-05 | `proj_project_conversion` | `source_project_id/target_project_id/formal_sales_business_id/status_code/idempotency_key/summary_json/version` | `uk(tenant_id, source_project_id, formal_sales_business_id)`；应用与状态机保证同一源项目只有一个生效目标 |
 | PM-05 | `proj_project_conversion_item` | `conversion_id/source_context/source_object_type/source_object_id/source_version/handling_mode_code/target_object_id/result_code/failure_code` | `uk(tenant_id, conversion_id, source_context, source_object_type, source_object_id, source_version)`；逐项追加/重试，不覆盖成功项 |
 | PM-05 | `proj_project_conversion_device` | `conversion_id/device_id/disposition_code/assignment_version_before/target_assignment_version/result_code` | `uk(tenant_id, conversion_id, device_id)`；设备归属由 AST 当前唯一表执行，结果只保存引用 |
-| PM-06 | `proj_multi_phase_project_group` | `group_code/relation_type_code/name/version/status_code` | `uk(tenant_id, group_code)`；关系类型字典只扩展分类，不绕过关系守卫 |
-| PM-06 | `proj_multi_phase_project_member` | `group_id/project_id/relation_type_code/phase_no/display_order/effective_from/effective_to/member_version` | 当前成员按 `tenant_id+relation_type_code+project_id` 唯一；群组内有效期次号唯一 |
-| PM-06 | `proj_project_cross_phase_reference` | `group_id/source_project_id/source_object_type/source_object_id/source_version/target_project_id/derived_object_id/reference_mode_code` | 来源版本与目标项目唯一；派生对象必须记录来源，不级联修改源对象 |
 
 `proj_project_conversion` 与对象项采用过程聚合+逐项结果：正式项目未创建成功不生成转销批次；转销完成与源项目只读归档由同一 Project Delivery 应用服务在门禁通过后提交。跨 Context 设备归属、文件/实施对象引用通过 Saga 保存确认，不使用跨库事务或直接更新外域表。
 
-多期群组成员变更按 `group.version + memberVersion` 乐观锁校验；加入前检查同关系类型唯一群组、期次唯一和有向关系无环。移出只关闭有效区间，不删除项目和历史引用。
+PM-06使用`proj_contract_scope_append_request`；COM唯一项目水位为`com_delivery_scope_project_version`，不可变范围版本为`com_project_scope_revision`。新版本、数量占用、范围差异与ACC绑定共同提交；不建立或写入多期群组。字段、约束、前向迁移与历史处置见本分册修订017物理契约。
 
 ### 4.5 PM-07模板匹配决策历史前向表
 
@@ -737,3 +734,46 @@ ACC报告附件集合固定使用`ownerContext=ACC/objectType=ACCEPTANCE_REPORT_
 V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的验收人、固定文件版本、活动绑定或当前版本关系，保持旧表和旧功能不变，不进入新当前真值。未来前向迁移不得从名称、审批状态、`approve_opinion`、URL、`D-ACCEPT-REPORT`或旧关项结果补造这些事实。
 
 两张物理表由ACC-02 Feature前向迁移确定并由PLT Owner持有，ACC及其他消费Context不得直写。`ExportTaskExecutionJob`只按Task版本CAS领取REQUESTED；原申请actor的显式retry命令重验权限后才可把`FAILED + failure_retryable=1`恢复为REQUESTED并递增retry_count。结果文件目标固定`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`。`ExportFileExpirationJob`只处理SUCCEEDED到期文件并追加审计，FAILED/REJECTED不得转EXPIRED，Task/Audit永久保留。
+
+## 修订017物理契约与前向边界
+
+本节索引中的创建时间列统一使用`create_time`，不保留旧`created_at`别名。
+
+本节全部参考表的通用字段以2.1为准：version INT、creator/updater VARCHAR(64)、create_time/update_time DATETIME(3)、deleted BIT(1)。不可变历史保留deleted=0且不提供删除接口；已有同名表保留既有业务列，不以参考DDL重建。文件名中的016仅保留来源标识，当前基线由机器定义baseline字段标识为017。
+
+本节冻结新的目标表、字段类型、空值、主键、唯一/检查约束与正确性索引，不把未来迁移描述成已经实施。机器定义唯一位于`docs/traceability/sds-revision-016-physical-contract.json`；`scripts/generate_sds_revision_016_schema.py`派生参考DDL `specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql`。参考DDL仅在新建隔离schema执行，不是Flyway或存量升级脚本。
+
+沿用ADR-0030/0031的FEATURE_FORWARD_MIGRATION边界：物理表由PM-03 Feature前向迁移确定；物理表由PM-06 Feature前向迁移确定；物理表由COM-01 Feature前向迁移确定；物理表由ACC-03 Feature前向迁移确定；物理表由CLO-02 Feature前向迁移确定。这里“确定”是实施时核对已有表/创建前向迁移，不允许再改变本节已冻结的Owner、字段语义或关键约束。已部署同名表只能兼容演进，禁止先删后建。
+
+| 目标表 | Owner | 字段（类型与空值见机器定义） | 关键约束 |
+|---|---|---|---|
+| `proj_delivery_definition_revision` | PROJ | `id`、`tenant_id`、`definition_kind`、`definition_code`、`revision_no`、`revision_state`、`schema_version`、`payload`、`published_at`、`disabled_at`、`version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_pdd_revision` (`tenant_id`, `definition_kind`, `definition_code`, `revision_no`)；UNIQUE KEY `uk_pdd_tenant_id` (`tenant_id`, `id`)；CONSTRAINT `ck_pdd_kind` CHECK (definition_kind IN ('STAGE','TASK','DELIVERABLE','WORK_BINDING','COMPLETION_RULE','PERMISSION_POLICY','GATE','MILESTONE'))；CONSTRAINT `ck_pdd_version` CHECK (revision_no > 0 AND schema_version > 0)；CONSTRAINT `ck_pdd_state` CHECK (revision_state IN ('DRAFT','PUBLISHED'))；CONSTRAINT `ck_pdd_published` CHECK ((revision_state='DRAFT' AND published_at IS NULL) OR (revision_state='PUBLISHED' AND published_at IS NOT NULL))；CONSTRAINT `ck_pdd_payload` CHECK (JSON_TYPE(payload) = 'OBJECT') |
+| `proj_delivery_definition_reference` | PROJ | `id`、`tenant_id`、`owner_revision_id`、`reference_key`、`target_revision_id` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_pdr_slot` (`tenant_id`, `owner_revision_id`, `reference_key`)；KEY `idx_pdr_target` (`tenant_id`, `target_revision_id`)；CONSTRAINT `ck_pdr_not_self` CHECK (owner_revision_id <> target_revision_id)；CONSTRAINT `fk_pdr_source` FOREIGN KEY (`tenant_id`,`owner_revision_id`) REFERENCES `proj_delivery_definition_revision` (`tenant_id`,`id`)；CONSTRAINT `fk_pdr_target` FOREIGN KEY (`tenant_id`,`target_revision_id`) REFERENCES `proj_delivery_definition_revision` (`tenant_id`,`id`) |
+| `proj_stage_transition_definition` | PROJ | `id`、`tenant_id`、`template_revision_id`、`transition_code`、`from_stage_code`、`to_stage_code`、`condition_rule_revision_id`、`priority`、`is_default`、`default_marker`、`revision_no` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_std_code` (`tenant_id`, `template_revision_id`, `transition_code`)；UNIQUE KEY `uk_std_default` (`tenant_id`, `template_revision_id`, `from_stage_code`, `default_marker`)；KEY `idx_std_out` (`tenant_id`, `template_revision_id`, `from_stage_code`, `priority`)；CONSTRAINT `ck_std_flags` CHECK (is_default IN (0,1) AND revision_no > 0)；CONSTRAINT `ck_std_self` CHECK (from_stage_code <> to_stage_code) |
+| `proj_project_stage_transition` | PROJ | `id`、`tenant_id`、`project_id`、`template_revision_id`、`source_transition_id`、`transition_revision`、`from_stage_id`、`to_stage_id`、`priority`、`is_default`、`default_marker`、`condition_snapshot`、`graph_version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_pst_edge` (`tenant_id`, `project_id`, `graph_version`, `source_transition_id`)；UNIQUE KEY `uk_pst_default` (`tenant_id`, `project_id`, `graph_version`, `from_stage_id`, `default_marker`)；KEY `idx_pst_out` (`tenant_id`, `project_id`, `graph_version`, `from_stage_id`, `priority`)；CONSTRAINT `ck_pst_versions` CHECK (transition_revision > 0 AND graph_version > 0)；CONSTRAINT `ck_pst_self` CHECK (from_stage_id <> to_stage_id)；CONSTRAINT `ck_pst_default` CHECK (is_default IN (0,1)) |
+| `proj_project_stage_execution_contract` | PROJ | `id`、`tenant_id`、`project_id`、`stage_id`、`binding_version`、`binding_type`、`binding_snapshot`、`permission_policy_revision_id`、`completion_rule_revision_id`、`effective_from`、`effective_to`、`current_marker`、`version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_psec_version` (`tenant_id`, `stage_id`, `binding_version`)；UNIQUE KEY `uk_psec_current` (`tenant_id`, `stage_id`, `current_marker`)；KEY `idx_psec_project` (`tenant_id`, `project_id`, `stage_id`)；CONSTRAINT `ck_psec_version` CHECK (binding_version > 0)；CONSTRAINT `ck_psec_time` CHECK (effective_to IS NULL OR effective_to >= effective_from)；CONSTRAINT `ck_psec_type` CHECK (binding_type IN ('STAGE_NATIVE','BUSINESS_OBJECT','BUSINESS_COMPONENT','DYNAMIC_FORM','APPROVAL','COMPOSITE')) |
+| `plt_business_view_revision` | PLT | `id`、`tenant_id`、`entity_type`、`view_key`、`revision_no`、`owner_context`、`component_key`、`component_version`、`context_schema`、`supported_actions`、`query_provider_key`、`command_provider_key`、`permission_provider_key`、`published_at`、`disabled_at` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_bvr_identity` (`tenant_id`, `entity_type`, `view_key`, `revision_no`)；CONSTRAINT `ck_bvr_version` CHECK (revision_no > 0)；CONSTRAINT `ck_bvr_actions` CHECK (JSON_TYPE(supported_actions)='ARRAY')；CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT') |
+| `proj_contract_scope_append_request` | PROJ | `id`、`tenant_id`、`project_id`、`operation_id`、`request_digest`、`request_revision`、`expected_project_version`、`expected_scope_version`、`request_snapshot`、`impact_snapshot`、`bpm_process_definition_key`、`actual_process_definition_id`、`process_instance_id`、`approval_fact_ref`、`apply_state`、`applied_scope_version`、`applied_at`、`version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_csar_operation` (`tenant_id`, `project_id`, `operation_id`)；KEY `idx_csar_project` (`tenant_id`, `project_id`, `create_time`, `id`)；CONSTRAINT `ck_csar_revision` CHECK (request_revision > 0)；CONSTRAINT `ck_csar_apply` CHECK ((apply_state='NOT_APPLIED' AND applied_scope_version IS NULL AND applied_at IS NULL) OR (apply_state='APPLIED' AND applied_scope_version IS NOT NULL AND applied_scope_version > expected_scope_version AND applied_at IS NOT NULL AND approval_fact_ref IS NOT NULL)) |
+| `com_delivery_scope_project_version` | COM | `id`、`tenant_id`、`project_id`、`scope_version`、`version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_cspv_project` (`tenant_id`, `project_id`) |
+| `com_project_scope_revision` | COM | `id`、`tenant_id`、`project_id`、`scope_version`、`previous_scope_version`、`origin_context`、`origin_record_id`、`origin_revision`、`scope_snapshot`、`scope_digest`、`difference_snapshot` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_cpsr_version` (`tenant_id`, `project_id`, `scope_version`)；UNIQUE KEY `uk_cpsr_source` (`tenant_id`, `origin_context`, `origin_record_id`, `origin_revision`)；CONSTRAINT `ck_cpsr_previous` CHECK (previous_scope_version IS NULL OR scope_version > previous_scope_version)；CONSTRAINT `ck_cpsr_json` CHECK (JSON_TYPE(scope_snapshot)='ARRAY' AND JSON_TYPE(difference_snapshot)='OBJECT') |
+| `acc_acceptance_report` | ACC | `id`、`tenant_id`、`project_id`、`report_type`、`current_revision_id`、`version` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_aar_type` (`tenant_id`, `project_id`, `report_type`)；UNIQUE KEY `uk_aar_tenant_id` (`tenant_id`, `id`)；CONSTRAINT `ck_aar_type` CHECK (report_type IN ('PRELIMINARY','FINAL')) |
+| `acc_acceptance_report_revision` | ACC | `id`、`tenant_id`、`report_id`、`revision_no`、`project_scope_version`、`scope_revision_id`、`scope_digest`、`conclusion_code`、`accepted_at`、`acceptor_reference`、`file_artifact_id`、`file_version`、`file_digest`、`template_revision_id`、`initial_report_revision_id`、`source_evidence_refs`、`supersedes_revision_id` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_aarr_version` (`tenant_id`, `report_id`, `revision_no`)；KEY `idx_aarr_scope` (`tenant_id`, `scope_revision_id`)；CONSTRAINT `ck_aarr_version` CHECK (revision_no > 0 AND file_version > 0)；CONSTRAINT `fk_aarr_report` FOREIGN KEY (`tenant_id`,`report_id`) REFERENCES `acc_acceptance_report` (`tenant_id`,`id`) |
+| `proj_project_exit_record` | PROJ | `id`、`tenant_id`、`project_id`、`project_version`、`closure_type`、`closed_from_stage`、`stage_instance_id`、`source_context`、`source_record_id`、`source_record_revision`、`template_revision_id`、`scope_version`、`gate_snapshot_ref`、`closed_at` | PRIMARY KEY (`id`)；UNIQUE KEY `uk_per_project_version` (`tenant_id`, `project_id`, `project_version`)；UNIQUE KEY `uk_per_source` (`tenant_id`, `source_context`, `source_record_id`, `source_record_revision`)；CONSTRAINT `ck_per_type` CHECK ((closure_type IN ('NORMAL','NO_TRACKING') AND source_context='ACC') OR (closure_type='EXCEPTION' AND source_context='PROJ'))；CONSTRAINT `ck_per_stage` CHECK (closed_from_stage IN ('S0','S1','S2','S3','S4','S5','S6')) |
+
+所有身份为BIGINT UNSIGNED，租户维度进入业务唯一键；业务编码使用二进制排序避免大小写归并；版本字段为BIGINT UNSIGNED，业务修订>0、COM范围初始水位可为0。日期为DATETIME(6)，统一业务时间来源。不可变版本没有通用删除或覆盖接口；只允许受控当前指针、停用时间和合法区间结束更新，且保存追加审计。JSON正文不是索引键；高频查询只使用项目、身份、类型、版本和来源列。
+
+同Owner引用中定义引用边及报告版本采用含tenant的物理外键；跨Owner的Project、COM scope、FileArtifact及BPM只保存逻辑引用，提交时通过Owner API锁定重验。报告根current_revision_id必须指向同租户同report_id的版本，指针切换和引用重验同事务；数据库FK不能代替该业务检查。主绑定当前唯一使用生成标记；图唯一默认分支使用生成标记；无环/全可达/唯一开始/分支可判定在发布事务执行，数据库不靠一个CHECK宣称完成图校验。
+
+### 原有载体复用与迁移处置
+
+ProjectTemplateVersion复用`proj_project_template_revision`；ProjectStage复用`proj_project_stage`；TaskWorkBinding和TaskCompletionRule复用`proj_project_task_execution_contract`。可复用定义版本通过现有源引用及冻结快照与新增版本库关联，不能把sort_order推断为缺失的业务转移关系。既有项目换图必须显式审批并生成来源映射；不能从S0～S6编号自动回填缺失Stage或边。
+
+ProjectScopeVersion复用已在COM正式设计定义的`com_delivery_scope_project_version`唯一水位，新增不可变revision只存历史；不新增第二个水位表。历史缺失scopeVersion、范围数量或Owner证据时保持待核对，不使用最大ID、默认数量或当前合同反写历史。旧MultiPhaseProjectGroup三类表不再是PM-06目标；历史原值只读保留，绝不自动转换为追加申请。
+
+AcceptanceReportRevision不能从旧报告上传成功反推PASS，必须保留原结论、范围和证据。缺少范围或签字等必要事实时仅作历史来源，不能生成当前验收通过。ProjectExitRecord只能由CLO/PM-10合法关闭事务产生；对已闭环历史项目只在有真实阶段/来源证据时受控补映射，不假设S6，不把NORMAL推断为NO_TRACKING。
+
+### 验证与发布
+
+参考DDL必须通过生成漂移、对象/Owner/字段/约束检查和MySQL8.4隔离执行及唯一/越租户/默认分支/版本/退出来源负向用例。该证据只能证明所列新载体的Schema设计，不证明已有库升级、Provider实现或业务E2E。进入各Feature实施前仍需正式物理契约、前向Flyway、升级/兼容/回滚或前滚及业务并发测试。
+
+历史核心DDL保持原字节，P3-E09的旧独立批准只对该未变CORE_MIGRATION_SUBSET有效。不得把未修改核心DDL解释为本节所有新表已部署或独立批准。AI-MIG-000仅在实际发布包含历史数据迁移/切换时执行；普通新功能发布不自动适用。独立复审和需求方批准的当前状态只由Gate记录，参考DDL执行不代替签署。

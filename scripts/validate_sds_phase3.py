@@ -8,6 +8,10 @@ import importlib.util
 import json
 import re
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sds_gate_contract import current as current_revision, revision as prd_revision, validate_gate as validate_current_gate, validate_design as validate_current_design
+
 
 
 DESIGN_FILES = (
@@ -54,7 +58,7 @@ SIDE_EFFECT_EVENT = re.compile(r"事件边界为“([^”]+)”")
 SIDE_EFFECT_FILE = re.compile(r"文件边界为“([^”]+)”")
 SIDE_EFFECT_INTEGRATION = re.compile(r"外部集成为“([^”]+)”")
 GATE_REVIEW_STATE = re.compile(r"^>\s*审查状态：`([^`]+)`", re.M)
-GATE_CONCLUSION = re.compile(r"^>\s*结论：`([^`]+)`", re.M)
+GATE_CONCLUSION = re.compile(r"^>\s*(?:当前)?结论：`([^`]+)`", re.M)
 ACCEPTANCE_HEADING = re.compile(r"^\*\*(?:业务)?验收标准：\*\*\s*$", re.M)
 POST_ACCEPTANCE_HEADING = re.compile(
     r"^\*\*(?:涉及数据字段|权限与数据范围|异常、降级及留痕要求|依赖关系)：\*\*",
@@ -222,36 +226,37 @@ def validate_v18_in_review(root: Path, gate: str) -> list[str]:
     return errors
 
 
-def validate(root: Path) -> list[str]:
+def validate(root: Path, *, technical: bool = False) -> list[str]:
     errors: list[str] = []
     gate_path = root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
     gate = ""
     revalidation = False
+    is_current = current_revision(root)
     if gate_path.exists():
         gate = gate_path.read_text(encoding="utf-8")
         state = GATE_REVIEW_STATE.search(gate)
         conclusion = GATE_CONCLUSION.search(gate)
         review_state = state.group(1) if state else None
         gate_conclusion = conclusion.group(1) if conclusion else None
-        if review_state not in {"IN_REVIEW", "APPROVED"}:
+        if review_state not in ({"REVALIDATION_REQUIRED", "IN_REVIEW", "APPROVED"} if is_current else {"IN_REVIEW", "APPROVED"}):
             errors.append(f"Phase 3 gate has invalid review state: {review_state}")
-        revalidation = review_state == "IN_REVIEW"
+        revalidation = review_state in {"IN_REVIEW", "REVALIDATION_REQUIRED"}
         expected_conclusion = (
-            "NOT_READY_FOR_SDS_BASELINE_REVISION_007" if revalidation else "READY_FOR_SDS_BASELINE_V1.8"
+            ("BLOCKED_BY_REVIEW" if is_current else "NOT_READY_FOR_SDS_BASELINE_REVISION_007") if revalidation else "READY_FOR_SDS_BASELINE_V1.8"
         )
         if gate_conclusion != expected_conclusion:
             errors.append(
                 f"Phase 3 gate conclusion mismatch; expected={expected_conclusion} actual={gate_conclusion}"
             )
         if revalidation:
-            errors.extend(validate_v18_in_review(root, gate))
+            errors.extend(validate_current_gate(root, 3, technical=technical) if is_current else validate_v18_in_review(root, gate))
         else:
             require_tokens(errors, "Phase 3 approved gate", gate, (
                 "APPROVED", "READY_FOR_SDS_BASELINE_V1.8", "修订007", "111个目标版本切片",
             ))
     design_dir = root / "docs" / "design"
     documents: dict[str, str] = {}
-    expected_document_status = "文档状态：`IN_REVIEW`" if revalidation else "文档状态：`BASELINE`"
+    expected_document_status = ("文档状态：`REVALIDATION_REQUIRED`" if is_current else "文档状态：`IN_REVIEW`") if revalidation else "文档状态：`BASELINE`"
     for name in DESIGN_FILES:
         path = design_dir / name
         if not path.exists():
@@ -259,7 +264,8 @@ def validate(root: Path) -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         documents[name] = text
-        for marker in (expected_document_status, "适用基线：PRD V1.8", "Requirement ID：", "Owner："):
+        status_for_file = "文档状态：`BASELINE`" if is_current and revalidation and name in {"17-audit-and-observability.md", "18-deployment-design.md"} else expected_document_status
+        for marker in (status_for_file, "适用基线：PRD V1.8", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{name} missing metadata: {marker}")
         for stale_text in STALE_V18_DESIGN_TEXT:
@@ -353,7 +359,7 @@ def validate(root: Path) -> list[str]:
                     database_design_path.read_text(encoding="utf-8"),
                 )
             )
-        expected_contract_marker = "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`"
+        expected_contract_marker = "Phase 3验证注记状态：`BLOCKED_BY_REVIEW`" if is_current and revalidation else "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`"
         if expected_contract_marker not in contract_text:
             errors.append(f"contract map missing marker: {expected_contract_marker}")
         blocks = parse_contract_blocks(contract_text)
@@ -472,7 +478,7 @@ def validate(root: Path) -> list[str]:
 
         exact = {
             "PM-05": ("部分失败", "逐项重试"),
-            "PM-06": ("无环", "唯一期次"),
+            "PM-06": (("同一活动项目", "范围追加", "回滚", "旧终验") if is_current else ("无环", "唯一期次")),
             "PM-11": ("5万节点", "2000直接子节点", "深度30"),
             "CUS-02": (
                 "CustomerServiceLevelRevision", "cus_customer_service_level_revision", "/customers/{id}/service-level-revisions",
@@ -544,18 +550,26 @@ def validate(root: Path) -> list[str]:
         spec.loader.exec_module(module)
         errors.extend(f"evidence register: {error}" for error in module.validate(register_path))
 
+    if is_current:
+        if not revalidation:
+            errors.extend(validate_current_gate(root, 3, technical=technical))
+        errors.extend(validate_current_design(root))
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--technical", action="store_true", help="validate design content without approving the gate")
     args = parser.parse_args()
-    errors = validate(args.root.resolve())
+    errors = validate(args.root.resolve(), technical=args.technical)
     if errors:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
+    if args.technical and current_revision(args.root.resolve()):
+        print("[PASS] revision 016 Phase 3 technical content: 100 mappings, 111 slices; NOT approval or SDS release")
+        return 0
     gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
     if gate_path.is_file() and (
         (match := GATE_REVIEW_STATE.search(gate_path.read_text(encoding="utf-8")))

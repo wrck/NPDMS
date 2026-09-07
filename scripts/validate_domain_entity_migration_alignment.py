@@ -30,7 +30,7 @@ MULTI_OWNER_OBJECT_OWNER = {
     "DeviceComponentRelation": "AST", "SatisfactionCollection": "ACC",
     "MetricSnapshot": "ANA", "InspectionReport": "SRV", "Contract": "COM",
     "SalesOrder": "COM", "AuthorizationGrant": "PLT", "MaintenanceFact": "AST",
-    "ServiceStatus": "SRV",
+    "ServiceStatus": "SRV", "ProjectScopeVersion": "COM",
 }
 MODEL_ENTITY_CONTRACTS = {
     "DeliveryEvidence": ("IMP", {"IMP-01"}),
@@ -47,9 +47,14 @@ MODEL_ENTITY_CONTRACTS = {
     "DynamicFormTemplateRevision": ("PLT", {"SOL-01"}),
     "DynamicFormInstance": ("PLT", {"PRE-04", "SOL-01"}),
 }
+MODEL_ENTITY_CONTRACTS.update({
+    "BusinessViewRegistration": ("PLT", {"PM-03", "PM-11"}),
+    "ProjectExitRecord": ("PROJ", {"CLO-02", "PM-10"}),
+})
+
 MODEL_GOVERNANCE_CONTRACTS = {}
 CROSS_CONTEXT_FOUNDATION_OBJECTS = {
-    "DynamicFormTemplate", "DynamicFormTemplateRevision", "DynamicFormInstance",
+    "DynamicFormTemplate", "DynamicFormTemplateRevision", "DynamicFormInstance", "BusinessViewRegistration", "ProjectExitRecord",
 }
 
 
@@ -86,7 +91,7 @@ def requirement_owners(path: Path) -> dict[str, str]:
             continue
         if requirement_index is None or owner_index is None or len(cells) <= max(requirement_index, owner_index):
             continue
-        match = re.fullmatch(r"([A-Z]+-\d+)(?:@V\d+)?", cells[requirement_index])
+        match = re.fullmatch(r"([A-Z]+(?:-[A-Z0-9]+)?-\d+)(?:@V\d+)?", cells[requirement_index])
         if not match:
             continue
         requirement_id = match.group(1)
@@ -96,7 +101,6 @@ def requirement_owners(path: Path) -> dict[str, str]:
             raise ValueError(f"requirement slices have conflicting Owners: {requirement_id}")
         result[requirement_id] = owner
     return result
-
 
 def git_sql_table_catalog(repository: Path, commit: str) -> tuple[dict[str, str], dict[str, str]]:
     tables: dict[str, str] = {}
@@ -309,7 +313,7 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
     ddl_path = root / ddl_review["inputs"]["ddlPath"]
     physical_target_columns = ddl_column_catalog(ddl_path.read_text(encoding="utf-8"))
     physical_target_tables = set(physical_target_columns)
-    implementation = implementation_override or Path(payload.get("implementationRepo", ""))
+    implementation = implementation_override or (root if payload.get("implementationRepo") == "wrck/NPDMS" else Path(payload.get("implementationRepo", "")))
     frozen_commit = payload.get("implementationCommit", "")
     if not is_canonical_git_sha(frozen_commit):
         errors.append("implementationCommit must be a canonical 40-character lowercase SHA")

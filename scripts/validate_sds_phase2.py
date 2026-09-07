@@ -9,6 +9,10 @@ import json
 import re
 import sys
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sds_gate_contract import current as current_revision, revision as prd_revision, validate_gate as validate_current_gate, validate_design as validate_current_design
+
 
 
 PHASE2_DOCS = (
@@ -676,12 +680,21 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
         root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
         root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
     )
+    if current_revision(root):
+        evidence_paths = evidence_paths[:3]  # Historical independent review is immutable, not a new-count declaration.
     for path in evidence_paths:
         if not path.is_file():
             errors.append(f"missing Phase 2 migration gate evidence: {path.relative_to(root)}")
             continue
-        # self-review.md is the approved revision-007 snapshot, not a live projection.
-        if path.name != "self-review.md" and expected_summary not in read(path):
+        if path.name == "self-review.md":
+            continue
+        content = read(path)
+        if current_revision(root):
+            summaries = re.findall(r"^> 来源目录：`([^`]+)`", content, re.M)
+            matches = summaries == [expected_summary]
+        else:
+            matches = expected_summary in content
+        if not matches:
             errors.append(
                 f"Phase 2 migration gate evidence does not match current contract: "
                 f"{path.relative_to(root)} expected={expected_summary}"
@@ -891,16 +904,16 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
     return errors
 
 
-def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
+def validate_v18_revalidation(root: Path, gate: str, approved: bool = False, *, technical: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
     prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
     gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
-    gate_conclusion_match = re.search(r"^> 结论：`([^`]+)`", gate, re.MULTILINE)
+    gate_conclusion_match = re.search(r"^> (?:当前)?结论：`([^`]+)`", gate, re.MULTILINE)
     expected_gate_state = "APPROVED" if approved else "REVALIDATION_REQUIRED"
-    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else "NOT_READY_FOR_PHASE_3_REVISION_007"
+    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else ("BLOCKED_BY_REVIEW" if current_revision(root) else "NOT_READY_FOR_PHASE_3_REVISION_007")
     if not gate_state_match or gate_state_match.group(1) != expected_gate_state:
         errors.append(f"V1.8 Phase 2 gate state must be: {expected_gate_state}")
     if not gate_conclusion_match or gate_conclusion_match.group(1) != expected_gate_conclusion:
@@ -954,7 +967,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
         contract_markers = (
             ("文档状态：`BASELINE`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`")
             if approved
-            else ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`REVALIDATION_REQUIRED`")
+            else ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", ("Phase 3验证注记状态：`BLOCKED_BY_REVIEW`" if current_revision(root) else "Phase 3验证注记状态：`REVALIDATION_REQUIRED`"))
         )
         for marker in contract_markers:
             if marker not in contract_text:
@@ -1003,10 +1016,13 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     errors.extend(validate_facc001_report_contract(root))
     errors.extend(validate_facc002_satisfaction_contract(root))
     errors.extend(validate_v18_physical_carriers(root))
+    if current_revision(root):
+        errors.extend(validate_current_gate(root, 2, technical=technical))
+        errors.extend(validate_current_design(root))
     return errors
 
 
-def validate(root: Path) -> list[str]:
+def validate(root: Path, *, technical: bool = False) -> list[str]:
     errors: list[str] = []
     gate_path = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
     if gate_path.is_file():
@@ -1014,9 +1030,9 @@ def validate(root: Path) -> list[str]:
         gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
         gate_state = gate_state_match.group(1) if gate_state_match else None
         if gate_state == "REVALIDATION_REQUIRED":
-            return validate_v18_revalidation(root, gate)
+            return validate_v18_revalidation(root, gate, technical=technical)
         if gate_state == "APPROVED" and "READY_FOR_PHASE_3_V1.8" in gate:
-            return validate_v18_revalidation(root, gate, approved=True)
+            return validate_v18_revalidation(root, gate, approved=True, technical=technical)
     design = root / "docs" / "design"
     prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
@@ -1275,8 +1291,9 @@ def validate(root: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--technical", action="store_true", help="validate design content; approval remains independent")
     args = parser.parse_args()
-    errors = validate(args.root.resolve())
+    errors = validate(args.root.resolve(), technical=args.technical)
     if errors:
         for error in errors:
             print(f"[FAIL] {error}")

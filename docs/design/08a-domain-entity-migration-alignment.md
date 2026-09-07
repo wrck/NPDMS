@@ -1,7 +1,7 @@
-﻿# SDS Phase 2补充分册：领域实体迁移对齐
+# SDS Phase 2补充分册：领域实体迁移对齐
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8修订017；当前SDS技术检查与正式批准分别由Phase 1/2 Gate控制
 > Requirement ID：附录A.1全部100项V1/V2正式需求
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
@@ -15,7 +15,7 @@
 1. `specs/001-project-delivery-platform/evidence/data-elements/manifest.json`及结构化JSONL；
 2. `specs/001-project-delivery-platform/evidence/migration/*mapping*.jsonl`及迁移摘要；
 3. `legacy-data-element-business-object-mapping.md`、`project-order-migration-mapping.md`等已整理结论；
-4. 实现仓库`E:\AICoding\Projects\NPDMS`提交`856d052`中的现行表和迁移；
+4. 当前仓库`wrck/NPDMS`中显式锁定的实现来源提交`a9f8b7c568546839d3d641531f8036bb75889a82`及其现行表和迁移；校验器使用`--implementation .`，不依赖机器绝对路径；
 5. 只有结构化证据不足、源Excel哈希变化或需核验Excel专有语义时才回查原Excel。
 
 旧库和当前实现只能证明来源事实，不拥有新模型业务语义。冲突时以PRD和批准决策为准；无可靠对应关系时使用`PENDING_SOURCE_CONFIRMATION`或`NEW_ONLY`，不得按表名相似、字段后缀、最大ID或任意一条候选记录猜测。
@@ -60,9 +60,6 @@
 | `BorrowedProjectConversion` | 售前借货、SAP核销、CRM借货/RMA候选表 | PENDING_SOURCE_CONFIRMATION | 必须证明源项目、正式销售业务和处理批次后迁；否则只留来源记录 |
 | `ConversionItem` | 借货项目产品/核销明细候选 | PENDING_SOURCE_CONFIRMATION | 逐项决定只读引用/派生副本；禁止按同名对象自动复制 |
 | `ConversionDeviceDisposition` | SN发货/RMA/返还/项目归属事件 | RELATION+PENDING_SOURCE_CONFIRMATION | 只有完整设备事件链可决定继续借测/转入/归还；冲突逐设备隔离 |
-| `MultiPhaseProjectGroup` | 无可靠旧等价对象 | NEW_ONLY | 不复用父子树、项目组合或旧项目组 |
-| `MultiPhaseProjectMember` | 无可靠旧等价对象 | NEW_ONLY | 启用后按期次和有效区间产生 |
-| `CrossPhaseContentReference` | 无可靠旧等价对象 | NEW_ONLY | 新期派生时保存来源版本，不回填猜测关系 |
 
 ## 4. Preparation & Solution
 
@@ -217,3 +214,23 @@ Phase 2的全部显式数据对象已获得迁移策略入口；核心链具有�
 |---|---|---|---|
 | `AcceptanceScopeBinding` | 当前验收表没有可证明的DeliveryScope版本绑定事实 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由新平台项目进入验收阶段或验收阶段内新范围版本生效命令追加；保存ProjectStageSnapshot、DeliveryScope及分配版本；不从既有项目级验收状态、初验/终验报告或审批状态反推历史绑定，`Q-FCOM-002`关闭前不生成关闭事实 |
 | `ExportTask` | 设计输入时无统一ExportTask/ExportAudit物理载体；ADR-0014/0016仅有逻辑决策 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 由ACC-02前向Feature新建PLT唯一任务与只追加审计；不从`plt_operation_audit`、临时导出文件、浏览器下载或业务行反推历史Task，不为满意度另建第二导出真值 |
+
+## 修订017当前对象来源差量
+
+106对象/124来源绑定/1排除源。此统计来自当前机器契约，不改写历史独立复审中的93对象/104来源绑定。旧三类多期群组不再属于当前PM-06目标；其Git/来源历史保留，不做新需求迁移。
+
+| 对象 | Owner | 目标表 | 来源处置 |
+|---|---|---|---|
+| `ProjectTemplateVersion` | PROJ | `proj_project_template_revision` | CURRENT_TABLE:proj_project_template_revision → CURRENT_FORWARD |
+| `DeliveryConfigurationRevision` | PROJ | `proj_delivery_definition_revision`、`proj_delivery_definition_reference` | NONE_NEW:DeliveryConfigurationRevision → NEW_ONLY |
+| `StageTransitionDefinition` | PROJ | `proj_stage_transition_definition` | NONE_NEW:StageTransitionDefinition → NEW_ONLY |
+| `ProjectStageTransition` | PROJ | `proj_project_stage_transition` | NONE_NEW:ProjectStageTransition → NEW_ONLY |
+| `ProjectStage` | PROJ | `proj_project_stage` | CURRENT_TABLE:proj_project_stage → CURRENT_FORWARD |
+| `StageWorkBinding` | PROJ | `proj_project_stage_execution_contract` | NONE_NEW:StageWorkBinding → NEW_ONLY |
+| `ContractScopeAppendRequest` | PROJ | `proj_contract_scope_append_request` | NONE_NEW:ContractScopeAppendRequest → NEW_ONLY |
+| `ProjectScopeVersion` | COM | `com_delivery_scope_project_version`、`com_project_scope_revision` | NONE_NEW:ProjectScopeVersion → NEW_ONLY |
+| `AcceptanceReportRevision` | ACC | `acc_acceptance_report`、`acc_acceptance_report_revision` | NONE_NEW:AcceptanceReportRevision → NEW_ONLY |
+| `BusinessViewRegistration` | PLT | `plt_business_view_revision` | NONE_NEW:BusinessViewRegistration → NEW_ONLY |
+| `ProjectExitRecord` | PROJ | `proj_project_exit_record` | NONE_NEW:ProjectExitRecord → NEW_ONLY |
+
+新增定义、边、绑定、范围修订、报告版本及退出历史不从S0～S6编号、旧上传成功或项目关联猜测。物理表名和字段按09与参考DDL冻结；Feature实施前前向迁移、历史兼容及升级验证仍独立执行，当前未执行AI-MIG-000。

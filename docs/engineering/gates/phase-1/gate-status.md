@@ -1,50 +1,48 @@
 # SDS Phase 1 Review
 
-> 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8正式基线、正式工程链V1.8、ADR-0029<br>
-> 结论：`READY_FOR_PHASE_2_V1.8`<br>
-> 机器门禁：`PASS`<br>
-> 需求方批准：`GO`<br>
-> 适用修订：`PRD_V1.8_REVISION_007`
+> 审查状态：`REVALIDATION_REQUIRED`<br>
+> PRD Blob：`fd701f153f3148001625fcfe45180b36aae719c2`<br>
+> 适用修订：`PRD_V1.8_REVISION_017`<br>
+> 当前结论：`REVALIDATION_REQUIRED`<br>
+> 技术结论：`PENDING`<br>
+> 机器门禁：`PENDING`<br>
+> 需求方批准：`PENDING`<br>
+> 独立复审：`PENDING`<br>
+> Gate Owner：`原SDS授权Owner；本轮ChatGPT仅执行修复、自审与机器验证，不代签独立批准`<br>
+> 当前修复证据：`docs/engineering/gates/phase-1/revision-017-review-remediation.md`
 
-## 1. V1.8差量结果
+## 当前范围与结论边界
 
-修订007新增11个补充V2切片，并明确配置能力首个消费者前置原则。受影响的版本范围、领域Owner和追溯映射已按100项Requirement、111个目标版本切片完成差量复核。
+当前范围为100项正式Requirement、111个目标版本切片（V1 53个、V2 58个）。基线输入没有改变；本轮只修复现行SDS与校验器，用户“修复Gate达到GO”的请求是执行授权，不自动记为需求方已审阅全部产物或独立复审通过。
 
-| 检查项 | 修订007前状态 | 关闭证据/当前动作 |
+修订007的APPROVED/READY/GO及原independent-review.md保持历史证据；不要求历史文件伪装成修订017或包含新的对象数量。技术验证通过后可登记TECHNICAL_GO，正式Gate仍须当前复审与批准；默认校验命令不因--technical通过而授权下一Gate。
+
+## 受影响技术契约
+
+| 范围 | 本轮设计落位 | 当前处置 |
 |---|---|---|
-| 修订007差量 | PASS | 111个目标版本切片与PRD精确同集；V1 53个、V2 58个，11个补充V2切片及配置基础前置边界已落位 |
-| 正式范围 | PASS | PRD、追溯矩阵与Owner映射均为100项，V1 53、V2 47 |
-| 领域与聚合 | PASS_AFTER_SECOND_REPAIR | 13个Owner唯一覆盖；EQP-02拥有ConfigurationLog；SRV-01只保存ServiceHandoverReference，不拥有ACC-06交接事实 |
-| 版本范围 | PASS_AFTER_REPAIR | PM-10、CLO-02归V1，INT-04归V2；负向门禁阻止再次错位 |
-| 项目状态模型 | PASS | `current_stage`、`lifecycle_status`、`assignment_status`和只读`display_status`保持分层 |
-| 巡检状态与流程 | PASS_AFTER_SECOND_REPAIR | INS-01九个状态、在线INS-04预检守卫及INS-05～07顺序已结构化校验；相反规则会失败 |
-| 事件Owner与追溯 | PASS_AFTER_SECOND_REPAIR | 每个02d契约显式登记Requirement ID；ACC-06唯一发布`ServiceHandoverCreated`，Service Operations只保存引用 |
-| 权限与工作流 | PASS_AFTER_SECOND_REPAIR | PM-10分离回退与关闭/重开角色；重开恢复可恢复阶段、新建责任事项且不自动恢复外部终止任务 |
-| Stage—ProjectTask工作台 | PASS | WorkBinding统一必填；TASK_NATIVE默认承载通用详情；其他类型按Owner事实执行和完成 |
-| CUT-03同阶段工作台 | PASS | P1～P6不变；P3匹配、填写、CollectionTask下发与结果回填不产生独立阶段、聚合或工单 |
-| 正式文档治理 | PASS_AFTER_REPAIR | 运行提交、证据批次、构建结果和放行结论不再固化到正式架构正文 |
-| 机器门禁抗绕过 | PASS_AFTER_NINTH_REPAIR | 使用`markdown-it-py 4.2.0`提取真实GFM表格token及单元格可见文本；不可见HTML token不参与业务键比较，围栏、代码、注释、列表嵌套、表格边界和三类引用链接均有负向回归 |
-| 追溯生成确定性 | PASS_AFTER_THIRD_REPAIR | `generate_requirement_traceability.py --check`只读重建并比较生成器负责内容，漂移时不覆盖正式矩阵 |
-| P3-E09证据可复现性 | PASS_AFTER_FOURTH_REPAIR | 哈希绑定DDL使用`-text diff`：禁用Git换行转换且保留文本差异；`core.autocrlf=true`干净检出仍为`5EB974…4249`且全量290项通过 |
-| 需求方推进批准 | PASS | 需求方确认完成修订并推进Phase 3；Phase 1只批准进入Phase 2，不替代后续阶段门禁 |
+| 领域/Owner | 02、02b、02c：图与实例、COM唯一范围、ACC报告及PROJ退出事实 | 设计已修复；技术验证与独立批准分开登记 |
+| 状态/流程 | 05、06：四态、三类退出、真实阶段、领域事实不直接推进 | 设计已修复；技术验证与独立批准分开登记 |
+| 权限与工作台 | 07、10：Stage/Task唯一绑定、首次经理指派、不扩大Owner授权 | 设计已修复；技术验证与独立批准分开登记 |
+| 版本/全集 | 02e、20：100项/111切片及RPT-02完整范围 | 设计已修复；技术验证与独立批准分开登记 |
 
-## 2. 机器校验范围
+## P3-E09与下游运行证据
 
-- PRD V1.8正式需求、追溯矩阵和`phase-1-domain-ownership.md`精确同集且Owner唯一。
-- 01～07及02a～02e分册元数据、版本归属、状态分层、Context/聚合、事件Owner、工作流和授权关键边界可复现。
-- EQP-02 ConfigurationLog Owner、02d逐事件Requirement追溯、巡检状态全集、PM-10权限/重开副作用、ACC-06事件Producer和正式文档证据边界均有结构化负向测试。
-- Phase 1机器通过不替代独立复审，不产生表、API、DDL或迁移批准。
+| 项 | 当前边界 | 最晚阻断点 |
+|---|---|---|
+| P3-E01 运行设施 | DOWNSTREAM-GATED；不虚构生产IP、窗口或设施 | 部署/生产发布 |
+| P3-E02 HA | DOWNSTREAM-GATED；沿用已批准设计，不伪造HA演练 | 生产部署/性能/发布 |
+| P3-E03 恢复 | DOWNSTREAM-GATED；RPO/RTO及真实演练独立 | 恢复验收/发布 |
+| P3-E04 密钥 | DOWNSTREAM-GATED；秘密托管和执行区证据独立 | 设备凭证能力/发布 |
+| P3-E05 可观测 | DOWNSTREAM-GATED | 可观测与审计验收/发布 |
+| P3-E06 性能 | DOWNSTREAM-GATED；Q08候选索引保留验证 | 性能验收/发布 |
+| P3-E07 联调 | DOWNSTREAM-GATED；真实Provider联调未执行 | 对应Feature联调/发布 |
+| P3-E08 前端类型 | DOWNSTREAM-GATED | 前端验收/发布 |
+| P3-E09 历史核心模型 | MODEL_BASELINE_READY只限未改CORE_MIGRATION_SUBSET及相同哈希；不自动批准新增载体 | 新载体独立复审及Feature前向迁移 |
+| AI-MIG-000 | 仅实际历史迁移或数据切换适用；未执行且未授权 | 对应Release |
 
-## 3. 后置边界
+## 正式放行条件
 
-- WorkBinding、CompletionRule和CUT-03清单/结果引用的物理承载仍由Phase 2差量设计，当前保持`BLOCKED_BY_DESIGN`。
-- P3-E09仅在物理数据模型变化后重验证；Q08仍是候选索引。
-- `AI-MIG-000`只在Release包含历史迁移或数据切换时适用，并只允许在批准窗口内执行。
-- 生产配置、KMS、SIT/UAT和真实迁移/切换证据不前置到Phase 1。
+当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。
 
-## 4. 放行结论
-
-当前Phase 1状态为`APPROVED / READY_FOR_PHASE_2_V1.8`，批准修订007进入Phase 2契约复核。
-
-本结论不批准数据库迁移、历史数据迁移、数据切换、Feature实现或生产发布。
+本轮保留8个Feature的切片重验证标记，历史Task Done和DU认领不变；SDS技术通过不等于Feature Ready、Implementation Done、Migration、SIT、UAT或Release GO。

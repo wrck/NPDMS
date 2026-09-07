@@ -1,13 +1,17 @@
 # F-PROJ-001 手动项目创建与模板初始化 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY`
-> Technical Plan：在本仓目标分支基于当前正式规格重新生成；禁止使用2026-08-21旧计划
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
+> 上次Technical Plan（历史，不授权当前差量实施）：在本仓目标分支基于当前正式规格重新生成；禁止使用2026-08-21旧计划
 > Implementation Start：`SATISFIED`（本仓目标分支已包含`CHG-PRD-2026-08-23-002`）
 > Implementation Done：`PASS`（NPDMS `1c76050`；2026-08-25 创建人详情访问集成回归已完成独立 `GO`）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
 > Requirement切片覆盖：`PM-01@V1=PARTIAL；PM-03@V1=PARTIAL`
+> PRD差量重验证：`PM-01@V1；PM-03@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
 > Owner Context：`PROJ（项目治理）`
 > Gate Owner：需求方关闭业务语义问题；项目治理Feature负责人关闭其余DoR并在实施启动前登记具体责任人
@@ -56,7 +60,7 @@
 7. 冻结模板revision、流程定义及相关规则版本。
 8. 原子实例化Project、Stage、ProjectTask、Milestone、Deliverable、Gate以及每个任务的执行契约。
 9. 初始化正式项目为`lifecycle_status=ACTIVE`、`current_stage=S0`。
-10. V1人工确认服务经理；未满足全部主责指派时保持`assignment_status=UNASSIGNED`。
+10. V1人工确认服务经理，并由获权服务经理或工程管理部在PM-01内完成首次项目经理指派；两类主责未同时有效时保持`assignment_status=UNASSIGNED`。
 11. 查询创建结果与项目详情，并记录权限、模板选择、创建、指派和失败审计。
 
 ### 3.2 Out of Scope
@@ -64,7 +68,7 @@
 - CRM/ERP自动同步、失败重试和恢复后的来源补关联闭环；
 - PM-07自动业务属性识别；本Feature只消费人工录入的独立属性；
 - PM-08 V2服务经理自动匹配算法；
-- 项目经理指派、完整团队组建和成员批量变更；
+- 完整团队组建及PM-09@V2成员批量变更；PM-01@V1首次项目经理指派属于本Feature；
 - 项目拆分、主子项目树移动与进度汇总；
 - 模板草稿编辑、校验、发布和停用后台；
 - S0之后的阶段推进、任务办理和任务完成；
@@ -141,6 +145,10 @@ Project
 - 指派命令必须记录角色层级、责任范围、生效区间、前后值和操作人。
 - 只要PRD要求的主责指派未全部完成，项目保持`UNASSIGNED`；本Feature不以只指派服务经理伪装S0指派完成。
 
+#### PM-01首次项目经理指派
+
+首次项目经理指派由唯一PROJ命令`AssignInitialProjectManager`承接：授权服务经理或工程管理部选择SYSTEM已确认在职且处于允许范围的人员，不以已有PROJECT_MANAGER或先完成T-ASSIGN-PM为前置。命令锁定项目与当前责任区间，冻结主体、项目/成员/组织版本，追加唯一有效PROJECT_MANAGER主责及审计；相同幂等键重放，不覆盖已有有效主责。T-ASSIGN-PM绑定该PM-01指派事实并据其完成，不通过通用TASK_NATIVE COMPLETE绕过授权。服务经理与项目经理主责同时有效才写ASSIGNED；通知失败不回滚成功指派。
+
 ### BR-FPROJ-007 创建失败不持久化
 
 依据`CHG-PRD-2026-08-21-001`：
@@ -159,6 +167,7 @@ Project
 |---|---|---|---|
 | `CreateManualProject` | 权限、幂等、字段、主数据、模板revision及全部引用校验通过 | 创建`ACTIVE / S0 / UNASSIGNED`正式项目和完整实例 | 不创建无模板Project；不直接进入S1 |
 | `AssignProjectManagerRole`（role=SERVICE_MANAGER） | Project版本匹配、操作者有权、候选人在允许范围 | 追加/关闭ProjectMemberAssignment有效区间并更新负责人投影 | 不自动推导候选；不覆盖历史 |
+| `AssignInitialProjectManager`（PM-01@V1） | 获权服务经理/工程管理部、项目版本匹配、SYSTEM候选有效、无当前项目经理主责 | 追加唯一PROJECT_MANAGER责任区间，重新计算双主责状态；形成T-ASSIGN-PM完成事实 | 不要求已有项目经理；不替换已有有效主责；不让V2批量变更成为V1前置 |
 
 `display_status`仅为只读派生值。通用`PATCH /projects/{id}`不得修改`lifecycle_status`、`current_stage`或`assignment_status`。
 
@@ -173,6 +182,7 @@ Project
 | 查询候选/预览模板 | 有项目创建权限的工程管理部人员 | tenant、四维条件、业务场景、模板发布状态 | 不返回其他租户、草稿/停用模板或敏感配置正文 |
 | 创建正式项目 | 有项目创建权限的工程管理部人员 | tenant、客户/组织范围、字段权限、模板候选、幂等 | 普通成员、未授权办事处和跨租户请求拒绝 |
 | 人工确认服务经理 | 有V1指派权限的工程管理部人员 | Project版本、角色范围、办事处/实施地点范围 | 被指派服务经理不能借此改来源字段或模板版本 |
+| 首次指派项目经理 | 有项目指派权限的服务经理或工程管理部授权人员 | Project版本、项目范围、SYSTEM在职候选、当前主责唯一与幂等 | 不要求已有PROJECT_MANAGER；不得借首次指派替换现有主责或绕过T-ASSIGN-PM事实绑定 |
 | 查看项目详情 | 创建人及实时ProjectTreeScope内主体 | 每次查询按当前权限裁剪 | 项目名称可见不推导任务、商务、文件或敏感字段权限 |
 
 WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，不返回任意脚本、Repository名、未授权业务正文或秘密。
@@ -223,6 +233,10 @@ F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`
 ### 8.6 明确不提供草稿API
 
 不提供`/project-creation-drafts`、草稿提交命令或草稿恢复接口。模板匹配/校验错误由`POST /projects`返回，前端在当前页面展示并保留内存表单供修正。
+
+### 8.5 PM-01首次项目经理指派
+
+`POST /projects/{id}/actions/assign-project-manager`对应唯一PROJ首次指派命令。请求为`projectManagerUserId/reason`，要求`Idempotency-Key`及携带项目版本的`If-Match`；角色固定PROJECT_MANAGER，不接受客户端自定义角色。服务端重验操作者指派权限和项目范围、SYSTEM在职候选及组织范围，锁定后保存责任区间、发生时版本、审计和Outbox。响应返回新项目版本、责任引用及assignmentStatus。未授权、离职候选、版本冲突、已有当前主责或同键异载荷均保持原事实；同键重放返回首次结果。此为待实施契约，不声明现有接口已经装配。
 
 ## 9. 数据变化与事务边界
 
@@ -325,6 +339,10 @@ F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`
 
 无模板、多默认、模板失效或字段校验失败时，数据库不存在Project、项目创建草稿、项目编码、Stage/Task/Milestone/Deliverable/Gate实例、成功幂等记录或`ProjectCreated`事件。页面在不刷新时保留当前内存表单和逐项错误；刷新后不恢复，浏览器持久化存储中不存在该表单。
 
+### AC-FPROJ-011 首次项目经理指派
+
+目标项目尚无PROJECT_MANAGER时，获权服务经理或工程管理部可完成PM-01首次指派；无权限或候选无效拒绝，并发两个首次指派最多一条有效主责，同键重放不追加。只具备一类主责时保持UNASSIGNED，两类齐全才为ASSIGNED；T-ASSIGN-PM按真实指派事实完成，通知失败不回滚责任。验收不得要求未来V2批量变更，也不得依赖预置项目经理解除循环。
+
 ## 13. 测试与证据要求
 
 | 类别 | 最小覆盖 |
@@ -333,7 +351,7 @@ F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`
 | Integration | 正式创建事务、Flyway约束、幂等重放/冲突、模板并发停用、指派版本冲突、Outbox |
 | Authorization Negative | 普通成员、跨租户、未授权组织、模板维护权不等于项目创建权 |
 | Business Negative | 无模板、多默认、模板失效、绑定缺失、规则失效、主数据失效、残缺实例回滚 |
-| API Contract | `/projects`、模板查询/详情、`assign-manager`错误与版本语义 |
+| API Contract | `/projects`、模板查询/详情、`assign-manager`及`assign-project-manager`错误与版本语义 |
 | Browser E2E | 表单、模板预览、正式创建、刷新、详情、指派、错误提示、权限和审计 |
 | Security | 越权、敏感字段/日志、Idempotency摘要、输入校验 |
 
@@ -357,7 +375,7 @@ F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`
 
 | Requirement | Feature规则/AC | SDS | 后续Code/Test |
 |---|---|---|---|
-| PM-01 | BR-FPROJ-001/002/005/006/007；AC-FPROJ-002/005/006/007/008/009/010 | 04/05/07/08/09/10/15/16分册 | Technical Plan生成后登记 |
+| PM-01 | BR-FPROJ-001/002/005/006/007及首次项目经理指派；AC-FPROJ-002/005/006/007/008/009/010/011 | 04/05/07/08/09/10/15/16分册 | Technical Plan生成后登记 |
 | PM-03 | BR-FPROJ-003/004/005/007；AC-FPROJ-001/003/004/008/010 | 04/05/07/08/09/10/15/16分册；ADR-0029/0030/0032 | Technical Plan生成后登记 |
 
 PM-08只作为V1人工确认与V2自动指派的范围边界，不宣称本Feature完成PM-08需求。
@@ -375,3 +393,7 @@ F-PROJ-003 的项目角色与子树授权分离模型。
 
 - `Q-FPROJ-001`：需求方选择方案B。创建失败不持久化Project或创建草稿；批准依据为`CHG-PRD-2026-08-21-001`。
 - `Q-FPROJ-002`：需求方确认创建时同步完成PROJ与ACC初始化，要么全部完成，要么全部回滚，不允许中间状态。实现必须采用同库同Spring事务的同步内部应用接口，不得改为最终一致性。
+
+## 修订017覆盖资格
+
+当前受影响切片：PM-01@V1、PM-03@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

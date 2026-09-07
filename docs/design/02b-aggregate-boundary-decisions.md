@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：聚合边界决策
+# SDS Phase 1：聚合边界决策
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -27,3 +27,18 @@
 跨聚合通过 ID、不可变版本、查询快照和领域事件关联；Phase 2 再确定数据库约束和并发策略。一个聚合只归属一个 Context；跨 Context 只通过应用服务、查询契约或事件协作。
 
 ProjectTask导航投影不是新聚合：一级Stage、二级ProjectTask来自项目实例；深层任务仍是同一ProjectTask树。CUT-03在P3内引用CollectionTask并消费结果，DAC不进入CutoverTask事务，CUT也不直接写DAC状态。
+
+## 修订017当前聚合边界
+
+| 对象 | Owner | 聚合边界及失败原子性 |
+|---|---|---|
+| DeliveryConfigurationRevision | Project Delivery | 受控类型的不可变发布定义；发布前图和引用校验，发布失败全回滚；不是任意脚本执行器 |
+| StageTransitionDefinition / ProjectStageTransition | Project Delivery | 模板边与项目冻结边分离；唯一开始、可达、无环、唯一目标；未实例化阶段无状态行 |
+| StageWorkBinding | Project Delivery | ProjectStage当前唯一绑定；与TaskWorkBinding分别管理，必须合并目标Owner权限，不以通用完成命令绕过目标业务事实 |
+| BusinessViewRegistration | 基础平台 | 只发布受信实体/组件/命令及权限Provider版本，不拥有领域对象状态 |
+| ContractScopeAppendRequest | Project Delivery | 同一项目的批准追加申请；COM数量/水位、PROJ任务、ACC绑定共同成功或失败；不产生群组、另一期项目或组合 |
+| ProjectScopeVersion | Contract & Fulfillment | 唯一COM水位＋不可变范围版本；PROJ只持引用，不能双写当前量 |
+| AcceptanceReportRevision | Acceptance & Closure | 报告根当前指针＋不可变报告版本；范围、文件、结论及初验引用精确冻结 |
+| ProjectExitRecord | Project Delivery | 来源闭环命令的退出历史；受控写当前生命周期并同事务追加历史，回调不能直接写终态 |
+
+旧MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference只留在Git历史，不作为PM-06当前对象、API或前向建表依据。旧S4→S5专用入口必须委托统一图推进服务，COM/ACC只参与范围校验和绑定，不能成为第二个current_stage Writer。

@@ -1,0 +1,1035 @@
+{
+  "schemaVersion": 1,
+  "baseline": "PRD_V1.8_REVISION_017",
+  "prdGitBlob": "fd701f153f3148001625fcfe45180b36aae719c2",
+  "status": "IN_REVIEW",
+  "scope": "PROSPECTIVE_FEATURE_FORWARD_SCHEMA_NOT_RUNTIME_MIGRATION",
+  "sourceAuthority": "docs/design/08-data-model.md;docs/design/09-database-design.md",
+  "historicalCoreDdlPolicy": "UNCHANGED_CORE_MIGRATION_SUBSET; existing P3-E09 evidence valid for identical core bytes only",
+  "tables": {
+    "proj_delivery_definition_revision": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "definition_kind",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "definition_code",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "revision_no",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "revision_state",
+          "VARCHAR(16) NOT NULL"
+        ],
+        [
+          "schema_version",
+          "INT UNSIGNED NOT NULL"
+        ],
+        [
+          "payload",
+          "JSON NOT NULL"
+        ],
+        [
+          "published_at",
+          "DATETIME(6) NULL"
+        ],
+        [
+          "disabled_at",
+          "DATETIME(6) NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_pdd_revision` (`tenant_id`, `definition_kind`, `definition_code`, `revision_no`)",
+        "UNIQUE KEY `uk_pdd_tenant_id` (`tenant_id`, `id`)",
+        "CONSTRAINT `ck_pdd_kind` CHECK (definition_kind IN ('STAGE','TASK','DELIVERABLE','WORK_BINDING','COMPLETION_RULE','PERMISSION_POLICY','GATE','MILESTONE'))",
+        "CONSTRAINT `ck_pdd_version` CHECK (revision_no > 0 AND schema_version > 0)",
+        "CONSTRAINT `ck_pdd_state` CHECK (revision_state IN ('DRAFT','PUBLISHED'))",
+        "CONSTRAINT `ck_pdd_published` CHECK ((revision_state='DRAFT' AND published_at IS NULL) OR (revision_state='PUBLISHED' AND published_at IS NOT NULL))",
+        "CONSTRAINT `ck_pdd_payload` CHECK (JSON_TYPE(payload) = 'OBJECT')"
+      ]
+    },
+    "proj_delivery_definition_reference": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "owner_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "reference_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "target_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_pdr_slot` (`tenant_id`, `owner_revision_id`, `reference_key`)",
+        "KEY `idx_pdr_target` (`tenant_id`, `target_revision_id`)",
+        "CONSTRAINT `ck_pdr_not_self` CHECK (owner_revision_id <> target_revision_id)",
+        "CONSTRAINT `fk_pdr_source` FOREIGN KEY (`tenant_id`,`owner_revision_id`) REFERENCES `proj_delivery_definition_revision` (`tenant_id`,`id`)",
+        "CONSTRAINT `fk_pdr_target` FOREIGN KEY (`tenant_id`,`target_revision_id`) REFERENCES `proj_delivery_definition_revision` (`tenant_id`,`id`)"
+      ]
+    },
+    "proj_stage_transition_definition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "template_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "transition_code",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "from_stage_code",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "to_stage_code",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "condition_rule_revision_id",
+          "BIGINT NULL"
+        ],
+        [
+          "priority",
+          "INT NOT NULL"
+        ],
+        [
+          "is_default",
+          "TINYINT UNSIGNED NOT NULL DEFAULT 0"
+        ],
+        [
+          "default_marker",
+          "TINYINT GENERATED ALWAYS AS (CASE WHEN is_default=1 THEN 1 ELSE NULL END) STORED"
+        ],
+        [
+          "revision_no",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_std_code` (`tenant_id`, `template_revision_id`, `transition_code`)",
+        "UNIQUE KEY `uk_std_default` (`tenant_id`, `template_revision_id`, `from_stage_code`, `default_marker`)",
+        "KEY `idx_std_out` (`tenant_id`, `template_revision_id`, `from_stage_code`, `priority`)",
+        "CONSTRAINT `ck_std_flags` CHECK (is_default IN (0,1) AND revision_no > 0)",
+        "CONSTRAINT `ck_std_self` CHECK (from_stage_code <> to_stage_code)"
+      ]
+    },
+    "proj_project_stage_transition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "template_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "source_transition_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "transition_revision",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "from_stage_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "to_stage_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "priority",
+          "INT NOT NULL"
+        ],
+        [
+          "is_default",
+          "TINYINT UNSIGNED NOT NULL"
+        ],
+        [
+          "default_marker",
+          "TINYINT GENERATED ALWAYS AS (CASE WHEN is_default=1 THEN 1 ELSE NULL END) STORED"
+        ],
+        [
+          "condition_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "graph_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_pst_edge` (`tenant_id`, `project_id`, `graph_version`, `source_transition_id`)",
+        "UNIQUE KEY `uk_pst_default` (`tenant_id`, `project_id`, `graph_version`, `from_stage_id`, `default_marker`)",
+        "KEY `idx_pst_out` (`tenant_id`, `project_id`, `graph_version`, `from_stage_id`, `priority`)",
+        "CONSTRAINT `ck_pst_versions` CHECK (transition_revision > 0 AND graph_version > 0)",
+        "CONSTRAINT `ck_pst_self` CHECK (from_stage_id <> to_stage_id)",
+        "CONSTRAINT `ck_pst_default` CHECK (is_default IN (0,1))"
+      ]
+    },
+    "proj_project_stage_execution_contract": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "stage_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "binding_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "binding_type",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "binding_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "permission_policy_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "completion_rule_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "effective_from",
+          "DATETIME(6) NOT NULL"
+        ],
+        [
+          "effective_to",
+          "DATETIME(6) NULL"
+        ],
+        [
+          "current_marker",
+          "TINYINT GENERATED ALWAYS AS (CASE WHEN effective_to IS NULL THEN 1 ELSE NULL END) STORED"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_psec_version` (`tenant_id`, `stage_id`, `binding_version`)",
+        "UNIQUE KEY `uk_psec_current` (`tenant_id`, `stage_id`, `current_marker`)",
+        "KEY `idx_psec_project` (`tenant_id`, `project_id`, `stage_id`)",
+        "CONSTRAINT `ck_psec_version` CHECK (binding_version > 0)",
+        "CONSTRAINT `ck_psec_time` CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT `ck_psec_type` CHECK (binding_type IN ('STAGE_NATIVE','BUSINESS_OBJECT','BUSINESS_COMPONENT','DYNAMIC_FORM','APPROVAL','COMPOSITE'))"
+      ]
+    },
+    "plt_business_view_revision": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "entity_type",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "view_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "revision_no",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "owner_context",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "component_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "component_version",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "context_schema",
+          "JSON NOT NULL"
+        ],
+        [
+          "supported_actions",
+          "JSON NOT NULL"
+        ],
+        [
+          "query_provider_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "command_provider_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "permission_provider_key",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "published_at",
+          "DATETIME(6) NOT NULL"
+        ],
+        [
+          "disabled_at",
+          "DATETIME(6) NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_bvr_identity` (`tenant_id`, `entity_type`, `view_key`, `revision_no`)",
+        "CONSTRAINT `ck_bvr_version` CHECK (revision_no > 0)",
+        "CONSTRAINT `ck_bvr_actions` CHECK (JSON_TYPE(supported_actions)='ARRAY')",
+        "CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT')"
+      ]
+    },
+    "proj_contract_scope_append_request": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "operation_id",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "request_digest",
+          "CHAR(64) NOT NULL"
+        ],
+        [
+          "request_revision",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "expected_project_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "expected_scope_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "request_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "impact_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "bpm_process_definition_key",
+          "VARCHAR(128) NULL"
+        ],
+        [
+          "actual_process_definition_id",
+          "VARCHAR(128) NULL"
+        ],
+        [
+          "process_instance_id",
+          "VARCHAR(128) NULL"
+        ],
+        [
+          "approval_fact_ref",
+          "VARCHAR(128) NULL"
+        ],
+        [
+          "apply_state",
+          "VARCHAR(16) NOT NULL DEFAULT 'NOT_APPLIED'"
+        ],
+        [
+          "applied_scope_version",
+          "BIGINT UNSIGNED NULL"
+        ],
+        [
+          "applied_at",
+          "DATETIME(6) NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_csar_operation` (`tenant_id`, `project_id`, `operation_id`)",
+        "KEY `idx_csar_project` (`tenant_id`, `project_id`, `create_time`, `id`)",
+        "CONSTRAINT `ck_csar_revision` CHECK (request_revision > 0)",
+        "CONSTRAINT `ck_csar_apply` CHECK ((apply_state='NOT_APPLIED' AND applied_scope_version IS NULL AND applied_at IS NULL) OR (apply_state='APPLIED' AND applied_scope_version IS NOT NULL AND applied_scope_version > expected_scope_version AND applied_at IS NOT NULL AND approval_fact_ref IS NOT NULL))"
+      ]
+    },
+    "com_delivery_scope_project_version": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "PM-06"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "scope_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "payload_version",
+          "INT UNSIGNED NOT NULL"
+        ],
+        [
+          "last_change_type",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_cspv_project` (`tenant_id`, `project_id`)"
+      ],
+      "existingTablePolicy": "复用V160现有表，保留payload_version/last_change_type及当前数据；本文件不是覆盖或升级脚本"
+    },
+    "com_project_scope_revision": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "PM-06"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "scope_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "previous_scope_version",
+          "BIGINT UNSIGNED NULL"
+        ],
+        [
+          "origin_context",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "origin_record_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "origin_revision",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "scope_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "scope_digest",
+          "CHAR(64) NOT NULL"
+        ],
+        [
+          "difference_snapshot",
+          "JSON NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_cpsr_version` (`tenant_id`, `project_id`, `scope_version`)",
+        "UNIQUE KEY `uk_cpsr_source` (`tenant_id`, `origin_context`, `origin_record_id`, `origin_revision`)",
+        "CONSTRAINT `ck_cpsr_previous` CHECK (previous_scope_version IS NULL OR scope_version > previous_scope_version)",
+        "CONSTRAINT `ck_cpsr_json` CHECK (JSON_TYPE(scope_snapshot)='ARRAY' AND JSON_TYPE(difference_snapshot)='OBJECT')"
+      ]
+    },
+    "acc_acceptance_report": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "report_type",
+          "VARCHAR(16) NOT NULL"
+        ],
+        [
+          "current_revision_id",
+          "BIGINT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_aar_type` (`tenant_id`, `project_id`, `report_type`)",
+        "UNIQUE KEY `uk_aar_tenant_id` (`tenant_id`, `id`)",
+        "CONSTRAINT `ck_aar_type` CHECK (report_type IN ('PRELIMINARY','FINAL'))"
+      ]
+    },
+    "acc_acceptance_report_revision": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "report_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "revision_no",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "project_scope_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "scope_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "scope_digest",
+          "CHAR(64) NOT NULL"
+        ],
+        [
+          "conclusion_code",
+          "VARCHAR(64) NOT NULL"
+        ],
+        [
+          "accepted_at",
+          "DATETIME(6) NOT NULL"
+        ],
+        [
+          "acceptor_reference",
+          "VARCHAR(255) NOT NULL"
+        ],
+        [
+          "file_artifact_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "file_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "file_digest",
+          "CHAR(64) NOT NULL"
+        ],
+        [
+          "template_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "initial_report_revision_id",
+          "BIGINT NULL"
+        ],
+        [
+          "source_evidence_refs",
+          "JSON NOT NULL"
+        ],
+        [
+          "supersedes_revision_id",
+          "BIGINT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_aarr_version` (`tenant_id`, `report_id`, `revision_no`)",
+        "KEY `idx_aarr_scope` (`tenant_id`, `scope_revision_id`)",
+        "CONSTRAINT `ck_aarr_version` CHECK (revision_no > 0 AND file_version > 0)",
+        "CONSTRAINT `fk_aarr_report` FOREIGN KEY (`tenant_id`,`report_id`) REFERENCES `acc_acceptance_report` (`tenant_id`,`id`)"
+      ]
+    },
+    "proj_project_exit_record": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "CLO-02",
+        "PM-10"
+      ],
+      "columns": [
+        [
+          "id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "tenant_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "project_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "closure_type",
+          "VARCHAR(16) NOT NULL"
+        ],
+        [
+          "closed_from_stage",
+          "VARCHAR(32) NOT NULL"
+        ],
+        [
+          "stage_instance_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "source_context",
+          "VARCHAR(16) NOT NULL"
+        ],
+        [
+          "source_record_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "source_record_revision",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "template_revision_id",
+          "BIGINT NOT NULL"
+        ],
+        [
+          "scope_version",
+          "BIGINT UNSIGNED NOT NULL"
+        ],
+        [
+          "gate_snapshot_ref",
+          "VARCHAR(128) NOT NULL"
+        ],
+        [
+          "closed_at",
+          "DATETIME(6) NOT NULL"
+        ],
+        [
+          "version",
+          "INT NOT NULL DEFAULT 0"
+        ],
+        [
+          "creator",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "create_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "updater",
+          "VARCHAR(64) NOT NULL DEFAULT ''"
+        ],
+        [
+          "update_time",
+          "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
+        ],
+        [
+          "deleted",
+          "BIT(1) NOT NULL DEFAULT b'0'"
+        ]
+      ],
+      "constraints": [
+        "PRIMARY KEY (`id`)",
+        "UNIQUE KEY `uk_per_project_version` (`tenant_id`, `project_id`, `project_version`)",
+        "UNIQUE KEY `uk_per_source` (`tenant_id`, `source_context`, `source_record_id`, `source_record_revision`)",
+        "CONSTRAINT `ck_per_type` CHECK ((closure_type IN ('NORMAL','NO_TRACKING') AND source_context='ACC') OR (closure_type='EXCEPTION' AND source_context='PROJ'))",
+        "CONSTRAINT `ck_per_stage` CHECK (closed_from_stage IN ('S0','S1','S2','S3','S4','S5','S6'))"
+      ]
+    }
+  },
+  "commonFieldsAuthority": "docs/design/09-database-design.md#2.1；沿用Yudao通用字段，业务版本与技术version分离；不可变历史不暴露删除接口"
+}

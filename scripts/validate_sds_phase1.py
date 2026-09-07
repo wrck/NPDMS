@@ -10,6 +10,9 @@ import sys
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sds_gate_contract import current as current_revision, revision as prd_revision, validate_gate as validate_current_gate, validate_design as validate_current_design
+
 
 from markdown_it import MarkdownIt
 
@@ -37,6 +40,14 @@ REQUIRED_FILES = PHASE1_DOCS + (
     "docs/engineering/gates/phase-1/gate-status.md",
     "docs/engineering/gates/phase-1/self-review.md",
     "docs/engineering/gates/phase-1/independent-review.md",
+    "docs/design/09-database-design.md",
+    "docs/design/10-api-design.md",
+    "docs/design/11-event-design.md",
+    "docs/traceability/domain-object-table-map.json",
+    "docs/traceability/phase2-contract-map.md",
+    "docs/traceability/sds-revision-016-physical-contract.json",
+    "docs/engineering/gates/phase-2/revision-016-mysql-schema.json",
+    "specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql",
 )
 OWNER_CODES = {
     "PROJ", "SOL", "IMP", "ACC", "CUT", "SRV", "CUS",
@@ -316,7 +327,7 @@ def require_markers(errors: list[str], label: str, text: str, markers: tuple[str
         errors.append(f"{label} missing markers: {missing}")
 
 
-def validate(root: Path) -> list[str]:
+def validate(root: Path, *, technical: bool = False) -> list[str]:
     errors: list[str] = []
     for relative in REQUIRED_FILES:
         if not (root / relative).is_file():
@@ -324,9 +335,11 @@ def validate(root: Path) -> list[str]:
     if errors:
         return errors
 
+    is_current = current_revision(root)
+    current_pending = metadata_values(read(root / "docs/engineering/gates/phase-1/gate-status.md"), "审查状态") != ["APPROVED"]
     for relative in PHASE1_DOCS:
         text = read(root / relative)
-        status_marker = "> 状态：`BASELINE`" if relative.endswith("phase-1-domain-ownership.md") else "> 文档状态：`BASELINE`"
+        status_marker = "> 状态：`BASELINE`" if relative.endswith("phase-1-domain-ownership.md") else ("> 文档状态：`REVALIDATION_REQUIRED`" if is_current and current_pending and not relative.endswith("03-system-architecture.md") else "> 文档状态：`BASELINE`")
         for marker in (status_marker, "PRD V1.8", "Requirement ID：", "Owner"):
             if marker not in text:
                 errors.append(f"{relative} missing current Phase 1 metadata: {marker}")
@@ -335,7 +348,7 @@ def validate(root: Path) -> list[str]:
             r"(?:待|仍须|仍需|尚待|尚未|未完成)[^。\n]{0,24}(?:fresh-context)?独立复审|"
             r"(?:fresh-context)?独立复审[^。\n]{0,16}(?:待完成|未完成|PENDING)"
         )
-        if any(marker in text for marker in stale_markers) or pending_review_claim.search(text):
+        if not (is_current and current_pending) and (any(marker in text for marker in stale_markers) or pending_review_claim.search(text)):
             errors.append(f"{relative} retains stale Phase 1 pending-review claims after baseline approval")
 
     system_design = read(root / "docs/design/00-system-detailed-design.md")
@@ -343,7 +356,7 @@ def validate(root: Path) -> list[str]:
         errors,
         "SDS master Phase 1 summary",
         system_design,
-        ("| SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |",),
+        (("| SDS Phase 1 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-1/gate-status.md` |",) if is_current and current_pending else ("| SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |",)),
     )
 
     gate_readme = read(root / "docs/engineering/gates/phase-1/README.md")
@@ -351,7 +364,7 @@ def validate(root: Path) -> list[str]:
         errors,
         "Phase 1 gate README",
         gate_readme,
-        ("APPROVED / READY_FOR_PHASE_2_V1.8", "修订007", "111个目标版本切片"),
+        (("修订016", "111个目标版本切片", "BLOCKED_BY_REVIEW") if is_current and current_pending else ("APPROVED / READY_FOR_PHASE_2_V1.8", "修订007", "111个目标版本切片")),
     )
 
     prd_text = read(root / "docs/baseline/prd-v1.8.md")
@@ -455,7 +468,7 @@ def validate(root: Path) -> list[str]:
         domain + "\n" + state,
         (
             "`current_stage`仅取S0～S6",
-            "`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED",
+            ("`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED" if is_current else "`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED"),
             "`assignment_status`独立维护",
             "`display_status`只读派生",
             "CLO-02唯一产生NORMAL_CLOSED",
@@ -496,7 +509,7 @@ def validate(root: Path) -> list[str]:
             "WorkBinding不授予新权限",
         ),
     )
-    if "不以通用完成命令绕过目标业务事实" not in aggregate:
+    if "不以通用完成命令绕过目标业务事实" not in aggregate or re.search(r"允许使用通用完成命令|允许[^。\n]{0,20}通用完成[^。\n]{0,20}绕过", aggregate):
         errors.append("ProjectTask completion guard must reject generic completion for non-native business facts")
 
     ownership = read(root / "docs/design/02c-data-ownership-matrix.md")
@@ -656,6 +669,11 @@ def validate(root: Path) -> list[str]:
     ):
         errors.append("formal architecture must not embed mutable runtime evidence or gate-release claims")
 
+    if is_current:
+        errors.extend(validate_current_gate(root, 1, technical=technical))
+        errors.extend(validate_current_design(root))
+        return errors
+
     gate = read(root / "docs/engineering/gates/phase-1/gate-status.md")
     require_markers(
         errors,
@@ -701,13 +719,14 @@ def validate(root: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--technical", action="store_true", help="validate content without granting approval")
     args = parser.parse_args()
-    errors = validate(args.root.resolve())
+    errors = validate(args.root.resolve(), technical=args.technical)
     if errors:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] PRD V1.8 revision 007 Phase 1 gate: 100 requirements, 111 version slices, 13 unique Owners")
+    print(f"[PASS] Phase 1 {'technical content only (approval unchanged)' if args.technical else 'approved gate'}; PRD revision {prd_revision(args.root.resolve())}; 100 requirements, 111 slices, 13 Owners")
     return 0
 
 
