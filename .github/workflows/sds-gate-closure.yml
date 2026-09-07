@@ -12,28 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Capture exact source and current gate failures
+      - name: Preserve immutable Git source history
         env:
           INPUT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          git clone --quiet --depth=2 --single-branch --branch docs/prd-v1.8-p0-p1-fixes https://github.com/wrck/NPDMS.git repository
+          git clone --quiet --single-branch --branch docs/prd-v1.8-p0-p1-fixes https://github.com/wrck/NPDMS.git repository
           cd repository
           git checkout --detach "$INPUT_SHA"
+          git cat-file -e a9f8b7c568546839d3d641531f8036bb75889a82^{commit}
           mkdir -p ../gate-input
           git rev-parse HEAD > ../gate-input/source-commit.txt
-          git archive --format=tar.gz HEAD > ../gate-input/source.tar.gz
-          for phase in 1 2 3; do
-            set +e
-            python3 "scripts/validate_sds_phase${phase}.py" > "../gate-input/phase-${phase}-baseline.txt" 2>&1
-            rc=$?
-            set -e
-            printf 'Phase %s baseline exit code: %s\n' "$phase" "$rc"
-            cat "../gate-input/phase-${phase}-baseline.txt"
-          done
+          git bundle create ../gate-input/repository.bundle --all
       - name: Preserve scoped review inputs
         uses: actions/upload-artifact@v4
         with:
-          name: sds-gate-input
+          name: sds-gate-history
           path: gate-input/
           retention-days: 3
