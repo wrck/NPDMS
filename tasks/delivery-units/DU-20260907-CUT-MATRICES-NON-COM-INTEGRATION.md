@@ -1,6 +1,6 @@
 # DU-20260907-CUT-MATRICES-NON-COM-INTEGRATION
 
-> DU状态：`IN_PROGRESS`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`MULTI_FEATURE_SLICE`
 > Feature协调：`F-CUT-001=TASK_COORDINATED;F-CUT-002=TASK_COORDINATED;F-CUT-003=TASK_COORDINATED;F-CUT-004=TASK_COORDINATED;F-CUT-005=TASK_COORDINATED;F-CUT-006=TASK_COORDINATED;F-CUT-007=TASK_COORDINATED;F-CUT-008=TASK_COORDINATED;F-CUT-009=TASK_COORDINATED;F-CUT-010=TASK_COORDINATED;F-IMP-001=TASK_COORDINATED;F-IMP-003=TASK_COORDINATED;F-IMP-004=TASK_COORDINATED;F-IMP-005=TASK_COORDINATED`
 > Task范围：`用户要求将远程codex/f-cut-001-matrices除COM相关内容全部合入；已有等价内容不重复、主干后继修复不回退`
@@ -13,7 +13,7 @@
 > 串行资源：`本会话此前PR #1/7/8/9已合入并停止写入；当前DU独占此次非COM差量接收及索引投影`
 > 旧功能范围：`既有CUT/IMP来源接收与迁移解释；保留废弃标记，不重新开放旧写入口`
 > 验证：`来源差量完整性、COM排除、后继修复保留、必要聚焦检查及PR远端CI`
-> 集成记录：`NONE`
+> 集成记录：`PR #10已合入master@fc2bb709d94eb0231a5297de8af23db70af87f4d；仅接收非COM差量；合并后功能聚焦校验通过；本DU释放写边界，不改变Feature Ready或Implementation状态`
 
 不接收pms-module-commerce、F-COM相关规格/Task/测试/迁移或共享文档中的COM差量。草案和未完成Task保留原状态；不新增生产Provider/Fake，不重放已执行SQL，不覆盖修订017或历史审批证据。
 
@@ -27,3 +27,18 @@
 - 接收来源中20项到货迁移细化测试，并只将文件引用适配到现行V193～V202；不执行或修改旧SQL。
 - F-IMP-004安装前置按修订017的冻结模板条件适用，不对未配置EXE-02的售前路径补造前置。
 - 其他非COM代码已与master等价，或由master的后继修复覆盖；保留CUT时间戳、转换器装配、就绪输入校验、到货关联约束、Outbox事件白名单等修复，不回退。
+
+## 合并后功能校验回执
+
+2026-09-07在master合并提交`fc2bb709`执行一轮现有聚焦测试，26个测试类、168项测试全部通过，失败/错误/跳过均为0。未新增门禁或重复执行此前已通过的20项到货迁移检查。
+
+- F-CUT-001：统一配置、风险矩阵、勘察矩阵。
+- F-CUT-002～006：接入评估、动态清单、方案提交、分级审批、割接闭环。
+- F-CUT-007～010：首页KPI、提前时间和外部提醒、授权导出和流程导航、备件查询及快照。
+- F-IMP-001/002：就绪接口与输入校验、到货应用/命令/查询及签收事实接口。
+- AST支撑：设备范围事实接口、产品类型接口。
+- F-IMP-003/004/005：仅规格和Task接收，已确认DRAFT/NOT_READY/NOT_STARTED及Feature引用保持一致；不宣称实现验收通过。
+
+测试命令：`mvn -B -ntp -pl pms-module-cutover,pms-module-engineering,pms-module-asset -am -DskipITs=true -Dtest=<26个上述功能对应的现有测试类> -Dsurefire.failIfNoSpecifiedTests=false test`。
+本地原始日志：`M:/AICoding/CodexData/worktrees/6644/NPDMS/.run/cut-post-merge-feature-tests.log`。
+本轮是单元/服务/接口聚焦回归，不包含MySQL集成或浏览器业务验收，不提升Feature Done。
