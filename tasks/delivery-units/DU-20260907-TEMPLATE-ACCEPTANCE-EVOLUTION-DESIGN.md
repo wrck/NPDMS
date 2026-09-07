@@ -1,6 +1,6 @@
 # DU-20260907-TEMPLATE-ACCEPTANCE-EVOLUTION-DESIGN 模板业务规则与终验解耦设计
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-COM-001=TASK_COORDINATED`
 > Task范围：`用户已确认的模板演进设计及正式规格差量；只改文档与其派生投影，不实施应用功能`
@@ -25,7 +25,7 @@
 
 ## 写入交接
 
-原PR #1/#7 Owner已于2026-09-07明确释放其全部写边界；两旧DU以原任务回执和master集成事实收口。本DU在master先提交PLANNED记录，再提交CLAIMED认领后写入规格。用户明确要求使用当前主分支，故不另建分支或工作树。
+原PR #1/#7 Owner已于2026-09-07明确释放其全部写边界；两旧DU以原任务回执和master集成事实收口。PLANNED记录已在master提交为`1474ee91`；本次提交激活CLAIMED，之后才写入规格。用户明确要求使用当前主分支，故不另建分支或工作树。
 
 ## 当前进度
 
