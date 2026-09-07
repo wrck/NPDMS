@@ -338,6 +338,48 @@
       ]
     },
     {
+      "featureId": "F-IMP-003",
+      "featurePath": "specs/features/F-IMP-003-hardware-installation-record.md",
+      "revalidationSlices": [],
+      "taskPath": "tasks/features/F-IMP-003.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "EXE-02@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-IMP-004",
+      "featurePath": "specs/features/F-IMP-004-configuration-log-collection.md",
+      "revalidationSlices": [],
+      "taskPath": "tasks/features/F-IMP-004.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "EXE-03@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-IMP-005",
+      "featurePath": "specs/features/F-IMP-005-joint-debugging-configuration.md",
+      "revalidationSlices": [],
+      "taskPath": "tasks/features/F-IMP-005.md",
+      "taskStatus": "NOT_STARTED",
+      "taskStatusRaw": "NOT_STARTED",
+      "mappings": [
+        {
+          "sliceKey": "EXE-04@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-INS-001",
       "featurePath": "specs/features/F-INS-001-inspection-rule-version-and-field-configuration-foundation.md",
       "revalidationSlices": [],
@@ -1064,7 +1106,16 @@
       "businessResult": "硬件安装记录的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-IMP-003",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "revalidationRequired": false,
+          "featurePath": "specs/features/F-IMP-003-hardware-installation-record.md",
+          "taskPath": "tasks/features/F-IMP-003.md"
+        }
+      ]
     },
     {
       "sliceKey": "EXE-03@V1",
@@ -1076,7 +1127,16 @@
       "businessResult": "配置Log采集解析的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-IMP-004",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "revalidationRequired": false,
+          "featurePath": "specs/features/F-IMP-004-configuration-log-collection.md",
+          "taskPath": "tasks/features/F-IMP-004.md"
+        }
+      ]
     },
     {
       "sliceKey": "EXE-04@V1",
@@ -1088,7 +1148,16 @@
       "businessResult": "业务联调配置收集的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-IMP-005",
+          "coverage": "FULL",
+          "taskStatus": "NOT_STARTED",
+          "revalidationRequired": false,
+          "featurePath": "specs/features/F-IMP-005-joint-debugging-configuration.md",
+          "taskPath": "tasks/features/F-IMP-005.md"
+        }
+      ]
     },
     {
       "sliceKey": "EXE-05@V1",

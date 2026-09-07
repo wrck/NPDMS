@@ -65,3 +65,15 @@ PROJ拥有唯一阶段推进命令：锁定并重验Project/当前阶段/模板�
 ACC报告证据与验收通过分离、范围变化及CLO快照失效见08。CUT-03暂存保持P3，只有有效提交进入P4；巡检实际归档状态由服务经理受控命令推进，详见06/07/12。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+## CUT P4/P5与到货批次事实补充
+
+来源：`codex/f-cut-001-matrices@faed8387`。本节补齐既有非COM事实契约，不改变修订017、当前Feature状态或生产装配边界。
+
+- CUT-01仍以P1为接入入口、P2～P6为五步工作台。新平台持久阶段/状态对为P2/GRADE_CONFIRMING、P3/SURVEYING、P4/PLAN_DRAFTING、P5/APPROVING、P6/CLOSURE_IN_PROGRESS；D级确认后跳过P3。
+- P4 revision只使用DRAFT/SUBMITTED/INVALIDATED；提交与CUT-05审批实例同成同败后由F-CUT-004写P4→P5。F-CUT-005最终驳回写P5→P4，全部通过写P5→P6。来源失效由F-CUT-004在暂停审批的同事务写P5→P4，并在恢复办理时派生替代revision。
+- CUT-05根为PENDING/PAUSED_SOURCE_INVALIDATED/APPROVED/REJECTED；A四级、B三级、C/D二级路由冻结。候选不唯一或授权失效以holdReason暂停待办，不新增伪终态；改派只改变当前处理人并追加历史。
+
+`Q-FCUT004-001`关闭前不得从上述状态机推导`P6/CLOSURE_IN_PROGRESS -> P4/PLAN_DRAFTING`。批准后职责变化虽需创建新方案并重走P5，但其回退Owner、历史触发器、旧批准revision/APPROVED事实及在途CUT-06闭环处置尚未锁定；当前只允许执行不需要该迁移的批准联系人PATCH。
+
+- `DRAFT/PARTIALLY_ACCEPTED/DIFFERENCE_PENDING/ACCEPTED/CONFIRMED`均为到货批次状态；项目级里程碑由`ArrivalAcceptanceFactApi`独立返回`ACCEPTED/NOT_ACCEPTED/STALE`，不把任一批次状态直接当作项目完成。
