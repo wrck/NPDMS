@@ -1,6 +1,6 @@
 # DU-20260906-PR7-CODE-TEST-TRACEABILITY-REPAIR PR #7代码、测试与追溯修复
 
-> DU状态：`IN_PROGRESS`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`MULTI_FEATURE_SLICE`
 > Feature协调：`F-IMP-001=TASK_COORDINATED;F-IMP-002=TASK_COORDINATED;F-COM-001=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-ACC-002=TASK_COORDINATED;F-INT-012=TASK_COORDINATED;F-CUT-001=TASK_COORDINATED;F-CUT-002=TASK_COORDINATED;F-CUT-003=TASK_COORDINATED;F-CUT-004=TASK_COORDINATED;F-CUT-005=TASK_COORDINATED;F-CUT-006=TASK_COORDINATED;F-CUT-007=TASK_COORDINATED;F-CUT-008=TASK_COORDINATED;F-CUT-010=TASK_COORDINATED`
 > Task范围：`PR #7代码、测试、任务追溯修复；COM ERP来源字段；CUT独立流程；治理套件；用户确认的单租户1默认及前向迁移`
@@ -13,7 +13,7 @@
 > 串行资源：`PR #7分支写入;Feature任务和Requirement生成投影;CI配置;单租户默认与前向迁移`
 > 旧功能范围：`NONE`
 > 验证：`Java 25构建与业务回归；前端构建/类型/单测；COM及CUT MySQL真实集成；默认租户及迁移验证；按实际修改范围复审；文档机械检查不阻断代码合并`
-> 集成记录：`PR #7/8已合入master（05305352/1d73b4f0）；本DU继续承接用户确认的COM-01真实正向链修复，不追认来源分支历史授权`
+> 集成记录：`PR #7/8/9及后续COM修复已进入master；原Owner于2026-09-07确认全部停止写入并释放范围，详见末尾交接；不追认Feature Done`
 
 ## 边界
 
@@ -45,3 +45,9 @@ master只登记治理认领，不接收PR业务代码；修复候选留在PR #7�
 工作区为`M:/AICoding/CodexData/worktrees/6644/NPDMS`，已包含master认领边界提交`43482230`。COM已修复ERP现有字段传递、来源/启停状态分离、范围明细列映射及测试夹具；CUT已修闭环事件时间戳和旧行转换器缺少Spring注册。隔离Compose `npdms-pr7-6644`（MySQL端口33444）迁移至V204及重复迁移通过；COM导入MySQL测试5项、前端212项测试、类型检查和生产构建通过。业务修复仍为工作树候选，未推送或合并PR。
 
 需求方最终说明取代专用单租户装配及服务端固定租户限制：保留原有多租户源码与机制，默认业务租户为1，前端默认选择列表首项，仅有一个租户时隐藏选择/切换；多个租户仍使用原选择机制。已撤下专用过滤器、任务切面及相关装配测试。CUT不存在独立接入合同需求，不新增合同或门禁。移出代码CI的全量Python治理、历史重放及投影校验；删除重复旧迁移哈希测试，保留SQL实质约束检查但不限定换行排版。原90文件补丁不得直接整包执行，Feature状态不晋级。
+
+## 2026-09-07 原Owner停止写入与交接回执
+
+原Owner任务`01a07a57-bdf3-79d1-8e11-a352f0227156`经只读核实确认：PR #7/#8/#9分别通过`05305352`、`1d73b4f0`、`c104ae08`进入master，后续COM修复写入已结束；这些提交均为`4fa4e386`的祖先。本DU全部停止写入，无保留的在途业务或规格范围，按已集成事实收口为`INTEGRATED_COMPLETE`并释放原修改边界。
+
+原Owner明确同意由79ed任务`01a07a94-a002-7131-bf20-2ad931b6a0f7`在master登记此回执并独立认领用户已批准的模板演进文档范围。本回执不晋级任何Feature Ready/Done，不授权额外COM业务变更、应用代码、Flyway或旧工作树清理；历史实施和验证记录保持原义。
