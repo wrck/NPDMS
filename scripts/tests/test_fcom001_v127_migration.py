@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql/migrations/V210__received_fcom001_acceptance_identity_authorization_fix.sql"
-V126_MIGRATION = ROOT / "sql/migrations/V209__received_fcom001_stage_entry_acceptance_seed.sql"
+MIGRATION = ROOT / "sql/migrations/V163__fcom001_acceptance_identity_authorization_fix.sql"
+V126_MIGRATION = ROOT / "sql/migrations/V162__fcom001_stage_entry_acceptance_seed.sql"
 
 
 class Fcom001V127MigrationTest(unittest.TestCase):
@@ -25,7 +25,7 @@ class Fcom001V127MigrationTest(unittest.TestCase):
         for token in (
                 "992002800002", "'fcom001_acceptance'", "'fcom001acceptance'",
                 "`creator` = 'fcom001_seed'", "`nickname` = 'FCOM001全权限验收'",
-                "`dept_id` = 930851", "`updater` = 'fcom001_v127'"):
+                "`dept_id` = 930851", "`updater` = 'fcom001_v163'"):
             with self.subTest(token=token):
                 self.assertIn(token, self.sql)
         self.assertNotRegex(self.sql, r"UPDATE\s+`system_users`[\s\S]*?SET[\s\S]*?`password`\s*=")

@@ -60,9 +60,16 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.5 --activate
           pnpm install --frozen-lockfile
-      - name: Run theme initialization tests
+      - name: Run Node-native source contract tests
         working-directory: yudao-ui/yudao-ui-admin-vue3
-        run: node --test tests/theme-init.test.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test tests/theme-init.test.mjs \
+            src/components/PmsLocationSelector/locationSelector.spec.ts \
+            src/views/pms/asset/location/location-contract.spec.ts \
+            src/views/pms/engineering/installation/installationForm.spec.ts \
+            src/views/pms/project/projects/index.spec.ts 2>&1 | tee "${RUNNER_TEMP}/node-native-tests.log"
       - name: Run all Vitest unit and component tests
         working-directory: yudao-ui/yudao-ui-admin-vue3
         shell: bash
@@ -76,6 +83,7 @@ jobs:
           path: |
             ${{ runner.temp }}/frontend-junit.xml
             ${{ runner.temp }}/frontend-tests.log
+            ${{ runner.temp }}/node-native-tests.log
           if-no-files-found: error
           retention-days: 14
 
