@@ -2,43 +2,47 @@
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
 > PRD Blob：`4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`<br>
-> 当前依据：PRD V1.8修订001—012、014—016正式基线；Phase 1/2均待差量复核<br>
-> 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_SDS_BASELINE_V1.8`（历史证据）<br>
-> 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
-> 机器门禁：`REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING`<br>
-> 适用修订：`PRD_V1.8_REVISION_016`
+> 适用修订：`PRD_V1.8_REVISION_016`<br>
+> 当前结论：`BLOCKED_BY_REVIEW`<br>
+> 技术结论：`TECHNICAL_GO`<br>
+> 机器门禁：`PASS`<br>
+> 需求方批准：`PENDING`<br>
+> 独立复审：`PENDING`<br>
+> Gate Owner：`原SDS授权Owner；本轮ChatGPT仅执行修复、自审与机器验证，不代签独立批准`<br>
+> 当前修复证据：`docs/engineering/gates/phase-1/revision-016-gate-repair.md`
 
-## 1. 状态说明
+## 当前范围与结论边界
 
-修订007的安全、审计、部署、性能和测试设计仍可作为历史输入，但不能证明修订016新增和改变的业务分支已经具备完整验证。Phase 3当前重开的是差量测试与运行保障范围，不将尚未变化的NFR设计无条件推翻。
+当前范围为100项正式Requirement、111个目标版本切片（V1 53个、V2 58个）。基线输入没有改变；本轮只修复现行SDS与校验器，用户“修复Gate达到GO”的请求是执行授权，不自动记为需求方已审阅全部产物或独立复审通过。
 
-## 2. 必须重验证的Phase 3场景
+修订007的APPROVED/READY/GO及原independent-review.md保持历史证据；不要求历史文件伪装成修订016或包含新的对象数量。技术验证通过后可登记TECHNICAL_GO，正式Gate仍须当前复审与批准；默认校验命令不因--technical通过而授权下一Gate。
 
-| 场景 | 当前状态 | 最小验证要求 |
+## 受影响技术契约
+
+| 范围 | 本轮设计落位 | 当前处置 |
 |---|---|---|
-| 完整工程主链 | REVALIDATION_REQUIRED | S0→S1→S2→S3→S4→S5→S6参考链及S4内嵌CUT P1～P6均有正常、驳回和失效场景 |
-| 模板裁剪与阶段推进 | REVALIDATION_REQUIRED | 只实例化模板阶段；当前准出、唯一后置和目标准入原子执行；无`APPLICABLE/NOT_APPLICABLE`假实例 |
-| S5验收 | REVALIDATION_REQUIRED | 直签初验后终验、非直签直接终验；模板无S5时不生成验收门禁 |
-| 三类项目退出 | REVALIDATION_REQUIRED | 有/无S6的NORMAL、代理商自服NO_TRACKING、PM-10 EXCEPTION；唯一Writer、`closed_from_stage`和不得补造事实 |
-| PM-06范围追加 | REVALIDATION_REQUIRED | S0～S5不同阶段追加、重复/超量拒绝、事务回滚、旧事实不覆盖新增范围、阶段和终验失效重算、终态项目拒绝 |
-| RPT-02全集统计 | REVALIDATION_REQUIRED | 进行中全状态、真实阶段、超期、三类终态、正常/业务闭环率、父子粒度、权限下钻、Excel导出和异常快照 |
-| S4与割接 | REVALIDATION_REQUIRED | 五类97项配置基准、V1/V2人工判级、D级跳过P3、CUT成功范围聚合及部分覆盖不放行 |
-| BPM身份与历史 | REVALIDATION_REQUIRED | definition key解析、实际定义和任务key留痕、历史定义选择、撤回/驳回/重提、通知失败不改变审批事实 |
-| 版本隔离 | REVALIDATION_REQUIRED | V2/V3能力不成为V1前置；旧E2E不能用后续能力伪造当前版本通过 |
+| 需求回归 | 20：R01～R16、完整主链/八子流程、V1/V2隔离及RPT-02公式 | 设计已修复；技术验证与独立批准分开登记 |
+| 安全与并发 | 14、15、16：双来源身份、文件回调、预检/正式执行和Owner版本重验 | 设计已修复；技术验证与独立批准分开登记 |
+| 模型门禁 | P3-E09历史核心DDL未改，新载体参考DDL隔离执行与负向检查单独列证据 | 设计已修复；技术验证与独立批准分开登记 |
+| 下游边界 | P3-E01～08、Feature Ready/Done、SIT/UAT/Release保持各自实际门禁 | 设计已修复；技术验证与独立批准分开登记 |
 
-## 3. 关闭动作
+## P3-E09与下游运行证据
 
-1. Phase 1/2差量设计先形成可执行基线；
-2. 更新正式测试设计及Requirement—场景—证据映射；
-3. 为第13.1章8个关键子流程和RPT-02五类能力建立完整断言，不能只保留闭环摘要；
-4. 验证状态机、权限、幂等、并发、异常补偿、历史兼容和审计；
-5. 明确P3-E09及部署/迁移是否受影响，并在对应最晚安全门禁关闭；
-6. 运行适用Phase 3校验并把证据写入本文件后，才可恢复`READY_FOR_SDS_BASELINE_V1.8`。
+| 项 | 当前边界 | 最晚阻断点 |
+|---|---|---|
+| P3-E01 运行设施 | DOWNSTREAM-GATED；不虚构生产IP、窗口或设施 | 部署/生产发布 |
+| P3-E02 HA | DOWNSTREAM-GATED；沿用已批准设计，不伪造HA演练 | 生产部署/性能/发布 |
+| P3-E03 恢复 | DOWNSTREAM-GATED；RPO/RTO及真实演练独立 | 恢复验收/发布 |
+| P3-E04 密钥 | DOWNSTREAM-GATED；秘密托管和执行区证据独立 | 设备凭证能力/发布 |
+| P3-E05 可观测 | DOWNSTREAM-GATED | 可观测与审计验收/发布 |
+| P3-E06 性能 | DOWNSTREAM-GATED；Q08候选索引保留验证 | 性能验收/发布 |
+| P3-E07 联调 | DOWNSTREAM-GATED；真实Provider联调未执行 | 对应Feature联调/发布 |
+| P3-E08 前端类型 | DOWNSTREAM-GATED | 前端验收/发布 |
+| P3-E09 历史核心模型 | MODEL_BASELINE_READY只限未改CORE_MIGRATION_SUBSET及相同哈希；不自动批准新增载体 | 新载体独立复审及Feature前向迁移 |
+| AI-MIG-000 | 仅实际历史迁移或数据切换适用；未执行且未授权 | 对应Release |
 
-## 4. 当前放行边界
+## 正式放行条件
 
-当前不批准受影响范围以修订007测试结果进入SDS Baseline、Feature Done、SIT、UAT或Release。P3-E01～P3-E09、`AI-MIG-000`和生产发布仍按实际变更条件独立适用，不因本次重开自动通过或自动失败。
+当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。
 
-## 修订016联动回写证据
-
-PRD正文、来源副本、受影响SDS及生成器已同步；追溯仅从当前PRD、Feature Spec和Task派生。当前独立设计复审及受影响物理/实现证据仍未完成，不将静态文档校验当作阶段批准。证据、具体通过/失败检查和TC-PRD016断言见`../phase-1/prd-revision-016-alignment.md`。旧Task Done不改写，受影响切片不得据旧FULL映射宣称当前完整覆盖。
+本轮保留8个Feature的切片重验证标记，历史Task Done和DU认领不变；SDS技术通过不等于Feature Ready、Implementation Done、Migration、SIT、UAT或Release GO。

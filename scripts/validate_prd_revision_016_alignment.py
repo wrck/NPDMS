@@ -59,7 +59,8 @@ def main() -> int:
     outcomes["NO_STALE_COMPLETE"] = all(item["implementationStatus"] == "REVALIDATION_REQUIRED" for item in slices if any(mapping.get("revalidationRequired") for mapping in item["features"]))
     for phase in (1,2,3):
         gate = (ROOT/f"docs/engineering/gates/phase-{phase}/gate-status.md").read_text()
-        outcomes[f"GATE_{phase}"] = identity["gitBlob"] in gate and "PRD_V1.8_REVISION_016" in gate and "REVALIDATION_REQUIRED" in gate
+        from sds_gate_contract import validate_gate
+        outcomes[f"GATE_{phase}"] = not validate_gate(ROOT, phase, technical=True)
     sds = (ROOT/"docs/design/20-test-design.md").read_text(encoding="utf-8-sig")
     outcomes["TEST_DESIGN"] = all(f"TC-PRD016-R{i:02d}" in sds for i in range(1,17)) and "NOT_RUN" in sds
     com = json.loads((ROOT/"specs/features/F-COM-001-project-qualification-contract.json").read_text())

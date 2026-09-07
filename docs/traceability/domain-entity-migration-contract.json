@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "status": "BASELINE",
+  "status": "REVALIDATION_REQUIRED",
   "baseline": "PRD_V1.8",
-  "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
+  "implementationRepo": "wrck/NPDMS",
   "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
@@ -199,33 +199,6 @@
         "proj_project_conversion_device"
       ]
     },
-    "MultiPhaseProjectGroup": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_group"
-      ]
-    },
-    "MultiPhaseProjectMember": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_member"
-      ]
-    },
-    "CrossPhaseContentReference": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_project_cross_phase_reference"
-      ]
-    },
     "Preparation": {
       "owner": "SOL",
       "requirementIds": [
@@ -394,8 +367,7 @@
     "Acceptance": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-01",
-        "ACC-03"
+        "ACC-01"
       ],
       "targetTables": [
         "acc_acceptance",
@@ -1028,6 +1000,130 @@
       "targetTables": [],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
       "featureRequirementId": "INT-04"
+    },
+    "ProjectTemplateVersion": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision"
+      ]
+    },
+    "DeliveryConfigurationRevision": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_delivery_definition_revision",
+        "proj_delivery_definition_reference"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "StageTransitionDefinition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_stage_transition_definition"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectStageTransition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_stage_transition"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectStage": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage"
+      ]
+    },
+    "StageWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage_execution_contract"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ContractScopeAppendRequest": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_contract_scope_append_request"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-06"
+    },
+    "ProjectScopeVersion": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "PM-06"
+      ],
+      "targetTables": [
+        "com_delivery_scope_project_version",
+        "com_project_scope_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "COM-01"
+    },
+    "AcceptanceReportRevision": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance_report",
+        "acc_acceptance_report_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-03"
+    },
+    "BusinessViewRegistration": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "plt_business_view_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectExitRecord": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "CLO-02",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_exit_record"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CLO-02"
     }
   },
   "records": [
@@ -1457,72 +1553,6 @@
       ]
     },
     {
-      "object": "MultiPhaseProjectGroup",
-      "owner": "PROJ",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_group"
-      ],
-      "sources": [
-        {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "MultiPhaseProjectGroup",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=MultiPhaseProjectGroup"
-        }
-      ]
-    },
-    {
-      "object": "MultiPhaseProjectMember",
-      "owner": "PROJ",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_member"
-      ],
-      "sources": [
-        {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "MultiPhaseProjectMember",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=MultiPhaseProjectMember"
-        }
-      ]
-    },
-    {
-      "object": "CrossPhaseContentReference",
-      "owner": "PROJ",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_project_cross_phase_reference"
-      ],
-      "sources": [
-        {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "CrossPhaseContentReference",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=CrossPhaseContentReference"
-        }
-      ]
-    },
-    {
       "object": "Preparation",
       "owner": "SOL",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
@@ -1887,8 +1917,7 @@
       "owner": "ACC",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "ACC-01",
-        "ACC-03"
+        "ACC-01"
       ],
       "targetTables": [
         "acc_acceptance",
@@ -3647,6 +3676,273 @@
       ],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
       "featureRequirementId": "INT-04"
+    },
+    {
+      "object": "ProjectTemplateVersion",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_template_revision",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V52__proj_project_template_foundation.sql#table=proj_project_template_revision"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryConfigurationRevision",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_delivery_definition_revision",
+        "proj_delivery_definition_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DeliveryConfigurationRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=DeliveryConfigurationRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    {
+      "object": "StageTransitionDefinition",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_stage_transition_definition"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "StageTransitionDefinition",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=StageTransitionDefinition"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    {
+      "object": "ProjectStageTransition",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_stage_transition"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ProjectStageTransition",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ProjectStageTransition"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    {
+      "object": "ProjectStage",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_stage",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V57__proj_project_manual_creation.sql#table=proj_project_stage"
+        }
+      ]
+    },
+    {
+      "object": "StageWorkBinding",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage_execution_contract"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "StageWorkBinding",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=StageWorkBinding"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    {
+      "object": "ContractScopeAppendRequest",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_contract_scope_append_request"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ContractScopeAppendRequest",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ContractScopeAppendRequest"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-06"
+    },
+    {
+      "object": "ProjectScopeVersion",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01",
+        "PM-06"
+      ],
+      "targetTables": [
+        "com_delivery_scope_project_version",
+        "com_project_scope_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ProjectScopeVersion",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ProjectScopeVersion"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "COM-01"
+    },
+    {
+      "object": "AcceptanceReportRevision",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance_report",
+        "acc_acceptance_report_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "AcceptanceReportRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=AcceptanceReportRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-03"
+    },
+    {
+      "object": "BusinessViewRegistration",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/02c-data-ownership-matrix.md",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "plt_business_view_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "BusinessViewRegistration",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=BusinessViewRegistration"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    {
+      "object": "ProjectExitRecord",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/02c-data-ownership-matrix.md",
+      "requirementIds": [
+        "CLO-02",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_exit_record"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ProjectExitRecord",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ProjectExitRecord"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CLO-02"
     }
   ]
 }

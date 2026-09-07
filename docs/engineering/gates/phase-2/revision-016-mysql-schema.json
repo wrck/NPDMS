@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "evidenceType": "ISOLATED_MYSQL_SCHEMA_AND_CONSTRAINT_TESTS_NOT_BUSINESS_RUNTIME",
+  "mysqlVersion": "8.4.11",
+  "containerImage": "mysql:8.4",
+  "imageId": "sha256:bced325a4ab7aec848f4688371c7433351dcb5dba26fbcc29c67727d898ae5cb",
+  "networkMode": "none",
+  "schemaCreatedEmpty": true,
+  "sourceCommit": "dcf22747b763988ad426e677901c115ca1a9f22c",
+  "actionsRunId": "34072580437",
+  "prdGitBlob": "4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b",
+  "contractSha256": "774a52b7e6f17e65790bcfd2eb454632d5b68ecd0fe5b156371228cc9e3f29e0",
+  "ddlSha256": "4241fc07bcfbb3744eb6924168d3b41de6f3616b2276d9d17ce17ebf78872b99",
+  "tableCount": 12,
+  "caseCount": 42,
+  "passedCount": 42,
+  "cases": [
+    {
+      "case": "published_definition",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "ba8e7111a5fd0462ba8f2067e77c1d954571ed3b55daed866f3fc693b83151c0"
+    },
+    {
+      "case": "tenant_scoped_same_code",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "2bfa8bb65c4775f4b2f065a091d9d8a299096f05b4d46acd2334d95c9098dbee"
+    },
+    {
+      "case": "second_definition",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "5fd63a2cfed12c0807e21ca3185b0e2ee6c7b34c61e090316dc415eded06ccaf"
+    },
+    {
+      "case": "duplicate_definition_revision",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "68bf4c0769b9dd9f00d17e1eb9caf36afa89feade38d55ba9f43b467a269c11a"
+    },
+    {
+      "case": "unrecognised_definition_kind",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "0c53158071eed44ef2aab2afda1ea7b899cab79d1006fe0fd3cb02267fdf294d"
+    },
+    {
+      "case": "published_requires_timestamp",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "849058cffa03edc4aec47eee1530b6ad3514156980ff66cd5fc6d89c89226e1e"
+    },
+    {
+      "case": "definition_requires_tenant",
+      "expectedError": 1048,
+      "actualError": 1048,
+      "passed": true,
+      "sqlSha256": "c7c42725af5b9384043ea294dcd85a7f2e3099cf693f91da103b67691aff4d34"
+    },
+    {
+      "case": "definition_payload_is_object",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "dedc514d721fe36828e2f2b0c7f25ca3a32011b1a61dc8a84472786700de31b8"
+    },
+    {
+      "case": "valid_definition_reference",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "7dbb476fd698b105f95dee061eb5bdb16619709ed275aea70599a6cd757e7cdc"
+    },
+    {
+      "case": "cross_tenant_definition_reference",
+      "expectedError": 1452,
+      "actualError": 1452,
+      "passed": true,
+      "sqlSha256": "6360ec30997ecc54792b5058497c5c042fe792b2056abf7527c1f00ff872d5b7"
+    },
+    {
+      "case": "definition_self_reference",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "009706a254c2b99ef8d2863d3f31521695e8d06010114bd7907d4f94c255f42d"
+    },
+    {
+      "case": "non_numeric_adjacent_edge",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "638ff56cd4045120a78d0b723ecaf7d2db678a6ab7a31fcdafc09dfb6bb917c0"
+    },
+    {
+      "case": "single_default_per_source",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "ead91f9783cc9252f5cf2b41a0e2ac8da37d53b1da81088733f801fa18be1c47"
+    },
+    {
+      "case": "reject_stage_self_edge",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "4636991f86f6e885bcace2add657c546ca8e43ff232016de425be720b28435f3"
+    },
+    {
+      "case": "reject_invalid_default_flag",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "d55137106f989d3b4e794a5c6be4830541d2de7a6a547b098bbc1c5ba603cac7"
+    },
+    {
+      "case": "frozen_edge",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "fbad7d54cd256eb86a4497ea2fb29ed08b1038cf88aac63f78a9d0491fffca50"
+    },
+    {
+      "case": "frozen_graph_single_default",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "a2af86ace7bdcce473582bbb3ca1ef25ade9f4d647add28073721ed41206efc8"
+    },
+    {
+      "case": "frozen_graph_version_positive",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "3ee6416b6ed71f858f22daa6eefd4c335c5d67b116aa775015bb42031f5b9d59"
+    },
+    {
+      "case": "stage_native_binding",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "f6b7c93bc75171a181f2f27bd0e99e079ab2c88d620a630f8eb5c4c5efd80901"
+    },
+    {
+      "case": "only_one_current_stage_binding",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "aeed4389278cb0a05c49f4662729c95a89ec04eba3485d2c167625dd8fd83ad2"
+    },
+    {
+      "case": "historical_stage_binding",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "09969be4c47be096761ef01e43271f5b15e91ca2434b145d17bfe63aae0ad188"
+    },
+    {
+      "case": "task_native_not_stage_native",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "db6dd642919e9891b560722a0828a8daa4f338eb088e71173adc382aac50c372"
+    },
+    {
+      "case": "binding_time_order",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "ca7b31e548a6bc18bd6699c03e6270f834540ad8053cf202945b93fae65cd933"
+    },
+    {
+      "case": "single_com_watermark",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "4f09317fccdb6e077484976d9eb142704fd9bb12055527799092bf854150855e"
+    },
+    {
+      "case": "duplicate_com_watermark",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "9e4206c025ccb0e02b5e3a30fa9a4c740421260018bee393ef56b5e16ac173aa"
+    },
+    {
+      "case": "immutable_scope_version",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "ef02c79adc1438548262035567d1fe6c877bad90ace8a94bc92b3f547ec6c41f"
+    },
+    {
+      "case": "scope_version_duplicate",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "18c03870c807ab132d926b6b57bbcbe5a4cdbdfc3feb8147694d65ef2d94895b"
+    },
+    {
+      "case": "scope_version_nonmonotonic",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "cc94ab8f74ae4ef40725ef319218d9db65522714d5233343c860114b0ab765f6"
+    },
+    {
+      "case": "unapplied_scope_request",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "826b2d2cfc06a36385190492bda79e1d26148251e650bcde225855f617052f03"
+    },
+    {
+      "case": "request_operation_deduplicated",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "f8d3404ddab4290ceeeeb1e5f7cbc149be545670da280da0a63c23faeec0afcb"
+    },
+    {
+      "case": "cannot_apply_without_approval",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "c286f847bcc41fd78e37848f4fc84918e63463dc7e76a23720e4e31f9c27d52d"
+    },
+    {
+      "case": "applied_request_has_approval",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "865a2fb822292cd53276e30f120c75a07945845e940d6a6732931da7cb8b256c"
+    },
+    {
+      "case": "final_report_root",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "c2d8c1b8ee2a1019b4ba2c4c3f83b7abb8dc35904e777fbf8fbc64e882eca0e6"
+    },
+    {
+      "case": "report_root_unique_type",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "a2e62e434a039bd16657438e5468d0d97c27bea80edc9ff63bc6d76799650294"
+    },
+    {
+      "case": "failed_report_evidence_is_preserved",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "b7526986c127875e64a672faff6bd1cb7fcda9f0709c9e7458136c9cba9ca948"
+    },
+    {
+      "case": "report_revision_unique",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "56af813a9f4d9fa467dd723969a08f59923b19b6e273a86667f351c2259cd45e"
+    },
+    {
+      "case": "report_cross_tenant_root_rejected",
+      "expectedError": 1452,
+      "actualError": 1452,
+      "passed": true,
+      "sqlSha256": "497db15b992af802e9eac316671a503974e30ea5d996e1699e5e5de372447422"
+    },
+    {
+      "case": "no_tracking_exit_from_s4",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "f441d04b38380cbf9b8b9a6c8f33759af6719164fe1c9ba093753ecbf698fcda"
+    },
+    {
+      "case": "closure_event_source_deduplicated",
+      "expectedError": 1062,
+      "actualError": 1062,
+      "passed": true,
+      "sqlSha256": "0cd345cb89dcb09840f764ad2753ba242e0448e0c85ed0d61f122c8d0ebf651c"
+    },
+    {
+      "case": "no_tracking_wrong_writer_rejected",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "867ad6aea51e78cc409136124cedb9c7a51c4012a81ef65a90d7d6a846421674"
+    },
+    {
+      "case": "unknown_stage_rejected",
+      "expectedError": 3819,
+      "actualError": 3819,
+      "passed": true,
+      "sqlSha256": "b5be70ff7eac3dd3ae42b82efb6ba3ca22c2c577cca255a18efef8fe1f9adbc3"
+    },
+    {
+      "case": "exception_exit_from_s1",
+      "expectedError": null,
+      "actualError": null,
+      "passed": true,
+      "sqlSha256": "14dd2d5e99254db0db3434f2a95a0228d10b76964732294b80641ed7ba2a19e5"
+    }
+  ],
+  "limitations": [
+    "NOT_AN_UPGRADE_TEST",
+    "NOT_AN_APPLICATION_TEST",
+    "NOT_INDEPENDENT_APPROVAL",
+    "NO_PRODUCTION_ACCESS"
+  ]
+}

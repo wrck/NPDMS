@@ -11,22 +11,22 @@
     "phase-1": {
       "source": "docs/engineering/gates/phase-1/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
-      "当前结论": "BLOCKED_BY_PRD_DELTA",
-      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "当前结论": "BLOCKED_BY_REVIEW",
+      "机器门禁": "PASS",
       "适用修订": "PRD_V1.8_REVISION_016"
     },
     "phase-2": {
       "source": "docs/engineering/gates/phase-2/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
-      "当前结论": "BLOCKED_BY_PRD_DELTA",
-      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "当前结论": "BLOCKED_BY_REVIEW",
+      "机器门禁": "PASS",
       "适用修订": "PRD_V1.8_REVISION_016"
     },
     "phase-3": {
       "source": "docs/engineering/gates/phase-3/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
-      "当前结论": "BLOCKED_BY_PRD_DELTA",
-      "机器门禁": "REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING",
+      "当前结论": "BLOCKED_BY_REVIEW",
+      "机器门禁": "PASS",
       "适用修订": "PRD_V1.8_REVISION_016"
     }
   },

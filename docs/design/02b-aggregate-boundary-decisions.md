@@ -28,8 +28,17 @@
 
 ProjectTask导航投影不是新聚合：一级Stage、二级ProjectTask来自项目实例；深层任务仍是同一ProjectTask树。CUT-03在P3内引用CollectionTask并消费结果，DAC不进入CutoverTask事务，CUT也不直接写DAC状态。
 
-## 修订016差量契约
+## 修订016当前聚合边界
 
-PM-06原多期关系聚合被同一projectId下的范围追加编排替代；COM范围分配与版本仍为独立Owner，PROJ不复制数量。ACC报告证据有效性、验收通过和当前范围覆盖分别建模（08）。预检和正式巡检属于两个独立CollectionTask，各自授权；P3清单答案由CUT而不是DAC拥有（12）。
+| 对象 | Owner | 聚合边界及失败原子性 |
+|---|---|---|
+| DeliveryConfigurationRevision | Project Delivery | 受控类型的不可变发布定义；发布前图和引用校验，发布失败全回滚；不是任意脚本执行器 |
+| StageTransitionDefinition / ProjectStageTransition | Project Delivery | 模板边与项目冻结边分离；唯一开始、可达、无环、唯一目标；未实例化阶段无状态行 |
+| StageWorkBinding | Project Delivery | ProjectStage当前唯一绑定；与TaskWorkBinding分别管理，必须合并目标Owner权限，不以通用完成命令绕过目标业务事实 |
+| BusinessViewRegistration | 基础平台 | 只发布受信实体/组件/命令及权限Provider版本，不拥有领域对象状态 |
+| ContractScopeAppendRequest | Project Delivery | 同一项目的批准追加申请；COM数量/水位、PROJ任务、ACC绑定共同成功或失败；不产生群组、另一期项目或组合 |
+| ProjectScopeVersion | Contract & Fulfillment | 唯一COM水位＋不可变范围版本；PROJ只持引用，不能双写当前量 |
+| AcceptanceReportRevision | Acceptance & Closure | 报告根当前指针＋不可变报告版本；范围、文件、结论及初验引用精确冻结 |
+| ProjectExitRecord | Project Delivery | 来源闭环命令的退出历史；受控写当前生命周期并同事务追加历史，回调不能直接写终态 |
 
-对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+旧MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference只留在Git历史，不作为PM-06当前对象、API或前向建表依据。旧S4→S5专用入口必须委托统一图推进服务，COM/ACC只参与范围校验和绑定，不能成为第二个current_stage Writer。

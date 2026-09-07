@@ -92,7 +92,6 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatchId/treeVersion/operationType/affectedRootProjectIds/affectedProjectIds/occurredAt`。同一`changeBatchId + treeVersion`只发布一次；消费者按根项目水位拒绝旧版本和乱序覆盖。事件表示父子真值及可识别的新完整版本已经提交，不表示Authorization、AST或ANA投影已经追平；投影未追平时消费方读取上一完整版本或明确返回结构更新中。
 | `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
-| `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
 | `ProjectPortfolioPublished` | Project Delivery | ANA/Portfolio Query | portfolioId + revision + memberSnapshotRef | PROJ-12组合版本已发布；不改变成员项目树、状态或权限 |
 | `DeviceOwnershipChanged` | Asset domain | Asset projection / Outbox adapter | deviceId + assignmentVersion | AST 内部归属事实已变化；不作为跨 Context 公共名称 |
 | `DeviceAssigned` | Asset integration | Project/IMP/CUT/Inspection/ANA | deviceId + assignmentVersion | 对应 `02d` 的稳定跨 Context 契约，由同一归属事务的 Outbox 发布 |
@@ -100,7 +99,7 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `DeviceStatusSynchronized` | Asset | Service Operations/ANA | sourceKey + sourceVersion | 外部状态副本已更新 |
 | `MetricSnapshotPublished` | Analytics | Portfolio UI | metricCode + metricVersion + watermark | 只读指标快照可用 |
 
-`ProjectClosureCompleted` 到达后 Project Delivery 仍需校验事件版本和当前状态，再执行本地关闭命令并发布 `ProjectClosed`；Closure Consumer 不直接写 Project 表。
+`ProjectClosureCompleted`仅在CLO最终批准事务成功后发布。该事务先通过PROJ公开终态命令原子写入Project生命周期及ProjectExitRecord，再提交ACC闭环事实和Outbox；消费者只更新读模型，不能到达后再次执行关闭。事务失败不得出现ACC已完成而Project仍ACTIVE的半事实。
 
 `ProjectServiceManagerAssigned`只服务PM-08通知闭环，不作为跨Context权限、成员或项目状态投影来源。Producer与成员关系、Project版本/状态、幂等成功和操作审计同事务写Outbox，并冻结`assignmentId/projectId/recipientUserId/templateCode/templateParamsSnapshot/assignmentType/levelCode/effectiveFrom`；模板参数快照只含生成本次站内信所需不可变值，不含秘密。消费者只能用事件payload构造SYSTEM请求，重试不得查询当前Project、成员关系或用户资料重新推导收件人、模板和内容。`system_notify_message.delivery_key`防止“消息已创建但Outbox未标成功”的重复通知，Outbox记录失败次数和下次重试时间。
 

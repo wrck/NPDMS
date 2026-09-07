@@ -1,46 +1,51 @@
 # SDS Phase 2 Review
 
+> 来源目录：`101对象/112来源绑定/1排除源`
 > 审查状态：`REVALIDATION_REQUIRED`<br>
 > PRD Blob：`4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`<br>
-> 当前依据：PRD V1.8修订001—012、014—016正式基线，Phase 1当前为`REVALIDATION_REQUIRED`<br>
-> 上次批准：PRD V1.8修订007，`APPROVED / READY_FOR_PHASE_3_V1.8`（历史证据）<br>
-> 当前结论：`BLOCKED_BY_PRD_DELTA`<br>
-> 机器门禁：`REVISION_016_STATIC_ALIGNMENT_PASS_FULL_GATE_PENDING`<br>
-> 需求方批准：`PENDING_DELTA_REVIEW`<br>
 > 适用修订：`PRD_V1.8_REVISION_016`<br>
-> 当前范围：正式Requirement 100项；111个目标版本切片（V1 53个、V2 58个），数量不变但部分语义义务已变化
+> 当前结论：`BLOCKED_BY_REVIEW`<br>
+> 技术结论：`TECHNICAL_GO`<br>
+> 机器门禁：`PASS`<br>
+> 需求方批准：`PENDING`<br>
+> 独立复审：`PENDING`<br>
+> Gate Owner：`原SDS授权Owner；本轮ChatGPT仅执行修复、自审与机器验证，不代签独立批准`<br>
+> 当前修复证据：`docs/engineering/gates/phase-1/revision-016-gate-repair.md`
 
-## 1. 状态说明
+## 当前范围与结论边界
 
-修订007的Phase 2批准只证明旧基线的数据、API、事件、集成、权限、异常和迁移契约。修订008—016引入或改变了可执行合同，尤其是通用阶段编排、三类闭环终态、项目内范围追加和全集统计，因此当前不能继续使用旧批准证明修订016的实现契约完整。
+当前范围为100项正式Requirement、111个目标版本切片（V1 53个、V2 58个）。基线输入没有改变；本轮只修复现行SDS与校验器，用户“修复Gate达到GO”的请求是执行授权，不自动记为需求方已审阅全部产物或独立复审通过。
 
-## 2. 必须重验证的Phase 2契约
+修订007的APPROVED/READY/GO及原independent-review.md保持历史证据；不要求历史文件伪装成修订016或包含新的对象数量。技术验证通过后可登记TECHNICAL_GO，正式Gate仍须当前复审与批准；默认校验命令不因--technical通过而授权下一Gate。
 
-| 范围 | 当前状态 | 关闭条件 |
+## 受影响技术契约
+
+| 范围 | 本轮设计落位 | 当前处置 |
 |---|---|---|
-| 模板和阶段编排 | REVALIDATION_REQUIRED | 定义`ProjectTemplateVersion`、`StageDefinition`、`StageTransitionDefinition`、Task/Deliverable定义、图发布校验、实例快照和目标阶段唯一解析；不生成阶段适用性状态 |
-| WorkBinding与业务视图 | REVALIDATION_REQUIRED | 定义已注册实体/视图契约、实例解析幂等、权限、完成事实和UI上下文；禁止任意脚本、SQL和未注册URL |
-| 项目状态/闭环API | REVALIDATION_REQUIRED | 数据/API/事件覆盖`NO_TRACKING_CLOSED`、`closure_type`、`closed_from_stage`、从最后真实阶段闭环及唯一Writer；历史兼容和枚举迁移明确 |
-| 条件性验收和服务交接 | REVALIDATION_REQUIRED | 直签初验+终验、非直签终验；模板不含S5不校验终验；适用时`ACC-06 → CLO-01 → CLO-02`，快照失效可重算 |
-| PM-06范围追加 | REVALIDATION_REQUIRED | 定义合同引用、订单行分配、`ProjectScopeVersion/Item`、可用数量、幂等键、影响分析、补充任务/门禁、原事实不继承和原子事务 |
-| S4割接聚合 | REVALIDATION_REQUIRED | CUT结果按冻结范围聚合，成功并集完整覆盖当前需割接范围；部分成功、失败和范围变更不放行 |
-| BPM身份 | REVALIDATION_REQUIRED | 模板保存definition key；实例保存实际`processDefinitionId`和完整`taskDefinitionKey`；历史定义选择、候选人、审计和重试一致 |
-| RPT-02读模型 | REVALIDATION_REQUIRED | 同一项目单一display status，阶段/超期/三类终态/正常与业务闭环率、父子粒度、快照、下钻和导出同口径 |
-| 数据模型/P3-E09 | IMPACT_ASSESSMENT_REQUIRED | 明确上述变化是否需要新表、字段、枚举、索引和前向迁移；有物理变化时重做P3-E09差量，不自动沿用旧模型通过 |
+| 对象与表 | 08、09、08a和双向机器目录；101对象/112来源绑定/1排除源 | 设计已修复；技术验证与独立批准分开登记 |
+| 前向Schema | 12张新载体的类型、空值、唯一/检查约束、同Owner外键与正确性索引 | 设计已修复；技术验证与独立批准分开登记 |
+| API与事件 | 10、11：图推进、范围追加、验收绑定和终态同事务，事件不二次写终态 | 设计已修复；技术验证与独立批准分开登记 |
+| 集成与恢复 | 12、13、15、16：认证/授权/幂等分离、临时秘密单任务及补偿边界 | 设计已修复；技术验证与独立批准分开登记 |
 
-## 3. 关闭动作
+当前来源目录：101对象/112来源绑定/1排除源。参考DDL为前向设计，不改当前核心迁移DDL；真实迁移仍由AI-MIG-000按发布范围独立授权。
 
-1. Phase 1差量边界先得到确认；
-2. 更新08～16相关SDS及必要ADR；
-3. 输出数据模型、API、事件、权限、幂等、并发、异常、补偿和事务差量；
-4. 对既有数据和已闭环项目给出兼容/迁移策略，不用默认值伪造新终态或新范围事实；
-5. 更新受影响Feature Spec的完整覆盖义务并运行Phase 2校验；
-6. 将证据写入本文件后，才可恢复`READY_FOR_PHASE_3_V1.8`。
+## P3-E09与下游运行证据
 
-## 4. 当前放行边界
+| 项 | 当前边界 | 最晚阻断点 |
+|---|---|---|
+| P3-E01 运行设施 | DOWNSTREAM-GATED；不虚构生产IP、窗口或设施 | 部署/生产发布 |
+| P3-E02 HA | DOWNSTREAM-GATED；沿用已批准设计，不伪造HA演练 | 生产部署/性能/发布 |
+| P3-E03 恢复 | DOWNSTREAM-GATED；RPO/RTO及真实演练独立 | 恢复验收/发布 |
+| P3-E04 密钥 | DOWNSTREAM-GATED；秘密托管和执行区证据独立 | 设备凭证能力/发布 |
+| P3-E05 可观测 | DOWNSTREAM-GATED | 可观测与审计验收/发布 |
+| P3-E06 性能 | DOWNSTREAM-GATED；Q08候选索引保留验证 | 性能验收/发布 |
+| P3-E07 联调 | DOWNSTREAM-GATED；真实Provider联调未执行 | 对应Feature联调/发布 |
+| P3-E08 前端类型 | DOWNSTREAM-GATED | 前端验收/发布 |
+| P3-E09 历史核心模型 | MODEL_BASELINE_READY只限未改CORE_MIGRATION_SUBSET及相同哈希；不自动批准新增载体 | 新载体独立复审及Feature前向迁移 |
+| AI-MIG-000 | 仅实际历史迁移或数据切换适用；未执行且未授权 | 对应Release |
 
-当前不批准受影响DDL、API、事件或Feature按修订016宣称Ready/Done。未受影响的独立契约可以继续实施，但必须与重开范围隔离。历史迁移、数据切换、SIT/UAT和Release仍由后续门禁独立控制。
+## 正式放行条件
 
-## 修订016联动回写证据
+当前PRD、分册、双向映射及参考Schema同源；必要机器/负向检查通过；有当前输入绑定的真实复审、独立Reviewer与需求方批准记录；按Phase顺序重验前置Gate。不能靠修改APPROVED/GO字符串、复制旧独立复审或删除负向测试关闭门禁。
 
-PRD正文、来源副本、受影响SDS及生成器已同步；追溯仅从当前PRD、Feature Spec和Task派生。当前独立设计复审及受影响物理/实现证据仍未完成，不将静态文档校验当作阶段批准。证据、具体通过/失败检查和TC-PRD016断言见`../phase-1/prd-revision-016-alignment.md`。旧Task Done不改写，受影响切片不得据旧FULL映射宣称当前完整覆盖。
+本轮保留8个Feature的切片重验证标记，历史Task Done和DU认领不变；SDS技术通过不等于Feature Ready、Implementation Done、Migration、SIT、UAT或Release GO。

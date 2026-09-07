@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "BASELINE",
+  "status": "REVALIDATION_REQUIRED",
   "objects": {
     "Project": {
       "owner": "PROJ",
@@ -13,17 +13,6 @@
       "targetTables": [
         "proj_project"
       ]
-    },
-    "ProjectTemplateMatchHistory": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-07"
-      ],
-      "targetTables": [
-        "proj_project_template_match_history"
-      ],
-      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
-      "featureRequirementId": "PM-07"
     },
     "ProjectHierarchy": {
       "owner": "PROJ",
@@ -54,6 +43,17 @@
         "proj_project_template_revision",
         "proj_project_template_task_definition"
       ]
+    },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
     },
     "ProjectTask": {
       "owner": "PROJ",
@@ -166,33 +166,6 @@
       ],
       "targetTables": [
         "proj_project_conversion_device"
-      ]
-    },
-    "MultiPhaseProjectGroup": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_group"
-      ]
-    },
-    "MultiPhaseProjectMember": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_multi_phase_project_member"
-      ]
-    },
-    "CrossPhaseContentReference": {
-      "owner": "PROJ",
-      "requirementIds": [
-        "PM-06"
-      ],
-      "targetTables": [
-        "proj_project_cross_phase_reference"
       ]
     },
     "Preparation": {
@@ -363,8 +336,7 @@
     "Acceptance": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-01",
-        "ACC-03"
+        "ACC-01"
       ],
       "targetTables": [
         "acc_acceptance",
@@ -465,6 +437,17 @@
         "cut_cutover_checklist_item_result"
       ]
     },
+    "CutoverPlan": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04",
+        "CUT-05"
+      ],
+      "targetTables": [
+        "cut_plan_revision",
+        "cut_step"
+      ]
+    },
     "CutoverConfigurationRevision": {
       "owner": "CUT",
       "requirementIds": [
@@ -479,17 +462,6 @@
       ],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
       "featureRequirementId": "CUT-07"
-    },
-    "CutoverPlan": {
-      "owner": "CUT",
-      "requirementIds": [
-        "CUT-04",
-        "CUT-05"
-      ],
-      "targetTables": [
-        "cut_plan_revision",
-        "cut_step"
-      ]
     },
     "CutoverSupportArrangement": {
       "owner": "CUT",
@@ -997,6 +969,131 @@
       "targetTables": [],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
       "featureRequirementId": "INT-04"
+    },
+    "ProjectTemplateVersion": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision"
+      ]
+    },
+    "DeliveryConfigurationRevision": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_delivery_definition_revision",
+        "proj_delivery_definition_reference"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "StageTransitionDefinition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_stage_transition_definition"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectStageTransition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_stage_transition"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectStage": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage"
+      ]
+    },
+    "StageWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_stage_execution_contract"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ContractScopeAppendRequest": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_contract_scope_append_request"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-06"
+    },
+    "ProjectScopeVersion": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "PM-06"
+      ],
+      "targetTables": [
+        "com_delivery_scope_project_version",
+        "com_project_scope_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "COM-01"
+    },
+    "AcceptanceReportRevision": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance_report",
+        "acc_acceptance_report_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-03"
+    },
+    "BusinessViewRegistration": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PM-03",
+        "PM-11"
+      ],
+      "targetTables": [
+        "plt_business_view_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-03"
+    },
+    "ProjectExitRecord": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "CLO-02",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_exit_record"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CLO-02"
     }
-  }
+  },
+  "revision016Contract": "docs/traceability/sds-revision-016-physical-contract.json"
 }

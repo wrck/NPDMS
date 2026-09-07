@@ -30,7 +30,7 @@ MULTI_OWNER_OBJECT_OWNER = {
     "DeviceComponentRelation": "AST", "SatisfactionCollection": "ACC",
     "MetricSnapshot": "ANA", "InspectionReport": "SRV", "Contract": "COM",
     "SalesOrder": "COM", "AuthorizationGrant": "PLT", "MaintenanceFact": "AST",
-    "ServiceStatus": "SRV",
+    "ServiceStatus": "SRV", "ProjectScopeVersion": "COM",
 }
 MODEL_ENTITY_CONTRACTS = {
     "DeliveryEvidence": ("IMP", {"IMP-01"}),
@@ -47,9 +47,14 @@ MODEL_ENTITY_CONTRACTS = {
     "DynamicFormTemplateRevision": ("PLT", {"SOL-01"}),
     "DynamicFormInstance": ("PLT", {"PRE-04", "SOL-01"}),
 }
+MODEL_ENTITY_CONTRACTS.update({
+    "BusinessViewRegistration": ("PLT", {"PM-03", "PM-11"}),
+    "ProjectExitRecord": ("PROJ", {"CLO-02", "PM-10"}),
+})
+
 MODEL_GOVERNANCE_CONTRACTS = {}
 CROSS_CONTEXT_FOUNDATION_OBJECTS = {
-    "DynamicFormTemplate", "DynamicFormTemplateRevision", "DynamicFormInstance",
+    "DynamicFormTemplate", "DynamicFormTemplateRevision", "DynamicFormInstance", "BusinessViewRegistration", "ProjectExitRecord",
 }
 
 
@@ -78,10 +83,18 @@ def requirement_owners(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) >= 3 and re.fullmatch(r"[A-Z]+-\d+", cells[0]):
-            result[cells[0]] = cells[2].split("（", 1)[0].strip()
+        match = re.fullmatch(r"([A-Z]+(?:-[A-Z0-9]+)?-\d+)(?:@(V[12]))?", cells[0]) if cells else None
+        if not match:
+            continue
+        owner_column = 4 if match.group(2) else 2
+        if len(cells) <= owner_column:
+            continue
+        owner = cells[owner_column].split("（",1)[0].strip()
+        identifier = match.group(1)
+        if identifier in result and result[identifier] != owner:
+            raise ValueError(f"conflicting slice Owners for {identifier}")
+        result[identifier] = owner
     return result
-
 
 def git_sql_table_catalog(repository: Path, commit: str) -> tuple[dict[str, str], dict[str, str]]:
     tables: dict[str, str] = {}
@@ -294,7 +307,7 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
     ddl_path = root / ddl_review["inputs"]["ddlPath"]
     physical_target_columns = ddl_column_catalog(ddl_path.read_text(encoding="utf-8"))
     physical_target_tables = set(physical_target_columns)
-    implementation = implementation_override or Path(payload.get("implementationRepo", ""))
+    implementation = implementation_override or (root if payload.get("implementationRepo") == "wrck/NPDMS" else Path(payload.get("implementationRepo", "")))
     frozen_commit = payload.get("implementationCommit", "")
     if not is_canonical_git_sha(frozen_commit):
         errors.append("implementationCommit must be a canonical 40-character lowercase SHA")

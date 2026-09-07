@@ -460,6 +460,11 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
 
     def test_v18_physical_carrier_objects_have_exact_target_tables(self) -> None:
         expected = {
+            "ProjectScopeVersion": ["com_delivery_scope_project_version", "com_project_scope_revision"],
+            "StageWorkBinding": ["proj_project_stage_execution_contract"],
+            "StageTransitionDefinition": ["proj_stage_transition_definition"],
+            "AcceptanceReportRevision": ["acc_acceptance_report", "acc_acceptance_report_revision"],
+            "ProjectExitRecord": ["proj_project_exit_record"],
             "TaskWorkBinding": ["proj_project_task_execution_contract"],
             "TaskCompletionRule": ["proj_project_task_execution_contract"],
             "TaskCompletionEvaluation": ["proj_project_task_completion_evaluation"],
@@ -481,7 +486,8 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
             "CustomerScopeSlice": ["cus_customer_scope_slice"],
         }
 
-        self.assertEqual(93, len(self.records))
+        self.assertEqual(101, len(self.records))
+        self.assertTrue({"MultiPhaseProjectGroup", "MultiPhaseProjectMember", "CrossPhaseContentReference"}.isdisjoint(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])

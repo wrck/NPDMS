@@ -80,12 +80,12 @@
 - 树列表返回 `treeVersion` 和游标；下一页使用同一版本，版本已回收则要求重新查询。
 - 大批量统计通过聚合投影/快照，不在单请求实时遍历所有后代。
 
-### 5.4 PM-05 转销与 PM-06 多期关系
+### 5.4 PM-05 转销与 PM-06 同一项目范围追加
 
 - PM-05 发起时以 `sourceProjectId`、`formalSalesBusinessId` 和聚合版本作为互斥边界；同一来源项目只能创建一个生效目标。对象项按稳定的 Context/类型/对象ID/来源版本排序处理，成功项幂等保留，失败项可在原批次重试。
 - 设备处置不在 Project Delivery 内直接改 AST 表；逐台携带 `assignmentVersion` 调用 AST，冲突项进入部分失败，不能把源项目归档或把失败设备计入目标项目。
-- PM-06 成员调整校验 `groupVersion/memberVersion`，在同一事务内检查关系类型下项目唯一群组和群组内唯一期次；前后期图无环校验失败则整体拒绝本次成员变更。
-- 多期视图缓存 key 包含 tenant、groupId、groupVersion、permissionScopeHash 和各来源 revision watermark；权限变化或任一来源版本变化时新版本旁路旧缓存。
+PM-06按同一项目的申请、项目版本及COM scopeVersion重验；并发追加不得超分配，任一步失败全事务回滚。历史范围和验收不可覆盖，新增范围必须补充事实。
+- 范围视图缓存key包含tenant、projectId、COM scopeVersion、permissionScopeHash及业务来源水位；范围变更或撤权后旧缓存不能用于写入。
 
 ### 5.5 Stage—ProjectTask工作台
 
@@ -166,7 +166,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 最低并发测试：
 
 - 项目/任务交叉移动、成环拒绝、投影版本原子切换；
-- PM-05 同源并发转销、对象部分失败重试、设备归属冲突与归档门禁；PM-06 并发加期、重复期次、冲突群组、循环关系和权限裁剪；
+PM-06按同一项目的申请、项目版本及COM scopeVersion重验；并发追加不得超分配，任一步失败全事务回滚。历史范围和验收不可覆盖，新增范围必须补充事实。
 - 同一设备并发分配、项目树移动与归属投影重建；
 - 订单行并发分配、ERP减量后超分配；
 - 同一状态双命令、工作流重复/过期回调；
@@ -197,8 +197,12 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 
 成功事务原子提交Gate结果、两Stage状态、Project.current_stage/version、不可变Snapshot、审计、Outbox及幂等完成点；影响行数不为预期即回滚。并发同项目推进只能有一个成功。
 
-## 修订016差量契约
+## 修订016图、范围与终态并发
 
-按05/08在同一项目命令内稳定锁定并重验project/tree/graph/scope、阶段/报告/闭环及Owner事实版本。范围追加、报告换版与CLO批准竞争时，只接受当前版本，不产生部分占用、部分任务、第二终态或过期通过快照。readiness缓存不授权写入；权限收缩与来源离职/禁用使相关缓存失效。临时密码不能因跨预检/执行任务的便利而写缓存（12）。
+项目推进锁根/项目、当前/目标Stage、冻结图及绑定/规则，再取得Owner事实；S5目标需要COM水位及ACC范围绑定的同事务参与，任一步失败原阶段不变。前端readiness携带expectedGraphVersion、expectedBindingVersion、expectedRuleVersion与Owner版本，只作预览，写命令全部回源。计划/方案换版不能直接修改current_stage。
 
-对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+PM-06锁当前项目及COM唯一scopeVersion，再按订单行ID序锁分配对象；申请批准不预占无限额度，应用时重新校验。并发同scopeVersion只一个成功，另一个返回版本冲突并重新评估；COM范围、PROJ任务/门禁、ACC精确绑定及Outbox同事务全成功或全回滚。
+
+CLO校验快照过期、报告/文件失效、范围或实施方式变更，均拒绝旧批准写终态并要求重验。关闭时锁项目及所有消费事实，PROJ唯一Writer与ACC闭环事实同事务提交；事件消费只重建投影，不能再次关闭或重开。NO_TRACKING不以NORMAL交付事实作为前置。
+
+权限或模板视图停用后不能继续用旧缓存写入；查询缓存含tenant/project/tree/graph/scope/permission版本，未知版本回源或失败关闭。历史快照不追溯重算。

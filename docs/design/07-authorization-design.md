@@ -123,3 +123,9 @@ COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `Proje
 身份字段与停用冲突以02c为准；任何来源的有效离职/禁用均阻断，另一来源晚到的启用不覆盖。EXE-03限定业务快照授权、独立中心模板限制及两个巡检任务分别授权见12；不能依赖客户端approved。INS-07工程师申请归档，授权服务经理执行最终归档；跟踪项处理/确认不授予归档权。NO_TRACKING、异常关闭分别先校验对应角色和业务资格，不先要求NORMAL阶段准出。外部文件回调不能以幂等键替代认证，详见13。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+### 修订016 PM-01首次项目经理指派
+
+PM-01@V1已授权的服务经理或工程管理部指派人员，在项目范围内选择经SYSTEM校验的在职项目经理，通过唯一PROJ指派命令形成责任区间；不要求目标项目已有PROJECT_MANAGER。命令同时冻结actor、范围、项目/成员/组织版本，If-Match及Idempotency-Key保护并发和重复。主责服务经理及项目经理同时有效才写ASSIGNED。
+
+T-ASSIGN-PM绑定PM-01指派事实，以该事实自动判定完成；不是给通用TASK_NATIVE COMPLETE增加越权例外。通知失败不回滚指派。回归覆盖首次无经理、无权限、离职候选、并发双指派、同键重放、仅一类主责及事件失败。Q-FPROJ-009设计闭合不产生Feature Implementation Done；真实API/数据库/浏览器复验仍由对应Feature执行。

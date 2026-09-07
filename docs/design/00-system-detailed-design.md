@@ -10,11 +10,13 @@
 
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
-| SDS Phase 1 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_PRD_DELTA` | `docs/engineering/gates/phase-1/gate-status.md` |
-| SDS Phase 2 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_PRD_DELTA` | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_PRD_DELTA` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 1 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-1/gate-status.md` |
+| SDS Phase 2 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-2/gate-status.md` |
+| SDS Phase 3 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-3/gate-status.md` |
 
 V1.7及修订007前三阶段历史审查证据保留。修订007的100项Requirement、111个切片复核结论仅为历史；修订016已同步受影响分册，当前放行只读取Phase 1/2/3的gate-status，不沿用旧结论作为新Feature Ready依据；这不表示任何Feature、环境、性能、集成、迁移、切换、UAT或Release门禁已经通过。
+
+当前修订016技术内容、对象/表/来源与参考DDL已复核，三个Phase技术结论为`TECHNICAL_GO`；正式批准仍`BLOCKED_BY_REVIEW`。实际测试和独立复审边界见`docs/engineering/gates/phase-1/revision-016-gate-repair.md`。
 
 ## 2. 分册索引
 
@@ -33,7 +35,7 @@ V1.7及修订007前三阶段历史审查证据保留。修订007的100项Require
 | `06-workflow-design.md` | 工作流设计 | `REVALIDATION_REQUIRED` |
 | `07-authorization-design.md` | 权限设计 | `REVALIDATION_REQUIRED` |
 | `08-data-model.md` | 数据模型 | `REVALIDATION_REQUIRED` |
-| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） | `BASELINE` |
+| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） | `REVALIDATION_REQUIRED` |
 | `09-database-design.md` | 数据库设计 | `REVALIDATION_REQUIRED` |
 | `10-api-design.md` | API 设计 | `REVALIDATION_REQUIRED` |
 | `11-event-design.md` | 事件设计 | `REVALIDATION_REQUIRED` |

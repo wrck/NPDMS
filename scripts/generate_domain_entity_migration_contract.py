@@ -21,8 +21,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ProjectPortfolio": ("proj_project_portfolio", "proj_project_portfolio_member", "proj_project_portfolio_revision"),
     "ProjectStageSnapshot": ("proj_project_stage_snapshot",), "BorrowedProjectConversion": ("proj_project_conversion",),
     "ConversionItem": ("proj_project_conversion_item",), "ConversionDeviceDisposition": ("proj_project_conversion_device",),
-    "MultiPhaseProjectGroup": ("proj_multi_phase_project_group",), "MultiPhaseProjectMember": ("proj_multi_phase_project_member",),
-    "CrossPhaseContentReference": ("proj_project_cross_phase_reference",), "Preparation": ("sol_preparation", "sol_preparation_item"),
+    "Preparation": ("sol_preparation", "sol_preparation_item"),
     "ConstructionPlan": ("sol_construction_plan", "sol_construction_plan_revision", "sol_construction_plan_item", "sol_construction_plan_change"),
     "Solution": ("sol_solution", "sol_solution_revision", "sol_solution_review"),
     "PreparationDynamicFormInstance": ("sol_dynamic_form_instance",),
@@ -66,6 +65,11 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "NoticeBusinessReference": (),
 }
 
+# Revision 016 canonical logical objects; schemas are frozen in the maintained 09 map.
+TARGETS.update({'ProjectTemplateVersion': ('proj_project_template_revision',), 'DeliveryConfigurationRevision': ('proj_delivery_definition_revision', 'proj_delivery_definition_reference'), 'StageTransitionDefinition': ('proj_stage_transition_definition',), 'ProjectStageTransition': ('proj_project_stage_transition',), 'ProjectStage': ('proj_project_stage',), 'StageWorkBinding': ('proj_project_stage_execution_contract',), 'ContractScopeAppendRequest': ('proj_contract_scope_append_request',), 'ProjectScopeVersion': ('com_delivery_scope_project_version', 'com_project_scope_revision'), 'AcceptanceReportRevision': ('acc_acceptance_report', 'acc_acceptance_report_revision'), 'BusinessViewRegistration': ('plt_business_view_revision',)})
+
+TARGETS['ProjectExitRecord'] = ('proj_project_exit_record',)
+
 TARGET_POLICIES = {
     "ProjectTemplateMatchHistory": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "PM-07"},
     "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
@@ -73,6 +77,10 @@ TARGET_POLICIES = {
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
 }
+
+TARGET_POLICIES.update({'DeliveryConfigurationRevision': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-03'}, 'StageTransitionDefinition': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-03'}, 'ProjectStageTransition': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-03'}, 'StageWorkBinding': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-03'}, 'ContractScopeAppendRequest': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-06'}, 'ProjectScopeVersion': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'COM-01'}, 'AcceptanceReportRevision': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'ACC-03'}, 'BusinessViewRegistration': {'targetTablePolicy': 'FEATURE_FORWARD_MIGRATION', 'featureRequirementId': 'PM-03'}})
+
+TARGET_POLICIES['ProjectExitRecord'] = {'targetTablePolicy':'FEATURE_FORWARD_MIGRATION','featureRequirementId':'CLO-02'}
 
 MODEL_ENTITY_CONTRACTS = {
     "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01"]},
@@ -90,6 +98,10 @@ MODEL_ENTITY_CONTRACTS = {
     "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormInstance": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
 }
+
+MODEL_ENTITY_CONTRACTS["BusinessViewRegistration"] = {"owner": "PLT", "requirementIds": ["PM-03", "PM-11"], "crossContextFoundation": True, "ownerEvidence": "docs/design/02c-data-ownership-matrix.md"}
+
+MODEL_ENTITY_CONTRACTS['ProjectExitRecord'] = {'owner':'PROJ','requirementIds':['CLO-02','PM-10'],'crossContextFoundation':True,'ownerEvidence':'docs/design/02c-data-ownership-matrix.md'}
 
 EXCLUDED_SOURCES = [{
     "sourceType": "LEGACY_TABLE",
@@ -312,6 +324,8 @@ OWNER_OVERRIDES = {
 
 CANONICAL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
 
+
+OWNER_OVERRIDES.update({"ProjectScopeVersion": "COM"})
 
 def is_canonical_git_sha(value: object) -> bool:
     return isinstance(value, str) and CANONICAL_GIT_SHA.fullmatch(value) is not None
@@ -610,9 +624,9 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("generated Owner/Requirement/target table contract differs from the maintained object-table map")
     return {
         "schemaVersion": 1,
-        "status": "BASELINE",
+        "status": "REVALIDATION_REQUIRED",
         "baseline": "PRD_V1.8",
-        "implementationRepo": str(args.implementation.resolve()),
+        "implementationRepo": "wrck/NPDMS",
         "implementationCommit": commit,
         "implementationEvidenceMode": "PINNED_GIT_COMMIT",
         "bindingStatistics": binding_statistics(records, v17_target_tables),
@@ -626,12 +640,12 @@ def render_markdown(payload: dict[str, object]) -> str:
     lines = [
         "# 领域实体迁移显式契约",
         "",
-        "> 状态：`BASELINE`",
-        "> 基线：PRD V1.8 / SDS Phase 2 BASELINE",
+        "> 状态：`REVALIDATION_REQUIRED`",
+        "> 基线：PRD V1.8修订016 / SDS技术验证与独立批准分离",
         f"> 实现证据提交：`{payload['implementationCommit']}`",
         "> 生成源：`scripts/generate_domain_entity_migration_contract.py`；JSON为机器真值",
         "",
-        "每一行只表示一个目标对象的一种来源处置；互斥来源不得合并为对象级策略。Owner由Requirement→Phase 1 Owner映射校验；当前目标表必须属于09物理设计，Feature前向迁移对象则保持空目标表直至该Feature批准物理模型。",
+        "每一行只表示一个目标对象的一种来源处置；互斥来源不得合并为对象级策略。Owner由Requirement→Phase 1 Owner映射校验；当前目标表必须属于09物理设计，Feature前向迁移对象保存已明确的目标表名与约束，但不表示已部署；无已批准表名的旧对象可为空。",
         "",
         "|目标对象|Owner|Requirement ID|目标表|来源类型|来源对象|证据定位|处置|转换|映射状态|Gate|",
         "|---|---|---|---|---|---|---|---|---|---|---|",
@@ -650,7 +664,7 @@ def main() -> int:
     parser.add_argument("--requirement-matrix", type=Path, default=Path("docs/traceability/requirement-matrix.md"))
     parser.add_argument("--database-design", type=Path, default=Path("docs/design/09-database-design.md"))
     parser.add_argument("--legacy-schema", type=Path, default=Path("specs/001-project-delivery-platform/evidence/data-elements/schema-records.jsonl"))
-    parser.add_argument("--implementation", type=Path, default=Path(r"E:\AICoding\Projects\NPDMS"))
+    parser.add_argument("--implementation", type=Path, default=Path("."))
     parser.add_argument("--implementation-commit", help="immutable Git commit containing the registered sql/migrations evidence")
     parser.add_argument("--json-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.json"))
     parser.add_argument("--md-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.md"))

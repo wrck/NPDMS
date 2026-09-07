@@ -498,14 +498,14 @@ def sds_reference(identifier: str) -> str:
     elif identifier == "PM-05":
         data_anchor, db_anchor, api_anchor = (
             "4-project-delivery-数据模型",
-            "44-pm-05-转销与-pm-06-多期关系",
+            "44-pm-05-转销与-pm-06-同项目范围追加",
             "51-pm-05-借货项目转销契约",
         )
     elif identifier == "PM-06":
         data_anchor, db_anchor, api_anchor = (
             "4-project-delivery-数据模型",
-            "44-pm-05-转销与-pm-06-多期关系",
-            "52-pm-06-多期项目契约",
+            "44-pm-05-转销与-pm-06-同项目范围追加",
+            "54-pm-06-同一项目范围追加-api",
         )
     references.extend([
         f"[08数据](../design/08-data-model.md#{data_anchor})",

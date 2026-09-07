@@ -4,7 +4,7 @@
 > 适用基线：PRD V1.8修订016（`docs/baseline/prd-v1.8.md`；Git Blob `4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b`）
 > Requirement ID：附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片（V1 53个、V2 58个）
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
-> Phase 3验证注记状态：`BLOCKED_BY_PRD_DELTA`；只投影当前Gate，不批准DDL、Feature或Release。
+> Phase 3验证注记状态：`BLOCKED_BY_REVIEW`；只投影当前Gate，不批准DDL、Feature或Release。
 
 本文件按100项Requirement声明共享的数据对象、表、API、事件/集成/文件、工作流和授权落点，并在每项下逐一登记正式版本切片的独立业务结果与边界。相同基础契约可被多个相关Requirement复用，但111个切片键必须精确同源；`N/A` 必须说明为何该类契约不适用。
 
@@ -18,8 +18,8 @@
 |---|---|---|---|
 | COM-01@V1 | V1 | 合同订单关联与范围分配的V1主交付业务结果 | V1 |
 
-- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail
-- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
+- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、ProjectScopeVersion
+- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail、com_delivery_scope_project_version、com_project_scope_revision
 - API：/contracts、/sales-orders、/order-lines、/delivery-scopes
 - 事件：DeliveryScopeAssigned/Released
 - 外部集成：ERP（合同订单权威）；CRM仅提供项目/客户上下文
@@ -30,7 +30,7 @@
 - Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、目标项目办事处快照、范围版本和权限，生成可追溯的范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细
 - Phase 3授权拒绝断言：越权按“ContractProjectScope；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail”及数据表“com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail”；事件边界为“DeliveryScopeAssigned/Released”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、ProjectScopeVersion”及数据表“com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail、com_delivery_scope_project_version、com_project_scope_revision”；事件边界为“DeliveryScopeAssigned/Released”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### PM-01
@@ -95,8 +95,8 @@
 |---|---|---|---|
 | PM-03@V1 | V1 | 项目模板与阶段门禁的V1主交付业务结果 | V1 |
 
-- 数据对象：ProjectTemplateVersion、StageTransitionDefinition、Stage/TaskWorkBinding、ProjectStageSnapshot
-- 数据表：既有proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot；图与Stage绑定的复用或新增物理差量见09分册及受影响Feature，未重验证不得声称NO_PHYSICAL_DELTA
+- 数据对象：ProjectTemplate、ProjectTemplateVersion、DeliveryConfigurationRevision、StageTransitionDefinition、ProjectStageTransition、StageWorkBinding、ProjectStageSnapshot
+- 数据表：proj_project_template_revision、proj_project_template_task_definition、proj_delivery_definition_revision、proj_delivery_definition_reference、proj_stage_transition_definition、proj_project_stage_transition、proj_project_stage_execution_contract、proj_project_stage_snapshot
 - API：/project-templates
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -107,7 +107,7 @@
 - Phase 3 PRD验收基线：WHEN 授权模板负责人维护通用配置；THEN 平台支持创建和版本化发布阶段定义、任务定义、阶段/任务交付件要求、里程碑、权限策略、完成规则、门禁和工作绑定，并可被多个模板按精确版本引用；WHEN 模板负责人组装项目模板；THEN 可选择阶段节点并配置前置/后置关系、转移条件、优先级和默认分支；可在每个阶段下配置任务树、阶段级及任务级交付件要求、准入准出条件和BPM流程定义key；AND 配置界面的前置阶段和后置阶段均由同一`StageTransitionDefinition`生成，修改任一视图后另一视图立即一致，不产生双向冲突数据；WHEN 为阶段或任务配置业务执行入口；THEN 可选择已发布业务实体类型、实例解析策略和`BusinessViewKey`，并配置权限策略、完成规则及上下文映射；需要多个界面时使用组合视图；WHEN 模板存在循环、不可达阶段、悬空转移、无正常收口、多个分支无法唯一解析，或引用未发布/不兼容的实体、视图、交付件规则和门禁；THEN 平台拒绝发布，逐项返回阶段、关系、绑定或规则冲突，不生成可供项目选择的模板版本；WHEN 自动或手动项目创建成功；THEN 平台冻结模板及全部引用版本，在同一事务实例化阶段关系图、任务树、阶段/任务交付件要求、绑定和门禁；项目导航及操作入口从实例直接投影；WHEN 用户点击绑定业务实体的阶段或任务；THEN 平台按冻结`BusinessViewKey`和上下文契约加载对应业务操作界面，服务端返回允许操作模式；用户不需要离开项目上下文再次查找业务入口；WHEN 当前阶段达到准出条件；THEN 平台唯一解析后置目标，校验目标阶段准入条件并原子推进；解析结果为零个或多个、目标准入失败时保持当前阶段并列出原因；WHEN 绑定业务实体状态、交付件版本或审批结果变化；THEN 平台按冻结完成规则重新计算任务/阶段完成与门禁，不复制或直接修改领域业务事实；WHEN 模板或通用配置发布新版本；THEN 新项目使用新版本，既有项目继续使用冻结版本；停用实体视图或配置定义不得使既有项目失去历史解释和只读访问能力；WHEN 模板包含S5；THEN 直签模板配置初验后终验，非直签模板只配置终验；有效终验和模板要求的交付件齐套后方可完成S5；WHEN 创建售前测试项目并完成EXE-03/04的适用要求；THEN 平台仅生成S0/S4阶段实例，保存EXE-03/04真实完成证据和closed_from_stage=S4；不要求安装完成事实、终验或S6，按CLO-01/02闭环且不生成虚假任务。
 - Phase 3授权拒绝断言：越权按“项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“冻结图发布校验；当前CompletionRule/准出→唯一后置→目标准入→原子推进；售前仅S0/S4，无虚构阶段”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectTemplateVersion、StageTransitionDefinition、Stage/TaskWorkBinding、ProjectStageSnapshot”及数据表“既有proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot；图与Stage绑定的复用或新增物理差量见09分册及受影响Feature，未重验证不得声称NO_PHYSICAL_DELTA”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectTemplate、ProjectTemplateVersion、DeliveryConfigurationRevision、StageTransitionDefinition、ProjectStageTransition、StageWorkBinding、ProjectStageSnapshot”及数据表“proj_project_template_revision、proj_project_template_task_definition、proj_delivery_definition_revision、proj_delivery_definition_reference、proj_stage_transition_definition、proj_project_stage_transition、proj_project_stage_execution_contract、proj_project_stage_snapshot”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录
 
 ### PM-08
@@ -223,8 +223,8 @@
 | PM-11@V1 | V1 | 项目任务管理的V1主交付业务结果 | V1任务层级/阶段与任务WorkBinding运行时/基础查询；V2甘特展示与受控依赖维护 |
 | PM-11@V2 | V2 | 甘特展示及受控依赖新增、更新、删除 | 不含其他未定义高级编排；不建立第二套任务事实 |
 
-- 数据对象：ProjectStage/ProjectTask、Stage/TaskWorkBinding、CompletionRule、任务树及依赖
-- 数据表：proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency
+- 数据对象：ProjectStage、ProjectTask、StageWorkBinding、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency
+- 数据表：proj_project_stage、proj_project_stage_execution_contract、proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency
 - API：/projects/{id}/workspace、/projects/{id}/gantt、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/dependencies、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}
 - 事件：TaskAssigned、TaskCompleted
 - 外部集成：N/A（平台内部契约）
@@ -235,7 +235,7 @@
 - Phase 3 PRD验收基线：WHEN 用户创建或移动任务节点；THEN 可指定直接父任务和业务层级标签，系统自动计算结构层级深度，并拒绝循环引用及跨项目非法挂接；WHEN 用户查看或搜索任务树；THEN 支持直接下级、全部后代、完整上级链和指定业务层级查询，默认按需加载；性能验收按迁移任务量两倍与200万任务取较大值，并覆盖单树5万个节点、直接子任务2000个和深度30，页面响应≤2秒（P95）；WHEN 用户进入项目工作区；THEN 一级导航来自ProjectStage关系图，二级及深层导航来自ProjectTask树；项目概览不作为任务节点重复配置；WHEN 用户点击`STAGE_NATIVE`阶段；THEN 阶段工作台展示阶段状态、前后置关系、准入准出条件、阶段交付件和任务树，并提供获权的通用阶段操作；WHEN 用户点击绑定业务实体或组合视图的阶段；THEN 平台在阶段通用摘要下按冻结`BusinessViewKey`加载对应领域操作界面，并按服务端权限与实体状态返回查看、创建、编辑、填写或审批模式；WHEN 用户点击`TASK_NATIVE`任务；THEN 任务工作台展示通用基础信息、任务交付件和本人获权操作，按ProjectTask自身状态机及完成规则执行；WHEN 用户点击绑定业务实体、业务组件、动态表单、审批或组合视图的任务；THEN 平台在任务上下文内加载相应真实业务界面，不要求用户再次查找入口，也不复制目标业务正文；WHEN 阶段或任务绑定要求创建业务实体实例；THEN 平台按项目、阶段/任务、业务范围和绑定版本生成稳定幂等键，重复打开或重试返回同一实例，不重复创建业务对象；WHEN 阶段级或任务级交付件形成、换版、失效或审批撤销；THEN 平台更新要求满足关系并重新计算任务完成、阶段完成及后续门禁，原文件和历史版本保持不变；WHEN 完成规则未满足或绑定视图不可用；THEN 节点保持原状态并返回具体缺口/恢复原因，非原生节点不能由通用完成操作直接绕过；WHEN V2用户查看授权项目甘特图或维护任务依赖；THEN 平台复用V1任务、计划、进度和依赖事实展示并受控保存；循环、越权、跨项目非法关系和版本冲突均被拒绝
 - Phase 3授权拒绝断言：越权按“ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“V1阶段/任务工作台及冻结绑定运行；V2只增加甘特展示和受控依赖新增、更新、删除，不建立第二套任务事实；非原生完成须重验Owner事实，图只由PROJ推进”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectStage/ProjectTask、Stage/TaskWorkBinding、CompletionRule、任务树及依赖”及数据表“proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency”；事件边界为“TaskAssigned、TaskCompleted”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectStage、ProjectTask、StageWorkBinding、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency”及数据表“proj_project_stage、proj_project_stage_execution_contract、proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency”；事件边界为“TaskAssigned、TaskCompleted”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；任务树数据集版本与性能报告
 
 ### PM-10
@@ -323,20 +323,20 @@
 |---|---|---|---|
 | PM-06@V2 | V2 | 项目合同与实施范围追加合并的V2主交付业务结果 | V2 |
 
-- 数据对象：ContractScopeAppendRequest、COM ProjectScopeVersion引用、范围差异与逐阶段影响
-- 数据表：PROJ追加申请及COM唯一范围水位/分配；物理复用/新增/兼容处置见09分册，旧多期群组不作为当前输入
-- API：同一projectId范围追加应用命令；COM范围写入、PROJ任务/绑定及ACC范围绑定公开契约
-- 事件：范围版本和受影响业务事实事件；不产生ProjectPhaseGroupChanged
+- 数据对象：ContractScopeAppendRequest、ProjectScopeVersion
+- 数据表：proj_contract_scope_append_request、com_delivery_scope_project_version、com_project_scope_revision
+- API：/projects/{id}/scope-append-requests、/scope-append-requests/{id}/actions/{submit|apply}；DeliveryScopeApi、AcceptanceScopeBindingApi
+- 事件：ProjectScopeAppendApplied（COM单一Producer；批准范围、差量和Owner版本，不改变旧业务事实）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
 - 工作流/状态：ACTIVE项目审批后同事务追加范围/任务/交付件；重算旧事实覆盖，闭环项目拒绝
 - 授权与数据范围：项目、合同/订单范围与审批权限；不授予其他项目权限
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；多期群组无环、唯一期次、跨期派生版本测试
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；同一活动项目范围追加、数量占用、并发版本、全事务回滚、旧终验不覆盖新增范围测试
 - Phase 3 PRD验收基线：WHEN 授权用户为活动项目选择新的ERP合同/订单行、填写新增实施范围并通过审批；THEN 平台保持原`project_id`不变，不创建新项目或组合；创建新的有效项目范围版本，保存合同/订单行引用、分配数量和追加差异；AND 平台为新增范围生成所需任务、交付件和业务绑定，并重新计算受影响阶段及闭环门禁；WHEN 原范围A已完成而新增范围B尚未实施；THEN 系统保留A的历史完成事实，但不得把B或项目总体状态误判为已完成；WHEN 新增范围需要终验而原终验只覆盖旧范围；THEN 平台生成补充验收要求并使依赖终验的S5/正常闭环门禁重新计算；WHEN 订单行累计分配超过ERP有效数量、来源合同无效、新增范围已被其他项目占用、项目处于任一闭环终态或审批未通过；THEN 平台拒绝生效，保持原范围版本和阶段状态不变，并返回具体冲突对象
 - Phase 3授权拒绝断言：越权按“项目、合同/订单范围与审批权限；不授予其他项目权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“ACTIVE项目审批后同事务追加范围/任务/交付件；重算旧事实覆盖，闭环项目拒绝”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ContractScopeAppendRequest、COM ProjectScopeVersion引用、范围差异与逐阶段影响”及数据表“PROJ追加申请及COM唯一范围水位/分配；物理复用/新增/兼容处置见09分册，旧多期群组不作为当前输入”；事件边界为“范围版本和受影响业务事实事件；不产生ProjectPhaseGroupChanged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；群组树快照、派生来源与无环校验记录
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ContractScopeAppendRequest、ProjectScopeVersion”及数据表“proj_contract_scope_append_request、com_delivery_scope_project_version、com_project_scope_revision”；事件边界为“ProjectScopeAppendApplied（COM单一Producer；批准范围、差量和Owner版本，不改变旧业务事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；追加申请、COM范围版本、逐阶段影响、补充验收及原子回滚证据
 
 ### PRE-01
 
@@ -950,8 +950,8 @@
 |---|---|---|---|
 | ACC-03@V1 | V1 | 验收报告管理的V1主交付业务结果 | V1 |
 
-- 数据对象：AcceptanceReportRevision、验收结论及精确范围/来源证据引用
-- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
+- 数据对象：AcceptanceReportRevision
+- 数据表：acc_acceptance_report、acc_acceptance_report_revision
 - API：/acceptances
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -962,7 +962,7 @@
 - Phase 3 PRD验收基线：WHEN 直签项目进入S5且冻结模板要求初验和终验；THEN 平台先开放初验任务；有效初验完成后方可提交终验，终验有效完成后形成S5的验收完成事实；WHEN 非直签项目进入S5；THEN 平台直接开放终验任务且不校验初验；终验时间、结论、验收人和附件完整后形成当前有效报告证据；仅结论明确通过且当前范围完整覆盖时形成终验通过事实；AND 有效初验（仅直签适用）和有效终验分别按来源版本自动同步至ACC-04，历史版本保持可追溯；WHEN 直签项目缺少有效初验即提交终验，或任一适用报告附件上传失败、验收时间/结论/验收人缺失；THEN 报告保持草稿或上传失败状态，不生成当前有效版本，也不计入ACC-04和CLO-01齐套结果；WHEN 非直签项目提交字段和附件完整、结论明确通过且覆盖当前范围的终验；THEN 平台不得因缺少初验而阻断终验、ACC-04归档或S5完成判定；WHEN 当前终验版本被撤销、替换或文件失效；THEN 原S5验收完成事实失效并重新计算，不得继续满足依赖该终验的阶段准出或正常闭环门禁；WHEN 报告字段和附件完整但验收结论为不通过、需整改或未知；THEN 保存证据及结论，验收通过事实为否，S5和NORMAL闭环门禁不满足。；WHEN 当前范围从A追加为A+B，而当前报告仅覆盖A或仅上传B的补充报告；THEN 原A证据保持不可变，总范围门禁显示缺口；只有明确引用A/B证据并对当前范围通过的新总体验收版本才能解除缺口。
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“字段/附件完整只形成证据；明确通过且顺序合法、当前范围完整覆盖才满足门禁；同类型一个当前报告，A+B须新总体明确通过”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“AcceptanceReportRevision、验收结论及精确范围/来源证据引用”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“AcceptanceReportRevision”及数据表“acc_acceptance_report、acc_acceptance_report_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-04

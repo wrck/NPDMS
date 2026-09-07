@@ -232,7 +232,7 @@ docker compose run --rm migrate validate
 
 ### 被替代的PM-06关系设计（仅保留历史，不是当前实现输入）
 
-> | Project | 任意层级树、无环、后代权限、投影完整版本；PM-05同源转销/部分失败/设备处置；PM-06唯一期次/冲突群组/派生不回写 |
+PM-06按同一项目的申请、项目版本及COM scopeVersion重验；并发追加不得超分配，任一步失败全事务回滚。历史范围和验收不可覆盖，新增范围必须补充事实。
 
 ## 修订016差量契约
 
@@ -262,3 +262,17 @@ docker compose run --rm migrate validate
 所有涉及范围/审批/授权的用例须注入并发变更：旧scopeVersion、旧图、旧报告、旧授权或重复回调不产生二次范围占用、虚假阶段或第二个终态。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+### 修订016 RPT-02完整统计口径
+
+RPT-02@V2复用ANA指标定义/快照，不新增交易Owner。正式项目按projectId去重；根粒度只计根，节点粒度每节点各一次。正常交付闭环率=NORMAL_CLOSED/同筛选正式项目总数；业务闭环率=(NORMAL_CLOSED+NO_TRACKING_CLOSED)/同分母，EXCEPTION_CLOSED单列。分母为0时展示无样本，不伪造百分比。状态、真实阶段、超期、三类终态及两套闭环率必须来自同一统计水位。
+
+快照冻结metricVersion、stateVersion、dataWatermark、granularity、filters及权限范围摘要。图表、下钻、导出使用同一快照及再次权限校验；若撤权改变可见集，旧快照不能直接下载，须按新权限重新计算，不返回旧数量或敏感内容。实例无S5/S6时不创建缺失项，关闭保留closed_from_stage；割接中只是派生display_status，不能改Project生命周期。
+
+设计回归至少覆盖：四个项目分别ACTIVE、NORMAL、NO_TRACKING、EXCEPTION时正常率25%、业务率50%；根/节点去重；无S5/S6的S4关闭；图表→明细→导出同水位；零分母；部分批次失败标记不完整；撤权后旧快照导出拒绝。运行及真实浏览器用例仍为NOT_RUN，模型测试不能替代UAT。
+
+### 修订016 PM-01首次项目经理指派
+
+PM-01@V1已授权的服务经理或工程管理部指派人员，在项目范围内选择经SYSTEM校验的在职项目经理，通过唯一PROJ指派命令形成责任区间；不要求目标项目已有PROJECT_MANAGER。命令同时冻结actor、范围、项目/成员/组织版本，If-Match及Idempotency-Key保护并发和重复。主责服务经理及项目经理同时有效才写ASSIGNED。
+
+T-ASSIGN-PM绑定PM-01指派事实，以该事实自动判定完成；不是给通用TASK_NATIVE COMPLETE增加越权例外。通知失败不回滚指派。回归覆盖首次无经理、无权限、离职候选、并发双指派、同键重放、仅一类主责及事件失败。Q-FPROJ-009设计闭合不产生Feature Implementation Done；真实API/数据库/浏览器复验仍由对应Feature执行。

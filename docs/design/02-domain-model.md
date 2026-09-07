@@ -35,7 +35,7 @@
 
 | 聚合根 | 关键不变量 |
 |---|---|
-| Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；模板匹配前必须形成确定属性输入，匹配决策历史只追加；正式Project创建即冻结模板并实例化，不增加待分类/待选模状态；父子关系无环且层级不设固定深度；`current_stage`仅取S0～S6，`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status`独立维护，`display_status`只读派生；CLO-02唯一产生NORMAL_CLOSED，PM-10唯一产生EXCEPTION_CLOSED |
+| Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；模板匹配前必须形成确定属性输入，匹配决策历史只追加；正式Project创建即冻结模板并实例化，不增加待分类/待选模状态；父子关系无环且层级不设固定深度；`current_stage`仅取S0～S6，`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/NO_TRACKING_CLOSED/EXCEPTION_CLOSED，`assignment_status`独立维护，`display_status`只读派生；CLO-02唯一产生NORMAL_CLOSED或NO_TRACKING_CLOSED，PM-10唯一产生EXCEPTION_CLOSED |
 | ProjectTask | 任务父子关系无环且不限制深度；每个可执行任务必须且只能冻结一个当前WorkBinding、PermissionPolicy、CompletionRule和可选GateRef，未指定其他业务绑定时使用TASK_NATIVE；状态变化必须经过受控 transition，完成必须由对应绑定事实和规则判定；查询按项目树索引和权限范围过滤 |
 | Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；机框、槽位、板卡当前关系唯一且按生效区间保留换板历史；历史归属通过关系版本保留 |
 | ConfigurationLog | EQP-02统一管理原始整机Log、不可变解析版本和设备/板卡关联；EXE-03/04只发布实施采集与解释事实，不得覆盖原始文件或已发布解析版本 |
@@ -47,7 +47,7 @@
 | InspectionTask | 在线/离线模式互斥；规则版本冻结到任务；报告生成和问题闭环可追溯 |
 | SatisfactionCollection | 任务冻结问卷模板、题目、分值和阈值版本；客户有效答卷、签字和达标结果不可覆盖；未达标必须整改后创建新任务和新问卷版本 |
 | CustomerServiceLevelRevision | 同一租户、客户同一时点至多一个有效等级；切换时原子关闭旧区间并追加新版本，项目、割接和服务动作冻结命中等级与策略版本，历史业务快照不回写 |
-| ProjectClosure | 交付件、有效满意度结果（模板要求时）、材料审核等门禁全部满足后才能闭环；CLO-02完成后形成NORMAL_CLOSED不可变闭环事实，PM-10异常关闭不复用该聚合终态 |
+| ProjectClosure | NORMAL检查冻结模板交付条件；NO_TRACKING检查代理商自服资格、依据与在途处置；CLO-02按类型形成NORMAL_CLOSED或NO_TRACKING_CLOSED不可变事实。两类均保留真实阶段；PM-10独占EXCEPTION_CLOSED，不冒充正常交付完成 |
 
 ## 3.1 Implementation Execution 内部聚合拆分
 
@@ -78,11 +78,12 @@ ProjectInstance
 └─ ProjectStage
    └─ ProjectTask（任意深度）
       └─ 冻结的工作绑定与完成规则快照
+ProjectStage同时拥有STAGE_NATIVE或领域主绑定与StageCompletionRule；StageTransitionDefinition由模板精确版本冻结为项目出向关系。
 ```
 
 - 项目工作区一级导航来自ProjectStage，二级业务导航区域来自ProjectTask；二级区域可继续按需展开任务子树，不限制ProjectTask深度。
 - ProjectTask是执行编排聚合，也是`TASK_NATIVE`的默认业务实体。`TASK_NATIVE`直接使用ProjectTask通用基础字段和自身状态机；其他绑定只保存稳定目标引用、受信任组件键/表单版本和必要参数快照，真实数据与状态仍由Owner Context维护。
-- `WorkBinding`统一支持`TASK_NATIVE`、`BUSINESS_OBJECT`、`BUSINESS_COMPONENT`、`DYNAMIC_FORM`、`APPROVAL`和`COMPOSITE`。工作台始终显示任务通用基础信息；`TASK_NATIVE`加载通用任务执行区，其他类型按服务端授权结果加载目标业务执行区并进入查看、编辑、创建、填写或审批模式。
+- `WorkBinding`按归属支持`STAGE_NATIVE`/`TASK_NATIVE`、`BUSINESS_OBJECT`、`BUSINESS_COMPONENT`、`DYNAMIC_FORM`、`APPROVAL`和`COMPOSITE`。工作台始终显示任务通用基础信息；`TASK_NATIVE`加载通用任务执行区，其他类型按服务端授权结果加载目标业务执行区并进入查看、编辑、创建、填写或审批模式。
 - 项目概览是独立项目级投影，固定聚合基本信息、项目树、团队成员、项目任务、设备清单和实施范围，不作为TaskDefinition重复配置。
 - CUT-03的清单和CollectionTask关联仍从属于CUT-01的P3业务阶段；界面合并不产生新的业务阶段或聚合Owner。
 
@@ -108,8 +109,14 @@ PM-07复用Project既有四属性和TemplateMatcher。首次匹配决策与Proje
 - 外部系统来源字段保留来源系统、来源单号、版本和同步时间；平台不覆盖外部 Owner 数据。
 - 设备凭证授权快照随采集任务保存，撤销不改写历史执行事实。
 
-## 修订016差量契约
+## 修订016当前对象与责任
 
-Project、ProjectStage/ProjectTask、模板阶段转移和绑定由PROJ拥有；闭环申请和判定由ACC/CLO拥有，CLO-02通过受控PROJ Writer形成分型终态。COM独占项目范围分配及版本，PROJ的PM-06只编排同项目追加，不拥有第二份数量真值。核心状态见05，精确范围/验收对象见08，身份来源见02c，采集见12。
+Project Delivery拥有项目阶段图、阶段/任务执行契约和阶段推进，公共业务视图注册由PLT维护技术注册事实，真实领域对象仍由注册Owner拥有。StageDefinition、TaskDefinition、交付件、绑定、权限与完成规则以DeliveryConfigurationRevision的受控类型表达：统一存版本身份，不统一各类型业务状态；类型内字段Schema和引用约束见08/09。
 
-对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+COM独占ProjectScopeVersion、项目水位和数量占用。PROJ的ContractScopeAppendRequest只编排同一项目追加，保存COM返回的历史引用及差量，不复制当前数量真值。AcceptanceReportRevision由ACC拥有；完整报告证据不等于通过，当前总体范围必须有明确通过版本。
+
+CLO批准时ACC调用PROJ唯一终态Writer，两域以同一数据库事务分别写自己的对象；NORMAL/NO_TRACKING分别校验，不强制S6。ProjectExitRecord是PROJ的不可变退出历史，不是第二个可写生命周期。关闭事件是已提交事实通知，不承担必需写入补偿。
+
+RPT-02保留全状态分布、真实阶段、超期、三类退出、正常交付闭环率/业务闭环率、权限一致的下钻与导出。业务全集保留S0～S6及八类子流程，实例可以按模板裁剪，不能因裁剪删减全集义务。
+
+本次设计只修复现行PRD语义落位；历史Feature Done和已执行迁移不变。独立批准与实施证据分别由当前Gate、Feature Task承担。

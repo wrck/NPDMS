@@ -132,15 +132,15 @@ PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/�
 
 对象清单的 `handlingMode` 只能是 `READ_ONLY_REFERENCE` 或 `DERIVED_COPY`；默认前者。派生副本必须返回 `sourceObjectId/sourceVersion/derivedObjectId`。只有所有项成功后服务端才完成转销并归档源项目，不提供客户端直接设置完成/归档状态的接口。
 
-### 5.4 PM-06 多期项目契约
+### 5.4 PM-06 同一项目范围追加 API
 
-| 路径 | 操作 | 输入/输出 | 业务守卫 |
-|---|---|---|---|
-| `/project-phase-groups` | `POST`, `GET` | 创建/查询群组；输入关系类型、名称、首期项目和期次号 | 关系类型来自字典；调用人具有涉及项目权限；跨租户禁止 |
-| `/project-phase-groups/{id}/actions/add-phase` | `POST` | 输入 projectId、phaseNo、displayOrder、expectedVersion；返回 groupVersion/memberVersion | 同关系类型下项目未加入其他有效群组；期次唯一；关系无环 |
-| `/project-phase-groups/{id}/actions/remove-phase` | `POST` | 关闭成员有效区间并返回新版本 | 不删除项目事实、历史引用或已发布汇总快照 |
-| `/project-phase-groups/{id}/phases` | `GET` | 按期次返回独立项目状态、来源版本、设备分类和资料差异，附 completeScope 标识 | 只返回用户有权期次；缺失期次标记不完整，不按零值汇总 |
-| `/project-phase-groups/{id}/actions/derive-content` | `POST` | 输入 sourceProjectId/sourceObjectType/sourceObjectId/sourceVersion/targetProjectId；返回派生对象和来源关系 | 只允许 PRD 指定的客户视图、拓扑、方案和设备视图复用；派生修改不回写来源 |
+Requirement：PM-06@V2、COM-01@V1。`POST /api/v1/pms/projects/{id}/scope-append-requests`创建待评估申请；`POST /api/v1/pms/scope-append-requests/{id}/actions/submit`冻结申请及审批实际定义；`POST .../actions/apply`只消费已批准且未失效版本。
+
+Body包含expectedProjectVersion、expectedScopeVersion及ERP合同/订单行稳定引用、数量、单位；tenant、actor和项目由服务端确定，Header为If-Match、Idempotency-Key。返回申请、原/新scopeVersion、Owner事实版本、逐阶段影响、未满足项及被新建任务/交付件/验收绑定的引用。
+
+PROJ先锁当前项目及有效责任；COM在同一事务锁唯一项目水位和按稳定键排序的订单行，重验可用数量、冲突和来源版本。随后PROJ写补充任务/门禁，ACC写精确范围绑定。任一步失败整体回滚；批准仍可追溯但不产生半生效范围。已闭环项目、跨项目范围、超量、旧版本和重复异载荷均拒绝。已批准方案、报告和旧范围不可覆盖。
+
+唯一新增范围事件为COM的ProjectScopeAppendApplied，事务提交后供读模型和对账使用，不作为异步补齐强制范围/任务的借口。PM-05仍使用独立转销契约；旧project-phase-groups端点只属于历史设计，不是PM-06候选接口。
 
 ### 5.5 PM-07属性判定与匹配历史契约
 
@@ -423,28 +423,27 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 - 设备详情采用固定摘要外壳和分Tab DTO；每个Tab统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。官网信息通过`KnowledgePublicProductInfoQueryApi`查询KNO已发布版本。
 - 配置Log下载链接默认5分钟、可配置、绑定当前用户和文件；每次生成前重新校验设备查询与文件下载权限。
 
-## F-PROJ-008 阶段推进API基线（GO）
+### 5.6 PM-03 冻结阶段图推进与BPM定义身份
 
-### Readiness query
+Requirement：PM-03@V1、PM-11@V1。沿用`GET /api/v1/pms/projects/{id}/stage-advance-readiness`和`POST /api/v1/pms/projects/{id}/actions/advance-stage`，但不再把S0～S3或数字相邻阶段作为合法全集。目标由冻结ProjectStageTransition唯一解析，客户端不得指定targetStage。
 
-`GET /api/v1/pms/projects/{id}/stage-advance-readiness`只返回当前阶段、服务端推导的相邻目标、Project/tree版本以及有序Gate/Ref结果；该结果是预览，不授权推进，命令仍须重新锁定重验。
+Readiness返回当前节点、唯一目标或冲突候选、current/target Stage版本、transition版本、绑定/规则版本及Owner事实版本；只是预览。命令以If-Match、Idempotency-Key和expectedCurrentStage/expectedTreeVersion重验；先检查当前CompletionRule与EXIT，再解析唯一后置，再检查目标ENTRY。解析为空/多义、Owner未知或版本变化不写阶段。
 
-### Advance command
+统一锁序：PROJ根/项目→按ID排序的当前与目标Stage→transition/执行契约→Gate/Reference→公开Owner Fact。目标为模板实际S5时，COM锁当前scopeVersion，ACC精确绑定该范围；二者以MANDATORY加入同一事务。任何ACC/COM失败均不关闭原阶段、不改变current_stage。旧COM enter-acceptance-stage仅可委托此命令，不保留第二个阶段Writer。
 
-`POST /api/v1/pms/projects/{id}/actions/advance-stage`
+成功同事务写当前Stage完成、目标Stage活动、Project.current_stage/version、不可变StageSnapshot、审计、Outbox及幂等结果。当前为终点时返回可申请闭环，不创建虚假S6。计划/方案后期换版仅触发重算，不隐式回退。
 
-- Header：`If-Match`提供`expectedProjectVersion`，`Idempotency-Key`必填；
-- Body：`expectedCurrentStage`、`expectedTreeVersion`；不得提交目标阶段、actor、tenant或门禁结论；
-- Success：`projectId/beforeStage/afterStage/projectVersion/stageSnapshotId/gateEvaluationSummary`；
-- 仅接受当前S0～S3并由服务端推导相邻S1～S4。S4→S5返回专用路径提示，不代理调用验收入口。
+Gate审批沿用ProjectStageGateProcessOwnerApi：只冻结processDefinitionKey；默认最新可启动定义，授权人可选同key历史processDefinitionId；记录实际定义ID和完整taskDefinitionKey，禁止独立PMS流程版本。六类Owner谓词和已有授权继续保留在F-PROJ-008契约，不因图改造扩大权限。
 
-内部 `StageAdvanceCommand`的规范摘要冻结tenant、actor、projectId、期望阶段/Project/tree版本。相同键同摘要返回原结果；同键异摘要冲突。
+错误按既有公共类别：未满足BUSINESS_GATE、旧版本VERSION_CONFLICT、Owner未知DEPENDENCY_UNAVAILABLE；不把未知当空集合通过。Stage转换和S5绑定的物理差量须按09当前契约建设，旧NO_PHYSICAL_DELTA仅作历史证据。
+
+#### 六类Owner事实与BPM窄接口（保留现有安全契约，补充ENTRY上下文）
 
 `GET /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/process-definitions`列出该Gate可选择的BPM定义。PROJ先锁定项目、Gate与Reference，并重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`；随后只以受信tenant和Reference冻结的`processDefinitionKey`调用Owner。响应按BPM定义身份稳定排序，仅返回`processDefinitionId/processDefinitionKey/name/selectable`，且只包含同租户、同key、当前可启动并通过本Gate定义约束的记录；不得复用或要求管理端`bpm:process-definition:query`，不得返回其他流程管理字段。
 
 `POST /api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process`使用`If-Match + Idempotency-Key`启动关联Gate流程。Body只允许可空`processDefinitionId`：为空时按Gate Reference冻结的`processDefinitionKey`选择最新生效定义；非空时仅作为授权用户从上述同key列表选择的历史定义ID，服务端仍必须重验定义ID归属和可启动状态。tenant、actor、definitionKey、businessKey及系统变量均由服务端构造，客户端不得覆盖；规范摘要包含可空processDefinitionId，同operation异选择稳定冲突。
 
-### Gate Reference Owner Fact SPI
+##### Gate Reference Owner Fact SPI
 
 既有`pms-module-project-api`加性声明类型化SPI，稳定方法为：
 
@@ -453,7 +452,7 @@ String providerKey();
 ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query);
 ```
 
-`ProjectStageGateFactQuery`只由PROJ服务端构造，固定包含`tenantId/projectId/currentStageCode/gateId/gateCode/gateVersion/gateReferenceId/gateReferenceVersion/refType/refCode`；其中Gate、Reference版本来自已锁定实例，`refCode`来自创建时冻结值，既有`refVersion`不得进入Query。`ProjectStageGateFact`固定返回`providerKey/refType/ownerObjectKey/ownerBusinessVersion/factVersion/outcome/unmetCode`，三个Owner身份/版本字段均为非空String：本地/ACC行用稳定ID、业务状态和十进制row.version，BPM用processInstanceId、实际processDefinitionId和`status:endTime`（运行中使用`status:startTime`）组成可重验事实版本，不使用摘要或当前时间。outcome封闭为`SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`。Provider以`MANDATORY`加入推进事务；Registry只接受02d分册的固定一对一providerKey，不接受调用方指定、通配或重复实现。
+`ProjectStageGateFactQuery`只由PROJ服务端构造，固定包含`tenantId/projectId/currentStageCode/evaluatedStageId/evaluatedStageCode/gatePurpose/gateId/gateCode/gateVersion/gateReferenceId/gateReferenceVersion/refType/refCode`；其中Gate、Reference版本来自已锁定实例，`refCode`来自创建时冻结值，既有`refVersion`不得进入Query。`ProjectStageGateFact`固定返回`providerKey/refType/ownerObjectKey/ownerBusinessVersion/factVersion/outcome/unmetCode`，三个Owner身份/版本字段均为非空String：本地/ACC行用稳定ID、业务状态和十进制row.version，BPM用processInstanceId、实际processDefinitionId和`status:endTime`（运行中使用`status:startTime`）组成可重验事实版本，不使用摘要或当前时间。outcome封闭为`SATISFIED/UNSATISFIED/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`。Provider以`MANDATORY`加入推进事务；Registry只接受02d分册的固定一对一providerKey，不接受调用方指定、通配或重复实现。
 
 | refType / providerKey | 精确Owner对象键与版本 | 唯一`SATISFIED`谓词 | 其他稳定结果 |
 |---|---|---|---|
@@ -482,7 +481,7 @@ Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/businessKe
 
 BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key和实例实际processDefinitionId。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
-模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用、Provider存在性，并拒绝新APPROVAL/PROCESS引用写入refVersion；APPROVAL/PROCESS通过`inspectDefinitionKey`验证当前生效Flowable定义存在且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+当前阶段准出和目标准入分别以`gatePurpose=EXIT/ENTRY`及实际被评估Stage身份调用同一Provider；`currentStageCode`只保留项目当前阶段上下文，不能替代目标Stage。Gate、Reference均须属于被评估阶段的冻结定义；不能把源阶段通过结果复用为目标准入。模板发布校验实际被引用阶段的CompletionRule、适用ENTRY/EXIT Gate及所有Reference和Provider，未实例化阶段不得生成强前置；配置缺失、Provider未知和空引用不得以空集真值绕过PRD强制条件。BPM定义检查继续拒绝不支持的START_USER_SELECT(35)，不新增PMS流程版本。
 
 ## 修订016差量契约
 
@@ -500,3 +499,9 @@ BPM事实Provider与上述启动Provider可由同一集成适配器承接，只�
 本节只更新契约，不声明Provider、公开Java接口、OpenAPI或数据库已实现；受影响物理合同及Feature Ready必须重验证。已有路由继续受原功能权限和领域Owner约束，不增加通用绕过入口。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+### 修订016 PM-01首次项目经理指派
+
+PM-01@V1已授权的服务经理或工程管理部指派人员，在项目范围内选择经SYSTEM校验的在职项目经理，通过唯一PROJ指派命令形成责任区间；不要求目标项目已有PROJECT_MANAGER。命令同时冻结actor、范围、项目/成员/组织版本，If-Match及Idempotency-Key保护并发和重复。主责服务经理及项目经理同时有效才写ASSIGNED。
+
+T-ASSIGN-PM绑定PM-01指派事实，以该事实自动判定完成；不是给通用TASK_NATIVE COMPLETE增加越权例外。通知失败不回滚指派。回归覆盖首次无经理、无权限、离职候选、并发双指派、同键重放、仅一类主责及事件失败。Q-FPROJ-009设计闭合不产生Feature Implementation Done；真实API/数据库/浏览器复验仍由对应Feature执行。
