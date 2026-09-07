@@ -1,6 +1,6 @@
 # DU-20260907-TEMPLATE-ACCEPTANCE-EVOLUTION-DESIGN 模板业务规则与终验解耦设计
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-COM-001=TASK_COORDINATED`
 > Task范围：`用户已确认的模板演进设计及正式规格差量；只改文档与其派生投影，不实施应用功能`
@@ -13,7 +13,7 @@
 > 串行资源：`master PRD下一修订号;相关SDS与Feature规格;由权威文件派生的领域需求和追溯投影`
 > 旧功能范围：`仅现有模板和验收载体的复用、历史只读与迁移解释；不修改废弃实现、历史证据或已执行迁移`
 > 验证：`PRD与来源副本一致；当前正文无S5强制终验残留；Owner/触发/门禁/视图边界自审；需求ID与原Feature实施状态保留；文档链接、差异及认领范围检查`
-> 集成记录：`master认领1474ee91/d1d4076b；修订018业务/逻辑文档与投影本地送审，具体文档提交见Git；不晋级Feature Done`
+> 集成记录：`master文档提交3abdeb1e；需求方于2026-09-08确认书面设计，本DU文档范围收口；后续精确契约由20260908独立DU承接，不晋级Feature Done`
 
 ## 已批准目标
 
@@ -31,7 +31,7 @@
 
 - 已完成：当前master只读能力审计；用户确认演进顺序、终验解耦及分层复核结论；原Owner释放。
 - 已形成：PRD修订018及来源副本、ADR-0045、相关SDS/Feature影响边界、书面设计与需求派生投影。
-- 待交接：需求方审阅书面设计；Q-TPLACC-001对应的Phase 2精确API/物理差量由后续设计单元继续，本DU不将其冒充完成。
+- 已交接：需求方于2026-09-08确认书面设计；Q-TPLACC-001精确API/物理差量交由DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE继续，本DU不将其冒充完成，释放原写边界。
 - Feature实施状态：保持原权威Task事实；设计确认不等于实现完成。
 
 ## 文档验证

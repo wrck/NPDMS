@@ -1,6 +1,6 @@
 # 模板业务规则配置化与独立终验演进设计
 
-> 文档状态：`IN_REVIEW`（需求方已确认业务/逻辑设计，本书面产物待审阅）
+> 文档状态：`BASELINE`（需求方于2026-09-08确认书面逻辑设计；过程文档不替代SDS独立复审）
 > 日期：`2026-09-07`
 > 当前DU：`tasks/delivery-units/DU-20260907-TEMPLATE-ACCEPTANCE-EVOLUTION-DESIGN.md`
 > PRD：`CHG-PRD-2026-09-07-018`
@@ -82,4 +82,4 @@ python -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v
 
 业务验收集合以SDS20修订018表为准：有S5无终验、无S5有终验、配置初验前置/无前置、重复触发、只读查询零写入、动作依赖环、范围变化、权限拒绝和旧项目冻结。上述应用用例均未在本DU运行，不将文档生成或历史测试当作通过。
 
-书面设计审阅后，先完成Q-TPLACC-001对应Phase 2差量及适用Gate，再形成唯一当前实施计划；本文件不批准Feature Ready、Implementation Done或Release。
+书面设计已于2026-09-08经需求方确认。独立验收及其接入须先完成Q-TPLACC-001对应Phase 2差量及适用Gate；不依赖该问题的模板基础配置按自身Feature契约推进，不能被扩大阻断。具体实施计划仍须以相关已锁定规格为输入，本文件不批准Feature Ready、Implementation Done或Release。
