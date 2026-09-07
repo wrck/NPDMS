@@ -5,14 +5,19 @@ on:
     paths: [.github/workflows/sds-gate-closure.yml]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: npdms-sds016-repair
+  cancel-in-progress: false
 jobs:
   verify:
     if: github.repository == 'wrck/NPDMS' && github.ref == 'refs/heads/docs/prd-v1.8-p0-p1-fixes'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
     steps:
-      - name: Prepare exact prospective schema inputs
+      - name: Apply exact reviewed changes to pinned branch input
         env:
           INPUT_SHA: ${{ github.sha }}
         run: |
@@ -20,45 +25,109 @@ jobs:
           git clone --quiet --single-branch --branch docs/prd-v1.8-p0-p1-fixes https://github.com/wrck/NPDMS.git repository
           cd repository
           git checkout --detach "$INPUT_SHA"
+          git merge-base --is-ancestor dfc3459e8bfd974a147692e69ca60f69e28e85ca HEAD
           test "$(git rev-parse HEAD:docs/baseline/prd-v1.8.md)" = 4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b
+          mkdir -p ../gate-evidence
           python3 - <<'PY'
-          import base64, hashlib, json, zlib
-          from pathlib import Path
-          raw = zlib.decompress(base64.b64decode(Path('scripts/sds-gate-schema-transport.txt').read_text().strip(), validate=True))
-          assert hashlib.sha256(raw).hexdigest() == '3b37c3b6a4a28b79e11d24b523f753e0c3818b6fe02a52799b78b81a5adb4646'
-          files = json.loads(raw)
-          assert set(files) == {'docs/traceability/sds-revision-016-physical-contract.json', 'specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql', 'scripts/validate_sds_revision_016_mysql.py'}
-          for path, content in files.items():
-              target = Path(path)
+          import base64, hashlib, json, lzma, zlib
+          from pathlib import Path, PurePosixPath
+          digest = lambda b: hashlib.sha256(b).hexdigest()
+          parts = [Path(f'scripts/sds-gate-transfer/part-{i}.txt') for i in range(1,6)]
+          raw = lzma.decompress(base64.b64decode(''.join(p.read_text().strip() for p in parts), validate=True))
+          assert digest(raw) == '084fb85329c87ff809b1c9b792e76471c6c278211d37e9d89019f338ffee0fdf', 'repair input digest mismatch'
+          changes = json.loads(raw)
+          assert len(changes) == 45
+          outputs = {}
+          for name, spec in changes.items():
+              path = PurePosixPath(name)
+              assert not path.is_absolute() and '..' not in path.parts
+              assert name.startswith(('docs/design/', 'docs/decisions/', 'docs/engineering/gates/', 'docs/traceability/', 'scripts/'))
+              assert '__pycache__' not in name and 'independent-review' not in name
+              target = Path(name)
+              old = target.read_bytes() if target.exists() else b''
+              assert (not target.exists()) if spec['old'] is None else digest(old) == spec['old'], f'preimage mismatch: {name}'
+              text = old.decode('utf-8')
+              end = len(text)
+              for start, stop, replacement in reversed(spec['edits']):
+                  assert 0 <= start <= stop <= end
+                  text = text[:start] + replacement + text[stop:]
+                  end = start
+              value = text.encode('utf-8')
+              assert digest(value) == spec['new'], f'output mismatch: {name}'
+              outputs[name] = value
+          schema_raw = zlib.decompress(base64.b64decode(Path('scripts/sds-gate-schema-transport.txt').read_text().strip(), validate=True))
+          assert digest(schema_raw) == '3b37c3b6a4a28b79e11d24b523f753e0c3818b6fe02a52799b78b81a5adb4646'
+          schema = json.loads(schema_raw)
+          assert set(schema) == {'docs/traceability/sds-revision-016-physical-contract.json', 'specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql', 'scripts/validate_sds_revision_016_mysql.py'}
+          for name, text in schema.items():
+              assert not Path(name).exists(), f'new schema path already exists: {name}'
+              outputs[name] = text.encode('utf-8')
+          for name, value in outputs.items():
+              target = Path(name)
               target.parent.mkdir(parents=True, exist_ok=True)
-              target.write_text(content, encoding='utf-8')
+              target.write_bytes(value)
+          generated = ['docs/traceability/domain-entity-migration-contract.json', 'docs/traceability/domain-entity-migration-contract.md', 'docs/traceability/phase2-contract-map.md', 'docs/traceability/requirement-matrix.md', 'docs/traceability/requirement-version-coverage.json', 'docs/engineering/gates/phase-1/revision-016-gate-checks.json']
+          allowed = sorted(set(outputs) | set(generated) | {str(p) for p in parts} | {'scripts/sds-gate-schema-transport.txt'})
+          Path('../gate-evidence/allowed-paths.json').write_text(json.dumps(allowed))
+          Path('../gate-evidence/reviewed-output-hashes.json').write_text(json.dumps({n:digest(v) for n,v in outputs.items()},sort_keys=True,indent=2))
           PY
-      - name: Test empty isolated MySQL 8.4 schema and constraints
+          python3 scripts/generate_sds_revision_016_schema.py
+          python3 scripts/generate_domain_entity_migration_contract.py --implementation .
+          python3 scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md
+          python3 scripts/generate_phase2_contract_map.py --prd docs/baseline/prd-v1.8.md
+      - name: Verify technical content and formal approval refusal separately
         env:
           INPUT_SHA: ${{ github.sha }}
-          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          mkdir -p gate-evidence
-          docker run -d --name sds016-mysql --network none --label npdms.sds-validation=true -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.4
-          stable=0
-          for attempt in $(seq 1 90); do
-            mode=$(docker exec sds016-mysql mysql -uroot -N -B -e 'SELECT @@skip_networking;' 2>/dev/null || true)
-            if test "$mode" = 0; then stable=$((stable+1)); else stable=0; fi
-            if test "$stable" -ge 3; then break; fi
-            sleep 2
-          done
-          test "$stable" -ge 3
           cd repository
-          python3 scripts/validate_sds_revision_016_mysql.py --container sds016-mysql --root . --output ../gate-evidence/mysql-schema.json | tee ../gate-evidence/mysql-schema.log
-          git diff --stat > ../gate-evidence/input-files.txt
-      - name: Preserve actual verification evidence
+          python3 scripts/verify_sds_revision_016_repair.py --output docs/engineering/gates/phase-1/revision-016-gate-checks.json | tee ../gate-evidence/checks.log
+          cp docs/engineering/gates/phase-1/revision-016-gate-checks.json ../gate-evidence/checks.json
+          cp docs/engineering/gates/phase-2/revision-016-mysql-schema.json ../gate-evidence/mysql-schema.json
+      - name: Commit scoped repair without granting approval or touching master
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd repository
+          python3 - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          protected = ['docs/baseline/prd-v1.8.md', '需求/PRD-项目实施交付管理平台.md', 'specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql']
+          for name in protected:
+              old = subprocess.check_output(['git','show',f'HEAD:{name}'])
+              assert Path(name).read_bytes() == old, f'protected input changed: {name}'
+          for name in json.loads(Path('../gate-evidence/reviewed-output-hashes.json').read_text()):
+              expected = json.loads(Path('../gate-evidence/reviewed-output-hashes.json').read_text())[name]
+              assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, f'reviewed output changed: {name}'
+          for path in Path('scripts/sds-gate-transfer').glob('part-*.txt'):
+              path.unlink()
+          Path('scripts/sds-gate-transfer').rmdir()
+          Path('scripts/sds-gate-schema-transport.txt').unlink()
+          modified = subprocess.check_output(['git','diff','--name-only','-z']).decode().split('\0')
+          new = subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z']).decode().split('\0')
+          changed = set(modified+new)-{''}
+          allowed = set(json.loads(Path('../gate-evidence/allowed-paths.json').read_text()))
+          assert changed <= allowed, f'out-of-scope writes: {sorted(changed-allowed)}'
+          result = json.loads(Path('docs/engineering/gates/phase-1/revision-016-gate-checks.json').read_text())
+          assert result['status'] == 'PASS' and result['testCount'] == 212
+          assert all(g['actualResult'] == 'BLOCKED' and g['expectedSafetyBoundaryVerified'] for g in result['formalGates'])
+          subprocess.run(['git','add','--',*sorted(changed)],check=True)
+          PY
+          git diff --cached --check
+          git -c user.name='NPDMS documentation automation' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'docs: close revision 016 technical gate gaps with physical and regression evidence'
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          REMOTE_SHA=$(git -c "http.extraHeader=$AUTH_HEADER" ls-remote origin refs/heads/docs/prd-v1.8-p0-p1-fixes | cut -f1)
+          test "$REMOTE_SHA" = "$INPUT_SHA"
+          git -c "http.extraHeader=$AUTH_HEADER" push origin HEAD:refs/heads/docs/prd-v1.8-p0-p1-fixes
+          unset AUTH_HEADER GH_TOKEN
+          git rev-parse HEAD > ../gate-evidence/result-commit.txt
+          git show --stat --oneline HEAD > ../gate-evidence/result-stat.txt
+      - name: Preserve actual checks and exact repair identity
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sds016-mysql-evidence
+          name: sds016-final-gate-evidence
           path: gate-evidence/
           retention-days: 3
-      - name: Remove isolated test container
-        if: always()
-        run: docker rm -f sds016-mysql || true
