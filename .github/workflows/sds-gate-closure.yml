@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Preserve immutable Git source history
+      - name: Prepare exact prospective schema inputs
         env:
           INPUT_SHA: ${{ github.sha }}
         run: |
@@ -20,13 +20,43 @@ jobs:
           git clone --quiet --single-branch --branch docs/prd-v1.8-p0-p1-fixes https://github.com/wrck/NPDMS.git repository
           cd repository
           git checkout --detach "$INPUT_SHA"
-          git cat-file -e a9f8b7c568546839d3d641531f8036bb75889a82^{commit}
-          mkdir -p ../gate-input
-          git rev-parse HEAD > ../gate-input/source-commit.txt
-          git bundle create ../gate-input/repository.bundle --all
-      - name: Preserve scoped review inputs
+          test "$(git rev-parse HEAD:docs/baseline/prd-v1.8.md)" = 4b7bd7a4b099e18edb7e5a10c8c27615118c9d7b
+          python3 - <<'PY'
+          import base64, hashlib, json, zlib
+          from pathlib import Path
+          raw = zlib.decompress(base64.b64decode(Path('scripts/sds-gate-schema-transport.txt').read_text().strip(), validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '3b37c3b6a4a28b79e11d24b523f753e0c3818b6fe02a52799b78b81a5adb4646'
+          files = json.loads(raw)
+          assert set(files) == {'docs/traceability/sds-revision-016-physical-contract.json', 'specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql', 'scripts/validate_sds_revision_016_mysql.py'}
+          for path, content in files.items():
+              target = Path(path)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content, encoding='utf-8')
+          PY
+      - name: Test empty isolated MySQL 8.4 schema and constraints
+        env:
+          INPUT_SHA: ${{ github.sha }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p gate-evidence
+          docker run -d --name sds016-mysql --network none --label npdms.sds-validation=true -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.4
+          ready=0
+          for attempt in $(seq 1 90); do
+            if docker exec sds016-mysql mysqladmin ping -uroot --silent >/dev/null 2>&1; then ready=1; break; fi
+            sleep 2
+          done
+          test "$ready" = 1
+          cd repository
+          python3 scripts/validate_sds_revision_016_mysql.py --container sds016-mysql --root . --output ../gate-evidence/mysql-schema.json | tee ../gate-evidence/mysql-schema.log
+          git diff --stat > ../gate-evidence/input-files.txt
+      - name: Preserve actual verification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sds-gate-history
-          path: gate-input/
+          name: sds016-mysql-evidence
+          path: gate-evidence/
           retention-days: 3
+      - name: Remove isolated test container
+        if: always()
+        run: docker rm -f sds016-mysql || true
