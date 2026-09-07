@@ -1,19 +1,19 @@
 # DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE 独立验收接口与物理契约候选
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`IN_PROGRESS`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-COM-001=TASK_COORDINATED`
-> Task范围：`书面设计确认后的Q-TPLACC-001具体契约候选及计划准入判断；不实施应用代码`
+> Task范围：`R2候选技术GO回执与修订018受影响Phase 1边界复核；不实施应用代码或Phase 2正式物理合同`
 > Owner：`审计模板能力演进设计任务01a07a94-a002-7131-bf20-2ad931b6a0f7`
 > 分支：`master`
 > Worktree：`M:/AICoding/CodexData/worktrees/79ed/NPDMS`
 > 认领基线：`3abdeb1ea50acca70eb7c6e1b256dab8a2c1c76f`
 > 认领提交：`SELF`
-> 修改边界：`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract-design.md;docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract.json;docs/decisions/open-questions.md;docs/engineering/gates/phase-2/gate-status.md;tasks/delivery-units/DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE.md;tasks/delivery-units/README.md`
-> 串行资源：`Q-TPLACC-001候选与Phase 2审阅输入；不占用业务代码或Flyway`
+> 修改边界：`docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract-design.md;docs/superpowers/specs/2026-09-08-template-acceptance-phase2-contract.json;docs/decisions/open-questions.md;docs/engineering/gates/phase-2/gate-status.md;tasks/delivery-units/DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE.md;tasks/delivery-units/README.md;docs/design/02-domain-model.md;docs/design/02a-context-map.md;docs/design/02b-aggregate-boundary-decisions.md;docs/design/02c-data-ownership-matrix.md;docs/design/02d-cross-context-contracts.md;docs/design/04-module-design.md;docs/design/05-state-machine.md;docs/design/06-workflow-design.md;docs/design/07-authorization-design.md;docs/engineering/gates/phase-1/gate-status.md;docs/engineering/gates/phase-1/README.md;docs/engineering/gates/phase-1/revision-018-template-acceptance-review.md;docs/engineering/gates/phase-2/input/template-acceptance-r2-independent-review.md`
+> 串行资源：`修订018受影响Phase 1正式分册/复核输入及R2回执；不占用业务代码、Phase 2物理合同或Flyway`
 > 旧功能范围：`仅读取既有验收/范围/工作绑定及迁移作为复用证据；不修改旧实现或历史数据`
 > 验证：`接口类型/字段引用一致；候选JSON可解析；空范围/重复触发/版本/锁序/旧路径边界自审；认领及差异范围检查`
-> 集成记录：`master候选R2已修订两项剩余契约并完成一轮自审，交原独立任务复审；提交见Git，未关闭Q、SDS或Feature Gate`
+> 集成记录：`候选R2@3d82db0b独立技术GO；当前认领Phase 1边界对齐与复核回执，不关闭Q、SDS或Feature Gate`
 
 ## 输出与边界
 
@@ -36,6 +36,8 @@
 - 已先完成候选修订和一轮归档命令重放、BPM捕获/重放、物理长度及文档一致性自审；本地提交后交原独立任务。
 
 ## 交接
+
+本轮阶段切换（2026-09-08）：需求方要求“下一步”，按工程链推进受影响Phase 1；原R2技术GO只作候选证据。先在master提交本次排他范围扩展，再写九份Phase 1分册及复核输入。候选正文/API/存储设计不再调整，只登记复核结果；不改PRD、正式物理合同、Feature Ready/Done或实现。
 
 - 最后提交：`SELF`（本文件所在候选送审提交，以Git读取）
 - 已完成：项目级验收候选R2；完整报告版本级共同归档身份、captureKey/短eventId分离及提交重放约定；一轮自审与审阅输入登记。R1已解决的契约保持不变。
