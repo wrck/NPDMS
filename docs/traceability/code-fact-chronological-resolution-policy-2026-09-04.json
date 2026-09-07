@@ -32,6 +32,15 @@
   },
   "featureRules": [
     {
+      "feature": "F-CUT-002",
+      "pathOrSubjectRegex": "^pms-module-customer/(?:pms-module-customer-api/src/main/java/|src/test/java/).*/api/servicelevel/",
+      "ownerContext": "CUS",
+      "supportingRequirement": "CUS-02@V2",
+      "requirementCoverage": "NONE_SUPPORTING_CONTRACT_ONLY",
+      "evidence": "specs/features/F-CUT-002-customer-service-level-fact-contract.json",
+      "reason": "CUS-owned service-level support contract consumed by F-CUT-002; not F-CUT-001 implementation and not CUS-02 completion evidence"
+    },
+    {
       "feature": "F-INT-012",
       "branchRegex": "(^|,)prereq-parallel-check-kKiAdn(,|$)",
       "reason": "INT source branch is governed by the accepted F-INT-012 partial-reception boundary"
