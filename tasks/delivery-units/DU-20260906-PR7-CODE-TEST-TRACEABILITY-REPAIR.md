@@ -9,7 +9,7 @@
 > Worktree：`GitHub Actions隔离检出与本次会话审查工作区`
 > 认领基线：`220486237b9570ab3d2b0663df39c89be2a5ec69`
 > 认领提交：`SELF`
-> 修改边界：`.github/**;pms-module-engineering/**;pms-module-engineering-api/**;pms-module-commerce/**;pms-module-cutover/**;pms-module-platform/**;pms-module-project/**;scripts/**;tasks/features/**;specs/features/**;specs/001-project-delivery-platform/domains/**;docs/traceability/**;docs/design/**;docs/baseline/**;docs/development.md;docs/engineering/gates/**;docs/decisions/**;tasks/delivery-units/**;yudao-ui/yudao-ui-admin-vue3/**;yudao-server/src/**;yudao-framework/yudao-spring-boot-starter-biz-tenant/src/**;sql/migrations/**;需求/**`
+> 修改边界：`.github/**;pms-module-engineering/**;pms-module-engineering-api/**;pms-module-commerce/**;pms-module-cutover/**;pms-module-platform/**;pms-module-project/**;scripts/**;tasks/features/**;specs/features/**;specs/001-project-delivery-platform/domains/**;specs/001-project-delivery-platform/evidence/migration/**;docs/traceability/**;docs/design/**;docs/baseline/**;docs/development.md;docs/engineering/gates/**;docs/decisions/**;tasks/delivery-units/**;yudao-ui/yudao-ui-admin-vue3/**;yudao-server/src/**;yudao-server/pom.xml;yudao-framework/yudao-spring-boot-starter-biz-tenant/src/**;sql/migrations/**;需求/**`
 > 串行资源：`PR #7分支写入;Feature任务和Requirement生成投影;CI配置;单租户默认与前向迁移`
 > 旧功能范围：`NONE`
 > 验证：`Java 25全Reactor clean verify；Python治理回归；前端构建/类型/单测；COM及CUT MySQL真实集成；单租户1及迁移负向验证；追溯再生成与check；最终head复审`
