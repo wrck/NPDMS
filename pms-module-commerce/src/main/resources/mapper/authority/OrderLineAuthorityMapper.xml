@@ -9,7 +9,9 @@
     </select>
     <update id="updateOwnerByVersion">
         UPDATE com_sales_order_line
-        SET order_id = #{row.orderId}, line_no = #{row.lineCode}, item_code = #{row.itemCode},
+        SET order_id = #{row.orderId}, company_code = #{row.companyCode},
+            order_type = #{row.orderType}, order_no = #{row.orderNo},
+            line_no = #{row.lineCode}, item_code = #{row.itemCode},
             item_desc = #{row.itemDesc}, product_code = #{row.productCode},
             model_code = #{row.modelCode}, order_qty = #{row.quantity}, open_qty = #{row.openQty},
             delivered_qty = #{row.deliveredQty}, unit_code = #{row.unitCode}, unit_scale = #{row.unitScale},

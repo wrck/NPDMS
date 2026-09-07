@@ -195,9 +195,9 @@ class CommerceAuthorityCandidateMySqlTest {
     private long insertConfirmedContract(String companyCode, String sourceVersion) {
         long id = 990_400_000_000L + Math.abs(suffix.hashCode());
         jdbcTemplate.update("INSERT INTO com_contract "
-                        + "(id,company_code,contract_no,authority_status,source_lifecycle_status,source_system,source_key,"
-                        + "source_version,source_updated_at,synced_at,version,creator,create_time,updater,update_time,deleted,tenant_id) "
-                        + "VALUES (?,?,?,'CONFIRMED','ACTIVE','ERP',?,?,NOW(3),NOW(3),0,'0',NOW(3),'0',NOW(3),b'0',?)",
+                        + "(id,company_code,contract_no,authority_status,source_lifecycle_status,master_source_system,master_source_record_key,"
+                        + "master_source_version,source_updated_at,source_sync_time,status,version,creator,create_time,updater,update_time,deleted,tenant_id) "
+                        + "VALUES (?,?,?,'CONFIRMED','ACTIVE','ERP',?,?,NOW(3),NOW(3),'ACTIVE',0,'0',NOW(3),'0',NOW(3),b'0',?)",
                 id, companyCode, "CN-" + suffix, "OWNER-" + suffix, sourceVersion, TENANT_ID);
         return id;
     }

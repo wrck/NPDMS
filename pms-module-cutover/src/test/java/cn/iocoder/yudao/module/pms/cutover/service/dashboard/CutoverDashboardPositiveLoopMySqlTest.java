@@ -158,9 +158,9 @@ class CutoverDashboardPositiveLoopMySqlTest {
                 INSERT INTO cut_approval_instance
                 (id,tenant_id,task_id,project_id,plan_revision_id,plan_revision_no,assessment_id,
                  assessment_version,grade_code,initiator_user_id,initiator_project_scope_version,
-                 source_snapshot_version,source_snapshot,route_snapshot,status_code,decision_at,rejection_reason,
+                 source_snapshot_version,source_snapshot,route_snapshot,lead_time_enabled,status_code,decision_at,rejection_reason,
                  version,creator,create_time,updater,update_time,deleted)
-                VALUES (?,?,?,?,?,1,?,1,'D',?,7,1,JSON_OBJECT(),JSON_OBJECT(),'REJECTED',NOW(3),
+                VALUES (?,?,?,?,?,1,?,1,'D',?,7,1,JSON_OBJECT(),JSON_OBJECT(),b'0','REJECTED',NOW(3),
                         '方案需修改',0,'dashboard-test',NOW(3),'dashboard-test',NOW(3),b'0')
                 """, approvalId, tenantId, taskId, PROJECT_ID, planId,
                 baseId + 300 + taskOffset, ACTOR_ID);

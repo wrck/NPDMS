@@ -97,6 +97,9 @@ class CommerceAuthorityIngestMySqlTest {
         assertEquals(1, count("com_sales_order"));
         assertEquals(1, count("com_sales_order_line"));
         assertEquals(1, count("com_order_contract_relation"));
+        assertEquals("ACME|NORMAL|ON-" + suffix, jdbcTemplate.queryForObject(
+                "SELECT CONCAT_WS('|', company_code, order_type, order_no) FROM com_sales_order_line "
+                        + "WHERE tenant_id=? AND source_record_key=?", String.class, TENANT_ID, "L-" + suffix));
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(initial).decision());
 
         CommerceAuthorityBatchCommand objectReplay = fullBatch("EV-2-" + suffix, "V1", "IGNORED", "10");
@@ -120,7 +123,7 @@ class CommerceAuthorityIngestMySqlTest {
 
         assertEquals(CommerceAuthorityIngestException.Code.SOURCE_VERSION_CONFLICT, error.getCode());
         assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM com_contract WHERE tenant_id=? "
-                + "AND source_key=?", Integer.class, TENANT_ID, "A-NEW-" + suffix));
+                + "AND master_source_record_key=?", Integer.class, TENANT_ID, "A-NEW-" + suffix));
     }
 
     @Test
@@ -177,8 +180,8 @@ class CommerceAuthorityIngestMySqlTest {
             start.countDown();
             assertEquals(1, (first.get(15, TimeUnit.SECONDS) ? 1 : 0)
                     + (second.get(15, TimeUnit.SECONDS) ? 1 : 0));
-            String version = jdbcTemplate.queryForObject("SELECT source_version FROM com_contract WHERE tenant_id=? "
-                    + "AND source_key=?", String.class, TENANT_ID, "C-" + suffix);
+            String version = jdbcTemplate.queryForObject("SELECT master_source_version FROM com_contract WHERE tenant_id=? "
+                    + "AND master_source_record_key=?", String.class, TENANT_ID, "C-" + suffix);
             assertTrue(List.of("V2", "V3").contains(version));
         } finally {
             start.countDown();

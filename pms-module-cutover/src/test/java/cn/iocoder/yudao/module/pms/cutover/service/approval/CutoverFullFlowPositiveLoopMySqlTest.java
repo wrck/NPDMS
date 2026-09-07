@@ -241,7 +241,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
     private CreateCutoverTaskCommand createCommand() {
         return new CreateCutoverTaskCommand(tenantId, ACTOR_ID, "task-create", "corr-task-create",
                 "SELF_CREATED", PROJECT_ID, List.of("SN-1"), "CFG-1", "核心网割接",
-                "P1至P6受控正向闭环", "NETWORK_CUTOVER", "DUAL",
+                "P1至P6受控正向闭环", "NETWORK_TOPOLOGY_CHANGE", "DUAL",
                 LocalDateTime.of(2026, 9, 3, 10, 0), null, null, null,
                 new CreateCutoverTaskCommand.ExpectedCreateContext(projectFact(tenantId), List.of(deviceFact()),
                         customerFact(), readinessFact()));
@@ -252,7 +252,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> sections = CutoverPlanRules.STANDARD_SECTIONS.stream()
                 .map(code -> new CutoverPlanSourcePort.TemplateSectionSnapshot(code, code,
                         CutoverPlanRules.STANDARD_SECTIONS.indexOf(code) + 1,
-                        List.of("NETWORK_CUTOVER"), List.of("A"), true))
+                        List.of("NETWORK_TOPOLOGY_CHANGE"), List.of("A"), true))
                 .toList();
         owners.taskId = taskId;
         owners.projectId = PROJECT_ID;
@@ -372,7 +372,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         rule.setStableRuleKey("RULE-PRECHECK-READY");
         rule.setItemDefinitionId(definition.getId());
         rule.setItemDefinitionVersion(1);
-        rule.setDimensionConditionSnapshot("{\"CUTOVER_TYPE\":[\"NETWORK_CUTOVER\"],"
+        rule.setDimensionConditionSnapshot("{\"CUTOVER_TYPE\":[\"NETWORK_TOPOLOGY_CHANGE\"],"
                 + "\"DEVICE_TYPE\":[\"ROUTER\"]}");
         rule.setPriority(100);
         rule.setRequiredResult(true);
