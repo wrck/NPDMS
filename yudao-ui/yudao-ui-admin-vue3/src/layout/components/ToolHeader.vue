@@ -52,7 +52,7 @@ const im = computed(() => appStore.getIm)
 
 // 租户切换权限
 const hasTenantVisitPermission = computed(
-  () => import.meta.env.VITE_APP_TENANT_ENABLE === 'true' && checkPermi(['system:tenant:visit'])
+  () => import.meta.env.VITE_APP_TENANT_ENABLE !== 'false' && checkPermi(['system:tenant:visit'])
 )
 
 // 顶部聊天入口：用路由 name resolve 出完整 URL，在新标签页打开 IM 主页

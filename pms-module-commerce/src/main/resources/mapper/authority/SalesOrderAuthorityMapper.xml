@@ -13,6 +13,11 @@
             customer_code = #{row.customerCode}, customer_name = #{row.customerName},
             order_amount = #{row.orderAmount}, currency_code = #{row.currencyCode},
             authority_status = #{row.authorityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
+            sales_type = #{row.salesType},
+            source_project_name = #{row.sourceProjectName},
+            order_comment = #{row.orderComment},
+            order_create_time = #{row.orderCreateTime},
+            customer_required_time = #{row.customerRequiredTime},
             source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
             source_sync_time = #{row.syncedAt}, status = #{row.status}, version = version + 1,
             updater = #{row.updater}, update_time = #{row.updateTime}

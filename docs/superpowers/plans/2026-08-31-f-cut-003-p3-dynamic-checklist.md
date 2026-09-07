@@ -41,7 +41,7 @@
 
 | 责任 | 文件或目录 | 处理 |
 |---|---|---|
-| 任务配置身份与三表物理模型 | `sql/migrations/V147__fcut003_p3_dynamic_checklist.sql` | 给`cut_task`增加配置revision三列并按批准规则补齐既有NEW_PLATFORM任务，再新建三表和三个权限按钮；不授权固定角色，不改V146 |
+| 任务配置身份与三表物理模型 | `sql/migrations/V178__fcut003_p3_dynamic_checklist.sql` | 给`cut_task`增加配置revision三列并按批准规则补齐既有NEW_PLATFORM任务，再新建三表和三个权限按钮；不授权固定角色，不改V146 |
 | 清单DO/Mapper | `pms-module-cutover/src/main/java/.../dal/dataobject/checklist/`、`.../dal/mysql/checklist/`、`src/main/resources/mapper/checklist/` | 三表DO、场景Query、锁查询、CAS和稳定排序；不访问其他Context表 |
 | 配置读取与匹配 | `.../service/checklist/CutoverChecklistConfigurationQueryService.java`、`CutoverChecklistMatcher.java` | 按任务冻结的revision ID/code/no精确读取F-CUT-001修订、项定义和规则；允许该历史修订后来DISABLED，不按P3当前时间重选；按稳定键匹配、去重、合并必填、暴露GAP/CONFLICT |
 | 清单命令内核 | `.../service/checklist/CutoverChecklistApplicationService.java`、`command/`、`result/` | 生成、重匹配、暂存、自定义项、人工结果、设备采集请求和提交；统一幂等与锁序 |
@@ -115,7 +115,7 @@
 
 ### 3.5 V147前向迁移
 
-`V147__fcut003_p3_dynamic_checklist.sql`先给`cut_task`增加可空`configuration_revision_id/configuration_code/configuration_revision_no`，再在任何更新前完成全表预检：
+`V178__fcut003_p3_dynamic_checklist.sql`先给`cut_task`增加可空`configuration_revision_id/configuration_code/configuration_revision_no`，再在任何更新前完成全表预检：
 
 - 既有`NEW_PLATFORM`按原`create_time`，从具有正式发布事实、状态为`PUBLISHED/DISABLED`且生效区间覆盖该时点的历史revision中解析；DRAFT排除；
 - 全租户全部配置代码恰好一个候选时补齐三元组；零个或多个候选整批失败，不使用`CUTOVER_DEFAULT`、当前时间、类型或名称推断；

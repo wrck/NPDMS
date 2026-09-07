@@ -185,14 +185,19 @@ public class CommerceAuthorityIngestService {
                                 BatchChanges changes) {
         SalesOrderDO order = salesOrderMapper.selectBySourceForUpdate(
                 sourceQuery(command, fact.salesOrderSourceKey()));
-        if (order == null) {
-            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的销售订单Owner不存在");
+        if (order == null || !Objects.equals(command.tenantId(), order.getTenantId())
+                || !Objects.equals(command.sourceSystem(), order.getSourceSystem())
+                || !CONFIRMED.equals(order.getAuthorityStatus())
+                || order.getCompanyCode() == null || order.getCompanyCode().isBlank()
+                || order.getOrderType() == null || order.getOrderType().isBlank()
+                || order.getOrderNo() == null || order.getOrderNo().isBlank()) {
+            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的ERP销售订单Owner不存在或身份损坏");
         }
         SalesOrderLineDO current = orderLineMapper.selectBySourceForUpdate(sourceQuery(command, fact.sourceKey()));
         if (current == null) {
             requireCreate(fact.expectedPreviousSourceVersion(), "orderLine", fact.sourceKey());
             SalesOrderLineDO row = base(new SalesOrderLineDO(), command.tenantId());
-            copyOrderLine(row, command, fact, order.getId());
+            copyOrderLine(row, command, fact, order);
             row.setVersion(0);
             requireWrite(orderLineMapper.insert(row), "订单行Owner创建失败");
             changes.changed = true;
@@ -208,7 +213,7 @@ public class CommerceAuthorityIngestService {
         }
         Integer expectedVersion = current.getVersion();
         boolean freezeScopes = requiresScopeConflict(current, fact);
-        copyOrderLine(current, command, fact, order.getId());
+        copyOrderLine(current, command, fact, order);
         touch(current);
         requireWrite(orderLineMapper.updateOwnerByVersion(
                 new OrderLineAuthorityUpdate(command.tenantId(), current, expectedVersion)), "订单行Owner更新失败");
@@ -285,7 +290,7 @@ public class CommerceAuthorityIngestService {
         row.setContractAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
     }
 
@@ -299,16 +304,26 @@ public class CommerceAuthorityIngestService {
         row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
+        row.setSalesType(fact.salesType());
+        row.setSourceProjectName(fact.sourceProjectName());
+        row.setOrderComment(fact.orderComment());
+        row.setOrderCreateTime(fact.orderCreateTime());
+        row.setCustomerRequiredTime(fact.customerRequiredTime());
     }
 
     private void copyOrderLine(SalesOrderLineDO row, CommerceAuthorityBatchCommand command,
-                               CommerceOrderLineFact fact, Long orderId) {
+                               CommerceOrderLineFact fact, SalesOrderDO order) {
         row.setSourceSystem(command.sourceSystem());
         row.setSourceKey(fact.sourceKey());
         row.setSourceVersion(fact.sourceVersion());
-        row.setOrderId(orderId);
+        // ERP header identity is obtained under the same Owner lock as the line write.
+        // Neither client fields nor CRM/project metadata may supply these required columns.
+        row.setOrderId(order.getId());
+        row.setCompanyCode(order.getCompanyCode());
+        row.setOrderType(order.getOrderType());
+        row.setOrderNo(order.getOrderNo());
         row.setLineCode(fact.lineCode());
         row.setItemCode(fact.itemCode());
         row.setItemDesc(fact.itemDescription());
@@ -321,9 +336,14 @@ public class CommerceAuthorityIngestService {
         row.setUnitScale(fact.unitScale());
         row.setQuantityStatus(fact.quantityStatus());
         row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         row.setSourceUpdatedAt(fact.sourceUpdatedAt());
         row.setSyncedAt(LocalDateTime.now(clock));
+        row.setLineType(fact.lineType());
+        row.setBundleCode(fact.bundleCode());
+        row.setProfitCenter(fact.profitCenter());
+        row.setRealExecutionNo(fact.realExecutionNo());
+        row.setWarrantyMonth(fact.warrantyMonth());
     }
 
     private void copyRelation(SalesOrderContractRelationDO row, CommerceAuthorityBatchCommand command,

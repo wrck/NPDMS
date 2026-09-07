@@ -100,3 +100,10 @@
 ## 7. Feature Ready Gate
 
 当前：`BASELINE / READY / GO@f6141e21 / IN_PROGRESS`。唯一Technical Plan已在`fad19d81`通过独立复审；当前按计划进入Task 1共享P2～P6动作策略与批量事实合同的正常正向实现。Implementation Done继续`NOT_READY`。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`1`。
+- 已处理来源提交：`1`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

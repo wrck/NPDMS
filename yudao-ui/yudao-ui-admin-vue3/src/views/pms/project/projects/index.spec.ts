@@ -81,7 +81,7 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(source, /departmentCode/)
   })
 
-  it('keeps survey and installation location maintenance atomic and equipment location read-only', () => {
+  it('keeps legacy survey read-only, installation atomic and equipment location read-only', () => {
     const surveySource = readFileSync(
       new URL('../../engineering/site-survey/index.vue', import.meta.url),
       'utf8'
@@ -95,7 +95,9 @@ describe('F-PROJ-001 creation submission state', () => {
       'utf8'
     )
 
-    assert.match(surveySource, /locationMaintenance/)
+    assert.match(surveySource, /仅保留历史查询/)
+    assert.match(surveySource, /router\.push\('\/pms\/customer-asset\/asset-site'\)/)
+    assert.doesNotMatch(surveySource, /SiteSurveyApi\.(create|update|delete)/)
     assert.match(installationSource, /locationMaintenance/)
     assert.match(installationSource, /getEquipmentVersionList/)
     for (const source of [surveySource, installationSource, equipmentSource]) {

@@ -17,7 +17,7 @@ import { resetRouter } from '@/router'
 import { deleteUserCache } from '@/hooks/web/useCache'
 import { ApiEncrypt } from '@/utils/encrypt'
 
-const tenantEnable = import.meta.env.VITE_APP_TENANT_ENABLE
+const tenantEnable = import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true'
 const { result_code, base_url, request_timeout } = config
 
 // 需要忽略的提示。忽略后，自动 Promise.reject('error')

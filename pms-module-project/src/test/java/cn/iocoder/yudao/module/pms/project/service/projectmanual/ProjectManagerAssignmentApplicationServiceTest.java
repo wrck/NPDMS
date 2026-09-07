@@ -11,10 +11,6 @@ import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO;
-import cn.iocoder.yudao.module.system.api.dept.DeptApi;
-import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
-import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
-import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,9 +52,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     private ProjectMasterMapper projectMapper;
     @Mock
     private ProjectCreationAuthorizationService authorizationService;
-    @Mock private AdminUserApi adminUserApi;
-    @Mock private DeptApi deptApi;
-    @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private ProjectServiceManagerCandidateValidator managerCandidateValidator;
     @Mock private AssetLocationApi assetLocationApi;
     @Mock private ProjectSiteApplicationService projectSiteService;
     @Mock private ProjectAuthorizationGuard projectAuthorizationGuard;
@@ -73,9 +67,6 @@ class ProjectManagerAssignmentApplicationServiceTest {
         lenient().when(projectMapper.selectById(1L)).thenReturn(project);
         ProjectSiteDO site = new ProjectSiteDO(); site.setSiteId(30L);
         lenient().when(projectSiteService.getActiveSites(1L)).thenReturn(List.of(site));
-        DeptRespDTO dept = new DeptRespDTO(); dept.setId(20L); dept.setCode("DEP-01");
-        lenient().when(deptApi.getDeptByCode("DEP-01")).thenReturn(dept);
-        lenient().when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(true);
     }
 
     @Test
@@ -169,13 +160,14 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
         assertEquals(FORBIDDEN.getCode(), exception.getCode());
         verifyNoInteractions(platformFactService);
-        verify(adminUserApi, never()).validateUser(any());
+        verifyNoInteractions(managerCandidateValidator);
         verify(projectService, never()).assignServiceManager(any());
     }
 
     @Test
     void organizationScopeFailureStopsBeforeIdempotencyClaimAndAssignment() {
-        when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(false);
+        doThrow(new ServiceException(PROJECT_ORGANIZATION_SCOPE_INVALID))
+                .when(managerCandidateValidator).validate(66L, 10L, 20L, "DEP-01");
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assign(command(), actor()));

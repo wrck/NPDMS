@@ -54,7 +54,24 @@ public record CommerceAuthorityImportBatchReqVO(
             @PositiveOrZero BigDecimal amount,
             @Size(max = 32) String currencyCode,
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
-            @NotNull LocalDateTime sourceUpdatedAt) {
+            @NotNull LocalDateTime sourceUpdatedAt,
+            String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime) {
+        public SalesOrderRecord(
+            String sourceRecordKey,
+            String expectedPreviousSourceVersion,
+            String sourceVersion,
+            String companyCode,
+            String orderNo,
+            String orderType,
+            String customerCode,
+            String customerName,
+            BigDecimal amount,
+            String currencyCode,
+            CommerceSourceLifecycleStatus lifecycleStatus,
+            LocalDateTime sourceUpdatedAt) {
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+        }
+
     }
 
     public record SalesOrderLineRecord(
@@ -74,7 +91,29 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotNull @Min(0) @Max(6) Integer unitScale,
             @NotBlank @Size(max = 32) String quantityStatus,
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
-            @NotNull LocalDateTime sourceUpdatedAt) {
+            @NotNull LocalDateTime sourceUpdatedAt,
+            String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth) {
+        public SalesOrderLineRecord(
+            String sourceRecordKey,
+            String expectedPreviousSourceVersion,
+            String sourceVersion,
+            String orderSourceRecordKey,
+            String lineNo,
+            String itemCode,
+            String itemDescription,
+            String productCode,
+            String modelCode,
+            BigDecimal orderQuantity,
+            BigDecimal openQuantity,
+            BigDecimal deliveredQuantity,
+            String unitCode,
+            Integer unitScale,
+            String quantityStatus,
+            CommerceSourceLifecycleStatus lifecycleStatus,
+            LocalDateTime sourceUpdatedAt) {
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, orderSourceRecordKey, lineNo, itemCode, itemDescription, productCode, modelCode, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+        }
+
     }
 
     public record OrderContractRelationRecord(

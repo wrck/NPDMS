@@ -18,19 +18,19 @@
 |---|---|---|---|
 | COM-01@V1 | V1 | 合同订单关联与范围分配的V1主交付业务结果 | V1 |
 
-- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail
-- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
-- API：/contracts、/sales-orders、/order-lines、/delivery-scopes
-- 事件：DeliveryScopeAssigned/Released
+- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding、ProjectStageSnapshot
+- 数据表：com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding、proj_project_stage_snapshot
+- API：/contracts、/sales-orders、/order-lines、/delivery-scopes；内部OrganizationScopeApi、ProjectOfficeFactApi、ProjectAcceptanceStageFactApi、AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
+- 事件：DeliveryScopeAssigned/Released；ProjectStageChanged仅作提交后通知，不触发绑定
 - 外部集成：ERP（合同订单权威）；CRM仅提供项目/客户上下文
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁
-- 授权与数据范围：ContractProjectScope；ERP核心字段只读
+- 工作流/状态：ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、V70必填快照与明细序号确定性转换、PROJ→COM→ACC统一锁序、阶段进入/新范围生效与绑定原子提交、报告与绑定解耦、超分配及验收减量守卫
+- 授权与数据范围：ContractProjectScope：合同管理员按SYSTEM当前有效UserCompanyDepartmentScope.companyCode精确范围，空/不可用失败关闭；敏感字段另需pms:commerce:contract:sensitive-read；ERP核心字段只读
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
-- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、地点和权限，生成可追溯的范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细
-- Phase 3授权拒绝断言：越权按“ContractProjectScope；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail”及数据表“com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail”；事件边界为“DeliveryScopeAssigned/Released”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、目标项目办事处快照、范围版本和权限，生成可追溯的范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细
+- Phase 3授权拒绝断言：越权按“ContractProjectScope：合同管理员按SYSTEM当前有效UserCompanyDepartmentScope.companyCode精确范围，空/不可用失败关闭；敏感字段另需pms:commerce:contract:sensitive-read；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、V70必填快照与明细序号确定性转换、PROJ→COM→ACC统一锁序、阶段进入/新范围生效与绑定原子提交、报告与绑定解耦、超分配及验收减量守卫”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding、ProjectStageSnapshot”及数据表“com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding、proj_project_stage_snapshot”；事件边界为“DeliveryScopeAssigned/Released；ProjectStageChanged仅作提交后通知，不触发绑定”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### PM-01
@@ -104,7 +104,7 @@
 - 工作流/状态：模板内StageDefinition/TaskDefinition发布、实例冻结、必填WorkBinding（默认TASK_NATIVE）/PermissionPolicy/CompletionRule/GateRef校验和阶段门禁
 - 授权与数据范围：项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试
-- Phase 3 PRD验收基线：WHEN 管理员在模板管理后台创建或编辑项目模板；THEN 可配置模板基本信息（编码、名称、签约方式/项目类别/实施方式/重大项目级别四维条件、适用业务场景、版本号、生效状态）和生命周期阶段（S0 项目立项与指派～S6 项目闭环）；AND 各阶段可配置任务清单（任务名称、指派角色、计划工期、交付件要求）、里程碑节点（里程碑名称、达成条件、验收角色）、准入条件（前置阶段准出、必填字段等）与准出门禁（交付件齐备、任务闭环、审批通过等）；AND 每个可执行任务可配置工作绑定、权限策略、完成规则和门禁引用；模板预览按Stage→Task展示执行入口，不另建重复导航定义；AND 模板按四个独立业务维度配置适用条件，并分别引用可配置字典或CRM来源属性；WHEN 自动创建项目时（PM-01自动创建场景）；THEN 系统按四维属性匹配对应模板，冻结模板及流程定义版本并加载阶段、任务、里程碑、交付件和门禁；WHEN 手动创建项目时（PM-01手动创建场景）工程管理部选择项目模板；THEN 系统提供四维条件和业务场景命中的启用模板列表供选择，支持预览模板的阶段、任务、里程碑、交付件清单；AND 工程管理部选择模板后系统按所选模板加载阶段、任务、里程碑、交付件、门禁规则至项目实例；AND 若未显式选择模板则只使用唯一命中的默认模板；无匹配时拒绝创建，多匹配时须显式选择后创建，不静默套用（修订001/003）；WHEN 模板发生变更；THEN 已创建项目沿用原模板版本，新创建项目应用新模板，支持模板版本管理；WHEN 项目推进至某阶段准出节点；THEN 系统按项目实例冻结的门禁版本校验准出门禁（交付件齐备、必做任务闭环、里程碑达成、审批通过）；AND 门禁校验不通过时阻断阶段推进并列出未满足条件清单；校验通过后允许推进至下一阶段；WHEN 模板按签约方式、项目类别、实施方式和重大项目级别等独立条件差异化配置；THEN 平台加载与四维条件匹配的模板；当前基线可预置直签/非直签×工程/普通、售前测试和维护服务等条件组合模板，割接、巡检作为领域任务模板独立管理，不写入项目类别；AND 不同模板的阶段、任务、里程碑、交付件、门禁规则可差异化；差异来自冻结模板版本，不在代码中按某个分类字段直接硬编码；WHEN 项目创建时没有匹配的生效模板、同一条件组合存在多个同优先级默认模板或模板引用了不存在的任务/交付件；THEN 平台拒绝创建正式项目并返回具体冲突项供创建人修正，不持久化项目或项目创建草稿、不生成项目编码、不进入S0、不实例化阶段任务（修订001）；模板自身不完整时保持模板草稿并列出校验失败项，由模板维护人修正；WHEN WorkBinding缺失、完成规则无法解析、非TASK_NATIVE绑定目标未发布或门禁引用失效；THEN 模板不得发布，并逐项返回失败任务、绑定类型和失效引用；通用任务必须显式使用TASK_NATIVE，其他绑定任务不得以通用任务内容代替实际业务工作
+- Phase 3 PRD验收基线：WHEN 管理员在模板管理后台创建或编辑项目模板；THEN 可配置模板基本信息（编码、名称、签约方式/项目类别/实施方式/重大项目级别四维条件、适用业务场景、版本号、生效状态）和生命周期阶段（S0 项目立项与指派～S6 项目闭环）；AND 各阶段可配置任务清单（任务名称、指派角色、计划工期、交付件要求）、里程碑节点（里程碑名称、达成条件、验收角色）、准入条件（前置阶段准出、必填字段等）与准出门禁（交付件齐备、任务闭环、审批通过等）；AND 每个可执行任务可配置工作绑定、权限策略、完成规则和门禁引用；模板预览按Stage→Task展示执行入口，不另建重复导航定义；AND 模板按四个独立业务维度配置适用条件，并分别引用可配置字典或CRM来源属性；AND 模板只保存BPM流程定义key引用；默认发起按key选取最新生效定义，授权用户可显式选择同key历史`processDefinitionId`，流程实例以实际定义ID和完整任务定义key留痕；WHEN 自动创建项目时（PM-01自动创建场景）；THEN 系统按四维属性匹配对应模板，冻结模板版本及BPM流程定义key引用并加载阶段、任务、里程碑、交付件和门禁；WHEN 手动创建项目时（PM-01手动创建场景）工程管理部选择项目模板；THEN 系统提供四维条件和业务场景命中的启用模板列表供选择，支持预览模板的阶段、任务、里程碑、交付件清单；AND 工程管理部选择模板后系统按所选模板加载阶段、任务、里程碑、交付件、门禁规则至项目实例；AND 若未显式选择模板则只使用唯一命中的默认模板；无匹配时拒绝创建，多匹配时须显式选择后创建，不静默套用（修订001/003）；WHEN 模板发生变更；THEN 已创建项目沿用原模板版本，新创建项目应用新模板，支持模板版本管理；WHEN 项目推进至某阶段准出节点；THEN 系统按项目实例冻结的门禁版本校验准出门禁（交付件齐备、必做任务闭环、里程碑达成、审批通过）；AND 涉及审批时只读取关联BPM实例的实际状态和`processDefinitionId`；不得解析`taskDefinitionKey`或读取PMS自建流程版本决定门禁；AND 门禁校验不通过时阻断阶段推进并列出未满足条件清单；校验通过后允许推进至下一阶段；WHEN 模板按签约方式、项目类别、实施方式和重大项目级别等独立条件差异化配置；THEN 平台加载与四维条件匹配的模板；当前基线可预置直签/非直签×工程/普通、售前测试和维护服务等条件组合模板，割接、巡检作为领域任务模板独立管理，不写入项目类别；AND 不同项目类型的阶段、任务、里程碑、交付件、门禁规则可差异化；差异来自冻结模板版本，不在代码中按某个分类字段直接硬编码；BPM流程只承载其中需要审批的子流程，不替代项目状态机和门禁；WHEN 项目创建时没有匹配的生效模板、同一条件组合存在多个同优先级默认模板或模板引用了不存在的任务/交付件；THEN 平台拒绝创建正式项目并返回具体冲突项供创建人修正，不持久化项目或项目创建草稿、不生成项目编码、不进入S0、不实例化阶段任务（修订001）；模板自身不完整时保持模板草稿并列出校验失败项，由模板维护人修正；WHEN WorkBinding缺失、完成规则无法解析、非TASK_NATIVE绑定目标未发布或门禁引用失效；THEN 模板不得发布，并逐项返回失败任务、绑定类型和失效引用；通用任务必须显式使用TASK_NATIVE，其他绑定任务不得以通用任务内容代替实际业务工作
 - Phase 3授权拒绝断言：越权按“项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“模板内StageDefinition/TaskDefinition发布、实例冻结、必填WorkBinding（默认TASK_NATIVE）/PermissionPolicy/CompletionRule/GateRef校验和阶段门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectTemplate、ProjectStageSnapshot”及数据表“proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
@@ -707,7 +707,7 @@
 - 工作流/状态：方案导入/编审、重大复审和发布版本
 - 授权与数据范围：ProjectStageScope；方案审批与文件权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3 PRD验收基线：WHEN 项目经理在SCH-01完成实施方案填写并提交审核；THEN 系统将方案推送至服务经理审核，方案状态变更为"待服务经理审核"；AND 服务经理可在平台内查看方案详情、添加审批意见与批注附件，进行审核操作（通过/驳回）；WHEN 服务经理审核通过且冻结流程版本要求二线/总部复审；THEN 系统按候选人规则生成分级复审待办，方案状态变更为"待分级复审"；角色组成员只有同时满足组织和项目范围才可处理；AND 分级复审通过且不存在其他强制节点后，方案变更为"已通过"并进入S4；驳回则保存意见并返回项目经理形成新版本；WHEN 服务经理审核通过且冻结流程版本不要求后续强制节点；THEN 方案状态变更为"已通过"，进入"可下载"并触发S4准入；WHEN 服务经理审核驳回；THEN 方案状态变更为"已驳回"，驳回意见回传至项目经理；AND 项目经理根据驳回意见修改方案后重新提交审核，方案版本号自动累加并保留历史版本
+- Phase 3 PRD验收基线：WHEN 项目经理在SCH-01完成实施方案填写并提交审核；THEN 系统将方案推送至服务经理审核，方案状态变更为"待服务经理审核"；AND 服务经理可在平台内查看方案详情、添加审批意见与批注附件，进行审核操作（通过/驳回）；WHEN 服务经理审核通过且本次BPM流程实例实际定义要求二线/总部复审；THEN 系统按候选人规则生成分级复审待办，方案状态变更为"待分级复审"；角色组成员只有同时满足组织和项目范围才可处理；AND 分级复审通过且不存在其他强制节点后，方案变更为"已通过"并进入S4；驳回则保存意见并返回项目经理形成新版本；WHEN 服务经理审核通过且本次BPM流程实例实际定义不要求后续强制节点；THEN 方案状态变更为"已通过"，进入"可下载"并触发S4准入；WHEN 服务经理审核驳回；THEN 方案状态变更为"已驳回"，驳回意见回传至项目经理；AND 项目经理根据驳回意见修改方案后重新提交审核，方案版本号自动累加并保留历史版本
 - Phase 3授权拒绝断言：越权按“ProjectStageScope；方案审批与文件权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“方案导入/编审、重大复审和发布版本”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“Solution”及数据表“sol_solution、sol_solution_revision、sol_solution_review”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
@@ -849,7 +849,7 @@
 | EXE-06@V1 | V1 | 割接上线门禁的V1主交付业务结果 | V1 |
 
 - 数据对象：ImplementationReadinessSnapshot
-- 数据表：proj_project_stage_snapshot
+- 数据表：imp_implementation_readiness_snapshot
 - API：/implementation-readiness/{projectId}
 - 事件：ImplementationReadinessSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -860,7 +860,7 @@
 - Phase 3 PRD验收基线：WHEN 项目经理在S4阶段进入EXE-06割接上线环节；THEN 系统对前序里程碑节点进行门禁校验：EXE-01到货签收"已签收"、EXE-02硬件安装"已完成"、EXE-03配置调试"已完成"、EXE-04业务联调"已完成"四项全部满足；AND 门禁校验通过后允许发起割接流程；任一前序里程碑未完成则禁止发起割接，并提示未完成节点；WHEN 门禁校验通过且项目经理发起割接；THEN 系统在统一平台内调起内嵌割接管理模块（CUT），通过界面接口深度集成方式衔接，非独立部署、非简单跳转；AND 割接流程直接引用平台项目编码、设备清单、配置Log和方案信息，无需跨系统传递或重复录入；WHEN 割接流程完成（割接验证通过）；THEN 割接结果通过内部业务事件更新项目档案，S4实施部署阶段标记为"已完成"；AND S4阶段完成后准入S5验收交维阶段，割接记录归档至交付件页面（ACC-04）；WHEN 任一前序里程碑未完成、批准方案或设备范围在校验后变化，或同一范围已有进行中的割接任务；THEN 系统阻止创建或继续割接任务，项目S4保持原状态，并返回未通过门禁和冲突任务编号；WHEN P6提交的最终结果为失败，或发生回退后未形成成功的最终结果；THEN 项目记录对应CUT闭环事实但S4不标记完成，不准入S5；后续处理须创建或继续受控的CUT任务，不得手工改写项目阶段结果
 - Phase 3授权拒绝断言：越权按“ImplementationProjectCutoverScope”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“就绪门禁汇总、快照发布与CUT消费”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ImplementationReadinessSnapshot”及数据表“proj_project_stage_snapshot”；事件边界为“ImplementationReadinessSnapshotPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ImplementationReadinessSnapshot”及数据表“imp_implementation_readiness_snapshot”；事件边界为“ImplementationReadinessSnapshotPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### IMP-01
@@ -926,18 +926,18 @@
 | ACC-02@V2 | V2 | 满意度问卷短信/邮件和钉钉自动触达 | 不重复V1问卷、评分、整改重收、签字和导出事实 |
 
 - 数据对象：SatisfactionCollection
-- 数据表：acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result
-- API：/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results
-- 事件：SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested
-- 外部集成：短信/邮件、钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实
-- 授权与数据范围：ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪
+- 数据表：acc_satisfaction_questionnaire_template、acc_satisfaction_questionnaire_template_revision、acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_access_grant、acc_satisfaction_response、acc_satisfaction_response_file、acc_satisfaction_result、acc_satisfaction_result_file、acc_satisfaction_remediation_fact、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment
+- API：/satisfaction-questionnaire-templates、/satisfaction-questionnaire-templates/{id}/revisions及publish、/satisfaction-tasks、/satisfaction-tasks/{id}/actions/{assign|recollect}、/satisfaction-tasks/{id}/access-grants、/satisfaction-questionnaires/{token}、/satisfaction-questionnaires/{token}/files、/satisfaction-questionnaires/{token}/responses、/satisfaction-tasks/{id}/assisted-responses、/satisfaction-results、/satisfaction-results/{id}/actions/invalidate；内部SatisfactionQuestionnaireTemplateApi、SatisfactionTaskInitializationApi、SatisfactionResultFactApi
+- 事件：SatisfactionTaskCreated、SatisfactionResultVersionChanged、ClosureGateRecheckRequested
+- 外部集成：V1受控链接/二维码/现场协助；V2仅增加自动触达，INT-10短信/邮件、INT-05钉钉仅保留接口边界
+- 文件契约：PLT公共文件事实；SATISFACTION_SIGNATURE/ATTACHMENT/RESULT_DOCUMENT/ARCHIVE
+- 工作流/状态：发布schemaVersion=1受控题型与SUM_V1/WEIGHTED_AVERAGE_V1计分配置→PROJ冻结模板Fact和业务时点→MANDATORY初始化revision1并冻结完整配置和原始source→客户仅提交答案→服务端按冻结配置最终一次舍入并判定→当前有效达标Result可按版本正式失效且不改写历史→未达标/失效追加RemediationFact并触发下一revision→仅有效达标Result精确进入D-SAT-REPORT/T-SAT-SURVEY来源根→归档失败补偿；Todo或送达不替代提交/通过
+- 授权与数据范围：pms:acceptance:satisfaction:query/manage/collect/export/download；ProjectScope/责任人/字段/FileBusinessScope/TenantScope；客户grant仅限唯一问卷
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目到达冻结模板配置的满意度收集时点；THEN 平台生成唯一领域任务和问卷实例，冻结模板、阈值、项目、业务对象及责任人；未指派时责任人为项目经理；WHEN 客户完成全部必答项、有效签字且评分达到冻结阈值；THEN 平台形成不可变的"满意度通过"结果，按来源归档至ACC-04，并可被CLO-01或SUB-03按规则引用；WHEN 答卷缺少必答项、签字无效、评分未达标或来源业务范围不一致；THEN 平台记录失败判定并保持满意度状态为"未通过"，阻断闭环及付款门禁，保存答卷、判定和阻断原因；WHEN 项目完成整改并重新收集；THEN 平台创建新的任务、问卷及判定版本，旧答卷和旧判定仍可追溯且不能被修改；WHEN 有数据权限但无敏感字段、文件或下载权限的用户申请导出；THEN 平台生成仅包含授权字段和记录的导出文件及导出审计记录，拒绝超范围内容并保存拒绝原因；WHEN V2责任人对当前有效问卷实例发起自动触达；THEN 平台按短信/邮件INT-10、钉钉INT-05的正式契约发送受控链接，保存通道、接收人、实例版本、送达状态和重试记录；WHEN V2自动触达失败、超时或未确认送达；THEN 任务保持待收集且不生成客户答案或通过结果，责任人可继续使用V1二维码、手工链接或现场协助完成收集
-- Phase 3授权拒绝断言：越权按“ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result”；事件边界为“SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested”，文件边界为“FileArtifact”，外部集成为“短信/邮件、钉钉”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3授权拒绝断言：越权按“pms:acceptance:satisfaction:query/manage/collect/export/download；ProjectScope/责任人/字段/FileBusinessScope/TenantScope；客户grant仅限唯一问卷”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“发布schemaVersion=1受控题型与SUM_V1/WEIGHTED_AVERAGE_V1计分配置→PROJ冻结模板Fact和业务时点→MANDATORY初始化revision1并冻结完整配置和原始source→客户仅提交答案→服务端按冻结配置最终一次舍入并判定→当前有效达标Result可按版本正式失效且不改写历史→未达标/失效追加RemediationFact并触发下一revision→仅有效达标Result精确进入D-SAT-REPORT/T-SAT-SURVEY来源根→归档失败补偿；Todo或送达不替代提交/通过”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_questionnaire_template、acc_satisfaction_questionnaire_template_revision、acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_access_grant、acc_satisfaction_response、acc_satisfaction_response_file、acc_satisfaction_result、acc_satisfaction_result_file、acc_satisfaction_remediation_fact、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment”；事件边界为“SatisfactionTaskCreated、SatisfactionResultVersionChanged、ClosureGateRecheckRequested”，文件边界为“PLT公共文件事实；SATISFACTION_SIGNATURE/ATTACHMENT/RESULT_DOCUMENT/ARCHIVE”，外部集成为“V1受控链接/二维码/现场协助；V2仅增加自动触达，INT-10短信/邮件、INT-05钉钉仅保留接口边界”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-03
@@ -950,20 +950,20 @@
 |---|---|---|---|
 | ACC-03@V1 | V1 | 验收报告管理的V1主交付业务结果 | V1 |
 
-- 数据对象：Acceptance
-- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances
-- 事件：N/A（同步命令或查询，无跨 Context 业务事件）
+- 数据对象：Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot、DeliveryArtifact
+- 数据表：acc_acceptance、acc_acceptance_report_version、acc_acceptance_report_attachment、acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_acceptance_scope_binding、proj_project_stage_snapshot
+- API：/acceptances、/acceptances/{id}/report-versions；内部AcceptanceActivityCompletionFactApi、AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
+- 事件：AcceptanceReportVersionChanged(EFFECTIVE/REPLACED/REVOKED)、ClosureGateRecheckRequested；报告事件不触发或反推AcceptanceScopeBinding
 - 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：报告提交、确认和问题留痕
-- 授权与数据范围：ProjectStageScope、FileBusinessScope
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
+- 文件契约：FileArtifact/FileVersion完整有序集合
+- 工作流/状态：项目阶段进入/验收阶段内新范围生效继续直接复用F-COM-001范围绑定原子路径；PROJ拥有ProjectTask/WorkBinding并以MANDATORY调用ACC完成活动；报告DRAFT与旧EFFECTIVE可并存，发布替换原子关闭旧版，撤销关闭当前且不恢复旧版；终验受当前有效初验守卫；精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有应交根及只追加来源版本/附件集合，归档失败保留报告并待补偿；Q-FCOM-002边界不变
+- 授权与数据范围：pms:acceptance:report:query/write/complete/download；ProjectTreeScope、ProjectTaskScope、FileBusinessScope、TenantScope
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段进入初验环节并完成初验；THEN 系统提供初验报告上传页面，支持上传初验报告附件（Word/PDF等格式）并填写初验时间、初验结论、初验人等关键信息；AND 初验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为初验交付件；WHEN 项目经理在S5验收阶段进入终验环节并完成终验；THEN 系统提供终验报告上传页面，支持上传终验报告附件并填写终验时间、终验结论、终验人等关键信息；AND 终验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为终验交付件，初验/终验报告均保留历史版本支持版本管理；WHEN 初验报告不存在却提交终验、报告附件上传失败或验收时间/结论/验收人缺失；THEN 报告保持草稿或上传失败状态，不生成当前有效版本，也不计入ACC-04和CLO-01齐套结果
-- Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“报告提交、确认和问题留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
+- Phase 3授权拒绝断言：越权按“pms:acceptance:report:query/write/complete/download；ProjectTreeScope、ProjectTaskScope、FileBusinessScope、TenantScope”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“项目阶段进入/验收阶段内新范围生效继续直接复用F-COM-001范围绑定原子路径；PROJ拥有ProjectTask/WorkBinding并以MANDATORY调用ACC完成活动；报告DRAFT与旧EFFECTIVE可并存，发布替换原子关闭旧版，撤销关闭当前且不恢复旧版；终验受当前有效初验守卫；精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有应交根及只追加来源版本/附件集合，归档失败保留报告并待补偿；Q-FCOM-002边界不变”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot、DeliveryArtifact”及数据表“acc_acceptance、acc_acceptance_report_version、acc_acceptance_report_attachment、acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_acceptance_scope_binding、proj_project_stage_snapshot”；事件边界为“AcceptanceReportVersionChanged(EFFECTIVE/REPLACED/REVOKED)、ClosureGateRecheckRequested；报告事件不触发或反推AcceptanceScopeBinding”，文件边界为“FileArtifact/FileVersion完整有序集合”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-04
 
@@ -976,18 +976,18 @@
 | ACC-04@V1 | V1 | 交付件归档管理的V1主交付业务结果 | V1 |
 
 - 数据对象：DeliveryArtifact
-- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record
+- 数据表：acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_artifact_review、acc_archive_record
 - API：/delivery-artifacts
-- 事件：ArtifactAccepted/Archived
+- 事件：AcceptanceReportVersionChanged、SatisfactionResultVersionChanged、ArtifactAccepted/Archived、ClosureGateRecheckRequested
 - 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：齐套检查、审核和归档分离
+- 文件契约：FileArtifact/FileVersion完整有序集合
+- 工作流/状态：以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换/失效保留旧关系且不恢复旧版；F-ACC-001只实现初验/终验来源切片，F-ACC-002仅允许同租户同项目精确D-SAT-REPORT/T-SAT-SURVEY根接收有效达标SatisfactionResult及归档补偿，缺失/重复/错配失败关闭；其余来源与统一批量下载留待完整Feature
 - 授权与数据范围：ProjectStageScope、FileBusinessScope；ACC归档
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目进入S5验收阶段且各业务环节产生对应交付件；THEN 系统自动汇总6类交付件至ACC-04交付件归档管理页面：到货签收单（EXE-01）、实施方案（SCH-01/05）、初验报告（ACC-03）、终验报告（ACC-03）、培训记录（ACC-01）、满意度调查（ACC-02）；AND 交付件归档页面支持按类别分类展示、按上传时间/项目编码查询、按类别批量下载；WHEN 项目经理/服务经理在交付件归档页面查看交付件；THEN 系统展示每类交付件的归档状态（已归档/未归档）、归档时间、归档来源业务环节、附件下载链接；AND 任一类别交付件未归档时系统给出提示，便于项目经理跟进归档进度，归档完成后作为CLO-01闭环条件校验的必传交付件数据来源；WHEN 来源记录未批准/未确认、来源版本失效、文件哈希校验失败或用户无下载权限；THEN 对应交付件保持未归档/失效或不可下载状态，不计入CLO-01齐套结果，并展示来源记录和失败原因
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope；ACC归档”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“齐套检查、审核和归档分离”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_delivery_artifact、acc_artifact_review、acc_archive_record”；事件边界为“ArtifactAccepted/Archived”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3业务守卫断言：按“以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换/失效保留旧关系且不恢复旧版；F-ACC-001只实现初验/终验来源切片，F-ACC-002仅允许同租户同项目精确D-SAT-REPORT/T-SAT-SURVEY根接收有效达标SatisfactionResult及归档补偿，缺失/重复/错配失败关闭；其余来源与统一批量下载留待完整Feature”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_artifact_review、acc_archive_record”；事件边界为“AcceptanceReportVersionChanged、SatisfactionResultVersionChanged、ArtifactAccepted/Archived、ClosureGateRecheckRequested”，文件边界为“FileArtifact/FileVersion完整有序集合”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CLO-01
@@ -1678,20 +1678,20 @@
 |---|---|---|---|
 | CUT-04@V1 | V1 | 割接方案编审的V1主交付业务结果 | V1 |
 
-- 数据对象：CutoverPlan
-- 数据表：cut_plan_revision、cut_step
-- API：/cutover-tasks/{id}/plan-revisions
-- 事件：CutoverApproved
+- 数据对象：CutoverPlan、CutoverSupportArrangement
+- 数据表：cut_plan_revision、cut_step、cut_cutover_support_arrangement
+- API：/cutover-tasks/{id}/plan、/cutover-tasks/{id}/plan/actions/{create-draft|download-draft|submit|revise}
+- 事件：N/A（P4同步调用CutoverApprovalFactApi创建/暂停/建立替代CUT-05审批链；CutoverApproved仅由CUT-05发布）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：方案编审和版本冻结
-- 授权与数据范围：CutoverTaskScope；方案编审权限
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
+- 工作流/状态：P4方案编制、不可变revision和与P5审批实例原子交接；来源失效原子暂停审批并将任务P5返回P4，恢复办理创建替代revision/审批；审批状态由CUT-05拥有
+- 授权与数据范围：CutoverTaskScope；方案查询/保存/下载/提交权限
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接-一线工程师在割接任务中发起方案编审；THEN 页面展示"是否已有割接方案"选项，风险考察结果从上一步P3流程带入展示，业务调研录入结果+风险考察录入结果+割接项目+用户资产库等信息字段可被引用和带入；WHEN 割接-一线工程师选择"是否已有割接方案"为"是"；THEN 系统提供"上传完整方案"按钮，直接上传完整方案文件，跳过模板填写环节；AND 平台校验文件有效性、安全性、方案归属和人工确认，不强制解析或补齐在线模板字段；校验通过后形成方案版本并流转至CUT-05；WHEN 割接-一线工程师选择"是否已有割接方案"为"否"；THEN 系统展示方案模板，方案分为割接概述和执行操作两大章节；AND 割接概述含项目割接描述（带入）、计划表、割接前拓扑上传、割接后拓扑上传、设备清单（带入）、组网配置上传、割接保障人员安排表等子章节；AND 执行操作含预估风险及应对措施、割接前操作清单、执行操作清单、收尾收集清单、后业务测试表、回退方案说明、回退步骤、割接后保障等子章节；WHEN 割接-一线工程师填写割接保障人员安排表；THEN 系统展示客户/迪普一线工程师/迪普二线工程师/迪普研发四类角色，并保存每类角色的姓名、任务描述、联系电话和到位时间；WHEN 割接-一线工程师填写预估风险及应对措施；THEN 系统加载CUT-03中所有结果为"否"的风险项，保存每个风险项与应对措施的一一关联及未填写状态；WHEN 割接-一线工程师点击"下载割接初稿"按钮；THEN 系统生成并返回当前方案版本的初稿文件，记录下载人、下载时间和方案版本；WHEN 割接任务等级为D级（简易流程）；THEN 系统仅展示割接各阶段操作步骤与回退步骤填写窗口，不加载A/B/C级完整方案章节；AND 割接-一线工程师填写完毕提交后，方案按D级简易审批层级（发起人→服务经理）流转至CUT-05分级审批；WHEN 割接-一线工程师填写完毕点击"下一步"；THEN 系统将方案状态更新为"待审批"，保存提交版本并创建CUT-05分级审批实例；WHEN A/B/C级方案缺少必需章节、存在未填写应对措施的风险项、上传文件校验失败或引用的采集清单版本已失效；THEN 平台阻止提交并保持方案草稿状态，展示缺失章节、未处置风险、文件错误或失效来源，不创建CUT-05审批实例
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；方案编审权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“方案编审和版本冻结”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan”及数据表“cut_plan_revision、cut_step”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；方案查询/保存/下载/提交权限”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“P4方案编制、不可变revision和与P5审批实例原子交接；来源失效原子暂停审批并将任务P5返回P4，恢复办理创建替代revision/审批；审批状态由CUT-05拥有”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan、CutoverSupportArrangement”及数据表“cut_plan_revision、cut_step、cut_cutover_support_arrangement”；事件边界为“N/A（P4同步调用CutoverApprovalFactApi创建/暂停/建立替代CUT-05审批链；CutoverApproved仅由CUT-05发布）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-05
 
@@ -1779,20 +1779,20 @@
 |---|---|---|---|
 | CUT-08@V2 | V2 | 割接备件系统集成的V2主交付业务结果 | V2 |
 
-- 数据对象：CutoverTask
-- 数据表：cut_task、ast_asset_sync_item
-- API：/cutover-tasks
+- 数据对象：CutoverTask、CutoverSpareApplicationReference、CutoverSpareStatusRevision、CutoverSpareManualEvidence
+- 数据表：cut_task、cut_spare_application_reference、cut_spare_status_revision、cut_spare_manual_evidence
+- API：/api/v1/pms/cutover-tasks/{id}/spare-support、内部CutoverSpareCallbackApi
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
-- 外部集成：备件系统
-- 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：备件申请映射、回调、门禁和对账
-- 授权与数据范围：CutoverTaskScope；外部备件范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；外部集成映射、超时/重试/对账/降级测试
+- 外部集成：备件系统（INT-06拥有连接器和第三方事实）
+- 文件契约：FileArtifact
+- 工作流/状态：备件需求识别、外部申请发起/首次引用绑定、只读状态版本、人工证据和对账；不建立本地备件生命周期或P6门禁
+- 授权与数据范围：CutoverTaskScope；任务负责人、项目/设备范围及外部回调受信租户
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN V2中有权割接-一线工程师对需要备件的割接任务发起外部申请；THEN 平台携带已授权的割接、项目和设备上下文进入备件系统，返回后保存外部业务号及来源；WHEN 外部备件系统返回状态更新；THEN 平台按外部申请号幂等更新只读状态快照，记录来源原值和同步时间，不产生本地库存或到货业务记录；WHEN 外部系统不可用、未返回申请号或字段映射失败；THEN CUT保持原流程数据，记录失败并允许后续重试或上传人工证据，不伪造外部申请成功
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；外部备件范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“备件申请映射、回调、门禁和对账”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask”及数据表“cut_task、ast_asset_sync_item”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“备件系统”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；任务负责人、项目/设备范围及外部回调受信租户”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“备件需求识别、外部申请发起/首次引用绑定、只读状态版本、人工证据和对账；不建立本地备件生命周期或P6门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverSpareApplicationReference、CutoverSpareStatusRevision、CutoverSpareManualEvidence”及数据表“cut_task、cut_spare_application_reference、cut_spare_status_revision、cut_spare_manual_evidence”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“备件系统（INT-06拥有连接器和第三方事实）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-09
 
@@ -2063,7 +2063,7 @@
 - 工作流/状态：规则配置、发布版本和任务冻结
 - 授权与数据范围：AssignedProjectDeviceScope；规则维护/使用分离
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试
-- Phase 3 PRD验收基线：WHEN 管理员在后台巡检规则配置页面新增或编辑巡检规则；THEN 系统提供8个配置字段（规则名称/描述/命令列表/执行顺序/超时时间/预期结果正则/结果阈值/适用产品类型）的录入界面；AND 每个字段含输入校验（如规则名称必填且唯一、超时时间为正整数≤30、预期结果正则为合法正则表达式、适用产品类型关联产品类型库）；WHEN 管理员配置命令列表与执行顺序；THEN 系统支持单条或多条命令配置，多条命令按执行顺序依次执行；AND 命令格式校验通过并发布后保存版本，INS-02在线巡检时按顺序通过INT-12下发、离线巡检时按顺序打包至巡检脚本；WHEN 管理员配置预期结果正则与结果阈值；THEN 系统校验正则表达式合法性，校验阈值格式（比较运算符+数值）；AND INS-02巡检执行后按正则与阈值判定检测结果（通过/异常），异常项按严重级别（INS-03）标注；WHEN 管理员配置适用产品类型；THEN 一线工程师前端勾选规则时，平台按设备清单的产品类型筛选并展示适用规则；AND 不适用规则在前端置灰或隐藏，避免误选；WHEN 管理员保存规则配置；THEN 平台保存草稿；通过校验与安全审核并发布后生成新规则版本，历史版本保留可回溯；AND INS-03规则库展示最新配置，INS-08误报反馈机制可基于误报分析优化这8个字段；WHEN 正则存在语法/超时风险、阈值单位冲突、命令顺序重复、适用产品缺失或用户无发布权限；THEN 平台拒绝发布并保持旧版本有效，返回字段级错误供管理员修正后重新校验
+- Phase 3 PRD验收基线：WHEN 管理员在后台巡检规则配置页面新增或编辑巡检规则；THEN 系统提供8个配置字段（规则名称/描述/命令列表/执行顺序/超时时间/预期结果正则/结果阈值/适用产品类型）的录入界面；AND 每个字段含输入校验（如规则名称必填且唯一、超时时间为正整数≤30、预期结果正则为合法正则表达式、适用产品类型关联产品类型库）；WHEN 管理员配置命令列表与执行顺序；THEN 系统支持单条或多条命令配置，多条命令按执行顺序依次执行；AND 命令格式校验通过并发布后保存版本，INS-02在线巡检时按顺序通过INT-12下发、离线巡检时按顺序打包至巡检脚本；WHEN 管理员配置预期结果正则与结果阈值；THEN 系统校验正则表达式合法性，校验阈值格式（比较运算符+数值）；AND INS-02巡检执行后按正则与阈值判定检测结果（通过/异常），异常项按严重级别（INS-03）标注；WHEN 管理员配置适用产品类型；THEN 一线工程师前端勾选规则时，平台按设备清单的产品类型筛选并展示适用规则；AND 不适用规则在前端置灰或隐藏，避免误选；WHEN 管理员保存规则配置；THEN 平台保存草稿；仅当同租户、同revision、同当前内容摘要的最后安全审核事实为`PASSED`且其他发布校验通过时生成新规则版本，历史版本和全部审核事实保留可回溯；AND INS-03规则库展示最新配置，INS-08误报反馈机制可基于误报分析优化这8个字段；WHEN 正则存在语法/超时风险、阈值单位冲突、命令顺序重复、适用产品缺失或用户无发布权限；THEN 平台拒绝发布并保持旧版本有效，返回字段级错误供管理员修正后重新校验
 - Phase 3授权拒绝断言：越权按“AssignedProjectDeviceScope；规则维护/使用分离”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“规则配置、发布版本和任务冻结”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“InspectionRule”及数据表“srv_inspection_rule、srv_inspection_rule_revision”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。

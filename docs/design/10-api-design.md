@@ -204,15 +204,68 @@ F-IMP-002的无用户主体豁免到期命令使用PROJ支撑Task `T-FIMP002-PRO
 
 | 路径 | 命令 | 约束 |
 |---|---|---|
-| `/acceptances` | create/update draft、`submit`、`confirm`、`return` | 客户确认和项目审核分别留痕；不覆盖 IMP 证据 |
+| `/acceptances`、`/acceptances/{id}/report-versions` | 查询活动/版本、create/update draft、`publish-version`、`revoke-current-version`、`complete-activity` | 草稿可与旧EFFECTIVE并存；publish原子完成首次生效或替换，revoke原子关闭当前且不恢复旧版；终验发布前要求当前有效初验；完成要求当前EFFECTIVE报告四项与完整附件集合完备；报告不触发范围绑定 |
 | `/acceptances/{id}/actions/send-confirmation` | `POST` | ACC-01 V2按短信/邮件和钉钉推送培训确认链接；分别记录受理/送达，送达不等于客户确认，失败保留V1链接/扫码入口 |
 | `/delivery-artifacts` | `check-completeness`、`review`、`archive` | 齐套、审核、归档是不同命令；文件版本固定 |
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
 | `/project-closures` | `create`、`submit`、`review`、`complete` | complete 发布事件请求 Project 关闭，不直写 Project 表 |
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
-| `/satisfaction-tasks` | create、assign、send、recollect、list/detail | 创建时冻结问卷模板/阈值；未达标只能整改后新建任务和问卷版本；V2 `send`复用短信/邮件和钉钉通知，只增加自动触达，不复制问卷、评分、整改、签字或导出事实 |
-| `/satisfaction-questionnaires/{token}/responses` | submit | 一次性实例、必答/签字校验和幂等提交；客户答案不可由内部用户修改 |
-| `/satisfaction-results` | GET、export | 只读判定；导出按数据/字段/文件权限裁剪并生成导出审计 |
+| `/satisfaction-questionnaire-templates`、`/satisfaction-questionnaire-templates/{id}/revisions` | GET/POST | `query`读取根和修订；`manage`创建根/草稿修订。修订命令携带五维适用条件、优先级和唯一`schemaVersion=1`配置包，不接受PUBLISHED状态、current指针或服务端审计字段 |
+| `/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish` | POST | `manage`权限、expectedRevisionVersion和Idempotency-Key；服务端验证受控题型/策略/舍入、封闭Schema、编码唯一、分值/weight/threshold可判定及五维歧义后原子发布修订并切换根指针，失败保持DRAFT |
+| `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；领域任务只由受信业务时点初始化，不提供任意公共create |
+| `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result、`remediationRequestId`和整改证据，在ACC事务内先形成不可变`SatisfactionRemediationFact`，再以该Fact为新trigger创建同collectionKey的`taskRevisionNo+1` Task/Questionnaire；source仍为首任务原始业务Fact。同整改request/Fact同载荷重放返回原revision，异载荷冲突，不回退旧状态 |
+| `/satisfaction-tasks/{id}/access-grants` | POST | 创建V1受控链接；二维码仅表示同一链接；令牌只返回一次，库内仅存摘要，V2自动发送不在本Feature实现 |
+| `/satisfaction-questionnaires/{token}` | GET | 令牌只读返回唯一ACTIVE问卷的冻结题目和必要展示事实，不返回项目其他数据或内部规则实现 |
+| `/satisfaction-questionnaires/{token}/files` | init-upload、complete-upload | init携带最终提交共用的`requestId`和单文件`operationId`；ACC先验证ACTIVE grant并从既有Response预留幂等事实取得服务端`responseId`，PLT返回服务端槽位身份，只允许签字/附件目标和安全元数据 |
+| `/satisfaction-questionnaires/{token}/responses` | POST | 请求体携带初始化返回的`responseId`、同一`requestId`、答案及待核对文件句柄；ACC重放Response预留并要求ID相等，调用PLT最终锁定重验后才使用该ID追加Response。答案仅允许`{"answers":[{"questionCode":"...","value":...}]}`；服务端按冻结配置校验和判定，客户不能提交score/passed/threshold/weight/strategy或覆盖旧答案 |
+| `/satisfaction-tasks/{id}/assisted-response-reservations` | POST | 已认证当前责任人以最终`requestId`预留并重放服务端`responseId`；不创建空Response |
+| `/satisfaction-tasks/{id}/assisted-files` | POST | 已认证当前责任人初始化现场协助签字/附件槽位；服务端生成`fileSlotKey/fileSequence` |
+| `/satisfaction-tasks/{id}/assisted-files/{sessionId}/complete` | POST | 已认证当前责任人完成同一槽位上传；重验双权限、Owner、项目范围和会话身份 |
+| `/satisfaction-tasks/{id}/assisted-responses` | POST | 重放同一预留并最终锁定重验PLT规范文件事实后提交；记录协助人与客户联系人 |
+| `/satisfaction-results` | GET、export | 只读Result；导出按项目、字段、文件与租户裁剪并保存条件/范围/文件/下载审计 |
+| `/satisfaction-results/{id}/actions/invalidate` | POST | ACC Owner失效当前有效达标Result；要求`pms:acceptance:satisfaction:manage`、`ProjectScopeApi(PROJECT_EDIT)`、`expectedResultVersion`、非空失效原因和`Idempotency-Key`。只关闭Result区间并写失效审计/Outbox，不重开或改写Task、Questionnaire、Response和历史文件 |
+
+F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最小权限键。写入/换版只允许项目经理项目范围，完成命令同时校验ProjectTask范围与活动版本；查询、历史版本和单文件下载分别执行项目树范围、FileBusinessScope和租户隔离。角色—权限映射保持正式授权配置，不以“全权限”删除服务端鉴权。
+
+F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download`五个最小权限键。`manage`控制指派、访问授权、Result失效和整改重收，`collect`只控制已认证现场协助；客户令牌不取得后台权限，只能访问唯一问卷的GET/文件上传/提交。所有后台路径保留ProjectScope、责任人、字段、FileBusinessScope和租户控制点；角色映射保持可配置。
+
+满意度异步导出不得只创建ACC内适配器。`POST /satisfaction-results/exports`以服务端tenant/actor和Idempotency-Key调用PLT `ExportTaskApi.request`，固定`ownerContext=ACC/exportType=SATISFACTION_RESULT`并返回`taskId/status/queryLocation`。PLT公开`GET /api/v1/pms/export-tasks/{id}`、`POST /api/v1/pms/export-tasks/{id}/actions/retry`与`POST /api/v1/pms/export-tasks/{id}/access-ticket`；三者只允许原申请actor并通过唯一ACC `ExportBusinessDataProvider`重验`pms:acceptance:satisfaction:export`、ProjectScope、责任人、字段、文件和租户范围。retry还要求`expectedVersion`且仅把`FAILED + failure_retryable=true`以CAS恢复为REQUESTED并递增retry_count；同operation request只返回原Task，不隐式触发重试。Provider在申请时返回规范化条件/授权快照，在Job生成时重新裁剪数据，在重试/下载时重验当前权限；PLT不得读取ACC表，ACC不得写`plt_export_*`。缺Provider、重复Provider、权限撤销、范围漂移或任务过期稳定拒绝且不泄露对象存在性。
+
+`invalidate`只接受服务端认证用户，tenant/actor不从请求体读取。ACC先以PROJ `ProjectScopeApi`按`PROJECT_EDIT`重验项目范围，再按Task链→Result锁序校验该Result为当前`EFFECTIVE + passed`且`expectedResultVersion`一致；在同一`PlatformCommandExecutionApi`事务中将其置`INVALIDATED`、关闭`effective_to`、清空current marker、保存`invalidation_reason_code`、可选原因摘要、操作者和时间并写`SatisfactionResultVersionChanged(INVALIDATED)` Outbox。旧Task状态、Questionnaire、Response、评分、签字和文件事实均保持不变；整改必须另走`recollect`新建revision。相同幂等键同载荷返回原结果，异载荷冲突；非当前、版本/范围冲突或Provider不可用时零写入。来源投影对称处理失效事件乱序与旧RECORDED重试：INVALIDATED只能撤销仍指向该Result版本的当前指针；旧RECORDED重试置CURRENT前必须按Result ID/version调用`SatisfactionResultFactApi`重验，已INVALIDATED或已有更新当前Result时只保留非当前历史及归档资格，不得恢复根指针。
+
+ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；初验活动完成时先调用PROJ `ProjectWorkBindingFactApi.lockCurrentSatisfactionTaskByProject(projectId)`，由PROJ在受信租户中按稳定码`T-SAT-SURVEY`锁定同项目唯一当前任务及完整冻结Fact，再把返回的`projectTaskId/projectTaskVersion`传给`SatisfactionTaskInitializationApi.initialize`；initializer以MANDATORY加入首次触发事务并继续调用原`lockAndRevalidateSatisfactionTask`精确重验，首次source/trigger仍为初验活动完成Fact。缺失、重复、事实不完整或无当前责任人使初验活动、PROJ任务、满意度Task/Questionnaire和成功Outbox整体回滚。ACC返回分配的collectionKey/taskRevisionNo；整改不复用外部初始化接口，而由ACC `recollect`以不可变`SatisfactionRemediationFact`创建下一revision；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。Result事件生产者在写Result前调用现有`ProjectWorkBindingFactApi.lockCurrentSatisfactionTask(projectId, projectTaskId)`窄方法，由PROJ在受信租户上下文锁定唯一当前行并仅对`T-SAT-SURVEY`返回现有`ProjectSatisfactionTaskFact`；消费者不得调用取当前方法，必须以事件冻结的`projectTaskVersion`调用原`lockAndRevalidateSatisfactionTask`精确重验。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
+
+模板配置包与判定契约固定如下：`scoring.ruleVersion`是该修订的不可变规则身份并投影到`rule_version`；题型目录为`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`；策略目录为`SUM_V1/WEIGHTED_AVERAGE_V1`；舍入目录为`HALF_UP/HALF_EVEN/DOWN`且precision为0..2。选项score、weight、scoreMin/scoreMax和threshold均使用可无损转`DECIMAL(7,2)`的十进制字符串，scoreMin固定0。MULTIPLE_CHOICE必须携带非空整数且满足`1<=minSelections<=maxSelections<=options数量`；TEXT必须携带非空整数且满足`0<=minLength<=maxLength`；不适用参数必须缺失。单选/量表最大可达分取最大option score，多选最大可达分取全部合法去重选择集合的option score平均值之最大值；scoreMax按策略由各题最大可达分确定，threshold必须位于0..scoreMax。`SUM_V1`禁止weight并求计分题之和；`WEIGHTED_AVERAGE_V1`要求全部计分题正weight并计算加权平均；多选答卷题得分取所选option score平均。未答计分题为0，文本题不计分；最终仅舍入一次，舍入后比较threshold，必答或签字门禁失败强制passed=false。模板公共GET向客户只返回code/title/type/required、option code/label及输入约束，不返回option score、weight、策略或threshold。
+
+ACC-04满意度来源投影的输入固定携带`projectId/projectTaskId/projectTaskVersion/taskRevisionNo/collectionKey/resultId/resultVersion/resultFactVersion`。`projectTaskVersion`只能由Result事务内的PROJ生产者冻结方法取得，不使用ACC Task版本、当前版本查询或默认值。`resultVersion`是只追加业务来源版本并写`source_version`；`resultFactVersion`是Result当前提交后的乐观版本，只传给`SatisfactionResultFactQuery.expectedFactVersion`做Owner状态重验。投影必须以事件任务版本通过PROJ Owner原`lockAndRevalidateSatisfactionTask`重验该任务稳定码为`T-SAT-SURVEY`，并精确锁定同租户同项目`deliverable_code=D-SAT-REPORT`且`task_code=T-SAT-SURVEY`的唯一`acc_project_deliverable`根；缺失、重复、版本冲突或身份不一致返回稳定DEPENDENCY/IDENTITY错误并保留待补偿，不按名称或其他根降级。
+
+满意度文件策略键为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`、`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT|SATISFACTION_ARCHIVE`。外部受控上传由PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload/lockAndRevalidateBusinessGrantFiles`承接。ACC把公开提交的`requestId`同时作为Response预留操作键，通过`PlatformCommandExecutionApi`固定作用域`ACC_SATISFACTION_RESPONSE_RESERVATION`保存`responseId`回执；规范化摘要固定含tenant、grantId/version、questionnaireId和requestId，同键同摘要返回原ID、异摘要冲突。文件init另用最长32字符的`operationId`幂等并返回服务端`fileSlotKey/fileSequence`；槽位键使用紧凑稳定编码且不得超过ACC来源附件`reference_key`的64字符物理边界。最终提交重放预留并调用PLT锁定重验，只有规范事实精确匹配grantId/version、responseId、policyKey、scopeVersion、槽位和实际Artifact/Version/Reference时才写Response/ResponseFile；客户端文件Fact只是句柄。现场协助使用独立固定作用域`ACC_SATISFACTION_ASSISTED_RESPONSE_RESERVATION`，摘要固定`submitChannel=ASSISTED/tenantId/taskId/questionnaireId/actorUserId/requestId`，同一正式责任人同键同摘要只重放同一`responseId`。ACC不得预写空Response，最终提交不得重新分配ID。内部上传、Access Ticket下载和归档继续复用现有接口。ACC不保存PLT内部主键、不建设第二文件真值。
+
+通用`FileBusinessObjectPolicyQuery/FileBusinessObjectPolicyRevalidationQuery`保持不变。`FileBusinessObjectPolicyProvider`加性提供默认失败的`initializeBusinessGrantUploadPolicy/lockAndRevalidateBusinessGrantUpload/lockAndRevalidateBusinessGrantFiles`，分别接收类型化`BusinessGrantUploadInitializePolicyQuery/BusinessGrantUploadCompletePolicyQuery/BusinessGrantFileRevalidationQuery`；PLT Registry按`ACC/SATISFACTION_RESPONSE`唯一分派。ACC Provider按grant→Questionnaire→Task锁序验证同租户、grant版本、ACTIVE/有效期、策略用途、Response预留、槽位和项目范围。返回`BusinessGrantUploadPolicyFact`必须含正数`grantIssuerUserId`、scopeVersion及上述稳定身份；issuer唯一取grant创建时`creator`，不取updater或客户端值。
+
+正式身份现场协助不得复用上述grant Query，也不得退回通用文件策略Query。`FileArtifactApi`加性提供`initializeAuthenticatedAssistedUpload/completeAuthenticatedAssistedUpload/lockAndRevalidateAuthenticatedAssistedFiles`，`FileBusinessObjectPolicyProvider`提供对应的类型化initialize/complete/final-revalidation Query/Fact且默认失败关闭，Registry仍按唯一`ACC/SATISFACTION_RESPONSE`分派。ACC Provider在三个时点均按Task→Questionnaire锁定，重放并核对requestId/responseId预留、当前责任人、可收集状态、用途及`ProjectScopeApi(PROJECT_EDIT)`的scopeVersion；PLT从SecurityContext取得正式actor并同时重验`pms:acceptance:satisfaction:collect`与`pms:file:upload`。PLT只返回由UploadSession/Reference反解的服务端槽位和规范公共文件事实；签字固定序号1，附件使用服务端序号。最终`assisted-responses`只持久化该规范事实，禁止`attachExistingVersions`、客户端改挂引用或重放分支新增文件。
+
+PLT不为grant创建登录上下文，也不让客户取得`pms:file:upload`。它把Provider冻结的`grantIssuerUserId`仅作为受控授权的内部责任主体写入既有`created_by/creator/updater/OperationAudit.actorId`；审计detail固定含`subjectType=BUSINESS_GRANT`、grantId/version、questionnaireId、responseId、policyKey、fileSlotKey。完整token、正文和客户身份不得进入审计。grant失效、版本/预留/槽位/范围冲突或Provider未知时，必须在对象存储、Artifact/Version/Reference及Response之前失败关闭。
+
+ACC生成Result文档必须调用PLT加性`FileArtifactApi.createGeneratedBusinessFile`，不得调用`FileUploadApplicationService`或PLT表。命令输入固定为`tenantId/actorUserId/operationId/resultId/collectionTaskId/questionnaireId/responseId/expectedTaskVersion/ownerContext=ACC/objectType=SATISFACTION_RESULT/purposeCode=SATISFACTION_RESULT_DOCUMENT/scopeVersion/fileName/contentType/content`；四项Owner身份仅由ACC在锁定Task→Questionnaire→Response后构造，不进入Controller请求体，并与其他命令事实共同进入`operationId`规范化请求摘要。目标引用键由PLT按`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT`构造，客户端不能覆盖。`actorUserId`取Result形成时当前责任人，`scopeVersion`取同一项目`ProjectScopeApi.treeVersion`。
+
+通用`FileBusinessObjectPolicyQuery/FileBusinessObjectPolicyRevalidationQuery`保持不变；`FileBusinessObjectPolicyProvider`加性提供默认失败关闭的生成文件专用方法，输入类型固定为`GeneratedBusinessFilePolicyRevalidationQuery`并携带上述Owner身份。PLT Registry仍按`ACC/SATISFACTION_RESULT`唯一分派Provider并校验返回`scopeVersion`。ACC Provider以同一`MANDATORY`外层事务锁定并重验：Task同租户、状态`PENDING_DECISION`、版本匹配、当前责任人等于actor、questionnaireId匹配且无Result；Questionnaire与Task关系精确；Response与Questionnaire关系精确；预分配resultId及PLT目标未被其他事实占用。随后用Task.projectId调用`ProjectScopeApi.lockAndRevalidate(PROJECT_EDIT)`，要求返回treeVersion等于scopeVersion且fullProjectIds包含项目。任一不一致在对象存储和Result写入前失败；resultId只作预分配目标与幂等绑定，不作已落库Owner入口。
+
+`createGeneratedBusinessFile`使用`MANDATORY`加入ACC判定外层事务。PLT先复用现有FileUploadSession/operation摘要形成持久补偿会话并写受大小限制的对象，再在外层事务创建Artifact/Version/Reference；Result、ResultFile、成功幂等事实和Result Outbox共同提交。外层回滚时会话保留可重试/待补偿语义，同operation同摘要复用会话和存储回执，既不创建第二Artifact也不产生第二引用；放弃或失败会话由现有上传补偿删除未引用对象。PLT任一步失败时Response保持已提交、Task保持PENDING_DECISION，Result及Outbox零写入。
+
+ACC报告附件的文件策略键固定为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，归档键固定为同对象下的`ACCEPTANCE_REPORT_ARCHIVE`。ACC `FileBusinessObjectPolicyProvider`把报告版本解析为不可变`projectId/projectTaskId`，使用PROJ `ProjectScopeApi`执行`PROJECT_VIEW`或`PROJECT_EDIT`并把返回`treeVersion`作为唯一`scopeVersion`；归档集合的`ARCHIVE`只接受ACC受信补偿消费者。新上传继续走PLT现有`init-upload/complete-upload`；`ExistingFileReferenceTarget`加性支持唯一ACC目标`ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT`并保留现有SOL/动态表单目标，绑定既有文件仍调用`attachExistingVersions`。发布/完成调用`lockAndRevalidateReferenceSets`，查询/下载调用`inspectReferenceSets`和现有Access Ticket REST。ACC不持有PLT内部ID，不建设文件代理。
+
+PLT加性公开`FileArtifactApi.archiveReferenceSets(ArchiveFileReferenceSetsCommand)`，输入为`operationId/archiveBatchId/businessDecisionRef/actorUserId`、附件/归档两个完整集合键、期望`scopeVersion`和按`referenceKey`稳定排序的附件公共事实集合。`actorUserId`只允许取对应EFFECTIVE报告版本在发布命令中冻结的服务端认证用户，不接受Job线程上下文、客户端覆盖或技术默认值。PLT保留既有`pms:file:archive`服务端权限和租户校验：用SYSTEM `PermissionApi.hasAnyPermissions(actorUserId, "pms:file:archive")`校验功能权限，并以同一tenant和该用户执行FileBusinessScope重验；持锁确认附件集合仍全为ACTIVE后，在`ACCEPTANCE_REPORT_ARCHIVE`集合按相同artifactId/versionNo/referenceKey创建独立引用，将目标引用置ARCHIVED并追加`FileArchiveRecord.archivedBy=actorUserId`，报告附件ACTIVE引用保持不变。整组同事务且同批同摘要幂等；ACC只在整组成功后写`ARCHIVED`，否则保持`PENDING_COMPENSATION`。不得伪造Web登录上下文或取消服务端鉴权。
+
+物理模块固定：`FileArtifactApi.archiveReferenceSets`声明在现有`pms-module-platform-api`、Provider在`pms-module-platform`；`AcceptanceActivityInitializationApi`与`AcceptanceActivityCompletionFactApi`声明在现有`pms-module-project-api`的ACC契约包，真实Provider、ACC文件策略Provider及活动/报告实现位于`pms-module-project`的ACC子包。该物理合置不改变ACC业务Owner，PROJ编排不得调用其Service/Mapper或直接访问ACC表。
+
+PROJ继续拥有任务命令。非`TASK_NATIVE`初验/终验任务的执行契约固定`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`；PROJ锁定任务和当前执行契约后调用`AcceptanceActivityCompletionFactApi.lockAndComplete(tenantId, projectId, projectTaskId, executionContractId, acceptanceId, expectedActivityVersion, expectedReportVersion, operationId)`。ACC仅返回`COMPLETED/REPORT_INCOMPLETE/IDENTITY_MISMATCH/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`及活动/报告事实版本；只有`COMPLETED`允许PROJ追加TaskCompletionEvaluation并把任务置为DONE。ACC不得直接更新PROJ任务、阶段或WorkBinding。
+
+PROJ项目创建使用ACC公开`AcceptanceActivityInitializationApi.initialize`，ACC以`MANDATORY`加入同一事务。PROJ先持久化全部任务、非ACC执行契约和里程碑，再调用既有ACC `ProjectDeliverableInitializationApplicationService`形成精确`D-INITIAL-REPORT/D-FINAL-REPORT`应交根，并为验收任务预分配`executionContractId`；activity initializer逐项接收`projectId/projectTaskId/taskDefinitionKey/executionContractId/acceptanceType/deliverableCode/templateRevision`，只接受`T-INITIAL-ACCEPT→PRELIMINARY→D-INITIAL-REPORT`和`T-FINAL-ACCEPT→FINAL→D-FINAL-REPORT`，校验ACC应交根后创建PENDING活动并返回`acceptanceId/activityVersion`；PROJ随后才追加ACC当前执行契约且不得直接写ACC表。缺失、部分、重复、身份不一致或任一步失败使整个项目创建回滚。
+
+存量切换使用同一initializer的受管批次入口并按项目成对处理：无两项精确任务保持不变；部分/重复/缺应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均非终态时原子关闭旧契约并创建两个活动及ACC当前契约；两项均为`DONE/CLOSED`时整项目保持旧契约和历史且不创建活动；终态/非终态混合时整批失败，未知状态同样失败关闭。无匹配“保持不变”不得解释为精确任务缺件时跳过。
+
+`publish-version`要求草稿版本与期望当前版本，首次生效或替换时原子切换状态/区间和活动当前指针，并把服务端认证用户写入不可变`publisher_user_id`；`revoke-current-version`要求期望当前版本，原子置REVOKED并清空指针，不自动恢复旧版或改写发布人。两命令通过`PlatformCommandExecutionApi`与`AcceptanceReportVersionChanged` Outbox同事务提交；事件明确`EFFECTIVE/REPLACED/REVOKED`、`publisherActorUserId`、当前/前一版本及完整有序附件集合。`AcceptanceReportOutboxDeliveryJob`通过`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`；来源投影事务成功后才`markDelivered(eventId, expectedRetryCount)`，异常时不得先标成功，必须`scheduleRetry(eventId, expectedRetryCount, nextRetryTime)`。该Job不领取`ClosureGateRecheckRequested`，CLO Feature未交付时不得把它标记已投递。来源消费者只追加`acc_project_deliverable_source_version/source_attachment`并切换既有根指针，替换保留旧关系，撤销使旧关系失效；归档补偿使用事件冻结发布人调用PLT。索引、文件归档或CLO消费者失败不回滚报告版本，当前来源保持`PENDING_COMPENSATION`并重试；活动完成不把`ARCHIVED`作为第五项。
 
 历史 `/pms/acc-maintenance-transition/*` 的 create/renew/activate 等入口必须在兼容切换后冻结，不映射为新 ServiceHandover 命令。
 
@@ -257,6 +310,8 @@ Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String
 历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
 
 ## 11. CUS、AST、COM、RES 与 KNO API
+
+COM-01按PRD修订014补齐受信ERP批次字段：销售订单增加可空`salesType/sourceProjectName/orderComment/orderCreateTime/customerRequiredTime`，订单行增加可空`lineType/bundleCode/profitCenter/realExecutionNo/warrantyMonth`，沿用已有物理列长度和数量精度。旧调用缺失字段保持NULL；同来源版本改变任一字段仍是载荷冲突。仅ERP来源可进入权威接收端口，人工依据继续走候选接口，不晋升为ERP事实。
 
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
@@ -496,3 +551,15 @@ Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/businessKe
 BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key和实例实际processDefinitionId。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
 模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用、Provider存在性，并拒绝新APPROVAL/PROCESS引用写入refVersion；APPROVAL/PROCESS通过`inspectDefinitionKey`验证当前生效Flowable定义存在且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+
+## COM-01 公司范围查询与关系维护
+
+`ContractProjectScope`从SYSTEM现有`OrganizationScopeApi.getActiveScopes(subjectUserId)`取得当前有效scope的非空companyCode原值集合；租户和主体取受信上下文。合同目录、详情、销售订单、订单行和项目—合同关系维护共用该集合，SQL必须保持精确字符串相等，空集合不得省略条件成为全量。
+
+关系写入前重新读取scope，按ERP合同公司编码重验；重验失败不写关系、成功幂等、Outbox或成功审计。成功时仅把命中scope ID/version按稳定顺序写既有审计。合同金额等敏感字段另需`pms:commerce:contract:sensitive-read`，该权限不替代公司范围。
+
+## COM-01 验收阶段范围绑定
+
+PROJ通过`ProjectAcceptanceStageFactApi.lockAndRead(query)`读取并锁定项目当前阶段事实；ACC通过`DeliveryScopeAcceptanceLockApi.lockCurrentByProject(command)`取得精确当前分配版本。`AcceptanceScopeBindingApi.bindForStageEntry(command)`与阶段进入原子提交，`AcceptanceScopeBindingApi.bindEffectiveScope(command)`与验收阶段内新范围生效原子提交。两种命令同身份同请求幂等、异载荷拒绝，均不创建验收报告。
+
+锁序固定为PROJ项目当前行→COM订单行（适用时）→COM `DeliveryScope`当前行（按稳定ID）→ACC `AcceptanceScopeBinding`。Q-FCOM-002关闭前不执行退出/回退绑定关闭或解锁。

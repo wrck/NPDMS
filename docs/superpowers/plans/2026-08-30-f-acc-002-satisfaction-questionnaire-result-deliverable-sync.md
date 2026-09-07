@@ -226,7 +226,7 @@ FileArtifactVersionFact createGeneratedBusinessFile(
 
 ### 4.2 V133前向迁移
 
-新增`sql/migrations/V133__facc002_satisfaction_questionnaire_result_forward.sql`，仅接受“全部目标结构不存在”或“全部受管结构与配置完整一致”两种状态：
+新增`sql/migrations/V216__received_facc002_satisfaction_questionnaire_result_forward.sql`，仅接受“全部目标结构不存在”或“全部受管结构与配置完整一致”两种状态：
 
 1. 创建模板根/修订、满意度任务、问卷、grant、Response、Response文件、Result、Result文件和RemediationFact；对`proj_project_task`加五个冻结Fact字段。字段、生成列、唯一键和`sha256→file_hash`逐项等于机器契约，不建跨Context外键。
 2. 复用既有`acc_project_deliverable_source_version/source_attachment`，不创建第二来源表；预检其公共文件字段和唯一键可承接SatisfactionResult。

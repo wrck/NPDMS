@@ -152,3 +152,10 @@ PROJ初验/终验任务与执行契约
 | 独立Feature Ready裁决 | `READY / GO`（来源`bde0feac019baf820634ecc6a0e88272672b601d`；master收敛复核） |
 
 检查点：基线=master PRD修订011；当前Gate=Implementation Done复验；已通过=Feature Ready、Technical Plan、代码选择性集成；阻塞=master真实MySQL、Chromium与独立Done裁决未完成；下一步=从最新master新建DU完成运行复验，不沿用旧Flyway编号或倒签Done。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`32`。
+- 已处理来源提交：`23`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

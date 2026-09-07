@@ -69,6 +69,11 @@ public class AuthorityPayloadCanonicalizer {
         value.put("currencyCode", row.getCurrencyCode());
         value.put("lifecycleStatus", row.getSourceLifecycleStatus());
         value.put("sourceUpdatedAt", time(row.getSourceUpdatedAt()));
+        value.put("salesType", row.getSalesType());
+        value.put("sourceProjectName", row.getSourceProjectName());
+        value.put("orderComment", row.getOrderComment());
+        value.put("orderCreateTime", time(row.getOrderCreateTime()));
+        value.put("customerRequiredTime", time(row.getCustomerRequiredTime()));
         return JsonUtils.toJsonString(value);
     }
 
@@ -92,6 +97,11 @@ public class AuthorityPayloadCanonicalizer {
         value.put("quantityStatus", row.getQuantityStatus());
         value.put("lifecycleStatus", row.getSourceLifecycleStatus());
         value.put("sourceUpdatedAt", second(row.getSourceUpdatedAt()));
+        value.put("lineType", row.getLineType());
+        value.put("bundleCode", row.getBundleCode());
+        value.put("profitCenter", row.getProfitCenter());
+        value.put("realExecutionNo", row.getRealExecutionNo());
+        value.put("warrantyMonth", row.getWarrantyMonth());
         return JsonUtils.toJsonString(value);
     }
 
@@ -159,6 +169,11 @@ public class AuthorityPayloadCanonicalizer {
         value.put("currencyCode", fact.currencyCode());
         value.put("lifecycleStatus", fact.lifecycleStatus().name());
         value.put("sourceUpdatedAt", time(fact.sourceUpdatedAt()));
+        value.put("salesType", fact.salesType());
+        value.put("sourceProjectName", fact.sourceProjectName());
+        value.put("orderComment", fact.orderComment());
+        value.put("orderCreateTime", time(fact.orderCreateTime()));
+        value.put("customerRequiredTime", time(fact.customerRequiredTime()));
         return value;
     }
 
@@ -178,6 +193,11 @@ public class AuthorityPayloadCanonicalizer {
         value.put("quantityStatus", fact.quantityStatus());
         value.put("lifecycleStatus", fact.lifecycleStatus().name());
         value.put("sourceUpdatedAt", second(fact.sourceUpdatedAt()));
+        value.put("lineType", fact.lineType());
+        value.put("bundleCode", fact.bundleCode());
+        value.put("profitCenter", fact.profitCenter());
+        value.put("realExecutionNo", fact.realExecutionNo());
+        value.put("warrantyMonth", fact.warrantyMonth());
         return value;
     }
 

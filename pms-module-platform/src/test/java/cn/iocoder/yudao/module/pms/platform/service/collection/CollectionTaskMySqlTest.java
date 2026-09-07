@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.platform.api.collection.dto.CollectionBatchCr
 import cn.iocoder.yudao.module.pms.platform.api.collection.dto.CollectionBatchDTO;
 import cn.iocoder.yudao.module.pms.platform.api.collection.dto.CollectionTaskCreateItem;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -227,7 +228,7 @@ class CollectionTaskMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PlatformCommandExecutionApiImpl.class, CollectionTaskService.class})
+            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class, CollectionTaskService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);

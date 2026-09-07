@@ -16,7 +16,7 @@
         </el-form-item>
       </el-col>
       <el-col :span="24" class="px-10px">
-        <el-form-item v-if="loginData.tenantEnable === 'true'" prop="tenantName">
+        <el-form-item v-if="showTenantSelector" prop="tenantName">
           <el-input
             v-model="loginData.loginForm.tenantName"
             :placeholder="t('login.tenantNamePlaceholder')"
@@ -123,6 +123,7 @@
   </el-form>
 </template>
 <script lang="ts" setup>
+import { useTenantSelection } from '@/hooks/web/useTenantSelection'
 import { ElLoading } from 'element-plus'
 import LoginFormTitle from './LoginFormTitle.vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
@@ -161,7 +162,7 @@ const LoginRules = {
 const loginData = reactive({
   isShowPassword: false,
   captchaEnable: import.meta.env.VITE_APP_CAPTCHA_ENABLE,
-  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE,
+  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true',
   loginForm: {
     tenantName: import.meta.env.VITE_APP_DEFAULT_LOGIN_TENANT || '',
     username: import.meta.env.VITE_APP_DEFAULT_LOGIN_USERNAME || '',
@@ -190,7 +191,13 @@ const getCode = async () => {
   }
 }
 // 获取租户 ID
+const { showTenantSelector, initializeTenantSelection } = useTenantSelection((tenant) => {
+  loginData.loginForm.tenantName = tenant.name
+  authUtil.setTenantId(tenant.id)
+})
+
 const getTenantId = async () => {
+  await initializeTenantSelection()
   if (loginData.tenantEnable === 'true') {
     const res = await LoginApi.getTenantIdByName(loginData.loginForm.tenantName)
     authUtil.setTenantId(res)
@@ -211,7 +218,8 @@ const getLoginFormCache = () => {
 }
 // 根据域名，获得租户信息
 const getTenantByWebsite = async () => {
-  if (loginData.tenantEnable === 'true') {
+  await initializeTenantSelection()
+  if (showTenantSelector.value) {
     const website = location.host
     const res = await LoginApi.getTenantByWebsite(website)
     if (res) {

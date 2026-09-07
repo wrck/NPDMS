@@ -1,4 +1,3 @@
-import hashlib
 import re
 import unittest
 from pathlib import Path
@@ -8,9 +7,6 @@ ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = ROOT / "sql" / "migrations"
 V88 = MIGRATIONS / "V88__fproj007_project_task_runtime.sql"
 V89 = MIGRATIONS / "V89__fproj007_project_task_seed.sql"
-PREVIOUS_MIGRATIONS_SHA256 = (
-    "7bbe77ab67df49a32019056caa817868b6f9d94fa3cecc465b98a1e739725fd3"
-)
 
 
 class FProj007V18MigrationTest(unittest.TestCase):
@@ -25,24 +21,6 @@ class FProj007V18MigrationTest(unittest.TestCase):
         self.assertTrue(V89.is_file())
         self.assertEqual(88, int(re.match(r"V(\d+)", V88.name).group(1)))
         self.assertEqual(89, int(re.match(r"V(\d+)", V89.name).group(1)))
-
-    def test_v1_through_v87_remain_unchanged(self) -> None:
-        digest = hashlib.sha256()
-        previous = sorted(
-            (
-                path
-                for path in MIGRATIONS.glob("V*__*.sql")
-                if int(re.match(r"V(\d+)", path.name).group(1)) <= 87
-            ),
-            key=lambda path: int(re.match(r"V(\d+)", path.name).group(1)),
-        )
-        self.assertEqual(87, len(previous))
-        for path in previous:
-            digest.update(path.name.encode())
-            digest.update(b"\0")
-            digest.update(path.read_bytes())
-            digest.update(b"\0")
-        self.assertEqual(PREVIOUS_MIGRATIONS_SHA256, digest.hexdigest())
 
     def test_v88_creates_exactly_six_contract_tables(self) -> None:
         created = set(

@@ -209,3 +209,29 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 阶段推进的稳定顺序为：Project当前行 → 当前/下一Stage（按sort/id）→ 当前Stage EXIT Gate（gateId）→ Gate Reference（gateId/refType/refCode/id）→ PROJ本地事实稳定键或外域Owner Provider。Provider以`MANDATORY`加入同一MySQL事务；取得后序Owner锁后不得回头补锁前序PROJ对象。ProjectVersion、treeVersion、StageVersion、Gate/Reference版本及Owner FactVersion任一变化均整体失败；缓存和readiness预览不得替代锁内事实。BPM启动先锁定Gate Reference的定义key；未显式选择定义ID时解析最新生效定义，显式选择时验证该processDefinitionId属于同一key，再固定businessKey并启动。事实重验以gateReferenceId固定businessKey取得同一引用的尝试集合，按`startTime/processInstanceId`稳定选择最新并核对实例实际processDefinitionId；多个活动实例或定义key/实例身份不一致失败关闭，既有refVersion不参与并发身份。
 
 成功事务原子提交Gate结果、两Stage状态、Project.current_stage/version、不可变Snapshot、审计、Outbox及幂等完成点；影响行数不为预期即回滚。并发同项目推进只能有一个成功。
+
+## COM-01 当前公司授权回源
+
+合同列表、详情和项目—合同关系维护不使用正向公司范围缓存。每次请求调用`OrganizationScopeApi.getActiveScopes`，关系写入在业务锁/写入前再次回源；scope ID/version仅进入审计，不反向锁SYSTEM或持久化第二授权真值。并发撤权按写前最后一次Owner读取判定，后续请求必须读取新当前事实。
+
+## COM-01 范围绑定事务边界
+
+统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定；初验/终验报告行不进入该锁链。阶段进入和验收阶段内新范围绑定各自加入调用方同一事务，任一失败整体回滚，不保留部分绑定，不用报告或事件补建范围事实。
+
+## ACC报告、满意度及导出并发细则
+
+- F-ACC-001首次发布、替换、撤销均按ACC活动根→旧当前版本（适用时）→目标草稿（适用时）→附件集合锁定。DRAFT的生成`current_marker=NULL`，仅未关闭EFFECTIVE生成1；替换原子关闭旧版再生效草稿，撤销原子关闭当前并清空指针，失败整体回滚。终验发布再按稳定活动ID锁定初验当前报告，版本变化返回冲突。
+- 初验/终验任务完成按PROJ项目任务/执行契约→ACC活动根→当前报告版本锁定，ACC Provider以`MANDATORY`加入同一MySQL事务；任一身份、活动版本、报告版本或四项完备校验失败时，ACC活动、TaskCompletionEvaluation和PROJ任务状态均不变化。不得反向从ACC先锁任务或直接写PROJ表。
+- 报告命令通过`PlatformCommandExecutionApi`写Outbox；`AcceptanceReportOutboxDeliveryJob`经`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`。消费锁对应`acc_project_deliverable`根和当前来源关系；按变更类型及来源版本幂等追加/切换`source_version`与完整附件集合。投影事务成功后才`markDelivered`，异常则`scheduleRetry`；不得领取`ClosureGateRecheckRequested`。替换/撤销保留旧关系，撤销不恢复旧版。报告事务不等待归档成功，归档失败记录补偿水位。
+- 报告文件策略由ACC Provider以`reportVersionId`解析项目范围，`scopeVersion`唯一取PROJ当前`treeVersion`。发布/完成按ACC活动根→报告版本→PLT附件ACTIVE集合重验；归档补偿锁定附件集合后，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按`FileArtifact→FileVersion→FileReference`稳定顺序整组创建ARCHIVED引用和记录，附件引用不变。PLT成功后ACC才把投影置`ARCHIVED`。
+- 新项目创建中，PROJ先生成任务/非ACC契约/里程碑，调用既有ACC initializer形成应交根，再通过`MANDATORY` activity initializer创建ACC活动，最后追加引用返回`acceptanceId`的ACC执行契约；全部共用同一MySQL事务，PROJ不直接写ACC表。存量切换按项目和初验/终验任务对加锁，只有两项均非终态且当前契约均为V63 `TASK_NATIVE`才原子换绑；两项均终态整项目保持不变，终态/非终态混合整批失败。
+
+- 满意度模板解析零/多匹配、同一业务时点重复触发、同一整改Fact重放/异载荷冲突、collectionKey内taskRevision并发递增、同一问卷同requestId重放/异载荷冲突、访问授权并发消费、Result当前唯一/按expectedVersion失效、RECORDED/INVALIDATED双向乱序保护、精确`T-SAT-SURVEY→D-SAT-REPORT`根锁定及归档补偿；不得用缓存授权令牌、项目范围、应交根身份或当前达标结果。
+
+满意度模板发布固定锁序为Template根→目标DRAFT修订→相同五维当前PUBLISHED候选；以expectedRevisionVersion和Idempotency-Key单胜。校验与规范化配置在取写锁前完成，锁内重验完整配置摘要对应的结构化值、DRAFT状态、五维范围和并列优先级，再发布并切换根指针；不得缓存未发布配置或在Questionnaire创建时重新解释已变化的模板。答卷判定只读取Questionnaire冻结配置，在已固定的AccessGrant→Task→Questionnaire锁链内规范化答案；客户端传入的任何计分字段不得进入幂等摘要或判定输入。
+
+F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Questionnaire；客户提交为ACC AccessGrant→Task→Questionnaire→PLT签字/附件引用→Response→Result→Outbox；失效为PROJ ProjectScope重验→ACC Task链→当前Result→Outbox；归档为ACC交付件根/来源版本→PLT结果文件集合/归档集合→ACC归档投影。失效以Result expectedVersion和current marker单胜；RECORDED消费置CURRENT前重验Owner版本与当前状态，INVALIDATED消费只撤销仍指向该版本的根，双向乱序均保持来源指针单调。首个PLT文件锁取得后不得回调PROJ改变业务时点，归档网络/对象存储步骤不得持有长事务锁。
+
+Result判定在锁定Task/Questionnaire/Response并取得ProjectScope事实后，先以稳定operation调用PLT生成文档，再写Result/ResultFile/Outbox；`createGeneratedBusinessFile`以MANDATORY加入同一MySQL事务。对象存储写入不延长反向Owner锁序：PLT不得在取得文件锁后回调PROJ。并发同Result只允许一个RESULT_DOCUMENT引用；同operation同摘要复用FileUploadSession/回执，异摘要冲突，外层回滚由会话补偿未引用对象。
+
+统一导出申请按`tenant+ownerContext+exportType+actor+operationId`单胜；同摘要返回原Task且不改变状态，异摘要冲突。执行Job以`plt_export_task.version`从REQUESTED抢占GENERATING；暂时生成失败写`FAILED + failure_retryable=1`。只有原申请actor的retry命令在权限重验后以expectedVersion CAS执行`FAILED(retryable)→REQUESTED`并递增retry_count，并发重试只允许一个成功；非可重试、REJECTED/SUCCEEDED/EXPIRED均不得恢复。同Task只允许一个成功文件；生成前调用业务Provider重验，PLT取得文件锁后不得反向持有业务表锁。下载不缓存授权；TTL Job只与SUCCEEDED下载以Task版本和到期时点竞争，FAILED/REJECTED不得转EXPIRED。

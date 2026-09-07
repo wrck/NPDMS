@@ -38,6 +38,8 @@ public class SalesOrderDO extends TenantBaseDO {
     private LocalDateTime sourceSyncTime;
     private LocalDateTime sourceUpdatedAt;
     private String status;
+    private LocalDateTime orderCreateTime;
+    private LocalDateTime customerRequiredTime;
     @Version
     private Integer version;
 

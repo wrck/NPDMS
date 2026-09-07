@@ -140,3 +140,10 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 当前结论：`READY / GO NPDMS-FCUT001-FEATURE-READY-20260830-02`。
 
 原CUT-07基础实现和证据继续有效，但正式SDS要求同一Feature承接CUT-09/10首批配置基础，因此原Feature Ready只适用于已完成的CUT-07子范围。`CHG-PRD-2026-08-30-008`已关闭97项数量口径，扩展规格已于2026-08-30取得需求方书面确认；Requirement切片、Owner、状态、权限、API、数据边界、参考资料边界和验收标准已冻结，可以按唯一新Technical Plan实施。本结论不表示扩展代码、迁移、测试、浏览器验收或Implementation Done已通过。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`12`。
+- 已处理来源提交：`16`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

@@ -25,3 +25,10 @@
 - 禁止映射：`status/approved_by/approved_time/approval_opinion/baseline_version`到新审批状态、审批实例或锁定事实；这些字段只留在迁移来源证据。
 - 受控Release导入器只通过`PlatformMigrationEvidenceApi`暂存不可变来源记录并推进至`STAGED_READY`；正常CUT Bean不得连接或直读遗留库。CUT迁移Job在外层事务中claim为`RECONCILING`，原子完成目标写、external mapping/issue/retained和最终计数核对；暂时Provider失败整体回滚到`STAGED_READY`。
 - 不合格行、缺失任务映射和目标身份冲突保留旧表并登记稳定issue/retained；不得删除、双写、默认补齐或覆盖目标。最终`COMPLETED`批次不可重算；需要新目标尝试时创建引用原issue的新批次。
+
+## 代码事实实施状态（2026-09-04三分支重放）
+
+- 已接收代码路径：`12`。
+- 已处理来源提交：`11`。
+- 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
+- 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。

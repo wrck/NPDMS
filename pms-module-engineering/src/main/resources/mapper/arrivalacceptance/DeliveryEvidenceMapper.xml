@@ -47,6 +47,7 @@
           AND id = #{query.evidenceId}
           AND current_revision_no = #{query.expectedRevision}
           AND acc_sync_status = 'NOT_PUBLISHED'
+          AND acc_correlation_id IS NULL
           AND version = #{query.expectedVersion}
           AND deleted = b'0'
     </update>

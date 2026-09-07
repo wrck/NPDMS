@@ -1,0 +1,60 @@
+name: Apply reviewed PR7 boundaries (temporary)
+on:
+  push:
+    branches: [codex/code-fact-chronological-integration-acc-int-cut-20260904]
+    paths: [.github/workflows/pr7-apply-reviewed-boundaries.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify immutable candidate payload and inherit master claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin master
+          git merge-base --is-ancestor 43482230a6ef8708b70cab267fb83f7d2c61a285 origin/master
+          git merge --no-edit origin/master
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, lzma, os, subprocess
+          encoded = ''.join(Path('.github/pr7-reviewed-part-' + part + '.b64').read_text().strip() for part in ('a','b'))
+          patch = lzma.decompress(base64.b64decode(encoded, validate=True))
+          if hashlib.sha256(patch).hexdigest() != 'dba69ce646abb0bc8149f099461e842a85f63b8061ac9fc1957ad3b4d61f5b85':
+              raise SystemExit('Reviewed patch checksum mismatch; no implementation applied')
+          target = Path(os.environ['RUNNER_TEMP'])/'candidate.patch'
+          target.write_bytes(patch)
+          base='e00583cc37d282ff99b2ebf303d10ee224da0462'
+          # No source changes after review may be overwritten by a zero-context patch.
+          changed=subprocess.check_output(['git','diff','--name-only',base,'HEAD']).decode().splitlines()
+          allowed={'.github/pr7-reviewed-part-a.b64','.github/pr7-reviewed-part-b.b64',
+                   '.github/workflows/pr7-apply-reviewed-boundaries.yml',
+                   'tasks/delivery-units/DU-20260906-PR7-CODE-TEST-TRACEABILITY-REPAIR.md'}
+          if set(changed)-allowed:
+              raise SystemExit(f'Concurrent source changes require re-review: {set(changed)-allowed}')
+          PY
+          git apply --check --index --unidiff-zero "${RUNNER_TEMP}/candidate.patch"
+          git apply --index --unidiff-zero "${RUNNER_TEMP}/candidate.patch"
+          test "$(git diff --cached --name-only | wc -l)" -eq 90
+          git diff --cached --check
+          git rm .github/pr7-reviewed-part-a.b64 .github/pr7-reviewed-part-b.b64 .github/workflows/pr7-apply-reviewed-boundaries.yml
+          git commit -m 'fix(commerce,cutover,tenant): align ERP fields independent intake and trusted tenant one'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Preserve exact candidate history for regression analysis
+        if: always()
+        run: git bundle create "${RUNNER_TEMP}/pr7-boundary-candidate.bundle" HEAD refs/remotes/origin/master
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr7-boundary-candidate
+          path: ${{ runner.temp }}/pr7-boundary-candidate.bundle
+          if-no-files-found: error
+          retention-days: 7

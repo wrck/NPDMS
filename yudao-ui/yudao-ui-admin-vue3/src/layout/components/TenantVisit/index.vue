@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-if="tenants.length > 1">
     <el-select
       filterable
       placeholder="请选择租户"
@@ -24,7 +24,7 @@ const message = useMessage() // 消息弹窗
 const tagsView = useTagsView() // 标签页操作
 
 const value = ref(getVisitTenantId()) // 当前选中的租户 ID
-const tenants = ref<any[]>([]) // 租户列表
+const tenants = ref<Array<{ id: number; name: string }>>([]) // 租户列表
 
 const handleChange = (id: number) => {
   // 设置访问租户 ID
@@ -42,5 +42,10 @@ const handleChange = (id: number) => {
 
 onMounted(async () => {
   tenants.value = await TenantApi.getTenantList()
+  const first = tenants.value[0]
+  if (first && !tenants.value.some((tenant) => tenant.id === value.value)) {
+    value.value = first.id
+    setVisitTenantId(first.id)
+  }
 })
 </script>

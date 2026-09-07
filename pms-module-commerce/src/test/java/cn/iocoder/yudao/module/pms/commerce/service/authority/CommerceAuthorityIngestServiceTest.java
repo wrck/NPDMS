@@ -213,6 +213,8 @@ class CommerceAuthorityIngestServiceTest {
         row.setCustomerName(fact.customerName()); row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode()); row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
         row.setSourceUpdatedAt(fact.sourceUpdatedAt()); row.setVersion(0);
+        row.setAuthorityStatus("CONFIRMED");
+        row.setStatus("ENABLED");
         return row;
     }
 

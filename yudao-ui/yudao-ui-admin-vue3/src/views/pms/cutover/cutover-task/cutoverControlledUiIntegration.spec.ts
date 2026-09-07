@@ -82,6 +82,7 @@ const workbenchTableColumn = defineComponent({
   }
 })
 
+
 const controls = {
   Dialog: dialog,
   ElSteps: passthrough,

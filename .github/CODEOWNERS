@@ -1,0 +1,8 @@
+# PR #7 and future integration ownership
+/sql/migrations/ @wrck
+/.github/workflows/ @wrck
+/docs/traceability/ @wrck
+/docs/engineering/gates/ @wrck
+/pms-module-integration/ @wrck
+/pms-module-platform/ @wrck
+/yudao-ui/ @wrck

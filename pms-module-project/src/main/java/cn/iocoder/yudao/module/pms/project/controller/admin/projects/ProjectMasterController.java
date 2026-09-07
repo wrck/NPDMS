@@ -123,7 +123,7 @@ public class ProjectMasterController {
     private Environment environment;
 
     @PostMapping
-    @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
+    @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建与实例化）")
     @PreAuthorize("@ss.hasPermission('pms:project:create')")
     public CommonResult<ProjectCreateRespVO> createProject(
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
@@ -136,7 +136,7 @@ public class ProjectMasterController {
                         .map(site -> new ProjectSiteCommand(site.getSiteId(), site.getSiteVersion(),
                                 site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
-                createReqVO.getServiceManagerUserId(),
+                null,
                 idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = withTrustedTenant(() ->
                 projectManualCreationApplicationService.create(command,

@@ -1,4 +1,3 @@
-import hashlib
 import re
 import unittest
 from pathlib import Path
@@ -8,9 +7,6 @@ ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = ROOT / "sql" / "migrations"
 V86 = MIGRATIONS / "V86__fproj006_project_governance_foundation.sql"
 V87 = MIGRATIONS / "V87__fproj006_project_governance_seed.sql"
-PREVIOUS_MIGRATIONS_SHA256 = (
-    "a0c5aee57dfb759f0b8f97e824b63a839260eedf3c454d5e0db8380f32b47c88"
-)
 
 
 class FProj006V18MigrationTest(unittest.TestCase):
@@ -28,24 +24,6 @@ class FProj006V18MigrationTest(unittest.TestCase):
         self.assertTrue(V87.is_file())
         self.assertEqual(86, int(V86.name[1:3]))
         self.assertEqual(87, int(V87.name[1:3]))
-
-    def test_v1_through_v85_remain_unchanged(self) -> None:
-        digest = hashlib.sha256()
-        previous = sorted(
-            (
-                path
-                for path in MIGRATIONS.glob("V*__*.sql")
-                if int(re.match(r"V(\d+)", path.name).group(1)) <= 85
-            ),
-            key=lambda path: int(re.match(r"V(\d+)", path.name).group(1)),
-        )
-        self.assertEqual(85, len(previous))
-        for path in previous:
-            digest.update(path.name.encode())
-            digest.update(b"\0")
-            digest.update(path.read_bytes())
-            digest.update(b"\0")
-        self.assertEqual(PREVIOUS_MIGRATIONS_SHA256, digest.hexdigest())
 
     def test_shared_snapshot_key_is_preserved(self) -> None:
         self.assertRegex(

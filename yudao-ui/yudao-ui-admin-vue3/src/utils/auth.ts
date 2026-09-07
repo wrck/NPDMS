@@ -75,6 +75,8 @@ export const getTenantId = () => {
 
 export const setTenantId = (tenantId: number) => {
   wsCache.set(CACHE_KEY.TenantId, tenantId)
+  // A new login tenant must not inherit a previous session's visit-tenant selection.
+  wsCache.delete(CACHE_KEY.VisitTenantId)
 }
 
 export const getVisitTenantId = () => {

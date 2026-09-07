@@ -267,6 +267,7 @@ public class CommerceDeliveryScopeCommandService {
         if (line == null || !Objects.equals(line.getId(), orderLineId)
                 || !Objects.equals(line.getSourceVersion(), sourceVersion)
                 || !"CONFIRMED".equals(line.getQuantityStatus()) || !"ENABLED".equals(line.getStatus())
+                || !"ACTIVE".equals(line.getSourceLifecycleStatus())
                 || line.getOrderQty() == null || line.getUnitScale() == null) {
             throw conflict("ORDER_LINE_AUTHORITY_INVALID");
         }

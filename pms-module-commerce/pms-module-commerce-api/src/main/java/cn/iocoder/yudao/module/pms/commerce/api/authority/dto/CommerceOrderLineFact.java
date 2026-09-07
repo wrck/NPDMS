@@ -13,7 +13,20 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
                                     BigDecimal deliveredQuantity, String unitCode, Integer unitScale,
                                     String quantityStatus,
                                     CommerceSourceLifecycleStatus lifecycleStatus,
+                                    LocalDateTime sourceUpdatedAt,
+                                     String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth) {
+
+    public CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
+                                    String sourceVersion, String salesOrderSourceKey,
+                                    String lineCode, String itemCode, String itemDescription,
+                                    String productCode, String modelCode,
+                                    BigDecimal orderQuantity, BigDecimal openQuantity,
+                                    BigDecimal deliveredQuantity, String unitCode, Integer unitScale,
+                                    String quantityStatus,
+                                    CommerceSourceLifecycleStatus lifecycleStatus,
                                     LocalDateTime sourceUpdatedAt) {
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, salesOrderSourceKey, lineCode, itemCode, itemDescription, productCode, modelCode, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+    }
 
     public CommerceOrderLineFact {
         sourceKey = text(sourceKey, 128, "sourceKey");
@@ -38,6 +51,19 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
         }
         if (lifecycleStatus == null) {
             throw invalid("lifecycleStatus must not be null");
+        }
+        lineType = optionalText(lineType, 32, "lineType");
+        bundleCode = optionalText(bundleCode, 64, "bundleCode");
+        profitCenter = optionalText(profitCenter, 64, "profitCenter");
+        realExecutionNo = optionalText(realExecutionNo, 64, "realExecutionNo");
+        if (warrantyMonth != null && warrantyMonth < 0) throw invalid("warrantyMonth must be non-negative");
+        for (BigDecimal value : new BigDecimal[]{orderQuantity, openQuantity, deliveredQuantity}) {
+            if (value != null && value.stripTrailingZeros().scale() > unitScale) {
+                throw invalid("source quantity exceeds the declared unitScale");
+            }
+        }
+        if (!java.util.Set.of("PENDING_AUTHORITY", "CONFIRMED").contains(quantityStatus)) {
+            throw invalid("quantityStatus is not a recognized authority status");
         }
         sourceUpdatedAt = time(sourceUpdatedAt, "sourceUpdatedAt");
     }

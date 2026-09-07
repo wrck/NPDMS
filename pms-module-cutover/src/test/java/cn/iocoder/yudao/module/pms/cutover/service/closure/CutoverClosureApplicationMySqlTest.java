@@ -116,7 +116,7 @@ class CutoverClosureApplicationMySqlTest {
         LocalDateTime now = LocalDateTime.of(2026, 9, 2, 8, 0);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(taskId); task.setTenantId(tenantId);
         task.setProjectId(projectId); task.setTaskNo("CUT-P6-" + suffix);
-        task.setTaskName("P6闭环"); task.setBackground("P6正向链"); task.setCutoverType("NETWORK_CUTOVER");
+        task.setTaskName("P6闭环"); task.setBackground("P6正向链"); task.setCutoverType("NETWORK_TOPOLOGY_CHANGE");
         task.setNetworkMode("DUAL"); task.setScheduledTime(now); task.setTaskOrigin("NEW_PLATFORM");
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P6"); task.setTaskStatus("CLOSURE_IN_PROGRESS");
         task.setOwnerUserId(8L); task.setCustomerId(99L); task.setImplementationReadinessSnapshotId(7L);
@@ -142,6 +142,10 @@ class CutoverClosureApplicationMySqlTest {
         approval.setPlanRevisionId(planId); approval.setPlanRevisionNo(1); approval.setAssessmentId(701L);
         approval.setAssessmentVersion(1); approval.setChecklistId(702L); approval.setChecklistVersion(1);
         approval.setGradeCode("A"); approval.setInitiatorUserId(8L); approval.setInitiatorProjectScopeVersion(30L);
+        approval.setLeadTimeEnabled(true);
+        approval.setLeadTimeSnapshot(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec()
+                .encode(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator()
+                        .calculate("A", task.getCutoverType(), task.getScheduledTime(), plan.getSubmittedAt())));
         approval.setSourceSnapshotVersion(1); approval.setSourceSnapshot("{}"); approval.setRouteSnapshot("{}");
         approval.setStatusCode("APPROVED"); approval.setDecisionAt(now); approval.setVersion(4);
         approval.setCreator("8"); approval.setUpdater("8"); assertEquals(1, approvalMapper.insert(approval));
@@ -322,7 +326,8 @@ class CutoverClosureApplicationMySqlTest {
         assertEquals("3", String.valueOf(payload.get("closureRevision")));
         assertEquals("SUCCESS", payload.get("finalResult"));
         assertEquals("CUTOVER_CLOSURE:" + closureId + ":3", payload.get("resultRef"));
-        assertEquals(1788278400000L, ((Number) payload.get("archivedAt")).longValue());
+        assertEquals(Instant.parse("2026-09-02T00:00:00Z").toEpochMilli(),
+                ((Number) payload.get("archivedAt")).longValue());
         assertEquals("corr-submit-success", payload.get("correlationId"));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='submit-success' AND status='COMPLETED'", tenantId));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND correlation_id='corr-submit-success'", tenantId));

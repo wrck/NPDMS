@@ -367,6 +367,9 @@ class ArrivalAcceptanceApplicationServiceTest {
                 submitCommand());
 
         assertEquals("ACCEPTED", result.status());
+        verify(fixture.devicePort()).lockAndRevalidate(1L, 100L, List.of(
+                new DeviceScopeFactPort.ExpectedDeviceFact(11L, "SN-1", 9L),
+                new DeviceScopeFactPort.ExpectedDeviceFact(12L, "SN-2", 10L)));
     }
 
     @Test

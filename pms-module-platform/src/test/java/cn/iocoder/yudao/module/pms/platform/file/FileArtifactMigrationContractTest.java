@@ -59,8 +59,9 @@ class FileArtifactMigrationContractTest {
         assertTrue(schemaSql.contains("FOREIGN KEY (`tenant_id`, `artifact_id`)"));
         assertTrue(schemaSql.contains(
                 "FOREIGN KEY (`tenant_id`, `artifact_id`, `file_version_no`)"));
-        assertTrue(schemaSql.contains(
-                "UNIQUE KEY `uk_plt_file_version_artifact_no`\n        (`tenant_id`, `artifact_id`, `version_no`)"));
+        assertTrue(Pattern.compile(Pattern.quote("UNIQUE KEY `uk_plt_file_version_artifact_no`")
+                + "\\s+" + Pattern.quote("(`tenant_id`, `artifact_id`, `version_no`)"))
+                .matcher(schemaSql).find());
         assertFalse(schemaSql.contains("REFERENCES `infra_"));
         assertFalse(schemaSql.contains("REFERENCES `proj_"));
         assertFalse(schemaSql.contains("REFERENCES `sol_"));
