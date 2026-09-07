@@ -67,7 +67,7 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 
 ## F-PROJ-008 阶段门禁 Owner Fact 基线（GO）
 
-Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。目标为实际S5时，统一PROJ图推进服务通过COM/ACC公开接口在同事务完成精确范围校验和绑定；旧专用入口只委托统一推进，不保留第二个current_stage Writer。
+Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。修订018中，验收创建/关联属于受控Owner命令，条件判定只读其事实；是否参与阶段动作由冻结配置决定，不因目标为S5自动添加范围绑定或终验义务。独立验收新身份、来源和事务见Q-TPLACC-001，旧阶段进入接口不能静默改义。
 
 ## 修订017差量契约
 

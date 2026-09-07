@@ -38,7 +38,7 @@ ProjectTask导航投影不是新聚合：一级Stage、二级ProjectTask来自�
 | BusinessViewRegistration | 基础平台 | 只发布受信实体/组件/命令及权限Provider版本，不拥有领域对象状态 |
 | ContractScopeAppendRequest | Project Delivery | 同一项目的批准追加申请；COM数量/水位、PROJ任务、ACC绑定共同成功或失败；不产生群组、另一期项目或组合 |
 | ProjectScopeVersion | Contract & Fulfillment | 唯一COM水位＋不可变范围版本；PROJ只持引用，不能双写当前量 |
-| AcceptanceReportRevision | Acceptance & Closure | 报告根当前指针＋不可变报告版本；范围、文件、结论及初验引用精确冻结 |
+| AcceptanceActivity / AcceptanceReportRevision | Acceptance & Closure | 独立验收活动身份与报告当前指针/不可变版本；项目、范围、来源、文件和配置前置精确冻结，不依赖S5或固定任务编码存在 |
 | ProjectExitRecord | Project Delivery | 来源闭环命令的退出历史；受控写当前生命周期并同事务追加历史，回调不能直接写终态 |
 
-旧MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference只留在Git历史，不作为PM-06当前对象、API或前向建表依据。旧S4→S5专用入口必须委托统一图推进服务，COM/ACC只参与范围校验和绑定，不能成为第二个current_stage Writer。
+旧MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference只留在Git历史，不作为PM-06当前对象、API或前向建表依据。PROJ仍是唯一current_stage Writer；COM/ACC仅在配置指定的受控业务动作中参与范围校验和绑定，不因目标阶段为S5自动增加终验或绑定义务。修订018独立验收的具体触发/范围契约见Q-TPLACC-001，旧阶段进入接口不静默改义。

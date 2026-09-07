@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-09-07-017",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-09-07-018",
   "baselineIdentity": {
-    "revision": "017",
-    "changeId": "CHG-PRD-2026-09-07-017",
-    "gitBlob": "fd701f153f3148001625fcfe45180b36aae719c2",
+    "revision": "018",
+    "changeId": "CHG-PRD-2026-09-07-018",
+    "gitBlob": "86366bef18520b5463a4cc46bc6df8435f240afb",
     "path": "docs/baseline/prd-v1.8.md"
   },
   "engineeringGates": {
@@ -13,21 +13,21 @@
       "审查状态": "REVALIDATION_REQUIRED",
       "当前结论": "REVALIDATION_REQUIRED",
       "机器门禁": "PENDING",
-      "适用修订": "PRD_V1.8_REVISION_017"
+      "适用修订": "PRD_V1.8_REVISION_018"
     },
     "phase-2": {
       "source": "docs/engineering/gates/phase-2/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
       "当前结论": "REVALIDATION_REQUIRED",
       "机器门禁": "PENDING",
-      "适用修订": "PRD_V1.8_REVISION_017"
+      "适用修订": "PRD_V1.8_REVISION_018"
     },
     "phase-3": {
       "source": "docs/engineering/gates/phase-3/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
       "当前结论": "REVALIDATION_REQUIRED",
       "机器门禁": "PENDING",
-      "适用修订": "PRD_V1.8_REVISION_017"
+      "适用修订": "PRD_V1.8_REVISION_018"
     }
   },
   "sources": {
@@ -48,10 +48,10 @@
     },
     "slicesByImplementationStatus": {
       "IMPLEMENTATION_COMPLETE": 2,
-      "IMPLEMENTATION_IN_PROGRESS": 22,
+      "IMPLEMENTATION_IN_PROGRESS": 20,
       "IMPLEMENTATION_PARTIAL": 5,
       "NOT_STARTED": 74,
-      "REVALIDATION_REQUIRED": 8
+      "REVALIDATION_REQUIRED": 10
     }
   },
   "derivationRules": [
@@ -66,14 +66,17 @@
     {
       "featureId": "F-ACC-001",
       "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
-      "revalidationSlices": [],
+      "revalidationSlices": [
+        "ACC-03@V1",
+        "ACC-04@V1"
+      ],
       "taskPath": "tasks/features/F-ACC-001.md",
       "taskStatus": "IN_PROGRESS",
       "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "ACC-03@V1",
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "sliceKey": "ACC-04@V1",
@@ -1246,13 +1249,13 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "验收报告管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-ACC-001",
-          "coverage": "FULL",
+          "coverage": "PARTIAL",
           "taskStatus": "IN_PROGRESS",
-          "revalidationRequired": false,
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-001.md"
         }
@@ -1267,13 +1270,13 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "交付件归档管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "IMPLEMENTATION_IN_PROGRESS",
+      "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
           "featureId": "F-ACC-001",
           "coverage": "PARTIAL",
           "taskStatus": "IN_PROGRESS",
-          "revalidationRequired": false,
+          "revalidationRequired": true,
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-001.md"
         },

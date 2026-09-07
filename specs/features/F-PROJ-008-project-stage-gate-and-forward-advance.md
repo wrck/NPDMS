@@ -7,7 +7,7 @@
 > Requirement：`PM-03（V1阶段门禁正向运行切片）`
 > Requirement切片覆盖：`PM-03@V1=PARTIAL`
 > PRD差量重验证：`PM-03@V1`
-> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+> 差量依据：`CHG-PRD-2026-09-07-018`及尚未关闭的修订017义务；旧Task事实保留，不直接投影当前完成
 
 > 关联Requirement：`PM-01`、`PM-04`、`PM-11`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
@@ -39,7 +39,7 @@
 - 当前阶段EXIT Gate及Reference readiness查询；
 - TASK、MILESTONE、DELIVERABLE、STATE、APPROVAL、PROCESS六类Owner事实评估；
 - PMS专用Gate流程冻结`processDefinitionKey`，支持项目Gate范围内查询同key历史定义，默认启动最新生效定义或显式启动所选`processDefinitionId`，并完成审批结果重验和幂等重放；
-- 模板发布时校验S0～S3 EXIT Gate非空、Reference完整、Provider存在及专用流程定义可用；
+- 模板发布时按实际冻结配置校验ENTRY/EXIT、完成规则和引用/Provider；不强制S0～S3均有EXIT Gate，不因S5编码添加终验；
 - `pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`服务端授权；
 - Project/Stage/Gate/Reference/Owner事实稳定锁序、版本冲突和失败关闭；
 - 当前Stage `DONE`、下一Stage `ACTIVE`、Project.current_stage、Gate结果、StageSnapshot、审计、Outbox和幂等完成点同事务；
@@ -59,7 +59,7 @@
 ### BR-FPROJ008-001 冻结事实与空Gate
 
 - 只使用项目创建时冻结的Stage、EXIT Gate、Gate Reference及其稳定对象键；模板当前版本、名称相似对象和客户端结论不是真值。
-- 本切片实际配置的每个可推进阶段至少一个EXIT Gate，每个EXIT Gate至少一个Reference；模板发布时缺失即拒绝。运行时实例缺失返回`DEPENDENCY_UNAVAILABLE`，不得用空集真值放行。
+- 只校验冻结配置实际要求的ENTRY/EXIT及完成条件；明确未配置某项门禁不构成缺失，被引用的门禁/规则不存在或内容不可解析则拒绝，不能把两者混同。
 - readiness只作当前预览；推进命令必须在写事务中重新锁定并重验全部事实。
 
 ### BR-FPROJ008-002 六类满足谓词
@@ -177,3 +177,9 @@ PROJ拥有唯一阶段推进命令：锁定并重验Project/当前阶段/模板�
 ## 修订017覆盖资格
 
 当前受影响切片：PM-03@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。
+
+## 修订018当前目标与历史实施边界
+
+阶段图决定目标，实际配置决定准入准出及业务依赖，不以S编号相邻或固定Gate数量补加规则。S5不是终验义务来源；终验结果仅参与显式消费者。readiness与Owner事实求值不创建实体，创建触发不得与其完成前置相互等待。独立验收范围动作需先完成Q-TPLACC-001；Task 1/2/3A历史证据保留，不能证明新配置语义或Feature Done。
+
+Requirement及批准依据：`CHG-PRD-2026-09-07-018`、`ADR-0045`及本文件已声明切片。相关Feature Ready保持REVALIDATION_REQUIRED；唯一Implementation Status仍由当前Feature Task维护，本文不晋级Done。

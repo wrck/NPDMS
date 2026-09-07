@@ -34,3 +34,7 @@
 - [x] Task 10 Implementation Done（独立裁决GO；`b559978`；证据`F-PROJ-007-TASK10-BROWSER-MYSQL-PERF-20260826-01`）
 
 > 检查点（2026-08-26）：基线`5f37b2d`；Task 10与Implementation Done独立GO，提交`b559978`及证据`F-PROJ-007-TASK10-BROWSER-MYSQL-PERF-20260826-01`闭合真实MySQL、性能、Outbox和四档浏览器验收；无阻塞。下一步回写规格追溯/Feature索引并同步新基线，不进入Deployment/SIT/UAT/Release。
+
+## 2026-09-07 修订018影响记录
+
+模板业务规则配置化与独立验收设计已获需求方确认，正文及当前Feature Spec已登记`CHG-PRD-2026-09-07-018`。上文Implementation状态、提交、测试及历史Done保持原范围，不自动覆盖新语义；当前Ready以Feature Spec的REVALIDATION_REQUIRED为准。Q-TPLACC-001限制新增实体创建/范围绑定及其消费者路径，须先完成Phase 2差量再更新唯一实施计划，不从本次文档确认派生Task/Feature完成。

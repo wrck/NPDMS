@@ -1,6 +1,6 @@
 # DU-20260907-TEMPLATE-ACCEPTANCE-EVOLUTION-DESIGN 模板业务规则与终验解耦设计
 
-> DU状态：`CLAIMED`
+> DU状态：`HANDOFF_READY`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-COM-001=TASK_COORDINATED`
 > Task范围：`用户已确认的模板演进设计及正式规格差量；只改文档与其派生投影，不实施应用功能`
@@ -13,7 +13,7 @@
 > 串行资源：`master PRD下一修订号;相关SDS与Feature规格;由权威文件派生的领域需求和追溯投影`
 > 旧功能范围：`仅现有模板和验收载体的复用、历史只读与迁移解释；不修改废弃实现、历史证据或已执行迁移`
 > 验证：`PRD与来源副本一致；当前正文无S5强制终验残留；Owner/触发/门禁/视图边界自审；需求ID与原Feature实施状态保留；文档链接、差异及认领范围检查`
-> 集成记录：`NONE`
+> 集成记录：`master认领1474ee91/d1d4076b；修订018业务/逻辑文档与投影本地送审，具体文档提交见Git；不晋级Feature Done`
 
 ## 已批准目标
 
@@ -30,5 +30,13 @@
 ## 当前进度
 
 - 已完成：当前master只读能力审计；用户确认演进顺序、终验解耦及分层复核结论；原Owner释放。
-- 剩余：正式PRD/SDS/Feature文档差量、设计文档及相应检查。
+- 已形成：PRD修订018及来源副本、ADR-0045、相关SDS/Feature影响边界、书面设计与需求派生投影。
+- 待交接：需求方审阅书面设计；Q-TPLACC-001对应的Phase 2精确API/物理差量由后续设计单元继续，本DU不将其冒充完成。
 - Feature实施状态：保持原权威Task事实；设计确认不等于实现完成。
+
+## 文档验证
+
+- 13领域生成及校验通过：100项正式需求、31项V3、9项排除项；派生切片仍为111（V1 53、V2 58）。
+- PRD与来源副本逐内容比较一致；实际改动仅涉及PROJ、COM、ACC三个领域派生文件。
+- 应用代码、Flyway、物理合同JSON、旧批准/运行证据和其他工作树未修改；原PR1 DU行尾差异保留未暂存。
+- 本次自审与生成检查不替代SDS独立复审；新增业务验收用例均NOT_RUN。

@@ -8,14 +8,14 @@
 
 | Feature | 名称 | Requirement | 规格状态 | Feature Ready | 实施状态 |
 |---|---|---|---|---|---|
-| [F-PROJ-001](F-PROJ-001-manual-project-creation-and-template-initialization.md) | 手动项目创建与模板初始化 | PM-01、PM-03 | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `1c76050`） |
+| [F-PROJ-001](F-PROJ-001-manual-project-creation-and-template-initialization.md) | 手动项目创建与模板初始化 | PM-01、PM-03 | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `1c76050`） |
 | [F-PROJ-002](F-PROJ-002-project-split-tree-and-progress-aggregation.md) | 项目拆分、项目树与进度汇总 | PM-02 | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `57923b1`） |
 | [F-PROJ-003](F-PROJ-003-project-subtree-authorization-and-unified-scope.md) | 项目子树授权与统一数据范围 | PM-04 | BASELINE | READY | IMPLEMENTATION_COMPLETE（NPDMS `9ab894f`） |
 | [F-PROJ-004](F-PROJ-004-project-business-attribute-classification.md) | 项目业务属性判定、模板匹配历史与影响识别 | PM-07 | BASELINE | READY（`NPDMS-FPROJ004-FEATURE-READY-20260825-06`） | IMPLEMENTATION_COMPLETE（`NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07`；仅PROJ子切片） |
 | [F-PROJ-005](F-PROJ-005-service-manager-manual-assignment.md) | 服务经理人工指派与责任分布 | PM-08（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `25230ce`；整改复审GO） |
 | [F-PROJ-006](F-PROJ-006-project-rollback-exception-close-and-reopen.md) | 项目回退、异常关闭与受控重开 | PM-10（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `fc9f8b1`；独立复审GO） |
-| [F-PROJ-007](F-PROJ-007-project-task-tree-and-native-workbench.md) | 项目任务树与原生任务工作台 | PM-11（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `b559978`；独立复审GO） |
-| [F-PROJ-008](F-PROJ-008-project-stage-gate-and-forward-advance.md) | 项目阶段准出门禁与正向推进 | PM-03（V1，PARTIAL） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IN_PROGRESS（Task 1、2、3A已进入master；Task 3B受规格缺口阻断；尚未进入Implementation Done） |
+| [F-PROJ-007](F-PROJ-007-project-task-tree-and-native-workbench.md) | 项目任务树与原生任务工作台 | PM-11（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `b559978`；独立复审GO） |
+| [F-PROJ-008](F-PROJ-008-project-stage-gate-and-forward-advance.md) | 项目阶段准出门禁与正向推进 | PM-03（V1，PARTIAL） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IN_PROGRESS（Task 1、2、3A已进入master；Task 3B受规格缺口阻断；尚未进入Implementation Done） |
 | [F-SOL-001](F-SOL-001-project-duration-baseline-and-change-approval.md) | 项目工期基线与变更审批 | PRE-01（V1） | BASELINE | READY（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） | IMPLEMENTATION_COMPLETE（NPDMS `c417dee`；独立复审GO） |
 | [F-SOL-002](F-SOL-002-site-survey-assignment-and-readiness.md) | 工勘分工信息采集与实施就绪 | PRE-02（V1） | BASELINE | READY（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） | IMPLEMENTATION_COMPLETE（NPDMS `7243727f`；独立复审GO） |
 | [F-SOL-003](F-SOL-003-requirement-analysis-versioning.md) | 需求分析动态表单与版本冻结 | PRE-04（V1） | BASELINE | READY（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） | IMPLEMENTATION_COMPLETE（`NPDMS-FSOL003-DYNAMICFORM-IMPLEMENTATION-20260828-01-R1`；Requirement覆盖仍按PARTIAL映射派生） |
@@ -24,9 +24,9 @@
 | [F-CUS-001](F-CUS-001-customer-master-and-local-lifecycle.md) | 客户主档与本地生命周期 | CUS-03（V1） | BASELINE | READY（`SPEC-FCUS001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `31834bc6`；受控验收种子、真实MySQL、稳定幂等、权限负向、删除恢复、真实浏览器与合并后代码审查通过） |
 | [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | REVALIDATION_REQUIRED（已补master Task；历史证据`a9f8b7c5`不反推Done） |
 | [F-AST-002](F-AST-002-device-product-type-copy-and-public-query.md) | 设备产品类型受控副本与公开查询 | EQP-01（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待master真实MySQL与独立Done裁决） |
-| [F-ACC-001](F-ACC-001-acceptance-report-version-and-deliverable-sync.md) | 初验/终验报告版本与交付件同步 | ACC-03（V1）、ACC-04（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待master真实MySQL、Chromium与独立Done裁决） |
+| [F-ACC-001](F-ACC-001-acceptance-report-version-and-deliverable-sync.md) | 初验/终验报告版本与交付件同步 | ACC-03/ACC-04（V1局部） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IN_PROGRESS（代码已集成；待master真实MySQL、Chromium与独立Done裁决） |
 | [F-ACC-002](F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md) | 满意度问卷、达标判定与归档同步 | ACC-02（V1）、ACC-04（V1局部） | BASELINE | READY / GO（master修订011关闭编号冲突） | IN_PROGRESS（代码已集成；待F-ACC-001及自身运行复验与独立Done裁决） |
-| [F-COM-001](F-COM-001-contract-order-association-and-delivery-scope-allocation.md) | 合同订单关联与交付范围管理（[COM-B历史规格](F-COM-001-contract-order-and-delivery-scope.md)） | COM-01（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IN_PROGRESS（生产代码已进入master并有后继增强；待当前master真实MySQL、运行复验与独立Done裁决） |
+| [F-COM-001](F-COM-001-contract-order-association-and-delivery-scope-allocation.md) | 合同订单关联与交付范围管理（[COM-B历史规格](F-COM-001-contract-order-and-delivery-scope.md)） | COM-01（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IN_PROGRESS（生产代码已进入master并有后继增强；待当前master真实MySQL、运行复验与独立Done裁决） |
 | [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | IN_PROGRESS（矩阵生产代码与V132已进入master并有后继修正；V133示例迁移及当前master最终运行DoD待完成） |
 | [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/CUT-02（V1局部） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY（代码回执`c9066332`） |
 | [F-CUT-003](F-CUT-003-p3-dynamic-checklist-and-manual-fallback.md) | P3动态采集清单、直接填写与人工降级 | CUT-03（V1） | BASELINE | READY / GO | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY（代码回执`c9066332`） |

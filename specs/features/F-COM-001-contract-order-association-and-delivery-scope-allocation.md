@@ -7,7 +7,7 @@
 > Requirement：`COM-01（V1）`
 > Requirement切片覆盖：`COM-01@V1=FULL`
 > PRD差量重验证：`COM-01@V1`
-> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+> 差量依据：`CHG-PRD-2026-09-07-018`及尚未关闭的修订017义务；旧Task事实保留，不直接投影当前完成
 
 > 关联Requirement：`PM-03@V1`、`PM-10@V1`、`ACC-03@V1`；仅作为阶段快照、验收绑定与报告边界的协作依赖，不宣称关联Requirement完成
 > Owner Context：`COM（合同订单履约）`
@@ -46,7 +46,7 @@
 - 按产品、设备类型或序列号、数量及批次形成范围明细，并在范围主记录冻结目标项目办事处部门发生时快照；
 - 范围预览、分配、调整、释放及ERP取消/减量/变更后的冲突冻结；
 - 每项目单调递增的交付范围版本、`getAssignedScope`稳定查询和基于期望版本的锁定重验；
-- 项目进入其设定验收阶段时绑定全部当前有效范围，以及验收阶段内新范围版本生效时同步绑定；已绑定范围的减量通过ACC公开守卫读取事实；
+- 按配置指定的受控验收业务动作绑定真实适用范围及版本，已保护范围变化继续执行ACC公开守卫；旧阶段进入路径及历史绑定保留，新S5外身份/触发/事务在Q-TPLACC-001定稿；
 - 幂等、乐观锁、订单行锁、审计、历史和`DeliveryScopeAssigned/Released` Outbox；
 - 对F-PROJ-002既有`DeliveryScopeApi`行为保持兼容；
 - 前向迁移到SDS已批准的COM物理模型及V70存量切片受控转换；
@@ -61,7 +61,7 @@
 | 人工待核对候选 | COM | 保存不可变候选载荷与依据，显式关联后续ERP Owner事实并保留差异 | 将人工候选改写或晋级为ERP权威副本 |
 | 合同管理员公司授权 | SYSTEM | 调用现有`OrganizationScopeApi.getActiveScopes`读取当前有效公司编码、写前重验并记录授权快照 | 修改Yudao平台、复制有效期算法、新增合同授权表或专用SYSTEM接口 |
 | 项目与客户/销售执行上下文 | PROJ/CRM | 保存稳定引用或只读上下文；通过PROJ公开事实读取目标项目版本、设定验收阶段及SYSTEM办事处部门稳定ID/编码/名称/版本；CRM不能覆盖ERP商务事实 | CRM适配器、CRM合同审批或回写；项目或组织主数据维护 |
-| 验收范围绑定 | ACC | 交付真实Owner Provider；项目阶段进入及验收阶段内新范围生效时追加精确版本绑定，减量前读取公开守卫 | 初验/终验报告流程、审批和归档；Q-FCOM-002退出/回退关闭规则 |
+| 验收范围绑定 | ACC | 提供真实Owner契约，绑定COM精确范围版本并保护已绑定范围；修订018不以S5快照为唯一触发，新身份/命令/锁序待Phase 2定稿 | 报告正文、审批和归档；原Q-FCOM-002退出/解锁未裁决范围不自动开放 |
 | 实施站点与位置 | IMP/AST | COM仅保留稳定项目引用和办事处发生时快照；下游按项目/设备维护实施位置 | 在COM范围或明细保存`siteId/siteLocationId/locationText`第二套地点真值 |
 | 历史迁移证据 | PLT | F-COM-001只声明逐行映射输入与结果约束 | PLT批次、来源记录、外部键映射和问题单Owner实现 |
 
@@ -295,3 +295,9 @@ Java类型、最终Flyway编号、页面组件和查询实现只能在Feature Re
 ## 修订017覆盖资格
 
 当前受影响切片：COM-01@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。
+
+## 修订018当前目标与历史实施边界
+
+修订018保留ERP/COM数量与项目范围版本的唯一真值及既有验收范围保护；只变更阶段快照作为唯一验收绑定来源的耦合。新独立验收绑定由ACC拥有，PROJ提供真实上下文，不能伪造S5或由报告状态反推范围。独立动作的业务身份、范围确认时点、幂等和锁序须先关闭Q-TPLACC-001；原阶段进入/新范围路径和Q-FCOM-002历史边界不静默删除或自动放行。
+
+Requirement及批准依据：`CHG-PRD-2026-09-07-018`、`ADR-0045`及本文件已声明切片。相关Feature Ready保持REVALIDATION_REQUIRED；唯一Implementation Status仍由当前Feature Task维护，本文不晋级Done。

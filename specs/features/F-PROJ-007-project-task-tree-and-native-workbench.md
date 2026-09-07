@@ -6,7 +6,7 @@
 > Requirement：`PM-11（V1层级模型与基础查询）`
 > Requirement切片覆盖：`PM-11@V1=PARTIAL`
 > PRD差量重验证：`PM-11@V1`
-> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+> 差量依据：`CHG-PRD-2026-09-07-018`及尚未关闭的修订017义务；旧Task事实保留，不直接投影当前完成
 
 > 关联Requirement：`PM-02`、`PM-03`、`PM-04`、`PM-08`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
@@ -194,3 +194,9 @@
 ## 修订017覆盖资格
 
 当前受影响切片：PM-11@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。
+
+## 修订018当前目标与历史实施边界
+
+原TASK_NATIVE任务树与工作台闭环保持历史完成事实。修订018中Stage/Task只组织执行，绑定用于办理实体，CompletionRule用于引用结果；多节点可引用同一明确事实但不复制实体、权限或导航。ACC独立业务不以特定ProjectTask存在为前提；完整业务视图/受控触发接入需在基础实体闭环与Q-TPLACC-001契约就绪后实施，本Feature原PARTIAL覆盖不自动扩大。
+
+Requirement及批准依据：`CHG-PRD-2026-09-07-018`、`ADR-0045`及本文件已声明切片。相关Feature Ready保持REVALIDATION_REQUIRED；唯一Implementation Status仍由当前Feature Task维护，本文不晋级Done。

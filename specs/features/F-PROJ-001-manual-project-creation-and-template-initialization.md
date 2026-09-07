@@ -10,7 +10,7 @@
 > Requirement：`PM-01`、`PM-03`
 > Requirement切片覆盖：`PM-01@V1=PARTIAL；PM-03@V1=PARTIAL`
 > PRD差量重验证：`PM-01@V1；PM-03@V1`
-> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+> 差量依据：`CHG-PRD-2026-09-07-018`及尚未关闭的修订017义务；旧Task事实保留，不直接投影当前完成
 
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
 > Owner Context：`PROJ（项目治理）`
@@ -397,3 +397,9 @@ F-PROJ-003 的项目角色与子树授权分离模型。
 ## 修订017覆盖资格
 
 当前受影响切片：PM-01@V1、PM-03@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。
+
+## 修订018当前目标与历史实施边界
+
+本Feature保留原手动建项及节点/冻结契约全有或全无的完成事实。修订018要求按配置区分创建时必须初始化的对象与允许进入/首次操作时解析的业务实体；不得强制所有终验在建项时按固定任务码创建，也不得为延迟解析伪造目标ID。Stage/Task实例、绑定策略和必要规则仍在创建事务冻结；独立ACC初始化与范围契约须由Q-TPLACC-001定稿后复核，旧原子性不能被静默改成半成品项目。
+
+Requirement及批准依据：`CHG-PRD-2026-09-07-018`、`ADR-0045`及本文件已声明切片。相关Feature Ready保持REVALIDATION_REQUIRED；唯一Implementation Status仍由当前Feature Task维护，本文不晋级Done。

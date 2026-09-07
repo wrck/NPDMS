@@ -37,7 +37,7 @@
 | 可复用阶段/任务/交付件/绑定/权限/完成规则版本 | PROJ | DeliveryConfigurationRevision只统一版本身份；目标领域状态不在此修改 |
 | BusinessViewRegistration | PLT | 领域Owner发布实体、组件和服务端Provider契约；模板不能扩大权限 |
 | 项目范围水位及ProjectScopeVersion | COM | PM-06由PROJ编排、只引用范围；ACC按精确范围版本绑定，不生成第二个数量Owner |
-| AcceptanceReportRevision及当前报告指针 | ACC | 消费方读取证据有效性、结论、范围和初验依赖，不能把文件上传解释为通过 |
+| AcceptanceActivity、AcceptanceReportRevision及当前报告指针 | ACC | 独立验收活动、版本和真实结果；消费者只引用证据有效性、完成、通过、范围及配置前置，S5和业务视图不拥有验收状态 |
 | ProjectExitRecord及current_stage/lifecycle_status | PROJ | CLO-02调用公开Writer形成两类业务闭环；PM-10形成异常关闭；同事务历史不被通知覆盖 |
 
 角色和范围策略继续由07定义；此表不改变13领域Requirement Owner，也不把共用技术载体变成新的业务领域。

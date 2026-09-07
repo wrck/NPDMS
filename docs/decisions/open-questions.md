@@ -708,3 +708,18 @@
 - Blocking scope: 本问题自身已解除；相关代码和前向迁移已进入master的部分不回退，尚未完成的装配与运行范围以当前F-IMP-002 Task为准。
 - Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
 - Decision date: 2026-08-30
+
+## 模板与独立验收修订018的后续契约
+
+### Q-TPLACC-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-03@V1、PM-11@V1、ACC-03@V1、COM-01@V1；关联PM-01、PM-06、ACC-04、CLO-01/02
+- Area: ACC独立实体创建/办理、Stage/Task来源关联、验收范围及受控触发的API/物理差量
+- Question: 在保留项目/验收类型身份与历史的前提下，如何用明确公开契约承载不依赖固定ProjectTask或S5快照的验收创建、范围确认和结果消费，并保持权限、唯一、锁序及事务完成点？
+- Why it blocks design/implementation: 现有V166要求project_task_id/execution_contract_id，initializer固定两组任务码，范围绑定只接受原阶段快照；这些旧约束与已批准的独立验收路径不相容，不能通过参数改空、假S5或复制Owner事实绕过。
+- Approved business boundary: CHG-PRD-2026-09-07-018及ADR-0045已确认终验独立、业务规则配置化、触发与判定分离。无需再次裁决是否取消S5强制终验，也不新增多轮活动、角色或审批节点。
+- Required design work: PROJ/ACC/COM在SDS Phase 2冻结独立创建/办理API、可选节点来源、范围绑定业务身份及版本、执行身份、幂等重放、稳定锁序、原子/独立命令完成点和前向Schema/唯一键；同时列明旧接口及历史来源的保留边界。
+- Blocking scope: 仅新增独立触发、实体初始化、验收范围及依赖这些契约的运行接入。修订018业务/逻辑文档可以先收口；旧已实现独立切片不回退，Feature Ready/Done不自动恢复。
+- Decision owner: PROJ、ACC、COM设计Owner；涉及新增业务语义时返回需求方
+- Decision date: 未关闭；2026-09-07登记

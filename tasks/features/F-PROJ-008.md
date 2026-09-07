@@ -31,3 +31,7 @@ master已从源提交`0c7a9634`、`d69b3ff8`选择性迁入Task 1、Task 2，并
 - 不修改Yudao基础平台，不新增PMS流程版本字段、Flyway、权限键或第二阶段模型；
 - Task 3A集成不代表S0→S1可完成，也不代表Feature Implementation Done；
 - 每个Task先实现正向功能，再做聚焦验证并提交；Implementation Done独立GO前不得回写完成。
+
+## 2026-09-07 修订018影响记录
+
+模板业务规则配置化与独立验收设计已获需求方确认，正文及当前Feature Spec已登记`CHG-PRD-2026-09-07-018`。上文Implementation状态、提交、测试及历史Done保持原范围，不自动覆盖新语义；当前Ready以Feature Spec的REVALIDATION_REQUIRED为准。Q-TPLACC-001限制新增实体创建/范围绑定及其消费者路径，须先完成Phase 2差量再更新唯一实施计划，不从本次文档确认派生Task/Feature完成。

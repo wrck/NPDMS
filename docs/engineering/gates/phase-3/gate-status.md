@@ -1,19 +1,22 @@
 # SDS Phase 3 Review
 
 > 审查状态：`REVALIDATION_REQUIRED`<br>
-> PRD Blob：`fd701f153f3148001625fcfe45180b36aae719c2`<br>
-> 适用修订：`PRD_V1.8_REVISION_017`<br>
+> 上次PRD Blob（修订017）：`fd701f153f3148001625fcfe45180b36aae719c2`<br>
+> PRD Blob：`86366bef18520b5463a4cc46bc6df8435f240afb`（沿用当前追溯生成器的输入身份）<br>
+> 适用修订：`PRD_V1.8_REVISION_018`<br>
+> 当前输入：`docs/baseline/prd-v1.8.md`及修订018；旧Blob/报告只证明原范围<br>
 > 当前结论：`REVALIDATION_REQUIRED`<br>
 > 技术结论：`PENDING`<br>
 > 机器门禁：`PENDING`<br>
 > 需求方批准：`PENDING`<br>
 > 独立复审：`PENDING`<br>
 > Gate Owner：`原SDS授权Owner；本轮ChatGPT仅执行修复、自审与机器验证，不代签独立批准`<br>
-> 当前修复证据：`docs/engineering/gates/phase-1/revision-017-review-remediation.md`
+> 当前设计差量：`docs/decisions/0045-template-business-rules-and-acceptance.md`及相关SDS修订018；尚未独立复审<br>
+> 上次修复证据（修订017）：`docs/engineering/gates/phase-1/revision-017-review-remediation.md`
 
 ## 当前范围与结论边界
 
-当前范围为100项正式Requirement、111个目标版本切片（V1 53个、V2 58个）。基线输入没有改变；本轮只修复现行SDS与校验器，用户“修复Gate达到GO”的请求是执行授权，不自动记为需求方已审阅全部产物或独立复审通过。
+当前范围仍为100项正式Requirement、111个目标版本切片（V1 53个、V2 58个）。需求方已确认修订018的模板业务规则配置化与独立终验逻辑边界，基线语义发生变化；这不代表本阶段全部书面产物、API/物理合同或实现已经批准。相关范围继续REVALIDATION_REQUIRED，Q-TPLACC-001及适用Phase复核完成前不恢复放行。
 
 修订007的APPROVED/READY/GO及原independent-review.md保持历史证据；不要求历史文件伪装成修订017或包含新的对象数量。技术验证通过后可登记TECHNICAL_GO，正式Gate仍须当前复审与批准；默认校验命令不因--technical通过而授权下一Gate。
 

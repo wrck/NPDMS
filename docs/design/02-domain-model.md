@@ -78,7 +78,7 @@ ProjectInstance
 └─ ProjectStage
    └─ ProjectTask（任意深度）
       └─ 冻结的工作绑定与完成规则快照
-ProjectStage同时拥有STAGE_NATIVE或领域主绑定与StageCompletionRule；StageTransitionDefinition由模板精确版本冻结为项目出向关系。
+ProjectStage同时拥有STAGE_NATIVE或领域主绑定与StageCompletionRule；StageTransitionDefinition由模板精确版本冻结为项目出向关系。Stage→Task只表达编排及导航，不构成ACC等业务实体的所有权链。修订018取消S5或固定任务码产生终验义务：节点通过绑定办理终验，通过完成规则/门禁消费终验结果，ACC独立拥有活动与报告。
 ```
 
 - 项目工作区一级导航来自ProjectStage，二级业务导航区域来自ProjectTask；二级区域可继续按需展开任务子树，不限制ProjectTask深度。

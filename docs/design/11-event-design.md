@@ -273,3 +273,13 @@ F-ACC-002的`SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVer
 `CutoverApproved`只由CUT-05在冻结审批路由的全部节点通过后发布；F-CUT-004提交方案不发布该事件。P4通过同步`CutoverApprovalFactApi.start`与P5审批实例创建同成同败，不额外发明`CutoverPlanSubmitted`。来源失效暂停与替代审批恢复链使用同一公开命令合同而非新增公共事件；CUT-05不得通过审批事件改写F-CUT-004已提交方案正文。
 
 CUT-05首节点创建、下一节点激活和改派只在原业务事务追加`cut_approval_notification=PENDING`；`NotifyMessageSendApi`由提交后的独立投递动作调用。投递失败仅以同一deliveryKey转`PENDING_RETRY`，不回滚、覆盖或重新解释已提交审批决定，也不作为通过/驳回命令的503结果。
+
+## 修订018：验收受控触发与结果消费
+
+Requirement：PM-03、PM-11、ACC-03、ACC-04、CLO-01/02。采用ADR-0045。
+
+配置可选择已注册的审批或业务事实作为终验创建/关联依据；事件只证明其Owner发生的事实，不直接赋予ACC完成状态。触发消费必须保留来源Owner/事实键/版本、适用配置版本、目标业务意图、项目/范围上下文及执行结果，按同一意图重放；不同意图不得仅按projectId合并。
+
+事件到命令的处理调用ACC公开边界，不从视图渲染、readiness GET或CompletionRule求值中发送创建命令。报告/文件有效、活动完成及验收通过分别提供稳定事实版本，PROJ/CLO只重算明确引用它们的规则。报告换版或范围变化不覆盖已冻结历史；归档/通知成功仍不代表验收或闭环成功。
+
+现有AcceptanceReportVersionChanged和ClosureGateRecheckRequested保留已确认的生产者/消费者边界。新触发来源、执行身份、重放与事务细节纳入Q-TPLACC-001；未提供真实Owner契约时不注册假成功消费者。

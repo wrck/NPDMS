@@ -48,3 +48,7 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局�
 - [x] 更新Requirement矩阵和DU回执，保持`IN_PROGRESS / NOT_ESTABLISHED`。
 
 > 检查点（2026-09-02）：代码回执=`e53f7243`；当前Gate=`IN_PROGRESS / NOT_ESTABLISHED`；已通过=Feature契约12项、27模块依赖构建、后端44项适用测试（4项MySQL跳过）、前端3项测试与类型检查；阻塞=当前master真实MySQL/Chromium与独立Done裁决未完成；下一步=补齐运行证据并申请独立裁决。
+
+## 2026-09-07 修订018影响记录
+
+模板业务规则配置化与独立验收设计已获需求方确认，正文及当前Feature Spec已登记`CHG-PRD-2026-09-07-018`。上文Implementation状态、提交、测试及历史Done保持原范围，不自动覆盖新语义；当前Ready以Feature Spec的REVALIDATION_REQUIRED为准。Q-TPLACC-001限制新增实体创建/范围绑定及其消费者路径，须先完成Phase 2差量再更新唯一实施计划，不从本次文档确认派生Task/Feature完成。

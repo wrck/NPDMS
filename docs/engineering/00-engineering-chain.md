@@ -2,8 +2,8 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`（已合并master修订001—014及统一修订017；当前PRD Blob：`fd701f153f3148001625fcfe45180b36aae719c2`）；修订001—007的独立批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`，修订008—014及017以PRD修订记录和Git历史为准<br>
-> 工程适配状态：本工程链已识别修订008—014及017的工程影响；Phase 1/2/3基于修订007的旧批准仅作历史证据，当前状态须按受影响范围完成差量重验证<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`（master修订018；修订001—017批准与来源记录继续保留，修订017 Blob `fd701f153f3148001625fcfe45180b36aae719c2`仅作历史输入）；当前业务增量见`prd-v1.8-amendment-018-template-business-rules-and-acceptance.md`<br>
+> 工程适配状态：修订018确认业务规则配置化及独立验收逻辑边界；相关Phase、Feature和物理/API契约仍需差量重验证，不用历史批准自动放行<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 结构化覆盖：`docs/traceability/requirement-version-coverage.json`<br>
@@ -81,6 +81,8 @@ PRD中的`S0～S6`是项目交付运行期的标准业务阶段编码；本工�
 2. **项目实例层**：项目创建时按冻结的`ProjectTemplateVersion`、`StageDefinition`和`StageTransitionDefinition`只实例化模板实际引用的阶段。阶段是否存在由模板关系图表达，不新增`APPLICABLE/NOT_APPLICABLE`阶段状态；推进时必须依次校验当前阶段完成与准出、唯一解析后置目标、校验目标准入并原子更新`current_stage`。
 
 项目模板、阶段、任务、阶段转移、阶段/任务交付件、`WorkBinding`、`BusinessEntityType`、`BusinessViewKey`、`CompletionRule`和`PermissionPolicy`是受控、版本化配置契约。模板只能引用已注册、已发布且版本兼容的对象，不得保存任意页面代码、脚本、SQL或未经注册的外部URL。
+
+修订018明确：业务校验的适用性、前置、阈值和触发由冻结配置决定，不按S5或固定任务码强制终验；Stage/Task组织执行，ACC拥有独立验收实体，视图只呈现Owner操作，CompletionRule/Gate只读事实。触发动作与只读判定必须分离；授权、租户、引用/图完整性、事务及不可变历史持续有效。实体创建、范围绑定和节点消费先完成基础闭环，再接入动态适配，不建设第二套Template或通用工作流。Q-TPLACC-001只限制尚未定稿的新增API/物理路径，不倒改历史Task完成事实。
 
 ### 2.6 PRD语义变更的工程影响规则
 

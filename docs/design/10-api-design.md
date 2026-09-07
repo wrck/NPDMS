@@ -206,7 +206,7 @@ F-IMP-002的无用户主体豁免到期命令使用PROJ支撑Task `T-FIMP002-PRO
 
 | 路径 | 命令 | 约束 |
 |---|---|---|
-| `/acceptances`、`/acceptances/{id}/report-versions` | 查询活动/版本、create/update draft、`publish-version`、`revoke-current-version`、`complete-activity` | 草稿可与旧EFFECTIVE并存；publish原子完成首次生效或替换，revoke原子关闭当前且不恢复旧版；终验发布前要求当前有效初验；完成要求当前EFFECTIVE报告四项与完整附件集合完备；报告不触发范围绑定 |
+| `/acceptances`、`/acceptances/{id}/report-versions` | 查询活动/版本、create/update draft、`publish-version`、`revoke-current-version`、`complete-activity` | 草稿可与旧EFFECTIVE并存，发布/替换原子切当前，撤销不恢复旧版；修订018的报告完备及初验前置按冻结配置，证据有效不等于通过。现有任务绑定接口保留原适用范围，独立创建/完成/范围契约见Q-TPLACC-001，报告不反推范围绑定 |
 | `/acceptances/{id}/actions/send-confirmation` | `POST` | ACC-01 V2按短信/邮件和钉钉推送培训确认链接；分别记录受理/送达，送达不等于客户确认，失败保留V1链接/扫码入口 |
 | `/delivery-artifacts` | `check-completeness`、`review`、`archive` | 齐套、审核、归档是不同命令；文件版本固定 |
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
@@ -261,9 +261,11 @@ PLT加性公开`FileArtifactApi.archiveReferenceSets(ArchiveFileReferenceSetsCom
 
 物理模块固定：`FileArtifactApi.archiveReferenceSets`声明在现有`pms-module-platform-api`、Provider在`pms-module-platform`；`AcceptanceActivityInitializationApi`与`AcceptanceActivityCompletionFactApi`声明在现有`pms-module-project-api`的ACC契约包，真实Provider、ACC文件策略Provider及活动/报告实现位于`pms-module-project`的ACC子包。该物理合置不改变ACC业务Owner，PROJ编排不得调用其Service/Mapper或直接访问ACC表。
 
-PROJ继续拥有任务命令。非`TASK_NATIVE`初验/终验任务的执行契约固定`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`；PROJ锁定任务和当前执行契约后调用`AcceptanceActivityCompletionFactApi.lockAndComplete(tenantId, projectId, projectTaskId, executionContractId, acceptanceId, expectedActivityVersion, expectedReportVersion, operationId)`。ACC仅返回`COMPLETED/REPORT_INCOMPLETE/IDENTITY_MISMATCH/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`及活动/报告事实版本；只有`COMPLETED`允许PROJ追加TaskCompletionEvaluation并把任务置为DONE。ACC不得直接更新PROJ任务、阶段或WorkBinding。
+PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018允许Stage/Task通过WorkBinding办理明确验收实体，或仅通过CompletionRule引用结果。独立创建/办理/事实读取及范围的新参数与事务由Q-TPLACC-001锁定，不以删去旧必填参数代替设计。
 
-PROJ项目创建使用ACC公开`AcceptanceActivityInitializationApi.initialize`，ACC以`MANDATORY`加入同一事务。PROJ先持久化全部任务、非ACC执行契约和里程碑，再调用既有ACC `ProjectDeliverableInitializationApplicationService`形成精确`D-INITIAL-REPORT/D-FINAL-REPORT`应交根，并为验收任务预分配`executionContractId`；activity initializer逐项接收`projectId/projectTaskId/taskDefinitionKey/executionContractId/acceptanceType/deliverableCode/templateRevision`，只接受`T-INITIAL-ACCEPT→PRELIMINARY→D-INITIAL-REPORT`和`T-FINAL-ACCEPT→FINAL→D-FINAL-REPORT`，校验ACC应交根后创建PENDING活动并返回`acceptanceId/activityVersion`；PROJ随后才追加ACC当前执行契约且不得直接写ACC表。缺失、部分、重复、身份不一致或任一步失败使整个项目创建回滚。
+既有任务绑定路径（只保留原契约与历史适用性，不冒充修订018独立入口）：非`TASK_NATIVE`初验/终验任务固定`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`；PROJ锁定任务及执行契约后调用`AcceptanceActivityCompletionFactApi.lockAndComplete(tenantId, projectId, projectTaskId, executionContractId, acceptanceId, expectedActivityVersion, expectedReportVersion, operationId)`。原返回`COMPLETED/REPORT_INCOMPLETE/IDENTITY_MISMATCH/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`及事实版本，成功才追加TaskCompletionEvaluation并置任务DONE；新独立命令与结果语义须另行复核。ACC不得直接更新PROJ任务、阶段或WorkBinding，视图不另写状态。
+
+既有项目创建接口的原适用契约（新独立验收路径不以此为唯一入口）：PROJ使用ACC公开`AcceptanceActivityInitializationApi.initialize`，ACC以MANDATORY加入同一事务。先生成任务、非ACC执行契约和里程碑，ACC初始化精确应交根，PROJ预分配executionContractId，再传projectId/projectTaskId/taskDefinitionKey/executionContractId/acceptanceType/deliverableCode/templateRevision。原接口仅识别两组既定任务码映射并返回acceptanceId/activityVersion，PROJ随后追加当前契约，任一步失败整体回滚。原接口、错误语义与历史保留；Q-TPLACC-001明确新的可选节点来源、延迟解析和范围契约后才能扩展，不能伪造S5、任务或目标ID。
 
 存量切换使用同一initializer的受管批次入口并按项目成对处理：无两项精确任务保持不变；部分/重复/缺应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均非终态时原子关闭旧契约并创建两个活动及ACC当前契约；两项均为`DONE/CLOSED`时整项目保持旧契约和历史且不创建活动；终态/非终态混合时整批失败，未知状态同样失败关闭。无匹配“保持不变”不得解释为精确任务缺件时跳过。
 
@@ -503,13 +505,13 @@ Requirement：PM-03@V1、PM-11@V1。沿用`GET /api/v1/pms/projects/{id}/stage-a
 
 Readiness返回当前节点、唯一目标或冲突候选、current/target Stage版本、transition版本、绑定/规则版本及Owner事实版本；只是预览。命令以If-Match、Idempotency-Key和expectedCurrentStage/expectedTreeVersion重验；先检查当前CompletionRule与EXIT，再解析唯一后置，再检查目标ENTRY。解析为空/多义、Owner未知或版本变化不写阶段。
 
-统一锁序：PROJ根/项目→按ID排序的当前与目标Stage→transition/执行契约→Gate/Reference→公开Owner Fact。目标为模板实际S5时，COM锁当前scopeVersion，ACC精确绑定该范围；二者以MANDATORY加入同一事务。任何ACC/COM失败均不关闭原阶段、不改变current_stage。旧COM enter-acceptance-stage仅可委托此命令，不保留第二个阶段Writer。
+统一锁序：PROJ根/项目→按ID排序的当前与目标Stage→transition/执行契约→Gate/Reference→公开Owner Fact。当冻结配置指定同事务的验收范围绑定动作时，COM锁当前scopeVersion，ACC精确绑定该范围，二者以MANDATORY加入同一事务；任何ACC/COM失败均不关闭原阶段、不改变current_stage。旧COM enter-acceptance-stage仅可委托PROJ命令，不保留第二个阶段Writer。独立触发与该推进事务不是同一完成点，其身份、动作前置及锁序须由Q-TPLACC-001定稿，不因目标为S5隐式触发。
 
 成功同事务写当前Stage完成、目标Stage活动、Project.current_stage/version、不可变StageSnapshot、审计、Outbox及幂等结果。当前为终点时返回可申请闭环，不创建虚假S6。计划/方案后期换版仅触发重算，不隐式回退。
 
 Gate审批沿用ProjectStageGateProcessOwnerApi：只冻结processDefinitionKey；默认最新可启动定义，授权人可选同key历史processDefinitionId；记录实际定义ID和完整taskDefinitionKey，禁止独立PMS流程版本。六类Owner谓词和已有授权继续保留在F-PROJ-008契约，不因图改造扩大权限。
 
-错误按既有公共类别：未满足BUSINESS_GATE、旧版本VERSION_CONFLICT、Owner未知DEPENDENCY_UNAVAILABLE；不把未知当空集合通过。Stage转换和S5绑定的物理差量须按09当前契约建设，旧NO_PHYSICAL_DELTA仅作历史证据。
+错误沿用BUSINESS_GATE、VERSION_CONFLICT、DEPENDENCY_UNAVAILABLE，未知不等于未配置。修订018的图推进及验收范围物理/API差量见09和Q-TPLACC-001；旧NO_PHYSICAL_DELTA只作历史证据，不授权把旧阶段绑定命令用于独立验收。
 
 #### 六类Owner事实与BPM窄接口（保留现有安全契约，补充ENTRY上下文）
 
@@ -555,7 +557,7 @@ Fact返回`processInstanceId/processDefinitionId/processDefinitionKey/businessKe
 
 BPM事实Provider与上述启动Provider可由同一集成适配器承接，只通过Flowable运行/历史事实按businessKey锁定/查询全部尝试，逐项校验租户、项目、Gate、Reference、定义key和实例实际processDefinitionId。允许驳回/撤回后重新发起时，以`startTime + processInstanceId`确定唯一最新尝试；多个活动实例、变量缺失或不一致均`DEPENDENCY_UNAVAILABLE`。状态只读取`BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS`的整数原值：1/2/3/4分别对应RUNNING/APPROVE/REJECT/CANCEL，`factVersion`使用该整数原值及startTime/endTime，不比较不存在的字符串状态。不存在实例必须返回业务未满足`*_NOT_STARTED`，不得解释为通过。
 
-模板发布还必须验证S0～S3每阶段至少一个EXIT Gate、每Gate至少一个引用、Provider存在性，并拒绝新APPROVAL/PROCESS引用写入refVersion；APPROVAL/PROCESS通过`inspectDefinitionKey`验证当前生效Flowable定义存在且不含`START_USER_SELECT(35)`。运行时零EXIT Gate或零引用分别返回`EXIT_GATE_MISSING/EXIT_GATE_REFERENCE_MISSING`且outcome为`DEPENDENCY_UNAVAILABLE`。
+模板发布验证实际配置的CompletionRule、ENTRY/EXIT及其Reference/Provider，不强制S0～S3每阶段至少一个EXIT Gate。明确未配置某业务门禁不等于已引用门禁缺失；后者仍拒绝。新APPROVAL/PROCESS引用不写refVersion，定义Key检查继续拒绝START_USER_SELECT(35)。修订018只是目标契约，旧测试/接口须按实际配置语义重新验证。
 
 ## COM-01 公司范围查询与关系维护
 
@@ -563,9 +565,9 @@ BPM事实Provider与上述启动Provider可由同一集成适配器承接，只�
 
 关系写入前重新读取scope，按ERP合同公司编码重验；重验失败不写关系、成功幂等、Outbox或成功审计。成功时仅把命中scope ID/version按稳定顺序写既有审计。合同金额等敏感字段另需`pms:commerce:contract:sensitive-read`，该权限不替代公司范围。
 
-## COM-01 验收阶段范围绑定
+## COM-01 验收范围绑定（修订018差量待定稿）
 
-PROJ通过`ProjectAcceptanceStageFactApi.lockAndRead(query)`读取并锁定项目当前阶段事实；ACC通过`DeliveryScopeAcceptanceLockApi.lockCurrentByProject(command)`取得精确当前分配版本。`AcceptanceScopeBindingApi.bindForStageEntry(command)`与阶段进入原子提交，`AcceptanceScopeBindingApi.bindEffectiveScope(command)`与验收阶段内新范围生效原子提交。两种命令同身份同请求幂等、异载荷拒绝，均不创建验收报告。
+现有`ProjectAcceptanceStageFactApi`、`bindForStageEntry`和`bindEffectiveScope`仅承载原阶段快照及范围版本语义，并不创建验收报告。修订018确认独立验收不以S5为前提，但保留PROJ项目上下文、COM数量/范围真值和ACC绑定Owner；新受控范围动作的身份、权限、前置、事务、锁序、重放及范围变更失效契约必须先完成Q-TPLACC-001，不伪造阶段快照、不由报告状态补建绑定。
 
 锁序固定为PROJ项目当前行→COM订单行（适用时）→COM `DeliveryScope`当前行（按稳定ID）→ACC `AcceptanceScopeBinding`。Q-FCOM-002关闭前不执行退出/回退绑定关闭或解锁。
 
@@ -577,7 +579,7 @@ PROJ通过`ProjectAcceptanceStageFactApi.lockAndRead(query)`读取并锁定项�
 |---|---|
 | `POST /api/v1/pms/projects/{id}/actions/advance-stage` | If-Match/Idempotency-Key及expectedCurrentStage/expectedTreeVersion/expectedGraphVersion；目标由冻结图唯一解析；响应含transitionId/graphVersion/源准出和目标准入结果。实际锁序及事务见05。 |
 | 阶段readiness | 返回实际目标或可恢复缺口，不产生授权或完成事实；无S5/S6不得虚构节点。 |
-| COM验收阶段入口 | 委托PROJ唯一推进服务，同事务完成COM范围锁定和ACC精确绑定；不直接写current_stage。 |
+| COM验收阶段入口 | 旧接口保留原适用契约；新验收业务动作按配置及Owner契约执行，不直接写current_stage，也不把S5当成终验实体前提。 |
 | PM-06范围追加 | projectId、baseScopeVersion、合同/订单行/数量、影响及审批引用；服务端重验后才切范围、补任务/绑定；新旧范围模型见08。 |
 | ACC报告/验收Fact | 当前报告版本、结论、reportEvidenceValid、acceptancePassed、精确scopeVersion/范围及来源文件；不接受客户端直接指定通过。 |
 | CLO-01/02 | closureType、真实closedFromStage、Gate快照及来源/项目版本；提交时重新鉴权和重验快照，不能补造阶段。 |

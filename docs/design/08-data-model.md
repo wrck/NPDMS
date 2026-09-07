@@ -193,8 +193,8 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 | 聚合/实体 | Owner 事实 | 不变量 |
 |---|---|---|
-| Acceptance | 初验/终验活动根、DRAFT/EFFECTIVE/SUPERSEDED/REVOKED报告版本、验收时间、结论、验收人和有序固定PLT公共文件事实集合 | 活动根以PROJ ProjectTask/WorkBinding为唯一外部身份，通过`AcceptanceActivityInitializationApi`与项目创建同事务生成，ACC不写PROJ任务；附件只保存`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`，不保存PLT内部ID；发布时认证用户作为不可变归档操作者，DRAFT不补造该事实；只有EFFECTIVE且未关闭区间的版本可作当前，替换/撤销不覆盖历史且撤销不恢复旧版；进入验收阶段不创建报告，活动完成时当前报告必须四项完备；报告不拥有项目阶段或验收范围 |
-| AcceptanceScopeBinding | 项目验收阶段快照对DeliveryScope及其分配版本的锁定事实，独立于初验/终验报告 | 只由阶段进入或验收阶段内新范围生效产生；`Q-FCOM-002`关闭前不自动关闭或解锁 |
+| Acceptance | ACC独立初验/终验活动根、DRAFT/EFFECTIVE/SUPERSEDED/REVOKED报告版本、验收字段及有序固定PLT公共文件事实 | 不以特定PROJ任务或S5为唯一业务身份，保留项目、范围、责任和来源；ACC不写PROJ状态。附件只保存`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`，不保存PLT内部ID；发布时认证用户是不可变归档操作者，DRAFT不补造。只有EFFECTIVE且未关闭区间的版本可作当前，替换/撤销不覆盖历史且撤销不恢复旧版。业务完备按冻结规则，预置时间/结论/验收人/附件要求；证据有效、活动完成、明确通过分离。原任务必填载体和新独立入口须经Phase 2差量，不能直接删字段；报告不拥有项目阶段或COM范围 |
+| AcceptanceScopeBinding | ACC对真实验收业务上下文及COM精确范围版本的保护事实，独立于报告正文 | 修订018不限定阶段进入为唯一触发；由明确Owner命令建立，范围更新按既有保护语义重验。旧阶段快照绑定保留来源解释；新身份/锁序/事务见Q-TPLACC-001，未批准退出/解锁不自动执行 |
 | SatisfactionCollection | ACC问卷模板/发布修订、满意度领域任务、受控访问授权、冻结问卷、客户答卷、签字/附件PLT公共事实、不可变Result和整改Fact链 | 模板发布修订以`schemaVersion=1`配置包冻结受控题型、答案结构、分值、可选权重、计分策略、精度/舍入和阈值；Questionnaire完整冻结该配置且只由服务端解释，客户端只提交答案。PROJ只保存ACC解析的模板Fact及业务时点；访问令牌不落明文；答案、签字/附件、评分和历史版本不可覆盖；同collectionKey至多一个未关闭有效达标Result；当前有效达标Result只能由ACC正式失效命令按版本一次性关闭区间并保存原因/操作者/时间，旧Task、Questionnaire和文件不重开不改写；首次任务冻结原始source Fact，整改保持source不变并以ACC不可变RemediationFact触发下一taskRevision，新建Task/Questionnaire/Result且不恢复旧版 |
 | DeliveryArtifact | `acc_project_deliverable`应交实例、来源版本关系、有序附件公共事实集合、齐套结果、审核、归档和补偿状态 | F-ACC-001维护初验/终验来源；F-ACC-002只把同租户同项目、`deliverable_code=D-SAT-REPORT/task_code=T-SAT-SURVEY`的唯一根用于SatisfactionResult来源，缺失/重复/错配失败关闭；根只保存当前来源指针，来源版本与附件子记录只追加；仅有效达标满意度Result可成为当前来源；归档失败保留报告版本且标记待补偿，满意度Result同样不回滚；PLT独立ARCHIVED引用持有归档真值，来源ACTIVE文件集合供历史下载，ACC `archive_status`仅为补偿投影 |
 | ProjectClosure | 闭环申请、门禁快照、审核结论和完成事件 | 全部后代项目按既定门禁满足后才能完成闭环 |
@@ -470,7 +470,7 @@ Requirement：PM-03、PM-06、PM-10、PM-11、COM-01、ACC-03、CLO-01、CLO-02�
 
 ### 范围与报告的精确关系
 
-COM范围版本的scope_snapshot是不可变历史快照，包含范围/明细ID、订单行、allocationVersion、数量、单位和设备引用，不是另一份当前可修改的数量。ACC报告绑定具体scopeRevisionId、scopeVersion和digest。报告可以引用旧A范围的证据，但A+B正常准出必须形成明确覆盖当前整体范围的新总体验收版本；仅A或仅B不得通过。直签终验保存有效初验revision引用；非直签不要求初验。
+COM范围版本的scope_snapshot是不可变历史快照，包含范围/明细ID、订单行、allocationVersion、数量、单位和设备引用，不是另一份当前可修改的数量。ACC报告绑定具体scopeRevisionId、scopeVersion和digest。配置要求A+B整体范围通过时，报告可以引用旧A范围证据，但必须形成明确覆盖当前整体范围的新总体验收版本；仅A或仅B不得通过。初验依赖只按冻结规则适用，不由签约方式或S5编码补加。
 
 文件失效、报告撤销、范围变化、初验依赖失效都重新计算验收通过及CLO门禁。旧报告仍保留历史证据，不把旧事实改成失败。已闭环项目收到晚到事件只能记录历史/异常并通知处理，不能自动重开或改写终态。
 

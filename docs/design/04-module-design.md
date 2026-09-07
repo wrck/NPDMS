@@ -46,4 +46,6 @@
 
 PROJ统一配置及执行StageTransitionDefinition和Stage/Task WorkBinding（05/08）；SOL计划审批只产出版本事实（06）；IMP按当前范围聚合割接覆盖；ACC区分报告证据有效、验收通过与齐套（08/13）；DAC包含P3采集入口与EXE-03批准业务快照、巡检两个任务授权（12）；SYSTEM分别承接HR和目录Owner（02c）。PM-06不提供项目群组模块。RPT-02@V2仍提供全部状态/阶段/超期/三类退出/比例/下钻/导出，不能缩成终态摘要。
 
+修订018补充：ACC独立拥有验收活动，终验不与S5或任务码强制绑定；PROJ配置受控触发及结果引用，PLT只托管业务视图注册。先完成模板和ACC基础业务闭环，再接入动态适配，不另建Template、任务、导航或通用工作流。
+
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

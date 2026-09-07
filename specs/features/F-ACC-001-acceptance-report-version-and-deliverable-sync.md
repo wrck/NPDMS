@@ -1,14 +1,17 @@
 # F-ACC-001 初验/终验报告版本与交付件同步 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO`（来源`bde0feac`；master修订011关闭Change ID冲突）
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / GO`（来源`bde0feac`；master修订011关闭Change ID冲突）
+> Feature Ready：`REVALIDATION_REQUIRED`（修订018独立验收及配置化差量）
 > 实施状态：`IN_PROGRESS`
 > Requirement：`ACC-03（V1）`、`ACC-04（V1局部）`
-> Requirement切片覆盖：`ACC-03@V1=FULL；ACC-04@V1=PARTIAL`
+> Requirement切片覆盖：`ACC-03@V1=PARTIAL；ACC-04@V1=PARTIAL`
+> PRD差量重验证：`ACC-03@V1；ACC-04@V1`
+> 差量依据：`CHG-PRD-2026-09-07-018`；原报告切片与历史测试不证明完整独立验收能力
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project`及其内嵌`pms-module-project-api`；ACC与PROJ语义Owner保持分离，不新增第二套项目任务或应交清单真值
-> 适用基线：master PRD V1.8修订011；ACC来源分支的同号修订语义只作历史候选；ADR-0039、ADR-0040 `ACCEPTED`
-> Technical Plan：`NPDMS-FACC001-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`fca9626c4fce4ccf4b03efdebe997343ce7b5a42`）
+> 适用基线：PRD V1.8修订018；ADR-0045及相关SDS。原修订011、ADR-0039/0040审核只保留历史适用范围，具体新接口/物理差量须先关闭Q-TPLACC-001
+> 上次Technical Plan（历史，不授权修订018差量）：`NPDMS-FACC001-TECHPLAN-20260830-01`，`PASS / GO`（原独立整改复审`fca9626c4fce4ccf4b03efdebe997343ce7b5a42`）
 
 ## 1. 业务目标
 
@@ -29,9 +32,9 @@ PROJ初验/终验任务与执行契约
 
 - `PRELIMINARY/FINAL`活动根、草稿、当前有效版本和历史版本查询；
 - 草稿创建/修改、首次发布、替换、撤销及单文件下载；
-- 终验发布前当前有效初验守卫；
+- 终验前置及报告业务完备要求按冻结配置判定，典型初验前置作为预置规则；
 - PROJ任务完成命令通过ACC Owner接口原子完成活动；
-- 新项目通过`AcceptanceActivityInitializationApi`在既有项目创建事务内初始化活动，存量任务按批准分区前向切换；
+- 既有创建时初始化路径继续保留原项目创建原子契约；修订018独立创建/进入或首次操作解析路径须先按Q-TPLACC-001定稿，不强制所有终验在建项时创建；
 - 复用`acc_project_deliverable`唯一应交根，维护初验/终验来源版本、完整附件集合、归档状态和补偿水位；
 - 复用PLT持续ACTIVE的报告附件集合，以独立`ACCEPTANCE_REPORT_ARCHIVE`集合建立归档引用和归档记录；
 - `AcceptanceReportVersionChanged`与`ClosureGateRecheckRequested` Outbox；
@@ -40,7 +43,7 @@ PROJ初验/终验任务与执行契约
 
 ### 2.2 覆盖边界
 
-- `ACC-03@V1=FULL`：报告、活动完成、终验守卫以及F-COM范围绑定正向回归全部纳入验收；报告不触发绑定。
+- `ACC-03@V1=PARTIAL`：保留已限定的活动/报告/同步合法子切片；修订018独立创建、通用触发及范围契约须经Phase 2和Feature覆盖复核，不用历史合同声明当前全部义务已覆盖。
 - `ACC-04@V1=PARTIAL`：只实现`D-INITIAL-REPORT/D-FINAL-REPORT`来源索引、换版/撤销同步、单文件下载和CLO重校验请求。
 
 ### 2.3 Out of Scope
@@ -58,7 +61,7 @@ PROJ初验/终验任务与执行契约
 - ACC拥有活动和报告；PROJ拥有ProjectTask、WorkBinding、执行契约、完成判定和任务状态。
 - 初验/终验当前执行契约固定`targetContextCode=ACC`、`targetObjectType=AcceptanceActivity`、`targetObjectKey=acceptanceId`。ACC不得直接写PROJ表。
 - PROJ完成命令按项目任务/执行契约→ACC活动根→当前报告版本锁定，并以`MANDATORY`调用`AcceptanceActivityCompletionFactApi`；仅`COMPLETED`允许追加完成判定并把任务置`DONE`，任一失败整体回滚。
-- 活动完成只校验当前EFFECTIVE报告的时间、结论、验收人和至少一个完整附件；归档状态不是第五项完成门禁。
+- 活动完成按ACC冻结验收规则校验；预置规则保留当前EFFECTIVE报告的时间、结论、验收人及附件。归档不自动成为额外门禁，证据有效、活动完成和验收通过分别表达。
 
 ### BR-FACC001-002 草稿、发布、替换与撤销
 
@@ -69,9 +72,9 @@ PROJ初验/终验任务与执行契约
 
 ### BR-FACC001-003 报告完备与终验守卫
 
-- 有效版本必须具备验收时间、结论、验收人和至少一条已完成上传、病毒/格式校验且通过FileBusinessScope的固定文件版本附件。
+- 有效版本按ACC冻结Schema校验业务必填项；预置规则要求验收时间、结论、验收人和至少一条附件。实际引用的文件仍须完成上传、安全检查并通过FileBusinessScope，配置不能伪造文件有效性或绕过授权。
 - 附件是完整有序集合，不选择或推断主附件；报告逐项只保存PLT公共`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/fileHash`，不保存内部`FileVersion.id/FileReference.id`或正文。
-- 终验发布前锁定同租户同项目当前有效且四项完备的初验版本；缺失、已撤销、身份/版本冲突或文件事实不可用时零写入。
+- 仅当冻结规则要求有效初验前置时，终验发布前才锁定并重验同租户/项目的适用初验事实；未配置不按S5或签约方式补加，已配置但缺失/失效/无权仍拒绝。
 
 ### BR-FACC001-004 交付件来源索引与补偿
 
@@ -88,11 +91,11 @@ PROJ初验/终验任务与执行契约
 - 项目进入验收阶段绑定全部当前范围、验收阶段内新范围生效同步绑定，两条路径必须继续同事务成功或整体失败。
 - 报告、活动、交付件和Outbox不得触发、补建、关闭或反推范围绑定；Q-FCOM-002保持窄阻断。
 
-### BR-FACC001-006 前向与旧载体边界
+### BR-FACC001-006 既有前向与旧载体边界（原实施范围）
 
 - V17 `pms_acc_acceptance`、旧Service/Controller/UI、旧交付清单/归档/完工证明保持不变，判定`DO_NOT_REUSE`，新活动和报告为`NEW_ONLY`。
-- 现有及新项目只有精确任务定义键`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`与应交码`D-INITIAL-REPORT/D-FINAL-REPORT`可进入受管前向绑定。存量两项均非终态且当前契约均为V63 `TASK_NATIVE`时原子切换；两项均`DONE/CLOSED`保持旧事实；终态/非终态混合、未知、部分、重复或关系不完整整批失败。
-- 新项目继续复用F-PROJ-001原子创建事务：PROJ先创建全部任务、非ACC执行契约和里程碑，ACC既有initializer形成应交根，PROJ预分配执行契约ID并以`MANDATORY`调用`AcceptanceActivityInitializationApi`，取得`acceptanceId/activityVersion`后才追加ACC当前执行契约；任一步失败整体回滚。
+- 原受管实施/存量迁移仅以精确`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`和`D-INITIAL-REPORT/D-FINAL-REPORT`识别来源，不能从名称猜测。原两项非终态、V63 TASK_NATIVE成对切换及终态保留条件继续作为历史迁移边界；这些固定码不得作为修订018新独立验收的通用创建条件。
+- 既有新项目初始化路径保留F-PROJ-001同事务顺序：PROJ任务/契约预分配、ACC应交根、MANDATORY活动初始化、PROJ追加当前绑定，任一步失败回滚。修订018允许的独立/延迟解析不是对此原接口删参放宽，须先完成Q-TPLACC-001新契约。
 
 ## 4. API、权限与事务
 
@@ -102,7 +105,7 @@ PROJ初验/终验任务与执行契约
 |---|---|---|
 | `GET /acceptances`、`GET /acceptances/{id}`、`GET /acceptances/{id}/report-versions` | `pms:acceptance:report:query` | 按项目树/任务范围返回活动、当前和历史；空范围返回空 |
 | `POST /acceptances/{id}/report-versions`、`PATCH /acceptances/{id}/report-versions/{versionId}` | `pms:acceptance:report:write` | 创建/修改DRAFT；附件只能引用当前身份有权的固定PLT版本 |
-| `POST /acceptances/{id}/report-versions/{versionId}/actions/publish` | `pms:acceptance:report:write` | 首次发布或替换；终验先锁定有效初验；与变更Outbox同事务 |
+| `POST /acceptances/{id}/report-versions/{versionId}/actions/publish` | `pms:acceptance:report:write` | 首次发布或替换；按冻结规则校验适用初验及报告事实，与变更Outbox同事务；原接口须重验证 |
 | `POST /acceptances/{id}/actions/revoke-current-version` | `pms:acceptance:report:write` | 撤销期望当前版本，不恢复旧版；与变更Outbox同事务 |
 | `GET /acceptances/{id}/report-versions/{versionId}/attachments/{sequence}/download` | `pms:acceptance:report:download` | 每次重验项目范围、FileBusinessScope、租户并记录下载审计 |
 | `POST /project-tasks/{id}/actions/complete` | `pms:project-task:execute` + `pms:acceptance:report:complete` | 复用PROJ现有任务命令；服务识别当前执行契约为ACC活动后、调用ACC Provider或写任务/判定前必须同时校验两个权限，缺一即任务、判定和活动零写入；`TASK_NATIVE`保持既有行为 |
@@ -115,7 +118,7 @@ PROJ初验/终验任务与执行契约
 
 | 对象 | 状态 | 关键守卫 |
 |---|---|---|
-| AcceptanceActivity | `PENDING/COMPLETED` | 只有PROJ完成命令可推动；COMPLETED后不回退 |
+| AcceptanceActivity | `PENDING/COMPLETED` | ACC拥有业务迁移；原PROJ任务绑定路径是调用入口之一，独立命令/来源及范围契约见Q-TPLACC-001；历史完成事实不回退 |
 | AcceptanceReportVersion | `DRAFT/EFFECTIVE/SUPERSEDED/REVOKED` | 当前唯一；替换/撤销保留历史 |
 | DeliverableSourceVersion | `CURRENT/SUPERSEDED/REVOKED` | 与归档状态分离；当前唯一 |
 | Archive | `PENDING_COMPENSATION/ARCHIVED/INVALID` | 失败不得覆盖报告或伪报已归档 |
@@ -131,9 +134,9 @@ PROJ初验/终验任务与执行契约
 
 - AC-01：已有当前初验V1时创建V2草稿不冲突；发布V2后V1为SUPERSEDED、V2唯一EFFECTIVE且历史可查。
 - AC-02：撤销当前版本后无当前报告、不恢复旧版，来源根失效并请求CLO重校验。
-- AC-03：缺时间/结论/验收人/附件、附件未完成或文件越权时发布失败且零写入。
-- AC-04：无当前有效初验时终验发布失败；初验有效后终验可发布。
-- AC-05：初验/终验任务完成要求当前报告四项完备；PROJ任务、完成判定与ACC活动同成同败。
+- AC-03：在预置报告完备规则下缺时间/结论/验收人/附件时发布失败；实际附件未完成、安全检查失败或文件越权始终拒绝，失败零写入。
+- AC-04：配置初验前置时缺失事实阻断终验；未配置时不得因S5、签约方式或任务码补加；配置版本及判定可追溯。
+- AC-05：既有预置初验/终验任务按当前报告四项完备规则及原原子契约完成；新独立活动完成与节点结果引用须按修订018契约另行验收，不使用旧结果替代。
 - AC-06：首次、替换、撤销事件分别维护应交根、来源历史和完整附件集合；重放不重复；归档失败保留有效报告并进入补偿，归档成功后历史附件仍通过ACTIVE集合下载。
 - AC-07：正式身份只在项目/文件授权范围内查询和下载；跨项目、跨租户或缺权限拒绝且不泄露存在性。
 - AC-08：F-COM阶段进入及阶段内新范围两条绑定回归通过；报告换版/撤销不新增、关闭或反推绑定。
@@ -159,3 +162,9 @@ PROJ初验/终验任务与执行契约
 - 已处理来源提交：`23`。
 - 实施状态：已实现切片进入集成分支；未关闭Gate时Feature保持 `IN_PROGRESS`。
 - 追溯明细：`docs/traceability/code-fact-chronological-replay-2026-09-04.csv`。
+
+## 修订018当前目标与历史实施边界
+
+本Feature原固定T-INITIAL-ACCEPT/T-FINAL-ACCEPT映射、创建事务和lockAndComplete参数只作既有路径契约及迁移解释，不是新独立验收通用目标。ACC活动/报告优先复用，独立创建/办理不以S5或特定ProjectTask为前提，但必须保留项目、范围、来源和责任权限。Q-TPLACC-001须冻结新API/物理合同及前向处置后再实施；旧V17/V166、已形成文件/报告历史和Task事实不覆盖。本Feature当前仅声明报告子切片PARTIAL，完整ACC-03覆盖需重新分配并复核，不能从原FULL声明或分支历史Done派生。
+
+Requirement及批准依据：`CHG-PRD-2026-09-07-018`、`ADR-0045`及本文件已声明切片。相关Feature Ready保持REVALIDATION_REQUIRED；唯一Implementation Status仍由当前Feature Task维护，本文不晋级Done。
