@@ -33,7 +33,11 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin master:refs/remotes/origin/master
           path="sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql"
-          changed="$(git diff --name-status origin/master...HEAD -- sql/migrations || true)"
+          changed="$(git diff --name-status origin/master...HEAD -- sql/migrations)"
+          if [[ -z "${changed}" ]]; then
+            echo "No migration changes; immutable history is unchanged."
+            exit 0
+          fi
           expected="$(printf 'M\t%s\nA\tsql/migrations/V204__default_tenant_and_disable_builtin_samples.sql' "${path}")"
           if [[ "${changed}" != "${expected}" ]]; then
             echo "Migration history differs outside the controlled V161 correction and V204 default tenant seed:" >&2

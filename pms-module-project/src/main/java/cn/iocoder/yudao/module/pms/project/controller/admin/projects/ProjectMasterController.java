@@ -136,7 +136,7 @@ public class ProjectMasterController {
                         .map(site -> new ProjectSiteCommand(site.getSiteId(), site.getSiteVersion(),
                                 site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
-                null,
+                createReqVO.getServiceManagerUserId(),
                 idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = withTrustedTenant(() ->
                 projectManualCreationApplicationService.create(command,

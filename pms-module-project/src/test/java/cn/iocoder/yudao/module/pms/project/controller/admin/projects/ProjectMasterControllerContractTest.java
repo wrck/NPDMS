@@ -76,7 +76,6 @@ class ProjectMasterControllerContractTest {
                 .getAnnotation(AssertTrue.class));
         assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeCompanyCode");
         assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeDepartmentCode");
-        assertThrowsNoField(ProjectCreateReqVO.class, "serviceManagerUserId");
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("managerId"));
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("siteId"));
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("assignmentType"));
