@@ -72,9 +72,9 @@ jobs:
           Path('../gate-evidence/reviewed-output-hashes.json').write_text(json.dumps({n:digest(v) for n,v in outputs.items()},sort_keys=True,indent=2))
           PY
           python3 scripts/generate_sds_revision_016_schema.py
+          python3 scripts/generate_phase2_contract_map.py --prd docs/baseline/prd-v1.8.md
           python3 scripts/generate_domain_entity_migration_contract.py --implementation .
           python3 scripts/generate_requirement_traceability.py --prd docs/baseline/prd-v1.8.md --domains specs/001-project-delivery-platform/domains --output docs/traceability/requirement-matrix.md
-          python3 scripts/generate_phase2_contract_map.py --prd docs/baseline/prd-v1.8.md
       - name: Verify technical content and formal approval refusal separately
         env:
           INPUT_SHA: ${{ github.sha }}
@@ -98,8 +98,8 @@ jobs:
           for name in protected:
               old = subprocess.check_output(['git','show',f'HEAD:{name}'])
               assert Path(name).read_bytes() == old, f'protected input changed: {name}'
-          for name in json.loads(Path('../gate-evidence/reviewed-output-hashes.json').read_text()):
-              expected = json.loads(Path('../gate-evidence/reviewed-output-hashes.json').read_text())[name]
+          expected_hashes = json.loads(Path('../gate-evidence/reviewed-output-hashes.json').read_text())
+          for name, expected in expected_hashes.items():
               assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, f'reviewed output changed: {name}'
           for path in Path('scripts/sds-gate-transfer').glob('part-*.txt'):
               path.unlink()
