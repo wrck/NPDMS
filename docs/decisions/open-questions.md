@@ -600,3 +600,26 @@
 - Resolution: 需求方于2026-09-02确认COM-A与COM-B承载不同需求，要求按Requirement能力整体合并，不再二选一。统一F-COM-001以ERP权威副本、人工待核对与对账、合同/订单/项目显式关系、项目级范围版本、DeliveryScope命令/查询/冲突、ACC范围绑定组成单一闭环；COM地点唯一采用目标项目办事处发生时快照。COM-B的AST `site/location/text`迁入IMP/AST实施地点能力，不作为COM第二套地点真值；平台迁移证据拆为PLT能力。两条分支的历史Done或Gate不得相互转记，代码必须按能力选择性集成并重新验证。该决定关闭COM地点和来源选择冲突，但不自动产生Feature Done。
 - Decision owner: 需求方/产品组；COM、ACC、PROJ、AST领域Owner参与影响分析
 - Decision date: 2026-09-02
+
+### Q-PR7-ACC-BASELINE-001
+
+- Status: RESOLVED / AUTHORITY_REBINDING
+- Requirement IDs: ACC-02、ACC-03、COM-01
+- Area: PR7来源测试与当前唯一PRD基线的一致性
+- Question: PR7接收的`test_prd_com_acceptance_scope_trigger.py`和`test_prd_satisfaction_questionnaire_configuration.py`依赖来源分支的验收修订009、问卷修订010及其精确业务条款，但当前正式009为BPM身份、010为COM需求合并，引用的两份修订文件不在当前仓库。是否及如何把剩余来源业务差量以正式变更接收？
+- Why it blocks: 不能从来源测试反向增加当前PRD未包含的验收/问卷语义，也不能新建冲突编号的批准记录或删除失败测试制造全绿。Q-GOV-20260901-001/002既有裁决和已接收COM规则保持不变；本问题只针对仍未落入当前基线的差量。
+- Evidence: `docs/baseline/prd-v1.8.md`的COM-01、ACC-02、ACC-03正文；上述两个测试的AMENDMENT路径及断言；2026-09-07 PR7治理回归失败。
+- Resolution: 逐条复核当前PRD ACC-02/03、当前F-ACC-001/002及已批准ADR-0039～0042后，未发现上述配置、计分、活动完成与范围绑定要求存在业务语义冲突。答案Schema、确定计分和客户端字段限制是合法设计细化；旧修订编号只作历史来源。恢复已批准SDS/物理映射，并把测试绑定当前PRD业务规则与当前Feature/ADR技术细节，保留全部有效负向义务；不恢复已被替代的“平台不预置”断言，不导入PR1/PR2新业务范围。
+- Blocking scope: 不再阻断现有ACC合并修复；Q-FCOM-002的退出/回退绑定处理仍保持其原有窄阻断。
+- Business decision required: 否；本次为已有批准资料的恢复与错误阻断纠正，不改变PRD。
+- Decision owner: 需求方/产品组
+
+### Q-FCOM-002
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: COM-01、ACC-03、PM-10
+- Area: 退出/回退验收阶段后的范围绑定关闭或解锁
+- Question: 退出或回退验收阶段时，既有AcceptanceScopeBinding的关闭和解锁规则仍待业务明确。
+- Blocking scope: 仅退出/回退时的绑定关闭或解锁设计；确认前不得自动写effective_to、关闭、解锁或改写既有绑定。阶段进入绑定与验收阶段内新版本绑定规则继续有效，不阻断报告版本、满意度或当前范围的既有正向路径。
+- Evidence: 当前统一F-COM-001规格BR-FCOM001-005及第13节；ADR-0038/0039，恢复原有窄问题登记，不新增业务Gate。
+- Business decision required: 是。

@@ -326,7 +326,8 @@ class CutoverClosureApplicationMySqlTest {
         assertEquals("3", String.valueOf(payload.get("closureRevision")));
         assertEquals("SUCCESS", payload.get("finalResult"));
         assertEquals("CUTOVER_CLOSURE:" + closureId + ":3", payload.get("resultRef"));
-        assertEquals(1788278400000L, ((Number) payload.get("archivedAt")).longValue());
+        assertEquals(Instant.parse("2026-09-02T00:00:00Z").toEpochMilli(),
+                ((Number) payload.get("archivedAt")).longValue());
         assertEquals("corr-submit-success", payload.get("correlationId"));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='submit-success' AND status='COMPLETED'", tenantId));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? AND correlation_id='corr-submit-success'", tenantId));

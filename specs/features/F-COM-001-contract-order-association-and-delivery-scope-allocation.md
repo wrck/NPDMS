@@ -78,6 +78,8 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 ### BR-FCOM001-001 权威身份与字段Owner
 
+- PRD修订014指定订单头与订单行来源分别为`pm_order_data_from_erp`和`pm_order_line_from_erp`。接收端口按SDS第09分册8.3和第10分册11传递已有ERP字段，不访问旧表，不把`itemCode`当作`productCode`。来源生命周期与本地启停状态分别保留，订单行身份由同租户锁定ERP父订单提供。
+
 - 合同业务身份为`tenantId + companyCode + contractNo`；销售订单为`tenantId + sourceSystem + companyCode + orderType + orderNo`；订单行为`tenantId + orderId + lineNo`。逻辑删除、关闭或归档不释放身份键。
 - ERP拥有合同、订单、订单行、订单行`productCode`、产品、数量和金额；COM本地仅按来源键/版本保存只读副本及来源元数据。`productCode`参与同版本异载荷冲突判断，不得由`itemCode`、名称、`productId`、客户端字段或既有范围明细补齐；业务角色、CRM上下文和范围命令均不能修改ERP Owner字段。
 - 同一来源键的旧版本、重复版本幂等返回当前事实；同版本异内容或乱序冲突不覆盖当前副本，并记录待处理证据。

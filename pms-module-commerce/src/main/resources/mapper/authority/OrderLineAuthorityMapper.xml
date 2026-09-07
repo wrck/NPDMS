@@ -16,6 +16,11 @@
             model_code = #{row.modelCode}, order_qty = #{row.quantity}, open_qty = #{row.openQty},
             delivered_qty = #{row.deliveredQty}, unit_code = #{row.unitCode}, unit_scale = #{row.unitScale},
             quantity_status = #{row.quantityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
+            line_type = #{row.lineType},
+            bundle_code = #{row.bundleCode},
+            profit_center = #{row.profitCenter},
+            real_execution_no = #{row.realExecutionNo},
+            warranty_month = #{row.warrantyMonth},
             source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
             source_sync_time = #{row.syncedAt}, status = #{row.status}, version = version + 1,
             updater = #{row.updater}, update_time = #{row.updateTime}

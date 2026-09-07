@@ -15,8 +15,8 @@ from validate_pr7_integration_reception import derive_feature
 
 class Pr7ReceptionProjectionTest(unittest.TestCase):
     def test_service_level_is_owned_by_cus_and_supports_cut002_only(self):
-        policy = json.loads((ROOT / 'docs/traceability/code-fact-chronological-resolution-policy-2026-09-04.json').read_text())
-        rows = list(csv.DictReader(io.StringIO((ROOT / RAW_PATH).read_text())))
+        policy = json.loads((ROOT / 'docs/traceability/code-fact-chronological-resolution-policy-2026-09-04.json').read_text(encoding='utf-8'))
+        rows = list(csv.DictReader(io.StringIO((ROOT / RAW_PATH).read_text(encoding='utf-8'))))
         support = [r for r in rows if r['path'].startswith('pms-module-customer/') and '/api/servicelevel/' in r['path']]
         self.assertTrue(support)
         for row in support:
@@ -42,7 +42,7 @@ class Pr7ReceptionProjectionTest(unittest.TestCase):
     def test_task_status_sources_do_not_contain_generated_receipt_suffixes(self):
         for path in (ROOT / 'tasks/features').glob('F-*.md'):
             with self.subTest(path=path.name):
-                self.assertNotIn(MARKER, path.read_text())
+                self.assertNotIn(MARKER, path.read_text(encoding='utf-8'))
 
     def test_projection_retains_provenance_and_missing_rows(self):
         rows = build_rows()

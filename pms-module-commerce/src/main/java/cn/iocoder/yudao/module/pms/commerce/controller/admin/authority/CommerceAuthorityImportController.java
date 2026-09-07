@@ -63,7 +63,9 @@ public class CommerceAuthorityImportController {
                 .map(value -> new CommerceSalesOrderFact(value.sourceRecordKey(),
                         value.expectedPreviousSourceVersion(), value.sourceVersion(), value.companyCode(),
                         value.orderNo(), value.orderType(), value.customerCode(), value.customerName(),
-                        value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt()))
+                        value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt(),
+                        value.salesType(), value.sourceProjectName(), value.orderComment(),
+                        value.orderCreateTime(), value.customerRequiredTime()))
                 .toList();
         List<CommerceOrderLineFact> lines = safe(request.salesOrderLines()).stream()
                 .map(value -> new CommerceOrderLineFact(value.sourceRecordKey(),
@@ -71,7 +73,8 @@ public class CommerceAuthorityImportController {
                         value.lineNo(), value.itemCode(), value.itemDescription(), value.productCode(),
                         value.modelCode(), value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(),
                         value.unitCode(), value.unitScale(), value.quantityStatus(), value.lifecycleStatus(),
-                        value.sourceUpdatedAt()))
+                        value.sourceUpdatedAt(), value.lineType(), value.bundleCode(), value.profitCenter(),
+                        value.realExecutionNo(), value.warrantyMonth()))
                 .toList();
         List<CommerceOrderContractRelationFact> relations = safe(request.orderContractRelations()).stream()
                 .map(value -> new CommerceOrderContractRelationFact(value.salesOrderSourceKey(),

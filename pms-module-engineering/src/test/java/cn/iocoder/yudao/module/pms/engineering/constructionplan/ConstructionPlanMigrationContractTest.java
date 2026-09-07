@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,10 +47,12 @@ class ConstructionPlanMigrationContractTest {
         assertTrue(schemaSql.contains(
                 "UNIQUE KEY `uk_sol_construction_plan_project` (`tenant_id`, `project_id`)"));
         assertFalse(schemaSql.contains("(`tenant_id`, `project_id`, `deleted`)"));
-        assertTrue(schemaSql.contains(
-                "FOREIGN KEY (`tenant_id`, `plan_id`)\n        REFERENCES `sol_construction_plan` (`tenant_id`, `id`)"));
-        assertTrue(schemaSql.contains(
-                "FOREIGN KEY (`tenant_id`, `candidate_revision_id`)\n        REFERENCES `sol_construction_plan_revision` (`tenant_id`, `id`)"));
+        assertTrue(Pattern.compile(Pattern.quote("FOREIGN KEY (`tenant_id`, `plan_id`)")
+                + "\\s+" + Pattern.quote("REFERENCES `sol_construction_plan` (`tenant_id`, `id`)"))
+                .matcher(schemaSql).find());
+        assertTrue(Pattern.compile(Pattern.quote("FOREIGN KEY (`tenant_id`, `candidate_revision_id`)")
+                + "\\s+" + Pattern.quote("REFERENCES `sol_construction_plan_revision` (`tenant_id`, `id`)"))
+                .matcher(schemaSql).find());
         assertTrue(schemaSql.contains("`current_duration_revision_id` BIGINT NULL"));
         assertTrue(schemaSql.contains("`plan_recalculation_source_revision_id` BIGINT NULL"));
     }

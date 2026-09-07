@@ -65,7 +65,10 @@ class Fcut003FeatureContractTest(unittest.TestCase):
 
     def test_feature_index_projects_candidate_state(self) -> None:
         self.assertIn("[F-CUT-003]", self.index)
-        self.assertIn("CUT-03（V1，FULL） | BASELINE | READY（GO@ea986d61） | NOT_STARTED", self.index)
+        row = next(line for line in self.index.splitlines() if line.startswith("| [F-CUT-003]"))
+        self.assertIn("| BASELINE | READY / GO |", row)
+        self.assertIn("IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY", row)
+        self.assertNotIn("IMPLEMENTATION_COMPLETE", row)
 
 
 if __name__ == "__main__":

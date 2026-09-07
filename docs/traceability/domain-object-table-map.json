@@ -2,6 +2,64 @@
   "schemaVersion": 1,
   "status": "BASELINE",
   "objects": {
+    "CutoverSpareApplicationReference": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_application_reference"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
+    "CutoverSpareStatusRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_status_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
+    "CutoverSpareManualEvidence": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-08"
+      ],
+      "targetTables": [
+        "cut_spare_manual_evidence"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-08"
+    },
+    "ExportTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "ACC-02",
+        "PLT-02"
+      ],
+      "targetTables": [
+        "plt_export_task",
+        "plt_export_audit"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "ACC-02"
+    },
+    "AcceptanceScopeBinding": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03",
+        "COM-01"
+      ],
+      "targetTables": [
+        "acc_acceptance_scope_binding"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "COM-01"
+    },
     "Project": {
       "owner": "PROJ",
       "requirementIds": [
@@ -134,6 +192,8 @@
     "ProjectStageSnapshot": {
       "owner": "PROJ",
       "requirementIds": [
+        "ACC-03",
+        "COM-01",
         "PM-03",
         "PM-10"
       ],
@@ -368,7 +428,8 @@
       ],
       "targetTables": [
         "acc_acceptance",
-        "acc_acceptance_item",
+        "acc_acceptance_report_version",
+        "acc_acceptance_report_attachment",
         "acc_confirmation"
       ]
     },
@@ -382,19 +443,28 @@
         "SUB-04"
       ],
       "targetTables": [
+        "acc_satisfaction_questionnaire_template",
+        "acc_satisfaction_questionnaire_template_revision",
         "acc_satisfaction_collection_task",
         "acc_satisfaction_questionnaire",
+        "acc_satisfaction_access_grant",
         "acc_satisfaction_response",
-        "acc_satisfaction_result"
+        "acc_satisfaction_response_file",
+        "acc_satisfaction_result",
+        "acc_satisfaction_result_file",
+        "acc_satisfaction_remediation_fact"
       ]
     },
     "DeliveryArtifact": {
       "owner": "ACC",
       "requirementIds": [
+        "ACC-03",
         "ACC-04"
       ],
       "targetTables": [
-        "acc_delivery_artifact",
+        "acc_project_deliverable",
+        "acc_project_deliverable_source_version",
+        "acc_project_deliverable_source_attachment",
         "acc_artifact_review",
         "acc_archive_record"
       ]

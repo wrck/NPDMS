@@ -66,8 +66,11 @@ class FCut004FeatureContractTest(unittest.TestCase):
         self.assertIn("configuration", grade_d)
         self.assertIn("OPERATION/ROLLBACK", grade_d)
         self.assertIn("A/B/C/D", self.physical["tables"][0]["conditionalContracts"]["FULL_FILE_UPLOAD"])
-        create_mode = self.api["operations"]["createDraft"]["request"]["body"]["fields"]["editMode"]
-        self.assertIn("D allows FULL_FILE_UPLOAD or ONLINE_TEMPLATE_SIMPLE_D", create_mode)
+        request_type = self.api["operations"]["createDraft"]["request"]["body"]
+        variants = self.api["commonTypes"][request_type]["variants"]
+        self.assertIn("D only", variants["ONLINE_TEMPLATE_SIMPLE_D"]["fields"]["editMode"])
+        self.assertIn("A/B/C/D", variants["FULL_FILE_UPLOAD"]["fields"]["editMode"])
+        self.assertIn("A/B/C only", variants["ONLINE_TEMPLATE_STANDARD"]["fields"]["editMode"])
 
     def test_steps_and_support_arrangements_have_one_authoritative_storage(self):
         root_json = self.physical["jsonContracts"]["content_snapshot"]

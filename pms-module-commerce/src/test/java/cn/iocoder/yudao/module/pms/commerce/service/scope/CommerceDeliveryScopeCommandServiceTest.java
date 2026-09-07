@@ -413,6 +413,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         line.setUnitScale(0);
         line.setQuantityStatus("CONFIRMED");
         line.setStatus("ENABLED");
+        line.setSourceLifecycleStatus("ACTIVE");
         return line;
     }
 

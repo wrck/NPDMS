@@ -17,7 +17,7 @@
         </el-form-item>
       </el-col>
       <el-col :span="24" class="px-10px">
-        <el-form-item v-if="loginData.tenantEnable === 'true'" prop="tenantName">
+        <el-form-item v-if="showTenantSelector" prop="tenantName">
           <el-input
             v-model="loginData.loginForm.tenantName"
             :placeholder="t('login.tenantNamePlaceholder')"
@@ -86,6 +86,7 @@
   </el-form>
 </template>
 <script lang="ts" setup>
+import { useTenantSelection } from '@/hooks/web/useTenantSelection'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 import { useIcon } from '@/hooks/web/useIcon'
@@ -119,7 +120,7 @@ const rules = {
 }
 const loginData = reactive({
   codeImg: '',
-  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE,
+  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true',
   token: '',
   loading: {
     signIn: false
@@ -168,7 +169,13 @@ watch(
   }
 )
 // 获取租户 ID
+const { showTenantSelector, initializeTenantSelection } = useTenantSelection((tenant) => {
+  loginData.loginForm.tenantName = tenant.name
+  setTenantId(tenant.id)
+})
+
 const getTenantId = async () => {
+  await initializeTenantSelection()
   if (loginData.tenantEnable === 'true') {
     const res = await getTenantIdByName(loginData.loginForm.tenantName)
     setTenantId(res)

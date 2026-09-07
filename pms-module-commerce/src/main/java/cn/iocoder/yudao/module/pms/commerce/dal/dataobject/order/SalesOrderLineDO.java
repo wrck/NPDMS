@@ -43,6 +43,10 @@ public class SalesOrderLineDO extends TenantBaseDO {
     private LocalDateTime sourceSyncTime;
     private LocalDateTime sourceUpdatedAt;
     private String status;
+    private String bundleCode;
+    private String profitCenter;
+    private String realExecutionNo;
+    private Integer warrantyMonth;
     @Version
     private Integer version;
 

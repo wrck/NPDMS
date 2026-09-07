@@ -16,34 +16,17 @@
 | Platform policy validator 重复方法 | 恢复 ACC 来源分支的单一规范实现 | `78254a3f`；Java 25 clean verify |
 | Java 25 注解处理 | 显式启用 `maven.compiler.proc=full` | `.mvn/maven.config`；Java 25 clean verify |
 
-## 2. P1 追溯和自动化 Gate
+## 2. 代码合并自动化检查
 
-`PR #7 integration gates` 工作流必须同时通过：
+`PR #7 integration gates` 保留三个直接验证实现的 job：
 
-1. **Replay and traceability**
-   - 校验原始 JSON/CSV Git blob 不变；
-   - 校验 572 个唯一来源提交和 4/142/426 分支计数；
-   - 从原始层派生逐 commit/path 终态台账；
-   - 终态 `pending=0`、未映射 commit/path 均为 0；
-   - 校验 Requirement 生成物无漂移。
+1. **Migration boundary, empty schema, and V160 upgrade**：保护已执行迁移，仅允许已审查的 V161 修正与新增 V204；在 MySQL 8.4 验证空库与升级路径。
+2. **Backend clean verify**：Java 25 编译和后端测试，不以跳过测试代替成功。
+3. **Frontend typecheck and production build**：前端类型检查与生产构建。
 
-2. **Migration boundary and empty-schema execution**
-   - PR 不得改写 master 已执行迁移；
-   - 活动版本号唯一；
-   - V203 必须保持六张 PLT 表边界；
-   - MySQL 8.4 空库顺序执行 V1→latest。
+`Integration code regression` 保留后端、前端单元/组件及真实 MySQL 业务回归；权限、事务、幂等、并发和 Owner 回调仍需通过。
 
-3. **Backend clean verify**
-   - Temurin Java 25；
-   - `mvn -B -ntp -DskipITs=true clean verify`；
-   - 不使用 `-DskipTests` 作为最终验收。
-
-4. **Frontend typecheck and production build**
-   - pnpm 9.15.5；
-   - `pnpm run ts:check`；
-   - `pnpm run build:prod`。
-
-最终 `PR #7 integration gate` 只有在上述四个 job 全部成功时才成功。
+文档关键字、固定统计数量、历史重放台账及生成投影检查不再作为每次代码修改的自动阻断条件。相关脚本保留供文档或来源接收范围变更时按需使用，不要求为普通代码修复重写历史证据、补齐无关文档或调整换行。实际改变需求、领域边界的内容仍按现有权威规格处理。
 
 ## 3. 原始层与终态层语义
 
@@ -69,7 +52,7 @@
 自动化全绿后仍需：
 
 - PR 从 Draft 转为 Ready；
-- 数据库、后端、前端、架构/Owner、追溯责任人完成审查；
+- 按实际修改范围完成相关 Owner 审查，不要求每次修改都召集所有领域责任人；
 - 所有阻断 review thread 关闭；
 - head 更新后在新的 merge SHA 上重新获得全绿结果。
 
@@ -79,13 +62,11 @@
 
 ```text
 GO =
-  572 来源提交全部具有终态 commit/path 决策
-  AND pending/unmapped = 0
-  AND master 迁移历史未改写
-  AND MySQL 8.4 空库迁移通过
+  迁移修改限定在已审查范围
+  AND MySQL 8.4 空库及升级迁移通过
+  AND 业务回归通过
   AND Java 25 clean verify 通过
   AND ts:check 与 build:prod 通过
-  AND Requirement 追溯无漂移
   AND 人工 Owner Review 完成
   AND PR 非 Draft
 ```

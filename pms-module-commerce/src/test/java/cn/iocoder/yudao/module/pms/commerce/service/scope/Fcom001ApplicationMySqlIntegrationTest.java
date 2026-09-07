@@ -59,10 +59,11 @@ import static org.mockito.Mockito.when;
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class Fcom001ApplicationMySqlIntegrationTest {
 
-    private static final long TENANT_ID = 0L;
+    private static final long TENANT_ID = 1L;
     private static final long USER_ID = 992_002_700_001L;
-    private static final long PROJECT_ID = 992_002_000_032L;
-    private static final long ORDER_LINE_ID = 992_002_300_005L;
+    private static final long PROJECT_ID = 994_007_000_032L;
+    private static final long ORDER_ID = 994_007_300_004L;
+    private static final long ORDER_LINE_ID = 994_007_300_005L;
     private static final long PROJECT_SCOPE_VERSION = 1L;
     private static final String SOURCE_VERSION = "1";
     private static final String EVIDENCE_PREFIX = "it-fcom001-";
@@ -80,7 +81,6 @@ class Fcom001ApplicationMySqlIntegrationTest {
 
     private int projectVersion;
     private long deliveryScopeVersion;
-    private Map<String, Object> deliveryScopeVersionState;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
@@ -103,13 +103,20 @@ class Fcom001ApplicationMySqlIntegrationTest {
         TenantContextHolder.setTenantId(TENANT_ID);
         login();
         clean();
-        projectVersion = jdbcTemplate.queryForObject(
-                "SELECT version FROM proj_project WHERE tenant_id = 0 AND id = ?", Integer.class, PROJECT_ID);
-        deliveryScopeVersionState = jdbcTemplate.queryForMap(
-                "SELECT scope_version, payload_version, last_change_type, version, updater, update_time "
-                        + "FROM com_delivery_scope_project_version WHERE tenant_id = 0 AND project_id = ?",
-                PROJECT_ID);
-        deliveryScopeVersion = ((Number) deliveryScopeVersionState.get("scope_version")).longValue();
+        // COM owns these fixtures; PROJ facts come from the controlled public API below.
+        projectVersion = 1;
+        deliveryScopeVersion = 0L;
+        jdbcTemplate.update("INSERT INTO com_sales_order "
+                + "(id,tenant_id,source_system,source_record_key,source_version,company_code,order_type,order_no,"
+                + "authority_status,source_lifecycle_status,status) "
+                + "VALUES (?,?,'ERP','PR7-IT-ERP-ORDER','1','DPTECH-DEMO','NORMAL',"
+                + "'PR7-IT-ERP-ORDER','CONFIRMED','ACTIVE','ENABLED')", ORDER_ID, TENANT_ID);
+        jdbcTemplate.update("INSERT INTO com_sales_order_line "
+                + "(id,tenant_id,order_id,source_system,source_record_key,source_version,company_code,order_type,"
+                + "order_no,line_no,product_code,order_qty,open_qty,unit_code,unit_scale,quantity_status,"
+                + "source_lifecycle_status,status) VALUES (?,?,?,'ERP','PR7-IT-ERP-LINE','1',"
+                + "'DPTECH-DEMO','NORMAL','PR7-IT-ERP-ORDER','10','F-COM001-PRODUCT-A',20,20,'SET',0,"
+                + "'CONFIRMED','ACTIVE','ENABLED')", ORDER_LINE_ID, TENANT_ID, ORDER_ID);
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(PROJECT_ID, PROJECT_SCOPE_VERSION, Set.of(PROJECT_ID), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
@@ -124,7 +131,6 @@ class Fcom001ApplicationMySqlIntegrationTest {
     void tearDown() {
         try {
             clean();
-            restoreDeliveryScopeVersion();
         } finally {
             SecurityContextHolder.clearContext();
             TenantContextHolder.clear();
@@ -214,7 +220,11 @@ class Fcom001ApplicationMySqlIntegrationTest {
                         commandService.assign(command(operationId, new BigDecimal("10")));
                         return true;
                     } catch (RuntimeException exception) {
-                        assertEquals("DELIVERY_SCOPE_CURRENT_CONFLICT", exception.getMessage());
+                        var conflict = assertInstanceOf(
+                                cn.iocoder.yudao.framework.common.exception.ServiceException.class, exception);
+                        assertEquals(cn.iocoder.yudao.module.pms.commerce.enums.ErrorCodeConstants
+                                .COMMERCE_SCOPE_STATE_CONFLICT.getCode(), conflict.getCode());
+                        assertTrue(conflict.getMessage().contains("DELIVERY_SCOPE_CURRENT_CONFLICT"));
                         return false;
                     } finally {
                         SecurityContextHolder.clearContext();
@@ -228,9 +238,9 @@ class Fcom001ApplicationMySqlIntegrationTest {
             assertEquals(1L, winners);
         }
         assertEquals(1L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM com_delivery_scope WHERE tenant_id = 0 AND project_id = ? "
+                "SELECT COUNT(*) FROM com_delivery_scope WHERE tenant_id = ? AND project_id = ? "
                         + "AND order_line_id = ? AND effective_to IS NULL AND source_evidence LIKE ?",
-                Long.class, PROJECT_ID, ORDER_LINE_ID, EVIDENCE_PREFIX + "race-%"));
+                Long.class, TENANT_ID, PROJECT_ID, ORDER_LINE_ID, EVIDENCE_PREFIX + "race-%"));
     }
 
     private DeliveryScopeAssignCommand command(String operationId, BigDecimal quantity) {
@@ -256,21 +266,10 @@ class Fcom001ApplicationMySqlIntegrationTest {
                 EVIDENCE_PREFIX + "%");
         jdbcTemplate.update("DELETE FROM com_delivery_scope WHERE source_evidence LIKE ?",
                 EVIDENCE_PREFIX + "%");
-    }
-
-    private void restoreDeliveryScopeVersion() {
-        if (deliveryScopeVersionState == null) {
-            return;
-        }
-        jdbcTemplate.update("UPDATE com_delivery_scope_project_version "
-                        + "SET scope_version = ?, payload_version = ?, last_change_type = ?, version = ?, "
-                        + "updater = ?, update_time = ? WHERE tenant_id = 0 AND project_id = ?",
-                deliveryScopeVersionState.get("scope_version"),
-                deliveryScopeVersionState.get("payload_version"),
-                deliveryScopeVersionState.get("last_change_type"),
-                deliveryScopeVersionState.get("version"),
-                deliveryScopeVersionState.get("updater"),
-                deliveryScopeVersionState.get("update_time"), PROJECT_ID);
+        jdbcTemplate.update("DELETE FROM com_delivery_scope_project_version WHERE tenant_id=? AND project_id=?",
+                TENANT_ID, PROJECT_ID);
+        jdbcTemplate.update("DELETE FROM com_sales_order_line WHERE tenant_id=? AND id=?", TENANT_ID, ORDER_LINE_ID);
+        jdbcTemplate.update("DELETE FROM com_sales_order WHERE tenant_id=? AND id=?", TENANT_ID, ORDER_ID);
     }
 
     private static void login() {

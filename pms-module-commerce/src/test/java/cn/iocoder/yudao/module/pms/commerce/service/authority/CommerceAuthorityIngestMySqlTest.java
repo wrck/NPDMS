@@ -109,6 +109,43 @@ class CommerceAuthorityIngestMySqlTest {
     }
 
     @Test
+    void preservesDesignatedErpSourceFieldsAndDetectsSameVersionChanges() {
+        var order = new CommerceSalesOrderFact("O-" + suffix, null, "V1", "ACME", "ON-" + suffix,
+                "NORMAL", "CUS-01", "ERP customer", new BigDecimal("10"), "CNY",
+                CommerceSourceLifecycleStatus.ACTIVE, time(), "DIRECT", "ERP project", "ERP comment",
+                time().minusDays(1), time().plusDays(1));
+        var line = new CommerceOrderLineFact("L-" + suffix, null, "V1", "O-" + suffix,
+                "1", "ITEM-1", "ERP item", "PRODUCT-1", "MODEL-1",
+                BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "SET", 0, "CONFIRMED",
+                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-1", 12);
+        var command = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-" + suffix,
+                "B-FIELDS-" + suffix, "ERP", "WM-1", List.of(), List.of(order), List.of(line),
+                List.of(), time(), "CORR-FIELDS-" + suffix);
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, service.ingest(command).decision());
+        assertEquals("DIRECT|ERP project|ERP comment|ENABLED", jdbcTemplate.queryForObject(
+                "SELECT CONCAT_WS('|',sales_type,source_project_name,order_comment,status) "
+                        + "FROM com_sales_order WHERE tenant_id=? AND source_record_key=?", String.class,
+                TENANT_ID, order.sourceKey()));
+        assertEquals("STANDARD|BUNDLE-1|PC-1|EXEC-1|12|PRODUCT-1|ITEM-1|ENABLED", jdbcTemplate.queryForObject(
+                "SELECT CONCAT_WS('|',line_type,bundle_code,profit_center,real_execution_no,warranty_month,"
+                        + "product_code,item_code,status) FROM com_sales_order_line WHERE tenant_id=? AND source_record_key=?",
+                String.class, TENANT_ID, line.sourceKey()));
+        var replay = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-REPLAY-" + suffix,
+                "B-REPLAY-" + suffix, "ERP", "WM-1", List.of(), List.of(order), List.of(line),
+                List.of(), time(), "CORR-REPLAY-" + suffix);
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(replay).decision());
+        var changed = new CommerceOrderLineFact(line.sourceKey(), null, "V1", order.sourceKey(),
+                "1", "ITEM-1", "ERP item", "PRODUCT-1", "MODEL-1",
+                BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "SET", 0, "CONFIRMED",
+                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-2", 12);
+        var conflict = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-CONFLICT-" + suffix,
+                "B-CONFLICT-" + suffix, "ERP", "WM-1", List.of(), List.of(), List.of(changed),
+                List.of(), time(), "CORR-CONFLICT-" + suffix);
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(conflict));
+        assertEquals(CommerceAuthorityIngestException.Code.SOURCE_VERSION_PAYLOAD_CONFLICT, error.getCode());
+    }
+
+    @Test
     void predecessorConflictRollsBackEarlierObject() {
         service.ingest(fullBatch("EV-BASE-" + suffix, "V1", null, "10"));
         String eventId = "EV-ROLLBACK-" + suffix;
@@ -157,14 +194,14 @@ class CommerceAuthorityIngestMySqlTest {
                 List.of(line("L-" + suffix, "V1", "V2", "5")), List.of(), time(), "CORR-DEC-" + suffix);
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, service.ingest(decrease).decision());
 
-        assertEquals(List.of("RELEASED", "CONFLICT"), jdbcTemplate.queryForList(
+        assertEquals(List.of("RELEASED", "CONFLICT_FROZEN"), jdbcTemplate.queryForList(
                 "SELECT scope_status FROM com_delivery_scope WHERE tenant_id=? AND order_line_id=? ORDER BY allocation_version",
                 String.class, TENANT_ID, lineId));
         assertEquals(5L, jdbcTemplate.queryForObject("SELECT scope_version FROM com_delivery_scope_project_version "
                 + "WHERE tenant_id=? AND project_id=?", Long.class, TENANT_ID, projectId));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM com_delivery_scope_detail d JOIN "
                 + "com_delivery_scope s ON s.id=d.delivery_scope_id AND s.tenant_id=d.tenant_id "
-                + "WHERE d.tenant_id=? AND s.scope_status='CONFLICT'", Integer.class, TENANT_ID));
+                + "WHERE d.tenant_id=? AND s.scope_status='CONFLICT_FROZEN'", Integer.class, TENANT_ID));
     }
 
     @Test

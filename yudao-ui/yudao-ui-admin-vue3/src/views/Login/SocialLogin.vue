@@ -66,7 +66,7 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="24" style="padding-right: 10px; padding-left: 10px">
-                  <el-form-item v-if="loginData.tenantEnable" prop="tenantName">
+                  <el-form-item v-if="showTenantSelector" prop="tenantName">
                     <el-input
                       v-model="loginData.loginForm.tenantName"
                       :placeholder="t('login.tenantNamePlaceholder')"
@@ -151,6 +151,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useTenantSelection } from '@/hooks/web/useTenantSelection'
 import { underlineToHump } from '@/utils'
 
 import { ElLoading } from 'element-plus'
@@ -220,7 +221,14 @@ const getCode = async () => {
   }
 }
 //获取租户ID
+const { showTenantSelector, initializeTenantSelection } = useTenantSelection((first, options) => {
+  const tenant = options.find((item) => item.id === authUtil.getTenantId()) ?? first
+  loginData.loginForm.tenantName = tenant.name
+  authUtil.setTenantId(tenant.id)
+})
+
 const getTenantId = async () => {
+  await initializeTenantSelection()
   if (loginData.tenantEnable) {
     const res = await LoginApi.getTenantIdByName(loginData.loginForm.tenantName)
     authUtil.setTenantId(res)
@@ -250,6 +258,7 @@ function getUrlValue(key: string): string {
 // 尝试登录: 当账号已经绑定，socialLogin会直接获得token
 const tryLogin = async () => {
   try {
+    await initializeTenantSelection()
     const type = getUrlValue('type')
     const redirect = getUrlValue('redirect')
     const code = route?.query?.code as string

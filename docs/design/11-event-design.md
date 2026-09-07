@@ -84,7 +84,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 |---|---|---|---|---|
 | `ProjectCreated` | Project Delivery | SOL/IMP/ACC/ANA | aggregateVersion | 项目身份和来源映射已建立 |
 | `ProjectTreeChanged` | Project Delivery | Authorization/AST/ANA | changeBatchId + treeVersion | 一次无环树变更已提交；投影可据此重建 |
-| `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
+| `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移；事件只作提交后通知/投影，不触发、不补建也不反推`AcceptanceScopeBinding` |
 | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion + lifecycleStatus + closeReason | 项目关闭事实成立；NORMAL_CLOSED仅来自CLO-02，EXCEPTION_CLOSED来自PM-10，消费方不得据此新增维护阶段 |
 | `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + executionContractId/contractVersion + completionEvaluationId + factVersion | 任务指派/完成事实；完成事件仅在CompletionRule回源校验绑定事实和版本、追加判定事实并完成状态迁移后发布 |
 | `ProjectServiceManagerAssigned` | Project Delivery | PMS Notification Delivery | eventId + project aggregateVersion | PM-08 V1主责/协同服务经理关系及Project状态已提交；payload冻结assignmentId、projectId、recipientUserId、templateCode、templateParamsSnapshot、assignmentType、levelCode、effectiveFrom；处理器以eventId作为SYSTEM站内信deliveryKey，通知失败不回滚指派 |
@@ -120,8 +120,8 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、hash、source snapshot | ACC 审核引用，不覆盖 IMP revision |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
 | `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
-| `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
-| `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
+| `SatisfactionTaskCreated` | ACC | Todo/Project | taskId/projectTaskId/projectTaskVersion/taskCode、projectId、collectionKey/taskRevisionNo/priorTaskId、sourceOwnerContext/sourceObjectType/sourceObjectId/sourceObjectVersion、triggerOwnerContext/triggerObjectType/triggerFactId/triggerFactVersion、questionnaireId/revision、template/rule/threshold版本、assignee | projectTaskVersion只能取初始化时PROJ已锁定Fact并供消费者精确重验；首次source=trigger；整改保持source不变且trigger必须为`ACC/SatisfactionRemediationFact`；创建待办投影不表示客户已提交或满意度通过，Todo完成不反向推进ACC |
+| `SatisfactionResultVersionChanged` | ACC | ACC满意度来源投影；未来CLO/SUB | changeType(`RECORDED/INVALIDATED`)、projectId/projectTaskId/projectTaskVersion/taskCode、collectionKey/taskRevisionNo、task/questionnaire/response/resultId/resultVersion/resultFactVersion、template/rule/threshold、sourceOwnerContext/sourceObjectType/sourceObjectId/sourceObjectVersion、passed/resultStatus/archiveActorUserId、`invalidationReasonCode/invalidatedByUserId/invalidatedAt`（仅INVALIDATED）、files[{role,sequence,sourceSequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}] | `sequence`保留Result/Response角色内文件身份；`sourceSequence`按结果文档→签字→附件、角色内序号冻结为跨角色连续唯一1..N，ACC-04来源附件只使用sourceSequence。Result事件生产事务先用PROJ窄方法锁定当前`T-SAT-SURVEY`事实并冻结`projectTaskVersion`；`resultVersion`仅为业务来源版本，`resultFactVersion`仅为Owner状态重验版本，RECORDED冻结提交后实际初始版本，INVALIDATED冻结CAS后新版本。任何身份失配时Result和Outbox零写入；消费者只能以事件版本调用Owner接口精确重验，不得取当前版本、传零或跨Context查表。与Result事务同提交Outbox；满意度来源只允许taskCode=`T-SAT-SURVEY`并精确投影到同租户同项目`D-SAT-REPORT/T-SAT-SURVEY`唯一根；根缺失/重复/错配待补偿。RECORDED置CURRENT前按Result ID/factVersion重验Owner仍EFFECTIVE且passed且无更新结果；否则只保留非当前历史。INVALIDATED仅在根仍指向该业务版本时清空；两向乱序均不得恢复失效版本或覆盖新来源，历史ACTIVE文件与归档事实保留 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
@@ -238,3 +238,14 @@ V1/V2 不定义 `TechnicalNoticePublishedByPlatform`，避免把 V3 本地治理
 | 补偿与对账可实现 | PASS | 第 11 节 |
 
 本分册可进入外部集成详细契约评审；Phase 2 放行前仍需与 12、15、16 的超时、重试和异常分类逐项一致。
+
+## ACC报告与结果投递补充
+
+| 事件 | Producer | Consumer | 字段 | 边界 |
+|---|---|---|---|---|
+| `AcceptanceReportVersionChanged` | ACC | ACC交付件索引 | acceptanceId、projectId、reportType、changeType(`EFFECTIVE/REPLACED/REVOKED`)、publisherActorUserId、currentReportVersionId（撤销为空）、previousReportVersionId、attachments[{sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}] | 与发布/替换/撤销通过`PlatformCommandExecutionApi`同事务写Outbox；`publisherActorUserId`取首次生效/替换时服务端认证用户，撤销沿用被撤销版本发布人；附件逐项来自PLT公共事实，不携带内部FileVersion/FileReference ID；完整附件集合不得缩成单文件；按来源版本幂等维护应交根及来源历史，失败保留报告并进入补偿，不触发范围绑定 |
+| `ClosureGateRecheckRequested` | ACC | CLO | projectId、sourceRequirementId、sourceObjectId、sourceVersion、reasonCode | 只请求后续CLO重新读取Owner事实；不表示闭环门禁已通过，CLO Feature未交付时允许Outbox保留待消费 |
+
+F-ACC-001的`AcceptanceReportOutboxDeliveryJob`通过`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`。它先把事件交给来源投影事务；事务成功后调用`markDelivered`，反序列化、身份校验或投影失败则调用`scheduleRetry`且不得标成功。该Job不得领取或标记`ClosureGateRecheckRequested`已投递；CLO消费者不在本Feature内实现。
+
+F-ACC-002的`SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVersionChanged`。它先维护ACC-04满意度来源版本及完整文件集合，投影事务成功后才按消息retryCount调用`markDelivered`，失败使用同一expectedRetryCount调用`scheduleRetry`。`ClosureGateRecheckRequested`及未来SUB重校验事件不由该Job领取或误标成功。

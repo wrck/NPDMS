@@ -44,7 +44,7 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
         ]
         if check:
             command.append("--check")
-        return subprocess.run(command, cwd=REPOSITORY_ROOT, text=True, capture_output=True, check=False)
+        return subprocess.run(command, cwd=REPOSITORY_ROOT, text=True, encoding="utf-8", capture_output=True, check=False)
 
     def test_check_detects_feature_index_status_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -171,7 +171,7 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
             asset_row = self.requirement_row(content, "EQP-01@V1")
             self.assertIn("F-AST-001 Task", asset_row)
             self.assertIn("IN_PROGRESS", asset_row)
-            self.assertTrue(asset_row.endswith("| NOT_STARTED | NOT_STARTED |"), asset_row)
+            self.assertTrue(asset_row.endswith("| NOT_STARTED | IMPLEMENTATION_IN_PROGRESS |"), asset_row)
 
     def test_coverage_json_contains_all_111_unique_slices(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

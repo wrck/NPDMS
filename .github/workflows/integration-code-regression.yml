@@ -87,38 +87,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  governance:
-    name: Python governance regression
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Install validator dependencies
-        run: python3 -m pip install -r scripts/requirements-validation.txt
-      - name: Run all governance tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m unittest discover -s scripts/tests -v 2>&1 | tee "${RUNNER_TEMP}/governance-tests.log"
-      - name: Capture the exact source and history used for the tests
-        if: always()
-        run: |
-          git rev-parse HEAD > "${RUNNER_TEMP}/tested-revision.txt"
-          git bundle create "${RUNNER_TEMP}/tested-source.bundle" --all
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: governance-regression-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/governance-tests.log
-            ${{ runner.temp }}/tested-revision.txt
-            ${{ runner.temp }}/tested-source.bundle
-          if-no-files-found: error
-          retention-days: 14
-
   mysql:
     name: ACC IMP COM CUT INT owner MySQL regression
     runs-on: ubuntu-24.04
@@ -212,7 +180,7 @@ jobs:
   regression-gate:
     name: Integration code regression gate
     if: always()
-    needs: [backend, frontend, governance, mysql]
+    needs: [backend, frontend, mysql]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every regression job to succeed

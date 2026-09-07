@@ -121,3 +121,13 @@ COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `Proje
 - 旧`/pms/equipment`写权限仅保留给`super_admin`，用于旧设备模型的受控维护与回归；普通角色不再获得旧创建、更新、删除和状态变更权限。旧写入不得代理或双写AST，也不产生新的AST设备数据范围。
 - 配置Log查看同时要求设备查询和文件查看权限；下载再要求专用下载权限。
 - 集成身份只能通过Owner公开应用接口写来源字段，不得获得客户删除、设备归属、平台字段维护或文件下载权限。
+
+## COM-01合同管理员公司范围
+
+按当前统一F-COM-001的BR-FCOM001-003和ADR-0038执行：
+
+- 唯一首次可见性来源为SYSTEM当前有效scope中非空`companyCode`原值的去重并集；部门、主范围标记、scopeRole、项目关系和DeliveryScope不扩大或缩小集合。
+- 列表使用场景化Query的必选公司编码集合，空集合返回空；详情和写操作必须命中ERP所属公司编码，否则拒绝且不泄露对象存在性。
+- Owner异常、超时或无法取得当前事实时，列表返回空并记录Owner不可用审计，详情/写拒绝；部分无公司编码的scope行不授权，其余有效行仍按并集生效。
+- 关系写入前重新回源；按scope ID稳定排序的全部命中id/version进入既有`AuditRecord.authorizationSnapshot`，不形成COM第二授权真值。撤权/到期影响后续请求，不删除历史。
+- 查询和关系维护分别要求`pms:commerce:contract:query`、`pms:commerce:contract:relate`；敏感字段另需`pms:commerce:contract:sensitive-read`，否则脱敏或不返回。敏感字段权限不扩大公司范围。

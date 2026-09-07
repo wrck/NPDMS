@@ -3,104 +3,96 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PRD = ROOT / "需求/PRD-项目实施交付管理平台.md"
 BASELINE_PRD = ROOT / "docs/baseline/prd-v1.8.md"
-AMENDMENT = ROOT / "docs/baseline/prd-v1.8-amendment-009-acceptance-scope-stage-trigger.md"
-OPEN_QUESTIONS = ROOT / "docs/decisions/open-questions.md"
 
 
 def requirement_block(text: str, requirement_id: str) -> str:
-    marker = f"| 需求编号 | {requirement_id} |"
-    marker_index = text.index(marker)
+    marker_index = text.index(f"| 需求编号 | {requirement_id} |")
     heading_index = text.rfind("\n#### ", 0, marker_index)
     next_heading = text.find("\n#### ", marker_index)
-    return text[heading_index: next_heading if next_heading >= 0 else len(text)]
+    return text[heading_index:next_heading if next_heading >= 0 else len(text)]
 
 
 class PrdComAcceptanceScopeTriggerTest(unittest.TestCase):
+    """COM-01/ACC-03: current PRD results and approved Feature-level contracts."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.source_bytes = SOURCE_PRD.read_bytes()
         cls.baseline_bytes = BASELINE_PRD.read_bytes()
         cls.prd = cls.source_bytes.decode("utf-8")
-        cls.amendment = AMENDMENT.read_text(encoding="utf-8")
-        cls.open_questions = OPEN_QUESTIONS.read_text(encoding="utf-8")
+        cls.com = (ROOT / "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md").read_text(encoding="utf-8")
+        cls.acc = (ROOT / "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md").read_text(encoding="utf-8")
+        cls.authorization = (ROOT / "docs/decisions/0038-commerce-contract-administrator-company-scope.md").read_text(encoding="utf-8")
+        cls.report = (ROOT / "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md").read_text(encoding="utf-8")
+        cls.questions = (ROOT / "docs/decisions/open-questions.md").read_text(encoding="utf-8")
 
     def test_source_and_frozen_baseline_are_byte_identical(self) -> None:
         self.assertEqual(self.source_bytes, self.baseline_bytes)
-        self.assertIn("CHG-PRD-2026-08-29-009", self.prd)
+        self.assertIn("CHG-PRD-2026-09-02-010", self.prd)
 
     def test_com_scope_binding_is_driven_by_project_acceptance_stage(self) -> None:
         com = requirement_block(self.prd, "COM-01")
-        self.assertIn("项目进入其设定的验收阶段时", com)
-        self.assertIn("全部当前有效DeliveryScope分配版本同步进入验收范围", com)
-        self.assertIn("新当前分配版本在生效时同步进入验收范围", com)
-        self.assertIn("阶段进入或范围版本生效不得标记成功", com)
+        self.assertIn("全部当前有效范围的精确版本", com)
+        self.assertIn("新生效范围版本必须同步绑定", com)
+        self.assertIn("普通减量或释放不得绕过已绑定范围守卫", com)
+        self.assertIn("PROJECT_STAGE_ENTRY/SCOPE_VERSION_EFFECTIVE", self.com)
         self.assertNotIn("submitAcceptance", com)
 
     def test_acc_owns_version_exact_binding_without_legacy_inference(self) -> None:
-        acc = requirement_block(self.prd, "ACC-03")
-        self.assertIn("ACC为该项目全部当前有效DeliveryScope分配版本追加范围绑定", acc)
-        self.assertIn("绑定保存精确分配版本", acc)
-        self.assertIn("不得从既有项目级验收状态或报告状态反推历史事实", acc)
-        self.assertIn("不留下部分绑定", acc)
+        self.assertIn("报告、活动和交付件状态不得触发、补建、关闭或反推范围绑定", self.report)
+        self.assertIn("精确版本绑定原子提交", self.com)
+        self.assertIn("当前版本", requirement_block(self.prd, "ACC-03"))
+        self.assertIn("原子", self.acc)
 
     def test_project_stage_entry_precedes_acceptance_report_completeness(self) -> None:
-        com = requirement_block(self.prd, "COM-01")
+        self.assertIn("项目进入验收阶段先完成范围绑定，不创建报告", self.report)
+        self.assertIn("活动完成时才校验当前报告的验收时间、结论、验收人和附件", self.report)
         acc = requirement_block(self.prd, "ACC-03")
-        for block in (com, acc, self.amendment):
-            self.assertIn("项目阶段进入", block)
-            self.assertIn("不要求创建或补齐初验/终验", block)
-        self.assertIn("报告尚未形成不得阻断已满足其他门禁的阶段进入", acc)
-        self.assertIn("验收时间、结论、验收人和附件完备", acc)
-        self.assertIn("对应验收活动不得标记完成", acc)
+        self.assertIn("附件上传成功且字段完整后才形成有效版本", acc)
+        self.assertIn("不生成当前有效版本", acc)
 
     def test_unapproved_exit_semantics_fail_closed(self) -> None:
-        com = requirement_block(self.prd, "COM-01")
-        acc = requirement_block(self.prd, "ACC-03")
-        for block in (com, acc, self.amendment):
-            self.assertIn("Q-FCOM-002", block)
-            self.assertIn("不得自动解锁或关闭", block)
+        self.assertIn("Q-FCOM-002", self.com)
+        self.assertIn("不写", self.com)
+        self.assertIn("effective_to", self.com)
+        self.assertIn("只阻断退出/回退", self.com)
+        self.assertIn("Q-FCOM-002", self.acc)
+        self.assertIn("不得触发、补建、关闭或反推范围绑定", self.report)
 
     def test_exit_semantics_are_registered_as_a_narrow_blocker(self) -> None:
-        start = self.open_questions.index("### Q-FCOM-002")
-        end = self.open_questions.index("\n### ", start + 1)
-        question = self.open_questions[start:end]
-        self.assertIn("Status: BLOCKED_BY_SPEC", question)
-        self.assertIn("Requirement IDs: COM-01、ACC-03、PM-10", question)
-        self.assertIn("仅退出/回退时的绑定关闭或解锁设计", question)
-        self.assertIn("阶段进入绑定与验收阶段内新版本绑定规则继续有效", question)
+        start = self.questions.index("### Q-FCOM-002")
+        end = self.questions.find("\n### ", start + 1)
+        question = self.questions[start:end if end >= 0 else len(self.questions)]
+        self.assertIn("BLOCKED_BY_SPEC", question)
+        self.assertIn("仅退出/回退", question)
+        self.assertIn("阶段进入", question)
+        self.assertIn("继续有效", question)
 
     def test_contract_admin_scope_uses_current_system_company_fact(self) -> None:
-        com = requirement_block(self.prd, "COM-01")
-        for text in (com, self.amendment):
-            self.assertIn("SYSTEM", text)
-            self.assertIn("当前有效", text)
-            self.assertIn("公司编码", text)
-            self.assertIn("精确匹配", text)
-            self.assertIn("授权事实", text)
-        self.assertIn("部门信息只作为该授权事实的上下文", com)
-        self.assertNotIn("新增显式合同授权", com)
+        self.assertIn("OrganizationScopeApi.getActiveScopes(subjectUserId)", self.com)
+        self.assertIn("非空", self.com)
+        self.assertIn("原值精确去重集合", self.com)
+        self.assertIn("部门、主范围标记、scopeRole和项目关系均不得扩大或缩小该公司集合", self.com)
+        self.assertIn("DeliveryScope也不得反推首次可见性", self.com)
+        self.assertIn("不新增合同授权表", self.authorization)
 
     def test_contract_admin_scope_fails_closed_and_keeps_field_permission_separate(self) -> None:
-        com = requirement_block(self.prd, "COM-01")
-        self.assertIn("列表返回空，详情和写操作拒绝", com)
-        self.assertIn("撤销或到期后立即禁止后续查询和关系维护", com)
-        self.assertIn("独立字段权限", com)
-        self.assertIn("脱敏或不返回", com)
+        self.assertIn("列表为空，详情和写操作拒绝", self.com)
+        self.assertIn("撤权或到期立即阻止后续查询和维护", self.com)
+        self.assertIn("pms:commerce:contract:sensitive-read", self.com)
+        self.assertIn("脱敏或不返回", self.com)
+        self.assertIn("不删除既有关系、范围历史或审计证据", self.com)
 
     def test_q_fcom001_is_resolved_by_option_b_without_new_contract_grant(self) -> None:
-        start = self.open_questions.index("### Q-FCOM-001")
-        end = self.open_questions.index("\n### ", start + 1)
-        question = self.open_questions[start:end]
-        self.assertIn("Status: RESOLVED", question)
-        self.assertIn("Resolution: 方案B", question)
-        self.assertIn("UserCompanyDepartmentScope", question)
-        self.assertIn("不新增合同授权表", question)
-        self.assertIn("不修改Yudao基础平台", question)
+        self.assertIn("Q-FCOM-001", self.com)
+        self.assertIn("RESOLVED", self.com)
+        self.assertIn("ACCEPTED", self.authorization)
+        self.assertIn("方案B", self.authorization)
+        self.assertIn("UserCompanyDepartmentScope", self.authorization)
+        self.assertIn("不修改Yudao基础平台", self.authorization)
 
 
 if __name__ == "__main__":

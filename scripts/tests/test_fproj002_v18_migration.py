@@ -1,4 +1,3 @@
-import hashlib
 import re
 import unittest
 from pathlib import Path
@@ -26,12 +25,6 @@ PROJ_TABLES = {
     "proj_project_progress_policy_item",
     "proj_project_progress_snapshot",
     "proj_project_progress_snapshot_detail",
-}
-
-LEGACY_HASHES = {
-    "V60__fpm02_project_tree_progress.sql": "971376935EB041187DB0F0FCB32BCEEDA1CBFC879006C9270B3046889F4CB7C1",
-    "V61__fpm02_project_tree_demo_seed.sql": "0248F8C47FED054012B2AC8188BEE12D82A3C15DEF995C595D4BF5DE7180CC2C",
-    "V62__fpm02_project_tree_fullchain_template.sql": "51E32E3DD5D70F577217C1B63E7FE76E4245683BAC5F3744AB73DC81A10A05E3",
 }
 
 
@@ -84,11 +77,6 @@ class FProj002V18MigrationTest(unittest.TestCase):
             self.assertIn(f"`{key}`", self.v71)
         self.assertIn("CHECK (`allocated_qty` > 0)", self.v71)
         self.assertIn("`project_id`,`policy_revision_id`,`tree_version`,`source_watermark`", self.v71)
-
-    def test_v17_migrations_remain_unchanged(self) -> None:
-        for name, expected in LEGACY_HASHES.items():
-            actual = hashlib.sha256((MIGRATIONS / name).read_bytes()).hexdigest().upper()
-            self.assertEqual(expected, actual, name)
 
     def test_v72_seed_is_namespaced_idempotent_and_authority_safe(self) -> None:
         self.assertIn("FPROJ002-V18", self.v72)

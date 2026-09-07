@@ -10,7 +10,17 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
                                      String orderType, String customerCode, String customerName,
                                      BigDecimal amount, String currencyCode,
                                      CommerceSourceLifecycleStatus lifecycleStatus,
+                                     LocalDateTime sourceUpdatedAt,
+                                     String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime) {
+
+    public CommerceSalesOrderFact(String sourceKey, String expectedPreviousSourceVersion,
+                                     String sourceVersion, String companyCode, String orderNo,
+                                     String orderType, String customerCode, String customerName,
+                                     BigDecimal amount, String currencyCode,
+                                     CommerceSourceLifecycleStatus lifecycleStatus,
                                      LocalDateTime sourceUpdatedAt) {
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+    }
 
     public CommerceSalesOrderFact {
         sourceKey = text(sourceKey, 128, "sourceKey");
@@ -26,6 +36,9 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
         if (lifecycleStatus == null) {
             throw invalid("lifecycleStatus must not be null");
         }
+        salesType = optionalText(salesType, 32, "salesType");
+        sourceProjectName = optionalText(sourceProjectName, 512, "sourceProjectName");
+        orderComment = optionalText(orderComment, 2048, "orderComment");
         sourceUpdatedAt = time(sourceUpdatedAt, "sourceUpdatedAt");
     }
 }

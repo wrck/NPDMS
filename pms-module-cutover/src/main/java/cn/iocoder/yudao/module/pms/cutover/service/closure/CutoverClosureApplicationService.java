@@ -868,7 +868,7 @@ public class CutoverClosureApplicationService {
         return sha256(JsonUtils.toJsonString(value));
     }
 
-    private static PlatformCommandExecutionApi.SuccessFacts submitSuccessFacts(
+    private PlatformCommandExecutionApi.SuccessFacts submitSuccessFacts(
             SubmitCutoverClosureCommand command, CutoverClosureCommandResult result, LocalDateTime submittedAt) {
         List<BusinessEvent> events = List.of();
         if ("SUCCESS".equals(command.finalResult())) {
@@ -879,7 +879,9 @@ public class CutoverClosureApplicationService {
             payload.put("taskId", result.taskId()); payload.put("closureId", result.closureId());
             payload.put("closureRevision", result.closureVersion());
             payload.put("finalResult", command.finalResult()); payload.put("resultRef", resultRef);
-            payload.put("archivedAt", submittedAt); payload.put("correlationId", command.correlationId());
+            // Use the same clock zone as submittedAt, independent of the host's default timezone.
+            payload.put("archivedAt", submittedAt.atZone(clock.getZone()).toInstant().toEpochMilli());
+            payload.put("correlationId", command.correlationId());
             events = List.of(new BusinessEvent(eventId, "CutoverCompleted", JsonUtils.toJsonString(payload)));
         }
         return new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_CLOSURE_SUBMIT", "CutoverClosure",

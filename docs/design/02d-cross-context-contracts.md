@@ -27,7 +27,7 @@
 | DeviceAssigned | EQP-01、EQP-03 | AST | Implementation Execution/Project | 设备当前最具体项目归属及生效版本 |
 | EquipmentLocationEffective | EXE-02、EQP-01 | AST | Implementation Execution/Project | IMP通过`AssetLocationApi`公开命令提交已确认安装/迁移/拆除事实；AST在调用方事务内幂等更新设备当前地点和版本历史，AST不反向读取IMP表 |
 | DeviceComponentRelationChanged | EXE-03、EQP-02、EQP-03 | AST | Implementation Execution/Cutover | 机框、槽位、板卡当前关系、生效区间、解析/人工绑定证据和关系版本 |
-| SatisfactionResultRecorded | ACC-02、SUB-03 | Acceptance & Closure | ProjectClosure/Supplier & Subcontract | 满意度任务、业务对象、冻结规则版本和不可变判定引用；消费者不得修改答卷 |
+| SatisfactionResultVersionChanged | ACC-02、SUB-03 | ACC | ACC来源投影/未来CLO和SUB | 发布不可变Result业务版本及当前事实版本，区分RECORDED和INVALIDATED；按冻结任务身份精确重验，乱序不得恢复失效结果或覆盖新当前来源，消费者不得修改答卷 |
 | ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |
 | CutoverCompleted | CUT-06 | Cutover | Project Delivery/Acceptance/Analytics | CUT任务、P6闭环版本、最终成功结果和归档引用；失败或仅完成采集不得发布完成事件 |
 | MasterDataSynchronized | INT-01、INT-02、INT-03、INT-06、EQP-04 | CRM/ERP/MES/ITR/Integration ACL | Customer & Relationship/Asset Management/Contract & Fulfillment | 来源主键、来源版本、同步时间、同步状态和本地副本版本 |
@@ -40,6 +40,15 @@
 | `KnowledgePublicProductInfoQueryApi` | EQP-01 | KNO | AST | 按产品/设备映射查询已发布官网信息版本、来源URL、核验时间和摘要；无记录返回NOT_AVAILABLE |
 | `ProjectStageGateFactProviderApi` | PM-03@V1 | PROJ/ACC/BPM引用对象Owner | Project | 位于既有`pms-module-project-api`，按冻结Gate Reference身份调用类型化Provider；Query、Fact、Provider key和六类满足谓词见10分册。TASK/MILESTONE/STATE由PROJ，DELIVERABLE由ACC，APPROVAL/PROCESS由BPM Owner提供；Provider以`MANDATORY`加入阶段推进事务，不返回外域正文。 |
 | `ProjectStageGateProcessOwnerApi` | PM-03@V1 | PMS Integration / Flowable | Project | 位于`pms-module-project-api`，由`pms-module-integration`实现；提供按`processDefinitionKey`检查当前生效定义、列出同租户可启动历史定义身份，以及按“冻结key + 可空显式processDefinitionId”启动Gate流程的反腐适配。PROJ对查询和启动均先重验`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`，不复用需要BPM全局定义查询权限的管理端接口；Provider只返回同key的`processDefinitionId/processDefinitionKey/name/selectable`。未显式选择时由BPM按key选取最新生效定义；显式选择时必须验证定义ID属于同一key且可启动。启动按固定businessKey/变量返回流程实例及实际定义ID；服务端设置Flowable authenticated initiator、start-user及RUNNING状态。既有Gate Reference `refVersion`仅保留历史且不得参与调用，不新增PMS流程版本接口、字段或解析规则，也不得修改Yudao接口或实现。 |
+| `OrganizationScopeApi.getActiveScopes(userId)` | COM-01 | SYSTEM | COM | 在受信租户上下文返回当前有效UserCompanyDepartmentScope；COM只按`companyCode`与ERP合同所属公司编码精确匹配，scope ID/version仅用于审计。不得读取SYSTEM业务表或新建合同专用Provider。 |
+| `SatisfactionQuestionnaireTemplateApi.resolvePublished` | ACC-02、PM-03 | ACC | PROJ | 项目创建时按项目类别、签约方式、实施方式、业务用途和适用时点唯一解析发布修订，返回模板/修订/规则/阈值Fact；零匹配或多匹配失败，PROJ只冻结引用 |
+| `SatisfactionTaskInitializationApi.initialize` | ACC-02、PM-11 | ACC | PROJ/受信业务时点Owner | 以`MANDATORY`加入首次业务时点事务，ACC回查`ProjectWorkBindingFactApi`，冻结原始source/trigger Fact并返回collectionKey/revision=1；整改由ACC不可变RemediationFact触发同链下一revision，外部Owner不发明整改身份 |
+| `SatisfactionResultFactApi.inspect/lockAndRevalidate` | ACC-02、CLO-01、SUB-03 | ACC | CLO/SUB | 返回稳定任务、问卷、答卷、结果、模板/规则/阈值、来源业务对象及版本和passed/valid/archive状态；消费者不得修改答卷或自行推断通过 |
+| `FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload` | ACC-02、PLT-02 | PLT | ACC | 仅接受ACC已验证ACTIVE访问授权及其grant版本，按唯一满意度文件策略上传签字/附件；不伪造登录用户，PLT继续执行文件校验、版本和审计 |
+| `FileArtifactApi.createGeneratedBusinessFile` | ACC-02、PLT-02 | PLT | ACC | 只为精确Result目标生成不可变判定文档；命令冻结责任人actor、scopeVersion、operationId和服务端内容，Provider以MANDATORY加入ACC判定事务并重验`pms:file:upload`/租户/FileBusinessScope；复用FileUploadSession补偿对象存储先行写入，失败零Result/Outbox |
+| `ExportTaskApi.request/getFact/retry`、`ExportBusinessDataProvider` | ACC-02、PLT-02 | PLT | ACC及其他受控业务Owner | PLT拥有唯一异步Task/Audit与文件TTL；消费Context Provider拥有查询语义并在申请、生成、显式重试、下载时重验功能/数据/字段/文件/租户范围；只允许原actor把可重试FAILED按version CAS恢复为REQUESTED；F-ACC-002固定`ACC/SATISFACTION_RESULT`，不得建立第二导出真值 |
+| `AcceptanceActivityInitializationApi.initialize` | ACC-03 | ACC | PROJ | 以`MANDATORY`加入项目创建事务；PROJ预分配执行契约ID并传精确初验/终验任务与应交码，ACC创建PENDING活动并返回`acceptanceId/activityVersion`，PROJ随后追加ACC执行契约；任一步失败整体回滚 |
+| `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 受信命令显式携带报告发布时冻结的`actorUserId`；PLT按该用户重验既有`pms:file:archive`权限和租户/文件范围，持锁重验ACC报告附件ACTIVE集合，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按相同公共文件事实创建ARCHIVED引用并整组追加记录且写`archivedBy=actorUserId`；附件引用保持ACTIVE供历史下载，不暴露PLT内部主键，ACC只保存归档补偿投影 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 

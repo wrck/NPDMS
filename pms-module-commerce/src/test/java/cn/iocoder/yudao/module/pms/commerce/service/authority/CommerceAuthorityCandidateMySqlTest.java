@@ -105,7 +105,7 @@ class CommerceAuthorityCandidateMySqlTest {
         assertEquals("MATCHED", matched.candidateStatus());
         assertEquals("ERP-V1", matched.matchedOwnerSourceVersion());
         assertEquals("ERP-V1", jdbcTemplate.queryForObject(
-                "SELECT source_version FROM com_contract WHERE tenant_id=? AND id=?",
+                "SELECT master_source_version FROM com_contract WHERE tenant_id=? AND id=?",
                 String.class, TENANT_ID, ownerId));
     }
 

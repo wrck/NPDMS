@@ -111,7 +111,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
             path = root / "docs" / "design" / "11-event-design.md"
             path.write_text(path.read_text(encoding="utf-8").replace(
-                "RECORDED置CURRENT前按Result ID/version重验Owner", "RECORDED直接置CURRENT", 1
+                "RECORDED置CURRENT前按Result ID/factVersion重验Owner", "RECORDED直接置CURRENT", 1
             ), encoding="utf-8")
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("RECORDED置CURRENT" in error for error in errors), errors)
@@ -983,10 +983,16 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 root / "docs" / "engineering" / "gates" / "phase-2",
             )
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+            contract = json.loads((root / "docs/traceability/domain-entity-migration-contract.json").read_text(encoding="utf-8"))
+            expected = f"{len(contract['records'])}对象/{sum(len(row['sources']) for row in contract['records'])}来源绑定/{len(contract['excludedSources'])}排除源"
+            historical_review = root / "docs/engineering/gates/phase-2/self-review.md"
+            historical_review.write_text("修订007历史自审：93对象/104来源绑定/1排除源", encoding="utf-8")
+            self.assertEqual([], MODULE.validate_v18_migration_gate_evidence(root))
+            self.assertIn(expected, gate.read_text(encoding="utf-8"))
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
-                    "95对象/112来源绑定/1排除源",
-                    "94对象/111来源绑定/1排除源",
+                    expected,
+                    "STALE_MIGRATION_SUMMARY",
                     1,
                 ),
                 encoding="utf-8",

@@ -290,7 +290,7 @@ public class CommerceAuthorityIngestService {
         row.setContractAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
     }
 
@@ -304,8 +304,13 @@ public class CommerceAuthorityIngestService {
         row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode());
         row.setAuthorityStatus(CONFIRMED);
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
+        row.setSalesType(fact.salesType());
+        row.setSourceProjectName(fact.sourceProjectName());
+        row.setOrderComment(fact.orderComment());
+        row.setOrderCreateTime(fact.orderCreateTime());
+        row.setCustomerRequiredTime(fact.customerRequiredTime());
     }
 
     private void copyOrderLine(SalesOrderLineDO row, CommerceAuthorityBatchCommand command,
@@ -331,9 +336,14 @@ public class CommerceAuthorityIngestService {
         row.setUnitScale(fact.unitScale());
         row.setQuantityStatus(fact.quantityStatus());
         row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
-        row.setStatus(fact.lifecycleStatus().name());
+        row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         row.setSourceUpdatedAt(fact.sourceUpdatedAt());
         row.setSyncedAt(LocalDateTime.now(clock));
+        row.setLineType(fact.lineType());
+        row.setBundleCode(fact.bundleCode());
+        row.setProfitCenter(fact.profitCenter());
+        row.setRealExecutionNo(fact.realExecutionNo());
+        row.setWarrantyMonth(fact.warrantyMonth());
     }
 
     private void copyRelation(SalesOrderContractRelationDO row, CommerceAuthorityBatchCommand command,

@@ -17,7 +17,7 @@
         </el-form-item>
       </el-col>
       <el-col :span="24" class="px-10px">
-        <el-form-item v-if="resetPasswordData.tenantEnable === 'true'" prop="tenantName">
+        <el-form-item v-if="showTenantSelector" prop="tenantName">
           <el-input
             v-model="resetPasswordData.tenantName"
             :placeholder="t('login.tenantNamePlaceholder')"
@@ -113,6 +113,7 @@
   </el-form>
 </template>
 <script lang="ts" setup>
+import { useTenantSelection } from '@/hooks/web/useTenantSelection'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 import { useIcon } from '@/hooks/web/useIcon'
@@ -168,7 +169,7 @@ const rules = {
 
 const resetPasswordData = reactive({
   captchaEnable: import.meta.env.VITE_APP_CAPTCHA_ENABLE,
-  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE,
+  tenantEnable: import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true',
   tenantName: '',
   username: '',
   password: '',
@@ -226,7 +227,13 @@ watch(
   }
 )
 
+const { showTenantSelector, initializeTenantSelection } = useTenantSelection((tenant) => {
+  resetPasswordData.tenantName = tenant.name
+  authUtil.setTenantId(tenant.id)
+})
+
 const getTenantId = async () => {
+  await initializeTenantSelection()
   if (resetPasswordData.tenantEnable === 'true') {
     const res = await LoginApi.getTenantIdByName(resetPasswordData.tenantName)
     if (res == null) {

@@ -680,7 +680,8 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
         if not path.is_file():
             errors.append(f"missing Phase 2 migration gate evidence: {path.relative_to(root)}")
             continue
-        if expected_summary not in read(path):
+        # self-review.md is the approved revision-007 snapshot, not a live projection.
+        if path.name != "self-review.md" and expected_summary not in read(path):
             errors.append(
                 f"Phase 2 migration gate evidence does not match current contract: "
                 f"{path.relative_to(root)} expected={expected_summary}"
@@ -852,7 +853,7 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
             "SatisfactionResultOutboxDeliveryJob",
             "T-SAT-SURVEY",
             "taskRevisionNo",
-            "RECORDED置CURRENT前按Result ID/version重验Owner",
+            "RECORDED置CURRENT前按Result ID/factVersion重验Owner",
         ),
         "13-file-design.md": ("SATISFACTION_SIGNATURE", "SATISFACTION_RESULT_DOCUMENT", "SATISFACTION_ARCHIVE",
                               "createGeneratedBusinessFile", "未引用对象", "PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE"),

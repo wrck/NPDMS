@@ -19,10 +19,10 @@ class SingleRepositorySpecificationAuthorityTest(unittest.TestCase):
     def test_obsolete_external_snapshot_runtime_is_not_reintroduced(self):
         self.assertFalse((ROOT / "scripts/specification_baseline.py").exists())
         self.assertFalse((ROOT / "docs/specification-baseline/allowlist.json").exists())
-        self.assertIn("不再维护外部规格仓快照", (ROOT / "AGENTS.md").read_text())
+        self.assertIn("不再维护外部规格仓快照", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_requirement_coverage_remains_a_generated_nonempty_projection(self):
-        value = json.loads((ROOT / "docs/traceability/requirement-version-coverage.json").read_text())
+        value = json.loads((ROOT / "docs/traceability/requirement-version-coverage.json").read_text(encoding="utf-8"))
         self.assertIsInstance(value, dict)
         self.assertTrue(value)
-        self.assertIn("Implementation Done只从", (ROOT / "docs/engineering/00-engineering-chain.md").read_text())
+        self.assertIn("Implementation Done只从", (ROOT / "docs/engineering/00-engineering-chain.md").read_text(encoding="utf-8"))

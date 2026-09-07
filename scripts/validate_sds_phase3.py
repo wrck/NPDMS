@@ -67,6 +67,8 @@ STALE_V18_DESIGN_TEXT = (
     "未形成可复核证据前本分册不能基线化",
 )
 CROSS_CONTEXT_TABLE_REFERENCES = {
+    "ACC-01": {"acc_acceptance_item"},
+    "ACC-02": {"acc_project_deliverable_source_version", "acc_project_deliverable_source_attachment"},
     "PM-08": {"ast_area_department_mapping"},
     "PM-02": {"proj_project_tree_change"},
     "PM-04": {"proj_project_tree_change"},

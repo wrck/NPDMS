@@ -309,7 +309,7 @@ yudao:
     unit-test-enable: false # 是否生成单元测试
     import-enable: false # 是否生成 Excel 导入接口
   tenant: # 多租户相关配置项
-    enable: false # V1 单租户运行；保留租户模块，后续可与前端开关同步启用
+    enable: true # 保留原租户隔离机制；仅一个可用租户时由前端自动选择并隐藏切换
     ignore-urls:
       - /jmreport/* # 积木报表，无法携带租户编号
     ignore-visit-urls:

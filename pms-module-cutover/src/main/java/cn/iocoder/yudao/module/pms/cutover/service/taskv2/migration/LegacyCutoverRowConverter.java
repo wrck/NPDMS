@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 /** 已通过来源、项目和目标身份资格校验的旧任务行转换器。 */
+@Component
 public final class LegacyCutoverRowConverter {
 
     public static final String MAPPING_VERSION = "F-CUT-002-PMS-CUT-TASK-V1";

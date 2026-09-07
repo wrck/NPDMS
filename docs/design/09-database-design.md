@@ -339,9 +339,9 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
-| Acceptance | `acc_acceptance` | `acc_acceptance_item`、`acc_confirmation` | 验收 revision/客户确认追加；原始实施证据只引用 |
-| SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
-| DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
+| Acceptance | `acc_acceptance` | `acc_acceptance_report_version`、`acc_acceptance_report_attachment`、`acc_confirmation` | 按ADR-0039/0040创建活动根和不可变报告版本，附件使用PLT公共事实；旧验收不迁成新当前报告 |
+| SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire_template`、`acc_satisfaction_questionnaire_template_revision`、`acc_satisfaction_questionnaire`、`acc_satisfaction_access_grant`、`acc_satisfaction_response`、`acc_satisfaction_response_file`、`acc_satisfaction_result`、`acc_satisfaction_result_file`、`acc_satisfaction_remediation_fact` | 按ADR-0041冻结配置并由服务器判定；历史只追加、整改新建；旧问卷/评分只保留来源，不生成当前有效结果 |
+| DeliveryArtifact | `acc_project_deliverable` | `acc_project_deliverable_source_version`、`acc_project_deliverable_source_attachment`、`acc_artifact_review`、`acc_archive_record` | 复用唯一应交根；来源版本和完整有序文件集合不可覆盖，不以旧名称或状态推断当前交付件 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
 | ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | V2静态交接快照；不含续保年限、续保结束日期、续保状态或持续跟踪对象 |
 
@@ -462,6 +462,8 @@ F-COM-001统一物理差量如下；字段定义是Feature前向DDL的批准输�
 预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
+
+修订014补齐ERP接收链与既有V160列的一致性：订单头传递`sales_type/source_project_name/order_comment/order_create_time/customer_required_time`，订单行传递`line_type/bundle_code/profit_center/real_execution_no/warranty_month`；字段来源仅为`pm_order_data_from_erp/pm_order_line_from_erp`的已登记映射。新批次及同版本载荷比较必须包含这些字段，缺失值保持NULL，不从其他字段推断。`source_lifecycle_status`保留ERP的`ACTIVE/CANCELLED/RETURNED`，本地`status`使用`ENABLED/DISABLED`；取消、退货或本地停用均不得分配。办事处仍只冻结于`com_delivery_scope`，明细不再映射不存在的办事处列。无新增表列或历史迁移改写。
 
 历史数据结论对应到当前 Context 命名如下；Feature DDL 必须保存显式映射，不能因表名前缀调整丢失语义：
 
@@ -657,3 +659,81 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 阶段推进直接复用`proj_project`、`proj_project_stage`、`proj_project_gate`、`proj_project_gate_reference`、`proj_project_task`、`proj_project_milestone`、ACC唯一应交根、执行契约、`proj_project_stage_snapshot`及既有Outbox/审计载体。`proj_project_stage_snapshot`现有before/after stage、guard snapshot、provider facts、treeVersion、operationId、actor及唯一键足以承载`operation_type=STAGE_ADVANCE`。`ref_type`现有字符列加性使用受控`MILESTONE/APPROVAL`值不需要DDL。
 
 APPROVAL/PROCESS不新建PMS映射表：`ref_code`只冻结Flowable `processDefinitionKey`；新写`ref_version`保持NULL，既有非空值仅保留历史且不得参与发布、启动、节点解析或门禁判断。`pms-module-integration`的流程Owner Provider在未显式选择定义ID时按key解析最新生效定义，显式选择历史`processDefinitionId`时验证其属于同一key且可启动，再以RuntimeService按实际定义ID启动；固定`businessKey=PROJECT_STAGE_GATE:{gateReferenceId}`并冻结tenantId、projectId、stageCode、gateId、gateReferenceId、refType、refCode、actor和实际processDefinitionId变量。启动时由服务端设置`PROCESS_START_USER_ID=actorUserId`、`PROCESS_STATUS=RUNNING(1)`及`_FLOWABLE_SKIP_EXPRESSION_ENABLED=true`，并通过Flowable `Authentication.setAuthenticatedUserId`在try/finally中设置、清除发起人；命令不接收可覆盖这些字段的客户端变量或自选审批人。事实Provider只按该businessKey、冻结变量和BPM实例实际定义ID读取Flowable运行/历史事实；没有实例、整数状态1运行中、3驳回、4撤回、2批准完成和未知分别按10/16分册判定。既有受管模板的历史`ref_version`不迁移、不覆盖，运行时按同一`ref_code`处理。禁止新增第二门禁结果表、阶段历史表、流程版本字段或修改旧Flyway；若实现期证明既有Flowable事实无法唯一承载上述关联，必须回到本Gate复审必要的加性事实，不得在Technical Plan静默补表。
+
+## CUT-08、ACC-02与COM-01已批准前向载体
+
+F-CUT-010以前向`NEW_ONLY`新增三张CUT-08表。`cut_spare_application_reference`按平台请求ID唯一保存任务、需求来源快照、外部系统、请求标识、可选跳转地址和外部申请号；外部申请身份按`tenant_id+external_system_code+external_application_no`唯一，多个合法申请以不同平台请求ID并存。`cut_spare_status_revision`按申请+正数外部状态版本只追加，当前标记只指向最高已接受版本，原始状态和只读JSON不得被CUT编辑。`cut_spare_manual_evidence`只保存PLT不可变文件事实引用、说明和操作审计，可关联任务或具体外部申请；人工证据不得生成外部申请号、状态版本或成功事实。三表不保存备件型号、数量、库存、审批、到货、领用或RMA明细，不迁移或双写旧`pms_cut_*`。精确列、可空联合、唯一键与锁序由`specs/features/F-CUT-010-physical-contract.json`锁定。
+
+CutoverSpareApplicationReference物理表由CUT-08 Feature前向迁移确定；CutoverSpareStatusRevision物理表由CUT-08 Feature前向迁移确定；CutoverSpareManualEvidence物理表由CUT-08 Feature前向迁移确定。三者均为`NEW_ONLY`，不得从旧CUT、工程物料、URL、备注或状态文本反推外部申请、状态版本或人工证据。
+
+统一导出使用ADR-0042已批准的PLT唯一Owner；ExportTask物理表由ACC-02 Feature前向迁移确定，不构成另一套ACC导出或审计事实。
+
+| 表 | 关键字段 | 约束 |
+|---|---|---|
+| `plt_export_task` | `owner_context/export_type/operation_id/request_digest/actor_user_id/filter_snapshot/scope_snapshot/requested_fields_snapshot/include_files/scope_version/task_status/result_count`、公共文件事实、`expires_at/failure_code/failure_retryable/retry_count/version`及标准租户审计字段 | `uk(tenant_id, owner_context, export_type, actor_user_id, operation_id)`；REQUESTED→GENERATING→SUCCEEDED/FAILED/REJECTED，只有可重试FAILED可按version CAS回REQUESTED，只有SUCCEEDED可转EXPIRED；FAILED必须有失败码/可重试标记，retry_count从0递增；成功文件事实整组同时存在；不逻辑删除，不以`plt_operation_audit`替代 |
+| `plt_export_audit` | `export_task_id/audit_sequence/action_code/actor_user_id/detail_snapshot/occurred_at`及租户/创建审计字段 | `uk(tenant_id, export_task_id, audit_sequence)`；REQUESTED/GENERATION_STARTED/SUCCEEDED/FAILED/REJECTED/RETRY_REQUESTED/DOWNLOADED/EXPIRED只追加；下载和TTL清理不得另建第二审计 |
+
+AcceptanceScopeBinding物理表由COM-01 Feature前向迁移确定；复用本分册已声明的`acc_acceptance_scope_binding`。唯一键为`uk(tenant_id, project_id, project_stage_snapshot_id, delivery_scope_id, scope_allocation_version)`，只追加项目阶段快照与精确范围分配版本的绑定，不含`acceptance_id`，不从初验/终验报告推断历史绑定。Q-FCOM-002关闭前不自动关闭或解锁。
+
+### F-COM-001合同管理员授权物理结论
+
+当前统一规格已承接ADR-0038的公司范围规则：不新增合同授权表、关系表字段或SYSTEM物理变更；公司编码按原值精确相等，不做大小写折叠、名称映射或部门推导。scope ID/version仅进入既有AuditRecord授权快照，不复制到COM关系表。
+
+本差量为`NO_PHYSICAL_DELTA`，不修改核心DDL、已发布Flyway、来源水位或历史批准记录。
+
+ACC-01继续保留原核心模型已声明的`acc_acceptance_item`目标引用；它不承接F-ACC-001的新报告版本或附件真值。ACC-02直接复用ACC唯一应交根的`acc_project_deliverable_source_version`和`acc_project_deliverable_source_attachment`，不建立第二套来源历史或附件Owner。
+
+## ACC-03/04/02已批准Feature-forward细则
+
+以下恢复ADR-0039～0042已批准规则；文中V17/V63/V133为来源设计历史编号，当前执行迁移以仓库DU接收映射为准，不得重放或改写当前同号迁移。
+
+F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`，不修改已执行V17、V63或当前核心DDL：
+
+| 目标表 | 字段差量 | 约束与迁移边界 |
+|---|---|---|
+| `acc_acceptance` | `project_id/project_task_id/execution_contract_id/acceptance_type/activity_status/current_report_version_id/version`及标准租户审计字段 | `uk(tenant_id, project_id, acceptance_type)`、`uk(tenant_id, project_task_id)`；仅`PRELIMINARY/FINAL`与`PENDING/COMPLETED`；跨Context只存逻辑引用，不建PROJ外键 |
+| `acc_acceptance_report_version` | `acceptance_id/report_version_no/report_status/acceptance_time/conclusion_code/conclusion_text/acceptor_name/previous_version_id/effective_from/effective_to/current_marker/uploader_user_id/upload_time`、`publisher_user_id bigint NULL`及标准租户审计字段 | `report_status`仅`DRAFT/EFFECTIVE/SUPERSEDED/REVOKED`；`current_marker`生成表达式为`case when report_status='EFFECTIVE' and effective_to is null then 1 else null end`；`uk(tenant_id, acceptance_id, report_version_no)`、`uk(tenant_id, acceptance_id, current_marker)`；DRAFT三时间/marker及`publisher_user_id`为空，发布时把服务端认证用户写入`publisher_user_id`，EFFECTIVE及其后继历史状态必须非空且不可改；有效版本四项非空且生效后不可更新/删除 |
+| `acc_acceptance_report_attachment` | `report_version_id bigint NOT NULL`、`attachment_sequence int unsigned NOT NULL`、`file_artifact_id bigint NOT NULL`、`file_version_no int unsigned NOT NULL`、`reference_key varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`、`artifact_version/reference_version/availability_version int unsigned NOT NULL`、`scope_version bigint NOT NULL`、`file_hash char(64) COLLATE ascii_bin NOT NULL`及标准租户审计字段 | `uk(tenant_id, report_version_id, attachment_sequence)`、`uk(tenant_id, report_version_id, reference_key)`、`uk(tenant_id, report_version_id, file_artifact_id, file_version_no)`；逐项保存PLT公共`FileArtifactVersionFact`，不保存PLT内部`FileVersion.id/FileReference.id`、正文或主附件推断 |
+| `acc_project_deliverable` | 加性新增`current_source_version_id/archive_status` | 保持V63 `uk(tenant_id, project_id, deliverable_code)`；F-ACC-001只允许`D-INITIAL-REPORT/D-FINAL-REPORT`；当前来源指针可空，未完成归档不得写`ARCHIVED` |
+| `acc_project_deliverable_source_version` | `deliverable_id/source_requirement_id/source_object_type/source_object_id/source_version/relation_status/archive_status/archive_failure_code/archive_retry_count/archive_time/current_marker`及标准租户审计字段 | `relation_status`仅`CURRENT/SUPERSEDED/REVOKED`；`current_marker`生成表达式为`case when relation_status='CURRENT' then 1 else null end`；`uk(tenant_id, deliverable_id, source_object_type, source_object_id, source_version)`、`uk(tenant_id, deliverable_id, current_marker)`；替换/撤销保留旧行 |
+| `acc_project_deliverable_source_attachment` | `deliverable_source_version_id bigint NOT NULL`、`attachment_sequence int unsigned NOT NULL`、`file_artifact_id bigint NOT NULL`、`file_version_no int unsigned NOT NULL`、`reference_key varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`、`artifact_version/reference_version/availability_version int unsigned NOT NULL`、`scope_version bigint NOT NULL`、`file_hash char(64) COLLATE ascii_bin NOT NULL`及标准租户审计字段 | `uk(tenant_id, deliverable_source_version_id, attachment_sequence)`、`uk(tenant_id, deliverable_source_version_id, reference_key)`、文件公共版本复合唯一；逐项等于Owner事件完整附件公共事实集合，不选择或推断主附件 |
+
+### F-ACC-002满意度Feature-forward聚焦差量（ADR-0041）
+
+| 表 | 字段/差量 | 约束与Owner规则 |
+|---|---|---|
+| `acc_satisfaction_questionnaire_template` | `template_code/name/status/current_revision_id/version`及标准租户审计字段 | ACC Owner；`uk(tenant_id, template_code)`；当前发布指针可空且不得指向草稿 |
+| `acc_satisfaction_questionnaire_template_revision` | `template_id/revision_no/project_type/signing_mode/implementation_mode/business_purpose_code/applicable_timing_code/priority/frozen_question_json/frozen_threshold/rule_version/revision_status/effective_from/effective_to` | 只追加修订；`uk(tenant_id, template_id, revision_no)`；相同五维输入最高优先级并列视为歧义失败。`frozen_question_json`根固定`schemaVersion=1/questions/scoring`；题型仅`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`，策略仅`SUM_V1/WEIGHTED_AVERAGE_V1`，舍入仅`HALF_UP/HALF_EVEN/DOWN`；`frozen_threshold/rule_version`必须分别等于配置内threshold/ruleVersion |
+| `proj_project_task` | 增加`acc_satisfaction_template_id/template_revision_id/template_version/satisfaction_rule_version/satisfaction_threshold` | 仅`satisfaction_timing`非空任务可写；逐项来自`SatisfactionQuestionnaireTemplateApi`同一次解析Fact，不按任务名/码推断 |
+| `acc_satisfaction_collection_task` | 增加`project_task_id/source_owner_context/source_object_type/source_object_id/source_object_version/trigger_owner_context/trigger_object_type/trigger_fact_id/trigger_fact_version/collection_key/task_revision_no/prior_task_id/assigned_by_user_id` | `uk(tenant_id, collection_key, task_revision_no)`保证链内revision唯一；`uk(tenant_id, project_task_id, trigger_owner_context, trigger_object_type, trigger_fact_id, trigger_fact_version)`保证同触发Fact幂等。首次`source*=trigger*`且revision=1；整改revision复制首任务`source*`，trigger固定为`ACC/SatisfactionRemediationFact`，不得形成第二来源真值 |
+| `acc_satisfaction_questionnaire` | 增加`questionnaire_status/access_scope_version` | 状态仅ACTIVE/SUBMITTED/INVALIDATED/EXPIRED；规范化后完整复制已发布配置包及threshold/ruleVersion强一致投影，形成后不可改 |
+| `acc_satisfaction_access_grant` | `questionnaire_id/grant_version/token_digest/effective_from/expires_at/grant_status/consumed_at`及审计字段 | token摘要唯一；状态ACTIVE/CONSUMED/REVOKED/EXPIRED；完整令牌永不落库 |
+| `acc_satisfaction_response` | 使用`submit_channel/customer_contact_ref/assisted_by_user_id`替代泛化签字/附件JSON | `uk(tenant_id, questionnaire_id, response_no)`、`uk(tenant_id, questionnaire_id, request_id)`；答卷只追加 |
+| `acc_satisfaction_response_file` | `response_id/file_role/file_sequence`及PLT公共`artifact_id/version_no/reference_key/artifact_version/reference_version/availability_version/scope_version/file_hash` | role仅SIGNATURE/ATTACHMENT；签字sequence=1且恰一条，附件顺序唯一；不保存PLT内部主键 |
+| `acc_satisfaction_result` | 增加`collection_key/result_status/effective_from/effective_to/current_marker/archive_actor_user_id/deliverable_source_version_id/archive_failure_code/archive_retry_count/invalidated_by_user_id/invalidated_at/invalidation_reason_code/invalidation_reason_summary` | current_marker仅`result_status='EFFECTIVE' and passed=1 and effective_to is null`时为1；`uk(tenant_id, collection_key, current_marker)`；判定业务字段只追加，正式失效命令只允许当前有效达标Result一次性关闭区间并记录原因 |
+| `acc_satisfaction_result_file` | `result_id/file_role/file_sequence`及完整PLT公共文件事实 | role仅RESULT_DOCUMENT/SIGNATURE/ATTACHMENT；结果文档恰一条，完整有序集合冻结 |
+| `acc_satisfaction_remediation_fact` | `prior_result_id/remediation_revision_no/remediation_request_id/evidence_summary/evidence_file_fact_version/completed_by/completed_at/fact_version`及标准租户审计字段 | 只追加；`uk(tenant_id, prior_result_id, remediation_revision_no)`、`uk(tenant_id, prior_result_id, remediation_request_id)`；必须引用FAILED或INVALIDATED结果，形成后不可更新/删除，同requestId同载荷重放返回原Fact，异载荷冲突 |
+
+配置包中`questions[]`公共字段固定为`code/title/type/required`。单选、多选与评分量表增加非空有序`options[{code,label,score}]`；MULTIPLE_CHOICE的`minSelections/maxSelections`均为必填非空整数并满足`1<=minSelections<=maxSelections<=options数量`，TEXT的`minLength/maxLength`均为必填非空整数并满足`0<=minLength<=maxLength`；不适用于当前题型的参数必须缺失，不能写null或依赖默认值。参与`WEIGHTED_AVERAGE_V1`的计分题增加正`weight`，`SUM_V1`禁止weight。`scoring`固定为`ruleVersion/strategy/scoreMin/scoreMax/precision/roundingMode/threshold`，V1的scoreMin必须为0；单选/量表题最大可达分为最大option score，多选题最大可达分为全部合法去重选择集合的option score算术平均最大值；SUM的scoreMax等于各计分题最大可达分之和，加权平均的scoreMax等于各计分题最大可达分的加权平均，threshold必须位于0..scoreMax。最低选2项、option分值100/0的多选题最大可达分为50，threshold=80必须拒绝发布。decimal以JSON字符串表达并必须可无损转换为`DECIMAL(7,2)`；precision仅0、1、2。发布校验失败不得写PUBLISHED状态或根current指针。
+
+答卷`answer_snapshot`根固定为`answers`，元素固定`questionCode/value`：单选/评分为一个code，多选为去重code数组，文本为字符串；其他根字段、客户端score/passed/threshold/weight/strategy及任何未知/重复/类型不符值均在Response前拒绝。结构合法但缺必答时仍保存Response；未答计分题按0计入，文本不计分。`SUM_V1=sum(questionScore)`；`WEIGHTED_AVERAGE_V1=sum(questionScore*weight)/sum(weight)`；多选questionScore为已选option score算术平均。中间值不舍入，最终总分仅按冻结precision/roundingMode舍入一次并用舍入后值比较threshold。
+
+本补充不改变当前表结构。已执行V133不可修改；下一前向迁移只按固定tenant/creator、高段根及revision身份处理V133三组PUBLISHED受管种子：追加revision 2完整配置包、关闭revision 1有效区间并更新根current_revision_id，旧revision保留；停用种子保持停用，普通业务行、部分命中或身份冲突不得进入种子分支。P3-E09=`NO_STRUCTURAL_DELTA / FORWARD_MANAGED_SEED_REVISION_REQUIRED`。
+
+满意度来源投影直接复用`acc_project_deliverable`及其source_version/source_attachment，`source_object_type=SatisfactionResult`：投影先以Result冻结的`projectTaskId`向PROJ重验同租户同项目且`taskCode=T-SAT-SURVEY`，再按`tenant_id+project_id+deliverable_code=D-SAT-REPORT`精确锁定一行，并要求根的`task_code=T-SAT-SURVEY`。缺失、重复、项目/任务错配均在写来源前失败并保持`PENDING_COMPENSATION`；禁止按中文名称、其他交付件或任意一行推断。RECORDED置CURRENT前必须以Result ID/version重验ACC Owner：精确版本仍为EFFECTIVE且passed并且没有更新当前Result时才允许切换；已INVALIDATED或已有更新结果时，旧RECORDED只追加/保留非当前历史与历史归档资格。INVALIDATED把对应来源置REVOKED，并且仅当根当前指针仍精确指向该Result及版本时清空。两种事件任一乱序均不得恢复失效版本或清除更新来源。历史ACTIVE文件、归档记录和待补偿历史归档资格均保留。归档失败保持`PENDING_COMPENSATION`，不回滚Result。
+
+上述Feature-forward目标不创建核心模型草案中的`acc_satisfaction_response.signature_ref/attachment_refs_json`或`acc_satisfaction_result.archive_artifact_id/archive_payload_sha256`；签字、附件、结果文档和交付件来源均以规范化PLT公共文件事实及来源版本ID承载。不得让Technical Plan在JSON引用与规范化子表之间自行选择。
+
+已有当前V1时可以并存任意数量DRAFT，因为其生成`current_marker=NULL`。发布V2在单一ACC事务中按活动根→V1→V2锁定，先把V1置`SUPERSEDED/effective_to=now`，再把V2置`EFFECTIVE/effective_from=now`、把本次服务端认证用户冻结为`publisher_user_id`并更新活动当前指针；任一步失败整体回滚。撤销锁定活动和当前版本后置`REVOKED/effective_to=now`并把活动当前指针清空，不提升旧版本且不改原发布人。首次发布、替换和撤销都在唯一键检查与Outbox写入成功后提交。
+
+交付件事件消费在单一ACC事务中处理根、来源关系和附件集合：首次生效创建CURRENT/PENDING_COMPENSATION关系并设置根指针；替换先把旧关系置SUPERSEDED并保留其归档结果，再创建新CURRENT关系与完整附件集合并切换根；撤销把旧关系置REVOKED/INVALID、清空根指针并把根归档摘要置INVALID。事件重放只能返回上述既有结果，不重复关系或附件。
+
+ACC报告附件集合固定使用`ownerContext=ACC/objectType=ACCEPTANCE_REPORT_VERSION/objectId=reportVersionId十进制字符串/purposeCode=ACCEPTANCE_REPORT_ATTACHMENT`；归档集合只把purpose改为`ACCEPTANCE_REPORT_ARCHIVE`，同一文件复用服务端UUID `reference_key`。`scope_version`精确等于ACC Provider通过PROJ `ProjectScopeApi`取得的当前`treeVersion`。报告发布、活动完成与下载只重验附件ACTIVE集合；PLT归档在独立集合创建ARCHIVED引用并追加`FileArchiveRecord`，报告附件ACTIVE引用保持不变。ACC归档字段只保存索引/补偿投影，整组成功后方可写`ARCHIVED`。
+
+新项目创建按“全部ProjectTask→非ACC执行契约→里程碑→既有ACC `ProjectDeliverableInitializationApplicationService`形成`acc_project_deliverable`应交根→`AcceptanceActivityInitializationApi.initialize`→ACC当前执行契约”的顺序在同一MySQL事务完成。PROJ为精确初验/终验任务预分配`execution_contract_id`，ACC校验自身应交根并返回`acceptance_id/activity_version`后，PROJ才插入`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`的当前契约；PROJ不直接写ACC表，任一步失败整体回滚。
+
+存量切换以同项目的`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`精确任务对为最小单元：两项均不存在保持不变；部分、重复、缺精确应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均处`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`时原子创建两个PENDING活动、关闭两条旧契约区间并追加ACC当前契约；两项均处`DONE/CLOSED`时该项目全部保持旧契约和历史且不创建活动；终态/非终态混合或未知状态整批失败。不得覆盖终态历史或为不可再次完成任务创建孤立活动。
+
+V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的验收人、固定文件版本、活动绑定或当前版本关系，保持旧表和旧功能不变，不进入新当前真值。未来前向迁移不得从名称、审批状态、`approve_opinion`、URL、`D-ACCEPT-REPORT`或旧关项结果补造这些事实。
+
+两张物理表由ACC-02 Feature前向迁移确定并由PLT Owner持有，ACC及其他消费Context不得直写。`ExportTaskExecutionJob`只按Task版本CAS领取REQUESTED；原申请actor的显式retry命令重验权限后才可把`FAILED + failure_retryable=1`恢复为REQUESTED并递增retry_count。结果文件目标固定`PLATFORM/EXPORT_TASK/{taskId}/EXPORT_FILE`。`ExportFileExpirationJob`只处理SUCCEEDED到期文件并追加审计，FAILED/REJECTED不得转EXPIRED，Task/Audit永久保留。

@@ -71,6 +71,9 @@ TARGETS: dict[str, tuple[str, ...]] = {
 }
 
 TARGET_POLICIES = {
+    "CutoverSpareApplicationReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-08"},
+    "CutoverSpareStatusRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-08"},
+    "CutoverSpareManualEvidence": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-08"},
     "ProjectTemplateMatchHistory": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "PM-07"},
     "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
@@ -81,6 +84,9 @@ TARGET_POLICIES = {
 }
 
 MODEL_ENTITY_CONTRACTS = {
+    "CutoverSpareApplicationReference": {"owner": "CUT", "requirementIds": ["CUT-08"]},
+    "CutoverSpareStatusRevision": {"owner": "CUT", "requirementIds": ["CUT-08"]},
+    "CutoverSpareManualEvidence": {"owner": "CUT", "requirementIds": ["CUT-08"]},
     "ProjectStageSnapshot": {"owner": "PROJ", "requirementIds": ["PM-03", "PM-10"]},
     "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01"]},
     "DeviceAssignmentHistory": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
@@ -128,6 +134,23 @@ def binding(source_field: str, target_field: str, transform: str, evidence_ref: 
 
 
 OVERRIDES: dict[str, list[dict[str, str]]] = {
+    "CutoverTask": [source("CURRENT_TABLE", "pms_cut_task", "CURRENT_FORWARD", "map only qualified legacy identity, project, task number/name, legacy type/network raw values, scheduled time and audit facts into a LEGACY_FORWARD/LEGACY_UNKNOWN read-only cut_task projection; preserve legacy id/status/mapping version; never populate current CUT-07 dictionary fields or infer device scope, readiness snapshot, manual grade, assessment, stage history or closure; invalid/deleted/unresolved/conflicting rows remain legacy with explicit disposition", "FEATURE_MAPPING_DEFINED", "F-CUT-002_FEATURE_READY_REVIEW",
+        targetFieldBindings=[
+            binding("pms_cut_task.id", "cut_task.legacy_task_id", "direct positive legacy identity; target id remains CUT-generated", "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"),
+            binding("pms_cut_task.tenant_id|project_id", "cut_task.tenant_id|project_id", "direct only after same-tenant PROJ resolution", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.code|name", "cut_task.task_no|task_name", "trim with length and uniqueness validation; never generate replacements", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.cutover_type|network_mode", "cut_task.legacy_cutover_type_raw|legacy_network_mode_raw", "trim and preserve only as legacy raw values; current F-CUT-001 dictionary fields remain null", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.scheduled_time", "cut_task.scheduled_time", "direct nullable timestamp", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.status", "cut_task.legacy_status_value|task_status", "preserve 0..8 and set LEGACY_UNKNOWN; no new workflow-state inference", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.version", "cut_task.legacy_source_version", "preserve nonnegative source version; target version starts at zero", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("constant:LEGACY_FORWARD", "cut_task.task_origin", "server-owned migration origin", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("constant:F-CUT-002-PMS-CUT-TASK-V1", "cut_task.legacy_mapping_version", "server-owned mapping contract version", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("constant:0", "cut_task.version", "initial target optimistic-lock version", "specs/features/F-CUT-002-physical-contract.json#migration"),
+            binding("pms_cut_task.creator|create_time|updater|update_time", "cut_task.creator|create_time|updater|update_time", "preserve only nonnull length-valid actors and valid timestamps", "specs/features/F-CUT-002-physical-contract.json#migration"),
+        ],
+        statusMapping={"policy": "ALL_0_TO_8_TO_LEGACY_UNKNOWN_READ_ONLY", "sourceFields": ["pms_cut_task.status"], "unknown": "MIGRATION_ISSUE_AND_RETAIN_LEGACY"},
+        terminalDisposition="INSERT_LEGACY_FORWARD_READ_ONLY_ONLY_AFTER_IDENTITY_PROJECT_RAW_AND_AUDIT_VALIDATE;DELETED_INVALID_UNRESOLVED_OR_CONFLICTING_ROWS_RETAIN_LEGACY_WITH_EXPLICIT_DISPOSITION")],
+    "AcceptanceScopeBinding": [source("NONE_NEW", "AcceptanceScopeBinding", "NEW_ONLY", "bind ProjectStageSnapshot plus exact DeliveryScope allocation version; never create or infer bindings from preliminary/final Acceptance reports; Q-FCOM-002 forbids automatic close or unlock", "NEW_ONLY", "FEATURE_RELEASE")],
     "Project": [source("LEGACY_TABLE", "pm_project", "STRUCTURED", "map stable project fields; empty names become migration issues; legacy ID becomes external key", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
         targetFieldBindings=[
             binding("pm_project.projectCode", "proj_project.project_code", "direct after normalization and permanent-key conflict check", "data-elements://schema-records.jsonl#项目管理!A20"),
@@ -293,7 +316,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
             ],
             statusMapping={"policy": "NO_SOURCE_STATUS_TARGET_STATUS_REQUIRES_APPROVED_CONSTANT", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
             terminalDisposition="CREATE_LINE_ONLY_AFTER_PARENT_ORDER_FULL_KEY_AND_REQUIRED_LINE_FACTS_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE"),
-        source("CURRENT_FORWARD_TABLE", "com_order_line@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical sales-order-line Owner", "APPROVED", "F-COM-001",
+        source("CURRENT_TABLE", "com_order_line", "CURRENT_FORWARD", "F-COM-001 controlled forward conversion to the canonical sales-order-line Owner", "APPROVED", "F-COM-001",
             requiredTargetMappings={"com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"},
             evidenceRef="feature-contract://F-COM-001#v70Conversion"),
     ],
@@ -307,7 +330,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         ],
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS"),
-        source("CURRENT_FORWARD_TABLE", "com_delivery_scope@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical delivery-scope Owner", "APPROVED", "F-COM-001",
+        source("CURRENT_TABLE", "com_delivery_scope", "CURRENT_FORWARD", "F-COM-001 controlled forward conversion to the canonical delivery-scope Owner", "APPROVED", "F-COM-001",
             requiredTargetMappings={
                 "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
                 "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
@@ -322,7 +345,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     ],
     "DeliveryScopeDetail": [
         source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE"),
-        source("CURRENT_FORWARD_TABLE", "com_delivery_scope_detail@V70", "STRUCTURED", "F-COM-001 controlled forward conversion to the canonical delivery-scope-detail Owner", "APPROVED", "F-COM-001",
+        source("CURRENT_TABLE", "com_delivery_scope_detail", "CURRENT_FORWARD", "F-COM-001 controlled forward conversion to the canonical delivery-scope-detail Owner", "APPROVED", "F-COM-001",
             requiredTargetMappings={"com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE"},
             evidenceRef="feature-contract://F-COM-001#v70Conversion"),
     ],
@@ -359,6 +382,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
 # Objects referenced by multiple domains retain the data Owner declared by the
 # Phase 1 Context boundaries. Other domains consume them through contracts.
 OWNER_OVERRIDES = {
+    "ProjectStageSnapshot": "PROJ",
     "FileArtifact": "PLT",
     "CollectionTask": "PLT",
     "DeviceComponentRelation": "AST",

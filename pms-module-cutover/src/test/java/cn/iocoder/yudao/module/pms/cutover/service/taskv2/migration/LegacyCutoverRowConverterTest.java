@@ -3,12 +3,21 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LegacyCutoverRowConverterTest {
+
+    @Test
+    void isDiscoveredForExistingReconciliationServiceInjection() {
+        var scanner = new ClassPathScanningCandidateComponentProvider(true);
+        assertThat(scanner.findCandidateComponents(LegacyCutoverRowConverter.class.getPackageName()))
+                .anySatisfy(bean -> assertThat(bean.getBeanClassName())
+                        .isEqualTo(LegacyCutoverRowConverter.class.getName()));
+    }
 
     @Test
     void convertsQualifiedLegacyRowToReadOnlyProjection() {

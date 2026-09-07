@@ -247,3 +247,70 @@ TASK未DONE、MILESTONE未ACHIEVED、DELIVERABLE未ACCEPTED、STATE未到达，�
 PMS专用Gate流程发起缺`pms:project:update`、PROJECT_MANAGE范围或当前PROJECT_MANAGER关系时为`AUTHORIZATION`且零流程实例；定义key没有当前生效定义、显式definitionId与key不一致、定义不可启动或本次实际定义的BPMN含`START_USER_SELECT(35)`时为`DEPENDENCY_UNAVAILABLE`并拒绝模板发布/启动。Yudao start-user用户/部门白名单只作用于通用发起入口，不由PMS查询或复制。启动只使用服务端actor设置Flowable authenticated initiator、`PROCESS_START_USER_ID`和`RUNNING(1)`；客户端占用系统变量或同operation异摘要均零实例，同operation同摘要仅返回原实例。
 
 历史定义选择查询使用与启动相同的三重授权；缺任一授权稳定拒绝且不调用BPM Owner。Owner查询只允许受信tenant和Gate冻结key，返回其他租户/key、重复定义身份或不可判定状态时为`DEPENDENCY_UNAVAILABLE`且不向调用方暴露候选；列表为空表示当前没有可显式选择的历史定义，不改变默认启动的锁内重验规则。
+
+## COM合同授权Owner异常
+
+空scope、公司不匹配或撤权/到期时，列表为空、详情/关系写拒绝。Owner无法提供当前事实使用`CONTRACT_SCOPE_OWNER_UNAVAILABLE`稳定原因留痕，不回退为租户全量或项目关系；不记录成功业务写入、成功幂等或成功审计。
+
+同一幂等键后续重试必须重新读取当前scope；历史成功结果不能绕过当前授权。原始关系、不可变历史和审计不因撤权或Owner失败而删除。
+
+## COM-01 阶段绑定失败
+
+项目阶段进入绑定失败时，阶段快照、绑定和`current_stage`整体回滚；验收阶段内新增范围绑定失败时，新范围版本、历史切换、Outbox和绑定整体回滚。报告自身资料不完整时，对应验收活动完成命令返回BUSINESS_GATE，不撤销已合法建立的范围绑定；退出/回退关闭与解锁继续按Q-FCOM-002失败关闭。
+
+## ACC报告、满意度及导出异常细则
+
+| 场景 | 分类与失败行为 |
+|---|---|
+| 初验/终验报告尚未形成或四项字段/附件不完备 | 不阻断已满足其他门禁的阶段进入；对应验收活动完成命令返回BUSINESS_GATE，报告草稿、已成功范围绑定和项目阶段保持不变 |
+| 报告发布缺验收时间/结论/验收人/有效附件，或终验缺当前有效初验 | BUSINESS_GATE；不生成当前有效版本，不写交付件索引请求、CLO重校验请求或成功审计，草稿和旧当前版本保持不变 |
+| 报告发布/替换/撤销的期望当前版本不一致，或当前唯一键冲突 | VERSION_CONFLICT；草稿、旧EFFECTIVE、活动当前指针和Outbox全部保持原样，不形成部分切换 |
+| 撤销后查询或完成活动 | 当前报告为空；查询保留全部历史并标明REVOKED，完成活动返回BUSINESS_GATE；不得自动恢复SUPERSEDED版本 |
+| 报告当前版本、活动或ProjectTask执行契约版本冲突 | VERSION_CONFLICT；ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入，调用方携带新版本重新确认 |
+| 报告已有效但交付件索引、附件集合归档或CLO消费者失败 | 报告状态/历史不回滚、不删除；Outbox重试，已建立的来源版本关系保持`PENDING_COMPENSATION/INVALID`并保存失败原因与水位，未成功前不得计入CLO齐套；不得降级为单附件 |
+| ACC附件Provider未知/不可用、公共文件事实或scopeVersion漂移 | DEPENDENCY_UNAVAILABLE/VERSION_CONFLICT；报告发布、完成或下载拒绝，ACC不得读取PLT表或改用内部ID/URL；既有有效报告和文件历史不变 |
+| PLT完整附件集合归档部分失败 | PLT不返回成功且不改变附件ACTIVE引用；独立归档集合和FileArchiveRecord整组回滚，ACC来源索引保持`PENDING_COMPENSATION`并按同一archiveBatch幂等重试 |
+| 报告发布人撤权、归档actor缺失或后台无登录上下文 | PLT按事件冻结`publisherActorUserId`和SYSTEM当前`pms:file:archive`权限失败关闭；ACC保持`PENDING_COMPENSATION`并重试/待正式授权，不得伪造Web登录上下文、借用Job线程用户或取消鉴权 |
+| `AcceptanceReportVersionChanged`投影消费失败 | `AcceptanceReportOutboxDeliveryJob`不得先`markDelivered`，按原`expectedRetryCount`调用`scheduleRetry`；`ClosureGateRecheckRequested`不由该Job领取或标记成功 |
+| 项目创建的ACC活动初始化缺失、部分、重复或身份不一致 | BUSINESS_GATE/DEPENDENCY_UNAVAILABLE；项目、任务、应交根、活动和执行契约同事务零写入，不异步补建或回退到TASK_NATIVE |
+| 存量初验/终验任务切换遇到部分/重复/混合状态 | 整批失败；两项均不存在保持不变，两项均非终态且为V63 TASK_NATIVE才原子切换；两项均DONE/CLOSED时保持历史不变且不创建活动；终态/非终态混合整批失败 |
+| V17旧验收或旧交付件记录缺新模型必填事实 | 保持旧表和旧功能不变；不得从名称、审批状态、意见、URL或关项结果推断当前有效报告、活动完成或新交付件来源 |
+
+### F-ACC-002满意度异常
+
+| 场景 | 分类与失败行为 |
+|---|---|
+| 模板配置未知字段/题型/策略/舍入、重复编码、类型参数缺失或null、MULTIPLE_CHOICE的min/max倒置或超出options数量、TEXT的min/max倒置、非法decimal/weight/threshold、scoreMax不等于合法答案集合实际最大可达分或无法确定计分 | BUSINESS_GATE；修订保持DRAFT，根current指针不变，不用默认值修复 |
+| 模板发布expectedVersion冲突、同幂等键异配置或五维最高优先级并列 | VERSION_CONFLICT / IDEMPOTENCY_CONFLICT / BUSINESS_GATE；不发布、不覆盖旧修订 |
+| ACC模板解析零匹配、并列最高优先级或发布版本漂移 | BUSINESS_GATE / VERSION_CONFLICT；项目创建或任务触发整体失败，不选默认模板 |
+| 业务时点Owner未知、ProjectTask/WorkBinding身份或触发版本不一致 | DEPENDENCY_UNAVAILABLE / VERSION_CONFLICT；Task、Questionnaire和Todo零写入 |
+| 访问令牌缺失、过期、撤销、已消费或Questionnaire不匹配 | BUSINESS_GATE；不泄露问卷/项目存在性，不写文件、答卷或结果 |
+| 同grant+requestId的Response预留同摘要重放/异摘要，或最终提交responseId不等于预留回执 | 返回原responseId / IDEMPOTENCY_CONFLICT；不得生成第二ID，最终提交不得自行分配新ID |
+| grant creator不是正数正式用户，或grant/Questionnaire/Task/项目范围、文件槽位、Artifact/Version/Reference任一重验不一致 | IDENTITY/DEPENDENCY；在对象存储或Response/ResponseFile写入前失败，客户端文件Fact不得直接落库 |
+| 答卷含未知/重复题目、未知/重复选项、类型错误、选择数量越界、文本长度非法或客户端计分字段 | BUSINESS_GATE；在Response、文件关系和Result写入前拒绝，零业务写入 |
+| 同questionnaire+requestId同载荷重放/异载荷 | 返回首次Result / IDEMPOTENCY_CONFLICT；不得追加第二Response或Result |
+| 结构合法但必答缺失、签字无效、附件范围不一致或最终舍入分数未达冻结阈值 | 保存不可变Response并追加失败Result；未答计分题按0，必答/签字门禁强制passed=false；不得人工改分或将Todo完成当通过 |
+| Result与结果文档已经共同提交后，来源投影或归档失败 | Result保持已形成，来源为PENDING_COMPENSATION；不误写ARCHIVED，不删除ACTIVE历史下载引用；该规则不适用于Result文档生成失败或对象已写后ACC外层事务回滚 |
+| Result文档生成前的PLT授权/范围/内容/存储失败 | Response保持已提交、Task保持PENDING_DECISION；Result、ResultFile、成功幂等事实和Result Outbox零写入，使用同一业务意图重试 |
+| Result文档对象已写但ACC外层事务回滚 | FileUploadSession保持可重试/待补偿；同operation同摘要复用存储回执，不创建第二Artifact/Reference；放弃后由既有补偿删除未引用对象，清理失败继续对账重试 |
+| 整改缺前序失败/失效Result或整改事实 | BUSINESS_GATE；不创建新Task/Questionnaire |
+| 同一整改Fact/requestId同载荷重放或异载荷 | 前者返回既有RemediationFact及taskRevision，不重复创建；后者IDEMPOTENCY_CONFLICT，旧链不变 |
+| Result失效的范围拒绝、非当前、非EFFECTIVE/passed或expectedVersion不一致 | AUTHORIZATION / BUSINESS_GATE / VERSION_CONFLICT；Result、Task、Questionnaire、来源和Outbox零写入 |
+| Result失效同幂等键同载荷重放/异载荷，或INVALIDATED事件晚于新来源到达 | 返回首次失效结果 / IDEMPOTENCY_CONFLICT；投影仅撤销仍指向该Result版本的根，不能清除新当前来源 |
+
+### 统一异步导出异常
+
+| 场景 | 分类与失败行为 |
+|---|---|
+| 同operation同摘要/异摘要 | 返回原ExportTask / IDEMPOTENCY_CONFLICT；不得创建第二Task或第二文件 |
+| 业务Provider缺失、重复或载荷不符合稳定契约 | DEPENDENCY_UNAVAILABLE；Task记`FAILED + failure_retryable=false`并追加永久失败审计，不生成文件 |
+| 业务Provider暂时不可用或范围版本暂时未知 | DEPENDENCY_UNAVAILABLE；Task记`FAILED + failure_retryable=true`并追加可重试失败审计，不生成文件 |
+| 申请、生成或下载时功能/项目/责任人/字段/文件/租户范围拒绝 | AUTHORIZATION；Task记`REJECTED`并保存安全拒绝原因，不返回数据、文件或对象存在性 |
+| 文件生成、扫描或存储失败 | DEPENDENCY_UNAVAILABLE；Task记FAILED并保留可重试审计，不误标SUCCEEDED |
+| 原申请actor重试可重试FAILED | 重验当前权限/范围并按expectedVersion CAS回REQUESTED、retry_count+1、追加RETRY_REQUESTED；同operation request本身不改变FAILED |
+| 重试非可重试FAILED、REJECTED/SUCCEEDED/EXPIRED或版本冲突 | BUSINESS_GATE/VERSION_CONFLICT；Task与Audit不变，不创建新Task |
+| 下载时权限撤销、范围漂移、非原actor或文件过期 | AUTHORIZATION/BUSINESS_GATE；不签发Access Ticket并追加拒绝/到期审计 |
+| TTL清理失败 | 仅SUCCEEDED Task保持成功及待清理水位；重试清理，不删除Task/Audit，不伪造EXPIRED；FAILED/REJECTED不执行TTL转换 |
+| 旧RECORDED失败重试晚于同Result的INVALIDATED，或晚于更新Result | 置CURRENT前按Result ID/version重验Owner；已失效/已有更新结果时仅保留非当前历史和归档资格，不恢复根当前指针 |
+| 满意度应交根缺失、重复、不是`D-SAT-REPORT/T-SAT-SURVEY`或项目/任务不一致 | DEPENDENCY/IDENTITY；来源保持PENDING_COMPENSATION，不选择其他根、不写当前指针 |
+| 旧问卷/回访/转包字段缺映射或值域未确认 | AI-MIG-000迁移问题并保留原始证据；F-ACC-002正向实现不得推断答案、签字或通过 |

@@ -24,6 +24,9 @@ public record CommerceAuthorityBatchCommand(Long tenantId, String eventId, Strin
         eventId = text(eventId, 128, "eventId");
         batchId = text(batchId, 128, "batchId");
         sourceSystem = text(sourceSystem, 32, "sourceSystem");
+        if (!"ERP".equals(sourceSystem)) {
+            throw invalid("only the ERP authority namespace can create confirmed COM facts");
+        }
         sourceWatermark = text(sourceWatermark, 128, "sourceWatermark");
         contracts = facts(contracts, CommerceContractFact::sourceKey, "contracts");
         salesOrders = facts(salesOrders, CommerceSalesOrderFact::sourceKey, "salesOrders");
