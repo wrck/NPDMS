@@ -795,12 +795,13 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertEqual([], MODULE.validate(root))
 
-    def test_current_v18_baseline_state_is_coherent_and_ready_for_phase3_design(self) -> None:
+    def test_current_v18_technical_content_passes_but_approval_is_not_inferred(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         gate_path = repository_root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
         gate = gate_path.read_text(encoding="utf-8")
 
-        self.assertEqual([], MODULE.validate(repository_root))
+        self.assertEqual([], MODULE.validate(repository_root, technical=True))
+        self.assertTrue(any("APPROVAL_REQUIRED" in e for e in MODULE.validate(repository_root)))
         errors = MODULE.validate_v18_revalidation(
             repository_root,
             gate.replace("READY_FOR_PHASE_3_V1.8", "NOT_READY_FOR_PHASE_3_V1.8"),
@@ -982,6 +983,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 repository_root / "docs" / "engineering" / "gates" / "phase-2",
                 root / "docs" / "engineering" / "gates" / "phase-2",
             )
+            (root / "docs/baseline").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(repository_root / "docs/baseline/prd-v1.8.md", root / "docs/baseline/prd-v1.8.md")
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             contract = json.loads((root / "docs/traceability/domain-entity-migration-contract.json").read_text(encoding="utf-8"))
             expected = f"{len(contract['records'])}对象/{sum(len(row['sources']) for row in contract['records'])}来源绑定/{len(contract['excludedSources'])}排除源"
@@ -1091,6 +1094,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 repository_root / "docs" / "traceability" / "phase2-contract-map.md",
                 root / "docs" / "traceability" / "phase2-contract-map.md",
             )
+            (root / "docs/baseline").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(repository_root / "docs/baseline/prd-v1.8.md", root / "docs/baseline/prd-v1.8.md")
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace("> 审查状态：`APPROVED`", "> 审查状态：`REVALIDATION_REQUIRED`", 1),
@@ -1140,6 +1145,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 decision.read_text(encoding="utf-8").replace("`PROPOSED_FOR_REVIEW`", "`ACCEPTED`", 1),
                 encoding="utf-8",
             )
+            (root / "docs/baseline").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(repository_root / "docs/baseline/prd-v1.8.md", root / "docs/baseline/prd-v1.8.md")
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(

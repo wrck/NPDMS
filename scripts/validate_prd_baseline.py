@@ -102,6 +102,9 @@ def project_workbench_contract(text: str) -> dict[str, bool]:
     cut03 = blocks.get("CUT-03", "")
     overview_tabs = ("基本信息", "项目树", "团队成员", "项目任务", "设备清单", "实施范围")
     binding_kinds = ("TASK_NATIVE", "业务对象", "业务组件", "动态表单", "审批", "组合")
+    if "TemplateStageDefinition" in pm03:
+        from prd_workbench_contract import current_workbench_contract
+        return current_workbench_contract(pm03, pm11, cut01, cut03)
     return {
         "模板定义StageTask绑定": all(
             marker in pm03

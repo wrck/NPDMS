@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：缓存与并发设计
+# SDS Phase 2：缓存与并发设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订013（`docs/baseline/prd-v1.8.md`）；巡检审核/发布并发继续引用`CHG-PRD-2026-09-02-012`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
@@ -80,12 +80,12 @@
 - 树列表返回 `treeVersion` 和游标；下一页使用同一版本，版本已回收则要求重新查询。
 - 大批量统计通过聚合投影/快照，不在单请求实时遍历所有后代。
 
-### 5.4 PM-05 转销与 PM-06 多期关系
+### 5.4 PM-05 转销与 PM-06 同一项目范围追加
 
 - PM-05 发起时以 `sourceProjectId`、`formalSalesBusinessId` 和聚合版本作为互斥边界；同一来源项目只能创建一个生效目标。对象项按稳定的 Context/类型/对象ID/来源版本排序处理，成功项幂等保留，失败项可在原批次重试。
 - 设备处置不在 Project Delivery 内直接改 AST 表；逐台携带 `assignmentVersion` 调用 AST，冲突项进入部分失败，不能把源项目归档或把失败设备计入目标项目。
-- PM-06 成员调整校验 `groupVersion/memberVersion`，在同一事务内检查关系类型下项目唯一群组和群组内唯一期次；前后期图无环校验失败则整体拒绝本次成员变更。
-- 多期视图缓存 key 包含 tenant、groupId、groupVersion、permissionScopeHash 和各来源 revision watermark；权限变化或任一来源版本变化时新版本旁路旧缓存。
+PM-06按同一项目的申请、项目版本及COM scopeVersion重验；并发追加不得超分配，任一步失败全事务回滚。历史范围和验收不可覆盖，新增范围必须补充事实。
+- 范围视图缓存key包含tenant、projectId、COM scopeVersion、permissionScopeHash及业务来源水位；范围变更或撤权后旧缓存不能用于写入。
 
 ### 5.5 Stage—ProjectTask工作台
 
@@ -179,7 +179,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 最低并发测试：
 
 - 项目/任务交叉移动、成环拒绝、投影版本原子切换；
-- PM-05 同源并发转销、对象部分失败重试、设备归属冲突与归档门禁；PM-06 并发加期、重复期次、冲突群组、循环关系和权限裁剪；
+PM-06按同一项目的申请、项目版本及COM scopeVersion重验；并发追加不得超分配，任一步失败全事务回滚。历史范围和验收不可覆盖，新增范围必须补充事实。
 - 同一设备并发分配、项目树移动与归属投影重建；
 - 订单行并发分配、ERP减量后超分配；
 - 同一状态双命令、工作流重复/过期回调；
@@ -235,3 +235,13 @@ F-ACC-002固定锁序：触发为PROJ ProjectTask/WorkBinding→ACC Task→Quest
 Result判定在锁定Task/Questionnaire/Response并取得ProjectScope事实后，先以稳定operation调用PLT生成文档，再写Result/ResultFile/Outbox；`createGeneratedBusinessFile`以MANDATORY加入同一MySQL事务。对象存储写入不延长反向Owner锁序：PLT不得在取得文件锁后回调PROJ。并发同Result只允许一个RESULT_DOCUMENT引用；同operation同摘要复用FileUploadSession/回执，异摘要冲突，外层回滚由会话补偿未引用对象。
 
 统一导出申请按`tenant+ownerContext+exportType+actor+operationId`单胜；同摘要返回原Task且不改变状态，异摘要冲突。执行Job以`plt_export_task.version`从REQUESTED抢占GENERATING；暂时生成失败写`FAILED + failure_retryable=1`。只有原申请actor的retry命令在权限重验后以expectedVersion CAS执行`FAILED(retryable)→REQUESTED`并递增retry_count，并发重试只允许一个成功；非可重试、REJECTED/SUCCEEDED/EXPIRED均不得恢复。同Task只允许一个成功文件；生成前调用业务Provider重验，PLT取得文件锁后不得反向持有业务表锁。下载不缓存授权；TTL Job只与SUCCEEDED下载以Task版本和到期时点竞争，FAILED/REJECTED不得转EXPIRED。
+
+## 修订017图、范围与终态并发
+
+项目推进锁根/项目、当前/目标Stage、冻结图及绑定/规则，再取得Owner事实；S5目标需要COM水位及ACC范围绑定的同事务参与，任一步失败原阶段不变。前端readiness携带expectedGraphVersion、expectedBindingVersion、expectedRuleVersion与Owner版本，只作预览，写命令全部回源。计划/方案换版不能直接修改current_stage。
+
+PM-06锁当前项目及COM唯一scopeVersion，再按订单行ID序锁分配对象；申请批准不预占无限额度，应用时重新校验。并发同scopeVersion只一个成功，另一个返回版本冲突并重新评估；COM范围、PROJ任务/门禁、ACC精确绑定及Outbox同事务全成功或全回滚。
+
+CLO校验快照过期、报告/文件失效、范围或实施方式变更，均拒绝旧批准写终态并要求重验。关闭时锁项目及所有消费事实，PROJ唯一Writer与ACC闭环事实同事务提交；事件消费只重建投影，不能再次关闭或重开。NO_TRACKING不以NORMAL交付事实作为前置。
+
+权限或模板视图停用后不能继续用旧缓存写入；查询缓存含tenant/project/tree/graph/scope/permission版本，未知版本回源或失败关闭。历史快照不追溯重算。

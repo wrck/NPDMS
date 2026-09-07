@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：跨 Context 契约
+# SDS Phase 1：跨 Context 契约
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -12,7 +12,7 @@
 | ImplementationEvidencePublished | EXE-01～EXE-06、IMP-01、ACC-04 | Implementation Execution | Acceptance & Closure | 实施证据、来源版本、哈希和检查快照已发布 |
 | ImplementationReadinessSnapshot | EXE-06、CUT-01 | Implementation Execution | Cutover | 割接前实施门禁快照，仅供 CUT 校验 |
 | `ProjectSystemQualificationFactApi` | EXE-01 | Project / `T-FIMP002-PROJ-01`支撑Task | Implementation Execution / F-IMP-002 | `lockCurrentForSystem`仅供无用户主体的内部到期命令：在受信租户上下文按项目锁定当前主行、唯一`PROJECT_MANAGER`事实和当前根树版本，校验`ACTIVE/S4`并返回当前项目/参与者/树版本；不接收`subjectUserId/ACTION_EDIT/approvedBy/system actor`，不放宽现有用户授权API，也不以消费方冻结版本作相等前置。该Provider已选择性进入master，但不产生F-IMP-002 Feature Done。 |
-| `ProjectDeliveryScopeQualificationFactApi` | COM-01 | Project / `T-FCOM001-PROJ-01`支撑Task | Commerce / F-COM-001 | `inspect/lockAndRevalidate`为COM交付范围写命令组合当前项目经理、项目生命周期/阶段与直管目标项目`ACTION_EDIT`事实。该用途只由锁定目标项目行的current `PROJECT_MANAGER`证明，不读取未锁定的授权Grant，也不扩展到后代项目；冻结并重验经理、项目/参与者/树版本、根身份、生命周期和阶段。`NORMAL_CLOSED`只允许S6，树版本必须为正；S5/S6或关闭事实由COM用于把减配/释放转为`CONFLICT`。初次主体/范围失败与锁定期间任一冻结轴变化分别返回主体/范围错误和`FACT_STALE`，Owner损坏及Provider不可用不得混淆。当前master仅集成公共契约，生产Provider尚未实现。 |
+| `ProjectDeliveryScopeQualificationFactApi` | COM-01 | Project / `T-FCOM001-PROJ-01`支撑Task | Commerce / F-COM-001 | `inspect/lockAndRevalidate`为COM交付范围写命令组合当前项目经理、项目生命周期/阶段与直管目标项目`ACTION_EDIT`事实。该用途只由锁定目标项目行的current `PROJECT_MANAGER`证明，不读取未锁定的授权Grant，也不扩展到后代项目；冻结并重验经理、项目/参与者/树版本、根身份、生命周期和阶段。三类闭环终态保留最后真实阶段，不限制为S6，树版本必须为正；S5/S6或关闭事实由COM用于把减配/释放转为`CONFLICT`。初次主体/范围失败与锁定期间任一冻结轴变化分别返回主体/范围错误和`FACT_STALE`，Owner损坏及Provider不可用不得混淆。当前master仅集成公共契约，生产Provider尚未实现。 |
 | `DeliveryScopeApi.getAssignedScope` | COM-01、EXE-01 | Commerce / F-COM-001 | Implementation Execution / F-IMP-002 | 受信租户下按项目和可空期望`scopeVersion`读取；null为inspect，非null锁COM项目水位及当前范围后重验。返回以scope/detail为稳定分组的数量、单位、产品/型号及明确SN；待核对、取消、退货、释放量排除，任一未解决冲突则整体失败关闭。持久项目水位覆盖真实空范围，版本变化返回STALE，Owner损坏和Provider不可用独立分类。 |
 | `CommerceAuthorityIngestApi.ingestBatch` | COM-01、INT-01 | Integration ACL / INT-01 | Commerce / F-COM-001 | 受信租户下以eventId接收一个原子批次的合同、销售订单、订单行和订单—合同关系精确事实；同event同载荷重放、异载荷永久冲突，旧来源版本不得覆盖。只形成COM本地副本，不包含ERP连接、认证、轮询或传输运行。 |
 | `PlatformMigrationEvidenceApi` | COM-01、CUT-01～CUT-06 | Platform / PLT迁移证据Owner | Commerce Release导入器、Cutover旧数据前向核对 | PLT拥有迁移批次、不可变逐源行、外部键映射和迁移问题；批次按`IMPORTING -> STAGED_READY -> RECONCILING -> COMPLETED/FAILED`推进。消费方在同一外层事务领取、登记每个冻结来源的`MAPPED/ISSUE/RETAINED`唯一分类并完成计数核对；问题关闭只追加处理人、规则版本和目标结果。消费方不得访问PLT表，也不得以发送、导入或单行写入成功代替批次核对完成。 |
@@ -49,6 +49,13 @@
 | `ExportTaskApi.request/getFact/retry`、`ExportBusinessDataProvider` | ACC-02、PLT-02 | PLT | ACC及其他受控业务Owner | PLT拥有唯一异步Task/Audit与文件TTL；消费Context Provider拥有查询语义并在申请、生成、显式重试、下载时重验功能/数据/字段/文件/租户范围；只允许原actor把可重试FAILED按version CAS恢复为REQUESTED；F-ACC-002固定`ACC/SATISFACTION_RESULT`，不得建立第二导出真值 |
 | `AcceptanceActivityInitializationApi.initialize` | ACC-03 | ACC | PROJ | 以`MANDATORY`加入项目创建事务；PROJ预分配执行契约ID并传精确初验/终验任务与应交码，ACC创建PENDING活动并返回`acceptanceId/activityVersion`，PROJ随后追加ACC执行契约；任一步失败整体回滚 |
 | `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 受信命令显式携带报告发布时冻结的`actorUserId`；PLT按该用户重验既有`pms:file:archive`权限和租户/文件范围，持锁重验ACC报告附件ACTIVE集合，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按相同公共文件事实创建ARCHIVED引用并整组追加记录且写`archivedBy=actorUserId`；附件引用保持ACTIVE供历史下载，不暴露PLT内部主键，ACC只保存归档补偿投影 |
+| ProjectStageAdvanceCommand | PM-03 | Project | Project | Project/tree/graph/scope版本；当前完成及准出→唯一冻结转移→目标准入→原子推进。目标由服务端解析，不按S编号加一。 |
+| ProjectScopeAppendApplied | PM-06、COM-01、ACC-03 | Commerce | Project / Acceptance & Closure | COM拥有数量和范围水位；同一projectId的新精确范围、任务、绑定及门禁同事务生效。旧A验收不自动覆盖A+B。 |
+| AcceptanceReportQualificationFact | ACC-03、CLO-01 | Acceptance & Closure | Project / Closure | reportVersion、reportEvidenceValid、acceptancePassed、scopeVersion、精确范围和文件版本分别保存；字段完整不等于验收通过。 |
+| ProjectTypedClosureCommand | CLO-01、CLO-02、PM-10 | Acceptance & Closure / Project governance | Project | closureType、closedFromStage、最新Gate和BPM实际定义及项目版本；CLO-02/PM-10为唯一业务入口，事件不代替终态命令。 |
+| ApprovedImplementationCommandSnapshot | EXE-03、INT-12 | Implementation Execution | Device Access & Collection | 仅EXE-03受信批准记录/版本/哈希/设备/主体范围；DAC重验。独立中心、CUT、INS仍需要已发布命令模板。 |
+| CutoverChecklistCollectionBinding | CUT-03、INT-12 | Cutover | Device Access & Collection / Cutover | taskId、checklistVersion、itemId、deviceId、CollectionTask及resultVersion精确绑定；技术回调只提供证据，CUT判定业务通过。 |
+| AuthenticatedFileCallback | PLT-02、INT-12 | Authenticated integration caller | Platform file service | 来源身份、契约验签、任务/对象权限、大小/类型/哈希和幂等同时校验；幂等键不能替代认证。 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 
@@ -60,4 +67,10 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 
 ## F-PROJ-008 阶段门禁 Owner Fact 基线（GO）
 
-Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。S4→S5继续复用F-COM-001专用接口，不经本通用Provider链反推验收范围绑定。
+Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。目标为实际S5时，统一PROJ图推进服务通过COM/ACC公开接口在同事务完成精确范围校验和绑定；旧专用入口只委托统一推进，不保留第二个current_stage Writer。
+
+## 修订017差量契约
+
+修订017契约已合并至本文件上方唯一契约表，分别列明Requirement、Producer、Consumer和语义；详细字段与事务见05、08、12、13分册。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

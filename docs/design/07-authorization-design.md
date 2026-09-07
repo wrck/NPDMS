@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：权限设计
+# SDS Phase 1：权限设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核权限差量引用`CHG-PRD-2026-09-02-013`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -56,7 +56,7 @@ WorkBinding不授予新权限。`TASK_NATIVE`的授权目标就是当前ProjectT
 
 动态表单业务实例Owner策略使用封闭动作：`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`及两项修订用途动作。文件`READ/DOWNLOAD/PREVIEW`映射`FILE_READ`；业务Owner实例的`UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE`映射`FILE_WRITE`，其中归档/失效仅由F-PLT-001文件管理入口委托且仍独立要求`pms:file:archive`；手工动态表单实例不允许该两动作。只读inspect冻结动作、主体、Owner与scopeVersion，持锁重验必须完全一致；不得以READ事实执行PATCH/COMPLETE，也不得互换克隆源与目标权限。PRE-04只在当前项目经理、当前草稿和自身管理权限全部成立时返回`FILE_WRITE`，页面不投影归档/失效按钮。
 
-`Device Access & Collection` 的子应用或模块不得扩大调用方权限；任务下发前重新校验用户、租户、项目树、设备当前归属、订单交付范围、现场批次和凭证/临时登录方式。临时用户名密码可以用于单次连接但不落库；只有用户明确执行“保存为凭证”才创建 `DeviceCredential`。
+`Device Access & Collection` 的子应用或模块不得扩大调用方权限；任务下发前重新校验用户、租户、项目树、设备当前归属、订单交付范围、现场批次和凭证/临时登录方式。临时用户名可留审计，临时密码仅用于单任务且不落库；只有用户明确执行“保存为凭证”才创建 `DeviceCredential`。
 
 COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `ProjectDeliveryScopeQualificationFactApi`对受信actor锁定返回的直管目标项目`PROJECT_MANAGER + ACTION_EDIT`组合事实；该用途的编辑资格只由锁定目标项目行的current manager证明，不查询未锁定的授权Grant、不扩展到后代项目，普通参与人、全局角色或其他授权范围均不得替代。封闭契约返回并重验经理、根身份、生命周期/阶段及项目/参与者/树版本，因此S5/S6或关闭项目仍能形成受保护减配/释放所需事实；初次不合格、数据范围拒绝、锁定期间事实变化、Owner损坏和Provider不可用必须按公共机器合同分别处理。合同管理员查询、候选核对与关联仅限`OrganizationScopeApi`返回的当前有效公司范围，Owner `companyCode`须精确命中同一范围行；没有项目关系的合同仍按公司范围裁剪，不因全局角色或前端入口扩大。
 
@@ -131,3 +131,15 @@ COM-01项目交付范围写入必须同时满足对应功能权限和PROJ `Proje
 - Owner异常、超时或无法取得当前事实时，列表返回空并记录Owner不可用审计，详情/写拒绝；部分无公司编码的scope行不授权，其余有效行仍按并集生效。
 - 关系写入前重新回源；按scope ID稳定排序的全部命中id/version进入既有`AuditRecord.authorizationSnapshot`，不形成COM第二授权真值。撤权/到期影响后续请求，不删除历史。
 - 查询和关系维护分别要求`pms:commerce:contract:query`、`pms:commerce:contract:relate`；敏感字段另需`pms:commerce:contract:sensitive-read`，否则脱敏或不返回。敏感字段权限不扩大公司范围。
+
+## 修订017差量契约
+
+身份字段与停用冲突以02c为准；任何来源的有效离职/禁用均阻断，另一来源晚到的启用不覆盖。EXE-03限定业务快照授权、独立中心模板限制及两个巡检任务分别授权见12；不能依赖客户端approved。INS-07工程师申请归档，授权服务经理执行最终归档；跟踪项处理/确认不授予归档权。NO_TRACKING、异常关闭分别先校验对应角色和业务资格，不先要求NORMAL阶段准出。外部文件回调不能以幂等键替代认证，详见13。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+### 修订017 PM-01首次项目经理指派
+
+PM-01@V1已授权的服务经理或工程管理部指派人员，在项目范围内选择经SYSTEM校验的在职项目经理，通过唯一PROJ指派命令形成责任区间；不要求目标项目已有PROJECT_MANAGER。命令同时冻结actor、范围、项目/成员/组织版本，If-Match及Idempotency-Key保护并发和重复。主责服务经理及项目经理同时有效才写ASSIGNED。
+
+T-ASSIGN-PM绑定PM-01指派事实，以该事实自动判定完成；不是给通用TASK_NATIVE COMPLETE增加越权例外。通知失败不回滚指派。回归覆盖首次无经理、无权限、离职候选、并发双指派、同键重放、仅一类主责及事件失败。Q-FPROJ-009设计闭合不产生Feature Implementation Done；真实API/数据库/浏览器复验仍由对应Feature执行。

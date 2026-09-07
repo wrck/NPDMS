@@ -557,18 +557,18 @@
 
 ### Q-FPROJ-009
 
-- Status: OPEN / BLOCKED_BY_SPEC
+- Status: RESOLVED_DESIGN / IMPLEMENTATION_REVALIDATION_REQUIRED
 - Requirement IDs: PM-01@V1、PM-03@V1、PM-09@V2
 - Area: 新建项目首次项目经理指派与S0准出
 - Question: 新建项目尚无`PROJECT_MANAGER`时，应由哪个合法主体、通过哪个唯一命令完成首次项目经理指派，并与`T-ASSIGN-PM`完成及`assignment_status`转换形成一致业务结果？
 - Why it blocks design/implementation: S0准出要求`T-ASSIGN-PM`完成，但现有`TASK_NATIVE COMPLETE`只允许当前项目经理执行；项目创建和现有公开指派命令只形成`SERVICE_MANAGER_L1/L2`，没有V1首次项目经理写入入口，形成循环依赖。
 - Options: A. 当前一级服务经理通过`T-ASSIGN-PM`特殊完成命令选择目标项目经理，成员事实与任务同事务形成；B. 当前一级服务经理先调用独立项目经理确认命令，再由正式项目经理完成`T-ASSIGN-PM`。
 - Recommended technical default: A；任务本身即首次项目经理指派业务动作，可避免第二条命令和中间状态，但必须冻结操作者、权限、项目范围、SYSTEM人员及组织Owner校验。
-- Business decision required: 是。该选择改变V1业务命令、完成主体、成员Owner写入、`assignment_status`和审计/幂等边界，Implementation不得自行决定。
-- Resolution: 待确认。关闭前不集成或继续实现F-PROJ-008 Task 3，不从UI候选或既有任务完成接口反推业务语义。
+- Business decision required: 人员角色和业务归属已由PRD修订011及当前016的PM-01规则6/9明确；本轮不增加特殊审批人或改变通用Task完成权限。
+- Resolution: 当前PRD明确由具备指派权限的服务经理或工程管理部授权人员在PM-01流程内完成首次项目经理指派；PROJ在同一事务建立有效责任区间、重新计算双主责assignment_status并更新绑定该事实的T-ASSIGN-PM完成判定。该任务应使用PM-01业务对象绑定，不能要求一个尚不存在的项目经理先执行TASK_NATIVE COMPLETE，也不放宽通用任务接口。字段、权限、事务与回归见07、10和20分册。本结论仅关闭当前SDS循环依赖，F-PROJ-008 Task 3仍需Feature重验证和真实浏览器证据，不自动恢复Done。
 - Blocking scope: 只阻断F-PROJ-008 Task 3新建项目S0→S1正向Chromium链；已集成Task 1/2及不依赖该问题的工作台能力不回退。
 - Decision owner: 需求方；PROJ、SYSTEM与权限Owner参与影响分析
-- Decision date: 待确认
+- Decision date: 2026-09-07（本轮按已批准PRD回写设计，不新增业务裁决）
 
 ## 并行分支权威收敛阻断
 

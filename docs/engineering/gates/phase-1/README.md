@@ -1,11 +1,20 @@
+# Phase 1 修订017当前验证入口
+
+> 当前结论：`REVALIDATION_REQUIRED`
+> 文档用途：`当前Gate投影及自审；不代替独立复审`
+
+100项正式需求、111个目标版本切片；106对象/124来源绑定/1排除源。当前结论以gate-status.md为准；修复与真实命令结果见`../phase-1/revision-017-review-remediation.md`。以下原记录仅属历史，不产生修订017批准。
+
+## 历史记录（原内容保留）
+
 # Phase 1 门禁与审查证据
 
 Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、状态机、工作流和授权设计是否具备进入实现契约设计的条件。
 
 ## 当前文件
 
-- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总。PRD修订007按100项Requirement、111个目标版本切片完成复核，当前为`APPROVED / READY_FOR_PHASE_2_V1.8`。
-- [`self-review.md`](self-review.md)：修订007差量自审与机器门禁结果。
+- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总。修订007批准保留为历史证据；修订008—015改变领域、状态、流程和范围语义，当前为`REVALIDATION_REQUIRED / BLOCKED_BY_PRD_DELTA`。
+- [`self-review.md`](self-review.md)：修订007差量自审与机器门禁历史结果；当前修订015复核结论须回写`gate-status.md`。
 - [`independent-review.md`](independent-review.md)：修订007前的历史独立复审记录，仅用于追溯，不构成当前独立裁决角色。
 - [`context-refinement-review.md`](context-refinement-review.md)：领域上下文重构后的复审记录。
 - [`naming-review.md`](naming-review.md)：业务命名审查结论。

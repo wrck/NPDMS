@@ -1,9 +1,9 @@
-﻿# SDS Phase 1：数据 Owner 矩阵
+# SDS Phase 1：数据 Owner 矩阵
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Owner：SDS Phase 1 架构设计；既有独立复审GO仅属原批准范围，当前差量须按Gate重验证
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -27,3 +27,17 @@
 `CollectionTask` 不属于 Implementation Execution；实施执行域只拥有业务结果解释和证据关联。日常业务查询优先读取本地同步副本；同步失败时展示最近成功版本、截止时间和同步状态。
 
 历史工单、工时、附件、审批和明确要求留存的操作由迁移资料库只读持有，保留来源键和原始状态，不属于当前业务Context的数据Owner范围。
+
+## 修订017细化Owner
+
+| 数据事实 | Owner | 引用边界 |
+|---|---|---|
+| HR工号、姓名、岗位、组织、人事在离职事实 | HR | 目录仅保存对应映射及原值；不按最后同步时间覆盖人事真值 |
+| 企业目录账号、凭据认证及启停事实 | LDAP/AD | 与HR独立版本；任一权威离职或禁用均阻断登录并撤销会话，恢复须消除对应阻断来源 |
+| 可复用阶段/任务/交付件/绑定/权限/完成规则版本 | PROJ | DeliveryConfigurationRevision只统一版本身份；目标领域状态不在此修改 |
+| BusinessViewRegistration | PLT | 领域Owner发布实体、组件和服务端Provider契约；模板不能扩大权限 |
+| 项目范围水位及ProjectScopeVersion | COM | PM-06由PROJ编排、只引用范围；ACC按精确范围版本绑定，不生成第二个数量Owner |
+| AcceptanceReportRevision及当前报告指针 | ACC | 消费方读取证据有效性、结论、范围和初验依赖，不能把文件上传解释为通过 |
+| ProjectExitRecord及current_stage/lifecycle_status | PROJ | CLO-02调用公开Writer形成两类业务闭环；PM-10形成异常关闭；同事务历史不被通知覆盖 |
+
+角色和范围策略继续由07定义；此表不改变13领域Requirement Owner，也不把共用技术载体变成新的业务领域。

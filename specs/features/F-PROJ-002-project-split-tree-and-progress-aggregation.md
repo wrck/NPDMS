@@ -1,14 +1,18 @@
 # F-PROJ-002 项目拆分、项目树与进度汇总 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > Requirement：`PM-02`
 > Requirement切片覆盖：`PM-02@V1=FULL`
+> PRD差量重验证：`PM-02@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联契约：`PM-04`项目树数据范围、`COM-01`交付范围、`CLO-02`闭环守卫；本Feature不宣称完整实现这些关联Requirement
 > Owner Context：`PROJ（项目治理）`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 前置Feature：`F-PROJ-001`（`IMPLEMENTATION_COMPLETE / PASS`）
-> Technical Plan：由NPDMS锁定本Feature规格提交后重新生成；禁止沿用V1.7 `F-PM02-technical-plan.md`
+> 上次Technical Plan（历史，不授权当前差量实施）：由NPDMS锁定本Feature规格提交后重新生成；禁止沿用V1.7 `F-PM02-technical-plan.md`
 
 ## 1. 业务价值与目标
 
@@ -330,3 +334,7 @@ F-PROJ-002前向物理契约锁定如下：
 ## 16. Open Questions
 
 当前无会改变本Feature业务语义、Owner、权限或状态模型的未关闭问题。具体Java类型、物理表字段、索引、迁移版本、页面组件复用点和最终路由由Technical Plan基于NPDMS当前实现核对后确定；这些属于实施设计，不构成Feature Ready阻断。
+
+## 修订017覆盖资格
+
+当前受影响切片：PM-02@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

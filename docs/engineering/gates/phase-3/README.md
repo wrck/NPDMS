@@ -1,8 +1,17 @@
+# Phase 3 修订017当前验证入口
+
+> 当前结论：`REVALIDATION_REQUIRED`
+> 文档用途：`当前Gate投影及自审；不代替独立复审`
+
+100项正式需求、111个目标版本切片；106对象/124来源绑定/1排除源。当前结论以gate-status.md为准；修复与真实命令结果见`../phase-1/revision-017-review-remediation.md`。以下原记录仅属历史，不产生修订017批准。
+
+## 历史记录（原内容保留）
+
 # Phase 3 门禁与证据
 
 Phase 3审查安全、审计可观测、部署、性能和测试设计是否足以形成完整SDS基线。
 
-当前结论为`APPROVED / READY_FOR_SDS_BASELINE_V1.8`。修订007已按100项正式Requirement和111个目标版本切片完成Phase 3差量复核，五份正式分册重新纳入SDS基线；部署、联调、专项验收、历史迁移、切换、UAT和生产发布门禁继续有效。
+当前结论为`REVALIDATION_REQUIRED / BLOCKED_BY_PRD_DELTA`。修订007的`APPROVED / READY_FOR_SDS_BASELINE_V1.8`保留为历史证据；修订008—015新增和改变的模板裁剪、条件性验收、三类项目退出、PM-06范围追加、RPT-02全集统计及完整主/子流程尚须完成Phase 3差量测试与运行保障复核。部署、联调、专项验收、历史迁移、切换、UAT和生产发布门禁继续独立有效。
 
 ## 当前文件
 
@@ -17,7 +26,7 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
 - [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；当前DDL、`DEFER=0`和MySQL 8.4隔离执行已通过独立复审并形成可用模型基线，但不构成迁移批准。
 
-`self-review.md`登记修订007当前差量结论；`independent-review.md`只保留修订007前的历史证据，不构成当前独立裁决角色。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
+`self-review.md`登记修订007历史差量结论；修订015当前状态只以`gate-status.md`为准。`independent-review.md`只保留历史证据，不构成当前独立裁决角色。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
 ## 按差量选择校验
 

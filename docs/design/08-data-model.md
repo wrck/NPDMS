@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：数据模型
+# SDS Phase 2：数据模型
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8修订013及批准增量`CHG-PRD-2026-08-23-002`；巡检审核事实选择与权限判定分别引用`CHG-PRD-2026-09-02-012/013`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -116,9 +116,10 @@
 | BorrowedProjectConversion | 聚合根 | PM-05 转销批次、源/目标项目、正式销售业务、处理状态和汇总 | 源借货项目与目标正式项目保持独立；同一源项目只允许一个生效转销目标；全部对象成功前不得归档源项目 |
 | ConversionItem | 聚合内实体 | 一个实施对象的处理方式、来源版本、目标引用/副本、结果和失败原因 | 默认 `READ_ONLY_REFERENCE`；仅需继续编辑的派生草稿使用 `DERIVED_COPY`，且保存来源对象 ID/版本 |
 | ConversionDeviceDisposition | 聚合内实体 | 设备继续借测、转入正式项目或已归还的逐台处置 | 转入时调用 AST 唯一归属命令；部分失败不把失败设备展示为目标项目已接收 |
-| MultiPhaseProjectGroup | 聚合根 | PM-06 多期群组、关系类型、版本和展示口径 | 群组不替代各期项目，不合并项目编码、合同、状态或审计历史 |
-| MultiPhaseProjectMember | 聚合内实体 | 项目、期次号、展示顺序、有效区间和来源关系 | 同一关系类型下项目仅属于一个有效群组；群组内期次号唯一；禁止循环前后期关系 |
-| CrossPhaseContentReference | 聚合内关系 | 客户、设备视图、拓扑、方案等来源项目/版本及派生对象引用 | 引用只读；修改在新期生成派生版本，不回写历史期次 |
+
+| ContractScopeAppendRequest | 聚合根 | PM-06同一ACTIVE项目范围追加申请、批准差异及逐阶段影响 | 不创建期次群组；COM拥有分配及唯一范围水位，PROJ只编排并引用 |
+| ProjectScopeVersionReference | 跨域引用 | COM项目范围版本与精确范围快照 | 不产生第二套数量/版本真值；历史验收不自动覆盖新增范围 |
+| AcceptanceScopeEvidence | 不可变引用 | 报告版本、文件版本与精确验收范围 | 旧范围通过证据保留，新总范围须明确通过且完整覆盖 |
 
 项目树查询规则：
 
@@ -132,7 +133,6 @@ ProjectProgressSnapshot只解释直接子项目的逐级汇总。叶子项目进
 
 PM-05 是对象级可恢复转销过程，不是 Project 的普通状态更新：`BorrowedProjectConversion` 以 `sourceProjectId + formalSalesBusinessId` 幂等，状态使用 PRD 已定义的处理中、部分失败/待处理、已完成；对象项逐项保存结果。只有目标正式项目已由有效 CRM/ERP 销售业务建立、全部对象校验成功且设备处置完成后，才将源项目转为只读归档。
 
-PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。群组查询按用户对各期项目的交集权限裁剪，缺失期次必须标记“不完整”；跨期设备视图按 Device ID 去重，并区分当前归属、历史参与和跨期复用。
 
 ### 4.1 PM-07属性判定与模板匹配历史
 
@@ -441,3 +441,49 @@ CollectionTask 必须在创建时冻结完成模式：
 | 数据对象 | 主要内容 | 约束 |
 |---|---|---|
 | ExportTask | 统一异步任务、授权范围快照、结果文件公共事实和永久ExportAudit | PLT拥有任务/审计/TTL；业务Provider拥有查询与字段裁剪；申请、生成、下载三次重验，文件过期不删除审计 |
+
+### 被替代的PM-06关系设计（仅保留历史，不是当前实现输入）
+
+> | MultiPhaseProjectGroup | 聚合根 | PM-06 多期群组、关系类型、版本和展示口径 | 群组不替代各期项目，不合并项目编码、合同、状态或审计历史 |
+> | MultiPhaseProjectMember | 聚合内实体 | 项目、期次号、展示顺序、有效区间和来源关系 | 同一关系类型下项目仅属于一个有效群组；群组内期次号唯一；禁止循环前后期关系 |
+> | CrossPhaseContentReference | 聚合内关系 | 客户、设备视图、拓扑、方案等来源项目/版本及派生对象引用 | 引用只读；修改在新期生成派生版本，不回写历史期次 |
+> PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。群组查询按用户对各期项目的交集权限裁剪，缺失期次必须标记“不完整”；跨期设备视图按 Device ID 去重，并区分当前归属、历史参与和跨期复用。
+
+## 修订017当前逻辑模型
+
+Requirement：PM-03、PM-06、PM-10、PM-11、COM-01、ACC-03、CLO-01、CLO-02。对象到表的唯一机器目录为`docs/traceability/domain-object-table-map.json`；新载体字段和约束为09引用的`sds-revision-016-physical-contract.json`。版本切片不变。
+
+| 对象 | Owner及关系 | 必需事实与不变量 |
+|---|---|---|
+| ProjectTemplateVersion | PROJ，ProjectTemplate的发布版本；复用proj_project_template_revision | 模板精确引用已发布阶段、任务、交付件、绑定、规则、图关系。引用版本发布时冻结；停用不毁坏既有实例 |
+| DeliveryConfigurationRevision | PROJ，类型化定义及引用边 | kind/code/revisionNo/schemaVersion/payload及发布时间；STAGE/TASK/DELIVERABLE/WORK_BINDING/COMPLETION_RULE/PERMISSION_POLICY/GATE/MILESTONE各有封闭Schema；引用不能跨租户、悬空、循环或指向未发布版本 |
+| StageTransitionDefinition | PROJ，模板版本内出向边 | from/to、条件规则版本、优先级和默认分支；一个源最多一个默认分支；每次推进只能一个目标 |
+| ProjectStageTransition | PROJ，模板边的项目冻结实例 | project/template/sourceTransition/graphVersion/currentTarget IDs及条件快照；现有项目受控换图生成新graphVersion，不原地覆盖旧边 |
+| ProjectStage / StageWorkBinding | PROJ，阶段根及唯一当前执行契约 | 一个当前主绑定、权限和完成规则精确版本；native无外部对象，composite只有一个主绑定；目标对象Owner事实变化触发重算 |
+| BusinessViewRegistration | PLT，entityType/viewKey/revision唯一 | Owner、组件精确版本、上下文Schema、动作及query/command/permission Provider键；只引用受控注册表，不执行任意URL、SQL或脚本 |
+| ContractScopeAppendRequest | PROJ，单个ACTIVE项目内的申请 | expectedProjectVersion/expectedScopeVersion、ERP引用及批准版本、差量、逐阶段影响；审批和应用分离，应用失败仍保留批准但不产生新有效范围 |
+| ProjectScopeVersion | COM，唯一水位与不可变版本 | com_delivery_scope_project_version是唯一当前项目水位；com_project_scope_revision保存发生时范围及原/新差量，旧版本不可覆盖；不得用PROJ版本代替数量范围版本 |
+| AcceptanceReportRevision | ACC，报告根/不可变版本 | 每项目报告类型只有一个当前指针；字段、文件、验收时间/人/结论、模板、scopeVersion/digest与来源证据齐备。报告证据有效与验收通过分离 |
+| ProjectExitRecord | PROJ，退出事实历史 | projectVersion、closureType、closedFromStage、真实Stage实例、来源闭环记录/版本及门禁快照；与当前生命周期受控写入同事务，三类终态不强制S6 |
+
+定义payload结构由受控schema_version解释：STAGE/TASK必须有稳定编码、默认主绑定/权限/完成规则引用；DELIVERABLE包含STAGE/TASK归属、类型、最小数量、允许来源和确认规则；WORK_BINDING包含类型、实例解析策略、目标类型、BusinessViewKey及精确版本，原生目标为空；COMPLETION_RULE仅支持已注册事实谓词及组合；PERMISSION_POLICY仅声明所需动作，不产生授权。缺少任一引用或Provider时发布和执行失败关闭。
+
+### 范围与报告的精确关系
+
+COM范围版本的scope_snapshot是不可变历史快照，包含范围/明细ID、订单行、allocationVersion、数量、单位和设备引用，不是另一份当前可修改的数量。ACC报告绑定具体scopeRevisionId、scopeVersion和digest。报告可以引用旧A范围的证据，但A+B正常准出必须形成明确覆盖当前整体范围的新总体验收版本；仅A或仅B不得通过。直签终验保存有效初验revision引用；非直签不要求初验。
+
+文件失效、报告撤销、范围变化、初验依赖失效都重新计算验收通过及CLO门禁。旧报告仍保留历史证据，不把旧事实改成失败。已闭环项目收到晚到事件只能记录历史/异常并通知处理，不能自动重开或改写终态。
+
+### 同事务边界与并发
+
+初次建项与模板阶段/任务/交付件/绑定同事务；后续范围追加按PROJ根/项目→COM项目水位及有序订单行→PROJ实例→ACC绑定稳定顺序完成。发布scopeVersion、追加任务、门禁失效与绑定必须全有或全无。绑定和Stage图推进不得反向取得同一事务已持Owner锁；跨域接口MANDATORY加入调用方事务，禁止直接访问外域仓储。
+
+已保存凭证与临时密码仍按INT-12单任务授权；预检和正式执行分别授权，密钥不进入本模型任何JSON字段。
+
+### 修订017 RPT-02完整统计口径
+
+RPT-02@V2复用ANA指标定义/快照，不新增交易Owner。正式项目按projectId去重；根粒度只计根，节点粒度每节点各一次。正常交付闭环率=NORMAL_CLOSED/同筛选正式项目总数；业务闭环率=(NORMAL_CLOSED+NO_TRACKING_CLOSED)/同分母，EXCEPTION_CLOSED单列。分母为0时展示无样本，不伪造百分比。状态、真实阶段、超期、三类终态及两套闭环率必须来自同一统计水位。
+
+快照冻结metricVersion、stateVersion、dataWatermark、granularity、filters及权限范围摘要。图表、下钻、导出使用同一快照及再次权限校验；若撤权改变可见集，旧快照不能直接下载，须按新权限重新计算，不返回旧数量或敏感内容。实例无S5/S6时不创建缺失项，关闭保留closed_from_stage；割接中只是派生display_status，不能改Project生命周期。
+
+设计回归至少覆盖：四个项目分别ACTIVE、NORMAL、NO_TRACKING、EXCEPTION时正常率25%、业务率50%；根/节点去重；无S5/S6的S4关闭；图表→明细→导出同水位；零分母；部分批次失败标记不完整；撤权后旧快照导出拒绝。运行及真实浏览器用例仍为NOT_RUN，模型测试不能替代UAT。

@@ -1,14 +1,18 @@
 # F-PROJ-005 服务经理人工指派与责任分布 Feature Spec
 
-> 文档状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FPROJ005-FEATURE-READY-20260825-01`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 上次Feature Ready（历史）：`READY / GO NPDMS-FPROJ005-FEATURE-READY-20260825-01`
+> Feature Ready：`REVALIDATION_REQUIRED`（当前修订设计/实现影响尚需复核）
 > Requirement：`PM-08（V1）`
 > Requirement切片覆盖：`PM-08@V1=PARTIAL`
+> PRD差量重验证：`PM-08@V1`
+> 差量依据：`CHG-PRD-2026-09-06-016`；旧Task事实保留，不直接投影当前完成
+
 > 关联Requirement：`PM-01`、`PM-04`、`PM-11`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-002`、`F-PROJ-003`、`F-PROJ-004`均已完成
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`；批准修订`CHG-PRD-2026-08-23-002`
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后重新生成；既有V1.7实现只作复用审计证据
+> 上次Technical Plan（历史，不授权当前差量实施）：Feature Ready独立GO且NPDMS锁定新规格提交后重新生成；既有V1.7实现只作复用审计证据
 > 实施状态：`IMPLEMENTATION_COMPLETE / GO`
 > 实施证据：NPDMS `25230ce` Task 1～6、自动化、全新MySQL V1～V84、单/多租户运行态、真实浏览器四档响应式与独立整改复审
 
@@ -32,7 +36,7 @@
 ### 2.2 不包含
 
 - PM-08 V2自动推荐、自动指派或规则管理；
-- PM-11项目经理指派实现；
+- PM-01@V1首次项目经理指派实现（由F-PROJ-001承接）；本Feature只消费其有效责任事实重算双主责状态，不把PM-11或PM-09@V2作为首次指派前置；
 - PM-05/PM-06/PM-09及订单、计划、任务执行改造；
 - 固定两级项目树、自动继承到子孙节点或用成员关系授予树权限；
 - 新通知表、短信/邮件渠道、独立审批流；
@@ -126,7 +130,7 @@
 - `AC-FPROJ005-007`：相同幂等请求不产生重复关系/审计/事件；同键异请求、旧版本和权限失败无有效副作用。
 - `AC-FPROJ005-008`：指派提交后Outbox处理器仅用事务内冻结的事件payload和eventId投递一次站内信；指派后再改派或用户资料变化不改变旧事件的收件人、模板或参数。模拟“消息已创建但Outbox未标成功”及普通通知失败时指派仍成功，重试返回同一消息ID且只有一条`delivery_key`事实。
 - `AC-FPROJ005-009`：真实MySQL验证时间区间、并发唯一主责、状态重算和Outbox重试；真实浏览器验证候选、指派、改派、责任分布、刷新持久化、权限负向和四类响应式视口。
-- `AC-FPROJ005-010`：不宣称PM-08 V2、PM-11项目经理指派、PM-05/06/09、Deployment、SIT、UAT或Release完成。
+- `AC-FPROJ005-010`：不宣称PM-08 V2、由F-PROJ-001承接的PM-01首次项目经理指派、PM-05/06/09、Deployment、SIT、UAT或Release完成。
 
 ## 8. 测试与证据
 
@@ -144,3 +148,7 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPROJ005-FEATURE-READY-20260825-01`） |
 
 结论：`IMPLEMENTATION_COMPLETE / GO`。Feature Ready保持既有GO；Implementation Done整改复审已GO，原租户阻断已闭环且不重开Feature Ready/SDS。该结论不代表PM-08 V2自动指派、PM-11、Deployment、SIT、UAT或Release完成。
+
+## 修订017覆盖资格
+
+当前受影响切片：PM-08@V1。当前PRD与正式SDS已修正业务语义，旧Feature Ready/Technical Plan及物理合同不能证明新语义已经实现。必须按本Feature范围复核图/状态/权限/范围/文件契约及相关运行证据后，由权威Task记录当前实施结果，并在Spec中解除本标记；不得仅因文档生成通过或历史Task为Done而解除。关联但未声明覆盖的Requirement不产生完成状态。详见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`与SDS20的TC-PRD016用例。

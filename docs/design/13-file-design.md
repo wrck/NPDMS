@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：文件设计
+# SDS Phase 2：文件设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01、ACC-01～04、ACC-06、CLO、CUT、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
 > Owner：基础平台 File Capability；业务含义、审核和归档状态仍由引用该文件的 Owner Context 持有
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
@@ -174,3 +174,13 @@ F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVer
 客户受控链接上传不伪造用户。ACC以同一grant和最终提交`requestId`通过`PlatformCommandExecutionApi`一次性预留并重放唯一`responseId`；每个文件初始化由PLT返回服务端`fileSlotKey/fileSequence`。ACC策略Provider按grant→Questionnaire→Task验证授权版本、ACTIVE/有效期、预留Response、用途和项目范围，并从grant创建时`creator`冻结正数`grantIssuerUserId`。PLT仍执行内容大小、类型、扫描、存储、Artifact/Version/Reference和补偿；完成及最终提交前通过grant专用锁定重验实际文件事实，客户端句柄不能直接落库。PLT仅用issuer填充既有文件审计责任字段，detail明确`subjectType=BUSINESS_GRANT`及grant/response/slot身份，不建立SecurityContext、不把grant当用户或解释为客户拥有上传权限。现场协助使用现有认证上传。完整访问令牌、签字内容和文件正文不得进入日志。
 
 Result归档复用F-ACC-001的双集合模型：结果文档、签字和附件ACTIVE引用保持可下载，归档集合创建同一公共文件事实的ARCHIVED引用和`FileArchiveRecord`。归档actor为Result形成时冻结并在执行时重验权限/范围的责任人；失败保持`PENDING_COMPENSATION`，不回滚或覆盖Result。
+
+## 修订017差量契约
+
+### 外部文件准入与验收判定分离
+
+外部回调必须通过来源身份认证、契约验签、任务/对象/租户范围、大小/类型/哈希及幂等校验。幂等键只是去重事实，不是认证凭据；未经认证或签名不合法，即使幂等键存在且首次出现，也不能创建FileVersion或业务引用。保持修订004扫描默认关闭、真实SKIPPED及开启时失败关闭，不把SKIPPED解释为安全通过。
+
+文件技术可用、报告证据有效、客户验收通过和项目范围覆盖分别判定。失败报告可以作为不可变证据保存；ACC/SOL/CUT等Owner的明确通过及精确范围事实不能由“上传完成/文件可下载/有哈希”替代。当前用户无下载权限不改变客观齐套或验收结果。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

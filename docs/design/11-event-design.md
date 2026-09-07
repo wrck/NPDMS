@@ -1,7 +1,7 @@
-﻿# SDS Phase 2：事件设计
+# SDS Phase 2：事件设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 文档状态：`REVALIDATION_REQUIRED`（修订017差量已回写；正式复审以当前Gate为准）
+> 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：本分册覆盖全部 100 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
 > 前置设计：`02d-cross-context-contracts.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
@@ -92,7 +92,6 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatchId/treeVersion/operationType/affectedRootProjectIds/affectedProjectIds/occurredAt`。同一`changeBatchId + treeVersion`只发布一次；消费者按根项目水位拒绝旧版本和乱序覆盖。事件表示父子真值及可识别的新完整版本已经提交，不表示Authorization、AST或ANA投影已经追平；投影未追平时消费方读取上一完整版本或明确返回结构更新中。
 | `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
-| `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
 | `ProjectPortfolioPublished` | Project Delivery | ANA/Portfolio Query | portfolioId + revision + memberSnapshotRef | PROJ-12组合版本已发布；不改变成员项目树、状态或权限 |
 | `DeviceOwnershipChanged` | Asset domain | Asset projection / Outbox adapter | deviceId + assignmentVersion | AST 内部归属事实已变化；不作为跨 Context 公共名称 |
 | `DeviceAssigned` | Asset integration | Project/IMP/CUT/Inspection/ANA | deviceId + assignmentVersion | 对应 `02d` 的稳定跨 Context 契约，由同一归属事务的 Outbox 发布 |
@@ -100,7 +99,7 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `DeviceStatusSynchronized` | Asset | Service Operations/ANA | sourceKey + sourceVersion | 外部状态副本已更新 |
 | `MetricSnapshotPublished` | Analytics | Portfolio UI | metricCode + metricVersion + watermark | 只读指标快照可用 |
 
-`ProjectClosureCompleted` 到达后 Project Delivery 仍需校验事件版本和当前状态，再执行本地关闭命令并发布 `ProjectClosed`；Closure Consumer 不直接写 Project 表。
+`ProjectClosureCompleted`仅在CLO最终批准事务成功后发布。该事务先通过PROJ公开终态命令原子写入Project生命周期及ProjectExitRecord，再提交ACC闭环事实和Outbox；消费者只更新读模型，不能到达后再次执行关闭。事务失败不得出现ACC已完成而Project仍ACTIVE的半事实。
 
 `ProjectServiceManagerAssigned`只服务PM-08通知闭环，不作为跨Context权限、成员或项目状态投影来源。Producer与成员关系、Project版本/状态、幂等成功和操作审计同事务写Outbox，并冻结`assignmentId/projectId/recipientUserId/templateCode/templateParamsSnapshot/assignmentType/levelCode/effectiveFrom`；模板参数快照只含生成本次站内信所需不可变值，不含秘密。消费者只能用事件payload构造SYSTEM请求，重试不得查询当前Project、成员关系或用户资料重新推导收件人、模板和内容。`system_notify_message.delivery_key`防止“消息已创建但Outbox未标成功”的重复通知，Outbox记录失败次数和下次重试时间。
 
@@ -249,3 +248,9 @@ V1/V2 不定义 `TechnicalNoticePublishedByPlatform`，避免把 V3 本地治理
 F-ACC-001的`AcceptanceReportOutboxDeliveryJob`通过`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`。它先把事件交给来源投影事务；事务成功后调用`markDelivered`，反序列化、身份校验或投影失败则调用`scheduleRetry`且不得标成功。该Job不得领取或标记`ClosureGateRecheckRequested`已投递；CLO消费者不在本Feature内实现。
 
 F-ACC-002的`SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVersionChanged`。它先维护ACC-04满意度来源版本及完整文件集合，投影事务成功后才按消息retryCount调用`markDelivered`，失败使用同一expectedRetryCount调用`scheduleRetry`。`ClosureGateRecheckRequested`及未来SUB重校验事件不由该Job领取或误标成功。
+
+## 修订017差量契约
+
+计划/方案批准事件只载Owner业务版本，不直接推进固定S3/S4；PROJ按05校验是否推进。Cutover成功事件携带taskId、归档版本、精确范围及有效性，IMP按当前需割接范围聚合，不以一个成功任务代替全范围。范围/报告失效事件只使当前依赖门禁失效，历史快照不覆盖。项目闭环事件必须携带closureType、closedFromStage、项目版本与闭环/Gate快照引用，只通知已经由CLO-02/PM-10提交的事实；消费者不得再次写终态。事件键和聚合版本共同防重放/乱序，重试不绕过当前授权。
+
+对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
