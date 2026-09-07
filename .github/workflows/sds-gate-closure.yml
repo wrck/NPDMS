@@ -1,0 +1,39 @@
+name: SDS gate closure verification
+on:
+  push:
+    branches: [docs/prd-v1.8-p0-p1-fixes]
+    paths: [.github/workflows/sds-gate-closure.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'wrck/NPDMS' && github.ref == 'refs/heads/docs/prd-v1.8-p0-p1-fixes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Capture exact source and current gate failures
+        env:
+          INPUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git clone --quiet --depth=2 --single-branch --branch docs/prd-v1.8-p0-p1-fixes https://github.com/wrck/NPDMS.git repository
+          cd repository
+          git checkout --detach "$INPUT_SHA"
+          mkdir -p ../gate-input
+          git rev-parse HEAD > ../gate-input/source-commit.txt
+          git archive --format=tar.gz HEAD > ../gate-input/source.tar.gz
+          for phase in 1 2 3; do
+            set +e
+            python3 "scripts/validate_sds_phase${phase}.py" > "../gate-input/phase-${phase}-baseline.txt" 2>&1
+            rc=$?
+            set -e
+            printf 'Phase %s baseline exit code: %s\n' "$phase" "$rc"
+            cat "../gate-input/phase-${phase}-baseline.txt"
+          done
+      - name: Preserve scoped review inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sds-gate-input
+          path: gate-input/
+          retention-days: 3
