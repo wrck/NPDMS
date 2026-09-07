@@ -201,6 +201,7 @@ WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，
 
 必需Header：`Idempotency-Key`。
 请求至少包含：项目基本信息、独立四维属性、去除首尾空白后仍非空的创建原因、公司与办事处部门稳定引用、零到多个站点（含一个可选主站点）或未解析文本地点、选定`templateRevisionId`（可省略仅限唯一默认）、候选查询水位/版本以及可选的服务经理人工确认信息。
+服务经理人工确认信息使用可选`serviceManagerUserId`；传入时复用现有权限及公司/办事处候选校验，不传时保持无初始指派。Controller不得丢弃调用方显式确认的用户ID。
 响应包含：Project稳定ID、项目编码、`ACTIVE / S0 / UNASSIGNED`、冻结模板/流程版本、实例化数量摘要、服务经理确认结果、Project版本和详情链接。
 
 F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`templateRevisionId`的能力：候选唯一且未显式选择时记`AUTO_UNIQUE`，显式选择合法候选时记`EXPLICIT_SELECTION`。所有成功创建路径都必须在本事务内追加`INITIAL_CREATE`模板匹配决策历史；无匹配或多匹配且未选择合法候选时拒绝创建。
