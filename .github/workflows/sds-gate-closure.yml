@@ -41,12 +41,14 @@ jobs:
           set -euo pipefail
           mkdir -p gate-evidence
           docker run -d --name sds016-mysql --network none --label npdms.sds-validation=true -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.4
-          ready=0
+          stable=0
           for attempt in $(seq 1 90); do
-            if docker exec sds016-mysql mysqladmin ping -uroot --silent >/dev/null 2>&1; then ready=1; break; fi
+            mode=$(docker exec sds016-mysql mysql -uroot -N -B -e 'SELECT @@skip_networking;' 2>/dev/null || true)
+            if test "$mode" = 0; then stable=$((stable+1)); else stable=0; fi
+            if test "$stable" -ge 3; then break; fi
             sleep 2
           done
-          test "$ready" = 1
+          test "$stable" -ge 3
           cd repository
           python3 scripts/validate_sds_revision_016_mysql.py --container sds016-mysql --root . --output ../gate-evidence/mysql-schema.json | tee ../gate-evidence/mysql-schema.log
           git diff --stat > ../gate-evidence/input-files.txt
