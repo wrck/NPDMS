@@ -15,8 +15,9 @@ public record ImplementationReadinessQuery(
     public ImplementationReadinessQuery {
         requirePositive(tenantId, "tenantId");
         requirePositive(projectId, "projectId");
-        if (expectedDevices == null || expectedDevices.isEmpty()) {
-            throw invalid("expectedDevices must not be empty");
+        if (expectedDevices == null || expectedDevices.isEmpty()
+                || expectedDevices.stream().anyMatch(java.util.Objects::isNull)) {
+            throw invalid("expectedDevices must contain non-null devices");
         }
         expectedDevices = expectedDevices.stream()
                 .sorted(Comparator.comparing(ExpectedDevice::deviceId)).toList();

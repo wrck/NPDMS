@@ -14,7 +14,9 @@ public record ImplementationReadinessContextFact(
 
     public ImplementationReadinessContextFact {
         if (projectScopeVersion == null || projectScopeVersion < 0 || devices == null || devices.isEmpty()
-                || approvedPlan == null || sourceFacts == null || sourceFacts.size() != 4) {
+                || approvedPlan == null || sourceFacts == null || sourceFacts.size() != 4
+                || devices.stream().anyMatch(java.util.Objects::isNull)
+                || sourceFacts.stream().anyMatch(java.util.Objects::isNull)) {
             throw corrupted("invalid implementation readiness context");
         }
         devices = devices.stream().sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
@@ -66,7 +68,9 @@ public record ImplementationReadinessContextFact(
             Boolean reopened) {
         public SourceFact {
             if (sourceCode == null || completionStatus == null || factVersion == null || factVersion < 0
-                    || sourceObjectIds == null || watermarkEntries == null || reopened == null) {
+                    || sourceObjectIds == null || watermarkEntries == null || reopened == null
+                    || sourceObjectIds.stream().anyMatch(id -> id == null || id <= 0)
+                    || watermarkEntries.stream().anyMatch(java.util.Objects::isNull)) {
                 throw corrupted("invalid source fact");
             }
             if (sourceCode == SourceCode.EXE_01 && completionStatus == CompletionStatus.COMPLETED

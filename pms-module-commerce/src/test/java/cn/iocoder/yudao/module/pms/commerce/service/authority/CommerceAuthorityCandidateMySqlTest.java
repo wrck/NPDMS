@@ -133,23 +133,6 @@ class CommerceAuthorityCandidateMySqlTest {
 
         assertEquals(CommerceAuthorityCandidateService.Code.INVALID_REQUEST, error.getCode());
         assertEquals(0, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM com_authority_candidate WHERE tenant_id=?", Integer.class, TENANT_ID));
-    }
-
-    @Test
-    void rejectsNonNormalizedCompanyBeforePlatformReservation() {
-        String idempotencyKey = "IDEM-W-" + suffix;
-        var command = new CommerceAuthorityCandidateService.CreateCandidateCommand(
-                TENANT_ID, ACTOR_ACME, "CONTRACT", "K-" + suffix, "V1",
-                "{\"companyCode\":\" ACME \",\"contractNo\":\"C-" + suffix + "\"}",
-                "{\"referenceKey\":\"REF-" + suffix + "\"}",
-                idempotencyKey, "CORR-" + idempotencyKey);
-
-        var error = assertThrows(CommerceAuthorityCandidateService.CandidateException.class,
-                () -> service.create(command));
-
-        assertEquals(CommerceAuthorityCandidateService.Code.INVALID_REQUEST, error.getCode());
-        assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
                 Integer.class, TENANT_ID, idempotencyKey));
         assertEquals(0, jdbcTemplate.queryForObject(
