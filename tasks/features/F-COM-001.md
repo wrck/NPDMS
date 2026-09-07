@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / REQUIREMENT_CONVERGENCE_APPROVED`
 > Technical Plan Gate：`PASS / USER_APPROVED`
 > Implementation Done Gate：`PENDING_RUNTIME_REVALIDATION_AND_INDEPENDENT_REVIEW`
-> 当前阻断：`当前环境缺少隔离MySQL凭据，实库迁移/应用测试与真实浏览器验收未执行；Implementation Done独立裁决未完成`
+> 当前阻断：`合同关联与范围分配局部实库/浏览器验证已通过；其余AC的完整运行复核与Implementation Done独立裁决未完成`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`
 > Technical Plan：`docs/superpowers/plans/2026-09-02-f-com-001-requirement-convergence.md`
@@ -54,4 +54,13 @@
 - [x] 更新Requirement矩阵与DU阶段回执。
 - [ ] 完成Implementation Done独立裁决。
 
-> 检查点：基线=PRD修订010；当前Gate=Implementation Done复核；已通过=master可构建增量与静态/单元/前端验证；阻塞=MySQL实库、真实浏览器、独立裁决；下一步=补齐运行证据后申请裁决。
+> 检查点：基线=PRD修订010/014；当前Gate=Implementation Done复核；已通过=master既有增量及下述局部实库/浏览器链；剩余=其余AC运行复核与独立裁决。
+
+## 2026-09-07 合同关联与范围分配运行修复
+
+- 沿用已在master认领的`DU-20260906-PR7-CODE-TEST-TRACEABILITY-REPAIR`，Requirement为COM-01；保留replay可复用来源，不恢复旧表、旧状态或重复迁移。
+- 实际断点：已有4台范围调整为6台时，预览按新增分配判断自身冲突，按钮始终禁用。调整预览现携带当前范围ID/版本，排除自身占用，并保持项目/订单归属、版本和ACC减量守卫。
+- 合同权限拒绝原本以未处理异常返回业务码500，现使用403；真实无权关联请求仍被拒绝，未放宽权限。
+- 隔离环境`npdms-pr7-6644`，租户1；宿主后端58286、前端18086，原58086处于Windows保留端口段。测试数据前缀`FCOM-UI-1788777648045`，项目`992203060003`。
+- 真实浏览器完成ERP合同/订单展示、项目关联、分配4台、调整6台、释放和刷新历史；分配版本1/2、项目范围水位1/2/3，两条RELEASED历史均保留，页面异常为0。
+- 后端25项、前端7项聚焦测试及TypeScript检查通过；后端制品构建通过。未修改SQL或数据隔离机制，本轮不宣称全部Feature Done。

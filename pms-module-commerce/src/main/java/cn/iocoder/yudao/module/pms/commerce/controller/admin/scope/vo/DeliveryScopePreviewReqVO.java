@@ -13,5 +13,7 @@ public record DeliveryScopePreviewReqVO(
         @NotNull @Positive Long orderLineId,
         @NotBlank @Size(max = 128) String expectedOrderLineSourceVersion,
         @NotNull @DecimalMin(value = "0", inclusive = false) BigDecimal proposedQuantity,
-        List<@NotBlank @Size(max = 128) String> serialNumbers) {
+        List<@NotBlank @Size(max = 128) String> serialNumbers,
+        @Positive Long deliveryScopeId,
+        @Positive Long expectedAllocationVersion) {
 }

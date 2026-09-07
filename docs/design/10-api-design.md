@@ -315,6 +315,10 @@ Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String
 
 COM-01按PRD修订014补齐受信ERP批次字段：销售订单增加可空`salesType/sourceProjectName/orderComment/orderCreateTime/customerRequiredTime`，订单行增加可空`lineType/bundleCode/profitCenter/realExecutionNo/warrantyMonth`，沿用已有物理列长度和数量精度。旧调用缺失字段保持NULL；同来源版本改变任一字段仍是载荷冲突。仅ERP来源可进入权威接收端口，人工依据继续走候选接口，不晋升为ERP事实。
 
+COM-01范围预览`POST /delivery-scopes/actions/preview`在调整场景成对携带`deliveryScopeId/expectedAllocationVersion`；两者均缺省仍为新增预览。调整目标必须属于当前租户、项目和订单行且为匹配版本的当前范围，可用量为订单数量减去其他当前范围的占用，不能把被调整范围自身当作新增冲突。减量预览复用ACC绑定守卫，预览不写业务事实；实际调整仍重新锁定并执行原有守卫。
+
+COM合同不可见或项目关联无管理范围时保持拒绝和零写入，沿用统一响应的权限错误业务码`403`，不以未处理异常返回`500`，也不披露无权资源是否存在。
+
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |

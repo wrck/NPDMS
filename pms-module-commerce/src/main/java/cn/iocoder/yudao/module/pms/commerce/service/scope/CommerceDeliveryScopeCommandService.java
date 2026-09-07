@@ -70,14 +70,18 @@ public class CommerceDeliveryScopeCommandService {
         SalesOrderLineDO line = lockLine(command.tenantId(), command.orderLineId(),
                 command.expectedOrderLineSourceVersion());
         List<DeliveryScopeDO> current = lockCurrentByLine(command.tenantId(), line.getId());
+        DeliveryScopeDO replacing = previewScope(command, current);
+        BigDecimal ownQuantity = replacing == null ? BigDecimal.ZERO : replacing.getAllocatedQty();
         BigDecimal allocated = current.stream().map(DeliveryScopeDO::getAllocatedQty)
                 .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal available = line.getOrderQty().subtract(allocated);
+        BigDecimal available = line.getOrderQty().subtract(allocated).add(ownQuantity);
         List<String> errors = new ArrayList<>();
-        if (current.stream().anyMatch(scope -> "CONFLICT_FROZEN".equals(scope.getScopeStatus()))) {
+        if ((replacing == null || command.proposedQuantity().compareTo(ownQuantity) > 0)
+                && current.stream().anyMatch(scope -> "CONFLICT_FROZEN".equals(scope.getScopeStatus()))) {
             errors.add("DELIVERY_SCOPE_CONFLICT_FROZEN");
         }
-        if (current.stream().anyMatch(scope -> Objects.equals(scope.getProjectId(), command.projectId()))) {
+        if (current.stream().anyMatch(scope -> Objects.equals(scope.getProjectId(), command.projectId())
+                && !Objects.equals(scope.getId(), command.deliveryScopeId()))) {
             errors.add("DELIVERY_SCOPE_CURRENT_CONFLICT");
         }
         if (command.proposedQuantity().scale() > 6
@@ -88,6 +92,11 @@ public class CommerceDeliveryScopeCommandService {
             errors.add("OVER_ALLOCATION");
         }
         validatePreviewSubject(command, line, errors);
+        if (replacing != null && command.proposedQuantity().compareTo(ownQuantity) < 0) {
+            String error = reductionError(command.tenantId(), command.projectId(), replacing,
+                    command.proposedQuantity(), "SCOPE_PREVIEW:" + replacing.getId());
+            if (error != null) errors.add(error);
+        }
         List<DeliveryScopePreviewResult.OccupiedScope> occupied = current.stream()
                 .map(scope -> new DeliveryScopePreviewResult.OccupiedScope(scope.getId(), scope.getProjectId(),
                         scope.getAllocatedQty(), scope.getAllocationVersion(), scope.getScopeStatus()))
@@ -357,25 +366,47 @@ public class CommerceDeliveryScopeCommandService {
 
     private void requireReductionUnlocked(DeliveryScopeChangeCommand command, DeliveryScopeDO current,
                                           BigDecimal proposed) {
+        String error = reductionError(command.tenantId(), command.projectId(), current,
+                proposed, command.operationId());
+        if (error != null) throw conflict(error);
+    }
+
+    private String reductionError(Long tenantId, Long projectId, DeliveryScopeDO current,
+                                  BigDecimal proposed, String operationId) {
         AcceptanceScopeGuardResult guard;
         try {
             guard = acceptanceScopeGuardApi.checkReduction(new AcceptanceScopeGuardQuery(
-                    command.tenantId(), command.projectId(), current.getId(), current.getAllocationVersion(),
-                    proposed, command.operationId()));
+                    tenantId, projectId, current.getId(), current.getAllocationVersion(), proposed, operationId));
         } catch (RuntimeException exception) {
-            throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
+            return "ACCEPTANCE_SCOPE_UNKNOWN";
         }
         if (guard == null || guard.outcome() == null
                 || !Objects.equals(guard.deliveryScopeId(), current.getId())
                 || !Objects.equals(guard.scopeAllocationVersion(), current.getAllocationVersion())) {
-            throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
+            return "ACCEPTANCE_SCOPE_UNKNOWN";
         }
         if (guard.outcome() == AcceptanceScopeGuardOutcome.LOCKED) {
-            throw conflict("ACCEPTANCE_SCOPE_LOCKED");
+            return "ACCEPTANCE_SCOPE_LOCKED";
         }
         if (guard.outcome() != AcceptanceScopeGuardOutcome.UNLOCKED) {
-            throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
+            return "ACCEPTANCE_SCOPE_UNKNOWN";
         }
+        return null;
+    }
+
+    private DeliveryScopeDO previewScope(DeliveryScopePreviewCommand command, List<DeliveryScopeDO> current) {
+        if (command.deliveryScopeId() == null) return null;
+        DeliveryScopeDO scope = current.stream()
+                .filter(value -> Objects.equals(value.getId(), command.deliveryScopeId()))
+                .findFirst().orElse(null);
+        if (scope == null || !Objects.equals(scope.getProjectId(), command.projectId())
+                || !Objects.equals(scope.getOrderLineId(), command.orderLineId())
+                || !Objects.equals(scope.getAllocationVersion(), command.expectedAllocationVersion())
+                || !("ACTIVE".equals(scope.getScopeStatus()) || "CONFLICT_FROZEN".equals(scope.getScopeStatus()))
+                || scope.getEffectiveTo() != null || scope.getAllocatedQty() == null) {
+            throw conflict("DELIVERY_SCOPE_VERSION_CONFLICT");
+        }
+        return scope;
     }
 
     private boolean validCurrent(DeliveryScopeDO current, DeliveryScopeDO observed,
@@ -506,7 +537,10 @@ public class CommerceDeliveryScopeCommandService {
                 command.expectedProjectVersion(), command.expectedProjectScopeVersion())
                 || command.orderLineId() == null || command.orderLineId() <= 0
                 || blank(command.expectedOrderLineSourceVersion()) || command.proposedQuantity() == null
-                || command.proposedQuantity().signum() <= 0) {
+                || command.proposedQuantity().signum() <= 0
+                || (command.deliveryScopeId() == null) != (command.expectedAllocationVersion() == null)
+                || command.deliveryScopeId() != null
+                && (command.deliveryScopeId() <= 0 || command.expectedAllocationVersion() <= 0)) {
             throw conflict("DELIVERY_SCOPE_PREVIEW_INVALID");
         }
     }

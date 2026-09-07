@@ -64,7 +64,8 @@ public class DeliveryScopeController {
                 currentUserId(), request.projectId(), request.expectedProjectVersion(),
                 request.expectedProjectScopeVersion(), request.expectedDeliveryScopeVersion(),
                 request.orderLineId(), request.expectedOrderLineSourceVersion(),
-                request.proposedQuantity(), request.serialNumbers()))));
+                request.proposedQuantity(), request.serialNumbers(),
+                request.deliveryScopeId(), request.expectedAllocationVersion()))));
     }
 
     @PostMapping("/actions/assign")
