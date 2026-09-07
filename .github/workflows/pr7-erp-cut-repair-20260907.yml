@@ -1,0 +1,95 @@
+name: PR7 reviewed ERP and CUT repair (temporary)
+on:
+  push:
+    branches: [codex/code-fact-chronological-integration-acc-int-cut-20260904]
+    paths: [.github/workflows/pr7-erp-cut-repair-20260907.yml]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Apply only reviewed changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor a65098268eb2281a06874ff4f67378d522951868 HEAD
+          python3 - <<'PY'
+          from pathlib import Path
+          def edit(path, old, new):
+              p=Path(path); text=p.read_text(encoding='utf-8')
+              if text.count(old)!=1: raise SystemExit(f'{path}: reviewed preimage mismatch')
+              p.write_text(text.replace(old,new), encoding='utf-8')
+          base='pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/'
+          p=base+'service/authority/CommerceAuthorityIngestService.java'
+          edit(p,'copyOrderLine(row, command, fact, order.getId());','copyOrderLine(row, command, fact, order);')
+          edit(p,'copyOrderLine(current, command, fact, order.getId());','copyOrderLine(current, command, fact, order);')
+          edit(p,'CommerceOrderLineFact fact, Long orderId) {','CommerceOrderLineFact fact, SalesOrderDO order) {')
+          edit(p,'        row.setOrderId(orderId);\n        row.setLineCode(fact.lineCode());',
+              '        // ERP header identity is obtained under the same Owner lock as the line write.\n'
+              '        // Neither client fields nor CRM/project metadata may supply these required columns.\n'
+              '        row.setOrderId(order.getId());\n'
+              '        row.setCompanyCode(order.getCompanyCode());\n'
+              '        row.setOrderType(order.getOrderType());\n'
+              '        row.setOrderNo(order.getOrderNo());\n'
+              '        row.setLineCode(fact.lineCode());')
+          edit(p,'        if (order == null) {\n            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的销售订单Owner不存在");\n        }',
+              '        if (order == null || !Objects.equals(command.tenantId(), order.getTenantId())\n'
+              '                || !Objects.equals(command.sourceSystem(), order.getSourceSystem())\n'
+              '                || !CONFIRMED.equals(order.getAuthorityStatus())\n'
+              '                || order.getCompanyCode() == null || order.getCompanyCode().isBlank()\n'
+              '                || order.getOrderType() == null || order.getOrderType().isBlank()\n'
+              '                || order.getOrderNo() == null || order.getOrderNo().isBlank()) {\n'
+              '            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的ERP销售订单Owner不存在或身份损坏");\n        }')
+          edit('pms-module-commerce/src/main/resources/mapper/authority/OrderLineAuthorityMapper.xml',
+              'SET order_id = #{row.orderId}, line_no = #{row.lineCode}, item_code = #{row.itemCode},',
+              'SET order_id = #{row.orderId}, company_code = #{row.companyCode},\n'
+              '            order_type = #{row.orderType}, order_no = #{row.orderNo},\n'
+              '            line_no = #{row.lineCode}, item_code = #{row.itemCode},')
+          p='pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityCandidateMySqlTest.java'
+          edit(p,'authority_status,source_lifecycle_status,source_system,source_key,','authority_status,source_lifecycle_status,master_source_system,master_source_record_key,')
+          edit(p,'+ "source_version,source_updated_at,synced_at,version,creator,create_time,updater,update_time,deleted,tenant_id) "', '+ "master_source_version,source_updated_at,source_sync_time,status,version,creator,create_time,updater,update_time,deleted,tenant_id) "')
+          edit(p,"'ERP',?,?,NOW(3),NOW(3),0,'0'","'ERP',?,?,NOW(3),NOW(3),'ACTIVE',0,'0'")
+          p='pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestMySqlTest.java'
+          edit(p,'"AND source_key=?", Integer.class','"AND master_source_record_key=?", Integer.class')
+          edit(p,'"SELECT source_version FROM com_contract WHERE tenant_id=? "','"SELECT master_source_version FROM com_contract WHERE tenant_id=? "')
+          edit(p,'"AND source_key=?", String.class','"AND master_source_record_key=?", String.class')
+          edit(p,'        assertEquals(1, count("com_order_contract_relation"));\n        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(initial).decision());',
+              '        assertEquals(1, count("com_order_contract_relation"));\n'
+              '        assertEquals("ACME|NORMAL|ON-" + suffix, jdbcTemplate.queryForObject(\n'
+              '                "SELECT CONCAT_WS(\'|\', company_code, order_type, order_no) FROM com_sales_order_line "\n'
+              '                        + "WHERE tenant_id=? AND source_record_key=?", String.class, TENANT_ID, "L-" + suffix));\n'
+              '        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(initial).decision());')
+          for name in ['service/closure/CutoverClosureApplicationMySqlTest.java','service/closure/CutoverClosurePositiveLoopMySqlTest.java']:
+              path='pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/'+name
+              edit(path,'task.setCutoverType("NETWORK_CUTOVER")','task.setCutoverType("NETWORK_TOPOLOGY_CHANGE")')
+              edit(path,'approval.setSourceSnapshotVersion(1);',
+                  'approval.setLeadTimeEnabled(true);\n'
+                  '        approval.setLeadTimeSnapshot(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec()\n'
+                  '                .encode(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator()\n'
+                  '                        .calculate("A", task.getCutoverType(), task.getScheduledTime(), plan.getSubmittedAt())));\n'
+                  '        approval.setSourceSnapshotVersion(1);')
+          p='pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/dashboard/CutoverDashboardPositiveLoopMySqlTest.java'
+          edit(p,'source_snapshot_version,source_snapshot,route_snapshot,status_code,decision_at,rejection_reason,','source_snapshot_version,source_snapshot,route_snapshot,lead_time_enabled,status_code,decision_at,rejection_reason,')
+          edit(p,"?,7,1,JSON_OBJECT(),JSON_OBJECT(),'REJECTED'","?,7,1,JSON_OBJECT(),JSON_OBJECT(),b'0','REJECTED'")
+          paths=list(Path('pms-module-cutover/src/test/java').rglob('CutoverFullFlowPositiveLoopMySqlTest.java'))
+          if len(paths)!=1: raise SystemExit('Full-flow test path is ambiguous')
+          p=paths[0]; text=p.read_text(encoding='utf-8')
+          if text.count('NETWORK_CUTOVER')!=3: raise SystemExit('Full-flow type preimage changed')
+          p.write_text(text.replace('NETWORK_CUTOVER','NETWORK_TOPOLOGY_CHANGE'),encoding='utf-8')
+          PY
+          test "$(git diff --name-only | wc -l)" -eq 8
+          git diff --check
+          git add pms-module-commerce/src pms-module-cutover/src/test
+          git rm .github/workflows/pr7-erp-cut-repair-20260907.yml
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l)" -eq 9
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(commerce,cutover): derive ERP line identity and freeze local approval timing'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
