@@ -6,9 +6,21 @@
 > Task范围：`审查2026-08-21之后未进入master、但已按S0～S6正式Requirement实施的代码；按Requirement和Task边界选择性接收，不以来源Task状态NOT_STARTED否定已存在实现，也不把局部实现倒签为Feature Done`
 > Owner：`Codex S0～S6需求实现防遗漏集成会话`
 > 分支：`codex/s0-s6-requirement-selective-integration-20260903`
-> 认领基线：`master@33b621065d88b6f2abc1193b46e8ac6aaad49855`
-> 来源截点：`F-PROJ-008=a3bd00438d8be9bdd18f90802c7370af4152efdd;F-IMP-001/F-IMP-002=eda54bd0c911641c0d977288ee63b3a1df81e69d`
+> Worktree：`NONE`
+> 认领基线：`33b621065d88b6f2abc1193b46e8ac6aaad49855`
+> 认领提交：`NONE`
+> 修改边界：`NONE`
+> 串行资源：`NONE`
+> 旧功能范围：`NONE`
 > 验证：`Requirement标记；来源提交文件边界；来源父版本与当前master Blob一致性；依赖闭包；迁移版本唯一性；来源测试与独立Gate证据；不导入未裁决业务语义`
+> 集成记录：`PR #3 / bdcb0d396cf06f73f67cb5c483f607d58026e903；仅F-PROJ-008 Task3A、F-IMP-001支撑及F-IMP-002 Task1～11的部分集成`
+
+## 元数据归一与原始来源（2026-09-08）
+
+INTEGRATED_PARTIAL与原Feature协调、Owner、来源/接收边界不变。Git记录`0f026bf9e4e9d7c6fe6b15d4796ea617ffa59093`、`68def5e45d713ff1b3b071afa2132123bf2f98b0`及PR #3证明代码接收，但没有独立的事前认领提交证据；因此认领提交写NONE，不把代码提交或来源截点冒充认领。未登记的Worktree、规范路径边界和串行资源同样不倒填；原接收文件范围继续保留在下文。
+
+- 原来源截点：`F-PROJ-008=a3bd00438d8be9bdd18f90802c7370af4152efdd;F-IMP-001/F-IMP-002=eda54bd0c911641c0d977288ee63b3a1df81e69d`。
+- 本DU非活动，旧代码已部分集成不授予后续新写入，也不产生任何Feature Done。
 
 ## 判定原则
 

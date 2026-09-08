@@ -1,5 +1,7 @@
 # F-INT-012 设备连接与采集平台集成
 
+2026-09-08开发准入复验：以下PLT核心和Task 7已进入master，历史实现事实保留。当前Spec唯一明示的允许实施切片仍是已完成Task 7；INT边缘、文件适配、Gateway及消费者剩余清单尚须在唯一有效Technical Plan中落实下一未完成Task、Owner/依赖版本、精确文件边界和逐Task验收，再登记开发DU。不能从剩余清单任选接口直接开写，也不以未执行全库MySQL/浏览器或Phase 1/2批准作为设计/计划工作的前置。详见[开发准入复验](../delivery-units/DU-20260908-DEVELOPMENT-ADMISSION-REVALIDATION.md)。
+
 > Feature实施状态：`IN_PROGRESS`
 > 实施子状态：`PLATFORM_CORE_IMPLEMENTED / MASTER_COMPILE_AND_FOCUSED_TEST_PASS / INT_EDGE_AND_E2E_PENDING`
 > 总体工程阶段：`IMPLEMENTATION_PARTIAL`

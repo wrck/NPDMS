@@ -8,7 +8,9 @@
 
 **Tech Stack:** Java 25、Spring Boot、MyBatis Plus/XML、MySQL 8.4、Flyway、Vue 3、TypeScript 6、Element Plus、Vitest、Playwright真实浏览器。
 
-**Spec:** `docs/superpowers/specs/2026-08-30-f-cut-001-risk-survey-matrices-design.md`
+**Spec:** `specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`；`docs/superpowers/specs/2026-08-30-f-cut-001-risk-survey-matrices-design.md`仅作已批准设计过程补充，不替代正式Spec。
+
+**当前执行校准（2026-09-08）：** 本文件仍是唯一Technical Plan。历史Task 1～3/5实现事实以当前Feature Task为准；最近未完成代码单元为Task 4。原候选文件名V133不再是可直接使用的主干前向编号：当前主干已到V204，实际写入/合入时按工程链串行规则取当时下一个版本，不预约编号、不补写低版本或修改V129/V132历史。验证环境沿用`docs/development.md`的固定隔离测试环境，不因本Feature再新建Compose项目。
 
 ## Global Constraints
 
@@ -19,7 +21,7 @@
 - 调研配置必须覆盖12类核心内容；绑定级`requiredResult`是必填/选填的权威值。
 - 本地XLSX/HTML只引用名称、说明、界面格式和排序，不重复下载，不参与数量、规则、不一致或完成裁决。
 - 已发布内容不可原位覆盖；只允许复制为新草稿，CAS冲突必须刷新完整聚合。
-- 历史V128～V131不得修改；新迁移从当前空闲编号V132起串行落地。
+- 历史V128～V132及其他已执行迁移不得修改；所有后续新迁移在实际master集成窗口取当前最大版本之后的下一个编号。
 
 ---
 
@@ -333,7 +335,7 @@ git commit -m "feat(cutover): 联合校验风险与调研矩阵发布"
 
 **Files:**
 
-- Create: `sql/migrations/V133__fcut001_risk_survey_matrix_examples.sql`
+- Create: `sql/migrations/V{集成窗口确认版本}__fcut001_risk_survey_matrix_examples.sql`；花括号表示由当时主干版本序列决定的编号，不是保留文件名。当前复验观察到最大V204，但不把V205登记为预约；实施时先确认当前序列再生成实际文件名。
 - Create: `scripts/tests/test_fcut001_matrix_examples.py`
 
 **Interfaces:**
@@ -345,13 +347,13 @@ git commit -m "feat(cutover): 联合校验风险与调研矩阵发布"
 
 测试必须校验迁移为前向、幂等、使用`EXAMPLE_*`稳定键与高段ID，并覆盖24类普通风险、五类`17/25/23/24/8`共97项、12类调研以及精确命中、部分限定、优先级让位、无匹配和停用不参与组合。
 
-- [ ] **Step 2: 实现V133示例迁移**
+- [ ] **Step 2: 实现按集成窗口编号的前向示例迁移**
 
 迁移创建独立示例修订，不覆盖V129历史修订及其发布证据；缺少正式业务名称的检查项使用明确的“示例-<模式>-<序号>”名称，只证明配置能力和组合覆盖，不形成生产Owner事实。
 
 - [ ] **Step 3: 验证静态契约与MySQL前向幂等性**
 
-运行静态测试，并在当前Feature独立Compose项目执行Flyway `validate`、首次`migrate`和第二次无待执行迁移验证；查询确认示例修订的类别、数量和代表性匹配组合完整。
+运行静态测试，并按`docs/development.md`在固定Compose项目`npdms-50eb-test`、数据库`npdms_test`执行本次适用的Flyway `validate`、首次`migrate`和第二次无待执行迁移验证；查询确认示例修订的类别、数量和代表性匹配组合完整。先核对实例身份、当前迁移水位和本次待执行迁移范围，不占用/停止开发实例，也不以重建库、清空Redis或重设账号作为默认步骤。代码开发准入不等于已执行这些运行验证。
 
 - [ ] **Step 4: 提交示例迁移与测试**
 
@@ -494,11 +496,11 @@ Workdir: `yudao-ui/yudao-ui-admin-vue3`
 
 Expected: 全部PASS；使用现有`node_modules`与pnpm共享store，不重复下载。
 
-- [ ] **Step 3: 使用当前仓库独立验收环境和端口启动宿主机应用**
+- [ ] **Step 3: 使用当前仓库固定隔离验收环境和端口启动宿主机应用**
 
-使用独立Compose项目`npdms-e-fcut001-test`，数据库`npdms_fcut001_test`，MySQL端口`24316`、Redis端口`27379`；必须显式注入这些环境变量后再执行Compose，禁止复用其他worktree创建的同名容器。先只读确认后端`60280`和前端`20081`未被占用；若占用则重新选择空闲端口，不能停止开发端口`58080/18081`、既有验收端口`59280/19081`或其他任务进程。前端代理到当前验收后端端口。复用本机现有镜像和依赖，不重复下载。
+按当前`docs/development.md`复用Compose项目`npdms-50eb-test`、数据库`npdms_test`、MySQL端口`23316`、Redis端口`26379`；宿主机验收后端`59280`、跨租户负向后端`59282`、前端`19081`。先核对实例身份、端口占用及本次最终master迁移目录，不因Feature另建Compose项目，也不停止开发`58080/18081`或其他任务进程；端口/固定实例被占用时先协调复用窗口。前端代理到验收后端，复用现有镜像与共享依赖。本轮计划校准不授权清库、清空Redis或重设账号。原`npdms-e-fcut001-test`与原端口仅保留在历史候选验收证据中，不作为当前启动指令。
 
-Expected: `http://localhost:60280/actuator/health`为UP，`http://localhost:20081`可加载登录页；`docker inspect`证明Flyway只读迁移目录绑定到当前`E:\AICoding\Projects\NPDMS\sql\migrations`。
+Expected: `http://localhost:59280/actuator/health`为UP，`http://localhost:19081`可加载登录页；`docker inspect`证明Flyway只读迁移目录对应本次最终master内容。健康端口/登录页只证明环境可用，Step 4仍须验证实际业务行为。
 
 - [ ] **Step 4: 真实浏览器执行正负闭环**
 

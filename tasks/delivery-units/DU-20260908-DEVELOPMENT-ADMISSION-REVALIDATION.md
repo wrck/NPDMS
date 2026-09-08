@@ -33,4 +33,13 @@
 
 ## 当前证据与回执
 
-进行中。既有全量DU校验10条错误尚未消除；不得提前标记通过。
+文档与基线复验已完成，独立工作树创建及代码DU激活仍待执行，尚不报告已可直接写入。
+
+- 旧DU元数据：三份原始正文逐字保持，原头部所有引用值仍可追溯；F-INT-012原认领886bc7ce保留，无事前认领证据的S0与来源登记不倒填。SOURCE_RECOGNITION仅是QUARANTINED来源审查，不复制后继PR #4代码接收事实。
+- `validate_delivery_units.py --check-index`已真实通过，35份DU无格式错误；没有修改校验器，原10条错误消除。
+- 准入相关测试23项通过：DU校验/冲突拒绝8项、变更级审查8项、同仓权威3项、F-INS计划与范围4项。此前F-AST-001的32项静态契约检查仅为相应范围证据，不作全局开发前置或业务运行通过。
+- Java基线：`mvn.cmd -o -B -pl pms-module-service,pms-module-cutover -am "-DskipTests" test-compile`于2026-09-08完成，27模块BUILD SUCCESS，31.192秒；验证生产及测试源码编译，不表示执行了Java测试、MySQL或浏览器。既有弃用/unchecked警告未转为本次修复范围。
+- 当前Requirement追溯`--check`通过；100项/111切片的覆盖分布及Feature Done未变。18个准入文档引用可定位；仅声明的Markdown路径改变，业务代码、SQL、PRD/SDS语义和全局配置均未修改。
+- 计划校准：CUT使用正式Spec为权威输入，Task4不再补写旧V133，Task4/6均统一到当前固定测试环境。两份开发DU显式登记真实当前任务为Owner及待创建的独立短路径，PLANNED不冒充已创建或已认领。
+- 独立复核首轮提出执行位置和环境指引冲突两项，已修正；修正复核与实际工作树/激活结果在完成后补记。
+- 保留范围：F-INT-012下一代码Task仍须先收敛唯一计划；F-AST-001运行Done复验仍未完成；其他需求保持其真实Ready/阻断边界。本轮不执行迁移、清库、账号重设、业务实现或Phase 1/2全量审计，不签署Feature Done或发布。

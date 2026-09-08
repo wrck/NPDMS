@@ -14,11 +14,11 @@
 
 ## 当前最小工作单元
 
-- `DU-20260901-FCUT001-INTEGRATION`已把候选适配提交`07b6eb06`选择性集成为`master@c61e5b1e`，状态为`INTEGRATED_PARTIAL`并释放写边界。下一最小工作单元必须新建DU，只完成V133幂等示例迁移与合入后独立MySQL/真实浏览器最终DoD；完成前不得恢复Implementation Done。
+- `DU-20260901-FCUT001-INTEGRATION`已把候选适配提交`07b6eb06`选择性集成为`master@c61e5b1e`，状态为`INTEGRATED_PARTIAL`并释放写边界。当前最小代码单元为唯一计划Task 4的幂等示例迁移，范围见[开发DU](../delivery-units/DU-20260908-FCUT001-EXAMPLE-SEED.md)；必须先在master激活并包含认领提交再写入。原V133是候选编号，实际新迁移按当前master窗口取下一版本，不回填低版本。示例代码、最终MySQL与真实浏览器DoD未完成前，不恢复Implementation Done。
 
 ## master协调与分支候选
 
-- 2026-09-01 16:59:30 +08:00审计截点的`TECHNICAL_PLAN_READY`结论是冻结历史；当前权威状态由本Task更新为`IN_PROGRESS / MASTER_REVALIDATION`，Requirement覆盖继续保持`NOT_STARTED`。
+- 2026-09-01 16:59:30 +08:00审计截点的`TECHNICAL_PLAN_READY`及当时Requirement覆盖`NOT_STARTED`是冻结历史；当前权威状态为本Task的`IN_PROGRESS / MASTER_REVALIDATION`，Requirement当前覆盖只由生成矩阵派生。
 - `codex/integrate-f-cut-001@72ccb83f8052`仅作为干净候选来源；`codex/f-cut-001-matrices@85b93828eb04`继承候选后继续实施其他Feature，二者都不是master状态源。
 - `DU-20260901-FCUT001-INTEGRATION`仅迁移F-CUT-001代码、V132迁移、测试和历史证据；候选Task、Feature索引与追溯投影未覆盖master，CUT多Feature分支后续增量未进入本次集成。
 - `master@c61e5b1e`已通过适用自动化验证，但V133示例迁移及合入后独立MySQL/真实浏览器最终DoD尚未完成；下一动作必须先形成新的有效DU认领。

@@ -1,18 +1,28 @@
 # DU-20260903-FINT012-PARTIAL-CODE-RECEPTION F-INT-012已实现代码接收
 
 > DU状态：`INTEGRATED_PARTIAL`
-> DU类型：`FEATURE_PARTIAL_INTEGRATION`
+> DU类型：`FEATURE`
 > Feature协调：`F-INT-012=FEATURE_EXCLUSIVE`
-> Requirement：`INT-12@V1=FULL`
+> Task范围：`F-INT-012已实现API与PLT采集核心切片的选择性接收；不含INT生产边缘、真实Gateway与Feature Done`
 > Owner：`Codex F-INT-012已实现代码接收会话`
 > 分支：`codex/f-int-012-partial-reception-20260903`
-> 认领基线：`master@bdcb0d396cf06f73f67cb5c483f607d58026e903`
-> 权威认领提交：`886bc7ce7b47c6eefc82cc4b45fe5289adcaf83a`
-> 来源分支：`prereq-parallel-check-kKiAdn`
-> 来源提交：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`
-> master集成：`PR #4 / 2df41a187268332ea38f01ac90ea5f8302df3f34`
-> 主干适配验证：`PR #5 / Actions 33733891015 / SUCCESS`
-> 持续门禁：`.github/workflows/f-int-012-partial-reception.yml / f986ca37fed652bc68619ec091782404f6835caa`
+> Worktree：`NONE`
+> 认领基线：`bdcb0d396cf06f73f67cb5c483f607d58026e903`
+> 认领提交：`886bc7ce7b47c6eefc82cc4b45fe5289adcaf83a`
+> 修改边界：`NONE`
+> 串行资源：`NONE`
+> 旧功能范围：`NONE`
+> 验证：`历史主干适配：PR #5 / Actions 33733891015 / SUCCESS；不是本次重跑`
+> 集成记录：`PR #4 / 2df41a187268332ea38f01ac90ea5f8302df3f34；仅INTEGRATED_PARTIAL，Feature仍在途`
+
+## 元数据归一与原始来源（2026-09-08）
+
+原类型为`FEATURE_PARTIAL_INTEGRATION`。Git提交`886bc7ce`确有CLAIMED记录，本次只把已存在的“权威认领提交”归入规范字段，不宣称原格式当时通过了现行校验。原记录未登记物理Worktree、规范路径修改边界或串行资源，故对应字段为NONE；原接收范围仍由下文和历史提交说明，本次不倒填历史写边界。本DU非活动状态，不授予新的实施权限。
+
+- 原Requirement声明：`INT-12@V1=FULL`；只说明接收所关联的规格范围，不证明完成。
+- 来源分支：`prereq-parallel-check-kKiAdn`。
+- 来源提交：`8425805911703c3c75387ba7e9bea75dedd6f076`、`d2d1765ffe14233d8041d4b10c871d246c4a9183`、`cdfbd71a1722f9696c1dbb8713566de9e88ff97c`。
+- 原持续门禁引用：`.github/workflows/f-int-012-partial-reception.yml / f986ca37fed652bc68619ec091782404f6835caa`；原PR #5验证事实保留。
 
 ## 目标
 

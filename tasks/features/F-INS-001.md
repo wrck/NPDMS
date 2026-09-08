@@ -13,6 +13,8 @@
 
 ## 当前最小工作单元
 
+2026-09-08开发准入复验确认Task 9的现有契约、Owner和验收范围可继续执行；精确写边界与实际激活状态见[Task 9开发DU](../delivery-units/DU-20260908-FINS001-TASK9.md)。本Task不复制认领状态，不以本次准入复验宣布Task 9或Feature完成。
+
 * Task 9为当前最小工作单元：从最新master新建DU，服务端从认证上下文取得当前用户，以`AuthorizedDeviceProductTypeQuery(subjectUserId, deviceIds)`调用AST授权设备产品类型查询；只返回当前`PUBLISHED`且产品类型匹配的规则摘要。跨租户、空设备范围、未知/停用/未解析类型或AST不可用必须失败关闭或返回空，不能接受客户端产品类型作为授权依据，也不能泄露设备存在性、审核内部信息或秘密命令正文。
 
 ## 已完成
