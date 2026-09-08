@@ -45,6 +45,7 @@ const detail = () =>
 describe('F-PLT-002 frozen instance form', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
     const values = new Map<string, string>()
     vi.stubGlobal('sessionStorage', {
       getItem: (key: string) => values.get(key) ?? null,

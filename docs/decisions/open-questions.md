@@ -735,6 +735,21 @@
 - Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
 - Decision date: 2026-08-30
 
+## 单一模板升级的存量运行切换
+
+### Q-FPROJ009-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-03@V1；关联PM-01、PM-11
+- Area: 无显式关系图的已有发布模板/项目升级
+- Question: 在不保留双模板运行算法、不按sortOrder或S编号推图、不覆盖不可变历史的约束下，存量可写项目应依据哪份已批准关系图来源及哪个明确数据批次完成切换？
+- Evidence: 2026-09-08对固定测试库23316/npdms_test只读核查：Flyway到V204，阶段定义图与实例图表均不存在；43个ACTIVE、1个NORMAL_CLOSED项目，11个PUBLISHED模板修订。项目分组为tenant0无模板引用33个ACTIVE及1个关闭、模板910001/v2有6个ACTIVE、910008/v1有1个ACTIVE；tenant1模板992203040001/v2有3个ACTIVE。来源只是现有记录，不推定可丢弃或批准了线性关系。
+- Approved boundary: 需求方本轮批准直接升级单一模板并复用页面/动态表单，同时要求历史保护；不保留LEGACY/GRAPH双轨，不擅自清库、停用项目或把排序解释为真实前后置。
+- Blocking scope: 仅存量运行图切换及要求所有旧可写项目继续推进的验收；视图注册、定义/图配置、显式新草稿发布和无依赖领域验证可继续。
+- Resolution required: 由需求方确认受影响对象的权威关系来源与切换批次，或明确授权仅对指定隔离测试数据重建。不能从“计划批准”推导数据删除或历史转换授权。真实业务记录不得自动重建。
+- Decision owner: 需求方及PROJ数据Owner
+- Decision date: 未关闭；2026-09-08登记
+
 ## 模板与独立验收修订018的后续契约
 
 ### Q-TPLACC-001

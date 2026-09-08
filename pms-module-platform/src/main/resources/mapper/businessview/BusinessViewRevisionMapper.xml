@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.businessview.BusinessViewRevisionMapper">
+    <!-- PM-03: explicit tenant and deletion checks protect every custom SQL path. -->
+    <sql id="pageScope">
+        tenant_id = #{query.tenantId} AND deleted = b'0'
+        <if test="query.entityType != null">AND entity_type = #{query.entityType}</if>
+        <if test="query.viewSource != null">AND view_source = #{query.viewSource}</if>
+        <choose>
+            <when test="query.ownerContexts != null and !query.ownerContexts.isEmpty()">
+                AND owner_context IN
+                <foreach collection="query.ownerContexts" item="owner" open="(" separator="," close=")">#{owner}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+    <select id="selectPageRows" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.businessview.BusinessViewRevisionDO">
+        SELECT * FROM plt_business_view_revision WHERE <include refid="pageScope"/>
+        ORDER BY entity_type, view_key, revision_no, id
+        LIMIT #{query.pageSize} OFFSET #{query.offset}
+    </select>
+    <select id="selectPageCount" resultType="long">
+        SELECT COUNT(*) FROM plt_business_view_revision WHERE <include refid="pageScope"/>
+    </select>
+    <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.businessview.BusinessViewRevisionDO">
+        SELECT * FROM plt_business_view_revision
+        WHERE tenant_id = #{query.tenantId} AND entity_type = #{query.entityType}
+          AND view_key = #{query.viewKey} AND deleted = b'0'
+        ORDER BY revision_no, id FOR UPDATE
+    </select>
+    <update id="updateDraftIfMatch">
+        UPDATE plt_business_view_revision SET
+            component_key = #{row.componentKey}, component_version = #{row.componentVersion},
+            view_source = #{row.viewSource}, dynamic_form_revision_id = #{row.dynamicFormRevisionId},
+            context_schema = #{row.contextSchema}, supported_actions = #{row.supportedActions},
+            query_provider_key = #{row.queryProviderKey}, command_provider_key = #{row.commandProviderKey},
+            permission_provider_key = #{row.permissionProviderKey},
+            version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+          AND entity_type = #{row.entityType} AND view_key = #{row.viewKey} AND owner_context = #{row.ownerContext}
+          AND published_at IS NULL AND disabled_at IS NULL AND deleted = b'0'
+    </update>
+    <update id="publishIfMatch">
+        UPDATE plt_business_view_revision SET published_at = #{row.publishedAt},
+            version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+          AND published_at IS NULL AND disabled_at IS NULL AND deleted = b'0'
+    </update>
+    <update id="disableIfMatch">
+        UPDATE plt_business_view_revision SET disabled_at = #{row.disabledAt},
+            version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+          AND published_at IS NOT NULL AND disabled_at IS NULL
+          AND #{row.disabledAt} &gt;= published_at AND deleted = b'0'
+    </update>
+</mapper>

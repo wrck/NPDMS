@@ -1,6 +1,6 @@
 # F-PLT-003 业务视图注册与页面/动态表单接入
 
-> Feature实施状态：`NOT_STARTED`
+> Feature实施状态：`IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`
 > Requirement ID：`PM-03`
 > Feature Spec：`specs/features/F-PLT-003-business-view-registration.md`

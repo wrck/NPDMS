@@ -1,6 +1,6 @@
 # F-PROJ-009 项目交付模板配置中心
 
-> Feature实施状态：`NOT_STARTED`
+> Feature实施状态：`IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`
 > Requirement ID：`PM-03`
 > Feature Spec：`specs/features/F-PROJ-009-project-delivery-template-configuration-center.md`
