@@ -172,6 +172,8 @@ def _resolve_claim_commit(repository: Path, unit: DeliveryUnit) -> str | None:
         "log",
         "--reverse",
         "--format=%H",
+        "-G",
+        r"^> (DU状态|认领提交)：",
         "--",
         relative,
         check=False,
@@ -371,24 +373,29 @@ def main() -> int:
         units = load_delivery_units(unit_root)
         errors = validate_delivery_units(repository, units)
         index_path = unit_root / "README.md"
-        rendered = render_index(units)
-        if args.write_index:
-            index_path.write_text(rendered, encoding="utf-8", newline="\n")
-        if args.check_index and (
-            not index_path.is_file() or index_path.read_text(encoding="utf-8") != rendered
-        ):
-            errors.append("tasks/delivery-units/README.md is stale")
+        if args.write_index or args.check_index:
+            rendered = render_index(units)
+            if args.write_index:
+                index_path.write_text(rendered, encoding="utf-8", newline="\n")
+            if args.check_index and (
+                not index_path.is_file() or index_path.read_text(encoding="utf-8") != rendered
+            ):
+                errors.append("tasks/delivery-units/README.md is stale")
         if args.base_ref:
             branch = _git(repository, "branch", "--show-current")
-            changed = _changed_paths(repository, args.base_ref)
-            errors.extend(
-                validate_changed_paths(
-                    units,
-                    branch=branch,
-                    changed_paths=[path.replace("\\", "/") for path in changed if path],
-                    legacy_cutovers=_load_legacy_cutovers(repository),
+            if branch == "master":
+                # The master coordinator has no changed-path check; only validate its ref.
+                _git(repository, "rev-parse", "--verify", f"{args.base_ref}^{{commit}}")
+            else:
+                changed = _changed_paths(repository, args.base_ref)
+                errors.extend(
+                    validate_changed_paths(
+                        units,
+                        branch=branch,
+                        changed_paths=[path.replace("\\", "/") for path in changed if path],
+                        legacy_cutovers=_load_legacy_cutovers(repository),
+                    )
                 )
-            )
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
         errors = [str(exc)]
 

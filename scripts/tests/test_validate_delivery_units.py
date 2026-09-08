@@ -192,6 +192,46 @@ class DeliveryUnitValidatorTest(unittest.TestCase):
                 "changed path is outside claimed boundaries: outside/新文件.md",
             ], errors)
 
+    def test_claim_resolution_skips_notes_only_commits(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self.initialize_repository(repository)
+            unit_path = repository / "tasks/delivery-units/DU-TEST.md"
+            unit_path.parent.mkdir(parents=True)
+            fields = {**FIELDS, "认领提交": "SELF"}
+            content = "# DU\n" + "\n".join(f"> {key}：`{value}`" for key, value in fields.items())
+            unit_path.write_text(content, encoding="utf-8")
+            self.git(repository, "add", "tasks/delivery-units/DU-TEST.md")
+            self.git(repository, "commit", "-m", "claim")
+            claim = self.git(repository, "rev-parse", "HEAD")
+            unit_path.write_text(content + "\n\nUpdated evidence only.\n", encoding="utf-8")
+            self.git(repository, "add", "tasks/delivery-units/DU-TEST.md")
+            self.git(repository, "commit", "-m", "notes")
+            with patch.object(delivery_units, "_git", wraps=delivery_units._git) as calls:
+                self.assertEqual(claim, delivery_units._resolve_claim_commit(
+                    repository, parse_delivery_unit(unit_path)))
+                self.assertEqual(1, sum(call.args[1] == "show" for call in calls.call_args_list))
+
+    def test_master_cli_does_not_load_unused_paths_or_legacy_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self.initialize_repository(repository)
+            self.git(repository, "commit", "--allow-empty", "-m", "baseline")
+            with patch.object(sys, "argv", ["validate_delivery_units.py", "--repository",
+                                           str(repository), "--base-ref", "master"]), \
+                    patch.object(delivery_units, "_changed_paths") as paths, \
+                    patch.object(delivery_units, "_load_legacy_cutovers") as legacy, \
+                    patch.object(delivery_units, "render_index") as index, \
+                    redirect_stdout(StringIO()):
+                self.assertEqual(0, delivery_units.main())
+                paths.assert_not_called()
+                legacy.assert_not_called()
+                index.assert_not_called()
+            with patch.object(sys, "argv", ["validate_delivery_units.py", "--repository",
+                                           str(repository), "--base-ref", "missing-ref"]), \
+                    redirect_stdout(StringIO()):
+                self.assertEqual(1, delivery_units.main())
+
     def test_single_claim_commit_works_without_a_planned_commit(self) -> None:
         for branch in ("master", "codex/f-sol-003"):
             with self.subTest(branch=branch), tempfile.TemporaryDirectory() as directory:
