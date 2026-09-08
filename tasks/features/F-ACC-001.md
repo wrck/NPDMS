@@ -2,17 +2,19 @@
 
 > Feature实施状态：`IN_PROGRESS`<br>
 > 总体工程阶段：`IMPLEMENTATION`<br>
-> Feature Ready Gate：`READY / GO`（来源`bde0feac`；master修订011已关闭`Q-GOV-20260901-001`）<br>
+> Feature Ready Gate：以当前Feature Spec为准（修订018为`REVALIDATION_REQUIRED`；不在Task另行签署Ready）<br>
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
 > Implementation Done Gate：`NOT_ESTABLISHED`<br>
-> 当前阻断：`代码已选择性集成至master；当前master真实MySQL、Chromium与独立Done裁决未完成；历史分支Done只作证据`<br>
-> 当前任务：`master@e53f7243代码回执后的运行复验与独立裁决`<br>
-> Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
+> 当前阻断：`生产入口已有注册；修订018独立验收创建/范围绑定/消费者差量未闭合，当前master最终MySQL、Chromium与独立Done未收口；历史分支Done只作证据`<br>
+> 当前任务：`先核对修订018实际契约与直接消费者缺口，再完成相应运行复验和独立裁决；不等待Phase 1/2整阶段批准`<br>
+> Requirement ID：`ACC-03@V1`；`ACC-04@V1`（当前覆盖映射仅由Feature Spec维护，均为PARTIAL）<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-001-acceptance-report-version-deliverable-sync.md`<br>
 > 分支/工作树：`master` / `M:\AICoding\CodexData\worktrees\master-governance\NPDMS`
 
 ## 实施边界
+
+2026-09-08[逐需求审查](../delivery-units/DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW.md#逐需求证据)校准上述当前事实。来源`bde0feac`的READY/GO及master修订011关闭`Q-GOV-20260901-001`继续保留为历史，不替代修订018的当前Ready判断；本轮未修代码、未进行新的运行验收，也未签署Done。
 
 - 实现初验/终验活动、草稿与不可变报告版本、终验守卫、PROJ任务同事务完成、既有应交根来源同步、PLT独立归档补偿和历史附件下载。
 - 仅覆盖`ACC-04`的初验/终验报告来源切片；不实现其余来源、CLO业务、统一批量下载或Q-FCOM-002退出/回退规则。

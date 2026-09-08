@@ -42,6 +42,8 @@
 
 ## 未完成边界
 
+2026-09-08现状复核：本Feature的本地主档Done和2026-08-28浏览器证据保留，CUS-03仍只获PARTIAL覆盖。下文“正式规格仓库/锁定快照”及F-AST-001完成的表述是8月28日历史执行记录，不是当前第二状态源；当前F-AST-001以其独立Task的REVALIDATION_REQUIRED为准。逐需求代码事实见[本轮审查](../delivery-units/DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW.md#逐需求证据)。
+
 - `INT-03` CRM 连接、认证、同步、重试、对账和 MarketRelation 目录同步未实现。
 - `CUS-01` 用户资产库全景未实现。
 - `CUS-02` 客户服务等级时态版本未实现。

@@ -2,6 +2,8 @@
 
 本矩阵只投影`master`当前Feature Task状态。Feature Ready以Feature Spec为权威，Implementation状态与Done以对应`tasks/features/F-*.md`为权威；认领、写边界、Worktree交接和集成回执见[`tasks/delivery-units/`](../delivery-units/README.md)。Git分支、提交、测试和浏览器结果只作候选证据。
 
+当前逐需求代码与装配复核见[2026-09-08审查回执](../delivery-units/DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW.md#逐需求证据)。以下日期化分支回执保留历史；Requirement完整覆盖以生成矩阵为准，受控服务或FULL规格映射不等于生产功能完成。
+
 首次冻结审计输入为`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`、截点`2026-09-01T16:59:30+08:00`，见[原始时间线](../../docs/generated/branch-history-audit-2026-09-01.md)。上一轮增量审计输入为`master@133f7b8132e0f9f496ba4dbe79a4cce43a04019e`、截点`2026-09-01T17:59:19+08:00`，见[合入后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-post-governance.md)。本轮F-INS增量审计输入为`master@c33c7eb9d69eda365dd19ea1d5b8a25816b77850`、截点`2026-09-01T20:07:30+08:00`，见[F-INS Task 4后时间线](../../docs/generated/branch-history-audit-2026-09-01-fins-task4.md)；INS已从`6719ab94 + 7项未提交Task 4`前进为`e13feca7 + 4项未提交Task 5`。后续分支前进必须继续增量复审，不覆盖任一冻结快照。
 
 本轮PROJ权威审计输入为`master@158118d0a085d0ee1dc08c7c74fe10936537752c`、截点`2026-09-01T22:05:15+08:00`，见[PROJ选择性集成后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-proj-integration.md)。本轮同时裁决`codex/v1-8-feature-revalidation-50eb`、`codex/f-proj-001-atomic-alignment`与`codex/f-proj-008-stage-advance`，不得再以“仅审查008”的局部结论覆盖该快照。
@@ -62,8 +64,8 @@
 | F-CUS-001 | [Task](F-CUS-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-AST-001 | [Task](F-AST-001.md) | REVALIDATION_REQUIRED | 无；待建复核DU | EQP-01不派生完成 |
 | F-AST-002 | [Task](F-AST-002.md) | IN_PROGRESS；Feature Ready已恢复，代码已选择性集成至`524a70e7` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | Q-GOV-20260901-001已关闭；EQP-01局部覆盖，master真实MySQL与独立Done裁决待补 |
-| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS；Feature Ready已恢复，代码已选择性集成至`e53f7243` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | ACC-03完整、ACC-04报告来源局部；master真实MySQL/Chromium与独立Done裁决待补 |
-| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS；Feature Ready已恢复，代码已选择性集成至`b3e7c76e` | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | ACC-02完整、ACC-04满意度来源局部；F-ACC-001及自身master真实MySQL/Chromium与独立Done裁决待补 |
+| F-ACC-001 | [Task](F-ACC-001.md) | IN_PROGRESS；代码已有生产注册，当前Feature Ready以修订018的Spec重验证要求为准 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | ACC-03/ACC-04均为PARTIAL映射；独立验收与范围绑定差量、master运行复验及独立Done待补 |
+| F-ACC-002 | [Task](F-ACC-002.md) | IN_PROGRESS；新入口和服务已有生产注册，Ready以Spec为准 | [DU-20260902-ACC-AST-SELECTIVE-INTEGRATION](../delivery-units/DU-20260902-ACC-AST-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | ACC-02@V1为FULL规格映射但未Done，ACC-04仅满意度来源；master最终运行及独立Done待补 |
 | F-COM-001 | [Task](F-COM-001.md) | IN_PROGRESS；master已形成COM-A/COM-B Requirement合并的可构建增量，待MySQL/浏览器/独立裁决 | [DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE](../delivery-units/DU-20260902-FCOM001-REQUIREMENT-CONVERGENCE.md)已部分集成并释放边界 | 统一规格全部AC通过前不派生COM-01完成 |
 | F-CUT-001 | [Task](F-CUT-001.md) | IN_PROGRESS | [DU-20260901-FCUT001-INTEGRATION](../delivery-units/DU-20260901-FCUT001-INTEGRATION.md)已部分集成并释放边界 | V133示例迁移与master最终运行DoD未完成；不得声明Done |
 | F-CUT-002 | [Task](F-CUT-002.md) | IMPLEMENTED_WITH_CONTROLLED_SUBSTITUTES / BLOCKED_BY_DEPENDENCY；代码已进入`c9066332` | [剩余Feature选择性集成DU](../delivery-units/DU-20260902-REMAINING-FEATURE-SELECTIVE-INTEGRATION.md)已部分集成并释放边界 | CUT-01/CUT-02保持PARTIAL；生产Owner、MySQL与浏览器未闭合 |

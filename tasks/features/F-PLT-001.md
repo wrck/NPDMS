@@ -14,6 +14,8 @@
 
 ## 实施边界
 
+2026-09-08现状复核：以上PASS/Done记录对应历史已交付文件底座，不覆盖当前Spec的修订重验证范围。当前Feature Ready仍只由Spec维护；保留历史Implementation Done，但PLT-02当前切片不自动恢复完成。详见[逐需求审查](../delivery-units/DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW.md#逐需求证据)；本轮没有新增业务运行验收。
+
 - 本Feature只实现PLT-02统一文件公共能力，不合并PLT-01、INT-11、INT-12或各业务域审批状态。
 - PLATFORM持有FileArtifact、FileVersion、FileReference业务真值；INFRA只提供技术存储回执和短时访问能力。
 - 首期仅处理50MB以内文件，复用Spring Multipart和Yudao既有文件存储链，不修改基础框架。

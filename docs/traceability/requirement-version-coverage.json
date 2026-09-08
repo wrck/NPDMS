@@ -12,7 +12,7 @@
       "source": "docs/engineering/gates/phase-1/gate-status.md",
       "审查状态": "REVALIDATION_REQUIRED",
       "当前结论": "REVALIDATION_REQUIRED",
-      "机器门禁": "PENDING",
+      "机器门禁": "FAIL",
       "适用修订": "PRD_V1.8_REVISION_018"
     },
     "phase-2": {
