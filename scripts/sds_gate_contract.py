@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Version-aware SDS gate metadata and revision-016 design invariants.
+"""Substantive design/schema checks plus metadata for remaining risk gates.
 
-Technical validation is NOT approval. The default phase commands still fail when
-current approval evidence is missing. Historical revision-007 evidence is not
-rewritten or implicitly promoted to a new business baseline.
+Phase 1/2 no longer impose admission or whole-PRD provenance requirements.
+Historical provenance can be audited explicitly; actual schema/DDL bindings,
+negative cases and remaining risk-gate approval checks are preserved.
 """
 from __future__ import annotations
 import hashlib
@@ -56,6 +56,9 @@ def metadata(text: str, label: str) -> list[str]:
     return re.findall(r'^> '+re.escape(label)+r'：`([^`]+)`',text,re.M)
 
 def validate_gate(root: Path, phase: int, *, technical: bool) -> list[str]:
+    # Phase 1/2 are design categories, not admission gates. No approval is implied.
+    if phase in (1, 2):
+        return []
     path = root / f'docs/engineering/gates/phase-{phase}/gate-status.md'
     if not path.is_file():
         return [f'Phase {phase}: missing gate-status']
@@ -93,18 +96,16 @@ def validate_gate(root: Path, phase: int, *, technical: bool) -> list[str]:
                     errors.append(f'Phase {phase}: self-review/pending evidence cannot approve')
     elif any(metadata(text,key)==['GO'] for key in ('需求方批准','独立复审')):
         errors.append(f'Phase {phase}: pending gate must not contain approved-only GO metadata')
-    if not technical and phase>1:
-        errors.extend(validate_gate(root,phase-1,technical=False))
     return errors
 
-def validate_design(root: Path) -> list[str]:
+def validate_design(root: Path, *, check_prd_identity: bool = False) -> list[str]:
     errors=[]
     try:
         carrier=json.loads(read(root/MODEL))
         directory=json.loads(read(root/'docs/traceability/domain-object-table-map.json'))['objects']
     except (OSError,ValueError,KeyError) as exc:
         return [f'current carrier contract unavailable: {exc}']
-    if carrier.get('prdGitBlob')!=blob(root/PRD):
+    if check_prd_identity and carrier.get('prdGitBlob')!=blob(root/PRD):
         errors.append('carrier contract PRD identity is stale')
     if carrier.get('scope')!='PROSPECTIVE_FEATURE_FORWARD_SCHEMA_NOT_RUNTIME_MIGRATION':
         errors.append('prospective design must not claim deployed migration')
@@ -226,6 +227,6 @@ def validate_mysql_evidence(root: Path) -> list[str]:
     if evidence.get('tableCount')!=len(json.loads(read(root/MODEL))['tables']):
         errors.append('MySQL executed table count differs from current contract')
     local_run = evidence.get('executionEnvironment') == 'LOCAL_WORKTREE' and isinstance(evidence.get('sourceTreeDirty'), bool)
-    if evidence.get('prdGitBlob')!=blob(root/PRD) or not evidence.get('sourceCommit') or not (evidence.get('actionsRunId') or local_run):
-        errors.append('MySQL evidence lacks exact PRD and execution provenance')
+    if not evidence.get('sourceCommit') or not (evidence.get('actionsRunId') or local_run):
+        errors.append('MySQL evidence lacks execution provenance')
     return errors

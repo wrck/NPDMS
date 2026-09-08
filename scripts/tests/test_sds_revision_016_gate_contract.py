@@ -67,9 +67,15 @@ class CurrentGateContractTest(unittest.TestCase):
     def test_current_gate_does_not_fake_formal_approval(self):
         self.assertTrue(any('APPROVAL_REQUIRED' in e for e in gate.validate_gate(self.root, 3, technical=False)))
 
-    def test_stale_prd_identity_is_rejected(self):
+    def test_whole_prd_identity_is_only_an_explicit_provenance_audit(self):
         self.mutate_model(lambda m: m.update(prdGitBlob='0'*40))
-        self.assertTrue(any('identity is stale' in e for e in self.errors()))
+        self.assertEqual([], self.errors())
+        self.assertTrue(any('identity is stale' in e for e in gate.validate_design(self.root, check_prd_identity=True)))
+
+    def test_prd_wording_does_not_invalidate_unchanged_mysql_inputs(self):
+        path = self.root / gate.PRD
+        path.write_text(path.read_text(encoding='utf-8') + '\nEditorial-only note.\n', encoding='utf-8')
+        self.assertEqual([], gate.validate_mysql_evidence(self.root))
 
     def test_reference_schema_cannot_claim_runtime_migration(self):
         self.mutate_model(lambda m: m.update(scope='DEPLOYED'))
@@ -134,26 +140,26 @@ class CurrentGateContractTest(unittest.TestCase):
         self.assertTrue(any('noncanonical' in e for e in self.errors()))
 
     def test_duplicate_gate_metadata_is_rejected(self):
-        path=self.root/'docs/engineering/gates/phase-1/gate-status.md'
+        path=self.root/'docs/engineering/gates/phase-3/gate-status.md'
         path.write_text(path.read_text()+f'\n> PRD Blob：`{gate.blob(self.root/gate.PRD)}`\n')
-        self.assertTrue(any('duplicate' in e for e in gate.validate_gate(self.root,1,technical=True)))
+        self.assertTrue(any('duplicate' in e for e in gate.validate_gate(self.root,3,technical=True)))
 
     def test_changing_to_approved_requires_real_review_even_in_technical_mode(self):
-        path=self.root/'docs/engineering/gates/phase-1/gate-status.md'
+        path=self.root/'docs/engineering/gates/phase-3/gate-status.md'
         path.write_text(path.read_text().replace('审查状态：`REVALIDATION_REQUIRED`','审查状态：`APPROVED`'))
-        errors=gate.validate_gate(self.root,1,technical=True)
+        errors=gate.validate_gate(self.root,3,technical=True)
         self.assertTrue(any('APPROVAL_REQUIRED' in e for e in errors))
         self.assertTrue(any('independent review evidence' in e for e in errors))
 
     def test_self_review_cannot_masquerade_as_independent_go(self):
-        path=self.root/'docs/engineering/gates/phase-1/gate-status.md'
+        path=self.root/'docs/engineering/gates/phase-3/gate-status.md'
         text=path.read_text()
         for label,value in [('审查状态','APPROVED'),('机器门禁','PASS'),('需求方批准','GO'),('独立复审','GO')]:
             import re
             text=re.sub(r'^> '+label+r'：`[^`]+`',f'> {label}：`{value}`',text,flags=re.M)
         path.write_text(text+'\n> 当前复审证据：`review.md`\n')
         (self.root/'review.md').write_text(f'Reviewer: same author\nDecision: GO\nReview scope: design\nPRD_V1.8_REVISION_{gate.revision(self.root)}\n{gate.blob(self.root/gate.PRD)}\nSELF_REVIEW_ONLY\n')
-        self.assertTrue(any('self-review' in e for e in gate.validate_gate(self.root,1,technical=False)))
+        self.assertTrue(any('self-review' in e for e in gate.validate_gate(self.root,3,technical=False)))
 
     def test_owners_accept_precise_version_slice_keys(self):
         p=self.root/'owner.md'; p.write_text('| Requirement切片 | 名称 | 版本 | 领域 | Owner |\n| PM-08@V1 | a | b | c | PROJ（项目） |\n| PM-08@V2 | a | b | c | PROJ（项目） |\n')

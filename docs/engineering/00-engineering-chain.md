@@ -3,7 +3,7 @@
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
 > 适用基线：`docs/baseline/prd-v1.8.md`（master修订018；修订001—017批准与来源记录继续保留，修订017 Blob `fd701f153f3148001625fcfe45180b36aae719c2`仅作历史输入）；当前业务增量见`prd-v1.8-amendment-018-template-business-rules-and-acceptance.md`<br>
-> 工程适配状态：修订018确认业务规则配置化及独立验收逻辑边界；相关Phase、Feature和物理/API契约仍需差量重验证，不用历史批准自动放行<br>
+> 工程适配状态：2026-09-08需求方批准取消Phase 1/2阶段全量阻断，采用变更级实质审查；修订018的实际API/物理缺口仍按影响范围处理，不用历史批准自动放行<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 结构化覆盖：`docs/traceability/requirement-version-coverage.json`<br>
@@ -29,6 +29,20 @@
 
 ## 2. 工程权威与文档治理
 
+### 当前变更级审查规则（2026-09-08批准）
+
+需求方已确认“取消阶段全量阻断、保留变更级实质审查”。本节替代全文及既有分册/计划中的Phase 1/2整阶段审批、顺序准入、全文PRD身份联动和多处状态同步流程；不改变PRD业务语义、实质约束或历史记录。
+
+1. Phase 1/2保留为设计内容分类，不再拥有日常任务必须通过的全量门禁。可以围绕同一变更连续完成领域、API、数据和验证设计，不等待全平台Phase批准。
+2. 变更开始时在现有Task/DU或提交说明中一次性说明受影响Requirement、权威设计位置、Owner、接口/表/直接消费者和验证范围；结果同处记录。纯说明/排版修改无需重新签署技术批准；不新增变更审批表、评分表或另一套状态源。
+3. 每项规则只在权威PRD/SDS/Feature契约中维护一次，其他分册引用。只改实际受影响内容，不同步所有分册的版本标题和批准状态；索引/矩阵由已有生成器按来源变化生成，不要求每次代码或措辞修改都重建。
+4. 必须审查实际影响：Owner及调用方向、服务端授权/租户、状态与历史、API与直接消费者、幂等/并发/事务、文件事实和数据库兼容。对应变更执行现有Feature契约测试、代码测试及必要的隔离Schema/运行验证；未涉及的数据表、业务域和Phase不追加验证前置。
+5. 只有本次范围内的真实冲突/缺失契约、失败验证或未获必要的高影响操作授权才能阻断。已确认无影响的旧事实/测试继续有效；PRD全文身份变化仅用于追溯提示，不使全部合同和Schema证据自动作废。Schema证据仍须绑定实际被验证的合同与DDL内容，失败/未执行不得冒充成功。
+6. 审阅结论绑定具体提交和范围，由有权审阅者给出；自审与独立审查明确区分。必要的跨Owner或高风险复核只覆盖本次相关消费者，不重签全阶段。Feature Ready/Done、DU认领、部署、迁移和发布继续由原权威维护，不能从审计退出码或取消阶段门禁推导完成。
+7. 旧Phase 1/2脚本仅在显式`--audit`（原`--technical`作为显式审计选择保留）时执行全量检查；发现返回真实失败，不授予下一阶段权限。默认调用输出NOT_RUN并提示变更级审查。Phase 1不检查Phase 2物理合同，其他工具不递归要求Phase 1/2批准。
+
+例如：修改说明只改说明；修改ACC报告契约，审查ACC及其真实PROJ/COM/PLT消费者；修改表字段，验证该合同/DDL及相关约束。这里不规定必须改几份文件，但禁止为对齐阶段标记扩散修改。真实缺口仍通过原open-questions处理，纯阶段批准缺失不再是独立阻断理由。
+
 ### 2.1 权威顺序
 
 1. `docs/baseline/`：唯一业务语义基线；
@@ -50,11 +64,11 @@
 - 外部输入、生成报告和临时材料按`docs/README.md`分类，不得混入正式设计目录。
 - 需求来源文档：`需求/`，业务基线PRD版本变更，需要同步变更该目录下PRD文件
 
-每个阶段只允许一个`gate-status.md`表达当前状态。业务语义变化必须回写PRD/CHG；设计结论必须回写SDS，具有长期影响的取舍同时记录ADR；`gate-status.md`只同步放行结果和证据，不能单独替代正式资产。被替代版本必须归档，禁止维护`draft`、`final2`等平行现行副本。
+Phase 1/2既有gate-status.md保留为非阻断历史记录，不再随日常变更维护；实际变更审查复用当前Task/DU/提交，其他风险门禁仍只保留其原唯一记录。业务语义变化回写PRD/CHG，设计结论回写实际权威SDS；长期取舍需要时记录ADR，不为纯阶段推进增建文档。被替代正式内容保留Git追溯，禁止维护并行现行副本。
 
 ### 2.3 追溯要求
 
-每个Feature、API、数据库变更、事件、工作流和测试必须引用一个或多个Requirement ID。变更后同步更新`docs/traceability/requirement-matrix.md`；无法追溯到PRD或已批准公共技术规则的实现不得进入开发。
+每个Feature、API、数据库变更、事件、工作流和测试必须引用一个或多个Requirement ID。只有来源/覆盖/证据引用变化影响投影时，才生成`docs/traceability/requirement-matrix.md`；无法追溯到PRD或已批准公共技术规则的实现不得进入开发。
 
 Requirement覆盖使用`Requirement ID + 目标版本切片`作为最小键，映射对应Capability分组、纵向业务Feature、Feature依赖、Domain Owner和物理Owner。Capability只用于把同一Requirement切片内的业务义务组织成可检查的覆盖关系，不拥有Ready、Done、Gate、实施证据或独立生命周期，也不得成为Task、代码或发布的完成单元。
 
@@ -64,7 +78,7 @@ Feature是唯一实施和Implementation Done单元。一个Requirement切片可�
 
 状态权威按维度唯一：`master`是工程协调、状态记录和代码集成的唯一分支；Feature Spec在`master`记录Feature Ready；当前Feature实施任务记录只保存Feature实施进度与Implementation Done；`tasks/delivery-units/DU-*.md`只保存并行写入认领、Worktree边界、交接和master集成回执。一个Delivery Unit可以覆盖一个完整Feature、一个或多个Task，或跨多个Feature的纵向工作包，但Feature仍是唯一Implementation Done单元。并行分支或Worktree中的同名治理文件只是从`master`检出的快照；只有先提交到`master`且被分支包含的DU认领才有效。Feature索引、DU索引、追溯矩阵、Git、CI和浏览器证据只作投影或证据，不得成为同一状态的第二来源。
 
-需求缺失、歧义或冲突时不得猜测：将受影响事项标记为`BLOCKED_BY_SPEC`，记录到`docs/decisions/open-questions.md`，并继续推进不依赖该问题的独立工作。业务语义问题必须经确认回写PRD/CHG；实现设计问题回写SDS并在需要时形成ADR；对应`gate-status.md`同步证据后才能解除阻断。
+需求缺失、歧义或冲突时不得猜测：将受影响事项标记为`BLOCKED_BY_SPEC`，记录到`docs/decisions/open-questions.md`，并继续推进不依赖该问题的独立工作。业务语义问题经确认回写PRD/CHG，实现设计问题回写相关SDS，按该问题的实际关闭条件审阅；不再附加Phase 1/2整阶段状态同步前置。
 
 ### 2.4 任务最小阅读集
 
@@ -73,7 +87,7 @@ Feature是唯一实施和Implementation Done单元。一个Requirement切片可�
 
 ### 2.5 业务项目阶段与软件工程阶段隔离
 
-PRD中的`S0～S6`是项目交付运行期的标准业务阶段编码；本工程链中的`SDS Phase 1/2/3`、Feature Ready、Implementation Done、Deployment、SIT、UAT和Release是软件设计、研发和发布门禁。二者不得按编号或名称互相映射，也不得使用“项目已进入S6”证明软件工程Gate通过。
+PRD中的`S0～S6`是项目交付运行期的标准业务阶段编码；SDS Phase 1/2仅是设计分类，Feature Ready、Implementation Done、适用专项验证、Deployment、SIT、UAT和Release属于工程管理。二者不得按编号或名称互相映射，也不得使用“项目已进入S6”证明工程验证通过。
 
 工程实现必须同时保留以下两个层次：
 
@@ -92,10 +106,10 @@ PRD修订即使不增删Requirement ID，只要改变业务规则、状态、范
 PRD变更
 -> 定位受影响Requirement及其全部语义义务
 -> 定位SDS、ADR、Feature Spec、Task、数据/API/事件、测试和报表投影
--> 将受影响旧批准标记为REVALIDATION_REQUIRED
--> 先更新正式SDS/必要ADR
--> 再重做Feature Ready或Implementation影响复核
--> 最后更新追溯投影和Gate状态
+-> 在当前变更中记录受影响旧结论及实际缺口，不重开全阶段
+-> 更新实际权威SDS/必要ADR并完成相关消费者实质审查
+-> 按影响重做Feature Ready或Implementation复核
+-> 仅在来源发生相应变化时更新追溯投影
 ```
 
 差量复核只重开受影响范围；无关Feature的既有Done事实不自动撤销。但任何旧Feature若只实现了修订前语义，不得继续被投影为当前Requirement的`FULL`覆盖。PRD第13.1章的主流程和关键子流程、RPT-02的全状态统计均属于对应Requirement的规范性完整场景，不能仅实现正常路径或新增分支后删减既有路径。
@@ -104,13 +118,9 @@ PRD变更
 
 ```text
 PRD Baseline
--> PRD差量影响分析与受影响Gate重开
--> SDS Phase 1
--> SDS Review 1
--> SDS Phase 2
--> SDS Review 2
--> SDS Phase 3
--> SDS Baseline
+-> 声明本次变更范围与实际设计缺口
+-> 相关SDS/接口/数据增量设计与消费者实质审查
+-> 按风险执行适用专项验证（不以Phase 1/2全量批准为前置）
 -> Requirement ID + 目标版本切片覆盖映射（Capability无状态）
 -> 多个纵向业务Feature并行进入Feature Ready
 -> 每个Feature一个当前有效Technical Plan
@@ -141,8 +151,8 @@ Release Candidate是从已Done Feature中选择本次发布范围的集合，不
 |风险|默认门禁位置|
 |---|---|
 |PRD语义不清|需求澄清/PRD变更|
-|领域与聚合边界错误|SDS Phase 1|
-|数据、API、权限或集成契约错误|SDS Phase 2|
+|领域与聚合边界错误|本次领域/Owner变更审查|
+|数据、API、权限或集成契约错误|本次契约及直接消费者审查|
 |NFR与运行保障设计缺失|SDS Phase 3|
 |Feature实现契约缺失|Feature Ready|
 |环境实例未准备|Deployment|
@@ -154,14 +164,15 @@ Release Candidate是从已Done Feature中选择本次发布范围的集合，不
 
 生产实例、最终IP、正式KMS、监控空间、部署窗口、迁移水位及尚未产生的运行报告，在不改变设计时不得前置阻断SDS。
 
-PRD差量影响分析是现有Gate的路由动作，不建立第二套永久状态。若差量触及领域/状态/流程，重开Phase 1；触及数据/API/事件/权限/幂等，重开Phase 2；触及安全、性能、测试、部署或发布验证，重开Phase 3。同一变更可以同时重开多个Phase，当前状态只写入各Phase唯一`gate-status.md`。
+PRD差量影响分析只确定本次审查及验证范围，不建立第二套永久状态。领域/状态/流程与数据/API/事件/权限/幂等在同一变更内按依赖连续对齐，不重开Phase 1/2；安全、性能、部署和发布仅触发相应适用专项验证。其他风险门禁不能反向依赖已经取消的Phase 1/2批准。
 
 ### 3.1 最小Gate契约
 
 |Gate|必需输入|关闭结果|唯一记录位置|允许的下一步|
 |---|---|---|---|---|
-|PRD Baseline|正式PRD、快照、范围与哈希校验|`BASELINE`或`BLOCKED`|`docs/baseline/`|SDS Phase 1|
-|SDS Phase 1/2/3|对应正式分册、Open Question处理结果、必要测试或复审|`READY`或`BLOCKED`|对应`docs/engineering/gates/phase-<n>/gate-status.md`|下一SDS阶段或SDS Baseline|
+|PRD Baseline|正式PRD、批准范围与追溯|`BASELINE`或真实业务问题`BLOCKED`|`docs/baseline/`|相关变更设计|
+|变更级实质审查|受影响权威设计、直接消费者、实际问题及适用验证|本次明确范围的通过或待整改，不建立全阶段状态|当前Task/DU/提交说明及其审阅引用|相关Feature Ready/实施评估|
+|专项设计/运行验证|本次适用的安全、Schema、性能等输入与证据|按原专项条件判定|原专项证据位置|该风险所限定的下一步|
 |Feature Ready|Feature Spec、Requirement版本切片追溯、适用设计契约、依赖与物理Owner、无相关阻断问题|`READY`或`NOT_READY`|Feature Spec|生成一个当前有效Technical Plan并进入并行Implementation|
 |Implementation Done|全部Task交付、最终合入代码、适用测试、Code Review、公共契约与迁移验证、追溯更新|`PASS`或`BLOCKED`|`master`中的当前Feature实施任务记录；Git/CI/测试只作引用证据|进入Release Candidate候选池|
 |Deployment|可部署制品、配置契约、应用Schema前向迁移制品及验证结果、环境准备结果|`PASS`或`BLOCKED`|部署流水线或版本化部署记录|SIT|
@@ -171,9 +182,9 @@ PRD差量影响分析是现有Gate的路由动作，不建立第二套永久状�
 
 Gate Owner不在本基线中虚构固定角色；必须在对应`gate-status.md`、Feature Spec、迁移计划或发布记录中登记。Feature协调责任是单个Feature实施期内的协作责任，不是新增组织角色或审批权。关闭证据优先引用Git、CI、测试和运行系统自然产生的记录，不要求复制成统一证据包。
 
-## 4. SDS三阶段
+## 4. SDS设计分类与专项验证
 
-### 4.1 Phase 1：总体与业务结构
+### 4.1 Phase 1：总体与业务结构（设计分类，非阶段准入）
 
 输出：
 
@@ -183,7 +194,7 @@ Gate Owner不在本基线中虚构固定角色；必须在对应`gate-status.md`
 - state-machine design与workflow design；
 - authorization design与data ownership。
 
-Gate：
+审查重点（仅按本次影响适用，不作全阶段准入）：
 
 - V1/V2/V3/`OUT_OF_SCOPE`边界正确；
 - bounded context、核心聚合和唯一Owner清晰；
@@ -197,7 +208,7 @@ Gate：
 
 Phase 1不要求生产实例、生产配置、迁移批次、生产审批记录或运行报告。
 
-### 4.2 Phase 2：实现契约
+### 4.2 Phase 2：实现契约（设计分类，非阶段准入）
 
 输出：
 
@@ -205,7 +216,7 @@ Phase 1不要求生产实例、生产配置、迁移批次、生产审批记录�
 - database、API、event和integration design；
 - file、exception/idempotency、cache/concurrency design。
 
-Gate：
+审查重点（仅按本次影响适用，不作全阶段准入）：
 
 - 数据Owner、核心字段、关系、约束、版本、快照、历史与审计规则可实现；
 - API可追溯Requirement ID，状态变化通过command/transition实现；
@@ -471,7 +482,7 @@ UI -> API -> Application -> Domain -> Repository -> DB -> Permission -> Audit ->
 
 自V1.8基线提交生效起，V1.7工程链进入`SUPERSEDED`，本文件成为唯一正式工程链。当前工程链适配PRDmaster修订001—014及统一修订017；参考稿、实施计划、评审报告以及仅基于修订007形成的Gate结论，不因PRD或本文件更新自动晋级为当前正式设计或当前放行结论。
 
-PRD修订不会自动关闭任何工程Gate，也不会保留与新语义冲突的旧批准。Phase 1/2/3当前`gate-status.md`必须区分“修订007历史批准”和“修订015当前状态”；在差量SDS、契约、测试和必要的数据模型复核完成前，受影响范围保持`REVALIDATION_REQUIRED`。现有Phase 3文档、生成器、validator或模板中如仍把四角色外部签署、迁移批准哈希或尚未产生的迁移运行事实作为SDS模型基线前置条件，仍按本工程链完成最小化修订。P3-E09不定义迁移批准哈希，也不得因本次PRD修订在未复核DDL影响时自动保持或丧失通过。
+PRD修订不自动批准新业务语义，也不使全部旧技术证据失效。旧Phase 1/2 gate-status.md及审阅结果按原范围保留，不再成为当前阻断；真实差量在当前变更审查中闭合。现有专项验证若把未发生的生产签署或运行事实前置于普通设计，应按最晚安全点处理。P3-E09不定义迁移批准哈希，其适用性和证据只根据实际模型/DDL变化判断，不因PRD全文身份不同自动保持或丧失通过。
 
 工程链更新本身不创造业务规则；但修订008—014及017已经由PRD改变业务语义，因此现有SDS、DDL、Feature覆盖和逐项数据模型裁决只能在未受影响部分继续沿用。受影响部分必须通过SDS/必要ADR完成差量设计，涉及物理模型时重做P3-E09差量检查，涉及已实现Feature时执行影响复核或建立纠正Feature，不得用“Requirement数量未变”维持旧结论。
 
@@ -504,7 +515,7 @@ PRD修订不会自动关闭任何工程Gate，也不会保留与新语义冲突�
 3. Phase 2完成数据/API/事件/权限/幂等/事务设计，并给出DDL是否变化的明确结论；
 4. Phase 3建立全集场景测试矩阵，至少覆盖模板裁剪、条件性验收、三类退出、范围追加失效重算和RPT-02两套闭环率；
 5. 重新生成或核对Requirement覆盖投影，旧Feature只覆盖修订前子闭环时标记`PARTIAL`或由新Feature补齐；
-6. 各Phase唯一`gate-status.md`记录复核证据后，方可恢复对应`READY`结论。
+6. 在本次Task/DU/提交中记录实际范围、审查与验证结论，再按相关Feature或专项条件判断准入；不等待各Phase整阶段READY，也不复制状态到全部分册。
 
 存量Feature按以下规则收口：
 

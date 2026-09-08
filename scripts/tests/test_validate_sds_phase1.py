@@ -34,49 +34,24 @@ class ValidateSdsPhase1Test(unittest.TestCase):
             target.write_text(content.replace(old, new, 1), encoding="utf-8")
             return MODULE.validate(root, technical=technical)
 
-    def test_current_phase1_review_candidate_passes_machine_gate(self) -> None:
+    def test_current_phase1_content_assertions_pass_without_stage_approval(self) -> None:
         self.assertEqual([], MODULE.validate(REPOSITORY_ROOT, technical=True))
 
-    def test_unapproved_phase1_documents_cannot_claim_baseline(self) -> None:
+    def test_document_status_does_not_control_content_audit(self) -> None:
         errors = self.validate_mutation(
             "docs/design/02-domain-model.md",
             "> 文档状态：`REVALIDATION_REQUIRED`",
             "> 文档状态：`BASELINE`",
         )
-        self.assertTrue(any("missing current Phase 1 metadata" in error for error in errors), errors)
+        self.assertEqual([], errors)
 
-    def test_approved_phase1_documents_cannot_retain_pending_body_claims(self) -> None:
-        for pending_claim in (
-            "V1.8机器差量校验已完成，待fresh-context独立复审",
-            "当前结论仍须通过fresh-context独立复审",
-            "V1.8独立复审尚未完成",
-        ):
-            with self.subTest(pending_claim=pending_claim):
-                with tempfile.TemporaryDirectory() as temporary:
-                    root = Path(temporary)
-                    self.build_fixture(root)
-                    gate = root / "docs/engineering/gates/phase-1/gate-status.md"
-                    gate.write_text(gate.read_text().replace("审查状态：`REVALIDATION_REQUIRED`", "审查状态：`APPROVED`"), encoding="utf-8")
-                    domain = root / "docs/design/02-domain-model.md"
-                    domain.write_text(domain.read_text().replace("既有独立复审GO仅属原批准范围，当前差量须按Gate重验证", pending_claim), encoding="utf-8")
-                    errors = MODULE.validate(root, technical=False)
-                    self.assertTrue(any("stale Phase 1 pending-review" in error for error in errors), errors)
-
-    def test_sds_master_must_publish_phase1_baseline_only(self) -> None:
-        errors = self.validate_mutation(
-            "docs/design/00-system-detailed-design.md",
-            "| SDS Phase 1 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` |",
-            "| SDS Phase 1 | `IN_REVIEW` | `NOT_READY_FOR_PHASE_2_V1.8` |",
-        )
-        self.assertTrue(any("SDS master Phase 1 summary" in error for error in errors), errors)
-
-    def test_gate_readme_must_declare_current_slice_scope(self) -> None:
-        errors = self.validate_mutation(
-            "docs/engineering/gates/phase-1/README.md",
-            "111个目标版本切片",
-            "110个目标版本切片",
-        )
-        self.assertTrue(any("Phase 1 gate README" in error for error in errors), errors)
+    def test_phase_metadata_and_index_are_not_required_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            self.assertFalse((root / "docs/engineering/gates").exists())
+            self.assertFalse((root / "docs/design/00-system-detailed-design.md").exists())
+            self.assertEqual([], MODULE.validate(root))
 
     def test_owner_map_must_cover_each_formal_requirement_once(self) -> None:
         errors = self.validate_mutation(
@@ -126,13 +101,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("CUT-03" in error for error in errors), errors)
 
-    def test_pending_gate_cannot_invent_requirement_owner_go(self) -> None:
-        errors = self.validate_mutation(
-            "docs/engineering/gates/phase-1/gate-status.md",
-            "> 需求方批准：`PENDING`<br>",
-            "> 需求方批准：`GO`<br>",
-        )
-        self.assertTrue(any("pending gate" in error for error in errors), errors)
+
 
     def test_version_scope_must_keep_v1_closure_and_v2_technical_notice(self) -> None:
         errors = self.validate_mutation(
@@ -345,13 +314,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
-    def test_gate_cannot_mix_pending_with_approved_metadata(self) -> None:
-        errors = self.validate_mutation(
-            "docs/engineering/gates/phase-1/gate-status.md",
-            "> 审查状态：`REVALIDATION_REQUIRED`<br>",
-            "> 审查状态：`REVALIDATION_REQUIRED`<br>\n> 审查状态：`APPROVED`<br>",
-        )
-        self.assertTrue(any("duplicate review state" in error for error in errors), errors)
+
 
     def test_contract_with_extra_column_cannot_hide_second_producer(self) -> None:
         marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
@@ -398,14 +361,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
-    def test_gate_status_table_cannot_override_pending_metadata(self) -> None:
-        errors = self.validate_mutation(
-            "docs/engineering/gates/phase-1/gate-status.md",
-            "## 正式放行条件",
-            "## 正式放行条件\n\n| 审查状态 | 结论 |\n|---|---|\n| APPROVED | GO |",
-            technical=False,
-        )
-        self.assertTrue(any("APPROVAL_REQUIRED" in error for error in errors), errors)
+
 
     def test_html_entity_cannot_hide_second_service_handover_producer(self) -> None:
         marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
@@ -621,14 +577,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
-    def test_conditional_prose_cannot_approve_a_pending_gate(self) -> None:
-        errors = self.validate_mutation(
-            "docs/engineering/gates/phase-1/gate-status.md",
-            "## 正式放行条件",
-            "## 正式放行条件\n如果只看机器结果，则视为APPROVED / GO。",
-            technical=False,
-        )
-        self.assertTrue(any("APPROVAL_REQUIRED" in error for error in errors), errors)
+
 
     def test_project_manager_may_query_closed_projects(self) -> None:
         marker = "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 | 服务经理填写回退原因并结束当前责任区间，无关闭或重开权限 | 工程管理部关闭岗 | 关闭、重开仅限授权项目；关闭前校验后代、在途审批和领域任务，重开仅限EXCEPTION_CLOSED；项目经理和普通成员只读状态及原因摘要 |"

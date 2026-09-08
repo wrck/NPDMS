@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Phase 2 SDS completeness and requirement traceability links."""
+"""Opt-in Phase 2 contract audit; results never grant phase or Feature admission."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sds_gate_contract import current as current_revision, revision as prd_revision, validate_gate as validate_current_gate, validate_design as validate_current_design
+from sds_gate_contract import current as current_revision, validate_design as validate_current_design
 
 
 
@@ -652,8 +652,8 @@ def validate_v18_physical_carriers(root: Path) -> list[str]:
     return errors
 
 
-def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
-    """Bind Phase 2 gate summaries to the generated migration contract facts."""
+def validate_migration_contract_shape(root: Path) -> list[str]:
+    """Check the actual source catalogue, not duplicated prose counts in gate files."""
     errors: list[str] = []
     contract_path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
     if not contract_path.is_file():
@@ -667,38 +667,6 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
     excluded_sources = contract.get("excludedSources")
     if not isinstance(records, list) or not isinstance(excluded_sources, list):
         return ["V1.8 domain entity migration contract is missing records or excludedSources"]
-    object_count = len(records)
-    source_count = sum(
-        len(record.get("sources", []))
-        for record in records
-        if isinstance(record, dict) and isinstance(record.get("sources"), list)
-    )
-    excluded_count = len(excluded_sources)
-    expected_summary = f"{object_count}对象/{source_count}来源绑定/{excluded_count}排除源"
-    evidence_paths = (
-        root / "docs" / "engineering" / "gates" / "phase-2" / "README.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
-        root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
-    )
-    if current_revision(root):
-        evidence_paths = evidence_paths[:3]  # Historical independent review is immutable, not a new-count declaration.
-    for path in evidence_paths:
-        if not path.is_file():
-            errors.append(f"missing Phase 2 migration gate evidence: {path.relative_to(root)}")
-            continue
-        if path.name == "self-review.md":
-            continue
-        content = read(path)
-        if current_revision(root):
-            summaries = re.findall(r"^> 来源目录：`([^`]+)`", content, re.M)
-            matches = summaries == [expected_summary]
-        else:
-            matches = expected_summary in content
-        if not matches:
-            errors.append(
-                f"Phase 2 migration gate evidence does not match current contract: "
-                f"{path.relative_to(root)} expected={expected_summary}"
-            )
     return errors
 
 
@@ -904,25 +872,12 @@ def validate_facc002_satisfaction_contract(root: Path) -> list[str]:
     return errors
 
 
-def validate_v18_revalidation(root: Path, gate: str, approved: bool = False, *, technical: bool = False) -> list[str]:
-    """Validate the V1.8 contract in either review-pending or approved state."""
+def validate_v18_content(root: Path, *, audit_provenance: bool = False) -> list[str]:
+    """Audit V1.8 substantive contracts without stage-approval metadata."""
     errors: list[str] = []
     prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
-    gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
-    gate_conclusion_match = re.search(r"^> (?:当前)?结论：`([^`]+)`", gate, re.MULTILINE)
-    expected_gate_state = "APPROVED" if approved else "REVALIDATION_REQUIRED"
-    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else ("BLOCKED_BY_REVIEW" if current_revision(root) else "NOT_READY_FOR_PHASE_3_REVISION_007")
-    if not gate_state_match or gate_state_match.group(1) != expected_gate_state:
-        errors.append(f"V1.8 Phase 2 gate state must be: {expected_gate_state}")
-    if not gate_conclusion_match or gate_conclusion_match.group(1) != expected_gate_conclusion:
-        errors.append(f"V1.8 Phase 2 gate conclusion must be: {expected_gate_conclusion}")
-    required_gate_tokens = ("100项", "111个目标版本切片", "V1 53个", "V2 58个", "AI-MIG-000")
-    for token in required_gate_tokens:
-        if token not in gate:
-            errors.append(f"V1.8 Phase 2 gate missing token: {token}")
-
     if not prd_path.is_file():
         return errors + ["missing PRD V1.8 baseline"]
     records = prd_formal_requirement_records(read(prd_path))
@@ -964,14 +919,6 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False, *, 
             or set(contract_slice_keys) != set(expected_slice_keys)
         ):
             errors.append("V1.8 Phase 2 contract map must exactly declare all 111 PRD-derived version slices")
-        contract_markers = (
-            ("文档状态：`BASELINE`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`")
-            if approved
-            else ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", ("Phase 3验证注记状态：`BLOCKED_BY_REVIEW`" if current_revision(root) else "Phase 3验证注记状态：`REVALIDATION_REQUIRED`"))
-        )
-        for marker in contract_markers:
-            if marker not in contract_text:
-                errors.append(f"V1.8 Phase 2 contract map missing marker: {marker}")
         required_contract_semantics = (
             "V2仅在冻结规则唯一匹配时自动形成并生效主责指派",
             "甘特展示和受控依赖新增、更新、删除",
@@ -993,23 +940,10 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False, *, 
             if stale_marker in contract_text:
                 errors.append(f"V1.8 Phase 2 contract map retains superseded semantics: {stale_marker}")
 
-    if approved:
-        for name in PHASE2_DOCS:
-            path = root / "docs" / "design" / name
-            if not path.is_file() or "文档状态：`BASELINE`" not in read(path):
-                errors.append(f"approved V1.8 Phase 2 document is not BASELINE: {name}")
-        for relative in (
-            "docs/traceability/domain-entity-migration-contract.json",
-            "docs/traceability/domain-object-table-map.json",
-        ):
-            path = root / relative
-            if not path.is_file() or json.loads(read(path)).get("status") != "BASELINE":
-                errors.append(f"approved V1.8 migration artifact is not BASELINE: {relative}")
-
     leaked = {"ACC-05", "COM-02", "IMP-02"} & (set(prd_ids) | set(matrix_ids))
     if leaked:
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
-    errors.extend(validate_v18_migration_gate_evidence(root))
+    errors.extend(validate_migration_contract_shape(root))
     errors.extend(validate_fcom001_v70_required_mappings(root))
     errors.extend(validate_fcom001_acceptance_stage_binding(root))
     errors.extend(validate_fcom001_contract_admin_scope(root))
@@ -1017,22 +951,14 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False, *, 
     errors.extend(validate_facc002_satisfaction_contract(root))
     errors.extend(validate_v18_physical_carriers(root))
     if current_revision(root):
-        errors.extend(validate_current_gate(root, 2, technical=technical))
-        errors.extend(validate_current_design(root))
+        errors.extend(validate_current_design(root, check_prd_identity=audit_provenance))
     return errors
 
 
-def validate(root: Path, *, technical: bool = False) -> list[str]:
+def validate(root: Path, *, technical: bool = False, audit_provenance: bool = False) -> list[str]:
     errors: list[str] = []
-    gate_path = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
-    if gate_path.is_file():
-        gate = read(gate_path)
-        gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
-        gate_state = gate_state_match.group(1) if gate_state_match else None
-        if gate_state == "REVALIDATION_REQUIRED":
-            return validate_v18_revalidation(root, gate, technical=technical)
-        if gate_state == "APPROVED" and "READY_FOR_PHASE_3_V1.8" in gate:
-            return validate_v18_revalidation(root, gate, approved=True, technical=technical)
+    if (root / "docs" / "baseline" / "prd-v1.8.md").is_file():
+        return validate_v18_content(root, audit_provenance=audit_provenance)
     design = root / "docs" / "design"
     prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
@@ -1288,29 +1214,22 @@ def validate(root: Path, *, technical: bool = False) -> list[str]:
     return sorted(set(errors))
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--technical", action="store_true", help="validate design content; approval remains independent")
-    args = parser.parse_args()
-    errors = validate(args.root.resolve(), technical=args.technical)
+    parser.add_argument("--audit", action="store_true", help="run optional full content/provenance audit")
+    parser.add_argument("--technical", action="store_true", help="legacy alias for explicit full audit")
+    args = parser.parse_args(argv)
+    if not (args.audit or args.technical):
+        print("[NOT_RUN] Phase 2 full audit is opt-in (--audit); use change-scoped contract review and relevant tests.")
+        return 0
+    errors = validate(args.root.resolve(), technical=True, audit_provenance=True)
     if errors:
         for error in errors:
-            print(f"[FAIL] {error}")
-        print(f"SUMMARY: {len(errors)} Phase 2 validation issues")
+            print(f"[AUDIT-FAIL] {error}")
+        print(f"SUMMARY: {len(errors)} full-audit findings; assess applicability to the actual change.")
         return 1
-    gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
-    if gate_path.is_file():
-        gate = read(gate_path)
-        gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
-        gate_state = gate_state_match.group(1) if gate_state_match else None
-        if gate_state == "REVALIDATION_REQUIRED":
-            print("[PASS] PRD V1.8 Phase 2 revalidation gate: 100 requirements; not released for Phase 3")
-            return 0
-        if gate_state == "APPROVED" and "READY_FOR_PHASE_3_V1.8" in gate:
-            print("[PASS] PRD V1.8 Phase 2 baseline: 100 requirements; ready for Phase 3 design")
-            return 0
-    print(f"[PASS] SDS Phase 2 documents and {EXPECTED_REQUIREMENT_COUNT} requirement trace links")
+    print("[AUDIT-PASS] Phase 2 content/provenance assertions. Not approval, migration or runtime evidence.")
     return 0
 
 

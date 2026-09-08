@@ -749,3 +749,7 @@
 独立任务对`3d82db0ba0d12d99a334b91d4db1c03b4aa787fd`返回候选技术GO，两项剩余P2闭合，无新增必须整改项；接收记录为`docs/engineering/gates/phase-2/input/template-acceptance-r2-independent-review.md`。该结论不是本Q关闭或正式SDS/Schema放行。
 
 需求方要求下一步，当前先开展修订018受影响Phase 1边界对齐/复核，输入见`docs/engineering/gates/phase-1/revision-018-template-acceptance-review.md`。已有全量检查提示Phase 2 carrier contract的PRD身份陈旧，须随正式API/物理合同差量审查处理，不能只替换身份；该技术待办与原Schema/P3-E09条件共同保留。本Q继续OPEN/BLOCKED_BY_SPEC，仍只限制依赖它的独立验收新实现及接入。
+
+#### 2026-09-08 变更级审查政策生效后的阻断范围
+
+需求方已批准取消Phase 1/2阶段全量阻断。上文中的纯阶段顺序、整阶段批准和PRD全文身份联动不再作为本Q的关闭前置；原审阅/失败记录保留历史，不能称已修复。当前只需针对独立验收这项变更，将已审契约落实到其实际权威API/物理设计及直接消费者，完成真正受影响的Schema/一致性检查并取得对应范围审阅结论；无需修改无关分册状态或重签全阶段。本Q不自动关闭，仍限制尚未明确或验证的实质契约及其依赖实现。

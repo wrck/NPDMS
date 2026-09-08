@@ -1,5 +1,9 @@
 # SDS Phase 1 Review
 
+> 现行用途：2026-09-08需求方已取消Phase 1/2全量准入；本文件为非阻断历史审计记录。原FAIL/GO/PENDING保持原样，不是日常变更前置，也不表示相应缺口已修复。现行审查见工程链“当前变更级审查规则”。
+
+## 原阶段记录（历史，不作当前准入）
+
 > 审查状态：`REVALIDATION_REQUIRED`<br>
 > 上次PRD Blob（修订017）：`fd701f153f3148001625fcfe45180b36aae719c2`<br>
 > PRD Blob：`86366bef18520b5463a4cc46bc6df8435f240afb`（沿用当前追溯生成器的输入身份）<br>

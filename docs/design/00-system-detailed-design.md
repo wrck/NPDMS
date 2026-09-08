@@ -4,14 +4,16 @@
 > 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8附录A.1的100项正式Requirement及附录A.1.1的111个目标版本切片
 > Owner：SDS 总编
-> 定位：本文件是 SDS 各分册的总册与索引，不复制分册内容；分册结论以其自身和对应门禁记录为准。
+> 定位：本文件仅为SDS分册索引，不复制分册内容或批准状态；Phase 1/2采用变更级实质审查，不执行全量阶段准入。
 
-## 1. 基线结论
+## 1. 当前治理方式与历史记录
+
+2026-09-08需求方批准取消Phase 1/2阶段全量阻断，保留变更级实质审查。旧分册的状态/版本头部只说明其历史，不决定新变更准入；只更新实际权威内容，审查结果复用Task/DU/提交。原FAIL不改为PASS，实际业务/API/Schema缺口仍需解决。下表的专项/发布限制保持适用边界。
 
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
-| SDS Phase 1 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-1/gate-status.md` |
-| SDS Phase 2 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-2/gate-status.md` |
+| SDS Phase 1 | 设计分类 | 非阶段准入；按变更审查 | `docs/engineering/gates/phase-1/gate-status.md` |
+| SDS Phase 2 | 设计分类 | 非阶段准入；按变更审查 | `docs/engineering/gates/phase-2/gate-status.md` |
 | SDS Phase 3 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-3/gate-status.md` |
 
 V1.7及修订007前三阶段历史审查证据保留。master修订011～013已批准的巡检差量及未受影响设计继续有效；修订017承接PR #1来源修订017及本轮确认整改，受影响部分只读取当前Phase 1/2/3记录，不以旧批准或自审代替新产物复核。
@@ -20,35 +22,35 @@ V1.7及修订007前三阶段历史审查证据保留。master修订011～013已�
 
 ## 2. 分册索引
 
-| 分册 | 主题 | 状态 |
-|---|---|---|
-| `01-requirement-traceability.md` | 需求追溯 | `REVALIDATION_REQUIRED` |
-| `02-domain-model.md` | 领域模型 | `REVALIDATION_REQUIRED` |
-| `02a-context-map.md` | 上下文映射 | `REVALIDATION_REQUIRED` |
-| `02b-aggregate-boundary-decisions.md` | 聚合边界决策 | `REVALIDATION_REQUIRED` |
-| `02c-data-ownership-matrix.md` | 数据所有权矩阵 | `REVALIDATION_REQUIRED` |
-| `02d-cross-context-contracts.md` | 跨上下文契约 | `REVALIDATION_REQUIRED` |
-| `02e-version-scope-matrix.md` | 版本范围矩阵 | `REVALIDATION_REQUIRED` |
-| `03-system-architecture.md` | 系统架构 | `BASELINE` |
-| `04-module-design.md` | 模块设计 | `REVALIDATION_REQUIRED` |
-| `05-state-machine.md` | 状态机 | `REVALIDATION_REQUIRED` |
-| `06-workflow-design.md` | 工作流设计 | `REVALIDATION_REQUIRED` |
-| `07-authorization-design.md` | 权限设计 | `REVALIDATION_REQUIRED` |
-| `08-data-model.md` | 数据模型 | `REVALIDATION_REQUIRED` |
-| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） | `REVALIDATION_REQUIRED` |
-| `09-database-design.md` | 数据库设计 | `REVALIDATION_REQUIRED` |
-| `10-api-design.md` | API 设计 | `REVALIDATION_REQUIRED` |
-| `11-event-design.md` | 事件设计 | `REVALIDATION_REQUIRED` |
-| `12-integration-design.md` | 集成设计 | `REVALIDATION_REQUIRED` |
-| `13-file-design.md` | 文件设计 | `REVALIDATION_REQUIRED` |
-| `14-security-design.md` | 安全设计 | `REVALIDATION_REQUIRED` |
-| `15-cache-and-concurrency.md` | 缓存与并发 | `REVALIDATION_REQUIRED` |
-| `16-exception-and-idempotency.md` | 异常与幂等 | `REVALIDATION_REQUIRED` |
-| `17-audit-and-observability.md` | 审计与可观测 | `BASELINE` |
-| `18-deployment-design.md` | 部署设计 | `BASELINE` |
-| `19-performance-design.md` | 性能设计 | `BASELINE` |
-| `20-test-design.md` | 测试设计 | `REVALIDATION_REQUIRED` |
-| `phase-1-domain-ownership.md` | Phase 1 领域 Owner 签署 | `OWNER_SIGNED` |
+| 分册 | 主题 |
+| --- | --- |
+| `01-requirement-traceability.md` | 需求追溯 |
+| `02-domain-model.md` | 领域模型 |
+| `02a-context-map.md` | 上下文映射 |
+| `02b-aggregate-boundary-decisions.md` | 聚合边界决策 |
+| `02c-data-ownership-matrix.md` | 数据所有权矩阵 |
+| `02d-cross-context-contracts.md` | 跨上下文契约 |
+| `02e-version-scope-matrix.md` | 版本范围矩阵 |
+| `03-system-architecture.md` | 系统架构 |
+| `04-module-design.md` | 模块设计 |
+| `05-state-machine.md` | 状态机 |
+| `06-workflow-design.md` | 工作流设计 |
+| `07-authorization-design.md` | 权限设计 |
+| `08-data-model.md` | 数据模型 |
+| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） |
+| `09-database-design.md` | 数据库设计 |
+| `10-api-design.md` | API 设计 |
+| `11-event-design.md` | 事件设计 |
+| `12-integration-design.md` | 集成设计 |
+| `13-file-design.md` | 文件设计 |
+| `14-security-design.md` | 安全设计 |
+| `15-cache-and-concurrency.md` | 缓存与并发 |
+| `16-exception-and-idempotency.md` | 异常与幂等 |
+| `17-audit-and-observability.md` | 审计与可观测 |
+| `18-deployment-design.md` | 部署设计 |
+| `19-performance-design.md` | 性能设计 |
+| `20-test-design.md` | 测试设计 |
+| `phase-1-domain-ownership.md` | Phase 1 领域 Owner 签署 |
 
 ## 3. 基线边界
 
@@ -76,7 +78,7 @@ Phase 3 证据项按“返工收益+最晚安全点”归属下游门禁，SDS �
 
 ## 5. 修订规则
 
-分册修订必须先进入本仓正式变更，并在同一目标分支内先于相关实现合入；本总册只随分册状态或阶段结论变化而修订。
+分册实质修订先于依赖实现；本总册仅在新增/移除分册或索引关系变化时更新，不随各分册状态、PRD全文身份或日常措辞变化同步。
 
 ## 修订017文档与工程证据边界
 

@@ -54,8 +54,23 @@ class BaselineQualificationTests(unittest.TestCase):
         self.assertFalse(validator.inspect_prd(bad)["R09"])
     def test_reintroduced_sixth_stage_is_detected(self):
         text=(ROOT/"docs/baseline/prd-v1.8.md").read_text()
-        bad=text.replace("售前测试模板配置`S0→S4`", "售前测试模板配置`S0→S4→S6`",1)
+        self.assertTrue(validator.inspect_prd(text)["R01"])
+        marker="售前预置模板配置`S0→S4`"
+        self.assertIn(marker,text)
+        bad=text.replace(marker, "售前预置模板配置`S0→S4→S6`",1)
         self.assertFalse(validator.inspect_prd(bad)["R01"])
+
+    def test_failed_conclusion_still_cannot_satisfy_acceptance(self):
+        text=(ROOT/"docs/baseline/prd-v1.8.md").read_text()
+        self.assertTrue(validator.inspect_prd(text)["R04"])
+        bad=text.replace("不能满足通过谓词", "可以满足通过谓词",1)
+        self.assertFalse(validator.inspect_prd(bad)["R04"])
+
+    def test_new_scope_cannot_create_second_current_report(self):
+        text=(ROOT/"docs/baseline/prd-v1.8.md").read_text()
+        self.assertTrue(validator.inspect_prd(text)["R12"])
+        bad=text.replace("不新建第二个当前报告", "允许新建第二个当前报告",1)
+        self.assertFalse(validator.inspect_prd(bad)["R12"])
 
 if __name__ == "__main__":
     unittest.main()
