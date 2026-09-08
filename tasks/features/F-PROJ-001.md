@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`（修订019新增量在途；原创建范围PASS保留历史）
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：Task 10通用查询及角色权限已合入master，项目经理成员写入后端增量待集成；联合指派及UI闭环继续在途，不重复候选裁决
+> 当前任务：Task 10通用查询、角色权限及项目经理成员写入后端增量已合入master；联合指派及UI闭环继续在途，不重复候选裁决
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史创建规格SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`（不作当前新增量准入）
@@ -25,7 +25,7 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。项目经理增补/移除/主责切换后端增量已实现并验证，等待集成，见[成员写入DU](../delivery-units/DU-20260908-PM01-MANAGER-MEMBERS.md)；联合服务经理事务、完整消费者及UI仍待完成。唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。项目经理增补/移除/主责切换后端增量已实现、验证并合入master，见[成员写入DU](../delivery-units/DU-20260908-PM01-MANAGER-MEMBERS.md)；联合服务经理事务、完整消费者及UI仍待完成。唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
 - 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，完整成员写入/UI仍未完成。
 - [ ] AC-FPROJ-011：上游查询、角色权限及项目经理成员写入子范围取得定向证据，完整联合/分次指派、多经理、主责与各阶段操作尚未验收。
