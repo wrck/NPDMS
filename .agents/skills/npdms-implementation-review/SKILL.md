@@ -10,9 +10,10 @@ description: "逐项审查NPDMS指定Requirement或Feature的工程链、代码�
 ## 锁定审查范围
 
 - 记录当前分支/提交及未提交差异，明确审查当前工作树、master集成事实还是指定候选；未提交或其他分支中的代码不冒充master已交付事实。
+- 涉及并行Feature/依赖时，按[工程链6.2](../../../docs/engineering/00-engineering-chain.md#62-delivery-unit认领实施与交接)用`git show master:路径`读取已提交DU，定位提供方契约、来源Task和可用增量。区分生效认领、未提交边界编辑、在途代码与master已集成；本分支缺少代码不是无人实施的证据，不可读取时报告未知。
 - 从[PRD](../../../docs/baseline/prd-v1.8.md)确定用户要求的Requirement及目标版本切片，再用[追溯矩阵](../../../docs/traceability/requirement-matrix.md)定位SDS、Feature Spec和当前Feature Task。矩阵和旧报告是导航，不是判定依据。
 - 用户要求“每个需求点”时覆盖指定范围的每项业务义务及版本差异，不抽样代替完整审查；已排除范围只标明边界，不扩张为V3实现任务。采用简明逐项记录，不新增一套永久状态源。
-- 只读相关契约和证据，不为每个Requirement反复加载全份PRD。逐项全覆盖不等于执行SDS Phase 1/2全量审计；仅在明确选择该审计时运行其脚本。
+- 只读相关契约和证据，不为每个Requirement反复加载全份PRD。逐项全覆盖不等于执行SDS全量审计；仅在明确选择该审计时运行其脚本。缺阶段批准、独立计划或分支未包含认领提交不算实现缺陷；应提交但未提交的并行认领/边界变更是协作缺口，不能据此反推代码不存在或功能已失败。
 
 ## 逐项形成证据结论
 
@@ -27,7 +28,7 @@ description: "逐项审查NPDMS指定Requirement或Feature的工程链、代码�
 
 ## 状态回写（仅用户要求时）
 
-先满足[工程链DU写入协议](../../../docs/engineering/00-engineering-chain.md#62-delivery-unit认领实施与交接)，在已有Task/DU记录本次范围、依据和审查结果。只改有证据支持的当前事实：
+按[工程链写入与协作规则](../../../docs/engineering/00-engineering-chain.md#62-delivery-unit认领实施与交接)确认本次回写无冲突；串行局部状态修正不强制新建DU，并行范围先读取master已提交认领及来源。需要新的认领/边界时先完成获授权的master提交；普通进度不要求逐次提交。来源Task与DU只由获授权的负责方回写，未提交DU或本分支副本不改变生效边界。在已有Task或适用DU记录一次范围、依据和审查结果，只改有证据支持的当前事实：
 
 - Feature Ready只回写对应Feature Spec；Implementation Status/Done只回写当前Feature Task。全部适用[DoD](../../../docs/engineering/00-engineering-chain.md#8-definition-of-done)满足才可关闭Feature，不将部分实现改为完成。
 - Requirement覆盖按[工程链2.3](../../../docs/engineering/00-engineering-chain.md#23-追溯要求)从版本切片映射和必需Feature事实派生。修正权威来源后，只有相关来源变化影响投影时运行`scripts/generate_requirement_traceability.py`等对应已有生成器，不手工晋级矩阵。
@@ -38,4 +39,4 @@ description: "逐项审查NPDMS指定Requirement或Feature的工程链、代码�
 
 先给结论与关键缺口，再给逐项证据和实际回写文件。区分“本轮执行”“引用已有证据”“未验证”和“自审/独立审查”；不要把报告签署、索引生成或全量审计退出码视为功能完成。
 
-只读请求在逐项形成证据结论后完成；包含状态更新的请求还须完成获授权的权威回写和受影响投影，不能交完审查意见就停止。若回写受真实契约或认领问题阻断，明确未完成范围和最小下一步，不擅自延伸为业务实现或外部协调。
+只读请求在逐项形成证据结论后完成；包含状态更新的请求还须完成获授权的权威回写和受影响投影，不能交完审查意见就停止。若回写受真实契约、证据缺口或写入冲突阻断，明确未完成范围和最小下一步，不擅自延伸为业务实现或外部协调。

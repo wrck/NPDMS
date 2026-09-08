@@ -47,7 +47,7 @@
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
-状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement版本切片追溯、业务规则、状态、权限、API、数据变化、验收标准、依赖与物理Owner及相关Open Question全部关闭后，Feature才可进入Implementation。每个Feature只允许一个当前有效Technical Plan；多个参与者或会话必须先在master登记Delivery Unit，再按Feature、Task或跨Feature工作包使用独立分支/Worktree并行实施，DU或Task完成均不产生Feature或Requirement完成状态。
+实施与完成条件以[当前工程链](../../docs/engineering/00-engineering-chain.md)为准，本索引不附加计划或阶段审批。并行Feature/Task首次认领及边界变更先提交到master；各Worktree直接读取master已提交DU确认职责、Owner和依赖，再读取提供方来源Task，不要求合并或包含认领提交。不同文件或本分支缺少依赖代码不代表可以重复实现；普通进度不要求逐次提交，DU或Task交付仍不产生Feature或Requirement完成状态。
 
 Feature任务、分支候选、认领缺口和master集成判定见[`tasks/features/README.md`](../../tasks/features/README.md)。该矩阵是审计投影，不会把分支自报状态提升为master状态。
 
