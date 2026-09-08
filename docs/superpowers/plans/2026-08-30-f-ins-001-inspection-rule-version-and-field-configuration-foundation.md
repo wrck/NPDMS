@@ -531,8 +531,12 @@ Expected：PASS；数据库唯一约束和Service CAS共同保证单一当前发
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/SelectableInspectionRuleServiceImplTest.java`
 - Modify: `yudao-server/pom.xml`，仅增加`yudao-spring-boot-starter-test`的`test`作用域依赖
 - Create: `yudao-server/src/test/java/cn/iocoder/yudao/server/inspectionrule/SelectableInspectionRuleMySqlIntegrationTest.java`
+- Modify: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/inspectionrule/SelectableInspectionRuleMapper.java`，仅限Task 9选择分页及其契约测试
+- Modify: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/inspectionrule/query/SelectableInspectionRuleQuery.java`，仅限Task 9选择分页及其契约测试
+- Modify: `pms-module-service/src/main/resources/mapper/inspectionrule/SelectableInspectionRuleMapper.xml`，仅限Task 9选择分页及其契约测试
+- Modify: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/dal/mysql/inspectionrule/InspectionRuleMapperContractTest.java`，仅限Task 9选择分页及其契约测试
 
-测试装配扩展的批准依据、精确写边界和主线交接以[Task 9 DU](../../../tasks/delivery-units/DU-20260908-FINS001-TASK9.md#2026-09-08-task-9测试装配边界扩展)为准；不修改共享测试starter、生产依赖、AST/System实现或其他Task，不以本次计划扩展宣布测试或Feature完成。
+测试装配扩展的批准依据、精确写边界和主线交接以[Task 9 DU](../../../tasks/delivery-units/DU-20260908-FINS001-TASK9.md#2026-09-08-task-9测试装配边界扩展)为准；不修改共享测试starter、生产依赖、AST/System实现或其他Task，不以本次计划扩展宣布测试或Feature完成。平台分页整改的用户批准、Owner/消费者影响及新增写边界见[同一DU分页整改扩展](../../../tasks/delivery-units/DU-20260908-FINS001-TASK9.md#2026-09-08-task-9平台分页整改边界扩展)；本轮只登记并同步认领，不实施代码。
 
 - [ ] **Step 1: 实现AST授权设备查询**
 
@@ -542,22 +546,24 @@ Service从服务端认证上下文取得当前用户，构造`AuthorizedDevicePr
 
 只返回当前`PUBLISHED`且产品类型匹配的规则摘要：稳定检测ID、revisionId/revisionNo、检测分类、检测项目、严重级别、排序、适用产品类型；不返回审核内部信息和秘密命令正文。后续INS-01/02需要命令清单时通过独立受权契约读取，不在本Feature提前开放执行接口。
 
+平台分页整改复用现有`PageParam/PageResult`，保持单场景Query和XML边界，将授权产品类型、分类与严重级别筛选置于数据库分页前；total按唯一revision计数，以`sort_order, detection_id, revision_id`稳定排序并按revision取页，再完整组装本页revision的授权匹配产品类型摘要。不得对产品类型明细直接截页、全量读取后内存切页或接受`PAGE_SIZE_NONE`；越界页保留total，分页参数按平台约束在读取前校验。不修改`PageParam`、共享MyBatis能力、其他Mapper或revision管理列表。
+
 - [ ] **Step 3: 补充选择范围定向测试**
 
 通过真实`InspectionAssetProductTypeApi`调用覆盖授权设备当前产品类型精确匹配、跨租户设备、无设备范围、未知/停用/未解析产品类型、契约不可用、不适用规则、已停用规则、历史发布规则和空产品类型集合；无权或不可见设备返回空且不泄露存在性。
 
-保留Service定向单测验证认证用户来源、空集合与AST异常失败关闭；仅在上述单个server集成测试中装配生产选择Service、真实AST授权查询Provider与真实Mapper，使用已确认的隔离MySQL验证授权匹配、租户隔离、当前发布筛选和只读历史保护。不得用Mock替代上述真实链路宣称集成通过，不向service模块增加AST实现依赖，不修改AST/System生产代码或共享测试配置；测试夹具仅在隔离测试范围创建并清理，不覆盖不可变历史或开发/生产数据。
+保留Service定向单测验证认证用户来源、空集合与AST异常失败关闭；仅在上述单个server集成测试中装配生产选择Service、真实AST授权查询Provider与真实Mapper，使用已确认的隔离MySQL验证授权匹配、租户隔离、当前发布筛选和只读历史保护。分页整改须补充多revision跨页、同revision多产品类型不拆页不重复计数、分类/严重级别/产品类型筛选后total、越界页保留total及非法分页拒绝；保留既有权限、失败关闭和历史保护断言。不得用Mock替代上述真实链路宣称集成通过，不向service模块增加AST实现依赖，不修改AST/System生产代码或共享测试配置；测试夹具仅在隔离测试范围创建并清理，不覆盖不可变历史或开发/生产数据。
 
 - [ ] **Step 4: 运行定向测试**
 
 Run:
 
 ```powershell
-mvn.cmd -pl pms-module-service -am "-Dtest=SelectableInspectionRuleServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-service -am "-Dtest=InspectionRuleMapperContractTest,SelectableInspectionRuleServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn.cmd -pl yudao-server -am "-Dtest=SelectableInspectionRuleMySqlIntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Expected：两个目标测试均实际执行且PASS；核对各自Surefire报告，集成测试未执行、被跳过或未连接隔离MySQL不得记为通过。空权限/范围返回空或稳定拒绝，不因省略筛选扩大结果；只读选择不修改规则、审核事实或历史。运行前按`docs/development.md`确认Compose测试基础设施及测试配置，未完成真实MySQL时只报告单测结果，不替代后续UI与Feature最终验收。
+Expected：Mapper契约、Service单测与server集成三个目标测试均实际执行且PASS；核对各自Surefire报告，集成测试未执行、被跳过或未连接隔离MySQL不得记为通过。空权限/范围返回空或稳定拒绝，不因省略筛选扩大结果；只读选择不修改规则、审核事实或历史。运行前按`docs/development.md`确认Compose测试基础设施及测试配置，未完成真实MySQL时只报告单测结果，不替代后续UI与Feature最终验收。
 
 - [ ] **Step 5: 建议逻辑分组**
 
