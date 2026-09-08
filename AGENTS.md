@@ -4,8 +4,8 @@
 
 - 本仓库是业务、设计、实现、测试与验收证据的唯一事实源，不再维护外部规格仓快照或第二套Feature状态源。
 - 权威优先级固定为：`PRD > Engineering Constitution > SDS > Feature Spec > Technical Plan > Task > Code > Test / Runtime Evidence`。下游可以细化上游，但不得静默改变业务语义。
-- 修改设计或代码前，必须依次读取 `docs/baseline/prd-v1.8.md`、`docs/engineering/00-engineering-chain.md`、`docs/README.md`、相关SDS、`specs/features/`中的相关Feature Spec和`tasks/features/`中的当前Task。
-- 规格与实现变更在同一分支内按上游到下游推进：先修订正式规格，再修改代码、迁移和测试，最后更新追溯投影与证据引用。禁止以代码、测试、浏览器证据或索引投影反向覆盖正式规格。
+- 修改设计或代码前，按上述权威顺序读取 `docs/baseline/prd-v1.8.md`、`docs/engineering/00-engineering-chain.md`、`docs/README.md`、相关SDS、Feature Spec和当前Task中的任务相关章节。先用Requirement ID、路径和索引定位，不要求通读无关分册；本轮已读且未变化的内容不重复加载。纯文字或排版更正只读目标文件及适用文档规则，不借此跳过实际业务契约。
+- 规格与实现变更在同一分支内按上游到下游推进：契约变化时先修订正式规格，再修改代码、迁移和测试，最后按影响更新追溯投影与证据引用；契约未变时不制造规格修订。禁止以代码、测试、浏览器证据或索引投影反向覆盖正式规格。
 - `tasks/plan.md` 和 `tasks/todo.md` 已标记为历史材料，不再生成或驱动新开发任务。
 - 本项目禁止使用项目记忆补全需求、设计或验收结论；不确定事项必须回到仓库文档或标记为【待确认】。
 
@@ -40,9 +40,18 @@
 
 ## 任务执行协议
 
-- 每项任务遵循`READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT`。
-- 实施前报告修改文件、Requirement ID、领域/API/数据库/权限/状态机影响、测试和风险。
-- 实施后报告完成范围、变更文件、需求覆盖、测试及结果、已知限制和后续事项。
+- 实施任务遵循`READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT`，这些是工作职责，不要求每步新建文档或等待确认；只读任务不进入IMPLEMENT。
+- 开始时一次说明交付物、完成条件、修改文件、Requirement ID或治理批准依据、实际领域/API/数据库/权限/状态机影响、验证和风险。小改动在对话中给出短计划；多步工作复用当前Task/DU，不另建重复计划或审批表。
+- 结束时先报告完成范围和结果，再给变更文件、需求覆盖、实际验证、未执行项及原因、剩余限制。自审与独立审查、代码存在与功能验收明确区分，不重复粘贴全过程。
+
+## 项目级 Skills
+
+项目技能位于`.agents/skills/`，只在任务匹配时读取对应入口；不为每次编辑同时加载全部流程。
+
+- [npdms-change-delivery](.agents/skills/npdms-change-delivery/SKILL.md)：需要衔接规格、DU、实现与验证的Feature/Task或工程治理变更。
+- [npdms-implementation-review](.agents/skills/npdms-implementation-review/SKILL.md)：按Requirement/Feature核对工程链与实现现状；仅在用户要求时回写状态。
+
+Skill提供执行方法，不产生新的业务语义、审批权、永久状态或Git授权。通用Skill示例与项目已批准规则不一致时，遵循更高优先级指令及本项目正式规则，并指出实际冲突；不能把Skill自身的额外流程当成项目Gate。项目技能名称独立，不假定会覆盖或合并全局同名Skill；不修改全局Skills、插件或配置来完成仓库内任务。
 
 ## 技术基线
 
@@ -81,74 +90,24 @@
 
 # AI编码行为
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+## 推进与停止
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+- 已授权且契约明确的变更，采用仓库惯例和最小可行方案持续推进到约定完成点；不因“第一版完成”或通用Skill的重复批准步骤自行停下。用户指定的评审节点仍须停下。
+- 不影响业务语义、Owner、安全或外部副作用的局部实现选择，可说明假设后继续；会改变结果的业务歧义、缺失契约、写入冲突或高影响操作授权必须先确认。提问前完成不依赖该答案的已授权工作，报告具体冲突条款、受影响范围和最小待决事项。
+- 只读审查、诊断和方案请求不授权修改实现或回写状态；“继续”“完成”不扩大原范围。提交遵循用户授权及工程链已有规定，提交前读取并遵守`git-commit`技能，不自动推送。
+- 使用子代理须有用户或适用指令授权，且子任务能独立验收；明确输入、输出和互不重叠的写边界。主代理继续有用的本地工作并负责整合，不把主问题整包转交或重复审查已确认事实。
 
-## 1. Think Before Coding
+## 最小实现与有效验证
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- 每处修改直接服务于本次请求；保留用户和并行改动，不顺手重构、改格式或删除既有死代码。只清理本次修改造成的无用引用和代码。
+- 复用现有能力，不为未发生的场景增加抽象、配置、兼容层或防御逻辑；报告真实缺陷，包括受支持使用中会发生的少见情况。正确的地方直说正确，不制造发现。
+- 每项检查先回答：会发现什么具体故障，结果会改变哪个决定？按改动和风险选择验证，不能证明行为、只复述实现的测试不增加。结果仍适用时不重跑；仅因新改动、失败、未决问题或工程链明确要求扩大或重复验证。
+- 已授权的本地验证中，本次改动导致的失败应定位原因、在范围内修复并重跑受影响检查；隔离条件按实际环境确认，不默认测试数据可丢弃或任意服务可停用。既有无关失败如实记录，不掩盖也不借机扩大修复范围。
+- “验证适度”不取消本项目规定的失败测试、授权/状态/历史保护、真实浏览器验收及适用迁移检查；没有执行的验证不能写成通过。
 
-Before implementing:
+## 沟通
 
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+默认中文，结论在前、证据就近，说明必要的假设和取舍；按任务大小控制篇幅。只报告有意义的进展、发现和决策，不堆固定表格、重复清单或“仍在运行”的空更新。
 
 For long-running asynchronous work:
 
