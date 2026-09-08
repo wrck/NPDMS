@@ -1,6 +1,6 @@
 # DU-20260908-AGENTS-SKILLS-REFINEMENT 工作区指令按需化
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`依据用户指定的两篇原文整理调整当前工作区AGENTS和Skills；不执行业务需求审查或修改实现状态`
