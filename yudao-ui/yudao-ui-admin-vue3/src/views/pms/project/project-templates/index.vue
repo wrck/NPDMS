@@ -1,10 +1,8 @@
 <template>
   <ContentWrap>
-    <el-alert title="单一模板配置端候选 · 不自动补齐阶段或关系，不转换历史配置。存量缺图的运行切换仍受 Q-FPROJ009-001 约束，本页不代表已生产开放。" type="warning" :closable="false" class="mb-12px" />
-    <el-tabs v-model="pageTab"><el-tab-pane label="项目模板" name="templates" /><el-tab-pane label="可复用定义库" name="definitions" /></el-tabs>
+    <header class="page-heading"><h2>项目交付模板</h2><p>为不同业务场景组织阶段、真实任务与办理方式，复用成熟的交付设计。</p></header>
   </ContentWrap>
-  <DefinitionLibrary v-if="pageTab === 'definitions'" />
-  <template v-else>
+  <div class="template-list">
     <ContentWrap>
       <el-form :model="query" inline>
         <el-form-item label="模板编码"><el-input v-model="query.code" clearable @keyup.enter="reload" /></el-form-item>
@@ -14,22 +12,18 @@
       </el-form>
       <el-alert v-if="failure" :title="failure" type="error" :closable="false" role="alert" class="mb-12px" />
       <el-table :data="rows" v-loading="loading" empty-text="暂无项目模板数据">
-        <el-table-column prop="code" label="模板编码" min-width="150" /><el-table-column prop="name" label="模板名称" min-width="160" />
+        <el-table-column label="模板名称" min-width="240"><template #default="{ row }"><strong class="template-name">{{ row.name }}</strong><div class="secondary">{{ row.code }}</div></template></el-table-column>
+        <el-table-column label="适用场景" min-width="220"><template #default="{ row }">{{ summaries[row.id]?.scenario ?? '打开编辑查看场景' }}</template></el-table-column>
         <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
-        <el-table-column prop="matchPriority" label="匹配优先级" width="110" />
-        <el-table-column label="系统保留" width="90"><template #default="{ row }">{{ row.systemReserved ? '保留' : '-' }}</template></el-table-column>
-        <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip /><el-table-column prop="createTime" label="创建时间" min-width="160" :formatter="dateFormatter" />
-        <el-table-column label="操作" width="300" fixed="right"><template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:project-template:query']">详情</el-button>
+        <el-table-column label="任务概览" min-width="200"><template #default="{ row }">{{ summaries[row.id]?.tasks ?? '打开编辑查看交付设计' }}</template></el-table-column>
+        <el-table-column label="操作" width="150" fixed="right"><template #default="{ row }">
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:project-template:query']">编辑</el-button>
           <el-button link type="primary" @click="openCopy(row)" v-hasPermi="['pms:project-template:update']">复制</el-button>
-          <el-button link type="success" :disabled="row.status === 'RETIRED' || saving" @click="publish(row)" v-hasPermi="['pms:project-template:publish']">发布</el-button>
-          <el-button link type="warning" :disabled="row.status !== 'ACTIVE' || saving" @click="disable(row)" v-hasPermi="['pms:project-template:disable']">停用</el-button>
-          <el-button link type="danger" :disabled="saving" @click="remove(row)" v-hasPermi="['pms:project-template:delete']">删除</el-button>
         </template></el-table-column>
       </el-table>
       <Pagination :total="total" v-model:page="query.pageNo" v-model:limit="query.pageSize" @pagination="load" />
     </ContentWrap>
-  </template>
+  </div>
   <Dialog v-model="createVisible" title="新增项目模板" width="620px">
     <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="110px">
       <el-form-item label="模板编码" prop="code"><el-input v-model="createForm.code" placeholder="创建后不可修改" /></el-form-item>
@@ -40,7 +34,8 @@
     <el-alert v-if="failure" :title="failure" type="error" :closable="false" />
     <template #footer><el-button @click="createVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="saveCreate">创建</el-button></template>
   </Dialog>
-  <el-drawer v-model="detailVisible" :title="`模板详情：${detail?.code ?? ''}`" size="90%" :before-close="beforeCloseDetail">
+  <ContentWrap><el-collapse v-model="pageAdvanced"><el-collapse-item title="高级管理 · 可复用定义库" name="definitions"><DefinitionLibrary v-if="pageAdvanced.includes('definitions')" /></el-collapse-item></el-collapse><p class="secondary">配置保存不代表业务已完成。发布前需核对办理能力与完成依据；已有项目继续使用冻结版本。</p></ContentWrap>
+  <el-drawer v-model="detailVisible" :title="`交付设计 · ${detail?.name ?? ''}`" size="96%" :before-close="beforeCloseDetail">
     <template v-if="detail">
       <el-alert v-if="failure" :title="failure" type="error" :closable="false" role="alert" class="mb-12px" />
       <el-tabs v-model="detailTab">
@@ -51,12 +46,12 @@
             <el-form-item label="模板名称"><el-input v-model="identityForm.name" /></el-form-item>
             <el-form-item label="匹配优先级"><el-input-number v-model="identityForm.matchPriority" :min="1" /></el-form-item>
             <el-form-item label="描述"><el-input v-model="identityForm.description" type="textarea" /></el-form-item>
-            <el-form-item><el-button type="primary" :loading="saving" @click="saveIdentity" v-hasPermi="['pms:project-template:update']">保存基本信息</el-button></el-form-item>
+            <el-form-item><el-button type="primary" :loading="saving" @click="saveIdentity" v-hasPermi="['pms:project-template:update']">保存基本信息</el-button><el-button :disabled="detail.status !== 'ACTIVE' || saving" @click="disable(detail)" v-hasPermi="['pms:project-template:disable']">停用模板</el-button><el-button type="danger" plain :disabled="saving" @click="remove(detail)" v-hasPermi="['pms:project-template:delete']">删除草稿模板</el-button></el-form-item>
           </el-form>
         </el-tab-pane>
-        <el-tab-pane label="草稿内容" name="draft">
+        <el-tab-pane label="交付设计" name="draft">
           <el-alert v-if="draftReadonly" title="模板已停用，草稿只读。需要新供给可显式复制，不修改既有历史。" type="warning" :closable="false" />
-          <TemplateContentEditor :content="draft" :readonly="draftReadonly || saving" />
+          <TemplateContentEditor ref="contentEditor" :content="draft" :readonly="draftReadonly || saving" @dirty-change="bindingDirty = $event" />
           <div class="mt-16px">
             <el-button type="primary" :disabled="draftReadonly" :loading="saving" @click="saveDraft" v-hasPermi="['pms:project-template:update']">保存草稿</el-button>
             <el-button :disabled="saving" @click="precheck(detail)" v-hasPermi="['pms:project-template:query']">发布预检</el-button>
@@ -113,7 +108,10 @@ import TemplateContentEditor from './TemplateContentEditor.vue'
 import { cloneContent, commandIntent, emptyContent, errorText, graphIssues } from './editorModel'
 defineOptions({ name: 'PmsProjectTemplate' })
 const message = useMessage()
-const pageTab = ref('templates')
+const pageAdvanced = ref<string[]>([])
+const contentEditor = ref<InstanceType<typeof TemplateContentEditor>>()
+const bindingDirty = ref(false)
+const summaries = reactive<Record<number, { scenario: string; tasks: string }>>({})
 const loading = ref(false)
 const saving = ref(false)
 const failure = ref('')
@@ -122,7 +120,17 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, code: '', name: '', status: undefined as string | undefined })
 const load = async () => {
   loading.value = true
-  try { const page = await TemplateApi.getProjectTemplatePage(query); rows.value = page.list; total.value = page.total }
+  try {
+    const page = await TemplateApi.getProjectTemplatePage(query); rows.value = page.list; total.value = page.total
+    await Promise.all(rows.value.map(async (row) => {
+      if (row.id == null) return
+      try {
+        const detail = await TemplateApi.getProjectTemplate(row.id)
+        const content = detail.draftContent
+        summaries[row.id] = { scenario: content ? dimText(content) : '未配置场景', tasks: content ? `${content.stages.length} 个阶段 · ${content.tasks.filter((task) => task.stageCode !== 'S0').length} 项任务` : '尚未设计任务' }
+      } catch { delete summaries[row.id] }
+    }))
+  }
   catch (error) { failure.value = errorText(error) }
   finally { loading.value = false }
 }
@@ -143,16 +151,16 @@ const saveCreate = async () => {
   finally { saving.value = false }
 }
 const detailVisible = ref(false)
-const detailTab = ref('identity')
+const detailTab = ref('draft')
 const detail = ref<ProjectTemplateDetailVO>()
 const identityForm = reactive({ name: '', matchPriority: 100, description: '' })
 const draft = ref(emptyContent())
 const baseline = ref('')
 const identityBaseline = ref('')
-const draftDirty = computed(() => JSON.stringify(draft.value) !== baseline.value)
+const draftDirty = computed(() => bindingDirty.value || JSON.stringify(draft.value) !== baseline.value)
 const identityDirty = computed(() => JSON.stringify(identityForm) !== identityBaseline.value)
 const draftReadonly = computed(() => detail.value?.status === 'RETIRED')
-const openDetail = async (row: ProjectTemplateVO, tab = 'identity') => {
+const openDetail = async (row: ProjectTemplateVO, tab = 'draft') => {
   try {
     const result = await TemplateApi.getProjectTemplate(row.id!)
     detail.value = result
@@ -181,7 +189,13 @@ const saveIdentity = async () => {
 const saveDraft = async () => {
   if (!detail.value?.id || saving.value) return
   saving.value = true
-  try { await TemplateApi.updateProjectTemplate(detail.value.id, { ...identityForm, content: draft.value }); await openDetail(detail.value, 'draft'); message.success('草稿及基本信息已保存，尚未发布') }
+  failure.value = ''
+  try {
+    const content = await contentEditor.value?.prepareSave() ?? draft.value
+    await TemplateApi.updateProjectTemplate(detail.value.id, { ...identityForm, content })
+    draft.value = content; bindingDirty.value = false; baseline.value = JSON.stringify(content); identityBaseline.value = JSON.stringify(identityForm)
+    message.success('交付设计已保存，尚未发布；办理配置不代表业务完成')
+  }
   catch (error) { failure.value = errorText(error) }
   finally { saving.value = false }
 }
@@ -265,7 +279,10 @@ const viewRevision = async (revision: { revisionNo: number }) => {
   try { const result = await TemplateApi.getProjectTemplateRevision(detail.value.id, revision.revisionNo); snapshot.value = { ...result, content: cloneContent(result.content) }; snapshotVisible.value = true }
   catch (error) { failure.value = errorText(error) }
 }
-const dimText = (row: MatchPreviewReqVO) => [row.signingMethod, row.projectCategory, row.implementationMethod, row.majorProjectLevel].filter(Boolean).join(' / ') || '全部不限'
+const dimText = (row: MatchPreviewReqVO) => dimensions.map((dimension) => {
+  const value = row[dimension.key]
+  return value ? getStrDictOptions(dimension.dict).find((option) => option.value === value)?.label ?? value : undefined
+}).filter(Boolean).join(' / ') || '全部场景'
 const dimensions = [
   { key: 'signingMethod', label: '签约方式', dict: DICT_TYPE.PMS_SIGNING_METHOD }, { key: 'projectCategory', label: '项目类别', dict: DICT_TYPE.PMS_PROJECT_CATEGORY },
   { key: 'implementationMethod', label: '实施方式', dict: DICT_TYPE.PMS_IMPLEMENTATION_METHOD }, { key: 'majorProjectLevel', label: '重大项目级别', dict: DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL }
@@ -285,5 +302,10 @@ onMounted(load)
 </script>
 <style scoped>
 .identity-form { max-width: 600px; }
+.page-heading h2 { margin: 0; font-size: 22px; font-weight: 600; }
+.page-heading p { margin: 10px 0 0; color: var(--el-text-color-secondary); font-size: 14px; line-height: 1.7; }
+.template-name { font-size: 14px; font-weight: 500; }
+.secondary { color: var(--el-text-color-secondary); font-size: 12px; margin-top: 6px; line-height: 1.7; }
+@media (max-width: 600px) { .page-heading h2 { font-size: 19px; } }
 ul { padding-left: 18px; }
 </style>

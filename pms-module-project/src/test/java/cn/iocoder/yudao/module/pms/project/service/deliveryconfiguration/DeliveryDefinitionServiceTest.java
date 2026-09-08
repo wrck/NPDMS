@@ -32,6 +32,26 @@ class DeliveryDefinitionServiceTest {
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
+    @Test void creationAssignsApplicationIdsBeforeMapperWrites() {
+        when(revisions.lockIdentity(any())).thenReturn(List.of());
+        when(revisions.insert(any(DeliveryDefinitionRevisionDO.class))).thenAnswer(call -> {
+            DeliveryDefinitionRevisionDO row = call.getArgument(0);
+            assertNotNull(row.getId()); assertTrue(row.getId() > 0);
+            return 1;
+        });
+        when(references.insert(any(DeliveryDefinitionReferenceDO.class))).thenAnswer(call -> {
+            DeliveryDefinitionReferenceDO row = call.getArgument(0);
+            assertNotNull(row.getId()); assertTrue(row.getId() > 0);
+            assertNotNull(row.getOwnerRevisionId()); return 1;
+        });
+        var task = new Save(DeliveryDefinitionKind.TASK, "TASK_WITH_REFERENCES", 1,
+                JsonUtils.parseTree("{\"name\":\"需求分析\",\"workBinding\":\"work\",\"permissionPolicy\":\"permission\",\"completionRule\":\"completion\"}"),
+                List.of(new DeliveryDefinitionReference("work", 1L), new DeliveryDefinitionReference("permission", 2L),
+                        new DeliveryDefinitionReference("completion", 3L)));
+        assertTrue(service.create(task, "create") > 0);
+        verify(references, times(3)).insert(any(DeliveryDefinitionReferenceDO.class));
+    }
+
     @Test void publishedPayloadCannotBeUpdated() {
         var row = revision("PUBLISHED"); existing(row);
         assertThrows(ServiceException.class, () -> service.update(10L, 2, body(), "key"));
