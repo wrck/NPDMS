@@ -1,6 +1,6 @@
 # DU-20260908-TEMPLATE-BUSINESS-VIEW 单一模板与业务视图基础
 
-> DU状态：`CLAIMED`
+> DU状态：`HANDOFF_READY`
 > DU类型：`MULTI_FEATURE_SLICE`
 > Feature协调：`F-PLT-003=FEATURE_EXCLUSIVE;F-PROJ-009=FEATURE_EXCLUSIVE;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-PROJ-001=TASK_COORDINATED`
 > Task范围：`按用户已确认讨论纠偏：S0项目基本操作不生成任务；S1～S6真实结果任务与辅助功能分离；简化现有模板维护并直接配置业务视图/实体关联；前向纠正本次六类草稿样例，保护项目与发布历史；不实现未定义的领域完成或独立验收接入`
@@ -13,7 +13,7 @@
 > 串行资源：`PM01-MEMBER-CLOSURE于d31f7903释放后接续SDS10、F-PROJ-001 Task及模板直接消费者；仍不改成员写代码或根工作树在途副本；Flyway按master实际下一号、仅本Feature迁移，公共错误码不占用他人路径；固定MySQL23316/npdms_test、Redis26379及59280/19081使用前核对，禁止reset/clean/repair`
 > 旧功能范围：`NONE`
 > 验证：`PLT53项单元/API/批锁+5项MySQL+4项SOL Provider；前端45项；PROJ候选图56/后端82/路由10/前端29；迁移结构19；V204到V205升级/validate/重复migrate、类型与构建通过；浏览器仅登录页，业务验收未完成`
-> 集成记录：`master选择接收90a8b774、5ae654ef的PLT视图能力及独立审查整改；PROJ候选8a5c2803留在codex/pre-s0-template-foundation未合入；Q-FPROJ009-001和验收凭据缺失限制剩余运行/浏览器闭环。释放写边界；Feature均IN_PROGRESS/NOT_READY，不宣称全部前置或阶段业务完成`
+> 集成记录：`master已接收90a8b774、5ae654ef的PLT视图基础；p903候选87fab980及de00fecc完成任务粒度/业务界面纠偏和页面表单草稿绑定真实保存，未合入master运行代码。当前HANDOFF_READY保留写边界等待协调接入，不转交给领域表单内容DU；Feature仍IN_PROGRESS/NOT_READY，实例化/推进/Owner业务完成未闭合`
 
 ## 批准与完成边界
 
@@ -32,6 +32,16 @@
 用户提供本地浏览器验收凭据（不落文件）并要求为进行中项目补全模板阶段、给出多种模板样例。本次仅对固定隔离测试库执行前向补全，不清库。明确模板引用的项目按精确发布版新增缺失Stage，当前Stage新建为ACTIVE，其他新增Stage为PENDING；不改变Project.current_stage/lifecycle_status，不标历史DONE，不改已有阶段行。无模板引用、模板引用损坏或阶段状态冲突的夹具保留待决，不把父项目模板当自动继承规则。
 
 样例范围沿PRD3.2六类项目场景，补各阶段、任务、里程碑、交付件、Gate及引用，页面与动态表单供给复用上轮能力。样例保持DRAFT供查看、复制和明确选择，避免当前未切换运行引擎自动消费新的裁剪图；只因样例存在不能声明某阶段业务可用。原V206配置Schema可在隔离库前向验证，配置候选仍按上一轮隔离边界待完整运行接入。继续使用p903，公共治理在根工作树的其他修改不触碰；不再为元数据同步运行历史DU全量审计。
+
+## 2026-09-09纠偏与Docker恢复后交接
+
+最新候选为p903的87fab980、de00fecc，来源Task为p903/tasks/features/F-PROJ-009.md。S0零任务；六样例任务115→65（14/13/13/12/11/2），删除操作型任务、37人工里程碑及141重复上传要求，保留11可选文档。V206～V209已在固定测试库执行；V207/V209各一次失败均由用户分别授权受限repair，确认业务零写入及成功历史不变后重跑，不形成常驻repair授权。纠偏只涉及本次草稿，旧发布定义和项目历史未变，不为补数改SDS。
+
+现有模板主屏已改为阶段导航、真实任务列表和办理配置，S0仅项目基本操作；技术引用移到高级。真实浏览器已完成：直签工程需求分析选择既有PAGE→保存草稿→刷新回显SOL实体/页面/本项目关联；直签普通需求分析选择已发布DYNAMIC_FORM→保存→刷新回显精确表单修订992203020001。两个模板仍DRAFT，Project/Stage和已发布模板历史对账未变。外部绑定沿用原生完成依据时，发布预检明确拒绝；不宣布Owner办理/完成接入。
+
+Docker中断后按用户“已恢复”继续，未擅自重启共享引擎。真实保存暴露的应用ID/Stage SQL映射/引用顺序/草稿执行字段解析问题已修复并定向验证；最新47项草稿解析/发布/规则目标/图保存测试通过。前端39项及后续30项受影响复验、类型/构建通过；V209结构17项通过。390px DOM显示抽屉374px无横向溢出，截图工具capture failed，未声称视觉截图验收通过。当前自有后端PID20368监听59280，Vite19081保持运行给用户查看；使用JDK25、Node24.11.1、pnpm9.15.5，日志在p903/.run及E:/AICoding/Worktrees/p903-*.log，不含提交凭据。
+
+边界：Demo领域表单内容DU-20260909-DELIVERY-DEMO-BUSINESS-UI只提供表单内容；宿主/通用注册/模板接入职责仍本DU。新表单交付后从提供方Task/提交读取，不复制在途实现。当前未将PROJ候选合master或晋级Done；初始化、运行节点与实际Owner完成仍须按明确契约完成。
 
 ## 2026-09-09实际交付与验证
 
