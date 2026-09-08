@@ -1,6 +1,6 @@
 # DU-20260908-TEST-INFRASTRUCTURE-RESET 固定测试环境恢复
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`按用户授权重建固定npdms_test及测试Redis，切换固定Flyway至当前master迁移目录，验证迁移与连接并回写准备现状；不启动业务开发`
