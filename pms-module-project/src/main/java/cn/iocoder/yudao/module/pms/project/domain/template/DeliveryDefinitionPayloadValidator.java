@@ -124,7 +124,16 @@ public final class DeliveryDefinitionPayloadValidator {
     }
     private static void bool(JsonNode node, String name) { require(node.path(name).isBoolean(), name + ": boolean required"); }
     private static void positive(JsonNode node, String name) {
-        JsonNode value = node.path(name); require(value.isIntegralNumber() && value.canConvertToLong() && value.asLong() > 0, name);
+        JsonNode value = node.path(name);
+        if (value.isTextual() && value.asText().matches("[1-9][0-9]{0,18}")) {
+            try {
+                require(Long.parseLong(value.asText()) > 0, name);
+                return;
+            } catch (NumberFormatException invalid) {
+                throw new IllegalArgumentException(name, invalid);
+            }
+        }
+        require(value.isIntegralNumber() && value.canConvertToLong() && value.asLong() > 0, name);
     }
     private static void strings(JsonNode node, String name) {
         require(node.isArray() && !node.isEmpty(), name + ": nonempty array required"); Set<String> seen = new HashSet<>();

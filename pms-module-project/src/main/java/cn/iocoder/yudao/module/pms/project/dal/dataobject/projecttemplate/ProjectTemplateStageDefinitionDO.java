@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 /**
  * 项目模板阶段定义 DO（F-PM03 / V52）
  */
-@TableName("proj_project_template_stage_definition")
+@TableName(value = "proj_project_template_stage_definition", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateStageDefinitionDO extends TenantBaseDO {

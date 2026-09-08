@@ -672,7 +672,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private void insertDefinitionRows(Long revisionId, TemplateDefinitionContent content) {
         if (content.getTransitions() != null) for (var edge : content.getTransitions()) {
             ProjectTemplateTransitionDefinitionDO row = BeanUtils.toBean(edge, ProjectTemplateTransitionDefinitionDO.class);
-            row.setId(null); row.setTemplateRevisionId(revisionId); transitionDefinitionMapper.insert(row);
+            row.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId());
+            row.setTemplateRevisionId(revisionId); transitionDefinitionMapper.insert(row);
         }
         for (TemplateDefinitionContent.StageDef stage : content.getStages()) {
             ProjectTemplateStageDefinitionDO row = BeanUtils.toBean(stage, ProjectTemplateStageDefinitionDO.class);

@@ -9,6 +9,9 @@ import BusinessViewSelect from './BusinessViewSelect.vue'
 import DefinitionForm from './DefinitionForm.vue'
 import DefinitionLibrary from './DefinitionLibrary.vue'
 import TemplateContentEditor from './TemplateContentEditor.vue'
+import AdvancedTemplateContentEditor from './AdvancedTemplateContentEditor.vue'
+import { hasPermission } from '@/directives/permission/hasPermi'
+import { getTemplateSelection } from '@/api/pms/platform/dynamic-form'
 import RuleEditor from './RuleEditor.vue'
 import TemplatePage from './index.vue'
 import { cloneContent, emptyContent, graphIssues, relationsFor } from './editorModel'
@@ -49,6 +52,8 @@ const mount = (component: Component, props: Record<string, unknown>, components:
 }
 
 vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: vi.fn(() => true) }))
+vi.mock('@/api/pms/platform/dynamic-form', () => ({ getTemplateSelection: vi.fn(async () => ({ list: [], total: 0 })) }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: vi.fn(async () => true), success: vi.fn() }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: () => [] }))
 vi.mock('@/utils/formatTime', () => ({ dateFormatter: () => '', formatDate: () => '' }))
@@ -57,7 +62,7 @@ vi.mock('@/api/pms/project/project-templates/definitions', async (original) => (
   validateDefinition: vi.fn(), publishDefinition: vi.fn(), copyDefinition: vi.fn(), disableDefinition: vi.fn()
 }))
 vi.mock('@/api/pms/platform/business-view', async (original) => ({
-  ...await original<typeof Views>(), getBusinessViewPage: vi.fn(), getBusinessView: vi.fn()
+  ...await original<typeof Views>(), getBusinessViewPage: vi.fn(), getBusinessView: vi.fn(), getBusinessViewComponents: vi.fn(), createBusinessView: vi.fn(), publishBusinessView: vi.fn()
 }))
 vi.mock('@/api/pms/project/project-templates', async (original) => ({
   ...await original<typeof Templates>(), getProjectTemplatePage: vi.fn(), getProjectTemplate: vi.fn(), validateProjectTemplate: vi.fn(), publishProjectTemplate: vi.fn(), getProjectTemplateRevision: vi.fn(), updateProjectTemplate: vi.fn()
@@ -78,7 +83,7 @@ const options = {
   ElTable: table, ElTableColumn: column, ElInput: control('input'), ElInputNumber: control('number'), ElSelect: control('select'), ElOption: control('option'),
   ElRadioGroup: control('radio'), ElRadioButton: control('radio-option'), ElRadio: control('radio-option'), ElCheckbox: control('checkbox'), ElTabs: control('tabs'), ElTabPane: tabPane,
   ElDrawer: dialog, Dialog: dialog, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, ElCollapse: passthrough, ElCollapseItem: passthrough,
-  ElDivider: passthrough, ElRow: passthrough, ElCol: passthrough, ElResult: passthrough
+  ElDivider: passthrough, ElRow: passthrough, ElCol: passthrough, ElResult: passthrough, ElEmpty: passthrough
 }
 const all = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap((child) => all(child, type))]
 const tick = async () => { for (let i = 0; i < 12; i++) { await Promise.resolve(); await nextTick() } }
@@ -88,7 +93,11 @@ const click = async (root: TestNode, label: string) => {
   await (node!.props!.onClick as Function)()
   await tick()
 }
-const update = async (node: TestNode, value: unknown) => { (node.props!['onUpdate:modelValue'] as Function)(value); await tick() }
+const update = async (node: TestNode, value: unknown) => {
+  const handlers = node.props!['onUpdate:modelValue']
+  for (const handler of Array.isArray(handlers) ? handlers : [handlers]) (handler as Function)(value)
+  await tick()
+}
 const definition = (id = 5, kind: Definitions.DefinitionKind = 'WORK_BINDING'): Definitions.DefinitionRevision => ({
   id, definitionKind: kind, definitionCode: `DEF_${id}`, revisionNo: 2, revisionState: 'PUBLISHED', schemaVersion: 1,
   payload: { bindingType: 'TASK_NATIVE', instanceResolutionStrategy: 'REFERENCE_EXISTING', contextMapping: {} }, references: [], version: 3
@@ -104,6 +113,8 @@ const graph = (): Templates.TemplateDefinitionContent => ({ ...emptyContent(), s
 const template = (): Templates.ProjectTemplateDetailVO => ({ id: 1, code: 'TPL', name: '模板', status: 'ACTIVE', version: 2, draftContent: graph(), revisions: [{ id: 1, templateId: 1, revisionNo: 1, status: 'PUBLISHED' }] })
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(hasPermission).mockReturnValue(true)
+  vi.mocked(Views.getBusinessViewComponents).mockResolvedValue([view()])
   vi.mocked(Definitions.getDefinitionPage).mockResolvedValue({ list: [definition()], total: 1 })
   vi.mocked(Definitions.getDefinition).mockImplementation(async (id) => definition(id))
   vi.mocked(Definitions.validateDefinition).mockResolvedValue({ valid: true, issues: [] })
@@ -232,7 +243,7 @@ describe('PM-03 explicit graph and exact selections', () => {
     const task = { ...definition(12, 'TASK'), payload: { name: '真实任务', workBinding: 'workBinding', permissionPolicy: 'permissionPolicy', completionRule: 'completionRule' }, references: [{ referenceKey: 'workBinding', targetRevisionId: 5 }, { referenceKey: 'permissionPolicy', targetRevisionId: 6 }, { referenceKey: 'completionRule', targetRevisionId: 7 }] }
     vi.mocked(Definitions.getDefinitionPage).mockImplementation(async (query) => ({ list: query.definitionKind === 'TASK' ? [task] : [], total: query.definitionKind === 'TASK' ? 1 : 0 }))
     const content = reactive(emptyContent())
-    const mounted = mount(TemplateContentEditor, { content }, options)
+    const mounted = mount(AdvancedTemplateContentEditor, { content }, options)
     await tick()
     await click(mounted.root, '新增任务')
     const selector = all(mounted.root, 'select').find((node) => node.props?.placeholder === '选择已发布任务修订')!
@@ -275,6 +286,95 @@ describe('PM-03 explicit graph and exact selections', () => {
     await click(mounted.root, '新增条件')
     expect(value.rule.rules).toHaveLength(2)
     mounted.app.unmount()
+  })
+})
+
+describe('PM-03 business delivery interactions', () => {
+  const chooseStage = async (root: TestNode, code: string) => {
+    const button = all(root, 'button').find((node) => node.props?.class?.toString().includes('stage-button') && textOf(node).startsWith(code))!
+    await (button.props!.onClick as Function)(); await tick()
+  }
+  const taskRevision = (): Definitions.DefinitionRevision => ({ ...definition(12, 'TASK'), payload: { name: '施工计划制定与审批', workBinding: 'b', permissionPolicy: 'p', completionRule: 'c' }, references: [{ referenceKey: 'b', targetRevisionId: 5 }, { referenceKey: 'p', targetRevisionId: 6 }, { referenceKey: 'c', targetRevisionId: 7 }] })
+  const setupContract = () => {
+    const rows = new Map<number, Definitions.DefinitionRevision>([[12, taskRevision()], [5, definition(5)], [6, { ...definition(6, 'PERMISSION_POLICY'), payload: { requiredActions: ['VIEW'] } }], [7, { ...definition(7, 'COMPLETION_RULE'), payload: { predicate: 'TASK_NATIVE_STATUS', parameters: { requiredStatus: 'DONE' } } }]])
+    vi.mocked(Definitions.getDefinitionPage).mockImplementation(async (query) => ({ list: query.definitionKind === 'TASK' ? [taskRevision()] : [], total: query.definitionKind === 'TASK' ? 1 : 0 }))
+    vi.mocked(Definitions.getDefinition).mockImplementation(async (id) => structuredClone(rows.get(id)!))
+    vi.mocked(Definitions.createDefinition).mockImplementation(async (body) => { const id = 100 + rows.size; rows.set(id, { ...body, id, revisionNo: 1, revisionState: 'DRAFT', version: 1 }); return id })
+    vi.mocked(Definitions.publishDefinition).mockImplementation(async (id) => { rows.get(id)!.revisionState = 'PUBLISHED'; return id })
+    return rows
+  }
+  it('keeps S0 task-free, preserves historical tasks until explicit removal, and hides technical fields', async () => {
+    const content = reactive(graph())
+    content.tasks.push({ taskCode: 'OLD', name: '历史项目创建', stageCode: 'S0' })
+    const mounted = mount(TemplateContentEditor, { content }, options); await tick()
+    expect(textOf(mounted.root)).toContain('项目基本操作')
+    expect(all(mounted.root, 'button').some((node) => textOf(node) === '新增任务')).toBe(false)
+    expect(all(mounted.root, 'pre')).toHaveLength(0)
+    expect(textOf(mounted.root)).not.toContain('BPM流程Key')
+    expect(content.tasks).toHaveLength(1)
+    await click(mounted.root, '移除历史任务'); expect(content.tasks).toHaveLength(0)
+    expect(content.transitions).toHaveLength(1); mounted.app.unmount()
+  })
+  it('adds a real merged task from a named published selection without automatically adding attachments', async () => {
+    setupContract()
+    const content = reactive(graph())
+    const mounted = mount(TemplateContentEditor, { content }, options); await tick()
+    await chooseStage(mounted.root, 'S4'); await click(mounted.root, '新增任务')
+    const selector = all(mounted.root, 'select').find((node) => node.props?.placeholder === '选择已发布任务修订')!
+    expect(all(selector, 'option')[0].props?.label).toContain('施工计划制定与审批')
+    await update(selector, 12)
+    expect(content.tasks).toHaveLength(1)
+    expect(content.tasks[0]).toMatchObject({ name: '施工计划制定与审批', stageCode: 'S4', permissionPolicyRevisionId: 6, completionRuleRevisionId: 7 })
+    expect(content.deliverables).toEqual([]); expect(content.milestones).toEqual([])
+    expect(all(mounted.root, 'pre')).toHaveLength(0)
+    expect(textOf(mounted.root)).not.toContain('WORK_BINDING')
+    expect(all(mounted.root, 'input').some((node) => String(node.props?.placeholder).includes('instanceId'))).toBe(false)
+    mounted.app.unmount()
+  })
+  it('selects a page, retains edits after whole draft failure, resumes definitions and saves exact references last', async () => {
+    setupContract()
+    const data = template(); data.draftContent!.tasks.push({ taskCode: 'REAL', name: '需求分析', stageCode: 'S4', definitionRevisionId: 12, bindingConfig: 'old', workBindingTypeCode: 'TASK_NATIVE' })
+    vi.mocked(Templates.getProjectTemplate).mockResolvedValue(data)
+    const bigView = { ...view('9223372036854775807'), contextSchema: { required: ['project'] } }
+    vi.mocked(Views.getBusinessViewPage).mockResolvedValue({ list: [bigView], total: 1 }); vi.mocked(Views.getBusinessView).mockResolvedValue(bigView)
+    vi.mocked(Templates.updateProjectTemplate).mockRejectedValueOnce(new Error('草稿保存网络中断')).mockResolvedValueOnce(true)
+    const mounted = mount(TemplatePage, {}, options); await tick(); await click(mounted.root, '编辑'); await chooseStage(mounted.root, 'S4')
+    const selector = all(mounted.root, 'select').find((node) => node.props?.placeholder === '保留当前办理方式，或选择已发布页面 / 表单')!
+    await update(selector, bigView.id)
+    expect(textOf(mounted.root)).toContain('完成规则待对接')
+    expect(textOf(mounted.root)).toContain('需求分析')
+    await click(mounted.root, '保存草稿')
+    expect(Definitions.createDefinition).toHaveBeenCalledTimes(2)
+    expect(data.draftContent!.tasks[0].bindingConfig).toBe('old')
+    expect(all(mounted.root, 'select').find((node) => node.props?.placeholder === '保留当前办理方式，或选择已发布页面 / 表单')?.props?.['model-value']).toBe(bigView.id)
+    await click(mounted.root, '保存草稿')
+    expect(Definitions.createDefinition).toHaveBeenCalledTimes(2)
+    expect(Templates.updateProjectTemplate).toHaveBeenCalledTimes(2)
+    const saved = vi.mocked(Templates.updateProjectTemplate).mock.calls[1][1].content!.tasks[0]
+    expect(saved).toMatchObject({ workBindingRevisionId: 104, definitionRevisionId: 105, permissionPolicyRevisionId: 6, completionRuleRevisionId: 7 })
+    expect(saved).not.toHaveProperty('bindingConfig')
+    expect(vi.mocked(Definitions.publishDefinition).mock.invocationCallOrder.at(-1)!).toBeLessThan(vi.mocked(Templates.updateProjectTemplate).mock.invocationCallOrder[0])
+    expect(Templates.publishProjectTemplate).not.toHaveBeenCalled(); mounted.app.unmount()
+  })
+  it('offers only real component registration with permission, lets users select forms by name', async () => {
+    setupContract()
+    const formComponent = { ...view(), viewSource: 'DYNAMIC_FORM' as const, componentKey: 'PLATFORM_DYNAMIC_FORM', ownerContext: 'PLATFORM', entityType: 'DYNAMIC_FORM_INSTANCE', contextSchema: { required: ['project', 'instanceId'] } }
+    vi.mocked(Views.getBusinessViewPage).mockResolvedValue({ list: [], total: 0 }); vi.mocked(Views.getBusinessViewComponents).mockResolvedValue([formComponent])
+    vi.mocked(getTemplateSelection).mockResolvedValue({ list: [{ templateName: '现场调查表', currentPublishedRevisionId: 55, currentPublishedRevisionNo: 2 } as any], total: 1 })
+    const content = reactive(graph()); content.tasks.push({ taskCode: 'REAL', name: '现场调查', stageCode: 'S4', definitionRevisionId: 12 })
+    const mounted = mount(TemplateContentEditor, { content }, options); await tick(); await chooseStage(mounted.root, 'S4')
+    await click(mounted.root, '使用其他已接入页面或表单')
+    await update(all(mounted.root, 'select').find((node) => node.props?.placeholder === '选择实际已接入的功能')!, 'PLATFORM_DYNAMIC_FORM@1')
+    const forms = all(mounted.root, 'select').find((node) => node.props?.placeholder === '按名称选择已发布表单')!
+    expect(all(forms, 'option')[0].props?.label).toContain('现场调查表')
+    await update(forms, 55); await click(mounted.root, '用于此任务')
+    expect(textOf(mounted.root)).toContain('业务表单')
+    expect(all(mounted.root, 'option').find((node) => node.props?.value === 'CREATE_ON_FIRST_ACTION')?.props).toHaveProperty('disabled')
+    expect(Views.createBusinessView).not.toHaveBeenCalled(); mounted.app.unmount()
+    vi.mocked(hasPermission).mockImplementation((permissions) => !permissions.includes('pms:business-view:manage'))
+    const denied = mount(TemplateContentEditor, { content }, options); await tick(); await chooseStage(denied.root, 'S4')
+    expect(all(denied.root, 'button').some((node) => textOf(node) === '使用其他已接入页面或表单')).toBe(false)
+    denied.app.unmount()
   })
 })
 
@@ -352,18 +452,20 @@ describe('PM-03 management rejection and historical interactions', () => {
   it('saves concurrent identity and draft edits together rather than trapping or discarding either change', async () => {
     const mounted = mount(TemplatePage, {}, options)
     await tick()
-    await click(mounted.root, '详情')
+    await click(mounted.root, '编辑')
     const title = all(mounted.root, 'input').find((node) => node.props?.modelValue === '模板')!
     await update(title, '修改后的模板')
-    await click(mounted.root, '新增任务')
+    await update(all(mounted.root, 'select').find((node) => node.props?.placeholder === '不限')!, 'DIRECT')
     await click(mounted.root, '保存草稿')
-    expect(Templates.updateProjectTemplate).toHaveBeenCalledWith(1, expect.objectContaining({ name: '修改后的模板', content: expect.objectContaining({ tasks: [{ taskCode: '', name: '' }] }) }))
+    expect(Templates.updateProjectTemplate).toHaveBeenCalledWith(1, expect.objectContaining({ name: '修改后的模板', content: expect.objectContaining({ signingMethod: 'DIRECT', tasks: [] }) }))
     mounted.app.unmount()
   })
   it('blocks template publish after precheck passes but server dependency becomes invalid', async () => {
     vi.mocked(Templates.publishProjectTemplate).mockRejectedValue({ message: '规则修订已失效' })
     const mounted = mount(TemplatePage, {}, options)
     await tick()
+    expect(all(mounted.root, 'button').some((node) => textOf(node) === '发布')).toBe(false)
+    await click(mounted.root, '编辑')
     await click(mounted.root, '发布')
     expect(Templates.validateProjectTemplate).toHaveBeenCalledWith(1)
     expect(Templates.publishProjectTemplate).toHaveBeenCalledTimes(1)
@@ -376,10 +478,10 @@ describe('PM-03 management rejection and historical interactions', () => {
     vi.mocked(Templates.getProjectTemplateRevision).mockResolvedValue({ ...template().revisions[0], processDefinitionKey: 'flow', processDefinitionVersion: 'legacy-v', content: historical })
     const mounted = mount(TemplatePage, {}, options)
     await tick()
-    await click(mounted.root, '详情')
+    await click(mounted.root, '编辑')
     await click(mounted.root, '查看快照')
     expect(textOf(mounted.root)).toContain('历史版本 legacy-v，仅展示')
-    expect(textOf(mounted.root)).toContain('未提供关系图')
+    for (const collapse of all(mounted.root, 'div').filter((node) => node.props?.['onUpdate:modelValue'])) await update(collapse, ['flow'])
     expect(historical).not.toHaveProperty('transitions')
     expect(Templates.publishProjectTemplate).not.toHaveBeenCalled()
     expect(Templates.updateProjectTemplate).not.toHaveBeenCalled()

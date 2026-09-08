@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.deliveryconfiguration.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.deliveryconfiguration.query.*;
 import cn.iocoder.yudao.module.pms.project.domain.template.*;
 import lombok.RequiredArgsConstructor;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -156,6 +157,7 @@ public class DeliveryDefinitionService {
     }
     private DeliveryDefinitionRevisionDO newDraft(Save body, Long revisionNo) {
         DeliveryDefinitionRevisionDO row = new DeliveryDefinitionRevisionDO();
+        row.setId(IdWorker.getId());
         row.setTenantId(tenant()); row.setDefinitionKind(body.definitionKind().name()); row.setDefinitionCode(body.definitionCode());
         row.setRevisionNo(revisionNo); row.setRevisionState("DRAFT"); row.setSchemaVersion(body.schemaVersion());
         row.setPayload(JsonUtils.toJsonString(body.payload())); row.setVersion(0); return row;
@@ -166,6 +168,7 @@ public class DeliveryDefinitionService {
     private void insertReferences(Long id, List<DeliveryDefinitionReference> refs) {
         for (DeliveryDefinitionReference ref : refs) {
             DeliveryDefinitionReferenceDO row = new DeliveryDefinitionReferenceDO();
+            row.setId(IdWorker.getId());
             row.setTenantId(tenant()); row.setOwnerRevisionId(id); row.setReferenceKey(ref.referenceKey());
             row.setTargetRevisionId(ref.targetRevisionId()); references.insert(row);
         }

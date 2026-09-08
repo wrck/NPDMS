@@ -141,6 +141,14 @@ public final class TemplatePublishValidator {
                 if (!stageCodes.contains(task.getStageCode())) {
                     failures.add("任务【" + task.getTaskCode() + "】引用的阶段【" + task.getStageCode() + "】不存在");
                 }
+                if ("S0".equals(task.getStageCode())) {
+                    failures.add("任务【" + task.getTaskCode() + "】属于S0项目基本操作，不应重复配置为交付任务");
+                }
+                if (task.getWorkBindingTypeCode() != null
+                        && !"TASK_NATIVE".equals(task.getWorkBindingTypeCode())
+                        && "TASK_NATIVE_STATUS".equals(task.getCompletionRuleTypeCode())) {
+                    failures.add("任务【" + task.getTaskCode() + "】已绑定业务页面或表单，须配置真实业务完成依据，不能沿用原生手工完成");
+                }
                 try {
                     EXECUTION_CONTRACT_FACTORY.validateDefinition(task);
                 } catch (IllegalArgumentException ex) {

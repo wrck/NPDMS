@@ -75,13 +75,24 @@ public class TemplateDefinitionReferenceAssembler {
                 target.setRefCode(ref.path("refCode").asText()); refs.add(target);
             }
             if (row.getReferences() != null && !row.getReferences().isEmpty()
-                    && !row.getReferences().equals(refs)) throw exception(REFERENCE_INVALID, "gate references override");
+                    && !sameGateReferences(row.getReferences(), refs)) throw exception(REFERENCE_INVALID, "gate references override");
             row.setReferences(refs);
         }
         for (var edge : content.getTransitions()) if (edge.getConditionRuleRevisionId() != null)
             resolver.require(closure, edge.getConditionRuleRevisionId(), DeliveryDefinitionKind.COMPLETION_RULE);
         // Snapshot is regenerated from authoritative rows, never copied from submitted JSON.
         content.setDefinitionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(closure.values()), JsonNode.class));
+    }
+
+    static boolean sameGateReferences(List<TemplateDefinitionContent.GateRef> actual,
+                                      List<TemplateDefinitionContent.GateRef> expected) {
+        if (actual == null || expected == null || actual.size() != expected.size()
+                || actual.stream().anyMatch(Objects::isNull) || expected.stream().anyMatch(Objects::isNull)) return false;
+        var order = Comparator.comparing(TemplateDefinitionContent.GateRef::getRefType,
+                        Comparator.nullsFirst(String::compareTo))
+                .thenComparing(TemplateDefinitionContent.GateRef::getRefCode, Comparator.nullsFirst(String::compareTo))
+                .thenComparing(TemplateDefinitionContent.GateRef::getRefVersion, Comparator.nullsFirst(String::compareTo));
+        return actual.stream().sorted(order).toList().equals(expected.stream().sorted(order).toList());
     }
 
     /** PM-03: configured facts must belong to this template, including nested branch/confirmation rules. */

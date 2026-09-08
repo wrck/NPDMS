@@ -19,6 +19,20 @@ class DeliveryDefinitionPayloadValidatorTest {
                 {"bindingType":"TASK_NATIVE","instanceResolutionStrategy":"REFERENCE_EXISTING","contextMapping":{},"targetObjectKey":"foreign"}
                 """));
     }
+    @Test void businessViewReferenceAcceptsLosslessLongWireIdButRejectsInvalidValues() {
+        String binding = """
+                {"bindingType":"BUSINESS_COMPONENT","instanceResolutionStrategy":"REFERENCE_EXISTING",
+                 "businessViewRevisionId":"2097373775105802242","targetContextCode":"SOL",
+                 "targetObjectType":"REQUIREMENT_ANALYSIS","targetObjectKey":"PROJECT_REQUIREMENT_ANALYSIS",
+                 "contextMapping":{"project":"project"}}
+                """;
+        validate(DeliveryDefinitionKind.WORK_BINDING, binding);
+        for (String invalid : List.of("0", "-1", "01", "1e3", "9223372036854775808")) {
+            assertThrows(IllegalArgumentException.class, () -> validate(DeliveryDefinitionKind.WORK_BINDING,
+                    binding.replace("2097373775105802242", invalid)));
+        }
+    }
+
     @Test void allAnyOnlyComposeRegisteredPredicates() {
         validate(DeliveryDefinitionKind.COMPLETION_RULE, """
                 {"operator":"ALL","rules":[{"predicate":"TASK_NATIVE_STATUS","parameters":{"requiredStatus":"DONE"}},

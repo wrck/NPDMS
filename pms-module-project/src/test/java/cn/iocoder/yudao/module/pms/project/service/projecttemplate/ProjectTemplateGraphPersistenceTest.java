@@ -49,6 +49,8 @@ class ProjectTemplateGraphPersistenceTest {
         var edgeCaptor = ArgumentCaptor.forClass(ProjectTemplateTransitionDefinitionDO.class); verify(transitions).insert(edgeCaptor.capture());
         var stageCaptor = ArgumentCaptor.forClass(ProjectTemplateStageDefinitionDO.class); verify(stages).insert(stageCaptor.capture());
         assertEquals(10L,edgeCaptor.getValue().getTemplateRevisionId()); assertEquals("S4",edgeCaptor.getValue().getToStageCode());
+        assertNotNull(edgeCaptor.getValue().getId());
+        assertTrue(edgeCaptor.getValue().getId() > 0, "Explicit-edge table uses application-generated IDs");
         when(transitions.selectRows(any())).thenReturn(List.of(edgeCaptor.getValue()));
         when(stages.selectListByRevisionId(10L)).thenReturn(List.of(stageCaptor.getValue()));
         var loaded = service.getDraftContent(1L);

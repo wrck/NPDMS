@@ -1,11 +1,11 @@
 <template>
   <div class="definition-select">
     <el-select :model-value="modelValue" filterable clearable :disabled="disabled" :loading="loading" :placeholder="`选择已发布${definitionKinds[kind]}修订`" @update:model-value="select" @visible-change="(visible) => visible && load()">
-      <el-option v-for="row in rows" :key="row.id" :value="row.id" :label="`${row.definitionCode} · r${row.revisionNo} · #${row.id}`" />
+      <el-option v-for="row in rows" :key="row.id" :value="row.id" :label="business ? `${row.payload.name ?? row.payload.deliverableType ?? row.definitionCode} · 第${row.revisionNo}版` : `${row.definitionCode} · r${row.revisionNo} · #${row.id}`" />
       <el-option v-if="modelValue && !rows.some((row) => row.id === modelValue)" :value="modelValue" :label="`${selectedLabel}（仅保留引用，发布时重验）`" disabled />
     </el-select>
     <div v-if="failure" class="text-danger text-12px" role="alert">{{ failure }} <el-button link @click="load">重试</el-button></div>
-    <el-collapse v-if="selected" class="mt-4px">
+    <el-collapse v-if="selected && !business" class="mt-4px">
       <el-collapse-item :title="`引用详情：${selected.definitionCode} r${selected.revisionNo}${selected.disabledAt ? ' · 已停用' : ''}`">
         <pre class="definition-preview">{{ JSON.stringify(selected.payload, null, 2) }}</pre>
       </el-collapse-item>
@@ -16,7 +16,7 @@
 import { ref, watch } from 'vue'
 import { availableDefinition, definitionKinds, getDefinition, getDefinitionPage, type DefinitionKind, type DefinitionRevision } from '@/api/pms/project/project-templates/definitions'
 import { errorText } from './editorModel'
-const props = defineProps<{ modelValue?: number; kind: DefinitionKind; disabled?: boolean }>()
+const props = defineProps<{ modelValue?: number; kind: DefinitionKind; disabled?: boolean; business?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: number | undefined]; selected: [value: DefinitionRevision | undefined] }>()
 const rows = ref<DefinitionRevision[]>([])
 const selected = ref<DefinitionRevision>()
