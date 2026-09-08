@@ -54,4 +54,56 @@
         LIMIT #{query.offset}, #{query.limit}
     </select>
 
+    <!-- PM-01 / INT-09: EXISTS keeps one row per user even with multiple department grants.
+         https://dev.mysql.com/doc/refman/8.4/en/exists-and-not-exists-subqueries.html -->
+    <sql id="companyRoleUserWhere">
+        FROM system_users u
+        INNER JOIN system_company c
+            ON c.id = #{query.companyId}
+           AND c.tenant_id = u.tenant_id
+           AND c.status = #{query.enabledStatus}
+           AND c.deleted = FALSE
+        WHERE u.status = #{query.enabledStatus}
+          AND u.deleted = FALSE
+          AND EXISTS (
+              SELECT 1 FROM system_user_company_department_scope s
+              WHERE s.user_id = u.id
+                AND s.tenant_id = u.tenant_id
+                AND s.company_id = c.id
+                AND s.scope_role = #{query.roleCode}
+                AND s.status = #{query.enabledStatus}
+                AND s.deleted = FALSE
+                AND s.effective_from &lt;= #{query.currentTime}
+                AND (s.effective_to IS NULL OR s.effective_to &gt; #{query.currentTime})
+          )
+        <choose>
+            <when test="query.userIds != null and query.userIds.isEmpty()">
+                AND 1 = 0
+            </when>
+            <when test="query.userIds != null">
+                AND u.id IN
+                <foreach collection="query.userIds" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            </when>
+        </choose>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+    </sql>
+
+    <select id="selectCompanyRoleUserCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        <include refid="companyRoleUserWhere"/>
+    </select>
+
+    <select id="selectCompanyRoleUserPage"
+            resultType="cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserRespDTO">
+        SELECT u.id AS user_id, u.username, u.nickname,
+               c.id AS company_id, #{query.roleCode} AS role_code
+        <include refid="companyRoleUserWhere"/>
+        ORDER BY u.id
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
 </mapper>

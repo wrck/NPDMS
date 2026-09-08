@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.system.api.permission;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserPageReqDTO;
+import cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
@@ -13,6 +15,7 @@ import cn.iocoder.yudao.module.system.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.dept.DeptMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.UserCompanyDepartmentScopeMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.ActiveUserScopeListQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.permission.query.CompanyRoleUserPageQuery;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.OrganizationUserCandidatePageQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.ORGANIZATION_SCOPE_INVALID;
@@ -77,6 +81,46 @@ public class OrganizationScopeApiImpl implements OrganizationScopeApi {
             return PageResult.empty();
         }
         return new PageResult<>(scopeMapper.selectActiveUserCandidatePage(query), total);
+    }
+
+    @Override
+    public PageResult<CompanyRoleUserRespDTO> pageCompanyRoleUsers(CompanyRoleUserPageReqDTO request) {
+        validateCompanyRoleRequest(request);
+        int enabledStatus = CommonStatusEnum.ENABLE.getStatus();
+        CompanyDO company = companyMapper.selectById(request.getCompanyId());
+        if (company == null || !Objects.equals(company.getStatus(), enabledStatus)) {
+            throw exception(ORGANIZATION_SCOPE_INVALID);
+        }
+        if (request.getUserIds() != null && request.getUserIds().isEmpty()) {
+            return PageResult.empty();
+        }
+        CompanyRoleUserPageQuery query = CompanyRoleUserPageQuery.builder()
+                .companyId(request.getCompanyId())
+                .roleCode(request.getRoleCode().trim())
+                .userIds(request.getUserIds() == null ? null : Set.copyOf(request.getUserIds()))
+                .keyword(trimToNull(request.getKeyword()))
+                .enabledStatus(enabledStatus)
+                .currentTime(LocalDateTime.now())
+                .offset((request.getPageNo().longValue() - 1) * request.getPageSize())
+                .limit(request.getPageSize())
+                .build();
+        long total = scopeMapper.selectCompanyRoleUserCount(query);
+        if (total == 0) {
+            return PageResult.empty();
+        }
+        return new PageResult<>(scopeMapper.selectCompanyRoleUserPage(query), total);
+    }
+
+    private static void validateCompanyRoleRequest(CompanyRoleUserPageReqDTO request) {
+        if (request == null || request.getCompanyId() == null || request.getCompanyId() <= 0
+                || trimToNull(request.getRoleCode()) == null || request.getRoleCode().length() > 32
+                || request.getPageNo() == null || request.getPageNo() < 1
+                || request.getPageSize() == null || request.getPageSize() < 1 || request.getPageSize() > 100
+                || request.getKeyword() != null && request.getKeyword().length() > 64
+                || request.getUserIds() != null && request.getUserIds().stream()
+                .anyMatch(id -> id == null || id <= 0)) {
+            throw exception(ORGANIZATION_SCOPE_INVALID_ARGUMENT);
+        }
     }
 
     private static void validateCandidateRequest(OrganizationUserCandidatePageReqDTO request) {

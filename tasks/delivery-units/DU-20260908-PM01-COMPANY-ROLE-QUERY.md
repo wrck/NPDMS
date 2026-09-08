@@ -31,3 +31,14 @@ SQL实现参考[MyBatis动态SQL](https://mybatis.org/mybatis-3/dynamic-sql.html
 
 - 计划已随33763100提交master，短工作树已创建；本次激活提交被目标分支包含后实施，未倒签代码认领。
 - 交付只关闭本查询增量，Task 10项目级成员写入、角色集合消费者、UI及真实运行闭环仍未完成。
+
+## 本次实现与证据
+
+- 已实现`OrganizationScopeApi.pageCompanyRoleUsers`，采用companyId/roleCode/userIds/keyword/分页场景Query；SYSTEM同一有效授权行匹配公司与角色，EXISTS保持每用户一行，保留原pageActiveUsers及上游用户/部门/权限API。
+- 2026-09-08固定容器实查为npdms-50eb-test-mysql-1、Compose项目npdms-50eb-test、发布端口23316、数据库npdms_test，所需三表存在。未创建H2、第二数据库、容器或应用环境，未读取默认开发.env，凭据仅注入本次进程。
+- 首轮命令：`mvn.cmd -o -B -pl yudao-module-system -am '-Dtest=CompanyRoleUserQueryMySqlIntegrationTest' '-DskipITs=false' '-Dsurefire.failIfNoSpecifiedTests=false' test`。18模块BUILD SUCCESS，49.918秒；8项MySQL场景通过，失败0、错误0、跳过0；覆盖角色/公司同一行、跨部门去重、停用/删除/有效期、空/指定用户与撤权、稳定分页/关键字、真实租户拦截及畸形跨租户拼接、旧部门查询、输入/公司错误。
+- 增加ENGINEER角色正向断言后，仅重跑其所属场景并验证PROJ直接依赖：`mvn.cmd -o -B -pl pms-module-project -am '-Dtest=CompanyRoleUserQueryMySqlIntegrationTest#matchesCompanyAndRoleOnOneRowAcrossDepartmentsWithoutDuplicates' '-DskipITs=false' '-Dsurefire.failIfNoSpecifiedTests=false' test`。28模块BUILD SUCCESS，51.125秒，该场景1/1；其余7项代码/输入未变，复用首轮证据，不累计为9项不同测试。
+- 每个用例写入前验证实际端口/库名及活动测试事务；测试行使用专用creator标识，逐用例回滚后通过AfterTransaction确认四张表无本次行残留。不执行迁移、DDL、初始化、全表清理或失败触发器。
+- 自审及不同模型只读审查：无Critical/Required；审查覆盖实际查询、DTO/Query边界、原接口保持和测试清理安全。审阅者未运行测试，以上命令由主代理执行。
+- 保留既有JDK/Maven、Mockito动态代理及其他模块映射警告；未因这些警告修改基础框架。无新增依赖、hash校验、业务表或权限状态机。
+- 当前只交付通用内部查询；PROJ完整指派写入、HTTP/UI接入、主责和角色集合消费者、真实浏览器及Feature Done均未完成。没有UI/DDL，故本增量不运行浏览器或迁移检查，也不把查询测试称为生产server验收。

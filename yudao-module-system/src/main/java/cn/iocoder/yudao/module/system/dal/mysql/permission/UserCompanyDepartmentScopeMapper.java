@@ -2,9 +2,11 @@ package cn.iocoder.yudao.module.system.dal.mysql.permission;
 
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.UserCompanyDepartmentScopeDO;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.ActiveUserScopeListQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.permission.query.CompanyRoleUserPageQuery;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.OrganizationUserCandidatePageQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -27,5 +29,9 @@ public interface UserCompanyDepartmentScopeMapper extends BaseMapperX<UserCompan
 
     List<OrganizationUserCandidateRespDTO> selectActiveUserCandidatePage(
             @Param("query") OrganizationUserCandidatePageQuery query);
+
+    Long selectCompanyRoleUserCount(@Param("query") CompanyRoleUserPageQuery query);
+
+    List<CompanyRoleUserRespDTO> selectCompanyRoleUserPage(@Param("query") CompanyRoleUserPageQuery query);
 
 }
