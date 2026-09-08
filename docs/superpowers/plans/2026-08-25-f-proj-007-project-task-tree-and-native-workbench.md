@@ -32,6 +32,8 @@
 
 ## Current Implementation Audit
 
+修订019协作：项目成员指派/调整不属于固定Task，不新增PM-01强制绑定或自动完成适配器；F-PROJ-001 Task 10拥有项目级多经理和当前主责能力。本宿主对真实受影响的任务主体授权按同角色同权限复核，保留TASK_NATIVE、其他Owner绑定和历史任务；旧Task/GO不自动证明多经理权限正确。
+
 | 现有资产 | F-PROJ-007处置 |
 |---|---|
 | `ProjectTaskInstanceDO` / `ProjectTaskInstanceMapper` | 继续映射`proj_project_task`并前向扩展；不另建同义当前任务DO或表 |

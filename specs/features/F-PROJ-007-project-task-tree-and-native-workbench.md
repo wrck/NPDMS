@@ -84,6 +84,8 @@
 
 ### BR-FPROJ007-006 WorkBinding宿主边界
 
+修订019边界：项目成员指派、多个项目经理与当前主责管理是项目级能力，不固定为T-ASSIGN-PM，不通过本Feature新增强制绑定/自动完成入口；各阶段的人事责任调整不改变TASK_NATIVE核心权限或历史任务。同一项目角色的操作权限相同，主责和其他有效PROJECT_MANAGER均按角色成员关系判定，不能用单manager_id排除其他经理；任务自身状态/版本等通用守卫仍适用。
+
 - WorkBinding类型保持`TASK_NATIVE/BUSINESS_OBJECT/BUSINESS_COMPONENT/DYNAMIC_FORM/APPROVAL/COMPOSITE`稳定值域。`TASK_NATIVE`不得携带外部目标；其他类型必须引用受信任注册项和Owner稳定对象。
 - 本Feature实现工作台宿主、注册表、允许操作合并和失败关闭，不为没有真实生产者的类型创建假数据或占位成功Provider。
 - 非原生绑定只有在Owner Feature提供正式公开契约、真实生产路径和验收证据后才可注册启用。PROJ不得依赖其`-biz`、Service、Mapper、Repository或业务表。

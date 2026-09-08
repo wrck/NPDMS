@@ -1,7 +1,7 @@
 # V1.8需求追溯矩阵
 
 > 本文件是111个正式Requirement目标版本切片到工程资产的自动派生索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与Owner生成。
-> 源基线：`docs/baseline/prd-v1.8.md` V1.8修订018；CHG：`CHG-PRD-2026-09-07-018`；Git Blob：`86366bef18520b5463a4cc46bc6df8435f240afb`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。
+> 源基线：`docs/baseline/prd-v1.8.md` V1.8修订019；CHG：`CHG-PRD-2026-09-08-019`；Git Blob：`d8bf47d9210e6b644d8564813f1048f2ccde5096`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。
 > 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。
 > 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。
 > 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。
@@ -18,7 +18,7 @@
 - 正式需求：100项（主版本V1 53项，V2 47项）
 - 正式目标版本切片：111个（V1 53个，V2 58个）
 - 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner
-- 当前状态：PRD V1.8修订018同源生成；历史Task完成事实不自动代表当前修订覆盖；有Spec差量标记时派生REVALIDATION_REQUIRED
+- 当前状态：PRD V1.8修订019同源生成；历史Task完成事实不自动代表当前修订覆盖；有Spec差量标记时派生REVALIDATION_REQUIRED
 - 当前工程门禁：phase-1=REVALIDATION_REQUIRED（REVALIDATION_REQUIRED）；phase-2=REVALIDATION_REQUIRED（REVALIDATION_REQUIRED）；phase-3=REVALIDATION_REQUIRED（REVALIDATION_REQUIRED）
 - Feature差量重验证切片：10；该值只从Feature Spec标记派生，不是第二套Task状态
 

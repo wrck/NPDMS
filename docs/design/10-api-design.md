@@ -77,7 +77,7 @@
 | `/projects/{id}/tree` | `GET` | 直接下级、全部后代、完整上级链、指定业务层级或节点定位 | 先执行ProjectTreeScope；返回同一完整`treeVersion`、裁剪结果和稳定游标 |
 | `/projects/{id}/actions/move` | `POST` | 移动到目标父项目 | `Idempotency-Key`、`If-Match`、无环校验、树变更批次和新`treeVersion` |
 | `/projects/{id}/actions/classify` | `POST` | 四项模板输入的受控人工调整 | 以5.5为唯一详细契约；追加MANUAL_ADJUSTMENT历史，不更换冻结模板 |
-| `/projects/{id}/actions/assign-manager` | `POST` | 指派项目经理/服务经理 | 仅使用 PRD 已定义角色和规则 |
+| `/projects/{id}/actions/assign-manager` | `POST` | 既有PM-08服务经理指派/改派 | 保留原生产契约；不把此接口现状当成联合指派或多项目经理已实现 |
 | `/projects/{id}/actions/rollback` | `POST` | 受控阶段回退 | 保存原因、目标阶段和新门禁快照 |
 | `/projects/{id}/actions/close` | `POST` | 接收闭环完成后的关闭命令 | 只能由闭环契约触发或满足相同门禁的授权入口 |
 | `/projects/{id}/members:batch-change` | `POST` | 人员批量变更 | 逐项结果、有效期和历史，不覆盖原记录 |
@@ -590,10 +590,10 @@ BPM事实Provider与上述启动Provider可由同一集成适配器承接，只�
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
 
-### 修订017 PM-01首次项目经理指派
+### 修订019 PM-01项目级成员指派
 
-`POST /projects/{id}/actions/assign-project-manager`映射唯一`AssignInitialProjectManager`命令；接收`projectManagerUserId/reason`，要求`If-Match`项目版本和`Idempotency-Key`，角色固定PROJECT_MANAGER。完整范围、并发及验收细则由F-PROJ-001承接，F-PROJ-005不实现这条命令，也不将其归入PM-11。
+原尚未实施的`AssignInitialProjectManager`和单人首次-only请求不再作为编码合同。修订019要求项目级联合/单独指派、多个PROJECT_MANAGER成员及一个当前主责，在各业务阶段按权限调整；不映射固定ProjectTask，不通过通用任务complete改变人员。
 
-PM-01@V1已授权的服务经理或工程管理部指派人员，在项目范围内选择经SYSTEM校验的在职项目经理，通过唯一PROJ指派命令形成责任区间；不要求目标项目已有PROJECT_MANAGER。命令同时冻结actor、范围、项目/成员/组织版本，If-Match及Idempotency-Key保护并发和重复。主责服务经理及项目经理同时有效才写ASSIGNED。
+PROJ成员时态关系承载完整名单；`proj_project.manager_id`及其姓名/工号字段仅保留当前主责投影，主责必须指向有效经理成员，投影与责任变化同事务维护。不能为了兼容旧消费者只选第一名经理或把其他经理忽略。联合命令须逐项授权、版本/幂等控制、整体回滚及记录成员和主责前后值；不回写冻结审批、模板或任务历史。
 
-T-ASSIGN-PM绑定PM-01指派事实，以该事实自动判定完成；不是给通用TASK_NATIVE COMPLETE增加越权例外。通知失败不回滚指派。回归覆盖首次无经理、无权限、离职候选、并发双指派、同键重放、仅一类主责及事件失败。Q-FPROJ-009设计闭合不产生Feature Implementation Done；真实API/数据库/浏览器复验仍由对应Feature执行。
+具体集合请求、增补/移除/主责切换命令和返回Schema须在Q-FPROJ-010明确候选范围后完成变更级设计；本次不预造生产API或发布物理合同。F-PROJ-001承接新闭环，F-PROJ-005保留服务经理职责并协同其原事务，F-PROJ-007不承担指派前置，F-PROJ-008及跨Owner消费者须区分主责责任引用与授权用的有效角色成员集合；同角色操作权限相同，不能只允许主责经理执行项目经理操作。Q-FPROJ-009原固定任务方案由修订019替代，不恢复历史单经理实现结论。

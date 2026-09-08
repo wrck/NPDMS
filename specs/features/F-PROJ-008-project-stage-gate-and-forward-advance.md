@@ -88,6 +88,8 @@
 
 ### BR-FPROJ008-005 权限、锁序与错误
 
+修订019影响：项目级成员可在各阶段调整，项目经理是多成员集合并保留一个当前主责；阶段推进不能靠固定T-ASSIGN-PM任务获得经理资格。同一项目角色操作权限相同，主责及其他有效PROJECT_MANAGER均可按同一角色规则执行获准的阶段操作；须复核参与者API，不能用manager_id单人比较排除非主责经理。本次不放宽阶段/Owner守卫、不宣称Task 3B完成。
+
 - readiness使用`pms:project:query + PROJECT_VIEW`；启动Gate流程和推进均使用既有`pms:project:update + PROJECT_MANAGE + 当前PROJECT_MANAGER`。
 - 锁序固定为Project→当前/下一Stage→EXIT Gate→Reference→Owner稳定对象；后序Owner锁取得后不得回头补锁。
 - Owner确定但未满足为`BUSINESS_GATE`并返回有序未满足项；Provider/身份未知为`DEPENDENCY_UNAVAILABLE`；版本漂移为`VERSION_CONFLICT`；均保持项目阶段不变。

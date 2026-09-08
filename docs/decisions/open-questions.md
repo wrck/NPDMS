@@ -557,7 +557,7 @@
 
 ### Q-FPROJ-009
 
-- Status: RESOLVED_DESIGN / IMPLEMENTATION_REVALIDATION_REQUIRED
+- Status: RESOLVED_BUSINESS / IMPLEMENTATION_REVALIDATION_REQUIRED（修订019替代原固定任务设计）
 - Requirement IDs: PM-01@V1、PM-03@V1、PM-09@V2
 - Area: 新建项目首次项目经理指派与S0准出
 - Question: 新建项目尚无`PROJECT_MANAGER`时，应由哪个合法主体、通过哪个唯一命令完成首次项目经理指派，并与`T-ASSIGN-PM`完成及`assignment_status`转换形成一致业务结果？
@@ -565,10 +565,24 @@
 - Options: A. 当前一级服务经理通过`T-ASSIGN-PM`特殊完成命令选择目标项目经理，成员事实与任务同事务形成；B. 当前一级服务经理先调用独立项目经理确认命令，再由正式项目经理完成`T-ASSIGN-PM`。
 - Recommended technical default: A；任务本身即首次项目经理指派业务动作，可避免第二条命令和中间状态，但必须冻结操作者、权限、项目范围、SYSTEM人员及组织Owner校验。
 - Business decision required: 人员角色和业务归属已由PRD修订011及当前016的PM-01规则6/9明确；本轮不增加特殊审批人或改变通用Task完成权限。
-- Resolution: 当前PRD明确由具备指派权限的服务经理或工程管理部授权人员在PM-01流程内完成首次项目经理指派；PROJ在同一事务建立有效责任区间、重新计算双主责assignment_status并更新绑定该事实的T-ASSIGN-PM完成判定。该任务应使用PM-01业务对象绑定，不能要求一个尚不存在的项目经理先执行TASK_NATIVE COMPLETE，也不放宽通用任务接口。字段、权限、事务与回归见07、10和20分册。本结论仅关闭当前SDS循环依赖，F-PROJ-008 Task 3仍需Feature重验证和真实浏览器证据，不自动恢复Done。
+- Historical resolution（2026-09-07，不再授权新实现）: 当时采用PM-01首次指派与T-ASSIGN-PM完成事实同事务的业务对象绑定方案；上列原问题、选项和建议仅保留历史，已被修订019替代，不能继续要求固定任务或唯一项目经理。
+- Resolution（2026-09-08）: 用户明确成员操作是项目级能力，服务经理与项目经理可同次或先服务经理后单独指派；各阶段有相应权限即可调整。一个项目可有多个项目经理，同时保留一个当前主责；同一项目角色的操作权限相同，主责标识不附加权限。指派不创建/完成固定任务，不修改阶段、生命周期或冻结审批历史。正式依据为CHG-PRD-2026-09-08-019；仅候选范围另见Q-FPROJ-010，不能恢复单manager_id通用授权。既有Task 1/2和历史Done不回退，本结论不证明新接口或S0→S1已完成。
 - Blocking scope: 只阻断F-PROJ-008 Task 3新建项目S0→S1正向Chromium链；已集成Task 1/2及不依赖该问题的工作台能力不回退。
 - Decision owner: 需求方；PROJ、SYSTEM与权限Owner参与影响分析
-- Decision date: 2026-09-07（本轮按已批准PRD回写设计，不新增业务裁决）
+- Decision date: 2026-09-07原设计；2026-09-08用户以修订019明确替代
+
+### Q-FPROJ-010
+
+- Status: BLOCKED_BY_SPEC / BUSINESS_DECISION_REQUIRED
+- Requirement IDs: PM-01@V1；直接消费者PM-03@V1、PM-11@V1、PM-08@V1
+- Area: 项目经理候选人员组织范围
+- Confirmed: 项目级联合或分次指派、各阶段按权限调整、多名项目经理及一个当前主责均已确认；用户进一步确认“相同项目角色的操作权限相同”，主责与其他有效PROJECT_MANAGER不因主责标识而权限不同。权限问题已解决，不再列为阻断或重复询问。
+- Question: 项目经理的候选人员允许来自哪些组织范围？
+- Why it blocks: PM-01只规定合法在职人员和SYSTEM组织校验；PM-08服务经理的同公司同办事处限制不能直接外推，候选过滤、提交重验和对应拒绝测试需要明确范围。既有单manager_id授权不符合已确认的同角色同权限，应按成员集合实施修正，不再等待该权限业务裁决。
+- No inferred default: 不自行限制为同公司同办事处，不新增协同经理角色，不自动选择第一人为主责。
+- Blocking scope: 依赖候选范围的新候选/指派接口及完整闭环；已批准权限设计、旧实现审计、集合合同和Task准备可继续，现有服务经理合法功能不回退。
+- Decision owner: 需求方；PROJ/SYSTEM及实际消费者参与设计
+- Decision date: 待确认
 
 ## 并行分支权威收敛阻断
 

@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`PASS`
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：项目交付主线准备；先核对首次项目经理指派与模板实例化差量的当前Spec、唯一计划及代码Task边界
+> 当前任务：修订019项目级联合/分次指派、多项目经理与当前主责准备；Task 10依赖Q-FPROJ-010，未开始业务代码
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`
@@ -22,6 +22,16 @@
 - F-PROJ-001 的局部实施计划完成不表示总体 Implementation Phase 完成。按 PRD 顺序，PM-01/PM-03 之后首个尚未实施的 P0 Requirement 是 PM-02；形成其正式 Feature Spec 是下一正常任务，不构成阻断。Feature Spec 提交并同步前不得开始 PM-02 代码改造，所有当前范围 Feature 完成前不得进入 Deployment。
 
 ## 任务完成情况
+
+### 当前主线增量
+
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`NOT_STARTED / BLOCKED_BY_SPEC（Q-FPROJ-010）`。已确认业务、审计、实现/验证边界见[唯一计划当前增量](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
+- [ ] AC-FPROJ-011：联合/分次指派、多经理、当前主责及各阶段权限内调整；尚无代码或运行证据。
+
+顶部旧IMPLEMENTATION_COMPLETE及下面Task 0～9/历史AC/证据仅覆盖原完成范围，不代表修订019。当前Ready以Spec为准，本次准备与审阅只在[DU](../delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md)记录；不将准备完成投影成新增量Done。
+
+### 已完成的历史范围
 
 | 任务 | 结果 |
 | --- | --- |

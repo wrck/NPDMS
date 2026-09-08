@@ -1,5 +1,7 @@
 # V1.8 组织与地点基础能力及 F-PROJ-001 重做实施计划
 
+> 当前增量入口（2026-09-08）：[项目级成员指派](#项目级成员指派增量2026-09-08)。本文件仍为F-PROJ-001唯一Technical Plan；Task 0～9及旧规格仓流程仅保留历史，不驱动新写入。新范围遵循同仓工程链与修订019，不重做已完成的组织/地点基础，不生成第二份现行计划。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 补齐公司、部门编码和用户组织范围，建立统一地址—站点—位置树能力，并从首个 Feature 重新改造项目创建、服务经理指派、工勘、安装和设备当前位置。
@@ -821,3 +823,52 @@ The plan is complete only when all conditions hold:
 10. Backend regression, module-boundary checks, frontend tests, type-check and build pass.
 11. Real-browser scenarios pass after refresh and are recorded without overstating Gate status; the built-in browser is preferred, with user-approved external-browser fallback when its control interface is unavailable.
 12. Every completed task has a scoped local commit and no automatic push occurred.
+
+## 项目级成员指派增量（2026-09-08）
+
+**当前状态：** 准备中；依赖候选组织范围的部分为`BLOCKED_BY_SPEC / Q-FPROJ-010`。本轮不写业务代码，不将旧单经理或T-ASSIGN-PM方案转成实现。原先本轮未提交的“首次-only→强制绑定Task 11”草案已撤下，不产生第二套计划或Task。
+
+**正式输入：** [修订019](../../baseline/prd-v1.8-amendment-019-project-member-assignment.md)、PRD PM-01/PM-08、SDS05/06/07/08/09/10/20、当前F-PROJ-001/005/007/008及Q-FPROJ-009/010。PM-09仅为V2跨项目批量变更，不阻断单项目成员操作。
+
+### 旧实现审计结论
+
+审计输入为当前master源码（业务基线`49d79d1e`，本轮治理提交不改变其实现）：
+
+- `ProjectManagerAssignmentApplicationService`、`ProjectManualCreationServiceImpl.assignServiceManager`、`ProjectMasterController.assignManager`和`ProjectServiceManagerPanel.vue`实际只实现服务经理指派/改派。保持正确的PM-08候选、主责/协同、时态历史、幂等和通知；联合/多项目经理能力不能按类名推定已存在。
+- SYSTEM `OrganizationScopeApi`已提供有效范围及scope ID/version、候选分页，`AdminUserApi/CompanyApi/DeptApi`可作公开校验输入；不得直查SYSTEM表。PM-08的同公司同办事处规则不是PM-01的自动默认值，候选过滤须等待Q-FPROJ-010。
+- `proj_project_member_assignment`可保存多人员区间；`ProjectMasterDO.managerId/managerEmployeeNo/managerName`及列表展示只适合作当前主责投影。新模型需要完整成员集合和有效主责引用，切换主责必须同步显示字段及历史，不能只改ID或自动清理其他经理。
+- `ProjectParticipantFactApiImpl`、阶段readiness/推进、`ProjectTreeScopeService`及任务主体分别使用主责字段或成员关系。主责引用只表达责任，角色授权按有效成员集合并遵守同角色同权限；不能统一只认manager_id，也不能跳过操作自身的通用守卫。
+- `TaskBindingHostRegistry`、`TaskNativeBindingHostProvider`、`ProjectTaskLifecycleService`、`TaskStateMachineDefinition`是任务执行底座，不是本次人员操作入口。V55部分T-ASSIGN-PM还挂团队组建子任务；不得按固定编码改绑、自动完成或覆盖旧冻结实例。
+- 原应用/Controller、`ProjectServiceManagerAssignmentMySqlIntegrationTest`及服务经理面板测试可作回归输入；原集成测试手工插入PM不是新生产指派证据。其同文件MySQL支持类会读取环境配置并安装表级失败触发器，必须核对专用Schema，不能默认继承即隔离。
+- 现有项目详情/成员区间列表、Yudao用户选择及Element Plus组件可复用；新增业务表单应复制必要交互至新组件后增强，旧服务经理面板/接口/历史继续保留。真实server扫描装配、页面刷新和权限行为必须另行验收。
+
+### Task 10：项目级联合/分次指派、多经理与主责管理
+
+**交付：** 项目详情的成员管理入口支持同次指派服务经理和项目经理、已有服务经理后单独增补项目经理；同项目可有多名项目经理，并保留一个当前主责。各业务阶段按对应权限调整；成员名单、主责显示和责任历史刷新后一致；操作不绑定或完成固定任务，不推进阶段。
+
+**已明确的边界：**
+
+1. PROJ拥有成员关系与主责选择，SYSTEM拥有用户和组织资格；不创建新Owner、新项目经理角色层级、第二套成员表或单经理唯一约束。
+2. 联合请求逐项授权、整次原子提交；增补/调整/主责切换必须表达明确意图，不以替换集合暗中删除未提交成员。保留成员区间、原因、actor、版本、幂等、审计和Outbox。
+3. 当前主责必须是有效项目经理成员；主责服务经理和主责项目经理均有效才为ASSIGNED。主责切换与完整主责ID/姓名/工号显示同事务维护；通知失败不回滚成功业务，写Outbox失败则回滚。
+4. 项目阶段不是人员操作的限制轴；既有生命周期关闭保护、租户和项目数据范围继续有效。历史模板、任务、审批主体和快照不随人员调整回写。
+5. 原服务经理单独指派入口保持原合同，新能力以加法Controller/应用服务与组件承接并复用底座；同角色同权限已明确；最终集合请求/响应、候选资格和读消费者合同待Q-FPROJ-010后落字，不提前创建空Provider或临时API。
+
+**拟涉及文件与Owner：** PROJ `controller/admin/projects/`、`service/projectmanual/`、成员/Project Mapper及场景Query/XML、相关公开参与者/范围API的真实消费者；前端现有`project-master-detail/`与`api/pms/project/projects/index.ts`；相应后端/组件/集成/浏览器测试。实际代码路径和共享API边界在契约确认后由master提交实现DU，当前准备DU不授权业务写入。
+
+**验证范围：**
+
+- 同次联合指派、先服务经理后增补多个项目经理、各实际阶段调整与主责切换；其他经理保持存在，同一人员同角色区间不重叠。
+- 权限测试验证主责与其他有效经理同角色同权限；候选范围正反向用例按Q-FPROJ-010定义；覆盖无对应权限、越界/跨租户、无效候选、关闭保护、版本冲突、同键重放/异载荷，不能用前端隐藏代替服务端拒绝。
+- 真实MySQL证明联合请求失败全回滚、并发版本保护、成员及主责显示一致、区间历史和不可变审批不覆盖；通知失败/重复投递不产生重复业务或消息。
+- 主责字段与完整成员集合的每类直接消费者按其真实用途验证；任务执行及阶段推进不引入固定指派任务依赖。
+- 完成对应UI后执行组件/类型/构建检查及真实浏览器：从项目入口联合/分次指派、增补、切换主责、刷新名单/显示/历史；不直接改库造经理或任务DONE。
+- 新查询前读取数据库查询规则；若实际需要前向迁移/种子，master集成时确定版本并完成空库、升级、validate和重复migrate；当前不预设DDL已通过。
+
+固定测试环境恢复不等于本任务独占。运行前读取开发说明并核对实际使用Owner、连接配置和Schema；本轮不占用数据库/端口，不安装触发器、不清库、不停用巡检服务。只在隔离条件确认后执行对应验证，未执行不得记PASS。
+
+### 下游与完成层级
+
+F-PROJ-005保留服务经理基础，F-PROJ-007只按裁决调整实际受影响的任务主体判定，不新增指派绑定；F-PROJ-008 Task 3B在成员事实及该Feature自身阶段合同可用后执行真实S0→S1。成员功能通过不自动等于阶段推进通过，旧冻结任务/模板若需处理仍须明确前向兼容，不改V55或既有实例。
+
+本Task关闭需要实际代码、适用验证、消费者审阅及本地聚焦提交；本次只完成已授权需求和准备，不标记Task/Feature Done。Q-FPROJ-010的唯一剩余待决项为候选组织范围；同角色同权限已确认，其他已确认方向不重复请求。

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-09-07-018",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-09-08-019",
   "baselineIdentity": {
-    "revision": "018",
-    "changeId": "CHG-PRD-2026-09-07-018",
-    "gitBlob": "86366bef18520b5463a4cc46bc6df8435f240afb",
+    "revision": "019",
+    "changeId": "CHG-PRD-2026-09-08-019",
+    "gitBlob": "d8bf47d9210e6b644d8564813f1048f2ccde5096",
     "path": "docs/baseline/prd-v1.8.md"
   },
   "engineeringGates": {

@@ -266,6 +266,10 @@ PM-06使用`proj_contract_scope_append_request`；COM唯一项目水位为`com_d
 
 历史 `pms_eng_site_survey/requirement/resource_ready/briefing/solution` 只在对应Feature明确批准时作为迁移来源。旧`pms_eng_form_template/pms_eng_form_instance`原样保留，不迁入、不双写新的PLATFORM动态表单真值；新应用服务按各自Owner访问，不允许表单引擎直接写Project或SOL业务状态。
 
+### 修订019 PM-01成员物理影响
+
+`proj_project_member_assignment`是多项目经理时态关系的复用载体；既有`proj_project.manager_id/manager_employee_no/manager_name`只能表达当前主责投影，不作为完整名单。不得新增“一个项目最多一条PROJECT_MANAGER”的唯一约束，也不得用数组列替代关系历史。主责与成员的事务约束、各读消费者兼容和实际DDL差量须在Q-FPROJ-010后按新合同核对；本段不是Schema验证通过或迁移授权。
+
 ## 5. Asset 地点、设备归属与维保基本事实
 
 适用 Requirement：EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06。
