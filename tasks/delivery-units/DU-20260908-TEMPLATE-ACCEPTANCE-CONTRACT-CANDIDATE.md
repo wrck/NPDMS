@@ -1,6 +1,6 @@
 # DU-20260908-TEMPLATE-ACCEPTANCE-CONTRACT-CANDIDATE 独立验收接口与物理契约候选
 
-> DU状态：`HANDOFF_READY`
+> DU状态：`RELEASED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-ACC-001=TASK_COORDINATED;F-COM-001=TASK_COORDINATED`
 > Task范围：`R2候选技术GO回执与修订018受影响Phase 1边界复核；不实施应用代码或Phase 2正式物理合同`
@@ -13,7 +13,7 @@
 > 串行资源：`修订018受影响Phase 1正式分册/复核输入及R2回执；不占用业务代码、Phase 2物理合同或Flyway`
 > 旧功能范围：`仅读取既有验收/范围/工作绑定及迁移作为复用证据；不修改旧实现或历史数据`
 > 验证：`Phase 1边界自审、R2合同内容未漂移及认领范围检查；全量技术脚本仍有Phase 2载体PRD身份陈旧一项FAIL，不据此放行`
-> 集成记录：`R2技术GO已登记；九份Phase 1分册对齐与复核输入已提交，待独立裁决；Q、SDS及Feature Gate未关闭`
+> 集成记录：`996d5150受影响Phase 1逻辑边界独立GO；原全量审计FAIL保留历史。需求方转入变更级审查治理，本DU释放范围，不晋级验收实现`
 
 ## 输出与边界
 
@@ -55,6 +55,8 @@
 - R2相对R1未更改已解决的锁序、报告生命周期、范围保护、REST和原物理设计；旧归档批次保持。实际双目标归档、事务/DDL及业务测试NOT_RUN；自审完成后才提交原独立任务，不自签GO。
 
 ## Phase 1本轮检查点
+
+2026-09-08接收独立任务`01a07ce8-42fa-7dd2-8991-094d0c15cc6c`裁决：`996d5150`受影响逻辑边界GO，全量Gate当时仍未放行。需求方随后明确批准“取消阶段全量阻断、保留变更级实质审查”，由`DU-20260908-CHANGE-SCOPED-REVIEW`承接治理修改；本DU停止写入并释放全部边界，原审阅和检查事实不改写。
 
 - 基线：R2@3d82db0b技术GO；范围扩展先提交`278ee1e9`。当前Gate：REVALIDATION_REQUIRED/独立PENDING。
 - 九份Phase 1分册完成差量自审；技术脚本修改前2项FAIL，README对齐后仅剩Phase 2 carrier contract PRD identity陈旧1项FAIL。未改该物理合同或脚本，不把检查失败隐藏成通过。
