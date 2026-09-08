@@ -9,7 +9,7 @@
 > Worktree：`E:/AICoding/Projects/NPDMS`
 > 认领基线：`cc4ff449c1b580bd1ede7216b1696201b5a9a415`
 > 认领提交：`SELF`
-> 修改边界：`scripts/validate_delivery_units.py;scripts/tests/test_validate_delivery_units.py;docs/superpowers/plans/2026-09-08-project-delivery-mainline-preparation.md;tasks/delivery-units/DU-20260908-PROJECT-DELIVERY-MAINLINE-PREPARATION.md;tasks/delivery-units/DU-20260908-FCUT001-EXAMPLE-SEED.md;tasks/delivery-units/DU-20260908-FINS001-TASK9.md;tasks/delivery-units/README.md;tasks/features/F-PROJ-001.md;tasks/features/F-PROJ-008.md;tasks/features/README.md;tasks/implementation-baseline-status.md`
+> 修改边界：`scripts/validate_delivery_units.py;scripts/tests/test_validate_delivery_units.py;docs/superpowers/plans/2026-09-08-project-delivery-mainline-preparation.md;tasks/delivery-units/DU-20260908-PROJECT-DELIVERY-MAINLINE-PREPARATION.md;tasks/delivery-units/DU-20260908-FCUT001-EXAMPLE-SEED.md;tasks/delivery-units/README.md;tasks/features/F-PROJ-001.md;tasks/features/F-PROJ-008.md;tasks/features/README.md;tasks/implementation-baseline-status.md`
 > 串行资源：`master治理与派发状态；只读检查固定测试环境，不变更数据库/账号/容器持久卷`
 > 旧功能范围：`NONE`
 > 验证：`DU已跟踪/已暂存/未跟踪路径与真实认领拒绝；原治理回归；主线模块编译；PRD/Spec/Task/Q核对；Flyway只读validate与独立复核`
@@ -34,5 +34,8 @@
 5. 在现状入口记录当前方向、准确阻断和下一步；独立复核后本地提交，不推送。
 
 ## 当前状态
+
+2026-09-08用户已明确将巡检Task 9交接给TRAE当前巡检会话；本准备DU移交该巡检DU记录的写边界，不再持有或修改它。其他主线准备范围、Owner和状态不变。
+
 
 准备与分析进行中。固定测试库只读检查已经发现连接配置差异和分支迁移历史不一致，不能把容器健康或静态检查通过视为全部运行验收环境就绪。结果完成后在本记录及主线分析中如实收口。
