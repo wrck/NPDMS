@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateRevisionDO extends TenantBaseDO {
+    private String definitionSnapshot;
+
 
     /**
      * 版本ID

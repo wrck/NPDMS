@@ -3,7 +3,8 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateStageDefinitionDO;
-import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.TemplateRevisionRowsQuery;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -23,6 +24,5 @@ public interface ProjectTemplateStageDefinitionMapper extends BaseMapperX<Projec
                 .orderByAsc(ProjectTemplateStageDefinitionDO::getSortOrder));
     }
 
-    @Delete("DELETE FROM proj_project_template_stage_definition WHERE template_revision_id = #{templateRevisionId}")
-    int physicallyDeleteByRevisionId(Long templateRevisionId);
+    int physicallyDeleteByRevisionId(@Param("query") TemplateRevisionRowsQuery query);
 }

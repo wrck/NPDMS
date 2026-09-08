@@ -27,10 +27,28 @@ class TemplatePublishValidatorTest {
     }
 
     @Test
-    void missingProcessReferenceRejected() {
+    void missingOptionalTemplateProcessReferenceAccepted() {
         TemplateDefinitionContent content = buildValidContent();
         content.setProcessDefinitionKey(null);
-        assertHasFailure(content, "流程定义引用缺失");
+        assertTrue(TemplatePublishValidator.validate(content).isEmpty());
+    }
+
+    @Test
+    void missingGraphIsNotReconstructedFromOrder() {
+        var content = buildValidContent(); content.getTransitions().clear();
+        assertHasFailure(content, "出向关系");
+    }
+
+    @Test
+    void missingNativeStageContractIsRejected() {
+        var content = buildValidContent(); content.getStages().getFirst().setWorkBindingRevisionId(null);
+        assertHasFailure(content, "绑定");
+    }
+
+    @Test
+    void arbitraryDepthCycleRejected() {
+        var content = buildValidContent(); content.getTasks().getFirst().setParentTaskCode("T-002");
+        assertHasFailure(content, "循环");
     }
 
     @Test
@@ -236,6 +254,14 @@ class TemplatePublishValidatorTest {
         s0.setEntryCriteria("合同生效"); s0.setExitCriteria("启动会完成");
         TemplateDefinitionContent.StageDef s1 = new TemplateDefinitionContent.StageDef();
         s1.setStageCode("S1"); s1.setName("实施"); s1.setSortOrder(1);
+        s0.setStart(true); s0.setTerminal(false); s1.setStart(false); s1.setTerminal(true);
+        for (var stage : List.of(s0, s1)) {
+            stage.setDefinitionRevisionId(10L); stage.setWorkBindingRevisionId(11L);
+            stage.setPermissionPolicyRevisionId(12L); stage.setCompletionRuleRevisionId(13L);
+        }
+        var edge = new TemplateDefinitionContent.TransitionDef(); edge.setTransitionCode("S0_TO_S1");
+        edge.setFromStageCode("S0"); edge.setToStageCode("S1"); edge.setPriority(1);
+        edge.setDefaultBranch(false); edge.setRevisionNo(1L); content.setTransitions(new ArrayList<>(List.of(edge)));
         content.setStages(new ArrayList<>(List.of(s0, s1)));
 
         TemplateDefinitionContent.TaskDef t1 = new TemplateDefinitionContent.TaskDef();

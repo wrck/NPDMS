@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateMilestoneDefinitionMapper">
+  <delete id="physicallyDeleteByRevisionId">
+    DELETE detail FROM proj_project_template_milestone_definition detail
+    JOIN proj_project_template_revision revision ON revision.id=detail.template_revision_id AND revision.tenant_id=detail.tenant_id
+    WHERE detail.tenant_id=#{query.tenantId} AND detail.template_revision_id=#{query.templateRevisionId}
+    AND revision.status='DRAFT' AND revision.deleted=0
+  </delete>
+</mapper>

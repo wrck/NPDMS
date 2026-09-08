@@ -30,14 +30,21 @@ class ProjectTemplateStageGateValidationTest {
     }
 
     @Test
-    void rejectsMissingExitGate() {
+    void doesNotInventExitGateForUnconfiguredStage() {
         ProjectTemplateServiceImpl service = service();
         TemplateDefinitionContent content = content();
         content.getGates().removeIf(gate -> "S2".equals(gate.getStageCode()));
 
         List<String> failures = service.validateStageGateOwners(content, 7L);
 
-        assertTrue(failures.stream().anyMatch(value -> value.contains("S2") && value.contains("EXIT Gate")));
+        assertTrue(failures.isEmpty());
+    }
+
+    @Test
+    void configuredOwnerStillMustExist() {
+        var service = service(); var content = content();
+        content.getGates().getFirst().getReferences().getFirst().setRefType("UNREGISTERED");
+        assertTrue(service.validateStageGateOwners(content, 7L).stream().anyMatch(value -> value.contains("Owner Provider")));
     }
 
     private static ProjectTemplateServiceImpl service() {

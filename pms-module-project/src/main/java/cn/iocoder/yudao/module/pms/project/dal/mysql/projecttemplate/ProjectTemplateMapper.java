@@ -15,6 +15,12 @@ import java.util.List;
 @Mapper
 public interface ProjectTemplateMapper extends BaseMapperX<ProjectTemplateDO> {
 
+    ProjectTemplateDO lockTemplate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.TemplateIdentityQuery query);
+
+    int incrementVersion(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.TemplateIdentityQuery query);
+
     default ProjectTemplateDO selectByCode(String code) {
         return selectOne(new LambdaQueryWrapperX<ProjectTemplateDO>()
                 .eq(ProjectTemplateDO::getCode, code));

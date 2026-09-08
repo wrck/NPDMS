@@ -13,6 +13,15 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateStageDefinitionDO extends TenantBaseDO {
+    private Long definitionRevisionId;
+    private Long workBindingRevisionId;
+    private Long permissionPolicyRevisionId;
+    private Long completionRuleRevisionId;
+    @com.baomidou.mybatisplus.annotation.TableField("start_node")
+    private Boolean start;
+    @com.baomidou.mybatisplus.annotation.TableField("terminal_node")
+    private Boolean terminal;
+
 
     /**
      * 阶段定义ID

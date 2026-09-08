@@ -1,18 +1,35 @@
 import request from '@/config/axios'
+import type { ValidationResult } from './definitions'
 
-// ========== F-PM03 项目模板基座（/pms/project-templates，SDS 10-api 契约） ==========
-
-/** 阶段定义行（S0～S6） */
-export interface StageDef {
+// PM-03 / F-PROJ-009 — one template identity and explicit graph, server-owned snapshots.
+export interface DefinitionLink {
+  definitionRevisionId?: number
+  definitionSnapshot?: Record<string, unknown>
+}
+export interface ExecutionLinks extends DefinitionLink {
+  workBindingRevisionId?: number
+  permissionPolicyRevisionId?: number
+  completionRuleRevisionId?: number
+}
+export interface StageTransition {
+  transitionCode: string
+  fromStageCode: string
+  toStageCode: string
+  conditionRuleRevisionId?: number
+  priority: number
+  default: boolean
+  revisionNo: number
+}
+export interface StageDef extends ExecutionLinks {
   stageCode: string
   name: string
   sortOrder?: number
   entryCriteria?: string
   exitCriteria?: string
+  start?: boolean
+  terminal?: boolean
 }
-
-/** 任务定义行（版本内唯一，可父子） */
-export interface TaskDef {
+export interface TaskDef extends ExecutionLinks {
   taskCode: string
   name: string
   parentTaskCode?: string
@@ -22,35 +39,37 @@ export interface TaskDef {
   estimatedHours?: number
   satisfactionTiming?: string
   description?: string
+  // Existing inline contracts remain readable; new nodes select reusable revisions.
+  workBindingTypeCode?: string
+  targetContextCode?: string
+  targetObjectType?: string
+  targetObjectKey?: string
+  componentKey?: string
+  dynamicFormRevisionId?: number
+  approvalDefinitionKey?: string
+  bindingConfig?: string
+  permissionPolicyRef?: string
+  completionRuleTypeCode?: string
+  completionRuleConfig?: string
+  gateRef?: string
+  definitionVersion?: number
 }
-
-/** 里程碑定义行 */
-export interface MilestoneDef {
+export interface MilestoneDef extends DefinitionLink {
   milestoneCode: string
   name: string
   stageCode?: string
   timing?: string
   criteria?: string
 }
-
-/** 交付件定义行 */
-export interface DeliverableDef {
+export interface DeliverableDef extends DefinitionLink {
   deliverableCode: string
   name: string
   stageCode?: string
   taskCode?: string
   required?: boolean
 }
-
-/** 门禁结构化引用行（任务/交付件/状态/流程） */
-export interface GateRef {
-  refType: string // TASK / DELIVERABLE / STATE / PROCESS
-  refCode: string
-  refVersion?: string
-}
-
-/** 门禁定义行（ENTRY 准入 / EXIT 准出） */
-export interface GateDef {
+export interface GateRef { refType: string; refCode: string; refVersion?: string }
+export interface GateDef extends DefinitionLink {
   gateCode: string
   name: string
   gateType: string
@@ -58,40 +77,38 @@ export interface GateDef {
   description?: string
   references: GateRef[]
 }
-
-/** 草稿/版本定义内容（四维条件+流程引用+六类定义行） */
 export interface TemplateDefinitionContent {
   signingMethod?: string
   projectCategory?: string
   implementationMethod?: string
   majorProjectLevel?: string
   processDefinitionKey?: string
+  /** Historical read-only field. Never submitted by the editor. */
   processDefinitionVersion?: string
   stages: StageDef[]
+  /** Missing in historical content; absence must not be inferred from sortOrder. */
+  transitions?: StageTransition[]
   tasks: TaskDef[]
   milestones: MilestoneDef[]
   deliverables: DeliverableDef[]
   gates: GateDef[]
 }
-
-/** 模板身份 */
 export interface ProjectTemplateVO {
   id?: number
   code: string
   name: string
-  status?: string // DRAFT / ACTIVE / RETIRED
+  status?: string
+  version?: number
   matchPriority?: number
   description?: string
   systemReserved?: boolean
   createTime?: Date
 }
-
-/** 版本头 */
 export interface ProjectTemplateRevisionVO {
   id: number
   templateId: number
   revisionNo: number
-  status: string // DRAFT / PUBLISHED
+  status: string
   signingMethod?: string
   projectCategory?: string
   implementationMethod?: string
@@ -102,72 +119,56 @@ export interface ProjectTemplateRevisionVO {
   publishedBy?: string
   publishedTime?: Date
 }
-
-/** 模板详情（身份+草稿内容+版本清单） */
 export interface ProjectTemplateDetailVO extends ProjectTemplateVO {
   draftContent?: TemplateDefinitionContent
   revisions: ProjectTemplateRevisionVO[]
 }
-
-/** 已发布版本详情（只读快照） */
 export interface ProjectTemplateRevisionDetailVO extends ProjectTemplateRevisionVO {
   content: TemplateDefinitionContent
 }
-
-/** 编辑入参：身份字段 + 可选草稿内容整体替换 */
 export interface ProjectTemplateUpdateReqVO {
   name?: string
   matchPriority?: number
   description?: string
   content?: TemplateDefinitionContent
 }
-
-/** 四维匹配预演入参 */
+export interface TemplateCopy { code: string; name: string; sourceRevisionNo?: number }
 export interface MatchPreviewReqVO {
   signingMethod?: string
   projectCategory?: string
   implementationMethod?: string
   majorProjectLevel?: string
 }
-
-/** 匹配候选 */
-export interface MatchCandidateVO {
+export interface MatchCandidateVO extends MatchPreviewReqVO {
   templateId: number
   code: string
   name: string
   matchPriority?: number
-  signingMethod?: string
-  projectCategory?: string
-  implementationMethod?: string
-  majorProjectLevel?: string
 }
-
-/** 匹配预演结果：唯一命中或冲突清单（不静默选模） */
 export interface MatchRespVO {
   outcome: 'MATCHED' | 'NO_MATCH' | 'MULTI_MATCH'
   matched?: MatchCandidateVO
   conflicts: string[]
 }
 
-const baseUrl = '/pms/project-templates'
-
-export const getProjectTemplatePage = (params: PageParam) =>
-  request.get({ url: `${baseUrl}/page`, params })
-export const getProjectTemplate = (id: number) =>
-  request.get<ProjectTemplateDetailVO>({ url: `${baseUrl}/${id}` })
-export const createProjectTemplate = (data: ProjectTemplateVO) =>
-  request.post({ url: baseUrl, data })
+export const templateSaveContent = (content: TemplateDefinitionContent): TemplateDefinitionContent =>
+  JSON.parse(JSON.stringify(content, (key, value) =>
+    ['definitionSnapshot', 'processDefinitionVersion', 'refVersion'].includes(key) ? undefined : value
+  ))
+const baseUrl = '/api/v1/pms/project-templates'
+export const getProjectTemplatePage = (params: PageParam) => request.get({ url: `${baseUrl}/page`, params })
+export const getProjectTemplate = (id: number) => request.get<ProjectTemplateDetailVO>({ url: `${baseUrl}/${id}` })
+export const createProjectTemplate = (data: ProjectTemplateVO) => request.post<number>({ url: baseUrl, data })
+// Existing template commands retain the Controller's header-free compatibility contract.
 export const updateProjectTemplate = (id: number, data: ProjectTemplateUpdateReqVO) =>
-  request.put({ url: `${baseUrl}/${id}`, data })
-export const deleteProjectTemplate = (id: number) =>
-  request.delete({ url: `${baseUrl}/${id}` })
-export const publishProjectTemplate = (id: number) =>
-  request.post({ url: `${baseUrl}/${id}/actions/publish` })
-export const disableProjectTemplate = (id: number) =>
-  request.post({ url: `${baseUrl}/${id}/actions/disable` })
+  request.put({ url: `${baseUrl}/${id}`, data: { ...data, ...(data.content ? { content: templateSaveContent(data.content) } : {}) } })
+export const deleteProjectTemplate = (id: number) => request.delete({ url: `${baseUrl}/${id}` })
+export const publishProjectTemplate = (id: number) => request.post({ url: `${baseUrl}/${id}/actions/publish` })
+export const disableProjectTemplate = (id: number) => request.post({ url: `${baseUrl}/${id}/actions/disable` })
+export const validateProjectTemplate = (id: number) => request.post<ValidationResult>({ url: `${baseUrl}/${id}/actions/validate` })
+export const copyProjectTemplate = (id: number, version: number, data: TemplateCopy, key: string) =>
+  request.post<number>({ url: `${baseUrl}/${id}/actions/copy`, data,
+    headers: { 'If-Match': String(version), 'Idempotency-Key': key } })
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
-  request.get<ProjectTemplateRevisionDetailVO>({
-    url: `${baseUrl}/${id}/revisions/${revisionNo}`
-  })
-export const matchPreview = (data: MatchPreviewReqVO) =>
-  request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
+  request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
+export const matchPreview = (data: MatchPreviewReqVO) => request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
