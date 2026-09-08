@@ -259,6 +259,12 @@ class CommerceAuthorityCandidateMySqlTest {
                         OrganizationUserCandidatePageReqDTO request) {
                     throw new UnsupportedOperationException();
                 }
+
+                @Override
+                public PageResult<cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserRespDTO> pageCompanyRoleUsers(
+                        cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserPageReqDTO request) {
+                    throw new UnsupportedOperationException();
+                }
             };
         }
     }

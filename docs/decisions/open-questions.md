@@ -585,6 +585,17 @@
 - Decision owner: 需求方；PROJ/SYSTEM及实际消费者参与设计
 - Decision date: 2026-09-08（当前任务用户确认并补充通用接口要求）
 
+### Q-FPROJ-011
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-01@V1、PM-08@V1；项目数据范围直接消费者
+- Area: 新建未指派项目的首次指派授权来源
+- Evidence: 2026-09-08固定测试库真实页面创建项目992203060002，创建者1只有VIEW；新候选接口被MANAGE范围校验拒绝（1014024033）。ProjectTreeScopeService仅从有效项目经理/服务经理成员或显式授权产生MANAGE，创建者只获得VIEW；ProjectAuthorizationGuard.assertCanAssign要求MANAGE。不能因具备功能权限就静默授予项目范围。
+- Question: 对尚未完成双主责指派且没有现成MANAGE主体的新项目，谁可以完成首次服务经理/项目经理指派，数据范围从何取得？
+- Recommendation（未批准、未实现）: 允许同时具备指派功能权限的项目创建者，在双主责未齐期间完成首次指派；保留受信租户、项目创建者/版本/生命周期及候选资格校验，不产生永久MANAGE授权，不扩大其他项目操作范围。是否采用由需求方裁决。
+- Blocking scope: 仅阻断无MANAGE的新建未指派项目首次指派闭环；已有合法管理范围的联合/分次指派、增补、移除、主责切换已取得真实接口与浏览器证据。模板/阶段内业务不由本Q作额外准入。
+- Decision owner: 需求方；PROJ负责落实已确认授权边界。
+
 ## 并行分支权威收敛阻断
 
 ### Q-GOV-20260901-001

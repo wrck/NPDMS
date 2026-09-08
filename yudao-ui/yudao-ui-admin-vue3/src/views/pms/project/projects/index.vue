@@ -1067,8 +1067,7 @@ const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: stri
   { value: 'S3', label: 'S3 实施方案', tone: 'blue', icon: 'ep:files' },
   { value: 'S4', label: 'S4 实施部署', tone: 'blue', icon: 'ep:setting' },
   { value: 'S5', label: 'S5 验收交维', tone: 'yellow', icon: 'ep:circle-check' },
-  { value: 'S6', label: 'S6 闭环', tone: 'green', icon: 'ep:lock' },
-  { value: 'MAINT', label: 'MAINT 维护', tone: 'gray', icon: 'ep:refresh' }
+  { value: 'S6', label: 'S6 闭环', tone: 'green', icon: 'ep:lock' }
 ]
 
 const stats = reactive<Record<string, number>>({ total: 0 })

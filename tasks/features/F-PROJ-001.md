@@ -3,8 +3,8 @@
 > Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`（修订019新增量在途；原创建范围PASS保留历史）
-> 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：Task 10通用查询、角色权限及项目经理成员写入后端增量已合入master；联合指派及UI闭环继续在途，不重复候选裁决
+> 当前阻断：Q-FPROJ-011待确认新建无MANAGE项目首次指派的授权来源；历史已完成范围不回退，依赖独立验收的路径仍受Q-TPLACC-001约束
+> 当前任务：Task 10已有合法管理范围的联合/分次成员管理及UI闭环已交付；新建未指派项目首次授权待裁决，不重复候选裁决
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史创建规格SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`（不作当前新增量准入）
@@ -25,10 +25,10 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。项目经理增补/移除/主责切换后端增量已实现、验证并合入master，见[成员写入DU](../delivery-units/DU-20260908-PM01-MANAGER-MEMBERS.md)；联合服务经理事务、完整消费者及UI仍待完成。唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)，经理增补/移除/主责写入见[成员写入DU](../delivery-units/DU-20260908-PM01-MANAGER-MEMBERS.md)。已有MANAGE项目的联合事务、当前成员/候选查询与页面操作已取得代码、固定测试库及真实浏览器证据，详见[成员闭环DU](../delivery-units/DU-20260908-PM01-MEMBER-CLOSURE.md)；无MANAGE新项目的首次指派受Q-FPROJ-011阻断，完整跨域消费者及独立验收义务仍按[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)推进。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
-- 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，完整成员写入/UI仍未完成。
-- [ ] AC-FPROJ-011：上游查询、角色权限及项目经理成员写入子范围取得定向证据，完整联合/分次指派、多经理、主责与各阶段操作尚未验收。
+- 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，首次指派数据范围仍须裁决。
+- [ ] AC-FPROJ-011：已有合法管理范围的联合/分次指派、多经理、主责和历史刷新已验收；新建未指派项目首次授权及完整各阶段/消费者义务未闭环。
 
 下面Task 0～9、历史AC与PASS证据继续覆盖原完成范围，不因修订019进入IN_PROGRESS而撤销历史结论；顶部状态表示当前Feature新增量。当前Ready以Spec为准，查询DU完成不等于Task 10或Feature Done。
 
