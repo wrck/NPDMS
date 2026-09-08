@@ -108,7 +108,7 @@
                   AND 1 = 0
               </otherwise>
           </choose>
-          AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
           AND status = 'ACTIVE'
           AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
@@ -134,7 +134,7 @@
                   AND 1 = 0
               </otherwise>
           </choose>
-          AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
           AND status = 'ACTIVE'
           AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))

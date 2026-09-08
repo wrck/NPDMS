@@ -78,7 +78,6 @@ public class ProjectStageAdvanceApplicationService {
             "POST:/api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process";
     private static final String ACTIVE = "ACTIVE";
     private static final String PROJECT_MANAGER = "PROJECT_MANAGER";
-    private static final String PRIMARY = "PRIMARY";
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;
@@ -276,14 +275,9 @@ public class ProjectStageAdvanceApplicationService {
     }
 
     private void requireCurrentManager(ProjectMasterDO project, Actor actor) {
-        if (Objects.equals(project.getManagerId(), actor.actorUserId())) return;
         List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
                 new ProjectParticipantFactLockQuery(actor.tenantId(), project.getId(), actor.actorUserId(), Set.of(PROJECT_MANAGER)));
         if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
-        String assignmentType = managers.getFirst().getAssignmentType();
-        if (assignmentType != null && !PRIMARY.equals(assignmentType)) {
-            throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
-        }
     }
 
     private GateReferenceContext requireProcessReference(ProjectMasterDO project, Long referenceId, boolean locked) {

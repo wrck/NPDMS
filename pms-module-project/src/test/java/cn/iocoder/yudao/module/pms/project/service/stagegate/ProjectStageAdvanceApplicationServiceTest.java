@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.Proj
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
@@ -59,6 +60,7 @@ class ProjectStageAdvanceApplicationServiceTest {
     private PlatformCommandExecutionApi commandExecutionApi;
     private ProjectStageGateProviderRegistry providerRegistry;
     private ProjectMasterMapper projectMapper;
+    private ProjectMemberAssignmentMapper memberMapper;
     private ProjectStageInstanceMapper stageMapper;
     private ProjectGateInstanceMapper gateMapper;
     private ProjectGateReferenceInstanceMapper referenceMapper;
@@ -75,6 +77,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         ProjectScopeApi projectScopeApi = mock(ProjectScopeApi.class);
         providerRegistry = mock(ProjectStageGateProviderRegistry.class);
         projectMapper = mock(ProjectMasterMapper.class);
+        memberMapper = mock(ProjectMemberAssignmentMapper.class);
         stageMapper = mock(ProjectStageInstanceMapper.class);
         gateMapper = mock(ProjectGateInstanceMapper.class);
         referenceMapper = mock(ProjectGateReferenceInstanceMapper.class);
@@ -83,7 +86,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         successFacts = new AtomicReference<>();
         service = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, projectScopeApi,
                 mock(ProjectParticipantFactApi.class), mock(ProjectStageGateProcessOwnerApi.class), providerRegistry,
-                projectMapper, stageMapper, gateMapper, referenceMapper, mock(ProjectMemberAssignmentMapper.class),
+                projectMapper, stageMapper, gateMapper, referenceMapper, memberMapper,
                 snapshotMapper, snapshotRepository);
 
         when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(true);
@@ -144,6 +147,23 @@ class ProjectStageAdvanceApplicationServiceTest {
     }
 
     @Test
+    void nonPrimaryManagerCanAdvanceButMissingMemberCannot() {
+        stubLockedContext(ProjectStageGateOutcome.SATISFIED);
+        projectMapper.selectByIdForUpdate(PROJECT_ID).setManagerId(99L);
+        ProjectMemberAssignmentDO member = new ProjectMemberAssignmentDO();
+        member.setUserId(ACTOR_ID);
+        member.setMemberRole("PROJECT_MANAGER");
+        member.setAssignmentType("COLLABORATOR");
+        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of(member));
+        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+                "secondary", "d".repeat(64));
+        var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-secondary");
+        assertEquals("S1", service.advance(command, actor).afterStage());
+        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(command, actor));
+    }
+
+    @Test
     void replaysProcessStartFromTheAtomicIdempotencyBoundary() {
         ProjectStageGateProcessStartFact stored = new ProjectStageGateProcessStartFact(
                 "pi-1", "def-1", "gate-process", "PROJECT_STAGE_GATE:41", "STARTED");
@@ -161,6 +181,12 @@ class ProjectStageAdvanceApplicationServiceTest {
     }
 
     private void stubLockedContext(ProjectStageGateOutcome outcome) {
+        ProjectMemberAssignmentDO member = new ProjectMemberAssignmentDO();
+        member.setProjectId(PROJECT_ID);
+        member.setUserId(ACTOR_ID);
+        member.setMemberRole("PROJECT_MANAGER");
+        member.setAssignmentType("PRIMARY");
+        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of(member));
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(PROJECT_ID);
         project.setTenantId(TENANT_ID);

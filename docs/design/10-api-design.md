@@ -600,6 +600,8 @@ Q-FPROJ-010已确认候选为同公司、可跨部门的有效在职人员，并
 
 #### 通用公司/角色用户资格查询（PM-01、INT-09；Q-FPROJ-010）
 
+修订019角色事实消费细则：`ProjectParticipantFactApi.inspect`指定subjectUserId以及`lockAndRevalidate`指定userId时，按有效PROJECT_MANAGER成员区间判定，不以manager_id或PRIMARY责任类型限制角色操作；返回命中成员的实际责任类型（历史空值沿原PRIMARY归一），该类型不授予或削减项目经理权限。不指定用户的查询继续承接既有主责通知引用，不从多经理中任选一人，也不得用于用户授权。重验保留Project→成员锁序、项目版本/生命周期和调用方指定阶段检查，不将角色API硬编码为仅S1可用。阶段写命令同样核对有效成员，其他权限与门禁不变。
+
 SYSTEM在已有PMS组织扩展`OrganizationScopeApi`上提供加法方法`pageCompanyRoleUsers(CompanyRoleUserPageReqDTO)`；不是PROJ专用项目经理接口，不修改上游`AdminUserApi/DeptApi/PermissionApi`定义，也不放宽现有`pageActiveUsers`的公司+部门语义。PROJ等业务调用方先执行自己的功能权限与业务对象数据范围校验，再调用此内部公共接口；不授予全局用户管理权限，不允许客户端覆盖租户上下文。
 
 | 请求字段 | 语义 |

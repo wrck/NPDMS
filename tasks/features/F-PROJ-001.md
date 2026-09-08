@@ -27,6 +27,7 @@
 
 - Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换、角色集合消费者及UI仍待完成；唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
+- 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，完整成员写入/UI仍未完成。
 - [ ] AC-FPROJ-011：只有上游查询子范围取得代码与MySQL证据，完整联合/分次指派、多经理、主责与各阶段操作尚未验收。
 
 下面Task 0～9、历史AC与PASS证据继续覆盖原完成范围，不因修订019进入IN_PROGRESS而撤销历史结论；顶部状态表示当前Feature新增量。当前Ready以Spec为准，查询DU完成不等于Task 10或Feature Done。

@@ -62,12 +62,16 @@ class ProjectParticipantFactMapperTest {
     private TransactionTemplate transactionTemplate;
 
     private long projectId;
+    private boolean created;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> environment = System.getenv();
-        String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
-        String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        String database = required(environment, "NPDMS_DB_NAME");
+        String port = required(environment, "NPDMS_MYSQL_PORT");
+        if (!"npdms_test".equals(database) || !"23316".equals(port)) {
+            throw new IllegalStateException("角色事实测试只允许固定测试库23316/npdms_test");
+        }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
         registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
@@ -81,6 +85,8 @@ class ProjectParticipantFactMapperTest {
 
     @BeforeEach
     void setUp() {
+        created = false;
+        assertEquals("npdms_test", jdbcTemplate.queryForObject("SELECT DATABASE()", String.class));
         TenantContextHolder.setTenantId(0L);
         long seed = Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
         projectId = 976_000_000_000L + seed;
@@ -91,10 +97,15 @@ class ProjectParticipantFactMapperTest {
                         + "VALUES (?,?,?,?,?,?,?,?,?,?,'S0','ACTIVE','S1','ASSIGNED',0,0,3,0)",
                 projectId, "FSOL001-T2-" + projectId, projectId, 0,
                 "F-SOL-001 Task2 " + projectId, 8_000_001L, projectId, "/", 0, 0);
+        created = true;
     }
 
     @AfterEach
     void tearDown() {
+        if (!created) {
+            TenantContextHolder.clear();
+            return;
+        }
         jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=?",
                 projectId);
         jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=?", projectId);
@@ -193,6 +204,33 @@ class ProjectParticipantFactMapperTest {
 
             assertEquals(3L, lockedRead.get().factVersion());
         }
+    }
+
+    @Test
+    void managersShareRolePermissionsWhilePrimaryLookupStaysStable() {
+        String manager = ProjectParticipantFactApi.ROLE_PROJECT_MANAGER;
+        insertAssignment(8_000_001L, manager, "PRIMARY", LocalDateTime.now().minusDays(1), null);
+        insertAssignment(8_100_001L, manager, "COLLABORATOR", LocalDateTime.now().minusDays(1), null);
+        insertAssignment(8_100_002L, manager, "COLLABORATOR", LocalDateTime.now().minusDays(2),
+                LocalDateTime.now().minusDays(1));
+        var secondary = participantFactApi.inspect(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery(
+                projectId, 8_100_001L, Set.of(manager), LocalDateTime.now()));
+        assertEquals(Set.of(manager), secondary.effectiveRoleCodes());
+        assertEquals("COLLABORATOR", secondary.assignmentType());
+        assertEquals(8_000_001L, participantFactApi.inspect(
+                new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery(
+                        projectId, null, Set.of(manager), LocalDateTime.now())).userId());
+        jdbcTemplate.update("UPDATE proj_project SET current_stage='S2' WHERE id=?", projectId);
+        assertEquals(8_100_001L, participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                projectId, 8_100_001L, 3, "ACTIVE", "S2", Set.of(manager))).userId());
+        assertThrows(ServiceException.class, () -> participantFactApi.inspect(
+                new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery(
+                        projectId, 8_100_002L, Set.of(manager), LocalDateTime.now())));
+        jdbcTemplate.update("UPDATE proj_project_member_assignment SET effective_to=NOW(3) "
+                + "WHERE project_id=? AND user_id=?", projectId, 8_100_001L);
+        assertThrows(ServiceException.class, () -> participantFactApi.lockAndRevalidate(
+                new ProjectParticipantFactRevalidationQuery(projectId, 8_100_001L, 3,
+                        "ACTIVE", "S2", Set.of(manager))));
     }
 
     private void insertAssignment(long userId, String role, String assignmentType,

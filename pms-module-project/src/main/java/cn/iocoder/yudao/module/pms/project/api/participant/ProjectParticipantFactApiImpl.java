@@ -30,7 +30,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi {
 
     private static final String ACTIVE = "ACTIVE";
-    private static final String INITIAL_STAGE = "S1";
+    private static final Set<String> STAGES = Set.of("S0", "S1", "S2", "S3", "S4", "S5", "S6");
     private static final String PRIMARY = "PRIMARY";
     private static final Set<String> SUPPORTED_ROLES = Set.of(
             ROLE_PROJECT_MANAGER, ROLE_SERVICE_MANAGER_L1, ROLE_SERVICE_MANAGER_L2);
@@ -46,7 +46,7 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         requireProject(project, tenantId);
         List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFacts(
                 new ProjectParticipantFactLookupQuery(tenantId, query.projectId(), query.subjectUserId(),
-                        serviceRoles(query.requiredRoleCodes()), query.checkedAt()));
+                        lookupRoles(query.requiredRoleCodes(), query.subjectUserId()), query.checkedAt()));
         return resolve(project, tenantId, query.subjectUserId(), query.requiredRoleCodes(), assignments);
     }
 
@@ -67,7 +67,7 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         }
         List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFactsForUpdate(
                 new ProjectParticipantFactLockQuery(tenantId, query.projectId(), query.userId(),
-                        serviceRoles(query.requiredRoleCodes())));
+                        query.requiredRoleCodes()));
         return resolve(project, tenantId, query.userId(), query.requiredRoleCodes(), assignments);
     }
 
@@ -75,8 +75,8 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                                            Set<String> requiredRoles,
                                            List<ProjectMemberAssignmentDO> assignments) {
         Map<Long, Set<String>> rolesByUser = new HashMap<>();
-        if (requiredRoles.contains(ROLE_PROJECT_MANAGER) && project.getManagerId() != null
-                && (subjectUserId == null || Objects.equals(subjectUserId, project.getManagerId()))) {
+        if (subjectUserId == null && requiredRoles.contains(ROLE_PROJECT_MANAGER)
+                && project.getManagerId() != null) {
             rolesByUser.computeIfAbsent(project.getManagerId(), ignored -> new HashSet<>())
                     .add(ROLE_PROJECT_MANAGER);
         }
@@ -93,7 +93,11 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         }
         Map.Entry<Long, Set<String>> selected = rolesByUser.entrySet().iterator().next();
         long factVersion = project.getVersion() == null ? 0L : project.getVersion().longValue();
-        return new ProjectParticipantFact(project.getId(), selected.getKey(), selected.getValue(), PRIMARY,
+        String assignmentType = assignments.stream()
+                .filter(item -> ROLE_PROJECT_MANAGER.equals(item.getMemberRole()))
+                .map(ProjectMemberAssignmentDO::getAssignmentType)
+                .filter(Objects::nonNull).findFirst().orElse(PRIMARY);
+        return new ProjectParticipantFact(project.getId(), selected.getKey(), selected.getValue(), assignmentType,
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getVersion(), factVersion);
     }
 
@@ -110,7 +114,7 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                 || query.userId() == null || query.userId() <= 0
                 || query.expectedProjectVersion() == null || query.expectedProjectVersion() < 0
                 || !ACTIVE.equals(query.requiredLifecycleStatus())
-                || query.requiredCurrentStage() != null && !INITIAL_STAGE.equals(query.requiredCurrentStage())
+                || query.requiredCurrentStage() != null && !STAGES.contains(query.requiredCurrentStage())
                 || !validRoles(query.requiredRoleCodes())) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
@@ -120,7 +124,8 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         return roles != null && !roles.isEmpty() && SUPPORTED_ROLES.containsAll(roles);
     }
 
-    private Set<String> serviceRoles(Set<String> requiredRoles) {
+    private Set<String> lookupRoles(Set<String> requiredRoles, Long subjectUserId) {
+        if (subjectUserId != null) return requiredRoles;
         Set<String> roles = new HashSet<>(requiredRoles);
         roles.remove(ROLE_PROJECT_MANAGER);
         return Set.copyOf(roles);
@@ -147,7 +152,8 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                 || assignment.getUserId() == null
                 || subjectUserId != null && !Objects.equals(assignment.getUserId(), subjectUserId)
                 || !requiredRoles.contains(assignment.getMemberRole())
-                || assignment.getAssignmentType() != null && !PRIMARY.equals(assignment.getAssignmentType())) {
+                || !ROLE_PROJECT_MANAGER.equals(assignment.getMemberRole())
+                && assignment.getAssignmentType() != null && !PRIMARY.equals(assignment.getAssignmentType())) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }

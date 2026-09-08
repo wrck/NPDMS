@@ -53,10 +53,10 @@ class ProjectParticipantFactApiImplTest {
     }
 
     @Test
-    void inspectReturnsCurrentProjectManagerWithoutMemberRow() {
+    void inspectReturnsEffectiveProjectManagerMember() {
         when(projectMapper.selectById(100L)).thenReturn(project(100L, 200L, "ACTIVE", "S1", 7, 0L));
         when(memberMapper.selectParticipantFacts(any(ProjectParticipantFactLookupQuery.class)))
-                .thenReturn(List.of());
+                .thenReturn(List.of(assignment(100L, 200L, ROLE_PROJECT_MANAGER, "PRIMARY", 0L)));
 
         var fact = api.inspect(new ProjectParticipantFactQuery(
                 100L, 200L, Set.of(ROLE_PROJECT_MANAGER), LocalDateTime.now()));
@@ -69,7 +69,7 @@ class ProjectParticipantFactApiImplTest {
         ArgumentCaptor<ProjectParticipantFactLookupQuery> captor =
                 ArgumentCaptor.forClass(ProjectParticipantFactLookupQuery.class);
         verify(memberMapper).selectParticipantFacts(captor.capture());
-        assertEquals(Set.of(), captor.getValue().requiredRoleCodes());
+        assertEquals(Set.of(ROLE_PROJECT_MANAGER), captor.getValue().requiredRoleCodes());
     }
 
     @Test
@@ -91,7 +91,8 @@ class ProjectParticipantFactApiImplTest {
     void inspectCombinesManagerAndServiceManagerForSameUser() {
         when(projectMapper.selectById(100L)).thenReturn(project(100L, 200L, "ACTIVE", "S1", 9, 0L));
         when(memberMapper.selectParticipantFacts(any(ProjectParticipantFactLookupQuery.class)))
-                .thenReturn(List.of(assignment(100L, 200L, ROLE_SERVICE_MANAGER_L2, "PRIMARY", 0L)));
+                .thenReturn(List.of(assignment(100L, 200L, ROLE_SERVICE_MANAGER_L2, "PRIMARY", 0L),
+                        assignment(100L, 200L, ROLE_PROJECT_MANAGER, "PRIMARY", 0L)));
 
         var fact = api.inspect(new ProjectParticipantFactQuery(100L, 200L,
                 Set.of(ROLE_PROJECT_MANAGER, ROLE_SERVICE_MANAGER_L2), LocalDateTime.now()));
@@ -162,6 +163,32 @@ class ProjectParticipantFactApiImplTest {
         TenantContextHolder.clear();
         assertThrows(ServiceException.class, () -> api.inspect(new ProjectParticipantFactQuery(
                 100L, 200L, Set.of(ROLE_PROJECT_MANAGER), LocalDateTime.now())));
+    }
+
+    @Test
+    void barePrimaryReferenceIsOnlyForUnspecifiedUserLookup() {
+        when(projectMapper.selectById(100L)).thenReturn(project(100L, 200L, "ACTIVE", "S1", 7, 0L));
+        when(memberMapper.selectParticipantFacts(any())).thenReturn(List.of());
+        assertThrows(ServiceException.class, () -> api.inspect(new ProjectParticipantFactQuery(
+                100L, 200L, Set.of(ROLE_PROJECT_MANAGER), LocalDateTime.now())));
+        assertEquals(200L, api.inspect(new ProjectParticipantFactQuery(
+                100L, null, Set.of(ROLE_PROJECT_MANAGER), LocalDateTime.now())).userId());
+    }
+
+    @Test
+    void secondaryManagerHasTheSameRoleAndCanRevalidateBeyondS1() {
+        var project = project(100L, 200L, "ACTIVE", "S3", 7, 0L);
+        when(projectMapper.selectById(100L)).thenReturn(project);
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project);
+        var rows = List.of(assignment(100L, 300L, ROLE_PROJECT_MANAGER, "COLLABORATOR", 0L));
+        when(memberMapper.selectParticipantFacts(any())).thenReturn(rows);
+        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(rows);
+        var fact = api.inspect(new ProjectParticipantFactQuery(
+                100L, 300L, Set.of(ROLE_PROJECT_MANAGER), LocalDateTime.now()));
+        assertEquals(Set.of(ROLE_PROJECT_MANAGER), fact.effectiveRoleCodes());
+        assertEquals("COLLABORATOR", fact.assignmentType());
+        assertEquals(300L, api.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                100L, 300L, 7, "ACTIVE", "S3", Set.of(ROLE_PROJECT_MANAGER))).userId());
     }
 
     private static ProjectMasterDO project(long id, Long managerId, String lifecycleStatus,
