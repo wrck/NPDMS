@@ -1,18 +1,18 @@
 # DU-20260909-DELIVERY-DEMO-BUSINESS-UI Demo领域页面与表单内容
 
 > DU状态：`CLAIMED`
-> DU类型：`TASK`
-> Feature协调：`F-SOL-003=TASK_COORDINATED`
-> Task范围：`Demo V2需求分析表单内容增量：PRE-04兼容JSON及定向测试；不包含生产宿主、注册、发布或任务接入`
+> DU类型：`MULTI_FEATURE_SLICE`
+> Feature协调：`F-SOL-003=TASK_COORDINATED;F-ACC-002=TASK_COORDINATED`
+> Task范围：`PRE-04兼容表单内容；ACC-02既有满意度页面项目上下文/只读适配及定向组件测试；不包含宿主、注册、模板发布或任务接入`
 > Owner：`实现动态表单和业务操作界面（01a0822c-ea82-7801-b318-39bfd843f866）`
 > 分支：`DETACHED`
 > Worktree：`M:/AICoding/CodexData/worktrees/bfbf/NPDMS`
 > 认领基线：`3d6d6686b703638041a1007bdc7372206c9501c3`
 > 认领提交：`SELF`
-> 修改边界：`yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demo-template.json;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demoTemplate.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/browser/**;tasks/delivery-units/DU-20260909-DELIVERY-DEMO-BUSINESS-UI.md`
-> 串行资源：`无数据库访问、无SQL或迁移号；浏览器目录仅本模板测试入口及脚本，不增加生产路由；保留bfbf在途PM01文件`
+> 修改边界：`yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demo-template.json;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demoTemplate.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/browser/**;tasks/delivery-units/DU-20260909-DELIVERY-DEMO-BUSINESS-UI.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/index.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/TaskPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/ResultPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.runtime.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/browser/**`
+> 串行资源：`无数据库/生产访问，无SQL或迁移号；浏览器目录仅各自内容/组件测试入口，不增加生产路由；保留bfbf在途PM01文件及p903边界`
 > 旧功能范围：`NONE`
-> 验证：`JSON与既有共享codec、PRE-04兼容规则的定向测试；真实FormCreate浏览器渲染/取值；工具不可用如实记录，不冒充业务保存或宿主接入验收`
+> 验证：`PRE-04共享codec及FormCreate渲染/取值；ACC-02复用已有依赖和mocked Owner API验证独立入口不回退、指定项目锁定/非法值拒绝、切换竞态及只读禁写；工具不可用如实报告，不冒充生产或宿主联调`
 > 集成记录：`NONE`
 
 ## 协调入口与依据
@@ -27,9 +27,19 @@
 
 唯一生产内容产物为新增JSON对象`{formConfJson, formRulesJson}`，保持与现有`DynamicFormRevisionVO`、`decodeDynamicForm`兼容；保留11个核心Editor、3个核心必填和11个受控附件槽。Demo传输多选、流量、IP及运维多选仅按既有契约允许的扩展添加，不嵌入业务状态命令、API地址或密码。
 
-测试和README只服务本JSON；browser目录可提供独立真实渲染/取值验收入口及脚本，不成为生产页面宿主或替代领域实现。不得修改SDS、领域Service/API/表、SQL、模板注册、既有组件、已发布修订或项目冻结引用；不调用生产写API、不擅自发布模板，不把页面保存改成任务或节点完成。
+PRE-04单元的测试和README只服务本JSON；browser目录可提供独立真实渲染/取值验收入口及脚本，不成为生产页面宿主或替代领域实现。该内容单元不得修改SDS、领域Service/API/表、SQL、模板注册、既有组件、已发布修订或项目冻结引用；不调用生产写API、不擅自发布模板，不把页面保存改成任务或节点完成。
 
-后续其他Demo页面未在本次认领内；明确业务义务与精确文件后可在本DU扩展，由协调者提交新边界后生效，不提前占用整个delivery-business目录。
+除下述ACC-02扩展外，其他Demo页面尚未认领；后续明确业务义务与精确文件后在本DU扩展，由协调者提交新边界后生效，不提前占用整个delivery-business目录。
+
+## ACC-02满意度现成页面直接复用增量（2026-09-09）
+
+- Requirement/Feature：`ACC-02` / `F-ACC-002`；正式契约引用`specs/features/F-ACC-002-satisfaction-questionnaire-result-and-deliverable-sync.md`及现有`tasks/features/F-ACC-002.md`，不修改其Feature状态、评分/签字/权限/归档规则。
+- 授权依据：用户已确认S1～S6适配及“旧实现能复用直接复用，仅缺项目上下文/字段/操作做必要适配，保留原功能和历史”；本次按来源任务集中清单，直接增强上述三个既有满意度组件，不复制成平行页面，不新建问卷引擎。
+- 输入与行为：为`index.vue`、`TaskPanel.vue`、`ResultPanel.vue`增加可选`projectId`和`readonly`输入。未传入时保持独立管理页行为；明确指定项目时锁定查询上下文，非法指定项目不得退化为全域查询，切换项目不得让旧响应回填；只读状态禁止写业务动作。`projectContext.ts`仅在需要共享纯上下文判定时新增，只供本域使用，不扩展为通用框架。
+- 排除项：不改既有API、领域Service/表、SQL、评分、签字、授权或归档；不删除或替换原独立入口，不修改未列明的满意度组件。新增README及browser目录仅用于本次组件验证，不增加生产路由、宿主或注册项。
+- 依赖与Owner：满意度页面继续消费既有F-ACC-002 API；p903仍持有模板发布/选择/冻结、受控注册、宿主及既有需求分析组件。组件可选输入不等于宿主契约变更，本次未转交或修改p903职责。master活动DU核对未发现F-ACC-002或上述满意度路径的其他活动认领；不据此扩大到满意度后端或整个ACC领域。
+- 验证边界：复用已有测试依赖与mocked Owner API，覆盖项目切换、非法上下文、只读及不传props的原入口行为；browser夹具只验证真实组件，不访问数据库或生产、不执行真实业务写入。不将该适配视为评分/签字/归档或完整用户链路已验收。
+- 来源与交付：沿用bfbf工作树及实际detached状态，不要求创建分支、同步认领提交、提交/接收PM01或当前实现。本节只扩展生效职责与文件边界；来源实现进展仍在本DU记录，后续集成须另有授权。
 
 ## 依赖与消费交接
 
