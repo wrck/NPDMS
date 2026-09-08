@@ -1,6 +1,6 @@
 # DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW 逐需求实现现状审查
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`PRD修订018的100项V1/V2正式需求及111个版本切片逐项审查；按证据纠正工程链状态与代码现状入口`
