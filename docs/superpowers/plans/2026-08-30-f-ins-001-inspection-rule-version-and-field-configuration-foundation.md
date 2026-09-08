@@ -529,6 +529,10 @@ Expected：PASS；数据库唯一约束和Service CAS共同保证单一当前发
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/SelectableInspectionRuleService.java`
 - Create: `pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/SelectableInspectionRuleServiceImpl.java`
 - Create: `pms-module-service/src/test/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/SelectableInspectionRuleServiceImplTest.java`
+- Modify: `yudao-server/pom.xml`，仅增加`yudao-spring-boot-starter-test`的`test`作用域依赖
+- Create: `yudao-server/src/test/java/cn/iocoder/yudao/server/inspectionrule/SelectableInspectionRuleMySqlIntegrationTest.java`
+
+测试装配扩展的批准依据、精确写边界和主线交接以[Task 9 DU](../../../tasks/delivery-units/DU-20260908-FINS001-TASK9.md#2026-09-08-task-9测试装配边界扩展)为准；不修改共享测试starter、生产依赖、AST/System实现或其他Task，不以本次计划扩展宣布测试或Feature完成。
 
 - [ ] **Step 1: 实现AST授权设备查询**
 
@@ -542,15 +546,18 @@ Service从服务端认证上下文取得当前用户，构造`AuthorizedDevicePr
 
 通过真实`InspectionAssetProductTypeApi`调用覆盖授权设备当前产品类型精确匹配、跨租户设备、无设备范围、未知/停用/未解析产品类型、契约不可用、不适用规则、已停用规则、历史发布规则和空产品类型集合；无权或不可见设备返回空且不泄露存在性。
 
+保留Service定向单测验证认证用户来源、空集合与AST异常失败关闭；仅在上述单个server集成测试中装配生产选择Service、真实AST授权查询Provider与真实Mapper，使用已确认的隔离MySQL验证授权匹配、租户隔离、当前发布筛选和只读历史保护。不得用Mock替代上述真实链路宣称集成通过，不向service模块增加AST实现依赖，不修改AST/System生产代码或共享测试配置；测试夹具仅在隔离测试范围创建并清理，不覆盖不可变历史或开发/生产数据。
+
 - [ ] **Step 4: 运行定向测试**
 
 Run:
 
 ```powershell
-mvn.cmd -pl pms-module-service -Dtest=SelectableInspectionRuleServiceImplTest test
+mvn.cmd -pl pms-module-service -am "-Dtest=SelectableInspectionRuleServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl yudao-server -am "-Dtest=SelectableInspectionRuleMySqlIntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Expected：PASS；空权限/范围返回空或稳定拒绝，不因省略筛选扩大结果。
+Expected：两个目标测试均实际执行且PASS；核对各自Surefire报告，集成测试未执行、被跳过或未连接隔离MySQL不得记为通过。空权限/范围返回空或稳定拒绝，不因省略筛选扩大结果；只读选择不修改规则、审核事实或历史。运行前按`docs/development.md`确认Compose测试基础设施及测试配置，未完成真实MySQL时只报告单测结果，不替代后续UI与Feature最终验收。
 
 - [ ] **Step 5: 建议逻辑分组**
 
