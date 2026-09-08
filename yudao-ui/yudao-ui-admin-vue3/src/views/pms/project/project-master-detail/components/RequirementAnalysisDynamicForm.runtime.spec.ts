@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick, onMounted, reactive } from 'vue'
+import { defineComponent, h, nextTick, onMounted, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import {
@@ -63,6 +63,81 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     })
   })
 
+  it('keeps unsaved body and renderer rules while host and Owner permissions change, including during save', async () => {
+    const state = reactive({ detail: detail(), allowedActions: ['PATCH_FORM'] })
+    const form = ref<any>()
+    const rendered: any[] = []
+    const FormCreate = defineComponent({
+      props: {
+        modelValue: { type: Object, required: true },
+        rule: { type: Array, required: true },
+        disabled: Boolean
+      },
+      emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        return () => {
+          rendered.push(props.rule)
+          return h('div', [
+            h('span', `count:${props.modelValue.machineCount}; readonly:${props.disabled}`),
+            h(
+              'button',
+              {
+                'data-testid': 'edit-body',
+                onClick: () => emit('update:modelValue', { ...props.modelValue, machineCount: 9 })
+              },
+              'edit'
+            )
+          ])
+        }
+      }
+    })
+    const mounted = mount(
+      defineComponent({
+        setup: () => () => h(RequirementAnalysisDynamicForm, { ...state, ref: form })
+      }),
+      {},
+      { 'form-create': FormCreate }
+    )
+    await nextTick()
+    await (findByTestId(mounted.root, 'edit-body')!.props!.onClick as Function)()
+    await nextTick()
+    const rules = rendered[rendered.length - 1]
+    state.allowedActions = []
+    state.detail = { ...state.detail, allowedActions: [] }
+    await nextTick()
+    expect(textOf(mounted.root)).toContain('count:9; readonly:true')
+    expect(rendered[rendered.length - 1]).toBe(rules)
+    expect(rules.find((rule: any) => rule.type === 'PmsFileArtifact').props.allowedActions).toEqual(
+      []
+    )
+    expect(form.value.isDirty()).toBe(true)
+    expect(await form.value.save()).toBe(false)
+    expect(RequirementAnalysisApi.patchForm).not.toHaveBeenCalled()
+    state.allowedActions = ['PATCH_FORM']
+    state.detail = { ...state.detail, allowedActions: ['PATCH_FORM'] }
+    await nextTick()
+    expect(textOf(mounted.root)).toContain('count:9; readonly:false')
+    let finish!: (value: any) => void
+    vi.mocked(RequirementAnalysisApi.patchForm).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    const pending = form.value.save()
+    await Promise.resolve()
+    await nextTick()
+    expect(form.value.isSaving()).toBe(true)
+    form.value.discardChanges()
+    expect(textOf(mounted.root)).toContain('count:9')
+    state.allowedActions = []
+    await nextTick()
+    expect(form.value.isDirty()).toBe(true)
+    finish({ operationId: 'saved' })
+    await pending
+    expect(RequirementAnalysisApi.patchForm).toHaveBeenCalledTimes(1)
+    mounted.app.unmount()
+  })
   it('builds a genuine partial PATCH and keeps false and zero as submitted values', () => {
     expect(
       buildRequirementFormPatch(

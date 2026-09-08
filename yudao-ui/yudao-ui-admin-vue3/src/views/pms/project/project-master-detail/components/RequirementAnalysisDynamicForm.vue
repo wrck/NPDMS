@@ -59,6 +59,7 @@ import {
 defineOptions({ name: 'RequirementAnalysisDynamicForm' })
 const props = defineProps<{
   detail: RequirementAnalysisDetailVO
+  allowedActions?: string[]
   reload?: () => Promise<RequirementAnalysisDetailVO>
 }>()
 const emit = defineEmits<{
@@ -75,7 +76,8 @@ const render = reactive<{ option: JsonObject; rule: JsonObject[] }>({ option: {}
 const formApi = ref<FormCreateApi>()
 const saving = ref(false)
 const editable = computed(
-  () => props.detail.status === 'DRAFT' && props.detail.allowedActions.includes('PATCH_FORM')
+  () => props.detail.status === 'DRAFT' && props.detail.allowedActions.includes('PATCH_FORM') &&
+    (props.allowedActions === undefined || props.allowedActions.includes('PATCH_FORM'))
 )
 const pendingKey = computed(
   () => `pms:fsol003:requirement-form-patch:${props.detail.preparationId}`
@@ -125,7 +127,8 @@ const validate = async () => {
 }
 
 const save = async () => {
-  if (!editable.value || !(await validate())) return false
+  if (!editable.value || saving.value || !(await validate())) return false
+  if (!editable.value || saving.value) return false
   const patch = buildRequirementFormPatch(values.value, baseline.value, ordinaryFields.value)
   if (!Object.keys(patch.values).length) {
     message.info('普通字段没有变化')
@@ -171,18 +174,31 @@ const save = async () => {
 }
 
 const discardChanges = () => {
+  if (saving.value) return
   values.value = cloneValues(baseline.value)
   sessionStorage.removeItem(pendingKey.value)
 }
 
 watch(
-  () => props.detail,
-  (detail) => apply(detail, readPending()),
+  // Owner/body version changes reload the document; a new permission projection does not.
+  () => [props.detail.preparationId, props.detail.dynamicFormInstanceVersion, props.detail.templateRevisionId].join(':'),
+  () => apply(props.detail, readPending()),
   { immediate: true }
 )
+// PM-03: authorization is independent from document reload. Update controlled-file actions
+// in place so neither form-create rules nor ordinary unsaved values are replaced.
+watch(editable, () => {
+  const visit = (rules: JsonObject[]) => rules.forEach((rule) => {
+    if (rule.type === 'PmsFileArtifact' && rule.props) {
+      (rule.props as JsonObject).allowedActions = editable.value ? ['PATCH_INSTANCE'] : []
+    }
+    if (Array.isArray(rule.children)) visit(rule.children as JsonObject[])
+  })
+  visit(render.rule)
+})
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
-defineExpose({ save, discardChanges, isDirty: () => dirty.value })
+defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value })
 </script>
 
 <style scoped lang="scss">

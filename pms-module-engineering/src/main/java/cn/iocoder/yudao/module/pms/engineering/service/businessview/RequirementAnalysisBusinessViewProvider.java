@@ -23,10 +23,10 @@ public class RequirementAnalysisBusinessViewProvider implements BusinessViewComp
                 JsonUtils.parseTree("""
                         {"type":"object","required":["project"],"properties":{
                           "project":{"type":"object","required":["id","version"],"properties":{
-                            "id":{"type":"integer","minimum":1},
+                            "id":{"oneOf":[{"type":"integer","minimum":1},{"type":"string","pattern":"^[1-9][0-9]*$"}]},
                             "version":{"type":"integer","minimum":0}}}}}
                         """),
-                JsonUtils.parseTree("[\"VIEW\",\"EDIT\"]"),
+                JsonUtils.parseTree("[\"CREATE_INITIAL_DRAFT\",\"PATCH_FORM\",\"COMPLETE\",\"CREATE_DRAFT\"]"),
                 "SOL_REQUIREMENT_ANALYSIS_QUERY", "SOL_REQUIREMENT_ANALYSIS_COMMAND",
                 "SOL_REQUIREMENT_ANALYSIS_PERMISSION");
     }

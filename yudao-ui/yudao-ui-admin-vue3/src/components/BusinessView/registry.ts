@@ -1,13 +1,14 @@
 import { markRaw, type Component } from 'vue'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
-import type { BusinessViewRegistrationVO } from '@/api/pms/platform/business-view'
+import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
+import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
-  project?: ProjectMasterVO
-  instanceId?: number
+  project?: Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }
+  instanceId?: BusinessViewId
 }
 export interface BusinessViewTarget {
   registration: BusinessViewRegistrationVO
@@ -24,8 +25,7 @@ interface Adapter {
   component: Component
   resolve: (target: BusinessViewTarget) => Record<string, unknown> | undefined
 }
-const positiveId = (value: unknown): value is number =>
-  Number.isSafeInteger(value) && Number(value) > 0
+const positiveId = isBusinessViewId
 // Add new dedicated pages here plus their Owner provider. No URL, import path or script from metadata.
 const adapters: readonly Adapter[] = [
   {
@@ -37,7 +37,7 @@ const adapters: readonly Adapter[] = [
     component: markRaw(ProjectRequirementAnalysisPanel),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { project: resolvedContext.project }
+        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) } }
         : undefined
   },
   {

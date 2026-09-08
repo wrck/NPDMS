@@ -20,17 +20,18 @@
 
 <script setup lang="ts">
 import DynamicFormInstanceContent from './DynamicFormInstanceContent.vue'
+import { sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 
 // PM-03 / F-PLT-002: drawer chrome only; content/runtime/save are shared with BusinessView.
 defineOptions({ name: 'DynamicFormInstanceForm' })
-const props = defineProps<{ modelValue: boolean; instanceId?: number }>()
+const props = defineProps<{ modelValue: boolean; instanceId?: BusinessViewId }>()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   changed: []
   'dirty-change': [value: boolean]
 }>()
 const visible = ref(false)
-const activeId = ref<number>()
+const activeId = ref<BusinessViewId>()
 const title = ref('动态表单实例')
 const contentRef = ref<InstanceType<typeof DynamicFormInstanceContent>>()
 const requestLeave = async () => (await contentRef.value?.requestLeave()) ?? true
@@ -45,11 +46,15 @@ watch(
   () => [props.modelValue, props.instanceId] as const,
   async ([open, id]) => {
     const current = ++sequence
-    if (visible.value && (!open || id !== activeId.value) && !(await requestLeave())) {
+    if (
+      visible.value &&
+      (!open || !sameBusinessViewId(id, activeId.value)) &&
+      !(await requestLeave())
+    ) {
       emit('update:modelValue', true)
       return
     }
-    if (current !== sequence) return
+    if (current !== sequence || open !== props.modelValue || id !== props.instanceId) return
     activeId.value = id
     visible.value = open
   },

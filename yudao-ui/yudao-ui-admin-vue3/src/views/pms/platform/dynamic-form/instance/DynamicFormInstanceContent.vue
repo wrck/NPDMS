@@ -42,6 +42,11 @@
 import type { Api as FormCreateApi } from '@form-create/element-ui'
 import { onBeforeRouteLeave } from 'vue-router'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
+import {
+  legacyOwnerId,
+  sameBusinessViewId,
+  type BusinessViewId
+} from '@/api/pms/platform/business-view/ids'
 import type { DynamicFormInstanceVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import { decodeDynamicForm } from '../components/dynamicFormCodec'
 import {
@@ -54,8 +59,8 @@ import { registerDynamicFormComponents } from '../components/registerDynamicForm
 // PM-03 / F-PLT-002: the drawer and BusinessView use this single manual-instance renderer.
 defineOptions({ name: 'DynamicFormInstanceContent' })
 const props = defineProps<{
-  instanceId: number
-  expectedRevisionId?: number
+  instanceId: BusinessViewId
+  expectedRevisionId?: BusinessViewId
   allowedActions?: string[]
   readonly?: boolean
 }>()
@@ -112,8 +117,9 @@ const buildRender = () => {
 }
 const apply = (data: DynamicFormInstanceVO, preserve?: JsonObject) => {
   if (
-    data.instanceId !== props.instanceId ||
-    (props.expectedRevisionId !== undefined && data.templateRevisionId !== props.expectedRevisionId)
+    !sameBusinessViewId(data.instanceId, props.instanceId) ||
+    (props.expectedRevisionId !== undefined &&
+      !sameBusinessViewId(data.templateRevisionId, props.expectedRevisionId))
   ) {
     instance.value = undefined
     throw new Error('实例与冻结表单修订不匹配，未装载或修改该实例。')
@@ -130,7 +136,7 @@ const load = async (preserve?: JsonObject) => {
   loading.value = true
   errorText.value = ''
   try {
-    const data = await DynamicFormApi.getInstance(props.instanceId)
+    const data = await DynamicFormApi.getInstance(legacyOwnerId(props.instanceId))
     if (sequence === loadSequence) apply(data, preserve)
   } catch (error) {
     if (sequence === loadSequence) {
@@ -180,7 +186,7 @@ const save = async () => {
     return true
   } catch {
     try {
-      const authoritative = await DynamicFormApi.getInstance(props.instanceId)
+      const authoritative = await DynamicFormApi.getInstance(legacyOwnerId(props.instanceId))
       const reconciled = reconcileInstancePatch(authoritative.values, intended)
       apply(authoritative, reconciled.committed ? undefined : reconciled.values)
       if (reconciled.committed) {
@@ -206,19 +212,33 @@ const requestLeave = async () => {
   if (!dirty.value) return true
   try {
     await message.confirm('当前表单尚未保存，是否放弃本地修改并离开？')
-    values.value = clone(baseline.value)
-    // Preserve the original sessionStorage retry-intent policy, including unknown writes.
-    return true
+    // Confirmation is read-only. Only the caller's still-current transition may discard.
+    return !saving.value
   } catch {
     return false
   }
+}
+const discardChanges = () => {
+  if (saving.value) return false
+  values.value = clone(baseline.value)
+  // Preserve the original sessionStorage retry-intent policy, including unknown writes.
+  return true
 }
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!dirty.value && !saving.value) return
   event.preventDefault()
   event.returnValue = ''
 }
-watch(effectiveActions, buildRender)
+watch(effectiveActions, () => {
+  const visit = (rules: JsonObject[]) =>
+    rules.forEach((rule) => {
+      if (rule.type === 'PmsFileArtifact' && rule.props) {
+        ;(rule.props as JsonObject).allowedActions = effectiveActions.value
+      }
+      if (Array.isArray(rule.children)) visit(rule.children as JsonObject[])
+    })
+  visit(render.rule)
+})
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 onMounted(() => {
   reloadPreservingIntent()
@@ -229,7 +249,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload)
 })
 onBeforeRouteLeave(requestLeave)
-defineExpose({ requestLeave, isDirty: () => dirty.value, save })
+defineExpose({ requestLeave, discardChanges, isDirty: () => dirty.value, save })
 </script>
 
 <style scoped lang="scss">
