@@ -2,11 +2,11 @@
 
 > Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION`
-> Feature Ready Gate：`BASELINE / READY / GO`
+> Feature Ready Gate：以当前Feature Spec为准（修订018为`REVALIDATION_REQUIRED`；原BASELINE/READY/GO保留为历史）
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_READY`
-> 当前阻断：`Q-FPROJ-009（新建项目首次PROJECT_MANAGER指派与T-ASSIGN-PM完成形成循环依赖）`
-> 当前任务：`Task 3A项目工作区已选择性集成；Task 3B真实Chromium正向闭环BLOCKED_BY_SPEC`
+> 当前阻断：`Q-FPROJ-009业务设计已解决；首次PROJECT_MANAGER指派、PM-01绑定与双主责状态事务仍待当前Spec/计划及实现复验；独立验收新增接入另受Q-TPLACC-001实质合同约束`
+> 当前任务：`先准备相应Spec/唯一计划差量与明确业务代码Task，再完成Task 3B真实Chromium正向闭环；不重复请求首次指派业务裁决`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
 > Feature物理契约：`specs/features/F-PROJ-008-physical-contract.json`
@@ -17,9 +17,11 @@
 - [x] Task 1：六类Gate Owner、Flowable定义身份与模板发布校验（`COMPLETED / INTEGRATED`）
 - [x] Task 2：readiness、Gate流程启动REST与原子相邻推进（`COMPLETED / INTEGRATED`）
 - [x] Task 3A：项目工作区阶段门禁面板、API调用与组件测试（`IMPLEMENTED / SELECTIVELY_INTEGRATED_FROM_a3bd0043`）
-- [ ] Task 3B：一次真实Chromium正向闭环（`BLOCKED_BY_SPEC / Q-FPROJ-009`）
+- [ ] Task 3B：一次真实Chromium正向闭环（`IMPLEMENTATION_REVALIDATION_REQUIRED / Q-FPROJ-009已解决设计`；先补齐实际业务命令与绑定链，不能靠预置项目经理绕过）
 
-## 当前检查点
+## 当前准备与历史集成检查点
+
+2026-09-08当前准备范围见[主线分析](../../docs/superpowers/plans/2026-09-08-project-delivery-mainline-preparation.md)。下文集成回执及当时对Q-FPROJ-009的阻断描述保留历史；当前Question已为RESOLVED_DESIGN/IMPLEMENTATION_REVALIDATION_REQUIRED，不能据此重复业务裁决或放宽TASK_NATIVE通用权限。首次指派准备包不依赖独立验收合同的部分可先推进，不把Q-TPLACC-001扩大为全S0准备阻断。
 
 master已从源提交`0c7a9634`、`d69b3ff8`选择性迁入Task 1、Task 2，并完成master侧复核修订；Task 2计划要求的Readiness、Application、Controller与真实MySQL测试共10项全部PASS、无跳过，`pms-module-project,pms-module-integration`受影响模块package PASS。
 

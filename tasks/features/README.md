@@ -2,6 +2,8 @@
 
 本矩阵只投影`master`当前Feature Task状态。Feature Ready以Feature Spec为权威，Implementation状态与Done以对应`tasks/features/F-*.md`为权威；认领、写边界、Worktree交接和集成回执见[`tasks/delivery-units/`](../delivery-units/README.md)。Git分支、提交、测试和浏览器结果只作候选证据。
 
+2026-09-08当前任务方向为[项目交付主线的开发前准备与分析](../../docs/superpowers/plans/2026-09-08-project-delivery-mainline-preparation.md)，不是直接启动已有CUT/INS候选。INS Task 9另有80f2b58a交接后的独立Owner，按其DU执行，不属于本主线准备的写入范围。
+
 当前逐需求代码与装配复核见[2026-09-08审查回执](../delivery-units/DU-20260908-REQUIREMENT-IMPLEMENTATION-REVIEW.md#逐需求证据)。以下日期化分支回执保留历史；Requirement完整覆盖以生成矩阵为准，受控服务或FULL规格映射不等于生产功能完成。
 
 首次冻结审计输入为`master@e4b7c863b202320eed9c012c16a4a56e0e3ffe49`、截点`2026-09-01T16:59:30+08:00`，见[原始时间线](../../docs/generated/branch-history-audit-2026-09-01.md)。上一轮增量审计输入为`master@133f7b8132e0f9f496ba4dbe79a4cce43a04019e`、截点`2026-09-01T17:59:19+08:00`，见[合入后完整时间线](../../docs/generated/branch-history-audit-2026-09-01-post-governance.md)。本轮F-INS增量审计输入为`master@c33c7eb9d69eda365dd19ea1d5b8a25816b77850`、截点`2026-09-01T20:07:30+08:00`，见[F-INS Task 4后时间线](../../docs/generated/branch-history-audit-2026-09-01-fins-task4.md)；INS已从`6719ab94 + 7项未提交Task 4`前进为`e13feca7 + 4项未提交Task 5`。后续分支前进必须继续增量复审，不覆盖任一冻结快照。

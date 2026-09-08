@@ -186,7 +186,7 @@ def _resolve_claim_commit(repository: Path, unit: DeliveryUnit) -> str | None:
         if current_active and not previous_active and fields.get("认领提交") == "SELF":
             claim_commit = commit
         previous_active = current_active
-    return claim_commit
+    return claim_commit if previous_active else None
 
 
 def validate_delivery_units(
@@ -244,6 +244,8 @@ def validate_delivery_units(
             raw_claim = unit.fields.get("认领提交", "")
             if raw_claim != "SELF" and not COMMIT_RE.fullmatch(raw_claim):
                 errors.append(f"{unit.unit_id}: claim commit must be SELF or a full Git commit")
+            if check_git and raw_claim == "SELF" and claim is None:
+                errors.append(f"{unit.unit_id}: SELF has no committed active claim")
             if check_git and claim:
                 branch_ref = f"refs/heads/{unit.branch}"
                 branch_exists = bool(_git(repository, "show-ref", "--verify", branch_ref, check=False))
@@ -349,6 +351,12 @@ def _load_legacy_cutovers(repository: Path) -> list[dict]:
     return value if isinstance(value, list) else []
 
 
+def _changed_paths(repository: Path, base_ref: str) -> list[str]:
+    tracked = _git(repository, "diff", "--name-only", "--no-renames", "-z", base_ref, "--")
+    untracked = _git(repository, "ls-files", "--others", "--exclude-standard", "-z")
+    return sorted({path for output in (tracked, untracked) for path in output.split("\0") if path})
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repository", type=Path)
@@ -372,7 +380,7 @@ def main() -> int:
             errors.append("tasks/delivery-units/README.md is stale")
         if args.base_ref:
             branch = _git(repository, "branch", "--show-current")
-            changed = _git(repository, "diff", "--name-only", args.base_ref, "--").splitlines()
+            changed = _changed_paths(repository, args.base_ref)
             errors.extend(
                 validate_changed_paths(
                     units,

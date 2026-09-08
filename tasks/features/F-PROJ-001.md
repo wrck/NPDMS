@@ -3,8 +3,8 @@
 > Feature实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`PASS`
-> 当前阻断：无
-> 当前任务：F-PROJ-002 已达到 Feature Ready，转入全新 V1.8 Technical Plan
+> 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
+> 当前任务：项目交付主线准备；先核对首次项目经理指派与模板实例化差量的当前Spec、唯一计划及代码Task边界
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`
@@ -12,6 +12,8 @@
 > 锁定规格提交：`975107a665f156ce527480e939ad89a614cd1a21`
 
 ## 事实边界
+
+- 2026-09-08主线准备检查：原“转入F-PROJ-002”的下一步属于历史记录，不再驱动当前派发。Q-FPROJ-009已解决业务设计，首次项目经理指派应独立落实到相应Spec/计划/实现复验；Q-TPLACC-001只限制依赖其独立验收合同的新增路径。当前Ready仍只由Spec维护，不以本条准备说明恢复整个Feature Ready或扩张历史Done。详见[主线准备分析](../../docs/superpowers/plans/2026-09-08-project-delivery-mainline-preparation.md)。
 
 - 本 Feature 已从 PRD V1.8 首个 Feature 重新审计并改造，没有根据 V1.7 存量实现推定完成。
 - `specs/001-project-delivery-platform/`仅作历史参考，不参与当前门禁校验。
