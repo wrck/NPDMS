@@ -1,6 +1,6 @@
 # DU-20260908-DEVELOPMENT-ADMISSION-REVALIDATION 开发准入复验
 
-> DU状态：`CLAIMED`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`承接100需求/111切片审查；规范旧DU元数据，复核现有未完成Task准入，校准执行指引并准备精确开发认领；不实施业务代码`
@@ -8,12 +8,12 @@
 > 分支：`master`
 > Worktree：`E:/AICoding/Projects/NPDMS`
 > 认领基线：`a26ad5d14d618ec09d76a4dc7937017f49cf846e`
-> 认领提交：`SELF`
+> 认领提交：`44811ab4b064070ef71e494336ad45d1175303e8`
 > 修改边界：`tasks/delivery-units/DU-20260908-DEVELOPMENT-ADMISSION-REVALIDATION.md;tasks/delivery-units/DU-20260903-FINT012-PARTIAL-CODE-RECEPTION.md;tasks/delivery-units/DU-20260903-FINT012-SOURCE-RECOGNITION.md;tasks/delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md;tasks/delivery-units/DU-20260908-FCUT001-EXAMPLE-SEED.md;tasks/delivery-units/DU-20260908-FINS001-TASK9.md;tasks/delivery-units/README.md;docs/superpowers/plans/2026-08-30-f-cut-001-risk-survey-matrices.md;tasks/features/F-CUT-001.md;tasks/features/F-INS-001.md;tasks/features/F-INT-012.md;tasks/features/README.md;tasks/implementation-baseline-status.md`
 > 串行资源：`DU元数据与索引；后续开发认领由master协调者串行激活`
 > 旧功能范围：`NONE`
 > 验证：`DU真实校验和冲突负测；历史声明/提交证据保持；原计划与Spec/Task契约核对；开发写边界和认领祖先；追溯只读一致性；独立复核`
-> 集成记录：`NONE`
+> 集成记录：`d70a9474完成旧元数据与开发计划准备；本次提交释放治理边界并激活两份独立开发DU，分支含激活提交经真实Git校验后才可编码；不产生Feature Done`
 
 ## 目标与批准依据
 
@@ -33,7 +33,7 @@
 
 ## 当前证据与回执
 
-文档与基线复验已完成，独立工作树创建及代码DU激活仍待执行，尚不报告已可直接写入。
+文档与基线复验已完成，两个独立工作树已从PLANNED提交d70a9474真实创建。本次提交释放本治理DU并激活两份代码DU；最终代码准入必须以两分支包含实际激活提交、DU校验通过为证据，不能仅凭本治理DU收口反推。
 
 - 旧DU元数据：三份原始正文逐字保持，原头部所有引用值仍可追溯；F-INT-012原认领886bc7ce保留，无事前认领证据的S0与来源登记不倒填。SOURCE_RECOGNITION仅是QUARANTINED来源审查，不复制后继PR #4代码接收事实。
 - `validate_delivery_units.py --check-index`已真实通过，35份DU无格式错误；没有修改校验器，原10条错误消除。
@@ -41,5 +41,7 @@
 - Java基线：`mvn.cmd -o -B -pl pms-module-service,pms-module-cutover -am "-DskipTests" test-compile`于2026-09-08完成，27模块BUILD SUCCESS，31.192秒；验证生产及测试源码编译，不表示执行了Java测试、MySQL或浏览器。既有弃用/unchecked警告未转为本次修复范围。
 - 当前Requirement追溯`--check`通过；100项/111切片的覆盖分布及Feature Done未变。18个准入文档引用可定位；仅声明的Markdown路径改变，业务代码、SQL、PRD/SDS语义和全局配置均未修改。
 - 计划校准：CUT使用正式Spec为权威输入，Task4不再补写旧V133，Task4/6均统一到当前固定测试环境。两份开发DU显式登记真实当前任务为Owner及待创建的独立短路径，PLANNED不冒充已创建或已认领。
-- 独立复核首轮提出执行位置和环境指引冲突两项，已修正；修正复核与实际工作树/激活结果在完成后补记。
+- 独立复核首轮提出执行位置和环境指引冲突两项，修正后复核无Required语义问题；复核过程中发现的临时索引滞后已由原生成器刷新并真实通过check-index。
+- 工作树准备：在master先提交两份PLANNED记录d70a9474，再以git worktree创建`codex/fcut001-example-seed-20260908`和`codex/fins001-task9-20260908`，分别位于`E:/AICoding/worktrees/npdms-cfgseed`与`E:/AICoding/worktrees/npdms-ins9`；创建后分支/路径正确且工作树干净。只检出Git跟踪内容，未复制node_modules、环境凭据或未提交文件。
+- 激活协调：两代码DU在本治理DU释放边界的同次master提交转为CLAIMED，随后各分支只允许ff-only同步该提交；实际认领值由其SELF对应的Git激活提交解析，后续编码不可在未包含认领的旧快照上开始。
 - 保留范围：F-INT-012下一代码Task仍须先收敛唯一计划；F-AST-001运行Done复验仍未完成；其他需求保持其真实Ready/阻断边界。本轮不执行迁移、清库、账号重设、业务实现或Phase 1/2全量审计，不签署Feature Done或发布。

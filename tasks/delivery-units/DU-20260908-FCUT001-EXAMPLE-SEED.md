@@ -1,6 +1,6 @@
 # DU-20260908-FCUT001-EXAMPLE-SEED CUT配置基础示例初始化
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`TASK`
 > Feature协调：`F-CUT-001=TASK_COORDINATED`
 > Task范围：`唯一Technical Plan Task 4：完整幂等前向示例迁移及其静态契约；不是CUT运行态或Feature最终Done`
@@ -31,6 +31,7 @@
 
 ## 交接
 
+- 工作树已在PLANNED提交d70a9474之后真实创建，当前任务为登记Owner；本次激活提交须先同步至目标分支，实际代码文件仍未创建。
 - 已完成：正式输入与开发范围复验。
 - 剩余：实际SQL、测试及全部适用运行验证；目前均未执行，不产生Task/Feature Done。
 - 后续静态命令：`python -B -X utf8 -m unittest discover -s scripts/tests -p test_fcut001_matrix_examples.py -v`（测试文件创建后执行）。
