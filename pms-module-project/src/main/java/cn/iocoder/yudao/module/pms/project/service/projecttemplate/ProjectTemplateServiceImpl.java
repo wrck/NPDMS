@@ -174,6 +174,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         if (!TemplateRules.canEditDraft(template.getStatus(), draft.getStatus())) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
+        definitionReferenceAssembler.resolveDraftTaskBindings(content);
         // 四维条件与流程引用（草稿行原地更新）
         ProjectTemplateRevisionDO updateObj = new ProjectTemplateRevisionDO();
         updateObj.setId(draft.getId());
