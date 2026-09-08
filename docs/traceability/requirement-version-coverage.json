@@ -445,6 +445,20 @@
       ]
     },
     {
+      "featureId": "F-PLT-003",
+      "featurePath": "specs/features/F-PLT-003-business-view-registration.md",
+      "revalidationSlices": [],
+      "taskPath": "tasks/features/F-PLT-003.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "PM-03@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-PROJ-001",
       "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
       "revalidationSlices": [
@@ -574,6 +588,20 @@
       ]
     },
     {
+      "featureId": "F-PROJ-009",
+      "featurePath": "specs/features/F-PROJ-009-project-delivery-template-configuration-center.md",
+      "revalidationSlices": [],
+      "taskPath": "tasks/features/F-PROJ-009.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
+      "mappings": [
+        {
+          "sliceKey": "PM-03@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-SOL-001",
       "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
       "revalidationSlices": [],
@@ -692,6 +720,14 @@
       "implementationStatus": "REVALIDATION_REQUIRED",
       "features": [
         {
+          "featureId": "F-PLT-003",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
+          "featurePath": "specs/features/F-PLT-003-business-view-registration.md",
+          "taskPath": "tasks/features/F-PLT-003.md"
+        },
+        {
           "featureId": "F-PROJ-001",
           "coverage": "PARTIAL",
           "taskStatus": "IN_PROGRESS",
@@ -706,6 +742,14 @@
           "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md",
           "taskPath": "tasks/features/F-PROJ-008.md"
+        },
+        {
+          "featureId": "F-PROJ-009",
+          "coverage": "PARTIAL",
+          "taskStatus": "IN_PROGRESS",
+          "revalidationRequired": false,
+          "featurePath": "specs/features/F-PROJ-009-project-delivery-template-configuration-center.md",
+          "taskPath": "tasks/features/F-PROJ-009.md"
         }
       ]
     },
