@@ -1,6 +1,6 @@
 # DU-20260908-PM01-INITIAL-PROJECT-MANAGER 项目级成员指派准备
 
-> DU状态：`INTEGRATED_PARTIAL`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-005=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED`
 > Task范围：`项目交付主线首个单元：按用户新确认落位项目级联合/单独指派与各阶段权限内调整；修订PRD/SDS/Spec/唯一计划及代码Task；撤下首次-only和固定T-ASSIGN-PM方案；本DU不写业务代码`
@@ -16,6 +16,8 @@
 > 集成记录：`本次master文档提交落位修订019及唯一Task 10准备；仅项目经理候选组织范围待Q-FPROJ-010确认；未实施业务代码或晋级Feature Done，本DU释放文档写边界`
 
 ## 目标与范围
+
+本轮继续：用户已确认项目经理候选限定同公司、允许跨部门的有效在职人员，Q-FPROJ-010业务待决关闭。本次复用已有文档边界完成裁决回写、集合API/事务/消费者契约及Task 10准备；代码写入仍须另有实现DU。原认领范围及计划已在master登记，本次重新激活进入master后才修改正式资产。既有验证可复用处不重跑，不增加hash门禁。
 
 2026-09-08用户进一步明确：服务经理和项目经理可以同时指派，也可以指派服务经理后单独指派项目经理；成员指派不是固定任务，各阶段有对应权限即可调整。本次将该批准语义以修订019落入源PRD/快照及相关契约。原首次-only和Task 11强制绑定草案尚未提交、未实施，停止沿用；下文原认领目的只保留为范围演进记录。项目经理候选组织范围不从PM-08服务经理规则类推，缺失处登记待确认。
 
