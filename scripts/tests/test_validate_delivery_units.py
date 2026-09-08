@@ -192,6 +192,32 @@ class DeliveryUnitValidatorTest(unittest.TestCase):
                 "changed path is outside claimed boundaries: outside/新文件.md",
             ], errors)
 
+    def test_single_claim_commit_works_without_a_planned_commit(self) -> None:
+        for branch in ("master", "codex/f-sol-003"):
+            with self.subTest(branch=branch), tempfile.TemporaryDirectory() as directory:
+                repository = Path(directory)
+                self.initialize_repository(repository)
+                task_path = repository / "tasks/features/F-SOL-003.md"
+                task_path.parent.mkdir(parents=True)
+                task_path.write_text("# task\n", encoding="utf-8")
+                self.git(repository, "add", "tasks/features/F-SOL-003.md")
+                self.git(repository, "commit", "-m", "baseline")
+                fields = {**FIELDS, "分支": branch, "Worktree": str(repository),
+                          "认领基线": self.git(repository, "rev-parse", "HEAD"), "认领提交": "SELF"}
+                unit_path = repository / "tasks/delivery-units/DU-TEST.md"
+                unit_path.parent.mkdir(parents=True)
+                unit_path.write_text(
+                    "# DU\n" + "\n".join(f"> {key}：`{value}`" for key, value in fields.items()),
+                    encoding="utf-8",
+                )
+                errors = validate_delivery_units(repository, [parse_delivery_unit(unit_path)])
+                self.assertTrue(any("committed active claim" in error for error in errors), errors)
+                self.git(repository, "add", "tasks/delivery-units/DU-TEST.md")
+                self.git(repository, "commit", "-m", "claim once")
+                if branch != "master":
+                    self.git(repository, "branch", branch)
+                self.assertEqual([], validate_delivery_units(repository, [parse_delivery_unit(unit_path)]))
+
     def test_self_claim_requires_branch_to_contain_activation_commit(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)

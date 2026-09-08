@@ -84,6 +84,8 @@ Feature是唯一实施和Implementation Done单元。一个Requirement切片可�
 
 修改设计或代码前，至少读取PRD基线、本工程链、`docs/README.md`、相关SDS、对应Feature Spec和当前Task。只读取与任务有关的章节和证据，不为形式完整重复加载或复制无关材料。
 
+纯工程治理变更以本次用户批准和受影响治理文件为输入，不加载无关业务PRD/SDS/Feature充数。已读且前提未变的内容复用；优先定位后读相关章节，不连续整文件输出直到截断再重读。宿主强制的技能加载仍执行，但不重复解释同一规则。
+
 
 ### 2.5 业务项目阶段与软件工程阶段隔离
 
@@ -125,7 +127,7 @@ PRD Baseline
 -> 多个纵向业务Feature并行进入Feature Ready
 -> 每个Feature一个当前有效Technical Plan
 -> master登记Delivery Unit、Feature协调模式与排他修改边界
--> 一个Delivery Unit按Feature、Task或跨Feature纵向工作包在独立分支/Worktree实施
+-> 一个Delivery Unit按Feature、Task或跨Feature纵向工作包实施；按实际写冲突决定是否隔离分支/Worktree
 -> Delivery Unit提交、测试和交接
 -> Delivery Unit增量逐个串行合入master并记录集成回执
 -> 公共契约、Flyway最终编号和共享文件在master串行收口
@@ -320,14 +322,16 @@ Feature必须形成可独立验收的业务闭环。Delivery Unit是实施组织
 
 ### 6.2 Delivery Unit认领、实施与交接
 
-每个Feature只能有一个当前有效Technical Plan。被替代计划必须归档或明确标记`SUPERSEDED`。开始并行写入前执行：
+每个Feature只能有一个当前有效Technical Plan。被替代计划必须归档或明确标记`SUPERSEDED`。2026-09-08需求方要求精简实际拖慢交付的流程，当前认领与执行规则如下，替代旧计划中的纯流程重复前置，不改变业务契约或用户指定评审节点：
 
-1. 协调者从`tasks/delivery-units/TEMPLATE.md`创建唯一`DU-*.md`，先以`PLANNED`在`master`登记DU类型、Feature协调映射、Task范围、Owner、目标分支/Worktree、认领基线、修改边界、依赖、串行资源、旧功能范围、验收输出和测试；
-2. 计划记录提交到`master`后创建目标分支/Worktree；协调者再把DU置为`CLAIMED`并提交到`master`。`认领提交=SELF`解析为Git中最近一次从非活动状态进入`CLAIMED / IN_PROGRESS / HANDOFF_READY`的提交；
-3. 目标分支/Worktree必须更新到包含该激活提交，随后才允许修改实现；只有`CLAIMED / IN_PROGRESS / HANDOFF_READY`占用写边界；
-4. `scripts/validate_delivery_units.py --base-ref master`校验当前分支含认领提交、全部改动位于声明边界、活动DU无冲突，并阻止未声明旧功能范围的废弃路径修改；
-5. 必须改变规格、公共契约或边界时，暂停依赖实现，由协调者先在master修订DU或上游正式资产，分支更新后再继续；
-6. 交接记录最后提交、完成范围、剩余工作、测试和已知失败。工作树脏改动和stash只有形成明确交接后才能迁移，不得当作完成证据。
+1. 先复用覆盖当前任务的有效DU。需新建且即将开工时，从模板直接以`CLAIMED`一次提交到master，明确Owner、Feature/Task、分支/Worktree、基线、写边界、串行资源及验证；`PLANNED`仅用于尚未开工的预约，不再强制“PLANNED提交→CLAIMED提交”两笔元数据。`SELF`仍解析首次或再次有效激活的真实提交。
+2. 单Owner串行工作且当前工作树没有其他同时写入的Task时，可复用当前分支/工作树（包括master）。存在同时写入、文件冲突、隔离试验或用户指定时才创建独立分支/Worktree；新分支在认领提交后从包含该提交的master创建，既有分支先同步该提交。
+3. 实现前执行`scripts/validate_delivery_units.py --base-ref master`，确认认领已提交、目标分支包含认领、路径无冲突；未提交认领、未同步分支和越界写入仍拒绝。不要在激活尚未提交时运行必然失败的完整准入校验；登记时只检查元数据差异，投影可在收口统一生成。
+4. 同一任务的澄清、设计、实现与验证复用一份DU和现行计划，不按每轮对话、函数或文档更新拆出GOV/代码DU、关闭再激活。确需变更Owner、共享资源或排他边界时，先由master修订并提交DU，目标分支同步后继续。
+5. 连续澄清期间先在当前Task/DU记录短的已确认/待决要点；影响实现的语义确定后，一次回写实际受影响的正式契约再编码。用户要求立即落字时从其要求。不得每条答复都扩写全部分册、计划和矩阵，不新增平行草稿状态源。
+6. 一个可验证业务增量完成后集中提交代码、实际验证与简短交接；源状态及受影响索引/矩阵在master收口一次。只有投影字段真正变化才生成，不因单纯正文或中间进度反复生成。脏改动/stash迁移仍须明确交接，索引不得替代DU权威。
+
+日常执行默认是“定位与必要裁决→实现并做风险匹配验证→一次收口”，READ/PLAN/TEST/SELF-REVIEW是职责，不是多套文档和审批动作。简单变更先自审；已有规则要求的跨Owner、权限或高风险复核集中覆盖最终相关差异，后续仅复核新增问题，不为每次文字调整重复开审。只核对当前代码需要的框架接口，不泛查整个技术栈。使用已指定的测试环境，连接/数据边界前提未变时复用已有效证据，不另建第二环境、不重复hash核对；权限、状态机、失败回滚、历史保护和适用的真实浏览器/迁移义务不删减。
 
 Windows上的物理Worktree目录必须使用短而稳定的DU标识，描述性名称留在分支和DU记录中，不得把完整Feature标题复制为深层目录。Node/pnpm等工具的依赖真实路径超过其支持范围时，必须缩短Worktree或本地虚拟包目录后重跑原验证；路径失败不能被记为代码失败，也不能以跳过前端测试收口。
 
