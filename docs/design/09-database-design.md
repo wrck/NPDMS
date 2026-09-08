@@ -768,6 +768,28 @@ V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的
 
 同Owner引用中定义引用边及报告版本采用含tenant的物理外键；跨Owner的Project、COM scope、FileArtifact及BPM只保存逻辑引用，提交时通过Owner API锁定重验。报告根current_revision_id必须指向同租户同report_id的版本，指针切换和引用重验同事务；数据库FK不能代替该业务检查。主绑定当前唯一使用生成标记；图唯一默认分支使用生成标记；无环/全可达/唯一开始/分支可判定在发布事务执行，数据库不靠一个CHECK宣称完成图校验。
 
+### PM-03业务视图来源加性字段（2026-09-08）
+
+按已批准页面/动态表单复用方案，`plt_business_view_revision`增加`view_source VARCHAR(16) NOT NULL`及`dynamic_form_revision_id BIGINT NULL`。PAGE要求表单修订为NULL；DYNAMIC_FORM要求非空正数表单修订，实际同租户/发布/用途兼容由PLT表单Owner API核对。`published_at`允许NULL以保存草稿；`disabled_at`仅能在已经发布且不早于发布时间时写入。已有Owner、组件、Provider、上下文Schema与动作列不删除，页面/表单只改变展示来源，不改变业务对象Owner。
+
+机器合同是本次具体字段/约束的唯一来源；修改只涉及尚未部署的业务视图目标表，不回写其他载体的历史批准状态或PRD身份。参考DDL生成不等于Flyway升级验证。实际迁移、菜单/权限和API必须在相应写边界交接后实施，不以参考DDL直接修改运行库。
+
+### PM-03模板精确组合与冻结闭包
+
+沿用现有`proj_project_template_*`身份/明细表；本次只增加：
+
+| 已有表 | 加性字段 |
+|---|---|
+| proj_project_template | version INT NOT NULL DEFAULT 0，身份/草稿/发布/停用等写入递增，用于复制源的If-Match；不改变业务状态 |
+| proj_project_template_revision | definition_snapshot JSON NULL，发布时保存精确引用定义闭包；不是当前可修改定义库副本 |
+| proj_project_template_stage_definition | definition_revision_id BIGINT NULL、start_node BIT(1) NULL、terminal_node BIT(1) NULL、work_binding_revision_id BIGINT NULL、permission_policy_revision_id BIGINT NULL、completion_rule_revision_id BIGINT NULL |
+| proj_project_template_task_definition | definition_revision_id BIGINT NULL、work_binding_revision_id BIGINT NULL、permission_policy_revision_id BIGINT NULL、completion_rule_revision_id BIGINT NULL |
+| proj_project_template_milestone_definition | definition_revision_id BIGINT NULL |
+| proj_project_template_deliverable_definition | definition_revision_id BIGINT NULL |
+| proj_project_template_gate_definition | definition_revision_id BIGINT NULL |
+
+列NULL仅保留历史可解释性；新发布按SDS10要求解析实际定义与节点绑定，不把历史NULL当作有效规则。引用指向同租户且类型正确的精确DeliveryConfigurationRevision；场景级覆盖继续由现有明细承载，不能覆盖Owner或授权接口。旧已发布明细不回填推断引用或start/terminal；新图由显式定义保存，sort_order只作显示。历史运行切换限制见Q-FPROJ009-001，不由加列迁移自动完成。
+
 ### 原有载体复用与迁移处置
 
 ProjectTemplateVersion复用`proj_project_template_revision`；ProjectStage复用`proj_project_stage`；TaskWorkBinding和TaskCompletionRule复用`proj_project_task_execution_contract`。可复用定义版本通过现有源引用及冻结快照与新增版本库关联，不能把sort_order推断为缺失的业务转移关系。既有项目换图必须显式审批并生成来源映射；不能从S0～S6编号自动回填缺失Stage或边。
