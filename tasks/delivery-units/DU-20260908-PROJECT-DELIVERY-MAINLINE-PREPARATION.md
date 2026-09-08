@@ -1,6 +1,6 @@
 # DU-20260908-PROJECT-DELIVERY-MAINLINE-PREPARATION 项目交付主线准备
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`开发前工作树/认领/工具链/运行环境检查；补齐DU新文件与真实认领校验；以项目交付S0～S6主线分析任务与依赖；不启动业务开发`
