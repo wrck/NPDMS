@@ -1,6 +1,6 @@
 # DU-20260908-PM01-INITIAL-PROJECT-MANAGER 首次项目经理指派准备
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-005=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED`
 > Task范围：`项目交付主线准备包A：PM-01首次项目经理指派的旧实现审计、Spec/唯一计划差量、明确代码Task及直接消费者契约；不以Task 3B浏览器验证藏入业务实现`
@@ -27,6 +27,7 @@
 
 ## 交接
 
+- 认领激活：PLANNED已由master提交`5786b318`登记；本次激活提交进入master后才写入所列正式文档。
 - 已完成：定位首个主线包及当前PRD/SDS/Feature/Task；审计现有服务经理应用服务、组织API、时态关系及授权入口。
 - 剩余：完成直接消费者和模板/运行入口审计；细化契约、唯一计划与代码Task；范围内验证和审阅。
 - 测试：未执行业务测试；本单元不声明运行成功。
