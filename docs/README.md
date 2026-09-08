@@ -9,8 +9,8 @@
 | 文档类型 | 目录 | 是否可作为工程基线 | 处理规则 |
 |---|---|---:|---|
 | 业务需求与冻结范围 | `需求/`、`docs/baseline/` | 是 | PRD与基线快照保持来源、内容和追溯一致，不另做重复哈希附件 |
-| 正式系统设计 | `docs/design/` | 是 | 只保留规划中的正式 SDS 分册；不为一次评审新建临时设计副本 |
-| 已批准决策、待确认问题 | `docs/decisions/` | 决策文件是 | 重要决策使用 ADR；问题关闭后回写正式 PRD/SDS |
+| 正式系统设计 | `docs/design/` | 是 | 仅在工程链2.7所列通用系统设计、通用模型、API或设计约束变化时修改；不承接普通Feature细化、实施进度或临时设计副本 |
+| 已批准决策、待确认问题 | `docs/decisions/` | 决策文件是 | 重要决策使用ADR；问题关闭后按实际归属回写PRD、SDS或Feature Spec/Task，不一律回写SDS |
 | 编码与实现约束 | `docs/coding/` | 是 | 记录所有后续开发必须遵守的工程编码规则；变更规则时同步更新仓库级入口 |
 | Feature规格、实施任务、Delivery Unit与追溯投影 | `specs/features/`、`tasks/features/`、`tasks/delivery-units/`、`docs/traceability/` | 各自维度唯一权威；README和生成矩阵否 | Ready看Feature Spec，进展按DU定位来源Task，最终完成看master Feature Task；并行认领及边界变更以master已提交DU生效，可直接读取而不合并分支，普通进度不要求逐次提交 |
 | 专项验证、评审结论、评审输入 | `docs/engineering/gates/<phase>/` | 阶段状态只作历史；真实专项按实际风险适用 | 只有实际专项或用户要求才新增证据文件；历史结果不改写 |
@@ -23,9 +23,10 @@
 
 ### `docs/design/`
 
+- 修改边界遵循[工程链2.7](engineering/00-engineering-chain.md#27-sds变更边界)。四类设计未变时不改SDS，Feature细化归其规格，实现和验证归Task/代码；引用现有通用设计即可，不补Feature专属SDS条目来满足形式追溯。
 - 文件名必须对应工程链规定的 SDS 分册，或使用已登记的补充分册编号；禁止使用 `draft`、`review`、`tmp`、`copy`、`final2` 等临时后缀。
 - 文档必须说明适用 PRD 版本，并列出对应 Requirement ID；推导内容标记 `【建议】`，未知内容标记 `【待确认】`。
-- 评审意见只作为修订依据，不以“评审报告”混入设计正文。修订后直接更新正式分册，普通变更在已有Task或交付说明中引用差异，不要求新增门禁记录。
+- 评审意见只作为修订依据，不以“评审报告”混入设计正文。只有实际改变SDS负责的设计才修订正式分册；其他意见回到对应Feature Spec/Task或代码，在原记录引用差异，不要求新增门禁记录。
 - 同一主题只能有一个当前正式文件；需要试验替代方案时放入 `docs/superpowers/specs/` 或门禁 `input/`，不得复制出第二份 SDS。
 
 ### `docs/engineering/gates/`

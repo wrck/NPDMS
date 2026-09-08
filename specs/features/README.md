@@ -1,6 +1,6 @@
 # Feature Spec 索引
 
-本目录保存经SDS基线派生的正式Feature Spec。Feature Spec只拆解已批准需求与设计，不得改变PRD业务语义、领域Owner、权限或状态模型。
+本目录保存基于PRD和适用通用SDS契约形成的正式Feature Spec。已批准需求下的Feature业务场景、交互、验收及局部配置细化在这里维护，不默认回写SDS；只有[工程链2.7](../../docs/engineering/00-engineering-chain.md#27-sds变更边界)所列设计变化才修订相关SDS。Feature Spec不得改变PRD业务语义、领域Owner、权限或状态模型，也不要求SDS为每个Feature新增专属章节。
 
 本索引是投影视图，不是独立状态源。`规格状态`、`Feature Ready`和`实施状态`是三个不同维度：规格状态与Feature Ready以对应Feature Spec为权威，实施状态以当前Feature实施任务记录为权威；Git、CI、测试、真实浏览器和评审结论只作为证据引用。索引与权威来源冲突时必须纠正本索引，不得反向修改权威事实或再建立Capability状态。
 
