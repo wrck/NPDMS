@@ -1,6 +1,6 @@
 # DU-20260908-PM01-COMPANY-ROLE-QUERY 上游公司角色用户查询
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`TASK`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED`
 > Task范围：`Task 10内上游通用公司/角色用户资格查询增量；候选与指定用户重验共享规则；不声明成员写入/UI或Feature Done`
@@ -29,5 +29,5 @@ SQL实现参考[MyBatis动态SQL](https://mybatis.org/mybatis-3/dynamic-sql.html
 
 ## 交接
 
-- 当前：PLANNED，未写代码；master提交计划、创建短工作树、激活并同步认领后实施。
+- 计划已随33763100提交master，短工作树已创建；本次激活提交被目标分支包含后实施，未倒签代码认领。
 - 交付只关闭本查询增量，Task 10项目级成员写入、角色集合消费者、UI及真实运行闭环仍未完成。
