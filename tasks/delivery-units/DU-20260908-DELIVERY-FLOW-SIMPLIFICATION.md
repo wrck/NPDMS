@@ -1,6 +1,6 @@
 # DU-20260908-DELIVERY-FLOW-SIMPLIFICATION 交付耗时复盘与流程精简
 
-> DU状态：`INTEGRATED_COMPLETE`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`回顾本次查询交付耗时；精简单任务认领、重复阅读、澄清落字、索引和收口流程；保留业务与验证安全边界`
@@ -9,13 +9,15 @@
 > Worktree：`E:/AICoding/Projects/NPDMS`
 > 认领基线：`838c58e4af7d2ffc0930edd2e73b359e726534ac`
 > 认领提交：`SELF`
-> 修改边界：`AGENTS.md;docs/engineering/00-engineering-chain.md;.agents/skills/npdms-change-delivery/SKILL.md;scripts/tests/test_validate_delivery_units.py;tasks/delivery-units/DU-20260908-DELIVERY-FLOW-SIMPLIFICATION.md;tasks/delivery-units/README.md`
+> 修改边界：`AGENTS.md;docs/engineering/00-engineering-chain.md;.agents/skills/npdms-change-delivery/SKILL.md;scripts/tests/test_validate_delivery_units.py;tasks/delivery-units/DU-20260908-DELIVERY-FLOW-SIMPLIFICATION.md;tasks/delivery-units/README.md;scripts/validate_delivery_units.py`
 > 串行资源：`上述项目治理文件；无数据库、容器、应用端口及全局技能变更`
 > 旧功能范围：`NONE`
 > 验证：`单次已提交认领的真实Git用例及原认领拒绝回归；项目技能校验；变更格式`
 > 集成记录：`本次提交完成耗时复盘和项目流程精简；单次认领与原拒绝回归11项通过，底层校验器不变；不改业务代码、数据库或全局配置`
 
 ## 批准与实施边界
+
+用户继续要求同类明确需求的简单任务将构建测试外耗时控制在其两倍以内，并清理拖慢校验的脚本。本轮只优化本次实际调用的DU校验脚本及回归，不再扩写工程链、AGENTS或技能；复用本DU，提交新增脚本边界后实施。以原101.043秒验证计，目标总耗时不超过303.129秒，流程/分析/编辑等其余工作不超过202.086秒；这是目标，不是已实测达成声明。
 
 用户要求“回顾执行情况，统计各阶段耗时，将严重拖慢实施进度的流程进行精简”。本次直接采用拟精简的单次CLAIMED登记，提交master后再修改规则和测试；不豁免有效认领先于实现、排他写入、分支包含认领提交或历史保护。现有校验器已支持首个提交直接CLAIMED，无需修改生产校验逻辑。这里只更新项目规则和项目交付技能，不修改全局AGENTS/Skills或业务源码，不再启动第二套测试环境。
 
