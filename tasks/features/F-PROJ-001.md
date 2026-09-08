@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`PASS`
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：修订019项目级联合/分次指派、多项目经理与当前主责准备；Task 10依赖Q-FPROJ-010，未开始业务代码
+> 当前任务：修订019项目级联合/分次指派、多项目经理与当前主责准备；Q-FPROJ-010已关闭，先落实通用公司/角色查询增量，完整成员代码尚未交付
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`
@@ -25,7 +25,7 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`NOT_STARTED / BLOCKED_BY_SPEC（Q-FPROJ-010）`。已确认业务、审计、实现/验证边界见[唯一计划当前增量](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`NOT_STARTED`；业务待决已清，SDS10通用公司/角色查询合同已明确。已确认业务、审计、实现/验证边界见[唯一计划当前增量](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
 - [ ] AC-FPROJ-011：联合/分次指派、多经理、当前主责及各阶段权限内调整；尚无代码或运行证据。
 

@@ -4,7 +4,7 @@
   "baselineIdentity": {
     "revision": "019",
     "changeId": "CHG-PRD-2026-09-08-019",
-    "gitBlob": "d8bf47d9210e6b644d8564813f1048f2ccde5096",
+    "gitBlob": "2f41e71182f58372da4333481400b7bb9783a96c",
     "path": "docs/baseline/prd-v1.8.md"
   },
   "engineeringGates": {

@@ -268,7 +268,7 @@ PM-06使用`proj_contract_scope_append_request`；COM唯一项目水位为`com_d
 
 ### 修订019 PM-01成员物理影响
 
-`proj_project_member_assignment`是多项目经理时态关系的复用载体；既有`proj_project.manager_id/manager_employee_no/manager_name`只能表达当前主责投影，不作为完整名单。不得新增“一个项目最多一条PROJECT_MANAGER”的唯一约束，也不得用数组列替代关系历史。主责与成员的事务约束、各读消费者兼容和实际DDL差量须在Q-FPROJ-010后按新合同核对；本段不是Schema验证通过或迁移授权。
+`proj_project_member_assignment`是多项目经理时态关系的复用载体；既有`proj_project.manager_id/manager_employee_no/manager_name`只能表达当前主责投影，不作为完整名单。不得新增“一个项目最多一条PROJECT_MANAGER”的唯一约束，也不得用数组列替代关系历史。主责与成员的事务约束、各读消费者兼容和实际DDL差量按新合同核对；Q-FPROJ-010业务范围已关闭；本段不是Schema验证通过或迁移授权。
 
 ## 5. Asset 地点、设备归属与维保基本事实
 

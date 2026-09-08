@@ -26,7 +26,7 @@
 | `prd-v1.8-amendment-011-inspection-rule-authority-convergence.md` | 已批准修订：收口巡检超时、AST产品类型、正则子集、规则名称身份与草稿/发布完整性 |
 | `prd-v1.8-amendment-012-inspection-security-review-last-fact.md` | 已批准修订：同revision同摘要按最后审核事实决定发布资格；Q-FINS001-006保持开放 |
 | `prd-v1.8-amendment-013-inspection-security-review-boolean-permission.md` | 已批准修订：目标租户复用System现有布尔权限判定并支持超级管理员；不新增Yudao System接口 |
-| `prd-v1.8-amendment-019-project-member-assignment.md` | 已批准项目级联合/分次指派、各阶段按权限调整、多经理及一个当前主责；同角色同权限已确认；候选范围见Q-FPROJ-010，未批准实现 |
+| `prd-v1.8-amendment-019-project-member-assignment.md` | 已批准项目级联合/分次指派、各阶段按权限调整、多经理及一个当前主责；同角色同权限已确认；Q-FPROJ-010已确认候选范围及上游通用查询，未批准实现完成 |
 | `prd-v1.7.md` | 已被V1.8替代的历史快照；仅用于差异和审计追溯 |
 | `requirement-baseline.yaml` | 版本、Requirement/切片数量、哈希、范围分类和校验命令 |
 | `baseline-signoff.md` | 基线批准、适用范围和签署记录；不虚构签署人 |

@@ -573,16 +573,17 @@
 
 ### Q-FPROJ-010
 
-- Status: BLOCKED_BY_SPEC / BUSINESS_DECISION_REQUIRED
+- Status: RESOLVED_BUSINESS / IMPLEMENTATION_REVALIDATION_REQUIRED
 - Requirement IDs: PM-01@V1；直接消费者PM-03@V1、PM-11@V1、PM-08@V1
 - Area: 项目经理候选人员组织范围
 - Confirmed: 项目级联合或分次指派、各阶段按权限调整、多名项目经理及一个当前主责均已确认；用户进一步确认“相同项目角色的操作权限相同”，主责与其他有效PROJECT_MANAGER不因主责标识而权限不同。权限问题已解决，不再列为阻断或重复询问。
 - Question: 项目经理的候选人员允许来自哪些组织范围？
-- Why it blocks: PM-01只规定合法在职人员和SYSTEM组织校验；PM-08服务经理的同公司同办事处限制不能直接外推，候选过滤、提交重验和对应拒绝测试需要明确范围。既有单manager_id授权不符合已确认的同角色同权限，应按成员集合实施修正，不再等待该权限业务裁决。
-- No inferred default: 不自行限制为同公司同办事处，不新增协同经理角色，不自动选择第一人为主责。
-- Blocking scope: 依赖候选范围的新候选/指派接口及完整闭环；已批准权限设计、旧实现审计、集合合同和Task准备可继续，现有服务经理合法功能不回退。
+- Historical gap: 原PM-01未明确候选公司/部门范围，不能由PM-08规则外推；该业务缺口现已关闭，旧描述不再阻断。
+- Resolution: 用户确认同公司、允许跨部门的有效在职人员，并要求上游提供按指定公司、指定角色查询用户有效授权的通用接口。SYSTEM拥有资格事实；PROJ传目标公司的稳定ID和所需角色，候选及提交重验共享同一规则，不以既有项目成员关系查询候选、不把全局角色与其他公司的范围拼接成组合授权。接口细则见SDS10，不建立PM专用权限真值。
+- No inferred default: 不限制同办事处，不新增协同经理角色，不自动选择第一人为主责；同角色同权限保持已确认。
+- Blocking scope: 无剩余业务裁决；具体接口/消费者实现与适用验证仍须完成，不从问题关闭推定Feature Ready/Done。
 - Decision owner: 需求方；PROJ/SYSTEM及实际消费者参与设计
-- Decision date: 待确认
+- Decision date: 2026-09-08（当前任务用户确认并补充通用接口要求）
 
 ## 并行分支权威收敛阻断
 

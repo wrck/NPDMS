@@ -10,13 +10,13 @@
 | 状态 | 正式基线 |
 | 源文件 | `需求/PRD-项目实施交付管理平台.md` |
 | 快照 | `docs/baseline/prd-v1.8.md` |
-| SHA-256 | `4CEF822C61763F6C642D8EEC95DC959EF00C09EAB1C002F4A47DFB3858C24A26` |
+| SHA-256 | `04FC18C533D339AD2C31F994A8EEFF4F84EBA123EBA60582BB9939A3A68AA9D1` |
 | 生效日期 | 2026-09-08 |
-| 当前批准依据 | [修订019](prd-v1.8-amendment-019-project-member-assignment.md)及其记录的用户四次确认；此前修订见源PRD修订记录 |
+| 当前批准依据 | [修订019](prd-v1.8-amendment-019-project-member-assignment.md)及其记录的当前任务用户确认；此前修订见源PRD修订记录 |
 
 ## 修订019批准边界
 
-只批准当前项目级成员管理、多名项目经理与一个当前主责的明确语义，不批准Q-FPROJ-010尚未明确的候选组织范围；同角色同权限已确认。实际文档验证、未执行项及准备状态记录在[本次DU](../../tasks/delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md)；本记录不签署API/Schema、业务代码、迁移、浏览器、Feature Ready/Done或发布结果。
+只批准当前项目级成员管理、多名项目经理与一个当前主责的明确语义，Q-FPROJ-010现已确认同公司、可跨部门的有效在职人员及上游通用公司/角色查询；同角色同权限保持已确认。实际文档验证、未执行项及准备状态记录在[本次DU](../../tasks/delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md)；本记录不签署API/Schema、业务代码、迁移、浏览器、Feature Ready/Done或发布结果。
 
 ## 修订013历史批准范围
 

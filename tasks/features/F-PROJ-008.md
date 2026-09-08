@@ -5,7 +5,7 @@
 > Feature Ready Gate：以当前Feature Spec为准（修订018为`REVALIDATION_REQUIRED`；原BASELINE/READY/GO保留为历史）
 > Technical Plan Gate：`PASS / GO`（`NPDMS-FPROJ008-TECHPLAN-20260901-01`；候选`8778b963`）
 > Implementation Done Gate：`NOT_READY`
-> 当前阻断：`修订019改为项目级多经理、当前主责及同角色同权限；Q-FPROJ-010只限制候选范围；阶段图与独立验收的实际缺口按原范围保留，不由成员准备解除`
+> 当前阻断：`修订019改为项目级多经理、当前主责及同角色同权限；Q-FPROJ-010候选范围已关闭，成员及集合资格实现仍待完成；阶段图与独立验收的实际缺口按原范围保留，不由成员准备解除`
 > 当前任务：`先由F-PROJ-001 Task 10完成项目级成员能力及消费者复核，再执行Task 3B；不再依赖固定T-ASSIGN-PM绑定，不预置单经理或改任务DONE绕过`
 > Requirement ID：`PM-03@V1=PARTIAL`
 > Feature Spec：`specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md`
@@ -21,7 +21,7 @@
 
 ## 当前准备与历史集成检查点
 
-2026-09-08当前方向以[修订019](../../docs/baseline/prd-v1.8-amendment-019-project-member-assignment.md)和F-PROJ-001唯一计划当前增量为准：项目级联合/分次指派、多经理、一个当前主责、同角色同权限；无固定指派任务前置。Q-FPROJ-009原绑定设计已被替代，Q-FPROJ-010仅候选组织范围待确认。Q-TPLACC-001仍只约束实际依赖独立验收的路径，不能扩大为成员能力的全局前置。
+2026-09-08当前方向以[修订019](../../docs/baseline/prd-v1.8-amendment-019-project-member-assignment.md)和F-PROJ-001唯一计划当前增量为准：项目级联合/分次指派、多经理、一个当前主责、同角色同权限；无固定指派任务前置。Q-FPROJ-009原绑定设计已被替代，Q-FPROJ-010候选范围已确认同公司跨部门及上游通用公司/角色查询。Q-TPLACC-001仍只约束实际依赖独立验收的路径，不能扩大为成员能力的全局前置。
 
 ### 历史集成检查点（以下不作为修订019准入）
 

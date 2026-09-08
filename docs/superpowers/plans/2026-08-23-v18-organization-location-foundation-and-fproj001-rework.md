@@ -826,7 +826,7 @@ The plan is complete only when all conditions hold:
 
 ## 项目级成员指派增量（2026-09-08）
 
-**当前状态：** 准备中；依赖候选组织范围的部分为`BLOCKED_BY_SPEC / Q-FPROJ-010`。本轮不写业务代码，不将旧单经理或T-ASSIGN-PM方案转成实现。原先本轮未提交的“首次-only→强制绑定Task 11”草案已撤下，不产生第二套计划或Task。
+**当前状态：** Q-FPROJ-010业务裁决已关闭，先按SDS10落实通用公司/角色用户资格只读增量；完整成员写入合同和消费者仍按任务推进。原准备轮未写业务代码，不将旧单经理或T-ASSIGN-PM方案转成实现。原先本轮未提交的“首次-only→强制绑定Task 11”草案已撤下，不产生第二套计划或Task。
 
 **正式输入：** [修订019](../../baseline/prd-v1.8-amendment-019-project-member-assignment.md)、PRD PM-01/PM-08、SDS05/06/07/08/09/10/20、当前F-PROJ-001/005/007/008及Q-FPROJ-009/010。PM-09仅为V2跨项目批量变更，不阻断单项目成员操作。
 
@@ -835,7 +835,7 @@ The plan is complete only when all conditions hold:
 审计输入为当前master源码（业务基线`49d79d1e`，本轮治理提交不改变其实现）：
 
 - `ProjectManagerAssignmentApplicationService`、`ProjectManualCreationServiceImpl.assignServiceManager`、`ProjectMasterController.assignManager`和`ProjectServiceManagerPanel.vue`实际只实现服务经理指派/改派。保持正确的PM-08候选、主责/协同、时态历史、幂等和通知；联合/多项目经理能力不能按类名推定已存在。
-- SYSTEM `OrganizationScopeApi`已提供有效范围及scope ID/version、候选分页，`AdminUserApi/CompanyApi/DeptApi`可作公开校验输入；不得直查SYSTEM表。PM-08的同公司同办事处规则不是PM-01的自动默认值，候选过滤须等待Q-FPROJ-010。
+- SYSTEM `OrganizationScopeApi`已提供有效范围及scope ID/version、候选分页，`AdminUserApi/CompanyApi/DeptApi`可作公开校验输入；不得直查SYSTEM表。PM-08的同公司同办事处规则不是PM-01的自动默认值，候选采用Q-FPROJ-010确认的同公司跨部门和上游指定角色查询。
 - `proj_project_member_assignment`可保存多人员区间；`ProjectMasterDO.managerId/managerEmployeeNo/managerName`及列表展示只适合作当前主责投影。新模型需要完整成员集合和有效主责引用，切换主责必须同步显示字段及历史，不能只改ID或自动清理其他经理。
 - `ProjectParticipantFactApiImpl`、阶段readiness/推进、`ProjectTreeScopeService`及任务主体分别使用主责字段或成员关系。主责引用只表达责任，角色授权按有效成员集合并遵守同角色同权限；不能统一只认manager_id，也不能跳过操作自身的通用守卫。
 - `TaskBindingHostRegistry`、`TaskNativeBindingHostProvider`、`ProjectTaskLifecycleService`、`TaskStateMachineDefinition`是任务执行底座，不是本次人员操作入口。V55部分T-ASSIGN-PM还挂团队组建子任务；不得按固定编码改绑、自动完成或覆盖旧冻结实例。
@@ -852,14 +852,14 @@ The plan is complete only when all conditions hold:
 2. 联合请求逐项授权、整次原子提交；增补/调整/主责切换必须表达明确意图，不以替换集合暗中删除未提交成员。保留成员区间、原因、actor、版本、幂等、审计和Outbox。
 3. 当前主责必须是有效项目经理成员；主责服务经理和主责项目经理均有效才为ASSIGNED。主责切换与完整主责ID/姓名/工号显示同事务维护；通知失败不回滚成功业务，写Outbox失败则回滚。
 4. 项目阶段不是人员操作的限制轴；既有生命周期关闭保护、租户和项目数据范围继续有效。历史模板、任务、审批主体和快照不随人员调整回写。
-5. 原服务经理单独指派入口保持原合同，新能力以加法Controller/应用服务与组件承接并复用底座；同角色同权限已明确；最终集合请求/响应、候选资格和读消费者合同待Q-FPROJ-010后落字，不提前创建空Provider或临时API。
+5. 原服务经理单独指派入口保持原合同，新能力以加法Controller/应用服务与组件承接并复用底座；同角色同权限已明确；候选资格通用合同已在SDS10落位；最终集合写请求/响应及读消费者仍按影响细化，不提前创建空Provider或临时API。
 
 **拟涉及文件与Owner：** PROJ `controller/admin/projects/`、`service/projectmanual/`、成员/Project Mapper及场景Query/XML、相关公开参与者/范围API的真实消费者；前端现有`project-master-detail/`与`api/pms/project/projects/index.ts`；相应后端/组件/集成/浏览器测试。实际代码路径和共享API边界在契约确认后由master提交实现DU，当前准备DU不授权业务写入。
 
 **验证范围：**
 
 - 同次联合指派、先服务经理后增补多个项目经理、各实际阶段调整与主责切换；其他经理保持存在，同一人员同角色区间不重叠。
-- 权限测试验证主责与其他有效经理同角色同权限；候选范围正反向用例按Q-FPROJ-010定义；覆盖无对应权限、越界/跨租户、无效候选、关闭保护、版本冲突、同键重放/异载荷，不能用前端隐藏代替服务端拒绝。
+- 权限测试验证主责与其他有效经理同角色同权限；候选正反向用例按已关闭Q-FPROJ-010及SDS10定义；覆盖无对应权限、越界/跨租户、无效候选、关闭保护、版本冲突、同键重放/异载荷，不能用前端隐藏代替服务端拒绝。
 - 真实MySQL证明联合请求失败全回滚、并发版本保护、成员及主责显示一致、区间历史和不可变审批不覆盖；通知失败/重复投递不产生重复业务或消息。
 - 主责字段与完整成员集合的每类直接消费者按其真实用途验证；任务执行及阶段推进不引入固定指派任务依赖。
 - 完成对应UI后执行组件/类型/构建检查及真实浏览器：从项目入口联合/分次指派、增补、切换主责、刷新名单/显示/历史；不直接改库造经理或任务DONE。
@@ -871,4 +871,4 @@ The plan is complete only when all conditions hold:
 
 F-PROJ-005保留服务经理基础，F-PROJ-007只按裁决调整实际受影响的任务主体判定，不新增指派绑定；F-PROJ-008 Task 3B在成员事实及该Feature自身阶段合同可用后执行真实S0→S1。成员功能通过不自动等于阶段推进通过，旧冻结任务/模板若需处理仍须明确前向兼容，不改V55或既有实例。
 
-本Task关闭需要实际代码、适用验证、消费者审阅及本地聚焦提交；本次只完成已授权需求和准备，不标记Task/Feature Done。Q-FPROJ-010的唯一剩余待决项为候选组织范围；同角色同权限已确认，其他已确认方向不重复请求。
+本Task关闭需要实际代码、适用验证、消费者审阅及本地聚焦提交；本次只完成已授权需求和准备，不标记Task/Feature Done。Q-FPROJ-010业务待决已全部关闭；同公司跨部门、上游指定角色资格及同角色同权限均已确认，不重复请求。
