@@ -4,19 +4,19 @@
 > 适用基线：PRD V1.8修订017（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8附录A.1的100项正式Requirement及附录A.1.1的111个目标版本切片
 > Owner：SDS 总编
-> 定位：本文件仅为SDS分册索引，不复制分册内容或批准状态；Phase 1/2采用变更级实质审查，不执行全量阶段准入。
+> 定位：本文件仅为SDS分册索引，不复制分册内容或批准状态；Phase 1/2/3按当前工程链作设计分类，不执行全量阶段准入。
 
 ## 1. 当前治理方式与历史记录
 
-2026-09-08需求方批准取消Phase 1/2阶段全量阻断，保留变更级实质审查。旧分册的状态/版本头部只说明其历史，不决定新变更准入；只更新实际权威内容，审查结果复用Task/DU/提交。原FAIL不改为PASS，实际业务/API/Schema缺口仍需解决。下表的专项/发布限制保持适用边界。
+2026-09-08需求方进一步精简实施链，Phase 1/2/3均不作日常开工门禁，具体实施/验证遵循[工程链](../engineering/00-engineering-chain.md)。旧分册的状态/版本头部只说明其历史；只更新本次实际权威内容，不为普通任务补齐独立计划或阶段批准。原FAIL不改为PASS，真实业务/API/Schema及运行风险仍按影响处理。
 
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
 | SDS Phase 1 | 设计分类 | 非阶段准入；按变更审查 | `docs/engineering/gates/phase-1/gate-status.md` |
 | SDS Phase 2 | 设计分类 | 非阶段准入；按变更审查 | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `REVALIDATION_REQUIRED` | `BLOCKED_BY_REVIEW` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 3 | 设计分类 | 非阶段准入；真实运行风险按适用点验证 | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7及修订007前三阶段历史审查证据保留。master修订011～013已批准的巡检差量及未受影响设计继续有效；修订017承接PR #1来源修订017及本轮确认整改，受影响部分只读取当前Phase 1/2/3记录，不以旧批准或自审代替新产物复核。
+V1.7及修订007前三阶段历史审查证据保留。master修订011～013已批准的巡检差量及未受影响设计继续有效；修订017承接PR #1来源修订017及相应整改。受影响部分依据当前权威设计和实际证据判断，不以旧阶段批准或自审代替未完成的专项复核。
 
 参考Schema只证明设计约束，不代表应用、存量升级、Feature或Release完成；本轮通用字段整改的验证结果在既有Gate中单独留痕，原修订017执行证据不覆盖。
 
@@ -54,7 +54,7 @@ V1.7及修订007前三阶段历史审查证据保留。master修订011～013已�
 
 ## 3. 基线边界
 
-本SDS基线只授权下游按正式设计开展Feature Ready评估；Feature仍须在自身规格中独立达到READY，实施仍须具有当前有效Technical Plan和Task。本基线不授权以下事项：
+正式SDS提供已确认的实现契约，Feature Ready由其规格维护；范围明确且不依赖未决问题的Task可按工程链直接实施，不以独立Technical Plan或全阶段READY准入。本基线不授权以下事项：
 
 1. 宣称可部署、专项验收通过或生产发布；生产证据按部署/发布门禁登记。
 2. 执行历史数据迁移或数据切换；只有发布包含该范围时，`AI-MIG-000`才是Release前置门禁，且须在真实批次验证通过后的批准窗口内执行；普通功能发布不受此门禁阻断。
