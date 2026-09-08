@@ -1,6 +1,6 @@
 # DU-20260908-DEVELOPMENT-ADMISSION-REVALIDATION 开发准入复验
 
-> DU状态：`PLANNED`
+> DU状态：`CLAIMED`
 > DU类型：`GOVERNANCE`
 > Feature协调：`NONE`
 > Task范围：`承接100需求/111切片审查；规范旧DU元数据，复核现有未完成Task准入，校准执行指引并准备精确开发认领；不实施业务代码`
