@@ -25,6 +25,7 @@ class ProjectTemplateGraphPersistenceTest {
         ReflectionTestUtils.setField(service,"revisionMapper",revisions);
         ReflectionTestUtils.setField(service,"transitionDefinitionMapper",transitions);
         ReflectionTestUtils.setField(service,"stageDefinitionMapper",stages);
+        ReflectionTestUtils.setField(service,"definitionReferenceAssembler",mock(TemplateDefinitionReferenceAssembler.class));
         ReflectionTestUtils.setField(service,"taskDefinitionMapper",mock(ProjectTemplateTaskDefinitionMapper.class));
         ReflectionTestUtils.setField(service,"milestoneDefinitionMapper",mock(ProjectTemplateMilestoneDefinitionMapper.class));
         ReflectionTestUtils.setField(service,"deliverableDefinitionMapper",mock(ProjectTemplateDeliverableDefinitionMapper.class));

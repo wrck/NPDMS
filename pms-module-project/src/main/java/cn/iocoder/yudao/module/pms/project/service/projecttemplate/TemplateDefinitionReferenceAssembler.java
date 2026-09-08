@@ -49,15 +49,7 @@ public class TemplateDefinitionReferenceAssembler {
             enforceOwner(definition, binding, closure);
         }
         for (var task : content.getTasks()) {
-            Revision definition = resolver.require(closure, task.getDefinitionRevisionId(), DeliveryDefinitionKind.TASK);
-            task.setWorkBindingRevisionId(slot(definition, "workBinding", task.getWorkBindingRevisionId()));
-            task.setPermissionPolicyRevisionId(slot(definition, "permissionPolicy", task.getPermissionPolicyRevisionId()));
-            task.setCompletionRuleRevisionId(slot(definition, "completionRule", task.getCompletionRuleRevisionId()));
-            Revision binding = binding(closure, task.getWorkBindingRevisionId(), "TASK_NATIVE");
-            Revision permission = resolver.require(closure, task.getPermissionPolicyRevisionId(), DeliveryDefinitionKind.PERMISSION_POLICY);
-            Revision completion = resolver.require(closure, task.getCompletionRuleRevisionId(), DeliveryDefinitionKind.COMPLETION_RULE);
-            enforceOwner(definition, binding, closure);
-            applyTask(task, definition, binding, permission, completion, closure.get(binding.id()));
+            applyReferencedTask(task, closure);
         }
         for (var row : content.getMilestones()) resolver.require(closure, row.getDefinitionRevisionId(), DeliveryDefinitionKind.MILESTONE);
         for (var row : content.getDeliverables()) {
@@ -82,6 +74,34 @@ public class TemplateDefinitionReferenceAssembler {
             resolver.require(closure, edge.getConditionRuleRevisionId(), DeliveryDefinitionKind.COMPLETION_RULE);
         // Snapshot is regenerated from authoritative rows, never copied from submitted JSON.
         content.setDefinitionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(closure.values()), JsonNode.class));
+    }
+
+    public void resolveDraftTaskBindings(TemplateDefinitionContent content) {
+        List<DeliveryDefinitionReference> roots = new ArrayList<>();
+        if (content.getTasks() == null) throw exception(INVALID, "tasks required");
+        List<TemplateDefinitionContent.TaskDef> referenced = content.getTasks().stream()
+                .filter(Objects::nonNull).filter(task -> task.getDefinitionRevisionId() != null).toList();
+        for (var task : referenced) {
+            root(roots, task.getDefinitionRevisionId());
+            optional(roots, task.getWorkBindingRevisionId());
+            optional(roots, task.getPermissionPolicyRevisionId());
+            optional(roots, task.getCompletionRuleRevisionId());
+        }
+        if (roots.isEmpty()) return;
+        Map<Long, Snapshot> closure = resolver.resolve(roots, null, true);
+        for (var task : referenced) applyReferencedTask(task, closure);
+    }
+
+    private void applyReferencedTask(TemplateDefinitionContent.TaskDef task, Map<Long, Snapshot> closure) {
+        Revision definition = resolver.require(closure, task.getDefinitionRevisionId(), DeliveryDefinitionKind.TASK);
+        task.setWorkBindingRevisionId(slot(definition, "workBinding", task.getWorkBindingRevisionId()));
+        task.setPermissionPolicyRevisionId(slot(definition, "permissionPolicy", task.getPermissionPolicyRevisionId()));
+        task.setCompletionRuleRevisionId(slot(definition, "completionRule", task.getCompletionRuleRevisionId()));
+        Revision binding = binding(closure, task.getWorkBindingRevisionId(), "TASK_NATIVE");
+        Revision permission = resolver.require(closure, task.getPermissionPolicyRevisionId(), DeliveryDefinitionKind.PERMISSION_POLICY);
+        Revision completion = resolver.require(closure, task.getCompletionRuleRevisionId(), DeliveryDefinitionKind.COMPLETION_RULE);
+        enforceOwner(definition, binding, closure);
+        applyTask(task, definition, binding, permission, completion, closure.get(binding.id()));
     }
 
     static boolean sameGateReferences(List<TemplateDefinitionContent.GateRef> actual,
