@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -42,7 +45,7 @@ public class TemplateDefinitionContent {
     /** 匹配条件：重大项目级别（CRM 来源属性映射，null=不限） */
     private String majorProjectLevel;
 
-    /** 模板级流程定义引用（仅存引用，发布要求非空，不校验流程内部） */
+    /** 模板级流程定义引用（仅存引用，可不配置，实际引用发布时重验Owner） */
     private String processDefinitionKey;
     /** 历史兼容字段；新模板保持空，不参与流程定义选择或实例冻结 */
     private String processDefinitionVersion;
@@ -58,8 +61,34 @@ public class TemplateDefinitionContent {
     /** 门禁定义（含结构化引用行） */
     private List<GateDef> gates = new ArrayList<>();
 
+    /** PM-03: explicit edges, never inferred from display order. */
+    private List<TransitionDef> transitions = new ArrayList<>();
+    /** Server-generated immutable definition/reference/schema closure. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private JsonNode definitionSnapshot;
+
+    @Data
+    public static class TransitionDef {
+        private Long id;
+        private String transitionCode;
+        private String fromStageCode;
+        private String toStageCode;
+        private Long conditionRuleRevisionId;
+        private Integer priority;
+        @JsonProperty("default")
+        private Boolean defaultBranch;
+        private Long revisionNo;
+    }
+
     @Data
     public static class StageDef {
+        @JsonAlias("stageDefinitionRevisionId")
+        private Long definitionRevisionId;
+        private Boolean start;
+        private Boolean terminal;
+        private Long workBindingRevisionId;
+        private Long permissionPolicyRevisionId;
+        private Long completionRuleRevisionId;
         /** 阶段码 S0～S6 */
         private String stageCode;
         private String name;
@@ -73,6 +102,10 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class TaskDef {
+        private Long definitionRevisionId;
+        private Long workBindingRevisionId;
+        private Long permissionPolicyRevisionId;
+        private Long completionRuleRevisionId;
         /** 发布版本中的任务定义行ID；草稿提交时忽略，由服务端生成 */
         private Long id;
         /** 任务码（版本内唯一） */
@@ -122,6 +155,7 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class MilestoneDef {
+        private Long definitionRevisionId;
         /** 里程碑码（版本内唯一） */
         private String milestoneCode;
         private String name;
@@ -135,6 +169,7 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class DeliverableDef {
+        private Long definitionRevisionId;
         /** 发布版本中的交付件定义行ID；草稿提交时忽略，由服务端生成 */
         private Long id;
         /** 交付件码（版本内唯一） */
@@ -150,6 +185,7 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class GateDef {
+        private Long definitionRevisionId;
         /** 门禁码（版本内唯一） */
         private String gateCode;
         private String name;

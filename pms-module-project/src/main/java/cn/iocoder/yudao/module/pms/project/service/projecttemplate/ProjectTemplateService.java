@@ -17,6 +17,11 @@ import java.util.List;
  * 消费端（项目创建实例化）属 F-PM01，不在本接口范围。
  */
 public interface ProjectTemplateService {
+    cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Validation validateProjectTemplate(Long id);
+
+    Long copyProjectTemplate(Long id, Integer expectedVersion,
+            cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body, String idempotencyKey);
+
 
     /**
      * 创建模板（生成 DRAFT 草稿工作副本，revision_no=0）

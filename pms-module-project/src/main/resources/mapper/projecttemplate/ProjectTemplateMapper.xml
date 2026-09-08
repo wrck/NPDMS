@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateMapper">
+  <select id="lockTemplate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO">
+    SELECT * FROM proj_project_template WHERE tenant_id=#{query.tenantId} AND id=#{query.templateId} AND deleted=0 FOR UPDATE
+  </select>
+  <update id="incrementVersion">
+    UPDATE proj_project_template SET version=version+1 WHERE tenant_id=#{query.tenantId} AND id=#{query.templateId} AND deleted=0
+  </update>
+</mapper>

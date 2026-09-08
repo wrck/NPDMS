@@ -28,13 +28,15 @@ class ProjectTemplateControllerContractTest {
     void classLevelRouteMatchesContract() {
         RequestMapping rm = ProjectTemplateController.class.getAnnotation(RequestMapping.class);
         assertNotNull(rm, "Controller 缺少 @RequestMapping");
-        assertEquals(1, rm.value().length);
-        assertEquals(BASE, rm.value()[0]);
+        assertEquals(java.util.Set.of(BASE, "/api/v1/pms/project-templates"),
+                java.util.Set.of(rm.value()));
     }
 
     @Test
     void pageEndpoint() {
-        assertEndpoint("getProjectTemplatePage", GetMapping.class, "/page", "pms:project-template:query");
+        assertEndpoint("getProjectTemplatePage", GetMapping.class, "", "pms:project-template:query");
+        assertEquals(java.util.Set.of("", "/page"), java.util.Set.of(
+                findMethod("getProjectTemplatePage").getAnnotation(GetMapping.class).value()));
     }
 
     @Test

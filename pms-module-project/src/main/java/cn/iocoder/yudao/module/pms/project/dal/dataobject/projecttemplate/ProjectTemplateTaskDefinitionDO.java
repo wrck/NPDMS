@@ -15,6 +15,11 @@ import java.math.BigDecimal;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateTaskDefinitionDO extends TenantBaseDO {
+    private Long definitionRevisionId;
+    private Long workBindingRevisionId;
+    private Long permissionPolicyRevisionId;
+    private Long completionRuleRevisionId;
+
 
     /**
      * 任务定义ID
