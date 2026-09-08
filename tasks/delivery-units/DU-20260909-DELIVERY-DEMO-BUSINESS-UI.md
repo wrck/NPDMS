@@ -2,14 +2,14 @@
 
 > DU状态：`CLAIMED`
 > DU类型：`MULTI_FEATURE_SLICE`
-> Feature协调：`F-SOL-003=TASK_COORDINATED;F-ACC-002=TASK_COORDINATED`
-> Task范围：`PRE-04兼容表单内容；ACC-02既有满意度页面项目上下文/只读适配及定向组件测试；不包含宿主、注册、模板发布或任务接入`
+> Feature协调：`F-SOL-001=TASK_COORDINATED;F-SOL-003=TASK_COORDINATED;F-ACC-002=TASK_COORDINATED`
+> Task范围：`当前按S1顺序推进PRE-01工期组件直接复用；保留已认领PRE-04内容与ACC-02适配；仅领域组件上下文/只读/dirty协议及定向测试，不含宿主、注册或模板接入`
 > Owner：`实现动态表单和业务操作界面（01a0822c-ea82-7801-b318-39bfd843f866）`
 > 分支：`DETACHED`
 > Worktree：`M:/AICoding/CodexData/worktrees/bfbf/NPDMS`
 > 认领基线：`3d6d6686b703638041a1007bdc7372206c9501c3`
 > 认领提交：`SELF`
-> 修改边界：`yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demo-template.json;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demoTemplate.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/browser/**;tasks/delivery-units/DU-20260909-DELIVERY-DEMO-BUSINESS-UI.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/index.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/TaskPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/ResultPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.runtime.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/browser/**`
+> 修改边界：`yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demo-template.json;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/demoTemplate.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/browser/**;tasks/delivery-units/DU-20260909-DELIVERY-DEMO-BUSINESS-UI.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/index.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/TaskPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/ResultPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.runtime.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/satisfaction/projectContext.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/satisfaction/browser/**;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationFormDrawer.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationContext.runtime.spec.ts;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/duration/README.md;yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/duration/browser/**`
 > 串行资源：`无数据库/生产访问，无SQL或迁移号；浏览器目录仅各自内容/组件测试入口，不增加生产路由；保留bfbf在途PM01文件及p903边界`
 > 旧功能范围：`NONE`
 > 验证：`PRE-04共享codec及FormCreate渲染/取值；ACC-02复用已有依赖和mocked Owner API验证独立入口不回退、指定项目锁定/非法值拒绝、切换竞态及只读禁写；工具不可用如实报告，不冒充生产或宿主联调`
@@ -29,7 +29,7 @@
 
 PRE-04单元的测试和README只服务本JSON；browser目录可提供独立真实渲染/取值验收入口及脚本，不成为生产页面宿主或替代领域实现。该内容单元不得修改SDS、领域Service/API/表、SQL、模板注册、既有组件、已发布修订或项目冻结引用；不调用生产写API、不擅自发布模板，不把页面保存改成任务或节点完成。
 
-除下述ACC-02扩展外，其他Demo页面尚未认领；后续明确业务义务与精确文件后在本DU扩展，由协调者提交新边界后生效，不提前占用整个delivery-business目录。
+除下述ACC-02及PRE-01扩展外，其他Demo页面尚未认领。用户已明确按S1→S6顺序推进：当前回到S1工期，之后依次核对工勘、物料、需求分析，再按阶段顺序推进；保留来源已报告完成的S5适配，但不因后续阶段容易而跳序。后续精确范围仍在本DU一次扩展，不提前占用整个delivery-business目录；来源未提交成果不视为master交付。
 
 ## ACC-02满意度现成页面直接复用增量（2026-09-09）
 
@@ -42,6 +42,18 @@ PRE-04单元的测试和README只服务本JSON；browser目录可提供独立真
 - 来源与交付：沿用bfbf工作树及实际detached状态，不要求创建分支、同步认领提交、提交/接收PM01或当前实现。本节只扩展生效职责与文件边界；来源实现进展仍在本DU记录，后续集成须另有授权。
 
 ## 依赖与消费交接
+
+## PRE-01工期现成组件直接复用增量（2026-09-09）
+
+- Requirement/Feature：`PRE-01` / `F-SOL-001`；引用`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`、`tasks/features/F-SOL-001.md`及既有工期API，保留其历史完成状态，本次适配进度只记本DU。
+- 授权与实现方式：按用户已确认的直接复用原则，增强原`ProjectDurationPanel.vue`和`ProjectDurationFormDrawer.vue`，不建立平行页面。只补可选readonly、安全项目上下文切换及与既有宿主约定兼容的dirty协议；原project prop、未传readonly时的独立使用行为、日期计算、BPM和证据语义保持不变。
+- 拒绝与状态保护：非法或失效项目上下文不发出越界/退化查询，切换项目隔离旧请求响应及编辑内容；只读禁止写业务动作，dirty状态与丢弃操作不得触发业务保存、审批或完成。不能用前端只读代替既有服务端授权。
+- 精确边界：上述两组件、同目录`ProjectDurationContext.runtime.spec.ts`、`delivery-business/duration/README.md`及其browser专用测试文件。既有历史查看抽屉、API/Service、项目详情入口、p903宿主/注册/模板均不改；不增加生产路由、SQL或数据库访问。
+- 验证：只复用既有依赖、mocked Owner API与真实组件测试，覆盖原project用法、只读、项目切换/旧响应隔离及dirty协议；不宣称生产鉴权、真实BPM或证据文件流程已联调。master活动认领及p903现存边界未发现本次F-SOL-001组件路径冲突。
+- S1联系人差距：来源任务已核对旧CustomerContact按customerId及客户主联系人维护，而CUS-04要求projectId独立记录及项目主联系人历史，F-CUS-001不承接CUS-04。本DU仅记录该缺口，不把客户联系人冒充项目联系人，不实现未落位的CUS-04新API/业务表，也不以此阻断不依赖它的工期组件适配。
+- 来源工作树、Owner及不接收PM01/不推送约束不变。后续工勘、物料、需求分析仍须依据相应已明确契约与生效精确边界实施，不因本次认领自动扩权。
+
+## 既有依赖与消费交接
 
 - F-PLT-002 → 既有表单引擎、共享codec及受控文件组件 → `specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md`、对应Feature Task和源码。仅消费，不复制引擎或Provider；来源分支缺代码时先明确可用增量及同步授权，不从p903在途文件复制。
 - F-SOL-003 → PRE-04兼容规则及既有`PATCH /preparations/{id}/form` → 现有Feature Spec/Task。原应用链为PLT模板草稿PATCH、由原Owner配置发布/选择、SOL表单PATCH；本单元只交付兼容内容与测试，不执行该生产写链。
