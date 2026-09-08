@@ -50,7 +50,7 @@
 
 | Feature | Feature Task | master实施状态 | 当前有效DU | Requirement投影 |
 |---|---|---|---|---|
-| F-PROJ-001 | [Task](F-PROJ-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
+| F-PROJ-001 | [Task](F-PROJ-001.md) | IN_PROGRESS | Q-TPLACC-001仅依赖路径；Task 10在途 | 由生成矩阵派生 |
 | F-PROJ-002 | [Task](F-PROJ-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PROJ-003 | [Task](F-PROJ-003.md) | IMPLEMENTATION_DONE | 无 | 由生成矩阵派生 |
 | F-PROJ-004 | [Task](F-PROJ-004.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |

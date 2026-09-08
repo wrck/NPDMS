@@ -1,6 +1,6 @@
 # DU-20260908-PM01-INITIAL-PROJECT-MANAGER 项目级成员指派准备
 
-> DU状态：`CLAIMED`
+> DU状态：`INTEGRATED_PARTIAL`
 > DU类型：`GOVERNANCE`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED;F-PROJ-005=TASK_COORDINATED;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED`
 > Task范围：`项目交付主线首个单元：按用户新确认落位项目级联合/单独指派与各阶段权限内调整；修订PRD/SDS/Spec/唯一计划及代码Task；撤下首次-only和固定T-ASSIGN-PM方案；本DU不写业务代码`
@@ -9,11 +9,11 @@
 > Worktree：`E:/AICoding/Projects/NPDMS`
 > 认领基线：`49d79d1eedd0f867d8f8f7f9c196607a42c682b8`
 > 认领提交：`SELF`
-> 修改边界：`tasks/delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md;tasks/delivery-units/README.md;specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md;specs/features/F-PROJ-005-service-manager-manual-assignment.md;specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md;specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md;docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md;docs/superpowers/plans/2026-08-25-f-proj-005-service-manager-manual-assignment.md;docs/superpowers/plans/2026-08-25-f-proj-007-project-task-tree-and-native-workbench.md;docs/superpowers/plans/2026-09-01-f-proj-008-project-stage-gate-and-forward-advance.md;tasks/features/F-PROJ-001.md;tasks/features/F-PROJ-005.md;tasks/features/F-PROJ-007.md;tasks/features/F-PROJ-008.md;docs/design/07-authorization-design.md;docs/design/08-data-model.md;docs/design/09-database-design.md;docs/design/10-api-design.md;docs/design/20-test-design.md;docs/decisions/open-questions.md;需求/PRD-项目实施交付管理平台.md;docs/baseline/prd-v1.8.md;docs/baseline/prd-v1.8-amendment-019-project-member-assignment.md;docs/baseline/README.md;docs/baseline/requirement-baseline.yaml;docs/baseline/change-log.md;docs/baseline/baseline-signoff.md;docs/design/05-state-machine.md;docs/design/06-workflow-design.md;docs/traceability/requirement-matrix.md;docs/traceability/requirement-version-coverage.json`
+> 修改边界：`tasks/delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md;tasks/delivery-units/README.md;specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md;specs/features/F-PROJ-005-service-manager-manual-assignment.md;specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md;specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md;docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md;docs/superpowers/plans/2026-08-25-f-proj-005-service-manager-manual-assignment.md;docs/superpowers/plans/2026-08-25-f-proj-007-project-task-tree-and-native-workbench.md;docs/superpowers/plans/2026-09-01-f-proj-008-project-stage-gate-and-forward-advance.md;tasks/features/F-PROJ-001.md;tasks/features/F-PROJ-005.md;tasks/features/F-PROJ-007.md;tasks/features/F-PROJ-008.md;docs/design/07-authorization-design.md;docs/design/08-data-model.md;docs/design/09-database-design.md;docs/design/10-api-design.md;docs/design/20-test-design.md;docs/decisions/open-questions.md;需求/PRD-项目实施交付管理平台.md;docs/baseline/prd-v1.8.md;docs/baseline/prd-v1.8-amendment-019-project-member-assignment.md;docs/baseline/README.md;docs/baseline/requirement-baseline.yaml;docs/baseline/change-log.md;docs/baseline/baseline-signoff.md;docs/design/05-state-machine.md;docs/design/06-workflow-design.md;docs/traceability/requirement-matrix.md;docs/traceability/requirement-version-coverage.json;tasks/features/README.md;specs/features/README.md`
 > 串行资源：`master的上述正式规格/计划与Task；不占用固定测试数据库、Redis或应用端口`
 > 旧功能范围：`NONE`
 > 验证：`PRD PM-01规则6/9与Q-FPROJ-009一致性、旧实现/直接消费者审计、DU排他边界、引用与差异检查；不运行无关Phase全量审计`
-> 集成记录：`本次master文档提交落位修订019及唯一Task 10准备；仅项目经理候选组织范围待Q-FPROJ-010确认；未实施业务代码或晋级Feature Done，本DU释放文档写边界`
+> 集成记录：`修订019及Q-FPROJ-010业务裁决已落位；33763100锁定通用查询合同，4e535e95查询增量已入master；当前Task 10为IN_PROGRESS，完整成员写入及消费者/UI待推进，本DU释放文档边界，不晋级Feature Done`
 
 ## 目标与范围
 
@@ -36,6 +36,8 @@
 候选范围已由用户确认同公司、可跨部门的有效在职人员；随后明确由上游提供通用指定公司/角色用户资格查询。SDS10以SYSTEM现有UserCompanyDepartmentScope同一有效授权行定义该接口，候选与提交重验复用，不建立PROJ专用权限真值。只读差量审阅确认角色来源、租户、去重/分页和空集合合同无真实问题；不是实现或运行Done。
 
 后续代码边界见DU-20260908-PM01-COMPANY-ROLE-QUERY，只承接Task 10内查询增量。成员写入、当前主责/角色集合消费者、UI和端到端仍需继续，不把业务待决关闭当成整体Ready/Done。当前查询基于既有表、无DDL，保留原服务经理查询。
+
+查询增量已由4e535e95合入master，实测与审阅只引用查询DU，不重复复制证据。F-PROJ-001当前新增量进入IN_PROGRESS、Implementation Done为NOT_READY；旧创建范围和Task 0～9的历史PASS保留。Feature/需求投影仅随这一真实状态变化更新，不再重跑未变化的数据库用例或hash校验。
 
 ### 修订019首次落位回执（历史）
 

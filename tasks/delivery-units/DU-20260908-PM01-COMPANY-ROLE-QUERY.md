@@ -1,6 +1,6 @@
 # DU-20260908-PM01-COMPANY-ROLE-QUERY 上游公司角色用户查询
 
-> DU状态：`CLAIMED`
+> DU状态：`INTEGRATED_COMPLETE`
 > DU类型：`TASK`
 > Feature协调：`F-PROJ-001=TASK_COORDINATED`
 > Task范围：`Task 10内上游通用公司/角色用户资格查询增量；候选与指定用户重验共享规则；不声明成员写入/UI或Feature Done`
@@ -13,7 +13,7 @@
 > 串行资源：`上述PMS自建SYSTEM组织扩展文件；仅复用固定测试MySQL 23316/npdms_test做事务回滚验证，不创建第二套环境，不修改上游API及TRAE认领文件`
 > 旧功能范围：`NONE`
 > 验证：`新查询行为与原OrganizationScopeApi回归；同公司/角色同一有效行、跨部门去重、空集合、分页、过期停用及租户；SYSTEM与PROJ依赖编译；无DDL/UI不跑迁移/浏览器`
-> 集成记录：`NONE`
+> 集成记录：`4e535e95已由master以ff-only接收；8项固定MySQL场景有效证据、28模块直接依赖编译与只读代码审查通过，释放本查询代码边界；Task 10/Feature仍在途`
 
 ## 正式合同与复用
 

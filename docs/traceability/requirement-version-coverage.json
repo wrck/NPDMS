@@ -452,8 +452,8 @@
         "PM-03@V1"
       ],
       "taskPath": "tasks/features/F-PROJ-001.md",
-      "taskStatus": "COMPLETE",
-      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "PM-01@V1",
@@ -652,7 +652,7 @@
         {
           "featureId": "F-PROJ-001",
           "coverage": "PARTIAL",
-          "taskStatus": "COMPLETE",
+          "taskStatus": "IN_PROGRESS",
           "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
           "taskPath": "tasks/features/F-PROJ-001.md"
@@ -694,7 +694,7 @@
         {
           "featureId": "F-PROJ-001",
           "coverage": "PARTIAL",
-          "taskStatus": "COMPLETE",
+          "taskStatus": "IN_PROGRESS",
           "revalidationRequired": true,
           "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
           "taskPath": "tasks/features/F-PROJ-001.md"

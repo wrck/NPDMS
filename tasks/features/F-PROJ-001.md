@@ -1,13 +1,13 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
-> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> Feature实施状态：`IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
-> Implementation Done Gate：`PASS`
+> Implementation Done Gate：`NOT_READY`（修订019新增量在途；原创建范围PASS保留历史）
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：修订019项目级联合/分次指派、多项目经理与当前主责准备；Q-FPROJ-010已关闭，先落实通用公司/角色查询增量，完整成员代码尚未交付
+> 当前任务：Task 10通用公司/角色查询增量已合入master；继续项目级成员写入、主责/角色集合消费者及UI闭环，不重复候选裁决
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
-> Feature Spec SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`
+> 历史创建规格SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`（不作当前新增量准入）
 > Technical Plan：`docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md`
 > 锁定规格提交：`975107a665f156ce527480e939ad89a614cd1a21`
 
@@ -25,11 +25,11 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`NOT_STARTED`；业务待决已清，SDS10通用公司/角色查询合同已明确。已确认业务、审计、实现/验证边界见[唯一计划当前增量](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换、角色集合消费者及UI仍待完成；唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
-- [ ] AC-FPROJ-011：联合/分次指派、多经理、当前主责及各阶段权限内调整；尚无代码或运行证据。
+- [ ] AC-FPROJ-011：只有上游查询子范围取得代码与MySQL证据，完整联合/分次指派、多经理、主责与各阶段操作尚未验收。
 
-顶部旧IMPLEMENTATION_COMPLETE及下面Task 0～9/历史AC/证据仅覆盖原完成范围，不代表修订019。当前Ready以Spec为准，本次准备与审阅只在[DU](../delivery-units/DU-20260908-PM01-INITIAL-PROJECT-MANAGER.md)记录；不将准备完成投影成新增量Done。
+下面Task 0～9、历史AC与PASS证据继续覆盖原完成范围，不因修订019进入IN_PROGRESS而撤销历史结论；顶部状态表示当前Feature新增量。当前Ready以Spec为准，查询DU完成不等于Task 10或Feature Done。
 
 ### 已完成的历史范围
 
