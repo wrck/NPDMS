@@ -34,7 +34,7 @@ public class PlatformDynamicFormBusinessViewProvider implements BusinessViewComp
     public Component component() {
         return new Component("DYNAMIC_FORM_INSTANCE", "PLATFORM", ViewSource.DYNAMIC_FORM,
                 "PLATFORM_DYNAMIC_FORM", "1",
-                JsonUtils.parseTree("{\"type\":\"object\",\"properties\":{\"instanceId\":{\"type\":\"integer\",\"minimum\":1}},\"required\":[\"instanceId\"]}"),
+                JsonUtils.parseTree("{\"type\":\"object\",\"properties\":{\"instanceId\":{\"oneOf\":[{\"type\":\"integer\",\"minimum\":1},{\"type\":\"string\",\"pattern\":\"^[1-9][0-9]*$\"}]}},\"required\":[\"instanceId\"]}"),
                 JsonUtils.parseTree("[\"QUERY_INSTANCE\",\"PATCH_INSTANCE\"]"),
                 "PLATFORM_DYNAMIC_FORM_QUERY", "PLATFORM_DYNAMIC_FORM_COMMAND", "PLATFORM_DYNAMIC_FORM_PERMISSION");
     }

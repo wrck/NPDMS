@@ -61,7 +61,7 @@ const component = {
   componentKey: 'PROJ_REQUIREMENT_ANALYSIS',
   componentVersion: '1',
   contextSchema: { projectId: 'positive' },
-  supportedActions: ['VIEW', 'EDIT'],
+  supportedActions: ['CREATE_INITIAL_DRAFT', 'PATCH_FORM', 'COMPLETE', 'CREATE_DRAFT'],
   queryProviderKey: 'SOL_QUERY',
   commandProviderKey: 'SOL_COMMAND',
   permissionProviderKey: 'SOL_PERMISSION'

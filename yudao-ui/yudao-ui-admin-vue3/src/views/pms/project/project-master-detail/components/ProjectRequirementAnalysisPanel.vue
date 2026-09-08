@@ -133,7 +133,8 @@
         <RequirementAnalysisDynamicForm
           ref="dynamicFormRef"
           :key="`${detail.preparationId}-${detail.dynamicFormInstanceVersion}`"
-          :detail="hostDetail!"
+          :detail="detail"
+          :allowed-actions="detailActions"
           :reload="reloadSelectedDetail"
           @dirty-change="formDirty = $event"
           @saved="emit('changed')"
@@ -194,6 +195,7 @@ const compareRef = ref<InstanceType<typeof RequirementAnalysisCompareDrawer>>()
 const dynamicFormRef = ref<{
   save: () => Promise<boolean>
   discardChanges: () => void
+  isSaving: () => boolean
 }>()
 const formDirty = ref(false)
 const intentKeys = createRequirementIntentStore()
@@ -207,7 +209,6 @@ const relationLabel = computed(() => {
 })
 const overviewActions = computed(() => restrictActions(overview.value?.allowedActions || []))
 const detailActions = computed(() => restrictActions(detail.value?.allowedActions || []))
-const hostDetail = computed(() => detail.value && ({ ...detail.value, allowedActions: detailActions.value }))
 const canCreateInitial = computed(
   () =>
     !overview.value?.draft &&
@@ -253,9 +254,11 @@ const loadDetail = async (preparationId: number) => {
   }
 }
 const guardCurrentForm = async (target: string) => {
+  if (dynamicFormRef.value?.isSaving()) return false
   if (!formDirty.value) return true
   try {
     await message.confirm(`当前表单尚未保存，是否放弃这些本地修改并${target}？`)
+    if (dynamicFormRef.value?.isSaving()) return false
     dynamicFormRef.value?.discardChanges()
     return true
   } catch {
@@ -388,15 +391,14 @@ const openCompare = (preparationId: number, targetPreparationId: number) => {
 
 const reloadSelectedDetail = async () => {
   if (!selectedPreparationId.value) throw new Error('没有选中的需求分析版本')
-  await loadDetail(selectedPreparationId.value)
-  return hostDetail.value!
+  return await loadDetail(selectedPreparationId.value)
 }
 const requestLeave = async () => {
-  if (commandLoading.value || detailLoading.value) {
+  if (commandLoading.value || detailLoading.value || dynamicFormRef.value?.isSaving()) {
     message.warning('操作进行中，请等待结果后再切换。')
     return false
   }
-  // The existing SOL form does not expose its in-flight save state. Never discard it mid-save.
+  // Dirty host exits stay conservative; authorization updates never discard unsaved input.
   if (formDirty.value) {
     message.warning('需求分析尚有未保存内容，请先保存，或在面板中刷新并确认放弃，再切换视图。')
     return false

@@ -27,6 +27,8 @@ class RequirementAnalysisBusinessViewProviderTest {
         assertEquals("PROJ_REQUIREMENT_ANALYSIS", component.componentKey());
         assertEquals(BusinessViewComponentProvider.ViewSource.PAGE, component.viewSource());
         assertEquals("SOL_REQUIREMENT_ANALYSIS_COMMAND", component.commandProviderKey());
+        assertEquals("[\"CREATE_INITIAL_DRAFT\",\"PATCH_FORM\",\"COMPLETE\",\"CREATE_DRAFT\"]",
+                component.supportedActions().toString());
         verifyNoInteractions(permissions);
     }
 

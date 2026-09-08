@@ -41,7 +41,11 @@ const capture = (): BusinessViewTarget => ({
 const active = shallowRef(capture())
 const activeKey = computed(() => businessViewTargetKey(active.value))
 const resolved = computed(() => resolveBusinessView(active.value))
-const contentRef = ref<{ requestLeave?: () => Promise<boolean>; isDirty?: () => boolean }>()
+const contentRef = ref<{
+  requestLeave?: () => Promise<boolean>
+  discardChanges?: () => boolean
+  isDirty?: () => boolean
+}>()
 const dirty = ref(false)
 const loadError = ref('')
 const retryNo = ref(0)
@@ -79,7 +83,15 @@ watch(
         if (sequence === switchSequence) emit('switch-blocked')
         return
       }
-      if (sequence !== switchSequence) return
+      if (
+        sequence !== switchSequence ||
+        businessViewTargetKey(next) !== businessViewTargetKey(props)
+      )
+        return
+      if (contentRef.value?.discardChanges?.() === false) {
+        emit('switch-blocked')
+        return
+      }
       loadError.value = ''
       setDirty(false)
     }
@@ -88,7 +100,9 @@ watch(
   { deep: true }
 )
 const retry = async () => {
-  if (!(await requestLeave())) return
+  const sequence = ++switchSequence
+  if (!(await requestLeave()) || sequence !== switchSequence) return
+  if (contentRef.value?.discardChanges?.() === false) return
   loadError.value = ''
   retryNo.value++
 }

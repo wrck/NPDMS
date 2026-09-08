@@ -129,8 +129,11 @@
             <el-option
               v-if="
                 current?.dynamicFormRevisionId &&
-                !formRevisions.some(
-                  (item) => item.currentPublishedRevisionId === current?.dynamicFormRevisionId
+                !formRevisions.some((item) =>
+                  sameBusinessViewId(
+                    item.currentPublishedRevisionId,
+                    current?.dynamicFormRevisionId
+                  )
                 )
               "
               :value="current.dynamicFormRevisionId"
@@ -263,6 +266,10 @@ import type {
   BusinessViewPageQuery
 } from '@/api/pms/platform/business-view'
 import { getTemplateSelection, type DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
+import { sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
+type FormRevisionSelection = Omit<DynamicFormSelectionVO, 'currentPublishedRevisionId'> & {
+  currentPublishedRevisionId: BusinessViewId
+}
 
 // PM-03 / F-PLT-003. No delete action: published revisions and their history are immutable.
 defineOptions({ name: 'PmsBusinessView' })
@@ -277,7 +284,7 @@ const editorLoading = ref(false)
 const editorError = ref('')
 const current = ref<BusinessViewRegistrationVO>()
 const components = ref<BusinessViewComponentVO[]>([])
-const formRevisions = ref<DynamicFormSelectionVO[]>([])
+const formRevisions = ref<FormRevisionSelection[]>([])
 const selectedKey = ref('')
 const emptyForm = (): BusinessViewCreate => ({
   entityType: '',
@@ -294,8 +301,9 @@ const can = (action: BusinessViewAction) => current.value?.allowedActions.includ
 const editable = computed(
   () => !current.value || (current.value.status === 'DRAFT' && can('UPDATE'))
 )
-const componentIdentity = (item: Pick<BusinessViewComponentVO, 'componentKey' | 'componentVersion'>) =>
-  JSON.stringify([item.componentKey, item.componentVersion])
+const componentIdentity = (
+  item: Pick<BusinessViewComponentVO, 'componentKey' | 'componentVersion'>
+) => JSON.stringify([item.componentKey, item.componentVersion])
 const compatibleComponents = computed(() =>
   components.value.filter((item) => !current.value || item.entityType === current.value.entityType)
 )
@@ -425,7 +433,7 @@ const openCreate = async () => {
     editorLoading.value = false
   }
 }
-const openDetail = async (id: number) => {
+const openDetail = async (id: BusinessViewId) => {
   if (!(await requestLeave())) return
   editorLoading.value = true
   editorError.value = ''
