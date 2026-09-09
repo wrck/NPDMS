@@ -226,8 +226,16 @@ public class DynamicFormQueryService {
     private PlatformDynamicFormInstanceDO requireInstance(Long tenantId, Long id) {
         if (id == null || id <= 0) throw exception(DYNAMIC_FORM_INSTANCE_NOT_FOUND);
         PlatformDynamicFormInstanceDO row = instanceMapper.selectByRow(new DynamicFormInstanceRowQuery(tenantId, id));
-        if (row == null) throw exception(DYNAMIC_FORM_INSTANCE_NOT_FOUND);
+        requireManualInstance(row);
         return row;
+    }
+
+    static void requireManualInstance(PlatformDynamicFormInstanceDO row) {
+        if (row == null || !OWNER_CONTEXT.equals(row.getOwnerContext())
+                || !DynamicFormFilePolicyProvider.INSTANCE_OBJECT_TYPE.equals(row.getObjectType())
+                || !String.valueOf(row.getId()).equals(row.getObjectId())) {
+            throw exception(DYNAMIC_FORM_INSTANCE_NOT_FOUND);
+        }
     }
 
     private long offset(int pageNo, int pageSize) {

@@ -54,7 +54,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
                 "ACTIVE", "S1", 4, 7L));
         when(workBindingFactApi.inspect(any())).thenReturn(binding());
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form());
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form());
 
         var detail = service.getDetail(501L, new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L));
 
@@ -81,7 +81,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
                 "ACTIVE", "S2", 4, 7L));
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form());
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form());
 
         var detail = service.getDetail(501L, new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L));
 
@@ -114,7 +114,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         PreparationDO root = completed(501L);
         when(rootMapper.selectById(any())).thenReturn(root);
         allowProjectRead();
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(formWithFile(501L, true));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(formWithFile(501L, true));
 
         var detail = service.getDetail(501L, new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L));
 
@@ -131,7 +131,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         target.setBusinessVersion(2);
         when(rootMapper.selectById(any())).thenReturn(source, target);
         allowProjectRead();
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(
                 formWithFile(401L, true), formWithFile(402L, false));
 
         var result = service.compare(401L, 402L,
@@ -187,6 +187,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         root.setTemplateId(702L);
         root.setTemplateRevisionId(703L);
         root.setDynamicFormInstanceId(9001L);
+        root.setEntityValueJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(form().ordinaryValues()));
         return root;
     }
 

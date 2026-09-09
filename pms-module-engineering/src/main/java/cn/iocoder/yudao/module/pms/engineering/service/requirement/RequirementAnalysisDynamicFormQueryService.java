@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.Requi
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisRowQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormEntityDataQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceFact;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey;
@@ -232,9 +233,9 @@ public class RequirementAnalysisDynamicFormQueryService {
 
     private DynamicFormInstanceFact inspect(PreparationDO root, Actor actor, DynamicFormBusinessAction action) {
         if (root.getDynamicFormInstanceId() == null) throw exception(REQUIREMENT_NOT_EXISTS);
-        return dynamicFormApi.inspectInstance(new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(),
+        return dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(),
                 PROVIDER, new DynamicFormOwnerKey(PROVIDER.ownerContext(), PROVIDER.objectType(),
-                String.valueOf(root.getId())), root.getDynamicFormInstanceId(), action));
+                String.valueOf(root.getId())), root.getDynamicFormInstanceId(), action), RequirementAnalysisEntityData.values(root)));
     }
 
     private Map<String, List<FileArtifactVersionFact>> files(DynamicFormInstanceFact fact) {

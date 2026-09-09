@@ -44,7 +44,7 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
     @Mock TransactionTemplate transactionTemplate;
 
     @Test
-    void patchCarriesIndependentPltAndSolCasAndIncrementsOnlySolRootAfterPltSuccess() {
+    void patchStoresEntityValuesWithSolCasAndKeepsTheFileContextVersion() {
         RequirementAnalysisDynamicFormCommandService service = service();
         PreparationDO root = draft();
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
@@ -58,22 +58,29 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
         when(rootMapper.selectById(any())).thenReturn(root);
         when(rootMapper.selectForUpdate(any())).thenReturn(root);
-        when(dynamicFormApi.patchInstanceValues(any())).thenReturn(form(8));
-        when(rootMapper.incrementDynamicContentIfMatch(any())).thenReturn(1);
+        when(dynamicFormApi.inspectEntityData(any())).thenAnswer(invocation -> {
+            DynamicFormEntityDataQuery query = invocation.getArgument(0);
+            return form(7, query.entityValues());
+        });
+        when(dynamicFormApi.lockAndRevalidateInstance(any())).thenAnswer(invocation ->
+                ((DynamicFormInstanceRevalidationQuery) invocation.getArgument(0)).expectedFact());
+        when(rootMapper.updateEntityDataIfMatch(any())).thenReturn(1);
 
         var result = service.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(
                 501L, 3, 7, Map.of("requiresCutover", false, "machineCount", 0), "op-1"),
                 new RequirementAnalysisDynamicFormCommandService.Actor(0L, 9L, "corr-1"));
 
-        ArgumentCaptor<DynamicFormInstancePatchCommand> patch =
-                ArgumentCaptor.forClass(DynamicFormInstancePatchCommand.class);
-        verify(dynamicFormApi).patchInstanceValues(patch.capture());
-        assertEquals(7, patch.getValue().expectedInstanceVersion());
-        assertEquals(false, patch.getValue().partialValues().get("requiresCutover"));
-        assertEquals(0, patch.getValue().partialValues().get("machineCount"));
+        ArgumentCaptor<DynamicFormEntityDataQuery> patch = ArgumentCaptor.forClass(DynamicFormEntityDataQuery.class);
+        verify(dynamicFormApi).inspectEntityData(patch.capture());
+        assertEquals(9001L, patch.getValue().context().instanceId());
+        assertEquals(false, patch.getValue().entityValues().get("requiresCutover"));
+        assertEquals(0, patch.getValue().entityValues().get("machineCount"));
         assertEquals(4, result.solVersion());
-        assertEquals(8, result.dynamicFormInstanceVersion());
-        verify(rootMapper).incrementDynamicContentIfMatch(argThat(update -> update.expectedVersion() == 3));
+        assertEquals(7, result.dynamicFormInstanceVersion());
+        verify(rootMapper).updateEntityDataIfMatch(argThat(update -> update.expectedVersion() == 3
+                && update.entityValueJson().contains("\"requiresCutover\":false")
+                && update.entityValueJson().contains("\"machineCount\":0")));
+        assertEquals(false, RequirementAnalysisEntityData.values(root).get("requiresCutover"));
         verify(operationAuditApi).record(eq(0L), eq(9L), eq("corr-1"),
                 eq("REQUIREMENT_ANALYSIS_PATCH"), eq("RequirementAnalysis"), eq("501"), eq("SUCCESS"), any());
     }
@@ -93,6 +100,7 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
         row.setDraftMarker(1);
         row.setBusinessVersion(1);
         row.setDynamicFormInstanceId(9001L);
+        row.setEntityValueJson("{}");
         row.setVersion(3);
         row.setContentVersion(2);
         return row;
@@ -107,12 +115,12 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
                 "PRIMARY", "ACTIVE", "S1", 5, 8L);
     }
 
-    private DynamicFormInstanceFact form(int version) {
+    private DynamicFormInstanceFact form(int version, Map<String, Object> values) {
         DynamicFormProviderKey provider = new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");
         return new DynamicFormInstanceFact(0L, provider,
                 new DynamicFormOwnerKey("SOL", "REQUIREMENT_ANALYSIS", "501"), 9001L,
                 10L, 11L, 1, 2, "FORM_CREATE_ELEMENT_PLUS", "3.4.0", "3.2.38",
-                "{}", "[]", List.of(), Map.of(), new DynamicFormValidationFact("VALID", List.of()),
+                "{}", "[]", List.of(), values, new DynamicFormValidationFact("VALID", List.of()),
                 List.of(), version, DynamicFormBusinessAction.PATCH,
                 new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH, true, null, 3L, "DRAFT"));
     }

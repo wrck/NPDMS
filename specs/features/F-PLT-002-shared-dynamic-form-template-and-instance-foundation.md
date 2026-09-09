@@ -33,7 +33,11 @@
 - 注册`PmsFileArtifact`受控文件字段，同时保留现有普通上传、图片上传等FormCreate控件；
 - 租户隔离、功能权限、模板发布者高信任边界、幂等、并发、平台审计和响应式页面；
 - 设计前旧实现审计已完成并锁定于[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)；实施逐项按`DIRECT_REUSE / COPY_THEN_ENHANCE / DO_NOT_REUSE`映射执行，旧实现保持不变。
-- 面向已确认的F-SOL-003真实调用方，新增窄`DynamicFormBusinessInstanceApi`与`DynamicFormBusinessObjectPolicyProvider`：按业务Owner创建、读取、修改、复制和锁定重验动态表单实例，且继续复用同一PLT实例真值与F-PLT-001文件引用事实。
+- 面向F-SOL-003等业务实体，`DynamicFormBusinessInstanceApi`与`DynamicFormBusinessObjectPolicyProvider`仅创建、读取、复制和锁定重验表单/文件运行上下文；业务普通值由实体Owner保存。`inspectEntityData`把Owner传入的数据与冻结Schema、文件事实组合成只读展示/校验投影，不存储正文；业务普通值写出口`patchInstanceValues`撤除。独立手工实例的PLT值存储和REST保持原样。
+
+2026-09-09需求方明确“动态表单仅设计与运行展示、加载保存对应实体”。业务绑定模式的新建/克隆上下文普通值为空；旧业务实例普通值仅保留为历史迁移来源，不作为实体当前读取结果。本差量不删除旧实例或文件、不改变手工填报、不把共享校验变成业务审批。下文实例普通值CAS规则仅适用于原手工实例；实体普通值的并发与历史由所属实体负责，具体PRE-04见F-SOL-003。
+
+手工实例列表/计数、详情及普通值更新均限定精确`PLATFORM/MANUAL_DYNAMIC_FORM/{instanceId}`归属；业务上下文不能经手工实例REST读取旧正文或更新，即使调用人恰是其创建者。内部按业务Owner读取/锁定上下文和文件API保持原规则，不因界面字段映射取得额外权限。
 
 ### 2.2 不包含
 
@@ -123,15 +127,15 @@
 
 ### BR-FPLT002-009 业务实例公共边界
 
-- F-SOL-003是首个已确认的跨模块调用方。PLT在`pms-module-platform-api`提供`DynamicFormBusinessInstanceApi`，仅包含：明确发布修订用途检查与锁定重验、业务实例创建、读取、普通值CAS更新、整实例复制及完整实例锁定重验；调用方不得依赖PLT Service、Mapper或表。
+- F-SOL-003是首个已确认的跨模块调用方。PLT在`pms-module-platform-api`提供`DynamicFormBusinessInstanceApi`，仅包含：明确发布修订用途检查与锁定重验、业务表单上下文创建、读取、实体值只读投影、上下文复制及完整事实锁定重验；调用方不得依赖PLT Service、Mapper或表。
 - 用途检查区分`REVISION_BINDING_PUBLISH`与`REVISION_FROZEN_USE`：项目模板发布时要求修订仍为当前启用发布版；项目已经冻结后只重验明确不可变修订、用途兼容和事实版本，模板后来停用或发布新修订不得破坏既有项目创建业务实例。
 - 业务实例继续写入`plt_dynamic_form_instance`，其Owner稳定键为`tenantId/ownerContext/objectType/objectId`。手工实例REST仍只创建`PLATFORM/MANUAL_DYNAMIC_FORM`，不能接收客户端自报Owner；受信业务API才可创建SOL等上下文实例。
-- PLT只拥有冻结模板修订、完整FormCreate schema、普通值和受控文件组合事实。Owner Context拥有查看、编辑、完成、不可变、历史和用途兼容规则；PLT不得增加PRE-04状态或把实例保存解释为业务完成。
-- `inspectInstance/lockAndRevalidateInstance`同时返回基于冻结schema和值计算的声明式校验结果。服务端只执行可稳定解释的必填、JSON类型、长度/数值范围、正则和枚举约束；浏览器事件、函数、parseFunc、远程API结果和iframe状态不作为服务端完成真值。消费Context可在此基础上增加自身业务必填，但不得把仅客户端函数校验宣称为服务端门禁。
+- PLT只拥有冻结模板修订、完整FormCreate schema和受控文件组合事实。Owner Context拥有普通实体值、查看、编辑、完成、不可变、历史和用途兼容规则；PLT不得增加PRE-04状态或把实例保存解释为业务完成。
+- `inspectEntityData/lockAndRevalidateInstance`同时返回基于冻结schema和Owner提供的实体值计算的声明式校验结果；Owner负责正文锁定与持久化。服务端只执行可稳定解释的必填、JSON类型、长度/数值范围、正则和枚举约束；浏览器事件、函数、parseFunc、远程API结果和iframe状态不作为服务端完成真值。消费Context可在此基础上增加自身业务必填，但不得把仅客户端函数校验宣称为服务端门禁。
 - 业务实例动作值域封闭为`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`，修订用途动作封闭为`REVISION_BINDING_PUBLISH/REVISION_FROZEN_USE`。每个API及文件Provider按机器契约映射唯一动作：业务实例的`READ/DOWNLOAD/PREVIEW`映射`FILE_READ`，`UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE`映射`FILE_WRITE`；后两项仅从F-PLT-001文件管理入口委托，不改变手工实例动作范围。inspect冻结该动作，持锁重验必须使用同一动作、主体、Owner和scopeVersion，禁止调用方在inspect后升级动作。
-- 只读inspect不持锁；`lockAndRevalidateRevisionForUsage/createBusinessInstance/patchInstanceValues/cloneBusinessInstance/lockAndRevalidateInstance`及Owner持锁重验一律使用事务传播`MANDATORY`，无调用方事务必须拒绝。它们不建立第二幂等记录、不嵌套`PlatformCommandExecutionApi`、不使用`REQUIRES_NEW`；SOL外层命令负责业务幂等与业务审计，PLT只写自身实际文件引用产生的PLT事件。
+- 只读inspect不持锁；`lockAndRevalidateRevisionForUsage/createBusinessInstance/cloneBusinessInstance/lockAndRevalidateInstance`及Owner持锁重验一律使用事务传播`MANDATORY`，无调用方事务必须拒绝。它们不建立第二幂等记录、不嵌套`PlatformCommandExecutionApi`、不使用`REQUIRES_NEW`；SOL外层命令负责业务幂等与业务审计，PLT只写自身实际文件引用产生的PLT事件。
 - 创建与复制由调用方同时预分配SOL业务ID和PLT实例ID，并把非空实例ID随SOL根首次INSERT及业务API命令提交；PLT只插入该明确ID，不生成后回填SOL根、不额外递增SOL版本。任一失败时预分配ID可废弃，但SOL根、PLT实例及成功事实必须全部回滚。
-- `cloneBusinessInstance`复制冻结修订和普通值，并为目标Owner创建独立FileReference指向来源不可变FileVersion。PLT内部复用F-PLT-001 `FileEventFactory.referenceAttached`并通过事务参与型`PlatformTransactionalOutboxWriter`写事件：每个实际新增引用恰一`FileReferenceAttached`，同目标同版本重放不新增，任一项失败时目标实例、引用、事件及外层成功事实共同回滚；禁止`REQUIRES_NEW`。
+- `cloneBusinessInstance`复制冻结修订、以空普通值创建上下文，并为目标Owner创建独立FileReference指向来源不可变FileVersion；Owner在同一事务复制实体正文。PLT内部复用F-PLT-001 `FileEventFactory.referenceAttached`并通过事务参与型`PlatformTransactionalOutboxWriter`写事件：每个实际新增引用恰一`FileReferenceAttached`，同目标同版本重放不新增，任一项失败时目标实例、引用、事件及外层成功事实共同回滚；禁止`REQUIRES_NEW`。
 
 ### BR-FPLT002-010 Owner策略、文件组合与锁序
 
