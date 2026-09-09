@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`（修订019新增量在途；原创建范围PASS保留历史）
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：Task 10查询与角色权限增量已合入master；项目经理成员写入后端在feat/zcode-no-chain-impl提交，联合服务经理事务及UI闭环待完成
+> 当前任务：Task 10查询与角色权限增量已合入master；本分支已接收联合成员事务和UI，已有MANAGE范围的成员操作可用；新建项目首次管理角色范围及完整Feature验收仍待闭环
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史创建规格SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`（不作当前新增量准入）
@@ -25,10 +25,20 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换后端本分支已实现，联合服务经理事务及UI仍待完成；唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换、联合事务与UI已接入本分支，完整验收义务仍按[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)推进。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
 - 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，完整成员写入/UI仍未完成。
-- [ ] AC-FPROJ-011：查询、角色权限及经理成员写入后端取得定向证据，完整联合/分次指派、多经理、主责与各阶段UI操作尚未验收。
+- [ ] AC-FPROJ-011：已有MANAGE范围下的联合/分次成员管理UI及后端取得证据；新建项目首次管理角色范围和完整各阶段/消费者验收未闭环。
+
+#### 2026-09-09 接收已有联合事务与UI增量
+
+按用户“继续完成UI及联合服务经理事务”接收master已有`d31f7903`中的projectmember服务/Controller/测试、members前端API及三个成员组件和详情页入口，SDS10同步对应既定接口。来源为master已提交`tasks/delivery-units/DU-20260908-PM01-MEMBER-CLOSURE.md`，不是另起同职责实现；未接收来源提交中的创建响应修复、项目列表标签、COM测试或已被后续澄清撤销的业务待决表述。原服务经理页面保持，新增成员管理支持多选增补、移除、主责选择和同时指派服务经理，历史刷新沿旧查询。联合请求复用两类资格及审计/Outbox，任一失败整体回滚。
+
+本工作树验证：`mvn.cmd -o -q -pl pms-module-project -am '-Dtest=ProjectManagerMemberMySqlTest,ProjectManagerCandidateServiceTest,ProjectManagerAssignmentApplicationServiceTest' '-DskipITs=false' '-Dsurefire.failIfNoSpecifiedTests=false' '-DargLine=-javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar' test`退出0，成员MySQL11/11、候选2/2、旧服务经理7/7。仅使用固定23316/npdms_test，权限/范围为测试替身。前端`pnpm exec vitest run --config vitest.pms-file.config.ts src/views/pms/project/project-master-detail/components/ProjectMemberForm.runtime.spec.ts src/views/pms/project/project-master-detail/components/ProjectServiceManagerPanel.spec.ts src/api/pms/project/members/index.spec.ts`为9/9，`pnpm run ts:check`退出0。
+
+相关事务、组件、依赖锁文件、请求配置和直接消费者与来源一致；按工程链6.3复用来源DU的构建和真实浏览器证据（联合服务经理1→100及PM1/100、增补103并切换主责、拦截移除主责未指定接任者、显式接任后刷新历史、320px与键盘验证）。本轮未另启应用或浏览器，不把复用证据说成本轮重跑。接收自审未改变已验证源码，不新增独立审阅任务。
+
+剩余限制按master来源最新交接：首次指派缺失工程管理部/项目管理员角色管理范围是实现漏接，不是需要用户新增创建者例外授权；该范围及共享入口由模板/授权Owner衔接，本次未越界改动。已有MANAGE项目可用不代表所有新建项目可首次指派，也不宣称通知送达、Task 10或Feature Done。本增量按用户授权在feat/zcode-no-chain-impl提交，未推送、未改master状态。
 
 #### 2026-09-09 项目经理成员写入后端提交
 

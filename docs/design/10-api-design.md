@@ -600,6 +600,12 @@ Q-FPROJ-010已确认候选为同公司、可跨部门的有效在职人员，并
 
 #### 通用公司/角色用户资格查询（PM-01、INT-09；Q-FPROJ-010）
 
+当前经理读模型在同一只读REPEATABLE_READ事务中读取Project与成员，避免并发调整产生旧主责/新名单。联合响应的serviceManager只包含assignmentId/effectiveFrom/previousPrimaryManagerId/currentPrimaryManagerId，不返回子步骤的版本或指派状态。
+
+项目基础成员页面新增`GET /projects/{id}/project-manager-candidates`，仅接收keyword/pageNo/pageSize；要求`pms:project:assign + MANAGE`，公司和PROJECT_MANAGER角色由服务端项目事实确定，返回通用资格PageResult，不接收客户端公司/角色覆盖。`GET /projects/{id}/project-managers`要求`pms:project:query + VIEW`，返回与经理写响应同形的当前有效集合及Project主责引用/version（changed=false）；历史复用既有`GET /projects/{id}/members`，不以成员加入时的PRIMARY标记推断当前主责。
+
+联合/分次入口为`POST /projects/{id}/actions/update-members`，要求同一If-Match、Idempotency-Key和`pms:project:assign + MANAGE`。Body沿用项目经理addUserIds/removeUserIds/primaryUserId/reason，增加可选serviceManager对象（levelCode/managerId/siteId/assignmentType/departmentId/departmentCode，语义与旧服务经理指派相同）；省略表示不调整服务经理。服务端先获得原项目管理授权及根锁，再在同一REQUIRED事务顺序执行服务经理和项目经理命令，任一失败全部回滚，保留两类审计/Outbox及一次联合请求幂等结果。原服务经理命令每次版本+1，经理集合实质变化再+1；响应serviceManager及projectManagers中后者version是最终If-Match版本，不向客户端暴露中间状态。外层幂等键稳定覆盖整个意图，内部子命令键仅在首次执行回调内生成，不能被客户端单独重试；重放不再次执行子命令。联合操作中服务经理改派可能移除操作者原成员资格，后续经理写入复用变更前已锁定的管理授权，不再以本事务中途关系重新拒绝已授权的整次请求；独立经理写入口仍完整授权。
+
 成员工号及主责工号投影可空；上游资格结果没有权威工号时，新成员工号及其主责投影置空，不能将username推断为工号，也不能保留上一主责的工号。
 
 项目经理写入使用`POST /projects/{id}/actions/update-project-managers`，要求既有`pms:project:assign + MANAGE`、If-Match和Idempotency-Key。Body为`addUserIds/removeUserIds`（省略为空）、可选`primaryUserId`（省略保留）和非空reason；增删集合不能相交。剩余成员非空时主责必须属于其中，删除原主责且仍有成员须显式选择新主责；全部移除则清空主责。仅真正新增及新选主责回源公司/PROJECT_MANAGER资格；移除不因旧人资格失效而受阻。同键同请求重放，新键无实质变化返回原版本/changed=false且无变更事件。锁序为现有授权守卫的项目树根→目标Project→有效经理成员；在一个事务追加/结束成员区间、维护主责ID/姓名/工号投影、重算双主责状态并增加一次项目版本、记录审计与ProjectManagersChanged Outbox。主责切换不结束仍在任的成员区间，不修改成员加入时的责任类型/组织快照，当前主责唯一以Project引用为准。响应为projectId/version/primaryUserId/assignmentStatus/changed及有效经理列表；不写阶段、生命周期或任务。通知投递接入不在本后端增量，不把Outbox写入当送达。

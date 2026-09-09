@@ -13,6 +13,18 @@ import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFac
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationAuthorizationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImpl;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerCandidateValidator;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectSiteApplicationService;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
+import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApiImpl;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -31,6 +43,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.sql.DataSource;
 import java.sql.Statement;
@@ -57,6 +70,11 @@ class ProjectManagerMemberMySqlTest {
     @Resource PermissionCommonApi permissions;
     @Resource ProjectAuthorizationGuard scopeGuard;
     @Resource FailingOutbox outbox;
+    @Resource ProjectMemberUpdateApplicationService joint;
+    @Resource ProjectServiceManagerCandidateValidator serviceCandidates;
+    @Resource ProjectManagerCandidateService managerQueries;
+    @Resource ProjectManualCreationService projectReads;
+    @Resource ProjectMasterMapper projectMapper;
     long projectId, companyId, first, second;
     String marker;
     boolean created;
@@ -77,7 +95,7 @@ class ProjectManagerMemberMySqlTest {
     void setup() {
         assertEquals("npdms_test", jdbc.queryForObject("SELECT DATABASE()", String.class));
         TenantContextHolder.setTenantId(0L);
-        reset(permissions, scopeGuard);
+        reset(permissions, scopeGuard, serviceCandidates);
         when(permissions.hasAnyPermissions(anyLong(), any())).thenReturn(true);
         outbox.setFail(false);
         marker = "pm01m-" + UUID.randomUUID().toString().substring(0, 10);
@@ -105,9 +123,9 @@ class ProjectManagerMemberMySqlTest {
         outbox.setFail(false);
         if (created) {
             jdbc.update("DELETE FROM plt_outbox_event WHERE aggregate_type='Project' AND aggregate_key=? "
-                    + "AND event_type='ProjectManagersChanged'", String.valueOf(projectId));
+                    + "AND event_type IN ('ProjectManagersChanged','ProjectServiceManagerAssigned')", String.valueOf(projectId));
             jdbc.update("DELETE FROM plt_operation_audit WHERE aggregate_type='Project' AND aggregate_key=? "
-                    + "AND operation_code='PROJECT_MANAGERS_UPDATE'", String.valueOf(projectId));
+                    + "AND operation_code IN ('PROJECT_MANAGERS_UPDATE','PROJECT_MEMBERS_UPDATE','PROJECT_SERVICE_MANAGER_ASSIGN')", String.valueOf(projectId));
             jdbc.update("DELETE FROM plt_idempotency_record WHERE resource_type='Project' AND resource_key=?",
                     String.valueOf(projectId));
             jdbc.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=?", projectId);
@@ -201,6 +219,94 @@ class ProjectManagerMemberMySqlTest {
     }
 
     @Test
+    void jointAssignmentCommitsBothRolesAndReplaysWithoutMoreHistoryOrEvents() {
+        var command = jointCommand(first, "joint");
+        var result = joint.update(command, actor());
+        assertEquals(2, result.projectManagers().version());
+        String serviceJson = cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(result.serviceManager());
+        assertFalse(serviceJson.contains("\"version\""));
+        assertFalse(serviceJson.contains("\"assignmentStatus\""));
+        assertEquals("ASSIGNED", result.projectManagers().assignmentStatus());
+        assertEquals(2L, count("plt_outbox_event"));
+        assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE project_id=? "
+                + "AND user_id=7 AND effective_to IS NOT NULL", Long.class, projectId));
+        assertEquals(result, joint.update(command, actor()));
+        assertEquals(2L, count("plt_outbox_event"));
+        assertEquals(2, version());
+        assertThrows(RuntimeException.class, () -> joint.update(jointCommand(second, "joint"), actor()));
+    }
+
+    @Test
+    void invalidProjectManagerRollsBackAlreadyWrittenServiceManagerAndItsOutbox() {
+        jdbc.update("UPDATE system_user_company_department_scope SET status=1 WHERE user_id=? AND creator=?", first, marker);
+        assertThrows(RuntimeException.class, () -> joint.update(jointCommand(first, "joint-bad-pm"), actor()));
+        assertEquals(0, version());
+        assertEquals(0L, managerCount());
+        assertEquals(0L, count("plt_outbox_event"));
+        assertEquals(0L, count("plt_operation_audit"));
+        assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE project_id=? "
+                + "AND user_id=7 AND effective_to IS NULL", Long.class, projectId));
+        assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE resource_type='Project' AND resource_key=?",
+                Long.class, String.valueOf(projectId)));
+    }
+
+    @Test
+    void jointServiceQualificationAndVersionRejectionsPreserveBothRoles() {
+        doThrow(new IllegalArgumentException("invalid service manager")).when(serviceCandidates).validate(anyLong(), anyLong(), anyLong(), anyString());
+        assertThrows(RuntimeException.class, () -> joint.update(jointCommand(first, "joint-bad-sm"), actor()));
+        reset(serviceCandidates);
+        var badVersion = new ProjectMemberUpdateCommand(projectId, 9, jointCommand(first, "x").serviceManager(),
+                Set.of(first), Set.of(), first, "人员调整", marker + "-joint-version");
+        assertThrows(RuntimeException.class, () -> joint.update(badVersion, actor()));
+        assertEquals(0, version());
+        assertEquals(0L, managerCount());
+        assertEquals(0L, count("plt_outbox_event"));
+    }
+
+    @Test
+    void jointRetainsOriginalAuthorizationUntilBothChangesComplete() {
+        doNothing().doNothing().doThrow(new IllegalStateException("operator was replaced"))
+                .when(scopeGuard).assertCanAssign(any(), eq(projectId));
+        assertEquals(2, joint.update(jointCommand(first, "joint-authorized"), actor()).projectManagers().version());
+        verify(scopeGuard, times(2)).assertCanAssign(any(), eq(projectId));
+    }
+
+    private ProjectMemberUpdateCommand jointCommand(long primary, String key) {
+        return new ProjectMemberUpdateCommand(projectId, 0,
+                new ProjectMemberUpdateCommand.ServiceManager("L1", second, null, "PRIMARY", 1L, "test-office"),
+                Set.of(primary), Set.of(), primary, "人员调整", marker + "-" + key);
+    }
+
+    @Test
+    void currentManagersKeepOneSnapshotWhileAnotherTransactionChangesPrimary() throws Exception {
+        service.update(command(0, Set.of(first), Set.of(), first, "snapshot-before"), actor());
+        var projectRead = new CountDownLatch(1);
+        var writerDone = new CountDownLatch(1);
+        when(projectReads.getProject(eq(projectId), any())).thenAnswer(invocation -> {
+            var row = projectMapper.selectById(projectId);
+            projectRead.countDown();
+            assertTrue(writerDone.await(10, TimeUnit.SECONDS));
+            return row;
+        });
+        try (var pool = Executors.newSingleThreadExecutor()) {
+            var snapshot = pool.submit(() -> {
+                TenantContextHolder.setTenantId(0L);
+                try { return managerQueries.current(projectId, new ProjectManualCreationService.ProjectAccessActor(0L, 7L)); }
+                finally { TenantContextHolder.clear(); }
+            });
+            try {
+                assertTrue(projectRead.await(5, TimeUnit.SECONDS));
+                service.update(command(1, Set.of(second), Set.of(first), second, "snapshot-after"), actor());
+            } finally { writerDone.countDown(); }
+            var result = snapshot.get(5, TimeUnit.SECONDS);
+            assertEquals(first, result.primaryUserId());
+            assertEquals(1, result.version());
+            assertEquals(List.of(first), result.members().stream().map(ProjectManagerMemberResult.Member::userId).toList());
+            assertEquals(2, version());
+        }
+    }
+
+    @Test
     void concurrentCommandsWithSameVersionHaveOnlyOneWinner() throws Exception {
         CountDownLatch start = new CountDownLatch(1);
         try (var pool = Executors.newFixedThreadPool(2)) {
@@ -259,11 +365,33 @@ class ProjectManagerMemberMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class, MybatisPlusJoinAutoConfiguration.class,
             SpringUtil.class, ProjectManagerMemberApplicationService.class, ProjectCreationAuthorizationService.class,
-            ProjectParticipantFactApiImpl.class, OrganizationScopeApiImpl.class, PlatformCommandExecutionApiImpl.class})
+            ProjectParticipantFactApiImpl.class, OrganizationScopeApiImpl.class, PlatformCommandExecutionApiImpl.class,
+            ProjectMemberUpdateApplicationService.class, ProjectManagerAssignmentApplicationService.class,
+            ProjectManagerCandidateService.class})
     static class Application {
         @Bean JdbcTemplate jdbcTemplate(DataSource source) { return new JdbcTemplate(source); }
         @Bean PermissionCommonApi permissions() { return mock(PermissionCommonApi.class); }
         @Bean ProjectAuthorizationGuard scopeGuard() { return mock(ProjectAuthorizationGuard.class); }
         @Bean FailingOutbox outbox(PlatformOutboxEventMapper mapper) { return new FailingOutbox(mapper); }
+        @Bean ProjectServiceManagerCandidateValidator serviceCandidates() { return mock(ProjectServiceManagerCandidateValidator.class); }
+        @Bean AssetLocationApi locations() { return mock(AssetLocationApi.class); }
+        @Bean ProjectSiteApplicationService sites() { return mock(ProjectSiteApplicationService.class); }
+        @Bean ProjectManualCreationService projectService(ProjectMasterMapper projects, ProjectMemberAssignmentMapper members) {
+            // 只装配本用例使用的旧服务经理真实写实现，避免启动无关的项目创建/ACC依赖。
+            var implementation = new ProjectManualCreationServiceImpl();
+            ReflectionTestUtils.setField(implementation, "projectMasterMapper", projects);
+            ReflectionTestUtils.setField(implementation, "memberAssignmentMapper", members);
+            var users = mock(AdminUserApi.class);
+            when(users.getUser(anyLong())).thenAnswer(invocation -> new AdminUserRespDTO().setId(invocation.getArgument(0)).setNickname("service manager"));
+            var departments = mock(DeptApi.class);
+            when(departments.getDept(anyLong())).thenReturn(new DeptRespDTO().setId(1L).setName("test office"));
+            ReflectionTestUtils.setField(implementation, "adminUserApi", users);
+            ReflectionTestUtils.setField(implementation, "deptApi", departments);
+            var facade = mock(ProjectManualCreationService.class);
+            when(facade.assignServiceManager(any())).thenAnswer(invocation -> implementation.assignServiceManager(invocation.getArgument(0)));
+            when(facade.getProject(anyLong(), any())).thenAnswer(invocation -> projects.selectById((Long) invocation.getArgument(0)));
+            when(facade.getMemberAssignments(anyLong(), any())).thenAnswer(invocation -> members.selectListByProjectId(invocation.getArgument(0)));
+            return facade;
+        }
     }
 }

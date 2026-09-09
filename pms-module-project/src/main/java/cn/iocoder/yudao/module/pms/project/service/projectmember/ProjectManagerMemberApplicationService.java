@@ -51,6 +51,12 @@ public class ProjectManagerMemberApplicationService {
         functionAuthorization.assertCanAssign(actor.userId());
         projectAuthorization.assertCanAssign(new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()),
                 command.projectId());
+        return updateAuthorized(command, actor);
+    }
+
+    /** 仅供同包联合命令在已授权、已持有根锁的事务内使用；独立入口不得跳过上面的授权。 */
+    ProjectManagerMemberResult updateAuthorized(ProjectManagerMemberCommand command, Actor actor) {
+        validate(command, actor);
         Map<String, Object> audit = new LinkedHashMap<>();
         String digest = DigestUtil.sha256Hex(JsonUtils.toJsonString(new Object[]{command.projectId(),
                 command.expectedVersion(), new TreeSet<>(command.addUserIds()), new TreeSet<>(command.removeUserIds()),
