@@ -163,11 +163,11 @@ V2不增加第二套指派对象：项目创建或受控重算只读取冻结的
 |---|---|---|
 | Preparation | 工勘、需求分析、资源就绪、交底和准备结论 | 每次提交冻结表单模板版本、填写值和附件引用 |
 | PreparationDynamicFormInstance | 已完成F-SOL-002工勘项的表单配置和值事实 | 既有`sol_dynamic_form_instance`继续仅服务F-SOL-002并保持原样；不迁移、不双写，不因PRE-04改造而退役 |
-| RequirementAnalysisDynamicFormBinding | PRE-04业务版本对PLT实例的逻辑引用 | SOL外层命令预分配实例ID，`sol_preparation`首次INSERT即以非空`dynamic_form_instance_id`一对一引用PLT业务实例；无回填CAS；SOL不复制schema、值或附件真值，不建立跨Context物理外键 |
+| RequirementAnalysisDynamicFormBinding | PRE-04业务版本对PLT表单/文件运行上下文的逻辑引用 | SOL外层命令预分配上下文ID，`sol_preparation`首次INSERT即以非空`dynamic_form_instance_id`引用；普通正文唯一保存于本实体`entity_value_json`，以`content_version/version`控制；PLT只负责Schema和文件上下文，不双写普通值，不建立跨Context物理外键 |
 | ConstructionPlan | 工期、计划项、里程碑、计划变更申请 | 计划基线不可覆盖；变更保存前后差异和审批引用 |
 | Solution | 方案正文元数据、来源、评审状态和适用范围 | 草稿可修改；提交/批准后生成不可变 revision |
 
-Preparation 与 Solution 可以部署在同一物理模块，但各自通过应用服务维护聚合；共享动态表单模板和实例schema、值、文件组合由基础平台拥有，SOL只引用明确PLT业务实例并保存自身生命周期、业务版本和有效指针。不得由表单引擎或通用实例保存直接更新Project或SOL业务状态。
+Preparation 与 Solution 可以部署在同一物理模块，但各自通过应用服务维护聚合。2026-09-09实体驱动表单调整后，平台拥有模板、冻结Schema、手工填报值及文件运行上下文；SOL需求分析实体拥有自身普通正文、生命周期、业务版本和有效指针。运行表单经实体API加载/保存，PLT业务上下文不再持久化普通值；原业务实例源值只保留为历史来源。不得由表单引擎或通用实例保存直接更新Project或SOL业务状态。
 
 ## 6. Implementation Execution 数据模型
 

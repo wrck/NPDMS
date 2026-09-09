@@ -81,7 +81,7 @@ class RequirementAnalysisFactApiImplTest {
         PreparationDO effective = root(502L, 2, 1);
         when(rootMapper.selectById(any())).thenReturn(selected);
         when(rootMapper.selectEffective(any())).thenReturn(effective);
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form(selected));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
 
         RequirementAnalysisFact fact = api.inspect(new RequirementAnalysisFactQuery(100L, 501L));
 
@@ -108,7 +108,7 @@ class RequirementAnalysisFactApiImplTest {
         order.verify(workBindingFactApi).inspect(any());
         order.verify(rootMapper).selectById(any());
         order.verify(rootMapper).selectEffective(any());
-        order.verify(dynamicFormApi).inspectInstance(any());
+        order.verify(dynamicFormApi).inspectEntityData(any());
     }
 
     @Test
@@ -120,7 +120,7 @@ class RequirementAnalysisFactApiImplTest {
         when(workBindingFactApi.inspect(any())).thenReturn(currentBinding);
         when(rootMapper.selectById(any())).thenReturn(historical);
         when(rootMapper.selectEffective(any())).thenReturn(effective);
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form(historical));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(historical));
 
         RequirementAnalysisFact fact = api.inspect(new RequirementAnalysisFactQuery(100L, 501L));
 
@@ -137,7 +137,7 @@ class RequirementAnalysisFactApiImplTest {
         PreparationDO selected = root(501L, 1, 1);
         when(rootMapper.selectById(any())).thenReturn(selected);
         when(rootMapper.selectEffective(any())).thenReturn(selected);
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form(selected));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
         RequirementAnalysisFact inspected = api.inspect(new RequirementAnalysisFactQuery(100L, 501L));
         clearInvocations(projectScopeApi, organizationFactApi, workBindingFactApi, rootMapper, dynamicFormApi);
 
@@ -147,7 +147,7 @@ class RequirementAnalysisFactApiImplTest {
         when(workBindingFactApi.lockAndRevalidate(any())).thenReturn(binding());
         when(rootMapper.selectForUpdate(any())).thenReturn(selected);
         when(rootMapper.selectEffectiveForUpdate(any())).thenReturn(selected);
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form(selected));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
         when(dynamicFormApi.lockAndRevalidateInstance(any())).thenReturn(form(selected));
 
         RequirementAnalysisFact locked = api.lockAndRevalidate(new RequirementAnalysisFactRevalidationQuery(
@@ -161,7 +161,7 @@ class RequirementAnalysisFactApiImplTest {
         order.verify(workBindingFactApi).lockAndRevalidate(any());
         order.verify(rootMapper).selectForUpdate(any());
         order.verify(rootMapper).selectEffectiveForUpdate(any());
-        order.verify(dynamicFormApi).inspectInstance(any());
+        order.verify(dynamicFormApi).inspectEntityData(any());
         order.verify(dynamicFormApi).lockAndRevalidateInstance(any());
     }
 
@@ -171,7 +171,7 @@ class RequirementAnalysisFactApiImplTest {
         PreparationDO selected = root(501L, 1, 1);
         when(rootMapper.selectById(any())).thenReturn(selected);
         when(rootMapper.selectEffective(any())).thenReturn(selected);
-        when(dynamicFormApi.inspectInstance(any())).thenReturn(form(selected));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
         RequirementAnalysisFact inspected = api.inspect(new RequirementAnalysisFactQuery(100L, 501L));
 
         PreparationDO newerEffective = root(502L, 2, 1);
@@ -229,6 +229,7 @@ class RequirementAnalysisFactApiImplTest {
         row.setTemplateId(401L);
         row.setTemplateRevisionId(702L);
         row.setDynamicFormInstanceId(9001L);
+        row.setEntityValueJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(form(row).ordinaryValues()));
         row.setCompletedBy(9L);
         row.setCompletedAt(LocalDateTime.now());
         return row;

@@ -14,7 +14,9 @@
 
 在SOL建立PRE-04需求分析业务真值，并把已完成的F-PLT-002共享动态表单作为唯一表单载体。项目模板管理员在WorkBinding配置中选择一个明确的已发布PRE-04兼容动态表单修订；项目实例化时自动冻结该修订，项目经理进入需求分析后直接填写，不再进行项目内人工选模。
 
-每个PRE-04业务版本一对一组合一个PLT动态表单实例：PLT拥有冻结Schema、普通值和受控FileArtifact引用，SOL拥有草稿/完成、当前有效版本、完成门禁、历史、对比、权限、审计及SCH-01稳定事实。系统保留至多一个可编辑草稿和一个当前有效完成版；完成版不可变，后续修改从当前有效版创建下一草稿并克隆PLT实例。
+每个PRE-04业务版本由SOL实体保存普通正文，并一对一引用PLT表单/文件运行上下文：PLT拥有冻结Schema与受控FileArtifact引用，SOL拥有普通值、草稿/完成、当前有效版本、完成门禁、历史、对比、权限、审计及SCH-01稳定事实。系统保留至多一个可编辑草稿和一个当前有效完成版；完成版不可变，后续修改从当前有效版复制实体正文并克隆文件运行上下文。
+
+2026-09-09需求方要求动态表单仅负责设计与运行展示，按对应实体加载/保存数据。本次差量将PRE-04普通值从PLT实例真值调整为`sol_preparation.entity_value_json`；不改变11核心、3必填、权限、完成规则或文件引用身份，不删除PLT历史来源，不退役独立手工填报。以下实体数据规则替代原“PLT保存业务普通值”的对应条款，历史验收只覆盖原范围。
 
 ## 2. Scope
 
@@ -61,12 +63,13 @@
 - 每个`sol_preparation` PRE-04版本必须唯一引用一个`plt_dynamic_form_instance`；PLT实例业务键固定为`ownerContext=SOL/objectType=REQUIREMENT_ANALYSIS/objectId={preparationId}`，用户REST不得自报该键。
 - SOL根保存`dynamic_form_instance_id`，并继续保存冻结项目模板修订`template_revision_id`；二者含义不得混用。跨Context只保存稳定ID，不建立物理外键。
 - 首次创建由SOL外层命令预分配`preparationId`和`dynamicFormInstanceId`，首次INSERT根时即写入非空实例ID和version=1；随后PLT在同一事务按`MANDATORY`插入该明确实例ID。不得由PLT另生成ID后回填SOL根，也不得为回填额外递增SOL版本；任一策略、修订或插入失败时根、实例、成功幂等和审计全部回滚。
-- PLT是FormCreate config/rules、值、实例版本及`PmsFileArtifact`引用的唯一真值。SOL不得再把字段定义、正文值或附件向量写入`sol_requirement_analysis_section`、`template_snapshot`或其他副本。
+- PLT是FormCreate config/rules、表单/文件上下文版本及`PmsFileArtifact`引用的真值；SOL以`entity_value_json`保存当前业务版本唯一普通正文，并使用既有`content_version/version`并发控制。不得写旧章节表、`template_snapshot`或另一份运行正文，也不得同时更新PLT普通值。
+- `DynamicFormBusinessInstanceApi.inspectEntityData`接收实体Owner提供的值，结合精确Schema/文件上下文返回只读投影及校验事实，不持久化这些值。`inspectInstance`只读上下文；业务API不再提供`patchInstanceValues`普通值写出口，新建/克隆上下文的普通值必须为空。独立手工实例REST仍按F-PLT-002原契约工作。
 - 查询由SOL先校验项目范围和业务状态，再通过`DynamicFormBusinessInstanceApi.inspectInstance`装配明确PLT实例事实。PLT接口不自行把实例保存解释为需求分析完成。
 
 ### BR-FSOL003-004 草稿保存与文件动作
 
-- 项目经理只能修改当前`DRAFT`对应的PLT业务实例。SOL的`PATCH /preparations/{id}/form`接收普通字段部分值，以`If-Match`携带PLT实例版本、`X-SOL-If-Match`携带SOL根版本；先锁定SOL根及Owner策略，再由PLT按CAS更新实例，事务失败保持最近一次成功值。
+- 项目经理只能修改当前`DRAFT`实体。SOL的`PATCH /preparations/{id}/form`接收普通字段部分值，以`If-Match`携带表单/文件上下文版本、`X-SOL-If-Match`携带SOL根版本；先锁定SOL根及Owner策略，再重验上下文、校验字段键并在同事务更新实体JSON、`content_version/version`与审计。普通值保存不递增文件上下文版本，文件变化仍按原规则重验；事务失败保持最近一次成功值。
 - 字段缺失与显式`null/false/0/空字符串/空数组`保持可区分；未知字段和`PmsFileArtifact`字段伪造由PLT拒绝。完整FormCreate客户端校验不能替代服务端PRE-04完成校验。
 - `PmsFileArtifact`继续使用`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`。文件命令由F-PLT-001执行；动态表单文件Provider必须先通过SOL业务Owner策略，再锁定PLT实例/修订及文件事实。
 - 当前草稿文件上传、换版或解绑一旦由F-PLT-001成功提交即成为该PLT实例当前值，不再要求SOL保存第二份附件快照，也不引入`IN_SYNC/PENDING/UNKNOWN`双真值状态机。响应未知沿用原`slotKey`和Idempotency-Key，刷新后以PLT权威引用事实恢复。
@@ -76,7 +79,7 @@
 
 - `status_code`只表达`DRAFT/COMPLETED`；`draft_marker/effective_marker`是独立唯一事实。项目可同时拥有一个当前草稿和一个当前有效完成版。
 - 初次完成时当前草稿原子转为`COMPLETED`、清除`draft_marker`并取得`effective_marker=1`。
-- 创建下一草稿必须以当前有效完成版为`source_preparation_id`，预分配新根和新PLT实例ID并以非空引用创建`businessVersion+1`根，再调用PLT `cloneBusinessInstance`按`MANDATORY`写入该明确实例ID：复制冻结修订和普通值，为每个受控文件槽位生成新实例下的独立FileReference并复用同一不可变FileVersion。旧完成版实例和引用保持不变，新草稿可独立换版或解绑。
+- 创建下一草稿必须以当前有效完成版为`source_preparation_id`，SOL复制其实体普通正文，预分配新根和新PLT上下文ID并以非空引用创建`businessVersion+1`根，再调用PLT `cloneBusinessInstance`按`MANDATORY`复制冻结修订并生成独立FileReference、复用同一不可变FileVersion。PLT不复制普通正文；旧完成实体、上下文和引用保持不变，新草稿可独立修改正文、换版或解绑。
 - 新草稿完成时先校验草稿与旧有效版仍为期望版本，再原子清除旧有效标记并把草稿设为新的有效完成版。失败时旧有效版、草稿和两个PLT实例均保持原状。
 - 完成版SOL根和PLT实例不可修改或删除；旧根只允许在下一版本完成事务中清除`effective_marker`。
 
@@ -153,17 +156,17 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 
 - `inspectRevisionForUsage/lockAndRevalidateRevisionForUsage`：返回并重验明确发布修订、完整Schema和兼容结果；
 - `createBusinessInstance`：在调用方事务内为受信Owner键创建冻结实例；
-- `inspectInstance/lockAndRevalidateInstance`：返回/锁定实例、修订、值和受控文件完整事实；
-- `patchInstanceValues`：按CAS部分更新普通值，不接受文件字段；
-- `cloneBusinessInstance`：复制冻结修订和值，并为新实例复用不可变FileVersion建立独立引用。
+- `inspectInstance`：只读冻结Schema和文件上下文，普通值为空；
+- `inspectEntityData/lockAndRevalidateInstance`：投影/锁定重验Owner提供的实体值、修订和受控文件完整事实；实体Owner负责正文锁定及CAS保存，PLT不提供业务普通值写入口；
+- `cloneBusinessInstance`：复制冻结修订并为新实例复用不可变FileVersion建立独立引用，SOL另行在同一事务内复制实体正文。
 
 同时增加`DynamicFormBusinessObjectPolicyProvider`，由SOL实现`SOL/REQUIREMENT_ANALYSIS`的修订兼容、Owner读写动作、项目范围、业务状态和scopeVersion策略。所有API使用受信tenant/actor，禁止用户请求自报Owner。动作值域与API映射封闭；创建/修改/克隆和持锁重验使用`MANDATORY`，禁止`REQUIRED`自开事务、`REQUIRES_NEW`、嵌套平台幂等和由PLT构造SOL事件。
 
 ### 4.3 领域边界
 
 - PROJ拥有项目模板、WorkBinding、项目范围和参与事实；
-- PLT拥有动态表单模板/修订/实例Schema、值和受控文件组合；
-- SOL拥有PRE-04生命周期、版本、完成门禁、历史、对比和SCH事实；
+- PLT拥有动态表单模板/修订/实例Schema和受控文件组合；
+- SOL拥有PRE-04普通实体值、生命周期、版本、完成门禁、历史、对比和SCH事实；
 - F-PLT-001拥有Artifact/Version/Reference；
 - 任一模块不得依赖其他Context的Service、Mapper、DO或业务表。
 

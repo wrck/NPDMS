@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.Prepar
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisCompleteUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisContentUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisDynamicContentUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisEntityDataUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisEffectiveClearUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisHistoryQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisProjectQuery;
@@ -25,6 +26,7 @@ public interface RequirementAnalysisRootMapper {
     List<PreparationDO> selectCompletedHistory(@Param("query") RequirementAnalysisHistoryQuery query);
     int incrementContentIfMatch(@Param("update") RequirementAnalysisContentUpdate update);
     int incrementDynamicContentIfMatch(@Param("update") RequirementAnalysisDynamicContentUpdate update);
+    int updateEntityDataIfMatch(@Param("update") RequirementAnalysisEntityDataUpdate update);
     int clearEffectiveIfMatch(@Param("update") RequirementAnalysisEffectiveClearUpdate update);
     int completeDraftIfMatch(@Param("update") RequirementAnalysisCompleteUpdate update);
 }

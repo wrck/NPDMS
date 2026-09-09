@@ -38,9 +38,9 @@ public class DynamicFormBusinessInstanceApiImpl implements DynamicFormBusinessIn
     }
 
     @Override
-    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public DynamicFormInstanceFact patchInstanceValues(DynamicFormInstancePatchCommand command) {
-        return service.patchInstanceValues(command);
+    @Transactional(readOnly = true)
+    public DynamicFormInstanceFact inspectEntityData(DynamicFormEntityDataQuery query) {
+        return service.inspectEntityData(query);
     }
 
     @Override

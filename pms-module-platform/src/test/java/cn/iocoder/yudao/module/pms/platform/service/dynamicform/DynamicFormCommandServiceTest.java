@@ -477,6 +477,9 @@ class DynamicFormCommandServiceTest {
     private PlatformDynamicFormInstanceDO instance(Long id, Long revisionId, int version) {
         PlatformDynamicFormInstanceDO row = new PlatformDynamicFormInstanceDO();
         row.setId(id);
+        row.setOwnerContext("PLATFORM");
+        row.setObjectType("MANUAL_DYNAMIC_FORM");
+        row.setObjectId(String.valueOf(id));
         row.setTenantId(ACTOR.tenantId());
         row.setTemplateId(11L);
         row.setTemplateRevisionId(revisionId);

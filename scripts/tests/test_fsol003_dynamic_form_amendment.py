@@ -81,12 +81,14 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
     def test_sol_and_platform_have_one_truth_each(self) -> None:
         truth = self.contract["owner"]["truthBoundary"]
         self.assertIn("lifecycle", truth["SOL"])
-        self.assertIn("instance schema, values", truth["PLATFORM"])
+        self.assertIn("ordinary entity values", truth["SOL"])
+        self.assertIn("ordinary business values are supplied by the entity Owner", truth["PLATFORM"])
         composition = self.contract["composition"]
-        self.assertEqual("PLT instance only", composition["formTruth"])
+        self.assertEqual("SOL entity_value_json for ordinary values; PLT frozen schema and file context", composition["formTruth"])
         self.assertIn("one PRE-04", composition["cardinality"])
         self.assertFalse(composition["crossContextForeignKey"])
-        self.assertIn("SOL value snapshot", composition["forbiddenDuplicates"])
+        self.assertIn("runtime dual-write of SOL values into PLT instances", composition["forbiddenDuplicates"])
+        self.assertIn("entity_value_json", self.contract["tables"]["sol_preparation"]["addColumns"])
         self.assertEqual("CANCELED_CANDIDATE_NOT_CURRENT_TRUTH", self.contract["tables"]["sol_requirement_analysis_section"]["status"])
         self.assertFalse(self.contract["tables"]["sol_requirement_analysis_section"]["automaticDataMigration"])
 
@@ -95,6 +97,8 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         plt_api = self.platform_contract["interfaces"]["publicModuleApi"]
         self.assertEqual(sol_api["interface"], plt_api["interface"])
         self.assertEqual(set(sol_api["methods"]), set(plt_api["methods"]))
+        self.assertNotIn("patchInstanceValues", plt_api["methods"])
+        self.assertFalse(plt_api["methods"]["inspectEntityData"]["writes"])
         self.assertIn("no REQUIRES_NEW", sol_api["transactionRules"])
         self.assertIn("no second idempotency record", sol_api["transactionRules"])
         self.assertEqual(

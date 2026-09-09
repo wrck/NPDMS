@@ -82,6 +82,9 @@ public class DynamicFormBusinessInstanceService {
         requireActor(command.tenantId(), command.actorUserId());
         requireProviderOwner(command.providerKey(), command.ownerKey());
         requireId(command.preallocatedInstanceId());
+        if (!command.initialValues().isEmpty()) {
+            throw new IllegalArgumentException("Business entity values must be saved by their Owner");
+        }
         DynamicFormPolicyFact inspected = policyRegistry.inspectInstance(new DynamicFormInstancePolicyQuery(
                 command.tenantId(), command.actorUserId(), command.providerKey(), command.ownerKey(),
                 command.preallocatedInstanceId(), DynamicFormBusinessAction.CREATE));
@@ -115,6 +118,15 @@ public class DynamicFormBusinessInstanceService {
     }
 
     public DynamicFormInstanceFact inspectInstance(DynamicFormInstanceQuery query) {
+        return inspect(query, Map.of());
+    }
+
+    public DynamicFormInstanceFact inspectEntityData(DynamicFormEntityDataQuery query) {
+        if (query == null) throw new IllegalArgumentException("Entity data query is required");
+        return inspect(query.context(), normalizedValues(query.entityValues()));
+    }
+
+    private DynamicFormInstanceFact inspect(DynamicFormInstanceQuery query, Map<String, Object> entityValues) {
         requireInspectAction(query == null ? null : query.action());
         requireActor(query.tenantId(), query.actorUserId());
         requireProviderOwner(query.providerKey(), query.ownerKey());
@@ -124,44 +136,7 @@ public class DynamicFormBusinessInstanceService {
         PlatformDynamicFormInstanceDO row = requireInstance(query.tenantId(), query.instanceId(), query.ownerKey());
         DynamicFormTemplateRevisionDO revision = requireRevision(query.tenantId(), row.getTemplateRevisionId());
         DynamicFormSchemaService.SchemaFields schema = schema(revision);
-        return toFact(row, revision, schema, query.action(), policy, inspectFiles(row, schema));
-    }
-
-    public DynamicFormInstanceFact patchInstanceValues(DynamicFormInstancePatchCommand command) {
-        if (command == null || command.action() != DynamicFormBusinessAction.PATCH) {
-            throw new IllegalArgumentException("PATCH action is required");
-        }
-        requireActor(command.tenantId(), command.actorUserId());
-        requireProviderOwner(command.providerKey(), command.ownerKey());
-        DynamicFormPolicyFact inspected = policyRegistry.inspectInstance(new DynamicFormInstancePolicyQuery(
-                command.tenantId(), command.actorUserId(), command.providerKey(), command.ownerKey(),
-                command.instanceId(), DynamicFormBusinessAction.PATCH));
-        DynamicFormPolicyFact policy = policyRegistry.lockAndRevalidate(new DynamicFormPolicyRevalidationQuery(
-                command.tenantId(), command.actorUserId(), command.providerKey(), command.ownerKey(),
-                command.instanceId(), inspected));
-        PlatformDynamicFormInstanceDO inspectedRow = requireInstance(command.tenantId(), command.instanceId(),
-                command.ownerKey());
-        if (!schema(requireRevision(command.tenantId(), inspectedRow.getTemplateRevisionId())).fileFieldKeys().isEmpty()) {
-            prevalidateFilePolicy(command.tenantId(), command.actorUserId(), command.providerKey(), command.ownerKey(),
-                    command.instanceId(), DynamicFormBusinessAction.FILE_READ, policy.scopeVersion());
-        }
-        PlatformDynamicFormInstanceDO row = lockInstance(command.tenantId(), command.instanceId(), command.ownerKey());
-        if (!Objects.equals(row.getVersion(), command.expectedInstanceVersion())) {
-            throw exception(DYNAMIC_FORM_VERSION_CONFLICT);
-        }
-        DynamicFormTemplateRevisionDO revision = requireRevision(command.tenantId(), row.getTemplateRevisionId());
-        DynamicFormSchemaService.SchemaFields schema = schema(revision);
-        requireOrdinaryFields(command.partialValues().keySet(), schema);
-        Map<String, Object> merged = values(row);
-        merged.putAll(command.partialValues());
-        String json = valuesJson(merged);
-        if (instanceMapper.updateValueIfMatch(new DynamicFormInstanceValueUpdate(command.tenantId(), row.getId(),
-                command.expectedInstanceVersion(), json, String.valueOf(command.actorUserId()))) != 1) {
-            throw exception(DYNAMIC_FORM_VERSION_CONFLICT);
-        }
-        row.setValueJson(json);
-        row.setVersion(row.getVersion() + 1);
-        return toFact(row, revision, schema, DynamicFormBusinessAction.PATCH, policy, inspectFiles(row, schema));
+        return toFact(row, revision, schema, query.action(), policy, inspectFiles(row, schema), entityValues);
     }
 
     public DynamicFormInstanceFact lockAndRevalidateInstance(DynamicFormInstanceRevalidationQuery query) {
@@ -182,7 +157,7 @@ public class DynamicFormBusinessInstanceService {
         if (revision == null) throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
         DynamicFormSchemaService.SchemaFields schema = schema(revision);
         List<FileReferenceSetFact> files = lockFiles(expected.controlledFileFacts());
-        DynamicFormInstanceFact actual = toFact(row, revision, schema, expected.action(), policy, files);
+        DynamicFormInstanceFact actual = toFact(row, revision, schema, expected.action(), policy, files, expected.ordinaryValues());
         if (!expected.equals(actual)) throw exception(DYNAMIC_FORM_VERSION_CONFLICT);
         return actual;
     }
@@ -224,13 +199,13 @@ public class DynamicFormBusinessInstanceService {
         DynamicFormSchemaService.SchemaFields schema = schema(revision);
         List<FileReferenceSetFact> lockedSourceFiles = lockFiles(source.controlledFileFacts());
         DynamicFormInstanceFact currentSource = toFact(sourceRow, revision, schema, DynamicFormBusinessAction.CLONE_SOURCE,
-                sourcePolicy, lockedSourceFiles);
+                sourcePolicy, lockedSourceFiles, source.ordinaryValues());
         if (!source.equals(currentSource)) throw exception(DYNAMIC_FORM_VERSION_CONFLICT);
         DynamicFormInstanceCreateCommand create = new DynamicFormInstanceCreateCommand(command.tenantId(),
                 command.actorUserId(), command.providerKey(), DynamicFormBusinessAction.CREATE,
                 command.preallocatedTargetInstanceId(), command.targetOwnerKey(), revision.getId(),
-                revision.getVersion(), values(sourceRow));
-        PlatformDynamicFormInstanceDO targetRow = newInstance(create, revision, values(sourceRow));
+                revision.getVersion(), Map.of());
+        PlatformDynamicFormInstanceDO targetRow = newInstance(create, revision, Map.of());
         PlatformDynamicFormInstanceDO existing = instanceMapper.selectByOwner(new DynamicFormInstanceOwnerQuery(
                 command.tenantId(), command.targetOwnerKey().ownerContext(), command.targetOwnerKey().objectType(),
                 command.targetOwnerKey().objectId()));
@@ -326,7 +301,14 @@ public class DynamicFormBusinessInstanceService {
                                            DynamicFormSchemaService.SchemaFields schema,
                                            DynamicFormBusinessAction action, DynamicFormPolicyFact policy,
                                            List<FileReferenceSetFact> files) {
-        Map<String, Object> values = values(row);
+        return toFact(row, revision, schema, action, policy, files, Map.of());
+    }
+
+    private DynamicFormInstanceFact toFact(PlatformDynamicFormInstanceDO row, DynamicFormTemplateRevisionDO revision,
+                                           DynamicFormSchemaService.SchemaFields schema,
+                                           DynamicFormBusinessAction action, DynamicFormPolicyFact policy,
+                                           List<FileReferenceSetFact> files, Map<String, Object> values) {
+        requireOrdinaryFields(values.keySet(), schema);
         return new DynamicFormInstanceFact(row.getTenantId(), rowOwner(row).providerKey(), rowOwner(row), row.getId(),
                 row.getTemplateId(), row.getTemplateRevisionId(), row.getTemplateRevisionNo(), revision.getVersion(),
                 row.getEngineCode(), row.getDesignerVersion(), row.getRendererVersion(), revision.getFormConfJson(),
@@ -372,7 +354,17 @@ public class DynamicFormBusinessInstanceService {
                     && decimal(number).compareTo(BigDecimal.valueOf(field.maxLength())) > 0) {
                 blockers.add("FORM_VALUE_INVALID:" + field.fieldKey());
             }
-            if (value != null && !field.allowedValues().isEmpty()
+            if (value instanceof Collection<?> selected) {
+                if (field.minLength() != null && selected.size() < field.minLength()
+                        || field.maxLength() != null && selected.size() > field.maxLength()) {
+                    blockers.add("FORM_VALUE_INVALID:" + field.fieldKey());
+                }
+                if (!field.allowedValues().isEmpty()
+                        && (selected.stream().anyMatch(option -> !field.allowedValues().contains(String.valueOf(option)))
+                        || new HashSet<>(selected).size() != selected.size())) {
+                    blockers.add("FORM_VALUE_INVALID:" + field.fieldKey());
+                }
+            } else if (value != null && !field.allowedValues().isEmpty()
                     && !field.allowedValues().contains(String.valueOf(value))) {
                 blockers.add("FORM_VALUE_INVALID:" + field.fieldKey());
             }
@@ -460,8 +452,7 @@ public class DynamicFormBusinessInstanceService {
                                      DynamicFormInstanceCreateCommand command,
                                      DynamicFormTemplateRevisionDO revision) {
         if (!Objects.equals(existing.getId(), command.preallocatedInstanceId())
-                || !Objects.equals(existing.getTemplateRevisionId(), revision.getId())
-                || !Objects.equals(existing.getValueJson(), valuesJson(command.initialValues()))) {
+                || !Objects.equals(existing.getTemplateRevisionId(), revision.getId())) {
             throw exception(DYNAMIC_FORM_OWNER_CONFLICT);
         }
     }
@@ -500,12 +491,6 @@ public class DynamicFormBusinessInstanceService {
 
     private DynamicFormOwnerKey rowOwner(PlatformDynamicFormInstanceDO row) {
         return new DynamicFormOwnerKey(row.getOwnerContext(), row.getObjectType(), row.getObjectId());
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> values(PlatformDynamicFormInstanceDO row) {
-        Map<String, Object> value = JsonUtils.parseObject(row.getValueJson(), Map.class);
-        return value == null ? new LinkedHashMap<>() : new LinkedHashMap<>(value);
     }
 
     private Map<String, Object> normalizedValues(Map<String, Object> input) {

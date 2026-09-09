@@ -16,7 +16,7 @@
     "context": "PLATFORM",
     "module": "pms-module-platform",
     "apiModulePolicy": "F-SOL-003 is the first real caller; expose only DynamicFormBusinessInstanceApi and DynamicFormBusinessObjectPolicyProvider in pms-module-platform-api",
-    "businessBoundary": "PLATFORM owns reusable template revisions plus manual and business form-instance schema, values and controlled-file composition; consuming Contexts own business state, validation, approval, completion and history"
+    "businessBoundary": "PLATFORM owns reusable template revisions, frozen schema and controlled-file context; manual-instance values remain PLATFORM-owned, while consuming Contexts own business entity values, state, validation, approval, completion and history"
   },
   "approvedApproach": {
     "code": "A_SHARED_PLATFORM_DYNAMIC_FORM_MVP",
@@ -356,7 +356,7 @@
         "trusted DynamicFormBusinessInstanceApi creates a business instance with the caller-owned stable owner tuple after owner-provider validation",
         "trusted business create and clone insert the exact caller-preallocated instance id and never require a consuming-context ID backfill",
         "template revision identity and engine versions never change after creation",
-        "value_json contains ordinary field values only; PmsFileArtifact facts are projected from F-PLT-001",
+        "manual value_json contains ordinary field values only; new business contexts store an empty object and retain old source values unchanged; PmsFileArtifact facts are projected from F-PLT-001",
         "false, zero, null, empty string and empty array retain distinct JSON semantics",
         "ordinary value PATCH uses version CAS",
         "PLATFORM stores no consuming-domain lifecycle; the owner provider denies writes when the owner is immutable"
@@ -573,33 +573,34 @@
         "createBusinessInstance": {
           "input": ["tenantId", "actorUserId", "providerKey", "action=CREATE", "preallocatedInstanceId", "owner tuple", "templateRevisionId", "expectedRevisionFactVersion", "initialValues"],
           "output": ["instanceId", "instanceVersion", "frozen revision and engine facts"],
-          "rule": "MANDATORY transaction; insert the exact preallocatedInstanceId; one instance per exact owner tuple"
+          "rule": "MANDATORY transaction; initialValues must be empty; insert the exact preallocatedInstanceId; one instance per exact owner tuple"
         },
         "inspectInstance": {
           "input": ["tenantId", "actorUserId", "providerKey", "owner tuple", "instanceId", "action=READ|PATCH|COMPLETE|CLONE_SOURCE|FILE_READ|FILE_WRITE"],
-          "output": ["owner", "frozen schema", "ordinary values", "declarativeValidationResult", "all controlled ACTIVE file facts", "instanceVersion"],
+          "output": ["owner", "frozen schema", "empty ordinary values", "declarativeValidationResult", "all controlled ACTIVE file facts", "instanceVersion"],
           "writes": false,
           "rule": "return an owner-policy fact frozen for the exact requested action"
         },
-        "patchInstanceValues": {
-          "input": ["tenantId", "actorUserId", "providerKey", "action=PATCH", "owner tuple", "instanceId", "expectedInstanceVersion", "partial ordinary values"],
-          "output": ["instanceId", "instanceVersion", "changedFieldKeys"],
-          "rule": "MANDATORY transaction; reject controlled-file fields and revalidate the same PATCH owner-policy fact"
+        "inspectEntityData": {
+          "input": ["DynamicFormInstanceQuery context", "Owner-supplied entityValues"],
+          "output": ["owner", "frozen schema", "normalized entity values", "declarativeValidationResult", "all controlled ACTIVE file facts", "instanceVersion"],
+          "writes": false,
+          "rule": "read-only projection; reject unknown and controlled-file value keys; entity Owner loads, locks and persists ordinary values using its own CAS"
         },
         "cloneBusinessInstance": {
           "input": ["tenantId", "actorUserId", "providerKey", "source action=CLONE_SOURCE and frozen fact", "target action=CLONE_TARGET and frozen owner-policy fact", "preallocatedTargetInstanceId", "target owner tuple"],
           "output": ["target instance fact", "insertedReferenceCount"],
-          "rule": "MANDATORY transaction; copy frozen revision and values into the exact preallocated target ID; create independent target references to the same immutable FileVersions"
+          "rule": "MANDATORY transaction; copy frozen revision into the exact preallocated target ID with empty values; entity Owner clones business values; create independent target references to the same immutable FileVersions"
         },
         "lockAndRevalidateInstance": {
-          "input": ["complete frozen inspectInstance fact including action=READ|PATCH|COMPLETE|CLONE_SOURCE|FILE_READ|FILE_WRITE"],
+          "input": ["complete frozen inspectInstance or inspectEntityData fact including action=READ|PATCH|COMPLETE|CLONE_SOURCE|FILE_READ|FILE_WRITE"],
           "output": ["same complete instance fact"],
           "rule": "MANDATORY transaction; revalidate the same action and strictly compare owner, revision, engine versions, normalized values, declarative validation result, instance version and every controlled ACTIVE reference set including explicit empty sets"
         }
       },
       "transaction": [
-        "inspectRevisionForUsage and inspectInstance are read-only and do not acquire held locks",
-        "lockAndRevalidateRevisionForUsage, createBusinessInstance, patchInstanceValues, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject calls without an existing caller transaction",
+        "inspectRevisionForUsage, inspectInstance and inspectEntityData are read-only and do not acquire held locks",
+        "lockAndRevalidateRevisionForUsage, createBusinessInstance, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject calls without an existing caller transaction",
         "never use REQUIRES_NEW",
         "never invoke a nested PlatformCommandExecutionApi",
         "never create a second idempotency record",
@@ -619,7 +620,7 @@
         "lockAndRevalidateRevisionForUsage": "same action as inspectRevisionForUsage",
         "createBusinessInstance": "CREATE",
         "inspectInstance": "caller-selected READ, PATCH, COMPLETE, CLONE_SOURCE, FILE_READ or FILE_WRITE",
-        "patchInstanceValues": "PATCH",
+        "inspectEntityData": "same caller-selected action as inspectInstance",
         "cloneBusinessInstance": "CLONE_SOURCE for source and CLONE_TARGET for target",
         "lockAndRevalidateInstance": "same action as inspectInstance",
         "fileProviderReadDownloadPreview": "FILE_READ",
@@ -747,7 +748,7 @@
   "acceptance": {
     "wholeLoop": "configure -> preview -> publish -> enable -> manual select -> create frozen instance -> render -> fill ordinary and PmsFileArtifact fields -> save -> refresh",
     "businessComposition": [
-      "F-SOL-003 creates, inspects, patches, clones and lock-revalidates a SOL-owned instance only through DynamicFormBusinessInstanceApi in the caller transaction",
+      "F-SOL-003 saves ordinary entity values through SOL commands; DynamicFormBusinessInstanceApi creates, projects, clones and lock-revalidates the frozen schema/file context without a business-value writer",
       "caller preallocates every business instance ID and all write or lock-holding methods require propagation MANDATORY",
       "inspect and lock revalidation use the same closed business action; action substitution is rejected",
       "N actual cloned FileReferences produce N FileReferenceAttached events; exact replay adds zero; any batch failure leaves target instance, references, outbox and outer success facts at zero",
