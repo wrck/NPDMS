@@ -7,7 +7,7 @@
       :closable="false"
       class="form-alert"
     />
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="!canWrite">
       <el-form-item label="计算口径" prop="calculationBasis">
         <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
           <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
@@ -74,7 +74,7 @@
               :reference-key="activeEvidenceReferenceKey"
               :artifact-id="form.customerEvidenceFileId"
               :version-no="form.customerEvidenceFileVersion"
-              editable
+              :editable="canWrite"
               @loaded="evidenceSlot.loaded"
               @detached="clearEvidence"
             />
@@ -88,8 +88,9 @@
               :artifact-id="evidenceSlot.state.artifactId"
               :expected-reference-version="evidenceSlot.state.referenceVersion"
               :disabled="
-                Boolean(evidenceSlot.state.artifactId) &&
-                evidenceSlot.state.referenceVersion === undefined
+                !canWrite ||
+                (Boolean(evidenceSlot.state.artifactId) &&
+                  evidenceSlot.state.referenceVersion === undefined)
               "
               class="evidence-uploader"
               @completed="saveEvidence"
@@ -100,7 +101,7 @@
     </el-form>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">
+      <el-button type="primary" :loading="saving" :disabled="!canWrite" @click="save">
         {{ mode === 'INITIAL' ? '保存并生效' : '保存草稿' }}
       </el-button>
     </template>
@@ -108,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
 import { getStrDictOptions } from '@/utils/dict'
@@ -128,8 +130,12 @@ import {
   type DurationChangeFormState
 } from './durationChangeFormState'
 
-const props = defineProps<{ project: ProjectMasterVO }>()
-const emit = defineEmits<{ saved: [] }>()
+const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
+const emit = defineEmits<{ saved: []; 'dirty-change': [value: boolean] }>()
+const canWrite = computed(
+  () => !props.readonly && Number.isSafeInteger(props.project.id) && props.project.id! > 0
+)
+let contextVersion = 0
 const message = useMessage()
 const narrow = useMediaQuery('(max-width: 767px)')
 const drawerSize = computed(() => (narrow.value ? '100%' : '560px'))
@@ -191,6 +197,7 @@ const durationPayload = () => ({
 })
 
 const openInitial = () => {
+  if (!canWrite.value || saving.value) return
   mode.value = 'INITIAL'
   plan.value = undefined
   draft.value = undefined
@@ -200,6 +207,7 @@ const openInitial = () => {
   visible.value = true
 }
 const openCreate = (value: ConstructionPlanVO) => {
+  if (!canWrite.value || saving.value || value.projectId !== props.project.id) return
   mode.value = 'CREATE'
   plan.value = value
   draft.value = undefined
@@ -209,6 +217,7 @@ const openCreate = (value: ConstructionPlanVO) => {
   visible.value = true
 }
 const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) => {
+  if (!canWrite.value || saving.value || value.projectId !== props.project.id) return
   mode.value = 'EDIT'
   plan.value = value
   draft.value = change
@@ -243,7 +252,8 @@ const patchPayload = (): PatchDurationChangeReqVO => {
 }
 
 const saveEvidence = async (selection: FileSelection) => {
-  if (!plan.value || !draft.value) return
+  if (!canWrite.value || !plan.value || !draft.value) return
+  const version = contextVersion
   evidenceSlot.uploaded(selection)
   Object.assign(form, {
     customerEvidenceFileId: selection.artifactId,
@@ -262,6 +272,7 @@ const saveEvidence = async (selection: FileSelection) => {
       },
       draft.value.version
     )
+    if (version !== contextVersion) return
     draft.value = updated
     if (original.value)
       Object.assign(original.value, {
@@ -271,18 +282,21 @@ const saveEvidence = async (selection: FileSelection) => {
       })
     emit('saved')
   } catch {
+    if (version !== contextVersion) return
     const recovered = await recoverDraftAfterPatchLoss()
+    if (version !== contextVersion) return
     message.warning(
       recovered
         ? '文件已完成校验，已读取最新草稿；请点击“保存草稿”完成剩余变化'
         : '文件已完成校验，草稿状态读取失败，请刷新后重试'
     )
   } finally {
-    await evidenceListRef.value?.refresh()
+    if (version === contextVersion) await evidenceListRef.value?.refresh()
   }
 }
 const clearEvidence = async (result: DetachedFileSlot) => {
-  if (!plan.value || !draft.value) return
+  if (!canWrite.value || !plan.value || !draft.value) return
+  const version = contextVersion
   evidenceSlot.detached(result)
   Object.assign(form, {
     customerEvidenceFileId: undefined,
@@ -301,6 +315,7 @@ const clearEvidence = async (result: DetachedFileSlot) => {
       },
       draft.value.version
     )
+    if (version !== contextVersion) return
     draft.value = updated
     if (original.value)
       Object.assign(original.value, {
@@ -310,7 +325,9 @@ const clearEvidence = async (result: DetachedFileSlot) => {
       })
     emit('saved')
   } catch {
+    if (version !== contextVersion) return
     const recovered = await recoverDraftAfterPatchLoss()
+    if (version !== contextVersion) return
     message.warning(
       recovered
         ? '文件引用已解除，已读取最新草稿；请点击“保存草稿”完成剩余变化'
@@ -321,9 +338,11 @@ const clearEvidence = async (result: DetachedFileSlot) => {
 
 const recoverDraftAfterPatchLoss = async () => {
   if (!plan.value || !draft.value) return false
+  const version = contextVersion
   const local = structuredClone(toRaw(form))
   try {
     const current = await DurationApi.getChange(plan.value.planId, draft.value.changeId)
+    if (version !== contextVersion) return false
     const recovered = reconcilePatchResponseLoss(local, current)
     draft.value = recovered.current
     assign(recovered.form)
@@ -335,7 +354,10 @@ const recoverDraftAfterPatchLoss = async () => {
 }
 
 const save = async () => {
+  if (!canWrite.value || saving.value) return
+  const version = contextVersion
   if (!(await formRef.value?.validate())) return
+  if (!canWrite.value || version !== contextVersion) return
   saving.value = true
   try {
     if (mode.value === 'INITIAL') {
@@ -347,6 +369,7 @@ const save = async () => {
         },
         crypto.randomUUID()
       )
+      if (version !== contextVersion) return
       message.success('项目工期已生效')
     } else if (mode.value === 'CREATE') {
       const created = await DurationApi.createChange(
@@ -360,6 +383,7 @@ const save = async () => {
         plan.value!.planVersion,
         crypto.randomUUID()
       )
+      if (version !== contextVersion) return
       message.success('工期变更草稿已保存')
       if (form.reasonType === 'CUSTOMER_DELAY') {
         mode.value = 'EDIT'
@@ -380,6 +404,7 @@ const save = async () => {
         patch,
         draft.value!.version
       )
+      if (version !== contextVersion) return
       message.success('工期变更草稿已更新')
     }
     visible.value = false
@@ -389,7 +414,45 @@ const save = async () => {
   }
 }
 
-defineExpose({ openInitial, openCreate, openEdit })
+watch(
+  () => visible.value || saving.value,
+  (value) => emit('dirty-change', value),
+  { immediate: true }
+)
+watch(
+  () => props.project.id,
+  () => {
+    contextVersion++
+    visible.value = false
+    plan.value = undefined
+    draft.value = undefined
+    original.value = undefined
+    evidenceSlot.reset()
+  },
+  { flush: 'sync' }
+)
+watch(
+  () => props.readonly,
+  () => {
+    contextVersion++
+  },
+  { flush: 'sync' }
+)
+onBeforeUnmount(() => {
+  contextVersion++
+})
+defineExpose({
+  openInitial,
+  openCreate,
+  openEdit,
+  isDirty: () => visible.value || saving.value,
+  discardChanges: () => {
+    if (saving.value) return false
+    contextVersion++
+    visible.value = false
+    return true
+  }
+})
 </script>
 
 <style scoped lang="scss">
