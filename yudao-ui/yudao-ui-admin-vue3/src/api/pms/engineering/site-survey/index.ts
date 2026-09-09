@@ -38,4 +38,33 @@ const baseUrl = '/pms/eng-site-survey'
 
 export const getSiteSurveyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
-export const getSiteSurvey = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })
+export const getSiteSurvey = (id: number) =>
+  request.get<SiteSurveyVO>({ url: `${baseUrl}/get`, params: { id } })
+export const createSiteSurvey = (data: SiteSurveyVO) =>
+  request.post<number>({ url: `${baseUrl}/create`, data })
+export const updateSiteSurvey = (data: SiteSurveyVO) =>
+  request.put({ url: `${baseUrl}/update`, data, headers: { 'If-Match': String(data.version) } })
+export const deleteSiteSurvey = (id: number, version: number) =>
+  request.delete({
+    url: `${baseUrl}/delete`,
+    params: { id },
+    headers: { 'If-Match': String(version) }
+  })
+export const confirmSiteSurvey = (id: number, version: number) =>
+  request.put({
+    url: `${baseUrl}/confirm`,
+    params: { id },
+    headers: { 'If-Match': String(version) }
+  })
+export const rejectSiteSurvey = (id: number, version: number) =>
+  request.put({
+    url: `${baseUrl}/reject`,
+    params: { id },
+    headers: { 'If-Match': String(version) }
+  })
+export const archiveSiteSurvey = (id: number, version: number) =>
+  request.put({
+    url: `${baseUrl}/archive`,
+    params: { id },
+    headers: { 'If-Match': String(version) }
+  })

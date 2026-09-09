@@ -74,7 +74,7 @@ public class PreparationItemApplicationService {
     private static final Set<String> MANAGER_FIELDS = Set.of(
             "applicabilityCode", "outsourced", "assignee", "notApplicableReason");
     private static final Set<String> ASSIGNEE_FIELDS = Set.of(
-            "siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences");
+            "siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences", "surveyResult");
     private static final Set<String> ALL_FIELDS;
     static {
         Set<String> fields = new LinkedHashSet<>(MANAGER_FIELDS);
@@ -85,6 +85,7 @@ public class PreparationItemApplicationService {
     private final PreparationMapper preparationMapper;
     private final PreparationItemMapper itemMapper;
     private final DynamicFormInstanceMapper formMapper;
+    private final PreparationSurveyResultService surveyResultService;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
@@ -143,14 +144,7 @@ public class PreparationItemApplicationService {
 
         if (managerWrite) requireManagerLocked(located.getProjectId(), command.expectedProjectVersion(), actor);
         if (command.submittedFields().contains("assignee") && command.assigneeUserId() != null) {
-            ProjectOrganizationFact organization = organizationFactApi.lockAndRevalidate(
-                    new ProjectOrganizationFactRevalidationQuery(located.getProjectId(),
-                            command.expectedProjectVersion()));
-            adminUserApi.validateUser(command.assigneeUserId());
-            if (!organizationScopeApi.hasScope(command.assigneeUserId(),
-                    organization.companyId(), organization.departmentId())) {
-                throw exception(PREPARATION_PROJECT_FACT_INVALID);
-            }
+            validateCandidateLocked(located.getProjectId(), command.expectedProjectVersion(), command.assigneeUserId());
         }
         PreparationDO preparation = preparationMapper.selectForUpdate(new PreparationRowQuery(
                 actor.tenantId(), command.preparationId()));
@@ -161,6 +155,11 @@ public class PreparationItemApplicationService {
         requireEditable(command, preparation, item, form);
         if (assigneeWrite) requireAssignee(item, actor);
 
+        boolean typedWrite = command.submittedFields().contains("surveyResult");
+        if (typedWrite) {
+            cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResultRules
+                    .validatePatch(item.getItemCode(), command.surveyResult());
+        }
         String normalizedForm = form.getValueSnapshot();
         if (command.submittedFields().contains("formValueSnapshot")) {
             normalizedForm = FixedSurveyFormRules.validateAndNormalizeValue(
@@ -198,6 +197,14 @@ public class PreparationItemApplicationService {
                 String.valueOf(actor.actorId()))) != 1) {
             throw exception(PREPARATION_VERSION_NOT_MATCH);
         }
+        if (typedWrite) {
+            if (formMapper.touchDraftIfMatch(new DynamicFormDraftUpdate(actor.tenantId(), preparation.getId(),
+                    item.getId(), form.getId(), form.getVersion(), null, String.valueOf(actor.actorId()))) != 1) {
+                throw exception(PREPARATION_VERSION_NOT_MATCH);
+            }
+            surveyResultService.save(actor.tenantId(), preparation.getId(), item.getId(), item.getItemCode(),
+                    command.surveyResult(), actor.actorId());
+        }
         if (preparationMapper.invalidateReadinessIfMatch(new PreparationInputInvalidationUpdate(
                 actor.tenantId(), preparation.getId(), preparation.getVersion(), preparation.getInputVersion(),
                 preparation.getReadinessVersion(), String.valueOf(actor.actorId()))) != 1) {
@@ -206,7 +213,7 @@ public class PreparationItemApplicationService {
 
         int itemVersionAfter = item.getVersion() + (itemFields.isEmpty() ? 0 : 1);
         int formVersionAfter = form.getVersion()
-                + (command.submittedFields().contains("formValueSnapshot") ? 1 : 0);
+                + (command.submittedFields().contains("formValueSnapshot") || typedWrite ? 1 : 0);
         PreparationItemPatchRespVO response = new PreparationItemPatchRespVO(preparation.getId(), item.getId(),
                 preparation.getVersion() + 1, preparation.getInputVersion() + 1,
                 itemVersionAfter, formVersionAfter);
@@ -216,6 +223,11 @@ public class PreparationItemApplicationService {
         after.put("itemVersion", response.getItemVersion());
         after.put("formVersion", response.getFormVersion());
         after.put("submittedFields", command.submittedFields());
+        if (typedWrite) {
+            // Audit identity/version/field names only; the business body stays in relational columns.
+            after.put("surveyResultItemId", item.getId());
+            after.put("surveyResultFields", command.surveyResult().getSubmittedFields());
+        }
         if (command.submittedFields().contains("applicabilityCode")) {
             after.put("applicability", command.applicabilityCode());
         }
@@ -281,6 +293,16 @@ public class PreparationItemApplicationService {
 
     private Long evidenceObjectItemId(PreparationItemDO item) {
         return item.getSourceItemId() == null ? item.getId() : item.getSourceItemId();
+    }
+
+    void validateCandidateLocked(Long projectId, Integer projectVersion, Long userId) {
+        ProjectOrganizationFact organization = organizationFactApi.lockAndRevalidate(
+                new ProjectOrganizationFactRevalidationQuery(projectId, projectVersion));
+        adminUserApi.validateUser(userId);
+        if (organization == null || !organizationScopeApi.hasScope(userId,
+                organization.companyId(), organization.departmentId())) {
+            throw exception(PREPARATION_PROJECT_FACT_INVALID);
+        }
     }
 
     private void requireManagerRead(Long projectId, Actor actor) {
@@ -354,6 +376,8 @@ public class PreparationItemApplicationService {
                     && command.assigneeUserId() != null && command.assigneeUserId() <= 0
                 || command.submittedFields().contains("applicabilityCode")
                     && (command.applicabilityCode() == null || command.applicabilityCode().isBlank())
+                || command.submittedFields().contains("surveyResult") && (command.surveyResult() == null
+                    || command.submittedFields().contains("formValueSnapshot"))
                 || command.submittedFields().contains("formValueSnapshot")
                     && command.formValueSnapshot() == null) {
             throw exception(PREPARATION_COMMAND_INVALID);

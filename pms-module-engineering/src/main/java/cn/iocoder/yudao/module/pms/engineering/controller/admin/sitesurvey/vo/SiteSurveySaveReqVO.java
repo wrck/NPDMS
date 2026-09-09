@@ -73,12 +73,12 @@ public class SiteSurveySaveReqVO {
     @Schema(description = "工勘结论")
     private String conclusion;
 
-    @Schema(description = "状态：0 草稿 1 已确认 2 已驳回 3 已归档", example = "0")
+    @Schema(description = "兼容旧客户端；新增忽略并强制草稿0，更新不得改变状态", example = "0")
     private Integer status;
 
     @Schema(description = "备注")
     private String remark;
 
-    @Schema(description = "乐观锁版本号", example = "0")
+    @Schema(description = "更新必填的期望版本；新增忽略并强制0", example = "0")
     private Integer version;
 }

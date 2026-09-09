@@ -9,7 +9,7 @@ const readiness = read('./PreparationReadinessDrawer.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/preparation/index.ts')
 const oldApi = read('../../../../../api/pms/engineering/site-survey/index.ts')
-const oldPage = read('../../../engineering/site-survey/index.vue')
+const surveyEntry = read('../../../engineering/site-survey/index.vue')
 const legacyDetail = read('../../project-detail/index.vue')
 
 describe('F-SOL-002 project preparation panel', () => {
@@ -79,14 +79,18 @@ describe('F-SOL-002 project preparation panel', () => {
     expect(item).toContain("narrow.value ? '100%' : '640px'")
   })
 
-  it('retires V1.7 writes while preserving historical reads and AST location maintenance', () => {
+  it('reuses the original standalone survey list and whole form with protected writes', () => {
+    expect(surveyEntry).not.toContain('<SurveyWorkspace')
+    expect(surveyEntry).not.toContain('<ProjectPreparationPanel')
+    expect(surveyEntry).toContain('新增工勘')
+    expect(surveyEntry).toContain('工勘编码')
+    expect(surveyEntry).toContain('PmsLocationSelector')
+    expect(surveyEntry).toContain('form.powerSupply')
+    expect(surveyEntry).toContain('form.constructionResource')
+    expect(surveyEntry).toContain('readonly || saving')
     expect(oldApi).toContain('getSiteSurveyPage')
     expect(oldApi).toContain('getSiteSurvey')
-    expect(oldApi).not.toMatch(
-      /createSiteSurvey|updateSiteSurvey|deleteSiteSurvey|confirmSiteSurvey|rejectSiteSurvey|archiveSiteSurvey/
-    )
-    expect(oldPage).toContain('仅保留历史查询')
-    expect(oldPage).toContain('维护地点')
+    expect(oldApi).toContain("'If-Match': String(version)")
     expect(legacyDetail).not.toMatch(
       /SiteSurveyApi\.(?:create|update|delete|confirm|reject|archive)SiteSurvey/
     )

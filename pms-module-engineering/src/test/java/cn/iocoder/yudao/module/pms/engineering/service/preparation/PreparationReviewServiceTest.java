@@ -50,6 +50,8 @@ class PreparationReviewServiceTest {
 
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
+    @Mock private PreparationSurveyResultService surveyResultService;
+    @Mock private PreparationSurveyService surveyService;
     @Mock private DynamicFormInstanceMapper formMapper;
     @Mock private PreparationSourceReferenceMapper sourceMapper;
     @Mock private PermissionApi permissionApi;
@@ -272,10 +274,44 @@ class PreparationReviewServiceTest {
         ArgumentCaptor<PreparationSourceReferenceDO> copiedSource = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
         verify(sourceMapper).insert(copiedSource.capture());
         assertEquals("UNKNOWN", copiedSource.getValue().getSyncStatusCode());
+        verify(surveyResultService).copy(1L, 1L, 101L, 2L, 1101L, 7L);
+        verify(surveyResultService).copy(1L, 1L, 102L, 2L, 1102L, 7L);
+        verify(surveyService).copy(1L, 1L, 2L, 7L);
         String audit = successFacts.get().detailSnapshot();
         assertTrue(audit.contains("\"copyFacts\""));
         assertTrue(audit.contains("\"RESET_RETURNED\""));
         assertTrue(audit.contains("\"COPY_UNCHANGED\""));
+    }
+
+    @Test
+    void typedSubmitDoesNotRequireSyntheticSiteResultOrLegacyFormValues() {
+        PreparationDO preparation = preparation("DRAFT", 1, 1);
+        PreparationItemDO item = item(101L, "REQUIRED", "PENDING", 1);
+        item.setItemCode("CABINET"); item.setAssigneeUserId(9L);
+        DynamicFormInstanceDO form = form(201L, 101L); form.setValueSnapshot("{}");
+        stubRows(preparation, List.of(item), List.of(form));
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        typed.setCabinetAvailable(false);
+        when(surveyResultService.get(1L, 1L, 101L)).thenReturn(typed);
+        when(formMapper.freezeIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertEquals("PENDING_CONFIRMATION", service.execute(
+                command(PreparationReviewCommand.SUBMIT, null, 1, null, null), actor()).statusCode());
+        assertEquals("{}", form.getValueSnapshot());
+        org.junit.jupiter.api.Assertions.assertNull(item.getSiteResultCode());
+        verify(formMapper, org.mockito.Mockito.never()).updateDraftIfMatch(any());
+    }
+
+    @Test
+    void incompleteTypedSubmitCannotFallbackToValidLegacyJson() {
+        PreparationItemDO item = item(101L, "REQUIRED", "PENDING", 1);
+        item.setItemCode("POWER"); item.setAssigneeUserId(9L); item.setSiteResultCode("READY");
+        stubRows(preparation("DRAFT", 1, 1), List.of(item), List.of(form(201L, 101L)));
+        when(surveyResultService.get(1L, 1L, 101L))
+                .thenReturn(new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.execute(
+                command(PreparationReviewCommand.SUBMIT, null, 1, null, null), actor()));
+        verify(formMapper, org.mockito.Mockito.never()).freezeIfMatch(any());
     }
 
     private void stubRows(PreparationDO preparation, List<PreparationItemDO> items,

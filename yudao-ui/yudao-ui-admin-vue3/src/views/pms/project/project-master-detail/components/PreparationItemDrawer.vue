@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :size="drawerSize" title="工勘项详情">
+  <el-drawer v-model="visible" :size="drawerSize" title="工勘项详情" :before-close="beforeClose">
     <template v-if="item">
       <el-descriptions :column="narrow ? 1 : 2" border size="small" class="item-summary">
         <el-descriptions-item label="工勘项">{{ item.itemName }}</el-descriptions-item>
@@ -53,7 +53,49 @@
         <el-form-item label="上架加电外包">
           <el-switch v-model="draft.outsourced" :disabled="!canManager" />
         </el-form-item>
-        <el-form-item label="确认结果">
+        <section v-if="businessFields.length" class="fixed-form" aria-label="现场工勘内容">
+          <h4>现场条件</h4>
+          <el-form-item v-for="field in businessFields" :key="field.key" :label="field.label">
+            <el-radio-group
+              v-if="field.kind === 'boolean'"
+              :data-testid="`survey-${field.key}`"
+              :model-value="
+                surveyResult[field.key] === true
+                  ? 'YES'
+                  : surveyResult[field.key] === false
+                    ? 'NO'
+                    : 'UNKNOWN'
+              "
+              :disabled="!canAssignee"
+              @update:model-value="setSurveyBoolean(field.key, $event)"
+            >
+              <el-radio value="YES">是</el-radio>
+              <el-radio value="NO">否</el-radio>
+              <el-radio value="UNKNOWN">待确认</el-radio>
+            </el-radio-group>
+            <el-input
+              v-else
+              :data-testid="`survey-${field.key}`"
+              :model-value="
+                typeof surveyResult[field.key] === 'string' ? String(surveyResult[field.key]) : ''
+              "
+              @update:model-value="setSurveyText(field.key, $event)"
+              type="textarea"
+              :rows="3"
+              :maxlength="1000"
+              show-word-limit
+              :placeholder="field.placeholder"
+              :disabled="!canAssignee"
+            />
+          </el-form-item>
+          <el-alert
+            v-if="!item.surveyResult"
+            type="info"
+            :closable="false"
+            title="原有表单内容保留在历史记录中，不自动推断现场条件。"
+          />
+        </section>
+        <el-form-item v-if="!businessFields.length" label="确认结果">
           <el-input
             v-model="draft.siteResultCode"
             :disabled="!canAssignee"
@@ -68,19 +110,21 @@
             :disabled="!canAssignee"
           />
         </el-form-item>
-        <section class="fixed-form" aria-labelledby="fixed-form-title">
-          <h4 id="fixed-form-title"
-            >固定表单 · {{ item.form.formCode }} v{{ item.form.formVersion }}</h4
-          >
+        <section
+          v-if="!businessFields.length || !item.surveyResult"
+          class="fixed-form"
+          aria-labelledby="fixed-form-title"
+        >
+          <h4 id="fixed-form-title">{{ businessFields.length ? '原工勘填写记录（只读）' : '其他工勘内容' }}</h4>
           <el-form-item
             v-for="field in schemaFields"
             :key="field.fieldCode"
-            :label="field.fieldCode"
+            :label="field.fieldCode === 'siteCondition' ? '现场情况' : field.fieldCode"
           >
             <el-select
               v-if="field.fieldType === 'SINGLE_SELECT'"
               v-model="formValues[field.fieldCode]"
-              :disabled="!canAssignee"
+              :disabled="!canAssignee || !!businessFields.length"
             >
               <el-option
                 v-for="option in field.options || []"
@@ -93,7 +137,7 @@
               v-else-if="field.fieldType === 'MULTI_SELECT'"
               v-model="formValues[field.fieldCode]"
               multiple
-              :disabled="!canAssignee"
+              :disabled="!canAssignee || !!businessFields.length"
             >
               <el-option
                 v-for="option in field.options || []"
@@ -105,18 +149,18 @@
             <el-switch
               v-else-if="field.fieldType === 'BOOLEAN'"
               v-model="formValues[field.fieldCode]"
-              :disabled="!canAssignee"
+              :disabled="!canAssignee || !!businessFields.length"
             />
             <el-input-number
               v-else-if="field.fieldType === 'NUMBER'"
               v-model="formValues[field.fieldCode]"
-              :disabled="!canAssignee"
+              :disabled="!canAssignee || !!businessFields.length"
             />
             <el-input
               v-else
               v-model="formValues[field.fieldCode]"
               :type="field.maxLength && field.maxLength > 255 ? 'textarea' : 'text'"
-              :disabled="!canAssignee"
+              :disabled="!canAssignee || !!businessFields.length"
             />
           </el-form-item>
         </section>
@@ -150,8 +194,15 @@
       </el-form>
     </template>
     <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
-      <el-button v-if="editable" type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button :disabled="saving" @click="beforeClose(() => (visible = false))">关闭</el-button>
+      <el-button
+        v-if="editable"
+        data-testid="survey-item-save"
+        type="primary"
+        :loading="saving"
+        @click="save"
+        >保存</el-button
+      >
     </template>
   </el-drawer>
 </template>
@@ -168,12 +219,19 @@ import type {
   EvidenceReference,
   PatchPreparationItemReqVO,
   PreparationItemVO,
-  PreparationVO
+  PreparationVO,
+  SurveyResult
 } from '@/api/pms/engineering/preparation'
 import { buildEvidenceReference, setChanged } from './preparationInteraction'
+import {
+  normalizeSurveyResult,
+  surveyFields,
+  type SurveyTextKey,
+  type SurveyBooleanKey
+} from './surveyResult'
 
 const props = defineProps<{ projectVersion: number }>()
-const emit = defineEmits<{ saved: [] }>()
+const emit = defineEmits<{ saved: []; 'dirty-change': [boolean] }>()
 const message = useMessage()
 const narrow = useMediaQuery('(max-width: 767px)')
 const drawerSize = computed(() => (narrow.value ? '100%' : '640px'))
@@ -189,6 +247,17 @@ const canAssignee = computed(
 )
 const editable = computed(() => canManager.value || canAssignee.value)
 const formValues = reactive<Record<string, any>>({})
+const surveyResult = ref<SurveyResult>({})
+const businessFields = computed(() => surveyFields(item.value?.itemCode || ''))
+const baselineSurveyResult = ref<SurveyResult>({})
+const setSurveyBoolean = (key: SurveyTextKey | SurveyBooleanKey, value: unknown) => {
+  if (canAssignee.value)
+    surveyResult.value[key as SurveyBooleanKey] =
+      value === 'YES' ? true : value === 'NO' ? false : null
+}
+const setSurveyText = (key: SurveyTextKey | SurveyBooleanKey, value: string) => {
+  if (canAssignee.value) surveyResult.value[key as SurveyTextKey] = value
+}
 const evidence = ref<EvidenceReference>()
 const baseline = ref<{
   applicabilityCode: string
@@ -236,6 +305,8 @@ function parseJson<T>(value: string | undefined, fallback: T): T {
 const open = (current: PreparationVO, row: PreparationItemVO) => {
   preparation.value = current
   item.value = row
+  surveyResult.value = normalizeSurveyResult(row.itemCode, row.surveyResult || {})
+  baselineSurveyResult.value = { ...surveyResult.value }
   Object.assign(draft, {
     applicabilityCode: row.applicability,
     outsourced: row.outsourced,
@@ -377,24 +448,35 @@ const save = async () => {
       )
     }
     if (canAssignee.value) {
-      setChanged(
-        patch,
-        'siteResultCode',
-        draft.siteResultCode || null,
-        baseline.value.siteResultCode
-      )
+      if (businessFields.value.length) {
+        setChanged(
+          patch,
+          'surveyResult',
+          normalizeSurveyResult(item.value.itemCode, surveyResult.value),
+          baselineSurveyResult.value
+        )
+      } else {
+        setChanged(
+          patch,
+          'siteResultCode',
+          draft.siteResultCode || null,
+          baseline.value.siteResultCode
+        )
+      }
       setChanged(
         patch,
         'siteResultDetail',
         draft.siteResultDetail || null,
         baseline.value.siteResultDetail
       )
-      setChanged(
-        patch,
-        'formValueSnapshot',
-        JSON.stringify(formValues),
-        JSON.stringify(baseline.value.formValues)
-      )
+      if (!businessFields.value.length) {
+        setChanged(
+          patch,
+          'formValueSnapshot',
+          JSON.stringify(formValues),
+          JSON.stringify(baseline.value.formValues)
+        )
+      }
       setChanged(
         patch,
         'evidenceReferences',
@@ -420,7 +502,41 @@ const save = async () => {
   }
 }
 
-defineExpose({ open })
+const isDirty = () =>
+  visible.value &&
+  !!baseline.value &&
+  (JSON.stringify(normalizeSurveyResult(item.value?.itemCode || '', surveyResult.value)) !==
+    JSON.stringify(baselineSurveyResult.value) ||
+    draft.applicabilityCode !== baseline.value.applicabilityCode ||
+    draft.outsourced !== baseline.value.outsourced ||
+    (draft.assigneeUserId ?? null) !== baseline.value.assigneeUserId ||
+    (draft.notApplicableReason || null) !== baseline.value.notApplicableReason ||
+    (draft.siteResultCode || null) !== baseline.value.siteResultCode ||
+    (draft.siteResultDetail || null) !== baseline.value.siteResultDetail ||
+    JSON.stringify(formValues) !== JSON.stringify(baseline.value.formValues) ||
+    JSON.stringify(evidence.value ? [evidence.value] : []) !==
+      JSON.stringify(baseline.value.evidence))
+const discardChanges = () => {
+  if (saving.value) return false
+  visible.value = false
+  return true
+}
+const beforeClose = async (done: () => void) => {
+  if (saving.value) return
+  if (isDirty()) {
+    try {
+      await message.confirm('尚有未保存的工勘内容，关闭将放弃本次编辑。')
+    } catch {
+      return
+    }
+  }
+  done()
+}
+watch(
+  () => isDirty(),
+  (dirty) => emit('dirty-change', dirty)
+)
+defineExpose({ open, isDirty, discardChanges })
 </script>
 
 <style scoped lang="scss">

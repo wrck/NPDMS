@@ -29,7 +29,9 @@ class PreparationMapperContractTest {
                 "updateDraftIfMatch", "updateReviewIfMatch"));
         assertMapperContract(DynamicFormInstanceMapper.class, Set.of(
                 "insert", "selectForUpdate", "selectByItemForUpdate", "selectList", "selectListForUpdate", "selectListByItemIds",
-                "updateDraftIfMatch", "freezeIfMatch"));
+                "updateDraftIfMatch", "touchDraftIfMatch", "freezeIfMatch"));
+        assertMapperContract(PreparationSurveyMapper.class, Set.of("selectByPreparation", "insert", "update"));
+        assertMapperContract(PreparationSurveyResultMapper.class, Set.of("selectByItem", "insert", "update"));
         assertMapperContract(PreparationSourceReferenceMapper.class, Set.of(
                 "insert", "selectList", "selectListForUpdate", "updateSyncIfMatch"));
         assertMapperContract(PreparationItemWaiverMapper.class, Set.of(
@@ -60,6 +62,35 @@ class PreparationMapperContractTest {
         assertTrue(snapshot.contains("ORDER BY snapshot_no ASC, id ASC"));
         assertFalse(snapshot.contains("<update"));
         assertFalse(snapshot.contains("<delete"));
+    }
+
+    @Test
+    void surveyXmlBindsExplicitBusinessColumnsAndFormTouchNeverWritesJson() throws IOException {
+        org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+        for (String name : List.of("PreparationSurveyMapper.xml", "PreparationSurveyResultMapper.xml", "DynamicFormInstanceMapper.xml")) {
+            String resource = "mapper/preparation/" + name;
+            try (InputStream stream = getClass().getClassLoader().getResourceAsStream(resource)) {
+                assertNotNull(stream);
+                new org.apache.ibatis.builder.xml.XMLMapperBuilder(stream, configuration, resource,
+                        configuration.getSqlFragments()).parse();
+            }
+        }
+        var query = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemRowQuery(1L, 2L, 3L);
+        String sql = configuration.getMappedStatement(PreparationSurveyResultMapper.class.getName() + ".selectByItem")
+                .getBoundSql(java.util.Map.of("query", query)).getSql();
+        assertTrue(sql.contains("tenant_id = ?")); assertTrue(sql.contains("preparation_id = ?"));
+        assertTrue(sql.contains("item_id = ?")); assertTrue(sql.contains("power_supply"));
+        var touch = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.DynamicFormDraftUpdate(
+                1L, 2L, 3L, 4L, 5, null, "7");
+        String touchSql = configuration.getMappedStatement(DynamicFormInstanceMapper.class.getName() + ".touchDraftIfMatch")
+                .getBoundSql(java.util.Map.of("update", touch)).getSql();
+        assertFalse(touchSql.contains("value_snapshot")); assertTrue(touchSql.contains("version = ?"));
+        assertTrue(touchSql.contains("frozen_at IS NULL"));
+        String resultXml = mapperXml("PreparationSurveyResultMapper.xml");
+        assertFalse(resultXml.contains("value_snapshot")); assertFalse(resultXml.contains("JSON"));
+        assertFalse(resultXml.contains("grounding")); assertFalse(resultXml.contains("construction_resource"));
+        String surveyXml = mapperXml("PreparationSurveyMapper.xml");
+        assertTrue(surveyXml.contains("grounding")); assertTrue(surveyXml.contains("construction_resource"));
     }
 
     private static void assertMapperContract(Class<?> mapperType, Set<String> expectedMethods) {

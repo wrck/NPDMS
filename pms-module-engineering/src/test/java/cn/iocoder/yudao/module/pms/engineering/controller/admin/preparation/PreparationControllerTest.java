@@ -121,6 +121,18 @@ class PreparationControllerTest {
         assertFalse(compareAuthorize.value().contains("pms:requirement-analysis:manage"));
     }
 
+    @Test
+    void typedPatchRejectsMetadataAtBothItemAndResultBoundaries() {
+        assertThrows(RuntimeException.class, () -> JsonUtils.parseObject(
+                "{\"surveyResult\":{\"grounding\":\"接地\"}}", PreparationItemPatchReqVO.class));
+        assertThrows(RuntimeException.class, () -> JsonUtils.parseObject(
+                "{\"grounding\":null}", PreparationItemPatchReqVO.class));
+        PreparationItemPatchReqVO request = JsonUtils.parseObject(
+                "{\"surveyResult\":{\"powerSupply\":\"供电\"}}", PreparationItemPatchReqVO.class);
+        assertEquals(Set.of("surveyResult"), request.getSubmittedFields());
+        assertEquals("供电", request.getSurveyResult().getPowerSupply());
+    }
+
     private void login(Long userId) {
         LoginUser loginUser = new LoginUser();
         loginUser.setId(userId);

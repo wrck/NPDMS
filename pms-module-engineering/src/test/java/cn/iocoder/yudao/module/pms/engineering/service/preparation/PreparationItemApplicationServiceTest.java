@@ -49,6 +49,7 @@ class PreparationItemApplicationServiceTest {
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
     @Mock private DynamicFormInstanceMapper formMapper;
+    @Mock private PreparationSurveyResultService surveyResultService;
     @Mock private PermissionApi permissionApi;
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ProjectParticipantFactApi participantFactApi;
@@ -166,6 +167,73 @@ class PreparationItemApplicationServiceTest {
         verify(operationAuditApi).record(any(), any(), any(), any(), any(), any(), any(), any());
     }
 
+    @Test
+    void typedDraftAdvancesAllVersionsWithoutRewritingLegacyJson() {
+        useTransaction();
+        stubRows(200L);
+        when(permissionApi.hasAnyPermissions(200L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(itemMapper.updateDraftIfMatch(any())).thenReturn(1);
+        when(formMapper.touchDraftIfMatch(any())).thenReturn(1);
+        when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        typed.setPowerSupply("双路供电");
+        var result = service.patch(typedCommand(typed, 1), actor(200L));
+        assertEquals(2, result.getItemVersion());
+        assertEquals(2, result.getFormVersion());
+        assertEquals(2, result.getPreparationVersion());
+        verify(formMapper, never()).updateDraftIfMatch(any());
+        verify(surveyResultService).save(0L, 1L, 2L, "POWER", typed, 200L);
+    }
+
+    @Test
+    void typedCrossItemIsRejectedBeforeAnyWrites() {
+        useTransaction(); stubRows(200L);
+        when(permissionApi.hasAnyPermissions(200L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        typed.setFiber("不属于供电");
+        assertThrows(RuntimeException.class, () -> service.patch(typedCommand(typed, 1), actor(200L)));
+        verify(itemMapper, never()).updateDraftIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(surveyResultService);
+    }
+
+    @Test
+    void typedWrongAssigneeAndStaleCasCannotWrite() {
+        useTransaction(); stubRows(300L);
+        when(permissionApi.hasAnyPermissions(200L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        typed.setPowerSupply("供电");
+        assertThrows(RuntimeException.class, () -> service.patch(typedCommand(typed, 1), actor(200L)));
+        assertThrows(RuntimeException.class, () -> service.patch(typedCommand(typed, 0), actor(200L)));
+        verify(itemMapper, never()).updateDraftIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(surveyResultService);
+    }
+
+    @Test
+    void typedFormCasFailureRejectsBeforeResultPersistence() {
+        useTransaction(); stubRows(200L);
+        when(permissionApi.hasAnyPermissions(200L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(itemMapper.updateDraftIfMatch(any())).thenReturn(1);
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        assertThrows(RuntimeException.class, () -> service.patch(typedCommand(typed, 1), actor(200L)));
+        org.mockito.Mockito.verifyNoInteractions(surveyResultService);
+        verify(formMapper, never()).updateDraftIfMatch(any());
+        verify(preparationMapper, never()).invalidateReadinessIfMatch(any());
+    }
+
+    private PatchPreparationItemCommand typedCommand(
+            cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult typed, int version) {
+        return new PatchPreparationItemCommand(1L, 2L, version, 1, 1, 1, 1, 3,
+                Set.of("surveyResult"), null, null, null, null, null, null, null, null, typed);
+    }
+
     private void stubRows(Long assigneeId) {
         PreparationDO preparation = preparation();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -189,7 +257,7 @@ class PreparationItemApplicationServiceTest {
 
     private PreparationItemDO item(Long assigneeId) {
         PreparationItemDO row = new PreparationItemDO();
-        row.setId(2L); row.setPreparationId(1L); row.setApplicabilityCode("REQUIRED");
+        row.setId(2L); row.setPreparationId(1L); row.setApplicabilityCode("REQUIRED"); row.setItemCode("POWER");
         row.setConfirmationStatusCode("PENDING"); row.setAssigneeUserId(assigneeId);
         row.setOutsourced(false); row.setEvidenceReferenceSnapshot("[]"); row.setVersion(1);
         return row;

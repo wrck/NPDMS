@@ -24,6 +24,11 @@ public class PreparationItemPatchReqVO {
     @Size(max = 64) private String siteResultCode;
     @Size(max = 2000) private String siteResultDetail;
     private String formValueSnapshot;
+    @Valid private cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult surveyResult;
+
+    public void setSurveyResult(cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult value) {
+        surveyResult = value; submittedFields.add("surveyResult");
+    }
     @Valid private List<PreparationEvidenceReferenceReqVO> evidenceReferences;
     @JsonIgnore private final Set<String> submittedFields = new LinkedHashSet<>();
 
@@ -41,6 +46,11 @@ public class PreparationItemPatchReqVO {
     public void setFormValueSnapshot(String value) { formValueSnapshot = value; submittedFields.add("formValueSnapshot"); }
     public void setEvidenceReferences(List<PreparationEvidenceReferenceReqVO> value) {
         evidenceReferences = value; submittedFields.add("evidenceReferences");
+    }
+
+    @com.fasterxml.jackson.annotation.JsonAnySetter
+    public void rejectUnknown(String name, com.fasterxml.jackson.databind.JsonNode ignored) {
+        throw new IllegalArgumentException("Unsupported preparation item field: " + name);
     }
 
     @JsonIgnore

@@ -65,6 +65,7 @@ public class PreparationQueryService {
 
     private final PreparationMapper preparationMapper;
     private final PreparationItemMapper itemMapper;
+    private final PreparationSurveyResultService surveyResultService;
     private final PreparationItemWaiverMapper waiverMapper;
     private final DynamicFormInstanceMapper formMapper;
     private final PreparationSourceReferenceMapper sourceMapper;
@@ -238,6 +239,7 @@ public class PreparationQueryService {
         response.setAllowedActions(itemActions(row, form, pendingWaiver, actions, actor));
         response.setVersion(row.getVersion());
         response.setForm(toForm(form));
+        response.setSurveyResult(surveyResultService.get(actor.tenantId(), row.getPreparationId(), row.getId()));
         return response;
     }
 

@@ -1,13 +1,13 @@
 <template>
   <ContentWrap>
     <div class="panel-heading">
-      <div><h3>工勘准备</h3><span>逐项分工、固定表单、来源与实施就绪</span></div>
+      <div><h3>现场工勘</h3><span>记录现场条件、明确分工并确认实施准备情况</span></div>
       <div class="heading-actions">
         <el-button v-if="preparation" @click="readinessRef?.open(preparation)">快照历史</el-button>
-        <el-button :loading="loading" @click="load">刷新</el-button>
+        <el-button :loading="loading" @click="refresh">刷新</el-button>
       </div>
     </div>
-    <el-skeleton v-if="loading" :rows="6" animated />
+    <el-skeleton v-if="loading && !preparation" :rows="6" animated />
     <el-alert v-else-if="unavailable" :title="unavailable" type="warning" :closable="false">
       <template #default
         >历史项目未冻结 PRE-02 工作绑定时仅展示该稳定阻断，不提供初始化按钮。</template
@@ -23,19 +23,28 @@
       />
       <div class="summary-grid">
         <div
-          ><span>业务版本</span><strong>V{{ preparation.businessVersion }}</strong></div
+          ><span>办理状态</span><strong>{{ statusLabel(preparation.status) }}</strong></div
         >
         <div
-          ><span>准备状态</span><strong>{{ preparation.status }}</strong></div
+          ><span>现场准备</span><strong>{{ statusLabel(preparation.readinessStatus) }}</strong></div
         >
         <div
-          ><span>就绪状态</span><strong>{{ preparation.readinessStatus }}</strong></div
+          ><span>工勘项目</span><strong>{{ items.length }} 项</strong></div
         >
         <div
-          ><span>输入 / 就绪版本</span
-          ><strong>{{ preparation.inputVersion }} / {{ preparation.readinessVersion }}</strong></div
+          ><span>已确认</span
+          ><strong
+            >{{ items.filter((row) => row.confirmationStatus === 'CONFIRMED').length }} 项</strong
+          ></div
         >
       </div>
+      <PreparationSurveyMetadataPanel
+        ref="surveyRef"
+        :preparation="preparation"
+        :project="project"
+        @saved="load"
+        @dirty-change="surveyDirty = $event"
+      />
       <div class="primary-actions">
         <el-button
           v-if="preparation.allowedActions.includes('SUBMIT')"
@@ -47,14 +56,20 @@
           v-if="preparation.allowedActions.includes('EVALUATE_READINESS')"
           type="success"
           @click="evaluate"
-          >显式评估就绪</el-button
+          >检查实施准备</el-button
         >
       </div>
       <el-table :data="items" class="desktop-items" row-key="itemId">
-        <el-table-column prop="itemName" label="工勘项" min-width="130" />
+        <el-table-column prop="itemName" label="工勘项" min-width="110" />
+        <el-table-column label="现场条件" min-width="260" show-overflow-tooltip>
+          <template #default="{ row }">{{
+            surveySummary(row.itemCode, row.surveyResult)
+          }}</template>
+        </el-table-column>
         <el-table-column label="适用 / 确认" min-width="150">
           <template #default="{ row }"
-            >{{ row.applicability }} · {{ row.confirmationStatus }}</template
+            >{{ statusLabel(row.applicability) }} ·
+            {{ statusLabel(row.confirmationStatus) }}</template
           >
         </el-table-column>
         <el-table-column label="负责人" min-width="100"
@@ -73,16 +88,22 @@
         <article v-for="row in items" :key="row.itemId" class="item-card">
           <div class="item-heading"
             ><strong>{{ row.itemName }}</strong
-            ><el-tag>{{ row.confirmationStatus }}</el-tag></div
+            ><el-tag>{{ statusLabel(row.confirmationStatus) }}</el-tag></div
           >
-          <p>{{ row.applicability }} · 负责人 {{ row.assigneeUserId || '未指派' }}</p>
+          <p>{{ statusLabel(row.applicability) }} · 负责人 {{ row.assigneeUserId || '未指派' }}</p>
+          <p>{{ surveySummary(row.itemCode, row.surveyResult) }}</p>
           <SourceFacts :item="row" />
           <ItemActions :item="row" />
         </article>
       </div>
     </template>
   </ContentWrap>
-  <PreparationItemDrawer ref="itemRef" :project-version="project.version || 0" @saved="load" />
+  <PreparationItemDrawer
+    ref="itemRef"
+    :project-version="project.version || 0"
+    @saved="load"
+    @dirty-change="itemDirty = $event"
+  />
   <PreparationWaiverDrawer
     ref="waiverRef"
     :project-version="project.version || 0"
@@ -101,12 +122,33 @@ import type {
   PreparationVO
 } from '@/api/pms/engineering/preparation'
 import PreparationItemDrawer from './PreparationItemDrawer.vue'
+import PreparationSurveyMetadataPanel from './PreparationSurveyMetadataPanel.vue'
+import { surveySummary } from './surveyResult'
 import PreparationWaiverDrawer from './PreparationWaiverDrawer.vue'
 import PreparationReadinessDrawer from './PreparationReadinessDrawer.vue'
 import { createIntentKeyStore, intentOf } from './preparationInteraction'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
+const emit = defineEmits<{ 'dirty-change': [boolean] }>()
 const message = useMessage()
+const surveyRef = ref<InstanceType<typeof PreparationSurveyMetadataPanel>>()
+const surveyDirty = ref(false)
+const itemDirty = ref(false)
+const isDirty = () => surveyDirty.value || itemDirty.value
+const statusLabel = (status: string) =>
+  ({
+    DRAFT: '填写中',
+    PENDING_CONFIRMATION: '待经理确认',
+    CONFIRMED: '已确认',
+    RETURNED: '已退回',
+    READY: '已就绪',
+    NOT_READY: '待落实',
+    REQUIRED: '适用',
+    PENDING: '待确认',
+    NOT_APPLICABLE_PENDING: '待确认不适用',
+    NOT_APPLICABLE_CONFIRMED: '不适用'
+  })[status] || status
+watch(isDirty, (dirty) => emit('dirty-change', dirty))
 const loading = ref(false)
 const unavailable = ref('')
 const preparation = ref<PreparationVO | null>(null)
@@ -116,24 +158,30 @@ const waiverRef = ref<InstanceType<typeof PreparationWaiverDrawer>>()
 const readinessRef = ref<InstanceType<typeof PreparationReadinessDrawer>>()
 const intentKeys = createIntentKeyStore()
 
+let loadSequence = 0
 const load = async () => {
-  if (!props.project.id) return
+  const sequence = ++loadSequence
+  const projectId = props.project.id
+  if (!projectId) return
   loading.value = true
   unavailable.value = ''
   try {
-    preparation.value = await PreparationApi.getCurrent(props.project.id)
-    items.value = []
-    if (!preparation.value) return
-    let cursor: string | undefined
-    do {
-      const page = await PreparationApi.getItems(preparation.value.preparationId, {
-        cursor,
-        pageSize: 100
-      })
-      items.value.push(...page.items)
-      cursor = page.hasMore ? page.nextCursor : undefined
-    } while (cursor)
+    const current = await PreparationApi.getCurrent(projectId)
+    if (sequence !== loadSequence || projectId !== props.project.id) return
+    const loadedItems: PreparationItemVO[] = []
+    if (current) {
+      let cursor: string | undefined
+      do {
+        const page = await PreparationApi.getItems(current.preparationId, { cursor, pageSize: 100 })
+        if (sequence !== loadSequence || projectId !== props.project.id) return
+        loadedItems.push(...page.items)
+        cursor = page.hasMore ? page.nextCursor : undefined
+      } while (cursor)
+    }
+    preparation.value = current
+    items.value = loadedItems
   } catch (error: any) {
+    if (sequence !== loadSequence || projectId !== props.project.id) return
     preparation.value = null
     items.value = []
     const code = String(error?.code || error?.data?.code || error?.message || '')
@@ -141,9 +189,29 @@ const load = async () => {
       unavailable.value = 'WORK_BINDING_NOT_AVAILABLE：当前项目没有冻结的 PRE-02 工作绑定'
     } else throw error
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
+const discardChanges = () => {
+  if (surveyRef.value?.discardChanges() === false || itemRef.value?.discardChanges() === false)
+    return false
+  surveyDirty.value = false
+  itemDirty.value = false
+  return true
+}
+const requestLeave = async () => {
+  if (!isDirty()) return true
+  try {
+    await message.confirm('工勘内容尚未保存，离开将放弃本次编辑。')
+  } catch {
+    return false
+  }
+  return discardChanges()
+}
+const refresh = async () => {
+  if (await requestLeave()) await load()
+}
+defineExpose({ isDirty, discardChanges, requestLeave })
 
 const submit = async () => {
   if (!preparation.value) return

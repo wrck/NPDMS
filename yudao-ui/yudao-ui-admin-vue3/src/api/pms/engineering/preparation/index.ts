@@ -1,4 +1,48 @@
 import request from '@/config/axios'
+import type { LocationMaintainRequest } from '@/api/pms/asset/location'
+
+export interface SurveyResult {
+  powerSupply?: string | null
+  powerEnvironment?: string | null
+  networkPort?: string | null
+  fiber?: string | null
+  cabinet?: string | null
+  networkCable?: string | null
+  opticalModule?: string | null
+  cabinetAvailable?: boolean | null
+  networkCableAvailable?: boolean | null
+  opticalModuleAvailable?: boolean | null
+  originalOpticalModule?: boolean | null
+}
+
+export interface SurveyMetadata {
+  preparationId: number
+  surveyDate?: string | null
+  surveyorUserId?: number | null
+  location?: string | null
+  locationResolutionStatus?: string | null
+  addressId?: number
+  addressVersion?: number
+  siteId?: number
+  siteVersion?: number
+  siteLocationId?: number
+  siteLocationVersion?: number
+  grounding?: string | null
+  constructionResource?: string | null
+  conclusion?: string | null
+  version: number
+  allowedActions: string[]
+}
+
+export interface SurveyMetadataSave {
+  expectedProjectVersion: number
+  surveyDate?: string | null
+  surveyorUserId?: number | null
+  locationCommand?: LocationMaintainRequest
+  grounding?: string | null
+  constructionResource?: string | null
+  conclusion?: string | null
+}
 
 export interface CursorPage<T> {
   items: T[]
@@ -40,6 +84,7 @@ export interface PreparationItemVO {
   allowedActions: string[]
   version: number
   form: PreparationFormVO
+  surveyResult?: SurveyResult | null
 }
 
 export interface PreparationSourceVO {
@@ -121,6 +166,7 @@ export interface PatchPreparationItemReqVO {
   siteResultCode?: string | null
   siteResultDetail?: string | null
   formValueSnapshot?: string
+  surveyResult?: SurveyResult
   evidenceReferences?: EvidenceReference[]
 }
 
@@ -195,6 +241,17 @@ export interface SourceRefreshReqVO {
 }
 
 const baseUrl = '/api/v1/pms/preparations'
+
+export const getSurvey = (preparationId: number) =>
+  request.get<SurveyMetadata>({ url: `${baseUrl}/${preparationId}/survey` })
+
+export const saveSurvey = (preparationId: number, version: number, data: SurveyMetadataSave) =>
+  request.put<SurveyMetadata>({
+    method: 'PATCH',
+    url: `${baseUrl}/${preparationId}/survey`,
+    data,
+    headers: { 'If-Match': String(version) }
+  })
 
 export const getCurrent = (projectId: number) =>
   request.get<PreparationVO | null>({ url: baseUrl, params: { projectId, type: 'PRE_02' } })

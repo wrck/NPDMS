@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.SiteSurveyMapper">
+    <!-- FR-ENG-001：锁顺序为项目范围、工勘原行、AST地点；全部写入保留身份/租户/版本谓词。 -->
+    <select id="selectByRow" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO">
+        SELECT * FROM pms_eng_site_survey
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0
+    </select>
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO">
+        SELECT * FROM pms_eng_site_survey
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0
+        FOR UPDATE
+    </select>
+    <sql id="writeCondition">
+        tenant_id = #{condition.tenantId} AND id = #{condition.id}
+        AND project_id = #{condition.projectId} AND code = #{condition.code}
+        AND version = #{condition.expectedVersion} AND status = #{condition.expectedStatus} AND deleted = 0
+    </sql>
+    <sql id="locationAssignments">
+        location = #{survey.location}, address_id = #{survey.addressId}, address_version = #{survey.addressVersion},
+        site_id = #{survey.siteId}, site_version = #{survey.siteVersion},
+        site_location_id = #{survey.siteLocationId}, site_location_version = #{survey.siteLocationVersion},
+        location_resolution_status = #{survey.locationResolutionStatus},
+        address_snapshot = #{survey.addressSnapshot}, location_snapshot = #{survey.locationSnapshot}
+    </sql>
+    <update id="initializeLocationIfMatch">
+        UPDATE pms_eng_site_survey SET <include refid="locationAssignments"/>
+        WHERE <include refid="writeCondition"/> AND status = 0 AND version = 0
+    </update>
+    <update id="updateDraftIfMatch">
+        UPDATE pms_eng_site_survey
+        SET name = #{survey.name}, survey_date = #{survey.surveyDate}, surveyor_user_id = #{survey.surveyorUserId},
+            <include refid="locationAssignments"/>,
+            power_supply = #{survey.powerSupply}, cabinet = #{survey.cabinet}, network_port = #{survey.networkPort},
+            fiber = #{survey.fiber}, module = #{survey.module}, cable = #{survey.cable}, ground = #{survey.ground},
+            construction_resource = #{survey.constructionResource}, conclusion = #{survey.conclusion}, remark = #{survey.remark},
+            version = version + 1, updater = #{condition.updater}, update_time = CURRENT_TIMESTAMP
+        WHERE <include refid="writeCondition"/> AND status IN (0, 2)
+    </update>
+    <update id="updateStatusIfMatch">
+        UPDATE pms_eng_site_survey
+        SET status = #{newStatus}, version = version + 1, updater = #{condition.updater}, update_time = CURRENT_TIMESTAMP
+        WHERE <include refid="writeCondition"/>
+          AND ((status = 0 AND #{newStatus} IN (1, 2)) OR (status = 1 AND #{newStatus} = 3))
+    </update>
+    <update id="deleteDraftIfMatch">
+        UPDATE pms_eng_site_survey
+        SET deleted = 1, version = version + 1, updater = #{condition.updater}, update_time = CURRENT_TIMESTAMP
+        WHERE <include refid="writeCondition"/> AND status = 0
+    </update>
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationSurveyResultMapper">
+    <sql id="columns">
+        tenant_id, preparation_id, item_id, power_supply, power_environment, network_port, fiber,
+        cabinet, network_cable, optical_module, cabinet_available, network_cable_available,
+        optical_module_available, original_optical_module, creator, create_time, updater, update_time
+    </sql>
+    <select id="selectByItem" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSurveyResultDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_survey_result
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId} AND item_id = #{query.itemId}
+    </select>
+    <insert id="insert">
+        INSERT INTO sol_preparation_survey_result (<include refid="columns"/>) VALUES (
+            #{row.tenantId}, #{row.preparationId}, #{row.itemId}, #{row.powerSupply}, #{row.powerEnvironment},
+            #{row.networkPort}, #{row.fiber}, #{row.cabinet}, #{row.networkCable}, #{row.opticalModule},
+            #{row.cabinetAvailable}, #{row.networkCableAvailable}, #{row.opticalModuleAvailable},
+            #{row.originalOpticalModule}, #{row.creator}, CURRENT_TIMESTAMP(3), #{row.updater}, CURRENT_TIMESTAMP(3)
+        )
+    </insert>
+    <!-- Caller holds preparation/item/form locks and performs their CAS in the same transaction. -->
+    <update id="update">
+        UPDATE sol_preparation_survey_result SET
+            power_supply = #{row.powerSupply}, power_environment = #{row.powerEnvironment},
+            network_port = #{row.networkPort}, fiber = #{row.fiber}, cabinet = #{row.cabinet},
+            network_cable = #{row.networkCable}, optical_module = #{row.opticalModule},
+            cabinet_available = #{row.cabinetAvailable}, network_cable_available = #{row.networkCableAvailable},
+            optical_module_available = #{row.opticalModuleAvailable}, original_optical_module = #{row.originalOpticalModule},
+            updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{row.tenantId} AND preparation_id = #{row.preparationId} AND item_id = #{row.itemId}
+    </update>
+</mapper>

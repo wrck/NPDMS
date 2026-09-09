@@ -52,6 +52,8 @@ public class PreparationReviewService {
     private final PreparationItemMapper itemMapper;
     private final DynamicFormInstanceMapper formMapper;
     private final PreparationSourceReferenceMapper sourceMapper;
+    private final PreparationSurveyResultService surveyResultService;
+    private final PreparationSurveyService surveyService;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
@@ -139,9 +141,18 @@ public class PreparationReviewService {
                 throw exception(PREPARATION_STATUS_INVALID);
             }
             if ("REQUIRED".equals(item.getApplicabilityCode())) {
-                FixedSurveyFormRules.validateAndNormalizeValue(form.getSchemaSnapshot(), form.getValueSnapshot());
-                if (item.getAssigneeUserId() == null || item.getSiteResultCode() == null
-                        || item.getSiteResultCode().isBlank()) throw exception(PREPARATION_STATUS_INVALID);
+                var typed = surveyResultService.get(actor.tenantId(), preparation.getId(), item.getId());
+                if (typed != null) {
+                    cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResultRules
+                            .requireComplete(item.getItemCode(), typed);
+                } else {
+                    // Explicit compatibility for not-yet-migrated historical forms.
+                    FixedSurveyFormRules.validateAndNormalizeValue(form.getSchemaSnapshot(), form.getValueSnapshot());
+                    if (item.getSiteResultCode() == null || item.getSiteResultCode().isBlank()) {
+                        throw exception(PREPARATION_STATUS_INVALID);
+                    }
+                }
+                if (item.getAssigneeUserId() == null) throw exception(PREPARATION_STATUS_INVALID);
                 validateEvidence(item, actor);
             } else if ((!retainedConfirmed && "NOT_APPLICABLE_PENDING".equals(item.getApplicabilityCode()))
                     || (retainedConfirmed && "NOT_APPLICABLE_CONFIRMED".equals(item.getApplicabilityCode()))) {
@@ -254,6 +265,8 @@ public class PreparationReviewService {
             PreparationItemDO copied = copyItem(oldItem, next.getId(), oldItem.getId().equals(selected.getId()), actor, now);
             if (itemMapper.insert(copied) != 1 || copied.getId() == null) throw new IllegalStateException("PREPARATION_ITEM_COPY_FAILED");
             itemIds.put(oldItem.getId(), copied.getId());
+            surveyResultService.copy(actor.tenantId(), oldPreparation.getId(), oldItem.getId(),
+                    next.getId(), copied.getId(), actor.actorId());
         }
         for (DynamicFormInstanceDO oldForm : oldForms) {
             Long newItemId = itemIds.get(oldForm.getItemId());
@@ -266,6 +279,7 @@ public class PreparationReviewService {
             PreparationSourceReferenceDO copied = copySource(source, next.getId(), itemIds.get(source.getItemId()), actor, now);
             if (sourceMapper.insert(copied) != 1) throw new IllegalStateException("PREPARATION_SOURCE_COPY_FAILED");
         }
+        surveyService.copy(actor.tenantId(), oldPreparation.getId(), next.getId(), actor.actorId());
         auditSnapshot.set(returnAudit(command, oldPreparation, next, oldItems, oldForms, sources,
                 selected, itemIds));
         return result(next, "DRAFT", 0, next.getId());

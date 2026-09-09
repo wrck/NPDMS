@@ -49,6 +49,7 @@ class PreparationReadinessServiceTest {
 
     @Mock PreparationMapper preparationMapper;
     @Mock PreparationItemMapper itemMapper;
+    @Mock PreparationSurveyResultService surveyResultService;
     @Mock DynamicFormInstanceMapper formMapper;
     @Mock PreparationSourceReferenceMapper sourceMapper;
     @Mock PreparationItemWaiverMapper waiverMapper;
@@ -334,6 +335,48 @@ class PreparationReadinessServiceTest {
                 () -> service.lockAndRevalidate(new SiteSurveyReadinessRevalidationQuery(
                         10L, 1L, 1, 1, 4, 1, 91L, 3L, changedVector), 1L, 7L));
         assertEquals(PREPARATION_READINESS_VERSION_CONFLICT.getCode(), vectorConflict.getCode());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"CABINET", "NETWORK_CABLE", "OPTICAL_MODULE"})
+    void typedUnavailableResourceBlocksReady(String itemCode) {
+        PreparationItemDO item = item(1); item.setItemCode(itemCode);
+        DynamicFormInstanceDO form = form(1); form.setValueSnapshot("{}");
+        stubLocked(preparation(), item, form);
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        switch (itemCode) {
+            case "CABINET" -> typed.setCabinetAvailable(false);
+            case "NETWORK_CABLE" -> typed.setNetworkCableAvailable(false);
+            case "OPTICAL_MODULE" -> typed.setOpticalModuleAvailable(false);
+        }
+        when(surveyResultService.get(1L, 1L, 11L)).thenReturn(typed);
+        PreparationItemWaiverDO unsupported = waiver(LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1));
+        unsupported.setItemCode(itemCode); unsupported.setBlockerCodesSnapshot("[\"" + itemCode + "_UNAVAILABLE\"]");
+        when(waiverMapper.selectBusinessListForUpdate(any())).thenReturn(List.of(unsupported));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(91L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "typed-false"), actor());
+        assertEquals("NOT_READY", result.readiness().readinessStatus());
+        assertEquals(List.of(itemCode + "_UNAVAILABLE"), result.readiness().blockerCodes());
+    }
+
+    @Test
+    void nonOriginalOpticalModuleDoesNotBlockReady() {
+        PreparationItemDO item = item(1); item.setItemCode("OPTICAL_MODULE");
+        DynamicFormInstanceDO form = form(1); form.setValueSnapshot("{}");
+        stubLocked(preparation(), item, form);
+        var typed = new cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult();
+        typed.setOpticalModuleAvailable(true); typed.setOriginalOpticalModule(false);
+        when(surveyResultService.get(1L, 1L, 11L)).thenReturn(typed);
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(91L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "typed-original"), actor());
+        assertEquals("READY", result.readiness().readinessStatus());
+        assertTrue(result.readiness().blockerCodes().isEmpty());
     }
 
     private void stubLocked(PreparationDO preparation, PreparationItemDO item, DynamicFormInstanceDO form) {

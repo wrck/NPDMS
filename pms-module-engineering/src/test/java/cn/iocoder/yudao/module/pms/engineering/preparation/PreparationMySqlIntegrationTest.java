@@ -127,6 +127,14 @@ import static org.mockito.Mockito.when;
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class PreparationMySqlIntegrationTest {
 
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService generatedFiles;
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService grantUploads;
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService assistedUploads;
+    @Resource cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceInitialization;
+    @Resource cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates;
+    @Resource cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi dynamicForms;
+    @Resource cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi businessViews;
+    @Resource cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi processOwner;
     @Resource ProjectManualCreationApplicationService projectCreationService;
     @Resource ProjectTemplateService projectTemplateService;
     @Resource PreparationItemApplicationService itemService;
@@ -162,6 +170,8 @@ class PreparationMySqlIntegrationTest {
     void tearDown() {
         SecurityContextHolder.clearContext();
         TenantContextHolder.clear();
+        org.mockito.Mockito.verifyNoInteractions(generatedFiles, grantUploads, assistedUploads,
+                acceptanceInitialization, satisfactionTemplates, dynamicForms, businessViews, processOwner);
     }
 
     @Test
@@ -486,6 +496,11 @@ class PreparationMySqlIntegrationTest {
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             ProjectManualCreationApplicationService.class, ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class, ProjectAttributeResolutionService.class,
+            cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateDefinitionReferenceAssembler.class,
+            cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionResolver.class,
+            cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands.class,
+            cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry.class,
+            cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectLocalStageGateFactProvider.class,
             ProjectTemplateMatchHistoryService.class, ProjectAttributeClassificationApplicationService.class,
             ProjectAttributeSourceCorrectionService.class, ProjectTemplateMatchHistoryQueryService.class,
             ProjectTreeProjectionService.class, ProjectCodeAllocator.class,
@@ -493,6 +508,9 @@ class PreparationMySqlIntegrationTest {
             ProjectWorkBindingFactApiImpl.class, PreparationInitializationApiImpl.class,
             PreparationInitializationService.class, PreparationItemApplicationService.class,
             PreparationReviewService.class, PreparationReadinessService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSurveyResultService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSurveyService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
             FileArtifactApiImpl.class,
             cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class,
@@ -503,6 +521,35 @@ class PreparationMySqlIntegrationTest {
             cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
             OperationAuditApiImpl.class})
     static class TestApplication {
+        // These workflows are outside this PRE-02 fixture; every test asserts zero calls.
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService generatedFiles() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService grantUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService assistedUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceInitialization() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi dynamicForms() {
+            return mock(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi businessViews() {
+            return mock(cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi processOwner() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi.class);
+        }
+
+        @Bean cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService locationFactService() {
+            return mock(cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.class);
+        }
 
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
 

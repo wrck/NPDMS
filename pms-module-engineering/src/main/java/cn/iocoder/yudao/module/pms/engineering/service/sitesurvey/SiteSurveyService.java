@@ -27,7 +27,7 @@ public interface SiteSurveyService {
     /**
      * 删除现场工勘
      */
-    void deleteSiteSurvey(Long id);
+    void deleteSiteSurvey(Long id, Integer expectedVersion);
 
     /**
      * 查询现场工勘详情
@@ -42,15 +42,15 @@ public interface SiteSurveyService {
     /**
      * 确认工勘：草稿(0) → 已确认(1)
      */
-    void confirmSiteSurvey(Long id);
+    void confirmSiteSurvey(Long id, Integer expectedVersion);
 
     /**
      * 驳回工勘：草稿(0) → 已驳回(2)
      */
-    void rejectSiteSurvey(Long id);
+    void rejectSiteSurvey(Long id, Integer expectedVersion);
 
     /**
      * 归档工勘：已确认(1) → 已归档(3)
      */
-    void archiveSiteSurvey(Long id);
+    void archiveSiteSurvey(Long id, Integer expectedVersion);
 }

@@ -27,6 +27,11 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationWa
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSurveyService;
+import cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationSurveyPatchReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemPatchRespVO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
@@ -96,8 +101,13 @@ import static org.mockito.Mockito.when;
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class PreparationInitializationMySqlIntegrationTest {
 
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService generatedFiles;
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService grantUploads;
+    @Resource cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService assistedUploads;
     @Resource PreparationInitializationService service;
     @Resource PreparationItemApplicationService itemService;
+    @Resource PreparationQueryService queryService;
+    @Resource PreparationSurveyService surveyService;
     @Resource PreparationReviewService reviewService;
     @Resource PreparationReadinessService readinessService;
     @Resource PreparationSourceService sourceService;
@@ -202,6 +212,10 @@ class PreparationInitializationMySqlIntegrationTest {
                         + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM sol_dynamic_form_instance WHERE tenant_id=0 "
                         + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
+                statement.executeUpdate("DELETE FROM sol_preparation_survey_result WHERE tenant_id=0 "
+                        + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE tenant_id=0 AND project_id=" + projectId + ")");
+                statement.executeUpdate("DELETE FROM sol_preparation_survey WHERE tenant_id=0 "
+                        + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE tenant_id=0 AND project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM sol_preparation_item WHERE tenant_id=0 "
                         + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM sol_preparation WHERE tenant_id=0 AND project_id=" + projectId);
@@ -230,6 +244,7 @@ class PreparationInitializationMySqlIntegrationTest {
         });
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
+        org.mockito.Mockito.verifyNoInteractions(generatedFiles, grantUploads, assistedUploads);
     }
 
     @Test
@@ -818,6 +833,185 @@ class PreparationInitializationMySqlIntegrationTest {
         return new PreparedReadiness(preparationId, preparationVersion, actor);
     }
 
+    @Test
+    void typedSurveyPersistsReadsAndCopiesToReturnedIdentityWithoutChangingLegacyHistory() {
+        Long preparationId = initializeTypedSurveyFixture();
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-REVIEW-" + projectId);
+        PreparationSurveyPatchReqVO metadata = new PreparationSurveyPatchReqVO();
+        metadata.setExpectedProjectVersion(4); metadata.setSurveyDate(java.time.LocalDate.of(2026, 9, 9));
+        metadata.setGrounding("专用夹具接地说明"); metadata.setConstructionResource("专用夹具施工资源");
+        metadata.setConclusion("现场采集完成");
+        var savedMetadata = surveyService.patch(preparationId, currentPreparationVersion(preparationId), metadata, actor);
+        assertEquals(currentPreparationVersion(preparationId), savedMetadata.getVersion());
+        assertEquals("专用夹具接地说明", surveyService.get(preparationId, actor).getGrounding());
+        Long cabinetId = surveyItemId(preparationId, "CABINET");
+        String oldJson = legacyFormValue(cabinetId);
+        PreparationSurveyResult cabinet = new PreparationSurveyResult();
+        cabinet.setCabinet("独立机柜说明"); cabinet.setCabinetAvailable(true);
+        var saved = patchTyped(preparationId, cabinetId, cabinet);
+        assertEquals(1, saved.getItemVersion()); assertEquals(1, saved.getFormVersion());
+        assertEquals(oldJson, legacyFormValue(cabinetId));
+        assertEquals("独立机柜说明", queryService.getItems(preparationId, null,
+                new PreparationQueryService.Actor(0L, 9L)).items().stream()
+                .filter(item -> item.getItemId().equals(cabinetId)).findFirst().orElseThrow().getSurveyResult().getCabinet());
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_survey_result "
+                + "WHERE tenant_id=1 AND item_id=?", Long.class, cabinetId));
+        PreparationSurveyResult patch = new PreparationSurveyResult(); patch.setCabinetAvailable(false);
+        assertThrows(ForcedRollback.class, () -> transactionTemplate.executeWithoutResult(status -> {
+            patchTyped(preparationId, cabinetId, patch); throw new ForcedRollback();
+        }));
+        assertEquals(saved.getPreparationVersion(), currentPreparationVersion(preparationId));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT cabinet_available+0 FROM sol_preparation_survey_result "
+                + "WHERE tenant_id=0 AND item_id=?", Integer.class, cabinetId));
+        assertEquals(oldJson, legacyFormValue(cabinetId));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> itemService.patch(
+                typedCommand(preparationId, cabinetId, patch, 0), actor));
+
+        fillRemainingTypedItems(preparationId, cabinetId);
+        int version = submitAndConfirmTyped(preparationId, actor);
+        var returned = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.RETURN,
+                preparationId, cabinetId, version, currentItemVersion(cabinetId), 4, "补充机柜说明",
+                "TYPED-RETURN-" + projectId), actor);
+        Long newId = returned.currentPreparationId();
+        Long newCabinetId = surveyItemId(newId, "CABINET");
+        assertEquals(6L, count("sol_preparation_survey_result", "preparation_id", preparationId));
+        assertEquals(6L, count("sol_preparation_survey_result", "preparation_id", newId));
+        assertEquals("独立机柜说明", jdbcTemplate.queryForObject("SELECT cabinet FROM sol_preparation_survey_result "
+                + "WHERE tenant_id=0 AND item_id=?", String.class, newCabinetId));
+        assertEquals("专用夹具接地说明", surveyService.get(newId, actor).getGrounding());
+        assertEquals(java.time.LocalDate.of(2026, 9, 9), surveyService.get(newId, actor).getSurveyDate());
+        assertEquals("DRAFT", jdbcTemplate.queryForObject("SELECT status_code FROM sol_dynamic_form_instance "
+                + "WHERE tenant_id=0 AND item_id=?", String.class, newCabinetId));
+        PreparationSurveyResult corrected = new PreparationSurveyResult(); corrected.setCabinet("新版本机柜说明");
+        patchTyped(newId, newCabinetId, corrected);
+        assertEquals("独立机柜说明", jdbcTemplate.queryForObject("SELECT cabinet FROM sol_preparation_survey_result "
+                + "WHERE tenant_id=0 AND item_id=?", String.class, cabinetId));
+        assertEquals(oldJson, legacyFormValue(cabinetId));
+        assertEquals("FROZEN", jdbcTemplate.queryForObject("SELECT status_code FROM sol_dynamic_form_instance "
+                + "WHERE tenant_id=0 AND item_id=?", String.class, cabinetId));
+    }
+
+    @Test
+    void typedUnavailableResourcesAreConfirmedButNotReadyInMySql() {
+        Long preparationId = initializeTypedSurveyFixture();
+        for (String code : List.of("POWER", "NETWORK_PORT", "FIBER", "CABINET", "NETWORK_CABLE", "OPTICAL_MODULE")) {
+            PreparationSurveyResult result = completeTypedResult(code);
+            if ("CABINET".equals(code)) result.setCabinetAvailable(false);
+            if ("NETWORK_CABLE".equals(code)) result.setNetworkCableAvailable(false);
+            if ("OPTICAL_MODULE".equals(code)) result.setOpticalModuleAvailable(false);
+            patchTyped(preparationId, surveyItemId(preparationId, code), result);
+        }
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-READY-" + projectId);
+        int version = submitAndConfirmTyped(preparationId, actor);
+        var evaluated = readinessService.evaluate(new PreparationReadinessCommand(preparationId, version, 4,
+                "TYPED-NOT-READY-" + projectId), actor);
+        assertEquals("CONFIRMED", evaluated.readiness().status());
+        assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
+        assertEquals(List.of("CABINET_UNAVAILABLE", "NETWORK_CABLE_UNAVAILABLE", "OPTICAL_MODULE_UNAVAILABLE"),
+                evaluated.readiness().blockerCodes());
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=? AND result_code='READY'", Long.class, preparationId));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? AND site_result_code IS NOT NULL", Long.class, preparationId));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_dynamic_form_instance "
+                + "WHERE tenant_id=0 AND preparation_id=? AND JSON_LENGTH(value_snapshot)>0", Long.class, preparationId));
+    }
+
+    @Test
+    void typedAvailableNonOriginalOpticalModuleCanBecomeReadyInMySql() {
+        Long preparationId = initializeTypedSurveyFixture(); fillRemainingTypedItems(preparationId, null);
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-READY-" + projectId);
+        int version = submitAndConfirmTyped(preparationId, actor);
+        var evaluated = readinessService.evaluate(new PreparationReadinessCommand(preparationId, version, 4,
+                "TYPED-READY-" + projectId), actor);
+        assertEquals("READY", evaluated.readiness().readinessStatus());
+        assertEquals(List.of(), evaluated.readiness().blockerCodes());
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT original_optical_module+0 "
+                + "FROM sol_preparation_survey_result WHERE tenant_id=0 AND item_id=?", Integer.class,
+                surveyItemId(preparationId, "OPTICAL_MODULE")));
+    }
+
+    /** Dedicated six-item configuration fixture, not a claim that legacy PM-03 seeds can publish. */
+    private Long initializeTypedSurveyFixture() {
+        var binding = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(bindingSnapshot,
+                tools.jackson.databind.JsonNode.class);
+        for (var configured : binding.path("itemConfiguration")) {
+            var item = (tools.jackson.databind.node.ObjectNode) configured;
+            item.put("enabled", true); item.put("evidenceRequired", false); item.put("sourceRequirementCode", "NONE");
+        }
+        bindingSnapshot = binding.toString();
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract(); service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        // Assignment-only fixture; all content and lifecycle changes below use their public application services.
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9 WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        assertEquals(6L, count("sol_preparation_item", "preparation_id", preparationId));
+        return preparationId;
+    }
+
+    private void fillRemainingTypedItems(Long preparationId, Long excludedItemId) {
+        for (String code : List.of("POWER", "NETWORK_PORT", "FIBER", "CABINET", "NETWORK_CABLE", "OPTICAL_MODULE")) {
+            Long itemId = surveyItemId(preparationId, code);
+            if (!itemId.equals(excludedItemId)) patchTyped(preparationId, itemId, completeTypedResult(code));
+        }
+    }
+
+    private PreparationSurveyResult completeTypedResult(String code) {
+        PreparationSurveyResult result = new PreparationSurveyResult();
+        switch (code) {
+            case "POWER" -> { result.setPowerSupply("双路供电说明"); result.setPowerEnvironment("供电环境说明"); }
+            case "NETWORK_PORT" -> result.setNetworkPort("网络端口说明");
+            case "FIBER" -> result.setFiber("光纤说明");
+            case "CABINET" -> { result.setCabinet("机柜说明"); result.setCabinetAvailable(true); }
+            case "NETWORK_CABLE" -> { result.setNetworkCable("网线说明"); result.setNetworkCableAvailable(true); }
+            case "OPTICAL_MODULE" -> {
+                result.setOpticalModule("非原厂模块说明"); result.setOpticalModuleAvailable(true); result.setOriginalOpticalModule(false);
+            }
+            default -> throw new IllegalArgumentException(code);
+        }
+        return result;
+    }
+
+    private PreparationItemPatchRespVO patchTyped(Long preparationId, Long itemId, PreparationSurveyResult result) {
+        return itemService.patch(typedCommand(preparationId, itemId, result, currentItemVersion(itemId)),
+                new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-PATCH-" + projectId));
+    }
+
+    private PatchPreparationItemCommand typedCommand(Long preparationId, Long itemId,
+            PreparationSurveyResult result, int itemVersion) {
+        PreparationVersions versions = preparationVersions(preparationId);
+        Integer formVersion = jdbcTemplate.queryForObject("SELECT version FROM sol_dynamic_form_instance "
+                + "WHERE tenant_id=0 AND preparation_id=? AND item_id=?", Integer.class, preparationId, itemId);
+        return new PatchPreparationItemCommand(preparationId, itemId, itemVersion, versions.preparationVersion(),
+                versions.inputVersion(), versions.readinessVersion(), formVersion, 4, Set.of("surveyResult"),
+                null, null, null, null, null, null, null, null, result);
+    }
+
+    private Long surveyItemId(Long preparationId, String code) {
+        return jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item WHERE tenant_id=0 "
+                + "AND preparation_id=? AND item_code=?", Long.class, preparationId, code);
+    }
+
+    private String legacyFormValue(Long itemId) {
+        return jdbcTemplate.queryForObject("SELECT value_snapshot FROM sol_dynamic_form_instance "
+                + "WHERE tenant_id=0 AND item_id=?", String.class, itemId);
+    }
+
+    private int submitAndConfirmTyped(Long preparationId, PreparationItemApplicationService.Actor actor) {
+        int version = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+                preparationId, null, currentPreparationVersion(preparationId), null, 4, null,
+                "TYPED-SUBMIT-" + projectId), actor).preparationVersion();
+        for (Long itemId : jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId)) {
+            version = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.CONFIRM,
+                    preparationId, itemId, version, currentItemVersion(itemId), 4, null,
+                    "TYPED-CONFIRM-" + projectId + "-" + itemId), actor).preparationVersion();
+        }
+        return version;
+    }
+
     private String evaluateConcurrently(PreparedReadiness prepared, String suffix,
             CountDownLatch ready, CountDownLatch start) throws InterruptedException {
         ready.countDown();
@@ -1048,6 +1242,9 @@ class PreparationInitializationMySqlIntegrationTest {
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PreparationInitializationService.class, PreparationItemApplicationService.class,
             PreparationReviewService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSurveyResultService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSurveyService.class,
+            cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService.class,
             PreparationReadinessService.class,
             PreparationSourceService.class,
             PreparationWaiverService.class,
@@ -1061,6 +1258,20 @@ class PreparationInitializationMySqlIntegrationTest {
             cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
             OperationAuditApiImpl.class})
     static class TestApplication {
+        // PRE-02 exercises real file references/facts, not generation or upload workflows.
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService generatedFiles() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService grantUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService assistedUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService.class);
+        }
+
+        @Bean cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService locationFactService() {
+            return mock(cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.class);
+        }
 
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {

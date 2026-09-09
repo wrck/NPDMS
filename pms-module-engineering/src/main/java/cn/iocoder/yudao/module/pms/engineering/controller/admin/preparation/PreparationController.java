@@ -161,7 +161,7 @@ public class PreparationController {
                     request.getExpectedProjectVersion(), request.getSubmittedFields(),
                     request.getApplicabilityCode(), request.getOutsourced(), request.getAssigneeUserId(),
                     request.getNotApplicableReason(), request.getSiteResultCode(), request.getSiteResultDetail(),
-                    request.getFormValueSnapshot(), evidence);
+                    request.getFormValueSnapshot(), evidence, request.getSurveyResult());
             return success(itemApplicationService.patch(command, commandActor()));
         });
     }

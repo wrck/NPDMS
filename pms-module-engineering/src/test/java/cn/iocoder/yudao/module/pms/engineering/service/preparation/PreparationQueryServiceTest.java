@@ -43,6 +43,7 @@ class PreparationQueryServiceTest {
 
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
+    @Mock private PreparationSurveyResultService surveyResultService;
     @Mock private PreparationItemWaiverMapper waiverMapper;
     @Mock private DynamicFormInstanceMapper formMapper;
     @Mock private PreparationSourceReferenceMapper sourceMapper;

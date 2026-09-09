@@ -108,7 +108,7 @@ import type { LocationMaintainRequest, SiteLocationVO, SiteVO } from '@/api/pms/
 
 const props = defineProps<{
   modelValue?: LocationMaintainRequest
-  projectId?: number
+  projectId?: number | string
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainRequest): void }>()
 

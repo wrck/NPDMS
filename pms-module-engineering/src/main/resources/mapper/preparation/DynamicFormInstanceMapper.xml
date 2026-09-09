@@ -83,6 +83,19 @@
           AND frozen_at IS NULL
     </update>
 
+    <!-- Typed business results advance the form CAS without rewriting historical JSON. -->
+    <update id="touchDraftIfMatch">
+        UPDATE sol_dynamic_form_instance
+        SET updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3), version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND item_id = #{update.itemId}
+          AND id = #{update.formInstanceId}
+          AND version = #{update.expectedVersion}
+          AND status_code = 'DRAFT'
+          AND frozen_at IS NULL
+    </update>
+
     <update id="freezeIfMatch">
         UPDATE sol_dynamic_form_instance
         SET status_code = 'FROZEN',

@@ -51,6 +51,7 @@ public class PreparationReadinessService {
     private final PreparationItemMapper itemMapper;
     private final DynamicFormInstanceMapper formMapper;
     private final PreparationSourceReferenceMapper sourceMapper;
+    private final PreparationSurveyResultService surveyResultService;
     private final PreparationItemWaiverMapper waiverMapper;
     private final PreparationReadinessSnapshotMapper snapshotMapper;
     private final ProjectScopeApi projectScopeApi;
@@ -219,6 +220,7 @@ public class PreparationReadinessService {
         List<ReadinessSourceFact> sourceFacts = new ArrayList<>();
         for (PreparationItemDO item : items) {
             List<String> itemBlockers = new ArrayList<>();
+            String resourceBlocker = null;
             DynamicFormInstanceDO form = formByItem.get(item.getId());
             itemFacts.add(itemFact(item, form));
             boolean applicable = "REQUIRED".equals(item.getApplicabilityCode());
@@ -235,7 +237,15 @@ public class PreparationReadinessService {
                 itemBlockers.add("FORM_NOT_FROZEN");
             } else {
                 try {
-                    FixedSurveyFormRules.validateAndNormalizeValue(form.getSchemaSnapshot(), form.getValueSnapshot());
+                    var typed = surveyResultService.get(preparation.getTenantId(), preparation.getId(), item.getId());
+                    if (typed == null) {
+                        FixedSurveyFormRules.validateAndNormalizeValue(form.getSchemaSnapshot(), form.getValueSnapshot());
+                    } else {
+                        cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResultRules
+                                .requireComplete(item.getItemCode(), typed);
+                        resourceBlocker = cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResultRules
+                                .unavailableBlocker(item.getItemCode(), typed);
+                    }
                 } catch (RuntimeException ignored) {
                     itemBlockers.add("FORM_INVALID");
                 }
@@ -243,6 +253,8 @@ public class PreparationReadinessService {
             inspectFiles(item, fileFacts, itemBlockers, locking, failOnExternalError);
             inspectSource(preparation, item, sources, sourceFacts, itemBlockers, locking, failOnExternalError);
             applyWaivers(item, waivers, itemBlockers);
+            // Explicit unavailable resources are not in the existing waiver contract.
+            if (resourceBlocker != null) itemBlockers.add(resourceBlocker);
             blockers.addAll(itemBlockers);
         }
         if (items.isEmpty() || forms.size() != items.size()) blockers.add("ITEM_SET_INVALID");

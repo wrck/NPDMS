@@ -74,7 +74,7 @@ export interface AreaDepartmentMappingVO {
 }
 
 export interface LocationMaintainRequest {
-  projectId?: number
+  projectId?: number | string
   address?: AddressVO
   site?: SiteVO
   siteLocation?: SiteLocationInput

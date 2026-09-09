@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationSurveyMapper">
+    <sql id="columns">
+        tenant_id, preparation_id, survey_date, surveyor_user_id, location, location_resolution_status,
+        address_id, address_version, site_id, site_version, site_location_id, site_location_version,
+        address_snapshot, location_snapshot, grounding, construction_resource, conclusion,
+        creator, create_time, updater, update_time
+    </sql>
+    <select id="selectByPreparation" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSurveyDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_survey
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId}
+    </select>
+    <insert id="insert">
+        INSERT INTO sol_preparation_survey (<include refid="columns"/>) VALUES (
+            #{row.tenantId}, #{row.preparationId}, #{row.surveyDate}, #{row.surveyorUserId},
+            #{row.location}, #{row.locationResolutionStatus}, #{row.addressId}, #{row.addressVersion},
+            #{row.siteId}, #{row.siteVersion}, #{row.siteLocationId}, #{row.siteLocationVersion},
+            #{row.addressSnapshot}, #{row.locationSnapshot}, #{row.grounding}, #{row.constructionResource},
+            #{row.conclusion}, #{row.creator}, CURRENT_TIMESTAMP(3), #{row.updater}, CURRENT_TIMESTAMP(3)
+        )
+    </insert>
+    <!-- Root lock and root CAS protect metadata; frozen histories have no write API. -->
+    <update id="update">
+        UPDATE sol_preparation_survey SET
+            survey_date = #{row.surveyDate}, surveyor_user_id = #{row.surveyorUserId},
+            location = #{row.location}, location_resolution_status = #{row.locationResolutionStatus},
+            address_id = #{row.addressId}, address_version = #{row.addressVersion},
+            site_id = #{row.siteId}, site_version = #{row.siteVersion},
+            site_location_id = #{row.siteLocationId}, site_location_version = #{row.siteLocationVersion},
+            address_snapshot = #{row.addressSnapshot}, location_snapshot = #{row.locationSnapshot},
+            grounding = #{row.grounding}, construction_resource = #{row.constructionResource},
+            conclusion = #{row.conclusion}, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{row.tenantId} AND preparation_id = #{row.preparationId}
+    </update>
+</mapper>

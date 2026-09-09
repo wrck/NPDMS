@@ -28,4 +28,5 @@ public class PreparationItemRespVO {
     private List<String> allowedActions = List.of();
     private Integer version;
     private PreparationFormRespVO form;
+    private cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationSurveyResult surveyResult;
 }

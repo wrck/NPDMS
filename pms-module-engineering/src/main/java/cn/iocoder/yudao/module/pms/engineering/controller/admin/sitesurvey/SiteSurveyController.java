@@ -52,8 +52,9 @@ public class SiteSurveyController {
     @Operation(summary = "删除现场工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:delete')")
-    public CommonResult<Boolean> deleteSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.deleteSiteSurvey(id);
+    public CommonResult<Boolean> deleteSiteSurvey(@RequestParam("id") Long id,
+                                                  @RequestHeader("If-Match") String ifMatch) {
+        siteSurveyService.deleteSiteSurvey(id, parseVersion(ifMatch));
         return success(true);
     }
 
@@ -78,8 +79,9 @@ public class SiteSurveyController {
     @Operation(summary = "确认工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> confirmSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.confirmSiteSurvey(id);
+    public CommonResult<Boolean> confirmSiteSurvey(@RequestParam("id") Long id,
+                                                   @RequestHeader("If-Match") String ifMatch) {
+        siteSurveyService.confirmSiteSurvey(id, parseVersion(ifMatch));
         return success(true);
     }
 
@@ -87,8 +89,9 @@ public class SiteSurveyController {
     @Operation(summary = "驳回工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> rejectSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.rejectSiteSurvey(id);
+    public CommonResult<Boolean> rejectSiteSurvey(@RequestParam("id") Long id,
+                                                  @RequestHeader("If-Match") String ifMatch) {
+        siteSurveyService.rejectSiteSurvey(id, parseVersion(ifMatch));
         return success(true);
     }
 
@@ -96,8 +99,21 @@ public class SiteSurveyController {
     @Operation(summary = "归档工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> archiveSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.archiveSiteSurvey(id);
+    public CommonResult<Boolean> archiveSiteSurvey(@RequestParam("id") Long id,
+                                                   @RequestHeader("If-Match") String ifMatch) {
+        siteSurveyService.archiveSiteSurvey(id, parseVersion(ifMatch));
         return success(true);
+    }
+
+    private Integer parseVersion(String value) {
+        if (value != null && value.matches("(?:[0-9]+|\"[0-9]+\")")) {
+            try {
+                return Integer.valueOf(value.replace("\"", ""));
+            } catch (NumberFormatException ignored) {
+                // 超出整数范围也不能降级为无版本写入。
+            }
+        }
+        throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.SITE_SURVEY_VERSION_NOT_MATCH);
     }
 }

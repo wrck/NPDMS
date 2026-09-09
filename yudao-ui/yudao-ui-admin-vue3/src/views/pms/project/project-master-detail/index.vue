@@ -376,6 +376,7 @@
         />
 
         <ProjectPreparationPanel
+          ref="preparationPanelRef"
           v-if="detail?.id && visitedTabs.has('preparation')"
           v-show="activeTab === 'preparation'"
           :project="detail"
@@ -436,7 +437,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -501,7 +502,11 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
   value ? getDictLabel(dict!, value) : '不限'
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
-const switchTab = (key: string) => {
+const preparationPanelRef = ref<InstanceType<typeof ProjectPreparationPanel>>()
+onBeforeRouteLeave(async () => await preparationPanelRef.value?.requestLeave() !== false)
+const switchTab = async (key: string) => {
+  if (key !== activeTab.value && activeTab.value === 'preparation'
+      && await preparationPanelRef.value?.requestLeave() === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }
