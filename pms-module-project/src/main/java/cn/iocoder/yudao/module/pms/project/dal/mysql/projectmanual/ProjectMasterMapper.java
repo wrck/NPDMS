@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessAttributeUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectManagerMemberUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGovernanceStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageAdvanceUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
@@ -45,6 +46,8 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
                                 @Param("expectedVersion") Integer expectedVersion);
 
     int updateAssignmentStatusIfVersion(@Param("query") ProjectAssignmentStatusUpdate query);
+
+    int updateManagerMembersIfMatch(@Param("query") ProjectManagerMemberUpdate query);
 
     int updateBusinessAttributesIfMatch(@Param("query") ProjectBusinessAttributeUpdate query);
 

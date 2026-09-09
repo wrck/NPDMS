@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveP
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentServiceManagerAssignmentsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectManagerMemberQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerIntervalClose;
@@ -36,6 +37,8 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
 
     List<ProjectMemberAssignmentDO> selectCurrentResponsibilityForUpdate(
             @Param("query") CurrentMemberResponsibilityQuery query);
+
+    List<ProjectMemberAssignmentDO> selectProjectManagersForUpdate(@Param("query") ProjectManagerMemberQuery query);
 
     List<ProjectMemberAssignmentDO> selectActiveByUserForUpdate(
             @Param("query") ActiveProjectMemberForUpdateQuery query);

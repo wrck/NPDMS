@@ -600,6 +600,10 @@ Q-FPROJ-010已确认候选为同公司、可跨部门的有效在职人员，并
 
 #### 通用公司/角色用户资格查询（PM-01、INT-09；Q-FPROJ-010）
 
+成员工号及主责工号投影可空；上游资格结果没有权威工号时，新成员工号及其主责投影置空，不能将username推断为工号，也不能保留上一主责的工号。
+
+项目经理写入使用`POST /projects/{id}/actions/update-project-managers`，要求既有`pms:project:assign + MANAGE`、If-Match和Idempotency-Key。Body为`addUserIds/removeUserIds`（省略为空）、可选`primaryUserId`（省略保留）和非空reason；增删集合不能相交。剩余成员非空时主责必须属于其中，删除原主责且仍有成员须显式选择新主责；全部移除则清空主责。仅真正新增及新选主责回源公司/PROJECT_MANAGER资格；移除不因旧人资格失效而受阻。同键同请求重放，新键无实质变化返回原版本/changed=false且无变更事件。锁序为现有授权守卫的项目树根→目标Project→有效经理成员；在一个事务追加/结束成员区间、维护主责ID/姓名/工号投影、重算双主责状态并增加一次项目版本、记录审计与ProjectManagersChanged Outbox。主责切换不结束仍在任的成员区间，不修改成员加入时的责任类型/组织快照，当前主责唯一以Project引用为准。响应为projectId/version/primaryUserId/assignmentStatus/changed及有效经理列表；不写阶段、生命周期或任务。通知投递接入不在本后端增量，不把Outbox写入当送达。
+
 修订019角色事实消费细则：`ProjectParticipantFactApi.inspect`指定subjectUserId以及`lockAndRevalidate`指定userId时，按有效PROJECT_MANAGER成员区间判定，不以manager_id或PRIMARY责任类型限制角色操作；返回命中成员的实际责任类型（历史空值沿原PRIMARY归一），该类型不授予或削减项目经理权限。不指定用户的查询继续承接既有主责通知引用，不从多经理中任选一人，也不得用于用户授权。重验保留Project→成员锁序、项目版本/生命周期和调用方指定阶段检查，不将角色API硬编码为仅S1可用。阶段写命令同样核对有效成员，其他权限与门禁不变。
 
 SYSTEM在已有PMS组织扩展`OrganizationScopeApi`上提供加法方法`pageCompanyRoleUsers(CompanyRoleUserPageReqDTO)`；不是PROJ专用项目经理接口，不修改上游`AdminUserApi/DeptApi/PermissionApi`定义，也不放宽现有`pageActiveUsers`的公司+部门语义。PROJ等业务调用方先执行自己的功能权限与业务对象数据范围校验，再调用此内部公共接口；不授予全局用户管理权限，不允许客户端覆盖租户上下文。

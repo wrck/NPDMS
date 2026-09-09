@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`NOT_READY`（修订019新增量在途；原创建范围PASS保留历史）
 > 当前阻断：历史已完成范围不回退；新增语义以当前Feature Spec重验证范围为准，依赖独立验收的路径受Q-TPLACC-001约束
-> 当前任务：Task 10通用公司/角色查询增量已合入master；继续项目级成员写入、主责/角色集合消费者及UI闭环，不重复候选裁决
+> 当前任务：Task 10查询与角色权限增量已合入master；项目经理成员写入后端在feat/zcode-no-chain-impl提交，联合服务经理事务及UI闭环待完成
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史创建规格SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`（不作当前新增量准入）
@@ -25,10 +25,18 @@
 
 ### 当前主线增量
 
-- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换、角色集合消费者及UI仍待完成；唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
+- Task 10：项目级联合/分次指派、多项目经理与主责管理，`IN_PROGRESS`；上游通用查询增量已合入，代码与固定测试库证据见[查询DU](../delivery-units/DU-20260908-PM01-COMPANY-ROLE-QUERY.md)。成员写入/主责切换后端本分支已实现，联合服务经理事务及UI仍待完成；唯一拆解仍见[当前计划](../../docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md#项目级成员指派增量2026-09-08)。
 - 本轮原首次-only/固定T-ASSIGN-PM草案已撤下；不设强制绑定Task 11，不用单manager_id代表所有经理。
 - 有效PM角色事实及阶段权限直接消费增量已交付，见[角色权限DU](../delivery-units/DU-20260908-PM01-MANAGER-ROLE-FACT.md)；指定用户不再仅凭主责指针授权，完整成员写入/UI仍未完成。
-- [ ] AC-FPROJ-011：只有上游查询子范围取得代码与MySQL证据，完整联合/分次指派、多经理、主责与各阶段操作尚未验收。
+- [ ] AC-FPROJ-011：查询、角色权限及经理成员写入后端取得定向证据，完整联合/分次指派、多经理、主责与各阶段UI操作尚未验收。
+
+#### 2026-09-09 项目经理成员写入后端提交
+
+PM-01 / Task 10，Owner为PROJ；复用SYSTEM公司角色资格API、既有指派授权与平台幂等/审计/Outbox，不修改上游职责。实现`ProjectManagerMemberController`及`ProjectManagerMemberApplicationService`，新增经理集合增补/移除/主责切换命令；Mapper仅操作`proj_project`和`proj_project_member_assignment`，保留成员历史区间、主责投影和项目版本，不改变阶段或生命周期。缺失权威工号时清空主责工号，不冒用username。
+
+2026-09-08验证：`mvn.cmd -o -q -pl pms-module-project -am '-Dtest=ProjectManagerMemberMySqlTest,ProjectParticipantFactApiImplTest' '-DskipITs=false' '-Dsurefire.failIfNoSpecifiedTests=false' test`首轮角色10项通过，成员6项中仅Outbox失败注入测试未触发；修正测试代理的字段设置方式后定向重跑成员类6/6通过。随后补旧工号清空断言，仅重跑`ProjectManagerMemberMySqlTest#addsMultipleManagersAndChangesPrimaryWithoutRewritingMembershipHistory`，1/1通过。覆盖多人、主责切换、历史、资格/授权拒绝、版本、幂等、并发及事务回滚；使用固定23316/npdms_test，无新环境。权限服务及项目范围守卫有测试替身，不能据此声称真实HTTP全链路授权验收。
+
+本次提交复用上述有效证据；自审确认主责与成员集合分离、租户/版本条件及事务保护保留。未执行UI/真实HTTP验收，未实现联合服务经理事务或通知投递，不晋级Task 10/Feature Done。本分支提交不等于master集成，既有[成员DU](../delivery-units/DU-20260908-PM01-MANAGER-MEMBERS.md)认领边界不在此释放。实现与验证约30分钟（20:42:40～21:13:10），效率目标未达成；后续等待分支提交确认不计入实现耗时。
 
 下面Task 0～9、历史AC与PASS证据继续覆盖原完成范围，不因修订019进入IN_PROGRESS而撤销历史结论；顶部状态表示当前Feature新增量。当前Ready以Spec为准，查询DU完成不等于Task 10或Feature Done。
 
