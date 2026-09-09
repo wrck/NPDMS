@@ -11,7 +11,14 @@
       </div>
     </div>
 
-    <el-skeleton v-if="loading" :rows="5" animated />
+    <el-alert
+      v-if="!validProject"
+      title="项目上下文无效，未查询工期。"
+      type="warning"
+      :closable="false"
+    />
+    <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
+    <el-skeleton v-else-if="loading" :rows="5" animated />
     <template v-else-if="plan">
       <el-alert
         v-if="plan.planRecalculationStatus === 'PENDING_RECALCULATION'"
@@ -65,7 +72,11 @@
           :version-no="draft.customerEvidenceFileVersion"
           class="evidence-summary"
         />
-        <div class="section-actions" v-hasPermi="['pms:construction-plan:duration-manage']">
+        <div
+          v-if="canWrite"
+          class="section-actions"
+          v-hasPermi="['pms:construction-plan:duration-manage']"
+        >
           <el-button @click="formRef?.openEdit(plan, draft)">编辑草稿</el-button>
           <el-button type="primary" :loading="submitting" @click="submitDraft">提交审批</el-button>
         </div>
@@ -98,14 +109,14 @@
         />
         <div class="section-actions">
           <el-button
-            v-if="plan.pendingChangeSummary.processInstanceId"
+            v-if="canWrite && plan.pendingChangeSummary.processInstanceId"
             v-hasPermi="['pms:construction-plan:duration-approve']"
             type="primary"
             @click="openBpm(plan.pendingChangeSummary.processInstanceId)"
             >前往平台审批</el-button
           >
           <el-button
-            v-if="canWithdraw"
+            v-if="canWrite && canWithdraw"
             v-hasPermi="['pms:construction-plan:duration-manage']"
             :loading="withdrawing"
             @click="withdraw"
@@ -116,7 +127,7 @@
 
       <div v-if="!draft && !plan.pendingChangeSummary" class="primary-action">
         <el-button
-          v-if="plan.allowedActions.includes('CREATE_CHANGE')"
+          v-if="canWrite && plan.allowedActions.includes('CREATE_CHANGE')"
           type="primary"
           @click="formRef?.openCreate(plan)"
           >发起工期变更</el-button
@@ -125,6 +136,7 @@
     </template>
     <el-empty v-else description="尚未录入项目工期">
       <el-button
+        v-if="canWrite"
         type="primary"
         v-hasPermi="['pms:construction-plan:duration-manage']"
         @click="formRef?.openInitial()"
@@ -133,11 +145,19 @@
     </el-empty>
   </ContentWrap>
 
-  <ProjectDurationFormDrawer ref="formRef" :project="project" @saved="load" />
-  <ProjectDurationHistoryDrawer ref="historyRef" />
+  <ProjectDurationFormDrawer
+    ref="formRef"
+    :project="project"
+    :readonly="props.readonly"
+    @saved="onSaved"
+    @dirty-change="drawerDirty = $event"
+  />
+  <ProjectDurationHistoryDrawer :key="project.id" ref="historyRef" />
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
@@ -152,7 +172,14 @@ import type {
 import ProjectDurationFormDrawer from './ProjectDurationFormDrawer.vue'
 import ProjectDurationHistoryDrawer from './ProjectDurationHistoryDrawer.vue'
 
-const props = defineProps<{ project: ProjectMasterVO }>()
+const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
+const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
+const validProject = computed(() => Number.isSafeInteger(props.project.id) && props.project.id! > 0)
+const canWrite = computed(() => validProject.value && !props.readonly)
+const drawerDirty = ref(false)
+const errorText = ref('')
+let loadSequence = 0
+let contextVersion = 0
 const router = useRouter()
 const message = useMessage()
 const userStore = useUserStore()
@@ -173,55 +200,83 @@ const canWithdraw = computed(
 )
 
 const load = async () => {
-  if (!props.project.id) return
+  const sequence = ++loadSequence
+  const projectId = props.project.id!
+  plan.value = null
+  draft.value = undefined
+  errorText.value = ''
+  if (!validProject.value) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
-    plan.value = await DurationApi.getByProjectId(props.project.id)
-    draft.value = undefined
-    if (plan.value) {
-      const page = await DurationApi.getChanges(plan.value.planId, { pageSize: 20 })
+    const current = await DurationApi.getByProjectId(projectId)
+    if (sequence !== loadSequence) return
+    let currentDraft: ConstructionPlanChangeVO | undefined
+    if (current) {
+      const page = await DurationApi.getChanges(current.planId, { pageSize: 20 })
+      if (sequence !== loadSequence) return
       const draftSummary = page.items.find((item) => item.status === 'DRAFT')
-      draft.value = draftSummary
-        ? await DurationApi.getChange(plan.value.planId, draftSummary.changeId)
+      currentDraft = draftSummary
+        ? await DurationApi.getChange(current.planId, draftSummary.changeId)
         : undefined
     }
+    if (sequence !== loadSequence) return
+    plan.value = current
+    draft.value = currentDraft
+  } catch {
+    if (sequence === loadSequence) errorText.value = '项目工期加载失败，请刷新重试。'
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 const submitDraft = async () => {
-  if (!plan.value || !draft.value) return
+  if (!canWrite.value || !plan.value || !draft.value) return
   if (draft.value.customerEvidenceRequired && !draft.value.customerEvidenceFileId) {
     return message.warning('请先在编辑草稿中上传客户延期依据')
   }
+  const version = contextVersion
+  const currentPlan = plan.value
+  const currentDraft = draft.value
+  const projectVersion = props.project.version || 0
   await message.confirm('提交后草稿将冻结，并进入服务经理审批。是否继续？')
+  if (!canWrite.value || version !== contextVersion) return
   submitting.value = true
   try {
     await DurationApi.submitChange(
-      plan.value.planId,
-      draft.value.changeId,
-      props.project.version || 0,
-      draft.value.version,
+      currentPlan.planId,
+      currentDraft.changeId,
+      projectVersion,
+      currentDraft.version,
       crypto.randomUUID()
     )
+    if (version !== contextVersion) return
+    emit('changed')
     message.success('工期变更已提交审批')
     await load()
   } finally {
     submitting.value = false
   }
 }
-const openBpm = (processInstanceId: string) =>
-  router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
+const openBpm = (processInstanceId: string) => {
+  if (!canWrite.value) return
+  return router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
+}
 const withdraw = async () => {
   const instanceId = plan.value?.pendingChangeSummary?.processInstanceId
-  if (!instanceId) return
+  if (!canWrite.value || !instanceId) return
+  const version = contextVersion
   const prompt = await message.prompt('请输入撤回原因', '撤回工期变更')
+  if (!canWrite.value || version !== contextVersion) return
   withdrawing.value = true
   try {
     await ProcessInstanceApi.cancelProcessInstanceByStartUser(
       instanceId as unknown as number,
       prompt.value
     )
+    if (version !== contextVersion) return
+    emit('changed')
     message.success('工期变更已撤回')
     await load()
   } finally {
@@ -229,7 +284,38 @@ const withdraw = async () => {
   }
 }
 
-watch(() => props.project.id, load, { immediate: true })
+const onSaved = () => {
+  emit('changed')
+  void load()
+}
+const dirty = computed(() => drawerDirty.value || submitting.value || withdrawing.value)
+watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
+watch(
+  () => props.project.id,
+  () => {
+    contextVersion++
+    void load()
+  },
+  { immediate: true, flush: 'sync' }
+)
+watch(
+  () => props.readonly,
+  () => {
+    contextVersion++
+  },
+  { flush: 'sync' }
+)
+onBeforeUnmount(() => {
+  contextVersion++
+  loadSequence++
+})
+defineExpose({
+  isDirty: () => dirty.value,
+  discardChanges: () => {
+    if (submitting.value || withdrawing.value) return false
+    return formRef.value?.discardChanges() !== false
+  }
+})
 </script>
 
 <style scoped lang="scss">

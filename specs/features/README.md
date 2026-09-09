@@ -1,6 +1,6 @@
 # Feature Spec 索引
 
-本目录保存经SDS基线派生的正式Feature Spec。Feature Spec只拆解已批准需求与设计，不得改变PRD业务语义、领域Owner、权限或状态模型。
+本目录保存基于PRD和适用通用SDS契约形成的正式Feature Spec。已批准需求下的Feature业务场景、交互、验收及局部配置细化在这里维护，不默认回写SDS；只有[工程链2.7](../../docs/engineering/00-engineering-chain.md#27-sds变更边界)所列设计变化才修订相关SDS。Feature Spec不得改变PRD业务语义、领域Owner、权限或状态模型，也不要求SDS为每个Feature新增专属章节。
 
 本索引是投影视图，不是独立状态源。`规格状态`、`Feature Ready`和`实施状态`是三个不同维度：规格状态与Feature Ready以对应Feature Spec为权威，实施状态以当前Feature实施任务记录为权威；Git、CI、测试、真实浏览器和评审结论只作为证据引用。索引与权威来源冲突时必须纠正本索引，不得反向修改权威事实或再建立Capability状态。
 
@@ -16,7 +16,7 @@
 | [F-PROJ-006](F-PROJ-006-project-rollback-exception-close-and-reopen.md) | 项目回退、异常关闭与受控重开 | PM-10（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订017；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `fc9f8b1`；独立复审GO） |
 | [F-PROJ-007](F-PROJ-007-project-task-tree-and-native-workbench.md) | 项目任务树与原生任务工作台 | PM-11（V1） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IMPLEMENTATION_COMPLETE（NPDMS `b559978`；独立复审GO） |
 | [F-PROJ-008](F-PROJ-008-project-stage-gate-and-forward-advance.md) | 项目阶段准出门禁与正向推进 | PM-03（V1，PARTIAL） | REVALIDATION_REQUIRED | REVALIDATION_REQUIRED（修订018；见Spec） | IN_PROGRESS（Task 1、2、3A已进入master；Task 3B受规格缺口阻断；尚未进入Implementation Done） |
-| [F-PROJ-009](F-PROJ-009-project-delivery-template-configuration-center.md) | 项目交付模板配置中心 | PM-03（V1局部） | IN_REVIEW | NOT_READY（存量图切换待Q-FPROJ009-001） | IN_PROGRESS（配置候选8a5c2803未集成；不宣称运行完成） |
+| [F-PROJ-009](F-PROJ-009-project-delivery-template-configuration-center.md) | 项目交付模板配置中心 | PM-03（V1局部） | IN_REVIEW | NOT_READY（存量图切换待Q-FPROJ009-001） | IN_PROGRESS（配置与纠偏已集成至d8298c52；运行消费者及业务完成依据尚未闭合） |
 | [F-SOL-001](F-SOL-001-project-duration-baseline-and-change-approval.md) | 项目工期基线与变更审批 | PRE-01（V1） | BASELINE | READY（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） | IMPLEMENTATION_COMPLETE（NPDMS `c417dee`；独立复审GO） |
 | [F-SOL-002](F-SOL-002-site-survey-assignment-and-readiness.md) | 工勘分工信息采集与实施就绪 | PRE-02（V1） | BASELINE | READY（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） | IMPLEMENTATION_COMPLETE（NPDMS `7243727f`；独立复审GO） |
 | [F-SOL-003](F-SOL-003-requirement-analysis-versioning.md) | 需求分析动态表单与版本冻结 | PRE-04（V1） | BASELINE | READY（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） | IMPLEMENTATION_COMPLETE（`NPDMS-FSOL003-DYNAMICFORM-IMPLEMENTATION-20260828-01-R1`；Requirement覆盖仍按PARTIAL映射派生） |
@@ -49,7 +49,7 @@
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
-状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement版本切片追溯、业务规则、状态、权限、API、数据变化、验收标准、依赖与物理Owner及相关Open Question全部关闭后，Feature才可进入Implementation。每个Feature只允许一个当前有效Technical Plan；多个参与者或会话必须先在master登记Delivery Unit，再按Feature、Task或跨Feature工作包使用独立分支/Worktree并行实施，DU或Task完成均不产生Feature或Requirement完成状态。
+实施与完成条件以[当前工程链](../../docs/engineering/00-engineering-chain.md)为准，本索引不附加计划或阶段审批。并行Feature/Task首次认领及边界变更先提交到master；各Worktree直接读取master已提交DU确认职责、Owner和依赖，再读取提供方来源Task，不要求合并或包含认领提交。不同文件或本分支缺少依赖代码不代表可以重复实现；普通进度不要求逐次提交，DU或Task交付仍不产生Feature或Requirement完成状态。
 
 Feature任务、分支候选、认领缺口和master集成判定见[`tasks/features/README.md`](../../tasks/features/README.md)。该矩阵是审计投影，不会把分支自报状态提升为master状态。
 

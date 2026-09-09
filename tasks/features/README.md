@@ -58,7 +58,7 @@
 | F-PROJ-006 | [Task](F-PROJ-006.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PROJ-007 | [Task](F-PROJ-007.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-PROJ-008 | [Task](F-PROJ-008.md) | IN_PROGRESS；Task 1/2/3A已集成，Task 3B与Implementation Done待完成 | [迁移DU](../delivery-units/DU-20260901-FPROJ008-MIGRATION.md)及[S0～S6选择性接收DU](../delivery-units/DU-20260903-S0-S6-REQUIREMENT-SELECTIVE-INTEGRATION.md)已集成 | PM-03@V1由生成矩阵派生；真实S0→S1闭环仍受Q-FPROJ-009约束 |
-| F-PROJ-009 | [Task](F-PROJ-009.md) | IN_PROGRESS；配置候选8a5c2803未集成 | [模板视图DU](../delivery-units/DU-20260908-TEMPLATE-BUSINESS-VIEW.md)部分交付并释放 | PM-03局部；Q-FPROJ009-001限制存量运行切换 |
+| F-PROJ-009 | [Task](F-PROJ-009.md) | IN_PROGRESS；配置与纠偏已集成至d8298c52，运行范围未完成 | [模板视图DU](../delivery-units/DU-20260908-TEMPLATE-BUSINESS-VIEW.md)部分交付并释放 | PM-03局部；Q-FPROJ009-001限制存量运行切换 |
 | F-SOL-001 | [Task](F-SOL-001.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-002 | [Task](F-SOL-002.md) | IMPLEMENTATION_COMPLETE | 无 | 由生成矩阵派生 |
 | F-SOL-003 | [Task](F-SOL-003.md) | IMPLEMENTATION_COMPLETE | [废弃标记DU](../delivery-units/DU-20260901-FSOL003-DEPRECATION.md)与[代码分支合入DU](../delivery-units/DU-20260901-PRE-SOL-CODE-BRANCH-MERGE.md)已集成 | PRE-04保持PARTIAL覆盖 |
