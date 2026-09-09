@@ -448,6 +448,14 @@
           "VARCHAR(32) NOT NULL"
         ],
         [
+          "view_source",
+          "VARCHAR(16) NOT NULL"
+        ],
+        [
+          "dynamic_form_revision_id",
+          "BIGINT NULL"
+        ],
+        [
           "component_key",
           "VARCHAR(128) NOT NULL"
         ],
@@ -477,7 +485,7 @@
         ],
         [
           "published_at",
-          "DATETIME(6) NOT NULL"
+          "DATETIME(6) NULL"
         ],
         [
           "disabled_at",
@@ -513,7 +521,9 @@
         "UNIQUE KEY `uk_bvr_identity` (`tenant_id`, `entity_type`, `view_key`, `revision_no`)",
         "CONSTRAINT `ck_bvr_version` CHECK (revision_no > 0)",
         "CONSTRAINT `ck_bvr_actions` CHECK (JSON_TYPE(supported_actions)='ARRAY')",
-        "CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT')"
+        "CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT')",
+        "CONSTRAINT `ck_bvr_source` CHECK ((view_source='PAGE' AND dynamic_form_revision_id IS NULL) OR (view_source='DYNAMIC_FORM' AND dynamic_form_revision_id IS NOT NULL AND dynamic_form_revision_id > 0))",
+        "CONSTRAINT `ck_bvr_disabled` CHECK (disabled_at IS NULL OR (published_at IS NOT NULL AND disabled_at >= published_at))"
       ]
     },
     "proj_contract_scope_append_request": {

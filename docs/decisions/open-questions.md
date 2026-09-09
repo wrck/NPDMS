@@ -585,6 +585,17 @@
 - Decision owner: 需求方；PROJ/SYSTEM及实际消费者参与设计
 - Decision date: 2026-09-08（当前任务用户确认并补充通用接口要求）
 
+### Q-FPROJ-011
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-01@V1、PM-08@V1；项目数据范围直接消费者
+- Area: 新建未指派项目的首次指派授权来源
+- Evidence: 2026-09-08固定测试库真实页面创建项目992203060002，创建者1只有VIEW；新候选接口被MANAGE范围校验拒绝（1014024033）。ProjectTreeScopeService仅从有效项目经理/服务经理成员或显式授权产生MANAGE，创建者只获得VIEW；ProjectAuthorizationGuard.assertCanAssign要求MANAGE。不能因具备功能权限就静默授予项目范围。
+- Question: 对尚未完成双主责指派且没有现成MANAGE主体的新项目，谁可以完成首次服务经理/项目经理指派，数据范围从何取得？
+- Recommendation（未批准、未实现）: 允许同时具备指派功能权限的项目创建者，在双主责未齐期间完成首次指派；保留受信租户、项目创建者/版本/生命周期及候选资格校验，不产生永久MANAGE授权，不扩大其他项目操作范围。是否采用由需求方裁决。
+- Blocking scope: 仅阻断无MANAGE的新建未指派项目首次指派闭环；已有合法管理范围的联合/分次指派、增补、移除、主责切换已取得真实接口与浏览器证据。模板/阶段内业务不由本Q作额外准入。
+- Decision owner: 需求方；PROJ负责落实已确认授权边界。
+
 ## 并行分支权威收敛阻断
 
 ### Q-GOV-20260901-001
@@ -723,6 +734,21 @@
 - Blocking scope: 本问题自身已解除；相关代码和前向迁移已进入master的部分不回退，尚未完成的装配与运行范围以当前F-IMP-002 Task为准。
 - Decision owner: 需求方；IMP领域Owner和数据Owner参与裁决
 - Decision date: 2026-08-30
+
+## 单一模板升级的存量运行切换
+
+### Q-FPROJ009-001
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Requirement IDs: PM-03@V1；关联PM-01、PM-11
+- Area: 无显式关系图的已有发布模板/项目升级
+- Question: 在不保留双模板运行算法、不按sortOrder或S编号推图、不覆盖不可变历史的约束下，存量可写项目应依据哪份已批准关系图来源及哪个明确数据批次完成切换？
+- Evidence: 2026-09-08对固定测试库23316/npdms_test只读核查：Flyway到V204，阶段定义图与实例图表均不存在；43个ACTIVE、1个NORMAL_CLOSED项目，11个PUBLISHED模板修订。项目分组为tenant0无模板引用33个ACTIVE及1个关闭、模板910001/v2有6个ACTIVE、910008/v1有1个ACTIVE；tenant1模板992203040001/v2有3个ACTIVE。来源只是现有记录，不推定可丢弃或批准了线性关系。
+- Approved boundary: 需求方本轮批准直接升级单一模板并复用页面/动态表单，同时要求历史保护；不保留LEGACY/GRAPH双轨，不擅自清库、停用项目或把排序解释为真实前后置。
+- Blocking scope: 仅存量运行图切换及要求所有旧可写项目继续推进的验收；视图注册、定义/图配置、显式新草稿发布和无依赖领域验证可继续。
+- Resolution required: 由需求方确认受影响对象的权威关系来源与切换批次，或明确授权仅对指定隔离测试数据重建。不能从“计划批准”推导数据删除或历史转换授权。真实业务记录不得自动重建。
+- Decision owner: 需求方及PROJ数据Owner
+- Decision date: 未关闭；2026-09-08登记
 
 ## 模板与独立验收修订018的后续契约
 

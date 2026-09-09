@@ -559,6 +559,50 @@ BPM事实Provider与上述启动Provider可由同一集成适配器承接，只�
 
 模板发布验证实际配置的CompletionRule、ENTRY/EXIT及其Reference/Provider，不强制S0～S3每阶段至少一个EXIT Gate。明确未配置某业务门禁不等于已引用门禁缺失；后者仍拒绝。新APPROVAL/PROCESS引用不写refVersion，定义Key检查继续拒绝START_USER_SELECT(35)。修订018只是目标契约，旧测试/接口须按实际配置语义重新验证。
 
+## PM-03 业务视图注册API与单一模板接入（2026-09-08）
+
+本节承接需求方批准的PAGE/DYNAMIC_FORM复用方案及SDS08/09。PLT管理注册事实，领域Owner管理页面中的对象与命令。视图注册不会产生实体、Project、任务完成或阶段推进。
+
+### 业务视图管理
+
+基路径为`/api/v1/pms/business-views`，受信tenant/actor取服务端认证上下文，不接受Body覆盖。管理读取要求`pms:business-view:query`，创建/修改/复制要求`pms:business-view:manage`，发布/停用分别要求`pms:business-view:publish`和`pms:business-view:disable`；对应Owner组件Provider还须重验该Owner已有配置权限。首批需求分析页面的实体Owner为SOL（页面物理目录不决定Owner），注册由SOL组件Provider校验既有项目模板配置权限，业务办理继续执行SOL原权限；PLATFORM动态表单注册叠加现有动态表单模板维护/发布权限，不新建业务角色。
+
+| 方法与路径 | 请求和结果 |
+|---|---|
+| `GET /business-views` | pageNo/pageSize、可选entityType/viewSource，返回PageResult修订摘要，含id/entityType/viewKey/revisionNo/ownerContext/viewSource/componentKey/componentVersion/dynamicFormRevisionId/version/status/allowedActions；固定按entityType/viewKey/revisionNo/id排序 |
+| `GET /business-views/components` | 返回代码已部署Provider发布的受控组件描述：身份、Owner、实体类型、来源、精确组件版本、contextSchema、supportedActions及三个Provider键；不存在或冲突目录项不供选择 |
+| `GET /business-views/{id}` | 返回同租户精确注册修订、上下文Schema及受控动作；停用版仍可作历史解释，不重新赋予执行权限 |
+| `POST /business-views` | Body为entityType/viewKey、componentKey/componentVersion及可空dynamicFormRevisionId；Owner、source、schema、actions、Provider键由服务端受控目录决定。Idempotency-Key必填；同身份首次revisionNo=1，仅不存在时创建 |
+| `PUT /business-views/{id}` | 仅草稿可整体更换组件选择及表单修订；identity不可改；If-Match、Idempotency-Key必填；成功version+1 |
+| `POST /business-views/{id}/actions/copy` | 以If-Match、Idempotency-Key从精确源版复制下一修订，Body为空；identity不变，锁定同身份全部修订后以max(revisionNo)+1分配，唯一键防并发；已存在草稿时拒绝，不覆盖 |
+| `POST /business-views/{id}/actions/validate` | 只读校验当前草稿及真实目录/Provider/表单事实，返回valid和有序issues(field/code/message)；不写发布、实体或完成事实 |
+| `POST /business-views/{id}/actions/publish` | If-Match、Idempotency-Key，重新校验完整配置与依赖；原子写发布时间、version、审计及幂等结果；失败保持草稿 |
+| `POST /business-views/{id}/actions/disable` | If-Match、Idempotency-Key，仅发布版；追加disabledAt/version/审计，不改变正文或其他版本；历史可查 |
+
+创建/复制/更新/发布/停用使用PlatformCommandExecutionApi；幂等作用域包含tenant、actor和动作，规范摘要包括目标id、期望版本及本次意图，不含服务端随机结果。同键同摘要返回原结果、异摘要冲突；操作前仍重验当前功能权限。无业务通知消费者时不造Outbox事件。锁序为稳定视图身份修订→选中修订→依赖的PLT动态表单模板/修订（按既有Owner顺序），不能持表单锁后回头申请注册身份锁。跨实例业务读取不进入注册写事务。
+
+受控目录由已部署Java Provider给出，与浏览器组件键精确映射对应；配置Body不能提交Owner/Provider/Schema或任意组件路径。PAGE组件无需创建新业务页面，直接适配既有页面。DYNAMIC_FORM组件必须引用有效表单发布修订，注册检查只查看配置，不读或复制实例填写值；新模板发布/实际实例使用仍按DynamicFormBusinessInstanceApi的用途和Owner策略重新验证。
+
+错误使用通用分类及本功能稳定错误码：参数/字段组合无效、注册不存在（含跨租户）、版本冲突、注册状态非法、引用/组件不可用和幂等冲突。不得把依赖未知解释成可用或“未配置”。权限失败使用既有403语义，不泄露目标对象存在性。
+
+### 可复用定义与模板组合管理
+
+PROJ的`/api/v1/pms/delivery-definitions`承载八类定义修订，不是第二个模板根。GET分页及GET/{id}精确查询要求既有`pms:project-template:query`；POST创建和PUT/{id}草稿替换、POST/{id}/actions/copy要求`pms:project-template:update`；发布/停用沿用`pms:project-template:publish|disable`。写入均带Idempotency-Key，更新/复制/发布/停用带If-Match。创建指定definitionKind/definitionCode/schemaVersion/payload，revisionNo由服务端分配；引用由`references[{referenceKey,targetRevisionId}]`精确表达，同租户、目标已发布/未停用、无重复槽位、自环或循环。已发布正文不能编辑，停用只影响新引用；复制同身份下一修订不覆盖旧版。
+
+schemaVersion=1的payload按kind封闭校验：STAGE/TASK至少含name、默认workBinding/permissionPolicy/completionRule引用槽位；STAGE还含stageCode及start/terminal标志；TASK的parentTaskCode为模板组合层关系，不用固定深度。WORK_BINDING含bindingType、instanceResolutionStrategy、可空businessViewRevisionId、targetContextCode/targetObjectType/targetObjectKey及contextMapping；原生绑定不含外部目标，其余绑定必须有已发布BusinessView及受控上下文。COMPLETION_RULE含已注册predicate或ALL/ANY组合及结构化参数，不解释任意脚本。PERMISSION_POLICY含requiredActions数组，只声明需求。DELIVERABLE含scope(STAGE/TASK)、deliverableType、required、minimumQuantity、allowedSources、outputType与confirmationRule；必需要求数量大于0，选传允许0，不能由零数量绕过显式必需。GATE含gateType和非空references；MILESTONE含name和criteria。模板插槽覆盖不得覆盖Owner、Provider或字段权限。
+
+现有模板资源统一为`/api/v1/pms/project-templates`，已有旧前缀若保留只委托同一服务。既有分页/身份/草稿/发布/停用/历史/匹配契约保留，增加POST/{id}/actions/validate只读结构检查及POST/{id}/actions/copy新建身份草稿。草稿content增加transitions，元素为transitionCode/fromStageCode/toStageCode/conditionRuleRevisionId/priority/default/revisionNo；Stage明细增加start/terminal与精确stageDefinitionRevisionId/工作绑定/权限/完成规则引用；其他明细引用对应definitionRevisionId。所有引用发布前解析为精确不可变快照；不能使用模板当前指针覆盖旧项目。
+
+模板发布锁定template→draft→引用定义（稳定ID）→PLT注册及表单精确修订；冻结图/定义/引用和模板ACTIVE同事务，失败不产生半个发布版本。新发布只接受显式关系图，sortOrder只作显示，不产生关系。未配置全局审批不强制流程Key；实际Gate/规则缺失、类型不匹配、Provider不可用仍拒绝。当前项目初始化同步消费精确关系图，复制边为ProjectStageTransition并冻结Stage/Task执行契约，全部与原创建事务共同完成；历史缺图的切换不得自动推断，须先完成实际来源映射与授权。
+
+### 业务视图公开查询与宿主
+
+`BusinessViewQueryApi`位于`pms-module-platform-api`：按受信tenant与精确revisionId读取发布事实；用途为NEW_REFERENCE时须未停用，HISTORICAL_REFERENCE允许已停用发布版；DRAFT均不可作为绑定引用。`getRevision`只读，`lockAndRevalidate`以MANDATORY加入已鉴权模板发布事务，按注册身份/修订锁定并重验期望注册version、发布/停用状态及真实组件/表单依赖，再返回精确事实；未知、漂移或不可用拒绝，禁止PROJ直接读PLT表。多引用模板使用`lockAndRevalidateAll(List<Query>)`：先读取精确ID定位身份，按entityType/viewKey排序锁全部注册身份（各身份revisionNo/id顺序），重验全部NEW_REFERENCE/期望version/发布可用；再由现有PLATFORM动态表单Provider只读解析所有表单templateId/revisionId，先按templateId排序锁全部模板，再按templateId/revisionId排序锁全部修订，最后逐项重验目录及依赖并按输入顺序返回。重复引用去重；未知DYNAMIC_FORM Provider没有已实现批量锁协议时明确拒绝，PAGE无表单锁。单引用锁委托同一批量流程，不发生注册A→表单A→注册B反向取锁；不新建通用事务框架。响应只包含注册元数据和精确配置，不读取领域实体。模板配置人员需具备模板查询/维护权限，运行期则先校验项目/节点/Owner对象权限，不能要求业务用户获得全局注册管理权限。
+
+实际宿主接收冻结revisionId、节点/目标稳定引用及由Owner端返回的allowedActions。PAGE适配器调用原领域API；DYNAMIC_FORM适配器使用原PLT手工实例API或对应业务Owner表单API，二者不得混用。节点上下文和模板参数不是授权真值，页面挂载只读，保存/完成/创建仍由Owner按当前版本及授权办理。`changed`触发重新读取，`dirty-change`保护节点切换，不回写完成状态。
+
+新增专用页面只实现受控组件上下文契约、Owner配置Provider和前端精确键映射，然后注册发布；不向模板引擎加入页面专用条件，不允许任意URL、eval或反射加载。
+
 ## COM-01 公司范围查询与关系维护
 
 `ContractProjectScope`从SYSTEM现有`OrganizationScopeApi.getActiveScopes(subjectUserId)`取得当前有效scope的非空companyCode原值集合；租户和主体取受信上下文。合同目录、详情、销售订单、订单行和项目—合同关系维护共用该集合，SQL必须保持精确字符串相等，空集合不得省略条件成为全量。

@@ -6,14 +6,23 @@
     >
     <div class="toolbar"
       ><el-input-number
+        v-if="!context.scoped"
         v-model="projectId"
         :min="1"
         controls-position="right"
         placeholder="项目ID"
-      /><el-button :loading="loading" @click="load">查询</el-button></div
+      /><el-tag v-else>项目 {{ props.projectId }}</el-tag
+      ><el-button :loading="loading" @click="load">查询</el-button></div
     >
   </div>
-  <el-skeleton v-if="loading" :rows="4" animated />
+  <el-alert
+    v-if="!context.valid"
+    title="项目上下文无效，未查询其他项目。"
+    type="warning"
+    :closable="false"
+  />
+  <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
+  <el-skeleton v-else-if="loading" :rows="4" animated />
   <el-empty v-else-if="!tasks.length" description="当前范围内暂无满意度任务" />
   <el-table v-else :data="tasks" stripe>
     <el-table-column prop="id" label="任务ID" min-width="150" />
@@ -22,7 +31,7 @@
     <el-table-column prop="assignedToUserId" label="责任人" min-width="130" />
     <el-table-column prop="status" label="任务状态" min-width="140" />
     <el-table-column prop="questionnaireStatus" label="问卷状态" min-width="120" />
-    <el-table-column label="操作" width="340" fixed="right">
+    <el-table-column v-if="canWrite" label="操作" width="340" fixed="right">
       <template #default="scope">
         <el-button link type="primary" @click="openAssign(scope.row)">指派</el-button>
         <el-button link type="primary" @click="openGrant(scope.row)">受控链接</el-button>
@@ -34,20 +43,22 @@
     </el-table-column>
   </el-table>
 
-  <el-dialog v-model="assignVisible" title="指派采集责任人" width="460px">
-    <el-form label-position="top"
+  <el-dialog v-model="assignVisible" title="指派采集责任人" width="min(460px, 94vw)">
+    <el-form label-position="top" :disabled="!canWrite"
       ><el-form-item label="用户ID"
         ><el-input-number v-model="assignedUserId" :min="1" /></el-form-item
     ></el-form>
     <template #footer
       ><el-button @click="assignVisible = false">取消</el-button
-      ><el-button type="primary" @click="assign">确认指派</el-button></template
+      ><el-button type="primary" :disabled="!canWrite" @click="assign"
+        >确认指派</el-button
+      ></template
     >
   </el-dialog>
 
   <el-dialog v-model="grantVisible" title="受控问卷链接" width="min(560px, 94vw)" destroy-on-close>
     <template v-if="!grantUrl">
-      <el-form label-position="top"
+      <el-form label-position="top" :disabled="!canWrite"
         ><el-form-item label="有效期"
           ><el-date-picker
             v-model="grantExpiresAt"
@@ -69,7 +80,7 @@
     </div>
     <template #footer
       ><el-button @click="closeGrant">关闭</el-button
-      ><el-button v-if="!grantUrl" type="primary" @click="createGrant"
+      ><el-button v-if="!grantUrl" type="primary" :disabled="!canWrite" @click="createGrant"
         >创建链接</el-button
       ></template
     >
@@ -81,7 +92,7 @@
       type="info"
       :closable="false"
     />
-    <el-form label-position="top" class="dialog-form">
+    <el-form label-position="top" class="dialog-form" :disabled="!canWrite">
       <el-form-item label="客户联系人"
         ><el-input v-model="assisted.customerContactRef" data-testid="assisted-customer-contact"
       /></el-form-item>
@@ -102,7 +113,9 @@
           accept=".png,.jpg,.jpeg,.pdf"
         >
           <el-button>选择签字文件</el-button>
-          <template #tip><div class="el-upload__tip">支持 PNG、JPEG 或 PDF，最多 10 MB</div></template>
+          <template #tip
+            ><div class="el-upload__tip">支持 PNG、JPEG 或 PDF，最多 10 MB</div></template
+          >
         </el-upload>
       </el-form-item>
       <el-form-item label="补充附件（可选）">
@@ -125,6 +138,7 @@
         type="primary"
         data-testid="assisted-submit"
         :loading="assistedSubmitting"
+        :disabled="!canWrite"
         @click="submitAssisted"
         >上传并提交</el-button
       ></template
@@ -132,7 +146,7 @@
   </el-dialog>
 
   <el-dialog v-model="recollectVisible" title="登记整改并重收" width="min(620px, 94vw)">
-    <el-form label-position="top">
+    <el-form label-position="top" :disabled="!canWrite">
       <el-form-item label="整改证据摘要"
         ><el-input v-model="recollectForm.evidenceSummary" type="textarea" :rows="4"
       /></el-form-item>
@@ -142,21 +156,36 @@
     </el-form>
     <template #footer
       ><el-button @click="recollectVisible = false">取消</el-button
-      ><el-button type="primary" @click="submitRecollect">创建下一轮</el-button></template
+      ><el-button type="primary" :disabled="!canWrite" @click="submitRecollect"
+        >创建下一轮</el-button
+      ></template
     >
   </el-dialog>
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useMessage } from '@/hooks/web/useMessage'
 import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
 import * as Api from '@/api/pms/project/satisfaction'
 import type { TaskView } from '@/api/pms/project/satisfaction'
 import type { UploadUserFile } from 'element-plus'
+import { satisfactionProjectContext, type SatisfactionViewProps } from './projectContext'
+
+const props = defineProps<SatisfactionViewProps>()
+const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
 
 const message = useMessage()
 const loading = ref(false)
 const projectId = ref<number>()
+const context = computed(() => satisfactionProjectContext(props.projectId, projectId.value))
+const canWrite = computed(() => !props.readonly && context.value.valid)
+const errorText = ref('')
+let loadSequence = 0
+let contextVersion = 0
+const writableTask = (task?: TaskView) =>
+  !!task && canWrite.value && (!context.value.scoped || task.projectId === props.projectId)
 const tasks = ref<TaskView[]>([])
 const selected = ref<TaskView>()
 const assignVisible = ref(false)
@@ -177,34 +206,51 @@ const recollectVisible = ref(false)
 const recollectForm = reactive({ evidenceSummary: '', evidenceFileFactVersion: '' })
 
 const load = async () => {
+  const sequence = ++loadSequence
+  tasks.value = []
+  errorText.value = ''
+  if (!context.value.valid) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
-    tasks.value = await Api.listTasks(projectId.value)
+    const result = await Api.listTasks(context.value.projectId)
+    if (sequence === loadSequence) tasks.value = result
+  } catch {
+    if (sequence === loadSequence) errorText.value = '满意度任务加载失败，请重新查询。'
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 const openAssign = (task: TaskView) => {
+  if (!writableTask(task)) return
   selected.value = task
   assignedUserId.value = task.assignedToUserId
   assignVisible.value = true
 }
 const assign = async () => {
-  if (!selected.value || !assignedUserId.value) return
+  if (!selected.value || !writableTask(selected.value) || !assignedUserId.value) return
+  const version = contextVersion
   await Api.assignTask(selected.value, assignedUserId.value)
+  if (version !== contextVersion) return
+  emit('changed')
   message.success('指派成功')
   assignVisible.value = false
   await load()
 }
 const openGrant = (task: TaskView) => {
+  if (!writableTask(task)) return
   selected.value = task
   grantUrl.value = ''
   grantExpiresAt.value = new Date(Date.now() + 24 * 3600_000).toISOString().slice(0, 19)
   grantVisible.value = true
 }
 const createGrant = async () => {
-  if (!selected.value || !grantExpiresAt.value) return
+  if (!selected.value || !writableTask(selected.value) || !grantExpiresAt.value) return
+  const version = contextVersion
   const grant = await Api.createGrant(selected.value.id, new Date(grantExpiresAt.value).getTime())
+  if (version !== contextVersion || !canWrite.value) return
   const tenantId = getTenantId() ?? 0
   grantUrl.value = `${window.location.origin}/satisfaction-questionnaires/${encodeURIComponent(grant.token)}?tenantId=${tenantId}`
 }
@@ -217,6 +263,7 @@ const closeGrant = () => {
   grantUrl.value = ''
 }
 const openAssisted = (task: TaskView) => {
+  if (!writableTask(task)) return
   selected.value = task
   assistedRequestId.value = crypto.randomUUID()
   assisted.customerContactRef = ''
@@ -239,13 +286,16 @@ const uploadAssistedFile = async (
   taskId: number,
   responseId: number,
   policyKey: 'SATISFACTION_SIGNATURE' | 'SATISFACTION_ATTACHMENT',
-  file: File
+  file: File,
+  requestId: string,
+  checkContext: () => void
 ) => {
+  checkContext()
   const declaredMediaType = mediaType(file)
   if (!declaredMediaType) throw new Error(`不支持的文件类型：${file.name}`)
   const operationId = assistedOperationId()
   const initialized = await Api.initializeAssistedFile(taskId, {
-    requestId: assistedRequestId.value,
+    requestId,
     responseId,
     policyKey,
     operationId,
@@ -254,11 +304,12 @@ const uploadAssistedFile = async (
     declaredSizeBytes: file.size,
     declaredMediaType
   })
+  checkContext()
   return Api.completeAssistedFile(
     taskId,
     initialized.sessionId,
     {
-      requestId: assistedRequestId.value,
+      requestId,
       responseId,
       policyKey,
       operationId,
@@ -283,7 +334,7 @@ const toSubmissionFile = (fact: Api.AssistedFileFact) => ({
   sha256: fact.fileFact.sha256
 })
 const submitAssisted = async () => {
-  if (!selected.value) return
+  if (!selected.value || !writableTask(selected.value)) return
   const signature = assistedSignatureFiles.value[0]?.raw
   if (!assisted.customerContactRef.trim()) return message.warning('请输入客户联系人')
   if (!signature) return message.warning('请选择客户签字文件')
@@ -293,12 +344,27 @@ const submitAssisted = async () => {
     return message.warning('答卷 JSON 格式不正确')
   }
   assistedSubmitting.value = true
+  const version = contextVersion
+  const requestId = assistedRequestId.value
+  const task = selected.value
+  const checkContext = () => {
+    if (version !== contextVersion || !writableTask(task))
+      throw new Error('页面上下文已变化，请重新打开采集任务。')
+  }
   try {
-    const taskId = selected.value.id
-    const reservation = await Api.reserveAssistedResponse(taskId, assistedRequestId.value)
+    const taskId = task.id
+    const reservation = await Api.reserveAssistedResponse(taskId, requestId)
+    checkContext()
     const uploaded: Api.AssistedFileFact[] = []
     uploaded.push(
-      await uploadAssistedFile(taskId, reservation.responseId, 'SATISFACTION_SIGNATURE', signature)
+      await uploadAssistedFile(
+        taskId,
+        reservation.responseId,
+        'SATISFACTION_SIGNATURE',
+        signature,
+        requestId,
+        checkContext
+      )
     )
     for (const item of assistedAttachmentFiles.value) {
       if (item.raw) {
@@ -307,18 +373,23 @@ const submitAssisted = async () => {
             taskId,
             reservation.responseId,
             'SATISFACTION_ATTACHMENT',
-            item.raw
+            item.raw,
+            requestId,
+            checkContext
           )
         )
       }
     }
+    checkContext()
     await Api.submitAssisted(taskId, {
-      requestId: assistedRequestId.value,
+      requestId,
       responseId: reservation.responseId,
       customerContactRef: assisted.customerContactRef.trim(),
       answerSnapshot: assisted.answerSnapshot,
       files: uploaded.map(toSubmissionFile)
     })
+    if (version !== contextVersion) return
+    emit('changed')
     message.success('现场协助答卷已提交并完成判定')
     assistedVisible.value = false
     await load()
@@ -327,22 +398,69 @@ const submitAssisted = async () => {
   }
 }
 const openRecollect = (task: TaskView) => {
+  if (!writableTask(task)) return
   selected.value = task
   recollectVisible.value = true
 }
 const submitRecollect = async () => {
-  if (!selected.value?.resultId) return
+  if (!selected.value?.resultId || !writableTask(selected.value)) return
+  const version = contextVersion
   await Api.recollect(selected.value.id, {
     priorResultId: selected.value.resultId,
     remediationRequestId: crypto.randomUUID(),
     evidenceSummary: recollectForm.evidenceSummary,
     evidenceFileFactVersion: recollectForm.evidenceFileFactVersion || undefined
   })
+  if (version !== contextVersion) return
+  emit('changed')
   message.success('整改事实与下一轮问卷已创建')
   recollectVisible.value = false
   await load()
 }
-onMounted(load)
+const dirty = computed(
+  () =>
+    assignVisible.value ||
+    grantVisible.value ||
+    assistedVisible.value ||
+    recollectVisible.value ||
+    assistedSubmitting.value
+)
+const resetDialogs = () => {
+  assignVisible.value = grantVisible.value = assistedVisible.value = recollectVisible.value = false
+  grantUrl.value = ''
+  selected.value = undefined
+}
+watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
+watch(
+  () => props.projectId,
+  () => {
+    contextVersion++
+    resetDialogs()
+    void load()
+  },
+  { immediate: true, flush: 'sync' }
+)
+watch(
+  () => props.readonly,
+  () => {
+    contextVersion++
+    closeGrant()
+  },
+  { flush: 'sync' }
+)
+onBeforeUnmount(() => {
+  loadSequence++
+  contextVersion++
+})
+defineExpose({
+  isDirty: () => dirty.value,
+  discardChanges: () => {
+    if (assistedSubmitting.value) return false
+    contextVersion++
+    resetDialogs()
+    return true
+  }
+})
 </script>
 
 <style scoped lang="scss">

@@ -1,0 +1,65 @@
+# DU-20260908-TEMPLATE-BUSINESS-VIEW 单一模板与业务视图基础
+
+> DU状态：`INTEGRATED_PARTIAL`
+> DU类型：`MULTI_FEATURE_SLICE`
+> Feature协调：`F-PLT-003=FEATURE_EXCLUSIVE;F-PROJ-009=FEATURE_EXCLUSIVE;F-PROJ-007=TASK_COORDINATED;F-PROJ-008=TASK_COORDINATED;F-PROJ-001=TASK_COORDINATED`
+> Task范围：`按用户已确认讨论纠偏：S0项目基本操作不生成任务；S1～S6真实结果任务与辅助功能分离；简化现有模板维护并直接配置业务视图/实体关联；前向纠正本次六类草稿样例，保护项目与发布历史；不实现未定义的领域完成或独立验收接入`
+> Owner：`ZCode当前模板与业务视图会话`
+> 分支：`codex/pre-s0-template-foundation`
+> Worktree：`E:/AICoding/Worktrees/p903`
+> 认领基线：`20e542f91b0c5c277ba3c7c2147daa5a6ec55af1`
+> 认领提交：`SELF`
+> 修改边界：`specs/features/F-PLT-003-business-view-registration.md;specs/features/F-PROJ-009-project-delivery-template-configuration-center.md;tasks/features/F-PLT-003.md;tasks/features/F-PROJ-009.md;tasks/features/F-PROJ-007.md;tasks/features/F-PROJ-008.md;docs/superpowers/plans/2026-09-08-template-business-view-foundation.md;docs/design/08-data-model.md;docs/design/09-database-design.md;docs/traceability/sds-revision-016-physical-contract.json;specs/001-project-delivery-platform/appendices/sds-revision-016-carriers.mysql.sql;pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessview/**;pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/domain/businessview/**;pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessview/**;pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessview/**;pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/businessview/**;pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/businessview/**;pms-module-platform/src/main/resources/mapper/businessview/**;pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/businessview/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/deliveryconfiguration/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/deliveryconfiguration/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttemplate/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttemplate/**;pms-module-project/src/main/resources/mapper/projecttemplate/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/domain/deliveryconfiguration/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/deliveryconfiguration/**;yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/business-view/**;yudao-ui/yudao-ui-admin-vue3/src/views/pms/platform/business-view/**;yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/**;yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/**;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/**;tasks/delivery-units/DU-20260908-TEMPLATE-BUSINESS-VIEW.md;docs/design/10-api-design.md;tasks/features/F-PROJ-001.md;specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md;specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md;specs/features/F-PROJ-008-project-stage-gate-and-forward-advance.md;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/deliveryconfiguration/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/deliveryconfiguration/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/deliveryconfiguration/**;pms-module-project/src/main/resources/mapper/deliveryconfiguration/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/businessview/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/**;pms-module-project/src/main/resources/mapper/projectmanual/**;pms-module-project/src/main/resources/mapper/taskworkbench/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/**;pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/domain/template/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/stagegate/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/**;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/projecttemplate/**;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/index.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectTaskWorkbenchDrawer.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/platform/dynamic-form/instance/**;yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/**;sql/migrations/*__fplt003_*.sql;sql/migrations/*__fproj009_*.sql;scripts/tests/test_fplt003_business_view_migration.py;scripts/tests/test_fproj009_template_migration.py;scripts/tests/test_fproj009_stage_repair_and_samples.py;scripts/generate_fproj009_sample_templates.py;scripts/revise_fproj009_sample_tasks.py;scripts/tests/test_fproj009_task_correction.py;docs/decisions/open-questions.md;pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/businessview/**;pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/businessview/**;pms-module-platform/pms-module-platform-api/pom.xml;pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttemplate/**;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisDynamicForm.vue;yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisDynamicForm.runtime.spec.ts`
+> 串行资源：`PM01-MEMBER-CLOSURE于d31f7903释放后接续SDS10、F-PROJ-001 Task及模板直接消费者；仍不改成员写代码或根工作树在途副本；Flyway按master实际下一号、仅本Feature迁移，公共错误码不占用他人路径；固定MySQL23316/npdms_test、Redis26379及59280/19081使用前核对，禁止reset/clean/repair`
+> 旧功能范围：`NONE`
+> 验证：`PLT53项单元/API/批锁+5项MySQL+4项SOL Provider；前端45项；PROJ候选图56/后端82/路由10/前端29；迁移结构19；V204到V205升级/validate/重复migrate、类型与构建通过；浏览器仅登录页，业务验收未完成`
+> 集成记录：`用户明确授权合入master，8a5c2803/87fab980/de00fecc选择性接收为458b1954/596acd8e/d8298c52，无冲突且已验证源码/前端/迁移一致；既有PLT90a8b774/5ae654ef保留。释放本轮写边界；Feature仍IN_PROGRESS/NOT_READY，实例化/推进/Owner业务完成未闭合，后续职责按协调重新认领，不自动转交领域表单内容DU`
+
+## 批准与完成边界
+
+需求方已批准修订方案：保留视图注册/版本/Owner/权限，在其上增加现有页面和动态表单复用，支持以后注册专用页面；现有模板直接升级，不保留两套模型、入口或运行解释。Requirement为PM-03@V1，关联PM-11及现有创建/运行消费者；本包不等同PM-03全部完成。
+
+## 并行交接与实施顺序
+
+当前根工作树存在他人未提交PM01改动，master工作树也正在完成成员闭环。认领提交仅包含本DU及两个新Feature Task，不修改其在途内容。实施使用独立短路径工作树。
+
+最初仅认领无冲突的视图/模板独立文件。PM01-MEMBER-CLOSURE已在d31f7903提交中明确释放写边界，master工作树检查干净；本次修订接续SDS10、F-PROJ-001 Task及模板初始化/工作区/阶段图直接消费者，目标分支须同步该修订后接入。原成员代码与Q-FPROJ-011首次指派授权缺口保持，不以模板任务放宽。SDS08/09领域与字段差量已在本分支形成，公开API仍须先于代码集中落位。
+
+首个已有页面为需求分析，其语义Owner为SOL而非页面物理目录所在的PROJ；对应注册Provider放入engineering新增businessview包，不改需求分析业务命令。存量只读核查发现43个ACTIVE项目且无阶段图表，需要在open-questions登记实际运行切换约束，不能擅自推图/禁用历史。Flyway编号、公共权限/错误码及运行消费者文件在实际接入前核对当前master并扩展精确写边界，不预留迁移号，不修改历史迁移。旧发布模板和已建项目不自动推图或批量切换；存在影响真实可写历史的缺口时登记具体对象及最小待决事项。
+
+## 2026-09-09阶段补全与样例接续
+
+用户提供本地浏览器验收凭据（不落文件）并要求为进行中项目补全模板阶段、给出多种模板样例。本次仅对固定隔离测试库执行前向补全，不清库。明确模板引用的项目按精确发布版新增缺失Stage，当前Stage新建为ACTIVE，其他新增Stage为PENDING；不改变Project.current_stage/lifecycle_status，不标历史DONE，不改已有阶段行。无模板引用、模板引用损坏或阶段状态冲突的夹具保留待决，不把父项目模板当自动继承规则。
+
+样例范围沿PRD3.2六类项目场景，补各阶段、任务、里程碑、交付件、Gate及引用，页面与动态表单供给复用上轮能力。样例保持DRAFT供查看、复制和明确选择，避免当前未切换运行引擎自动消费新的裁剪图；只因样例存在不能声明某阶段业务可用。原V206配置Schema可在隔离库前向验证，配置候选仍按上一轮隔离边界待完整运行接入。继续使用p903，公共治理在根工作树的其他修改不触碰；不再为元数据同步运行历史DU全量审计。
+
+## 2026-09-09用户授权master集成
+
+用户明确要求合入master，本轮选择性接收模板配置8a5c2803、任务/界面纠偏87fab980、草稿解析修复de00fecc，对应458b1954、596acd8e、d8298c52。双方工作树合入前干净，合入无冲突；相关Java、前端和V206～V209逐文件与已验证候选一致，未覆盖master新增治理与Demo任务认领。复用已有有效测试/浏览器/迁移证据，不因提交ID变化重跑全套；本次不执行运行切换/迁移/重启，不推送。当前配置增量已集成，Feature Done仍未完成，详见当前Task。释放本轮写边界，后续接入须按剩余真实职责认领。
+
+## 2026-09-09纠偏与Docker恢复后交接（合入前记录）
+
+最新候选为p903的87fab980、de00fecc，来源Task为p903/tasks/features/F-PROJ-009.md。S0零任务；六样例任务115→65（14/13/13/12/11/2），删除操作型任务、37人工里程碑及141重复上传要求，保留11可选文档。V206～V209已在固定测试库执行；V207/V209各一次失败均由用户分别授权受限repair，确认业务零写入及成功历史不变后重跑，不形成常驻repair授权。纠偏只涉及本次草稿，旧发布定义和项目历史未变，不为补数改SDS。
+
+现有模板主屏已改为阶段导航、真实任务列表和办理配置，S0仅项目基本操作；技术引用移到高级。真实浏览器已完成：直签工程需求分析选择既有PAGE→保存草稿→刷新回显SOL实体/页面/本项目关联；直签普通需求分析选择已发布DYNAMIC_FORM→保存→刷新回显精确表单修订992203020001。两个模板仍DRAFT，Project/Stage和已发布模板历史对账未变。外部绑定沿用原生完成依据时，发布预检明确拒绝；不宣布Owner办理/完成接入。
+
+Docker中断后按用户“已恢复”继续，未擅自重启共享引擎。真实保存暴露的应用ID/Stage SQL映射/引用顺序/草稿执行字段解析问题已修复并定向验证；最新47项草稿解析/发布/规则目标/图保存测试通过。前端39项及后续30项受影响复验、类型/构建通过；V209结构17项通过。390px DOM显示抽屉374px无横向溢出，截图工具capture failed，未声称视觉截图验收通过。当前自有后端PID20368监听59280，Vite19081保持运行给用户查看；使用JDK25、Node24.11.1、pnpm9.15.5，日志在p903/.run及E:/AICoding/Worktrees/p903-*.log，不含提交凭据。
+
+边界：Demo领域表单内容DU-20260909-DELIVERY-DEMO-BUSINESS-UI只提供表单内容；宿主/通用注册/模板接入职责仍本DU。新表单交付后从提供方Task/提交读取，不复制在途实现。当前未将PROJ候选合master或晋级Done；初始化、运行节点与实际Owner完成仍须按明确契约完成。
+
+## 2026-09-09实际交付与验证
+
+PLT业务视图领域/管理API、真实组件目录、PAGE/DYNAMIC_FORM宿主和SOL页面适配已选择性进入master（90a8b774、5ae654ef）。没有复制表单引擎或领域业务命令。独立静态审查发现并修复4项：Snowflake字符串ID、权限刷新丢本地值、SOL动作码不一致、过期切换确认丢值；同一审查者仅复核新增差异，确认四项解决，无保留P1/P2。模板配置端和V206仅候选8a5c2803，未接入生产运行解释，未合master。
+
+实际命令与结果：
+
+- `mvn -o -B -pl pms-module-platform -am -Dtest=BusinessView*Test,ControlledBusinessViewCatalogTest -Dsurefire.failIfNoSpecifiedTests=false test`配JDK25、Mockito显式agent及测试-Xmx512m：53项通过；默认跳过5项MySQL未计为通过。随后固定23316/npdms_test执行`-Dtest=BusinessViewMySqlIntegrationTest -DskipITs=false`，5项全部通过，真实注册/幂等/审计SQL、并发CAS和注入审计失败整体回滚；功能权限与组件为受控测试Provider，不冒充完整用户鉴权验收。
+- PROJ配置候选定向测试82项、图领域56项、旧规范路由兼容10项；SOL真实目录Provider4项通过。曾发现Mapper参数Long/Query在途不一致、旧路由断言未支持同服务别名，均修复后定向复验通过。
+- 业务视图前端整改6文件45项、模板候选2文件29项Vitest通过；最终`pnpm run ts:check`及`pnpm run build:local`通过，Node实际24.11.1（与开发文档20.19.6不同）/pnpm9.15.5；初次缺Vite自动声明、5项新增类型问题及两项测试类型问题已修复/生成声明后复验，不降低类型检查。
+- V205/V206结构unittest19项通过；仅V205实际在固定库执行。固定旧Flyway容器挂载E:/AICoding/Projects/NPDMS旧root，未启动它；通过相同Compose项目run --rm --no-deps并指向bvcheck实际迁移挂载，V204→V205 migrate/info/validate/重复migrate成功。升级前validate因新205 pending失败，正常migrate后消除，未ignore/repair。未重建库，未执行空库验收或V206。
+- 干净master代码快照bvcheck的yudao-server完整reactor打包通过；自己的旧运行JAR占用一次导致repackage失败，确认PID后停自有服务并重跑成功，不停他人服务。
+- 真实浏览器使用IAB打开127.0.0.1:19081，后端59280健康UP，最终到达NPDMS登录表单。未提供验收登录凭据，环境无可用浏览器密码配置，未猜密码/改账号/绕过认证；登录后视图管理与真实页面/表单操作均NOT_RUN。构建、组件测试和健康检查不替代此验收。
+
+证据日志在E:/AICoding/Worktrees/p903-*.log、E:/AICoding/Worktrees/bvcheck-build*.log及p903/.run/business-view/；不提交凭据。MySQL IT使用creator=9930003和BVIT_UUID专用前缀，保留测试事实，未删除已有项目。停止本次PID42612后端与23120 Vite进程树，释放59280/19081；固定MySQL/Redis保持原状。根工作树他人在途文件保持未触碰。
+
+剩余：Q-FPROJ009-001需真实存量图来源/批次或指定隔离数据重建授权；Q-TPLACC-001仍限制独立验收接入。前置包还缺新模板初始化/推进消费者、全要素种子、V206真实升级及登录后浏览器闭环。两个Feature都不能标Done，不以本DU部分交付隐藏上述缺口。

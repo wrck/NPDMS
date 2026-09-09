@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.domain.template;
 
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import org.apache.commons.lang3.StringUtils;
+import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -46,6 +47,16 @@ public final class TemplatePublishValidator {
             return failures;
         }
         validateProcessReference(content, failures);
+        StageTransitionGraph graph = new StageTransitionGraph(
+                content.getStages() == null ? null : content.getStages().stream().map(stage -> stage == null ? null
+                        : new StageTransitionGraph.Stage(stage.getStageCode(), stage.getStart(), stage.getTerminal())).toList(),
+                content.getTransitions() == null ? null : content.getTransitions().stream().map(edge -> edge == null ? null
+                        : new StageTransitionDefinition(edge.getTransitionCode(), edge.getFromStageCode(), edge.getToStageCode(),
+                        edge.getConditionRuleRevisionId(), edge.getPriority(), edge.getDefaultBranch())).toList());
+        StageTransitionGraphValidator.validate(graph).forEach(issue -> failures.add(issue.path() + ": " + issue.message()));
+        if (content.getTransitions() != null) for (var edge : content.getTransitions()) {
+            if (edge != null && (edge.getRevisionNo() == null || edge.getRevisionNo() <= 0)) failures.add("转移关系版本必须为正数");
+        }
         Set<String> stageCodes = validateStages(content.getStages(), failures);
         Set<String> taskCodes = validateTasks(content.getTasks(), stageCodes, failures);
         Set<String> milestoneCodes = validateMilestones(content.getMilestones(), stageCodes, failures);
@@ -71,9 +82,6 @@ public final class TemplatePublishValidator {
     }
 
     private static void validateProcessReference(TemplateDefinitionContent content, List<String> failures) {
-        if (StringUtils.isBlank(content.getProcessDefinitionKey())) {
-            failures.add("流程定义引用缺失：模板级流程定义ID为空");
-        }
         if (StringUtils.isNotBlank(content.getProcessDefinitionVersion())) {
             failures.add("流程定义引用无效：不得写入PMS流程版本，实例以Flowable流程定义ID冻结版本");
         }
@@ -97,6 +105,12 @@ public final class TemplatePublishValidator {
             if (!stageCodes.add(stage.getStageCode())) {
                 failures.add("阶段编码【" + stage.getStageCode() + "】重复");
                 continue;
+            }
+            if (stage.getDefinitionRevisionId() == null || stage.getDefinitionRevisionId() <= 0
+                    || stage.getWorkBindingRevisionId() == null || stage.getWorkBindingRevisionId() <= 0
+                    || stage.getPermissionPolicyRevisionId() == null || stage.getPermissionPolicyRevisionId() <= 0
+                    || stage.getCompletionRuleRevisionId() == null || stage.getCompletionRuleRevisionId() <= 0) {
+                failures.add("阶段【" + stage.getStageCode() + "】精确定义、绑定、权限或完成规则引用缺失");
             }
             if (StringUtils.isBlank(stage.getName())) {
                 failures.add("阶段【" + stage.getStageCode() + "】名称为空");
@@ -127,6 +141,14 @@ public final class TemplatePublishValidator {
                 if (!stageCodes.contains(task.getStageCode())) {
                     failures.add("任务【" + task.getTaskCode() + "】引用的阶段【" + task.getStageCode() + "】不存在");
                 }
+                if ("S0".equals(task.getStageCode())) {
+                    failures.add("任务【" + task.getTaskCode() + "】属于S0项目基本操作，不应重复配置为交付任务");
+                }
+                if (task.getWorkBindingTypeCode() != null
+                        && !"TASK_NATIVE".equals(task.getWorkBindingTypeCode())
+                        && "TASK_NATIVE_STATUS".equals(task.getCompletionRuleTypeCode())) {
+                    failures.add("任务【" + task.getTaskCode() + "】已绑定业务页面或表单，须配置真实业务完成依据，不能沿用原生手工完成");
+                }
                 try {
                     EXECUTION_CONTRACT_FACTORY.validateDefinition(task);
                 } catch (IllegalArgumentException ex) {
@@ -146,6 +168,18 @@ public final class TemplatePublishValidator {
                 }
                 if (!taskCodes.contains(task.getParentTaskCode())) {
                     failures.add("任务【" + task.getTaskCode() + "】的父任务【" + task.getParentTaskCode() + "】不存在");
+                }
+            }
+        }
+        if (tasks != null) {
+            java.util.Map<String, TemplateDefinitionContent.TaskDef> byCode = new java.util.HashMap<>();
+            for (var task : tasks) if (task != null && task.getTaskCode() != null) byCode.put(task.getTaskCode(), task);
+            for (var task : tasks) {
+                if (task == null) continue;
+                Set<String> path = new HashSet<>(); var current = task;
+                while (current != null) {
+                    if (!path.add(current.getTaskCode())) { failures.add("任务父子关系构成循环：" + task.getTaskCode()); break; }
+                    current = byCode.get(current.getParentTaskCode());
                 }
             }
         }

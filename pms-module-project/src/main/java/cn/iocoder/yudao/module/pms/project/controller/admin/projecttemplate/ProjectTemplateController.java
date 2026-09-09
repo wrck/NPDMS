@@ -50,14 +50,14 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  */
 @Tag(name = "管理后台 - PMS 项目模板")
 @RestController
-@RequestMapping("/pms/project-templates")
+@RequestMapping({"/api/v1/pms/project-templates", "/pms/project-templates"})
 @Validated
 public class ProjectTemplateController {
 
     @Resource
     private ProjectTemplateService projectTemplateService;
 
-    @GetMapping("/page")
+    @GetMapping({"", "/page"})
     @Operation(summary = "分页查询项目模板（状态/编码/名称过滤）")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<PageResult<ProjectTemplateRespVO>> getProjectTemplatePage(
@@ -74,6 +74,7 @@ public class ProjectTemplateController {
         return success(projectTemplateService.createProjectTemplate(template));
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     @PutMapping("/{id}")
     @Operation(summary = "编辑模板身份与草稿内容（仅 DRAFT 可编辑，编码不可修改）")
     @Parameter(name = "id", description = "模板编号", required = true)
@@ -117,6 +118,23 @@ public class ProjectTemplateController {
                 .anyMatch(revision -> TemplateRules.REVISION_STATUS_DRAFT.equals(revision.getStatus()));
         detail.setDraftContent(hasDraft ? projectTemplateService.getDraftContent(id) : null);
         return success(detail);
+    }
+
+    @PostMapping("/{id}/actions/validate")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Validation>
+            validateProjectTemplate(@PathVariable("id") Long id) {
+        return success(projectTemplateService.validateProjectTemplate(id));
+    }
+
+    @PostMapping("/{id}/actions/copy")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:update')")
+    public CommonResult<Long> copyProjectTemplate(@PathVariable("id") Long id,
+            @Valid @RequestBody cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body,
+            @org.springframework.web.bind.annotation.RequestHeader("If-Match") String version,
+            @org.springframework.web.bind.annotation.RequestHeader("Idempotency-Key") String key) {
+        return success(projectTemplateService.copyProjectTemplate(id,
+                cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands.version(version), body, key));
     }
 
     @PostMapping("/{id}/actions/publish")

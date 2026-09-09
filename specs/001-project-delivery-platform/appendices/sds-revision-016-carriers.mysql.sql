@@ -147,6 +147,8 @@ CREATE TABLE `plt_business_view_revision` (
   `view_key` VARCHAR(128) NOT NULL,
   `revision_no` BIGINT UNSIGNED NOT NULL,
   `owner_context` VARCHAR(32) NOT NULL,
+  `view_source` VARCHAR(16) NOT NULL,
+  `dynamic_form_revision_id` BIGINT NULL,
   `component_key` VARCHAR(128) NOT NULL,
   `component_version` VARCHAR(64) NOT NULL,
   `context_schema` JSON NOT NULL,
@@ -154,7 +156,7 @@ CREATE TABLE `plt_business_view_revision` (
   `query_provider_key` VARCHAR(128) NOT NULL,
   `command_provider_key` VARCHAR(128) NOT NULL,
   `permission_provider_key` VARCHAR(128) NOT NULL,
-  `published_at` DATETIME(6) NOT NULL,
+  `published_at` DATETIME(6) NULL,
   `disabled_at` DATETIME(6) NULL,
   `version` INT NOT NULL DEFAULT 0,
   `creator` VARCHAR(64) NOT NULL DEFAULT '',
@@ -166,7 +168,9 @@ CREATE TABLE `plt_business_view_revision` (
   UNIQUE KEY `uk_bvr_identity` (`tenant_id`, `entity_type`, `view_key`, `revision_no`),
   CONSTRAINT `ck_bvr_version` CHECK (revision_no > 0),
   CONSTRAINT `ck_bvr_actions` CHECK (JSON_TYPE(supported_actions)='ARRAY'),
-  CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT')
+  CONSTRAINT `ck_bvr_schema` CHECK (JSON_TYPE(context_schema)='OBJECT'),
+  CONSTRAINT `ck_bvr_source` CHECK ((view_source='PAGE' AND dynamic_form_revision_id IS NULL) OR (view_source='DYNAMIC_FORM' AND dynamic_form_revision_id IS NOT NULL AND dynamic_form_revision_id > 0)),
+  CONSTRAINT `ck_bvr_disabled` CHECK (disabled_at IS NULL OR (published_at IS NOT NULL AND disabled_at >= published_at))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Owner PROJ; Requirements: PM-06

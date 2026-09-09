@@ -243,7 +243,8 @@ InspectionRule的检测分类和严重度由基础平台字典提供，产品类
 |---|---|---|
 | Customer | External Master Copy / 临时主数据 | CRM 客户以 sourceKey 幂等同步；临时客户显式标记来源，合并不删除历史引用 |
 | MarketRelation | External Master Copy | CRM同步市场部、系统部、拓展部、子行业的编码与名称组合目录；CUS拥有本地同步副本，不把组合目录解释为组织树 |
-| CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
+| CustomerContact | 客户联系人主档 / External Master Copy / 平台补充事实 | 按客户统一管理，外部权威字段不被平台覆盖；项目内新增联系人时同步新增客户联系人主档，已有主档不因项目内编辑、停用或删除而被回写 |
+| ProjectCustomerContactRelation | 项目联系记录 / 时态关系 | 默认引用项目关联客户的CustomerContact，保留来源身份与项目联络必需的信息，而非完整副本；项目内角色、主联系人、状态和联系信息独立维护，编辑/停用/软删除仅影响本项目记录与历史 |
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
 | CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
 | CustomerLocationReference | 时态关系 | 客户对AST Address/Site的稳定引用、类型、来源版本和有效区间；CUS不拥有地点实体或位置树 |
@@ -471,6 +472,20 @@ Requirement：PM-03、PM-06、PM-10、PM-11、COM-01、ACC-03、CLO-01、CLO-02�
 | ProjectExitRecord | PROJ，退出事实历史 | projectVersion、closureType、closedFromStage、真实Stage实例、来源闭环记录/版本及门禁快照；与当前生命周期受控写入同事务，三类终态不强制S6 |
 
 定义payload结构由受控schema_version解释：STAGE/TASK必须有稳定编码、默认主绑定/权限/完成规则引用；DELIVERABLE包含STAGE/TASK归属、类型、最小数量、允许来源和确认规则；WORK_BINDING包含类型、实例解析策略、目标类型、BusinessViewKey及精确版本，原生目标为空；COMPLETION_RULE仅支持已注册事实谓词及组合；PERMISSION_POLICY仅声明所需动作，不产生授权。缺少任一引用或Provider时发布和执行失败关闭。
+
+### PM-03单一模板与业务视图来源（2026-09-08批准增量）
+
+需求方已批准直接升级现有模板、业务视图复用已有页面或动态表单并允许后续接入专用页面。本节只细化PM-03已定义能力，不新建项目生命周期或第二套模板。
+
+- BusinessViewRegistration增加`viewSource=PAGE|DYNAMIC_FORM`。PAGE引用受控`componentKey/componentVersion`；DYNAMIC_FORM引用同租户的精确`dynamicFormRevisionId`，复用既有表单引擎。两者均保留Owner、实体类型、BusinessViewKey、上下文Schema、支持动作及query/command/permission Provider键；Provider必须与Owner和实体类型相容，组件存在不代表对象授权成立。
+- PAGE禁止携带动态表单修订；DYNAMIC_FORM必须携带正数表单修订及受控表单宿主组件键。组件/Provider使用稳定编码，不接受URL、文件路径、脚本、SQL或反射类名。受控编码按`[A-Za-z][A-Za-z0-9_.:-]{0,127}`表达，组件版本为非空发布标识；版本字符串不是可执行内容。
+- 注册草稿按`publishedAt=NULL AND disabledAt=NULL`解释；发布后正文不可更改，停用只追加disabledAt并阻止新引用。停用的精确注册版本仍可查询用于历史解释；发布与停用不创建目标业务实体。视图上下文和supportedActions只声明需求，不给主体增加权限；运行结果取节点权限、Owner对象权限与当前状态的交集。
+- 前端宿主通过精确组件键映射接入既有业务页面或表单内容组件。组件接收服务端解析的上下文、目标稳定引用和允许操作；适配器保留原Owner API、CAS、幂等和文件校验。`changed/dirty-change`用于刷新与离开保护，不写完成事实。新专用页面只增加受控适配和注册，不向模板引擎新增页面专用分支。
+- StageTransitionDefinition的优先级数值越小越优先；条件规则引用的是已发布、只读的CompletionRule，默认边不携带条件。无条件非默认边视为恒真；存在多个命中时只选择唯一的最高优先级边，同优先级多个命中返回多义冲突。所有非默认边均明确不满足时才使用唯一默认边；任一参与判定的条件未知或失效返回不可判定，不按未命中走默认边。当前为无出向边的正常收口节点时返回终点，不生成虚拟阶段或闭环事实。
+- 图发布校验唯一S0开始、可达正常收口、全节点可达、无环/悬空、自环禁止、非收口节点有出向边、收口节点无出向边。一个源最多一个默认边；无条件同优先级冲突发布拒绝，其他条件是否满足由运行时Owner事实判定，无法唯一解析仍不得推进。阶段码仅校验S0～S6合法值，不强制每个阶段都存在。前后置关系由同一组边派生。
+- 模板身份、草稿、发布及运行解释保持单一模型；不新增LEGACY/GRAPH业务类型分支。已有定义正文和实例历史不可覆盖，历史缺失关系图不得从sortOrder或阶段编号推导。历史迁移影响不因本次批准自动获得数据切换授权。
+
+本节领域约束允许独立实现与验证；公开管理API及跨Owner方法仍在SDS10正式落位，不能以领域对象或前端宿主代替公开契约、生产装配和浏览器验收。
 
 ### 范围与报告的精确关系
 

@@ -149,7 +149,7 @@ public class ProjectManualCreationApplicationService {
                 project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo(),
                 project.getTemplateLoadMethod(), instances.getStages().size(), instances.getTasks().size(),
                 instances.getMilestones().size(), instances.getDeliverables().size(), instances.getGates().size(),
-                false, matchDecision == null ? null : matchDecision.matchResult(),
+                command.serviceManagerUserId() != null, matchDecision == null ? null : matchDecision.matchResult(),
                 matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
     }
 

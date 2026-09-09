@@ -22,15 +22,58 @@ class TemplatePublishValidatorTest {
     }
 
     @Test
+    void s0ProjectOperationsCannotBePublishedAsDeliveryTasks() {
+        var content = buildValidContent();
+        content.getTasks().getFirst().setStageCode("S0");
+        assertHasFailure(content, "项目基本操作");
+    }
+
+    @Test
+    void externalViewCannotUseNativeTaskCompletionAsBusinessResult() {
+        var content = buildValidContent();
+        var task = content.getTasks().getFirst();
+        task.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        task.setTargetContextCode("SOL");
+        task.setTargetObjectType("REQUIREMENT_ANALYSIS");
+        task.setTargetObjectKey("PROJECT_REQUIREMENT_ANALYSIS");
+        assertHasFailure(content, "真实业务完成依据");
+    }
+
+    @Test
+    void noTasksRequiredForProjectBasicStage() {
+        var content = buildValidContent();
+        assertTrue(content.getTasks().stream().noneMatch(task -> "S0".equals(task.getStageCode())));
+        assertTrue(TemplatePublishValidator.validate(content).isEmpty());
+    }
+
+    @Test
     void nullContentRejected() {
         assertTrue(!TemplatePublishValidator.validate(null).isEmpty());
     }
 
     @Test
-    void missingProcessReferenceRejected() {
+    void missingOptionalTemplateProcessReferenceAccepted() {
         TemplateDefinitionContent content = buildValidContent();
         content.setProcessDefinitionKey(null);
-        assertHasFailure(content, "流程定义引用缺失");
+        assertTrue(TemplatePublishValidator.validate(content).isEmpty());
+    }
+
+    @Test
+    void missingGraphIsNotReconstructedFromOrder() {
+        var content = buildValidContent(); content.getTransitions().clear();
+        assertHasFailure(content, "出向关系");
+    }
+
+    @Test
+    void missingNativeStageContractIsRejected() {
+        var content = buildValidContent(); content.getStages().getFirst().setWorkBindingRevisionId(null);
+        assertHasFailure(content, "绑定");
+    }
+
+    @Test
+    void arbitraryDepthCycleRejected() {
+        var content = buildValidContent(); content.getTasks().getFirst().setParentTaskCode("T-002");
+        assertHasFailure(content, "循环");
     }
 
     @Test
@@ -236,10 +279,18 @@ class TemplatePublishValidatorTest {
         s0.setEntryCriteria("合同生效"); s0.setExitCriteria("启动会完成");
         TemplateDefinitionContent.StageDef s1 = new TemplateDefinitionContent.StageDef();
         s1.setStageCode("S1"); s1.setName("实施"); s1.setSortOrder(1);
+        s0.setStart(true); s0.setTerminal(false); s1.setStart(false); s1.setTerminal(true);
+        for (var stage : List.of(s0, s1)) {
+            stage.setDefinitionRevisionId(10L); stage.setWorkBindingRevisionId(11L);
+            stage.setPermissionPolicyRevisionId(12L); stage.setCompletionRuleRevisionId(13L);
+        }
+        var edge = new TemplateDefinitionContent.TransitionDef(); edge.setTransitionCode("S0_TO_S1");
+        edge.setFromStageCode("S0"); edge.setToStageCode("S1"); edge.setPriority(1);
+        edge.setDefaultBranch(false); edge.setRevisionNo(1L); content.setTransitions(new ArrayList<>(List.of(edge)));
         content.setStages(new ArrayList<>(List.of(s0, s1)));
 
         TemplateDefinitionContent.TaskDef t1 = new TemplateDefinitionContent.TaskDef();
-        t1.setTaskCode("T-001"); t1.setName("编制项目计划"); t1.setStageCode("S0");
+        t1.setTaskCode("T-001"); t1.setName("现场工勘"); t1.setStageCode("S1");
         t1.setPriority(1); t1.setSortOrder(0); t1.setEstimatedHours(new BigDecimal("8.0"));
         setTaskNativeContract(t1);
         TemplateDefinitionContent.TaskDef t2 = new TemplateDefinitionContent.TaskDef();
@@ -249,18 +300,18 @@ class TemplatePublishValidatorTest {
         content.setTasks(List.of(t1, t2));
 
         TemplateDefinitionContent.MilestoneDef m1 = new TemplateDefinitionContent.MilestoneDef();
-        m1.setMilestoneCode("M-001"); m1.setName("启动会"); m1.setStageCode("S0");
+        m1.setMilestoneCode("M-001"); m1.setName("工勘确认"); m1.setStageCode("S1");
         m1.setTiming("S0 准出前"); m1.setCriteria("启动会纪要归档");
         content.setMilestones(List.of(m1));
 
         TemplateDefinitionContent.DeliverableDef d1 = new TemplateDefinitionContent.DeliverableDef();
-        d1.setDeliverableCode("D-001"); d1.setName("项目计划书"); d1.setStageCode("S0");
+        d1.setDeliverableCode("D-001"); d1.setName("工勘报告"); d1.setStageCode("S1");
         d1.setTaskCode("T-001"); d1.setRequired(Boolean.TRUE);
         content.setDeliverables(List.of(d1));
 
         TemplateDefinitionContent.GateDef g1 = new TemplateDefinitionContent.GateDef();
-        g1.setGateCode("G-001"); g1.setName("S0 准出"); g1.setGateType(TemplateDefinitionContent.GATE_TYPE_EXIT);
-        g1.setStageCode("S0");
+        g1.setGateCode("G-001"); g1.setName("S1 准出"); g1.setGateType(TemplateDefinitionContent.GATE_TYPE_EXIT);
+        g1.setStageCode("S1");
         TemplateDefinitionContent.GateRef taskRef = new TemplateDefinitionContent.GateRef();
         taskRef.setRefType(TemplateDefinitionContent.REF_TYPE_TASK); taskRef.setRefCode("T-001");
         TemplateDefinitionContent.GateRef deliverableRef = new TemplateDefinitionContent.GateRef();

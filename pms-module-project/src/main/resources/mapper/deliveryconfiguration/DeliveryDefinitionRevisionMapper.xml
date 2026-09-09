@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.deliveryconfiguration.DeliveryDefinitionRevisionMapper">
+  <select id="lockIdentity" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.deliveryconfiguration.DeliveryDefinitionRevisionDO">
+    SELECT * FROM proj_delivery_definition_revision WHERE tenant_id=#{query.tenantId}
+    AND definition_kind=#{query.definitionKind} AND definition_code=#{query.definitionCode} AND deleted=0
+    ORDER BY revision_no, id FOR UPDATE
+  </select>
+  <select id="lockRevision" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.deliveryconfiguration.DeliveryDefinitionRevisionDO">
+    SELECT * FROM proj_delivery_definition_revision WHERE tenant_id=#{query.tenantId} AND id=#{query.revisionId} AND deleted=0 FOR UPDATE
+  </select>
+  <update id="replaceDraft">
+    UPDATE proj_delivery_definition_revision SET payload=#{row.payload}, schema_version=#{row.schemaVersion},
+    version=version+1, updater=#{row.updater}, update_time=CURRENT_TIMESTAMP(3)
+    WHERE id=#{row.id} AND tenant_id=#{row.tenantId} AND version=#{row.version} AND revision_state='DRAFT' AND deleted=0
+  </update>
+  <update id="publish">
+    UPDATE proj_delivery_definition_revision SET revision_state='PUBLISHED', published_at=#{row.publishedAt},
+    version=version+1, updater=#{row.updater}, update_time=CURRENT_TIMESTAMP(3)
+    WHERE id=#{row.id} AND tenant_id=#{row.tenantId} AND version=#{row.version} AND revision_state='DRAFT' AND deleted=0
+  </update>
+  <update id="disable">
+    UPDATE proj_delivery_definition_revision SET disabled_at=#{row.disabledAt}, version=version+1,
+    updater=#{row.updater}, update_time=CURRENT_TIMESTAMP(3)
+    WHERE id=#{row.id} AND tenant_id=#{row.tenantId} AND version=#{row.version} AND revision_state='PUBLISHED'
+    AND disabled_at IS NULL AND deleted=0
+  </update>
+</mapper>

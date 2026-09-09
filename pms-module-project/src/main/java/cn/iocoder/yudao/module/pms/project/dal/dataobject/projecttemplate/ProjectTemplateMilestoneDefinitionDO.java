@@ -13,6 +13,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateMilestoneDefinitionDO extends TenantBaseDO {
+    private Long definitionRevisionId;
+
 
     /**
      * 里程碑定义ID

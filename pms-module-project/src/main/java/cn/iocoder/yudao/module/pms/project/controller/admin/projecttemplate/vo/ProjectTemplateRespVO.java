@@ -15,6 +15,8 @@ public class ProjectTemplateRespVO {
     @Schema(description = "模板编号", example = "1")
     private Long id;
 
+    private Integer version;
+
     @Schema(description = "模板编码（租户内唯一）", example = "TPL-STD-DELIVERY")
     private String code;
 

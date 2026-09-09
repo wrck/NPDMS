@@ -43,6 +43,13 @@ import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindin
 import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.databind.JsonNode;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateTransitionDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateTransitionDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.*;
+import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.*;
+import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.*;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +91,12 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     @Resource
     private ProjectTemplateMapper projectTemplateMapper;
     @Resource
+    private ProjectTemplateTransitionDefinitionMapper transitionDefinitionMapper;
+    @Resource
+    private TemplateDefinitionReferenceAssembler definitionReferenceAssembler;
+    @Resource
+    private DeliveryConfigurationCommands configurationCommands;
+    @Resource
     private ConfigApi configApi;
     @Resource
     private DictDataApi dictDataApi;
@@ -116,6 +129,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             throw exception(PROJECT_TEMPLATE_CODE_DUPLICATE);
         }
         template.setId(null);
+        template.setVersion(0);
         template.setStatus(TemplateRules.STATUS_DRAFT);
         template.setSystemReserved(Boolean.FALSE);
         if (template.getMatchPriority() == null) {
@@ -132,8 +146,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateIdentity(Long id, String name, Integer matchPriority, String description) {
-        ProjectTemplateDO template = validateTemplateExists(id);
+        ProjectTemplateDO template = lockTemplate(id);
         // RETIRED 模板身份冻结；重新供给需新建模板
         if (!TemplateRules.canEditDraft(template.getStatus(), TemplateRules.REVISION_STATUS_DRAFT)) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
@@ -144,12 +159,13 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         updateObj.setMatchPriority(matchPriority);
         updateObj.setDescription(description);
         projectTemplateMapper.updateById(updateObj);
+        incrementTemplateVersion(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
-        ProjectTemplateDO template = validateTemplateExists(templateId);
+        ProjectTemplateDO template = lockTemplate(templateId);
         ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(templateId);
         if (draft == null) {
             throw exception(PROJECT_TEMPLATE_NO_DRAFT_REVISION);
@@ -158,6 +174,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         if (!TemplateRules.canEditDraft(template.getStatus(), draft.getStatus())) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
+        definitionReferenceAssembler.resolveDraftTaskBindings(content);
         // 四维条件与流程引用（草稿行原地更新）
         ProjectTemplateRevisionDO updateObj = new ProjectTemplateRevisionDO();
         updateObj.setId(draft.getId());
@@ -170,12 +187,13 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         revisionMapper.updateById(updateObj);
         // 定义行整体替换（物理删除+重插，规避 uk 与逻辑删除冲突）
         replaceDefinitionRows(draft.getId(), content);
+        incrementTemplateVersion(templateId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteProjectTemplate(Long id) {
-        ProjectTemplateDO template = validateTemplateExists(id);
+        ProjectTemplateDO template = lockTemplate(id);
         boolean hasPublished = !revisionMapper.selectPublishedListByTemplateId(id).isEmpty();
         // BR-8 系统保留不得删除；留痕：已发布版本不得物理删除
         if (!TemplateRules.canDelete(Boolean.TRUE.equals(template.getSystemReserved()), hasPublished)) {
@@ -235,7 +253,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void publishProjectTemplate(Long id) {
-        ProjectTemplateDO template = validateTemplateExists(id);
+        ProjectTemplateDO template = lockTemplate(id);
         ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(id);
         if (draft == null) {
             throw exception(PROJECT_TEMPLATE_NO_DRAFT_REVISION);
@@ -246,6 +264,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         }
         // BR-2 发布校验：失败保持草稿并列出失败项（重试用原版本号）
         TemplateDefinitionContent content = loadContent(draft);
+        definitionReferenceAssembler.resolve(content, true);
         boolean requiresPreparationCatalog = TemplatePublishValidator.requiresPreparationCatalog(content);
         String fixedFormCatalog = requiresPreparationCatalog
                 ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
@@ -278,6 +297,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         published.setProcessDefinitionKey(draft.getProcessDefinitionKey());
         published.setProcessDefinitionVersion(null);
         published.setValidationSummary("发布校验通过");
+        published.setDefinitionSnapshot(JsonUtils.toJsonString(content.getDefinitionSnapshot()));
         published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
         published.setPublishedTime(LocalDateTime.now());
         revisionMapper.insert(published);
@@ -287,20 +307,16 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         statusUpdate.setId(id);
         statusUpdate.setStatus(TemplateRules.STATUS_ACTIVE);
         projectTemplateMapper.updateById(statusUpdate);
+        incrementTemplateVersion(id);
     }
 
     List<String> validateStageGateOwners(TemplateDefinitionContent content, Long tenantId) {
         List<String> failures = new ArrayList<>();
-        List<TemplateDefinitionContent.GateDef> gates = content.getGates() == null ? List.of() : content.getGates();
-        for (int stage = 0; stage <= 3; stage++) {
-            String stageCode = "S" + stage;
-            boolean hasExitGate = gates.stream().filter(Objects::nonNull)
-                    .anyMatch(gate -> TemplateDefinitionContent.GATE_TYPE_EXIT.equals(gate.getGateType())
-                            && stageCode.equals(gate.getStageCode()));
-            if (!hasExitGate) {
-                failures.add("阶段【" + stageCode + "】缺少EXIT Gate");
-            }
+        if (content.getProcessDefinitionKey() != null && !content.getProcessDefinitionKey().isBlank()) {
+            try { stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(tenantId, content.getProcessDefinitionKey())); }
+            catch (RuntimeException ex) { failures.add("模板实际流程定义不可用"); }
         }
+        List<TemplateDefinitionContent.GateDef> gates = content.getGates() == null ? List.of() : content.getGates();
         for (TemplateDefinitionContent.GateDef gate : gates) {
             if (gate == null || gate.getReferences() == null) {
                 continue;
@@ -439,8 +455,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void disableProjectTemplate(Long id) {
-        ProjectTemplateDO template = validateTemplateExists(id);
+        ProjectTemplateDO template = lockTemplate(id);
         // BR-5 仅 ACTIVE 可停用；停用只阻新项目匹配
         if (!TemplateRules.canDisable(template.getStatus())) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
@@ -449,6 +466,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         updateObj.setId(id);
         updateObj.setStatus(TemplateRules.STATUS_RETIRED);
         projectTemplateMapper.updateById(updateObj);
+        incrementTemplateVersion(id);
     }
 
     @Override
@@ -518,6 +536,70 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         target.append(token.length()).append(':').append(token).append(';');
     }
 
+    @Override
+    public Validation validateProjectTemplate(Long id) {
+        validateTemplateExists(id);
+        TemplateDefinitionContent content = getDraftContent(id);
+        List<Issue> issues = new ArrayList<>();
+        try { definitionReferenceAssembler.resolve(content, false); }
+        catch (RuntimeException ex) { issues.add(new Issue("definitions", "REFERENCE_INVALID", ex.getMessage())); }
+        boolean preparation = TemplatePublishValidator.requiresPreparationCatalog(content);
+        String catalog = preparation ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
+        Set<String> codes = preparation ? getApprovedPreparationItemCodes() : null;
+        for (String failure : TemplatePublishValidator.validate(content, catalog, codes))
+            issues.add(new Issue("content", "TEMPLATE_INVALID", failure));
+        for (String failure : validateStageGateOwners(content, TenantContextHolder.getRequiredTenantId()))
+            issues.add(new Issue("gates", "OWNER_UNAVAILABLE", failure));
+        // Read-only validation inspects the chosen form revision but never calls a locking/writing API.
+        if (content.getTasks() != null) for (var task : content.getTasks()) {
+            if (task == null || !RequirementAnalysisWorkBindingSchema.isRequirementAnalysisBinding(task)) continue;
+            try {
+                var selected = RequirementAnalysisWorkBindingSchema.parseForPublication(task.getBindingConfig());
+                var fact = dynamicFormBusinessInstanceApi.inspectRevisionForUsage(new DynamicFormRevisionUsageQuery(
+                        TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                        new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS"), selected.dynamicFormTemplateRevisionId(),
+                        RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY, DynamicFormBusinessAction.REVISION_BINDING_PUBLISH,
+                        selected.dynamicFormRevisionFactVersion()));
+                requireExactPublishedRevision(selected, TenantContextHolder.getRequiredTenantId(), fact);
+            } catch (RuntimeException ex) { issues.add(new Issue("tasks." + task.getTaskCode(), "FORM_UNAVAILABLE", "PRE-04动态表单修订无效")); }
+        }
+        return Validation.of(issues);
+    }
+
+    @Override
+    public Long copyProjectTemplate(Long id, Integer expectedVersion,
+            cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body,
+            String idempotencyKey) {
+        return configurationCommands.execute("PROJECT_TEMPLATE_COPY", idempotencyKey,
+                new CopyIntent(id, expectedVersion, body), Long.class, () -> {
+            ProjectTemplateDO source = lockTemplate(id);
+            if (!Objects.equals(source.getVersion(), expectedVersion))
+                throw exception(DeliveryConfigurationErrors.VERSION_CONFLICT);
+            int revisionNo = body.getSourceRevisionNo() == null ? 0 : body.getSourceRevisionNo();
+            TemplateDefinitionContent content = getRevisionContent(id, revisionNo);
+            ProjectTemplateDO copy = new ProjectTemplateDO(); copy.setCode(body.getCode()); copy.setName(body.getName());
+            copy.setMatchPriority(source.getMatchPriority()); copy.setDescription(source.getDescription());
+            Long copyId = createProjectTemplate(copy);
+            updateProjectTemplateDraftContent(copyId, content);
+            return copyId;
+        });
+    }
+
+    private record CopyIntent(Long id, Integer expectedVersion,
+            cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body) { }
+
+    private ProjectTemplateDO lockTemplate(Long id) {
+        ProjectTemplateDO row = projectTemplateMapper.lockTemplate(new TemplateIdentityQuery(TenantContextHolder.getRequiredTenantId(), id));
+        if (row == null || !Objects.equals(row.getTenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
+        return row;
+    }
+
+    private void incrementTemplateVersion(Long id) {
+        if (projectTemplateMapper.incrementVersion(new TemplateIdentityQuery(TenantContextHolder.getRequiredTenantId(), id)) != 1)
+            throw exception(DeliveryConfigurationErrors.VERSION_CONFLICT);
+    }
+
     // ========== 内部方法 ==========
 
     private ProjectTemplateDO validateTemplateExists(Long id) {
@@ -572,6 +654,11 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             gates.add(gate);
         }
         content.setGates(gates);
+        content.setTransitions(BeanUtils.toBean(transitionDefinitionMapper.selectRows(
+                new TemplateRevisionRowsQuery(TenantContextHolder.getRequiredTenantId(), revision.getId())),
+                TemplateDefinitionContent.TransitionDef.class));
+        content.setDefinitionSnapshot(revision.getDefinitionSnapshot() == null ? null
+                : JsonUtils.parseObject(revision.getDefinitionSnapshot(), JsonNode.class));
         return content;
     }
 
@@ -584,6 +671,11 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     private void insertDefinitionRows(Long revisionId, TemplateDefinitionContent content) {
+        if (content.getTransitions() != null) for (var edge : content.getTransitions()) {
+            ProjectTemplateTransitionDefinitionDO row = BeanUtils.toBean(edge, ProjectTemplateTransitionDefinitionDO.class);
+            row.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId());
+            row.setTemplateRevisionId(revisionId); transitionDefinitionMapper.insert(row);
+        }
         for (TemplateDefinitionContent.StageDef stage : content.getStages()) {
             ProjectTemplateStageDefinitionDO row = BeanUtils.toBean(stage, ProjectTemplateStageDefinitionDO.class);
             row.setId(null);
@@ -629,11 +721,16 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     private void physicallyDeleteDefinitionRows(Long revisionId) {
-        stageDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
-        taskDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
-        milestoneDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
-        deliverableDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
-        gateDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
-        gateReferenceMapper.physicallyDeleteByRevisionId(revisionId);
+        ProjectTemplateRevisionDO revision = revisionMapper.selectById(revisionId);
+        if (revision == null || !TemplateRules.REVISION_STATUS_DRAFT.equals(revision.getStatus()))
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        TemplateRevisionRowsQuery query = new TemplateRevisionRowsQuery(TenantContextHolder.getRequiredTenantId(), revisionId);
+        transitionDefinitionMapper.physicallyDeleteByRevisionId(query);
+        stageDefinitionMapper.physicallyDeleteByRevisionId(query);
+        taskDefinitionMapper.physicallyDeleteByRevisionId(query);
+        milestoneDefinitionMapper.physicallyDeleteByRevisionId(query);
+        deliverableDefinitionMapper.physicallyDeleteByRevisionId(query);
+        gateDefinitionMapper.physicallyDeleteByRevisionId(query);
+        gateReferenceMapper.physicallyDeleteByRevisionId(query);
     }
 }

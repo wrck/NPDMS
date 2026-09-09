@@ -58,6 +58,8 @@ class ProjectManualCreationApplicationServiceTest {
     @Mock
     private ProjectCreationAuthorizationService authorizationService;
     @Mock
+    private ProjectServiceManagerCandidateValidator managerCandidateValidator;
+    @Mock
     private CompanyApi companyApi;
     @Mock
     private DeptApi deptApi;
@@ -118,6 +120,7 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("ACTIVE", result.lifecycleStatus());
         assertEquals("S0", result.currentStage());
         assertEquals("UNASSIGNED", result.assignmentStatus());
+        assertEquals(false, result.serviceManagerAssigned());
         assertEquals(TemplateMatchDecisionRules.MATCH_UNIQUE, result.matchResult());
         assertEquals(TemplateMatchDecisionRules.DECISION_EXPLICIT, result.matchDecisionMode());
         String expectedOperationId = TemplateMatchDecisionRules.operationId(
@@ -136,6 +139,26 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("业务立项", historyCaptor.getValue().changeReason());
         assertEquals(expectedOperationId, historyCaptor.getValue().operationId());
         assertEquals("correlation-1", historyCaptor.getValue().traceId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void reportsConfirmedServiceManagerWithoutClaimingBothPrimaryRolesAreAssigned() {
+        var base = command();
+        var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                base.templateRevisionId(), base.candidateWatermark(), 8L, base.idempotencyKey(), base.requestDigest());
+        var decision = decision();
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(decision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(decision), eq(8L))).thenReturn(project());
+        when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation ->
+                new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
+                        ((Supplier<Object>) invocation.getArgument(3)).get()));
+        var result = service.create(command, actor());
+        assertEquals(true, result.serviceManagerAssigned());
+        assertEquals("UNASSIGNED", result.assignmentStatus());
+        verify(authorizationService).assertCanAssign(7L);
+        verify(managerCandidateValidator).validate(8L, 10L, 20L, "DEP-01");
     }
 
     @Test

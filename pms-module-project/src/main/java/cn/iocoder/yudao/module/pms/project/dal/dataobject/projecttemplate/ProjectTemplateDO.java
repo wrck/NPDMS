@@ -16,6 +16,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateDO extends TenantBaseDO {
+    private Integer version;
+
 
     /**
      * 模板ID

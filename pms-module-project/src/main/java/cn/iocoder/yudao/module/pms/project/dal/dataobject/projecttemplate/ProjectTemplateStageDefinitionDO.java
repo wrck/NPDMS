@@ -9,10 +9,19 @@ import lombok.EqualsAndHashCode;
 /**
  * 项目模板阶段定义 DO（F-PM03 / V52）
  */
-@TableName("proj_project_template_stage_definition")
+@TableName(value = "proj_project_template_stage_definition", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateStageDefinitionDO extends TenantBaseDO {
+    private Long definitionRevisionId;
+    private Long workBindingRevisionId;
+    private Long permissionPolicyRevisionId;
+    private Long completionRuleRevisionId;
+    @com.baomidou.mybatisplus.annotation.TableField("start_node")
+    private Boolean start;
+    @com.baomidou.mybatisplus.annotation.TableField("terminal_node")
+    private Boolean terminal;
+
 
     /**
      * 阶段定义ID

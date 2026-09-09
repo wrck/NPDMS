@@ -134,8 +134,10 @@
           ref="dynamicFormRef"
           :key="`${detail.preparationId}-${detail.dynamicFormInstanceVersion}`"
           :detail="detail"
+          :allowed-actions="detailActions"
           :reload="reloadSelectedDetail"
           @dirty-change="formDirty = $event"
+          @saved="emit('changed')"
         />
       </template>
     </template>
@@ -171,7 +173,12 @@ import {
   requirementIntentOf
 } from './requirementAnalysisInteraction'
 
-const props = defineProps<{ project: ProjectMasterVO }>()
+// PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
+const props = defineProps<{ project: ProjectMasterVO; allowedActions?: string[]; readonly?: boolean }>()
+const emit = defineEmits<{ changed: []; 'dirty-change': [dirty: boolean] }>()
+const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly ? [] : actions.filter(
+  (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
+)
 const { width } = useWindowSize()
 const responsiveMode = computed(() => requirementAnalysisLayout(width.value))
 const message = useMessage()
@@ -188,6 +195,7 @@ const compareRef = ref<InstanceType<typeof RequirementAnalysisCompareDrawer>>()
 const dynamicFormRef = ref<{
   save: () => Promise<boolean>
   discardChanges: () => void
+  isSaving: () => boolean
 }>()
 const formDirty = ref(false)
 const intentKeys = createRequirementIntentStore()
@@ -199,8 +207,8 @@ const relationLabel = computed(() => {
   if (detail.value?.currentEffective) return '当前有效'
   return '历史完成版'
 })
-const overviewActions = computed(() => overview.value?.allowedActions || [])
-const detailActions = computed(() => detail.value?.allowedActions || [])
+const overviewActions = computed(() => restrictActions(overview.value?.allowedActions || []))
+const detailActions = computed(() => restrictActions(detail.value?.allowedActions || []))
 const canCreateInitial = computed(
   () =>
     !overview.value?.draft &&
@@ -246,9 +254,11 @@ const loadDetail = async (preparationId: number) => {
   }
 }
 const guardCurrentForm = async (target: string) => {
+  if (dynamicFormRef.value?.isSaving()) return false
   if (!formDirty.value) return true
   try {
     await message.confirm(`当前表单尚未保存，是否放弃这些本地修改并${target}？`)
+    if (dynamicFormRef.value?.isSaving()) return false
     dynamicFormRef.value?.discardChanges()
     return true
   } catch {
@@ -383,6 +393,23 @@ const reloadSelectedDetail = async () => {
   if (!selectedPreparationId.value) throw new Error('没有选中的需求分析版本')
   return await loadDetail(selectedPreparationId.value)
 }
+const requestLeave = async () => {
+  if (commandLoading.value || detailLoading.value || dynamicFormRef.value?.isSaving()) {
+    message.warning('操作进行中，请等待结果后再切换。')
+    return false
+  }
+  // Dirty host exits stay conservative; authorization updates never discard unsaved input.
+  if (formDirty.value) {
+    message.warning('需求分析尚有未保存内容，请先保存，或在面板中刷新并确认放弃，再切换视图。')
+    return false
+  }
+  return true
+}
+watch(formDirty, (value) => emit('dirty-change', value), { immediate: true })
+watch(() => overview.value, (value, previous) => {
+  if (previous && value) emit('changed')
+})
+defineExpose({ requestLeave, isDirty: () => formDirty.value })
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!formDirty.value) return
   event.preventDefault()
@@ -392,7 +419,9 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
 watch(() => props.project.id, load, { immediate: true })
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
-onBeforeRouteLeave(async () => await guardCurrentForm('离开当前页面'))
+onBeforeRouteLeave(async () => props.allowedActions === undefined
+  ? await guardCurrentForm('离开当前页面')
+  : await requestLeave())
 </script>
 
 <style scoped lang="scss">
