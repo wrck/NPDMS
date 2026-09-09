@@ -22,7 +22,7 @@ export interface OutsourceRequestVO {
   triggerSource?: string
   triggerRefId?: number
   applicantUserId: number
-  applyTime: string
+  applyTime: string | number
   approverUserId?: number
   approveTime?: string
   approveOpinion?: string
@@ -36,14 +36,22 @@ export interface OutsourceRequestVO {
 
 const baseUrl = '/pms/eng-outsource'
 
+// LocalDateTime REST input uses epoch milliseconds; date-picker values are local date strings.
+export const outsourceSavePayload = (data: OutsourceRequestVO) => {
+  const applyTime = typeof data.applyTime === 'string'
+    ? new Date(data.applyTime.replace(' ', 'T')).getTime() : data.applyTime
+  if (!Number.isFinite(applyTime)) throw new Error('申请时间无效')
+  return { ...data, applyTime }
+}
+
 export const getOutsourceRequestPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getOutsourceRequest = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createOutsourceRequest = (data: OutsourceRequestVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
+  request.post({ url: `${baseUrl}/create`, data: outsourceSavePayload(data) })
 export const updateOutsourceRequest = (data: OutsourceRequestVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
+  request.put({ url: `${baseUrl}/update`, data: outsourceSavePayload(data) })
 export const deleteOutsourceRequest = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const submitOutsourceRequest = (id: number) =>

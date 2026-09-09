@@ -79,14 +79,16 @@ describe('F-SOL-002 project preparation panel', () => {
     expect(item).toContain("narrow.value ? '100%' : '640px'")
   })
 
-  it('retires V1.7 writes while preserving historical reads and AST location maintenance', () => {
+  it('keeps the explicitly restored standalone survey entity workflow separate from PRE-02', () => {
+    // 2026-09-09 independent restoration explicitly reactivates the original entity page.
     expect(oldApi).toContain('getSiteSurveyPage')
     expect(oldApi).toContain('getSiteSurvey')
-    expect(oldApi).not.toMatch(
-      /createSiteSurvey|updateSiteSurvey|deleteSiteSurvey|confirmSiteSurvey|rejectSiteSurvey|archiveSiteSurvey/
-    )
-    expect(oldPage).toContain('仅保留历史查询')
-    expect(oldPage).toContain('维护地点')
+    for (const action of ['create', 'update', 'delete', 'confirm', 'reject', 'archive']) {
+      expect(oldApi).toContain(`${action}SiteSurvey`)
+    }
+    expect(oldPage).toContain('PmsLocationSelector')
+    expect(oldPage).toContain('SiteSurveyDynamicForm')
+    expect(oldPage).not.toContain("from '@/api/pms/engineering/preparation'")
     expect(legacyDetail).not.toMatch(
       /SiteSurveyApi\.(?:create|update|delete|confirm|reject|archive)SiteSurvey/
     )

@@ -8,13 +8,26 @@
       class="form-alert"
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="!canWrite">
-      <el-form-item label="计算口径" prop="calculationBasis">
+      <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
+        title="按工勘登记的项目结束日期倒排。自然日包含首尾两天；此处不会回写项目结束日期。" />
+      <el-form-item v-if="!project.projectEndDate" label="计算口径" prop="calculationBasis">
         <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
           <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
           <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <div class="date-grid">
+      <div v-if="project.projectEndDate" class="date-grid">
+        <el-form-item label="项目结束日期（工勘要求）">
+          <el-input :model-value="project.projectEndDate" readonly />
+        </el-form-item>
+        <el-form-item label="自然日天数" prop="durationDays">
+          <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+        </el-form-item>
+        <el-form-item label="倒排开始日期" prop="startDate">
+          <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
+        </el-form-item>
+      </div>
+      <div v-else class="date-grid">
         <el-form-item label="开始日期" prop="startDate">
           <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
@@ -114,6 +127,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
 import { getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
+import { backwardDuration } from './backwardDuration'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
@@ -169,6 +183,17 @@ const emptyForm = (): FormModel => ({
   customerEvidenceReferenceKey: undefined
 })
 const form = reactive<FormModel>(emptyForm())
+watch(
+  () => [visible.value, props.project.projectEndDate, form.durationDays] as const,
+  () => {
+    if (!visible.value || !props.project.projectEndDate) return
+    // Reuse the existing date-range revision and approval workflow after calculating its interval.
+    form.calculationBasis = 'DATE_RANGE'
+    form.endDate = props.project.projectEndDate
+    form.startDate = backwardDuration(props.project.projectEndDate, form.durationDays)
+  },
+  { flush: 'sync' }
+)
 const evidenceReferenceKey = 'customer-delay'
 const evidenceListRef = ref<InstanceType<typeof PmsFileReferenceList>>()
 const evidenceSlot = useFileSlotState()

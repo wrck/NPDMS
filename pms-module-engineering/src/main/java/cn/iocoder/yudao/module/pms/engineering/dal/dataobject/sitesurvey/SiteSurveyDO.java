@@ -17,7 +17,7 @@ import java.time.LocalDate;
  * 对应表 {@code pms_eng_site_survey}。
  * 状态：0 草稿、1 已确认、2 已驳回、3 已归档。
  */
-@TableName("pms_eng_site_survey")
+@TableName(value = "pms_eng_site_survey", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class SiteSurveyDO extends TenantBaseDO {
@@ -39,10 +39,12 @@ public class SiteSurveyDO extends TenantBaseDO {
     /**
      * 工勘日期
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private LocalDate surveyDate;
     /**
      * 工勘责任人
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long surveyorUserId;
     /**
      * 工勘地点
@@ -68,38 +70,47 @@ public class SiteSurveyDO extends TenantBaseDO {
     /**
      * 供电条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String powerSupply;
     /**
      * 机柜条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String cabinet;
     /**
      * 网口条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String networkPort;
     /**
      * 光纤条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String fiber;
     /**
      * 模块条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String module;
     /**
      * 线缆条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String cable;
     /**
      * 接地条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String ground;
     /**
      * 施工资源条件
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String constructionResource;
     /**
      * 工勘结论
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String conclusion;
     /**
      * 状态：0 草稿 1 已确认 2 已驳回 3 已归档
@@ -108,10 +119,21 @@ public class SiteSurveyDO extends TenantBaseDO {
     /**
      * 备注
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String remark;
     /**
      * 乐观锁版本号
      */
     @Version
     private Integer version;
+
+    private Long formRevisionId;
+    private Integer formRevisionVersion;
+    @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class,
+            updateStrategy = FieldStrategy.ALWAYS)
+    private java.util.Map<String, Object> formExtraValues;
+
+    private Boolean outsourceRequired;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Long outsourceRequestId;
 }

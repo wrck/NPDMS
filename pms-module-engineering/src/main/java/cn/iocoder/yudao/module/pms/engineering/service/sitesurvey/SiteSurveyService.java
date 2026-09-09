@@ -13,6 +13,8 @@ import jakarta.validation.Valid;
  * 状态流转：0 草稿 → 1 已确认 / 2 已驳回；1 已确认 → 3 已归档。
  */
 public interface SiteSurveyService {
+    void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId);
+    void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId);
 
     /**
      * 创建现场工勘

@@ -1,0 +1,306 @@
+{
+  "formConfJson": {
+    "form": {
+      "labelPosition": "top"
+    },
+    "submitBtn": false,
+    "resetBtn": false
+  },
+  "formRulesJson": [
+    {
+      "type": "SurveyProjectEndDate",
+      "field": "extra_requiredEndDate",
+      "title": "工期要求（项目结束时间）"
+    },
+    {
+      "type": "checkbox",
+      "field": "extra_powerTypes",
+      "title": "1、机房供电确认（多选）",
+      "options": [
+        {
+          "label": "交流电源",
+          "value": "AC"
+        },
+        {
+          "label": "直流电源",
+          "value": "DC"
+        },
+        {
+          "label": "多种供电方式",
+          "value": "MULTIPLE"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "field": "extra_powerEnvironments",
+      "title": "2、供电方式（多选）",
+      "options": [
+        {
+          "label": "国标环境",
+          "value": "CN"
+        },
+        {
+          "label": "欧标环境",
+          "value": "EU"
+        },
+        {
+          "label": "其他环境",
+          "value": "OTHER"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "field": "extra_networkPortTypes",
+      "title": "3、网口类型确认（多选）",
+      "options": [
+        {
+          "label": "千兆电口",
+          "value": "GE_COPPER"
+        },
+        {
+          "label": "千兆光口",
+          "value": "GE_FIBER"
+        },
+        {
+          "label": "万兆光口",
+          "value": "10GE_FIBER"
+        },
+        {
+          "label": "40G光口",
+          "value": "40GE_FIBER"
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "field": "extra_cabinetReady",
+      "title": "4、机柜资源是否具备",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "field": "extra_cableReady",
+      "title": "5、网线资源是否具备",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "field": "extra_moduleReady",
+      "title": "6、光模块资源是否具备",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "field": "extra_originalModule",
+      "title": "7、是否使用原厂光模块",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "field": "extra_manufacturerInstallation",
+      "title": "8、上架加电是否需要原厂实施",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "SurveyOutsourceShortcut"
+    },
+    {
+      "type": "radio",
+      "field": "extra_railTrayRequired",
+      "title": "9、是否需要导轨、托盘",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "SurveyProcurementLinks"
+    },
+    {
+      "type": "radio",
+      "field": "extra_materialMatches",
+      "title": "10、发货物料是否符合现场施工环境",
+      "options": [
+        {
+          "label": "是",
+          "value": true
+        },
+        {
+          "label": "否",
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "SurveyMaterialSelector",
+      "field": "extra_selectedMaterials"
+    },
+    {
+      "type": "div",
+      "props": {
+        "innerText": "原工勘补充说明（保留原字段内容）"
+      }
+    },
+    {
+      "type": "input",
+      "field": "powerSupply",
+      "title": "供电补充说明",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "cabinet",
+      "title": "机柜补充说明",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "networkPort",
+      "title": "网口补充说明",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "fiber",
+      "title": "光纤情况",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "module",
+      "title": "光模块补充说明",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "cable",
+      "title": "线缆补充说明",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "ground",
+      "title": "接地情况",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "input",
+      "field": "constructionResource",
+      "title": "施工资源",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    },
+    {
+      "type": "Editor",
+      "field": "conclusion",
+      "title": "工勘结论",
+      "props": {
+        "height": "180px",
+        "editorId": "site-survey-business-conclusion"
+      }
+    },
+    {
+      "type": "input",
+      "field": "remark",
+      "title": "备注",
+      "props": {
+        "type": "textarea",
+        "rows": 2,
+        "maxlength": 500,
+        "showWordLimit": true
+      }
+    }
+  ]
+}

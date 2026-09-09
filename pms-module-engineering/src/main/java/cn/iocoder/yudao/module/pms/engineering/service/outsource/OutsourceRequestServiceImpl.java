@@ -83,6 +83,8 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
 
     @Resource
     private OutsourceRequestMapper outsourceRequestMapper;
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyService siteSurveyService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -100,6 +102,9 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
             entity.setVersion(0);
         }
         outsourceRequestMapper.insert(entity);
+        if ("SITE_SURVEY".equals(entity.getTriggerSource())) {
+            siteSurveyService.associateOutsourceRequest(entity.getTriggerRefId(), entity.getProjectId(), entity.getId());
+        }
         return entity.getId();
     }
 
@@ -118,6 +123,13 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         }
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
         OutsourceRequestDO update = BeanUtils.toBean(updateReqVO, OutsourceRequestDO.class);
+        if ("SITE_SURVEY".equals(existing.getTriggerSource())) {
+            update.setProjectId(existing.getProjectId());
+            update.setTriggerSource(existing.getTriggerSource());
+            update.setTriggerRefId(existing.getTriggerRefId());
+        } else if ("SITE_SURVEY".equals(update.getTriggerSource())) {
+            throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+        }
         outsourceRequestMapper.updateById(update);
     }
 
@@ -129,6 +141,9 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
+        if ("SITE_SURVEY".equals(existing.getTriggerSource())) {
+            siteSurveyService.releaseDeletedOutsourceRequest(existing.getTriggerRefId(), existing.getId());
+        }
         outsourceRequestMapper.deleteById(id);
     }
 

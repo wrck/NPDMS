@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi;
+import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -51,6 +53,7 @@ public class ConstructionPlanApplicationService {
     private final ProjectParticipantFactApi participantFactApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
+    private final ProjectEndDateApi projectEndDateApi;
 
     public ConstructionPlanRespVO createInitial(CreateInitialDurationCommand command, Actor actor) {
         try {
@@ -79,6 +82,8 @@ public class ConstructionPlanApplicationService {
         } catch (IllegalArgumentException ex) {
             throw exception(CONSTRUCTION_PLAN_ARGUMENT_INVALID);
         }
+        projectEndDateApi.validatePlanningEndDate(new ProjectEndDateCommand(actor.tenantId(), actor.actorId(),
+                command.projectId(), command.expectedProjectVersion(), duration.endDate()));
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), SCOPE_INITIAL_CREATE, actor.actorId(), command.idempotencyKey()),

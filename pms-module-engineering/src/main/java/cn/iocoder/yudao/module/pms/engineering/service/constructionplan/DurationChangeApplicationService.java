@@ -106,6 +106,7 @@ public class DurationChangeApplicationService {
     private final DurationChangeProperties properties;
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
+    private final cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
 
     public ConstructionPlanChangeRespVO createDraft(
             CreateDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
@@ -188,6 +189,8 @@ public class DurationChangeApplicationService {
             throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
         }
 
+        projectEndDateApi.validatePlanningEndDate(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
+                actor.tenantId(), actor.actorId(), plan.getProjectId(), command.expectedProjectVersion(), candidate.getEndDate()));
         boolean evidenceRequired = resolveEvidenceRequired(change.getReasonTypeCode());
         Evidence frozenEvidence = evidenceRequired
                 ? requireFileArtifact(change, inspectedEvidence)
@@ -284,6 +287,8 @@ public class DurationChangeApplicationService {
         ConstructionPlanDO plan = lockPlan(command.planId(), command.expectedPlanVersion(), actor.tenantId());
         DurationRules.ResolvedDuration duration = resolveDuration(command.calculationBasis(),
                 command.startDate(), command.endDate(), command.durationDays());
+        projectEndDateApi.validatePlanningEndDate(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
+                actor.tenantId(), actor.actorId(), plan.getProjectId(), command.expectedProjectVersion(), duration.endDate()));
         String reasonType = requiredCode(command.reasonType());
         String reasonDetail = normalizeDetail(command.reasonDetail());
         Evidence evidence = evidence(command.customerEvidenceFileId(), command.customerEvidenceFileVersion(),
@@ -377,6 +382,8 @@ public class DurationChangeApplicationService {
         boolean durationChanged = patch.submittedFields().stream().anyMatch(DURATION_FIELDS::contains);
         if (durationChanged) {
             DurationRules.ResolvedDuration duration = resolveMergedDuration(candidate, patch);
+            projectEndDateApi.validatePlanningEndDate(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
+                    actor.tenantId(), actor.actorId(), plan.getProjectId(), command.expectedProjectVersion(), duration.endDate()));
             if (revisionMapper.updateDraftIfMatch(new ConstructionPlanRevisionDraftUpdate(
                     actor.tenantId(), plan.getId(), candidate.getId(), candidate.getVersion(),
                     duration.calculationBasisCode(), duration.startDate(), duration.endDate(),

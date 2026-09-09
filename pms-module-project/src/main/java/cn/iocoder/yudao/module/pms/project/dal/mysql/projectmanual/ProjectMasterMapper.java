@@ -21,6 +21,8 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    int updateEndDateIfMatch(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateUpdate query);
+    ProjectMasterDO selectEndDateForUpdate(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateRowQuery query);
 
     default ProjectMasterDO selectByIdForUpdate(Long id) {
         return selectOneForUpdate(new LambdaQueryWrapperX<ProjectMasterDO>()

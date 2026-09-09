@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import { withRequestTimestamp } from '../requestTime'
 
 export interface MaterialRequisitionVO {
   id?: number
@@ -20,7 +21,7 @@ export interface MaterialRequisitionVO {
   triggerSource?: string
   triggerRefId?: number
   applicantUserId: number
-  applyTime: string
+  applyTime: string | number
   approverUserId?: number
   approveTime?: string
   approveOpinion?: string
@@ -39,9 +40,9 @@ export const getMaterialRequisitionPage = (params: PageParam) =>
 export const getMaterialRequisition = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createMaterialRequisition = (data: MaterialRequisitionVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
+  request.post({ url: `${baseUrl}/create`, data: withRequestTimestamp(data) })
 export const updateMaterialRequisition = (data: MaterialRequisitionVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
+  request.put({ url: `${baseUrl}/update`, data: withRequestTimestamp(data) })
 export const deleteMaterialRequisition = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const submitMaterialRequisition = (id: number) =>

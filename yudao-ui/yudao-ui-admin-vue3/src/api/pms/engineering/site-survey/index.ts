@@ -1,7 +1,22 @@
 import request from '@/config/axios'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
+import type { JsonObject } from '@/api/pms/platform/dynamic-form'
+
+export interface SiteSurveyFormSchemaVO {
+  revisionId: number
+  revisionVersion: number
+  formConfJson: JsonObject
+  formRulesJson: JsonObject[]
+}
+
+export const getDefaultFormSchema = () =>
+  request.get<SiteSurveyFormSchemaVO>({ url: '/api/v1/pms/site-surveys/default-form-schema' })
 
 export interface SiteSurveyVO {
+  projectEndDateVersion?: number
+  projectEndDateChanged?: boolean
+  outsourceRequired?: boolean
+  outsourceRequestId?: number
   id?: number
   projectId: number
   code: string
@@ -31,6 +46,9 @@ export interface SiteSurveyVO {
   status?: number
   remark?: string
   version?: number
+  formRevisionId?: number
+  formRevisionVersion?: number
+  formExtraValues?: Record<string, any>
   createTime?: Date
 }
 
@@ -39,3 +57,21 @@ const baseUrl = '/pms/eng-site-survey'
 export const getSiteSurveyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSiteSurvey = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })
+export const getFormSchema = (revisionId: number, revisionVersion: number) =>
+  request.get({
+    url: '/api/v1/pms/site-surveys/form-schema',
+    params: { revisionId, revisionVersion }
+  })
+
+export const createSiteSurvey = (data: SiteSurveyVO) =>
+  request.post({ url: `${baseUrl}/create`, data })
+export const updateSiteSurvey = (data: SiteSurveyVO) =>
+  request.put({ url: `${baseUrl}/update`, data })
+export const deleteSiteSurvey = (id: number) =>
+  request.delete({ url: `${baseUrl}/delete`, params: { id } })
+export const confirmSiteSurvey = (id: number) =>
+  request.put({ url: `${baseUrl}/confirm`, params: { id } })
+export const rejectSiteSurvey = (id: number) =>
+  request.put({ url: `${baseUrl}/reject`, params: { id } })
+export const archiveSiteSurvey = (id: number) =>
+  request.put({ url: `${baseUrl}/archive`, params: { id } })

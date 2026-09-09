@@ -80,6 +80,12 @@ public class SiteSurveyRespVO {
     @Schema(description = "乐观锁版本号", example = "0")
     private Integer version;
 
+    private Long formRevisionId;
+    private Integer formRevisionVersion;
+    private java.util.Map<String, Object> formExtraValues;
+    private Boolean outsourceRequired;
+    private Long outsourceRequestId;
+
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 }

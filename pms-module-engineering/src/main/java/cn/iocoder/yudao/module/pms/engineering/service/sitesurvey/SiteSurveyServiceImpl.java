@@ -31,21 +31,25 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     private SiteSurveyMapper siteSurveyMapper;
     @Resource
     private EngineeringLocationFactService locationFactService;
+    @Resource
+    private SiteSurveyFormService formService;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSiteSurvey(SiteSurveySaveReqVO createReqVO) {
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SiteSurveyDO survey = BeanUtils.toBean(createReqVO, SiteSurveyDO.class);
-        if (survey.getStatus() == null) {
-            survey.setStatus(0); // 草稿
-        }
-        if (survey.getVersion() == null) {
-            survey.setVersion(0);
-        }
+        survey.setId(null);
+        survey.setStatus(0);
+        survey.setVersion(0);
+        survey.setOutsourceRequired(Boolean.TRUE.equals(createReqVO.getOutsourceRequired()));
+        validateForm(survey, true);
+        updateProjectEndDate(createReqVO, null);
         siteSurveyMapper.insert(survey);
         applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0);
-        siteSurveyMapper.updateById(survey);
+        updateChecked(survey);
         return survey.getId();
     }
 
@@ -53,19 +57,42 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void updateSiteSurvey(SiteSurveySaveReqVO updateReqVO) {
         SiteSurveyDO existing = validateSiteSurveyExists(updateReqVO.getId());
+        validateStatus(existing, 0);
+        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
+                || !Objects.equals(existing.getCode(), updateReqVO.getCode())) throw exception(SITE_SURVEY_FORM_INVALID);
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         SiteSurveyDO update = BeanUtils.toBean(updateReqVO, SiteSurveyDO.class);
+        update.setStatus(existing.getStatus());
+        update.setOutsourceRequired(updateReqVO.getOutsourceRequired() == null
+                ? existing.getOutsourceRequired() : updateReqVO.getOutsourceRequired());
+        // This reference is written only by successful outsourcing creation, never by form values.
+        update.setOutsourceRequestId(existing.getOutsourceRequestId());
+        boolean bindingChanged = !Objects.equals(existing.getFormRevisionId(), update.getFormRevisionId())
+                || !Objects.equals(existing.getFormRevisionVersion(), update.getFormRevisionVersion());
+        if (existing.getFormRevisionId() != null && update.getFormRevisionId() == null) throw exception(SITE_SURVEY_FORM_INVALID);
+        if (bindingChanged && existing.getFormExtraValues() != null && !existing.getFormExtraValues().isEmpty()) {
+            var fields = formService.schema(update.getFormRevisionId(), update.getFormRevisionVersion(), true).fields()
+                    .stream().map(cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormFieldDescriptor::fieldKey)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (!fields.containsAll(existing.getFormExtraValues().keySet())) throw exception(SITE_SURVEY_FORM_INVALID);
+        }
+        validateForm(update, bindingChanged);
+        updateProjectEndDate(updateReqVO, existing);
         applyLocation(update, updateReqVO.getLocation(), updateReqVO.getLocationMaintenance(),
                 existing.getVersion() + 1);
-        siteSurveyMapper.updateById(update);
+        updateChecked(update);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteSiteSurvey(Long id) {
-        validateSiteSurveyExists(id);
-        siteSurveyMapper.deleteById(id);
+        SiteSurveyDO existing = validateSiteSurveyExists(id);
+        validateStatus(existing, 0);
+        if (siteSurveyMapper.deleteDraft(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyMutation(
+                existing.getId(), existing.getTenantId(), existing.getVersion())) != 1) {
+            throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
+        }
     }
 
     @Override
@@ -83,6 +110,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     public void confirmSiteSurvey(Long id) {
         SiteSurveyDO survey = validateSiteSurveyExists(id);
         validateStatus(survey, 0); // 草稿 → 已确认
+        validateForm(survey, false);
         updateStatus(survey, 1);
     }
 
@@ -120,7 +148,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     }
 
     private void validateVersion(SiteSurveyDO survey, Integer version) {
-        if (version != null && !Objects.equals(survey.getVersion(), version)) {
+        if (version == null || !Objects.equals(survey.getVersion(), version)) {
             throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
         }
     }
@@ -136,8 +164,57 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
 
     private void updateStatus(SiteSurveyDO survey, int newStatus) {
         survey.setStatus(newStatus);
-        survey.setVersion(survey.getVersion() + 1);
-        siteSurveyMapper.updateById(survey);
+        // @Version owns oldVersion -> newVersion; do not increment it before updateById.
+        // https://baomidou.com/plugins/optimistic-locker/
+        updateChecked(survey);
+    }
+
+    private void updateChecked(SiteSurveyDO survey) {
+        if (siteSurveyMapper.updateById(survey) != 1) throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    public void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId) {
+        if (surveyId == null) throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+        SiteSurveyDO survey = validateSiteSurveyExists(surveyId);
+        validateStatus(survey, 0);
+        if (!Objects.equals(projectId, survey.getProjectId()) || !Boolean.TRUE.equals(survey.getOutsourceRequired())
+                || outsourceRequestId == null || survey.getOutsourceRequestId() != null) {
+            throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+        }
+        survey.setOutsourceRequestId(outsourceRequestId);
+        updateChecked(survey);
+    }
+
+    private void validateForm(SiteSurveyDO survey, boolean binding) {
+        if (survey.getFormRevisionId() != null || survey.getFormExtraValues() != null) {
+            formService.validate(survey, binding);
+        }
+    }
+
+    private void updateProjectEndDate(SiteSurveySaveReqVO request, SiteSurveyDO existing) {
+        Object requested = request.getFormExtraValues() == null ? null : request.getFormExtraValues().get("extra_requiredEndDate");
+        Object previous = existing == null || existing.getFormExtraValues() == null ? null : existing.getFormExtraValues().get("extra_requiredEndDate");
+        if (Objects.equals(requested, previous) && !Boolean.TRUE.equals(request.getProjectEndDateChanged())) return;
+        if (requested == null && previous == null) return;
+        if (!(requested instanceof String date) || date.isBlank()) throw exception(SITE_SURVEY_FORM_INVALID);
+        projectEndDateApi.updateFromSurvey(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(), request.getProjectId(),
+                request.getProjectEndDateVersion(), java.time.LocalDate.parse(date)));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    public void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId) {
+        SiteSurveyDO survey = validateSiteSurveyExists(surveyId);
+        if (!Objects.equals(survey.getOutsourceRequestId(), outsourceRequestId)) return;
+        validateStatus(survey, 0);
+        survey.setOutsourceRequestId(null);
+        updateChecked(survey);
     }
 
     private void applyLocation(SiteSurveyDO survey, String fallbackLocation,

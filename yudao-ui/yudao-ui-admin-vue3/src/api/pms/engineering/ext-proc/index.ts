@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import { withRequestTimestamp } from '../requestTime'
 
 export interface ExternalProcurementVO {
   id?: number
@@ -25,7 +26,7 @@ export interface ExternalProcurementVO {
   triggerSource?: string
   triggerRefId?: number
   applicantUserId: number
-  applyTime: string
+  applyTime: string | number
   approverUserId?: number
   approveTime?: string
   approveOpinion?: string
@@ -44,9 +45,9 @@ export const getExternalProcurementPage = (params: PageParam) =>
 export const getExternalProcurement = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createExternalProcurement = (data: ExternalProcurementVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
+  request.post({ url: `${baseUrl}/create`, data: withRequestTimestamp(data) })
 export const updateExternalProcurement = (data: ExternalProcurementVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
+  request.put({ url: `${baseUrl}/update`, data: withRequestTimestamp(data) })
 export const deleteExternalProcurement = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const submitExternalProcurement = (id: number) =>

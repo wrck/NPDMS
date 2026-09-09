@@ -83,7 +83,7 @@ class DurationChangeSubmitServiceTest {
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
+                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class));
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));

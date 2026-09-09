@@ -15,6 +15,18 @@ public class DynamicFormBusinessInstanceApiImpl implements DynamicFormBusinessIn
 
     @Override
     @Transactional(readOnly = true)
+    public DynamicFormRevisionFact inspectCurrentRevisionForUsage(DynamicFormCurrentRevisionQuery query) {
+        return service.inspectCurrentRevisionForUsage(query);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DynamicFormValidationFact validateRevisionValues(DynamicFormRevisionValuesQuery query) {
+        return service.validateRevisionValues(query);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public DynamicFormRevisionFact inspectRevisionForUsage(DynamicFormRevisionUsageQuery query) {
         return service.inspectRevisionForUsage(query);
     }

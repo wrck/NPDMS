@@ -257,6 +257,38 @@ class DynamicFormBusinessInstanceServiceTest {
         return new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");
     }
 
+    @Test
+    void validatesEntityValuesAgainstPublishedSchemaWithoutCreatingOrAccessingInstances() {
+        DynamicFormTemplateRevisionDO revision = revision();
+        revision.setFormRulesJson("[{\"type\":\"input\",\"field\":\"name\",\"validate\":[{\"required\":true}]},"
+                + "{\"type\":\"checkbox\",\"field\":\"choices\",\"options\":[{\"label\":\"A\",\"value\":\"A\"}]}]");
+        when(revisionMapper.selectByRow(any())).thenReturn(revision);
+        when(templateMapper.selectByRow(any())).thenReturn(template());
+        when(policyRegistry.inspectRevision(any())).thenReturn(policy(DynamicFormBusinessAction.REVISION_FROZEN_USE, 3L, "SCHEMA"));
+        var query = new DynamicFormRevisionUsageQuery(1L, 2L, providerKey(), 20L, "TEST",
+                DynamicFormBusinessAction.REVISION_FROZEN_USE, 3);
+        assertThat(service.validateRevisionValues(new DynamicFormRevisionValuesQuery(query,
+                Map.of("name", "entity body", "choices", List.of("A")))).result()).isEqualTo("VALID");
+        assertThat(service.validateRevisionValues(new DynamicFormRevisionValuesQuery(query,
+                Map.of("name", "", "choices", List.of("UNKNOWN")))).result()).isEqualTo("INVALID");
+        assertThatThrownBy(() -> service.validateRevisionValues(new DynamicFormRevisionValuesQuery(query,
+                Map.of("status", 3)))).isInstanceOf(RuntimeException.class);
+        org.mockito.Mockito.verifyNoInteractions(instanceMapper, fileArtifactApi);
+    }
+
+    @Test
+    void currentSchemaResolvesPublishedPointerAndRejectsDisabledTemplate() {
+        DynamicFormTemplateDO template = template();
+        when(templateMapper.selectByRow(any())).thenReturn(template);
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(policyRegistry.inspectRevision(any())).thenReturn(policy(DynamicFormBusinessAction.REVISION_BINDING_PUBLISH, 3L, "SCHEMA"));
+        var query = new DynamicFormCurrentRevisionQuery(1L, 2L, providerKey(), 10L, "TEST");
+        assertThat(service.inspectCurrentRevisionForUsage(query).templateRevisionId()).isEqualTo(20L);
+        template.setAvailabilityCode("DISABLED");
+        assertThatThrownBy(() -> service.inspectCurrentRevisionForUsage(query)).isInstanceOf(RuntimeException.class);
+        org.mockito.Mockito.verifyNoInteractions(instanceMapper, fileArtifactApi);
+    }
+
     private DynamicFormOwnerKey ownerKey() {
         return new DynamicFormOwnerKey("SOL", "REQUIREMENT_ANALYSIS", "50");
     }

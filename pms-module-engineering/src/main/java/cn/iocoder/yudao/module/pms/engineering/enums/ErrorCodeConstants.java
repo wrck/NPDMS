@@ -40,6 +40,8 @@ public interface ErrorCodeConstants {
     ErrorCode SITE_SURVEY_VERSION_NOT_MATCH = new ErrorCode(1_011_001_003, "工勘版本号已变更，请刷新后重试");
     ErrorCode SITE_SURVEY_LOCATION_REQUIRED = new ErrorCode(1_011_001_004, "工勘地点不能为空");
     ErrorCode SITE_SURVEY_LOCATION_INVALID = new ErrorCode(1_011_001_005, "工勘地点结构化维护结果无效");
+    ErrorCode SITE_SURVEY_FORM_INVALID = new ErrorCode(1_011_001_006, "工勘表单内容或模板绑定无效，请检查字段与发布修订");
+    ErrorCode SITE_SURVEY_OUTSOURCE_INVALID = new ErrorCode(1_011_001_007, "工勘未启用转包、项目不匹配或已关联转包申请，请刷新工勘记录");
 
     // ========== 需求分析 requirement 1-011-002-000 ==========
     ErrorCode REQUIREMENT_NOT_EXISTS = new ErrorCode(1_011_002_000, "需求分析不存在");

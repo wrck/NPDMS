@@ -83,7 +83,7 @@ const flush = async () => {
 }
 const apps: { unmount: () => void }[] = []
 const render = (component: Component, readonly = false, id: number | undefined = 1) => {
-  const props = reactive({ project: { id, version: 7 }, readonly })
+  const props = reactive({ project: { id, version: 7, projectEndDate: undefined as string | undefined }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
   const stubs = Object.fromEntries(
@@ -110,6 +110,19 @@ beforeEach(() => {
   api.getChange.mockResolvedValue(change())
   message.confirm.mockResolvedValue(undefined)
   message.prompt.mockResolvedValue({ value: '测试撤回原因' })
+})
+
+it('uses the survey project deadline to derive the submitted initial date range', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().form.durationDays = 31
+  await flush()
+  expect(view.state().form.startDate).toBe('2026-12-01')
+  expect(view.state().durationPayload()).toEqual({ calculationBasis: 'DATE_RANGE', startDate: '2026-12-01', endDate: '2026-12-31' })
+  expect(view.props.project.projectEndDate).toBe('2026-12-31')
 })
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 

@@ -240,6 +240,7 @@
             <el-descriptions-item label="创建时间" :span="2">{{
               formatDateTime(detail.createTime)
             }}</el-descriptions-item>
+            <el-descriptions-item label="项目结束日期（工勘要求）" :span="2">{{ detail.projectEndDate || '-' }}</el-descriptions-item>
           </el-descriptions>
         </ContentWrap>
 

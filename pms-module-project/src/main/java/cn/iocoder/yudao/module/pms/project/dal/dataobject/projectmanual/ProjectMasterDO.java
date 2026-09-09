@@ -236,6 +236,8 @@ public class ProjectMasterDO extends TenantBaseDO {
      * 项目开始时间
      */
     private LocalDateTime projectStartTime;
+    /** 工勘提供的项目结束日期；倒排计划消费此字段，不反向覆盖它。 */
+    private java.time.LocalDate projectEndDate;
     /**
      * 项目刷新时间
      */

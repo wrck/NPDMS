@@ -51,6 +51,7 @@ export interface ProjectMasterVO {
   aggregationWeight?: number
   weightSource?: string
   projectStartTime?: Date
+  projectEndDate?: string
   createTime?: Date
 }
 

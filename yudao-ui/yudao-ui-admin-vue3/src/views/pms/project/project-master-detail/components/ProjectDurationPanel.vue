@@ -11,6 +11,11 @@
       </div>
     </div>
 
+    <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
+      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期时据此倒排开始日期。`" />
+    <el-alert v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
+      type="warning" :closable="false" class="status-alert"
+      title="工勘结束日期与当前生效工期不同，请新建工期变更重新倒排；原生效版本及审批记录保留。" />
     <el-alert
       v-if="!validProject"
       title="项目上下文无效，未查询工期。"
