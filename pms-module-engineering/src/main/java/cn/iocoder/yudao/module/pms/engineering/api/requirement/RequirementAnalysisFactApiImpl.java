@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.Requi
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisRowQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormEntityDataQuery;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityData;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
@@ -112,9 +114,9 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
     }
 
     private DynamicFormInstanceFact inspectForm(PreparationDO root, TrustedActor actor) {
-        return dynamicFormApi.inspectInstance(new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(),
+        return dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(),
                 PROVIDER, new DynamicFormOwnerKey(PROVIDER.ownerContext(), PROVIDER.objectType(),
-                String.valueOf(root.getId())), root.getDynamicFormInstanceId(), DynamicFormBusinessAction.READ));
+                String.valueOf(root.getId())), root.getDynamicFormInstanceId(), DynamicFormBusinessAction.READ), RequirementAnalysisEntityData.values(root)));
     }
 
     private RequirementAnalysisFact fact(PreparationDO selected, PreparationDO effective,
@@ -126,7 +128,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
                 .map(field -> new RequirementAnalysisSectionFact(field.fieldKey(), field.fieldKey(),
                         "DYNAMIC_FORM", field.componentType(), field.required(), 0,
                         JsonUtils.toJsonString(field), JsonUtils.toJsonString(form.ordinaryValues().get(field.fieldKey())),
-                        form.instanceVersion(), filesByField.getOrDefault(field.fieldKey(), List.of())))
+                        field.controlledFile() ? form.instanceVersion() : selected.getContentVersion(), filesByField.getOrDefault(field.fieldKey(), List.of())))
                 .toList();
         List<RequirementAnalysisFileFact> allFiles = fields.stream().flatMap(field -> field.fileFacts().stream()).toList();
         boolean currentEffective = effective != null && Objects.equals(effective.getId(), selected.getId());

@@ -1,5 +1,11 @@
 # F-PLT-002 共享动态表单模板与实例基础能力
 
+## 当前增量：业务实体数据只读投影（2026-09-09）
+
+按用户明确的设计/展示边界，为业务表单提供实体值与冻结Schema/文件上下文的只读投影及校验，撤除业务实例普通值写入口；新建/克隆业务上下文不写正文。手工实例功能不变，旧来源数据不删除。本轮以F-SOL-003为真实调用方验收，当前增量实施中；下方历史完成不自动覆盖新差量。认领见DU-20260909-DELIVERY-DEMO-BUSINESS-UI。
+
+本次实现/证据见[F-SOL-003当前增量记录](F-SOL-003.md#本次实现与验证记录2026-09-09)。`inspectEntityData`只读投影、原业务普通值写入口撤除、普通REST精确限制手工Owner组合已实现；真实MySQL临时表验证手工正向写入、业务Owner/错误对象键/跨租户拒绝。PLT定向31项及SOL应用级调用/引用事件回归通过，公共契约投影按master认领`c9ce0890`同步。真实浏览器仍受服务启动限制未执行；不宣称本增量Implementation Done。
+
 > Feature实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`

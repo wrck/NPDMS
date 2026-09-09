@@ -419,6 +419,7 @@ public class DynamicFormCommandService {
         PlatformDynamicFormInstanceDO instance = instanceMapper.selectForUpdate(new DynamicFormInstanceLockQuery(
                 command.actor().tenantId(), command.instanceId()));
         if (instance == null) throw exception(DYNAMIC_FORM_INSTANCE_NOT_FOUND);
+        DynamicFormQueryService.requireManualInstance(instance);
         actionProjection.require(command.actor().userId(), DynamicFormActionProjection.INSTANCE_UPDATE);
         if (!Objects.equals(instance.getCreatedBy(), command.actor().userId())) throw exception(FORBIDDEN);
         requireVersion(instance.getVersion(), command.expectedVersion());

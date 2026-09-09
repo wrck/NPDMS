@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "featureId": "F-SOL-003",
   "name": "需求分析动态表单与版本冻结",
   "requirementIds": ["PRE-04"],
@@ -17,8 +17,8 @@
     "projectContext": "PROJ",
     "fileContext": "PLATFORM/F-PLT-001",
     "truthBoundary": {
-      "SOL": "PRE-04 lifecycle, business versions, effective pointer, completion, history, comparison and SCH facts",
-      "PLATFORM": "dynamic-form template, immutable revision, instance schema, values and controlled file composition",
+      "SOL": "PRE-04 ordinary entity values, lifecycle, business versions, effective pointer, completion, history, comparison and SCH facts",
+      "PLATFORM": "dynamic-form template, immutable revision, form/file context; ordinary business values are supplied by the entity Owner",
       "PROJ": "project template, WorkBinding, scope, participant and manager facts",
       "F_PLT_001": "Artifact, FileVersion and FileReference"
     }
@@ -90,17 +90,17 @@
     "solReference": "sol_preparation.dynamic_form_instance_id",
     "projectTemplateReference": "sol_preparation.template_revision_id remains the frozen PROJ template revision",
     "crossContextForeignKey": false,
-    "formTruth": "PLT instance only",
+    "formTruth": "SOL entity_value_json for ordinary values; PLT frozen schema and file context",
     "forbiddenDuplicates": [
       "sol_requirement_analysis_section current writes",
-      "SOL value snapshot",
+      "runtime dual-write of SOL values into PLT instances",
       "SOL attachment snapshot",
       "SOL attachment IN_SYNC/PENDING/UNKNOWN state"
     ]
   },
   "tables": {
     "sol_preparation": {
-      "addColumns": ["dynamic_form_instance_id"],
+      "addColumns": ["dynamic_form_instance_id", "entity_value_json"],
       "pre04Rules": [
         "dynamic_form_instance_id is NOT NULL for a persisted PRE-04 version",
         "template_revision_id keeps PROJ template revision semantics",
@@ -115,7 +115,7 @@
       "rules": [
         "SOL business instances are not created through manual-instance REST",
         "frozen revision and engine facts never change",
-        "ordinary values use instanceVersion CAS",
+        "ordinary values use SOL entity version CAS, not PLT value persistence",
         "COMPLETED owner policy denies all writes"
       ]
     },
@@ -133,9 +133,9 @@
       "inspectRevisionForUsage": "REVISION_BINDING_PUBLISH or REVISION_FROZEN_USE; read exact revision, schema descriptors and compatibility and freeze the action",
       "lockAndRevalidateRevisionForUsage": "MANDATORY; lock exact revision fact after all consumer-policy calls and revalidate the same revision action",
       "createBusinessInstance": "MANDATORY CREATE; insert the caller-preallocated instanceId for a trusted owner tuple",
-      "inspectInstance": "READ, PATCH, COMPLETE, CLONE_SOURCE, FILE_READ or FILE_WRITE; read frozen schema, values and all controlled file facts and freeze the exact action",
-      "patchInstanceValues": "MANDATORY PATCH; partial ordinary-value CAS; controlled file keys rejected",
-      "cloneBusinessInstance": "MANDATORY CLONE_SOURCE plus CLONE_TARGET; use the caller-preallocated target instanceId, copy frozen revision/values and create independent references",
+      "inspectInstance": "read frozen schema and controlled file context; ordinary values are empty",
+      "inspectEntityData": "read-only projection and validation of Owner-supplied values with exact form/file context; no persistence",
+      "cloneBusinessInstance": "MANDATORY CLONE_SOURCE plus CLONE_TARGET; use the caller-preallocated target instanceId, copy frozen revision and create independent references; SOL clones entity values",
       "lockAndRevalidateInstance": "MANDATORY; lock and compare the complete instance fact using the same action frozen by inspectInstance"
     },
     "businessActionCodes": [
@@ -151,8 +151,8 @@
       "FILE_WRITE"
     ],
     "transactionRules": [
-      "inspectRevisionForUsage and inspectInstance are read-only",
-      "lockAndRevalidateRevisionForUsage, createBusinessInstance, patchInstanceValues, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject a call without the SOL outer transaction",
+      "inspectRevisionForUsage, inspectInstance and inspectEntityData are read-only",
+      "lockAndRevalidateRevisionForUsage, createBusinessInstance, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject a call without the SOL outer transaction",
       "no REQUIRES_NEW",
       "no nested PlatformCommandExecutionApi",
       "no second idempotency record",
@@ -233,8 +233,8 @@
       "commitInvariant": "a persisted PRE-04 root is never committed with null dynamic_form_instance_id; any failure rolls back both inserts and all success facts"
     },
     "patchValues": {
-      "order": ["PROJ/SOL authorization", "lock SOL root", "lock PLT instance", "PLT value CAS", "SOL content/version CAS"],
-      "atomic": ["PLT values", "SOL version", "success audit"]
+      "order": ["PROJ/SOL authorization", "lock SOL root", "inspect Owner-supplied entity values", "lock and revalidate PLT schema/file context", "SOL entity values and content/version CAS"],
+      "atomic": ["SOL entity values", "SOL version", "success audit"]
     },
     "createNextDraft": {
       "order": [

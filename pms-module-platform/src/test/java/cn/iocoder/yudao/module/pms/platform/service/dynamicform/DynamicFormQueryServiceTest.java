@@ -143,24 +143,15 @@ class DynamicFormQueryServiceTest {
     }
 
     @Test
-    void businessOwnedInstanceAcceptsOwnerScopeDifferentFromFrozenTemplateRevision() {
-        stubInstance("[{\"type\":\"PmsFileArtifact\",\"field\":\"drawings\"}]");
+    void manualInstanceEndpointRejectsBusinessOwnedContextBeforeReadingFiles() {
         PlatformDynamicFormInstanceDO business = instance();
         business.setOwnerContext("SOL");
         business.setObjectType("REQUIREMENT_ANALYSIS");
         business.setObjectId("501");
         when(instanceMapper.selectByRow(any())).thenReturn(business);
-        when(actionProjection.instanceActions(9L, 9L)).thenReturn(Set.of("PATCH_INSTANCE"));
-        FileArtifactVersionFact ownerScopedFact = new FileArtifactVersionFact(
-                101L, 2, "2fce3d44-109d-47be-b15a-5ea09fda1a0f",
-                "DYNAMIC_FORM_ATTACHMENT", "drawing.pdf", 10L, "application/pdf", "sha", "AVAILABLE",
-                "ACTIVE", new FileFactVersion(1, 2, 3), 1L);
-        when(fileArtifactApi.inspectReferenceSets(any())).thenReturn(List.of(
-                new FileReferenceSetFact(key("drawings"), 1L, List.of(ownerScopedFact))));
-
-        var result = service.getInstance(ACTOR, 31L);
-
-        assertEquals(1L, result.controlledFiles().get("drawings").getFirst().scopeVersion());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> service.getInstance(ACTOR, 31L));
+        org.mockito.Mockito.verifyNoInteractions(fileArtifactApi);
     }
 
     @Test
@@ -240,6 +231,9 @@ class DynamicFormQueryServiceTest {
     private PlatformDynamicFormInstanceDO instance() {
         PlatformDynamicFormInstanceDO row = new PlatformDynamicFormInstanceDO();
         row.setId(31L);
+        row.setOwnerContext("PLATFORM");
+        row.setObjectType("MANUAL_DYNAMIC_FORM");
+        row.setObjectId("31");
         row.setTenantId(0L);
         row.setInstanceCode("DFI-31");
         row.setInstanceName("Example instance");

@@ -85,6 +85,9 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     @Resource ProjectScopeApi scopes;
     @Resource ProjectParticipantFactApi participants;
     @Resource ProjectWorkBindingFactApi bindings;
+    @Resource GeneratedBusinessFileService generatedFiles;
+    @Resource BusinessGrantFileUploadService grantUploads;
+    @Resource AuthenticatedAssistedFileUploadService assistedUploads;
     @MockitoSpyBean FileEventFactory events;
 
     private final List<Long> artifactIds = new ArrayList<>();
@@ -93,8 +96,11 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         Map<String, String> env = System.getenv();
-        String database = env.getOrDefault("NPDMS_DB_NAME", "npdms");
-        String port = env.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        String database = required(env, "NPDMS_DB_NAME");
+        String port = required(env, "NPDMS_MYSQL_PORT");
+        if (!"npdms_test".equals(database) || !"23316".equals(port)) {
+            throw new IllegalStateException("Entity acceptance requires the fixed test database");
+        }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
@@ -115,6 +121,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         login();
         reset(permissions, scopes, participants, bindings, events);
         when(permissions.hasAnyPermissions(ACTOR, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(permissions.hasAnyPermissions(ACTOR, RequirementAnalysisQueryService.PERMISSION_QUERY)).thenReturn(true);
         when(permissions.hasAnyPermissions(ACTOR, RequirementAnalysisQueryService.PERMISSION_QUERY,
                 RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(scope());
@@ -151,6 +158,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         artifactIds.clear();
         SecurityContextHolder.clearContext();
         TenantContextHolder.clear();
+        verifyNoInteractions(generatedFiles, grantUploads, assistedUploads);
     }
 
     @Test
@@ -167,11 +175,26 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         assertEquals(2L, activeReferences(draft.dynamicFormInstanceId()));
         assertEquals(1L, successAudits(key));
         assertCreateDraftAudit(key, completed, draft);
+        String frozenValues = entityValues(completed.preparationId());
+        assertEquals(frozenValues, entityValues(draft.preparationId()));
+        assertEquals("{}", contextValues(completed.dynamicFormInstanceId()));
+        assertEquals("{}", contextValues(draft.dynamicFormInstanceId()));
 
         assertEquals(draft, commands.createRevision(command, actor("clone-replay")));
         assertEquals(before + 2, attachedEvents());
         assertEquals(2L, activeReferences(draft.dynamicFormInstanceId()));
         assertEquals(1L, successAudits(key));
+        commands.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(
+                draft.preparationId(), draft.solVersion(), draft.dynamicFormInstanceVersion(),
+                Map.of("PROJECT_BACKGROUND", "<p>后续版本背景</p>"), operationKey("next-body")), actor("next-body"));
+        assertNotEquals(frozenValues, entityValues(draft.preparationId()));
+        assertEquals(frozenValues, entityValues(completed.preparationId()));
+        assertEquals("{}", contextValues(draft.dynamicFormInstanceId()));
+        assertThrows(RuntimeException.class, () -> commands.patch(
+                new RequirementAnalysisDynamicFormCommandService.PatchCommand(completed.preparationId(),
+                        completed.solVersion(), completed.dynamicFormInstanceVersion(),
+                        Map.of("PROJECT_BACKGROUND", "<p>不能覆盖完成版</p>"), operationKey("frozen-body")), actor("frozen-body")));
+        assertEquals(frozenValues, entityValues(completed.preparationId()));
     }
 
     @Test
@@ -282,9 +305,24 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
                 projectId, operationKey(suffix + "-initial")), actor(suffix + "-initial"));
         Map<String, Object> values = Map.of("PROJECT_BACKGROUND", "<p>项目背景</p>",
                 "PROJECT_OBJECTIVE", "<p>项目目标</p>", "NETWORK_TOPOLOGY", "<p>网络拓扑</p>");
-        return commands.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(
+        var patched = commands.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(
                 initial.preparationId(), initial.solVersion(), initial.dynamicFormInstanceVersion(), values,
                 operationKey(suffix + "-patch")), actor(suffix + "-patch"));
+        assertEquals(initial.dynamicFormInstanceVersion(), patched.dynamicFormInstanceVersion());
+        assertEquals(initial.solVersion() + 1, patched.solVersion());
+        assertTrue(entityValues(patched.preparationId()).contains("项目背景"));
+        assertEquals("{}", contextValues(patched.dynamicFormInstanceId()));
+        return patched;
+    }
+
+    private String entityValues(Long id) {
+        return jdbc.queryForObject("SELECT entity_value_json FROM sol_preparation WHERE tenant_id=? AND id=?",
+                String.class, TENANT, id);
+    }
+
+    private String contextValues(Long id) {
+        return jdbc.queryForObject("SELECT value_json FROM plt_dynamic_form_instance WHERE tenant_id=? AND id=?",
+                String.class, TENANT, id);
     }
 
     private RequirementAnalysisDynamicFormCommandService.CommandResult completedWithTwoAttachments(String suffix) {
@@ -466,6 +504,10 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
         @Bean ProjectWorkBindingFactApi workBindingFactApi() { return mock(ProjectWorkBindingFactApi.class); }
+        // PRE-04 uses real file fact/reference services, not the unrelated generation/upload routes.
+        @Bean GeneratedBusinessFileService generatedFiles() { return mock(GeneratedBusinessFileService.class); }
+        @Bean BusinessGrantFileUploadService grantUploads() { return mock(BusinessGrantFileUploadService.class); }
+        @Bean AuthenticatedAssistedFileUploadService assistedUploads() { return mock(AuthenticatedAssistedFileUploadService.class); }
         @Bean TenantLineInnerInterceptor tenantLineInnerInterceptor(MybatisPlusInterceptor interceptor) {
             TenantLineInnerInterceptor inner = new TenantLineInnerInterceptor(
                     new TenantDatabaseInterceptor(new TenantProperties()));

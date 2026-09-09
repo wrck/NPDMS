@@ -16,6 +16,7 @@ import {
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/api/pms/engineering/requirement-analysis', () => ({ patchForm: vi.fn() }))
+vi.mock('./formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
 vi.mock('@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents', () => ({
   registerDynamicFormComponents: vi.fn()
 }))
@@ -93,7 +94,9 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     })
     const mounted = mount(
       defineComponent({
-        setup: () => () => h(RequirementAnalysisDynamicForm, { ...state, ref: form })
+        setup: () => () => h(RequirementAnalysisDynamicForm, { ...state, ref: form,
+          reload: async () => ({ ...state.detail, contentVersion: 6, version: 7,
+            values: { ...state.detail.values, machineCount: 9 } }) })
       }),
       {},
       { 'form-create': FormCreate }
@@ -128,7 +131,7 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     await Promise.resolve()
     await nextTick()
     expect(form.value.isSaving()).toBe(true)
-    form.value.discardChanges()
+    expect(form.value.discardChanges()).toBe(false)
     expect(textOf(mounted.root)).toContain('count:9')
     state.allowedActions = []
     await nextTick()
@@ -182,7 +185,7 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
       }
     )
     await nextTick()
-    expect(textOf(mounted.root)).toContain('冻结模板修订 3')
+    expect(textOf(mounted.root)).toContain('表单修订 3')
     expect(textOf(mounted.root)).not.toContain('选择模板')
     expect(findByTestId(mounted.root, 'form-create-runtime')).toBeTruthy()
     expect(
@@ -230,7 +233,8 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     vi.mocked(RequirementAnalysisApi.patchForm).mockResolvedValue({ operationId: 'op-1' })
     const authoritative = detail()
     authoritative.values.machineCount = 1
-    authoritative.dynamicFormInstanceVersion = 9
+    authoritative.contentVersion = 6
+    authoritative.version = 7
     const reload = vi.fn().mockResolvedValue(authoritative)
     const FormCreate = defineComponent({
       props: { modelValue: { type: Object, required: true } },
@@ -253,6 +257,68 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
       values: { machineCount: 1 }
     })
     expect(reload).toHaveBeenCalledTimes(1)
+    mounted.app.unmount()
+  })
+
+  const editableRenderer = defineComponent({
+    props: { modelValue: { type: Object, required: true } },
+    emits: ['update:modelValue'],
+    setup: (props, { emit }) => () => h('div', [
+      h('span', `count:${props.modelValue.machineCount}`),
+      h('button', {
+        'data-testid': 'edit-entity',
+        onClick: () => emit('update:modelValue', { ...props.modelValue, machineCount: 1 })
+      }, 'edit')
+    ])
+  })
+
+  it('does not send a write when the host cannot reload the owning entity', async () => {
+    const mounted = mount(RequirementAnalysisDynamicForm, { detail: detail() }, {
+      'form-create': editableRenderer
+    })
+    await (findByTestId(mounted.root, 'edit-entity')!.props!.onClick as Function)()
+    await nextTick()
+    expect(await (findByTestId(mounted.root, 'save-requirement-form')!.props!.onClick as Function)()).toBe(false)
+    expect(RequirementAnalysisApi.patchForm).not.toHaveBeenCalled()
+    expect(textOf(mounted.root)).toContain('count:1')
+    mounted.app.unmount()
+  })
+
+  it('uses canonical reloaded data after save and retains the edit if both reload attempts fail', async () => {
+    vi.mocked(RequirementAnalysisApi.patchForm).mockResolvedValue({ operationId: 'op-1' })
+    const reload = vi.fn().mockRejectedValue(new Error('unavailable'))
+    const form = ref<any>()
+    const mounted = mount(defineComponent({
+      setup: () => () => h(RequirementAnalysisDynamicForm, { detail: detail(), reload, ref: form })
+    }), {}, { 'form-create': editableRenderer })
+    await (findByTestId(mounted.root, 'edit-entity')!.props!.onClick as Function)()
+    await nextTick()
+    expect(await form.value.save()).toBe(false)
+    expect(form.value.isDirty()).toBe(true)
+    expect(sessionStorage.getItem('pms:fsol003:requirement-form-patch:31')).toContain('machineCount')
+    expect(reload).toHaveBeenCalledTimes(2)
+    const canonical = { ...detail(), contentVersion: 6, version: 7, values: { machineCount: 2 } }
+    reload.mockResolvedValue(canonical)
+    expect(await form.value.save()).toBe(true)
+    expect(textOf(mounted.root)).toContain('count:2')
+    expect(form.value.isDirty()).toBe(false)
+    expect(sessionStorage.getItem('pms:fsol003:requirement-form-patch:31')).toBeNull()
+    mounted.app.unmount()
+  })
+
+  it('loads an entity content update without a PLT version change and ignores pending edits on completion', async () => {
+    const state = reactive({ detail: detail() })
+    const mounted = mount(defineComponent({
+      setup: () => () => h(RequirementAnalysisDynamicForm, { detail: state.detail })
+    }), {}, { 'form-create': editableRenderer })
+    state.detail = { ...state.detail, contentVersion: 6, values: { machineCount: 3 } }
+    await nextTick()
+    expect(textOf(mounted.root)).toContain('count:3')
+    sessionStorage.setItem('pms:fsol003:requirement-form-patch:31', '{"machineCount":99}')
+    state.detail = { ...state.detail, status: 'COMPLETED', allowedActions: [], values: { machineCount: 4 } }
+    await nextTick()
+    expect(textOf(mounted.root)).toContain('count:4')
+    expect(textOf(mounted.root)).not.toContain('count:99')
     mounted.app.unmount()
   })
 })

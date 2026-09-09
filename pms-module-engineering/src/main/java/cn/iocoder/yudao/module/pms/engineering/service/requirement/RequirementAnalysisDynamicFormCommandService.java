@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisCompleteUpdate;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisDynamicContentUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisEntityDataUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisEffectiveClearUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisProjectQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisRowQuery;
@@ -15,7 +15,7 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessI
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceCloneCommand;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceCreateCommand;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceFact;
-import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstancePatchCommand;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormEntityDataQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstancePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstanceRevalidationQuery;
@@ -135,18 +135,24 @@ public class RequirementAnalysisDynamicFormCommandService {
         if (inspected == null) throw exception(REQUIREMENT_STATUS_INVALID);
         lockManager(inspected.getProjectId(), actor, false, false, null);
         PreparationDO root = lockDraft(actor.tenantId(), command.preparationId(), command.expectedSolVersion());
-        DynamicFormInstanceFact updated = dynamicFormApi.patchInstanceValues(new DynamicFormInstancePatchCommand(
-                actor.tenantId(), actor.actorId(), PROVIDER, DynamicFormBusinessAction.PATCH,
-                owner(root.getId()), root.getDynamicFormInstanceId(), command.expectedInstanceVersion(),
-                command.partialValues()));
-        if (!Objects.equals(updated.instanceVersion(), command.expectedInstanceVersion())) {
-            if (rootMapper.incrementDynamicContentIfMatch(new RequirementAnalysisDynamicContentUpdate(
-                    actor.tenantId(), root.getId(), root.getVersion(), String.valueOf(actor.actorId()))) != 1) {
-                throw exception(REQUIREMENT_VERSION_NOT_MATCH);
-            }
-            root.setVersion(root.getVersion() + 1);
-            root.setContentVersion(root.getContentVersion() + 1);
+        Map<String, Object> values = RequirementAnalysisEntityData.values(root);
+        values.putAll(command.partialValues());
+        DynamicFormInstanceFact inspectedForm = dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(
+                new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(), PROVIDER, owner(root.getId()),
+                        root.getDynamicFormInstanceId(), DynamicFormBusinessAction.PATCH), values));
+        if (!Objects.equals(inspectedForm.instanceVersion(), command.expectedInstanceVersion())) {
+            throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
+        DynamicFormInstanceFact updated = dynamicFormApi.lockAndRevalidateInstance(
+                new DynamicFormInstanceRevalidationQuery(actor.actorId(), inspectedForm));
+        String json = JsonUtils.toJsonString(updated.ordinaryValues());
+        if (rootMapper.updateEntityDataIfMatch(new RequirementAnalysisEntityDataUpdate(
+                actor.tenantId(), root.getId(), root.getVersion(), json, String.valueOf(actor.actorId()))) != 1) {
+            throw exception(REQUIREMENT_VERSION_NOT_MATCH);
+        }
+        root.setEntityValueJson(json);
+        root.setVersion(root.getVersion() + 1);
+        root.setContentVersion(root.getContentVersion() + 1);
         recordPatchAudit(actor, root, command, updated);
         return result(root, updated);
     }
@@ -159,9 +165,9 @@ public class RequirementAnalysisDynamicFormCommandService {
                 Integer.valueOf(1).equals(inspected.getBusinessVersion()), true, null);
         PreparationDO root = lockDraft(actor.tenantId(), command.preparationId(), command.expectedSolVersion());
         DynamicFormRevisionFact revision = requireRootBinding(root, requireBinding(authorization.binding()), actor);
-        DynamicFormInstanceFact inspectedInstance = dynamicFormApi.inspectInstance(new DynamicFormInstanceQuery(
+        DynamicFormInstanceFact inspectedInstance = dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(new DynamicFormInstanceQuery(
                 actor.tenantId(), actor.actorId(), PROVIDER, owner(root.getId()), root.getDynamicFormInstanceId(),
-                DynamicFormBusinessAction.COMPLETE));
+                DynamicFormBusinessAction.COMPLETE), RequirementAnalysisEntityData.values(root)));
         if (!Objects.equals(inspectedInstance.instanceVersion(), command.expectedInstanceVersion())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
@@ -210,9 +216,9 @@ public class RequirementAnalysisDynamicFormCommandService {
         RequirementAnalysisProjectQuery project = new RequirementAnalysisProjectQuery(actor.tenantId(), source.getProjectId());
         if (rootMapper.selectDraftForUpdate(project) != null) throw exception(REQUIREMENT_ANALYSIS_DRAFT_CONFLICT);
         DynamicFormRevisionFact revision = requireRootBinding(source, requireBinding(authorization.binding()), actor);
-        DynamicFormInstanceFact sourceFact = dynamicFormApi.inspectInstance(new DynamicFormInstanceQuery(
+        DynamicFormInstanceFact sourceFact = dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(new DynamicFormInstanceQuery(
                 actor.tenantId(), actor.actorId(), PROVIDER, owner(source.getId()), source.getDynamicFormInstanceId(),
-                DynamicFormBusinessAction.CLONE_SOURCE));
+                DynamicFormBusinessAction.CLONE_SOURCE), RequirementAnalysisEntityData.values(source)));
         if (!Objects.equals(sourceFact.instanceVersion(), command.expectedInstanceVersion())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
@@ -220,6 +226,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         long instanceId = IdWorker.getId();
         PreparationDO draft = newDraft(actor, source.getProjectId(), preparationId, instanceId,
                 source.getBusinessVersion() + 1, source.getId(), authorization.binding());
+        draft.setEntityValueJson(source.getEntityValueJson());
         insert(draft);
         DynamicFormPolicyFact targetPolicy = policyProvider.inspectInstanceOwnerPolicy(
                 new DynamicFormInstancePolicyQuery(actor.tenantId(), actor.actorId(), PROVIDER,
@@ -316,6 +323,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         row.setProjectId(projectId);
         row.setSourcePreparationId(sourceId);
         row.setDynamicFormInstanceId(instanceId);
+        row.setEntityValueJson("{}");
         row.setBusinessVersion(businessVersion);
         row.setTemplateId(binding.templateTaskDefinitionId());
         row.setTemplateRevisionId(binding.templateRevisionId());

@@ -68,7 +68,7 @@ class DynamicFormBusinessInstanceServiceTest {
     @Test
     void everyWriteAndLockApiRequiresCallerTransaction() throws Exception {
         for (String method : new String[]{"lockAndRevalidateRevisionForUsage", "createBusinessInstance",
-                "patchInstanceValues", "cloneBusinessInstance", "lockAndRevalidateInstance"}) {
+                "cloneBusinessInstance", "lockAndRevalidateInstance"}) {
             java.lang.reflect.Method apiMethod = java.util.Arrays.stream(
                     DynamicFormBusinessInstanceApi.class.getMethods())
                     .filter(candidate -> candidate.getName().equals(method)).findFirst().orElseThrow();
@@ -125,8 +125,7 @@ class DynamicFormBusinessInstanceServiceTest {
         values.put("enabled", false);
         values.put("count", 0);
 
-        DynamicFormInstanceFact fact = service.createBusinessInstance(new DynamicFormInstanceCreateCommand(
-                1L, 2L, providerKey(), DynamicFormBusinessAction.CREATE, 100L, ownerKey(), 20L, 3, values));
+        DynamicFormInstanceFact fact = createContextAndProject(100L, values);
 
         ArgumentCaptor<PlatformDynamicFormInstanceDO> inserted = ArgumentCaptor.forClass(
                 PlatformDynamicFormInstanceDO.class);
@@ -150,9 +149,7 @@ class DynamicFormBusinessInstanceServiceTest {
         when(revisionMapper.selectForUpdate(any())).thenReturn(revision);
         when(instanceMapper.insert(any())).thenReturn(1);
 
-        DynamicFormInstanceFact fact = service.createBusinessInstance(new DynamicFormInstanceCreateCommand(
-                1L, 2L, providerKey(), DynamicFormBusinessAction.CREATE, 101L, ownerKey(), 20L, 3,
-                Map.of("enabled", "false", "count", 11)));
+        DynamicFormInstanceFact fact = createContextAndProject(101L, Map.of("enabled", "false", "count", 11));
 
         assertThat(fact.validationFact().result()).isEqualTo("INVALID");
         assertThat(fact.validationFact().blockerCodes()).containsExactly(
@@ -181,8 +178,7 @@ class DynamicFormBusinessInstanceServiceTest {
         values.put("enabled", false);
         values.put("count", 0);
 
-        DynamicFormInstanceFact fact = service.createBusinessInstance(new DynamicFormInstanceCreateCommand(
-                1L, 2L, providerKey(), DynamicFormBusinessAction.CREATE, 102L, ownerKey(), 20L, 3, values));
+        DynamicFormInstanceFact fact = createContextAndProject(102L, values);
 
         assertThat(fact.validationFact().blockerCodes()).containsExactly(
                 "REQUIRED_VALUE_MISSING:emptyTag", "REQUIRED_VALUE_MISSING:nbsp",
@@ -205,6 +201,56 @@ class DynamicFormBusinessInstanceServiceTest {
                 .containsExactly("CONTROLLED_FILE_INVALID:evidence");
         assertThat(service.inspectInstance(query).validationFact().blockerCodes()).isEmpty();
         assertThat(service.inspectInstance(query).validationFact().blockerCodes()).isEmpty();
+    }
+
+    private DynamicFormInstanceFact createContextAndProject(long id, Map<String, Object> values) {
+        service.createBusinessInstance(new DynamicFormInstanceCreateCommand(
+                1L, 2L, providerKey(), DynamicFormBusinessAction.CREATE, id, ownerKey(), 20L, 3, Map.of()));
+        ArgumentCaptor<PlatformDynamicFormInstanceDO> inserted = ArgumentCaptor.forClass(PlatformDynamicFormInstanceDO.class);
+        verify(instanceMapper).insert(inserted.capture());
+        assertThat(inserted.getValue().getValueJson()).isEqualTo("{}");
+        when(instanceMapper.selectByRow(any())).thenReturn(inserted.getValue());
+        when(policyRegistry.inspectInstance(any())).thenReturn(policy(DynamicFormBusinessAction.READ, 8L, "DRAFT"));
+        org.mockito.Mockito.lenient().when(fileArtifactApi.inspectReferenceSets(any())).thenReturn(List.of(fileSet()));
+        return service.inspectEntityData(new DynamicFormEntityDataQuery(
+                new DynamicFormInstanceQuery(1L, 2L, providerKey(), ownerKey(), id, DynamicFormBusinessAction.READ), values));
+    }
+
+    @Test
+    void rejectsBusinessValuesAtContextCreation() {
+        assertThatThrownBy(() -> service.createBusinessInstance(new DynamicFormInstanceCreateCommand(
+                1L, 2L, providerKey(), DynamicFormBusinessAction.CREATE, 100L, ownerKey(), 20L, 3,
+                Map.of("name", "must remain in entity")))).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void entityProjectionHasNoValueWriterAndIsReadOnly() throws Exception {
+        assertThat(java.util.Arrays.stream(DynamicFormBusinessInstanceApi.class.getMethods())
+                .map(java.lang.reflect.Method::getName)).doesNotContain("patchInstanceValues");
+        assertThat(DynamicFormBusinessInstanceApiImpl.class.getMethod("inspectEntityData", DynamicFormEntityDataQuery.class)
+                .getAnnotation(Transactional.class).readOnly()).isTrue();
+    }
+
+    @Test
+    void entityMultiSelectValidatesEachChoiceWithoutPersistingValues() {
+        DynamicFormTemplateRevisionDO revision = revision();
+        revision.setFormRulesJson("[{\"type\":\"checkbox\",\"field\":\"choices\","
+                + "\"options\":[{\"value\":\"IPv6\"},{\"value\":\"MTU\"}],"
+                + "\"validate\":[{\"required\":true,\"min\":1,\"max\":2}]}]");
+        when(policyRegistry.inspectInstance(any())).thenReturn(policy(DynamicFormBusinessAction.READ, 8L, "DRAFT"));
+        when(instanceMapper.selectByRow(any())).thenReturn(instance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision);
+        DynamicFormInstanceQuery context = new DynamicFormInstanceQuery(
+                1L, 2L, providerKey(), ownerKey(), 100L, DynamicFormBusinessAction.READ);
+        assertThat(service.inspectEntityData(new DynamicFormEntityDataQuery(context,
+                Map.of("choices", List.of("IPv6", "MTU")))).validationFact().result()).isEqualTo("VALID");
+        assertThat(service.inspectEntityData(new DynamicFormEntityDataQuery(context,
+                Map.of("choices", List.of("IPv6", "UNKNOWN")))).validationFact().result()).isEqualTo("INVALID");
+        assertThat(service.inspectEntityData(new DynamicFormEntityDataQuery(context,
+                Map.of("choices", List.of("IPv6", "IPv6")))).validationFact().result()).isEqualTo("INVALID");
+        assertThat(service.inspectEntityData(new DynamicFormEntityDataQuery(context,
+                Map.of("choices", List.of()))).validationFact().result()).isEqualTo("INVALID");
+        org.mockito.Mockito.verify(instanceMapper, org.mockito.Mockito.never()).updateValueIfMatch(any());
     }
 
     private DynamicFormProviderKey providerKey() {

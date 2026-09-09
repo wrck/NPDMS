@@ -258,9 +258,9 @@ PM-06使用`proj_contract_scope_append_request`；COM唯一项目水位为`com_d
 
 | 聚合 | 主表 | 版本/明细表 | 关键约束 |
 |---|---|---|---|
-| Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；PRE-04以`dynamic_form_instance_id`逻辑引用唯一PLT业务实例，SOL只保存业务生命周期/版本/有效指针 |
+| Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；PRE-04以`entity_value_json`保存本实体唯一普通正文，使用既有content_version/version；dynamic_form_instance_id仅引用PLT表单/文件上下文，生命周期/有效指针仍由SOL持有 |
 | PreparationDynamicFormInstance | `sol_dynamic_form_instance` | F-SOL-002既有明细 | 继续服务已完成工勘能力，表、读写和数据原样保留；PRE-04不得复用或改写它 |
-| RequirementAnalysisDynamicFormBinding | `sol_preparation.dynamic_form_instance_id` | PLT `plt_dynamic_form_instance` | SOL预分配两侧ID，根首次INSERT即写非空实例ID，PLT按同一外层事务插入该ID，无回填或额外版本递增；不建跨Context物理外键，不复制schema/值/附件；旧候选章节表不再作为当前真值 |
+| RequirementAnalysisDynamicFormBinding | `sol_preparation.dynamic_form_instance_id` | PLT `plt_dynamic_form_instance` | SOL预分配两侧ID，根首次INSERT即写非空上下文ID，PLT按同一外层事务插入该ID；不建跨Context物理外键，不复制Schema或文件。普通值由SOL实体保存/克隆；旧候选章节表不恢复为当前真值 |
 | ConstructionPlan | `sol_construction_plan` | `sol_construction_plan_revision`、`sol_construction_plan_item`、`sol_construction_plan_change` | `uk(tenant_id, plan_id, revision_no)`；批准 revision 只读 |
 | Solution | `sol_solution` | `sol_solution_revision`、`sol_solution_review` | 发布 revision 只读；文件仅保存 FileReference |
 
@@ -564,7 +564,7 @@ proj_project
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 
-F-PLT-002只拥有上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`；F-SOL-003作为首个真实调用方，通过受信公共API以`SOL/REQUIREMENT_ANALYSIS/{preparationId}`创建业务实例。两类实例共用同一PLT真值，消费方不直读表。`PmsFileArtifact`业务键始终为`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通值PATCH不得伪造文件向量。
+F-PLT-002只拥有上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`；F-SOL-003作为首个真实调用方，通过受信公共API以`SOL/REQUIREMENT_ANALYSIS/{preparationId}`创建业务实例。两类实例共用PLT模板/文件上下文；手工实例值仍由PLT保存，业务实体普通值由其Owner保存，消费方不直读PLT表。`PmsFileArtifact`业务键始终为`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通值PATCH不得伪造文件向量。
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |
 | `ana_portfolio_projection` | 组合维度的可重建经营查询投影 | `uk(tenant_id, portfolio_id, metric_version, data_watermark)`；返回权限范围哈希 |
 
