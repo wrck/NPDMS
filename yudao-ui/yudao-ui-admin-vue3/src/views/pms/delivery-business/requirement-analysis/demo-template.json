@@ -1,0 +1,266 @@
+{
+  "formConfJson": {
+    "form": { "inline": false, "labelPosition": "top", "labelWidth": "120px" },
+    "row": { "gutter": 16 },
+    "submitBtn": false,
+    "resetBtn": false
+  },
+  "formRulesJson": [
+    {
+      "type": "Editor",
+      "field": "PROJECT_BACKGROUND",
+      "title": "1、项目背景",
+      "props": { "editorId": "pre04-project-background", "height": "180px" },
+      "validate": [{ "required": true, "message": "请填写项目背景" }]
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "PROJECT_BACKGROUND__ATTACHMENTS",
+      "title": "项目背景附件"
+    },
+    {
+      "type": "Editor",
+      "field": "PROJECT_OBJECTIVE",
+      "title": "2、项目目标",
+      "props": { "editorId": "pre04-project-objective", "height": "180px" },
+      "validate": [{ "required": true, "message": "请填写项目目标" }]
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "PROJECT_OBJECTIVE__ATTACHMENTS",
+      "title": "项目目标附件"
+    },
+    {
+      "type": "Editor",
+      "field": "NETWORK_TOPOLOGY",
+      "title": "3、网络拓扑",
+      "props": { "editorId": "pre04-network-topology", "height": "180px" },
+      "validate": [{ "required": true, "message": "请填写网络拓扑说明" }]
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "NETWORK_TOPOLOGY__ATTACHMENTS",
+      "title": "网络拓扑附件"
+    },
+    {
+      "type": "checkbox",
+      "field": "TRANSMISSION_CURRENT_OPTIONS",
+      "title": "4、传输现状（多选）",
+      "value": [],
+      "options": [
+        { "label": "IPv6", "value": "IPv6" },
+        { "label": "分片", "value": "分片" },
+        { "label": "MTU", "value": "MTU" },
+        { "label": "Jumbo", "value": "Jumbo" },
+        { "label": "隧道", "value": "隧道" }
+      ]
+    },
+    {
+      "type": "Editor",
+      "field": "TRANSMISSION_REQUIREMENT",
+      "title": "传输需求说明",
+      "props": { "editorId": "pre04-transmission-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "TRANSMISSION_REQUIREMENT__ATTACHMENTS",
+      "title": "传输需求附件"
+    },
+    {
+      "type": "input",
+      "field": "TRAFFIC_NEW_CONNECTIONS",
+      "title": "5、流量现状 · 新建",
+      "props": { "placeholder": "填写现状及单位", "aria-label": "流量现状：新建" },
+      "col": { "xs": 24, "sm": 8 }
+    },
+    {
+      "type": "input",
+      "field": "TRAFFIC_CONCURRENCY",
+      "title": "流量现状 · 并发",
+      "props": { "placeholder": "填写现状及单位", "aria-label": "流量现状：并发" },
+      "col": { "xs": 24, "sm": 8 }
+    },
+    {
+      "type": "input",
+      "field": "TRAFFIC_THROUGHPUT",
+      "title": "流量现状 · 吞吐",
+      "props": { "placeholder": "填写现状及单位", "aria-label": "流量现状：吞吐" },
+      "col": { "xs": 24, "sm": 8 }
+    },
+    {
+      "type": "Editor",
+      "field": "TRAFFIC_REQUIREMENT",
+      "title": "流量需求说明",
+      "props": { "editorId": "pre04-traffic-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "TRAFFIC_REQUIREMENT__ATTACHMENTS",
+      "title": "流量需求附件"
+    },
+    {
+      "type": "group",
+      "field": "BUSINESS_DEVICE_DETAILS",
+      "title": "6、运行业务情况",
+      "value": [],
+      "props": {
+        "type": "card",
+        "button": true,
+        "options": {
+          "form": { "labelPosition": "top" },
+          "row": { "gutter": 16 },
+          "submitBtn": false,
+          "resetBtn": false
+        },
+        "rule": [
+          {
+            "type": "input",
+            "field": "deviceName",
+            "title": "设备名称",
+            "props": { "aria-label": "设备名称" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "serialNumber",
+            "title": "序列号",
+            "props": { "aria-label": "序列号" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "businessName",
+            "title": "承载业务名称",
+            "props": { "aria-label": "承载业务名称" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "businessSubnet",
+            "title": "业务网段",
+            "props": { "aria-label": "业务网段" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "businessImportance",
+            "title": "业务重要等级",
+            "props": { "aria-label": "业务重要等级" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "interfaces",
+            "title": "出入接口",
+            "props": { "aria-label": "出入接口" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "customerBusinessOwner",
+            "title": "客户侧业务负责人",
+            "props": { "aria-label": "客户侧业务负责人" },
+            "col": { "xs": 24, "sm": 12 }
+          },
+          {
+            "type": "input",
+            "field": "remark",
+            "title": "备注",
+            "props": { "type": "textarea", "rows": 2, "aria-label": "业务明细备注" },
+            "col": { "xs": 24, "sm": 12 }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Editor",
+      "field": "BUSINESS_REQUIREMENT",
+      "title": "业务需求说明",
+      "props": { "editorId": "pre04-business-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "BUSINESS_REQUIREMENT__ATTACHMENTS",
+      "title": "业务需求附件"
+    },
+    {
+      "type": "input",
+      "field": "IP_MANAGEMENT_RESOURCES",
+      "title": "7、IP资源情况 · 管理IP",
+      "props": { "type": "textarea", "rows": 2, "aria-label": "管理IP" },
+      "col": { "xs": 24, "sm": 12 }
+    },
+    {
+      "type": "input",
+      "field": "IP_PUBLIC_RESOURCES",
+      "title": "IP资源情况 · 公网IP资源",
+      "props": { "type": "textarea", "rows": 2, "aria-label": "公网IP资源" },
+      "col": { "xs": 24, "sm": 12 }
+    },
+    {
+      "type": "Editor",
+      "field": "IP_PLANNING",
+      "title": "IP规划说明",
+      "props": { "editorId": "pre04-ip-planning", "height": "180px" }
+    },
+    { "type": "PmsFileArtifact", "field": "IP_PLANNING__ATTACHMENTS", "title": "IP规划附件" },
+    {
+      "type": "Editor",
+      "field": "REDUNDANCY_REQUIREMENT",
+      "title": "8、冗余备份要求",
+      "props": { "editorId": "pre04-redundancy-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "REDUNDANCY_REQUIREMENT__ATTACHMENTS",
+      "title": "冗余需求附件"
+    },
+    {
+      "type": "Editor",
+      "field": "SECURITY_PROTECTION",
+      "title": "9、本机防护要求",
+      "props": { "editorId": "pre04-security-protection", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "SECURITY_PROTECTION__ATTACHMENTS",
+      "title": "安全防护附件"
+    },
+    {
+      "type": "checkbox",
+      "field": "OPERATIONS_MANAGEMENT_OPTIONS",
+      "title": "10、运维管理要求（多选）",
+      "value": [],
+      "options": [
+        { "label": "带内管理", "value": "带内管理" },
+        { "label": "带外管理", "value": "带外管理" },
+        { "label": "SNMP", "value": "SNMP" },
+        { "label": "UMC", "value": "UMC" },
+        { "label": "第三平台", "value": "第三平台" },
+        { "label": "堡垒机", "value": "堡垒机" }
+      ]
+    },
+    {
+      "type": "Editor",
+      "field": "OPERATIONS_REQUIREMENT",
+      "title": "运维需求说明",
+      "props": { "editorId": "pre04-operations-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "OPERATIONS_REQUIREMENT__ATTACHMENTS",
+      "title": "运维需求附件"
+    },
+    {
+      "type": "Editor",
+      "field": "LOGGING_REQUIREMENT",
+      "title": "11、日志需求",
+      "props": { "editorId": "pre04-logging-requirement", "height": "180px" }
+    },
+    {
+      "type": "PmsFileArtifact",
+      "field": "LOGGING_REQUIREMENT__ATTACHMENTS",
+      "title": "日志需求附件"
+    }
+  ]
+}

@@ -63,7 +63,7 @@ describe('F-SOL-001 project duration panel', () => {
     expect(panel).toContain('plan.currentRevision')
     expect(panel).toContain('plan.pendingChangeSummary')
     expect(panel).toContain('PENDING_RECALCULATION')
-    expect(panel).toContain('await DurationApi.getChange(plan.value.planId, draftSummary.changeId)')
+    expect(panel).toContain('await DurationApi.getChange(current.planId, draftSummary.changeId)')
     expect(history).toContain('nextCursor')
     expect(history).toContain('hasMore')
   })
