@@ -43,13 +43,27 @@ public class ProjectCustomerContactService {
     }
 
     public PageResult<ContactHistoryDO> history(CustomerContactMasterService.Actor actor, Long projectId, PageParam page) {
-        if (!context(actor, projectId).canManage()) throw exception(CUSTOMER_SCOPE_DENIED);
-        return history.selectProjectPage(new ProjectContactHistoryQuery(actor.tenantId(), projectId, page));
+        var context = context(actor, projectId);
+        if (!context.canViewHistory()) throw exception(CUSTOMER_SCOPE_DENIED);
+        var result = history.selectProjectPage(new ProjectContactHistoryQuery(actor.tenantId(), projectId, page));
+        var ids = result.getList().stream().filter(entry -> "DELETE".equals(entry.getActionCode()))
+                .map(ContactHistoryDO::getProjectRelationId).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        var states = ids.isEmpty() ? Map.<Long, ProjectContactHistoryState>of() : contacts.selectHistoryStates(
+                new ProjectContactHistoryStateQuery(actor.tenantId(), projectId, context.customerId(), ids)).stream()
+                .collect(java.util.stream.Collectors.toMap(ProjectContactHistoryState::getId, state -> state));
+        result.getList().forEach(entry -> {
+            entry.setRestorable(false);
+            var state = states.get(entry.getProjectRelationId());
+            if (!context.canManage() || state == null || !Boolean.TRUE.equals(state.getRestorable()) || !"DELETE".equals(entry.getActionCode()) || entry.getBeforeValues() == null) return;
+            var before = JsonUtils.parseObject(entry.getBeforeValues(), ProjectCustomerContactDO.class);
+            entry.setRestorable(before.getVersion() != null && Objects.equals(state.getVersion(), before.getVersion()+1));
+        });
+        return result;
     }
 
     public PageResult<ProjectCustomerContactDO> page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
         var context = context(actor, projectId);
-        return contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canManage() ? status : Integer.valueOf(0), name, page));
+        return contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canViewHistory() ? status : Integer.valueOf(0), name, page));
     }
 
     public PageResult<CustomerContactMasterDO> sources(CustomerContactMasterService.Actor actor, Long projectId, String name, PageParam page) {

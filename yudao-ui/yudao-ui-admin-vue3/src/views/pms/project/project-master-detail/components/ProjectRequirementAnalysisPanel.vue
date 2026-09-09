@@ -390,8 +390,16 @@ const openCompare = (preparationId: number, targetPreparationId: number) => {
 }
 
 const reloadSelectedDetail = async () => {
-  if (!selectedPreparationId.value) throw new Error('没有选中的需求分析版本')
-  return await loadDetail(selectedPreparationId.value)
+  if (!selectedPreparationId.value || !props.project.id) throw new Error('没有选中的需求分析版本')
+  // Keep the saving form mounted, and publish the overview/detail together only
+  // after both authoritative reads succeed. A failed read must retain the edit.
+  const [current, selected] = await Promise.all([
+    RequirementAnalysisApi.getCurrent(props.project.id),
+    RequirementAnalysisApi.getDetail(selectedPreparationId.value)
+  ])
+  overview.value = current
+  detail.value = selected
+  return selected
 }
 const requestLeave = async () => {
   if (commandLoading.value || detailLoading.value || dynamicFormRef.value?.isSaving()) {

@@ -6,7 +6,7 @@
       <el-table-column label="操作" width="90"><template #default="{ row }">{{ actionLabel[row.actionCode] || row.actionCode }}</template></el-table-column>
       <el-table-column prop="projectRelationId" label="联系记录" width="100" />
       <el-table-column label="变更内容" min-width="360"><template #default="{ row }">{{ summary(row) }}</template></el-table-column>
-      <el-table-column label="操作" width="90"><template #default="{ row }"><el-button v-if="row.actionCode === 'DELETE'" link type="primary" @click="emit('restore', row)" v-hasPermi="['pms:customer-contact:update']">恢复</el-button></template></el-table-column>
+      <el-table-column label="操作" width="90"><template #default="{ row }"><el-button v-if="row.restorable" link type="primary" @click="emit('restore', row)" v-hasPermi="['pms:customer-contact:update']">恢复</el-button></template></el-table-column>
     </el-table>
     <Pagination :total="total" v-model:page="query.pageNo" v-model:limit="query.pageSize" @pagination="load" />
     <template #footer><el-button @click="visible = false">关闭</el-button></template>

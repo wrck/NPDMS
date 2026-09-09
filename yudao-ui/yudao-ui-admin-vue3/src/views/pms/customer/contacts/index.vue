@@ -31,7 +31,7 @@
           </el-button>
           <el-button v-if="projectId && context?.project.canManage && !customerId" :disabled="!query.customerId" :loading="loading" @click="bindCustomer" v-hasPermi="['pms:project:update']">关联项目客户</el-button>
           <el-button v-if="projectId && context?.project.canManage && customerId" :disabled="!customerEnabled" @click="importSources" v-hasPermi="['pms:customer-contact:create']">载入客户联系人</el-button>
-          <el-button v-if="projectId && context?.project.canManage" @click="historyRef?.open(projectId)">变更历史</el-button>
+          <el-button v-if="projectId && context?.project.canViewHistory" @click="historyRef?.open(projectId)">变更历史</el-button>
         </el-form-item>
       </el-form>
       <el-alert v-if="error" type="error" :title="error" :closable="false" />

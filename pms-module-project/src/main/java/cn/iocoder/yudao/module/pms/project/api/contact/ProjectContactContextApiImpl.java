@@ -86,7 +86,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
                             || "PROJECT_AND_DESCENDANTS".equals(grant.scopeCode()));
         }
         return new Context(project.getId(), project.getCustomerId(), project.getVersion(), project.getLifecycleStatus(),
-                manager && "ACTIVE".equals(project.getLifecycleStatus()));
+                manager && "ACTIVE".equals(project.getLifecycleStatus()), manager);
     }
 
     private void validate(Query query) {

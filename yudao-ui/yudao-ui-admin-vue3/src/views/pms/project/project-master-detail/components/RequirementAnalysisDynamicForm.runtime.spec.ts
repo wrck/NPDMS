@@ -66,6 +66,9 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
 
   it('keeps unsaved body and renderer rules while host and Owner permissions change, including during save', async () => {
     const state = reactive({ detail: detail(), allowedActions: ['PATCH_FORM'] })
+    state.detail.formRulesJson[0].type = 'Editor'
+    state.detail.formRulesJson[0].props = { editorConfig: { readOnly: false, placeholder: '背景' } }
+    state.detail.formRulesJson.push({ type: 'Editor', field: 'LOCKED_NOTE', props: { readonly: true } })
     const form = ref<any>()
     const rendered: any[] = []
     const FormCreate = defineComponent({
@@ -105,11 +108,15 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     await (findByTestId(mounted.root, 'edit-body')!.props!.onClick as Function)()
     await nextTick()
     const rules = rendered[rendered.length - 1]
+    expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.readonly).toBe(false)
+    expect(rules.find((rule: any) => rule.field === 'LOCKED_NOTE').props.readonly).toBe(true)
     state.allowedActions = []
     state.detail = { ...state.detail, allowedActions: [] }
     await nextTick()
     expect(textOf(mounted.root)).toContain('count:9; readonly:true')
     expect(rendered[rendered.length - 1]).toBe(rules)
+    expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.readonly).toBe(true)
+    expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.editorConfig).toMatchObject({ readOnly: true, placeholder: '背景' })
     expect(rules.find((rule: any) => rule.type === 'PmsFileArtifact').props.allowedActions).toEqual(
       []
     )
@@ -120,6 +127,8 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     state.detail = { ...state.detail, allowedActions: ['PATCH_FORM'] }
     await nextTick()
     expect(textOf(mounted.root)).toContain('count:9; readonly:false')
+    expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.readonly).toBe(false)
+    expect(rules.find((rule: any) => rule.field === 'LOCKED_NOTE').props.readonly).toBe(true)
     let finish!: (value: any) => void
     vi.mocked(RequirementAnalysisApi.patchForm).mockImplementationOnce(
       () =>

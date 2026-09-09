@@ -11,13 +11,13 @@ export interface ContactVO extends CustomerContactVO {
   confirmNoPrimary?: boolean
 }
 export interface ProjectContactContext {
-  project: { projectId: number; customerId?: number; projectVersion: number; lifecycleStatus: string; canManage: boolean }
+  project: { projectId: number; customerId?: number; projectVersion: number; lifecycleStatus: string; canManage: boolean; canViewHistory: boolean }
   customerName?: string
   sensitiveRead: boolean
   customerStatus?: 'ENABLED' | 'DISABLED' | 'DELETED'
 }
 const master = '/api/v1/pms/customer-contacts'
-export interface ContactHistoryVO { id: number; projectRelationId: number; actionCode: string; beforeValues?: string; afterValues?: string; actorUserId: number; occurredAt: string }
+export interface ContactHistoryVO { id: number; projectRelationId: number; actionCode: string; beforeValues?: string; afterValues?: string; actorUserId: number; occurredAt: string; restorable: boolean }
 const project = (projectId: number) => `/api/v1/pms/projects/${projectId}/customer-contacts`
 export const getMasterPage = (params: PageParam & { customerId?: number; name?: string; status?: number }) =>
   request.get<{ list: ContactVO[]; total: number }>({ url: master, params })

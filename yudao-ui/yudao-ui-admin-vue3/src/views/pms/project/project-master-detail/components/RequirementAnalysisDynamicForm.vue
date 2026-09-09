@@ -73,6 +73,7 @@ registerDynamicFormComponents()
 const baseline = ref<JsonObject>({})
 const values = ref<JsonObject>({})
 const ordinaryFields = ref(new Set<string>())
+const editorReadonlyDefaults = new Map<string, boolean>()
 const render = reactive<{ option: JsonObject; rule: JsonObject[] }>({ option: {}, rule: [] })
 const formApi = ref<FormCreateApi>()
 const saving = ref(false)
@@ -93,6 +94,22 @@ const readPending = (): JsonObject | undefined => {
   return raw ? (JSON.parse(raw) as JsonObject) : undefined
 }
 
+const updateEditorReadonly = (rules: JsonObject[]) => {
+  for (const rule of rules) {
+    if (rule.type === 'Editor') {
+      const field = String(rule.field)
+      const editorProps = (rule.props || {}) as JsonObject
+      const editorConfig = (editorProps.editorConfig || {}) as JsonObject
+      if (!editorReadonlyDefaults.has(field)) {
+        editorReadonlyDefaults.set(field, editorProps.readonly === true || editorConfig.readOnly === true)
+      }
+      const readonly = !editable.value || editorReadonlyDefaults.get(field) === true
+      rule.props = { ...editorProps, readonly, editorConfig: { ...editorConfig, readOnly: readonly } }
+    }
+    if (Array.isArray(rule.children)) updateEditorReadonly(rule.children as JsonObject[])
+  }
+}
+
 const apply = (detail: RequirementAnalysisDetailVO, preserve?: JsonObject) => {
   const decoded = decodeDynamicForm(detail.formConfJson, detail.formRulesJson)
   const controlledFilesByField = Object.fromEntries(
@@ -111,6 +128,8 @@ const apply = (detail: RequirementAnalysisDetailVO, preserve?: JsonObject) => {
   })
   baseline.value = cloneValues(detail.values || {})
   values.value = { ...cloneValues(detail.values || {}), ...(preserve || {}) }
+  editorReadonlyDefaults.clear()
+  updateEditorReadonly(runtime.rules)
   render.option = { ...decoded.option, submitBtn: false, resetBtn: false }
   render.rule = runtime.rules
   ordinaryFields.value = runtime.ordinary
@@ -201,6 +220,7 @@ watch(
 // PM-03: authorization is independent from document reload. Update controlled-file actions
 // in place so neither form-create rules nor ordinary unsaved values are replaced.
 watch(editable, () => {
+  updateEditorReadonly(render.rule)
   const visit = (rules: JsonObject[]) => rules.forEach((rule) => {
     if (rule.type === 'PmsFileArtifact' && rule.props) {
       (rule.props as JsonObject).allowedActions = editable.value ? ['PATCH_INSTANCE'] : []

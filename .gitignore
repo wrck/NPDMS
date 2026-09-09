@@ -1,5 +1,6 @@
 # Codex local analysis and extraction intermediates
 ._codex_work/
+.zcode/
 
 # Local agent runtime, review packets, tokens, logs, and process state
 .superpowers/

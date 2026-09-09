@@ -19,4 +19,6 @@ public class ContactHistoryDO {
     private String afterValues;
     private Long actorUserId;
     private LocalDateTime occurredAt;
+    @com.baomidou.mybatisplus.annotation.TableField(exist=false)
+    private Boolean restorable;
 }

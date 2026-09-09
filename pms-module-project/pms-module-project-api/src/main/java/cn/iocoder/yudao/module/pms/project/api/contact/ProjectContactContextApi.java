@@ -11,5 +11,9 @@ public interface ProjectContactContextApi {
     record Query(Long tenantId, Long actorUserId, Long projectId) {}
     record WriteQuery(Long tenantId, Long actorUserId, Long projectId, Integer expectedProjectVersion) {}
     record AssociateQuery(Long tenantId, Long actorUserId, Long projectId, Integer expectedProjectVersion, Long customerId) {}
-    record Context(Long projectId, Long customerId, Integer projectVersion, String lifecycleStatus, boolean canManage) {}
+    record Context(Long projectId, Long customerId, Integer projectVersion, String lifecycleStatus, boolean canManage, boolean canViewHistory) {
+        public Context(Long projectId, Long customerId, Integer projectVersion, String lifecycleStatus, boolean canManage) {
+            this(projectId, customerId, projectVersion, lifecycleStatus, canManage, canManage);
+        }
+    }
 }

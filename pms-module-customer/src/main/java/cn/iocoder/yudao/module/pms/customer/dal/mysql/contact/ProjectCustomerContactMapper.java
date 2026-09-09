@@ -25,4 +25,6 @@ public interface ProjectCustomerContactMapper extends BaseMapperX<ProjectCustome
     int deleteByVersion(@Param("query") ProjectContactDeleteCommand query);
     ProjectCustomerContactDO selectIncludingDeletedForUpdate(@Param("query") ProjectContactRowQuery query);
     int restoreByVersion(@Param("query") ProjectContactRestoreCommand query);
+    java.util.List<cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.ProjectContactHistoryState> selectHistoryStates(
+            @Param("query") ProjectContactHistoryStateQuery query);
 }

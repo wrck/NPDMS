@@ -114,9 +114,10 @@ class ProjectCustomerContactServiceTest {
         service.restore(actor, 7L, 10L, 2, 4, 1);
         verify(contacts).restoreByVersion(argThat(command -> command.status() == 1));
         assertThrows(ServiceException.class, () -> service.restore(actor, 7L, 10L, 2, 4, 0));
+        existing.setDeleted(false); existing.setVersion(5);
         when(contacts.selectForUpdate(any())).thenReturn(existing);
         when(contacts.deleteByVersion(any())).thenReturn(1);
-        service.delete(actor, new ProjectContactWrite(7L,10L,null,2,4,null,false,1,false));
+        service.delete(actor, new ProjectContactWrite(7L,10L,null,2,5,null,false,1,false));
         verify(contacts).deleteByVersion(any());
     }
 }
