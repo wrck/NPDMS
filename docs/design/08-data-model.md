@@ -243,7 +243,8 @@ InspectionRule的检测分类和严重度由基础平台字典提供，产品类
 |---|---|---|
 | Customer | External Master Copy / 临时主数据 | CRM 客户以 sourceKey 幂等同步；临时客户显式标记来源，合并不删除历史引用 |
 | MarketRelation | External Master Copy | CRM同步市场部、系统部、拓展部、子行业的编码与名称组合目录；CUS拥有本地同步副本，不把组合目录解释为组织树 |
-| CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
+| CustomerContact | 客户联系人主档 / External Master Copy / 平台补充事实 | 按客户统一管理，外部权威字段不被平台覆盖；项目内新增联系人时同步新增客户联系人主档，已有主档不因项目内编辑、停用或删除而被回写 |
+| ProjectCustomerContactRelation | 项目联系记录 / 时态关系 | 默认引用项目关联客户的CustomerContact，保留来源身份与项目联络必需的信息，而非完整副本；项目内角色、主联系人、状态和联系信息独立维护，编辑/停用/软删除仅影响本项目记录与历史 |
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
 | CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
 | CustomerLocationReference | 时态关系 | 客户对AST Address/Site的稳定引用、类型、来源版本和有效区间；CUS不拥有地点实体或位置树 |
