@@ -56,6 +56,10 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">交付准备</div>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
+            @click="switchTab('customer-contacts')" v-hasPermi="['pms:customer-contact:query']">
+            <Icon icon="ep:phone" class="rail-icon"/><span class="rail-label">用户联系人</span>
+          </button>
           <button
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'duration' }"
@@ -241,6 +245,10 @@
               formatDateTime(detail.createTime)
             }}</el-descriptions-item>
             <el-descriptions-item label="项目结束日期（工勘要求）" :span="2">{{ detail.projectEndDate || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="项目主联系人" :span="2">
+              <template v-if="primaryContact">{{ primaryContact.name }} · {{ primaryContact.mobile || primaryContact.phone || primaryContact.email }}</template>
+              <span v-else>暂未设置</span><el-tag v-if="primaryContactPending" type="warning">展示待刷新</el-tag>
+            </el-descriptions-item>
           </el-descriptions>
         </ContentWrap>
 
@@ -370,6 +378,8 @@
           @advanced="handleStageAdvanced"
         />
 
+        <ProjectCustomerContacts v-if="detail?.id && visitedTabs.has('customer-contacts')"
+          v-show="activeTab === 'customer-contacts'" :key="`contacts-${detail.id}`" :project-id="detail.id" @changed="handleContactsChanged" />
         <ProjectDurationPanel
           v-if="detail?.id && visitedTabs.has('duration')"
           v-show="activeTab === 'duration'"
@@ -457,6 +467,9 @@ import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
+import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
+import * as ContactsApi from '@/api/pms/customer/contacts'
+import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
 import type {
   ProjectMasterVO,
@@ -484,6 +497,7 @@ const requestedTab = [
   'stage-gates',
   'duration',
   'preparation',
+  'customer-contacts',
   'requirement-analysis'
 ].includes(String(route.query.tab))
   ? String(route.query.tab)
@@ -508,6 +522,19 @@ const switchTab = (key: string) => {
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }
+
+const primaryContact = ref<ContactsApi.ContactVO>()
+const primaryContactPending = ref(false)
+const loadPrimaryContact = async () => {
+  const id = Number(route.query.projectId)
+  if (!id || !checkPermi(['pms:customer-contact:query'])) return
+  try {
+    const page = await ContactsApi.getProjectPage(id, { pageNo: 1, pageSize: 1, status: 0 })
+    primaryContact.value = page.list.find(contact => contact.primaryFlag)
+    primaryContactPending.value = false
+  } catch { primaryContactPending.value = true }
+}
+const handleContactsChanged = async () => { await Promise.all([loadDetail(), loadPrimaryContact()]) }
 
 // ============ 实例视图 ============
 const instTasks = (code: string) => instances.value?.tasks.filter((t) => t.stageCode === code) || []
@@ -546,7 +573,7 @@ const loadMembers = async () => {
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadMembers()])
+    await Promise.all([loadDetail(), loadInstances(), loadMembers(), loadPrimaryContact()])
   } finally {
     loading.value = false
   }
@@ -743,6 +770,10 @@ onMounted(() => {
 }
 
 @media (width <= 991px) {
+  .canvas {
+    width: 100%;
+  }
+
   .detail-body {
     flex-direction: column;
   }

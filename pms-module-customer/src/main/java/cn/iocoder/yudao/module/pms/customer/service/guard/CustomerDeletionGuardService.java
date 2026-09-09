@@ -19,6 +19,8 @@ public class CustomerDeletionGuardService {
     private ProjectCustomerReferenceGuardApi projectGuardApi;
     @Resource
     private AssetCustomerReferenceGuardApi assetGuardApi;
+    @Resource
+    private cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.CustomerContactMasterMapper contactMapper;
 
     public CustomerDeletionGuardResult check(Long tenantId, Long customerId) {
         if (tenantId == null || customerId == null) {
@@ -27,7 +29,8 @@ public class CustomerDeletionGuardService {
         CustomerReferenceGuardQuery query = new CustomerReferenceGuardQuery(tenantId, customerId);
         List<CustomerReferenceGuardResult> results = List.of(
                 checkProvider("PROJ", query, projectGuardApi::check),
-                checkProvider("AST", query, assetGuardApi::check));
+                checkProvider("AST", query, assetGuardApi::check),
+                checkProvider("CUS_CONTACT", query, this::contactReferences));
         long referenceCount = results.stream().mapToLong(CustomerReferenceGuardResult::referenceCount).sum();
         CustomerReferenceGuardStatus status = aggregate(results);
         return new CustomerDeletionGuardResult(status == CustomerReferenceGuardStatus.CLEAR,
@@ -47,6 +50,13 @@ public class CustomerDeletionGuardService {
         } catch (RuntimeException ex) {
             return unknown(provider);
         }
+    }
+
+    private CustomerReferenceGuardResult contactReferences(CustomerReferenceGuardQuery query) {
+        long count = contactMapper.countCustomerReferences(new cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.query.ContactCustomerReferenceQuery(
+                query.tenantId(), query.customerId()));
+        return new CustomerReferenceGuardResult((count == 0 ? CustomerReferenceGuardStatus.CLEAR : CustomerReferenceGuardStatus.REFERENCED).name(),
+                "CUS_CONTACT", count, LocalDateTime.now());
     }
 
     private CustomerReferenceGuardStatus aggregate(List<CustomerReferenceGuardResult> results) {

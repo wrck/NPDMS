@@ -28,7 +28,7 @@ public class CustomerFieldMaskingService {
         return response;
     }
 
-    private String maskPhone(String value) {
+    public String maskPhone(String value) {
         if (value == null || value.isBlank()) {
             return value;
         }
@@ -38,7 +38,7 @@ public class CustomerFieldMaskingService {
         return value.substring(0, 3) + "****" + value.substring(value.length() - 4);
     }
 
-    private String maskEmail(String value) {
+    public String maskEmail(String value) {
         if (value == null || value.isBlank()) {
             return value;
         }
