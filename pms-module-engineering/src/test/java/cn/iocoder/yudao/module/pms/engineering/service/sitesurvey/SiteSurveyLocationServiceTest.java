@@ -162,6 +162,20 @@ class SiteSurveyLocationServiceTest {
         assertEquals(501L, row.getOutsourceRequestId());
     }
 
+    @Test
+    void linkedSurveyCannotBeDeletedUntilTheOutsourceLinkIsReleased() {
+        SiteSurveyDO row = new SiteSurveyDO();
+        row.setId(101L); row.setTenantId(1L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequestId(500L);
+        when(mapper.selectById(101L)).thenReturn(row);
+        var failure = assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L));
+        assertEquals(1011001008, failure.getCode());
+        verify(mapper, never()).deleteDraft(any());
+        service.releaseDeletedOutsourceRequest(101L, 500L);
+        when(mapper.deleteDraft(any())).thenReturn(1);
+        service.deleteSiteSurvey(101L);
+        verify(mapper).deleteDraft(any());
+    }
+
     private LocationMaintenanceCommand emptyMaintenance() {
         return new LocationMaintenanceCommand(null, null, null, null, null, null, null, null);
     }

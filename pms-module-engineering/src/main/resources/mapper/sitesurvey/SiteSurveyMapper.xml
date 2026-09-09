@@ -4,6 +4,6 @@
     <update id="deleteDraft">
         UPDATE pms_eng_site_survey SET deleted = 1, version = version + 1, update_time = CURRENT_TIMESTAMP
         WHERE id = #{query.id} AND tenant_id = #{query.tenantId} AND version = #{query.version}
-          AND status = 0 AND deleted = 0
+          AND status = 0 AND deleted = 0 AND outsource_request_id IS NULL
     </update>
 </mapper>

@@ -42,6 +42,7 @@ public interface ErrorCodeConstants {
     ErrorCode SITE_SURVEY_LOCATION_INVALID = new ErrorCode(1_011_001_005, "工勘地点结构化维护结果无效");
     ErrorCode SITE_SURVEY_FORM_INVALID = new ErrorCode(1_011_001_006, "工勘表单内容或模板绑定无效，请检查字段与发布修订");
     ErrorCode SITE_SURVEY_OUTSOURCE_INVALID = new ErrorCode(1_011_001_007, "工勘未启用转包、项目不匹配或已关联转包申请，请刷新工勘记录");
+    ErrorCode SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED = new ErrorCode(1_011_001_008, "工勘已关联转包申请，请先处理关联申请，不能删除来源记录");
 
     // ========== 需求分析 requirement 1-011-002-000 ==========
     ErrorCode REQUIREMENT_NOT_EXISTS = new ErrorCode(1_011_002_000, "需求分析不存在");

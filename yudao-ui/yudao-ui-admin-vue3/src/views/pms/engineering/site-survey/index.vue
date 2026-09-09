@@ -10,6 +10,7 @@
           query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
+          :disabled="!!props.projectId"
         />
       </el-form-item>
       <el-form-item label="工勘编码" prop="code">
@@ -94,6 +95,8 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
+            :disabled="!!row.outsourceRequestId"
+            :title="row.outsourceRequestId ? '已关联转包申请，请先处理关联申请' : undefined"
             v-hasPermi="['pms:eng-site-survey:delete']"
             >删除</el-button
           >
@@ -138,7 +141,7 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id"
+              :disabled="!!form.id || !!props.projectId"
             />
           </el-form-item>
         </el-col>
@@ -360,6 +363,8 @@ import {
 } from './siteSurveyOutsource'
 
 defineOptions({ name: 'PmsEngSiteSurvey' })
+const props = defineProps<{ projectId?: number }>()
+const emit = defineEmits<{ saved: [] }>()
 const message = useMessage()
 const route = useRoute()
 const router = useRouter()
@@ -379,7 +384,7 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: '',
+  projectId: props.projectId as number | undefined,
   code: '',
   name: '',
   status: undefined
@@ -396,7 +401,7 @@ const rules = {
 const load = async () => {
   loading.value = true
   try {
-    const data = await SiteSurveyApi.getSiteSurveyPage(query)
+    const data = await SiteSurveyApi.getSiteSurveyPage({ ...query, projectId: props.projectId ?? query.projectId })
     rows.value = data.list
     total.value = data.total
   } finally {
@@ -405,13 +410,17 @@ const load = async () => {
 }
 const openForm = async (row?: SiteSurveyVO, view = false) => {
   if (row?.id) row = await SiteSurveyApi.getSiteSurvey(row.id)
+  if (props.projectId && row && row.projectId !== props.projectId) {
+    message.warning('该工勘不属于当前项目')
+    return
+  }
   readonly.value = view || (!!row && row.status !== 0)
   integratedOutsource.value = false
   Object.assign(
     form,
     {
       id: undefined,
-      projectId: 0,
+      projectId: props.projectId || 0,
       code: '',
       name: '',
       surveyDate: '',
@@ -567,6 +576,7 @@ const save = async () => {
     message.success('保存成功')
     formVisible.value = false
     await load()
+    emit('saved')
     return true
   } catch {
     message.warning('保存未完成，已保留填写内容；请检查提示或重新加载最新版本后重试。')
@@ -600,6 +610,10 @@ const performSurveyAction = async (kind: string, sn?: string) => {
   if (await save()) await router.push(surveyProcurementRoute(kind, form.id!, sn))
 }
 const remove = async (row: SiteSurveyVO) => {
+  if (row.outsourceRequestId) {
+    message.warning('工勘已关联转包申请，请先处理关联申请，不能删除来源记录')
+    return
+  }
   await message.delConfirm()
   await SiteSurveyApi.deleteSiteSurvey(row.id!)
   message.success('删除成功')

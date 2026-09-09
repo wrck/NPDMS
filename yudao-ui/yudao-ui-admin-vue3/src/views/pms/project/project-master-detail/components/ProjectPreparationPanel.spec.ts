@@ -24,9 +24,12 @@ describe('F-SOL-002 project preparation panel', () => {
     expect(api).not.toMatch(/tenantId|actorId/)
   })
 
-  it('mounts the project workspace and obeys server allowed actions', () => {
+  it('mounts the shared survey page while preserving legacy PRE-02 allowed-action handling', () => {
     expect(detail).toContain("activeTab === 'preparation'")
-    expect(detail).toContain('<ProjectPreparationPanel')
+    expect(detail).toContain('<ProjectSiteSurveyPanel')
+    expect(detail).toContain("import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'")
+    expect(detail).toContain(':project-id="detail.id"')
+    expect(detail).not.toContain('<ProjectPreparationPanel')
     expect(panel).toContain("preparation.allowedActions.includes('SUBMIT')")
     expect(panel).toContain("preparation.allowedActions.includes('EVALUATE_READINESS')")
     expect(panel).toContain("actions.includes('CONFIRM_ITEM')")

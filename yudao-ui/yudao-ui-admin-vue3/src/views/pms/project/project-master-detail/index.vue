@@ -69,7 +69,7 @@
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'preparation' }"
             @click="switchTab('preparation')"
-            v-hasPermi="['pms:preparation-survey:query', 'pms:preparation-survey:manage']"
+            v-hasPermi="['pms:eng-site-survey:query']"
           >
             <Icon icon="ep:compass" class="rail-icon" />
             <span class="rail-label">工勘准备</span>
@@ -376,10 +376,12 @@
           :project="detail"
         />
 
-        <ProjectPreparationPanel
+        <ProjectSiteSurveyPanel
           v-if="detail?.id && visitedTabs.has('preparation')"
           v-show="activeTab === 'preparation'"
-          :project="detail"
+          :key="detail.id"
+          :project-id="detail.id"
+          @saved="loadDetail"
         />
 
         <ProjectRequirementAnalysisPanel
@@ -454,7 +456,7 @@ import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchH
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
-import ProjectPreparationPanel from './components/ProjectPreparationPanel.vue'
+import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
 import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
 import type {
   ProjectMasterVO,

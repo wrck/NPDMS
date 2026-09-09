@@ -89,6 +89,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     public void deleteSiteSurvey(Long id) {
         SiteSurveyDO existing = validateSiteSurveyExists(id);
         validateStatus(existing, 0);
+        if (existing.getOutsourceRequestId() != null) throw exception(SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED);
         if (siteSurveyMapper.deleteDraft(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyMutation(
                 existing.getId(), existing.getTenantId(), existing.getVersion())) != 1) {
             throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
