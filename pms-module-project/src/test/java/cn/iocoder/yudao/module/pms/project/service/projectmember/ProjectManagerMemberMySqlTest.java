@@ -192,7 +192,7 @@ class ProjectManagerMemberMySqlTest {
         when(permissions.hasAnyPermissions(anyLong(), any())).thenReturn(false);
         assertThrows(RuntimeException.class, () -> service.update(command(0, Set.of(first), Set.of(), first, "permission"), actor()));
         when(permissions.hasAnyPermissions(anyLong(), any())).thenReturn(true);
-        doThrow(new IllegalStateException("denied scope")).when(scopeGuard).assertCanAssign(any(), eq(projectId));
+        doThrow(new IllegalStateException("denied scope")).when(scopeGuard).assertCanInitiallyAssign(any(), eq(projectId), eq(false), eq(true));
         assertThrows(RuntimeException.class, () -> service.update(command(0, Set.of(first), Set.of(), first, "scope"), actor()));
         reset(scopeGuard);
         assertThrows(RuntimeException.class, () -> service.update(command(3, Set.of(first), Set.of(), first, "version"), actor()));
@@ -266,9 +266,9 @@ class ProjectManagerMemberMySqlTest {
     @Test
     void jointRetainsOriginalAuthorizationUntilBothChangesComplete() {
         doNothing().doNothing().doThrow(new IllegalStateException("operator was replaced"))
-                .when(scopeGuard).assertCanAssign(any(), eq(projectId));
+                .when(scopeGuard).assertCanInitiallyAssign(any(), eq(projectId), eq(true), anyBoolean());
         assertEquals(2, joint.update(jointCommand(first, "joint-authorized"), actor()).projectManagers().version());
-        verify(scopeGuard, times(2)).assertCanAssign(any(), eq(projectId));
+        verify(scopeGuard, times(2)).assertCanInitiallyAssign(any(), eq(projectId), eq(true), anyBoolean());
     }
 
     private ProjectMemberUpdateCommand jointCommand(long primary, String key) {
@@ -372,6 +372,7 @@ class ProjectManagerMemberMySqlTest {
         @Bean JdbcTemplate jdbcTemplate(DataSource source) { return new JdbcTemplate(source); }
         @Bean PermissionCommonApi permissions() { return mock(PermissionCommonApi.class); }
         @Bean ProjectAuthorizationGuard scopeGuard() { return mock(ProjectAuthorizationGuard.class); }
+        @Bean ValidationInitialAssignmentPolicy initialAssignmentPolicy() { return mock(ValidationInitialAssignmentPolicy.class); }
         @Bean FailingOutbox outbox(PlatformOutboxEventMapper mapper) { return new FailingOutbox(mapper); }
         @Bean ProjectServiceManagerCandidateValidator serviceCandidates() { return mock(ProjectServiceManagerCandidateValidator.class); }
         @Bean AssetLocationApi locations() { return mock(AssetLocationApi.class); }

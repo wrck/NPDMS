@@ -91,7 +91,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
         assertEquals(8L, result.assignmentId());
         assertEquals(3, result.version());
         verify(authorizationService).assertCanAssign(7L);
-        verify(projectAuthorizationGuard).assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
+        verify(projectAuthorizationGuard).assertCanInitiallyAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L, true, false);
         verify(projectService).assignServiceManager(any());
         Map<String, Object> eventPayload = JsonUtils.parseObject(capturedFacts.get().eventPayload(),
                 new TypeReference<>() {});
@@ -153,7 +153,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Test
     void projectScopeFailureStopsBeforeBusinessValidationAndIdempotencyClaim() {
         doThrow(new ServiceException(FORBIDDEN)).when(projectAuthorizationGuard)
-                .assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
+                .assertCanInitiallyAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L, true, false);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assign(command(), actor()));

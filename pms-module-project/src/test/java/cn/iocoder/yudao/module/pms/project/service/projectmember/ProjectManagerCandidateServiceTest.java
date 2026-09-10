@@ -22,6 +22,28 @@ class ProjectManagerCandidateServiceTest {
     final OrganizationScopeApi organization = mock(OrganizationScopeApi.class);
     final ProjectManagerCandidateService service = new ProjectManagerCandidateService(authorization, projects, organization);
     final ProjectManualCreationService.ProjectAccessActor actor = new ProjectManualCreationService.ProjectAccessActor(1L, 7L);
+    final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper mapper =
+            mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class);
+    final ValidationInitialAssignmentPolicy initialPolicy = mock(ValidationInitialAssignmentPolicy.class);
+
+    @org.junit.jupiter.api.BeforeEach void injectValidationPolicy() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectMapper", mapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "validationInitialAssignmentPolicy", initialPolicy);
+    }
+
+    @Test void validationCandidateStillUsesProjectCompanyAndRequiresFunctionPermission() {
+        var project = new ProjectMasterDO(); project.setCompanyId(21L);
+        when(mapper.selectById(9L)).thenReturn(project);
+        when(initialPolicy.permitsCandidates(any(), eq(project))).thenReturn(true);
+        when(organization.pageCompanyRoleUsers(any())).thenReturn(PageResult.empty());
+        service.page(9L, "", 1, 20, actor);
+        verify(projects, never()).getProjectForManage(any(), any());
+        verify(organization).pageCompanyRoleUsers(argThat(query -> query.getCompanyId().equals(21L)
+                && query.getRoleCode().equals("PROJECT_MANAGER")));
+        doThrow(new IllegalArgumentException("forbidden")).when(authorization).assertCanAssign(7L);
+        assertThrows(RuntimeException.class, () -> service.page(9L, "", 1, 20, actor));
+        verifyNoMoreInteractions(organization);
+    }
 
     @Test void candidatesUseProjectCompanyAndFixedRoleAfterAuthorization() {
         var project = new ProjectMasterDO(); project.setCompanyId(21L);

@@ -43,9 +43,16 @@ class ProjectServiceManagerQueryServiceTest {
     @Mock private ProjectSiteApplicationService projectSiteService;
     @Mock private DeptApi deptApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
 
     @InjectMocks
     private ProjectServiceManagerQueryService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void injectInitialPolicy() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service,
+                "validationInitialAssignmentPolicy", validationInitialAssignmentPolicy);
+    }
 
     @Test
     void candidateQueryUsesExactProjectCompanyAndDepartmentScope() {
@@ -65,6 +72,18 @@ class ProjectServiceManagerQueryServiceTest {
 
         assertEquals(1L, result.getTotal());
         assertEquals(66L, result.getList().getFirst().getUserId());
+        verify(organizationScopeApi).pageActiveUsers(any());
+    }
+
+    @Test
+    void initialValidationCandidateDoesNotRequireOrProduceManageScope() {
+        when(projectMapper.selectById(1L)).thenReturn(project(1L, 1L));
+        when(validationInitialAssignmentPolicy.permitsCandidates(any(), any())).thenReturn(true);
+        DeptRespDTO department = new DeptRespDTO(); department.setId(20L); department.setCode("DEP-01");
+        when(deptApi.getDeptByCode("DEP-01")).thenReturn(department);
+        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(PageResult.empty());
+        assertEquals(0L, service.getCandidates(1L, candidateRequest(), actor()).getTotal());
+        verify(treeScopeService, never()).resolve(any());
         verify(organizationScopeApi).pageActiveUsers(any());
     }
 
