@@ -137,7 +137,8 @@ public class ProjectTaskCommandService {
     private TaskCommandResult createOnce(CreateTaskCommand command, TaskWorkbenchActor actor,
                                          AtomicReference<Map<String, ?>> auditDetail) {
         if (command.projectId() == null || blank(command.taskCode()) || blank(command.name())
-                || blank(command.stageCode()) || invalidPlan(command.planStartTime(), command.planEndTime())) {
+                || blank(command.stageCode()) || "S0".equals(command.stageCode().trim())
+                || invalidPlan(command.planStartTime(), command.planEndTime())) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
         ProjectMasterDO project = lockProject(actor.tenantId(), command.projectId());

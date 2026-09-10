@@ -93,7 +93,7 @@
           ><el-form-item label="所属阶段" prop="stageCode"
             ><el-select v-model="createForm.stageCode"
               ><el-option
-                v-for="stage in workspace?.stageTaskNavigation || []"
+                v-for="stage in creatableStages"
                 :key="stage.stageCode"
                 :label="`${stage.stageCode} ${stage.stageName}`"
                 :value="stage.stageCode" /></el-select></el-form-item
@@ -180,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as TaskWorkbenchApi from '@/api/pms/project/task-workbench'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -200,6 +200,9 @@ const message = useMessage()
 const loading = ref(false)
 const submitting = ref(false)
 const workspace = ref<ProjectWorkspace>()
+const creatableStages = computed(() =>
+  (workspace.value?.stageTaskNavigation || []).filter((stage) => stage.stageCode !== 'S0')
+)
 const selectedStage = ref('')
 const keywordInput = ref('')
 const keyword = ref('')
@@ -271,10 +274,16 @@ const handleCommandChanged = async (_result: TaskCommandResult) => {
 }
 
 const openCreate = () => {
+  if (!creatableStages.value.length) {
+    message.warning('当前项目没有可新建任务的阶段，S0事项请通过项目基本功能办理')
+    return
+  }
   Object.assign(createForm, {
     taskCode: '',
     name: '',
-    stageCode: selectedStage.value,
+    stageCode: creatableStages.value.some((stage) => stage.stageCode === selectedStage.value)
+      ? selectedStage.value
+      : creatableStages.value[0].stageCode,
     parentTaskId: undefined,
     businessLevelCode: '',
     planStartTime: undefined,
@@ -287,6 +296,10 @@ const openCreate = () => {
 }
 
 const create = async () => {
+  if (createForm.stageCode === 'S0') {
+    message.warning('S0不生成任务，请通过项目基本功能办理')
+    return
+  }
   if (!(await createFormRef.value?.validate())) return
   submitting.value = true
   try {

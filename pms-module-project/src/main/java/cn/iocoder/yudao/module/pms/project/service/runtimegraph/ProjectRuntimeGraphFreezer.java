@@ -36,6 +36,9 @@ public class ProjectRuntimeGraphFreezer {
             definitions.require(stage.getCompletionRuleRevisionId(), "COMPLETION_RULE");
         }
         for (var task : content.getTasks()) {
+            if ("S0".equals(task.getStageCode())) {
+                throw new IllegalArgumentException("S0不生成任务，请通过项目基本功能办理；模板任务：" + task.getTaskCode());
+            }
             definitions.require(task.getDefinitionRevisionId(), "TASK");
             definitions.require(task.getWorkBindingRevisionId(), "WORK_BINDING");
             definitions.require(task.getPermissionPolicyRevisionId(), "PERMISSION_POLICY");

@@ -276,6 +276,8 @@ public class ProjectStageAdvanceApplicationService {
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
                 actor.actorUserId(), project.getId(), ProjectScopeApi.ACTION_MANAGE));
         if (!scope.fullProjectIds().contains(project.getId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        if (permissionApi.hasAnyRoles(actor.actorUserId(),
+                cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
         try {
             participantFactApi.inspect(new ProjectParticipantFactQuery(project.getId(), actor.actorUserId(),
                     Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
@@ -285,6 +287,8 @@ public class ProjectStageAdvanceApplicationService {
     }
 
     private void requireCurrentManager(ProjectMasterDO project, Actor actor) {
+        if (permissionApi.hasAnyRoles(actor.actorUserId(),
+                cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
         List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
                 new ProjectParticipantFactLockQuery(actor.tenantId(), project.getId(), actor.actorUserId(), Set.of(PROJECT_MANAGER)));
         if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
