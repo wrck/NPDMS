@@ -5,11 +5,18 @@ import * as ReportApi from '@/api/pms/project/acceptance-report'
 import { mount, passthrough, tableColumn, findByTestId, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const detailState = vi.hoisted(() => ({ dirty: false, close: vi.fn() }))
-const guards = vi.hoisted(() => ({ leave: [] as Array<() => boolean>, update: [] as Array<() => boolean> }))
-vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), onBeforeRouteLeave: (guard: () => boolean) => guards.leave.push(guard), onBeforeRouteUpdate: (guard: () => boolean) => guards.update.push(guard) }))
+const guards = vi.hoisted(() => ({ leave: [] as Array<() => Promise<boolean>>, update: [] as Array<() => Promise<boolean>> }))
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), onBeforeRouteLeave: (guard: () => Promise<boolean>) => guards.leave.push(guard), onBeforeRouteUpdate: (guard: () => Promise<boolean>) => guards.update.push(guard) }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/project/acceptance-report', () => ({ getActivities: vi.fn() }))
-vi.mock('./detail.vue', () => ({ default: { setup: (_: unknown, { expose }: any) => { expose({ close: detailState.close, isDirty: () => detailState.dirty }); return () => null } } }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('./detail.vue', () => ({ default: { setup: (_: unknown, { expose }: any) => {
+  expose({
+    requestLeave: async () => !detailState.dirty,
+    discardChanges: () => { if (detailState.dirty) return false; detailState.close(); return true },
+    isDirty: () => detailState.dirty
+  }); return () => null
+} } }))
 const warning = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning }) }))
 const apps: Array<{ unmount: () => void }> = []
@@ -65,9 +72,9 @@ it('keeps a service failure distinct from an empty or completed activity list', 
 it('protects editing on navigation without preventing a read-only list refresh', async () => {
   const page = render(41); await flush()
   detailState.dirty = true
-  expect(page.child.value.requestLeave()).toBe(false)
-  expect(guards.leave.at(-1)!()).toBe(false)
-  expect(guards.update.at(-1)!()).toBe(false)
+  expect(await page.child.value.requestLeave()).toBe(false)
+  expect(await guards.leave.at(-1)!()).toBe(false)
+  expect(await guards.update.at(-1)!()).toBe(false)
   await page.state().load()
   expect(ReportApi.getActivities).toHaveBeenCalledTimes(2)
 })

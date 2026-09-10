@@ -182,6 +182,35 @@ class ProjectTaskWorkbenchControllerTest {
         verifyNoInteractions(commandService, progressService);
     }
 
+    @Test
+    void businessAggregateVersionReachesLifecycleAndParticipatesInIdempotencyDigest() {
+        TenantContextHolder.setTenantId(1L);
+        var user = new LoginUser(); user.setId(9L); user.setTenantId(1L);
+        SecurityFrameworkUtils.setLoginUser(user, new MockHttpServletRequest());
+        var lifecycle = mock(ProjectTaskLifecycleService.class);
+        var controller = new ProjectTaskWorkbenchController(mock(ProjectTaskQueryService.class),
+                mock(ProjectTaskCommandService.class), mock(ProjectTaskAssignmentService.class), lifecycle,
+                mock(ProjectTaskProgressService.class), new MockEnvironment());
+        var request = new cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskActionReqVO();
+        request.setExecutionContractId(91L); request.setContractVersion(2);
+        request.setExpectedBusinessFactVersion("a".repeat(64));
+        controller.actTask(11L, "complete", "same-key", "\"3\"", request);
+        request.setExpectedBusinessFactVersion("b".repeat(64));
+        controller.actTask(11L, "complete", "same-key", "\"3\"", request);
+
+        var captured = org.mockito.ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand.class);
+        verify(lifecycle, org.mockito.Mockito.times(2)).act(captured.capture(), any());
+        var first = captured.getAllValues().get(0);
+        var second = captured.getAllValues().get(1);
+        assertEquals("a".repeat(64), first.expectedBusinessFactVersion());
+        assertEquals("b".repeat(64), second.expectedBusinessFactVersion());
+        assertEquals(3, first.expectedTaskVersion());
+        assertEquals(91L, first.executionContractId());
+        assertNull(first.factVersion());
+        org.junit.jupiter.api.Assertions.assertNotEquals(first.requestDigest(), second.requestDigest());
+    }
+
     private Method findMethod(String name) {
         return java.util.Arrays.stream(ProjectTaskWorkbenchController.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(name)).findFirst().orElseThrow();

@@ -18,6 +18,8 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevis
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
+import cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi;
+import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateGateDefinitionDO;
@@ -120,6 +122,10 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private ProjectStageGateProviderRegistry stageGateProviderRegistry;
     @Resource
     private ProjectStageGateProcessOwnerApi stageGateProcessOwnerApi;
+    @Resource
+    private BpmNormalClosureApi bpmNormalClosureApi;
+    @Resource
+    private ExplicitPermissionApi explicitPermissionApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -184,6 +190,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         updateObj.setMajorProjectLevel(content.getMajorProjectLevel());
         updateObj.setProcessDefinitionKey(content.getProcessDefinitionKey());
         updateObj.setProcessDefinitionVersion("");
+        updateObj.setClosurePolicy(content.getClosurePolicy() == null ? null
+                : JsonUtils.toJsonString(content.getClosurePolicy().toJson()));
         revisionMapper.updateById(updateObj);
         // 定义行整体替换（物理删除+重插，规避 uk 与逻辑删除冲突）
         replaceDefinitionRows(draft.getId(), content);
@@ -275,11 +283,13 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         failures.addAll(TemplatePublishValidator.validate(
                 content, fixedFormCatalog, approvedPreparationItemCodes));
         failures.addAll(validateStageGateOwners(content, TenantContextHolder.getRequiredTenantId()));
+        failures.addAll(validateClosurePolicyOwners(content, TenantContextHolder.getRequiredTenantId(), true));
         if (!failures.isEmpty()) {
             String summary = String.join("；", failures);
             // 校验结果留痕到草稿行
             ProjectTemplateRevisionDO summaryUpdate = new ProjectTemplateRevisionDO();
             summaryUpdate.setId(draft.getId());
+            summaryUpdate.setClosurePolicy(draft.getClosurePolicy());
             summaryUpdate.setValidationSummary(summary.length() > 1000 ? summary.substring(0, 1000) : summary);
             revisionMapper.updateById(summaryUpdate);
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, summary);
@@ -296,6 +306,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         published.setMajorProjectLevel(draft.getMajorProjectLevel());
         published.setProcessDefinitionKey(draft.getProcessDefinitionKey());
         published.setProcessDefinitionVersion(null);
+        published.setClosurePolicy(draft.getClosurePolicy());
         published.setValidationSummary("发布校验通过");
         published.setDefinitionSnapshot(JsonUtils.toJsonString(content.getDefinitionSnapshot()));
         published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
@@ -308,6 +319,39 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         statusUpdate.setStatus(TemplateRules.STATUS_ACTIVE);
         projectTemplateMapper.updateById(statusUpdate);
         incrementTemplateVersion(id);
+    }
+
+    List<String> validateClosurePolicyOwners(TemplateDefinitionContent content, Long tenantId, boolean publishing) {
+        var policy = content.getClosurePolicy();
+        if (policy == null) {
+            return List.of();
+        }
+        List<String> failures = new ArrayList<>();
+        try {
+            var definition = bpmNormalClosureApi.inspectDefinition(tenantId, policy.getProcessDefinitionKey());
+            if (definition == null || definition.actualDefinitionId() == null || definition.actualDefinitionId().isBlank()
+                    || !policy.getProcessDefinitionKey().equals(definition.key()) || definition.nodes().size() != 2
+                    || definition.nodes().get(0) == null || definition.nodes().get(1) == null
+                    || !"serviceManagerReview".equals(definition.nodes().get(0).taskDefinitionKey())
+                    || !"materialReview".equals(definition.nodes().get(1).taskDefinitionKey())) {
+                failures.add("专用闭环BPM定义不可用或不是已批准的两个人工审核节点");
+            }
+        } catch (RuntimeException ex) {
+            failures.add("专用闭环BPM定义不可用，不能发布");
+        }
+        try {
+            boolean qualified = publishing
+                    ? explicitPermissionApi.lockAndCheck(tenantId, policy.getReviewerUserId(),
+                            TemplateDefinitionContent.ClosurePolicy.REVIEWER_PERMISSION)
+                    : explicitPermissionApi.hasExplicitPermission(tenantId, policy.getReviewerUserId(),
+                            TemplateDefinitionContent.ClosurePolicy.REVIEWER_PERMISSION);
+            if (!qualified) {
+                failures.add("专用闭环材料审核人须为同租户启用用户且具有显式材料审核资格");
+            }
+        } catch (RuntimeException ex) {
+            failures.add("专用闭环材料审核资格无法核验，不能发布");
+        }
+        return failures;
     }
 
     List<String> validateStageGateOwners(TemplateDefinitionContent content, Long tenantId) {
@@ -550,6 +594,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             issues.add(new Issue("content", "TEMPLATE_INVALID", failure));
         for (String failure : validateStageGateOwners(content, TenantContextHolder.getRequiredTenantId()))
             issues.add(new Issue("gates", "OWNER_UNAVAILABLE", failure));
+        for (String failure : validateClosurePolicyOwners(content, TenantContextHolder.getRequiredTenantId(), false))
+            issues.add(new Issue("closurePolicy", "OWNER_UNAVAILABLE", failure));
         // Read-only validation inspects the chosen form revision but never calls a locking/writing API.
         if (content.getTasks() != null) for (var task : content.getTasks()) {
             if (task == null || !RequirementAnalysisWorkBindingSchema.isRequirementAnalysisBinding(task)) continue;
@@ -630,6 +676,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         content.setMajorProjectLevel(revision.getMajorProjectLevel());
         content.setProcessDefinitionKey(revision.getProcessDefinitionKey());
         content.setProcessDefinitionVersion(revision.getProcessDefinitionVersion());
+        content.setClosurePolicy(revision.getClosurePolicy() == null ? null
+                : new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(revision.getClosurePolicy())));
         content.setStages(BeanUtils.toBean(stageDefinitionMapper.selectListByRevisionId(revision.getId()),
                 TemplateDefinitionContent.StageDef.class));
         content.setTasks(BeanUtils.toBean(taskDefinitionMapper.selectListByRevisionId(revision.getId()),

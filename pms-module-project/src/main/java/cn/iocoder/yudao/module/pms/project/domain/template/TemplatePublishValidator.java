@@ -46,6 +46,7 @@ public final class TemplatePublishValidator {
             failures.add("模板内容为空");
             return failures;
         }
+        failures.addAll(validateClosurePolicy(content.getClosurePolicy()));
         validateProcessReference(content, failures);
         StageTransitionGraph graph = new StageTransitionGraph(
                 content.getStages() == null ? null : content.getStages().stream().map(stage -> stage == null ? null
@@ -67,6 +68,19 @@ public final class TemplatePublishValidator {
                 approvedPreparationItemCodes, failures);
         validateRequirementAnalysisBindings(content.getTasks(), failures);
         return failures;
+    }
+
+    /** 仅检查可选闭环schema；真实BPM及显式材料审核资格由发布服务向Owner重验。 */
+    public static List<String> validateClosurePolicy(TemplateDefinitionContent.ClosurePolicy policy) {
+        if (policy == null) {
+            return List.of();
+        }
+        try {
+            new TemplateDefinitionContent.ClosurePolicy(policy.toJson());
+            return List.of();
+        } catch (IllegalArgumentException ex) {
+            return List.of(ex.getMessage());
+        }
     }
 
     public static boolean requiresPreparationCatalog(TemplateDefinitionContent content) {

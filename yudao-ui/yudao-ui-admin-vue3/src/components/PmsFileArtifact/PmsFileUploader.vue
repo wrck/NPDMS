@@ -138,6 +138,7 @@ const submit = async () => {
     busy.value = false
   }
 }
+defineExpose({ isBusy: () => busy.value, hasPendingFile: () => !!selectedFile.value })
 </script>
 
 <style scoped lang="scss">

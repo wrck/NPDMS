@@ -43,8 +43,11 @@ public class ProjectClosureStateAdapter implements ClosureStatePort {
 
     private ClosureState resolve(ProjectMasterDO project, ProjectClosureDO closure) {
         if ("NORMAL_CLOSED".equals(project.getLifecycleStatus())
-                || "EXCEPTION_CLOSED".equals(project.getLifecycleStatus())) {
+                || "NO_TRACKING_CLOSED".equals(project.getLifecycleStatus())) {
             return ClosureState.CLOSED;
+        }
+        if ("EXCEPTION_CLOSED".equals(project.getLifecycleStatus())) {
+            return ClosureState.EXCEPTION_CLOSED;
         }
         if (closure == null || closure.getStatus() == null) return ClosureState.EXECUTING;
         if (List.of(STATUS_PENDING_APPROVE, STATUS_APPROVING).contains(closure.getStatus())) {

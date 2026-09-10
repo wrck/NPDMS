@@ -7,11 +7,7 @@
           <div class="project-title-row">
             <span class="project-code">{{ detail?.projectCode || '—' }}</span>
             <h2 class="project-name">{{ detail?.projectName || '未选择项目' }}</h2>
-            <dict-tag
-              v-if="detail?.status"
-              :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-              :value="detail.status ?? ''"
-            />
+            <ProjectStatusTag :project="detail" />
             <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info">
               模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
             </el-tag>
@@ -240,10 +236,7 @@
               detail.implementationLocation || '-'
             }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <dict-tag
-                :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-                :value="detail.status ?? ''"
-              />
+              <ProjectStatusTag :project="detail" />
             </el-descriptions-item>
             <el-descriptions-item label="创建来源">
               <dict-tag
@@ -381,13 +374,14 @@
           <ProjectTaskPanel
             :project-id="detail.id"
             @tree-version="treeVersion = $event"
+            @updated="loadAll"
           />
         </div>
 
-        <div v-if="detail?.id && visitedTabs.has('stage-gates')" v-show="activeTab === 'stage-gates'" class="min-w-0" data-testid="project-pane-stage-gates">
+        <div v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))" v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)" class="min-w-0" data-testid="project-pane-stage-gates">
           <ProjectStageGatePanel
             :project-id="detail.id"
-            @advanced="handleStageAdvanced"
+            :key="`${detail.id}:${detail.version}:${activeTab}`"
           />
         </div>
 
@@ -451,6 +445,10 @@
           />
         </div>
         <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
+          <ProjectNormalClosurePanel
+            :project-id="detail.id"
+            @updated="loadAll"
+          />
           <ProjectClosureGuardPanel
             :project-id="detail.id"
             :project-name="detail.projectName"
@@ -489,6 +487,8 @@ import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
+import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
+import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
 import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
 import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
@@ -536,7 +536,8 @@ const requestedTab = [
   'customer-contacts',
   'requirement-analysis',
   'satisfaction',
-  'acceptance-reports'
+  'acceptance-reports',
+  'closure'
 ].includes(String(route.query.tab))
   ? String(route.query.tab)
   : 'base'
@@ -549,16 +550,15 @@ const overviewSteps = [
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
   { key: 'members', label: '成员管理', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'stage-gates', label: '阶段门禁', icon: 'ep:guide' }
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
   value ? getDictLabel(dict!, value) : '不限'
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
-const switchTab = (key: string) => {
+const switchTab = async (key: string) => {
   if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
-  if (key !== activeTab.value && acceptanceReportRef.value?.requestLeave() === false) return
+  if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }
@@ -594,11 +594,8 @@ const handleAttributeUpdated = async () => {
   await loadDetail()
   historyRefreshKey.value++
 }
-const handleStageAdvanced = async () => {
-  await Promise.all([loadDetail(), loadInstances()])
-}
 const handleMembersUpdated = async () => {
-  await Promise.all([loadDetail(), loadMembers()])
+  await Promise.all([loadDetail(), loadMembers(), loadInstances()])
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)

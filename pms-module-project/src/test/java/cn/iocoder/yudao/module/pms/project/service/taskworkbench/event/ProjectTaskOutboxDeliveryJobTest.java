@@ -76,6 +76,63 @@ class ProjectTaskOutboxDeliveryJobTest {
     }
 
     @Test
+    void historicalPayloadWithoutBusinessFactsKeepsLongVersion() {
+        var original = completedMessage("legacy", 0);
+        var tree = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(original.payload());
+        tree.remove("businessFacts");
+        tree.put("factVersion", 9007199254740993L);
+        when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(new PlatformOutboxMessageDTO(
+                original.eventId(), original.eventType(), JsonUtils.toJsonString(tree), 0, 9L, original.occurredAt())));
+
+        job.execute(null);
+
+        var event = ArgumentCaptor.forClass(TaskCompletedMessage.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertEquals(9007199254740993L, event.getValue().factVersion());
+        assertEquals(null, event.getValue().businessFacts());
+        verify(outboxDeliveryApi).markDelivered("legacy", 0);
+    }
+
+    @Test
+    void businessPayloadPreservesOpaqueOwnerVersionsWithoutNativeFact() {
+        when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(businessMessage(java.util.Map.of(
+                "aggregateFactVersion", "a".repeat(64), "ownerContext", "SOL", "objectType", "SITE_SURVEY",
+                "criteria", List.of(java.util.Map.of("criterion", "SURVEY_CONFIRMED", "satisfied", true)),
+                "links", List.of(java.util.Map.of("objectId", "survey-1", "factVersion", "owner:revision:7"))))));
+
+        job.execute(null);
+
+        var event = ArgumentCaptor.forClass(TaskCompletedMessage.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertEquals(null, event.getValue().factVersion());
+        assertEquals("a".repeat(64), event.getValue().businessFacts().get("aggregateFactVersion"));
+        assertEquals(List.of(java.util.Map.of("objectId", "survey-1", "factVersion", "owner:revision:7")),
+                event.getValue().businessFacts().get("links"));
+        verify(outboxDeliveryApi).markDelivered("business", 0);
+    }
+
+    @Test
+    void emptyBusinessGroupRetriesRatherThanPublishingCompletion() {
+        when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(businessMessage(java.util.Map.of(
+                "aggregateFactVersion", "a".repeat(64), "ownerContext", "SOL", "objectType", "SITE_SURVEY",
+                "criteria", List.of(java.util.Map.of("criterion", "SURVEY_CONFIRMED", "satisfied", true)),
+                "links", List.of()))));
+
+        job.execute(null);
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+        verify(outboxDeliveryApi, never()).markDelivered(any(), org.mockito.ArgumentMatchers.anyInt());
+        verify(outboxDeliveryApi).scheduleRetry(org.mockito.ArgumentMatchers.eq("business"),
+                org.mockito.ArgumentMatchers.eq(0), any(LocalDateTime.class));
+    }
+
+    private PlatformOutboxMessageDTO businessMessage(java.util.Map<String, Object> evidence) {
+        var time = LocalDateTime.of(2026, 9, 10, 10, 30);
+        var payload = new TaskCompletedMessage.Payload(9L, 1L, 100L, 800L, 5, 91L, 2, null, 7L, time, evidence);
+        return new PlatformOutboxMessageDTO("business", "TaskCompleted", JsonUtils.toJsonString(payload), 0, 9L, time);
+    }
+
+    @Test
     void publishFailureSchedulesRetryAndDoesNotMarkDelivered() {
         when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(message("evt-2", 3)));
         doThrow(new IllegalStateException("listener unavailable")).when(eventPublisher)

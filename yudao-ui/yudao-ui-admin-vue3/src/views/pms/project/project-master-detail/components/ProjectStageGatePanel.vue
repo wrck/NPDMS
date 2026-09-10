@@ -2,8 +2,8 @@
   <ContentWrap v-loading="loading">
     <div class="panel-header">
       <div>
-        <div class="panel-title"><Icon icon="ep:guide" />阶段门禁与推进</div>
-        <div class="panel-subtitle">按项目冻结模板检查当前阶段准出条件</div>
+        <div class="panel-title"><Icon icon="ep:guide" />阶段进展</div>
+        <div class="panel-subtitle">系统根据项目资料、责任人员和任务结果自动判断阶段进展，无需手动推进</div>
       </div>
       <el-button @click="loadReadiness"><Icon icon="ep:refresh" />刷新</el-button>
     </div>
@@ -16,14 +16,14 @@
         }}</el-descriptions-item>
         <el-descriptions-item label="推进状态">
           <el-tag :type="readiness.advanceAllowed ? 'success' : 'warning'">
-            {{ readiness.advanceAllowed ? '可以推进' : '尚未就绪' }}
+            {{ readiness.advanceAllowed ? '条件已满足' : '等待业务条件' }}
           </el-tag>
         </el-descriptions-item>
       </el-descriptions>
 
       <el-alert
         v-if="readiness.guidance"
-        :title="readiness.guidance"
+        :title="guidanceLabel(readiness.guidance)"
         :type="readiness.advanceAllowed ? 'success' : 'info'"
         :closable="false"
         show-icon
@@ -105,27 +105,9 @@
         </el-card>
       </div>
 
-      <div class="advance-action">
-        <el-alert
-          v-if="readiness.currentStage === 'S4'"
-          title="进入 S5 后，验收范围绑定由既有 COM/ACC 正向链同步完成。"
-          type="info"
-          :closable="false"
-          show-icon
-        />
-        <el-button
-          v-if="readiness.nextStage"
-          v-hasPermi="['pms:project:update']"
-          type="primary"
-          :disabled="!readiness.advanceAllowed"
-          :loading="advancing"
-          @click="advanceStage"
-        >
-          推进至 {{ readiness.nextStage }}
-        </el-button>
-      </div>
     </template>
-    <el-empty v-else-if="!loading" description="暂无阶段门禁数据" />
+    <el-alert v-else-if="errorMessage" :title="errorMessage" type="error" :closable="false" />
+    <el-empty v-else-if="!loading" description="尚未获取阶段进展" />
   </ContentWrap>
 </template>
 
@@ -143,11 +125,17 @@ import type {
 defineOptions({ name: 'ProjectStageGatePanel' })
 
 const props = defineProps<{ projectId: number }>()
-const emit = defineEmits<{ advanced: [] }>()
 const message = useMessage()
+const guidanceLabel = (code: string) => ({
+  S0_PRIMARY_MANAGERS_REQUIRED: '请先完成主责服务经理和主责项目经理指派，S0不能直接准出。',
+  S0_PRIMARY_SERVICE_MANAGER_REQUIRED: '尚未指派有效主责服务经理，请先完成服务经理指派。',
+  S0_PRIMARY_PROJECT_MANAGER_REQUIRED: '尚未指派有效主责项目经理，请先完成项目经理指派。',
+  S0_ASSIGNMENT_STATUS_NOT_ASSIGNED: '双主责指派事实与项目指派状态不一致，请重新核对成员指派。',
+  TERMINAL: '已到达模板的最后实际阶段。阶段结束不等于项目闭环，请按闭环条件申请审批。'
+}[code] || code)
 
 const loading = ref(false)
-const advancing = ref(false)
+const errorMessage = ref('')
 const startingReferenceId = ref<number>()
 const readiness = ref<ProjectStageAdvanceReadinessVO>()
 const definitions = reactive<Record<number, ProjectStageGateProcessDefinitionVO[]>>({})
@@ -172,8 +160,12 @@ const canStartProcess = (
 
 const loadReadiness = async () => {
   loading.value = true
+  errorMessage.value = ''
   try {
     readiness.value = await ProjectsApi.getProjectStageAdvanceReadiness(props.projectId)
+  } catch (error: any) {
+    readiness.value = undefined
+    errorMessage.value = error?.response?.data?.msg || error?.msg || '阶段进展加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -208,23 +200,6 @@ const startProcess = async (gateReferenceId: number) => {
     await loadReadiness()
   } finally {
     startingReferenceId.value = undefined
-  }
-}
-
-const advanceStage = async () => {
-  if (!readiness.value?.advanceAllowed) return
-  advancing.value = true
-  try {
-    const result = await ProjectsApi.advanceProjectStage(
-      props.projectId,
-      readiness.value,
-      crypto.randomUUID()
-    )
-    message.success(`项目已推进至 ${result.afterStage}`)
-    await loadReadiness()
-    emit('advanced')
-  } finally {
-    advancing.value = false
   }
 }
 

@@ -46,7 +46,16 @@ public class ProjectMemberUpdateApplicationService {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "成员操作参数无效");
         }
         functionAuthorization.assertCanAssign(actor.userId());
-        projectAuthorization.assertCanAssign(new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), command.projectId());
+        var authorizationActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId());
+        boolean initialInput = command.removeUserIds().isEmpty()
+                && command.primaryUserId() != null && command.addUserIds().contains(command.primaryUserId())
+                && (command.serviceManager() == null || "PRIMARY".equals(command.serviceManager().assignmentType()));
+        if (initialInput) {
+            projectAuthorization.assertCanInitiallyAssign(authorizationActor, command.projectId(),
+                    command.serviceManager() != null, true);
+        } else {
+            projectAuthorization.assertCanAssign(authorizationActor, command.projectId());
+        }
         String digest = DigestUtil.sha256Hex(JsonUtils.toJsonString(new Object[]{command.projectId(),
                 command.expectedVersion(), command.serviceManager(), new TreeSet<>(command.addUserIds()),
                 new TreeSet<>(command.removeUserIds()), command.primaryUserId(), command.reason().trim()}));

@@ -77,6 +77,10 @@ public final class TemplateInstantiator {
             instance.setEntryCriteria(stage.getEntryCriteria());
             instance.setExitCriteria(stage.getExitCriteria());
             instance.setSourceDefinitionId(null);
+            instance.setDefinitionRevisionId(stage.getDefinitionRevisionId());
+            instance.setGraphVersion(1L);
+            instance.setStartNode(stage.getStart());
+            instance.setTerminalNode(stage.getTerminal());
             instance.setStatus(ProjectRules.STATUS_S0.equals(stage.getStageCode())
                     ? ProjectRules.STAGE_STATUS_ACTIVE
                     : ProjectRules.STAGE_STATUS_PENDING);

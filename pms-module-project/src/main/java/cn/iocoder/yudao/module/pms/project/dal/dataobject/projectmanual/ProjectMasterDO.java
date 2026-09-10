@@ -258,6 +258,11 @@ public class ProjectMasterDO extends TenantBaseDO {
      * V1.8生命周期状态：ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED
      */
     private String lifecycleStatus;
+    /** Explicit template-published closure policy frozen at project creation; null never authorizes closure. */
+    private String closurePolicySnapshot;
+    private String closureType;
+    private String closedFromStage;
+    private LocalDateTime closedAt;
     /**
      * V1.8当前阶段：S0～S6
      */

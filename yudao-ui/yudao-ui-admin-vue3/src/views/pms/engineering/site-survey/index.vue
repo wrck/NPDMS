@@ -10,7 +10,7 @@
           query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
-          :disabled="!!props.projectId"
+          :disabled="projectLocked"
         />
       </el-form-item>
       <el-form-item label="工勘编码" prop="code">
@@ -30,8 +30,8 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-site-survey:create']"
+        <el-button :disabled="!can('QUERY')" @click="load"><Icon icon="ep:search" />查询</el-button>
+        <el-button v-if="can('CREATE')" type="primary" @click="openForm()" v-hasPermi="['pms:eng-site-survey:create']"
           ><Icon icon="ep:plus" />新增工勘</el-button
         >
       </el-form-item>
@@ -57,9 +57,9 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row, true)">详情</el-button>
+          <el-button v-if="can('QUERY')" link type="primary" @click="openForm(row, true)">详情</el-button>
           <el-button
-            v-if="row.status === 0"
+            v-if="row.status === 0 && can('UPDATE')"
             link
             type="primary"
             @click="openForm(row)"
@@ -69,7 +69,7 @@
           <el-button
             link
             type="success"
-            v-if="row.status === 0"
+            v-if="row.status === 0 && can('CONFIRM')"
             @click="handleAction(row, 'confirm')"
             v-hasPermi="['pms:eng-site-survey:update']"
             >确认</el-button
@@ -77,7 +77,7 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0"
+            v-if="row.status === 0 && can('REJECT')"
             @click="handleAction(row, 'reject')"
             v-hasPermi="['pms:eng-site-survey:update']"
             >驳回</el-button
@@ -85,7 +85,7 @@
           <el-button
             link
             type="info"
-            v-if="row.status === 1"
+            v-if="row.status === 1 && can('ARCHIVE')"
             @click="handleAction(row, 'archive')"
             v-hasPermi="['pms:eng-site-survey:update']"
             >归档</el-button
@@ -93,7 +93,7 @@
           <el-button
             link
             type="danger"
-            v-if="row.status === 0"
+            v-if="row.status === 0 && can('DELETE')"
             @click="remove(row)"
             :disabled="!!row.outsourceRequestId"
             :title="row.outsourceRequestId ? '已关联转包申请，请先处理关联申请' : undefined"
@@ -141,7 +141,7 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id || !!props.projectId"
+              :disabled="!!form.id || projectLocked"
             />
           </el-form-item>
         </el-col>
@@ -218,7 +218,8 @@
           <el-form-item label="转包关联">
             <el-link
               v-if="form.outsourceRequestId"
-              :href="outsourceDetailUrl(form.outsourceRequestId)"
+              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId)"
+              :disabled="readonly"
               target="_blank"
               rel="noopener"
               type="primary"
@@ -248,10 +249,11 @@
         </el-col>
         <el-col :span="24" v-if="form.formRevisionId">
           <SiteSurveyDynamicForm
+            v-if="formVisible"
             ref="dynamicFormRef"
             :model-value="form"
             :readonly="readonly"
-            @update:model-value="Object.assign(form, $event)"
+            @update:model-value="updateDynamicForm"
             @action="performSurveyAction"
             @integrated-outsource="integratedOutsource = $event"
           />
@@ -327,7 +329,7 @@
       <el-table-column prop="templateName" label="表单名称" />
       <el-table-column label="操作"
         ><template #default="{ row }">
-          <el-button @click="selectTemplate(row)">使用此表单</el-button>
+          <el-button :disabled="readonly" @click="selectTemplate(row)">使用此表单</el-button>
         </template></el-table-column
       >
     </el-table>
@@ -343,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -363,14 +365,37 @@ import {
 } from './siteSurveyOutsource'
 
 defineOptions({ name: 'PmsEngSiteSurvey' })
-const props = defineProps<{ projectId?: number }>()
-const emit = defineEmits<{ saved: [] }>()
+const props = defineProps<{
+  projectId?: number | string
+  readonly?: boolean
+  allowedActions?: string[]
+  objectId?: number | string
+  taskId?: number | string
+}>()
+const emit = defineEmits<{ saved: []; changed: []; 'dirty-change': [value: boolean] }>()
+const projectLocked = computed(() => props.projectId != null)
+const sameId = (left: unknown, right: unknown) => String(left ?? '') === String(right ?? '')
+const inProject = (row: Pick<SiteSurveyVO, 'projectId'>) =>
+  !projectLocked.value || sameId(row.projectId, props.projectId)
+// Host actions narrow existing UI permissions; the Owner API remains the authority.
+const can = (action: string) =>
+  action === 'QUERY'
+    ? props.readonly === true || props.allowedActions === undefined || props.allowedActions.includes(action)
+    : !props.readonly && (props.allowedActions === undefined || props.allowedActions.includes(action))
+let contextSequence = 0
+let listSequence = 0
+let formSequence = 0
+const contextKey = () => JSON.stringify([String(props.projectId ?? ''), String(props.objectId ?? ''), String(props.taskId ?? '')])
+const current = (sequence: number) => sequence === contextSequence
+// Legacy API types are numeric; a type assertion never coerces a Snowflake string on the wire.
+const ownerId = (id: number | string) => id as number
 const message = useMessage()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
-const readonly = ref(false)
+const detailReadonly = ref(false)
+const readonly = computed(() => detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
 const integratedOutsource = ref(false)
 const users = ref<UserApi.UserVO[]>([])
 const dynamicFormRef = ref<InstanceType<typeof SiteSurveyDynamicForm>>()
@@ -378,7 +403,7 @@ const templateVisible = ref(false)
 const templates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
 const templatePage = ref(1)
 const templateTotal = ref(0)
-let openedValue = ''
+const openedValue = ref('')
 const rows = ref<SiteSurveyVO[]>([])
 const total = ref(0)
 const query = reactive({
@@ -393,34 +418,53 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<SiteSurveyVO>({ projectId: 0, code: '', name: '' })
 const rules = {
-  projectId: [{ required: true, type: 'number', min: 1, message: '请选择项目' }],
+  projectId: [{ required: true, validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => callback(/^[1-9]\d*$/.test(String(value ?? '')) ? undefined : new Error('请选择项目')) }],
   code: [{ required: true, message: '请输入工勘编码' }],
   name: [{ required: true, message: '请输入工勘名称' }]
 }
 
 const load = async () => {
+  if (!can('QUERY')) return
+  const context = contextSequence
+  const sequence = ++listSequence
   loading.value = true
   try {
-    const data = await SiteSurveyApi.getSiteSurveyPage({ ...query, projectId: props.projectId ?? query.projectId })
-    rows.value = data.list
+    const data = await SiteSurveyApi.getSiteSurveyPage({ ...query, projectId: ownerId(props.projectId ?? query.projectId!) })
+    if (!current(context) || sequence !== listSequence || !can('QUERY')) return
+    rows.value = data.list.filter(inProject)
     total.value = data.total
   } finally {
-    loading.value = false
+    if (current(context) && sequence === listSequence) loading.value = false
   }
 }
 const openForm = async (row?: SiteSurveyVO, view = false) => {
-  if (row?.id) row = await SiteSurveyApi.getSiteSurvey(row.id)
-  if (props.projectId && row && row.projectId !== props.projectId) {
+  const action = row ? (view ? 'QUERY' : 'UPDATE') : 'CREATE'
+  if (!can(action) || saving.value || (row && !inProject(row) && row.projectId != null)) return
+  // Refreshing the same project/object must not overwrite an unfinished form.
+  if (formVisible.value && sameId(row?.id, form.id) && isDirty()) return
+  const context = contextSequence
+  const sequence = ++formSequence
+  if (!(await confirmLeave()) || !current(context) || sequence !== formSequence) return
+  const requestedId = row?.id
+  if (requestedId != null) row = await SiteSurveyApi.getSiteSurvey(requestedId)
+  if (!current(context) || sequence !== formSequence || !can(action)) return
+  if (requestedId != null && (!row || !sameId(row.id, requestedId))) {
+    message.warning('工勘对象不匹配，请重新加载')
+    return
+  }
+  if (row && !inProject(row)) {
     message.warning('该工勘不属于当前项目')
     return
   }
-  readonly.value = view || (!!row && row.status !== 0)
+  formVisible.value = false
+  detailReadonly.value = view || (!!row && row.status !== 0)
   integratedOutsource.value = false
+  for (const key of Object.keys(form)) delete (form as unknown as Record<string, unknown>)[key]
   Object.assign(
     form,
     {
       id: undefined,
-      projectId: props.projectId || 0,
+      projectId: ownerId(props.projectId ?? 0),
       code: '',
       name: '',
       surveyDate: '',
@@ -451,12 +495,17 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
   )
   form.locationMaintenance = toLocationMaintenance(row)
   if (!row) await useStandardForm()
-  openedValue = JSON.stringify(form)
+  if (!current(context) || sequence !== formSequence) return
+  openedValue.value = JSON.stringify(form)
   formVisible.value = true
 }
 
 const useStandardForm = async () => {
+  if (readonly.value || !inProject(form)) return
+  const context = contextSequence
+  const sequence = formSequence
   const schema = await SiteSurveyApi.getDefaultFormSchema()
+  if (!current(context) || sequence !== formSequence || readonly.value) return
   const schemaFields = new Set(
     schema.formRulesJson.filter((rule: any) => rule.field).map((rule: any) => rule.field)
   )
@@ -469,35 +518,67 @@ const useStandardForm = async () => {
   form.formRevisionVersion = schema.revisionVersion
 }
 const loadTemplates = async () => {
+  if (readonly.value) return
+  const context = contextSequence
   const result = await DynamicFormApi.getTemplateSelection({
     pageNo: templatePage.value,
     pageSize: 20
   })
+  if (!current(context) || readonly.value) return
   templates.value = result.list.filter((item) => item.categoryCode === 'SITE_SURVEY')
   templateTotal.value = result.total
 }
 const chooseTemplate = async () => {
+  if (readonly.value) return
+  const context = contextSequence
   await loadTemplates()
-  templateVisible.value = true
+  if (current(context) && !readonly.value) templateVisible.value = true
 }
 const selectTemplate = async (template: DynamicFormApi.DynamicFormSelectionVO) => {
+  if (readonly.value) return
+  const context = contextSequence
+  const sequence = formSequence
   const revision = await DynamicFormApi.getRevision(template.currentPublishedRevisionId)
   await SiteSurveyApi.getFormSchema(revision.revisionId, revision.revisionVersion)
+  if (!current(context) || sequence !== formSequence || readonly.value) return
   form.formRevisionId = revision.revisionId
   form.formRevisionVersion = revision.revisionVersion
   templateVisible.value = false
 }
-const beforeClose = async (done: () => void) => {
-  if (saving.value) return
-  if (!readonly.value && openedValue !== JSON.stringify(form)) {
-    try {
-      await message.confirm('尚有未保存的工勘内容，确定放弃并关闭？')
-    } catch {
-      return
-    }
+const isDirty = () => formVisible.value && openedValue.value !== JSON.stringify(form)
+watch(() => isDirty(), (value) => emit('dirty-change', value), { flush: 'sync' })
+const confirmLeave = async () => {
+  if (saving.value) return false
+  if (!isDirty()) return true
+  try {
+    await message.confirm('尚有未保存的工勘内容，确定放弃并关闭？')
+    return !saving.value
+  } catch {
+    return false
   }
-  done()
 }
+// Host performs this only after confirming that the pending switch is still current.
+const discardChanges = () => {
+  if (saving.value) return false
+  ++formSequence
+  if (openedValue.value) {
+    const baseline = JSON.parse(openedValue.value)
+    for (const key of Object.keys(form)) {
+      if (!(key in baseline)) delete (form as unknown as Record<string, unknown>)[key]
+    }
+    Object.assign(form, baseline)
+  }
+  formVisible.value = false
+  templateVisible.value = false
+  return true
+}
+const beforeClose = async (done: () => void) => {
+  if ((await confirmLeave()) && discardChanges()) done()
+}
+const updateDynamicForm = (value: SiteSurveyVO) => {
+  if (!readonly.value && inProject(form)) Object.assign(form, value)
+}
+defineExpose({ isDirty, discardChanges, confirmLeave, requestLeave: confirmLeave })
 
 const toLocationMaintenance = (row?: SiteSurveyVO): LocationMaintainRequest | undefined => {
   if (!row) return { projectId: form.projectId }
@@ -559,35 +640,42 @@ const savePayload = () => {
   return payload
 }
 const save = async () => {
-  if (readonly.value || saving.value) return false
-  try {
-    await formRef.value.validate()
-    if (form.formRevisionId) await dynamicFormRef.value?.validate()
-  } catch {
-    message.warning('请检查工勘必填项和表单内容')
-    return false
-  }
+  if (readonly.value || saving.value || !inProject(form)) return false
+  const context = contextSequence
   saving.value = true
   try {
+    try {
+      await formRef.value.validate()
+      if (form.formRevisionId) await dynamicFormRef.value?.validate()
+    } catch {
+      if (current(context)) message.warning('请检查工勘必填项和表单内容')
+      return false
+    }
+    if (!current(context) || readonly.value || !inProject(form)) return false
     const payload = savePayload()
     if (!payload) return false
-    if (form.id) await SiteSurveyApi.updateSiteSurvey(payload)
-    else form.id = await SiteSurveyApi.createSiteSurvey(payload)
+    const id = form.id
+      ? (await SiteSurveyApi.updateSiteSurvey(payload), form.id)
+      : await SiteSurveyApi.createSiteSurvey(payload)
+    if (!current(context)) return false
+    form.id = id
+    openedValue.value = JSON.stringify(form)
     message.success('保存成功')
     formVisible.value = false
-    await load()
     emit('saved')
-    return true
+    emit('changed')
+    await load()
+    return current(context)
   } catch {
-    message.warning('保存未完成，已保留填写内容；请检查提示或重新加载最新版本后重试。')
+    if (current(context)) message.warning('保存未完成，已保留填写内容；请检查提示或重新加载最新版本后重试。')
     return false
   } finally {
-    saving.value = false
+    if (current(context)) saving.value = false
   }
 }
 const startOutsource = async () => {
-  if (!form.outsourceRequired || form.outsourceRequestId) return
-  if (await save()) await router.push(outsourceShortcutRoute(form.id!))
+  if (readonly.value || saving.value || !inProject(form) || !form.outsourceRequired || form.outsourceRequestId) return
+  if ((await save()) && !readonly.value) await router.push(outsourceShortcutRoute(form.id!))
 }
 const performSurveyAction = async (kind: string, sn?: string) => {
   if (readonly.value || saving.value) return
@@ -607,47 +695,74 @@ const performSurveyAction = async (kind: string, sn?: string) => {
     )
       return
   } else if (form.formExtraValues?.extra_railTrayRequired !== true) return
-  if (await save()) await router.push(surveyProcurementRoute(kind, form.id!, sn))
+  if ((await save()) && !readonly.value) await router.push(surveyProcurementRoute(kind, form.id!, sn))
 }
 const remove = async (row: SiteSurveyVO) => {
+  if (!can('DELETE') || !inProject(row) || saving.value || row.status !== 0 && !row.outsourceRequestId) return
+  const context = contextSequence
   if (row.outsourceRequestId) {
     message.warning('工勘已关联转包申请，请先处理关联申请，不能删除来源记录')
     return
   }
   await message.delConfirm()
+  if (!current(context) || !can('DELETE') || !inProject(row)) return
   await SiteSurveyApi.deleteSiteSurvey(row.id!)
+  if (!current(context)) return
   message.success('删除成功')
+  emit('changed')
   await load()
 }
 const handleAction = async (row: SiteSurveyVO, action: 'confirm' | 'reject' | 'archive') => {
+  if (!['confirm', 'reject', 'archive'].includes(action) || !can(action.toUpperCase()) || !inProject(row) || saving.value || row.status !== (action === 'archive' ? 1 : 0)) return
+  const context = contextSequence
   const actionText = { confirm: '确认', reject: '驳回', archive: '归档' }[action]
   await message.confirm(`是否${actionText}工勘【${row.code}】？`)
+  if (!current(context) || !can(action.toUpperCase()) || !inProject(row)) return
   if (action === 'confirm') await SiteSurveyApi.confirmSiteSurvey(row.id!)
   if (action === 'reject') await SiteSurveyApi.rejectSiteSurvey(row.id!)
   if (action === 'archive') await SiteSurveyApi.archiveSiteSurvey(row.id!)
+  if (!current(context)) return
   message.success(`${actionText}成功`)
+  emit('changed')
   await load()
 }
 onMounted(() => {
-  load()
   UserApi.getSimpleUserList()
     .then((result) => (users.value = result))
     .catch(() => message.warning('工勘人员列表加载失败'))
 })
+watch(contextKey, async () => {
+  ++contextSequence
+  ++listSequence
+  ++formSequence
+  loading.value = false
+  saving.value = false
+  formVisible.value = false
+  templateVisible.value = false
+  rows.value = []
+  total.value = 0
+  query.pageNo = 1
+  query.projectId = props.projectId as number | undefined
+  const context = contextSequence
+  await load()
+  if (current(context) && props.objectId != null) {
+    await openForm({ id: ownerId(props.objectId) } as SiteSurveyVO, !can('UPDATE'))
+  }
+}, { immediate: true, flush: 'sync' })
 watch(
   () => route.query.surveyId,
   async (value) => {
-    if (!value) return
+    if (!value || props.objectId != null || projectLocked.value) return
     const id = positiveShortcutId(value)
     if (!id) {
       message.warning('工勘编号无效')
       return
     }
-    await load()
-    await openForm(await SiteSurveyApi.getSiteSurvey(id))
+    await openForm({ id } as SiteSurveyVO, !can('UPDATE'))
   },
   { immediate: true }
 )
+onBeforeUnmount(() => { ++contextSequence; ++formSequence; ++listSequence })
 </script>
 
 <style scoped>

@@ -11,6 +11,7 @@ public interface ClosureStatePort {
         EXECUTING,
         PAUSED,
         CLOSURE_APPROVING,
+        EXCEPTION_CLOSED,
         CLOSED
     }
 }

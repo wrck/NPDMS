@@ -1,5 +1,6 @@
 <template>
   <ContentWrap>
+    <el-alert v-if="embedded" title="报告发布/附件办理尚未接入当前任务上下文，请从原业务入口处理" type="info" :closable="false" show-icon />
     <el-form :model="query" inline class="-mb-15px query-form" @submit.prevent>
       <el-form-item label="项目">
         <el-input v-if="scoped" :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" />
@@ -20,77 +21,111 @@
       <el-table-column prop="projectTaskId" label="来源任务" min-width="170" />
       <el-table-column prop="version" label="活动版本" width="100" />
       <el-table-column label="当前报告" width="110"><template #default="{ row }">{{ row.currentReportVersionId ? '已生效' : '未生效' }}</template></el-table-column>
-      <el-table-column label="操作" width="160" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="detailRef?.open(row.id)">进入报告工作台</el-button></template></el-table-column>
+      <el-table-column label="操作" width="160" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id)">进入报告工作台</el-button></template></el-table-column>
     </el-table>
   </ContentWrap>
-  <AcceptanceReportDetail ref="detailRef" @changed="load" />
+  <AcceptanceReportDetail ref="detailRef" :readonly="readonly || contextBlocked" :allowed-actions="allowedActions" @changed="changed" @dirty-change="emit('dirty-change', $event)" />
 </template>
 
 <script setup lang="ts">
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
 import * as ProjectApi from '@/api/pms/project/projects'
+import { checkPermi } from '@/utils/permission'
+import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ReportApi from '@/api/pms/project/acceptance-report'
 import type { AcceptanceActivityVO } from '@/api/pms/project/acceptance-report'
 import AcceptanceReportDetail from './detail.vue'
 
 defineOptions({ name: 'PmsAcceptanceReport' })
-const props = defineProps<{ projectId?: number; projectName?: string }>()
+const props = defineProps<{ projectId?: number | string; projectName?: string; objectId?: number | string; readonly?: boolean; allowedActions?: string[] }>()
+const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const route = useRoute()
-const message = useMessage()
 const loading = ref(false)
 const errorText = ref('')
 const activities = ref<AcceptanceActivityVO[]>([])
 const detailRef = ref<InstanceType<typeof AcceptanceReportDetail>>()
-const query = reactive<{ projectId?: number }>({})
+const query = reactive<{ projectId?: BusinessViewId }>({})
 const scoped = computed(() => props.projectId !== undefined)
 const effectiveProjectId = computed(() => scoped.value ? props.projectId : query.projectId)
-const validProject = computed(() => Number.isSafeInteger(effectiveProjectId.value) && Number(effectiveProjectId.value) > 0)
-let loadSequence = 0
-
-const requestLeave = () => {
-  if (!detailRef.value?.isDirty()) return true
-  message.warning('请先保存或关闭验收报告编辑，再切换页面。')
-  return false
+const validProject = computed(() => isBusinessViewId(effectiveProjectId.value))
+const embedded = computed(() => props.objectId !== undefined || props.allowedActions !== undefined)
+const contextBlocked = ref(false)
+let listSequence = 0
+let switchSequence = 0
+let activeProject: BusinessViewId | undefined
+let activeObject: BusinessViewId | undefined
+const canQuery = () => (props.allowedActions === undefined || props.allowedActions.includes('QUERY')) && checkPermi(['pms:acceptance:report:query'])
+const requestLeave = async () => await detailRef.value?.requestLeave() ?? true
+const discardChanges = () => {
+  if (detailRef.value?.discardChanges() === false) return false
+  listSequence++
+  emit('dirty-change', false)
+  return true
 }
-onBeforeRouteLeave(requestLeave)
-onBeforeRouteUpdate(requestLeave)
-
+const openDetail = async (id: BusinessViewId) => {
+  if (contextBlocked.value || !canQuery() || !isBusinessViewId(activeProject)) return false
+  return await detailRef.value?.open(id, activeProject)
+}
 const load = async () => {
-  const sequence = ++loadSequence
+  const token = ++listSequence
+  const project = activeProject
   errorText.value = ''
-  if (!validProject.value) {
-    activities.value = []
-    loading.value = false
-    if (scoped.value || effectiveProjectId.value !== undefined) errorText.value = '项目上下文无效，未查询其他项目。'
-    return
-  }
+  if (!isBusinessViewId(project) || contextBlocked.value || !canQuery()) { activities.value = []; loading.value = false; return }
   loading.value = true
   try {
-    const result = await ReportApi.getActivities(effectiveProjectId.value)
-    if (sequence === loadSequence) activities.value = result
+    const result = await ReportApi.getActivities(legacyOwnerId(project))
+    if (token !== listSequence || !canQuery()) return
+    activities.value = result.filter(item => sameBusinessViewId(item.projectId, project))
   } catch {
-    if (sequence === loadSequence) errorText.value = '验收活动加载失败，请检查访问权限或重试；这不代表验收已完成。'
-  } finally { if (sequence === loadSequence) loading.value = false }
+    if (token === listSequence) {
+      activities.value = []
+      errorText.value = '验收活动加载失败，请检查访问权限或重试；这不代表验收已完成。'
+    }
+  } finally { if (token === listSequence) loading.value = false }
 }
-const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
-const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' })[status] || status
-
-watch(() => route.query.projectId, (value) => {
-  if (!scoped.value) query.projectId = value === undefined ? undefined : Number(value)
-}, { immediate: true })
-watch(effectiveProjectId, () => {
+const changed = () => { emit('changed'); void load() }
+const contextKey = () => [String(props.projectId ?? query.projectId ?? ''), String(props.objectId ?? '')].join('|')
+const switchContext = async () => {
+  const token = ++switchSequence
+  const project = props.projectId ?? query.projectId
+  const object = props.objectId
+  if (sameBusinessViewId(project, activeProject) && String(object ?? '') === String(activeObject ?? '')) {
+    contextBlocked.value = false
+    return
+  }
+  listSequence++
+  if (!(await requestLeave()) || token !== switchSequence) { if (token === switchSequence) contextBlocked.value = true; return }
+  if (!discardChanges()) { contextBlocked.value = true; return }
+  activeProject = project
+  activeObject = object
+  contextBlocked.value = !isBusinessViewId(project) || (object !== undefined && !isBusinessViewId(object))
   activities.value = []
-  detailRef.value?.close()
-  void load()
-}, { immediate: true })
+  loading.value = false
+  if (contextBlocked.value) { errorText.value = '项目上下文无效，未查询其他项目。'; return }
+  await load()
+  if (token === switchSequence && isBusinessViewId(object)) await openDetail(object)
+}
+watch(() => props.projectId, value => { if (value !== undefined) query.projectId = value }, { immediate: true })
+watch(contextKey, switchContext)
+onMounted(() => {
+  if (props.projectId === undefined && isBusinessViewId(route.query.projectId)) query.projectId = route.query.projectId
+  else void switchContext()
+})
+onBeforeRouteLeave(requestLeave)
+onBeforeRouteUpdate(requestLeave)
+watch(() => route.query.projectId, value => {
+  if (!scoped.value) query.projectId = isBusinessViewId(value) ? value : undefined
+})
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!detailRef.value?.isDirty()) return
   event.preventDefault()
   event.returnValue = ''
 }
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onBeforeUnmount(() => { loadSequence++; window.removeEventListener('beforeunload', beforeUnload) })
-defineExpose({ requestLeave })
+onBeforeUnmount(() => { listSequence++; switchSequence++; window.removeEventListener('beforeunload', beforeUnload) })
+const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
+const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' } as Record<string, string>)[status] || status
+defineExpose({ requestLeave, discardChanges, isDirty: () => detailRef.value?.isDirty() ?? false })
 </script>
 
 <style scoped lang="scss">

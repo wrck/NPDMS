@@ -20,6 +20,10 @@ import java.time.LocalDateTime;
 public class ProjectTemplateRevisionDO extends TenantBaseDO {
     private String definitionSnapshot;
 
+    /** 专用闭环规则；NULL表示未配置，取消草稿配置必须实际清空。 */
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String closurePolicy;
+
 
     /**
      * 版本ID

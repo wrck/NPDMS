@@ -20,6 +20,9 @@ import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScope
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
+import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
+import cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -47,14 +50,19 @@ public class ProjectServiceManagerQueryService {
     private final ProjectSiteApplicationService projectSiteService;
     private final DeptApi deptApi;
     private final OrganizationScopeApi organizationScopeApi;
+    @Resource
+    private ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
 
     public PageResult<ServiceManagerCandidateRespVO> getCandidates(
             Long projectId, ServiceManagerCandidatePageReqVO request, Actor actor) {
         validateCandidateRequest(projectId, request, actor);
         ProjectMasterDO project = requireProject(projectId, actor.tenantId());
-        var candidateScope = resolveManageScope(project, actor);
-        if (!candidateScope.fullProjectIds().contains(projectId)) {
-            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        if (!validationInitialAssignmentPolicy.permitsCandidates(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId()), project)) {
+            var candidateScope = resolveManageScope(project, actor);
+            if (!candidateScope.fullProjectIds().contains(projectId)) {
+                throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+            }
         }
         if (project.getCompanyId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "项目公司范围不存在");

@@ -82,6 +82,8 @@ public class ProjectTaskLifecycleService {
     private final PermissionApi permissionApi;
     private final AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
     private final ProjectScopeApi projectScopeApi;
+    private final TaskBusinessCompletionEvaluator businessCompletionEvaluator;
+    private final TaskBusinessBindingHostProvider businessProvider;
 
     public TaskCommandResult act(TaskActionCommand command, TaskWorkbenchActor actor) {
         AtomicReference<ActionFacts> facts = new AtomicReference<>();
@@ -136,8 +138,10 @@ public class ProjectTaskLifecycleService {
         if (acceptanceContract) {
             requireAcceptanceActionAccess(action, task, actor);
         } else {
-            TaskBindingInspection inspection = nativeProvider.inspect(new TaskBindingInspectionQuery(
-                    actor.tenantId(), task.getId(), actor.actorId(), actor.correlationId()));
+            TaskBindingInspectionQuery query = new TaskBindingInspectionQuery(
+                    actor.tenantId(), task.getId(), actor.actorId(), actor.correlationId());
+            TaskBindingInspection inspection = isBusinessContract(contract)
+                    ? businessProvider.inspect(query) : nativeProvider.inspect(query);
             if (inspection.recoverableError() != null || !inspection.allowedActions().contains(action)) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             }
@@ -147,6 +151,8 @@ public class ProjectTaskLifecycleService {
         CompletionDecision completion = "COMPLETE".equals(action)
                 ? acceptanceContract
                 ? completeAcceptance(command, task, contract, actor, occurredAt)
+                : isBusinessContract(contract)
+                ? evaluateBusinessCompletion(command, task, contract, actor, occurredAt)
                 : evaluateCompletion(command, task, contract, actor, occurredAt)
                 : CompletionDecision.notApplicable();
         if ("COMPLETE".equals(action)) insertEvaluation(command, task, contract, actor, occurredAt, completion);
@@ -176,10 +182,15 @@ public class ProjectTaskLifecycleService {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskIdForUpdate(
                 new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
-                || (!"TASK_NATIVE".equals(contract.getWorkBindingTypeCode()) && !isAcceptanceContract(contract))) {
+                || (!"TASK_NATIVE".equals(contract.getWorkBindingTypeCode())
+                && !isAcceptanceContract(contract) && !isBusinessContract(contract))) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
         return contract;
+    }
+
+    private boolean isBusinessContract(ProjectTaskExecutionContractDO contract) {
+        return contract != null && TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode());
     }
 
     private boolean isAcceptanceContract(ProjectTaskExecutionContractDO contract) {
@@ -323,6 +334,26 @@ public class ProjectTaskLifecycleService {
                 occurredAt);
     }
 
+    private CompletionDecision evaluateBusinessCompletion(TaskActionCommand command, ProjectTaskInstanceDO task,
+                                                          ProjectTaskExecutionContractDO contract,
+                                                          TaskWorkbenchActor actor, LocalDateTime occurredAt) {
+        var result = businessCompletionEvaluator.evaluateLocked(command, contract, actor);
+        List<String> unmet = new ArrayList<>(result.unmetItems());
+        TaskCompletionFactsQuery query = new TaskCompletionFactsQuery(actor.tenantId(), task.getProjectId(), task.getId());
+        if (!taskMapper.selectNonTerminalDescendantIdsForUpdate(query).isEmpty()) unmet.add("NON_TERMINAL_DESCENDANT");
+        if (!taskMapper.selectNonTerminalPredecessorIdsForUpdate(query).isEmpty()) unmet.add("NON_TERMINAL_PREDECESSOR");
+        String gateSnapshot = null;
+        if (contract.getGateRef() != null && !contract.getGateRef().isBlank()) {
+            var gate = gateMapper.selectByCodeForUpdate(new ProjectGateForUpdateQuery(actor.tenantId(),
+                    task.getProjectId(), contract.getGateRef()));
+            gateSnapshot = contract.getGateRef() + ":" + (gate == null ? "UNKNOWN" : gate.getStatus())
+                    + ":" + (gate == null ? "" : gate.getVersion());
+            if (gate == null || !"PASSED".equals(gate.getStatus())) unmet.add("GATE_NOT_PASSED");
+        }
+        return new CompletionDecision(result.satisfied() && unmet.isEmpty(), List.copyOf(unmet), IdWorker.getId(),
+                gateSnapshot, occurredAt, result.evidence());
+    }
+
     private void insertEvaluation(TaskActionCommand command, ProjectTaskInstanceDO task,
                                   ProjectTaskExecutionContractDO contract, TaskWorkbenchActor actor,
                                   LocalDateTime occurredAt, CompletionDecision decision) {
@@ -341,6 +372,14 @@ public class ProjectTaskLifecycleService {
         evaluation.setFactObjectType("ProjectTask");
         evaluation.setFactObjectKey(String.valueOf(task.getId()));
         evaluation.setFactVersion((long) task.getVersion());
+        if (isBusinessContract(contract) && !isAcceptanceContract(contract)) {
+            evaluation.setFactContextCode(contract.getTargetContextCode());
+            evaluation.setFactObjectType(contract.getTargetObjectType());
+            // A group is not a ProjectTask fact. Exact identities and opaque Owner versions live in JSON.
+            evaluation.setFactObjectKey(null);
+            evaluation.setFactVersion(null);
+            evaluation.setBusinessFactsJson(JsonUtils.toJsonString(decision.businessEvidence()));
+        }
         evaluation.setGateSnapshotRef(decision.gateSnapshot());
         evaluation.setEvaluatedBy(actor.actorId());
         evaluation.setEvaluatedAt(occurredAt);
@@ -368,11 +407,13 @@ public class ProjectTaskLifecycleService {
             detail.put("completionResult", facts.completionSatisfied() ? "SATISFIED" : "NOT_SATISFIED");
             detail.put("unmetItems", facts.unmetItems());
         }
+        if (facts.businessEvidence() != null) detail.put("businessFacts", facts.businessEvidence());
         String eventType = "COMPLETE".equals(action) && facts.completionSatisfied() ? "TaskCompleted" : null;
         String eventPayload = eventType == null ? null : JsonUtils.toJsonString(new TaskCompletedMessage.Payload(
                 actor.tenantId(), facts.projectId(), result.taskId(), facts.evaluationId(), result.taskVersion(),
-                facts.contractId(), facts.contractVersion(), (long) facts.beforeTaskVersion(), actor.actorId(),
-                facts.occurredAt()));
+                facts.contractId(), facts.contractVersion(),
+                facts.businessEvidence() == null ? (long) facts.beforeTaskVersion() : null, actor.actorId(),
+                facts.occurredAt(), facts.businessEvidence()));
         return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_TASK_" + action, "ProjectTask",
                 String.valueOf(result.taskId()), actor.correlationId(), JsonUtils.toJsonString(detail),
                 eventType, eventPayload);
@@ -410,7 +451,12 @@ public class ProjectTaskLifecycleService {
     }
 
     private record CompletionDecision(boolean satisfied, List<String> unmetItems, Long evaluationId,
-                                      String gateSnapshot, LocalDateTime occurredAt) {
+                                      String gateSnapshot, LocalDateTime occurredAt,
+                                      Map<String, Object> businessEvidence) {
+        CompletionDecision(boolean satisfied, List<String> unmetItems, Long evaluationId,
+                           String gateSnapshot, LocalDateTime occurredAt) {
+            this(satisfied, unmetItems, evaluationId, gateSnapshot, occurredAt, null);
+        }
         static CompletionDecision notApplicable() {
             return new CompletionDecision(true, List.of(), null, null, null);
         }
@@ -419,7 +465,7 @@ public class ProjectTaskLifecycleService {
     private record ActionFacts(Long projectId, String beforeStatus, int beforeTaskVersion,
                                Long stateMachineRevisionId, Long contractId, Integer contractVersion,
                                Long evaluationId, boolean completionSatisfied, List<String> unmetItems,
-                               LocalDateTime occurredAt) {
+                               LocalDateTime occurredAt, Map<String, Object> businessEvidence) {
         static ActionFacts changed(ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract,
                                    CompletionDecision completion, LocalDateTime occurredAt) {
             return create(task, contract, completion, occurredAt);
@@ -432,7 +478,8 @@ public class ProjectTaskLifecycleService {
                                           CompletionDecision completion, LocalDateTime occurredAt) {
             return new ActionFacts(task.getProjectId(), task.getStatus(), task.getVersion(),
                     task.getStateMachineRevisionId(), contract.getId(), contract.getContractVersion(),
-                    completion.evaluationId(), completion.satisfied(), completion.unmetItems(), occurredAt);
+                    completion.evaluationId(), completion.satisfied(), completion.unmetItems(), occurredAt,
+                    completion.businessEvidence());
         }
     }
 }

@@ -49,8 +49,13 @@ public class ProjectManagerMemberApplicationService {
     public ProjectManagerMemberResult update(ProjectManagerMemberCommand command, Actor actor) {
         validate(command, actor);
         functionAuthorization.assertCanAssign(actor.userId());
-        projectAuthorization.assertCanAssign(new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()),
-                command.projectId());
+        var authorizationActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId());
+        if (command.removeUserIds().isEmpty() && command.primaryUserId() != null
+                && command.addUserIds().contains(command.primaryUserId())) {
+            projectAuthorization.assertCanInitiallyAssign(authorizationActor, command.projectId(), false, true);
+        } else {
+            projectAuthorization.assertCanAssign(authorizationActor, command.projectId());
+        }
         return updateAuthorized(command, actor);
     }
 
