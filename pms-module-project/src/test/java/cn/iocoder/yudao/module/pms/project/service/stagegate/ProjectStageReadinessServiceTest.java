@@ -40,6 +40,8 @@ class ProjectStageReadinessServiceTest {
     private ProjectMemberAssignmentDO primaryPm;
     private ProjectMemberAssignmentDO primarySm;
     private ProjectStageReadinessService service;
+    private PermissionApi permissionApi;
+    private ProjectParticipantFactApi participantFactApi;
     private ProjectMasterDO project;
     private List<ProjectStageInstanceDO> stages;
 
@@ -55,8 +57,8 @@ class ProjectStageReadinessServiceTest {
         primarySm = member("SERVICE_MANAGER_L1", 12L);
         when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(primaryPm, primarySm));
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
-        ProjectParticipantFactApi participantFactApi = mock(ProjectParticipantFactApi.class);
-        PermissionApi permissionApi = mock(PermissionApi.class);
+        participantFactApi = mock(ProjectParticipantFactApi.class);
+        permissionApi = mock(PermissionApi.class);
         var graphResolver = new ProjectRuntimeGraphResolver(graphMapper, referenceMapper,
                 new ProjectRuntimeRuleEvaluator(providerRegistry));
         service = new ProjectStageReadinessService(graphResolver, projectMapper,
@@ -95,6 +97,19 @@ class ProjectStageReadinessServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void tenantSuperAdminDoesNotNeedMembershipButStillNeedsS0Facts() {
+        when(permissionApi.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenThrow(new IllegalStateException("not a project member"));
+        when(providerRegistry.lockAndRevalidate(any(), any())).thenReturn(new ProjectStageGateFact(
+                ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, "PROCESS", "gate-process",
+                "1", "1", ProjectStageGateOutcome.SATISFIED, null));
+        assertTrue(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
+        when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(primaryPm));
+        assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
+        verify(participantFactApi, never()).inspect(any());
     }
 
     @Test

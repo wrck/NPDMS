@@ -64,6 +64,23 @@ class ProjectStageProgressionTriggerTest {
     @Test void evaluationFailureDoesNotMisreportSourceWriteFailure() {
         when(readiness.evaluate(10L,9L)).thenThrow(new IllegalStateException("Owner unavailable"));
         assertDoesNotThrow(() -> trigger.afterChange(10L)); verifyNoInteractions(advance);
+        verify(transactions).rollback(any());
+        verify(transactions, never()).commit(any());
+    }
+    @Test void advancementFailureRollsBackBeforeReturningSavedBusinessSuccess() {
+        when(readiness.evaluate(10L, 9L)).thenReturn(state("S0", "S4", true, 2));
+        when(advance.advance(any(), any())).thenThrow(new IllegalStateException("snapshot write failed"));
+        assertDoesNotThrow(() -> trigger.afterChange(10L));
+        verify(transactions).rollback(any());
+        verify(transactions, never()).commit(any());
+    }
+    @Test void unavailableNextEvaluationRollsBackTheAutomaticChain() {
+        when(readiness.evaluate(10L, 9L)).thenReturn(state("S0", "S4", true, 2))
+                .thenThrow(new IllegalStateException("Owner unavailable"));
+        assertDoesNotThrow(() -> trigger.afterChange(10L));
+        verify(advance).advance(any(), any());
+        verify(transactions).rollback(any());
+        verify(transactions, never()).commit(any());
     }
     @Test void missingLoginNeverImpersonatesEventActor() {
         security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(null);

@@ -5,14 +5,16 @@
         <div class="panel-title"><Icon icon="ep:guide" />阶段进展</div>
         <div class="panel-subtitle">系统根据项目资料、责任人员和任务结果自动判断阶段进展，无需手动推进</div>
       </div>
-      <el-button @click="loadReadiness"><Icon icon="ep:refresh" />刷新</el-button>
+      <el-button :loading="checking" :disabled="loading" @click="recheckProgress">
+        <Icon icon="ep:refresh" />重新检查并推进
+      </el-button>
     </div>
 
     <template v-if="readiness">
       <el-descriptions :column="3" border size="small">
         <el-descriptions-item label="当前阶段">{{ readiness.currentStage }}</el-descriptions-item>
         <el-descriptions-item label="目标阶段">{{
-          readiness.nextStage || '已到末阶段'
+          readiness.nextStage || (readiness.guidance === 'TERMINAL' ? '已到末阶段' : '尚未解析')
         }}</el-descriptions-item>
         <el-descriptions-item label="推进状态">
           <el-tag :type="readiness.advanceAllowed ? 'success' : 'warning'">
@@ -106,8 +108,8 @@
       </div>
 
     </template>
-    <el-alert v-else-if="errorMessage" :title="errorMessage" type="error" :closable="false" />
-    <el-empty v-else-if="!loading" description="尚未获取阶段进展" />
+    <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" />
+    <el-empty v-else-if="!readiness && !loading" description="尚未获取阶段进展" />
   </ContentWrap>
 </template>
 
@@ -125,6 +127,7 @@ import type {
 defineOptions({ name: 'ProjectStageGatePanel' })
 
 const props = defineProps<{ projectId: number }>()
+const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const guidanceLabel = (code: string) => ({
   S0_PRIMARY_MANAGERS_REQUIRED: '请先完成主责服务经理和主责项目经理指派，S0不能直接准出。',
@@ -135,6 +138,7 @@ const guidanceLabel = (code: string) => ({
 }[code] || code)
 
 const loading = ref(false)
+const checking = ref(false)
 const errorMessage = ref('')
 const startingReferenceId = ref<number>()
 const readiness = ref<ProjectStageAdvanceReadinessVO>()
@@ -168,6 +172,24 @@ const loadReadiness = async () => {
     errorMessage.value = error?.response?.data?.msg || error?.msg || '阶段进展加载失败，请稍后重试'
   } finally {
     loading.value = false
+  }
+}
+
+const recheckProgress = async () => {
+  checking.value = true
+  try {
+    await loadReadiness()
+    if (!readiness.value?.advanceAllowed || !readiness.value.nextStage) return
+    await ProjectsApi.advanceProjectStage(props.projectId, readiness.value, crypto.randomUUID())
+    message.success('阶段已按冻结关系推进')
+    emit('changed')
+    await loadReadiness()
+  } catch (error: any) {
+    const reason = error?.response?.data?.msg || error?.msg || '阶段未推进，已保存的业务不受影响，可重新检查'
+    await loadReadiness()
+    errorMessage.value = reason
+  } finally {
+    checking.value = false
   }
 }
 

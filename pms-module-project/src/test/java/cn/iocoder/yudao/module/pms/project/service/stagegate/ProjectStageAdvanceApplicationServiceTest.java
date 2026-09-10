@@ -71,13 +71,14 @@ class ProjectStageAdvanceApplicationServiceTest {
     private ProjectStageGateProcessOwnerApi processOwnerApi;
     private ProjectParticipantFactApi participantFactApi;
     private ProjectStageAdvanceApplicationService service;
+    private PermissionApi permissionApi;
     private AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts;
 
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(TENANT_ID);
         commandExecutionApi = mock(PlatformCommandExecutionApi.class);
-        PermissionApi permissionApi = mock(PermissionApi.class);
+        permissionApi = mock(PermissionApi.class);
         ProjectScopeApi projectScopeApi = mock(ProjectScopeApi.class);
         providerRegistry = mock(ProjectStageGateProviderRegistry.class);
         projectMapper = mock(ProjectMasterMapper.class);
@@ -123,6 +124,25 @@ class ProjectStageAdvanceApplicationServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void tenantSuperAdminCanAdvanceWithoutMembershipButCannotBypassGates() {
+        stubLockedContext(ProjectStageGateOutcome.SATISFIED);
+        when(permissionApi.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
+        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of());
+        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+                "admin-advance", "a".repeat(64));
+        var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-admin");
+        assertEquals("S4", service.advance(command, actor).afterStage());
+        verify(memberMapper, never()).selectParticipantFactsForUpdate(any());
+        org.mockito.Mockito.clearInvocations(projectMapper, stageMapper, gateMapper);
+        when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK), any()))
+                .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK,
+                        "TASK", "51", "IN_PROGRESS", "2", ProjectStageGateOutcome.UNSATISFIED, "TASK_NOT_DONE"));
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(command, actor));
+        verify(projectMapper, never()).advanceStageIfMatch(any());
+        verify(stageMapper, never()).updateStatusIfMatch(any());
     }
 
     @Test

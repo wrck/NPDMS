@@ -49,23 +49,19 @@ public class ProjectStageProgressionTrigger {
     }
 
     private void progress(Long projectId, Long tenantId, Long actorId) {
-        try {
-            Set<String> visited = new HashSet<>();
-            while (true) {
-                var state = readiness.evaluate(projectId, actorId);
-                if (!state.advanceAllowed() || state.nextStage() == null) return;
-                if (!visited.add(state.currentStage())) {
-                    throw new IllegalStateException("Frozen stage graph revisits a stage");
-                }
-                String intent = projectId + ":" + state.projectVersion() + ":" + state.currentStage();
-                advancement.advance(new ProjectStageAdvanceCommand(projectId, state.projectVersion(),
-                                state.currentStage(), state.treeVersion(), "AUTO_STAGE:" + intent,
-                                DigestUtil.sha256Hex(intent)),
-                        new ProjectStageAdvanceApplicationService.Actor(tenantId, actorId, "AUTO_STAGE:" + intent));
+        // 异常必须先退出TransactionTemplate完成回滚，再由外层隔离来源业务结果。
+        Set<String> visited = new HashSet<>();
+        while (true) {
+            var state = readiness.evaluate(projectId, actorId);
+            if (!state.advanceAllowed() || state.nextStage() == null) return;
+            if (!visited.add(state.currentStage())) {
+                throw new IllegalStateException("Frozen stage graph revisits a stage");
             }
-        } catch (RuntimeException failure) {
-            // 来源业务已提交；不能把推进失败伪装成来源写入失败导致用户重复提交。
-            log.warn("Automatic stage evaluation failed: projectId={}, actorId={}", projectId, actorId, failure);
+            String intent = projectId + ":" + state.projectVersion() + ":" + state.currentStage();
+            advancement.advance(new ProjectStageAdvanceCommand(projectId, state.projectVersion(),
+                            state.currentStage(), state.treeVersion(), "AUTO_STAGE:" + intent,
+                            DigestUtil.sha256Hex(intent)),
+                    new ProjectStageAdvanceApplicationService.Actor(tenantId, actorId, "AUTO_STAGE:" + intent));
         }
     }
 }

@@ -107,6 +107,38 @@ class ProjectTaskCommandServiceTest {
     }
 
     @Test
+    void rejectsNewS0TasksWithoutWritingInstancesOrContracts() {
+        for (String stageCode : List.of("S0", " S0 ")) {
+            ServiceException error = assertThrows(ServiceException.class, () -> service.create(
+                    new CreateTaskCommand(100L, "T-S0", "立项", stageCode, null, null,
+                            null, null, 1, 0, null, "s0-rejected", DIGEST), ACTOR));
+            assertEquals(PROJECT_TASK_COMMAND_INVALID.getCode(), error.getCode());
+        }
+        verify(taskMapper, never()).insert(any(ProjectTaskInstanceDO.class));
+        verify(contractMapper, never()).insert(any(ProjectTaskExecutionContractDO.class));
+    }
+
+    @Test
+    void rejectsStageReassignmentButKeepsLegacyS0BasicEditing() {
+        ServiceException error = assertThrows(ServiceException.class, () -> service.update(
+                new UpdateTaskCommand(11L, 2, "更新", null, null, null, null, null, null,
+                        Set.of("stageCode")), ACTOR));
+        assertEquals(PROJECT_TASK_COMMAND_INVALID.getCode(), error.getCode());
+        verify(taskMapper, never()).updateBasicIfMatch(any());
+
+        ProjectTaskInstanceDO legacy = task(11L, 2, "IN_PROGRESS");
+        legacy.setStageCode("S0");
+        when(taskMapper.selectTask(any())).thenReturn(legacy);
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(taskMapper.updateBasicIfMatch(any())).thenReturn(1);
+        service.update(new UpdateTaskCommand(11L, 2, null, null, null, null,
+                null, null, "历史说明", Set.of("description")), ACTOR);
+        verify(taskMapper).updateBasicIfMatch(any());
+        assertEquals("S0", legacy.getStageCode());
+        assertEquals("IN_PROGRESS", legacy.getStatus());
+    }
+
+    @Test
     void createsTaskWithNativeContractAndTreeVersion() {
         assertCreatesTaskWithNativeContractAndTreeVersion();
     }

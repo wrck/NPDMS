@@ -163,6 +163,8 @@ public class ProjectStageReadinessService {
             ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                     tenantId, actorUserId, project.getId(), ProjectScopeApi.ACTION_MANAGE));
             if (!scope.fullProjectIds().contains(project.getId())) return false;
+            if (permissionApi.hasAnyRoles(actorUserId,
+                    cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return true;
             var manager = participantFactApi.inspect(new ProjectParticipantFactQuery(project.getId(), actorUserId,
                     Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
             return Objects.equals(manager.userId(), actorUserId);
