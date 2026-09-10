@@ -13,7 +13,6 @@
       :multiple="props.limit > 1"
       :on-error="excelUploadError"
       :on-exceed="handleExceed"
-      :on-preview="handlePreview"
       :on-remove="handleRemove"
       :on-success="handleFileSuccess"
       :show-file-list="true"
@@ -70,6 +69,7 @@
 import { propTypes } from '@/utils/propTypes'
 import type { UploadProps, UploadRawFile, UploadUserFile } from 'element-plus'
 import { isString } from '@/utils/is'
+import { getFileNameFromUrl } from '@/utils/file'
 import { useUpload } from '@/components/UploadFile/src/useUpload'
 import { UploadFile } from 'element-plus/es/components/upload/src/upload'
 
@@ -138,7 +138,7 @@ const handleFileSuccess: UploadProps['onSuccess'] = (res: any): void => {
     (item) => (item.response as { data?: string } | undefined)?.data === response.data
   )
   fileList.value.splice(index, 1)
-  uploadList.value.push({ name: response.data, url: response.data })
+  uploadList.value.push({ name: getFileNameFromUrl(response.data), url: response.data })
   if (uploadList.value.length == uploadNumber.value) {
     fileList.value.push(...uploadList.value)
     uploadList.value = []
@@ -164,10 +164,6 @@ const handleRemove = (file: UploadFile) => {
     emitUpdateModelValue()
   }
 }
-const handlePreview: UploadProps['onPreview'] = (uploadFile) => {
-  console.log(uploadFile)
-}
-
 // 监听模型绑定值变动
 watch(
   () => props.modelValue,
@@ -181,13 +177,13 @@ watch(
     // 情况1：字符串
     if (isString(val)) {
       fileList.value.push(
-        ...val.split(',').map((url) => ({ name: url.substring(url.lastIndexOf('/') + 1), url }))
+        ...val.split(',').map((url) => ({ name: getFileNameFromUrl(url), url }))
       )
       return
     }
     // 情况2：数组
     fileList.value.push(
-      ...(val as string[]).map((url) => ({ name: url.substring(url.lastIndexOf('/') + 1), url }))
+      ...(val as string[]).map((url) => ({ name: getFileNameFromUrl(url), url }))
     )
   },
   { immediate: true, deep: true }

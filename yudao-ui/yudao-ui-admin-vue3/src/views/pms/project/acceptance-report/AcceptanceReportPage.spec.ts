@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest'
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 
 describe('F-ACC-001 acceptance report page contract', () => {
+  it('reuses a native activity table and the current project directory', () => {
+    const page = read('./index.vue')
+    expect(page).toContain('data-testid="acceptance-activities"')
+    expect(page).toContain("@/api/pms/project/projects")
+    expect(page).not.toContain('activity-card')
+    expect(page).not.toContain('<h1>')
+  })
   it('uses every locked public report route and stable concurrency headers', () => {
     const api = read('../../../../api/pms/project/acceptance-report/index.ts')
     expect(api).toContain("const baseUrl = '/api/v1/pms/acceptances'")

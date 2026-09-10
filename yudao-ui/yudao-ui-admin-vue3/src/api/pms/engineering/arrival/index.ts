@@ -4,7 +4,7 @@ export interface ArrivalVO {
   id?: number
   projectId: number
   code: string
-  arrivalTime?: Date
+  arrivalTime?: number
   receiverUserId?: number
   equipmentId?: number
   quantity?: number

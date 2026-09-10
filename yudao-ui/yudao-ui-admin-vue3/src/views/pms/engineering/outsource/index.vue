@@ -148,12 +148,14 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑外包申请' : '新建外包申请'" width="960px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑外包申请' : '新建外包申请'" width="min(960px, 95vw)">
+    <el-form ref="formRef" class="outsource-input-form" :model="form" :rules="rules" label-width="120px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
+            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
             <PmsEntitySelect
+              v-else
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
               label-field="name"
@@ -307,7 +309,7 @@
   </Dialog>
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="外包申请明细" width="960px">
+  <Dialog v-model="detailVisible" title="外包申请明细" width="min(960px, 95vw)">
     <el-descriptions :column="2" border class="mb-15px">
       <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
@@ -326,7 +328,7 @@
       <el-descriptions-item label="服务商名称">{{ current.vendorName }}</el-descriptions-item>
       <el-descriptions-item label="联系电话">{{ current.contactPhone }}</el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
+      <el-descriptions-item label="申请时间">{{ current.applyTime ? formatDate(current.applyTime) : '-' }}</el-descriptions-item>
       <el-descriptions-item label="状态">
         <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
@@ -378,7 +380,8 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { dateFormatter } from '@/utils/formatTime'
+import { useRoute, useRouter } from 'vue-router'
+import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as OutsourceApi from '@/api/pms/engineering/outsource'
@@ -387,9 +390,16 @@ import * as UserApi from '@/api/system/user'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
+import { positiveShortcutId, surveyPath } from '../site-survey/siteSurveyOutsource'
+import { useUserStore } from '@/store/modules/user'
 
 defineOptions({ name: 'PmsEngOutsource' })
 const message = useMessage()
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+const sourceSurveyId = ref<number>()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<OutsourceRequestVO[]>([])
@@ -451,6 +461,7 @@ const rules = {
 }
 
 const openCreate = () => {
+  sourceSurveyId.value = undefined
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
@@ -469,6 +480,8 @@ const openCreate = () => {
     contactPhone: '',
     attachmentFiles: '',
     triggerSource: 'MANUAL',
+    triggerRefId: undefined,
+    version: undefined,
     applicantUserId: undefined,
     applyTime: '',
     remark: ''
@@ -481,6 +494,7 @@ const openEdit = async (row: OutsourceRequestVO) => {
   formVisible.value = true
 }
 const save = async () => {
+  if (saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
@@ -489,10 +503,11 @@ const save = async () => {
       message.success('更新成功')
     } else {
       await OutsourceApi.createOutsourceRequest(form)
-      message.success('创建成功')
+      message.success(sourceSurveyId.value ? '转包申请草稿已创建，ID已关联回工勘；尚未提交审批。' : '创建成功')
     }
     formVisible.value = false
-    await load()
+    if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
+    else await load()
   } finally {
     saving.value = false
   }
@@ -568,4 +583,38 @@ const remove = async (row: OutsourceRequestVO) => {
 }
 
 onMounted(load)
+watch(() => [route.query.siteSurveyId, route.query.requestId], async ([surveyValue, requestValue]) => {
+  if (surveyValue) {
+    const surveyId = positiveShortcutId(surveyValue)
+    if (!surveyId) { message.warning('工勘来源编号无效'); return }
+    try {
+      const survey = await SiteSurveyApi.getSiteSurvey(surveyId)
+      if (!survey || survey.status !== 0 || !survey.outsourceRequired || survey.outsourceRequestId) {
+        message.warning('请从已保存且尚未关联申请的工勘草稿发起转包'); return
+      }
+      openCreate()
+      sourceSurveyId.value = surveyId
+      Object.assign(form, { projectId: survey.projectId, name: `工勘转包：${survey.name}`,
+        triggerSource: 'SITE_SURVEY', triggerRefId: surveyId,
+        applicantUserId: userStore.getUser.id, applyTime: formatDate(new Date()),
+        workContent: survey.constructionResource || survey.conclusion || '现场工勘转包申请' })
+    } catch { message.warning('工勘来源加载失败，请返回工勘重试') }
+  } else if (requestValue) {
+    const id = positiveShortcutId(requestValue)
+    if (!id) { message.warning('转包申请编号无效'); return }
+    const data = await OutsourceApi.getOutsourceRequest(id)
+    if (!data) { message.warning('关联申请不存在或不可见，工勘中的来源ID保留'); return }
+    current.value = data
+    detailVisible.value = true
+  }
+}, { immediate: true })
 </script>
+
+<style scoped>
+@media (max-width: 767px) {
+  .outsource-input-form :deep(.el-col-12) { max-width: 100%; flex-basis: 100%; }
+  .outsource-input-form :deep(.el-form-item) { display: block; }
+  .outsource-input-form :deep(.el-form-item__label) { width: 100% !important; justify-content: flex-start; }
+  .outsource-input-form :deep(.el-form-item__content) { margin-left: 0 !important; }
+}
+</style>

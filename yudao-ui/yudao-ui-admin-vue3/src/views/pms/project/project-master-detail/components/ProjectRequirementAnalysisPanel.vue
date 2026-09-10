@@ -1,153 +1,63 @@
 <template>
-  <ContentWrap :class="`requirement-analysis--${responsiveMode}`">
-    <div class="panel-heading">
-      <div>
-        <h3>需求分析</h3>
-        <p>在线填写、完成版本冻结与历史对比</p>
-      </div>
-      <div class="heading-actions">
-        <el-button :disabled="!overview?.currentEffective" @click="openHistory">
-          完成历史
-        </el-button>
-        <el-button :loading="loading" @click="refreshWorkspace">刷新</el-button>
-      </div>
-    </div>
-
-    <el-skeleton v-if="loading && !overview" :rows="7" animated />
-    <el-alert v-else-if="errorText" :title="errorText" type="error" show-icon :closable="false">
-      <template #default>
-        <el-button link type="primary" @click="load">重新加载</el-button>
+  <div class="min-w-0 w-full max-w-full">
+    <ContentWrap>
+      <el-form inline class="-mb-15px">
+        <el-form-item label="项目">
+          <el-input :model-value="project.projectName || String(project.id || '')" disabled class="!w-220px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:search" />查询</el-button>
+          <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial"><Icon icon="ep:plus" />创建需求分析草稿</el-button>
+          <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从当前有效版创建修订草稿</el-button>
+          <el-button :disabled="!overview?.currentEffective" @click="openHistory">完成历史</el-button>
+        </el-form-item>
+      </el-form>
+    </ContentWrap>
+    <ContentWrap>
+      <el-skeleton v-if="loading && !overview" :rows="7" animated />
+      <el-alert v-else-if="errorText" :title="errorText" type="error" show-icon :closable="false">
+        <template #default><el-button link type="primary" @click="load">重新加载</el-button></template>
+      </el-alert>
+      <template v-else-if="overview">
+        <el-table :data="currentVersions" data-testid="requirement-version-table" row-key="preparationId" empty-text="当前项目尚未创建需求分析">
+          <el-table-column prop="businessVersion" label="业务版本" width="110" :formatter="(_row, _column, value) => 'V' + value" />
+          <el-table-column label="版本类型" min-width="160" :formatter="row => row.currentDraft ? '当前草稿' : '当前有效完成版'" />
+          <el-table-column prop="contentVersion" label="内容版本" width="110" />
+          <el-table-column prop="status" label="状态" width="100" :formatter="row => statusLabel(row.status)" />
+          <el-table-column prop="completedAt" label="完成时间" width="170" :formatter="row => formatDateTime(row.completedAt)" />
+          <el-table-column label="操作" width="100" fixed="right">
+            <template #default="{ row }"><el-button link type="primary" @click="selectVersion(row.preparationId)">{{ row.currentDraft ? '编辑' : '查看' }}</el-button></template>
+          </el-table-column>
+        </el-table>
+        <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
       </template>
-    </el-alert>
-    <template v-else-if="overview">
-      <div class="version-strip">
-        <button
-          v-if="overview.draft"
-          class="version-choice"
-          :class="{
-            'version-choice--active': selectedPreparationId === overview.draft.preparationId
-          }"
-          type="button"
-          @click="selectVersion(overview.draft.preparationId)"
-        >
-          <span>当前草稿</span>
-          <strong>V{{ overview.draft.businessVersion }}</strong>
-          <small>内容版本 {{ overview.draft.contentVersion }}</small>
-        </button>
-        <button
-          v-if="overview.currentEffective"
-          class="version-choice"
-          :class="{
-            'version-choice--active':
-              selectedPreparationId === overview.currentEffective.preparationId
-          }"
-          type="button"
-          @click="selectVersion(overview.currentEffective.preparationId)"
-        >
-          <span>当前有效完成版</span>
-          <strong>V{{ overview.currentEffective.businessVersion }}</strong>
-          <small>内容版本 {{ overview.currentEffective.contentVersion }}</small>
-        </button>
-        <div v-if="!overview.draft && !overview.currentEffective" class="no-version">
-          当前项目尚未创建需求分析。
-        </div>
-      </div>
-
-      <div class="primary-actions">
-        <el-button
-          v-if="canCreateInitial"
-          :loading="commandLoading"
-          type="primary"
-          @click="createInitial"
-        >
-          创建需求分析草稿
-        </el-button>
-        <el-button v-if="canComplete" :loading="commandLoading" type="success" @click="complete">
-          完成并冻结当前草稿
-        </el-button>
-        <el-button
-          v-if="canRevise"
-          :loading="commandLoading"
-          type="primary"
-          @click="createRevision"
-        >
-          从当前有效版创建修订草稿
-        </el-button>
-      </div>
-      <el-alert
-        v-if="commandError"
-        :title="commandError"
-        type="warning"
-        show-icon
-        closable
-        @close="commandError = ''"
-      />
-
-      <el-empty
-        v-if="!selectedPreparationId"
-        description="创建草稿后可填写11项核心内容及项目模板扩展项"
-      />
+    </ContentWrap>
+    <ContentWrap v-if="overview">
+      <el-empty v-if="!selectedPreparationId" description="创建草稿后可填写11项核心内容及项目模板扩展项" />
       <el-skeleton v-else-if="detailLoading" :rows="8" animated />
       <template v-else-if="detail">
-        <el-alert
-          v-if="detail.status === 'COMPLETED'"
-          title="该完成版本正文和附件已冻结，只能查看或对比。"
-          type="info"
-          :closable="false"
-          show-icon
-        />
-        <section
-          v-if="detail.completionBlockers.length"
-          class="completion-blockers"
-          aria-label="当前完成阻断"
-        >
-          <strong>当前尚不能完成</strong>
-          <ul>
-            <li v-for="blocker in detail.completionBlockers" :key="blockerKey(blocker)">
-              {{ blocker.fieldKey || '表单' }}：{{ blocker.message || blockerLabel(blocker.code) }}
-            </li>
-          </ul>
-        </section>
-        <div class="version-meta" aria-label="当前查看版本">
-          <div
-            ><span>业务版本</span><strong>V{{ detail.businessVersion }}</strong></div
-          >
-          <div
-            ><span>状态</span><strong>{{ statusLabel(detail.status) }}</strong></div
-          >
-          <div
-            ><span>表单实例版本</span><strong>{{ detail.dynamicFormInstanceVersion }}</strong></div
-          >
-          <div>
-            <span>版本关系</span>
-            <strong>{{ relationLabel }}</strong>
-          </div>
-          <div
-            ><span>模板修订</span><strong>R{{ detail.dynamicFormRevisionNo }}</strong></div
-          >
-          <div>
-            <span>完成时间</span><strong>{{ formatDateTime(detail.completedAt) }}</strong>
-          </div>
-        </div>
-
+        <el-descriptions :column="descriptionColumns" border aria-label="当前查看版本" class="mb-15px">
+          <el-descriptions-item label="业务版本">V{{ detail.businessVersion }}</el-descriptions-item>
+          <el-descriptions-item label="状态">{{ statusLabel(detail.status) }}</el-descriptions-item>
+          <el-descriptions-item label="版本关系">{{ relationLabel }}</el-descriptions-item>
+          <el-descriptions-item label="内容版本">{{ detail.contentVersion }}</el-descriptions-item>
+          <el-descriptions-item label="模板修订">R{{ detail.dynamicFormRevisionNo }}</el-descriptions-item>
+          <el-descriptions-item label="完成时间">{{ formatDateTime(detail.completedAt) }}</el-descriptions-item>
+        </el-descriptions>
+        <el-alert v-if="detail.completionBlockers.length" type="warning" title="当前尚不能完成" :closable="false" class="mb-15px">
+          <ul><li v-for="blocker in detail.completionBlockers" :key="blockerKey(blocker)">{{ blocker.fieldKey || '表单' }}：{{ blocker.message || blockerLabel(blocker.code) }}</li></ul>
+        </el-alert>
         <RequirementAnalysisDynamicForm
           ref="dynamicFormRef"
           :key="`${detail.preparationId}-${detail.dynamicFormInstanceVersion}`"
-          :detail="detail"
-          :allowed-actions="detailActions"
-          :reload="reloadSelectedDetail"
-          @dirty-change="formDirty = $event"
-          @saved="emit('changed')"
+          :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail"
+          @dirty-change="formDirty = $event" @saved="emit('changed')"
         />
+        <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
       </template>
-    </template>
-  </ContentWrap>
-
-  <RequirementAnalysisHistoryDrawer
-    ref="historyRef"
-    @view="viewHistorical"
-    @compare="openCompare"
-  />
+    </ContentWrap>
+  </div>
+  <RequirementAnalysisHistoryDrawer ref="historyRef" @view="viewHistorical" @compare="openCompare" />
   <RequirementAnalysisCompareDrawer ref="compareRef" />
 </template>
 
@@ -169,7 +79,6 @@ import RequirementAnalysisHistoryDrawer from './RequirementAnalysisHistoryDrawer
 import RequirementAnalysisCompareDrawer from './RequirementAnalysisCompareDrawer.vue'
 import {
   createRequirementIntentStore,
-  requirementAnalysisLayout,
   requirementIntentOf
 } from './requirementAnalysisInteraction'
 
@@ -180,7 +89,7 @@ const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly 
   (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
 )
 const { width } = useWindowSize()
-const responsiveMode = computed(() => requirementAnalysisLayout(width.value))
+const descriptionColumns = computed(() => width.value <= 767 ? 1 : width.value <= 1023 ? 2 : 3)
 const message = useMessage()
 const loading = ref(false)
 const detailLoading = ref(false)
@@ -188,6 +97,7 @@ const commandLoading = ref(false)
 const errorText = ref('')
 const commandError = ref('')
 const overview = ref<RequirementAnalysisOverviewVO>()
+const currentVersions = computed(() => [overview.value?.draft, overview.value?.currentEffective].filter((item) => !!item))
 const detail = ref<RequirementAnalysisDetailVO>()
 const selectedPreparationId = ref<number>()
 const historyRef = ref<InstanceType<typeof RequirementAnalysisHistoryDrawer>>()
@@ -390,8 +300,16 @@ const openCompare = (preparationId: number, targetPreparationId: number) => {
 }
 
 const reloadSelectedDetail = async () => {
-  if (!selectedPreparationId.value) throw new Error('没有选中的需求分析版本')
-  return await loadDetail(selectedPreparationId.value)
+  if (!selectedPreparationId.value || !props.project.id) throw new Error('没有选中的需求分析版本')
+  // Keep the saving form mounted, and publish the overview/detail together only
+  // after both authoritative reads succeed. A failed read must retain the edit.
+  const [current, selected] = await Promise.all([
+    RequirementAnalysisApi.getCurrent(props.project.id),
+    RequirementAnalysisApi.getDetail(selectedPreparationId.value)
+  ])
+  overview.value = current
+  detail.value = selected
+  return selected
 }
 const requestLeave = async () => {
   if (commandLoading.value || detailLoading.value || dynamicFormRef.value?.isSaving()) {
@@ -425,209 +343,10 @@ onBeforeRouteLeave(async () => props.allowedActions === undefined
 </script>
 
 <style scoped lang="scss">
-.panel-heading,
-.heading-actions,
-.primary-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.panel-heading {
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.panel-heading h3,
-.panel-heading p {
-  margin: 0;
-}
-
-.panel-heading p,
-.version-choice span,
-.version-choice small,
-.version-meta span,
-.section-navigation small {
-  color: var(--el-text-color-secondary);
-}
-
-.panel-heading p {
-  margin-top: 4px;
-}
-
-.version-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.version-choice {
-  display: grid;
-  padding: 12px;
-  color: var(--el-text-color-primary);
-  text-align: left;
-  cursor: pointer;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-border-radius-base);
-  gap: 4px;
-}
-
-.version-choice--active {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary);
-}
-
-.no-version {
-  padding: 20px;
-  color: var(--el-text-color-secondary);
-  text-align: center;
-  background: var(--el-fill-color-lighter);
-  grid-column: 1 / -1;
-}
-
-.primary-actions {
-  justify-content: flex-end;
-  min-height: 32px;
-  margin: 12px 0;
-}
-
-.version-meta {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.completion-blockers {
-  padding: 12px;
-  margin-top: 12px;
-  color: var(--el-color-warning-dark-2);
-  background: var(--el-color-warning-light-9);
-  border: 1px solid var(--el-color-warning-light-5);
-  border-radius: var(--el-border-radius-base);
-}
-
-.completion-blockers ul {
-  padding-left: 20px;
-  margin: 6px 0 0;
-}
-
-.version-meta > div {
-  min-width: 0;
-  padding: 10px;
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
-}
-
-.version-meta span,
-.version-meta strong {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-.version-meta strong {
-  margin-top: 4px;
-}
-
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
-  gap: 12px;
-}
-
-.section-navigation {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-}
-
-.section-navigation button {
-  display: grid;
-  padding: 9px 10px;
-  color: var(--el-text-color-primary);
-  text-align: left;
-  cursor: pointer;
-  background: var(--el-fill-color-blank);
-  border: 1px solid transparent;
-  border-radius: var(--el-border-radius-base);
-  gap: 3px;
-}
-
-.section-navigation button:hover,
-.section-navigation .section-link--active {
-  background: var(--el-fill-color-light);
-  border-color: var(--el-border-color-light);
-}
-
-.section-navigation .section-link--active {
-  color: var(--el-color-primary);
-}
-
-.attachment-status--in_sync {
-  color: var(--el-color-success);
-}
-
-.attachment-status--pending {
-  color: var(--el-color-warning);
-}
-
-.attachment-status--unknown {
-  color: var(--el-color-danger);
-}
-
-.section-canvas {
-  min-width: 0;
-}
-
 @media (width <= 1023px) {
-  .version-meta {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .section-navigation {
-    display: flex;
-    padding-bottom: 6px;
-    overflow-x: auto;
-  }
-
-  .section-navigation button {
-    min-width: 150px;
-  }
+  :deep(.el-descriptions__body) { overflow-x: auto; }
 }
-
 @media (width <= 767px) {
-  .panel-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .heading-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .primary-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .version-strip,
-  .version-meta {
-    grid-template-columns: 1fr;
-  }
-
-  .primary-actions :deep(.el-button) {
-    width: 100%;
-    margin: 0;
-  }
-
-  .version-meta {
-    gap: 5px;
-  }
+  :deep(.el-form--inline .el-form-item) { display: block; margin-right: 0; }
 }
 </style>

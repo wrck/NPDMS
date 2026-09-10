@@ -1,16 +1,21 @@
 <template>
   <ContentWrap>
-    <div class="panel-heading">
-      <div>
-        <h3>项目工期</h3>
-        <span>唯一当前工期、审批中变更与计划重算影响</span>
-      </div>
-      <div class="actions">
+    <el-form inline class="-mb-15px duration-query">
+      <el-form-item label="项目">
+        <el-input :model-value="project.projectName || `项目 #${project.id}`" disabled class="!w-220px" data-testid="duration-project-name" />
+      </el-form-item>
+      <el-form-item>
+        <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="plan" @click="historyRef?.open(plan.planId)">查看历史</el-button>
-        <el-button :loading="loading" @click="load">刷新</el-button>
-      </div>
-    </div>
-
+      </el-form-item>
+    </el-form>
+  </ContentWrap>
+  <ContentWrap>
+    <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
+      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期时据此倒排开始日期。`" />
+    <el-alert v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
+      type="warning" :closable="false" class="status-alert"
+      title="工勘结束日期与当前生效工期不同，请新建工期变更重新倒排；原生效版本及审批记录保留。" />
     <el-alert
       v-if="!validProject"
       title="项目上下文无效，未查询工期。"
@@ -22,31 +27,24 @@
     <template v-else-if="plan">
       <el-alert
         v-if="plan.planRecalculationStatus === 'PENDING_RECALCULATION'"
-        title="当前工期已生效，施工计划等待 PLN-01 重算；原施工计划继续有效。"
+        title="当前工期已生效，阶段施工计划尚待重算；已有计划版本不会被本次工期录入覆盖。"
         type="warning"
         :closable="false"
         class="status-alert"
       />
-      <div class="summary-grid">
-        <div class="summary-item">
-          <span>当前版本</span>
-          <strong>V{{ plan.currentRevision.revisionNo }}</strong>
-        </div>
-        <div class="summary-item">
-          <span>工期区间</span>
-          <strong
-            >{{ plan.currentRevision.startDate }} 至 {{ plan.currentRevision.endDate }}</strong
-          >
-        </div>
-        <div class="summary-item">
-          <span>自然日工期</span>
-          <strong>{{ plan.currentRevision.durationDays }} 天</strong>
-        </div>
-        <div class="summary-item">
-          <span>计算口径</span>
-          <strong>{{ basisLabel(plan.currentRevision.calculationBasis) }}</strong>
-        </div>
-      </div>
+      <el-table :data="[plan.currentRevision]" data-testid="duration-current-revision">
+        <el-table-column prop="revisionNo" label="当前版本" width="100">
+          <template #default="{ row }">V{{ row.revisionNo }}</template>
+        </el-table-column>
+        <el-table-column prop="startDate" label="计划开始" min-width="140" />
+        <el-table-column prop="endDate" label="计划结束" min-width="140" />
+        <el-table-column prop="durationDays" label="自然日工期" width="120">
+          <template #default="{ row }">{{ row.durationDays }} 天</template>
+        </el-table-column>
+        <el-table-column prop="calculationBasis" label="计算口径" min-width="160">
+          <template #default="{ row }">{{ basisLabel(row.calculationBasis) }}</template>
+        </el-table-column>
+      </el-table>
 
       <section v-if="draft" class="change-section">
         <div class="section-heading">
@@ -319,8 +317,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-.panel-heading,
-.actions,
 .section-heading,
 .section-actions {
   display: flex;
@@ -331,51 +327,18 @@ defineExpose({
   margin-top: 12px;
 }
 
-.panel-heading {
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.panel-heading h3 {
-  margin: 0 0 4px;
-  font-size: 15px;
-  color: var(--el-text-color-primary);
-}
-
-.panel-heading span,
-.section-heading span,
-.summary-item span {
+.section-heading span {
   display: block;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-.actions,
 .section-actions {
   gap: 8px;
 }
 
 .status-alert {
   margin-bottom: 12px;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.summary-item {
-  padding: 12px;
-  background: var(--el-fill-color-light);
-  border-radius: var(--el-border-radius-base);
-}
-
-.summary-item strong {
-  display: block;
-  margin-top: 6px;
-  color: var(--el-text-color-primary);
 }
 
 .change-section {
@@ -395,36 +358,35 @@ defineExpose({
 }
 
 .section-actions {
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 12px;
 }
 
 .primary-action {
   margin-top: 12px;
-  text-align: right;
+  text-align: left;
 }
 
 @media (width <= 1023px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .section-actions {
+    flex-wrap: wrap;
   }
 }
 
 @media (width <= 767px) {
-  .panel-heading,
   .section-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .actions,
   .section-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .summary-grid {
-    grid-template-columns: 1fr;
+  .duration-query :deep(.el-form-item),
+  .duration-query :deep(.el-form-item__content) {
+    width: 100%;
   }
 
   .primary-action,

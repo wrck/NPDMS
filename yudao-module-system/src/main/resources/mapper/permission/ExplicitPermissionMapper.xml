@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.permission.ExplicitPermissionMapper">
+
+    <!-- varchar(100), utf8mb4: 400 bytes preserve every character, independent of CI collation.
+         Length equality also prevents binary padding from equating different input lengths. -->
+    <sql id="exactPermission">
+        m.permission = #{query.permission}
+        AND OCTET_LENGTH(m.permission) = OCTET_LENGTH(#{query.permission})
+        AND CAST(m.permission AS BINARY(400)) = CAST(#{query.permission} AS BINARY(400))
+    </sql>
+
+    <sql id="roleIds">
+        <choose>
+            <when test="query.roleIds != null and !query.roleIds.isEmpty()">
+                <foreach collection="query.roleIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>(NULL)</otherwise>
+        </choose>
+    </sql>
+
+    <!-- Aggregate the grant chain directly: repeated scalar SELECT EXISTS on H2 can retain
+         a stale result after an in-transaction revocation, even when MyBatis executes the SQL. -->
+    <select id="existsExplicitPermission" resultType="boolean" useCache="false" flushCache="true">
+        SELECT COUNT(*) > 0
+        FROM system_users u
+        JOIN system_user_role ur ON ur.user_id = u.id AND ur.tenant_id = u.tenant_id AND ur.deleted = 0
+        JOIN system_role r ON r.id = ur.role_id AND r.tenant_id = u.tenant_id
+            AND r.deleted = 0 AND r.status = #{query.enabledStatus}
+        JOIN system_role_menu rm ON rm.role_id = r.id AND rm.tenant_id = u.tenant_id AND rm.deleted = 0
+        JOIN system_menu m ON m.id = rm.menu_id AND m.deleted = 0 AND m.status = #{query.enabledStatus}
+        WHERE u.id = #{query.userId} AND u.tenant_id = #{query.tenantId}
+            AND u.deleted = 0 AND u.status = #{query.enabledStatus}
+            AND <include refid="exactPermission"/>
+    </select>
+
+    <select id="selectActiveUserForUpdate" resultType="long" useCache="false" flushCache="true">
+        SELECT u.id FROM system_users u
+        WHERE u.id = #{query.userId} AND u.tenant_id = #{query.tenantId}
+            AND u.deleted = 0 AND u.status = #{query.enabledStatus}
+        ORDER BY u.id FOR UPDATE
+    </select>
+
+    <!-- Only the outer role rows supply authorization facts. The subquery discovers candidates;
+         user_role is re-read and locked below before any grant can be accepted. -->
+    <select id="selectRoleIdsForUpdate" resultType="long" useCache="false" flushCache="true">
+        SELECT r.id FROM system_role r
+        WHERE r.tenant_id = #{query.tenantId} AND r.deleted = 0 AND r.status = #{query.enabledStatus}
+            AND EXISTS (
+                SELECT 1 FROM system_user_role ur
+                WHERE ur.role_id = r.id AND ur.user_id = #{query.userId}
+                    AND ur.tenant_id = #{query.tenantId} AND ur.deleted = 0
+            )
+        ORDER BY r.id FOR UPDATE
+    </select>
+
+    <!-- Returns role IDs from the locked, still-valid user_role rows, not association IDs. -->
+    <select id="selectUserRoleIdsForUpdate" resultType="long" useCache="false" flushCache="true">
+        SELECT ur.role_id FROM system_user_role ur
+        WHERE ur.user_id = #{query.userId} AND ur.tenant_id = #{query.tenantId} AND ur.deleted = 0
+            AND ur.role_id IN <include refid="roleIds"/>
+        ORDER BY ur.id FOR UPDATE
+    </select>
+
+    <!-- Returns menu IDs from locked role_menu rows belonging only to revalidated roles. -->
+    <select id="selectRoleMenuIdsForUpdate" resultType="long" useCache="false" flushCache="true">
+        SELECT rm.menu_id FROM system_role_menu rm
+        WHERE rm.tenant_id = #{query.tenantId} AND rm.deleted = 0
+            AND rm.role_id IN <include refid="roleIds"/>
+        ORDER BY rm.id FOR UPDATE
+    </select>
+
+    <select id="selectPermittedMenuIdsForUpdate" resultType="long" useCache="false" flushCache="true">
+        SELECT m.id FROM system_menu m
+        WHERE m.deleted = 0 AND m.status = #{query.enabledStatus}
+            AND <include refid="exactPermission"/>
+            AND m.id IN
+            <choose>
+                <when test="query.menuIds != null and !query.menuIds.isEmpty()">
+                    <foreach collection="query.menuIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>(NULL)</otherwise>
+            </choose>
+        ORDER BY m.id FOR UPDATE
+    </select>
+</mapper>

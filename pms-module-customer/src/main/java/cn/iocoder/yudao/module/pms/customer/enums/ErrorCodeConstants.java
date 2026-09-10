@@ -4,6 +4,11 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
 
 public interface ErrorCodeConstants {
 
+    ErrorCode CONTACT_NOT_EXISTS = new ErrorCode(1_014_002_020, "联系人不存在或不属于当前客户");
+    ErrorCode CONTACT_VERSION_CONFLICT = new ErrorCode(1_014_002_021, "联系人版本已变化，请刷新后重试");
+    ErrorCode CONTACT_VALUES_INVALID = new ErrorCode(1_014_002_022, "联系人信息无效：{}");
+    ErrorCode CONTACT_DELETE_REFERENCED = new ErrorCode(1_014_002_023, "联系人已有项目引用或版本已变化，不能删除客户主档");
+
     ErrorCode CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_001_000, "客户不存在");
     ErrorCode CUSTOMER_CODE_DUPLICATE = new ErrorCode(1_014_001_001, "客户编码已存在");
     ErrorCode CUSTOMER_EXTERNAL_MAPPING_DUPLICATE = new ErrorCode(1_014_001_002, "CRM 客户映射已存在");

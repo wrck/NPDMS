@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectgovernance;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -63,7 +64,7 @@ public class ProjectGovernanceApplicationService {
     private static final String STAGE_S0 = "S0";
     private static final String UNASSIGNED = "UNASSIGNED";
     private static final Set<String> SERVICE_MANAGER_ROLES =
-            Set.of("SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+            ProjectMemberRoles.SERVICE_CODES;
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;

@@ -16,6 +16,8 @@ export interface BusinessViewComponentVO {
   queryProviderKey: string
   commandProviderKey: string
   permissionProviderKey: string
+  /** Owner声明的组件展示名；目录元数据不可回传服务端。 */
+  displayName?: string
 }
 export interface BusinessViewRegistrationVO extends BusinessViewComponentVO {
   id: BusinessViewId

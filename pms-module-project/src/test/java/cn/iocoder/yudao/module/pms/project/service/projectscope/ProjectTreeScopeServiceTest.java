@@ -48,13 +48,14 @@ class ProjectTreeScopeServiceTest {
     @Mock ProjectTreePathMapper pathMapper;
     @Mock ProjectTreeVersionMapper versionMapper;
     @Mock AuthorizationGrantApi authorizationGrantApi;
+    @Mock cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi;
     private ProjectTreeScopeService service;
 
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         service = new ProjectTreeScopeService(
-                projectMapper, memberMapper, pathMapper, versionMapper, authorizationGrantApi);
+                projectMapper, memberMapper, pathMapper, versionMapper, authorizationGrantApi, permissionApi);
         lenient().when(projectMapper.selectListCreatedBy(any(CreatedProjectScopeQuery.class)))
                 .thenReturn(List.of());
     }
@@ -166,13 +167,13 @@ class ProjectTreeScopeServiceTest {
     @Test
     void ordinaryMemberCannotManageCurrentProject() {
         stubRootProjection();
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
-                .thenReturn(List.of(assignment(3L, "ENGINEER")));
-
-        var scope = service.resolve(query("PROJECT_MANAGE"));
-
-        assertEquals(Set.of(), scope.fullProjectIds());
-        assertEquals(Set.of(), scope.placeholderProjectIds());
+        for (String role : List.of("ENGINEER", "OUTSOURCED_ENGINEER")) {
+            when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+                    .thenReturn(List.of(assignment(3L, role)));
+            var scope = service.resolve(query("PROJECT_MANAGE"));
+            assertEquals(Set.of(), scope.fullProjectIds());
+            assertEquals(Set.of(), scope.placeholderProjectIds());
+        }
     }
 
     @Test
@@ -297,6 +298,46 @@ class ProjectTreeScopeServiceTest {
         assertNull(view.lifecycleStatus());
         assertNull(view.currentStage());
         assertNull(view.milestoneProgress());
+    }
+
+    @Test
+    void superAdminHasWholeCurrentTenantTreeWithoutMembershipOrGrants() {
+        stubRootProjection();
+        when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true);
+        for (String action : List.of("PROJECT_VIEW", "PROJECT_EDIT", "PROJECT_MANAGE")) {
+            assertEquals(Set.of(1L, 2L, 3L, 4L), service.resolve(query(action)).fullProjectIds());
+        }
+        verify(memberMapper, never()).selectActiveByUser(any());
+        verify(authorizationGrantApi, never()).listEffective(any());
+    }
+
+    @Test
+    void superAdminListsTenantProjectsWithoutCreatorOrMembershipRestriction() {
+        when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true);
+        var tenantQuery = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery(0L);
+        when(projectMapper.selectTenantProjectIds(tenantQuery)).thenReturn(List.of(1L, 2L));
+        assertEquals(Set.of(1L, 2L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
+        verify(projectMapper).selectTenantProjectIds(tenantQuery);
+        verify(memberMapper, never()).selectActiveByUser(any());
+    }
+
+    @Test
+    void superAdminCannotSelectAnotherTenantOrBypassTreeVersion() {
+        assertThrows(ServiceException.class, () -> service.resolveAllFullProjectIds(1L, 9L, "PROJECT_VIEW"));
+        when(projectMapper.selectById(3L)).thenReturn(project(3L, 1L));
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(8L);
+        when(versionMapper.selectLatestActive(1L)).thenReturn(version);
+        assertThrows(ServiceException.class, () -> service.resolve(query("PROJECT_MANAGE")));
+        verify(permissionApi, never()).hasAnyRoles(any(), any());
+    }
+
+    @Test
+    void changedSuperAdminRoleIsRecheckedAndDoesNotPersistProjectRights() {
+        stubRootProjection();
+        when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true, false);
+        assertEquals(Set.of(1L, 2L, 3L, 4L), service.resolve(query("PROJECT_MANAGE")).fullProjectIds());
+        assertEquals(Set.of(), service.resolve(query("PROJECT_MANAGE")).fullProjectIds());
     }
 
     private void stubRootProjection() {

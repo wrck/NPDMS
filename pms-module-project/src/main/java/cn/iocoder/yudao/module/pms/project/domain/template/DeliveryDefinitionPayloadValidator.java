@@ -7,7 +7,7 @@ import java.util.*;
 public final class DeliveryDefinitionPayloadValidator {
     private DeliveryDefinitionPayloadValidator() { }
     public static final Set<String> PREDICATES = Set.of("TASK_NATIVE_STATUS", "STAGE_NATIVE_STATUS",
-            "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS");
+            "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS", "BUSINESS_FACT");
     public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "BUSINESS_OBJECT",
             "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
 
@@ -104,6 +104,10 @@ public final class DeliveryDefinitionPayloadValidator {
             if (predicate.endsWith("_NATIVE_STATUS")) {
                 fields(parameters, Set.of("requiredStatus"));
                 require("DONE".equals(text(parameters, "requiredStatus")), "requiredStatus");
+            } else if ("BUSINESS_FACT".equals(predicate)) {
+                fields(parameters, Set.of("factCode", "quantifier"));
+                require(code(text(parameters, "factCode")), "factCode: stable code required");
+                require(Set.of("ALL", "ANY").contains(text(parameters, "quantifier")), "quantifier");
             } else {
                 fields(parameters, Set.of("refCode")); String refCode = text(parameters, "refCode");
                 require(code(refCode), "refCode");

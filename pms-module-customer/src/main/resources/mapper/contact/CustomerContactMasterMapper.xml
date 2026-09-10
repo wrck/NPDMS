@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.CustomerContactMasterMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.CustomerContactMasterDO">
+        SELECT * FROM cus_customer_contact WHERE tenant_id=#{query.tenantId} AND customer_id=#{query.customerId}
+          AND id=#{query.contactId} AND deleted=b'0' FOR UPDATE
+    </select>
+    <select id="selectCustomerForUpdate" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO">
+        SELECT * FROM cus_customer_master WHERE tenant_id=#{query.tenantId} AND id=#{query.customerId}
+          AND deleted=b'0' FOR UPDATE
+    </select>
+    <select id="selectActivePrimaryForUpdate" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.CustomerContactMasterDO">
+        SELECT * FROM cus_customer_contact WHERE tenant_id=#{query.tenantId} AND customer_id=#{query.customerId}
+          AND primary_flag=b'1' AND status=0 AND deleted=b'0' FOR UPDATE
+    </select>
+    <update id="deleteUnreferenced">
+        UPDATE cus_customer_contact c
+        SET c.deleted=b'1', c.version=c.version+1, c.updater=#{query.updater}, c.update_time=CURRENT_TIMESTAMP
+        WHERE c.id=#{query.contactId} AND c.customer_id=#{query.customerId}
+          AND c.tenant_id=#{query.tenantId} AND c.version=#{query.expectedVersion} AND c.deleted=b'0'
+          AND NOT EXISTS (
+              SELECT 1 FROM cus_project_customer_contact_relation r
+              WHERE r.tenant_id=c.tenant_id AND r.customer_contact_id=c.id
+          )
+    </update>
+    <sql id="visibleContacts">
+        c.tenant_id=#{query.tenantId} AND c.deleted=b'0'
+        <if test="query.customerId != null">AND c.customer_id=#{query.customerId}</if>
+        <if test="query.name != null and query.name != ''">AND c.name LIKE CONCAT('%',#{query.name},'%')</if>
+        <if test="query.status != null">AND c.status=#{query.status}</if>
+        <if test="query.primaryFlag != null">AND c.primary_flag=#{query.primaryFlag}</if>
+        AND EXISTS (SELECT 1 FROM cus_customer_master m WHERE m.id=c.customer_id AND m.tenant_id=c.tenant_id AND m.deleted=b'0'
+        <if test="!query.scope.all">
+            AND (<foreach collection="query.scope.slices" item="slice" separator=" OR ">
+              (1=1
+                <if test="!slice.departmentCodes.isEmpty()">
+                    AND m.department_code IN <foreach collection="slice.departmentCodes" item="value" open="(" separator="," close=")">#{value}</foreach>
+                </if>
+                <if test="!slice.marketCodes.isEmpty()">
+                    AND m.market_code IN <foreach collection="slice.marketCodes" item="value" open="(" separator="," close=")">#{value}</foreach>
+                </if>
+                <if test="!slice.systemCodes.isEmpty()">
+                    AND m.system_code IN <foreach collection="slice.systemCodes" item="value" open="(" separator="," close=")">#{value}</foreach>
+                </if>
+                <if test="!slice.expendCodes.isEmpty()">
+                    AND m.expend_code IN <foreach collection="slice.expendCodes" item="value" open="(" separator="," close=")">#{value}</foreach>
+                </if>
+                <if test="!slice.industryCodes.isEmpty()">
+                    AND m.industry_code IN <foreach collection="slice.industryCodes" item="value" open="(" separator="," close=")">#{value}</foreach>
+                </if>
+              )
+            </foreach>)
+        </if>
+        )
+    </sql>
+    <select id="selectVisibleCount" resultType="long">
+        SELECT COUNT(*) FROM cus_customer_contact c WHERE <include refid="visibleContacts"/>
+    </select>
+    <select id="selectVisiblePage" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.CustomerContactMasterDO">
+        SELECT c.*, (SELECT m.name FROM cus_customer_master m WHERE m.id=c.customer_id AND m.tenant_id=c.tenant_id AND m.deleted=b'0') AS customer_name
+        FROM cus_customer_contact c WHERE <include refid="visibleContacts"/>
+        ORDER BY c.id DESC LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+    <sql id="availableSourceConditions">
+        c.tenant_id=#{query.tenantId} AND c.customer_id=#{query.customerId} AND c.status=0 AND c.deleted=b'0'
+        AND EXISTS (SELECT 1 FROM cus_customer_master m WHERE m.id=c.customer_id AND m.tenant_id=c.tenant_id AND m.deleted=b'0' AND m.lifecycle_status='ENABLED')
+        <if test="query.name != null and query.name != ''">AND c.name LIKE CONCAT('%',#{query.name},'%')</if>
+        AND NOT EXISTS (SELECT 1 FROM cus_project_customer_contact_relation r
+          WHERE r.tenant_id=c.tenant_id AND r.project_id=#{query.projectId} AND r.customer_contact_id=c.id)
+    </sql>
+    <select id="selectAvailableSourceCount" resultType="long">
+        SELECT COUNT(*) FROM cus_customer_contact c WHERE <include refid="availableSourceConditions"/>
+    </select>
+    <select id="selectAvailableSourcePage" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.CustomerContactMasterDO">
+        SELECT c.* FROM cus_customer_contact c WHERE <include refid="availableSourceConditions"/>
+        ORDER BY c.id DESC LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+</mapper>

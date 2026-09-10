@@ -193,7 +193,8 @@ public class ProjectTaskProgressService {
                 ProjectScopeApi.ACTION_EDIT, treeVersion.getTreeVersion()));
         var assignment = assignmentMapper.selectCurrentForUpdate(
                 new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
-        if (assignment == null || !Objects.equals(assignment.getAssigneeUserId(), actor.actorId())) {
+        if (assignment == null || (!Objects.equals(assignment.getAssigneeUserId(), actor.actorId())
+                && !treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId()))) {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         }
     }

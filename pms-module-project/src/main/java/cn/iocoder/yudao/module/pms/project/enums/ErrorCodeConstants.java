@@ -25,6 +25,9 @@ public interface ErrorCodeConstants {
     // ========== 项目主表模块 1-014-003-000 ==========
     ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
     ErrorCode PROJECT_CODE_DUPLICATE = new ErrorCode(1_014_003_001, "项目编码已存在");
+    ErrorCode PROJECT_END_DATE_CONFLICT = new ErrorCode(1_014_003_020, "项目版本已变化或工期结束日期与工勘要求不一致，请刷新项目后重试");
+    ErrorCode PROJECT_END_DATE_NOT_ALLOWED = new ErrorCode(1_014_003_021, "当前主体无权维护该项目结束日期，或项目已关闭");
+    ErrorCode PROJECT_CONTACT_CUSTOMER_ALREADY_BOUND = new ErrorCode(1_014_003_022, "项目已关联客户，联系人入口不能直接更换项目客户");
     ErrorCode PROJECT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_003_003, "项目客户不存在");
 
     // ========== 项目树模块 1-014-004-000 ==========

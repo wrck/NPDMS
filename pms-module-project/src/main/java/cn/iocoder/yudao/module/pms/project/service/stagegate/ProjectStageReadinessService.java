@@ -13,6 +13,9 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateOut
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
@@ -43,8 +46,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class ProjectStageReadinessService {
 
-    private static final Map<String, String> NEXT_STAGE_CODES = Map.of(
-            "S0", "S1", "S1", "S2", "S2", "S3", "S3", "S4");
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver runtimeGraphResolver;
 
     private final ProjectMasterMapper projectMapper;
     private final ProjectStageInstanceMapper stageMapper;
@@ -54,6 +56,7 @@ public class ProjectStageReadinessService {
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final PermissionApi permissionApi;
+    private final ProjectMemberAssignmentMapper memberMapper;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectStageReadinessResult evaluate(Long projectId, Long actorUserId) {
@@ -67,16 +70,9 @@ public class ProjectStageReadinessService {
         if (!viewScope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
-        List<ProjectStageInstanceDO> stages = stageMapper.selectStagePair(
-                new ProjectStagePairForUpdateQuery(tenantId, projectId, project.getCurrentStage()));
-        StagePair pair = requirePair(project, stages);
-        List<ProjectGateInstanceDO> gates = gateMapper.selectExitGates(
-                new ProjectExitGateForUpdateQuery(tenantId, projectId, project.getCurrentStage()));
-        if (gates.isEmpty()) {
-            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "当前阶段没有EXIT Gate");
-        }
-        List<ProjectGateReferenceInstanceDO> references = referenceMapper.selectOrdered(
-                new ProjectGateReferenceForUpdateQuery(tenantId, gates.stream().map(ProjectGateInstanceDO::getId).toList()));
+        var graph = runtimeGraphResolver.inspect(project);
+        List<ProjectGateInstanceDO> gates = graph.gates();
+        List<ProjectGateReferenceInstanceDO> references = graph.references();
         Map<Long, List<ProjectGateReferenceInstanceDO>> byGate = references.stream()
                 .collect(Collectors.groupingBy(ProjectGateReferenceInstanceDO::getGateId));
         boolean canManage = canManage(project, actorUserId, tenantId);
@@ -102,10 +98,61 @@ public class ProjectStageReadinessService {
                     gate.getName(), gate.getStatus(), gateSatisfied, List.copyOf(refResults)));
         }
         boolean allSatisfied = results.stream().allMatch(ProjectStageReadinessResult.GateResult::satisfied);
-        boolean allowed = canManage && allSatisfied;
+        boolean resolved = graph.transition().status() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.Status.RESOLVED;
+        boolean completed = graph.completion() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.SATISFIED;
+        String assignmentReason = s0AssignmentUnmetReason(project, memberMapper);
+        boolean allowed = canManage && allSatisfied && resolved && completed && assignmentReason == null;
+        String reason = assignmentReason != null ? assignmentReason : !resolved ? graph.transition().status().name()
+                : !completed ? "STAGE_COMPLETION_" + graph.completion().name() : "请完成当前准出及目标准入条件";
         return new ProjectStageReadinessResult(projectId, project.getVersion(), viewScope.treeVersion(),
-                pair.current().getStageCode(), pair.next().getStageCode(), allowed,
-                allowed ? null : "请完成当前阶段全部准出条件", List.copyOf(results));
+                graph.current().getStageCode(), graph.target() == null ? null : graph.target().getStageCode(), allowed,
+                allowed ? null : reason, List.copyOf(results));
+    }
+
+    /** PM-01/PM-08: S0 has no assignment task; both real responsibilities are mandatory.
+     * Commands call this again while holding the project root lock used by member writers.
+     */
+    static String s0AssignmentUnmetReason(ProjectMasterDO project, ProjectMemberAssignmentMapper memberMapper) {
+        return s0AssignmentUnmetReason(project, memberMapper, false);
+    }
+
+    static String s0AssignmentUnmetReason(ProjectMasterDO project, ProjectMemberAssignmentMapper memberMapper, boolean locked) {
+        if (!"S0".equals(project.getCurrentStage())) return null;
+        if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        List<ProjectMemberAssignmentDO> candidates = memberMapper.selectActiveForAssignmentState(
+                new ProjectAssignmentStateQuery(project.getId(), now));
+        if (locked) {
+            // A repeatable-read snapshot may predate the root lock: never authorize from stale intervals.
+            candidates = candidates.stream().filter(row -> Objects.equals(row.getTenantId(), project.getTenantId())
+                            && Objects.equals(row.getProjectId(), project.getId()) && row.getUserId() != null
+                            && (Objects.equals(row.getUserId(), project.getManagerId())
+                            || cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(row.getMemberRole())))
+                    .map(ProjectMemberAssignmentDO::getUserId).distinct().sorted()
+                    .flatMap(userId -> memberMapper.selectActiveByUserForUpdate(
+                            new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
+                                    project.getTenantId(), project.getId(), userId, now)).stream()).toList();
+        }
+        List<ProjectMemberAssignmentDO> active = candidates.stream()
+                .filter(row -> Objects.equals(row.getTenantId(), project.getTenantId())
+                        && Objects.equals(row.getProjectId(), project.getId())
+                        && row.getUserId() != null && !Boolean.TRUE.equals(row.getDeleted())
+                        && "ACTIVE".equals(row.getStatus())
+                        && (row.getEffectiveFrom() == null || !row.getEffectiveFrom().isAfter(now))
+                        && (row.getEffectiveTo() == null || row.getEffectiveTo().isAfter(now))).toList();
+        // PM primary is the current project pointer, not the historical assignment_type label.
+        boolean projectManager = project.getManagerId() != null && active.stream().anyMatch(row ->
+                "PROJECT_MANAGER".equals(row.getMemberRole()) && Objects.equals(row.getUserId(), project.getManagerId()));
+        // Match the existing assignment-state writer, including legacy null PRIMARY labels.
+        boolean serviceManager = active.stream().anyMatch(row ->
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(row.getMemberRole())
+                        && (row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType())));
+        if (!projectManager && !serviceManager) return "S0_PRIMARY_MANAGERS_REQUIRED";
+        if (!serviceManager) return "S0_PRIMARY_SERVICE_MANAGER_REQUIRED";
+        if (!projectManager) return "S0_PRIMARY_PROJECT_MANAGER_REQUIRED";
+        return "ASSIGNED".equals(project.getAssignmentStatus()) ? null : "S0_ASSIGNMENT_STATUS_NOT_ASSIGNED";
     }
 
     private boolean canManage(ProjectMasterDO project, Long actorUserId, Long tenantId) {
@@ -129,18 +176,22 @@ public class ProjectStageReadinessService {
                                               ProjectGateReferenceInstanceDO reference) {
         String key = providerKey(reference.getRefType());
         if (key == null) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "未知Gate Reference类型");
-        return providerRegistry.lockAndRevalidate(key, new ProjectStageGateFactQuery(
-                tenantId, project.getId(), project.getCurrentStage(), gate.getId(), gate.getGateCode(),
-                gate.getVersion(), reference.getId(), reference.getVersion(),
-                reference.getRefType(), reference.getRefCode()));
+        try {
+            return providerRegistry.lockAndRevalidate(key, new ProjectStageGateFactQuery(
+                    tenantId, project.getId(), gate.getStageCode(), gate.getId(), gate.getGateCode(),
+                    gate.getVersion(), reference.getId(), reference.getVersion(),
+                    reference.getRefType(), reference.getRefCode()));
+        } catch (IllegalStateException unavailable) {
+            return new ProjectStageGateFact(key, reference.getRefType(), reference.getRefCode(),
+                    "UNKNOWN", "UNKNOWN", ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, "OWNER_PROVIDER_UNAVAILABLE");
+        }
     }
 
     static StagePair requirePair(ProjectMasterDO project, List<ProjectStageInstanceDO> stages) {
         if (!"ACTIVE".equals(project.getLifecycleStatus())
-                || !Set.of("S0", "S1", "S2", "S3").contains(project.getCurrentStage())
                 || stages == null || stages.size() != 2
                 || !Objects.equals(stages.get(0).getStageCode(), project.getCurrentStage())
-                || !Objects.equals(stages.get(1).getStageCode(), NEXT_STAGE_CODES.get(project.getCurrentStage()))
+                || Objects.equals(stages.get(0).getStageCode(), stages.get(1).getStageCode())
                 || !"ACTIVE".equals(stages.get(0).getStatus())
                 || !"PENDING".equals(stages.get(1).getStatus())) {
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "项目当前阶段不可使用通用推进");
@@ -156,7 +207,7 @@ public class ProjectStageReadinessService {
         return "APPROVAL_NOT_STARTED".equals(unmetCode) || "PROCESS_NOT_STARTED".equals(unmetCode);
     }
 
-    static String providerKey(String refType) {
+    public static String providerKey(String refType) {
         return switch (refType) {
             case "TASK" -> ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK;
             case "MILESTONE" -> ProjectStageGateFactProviderApi.PROVIDER_PROJ_MILESTONE;

@@ -150,12 +150,14 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑领料申请' : '新建领料申请'" width="960px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑领料申请' : '新建领料申请'" width="min(960px, 95vw)">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
+            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
             <PmsEntitySelect
+              v-else
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
               label-field="name"
@@ -302,7 +304,7 @@
   </Dialog>
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="领料申请明细" width="960px">
+  <Dialog v-model="detailVisible" title="领料申请明细" width="min(960px, 95vw)">
     <el-descriptions :column="2" border class="mb-15px">
       <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
@@ -368,6 +370,10 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/store/modules/user'
+import { positiveShortcutId, surveyPath } from '../site-survey/siteSurveyOutsource'
+import { loadSurveyActionContext } from '../site-survey/surveyActionContext'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -381,6 +387,10 @@ import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialReq' })
 const message = useMessage()
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+const sourceSurveyId = ref<number>()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<MaterialRequisitionVO[]>([])
@@ -443,6 +453,9 @@ const rules = {
 }
 
 const openCreate = () => {
+  sourceSurveyId.value = undefined
+  form.version = undefined
+  form.triggerRefId = undefined
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
@@ -473,6 +486,7 @@ const openEdit = async (row: MaterialRequisitionVO) => {
   formVisible.value = true
 }
 const save = async () => {
+  if (saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
@@ -484,7 +498,8 @@ const save = async () => {
       message.success('创建成功')
     }
     formVisible.value = false
-    await load()
+    if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
+    else await load()
   } finally {
     saving.value = false
   }
@@ -560,4 +575,15 @@ const remove = async (row: MaterialRequisitionVO) => {
 }
 
 onMounted(load)
+watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) => {
+  if (!value) return
+  const surveyId = positiveShortcutId(value)
+  if (!surveyId) { message.warning('工勘来源编号无效'); return }
+  try {
+    const context = await loadSurveyActionContext(surveyId, 'material', typeof sn === 'string' ? sn : undefined)
+    openCreate()
+    sourceSurveyId.value = surveyId
+    Object.assign(form, context, { applicantUserId: userStore.getUser.id, applyTime: Date.now() })
+  } catch(error) { message.warning(error instanceof Error ? error.message : '工勘来源读取失败') }
+}, { immediate: true })
 </script>

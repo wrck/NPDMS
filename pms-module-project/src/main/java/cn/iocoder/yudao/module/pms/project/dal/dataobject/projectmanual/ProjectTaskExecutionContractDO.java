@@ -23,6 +23,11 @@ public class ProjectTaskExecutionContractDO extends TenantBaseDO {
     private Long id;
     private Long projectTaskId;
     private Long templateTaskDefinitionId;
+    private Long definitionRevisionId;
+    private Long workBindingRevisionId;
+    private Long permissionPolicyRevisionId;
+    private Long completionRuleRevisionId;
+    private String definitionSnapshot;
     private String workBindingTypeCode;
     private String targetContextCode;
     private String targetObjectType;

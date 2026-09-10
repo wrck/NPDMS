@@ -119,6 +119,8 @@ public class ProjectRespVO {
 
     @Schema(description = "项目开始时间")
     private LocalDateTime projectStartTime;
+    @Schema(description = "工勘提供的项目结束日期，作为工期倒排截止日期")
+    private java.time.LocalDate projectEndDate;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

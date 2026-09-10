@@ -213,7 +213,7 @@ public class ProjectTaskWorkbenchController {
                 expectedVersion, action, request.getReason(), request.getExecutionContractId(),
                 request.getContractVersion(), request.getFactObjectKey(), request.getFactVersion(),
                 request.getExpectedActivityVersion(), request.getExpectedReportVersion(),
-                idempotencyKey, digest(taskId + ":" + expectedVersion + ":" + action + ":"
+                request.getExpectedBusinessFactVersion(), idempotencyKey, digest(taskId + ":" + expectedVersion + ":" + action + ":"
                 + JsonUtils.toJsonString(request))), actor())));
     }
 

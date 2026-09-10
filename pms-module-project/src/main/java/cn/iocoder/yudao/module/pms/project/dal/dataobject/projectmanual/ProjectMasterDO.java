@@ -236,6 +236,8 @@ public class ProjectMasterDO extends TenantBaseDO {
      * 项目开始时间
      */
     private LocalDateTime projectStartTime;
+    /** 工勘提供的项目结束日期；倒排计划消费此字段，不反向覆盖它。 */
+    private java.time.LocalDate projectEndDate;
     /**
      * 项目刷新时间
      */
@@ -256,6 +258,11 @@ public class ProjectMasterDO extends TenantBaseDO {
      * V1.8生命周期状态：ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED
      */
     private String lifecycleStatus;
+    /** Explicit template-published closure policy frozen at project creation; null never authorizes closure. */
+    private String closurePolicySnapshot;
+    private String closureType;
+    private String closedFromStage;
+    private LocalDateTime closedAt;
     /**
      * V1.8当前阶段：S0～S6
      */

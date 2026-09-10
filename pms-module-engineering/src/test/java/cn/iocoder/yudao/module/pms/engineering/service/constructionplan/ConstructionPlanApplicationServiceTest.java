@@ -51,13 +51,14 @@ class ConstructionPlanApplicationServiceTest {
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock OperationAuditApi operationAuditApi;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
     private ConstructionPlanApplicationService service;
 
     @BeforeEach
     void setUp() {
         service = new ConstructionPlanApplicationService(planMapper, revisionMapper,
                 commandExecutionApi, permissionApi, projectScopeApi, participantFactApi,
-                operationAuditApi, transactionTemplate);
+                operationAuditApi, transactionTemplate, projectEndDateApi);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));

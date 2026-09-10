@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.ProjectTaskBusinessLinkMapper">
+    <sql id="activeLinks">
+        SELECT * FROM proj_task_business_link
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND task_id = #{query.taskId} AND unlinked_at IS NULL AND active_marker = 1
+        ORDER BY id
+    </sql>
+    <select id="selectActive" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskbusiness.ProjectTaskBusinessLinkDO">
+        <include refid="activeLinks"/>
+    </select>
+    <select id="selectActiveForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskbusiness.ProjectTaskBusinessLinkDO">
+        <include refid="activeLinks"/> FOR UPDATE
+    </select>
+    <select id="selectCurrentContract" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO">
+        SELECT c.* FROM proj_project_task_execution_contract c
+        JOIN proj_project_task t ON t.id = c.project_task_id AND t.tenant_id = c.tenant_id
+        WHERE c.tenant_id = #{query.tenantId} AND t.project_id = #{query.projectId}
+          AND c.project_task_id = #{query.taskId} AND c.current_marker = 1
+          AND c.effective_to IS NULL AND c.deleted = b'0' AND t.deleted = b'0'
+    </select>
+    <insert id="insertLink">
+        INSERT INTO proj_task_business_link
+          (id, tenant_id, project_id, task_id, execution_contract_id, contract_version,
+           owner_context, object_type, object_id, fact_version, linked_by, linked_at, version,
+           creator, create_time, updater, update_time)
+        VALUES (#{link.id}, #{link.tenantId}, #{link.projectId}, #{link.taskId},
+          #{link.executionContractId}, #{link.contractVersion}, #{link.ownerContext},
+          #{link.objectType}, #{link.objectId}, #{link.factVersion}, #{link.linkedBy},
+          #{link.linkedAt}, #{link.version}, #{link.creator}, #{link.createTime},
+          #{link.updater}, #{link.updateTime})
+    </insert>
+    <update id="unlinkIfMatch">
+        UPDATE proj_task_business_link
+        SET unlinked_by = #{query.actorId}, unlinked_at = #{query.unlinkedAt},
+            updater = #{query.actorId}, update_time = #{query.unlinkedAt}, version = version + 1
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND task_id = #{query.taskId} AND id = #{query.linkId} AND version = #{query.expectedVersion}
+          AND unlinked_at IS NULL AND active_marker = 1 AND linked_at &lt;= #{query.unlinkedAt}
+    </update>
+</mapper>

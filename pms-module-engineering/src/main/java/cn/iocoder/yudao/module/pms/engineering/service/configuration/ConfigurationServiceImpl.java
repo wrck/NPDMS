@@ -34,9 +34,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     public Long createConfiguration(ConfigurationSaveReqVO createReqVO) {
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         ConfigurationDO configuration = BeanUtils.toBean(createReqVO, ConfigurationDO.class);
-        if (configuration.getStatus() == null) {
-            configuration.setStatus(0); // 待调试
-        }
+        configuration.setStatus(0); // 状态只由现有动作接口推进
         if (configuration.getVersion() == null) {
             configuration.setVersion(0);
         }
@@ -48,16 +46,20 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateConfiguration(ConfigurationSaveReqVO updateReqVO) {
         ConfigurationDO existing = validateConfigurationExists(updateReqVO.getId());
+        validateStatus(existing, 0, 1, 3);
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         ConfigurationDO update = BeanUtils.toBean(updateReqVO, ConfigurationDO.class);
-        configurationMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        updateRecord(update);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfiguration(Long id) {
-        validateConfigurationExists(id);
+        ConfigurationDO existing = validateConfigurationExists(id);
+        validateStatus(existing, 0, 1, 3);
         configurationMapper.deleteById(id);
     }
 
@@ -132,7 +134,12 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     private void updateStatus(ConfigurationDO configuration, int newStatus) {
         configuration.setStatus(newStatus);
-        configuration.setVersion(configuration.getVersion() + 1);
-        configurationMapper.updateById(configuration);
+        updateRecord(configuration);
+    }
+
+    private void updateRecord(ConfigurationDO configuration) {
+        if (configurationMapper.updateById(configuration) != 1) {
+            throw exception(CONFIGURATION_VERSION_NOT_MATCH);
+        }
     }
 }

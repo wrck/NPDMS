@@ -52,7 +52,23 @@
             <el-table-column v-if="group.key === 'milestones'" label="时点 / 达成标准" min-width="200"><template #default="{ row }"><el-input v-model="row.timing" :disabled="readonly" placeholder="时点" /><el-input v-model="row.criteria" :disabled="readonly" placeholder="达成标准" /></template></el-table-column>
             <el-table-column v-if="group.key === 'gates'" label="门禁与事实引用" min-width="280"><template #default="{ row }">
               <el-select v-model="row.gateType" :disabled="readonly"><el-option value="ENTRY" label="准入" /><el-option value="EXIT" label="准出" /></el-select>
-              <div v-for="(reference, index) in row.references" :key="index" class="gate-row"><el-select v-model="reference.refType" :disabled="readonly"><el-option v-for="type in gateTypes" :key="type" :value="type" :label="type" /></el-select><el-input v-model="reference.refCode" :disabled="readonly" placeholder="稳定编码 / BPM Key" /><el-button v-if="!readonly" link @click="row.references.splice(index, 1)">移除</el-button></div>
+              <div v-for="(reference, index) in row.references" :key="index" class="gate-row">
+                <el-select v-model="reference.refType" :disabled="readonly"><el-option v-for="type in gateTypes" :key="type" :value="type" :label="gateTypeLabels[type] ?? type" /></el-select>
+                <el-select v-if="reference.refType === 'TASK'" v-model="reference.refCode" :disabled="readonly" filterable placeholder="选择模板任务">
+                  <el-option v-for="task in content.tasks" :key="task.taskCode" :value="task.taskCode" :label="`${task.taskCode} ${task.name ?? ''}`" />
+                </el-select>
+                <el-select v-else-if="reference.refType === 'MILESTONE'" v-model="reference.refCode" :disabled="readonly" filterable placeholder="选择里程碑">
+                  <el-option v-for="milestone in content.milestones" :key="milestone.milestoneCode" :value="milestone.milestoneCode" :label="`${milestone.milestoneCode} ${milestone.name ?? ''}`" />
+                </el-select>
+                <el-select v-else-if="reference.refType === 'DELIVERABLE'" v-model="reference.refCode" :disabled="readonly" filterable placeholder="选择交付件">
+                  <el-option v-for="deliverable in content.deliverables" :key="deliverable.deliverableCode" :value="deliverable.deliverableCode" :label="`${deliverable.deliverableCode} ${deliverable.name ?? ''}`" />
+                </el-select>
+                <el-select v-else-if="reference.refType === 'STATE'" v-model="reference.refCode" :disabled="readonly" placeholder="阶段完成码">
+                  <el-option v-for="code in stateCodes" :key="code" :value="code" :label="code" />
+                </el-select>
+                <el-input v-else v-model="reference.refCode" :disabled="readonly" placeholder="BPM定义Key" />
+                <el-button v-if="!readonly" link @click="row.references.splice(index, 1)">移除</el-button>
+              </div>
               <el-button v-if="!readonly" link @click="row.references.push({ refType: 'TASK', refCode: '' })">新增引用</el-button>
             </template></el-table-column>
             <el-table-column v-if="!readonly" label="操作" width="75"><template #default="{ $index }"><el-button link type="danger" @click="removeOther(group.key, $index)">删除</el-button></template></el-table-column>
@@ -81,6 +97,15 @@ const otherGroups = [{ key: 'deliverables', kind: 'DELIVERABLE', code: 'delivera
 const executionSlots = [{ key: 'workBindingRevisionId', kind: 'WORK_BINDING', label: '主工作绑定' }, { key: 'permissionPolicyRevisionId', kind: 'PERMISSION_POLICY', label: '权限策略' }, { key: 'completionRuleRevisionId', kind: 'COMPLETION_RULE', label: '完成规则' }] as const
 const flags = [{ key: 'start', label: '开始阶段' }, { key: 'terminal', label: '正常收口' }]
 const gateTypes = ['TASK', 'MILESTONE', 'DELIVERABLE', 'STATE', 'APPROVAL', 'PROCESS']
+const gateTypeLabels: Record<string, string> = {
+  TASK: '任务结果',
+  MILESTONE: '里程碑',
+  DELIVERABLE: '交付件',
+  STATE: '阶段完成',
+  APPROVAL: '审批结果',
+  PROCESS: '流程结果'
+}
+const stateCodes = ['S0_COMPLETED', 'S1_COMPLETED', 'S2_COMPLETED', 'S3_COMPLETED', 'S4_COMPLETED', 'S5_COMPLETED', 'S6_COMPLETED']
 const addNode = (key: 'stages' | 'tasks') => {
   if (key === 'stages') props.content.stages.push({ stageCode: '', name: '', start: false, terminal: false })
   else props.content.tasks.push({ taskCode: '', name: '' })

@@ -1,40 +1,10 @@
 <template>
   <main class="cutover-task-workbench">
     <ContentWrap>
-      <header class="page-heading">
-        <div><h1>割接任务工作台</h1><p>创建任务、完成人工分级，并查看 P2～P6 进度。</p></div>
-        <div class="heading-actions">
-          <el-button
-            data-testid="refresh-workbench"
-            :loading="loading || kpiLoading"
-            @click="refreshListAndKpis"
-            >刷新</el-button
-          >
-          <el-button
-            data-testid="open-approval-todos"
-            v-hasPermi="['pms:cutover-task:query-approval']"
-            @click="openApprovalTodos"
-            >我的审批待办</el-button
-          >
-          <el-button
-            data-testid="open-reassignment-queue"
-            v-hasPermi="['pms:cutover-task:reassign-approval']"
-            @click="openReassignmentQueue"
-            >审批改派队列</el-button
-          >
-          <el-button
-            type="primary"
-            v-hasPermi="['pms:cutover-task:create']"
-            @click="createVisible = true"
-            ><Icon icon="ep:plus" />创建割接任务</el-button
-          >
-        </div>
-      </header>
-      <CutoverDashboardKpis :data="kpis" :loading="kpiLoading" :error="kpiError" />
-      <el-form :model="query" label-position="top" class="filter-grid">
-        <el-form-item label="项目ID"><el-input v-model="query.projectId" clearable /></el-form-item>
-        <el-form-item label="当前阶段">
-          <el-select v-model="query.currentStage" clearable
+      <el-form :model="query" inline class="-mb-15px filter-grid">
+        <el-form-item label="项目ID"><el-input v-model="query.projectId" clearable class="!w-180px" /></el-form-item>
+        <el-form-item label="割接阶段">
+          <el-select v-model="query.currentStage" clearable class="!w-140px"
             ><el-option
               v-for="stage in ['P2', 'P3', 'P4', 'P5', 'P6']"
               :key="stage"
@@ -43,7 +13,7 @@
           /></el-select>
         </el-form-item>
         <el-form-item label="任务状态">
-          <el-select v-model="query.taskStatus" clearable>
+          <el-select v-model="query.taskStatus" clearable class="!w-180px">
             <el-option label="人工分级中" value="GRADE_CONFIRMING" /><el-option
               label="现场调研"
               value="SURVEYING"
@@ -54,15 +24,24 @@
             <el-option label="已归档" value="ARCHIVED" />
           </el-select>
         </el-form-item>
-        <el-form-item label=" "
-          ><el-button type="primary" @click="loadPage">查询</el-button
-          ><el-button @click="resetQuery">重置</el-button></el-form-item
-        >
+        <el-form-item>
+          <el-button data-testid="refresh-workbench" :loading="loading" @click="refreshListAndKpis"><Icon icon="ep:search" />查询</el-button>
+          <el-button @click="resetQuery">重置</el-button>
+          <el-button data-testid="create-cutover-task" type="primary" :disabled="loading || !!listError" v-hasPermi="['pms:cutover-task:create']" @click="createVisible = true"><Icon icon="ep:plus" />创建割接任务</el-button>
+          <el-button data-testid="open-approval-todos" v-hasPermi="['pms:cutover-task:query-approval']" @click="openApprovalTodos">我的审批待办</el-button>
+          <el-button data-testid="open-reassignment-queue" v-hasPermi="['pms:cutover-task:reassign-approval']" @click="openReassignmentQueue">审批改派队列</el-button>
+          <el-button data-testid="toggle-kpis" :aria-expanded="showKpis" @click="toggleKpis">{{ showKpis ? '收起辅助概览' : '辅助概览' }}</el-button>
+        </el-form-item>
       </el-form>
+      <el-alert v-if="listError" :title="listError" type="error" :closable="false" />
+    </ContentWrap>
+
+    <ContentWrap v-if="showKpis">
+      <CutoverDashboardKpis :data="kpis" :loading="kpiLoading" :error="kpiError" />
     </ContentWrap>
 
     <ContentWrap>
-      <el-table v-loading="loading" :data="rows" row-key="id" @row-dblclick="openDetail">
+      <el-table v-loading="loading" :data="rows" :empty-text="listError ? '任务列表未加载成功' : '暂无割接任务'" row-key="id" @row-dblclick="openDetail">
         <el-table-column prop="taskNo" label="任务编号" min-width="150" />
         <el-table-column prop="taskName" label="任务名称" min-width="190" show-overflow-tooltip />
         <el-table-column prop="projectName" label="项目" min-width="180" show-overflow-tooltip />
@@ -275,6 +254,8 @@ import { activeCutoverStagePanel, formatWireDateTime, newIntentKey } from './cut
 const message = useMessage()
 const { width } = useWindowSize()
 const loading = ref(false)
+const listError = ref<string | null>(null)
+const showKpis = ref(false)
 const kpiLoading = ref(false)
 const kpis = ref<CutoverDashboardKpiData | null>(null)
 const kpiError = ref<string | null>(null)
@@ -341,6 +322,7 @@ function emptyAnswers(): AssessmentAnswers {
 
 const loadPage = async () => {
   loading.value = true
+  listError.value = null
   try {
     const result = await CutoverApi.getCutoverTaskPage({
       projectId: query.projectId || undefined,
@@ -351,12 +333,15 @@ const loadPage = async () => {
     })
     rows.value = result.list
     total.value = Number(result.total)
+  } catch {
+    listError.value = '割接任务服务未接入、暂不可用或无访问权限，任务列表未成功刷新；这不代表没有任务。'
   } finally {
     loading.value = false
   }
 }
 
 const loadKpis = async () => {
+  if (kpiLoading.value) return
   kpiLoading.value = true
   kpiError.value = null
   try {
@@ -369,7 +354,13 @@ const loadKpis = async () => {
 }
 
 const refreshListAndKpis = async () => {
-  await Promise.all([loadPage(), loadKpis()])
+  if (showKpis.value) void loadKpis()
+  await loadPage()
+}
+
+const toggleKpis = async () => {
+  showKpis.value = !showKpis.value
+  if (showKpis.value) await loadKpis()
 }
 
 const resetQuery = () => {
@@ -445,7 +436,7 @@ const saveAssessment = async () => {
     )
     message.success('人工评估草稿已保存，任务阶段未推进')
     await refreshDetail()
-    await loadKpis()
+    if (showKpis.value) void loadKpis()
   } finally {
     saving.value = false
   }
@@ -503,7 +494,6 @@ onMounted(refreshListAndKpis)
   min-width: 0;
 }
 
-.page-heading,
 .detail-heading {
   display: flex;
   align-items: flex-start;
@@ -511,27 +501,8 @@ onMounted(refreshListAndKpis)
   gap: 16px;
 }
 
-.page-heading h1,
 .detail-heading h2 {
   margin: 0;
-}
-
-.page-heading p {
-  margin: 6px 0 0;
-  color: var(--el-text-color-secondary);
-}
-
-.heading-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0 16px;
 }
 
 .detail-body {
@@ -551,28 +522,20 @@ onMounted(refreshListAndKpis)
 }
 
 @media (width <= 1023px) {
-  .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .filter-grid :deep(.el-form-item__content) {
+    flex-wrap: wrap;
   }
 }
 
 @media (width <= 767px) {
-  .page-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .heading-actions {
-    justify-content: stretch;
-  }
-
-  .heading-actions :deep(.el-button) {
+  .filter-grid :deep(.el-button) {
     flex: 1 1 100%;
     margin-left: 0;
+    margin-bottom: 8px;
   }
 
-  .filter-grid {
-    grid-template-columns: 1fr;
+  .filter-grid :deep(.el-form-item) {
+    width: 100%;
   }
 }
 </style>

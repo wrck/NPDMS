@@ -38,6 +38,25 @@ public class DynamicFormBusinessInstanceService {
     private final DynamicFormSchemaService schemaService;
     private final FileArtifactApi fileArtifactApi;
 
+    public DynamicFormRevisionFact inspectCurrentRevisionForUsage(DynamicFormCurrentRevisionQuery query) {
+        requireActor(query.tenantId(), query.actorUserId());
+        var template = requireTemplate(query.tenantId(), query.templateId());
+        var revision = requireRevision(query.tenantId(), template.getCurrentPublishedRevisionId());
+        return inspectRevisionForUsage(new DynamicFormRevisionUsageQuery(query.tenantId(), query.actorUserId(),
+                query.providerKey(), revision.getId(), query.requiredUsage(),
+                DynamicFormBusinessAction.REVISION_BINDING_PUBLISH, revision.getVersion()));
+    }
+
+    public DynamicFormValidationFact validateRevisionValues(DynamicFormRevisionValuesQuery query) {
+        DynamicFormRevisionFact revision = inspectRevisionForUsage(query.revision());
+        DynamicFormSchemaService.SchemaFields schema = schemaService.parseAndValidate(
+                revision.formConfJson(), revision.formRulesJson(), revision.engineCode(),
+                revision.designerVersion(), revision.rendererVersion());
+        if (!schema.fileFieldKeys().isEmpty()) throw exception(DYNAMIC_FORM_SCHEMA_INVALID);
+        requireOrdinaryFields(query.values().keySet(), schema);
+        return validate(schema, query.values(), List.of());
+    }
+
     public DynamicFormRevisionFact inspectRevisionForUsage(DynamicFormRevisionUsageQuery query) {
         requireRevisionAction(query == null ? null : query.action());
         requireActor(query.tenantId(), query.actorUserId());

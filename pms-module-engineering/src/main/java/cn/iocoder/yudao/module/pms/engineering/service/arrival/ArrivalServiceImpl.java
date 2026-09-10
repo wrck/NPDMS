@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.Arriv
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalEditableDeleteQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,12 +34,8 @@ public class ArrivalServiceImpl implements ArrivalService {
     public Long createArrival(ArrivalSaveReqVO createReqVO) {
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         ArrivalDO arrival = BeanUtils.toBean(createReqVO, ArrivalDO.class);
-        if (arrival.getStatus() == null) {
-            arrival.setStatus(0); // 待签收
-        }
-        if (arrival.getVersion() == null) {
-            arrival.setVersion(0);
-        }
+        arrival.setStatus(0); // Only the sign command produces a signed record.
+        arrival.setVersion(0);
         if (arrival.getQuantity() == null) {
             arrival.setQuantity(1);
         }
@@ -50,17 +47,23 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Transactional(rollbackFor = Exception.class)
     public void updateArrival(ArrivalSaveReqVO updateReqVO) {
         ArrivalDO existing = validateArrivalExists(updateReqVO.getId());
+        validateStatus(existing, 0, 2);
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         ArrivalDO update = BeanUtils.toBean(updateReqVO, ArrivalDO.class);
-        arrivalMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        updateRecord(update);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteArrival(Long id) {
-        validateArrivalExists(id);
-        arrivalMapper.deleteById(id);
+        ArrivalDO existing = validateArrivalExists(id);
+        validateStatus(existing, 0, 2);
+        if (arrivalMapper.deleteEditable(new ArrivalEditableDeleteQuery(id, existing.getVersion())) != 1) {
+            throw exception(ARRIVAL_VERSION_NOT_MATCH);
+        }
     }
 
     @Override
@@ -123,7 +126,14 @@ public class ArrivalServiceImpl implements ArrivalService {
 
     private void updateStatus(ArrivalDO arrival, int newStatus) {
         arrival.setStatus(newStatus);
-        arrival.setVersion(arrival.getVersion() + 1);
-        arrivalMapper.updateById(arrival);
+        updateRecord(arrival);
+    }
+
+    private void updateRecord(ArrivalDO arrival) {
+        // Keep the loaded version for the optimistic-lock predicate. MyBatis-Plus
+        // owns the increment; reject an update that lost a concurrent race.
+        if (arrivalMapper.updateById(arrival) != 1) {
+            throw exception(ARRIVAL_VERSION_NOT_MATCH);
+        }
     }
 }

@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmember;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -49,8 +50,13 @@ public class ProjectManagerMemberApplicationService {
     public ProjectManagerMemberResult update(ProjectManagerMemberCommand command, Actor actor) {
         validate(command, actor);
         functionAuthorization.assertCanAssign(actor.userId());
-        projectAuthorization.assertCanAssign(new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()),
-                command.projectId());
+        var authorizationActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId());
+        if (command.removeUserIds().isEmpty() && command.primaryUserId() != null
+                && command.addUserIds().contains(command.primaryUserId())) {
+            projectAuthorization.assertCanInitiallyAssign(authorizationActor, command.projectId(), false, true);
+        } else {
+            projectAuthorization.assertCanAssign(authorizationActor, command.projectId());
+        }
         return updateAuthorized(command, actor);
     }
 
@@ -137,7 +143,7 @@ public class ProjectManagerMemberApplicationService {
         var selected = primary == null ? null : members.get(primary);
         boolean serviceManager = memberMapper.selectActiveForAssignmentState(
                 new ProjectAssignmentStateQuery(project.getId(), now)).stream().anyMatch(row ->
-                Set.of("SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2").contains(row.getMemberRole())
+                ProjectMemberRoles.SERVICE_CODES.contains(row.getMemberRole())
                         && (row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType())));
         String status = selected != null && serviceManager ? "ASSIGNED" : "UNASSIGNED";
         if (projectMapper.updateManagerMembersIfMatch(new ProjectManagerMemberUpdate(actor.tenantId(), project.getId(),
@@ -186,7 +192,7 @@ public class ProjectManagerMemberApplicationService {
                 || actor.userId() <= 0 || actor.correlationId() == null || actor.correlationId().isBlank()
                 || command.projectId() == null || command.projectId() <= 0
                 || command.expectedVersion() == null || command.expectedVersion() < 0
-                || command.reason() == null || command.reason().isBlank() || command.reason().trim().length() > 500
+                || command.reason() == null || command.reason().trim().length() > 500
                 || command.idempotencyKey() == null || command.idempotencyKey().isBlank()
                 || command.idempotencyKey().length() > 128
                 || command.primaryUserId() != null && command.primaryUserId() <= 0

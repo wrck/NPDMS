@@ -23,14 +23,17 @@ public class SiteSurveySaveReqVO {
 
     @Schema(description = "所属项目编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "100")
     @NotNull(message = "项目编号不能为空")
+    @jakarta.validation.constraints.Positive(message = "请选择有效项目")
     private Long projectId;
 
     @Schema(description = "工勘编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "SUR-2026-001")
     @NotBlank(message = "工勘编码不能为空")
+    @jakarta.validation.constraints.Size(max = 64)
     private String code;
 
     @Schema(description = "工勘名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心机房工勘")
     @NotBlank(message = "工勘名称不能为空")
+    @jakarta.validation.constraints.Size(max = 128)
     private String name;
 
     @Schema(description = "工勘日期", example = "2026-07-01")
@@ -41,33 +44,42 @@ public class SiteSurveySaveReqVO {
     private Long surveyorUserId;
 
     @Schema(description = "工勘地点", example = "北京核心机房")
+    @jakarta.validation.constraints.Size(max = 255)
     private String location;
 
     @Schema(description = "地点维护命令；提供时创建或修订结构化地址、站点和站点位置")
     private LocationMaintenanceCommand locationMaintenance;
 
     @Schema(description = "供电条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String powerSupply;
 
     @Schema(description = "机柜条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String cabinet;
 
     @Schema(description = "网口条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String networkPort;
 
     @Schema(description = "光纤条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String fiber;
 
     @Schema(description = "模块条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String module;
 
     @Schema(description = "线缆条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String cable;
 
     @Schema(description = "接地条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String ground;
 
     @Schema(description = "施工资源条件")
+    @jakarta.validation.constraints.Size(max = 500)
     private String constructionResource;
 
     @Schema(description = "工勘结论")
@@ -77,8 +89,16 @@ public class SiteSurveySaveReqVO {
     private Integer status;
 
     @Schema(description = "备注")
+    @jakarta.validation.constraints.Size(max = 500)
     private String remark;
 
     @Schema(description = "乐观锁版本号", example = "0")
     private Integer version;
+
+    private Long formRevisionId;
+    private Integer formRevisionVersion;
+    private java.util.Map<String, Object> formExtraValues;
+    private Boolean outsourceRequired;
+    private Integer projectEndDateVersion;
+    private Boolean projectEndDateChanged;
 }

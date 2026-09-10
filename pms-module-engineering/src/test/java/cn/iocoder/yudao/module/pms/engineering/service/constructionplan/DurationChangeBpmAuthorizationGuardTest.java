@@ -72,9 +72,8 @@ class DurationChangeBpmAuthorizationGuardTest {
 
         assertEquals(301L, result.projectId());
         verify(participantFactApi).lockAndRevalidate(eq(new ProjectParticipantFactRevalidationQuery(
-                301L, 10L, 3, "ACTIVE", null, Set.of(
-                ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
-                ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2))));
+                301L, 10L, 3, "ACTIVE", null,
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES)));
     }
 
     @Test

@@ -121,6 +121,18 @@ class ProjectClosureGuardServiceTest {
     }
 
     @Test
+    void exceptionClosedDescendantRemainsAnExplicitBlockerWithoutAnApprovedRule() {
+        allowScope(Set.of(10L, 11L, 12L));
+        when(closureStatePort.findByProjectIds(0L, List.of(11L, 12L))).thenReturn(Map.of(
+                11L, ClosureStatePort.ClosureState.CLOSED,
+                12L, ClosureStatePort.ClosureState.EXCEPTION_CLOSED));
+        when(pathMapper.selectParentsWithChildren(10L, 4L, Set.of(10L, 11L, 12L))).thenReturn(Set.of());
+        var result = service.evaluate(10L, 4L, actor());
+        assertFalse(result.allowed());
+        assertEquals("EXCEPTION_CLOSED", result.blockers().getFirst().blockerType());
+    }
+
+    @Test
     void rejectsStaleTreeVersion() {
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.evaluate(10L, 3L, actor()));

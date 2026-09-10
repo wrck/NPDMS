@@ -50,13 +50,21 @@ public class JointTestServiceImpl implements JointTestService {
         if (JointTestStatusRules.isTerminal(existing.getStatus())) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
+        if (updateReqVO.getVersion() != null && !Objects.equals(existing.getVersion(), updateReqVO.getVersion())) {
+            throw exception(JOINT_TEST_VERSION_NOT_MATCH);
+        }
         JointTestDO update = BeanUtils.toBean(updateReqVO, JointTestDO.class);
-        jointTestMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        updateRecord(update);
     }
 
     @Override
     public void deleteJointTest(Long id) {
-        validateJointTestExists(id);
+        JointTestDO entity = validateJointTestExists(id);
+        if (JointTestStatusRules.isTerminal(entity.getStatus())) {
+            throw exception(JOINT_TEST_STATUS_INVALID);
+        }
         jointTestMapper.deleteById(id);
     }
 
@@ -82,14 +90,14 @@ public class JointTestServiceImpl implements JointTestService {
     @Override
     public void start(Long id) {
         JointTestDO entity = validateJointTestExists(id);
-        JointTestStatusRules.requireTransition(entity.getStatus(), JointTestStatusRules.Action.START);
+        requireTransition(entity, JointTestStatusRules.Action.START);
         updateStatus(id, JointTestStatusRules.Action.START, entity.getVersion());
     }
 
     @Override
     public void pass(Long id) {
         JointTestDO entity = validateJointTestExists(id);
-        JointTestStatusRules.requireTransition(entity.getStatus(), JointTestStatusRules.Action.PASS);
+        requireTransition(entity, JointTestStatusRules.Action.PASS);
         updateStatus(id, JointTestStatusRules.Action.PASS, entity.getVersion());
     }
 
@@ -99,13 +107,13 @@ public class JointTestServiceImpl implements JointTestService {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
         JointTestDO entity = validateJointTestExists(id);
-        JointTestStatusRules.requireTransition(entity.getStatus(), JointTestStatusRules.Action.FAIL);
+        requireTransition(entity, JointTestStatusRules.Action.FAIL);
         JointTestDO update = new JointTestDO();
         update.setId(id);
         update.setStatus(JointTestStatusRules.targetStatus(JointTestStatusRules.Action.FAIL));
-        update.setExceptionRecord(exceptionRecord);
+        update.setExceptionRecord(exceptionRecord.trim());
         update.setVersion(entity.getVersion());
-        jointTestMapper.updateById(update);
+        updateRecord(update);
     }
 
     private void updateStatus(Long id, JointTestStatusRules.Action action, Integer version) {
@@ -113,7 +121,21 @@ public class JointTestServiceImpl implements JointTestService {
         update.setId(id);
         update.setStatus(JointTestStatusRules.targetStatus(action));
         update.setVersion(version);
-        jointTestMapper.updateById(update);
+        updateRecord(update);
+    }
+
+    private void requireTransition(JointTestDO entity, JointTestStatusRules.Action action) {
+        try {
+            JointTestStatusRules.requireTransition(entity.getStatus(), action);
+        } catch (IllegalArgumentException | IllegalStateException invalid) {
+            throw exception(JOINT_TEST_STATUS_INVALID);
+        }
+    }
+
+    private void updateRecord(JointTestDO update) {
+        if (jointTestMapper.updateById(update) != 1) {
+            throw exception(JOINT_TEST_VERSION_NOT_MATCH);
+        }
     }
 
     private void validateCodeUniqueInProject(Long id, Long projectId, String code) {

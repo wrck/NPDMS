@@ -1,8 +1,10 @@
 <template>
-  <div class="panel-heading">
-    <div><h2>问卷模板</h2><p>模板修订发布后冻结，后续任务始终使用命中的精确版本。</p></div>
-    <el-button type="primary" @click="openCreate">新建模板</el-button>
-  </div>
+  <el-form inline class="-mb-15px">
+    <el-form-item>
+      <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
+      <el-button type="primary" @click="openCreate"><Icon icon="ep:plus" />新建模板</el-button>
+    </el-form-item>
+  </el-form>
   <el-skeleton v-if="loading" :rows="4" animated />
   <el-empty v-else-if="!templates.length" description="暂无问卷模板" />
   <el-table v-else :data="templates" stripe>
@@ -151,30 +153,12 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.panel-heading h2 {
-  margin: 0;
-  font-size: 18px;
-}
-.panel-heading p {
-  margin: 4px 0 0;
-  color: var(--el-text-color-secondary);
-}
 .dimension-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 16px;
 }
 @media (width <= 767px) {
-  .panel-heading {
-    flex-direction: column;
-  }
   .dimension-grid {
     grid-template-columns: 1fr;
   }

@@ -130,6 +130,9 @@ export const getCustomerPage = (params: CustomerPageReqVO) => request.get({ url:
 
 export const getCustomer = (id: number) => request.get({ url: `${baseUrl}/${id}` })
 
+export const getCustomerByCode = (code: string) =>
+  request.get<CustomerDetailRespVO>({ url: '/api/v1/pms/customers/by-code', params: { code } })
+
 export const createCustomer = (data: CustomerCreateReqVO, idempotencyKey: string) =>
   request.post({
     url: baseUrl,

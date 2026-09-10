@@ -37,6 +37,15 @@ public class CustomerQueryService {
                 new VisibleCustomerDetailQuery(tenantId, customerId, scope.all(), scope.slices()));
     }
 
+    public CustomerMasterDO getByCode(Long tenantId, String code, CustomerVisibleScope scope) {
+        if (tenantId == null || code == null || code.isBlank() || scope == null || scope.slices() == null) {
+            throw new IllegalArgumentException("客户编码查询不完整");
+        }
+        if (!scope.all() && scope.slices().isEmpty()) return null;
+        CustomerMasterDO customer = customerMasterMapper.selectByTenantIdAndCode(tenantId, code.trim());
+        return customer == null ? null : get(tenantId, customer.getId(), scope);
+    }
+
     private void validate(CustomerPageCriteria criteria, CustomerVisibleScope scope) {
         if (criteria == null || criteria.tenantId() == null || criteria.pageParam() == null || scope == null
                 || scope.slices() == null) {

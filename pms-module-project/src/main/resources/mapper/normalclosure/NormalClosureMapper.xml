@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.NormalClosureMapper">
+    <select id="selectFrozenTemplateRevisionId" resultType="java.lang.Long">
+        SELECT id FROM proj_project_template_revision WHERE tenant_id=#{query.tenantId}
+          AND template_id=#{query.templateId} AND revision_no=#{query.revisionNo} AND status='PUBLISHED' AND deleted=b'0'
+    </select>
+    <sql id="tasks">SELECT * FROM proj_project_task WHERE tenant_id=#{query.tenantId}
+        AND project_id=#{query.projectId} AND deleted=b'0' ORDER BY id</sql>
+    <select id="selectTasks" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO"><include refid="tasks"/></select>
+    <select id="selectTasksForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO"><include refid="tasks"/> FOR UPDATE</select>
+    <select id="selectPrimaryServiceManagersForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT * FROM proj_project_member_assignment WHERE tenant_id=#{query.tenantId}
+          AND project_id=#{query.projectId} AND deleted=b'0' AND status='ACTIVE'
+          AND member_role IN
+          <foreach collection="query.serviceRoleCodes" item="roleCode" open="(" separator="," close=")">#{roleCode}</foreach>
+          AND (assignment_type='PRIMARY' OR assignment_type IS NULL)
+          AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))
+          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+        ORDER BY user_id,id FOR UPDATE
+    </select>
+    <select id="selectLatestApplication" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO">
+        SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND deleted=b'0' ORDER BY submitted_at DESC,id DESC LIMIT 1
+    </select>
+    <select id="selectApplicationByProcess" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO">
+        SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+          AND process_instance_id=#{query.processInstanceId} AND deleted=b'0'
+    </select>
+    <select id="selectApplicationProjectId" resultType="java.lang.Long">
+        SELECT project_id FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+          AND id=#{query.applicationId} AND deleted=b'0'
+    </select>
+    <sql id="application">SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+        AND project_id=#{query.projectId} AND id=#{query.applicationId} AND deleted=b'0'</sql>
+    <select id="selectApplication" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO"><include refid="application"/></select>
+    <select id="selectApplicationForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO"><include refid="application"/> FOR UPDATE</select>
+    <select id="selectLatestSnapshot" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureSnapshotDO">
+        SELECT * FROM acc_closure_gate_snapshot WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND deleted=b'0' ORDER BY checked_at DESC,id DESC LIMIT 1
+    </select>
+    <select id="selectSnapshot" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureSnapshotDO">
+        SELECT * FROM acc_closure_gate_snapshot WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND id=#{query.snapshotId} AND deleted=b'0'
+    </select>
+    <select id="selectReviews" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureReviewDO">
+        SELECT * FROM acc_closure_review WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND application_id=#{query.applicationId} AND deleted=b'0' ORDER BY reviewed_at,id
+    </select>
+    <insert id="insertSnapshot">
+        INSERT INTO acc_closure_gate_snapshot(id,tenant_id,project_id,project_version,tree_version,from_stage,
+          closure_type,rule_revision,passed,evidence,source_vector,source_digest,checked_by,checked_at,creator,updater)
+        VALUES(#{id},#{tenantId},#{projectId},#{projectVersion},#{treeVersion},#{fromStage},#{closureType},
+          #{ruleRevision},#{passed},#{evidence},#{sourceVector},#{sourceDigest},#{checkedBy},#{checkedAt},#{creator},#{updater})
+    </insert>
+    <insert id="insertApplication">
+        INSERT INTO acc_project_closure(id,tenant_id,project_id,snapshot_id,closure_type,rule_revision,from_stage,
+          project_version,tree_version,status,applicant_user_id,service_manager_user_id,reviewer_user_id,
+          process_definition_key,process_definition_id,process_instance_id,business_key,process_evidence,submitted_at,version,creator,updater)
+        VALUES(#{id},#{tenantId},#{projectId},#{snapshotId},#{closureType},#{ruleRevision},#{fromStage},
+          #{projectVersion},#{treeVersion},#{status},#{applicantUserId},#{serviceManagerUserId},#{reviewerUserId},
+          #{processDefinitionKey},#{processDefinitionId},#{processInstanceId},#{businessKey},#{processEvidence},#{submittedAt},0,#{creator},#{updater})
+    </insert>
+    <insert id="insertReview">
+        INSERT INTO acc_closure_review(id,tenant_id,application_id,project_id,process_instance_id,process_definition_id,
+          task_id,task_definition_key,reviewer_user_id,outcome,reason,reviewed_at,creator,updater)
+        VALUES(#{id},#{tenantId},#{applicationId},#{projectId},#{processInstanceId},#{processDefinitionId},
+          #{taskId},#{taskDefinitionKey},#{reviewerUserId},#{outcome},#{reason},#{reviewedAt},#{creator},#{updater})
+    </insert>
+    <insert id="insertExitRecord">
+        INSERT INTO proj_project_exit_record(id,tenant_id,project_id,application_id,snapshot_id,closure_type,
+          closed_from_stage,before_lifecycle_status,after_lifecycle_status,before_project_version,after_project_version,
+          process_instance_id,revalidation_evidence,closed_at,creator,updater,project_version,stage_instance_id,
+          template_revision_id,scope_version,gate_snapshot_ref,source_context,source_record_id,source_record_revision)
+        VALUES(#{id},#{tenantId},#{projectId},#{applicationId},#{snapshotId},#{closureType},#{closedFromStage},
+          #{beforeLifecycleStatus},#{afterLifecycleStatus},#{beforeProjectVersion},#{afterProjectVersion},
+          #{processInstanceId},#{revalidationEvidence},#{closedAt},#{creator},#{updater},#{projectVersion},#{stageInstanceId},
+          #{templateRevisionId},#{scopeVersion},#{gateSnapshotRef},#{sourceContext},#{sourceRecordId},#{sourceRecordRevision})
+    </insert>
+    <update id="decideApplicationIfMatch">
+        UPDATE acc_project_closure SET status=#{query.status},decided_at=#{query.decidedAt},version=version+1,
+          updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.applicationId}
+          AND version=#{query.expectedVersion} AND status='IN_REVIEW' AND deleted=b'0'
+          AND #{query.status} IN ('APPROVED','REJECTED','CANCELLED')
+    </update>
+    <update id="closeProjectIfMatch">
+        UPDATE proj_project SET lifecycle_status='NORMAL_CLOSED',closure_type='NORMAL',closed_from_stage=#{query.fromStage},
+          closed_at=#{query.closedAt},version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND version=#{query.expectedVersion}
+          AND current_stage=#{query.fromStage} AND lifecycle_status='ACTIVE' AND deleted=b'0'
+          AND closure_type IS NULL AND closed_at IS NULL AND closure_policy_snapshot IS NOT NULL
+    </update>
+</mapper>

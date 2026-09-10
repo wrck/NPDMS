@@ -103,6 +103,7 @@ export const mount = (
   app.component('ElButton', button)
   app.directive('hasPermi', {})
   app.directive('loading', {})
+  app.directive('dompurify-html', {})
   Object.entries(components).forEach(([name, value]) => app.component(name, value))
   const vm = app.mount(root)
   return { root, app, vm }

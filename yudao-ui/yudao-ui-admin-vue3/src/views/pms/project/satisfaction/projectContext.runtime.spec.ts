@@ -27,6 +27,11 @@ const api = vi.hoisted(() => ({
 }))
 const message = vi.hoisted(() => ({ confirm: vi.fn(), success: vi.fn(), warning: vi.fn() }))
 const fileApi = vi.hoisted(() => ({ createAccessTicket: vi.fn() }))
+const routeGuards = vi.hoisted(() => ({ leave: [] as Array<() => boolean>, update: [] as Array<() => boolean> }))
+vi.mock('vue-router', () => ({
+  onBeforeRouteLeave: (guard: () => boolean) => routeGuards.leave.push(guard),
+  onBeforeRouteUpdate: (guard: () => boolean) => routeGuards.update.push(guard)
+}))
 vi.mock('@/api/pms/project/satisfaction', () => api)
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
@@ -87,10 +92,12 @@ const renderPanel = (component: Component, initial: SatisfactionViewProps = {}) 
 
 beforeEach(() => {
   vi.clearAllMocks()
+  routeGuards.leave.length = 0
+  routeGuards.update.length = 0
   api.listTasks.mockImplementation(async (id?: number) => (id ? [task(id)] : []))
   api.listResults.mockImplementation(async (id?: number) => (id ? [result(id)] : []))
   message.confirm.mockResolvedValue(undefined)
-  vi.stubGlobal('window', { clearTimeout, setTimeout, location: { origin: 'http://localhost' } })
+  vi.stubGlobal('window', { clearTimeout, setTimeout, addEventListener: vi.fn(), removeEventListener: vi.fn(), location: { origin: 'http://localhost' } })
 })
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount())
@@ -98,6 +105,18 @@ afterEach(() => {
 })
 
 describe('ACC-02 existing panels in a project context', () => {
+  it('prevents navigation away from an unfinished satisfaction operation', async () => {
+    const page = renderPanel(Workbench, { projectId: 41 })
+    await flush()
+    expect(page.child.value.requestLeave()).toBe(true)
+    page.state().taskDirty = true
+    expect(page.child.value.requestLeave()).toBe(false)
+    expect(routeGuards.leave.at(-1)!()).toBe(false)
+    expect(routeGuards.update.at(-1)!()).toBe(false)
+    expect(message.warning).toHaveBeenCalledWith('请先完成或关闭满意度操作，再切换页面。')
+    page.state().taskDirty = false
+    expect(page.child.value.requestLeave()).toBe(true)
+  })
   it('keeps standalone queries unchanged and locks contextual queries to the supplied project', async () => {
     renderPanel(TaskPanel)
     renderPanel(ResultPanel)

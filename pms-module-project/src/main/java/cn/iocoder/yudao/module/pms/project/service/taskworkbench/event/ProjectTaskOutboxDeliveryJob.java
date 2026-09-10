@@ -84,14 +84,27 @@ public class ProjectTaskOutboxDeliveryJob implements JobHandler {
                 || payload.projectId() == null || payload.projectTaskId() == null
                 || payload.completionEvaluationId() == null || payload.taskVersion() < 1
                 || payload.executionContractId() == null || payload.contractVersion() < 1
-                || payload.factVersion() == null || payload.factVersion() < 0
+                || (payload.businessFacts() == null
+                ? payload.factVersion() == null || payload.factVersion() < 0
+                : !validBusinessEvidence(payload.businessFacts()))
                 || payload.completedBy() == null || payload.occurredAt() == null) {
             throw new IllegalArgumentException("任务完成事件冻结载荷不完整");
         }
         return new TaskCompletedMessage(message.eventId(), payload.tenantId(), payload.projectId(),
                 payload.projectTaskId(), payload.completionEvaluationId(), payload.taskVersion(),
                 payload.executionContractId(), payload.contractVersion(), payload.factVersion(),
-                payload.completedBy(), payload.occurredAt());
+                payload.completedBy(), payload.occurredAt(), payload.businessFacts());
+    }
+
+    private boolean validBusinessEvidence(java.util.Map<String, Object> evidence) {
+        if (!(evidence.get("aggregateFactVersion") instanceof String version) || !version.matches("[0-9a-f]{64}")
+                || !(evidence.get("ownerContext") instanceof String owner) || owner.isBlank()
+                || !(evidence.get("objectType") instanceof String type) || type.isBlank()
+                || !(evidence.get("criteria") instanceof List<?> criteria) || criteria.isEmpty()
+                || !(evidence.get("links") instanceof List<?> links) || links.isEmpty()) return false;
+        return links.stream().allMatch(item -> item instanceof java.util.Map<?, ?> link
+                && link.get("objectId") instanceof String id && !id.isBlank()
+                && link.get("factVersion") instanceof String factVersion && !factVersion.isBlank());
     }
 
     private static long retryDelayMinutes(int retryCount) {

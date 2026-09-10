@@ -27,8 +27,27 @@ public class ProjectMemberAssignmentRespVO {
     @Schema(description = "成员姓名")
     private String memberName;
 
+    @Schema(description = "System人员主档中的当前联系电话")
+    private String mobile;
+
+    @Schema(description = "System人员主档中的当前邮箱")
+    private String email;
+
     @Schema(description = "成员角色（字典 pms_project_member_role）")
     private String memberRole;
+
+    private String assignmentType;
+    private Long companyId;
+    private String companyCode;
+    private String companyName;
+    private Long departmentId;
+    private String departmentCode;
+    private String departmentName;
+    private Long siteId;
+    private String responsibility;
+    private String remark;
+    private String changeReason;
+    private String endReason;
 
     @Schema(description = "生效开始时间")
     private LocalDateTime effectiveFrom;

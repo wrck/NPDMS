@@ -1,25 +1,26 @@
 <template>
-  <div class="panel-heading">
-    <div
-      ><h2>满意度判定结果</h2><p>结果版本不可修改；支持历史文件下载、正式失效和异步导出。</p></div
-    >
-    <div class="toolbar"
-      ><el-input-number
+  <el-form inline class="-mb-15px satisfaction-query">
+    <el-form-item label="项目">
+      <el-input-number
         v-if="!context.scoped"
         v-model="projectId"
         :min="1"
         controls-position="right"
         placeholder="项目ID"
-      /><el-tag v-else>项目 {{ props.projectId }}</el-tag
-      ><el-button :loading="loading" @click="load">查询</el-button
-      ><el-button
+        class="!w-220px"
+      />
+      <el-input v-else :model-value="`项目 #${props.projectId}`" disabled class="!w-220px" />
+    </el-form-item>
+    <el-form-item>
+      <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
+      <el-button
         type="primary"
         :disabled="!context.valid || !context.projectId"
         @click="openExport"
         >导出</el-button
-      ></div
-    >
-  </div>
+      >
+    </el-form-item>
+  </el-form>
   <el-alert
     v-if="!context.valid"
     title="项目上下文无效，未查询其他项目。"
@@ -316,37 +317,14 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.panel-heading h2 {
-  margin: 0;
-  font-size: 18px;
-}
-.panel-heading p {
-  margin: 4px 0 0;
-  color: var(--el-text-color-secondary);
-}
-.toolbar {
-  display: flex;
-  gap: 8px;
-}
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 16px;
 }
 @media (width <= 767px) {
-  .panel-heading {
-    flex-direction: column;
-  }
-  .toolbar {
+  .satisfaction-query :deep(.el-form-item) {
     width: 100%;
-    flex-wrap: wrap;
   }
   .field-grid {
     grid-template-columns: 1fr;

@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectauthorization;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantDTO;
@@ -15,6 +16,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveP
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +44,7 @@ public class ProjectAuthorizationGuard {
     public static final String PERMISSION_MANAGE = "pms:project:authorization:manage";
     public static final String PERMISSION_REVOKE = "pms:project:authorization:revoke";
     private static final Set<String> SERVICE_MANAGER_ROLES =
-            Set.of("SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+            ProjectMemberRoles.SERVICE_CODES;
 
     private final PermissionApi permissionApi;
     private final ProjectMasterMapper projectMapper;
@@ -75,8 +78,29 @@ public class ProjectAuthorizationGuard {
         assertGrantFits(bounds, grant.actionCode(), grant.scopeCode());
     }
 
+    @Resource
+    private ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
+
     public void assertCanAssign(Actor actor, Long projectId) {
         resolveBounds(actor, projectId, true, false);
+    }
+
+    /** 仅首次主责指派入口使用；普通成员调整及授权维护仍走原 MANAGE。 */
+    public void assertCanInitiallyAssign(Actor actor, Long projectId,
+                                        boolean assignsServiceManager, boolean assignsProjectManager) {
+        requireActor(actor);
+        ProjectMasterDO initial = requireProject(actor.tenantId(), projectId);
+        long rootId = rootId(initial);
+        ProjectMasterDO root = projectMapper.selectByIdForUpdate(rootId);
+        ProjectMasterDO current = projectMapper.selectByIdForUpdate(projectId);
+        if (root == null || current == null || !Objects.equals(current.getTenantId(), actor.tenantId())
+                || !Objects.equals(root.getTenantId(), actor.tenantId()) || rootId(current) != rootId) {
+            throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        }
+        if ((assignsServiceManager || assignsProjectManager)
+                && validationInitialAssignmentPolicy.permitsAssignment(actor, current,
+                assignsServiceManager, assignsProjectManager)) return;
+        assertCanAssign(actor, projectId);
     }
 
     private ManagementBounds resolveBounds(Actor actor, Long projectId, boolean lockRoot,
@@ -130,6 +154,8 @@ public class ProjectAuthorizationGuard {
     }
 
     private void requireServiceManagerRole(Actor actor) {
+        if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(actor.actorId(), "super_admin")) return;
         boolean matches = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .map(ProjectMemberAssignmentDO::getMemberRole)

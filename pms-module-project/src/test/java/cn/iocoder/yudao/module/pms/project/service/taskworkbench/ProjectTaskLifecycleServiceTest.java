@@ -61,6 +61,8 @@ class ProjectTaskLifecycleServiceTest {
     @Mock PermissionApi permissionApi;
     @Mock AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock TaskBusinessCompletionEvaluator businessEvaluator;
+    @Mock TaskBusinessBindingHostProvider businessProvider;
 
     private ProjectTaskLifecycleService service;
     private PlatformCommandExecutionApi.SuccessFacts successFacts;
@@ -70,7 +72,7 @@ class ProjectTaskLifecycleServiceTest {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper, gateMapper,
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
-                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi);
+                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider);
     }
 
     @Test
@@ -250,6 +252,123 @@ class ProjectTaskLifecycleServiceTest {
 
         assertEquals("DONE", result.status());
         verify(acceptanceActivityCompletionFactApi).lockAndComplete(any());
+    }
+
+    @Test
+    void businessCompletionFreezesOwnerEvidenceWithoutInventingNativeLongFact() {
+        allowBusinessAction("BUSINESS_COMPONENT");
+        var evidence = businessEvidence();
+        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
+                new TaskBusinessCompletionEvaluator.Result(true, java.util.List.of(), evidence));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        var result = service.act(businessCommand(), actor());
+
+        assertEquals("DONE", result.status());
+        var evaluation = ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskCompletionEvaluationDO.class);
+        verify(evaluationMapper).insertEvaluation(evaluation.capture());
+        assertEquals("SOL", evaluation.getValue().getFactContextCode());
+        assertEquals("SITE_SURVEY", evaluation.getValue().getFactObjectType());
+        assertEquals(null, evaluation.getValue().getFactObjectKey());
+        assertEquals(null, evaluation.getValue().getFactVersion());
+        assertTrue(evaluation.getValue().getBusinessFactsJson().contains("survey:revision:7"));
+        var payload = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(successFacts.eventPayload(),
+                cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskCompletedMessage.Payload.class);
+        assertEquals(null, payload.factVersion());
+        assertEquals("a".repeat(64), payload.businessFacts().get("aggregateFactVersion"));
+        verify(nativeProvider, never()).inspect(any());
+        verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
+        var order = org.mockito.Mockito.inOrder(contractMapper, businessEvaluator, evaluationMapper, taskMapper);
+        order.verify(contractMapper).selectCurrentByTaskIdForUpdate(any());
+        order.verify(businessEvaluator).evaluateLocked(any(), any(), any());
+        order.verify(evaluationMapper).insertEvaluation(any());
+        order.verify(taskMapper).updateLifecycleIfMatch(any());
+    }
+
+    @Test
+    void emptyBusinessGroupPersistsFailureAndNeverUpdatesProgressOrOutbox() {
+        allowBusinessAction("BUSINESS_OBJECT");
+        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
+                new TaskBusinessCompletionEvaluator.Result(false, java.util.List.of("BUSINESS_LINK_GROUP_EMPTY"), businessEvidence()));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+
+        var result = service.act(businessCommand(), actor());
+
+        assertEquals("PENDING_ACCEPT", result.status());
+        assertEquals(3, result.taskVersion());
+        assertEquals(null, successFacts.eventType());
+        assertTrue(successFacts.detailSnapshot().contains("BUSINESS_LINK_GROUP_EMPTY"));
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(progressService, nativeProvider, acceptanceActivityCompletionFactApi);
+    }
+
+    @Test
+    void satisfiedBusinessFactsStillCannotBypassTaskDependenciesOrGate() {
+        var contract = allowBusinessAction("BUSINESS_OBJECT");
+        contract.setGateRef("gate-required");
+        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
+                new TaskBusinessCompletionEvaluator.Result(true, java.util.List.of(), businessEvidence()));
+        when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
+        when(taskMapper.selectNonTerminalPredecessorIdsForUpdate(any())).thenReturn(java.util.List.of(13L));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+
+        assertEquals("PENDING_ACCEPT", service.act(businessCommand(), actor()).status());
+
+        for (String code : java.util.List.of("NON_TERMINAL_DESCENDANT", "NON_TERMINAL_PREDECESSOR", "GATE_NOT_PASSED")) {
+            assertTrue(successFacts.detailSnapshot().contains(code));
+        }
+        assertEquals(null, successFacts.eventType());
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test
+    void staleLockedBusinessVersionAbortsBeforeAnySuccessWrites() {
+        allowBusinessAction("BUSINESS_OBJECT");
+        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenThrow(
+                new IllegalStateException("TASK_BUSINESS_FACT_VERSION_CONFLICT"));
+
+        assertThrows(IllegalStateException.class, () -> service.act(businessCommand(), actor()));
+
+        verify(evaluationMapper, never()).insertEvaluation(any());
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(progressService);
+        assertEquals(null, successFacts);
+    }
+
+    @Test
+    void businessContextDenialCannotFallBackToNativeCompletion() {
+        allowBusinessAction("BUSINESS_COMPONENT");
+        when(businessProvider.inspect(any())).thenReturn(TaskBindingInspection.failed("BUSINESS_COMPONENT", "OWNER_CONTEXT_FORBIDDEN"));
+
+        assertThrows(RuntimeException.class, () -> service.act(businessCommand(), actor()));
+
+        org.mockito.Mockito.verifyNoInteractions(businessEvaluator, nativeProvider, acceptanceActivityCompletionFactApi);
+        verify(evaluationMapper, never()).insertEvaluation(any());
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    private ProjectTaskExecutionContractDO allowBusinessAction(String type) {
+        allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setContractVersion(2); contract.setWorkBindingTypeCode(type);
+        contract.setTargetContextCode("SOL"); contract.setTargetObjectType("SITE_SURVEY");
+        when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+        when(businessProvider.inspect(any())).thenReturn(new TaskBindingInspection(type, Set.of("COMPLETE"), "a".repeat(64), null));
+        return contract;
+    }
+
+    private TaskActionCommand businessCommand() {
+        return new TaskActionCommand(11L, 3, "complete", null, 91L, 2, null, null,
+                null, null, "a".repeat(64), "key-business", "b".repeat(64));
+    }
+
+    private java.util.Map<String, Object> businessEvidence() {
+        return java.util.Map.of("aggregateFactVersion", "a".repeat(64), "ownerContext", "SOL", "objectType", "SITE_SURVEY",
+                "criteria", java.util.List.of(java.util.Map.of("criterion", "SURVEY_CONFIRMED", "satisfied", true)),
+                "links", java.util.List.of(java.util.Map.of("linkId", 1L, "objectId", "survey-1", "factVersion", "survey:revision:7")));
     }
 
     @SuppressWarnings("unchecked")

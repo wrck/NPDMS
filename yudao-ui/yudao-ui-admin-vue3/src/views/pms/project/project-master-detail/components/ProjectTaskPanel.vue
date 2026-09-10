@@ -195,7 +195,7 @@ import ProjectTaskWorkbenchDrawer from './ProjectTaskWorkbenchDrawer.vue'
 
 defineOptions({ name: 'ProjectTaskPanel' })
 const props = defineProps<{ projectId: number }>()
-const emit = defineEmits<{ 'tree-version': [version: number] }>()
+const emit = defineEmits<{ 'tree-version': [version: number]; updated: [] }>()
 const message = useMessage()
 const loading = ref(false)
 const submitting = ref(false)
@@ -266,6 +266,7 @@ const handleTreeVersion = (version: number) => {
   emit('tree-version', version)
 }
 const handleCommandChanged = async (_result: TaskCommandResult) => {
+  emit('updated')
   await reload()
 }
 

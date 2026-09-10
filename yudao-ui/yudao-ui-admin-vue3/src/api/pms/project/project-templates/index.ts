@@ -77,7 +77,18 @@ export interface GateDef extends DefinitionLink {
   description?: string
   references: GateRef[]
 }
+export interface TemplateClosurePolicy {
+  closureType: 'NORMAL'
+  ruleRevision: 1
+  requireTerminalStage: true
+  requireAllTasksDone: true
+  revalidateBusinessFacts: true
+  processDefinitionKey: 'PMS_MINIMAL_NORMAL_CLOSURE'
+  /** Decimal strings preserve IDs beyond JavaScript's safe integer range. */
+  reviewerUserId: number | string
+}
 export interface TemplateDefinitionContent {
+  closurePolicy?: TemplateClosurePolicy | null
   signingMethod?: string
   projectCategory?: string
   implementationMethod?: string
@@ -150,6 +161,13 @@ export interface MatchRespVO {
   matched?: MatchCandidateVO
   conflicts: string[]
 }
+/** 部署Owner声明的完成事实目录条目；仅配置展示，不构成授权或完成断言。 */
+export interface CompletionFactCatalogVO {
+  ownerContext: string
+  objectType: string
+  factCode: string
+  label: string
+}
 
 export const templateSaveContent = (content: TemplateDefinitionContent): TemplateDefinitionContent =>
   JSON.parse(JSON.stringify(content, (key, value) =>
@@ -172,3 +190,5 @@ export const copyProjectTemplate = (id: number, version: number, data: TemplateC
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
 export const matchPreview = (data: MatchPreviewReqVO) => request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
+export const getCompletionFactCatalog = () =>
+  request.get<CompletionFactCatalogVO[]>({ url: `${baseUrl}/actions/completion-fact-catalog` })

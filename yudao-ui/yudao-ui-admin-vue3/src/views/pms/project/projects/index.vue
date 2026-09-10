@@ -44,7 +44,7 @@
         <el-form-item label="状态" prop="status">
           <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
             <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE)"
+              v-for="dict in LIFECYCLE_STAGES"
               :key="dict.value"
               :label="dict.label"
               :value="dict.value"
@@ -161,7 +161,7 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="row.status" />
+            <ProjectStatusTag :project="row" />
           </template>
         </el-table-column>
         <el-table-column label="模板绑定" width="170">
@@ -705,7 +705,7 @@
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="状态">
-                <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="detail.status!" />
+                <ProjectStatusTag :project="detail" />
               </el-descriptions-item>
               <el-descriptions-item label="创建来源">
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE" :value="detail.sourceType!" />
@@ -1035,6 +1035,8 @@ import type { DeptVO } from '@/api/system/dept'
 import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
+import ProjectStatusTag from './ProjectStatusTag.vue'
+import { closedProjectStatuses } from './projectStatus'
 
 defineOptions({ name: 'PmsProjects' })
 
@@ -1067,7 +1069,8 @@ const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: stri
   { value: 'S3', label: 'S3 实施方案', tone: 'blue', icon: 'ep:files' },
   { value: 'S4', label: 'S4 实施部署', tone: 'blue', icon: 'ep:setting' },
   { value: 'S5', label: 'S5 验收交维', tone: 'yellow', icon: 'ep:circle-check' },
-  { value: 'S6', label: 'S6 闭环', tone: 'green', icon: 'ep:lock' }
+  { value: 'S6', label: 'S6 闭环处理中', tone: 'green', icon: 'ep:lock' },
+  ...closedProjectStatuses
 ]
 
 const stats = reactive<Record<string, number>>({ total: 0 })

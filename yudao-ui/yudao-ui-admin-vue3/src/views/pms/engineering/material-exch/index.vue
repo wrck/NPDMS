@@ -55,6 +55,7 @@
         >
       </el-form-item>
     </el-form>
+    <el-alert title="CRM外部接口未接入：保留内部换货申请办理，暂不推送或更新CRM结果。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无物料换货数据">
@@ -129,9 +130,10 @@
             link
             type="success"
             v-if="row.crmPushStatus === 'PENDING' && row.status === 3"
-            @click="handlePushCrm(row)"
+            disabled
+            title="CRM外部接口仅预留扩展入口，当前不执行推送"
             v-hasPermi="['pms:eng-material-exch:push-crm']"
-            >推送CRM</el-button
+            >CRM未接入</el-button
           >
           <el-button
             link
@@ -156,12 +158,15 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="960px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
+    <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
+            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
             <PmsEntitySelect
+              v-else
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
               label-field="name"
@@ -281,7 +286,7 @@
   </Dialog>
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="换货申请明细" width="960px">
+  <Dialog v-model="detailVisible" title="换货申请明细" width="min(960px, 95vw)">
     <el-descriptions :column="2" border class="mb-15px">
       <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
@@ -350,6 +355,10 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/store/modules/user'
+import { positiveShortcutId, surveyPath } from '../site-survey/siteSurveyOutsource'
+import { loadSurveyActionContext } from '../site-survey/surveyActionContext'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -363,6 +372,10 @@ import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialExch' })
 const message = useMessage()
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+const sourceSurveyId = ref<number>()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<MaterialExchangeVO[]>([])
@@ -423,6 +436,8 @@ const rules = {
 }
 
 const openCreate = () => {
+  sourceSurveyId.value = undefined
+  form.version = undefined
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
@@ -450,6 +465,7 @@ const openEdit = async (row: MaterialExchangeVO) => {
   formVisible.value = true
 }
 const save = async () => {
+  if (saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
@@ -461,7 +477,8 @@ const save = async () => {
       message.success('创建成功')
     }
     formVisible.value = false
-    await load()
+    if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
+    else await load()
   } finally {
     saving.value = false
   }
@@ -536,13 +553,16 @@ const remove = async (row: MaterialExchangeVO) => {
   await load()
 }
 
-// 推送CRM
-const handlePushCrm = async (row: MaterialExchangeVO) => {
-  await message.confirm('确认推送此换货申请至CRM？')
-  await MaterialExchApi.pushCrmMaterialExchange(row.id!)
-  message.success('推送成功')
-  await load()
-}
-
 onMounted(load)
+watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) => {
+  if (!value) return
+  const surveyId = positiveShortcutId(value)
+  if (!surveyId) { message.warning('工勘来源编号无效'); return }
+  try {
+    const context = await loadSurveyActionContext(surveyId, 'exchange', typeof sn === 'string' ? sn : undefined)
+    openCreate()
+    sourceSurveyId.value = surveyId
+    Object.assign(form, context, { applicantUserId: userStore.getUser.id, applyTime: Date.now() })
+  } catch(error) { message.warning(error instanceof Error ? error.message : '工勘来源读取失败') }
+}, { immediate: true })
 </script>

@@ -50,7 +50,7 @@ public class InstallationServiceImpl implements InstallationService {
         }
         installationMapper.insert(installation);
         applyLocation(installation, createReqVO.getInstallLocation(), createReqVO.getLocationMaintenance(), 0);
-        installationMapper.updateById(installation);
+        updateRecord(installation);
         return installation.getId();
     }
 
@@ -65,15 +65,19 @@ public class InstallationServiceImpl implements InstallationService {
         }
         InstallationDO update = BeanUtils.toBean(updateReqVO, InstallationDO.class);
         update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
         applyLocation(update, updateReqVO.getInstallLocation(), updateReqVO.getLocationMaintenance(),
                 existing.getVersion() + 1);
-        installationMapper.updateById(update);
+        updateRecord(update);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteInstallation(Long id) {
-        validateInstallationExists(id);
+        InstallationDO existing = validateInstallationExists(id);
+        if (Objects.equals(existing.getStatus(), 2)) {
+            throw exception(INSTALLATION_STATUS_INVALID);
+        }
         installationMapper.deleteById(id);
     }
 
@@ -112,7 +116,7 @@ public class InstallationServiceImpl implements InstallationService {
                 throw exception(INSTALLATION_EFFECTIVE_TIME_INVALID);
             }
             current.setEffectiveTo(effectiveFrom);
-            installationMapper.updateById(current);
+            updateRecord(current);
         }
         installation.setEffectiveFrom(effectiveFrom);
         installation.setEffectiveTo(null);
@@ -165,7 +169,11 @@ public class InstallationServiceImpl implements InstallationService {
 
     private void updateStatus(InstallationDO installation, int newStatus) {
         installation.setStatus(newStatus);
-        if (installationMapper.updateById(installation) == 0) {
+        updateRecord(installation);
+    }
+
+    private void updateRecord(InstallationDO installation) {
+        if (installationMapper.updateById(installation) != 1) {
             throw exception(INSTALLATION_VERSION_NOT_MATCH);
         }
     }

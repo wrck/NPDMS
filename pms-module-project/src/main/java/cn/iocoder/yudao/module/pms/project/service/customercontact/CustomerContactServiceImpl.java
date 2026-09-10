@@ -1,123 +1,71 @@
 package cn.iocoder.yudao.module.pms.project.service.customercontact;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
-import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
-import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
+import cn.iocoder.yudao.module.pms.customer.api.contact.CustomerContactMasterApi;
 import cn.iocoder.yudao.module.pms.project.controller.admin.customercontact.vo.CustomerContactPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.customercontact.vo.CustomerContactSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.customercontact.CustomerContactDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customercontact.CustomerContactMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.CUSTOMER_CONTACT_CUSTOMER_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.CUSTOMER_CONTACT_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.CUSTOMER_CONTACT_PRIMARY_DUPLICATE;
-
-/**
- * PMS 客户联系人 Service 实现类
- */
+/** Legacy entrypoint adapter: original URLs and page fields now use the single CUS-owned master. */
 @Service
 @Validated
 public class CustomerContactServiceImpl implements CustomerContactService {
+    @Resource private CustomerContactMasterApi contacts;
 
-    @Resource
-    private CustomerContactMapper customerContactMapper;
+    @Override public Long createCustomerContact(CustomerContactSaveReqVO request) {
+        // The legacy POST never promised safe automatic retries; the new endpoint accepts a stable key.
+        return contacts.create(command(request), UUID.randomUUID().toString());
+    }
+    @Override public void updateCustomerContact(CustomerContactSaveReqVO request) {
+        contacts.update(command(request));
+    }
+    @Override public void deleteCustomerContact(Long id) {
+        var current = contacts.get(id);
+        if (current == null) throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.CUSTOMER_CONTACT_NOT_EXISTS);
+        contacts.delete(id, current.version());
+    }
+    @Override public CustomerContactDO getCustomerContact(Long id) { return convert(contacts.get(id)); }
 
-    @Resource
-    private CustomerQueryApi customerQueryApi;
-
-    @Override
-    public Long createCustomerContact(CustomerContactSaveReqVO createReqVO) {
-        // 校验客户存在
-        validateCustomerExists(createReqVO.getCustomerId());
-        // 校验主联系人唯一（启用状态下，每个客户仅允许一个主联系人）
-        validatePrimaryFlagUnique(null, createReqVO.getCustomerId(),
-                Boolean.TRUE.equals(createReqVO.getPrimaryFlag()), createReqVO.getStatus());
-        // 插入联系人
-        CustomerContactDO contact = BeanUtils.toBean(createReqVO, CustomerContactDO.class);
-        customerContactMapper.insert(contact);
-        return contact.getId();
+    @Override public PageResult<CustomerContactDO> getCustomerContactPage(CustomerContactPageReqVO query) {
+        var page = contacts.page(new CustomerContactMasterApi.PageQuery(query.getCustomerId(), query.getName(),
+                query.getPrimaryFlag(), query.getStatus(), query.getPageNo(), query.getPageSize()));
+        return new PageResult<>(page.list().stream().map(this::convert).toList(), page.total());
     }
 
-    @Override
-    public void updateCustomerContact(CustomerContactSaveReqVO updateReqVO) {
-        // 校验存在
-        validateCustomerContactExists(updateReqVO.getId());
-        // 校验客户存在
-        validateCustomerExists(updateReqVO.getCustomerId());
-        // 校验主联系人唯一
-        validatePrimaryFlagUnique(updateReqVO.getId(), updateReqVO.getCustomerId(),
-                Boolean.TRUE.equals(updateReqVO.getPrimaryFlag()), updateReqVO.getStatus());
-        // 更新联系人
-        CustomerContactDO updateObj = BeanUtils.toBean(updateReqVO, CustomerContactDO.class);
-        customerContactMapper.updateById(updateObj);
-    }
-
-    @Override
-    public void deleteCustomerContact(Long id) {
-        // 校验存在
-        validateCustomerContactExists(id);
-        // 删除联系人
-        customerContactMapper.deleteById(id);
-    }
-
-    @Override
-    public CustomerContactDO getCustomerContact(Long id) {
-        return customerContactMapper.selectById(id);
-    }
-
-    @Override
-    public PageResult<CustomerContactDO> getCustomerContactPage(CustomerContactPageReqVO pageReqVO) {
-        return customerContactMapper.selectPage(pageReqVO);
-    }
-
-    @Override
-    public List<CustomerContactDO> getContactListByCustomerId(Long customerId) {
-        return customerContactMapper.selectListByCustomerId(customerId);
-    }
-
-    private void validateCustomerContactExists(Long id) {
-        if (id == null) {
-            return;
+    @Override public List<CustomerContactDO> getContactListByCustomerId(Long customerId) {
+        if (customerId == null) return List.of();
+        List<CustomerContactDO> result = new ArrayList<>();
+        int pageNo = 1;
+        while (true) {
+            var page = contacts.page(new CustomerContactMasterApi.PageQuery(customerId, null, null, null, pageNo, 100));
+            page.list().stream().map(this::convert).forEach(result::add);
+            if ((long) pageNo * 100 >= page.total() || page.list().isEmpty()) break;
+            pageNo++;
         }
-        if (customerContactMapper.selectById(id) == null) {
-            throw exception(CUSTOMER_CONTACT_NOT_EXISTS);
-        }
+        return result;
     }
 
-    private void validateCustomerExists(Long customerId) {
-        if (customerId == null) {
-            return;
-        }
-        CustomerSummaryDTO customer = customerQueryApi.getCustomer(customerId);
-        if (customer == null || !CustomerLifecycleStatus.ENABLED.name().equals(customer.lifecycleStatus())) {
-            throw exception(CUSTOMER_CONTACT_CUSTOMER_NOT_EXISTS);
-        }
+    private CustomerContactMasterApi.Save command(CustomerContactSaveReqVO request) {
+        return new CustomerContactMasterApi.Save(request.getId(), request.getCustomerId(),
+                new CustomerContactMasterApi.Details(request.getName(), request.getDepartment(), request.getTitle(),
+                        request.getMobile(), request.getPhone(), request.getEmail(), request.getRemark()),
+                request.getPrimaryFlag(), request.getStatus(), request.getVersion());
     }
 
-    /**
-     * 校验主联系人唯一性：
-     * 仅当 primaryFlag=true 且 status=0(启用) 时触发校验，避免与已存在的主联系人冲突。
-     * 数据库通过 active_primary_customer_id 生成列 + 唯一索引兜底。
-     */
-    private void validatePrimaryFlagUnique(Long id, Long customerId, boolean primaryFlag, Integer status) {
-        if (!primaryFlag || status == null || status != 0) {
-            return;
-        }
-        CustomerContactDO existing = customerContactMapper.selectActivePrimaryByCustomerId(customerId);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !existing.getId().equals(id)) {
-            throw exception(CUSTOMER_CONTACT_PRIMARY_DUPLICATE);
-        }
+    private CustomerContactDO convert(CustomerContactMasterApi.Contact value) {
+        if (value == null) return null;
+        CustomerContactDO row = new CustomerContactDO();
+        row.setId(value.id()); row.setCustomerId(value.customerId()); row.setName(value.name());
+        row.setDepartment(value.department()); row.setTitle(value.title()); row.setMobile(value.mobile());
+        row.setPhone(value.phone()); row.setEmail(value.email()); row.setPrimaryFlag(value.primaryFlag());
+        row.setStatus(value.status()); row.setRemark(value.remark()); row.setVersion(value.version()); row.setCreateTime(value.createTime());
+        return row;
     }
-
 }

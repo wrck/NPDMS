@@ -51,6 +51,21 @@ class ProjectClosureStateAdapterTest {
         assertEquals(ClosureStatePort.ClosureState.CLOSED, result.get(13L));
     }
 
+    @Test
+    void noTrackingIsClosedButExceptionDoesNotImplicitlySatisfyNormalClosure() {
+        ProjectMasterMapper projectMapper = mock(ProjectMasterMapper.class);
+        ProjectClosureMapper closureMapper = mock(ProjectClosureMapper.class);
+        ProjectClosureStateAdapter adapter = new ProjectClosureStateAdapter(projectMapper, closureMapper);
+        Set<Long> ids = Set.of(11L, 12L);
+        when(projectMapper.selectBatchIds(ids)).thenReturn(List.of(project(11L, "NO_TRACKING_CLOSED"),
+                project(12L, "EXCEPTION_CLOSED")));
+        when(closureMapper.selectListForClosureGuard(new ProjectClosureGuardListQuery(0L, ids)))
+                .thenReturn(List.of());
+        var result = adapter.findByProjectIds(0L, ids);
+        assertEquals(ClosureStatePort.ClosureState.CLOSED, result.get(11L));
+        assertEquals(ClosureStatePort.ClosureState.EXCEPTION_CLOSED, result.get(12L));
+    }
+
     private static ProjectMasterDO project(Long id, String lifecycleStatus) {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(id);

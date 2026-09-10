@@ -1,24 +1,28 @@
 <template>
   <ContentWrap>
-    <div class="panel-heading">
-      <div>
-        <h3>全部后代闭环守卫</h3>
-        <span>只检查进入闭环审批的资格，不执行审批或归档。</span>
-      </div>
-      <el-button :loading="loading" @click="evaluate">重新检查</el-button>
-    </div>
-    <el-skeleton v-if="loading && !result" :rows="3" animated />
-    <el-result
+    <el-form inline class="-mb-15px guard-query">
+      <el-form-item label="项目"><el-input :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" /></el-form-item>
+      <el-form-item><el-button :loading="loading" @click="evaluate" data-testid="evaluate-closure-tree"><Icon icon="ep:search" />重新检查</el-button></el-form-item>
+    </el-form>
+  </ContentWrap>
+  <ContentWrap>
+    <el-alert type="info" :closable="false" class="guard-alert"
+      title="检查范围仅为后代项目闭环与聚合进度；不能替代按冻结配置执行的完整闭环校验、审批或归档。" />
+    <el-skeleton v-if="loading" :rows="3" animated />
+    <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" data-testid="closure-tree-error" />
+    <el-alert
       v-else-if="result?.allowed"
-      icon="success"
-      title="满足闭环前置条件"
-      :sub-title="`已按完整项目树版本 v${result.treeVersion} 检查全部后代`"
+      type="success"
+      :closable="false"
+      title="项目树维度检查通过，不代表完整闭环校验通过"
+      :description="`项目树版本 v${result.treeVersion}；仍需办理其余适用校验和闭环审批。`"
+      data-testid="closure-tree-passed"
     />
     <template v-else-if="result">
       <el-alert
         type="warning"
         :closable="false"
-        title="暂不能进入闭环审批"
+        title="项目树检查存在阻断项"
         class="guard-alert"
       />
       <div class="table-scroll">
@@ -40,29 +44,49 @@
         class="pending-alert"
       />
     </template>
-    <el-empty v-else description="尚未执行闭环守卫检查" />
+    <el-empty v-else description="尚未取得项目树检查结果" />
   </ContentWrap>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import type { ProjectClosureGuardVO } from '@/api/pms/project/projects'
 
-const props = defineProps<{ projectId: number; treeVersion?: number }>()
+const props = defineProps<{ projectId: number; projectName?: string; treeVersion?: number }>()
 const loading = ref(false)
 const result = ref<ProjectClosureGuardVO>()
 const resolvedTreeVersion = ref<number>()
+const errorText = ref('')
+let evaluationSequence = 0
 
 const evaluate = async () => {
+  const sequence = ++evaluationSequence
+  const projectId = props.projectId
+  const hintedVersion = props.treeVersion
+  result.value = undefined
+  resolvedTreeVersion.value = undefined
+  errorText.value = ''
+  if (!Number.isSafeInteger(projectId) || projectId <= 0 ||
+      (hintedVersion !== undefined && (!Number.isSafeInteger(hintedVersion) || hintedVersion <= 0))) {
+    loading.value = false
+    errorText.value = '项目或项目树版本无效，未执行检查。'
+    return
+  }
   loading.value = true
   try {
-    resolvedTreeVersion.value = props.treeVersion || (await ProjectsApi.queryTree(
-      props.projectId, { queryType: 'CHILDREN', pageSize: 1 }
+    const version = hintedVersion ?? (await ProjectsApi.queryTree(
+      projectId, { queryType: 'CHILDREN', pageSize: 1 }
     )).treeVersion
-    result.value = await ProjectsApi.getClosureGuard(props.projectId, resolvedTreeVersion.value)
+    if (sequence !== evaluationSequence) return
+    if (!Number.isSafeInteger(version) || version <= 0) throw new Error('Invalid tree version')
+    resolvedTreeVersion.value = version
+    const checked = await ProjectsApi.getClosureGuard(projectId, version)
+    if (sequence === evaluationSequence) result.value = checked
+  } catch {
+    if (sequence === evaluationSequence) errorText.value = '闭环树检查未完成，请确认项目范围与树版本后重试；不能沿用上次通过结果。'
   } finally {
-    loading.value = false
+    if (sequence === evaluationSequence) loading.value = false
   }
 }
 
@@ -70,23 +94,14 @@ watch(() => [props.projectId, props.treeVersion], () => {
   result.value = undefined
   evaluate()
 }, { immediate: true })
+onBeforeUnmount(() => { evaluationSequence++ })
 </script>
 
 <style scoped lang="scss">
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  h3 { margin: 0 0 4px; color: var(--el-text-color-primary); font-size: 15px; }
-  span { color: var(--el-text-color-secondary); font-size: 13px; }
-}
 .guard-alert, .pending-alert { margin-bottom: 12px; }
 .pending-alert { margin-top: 12px; }
 .table-scroll { max-width: 100%; overflow-x: auto; }
 @media (max-width: 767px) {
-  .panel-heading { flex-direction: column; }
-  .panel-heading .el-button { width: 100%; }
+  .guard-query :deep(.el-form-item) { width: 100%; }
 }
 </style>

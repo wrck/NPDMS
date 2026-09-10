@@ -67,7 +67,7 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      */
     private String departmentName;
     /**
-     * 成员角色（字典 pms_project_member_role：PROJECT_MANAGER/SERVICE_MANAGER_L1/SERVICE_MANAGER_L2）
+     * 成员角色（经理使用原规则；TEAM_MEMBER/SALES_REPRESENTATIVE为普通成员；旧值保留历史）
      */
     private String memberRole;
     /**
@@ -86,6 +86,10 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      * 指派或改派原因
      */
     private String changeReason;
+    /** 普通备注，不能解释为指派或退出原因。 */
+    private String remark;
+    /** 关闭区间时记录的退出/变更原因，原区间其他快照不改。 */
+    private String endReason;
     /**
      * 生效开始时间
      */

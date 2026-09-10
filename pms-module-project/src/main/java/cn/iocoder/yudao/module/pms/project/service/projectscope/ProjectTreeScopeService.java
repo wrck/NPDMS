@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.service.projectscope;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantDTO;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageQuery;
@@ -42,8 +45,7 @@ public class ProjectTreeScopeService {
 
     private static final String SCOPE_CURRENT = "CURRENT_PROJECT";
     private static final String SCOPE_DESCENDANTS = "PROJECT_AND_DESCENDANTS";
-    private static final Set<String> MANAGER_ROLES = Set.of(
-            "PROJECT_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final int GRANT_DISCOVERY_PAGE_SIZE = 100;
 
     private final ProjectMasterMapper projectMapper;
@@ -51,6 +53,7 @@ public class ProjectTreeScopeService {
     private final ProjectTreePathMapper pathMapper;
     private final ProjectTreeVersionMapper versionMapper;
     private final AuthorizationGrantApi authorizationGrantApi;
+    private final PermissionApi permissionApi;
 
     public ProjectTreeScope resolve(ProjectScopeQuery query) {
         validate(query);
@@ -74,6 +77,11 @@ public class ProjectTreeScopeService {
                 .collect(Collectors.toSet());
         if (rootNodes.isEmpty()) {
             return emptyScope(rootId, query.expectedTreeVersion());
+        }
+        // 已先校验租户、项目和树版本；超管只扩展授权范围，不改变业务状态。
+        if (isTenantSuperAdmin(query.tenantId(), query.subjectUserId())) {
+            return new ProjectTreeScope(rootId, query.expectedTreeVersion(), Set.copyOf(rootNodes),
+                    Set.of(), Set.of());
         }
 
         LocalDateTime effectiveAt = LocalDateTime.now();
@@ -162,6 +170,9 @@ public class ProjectTreeScopeService {
      */
     public Set<Long> resolveAllFullProjectIds(Long tenantId, Long subjectUserId, String actionCode) {
         validateActorAction(tenantId, subjectUserId, actionCode);
+        if (isTenantSuperAdmin(tenantId, subjectUserId)) {
+            return Set.copyOf(projectMapper.selectTenantProjectIds(new TenantProjectScopeQuery(tenantId)));
+        }
         LocalDateTime effectiveAt = LocalDateTime.now();
         Set<Long> anchors = memberMapper.selectActiveByUser(
                         new ActiveProjectMemberQuery(tenantId, subjectUserId, effectiveAt)).stream()
@@ -246,6 +257,13 @@ public class ProjectTreeScopeService {
     private boolean allows(String memberRole, String actionCode) {
         return ACTION_VIEW.equals(actionCode) || ACTION_EDIT.equals(actionCode)
                 || MANAGER_ROLES.contains(memberRole);
+    }
+
+    /** 当前租户的角色身份；消费者仍须独立校验对象、范围及业务状态。 */
+    public boolean isTenantSuperAdmin(Long tenantId, Long userId) {
+        return tenantId != null && userId != null && userId > 0
+                && Objects.equals(tenantId, TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(userId, "super_admin");
     }
 
     private void validate(ProjectScopeQuery query) {

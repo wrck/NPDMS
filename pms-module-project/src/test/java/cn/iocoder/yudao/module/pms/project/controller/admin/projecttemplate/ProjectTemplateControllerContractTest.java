@@ -83,6 +83,12 @@ class ProjectTemplateControllerContractTest {
                 "pms:project-template:query");
     }
 
+    @Test
+    void completionFactCatalogEndpoint() {
+        assertEndpoint("completionFactCatalog", GetMapping.class, "/actions/completion-fact-catalog",
+                "pms:project-template:query");
+    }
+
     // ========== 断言辅助 ==========
 
     private static void assertEndpoint(String methodName, Class<? extends Annotation> httpAnnotation,

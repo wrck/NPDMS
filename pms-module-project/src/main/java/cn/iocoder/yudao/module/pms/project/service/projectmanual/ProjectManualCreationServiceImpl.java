@@ -80,6 +80,7 @@ import java.util.function.Consumer;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_FIELD_IMMUTABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
@@ -104,6 +105,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
 
     @Resource
     private ProjectMasterMapper projectMasterMapper;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer runtimeGraphFreezer;
     @Resource
     private ProjectStageInstanceMapper stageInstanceMapper;
     @Resource
@@ -189,6 +192,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
         // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
         TemplateInstantiator.requireSingleS0(content);
+        runtimeGraphFreezer.validate(content);
         LocalDateTime instantiationTime = LocalDateTime.now();
         Long trustedTenantId = draft.getTenantId();
         if (trustedTenantId == null || trustedTenantId < 0) {
@@ -235,6 +239,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setTemplateLoadMethod(selected.loadMethod());
         draft.setProcessDefinitionKey(content.getProcessDefinitionKey());
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
+        // Exact published content only; null deliberately overwrites any caller-supplied policy.
+        draft.setClosurePolicySnapshot(content.getClosurePolicy() == null ? null
+                : JsonUtils.toJsonString(content.getClosurePolicy().toJson()));
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         draft.setStatus(ProjectRules.INITIAL_STATUS);
         draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
@@ -259,7 +266,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(
                 content, draft.getId(), stateMachineRevision.getId(), IdWorker::getId);
-        insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
+        instantiation.getStages().forEach(stage -> {
+            stage.setTenantId(trustedTenantId);
+            stageInstanceMapper.insert(stage);
+        });
+        runtimeGraphFreezer.freeze(trustedTenantId, draft.getId(), selected.revisionId(), content,
+                instantiation.getStages(), instantiationTime);
         freezeSatisfactionFacts(draft, instantiation);
         // 任务ID已在落库前确定；先写完整任务集合，再写闭包和一任务一当前执行契约。
         instantiation.getTasks().forEach(taskInstanceMapper::insert);
@@ -273,7 +285,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             if (definition == null) {
                 throw new IllegalArgumentException("模板任务定义不存在：" + task.getTaskCode());
             }
-            AcceptanceTaskMapping acceptanceMapping = acceptanceTaskMapping(task.getTaskCode());
+            // Exact published definitions own binding semantics; task codes do not create ACC obligations.
+            AcceptanceTaskMapping acceptanceMapping = definition.getDefinitionRevisionId() == null
+                    ? acceptanceTaskMapping(task.getTaskCode()) : null;
             if (acceptanceMapping != null) {
                 pendingAcceptanceContracts.add(new PendingAcceptanceContract(task.getId(), definition,
                         IdWorker.getId(), acceptanceMapping));
@@ -281,6 +295,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             }
             ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
                     task.getId(), definition.getId(), definition, instantiationTime);
+            contract.setDefinitionSnapshot(JsonUtils.toJsonString(content.getDefinitionSnapshot()));
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
         }
@@ -355,8 +370,19 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_NOT_EXISTS);
         }
         ProjectMasterDO current = requireScopedProject(update.getId(), actor, ACTION_MANAGE);
+        if (current.getCustomerId() != null) {
+            if ((update.getCustomerId() != null && !Objects.equals(update.getCustomerId(), current.getCustomerId()))
+                    || (update.getCustomerCode() != null && !Objects.equals(update.getCustomerCode(), current.getCustomerCode()))
+                    || (update.getCustomerName() != null && !Objects.equals(update.getCustomerName(), current.getCustomerName()))) {
+                throw exception(PROJECT_FIELD_IMMUTABLE, "客户关联");
+            }
+            update.setCustomerId(current.getCustomerId());
+            update.setCustomerCode(current.getCustomerCode());
+            update.setCustomerName(current.getCustomerName());
+        }
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
+        update.setClosurePolicySnapshot(current.getClosurePolicySnapshot());
         projectMasterMapper.updateById(update);
     }
 
@@ -643,8 +669,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     private boolean isServiceManager(String memberRole) {
-        return ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1.equals(memberRole)
-                || ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2.equals(memberRole);
+        return cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(memberRole);
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

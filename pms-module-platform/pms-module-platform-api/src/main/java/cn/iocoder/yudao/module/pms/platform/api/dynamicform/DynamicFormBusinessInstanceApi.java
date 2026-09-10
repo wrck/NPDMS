@@ -11,6 +11,10 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevis
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery;
 
 public interface DynamicFormBusinessInstanceApi {
+    DynamicFormRevisionFact inspectCurrentRevisionForUsage(
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormCurrentRevisionQuery query);
+    cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormValidationFact validateRevisionValues(
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionValuesQuery query);
     DynamicFormRevisionFact inspectRevisionForUsage(DynamicFormRevisionUsageQuery query);
     DynamicFormRevisionFact lockAndRevalidateRevisionForUsage(DynamicFormRevisionRevalidationQuery query);
     DynamicFormInstanceFact createBusinessInstance(DynamicFormInstanceCreateCommand command);

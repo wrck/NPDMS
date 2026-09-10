@@ -33,7 +33,7 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
     private static final Set<String> STAGES = Set.of("S0", "S1", "S2", "S3", "S4", "S5", "S6");
     private static final String PRIMARY = "PRIMARY";
     private static final Set<String> SUPPORTED_ROLES = Set.of(
-            ROLE_PROJECT_MANAGER, ROLE_SERVICE_MANAGER_L1, ROLE_SERVICE_MANAGER_L2);
+            ROLE_PROJECT_MANAGER, ROLE_SERVICE_MANAGER, ROLE_SERVICE_MANAGER_L1, ROLE_SERVICE_MANAGER_L2);
 
     private final ProjectMasterMapper projectMapper;
     private final ProjectMemberAssignmentMapper memberMapper;

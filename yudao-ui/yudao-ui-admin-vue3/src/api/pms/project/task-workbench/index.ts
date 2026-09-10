@@ -145,6 +145,7 @@ export interface TaskActionCommand {
   contractVersion?: number
   factObjectKey?: string
   factVersion?: number
+  expectedBusinessFactVersion?: string
 }
 
 const baseUrl = '/api/v1/pms'

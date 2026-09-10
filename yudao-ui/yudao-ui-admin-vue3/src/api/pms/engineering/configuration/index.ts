@@ -4,11 +4,11 @@ export interface ConfigurationVO {
   id?: number
   projectId: number
   code: string
-  equipmentId?: number
+  equipmentId?: number | string
   configLogUrl?: string
   debugResult?: string
   debuggerUserId?: number
-  debugTime?: Date
+  debugTime?: number
   configSnapshot?: string
   status?: number
   remark?: string

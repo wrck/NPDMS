@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +31,31 @@ class CustomerQueryServiceTest {
     private CustomerMasterMapper customerMasterMapper;
     @InjectMocks
     private CustomerQueryService service;
+
+    @Test
+    void codeLookupUsesTenantUniqueKeyAndThenTheExistingVisibleDetail() {
+        var customer = new CustomerMasterDO();
+        customer.setId(100L);
+        var scope = new CustomerVisibleScope(true, List.of());
+        when(customerMasterMapper.selectByTenantIdAndCode(1L, "C-001")).thenReturn(customer);
+        when(customerMasterMapper.selectVisibleById(org.mockito.ArgumentMatchers.any())).thenReturn(customer);
+
+        assertEquals(customer, service.getByCode(1L, " C-001 ", scope));
+        var visible = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.query.VisibleCustomerDetailQuery.class);
+        verify(customerMasterMapper).selectVisibleById(visible.capture());
+        assertEquals(1L, visible.getValue().tenantId());
+        assertEquals(100L, visible.getValue().customerId());
+    }
+
+    @Test
+    void codeLookupDoesNotExpandEmptyScopeOrMissingCode() {
+        assertNull(service.getByCode(1L, "C-001", new CustomerVisibleScope(false, List.of())));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.getByCode(1L, " ", new CustomerVisibleScope(true, List.of())));
+        verify(customerMasterMapper, never()).selectByTenantIdAndCode(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        assertNull(service.getByCode(1L, "missing", new CustomerVisibleScope(true, List.of())));
+        verify(customerMasterMapper, never()).selectVisibleById(org.mockito.ArgumentMatchers.any());
+    }
 
     @Test
     void emptyVisibleScopeReturnsEmptyPageWithoutQueryingDatabase() {

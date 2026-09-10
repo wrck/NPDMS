@@ -110,6 +110,8 @@ describe('CUT P1-P6 controlled UI integration', () => {
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
 
     await flush()
+    await click(mounted.root, 'toggle-kpis')
+    await flush()
     await clickLabel(mounted.root, '创建割接任务')
     await flush()
 

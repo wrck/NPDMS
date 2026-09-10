@@ -108,6 +108,17 @@ class ProjectTaskCommandServiceTest {
 
     @Test
     void createsTaskWithNativeContractAndTreeVersion() {
+        assertCreatesTaskWithNativeContractAndTreeVersion();
+    }
+
+    @Test
+    void superAdminCreatesTaskWithoutBeingProjectManager() {
+        when(treeScopeService.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        assertCreatesTaskWithNativeContractAndTreeVersion();
+        verify(memberMapper, never()).selectActiveByUser(any());
+    }
+
+    private void assertCreatesTaskWithNativeContractAndTreeVersion() {
         when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
         ProjectStageInstanceDO stage = new ProjectStageInstanceDO();
         stage.setStageCode("S1");

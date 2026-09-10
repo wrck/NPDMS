@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.SiteSurveyPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.SiteSurveyRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.SiteSurveySaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.SiteSurveyFormSchemaRespVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO;
 import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,12 +27,28 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  */
 @Tag(name = "管理后台 - 现场工勘")
 @RestController
-@RequestMapping("/pms/eng-site-survey")
+@RequestMapping({"/pms/eng-site-survey", "/api/v1/pms/site-surveys"})
 @Validated
 public class SiteSurveyController {
 
     @Resource
     private SiteSurveyService siteSurveyService;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyFormService formService;
+
+    @GetMapping("/form-schema")
+    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    public CommonResult<SiteSurveyFormSchemaRespVO> formSchema(
+            @RequestParam Long revisionId, @RequestParam Integer revisionVersion) {
+        return success(SiteSurveyFormSchemaRespVO.from(formService.schema(revisionId, revisionVersion, false)));
+    }
+
+    @GetMapping("/default-form-schema")
+    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    public CommonResult<SiteSurveyFormSchemaRespVO> defaultFormSchema() {
+        return success(SiteSurveyFormSchemaRespVO.from(formService.defaultSchema()));
+    }
 
     @PostMapping("/create")
     @Operation(summary = "创建现场工勘")

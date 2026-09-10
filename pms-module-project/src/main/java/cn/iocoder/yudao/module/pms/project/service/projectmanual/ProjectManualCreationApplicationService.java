@@ -28,6 +28,8 @@ import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTempl
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -44,12 +46,14 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ORGANIZATION_SCOPE_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
 
 /** F-PROJ-001正式创建的唯一应用事务入口。 */
 @Service
 public class ProjectManualCreationApplicationService {
 
     public static final String CREATE_SCOPE = "POST:/pms/projects";
+    public static final String SELECTED_CUSTOMER_CREATE_SCOPE = "POST:/api/v1/pms/projects";
 
     @Resource
     private PlatformCommandExecutionApi platformFactService;
@@ -79,6 +83,38 @@ public class ProjectManualCreationApplicationService {
     private ProjectWorkBindingFactApi projectWorkBindingFactApi;
     @Resource
     private PreparationInitializationApi preparationInitializationApi;
+    @Resource
+    private CustomerQueryApi customerQueryApi;
+
+    /** 新入口只解析已选择客户，后续创建完整复用原事务；旧创建入口不变。 */
+    public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
+        validate(command, actor);
+        if (command.draft().getParentId() != null || command.draft().getCustomerCode() == null
+                || command.draft().getCustomerCode().isBlank()) {
+            throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
+        }
+        authorizationService.assertCanCreate(actor.actorId());
+        if (command.serviceManagerUserId() != null) authorizationService.assertCanAssign(actor.actorId());
+        var execution = platformFactService.execute(
+                new IdempotencyScope(actor.tenantId(), SELECTED_CUSTOMER_CREATE_SCOPE,
+                        actor.actorId(), command.idempotencyKey()),
+                command.requestDigest(), ManualProjectCreateResult.class,
+                () -> {
+                    var customer = customerQueryApi.getCustomerByCode(
+                            new CustomerCodeQuery(command.draft().getCustomerCode(), actor.actorId()));
+                    if (customer == null || !actor.tenantId().equals(customer.tenantId())
+                            || !"ENABLED".equals(customer.lifecycleStatus())) {
+                        throw exception(PROJECT_CUSTOMER_UNAVAILABLE);
+                    }
+                    command.draft().setCustomerId(customer.id());
+                    command.draft().setCustomerCode(customer.code());
+                    command.draft().setCustomerName(customer.name());
+                    return createOnce(command, actor);
+                }, result -> successFacts(command, actor, result));
+        if (execution.decision() == Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
+        if (execution.decision() == Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
+        return execution.response();
+    }
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);

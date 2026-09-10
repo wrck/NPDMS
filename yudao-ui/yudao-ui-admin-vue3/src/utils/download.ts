@@ -13,6 +13,10 @@ const download0 = (data: Blob, fileName: string, mineType: string) => {
 }
 
 const download = {
+  // Preserve the original filename and MIME type for an already-authorized file.
+  file: (data: Blob, fileName: string) => {
+    download0(data, fileName, data.type || 'application/octet-stream')
+  },
   // 下载 Excel 方法
   excel: (data: Blob, fileName: string) => {
     download0(data, fileName, 'application/vnd.ms-excel')

@@ -7,11 +7,7 @@
           <div class="project-title-row">
             <span class="project-code">{{ detail?.projectCode || '—' }}</span>
             <h2 class="project-name">{{ detail?.projectName || '未选择项目' }}</h2>
-            <dict-tag
-              v-if="detail?.status"
-              :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-              :value="detail.status ?? ''"
-            />
+            <ProjectStatusTag :project="detail" />
             <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info">
               模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
             </el-tag>
@@ -56,6 +52,10 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">交付准备</div>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
+            @click="switchTab('customer-contacts')" v-hasPermi="['pms:customer-contact:query']">
+            <Icon icon="ep:phone" class="rail-icon"/><span class="rail-label">用户联系人</span>
+          </button>
           <button
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'duration' }"
@@ -69,7 +69,7 @@
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'preparation' }"
             @click="switchTab('preparation')"
-            v-hasPermi="['pms:preparation-survey:query', 'pms:preparation-survey:manage']"
+            v-hasPermi="['pms:eng-site-survey:query']"
           >
             <Icon icon="ep:compass" class="rail-icon" />
             <span class="rail-label">工勘准备</span>
@@ -82,6 +82,19 @@
           >
             <Icon icon="ep:edit-pen" class="rail-icon" />
             <span class="rail-label">需求分析</span>
+          </button>
+        </div>
+        <div class="rail-stage">
+          <div class="rail-stage-title">验收交维</div>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
+            @click="switchTab('satisfaction')" v-hasPermi="['pms:acceptance:satisfaction:query']">
+            <Icon icon="ep:chat-dot-round" class="rail-icon" />
+            <span class="rail-label">满意度</span>
+          </button>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
+            @click="switchTab('acceptance-reports')" v-hasPermi="['pms:acceptance:report:query']">
+            <Icon icon="ep:document-checked" class="rail-icon" />
+            <span class="rail-label">验收报告</span>
           </button>
         </div>
         <div class="rail-stage">
@@ -223,10 +236,7 @@
               detail.implementationLocation || '-'
             }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <dict-tag
-                :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-                :value="detail.status ?? ''"
-              />
+              <ProjectStatusTag :project="detail" />
             </el-descriptions-item>
             <el-descriptions-item label="创建来源">
               <dict-tag
@@ -240,6 +250,11 @@
             <el-descriptions-item label="创建时间" :span="2">{{
               formatDateTime(detail.createTime)
             }}</el-descriptions-item>
+            <el-descriptions-item label="项目结束日期（工勘要求）" :span="2">{{ detail.projectEndDate || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="项目主联系人" :span="2">
+              <template v-if="primaryContact">{{ primaryContact.name }} · {{ primaryContact.mobile || primaryContact.phone || primaryContact.email }}</template>
+              <span v-else>暂未设置</span><el-tag v-if="primaryContactPending" type="warning">展示待刷新</el-tag>
+            </el-descriptions-item>
           </el-descriptions>
         </ContentWrap>
 
@@ -355,79 +370,107 @@
           <el-empty v-else description="暂无成员" />
         </ContentWrap>
 
-        <ProjectTaskPanel
-          v-if="detail?.id && visitedTabs.has('tasks')"
-          v-show="activeTab === 'tasks'"
-          :project-id="detail.id"
-          @tree-version="treeVersion = $event"
-        />
+        <div v-if="detail?.id && visitedTabs.has('tasks')" v-show="activeTab === 'tasks'" class="min-w-0" data-testid="project-pane-tasks">
+          <ProjectTaskPanel
+            :project-id="detail.id"
+            @tree-version="treeVersion = $event"
+            @updated="loadAll"
+          />
+        </div>
 
-        <ProjectStageGatePanel
-          v-if="detail?.id && visitedTabs.has('stage-gates')"
-          v-show="activeTab === 'stage-gates'"
-          :project-id="detail.id"
-          @advanced="handleStageAdvanced"
-        />
+        <div v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))" v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)" class="min-w-0" data-testid="project-pane-stage-gates">
+          <ProjectStageGatePanel
+            :project-id="detail.id"
+            :key="`${detail.id}:${detail.version}:${activeTab}`"
+          />
+        </div>
 
-        <ProjectDurationPanel
-          v-if="detail?.id && visitedTabs.has('duration')"
-          v-show="activeTab === 'duration'"
-          :project="detail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('customer-contacts')" v-show="activeTab === 'customer-contacts'" class="min-w-0" data-testid="project-pane-customer-contacts">
+          <ProjectCustomerContacts :key="`contacts-${detail.id}`" :project-id="detail.id" @changed="handleContactsChanged" />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('duration')" v-show="activeTab === 'duration'" class="min-w-0" data-testid="project-pane-duration">
+          <ProjectDurationPanel
+            :project="detail"
+          />
+        </div>
 
-        <ProjectPreparationPanel
-          v-if="detail?.id && visitedTabs.has('preparation')"
-          v-show="activeTab === 'preparation'"
-          :project="detail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('preparation')" v-show="activeTab === 'preparation'" class="min-w-0" data-testid="project-pane-preparation">
+          <ProjectSiteSurveyPanel
+            :key="detail.id"
+            :project-id="detail.id"
+            @saved="loadDetail"
+          />
+        </div>
 
-        <ProjectRequirementAnalysisPanel
-          v-if="detail?.id && visitedTabs.has('requirement-analysis')"
-          v-show="activeTab === 'requirement-analysis'"
-          :project="detail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
+          <ProjectRequirementAnalysisPanel
+            :project="detail"
+          />
+        </div>
 
-        <ProjectSplitWizard
-          v-if="detail?.id && visitedTabs.has('split')"
-          v-show="activeTab === 'split'"
-          :project-id="detail.id"
-          @applied="treeRefreshKey++"
-        />
-        <ProjectTreePanel
-          v-if="detail?.id && visitedTabs.has('tree')"
-          :key="treeRefreshKey"
-          v-show="activeTab === 'tree'"
-          :project-id="detail.id"
-          @tree-version="treeVersion = $event"
-        />
-        <ProjectProgressPanel
-          v-if="detail?.id && visitedTabs.has('progress')"
-          v-show="activeTab === 'progress'"
-          :project-id="detail.id"
-          :tree-version="treeVersion"
-        />
-        <ProjectClosureGuardPanel
-          v-if="detail?.id && visitedTabs.has('closure')"
-          v-show="activeTab === 'closure'"
-          :project-id="detail.id"
-          :tree-version="treeVersion"
-        />
-        <ProjectAuthorizationPanel
-          v-if="detail?.id && visitedTabs.has('authorization')"
-          v-show="activeTab === 'authorization'"
-          :project-id="detail.id"
-        />
-        <ProjectGovernancePanel
-          v-if="detail?.id && visitedTabs.has('governance')"
-          v-show="activeTab === 'governance'"
-          :project="detail"
-          @updated="loadAll"
-        />
-        <ProjectServiceManagerPanel
-          v-if="detail?.id && visitedTabs.has('service-managers')"
-          v-show="activeTab === 'service-managers'"
-          :project-id="detail.id"
-        />
+        <div v-if="detail?.id && visitedTabs.has('satisfaction')" v-show="activeTab === 'satisfaction'" class="min-w-0" data-testid="project-pane-satisfaction">
+          <SatisfactionWorkbench
+            :key="`satisfaction-${detail.id}`"
+            ref="satisfactionRef"
+            :project-id="detail.id"
+          />
+        </div>
+
+        <div v-if="detail?.id && visitedTabs.has('acceptance-reports')" v-show="activeTab === 'acceptance-reports'" class="min-w-0" data-testid="project-pane-acceptance-reports">
+          <AcceptanceReportWorkbench
+            :key="`acceptance-${detail.id}`"
+            ref="acceptanceReportRef"
+            :project-id="detail.id"
+            :project-name="detail.projectName"
+          />
+        </div>
+
+        <div v-if="detail?.id && visitedTabs.has('split')" v-show="activeTab === 'split'" class="min-w-0" data-testid="project-pane-split">
+          <ProjectSplitWizard
+            :project-id="detail.id"
+            @applied="treeRefreshKey++"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('tree')" v-show="activeTab === 'tree'" class="min-w-0" data-testid="project-pane-tree">
+          <ProjectTreePanel
+            :key="treeRefreshKey"
+            :project-id="detail.id"
+            @tree-version="treeVersion = $event"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
+          <ProjectProgressPanel
+            :project-id="detail.id"
+            :tree-version="treeVersion"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
+          <ProjectNormalClosurePanel
+            :project-id="detail.id"
+            @updated="loadAll"
+          />
+          <ProjectClosureGuardPanel
+            :project-id="detail.id"
+            :project-name="detail.projectName"
+            :tree-version="treeVersion"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('authorization')" v-show="activeTab === 'authorization'" class="min-w-0" data-testid="project-pane-authorization">
+          <ProjectAuthorizationPanel
+            :project-id="detail.id"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('governance')" v-show="activeTab === 'governance'" class="min-w-0" data-testid="project-pane-governance">
+          <ProjectGovernancePanel
+            :project="detail"
+            @updated="loadAll"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('service-managers')" v-show="activeTab === 'service-managers'" class="min-w-0" data-testid="project-pane-service-managers">
+          <ProjectServiceManagerPanel
+            :project-id="detail.id"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -444,6 +487,8 @@ import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
+import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
+import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
 import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
 import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
@@ -453,7 +498,12 @@ import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchH
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
-import ProjectPreparationPanel from './components/ProjectPreparationPanel.vue'
+import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
+import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
+import SatisfactionWorkbench from '@/views/pms/project/satisfaction/index.vue'
+import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/index.vue'
+import * as ContactsApi from '@/api/pms/customer/contacts'
+import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
 import type {
   ProjectMasterVO,
@@ -475,13 +525,19 @@ const members = ref<ProjectMemberAssignmentVO[]>([])
 const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
+const satisfactionRef = ref<InstanceType<typeof SatisfactionWorkbench>>()
+const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>()
 
 const requestedTab = [
   'tasks',
   'stage-gates',
   'duration',
   'preparation',
-  'requirement-analysis'
+  'customer-contacts',
+  'requirement-analysis',
+  'satisfaction',
+  'acceptance-reports',
+  'closure'
 ].includes(String(route.query.tab))
   ? String(route.query.tab)
   : 'base'
@@ -494,17 +550,31 @@ const overviewSteps = [
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
   { key: 'members', label: '成员管理', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'stage-gates', label: '阶段门禁', icon: 'ep:guide' }
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
   value ? getDictLabel(dict!, value) : '不限'
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
-const switchTab = (key: string) => {
+const switchTab = async (key: string) => {
+  if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
+  if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }
+
+const primaryContact = ref<ContactsApi.ContactVO>()
+const primaryContactPending = ref(false)
+const loadPrimaryContact = async () => {
+  const id = Number(route.query.projectId)
+  if (!id || !checkPermi(['pms:customer-contact:query'])) return
+  try {
+    const page = await ContactsApi.getProjectPage(id, { pageNo: 1, pageSize: 1, status: 0 })
+    primaryContact.value = page.list.find(contact => contact.primaryFlag)
+    primaryContactPending.value = false
+  } catch { primaryContactPending.value = true }
+}
+const handleContactsChanged = async () => { await Promise.all([loadDetail(), loadPrimaryContact()]) }
 
 // ============ 实例视图 ============
 const instTasks = (code: string) => instances.value?.tasks.filter((t) => t.stageCode === code) || []
@@ -524,11 +594,8 @@ const handleAttributeUpdated = async () => {
   await loadDetail()
   historyRefreshKey.value++
 }
-const handleStageAdvanced = async () => {
-  await Promise.all([loadDetail(), loadInstances()])
-}
 const handleMembersUpdated = async () => {
-  await Promise.all([loadDetail(), loadMembers()])
+  await Promise.all([loadDetail(), loadMembers(), loadInstances()])
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)
@@ -543,7 +610,7 @@ const loadMembers = async () => {
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadMembers()])
+    await Promise.all([loadDetail(), loadInstances(), loadMembers(), loadPrimaryContact()])
   } finally {
     loading.value = false
   }
@@ -740,6 +807,10 @@ onMounted(() => {
 }
 
 @media (width <= 991px) {
+  .canvas {
+    width: 100%;
+  }
+
   .detail-body {
     flex-direction: column;
   }

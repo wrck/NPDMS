@@ -2,7 +2,8 @@
   <el-drawer
     v-model="visible"
     append-to-body
-    size="min(720px, 100vw)"
+    :size="businessBound ? 'min(1180px, 100vw)' : 'min(720px, 100vw)'"
+    :before-close="beforeClose"
     destroy-on-close
     title="任务工作台"
   >
@@ -60,9 +61,20 @@
             :loading="submitting"
             @click="executeAction(action)"
           >
-            {{ actionLabel(action) }}
+            {{
+              action === 'COMPLETE' && businessBound ? '校验业务结果并完成' : actionLabel(action)
+            }}
           </el-button>
         </div>
+
+        <TaskBusinessPanel
+          v-if="businessBound && task.version != null"
+          ref="businessRef"
+          :task-id="task.taskId"
+          :task-version="task.version"
+          :readonly="['DONE', 'CLOSED', 'CANCELLED'].includes(task.status || '')"
+          @fact-version="businessFactVersion = $event"
+        />
 
         <el-form v-if="allowed('UPDATE_PROGRESS')" label-position="top" class="progress-form">
           <el-form-item label="执行进度（0～99）">
@@ -188,6 +200,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
+import TaskBusinessPanel from './TaskBusinessPanel.vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate as formatDateValue } from '@/utils/formatTime'
 import * as TaskWorkbenchApi from '@/api/pms/project/task-workbench'
@@ -224,6 +237,17 @@ const loading = ref(false)
 const submitting = ref(false)
 const workbench = ref<TaskWorkbench>()
 const task = computed(() => workbench.value?.task)
+const businessBound = computed(() =>
+  ['BUSINESS_OBJECT', 'BUSINESS_COMPONENT', 'DYNAMIC_FORM', 'COMPOSITE'].includes(
+    workbench.value?.bindingType || ''
+  )
+)
+const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
+const businessFactVersion = ref<string>()
+const beforeClose = async (done: () => void) => {
+  if (submitting.value || (await businessRef.value?.requestLeave()) === false) return
+  done()
+}
 const progress = ref(0)
 const editVisible = ref(false)
 const assignVisible = ref(false)
@@ -250,31 +274,53 @@ const stateActions = computed(() =>
 )
 const idempotencyKey = () => crypto.randomUUID()
 
+let loadSequence = 0
 const load = async () => {
-  if (!props.taskId || !visible.value) return
+  const sequence = ++loadSequence
+  const taskId = props.taskId
+  if (!taskId || !visible.value) return
+  businessFactVersion.value = undefined
   loading.value = true
   try {
-    workbench.value = await TaskWorkbenchApi.getTaskWorkbench(props.taskId)
-    progress.value = Number(workbench.value.task.progress || 0)
+    const next = await TaskWorkbenchApi.getTaskWorkbench(taskId)
+    if (sequence !== loadSequence || taskId !== props.taskId) return
+    workbench.value = next
+    progress.value = Number(next.task.progress || 0)
+    if (businessBound.value) await businessRef.value?.refresh()
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 
 const finishCommand = async (result: TaskCommandResult) => {
-  message.success('任务操作成功')
+  if (businessBound.value && result.status === task.value?.status)
+    message.warning('任务状态未改变，请检查业务完成条件及关联记录。')
+  else message.success('任务操作成功')
   emit('changed', result)
   await load()
 }
 
 const executeAction = async (action: TaskAction) => {
-  if (task.value?.version == null) return
+  if (task.value?.version == null || submitting.value || !allowed(action)) return
+  const commandTaskId = task.value.taskId
+  const commandTaskVersion = task.value.version
+  if (businessBound.value && action === 'COMPLETE' && !businessFactVersion.value) {
+    message.warning('请先读取有效业务结果，不能使用任务状态代替领域完成事实。')
+    return
+  }
+  if ((await businessRef.value?.requestLeave()) === false) return
   let reason = ''
   if (action === 'CANCEL') {
     const prompt = await message.prompt('请输入关闭原因', '关闭任务')
     reason = prompt.value
     if (!reason.trim()) return
   }
+  if (
+    task.value?.taskId !== commandTaskId ||
+    task.value.version !== commandTaskVersion ||
+    !allowed(action)
+  )
+    return
   submitting.value = true
   try {
     await finishCommand(
@@ -287,7 +333,10 @@ const executeAction = async (action: TaskAction) => {
             action === 'COMPLETE' ? workbench.value?.executionContractId : undefined,
           contractVersion: action === 'COMPLETE' ? workbench.value?.contractVersion : undefined,
           factObjectKey: action === 'COMPLETE' ? String(task.value.taskId) : undefined,
-          factVersion: action === 'COMPLETE' ? task.value.version : undefined
+          factVersion:
+            action === 'COMPLETE' && !businessBound.value ? task.value.version : undefined,
+          expectedBusinessFactVersion:
+            action === 'COMPLETE' && businessBound.value ? businessFactVersion.value : undefined
         },
         task.value.version,
         idempotencyKey()

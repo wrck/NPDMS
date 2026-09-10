@@ -138,6 +138,24 @@ class ProjectAuthorizationGuardTest {
         verify(projectMapper, never()).selectById(any());
     }
 
+    @Test
+    void superAdminCanMaintainAuthorizationWithoutServiceManagerMembership() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            stubProjectAndTree();
+            when(permissionApi.hasAnyPermissions(7L, ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);
+            when(permissionApi.hasAnyRoles(7L, "super_admin")).thenReturn(true);
+            when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L, 5L,
+                    Set.of(1L, 2L, 3L), Set.of()));
+            when(pathMapper.selectByAncestor(1L, 5L, 2L, null)).thenReturn(List.of(path(2L), path(3L)));
+            guard.assertCanCreate(actor(), 2L, "PROJECT_MANAGE", "PROJECT_AND_DESCENDANTS");
+            verify(memberMapper, never()).selectActiveByUser(any());
+            verify(projectMapper).selectByIdForUpdate(1L);
+        } finally {
+            cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+        }
+    }
+
     private void stubProjectAndTree() {
         ProjectMasterDO project = project(2L, 1L);
         ProjectMasterDO root = project(1L, 1L);

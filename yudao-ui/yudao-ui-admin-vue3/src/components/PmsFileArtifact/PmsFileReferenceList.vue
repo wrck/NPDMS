@@ -20,6 +20,7 @@
         <el-button
           v-if="artifact.allowedActions.includes('PREVIEW')"
           v-hasPermi="['pms:file:preview']"
+          :disabled="downloading"
           link
           type="primary"
           @click="openAccess('PREVIEW')"
@@ -28,6 +29,7 @@
         <el-button
           v-if="artifact.allowedActions.includes('DOWNLOAD')"
           v-hasPermi="['pms:file:download']"
+          :loading="downloading"
           link
           type="primary"
           @click="openAccess('DOWNLOAD')"
@@ -53,6 +55,7 @@
 
 <script setup lang="ts">
 import { useMessage } from '@/hooks/web/useMessage'
+import download from '@/utils/download'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileAccessOperation, FileArtifactVO, FileBusinessKey } from '@/api/pms/platform/file'
 import type { DetachedFileSlot } from './types'
@@ -76,6 +79,7 @@ const message = useMessage()
 const loading = ref(false)
 const artifact = ref<FileArtifactVO>()
 const errorText = ref('')
+const downloading = ref(false)
 const historyRef = ref<InstanceType<typeof PmsFileVersionDrawer>>()
 const detachAttempt = ref<{ signature: string; idempotencyKey: string }>()
 const businessKey = computed<FileBusinessKey>(() => ({
@@ -101,21 +105,37 @@ const load = async () => {
   }
 }
 const openAccess = async (operation: FileAccessOperation) => {
-  if (!artifact.value) return
-  const target = window.open('about:blank', '_blank')
-  if (!target) return message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
-  target.opener = null
+  if (!artifact.value || downloading.value) return
+  const selected = artifact.value
+  const target = operation === 'PREVIEW' ? window.open('about:blank', '_blank') : null
+  if (operation === 'PREVIEW' && !target) return message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
+  if (target) target.opener = null
+  downloading.value = operation === 'DOWNLOAD'
+  errorText.value = ''
   try {
     const ticket = await FileApi.createAccessTicket(
-      artifact.value.artifactId,
-      props.versionNo || artifact.value.reference.versionNo,
+      selected.artifactId,
+      props.versionNo || selected.reference.versionNo,
       operation,
       businessKey.value
     )
-    target.location.replace(ticket.shortLivedUrl)
-  } catch (error) {
-    target.close()
-    throw error
+    if (operation === 'DOWNLOAD') {
+      // A cross-origin navigation may display the file inline. Download the authorized
+      // bytes via the existing Blob helper without forwarding application credentials.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Response/blob
+      const response = await fetch(ticket.shortLivedUrl, { credentials: 'omit' })
+      if (!response.ok) throw new Error('FILE_DOWNLOAD_FAILED')
+      download.file(await response.blob(), selected.name)
+    } else {
+      target!.location.replace(ticket.shortLivedUrl)
+    }
+  } catch {
+    target?.close()
+    errorText.value = operation === 'DOWNLOAD'
+      ? '文件下载未完成，请检查权限、存储连接及跨域配置后重试。'
+      : '文件预览未完成，请刷新文件信息后重试。'
+  } finally {
+    downloading.value = false
   }
 }
 const detach = async () => {

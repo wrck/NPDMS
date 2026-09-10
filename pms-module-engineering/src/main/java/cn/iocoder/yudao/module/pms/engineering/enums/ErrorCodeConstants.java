@@ -40,6 +40,9 @@ public interface ErrorCodeConstants {
     ErrorCode SITE_SURVEY_VERSION_NOT_MATCH = new ErrorCode(1_011_001_003, "工勘版本号已变更，请刷新后重试");
     ErrorCode SITE_SURVEY_LOCATION_REQUIRED = new ErrorCode(1_011_001_004, "工勘地点不能为空");
     ErrorCode SITE_SURVEY_LOCATION_INVALID = new ErrorCode(1_011_001_005, "工勘地点结构化维护结果无效");
+    ErrorCode SITE_SURVEY_FORM_INVALID = new ErrorCode(1_011_001_006, "工勘表单内容或模板绑定无效，请检查字段与发布修订");
+    ErrorCode SITE_SURVEY_OUTSOURCE_INVALID = new ErrorCode(1_011_001_007, "工勘未启用转包、项目不匹配或已关联转包申请，请刷新工勘记录");
+    ErrorCode SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED = new ErrorCode(1_011_001_008, "工勘已关联转包申请，请先处理关联申请，不能删除来源记录");
 
     // ========== 需求分析 requirement 1-011-002-000 ==========
     ErrorCode REQUIREMENT_NOT_EXISTS = new ErrorCode(1_011_002_000, "需求分析不存在");
@@ -60,6 +63,7 @@ public interface ErrorCodeConstants {
     ErrorCode SOLUTION_STATUS_INVALID = new ErrorCode(1_011_003_002, "方案当前状态不允许该操作");
     ErrorCode SOLUTION_VERSION_NOT_MATCH = new ErrorCode(1_011_003_003, "方案版本号已变更，请刷新后重试");
     ErrorCode SOLUTION_PROJECT_NOT_EXISTS = new ErrorCode(1_011_003_004, "所属项目不存在");
+    ErrorCode SOLUTION_REVIEW_NOT_CONNECTED = new ErrorCode(1_011_003_005, "重大方案复审尚未接入，不能在当前入口直接通过");
 
     // ========== 到货签收 arrival 1-011-004-000 ==========
     ErrorCode ARRIVAL_NOT_EXISTS = new ErrorCode(1_011_004_000, "到货签收不存在");
@@ -146,6 +150,7 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_EXCH_VERSION_NOT_MATCH = new ErrorCode(1_011_014_003, "换货协同单版本号已变更，请刷新后重试");
     ErrorCode MATERIAL_EXCH_PROJECT_NOT_EXISTS = new ErrorCode(1_011_014_004, "所属项目不存在");
     ErrorCode MATERIAL_EXCH_CRM_ALREADY_PUSHED = new ErrorCode(1_011_014_005, "换货协同单已推送CRM，无法重复推送");
+    ErrorCode MATERIAL_EXCH_CRM_NOT_CONNECTED = new ErrorCode(1_011_014_006, "CRM外部接口未接入，当前仅保留扩展入口，不执行推送");
 
     // ========== 工程交底书 briefing 1-011-015-000 ==========
     ErrorCode BRIEFING_NOT_EXISTS = new ErrorCode(1_011_015_000, "工程交底书不存在");

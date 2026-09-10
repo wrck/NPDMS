@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -52,8 +53,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class ProjectTaskQueryService {
 
-    private static final Set<String> MANAGER_ROLES = Set.of(
-            "PROJECT_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
 

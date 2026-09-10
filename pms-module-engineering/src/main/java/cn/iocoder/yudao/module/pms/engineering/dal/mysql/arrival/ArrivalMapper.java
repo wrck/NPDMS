@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalEditableDeleteQuery;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -12,6 +13,13 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface ArrivalMapper extends BaseMapperX<ArrivalDO> {
+
+    default int deleteEditable(ArrivalEditableDeleteQuery query) {
+        return delete(new LambdaQueryWrapperX<ArrivalDO>()
+                .eq(ArrivalDO::getId, query.id())
+                .eq(ArrivalDO::getVersion, query.expectedVersion())
+                .in(ArrivalDO::getStatus, 0, 2));
+    }
 
     default PageResult<ArrivalDO> selectPage(ArrivalPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ArrivalDO>()

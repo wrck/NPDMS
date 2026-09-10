@@ -1,7 +1,7 @@
 <template>
   <el-form label-position="top" @submit.prevent="submit">
     <el-alert
-      title="成员调整不推进阶段；移除主责时，请选择保留成员接任。"
+      title="保存后系统重新判断阶段条件；移除主责时，请选择保留成员接任。"
       type="info"
       :closable="false"
     />
