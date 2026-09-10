@@ -52,6 +52,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     @Override public String ownerContext() { return "ACC"; }
     @Override public String objectType() { return "ACCEPTANCE"; }
     @Override public Set<String> completionFactCodes() { return Set.of("REPORT_EFFECTIVE"); }
+    @Override public Map<String, String> completionFactLabels() { return Map.of("REPORT_EFFECTIVE", "当前报告证据有效（不等同验收通过）"); }
 
     @Override
     public Set<String> inspectContext(Context context) {

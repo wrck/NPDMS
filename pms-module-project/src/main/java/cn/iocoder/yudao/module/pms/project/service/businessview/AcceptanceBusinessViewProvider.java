@@ -27,7 +27,7 @@ public class AcceptanceBusinessViewProvider implements BusinessViewComponentProv
                             {"type":"string","pattern":"^[1-9][0-9]*$"}]}}}
                         """),
                 JsonUtils.parseTree("[\"QUERY\",\"MANAGE\",\"UPDATE\",\"REVOKE\",\"LINK\",\"UNLINK\"]"),
-                "ACC_ACCEPTANCE_REPORT_QUERY", "ACC_ACCEPTANCE_REPORT_COMMAND", "ACC_ACCEPTANCE_REPORT_PERMISSION");
+                "ACC_ACCEPTANCE_REPORT_QUERY", "ACC_ACCEPTANCE_REPORT_COMMAND", "ACC_ACCEPTANCE_REPORT_PERMISSION", "验收报告");
     }
 
     @Override

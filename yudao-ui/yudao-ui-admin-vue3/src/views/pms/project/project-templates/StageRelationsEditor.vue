@@ -5,7 +5,9 @@
       <el-select v-model="stage" clearable placeholder="全部阶段"><el-option v-for="node in content.stages" :key="node.stageCode" :value="node.stageCode" :label="`${node.stageCode} ${node.name}`" /></el-select>
       <el-radio-group v-model="direction"><el-radio-button value="from">后置关系</el-radio-button><el-radio-button value="to">前置关系</el-radio-button></el-radio-group>
       <el-button v-if="!readonly" @click="addRelation(content, stage, direction)">新增关系</el-button>
+      <el-button link type="primary" @click="graphVisible = !graphVisible">{{ graphVisible ? '收起图预览' : '图预览' }}</el-button>
     </div>
+    <StageGraphPreview v-if="graphVisible" :content="content" />
     <el-alert v-if="content.transitions == null" title="此内容未提供关系图，保留原样可读。新增关系仅由显式操作产生。" type="warning" :closable="false" />
     <el-table :data="visibleEdges" border empty-text="未配置关系（不会自动补图）">
       <el-table-column label="关系编码" min-width="155"><template #default="{ row }"><el-input v-model="row.transitionCode" :disabled="readonly" /></template></el-table-column>
@@ -27,10 +29,12 @@
 import { computed, ref } from 'vue'
 import type { StageTransition, TemplateDefinitionContent } from '@/api/pms/project/project-templates'
 import DefinitionSelect from './DefinitionSelect.vue'
+import StageGraphPreview from './StageGraphPreview.vue'
 import { addRelation, graphIssues, relationsFor } from './editorModel'
 const props = defineProps<{ content: TemplateDefinitionContent; readonly?: boolean }>()
 const stage = ref('')
 const direction = ref<'from' | 'to'>('from')
+const graphVisible = ref(true)
 const endpoints = [{ key: 'fromStageCode', label: '来源阶段' }, { key: 'toStageCode', label: '目标阶段' }] as const
 const visibleEdges = computed(() => stage.value ? relationsFor(props.content, stage.value, direction.value) : (props.content.transitions ?? []))
 const issues = computed(() => graphIssues(props.content))

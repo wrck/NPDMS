@@ -17,6 +17,9 @@ public interface TaskBusinessObjectProvider {
     /** Deployment contract metadata only; MUST NOT query, create or mutate business objects. */
     default Set<String> completionFactCodes() { return Set.of(); }
 
+    /** Optional human-readable labels for completion facts; keys SHOULD be a subset of completionFactCodes. */
+    default Map<String, String> completionFactLabels() { return Map.of(); }
+
     /** Owner-authorized project-page actions (e.g. QUERY/CREATE); absence never grants permission. */
     default Set<String> inspectContext(Context context) { return Set.of(); }
 

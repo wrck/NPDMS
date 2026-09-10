@@ -57,6 +57,9 @@ public class ProjectTemplateController {
     @Resource
     private ProjectTemplateService projectTemplateService;
 
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry taskBusinessProviderRegistry;
+
     @GetMapping({"", "/page"})
     @Operation(summary = "分页查询项目模板（状态/编码/名称过滤）")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
@@ -184,5 +187,13 @@ public class ProjectTemplateController {
         respVO.setMatched(result.getMatched());
         respVO.setConflicts(result.getConflicts());
         return success(respVO);
+    }
+
+    @GetMapping("/actions/completion-fact-catalog")
+    @Operation(summary = "完成事实目录（部署Owner声明的可选完成依据，仅配置展示）")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry.CompletionFactCatalogEntry>>
+            completionFactCatalog() {
+        return success(taskBusinessProviderRegistry.completionFactCatalog());
     }
 }

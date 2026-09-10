@@ -135,7 +135,7 @@ class BusinessViewProviderApplicationTest {
         when(first.component()).thenReturn(component);
         when(second.component()).thenReturn(new Component("OTHER_ENTITY", component.ownerContext(), component.viewSource(),
                 "ANOTHER_FORM", "1", component.contextSchema(), component.supportedActions(), component.queryProviderKey(),
-                component.commandProviderKey(), component.permissionProviderKey()));
+                component.commandProviderKey(), component.permissionProviderKey(), "另一表单"));
         assertTrue(new BusinessViewComponentRegistry(List.of(first, second)).components(CONTEXT).isEmpty());
     }
 }

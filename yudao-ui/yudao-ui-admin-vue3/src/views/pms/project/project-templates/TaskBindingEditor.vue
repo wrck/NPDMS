@@ -159,6 +159,8 @@ import type {
 } from '@/api/pms/platform/business-view'
 import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import { getTemplateSelection, type DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
+import * as TemplateApi from '@/api/pms/project/project-templates'
+import type { CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import type { TaskDef } from '@/api/pms/project/project-templates'
 import {
   bindingContextMapping,
@@ -187,16 +189,10 @@ const failure = ref('')
 const registerOpen = ref(false)
 const componentKey = ref('')
 const formId = ref<BusinessViewId>()
-// Labels only: availability always comes from the actual controlled directory.
-const componentNames: Record<string, string> = {
-  'PROJ_REQUIREMENT_ANALYSIS@1': '需求分析页面',
-  'PLATFORM_DYNAMIC_FORM@1': '动态表单',
-  'SOL_SITE_SURVEY@1': '现场工勘（原业务页面）',
-  'ACC_ACCEPTANCE_REPORT@1': '验收报告'
-}
+const factCatalog = ref<CompletionFactCatalogVO[]>([])
+// Display names come from the server-owned component directory; no front-end hard-coded list.
 const catalogKey = (row: BusinessViewComponentVO) => `${row.componentKey}@${row.componentVersion}`
-const componentLabel = (row: BusinessViewComponentVO) =>
-  componentNames[catalogKey(row)] ?? '未接入的办理功能'
+const componentLabel = (row: BusinessViewComponentVO) => row.displayName ?? catalogKey(row)
 const entityLabel = (type: string) =>
   ({
     SITE_SURVEY: '现场工勘记录',
@@ -243,16 +239,14 @@ const currentDescription = computed(() =>
         ? '当前：项目任务办理'
         : '保留当前办理配置'
 )
-const completionOptions = computed(() =>
-  selectedMetadata.value?.entityType === 'SITE_SURVEY'
-    ? [
-        { code: 'SURVEY_CONFIRMED', label: '工勘记录已确认（不等同实施就绪）' },
-        { code: 'SURVEY_ARCHIVED', label: '工勘记录已归档' }
-      ]
-    : selectedMetadata.value?.entityType === 'ACCEPTANCE'
-      ? [{ code: 'REPORT_EFFECTIVE', label: '当前报告证据有效（不等同验收通过）' }]
-      : []
-)
+// Completion options come from the deployed Owner fact catalog, matched by object type.
+const completionOptions = computed(() => {
+  const type = selectedMetadata.value?.entityType
+  if (!type) return []
+  return factCatalog.value
+    .filter((fact) => fact.objectType === type)
+    .map((fact) => ({ code: fact.factCode, label: fact.label, ownerContext: fact.ownerContext }))
+})
 const chooseCompletion = (factCode: string) => {
   if (
     props.modelValue &&
@@ -315,9 +309,7 @@ const load = async () => {
   loading.value = true
   failure.value = ''
   try {
-    components.value = (await Views.getBusinessViewComponents()).filter(
-      (row) => componentNames[catalogKey(row)]
-    )
+    components.value = await Views.getBusinessViewComponents()
     const registered: BusinessViewRegistrationVO[] = []
     let pageNo = 1
     while (true) {
@@ -331,11 +323,17 @@ const load = async () => {
         !row.disabledAt &&
         components.value.some((component) => catalogKey(component) === catalogKey(row))
     )
+    // The fact catalog is auxiliary: its failure must not block view/form loading.
+    try {
+      factCatalog.value = await TemplateApi.getCompletionFactCatalog()
+    } catch {
+      factCatalog.value = []
+    }
     if (canRegister.value) {
       const selections: DynamicFormSelectionVO[] = []
-      let pageNo = 1
+      let formPage = 1
       while (true) {
-        const page = await getTemplateSelection({ pageNo: pageNo++, pageSize: 100 })
+        const page = await getTemplateSelection({ pageNo: formPage++, pageSize: 100 })
         selections.push(...page.list)
         if (!page.list.length || selections.length >= page.total) break
       }

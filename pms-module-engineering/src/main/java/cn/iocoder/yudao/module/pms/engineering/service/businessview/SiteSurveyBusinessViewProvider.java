@@ -27,7 +27,7 @@ public class SiteSurveyBusinessViewProvider implements BusinessViewComponentProv
                             {"type":"string","pattern":"^[1-9][0-9]*$"}]}}}
                         """),
                 JsonUtils.parseTree("[\"QUERY\",\"CREATE\",\"UPDATE\",\"CONFIRM\",\"REJECT\",\"ARCHIVE\",\"LINK\",\"UNLINK\"]"),
-                "SOL_SITE_SURVEY_QUERY", "SOL_SITE_SURVEY_COMMAND", "SOL_SITE_SURVEY_PERMISSION");
+                "SOL_SITE_SURVEY_QUERY", "SOL_SITE_SURVEY_COMMAND", "SOL_SITE_SURVEY_PERMISSION", "现场工勘（原业务页面）");
     }
 
     @Override

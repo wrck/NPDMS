@@ -95,7 +95,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -160,6 +160,31 @@ const identityBaseline = ref('')
 const draftDirty = computed(() => bindingDirty.value || JSON.stringify(draft.value) !== baseline.value)
 const identityDirty = computed(() => JSON.stringify(identityForm) !== identityBaseline.value)
 const draftReadonly = computed(() => detail.value?.status === 'RETIRED')
+// Local-only crash/accidental-close protection; the server draft stays the single authority.
+interface DraftStash { savedAt: number; identity: { name: string; matchPriority: number; description: string }; content: typeof draft.value }
+const stashKey = (id?: number) => (id == null ? '' : `pms:template-draft-stash:${id}`)
+const readStash = (id: number): DraftStash | undefined => {
+  try {
+    const raw = localStorage.getItem(stashKey(id))
+    return raw ? (JSON.parse(raw) as DraftStash) : undefined
+  } catch { return undefined }
+}
+const clearStash = (id?: number) => { if (id != null) localStorage.removeItem(stashKey(id)) }
+let stashTimer: ReturnType<typeof setTimeout> | undefined
+watch([draft, identityForm], () => {
+  if (!detailVisible.value || detail.value?.id == null || saving.value) return
+  if (stashTimer) clearTimeout(stashTimer)
+  stashTimer = setTimeout(() => {
+    if (!draftDirty.value && !identityDirty.value) return
+    try {
+      localStorage.setItem(stashKey(detail.value?.id), JSON.stringify({
+        savedAt: Date.now(),
+        identity: { ...identityForm },
+        content: cloneContent(draft.value)
+      } satisfies DraftStash))
+    } catch { /* 暂存尽力而为：存储不可用时静默跳过 */ }
+  }, 800)
+}, { deep: true })
 const openDetail = async (row: ProjectTemplateVO, tab = 'draft') => {
   try {
     const result = await TemplateApi.getProjectTemplate(row.id!)
@@ -170,12 +195,24 @@ const openDetail = async (row: ProjectTemplateVO, tab = 'draft') => {
     identityBaseline.value = JSON.stringify(identityForm)
     failure.value = ''
     detailTab.value = tab
+    const stash = readStash(result.id!)
+    if (stash && (JSON.stringify(stash.content) !== baseline.value || JSON.stringify(stash.identity) !== identityBaseline.value)) {
+      try {
+        await message.confirm(`检测到 ${formatDate(stash.savedAt)} 保存的本地未提交暂存，是否恢复继续编辑？取消将丢弃该暂存。`)
+        draft.value = cloneContent(stash.content)
+        Object.assign(identityForm, stash.identity)
+        message.success('已恢复本地暂存；尚未保存到服务器。')
+      } catch { clearStash(result.id) }
+    }
     detailVisible.value = true
   } catch (error) { failure.value = errorText(error) }
 }
 const beforeCloseDetail = async (done: () => void) => {
   if (saving.value) return
-  if (draftDirty.value || identityDirty.value) { try { await message.confirm('有未保存修改，确认关闭并放弃本地编辑？') } catch { return } }
+  if (draftDirty.value || identityDirty.value) {
+    try { await message.confirm('有未保存修改，确认关闭并放弃本地编辑？') } catch { return }
+    clearStash(detail.value?.id)
+  }
   done()
 }
 const saveIdentity = async () => {
@@ -194,6 +231,7 @@ const saveDraft = async () => {
     const content = await contentEditor.value?.prepareSave() ?? draft.value
     await TemplateApi.updateProjectTemplate(detail.value.id, { ...identityForm, content })
     draft.value = content; bindingDirty.value = false; baseline.value = JSON.stringify(content); identityBaseline.value = JSON.stringify(identityForm)
+    clearStash(detail.value.id)
     message.success('交付设计已保存，尚未发布；办理配置不代表业务完成')
   }
   catch (error) { failure.value = errorText(error) }
@@ -226,6 +264,7 @@ const publish = async (row: ProjectTemplateVO) => {
     try { await message.confirm(`确认发布模板「${row.code}」？重新校验后冻结只读版本，不覆盖既有项目。`) } catch { return }
     await TemplateApi.publishProjectTemplate(row.id!)
     message.success('发布成功')
+    clearStash(row.id)
     validationVisible.value = false
     detailVisible.value = false
     await load()

@@ -17,7 +17,7 @@
           v-for="predicate in predicates"
           :key="predicate"
           :value="predicate"
-          :label="predicate"
+          :label="`${predicateLabels[predicate] ?? predicate}（${predicate}）`"
         />
       </el-select>
       <el-input
@@ -36,12 +36,23 @@
         <el-option v-for="code in stateCodes" :key="code" :value="code" :label="code" />
       </el-select>
       <template v-else-if="modelValue.predicate === 'BUSINESS_FACT'">
-        <el-input
+        <el-select
           :model-value="modelValue.parameters?.factCode"
           :disabled="disabled"
-          placeholder="领域已注册结果，例如 SURVEY_CONFIRMED"
+          filterable
+          placeholder="选择已注册完成事实"
           @update:model-value="setBusinessCode"
-        />
+        >
+          <el-option
+            v-for="fact in factCatalog"
+            :key="`${fact.ownerContext}/${fact.objectType}/${fact.factCode}`"
+            :value="fact.factCode"
+            :label="`${fact.label}（${fact.ownerContext}/${fact.objectType}）`"
+          />
+        </el-select>
+        <span v-if="!factCatalog.length" class="fact-catalog-hint"
+          >完成事实目录不可用或为空；仅可选择已部署Owner注册的事实</span
+        >
         <el-select
           :model-value="modelValue.parameters?.quantifier"
           :disabled="disabled"
@@ -76,11 +87,32 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import * as TemplateApi from '@/api/pms/project/project-templates'
+import type { CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import type { JsonObject } from '@/api/pms/project/project-templates/definitions'
 defineOptions({ name: 'RuleEditor' })
 const props = defineProps<{ modelValue: JsonObject; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: JsonObject] }>()
+const predicateLabels: Record<string, string> = {
+  BUSINESS_FACT: '业务完成事实',
+  TASK_NATIVE_STATUS: '任务自身状态与必填信息',
+  STAGE_NATIVE_STATUS: '阶段自身状态',
+  TASK: '关联任务结果',
+  MILESTONE: '里程碑达成',
+  DELIVERABLE: '必要交付物满足情况',
+  STATE: '业务阶段完成',
+  APPROVAL: '实际审批结果',
+  PROCESS: '实际流程结果'
+}
+const factCatalog = ref<CompletionFactCatalogVO[]>([])
+onMounted(async () => {
+  try {
+    factCatalog.value = await TemplateApi.getCompletionFactCatalog()
+  } catch {
+    factCatalog.value = []
+  }
+})
 const predicates = [
   'BUSINESS_FACT',
   'TASK_NATIVE_STATUS',
@@ -162,5 +194,9 @@ const removeChild = (index: number) =>
   border-left: 2px solid var(--el-border-color);
   padding-left: 12px;
   margin: 4px 0;
+}
+.fact-catalog-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 </style>

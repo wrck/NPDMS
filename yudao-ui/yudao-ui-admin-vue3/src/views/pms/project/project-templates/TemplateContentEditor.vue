@@ -5,9 +5,15 @@
     <div class="delivery-layout">
       <nav class="stage-nav" aria-label="交付阶段">
         <p class="nav-caption">阶段导航 <span>显示顺序不代表流程关系</span></p>
-        <button v-for="stage in orderedStages" :key="stage.stageCode" type="button" class="stage-button" :class="{ active: activeStage === stage.stageCode }" :aria-current="activeStage === stage.stageCode ? 'step' : undefined" @click="selectStage(stage.stageCode)">
-          <span class="stage-code">{{ stage.stageCode }}</span><span class="stage-title">{{ stage.stageCode === 'S0' ? '项目基本操作' : stage.name }}<small>{{ stage.stageCode === 'S0' ? '创建 · 属性 · 团队 · 范围' : `${tasksFor(stage.stageCode).length} 项业务任务` }}</small></span>
-        </button>
+        <div v-for="(stage, index) in orderedStages" :key="stage.stageCode" class="stage-item">
+          <button type="button" class="stage-button" :class="{ active: activeStage === stage.stageCode }" :aria-current="activeStage === stage.stageCode ? 'step' : undefined" @click="selectStage(stage.stageCode)">
+            <span class="stage-code">{{ stage.stageCode }}</span><span class="stage-title">{{ stage.stageCode === 'S0' ? '项目基本操作' : stage.name }}<small>{{ stage.stageCode === 'S0' ? '创建 · 属性 · 团队 · 范围' : `${tasksFor(stage.stageCode).length} 项业务任务` }}</small></span>
+          </button>
+          <span v-if="!readonly" class="item-move">
+            <button type="button" class="move-button" title="上移" :aria-label="`上移阶段 ${stage.stageCode}`" :disabled="index === 0" @click.stop="moveStage(stage.stageCode, -1)">↑</button>
+            <button type="button" class="move-button" title="下移" :aria-label="`下移阶段 ${stage.stageCode}`" :disabled="index === orderedStages.length - 1" @click.stop="moveStage(stage.stageCode, 1)">↓</button>
+          </span>
+        </div>
         <button v-if="unassigned.length" type="button" class="stage-button" :class="{ active: activeStage === '__unassigned' }" @click="selectStage('__unassigned')">未归属阶段 · {{ unassigned.length }} 项</button>
         <el-empty v-if="!content.stages.length" description="尚未选择阶段" :image-size="48" />
         <el-button v-if="!readonly" link type="primary" @click="stagePicker = !stagePicker">选择阶段</el-button>
@@ -30,9 +36,15 @@
           </section>
           <div class="task-layout">
             <div class="task-list" role="list" aria-label="业务任务">
-              <button v-for="task in stageTasks" :key="task.taskCode" type="button" class="task-button" :class="{ active: selectedTask === task }" :aria-pressed="selectedTask === task" @click="selectedTask = task">
-                <strong>{{ task.name || '未命名任务' }}</strong><span>{{ objectiveOf(task.description) || '选择任务，完善业务目标与办理方式' }}</span><small v-if="task.parentTaskCode">子任务 · {{ content.tasks.find((row) => row.taskCode === task.parentTaskCode)?.name ?? '保留父任务关系' }}</small>
-              </button>
+              <div v-for="(task, index) in stageTasks" :key="task.taskCode" class="task-item">
+                <button type="button" class="task-button" :class="{ active: selectedTask === task }" :aria-pressed="selectedTask === task" @click="selectedTask = task">
+                  <strong>{{ task.name || '未命名任务' }}</strong><span>{{ objectiveOf(task.description) || '选择任务，完善业务目标与办理方式' }}</span><small v-if="task.parentTaskCode">子任务 · {{ content.tasks.find((row) => row.taskCode === task.parentTaskCode)?.name ?? '保留父任务关系' }}</small>
+                </button>
+                <span v-if="!readonly" class="item-move">
+                  <button type="button" class="move-button" title="上移" :aria-label="`上移任务 ${task.name || task.taskCode}`" :disabled="index === 0" @click.stop="moveTask(task, -1)">↑</button>
+                  <button type="button" class="move-button" title="下移" :aria-label="`下移任务 ${task.name || task.taskCode}`" :disabled="index === stageTasks.length - 1" @click.stop="moveTask(task, 1)">↓</button>
+                </span>
+              </div>
               <el-empty v-if="!stageTasks.length" description="暂无业务任务，按本场景需要添加" :image-size="64" />
             </div>
             <section v-if="selectedTask && stageTasks.includes(selectedTask)" class="task-detail" aria-label="任务详情">
@@ -118,6 +130,25 @@ const setObjective = (value: string) => {
     : value
 }
 const selectStage = (code: string) => { activeStage.value = code; selectedTask.value = stageTasks.value[0]; newTaskOpen.value = false; deliverablePicker.value = false }
+// Reordering only rewrites display sortOrder within the current draft; it never creates or infers relations.
+const moveStage = (code: string, offset: -1 | 1) => {
+  if (props.readonly) return
+  const ordered = orderedStages.value
+  const index = ordered.findIndex((stage) => stage.stageCode === code)
+  const target = index + offset
+  if (index < 0 || target < 0 || target >= ordered.length) return
+  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
+  ordered.forEach((stage, position) => (stage.sortOrder = position * 10))
+}
+const moveTask = (task: TaskDef, offset: -1 | 1) => {
+  if (props.readonly) return
+  const siblings = tasksFor(task.stageCode ?? '')
+  const index = siblings.indexOf(task)
+  const target = index + offset
+  if (index < 0 || target < 0 || target >= siblings.length) return
+  ;[siblings[index], siblings[target]] = [siblings[target], siblings[index]]
+  siblings.forEach((row, position) => (row.sortOrder = position * 10))
+}
 watch(() => props.content, () => { pendingBindings.clear(); session.clear(); emit('dirty-change', false); selectStage(orderedStages.value[0]?.stageCode ?? '') }, { immediate: true })
 watch(() => pendingBindings.size, (size) => emit('dirty-change', size > 0))
 const setBinding = (task: TaskDef, selection?: BindingSelection) => { if (selection) pendingBindings.set(task, selection); else pendingBindings.delete(task) }
@@ -180,7 +211,14 @@ h3, h4 { margin: 0; font-weight: 600; } h3 { font-size: 17px; } h4 { font-size: 
 .stage-nav { padding: 16px 12px; background: var(--el-fill-color-light); border-right: 1px solid var(--el-border-color-lighter); }
 .nav-caption { font-size: 13px; font-weight: 500; margin: 0 8px 16px; }.nav-caption span { display: block; font-size: 11px; color: var(--el-text-color-secondary); margin-top: 6px; font-weight: normal; }
 .stage-button, .task-button { width: 100%; text-align: left; cursor: pointer; font: inherit; background: transparent; border: 1px solid transparent; color: inherit; border-radius: 6px; padding: 12px; }
-.stage-button { display: flex; gap: 10px; margin-bottom: 6px; align-items: flex-start; }.stage-button:hover, .task-button:hover { background: var(--el-fill-color); }.stage-button.active, .task-button.active { background: var(--el-color-primary-light-9); border-color: var(--el-color-primary-light-7); }
+.stage-item, .task-item { position: relative; }
+.item-move { position: absolute; top: 6px; right: 6px; display: none; gap: 2px; }
+.stage-item:hover .item-move, .task-item:hover .item-move { display: inline-flex; }
+.move-button { width: 22px; height: 22px; line-height: 20px; padding: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; background: var(--el-bg-color); color: var(--el-text-color-secondary); cursor: pointer; font-size: 12px; }
+.move-button:hover:not(:disabled) { color: var(--el-color-primary); border-color: var(--el-color-primary-light-5); }
+.move-button:disabled { opacity: 0.35; cursor: default; }
+.stage-item { margin-bottom: 6px; }
+.stage-button { display: flex; gap: 10px; align-items: flex-start; }.stage-button:hover, .task-button:hover { background: var(--el-fill-color); }.stage-button.active, .task-button.active { background: var(--el-color-primary-light-9); border-color: var(--el-color-primary-light-7); }
 .stage-code { font-size: 12px; color: var(--el-color-primary); padding-top: 2px; }.stage-title { font-size: 14px; line-height: 1.5; }.stage-title small { display: block; color: var(--el-text-color-secondary); font-size: 11px; margin-top: 5px; }
 .stage-content { min-width: 0; padding: 24px; background: var(--el-bg-color); }.section-heading { margin-bottom: 20px; }
 .basic-operations { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }.basic-operations > div { border: 1px solid var(--el-border-color-lighter); border-radius: 6px; padding: 20px; }.basic-operations strong { font-size: 14px; font-weight: 500; }.basic-operations p { font-size: 13px; color: var(--el-text-color-secondary); margin: 8px 0 0; }

@@ -32,7 +32,7 @@ public interface BusinessViewComponentProvider {
     record Component(String entityType, String ownerContext, ViewSource viewSource,
                      String componentKey, String componentVersion, JsonNode contextSchema,
                      JsonNode supportedActions, String queryProviderKey, String commandProviderKey,
-                     String permissionProviderKey) {
+                     String permissionProviderKey, String displayName) {
         public Component {
             contextSchema = contextSchema == null ? null : contextSchema.deepCopy();
             supportedActions = supportedActions == null ? null : supportedActions.deepCopy();

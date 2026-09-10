@@ -230,7 +230,7 @@ class BusinessViewMySqlIntegrationTest {
                 @Override public Component component() {
                     return new Component("BUSINESS_VIEW_IT", "PLATFORM", ViewSource.PAGE, "BUSINESS_VIEW_IT_PAGE", "1",
                             JsonUtils.parseTree("{\"type\":\"object\"}"), JsonUtils.parseTree("[\"VIEW\"]"),
-                            "BUSINESS_VIEW_IT_QUERY", "BUSINESS_VIEW_IT_COMMAND", "BUSINESS_VIEW_IT_PERMISSION");
+                            "BUSINESS_VIEW_IT_QUERY", "BUSINESS_VIEW_IT_COMMAND", "BUSINESS_VIEW_IT_PERMISSION", "业务视图集成测试");
                 }
                 @Override public boolean canConfigure(Context context, ConfigurationAction action) { return context.actorId() == ACTOR; }
                 @Override public Dependencies validateConfiguration(Context context, Long revisionId, ValidationMode mode) {
