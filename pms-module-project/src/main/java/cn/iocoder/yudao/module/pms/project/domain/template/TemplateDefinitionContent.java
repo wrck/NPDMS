@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
 import lombok.Data;
+import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.JsonNode;
@@ -49,6 +52,78 @@ public class TemplateDefinitionContent {
     private String processDefinitionKey;
     /** 历史兼容字段；新模板保持空，不参与流程定义选择或实例冻结 */
     private String processDefinitionVersion;
+
+    /** 专用最小NORMAL闭环；未配置不授予闭环能力，也不改变旧模板规则。 */
+    private ClosurePolicy closurePolicy;
+
+    /**
+     * 唯一获批准的七字段规则。入口严格校验JSON类型，不接受Jackson标量强转。
+     * 保留原JSON标量（尤其Long字符串），发布及项目冻结不重写已选规则。
+     */
+    @Getter
+    public static final class ClosurePolicy {
+        public static final String PROCESS_DEFINITION_KEY = "PMS_MINIMAL_NORMAL_CLOSURE";
+        public static final String REVIEWER_PERMISSION = "pms:acc-project-closure:audit";
+        private static final java.util.Set<String> FIELDS = java.util.Set.of(
+                "closureType", "ruleRevision", "requireTerminalStage", "requireAllTasksDone",
+                "revalidateBusinessFacts", "processDefinitionKey", "reviewerUserId");
+        private final String closureType;
+        private final Integer ruleRevision;
+        private final Boolean requireTerminalStage;
+        private final Boolean requireAllTasksDone;
+        private final Boolean revalidateBusinessFacts;
+        private final String processDefinitionKey;
+        private final Long reviewerUserId;
+        @Getter(lombok.AccessLevel.NONE)
+        private final JsonNode source;
+
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public ClosurePolicy(JsonNode json) {
+            if (json == null || !json.isObject() || !new java.util.HashSet<>(json.propertyNames()).equals(FIELDS)) {
+                throw new IllegalArgumentException("closurePolicy必须且只能包含批准的七个字段");
+            }
+            if (!json.get("closureType").isTextual() || !"NORMAL".equals(json.get("closureType").asText())
+                    || !json.get("ruleRevision").isIntegralNumber()
+                    || !json.get("ruleRevision").canConvertToInt() || json.get("ruleRevision").intValue() != 1
+                    || !json.get("processDefinitionKey").isTextual()
+                    || !PROCESS_DEFINITION_KEY.equals(json.get("processDefinitionKey").asText())) {
+                throw new IllegalArgumentException("closurePolicy仅支持专用NORMAL闭环规则版本1及固定人工审批流程");
+            }
+            for (String field : java.util.List.of("requireTerminalStage", "requireAllTasksDone", "revalidateBusinessFacts")) {
+                if (!json.get(field).isBoolean() || !json.get(field).booleanValue()) {
+                    throw new IllegalArgumentException("closurePolicy." + field + "必须为布尔true，不能手工豁免条件");
+                }
+            }
+            JsonNode reviewer = json.get("reviewerUserId");
+            if (!(reviewer.isTextual() || reviewer.isIntegralNumber())) {
+                throw new IllegalArgumentException("closurePolicy.reviewerUserId必须为正Long或十进制整数字符串");
+            }
+            String reviewerText = reviewer.asText();
+            if (!reviewerText.matches("[0-9]+")) {
+                throw new IllegalArgumentException("closurePolicy.reviewerUserId必须为正Long或十进制整数字符串");
+            }
+            try {
+                reviewerUserId = Long.valueOf(reviewerText);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("closurePolicy.reviewerUserId超出Long范围", ex);
+            }
+            if (reviewerUserId <= 0) {
+                throw new IllegalArgumentException("closurePolicy.reviewerUserId必须为正Long");
+            }
+            closureType = "NORMAL";
+            ruleRevision = 1;
+            requireTerminalStage = true;
+            requireAllTasksDone = true;
+            revalidateBusinessFacts = true;
+            processDefinitionKey = PROCESS_DEFINITION_KEY;
+            source = json.deepCopy();
+        }
+
+        @JsonValue
+        public JsonNode toJson() {
+            return source.deepCopy();
+        }
+    }
 
     /** 阶段定义（S0～S6，顺序） */
     private List<StageDef> stages = new ArrayList<>();

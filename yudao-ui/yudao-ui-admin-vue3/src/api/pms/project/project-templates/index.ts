@@ -77,7 +77,18 @@ export interface GateDef extends DefinitionLink {
   description?: string
   references: GateRef[]
 }
+export interface TemplateClosurePolicy {
+  closureType: 'NORMAL'
+  ruleRevision: 1
+  requireTerminalStage: true
+  requireAllTasksDone: true
+  revalidateBusinessFacts: true
+  processDefinitionKey: 'PMS_MINIMAL_NORMAL_CLOSURE'
+  /** Decimal strings preserve IDs beyond JavaScript's safe integer range. */
+  reviewerUserId: number | string
+}
 export interface TemplateDefinitionContent {
+  closurePolicy?: TemplateClosurePolicy | null
   signingMethod?: string
   projectCategory?: string
   implementationMethod?: string

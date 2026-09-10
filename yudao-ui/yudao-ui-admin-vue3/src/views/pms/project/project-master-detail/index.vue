@@ -365,8 +365,8 @@
         />
 
         <ProjectStageGatePanel
-          v-if="detail?.id && visitedTabs.has('stage-gates')"
-          v-show="activeTab === 'stage-gates'"
+          v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))"
+          v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)"
           :project-id="detail.id"
           @advanced="handleStageAdvanced"
         />
@@ -412,6 +412,12 @@
           :project-id="detail.id"
           :tree-version="treeVersion"
         />
+        <ProjectNormalClosurePanel
+          v-if="detail?.id && visitedTabs.has('closure')"
+          v-show="activeTab === 'closure'"
+          :project-id="detail.id"
+          @updated="loadAll"
+        />
         <ProjectClosureGuardPanel
           v-if="detail?.id && visitedTabs.has('closure')"
           v-show="activeTab === 'closure'"
@@ -450,6 +456,7 @@ import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
+import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
 import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
@@ -492,7 +499,8 @@ const requestedTab = [
   'duration',
   'preparation',
   'customer-contacts',
-  'requirement-analysis'
+  'requirement-analysis',
+  'closure'
 ].includes(String(route.query.tab))
   ? String(route.query.tab)
   : 'base'
@@ -505,7 +513,7 @@ const overviewSteps = [
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
   { key: 'members', label: '成员管理', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'stage-gates', label: '阶段门禁', icon: 'ep:guide' }
+
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>

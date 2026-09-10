@@ -60,6 +60,9 @@
       <el-collapse-item name="flow" title="流程顺序 · 显式维护阶段关系">
         <StageRelationsEditor v-if="sections.includes('flow')" :content="content" :readonly="readonly" />
       </el-collapse-item>
+      <el-collapse-item name="closure" title="专用闭环 · 最小正常闭环配置">
+        <TemplateClosurePolicyEditor v-if="sections.includes('closure')" :content="content" :readonly="readonly" />
+      </el-collapse-item>
       <el-collapse-item name="advanced" title="高级配置 · 定义、版本与底层规则">
         <template v-if="sections.includes('advanced')"><p class="muted">与交付设计使用同一份配置。已有历史字段保留，不自动转换；底层引用调整后请重新核对任务。</p><AdvancedTemplateContentEditor :content="content" :readonly="readonly" /></template>
       </el-collapse-item>
@@ -76,6 +79,7 @@ import { createBindingSaveSession, prepareTaskBinding, taskWithExecution, type B
 import DefinitionSelect from './DefinitionSelect.vue'
 import TaskBindingEditor from './TaskBindingEditor.vue'
 import StageRelationsEditor from './StageRelationsEditor.vue'
+import TemplateClosurePolicyEditor from './TemplateClosurePolicyEditor.vue'
 import AdvancedTemplateContentEditor from './AdvancedTemplateContentEditor.vue'
 import { cloneContent, errorText } from './editorModel'
 const props = defineProps<{ content: TemplateDefinitionContent; readonly?: boolean }>()
@@ -154,6 +158,9 @@ const removeDeliverable = async (code: string) => {
 const prepareSave = async () => {
   const content = cloneContent(props.content)
   try {
+    if (content.closurePolicy && !content.closurePolicy.reviewerUserId) {
+      throw new Error('启用专用闭环后必须显式选择材料审核人。')
+    }
     for (const [task, selection] of pendingBindings) {
       const index = props.content.tasks.indexOf(task)
       if (index >= 0) content.tasks[index] = await prepareTaskBinding(task, selection, session)

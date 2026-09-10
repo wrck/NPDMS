@@ -238,6 +238,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setTemplateLoadMethod(selected.loadMethod());
         draft.setProcessDefinitionKey(content.getProcessDefinitionKey());
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
+        // Exact published content only; null deliberately overwrites any caller-supplied policy.
+        draft.setClosurePolicySnapshot(content.getClosurePolicy() == null ? null
+                : JsonUtils.toJsonString(content.getClosurePolicy().toJson()));
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         draft.setStatus(ProjectRules.INITIAL_STATUS);
         draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
@@ -368,6 +371,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         ProjectMasterDO current = requireScopedProject(update.getId(), actor, ACTION_MANAGE);
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
+        update.setClosurePolicySnapshot(current.getClosurePolicySnapshot());
         projectMasterMapper.updateById(update);
     }
 
