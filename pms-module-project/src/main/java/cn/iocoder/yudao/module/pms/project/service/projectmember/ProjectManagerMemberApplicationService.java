@@ -192,7 +192,7 @@ public class ProjectManagerMemberApplicationService {
                 || actor.userId() <= 0 || actor.correlationId() == null || actor.correlationId().isBlank()
                 || command.projectId() == null || command.projectId() <= 0
                 || command.expectedVersion() == null || command.expectedVersion() < 0
-                || command.reason() == null || command.reason().isBlank() || command.reason().trim().length() > 500
+                || command.reason() == null || command.reason().trim().length() > 500
                 || command.idempotencyKey() == null || command.idempotencyKey().isBlank()
                 || command.idempotencyKey().length() > 128
                 || command.primaryUserId() != null && command.primaryUserId() <= 0

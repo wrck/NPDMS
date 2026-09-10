@@ -30,15 +30,15 @@ import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
+import static cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.*;
 
 /** 专项统一成员维护：一份角色关系，经理身份变化编排原命令，资料变化追加区间。 */
 @Service
 @RequiredArgsConstructor
 public class OrdinaryProjectMemberService {
     public static final String WRITE_PERMISSION = "pms:project-team:create";
-    public static final Set<String> ORDINARY_ROLES = Set.of("TEAM_MEMBER", "SALES_REPRESENTATIVE");
-    private static final Set<String> ALL_ROLES = Set.of("PROJECT_MANAGER", "SERVICE_MANAGER_L1",
-            "SERVICE_MANAGER_L2", "SERVICE_MANAGER", "TEAM_MEMBER", "SALES_REPRESENTATIVE");
+    public static final Set<String> ORDINARY_ROLES = ORDINARY_CODES;
+    private static final Set<String> ALL_ROLES = ALL_CODES;
     private final ProjectManualCreationService projects;
     private final ProjectMasterMapper projectMapper;
     private final ProjectMemberAssignmentMapper memberMapper;
@@ -71,7 +71,7 @@ public class OrdinaryProjectMemberService {
         var scopeActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId());
         if (managerRole(query.projectRole())) {
             authorization.assertCanInitiallyAssign(scopeActor, projectId,
-                    "SERVICE_MANAGER".equals(query.projectRole()), "PROJECT_MANAGER".equals(query.projectRole()));
+                    SERVICE_MANAGER.equals(query.projectRole()), PROJECT_MANAGER.equals(query.projectRole()));
         } else authorization.assertCanAssign(scopeActor, projectId);
         var project = projectMapper.selectById(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())
@@ -93,7 +93,7 @@ public class OrdinaryProjectMemberService {
             throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
         var scopeActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId());
         if (command.action() == Action.ADD && managerRole(role)) {
-            authorization.assertCanInitiallyAssign(scopeActor, command.projectId(), "SERVICE_MANAGER".equals(role), "PROJECT_MANAGER".equals(role));
+            authorization.assertCanInitiallyAssign(scopeActor, command.projectId(), SERVICE_MANAGER.equals(role), PROJECT_MANAGER.equals(role));
         } else authorization.assertCanAssign(scopeActor, command.projectId());
         if (command.action() != Action.ADD) {
             var target = memberMapper.selectById(command.assignmentId());
@@ -137,7 +137,7 @@ public class OrdinaryProjectMemberService {
             }
         }
         String role = previous != null ? logicalRole(previous.getMemberRole()) : command.member().memberRole();
-        if ("SERVICE_MANAGER".equals(role)) return serviceManagerMutation(project, previous, command, actor, now);
+        if (SERVICE_MANAGER.equals(role)) return serviceManagerMutation(project, previous, command, actor, now);
         if (managerRole(role)) return managerMutation(project, previous, command, actor, now);
         if (command.action() == Action.REMOVE) {
             close(previous, command.reason(), now);
@@ -187,24 +187,24 @@ public class OrdinaryProjectMemberService {
     private ActiveUserSelectionApi.Query selection(ProjectMasterDO project, String role, ServiceScope scope,
             int pageNo, int pageSize, String keyword, Set<Long> userIds) {
         String systemRole = switch (role) {
-            case "TEAM_MEMBER", "PROJECT_MANAGER" -> "PROJECT_MANAGER";
-            case "SALES_REPRESENTATIVE" -> "SALES_REPRESENTATIVE";
-            case "SERVICE_MANAGER" -> "SERVICE_MANAGER";
+            case TEAM_MEMBER, PROJECT_MANAGER -> PROJECT_MANAGER;
+            case SALES_REPRESENTATIVE -> SALES_REPRESENTATIVE;
+            case SERVICE_MANAGER -> SERVICE_MANAGER;
             default -> throw exception(PROJECT_MEMBER_ROLE_INVALID);
         };
         ActiveUserSelectionApi.Qualification qualification = null;
-        if ("PROJECT_MANAGER".equals(role)) {
-            qualification = new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, "PROJECT_MANAGER");
+        if (PROJECT_MANAGER.equals(role)) {
+            qualification = new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, PROJECT_MANAGER);
         }
         return new ActiveUserSelectionApi.Query(pageNo, pageSize, keyword, userIds, systemRole, qualification);
     }
 
     private static boolean managerRole(String role) {
-        return "PROJECT_MANAGER".equals(role) || "SERVICE_MANAGER".equals(role);
+        return PROJECT_MANAGER.equals(role) || SERVICE_MANAGER.equals(role);
     }
 
     private static String logicalRole(String role) {
-        return "SERVICE_MANAGER_L1".equals(role) || "SERVICE_MANAGER_L2".equals(role) ? "SERVICE_MANAGER" : role;
+        return cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.normalize(role);
     }
 
     private Result serviceManagerMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
@@ -217,20 +217,20 @@ public class OrdinaryProjectMemberService {
             return result(project, previous, true);
         }
         MemberValues values = command.member();
-        var selected = users.page(selection(project, "SERVICE_MANAGER", null, 1, 1, null, Set.of(values.userId())));
+        var selected = users.page(selection(project, SERVICE_MANAGER, null, 1, 1, null, Set.of(values.userId())));
         if (selected.getTotal() != 1 || selected.getList().size() != 1
                 || !Objects.equals(values.userId(), selected.getList().getFirst().id()))
             throw invalid("请选择当前租户内具有服务经理角色的有效人员");
         var duplicates = memberMapper.selectActiveMemberIdentityForUpdate(new ProjectMemberIdentityQuery(
-                actor.tenantId(), project.getId(), values.userId(), "SERVICE_MANAGER", now));
+                actor.tenantId(), project.getId(), values.userId(), SERVICE_MANAGER, now));
         if (duplicates.stream().anyMatch(row -> previous == null || !Objects.equals(row.getId(), previous.getId())))
             throw exception(PROJECT_TEAM_MEMBER_DUPLICATE);
         var active = memberMapper.selectActiveForAssignmentState(new ProjectAssignmentStateQuery(project.getId(), now))
-                .stream().filter(row -> "SERVICE_MANAGER".equals(logicalRole(row.getMemberRole()))).toList();
+                .stream().filter(row -> SERVICE_MANAGER.equals(logicalRole(row.getMemberRole()))).toList();
         boolean primary = Boolean.TRUE.equals(values.primary()) || previous != null && servicePrimary(previous)
                 || active.stream().noneMatch(OrdinaryProjectMemberService::servicePrimary);
         if (previous != null && Objects.equals(previous.getUserId(), values.userId())
-                && "SERVICE_MANAGER".equals(previous.getMemberRole()) && servicePrimary(previous) == primary
+                && SERVICE_MANAGER.equals(previous.getMemberRole()) && servicePrimary(previous) == primary
                 && Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
                 && Objects.equals(normalized(previous.getRemark()), normalized(values.remark())))
             return result(project, previous, false);
@@ -261,7 +261,7 @@ public class OrdinaryProjectMemberService {
         var fresh = new ProjectMemberAssignmentDO();
         fresh.setTenantId(source.getTenantId()); fresh.setProjectId(source.getProjectId());
         fresh.setUserId(source.getUserId()); fresh.setEmployeeNo(source.getEmployeeNo()); fresh.setMemberName(source.getMemberName());
-        fresh.setMemberRole("SERVICE_MANAGER"); fresh.setAssignmentType(primary ? "PRIMARY" : "COLLABORATOR");
+        fresh.setMemberRole(SERVICE_MANAGER); fresh.setAssignmentType(primary ? "PRIMARY" : "COLLABORATOR");
         fresh.setResponsibility(source.getResponsibility()); fresh.setRemark(source.getRemark());
         fresh.setChangeReason(reason.trim()); fresh.setEffectiveFrom(now); fresh.setStatus("ACTIVE"); fresh.setVersion(0);
         if (memberMapper.insert(fresh) != 1) throw exception(PROJECT_VERSION_CONFLICT);
@@ -289,7 +289,7 @@ public class OrdinaryProjectMemberService {
         boolean samePerson = previous != null && Objects.equals(previous.getUserId(), values.userId());
         boolean detailsChanged = previous != null && (!Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
                 || !Objects.equals(normalized(previous.getRemark()), normalized(values.remark())));
-        boolean primaryChange = "PROJECT_MANAGER".equals(role) && Boolean.TRUE.equals(values.primary())
+        boolean primaryChange = PROJECT_MANAGER.equals(role) && Boolean.TRUE.equals(values.primary())
                 && !Objects.equals(project.getManagerId(), values.userId());
         if (samePerson && !primaryChange) {
             if (!detailsChanged) return result(project, previous, false);
@@ -350,8 +350,8 @@ public class OrdinaryProjectMemberService {
 
     private void refreshAssignmentStatus(ProjectMasterDO project, LocalDateTime now) {
         var active = memberMapper.selectActiveForAssignmentState(new ProjectAssignmentStateQuery(project.getId(), now));
-        boolean manager = active.stream().anyMatch(member -> "PROJECT_MANAGER".equals(member.getMemberRole()));
-        boolean service = active.stream().anyMatch(member -> "SERVICE_MANAGER".equals(logicalRole(member.getMemberRole()))
+        boolean manager = active.stream().anyMatch(member -> PROJECT_MANAGER.equals(member.getMemberRole()));
+        boolean service = active.stream().anyMatch(member -> SERVICE_MANAGER.equals(logicalRole(member.getMemberRole()))
                 && (member.getAssignmentType() == null || "PRIMARY".equals(member.getAssignmentType())));
         String status = manager && service ? "ASSIGNED" : "UNASSIGNED";
         if (projectMapper.updateAssignmentStatusIfVersion(new ProjectAssignmentStatusUpdate(project.getId(), project.getVersion(), status)) != 1)
@@ -388,7 +388,7 @@ public class OrdinaryProjectMemberService {
         if (command == null || command.projectId() == null || command.projectId() <= 0 || command.action() == null
                 || command.expectedVersion() == null || command.expectedVersion() < 0
                 || command.idempotencyKey() == null || command.idempotencyKey().isBlank() || command.idempotencyKey().length() > 128
-                || normalized(command.reason()) == null || command.reason().length() > 500
+                || command.reason().length() > 500
                 || command.action() == Action.ADD && command.assignmentId() != null
                 || command.action() != Action.ADD && (command.assignmentId() == null || command.assignmentId() <= 0))
             throw invalid("成员操作参数无效");
@@ -427,6 +427,7 @@ public class OrdinaryProjectMemberService {
     }
     public record Command(Long projectId, Integer expectedVersion, Action action, Long assignmentId,
                           MemberValues member, String reason, String idempotencyKey, Long replacementPrimaryUserId) {
+        public Command { reason = reason == null ? "" : reason.trim(); }
         public Command(Long projectId, Integer version, Action action, Long assignmentId, MemberValues member, String reason, String key) {
             this(projectId, version, action, assignmentId, member, reason, key, null);
         }

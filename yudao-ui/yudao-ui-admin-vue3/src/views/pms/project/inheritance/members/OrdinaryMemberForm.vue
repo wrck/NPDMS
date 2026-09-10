@@ -27,8 +27,8 @@
       <p>首次添加自动成为该角色主责；勾选可切换主责，取消勾选不自动撤销已有主责。</p>
     </el-form-item>
     <el-form-item label="备注"><el-input v-model="remark" aria-label="备注" type="textarea" maxlength="500" /></el-form-item>
-    <el-form-item label="调整原因" required><el-input v-model="reason" aria-label="调整原因" type="textarea"
-      maxlength="500" show-word-limit placeholder="说明加入、替换或调整的原因" /></el-form-item>
+    <el-form-item label="调整原因"><el-input v-model="reason" aria-label="调整原因" type="textarea"
+      maxlength="500" show-word-limit placeholder="选填，说明加入或调整的原因" /></el-form-item>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
     <div class="actions">
       <el-button :disabled="saving" @click="$emit('cancel')">取消</el-button>
@@ -114,8 +114,8 @@ onBeforeUnmount(() => sequence++)
 const submit = async () => {
   if (saving.value) return
   error.value = ''
-  if (!candidateReady.value || !userId.value || !reason.value.trim() || props.project.version == null) {
-    error.value = '请选择项目角色、有效人员并填写调整原因'; return
+  if (!candidateReady.value || !userId.value || props.project.version == null) {
+    error.value = '请选择项目角色和有效人员'; return
   }
   const data: Members.MemberMutation = { userId: userId.value, memberRole: memberRole.value,
     responsibility: responsibility.value.trim(), remark: remark.value.trim(), reason: reason.value.trim(),

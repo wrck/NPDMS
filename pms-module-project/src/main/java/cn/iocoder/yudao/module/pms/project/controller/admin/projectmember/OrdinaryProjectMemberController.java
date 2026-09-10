@@ -143,6 +143,6 @@ public class OrdinaryProjectMemberController {
     }
     public record MemberRequest(@NotNull @Positive Long userId, @NotBlank @Size(max = 32) String memberRole,
             @Size(max = 500) String responsibility, @Size(max = 500) String remark,
-            @NotBlank @Size(max = 500) String reason, Boolean primary, ServiceScope scope) { }
+            @Size(max = 500) String reason, Boolean primary, ServiceScope scope) { }
     public record ReasonRequest(@NotBlank @Size(max = 500) String reason, @Positive Long replacementPrimaryUserId) { }
 }

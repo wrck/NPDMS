@@ -85,10 +85,8 @@ public class DurationChangeApplicationService {
     private static final String EVIDENCE_REQUIRED_CONFIG =
             "pms.sol.duration-change.customer-evidence-required-reason-codes";
     private static final String APPROVAL_TASK = "serviceManagerApprove";
-    private static final Set<String> SERVICE_MANAGER_ROLES = Set.of(
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
+    private static final Set<String> SERVICE_MANAGER_ROLES =
+            cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES;
     private static final Set<String> DURATION_FIELDS = Set.of(
             "calculationBasis", "startDate", "endDate", "durationDays");
 
