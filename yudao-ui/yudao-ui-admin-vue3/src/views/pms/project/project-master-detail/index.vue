@@ -358,6 +358,7 @@
         </ContentWrap>
 
         <ProjectTaskPanel
+          @updated="loadAll"
           v-if="detail?.id && visitedTabs.has('tasks')"
           v-show="activeTab === 'tasks'"
           :project-id="detail.id"
@@ -368,7 +369,7 @@
           v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))"
           v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)"
           :project-id="detail.id"
-          @advanced="handleStageAdvanced"
+          :key="`${detail.id}:${detail.version}:${activeTab}`"
         />
 
         <ProjectCustomerContacts v-if="detail?.id && visitedTabs.has('customer-contacts')"
@@ -556,11 +557,8 @@ const handleAttributeUpdated = async () => {
   await loadDetail()
   historyRefreshKey.value++
 }
-const handleStageAdvanced = async () => {
-  await Promise.all([loadDetail(), loadInstances()])
-}
 const handleMembersUpdated = async () => {
-  await Promise.all([loadDetail(), loadMembers()])
+  await Promise.all([loadDetail(), loadMembers(), loadInstances()])
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)

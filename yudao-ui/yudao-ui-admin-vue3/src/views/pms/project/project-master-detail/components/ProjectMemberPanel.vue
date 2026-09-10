@@ -13,7 +13,7 @@
         >
       </div>
     </div>
-    <p>同角色成员具有相同操作权限；主责仅作责任标识。人员调整不推进阶段。</p>
+    <p>同角色成员具有相同操作权限；主责仅作责任标识。保存后系统重新判断阶段条件，满足冻结模板要求时自动推进。</p>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
     <div v-if="current?.members.length" class="manager-list">
       <div v-for="member in current.members" :key="member.assignmentId" class="manager-item">
