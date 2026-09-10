@@ -24,6 +24,9 @@ Desktop.ini
 # Runtime PID/log working dir for scripts/service.ps1
 .run/
 
+# Browser automation profile (session data, never commit)
+.ab-profile/
+
 # Common build and dependency outputs
 node_modules/
 dist/
