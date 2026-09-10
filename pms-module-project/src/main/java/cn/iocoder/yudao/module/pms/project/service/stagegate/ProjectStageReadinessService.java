@@ -129,7 +129,7 @@ public class ProjectStageReadinessService {
             candidates = candidates.stream().filter(row -> Objects.equals(row.getTenantId(), project.getTenantId())
                             && Objects.equals(row.getProjectId(), project.getId()) && row.getUserId() != null
                             && (Objects.equals(row.getUserId(), project.getManagerId())
-                            || "SERVICE_MANAGER_L1".equals(row.getMemberRole()) || "SERVICE_MANAGER_L2".equals(row.getMemberRole())))
+                            || cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(row.getMemberRole())))
                     .map(ProjectMemberAssignmentDO::getUserId).distinct().sorted()
                     .flatMap(userId -> memberMapper.selectActiveByUserForUpdate(
                             new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
@@ -147,7 +147,7 @@ public class ProjectStageReadinessService {
                 "PROJECT_MANAGER".equals(row.getMemberRole()) && Objects.equals(row.getUserId(), project.getManagerId()));
         // Match the existing assignment-state writer, including legacy null PRIMARY labels.
         boolean serviceManager = active.stream().anyMatch(row ->
-                ("SERVICE_MANAGER_L1".equals(row.getMemberRole()) || "SERVICE_MANAGER_L2".equals(row.getMemberRole()))
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(row.getMemberRole())
                         && (row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType())));
         if (!projectManager && !serviceManager) return "S0_PRIMARY_MANAGERS_REQUIRED";
         if (!serviceManager) return "S0_PRIMARY_SERVICE_MANAGER_REQUIRED";

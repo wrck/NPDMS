@@ -27,6 +27,12 @@ public class ProjectMemberAssignmentRespVO {
     @Schema(description = "成员姓名")
     private String memberName;
 
+    @Schema(description = "System人员主档中的当前联系电话")
+    private String mobile;
+
+    @Schema(description = "System人员主档中的当前邮箱")
+    private String email;
+
     @Schema(description = "成员角色（字典 pms_project_member_role）")
     private String memberRole;
 

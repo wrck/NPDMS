@@ -16,8 +16,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectMemberPageQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
@@ -50,7 +48,6 @@ public class OrdinaryProjectMemberService {
     private final ProjectAuthorizationGuard authorization;
     private final PlatformCommandExecutionApi commands;
     private final ProjectManagerMemberApplicationService projectManagers;
-    private final ProjectManagerAssignmentApplicationService serviceManagers;
 
     public PageResult<ProjectMemberAssignmentDO> page(Long projectId, Filter filter, Actor actor) {
         validateActor(actor);
@@ -140,6 +137,7 @@ public class OrdinaryProjectMemberService {
             }
         }
         String role = previous != null ? logicalRole(previous.getMemberRole()) : command.member().memberRole();
+        if ("SERVICE_MANAGER".equals(role)) return serviceManagerMutation(project, previous, command, actor, now);
         if (managerRole(role)) return managerMutation(project, previous, command, actor, now);
         if (command.action() == Action.REMOVE) {
             close(previous, command.reason(), now);
@@ -197,10 +195,6 @@ public class OrdinaryProjectMemberService {
         ActiveUserSelectionApi.Qualification qualification = null;
         if ("PROJECT_MANAGER".equals(role)) {
             qualification = new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, "PROJECT_MANAGER");
-        } else if ("SERVICE_MANAGER".equals(role)) {
-            validateServiceScope(scope);
-            qualification = new ActiveUserSelectionApi.Qualification(project.getCompanyId(),
-                    scope.departmentId(), scope.departmentCode(), null);
         }
         return new ActiveUserSelectionApi.Query(pageNo, pageSize, keyword, userIds, systemRole, qualification);
     }
@@ -213,36 +207,78 @@ public class OrdinaryProjectMemberService {
         return "SERVICE_MANAGER_L1".equals(role) || "SERVICE_MANAGER_L2".equals(role) ? "SERVICE_MANAGER" : role;
     }
 
-    private static void validateServiceScope(ServiceScope scope) {
-        if (scope == null || !Set.of("L1", "L2").contains(Objects.toString(scope.levelCode(), ""))
-                || !Set.of("PRIMARY", "COLLABORATOR").contains(Objects.toString(scope.assignmentType(), ""))
-                || scope.departmentId() == null || scope.departmentId() <= 0 || normalized(scope.departmentCode()) == null
-                || scope.siteId() != null && scope.siteId() <= 0
-                || "L2".equals(scope.levelCode()) && scope.siteId() == null) {
-            throw invalid("请完整选择服务经理层级、责任类型、办事处及适用站点");
+    private Result serviceManagerMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
+            Command command, Actor actor, LocalDateTime now) {
+        if (command.action() == Action.REMOVE) {
+            close(previous, command.reason(), now);
+            incrementVersion(project);
+            refreshAssignmentStatus(project, now);
+            previous.setEffectiveTo(now);
+            return result(project, previous, true);
         }
+        MemberValues values = command.member();
+        var selected = users.page(selection(project, "SERVICE_MANAGER", null, 1, 1, null, Set.of(values.userId())));
+        if (selected.getTotal() != 1 || selected.getList().size() != 1
+                || !Objects.equals(values.userId(), selected.getList().getFirst().id()))
+            throw invalid("请选择当前租户内具有服务经理角色的有效人员");
+        var duplicates = memberMapper.selectActiveMemberIdentityForUpdate(new ProjectMemberIdentityQuery(
+                actor.tenantId(), project.getId(), values.userId(), "SERVICE_MANAGER", now));
+        if (duplicates.stream().anyMatch(row -> previous == null || !Objects.equals(row.getId(), previous.getId())))
+            throw exception(PROJECT_TEAM_MEMBER_DUPLICATE);
+        var active = memberMapper.selectActiveForAssignmentState(new ProjectAssignmentStateQuery(project.getId(), now))
+                .stream().filter(row -> "SERVICE_MANAGER".equals(logicalRole(row.getMemberRole()))).toList();
+        boolean primary = Boolean.TRUE.equals(values.primary()) || previous != null && servicePrimary(previous)
+                || active.stream().noneMatch(OrdinaryProjectMemberService::servicePrimary);
+        if (previous != null && Objects.equals(previous.getUserId(), values.userId())
+                && "SERVICE_MANAGER".equals(previous.getMemberRole()) && servicePrimary(previous) == primary
+                && Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
+                && Objects.equals(normalized(previous.getRemark()), normalized(values.remark())))
+            return result(project, previous, false);
+        if (primary) {
+            active.stream().filter(row -> servicePrimary(row)
+                    && (previous == null || !Objects.equals(previous.getId(), row.getId()))).forEach(row -> {
+                close(row, command.reason(), now);
+                insertServiceInterval(row, false, command.reason(), now);
+            });
+        }
+        if (previous != null) close(previous, command.reason(), now);
+        var current = new ProjectMemberAssignmentDO();
+        current.setTenantId(actor.tenantId()); current.setProjectId(project.getId());
+        current.setUserId(values.userId()); current.setMemberName(selected.getList().getFirst().nickname());
+        current.setResponsibility(normalized(values.responsibility())); current.setRemark(normalized(values.remark()));
+        var created = insertServiceInterval(current, primary, command.reason(), now);
+        incrementVersion(project);
+        refreshAssignmentStatus(project, now);
+        return result(project, created, true);
+    }
+
+    private static boolean servicePrimary(ProjectMemberAssignmentDO member) {
+        return member.getAssignmentType() == null || "PRIMARY".equals(member.getAssignmentType());
+    }
+
+    private ProjectMemberAssignmentDO insertServiceInterval(ProjectMemberAssignmentDO source, boolean primary,
+            String reason, LocalDateTime now) {
+        var fresh = new ProjectMemberAssignmentDO();
+        fresh.setTenantId(source.getTenantId()); fresh.setProjectId(source.getProjectId());
+        fresh.setUserId(source.getUserId()); fresh.setEmployeeNo(source.getEmployeeNo()); fresh.setMemberName(source.getMemberName());
+        fresh.setMemberRole("SERVICE_MANAGER"); fresh.setAssignmentType(primary ? "PRIMARY" : "COLLABORATOR");
+        fresh.setResponsibility(source.getResponsibility()); fresh.setRemark(source.getRemark());
+        fresh.setChangeReason(reason.trim()); fresh.setEffectiveFrom(now); fresh.setStatus("ACTIVE"); fresh.setVersion(0);
+        if (memberMapper.insert(fresh) != 1) throw exception(PROJECT_VERSION_CONFLICT);
+        return fresh;
     }
 
     private Result managerMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
             Command command, Actor actor, LocalDateTime now) {
         String role = previous == null ? command.member().memberRole() : logicalRole(previous.getMemberRole());
         if (command.action() == Action.REMOVE) {
-            if ("PROJECT_MANAGER".equals(role)) {
-                var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
-                        Set.of(), Set.of(previous.getUserId()), command.replacementPrimaryUserId(), command.reason(),
-                        command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
-                        actor.tenantId(), actor.userId(), actor.correlationId()));
-                project.setVersion(changed.version());
-                recordEndReason(previous.getId(), command.reason());
-                return result(project, memberMapper.selectById(previous.getId()), changed.changed());
-            }
-            close(previous, command.reason(), now);
-            incrementVersion(project);
-            refreshAssignmentStatus(project, now);
-            var ended = new ProjectMemberAssignmentDO();
-            BeanUtils.copyProperties(previous, ended);
-            ended.setEffectiveTo(now);
-            return result(project, ended, true);
+            var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
+                    Set.of(), Set.of(previous.getUserId()), command.replacementPrimaryUserId(), command.reason(),
+                    command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
+                    actor.tenantId(), actor.userId(), actor.correlationId()));
+            project.setVersion(changed.version());
+            recordEndReason(previous.getId(), command.reason());
+            return result(project, memberMapper.selectById(previous.getId()), changed.changed());
         }
         MemberValues values = command.member();
         var qualified = users.page(selection(project, role, values.scope(), 1, 1, null, Set.of(values.userId())));
@@ -251,24 +287,17 @@ public class OrdinaryProjectMemberService {
             throw invalid("请选择具有对应系统角色和组织资格的当前租户有效用户");
         }
         boolean samePerson = previous != null && Objects.equals(previous.getUserId(), values.userId());
-        boolean sameScope = previous != null && ("PROJECT_MANAGER".equals(role)
-                || Objects.equals(previous.getMemberRole(), "SERVICE_MANAGER_" + values.scope().levelCode())
-                && Objects.equals(previous.getAssignmentType(), values.scope().assignmentType())
-                && Objects.equals(previous.getSiteId(), values.scope().siteId())
-                && Objects.equals(previous.getDepartmentId(), values.scope().departmentId())
-                && Objects.equals(previous.getDepartmentCode(), values.scope().departmentCode()));
         boolean detailsChanged = previous != null && (!Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
                 || !Objects.equals(normalized(previous.getRemark()), normalized(values.remark())));
         boolean primaryChange = "PROJECT_MANAGER".equals(role) && Boolean.TRUE.equals(values.primary())
                 && !Objects.equals(project.getManagerId(), values.userId());
-        if (samePerson && sameScope && !primaryChange) {
+        if (samePerson && !primaryChange) {
             if (!detailsChanged) return result(project, previous, false);
             var fresh = appendManagerDetails(previous, values, command.reason(), now);
             incrementVersion(project);
             return result(project, fresh, true);
         }
         ProjectMemberAssignmentDO created;
-        if ("PROJECT_MANAGER".equals(role)) {
             var duplicates = memberMapper.selectActiveMemberIdentityForUpdate(new ProjectMemberIdentityQuery(
                     actor.tenantId(), project.getId(), values.userId(), role, now));
             if (!samePerson && !duplicates.isEmpty()) throw exception(PROJECT_TEAM_MEMBER_DUPLICATE);
@@ -290,24 +319,6 @@ public class OrdinaryProjectMemberService {
             Long assignmentId = changed.members().stream().filter(member -> Objects.equals(member.userId(), values.userId()))
                     .map(ProjectManagerMemberResult.Member::assignmentId).findFirst().orElseThrow(() -> invalid("经理关系未生成"));
             created = memberMapper.selectById(assignmentId);
-        } else {
-            ServiceScope scope = values.scope();
-            var activeBefore = memberMapper.selectActiveForAssignmentState(new ProjectAssignmentStateQuery(project.getId(), now));
-            if (previous != null) close(previous, command.reason(), now);
-            String digest = DigestUtil.sha256Hex(JsonUtils.toJsonString(new Object[]{project.getId(), project.getVersion(), values, command.reason()}));
-            var changed = serviceManagers.assign(new AssignServiceManagerCommand(project.getId(), project.getVersion(),
-                    scope.levelCode(), values.userId(), scope.siteId(), scope.assignmentType(), scope.departmentId(),
-                    scope.departmentCode(), command.reason(), command.idempotencyKey(), digest),
-                    new ProjectManagerAssignmentApplicationService.Actor(actor.tenantId(), actor.userId(), actor.correlationId()));
-            project.setVersion(changed.version());
-            if ("PRIMARY".equals(scope.assignmentType())) {
-                activeBefore.stream().filter(member -> Objects.equals(member.getMemberRole(), "SERVICE_MANAGER_" + scope.levelCode())
-                        && Objects.equals(member.getSiteId(), scope.siteId())
-                        && (member.getAssignmentType() == null || "PRIMARY".equals(member.getAssignmentType())))
-                        .forEach(member -> recordEndReason(member.getId(), command.reason()));
-            }
-            created = memberMapper.selectById(changed.assignmentId());
-        }
         if (created == null) throw invalid("经理关系未生成");
         var details = new ProjectMemberAssignmentDO();
         details.setId(created.getId());

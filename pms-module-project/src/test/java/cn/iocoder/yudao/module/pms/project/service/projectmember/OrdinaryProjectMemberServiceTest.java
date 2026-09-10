@@ -191,10 +191,8 @@ class OrdinaryProjectMemberServiceTest {
         service.candidates(100L, new CandidateFilter(1, 20, null, null, "PROJECT_MANAGER", null), actor());
         verify(users).page(new ActiveUserSelectionApi.Query(1, 20, null, null, "PROJECT_MANAGER",
                 new ActiveUserSelectionApi.Qualification(8L, null, null, "PROJECT_MANAGER")));
-        var scope = new ServiceScope("L1", "PRIMARY", null, 25L, "OFFICE");
-        service.candidates(100L, new CandidateFilter(1, 20, null, null, "SERVICE_MANAGER", scope), actor());
-        verify(users).page(new ActiveUserSelectionApi.Query(1, 20, null, null, "SERVICE_MANAGER",
-                new ActiveUserSelectionApi.Qualification(8L, 25L, "OFFICE", null)));
+        service.candidates(100L, new CandidateFilter(1, 20, null, null, "SERVICE_MANAGER", null), actor());
+        verify(users).page(new ActiveUserSelectionApi.Query(1, 20, null, null, "SERVICE_MANAGER", null));
     }
 
     @Test void projectManagerAdditionKeepsOriginalCommandAndDoesNotSilentlyReplacePrimary() {
@@ -237,12 +235,34 @@ class OrdinaryProjectMemberServiceTest {
         verifyNoInteractions(users, projectManagers, serviceManagers);
     }
 
-    @Test void incompleteServiceManagerScopeCannotQueryOrMutate() {
+    @Test void serviceManagerCanBeAddedWithoutOfficeSiteOrLevel() {
         when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
-        assertThrows(ServiceException.class, () -> service.candidates(100L,
-                new CandidateFilter(1, 20, null, null, "SERVICE_MANAGER", new ServiceScope("L2", "PRIMARY", null, 25L, "OFFICE")), actor()));
-        assertThrows(ServiceException.class, () -> service.mutate(command(Action.ADD, null, "SERVICE_MANAGER", "", "", 0), actor()));
-        verifyNoInteractions(users, projectManagers, serviceManagers);
+        when(projectMapper.updateAssignmentStatusIfVersion(any())).thenReturn(1);
+        var result = service.mutate(command(Action.ADD, null, "SERVICE_MANAGER", "", "备注", 0), actor());
+        assertTrue(result.changed());
+        var saved = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper).insert(saved.capture());
+        assertEquals("SERVICE_MANAGER", saved.getValue().getMemberRole());
+        assertEquals("PRIMARY", saved.getValue().getAssignmentType());
+        assertNull(saved.getValue().getDepartmentId()); assertNull(saved.getValue().getSiteId());
+        verify(users).page(new ActiveUserSelectionApi.Query(1, 1, null, Set.of(40L), "SERVICE_MANAGER", null));
+        verifyNoInteractions(projectManagers, serviceManagers);
+    }
+
+    @Test void switchingServicePrimaryAppendsIntervalsAndKeepsPreviousPersonAsMember() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        when(projectMapper.updateAssignmentStatusIfVersion(any())).thenReturn(1);
+        var old = member("SERVICE_MANAGER_L2"); old.setUserId(41L); old.setAssignmentType("PRIMARY");
+        when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(old));
+        var values = new MemberValues(40L, "SERVICE_MANAGER", "", "", true, null);
+        service.mutate(new Command(100L, 0, Action.ADD, null, values, "切换主责", "service-primary"), actor());
+        var saved = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper, org.mockito.Mockito.times(2)).insert(saved.capture());
+        assertEquals(41L, saved.getAllValues().get(0).getUserId());
+        assertEquals("COLLABORATOR", saved.getAllValues().get(0).getAssignmentType());
+        assertEquals("SERVICE_MANAGER", saved.getAllValues().get(0).getMemberRole());
+        assertEquals("PRIMARY", saved.getAllValues().get(1).getAssignmentType());
+        assertNull(old.getEffectiveTo()); assertEquals("PRIMARY", old.getAssignmentType());
     }
 
     private ProjectMemberAssignmentDO member(String role) {

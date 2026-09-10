@@ -35,6 +35,7 @@ public class DurationChangeBpmAuthorizationGuard {
     static final String PERMISSION_APPROVE = "pms:construction-plan:duration-approve";
     private static final String ACTIVE = "ACTIVE";
     private static final Set<String> SERVICE_MANAGER_ROLES = Set.of(
+            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
     private static final Set<String> PROJECT_MANAGER_ROLE =

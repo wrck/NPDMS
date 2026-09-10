@@ -103,6 +103,33 @@ class TaskNativeBindingHostProviderTest {
     }
 
     @Test
+    void superAdminCanOperateWithoutMembershipButClosedProjectRemainsReadOnly() {
+        when(projectTreeScopeService.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        ProjectMasterDO project = new ProjectMasterDO();
+        project.setId(100L);
+        project.setTenantId(0L);
+        project.setLifecycleStatus("ACTIVE");
+        when(projectMapper.selectById(100L)).thenReturn(project);
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(7L);
+        when(projectTreeVersionMapper.selectLatestActive(100L)).thenReturn(version);
+        when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
+                100L, 7L, Set.of(100L), Set.of(), Set.of()));
+        TaskStateTransitionDO transition = new TaskStateTransitionDO();
+        transition.setFromStatusCode("PENDING_START");
+        transition.setToStatusCode("IN_PROGRESS");
+        transition.setActionCode("START");
+        transition.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(transition));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(true);
+        var query = new TaskBindingInspectionQuery(0L, 11L, 9L, "super-admin");
+        assertEquals(Set.of("START", "ASSIGN"), provider.inspect(query).allowedActions());
+        project.setLifecycleStatus("NORMAL_CLOSED");
+        assertTrue(provider.inspect(query).allowedActions().isEmpty());
+    }
+
+    @Test
     void shouldExposeAssignmentAndProgressOnlyWithinTrustedScope() {
         task.setStatus("IN_PROGRESS");
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();

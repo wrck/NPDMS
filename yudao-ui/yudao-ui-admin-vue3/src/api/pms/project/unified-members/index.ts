@@ -18,6 +18,8 @@ export interface ServiceMemberScope {
   departmentCode: string
 }
 export interface MemberRecord extends ProjectMemberAssignmentVO {
+  mobile?: string | null
+  email?: string | null
   assignmentType?: string | null
   companyName?: string | null
   departmentId?: number | null
@@ -29,7 +31,7 @@ export interface MemberRecord extends ProjectMemberAssignmentVO {
   changeReason?: string | null
   endReason?: string | null
 }
-export interface MemberCandidate { id: number; username: string; nickname: string; deptId?: number }
+export interface MemberCandidate { id: number; username: string; nickname: string; deptId?: number; mobile?: string | null; email?: string | null }
 export interface MemberMutation {
   userId: number
   memberRole: ProjectMemberRole

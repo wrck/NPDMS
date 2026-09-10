@@ -10,7 +10,11 @@ import java.util.List;
 /** Append-only evidence and state-machine-only application/project writes. Never exposes generic CRUD. */
 @Mapper
 public interface NormalClosureMapper {
-    record ProjectQuery(Long tenantId, Long projectId) {}
+    record ProjectQuery(Long tenantId, Long projectId) {
+        public java.util.Set<String> getServiceRoleCodes() {
+            return cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES;
+        }
+    }
     record ApplicationQuery(Long tenantId, Long projectId, Long applicationId) {}
     record ApplicationIdentityQuery(Long tenantId, Long applicationId) {}
     Long selectApplicationProjectId(@Param("query") ApplicationIdentityQuery query);

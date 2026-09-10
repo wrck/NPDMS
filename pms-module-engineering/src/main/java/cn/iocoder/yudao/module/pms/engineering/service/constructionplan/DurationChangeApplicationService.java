@@ -86,6 +86,7 @@ public class DurationChangeApplicationService {
             "pms.sol.duration-change.customer-evidence-required-reason-codes";
     private static final String APPROVAL_TASK = "serviceManagerApprove";
     private static final Set<String> SERVICE_MANAGER_ROLES = Set.of(
+            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
     private static final Set<String> DURATION_FIELDS = Set.of(

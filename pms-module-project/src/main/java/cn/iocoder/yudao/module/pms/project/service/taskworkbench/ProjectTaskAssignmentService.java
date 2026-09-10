@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
@@ -61,8 +62,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class ProjectTaskAssignmentService {
 
-    private static final Set<String> SERVICE_MANAGER_ROLES = Set.of(
-            "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+    private static final Set<String> SERVICE_MANAGER_ROLES = ProjectMemberRoles.SERVICE_CODES;
     private static final Set<String> TERMINAL_STATUSES = Set.of("DONE", "CLOSED");
     private static final String ASSIGN_SCOPE = "POST:/api/v1/pms/project-tasks/{id}/actions/assign";
 
@@ -292,6 +292,7 @@ public class ProjectTaskAssignmentService {
         if (version == null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         treeScopeService.assertFullAccess(new ProjectScopeQuery(actor.tenantId(), actor.actorId(), project.getId(),
                 ProjectScopeApi.ACTION_MANAGE, version.getTreeVersion()));
+        if (treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) return;
         boolean allowedRole = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .anyMatch(item -> (Objects.equals(item.getProjectId(), project.getId())

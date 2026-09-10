@@ -31,7 +31,10 @@ const submit = async (root: TestNode) => {
   await nextTick()
 }
 const setup = (extra: Record<string, unknown> = {}) => mount(OrdinaryMemberForm,
-  { project: { id: 9, version: 3, departmentId: 25 }, primaryUserId: 55, ...extra }, { ElSelect: control, ElOption: control, ElInput: control })
+  { project: { id: 9, version: 3, departmentId: 25 }, primaryUserId: 55, ...extra }, {
+    ElSelect: control, ElOption: control, ElInput: control, ElCheckbox: control,
+    ElDescriptions: control, ElDescriptionsItem: control
+  })
 const currentMember = { id: 12, projectId: 9, userId: 40, memberRole: 'TEAM_MEMBER', memberName: '原人员',
   responsibility: '原职责', remark: '原备注', status: 'ACTIVE' }
 
@@ -53,6 +56,26 @@ describe('unified ordinary member form', () => {
       { userId: 40, memberRole: 'TEAM_MEMBER', responsibility: '', remark: '保留普通备注', reason: '现场支持', primary: undefined, scope: undefined }, 3, expect.any(String))
     app.unmount()
   })
+  it('service manager needs only role, person, primary and reason, and shows directory contacts', async () => {
+    vi.mocked(Members.getMemberCandidates).mockResolvedValue({ list: [{ id: 40, username: 'service',
+      nickname: '服务人员', mobile: '13800000000', email: 'service@example.test' }], total: 1 })
+    const { root, app } = setup()
+    await set(root, '项目角色', 'SERVICE_MANAGER')
+    const select = find(root, item => item.props?.['aria-label'] === '人员')!
+    await (select.props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    await set(root, '人员', 40)
+    await set(root, '设为当前角色主责', true)
+    await set(root, '调整原因', '统一角色加入')
+    expect(textOf(root)).toContain('service@example.test')
+    expect(textOf(root)).toContain('13800000000')
+    expect(find(root, item => item.props?.['aria-label'] === '服务经理层级')).toBeUndefined()
+    expect(find(root, item => item.props?.['aria-label'] === '实施站点')).toBeUndefined()
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined,
+      expect.objectContaining({ userId: 40, memberRole: 'SERVICE_MANAGER', primary: true }), 3, expect.any(String))
+    expect(vi.mocked(Members.saveMember).mock.calls[0][2].scope).toBeUndefined()
+    app.unmount()
+  })
   it('preserves intent key on network retries and changes it when input changes', async () => {
     vi.mocked(Members.saveMember).mockRejectedValue(new Error('timeout'))
     const { root, app } = setup()
@@ -72,11 +95,11 @@ describe('unified ordinary member form', () => {
     const { root, app } = setup({ member: currentMember })
     await nextTick(); await nextTick()
     expect(Members.getMemberCandidates).toHaveBeenCalledWith(9, { pageNo: 1, pageSize: 1, userId: 40, projectRole: 'TEAM_MEMBER' })
-    await set(root, '调整原因', '职责调整')
-    await set(root, '职责', '新职责')
+    await set(root, '调整原因', '备注调整')
+    await set(root, '备注', '新备注')
     await submit(root)
     expect(Members.saveMember).toHaveBeenCalledWith(9, 12,
-      expect.objectContaining({ userId: 40, responsibility: '新职责', remark: '原备注' }), 3, expect.any(String))
+      expect.objectContaining({ userId: 40, responsibility: '原职责', remark: '新备注' }), 3, expect.any(String))
     app.unmount()
   })
   it('rejoin creates a new interval and an unavailable former user cannot be submitted', async () => {

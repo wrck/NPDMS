@@ -7,9 +7,10 @@ import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipan
 /** PROJ项目资格与当前参与人只读权威事实。 */
 public interface ProjectParticipantFactApi {
 
-    String ROLE_PROJECT_MANAGER = "PROJECT_MANAGER";
-    String ROLE_SERVICE_MANAGER_L1 = "SERVICE_MANAGER_L1";
-    String ROLE_SERVICE_MANAGER_L2 = "SERVICE_MANAGER_L2";
+    String ROLE_PROJECT_MANAGER = ProjectMemberRoles.PROJECT_MANAGER;
+    String ROLE_SERVICE_MANAGER = ProjectMemberRoles.SERVICE_MANAGER;
+    String ROLE_SERVICE_MANAGER_L1 = ProjectMemberRoles.LEGACY_SERVICE_MANAGER_L1;
+    String ROLE_SERVICE_MANAGER_L2 = ProjectMemberRoles.LEGACY_SERVICE_MANAGER_L2;
 
     ProjectParticipantFact inspect(ProjectParticipantFactQuery query);
 

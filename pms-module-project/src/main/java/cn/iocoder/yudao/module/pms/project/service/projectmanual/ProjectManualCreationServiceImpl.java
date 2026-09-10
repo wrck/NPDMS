@@ -669,8 +669,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     private boolean isServiceManager(String memberRole) {
-        return ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1.equals(memberRole)
-                || ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2.equals(memberRole);
+        return cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.isServiceManager(memberRole);
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

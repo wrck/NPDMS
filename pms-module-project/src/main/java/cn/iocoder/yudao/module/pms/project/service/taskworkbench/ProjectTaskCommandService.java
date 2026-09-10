@@ -330,6 +330,7 @@ public class ProjectTaskCommandService {
         if (version == null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         treeScopeService.assertFullAccess(new ProjectScopeQuery(actor.tenantId(), actor.actorId(), project.getId(),
                 ProjectScopeApi.ACTION_MANAGE, version.getTreeVersion()));
+        if (treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) return;
         boolean manager = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .anyMatch(item -> Objects.equals(item.getProjectId(), project.getId())

@@ -32,10 +32,13 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
         var conditions = new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
                 .eq(ProjectMemberAssignmentDO::getTenantId, query.getTenantId())
                 .eq(ProjectMemberAssignmentDO::getProjectId, query.getProjectId())
-                .eqIfPresent(ProjectMemberAssignmentDO::getMemberRole, query.getRole())
                 .likeIfPresent(ProjectMemberAssignmentDO::getMemberName, query.getKeyword())
                 .orderByAsc(ProjectMemberAssignmentDO::getMemberName, ProjectMemberAssignmentDO::getMemberRole)
                 .orderByDesc(ProjectMemberAssignmentDO::getEffectiveFrom, ProjectMemberAssignmentDO::getId);
+        if (query.getRole() != null) {
+            conditions.in(ProjectMemberAssignmentDO::getMemberRole,
+                    cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.storedCodes(query.getRole()));
+        }
         if ("CURRENT".equals(query.getState())) {
             conditions.eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
                     .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)

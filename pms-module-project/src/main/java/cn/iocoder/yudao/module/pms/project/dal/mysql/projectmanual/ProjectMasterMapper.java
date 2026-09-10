@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessAttributeUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectManagerMemberUpdate;
@@ -21,6 +22,15 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    /** 仅返回当前租户未删除项目ID；业务分页继续沿用原分页查询。 */
+    default List<Long> selectTenantProjectIds(TenantProjectScopeQuery query) {
+        if (query == null || query.tenantId() == null) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .select(ProjectMasterDO::getId)
+                .eq(ProjectMasterDO::getTenantId, query.tenantId())
+                .orderByAsc(ProjectMasterDO::getId)).stream().map(ProjectMasterDO::getId).toList();
+    }
+
     int associateCustomerIfMissing(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectContactCustomerUpdate query);
     int updateEndDateIfMatch(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateUpdate query);
     ProjectMasterDO selectEndDateForUpdate(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateRowQuery query);

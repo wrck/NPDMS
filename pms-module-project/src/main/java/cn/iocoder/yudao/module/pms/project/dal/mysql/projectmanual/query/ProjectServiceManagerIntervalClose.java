@@ -8,4 +8,7 @@ public record ProjectServiceManagerIntervalClose(
         Long projectId,
         LocalDateTime closedAt,
         String updater) {
+    public java.util.Set<String> getServiceRoleCodes() {
+        return cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES;
+    }
 }

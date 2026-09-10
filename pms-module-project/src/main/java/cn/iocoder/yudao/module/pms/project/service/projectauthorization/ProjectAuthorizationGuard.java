@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectauthorization;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantDTO;
@@ -43,7 +44,7 @@ public class ProjectAuthorizationGuard {
     public static final String PERMISSION_MANAGE = "pms:project:authorization:manage";
     public static final String PERMISSION_REVOKE = "pms:project:authorization:revoke";
     private static final Set<String> SERVICE_MANAGER_ROLES =
-            Set.of("SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+            ProjectMemberRoles.SERVICE_CODES;
 
     private final PermissionApi permissionApi;
     private final ProjectMasterMapper projectMapper;
@@ -153,6 +154,8 @@ public class ProjectAuthorizationGuard {
     }
 
     private void requireServiceManagerRole(Actor actor) {
+        if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(actor.actorId(), "super_admin")) return;
         boolean matches = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .map(ProjectMemberAssignmentDO::getMemberRole)

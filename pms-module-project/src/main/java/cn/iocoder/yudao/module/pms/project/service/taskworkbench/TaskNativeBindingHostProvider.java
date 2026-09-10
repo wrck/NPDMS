@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -36,8 +37,7 @@ import java.util.Set;
 public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
 
     private static final String BINDING_TYPE = "TASK_NATIVE";
-    private static final Set<String> MANAGER_ROLES = Set.of(
-            "PROJECT_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final Map<String, String> ACTION_PERMISSIONS = Map.of(
             "ASSIGN", "pms:project-task:assign",
             "START", "pms:project-task:execute",
@@ -110,6 +110,14 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
     private Set<String> actorRoles(ProjectTaskInstanceDO task, ProjectTaskAssignmentDO assignment,
                                    TaskBindingInspectionQuery query) {
         Set<String> roles = new HashSet<>();
+        if (projectTreeScopeService.isTenantSuperAdmin(query.tenantId(), query.actorId())
+                && hasManageScope(task, query)) {
+            // 仅用于当前操作授权，不生成经理关系、责任指派或审批事实。
+            roles.addAll(Set.of("CURRENT_EFFECTIVE_ASSIGNEE",
+                    "CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_SERVICE_MANAGER_FOR_CROSS_REGION",
+                    "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER"));
+            return roles;
+        }
         if (assignment != null && Objects.equals(assignment.getAssigneeUserId(), query.actorId())) {
             roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
         }

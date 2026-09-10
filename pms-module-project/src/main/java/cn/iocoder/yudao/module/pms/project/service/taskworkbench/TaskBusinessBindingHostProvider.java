@@ -54,9 +54,11 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
         if (task == null || !Objects.equals(task.getProjectId(), context.projectId())) {
             return TaskBindingInspection.failed(bindingType(), "BINDING_FACT_UNKNOWN");
         }
-        boolean assignee = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
+        boolean superAdmin = Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(query.actorId(), "super_admin");
+        boolean assignee = superAdmin || assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
                 Set.of(task.getId()))).stream().anyMatch(row -> Objects.equals(row.getAssigneeUserId(), query.actorId()));
-        boolean manager = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(),
+        boolean manager = superAdmin || memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(),
                 query.actorId(), LocalDateTime.now())).stream().anyMatch(row ->
                 Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole()));
         Set<String> allowed = new HashSet<>();

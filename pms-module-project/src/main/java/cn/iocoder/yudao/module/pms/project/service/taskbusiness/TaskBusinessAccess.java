@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -47,7 +48,7 @@ class TaskBusinessAccess {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(tenantId, actorId, LocalDateTime.now()));
         boolean manager = memberships.stream().anyMatch(m -> Objects.equals(m.getProjectId(), task.getProjectId())
-                && Set.of("PROJECT_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2").contains(m.getMemberRole()));
+                && ProjectMemberRoles.MANAGEMENT_CODES.contains(m.getMemberRole()));
         if (!manager && !taskMapper.selectFullTaskIds(new TaskVisibilityQuery(tenantId, task.getProjectId(), actorId, false)).contains(taskId))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         return task;

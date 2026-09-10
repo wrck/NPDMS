@@ -40,6 +40,9 @@ public class AdminUserRespDTO {
      * 手机号码
      */
     private String mobile;
+
+    /** 用户主档邮箱。 */
+    private String email;
     /**
      * 用户头像
      */

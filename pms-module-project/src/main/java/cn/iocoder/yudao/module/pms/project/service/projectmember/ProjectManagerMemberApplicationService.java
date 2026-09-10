@@ -1,4 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmember;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -142,7 +143,7 @@ public class ProjectManagerMemberApplicationService {
         var selected = primary == null ? null : members.get(primary);
         boolean serviceManager = memberMapper.selectActiveForAssignmentState(
                 new ProjectAssignmentStateQuery(project.getId(), now)).stream().anyMatch(row ->
-                Set.of("SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2").contains(row.getMemberRole())
+                ProjectMemberRoles.SERVICE_CODES.contains(row.getMemberRole())
                         && (row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType())));
         String status = selected != null && serviceManager ? "ASSIGNED" : "UNASSIGNED";
         if (projectMapper.updateManagerMembersIfMatch(new ProjectManagerMemberUpdate(actor.tenantId(), project.getId(),

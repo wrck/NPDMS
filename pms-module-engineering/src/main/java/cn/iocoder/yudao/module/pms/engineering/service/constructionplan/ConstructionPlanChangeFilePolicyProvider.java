@@ -46,6 +46,7 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
             Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
     private static final Set<String> FILE_READER_ROLES = Set.of(
             ProjectParticipantFactApi.ROLE_PROJECT_MANAGER,
+            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
             ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
     private static final Set<String> MUTATING_ACTIONS = Set.of(

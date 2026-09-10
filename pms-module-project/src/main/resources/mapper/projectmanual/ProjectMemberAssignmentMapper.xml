@@ -151,7 +151,8 @@
             update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
-          AND member_role IN ('SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2')
+          AND member_role IN
+          <foreach collection="query.serviceRoleCodes" item="roleCode" open="(" separator="," close=")">#{roleCode}</foreach>
           AND (assignment_type IN ('PRIMARY', 'COLLABORATOR') OR assignment_type IS NULL)
           AND status = 'ACTIVE'
           AND deleted = b'0'
@@ -172,7 +173,9 @@
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
         SELECT * FROM proj_project_member_assignment
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
-          AND user_id = #{query.userId} AND member_role = #{query.memberRole}
+          AND user_id = #{query.userId}
+          AND member_role IN
+          <foreach collection="query.roleCodes" item="roleCode" open="(" separator="," close=")">#{roleCode}</foreach>
           AND status = 'ACTIVE' AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
           AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})

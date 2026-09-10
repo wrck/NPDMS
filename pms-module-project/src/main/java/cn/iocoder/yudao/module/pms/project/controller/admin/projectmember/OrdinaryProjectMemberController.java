@@ -32,22 +32,45 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class OrdinaryProjectMemberController {
     private final OrdinaryProjectMemberService members;
+    private final cn.iocoder.yudao.module.system.api.user.AdminUserApi users;
 
     @GetMapping("/{id}/members")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectMemberAssignmentRespVO>> page(@PathVariable("id") @Positive Long id,
             @Valid MemberPageRequest request) {
-        return success(BeanUtils.toBean(members.page(id, new Filter(request.getPageNo(), request.getPageSize(),
-                request.getState(), request.getRole(), request.getKeyword()), actor()), ProjectMemberAssignmentRespVO.class));
+        var page = BeanUtils.toBean(members.page(id, new Filter(request.getPageNo(), request.getPageSize(),
+                request.getState(), request.getRole(), request.getKeyword()), actor()), ProjectMemberAssignmentRespVO.class);
+        // 先由项目服务完成范围授权，只读取本页成员的联系方式，不读取任意人员列表。
+        if (!page.getList().isEmpty()) {
+            var people = users.getUserMap(page.getList().stream().map(ProjectMemberAssignmentRespVO::getUserId)
+                    .filter(java.util.Objects::nonNull).distinct().toList());
+            page.getList().forEach(member -> {
+                var person = people.get(member.getUserId());
+                if (person != null) {
+                    member.setMobile(person.getMobile());
+                    member.setEmail(person.getEmail());
+                }
+            });
+        }
+        return success(page);
     }
 
     @GetMapping("/{id}/member-candidates")
     @PreAuthorize("@ss.hasAnyPermissions('pms:project-team:create', 'pms:project:assign')")
-    public CommonResult<PageResult<ActiveUserSelectionApi.User>> candidates(@PathVariable("id") @Positive Long id,
+    public CommonResult<PageResult<MemberCandidate>> candidates(@PathVariable("id") @Positive Long id,
             @Valid CandidateRequest request) {
-        return success(members.candidates(id, new CandidateFilter(request.getPageNo(), request.getPageSize(),
-                request.getKeyword(), request.getUserId(), request.getProjectRole(), request.scope()), actor()));
+        var page = members.candidates(id, new CandidateFilter(request.getPageNo(), request.getPageSize(),
+                request.getKeyword(), request.getUserId(), request.getProjectRole(), request.scope()), actor());
+        if (page.getList().isEmpty()) return success(PageResult.empty());
+        var contacts = users.getUserMap(page.getList().stream().map(ActiveUserSelectionApi.User::id).toList());
+        return success(new PageResult<>(page.getList().stream().map(person -> {
+            var contact = contacts.get(person.id());
+            return new MemberCandidate(person.id(), person.username(), person.nickname(),
+                    contact == null ? null : contact.getMobile(), contact == null ? null : contact.getEmail());
+        }).toList(), page.getTotal()));
     }
+
+    public record MemberCandidate(Long id, String username, String nickname, String mobile, String email) { }
 
     @PostMapping("/{id}/members")
     @PreAuthorize("@ss.hasAnyPermissions('pms:project-team:create', 'pms:project:assign')")
