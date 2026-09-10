@@ -7,11 +7,7 @@
           <div class="project-title-row">
             <span class="project-code">{{ detail?.projectCode || '—' }}</span>
             <h2 class="project-name">{{ detail?.projectName || '未选择项目' }}</h2>
-            <dict-tag
-              v-if="detail?.status"
-              :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-              :value="detail.status ?? ''"
-            />
+            <ProjectStatusTag :project="detail" />
             <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info">
               模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
             </el-tag>
@@ -227,10 +223,7 @@
               detail.implementationLocation || '-'
             }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <dict-tag
-                :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-                :value="detail.status ?? ''"
-              />
+              <ProjectStatusTag :project="detail" />
             </el-descriptions-item>
             <el-descriptions-item label="创建来源">
               <dict-tag
@@ -457,6 +450,7 @@ import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
+import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
 import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
 import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'

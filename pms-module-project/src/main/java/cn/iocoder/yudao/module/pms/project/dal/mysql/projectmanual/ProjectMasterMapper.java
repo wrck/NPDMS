@@ -75,12 +75,16 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
         if (query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty()) {
             return PageResult.empty();
         }
+        boolean stageFilter = query.status() != null && query.status().matches("S[0-6]");
         return selectPage(query.pageParam(), new LambdaQueryWrapperX<ProjectMasterDO>()
                 .eq(ProjectMasterDO::getTenantId, query.tenantId())
                 .in(ProjectMasterDO::getId, query.visibleProjectIds())
                 .likeIfPresent(ProjectMasterDO::getProjectName, query.projectNameKeyword())
                 .likeRightIfPresent(ProjectMasterDO::getProjectCode, query.projectCodePrefix())
-                .eqIfPresent(ProjectMasterDO::getStatus, query.status())
+                .eq(stageFilter, ProjectMasterDO::getCurrentStage, query.status())
+                .eq(stageFilter, ProjectMasterDO::getLifecycleStatus, "ACTIVE")
+                .eq(!stageFilter && query.status() != null && !query.status().isBlank(),
+                        ProjectMasterDO::getLifecycleStatus, query.status())
                 .eqIfPresent(ProjectMasterDO::getSigningMethod, query.signingMethod())
                 .eqIfPresent(ProjectMasterDO::getProjectCategory, query.projectCategory())
                 .eqIfPresent(ProjectMasterDO::getImplementationMode, query.implementationMode())
