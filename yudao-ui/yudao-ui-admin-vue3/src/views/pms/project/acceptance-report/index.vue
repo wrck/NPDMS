@@ -1,67 +1,98 @@
 <template>
   <ContentWrap>
-    <header class="page-heading">
-      <div><h1>初验 / 终验报告</h1><p>管理不可变报告版本、附件历史与交付件归档状态。</p></div>
-      <el-button :loading="loading" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
-    </header>
-    <el-form :model="query" class="query-form" label-position="top" @submit.prevent>
+    <el-form :model="query" inline class="-mb-15px query-form" @submit.prevent>
       <el-form-item label="项目">
-        <PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['code', 'name']" value-field="id" query-field="name" placeholder="选择项目查看初验与终验" clearable class="project-select" />
+        <el-input v-if="scoped" :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" />
+        <PmsEntitySelect v-else v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="detailRef?.isDirty()" class="!w-220px" />
       </el-form-item>
-      <el-button type="primary" :disabled="!query.projectId" @click="load"><Icon icon="ep:search" />查询报告活动</el-button>
+      <el-form-item><el-button :loading="loading" :disabled="!validProject" @click="load"><Icon icon="ep:search" />查询报告活动</el-button></el-form-item>
     </el-form>
+    <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" />
   </ContentWrap>
 
   <ContentWrap>
     <el-skeleton v-if="loading" :rows="4" animated aria-label="正在加载验收报告活动" />
-    <el-empty v-else-if="!activities.length" description="请选择有权限的项目，或当前项目尚未形成初验/终验活动" />
-    <section v-else class="activity-grid" aria-label="验收报告活动列表">
-      <article v-for="item in activities" :key="item.id" class="activity-card">
-        <div class="activity-title"><div><span class="eyebrow">{{ typeLabel(item.acceptanceType) }}</span><h2>{{ typeLabel(item.acceptanceType) }}报告</h2></div><el-tag :type="item.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(item.activityStatus) }}</el-tag></div>
-        <dl><div><dt>项目任务</dt><dd>{{ item.projectTaskId }}</dd></div><div><dt>活动版本</dt><dd>{{ item.version }}</dd></div><div><dt>当前报告</dt><dd>{{ item.currentReportVersionId ? '已生效' : '未生效' }}</dd></div></dl>
-        <el-button type="primary" plain class="open-button" @click="detailRef?.open(item.id)">进入报告工作台</el-button>
-      </article>
-    </section>
+    <el-table v-else :data="activities" data-testid="acceptance-activities" aria-label="验收报告活动列表"
+      :empty-text="errorText ? '验收活动未加载成功' : validProject ? '当前可见范围暂无验收活动，不自动创建或判定完成' : '请选择有权限的项目'">
+      <el-table-column prop="id" label="活动编号" min-width="180" />
+      <el-table-column label="验收类型" width="110"><template #default="{ row }">{{ typeLabel(row.acceptanceType) }}</template></el-table-column>
+      <el-table-column label="活动状态" width="110"><template #default="{ row }"><el-tag :type="row.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(row.activityStatus) }}</el-tag></template></el-table-column>
+      <el-table-column prop="projectTaskId" label="来源任务" min-width="170" />
+      <el-table-column prop="version" label="活动版本" width="100" />
+      <el-table-column label="当前报告" width="110"><template #default="{ row }">{{ row.currentReportVersionId ? '已生效' : '未生效' }}</template></el-table-column>
+      <el-table-column label="操作" width="160" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="detailRef?.open(row.id)">进入报告工作台</el-button></template></el-table-column>
+    </el-table>
   </ContentWrap>
   <AcceptanceReportDetail ref="detailRef" @changed="load" />
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import * as ProjectApi from '@/api/pms/project/project'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
+import * as ProjectApi from '@/api/pms/project/projects'
 import * as ReportApi from '@/api/pms/project/acceptance-report'
 import type { AcceptanceActivityVO } from '@/api/pms/project/acceptance-report'
 import AcceptanceReportDetail from './detail.vue'
 
 defineOptions({ name: 'PmsAcceptanceReport' })
+const props = defineProps<{ projectId?: number; projectName?: string }>()
 const route = useRoute()
+const message = useMessage()
 const loading = ref(false)
+const errorText = ref('')
 const activities = ref<AcceptanceActivityVO[]>([])
 const detailRef = ref<InstanceType<typeof AcceptanceReportDetail>>()
 const query = reactive<{ projectId?: number }>({})
+const scoped = computed(() => props.projectId !== undefined)
+const effectiveProjectId = computed(() => scoped.value ? props.projectId : query.projectId)
+const validProject = computed(() => Number.isSafeInteger(effectiveProjectId.value) && Number(effectiveProjectId.value) > 0)
+let loadSequence = 0
+
+const requestLeave = () => {
+  if (!detailRef.value?.isDirty()) return true
+  message.warning('请先保存或关闭验收报告编辑，再切换页面。')
+  return false
+}
+onBeforeRouteLeave(requestLeave)
+onBeforeRouteUpdate(requestLeave)
 
 const load = async () => {
-  if (!query.projectId) { activities.value = []; return }
+  const sequence = ++loadSequence
+  errorText.value = ''
+  if (!validProject.value) {
+    activities.value = []
+    loading.value = false
+    if (scoped.value || effectiveProjectId.value !== undefined) errorText.value = '项目上下文无效，未查询其他项目。'
+    return
+  }
   loading.value = true
-  try { activities.value = await ReportApi.getActivities(query.projectId) } finally { loading.value = false }
+  try {
+    const result = await ReportApi.getActivities(effectiveProjectId.value)
+    if (sequence === loadSequence) activities.value = result
+  } catch {
+    if (sequence === loadSequence) errorText.value = '验收活动加载失败，请检查访问权限或重试；这不代表验收已完成。'
+  } finally { if (sequence === loadSequence) loading.value = false }
 }
 const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
 const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' })[status] || status
 
-onMounted(() => {
-  const projectId = Number(route.query.projectId)
-  if (Number.isSafeInteger(projectId) && projectId > 0) { query.projectId = projectId; load() }
-})
+watch(() => route.query.projectId, (value) => {
+  if (!scoped.value) query.projectId = value === undefined ? undefined : Number(value)
+}, { immediate: true })
+watch(effectiveProjectId, () => {
+  activities.value = []
+  detailRef.value?.close()
+  void load()
+}, { immediate: true })
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (!detailRef.value?.isDirty()) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => { loadSequence++; window.removeEventListener('beforeunload', beforeUnload) })
+defineExpose({ requestLeave })
 </script>
 
 <style scoped lang="scss">
-.page-heading, .query-form, .activity-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.page-heading h1 { margin: 0; font-size: 24px; color: var(--el-text-color-primary); }
-.page-heading p { margin: 6px 0 0; color: var(--el-text-color-secondary); }
-.query-form { justify-content: flex-start; margin-top: 20px; }.query-form :deep(.el-form-item) { margin-bottom: 0; }.project-select { width: min(440px, 100%); }
-.activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.activity-card { padding: 20px; border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-border-radius-base); background: var(--el-fill-color-blank); }
-.activity-title { align-items: flex-start; }.activity-title h2 { margin: 4px 0 0; font-size: 18px; color: var(--el-text-color-primary); }.eyebrow { font-size: 12px; color: var(--el-color-primary); }
-.activity-card dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }.activity-card dt { font-size: 12px; color: var(--el-text-color-secondary); }.activity-card dd { margin: 4px 0 0; color: var(--el-text-color-primary); }.open-button { width: 100%; }
-@media (width <= 767px) { .page-heading, .query-form { align-items: stretch; flex-direction: column; }.query-form .el-button { width: 100%; }.activity-grid { grid-template-columns: 1fr; }.activity-card dl { grid-template-columns: 1fr 1fr; } }
+@media (width <= 767px) { .query-form :deep(.el-form-item) { width: 100%; } }
 </style>

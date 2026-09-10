@@ -1,6 +1,7 @@
 <template>
   <el-drawer v-model="visible" :title="activity ? `${typeLabel(activity.acceptanceType)}报告` : '验收报告'" :size="narrow ? '100%' : '720px'">
     <el-skeleton v-if="loading" :rows="6" animated />
+    <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
     <template v-else-if="activity">
       <div class="detail-heading">
         <div><h2>{{ typeLabel(activity.acceptanceType) }}活动</h2><p>活动与报告版本独立；报告状态不会触发或反推验收范围绑定。</p></div>
@@ -47,6 +48,9 @@ const message = useMessage()
 const narrow = useMediaQuery('(width <= 767px)')
 const visible = ref(false)
 const loading = ref(false)
+const errorText = ref('')
+const revoking = ref(false)
+let loadSequence = 0
 const activity = ref<AcceptanceActivityVO>()
 const versions = ref<AcceptanceReportVersionVO[]>([])
 const editorRef = ref<InstanceType<typeof ReportDraftEditor>>()
@@ -57,22 +61,36 @@ const draft = computed(() => versions.value.find((item) => item.reportStatus ===
 
 const open = async (id: number) => { visible.value = true; activity.value = undefined; versions.value = []; await load(id) }
 const load = async (id: number) => {
+  const sequence = ++loadSequence
   loading.value = true
-  try { [activity.value, versions.value] = await Promise.all([ReportApi.getActivity(id), ReportApi.getReportVersions(id)]) } finally { loading.value = false }
+  errorText.value = ''
+  try {
+    const [currentActivity, currentVersions] = await Promise.all([ReportApi.getActivity(id), ReportApi.getReportVersions(id)])
+    if (sequence === loadSequence) { activity.value = currentActivity; versions.value = currentVersions }
+  } catch {
+    if (sequence === loadSequence) errorText.value = '验收报告详情加载失败，请关闭后重试。'
+  } finally { if (sequence === loadSequence) loading.value = false }
 }
 const reload = async () => { if (!activity.value) return; await load(activity.value.id); emit('changed') }
 const openEditor = () => { if (activity.value) editorRef.value?.open(activity.value, draft.value) }
 const revoke = async () => {
-  if (!activity.value || !current.value) return
-  await message.confirm('撤销后不会恢复旧版本，确认继续？')
-  await ReportApi.revokeCurrentVersion(activity.value, current.value, revokeKey.value)
-  revokeKey.value = crypto.randomUUID()
-  message.success('当前报告版本已撤销')
-  await reload()
+  if (revoking.value || !activity.value || !current.value) return
+  revoking.value = true
+  try {
+    await message.confirm('撤销后不会恢复旧版本，确认继续？')
+    await ReportApi.revokeCurrentVersion(activity.value, current.value, revokeKey.value)
+    revokeKey.value = crypto.randomUUID()
+    message.success('当前报告版本已撤销')
+    await reload()
+  } finally { revoking.value = false }
 }
 const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
 const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' })[status] || status
-defineExpose({ open })
+defineExpose({
+  open,
+  close: () => { loadSequence++; visible.value = false; activity.value = undefined; versions.value = [] },
+  isDirty: () => revoking.value || !!editorRef.value?.isDirty()
+})
 </script>
 
 <style scoped lang="scss">

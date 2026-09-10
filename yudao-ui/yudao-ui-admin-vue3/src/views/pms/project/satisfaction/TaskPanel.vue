@@ -1,20 +1,18 @@
 <template>
-  <div class="panel-heading">
-    <div
-      ><h2>满意度采集任务</h2
-      ><p>指派责任人、创建一次性受控链接，或由当前责任人现场协助提交。</p></div
-    >
-    <div class="toolbar"
-      ><el-input-number
+  <el-form inline class="-mb-15px satisfaction-query">
+    <el-form-item label="项目">
+      <el-input-number
         v-if="!context.scoped"
         v-model="projectId"
         :min="1"
         controls-position="right"
         placeholder="项目ID"
-      /><el-tag v-else>项目 {{ props.projectId }}</el-tag
-      ><el-button :loading="loading" @click="load">查询</el-button></div
-    >
-  </div>
+        class="!w-220px"
+      />
+      <el-input v-else :model-value="`项目 #${props.projectId}`" disabled class="!w-220px" />
+    </el-form-item>
+    <el-form-item><el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button></el-form-item>
+  </el-form>
   <el-alert
     v-if="!context.valid"
     title="项目上下文无效，未查询其他项目。"
@@ -23,7 +21,7 @@
   />
   <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
   <el-skeleton v-else-if="loading" :rows="4" animated />
-  <el-empty v-else-if="!tasks.length" description="当前范围内暂无满意度任务" />
+  <el-empty v-else-if="!tasks.length" description="当前可见范围暂无满意度任务；任务由配置的业务时点初始化。" />
   <el-table v-else :data="tasks" stripe>
     <el-table-column prop="id" label="任务ID" min-width="150" />
     <el-table-column prop="projectId" label="项目ID" min-width="150" />
@@ -464,25 +462,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.panel-heading h2 {
-  margin: 0;
-  font-size: 18px;
-}
-.panel-heading p {
-  margin: 4px 0 0;
-  color: var(--el-text-color-secondary);
-}
-.toolbar {
-  display: flex;
-  gap: 8px;
-}
 .grant-result {
   display: grid;
   justify-items: center;
@@ -492,14 +471,8 @@ defineExpose({
   margin-top: 16px;
 }
 @media (width <= 767px) {
-  .panel-heading {
-    flex-direction: column;
-  }
-  .toolbar {
+  .satisfaction-query :deep(.el-form-item) {
     width: 100%;
-  }
-  .toolbar > * {
-    flex: 1;
   }
 }
 </style>

@@ -1,16 +1,6 @@
 <template>
   <ContentWrap>
-    <header class="page-heading">
-      <div>
-        <h1>{{ scoped ? '项目满意度' : '满意度管理' }}</h1>
-        <p>{{
-          scoped
-            ? '办理当前项目的采集任务，查看判定和归档结果。'
-            : '配置问卷、推进采集任务，并查看不可变判定与归档结果。'
-        }}</p>
-      </div>
-    </header>
-    <el-tabs v-model="activeTab" class="workbench-tabs">
+    <el-tabs v-model="activeTab">
       <el-tab-pane v-if="!scoped && !props.readonly" label="问卷模板" name="templates"
         ><TemplatePanel
       /></el-tab-pane>
@@ -35,7 +25,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { useMessage } from '@/hooks/web/useMessage'
 import TemplatePanel from './TemplatePanel.vue'
 import TaskPanel from './TaskPanel.vue'
 import ResultPanel from './ResultPanel.vue'
@@ -50,6 +42,22 @@ const taskRef = ref<InstanceType<typeof TaskPanel>>()
 const resultRef = ref<InstanceType<typeof ResultPanel>>()
 const taskDirty = ref(false)
 const resultDirty = ref(false)
+const message = useMessage()
+const requestLeave = () => {
+  if (!taskDirty.value && !resultDirty.value) return true
+  message.warning('请先完成或关闭满意度操作，再切换页面。')
+  return false
+}
+// https://router.vuejs.org/guide/advanced/composition-api.html#navigation-guards
+onBeforeRouteLeave(requestLeave)
+onBeforeRouteUpdate(requestLeave)
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (!taskDirty.value && !resultDirty.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 watch(
   () => taskDirty.value || resultDirty.value,
   (value) => emit('dirty-change', value)
@@ -61,6 +69,7 @@ watch(
   }
 )
 defineExpose({
+  requestLeave,
   isDirty: () => taskDirty.value || resultDirty.value,
   discardChanges: () => {
     if (taskRef.value?.discardChanges() === false) return false
@@ -68,18 +77,3 @@ defineExpose({
   }
 })
 </script>
-
-<style scoped lang="scss">
-.page-heading h1 {
-  margin: 0;
-  color: var(--el-text-color-primary);
-  font-size: 24px;
-}
-.page-heading p {
-  margin: 6px 0 0;
-  color: var(--el-text-color-secondary);
-}
-.workbench-tabs {
-  margin-top: 16px;
-}
-</style>

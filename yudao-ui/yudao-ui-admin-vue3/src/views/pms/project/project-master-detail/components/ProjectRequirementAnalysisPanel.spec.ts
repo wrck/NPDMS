@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ProjectRequirementAnalysisPanel from './ProjectRequirementAnalysisPanel.vue'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
-import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf, findByTestId, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const formLifecycle = vi.hoisted(() => ({
   reload: undefined as undefined | (() => Promise<unknown>),
@@ -72,13 +72,14 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
     } as any
     vi.mocked(RequirementAnalysisApi.getCurrent).mockResolvedValue(initial)
     vi.mocked(RequirementAnalysisApi.getDetail).mockResolvedValue(original)
-    const mounted = mount(ProjectRequirementAnalysisPanel, { project: { id: 7 } })
+    const mounted = mount(ProjectRequirementAnalysisPanel, { project: { id: 7 } }, { ElTable: passthrough, ElTableColumn: tableColumn, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, ElInput: passthrough })
+    const summaryVersion = () => (findByTestId(mounted.root, 'requirement-version-table')!.props!.data as any[])[0].contentVersion
     const flush = async () => {
       for (let i = 0; i < 6; i++) await nextTick()
     }
     try {
       await flush()
-      expect(textOf(mounted.root)).toContain('内容版本 1')
+      expect(summaryVersion()).toBe(1)
       expect(formLifecycle.mounts).toBe(1)
       const updated = { ...original, contentVersion: 2, version: 2 }
       let finishOverview!: (value: any) => void
@@ -96,7 +97,7 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
       finishOverview({ ...initial, draft: updated })
       await pending
       await flush()
-      expect(textOf(mounted.root)).toContain('内容版本 2')
+      expect(summaryVersion()).toBe(2)
       expect(textOf(mounted.root)).toContain('正文版本 2')
       expect(formLifecycle.mounts).toBe(1)
       vi.mocked(RequirementAnalysisApi.getCurrent).mockRejectedValueOnce(
@@ -108,7 +109,7 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
       })
       await expect(formLifecycle.reload!()).rejects.toThrow('overview unavailable')
       await flush()
-      expect(textOf(mounted.root)).toContain('内容版本 2')
+      expect(summaryVersion()).toBe(2)
       expect(textOf(mounted.root)).toContain('正文版本 2')
       expect(formLifecycle.unmounts).toBe(0)
     } finally {
@@ -134,7 +135,7 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
     expect(panel).toContain('overview.value?.allowedActions || []')
     expect(panel).toContain('detail.value?.allowedActions || []')
     expect(runtime).toContain("allowedActions.includes('PATCH_FORM')")
-    expect(runtime).toContain('模板已由项目工作绑定自动确定')
+    expect(runtime).not.toContain('getTemplateSelection')
     expect(runtime).not.toContain('选择模板')
     expect(panel).not.toMatch(/isProjectManager|currentUserRole|managerUserId/)
   })

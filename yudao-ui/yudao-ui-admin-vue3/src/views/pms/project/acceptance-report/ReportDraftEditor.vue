@@ -116,7 +116,7 @@ const publish = async () => {
 }
 
 const typeLabel = (type?: string) => (type === 'FINAL' ? '终验' : '初验')
-defineExpose({ open })
+defineExpose({ open, isDirty: () => visible.value || saving.value || publishing.value })
 </script>
 
 <style scoped lang="scss">

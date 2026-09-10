@@ -13,6 +13,13 @@ const oldBackwardPage = read('../../schedule-backward/index.vue')
 const oldChangePage = read('../../plan-change/index.vue')
 
 describe('F-SOL-001 project duration panel', () => {
+  it('reuses native query and table presentation instead of custom summary cards', () => {
+    expect(panel).toContain('inline class="-mb-15px duration-query"')
+    expect(panel).toContain('data-testid="duration-current-revision"')
+    expect(panel).not.toContain('summary-grid')
+    expect(panel).not.toContain('panel-heading')
+    expect(panel).not.toContain('<h3>')
+  })
   it('uses the locked construction plan routes and concurrency headers', () => {
     expect(api).toContain("const baseUrl = '/api/v1/pms/construction-plans'")
     expect(api).toContain("'Idempotency-Key': idempotencyKey")
@@ -74,7 +81,11 @@ describe('F-SOL-001 project duration panel', () => {
       expect(component).not.toMatch(/#[0-9a-f]{3,8}\b/i)
     }
     expect(panel).toMatch(/var\(--el-(?:text|border|fill|color)-/)
-    expect(history).toMatch(/var\(--el-(?:text|border|fill|color)-/)
+    expect(history).toContain('<el-table :data="revisions"')
+    expect(history).toContain('<el-table :data="changes"')
+    expect(history).not.toContain('change-card')
+    expect(form).toContain('label-width="120px"')
+    expect(form).not.toContain('label-position="top"')
     expect(panel).toContain('@media (width <= 1023px)')
     expect(panel).toContain('@media (width <= 767px)')
     expect(form).toContain("narrow.value ? '100%' : '560px'")

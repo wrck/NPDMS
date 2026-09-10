@@ -89,6 +89,19 @@
           </button>
         </div>
         <div class="rail-stage">
+          <div class="rail-stage-title">验收交维</div>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
+            @click="switchTab('satisfaction')" v-hasPermi="['pms:acceptance:satisfaction:query']">
+            <Icon icon="ep:chat-dot-round" class="rail-icon" />
+            <span class="rail-label">满意度</span>
+          </button>
+          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
+            @click="switchTab('acceptance-reports')" v-hasPermi="['pms:acceptance:report:query']">
+            <Icon icon="ep:document-checked" class="rail-icon" />
+            <span class="rail-label">验收报告</span>
+          </button>
+        </div>
+        <div class="rail-stage">
           <div class="rail-stage-title">项目拆分</div>
           <button
             class="rail-item"
@@ -364,83 +377,102 @@
           <el-empty v-else description="暂无成员" />
         </ContentWrap>
 
-        <ProjectTaskPanel
-          v-if="detail?.id && visitedTabs.has('tasks')"
-          v-show="activeTab === 'tasks'"
-          :project-id="detail.id"
-          @tree-version="treeVersion = $event"
-        />
+        <div v-if="detail?.id && visitedTabs.has('tasks')" v-show="activeTab === 'tasks'" class="min-w-0" data-testid="project-pane-tasks">
+          <ProjectTaskPanel
+            :project-id="detail.id"
+            @tree-version="treeVersion = $event"
+          />
+        </div>
 
-        <ProjectStageGatePanel
-          v-if="detail?.id && visitedTabs.has('stage-gates')"
-          v-show="activeTab === 'stage-gates'"
-          :project-id="detail.id"
-          @advanced="handleStageAdvanced"
-        />
+        <div v-if="detail?.id && visitedTabs.has('stage-gates')" v-show="activeTab === 'stage-gates'" class="min-w-0" data-testid="project-pane-stage-gates">
+          <ProjectStageGatePanel
+            :project-id="detail.id"
+            @advanced="handleStageAdvanced"
+          />
+        </div>
 
-        <ProjectCustomerContacts v-if="detail?.id && visitedTabs.has('customer-contacts')"
-          v-show="activeTab === 'customer-contacts'" :key="`contacts-${detail.id}`" :project-id="detail.id" @changed="handleContactsChanged" />
-        <ProjectDurationPanel
-          v-if="detail?.id && visitedTabs.has('duration')"
-          v-show="activeTab === 'duration'"
-          :project="detail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('customer-contacts')" v-show="activeTab === 'customer-contacts'" class="min-w-0" data-testid="project-pane-customer-contacts">
+          <ProjectCustomerContacts :key="`contacts-${detail.id}`" :project-id="detail.id" @changed="handleContactsChanged" />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('duration')" v-show="activeTab === 'duration'" class="min-w-0" data-testid="project-pane-duration">
+          <ProjectDurationPanel
+            :project="detail"
+          />
+        </div>
 
-        <ProjectSiteSurveyPanel
-          v-if="detail?.id && visitedTabs.has('preparation')"
-          v-show="activeTab === 'preparation'"
-          :key="detail.id"
-          :project-id="detail.id"
-          @saved="loadDetail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('preparation')" v-show="activeTab === 'preparation'" class="min-w-0" data-testid="project-pane-preparation">
+          <ProjectSiteSurveyPanel
+            :key="detail.id"
+            :project-id="detail.id"
+            @saved="loadDetail"
+          />
+        </div>
 
-        <ProjectRequirementAnalysisPanel
-          v-if="detail?.id && visitedTabs.has('requirement-analysis')"
-          v-show="activeTab === 'requirement-analysis'"
-          :project="detail"
-        />
+        <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
+          <ProjectRequirementAnalysisPanel
+            :project="detail"
+          />
+        </div>
 
-        <ProjectSplitWizard
-          v-if="detail?.id && visitedTabs.has('split')"
-          v-show="activeTab === 'split'"
-          :project-id="detail.id"
-          @applied="treeRefreshKey++"
-        />
-        <ProjectTreePanel
-          v-if="detail?.id && visitedTabs.has('tree')"
-          :key="treeRefreshKey"
-          v-show="activeTab === 'tree'"
-          :project-id="detail.id"
-          @tree-version="treeVersion = $event"
-        />
-        <ProjectProgressPanel
-          v-if="detail?.id && visitedTabs.has('progress')"
-          v-show="activeTab === 'progress'"
-          :project-id="detail.id"
-          :tree-version="treeVersion"
-        />
-        <ProjectClosureGuardPanel
-          v-if="detail?.id && visitedTabs.has('closure')"
-          v-show="activeTab === 'closure'"
-          :project-id="detail.id"
-          :tree-version="treeVersion"
-        />
-        <ProjectAuthorizationPanel
-          v-if="detail?.id && visitedTabs.has('authorization')"
-          v-show="activeTab === 'authorization'"
-          :project-id="detail.id"
-        />
-        <ProjectGovernancePanel
-          v-if="detail?.id && visitedTabs.has('governance')"
-          v-show="activeTab === 'governance'"
-          :project="detail"
-          @updated="loadAll"
-        />
-        <ProjectServiceManagerPanel
-          v-if="detail?.id && visitedTabs.has('service-managers')"
-          v-show="activeTab === 'service-managers'"
-          :project-id="detail.id"
-        />
+        <div v-if="detail?.id && visitedTabs.has('satisfaction')" v-show="activeTab === 'satisfaction'" class="min-w-0" data-testid="project-pane-satisfaction">
+          <SatisfactionWorkbench
+            :key="`satisfaction-${detail.id}`"
+            ref="satisfactionRef"
+            :project-id="detail.id"
+          />
+        </div>
+
+        <div v-if="detail?.id && visitedTabs.has('acceptance-reports')" v-show="activeTab === 'acceptance-reports'" class="min-w-0" data-testid="project-pane-acceptance-reports">
+          <AcceptanceReportWorkbench
+            :key="`acceptance-${detail.id}`"
+            ref="acceptanceReportRef"
+            :project-id="detail.id"
+            :project-name="detail.projectName"
+          />
+        </div>
+
+        <div v-if="detail?.id && visitedTabs.has('split')" v-show="activeTab === 'split'" class="min-w-0" data-testid="project-pane-split">
+          <ProjectSplitWizard
+            :project-id="detail.id"
+            @applied="treeRefreshKey++"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('tree')" v-show="activeTab === 'tree'" class="min-w-0" data-testid="project-pane-tree">
+          <ProjectTreePanel
+            :key="treeRefreshKey"
+            :project-id="detail.id"
+            @tree-version="treeVersion = $event"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
+          <ProjectProgressPanel
+            :project-id="detail.id"
+            :tree-version="treeVersion"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
+          <ProjectClosureGuardPanel
+            :project-id="detail.id"
+            :project-name="detail.projectName"
+            :tree-version="treeVersion"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('authorization')" v-show="activeTab === 'authorization'" class="min-w-0" data-testid="project-pane-authorization">
+          <ProjectAuthorizationPanel
+            :project-id="detail.id"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('governance')" v-show="activeTab === 'governance'" class="min-w-0" data-testid="project-pane-governance">
+          <ProjectGovernancePanel
+            :project="detail"
+            @updated="loadAll"
+          />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('service-managers')" v-show="activeTab === 'service-managers'" class="min-w-0" data-testid="project-pane-service-managers">
+          <ProjectServiceManagerPanel
+            :project-id="detail.id"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -468,6 +500,8 @@ import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
+import SatisfactionWorkbench from '@/views/pms/project/satisfaction/index.vue'
+import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
@@ -491,6 +525,8 @@ const members = ref<ProjectMemberAssignmentVO[]>([])
 const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
+const satisfactionRef = ref<InstanceType<typeof SatisfactionWorkbench>>()
+const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>()
 
 const requestedTab = [
   'tasks',
@@ -498,7 +534,9 @@ const requestedTab = [
   'duration',
   'preparation',
   'customer-contacts',
-  'requirement-analysis'
+  'requirement-analysis',
+  'satisfaction',
+  'acceptance-reports'
 ].includes(String(route.query.tab))
   ? String(route.query.tab)
   : 'base'
@@ -519,6 +557,8 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 const switchTab = (key: string) => {
+  if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
+  if (key !== activeTab.value && acceptanceReportRef.value?.requestLeave() === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }

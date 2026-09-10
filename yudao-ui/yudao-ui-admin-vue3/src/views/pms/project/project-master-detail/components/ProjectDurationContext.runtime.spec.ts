@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref, type Component } from 'vue'
-import { mount, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, tableColumn, findByTestId } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import Panel from './ProjectDurationPanel.vue'
 import Drawer from './ProjectDurationFormDrawer.vue'
 
@@ -83,7 +83,7 @@ const flush = async () => {
 }
 const apps: { unmount: () => void }[] = []
 const render = (component: Component, readonly = false, id: number | undefined = 1) => {
-  const props = reactive({ project: { id, version: 7, projectEndDate: undefined as string | undefined }, readonly })
+  const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
   const stubs = Object.fromEntries(
@@ -98,9 +98,9 @@ const render = (component: Component, readonly = false, id: number | undefined =
       'ElInput'
     ].map((name) => [name, passthrough])
   )
-  const { app } = mount(wrapper, {}, stubs)
+  const { app, root } = mount(wrapper, {}, { ...stubs, ElTable: passthrough, ElTableColumn: tableColumn })
   apps.push(app)
-  return { props, child, state: () => child.value.$.setupState }
+  return { props, child, root, state: () => child.value.$.setupState }
 }
 
 beforeEach(() => {
@@ -110,6 +110,13 @@ beforeEach(() => {
   api.getChange.mockResolvedValue(change())
   message.confirm.mockResolvedValue(undefined)
   message.prompt.mockResolvedValue({ value: '测试撤回原因' })
+})
+
+it('shows the real current revision in the original-style table', async () => {
+  const mounted = render(Panel)
+  await flush()
+  expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
+  expect(findByTestId(mounted.root, 'duration-project-name')?.props?.['model-value']).toBe('主线工期验收项目')
 })
 
 it('uses the survey project deadline to derive the submitted initial date range', async () => {

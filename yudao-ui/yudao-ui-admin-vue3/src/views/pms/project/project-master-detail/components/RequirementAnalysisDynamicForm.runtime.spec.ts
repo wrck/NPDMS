@@ -194,7 +194,8 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
       }
     )
     await nextTick()
-    expect(textOf(mounted.root)).toContain('表单修订 3')
+    expect((findByTestId(mounted.root, 'form-create-runtime')!.props!.rule as any[]).map(rule => rule.field))
+      .toEqual(detail().formRulesJson.map((rule: any) => rule.field))
     expect(textOf(mounted.root)).not.toContain('选择模板')
     expect(findByTestId(mounted.root, 'form-create-runtime')).toBeTruthy()
     expect(

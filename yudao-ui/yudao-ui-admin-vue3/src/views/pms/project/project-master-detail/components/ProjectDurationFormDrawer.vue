@@ -7,7 +7,7 @@
       :closable="false"
       class="form-alert"
     />
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="!canWrite">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
       <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
         title="按工勘登记的项目结束日期倒排。自然日包含首尾两天；此处不会回写项目结束日期。" />
       <el-form-item v-if="!project.projectEndDate" label="计算口径" prop="calculationBasis">
@@ -17,7 +17,7 @@
         </el-radio-group>
       </el-form-item>
       <div v-if="project.projectEndDate" class="date-grid">
-        <el-form-item label="项目结束日期（工勘要求）">
+        <el-form-item label="工勘结束日期">
           <el-input :model-value="project.projectEndDate" readonly />
         </el-form-item>
         <el-form-item label="自然日天数" prop="durationDays">
@@ -486,9 +486,7 @@ defineExpose({
 }
 
 .date-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: block;
 }
 
 .evidence-section {
@@ -522,10 +520,4 @@ defineExpose({
   width: 100%;
 }
 
-@media (width <= 767px) {
-  .date-grid {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
 </style>

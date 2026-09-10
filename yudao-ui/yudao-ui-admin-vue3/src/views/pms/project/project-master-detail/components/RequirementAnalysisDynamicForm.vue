@@ -1,33 +1,5 @@
 <template>
   <section class="requirement-form-shell" aria-label="需求分析动态表单">
-    <header class="form-header">
-      <div>
-        <strong>需求分析正文 · V{{ detail.businessVersion }}</strong>
-        <p>
-          正文版本 {{ detail.contentVersion }} · 表单修订 {{ detail.dynamicFormRevisionNo }} ·
-          文件上下文版本 {{ detail.dynamicFormInstanceVersion }}
-        </p>
-      </div>
-      <div class="form-actions">
-        <el-button
-          v-if="editable"
-          data-testid="save-requirement-form"
-          :loading="saving"
-          type="primary"
-          @click="save"
-        >
-          保存需求分析
-        </el-button>
-      </div>
-    </header>
-
-    <el-alert
-      title="模板已由项目工作绑定自动确定"
-      description="表单只负责展示与编辑，数据通过需求分析实体接口加载和保存；当前版本始终使用冻结修订。"
-      type="info"
-      :closable="false"
-      show-icon
-    />
     <div v-form-create-keyboard-rows="!editable" class="form-host">
       <form-create
         v-model="values"
@@ -36,6 +8,10 @@
         :rule="render.rule"
         :disabled="!editable"
       />
+    </div>
+    <div class="form-actions mt-15px">
+      <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" type="primary" @click="save">保存需求分析</el-button>
+      <span v-else>该完成版本正文和附件已冻结，只能查看或对比。</span>
     </div>
   </section>
 </template>
@@ -241,38 +217,20 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 }
 .requirement-form-shell,
 .form-host {
-  display: grid;
   min-width: 0;
-  gap: 14px;
 }
 
-.form-header,
 .form-actions {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.form-header {
-  justify-content: space-between;
-}
-
-.form-header p {
-  margin: 4px 0 0;
-  color: var(--el-text-color-secondary);
-}
-
 .form-host {
-  width: min(1080px, 100%);
-  margin: 0 auto;
+  width: 100%;
 }
 
 @media (width <= 767px) {
-  .form-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .form-actions,
   .form-actions :deep(.el-button) {
     width: 100%;

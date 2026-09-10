@@ -2,38 +2,27 @@
   <el-drawer v-model="visible" title="项目工期历史" :size="drawerSize" destroy-on-close>
     <el-tabs v-model="activeTab">
       <el-tab-pane label="工期版本" name="revisions">
-        <el-timeline v-if="revisions.length">
-          <el-timeline-item v-for="item in revisions" :key="item.revisionId" :timestamp="formatTime(item.createdAt)">
-            <div class="history-title">
-              <strong>版本 {{ item.revisionNo }}</strong>
-              <el-tag v-if="item.current" type="success" size="small">当前生效</el-tag>
-            </div>
-            <div class="history-facts">
-              <span>{{ basisLabel(item.calculationBasis) }}</span>
-              <span>{{ item.startDate }} 至 {{ item.endDate }}</span>
-              <span>{{ item.durationDays }} 个自然日</span>
-            </div>
-          </el-timeline-item>
-        </el-timeline>
-        <el-empty v-else description="暂无工期版本" />
+        <el-table :data="revisions" data-testid="duration-history-revisions" empty-text="暂无工期版本">
+          <el-table-column prop="revisionNo" label="版本" width="80" />
+          <el-table-column label="状态" width="110"><template #default="{ row }">{{ row.current ? '当前生效' : '历史版本' }}</template></el-table-column>
+          <el-table-column label="计算口径" min-width="140"><template #default="{ row }">{{ basisLabel(row.calculationBasis) }}</template></el-table-column>
+          <el-table-column prop="startDate" label="开始日期" min-width="130" />
+          <el-table-column prop="endDate" label="结束日期" min-width="130" />
+          <el-table-column prop="durationDays" label="自然日天数" width="110" />
+          <el-table-column label="创建时间" min-width="170"><template #default="{ row }">{{ formatTime(row.createdAt) }}</template></el-table-column>
+        </el-table>
         <el-button v-if="revisionHasMore" class="load-more" :loading="loading" @click="loadRevisions(false)">加载更多</el-button>
       </el-tab-pane>
       <el-tab-pane label="变更记录" name="changes">
-        <div v-if="changes.length" class="change-list">
-          <article v-for="item in changes" :key="item.changeId" class="change-card">
-            <div class="history-title">
-              <strong>变更 #{{ item.changeId }}</strong>
-              <el-tag :type="statusType(item.status)" size="small">{{ statusLabel(item.status) }}</el-tag>
-            </div>
-            <div class="history-facts">
-              <span>候选版本 {{ item.candidateRevision.revisionNo }}</span>
-              <span>{{ item.candidateRevision.startDate }} 至 {{ item.candidateRevision.endDate }}</span>
-              <span>{{ item.candidateRevision.durationDays }} 个自然日</span>
-              <span>原因：{{ item.reasonDetail || item.reasonType }}</span>
-            </div>
-          </article>
-        </div>
-        <el-empty v-else description="暂无变更记录" />
+        <el-table :data="changes" data-testid="duration-history-changes" empty-text="暂无变更记录">
+          <el-table-column prop="changeId" label="变更编号" min-width="160" />
+          <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+          <el-table-column prop="candidateRevision.revisionNo" label="候选版本" width="100" />
+          <el-table-column prop="candidateRevision.startDate" label="开始日期" min-width="130" />
+          <el-table-column prop="candidateRevision.endDate" label="结束日期" min-width="130" />
+          <el-table-column prop="candidateRevision.durationDays" label="自然日天数" width="110" />
+          <el-table-column label="变更原因" min-width="180" show-overflow-tooltip><template #default="{ row }">{{ row.reasonDetail || row.reasonType }}</template></el-table-column>
+        </el-table>
         <el-button v-if="changeHasMore" class="load-more" :loading="loading" @click="loadChanges(false)">加载更多</el-button>
       </el-tab-pane>
     </el-tabs>
@@ -111,32 +100,6 @@ defineExpose({ open })
 </script>
 
 <style scoped lang="scss">
-.history-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.history-facts {
-  display: grid;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  gap: 4px;
-}
-
-.change-list {
-  display: grid;
-  gap: 10px;
-}
-
-.change-card {
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-border-radius-base);
-}
-
 .load-more {
   width: 100%;
   margin-top: 12px;
