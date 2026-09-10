@@ -24,6 +24,13 @@ describe('F-PROJ-008 project stage gate workspace', () => {
     expect(panel).not.toContain('processDefinitionVersion')
   })
 
+  it('explains S0 responsibility blockers and never describes the graph terminal as project closure', () => {
+    expect(panel).toContain('guidanceLabel(readiness.guidance)')
+    expect(panel).toContain('S0_PRIMARY_SERVICE_MANAGER_REQUIRED')
+    expect(panel).toContain('S0_PRIMARY_PROJECT_MANAGER_REQUIRED')
+    expect(panel).toContain('阶段结束不等于项目闭环')
+  })
+
   it('renders ordered owner facts and lets the server decide available actions', () => {
     expect(panel).toContain('readiness.gates')
     expect(panel).toContain('gate.references')

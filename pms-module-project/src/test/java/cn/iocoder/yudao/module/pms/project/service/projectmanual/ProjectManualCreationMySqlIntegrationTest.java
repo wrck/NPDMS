@@ -458,6 +458,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             MybatisPlusJoinAutoConfiguration.class,
             SpringUtil.class,
             ProjectManualCreationApplicationService.class,
+            ProjectServiceManagerCandidateValidator.class,
             PlatformCommandExecutionApiImpl.class,
             cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
             PlatformOutboxDeliveryApiImpl.class,

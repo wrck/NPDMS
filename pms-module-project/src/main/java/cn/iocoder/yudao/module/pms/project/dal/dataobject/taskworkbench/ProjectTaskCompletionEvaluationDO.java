@@ -29,6 +29,7 @@ public class ProjectTaskCompletionEvaluationDO extends TenantBaseDO {
     private String factObjectKey;
     private Long factVersion;
     private String gateSnapshotRef;
+    private String businessFactsJson;
     private Long evaluatedBy;
     private LocalDateTime evaluatedAt;
     private Integer version;

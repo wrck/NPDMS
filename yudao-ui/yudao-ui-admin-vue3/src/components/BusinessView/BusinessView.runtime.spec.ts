@@ -1,7 +1,8 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
-import { resolveBusinessView, type BusinessViewTarget } from './registry'
+import { businessViewTargetKey, resolveBusinessView, type BusinessViewTarget } from './registry'
+import SiteSurveyPage from '@/views/pms/engineering/site-survey/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis'
 import {
@@ -11,6 +12,10 @@ import {
   findByTestId
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
+// The custom renderer has no DOM; keyboard/ARIA integration is covered by its DOM suite.
+vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
+vi.mock('@/views/pms/engineering/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
+vi.mock('@/views/pms/project/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
 const confirm = vi.hoisted(() => vi.fn(async (): Promise<void> => undefined))
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ confirm, warning: vi.fn(), success: vi.fn(), info: vi.fn() })
@@ -141,6 +146,33 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it('maps only the exact SOL site-survey page and preserves typed Owner context without numeric conversion', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'SOL_SITE_SURVEY', entityType: 'SITE_SURVEY' })
+    data.resolvedContext = { project: { id: '2099999999999999999' } as any, businessObjectId: '2099999999999999998', taskId: '2099999999999999997' }
+    data.allowedActions = ['QUERY', 'UPDATE']
+    const resolved = resolveBusinessView(data)
+    expect(resolved.component).toBe(SiteSurveyPage)
+    expect(resolved.props).toEqual({ projectId: '2099999999999999999', objectId: '2099999999999999998', taskId: '2099999999999999997', readonly: false, allowedActions: ['QUERY', 'UPDATE'] })
+    for (const patch of [{ componentVersion: '2' }, { ownerContext: 'PROJ' }, { entityType: 'OTHER' }, { viewSource: 'DYNAMIC_FORM' }, { dynamicFormRevisionId: 20 }]) {
+      expect(resolveBusinessView({ ...data, registration: { ...data.registration, ...patch } as any }).error).toBeTruthy()
+    }
+    const key = businessViewTargetKey(data)
+    for (const context of [{ businessObjectId: 11 }, { taskId: 12 }]) {
+      expect(businessViewTargetKey({ ...data, resolvedContext: { ...data.resolvedContext, ...context } })).not.toBe(key)
+    }
+    expect(resolveBusinessView({ ...data, resolvedContext: { ...data.resolvedContext, taskId: '2e18' } }).error).toBeTruthy()
+    data.registration.status = 'DISABLED'
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+  })
+  it('maps exact acceptance report identity without granting missing publish permission', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, {componentKey:'ACC_ACCEPTANCE_REPORT', ownerContext:'ACC', entityType:'ACCEPTANCE'})
+    data.resolvedContext={project:{id:'9007199254740993'},businessObjectId:'9007199254740994'}
+    data.allowedActions=['QUERY','UPDATE']
+    expect(resolveBusinessView(data).props).toEqual({projectId:'9007199254740993',objectId:'9007199254740994',readonly:false,allowedActions:['QUERY','UPDATE']})
+    expect(resolveBusinessView({...data,registration:{...data.registration,ownerContext:'SOL'}}).error).toBeTruthy()
+  })
   it('loads and saves a Snowflake form ID without losing a decimal digit', async () => {
     const id = '2099999999999999999'
     const revisionId = '2099999999999999998'

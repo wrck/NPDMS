@@ -4,11 +4,15 @@ import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platf
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
+import SiteSurveyPage from '@/views/pms/engineering/site-survey/index.vue'
+import AcceptanceReportPage from '@/views/pms/project/acceptance-report/index.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
   project?: Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }
   instanceId?: BusinessViewId
+  businessObjectId?: BusinessViewId
+  taskId?: BusinessViewId
 }
 export interface BusinessViewTarget {
   registration: BusinessViewRegistrationVO
@@ -28,6 +32,39 @@ interface Adapter {
 const positiveId = isBusinessViewId
 // Add new dedicated pages here plus their Owner provider. No URL, import path or script from metadata.
 const adapters: readonly Adapter[] = [
+  {
+    componentKey: 'ACC_ACCEPTANCE_REPORT',
+    componentVersion: '1',
+    entityType: 'ACCEPTANCE',
+    ownerContext: 'ACC',
+    viewSource: 'PAGE',
+    component: markRaw(AcceptanceReportPage),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null &&
+      positiveId(resolvedContext.project?.id) &&
+      (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId }
+        : undefined
+  },
+  {
+    componentKey: 'SOL_SITE_SURVEY',
+    componentVersion: '1',
+    entityType: 'SITE_SURVEY',
+    ownerContext: 'SOL',
+    viewSource: 'PAGE',
+    component: markRaw(SiteSurveyPage),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null &&
+      positiveId(resolvedContext.project?.id) &&
+      (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId)) &&
+      (resolvedContext.taskId == null || positiveId(resolvedContext.taskId))
+        ? {
+            projectId: resolvedContext.project.id,
+            objectId: resolvedContext.businessObjectId,
+            taskId: resolvedContext.taskId
+          }
+        : undefined
+  },
   {
     componentKey: 'PROJ_REQUIREMENT_ANALYSIS',
     componentVersion: '1',
@@ -94,5 +131,7 @@ export const businessViewTargetKey = (target: BusinessViewTarget) =>
     target.registration.viewSource,
     target.registration.dynamicFormRevisionId,
     target.resolvedContext.project?.id,
-    target.resolvedContext.instanceId
+    target.resolvedContext.instanceId,
+    target.resolvedContext.businessObjectId,
+    target.resolvedContext.taskId
   ])

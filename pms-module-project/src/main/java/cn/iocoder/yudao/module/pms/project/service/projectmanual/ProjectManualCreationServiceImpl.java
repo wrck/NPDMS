@@ -105,6 +105,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectMasterMapper projectMasterMapper;
     @Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer runtimeGraphFreezer;
+    @Resource
     private ProjectStageInstanceMapper stageInstanceMapper;
     @Resource
     private ProjectTaskInstanceMapper taskInstanceMapper;
@@ -189,6 +191,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
         // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
         TemplateInstantiator.requireSingleS0(content);
+        runtimeGraphFreezer.validate(content);
         LocalDateTime instantiationTime = LocalDateTime.now();
         Long trustedTenantId = draft.getTenantId();
         if (trustedTenantId == null || trustedTenantId < 0) {
@@ -259,7 +262,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(
                 content, draft.getId(), stateMachineRevision.getId(), IdWorker::getId);
-        insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
+        instantiation.getStages().forEach(stage -> {
+            stage.setTenantId(trustedTenantId);
+            stageInstanceMapper.insert(stage);
+        });
+        runtimeGraphFreezer.freeze(trustedTenantId, draft.getId(), selected.revisionId(), content,
+                instantiation.getStages(), instantiationTime);
         freezeSatisfactionFacts(draft, instantiation);
         // 任务ID已在落库前确定；先写完整任务集合，再写闭包和一任务一当前执行契约。
         instantiation.getTasks().forEach(taskInstanceMapper::insert);
@@ -273,7 +281,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             if (definition == null) {
                 throw new IllegalArgumentException("模板任务定义不存在：" + task.getTaskCode());
             }
-            AcceptanceTaskMapping acceptanceMapping = acceptanceTaskMapping(task.getTaskCode());
+            // Exact published definitions own binding semantics; task codes do not create ACC obligations.
+            AcceptanceTaskMapping acceptanceMapping = definition.getDefinitionRevisionId() == null
+                    ? acceptanceTaskMapping(task.getTaskCode()) : null;
             if (acceptanceMapping != null) {
                 pendingAcceptanceContracts.add(new PendingAcceptanceContract(task.getId(), definition,
                         IdWorker.getId(), acceptanceMapping));
@@ -281,6 +291,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             }
             ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
                     task.getId(), definition.getId(), definition, instantiationTime);
+            contract.setDefinitionSnapshot(JsonUtils.toJsonString(content.getDefinitionSnapshot()));
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
         }

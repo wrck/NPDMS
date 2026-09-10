@@ -12,6 +12,15 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface SiteSurveyMapper extends BaseMapperX<SiteSurveyDO> {
+    java.util.List<SiteSurveyDO> selectTaskCandidates(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyTaskCandidateQuery query);
+
+    SiteSurveyDO selectTaskObject(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyTaskObjectQuery query);
+
+    SiteSurveyDO selectTaskObjectForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyTaskObjectQuery query);
+
     int deleteDraft(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyMutation query);
 

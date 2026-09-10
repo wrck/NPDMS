@@ -25,6 +25,10 @@ public class TaskExecutionContractFactory {
         ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
         contract.setProjectTaskId(projectTaskId);
         contract.setTemplateTaskDefinitionId(templateTaskDefinitionId);
+        contract.setDefinitionRevisionId(definition.getDefinitionRevisionId());
+        contract.setWorkBindingRevisionId(definition.getWorkBindingRevisionId());
+        contract.setPermissionPolicyRevisionId(definition.getPermissionPolicyRevisionId());
+        contract.setCompletionRuleRevisionId(definition.getCompletionRuleRevisionId());
         contract.setWorkBindingTypeCode(definition.getWorkBindingTypeCode());
         contract.setTargetContextCode(definition.getTargetContextCode());
         contract.setTargetObjectType(definition.getTargetObjectType());

@@ -141,6 +141,16 @@ public class TemplateDefinitionReferenceAssembler {
             return;
         }
         String predicate = rule.path("predicate").asText();
+        if ("BUSINESS_FACT".equals(predicate)) {
+            // A fact code is resolved only against the consuming contract's Owner/type at runtime;
+            // it is not a task/refCode and must never be aliased to an implementation-readiness fact.
+            try {
+                DeliveryDefinitionPayloadValidator.rule(rule);
+            } catch (IllegalArgumentException invalid) {
+                throw exception(REFERENCE_INVALID, path + ": " + invalid.getMessage());
+            }
+            return;
+        }
         Set<String> configuredTargets = targets.get(predicate);
         // Native predicates use the consuming node; BPM facts retain their existing Owner validation.
         if (configuredTargets == null) return;

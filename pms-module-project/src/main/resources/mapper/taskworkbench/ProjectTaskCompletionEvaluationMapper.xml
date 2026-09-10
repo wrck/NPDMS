@@ -8,7 +8,7 @@
             (id, project_task_id, execution_contract_id, task_version, contract_version,
              evaluation_result_code, unmet_items_json, command_id, idempotency_key,
              fact_context_code, fact_object_type, fact_object_key, fact_version,
-             gate_snapshot_ref, evaluated_by, evaluated_at, version, creator, updater, tenant_id)
+             gate_snapshot_ref, business_facts_json, evaluated_by, evaluated_at, version, creator, updater, tenant_id)
         VALUES
             (#{evaluation.id}, #{evaluation.projectTaskId}, #{evaluation.executionContractId},
              #{evaluation.taskVersion}, #{evaluation.contractVersion},
@@ -16,7 +16,7 @@
              #{evaluation.commandId}, #{evaluation.idempotencyKey},
              #{evaluation.factContextCode}, #{evaluation.factObjectType},
              #{evaluation.factObjectKey}, #{evaluation.factVersion},
-             #{evaluation.gateSnapshotRef}, #{evaluation.evaluatedBy},
+             #{evaluation.gateSnapshotRef}, #{evaluation.businessFactsJson}, #{evaluation.evaluatedBy},
              #{evaluation.evaluatedAt}, #{evaluation.version}, #{evaluation.creator},
              #{evaluation.updater}, #{evaluation.tenantId})
     </insert>

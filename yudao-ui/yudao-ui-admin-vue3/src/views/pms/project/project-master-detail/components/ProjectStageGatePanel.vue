@@ -23,7 +23,7 @@
 
       <el-alert
         v-if="readiness.guidance"
-        :title="readiness.guidance"
+        :title="guidanceLabel(readiness.guidance)"
         :type="readiness.advanceAllowed ? 'success' : 'info'"
         :closable="false"
         show-icon
@@ -145,6 +145,13 @@ defineOptions({ name: 'ProjectStageGatePanel' })
 const props = defineProps<{ projectId: number }>()
 const emit = defineEmits<{ advanced: [] }>()
 const message = useMessage()
+const guidanceLabel = (code: string) => ({
+  S0_PRIMARY_MANAGERS_REQUIRED: '请先完成主责服务经理和主责项目经理指派，S0不能直接准出。',
+  S0_PRIMARY_SERVICE_MANAGER_REQUIRED: '尚未指派有效主责服务经理，请先完成服务经理指派。',
+  S0_PRIMARY_PROJECT_MANAGER_REQUIRED: '尚未指派有效主责项目经理，请先完成项目经理指派。',
+  S0_ASSIGNMENT_STATUS_NOT_ASSIGNED: '双主责指派事实与项目指派状态不一致，请重新核对成员指派。',
+  TERMINAL: '已到达模板的最后实际阶段。阶段结束不等于项目闭环，请按闭环条件申请审批。'
+}[code] || code)
 
 const loading = ref(false)
 const advancing = ref(false)

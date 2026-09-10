@@ -4,9 +4,10 @@
       <div><h1>初验 / 终验报告</h1><p>管理不可变报告版本、附件历史与交付件归档状态。</p></div>
       <el-button :loading="loading" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
     </header>
+    <el-alert v-if="embedded" title="报告发布/附件办理尚未接入当前任务上下文，请从原业务入口处理" type="info" :closable="false" show-icon />
     <el-form :model="query" class="query-form" label-position="top" @submit.prevent>
       <el-form-item label="项目">
-        <PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['code', 'name']" value-field="id" query-field="name" placeholder="选择项目查看初验与终验" clearable class="project-select" />
+        <PmsEntitySelect v-model="query.projectId" :disabled="projectId !== undefined" :api="ProjectApi.getProjectPage" :label-field="['code', 'name']" value-field="id" query-field="name" placeholder="选择项目查看初验与终验" clearable class="project-select" />
       </el-form-item>
       <el-button type="primary" :disabled="!query.projectId" @click="load"><Icon icon="ep:search" />查询报告活动</el-button>
     </el-form>
@@ -19,39 +20,92 @@
       <article v-for="item in activities" :key="item.id" class="activity-card">
         <div class="activity-title"><div><span class="eyebrow">{{ typeLabel(item.acceptanceType) }}</span><h2>{{ typeLabel(item.acceptanceType) }}报告</h2></div><el-tag :type="item.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(item.activityStatus) }}</el-tag></div>
         <dl><div><dt>项目任务</dt><dd>{{ item.projectTaskId }}</dd></div><div><dt>活动版本</dt><dd>{{ item.version }}</dd></div><div><dt>当前报告</dt><dd>{{ item.currentReportVersionId ? '已生效' : '未生效' }}</dd></div></dl>
-        <el-button type="primary" plain class="open-button" @click="detailRef?.open(item.id)">进入报告工作台</el-button>
+        <el-button type="primary" plain class="open-button" @click="openDetail(item.id)">进入报告工作台</el-button>
       </article>
     </section>
   </ContentWrap>
-  <AcceptanceReportDetail ref="detailRef" @changed="load" />
+  <AcceptanceReportDetail ref="detailRef" :readonly="readonly || contextBlocked" :allowed-actions="allowedActions" @changed="changed" @dirty-change="emit('dirty-change', $event)" />
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
+import { checkPermi } from '@/utils/permission'
+import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as ReportApi from '@/api/pms/project/acceptance-report'
 import type { AcceptanceActivityVO } from '@/api/pms/project/acceptance-report'
 import AcceptanceReportDetail from './detail.vue'
 
 defineOptions({ name: 'PmsAcceptanceReport' })
+const props = defineProps<{ projectId?: number | string; objectId?: number | string; readonly?: boolean; allowedActions?: string[] }>()
+const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const route = useRoute()
 const loading = ref(false)
 const activities = ref<AcceptanceActivityVO[]>([])
 const detailRef = ref<InstanceType<typeof AcceptanceReportDetail>>()
-const query = reactive<{ projectId?: number }>({})
-
-const load = async () => {
-  if (!query.projectId) { activities.value = []; return }
-  loading.value = true
-  try { activities.value = await ReportApi.getActivities(query.projectId) } finally { loading.value = false }
+const query = reactive<{ projectId?: BusinessViewId }>({})
+const embedded = computed(() => props.projectId !== undefined || props.objectId !== undefined || props.allowedActions !== undefined)
+const contextBlocked = ref(false)
+let listSequence = 0
+let switchSequence = 0
+let activeProject: BusinessViewId | undefined
+let activeObject: BusinessViewId | undefined
+const canQuery = () => (props.allowedActions === undefined || props.allowedActions.includes('QUERY')) && checkPermi(['pms:acceptance:report:query'])
+const requestLeave = async () => await detailRef.value?.requestLeave() ?? true
+const discardChanges = () => {
+  if (detailRef.value?.discardChanges() === false) return false
+  listSequence++
+  emit('dirty-change', false)
+  return true
 }
-const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
-const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' })[status] || status
-
+const openDetail = async (id: BusinessViewId) => {
+  if (contextBlocked.value || !canQuery() || !isBusinessViewId(activeProject)) return false
+  return await detailRef.value?.open(id, activeProject)
+}
+const load = async () => {
+  const token = ++listSequence
+  const project = activeProject
+  if (!isBusinessViewId(project) || contextBlocked.value || !canQuery()) { activities.value = []; loading.value = false; return }
+  loading.value = true
+  try {
+    const result = await ReportApi.getActivities(legacyOwnerId(project))
+    if (token !== listSequence || !canQuery()) return
+    activities.value = result.filter(item => sameBusinessViewId(item.projectId, project))
+  } finally { if (token === listSequence) loading.value = false }
+}
+const changed = () => { emit('changed'); void load() }
+const contextKey = () => [String(props.projectId ?? query.projectId ?? ''), String(props.objectId ?? '')].join('|')
+const switchContext = async () => {
+  const token = ++switchSequence
+  const project = props.projectId ?? query.projectId
+  const object = props.objectId
+  if (sameBusinessViewId(project, activeProject) && String(object ?? '') === String(activeObject ?? '')) {
+    contextBlocked.value = false
+    return
+  }
+  listSequence++
+  if (!(await requestLeave()) || token !== switchSequence) { if (token === switchSequence) contextBlocked.value = true; return }
+  if (!discardChanges()) { contextBlocked.value = true; return }
+  activeProject = project
+  activeObject = object
+  contextBlocked.value = !isBusinessViewId(project) || (object !== undefined && !isBusinessViewId(object))
+  activities.value = []
+  loading.value = false
+  if (contextBlocked.value) return
+  await load()
+  if (token === switchSequence && isBusinessViewId(object)) await openDetail(object)
+}
+watch(() => props.projectId, value => { if (value !== undefined) query.projectId = value }, { immediate: true })
+watch(contextKey, switchContext)
 onMounted(() => {
-  const projectId = Number(route.query.projectId)
-  if (Number.isSafeInteger(projectId) && projectId > 0) { query.projectId = projectId; load() }
+  if (props.projectId === undefined && isBusinessViewId(route.query.projectId)) query.projectId = route.query.projectId
+  else void switchContext()
 })
+onBeforeRouteLeave(requestLeave)
+onBeforeUnmount(() => { listSequence++; switchSequence++ })
+const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
+const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' } as Record<string, string>)[status] || status
+defineExpose({ requestLeave, discardChanges, isDirty: () => detailRef.value?.isDirty() ?? false })
 </script>
 
 <style scoped lang="scss">

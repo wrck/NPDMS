@@ -51,6 +51,10 @@ public class ProjectStageInstanceDO extends TenantBaseDO {
      * 冻结来源：模板阶段定义ID（proj_project_template_stage_definition；内容模型无定义行 ID 时为 NULL）
      */
     private Long sourceDefinitionId;
+    private Long definitionRevisionId;
+    private Long graphVersion;
+    private Boolean startNode;
+    private Boolean terminalNode;
     /**
      * 阶段实例状态（字典 pms_project_stage_status：PENDING/ACTIVE/DONE，实例化时最小 sort_order 阶段置 ACTIVE）
      */
