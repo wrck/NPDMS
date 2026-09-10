@@ -73,7 +73,7 @@ const baseUrl = '/pms/equipment'
 
 export const getEquipmentPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
-export const getEquipment = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })
+export const getEquipment = (id: number | string) => request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createEquipment = (data: EquipmentSaveReqVO) =>
   request.post({ url: `${baseUrl}/create`, data })
 export const updateEquipment = (data: EquipmentSaveReqVO) =>
@@ -82,7 +82,7 @@ export const deleteEquipment = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const changeEquipmentStatus = (data: EquipmentStatusChangeReqVO) =>
   request.put({ url: `${baseUrl}/status-change`, data })
-export const getEquipmentVersionList = (equipmentId: number) =>
+export const getEquipmentVersionList = (equipmentId: number | string) =>
   request.get({ url: `${baseUrl}/version/list`, params: { equipmentId } })
 export const getEquipmentConfigLogPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/config-log/page`, params })
