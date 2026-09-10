@@ -36,7 +36,7 @@ public class PlatformDynamicFormBusinessViewProvider implements BusinessViewComp
                 "PLATFORM_DYNAMIC_FORM", "1",
                 JsonUtils.parseTree("{\"type\":\"object\",\"properties\":{\"instanceId\":{\"oneOf\":[{\"type\":\"integer\",\"minimum\":1},{\"type\":\"string\",\"pattern\":\"^[1-9][0-9]*$\"}]}},\"required\":[\"instanceId\"]}"),
                 JsonUtils.parseTree("[\"QUERY_INSTANCE\",\"PATCH_INSTANCE\"]"),
-                "PLATFORM_DYNAMIC_FORM_QUERY", "PLATFORM_DYNAMIC_FORM_COMMAND", "PLATFORM_DYNAMIC_FORM_PERMISSION");
+                "PLATFORM_DYNAMIC_FORM_QUERY", "PLATFORM_DYNAMIC_FORM_COMMAND", "PLATFORM_DYNAMIC_FORM_PERMISSION", "动态表单");
     }
 
     @Override

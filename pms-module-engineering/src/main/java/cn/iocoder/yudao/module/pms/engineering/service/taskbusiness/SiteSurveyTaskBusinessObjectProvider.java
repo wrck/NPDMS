@@ -47,6 +47,11 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     public Set<String> completionFactCodes() { return Set.of("SURVEY_CONFIRMED", "SURVEY_ARCHIVED"); }
 
     @Override
+    public Map<String, String> completionFactLabels() {
+        return Map.of("SURVEY_CONFIRMED", "工勘记录已确认（不等同实施就绪）", "SURVEY_ARCHIVED", "工勘记录已归档");
+    }
+
+    @Override
     public Set<String> inspectContext(Context context) {
         requireQuery(context);
         if (hasScope(context, ProjectScopeApi.ACTION_MANAGE)

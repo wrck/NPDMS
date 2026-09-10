@@ -100,7 +100,7 @@ class BusinessViewApplicationTest {
     private Component component() {
         return new Component("REQUIREMENT_ANALYSIS", "SOL", ViewSource.PAGE, "PROJ_REQUIREMENT_ANALYSIS", "1",
                 JsonUtils.parseTree("{\"type\":\"object\"}"), JsonUtils.parseTree("[\"VIEW\",\"EDIT\"]"),
-                "SOL_QUERY", "SOL_COMMAND", "SOL_PERMISSION");
+                "SOL_QUERY", "SOL_COMMAND", "SOL_PERMISSION", "需求分析页面");
     }
     private BusinessViewApplicationService.Selection selection(String viewKey) {
         return new BusinessViewApplicationService.Selection("REQUIREMENT_ANALYSIS", viewKey, "PROJ_REQUIREMENT_ANALYSIS", "1", null);

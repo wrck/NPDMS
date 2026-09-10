@@ -24,13 +24,20 @@ export const relationsFor = (
   (content.transitions ?? []).filter(
     (edge) => (direction === 'from' ? edge.fromStageCode : edge.toStageCode) === code
   )
+const nextTransitionCode = (content: TemplateDefinitionContent, seed: string) => {
+  const used = new Set((content.transitions ?? []).map((edge) => edge.transitionCode))
+  const base = `TR_${(seed || 'EDGE').replace(/[^A-Za-z0-9_]/g, '').toUpperCase()}`
+  let index = 1
+  while (used.has(`${base}_${index}`)) index++
+  return `${base}_${index}`
+}
 export const addRelation = (
   content: TemplateDefinitionContent,
   code = '',
   direction: 'from' | 'to' = 'from'
 ) => {
   const edge: StageTransition = {
-    transitionCode: '',
+    transitionCode: nextTransitionCode(content, code),
     fromStageCode: direction === 'from' ? code : '',
     toStageCode: direction === 'to' ? code : '',
     priority: 0,

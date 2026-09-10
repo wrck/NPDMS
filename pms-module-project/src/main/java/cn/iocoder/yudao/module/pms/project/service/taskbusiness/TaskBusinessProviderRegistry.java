@@ -6,10 +6,25 @@ import java.util.List;
 
 @Component
 public class TaskBusinessProviderRegistry {
+    /** Configuration-time directory entry; labels only, never an authorization or a fact claim. */
+    public record CompletionFactCatalogEntry(String ownerContext, String objectType, String factCode, String label) { }
+
     private final List<TaskBusinessObjectProvider> providers;
     public TaskBusinessProviderRegistry(List<TaskBusinessObjectProvider> providers) {
         this.providers = List.copyOf(providers);
     }
+
+    /** Directory of every completion fact declared by deployed Owner beans, for template configuration UIs. */
+    public List<CompletionFactCatalogEntry> completionFactCatalog() {
+        return providers.stream()
+                .flatMap(provider -> provider.completionFactCodes().stream().map(code -> {
+                    var labels = provider.completionFactLabels();
+                    return new CompletionFactCatalogEntry(provider.ownerContext(), provider.objectType(), code,
+                            labels == null ? code : labels.getOrDefault(code, code));
+                }))
+                .toList();
+    }
+
     /** Independent rule publication: at least one unambiguous registered Owner declares the fact. */
     public boolean supportsCompletionFact(String factCode) {
         return factCode != null && providers.stream().anyMatch(p -> p.completionFactCodes().contains(factCode)

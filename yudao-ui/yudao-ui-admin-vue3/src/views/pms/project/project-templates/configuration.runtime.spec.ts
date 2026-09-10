@@ -151,7 +151,9 @@ describe('PM-03 explicit graph and exact selections', () => {
     expect(textOf(mounted.root)).toContain('未提供关系图')
     expect(history.stages).toHaveLength(1)
     await click(mounted.root, '新增关系')
-    expect(content.transitions).toEqual([{ transitionCode: '', fromStageCode: '', toStageCode: '', priority: 0, default: false, revisionNo: 1 }])
+    // A unique transition code is pre-generated from the known endpoint (here: none selected),
+    // so an explicit edge never relies on the user inventing a code before saving.
+    expect(content.transitions).toEqual([{ transitionCode: 'TR_EDGE_1', fromStageCode: '', toStageCode: '', priority: 0, default: false, revisionNo: 1 }])
     expect(content.stages).toHaveLength(1)
     expect(history).not.toHaveProperty('transitions')
     mounted.app.unmount()

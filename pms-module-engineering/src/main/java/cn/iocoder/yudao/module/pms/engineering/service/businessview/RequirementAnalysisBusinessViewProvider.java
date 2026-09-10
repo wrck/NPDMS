@@ -28,7 +28,7 @@ public class RequirementAnalysisBusinessViewProvider implements BusinessViewComp
                         """),
                 JsonUtils.parseTree("[\"CREATE_INITIAL_DRAFT\",\"PATCH_FORM\",\"COMPLETE\",\"CREATE_DRAFT\"]"),
                 "SOL_REQUIREMENT_ANALYSIS_QUERY", "SOL_REQUIREMENT_ANALYSIS_COMMAND",
-                "SOL_REQUIREMENT_ANALYSIS_PERMISSION");
+                "SOL_REQUIREMENT_ANALYSIS_PERMISSION", "需求分析页面");
     }
 
     @Override

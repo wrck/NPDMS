@@ -161,6 +161,13 @@ export interface MatchRespVO {
   matched?: MatchCandidateVO
   conflicts: string[]
 }
+/** 部署Owner声明的完成事实目录条目；仅配置展示，不构成授权或完成断言。 */
+export interface CompletionFactCatalogVO {
+  ownerContext: string
+  objectType: string
+  factCode: string
+  label: string
+}
 
 export const templateSaveContent = (content: TemplateDefinitionContent): TemplateDefinitionContent =>
   JSON.parse(JSON.stringify(content, (key, value) =>
@@ -183,3 +190,5 @@ export const copyProjectTemplate = (id: number, version: number, data: TemplateC
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
 export const matchPreview = (data: MatchPreviewReqVO) => request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
+export const getCompletionFactCatalog = () =>
+  request.get<CompletionFactCatalogVO[]>({ url: `${baseUrl}/actions/completion-fact-catalog` })
