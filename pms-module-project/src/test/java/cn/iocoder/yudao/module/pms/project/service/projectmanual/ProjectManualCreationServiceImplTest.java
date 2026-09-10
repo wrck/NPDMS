@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectG
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO;
@@ -42,6 +43,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
@@ -80,6 +82,7 @@ import static org.mockito.Mockito.when;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_FIELD_IMMUTABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
@@ -99,6 +102,8 @@ class ProjectManualCreationServiceImplTest {
 
     @Mock
     private ProjectMasterMapper projectMasterMapper;
+    @Mock
+    private ProjectRuntimeGraphFreezer runtimeGraphFreezer;
     @Mock
     private ProjectStageInstanceMapper stageInstanceMapper;
     @Mock
@@ -296,8 +301,13 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(100L, updateCaptor.getValue().getRootId());
         assertEquals(100L, created.getCodeRootId());
 
-        // 五要素实例化批量落库
-        verify(stageInstanceMapper).insertBatch(anyCollection());
+        // 阶段逐条回填ID后冻结运行图，其余实例化语义保留。
+        ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
+        verify(stageInstanceMapper).insert(stageCaptor.capture());
+        assertEquals(100L, stageCaptor.getValue().getProjectId());
+        assertEquals("S0", stageCaptor.getValue().getStageCode());
+        verify(runtimeGraphFreezer).validate(content);
+        verify(runtimeGraphFreezer).freeze(eq(1L), eq(100L), eq(revisionId), eq(content), any(), any());
         ArgumentCaptor<ProjectTaskInstanceDO> taskCaptor = ArgumentCaptor.forClass(ProjectTaskInstanceDO.class);
         verify(taskInstanceMapper).insert(taskCaptor.capture());
         assertEquals(992005100001L, taskCaptor.getValue().getAccSatisfactionTemplateId());
@@ -411,7 +421,10 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(1, created.getLifecycleTemplateRevisionNo());
         assertEquals(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT, created.getTemplateLoadMethod());
         // V1.8模板必须含S0，且只有S0阶段实例落库。
-        verify(stageInstanceMapper).insertBatch(anyCollection());
+        ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
+        verify(stageInstanceMapper).insert(stageCaptor.capture());
+        assertEquals(101L, stageCaptor.getValue().getProjectId());
+        assertEquals("S0", stageCaptor.getValue().getStageCode());
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
     }
 
@@ -615,6 +628,70 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(current.getProjectCategory(), saved.getProjectCategory());
         assertEquals(current.getImplementationMode(), saved.getImplementationMode());
         assertEquals(current.getMajorProjectLevel(), saved.getMajorProjectLevel());
+    }
+
+    @Test
+    void linkedCustomerCannotBeChangedByOrdinaryUpdate() {
+        ProjectMasterDO current = persistedProject();
+        current.setCustomerId(81L);
+        current.setCustomerCode("CUS-001");
+        current.setCustomerName("主档客户");
+        when(projectMasterMapper.selectById(100L)).thenReturn(current);
+        allowScope(100L, "PROJECT_MANAGE");
+
+        for (int field = 0; field < 3; field++) {
+            ProjectMasterDO update = new ProjectMasterDO();
+            update.setId(100L);
+            if (field == 0) update.setCustomerId(82L);
+            if (field == 1) update.setCustomerCode("CUS-002");
+            if (field == 2) update.setCustomerName("自由填写名称");
+            ServiceException failure = assertThrows(ServiceException.class,
+                    () -> service.updateProject(update,
+                            new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
+            assertEquals(PROJECT_FIELD_IMMUTABLE.getCode(), failure.getCode());
+        }
+        verify(projectMasterMapper, never()).updateById(any(ProjectMasterDO.class));
+    }
+
+    @Test
+    void linkedCustomerIsRetainedWhileOtherFieldsAreUpdated() {
+        ProjectMasterDO current = persistedProject();
+        current.setCustomerId(81L);
+        current.setCustomerCode("CUS-001");
+        current.setCustomerName("主档客户");
+        when(projectMasterMapper.selectById(100L)).thenReturn(current);
+        allowScope(100L, "PROJECT_MANAGE");
+        ProjectMasterDO update = new ProjectMasterDO();
+        update.setId(100L);
+        update.setProjectName("新名称");
+
+        service.updateProject(update, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
+
+        ArgumentCaptor<ProjectMasterDO> saved = ArgumentCaptor.forClass(ProjectMasterDO.class);
+        verify(projectMasterMapper).updateById(saved.capture());
+        assertEquals("新名称", saved.getValue().getProjectName());
+        assertEquals(81L, saved.getValue().getCustomerId());
+        assertEquals("CUS-001", saved.getValue().getCustomerCode());
+        assertEquals("主档客户", saved.getValue().getCustomerName());
+    }
+
+    @Test
+    void unlinkedHistoricalProjectKeepsOriginalCustomerEditing() {
+        ProjectMasterDO current = persistedProject();
+        current.setCustomerId(null);
+        when(projectMasterMapper.selectById(100L)).thenReturn(current);
+        allowScope(100L, "PROJECT_MANAGE");
+        ProjectMasterDO update = new ProjectMasterDO();
+        update.setId(100L);
+        update.setCustomerCode("LEGACY-CUSTOMER");
+        update.setCustomerName("历史客户名称");
+
+        service.updateProject(update, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
+
+        ArgumentCaptor<ProjectMasterDO> saved = ArgumentCaptor.forClass(ProjectMasterDO.class);
+        verify(projectMasterMapper).updateById(saved.capture());
+        assertEquals("LEGACY-CUSTOMER", saved.getValue().getCustomerCode());
+        assertEquals("历史客户名称", saved.getValue().getCustomerName());
     }
 
     @Test

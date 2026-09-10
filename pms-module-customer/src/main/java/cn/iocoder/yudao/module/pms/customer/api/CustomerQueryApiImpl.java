@@ -3,6 +3,11 @@ package cn.iocoder.yudao.module.pms.customer.api;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
 import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService;
+import cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +21,20 @@ import java.util.List;
 public class CustomerQueryApiImpl implements CustomerQueryApi {
 
     private final CustomerMasterMapper customerMasterMapper;
+    private final CustomerQueryService customerQueryService;
+    private final CustomerScopeContextService scopeContextService;
+    private final PermissionApi permissionApi;
+
+    @Override
+    public CustomerSummaryDTO getCustomerByCode(CustomerCodeQuery query) {
+        if (query == null || query.actorUserId() == null || query.code() == null || query.code().isBlank()) {
+            throw new IllegalArgumentException("客户编码查询不完整");
+        }
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        if (!permissionApi.hasAnyPermissions(query.actorUserId(), "pms:customer:query")) return null;
+        return toSummary(customerQueryService.getByCode(tenantId, query.code(),
+                scopeContextService.resolve(tenantId, query.actorUserId())));
+    }
 
     @Override
     public CustomerSummaryDTO getCustomer(Long customerId) {

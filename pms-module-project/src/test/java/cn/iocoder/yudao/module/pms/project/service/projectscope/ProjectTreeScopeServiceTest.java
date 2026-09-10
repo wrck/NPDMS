@@ -166,13 +166,13 @@ class ProjectTreeScopeServiceTest {
     @Test
     void ordinaryMemberCannotManageCurrentProject() {
         stubRootProjection();
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
-                .thenReturn(List.of(assignment(3L, "ENGINEER")));
-
-        var scope = service.resolve(query("PROJECT_MANAGE"));
-
-        assertEquals(Set.of(), scope.fullProjectIds());
-        assertEquals(Set.of(), scope.placeholderProjectIds());
+        for (String role : List.of("ENGINEER", "OUTSOURCED_ENGINEER")) {
+            when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+                    .thenReturn(List.of(assignment(3L, role)));
+            var scope = service.resolve(query("PROJECT_MANAGE"));
+            assertEquals(Set.of(), scope.fullProjectIds());
+            assertEquals(Set.of(), scope.placeholderProjectIds());
+        }
     }
 
     @Test

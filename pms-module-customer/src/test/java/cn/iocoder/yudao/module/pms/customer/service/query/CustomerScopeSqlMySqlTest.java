@@ -47,6 +47,8 @@ class CustomerScopeSqlMySqlTest {
     private JdbcTemplate jdbcTemplate;
     @Resource
     private CustomerMasterMapper customerMasterMapper;
+    @Resource
+    private CustomerQueryService customerQueryService;
 
     private long baseId;
 
@@ -55,6 +57,9 @@ class CustomerScopeSqlMySqlTest {
         Map<String, String> environment = System.getenv();
         String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
         String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        if (!"npdms_test".equals(database) || !"23316".equals(port)) {
+            throw new IllegalStateException("Customer SQL tests require the fixed npdms_test:23316 database");
+        }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
@@ -150,6 +155,22 @@ class CustomerScopeSqlMySqlTest {
         assertEquals(baseId, result.getList().getFirst().getId());
     }
 
+    @Test
+    void exactCodeLookupPreservesTenantAndVisibleScope() {
+        String code = "IT-FCUS001-SCOPE-" + baseId;
+        jdbcTemplate.update("INSERT INTO cus_customer_master "
+                        + "(id,code,name,lifecycle_status,source_type,sync_status,data_as_of,version,deleted,tenant_id) "
+                        + "VALUES (?,?,?,'ENABLED','PLATFORM_CREATED','NOT_APPLICABLE',CURRENT_TIMESTAMP,0,b'0',2)",
+                baseId + 3, code, "同编码其他租户客户");
+        var visible = new cn.iocoder.yudao.module.pms.customer.service.security.CustomerVisibleScope(false,
+                List.of(slice("D-A", "M-A", "S-A", "E-A", "I-A")));
+        assertEquals(baseId, customerQueryService.getByCode(1L, code, visible).getId());
+        assertNull(customerQueryService.getByCode(1L, code.substring(0, code.length() - 1), visible));
+        assertNull(customerQueryService.getByCode(1L, "IT-FCUS001-SCOPE-" + (baseId + 1), visible));
+        var all = new cn.iocoder.yudao.module.pms.customer.service.security.CustomerVisibleScope(true, List.of());
+        assertEquals(baseId + 3, customerQueryService.getByCode(2L, code, all).getId());
+    }
+
     private CustomerScopeSlice slice(
             String departmentCode,
             String marketCode,
@@ -186,7 +207,7 @@ class CustomerScopeSqlMySqlTest {
 
     @SpringBootConfiguration
     @MapperScan("cn.iocoder.yudao.module.pms.customer.dal.mysql.customer")
-    @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
+    @Import({CustomerQueryService.class, YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class})

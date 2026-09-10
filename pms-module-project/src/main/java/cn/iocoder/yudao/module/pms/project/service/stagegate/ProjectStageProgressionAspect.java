@@ -20,7 +20,8 @@ public class ProjectStageProgressionAspect {
     private final ProjectStageProgressionTrigger trigger;
     private final ProjectTaskInstanceMapper tasks;
 
-    @AfterReturning(pointcut = "execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService.create(..))", returning = "result")
+    @AfterReturning(pointcut = "execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService.create(..))"
+            + " || execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService.createWithSelectedCustomer(..))", returning = "result")
     public void created(ManualProjectCreateResult result) {
         trigger.afterChange(result.id());
     }
@@ -38,6 +39,11 @@ public class ProjectStageProgressionAspect {
     @AfterReturning("execution(* cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectMemberUpdateApplicationService.update(..))")
     public void membersChanged(JoinPoint call) {
         trigger.afterChange(((ProjectMemberUpdateCommand) call.getArgs()[0]).projectId());
+    }
+
+    @AfterReturning(pointcut = "execution(* cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberService.mutate(..))", returning = "result")
+    public void ordinaryMembersChanged(cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberService.Result result) {
+        if (result.changed()) trigger.afterChange(result.projectId());
     }
 
     @AfterReturning("execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImpl.updateProject(..))")

@@ -80,6 +80,7 @@ import java.util.function.Consumer;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_FIELD_IMMUTABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
@@ -369,6 +370,16 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_NOT_EXISTS);
         }
         ProjectMasterDO current = requireScopedProject(update.getId(), actor, ACTION_MANAGE);
+        if (current.getCustomerId() != null) {
+            if ((update.getCustomerId() != null && !Objects.equals(update.getCustomerId(), current.getCustomerId()))
+                    || (update.getCustomerCode() != null && !Objects.equals(update.getCustomerCode(), current.getCustomerCode()))
+                    || (update.getCustomerName() != null && !Objects.equals(update.getCustomerName(), current.getCustomerName()))) {
+                throw exception(PROJECT_FIELD_IMMUTABLE, "客户关联");
+            }
+            update.setCustomerId(current.getCustomerId());
+            update.setCustomerCode(current.getCustomerCode());
+            update.setCustomerName(current.getCustomerName());
+        }
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
         update.setClosurePolicySnapshot(current.getClosurePolicySnapshot());

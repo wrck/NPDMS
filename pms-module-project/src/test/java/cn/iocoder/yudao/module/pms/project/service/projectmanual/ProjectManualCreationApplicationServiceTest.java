@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -79,9 +82,74 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectWorkBindingFactApi projectWorkBindingFactApi;
     @Mock
     private PreparationInitializationApi preparationInitializationApi;
+    @Mock
+    private CustomerQueryApi customerQueryApi;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void selectedCustomerCreationUsesOwnerIdentityInsideTheOriginalCreationTransaction() {
+        var command = command();
+        command.draft().setCustomerCode("C-001");
+        command.draft().setCustomerName("客户端名称不可作为主档事实");
+        var source = new CustomerSummaryDTO(55L, 1L, "C-001", "主档客户", null,
+                "ENABLED", "PLATFORM_TEMPORARY", 3L, null);
+        when(customerQueryApi.getCustomerByCode(new CustomerCodeQuery("C-001", 7L))).thenReturn(source);
+        var decision = decision();
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(decision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(decision), isNull())).thenReturn(project());
+        when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            assertEquals(ProjectManualCreationApplicationService.SELECTED_CUSTOMER_CREATE_SCOPE,
+                    ((PlatformCommandExecutionApi.IdempotencyScope) invocation.getArgument(0)).scopeCode());
+            Object result = ((Supplier<?>) invocation.getArgument(3)).get();
+            ((Function<Object, ?>) invocation.getArgument(4)).apply(result);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
+        });
+        assertEquals(100L, service.createWithSelectedCustomer(command, actor()).id());
+        var draft = ArgumentCaptor.forClass(ProjectMasterDO.class);
+        verify(projectCreationService).createProject(draft.capture(), any(), any(), eq(decision), isNull());
+        assertEquals(55L, draft.getValue().getCustomerId());
+        assertEquals("C-001", draft.getValue().getCustomerCode());
+        assertEquals("主档客户", draft.getValue().getCustomerName());
+        verify(templateMatchHistoryService).appendInitial(any());
+    }
+
+    @Test
+    void selectedCustomerRejectsUnavailableOrForeignTenantBeforeBusinessWrites() {
+        var command = command();
+        command.draft().setCustomerCode("C-001");
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation ->
+                ((Supplier<?>) invocation.getArgument(3)).get());
+        var query = new CustomerCodeQuery("C-001", 7L);
+        for (var customer : java.util.Arrays.asList(null,
+                new CustomerSummaryDTO(55L, 1L, "C-001", "客户", null, "DISABLED", "PLATFORM_CREATED", 1L, null),
+                new CustomerSummaryDTO(55L, 2L, "C-001", "客户", null, "ENABLED", "PLATFORM_CREATED", 1L, null))) {
+            when(customerQueryApi.getCustomerByCode(query)).thenReturn(customer);
+            var failure = assertThrows(ServiceException.class, () -> service.createWithSelectedCustomer(command, actor()));
+            assertEquals(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE.getCode(), failure.getCode());
+        }
+        verifyNoInteractions(projectCreationService, projectAttributeResolutionService,
+                templateMatchHistoryService, projectTreeProjectionService);
+        verify(companyApi, org.mockito.Mockito.times(3)).validateCompanyList(java.util.List.of(10L));
+        verify(deptApi, org.mockito.Mockito.times(3)).validateDeptList(java.util.List.of(20L));
+        verify(companyApi, org.mockito.Mockito.never()).getCompany(any());
+        verify(deptApi, org.mockito.Mockito.never()).getDept(any());
+    }
+
+    @Test
+    void selectedCustomerReplayDoesNotQueryCustomerOrCreateAgain() {
+        var command = command();
+        command.draft().setCustomerCode("C-001");
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
+                new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, null));
+        service.createWithSelectedCustomer(command, actor());
+        verifyNoInteractions(customerQueryApi, projectCreationService);
+        verify(companyApi).validateCompanyList(java.util.List.of(10L));
+        verify(deptApi).validateDeptList(java.util.List.of(20L));
+    }
 
     @BeforeEach
     void setUpOrganization() {

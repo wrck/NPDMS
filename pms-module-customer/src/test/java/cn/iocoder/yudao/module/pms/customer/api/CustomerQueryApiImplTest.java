@@ -1,6 +1,13 @@
 package cn.iocoder.yudao.module.pms.customer.api;
 
 import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService;
+import cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService;
+import cn.iocoder.yudao.module.pms.customer.service.security.CustomerVisibleScope;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.junit.jupiter.api.AfterEach;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper;
 import org.junit.jupiter.api.Test;
@@ -15,15 +22,40 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerQueryApiImplTest {
 
     @Mock
     private CustomerMasterMapper customerMasterMapper;
+    @Mock private CustomerQueryService customerQueryService;
+    @Mock private CustomerScopeContextService scopeContextService;
+    @Mock private PermissionApi permissionApi;
 
     @InjectMocks
     private CustomerQueryApiImpl api;
+
+    @AfterEach
+    void clearTenant() { TenantContextHolder.clear(); }
+
+    @Test
+    void codeLookupUsesTrustedTenantAndActorScope() {
+        TenantContextHolder.setTenantId(1L);
+        var scope = new CustomerVisibleScope(true, List.of());
+        when(permissionApi.hasAnyPermissions(7L, "pms:customer:query")).thenReturn(true);
+        when(scopeContextService.resolve(1L, 7L)).thenReturn(scope);
+        when(customerQueryService.getByCode(1L, "C-001", scope)).thenReturn(customer(1L, "C-001", "客户一"));
+        assertEquals("C-001", api.getCustomerByCode(new CustomerCodeQuery("C-001", 7L)).code());
+        verifyNoInteractions(customerMasterMapper);
+    }
+
+    @Test
+    void codeLookupWithoutQueryPermissionDoesNotReadCustomerData() {
+        TenantContextHolder.setTenantId(1L);
+        assertNull(api.getCustomerByCode(new CustomerCodeQuery("C-001", 7L)));
+        verifyNoInteractions(customerQueryService, scopeContextService, customerMasterMapper);
+    }
 
     @Test
     void returnsCurrentCustomerSummary() {
