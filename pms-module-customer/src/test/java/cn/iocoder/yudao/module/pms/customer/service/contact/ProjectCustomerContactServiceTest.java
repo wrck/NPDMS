@@ -22,7 +22,8 @@ class ProjectCustomerContactServiceTest {
     private final ProjectCustomerContactMapper contacts = mock(ProjectCustomerContactMapper.class);
     private final ContactHistoryMapper history = mock(ContactHistoryMapper.class);
     private final ProjectCustomerContactService service = new ProjectCustomerContactService(projects, sources, contacts,
-            history, mock(PlatformCommandExecutionApi.class), mock(CustomerQueryService.class), mock(CustomerScopeContextService.class));
+            history, mock(PlatformCommandExecutionApi.class), mock(CustomerQueryService.class), mock(CustomerScopeContextService.class),
+            new ContactDictionaryPolicy(mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class)));
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void context() {
@@ -51,6 +52,19 @@ class ProjectCustomerContactServiceTest {
         verify(sources, never()).updateById(any(CustomerContactMasterDO.class));
         verify(sources, never()).insert(any(CustomerContactMasterDO.class));
         verify(history).insert(argThat((ContactHistoryDO value) -> value.getProjectId().equals(7L) && value.getProjectRelationId().equals(10L)));
+    }
+
+    @Test void customerContactRoleIsOnlyLocalBusinessDataNotAnOperatorRole() {
+        when(contacts.selectForUpdate(any())).thenReturn(row());
+        var source = new CustomerContactMasterDO(); source.setStatus(0);
+        when(sources.selectForUpdate(any())).thenReturn(source);
+        when(contacts.updateById(any(ProjectCustomerContactDO.class))).thenReturn(1);
+        var command = new ProjectContactWrite(7L,10L,null,2,2,
+                new ContactValues("客户联系人",null,null,"13800138000",null,null,"CUSTOMER_TECH_CONTACT",null),false,0,false);
+        assertEquals("CUSTOMER_TECH_CONTACT",service.update(actor,command).getRoleCode());
+        verify(projects).lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2));
+        verifyNoMoreInteractions(projects);
+        verify(sources,never()).updateById(any(CustomerContactMasterDO.class));
     }
 
     @Test void managerCanListAllStatusesWhileViewerOnlyListsEnabledContacts() {
@@ -119,5 +133,21 @@ class ProjectCustomerContactServiceTest {
         when(contacts.deleteByVersion(any())).thenReturn(1);
         service.delete(actor, new ProjectContactWrite(7L,10L,null,2,5,null,false,1,false));
         verify(contacts).deleteByVersion(any());
+    }
+
+    @Test void historyUsesCurrentStateForRestoreAndRemainsReadableAfterProjectClosure() {
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"ACTIVE",true));
+        var entry = new ContactHistoryDO(); entry.setProjectRelationId(10L); entry.setActionCode("DELETE");
+        entry.setBeforeValues("{\"id\":10,\"version\":2}");
+        when(history.selectProjectPage(any())).thenReturn(new PageResult<>(List.of(entry),1L));
+        var state = new ProjectContactHistoryState(); state.setId(10L); state.setVersion(3); state.setRestorable(true);
+        when(contacts.selectHistoryStates(any())).thenReturn(List.of(state));
+        var page = new cn.iocoder.yudao.framework.common.pojo.PageParam();
+        assertTrue(service.history(actor,7L,page).getList().getFirst().getRestorable());
+        state.setVersion(5);
+        assertFalse(service.history(actor,7L,page).getList().getFirst().getRestorable());
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"NORMAL_CLOSED",false,true));
+        assertEquals(1L, service.history(actor,7L,page).getTotal());
+        assertFalse(entry.getRestorable());
     }
 }

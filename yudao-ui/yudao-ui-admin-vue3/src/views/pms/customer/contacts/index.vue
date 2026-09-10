@@ -21,7 +21,7 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="query.status" clearable class="!w-160px">
-            <el-option v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :label="dict.label" :value="dict.value" />
+            <el-option v-for="dict in getIntDictOptions('pms_contact_status')" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -39,21 +39,24 @@
     <ContentWrap>
       <el-table v-loading="loading" :data="rows" empty-text="暂无联系人数据">
         <el-table-column prop="customerId" label="客户编号" width="110">
-          <template #default="{ row }"><CustomerTag :customer-id="row.customerId" /></template>
+          <template #default="{ row }">{{ customerCodes[row.customerId] || '编号未获取' }}</template>
         </el-table-column>
         <el-table-column label="客户名称" min-width="160">
           <template #default="{ row }">{{ row.customerName || context?.customerName || selectedCustomerName }}</template>
         </el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100" />
         <el-table-column prop="department" label="部门" min-width="120" />
-        <el-table-column prop="title" label="职务" min-width="120" />
+        <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ getDictLabel('pms_contact_title', row.title) || row.title }}</template></el-table-column>
+        <el-table-column v-if="projectId" prop="roleCode" label="客户联系人角色" min-width="140">
+          <template #default="{ row }">{{ getDictLabel('pms_customer_contact_role', row.roleCode) || row.roleCode || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column prop="primaryFlag" label="主联系人" width="90">
           <template #default="{ row }">{{ row.primaryFlag && row.status === 0 ? '是' : '否' }}</template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="90">
-          <template #default="{ row }"><dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="row.status" /></template>
+          <template #default="{ row }"><dict-tag type="pms_contact_status" :value="row.status" /></template>
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
@@ -77,7 +80,7 @@
         <el-form-item v-if="projectId && !form.id && createMode === 'reference'" label="客户联系人">
           <PmsEntitySelect v-model="form.sourceContactId" :api="sourcePage" label-field="name" value-field="id" query-field="name" placeholder="请选择联系人" @change="selectSource" />
         </el-form-item>
-        <ContactFields v-model="form" />
+        <ContactFields v-model="form" :project="!!projectId" />
       </el-form>
       <template #footer>
         <el-button @click="beforeClose(() => visible = false)">取消</el-button>
@@ -95,8 +98,7 @@ import { checkPermi } from '@/utils/permission'
 import { useMessage } from '@/hooks/web/useMessage'
 import ContactFields from './ContactFields.vue'
 import ContactHistoryDialog from './ContactHistoryDialog.vue'
-import CustomerTag from '@/components/CustomerTag/index.vue'
-import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import { getDictLabel, getIntDictOptions } from '@/utils/dict'
 
 defineOptions({ name: 'PmsCustomerContactsWorkbench' })
 const props = defineProps<{ projectId?: number }>()
@@ -107,6 +109,7 @@ const context = ref<ProjectContactContext>()
 const query = reactive({ pageNo: 1, pageSize: 10, customerId: undefined as number | undefined, name: '', status: undefined as number | undefined })
 const selectedCustomerName = ref('')
 const rows = ref<ContactVO[]>([]), total = ref(0)
+const customerCodes = ref<Record<number, string>>({})
 const customerId = computed(() => props.projectId ? context.value?.project.customerId : query.customerId)
 const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLED')
 const canEdit = computed(() => props.projectId ? !!context.value?.project.canManage && context.value.sensitiveRead : checkPermi(['pms:customer:sensitive-read']))
@@ -140,6 +143,15 @@ const load = async () => {
       : await ContactApi.getMasterPage({ ...query, customerId: customerId.value })
     if (current !== sequence) return
     rows.value = page.list; total.value = page.total
+    // Resolve the business code from CUS, once per customer on this page. The legacy
+    // CustomerTag displays names and must not be used under a customer-code heading.
+    const codes = await Promise.all([...new Set(page.list.map(row => row.customerId).filter((id): id is number => !!id))].map(async id => {
+      try { return [id, (await CustomerApi.getCustomer(id)).code] as const }
+      catch { return [id, ''] as const }
+    }))
+    if (current !== sequence) return
+    customerCodes.value = Object.fromEntries(codes)
+    if (codes.some(([, code]) => !code)) error.value = '部分客户编号未获取，联系人数据仍可查看，请点击查询重试。'
     return context.value
   } catch { if (current === sequence) error.value = '联系人加载失败，请检查权限或重试。' }
   finally { if (current === sequence) loading.value = false }

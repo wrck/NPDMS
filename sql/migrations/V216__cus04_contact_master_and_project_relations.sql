@@ -27,6 +27,11 @@ CREATE TABLE cus_customer_contact (
   CONSTRAINT ck_cus_contact_status CHECK (status IN (0,1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Reuse the original navigation identity for the customer-owned workbench; legacy data is retained.
+UPDATE system_menu SET component='pms/customer/contacts/index', component_name='PmsCustomerContactsWorkbench',
+  updater='demo-s1-contacts', update_time=NOW()
+WHERE component='pms/project/customer-contact/index' AND deleted=b'0';
+
 INSERT INTO cus_customer_contact
 (id,customer_id,name,department,title,mobile,phone,email,primary_flag,status,remark,version,
  creator,create_time,updater,update_time,deleted,tenant_id)

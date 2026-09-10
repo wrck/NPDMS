@@ -45,4 +45,13 @@ class ProjectContactContextApiImplTest {
         assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
         assertThrows(RuntimeException.class, () -> api.inspect(new ProjectContactContextApi.Query(2L,3L,7L)));
     }
+
+    @Test void closedProjectManagerKeepsHistoryReadButCannotWrite() {
+        when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        var closed = new ProjectMasterDO(); closed.setId(7L); closed.setTenantId(1L); closed.setCustomerId(8L); closed.setVersion(2); closed.setLifecycleStatus("NORMAL_CLOSED");
+        when(projects.selectById(7L)).thenReturn(closed); when(projects.selectByIdForUpdate(7L)).thenReturn(closed);
+        var context = api.inspect(new ProjectContactContextApi.Query(1L,3L,7L));
+        assertFalse(context.canManage()); assertTrue(context.canViewHistory());
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)));
+    }
 }

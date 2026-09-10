@@ -30,6 +30,7 @@ public class ProjectCustomerContactService {
     private final PlatformCommandExecutionApi commands;
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
+    private final ContactDictionaryPolicy dictionaryPolicy;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
@@ -118,8 +119,10 @@ public class ProjectCustomerContactService {
                 throw exception(CONTACT_VALUES_INVALID, "该来源已被项目引用，含停用或已删除记录；请维护原记录");
             }
             values = command.values() == null ? values(source) : normalize(command.values(), command.status());
+            dictionaryPolicy.validateChanges(values, values(source));
         } else {
             values = normalize(command.values(), command.status());
+            dictionaryPolicy.validateChanges(values, null);
             source = new CustomerContactMasterDO();
             source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0);
             source.setName(values.name()); source.setDepartment(values.department()); source.setTitle(values.title());
@@ -139,6 +142,8 @@ public class ProjectCustomerContactService {
         var existing = requireRow(actor, command.projectId(), command.contactId(), command.expectedVersion());
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         ContactValues values = normalize(command.values(), command.status());
+        dictionaryPolicy.validateChanges(values, new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(),
+                existing.getMobile(), existing.getPhone(), existing.getEmail(), existing.getRoleCode(), existing.getRemark()));
         if (command.status() == 0 || command.primary()) requireSource(actor, context.customerId(), existing.getCustomerContactId());
         requirePrimary(actor, command.projectId(), existing.getId(), command.primary(), command.status());
         if (Boolean.TRUE.equals(existing.getPrimaryFlag()) && command.status() != 0) {
