@@ -51,8 +51,12 @@ public class ProjectManagerAssignmentApplicationService {
     public AssignServiceManagerResult assign(AssignServiceManagerCommand command, Actor actor) {
         validate(command, actor);
         authorizationService.assertCanAssign(actor.actorId());
-        projectAuthorizationGuard.assertCanAssign(
-                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId()), command.projectId());
+        var authorizationActor = new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId());
+        if ("PRIMARY".equals(command.assignmentType())) {
+            projectAuthorizationGuard.assertCanInitiallyAssign(authorizationActor, command.projectId(), true, false);
+        } else {
+            projectAuthorizationGuard.assertCanAssign(authorizationActor, command.projectId());
+        }
         validateBusinessScope(command, actor);
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), ASSIGN_SCOPE, actor.actorId(), command.idempotencyKey()),
