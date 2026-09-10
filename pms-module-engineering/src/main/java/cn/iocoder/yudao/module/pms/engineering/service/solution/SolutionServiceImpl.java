@@ -38,12 +38,12 @@ public class SolutionServiceImpl implements SolutionService {
     public Long createSolution(SolutionSaveReqVO createReqVO) {
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
-        if (solution.getStatus() == null) {
-            solution.setStatus(0); // 草稿
-        }
-        if (solution.getVersion() == null) {
-            solution.setVersion(0);
-        }
+        solution.setStatus(0);
+        solution.setVersion(0);
+        solution.setBaselineVersion(null);
+        solution.setApprovedBy(null);
+        solution.setApprovedTime(null);
+        solution.setApprovalOpinion(null);
         if (solution.getReviewLevel() == null) {
             solution.setReviewLevel(0);
         }
@@ -55,16 +55,24 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional(rollbackFor = Exception.class)
     public void updateSolution(SolutionSaveReqVO updateReqVO) {
         SolutionDO existing = validateSolutionExists(updateReqVO.getId());
+        validateStatus(existing, 0);
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         SolutionDO update = BeanUtils.toBean(updateReqVO, SolutionDO.class);
-        solutionMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        update.setBaselineVersion(existing.getBaselineVersion());
+        update.setApprovedBy(existing.getApprovedBy());
+        update.setApprovedTime(existing.getApprovedTime());
+        update.setApprovalOpinion(existing.getApprovalOpinion());
+        updateRecord(update);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteSolution(Long id) {
-        validateSolutionExists(id);
+        SolutionDO existing = validateSolutionExists(id);
+        validateStatus(existing, 0);
         solutionMapper.deleteById(id);
     }
 
@@ -100,13 +108,15 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
         validateVersion(solution, reqVO.getVersion());
         validateStatus(solution, 2); // 审批中 → 已通过
+        if (!Objects.equals(solution.getReviewLevel(), 0)) {
+            throw exception(SOLUTION_REVIEW_NOT_CONNECTED);
+        }
         solution.setStatus(3);
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
         solution.setApprovedBy(SecurityFrameworkUtils.getLoginUserId());
         solution.setApprovedTime(LocalDateTime.now());
         solution.setBaselineVersion(solution.getVersion() + 1); // 冻结基线版本
-        solution.setVersion(solution.getVersion() + 1);
-        solutionMapper.updateById(solution);
+        updateRecord(solution);
     }
 
     @Override
@@ -119,8 +129,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
         solution.setApprovedBy(SecurityFrameworkUtils.getLoginUserId());
         solution.setApprovedTime(LocalDateTime.now());
-        solution.setVersion(solution.getVersion() + 1);
-        solutionMapper.updateById(solution);
+        updateRecord(solution);
     }
 
     @Override
@@ -191,7 +200,12 @@ public class SolutionServiceImpl implements SolutionService {
 
     private void updateStatus(SolutionDO solution, int newStatus) {
         solution.setStatus(newStatus);
-        solution.setVersion(solution.getVersion() + 1);
-        solutionMapper.updateById(solution);
+        updateRecord(solution);
+    }
+
+    private void updateRecord(SolutionDO solution) {
+        if (solutionMapper.updateById(solution) != 1) {
+            throw exception(SOLUTION_VERSION_NOT_MATCH);
+        }
     }
 }

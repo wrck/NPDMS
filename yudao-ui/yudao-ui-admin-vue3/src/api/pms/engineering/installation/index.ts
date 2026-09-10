@@ -5,7 +5,7 @@ export interface InstallationVO {
   id?: number
   projectId: number
   code: string
-  equipmentId?: number
+  equipmentId?: number | string
   installLocation?: string
   locationMaintenance?: LocationMaintainRequest
   addressId?: number
@@ -19,7 +19,7 @@ export interface InstallationVO {
   locationSnapshot?: string
   effectiveFrom?: Date
   effectiveTo?: Date
-  installTime?: Date
+  installTime?: number
   installerUserId?: number
   environmentCheck?: string
   specCheck?: string

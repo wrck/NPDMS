@@ -38,7 +38,7 @@
       <el-table-column prop="code" label="签收编码" min-width="140" />
       <el-table-column prop="equipmentId" label="设备编号" width="100" />
       <el-table-column prop="quantity" label="数量" width="80" />
-      <el-table-column prop="arrivalTime" label="到货时间" width="160" />
+      <el-table-column prop="arrivalTime" label="到货时间" width="160" :formatter="dateFormatter" />
       <el-table-column prop="inspectionResult" label="验收结果" min-width="180" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
@@ -47,8 +47,8 @@
       </el-table-column>
       <el-table-column label="操作" width="300" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-arrival:update']"
-            >编辑</el-button
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-arrival:query']"
+            >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
             link
@@ -66,7 +66,7 @@
             v-hasPermi="['pms:eng-arrival:update']"
             >标记异常</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-arrival:delete']"
+          <el-button v-if="row.status !== 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-arrival:delete']"
             >删除</el-button
           >
         </template>
@@ -80,8 +80,8 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑签收' : '新增签收'" width="780px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看签收' : '编辑签收') : '新增签收'" width="min(780px, 95vw)">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目编号" prop="projectId">
@@ -103,7 +103,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="到货时间" prop="arrivalTime">
-            <el-date-picker v-model="form.arrivalTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-full" />
+            <el-date-picker v-model="form.arrivalTime" type="datetime" value-format="x" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -126,16 +126,16 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="验收结果" prop="inspectionResult">
-            <Editor v-model="form.inspectionResult" height="200px" />
+            <Editor v-model="form.inspectionResult" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="异常记录" prop="exceptionRecord">
-            <Editor v-model="form.exceptionRecord" height="200px" />
+            <Editor v-model="form.exceptionRecord" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件地址" prop="attachmentUrl"><UploadFile v-model="form.attachmentUrl!" /></el-form-item>
+          <el-form-item label="附件地址" prop="attachmentUrl"><UploadFile v-model="form.attachmentUrl!" :disabled="readOnly" /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="备注" prop="remark">
@@ -146,19 +146,21 @@
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import type { ArrivalVO } from '@/api/pms/engineering/arrival'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
+import { checkPermi } from '@/utils/permission'
+import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngArrival' })
 const message = useMessage()
@@ -169,10 +171,14 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<ArrivalVO>({ projectId: 0, code: '' })
+type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
+const form = ref<ArrivalForm>({ projectId: 0, code: '', status: 0 })
+const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:eng-arrival:update'])
+const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:eng-arrival:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入签收编码' }]
+  code: [{ required: true, message: '请输入签收编码' }],
+  arrivalTime: [{ required: true, message: '请选择到货时间' }]
 }
 
 const load = async () => {
@@ -186,31 +192,35 @@ const load = async () => {
   }
 }
 const openForm = (row?: ArrivalVO) => {
-  Object.assign(
-    form,
-    {
+  form.value = {
       id: undefined,
       projectId: 0,
       code: '',
-      arrivalTime: '',
+      arrivalTime: undefined,
       receiverUserId: undefined,
       equipmentId: undefined,
       quantity: undefined,
       inspectionResult: '',
       exceptionRecord: '',
-      attachmentUrl: '',
       remark: '',
-      version: undefined
-    },
-    row || {}
-  )
+      version: undefined,
+      status: 0,
+      ...row,
+      // UploadFile derives string/array output from its initial value. Legacy
+      // records with NULL evidence must still use this API's string contract.
+      attachmentUrl: row?.attachmentUrl ?? ''
+  }
   formVisible.value = true
 }
 const save = async () => {
+  if (readOnly.value) return
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id ? await ArrivalApi.updateArrival(form) : await ArrivalApi.createArrival(form)
+    // Match the existing TimestampLocalDateTimeDeserializer contract, not a
+    // formatted date string that would be interpreted as an invalid timestamp.
+    const data: ArrivalVO = { ...form.value, arrivalTime: form.value.arrivalTime == null || form.value.arrivalTime === '' ? undefined : Number(form.value.arrivalTime) }
+    data.id ? await ArrivalApi.updateArrival(data) : await ArrivalApi.createArrival(data)
     message.success('保存成功')
     formVisible.value = false
     await load()
@@ -219,6 +229,7 @@ const save = async () => {
   }
 }
 const remove = async (row: ArrivalVO) => {
+  if (row.status === 1) return
   await message.delConfirm()
   await ArrivalApi.deleteArrival(row.id!)
   message.success('删除成功')

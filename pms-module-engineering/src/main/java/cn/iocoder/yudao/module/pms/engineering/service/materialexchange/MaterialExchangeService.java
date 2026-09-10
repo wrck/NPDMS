@@ -95,13 +95,11 @@ public interface MaterialExchangeService {
     /**
      * 推送 CRM（FR-ENG-003 特有）。
      * <p>
-     * 仅当 crm_push_status=PENDING 可推送；推送后置为 SENT 并记录推送时间；
-     * 若入参 crmOrderNo 非空，则直接置为 RECEIVED 并写入 CRM 工单号。
-     * <p>
-     * 注：当前为模拟推送，实际 CRM 集成在 T-V2-INT-001 中实现。
+     * 保留现有扩展入口；外部集成未接入时明确拒绝，不写推送状态、时间或工单号。
+     * 已有历史推送结果保持不变；不得将调用方提供的工单号视为CRM接收证据。
      *
      * @param id         换货协同单编号
-     * @param crmOrderNo CRM 工单号（可选，传入则直接置为 RECEIVED）
+     * @param crmOrderNo 保留参数，接口未接入时不消费
      */
     void pushToCrm(Long id, String crmOrderNo);
 }

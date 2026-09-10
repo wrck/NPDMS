@@ -224,18 +224,9 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (!Objects.equals(entity.getCrmPushStatus(), CRM_PUSH_PENDING)) {
             throw exception(MATERIAL_EXCH_CRM_ALREADY_PUSHED);
         }
-        // 3. 模拟推送：写入推送时间与 CRM 工单号
-        //    若入参 crmOrderNo 不为空，则直接置为 RECEIVED；否则置为 SENT
-        entity.setCrmPushTime(LocalDateTime.now());
-        if (StringUtils.isNotBlank(crmOrderNo)) {
-            entity.setCrmOrderNo(crmOrderNo);
-            entity.setCrmPushStatus(CRM_PUSH_RECEIVED);
-        } else {
-            entity.setCrmPushStatus(CRM_PUSH_SENT);
-        }
-        entity.setVersion(entity.getVersion() + 1);
-        // 注：当前为模拟推送，实际 CRM 集成在 T-V2-INT-001 中实现
-        materialExchangeMapper.updateById(entity);
+        // External integration is intentionally reserved, not simulated. A supplied
+        // order number is not CRM evidence and must not advance the local record.
+        throw exception(MATERIAL_EXCH_CRM_NOT_CONNECTED);
     }
 
     // ==================== 内部工具方法 ====================

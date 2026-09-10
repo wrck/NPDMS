@@ -5,9 +5,9 @@ export interface JointTestVO {
   projectId: number
   code: string
   testCase: string
-  equipmentId?: number
+  equipmentId?: number | string
   participants?: string
-  testTime?: Date
+  testTime?: number
   testerUserId?: number
   result?: string
   exceptionRecord?: string

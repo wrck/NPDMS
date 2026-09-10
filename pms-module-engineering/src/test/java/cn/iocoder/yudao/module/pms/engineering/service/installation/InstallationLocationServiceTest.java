@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
 
 @ExtendWith(MockitoExtension.class)
 class InstallationLocationServiceTest {
@@ -171,6 +172,40 @@ class InstallationLocationServiceTest {
         when(mapper.selectCurrentByEquipmentId(8L)).thenReturn(current);
 
         assertThrows(ServiceException.class, () -> service.completeInstallation(201L));
+        verify(assetLocationApi, never()).effectEquipmentLocation(any());
+    }
+
+    @Test
+    void completedInstallationCannotBeDeleted() {
+        when(mapper.selectById(201L)).thenReturn(installation(201L, 8L, 2, LocalDateTime.now()));
+        ServiceException failure = assertThrows(ServiceException.class, () -> service.deleteInstallation(201L));
+        assertEquals(INSTALLATION_STATUS_INVALID.getCode(), failure.getCode());
+        verify(mapper, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void lostDraftUpdateIsNotReportedAsSaved() {
+        when(mapper.selectById(201L)).thenReturn(installation(201L, 8L, 0, null));
+        when(mapper.updateById(any(InstallationDO.class))).thenReturn(0);
+        InstallationSaveReqVO request = request("机房A");
+        request.setId(201L);
+        request.setVersion(0);
+        ServiceException failure = assertThrows(ServiceException.class, () -> service.updateInstallation(request));
+        assertEquals(INSTALLATION_VERSION_NOT_MATCH.getCode(), failure.getCode());
+    }
+
+    @Test
+    void lostPreviousIntervalUpdateStopsBeforeMakingTheNewLocationEffective() {
+        InstallationDO next = installation(201L, 8L, 1, LocalDateTime.of(2026, 9, 10, 10, 0));
+        InstallationDO previous = installation(200L, 8L, 2, LocalDateTime.of(2026, 9, 9, 10, 0));
+        previous.setEffectiveFrom(previous.getInstallTime());
+        when(mapper.selectById(201L)).thenReturn(next);
+        when(mapper.selectCurrentByEquipmentId(8L)).thenReturn(previous);
+        when(mapper.updateById(previous)).thenReturn(0);
+
+        ServiceException failure = assertThrows(ServiceException.class, () -> service.completeInstallation(201L));
+        assertEquals(INSTALLATION_VERSION_NOT_MATCH.getCode(), failure.getCode());
+        verify(mapper, never()).updateById(next);
         verify(assetLocationApi, never()).effectEquipmentLocation(any());
     }
 

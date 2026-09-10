@@ -55,6 +55,7 @@
         >
       </el-form-item>
     </el-form>
+    <el-alert title="CRM外部接口未接入：保留内部换货申请办理，暂不推送或更新CRM结果。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无物料换货数据">
@@ -128,10 +129,11 @@
           <el-button
             link
             type="success"
-            v-if="!route.query.surveyId && row.crmPushStatus === 'PENDING' && row.status === 3"
-            @click="handlePushCrm(row)"
+            v-if="row.crmPushStatus === 'PENDING' && row.status === 3"
+            disabled
+            title="CRM外部接口仅预留扩展入口，当前不执行推送"
             v-hasPermi="['pms:eng-material-exch:push-crm']"
-            >推送CRM</el-button
+            >CRM未接入</el-button
           >
           <el-button
             link
@@ -548,14 +550,6 @@ const remove = async (row: MaterialExchangeVO) => {
   await message.delConfirm()
   await MaterialExchApi.deleteMaterialExchange(row.id!)
   message.success('删除成功')
-  await load()
-}
-
-// 推送CRM
-const handlePushCrm = async (row: MaterialExchangeVO) => {
-  await message.confirm('确认推送此换货申请至CRM？')
-  await MaterialExchApi.pushCrmMaterialExchange(row.id!)
-  message.success('推送成功')
   await load()
 }
 

@@ -54,7 +54,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="installTime" label="安装时间" width="160" />
+      <el-table-column prop="installTime" label="安装时间" width="160" :formatter="dateFormatter" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_ENG_STATUS" :value="row.status" />
@@ -66,8 +66,8 @@
             link
             type="primary"
             @click="openForm(row)"
-            v-hasPermi="['pms:eng-installation:update']"
-            >编辑</el-button
+            v-hasPermi="['pms:eng-installation:query']"
+            >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
             link
@@ -88,7 +88,7 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0 || row.status === 1"
+            v-if="row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
             v-hasPermi="['pms:eng-installation:update']"
             >标记异常</el-button
@@ -96,6 +96,7 @@
           <el-button
             link
             type="danger"
+            v-if="row.status !== 2"
             @click="remove(row)"
             v-hasPermi="['pms:eng-installation:delete']"
             >删除</el-button
@@ -111,8 +112,8 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑安装' : '新增安装'" width="900px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看安装' : '编辑安装') : '新增安装'" width="min(900px, 95vw)">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目编号" prop="projectId">
@@ -154,7 +155,7 @@
             <el-date-picker
               v-model="form.installTime"
               type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
+              value-format="x"
               class="!w-full"
             />
           </el-form-item>
@@ -166,22 +167,22 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="环境检查" prop="environmentCheck">
-            <Editor v-model="form.environmentCheck" height="200px" />
+            <Editor v-model="form.environmentCheck" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="规格检查" prop="specCheck">
-            <Editor v-model="form.specCheck" height="200px" />
+            <Editor v-model="form.specCheck" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="现场照片" prop="photoUrl"
-            ><UploadImg v-model="form.photoUrl"
+            ><UploadImg v-model="form.photoUrl" :disabled="readOnly"
           /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="安装结果" prop="result">
-            <Editor v-model="form.result" height="200px" />
+            <Editor v-model="form.result" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -193,13 +194,13 @@
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as InstallationApi from '@/api/pms/engineering/installation'
@@ -207,6 +208,8 @@ import type { InstallationVO } from '@/api/pms/engineering/installation'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
+import { checkPermi } from '@/utils/permission'
+import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngInstallation' })
 const message = useMessage()
@@ -217,7 +220,10 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<InstallationVO>({ projectId: 0, code: '' })
+type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
+const form = ref<InstallationForm>({ projectId: 0, code: '', status: 0 })
+const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:eng-installation:update'])
+const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:eng-installation:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入安装编码' }]
@@ -234,9 +240,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: InstallationVO) => {
-  Object.assign(
-    form,
-    {
+  form.value = {
       id: undefined,
       projectId: 0,
       code: '',
@@ -250,16 +254,16 @@ const openForm = (row?: InstallationVO) => {
       photoUrl: '',
       result: '',
       remark: '',
-      version: undefined
-    },
-    row || {}
-  )
-  form.locationMaintenance = toLocationMaintenance(row)
+      version: undefined,
+      status: 0,
+      ...row
+  }
+  form.value.locationMaintenance = toLocationMaintenance(row)
   formVisible.value = true
 }
 
 const toLocationMaintenance = (row?: InstallationVO): LocationMaintainRequest | undefined => {
-  if (!row) return { projectId: form.projectId }
+  if (!row) return { projectId: form.value.projectId }
   if (row.locationResolutionStatus !== 'RESOLVED') {
     return { projectId: row.projectId, fallbackLocation: row.installLocation }
   }
@@ -277,7 +281,7 @@ const toLocationMaintenance = (row?: InstallationVO): LocationMaintainRequest | 
 }
 
 const savePayload = () => {
-  const payload = { ...form }
+  const payload: InstallationVO = { ...form.value, installTime: form.value.installTime == null || form.value.installTime === '' ? undefined : Number(form.value.installTime) }
   const maintenance = payload.locationMaintenance
   if (maintenance && !maintenance.address && !maintenance.site && !maintenance.siteLocation) {
     if (!maintenance.fallbackLocation?.trim()) {
@@ -318,12 +322,13 @@ const savePayload = () => {
   return payload
 }
 const save = async () => {
+  if (readOnly.value) return
   await formRef.value.validate()
   saving.value = true
   try {
     const payload = savePayload()
     if (!payload) return
-    form.id
+    form.value.id
       ? await InstallationApi.updateInstallation(payload)
       : await InstallationApi.createInstallation(payload)
     message.success('保存成功')
@@ -334,6 +339,7 @@ const save = async () => {
   }
 }
 const remove = async (row: InstallationVO) => {
+  if (row.status === 2) return
   await message.delConfirm()
   await InstallationApi.deleteInstallation(row.id!)
   message.success('删除成功')
