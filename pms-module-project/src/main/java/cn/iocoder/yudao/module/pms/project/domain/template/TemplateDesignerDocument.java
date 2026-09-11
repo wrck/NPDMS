@@ -69,7 +69,7 @@ public class TemplateDesignerDocument {
         private String name;
         private String parentTaskCode;
         private String stageCode;
-        private String priority;
+        private Integer priority;
         private Integer sortOrder;
         private java.math.BigDecimal estimatedHours;
         private String satisfactionTiming;
