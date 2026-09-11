@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProjectRuntimeGraphFreezer {
-    /** Runtime graph version remains 1 because the project Stage rows already freeze this value. */
+    /** Runtime graph version remains 1 because project Stage rows already freeze this value. */
     private static final long GRAPH_VERSION = 1L;
 
     private final ProjectRuntimeGraphMapper graphMapper;
@@ -58,13 +58,17 @@ public class ProjectRuntimeGraphFreezer {
     }
 
     private void validateV2(TemplateDefinitionContent content) {
+        if (content.getStages() == null || content.getTasks() == null || content.getTransitions() == null) {
+            throw new IllegalArgumentException("COMPILED_TEMPLATE_COLLECTION_REQUIRED");
+        }
         StageTransitionGraph graph = graph(content, true);
         List<StageTransitionGraphValidator.Failure> failures = StageTransitionGraphValidator.validate(graph);
         if (!failures.isEmpty()) throw new IllegalArgumentException("INVALID_COMPILED_GRAPH: " + failures);
-        if (content.getStages().stream().noneMatch(stage -> "S0".equals(stage.getStageCode())
+        if (content.getStages().stream().noneMatch(stage -> stage != null && "S0".equals(stage.getStageCode())
                 && Boolean.TRUE.equals(stage.getStart()))) {
             throw new IllegalArgumentException("INVALID_COMPILED_GRAPH: S0 start required");
         }
+
         Set<String> nodeKeys = new HashSet<>();
         for (TemplateDefinitionContent.StageDef stage : content.getStages()) {
             if (stage == null || blank(stage.getSourceNodeKey()) || !nodeKeys.add(stage.getSourceNodeKey()))
@@ -74,21 +78,29 @@ public class ProjectRuntimeGraphFreezer {
             requireObject(stage.getCompletionRuleSnapshot(), "COMPILED_STAGE_COMPLETION_RULE_REQUIRED");
         }
         for (TemplateDefinitionContent.TaskDef task : content.getTasks()) {
-            if (task == null || "S0".equals(task.getStageCode()))
-                throw new IllegalArgumentException("S0不生成任务");
+            if (task == null) throw new IllegalArgumentException("COMPILED_TASK_REQUIRED");
+            if ("S0".equals(task.getStageCode())) throw new IllegalArgumentException("S0不生成任务");
             if (blank(task.getSourceNodeKey()) || !nodeKeys.add(task.getSourceNodeKey()))
                 throw new IllegalArgumentException("COMPILED_TASK_NODE_KEY_REQUIRED");
-            if (blank(task.getWorkBindingTypeCode()) || blank(task.getPermissionPolicyRef())
-                    || blank(task.getCompletionRuleTypeCode()) || blank(task.getBindingConfig())
-                    || blank(task.getCompletionRuleConfig()))
+            if (blank(task.getWorkBindingTypeCode()) || blank(task.getCompletionRuleTypeCode())
+                    || blank(task.getBindingConfig()) || blank(task.getCompletionRuleConfig()))
                 throw new IllegalArgumentException("COMPILED_TASK_CONTRACT_REQUIRED");
+            if (blank(task.getPermissionPolicyRef()) && task.getPermissionSnapshot() == null)
+                throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_REQUIRED");
+            if (task.getPermissionSnapshot() != null && !task.getPermissionSnapshot().isObject())
+                throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_INVALID");
+            requireJson(task.getBindingConfig(), "COMPILED_TASK_BINDING_INVALID");
+            requireJson(task.getCompletionRuleConfig(), "COMPILED_TASK_COMPLETION_RULE_INVALID");
         }
+
         Set<String> edgeKeys = new HashSet<>();
         for (TemplateDefinitionContent.TransitionDef edge : content.getTransitions()) {
             if (edge == null || blank(edge.getSourceTransitionKey()) || !edgeKeys.add(edge.getSourceTransitionKey()))
                 throw new IllegalArgumentException("COMPILED_TRANSITION_KEY_REQUIRED");
             if (Boolean.TRUE.equals(edge.getDefaultBranch()) && edge.getConditionRuleSnapshot() != null)
                 throw new IllegalArgumentException("DEFAULT_BRANCH_MUST_NOT_HAVE_CONDITION");
+            if (edge.getConditionRuleSnapshot() != null && !edge.getConditionRuleSnapshot().isObject())
+                throw new IllegalArgumentException("COMPILED_TRANSITION_CONDITION_INVALID");
         }
     }
 
@@ -105,6 +117,7 @@ public class ProjectRuntimeGraphFreezer {
             contract.setStageId(stage.getId());
             contract.setSourceNodeKey(definition.getSourceNodeKey());
             contract.setGraphVersion(GRAPH_VERSION);
+            // Legacy ids are provenance only; V2 runtime evaluates the frozen snapshots below.
             contract.setDefinitionRevisionId(definition.getDefinitionRevisionId());
             contract.setWorkBindingRevisionId(definition.getWorkBindingRevisionId());
             contract.setBindingVersion(1);
@@ -114,6 +127,7 @@ public class ProjectRuntimeGraphFreezer {
             contract.setPermissionPolicyRevisionId(definition.getPermissionPolicyRevisionId());
             contract.setCompletionRuleSnapshot(JsonUtils.toJsonString(definition.getCompletionRuleSnapshot()));
             contract.setCompletionRuleRevisionId(definition.getCompletionRuleRevisionId());
+            // Kept only as immutable publication evidence for diagnostics; V2 resolver never parses it.
             contract.setDefinitionSnapshot(executionSnapshot);
             contract.setEffectiveFrom(truncate(now));
             contract.setVersion(0);
@@ -155,7 +169,8 @@ public class ProjectRuntimeGraphFreezer {
             definitions.require(stage.getCompletionRuleRevisionId(), "COMPLETION_RULE");
         }
         for (TemplateDefinitionContent.TaskDef task : content.getTasks()) {
-            if ("S0".equals(task.getStageCode())) throw new IllegalArgumentException("S0不生成任务，请通过项目基本功能办理；模板任务：" + task.getTaskCode());
+            if ("S0".equals(task.getStageCode()))
+                throw new IllegalArgumentException("S0不生成任务，请通过项目基本功能办理；模板任务：" + task.getTaskCode());
             definitions.require(task.getDefinitionRevisionId(), "TASK");
             definitions.require(task.getWorkBindingRevisionId(), "WORK_BINDING");
             definitions.require(task.getPermissionPolicyRevisionId(), "PERMISSION_POLICY");
@@ -240,6 +255,15 @@ public class ProjectRuntimeGraphFreezer {
 
     private void requireObject(JsonNode value, String message) {
         if (value == null || !value.isObject()) throw new IllegalArgumentException(message);
+    }
+
+    private void requireJson(String value, String message) {
+        try {
+            JsonNode node = JsonUtils.parseObject(value, JsonNode.class);
+            if (node == null || !(node.isObject() || node.isArray())) throw new IllegalArgumentException(message);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException(message, ex);
+        }
     }
 
     private boolean blank(String value) { return value == null || value.isBlank(); }
