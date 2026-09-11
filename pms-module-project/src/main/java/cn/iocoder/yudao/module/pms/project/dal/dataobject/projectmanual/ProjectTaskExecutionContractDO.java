@@ -11,9 +11,7 @@ import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
-/**
- * ProjectTask执行契约；每个任务至多一个effectiveTo为空的当前版本。
- */
+/** ProjectTask immutable execution contract. Legacy definition ids are optional source evidence in V2. */
 @TableName("proj_project_task_execution_contract")
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -22,11 +20,14 @@ public class ProjectTaskExecutionContractDO extends TenantBaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long projectTaskId;
+    /** Stable V2 node identity from TemplateExecutionSnapshot. */
+    private String sourceNodeKey;
     private Long templateTaskDefinitionId;
     private Long definitionRevisionId;
     private Long workBindingRevisionId;
     private Long permissionPolicyRevisionId;
     private Long completionRuleRevisionId;
+    /** Legacy closure only; V2 runtime does not resolve it. */
     private String definitionSnapshot;
     private String workBindingTypeCode;
     private String targetContextCode;
@@ -36,7 +37,11 @@ public class ProjectTaskExecutionContractDO extends TenantBaseDO {
     private Long dynamicFormRevisionId;
     private Long approvalInstanceId;
     private String bindingParameterSnapshot;
+    /** Frozen BusinessView registration when the binding uses one. */
+    private String bindingViewSnapshot;
     private String permissionPolicyRef;
+    /** Frozen permission requirement, not a grant. */
+    private String permissionSnapshot;
     private String completionRuleTypeCode;
     private String completionRuleSnapshot;
     private String gateRef;
