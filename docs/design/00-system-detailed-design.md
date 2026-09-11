@@ -33,6 +33,7 @@ V1.7及修订007前三阶段历史审查证据保留。master修订011～013已�
 | `02e-version-scope-matrix.md` | 版本范围矩阵 |
 | `03-system-architecture.md` | 系统架构 |
 | `04-module-design.md` | 模块设计 |
+| `04a-template-compilation-runtime.md` | PM-03模板设计态、发布编译与不可变运行快照（补充分册） |
 | `05-state-machine.md` | 状态机 |
 | `06-workflow-design.md` | 工作流设计 |
 | `07-authorization-design.md` | 权限设计 |
