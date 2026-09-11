@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProjectRuntimeGraphFreezer {
-    private static final long LEGACY_GRAPH_VERSION = 1L;
-    private static final long V2_GRAPH_VERSION = 2L;
+    /** Runtime graph version remains 1 because the project Stage rows already freeze this value. */
+    private static final long GRAPH_VERSION = 1L;
 
     private final ProjectRuntimeGraphMapper graphMapper;
     private final ProjectStageExecutionContractMapper contractMapper;
@@ -104,7 +104,7 @@ public class ProjectRuntimeGraphFreezer {
             contract.setProjectId(projectId);
             contract.setStageId(stage.getId());
             contract.setSourceNodeKey(definition.getSourceNodeKey());
-            contract.setGraphVersion(V2_GRAPH_VERSION);
+            contract.setGraphVersion(GRAPH_VERSION);
             contract.setDefinitionRevisionId(definition.getDefinitionRevisionId());
             contract.setWorkBindingRevisionId(definition.getWorkBindingRevisionId());
             contract.setBindingVersion(1);
@@ -135,7 +135,7 @@ public class ProjectRuntimeGraphFreezer {
             edge.setConditionRuleRevisionId(definition.getConditionRuleRevisionId());
             edge.setConditionSnapshot(definition.getConditionRuleSnapshot() == null ? null
                     : JsonUtils.toJsonString(definition.getConditionRuleSnapshot()));
-            edge.setGraphVersion(V2_GRAPH_VERSION);
+            edge.setGraphVersion(GRAPH_VERSION);
             if (graphMapper.insert(edge) != 1) throw new IllegalStateException("STAGE_GRAPH_FREEZE_FAILED");
         }
     }
@@ -182,7 +182,7 @@ public class ProjectRuntimeGraphFreezer {
             contract.setTenantId(tenantId);
             contract.setProjectId(projectId);
             contract.setStageId(stage.getId());
-            contract.setGraphVersion(LEGACY_GRAPH_VERSION);
+            contract.setGraphVersion(GRAPH_VERSION);
             contract.setDefinitionRevisionId(definition.getDefinitionRevisionId());
             contract.setWorkBindingRevisionId(definition.getWorkBindingRevisionId());
             contract.setBindingVersion(1);
@@ -212,7 +212,7 @@ public class ProjectRuntimeGraphFreezer {
             if (definition.getConditionRuleRevisionId() != null)
                 edge.setConditionSnapshot(JsonUtils.toJsonString(
                         definitions.require(definition.getConditionRuleRevisionId(), "COMPLETION_RULE")));
-            edge.setGraphVersion(LEGACY_GRAPH_VERSION);
+            edge.setGraphVersion(GRAPH_VERSION);
             if (graphMapper.insert(edge) != 1) throw new IllegalStateException("STAGE_GRAPH_FREEZE_FAILED");
         }
     }
