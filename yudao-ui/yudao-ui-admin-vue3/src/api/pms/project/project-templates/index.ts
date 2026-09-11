@@ -1,7 +1,182 @@
 import request from '@/config/axios'
 import type { ValidationResult } from './definitions'
 
-// PM-03 / F-PROJ-009 — one template identity and explicit graph, server-owned snapshots.
+export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
+export interface JsonObject { [key: string]: JsonValue | undefined }
+
+// -----------------------------------------------------------------------------
+// Template Designer V2 — the only writable template content contract.
+// -----------------------------------------------------------------------------
+export interface TemplateMatch {
+  signingMethod?: string
+  projectCategory?: string
+  implementationMethod?: string
+  majorProjectLevel?: string
+}
+
+export interface TemplateSourcePin {
+  definitionRevisionId?: number
+  workBindingRevisionId?: number
+  permissionPolicyRevisionId?: number
+  completionRuleRevisionId?: number
+  transitionId?: number
+  transitionRevisionNo?: number
+}
+
+export interface WorkBindingSpec {
+  type: string
+  targetContextCode?: string
+  targetObjectType?: string
+  targetObjectKey?: string
+  componentKey?: string
+  dynamicFormRevisionId?: number | string
+  approvalDefinitionKey?: string
+  parameters?: JsonObject
+  businessViewSnapshot?: JsonObject
+  sourceRevisionId?: number
+}
+
+export interface PermissionRequirement {
+  policyRef?: string
+  policySnapshot?: JsonObject
+  sourceRevisionId?: number
+}
+
+export interface RuleSpec {
+  expression: JsonObject
+  sourceRevisionId?: number
+}
+
+export interface DesignerStageNode {
+  nodeKey: string
+  code: string
+  name: string
+  sortOrder?: number
+  start: boolean
+  terminal: boolean
+  entryCriteria?: string
+  exitCriteria?: string
+  workBinding: WorkBindingSpec
+  permission: PermissionRequirement
+  completionRule: RuleSpec
+  source?: TemplateSourcePin
+}
+
+export interface DesignerTaskNode {
+  nodeKey: string
+  code: string
+  name: string
+  parentTaskCode?: string
+  stageCode: string
+  priority?: number
+  sortOrder?: number
+  estimatedHours?: number
+  satisfactionTiming?: string
+  description?: string
+  workBinding: WorkBindingSpec
+  permission: PermissionRequirement
+  completionRule: RuleSpec
+  gateRef?: string
+  source?: TemplateSourcePin
+}
+
+export interface DesignerMilestoneNode {
+  nodeKey: string
+  code: string
+  name: string
+  stageCode?: string
+  timing?: string
+  criteria?: string
+  source?: TemplateSourcePin
+}
+
+export interface DesignerDeliverableNode {
+  nodeKey: string
+  code: string
+  name: string
+  stageCode?: string
+  taskCode?: string
+  required?: boolean
+  confirmationRule?: RuleSpec
+  source?: TemplateSourcePin
+}
+
+export interface GateRef { refType: string; refCode: string; refVersion?: string }
+export interface DesignerGateNode {
+  nodeKey: string
+  code: string
+  name: string
+  gateType: string
+  stageCode?: string
+  description?: string
+  references: GateRef[]
+  source?: TemplateSourcePin
+}
+
+export interface DesignerTransitionNode {
+  edgeKey: string
+  code: string
+  fromStageCode: string
+  toStageCode: string
+  condition?: RuleSpec
+  priority: number
+  defaultBranch: boolean
+  source?: TemplateSourcePin
+}
+
+export interface DesignerRuleAsset {
+  assetKey: string
+  name?: string
+  rule: RuleSpec
+}
+
+export interface DesignerLayout {
+  nodes?: Record<string, { x?: number; y?: number }>
+  viewport?: { x?: number; y?: number; zoom?: number }
+}
+
+export interface TemplateDesignerDocument {
+  schemaVersion: 2
+  match: TemplateMatch
+  processDefinitionKey?: string
+  closurePolicy?: TemplateClosurePolicy | null
+  stages: DesignerStageNode[]
+  tasks: DesignerTaskNode[]
+  milestones: DesignerMilestoneNode[]
+  deliverables: DesignerDeliverableNode[]
+  gates: DesignerGateNode[]
+  transitions: DesignerTransitionNode[]
+  ruleAssets: DesignerRuleAsset[]
+  layout?: DesignerLayout
+  /** Server-owned provenance for explicit legacy import. Never drives V2 runtime semantics. */
+  sourceEvidence?: JsonObject
+}
+
+export const emptyDesignerDocument = (): TemplateDesignerDocument => ({
+  schemaVersion: 2,
+  match: {},
+  stages: [],
+  tasks: [],
+  milestones: [],
+  deliverables: [],
+  gates: [],
+  transitions: [],
+  ruleAssets: [],
+  layout: {}
+})
+
+export const cloneDesignerDocument = (
+  document?: TemplateDesignerDocument
+): TemplateDesignerDocument => ({
+  ...emptyDesignerDocument(),
+  ...JSON.parse(JSON.stringify(document ?? {})),
+  match: { ...(document?.match ?? {}) }
+})
+
+// -----------------------------------------------------------------------------
+// Legacy content DTOs remain exported only for old revision readers/components.
+// New designer code must use TemplateDesignerDocument and /{id}/draft.
+// -----------------------------------------------------------------------------
 export interface DefinitionLink {
   definitionRevisionId?: number
   definitionSnapshot?: Record<string, unknown>
@@ -39,7 +214,6 @@ export interface TaskDef extends ExecutionLinks {
   estimatedHours?: number
   satisfactionTiming?: string
   description?: string
-  // Existing inline contracts remain readable; new nodes select reusable revisions.
   workBindingTypeCode?: string
   targetContextCode?: string
   targetObjectType?: string
@@ -68,7 +242,6 @@ export interface DeliverableDef extends DefinitionLink {
   taskCode?: string
   required?: boolean
 }
-export interface GateRef { refType: string; refCode: string; refVersion?: string }
 export interface GateDef extends DefinitionLink {
   gateCode: string
   name: string
@@ -84,7 +257,6 @@ export interface TemplateClosurePolicy {
   requireAllTasksDone: true
   revalidateBusinessFacts: true
   processDefinitionKey: 'PMS_MINIMAL_NORMAL_CLOSURE'
-  /** Decimal strings preserve IDs beyond JavaScript's safe integer range. */
   reviewerUserId: number | string
 }
 export interface TemplateDefinitionContent {
@@ -94,16 +266,15 @@ export interface TemplateDefinitionContent {
   implementationMethod?: string
   majorProjectLevel?: string
   processDefinitionKey?: string
-  /** Historical read-only field. Never submitted by the editor. */
   processDefinitionVersion?: string
   stages: StageDef[]
-  /** Missing in historical content; absence must not be inferred from sortOrder. */
   transitions?: StageTransition[]
   tasks: TaskDef[]
   milestones: MilestoneDef[]
   deliverables: DeliverableDef[]
   gates: GateDef[]
 }
+
 export interface ProjectTemplateVO {
   id?: number
   code: string
@@ -126,11 +297,16 @@ export interface ProjectTemplateRevisionVO {
   majorProjectLevel?: string
   processDefinitionKey?: string
   processDefinitionVersion?: string
+  designerSchemaVersion?: number
+  executionSchemaVersion?: number
+  compilerVersion?: string
+  snapshotHash?: string
   validationSummary?: string
   publishedBy?: string
   publishedTime?: Date
 }
 export interface ProjectTemplateDetailVO extends ProjectTemplateVO {
+  /** Legacy compatibility projection. New editor loads /draft explicitly. */
   draftContent?: TemplateDefinitionContent
   revisions: ProjectTemplateRevisionVO[]
 }
@@ -141,15 +317,11 @@ export interface ProjectTemplateUpdateReqVO {
   name?: string
   matchPriority?: number
   description?: string
+  /** Legacy compatibility only. */
   content?: TemplateDefinitionContent
 }
 export interface TemplateCopy { code: string; name: string; sourceRevisionNo?: number }
-export interface MatchPreviewReqVO {
-  signingMethod?: string
-  projectCategory?: string
-  implementationMethod?: string
-  majorProjectLevel?: string
-}
+export interface MatchPreviewReqVO extends TemplateMatch {}
 export interface MatchCandidateVO extends MatchPreviewReqVO {
   templateId: number
   code: string
@@ -161,7 +333,6 @@ export interface MatchRespVO {
   matched?: MatchCandidateVO
   conflicts: string[]
 }
-/** 部署Owner声明的完成事实目录条目；仅配置展示，不构成授权或完成断言。 */
 export interface CompletionFactCatalogVO {
   ownerContext: string
   objectType: string
@@ -169,26 +340,39 @@ export interface CompletionFactCatalogVO {
   label: string
 }
 
-export const templateSaveContent = (content: TemplateDefinitionContent): TemplateDefinitionContent =>
-  JSON.parse(JSON.stringify(content, (key, value) =>
-    ['definitionSnapshot', 'processDefinitionVersion', 'refVersion'].includes(key) ? undefined : value
-  ))
 const baseUrl = '/api/v1/pms/project-templates'
-export const getProjectTemplatePage = (params: PageParam) => request.get({ url: `${baseUrl}/page`, params })
-export const getProjectTemplate = (id: number) => request.get<ProjectTemplateDetailVO>({ url: `${baseUrl}/${id}` })
-export const createProjectTemplate = (data: ProjectTemplateVO) => request.post<number>({ url: baseUrl, data })
-// Existing template commands retain the Controller's header-free compatibility contract.
+export const getProjectTemplatePage = (params: PageParam) =>
+  request.get({ url: `${baseUrl}/page`, params })
+export const getProjectTemplate = (id: number) =>
+  request.get<ProjectTemplateDetailVO>({ url: `${baseUrl}/${id}` })
+export const createProjectTemplate = (data: ProjectTemplateVO) =>
+  request.post<number>({ url: baseUrl, data })
 export const updateProjectTemplate = (id: number, data: ProjectTemplateUpdateReqVO) =>
-  request.put({ url: `${baseUrl}/${id}`, data: { ...data, ...(data.content ? { content: templateSaveContent(data.content) } : {}) } })
-export const deleteProjectTemplate = (id: number) => request.delete({ url: `${baseUrl}/${id}` })
-export const publishProjectTemplate = (id: number) => request.post({ url: `${baseUrl}/${id}/actions/publish` })
-export const disableProjectTemplate = (id: number) => request.post({ url: `${baseUrl}/${id}/actions/disable` })
-export const validateProjectTemplate = (id: number) => request.post<ValidationResult>({ url: `${baseUrl}/${id}/actions/validate` })
+  request.put({ url: `${baseUrl}/${id}`, data })
+
+/** V2 authoring truth. */
+export const getProjectTemplateDraft = (id: number) =>
+  request.get<TemplateDesignerDocument>({ url: `${baseUrl}/${id}/draft` })
+export const updateProjectTemplateDraft = (id: number, data: TemplateDesignerDocument) =>
+  request.put({ url: `${baseUrl}/${id}/draft`, data: cloneDesignerDocument(data) })
+
+export const deleteProjectTemplate = (id: number) =>
+  request.delete({ url: `${baseUrl}/${id}` })
+export const publishProjectTemplate = (id: number) =>
+  request.post({ url: `${baseUrl}/${id}/actions/publish` })
+export const disableProjectTemplate = (id: number) =>
+  request.post({ url: `${baseUrl}/${id}/actions/disable` })
+export const validateProjectTemplate = (id: number) =>
+  request.post<ValidationResult>({ url: `${baseUrl}/${id}/actions/validate` })
 export const copyProjectTemplate = (id: number, version: number, data: TemplateCopy, key: string) =>
-  request.post<number>({ url: `${baseUrl}/${id}/actions/copy`, data,
-    headers: { 'If-Match': String(version), 'Idempotency-Key': key } })
+  request.post<number>({
+    url: `${baseUrl}/${id}/actions/copy`,
+    data,
+    headers: { 'If-Match': String(version), 'Idempotency-Key': key }
+  })
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
-export const matchPreview = (data: MatchPreviewReqVO) => request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
+export const matchPreview = (data: MatchPreviewReqVO) =>
+  request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
 export const getCompletionFactCatalog = () =>
   request.get<CompletionFactCatalogVO[]>({ url: `${baseUrl}/actions/completion-fact-catalog` })
