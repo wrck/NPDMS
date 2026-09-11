@@ -32,7 +32,7 @@
       </template>
     </template>
     <template v-else-if="kind === 'COMPLETION_RULE'">
-      <el-form-item label="规则组合"><RuleEditor v-model="model.payload" :disabled="disabled" /></el-form-item>
+      <el-form-item label="规则组合"><RuleDecisionDesigner v-model="model.payload" :disabled="disabled" /></el-form-item>
     </template>
     <template v-else-if="kind === 'PERMISSION_POLICY'">
       <el-alert title="只声明所需操作编码，不授予权限。服务端仍重验租户、项目树、Owner对象、字段与当前状态。" type="info" :closable="false" class="mb-12px" />
@@ -45,7 +45,7 @@
       <el-form-item label="最少数量"><el-input-number v-model="model.payload.minimumQuantity" :min="model.payload.required ? 1 : 0" :precision="0" /><span class="ml-8px">必传不可用零数量绕过</span></el-form-item>
       <el-form-item label="允许来源"><el-select v-model="model.payload.allowedSources" multiple filterable allow-create default-first-option placeholder="输入已定义来源编码并确认" /></el-form-item>
       <el-form-item label="产出类型"><el-input v-model="model.payload.outputType" placeholder="文件或业务产出类型（Owner契约）" /></el-form-item>
-      <el-form-item label="确认 / 审批要求"><RuleEditor v-model="model.payload.confirmationRule" :disabled="disabled" /></el-form-item>
+      <el-form-item label="确认 / 审批要求"><RuleDecisionDesigner v-model="model.payload.confirmationRule" :disabled="disabled" /></el-form-item>
       <el-form-item label="完成规则修订"><DefinitionSelect :model-value="reference('completionRule')" kind="COMPLETION_RULE" :disabled="disabled" @update:model-value="setReference('completionRule', $event)" /></el-form-item>
     </template>
     <template v-else-if="kind === 'GATE'">
@@ -74,7 +74,7 @@ import type { DefinitionKind, DefinitionSave } from '@/api/pms/project/project-t
 import type { BusinessViewRegistrationVO } from '@/api/pms/platform/business-view'
 import DefinitionSelect from './DefinitionSelect.vue'
 import BusinessViewSelect from './BusinessViewSelect.vue'
-import RuleEditor from './RuleEditor.vue'
+import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
 const props = defineProps<{ model: DefinitionSave; disabled?: boolean }>()
 const kind = computed(() => props.model.definitionKind)
 const stageCodes = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6']
