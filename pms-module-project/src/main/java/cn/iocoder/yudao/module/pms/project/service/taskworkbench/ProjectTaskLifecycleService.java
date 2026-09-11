@@ -28,6 +28,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByI
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskCompletionFactsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskNativeCompletionPolicy;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskCompletedMessage;
@@ -187,7 +188,7 @@ public class ProjectTaskLifecycleService {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskIdForUpdate(
                 new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
-                || (!"TASK_NATIVE".equals(contract.getWorkBindingTypeCode())
+                || (!TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode())
                 && !isAcceptanceContract(contract) && !isBusinessContract(contract))) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
@@ -317,8 +318,12 @@ public class ProjectTaskLifecycleService {
                 || !Objects.equals(command.contractVersion(), contract.getContractVersion())) {
             unmet.add("EXECUTION_CONTRACT_VERSION_MISMATCH");
         }
-        Map<?, ?> rule = JsonUtils.parseObject(contract.getCompletionRuleSnapshot(), Map.class);
-        if (rule == null || !"DONE".equals(rule.get("requiredStatus"))) unmet.add("COMPLETION_RULE_INVALID");
+        try {
+            TaskNativeCompletionPolicy.validate(contract.getWorkBindingTypeCode(),
+                    contract.getCompletionRuleTypeCode(), contract.getCompletionRuleSnapshot());
+        } catch (IllegalArgumentException ex) {
+            unmet.add("COMPLETION_RULE_INVALID");
+        }
         if (task.getName() == null || task.getName().isBlank() || task.getStageCode() == null
                 || task.getStageCode().isBlank()) unmet.add("TASK_REQUIRED_FACT_MISSING");
         TaskCompletionFactsQuery query = new TaskCompletionFactsQuery(actor.tenantId(), task.getProjectId(), task.getId());
