@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskMaintenanceMapper">
+  <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskResponsibleRow">
+    SELECT * FROM proj_project_task_responsible WHERE tenant_id=#{query.tenantId} AND project_task_id=#{query.projectTaskId}
+      AND current_marker=1 AND deleted=0 FOR UPDATE
+  </select>
+  <select id="selectHistory" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskResponsibleRow">
+    SELECT * FROM proj_project_task_responsible WHERE tenant_id=#{query.tenantId} AND project_task_id=#{query.projectTaskId}
+      AND deleted=0 ORDER BY effective_from DESC,id DESC LIMIT #{query.offset},#{query.limit}
+  </select>
+  <select id="selectExecutorHistory" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskResponsibleRow">
+    SELECT id,project_task_id,assignee_user_id AS user_id,assigned_by,effective_from,effective_to,reason,version,tenant_id
+    FROM proj_project_task_assignment WHERE tenant_id=#{query.tenantId} AND project_task_id=#{query.projectTaskId}
+      AND deleted=0 ORDER BY effective_from DESC,id DESC LIMIT #{query.offset},#{query.limit}
+  </select>
+  <insert id="insertResponsible">
+    INSERT INTO proj_project_task_responsible(id,project_id,project_task_id,user_id,effective_from,assigned_by,reason,tenant_id,creator,updater)
+    VALUES(#{row.id},#{row.projectId},#{row.projectTaskId},#{row.userId},#{row.effectiveFrom},#{row.assignedBy},#{row.reason},#{row.tenantId},#{row.assignedBy},#{row.assignedBy})
+  </insert>
+  <update id="closeResponsible">
+    UPDATE proj_project_task_responsible SET effective_to=#{query.effectiveTo},version=version+1,updater=#{query.updater}
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND version=#{query.version} AND current_marker=1 AND deleted=0
+  </update>
+  <select id="selectDescription" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskMaintenanceMapper$Description">
+    SELECT description,description_format FROM proj_project_task WHERE tenant_id=#{query.tenantId} AND id=#{query.projectTaskId} AND deleted=0
+  </select>
+  <update id="updateDescription">
+    UPDATE proj_project_task SET description=#{query.text},description_format=#{query.format},version=version+1,updater=#{query.updater}
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.taskId} AND version=#{query.version} AND deleted=0
+  </update>
+</mapper>

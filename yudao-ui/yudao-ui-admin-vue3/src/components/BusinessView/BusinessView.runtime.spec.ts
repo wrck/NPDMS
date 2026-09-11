@@ -140,6 +140,7 @@ beforeEach(() => {
   } as any)
   vi.mocked(RequirementApi.getDetail).mockResolvedValue({
     preparationId: 91,
+    projectId: 11,
     status: 'DRAFT',
     currentDraft: true,
     allowedActions: ['PATCH_FORM', 'COMPLETE'],
@@ -155,6 +156,20 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it.each([93, '9007199254740993'])('opens exact linked SOL preparation %s instead of the default current draft', async (id) => {
+    const data = target('PAGE')
+    data.resolvedContext.businessObjectId = id
+    vi.mocked(RequirementApi.getDetail).mockResolvedValueOnce({
+      preparationId: id, projectId: 11, status: 'COMPLETED', allowedActions: [], completionBlockers: [],
+      dynamicFormInstanceId: 73, templateRevisionId: 20, formConfJson: {}, formRulesJson: [], values: {},
+      controlledFiles: {}, dynamicFormInstanceVersion: 1
+    } as any)
+    const mounted = mount(BusinessViewHost, data, options)
+    await tick()
+    expect(RequirementApi.getDetail).toHaveBeenCalledWith(id)
+    expect(RequirementApi.getDetail).not.toHaveBeenCalledWith(91)
+    mounted.app.unmount()
+  })
   it('maps only the exact SOL site-survey page and preserves typed Owner context without numeric conversion', () => {
     const data = target('PAGE')
     Object.assign(data.registration, { componentKey: 'SOL_SITE_SURVEY', entityType: 'SITE_SURVEY' })

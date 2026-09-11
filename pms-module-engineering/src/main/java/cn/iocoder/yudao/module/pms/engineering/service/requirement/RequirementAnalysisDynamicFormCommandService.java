@@ -26,7 +26,6 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevis
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -257,15 +256,14 @@ public class RequirementAnalysisDynamicFormCommandService {
         if (lockedScope.fullProjectIds() == null || !lockedScope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }
-        ProjectParticipantFact inspected = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                projectId, actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                LocalDateTime.now()));
+        ProjectParticipantFact inspected = RequirementAnalysisManagerFacts.inspect(
+                participantFactApi, permissionApi, projectId, actor.actorId());
         if (inspected == null || expectedProjectVersion != null
                 && !Objects.equals(expectedProjectVersion, inspected.projectVersion())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
         ProjectParticipantFact participant = participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(), inspected.projectVersion(),
+                new ProjectParticipantFactRevalidationQuery(projectId, inspected.userId(), inspected.projectVersion(),
                         ACTIVE, requireS1 ? INITIAL_STAGE : null,
                         Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
         ProjectWorkBindingFact binding = null;

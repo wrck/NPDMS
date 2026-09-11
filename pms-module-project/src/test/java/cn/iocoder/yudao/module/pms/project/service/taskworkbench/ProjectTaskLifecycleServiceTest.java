@@ -63,6 +63,7 @@ class ProjectTaskLifecycleServiceTest {
     @Mock ProjectScopeApi projectScopeApi;
     @Mock TaskBusinessCompletionEvaluator businessEvaluator;
     @Mock TaskBusinessBindingHostProvider businessProvider;
+    @Mock cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
 
     private ProjectTaskLifecycleService service;
     private PlatformCommandExecutionApi.SuccessFacts successFacts;
@@ -72,7 +73,7 @@ class ProjectTaskLifecycleServiceTest {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper, gateMapper,
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
-                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider);
+                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes);
     }
 
     @Test
@@ -101,6 +102,38 @@ class ProjectTaskLifecycleServiceTest {
         ArgumentCaptor<TaskLifecycleStateUpdate> update = ArgumentCaptor.forClass(TaskLifecycleStateUpdate.class);
         verify(taskMapper).updateLifecycleIfMatch(update.capture());
         assertEquals(99, update.getValue().progress());
+    }
+
+    @Test
+    void superAdminMayOperateForAnActualExecutorButDoesNotCreateAnAssignment() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(22L);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertEquals("IN_PROGRESS", service.act(command("start", 3, null, null), actor()).status());
+        verify(memberMapper, never()).selectActiveByUserForUpdate(any());
+    }
+
+    @Test
+    void superAdminStillCannotStartWithoutAnActualExecutor() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
+        assertThrows(RuntimeException.class, () -> service.act(command("start", 3, null, null), actor()));
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test
+    void superAdminStillNeedsOwnerCompletionFacts() {
+        allowBusinessAction("BUSINESS_OBJECT");
+        when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
+                new TaskBusinessCompletionEvaluator.Result(false, java.util.List.of("OWNER_NOT_COMPLETE"), businessEvidence()));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+        assertEquals("PENDING_ACCEPT", service.act(businessCommand(), actor()).status());
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+        verify(memberMapper, never()).selectActiveByUserForUpdate(any());
     }
 
     @Test

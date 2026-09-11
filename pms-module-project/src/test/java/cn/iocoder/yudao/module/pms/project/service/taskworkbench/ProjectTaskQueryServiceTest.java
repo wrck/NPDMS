@@ -143,6 +143,28 @@ class ProjectTaskQueryServiceTest {
     }
 
     @Test
+    void tenantSuperAdminSeesUnassignedTasksWithoutBeingAProjectMember() {
+        stubProjectScope(false);
+        when(projectTreeScopeService.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+        when(taskMapper.selectTree(any())).thenReturn(List.of(task(11L, null, 0)));
+        var result = service.getTasks(100L, new ProjectTaskTreeQueryReqVO(), actor());
+        assertEquals("Task 11", result.getRows().getFirst().getName());
+        verify(taskMapper, never()).selectFullTaskIds(any());
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:create")).thenReturn(true);
+        assertEquals(Set.of("CREATE"), service.getWorkspace(100L, actor()).getAllowedActions());
+    }
+
+    @Test
+    void superAdminDoesNotBypassTheProjectTenantOrVisibilityBoundary() {
+        var foreign = new ProjectMasterDO(); foreign.setId(100L); foreign.setTenantId(1L);
+        when(projectMapper.selectById(100L)).thenReturn(foreign);
+        var result = service.getTasks(100L, new ProjectTaskTreeQueryReqVO(), actor());
+        assertTrue(result.getRows().isEmpty());
+        verify(projectTreeScopeService, never()).isTenantSuperAdmin(any(), any());
+        verify(taskMapper, never()).selectTree(any());
+    }
+
+    @Test
     void shouldFailClosedForUnregisteredBindingAndRejectCrossTenantTask() {
         stubProjectScope(true);
         ProjectTaskInstanceDO task = task(11L, null, 0);
@@ -205,6 +227,27 @@ class ProjectTaskQueryServiceTest {
         } else {
             when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
         }
+    }
+
+    @Test
+    void businessBindingKeepsGenericAssignmentWithPermissionAndStateChecks() {
+        stubProjectScope(true);
+        var task = task(11L, null, 0); task.setStatus("PENDING_ASSIGN");
+        when(taskMapper.selectTask(any())).thenReturn(task);
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT"); contract.setContractVersion(1);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(new TaskBindingInspection("BUSINESS_OBJECT", Set.of(), "1", null));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:update")).thenReturn(false);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:move")).thenReturn(false);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(true);
+        assertEquals(Set.of("ASSIGN"), service.getWorkbench(11L, actor()).getAllowedActions());
+        task.setStatus("DONE");
+        assertTrue(service.getWorkbench(11L, actor()).getAllowedActions().isEmpty());
+        task.setStatus("PENDING_ASSIGN");
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(false);
+        assertTrue(service.getWorkbench(11L, actor()).getAllowedActions().isEmpty());
     }
 
     private void stubProjectRecord() {

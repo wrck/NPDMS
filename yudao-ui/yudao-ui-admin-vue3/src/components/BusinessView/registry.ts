@@ -74,7 +74,9 @@ const adapters: readonly Adapter[] = [
     component: markRaw(ProjectRequirementAnalysisPanel),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) } }
+      && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) },
+            ...(resolvedContext.businessObjectId == null ? {} : { preparationId: legacyOwnerId(resolvedContext.businessObjectId) }) }
         : undefined
   },
   {

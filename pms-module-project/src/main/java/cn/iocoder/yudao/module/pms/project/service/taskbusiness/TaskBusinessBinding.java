@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
+import cn.iocoder.yudao.module.pms.project.service.runtimegraph.FrozenDefinitions;
 import tools.jackson.databind.JsonNode;
 import java.util.Set;
 import static cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessErrors.failure;
@@ -18,6 +19,22 @@ record TaskBusinessBinding(String ownerContext, String objectType, String compon
         agree(root, "targetObjectType", contract.getTargetObjectType());
         agree(root, "componentKey", contract.getComponentKey());
         agree(root, "bindingType", contract.getWorkBindingTypeCode());
+        // PRE-02/PRE-04 parameters freeze their own form facts. View identity belongs to
+        // the separate WORK_BINDING revision in the same immutable task definition closure.
+        JsonNode metadata = root;
+        if (contract.getWorkBindingRevisionId() != null) {
+            try {
+                metadata = new FrozenDefinitions(contract.getDefinitionSnapshot())
+                        .require(contract.getWorkBindingRevisionId(), "WORK_BINDING");
+            } catch (RuntimeException invalid) { throw failure("DEFINITION_NOT_FROZEN"); }
+            agree(metadata, "targetContextCode", contract.getTargetContextCode());
+            agree(metadata, "targetObjectType", contract.getTargetObjectType());
+            agree(metadata, "bindingType", contract.getWorkBindingTypeCode());
+            for (String key : Set.of("businessViewRevisionId", "instanceResolutionStrategy")) {
+                if (root.hasNonNull(key) && !root.path(key).asText().equals(metadata.path(key).asText()))
+                    throw failure("BINDING_SNAPSHOT_CONFLICT");
+            }
+        }
         if (root.hasNonNull("contextMapping")) {
             JsonNode mapping = root.get("contextMapping");
             if (!mapping.isObject()) throw failure("BINDING_SNAPSHOT_INVALID");
@@ -25,7 +42,7 @@ record TaskBusinessBinding(String ownerContext, String objectType, String compon
                 if (!entry.getValue().isTextual()) throw failure("BINDING_SNAPSHOT_INVALID");
             }
         }
-        JsonNode view = root.path("businessViewRevisionId");
+        JsonNode view = metadata.path("businessViewRevisionId");
         Long revision = null;
         if (!view.isMissingNode()) {
             if (view.isIntegralNumber() && view.canConvertToLong() && view.asLong() > 0) {
@@ -42,8 +59,8 @@ record TaskBusinessBinding(String ownerContext, String objectType, String compon
             }
         }
         String strategy = null;
-        if (root.hasNonNull("instanceResolutionStrategy")) {
-            JsonNode value = root.get("instanceResolutionStrategy");
+        if (metadata.hasNonNull("instanceResolutionStrategy")) {
+            JsonNode value = metadata.get("instanceResolutionStrategy");
             if (!value.isTextual() || !Set.of("REFERENCE_EXISTING", "CREATE_ON_ENTER",
                     "CREATE_ON_FIRST_ACTION", "READ_ONLY_AGGREGATE").contains(value.asText()))
                 throw failure("BINDING_SNAPSHOT_INVALID");

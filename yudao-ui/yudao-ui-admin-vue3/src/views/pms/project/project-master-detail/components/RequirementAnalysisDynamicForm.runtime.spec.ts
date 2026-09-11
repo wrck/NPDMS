@@ -114,6 +114,7 @@ describe('F-SOL-003 requirement analysis dynamic form workspace', () => {
     state.detail = { ...state.detail, allowedActions: [] }
     await nextTick()
     expect(textOf(mounted.root)).toContain('count:9; readonly:true')
+    expect(textOf(mounted.root)).toContain('草稿尚未完成')
     expect(rendered[rendered.length - 1]).toBe(rules)
     expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.readonly).toBe(true)
     expect(rules.find((rule: any) => rule.field === 'PROJECT_BACKGROUND').props.editorConfig).toMatchObject({ readOnly: true, placeholder: '背景' })

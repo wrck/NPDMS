@@ -66,6 +66,7 @@ import { formatDate } from '@/utils/formatTime'
 import { useWindowSize } from '@vueuse/core'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
+import { legacyOwnerId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type {
   RequirementAnalysisCompletionBlockerCode,
   RequirementAnalysisCompletionBlockerVO,
@@ -83,7 +84,7 @@ import {
 } from './requirementAnalysisInteraction'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; allowedActions?: string[]; readonly?: boolean }>()
+const props = defineProps<{ project: ProjectMasterVO; preparationId?: BusinessViewId; allowedActions?: string[]; readonly?: boolean }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [dirty: boolean] }>()
 const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly ? [] : actions.filter(
   (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
@@ -155,7 +156,10 @@ const blockerKey = (blocker: RequirementAnalysisCompletionBlockerVO) =>
 const loadDetail = async (preparationId: number) => {
   detailLoading.value = true
   try {
-    detail.value = await RequirementAnalysisApi.getDetail(preparationId)
+    const value = await RequirementAnalysisApi.getDetail(preparationId)
+    if (String(value.projectId) !== String(props.project.id) || String(value.preparationId) !== String(preparationId))
+      throw new Error('需求分析版本不属于当前项目或对象不匹配')
+    detail.value = value
     formDirty.value = false
     selectedPreparationId.value = preparationId
     return detail.value
@@ -193,7 +197,8 @@ const load = async () => {
   try {
     overview.value = await RequirementAnalysisApi.getCurrent(props.project.id)
     const preferred = overview.value.draft || overview.value.currentEffective
-    if (preferred) await loadDetail(preferred.preparationId)
+    if (props.preparationId != null) await loadDetail(legacyOwnerId(props.preparationId))
+    else if (preferred) await loadDetail(preferred.preparationId)
     else {
       detail.value = undefined
       selectedPreparationId.value = undefined

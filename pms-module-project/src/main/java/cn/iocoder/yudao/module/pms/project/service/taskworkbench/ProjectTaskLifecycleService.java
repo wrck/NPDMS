@@ -84,6 +84,7 @@ public class ProjectTaskLifecycleService {
     private final ProjectScopeApi projectScopeApi;
     private final TaskBusinessCompletionEvaluator businessCompletionEvaluator;
     private final TaskBusinessBindingHostProvider businessProvider;
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
 
     public TaskCommandResult act(TaskActionCommand command, TaskWorkbenchActor actor) {
         AtomicReference<ActionFacts> facts = new AtomicReference<>();
@@ -271,6 +272,13 @@ public class ProjectTaskLifecycleService {
     private void requireCurrentSubject(String action, ProjectTaskInstanceDO task,
                                        TaskWorkbenchActor actor, LocalDateTime effectiveAt,
                                        boolean acceptanceContract) {
+        if (treeScopes.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) {
+            // Operator authority does not manufacture an actual executor assignment.
+            if (("START".equals(action) || "SUBMIT".equals(action))
+                    && assignmentMapper.selectCurrentForUpdate(new TaskAssignmentLockQuery(actor.tenantId(), task.getId())) == null)
+                throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+            return;
+        }
         if ("START".equals(action) || "SUBMIT".equals(action)) {
             if (!isCurrentAssignee(task, actor)) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);

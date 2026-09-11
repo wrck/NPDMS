@@ -33,6 +33,7 @@ class TaskBusinessAccess {
     private final ProjectTaskAssignmentMapper assignmentMapper;
     private final ProjectTaskRuntimeMapper taskMapper;
     private final PermissionApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
 
     ProjectTaskInstanceDO read(Long taskId, Long tenantId, Long actorId) {
         if (taskId == null || taskId <= 0 || tenantId == null || tenantId < 0 || actorId == null || actorId <= 0)
@@ -46,6 +47,7 @@ class TaskBusinessAccess {
         if (project == null || !Objects.equals(project.getTenantId(), tenantId)
                 || !fullScope(new Context(tenantId, actorId, task.getProjectId(), taskId, null), ProjectScopeApi.ACTION_VIEW))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        if (treeScopes.isTenantSuperAdmin(tenantId, actorId)) return task;
         var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(tenantId, actorId, LocalDateTime.now()));
         boolean manager = memberships.stream().anyMatch(m -> Objects.equals(m.getProjectId(), task.getProjectId())
                 && ProjectMemberRoles.MANAGEMENT_CODES.contains(m.getMemberRole()));
@@ -62,6 +64,8 @@ class TaskBusinessAccess {
                 || !"ACTIVE".equals(project.getLifecycleStatus()) || task.getStatus() == null
                 || Set.of("DONE", "CLOSED", "CANCELLED", "CANCELED").contains(task.getStatus())
                 || !permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:update")) return false;
+        if (treeScopes.isTenantSuperAdmin(context.tenantId(), context.actorId()))
+            return fullScope(context, ProjectScopeApi.ACTION_MANAGE);
         boolean assigned = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(context.tenantId(), Set.of(task.getId())))
                 .stream().anyMatch(a -> Objects.equals(a.getTenantId(), context.tenantId())
                         && Objects.equals(a.getProjectTaskId(), task.getId())

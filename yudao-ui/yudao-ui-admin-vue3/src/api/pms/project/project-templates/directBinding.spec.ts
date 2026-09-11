@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Definitions from './definitions'
 import * as Views from '@/api/pms/platform/business-view'
+import * as Forms from '@/api/pms/platform/dynamic-form'
 import {
   bindingContextMapping,
   createBindingSaveSession,
@@ -19,13 +20,14 @@ vi.mock('@/api/pms/platform/business-view', () => ({
   createBusinessView: vi.fn(),
   publishBusinessView: vi.fn()
 }))
+vi.mock('@/api/pms/platform/dynamic-form', () => ({ getRevision: vi.fn() }))
 const view: Views.BusinessViewRegistrationVO = {
   id: '9223372036854775807',
-  viewKey: '需求分析',
-  entityType: 'REQUIREMENT_ANALYSIS',
+  viewKey: '业务页面',
+  entityType: 'SITE_SURVEY',
   ownerContext: 'SOL',
   viewSource: 'PAGE',
-  componentKey: 'PROJ_REQUIREMENT_ANALYSIS',
+  componentKey: 'SOL_SITE_SURVEY',
   componentVersion: '1',
   revisionNo: 1,
   status: 'PUBLISHED',
@@ -110,6 +112,32 @@ beforeEach(() => {
   vi.mocked(Views.getBusinessView).mockResolvedValue(view)
 })
 describe('PM-03 direct binding durable preparation', () => {
+  it('freezes the selected PRE-04 form source separately from the page view and canonical binding', async () => {
+    const requirementView = { ...view, entityType: 'REQUIREMENT_ANALYSIS', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' }
+    vi.mocked(Views.getBusinessView).mockResolvedValue(requirementView)
+    vi.mocked(Forms.getRevision).mockResolvedValue({ revisionId: 33, templateId: 22, revisionNo: 1,
+      revisionVersion: 2, status: 'PUBLISHED' } as Forms.DynamicFormRevisionVO)
+    const prepared = await prepareTaskBinding(task, { view: requirementView, strategy: 'REFERENCE_EXISTING',
+      requirementFormRevisionId: 33, completion: { factCode: 'REQUIREMENT_ANALYSIS_COMPLETED', quantifier: 'ALL' } }, createBindingSaveSession())
+    expect(Definitions.createDefinition).toHaveBeenCalledWith(expect.objectContaining({ definitionKind: 'WORK_BINDING',
+      payload: expect.objectContaining({ bindingType: 'BUSINESS_OBJECT', targetObjectKey: 'PRE_04_REQUIREMENT_ANALYSIS',
+        businessViewRevisionId: requirementView.id }) }), expect.any(String))
+    expect(JSON.parse(prepared.bindingConfig!)).toEqual({ schemaVersion: 2, dynamicFormTemplateId: 22,
+      dynamicFormTemplateRevisionId: 33, dynamicFormRevisionNo: 1, dynamicFormRevisionFactVersion: 2 })
+    expect(prepared.dynamicFormRevisionId).toBeUndefined()
+    expect(task.bindingConfig).toBe('old')
+  })
+  it('does not publish a requirement page-only binding or an unpublished form source', async () => {
+    const requirementView = { ...view, entityType: 'REQUIREMENT_ANALYSIS', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' }
+    await expect(prepareTaskBinding(task, { view: requirementView, strategy: 'REFERENCE_EXISTING' }, createBindingSaveSession()))
+      .rejects.toThrow('已发布表单')
+    expect(Definitions.createDefinition).not.toHaveBeenCalled()
+    vi.mocked(Forms.getRevision).mockResolvedValue({ revisionId: 33, templateId: 22, revisionNo: 1,
+      revisionVersion: 2, status: 'DRAFT' } as Forms.DynamicFormRevisionVO)
+    await expect(prepareTaskBinding(task, { view: requirementView, strategy: 'REFERENCE_EXISTING', requirementFormRevisionId: 33 }, createBindingSaveSession()))
+      .rejects.toThrow('已发布修订')
+    expect(Definitions.createDefinition).not.toHaveBeenCalled()
+  })
   it('publishes dependency before TASK and retains exact original policy/completion while clearing assembler overrides', async () => {
     const original = structuredClone(task)
     const result = await prepareTaskBinding(
@@ -128,9 +156,9 @@ describe('PM-03 direct binding durable preparation', () => {
       expect.objectContaining({
         payload: expect.objectContaining({
           businessViewRevisionId: view.id,
-          targetObjectKey: 'PROJECT_REQUIREMENT_ANALYSIS',
+          targetObjectKey: 'PROJECT_SITE_SURVEY',
           targetContextCode: 'SOL',
-          targetObjectType: 'REQUIREMENT_ANALYSIS',
+          targetObjectType: 'SITE_SURVEY',
           contextMapping: { project: 'project' }
         })
       }),

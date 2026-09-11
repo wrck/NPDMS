@@ -27,7 +27,8 @@ class TaskBusinessAccessTest {
         var assignments = mock(ProjectTaskAssignmentMapper.class);
         var permissions = mock(PermissionApi.class);
         var access = new TaskBusinessAccess(scopes, mock(ProjectMasterMapper.class),
-                mock(ProjectMemberAssignmentMapper.class), assignments, mock(ProjectTaskRuntimeMapper.class), permissions);
+                mock(ProjectMemberAssignmentMapper.class), assignments, mock(ProjectTaskRuntimeMapper.class), permissions,
+                mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class));
         var task = new ProjectTaskInstanceDO();
         task.setId(10L); task.setTenantId(1L); task.setProjectId(20L); task.setStatus("IN_PROGRESS");
         var project = new ProjectMasterDO();
@@ -51,5 +52,34 @@ class TaskBusinessAccessTest {
         verify(scopes, times(2)).resolveCurrent(argThat(q -> ProjectScopeApi.ACTION_EDIT.equals(q.actionCode())));
         project.setLifecycleStatus("CLOSED");
         assertFalse(access.writable(task, project, context));
+    }
+
+    @Test void superAdminUsesExistingScopeButCannotBypassTenantOrTerminalState() {
+        var scopes = mock(ProjectScopeApi.class);
+        var projects = mock(ProjectMasterMapper.class);
+        var tasks = mock(ProjectTaskRuntimeMapper.class);
+        var members = mock(ProjectMemberAssignmentMapper.class);
+        var permissions = mock(PermissionApi.class);
+        var treeScopes = mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class);
+        var access = new TaskBusinessAccess(scopes, projects, members, mock(ProjectTaskAssignmentMapper.class), tasks, permissions, treeScopes);
+        var task = new ProjectTaskInstanceDO().setId(10L).setProjectId(20L).setStatus("PENDING_ASSIGN");
+        task.setTenantId(1L);
+        var project = new ProjectMasterDO(); project.setId(20L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE");
+        when(tasks.selectTask(any())).thenReturn(task); when(projects.selectById(20L)).thenReturn(project);
+        when(permissions.hasAnyPermissions(eq(5L), any())).thenReturn(true);
+        when(treeScopes.isTenantSuperAdmin(1L, 5L)).thenReturn(true);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(20L), Set.of()));
+        var context = new Context(1L, 5L, 20L, 10L, "admin");
+        assertSame(task, access.read(10L, 1L, 5L));
+        assertTrue(access.writable(task, project, context));
+        verifyNoInteractions(members);
+        verify(tasks, never()).selectFullTaskIds(any());
+        task.setStatus("DONE"); assertFalse(access.writable(task, project, context));
+        task.setStatus("PENDING_ASSIGN"); project.setLifecycleStatus("CLOSED"); assertFalse(access.writable(task, project, context));
+        project.setLifecycleStatus("ACTIVE");
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(), Set.of()));
+        assertThrows(RuntimeException.class, () -> access.read(10L, 1L, 5L));
+        assertFalse(access.writable(task, project, context));
+        task.setTenantId(2L); assertThrows(RuntimeException.class, () -> access.read(10L, 1L, 5L));
     }
 }

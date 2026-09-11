@@ -11,7 +11,7 @@
     </div>
     <div class="form-actions mt-15px">
       <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" type="primary" @click="save">保存需求分析</el-button>
-      <span v-else>该完成版本正文和附件已冻结，只能查看或对比。</span>
+      <span v-else>{{ detail.status === 'COMPLETED' ? '该完成版本正文和附件已冻结，只能查看或对比。' : '当前上下文只读，草稿尚未完成。' }}</span>
     </div>
   </section>
 </template>

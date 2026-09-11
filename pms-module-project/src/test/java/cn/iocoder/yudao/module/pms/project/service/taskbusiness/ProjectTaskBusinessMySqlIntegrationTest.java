@@ -553,6 +553,9 @@ class ProjectTaskBusinessMySqlIntegrationTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
+        @Bean cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes() {
+            return mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class);
+        }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean BusinessViewQueryApi businessViewQueryApi() { return mock(BusinessViewQueryApi.class); }
         @Bean OwnerProbe ownerProbe() { return new OwnerProbe(); }

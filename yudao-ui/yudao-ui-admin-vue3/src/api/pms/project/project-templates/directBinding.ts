@@ -1,6 +1,7 @@
 import * as Definitions from './definitions'
 import type { DefinitionRevision, DefinitionSave } from './definitions'
 import type { TaskDef } from './index'
+import { needsRequirementSource, requirementSourceSnapshot, REQUIREMENT_BINDING } from './requirementBinding'
 import * as Views from '@/api/pms/platform/business-view'
 import type {
   BusinessViewComponentVO,
@@ -12,6 +13,7 @@ import type {
 export type EntitySource = 'REFERENCE_EXISTING' | 'READ_ONLY_AGGREGATE'
 export type BindingSelection = {
   strategy: EntitySource
+  requirementFormRevisionId?: BusinessViewId
   completion?: { factCode: string; quantifier: 'ALL' | 'ANY' }
 } & (
   | { view: BusinessViewRegistrationVO }
@@ -41,6 +43,7 @@ interface BindingIntent {
   completion: DefinitionStep
   task: DefinitionStep
   contract?: TaskContract
+  requirementSource?: string
 }
 /** Keep this session until the whole template save succeeds; unchanged retries reuse IDs and keys. */
 export const createBindingSaveSession = () => new Map<string, BindingIntent>()
@@ -141,6 +144,10 @@ export const prepareTaskBinding = async (
 ): Promise<TaskDef> => {
   if (!['REFERENCE_EXISTING', 'READ_ONLY_AGGREGATE'].includes(selection.strategy))
     throw new Error('尚未支持自动创建此业务对象。')
+  const selectedView = 'view' in selection ? selection.view : selection.component
+  const requirement = needsRequirementSource(selectedView)
+  if (requirement && !selection.requirementFormRevisionId)
+    throw new Error('请选择需求分析使用的已发布表单；仅选择办理页面不能创建需求分析')
   const signature = JSON.stringify({ task, selection })
   let intent = session.get(signature)
   if (!intent) {
@@ -156,18 +163,19 @@ export const prepareTaskBinding = async (
   }
   intent.contract ??= await loadTaskContract(task)
   const { definition, permission, completion } = intent.contract
+  if (requirement) intent.requirementSource ??= await requirementSourceSnapshot(selection.requirementFormRevisionId)
   const view = await ensureView(selection, intent)
   intent.binding.body ??= {
     definitionKind: 'WORK_BINDING',
     definitionCode: `PROJECT_BIND_${intent.token}`,
     schemaVersion: 1,
     payload: {
-      bindingType: view.viewSource === 'DYNAMIC_FORM' ? 'DYNAMIC_FORM' : 'BUSINESS_COMPONENT',
+      bindingType: requirement ? REQUIREMENT_BINDING.bindingType : view.viewSource === 'DYNAMIC_FORM' ? 'DYNAMIC_FORM' : 'BUSINESS_COMPONENT',
       instanceResolutionStrategy: selection.strategy,
       businessViewRevisionId: view.id,
       targetContextCode: view.ownerContext,
       targetObjectType: view.entityType,
-      targetObjectKey: bindingTarget(view),
+      targetObjectKey: requirement ? REQUIREMENT_BINDING.targetObjectKey : bindingTarget(view),
       contextMapping: bindingContextMapping(view)
     },
     references: []
@@ -218,12 +226,14 @@ export const prepareTaskBinding = async (
     ]
   }
   const definitionId = await ensurePublishedDefinition(intent.task)
-  return taskWithExecution(task, {
+  const prepared = taskWithExecution(task, {
     definitionRevisionId: definitionId,
     workBindingRevisionId: bindingId,
     permissionPolicyRevisionId: permission.id,
     completionRuleRevisionId: completionId
   })
+  if (requirement) prepared.bindingConfig = intent.requirementSource
+  return prepared
 }
 /** Clear only derived execution fields when deliberately replacing a definition/binding. */
 export const taskWithExecution = (

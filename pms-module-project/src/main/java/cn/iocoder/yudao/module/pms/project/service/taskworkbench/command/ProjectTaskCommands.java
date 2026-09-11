@@ -12,8 +12,15 @@ public final class ProjectTaskCommands {
     public record CreateTaskCommand(Long projectId, String taskCode, String name, String stageCode,
                                     Long parentTaskId, String businessLevelCode,
                                     LocalDateTime planStartTime, LocalDateTime planEndTime,
-                                    Integer priority, Integer sortOrder, String description,
+                                    Integer priority, Integer sortOrder, String description, String descriptionFormat,
                                     String idempotencyKey, String requestDigest) {
+        public CreateTaskCommand(Long projectId, String taskCode, String name, String stageCode,
+                                 Long parentTaskId, String businessLevelCode, LocalDateTime planStartTime,
+                                 LocalDateTime planEndTime, Integer priority, Integer sortOrder, String description,
+                                 String idempotencyKey, String requestDigest) {
+            this(projectId, taskCode, name, stageCode, parentTaskId, businessLevelCode, planStartTime, planEndTime,
+                    priority, sortOrder, description, cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskRichText.PLAIN, idempotencyKey, requestDigest);
+        }
     }
 
     public record UpdateTaskCommand(Long taskId, Integer expectedTaskVersion, String name,

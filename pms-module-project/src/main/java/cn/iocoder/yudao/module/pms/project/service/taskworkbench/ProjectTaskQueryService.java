@@ -83,6 +83,7 @@ public class ProjectTaskQueryService {
         response.setTaskTreeVersion(access.project().getTaskTreeVersion());
         response.setProjectionWatermark(watermark(access.project()));
         response.setAllowedActions(workspaceAllowedActions(access, actor));
+        response.setDescriptionLimit(TaskRichText.MAX_LENGTH);
         return response;
     }
 
@@ -102,6 +103,7 @@ public class ProjectTaskQueryService {
                 .businessLevelCode(trimToNull(request.getBusinessLevelCode()))
                 .stageCode(trimToNull(request.getStageCode()))
                 .keyword(trimToNull(request.getKeyword())).cursorSortOrder(cursor.sortOrder())
+                .status(trimToNull(request.getStatus())).responsibleUserId(request.getResponsibleUserId()).executorUserId(request.getExecutorUserId())
                 .cursorTaskId(cursor.taskId()).pageSize(pageSize + 1).build());
         boolean hasMore = tasks.size() > pageSize;
         List<ProjectTaskInstanceDO> page = hasMore ? tasks.subList(0, pageSize) : tasks;
@@ -168,9 +170,10 @@ public class ProjectTaskQueryService {
         }
         List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                 actor.tenantId(), actor.actorId(), LocalDateTime.now()));
-        boolean fullProjectAccess = memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
+        boolean superAdmin = projectTreeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId());
+        boolean fullProjectAccess = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
                 && MANAGER_ROLES.contains(item.getMemberRole()));
-        boolean projectManager = memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
+        boolean projectManager = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
                 && "PROJECT_MANAGER".equals(item.getMemberRole()));
         TaskVisibilityQuery visibilityQuery = new TaskVisibilityQuery(
                 actor.tenantId(), projectId, actor.actorId(), fullProjectAccess);
@@ -293,6 +296,7 @@ public class ProjectTaskQueryService {
                 || Set.of("DONE", "CLOSED").contains(value.task().getStatus())) return Set.copyOf(actions);
         if (hasPermission(actor.actorId(), "pms:project-task:update")) actions.add("UPDATE");
         if (hasPermission(actor.actorId(), "pms:project-task:move")) actions.add("MOVE");
+        if (hasPermission(actor.actorId(), "pms:project-task:assign")) actions.add("ASSIGN");
         return Set.copyOf(actions);
     }
 
@@ -322,7 +326,8 @@ public class ProjectTaskQueryService {
                 || mode == ProjectTaskTreeQuery.Mode.BUSINESS_LEVEL
                     && trimToNull(request.getBusinessLevelCode()) == null
                 || mode == ProjectTaskTreeQuery.Mode.LOCATE
-                    && request.getTaskId() == null && trimToNull(request.getKeyword()) == null) {
+                    && request.getTaskId() == null && trimToNull(request.getKeyword()) == null
+                    && trimToNull(request.getStatus()) == null && request.getResponsibleUserId() == null && request.getExecutorUserId() == null) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
     }

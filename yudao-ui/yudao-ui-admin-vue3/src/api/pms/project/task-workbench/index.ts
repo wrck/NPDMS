@@ -25,6 +25,7 @@ export interface ProjectWorkspace {
   taskTreeVersion: number
   projectionWatermark: string
   allowedActions: string[]
+  descriptionLimit?: number
 }
 
 export interface TaskNode {
@@ -54,9 +55,12 @@ export interface TaskTreeQuery {
   mode?: TaskTreeMode
   stageCode?: string
   parentTaskId?: number
-  taskId?: number
+  taskId?: number | string
   businessLevelCode?: string
   keyword?: string
+  status?: string
+  responsibleUserId?: number
+  executorUserId?: number
   cursor?: string
   pageSize?: number
 }
@@ -166,7 +170,7 @@ export const getProjectWorkspace = (projectId: number) =>
 export const getProjectTasks = (projectId: number, params: TaskTreeQuery) =>
   request.get<CursorResult<TaskNode>>({ url: `${baseUrl}/projects/${projectId}/tasks`, params })
 
-export const getTaskWorkbench = (taskId: number) =>
+export const getTaskWorkbench = (taskId: number | string) =>
   request.get<TaskWorkbench>({ url: `${baseUrl}/project-tasks/${taskId}/workbench` })
 
 export const getTaskAssigneeCandidates = (taskId: number, params: CandidatePageQuery) =>

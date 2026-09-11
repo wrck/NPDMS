@@ -174,7 +174,10 @@ public class ProjectTaskCommandService {
         task.setPlanEndTime(command.planEndTime());
         task.setPriority(command.priority());
         task.setSortOrder(command.sortOrder() == null ? 0 : command.sortOrder());
-        task.setDescription(trim(command.description()));
+        if (!TaskRichText.PLAIN.equals(command.descriptionFormat()) && !TaskRichText.HTML.equals(command.descriptionFormat()))
+            throw exception(PROJECT_TASK_COMMAND_INVALID);
+        task.setDescription(TaskRichText.HTML.equals(command.descriptionFormat()) ? TaskRichText.clean(command.description()) : trim(command.description()));
+        task.setDescriptionFormat(command.descriptionFormat());
         task.setProgress(BigDecimal.ZERO);
         task.setStateMachineRevisionId(stateMachine.getId());
         task.setStatus("PENDING_ASSIGN");

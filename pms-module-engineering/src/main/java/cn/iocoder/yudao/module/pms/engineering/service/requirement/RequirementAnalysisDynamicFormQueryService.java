@@ -23,7 +23,6 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
@@ -34,7 +33,6 @@ import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -286,9 +284,8 @@ public class RequirementAnalysisDynamicFormQueryService {
             }
             var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                     actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
-            ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                    projectId, actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                    LocalDateTime.now()));
+            ProjectParticipantFact participant = RequirementAnalysisManagerFacts.inspect(
+                    participantFactApi, permissionApi, projectId, actor.actorId());
             return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
                     && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
                     && (!requireS1 || "S1".equals(participant.currentStage()))

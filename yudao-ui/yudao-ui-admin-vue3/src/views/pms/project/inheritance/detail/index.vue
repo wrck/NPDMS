@@ -57,6 +57,7 @@
             v-if="detail?.id"
             ref="flowNavigationRef"
             :project-id="detail.id"
+            :selection="flowSelection"
             @select="handleFlowSelect"
           />
         </div>
@@ -438,7 +439,7 @@
           <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('flow')" v-show="activeTab === 'flow'" class="min-w-0" data-testid="project-pane-flow">
-          <ProjectFlowPanel :project-id="detail.id" :project="detail" :selection="flowSelection" />
+          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
@@ -507,7 +508,6 @@ import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
 import ProjectEquipmentPanel from '@/views/pms/asset/equipment/index.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
-import * as CommerceApi from '@/api/pms/commerce'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
   ProjectMasterVO,
@@ -527,6 +527,7 @@ const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
 const scopeVersion = ref<number>()
 const flowSelection = ref<ProjectFlowSelection>()
+const flowPanelRef = ref<InstanceType<typeof ProjectFlowPanel>>()
 const flowNavigationRef = ref<InstanceType<typeof ProjectFlowNavigation>>()
 const scopeContext = computed<ProjectRouteContext | undefined>(() => {
   const project = detail.value
@@ -591,15 +592,20 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 const switchTab = async (key: string) => {
+  if (key !== activeTab.value && activeTab.value === 'flow' && (await flowPanelRef.value?.requestLeave()) === false) return false
   if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
   if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
+  return true
 }
 
-const handleFlowSelect = (payload: ProjectFlowSelection) => {
+let flowSwitchSequence = 0
+const handleFlowSelect = async (payload: ProjectFlowSelection) => {
+  const sequence = ++flowSwitchSequence
+  if ((await flowPanelRef.value?.requestLeave()) === false || sequence !== flowSwitchSequence) return
+  if (!(await switchTab('flow')) || sequence !== flowSwitchSequence) return
   flowSelection.value = payload
-  void switchTab('flow')
 }
 
 const primaryContact = ref<ContactsApi.ContactVO>()
@@ -640,6 +646,7 @@ const handleMembersUpdated = async () => {
 }
 const handleStageChanged = async () => {
   await Promise.all([loadDetail(), loadInstances(), flowNavigationRef.value?.reload()])
+  await flowPanelRef.value?.refreshSummary()
 }
 const loadInstances = async () => {
   const id = projectId()
@@ -651,16 +658,18 @@ const loadScopeVersion = async () => {
   const id = projectId()
   if (!id || !checkPermi(['pms:commerce:scope:query'])) return
   try {
-    const version = await CommerceApi.getDeliveryScopeVersion(id)
-    if (id === projectId()) scopeVersion.value = version
+    const scope = await ProjectsApi.queryTree(id, { queryType: 'LOCATE', pageSize: 1 })
+    if (id === projectId()) scopeVersion.value = scope.updating ? undefined : scope.treeVersion
   } catch {
     if (id === projectId()) scopeVersion.value = undefined
   }
 }
 const loadAll = async () => {
+  const refreshMounted = Boolean(detail.value)
   loading.value = true
   try {
     await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadScopeVersion()])
+    if (refreshMounted) await Promise.all([flowNavigationRef.value?.reload(), flowPanelRef.value?.refreshSummary()])
   } finally {
     loading.value = false
   }

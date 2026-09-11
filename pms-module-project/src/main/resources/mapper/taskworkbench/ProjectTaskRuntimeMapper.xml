@@ -48,7 +48,7 @@
                         AND TRUE
                     </when>
                     <otherwise>
-                        AND EXISTS (
+                        AND (<include refid="nestedTaskFullVisibilityPredicate"/> OR EXISTS (
                             SELECT 1
                             FROM proj_task_tree_path visible_path
                             JOIN proj_project_task_assignment assignment
@@ -62,7 +62,13 @@
                               AND visible_path.ancestor_task_id = task.id
                               AND visible_path.deleted = b'0'
                               AND assignment.assignee_user_id = #{query.visibilityQuery.actorId}
-                        )
+                        ) OR EXISTS (
+                          SELECT 1 FROM proj_task_tree_path visible_path JOIN proj_project_task_responsible responsible
+                            ON responsible.tenant_id=visible_path.tenant_id AND responsible.project_task_id=visible_path.descendant_task_id
+                            AND responsible.current_marker=1 AND responsible.deleted=0
+                          WHERE visible_path.tenant_id=task.tenant_id AND visible_path.project_id=task.project_id
+                            AND visible_path.ancestor_task_id=task.id AND visible_path.deleted=0 AND responsible.user_id=#{query.visibilityQuery.actorId}
+                        ))
                     </otherwise>
                 </choose>
             </when>
@@ -106,12 +112,12 @@
                     <when test="query.targetTaskId != null">
                         AND task.id = #{query.targetTaskId}
                     </when>
-                    <otherwise>
+                    <when test="query.keyword != null">
                         AND (task.task_code LIKE CONCAT('%', #{query.keyword}, '%')
                             OR task.name LIKE CONCAT('%', #{query.keyword}, '%'))
-                    </otherwise>
+                    </when>
                 </choose>
-                <if test="query.keyword != null and query.visibilityQuery != null
+                <if test="(query.keyword != null or query.status != null or query.responsibleUserId != null or query.executorUserId != null) and query.visibilityQuery != null
                         and !query.visibilityQuery.fullProjectAccess">
                     AND <include refid="nestedTaskFullVisibilityPredicate"/>
                 </if>
@@ -119,6 +125,15 @@
         </choose>
         <if test="query.stageCode != null">
             AND task.stage_code = #{query.stageCode}
+        </if>
+        <if test="query.status != null">AND task.status=#{query.status}</if>
+        <if test="query.responsibleUserId != null">
+          AND EXISTS(SELECT 1 FROM proj_project_task_responsible responsible WHERE responsible.tenant_id=task.tenant_id
+            AND responsible.project_task_id=task.id AND responsible.user_id=#{query.responsibleUserId} AND responsible.current_marker=1 AND responsible.deleted=0)
+        </if>
+        <if test="query.executorUserId != null">
+          AND EXISTS(SELECT 1 FROM proj_project_task_assignment assignment WHERE assignment.tenant_id=task.tenant_id
+            AND assignment.project_task_id=task.id AND assignment.assignee_user_id=#{query.executorUserId} AND assignment.current_marker=1 AND assignment.deleted=0)
         </if>
         <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
             AND (task.sort_order &gt; #{query.cursorSortOrder}
@@ -178,7 +193,7 @@
                 TRUE
             </when>
             <otherwise>
-                EXISTS (
+                (<include refid="taskFullVisibilityPredicate"/> OR EXISTS (
                     SELECT 1
                     FROM proj_task_tree_path visible_path
                     JOIN proj_project_task_assignment assignment
@@ -192,7 +207,13 @@
                       AND visible_path.ancestor_task_id = task.id
                       AND visible_path.deleted = b'0'
                       AND assignment.assignee_user_id = #{query.actorId}
-                )
+                ) OR EXISTS (
+                  SELECT 1 FROM proj_task_tree_path visible_path JOIN proj_project_task_responsible responsible
+                    ON responsible.tenant_id=visible_path.tenant_id AND responsible.project_task_id=visible_path.descendant_task_id
+                    AND responsible.current_marker=1 AND responsible.deleted=0
+                  WHERE visible_path.tenant_id=task.tenant_id AND visible_path.project_id=task.project_id
+                    AND visible_path.ancestor_task_id=task.id AND visible_path.deleted=0 AND responsible.user_id=#{query.actorId}
+                ))
             </otherwise>
         </choose>
     </sql>
@@ -203,7 +224,7 @@
                 TRUE
             </when>
             <otherwise>
-                EXISTS (
+                (EXISTS (
                     SELECT 1
                     FROM proj_project_task_assignment assignment
                     WHERE assignment.tenant_id = task.tenant_id
@@ -212,13 +233,15 @@
                       AND assignment.current_marker = 1
                       AND assignment.effective_to IS NULL
                       AND assignment.deleted = b'0'
-                )
+                ) OR EXISTS(SELECT 1 FROM proj_project_task_responsible responsible
+                  WHERE responsible.tenant_id=task.tenant_id AND responsible.project_task_id=task.id
+                    AND responsible.user_id=#{query.actorId} AND responsible.current_marker=1 AND responsible.deleted=0))
             </otherwise>
         </choose>
     </sql>
 
     <sql id="nestedTaskFullVisibilityPredicate">
-        EXISTS (
+        (EXISTS (
             SELECT 1
             FROM proj_project_task_assignment assignment
             WHERE assignment.tenant_id = task.tenant_id
@@ -227,7 +250,9 @@
               AND assignment.current_marker = 1
               AND assignment.effective_to IS NULL
               AND assignment.deleted = b'0'
-        )
+        ) OR EXISTS(SELECT 1 FROM proj_project_task_responsible responsible
+          WHERE responsible.tenant_id=task.tenant_id AND responsible.project_task_id=task.id
+            AND responsible.user_id=#{query.visibilityQuery.actorId} AND responsible.current_marker=1 AND responsible.deleted=0))
     </sql>
 
     <select id="selectVisibleTaskIds" resultType="java.lang.Long">

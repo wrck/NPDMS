@@ -11,7 +11,7 @@ import DefinitionLibrary from './DefinitionLibrary.vue'
 import TemplateContentEditor from './TemplateContentEditor.vue'
 import AdvancedTemplateContentEditor from './AdvancedTemplateContentEditor.vue'
 import { hasPermission } from '@/directives/permission/hasPermi'
-import { getTemplateSelection } from '@/api/pms/platform/dynamic-form'
+import { getTemplateSelection, getRevision } from '@/api/pms/platform/dynamic-form'
 import RuleEditor from './RuleEditor.vue'
 import TemplatePage from './index.vue'
 import { cloneContent, emptyContent, graphIssues, relationsFor } from './editorModel'
@@ -53,7 +53,7 @@ const mount = (component: Component, props: Record<string, unknown>, components:
 
 vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: vi.fn(() => true) }))
-vi.mock('@/api/pms/platform/dynamic-form', () => ({ getTemplateSelection: vi.fn(async () => ({ list: [], total: 0 })) }))
+vi.mock('@/api/pms/platform/dynamic-form', () => ({ getTemplateSelection: vi.fn(async () => ({ list: [], total: 0 })), getRevision: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: vi.fn(async () => true), success: vi.fn() }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: () => [] }))
 vi.mock('@/utils/formatTime', () => ({ dateFormatter: () => '', formatDate: () => '' }))
@@ -338,11 +338,14 @@ describe('PM-03 business delivery interactions', () => {
     const data = template(); data.draftContent!.tasks.push({ taskCode: 'REAL', name: '需求分析', stageCode: 'S4', definitionRevisionId: 12, bindingConfig: 'old', workBindingTypeCode: 'TASK_NATIVE' })
     vi.mocked(Templates.getProjectTemplate).mockResolvedValue(data)
     const bigView = { ...view('9223372036854775807'), contextSchema: { required: ['project'] } }
+    vi.mocked(getTemplateSelection).mockResolvedValue({ list: [{ templateName: '需求分析标准表单', currentPublishedRevisionId: 55, currentPublishedRevisionNo: 2 } as any], total: 1 })
+    vi.mocked(getRevision).mockResolvedValue({ revisionId: 55, templateId: 50, revisionNo: 2, revisionVersion: 3, status: 'PUBLISHED' } as any)
     vi.mocked(Views.getBusinessViewPage).mockResolvedValue({ list: [bigView], total: 1 }); vi.mocked(Views.getBusinessView).mockResolvedValue(bigView)
     vi.mocked(Templates.updateProjectTemplate).mockRejectedValueOnce(new Error('草稿保存网络中断')).mockResolvedValueOnce(true)
     const mounted = mount(TemplatePage, {}, options); await tick(); await click(mounted.root, '编辑'); await chooseStage(mounted.root, 'S4')
     const selector = all(mounted.root, 'select').find((node) => node.props?.placeholder === '保留当前办理方式，或选择已发布页面 / 表单')!
     await update(selector, bigView.id)
+    await update(all(mounted.root, 'select').find(node => node.props?.placeholder === '选择已发布需求分析表单')!, 55)
     expect(textOf(mounted.root)).toContain('完成规则待对接')
     expect(textOf(mounted.root)).toContain('需求分析')
     await click(mounted.root, '保存草稿')
@@ -354,7 +357,7 @@ describe('PM-03 business delivery interactions', () => {
     expect(Templates.updateProjectTemplate).toHaveBeenCalledTimes(2)
     const saved = vi.mocked(Templates.updateProjectTemplate).mock.calls[1][1].content!.tasks[0]
     expect(saved).toMatchObject({ workBindingRevisionId: 104, definitionRevisionId: 105, permissionPolicyRevisionId: 6, completionRuleRevisionId: 7 })
-    expect(saved).not.toHaveProperty('bindingConfig')
+    expect(JSON.parse(saved.bindingConfig!)).toMatchObject({ schemaVersion: 2, dynamicFormTemplateRevisionId: 55 })
     expect(vi.mocked(Definitions.publishDefinition).mock.invocationCallOrder.at(-1)!).toBeLessThan(vi.mocked(Templates.updateProjectTemplate).mock.invocationCallOrder[0])
     expect(Templates.publishProjectTemplate).not.toHaveBeenCalled(); mounted.app.unmount()
   })

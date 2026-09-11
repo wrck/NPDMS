@@ -63,6 +63,14 @@
           <p class="help">按项目上下文关联业务，不固定某个项目的实例，也不会因打开页面创建业务。</p>
         </el-form-item>
       </template>
+      <el-form-item v-if="needsRequirementSource(selectedMetadata)" label="需求分析表单" required>
+        <el-select :model-value="requirementSourceId" filterable placeholder="选择已发布需求分析表单"
+          :disabled="readonly || !canBind" @update:model-value="chooseRequirementSource">
+          <el-option v-for="form in forms" :key="form.currentPublishedRevisionId" :value="form.currentPublishedRevisionId"
+            :label="`${form.templateName} · 第${form.currentPublishedRevisionNo}版`" />
+        </el-select>
+        <p class="help">办理页面与业务表单分开冻结；发布时由需求分析Owner校验表单归属和必填内容，不使用最新修订替代所选版本。</p>
+      </el-form-item>
       <el-form-item label="完成依据">
         <el-select
           v-if="modelValue && completionOptions.length"
@@ -171,6 +179,7 @@ import {
   type TaskContract
 } from '@/api/pms/project/project-templates/directBinding'
 import { errorText } from './editorModel'
+import { needsRequirementSource, savedRequirementSource } from '@/api/pms/project/project-templates/requirementBinding'
 const props = defineProps<{ task: TaskDef; modelValue?: BindingSelection; readonly?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: BindingSelection | undefined] }>()
 const canRegister = computed(() => hasPermission(['pms:business-view:manage']))
@@ -218,6 +227,12 @@ const selectedMetadata = computed(() =>
       : props.modelValue.component
     : currentView.value
 )
+const requirementSourceId = computed(() => props.modelValue?.requirementFormRevisionId ?? savedRequirementSource(props.task))
+const chooseRequirementSource = (revisionId: BusinessViewId) => {
+  if (props.readonly || !canBind.value) return
+  const selection = props.modelValue ?? (currentView.value ? { view: currentView.value, strategy: source.value as EntitySource } : undefined)
+  if (selection) emit('update:modelValue', { ...selection, requirementFormRevisionId: revisionId })
+}
 const selectedKey = computed(() =>
   props.modelValue && 'view' in props.modelValue
     ? props.modelValue.view.id
@@ -329,7 +344,7 @@ const load = async () => {
     } catch {
       factCatalog.value = []
     }
-    if (canRegister.value) {
+    if (canRegister.value || canBind.value) {
       const selections: DynamicFormSelectionVO[] = []
       let formPage = 1
       while (true) {
@@ -350,7 +365,7 @@ const chooseView = (id: BusinessViewId) => {
   if (!view || props.readonly || !canBind.value) return
   try {
     bindingContextMapping(view)
-    emit('update:modelValue', { view, strategy: 'REFERENCE_EXISTING' })
+    emit('update:modelValue', { view, strategy: 'REFERENCE_EXISTING', requirementFormRevisionId: savedRequirementSource(props.task) })
     failure.value = ''
   } catch (error) {
     failure.value = errorText(error)

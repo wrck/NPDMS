@@ -257,7 +257,7 @@ export const createRevision = (
     }
   })
 
-export const getRevision = (revisionId: number) =>
+export const getRevision = (revisionId: number | string) =>
   request.get<DynamicFormRevisionVO>({
     url: `${baseUrl}/dynamic-form-template-revisions/${revisionId}`
   })

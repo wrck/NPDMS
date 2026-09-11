@@ -17,6 +17,7 @@ public class ProjectWorkspaceRespVO {
     private Long taskTreeVersion;
     private String projectionWatermark;
     private Set<String> allowedActions;
+    private Integer descriptionLimit;
 
     @Data
     @NoArgsConstructor

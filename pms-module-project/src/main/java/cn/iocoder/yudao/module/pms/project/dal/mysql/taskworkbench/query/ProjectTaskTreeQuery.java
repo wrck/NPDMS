@@ -17,6 +17,9 @@ public record ProjectTaskTreeQuery(
         String businessLevelCode,
         String stageCode,
         String keyword,
+        String status,
+        Long responsibleUserId,
+        Long executorUserId,
         Integer cursorSortOrder,
         Long cursorTaskId,
         Integer pageSize) {

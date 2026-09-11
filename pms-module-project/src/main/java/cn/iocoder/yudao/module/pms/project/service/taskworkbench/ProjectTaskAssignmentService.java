@@ -191,7 +191,7 @@ public class ProjectTaskAssignmentService {
                 project.getTaskTreeVersion(), nextStatus, "NEW");
     }
 
-    private boolean isKnownNonTerminalStatus(ProjectTaskInstanceDO task, Long tenantId) {
+    boolean isKnownNonTerminalStatus(ProjectTaskInstanceDO task, Long tenantId) {
         if (task.getStateMachineRevisionId() == null || task.getStatus() == null
                 || TERMINAL_STATUSES.contains(task.getStatus())) {
             return false;
@@ -202,7 +202,7 @@ public class ProjectTaskAssignmentService {
                         || task.getStatus().equals(transition.getToStatusCode()));
     }
 
-    private PlatformCommandExecutionApi.SuccessFacts assignmentFacts(
+    PlatformCommandExecutionApi.SuccessFacts assignmentFacts(
             TaskCommandResult result, TaskWorkbenchActor actor, Map<String, ?> auditDetail) {
         Long assignmentId = (Long) auditDetail.get("assignmentId");
         Long assigneeUserId = (Long) auditDetail.get("assigneeUserId");
@@ -215,7 +215,7 @@ public class ProjectTaskAssignmentService {
                 "TaskAssigned", JsonUtils.toJsonString(payload));
     }
 
-    private Map<String, ?> assignmentAuditDetail(ProjectTaskInstanceDO task, ProjectTaskAssignmentDO current,
+    Map<String, ?> assignmentAuditDetail(ProjectTaskInstanceDO task, ProjectTaskAssignmentDO current,
                                                   ProjectTaskAssignmentDO assignment, String nextStatus) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("projectId", task.getProjectId());
@@ -286,7 +286,7 @@ public class ProjectTaskAssignmentService {
         return project;
     }
 
-    private void requireAssignmentActor(ProjectMasterDO project, TaskWorkbenchActor actor) {
+    void requireAssignmentActor(ProjectMasterDO project, TaskWorkbenchActor actor) {
         long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
         var version = treeVersionMapper.selectLatestActive(rootId);
         if (version == null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);

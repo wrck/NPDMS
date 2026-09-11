@@ -16,6 +16,9 @@ public class ProjectTaskTreeQueryReqVO {
     private String stageCode;
     @Size(max = 100)
     private String keyword;
+    @Size(max = 32) private String status;
+    private Long responsibleUserId;
+    private Long executorUserId;
     @Size(max = 100)
     private String cursor;
     @Min(1)

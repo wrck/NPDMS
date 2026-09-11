@@ -104,6 +104,7 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      * 任务说明（快照）
      */
     private String description;
+    private String descriptionFormat;
     /**
      * 冻结来源：模板任务定义ID（内容模型无定义行 ID 时为 NULL）
      */

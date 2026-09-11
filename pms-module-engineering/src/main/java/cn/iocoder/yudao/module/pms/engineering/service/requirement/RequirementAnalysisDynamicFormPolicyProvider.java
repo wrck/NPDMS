@@ -14,7 +14,6 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProvi
 import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionPolicyQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -98,7 +96,7 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         ProjectParticipantFact manager = managerAction ? inspectManager(query.actorUserId(), inspected.getProjectId()) : null;
         if (managerAction && manager != null) {
             participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                    inspected.getProjectId(), query.actorUserId(), manager.projectVersion(),
+                    inspected.getProjectId(), manager.userId(), manager.projectVersion(),
                     "ACTIVE", manager.currentStage(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
         }
         PreparationDO locked = lockOwnerFacts(query, inspected);
@@ -208,8 +206,7 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
     }
 
     private ProjectParticipantFact inspectManager(Long actorId, Long projectId) {
-        ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                projectId, actorId, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
+        ProjectParticipantFact fact = RequirementAnalysisManagerFacts.inspect(participantFactApi, permissionApi, projectId, actorId);
         return fact != null && "ACTIVE".equals(fact.lifecycleStatus())
                 && fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
                 ? fact : null;
