@@ -195,6 +195,7 @@ public final class ProjectRules {
         // 模板冻结绑定与流程引用（BR-4）
         update.setLifecycleTemplateId(current.getLifecycleTemplateId());
         update.setLifecycleTemplateRevisionNo(current.getLifecycleTemplateRevisionNo());
+        update.setLifecycleTemplateRevisionId(current.getLifecycleTemplateRevisionId());
         update.setTemplateLoadMethod(current.getTemplateLoadMethod());
         update.setProcessDefinitionKey(current.getProcessDefinitionKey());
         update.setProcessDefinitionVersion(current.getProcessDefinitionVersion());
