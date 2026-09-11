@@ -1,12 +1,15 @@
 package cn.iocoder.yudao.module.pms.project.domain.projectmanual;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -20,22 +23,32 @@ class TaskExecutionContractFactoryTest {
     void taskNativeRejectsExternalTarget() {
         TemplateDefinitionContent.TaskDef task = validTaskNative();
         task.setTargetObjectKey("foreign-1");
-
         assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, task, NOW));
     }
 
     @Test
-    void executableTaskRequiresPermissionPolicyAndCompletionRule() {
+    void legacyExecutableTaskStillRequiresPermissionPolicy() {
         TemplateDefinitionContent.TaskDef task = validTaskNative();
         task.setPermissionPolicyRef(null);
-
         assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, task, NOW));
+    }
+
+    @Test
+    void v2ExecutableTaskMayUseFrozenPermissionSnapshotWithoutLegacyPolicyRef() {
+        TemplateDefinitionContent.TaskDef task = validTaskNative();
+        task.setPermissionPolicyRef(null);
+        task.setSourceNodeKey("task:T-001");
+        task.setPermissionSnapshot(JsonUtils.parseObject("{\"requiredActions\":[\"VIEW\"]}", JsonNode.class));
+
+        ProjectTaskExecutionContractDO contract = factory.create(11L, null, task, NOW);
+        assertEquals("task:T-001", contract.getSourceNodeKey());
+        assertNull(contract.getPermissionPolicyRef());
+        assertNotNull(contract.getPermissionSnapshot());
     }
 
     @Test
     void createsCurrentVersionOneContract() {
         ProjectTaskExecutionContractDO contract = factory.create(11L, 21L, validTaskNative(), NOW);
-
         assertEquals(11L, contract.getProjectTaskId());
         assertEquals(21L, contract.getTemplateTaskDefinitionId());
         assertEquals("TASK_NATIVE", contract.getWorkBindingTypeCode());
@@ -48,7 +61,6 @@ class TaskExecutionContractFactoryTest {
     @Test
     void createsManualTaskNativeContractWithCanonicalDoneRule() {
         ProjectTaskExecutionContractDO contract = factory.createTaskNative(12L, NOW);
-
         assertEquals("TASK_NATIVE", contract.getWorkBindingTypeCode());
         assertEquals("PROJECT_TASK_NATIVE_DEFAULT", contract.getPermissionPolicyRef());
         assertEquals("TASK_NATIVE_STATUS", contract.getCompletionRuleTypeCode());
