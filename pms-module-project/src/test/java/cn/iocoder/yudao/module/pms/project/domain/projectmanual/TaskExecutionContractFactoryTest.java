@@ -27,6 +27,18 @@ class TaskExecutionContractFactoryTest {
     }
 
     @Test
+    void taskNativeRejectsArbitraryCompletionRuleShape() {
+        TemplateDefinitionContent.TaskDef task = validTaskNative();
+        task.setCompletionRuleTypeCode("ALL");
+        assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, task, NOW));
+
+        task = validTaskNative();
+        task.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\",\"fallback\":true}");
+        TemplateDefinitionContent.TaskDef finalTask = task;
+        assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, finalTask, NOW));
+    }
+
+    @Test
     void legacyExecutableTaskStillRequiresPermissionPolicy() {
         TemplateDefinitionContent.TaskDef task = validTaskNative();
         task.setPermissionPolicyRef(null);
@@ -76,7 +88,7 @@ class TaskExecutionContractFactoryTest {
         task.setBindingConfig("{\"schemaVersion\":1}");
         task.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
         task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
-        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\"}");
         task.setDefinitionVersion(1);
         return task;
     }
