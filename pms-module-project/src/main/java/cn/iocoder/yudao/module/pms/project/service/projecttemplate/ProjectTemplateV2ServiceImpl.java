@@ -47,6 +47,8 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Resource
     private TemplateCompiler templateCompiler;
     @Resource
+    private TemplateDesignerDependencyValidator dependencyValidator;
+    @Resource
     private DeliveryConfigurationCommands v2ConfigurationCommands;
 
     @Override
@@ -63,8 +65,8 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             throw new IllegalArgumentException("仅支持模板设计schema v2");
         }
 
-        // Current UI may submit only exact reusable-revision pins. Resolve those once at the
-        // authoring boundary and persist the full business semantics in DesignerDocument.
+        // Exact legacy assets may be imported once. The persisted V2 document keeps full semantics;
+        // source revision ids remain provenance only and do not become runtime dependencies.
         TemplateDesignerDocument designer = materializeSourcePinnedDesigner(submitted);
 
         ProjectTemplateRevisionDO update = new ProjectTemplateRevisionDO();
@@ -153,6 +155,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             return Validation.of(List.of(new Issue("designer", "IMPORT_INVALID", safeMessage(ex))));
         }
         List<Issue> issues = new ArrayList<>(templateCompiler.compile(designer).issues());
+        issues.addAll(dependencyValidator.validate(designer, false));
         if (designer.getSourceEvidence() != null) {
             try {
                 issues.addAll(super.validateProjectTemplate(id).issues());
@@ -175,6 +178,9 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         TemplateDesignerDocument designer = getDraftDesigner(id);
         TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
+        // New references are locked and revalidated inside this publication transaction. A stale or
+        // disabled BusinessView cannot be smuggled into an immutable ExecutionSnapshot.
+        issues.addAll(dependencyValidator.validate(designer, true));
         if (designer.getSourceEvidence() != null) {
             try {
                 issues.addAll(super.validateProjectTemplate(id).issues());
@@ -255,7 +261,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         return resolved;
     }
 
-    /** Current definition-library UI produces exact pins for every configured legacy element. */
+    /** Legacy importer only: new V2 editing no longer requires all elements to remain source-pinned. */
     private boolean isFullyLegacyPinned(TemplateDesignerDocument designer) {
         if (designer.getStages() == null || designer.getStages().isEmpty()) return false;
         if (designer.getStages().stream().anyMatch(stage -> stage == null || stage.getSource() == null
