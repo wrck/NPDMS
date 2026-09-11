@@ -15,7 +15,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectT
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectSatisfactionTaskFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
@@ -27,8 +26,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -96,7 +95,6 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING_WITH_EXTENSION));
-        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
         assertEquals(7, JsonUtils.parseObject(api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
                 100L, 101L, 102L, 7, 3, 11)).itemConfigurationSnapshot(), List.class).size());
     }
@@ -121,13 +119,14 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING));
-        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
 
         var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
                 100L, 101L, 102L, 7, 3, 11));
 
         assertEquals(7, fact.projectTaskVersion());
         assertEquals(3, fact.contractVersion());
+        assertEquals(900L, fact.templateRevisionId());
+        assertEquals(2, fact.templateRevisionNo());
         verify(projectMapper).selectByIdForUpdate(100L);
         ArgumentCaptor<ProjectWorkBindingFactLockQuery> captor =
                 ArgumentCaptor.forClass(ProjectWorkBindingFactLockQuery.class);
@@ -163,7 +162,6 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(requirementAnalysisContract());
-        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
 
         var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
                 100L, 101L, 102L, 7, 3, 11, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
@@ -171,6 +169,7 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(REQUIREMENT_ANALYSIS_BINDING, fact.bindingParameterSnapshot());
         assertEquals("PRE_04_REQUIREMENT_ANALYSIS", fact.targetObjectKey());
         assertEquals(701L, fact.dynamicFormTemplateRevisionId());
+        assertEquals(900L, fact.templateRevisionId());
     }
 
     @Test
@@ -185,6 +184,17 @@ class ProjectWorkBindingFactApiImplTest {
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
                 new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
         verify(factMapper, never()).selectCurrentContractForUpdate(any());
+    }
+
+    @Test
+    void lockAndRevalidateRejectsMissingFrozenProjectRevisionBeforeTaskLock() {
+        ProjectMasterDO project = project(0L, 11);
+        project.setLifecycleTemplateRevisionId(null);
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project);
+
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
+                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
+        verify(factMapper, never()).selectProjectTaskForUpdate(any());
     }
 
     @Test
@@ -255,6 +265,8 @@ class ProjectWorkBindingFactApiImplTest {
         project.setId(100L);
         project.setTenantId(tenantId);
         project.setVersion(version);
+        project.setLifecycleTemplateRevisionId(900L);
+        project.setLifecycleTemplateRevisionNo(2);
         return project;
     }
 
@@ -282,10 +294,6 @@ class ProjectWorkBindingFactApiImplTest {
         contract.setContractVersion(version);
         contract.setTenantId(tenantId);
         return contract;
-    }
-
-    private static ProjectTemplateRevisionFactRecord templateRevision() {
-        return new ProjectTemplateRevisionFactRecord(501L, 900L, 2);
     }
 
     private static ProjectSatisfactionTaskFactRecord satisfactionRecord(int version) {
