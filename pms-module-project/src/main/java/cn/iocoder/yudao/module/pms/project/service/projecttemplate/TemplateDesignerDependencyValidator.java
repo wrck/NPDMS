@@ -34,31 +34,39 @@ public class TemplateDesignerDependencyValidator {
         Map<Long, BusinessViewRevision> revisions = new LinkedHashMap<>();
         if (lockForPublish) {
             List<BusinessViewQueryApi.Query> queries = refs.stream()
+                    .filter(ref -> ref.query() != null && ref.revisionId() > 0)
                     .collect(java.util.stream.Collectors.toMap(BindingRef::revisionId, BindingRef::query,
                             (left, right) -> left, LinkedHashMap::new))
                     .values().stream().toList();
-            try {
-                for (BusinessViewRevision revision : businessViewQueryApi.lockAndRevalidateAll(queries)) {
-                    if (revision != null) revisions.put(revision.id(), revision);
+            if (!queries.isEmpty()) {
+                try {
+                    for (BusinessViewRevision revision : businessViewQueryApi.lockAndRevalidateAll(queries)) {
+                        if (revision != null) revisions.put(revision.id(), revision);
+                    }
+                } catch (RuntimeException ex) {
+                    return List.of(new Issue("businessViews", "BUSINESS_VIEW_REVALIDATION_FAILED",
+                            "办理视图发布重验失败：" + safeMessage(ex)));
                 }
-            } catch (RuntimeException ex) {
-                return List.of(new Issue("businessViews", "BUSINESS_VIEW_REVALIDATION_FAILED",
-                        "办理视图发布重验失败：" + safeMessage(ex)));
             }
         } else {
             for (BindingRef ref : refs) {
-                if (revisions.containsKey(ref.revisionId())) continue;
+                if (ref.query() == null || ref.revisionId() <= 0 || revisions.containsKey(ref.revisionId())) continue;
                 try {
                     BusinessViewRevision revision = businessViewQueryApi.getRevision(ref.query());
                     if (revision != null) revisions.put(revision.id(), revision);
                 } catch (RuntimeException ex) {
-                    revisions.put(ref.revisionId(), null);
+                    // Absence is reported at the exact binding below.
                 }
             }
         }
 
         List<Issue> issues = new ArrayList<>();
         for (BindingRef ref : refs) {
+            if (ref.query() == null || ref.revisionId() <= 0) {
+                issues.add(new Issue(ref.path() + ".businessViewSnapshot.id", "BUSINESS_VIEW_ID_REQUIRED",
+                        "办理视图冻结快照缺少有效精确修订ID"));
+                continue;
+            }
             BusinessViewRevision actual = revisions.get(ref.revisionId());
             if (actual == null) {
                 issues.add(new Issue(ref.path(), "BUSINESS_VIEW_UNAVAILABLE",
@@ -94,7 +102,6 @@ public class TemplateDesignerDependencyValidator {
         JsonNode snapshot = binding.getBusinessViewSnapshot();
         Long revisionId = positiveLong(snapshot.path("id"));
         if (revisionId == null) {
-            // Keep a synthetic invalid ref so validation returns a stable issue at the exact node.
             refs.add(new BindingRef(path, -1L, null, binding, snapshot));
             return;
         }
@@ -106,11 +113,6 @@ public class TemplateDesignerDependencyValidator {
     }
 
     private void compare(BindingRef ref, BusinessViewRevision actual, List<Issue> issues) {
-        if (ref.query() == null || ref.revisionId() <= 0) {
-            issues.add(new Issue(ref.path() + ".businessViewSnapshot.id", "BUSINESS_VIEW_ID_REQUIRED",
-                    "办理视图冻结快照缺少有效精确修订ID"));
-            return;
-        }
         if (!"PUBLISHED".equals(actual.status()) || actual.disabledAt() != null) {
             issues.add(new Issue(ref.path(), "BUSINESS_VIEW_NOT_PUBLISHED",
                     "办理视图不是当前可用于新模板的已发布修订"));
@@ -125,6 +127,8 @@ public class TemplateDesignerDependencyValidator {
         same(ref, "snapshot.entityType", text(ref.snapshot(), "entityType"), actual.entityType(), issues);
         same(ref, "snapshot.componentKey", text(ref.snapshot(), "componentKey"), actual.componentKey(), issues);
         same(ref, "snapshot.componentVersion", text(ref.snapshot(), "componentVersion"), actual.componentVersion(), issues);
+        same(ref, "snapshot.version", text(ref.snapshot(), "version"), String.valueOf(actual.version()), issues);
+        same(ref, "snapshot.revisionNo", text(ref.snapshot(), "revisionNo"), String.valueOf(actual.revisionNo()), issues);
         String parameterViewId = ref.binding().getParameters() == null ? null
                 : ref.binding().getParameters().path("businessViewRevisionId").asText(null);
         if (parameterViewId != null && !parameterViewId.equals(String.valueOf(actual.id()))) {
