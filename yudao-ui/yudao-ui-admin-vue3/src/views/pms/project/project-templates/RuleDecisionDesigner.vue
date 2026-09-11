@@ -127,12 +127,15 @@ import * as TemplateApi from '@/api/pms/project/project-templates'
 import type { CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import type { JsonObject } from '@/api/pms/project/project-templates/definitions'
 import RuleEditor from './RuleEditor.vue'
+import {
+  blankPredicate,
+  cloneRule,
+  decodeDecisionRows,
+  encodeDecisionRows,
+  type DecisionRow
+} from './ruleDecisionModel'
 
 defineOptions({ name: 'RuleDecisionDesigner' })
-
-interface DecisionRow {
-  conditions: JsonObject[]
-}
 
 const props = defineProps<{ modelValue: JsonObject; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: JsonObject] }>()
@@ -160,28 +163,6 @@ const stateCodes = [
   'S5_COMPLETED',
   'S6_COMPLETED'
 ]
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
-const blank = (): JsonObject => ({ predicate: '', parameters: { refCode: '' } })
-const isPredicate = (rule: JsonObject) =>
-  !!rule && !rule.operator && Object.prototype.hasOwnProperty.call(rule, 'predicate')
-
-const decodeDecisionRows = (rule: JsonObject): DecisionRow[] | undefined => {
-  if (isPredicate(rule)) return [{ conditions: [clone(rule)] }]
-  if (rule?.operator === 'ALL' && Array.isArray(rule.rules) && rule.rules.every(isPredicate)) {
-    return [{ conditions: clone(rule.rules) }]
-  }
-  if (rule?.operator === 'ANY' && Array.isArray(rule.rules)) {
-    const rows: DecisionRow[] = []
-    for (const child of rule.rules) {
-      if (isPredicate(child)) rows.push({ conditions: [clone(child)] })
-      else if (child?.operator === 'ALL' && Array.isArray(child.rules) && child.rules.every(isPredicate)) {
-        rows.push({ conditions: clone(child.rules) })
-      } else return undefined
-    }
-    return rows
-  }
-  return undefined
-}
 
 const decisionRows = computed(() => decodeDecisionRows(props.modelValue) ?? [])
 const tableCompatible = computed(() => decodeDecisionRows(props.modelValue) !== undefined)
@@ -192,15 +173,8 @@ const ruleSummary = computed(() => {
   return `${rows.length} 个决策行 · ${conditions} 个条件`
 })
 
-const encodeDecisionRows = (rows: DecisionRow[]): JsonObject => {
-  if (!rows.length) return blank()
-  const groups = rows.map((row) =>
-    row.conditions.length === 1 ? clone(row.conditions[0]) : { operator: 'ALL', rules: clone(row.conditions) }
-  )
-  return groups.length === 1 ? groups[0] : { operator: 'ANY', rules: groups }
-}
 const emitRule = (value: JsonObject) => emit('update:modelValue', value)
-const editRows = () => clone(decisionRows.value)
+const editRows = () => cloneRule(decisionRows.value)
 const updateRows = (rows: DecisionRow[]) => emitRule(encodeDecisionRows(rows))
 
 const changePredicate = (rowIndex: number, conditionIndex: number, predicate: string) => {
@@ -224,7 +198,7 @@ const setParameter = (rowIndex: number, conditionIndex: number, key: string, val
 }
 const addCondition = (rowIndex: number) => {
   const rows = editRows()
-  rows[rowIndex].conditions.push(blank())
+  rows[rowIndex].conditions.push(blankPredicate())
   updateRows(rows)
 }
 const removeCondition = (rowIndex: number, conditionIndex: number) => {
@@ -233,7 +207,7 @@ const removeCondition = (rowIndex: number, conditionIndex: number) => {
   rows[rowIndex].conditions.splice(conditionIndex, 1)
   updateRows(rows)
 }
-const addRow = () => updateRows([...editRows(), { conditions: [blank()] }])
+const addRow = () => updateRows([...editRows(), { conditions: [blankPredicate()] }])
 const removeRow = (rowIndex: number) => {
   const rows = editRows()
   rows.splice(rowIndex, 1)
