@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.P
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
@@ -40,14 +41,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_EXISTS;
 
-/**
- * 管理后台 - PMS 项目模板 Controller（F-PM03 / PM-03）。
- * <p>
- * 供给端模板基座：身份维护、草稿内容编辑、发布校验与版本冻结、四维匹配预演。
- * 路径前缀 {@code /pms/project-templates}（复数，SDS 10-api 契约），
- * 对应菜单权限 {@code pms:project-template:*}（V52 菜单 18060~18066）。
- * 消费端（项目创建实例化）属 F-PM01，不在本 Controller 范围。
- */
+/** PM-03 single project-template resource. V2 authoring uses DesignerDocument. */
 @Tag(name = "管理后台 - PMS 项目模板")
 @RestController
 @RequestMapping({"/api/v1/pms/project-templates", "/pms/project-templates"})
@@ -61,42 +55,52 @@ public class ProjectTemplateController {
     private cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry taskBusinessProviderRegistry;
 
     @GetMapping({"", "/page"})
-    @Operation(summary = "分页查询项目模板（状态/编码/名称过滤）")
+    @Operation(summary = "分页查询项目模板")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
-    public CommonResult<PageResult<ProjectTemplateRespVO>> getProjectTemplatePage(
-            @Valid ProjectTemplatePageReqVO pageReqVO) {
-        PageResult<ProjectTemplateDO> pageResult = projectTemplateService.getProjectTemplatePage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, ProjectTemplateRespVO.class));
+    public CommonResult<PageResult<ProjectTemplateRespVO>> getProjectTemplatePage(@Valid ProjectTemplatePageReqVO pageReqVO) {
+        return success(BeanUtils.toBean(projectTemplateService.getProjectTemplatePage(pageReqVO), ProjectTemplateRespVO.class));
     }
 
     @PostMapping
-    @Operation(summary = "创建项目模板（同时生成 DRAFT 草稿版本）")
+    @Operation(summary = "创建项目模板（同时生成DRAFT）")
     @PreAuthorize("@ss.hasPermission('pms:project-template:create')")
     public CommonResult<Long> createProjectTemplate(@Valid @RequestBody ProjectTemplateCreateReqVO createReqVO) {
-        ProjectTemplateDO template = BeanUtils.toBean(createReqVO, ProjectTemplateDO.class);
-        return success(projectTemplateService.createProjectTemplate(template));
+        return success(projectTemplateService.createProjectTemplate(BeanUtils.toBean(createReqVO, ProjectTemplateDO.class)));
     }
 
+    /** Legacy combined update remains a compatibility adapter; new UI saves Designer through /draft. */
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     @PutMapping("/{id}")
-    @Operation(summary = "编辑模板身份与草稿内容（仅 DRAFT 可编辑，编码不可修改）")
-    @Parameter(name = "id", description = "模板编号", required = true)
+    @Operation(summary = "编辑模板身份；content仅作旧客户端兼容")
     @PreAuthorize("@ss.hasPermission('pms:project-template:update')")
     public CommonResult<Boolean> updateProjectTemplate(@PathVariable("id") Long id,
                                                        @Valid @RequestBody ProjectTemplateUpdateReqVO updateReqVO) {
-        // 身份字段编辑（名称/优先级/描述；RETIRED 模板身份冻结）
         projectTemplateService.updateProjectTemplateIdentity(id, updateReqVO.getName(),
                 updateReqVO.getMatchPriority(), updateReqVO.getDescription());
-        // 草稿内容编辑（整体替换；已发布版本只读，BR-3）
         if (updateReqVO.getContent() != null) {
             projectTemplateService.updateProjectTemplateDraftContent(id, updateReqVO.getContent());
         }
         return success(true);
     }
 
+    @GetMapping("/{id}/draft")
+    @Operation(summary = "读取V2模板设计草稿")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    public CommonResult<TemplateDesignerDocument> getDesignerDraft(@PathVariable("id") Long id) {
+        return success(projectTemplateService.getDraftDesigner(id));
+    }
+
+    @PutMapping("/{id}/draft")
+    @Operation(summary = "保存V2模板设计草稿")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:update')")
+    public CommonResult<Boolean> updateDesignerDraft(@PathVariable("id") Long id,
+                                                      @RequestBody TemplateDesignerDocument designer) {
+        projectTemplateService.updateProjectTemplateDesigner(id, designer);
+        return success(true);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "删除模板（仅无已发布版本且非系统保留）")
-    @Parameter(name = "id", description = "模板编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-template:delete')")
     public CommonResult<Boolean> deleteProjectTemplate(@PathVariable("id") Long id) {
         projectTemplateService.deleteProjectTemplate(id);
@@ -104,26 +108,21 @@ public class ProjectTemplateController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "查询模板详情（含当前草稿内容与版本清单）")
-    @Parameter(name = "id", description = "模板编号", required = true)
+    @Operation(summary = "查询模板详情")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<ProjectTemplateDetailRespVO> getProjectTemplate(@PathVariable("id") Long id) {
         ProjectTemplateDO template = projectTemplateService.getProjectTemplate(id);
-        if (template == null) {
-            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
-        }
+        if (template == null) throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         ProjectTemplateDetailRespVO detail = BeanUtils.toBean(template, ProjectTemplateDetailRespVO.class);
-        // 版本清单（版本号倒序，最新 PUBLISHED 在首）
         List<ProjectTemplateRevisionDO> revisions = projectTemplateService.getRevisionList(id);
         detail.setRevisions(BeanUtils.toBean(revisions, ProjectTemplateRevisionRespVO.class));
-        // 草稿内容（版本清单含 DRAFT 行才存在草稿）
-        boolean hasDraft = revisions.stream()
-                .anyMatch(revision -> TemplateRules.REVISION_STATUS_DRAFT.equals(revision.getStatus()));
+        boolean hasDraft = revisions.stream().anyMatch(revision -> TemplateRules.REVISION_STATUS_DRAFT.equals(revision.getStatus()));
         detail.setDraftContent(hasDraft ? projectTemplateService.getDraftContent(id) : null);
         return success(detail);
     }
 
     @PostMapping("/{id}/actions/validate")
+    @Operation(summary = "Compiler dry-run校验")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Validation>
             validateProjectTemplate(@PathVariable("id") Long id) {
@@ -141,8 +140,7 @@ public class ProjectTemplateController {
     }
 
     @PostMapping("/{id}/actions/publish")
-    @Operation(summary = "发布模板（校验→冻结版本→转 ACTIVE）")
-    @Parameter(name = "id", description = "模板编号", required = true)
+    @Operation(summary = "Compiler编译并发布不可变ExecutionSnapshot")
     @PreAuthorize("@ss.hasPermission('pms:project-template:publish')")
     public CommonResult<Boolean> publishProjectTemplate(@PathVariable("id") Long id) {
         projectTemplateService.publishProjectTemplate(id);
@@ -150,8 +148,7 @@ public class ProjectTemplateController {
     }
 
     @PostMapping("/{id}/actions/disable")
-    @Operation(summary = "停用模板（RETIRED，只阻新项目匹配）")
-    @Parameter(name = "id", description = "模板编号", required = true)
+    @Operation(summary = "停用模板，只阻新项目匹配")
     @PreAuthorize("@ss.hasPermission('pms:project-template:disable')")
     public CommonResult<Boolean> disableProjectTemplate(@PathVariable("id") Long id) {
         projectTemplateService.disableProjectTemplate(id);
@@ -159,28 +156,22 @@ public class ProjectTemplateController {
     }
 
     @GetMapping("/{id}/revisions/{revisionNo}")
-    @Operation(summary = "查询已发布版本详情（只读快照）")
-    @Parameter(name = "id", description = "模板编号", required = true)
-    @Parameter(name = "revisionNo", description = "版本号（正整数，已发布）", required = true)
+    @Operation(summary = "查询已发布版本兼容详情")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<ProjectTemplateRevisionDetailRespVO> getProjectTemplateRevision(
             @PathVariable("id") Long id, @PathVariable("revisionNo") Integer revisionNo) {
-        // 内容读取内置版本存在性校验（不存在抛 PROJECT_TEMPLATE_NOT_EXISTS）
         TemplateDefinitionContent content = projectTemplateService.getRevisionContent(id, revisionNo);
         ProjectTemplateRevisionDO revision = projectTemplateService.getRevision(id, revisionNo);
-        ProjectTemplateRevisionDetailRespVO detail =
-                BeanUtils.toBean(revision, ProjectTemplateRevisionDetailRespVO.class);
+        ProjectTemplateRevisionDetailRespVO detail = BeanUtils.toBean(revision, ProjectTemplateRevisionDetailRespVO.class);
         detail.setContent(content);
         return success(detail);
     }
 
     @PostMapping("/actions/match-preview")
-    @Operation(summary = "四维匹配预演（唯一命中或冲突清单，不静默选模）")
+    @Operation(summary = "四维匹配预演")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
-    public CommonResult<ProjectTemplateMatchRespVO> matchPreview(
-            @Valid @RequestBody ProjectTemplateMatchPreviewReqVO reqVO) {
-        TemplateMatchResult result = projectTemplateService.matchPreview(
-                reqVO.getSigningMethod(), reqVO.getProjectCategory(),
+    public CommonResult<ProjectTemplateMatchRespVO> matchPreview(@Valid @RequestBody ProjectTemplateMatchPreviewReqVO reqVO) {
+        TemplateMatchResult result = projectTemplateService.matchPreview(reqVO.getSigningMethod(), reqVO.getProjectCategory(),
                 reqVO.getImplementationMethod(), reqVO.getMajorProjectLevel());
         ProjectTemplateMatchRespVO respVO = new ProjectTemplateMatchRespVO();
         respVO.setOutcome(result.getOutcome() == null ? null : result.getOutcome().name());
@@ -190,7 +181,7 @@ public class ProjectTemplateController {
     }
 
     @GetMapping("/actions/completion-fact-catalog")
-    @Operation(summary = "完成事实目录（部署Owner声明的可选完成依据，仅配置展示）")
+    @Operation(summary = "完成事实目录")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<List<cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry.CompletionFactCatalogEntry>>
             completionFactCatalog() {
