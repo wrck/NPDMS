@@ -239,6 +239,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // d) 冻结模板引用（BR-4：绑定 revision 与流程定义版本写入主档）
         draft.setLifecycleTemplateId(selected.templateId());
         draft.setLifecycleTemplateRevisionNo(selected.revisionNo());
+        draft.setLifecycleTemplateRevisionId(selected.revisionId());
         draft.setTemplateLoadMethod(selected.loadMethod());
         draft.setProcessDefinitionKey(content.getProcessDefinitionKey());
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
@@ -572,15 +573,17 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
      */
     private SelectedTemplate selectInheritedTemplate(Long parentId) {
         ProjectMasterDO parent = validateProjectExists(parentId);
-        if (parent.getLifecycleTemplateId() == null || parent.getLifecycleTemplateRevisionNo() == null) {
+        if (parent.getLifecycleTemplateId() == null || parent.getLifecycleTemplateRevisionId() == null
+                || parent.getLifecycleTemplateRevisionNo() == null) {
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
-        // 子项目通过父项目继承模板版本，等价人工指定（不做四维匹配）
-        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionList(parent.getLifecycleTemplateId())
-                .stream()
-                .filter(candidate -> parent.getLifecycleTemplateRevisionNo().equals(candidate.getRevisionNo()))
-                .filter(candidate -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(candidate.getStatus()))
-                .findFirst().orElseThrow(() -> exception(PROJECT_TEMPLATE_NOT_SELECTABLE));
+        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionById(parent.getLifecycleTemplateRevisionId());
+        if (revision == null
+                || !Objects.equals(parent.getLifecycleTemplateId(), revision.getTemplateId())
+                || !Objects.equals(parent.getLifecycleTemplateRevisionNo(), revision.getRevisionNo())
+                || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
+        }
         return new SelectedTemplate(parent.getLifecycleTemplateId(), revision.getId(), revision.getRevisionNo(),
                 ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
     }
