@@ -33,13 +33,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_PUBLISH_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_STATUS_INVALID;
 
-/**
- * Primary PM-03 implementation after the V2 runtime rewrite.
- *
- * <p>The legacy service remains available as a reader/validator for historical rows. All normal
- * injections of {@link ProjectTemplateService} resolve to this class and therefore use the
- * Designer -> Compiler -> ExecutionSnapshot chain.</p>
- */
+/** Primary PM-03 implementation after the V2 runtime rewrite. */
 @Service
 @Primary
 public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
@@ -57,17 +51,21 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateProjectTemplateDesigner(Long templateId, TemplateDesignerDocument designer) {
+    public void updateProjectTemplateDesigner(Long templateId, TemplateDesignerDocument submitted) {
         ProjectTemplateDO template = lockV2Template(templateId);
         ProjectTemplateRevisionDO draft = requireDraft(templateId);
         if (!TemplateRules.canEditDraft(template.getStatus(), draft.getStatus())) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
-        if (designer == null) throw new IllegalArgumentException("designer不能为空");
-        if (designer.getSchemaVersion() == null) designer.setSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
-        if (!Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION).equals(designer.getSchemaVersion())) {
+        if (submitted == null) throw new IllegalArgumentException("designer不能为空");
+        if (submitted.getSchemaVersion() == null) submitted.setSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
+        if (!Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION).equals(submitted.getSchemaVersion())) {
             throw new IllegalArgumentException("仅支持模板设计schema v2");
         }
+
+        // Current UI may submit only exact reusable-revision pins. Resolve those once at the
+        // authoring boundary and persist the full business semantics in DesignerDocument.
+        TemplateDesignerDocument designer = materializeSourcePinnedDesigner(submitted);
 
         ProjectTemplateRevisionDO update = new ProjectTemplateRevisionDO();
         update.setId(draft.getId());
@@ -94,7 +92,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             return JsonUtils.parseObject(draft.getDesignerDocument(), TemplateDesignerDocument.class);
         }
         TemplateDefinitionContent legacy = super.getDraftContent(templateId);
-        // Legacy drafts did not persist their closure. Resolve the exact configuration only in-memory.
         v2LegacyAssembler.resolve(legacy, false);
         return TemplateDesignerDocument.fromResolvedLegacy(legacy);
     }
@@ -103,8 +100,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
         Objects.requireNonNull(content, "template content");
-        // Compatibility callers still post exact DefinitionRevision ids. Resolve once at the
-        // authoring boundary, then persist only the V2 Designer as the new truth.
         v2LegacyAssembler.resolve(content, false);
         updateProjectTemplateDesigner(templateId, TemplateDesignerDocument.fromResolvedLegacy(content));
     }
@@ -140,9 +135,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (hasText(revision.getExecutionSnapshot())) {
             return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
         }
-
-        // Legacy reader: historical rows stay untouched. The adapter uses the already-frozen
-        // publication closure and never writes the V2 artifact back into history.
         TemplateDefinitionContent legacy = super.getRevisionContent(templateId, revisionNo);
         TemplateDesignerDocument designer = TemplateDesignerDocument.fromResolvedLegacy(legacy);
         TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
@@ -161,10 +153,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             return Validation.of(List.of(new Issue("designer", "IMPORT_INVALID", safeMessage(ex))));
         }
         List<Issue> issues = new ArrayList<>(templateCompiler.compile(designer).issues());
-
-        // Imported exact-definition drafts continue to receive the mature Owner/DynamicForm/Gate
-        // read-only validation. Pure V2 documents are validated by the compiler and their explicit
-        // frozen binding facts instead of re-resolving DefinitionRevision at runtime.
         if (designer.getSourceEvidence() != null) {
             try {
                 issues.addAll(super.validateProjectTemplate(id).issues());
@@ -253,6 +241,38 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                     updateProjectTemplateDesigner(copyId, designer);
                     return copyId;
                 });
+    }
+
+    private TemplateDesignerDocument materializeSourcePinnedDesigner(TemplateDesignerDocument designer) {
+        if (!isFullyLegacyPinned(designer)) return designer;
+        TemplateDefinitionContent bridge = TemplateDesignerLegacyAdapter.toLegacy(designer);
+        v2LegacyAssembler.resolve(bridge, false);
+        TemplateDesignerDocument resolved = TemplateDesignerDocument.fromResolvedLegacy(bridge);
+        resolved.setLayout(designer.getLayout());
+        if (designer.getRuleAssets() != null && !designer.getRuleAssets().isEmpty()) {
+            resolved.setRuleAssets(designer.getRuleAssets());
+        }
+        return resolved;
+    }
+
+    /** Current definition-library UI produces exact pins for every configured legacy element. */
+    private boolean isFullyLegacyPinned(TemplateDesignerDocument designer) {
+        if (designer.getStages() == null || designer.getStages().isEmpty()) return false;
+        if (designer.getStages().stream().anyMatch(stage -> stage == null || stage.getSource() == null
+                || stage.getSource().getDefinitionRevisionId() == null
+                || stage.getSource().getWorkBindingRevisionId() == null
+                || stage.getSource().getPermissionPolicyRevisionId() == null
+                || stage.getSource().getCompletionRuleRevisionId() == null)) return false;
+        if (designer.getTasks() != null && designer.getTasks().stream().anyMatch(task -> task == null || task.getSource() == null
+                || task.getSource().getDefinitionRevisionId() == null)) return false;
+        if (designer.getMilestones() != null && designer.getMilestones().stream().anyMatch(node -> node == null || node.getSource() == null
+                || node.getSource().getDefinitionRevisionId() == null)) return false;
+        if (designer.getDeliverables() != null && designer.getDeliverables().stream().anyMatch(node -> node == null || node.getSource() == null
+                || node.getSource().getDefinitionRevisionId() == null)) return false;
+        if (designer.getGates() != null && designer.getGates().stream().anyMatch(node -> node == null || node.getSource() == null
+                || node.getSource().getDefinitionRevisionId() == null)) return false;
+        return designer.getTransitions() == null || designer.getTransitions().stream().noneMatch(edge -> edge == null
+                || edge.getSource() == null || edge.getSource().getTransitionRevisionNo() == null);
     }
 
     private TemplateDesignerDocument designerForRevision(Long templateId, int revisionNo) {
