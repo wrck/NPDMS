@@ -134,16 +134,11 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        if (hasText(revision.getExecutionSnapshot())) {
-            return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        if (!hasText(revision.getExecutionSnapshot())) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
+                    "历史发布版本缺少V2执行快照，禁止由当前编译器即时重解释；请显式复制为V2草稿并重新发布");
         }
-        TemplateDefinitionContent legacy = super.getRevisionContent(templateId, revisionNo);
-        TemplateDesignerDocument designer = TemplateDesignerDocument.fromResolvedLegacy(legacy);
-        TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
-        if (!compilation.valid()) {
-            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, summarize(compilation.issues()));
-        }
-        return compilation.snapshot();
+        return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
     }
 
     @Override
