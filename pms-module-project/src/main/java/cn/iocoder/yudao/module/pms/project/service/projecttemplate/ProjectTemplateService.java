@@ -25,19 +25,22 @@ public interface ProjectTemplateService {
 
     void updateProjectTemplateIdentity(Long id, String name, Integer matchPriority, String description);
 
-    /** V2 authoring write. New callers should use this method. */
-    void updateProjectTemplateDesigner(Long templateId, TemplateDesignerDocument designer);
+    /** V2 authoring write. Implemented by the primary V2 service. */
+    default void updateProjectTemplateDesigner(Long templateId, TemplateDesignerDocument designer) {
+        throw new UnsupportedOperationException("template designer v2 is not available on the legacy service");
+    }
 
-    /** V2 authoring read. Legacy drafts are imported in-memory without mutating history. */
-    TemplateDesignerDocument getDraftDesigner(Long templateId);
+    /** V2 authoring read. */
+    default TemplateDesignerDocument getDraftDesigner(Long templateId) {
+        throw new UnsupportedOperationException("template designer v2 is not available on the legacy service");
+    }
 
-    /** Immutable V2 runtime truth; legacy published rows are adapted without rewriting them. */
-    TemplateExecutionSnapshot getExecutionSnapshot(Long templateId, Integer revisionNo);
+    /** Immutable V2 runtime truth. */
+    default TemplateExecutionSnapshot getExecutionSnapshot(Long templateId, Integer revisionNo) {
+        throw new UnsupportedOperationException("template execution snapshot v2 is not available on the legacy service");
+    }
 
-    /**
-     * Legacy compatibility adapter for existing clients. The service converts this payload to the
-     * V2 designer and no longer treats legacy element rows as the new authoring truth.
-     */
+    /** Legacy compatibility adapter for existing clients. */
     void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content);
 
     void deleteProjectTemplate(Long id);
@@ -52,10 +55,8 @@ public interface ProjectTemplateService {
 
     ProjectTemplateRevisionDO getRevisionById(Long revisionId);
 
-    /** Legacy compatibility projection generated from Designer/Snapshot when V2 is present. */
     TemplateDefinitionContent getDraftContent(Long templateId);
 
-    /** Legacy compatibility projection generated from Designer/Snapshot when V2 is present. */
     TemplateDefinitionContent getRevisionContent(Long templateId, Integer revisionNo);
 
     void publishProjectTemplate(Long id);
