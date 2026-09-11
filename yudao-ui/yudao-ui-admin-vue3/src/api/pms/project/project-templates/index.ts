@@ -87,6 +87,7 @@ export interface DesignerMilestoneNode {
   stageCode?: string
   timing?: string
   criteria?: string
+  configuration?: JsonObject
   source?: TemplateSourcePin
 }
 
@@ -97,6 +98,7 @@ export interface DesignerDeliverableNode {
   stageCode?: string
   taskCode?: string
   required?: boolean
+  configuration?: JsonObject
   confirmationRule?: RuleSpec
   source?: TemplateSourcePin
 }
@@ -125,7 +127,7 @@ export interface DesignerTransitionNode {
 }
 
 export interface DesignerRuleAsset {
-  assetKey: string
+  key: string
   name?: string
   rule: RuleSpec
 }
