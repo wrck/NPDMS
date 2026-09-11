@@ -76,7 +76,7 @@ class TemplateDesignerDependencyValidatorTest {
         binding.setComponentKey("SOL_SITE_SURVEY");
         binding.setParameters(JsonUtils.parseTree("{\"businessViewRevisionId\":91}"));
         binding.setBusinessViewSnapshot(JsonUtils.parseTree("""
-                {"id":91,"version":7,"status":"PUBLISHED","ownerContext":"SOL","entityType":"SITE_SURVEY",
+                {"id":91,"revisionNo":3,"version":7,"status":"PUBLISHED","ownerContext":"SOL","entityType":"SITE_SURVEY",
                  "componentKey":"SOL_SITE_SURVEY","componentVersion":"1","viewSource":"PAGE"}
                 """));
         task.setWorkBinding(binding);
