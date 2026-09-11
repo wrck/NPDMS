@@ -14,14 +14,14 @@
                c.id                            AS executionContractId,
                c.template_task_definition_id   AS templateTaskDefinitionId,
                c.work_binding_type_code        AS workBindingTypeCode,
-               c.target_context_code            AS targetContextCode,
-               c.target_object_type             AS targetObjectType,
-               c.target_object_key              AS targetObjectKey,
-               c.binding_parameter_snapshot     AS bindingParameterSnapshot,
-               c.source_definition_version      AS sourceDefinitionVersion,
-               c.contract_version               AS contractVersion,
-               d.template_revision_id           AS templateRevisionId,
-               r.revision_no                     AS templateRevisionNo
+               c.target_context_code           AS targetContextCode,
+               c.target_object_type            AS targetObjectType,
+               c.target_object_key             AS targetObjectKey,
+               c.binding_parameter_snapshot    AS bindingParameterSnapshot,
+               c.source_definition_version     AS sourceDefinitionVersion,
+               c.contract_version              AS contractVersion,
+               r.id                            AS templateRevisionId,
+               r.revision_no                   AS templateRevisionNo
         FROM proj_project p
         JOIN proj_project_task t
           ON t.tenant_id = p.tenant_id
@@ -33,13 +33,11 @@
          AND c.current_marker = 1
          AND c.effective_to IS NULL
          AND c.deleted = b'0'
-        JOIN proj_project_template_task_definition d
-          ON d.tenant_id = c.tenant_id
-         AND d.id = c.template_task_definition_id
-         AND d.deleted = b'0'
         JOIN proj_project_template_revision r
-         ON r.tenant_id = d.tenant_id
-         AND r.id = d.template_revision_id
+          ON r.tenant_id = p.tenant_id
+         AND r.template_id = p.lifecycle_template_id
+         AND r.revision_no = p.lifecycle_template_revision_no
+         AND r.status = 'PUBLISHED'
          AND r.deleted = b'0'
         WHERE p.tenant_id = #{query.tenantId}
           AND p.id = #{query.projectId}
@@ -75,17 +73,19 @@
 
     <select id="selectTemplateRevisionFact"
             resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord">
-        SELECT d.id                    AS templateTaskDefinitionId,
-               d.template_revision_id  AS templateRevisionId,
-               r.revision_no           AS templateRevisionNo
-        FROM proj_project_template_task_definition d
+        SELECT #{query.templateTaskDefinitionId} AS templateTaskDefinitionId,
+               r.id                             AS templateRevisionId,
+               r.revision_no                    AS templateRevisionNo
+        FROM proj_project p
         JOIN proj_project_template_revision r
-         ON r.tenant_id = d.tenant_id
-         AND r.id = d.template_revision_id
+          ON r.tenant_id = p.tenant_id
+         AND r.template_id = p.lifecycle_template_id
+         AND r.revision_no = p.lifecycle_template_revision_no
+         AND r.status = 'PUBLISHED'
          AND r.deleted = b'0'
-        WHERE d.tenant_id = #{query.tenantId}
-          AND d.id = #{query.templateTaskDefinitionId}
-          AND d.deleted = b'0'
+        WHERE p.tenant_id = #{query.tenantId}
+          AND p.id = #{query.projectId}
+          AND p.deleted = b'0'
     </select>
 
     <select id="selectSatisfactionTaskForUpdate"
