@@ -28,6 +28,7 @@ vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 1
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ({ value: false }) }))
 vi.mock('@/utils/dict', () => ({
+  DICT_TYPE: { PMS_SIGNING_METHOD: 'pms_signing_method' },
   getStrDictOptions: () => [{ value: 'CUSTOMER_DELAY', label: '客户延期' }]
 }))
 vi.mock('@/components/PmsFileArtifact', () => ({
@@ -98,7 +99,7 @@ const render = (component: Component, readonly = false, id: number | undefined =
       'ElInput'
     ].map((name) => [name, passthrough])
   )
-  const { app, root } = mount(wrapper, {}, { ...stubs, ElTable: passthrough, ElTableColumn: tableColumn })
+  const { app, root } = mount(wrapper, {}, { ...stubs, 'dict-tag': passthrough, ElTable: passthrough, ElTableColumn: tableColumn })
   apps.push(app)
   return { props, child, root, state: () => child.value.$.setupState }
 }

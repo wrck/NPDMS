@@ -4,6 +4,9 @@
       <el-form-item label="项目">
         <el-input :model-value="project.projectName || `项目 #${project.id}`" disabled class="!w-220px" data-testid="duration-project-name" />
       </el-form-item>
+      <el-form-item label="签约方式">
+        <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="project.signingMethod ?? ''" />
+      </el-form-item>
       <el-form-item>
         <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="plan" @click="historyRef?.open(plan.planId)">查看历史</el-button>
@@ -25,6 +28,13 @@
     <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
     <el-skeleton v-else-if="loading" :rows="5" animated />
     <template v-else-if="plan">
+      <el-alert
+        v-if="tensionHint"
+        type="warning"
+        :closable="false"
+        class="status-alert"
+        :title="tensionHint"
+      />
       <el-alert
         v-if="plan.planRecalculationStatus === 'PENDING_RECALCULATION'"
         title="当前工期已生效，阶段施工计划尚待重算；已有计划版本不会被本次工期录入覆盖。"
@@ -158,6 +168,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
+import { DICT_TYPE } from '@/utils/dict'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
@@ -191,6 +202,17 @@ const historyRef = ref<InstanceType<typeof ProjectDurationHistoryDrawer>>()
 
 const basisLabel = (value: DurationCalculationBasis) =>
   value === 'DATE_RANGE' ? '起止日期' : '起点 + 天数'
+const tensionHint = computed(() => {
+  const revision = plan.value?.currentRevision
+  if (!revision?.startDate || !revision?.endDate) return ''
+  const start = new Date(`${revision.startDate}T00:00:00`)
+  const end = new Date(`${revision.endDate}T00:00:00`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return ''
+  const limit = new Date(start)
+  limit.setMonth(limit.getMonth() + 3)
+  if (end >= limit) return ''
+  return `当前生效工期不足3个日历月（${revision.startDate} 至 ${revision.endDate}）：请详细落实工期计划，并与客户确认；如需发货跟进，请与销售确认发货时间。正式预警与CRM发货提醒能力尚未开通，本提示仅为页面提醒，不生成预警记录。`
+})
 const canWithdraw = computed(
   () =>
     plan.value?.pendingChangeSummary?.status === 'PENDING_APPROVAL' &&
