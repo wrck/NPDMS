@@ -15,11 +15,9 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectT
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectSatisfactionTaskFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
@@ -77,6 +75,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         if (!Objects.equals(project.getVersion(), query.expectedProjectVersion())) {
             throw exception(PROJECT_VERSION_CONFLICT);
         }
+        requireFrozenProjectTemplateIdentity(project);
 
         ProjectWorkBindingFactLockQuery lockQuery = new ProjectWorkBindingFactLockQuery(
                 tenantId, query.projectId(), query.projectTaskId());
@@ -94,10 +93,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         if (!Objects.equals(contract.getContractVersion(), query.expectedContractVersion())) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
-        ProjectTemplateRevisionFactRecord revision = factMapper.selectTemplateRevisionFact(
-                new ProjectTemplateRevisionFactQuery(tenantId, contract.getTemplateTaskDefinitionId()));
-        requireTemplateRevision(revision, contract.getTemplateTaskDefinitionId());
-        return toFact(project, task, contract, revision);
+        return toFact(project, task, contract);
     }
 
     @Override
@@ -237,10 +233,10 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         }
     }
 
-    private void requireTemplateRevision(ProjectTemplateRevisionFactRecord revision, Long definitionId) {
-        if (revision == null || !Objects.equals(revision.templateTaskDefinitionId(), definitionId)
-                || invalidId(revision.templateRevisionId())
-                || revision.templateRevisionNo() == null || revision.templateRevisionNo() < 0) {
+    private void requireFrozenProjectTemplateIdentity(ProjectMasterDO project) {
+        if (invalidId(project.getLifecycleTemplateRevisionId())
+                || project.getLifecycleTemplateRevisionNo() == null
+                || project.getLifecycleTemplateRevisionNo() < 0) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
     }
@@ -271,8 +267,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
     }
 
     private ProjectWorkBindingFact toFact(ProjectMasterDO project, ProjectTaskInstanceDO task,
-                                          ProjectTaskExecutionContractDO contract,
-                                          ProjectTemplateRevisionFactRecord revision) {
+                                          ProjectTaskExecutionContractDO contract) {
         BindingProjection binding = parseFrozen(contract.getTargetObjectKey(), contract.getBindingParameterSnapshot());
         return new ProjectWorkBindingFact(project.getId(), project.getVersion(), task.getId(), task.getVersion(),
                 contract.getId(), contract.getContractVersion(), contract.getTemplateTaskDefinitionId(),
@@ -280,7 +275,8 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
                 binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
-                revision.templateRevisionId(), revision.templateRevisionNo(), contract.getBindingParameterSnapshot(),
+                project.getLifecycleTemplateRevisionId(), project.getLifecycleTemplateRevisionNo(),
+                contract.getBindingParameterSnapshot(),
                 binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
                 binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion());
     }
