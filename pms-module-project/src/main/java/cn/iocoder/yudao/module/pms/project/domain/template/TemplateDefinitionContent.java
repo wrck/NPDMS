@@ -1,11 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Data;
 import lombok.Getter;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -13,53 +13,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 项目模板定义内容（草稿编辑与发布校验的领域载体）
- * <p>
- * 对应 V52 版本表四维条件 + 六类结构化定义行；发布校验（BR-2）据此逐项检查，
- * 不使用 JSON 承载唯一/过滤/门禁核心字段（09 原则7）。
+ * Legacy-compatible template content projection.
+ *
+ * <p>V2 authoring truth is {@link TemplateDesignerDocument}; published runtime truth is
+ * {@link TemplateExecutionSnapshot}. This class remains as a compatibility carrier for existing
+ * Project initialization, controllers and historical readers. Runtime-only V2 fields are
+ * server-generated and read-only to legacy clients.</p>
  */
 @Data
 public class TemplateDefinitionContent {
 
-    /** 门禁类型：准入 */
     public static final String GATE_TYPE_ENTRY = "ENTRY";
-    /** 门禁类型：准出 */
     public static final String GATE_TYPE_EXIT = "EXIT";
 
-    /** 门禁引用类型：任务 */
     public static final String REF_TYPE_TASK = "TASK";
-    /** 门禁引用类型：里程碑 */
     public static final String REF_TYPE_MILESTONE = "MILESTONE";
-    /** 门禁引用类型：交付件 */
     public static final String REF_TYPE_DELIVERABLE = "DELIVERABLE";
-    /** 门禁引用类型：状态码 */
     public static final String REF_TYPE_STATE = "STATE";
-    /** 门禁引用类型：流程 */
     public static final String REF_TYPE_PROCESS = "PROCESS";
-    /** 门禁引用类型：审批流程 */
     public static final String REF_TYPE_APPROVAL = "APPROVAL";
 
-    /** 匹配条件：签约方式（字典 pms_signing_method，null=不限） */
     private String signingMethod;
-    /** 匹配条件：项目类别（字典 pms_project_category，null=不限） */
     private String projectCategory;
-    /** 匹配条件：实施方式（字典 pms_implementation_method，null=不限） */
     private String implementationMethod;
-    /** 匹配条件：重大项目级别（CRM 来源属性映射，null=不限） */
     private String majorProjectLevel;
 
-    /** 模板级流程定义引用（仅存引用，可不配置，实际引用发布时重验Owner） */
     private String processDefinitionKey;
-    /** 历史兼容字段；新模板保持空，不参与流程定义选择或实例冻结 */
+    /** Historical compatibility field; V2 keeps it null. */
     private String processDefinitionVersion;
 
-    /** 专用最小NORMAL闭环；未配置不授予闭环能力，也不改变旧模板规则。 */
     private ClosurePolicy closurePolicy;
 
-    /**
-     * 唯一获批准的七字段规则。入口严格校验JSON类型，不接受Jackson标量强转。
-     * 保留原JSON标量（尤其Long字符串），发布及项目冻结不重写已选规则。
-     */
     @Getter
     public static final class ClosurePolicy {
         public static final String PROCESS_DEFINITION_KEY = "PMS_MINIMAL_NORMAL_CLOSURE";
@@ -125,22 +109,20 @@ public class TemplateDefinitionContent {
         }
     }
 
-    /** 阶段定义（S0～S6，顺序） */
     private List<StageDef> stages = new ArrayList<>();
-    /** 任务定义（版本内唯一，可父子的 WBS 初始化清单） */
     private List<TaskDef> tasks = new ArrayList<>();
-    /** 里程碑定义 */
     private List<MilestoneDef> milestones = new ArrayList<>();
-    /** 交付件定义 */
     private List<DeliverableDef> deliverables = new ArrayList<>();
-    /** 门禁定义（含结构化引用行） */
     private List<GateDef> gates = new ArrayList<>();
-
-    /** PM-03: explicit edges, never inferred from display order. */
     private List<TransitionDef> transitions = new ArrayList<>();
-    /** Server-generated immutable definition/reference/schema closure. */
+
+    /** Legacy server-generated exact definition closure. */
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private JsonNode definitionSnapshot;
+
+    /** V2 server-generated immutable execution snapshot carried into existing initialization code. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private JsonNode executionSnapshot;
 
     @Data
     public static class TransitionDef {
@@ -153,6 +135,10 @@ public class TemplateDefinitionContent {
         @JsonProperty("default")
         private Boolean defaultBranch;
         private Long revisionNo;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private String sourceTransitionKey;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode conditionRuleSnapshot;
     }
 
     @Data
@@ -164,15 +150,19 @@ public class TemplateDefinitionContent {
         private Long workBindingRevisionId;
         private Long permissionPolicyRevisionId;
         private Long completionRuleRevisionId;
-        /** 阶段码 S0～S6 */
         private String stageCode;
         private String name;
-        /** 阶段顺序 */
         private Integer sortOrder;
-        /** 准入条件说明 */
         private String entryCriteria;
-        /** 准出条件说明 */
         private String exitCriteria;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private String sourceNodeKey;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode bindingSnapshot;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode permissionSnapshot;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode completionRuleSnapshot;
     }
 
     @Data
@@ -181,106 +171,73 @@ public class TemplateDefinitionContent {
         private Long workBindingRevisionId;
         private Long permissionPolicyRevisionId;
         private Long completionRuleRevisionId;
-        /** 发布版本中的任务定义行ID；草稿提交时忽略，由服务端生成 */
         private Long id;
-        /** 任务码（版本内唯一） */
         private String taskCode;
         private String name;
-        /** 父任务码（null=顶层） */
         private String parentTaskCode;
-        /** 所属阶段码 */
         private String stageCode;
-        /** 优先级 */
         private Integer priority;
-        /** 排序 */
         private Integer sortOrder;
-        /** 预估工时 */
         private BigDecimal estimatedHours;
-        /** 满意度适用时点（null=不适用，由 ACC-02 消费） */
         private String satisfactionTiming;
-        /** 任务说明 */
         private String description;
-        /** WorkBinding类型 */
         private String workBindingTypeCode;
-        /** 目标Owner Context */
         private String targetContextCode;
-        /** 目标对象类型 */
         private String targetObjectType;
-        /** 目标对象稳定键 */
         private String targetObjectKey;
-        /** 受信任业务组件键 */
         private String componentKey;
-        /** 动态表单发布版本 */
         private Long dynamicFormRevisionId;
-        /** 审批定义键 */
         private String approvalDefinitionKey;
-        /** 受控绑定参数JSON */
         private String bindingConfig;
-        /** 权限策略引用 */
         private String permissionPolicyRef;
-        /** 完成规则类型 */
         private String completionRuleTypeCode;
-        /** 完成规则配置JSON */
         private String completionRuleConfig;
-        /** 可选门禁引用 */
         private String gateRef;
-        /** 不可变定义版本 */
         private Integer definitionVersion;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private String sourceNodeKey;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode bindingViewSnapshot;
+        @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+        private JsonNode permissionSnapshot;
     }
 
     @Data
     public static class MilestoneDef {
         private Long definitionRevisionId;
-        /** 里程碑码（版本内唯一） */
         private String milestoneCode;
         private String name;
-        /** 所属阶段码 */
         private String stageCode;
-        /** 时点说明 */
         private String timing;
-        /** 达成标准 */
         private String criteria;
     }
 
     @Data
     public static class DeliverableDef {
         private Long definitionRevisionId;
-        /** 发布版本中的交付件定义行ID；草稿提交时忽略，由服务端生成 */
         private Long id;
-        /** 交付件码（版本内唯一） */
         private String deliverableCode;
         private String name;
-        /** 所属阶段码 */
         private String stageCode;
-        /** 关联任务码（null=阶段级） */
         private String taskCode;
-        /** 必需标志 */
         private Boolean required;
     }
 
     @Data
     public static class GateDef {
         private Long definitionRevisionId;
-        /** 门禁码（版本内唯一） */
         private String gateCode;
         private String name;
-        /** 类型 ENTRY/EXIT */
         private String gateType;
-        /** 所属阶段码 */
         private String stageCode;
-        /** 门禁说明 */
         private String description;
-        /** 结构化引用行（任务/交付件/状态/流程） */
         private List<GateRef> references = new ArrayList<>();
     }
 
     @Data
     public static class GateRef {
-        /** 引用类型 TASK/DELIVERABLE/STATE/PROCESS */
         private String refType;
-        /** 引用编码 */
         private String refCode;
-        /** 历史兼容字段；新流程引用保持空 */
         private String refVersion;
     }
 }
