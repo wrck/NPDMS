@@ -40,9 +40,12 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateCompiler;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
@@ -173,7 +176,6 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(PROJECT_CREATE_FIELDS_INVALID.getCode(), exception.getCode());
         assertTrue(exception.getMessage().contains("创建原因"));
         assertTrue(exception.getMessage().contains("签约方式"));
-        // 不落库、不实例化、不烧编码流水
         verifyNoInteractions(projectMasterMapper, projectTemplateService, projectCodeAllocator);
     }
 
@@ -189,7 +191,6 @@ class ProjectManualCreationServiceImplTest {
 
         assertEquals(PROJECT_TEMPLATE_NO_MATCH.getCode(), exception.getCode());
         assertTrue(exception.getMessage().contains("无匹配"));
-        // 不落库不实例化，且不消耗编码流水
         verifyNoInteractions(projectMasterMapper, projectCodeAllocator);
     }
 
@@ -230,7 +231,8 @@ class ProjectManualCreationServiceImplTest {
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-M"));
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
-        when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(contentWithOneGateAndReference());
+        when(projectTemplateService.getExecutionSnapshot(templateId, 2))
+                .thenReturn(snapshotOf(contentWithOneGateAndReference()));
         when(customerQueryApi.getCustomer(1L)).thenReturn(new CustomerSummaryDTO(
                 1L, 1L, "CUST-001", "某客户", null, "DISABLED", "CRM", 1L, LocalDateTime.now()));
         ProjectMasterDO draft = validDraft();
@@ -256,14 +258,13 @@ class ProjectManualCreationServiceImplTest {
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
         TemplateDefinitionContent content = contentWithOneGateAndReference();
         content.getTasks().getFirst().setSatisfactionTiming("AFTER_INITIAL_ACCEPTANCE");
-        when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(content);
+        when(projectTemplateService.getExecutionSnapshot(templateId, 2)).thenReturn(snapshotOf(content));
         when(satisfactionQuestionnaireTemplateApi.resolvePublished(any())).thenReturn(
                 new SatisfactionTemplateFact("FOUND", 992005100001L, 992005110001L,
                         1, "FACC002-RULE-V1", new BigDecimal("80.00")));
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000007");
         when(taskExecutionContractFactory.create(any(), any(), any(), any()))
                 .thenReturn(new ProjectTaskExecutionContractDO());
-        // 快照 INSERT 时刻的 code_root_id（服务随后对同一 DO 原地回填，事后捕获拿不到占位值）
         AtomicLong codeRootIdAtInsert = new AtomicLong(-1);
         doAnswer(invocation -> {
             ProjectMasterDO inserted = invocation.getArgument(0);
@@ -277,7 +278,6 @@ class ProjectManualCreationServiceImplTest {
         ProjectMasterDO created = service.createProject(draft, null, null, revisionId,
                 CANDIDATE_WATERMARK, null);
 
-        // 冻结上下文与主档语义
         assertEquals(100L, created.getId());
         assertEquals("PJT2026000007", created.getProjectCode());
         assertEquals("V1", created.getCodeRuleVersion());
@@ -291,9 +291,8 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(2, created.getLifecycleTemplateRevisionNo());
         assertEquals(ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED, created.getTemplateLoadMethod());
         assertEquals("PROC-KEY", created.getProcessDefinitionKey());
-        assertEquals("V3", created.getProcessDefinitionVersion());
+        assertEquals(null, created.getProcessDefinitionVersion());
 
-        // 两段写入：INSERT 占位 code_root_id=0（insert 时刻快照）；UPDATE 回填 code_root_id=root_id=id
         assertEquals(0L, codeRootIdAtInsert.get());
         ArgumentCaptor<ProjectMasterDO> updateCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectMasterMapper).updateById(updateCaptor.capture());
@@ -301,13 +300,13 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(100L, updateCaptor.getValue().getRootId());
         assertEquals(100L, created.getCodeRootId());
 
-        // 阶段逐条回填ID后冻结运行图，其余实例化语义保留。
         ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
         verify(stageInstanceMapper).insert(stageCaptor.capture());
         assertEquals(100L, stageCaptor.getValue().getProjectId());
         assertEquals("S0", stageCaptor.getValue().getStageCode());
-        verify(runtimeGraphFreezer).validate(content);
-        verify(runtimeGraphFreezer).freeze(eq(1L), eq(100L), eq(revisionId), eq(content), any(), any());
+        verify(runtimeGraphFreezer).validate(any(TemplateDefinitionContent.class));
+        verify(runtimeGraphFreezer).freeze(eq(1L), eq(100L), eq(revisionId),
+                any(TemplateDefinitionContent.class), any(), any());
         ArgumentCaptor<ProjectTaskInstanceDO> taskCaptor = ArgumentCaptor.forClass(ProjectTaskInstanceDO.class);
         verify(taskInstanceMapper).insert(taskCaptor.capture());
         assertEquals(992005100001L, taskCaptor.getValue().getAccSatisfactionTemplateId());
@@ -327,12 +326,12 @@ class ProjectManualCreationServiceImplTest {
         verify(milestoneInstanceMapper).insertBatch(anyCollection());
         verify(deliverableInitializationApplicationService).initialize(any());
         verify(deliverableInstanceMapper, never()).insertBatch(anyCollection());
-        // 门禁单条落库后引用行回填 gate_id
         doAnswerAsGateInsert();
         verify(gateReferenceInstanceMapper).insert(any(ProjectGateReferenceInstanceDO.class));
-        // 未指派/未登记办事处
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
         verify(projectTemplateService).getRevisionById(revisionId);
+        verify(projectTemplateService).getExecutionSnapshot(templateId, 2);
+        verify(projectTemplateService, never()).getRevisionContent(anyLong(), any());
         verify(projectTemplateService, never()).getRevisionList(templateId);
     }
 
@@ -349,7 +348,7 @@ class ProjectManualCreationServiceImplTest {
         TemplateDefinitionContent.StageDef stage = new TemplateDefinitionContent.StageDef();
         stage.setStageCode("S2");
         invalid.getStages().add(stage);
-        when(projectTemplateService.getRevisionContent(templateId, 1)).thenReturn(invalid);
+        when(projectTemplateService.getExecutionSnapshot(templateId, 1)).thenReturn(snapshotOf(invalid));
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.createProject(validDraft(), null, null, revisionId,
@@ -406,7 +405,7 @@ class ProjectManualCreationServiceImplTest {
         when(projectTemplateService.getProjectTemplate(5L)).thenReturn(activeTemplate(5L, "TPL-AUTO"));
         when(projectTemplateService.getRevisionById(1001L)).thenReturn(
                 revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
-        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
+        when(projectTemplateService.getExecutionSnapshot(5L, 1)).thenReturn(snapshotOf(contentWithS0Only()));
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000008");
         doAnswer(invocation -> {
             ProjectMasterDO inserted = invocation.getArgument(0);
@@ -420,7 +419,6 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(5L, created.getLifecycleTemplateId());
         assertEquals(1, created.getLifecycleTemplateRevisionNo());
         assertEquals(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT, created.getTemplateLoadMethod());
-        // V1.8模板必须含S0，且只有S0阶段实例落库。
         ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
         verify(stageInstanceMapper).insert(stageCaptor.capture());
         assertEquals(101L, stageCaptor.getValue().getProjectId());
@@ -437,14 +435,13 @@ class ProjectManualCreationServiceImplTest {
         when(projectTemplateService.getProjectTemplate(5L)).thenReturn(activeTemplate(5L, "TPL-AUTO"));
         when(projectTemplateService.getRevisionById(1001L)).thenReturn(
                 revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
-        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
+        when(projectTemplateService.getExecutionSnapshot(5L, 1)).thenReturn(snapshotOf(contentWithS0Only()));
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000009");
         doAnswer(invocation -> {
             ProjectMasterDO inserted = invocation.getArgument(0);
             inserted.setId(102L);
             return 1;
         }).when(projectMasterMapper).insert(any(ProjectMasterDO.class));
-        // 用户 66 已有一条开放的一级服务经理区间（Id=7，至今有效）
         ProjectMemberAssignmentDO openInterval = new ProjectMemberAssignmentDO();
         openInterval.setId(7L);
         openInterval.setUserId(66L);
@@ -457,12 +454,10 @@ class ProjectManualCreationServiceImplTest {
         service.createProject(validDraft(), "CO-01", "DEP-01", null,
                 CANDIDATE_WATERMARK, 66L);
 
-        // 旧区间关闭：effective_to=新区间起点
         ArgumentCaptor<ProjectMemberAssignmentDO> closeCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberAssignmentMapper).updateById(closeCaptor.capture());
         assertEquals(7L, closeCaptor.getValue().getId());
         assertNotNull(closeCaptor.getValue().getEffectiveTo());
-        // 新区间开启：SERVICE_MANAGER_L1（不写 PROJECT_MANAGER）
         ArgumentCaptor<ProjectMemberAssignmentDO> freshCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberAssignmentMapper).insert(freshCaptor.capture());
         assertEquals(102L, freshCaptor.getValue().getProjectId());
@@ -470,7 +465,6 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, freshCaptor.getValue().getMemberRole());
         assertEquals("ACTIVE", freshCaptor.getValue().getStatus());
         assertEquals(closeCaptor.getValue().getEffectiveTo(), freshCaptor.getValue().getEffectiveFrom());
-        // 下单办事处关系：ORDER_OFFICE + is_primary=1
         ArgumentCaptor<ProjectCompanyDepartmentRelationDO> relationCaptor =
                 ArgumentCaptor.forClass(ProjectCompanyDepartmentRelationDO.class);
         verify(companyDepartmentRelationMapper).insert(relationCaptor.capture());
@@ -598,7 +592,6 @@ class ProjectManualCreationServiceImplTest {
         update.setProjectName("新名称");
         update.setContractNo("HT-2026-002");
         update.setImplementationLocation("上海");
-        // 不可变字段攻击载荷
         update.setProjectCode("PJT9999999999");
         update.setStatus(ProjectRules.STATUS_S6);
         update.setSourceType(ProjectRules.SOURCE_TYPE_ORDER);
@@ -614,11 +607,9 @@ class ProjectManualCreationServiceImplTest {
         ArgumentCaptor<ProjectMasterDO> captor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectMasterMapper).updateById(captor.capture());
         ProjectMasterDO saved = captor.getValue();
-        // 可编辑字段生效
         assertEquals("新名称", saved.getProjectName());
         assertEquals("HT-2026-002", saved.getContractNo());
         assertEquals("上海", saved.getImplementationLocation());
-        // 不可变字段以库内值为准（BR-8 联动：编码不可变；状态/来源/模板绑定不可改）
         assertEquals("PJT2026000001", saved.getProjectCode());
         assertEquals(ProjectRules.STATUS_S0, saved.getStatus());
         assertEquals(ProjectRules.SOURCE_TYPE_MANUAL, saved.getSourceType());
@@ -861,6 +852,10 @@ class ProjectManualCreationServiceImplTest {
         assignment.setSiteId(30L);
         assignment.setEffectiveFrom(LocalDateTime.now().minusDays(1));
         return assignment;
+    }
+
+    private TemplateExecutionSnapshot snapshotOf(TemplateDefinitionContent content) {
+        return new TemplateCompiler().compile(TemplateDesignerDocument.fromResolvedLegacy(content)).snapshot();
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {
