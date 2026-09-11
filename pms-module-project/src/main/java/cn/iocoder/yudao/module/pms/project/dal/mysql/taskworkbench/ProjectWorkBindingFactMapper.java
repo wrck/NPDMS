@@ -4,7 +4,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectT
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectSatisfactionTaskProjectLockQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -24,9 +23,6 @@ public interface ProjectWorkBindingFactMapper {
 
     ProjectTaskExecutionContractDO selectCurrentContractForUpdate(
             @Param("query") ProjectWorkBindingFactLockQuery query);
-
-    ProjectTemplateRevisionFactRecord selectTemplateRevisionFact(
-            @Param("query") ProjectTemplateRevisionFactQuery query);
 
     List<ProjectSatisfactionTaskFactRecord> selectSatisfactionTaskForUpdate(
             @Param("query") ProjectSatisfactionTaskFactLockQuery query);
