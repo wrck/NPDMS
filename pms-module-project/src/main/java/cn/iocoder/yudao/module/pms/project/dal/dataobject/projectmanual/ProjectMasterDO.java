@@ -221,6 +221,10 @@ public class ProjectMasterDO extends TenantBaseDO {
      */
     private Integer lifecycleTemplateRevisionNo;
     /**
+     * 创建时冻结的模板修订ID。仅作为项目来源身份与追溯事实，运行时不得据此反查设计态。
+     */
+    private Long lifecycleTemplateRevisionId;
+    /**
      * 模板加载方式：AUTO_DEFAULT唯一默认命中/MANUAL_SELECTED人工选择（前向扩列）
      */
     private String templateLoadMethod;
