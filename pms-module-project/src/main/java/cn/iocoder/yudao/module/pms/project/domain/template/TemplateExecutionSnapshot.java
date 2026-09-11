@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import lombok.Data;
 import tools.jackson.databind.JsonNode;
@@ -53,6 +54,12 @@ public class TemplateExecutionSnapshot {
     @Data
     public static class TaskContract {
         private String nodeKey;
+        /**
+         * Deterministic compiled identity derived from nodeKey. This is not a template-definition row id.
+         * It exists so unchanged cross-module Long contracts can identify one frozen template task without
+         * joining legacy proj_project_template_task_definition.
+         */
+        private Long runtimeNodeId;
         private String code;
         private String name;
         private String parentTaskCode;
@@ -70,6 +77,11 @@ public class TemplateExecutionSnapshot {
         private Long sourceWorkBindingRevisionId;
         private Long sourcePermissionPolicyRevisionId;
         private Long sourceCompletionRuleRevisionId;
+
+        public void setNodeKey(String nodeKey) {
+            this.nodeKey = nodeKey;
+            if (nodeKey != null && !nodeKey.isBlank()) this.runtimeNodeId = stableRuntimeNodeId(nodeKey);
+        }
     }
 
     @Data
@@ -191,6 +203,7 @@ public class TemplateExecutionSnapshot {
         }
         for (TaskContract source : tasks) {
             TemplateDefinitionContent.TaskDef target = new TemplateDefinitionContent.TaskDef();
+            target.setId(source.getRuntimeNodeId() == null ? stableRuntimeNodeId(source.getNodeKey()) : source.getRuntimeNodeId());
             target.setDefinitionRevisionId(source.getSourceDefinitionRevisionId());
             target.setWorkBindingRevisionId(source.getSourceWorkBindingRevisionId());
             target.setPermissionPolicyRevisionId(source.getSourcePermissionPolicyRevisionId());
@@ -211,7 +224,7 @@ public class TemplateExecutionSnapshot {
             }
             applyRule(target, source.getCompletionRule());
             target.setGateRef(source.getGateRef());
-            target.setDefinitionVersion(1);
+            target.setDefinitionVersion(SCHEMA_VERSION);
             target.setSourceNodeKey(source.getNodeKey());
             target.setBindingViewSnapshot(source.getBinding() == null ? null : copy(source.getBinding().getBusinessViewSnapshot()));
             content.getTasks().add(target);
@@ -291,6 +304,14 @@ public class TemplateExecutionSnapshot {
         }
         target.setCompletionRuleTypeCode(rule.path("predicate").asText());
         target.setCompletionRuleConfig(JsonUtils.toJsonString(rule.path("parameters")));
+    }
+
+    /** 60-bit positive deterministic identity; namespace is the frozen task nodeKey. */
+    public static long stableRuntimeNodeId(String nodeKey) {
+        if (nodeKey == null || nodeKey.isBlank()) throw new IllegalArgumentException("task nodeKey required");
+        String hex = DigestUtil.sha256Hex("template-task-node:" + nodeKey).substring(0, 15);
+        long value = Long.parseLong(hex, 16);
+        return value == 0 ? 1 : value;
     }
 
     private static JsonNode copy(JsonNode value) {
