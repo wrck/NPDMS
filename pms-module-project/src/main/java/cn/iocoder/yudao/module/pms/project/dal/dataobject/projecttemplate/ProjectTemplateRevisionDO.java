@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -9,73 +11,65 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 项目模板版本 DO（F-PM03 / V52）
- * <p>
- * 草稿即版本：每模板至多一个 DRAFT 工作副本（revision_no=0，可编辑）；
- * 发布时递增 revision_no 冻结为 PUBLISHED，此后应用层只读（BR-3）。
+ * Project template revision.
+ *
+ * <p>V2 separates editable authoring truth from immutable runtime truth:</p>
+ * <ul>
+ *   <li>DRAFT: {@code designerDocument} is writable; execution snapshot is null.</li>
+ *   <li>PUBLISHED: designer and execution snapshot are immutable publication artifacts.</li>
+ *   <li>Legacy rows can keep all V2 fields null and are interpreted through the legacy reader.</li>
+ * </ul>
  */
 @TableName("proj_project_template_revision")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateRevisionDO extends TenantBaseDO {
+
+    /** Legacy publication closure. Read-only compatibility evidence for rows published before V2. */
     private String definitionSnapshot;
 
-    /** 专用闭环规则；NULL表示未配置，取消草稿配置必须实际清空。 */
-    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    /** V2 authoring schema version. */
+    private Integer designerSchemaVersion;
+
+    /** V2 editable/frozen designer JSON. */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String designerDocument;
+
+    /** V2 immutable execution schema version; null for drafts and legacy rows. */
+    private Integer executionSchemaVersion;
+
+    /** V2 immutable runtime snapshot; null for drafts and legacy rows. */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String executionSnapshot;
+
+    /** Compiler identity used to build the execution snapshot. */
+    private String compilerVersion;
+
+    /** SHA-256 over canonical runtime semantics. */
+    private String snapshotHash;
+
+    /** Dedicated closure rule; null means not configured. Kept for query/legacy compatibility. */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String closurePolicy;
 
-
-    /**
-     * 版本ID
-     */
     @TableId
     private Long id;
-    /**
-     * 模板ID
-     */
     private Long templateId;
-    /**
-     * 版本号（0=草稿工作副本，发布时递增冻结）
-     */
+    /** 0=draft; positive values are immutable published revisions. */
     private Integer revisionNo;
-    /**
-     * 状态：DRAFT草稿/PUBLISHED已发布
-     */
     private String status;
-    /**
-     * 匹配条件：签约方式（字典 pms_signing_method，NULL=不限）
-     */
+
     private String signingMethod;
-    /**
-     * 匹配条件：项目类别（字典 pms_project_category，NULL=不限）
-     */
     private String projectCategory;
-    /**
-     * 匹配条件：实施方式（字典 pms_implementation_method，NULL=不限）
-     */
     private String implementationMethod;
-    /**
-     * 匹配条件：重大项目级别（CRM来源属性映射，NULL=不限）
-     */
     private String majorProjectLevel;
-    /**
-     * 模板级流程定义引用（仅存引用，不校验流程内部）
-     */
+
+    /** BPM definition key reference only. */
     private String processDefinitionKey;
-    /**
-     * 流程定义版本引用
-     */
+    /** Historical compatibility field; V2 does not persist a PMS process version. */
     private String processDefinitionVersion;
-    /**
-     * 最近一次发布校验结果摘要（留痕）
-     */
+
     private String validationSummary;
-    /**
-     * 发布人
-     */
     private String publishedBy;
-    /**
-     * 发布时间
-     */
     private LocalDateTime publishedTime;
 }
