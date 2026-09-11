@@ -191,8 +191,11 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         SelectedTemplate selected = draft.getParentId() == null
                 ? selectTemplate(matchDecision)
                 : selectInheritedTemplate(draft.getParentId());
-        TemplateDefinitionContent content =
-                projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
+        var executionSnapshot = projectTemplateService.getExecutionSnapshot(
+                selected.templateId(), selected.revisionNo());
+        // Downstream Project domain still consumes the legacy-shaped DTO, but the only template runtime truth
+        // is the persisted immutable V2 snapshot. This projection never resolves Designer/DefinitionRevision data.
+        TemplateDefinitionContent content = executionSnapshot.toRuntimeContent();
         // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
         TemplateInstantiator.requireSingleS0(content);
         runtimeGraphFreezer.validate(content);
@@ -299,7 +302,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             }
             ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
                     task.getId(), definition.getId(), definition, instantiationTime);
-            contract.setDefinitionSnapshot(JsonUtils.toJsonString(content.getDefinitionSnapshot()));
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
         }
