@@ -98,8 +98,12 @@ public class TaskExecutionContractFactory {
             throw new IllegalArgumentException("任务WorkBinding类型无效");
         }
         requireJson(definition.getBindingConfig(), "任务绑定配置无效");
-        if (StringUtils.isBlank(definition.getPermissionPolicyRef())) {
+        // Legacy contracts use a policy ref; V2 may carry a fully frozen permission requirement.
+        if (StringUtils.isBlank(definition.getPermissionPolicyRef()) && definition.getPermissionSnapshot() == null) {
             throw new IllegalArgumentException("任务权限策略缺失");
+        }
+        if (definition.getPermissionSnapshot() != null && !definition.getPermissionSnapshot().isObject()) {
+            throw new IllegalArgumentException("任务权限快照无效");
         }
         if (StringUtils.isBlank(definition.getCompletionRuleTypeCode())) {
             throw new IllegalArgumentException("任务完成规则类型缺失");
