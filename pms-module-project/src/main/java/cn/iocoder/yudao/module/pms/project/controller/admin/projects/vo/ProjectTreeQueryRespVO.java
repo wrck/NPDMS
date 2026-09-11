@@ -17,6 +17,11 @@ public class ProjectTreeQueryRespVO {
     @Data
     public static class Node {
         private Long projectId;
+        private Long parentId;
+        private String projectCode;
+        private BigDecimal projectProgress;
+        private String progressStatus;
+        private java.time.LocalDateTime progressRecordedAt;
         private String projectName;
         private String lifecycleStatus;
         private String currentStage;

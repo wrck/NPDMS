@@ -36,6 +36,8 @@ public class ProjectTreeQueryService {
     private final ProjectTreeMetrics metrics;
     private final ProjectTreeScopeService scopeService;
     private final ProjectTreeViewSanitizer viewSanitizer;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeHierarchyMapper hierarchyMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper progressMapper;
 
     public ProjectTreeQueryResult query(ProjectTreeQuery query, Actor actor) {
         validate(query, actor);
@@ -73,9 +75,24 @@ public class ProjectTreeQueryService {
                 active.getTreeVersion(), scope.visibleProjectIds(), offset, pageSize + 1);
         boolean hasNext = fetched.size() > pageSize;
         List<ProjectMasterDO> page = hasNext ? List.copyOf(fetched.subList(0, pageSize)) : List.copyOf(fetched);
+        var parents = hierarchyMapper.selectDirectParents(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(
+                        actor.tenantId(), rootId, active.getTreeVersion(), page.stream().map(ProjectMasterDO::getId)
+                        .collect(java.util.stream.Collectors.toSet()))).stream()
+                .filter(path -> scope.visibleProjectIds().contains(path.getAncestorProjectId()))
+                .collect(java.util.stream.Collectors.toMap(
+                        cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO::getDescendantProjectId,
+                        cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO::getAncestorProjectId));
+        var progressIds = page.stream().map(ProjectMasterDO::getId).filter(scope.fullProjectIds()::contains)
+                .collect(java.util.stream.Collectors.toSet());
+        var progress = progressIds.isEmpty() ? java.util.Map.<Long, cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow>of()
+                : progressMapper.selectRecordedProgress(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeProgressQuery(
+                        actor.tenantId(), rootId, active.getTreeVersion(), progressIds, scope.fullProjectIds())).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow::projectId, row -> row));
         List<ProjectTreeViewSanitizer.ProjectTreeNodeView> visiblePage = page.stream()
-                .map(project -> viewSanitizer.sanitize(project, scope.visibility(project.getId())))
-                .filter(Objects::nonNull).toList();
+                .map(project -> viewSanitizer.sanitize(project, scope.visibility(project.getId()), parents.get(project.getId())))
+                .filter(Objects::nonNull).map(node -> node.withProgress(progress.get(node.projectId()))).toList();
         String next = hasNext ? encodeCursor(rootId, active.getTreeVersion(), query, offset + pageSize) : null;
         metrics.query(query.queryType().name(), updating, System.nanoTime() - started, visiblePage.size());
         return new ProjectTreeQueryResult(active.getTreeVersion(), visiblePage, next, updating);

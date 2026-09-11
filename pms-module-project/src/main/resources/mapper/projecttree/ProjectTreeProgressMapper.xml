@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper">
+  <sql id="requestedIds">
+    <choose><when test="query.projectIds != null and !query.projectIds.isEmpty()">
+      IN <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>IN (NULL)</otherwise></choose>
+  </sql>
+  <!-- 列表只读最近记录，不调用会生成默认策略/快照的汇总计算入口。 -->
+  <select id="selectRecordedProgress" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow">
+    WITH facts AS (
+      SELECT project_id,progress,occurred_at,ROW_NUMBER() OVER(PARTITION BY project_id ORDER BY occurred_at DESC,fact_version DESC,id DESC) rn
+      FROM proj_project_progress_fact WHERE tenant_id=#{query.tenantId} AND deleted=b'0' AND project_id <include refid="requestedIds"/>
+    ), snapshots AS (
+      SELECT project_id,progress,calculated_at,snapshot_status,tree_version,
+        ROW_NUMBER() OVER(PARTITION BY project_id ORDER BY calculated_at DESC,id DESC) rn
+      FROM proj_project_progress_snapshot WHERE tenant_id=#{query.tenantId} AND deleted=b'0' AND project_id <include refid="requestedIds"/>
+    ), children AS (
+      SELECT ancestor_project_id,COUNT(*) total,
+        SUM(CASE WHEN descendant_project_id
+          <choose><when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+            IN <foreach collection="query.visibleProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+          </when><otherwise>IN (NULL)</otherwise></choose>
+          THEN 0 ELSE 1 END) hidden
+      FROM proj_project_tree_path WHERE tenant_id=#{query.tenantId} AND root_project_id=#{query.rootProjectId}
+        AND tree_version=#{query.treeVersion} AND distance&gt;0 AND deleted=b'0' AND ancestor_project_id <include refid="requestedIds"/>
+      GROUP BY ancestor_project_id
+    )
+    SELECT p.id AS projectId,
+      CASE WHEN COALESCE(c.hidden,0)>0 THEN NULL WHEN c.total IS NULL THEN f.progress
+        WHEN s.tree_version=#{query.treeVersion} AND s.snapshot_status='READY' THEN s.progress ELSE NULL END AS progress,
+      CASE WHEN COALESCE(c.hidden,0)>0 THEN 'RESTRICTED'
+        WHEN c.total IS NULL THEN IF(f.progress IS NULL,'PENDING','READY')
+        WHEN s.tree_version IS NOT NULL AND s.tree_version!=#{query.treeVersion} THEN 'STALE'
+        WHEN s.snapshot_status='READY' AND s.progress IS NOT NULL THEN 'READY' ELSE 'PENDING' END AS status,
+      CASE WHEN COALESCE(c.hidden,0)>0 THEN NULL WHEN c.total IS NULL THEN f.occurred_at ELSE s.calculated_at END AS recordedAt
+    FROM proj_project p LEFT JOIN children c ON c.ancestor_project_id=p.id
+      LEFT JOIN facts f ON f.project_id=p.id AND f.rn=1 LEFT JOIN snapshots s ON s.project_id=p.id AND s.rn=1
+    WHERE p.tenant_id=#{query.tenantId} AND p.deleted=b'0' AND p.id <include refid="requestedIds"/>
+  </select>
+</mapper>

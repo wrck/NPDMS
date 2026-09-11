@@ -60,12 +60,15 @@ class ProjectTreeMoveConcurrencyMySqlTest {
     @Resource ProjectTreeScopeService scopeService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
+    @Resource cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeHierarchyMapper hierarchyMapper;
+    @Resource cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper progressMapper;
     private long baseId;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> environment = System.getenv();
         String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
+        if (!"npdms_test".equals(database)) throw new IllegalStateException("Tree integration tests require npdms_test");
         String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
@@ -106,6 +109,8 @@ class ProjectTreeMoveConcurrencyMySqlTest {
     @AfterEach
     void tearDown() {
         try {
+            jdbcTemplate.update("DELETE FROM proj_project_progress_fact WHERE project_id BETWEEN ? AND ?", baseId, baseId + 3);
+            jdbcTemplate.update("DELETE FROM proj_project_progress_snapshot WHERE project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE aggregate_key = ?", String.valueOf(baseId + 1));
             jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE aggregate_key = ?", String.valueOf(baseId + 1));
             jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?",
@@ -143,6 +148,52 @@ class ProjectTreeMoveConcurrencyMySqlTest {
                     "SELECT COUNT(*) FROM plt_outbox_event WHERE aggregate_key = ? AND event_type = 'ProjectTreeChanged'",
                     Long.class, String.valueOf(baseId + 1)));
         }
+    }
+
+    @Test
+    void parentProjectionUsesRequestedVersionAndEmptyOrForeignSelectionsStayEmpty() {
+        var original = new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(
+                0L, baseId, 7L, java.util.Set.of(baseId + 1));
+        assertEquals(baseId, hierarchyMapper.selectDirectParents(original).getFirst().getAncestorProjectId());
+        service.move(new MoveProjectSubtreeCommand(baseId + 1, baseId + 2, 7L, "版本化父关系",
+                KEY_PREFIX + baseId + "parents", "a".repeat(64)),
+                new ProjectTreeProjectionService.Actor(0L, 9_900_006L, KEY_PREFIX + baseId + "parents"));
+        assertEquals(baseId, hierarchyMapper.selectDirectParents(original).getFirst().getAncestorProjectId());
+        assertEquals(baseId + 2, hierarchyMapper.selectDirectParents(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(
+                        0L, baseId, 8L, java.util.Set.of(baseId + 1))).getFirst().getAncestorProjectId());
+        assertEquals(List.of(), hierarchyMapper.selectDirectParents(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(0L, baseId, 8L, java.util.Set.of())));
+        assertEquals(List.of(), hierarchyMapper.selectDirectParents(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(1L, baseId, 8L, java.util.Set.of(baseId + 1))));
+    }
+
+    @Test
+    void recordedProgressReadsLatestLeafAndSnapshotWithoutComputingOrLeakingHiddenDescendants() {
+        jdbcTemplate.update("INSERT INTO proj_project_progress_fact (id,project_id,fact_source_type,fact_source_id,fact_version,progress,source_watermark,occurred_at,tenant_id) "
+                + "VALUES (?,?,'TASK_AGGREGATE',?,1,0,'test-v1',DATE_SUB(NOW(),INTERVAL 1 MINUTE),0),(?,?,'TASK_AGGREGATE',?,2,37.5,'test-v2',NOW(),0)",
+                baseId, baseId + 1, KEY_PREFIX + baseId, baseId + 1, baseId + 1, KEY_PREFIX + baseId);
+        jdbcTemplate.update("INSERT INTO proj_project_progress_snapshot (id,project_id,policy_revision_id,tree_version,source_watermark,snapshot_status,progress,missing_item_count,calculated_at,tenant_id) "
+                + "VALUES (?,?,?,6,'old-tree','READY',80,0,NOW(),0)", baseId, baseId, baseId);
+        var ids = java.util.Set.of(baseId, baseId + 1, baseId + 2, baseId + 3);
+        var query = new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeProgressQuery(0L, baseId, 7L, ids, ids);
+        var rows = progressMapper.selectRecordedProgress(query).stream().collect(java.util.stream.Collectors.toMap(
+                cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow::projectId, row -> row));
+        assertEquals(0, new java.math.BigDecimal("37.5").compareTo(rows.get(baseId + 1).progress()));
+        assertEquals("PENDING", rows.get(baseId + 2).status());
+        assertEquals("STALE", rows.get(baseId).status());
+        org.junit.jupiter.api.Assertions.assertNull(rows.get(baseId).progress());
+        jdbcTemplate.update("UPDATE proj_project_progress_snapshot SET tree_version=7 WHERE id=?", baseId);
+        assertEquals("READY", progressMapper.selectRecordedProgress(query).stream().filter(row -> row.projectId() == baseId).findFirst().orElseThrow().status());
+        var restricted = progressMapper.selectRecordedProgress(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeProgressQuery(
+                0L, baseId, 7L, java.util.Set.of(baseId), java.util.Set.of(baseId, baseId + 1))).getFirst();
+        assertEquals("RESTRICTED", restricted.status());
+        org.junit.jupiter.api.Assertions.assertNull(restricted.progress());
+        assertEquals(List.of(), progressMapper.selectRecordedProgress(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeProgressQuery(
+                0L, baseId, 7L, java.util.Set.of(), ids)));
+        assertEquals(List.of(), progressMapper.selectRecordedProgress(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeProgressQuery(
+                1L, baseId, 7L, ids, ids)));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM proj_project_progress_snapshot WHERE project_id=?", Long.class, baseId));
     }
 
     @Test
@@ -271,6 +322,9 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             return new TransactionTemplate(transactionManager);
         }
         @Bean MeterRegistry meterRegistry() { return new SimpleMeterRegistry(); }
+        @Bean cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi() {
+            return org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class);
+        }
         @Bean AuthorizationGrantApi authorizationGrantApi() {
             return org.mockito.Mockito.mock(AuthorizationGrantApi.class);
         }

@@ -331,10 +331,15 @@ export type ProjectTreeQueryType =
 
 export interface ProjectTreeNodeVO {
   projectId: number
+  parentId?: number
+  projectCode?: string
   projectName?: string
   lifecycleStatus?: string
   currentStage?: string
   milestoneProgress?: number
+  projectProgress?: number | null
+  progressStatus?: 'READY' | 'PENDING' | 'STALE' | 'RESTRICTED'
+  progressRecordedAt?: string | number
   visibility: 'FULL' | 'ROOT_SUMMARY' | 'PATH_PLACEHOLDER'
 }
 

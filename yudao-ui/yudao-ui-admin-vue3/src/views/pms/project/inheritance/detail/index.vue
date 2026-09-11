@@ -428,6 +428,7 @@
             :key="treeRefreshKey"
             :project-id="detail.id"
             @tree-version="treeVersion = $event"
+            @updated="loadAll"
           />
         </div>
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
@@ -481,7 +482,7 @@ import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitWizard.vue'
-import ProjectTreePanel from '@/views/pms/project/project-master-detail/components/ProjectTreePanel.vue'
+import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
 import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'

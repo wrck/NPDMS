@@ -40,6 +40,8 @@ class ProjectTreeQueryServiceTest {
     @Mock ProjectTreePathMapper pathMapper;
     @Mock ProjectTreeMetrics metrics;
     @Mock ProjectTreeScopeService scopeService;
+    @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeHierarchyMapper hierarchyMapper;
+    @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper progressMapper;
 
     private ProjectTreeQueryService service;
     private final ProjectTreeQueryService.Actor actor = new ProjectTreeQueryService.Actor(1L, 9L);
@@ -47,7 +49,7 @@ class ProjectTreeQueryServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProjectTreeQueryService(projectMapper, versionMapper, pathMapper, metrics,
-                scopeService, new ProjectTreeViewSanitizer());
+                scopeService, new ProjectTreeViewSanitizer(), hierarchyMapper, progressMapper);
     }
 
     @Test
@@ -119,6 +121,45 @@ class ProjectTreeQueryServiceTest {
                 new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.CHILDREN, null, 10, null), actor));
 
         verify(scopeService, never()).resolve(any(ProjectScopeQuery.class));
+    }
+
+    @Test
+    void returnsVersionPinnedParentsAndDoesNotExposePlaceholderBusinessFields() {
+        var anchor = project(1L, null, 1L, 0, null);
+        var child = project(3L, 99L, 1L, 0, null); // Current truth has moved; cursor projection must win.
+        child.setProjectName("不可泄露"); child.setProjectCode("SECRET");
+        when(projectMapper.selectById(1L)).thenReturn(anchor);
+        when(versionMapper.selectLatestActive(1L)).thenReturn(version(7L, "ACTIVE"));
+        when(versionMapper.selectLatest(1L)).thenReturn(version(7L, "ACTIVE"));
+        when(scopeService.resolve(any(ProjectScopeQuery.class))).thenReturn(
+                new ProjectTreeScopeService.ProjectTreeScope(1L, 7L, Set.of(1L, 2L), Set.of(3L), Set.of()));
+        when(pathMapper.selectDescendantsPage(1L, 1L, 7L, 1L, false, Set.of(1L, 2L, 3L), 0, 21)).thenReturn(List.of(child));
+        var path = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO();
+        path.setDescendantProjectId(3L); path.setAncestorProjectId(2L);
+        when(hierarchyMapper.selectDirectParents(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(
+                1L, 1L, 7L, Set.of(3L)))).thenReturn(List.of(path));
+        var result = service.query(new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.DESCENDANTS, null, 20, null), actor);
+        assertEquals(2L, result.items().getFirst().parentId());
+        org.junit.jupiter.api.Assertions.assertNull(result.items().getFirst().projectName());
+        org.junit.jupiter.api.Assertions.assertNull(result.items().getFirst().projectCode());
+        org.junit.jupiter.api.Assertions.assertNull(result.items().getFirst().projectProgress());
+        verifyNoInteractions(progressMapper);
+    }
+
+    @Test
+    void httpResponseMappingPreservesTreeStructureAndProjectCode() {
+        var project = project(3L, 99L, 1L, 0, null);
+        project.setProjectCode("P-003"); project.setProjectName("项目");
+        var view = new ProjectTreeViewSanitizer().sanitize(project, ProjectTreeScopeService.Visibility.FULL, 2L)
+                .withProgress(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow(
+                        3L, new java.math.BigDecimal("37.5"), "READY", java.time.LocalDateTime.of(2026, 9, 11, 12, 0)));
+        var response = cn.iocoder.yudao.framework.common.util.object.BeanUtils.toBean(view,
+                cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryRespVO.Node.class);
+        assertEquals(2L, response.getParentId());
+        assertEquals("P-003", response.getProjectCode());
+        assertEquals(new java.math.BigDecimal("37.5"), response.getProjectProgress());
+        assertEquals("READY", response.getProgressStatus());
+        assertEquals(java.time.LocalDateTime.of(2026, 9, 11, 12, 0), response.getProgressRecordedAt());
     }
 
     @Test
