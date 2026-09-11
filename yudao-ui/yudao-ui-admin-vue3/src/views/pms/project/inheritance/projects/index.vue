@@ -86,6 +86,22 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="项目经理" prop="managerId">
+          <el-select
+            v-model="query.managerId"
+            placeholder="全部"
+            clearable
+            filterable
+            class="!w-180px"
+          >
+            <el-option
+              v-for="item in managerOptions"
+              :key="item.id"
+              :label="item.nickname || item.username"
+              :value="item.id!"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="handleReset"><Icon icon="ep:refresh-left" />重置</el-button>
@@ -892,7 +908,7 @@
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
  *
  * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认+可选指派）
- * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）/ 指派服务经理。
+ * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -943,8 +959,17 @@ const query = reactive({
   status: '',
   signingMethod: '',
   projectCategory: '',
-  implementationMode: ''
+  implementationMode: '',
+  managerId: undefined as number | undefined
 })
+const managerOptions = ref<UserApi.UserVO[]>([])
+const loadManagerOptions = async () => {
+  try {
+    managerOptions.value = (await UserApi.getSimpleUserList()) || []
+  } catch {
+    managerOptions.value = []
+  }
+}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1032,6 +1057,7 @@ const handleReset = () => {
   query.signingMethod = ''
   query.projectCategory = ''
   query.implementationMode = ''
+  query.managerId = undefined
   activeStatus.value = ''
   handleSearch()
 }
@@ -1393,6 +1419,7 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizationAndSites()
+  loadManagerOptions()
 })
 </script>
 

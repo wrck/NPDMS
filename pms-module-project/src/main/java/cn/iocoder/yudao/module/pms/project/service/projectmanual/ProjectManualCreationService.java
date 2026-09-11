@@ -53,11 +53,12 @@ public interface ProjectManualCreationService {
     ProjectMasterDO getProjectForManage(Long id, ProjectAccessActor actor);
 
     /**
-     * 分页查询（简单条件：名称/编码/状态/三维）。
+     * 分页查询（简单条件：名称/编码/状态/三维；managerId 匹配有效经理成员）。
      */
     PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                String status, String signingMethod, String projectCategory,
-                                               String implementationMode, ProjectAccessActor actor);
+                                               String implementationMode, Long managerId,
+                                               ProjectAccessActor actor);
 
     /**
      * 实例视图：阶段→任务/里程碑/交付件/门禁+门禁引用行（按冻结版本只读）。

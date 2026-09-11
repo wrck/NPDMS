@@ -718,7 +718,7 @@ class ProjectManualCreationServiceImplTest {
         page.setPageSize(20);
 
         PageResult<ProjectMasterDO> result = service.getProjectPage(
-                page, "名称", "PJT", "ACTIVE", null, null, null, actor);
+                page, "名称", "PJT", "ACTIVE", null, null, null, null, actor);
 
         assertEquals(0L, result.getTotal());
         ArgumentCaptor<VisibleProjectPageQuery> query =
@@ -727,6 +727,37 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(Set.of(), query.getValue().visibleProjectIds());
         assertEquals("名称", query.getValue().projectNameKeyword());
         assertEquals("PJT", query.getValue().projectCodePrefix());
+    }
+
+    @Test
+    void projectPageKeepsOnlyProjectsWhereManagerHasEffectiveManagementRole() {
+        ProjectManualCreationService.ProjectAccessActor actor =
+                new ProjectManualCreationService.ProjectAccessActor(0L, 7L);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L, 7L, "PROJECT_VIEW"))
+                .thenReturn(Set.of(100L, 200L, 300L));
+        ProjectMemberAssignmentDO primary = new ProjectMemberAssignmentDO();
+        primary.setProjectId(100L);
+        primary.setMemberRole("PROJECT_MANAGER");
+        ProjectMemberAssignmentDO collaborator = new ProjectMemberAssignmentDO();
+        collaborator.setProjectId(200L);
+        collaborator.setMemberRole("SERVICE_MANAGER");
+        ProjectMemberAssignmentDO ordinary = new ProjectMemberAssignmentDO();
+        ordinary.setProjectId(300L);
+        ordinary.setMemberRole("TEAM_MEMBER");
+        when(memberAssignmentMapper.selectActiveByUser(any()))
+                .thenReturn(List.of(primary, collaborator, ordinary));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
+                .thenReturn(PageResult.empty());
+        PageParam page = new PageParam();
+        page.setPageNo(1);
+        page.setPageSize(20);
+
+        service.getProjectPage(page, null, null, null, null, null, null, 9001L, actor);
+
+        ArgumentCaptor<VisibleProjectPageQuery> query =
+                ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(query.capture());
+        assertEquals(Set.of(100L, 200L), query.getValue().visibleProjectIds());
     }
 
     @Test
