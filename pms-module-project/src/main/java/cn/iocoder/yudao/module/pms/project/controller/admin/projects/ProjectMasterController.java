@@ -170,7 +170,7 @@ public class ProjectMasterController {
         PageResult<ProjectMasterDO> pageResult = projectManualCreationService.getProjectPage(
                 pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
                 pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
-                accessActor());
+                pageReqVO.getManagerId(), accessActor());
         return success(BeanUtils.toBean(pageResult, ProjectRespVO.class));
     }
 

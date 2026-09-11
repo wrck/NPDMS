@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateIn
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
@@ -71,10 +72,12 @@ import org.springframework.validation.annotation.Validated;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -399,10 +402,25 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Override
     public PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                       String status, String signingMethod, String projectCategory,
-                                                      String implementationMode, ProjectAccessActor actor) {
+                                                      String implementationMode, Long managerId,
+                                                      ProjectAccessActor actor) {
         validateActor(actor);
-        var visibleProjectIds = projectTreeScopeService.resolveAllFullProjectIds(
+        Set<Long> visibleProjectIds = projectTreeScopeService.resolveAllFullProjectIds(
                 actor.tenantId(), actor.actorId(), ACTION_VIEW);
+        if (managerId != null) {
+            Set<Long> managerProjectIds = new HashSet<>();
+            List<ProjectMemberAssignmentDO> assignments = memberAssignmentMapper.selectActiveByUser(
+                    new ActiveProjectMemberQuery(actor.tenantId(), managerId, LocalDateTime.now()));
+            for (ProjectMemberAssignmentDO assignment : assignments) {
+                if (cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES
+                        .contains(assignment.getMemberRole())) {
+                    managerProjectIds.add(assignment.getProjectId());
+                }
+            }
+            Set<Long> scoped = new HashSet<>(visibleProjectIds);
+            scoped.retainAll(managerProjectIds);
+            visibleProjectIds = scoped;
+        }
         return projectMasterMapper.selectPage(new VisibleProjectPageQuery(
                 actor.tenantId(), visibleProjectIds, pageParam, projectName, projectCode, status,
                 signingMethod, projectCategory, implementationMode));

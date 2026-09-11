@@ -1,8 +1,8 @@
 <template>
   <div class="commerce-scope-page">
     <ContentWrap>
-      <div class="page-heading">
-        <div>
+      <div class="page-heading" :class="{ 'page-heading--embedded': embedded }">
+        <div v-if="!embedded">
           <h2>交付范围</h2>
           <p>按订单行分配项目交付范围；调整会关闭旧区间并追加新版本。</p>
         </div>
@@ -123,13 +123,16 @@ import {
   createCommerceIntentStore,
   parseProjectRouteContext
 } from '../commerceInteraction'
+import type { ProjectRouteContext } from '../commerceInteraction'
 
 defineOptions({ name: 'PmsCommerceDeliveryScopes' })
+const props = defineProps<{ projectContext?: ProjectRouteContext }>()
 const route = useRoute()
 const message = useMessage()
 const { width } = useWindowSize()
 const narrow = computed(() => width.value < 768)
-const projectContext = computed(() => parseProjectRouteContext(route.query))
+const embedded = computed(() => props.projectContext != null)
+const projectContext = computed(() => props.projectContext ?? parseProjectRouteContext(route.query))
 const loading = ref(false)
 const rows = ref<DeliveryScopeRespVO[]>([])
 const total = ref(0)
@@ -233,6 +236,10 @@ onMounted(load)
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
+}
+
+.page-heading--embedded {
+  justify-content: flex-end;
 }
 
 .page-heading h2 {

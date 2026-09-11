@@ -30,4 +30,7 @@ public class ProjectPageReqVO extends PageParam {
 
     @Schema(description = "实施方式", example = "FACTORY_SERVICE")
     private String implementationMode;
+
+    @Schema(description = "项目经理/负责人用户编号（匹配项目有效经理成员）", example = "1024")
+    private Long managerId;
 }

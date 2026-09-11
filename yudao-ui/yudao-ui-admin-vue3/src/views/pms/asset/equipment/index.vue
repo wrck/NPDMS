@@ -103,6 +103,7 @@
           value-field="id"
           query-field="projectName"
           placeholder="请选择项目"
+          :disabled="projectLocked"
         />
       </el-form-item>
       <el-alert type="info" :closable="false" show-icon class="mb-16px">
@@ -214,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -225,6 +226,8 @@ import * as ProjectApi from '@/api/pms/project/projects'
 import * as CustomerApi from '@/api/pms/project/customer'
 
 defineOptions({ name: 'PmsAssetEquipment' })
+const props = defineProps<{ projectId?: number | string }>()
+const projectLocked = computed(() => props.projectId != null)
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
@@ -235,6 +238,7 @@ const query = reactive({
   pageSize: 10,
   serialNumber: '',
   name: '',
+  projectId: props.projectId as number | undefined,
   status: undefined as number | undefined
 })
 const visible = ref(false)
@@ -284,7 +288,7 @@ const open = (row?: EquipmentVO) => {
       name: '',
       model: '',
       customerId: undefined,
-      projectId: undefined,
+      projectId: projectLocked.value ? (props.projectId as number) : undefined,
       warrantyStartDate: undefined,
       warrantyEndDate: undefined,
       remark: ''
@@ -364,6 +368,17 @@ const saveStatusChange = async () => {
   }
 }
 onMounted(load)
+watch(
+  () => props.projectId,
+  async () => {
+    query.pageNo = 1
+    query.projectId = props.projectId as number | undefined
+    visible.value = false
+    detailVisible.value = false
+    statusVisible.value = false
+    await load()
+  }
+)
 </script>
 
 <style scoped>

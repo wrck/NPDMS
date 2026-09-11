@@ -39,15 +39,51 @@
       <ContentWrap class="rail-wrap">
         <div class="rail-stage">
           <div class="rail-stage-title">项目概览</div>
+          <template v-for="step in overviewSteps" :key="step.key">
+            <button
+              v-if="!step.permission || checkPermi(step.permission)"
+              class="rail-item"
+              :class="{ 'rail-item--active': activeTab === step.key }"
+              @click="switchTab(step.key)"
+            >
+              <Icon :icon="step.icon" class="rail-icon" />
+              <span class="rail-label">{{ step.label }}</span>
+            </button>
+          </template>
+        </div>
+        <div class="rail-stage">
+          <div class="rail-stage-title">交付流程</div>
+          <ProjectFlowNavigation
+            v-if="detail?.id"
+            :project-id="detail.id"
+            @select="handleFlowSelect"
+          />
+        </div>
+        <div class="rail-stage">
+          <div class="rail-stage-title">项目档案</div>
           <button
-            v-for="step in overviewSteps"
-            :key="step.key"
             class="rail-item"
-            :class="{ 'rail-item--active': activeTab === step.key }"
-            @click="switchTab(step.key)"
+            :class="{ 'rail-item--active': activeTab === 'attributes' }"
+            @click="switchTab('attributes')"
           >
-            <Icon :icon="step.icon" class="rail-icon" />
-            <span class="rail-label">{{ step.label }}</span>
+            <Icon icon="ep:edit" class="rail-icon" />
+            <span class="rail-label">属性判定</span>
+          </button>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'match-history' }"
+            @click="switchTab('match-history')"
+          >
+            <Icon icon="ep:clock" class="rail-icon" />
+            <span class="rail-label">匹配历史</span>
+          </button>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'instances' }"
+            @click="switchTab('instances')"
+          >
+            <Icon icon="ep:tickets" class="rail-icon" />
+            <span class="rail-label">生命周期实例</span>
           </button>
         </div>
         <div class="rail-stage">
@@ -106,17 +142,6 @@
           >
             <Icon icon="ep:operation" class="rail-icon" />
             <span class="rail-label">拆分方案</span>
-          </button>
-        </div>
-        <div class="rail-stage">
-          <div class="rail-stage-title">项目树</div>
-          <button
-            class="rail-item"
-            :class="{ 'rail-item--active': activeTab === 'tree' }"
-            @click="switchTab('tree')"
-          >
-            <Icon icon="ep:share" class="rail-icon" />
-            <span class="rail-label">项目树</span>
           </button>
         </div>
         <div class="rail-stage">
@@ -403,6 +428,15 @@
             @tree-version="treeVersion = $event"
           />
         </div>
+        <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
+          <ProjectEquipmentPanel :key="`equipment-${detail.id}`" :project-id="detail.id" />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('scope')" v-show="activeTab === 'scope'" class="min-w-0" data-testid="project-pane-scope">
+          <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
+        </div>
+        <div v-if="detail?.id && visitedTabs.has('flow')" v-show="activeTab === 'flow'" class="min-w-0" data-testid="project-pane-flow">
+          <ProjectFlowPanel :project-id="detail.id" :project="detail" :selection="flowSelection" />
+        </div>
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
             :project-id="detail.id"
@@ -456,6 +490,9 @@ import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
 import ProjectAttributePanel from '@/views/pms/project/project-master-detail/components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from '@/views/pms/project/project-master-detail/components/ProjectTemplateMatchHistoryPanel.vue'
 import ProjectTaskPanel from '@/views/pms/project/project-master-detail/components/ProjectTaskPanel.vue'
+import ProjectFlowNavigation from '@/views/pms/project/project-master-detail/components/ProjectFlowNavigation.vue'
+import ProjectFlowPanel from '@/views/pms/project/project-master-detail/components/ProjectFlowPanel.vue'
+import type { ProjectFlowSelection } from '@/views/pms/project/project-master-detail/components/project-flow'
 import ProjectStageGatePanel from '@/views/pms/project/project-master-detail/components/ProjectStageGatePanel.vue'
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
@@ -465,6 +502,10 @@ import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/ind
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
+import ProjectEquipmentPanel from '@/views/pms/asset/equipment/index.vue'
+import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
+import * as CommerceApi from '@/api/pms/commerce'
+import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO
@@ -481,14 +522,36 @@ const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
+const scopeVersion = ref<number>()
+const flowSelection = ref<ProjectFlowSelection>()
+const scopeContext = computed<ProjectRouteContext | undefined>(() => {
+  const project = detail.value
+  if (!project?.id || project.version === undefined || scopeVersion.value === undefined) {
+    return undefined
+  }
+  return {
+    projectId: project.id,
+    projectVersion: project.version,
+    projectScopeVersion: scopeVersion.value
+  }
+})
 const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 const satisfactionRef = ref<InstanceType<typeof SatisfactionWorkbench>>()
 const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>()
 
-const requestedTab = () => route.query.section === 'members' ? 'members' : [
+const TAB_KEYS = [
+  'base',
+  'tree',
+  'members',
   'tasks',
+  'equipment',
+  'scope',
+  'flow',
+  'attributes',
+  'match-history',
+  'instances',
   'stage-gates',
   'duration',
   'preparation',
@@ -496,19 +559,27 @@ const requestedTab = () => route.query.section === 'members' ? 'members' : [
   'requirement-analysis',
   'satisfaction',
   'acceptance-reports',
-  'closure'
-].includes(String(route.query.tab))
-  ? String(route.query.tab)
-  : 'base'
+  'closure',
+  'split',
+  'progress',
+  'governance',
+  'authorization'
+]
+const requestedTab = () =>
+  route.query.section === 'members'
+    ? 'members'
+    : TAB_KEYS.includes(String(route.query.tab))
+      ? String(route.query.tab)
+      : 'base'
 const activeTab = ref(requestedTab())
 const visitedTabs = ref(new Set([requestedTab()]))
-const overviewSteps = [
+const overviewSteps: { key: string; label: string; icon: string; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
-  { key: 'attributes', label: '属性判定', icon: 'ep:edit' },
-  { key: 'match-history', label: '匹配历史', icon: 'ep:clock' },
-  { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
+  { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
+  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:equipment:query'] },
+  { key: 'scope', label: '实施范围', icon: 'ep:files', permission: ['pms:commerce:scope:query'] }
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
@@ -520,6 +591,11 @@ const switchTab = async (key: string) => {
   if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
+}
+
+const handleFlowSelect = (payload: ProjectFlowSelection) => {
+  flowSelection.value = payload
+  void switchTab('flow')
 }
 
 const primaryContact = ref<ContactsApi.ContactVO>()
@@ -564,10 +640,20 @@ const loadInstances = async () => {
   const result = await ProjectsApi.getProjectInstances(id)
   if (id === projectId()) instances.value = result
 }
+const loadScopeVersion = async () => {
+  const id = projectId()
+  if (!id || !checkPermi(['pms:commerce:scope:query'])) return
+  try {
+    const version = await CommerceApi.getDeliveryScopeVersion(id)
+    if (id === projectId()) scopeVersion.value = version
+  } catch {
+    if (id === projectId()) scopeVersion.value = undefined
+  }
+}
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact()])
+    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadScopeVersion()])
   } finally {
     loading.value = false
   }
@@ -579,6 +665,8 @@ watch(() => route.query.projectId, () => {
   detail.value = null
   instances.value = null
   primaryContact.value = undefined
+  scopeVersion.value = undefined
+  flowSelection.value = undefined
   activeTab.value = requestedTab()
   visitedTabs.value = new Set([activeTab.value])
   loadAll()
