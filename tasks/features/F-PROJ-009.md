@@ -4,64 +4,122 @@
 > Implementation Done Gate：`NOT_READY`
 > Requirement ID：`PM-03`
 > Feature Spec：`specs/features/F-PROJ-009-project-delivery-template-configuration-center.md`
-> Technical Plan：`docs/superpowers/plans/2026-09-08-template-business-view-foundation.md`
+> 专项模式：`Template V2 Runtime Rewrite`
+> 当前基线：`codex/feature-customer-contact`
 
-## 当前范围
+## 2026-09-12 专项执行规则
 
-需求方批准直接升级现有ProjectTemplate身份、版本、编辑与发布入口；不建立LEGACY/GRAPH双模板、不从sortOrder推断缺失关系图、不覆盖已发布或项目冻结历史。定义库、阶段关系、Stage/Task绑定、交付件要求及规则按最新PM-03实现；页面/表单引用由PLT业务视图注册供给。
+本专项经需求方明确授权，不再受此前“生产代码必须沿既有工程实施链、不得重做运行模型”的限制。当前模板运行时尚未完全走通，允许以收益为依据替换尚未闭环的 Template Authoring / Publish / Runtime 层，但不得借机重写已经形成稳定业务语义的 Project / Stage / Task / Deliverable 运行域。
 
-## 当前任务
+专项执行顺序固定如下：
 
-- [ ] 正式落位可复用定义、模板组合、图、发布校验及直接消费者契约。
-- [ ] 升级现有模板定义、复制、引用、图校验、发布、停用与匹配预演。
-- [ ] 升级现有模板管理入口与视图选择器，不创建平行模板页面。
-- [ ] 同步必要初始化、工作区与阶段图直接消费者；涉及既有Feature的增量在其当前Task中记录，不宣称其全部Done。
-- [ ] 受管种子、失败测试、MySQL/迁移、真实浏览器与历史保护验证。
+1. 先 review 当前分支已提交代码、运行链和验证状态，禁止按旧计划重复实现。
+2. 同步本 Task 的专项计划、任务逻辑和已完成内容。
+3. 直接进行代码重写和收敛；每完成一个独立步骤立即单独提交，不把多个未验证步骤揉成一个大提交。
+4. 代码重写完成后，再进行一次正式 Feature / SDS / API / DB 规格落库；本轮规格不先行约束专项重写。
+5. 完成定向测试、编译/构建及可获得的 CI 验证；未实际执行的验证不得宣称通过。
+6. Legacy 已发布模板不得被当前 Compiler 静默重新解释或自动升级；需要进入 V2 时只能走显式复制/升级边界。
+7. 不从 `sortOrder`、阶段编码或历史缺失信息推导关系图；既有项目冻结历史不因模板 V2 重写被覆盖。
 
-## 限制
+## 当前任务逻辑与目标边界
 
-Q-TPLACC-001仅阻断独立验收创建/范围绑定及依赖接入；本Feature不实现这些路径，不借模板升级实现S0～S6各领域业务。缺少显式关系图的历史项目须核对真实来源及迁移影响，不自动补造边或静默降为只读。
+本专项不再把 `TemplateDefinitionContent + DefinitionRevision + FrozenDefinitions + ExecutionContract` 的多层转换视为必须兼容的永久架构。目标收敛为：
 
-## 当前纠偏：真实任务、办理功能与业务配置
+```text
+ProjectTemplate（业务身份）
+        │
+        ▼
+TemplateDesignerDocument（设计态唯一真值）
+        │
+        ▼
+TemplateCompiler（唯一解释 / 校验 / 冻结边界）
+        │
+        ▼
+TemplateExecutionSnapshot（发布态不可变真值）
+        │
+        ▼
+ProjectRuntimeInitializer / TemplateInstantiator
+        │
+        ├─ ProjectStageInstance
+        ├─ ProjectTaskInstance
+        ├─ ProjectDeliverable
+        └─ ProjectRuntimeGraph
+```
 
-需求方已确认并授权调整：S0保留项目基本操作，不生成ProjectTask或同义核对交付件；S1～S6以独立责任和交付结果识别任务，提交/审批状态查看/文件上传/Log采集/就绪检查等作为办理功能，不机械拆任务。S2计划编制与审批是一个业务过程，S3方案编审同理；V2交底/服务交接不成为V1默认必做。
+核心约束：
 
-当前短计划：先前向修正本次六类未发布草稿，取消S0任务、操作型重复任务及逐任务强制文件/人工里程碑；再将现有模板页改为阶段导航、业务任务列表、任务侧栏，直接选择业务页面/动态表单与合法实体关联，底层Owner/Provider/修订ID放高级只读或管理员工具。复用既有公开API和已部署视图；无Owner完成事实的能力明确未接入，不用TASK_NATIVE完成冒充。已发布定义和项目实例、8项目补全结果不改写。
+- Designer 只表达模板业务设计，不要求用户维护 DefinitionRevision 技术引用。
+- Compiler 是设计态进入运行态的唯一解释边界；同一发布版本的 Snapshot 必须稳定、可复现、不可被未来 Compiler 静默改变。
+- V2 Runtime 只消费持久化 `TemplateExecutionSnapshot`，不得再次解析 DesignerDocument 或当前 DefinitionRevision 来改变发布语义。
+- Project / Stage / Task / Deliverable 的实例表、状态机、Owner 业务服务和审计历史继续保留。
+- Legacy 模板保持只读兼容；如果要用于新的 V2 发布/新建链，必须显式复制/升级并生成新的 V2 Snapshot。
+- Rule Tree 与 Decision Table 是同一 Rule AST 的不同编辑视图，不建立第二套规则模型。
 
-样例修正只改Task、代码和新的前向数据脚本，不改SDS；只有实际新增或改变通用API契约才需要正式设计变更。验证需覆盖样例粒度、直接绑定保存、失败后不丢编辑、S0不新建任务及真实浏览器，不以结构预检替代业务验收。
+## 2026-09-12 已提交代码 Review 基线
 
-已执行：后端新发布拒绝S0任务，并拒绝外部页面/表单绑定沿用TASK_NATIVE_STATUS假完成；45项定向测试通过，历史读取/草稿保存不受影响。六类草稿按真实责任计划收敛为14/13/13/12/11/2个任务；仅保留施工计划、批准方案及督导服务单11个可选文件槽，删除默认逐任务必传及人工里程碑，不改已发布定义旧版本。页面以任务侧栏直接选择已发布视图及对象关联，底层仍复用定义发布/草稿保存API。
+Review 基线 HEAD：`ff87761f6ecf6b82d774f60c46108e339da8d9c8`。
 
-## 2026-09-09纠偏实施结果
+相对此前界面重构提交 `d445f02c7105ac232bb959a5b0cc1de73b811c5b`，当前分支已继续前进 81 个提交，Template V2 已不是“待设计”，而是主体代码已经进入分支。因此本专项从“继续搭 V2”调整为“review 已落地 V2 → 修正结构性问题 → 收敛单一运行链”。
 
-已按明确讨论调整本次六类未发布草稿：任务从115减为65（14/13/13/12/11/2），S0全部零任务；S2计划编制/审批、S3方案编审、S6闭环办理各为一个业务任务；移除50个操作型/V2重复任务、37个人工里程碑、141个重复上传要求，保留11个可选文件槽且无默认必传。V209已在固定库成功执行、validate和重复migrate通过；旧414个已发布定义、已发布模板、Project及Stage状态对账全部未改变，新定义以revision2追加。首次V209因事务隔离设置时机失败且零业务写入，用户单独授权仅V209失败标记恢复，成功历史校验和未变，修正SESSION隔离后重跑通过；不继承V207恢复授权。
+当前 CI 状态：HEAD 的 CircleCI `buildgroup` 仍为 `pending`；本 Task 不把当前状态表述为已绿。
 
-现有模板页已简化为业务列表、阶段导航和单任务详情；S0显示项目基本操作，不出现新增交付任务。主面板直接选择真实已发布页面/表单，Owner/实体类型自动派生，用中文配置关联本项目/只读聚合；原底层定义和JSON放高级入口，同一模型不建第二页面。辅助功能从既有description只读展示，不创建新任务或新字段。绑定保存复用已发布权限/完成规则，先创建/发布绑定与TASK定义，再保存草稿；失败保留原任务和编辑，重试复用已创建ID及幂等键。
+### Review 已确认的结构性问题
 
-实际验证：45项任务语义/发布守卫测试通过；前端3文件39项通过，类型与构建通过，业务目标显示简化后受影响2文件30项复验通过。真实浏览器已确认6类新任务数量、S0基本操作、S1真实任务列表、直接选择既有需求分析页面后业务实体和关联方式自动显示、外部页面沿用原生完成依据时明确提示待对接。
+1. **专项 Task 与代码现实漂移**：旧 Task 仍记录“修六类草稿 / 本次不改 SDS / 生产代码受既有实施链约束”，已经不符合当前 V2 重写事实和本次明确授权，本提交先纠正。
+2. **Legacy 发布语义漂移风险**：`ProjectTemplateV2ServiceImpl#getExecutionSnapshot` 在历史发布版本没有持久化 V2 Snapshot 时，会调用当前 `TemplateCompiler` 即时把 Legacy 内容编译为 V2 Snapshot。Compiler 未来变化会改变历史版本运行语义，与“旧发布版不静默升级”原则冲突，列为首要代码修复。
+3. **Runtime node identity 需审计**：当前 `TemplateExecutionSnapshot.stableRuntimeNodeId(nodeKey)` 仅以 `nodeKey` 计算 60-bit Long；需确认该值是否被当作跨模板全局定义 ID 使用。如果存在全局语义，将改为命名空间化身份；如果只在 Snapshot / Project 范围使用，则保留并补充约束测试，避免无收益改动。
+4. **V2 Runtime 仍需收敛验证**：需要继续核对项目新建、RuntimeGraphFreezer、TaskExecutionContractFactory 等路径，确保 V2 新链不再回查 `TemplateDefinitionContent / DefinitionSnapshot / DefinitionRevision` 重新解释已经发布的 Snapshot。
 
-真实绑定保存暴露并修复定义/引用及图边ID未分配问题，增加写Mapper前必须有应用ID的回归；相关10项测试和运行包构建通过。一次失败后绑定/TASK定义已发布但原模板草稿仍保留未改，符合多HTTP非原子边界。共享Docker曾停止，用户恢复后继续验收；又发现精确TASK引用未在草稿保存时解析为已有表必填执行字段，已复用Assembler在替换草稿行之前批量锁定重验引用并派生字段，未降低数据库约束、未在前端伪填。47项相关测试及运行包构建通过。
+## 已完成并保留的 V2 能力
 
-Docker恢复后的真实浏览器结果：直签工程草稿的需求分析任务保存PAGE绑定成功，刷新重新打开后仍显示需求分析页面、SOL实体及关联本项目业务；直签普通草稿的需求分析任务保存DYNAMIC_FORM绑定成功，刷新后显示表单及精确修订992203020001。两模板仍DRAFT、任务数量不变，未创建业务实体或完成事实。PAGE发布预检明确拒绝原生手工完成依据用于外部业务，拒绝后无发布版本或历史变化。390px窄屏DOM核验抽屉宽374px且无横向溢出、主要操作可达；IAB截图返回capture failed，未宣称截图视觉验收通过。配置保存闭环已验，实例化/工作区实际办理及Owner完成依据仍不在本次已完成范围。
+以下能力已在当前分支落地，本专项不重复造轮子，而是作为后续收敛基础：
 
-本次不修改SDS。未推进任何项目阶段、未完成任务、未覆盖发布历史，未扩大到未接入的Owner业务。生产初始化/统一图推进及实际业务完成事实仍在原边界内待接入。用户随后明确要求合入master，配置端与纠偏代码已选择性接收为458b1954、596acd8e、d8298c52；合入不代表上述运行范围完成或发布批准。
+- [x] `TemplateDesignerDocument`：Stage / Task / Milestone / Edge / Rule / Binding / Permission / Deliverable / Closure 的设计态模型。
+- [x] `TemplateCompiler`：Designer 到不可变 Execution Snapshot 的编译、校验、稳定排序和语义哈希基础。
+- [x] `TemplateExecutionSnapshot`：V2 运行快照模型及基础确定性约束。
+- [x] V2 草稿 / 发布 Service 与 API 主链。
+- [x] BusinessView / DynamicForm 等发布依赖的精确版本校验和快照固定基础。
+- [x] V228 / V229 等 V2 相关前向迁移基础。
+- [x] 模板统一设计器工作区：阶段与任务、流程画布、规则与决策、高级配置。
+- [x] `StageGraphDesigner`：显式关系图编辑，不从阶段顺序推导边。
+- [x] `RuleDecisionDesigner` + `ruleDecisionModel`：规则树 / 决策表共享同一 AST，复杂嵌套拒绝有损转换。
+- [x] RuntimeGraph freezer / resolver 的 V2 演进基础。
+- [x] 新建项目链已大幅转向 V2 Snapshot / RuntimeGraph。
+- [x] TASK_NATIVE / Owner completion 的分流与原生完成能力已进入当前分支。
+- [x] S0 / pre-project 与 primary assignment 等当前分支后续改造已合入，不在本专项重复实现。
+- [x] 2026-09-09 六类草稿纠偏、S0 零任务、操作型重复任务移除、真实 PAGE / DYNAMIC_FORM 绑定保存等历史成果继续保留；它们不等于 V2 Runtime 已闭环。
 
-## 2026-09-09数据补全与样例任务
+## 本轮剩余专项步骤
 
-用户已要求为进行中项目补全模板阶段并提供多种场景样例。本次是具体数据维护，不改变通用模型/API/约束，不据数据不全修订SDS或增加设计审批；补数对象、来源、执行与验证在本Task、DU及前向迁移中记录。
+按“每完成一步就提交一次”执行：
 
-已核对固定测试库：10个ACTIVE项目有明确模板引用，其中8个缺阶段、2个已有完整阶段；其余33个无模板引用，不自动继承父模板或猜测选模。按精确发布版只新增缺失Stage，当前阶段新增为ACTIVE，其余为PENDING；保留Project当前阶段/生命周期、原Stage状态、任务、审批与不可变历史。无来源或冲突行单独保留待确认，不让其阻断有明确依据的补全。
+- [x] **Step 0 — Review 当前已提交代码**：确认当前 V2 实际落地范围、CI 状态和结构性风险。
+- [x] **Step 1 — 同步专项 Task**：更新本文件的专项计划、任务逻辑、Review 结论和已完成内容；本步单独提交。
+- [ ] **Step 2 — 修复 Legacy Runtime 边界**：移除历史发布版本被当前 Compiler 静默重编译的路径；V2 runtime 要求持久化 V2 Snapshot，Legacy 进入 V2 必须显式复制/升级；补回归测试；单独提交。
+- [ ] **Step 3 — 审计并收敛 Runtime Node Identity**：核查 `TaskDef.id / templateTaskDefinitionId / stage identity` 的实际持久化和查询语义；只有存在跨模板全局冲突风险时才修改 ID 算法，否则补约束测试和命名说明；单独提交。
+- [ ] **Step 4 — 收敛 Project Creation / Runtime Freeze**：V2 新建项目路径只消费 `TemplateExecutionSnapshot`；去掉 V2 路径中残留的 DefinitionSnapshot / TemplateDefinitionContent 二次解释；根据独立逻辑拆成多个小提交。
+- [ ] **Step 5 — 清理失去作用的 Legacy Bridge**：仅删除已经无调用或与 V2 重复的转换层，保留明确历史读取边界；每个独立清理单独提交。
+- [ ] **Step 6 — 验证与修复**：运行可执行的后端定向测试、前端测试、类型/构建和 CI；每个实际失败修复单独提交，不用历史通过记录替代本轮验证。
+- [ ] **Step 7 — 正式规格落库**：代码重写稳定后，一次性更新 Feature Spec / SDS / API / DB 规格，使 `DesignerDocument → Compiler → ExecutionSnapshot`、Legacy 边界和实际代码一致；规格提交与代码提交分离。
+- [ ] **Step 8 — Task 收口**：回填最终 commit、验证证据、仍未完成边界和 GO/NO-GO；若仍有外部 Owner / 环境阻断，保持 `IN_PROGRESS / NOT_READY`。
 
-样例以PRD3.2六类场景为依据，包含直签工程、直签普通、非直签工程、非直签普通原厂直服、非直签普通原厂督导和售前S0→S4；以带完整要素的草稿供查看/复制，不将示例结构当成领域业务已完成或自动改变存量项目的冻结流程。执行结果及实际验证待实施后更新，不在此记录登录密码。
+## 本专项验收条件
 
-## 2026-09-09 master集成回执
+只有同时满足以下条件，才允许把 Template V2 Runtime 视为本专项代码闭环：
 
-按用户明确授权，仅接收8a5c2803、87fab980、de00fecc三个业务提交，对应master提交458b1954、596acd8e、d8298c52；未整支覆盖master治理更新或其他DU。合入无冲突，相关源码/前端/迁移与p903已验证内容逐项一致，复用上文有效证据。未在本次Git合入重启应用、执行迁移或推送。Feature保持IN_PROGRESS、Done保持NOT_READY；剩余运行消费者、Owner完成依据及历史图切换限制不自动关闭。
+- 新 V2 发布版本持久化不可变 `TemplateExecutionSnapshot`，运行时不依赖当前 Compiler 重解释该发布版本。
+- Legacy 发布版本不会因 Compiler 升级发生静默语义变化；显式升级边界有测试。
+- 新建项目 V2 路径以 Snapshot 为唯一模板运行输入，Stage / Task / Deliverable / Transition / Completion 合同来源可追溯。
+- Runtime node identity 的作用域和唯一性有代码或测试证明，不存在未识别的跨模板碰撞语义。
+- Rule / Binding / Permission / BusinessView / DynamicForm 等发布依赖在 Snapshot 中保持精确固定，不在运行时漂移。
+- Designer / Compiler / Snapshot 的 schema / compiler version 和 semantic hash 能支撑发布后确定性验证。
+- 当前分支相关测试和构建由本轮实际执行并记录；CI 未绿时不得宣称合入 Gate 已通过。
+- 代码收敛后完成一次正式规格落库，规格描述与最终实现一致。
 
-## 2026-09-09早期候选回执（历史）
+## 历史成果摘要（保留，不作为本轮运行时闭环证据）
 
-配置端候选已提交到codex/pre-s0-template-foundation：8a5c2803，尚未集成master。包含八类精确定义、显式图、发布引用/规则目标校验、复制、现有模板页面和视图选择，不建第二模板根。图领域56项、后端配置/匹配82项、Controller路由10项、前端29项测试通过；最终类型与构建通过。V206及19项迁移结构测试中的相关子集只证明候选结构，未实际执行V206。
+2026-09-09 已完成六类未发布草稿的业务任务纠偏：任务从 115 收敛为 65（14/13/13/12/11/2），S0 零任务，移除操作型/V2 重复任务、人工里程碑和默认逐任务必传文件；保留必要可选文件槽。模板页面已支持阶段导航、任务侧栏、真实已发布 PAGE / DYNAMIC_FORM 绑定及失败后保留编辑，历史已发布定义和项目实例未改写。
 
-未完成：Q-FPROJ009-001存量43个ACTIVE项目缺图的来源/批次裁决，初始化和统一推进消费、正式种子及MySQL升级/业务浏览器验收。候选不得在缺少V206的运行库直接启动，也不把新模板交给旧排序推进引擎。正式集成须把候选与消费者一次性按单模型衔接，不能建立长期新旧算法开关。Implementation Done保持NOT_READY；已有Feature Task不因本候选完成自动晋级。
+固定测试库数据补全只处理有明确模板来源的 ACTIVE 项目，不对无来源项目猜测模板、不从 sortOrder 补边；早期候选和 master 选择性集成记录继续作为历史证据，但不替代本专项对 V2 Runtime 的重新验证。
 
-认领和共享文件交接只由`DU-20260908-TEMPLATE-BUSINESS-VIEW.md`维护，工作树交付时无未提交实现。
+Feature 继续保持 `IN_PROGRESS`，Implementation Done Gate 继续保持 `NOT_READY`，直到上述代码收敛、验证和最终规格落库完成。
