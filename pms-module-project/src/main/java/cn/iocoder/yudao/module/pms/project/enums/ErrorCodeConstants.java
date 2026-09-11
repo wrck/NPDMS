@@ -29,6 +29,8 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_END_DATE_NOT_ALLOWED = new ErrorCode(1_014_003_021, "当前主体无权维护该项目结束日期，或项目已关闭");
     ErrorCode PROJECT_CONTACT_CUSTOMER_ALREADY_BOUND = new ErrorCode(1_014_003_022, "项目已关联客户，联系人入口不能直接更换项目客户");
     ErrorCode PROJECT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_003_003, "项目客户不存在");
+    ErrorCode PROJECT_CUSTOMER_REFERENCED = new ErrorCode(1_014_003_023, "项目已有业务引用，不能直接更换客户：{}");
+    ErrorCode PROJECT_CUSTOMER_REFERENCE_UNAVAILABLE = new ErrorCode(1_014_003_024, "客户更正引用检查暂不可用：{}");
 
     // ========== 项目树模块 1-014-004-000 ==========
     ErrorCode PROJECT_TREE_PARENT_NOT_EXISTS = new ErrorCode(1_014_004_000, "父项目不存在");

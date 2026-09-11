@@ -22,7 +22,8 @@ class ProjectContactContextApiImplTest {
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectAncestorQueryApi ancestors = mock(ProjectAncestorQueryApi.class);
     private final AuthorizationGrantApi grants = mock(AuthorizationGrantApi.class);
-    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class));
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles = mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class);
+    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class),projectRoles);
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2); row.setLifecycleStatus("ACTIVE");
@@ -33,6 +34,12 @@ class ProjectContactContextApiImplTest {
         when(grants.listEffective(any())).thenReturn(List.of());
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
+    @Test void superAdminCanMaintainContactsWithoutPretendingToBeAProjectManager() {
+        when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
+        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)).canManage());
+        verify(members, never()).selectParticipantFacts(any());
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
+    }
     @Test void visibleServiceRoleAloneDoesNotGrantContactMaintenance() {
         when(members.selectParticipantFacts(any())).thenReturn(List.of());
         assertFalse(api.inspect(new ProjectContactContextApi.Query(1L,3L,7L)).canManage());

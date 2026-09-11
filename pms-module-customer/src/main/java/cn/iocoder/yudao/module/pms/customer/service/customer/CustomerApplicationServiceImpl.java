@@ -107,18 +107,21 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public CustomerCommandResult disable(CustomerLifecycleCommand command) {
         return executeLifecycle(command, CustomerLifecycleAction.DISABLE, CustomerLifecycleStatus.DISABLED,
                 false, false, DISABLE_SCOPE, "CUSTOMER_DISABLE", "DISABLED");
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public CustomerCommandResult delete(CustomerLifecycleCommand command) {
         return executeLifecycle(command, CustomerLifecycleAction.DELETE, CustomerLifecycleStatus.DELETED,
                 false, true, DELETE_SCOPE, "CUSTOMER_DELETE", "DELETED");
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public CustomerCommandResult restore(CustomerLifecycleCommand command) {
         return executeLifecycle(command, CustomerLifecycleAction.RESTORE, CustomerLifecycleStatus.ENABLED,
                 true, false, RESTORE_SCOPE, "CUSTOMER_RESTORE", "RESTORED");
@@ -226,10 +229,9 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
     private CustomerCommandResult lifecycleOnce(CustomerLifecycleCommand command, Actor actor,
                                                 CustomerLifecycleAction action, CustomerLifecycleStatus targetStatus,
                                                 boolean expectedDeleted, boolean targetDeleted) {
-        CustomerMasterDO current = action == CustomerLifecycleAction.RESTORE
-                ? customerMasterMapper.selectIncludingDeleted(actor.tenantId(), command.customerId())
-                : customerMasterMapper.selectById(command.customerId());
-        if (current == null || !Objects.equals(current.getTenantId(), actor.tenantId())) {
+        CustomerMasterDO current = customerMasterMapper.selectIncludingDeletedForUpdate(actor.tenantId(), command.customerId());
+        if (current == null || !Objects.equals(current.getTenantId(), actor.tenantId())
+                || action != CustomerLifecycleAction.RESTORE && Boolean.TRUE.equals(current.getDeleted())) {
             throw exception(CUSTOMER_NOT_EXISTS);
         }
         CustomerVisibleScope scope = scopeContextService.resolve(actor.tenantId(), actor.actorId());

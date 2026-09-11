@@ -44,11 +44,8 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
             "application/pdf", "image/jpeg", "image/png");
     private static final Set<String> PROJECT_MANAGER_ROLE =
             Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
-    private static final Set<String> FILE_READER_ROLES = Set.of(
-            ProjectParticipantFactApi.ROLE_PROJECT_MANAGER,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
+    private static final Set<String> FILE_READER_ROLES =
+            cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES;
     private static final Set<String> MUTATING_ACTIONS = Set.of(
             FileActionCodes.UPLOAD, FileActionCodes.REFERENCE, FileActionCodes.REPLACE,
             FileActionCodes.DETACH, FileActionCodes.ARCHIVE, FileActionCodes.INVALIDATE);

@@ -192,10 +192,8 @@ public class OrdinaryProjectMemberService {
             case SERVICE_MANAGER -> SERVICE_MANAGER;
             default -> throw exception(PROJECT_MEMBER_ROLE_INVALID);
         };
-        ActiveUserSelectionApi.Qualification qualification = null;
-        if (PROJECT_MANAGER.equals(role)) {
-            qualification = new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, PROJECT_MANAGER);
-        }
+        var qualification = PROJECT_MANAGER.equals(role)
+                ? new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, PROJECT_MANAGER) : null;
         return new ActiveUserSelectionApi.Query(pageNo, pageSize, keyword, userIds, systemRole, qualification);
     }
 

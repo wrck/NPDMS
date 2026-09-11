@@ -79,7 +79,7 @@ class CustomerLifecycleApplicationServiceTest {
     void disableUsesCasAndPreservesRow() {
         executeAsNew();
         CustomerMasterDO current = customer(CustomerLifecycleStatus.ENABLED, 2);
-        when(customerMasterMapper.selectById(100L)).thenReturn(current);
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(current);
         when(customerMasterMapper.updateLifecycleByVersion(any())).thenReturn(1);
 
         CustomerCommandResult result = service.disable(command());
@@ -98,7 +98,7 @@ class CustomerLifecycleApplicationServiceTest {
         current.setSystemCode(null);
         current.setExpendCode(null);
         current.setIndustryCode(null);
-        when(customerMasterMapper.selectById(100L)).thenReturn(current);
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(current);
         when(customerMasterMapper.updateLifecycleByVersion(any())).thenReturn(1);
 
         CustomerCommandResult result = service.disable(command());
@@ -110,7 +110,7 @@ class CustomerLifecycleApplicationServiceTest {
     @Test
     void lifecycleDenialHasNoWriteSideEffect() {
         executeAsNew();
-        when(customerMasterMapper.selectById(100L)).thenReturn(customer(CustomerLifecycleStatus.ENABLED, 2));
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(customer(CustomerLifecycleStatus.ENABLED, 2));
         when(scopeContextService.resolve(1L, 7L)).thenReturn(new CustomerVisibleScope(false, List.of()));
         when(classificationAccessService.validate(any(), any(CustomerClassificationInput.class), any()))
                 .thenThrow(new IllegalStateException("scope denied"));
@@ -130,7 +130,7 @@ class CustomerLifecycleApplicationServiceTest {
         current.setSystemCode(null);
         current.setExpendCode(null);
         current.setIndustryCode(null);
-        when(customerMasterMapper.selectById(100L)).thenReturn(current);
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(current);
         when(scopeContextService.resolve(1L, 7L)).thenReturn(new CustomerVisibleScope(false, List.of()));
 
         ServiceException exception = assertThrows(ServiceException.class, () -> service.disable(command()));
@@ -142,7 +142,7 @@ class CustomerLifecycleApplicationServiceTest {
     @Test
     void deleteFailsClosedWhenGuardIsNotClear() {
         executeAsNew();
-        when(customerMasterMapper.selectById(100L)).thenReturn(customer(CustomerLifecycleStatus.ENABLED, 2));
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(customer(CustomerLifecycleStatus.ENABLED, 2));
         when(deletionGuardService.check(1L, 100L)).thenReturn(new CustomerDeletionGuardResult(
                 false, CustomerReferenceGuardStatus.UNKNOWN, 0, List.of()));
 
@@ -155,7 +155,7 @@ class CustomerLifecycleApplicationServiceTest {
     void restoreDeletedCustomerUsesOriginalIdentity() {
         executeAsNew();
         CustomerMasterDO current = customer(CustomerLifecycleStatus.DELETED, 2);
-        when(customerMasterMapper.selectIncludingDeleted(1L, 100L)).thenReturn(current);
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 100L)).thenReturn(current);
         when(customerMasterMapper.updateLifecycleByVersion(any())).thenReturn(1);
 
         CustomerCommandResult result = service.restore(command());

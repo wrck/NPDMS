@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.customerreference.ServiceProjectCustomerReferenceMapper">
+    <!-- 历史引用也必须保留；不能通过软删除记录绕过客户更正边界。 -->
+    <select id="countReferences" resultType="long">
+        SELECT (SELECT COUNT(*) FROM pms_srv_task WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+    </select>
+</mapper>

@@ -97,7 +97,6 @@ interface GraphNode {
 const nodes = computed<GraphNode[]>(() => {
   const byCode = new Map(graph.value.stages.map((stage) => [stage.stageCode, stage]))
   const result: GraphNode[] = []
-  const columnCount = Math.max(...graph.value.layers.map((layer) => layer.length), 1)
   graph.value.layers.forEach((layer, columnIndex) => {
     layer.forEach((code, rowIndex) => {
       const stage = byCode.get(code)

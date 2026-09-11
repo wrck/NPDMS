@@ -22,6 +22,17 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    default Long selectCountCustomerReferences(cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery query) {
+        return selectCount(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .eq(ProjectMasterDO::getTenantId, query.tenantId()).eq(ProjectMasterDO::getCustomerId, query.customerId()));
+    }
+    default PageResult<ProjectMasterDO> selectCustomerSummaryPage(cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectSummaryPageQuery query) {
+        if (query.getVisibleProjectIds() == null || query.getVisibleProjectIds().isEmpty()) return PageResult.empty();
+        return selectPage(query, new LambdaQueryWrapperX<ProjectMasterDO>()
+                .eq(ProjectMasterDO::getTenantId, query.getTenantId()).eq(ProjectMasterDO::getCustomerId, query.getCustomerId())
+                .in(ProjectMasterDO::getId, query.getVisibleProjectIds()).orderByDesc(ProjectMasterDO::getId));
+    }
+    int correctCustomerIfMatch(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectContactCustomerUpdate query);
     /** 仅返回当前租户未删除项目ID；业务分页继续沿用原分页查询。 */
     default List<Long> selectTenantProjectIds(TenantProjectScopeQuery query) {
         if (query == null || query.tenantId() == null) return List.of();

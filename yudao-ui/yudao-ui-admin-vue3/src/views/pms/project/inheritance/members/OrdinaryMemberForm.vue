@@ -8,7 +8,7 @@
     <p>{{ roleHint }}</p>
     <el-form-item label="人员" required>
       <el-select v-model="userId" aria-label="人员" filterable remote :remote-method="search"
-        :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索" @visible-change="open => open && search('')">
+        :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索">
         <el-option v-for="user in candidates" :key="user.id" :value="user.id"
           :label="`${user.nickname}（${user.username}）`" />
         <template #footer>
@@ -22,9 +22,9 @@
     <el-form-item label="邮箱">
       <el-input :model-value="selectedPerson?.email || ''" aria-label="邮箱" readonly placeholder="选择人员后显示" />
     </el-form-item>
-    <el-form-item v-if="memberRole === 'PROJECT_MANAGER' || memberRole === 'SERVICE_MANAGER'" label="主责">
+    <el-form-item v-if="memberRole === memberRoles.PROJECT_MANAGER || memberRole === memberRoles.SERVICE_MANAGER" label="主责">
       <el-checkbox v-model="primary" aria-label="设为当前角色主责" :disabled="saving">设为当前角色主责</el-checkbox>
-      <p>首次添加自动成为该角色主责；勾选可切换主责，取消勾选不自动撤销已有主责。</p>
+      <p class="form-helper">首次添加自动成为该角色主责；勾选可切换主责，取消勾选不自动撤销已有主责。</p>
     </el-form-item>
     <el-form-item label="备注"><el-input v-model="remark" aria-label="备注" type="textarea" maxlength="500" /></el-form-item>
     <el-form-item label="调整原因"><el-input v-model="reason" aria-label="调整原因" type="textarea"
@@ -43,22 +43,18 @@ import * as Projects from '@/api/pms/project/projects'
 import { checkPermi } from '@/utils/permission'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 
+const memberRoles = Members.MEMBER_ROLE
 const props = defineProps<{ project: Projects.ProjectMasterVO; primaryUserId?: number; member?: Members.MemberRecord; rejoin?: boolean }>()
 const emit = defineEmits<{ saved: []; cancel: [] }>()
 const userId = ref<number>()
 const availableRoles = computed(() => Members.memberRoleOptions.filter(role => checkPermi([role.permission])))
 const memberRole = ref<Members.ProjectMemberRole>(Members.logicalMemberRole(props.member?.memberRole || '') as Members.ProjectMemberRole
-  || (availableRoles.value.some(role => role.value === 'TEAM_MEMBER') ? 'TEAM_MEMBER' : availableRoles.value[0]?.value) || 'TEAM_MEMBER')
-const primary = ref(props.member?.memberRole === 'PROJECT_MANAGER'
+  || (availableRoles.value.some(role => role.value === memberRoles.TEAM_MEMBER) ? memberRoles.TEAM_MEMBER : availableRoles.value[0]?.value) || memberRoles.TEAM_MEMBER)
+const primary = ref(props.member?.memberRole === memberRoles.PROJECT_MANAGER
   ? props.member.userId === props.primaryUserId
   : !!props.member && props.member.assignmentType !== 'COLLABORATOR')
 const candidateReady = computed(() => availableRoles.value.some(role => role.value === memberRole.value))
-const roleHint = computed(() => ({
-  TEAM_MEMBER: '候选为当前租户内具有系统项目经理角色的有效人员，不限制公司；选为团队成员不会成为本项目经理。',
-  PROJECT_MANAGER: '候选须同时具备系统项目经理角色及当前项目公司的经理资格。',
-  SERVICE_MANAGER: '从当前租户内具有系统服务经理角色的有效人员中选择；主子项目统一使用服务经理角色。',
-  SALES_REPRESENTATIVE: '候选为当前租户内具有系统销售代表角色的有效人员。'
-})[memberRole.value])
+const roleHint = computed(() => Members.memberRoleOptions.find(role => role.value === memberRole.value)?.hint)
 const responsibility = ref(props.member?.responsibility || '')
 const remark = ref(props.member?.remark || '')
 const reason = ref(''), error = ref(''), searching = ref(false), saving = ref(false)
@@ -119,7 +115,7 @@ const submit = async () => {
   }
   const data: Members.MemberMutation = { userId: userId.value, memberRole: memberRole.value,
     responsibility: responsibility.value.trim(), remark: remark.value.trim(), reason: reason.value.trim(),
-    primary: memberRole.value === 'PROJECT_MANAGER' || memberRole.value === 'SERVICE_MANAGER' ? primary.value : undefined }
+    primary: memberRole.value === memberRoles.PROJECT_MANAGER || memberRole.value === memberRoles.SERVICE_MANAGER ? primary.value : undefined }
   const assignmentId = props.rejoin ? undefined : props.member?.id
   saving.value = true
   try {
@@ -133,5 +129,6 @@ const submit = async () => {
 <style scoped>
 .el-select { width: 100%; }
 p { color: var(--el-text-color-secondary); }
+.form-helper { flex-basis: 100%; margin: 4px 0 0; font-size: 12px; line-height: 1.5; }
 .actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
 </style>

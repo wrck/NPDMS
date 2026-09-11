@@ -13,6 +13,7 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface CustomerMasterMapper extends BaseMapperX<CustomerMasterDO> {
+    CustomerMasterDO selectIncludingDeletedForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
 
     default CustomerMasterDO selectByTenantIdAndCode(Long tenantId, String code) {
         return selectOne(new LambdaQueryWrapperX<CustomerMasterDO>()

@@ -62,18 +62,26 @@ describe('unified ordinary member form', () => {
     const { root, app } = setup()
     await set(root, '项目角色', 'SERVICE_MANAGER')
     const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
     await set(root, '人员', 40)
     await set(root, '设为当前角色主责', true)
     await set(root, '调整原因', '统一角色加入')
-    expect(find(root, item => item.props?.['aria-label'] === '邮箱')?.props?.modelValue).toBe('service@example.test')
-    expect(find(root, item => item.props?.['aria-label'] === '联系电话')?.props?.modelValue).toBe('13800000000')
+    expect(find(root, item => item.props?.['aria-label'] === '邮箱')?.props?.['model-value']).toBe('service@example.test')
+    expect(find(root, item => item.props?.['aria-label'] === '联系电话')?.props?.['model-value']).toBe('13800000000')
     expect(find(root, item => item.props?.['aria-label'] === '服务经理层级')).toBeUndefined()
     expect(find(root, item => item.props?.['aria-label'] === '实施站点')).toBeUndefined()
     await submit(root)
     expect(Members.saveMember).toHaveBeenCalledWith(9, undefined,
       expect.objectContaining({ userId: 40, memberRole: 'SERVICE_MANAGER', primary: true }), 3, expect.any(String))
     expect(vi.mocked(Members.saveMember).mock.calls[0][2].scope).toBeUndefined()
+    app.unmount()
+  })
+  it('allows an empty reason without inventing one', async () => {
+    const { root, app } = setup()
+    await set(root, '人员', 40)
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined,
+      expect.objectContaining({ reason: '' }), 3, expect.any(String))
     app.unmount()
   })
   it('preserves intent key on network retries and changes it when input changes', async () => {
@@ -125,7 +133,7 @@ describe('unified ordinary member form', () => {
       .mockResolvedValueOnce({ list: [{ id: 41, username: 'two', nickname: '二' }], total: 2 })
     const { root, app } = setup()
     const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
     await nextTick()
     const more = () => find(root, item => Boolean(item.props?.onClick) && textOf(item).includes('加载更多人员'))!
     await (more().props!.onClick as () => Promise<void>)(); await nextTick()
@@ -141,7 +149,7 @@ describe('unified ordinary member form', () => {
     await submit(root)
     expect(Members.saveMember).not.toHaveBeenCalled()
     const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
     expect(Members.getMemberCandidates).toHaveBeenLastCalledWith(9,
       expect.objectContaining({ projectRole: 'SALES_REPRESENTATIVE' }))
     await set(root, '人员', 40)
@@ -156,9 +164,9 @@ describe('unified ordinary member form', () => {
       .mockResolvedValueOnce({ list: [{ id: 41, username: 'sales', nickname: '销售人员' }], total: 1 })
     const { root, app } = setup()
     const select = () => find(root, item => item.props?.['aria-label'] === '人员')!
-    const pending = (select().props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    const pending = (select().props!['remote-method'] as (value: string) => Promise<void>)('')
     await set(root, '项目角色', 'SALES_REPRESENTATIVE')
-    await (select().props!.onVisibleChange as (open: boolean) => Promise<void>)(true)
+    await (select().props!['remote-method'] as (value: string) => Promise<void>)('')
     finish({ list: [{ id: 40, username: 'old', nickname: '旧角色候选' }], total: 1 })
     await pending; await nextTick()
     expect(find(root, item => item.props?.label === '销售人员（sales）')).toBeTruthy()

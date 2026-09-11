@@ -15,11 +15,14 @@ import java.time.LocalDateTime;
 public class ProjectCustomerReferenceGuardApiImpl implements ProjectCustomerReferenceGuardApi {
 
     private final ProjectMapper projectMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper currentProjects;
 
     @Override
     public CustomerReferenceGuardResult check(CustomerReferenceGuardQuery query) {
         long count = projectMapper.selectCountByCustomer(
                 new CustomerProjectReferenceQuery(query.tenantId(), query.customerId()));
+        // 当前项目不能被漏判；旧项目历史的删除保护继续保留。
+        count += currentProjects.selectCountCustomerReferences(new CustomerProjectReferenceQuery(query.tenantId(), query.customerId()));
         String status = count == 0
                 ? CustomerReferenceGuardStatus.CLEAR.name()
                 : CustomerReferenceGuardStatus.REFERENCED.name();

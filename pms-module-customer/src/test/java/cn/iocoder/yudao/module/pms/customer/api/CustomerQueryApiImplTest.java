@@ -58,6 +58,22 @@ class CustomerQueryApiImplTest {
     }
 
     @Test
+    void referenceLookupLocksTheVisibleVersionAndRejectsAChangedMaster() {
+        TenantContextHolder.setTenantId(1L);
+        var scope = new CustomerVisibleScope(true, List.of());
+        when(permissionApi.hasAnyPermissions(7L, "pms:customer:query")).thenReturn(true);
+        when(scopeContextService.resolve(1L, 7L)).thenReturn(scope);
+        var visible = customer(1L, "C-001", "客户一");
+        var locked = customer(1L, "C-001", "客户一");
+        when(customerQueryService.getByCode(1L, "C-001", scope)).thenReturn(visible);
+        when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 1L)).thenReturn(locked);
+        assertEquals("C-001", api.lockCustomerByCode(new CustomerCodeQuery("C-001", 7L)).code());
+        locked.setVersion(1);
+        locked.setLifecycleStatus("DISABLED");
+        assertNull(api.lockCustomerByCode(new CustomerCodeQuery("C-001", 7L)));
+    }
+
+    @Test
     void returnsCurrentCustomerSummary() {
         CustomerMasterDO customer = customer(1L, "C-001", "客户一");
         when(customerMasterMapper.selectById(1L)).thenReturn(customer);

@@ -33,6 +33,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     private final ProjectAncestorQueryApi ancestors;
     private final AuthorizationGrantApi grants;
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -75,7 +76,8 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     }
 
     private Context context(Query query, ProjectMasterDO project, Long treeVersion) {
-        boolean manager = !members.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
+        boolean manager = projectRoles.isTenantSuperAdmin(query.tenantId(), query.actorUserId())
+                || !members.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
                 query.tenantId(), query.projectId(), query.actorUserId(), Set.of("PROJECT_MANAGER"), LocalDateTime.now())).isEmpty();
         if (!manager) {
             var ids = new HashSet<>(ancestors.getAncestors(new ProjectAncestorQuery(query.tenantId(), query.projectId(), treeVersion)).ancestorProjectIds());

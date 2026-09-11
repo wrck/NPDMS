@@ -13,9 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectManagerMemberUpdate;
 import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationAuthorizationService;
-import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
-import cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserPageReqDTO;
-import cn.iocoder.yudao.module.system.api.permission.dto.CompanyRoleUserRespDTO;
+import cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,11 +35,11 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @Service
 @RequiredArgsConstructor
 public class ProjectManagerMemberApplicationService {
-    private static final String ROLE = "PROJECT_MANAGER";
+    private static final String ROLE = ProjectMemberRoles.PROJECT_MANAGER;
     private static final String SCOPE = "POST:/api/v1/pms/projects/{id}/actions/update-project-managers";
     private final ProjectMasterMapper projectMapper;
     private final ProjectMemberAssignmentMapper memberMapper;
-    private final OrganizationScopeApi organizationScopeApi;
+    private final ActiveUserSelectionApi users;
     private final ProjectCreationAuthorizationService functionAuthorization;
     private final ProjectAuthorizationGuard projectAuthorization;
     private final PlatformCommandExecutionApi commandApi;
@@ -112,7 +110,7 @@ public class ProjectManagerMemberApplicationService {
         if (!changed) return result(project, members, false);
         Set<Long> toValidate = new TreeSet<>(additions);
         if (primary != null && !Objects.equals(primary, project.getManagerId())) toValidate.add(primary);
-        Map<Long, CompanyRoleUserRespDTO> qualified = qualify(project.getCompanyId(), toValidate);
+        Map<Long, ActiveUserSelectionApi.User> qualified = qualify(project.getCompanyId(), toValidate);
         audit.put("qualifiedUserIds", new ArrayList<>(qualified.keySet()));
         for (Long id : removals) {
             var old = members.remove(id);
@@ -127,7 +125,7 @@ public class ProjectManagerMemberApplicationService {
             member.setTenantId(actor.tenantId());
             member.setProjectId(project.getId());
             member.setUserId(id);
-            member.setMemberName(qualified.get(id).getNickname());
+            member.setMemberName(qualified.get(id).nickname());
             member.setCompanyId(project.getCompanyId());
             member.setCompanyCode(project.getCompanyCode());
             member.setCompanyName(project.getCompanyName());
@@ -160,18 +158,14 @@ public class ProjectManagerMemberApplicationService {
         return result(project, members, true);
     }
 
-    private Map<Long, CompanyRoleUserRespDTO> qualify(Long companyId, Set<Long> userIds) {
-        Map<Long, CompanyRoleUserRespDTO> found = new TreeMap<>();
+    private Map<Long, ActiveUserSelectionApi.User> qualify(Long companyId, Set<Long> userIds) {
+        Map<Long, ActiveUserSelectionApi.User> found = new TreeMap<>();
         if (userIds.isEmpty()) return found;
-        var query = new CompanyRoleUserPageReqDTO().setCompanyId(companyId).setRoleCode(ROLE).setUserIds(userIds);
-        query.setPageSize(100);
         for (int page = 1; ; page++) {
-            query.setPageNo(page);
-            var result = organizationScopeApi.pageCompanyRoleUsers(query);
+            var result = users.page(new ActiveUserSelectionApi.Query(page, 100, null, userIds, ROLE,
+                    new ActiveUserSelectionApi.Qualification(companyId, null, null, ROLE)));
             for (var user : result.getList()) {
-                if (!Objects.equals(companyId, user.getCompanyId()) || !ROLE.equals(user.getRoleCode()))
-                    throw invalid("上游人员资格身份不一致");
-                found.put(user.getUserId(), user);
+                found.put(user.id(), user);
             }
             if ((long) page * 100 >= result.getTotal()) break;
         }

@@ -75,10 +75,10 @@ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/s
 import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
 
+const memberRoles = Members.MEMBER_ROLE
 const props = defineProps<{ project: Projects.ProjectMasterVO }>()
 const emit = defineEmits<{ updated: [] }>()
-const roles: Record<string, string> = { PROJECT_MANAGER: '项目经理', SERVICE_MANAGER: '服务经理',
-  TEAM_MEMBER: '团队成员', SALES_REPRESENTATIVE: '销售代表' }
+const roles: Record<string, string> = Object.fromEntries(Members.memberRoleOptions.map(role => [role.value, role.label]))
 const roleLabel = (role: string) => roles[Members.logicalMemberRole(role)] || role
 const query = reactive({ pageNo: 1, pageSize: 10, state: 'CURRENT' as 'CURRENT' | 'HISTORY', role: '', keyword: '' })
 const rows = ref<Members.MemberRecord[]>([]), total = ref(0)
@@ -89,7 +89,7 @@ const managers = ref<Managers.ProjectManagers>()
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
 const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId !== selected.value?.userId) || [])
-const requiresReplacementPrimary = computed(() => selected.value?.memberRole === 'PROJECT_MANAGER'
+const requiresReplacementPrimary = computed(() => selected.value?.memberRole === memberRoles.PROJECT_MANAGER
   && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
@@ -103,9 +103,9 @@ const isCurrent = (row: Members.MemberRecord) => row.status === 'ACTIVE'
   && (!row.effectiveTo || new Date(row.effectiveTo).getTime() > Date.now())
 const time = (value?: Date | null) => value ? formatDate(value) : '—'
 const primaryLabel = (row: Members.MemberRecord) => {
-  if (row.memberRole === 'PROJECT_MANAGER') return isCurrent(row)
+  if (row.memberRole === memberRoles.PROJECT_MANAGER) return isCurrent(row)
     ? (String(row.userId) === String(managers.value?.primaryUserId) ? '是' : '否') : '—'
-  return Members.logicalMemberRole(row.memberRole) === 'SERVICE_MANAGER'
+  return Members.logicalMemberRole(row.memberRole) === memberRoles.SERVICE_MANAGER
     ? (row.assignmentType === 'COLLABORATOR' ? '否' : '是') : '—'
 }
 const load = async () => {

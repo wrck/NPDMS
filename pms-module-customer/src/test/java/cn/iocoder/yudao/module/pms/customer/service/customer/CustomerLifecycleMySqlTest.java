@@ -46,6 +46,8 @@ class CustomerLifecycleMySqlTest {
     private JdbcTemplate jdbcTemplate;
     @Resource
     private CustomerMasterMapper customerMasterMapper;
+    @Resource
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private long customerId;
 
@@ -54,6 +56,8 @@ class CustomerLifecycleMySqlTest {
         Map<String, String> environment = System.getenv();
         String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
         String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        if (!"npdms_test".equals(database) || !"23316".equals(port))
+            throw new IllegalStateException("Customer lifecycle verification requires npdms_test:23316");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
@@ -69,12 +73,46 @@ class CustomerLifecycleMySqlTest {
 
     @BeforeEach
     void setUp() {
+        assertEquals("npdms_test", jdbcTemplate.queryForObject("SELECT DATABASE()", String.class));
         customerId = 887_100_000_000L + Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM cus_customer_master WHERE id = ?", customerId);
+        jdbcTemplate.update("DELETE FROM cus_customer_master WHERE id = ? AND code LIKE ?", customerId, CODE_PREFIX + "%");
+    }
+
+    @Test
+    void referenceRowLockSerializesConcurrentLifecycleUpdate() throws Exception {
+        insertCustomer("ENABLED", false, 0);
+        var locked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var updateStarted = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            var binding = executor.submit(() -> new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+                    .execute(status -> {
+                        var row = customerMasterMapper.selectIncludingDeletedForUpdate(1L, customerId);
+                        assertEquals("ENABLED", row.getLifecycleStatus());
+                        locked.countDown();
+                        try {
+                            if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("test release timeout");
+                        } catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+                        return row.getId();
+                    }));
+            org.junit.jupiter.api.Assertions.assertTrue(locked.await(10, java.util.concurrent.TimeUnit.SECONDS));
+            var lifecycle = executor.submit(() -> {
+                updateStarted.countDown();
+                return customerMasterMapper.updateLifecycleByVersion(new CustomerLifecycleUpdate(
+                        1L, customerId, "ENABLED", "DISABLED", false, false, 0L));
+            });
+            try {
+                org.junit.jupiter.api.Assertions.assertTrue(updateStarted.await(10, java.util.concurrent.TimeUnit.SECONDS));
+                org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.TimeoutException.class,
+                        () -> lifecycle.get(1, java.util.concurrent.TimeUnit.SECONDS));
+            } finally { release.countDown(); }
+            assertEquals(customerId, binding.get(10, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(1, lifecycle.get(10, java.util.concurrent.TimeUnit.SECONDS));
+        } finally { release.countDown(); }
     }
 
     @Test

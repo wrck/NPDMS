@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.customerreference.EngineeringProjectCustomerReferenceMapper">
+    <!-- 历史引用也必须保留；不能通过软删除记录绕过客户更正边界。 -->
+    <select id="countReferences" resultType="long">
+        SELECT (SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND (input_version &gt; 0 OR version &gt; 0 OR status_code &lt;&gt; 'DRAFT'))
+             + (SELECT COUNT(*) FROM sol_construction_plan p WHERE p.tenant_id=#{query.tenantId} AND p.project_id=#{query.projectId} AND (p.current_duration_revision_id IS NOT NULL OR p.pending_change_id IS NOT NULL OR EXISTS (SELECT 1 FROM sol_construction_plan_revision r WHERE r.tenant_id=p.tenant_id AND r.plan_id=p.id AND (r.start_date IS NOT NULL OR r.end_date IS NOT NULL OR r.duration_days IS NOT NULL))))
+             + (SELECT COUNT(*) FROM imp_arrival_acceptance WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM imp_delivery_evidence WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_site_survey WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_requirement WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_solution WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_arrival WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_briefing WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_deliverable WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_installation WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_joint_test WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_issue WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_risk WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_resource_ready WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_material_exchange WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_material_requisition WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_external_procurement WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_outsource_request WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_authorization WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM pms_eng_announcement_check WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+    </select>
+</mapper>

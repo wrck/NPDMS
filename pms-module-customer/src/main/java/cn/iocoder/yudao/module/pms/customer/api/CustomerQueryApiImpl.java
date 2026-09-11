@@ -37,6 +37,17 @@ public class CustomerQueryApiImpl implements CustomerQueryApi {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public CustomerSummaryDTO lockCustomerByCode(CustomerCodeQuery query) {
+        var visible = getCustomerByCode(query);
+        if (visible == null) return null;
+        var locked = customerMasterMapper.selectIncludingDeletedForUpdate(TenantContextHolder.getRequiredTenantId(), visible.id());
+        if (locked == null || locked.getVersion() == null
+                || !java.util.Objects.equals(locked.getVersion().longValue(), visible.version())) return null;
+        return toSummary(locked);
+    }
+
+    @Override
     public CustomerSummaryDTO getCustomer(Long customerId) {
         if (customerId == null) {
             return null;

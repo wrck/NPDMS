@@ -68,7 +68,8 @@ class ProjectManagerMemberMySqlTest {
     @Resource ProjectParticipantFactApiImpl participants;
     @Resource JdbcTemplate jdbc;
     @Resource PermissionCommonApi permissions;
-    @Resource ProjectAuthorizationGuard scopeGuard;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean ProjectAuthorizationGuard scopeGuard;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
     @Resource FailingOutbox outbox;
     @Resource ProjectMemberUpdateApplicationService joint;
     @Resource ProjectServiceManagerCandidateValidator serviceCandidates;
@@ -103,6 +104,9 @@ class ProjectManagerMemberMySqlTest {
         companyId = insert("INSERT INTO system_company (tenant_id,code,name,status,version,creator) VALUES (0,?,?,0,0,?)",
                 marker, marker, marker);
         first = user("first"); second = user("second");
+        long managerRole = insert("INSERT INTO system_role (name,code,sort,status,type,data_scope,tenant_id,creator) VALUES (?,'PROJECT_MANAGER',100,0,2,5,0,?)", marker, marker);
+        jdbc.update("INSERT INTO system_user_role (tenant_id,user_id,role_id,creator) VALUES (0,?,?,?),(0,?,?,?)",
+                first, managerRole, marker, second, managerRole, marker);
         qualify(first); qualify(second);
         projectId = 976_500_000_000L + Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
         jdbc.update("""
@@ -132,6 +136,8 @@ class ProjectManagerMemberMySqlTest {
             jdbc.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=? AND creator=?", projectId, marker);
         }
         if (marker != null) {
+            jdbc.update("DELETE FROM system_user_role WHERE tenant_id=0 AND creator=?", marker);
+            jdbc.update("DELETE FROM system_role WHERE tenant_id=0 AND creator=?", marker);
             jdbc.update("DELETE FROM system_user_company_department_scope WHERE creator=?", marker);
             jdbc.update("DELETE FROM system_users WHERE creator=?", marker);
             jdbc.update("DELETE FROM system_company WHERE creator=?", marker);
@@ -192,7 +198,8 @@ class ProjectManagerMemberMySqlTest {
         when(permissions.hasAnyPermissions(anyLong(), any())).thenReturn(false);
         assertThrows(RuntimeException.class, () -> service.update(command(0, Set.of(first), Set.of(), first, "permission"), actor()));
         when(permissions.hasAnyPermissions(anyLong(), any())).thenReturn(true);
-        doThrow(new IllegalStateException("denied scope")).when(scopeGuard).assertCanAssign(any(), eq(projectId));
+        doThrow(new IllegalStateException("denied scope")).when(scopeGuard)
+                .assertCanInitiallyAssign(any(), eq(projectId), eq(false), eq(true));
         assertThrows(RuntimeException.class, () -> service.update(command(0, Set.of(first), Set.of(), first, "scope"), actor()));
         reset(scopeGuard);
         assertThrows(RuntimeException.class, () -> service.update(command(3, Set.of(first), Set.of(), first, "version"), actor()));
@@ -266,9 +273,9 @@ class ProjectManagerMemberMySqlTest {
     @Test
     void jointRetainsOriginalAuthorizationUntilBothChangesComplete() {
         doNothing().doNothing().doThrow(new IllegalStateException("operator was replaced"))
-                .when(scopeGuard).assertCanAssign(any(), eq(projectId));
+                .when(scopeGuard).assertCanInitiallyAssign(any(), eq(projectId), anyBoolean(), anyBoolean());
         assertEquals(2, joint.update(jointCommand(first, "joint-authorized"), actor()).projectManagers().version());
-        verify(scopeGuard, times(2)).assertCanAssign(any(), eq(projectId));
+        verify(scopeGuard, times(2)).assertCanInitiallyAssign(any(), eq(projectId), anyBoolean(), anyBoolean());
     }
 
     private ProjectMemberUpdateCommand jointCommand(long primary, String key) {
@@ -360,18 +367,17 @@ class ProjectManagerMemberMySqlTest {
     @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
             "cn.iocoder.yudao.module.system.dal.mysql.permission", "cn.iocoder.yudao.module.system.dal.mysql.company",
-            "cn.iocoder.yudao.module.system.dal.mysql.dept"})
+            "cn.iocoder.yudao.module.system.dal.mysql.dept", "cn.iocoder.yudao.module.system.dal.mysql.user"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class, MybatisPlusJoinAutoConfiguration.class,
             SpringUtil.class, ProjectManagerMemberApplicationService.class, ProjectCreationAuthorizationService.class,
             ProjectParticipantFactApiImpl.class, OrganizationScopeApiImpl.class, PlatformCommandExecutionApiImpl.class,
             ProjectMemberUpdateApplicationService.class, ProjectManagerAssignmentApplicationService.class,
-            ProjectManagerCandidateService.class})
+            ProjectManagerCandidateService.class, cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApiImpl.class})
     static class Application {
         @Bean JdbcTemplate jdbcTemplate(DataSource source) { return new JdbcTemplate(source); }
         @Bean PermissionCommonApi permissions() { return mock(PermissionCommonApi.class); }
-        @Bean ProjectAuthorizationGuard scopeGuard() { return mock(ProjectAuthorizationGuard.class); }
         @Bean FailingOutbox outbox(PlatformOutboxEventMapper mapper) { return new FailingOutbox(mapper); }
         @Bean ProjectServiceManagerCandidateValidator serviceCandidates() { return mock(ProjectServiceManagerCandidateValidator.class); }
         @Bean AssetLocationApi locations() { return mock(AssetLocationApi.class); }
@@ -390,6 +396,7 @@ class ProjectManagerMemberMySqlTest {
             var facade = mock(ProjectManualCreationService.class);
             when(facade.assignServiceManager(any())).thenAnswer(invocation -> implementation.assignServiceManager(invocation.getArgument(0)));
             when(facade.getProject(anyLong(), any())).thenAnswer(invocation -> projects.selectById((Long) invocation.getArgument(0)));
+            when(facade.getProjectForManage(anyLong(), any())).thenAnswer(invocation -> projects.selectById((Long) invocation.getArgument(0)));
             when(facade.getMemberAssignments(anyLong(), any())).thenAnswer(invocation -> members.selectListByProjectId(invocation.getArgument(0)));
             return facade;
         }

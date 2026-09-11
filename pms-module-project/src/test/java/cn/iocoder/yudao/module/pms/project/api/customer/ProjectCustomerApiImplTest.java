@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.pms.project.api.customer;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerReferenceGuardStatus;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardQuery;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectSummaryPageQuery;
@@ -27,6 +26,8 @@ class ProjectCustomerApiImplTest {
     @Mock
     private ProjectMapper projectMapper;
     @Mock
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper currentProjects;
+    @Mock
     private ProjectTreeScopeService projectTreeScopeService;
     @InjectMocks
     private ProjectCustomerReferenceGuardApiImpl guardApi;
@@ -48,15 +49,21 @@ class ProjectCustomerApiImplTest {
     }
 
     @Test
+    void currentProjectReferenceAlsoProtectsCustomer() {
+        when(currentProjects.selectCountCustomerReferences(new CustomerProjectReferenceQuery(1L, 100L))).thenReturn(1L);
+        assertEquals(CustomerReferenceGuardStatus.REFERENCED.name(), guardApi.check(new CustomerReferenceGuardQuery(1L, 100L)).status());
+    }
+
+    @Test
     void returnsProjectSummaryPage() {
-        ProjectDO project = new ProjectDO();
+        var project = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO();
         project.setId(10L);
-        project.setCode("P-10");
-        project.setName("项目十");
-        project.setStatus(1);
+        project.setProjectCode("P-10");
+        project.setProjectName("项目十");
+        project.setStatus("S0");
         when(projectTreeScopeService.resolveAllFullProjectIds(1L, 7L, "PROJECT_VIEW"))
                 .thenReturn(Set.of(10L));
-        when(projectMapper.selectCustomerSummaryPage(
+        when(currentProjects.selectCustomerSummaryPage(
                 new CustomerProjectSummaryPageQuery(1L, 100L, Set.of(10L), 1, 20)))
                 .thenReturn(new PageResult<>(List.of(project), 1L));
 
@@ -65,6 +72,6 @@ class ProjectCustomerApiImplTest {
         assertTrue(result.available());
         assertEquals("PROJ", result.provider());
         assertEquals(1L, result.total());
-        assertEquals(new CustomerProjectSummaryItem(10L, "P-10", "项目十", "1"), result.items().getFirst());
+        assertEquals(new CustomerProjectSummaryItem(10L, "P-10", "项目十", "S0"), result.items().getFirst());
     }
 }

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.project.api.reference.dto.ProjectDeviceAssign
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -27,6 +28,7 @@ public class ProjectDeviceAssignmentGuardApiImpl implements ProjectDeviceAssignm
     private final ProjectScopeApi projectScopeApi;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public ProjectDeviceAssignmentGuardResult validate(ProjectDeviceAssignmentGuardQuery query) {
         if (query == null || query.tenantId() == null || query.projectId() == null || query.actorId() == null) {
             throw new IllegalArgumentException("项目设备归属守卫参数不能为空");
@@ -57,6 +59,17 @@ public class ProjectDeviceAssignmentGuardApiImpl implements ProjectDeviceAssignm
             return rejected(query, project.getCustomerId(), rootProjectId,
                     currentTreeVersion, "PROJECT_MANAGE_FORBIDDEN");
         }
+        // 与客户更正使用相同项目锁；设备写事务不能沿用更正前的客户身份。
+        var lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                query.tenantId(), query.actorId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE, currentTreeVersion));
+        if (lockedScope == null || !Objects.equals(lockedScope.treeVersion(), currentTreeVersion)
+                || !lockedScope.fullProjectIds().contains(query.projectId()))
+            return rejected(query, null, rootProjectId, currentTreeVersion, "PROJECT_MANAGE_FORBIDDEN");
+        project = projectMasterMapper.selectByIdForUpdate(query.projectId());
+        if (project == null || !Objects.equals(project.getTenantId(), query.tenantId()))
+            return rejected(query, null, rootProjectId, currentTreeVersion, "PROJECT_NOT_FOUND");
+        if (!Objects.equals(rootProjectId, project.getRootId() == null ? project.getId() : project.getRootId()))
+            return rejected(query, null, rootProjectId, currentTreeVersion, "TREE_VERSION_UNAVAILABLE");
         return new ProjectDeviceAssignmentGuardResult(
                 project.getId(), project.getTenantId(), project.getCustomerId(),
                 rootProjectId, currentTreeVersion, true, null);

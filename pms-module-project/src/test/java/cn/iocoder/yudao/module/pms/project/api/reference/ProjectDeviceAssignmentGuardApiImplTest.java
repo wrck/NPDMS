@@ -59,6 +59,8 @@ class ProjectDeviceAssignmentGuardApiImplTest {
         when(projectTreeVersionMapper.selectLatestActive(10L)).thenReturn(treeVersion(7L));
         when(projectTreePathMapper.selectParentsWithChildren(10L, 7L, Set.of(10L))).thenReturn(Set.of());
         when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(10L, 7L, Set.of(10L), Set.of()));
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(10L, 7L, Set.of(10L), Set.of()));
+        when(projectMasterMapper.selectByIdForUpdate(10L)).thenReturn(project);
 
         ProjectDeviceAssignmentGuardResult result = guardApi.validate(
                 new ProjectDeviceAssignmentGuardQuery(1L, 10L, 99L));

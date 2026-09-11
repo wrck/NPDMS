@@ -263,7 +263,7 @@ public class ProjectTreeScopeService {
     public boolean isTenantSuperAdmin(Long tenantId, Long userId) {
         return tenantId != null && userId != null && userId > 0
                 && Objects.equals(tenantId, TenantContextHolder.getTenantId())
-                && permissionApi.hasAnyRoles(userId, "super_admin");
+                && permissionApi.hasAnyRoles(userId, cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
     }
 
     private void validate(ProjectScopeQuery query) {

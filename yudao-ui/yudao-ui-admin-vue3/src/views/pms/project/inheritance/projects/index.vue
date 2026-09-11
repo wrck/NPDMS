@@ -203,7 +203,7 @@
           width="170"
           :formatter="dateFormatter"
         />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="275" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -221,6 +221,8 @@
             >
               编辑
             </el-button>
+            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+              @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
               type="success"
@@ -872,6 +874,7 @@
       </div>
     </el-drawer>
 
+    <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
     <!-- ============ 编辑弹窗（BR-7 可编辑属性） ============ -->
     <Dialog v-model="editVisible" title="编辑项目（可编辑属性）" width="520px">
       <el-form :model="editForm" label-width="100px">
@@ -935,6 +938,7 @@ import type { DeptVO } from '@/api/system/dept'
 import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { getSelectableCustomers, type SelectedCustomer } from './customerSelection'
+import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
 import { createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
@@ -944,6 +948,7 @@ defineOptions({ name: 'PmsProjectInheritanceList' })
 
 const message = useMessage()
 const router = useRouter()
+const customerCorrectionRef = ref<InstanceType<typeof CustomerCorrectionDialog>>()
 const mobile = useMediaQuery('(max-width: 767px)')
 const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
 

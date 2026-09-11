@@ -1,15 +1,17 @@
 import request from '@/config/axios'
 import type { ProjectMemberAssignmentVO } from '@/api/pms/project/projects'
 
-export type ProjectMemberRole = 'PROJECT_MANAGER' | 'SERVICE_MANAGER' | 'TEAM_MEMBER' | 'SALES_REPRESENTATIVE'
-export const memberRoleOptions: { value: ProjectMemberRole; label: string; permission: string }[] = [
-  { value: 'SERVICE_MANAGER', label: '服务经理', permission: 'pms:project:assign' },
-  { value: 'PROJECT_MANAGER', label: '项目经理', permission: 'pms:project:assign' },
-  { value: 'SALES_REPRESENTATIVE', label: '销售代表', permission: 'pms:project-team:create' },
-  { value: 'TEAM_MEMBER', label: '团队成员', permission: 'pms:project-team:create' }
+export const MEMBER_ROLE = { PROJECT_MANAGER: 'PROJECT_MANAGER', SERVICE_MANAGER: 'SERVICE_MANAGER',
+  TEAM_MEMBER: 'TEAM_MEMBER', SALES_REPRESENTATIVE: 'SALES_REPRESENTATIVE' } as const
+export type ProjectMemberRole = typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE]
+export const memberRoleOptions: { value: ProjectMemberRole; label: string; permission: string; hint: string }[] = [
+  { value: MEMBER_ROLE.SERVICE_MANAGER, label: '服务经理', permission: 'pms:project:assign', hint: '选择服务经理，主子项目使用相同角色。' },
+  { value: MEMBER_ROLE.PROJECT_MANAGER, label: '项目经理', permission: 'pms:project:assign', hint: '选择具备当前项目公司资格的系统项目经理。' },
+  { value: MEMBER_ROLE.SALES_REPRESENTATIVE, label: '销售代表', permission: 'pms:project-team:create', hint: '选择当前租户的销售代表。' },
+  { value: MEMBER_ROLE.TEAM_MEMBER, label: '团队成员', permission: 'pms:project-team:create', hint: '从系统项目经理中选择，不限制公司；加入后在本项目承担团队成员角色。' }
 ]
 export const logicalMemberRole = (role: string): string =>
-  role === 'SERVICE_MANAGER_L1' || role === 'SERVICE_MANAGER_L2' ? 'SERVICE_MANAGER' : role
+  role === 'SERVICE_MANAGER_L1' || role === 'SERVICE_MANAGER_L2' ? MEMBER_ROLE.SERVICE_MANAGER : role
 export interface ServiceMemberScope {
   levelCode: 'L1' | 'L2'
   assignmentType: 'PRIMARY' | 'COLLABORATOR'

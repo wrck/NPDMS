@@ -48,6 +48,11 @@ public class ProjectStageProgressionAspect {
         if (result.changed()) trigger.afterChange(result.projectId());
     }
 
+    @AfterReturning(pointcut = "execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCustomerCorrectionService.correct(..))", returning = "result")
+    public void customerCorrected(cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCustomerCorrectionService.Result result) {
+        if (result.changed()) trigger.afterChange(result.projectId());
+    }
+
     @AfterReturning("execution(* cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImpl.updateProject(..))")
     public void projectChanged(JoinPoint call) {
         trigger.afterChange(((ProjectMasterDO) call.getArgs()[0]).getId());

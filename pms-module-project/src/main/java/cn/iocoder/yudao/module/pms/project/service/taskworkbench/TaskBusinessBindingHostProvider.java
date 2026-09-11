@@ -55,7 +55,7 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
             return TaskBindingInspection.failed(bindingType(), "BINDING_FACT_UNKNOWN");
         }
         boolean superAdmin = Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
-                && permissionApi.hasAnyRoles(query.actorId(), "super_admin");
+                && permissionApi.hasAnyRoles(query.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
         boolean assignee = superAdmin || assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
                 Set.of(task.getId()))).stream().anyMatch(row -> Objects.equals(row.getAssigneeUserId(), query.actorId()));
         boolean manager = superAdmin || memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(),
