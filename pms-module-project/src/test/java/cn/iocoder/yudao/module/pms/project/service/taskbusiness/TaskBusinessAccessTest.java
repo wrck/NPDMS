@@ -22,6 +22,23 @@ import static org.mockito.Mockito.*;
 
 /** PM-11: viewing an assigned task is not relationship write authority. */
 class TaskBusinessAccessTest {
+    @Test void membersCanWriteUnassignedTasksButManagersCannotBypassDesignation() {
+        var scopes = mock(ProjectScopeApi.class); var members = mock(ProjectMemberAssignmentMapper.class);
+        var assignments = mock(ProjectTaskAssignmentMapper.class); var permissions = mock(PermissionApi.class);
+        var access = new TaskBusinessAccess(scopes,mock(ProjectMasterMapper.class),members,assignments,
+                mock(ProjectTaskRuntimeMapper.class),permissions,mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class));
+        var task = new ProjectTaskInstanceDO().setId(10L).setProjectId(20L).setStatus("IN_PROGRESS"); task.setTenantId(1L);
+        var project = new ProjectMasterDO(); project.setId(20L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE");
+        when(permissions.hasAnyPermissions(5L,"pms:project-task:update")).thenReturn(true);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L,1L,Set.of(20L),Set.of()));
+        var member = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO(); member.setProjectId(20L); member.setMemberRole("TEAM_MEMBER");
+        when(members.selectActiveByUser(any())).thenReturn(List.of(member));
+        var context = new Context(1L,5L,20L,10L,"member");
+        assertTrue(access.writable(task,project,context));
+        member.setMemberRole("PROJECT_MANAGER"); var assigned = new ProjectTaskAssignmentDO(); assigned.setAssigneeUserId(6L);
+        when(assignments.selectCurrent(any())).thenReturn(List.of(assigned));
+        assertFalse(access.writable(task,project,context));
+    }
     @Test void assigneeNeedsEditScopeRatherThanViewScopeToMutateLinks() {
         var scopes = mock(ProjectScopeApi.class);
         var assignments = mock(ProjectTaskAssignmentMapper.class);

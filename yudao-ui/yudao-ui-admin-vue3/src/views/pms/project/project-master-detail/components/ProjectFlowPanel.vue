@@ -48,7 +48,7 @@
             <span v-if="row.taskCode" class="row-code">{{ row.taskCode }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="负责人" width="120">
+        <el-table-column v-if="showResponsibilities" label="负责人" width="120">
           <template #default="{ row }">{{ row.assigneeUserId || '未指派' }}</template>
         </el-table-column>
         <el-table-column label="状态" width="110">
@@ -114,7 +114,7 @@
       <TaskStateActions v-if="workbench" ref="stateActionsRef" :workbench="workbench" :business-bound="businessBound"
         :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged" />
       <TaskMaintenancePanel v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="projectId"
-        :task-id="workbench.task.taskId" :task-version="workbench.task.version" @changed="handleBusinessChanged" />
+        :task-id="workbench.task.taskId" :task-version="workbench.task.version" :show-responsibilities="showResponsibilities" @changed="handleBusinessChanged" />
 
       <div class="section-title">任务业务办理</div>
       <TaskBusinessPanel
@@ -132,7 +132,7 @@
         type="info"
         :closable="false"
         show-icon
-        :title="workbench?.bindingType === 'TASK_NATIVE' ? '当前为通用任务，使用上方任务职责和状态操作办理，不挂载外部业务页面。' : '尚未取得可用的任务业务绑定；不能据此判断交付件或完成依据不适用，请重试或核对冻结契约。'"
+        :title="workbench?.bindingType === 'TASK_NATIVE' ? '当前为通用任务，请通过任务状态操作办理，不挂载外部业务页面。' : '尚未取得可用的任务业务绑定；不能据此判断交付件或完成依据不适用，请重试或核对冻结契约。'"
       />
     </template>
   </ContentWrap>
@@ -160,12 +160,13 @@ import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMainte
 
 defineOptions({ name: 'ProjectFlowPanel' })
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   projectId: number
   project: ProjectMasterVO
   instances?: ProjectInstancesVO | null
   selection?: ProjectFlowSelection
-}>()
+  showResponsibilities?: boolean
+}>(), { showResponsibilities: false })
 
 const mobile = useMediaQuery('(max-width: 767px)')
 const descriptionColumns = computed(() => (mobile.value ? 1 : 2))

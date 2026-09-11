@@ -128,9 +128,13 @@ public class ProjectTaskLifecycleService {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
         TaskStateTransitionDO transition;
+        // 指派命令使用相同的项目→任务锁顺序；锁内事实决定是否允许省略指派前置。
+        boolean designated = "START".equals(action) && assignmentMapper.selectCurrentForUpdate(
+                new TaskAssignmentLockQuery(actor.tenantId(), task.getId())) != null;
+        String transitionSource = TaskExecutionPolicy.transitionSource(task.getStatus(), action, designated);
         try {
             transition = stateMachineMapper.requireTransition(new TaskStateTransitionQuery(actor.tenantId(),
-                    task.getStateMachineRevisionId(), task.getStatus(), action));
+                    task.getStateMachineRevisionId(), transitionSource, action));
         } catch (IllegalArgumentException ex) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
@@ -173,7 +177,7 @@ public class ProjectTaskLifecycleService {
         if (Set.of("SUBMIT", "COMPLETE", "CANCEL").contains(action)) {
             progressService.recompute(actor.tenantId(), project.getId(), project.getTaskProgressVersion(), occurredAt);
         }
-        ActionFacts facts = ActionFacts.changed(task, contract, completion, occurredAt);
+        ActionFacts facts = ActionFacts.changed(task, contract, completion, occurredAt, transitionSource);
         factsRef.set(facts);
         return new TaskCommandResult(task.getId(), task.getVersion() + 1, project.getTaskTreeVersion(),
                 nextStatus, "NEW");
@@ -273,14 +277,14 @@ public class ProjectTaskLifecycleService {
                                        TaskWorkbenchActor actor, LocalDateTime effectiveAt,
                                        boolean acceptanceContract) {
         if (treeScopes.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) {
-            // Operator authority does not manufacture an actual executor assignment.
-            if (("START".equals(action) || "SUBMIT".equals(action))
-                    && assignmentMapper.selectCurrentForUpdate(new TaskAssignmentLockQuery(actor.tenantId(), task.getId())) == null)
-                throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+            // 超管授权不创建指派事实；未指定任务不再要求存在空的指派前置。
             return;
         }
         if ("START".equals(action) || "SUBMIT".equals(action)) {
-            if (!isCurrentAssignee(task, actor)) {
+            var assignment = assignmentMapper.selectCurrentForUpdate(new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
+            var memberships = memberMapper.selectActiveByUserForUpdate(new ActiveProjectMemberForUpdateQuery(
+                    actor.tenantId(), task.getProjectId(), actor.actorId(), effectiveAt));
+            if (!TaskExecutionPolicy.permits(task.getProjectId(), actor.actorId(), assignment, memberships)) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             }
             return;
@@ -408,6 +412,7 @@ public class ProjectTaskLifecycleService {
         detail.put("beforeStatus", facts.beforeStatus());
         detail.put("afterStatus", result.status());
         detail.put("stateMachineRevisionId", facts.stateMachineRevisionId());
+        detail.put("transitionFromStatus", facts.transitionFromStatus());
         detail.put("executionContractId", facts.contractId());
         detail.put("contractVersion", facts.contractVersion());
         if (facts.evaluationId() != null) {
@@ -473,21 +478,22 @@ public class ProjectTaskLifecycleService {
     private record ActionFacts(Long projectId, String beforeStatus, int beforeTaskVersion,
                                Long stateMachineRevisionId, Long contractId, Integer contractVersion,
                                Long evaluationId, boolean completionSatisfied, List<String> unmetItems,
-                               LocalDateTime occurredAt, Map<String, Object> businessEvidence) {
+                               LocalDateTime occurredAt, Map<String, Object> businessEvidence,
+                               String transitionFromStatus) {
         static ActionFacts changed(ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract,
-                                   CompletionDecision completion, LocalDateTime occurredAt) {
-            return create(task, contract, completion, occurredAt);
+                                   CompletionDecision completion, LocalDateTime occurredAt, String transitionSource) {
+            return create(task, contract, completion, occurredAt, transitionSource);
         }
         static ActionFacts evaluated(ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract,
                                      CompletionDecision completion, LocalDateTime occurredAt) {
-            return create(task, contract, completion, occurredAt);
+            return create(task, contract, completion, occurredAt, task.getStatus());
         }
         private static ActionFacts create(ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract,
-                                          CompletionDecision completion, LocalDateTime occurredAt) {
+                                          CompletionDecision completion, LocalDateTime occurredAt, String transitionSource) {
             return new ActionFacts(task.getProjectId(), task.getStatus(), task.getVersion(),
                     task.getStateMachineRevisionId(), contract.getId(), contract.getContractVersion(),
                     completion.evaluationId(), completion.satisfied(), completion.unmetItems(), occurredAt,
-                    completion.businessEvidence());
+                    completion.businessEvidence(), transitionSource);
         }
     }
 }

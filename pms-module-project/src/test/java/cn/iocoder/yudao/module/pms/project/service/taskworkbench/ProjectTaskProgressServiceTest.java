@@ -52,7 +52,8 @@ class ProjectTaskProgressServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProjectTaskProgressService(taskMapper, assignmentMapper, factMapper, treeVersionMapper,
+        service = new ProjectTaskProgressService(taskMapper, assignmentMapper,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.class), factMapper, treeVersionMapper,
                 treeScopeService, permissionApi, operationAuditApi);
     }
 

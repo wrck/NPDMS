@@ -105,22 +105,62 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @Test
-    void superAdminMayOperateForAnActualExecutorButDoesNotCreateAnAssignment() {
+    void superAdminMayOperateWithoutCreatingAnAssignment() {
         allowAction("PENDING_START", "START", "IN_PROGRESS");
         when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
-        var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(22L);
-        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        org.mockito.Mockito.reset(assignmentMapper);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
         assertEquals("IN_PROGRESS", service.act(command("start", 3, null, null), actor()).status());
         verify(memberMapper, never()).selectActiveByUserForUpdate(any());
+        verify(assignmentMapper, never()).insertAssignment(any());
     }
 
     @Test
-    void superAdminStillCannotStartWithoutAnActualExecutor() {
-        allowAction("PENDING_START", "START", "IN_PROGRESS");
-        when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
+    void unassignedTeamMemberCanStartWithoutManufacturingAnAssignment() {
+        allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
-        assertThrows(RuntimeException.class, () -> service.act(command("start", 3, null, null), actor()));
+        var member = new ProjectMemberAssignmentDO(); member.setProjectId(100L); member.setMemberRole("TEAM_MEMBER");
+        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertEquals("IN_PROGRESS",service.act(command("start",3,null,null),actor()).status());
+        verify(stateMachineMapper).requireTransition(org.mockito.ArgumentMatchers.argThat(q ->
+                q.revisionId().equals(81L) && q.fromStatusCode().equals("PENDING_START") && q.actionCode().equals("START")));
+        var update = ArgumentCaptor.forClass(TaskLifecycleStateUpdate.class);
+        verify(taskMapper).updateLifecycleIfMatch(update.capture());
+        assertEquals("PENDING_ASSIGN", update.getValue().expectedStatus());
+        assertTrue(successFacts.detailSnapshot().contains("\"transitionFromStatus\":\"PENDING_START\""));
+        verify(assignmentMapper,never()).insertAssignment(any());
+    }
+
+    @Test void directStartFailsIfFrozenStartDefinitionIsMissing() {
+        allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
+        org.mockito.Mockito.reset(contractMapper);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
+        when(stateMachineMapper.requireTransition(any())).thenThrow(new IllegalArgumentException("missing"));
+        assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+        verify(assignmentMapper, never()).insertAssignment(any());
+    }
+
+    @Test void newlyDesignatedPendingTaskDoesNotUseUnassignedStartRule() {
+        allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
+        org.mockito.Mockito.reset(contractMapper);
+        when(stateMachineMapper.requireTransition(any())).thenAnswer(invocation -> {
+            var q = invocation.getArgument(0, cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery.class);
+            assertEquals("PENDING_ASSIGN", q.fromStatusCode());
+            throw new IllegalArgumentException("no direct assigned transition");
+        });
+        assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test void aProjectManagerCannotExecuteForAnotherDesignatedPerson() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(22L);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        var member = new ProjectMemberAssignmentDO(); member.setProjectId(100L); member.setMemberRole("PROJECT_MANAGER");
+        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+        assertThrows(RuntimeException.class,()->service.act(command("start",3,null,null),actor()));
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
 

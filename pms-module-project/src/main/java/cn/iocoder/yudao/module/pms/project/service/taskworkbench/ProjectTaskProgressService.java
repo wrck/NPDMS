@@ -52,6 +52,7 @@ public class ProjectTaskProgressService {
 
     private final ProjectTaskRuntimeMapper taskMapper;
     private final ProjectTaskAssignmentMapper assignmentMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper memberMapper;
     private final ProjectProgressFactMapper factMapper;
     private final ProjectTreeVersionMapper projectTreeVersionMapper;
     private final ProjectTreeScopeService treeScopeService;
@@ -193,8 +194,11 @@ public class ProjectTaskProgressService {
                 ProjectScopeApi.ACTION_EDIT, treeVersion.getTreeVersion()));
         var assignment = assignmentMapper.selectCurrentForUpdate(
                 new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
-        if (assignment == null || (!Objects.equals(assignment.getAssigneeUserId(), actor.actorId())
-                && !treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId()))) {
+        var memberships = assignment == null ? memberMapper.selectActiveByUserForUpdate(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
+                        actor.tenantId(), project.getId(), actor.actorId(), LocalDateTime.now())) : List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO>of();
+        if (!treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())
+                && !TaskExecutionPolicy.permits(project.getId(), actor.actorId(), assignment, memberships)) {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         }
     }

@@ -72,6 +72,7 @@ class TaskNativeBindingHostProviderTest {
 
     @Test
     void shouldExposeOnlyRoleAndPermissionApprovedAction() {
+        allowProjectScope();
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
         assignment.setAssigneeUserId(9L);
@@ -100,6 +101,32 @@ class TaskNativeBindingHostProviderTest {
 
         assertEquals("BINDING_CONTRACT_INVALID", result.recoverableError());
         assertTrue(result.allowedActions().isEmpty());
+    }
+
+    @Test void unassignedTeamMemberGetsExecutionButNotApproval() {
+        task.setStatus("PENDING_ASSIGN");
+        allowProjectScope();
+        var member = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
+        member.setProjectId(100L); member.setMemberRole("TEAM_MEMBER");
+        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(member));
+        var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START"); start.setActionCode("START"); start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        var complete = new TaskStateTransitionDO(); complete.setFromStatusCode("PENDING_START"); complete.setActionCode("COMPLETE"); complete.setAllowedRoleCode("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
+        when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(start,complete));
+        when(permissionApi.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
+        var result = provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"member"));
+        assertEquals(Set.of("START"),result.allowedActions());
+        when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
+                100L, 7L, Set.of(), Set.of(), Set.of()));
+        assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"no-scope")).allowedActions().isEmpty());
+    }
+
+    private void allowProjectScope() {
+        var project = new ProjectMasterDO(); project.setId(100L); project.setTenantId(0L); project.setLifecycleStatus("ACTIVE");
+        when(projectMapper.selectById(100L)).thenReturn(project);
+        var version = new ProjectTreeVersionDO(); version.setTreeVersion(7L);
+        when(projectTreeVersionMapper.selectLatestActive(100L)).thenReturn(version);
+        when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
+                100L, 7L, Set.of(100L), Set.of(), Set.of()));
     }
 
     @Test

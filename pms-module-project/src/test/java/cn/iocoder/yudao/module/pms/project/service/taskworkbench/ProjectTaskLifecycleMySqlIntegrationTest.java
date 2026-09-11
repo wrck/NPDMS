@@ -129,6 +129,7 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
                             + keyPrefix + "%' ");
                     statement.executeUpdate("DELETE FROM proj_project_task_completion_evaluation WHERE project_task_id="
                             + taskId);
+                    statement.executeUpdate("DELETE FROM proj_project_task_assignment WHERE project_task_id=" + taskId);
                     statement.executeUpdate("DELETE FROM proj_project_progress_fact WHERE project_id=" + projectId);
                     statement.executeUpdate("DELETE FROM proj_project_task_execution_contract WHERE project_task_id="
                             + taskId);
@@ -146,6 +147,25 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
         } finally {
             TenantContextHolder.clear();
         }
+    }
+
+    @Test
+    void unassignedTeamMemberStartsOnceAndReplayPreservesTheFrozenRevision() {
+        jdbcTemplate.update("UPDATE proj_project_task SET status='PENDING_ASSIGN',progress=0 WHERE id=?", taskId);
+        jdbcTemplate.update("UPDATE proj_project_member_assignment SET member_role='TEAM_MEMBER' WHERE project_id=?", projectId);
+        when(nativeProvider.inspect(any())).thenReturn(new TaskBindingInspection("TASK_NATIVE", Set.of("START"), "0:1:0", null));
+        var command = new TaskActionCommand(taskId, 0, "start", null, null, null, null, null, keyPrefix + "-start", DIGEST);
+        assertEquals("IN_PROGRESS", service.act(command, actor).status());
+        assertEquals("REPLAY_COMPLETED", service.act(command, actor).replayDecision());
+        var task = jdbcTemplate.queryForMap("SELECT status,version,actual_start_time,state_machine_revision_id FROM proj_project_task WHERE id=?", taskId);
+        assertEquals("IN_PROGRESS", task.get("status"));
+        assertEquals(1, ((Number) task.get("version")).intValue());
+        assertNotNull(task.get("actual_start_time"));
+        assertEquals(revisionId, ((Number) task.get("state_machine_revision_id")).longValue());
+        assertEquals(0L, count("proj_project_task_assignment", "project_task_id", taskId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit WHERE correlation_id=? AND operation_code='PROJECT_TASK_START' AND result_code='SUCCESS'", Long.class, actor.correlationId()));
+        assertThrows(RuntimeException.class, () -> service.act(new TaskActionCommand(taskId, 0, "start", null, null, null, null, null, keyPrefix + "-stale", DIGEST), actor));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT version FROM proj_project_task WHERE id=?", Integer.class, taskId));
     }
 
     @Test
@@ -374,6 +394,14 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
         @Bean TaskNativeBindingHostProvider nativeProvider() { return mock(TaskNativeBindingHostProvider.class); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectTreeScopeService treeScopeService() { return mock(ProjectTreeScopeService.class); }
+        @Bean cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi acceptanceFacts() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopeApi() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);
+        }
+        @Bean TaskBusinessCompletionEvaluator businessEvaluator() { return mock(TaskBusinessCompletionEvaluator.class); }
+        @Bean TaskBusinessBindingHostProvider businessProvider() { return mock(TaskBusinessBindingHostProvider.class); }
         @Bean @Primary ProjectTreeVersionMapper progressTreeVersionMapper() {
             return mock(ProjectTreeVersionMapper.class);
         }

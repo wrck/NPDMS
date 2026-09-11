@@ -35,6 +35,7 @@ export interface TaskBusinessContext {
   recoverableError?: string
   factVersion?: string
   ownerActions: string[]
+  executionAllowed?: boolean
   businessView?: BusinessViewRegistrationVO
 }
 const base = (id: BusinessViewId) => `/api/v1/pms/project-tasks/${businessViewIdKey(id)}/business`

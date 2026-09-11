@@ -72,9 +72,9 @@ public class ProjectTaskBusinessService {
                 if (!ownerActions.contains("QUERY")) throw failure("OWNER_CONTEXT_FORBIDDEN");
                 view = historicalView(binding);
             }
-            return context(ctx, contract, binding, facts.links(), actions, reason, facts.factVersion(), ownerActions, view);
+            return context(ctx, contract, binding, facts.links(), actions, reason, facts.factVersion(), ownerActions, view, writable);
         } catch (RuntimeException ex) {
-            return context(ctx, contract, binding, List.of(), Set.of(), safeError(ex), null, Set.of(), null);
+            return context(ctx, contract, binding, List.of(), Set.of(), safeError(ex), null, Set.of(), null, false);
         }
     }
 
@@ -287,12 +287,12 @@ public class ProjectTaskBusinessService {
     private TaskBusinessLinksQuery query(Context ctx) { return new TaskBusinessLinksQuery(ctx.tenantId(), ctx.projectId(), ctx.taskId()); }
     private TaskBusinessContext context(Context ctx, ProjectTaskExecutionContractDO c, TaskBusinessBinding b,
             List<TaskBusinessLinkFact> links, Set<String> actions, String error, String factVersion,
-            Set<String> ownerActions, BusinessViewRevision businessView) {
+            Set<String> ownerActions, BusinessViewRevision businessView, boolean executionAllowed) {
         return new TaskBusinessContext(ctx.taskId(), ctx.projectId(), c == null ? null : c.getId(),
                 c == null ? null : c.getContractVersion(), c == null ? null : c.getTargetContextCode(),
                 c == null ? null : c.getTargetObjectType(), c == null ? null : c.getComponentKey(),
                 b == null ? null : b.businessViewRevisionId(), b == null ? null : b.instanceResolutionStrategy(),
-                links, actions, error, factVersion, ownerActions, businessView);
+                links, actions, error, factVersion, ownerActions, businessView, executionAllowed);
     }
     private BusinessViewRevision historicalView(TaskBusinessBinding binding) {
         var view = businessViews.getRevision(new BusinessViewQueryApi.Query(binding.businessViewRevisionId(),

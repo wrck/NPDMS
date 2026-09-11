@@ -1,5 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskExecutionPolicy;
 
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -49,8 +49,7 @@ class TaskBusinessAccess {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         if (treeScopes.isTenantSuperAdmin(tenantId, actorId)) return task;
         var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(tenantId, actorId, LocalDateTime.now()));
-        boolean manager = memberships.stream().anyMatch(m -> Objects.equals(m.getProjectId(), task.getProjectId())
-                && ProjectMemberRoles.MANAGEMENT_CODES.contains(m.getMemberRole()));
+        boolean manager = TaskExecutionPolicy.isProjectMember(task.getProjectId(), memberships);
         if (!manager && !taskMapper.selectFullTaskIds(new TaskVisibilityQuery(tenantId, task.getProjectId(), actorId, false)).contains(taskId))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         return task;
@@ -66,15 +65,11 @@ class TaskBusinessAccess {
                 || !permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:update")) return false;
         if (treeScopes.isTenantSuperAdmin(context.tenantId(), context.actorId()))
             return fullScope(context, ProjectScopeApi.ACTION_MANAGE);
-        boolean assigned = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(context.tenantId(), Set.of(task.getId())))
-                .stream().anyMatch(a -> Objects.equals(a.getTenantId(), context.tenantId())
-                        && Objects.equals(a.getProjectTaskId(), task.getId())
-                        && Objects.equals(a.getAssigneeUserId(), context.actorId()));
-        if (assigned && fullScope(context, ProjectScopeApi.ACTION_EDIT)) return true;
-        boolean pm = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(context.tenantId(), context.actorId(), LocalDateTime.now()))
-                .stream().anyMatch(m -> Objects.equals(m.getProjectId(), context.projectId())
-                        && "PROJECT_MANAGER".equals(m.getMemberRole()));
-        return pm && fullScope(context, ProjectScopeApi.ACTION_MANAGE);
+        var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(context.tenantId(), Set.of(task.getId())))
+                .stream().findFirst().orElse(null);
+        var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(context.tenantId(), context.actorId(), LocalDateTime.now()));
+        return TaskExecutionPolicy.permits(task.getProjectId(), context.actorId(), assignment, memberships)
+                && fullScope(context, ProjectScopeApi.ACTION_EDIT);
     }
 
     ProjectMasterDO project(Long id) { return projectMapper.selectById(id); }

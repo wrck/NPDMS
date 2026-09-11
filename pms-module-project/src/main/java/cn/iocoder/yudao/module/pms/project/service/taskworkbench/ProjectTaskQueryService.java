@@ -1,5 +1,4 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -53,7 +52,6 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class ProjectTaskQueryService {
 
-    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
 
@@ -171,8 +169,7 @@ public class ProjectTaskQueryService {
         List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
                 actor.tenantId(), actor.actorId(), LocalDateTime.now()));
         boolean superAdmin = projectTreeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId());
-        boolean fullProjectAccess = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
-                && MANAGER_ROLES.contains(item.getMemberRole()));
+        boolean fullProjectAccess = superAdmin || TaskExecutionPolicy.isProjectMember(projectId, memberships);
         boolean projectManager = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
                 && "PROJECT_MANAGER".equals(item.getMemberRole()));
         TaskVisibilityQuery visibilityQuery = new TaskVisibilityQuery(

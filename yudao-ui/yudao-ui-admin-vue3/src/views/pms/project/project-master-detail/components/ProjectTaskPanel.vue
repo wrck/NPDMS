@@ -70,6 +70,7 @@
   <ProjectTaskWorkbenchDrawer
     v-model="drawerVisible"
     :task-id="selectedTaskId"
+    :show-responsibilities="showResponsibilities"
     @changed="handleCommandChanged"
     @move="openMove"
   />
@@ -194,7 +195,7 @@ import ProjectTaskTree from './ProjectTaskTree.vue'
 import ProjectTaskWorkbenchDrawer from './ProjectTaskWorkbenchDrawer.vue'
 
 defineOptions({ name: 'ProjectTaskPanel' })
-const props = defineProps<{ projectId: number }>()
+const props = withDefaults(defineProps<{ projectId: number; showResponsibilities?: boolean }>(), { showResponsibilities: true })
 const emit = defineEmits<{ 'tree-version': [version: number]; updated: [] }>()
 const message = useMessage()
 const loading = ref(false)

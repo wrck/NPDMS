@@ -365,6 +365,7 @@
         <div v-if="detail?.id && visitedTabs.has('tasks')" v-show="activeTab === 'tasks'" class="min-w-0" data-testid="project-pane-tasks">
           <ProjectTaskPanel
             :project-id="detail.id"
+            :show-responsibilities="false"
             @tree-version="treeVersion = $event"
             @updated="loadAll"
           />

@@ -3,8 +3,8 @@
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-button v-if="error" link type="primary" @click="load">重新读取维护信息</el-button>
     <template v-if="view">
-      <div class="section-heading"><h4>任务职责</h4><el-button link @click="showHistory">调整历史</el-button></div>
-      <el-descriptions :column="1" border>
+      <div v-if="showResponsibilities" class="section-heading"><h4>任务职责</h4><el-button link @click="showHistory">调整历史</el-button></div>
+      <el-descriptions v-if="showResponsibilities" :column="1" border>
         <el-descriptions-item v-for="role in TASK_ROLE_OPTIONS" :key="role.value" :label="role.label">
           <span>{{ view.currentRoles.find(row => row.role === role.value)?.name || '未指派' }}</span>
           <el-button v-if="view.canAssign" link type="primary" class="role-action" @click="openRole(role.value)">设置{{ role.label }}</el-button>
@@ -15,7 +15,7 @@
       <div v-else class="description-plain">{{ view.description?.description || '暂无任务说明' }}</div>
     </template>
   </section>
-  <Dialog v-model="roleVisible" :title="`设置${roleLabel(role)}`" width="min(560px, calc(100vw - 24px))">
+  <Dialog v-if="showResponsibilities" v-model="roleVisible" :title="`设置${roleLabel(role)}`" width="min(560px, calc(100vw - 24px))">
     <el-form label-position="top">
       <el-form-item label="项目成员" required><PmsEntitySelect v-if="roleVisible" v-model="userId" :api="loadMembers" label-field="name"
         value-field="userId" query-field="keyword" placeholder="按项目成员姓名搜索" :disabled="saving" /></el-form-item>
@@ -32,7 +32,7 @@
     <template #footer><el-button :disabled="saving" @click="descriptionVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="saveText">保存说明</el-button></template>
   </Dialog>
-  <Dialog v-model="historyVisible" title="任务职责调整历史" width="min(860px, calc(100vw - 24px))">
+  <Dialog v-if="showResponsibilities" v-model="historyVisible" title="任务职责调整历史" width="min(860px, calc(100vw - 24px))">
     <el-radio-group v-model="historyRole" @change="loadHistory(false)"><el-radio-button v-for="item in TASK_ROLE_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</el-radio-button></el-radio-group>
     <el-table :data="history" v-loading="historyLoading"><el-table-column prop="name" label="人员" />
       <el-table-column label="生效时间" min-width="160"><template #default="{ row }">{{ formatDate(row.effectiveFrom) }}</template></el-table-column>
@@ -52,7 +52,7 @@ import * as Api from '@/api/pms/project/task-maintenance'
 import { TASK_ROLE_OPTIONS, type TaskRole, type TaskRoleEntry, type TaskMaintenanceView } from '@/api/pms/project/task-maintenance'
 import type { TaskCommandResult } from '@/api/pms/project/task-workbench'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
-const props = defineProps<{ projectId: number; taskId: number | string; taskVersion: number }>()
+const props = withDefaults(defineProps<{ projectId: number; taskId: number | string; taskVersion: number; showResponsibilities?: boolean }>(), { showResponsibilities: false })
 const emit = defineEmits<{ changed: [result: TaskCommandResult] }>()
 const message = useMessage(), view = ref<TaskMaintenanceView>(), loading = ref(false), error = ref('')
 const roleVisible = ref(false), descriptionVisible = ref(false), saving = ref(false), saveError = ref('')

@@ -28,7 +28,7 @@
           <el-descriptions-item label="业务层级">{{
             task.businessLevelCode || '-'
           }}</el-descriptions-item>
-          <el-descriptions-item label="负责人">{{
+          <el-descriptions-item v-if="showResponsibilities" label="负责人">{{
             task.assigneeUserId || '未指派'
           }}</el-descriptions-item>
           <el-descriptions-item label="计划开始">{{
@@ -52,7 +52,7 @@
 
         <div class="action-bar" aria-label="任务允许操作">
           <el-button v-if="allowed('UPDATE')" @click="openEdit">编辑资料</el-button>
-          <el-button v-if="allowed('ASSIGN')" @click="openAssign">指派/转派</el-button>
+          <el-button v-if="showResponsibilities && allowed('ASSIGN')" @click="openAssign">指派/转派</el-button>
           <el-button v-if="allowed('MOVE')" @click="$emit('move', task)">移动</el-button>
           <el-button
             v-for="action in stateActions"
@@ -141,7 +141,7 @@
     </template>
   </Dialog>
 
-  <Dialog v-model="assignVisible" title="指派任务负责人" width="min(760px, calc(100vw - 24px))">
+  <Dialog v-if="showResponsibilities" v-model="assignVisible" title="指派任务负责人" width="min(760px, calc(100vw - 24px))">
     <el-form label-position="top">
       <el-form-item label="搜索候选">
         <el-input v-model="candidateQuery.keyword" clearable @keyup.enter="loadCandidates">
@@ -219,7 +219,7 @@ import {
 
 defineOptions({ name: 'ProjectTaskWorkbenchDrawer' })
 
-const props = defineProps<{ modelValue: boolean; taskId?: number }>()
+const props = withDefaults(defineProps<{ modelValue: boolean; taskId?: number; showResponsibilities?: boolean }>(), { showResponsibilities: true })
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   changed: [result: TaskCommandResult]

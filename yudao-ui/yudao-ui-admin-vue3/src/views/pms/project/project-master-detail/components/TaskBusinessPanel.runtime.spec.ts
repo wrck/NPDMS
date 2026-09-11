@@ -120,6 +120,12 @@ afterEach(() => {
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('keeps the task business view read-only when task execution is denied despite Owner actions', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { executionAllowed: false }))
+    await setup()
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
+  })
   it('loads the frozen context without registration management or extra project query permissions', async () => {
     const page = await setup()
     expect(textOf(page.root)).toContain('owner:11/41')

@@ -56,16 +56,18 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
         }
         boolean superAdmin = Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 && permissionApi.hasAnyRoles(query.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
-        boolean assignee = superAdmin || assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
-                Set.of(task.getId()))).stream().anyMatch(row -> Objects.equals(row.getAssigneeUserId(), query.actorId()));
-        boolean manager = superAdmin || memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(),
-                query.actorId(), LocalDateTime.now())).stream().anyMatch(row ->
+        var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
+                Set.of(task.getId()))).stream().findFirst().orElse(null);
+        var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
+        boolean assignee = superAdmin || TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships);
+        boolean manager = superAdmin || memberships.stream().anyMatch(row ->
                 Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole()));
         Set<String> allowed = new HashSet<>();
         for (var transition : stateMachineMapper.selectTransitions(new TaskStateMachineRevisionLockQuery(
                 query.tenantId(), task.getStateMachineRevisionId()))) {
             String action = transition.getActionCode();
-            if (!Objects.equals(task.getStatus(), transition.getFromStatusCode()) || !PERMISSIONS.containsKey(action)) continue;
+            if (!Objects.equals(TaskExecutionPolicy.transitionSource(task.getStatus(), action, assignment != null),
+                    transition.getFromStatusCode()) || !PERMISSIONS.containsKey(action)) continue;
             boolean execute = "START".equals(action) || "SUBMIT".equals(action);
             boolean roleAllowed = switch (String.valueOf(transition.getAllowedRoleCode())) {
                 case "CURRENT_EFFECTIVE_ASSIGNEE" -> assignee;

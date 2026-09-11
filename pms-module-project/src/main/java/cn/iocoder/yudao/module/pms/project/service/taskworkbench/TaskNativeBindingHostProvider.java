@@ -85,9 +85,12 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
                 new TaskStateMachineRevisionLockQuery(query.tenantId(), task.getStateMachineRevisionId()));
         Set<String> allowedActions = new HashSet<>();
         transitions.stream()
-                .filter(item -> Objects.equals(item.getFromStatusCode(), task.getStatus()))
+                .filter(item -> Objects.equals(item.getFromStatusCode(), TaskExecutionPolicy.transitionSource(
+                        task.getStatus(), item.getActionCode(), assignment != null)))
                 .filter(item -> roleMatches(item.getAllowedRoleCode(), roles))
                 .filter(item -> hasPermission(query.actorId(), item.getActionCode()))
+                .filter(item -> !Set.of("START", "SUBMIT").contains(item.getActionCode())
+                        || hasScope(task, query, ProjectScopeApi.ACTION_EDIT))
                 .map(TaskStateTransitionDO::getActionCode)
                 .forEach(allowedActions::add);
         boolean knownNonTerminal = !TERMINAL_STATUSES.contains(task.getStatus()) && transitions.stream()
@@ -118,11 +121,11 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
                     "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER"));
             return roles;
         }
-        if (assignment != null && Objects.equals(assignment.getAssigneeUserId(), query.actorId())) {
-            roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
-        }
         List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(
                 new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
+        if (TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships)) {
+            roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
+        }
         boolean projectManager = memberships.stream()
                 .anyMatch(item -> Objects.equals(item.getProjectId(), task.getProjectId())
                         && "PROJECT_MANAGER".equals(item.getMemberRole()));

@@ -139,6 +139,7 @@ const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
 const viewReadonly = computed(() =>
   Boolean(props.readonly || loading.value || error.value || context.value?.recoverableError ||
+    context.value?.executionAllowed === false ||
     !sameTask(context.value?.taskId, props.taskId))
 )
 const canAct = (action: string) =>

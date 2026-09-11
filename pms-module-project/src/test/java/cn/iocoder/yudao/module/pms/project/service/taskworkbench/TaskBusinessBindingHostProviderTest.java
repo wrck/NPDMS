@@ -75,6 +75,24 @@ class TaskBusinessBindingHostProviderTest {
         assertTrue(host.inspect(query).allowedActions().isEmpty());
     }
 
+    @Test void unassignedPendingTaskCanStartButDesignationAndScopeRemainEffective() {
+        var task = tasks.selectTask(null); task.setStatus("PENDING_ASSIGN");
+        var member = new ProjectMemberAssignmentDO(); member.setProjectId(20L); member.setMemberRole("TEAM_MEMBER");
+        when(members.selectActiveByUser(any())).thenReturn(List.of(member));
+        var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START"); start.setActionCode("START");
+        start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(states.selectTransitions(any())).thenReturn(List.of(start));
+        when(permissions.hasAnyPermissions(5L, "pms:project-task:execute")).thenReturn(true);
+        assertEquals(Set.of("START"), host.inspect(query).allowedActions());
+        var assigned = new cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO();
+        assigned.setAssigneeUserId(5L);
+        when(assignments.selectCurrent(any())).thenReturn(List.of(assigned));
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+        when(assignments.selectCurrent(any())).thenReturn(List.of());
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(), Set.of()));
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+    }
+
     @Test void unavailableContextDoesNotConsultTaskPermissionsOrOfferFallback() {
         when(business.getContext(10L, 1L, 5L, "corr")).thenReturn(context("VIEW_NOT_FROZEN"));
         var result = host.inspect(query);
@@ -87,6 +105,6 @@ class TaskBusinessBindingHostProviderTest {
     private TaskBusinessContext context(String error) {
         return new TaskBusinessContext(10L, 20L, 40L, 2, "SOL", "SITE_SURVEY", "survey-list", 50L,
                 "REFERENCE_EXISTING", List.of(), Set.of("LINK"), error, "a".repeat(64),
-                Set.of("QUERY", "CREATE", "COMPLETE"), null);
+                Set.of("QUERY", "CREATE", "COMPLETE"), null, true);
     }
 }
