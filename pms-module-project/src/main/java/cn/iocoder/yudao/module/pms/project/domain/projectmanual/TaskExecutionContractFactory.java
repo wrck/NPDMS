@@ -13,7 +13,7 @@ import java.util.Set;
 @Component
 public class TaskExecutionContractFactory {
 
-    public static final String TASK_NATIVE = "TASK_NATIVE";
+    public static final String TASK_NATIVE = TaskNativeCompletionPolicy.WORK_BINDING_TYPE;
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
             TASK_NATIVE, "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
@@ -59,8 +59,8 @@ public class TaskExecutionContractFactory {
         contract.setWorkBindingTypeCode(TASK_NATIVE);
         contract.setBindingParameterSnapshot("{}");
         contract.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
-        contract.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
-        contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"DONE\"}");
+        contract.setCompletionRuleTypeCode(TaskNativeCompletionPolicy.RULE_TYPE);
+        contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"" + TaskNativeCompletionPolicy.REQUIRED_STATUS + "\"}");
         contract.setSourceDefinitionVersion(1);
         contract.setContractVersion(1);
         contract.setEffectiveFrom(effectiveFrom);
@@ -109,6 +109,10 @@ public class TaskExecutionContractFactory {
             throw new IllegalArgumentException("任务完成规则类型缺失");
         }
         requireJson(definition.getCompletionRuleConfig(), "任务完成规则配置无效");
+        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())) {
+            TaskNativeCompletionPolicy.validate(definition.getWorkBindingTypeCode(),
+                    definition.getCompletionRuleTypeCode(), definition.getCompletionRuleConfig());
+        }
         if (definition.getDefinitionVersion() == null || definition.getDefinitionVersion() <= 0) {
             throw new IllegalArgumentException("任务定义版本无效");
         }
