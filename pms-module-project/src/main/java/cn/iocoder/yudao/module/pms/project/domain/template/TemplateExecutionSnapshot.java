@@ -166,6 +166,7 @@ public class TemplateExecutionSnapshot {
         content.setProcessDefinitionVersion(null);
         content.setClosurePolicy(closurePolicy == null ? null : new TemplateDefinitionContent.ClosurePolicy(closurePolicy));
         content.setDefinitionSnapshot(null);
+        content.setExecutionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(this), JsonNode.class));
 
         for (StageContract source : stages) {
             TemplateDefinitionContent.StageDef target = new TemplateDefinitionContent.StageDef();
@@ -180,6 +181,12 @@ public class TemplateExecutionSnapshot {
             target.setExitCriteria(source.getExitCriteria());
             target.setStart(source.getStart());
             target.setTerminal(source.getTerminal());
+            target.setSourceNodeKey(source.getNodeKey());
+            target.setBindingSnapshot(source.getBinding() == null ? null
+                    : JsonUtils.parseObject(JsonUtils.toJsonString(source.getBinding()), JsonNode.class));
+            target.setPermissionSnapshot(source.getPermission() == null ? null
+                    : JsonUtils.parseObject(JsonUtils.toJsonString(source.getPermission()), JsonNode.class));
+            target.setCompletionRuleSnapshot(copy(source.getCompletionRule()));
             content.getStages().add(target);
         }
         for (TaskContract source : tasks) {
@@ -200,10 +207,13 @@ public class TemplateExecutionSnapshot {
             applyBinding(target, source.getBinding());
             if (source.getPermission() != null) {
                 target.setPermissionPolicyRef(source.getPermission().getPolicyRef());
+                target.setPermissionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(source.getPermission()), JsonNode.class));
             }
             applyRule(target, source.getCompletionRule());
             target.setGateRef(source.getGateRef());
             target.setDefinitionVersion(1);
+            target.setSourceNodeKey(source.getNodeKey());
+            target.setBindingViewSnapshot(source.getBinding() == null ? null : copy(source.getBinding().getBusinessViewSnapshot()));
             content.getTasks().add(target);
         }
         for (MilestoneContract source : milestones) {
@@ -252,7 +262,9 @@ public class TemplateExecutionSnapshot {
             target.setConditionRuleRevisionId(source.getSourceConditionRuleRevisionId());
             target.setPriority(source.getPriority());
             target.setDefaultBranch(source.getDefaultBranch());
-            target.setRevisionNo(source.getSourceTransitionRevisionNo() == null ? 1L : source.getSourceTransitionRevisionNo());
+            target.setRevisionNo(source.getSourceTransitionRevisionNo());
+            target.setSourceTransitionKey(source.getEdgeKey());
+            target.setConditionRuleSnapshot(copy(source.getConditionRule()));
             content.getTransitions().add(target);
         }
         return content;
@@ -271,11 +283,7 @@ public class TemplateExecutionSnapshot {
     }
 
     private static void applyRule(TemplateDefinitionContent.TaskDef target, JsonNode rule) {
-        if (rule == null || rule.isNull()) {
-            target.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
-            target.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\"}");
-            return;
-        }
+        if (rule == null || rule.isNull()) return;
         if (rule.has("operator")) {
             target.setCompletionRuleTypeCode(rule.path("operator").asText());
             target.setCompletionRuleConfig(JsonUtils.toJsonString(rule));
@@ -283,5 +291,9 @@ public class TemplateExecutionSnapshot {
         }
         target.setCompletionRuleTypeCode(rule.path("predicate").asText());
         target.setCompletionRuleConfig(JsonUtils.toJsonString(rule.path("parameters")));
+    }
+
+    private static JsonNode copy(JsonNode value) {
+        return value == null || value.isNull() ? null : value.deepCopy();
     }
 }
