@@ -69,12 +69,11 @@ public class ProjectRuntimeGraphResolver {
         Map<Long, ProjectStageExecutionContractDO> byStage = new HashMap<>();
         for (ProjectStageExecutionContractDO contract : contracts) {
             ProjectStageInstanceDO stage = byId.get(contract.getStageId());
-            boolean v2 = contract.getGraphVersion() != null && contract.getGraphVersion() >= 2;
+            boolean v2 = !blank(contract.getSourceNodeKey());
             if (stage == null || !Objects.equals(contract.getTenantId(), project.getTenantId())
                     || !Objects.equals(contract.getProjectId(), project.getId()) || contract.getEffectiveTo() != null
                     || !Objects.equals(contract.getGraphVersion(), stage.getGraphVersion())
                     || (!v2 && !Objects.equals(contract.getDefinitionRevisionId(), stage.getDefinitionRevisionId()))
-                    || (v2 && blank(contract.getSourceNodeKey()))
                     || byStage.putIfAbsent(contract.getStageId(), contract) != null)
                 throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONTRACT_STALE");
         }
@@ -148,8 +147,8 @@ public class ProjectRuntimeGraphResolver {
     private Long conditionToken(ProjectStageTransitionDO edge) {
         if (edge.getConditionSnapshot() == null) return null;
         if (edge.getConditionRuleRevisionId() != null) return edge.getConditionRuleRevisionId();
-        // V2 rule identity is local to the frozen graph; project transition id is stable and positive.
-        if (edge.getId() == null || edge.getId() <= 0) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONDITION_IDENTITY_REQUIRED");
+        if (edge.getId() == null || edge.getId() <= 0)
+            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONDITION_IDENTITY_REQUIRED");
         return edge.getId();
     }
 
@@ -157,7 +156,7 @@ public class ProjectRuntimeGraphResolver {
         if (edge.getConditionSnapshot() == null)
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONDITION_SNAPSHOT_MISSING");
         JsonNode snapshot = JsonUtils.parseObject(edge.getConditionSnapshot(), JsonNode.class);
-        if (edge.getGraphVersion() != null && edge.getGraphVersion() >= 2) return snapshot;
+        if (!blank(edge.getSourceTransitionKey())) return snapshot;
         if (edge.getConditionRuleRevisionId() == null)
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONDITION_REVISION_MISSING");
         JsonNode legacy = new FrozenDefinitions(stageContract.getDefinitionSnapshot())
@@ -167,7 +166,7 @@ public class ProjectRuntimeGraphResolver {
     }
 
     private JsonNode completionRule(ProjectStageExecutionContractDO contract) {
-        if (contract.getGraphVersion() != null && contract.getGraphVersion() >= 2) {
+        if (!blank(contract.getSourceNodeKey())) {
             if (contract.getCompletionRuleSnapshot() == null)
                 throw exception(PROJECT_STAGE_ADVANCE_INVALID, "STAGE_COMPLETION_SNAPSHOT_MISSING");
             return JsonUtils.parseObject(contract.getCompletionRuleSnapshot(), JsonNode.class);
