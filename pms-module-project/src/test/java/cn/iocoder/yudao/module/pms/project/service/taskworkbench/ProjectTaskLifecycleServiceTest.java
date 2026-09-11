@@ -476,6 +476,7 @@ class ProjectTaskLifecycleServiceTest {
         contract.setTenantId(0L);
         contract.setProjectTaskId(11L);
         contract.setWorkBindingTypeCode("TASK_NATIVE");
+        contract.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
         contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"DONE\"}");
         contract.setContractVersion(2);
         when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
