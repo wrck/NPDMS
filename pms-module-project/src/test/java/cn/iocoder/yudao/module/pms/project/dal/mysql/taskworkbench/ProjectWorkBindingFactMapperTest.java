@@ -5,7 +5,6 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -54,6 +53,8 @@ class ProjectWorkBindingFactMapperTest {
     private long contractId;
     private long stateMachineRevisionId;
     private long templateDefinitionId;
+    private long templateRevisionId;
+    private int templateRevisionNo;
     private int sourceDefinitionVersion;
     private String bindingSnapshot;
 
@@ -83,7 +84,7 @@ class ProjectWorkBindingFactMapperTest {
                 "SELECT id FROM proj_task_state_machine_revision WHERE tenant_id=0 "
                         + "AND status='PUBLISHED' ORDER BY revision_no DESC LIMIT 1", Long.class);
         Map<String, Object> definition = jdbcTemplate.queryForMap(
-                "SELECT d.id,d.definition_version,d.binding_config "
+                "SELECT d.id,d.definition_version,d.binding_config,d.template_revision_id,r.revision_no "
                         + "FROM proj_project_template_task_definition d "
                         + "JOIN proj_project_template_revision r ON r.tenant_id=d.tenant_id "
                         + "AND r.id=d.template_revision_id "
@@ -92,6 +93,8 @@ class ProjectWorkBindingFactMapperTest {
                         + "AND d.target_object_type='SITE_SURVEY_PREPARATION' "
                         + "AND d.target_object_key='PRE_02_SITE_SURVEY' ORDER BY d.id LIMIT 1");
         templateDefinitionId = ((Number) definition.get("id")).longValue();
+        templateRevisionId = ((Number) definition.get("template_revision_id")).longValue();
+        templateRevisionNo = ((Number) definition.get("revision_no")).intValue();
         sourceDefinitionVersion = ((Number) definition.get("definition_version")).intValue();
         bindingSnapshot = definition.get("binding_config").toString();
         insertProject();
@@ -124,13 +127,8 @@ class ProjectWorkBindingFactMapperTest {
         assertEquals(taskId, facts.getFirst().projectTaskId());
         assertEquals(contractId, facts.getFirst().executionContractId());
         assertEquals(templateDefinitionId, facts.getFirst().templateTaskDefinitionId());
-        assertNotNull(facts.getFirst().templateRevisionId());
-        assertTrue(facts.getFirst().templateRevisionNo() >= 0);
-
-        var revision = mapper.selectTemplateRevisionFact(
-                new ProjectTemplateRevisionFactQuery(0L, templateDefinitionId));
-        assertNotNull(revision);
-        assertEquals(facts.getFirst().templateRevisionId(), revision.templateRevisionId());
+        assertEquals(templateRevisionId, facts.getFirst().templateRevisionId());
+        assertEquals(templateRevisionNo, facts.getFirst().templateRevisionNo());
 
         insertTaskAndContract(taskId + 10, contractId + 10, "TASK_NATIVE", null, null, null);
         assertEquals(1, mapper.selectCurrentFacts(lookup(0L)).size());
@@ -164,10 +162,12 @@ class ProjectWorkBindingFactMapperTest {
         jdbcTemplate.update("INSERT INTO proj_project "
                         + "(id,project_code,code_root_id,project_sequence,project_name,root_id,tree_path,"
                         + "tree_depth,tree_sort,status,lifecycle_status,current_stage,assignment_status,"
+                        + "lifecycle_template_revision_id,lifecycle_template_revision_no,"
                         + "task_tree_version,task_progress_version,version,tenant_id) "
-                        + "VALUES (?,?,?,?,?,?,?,?,?,'S1','ACTIVE','S1','UNASSIGNED',0,0,4,0)",
+                        + "VALUES (?,?,?,?,?,?,?,?,?,'S1','ACTIVE','S1','UNASSIGNED',?,?,0,0,4,0)",
                 projectId, "FSOL2-T2-" + projectId, projectId, 0,
-                "F-SOL-002 Task2 " + projectId, projectId, "/", 0, 0);
+                "F-SOL-002 Task2 " + projectId, projectId, "/", 0, 0,
+                templateRevisionId, templateRevisionNo);
     }
 
     private void insertTaskAndContract(long newTaskId, long newContractId, String bindingType,
