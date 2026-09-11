@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-/** 冻结模板任务定义为ProjectTask当前执行契约。 */
+/** Freeze a compiled/legacy template task into the current ProjectTask execution contract. */
 @Component
 public class TaskExecutionContractFactory {
 
@@ -24,6 +24,7 @@ public class TaskExecutionContractFactory {
         validateDefinition(definition);
         ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
         contract.setProjectTaskId(projectTaskId);
+        contract.setSourceNodeKey(definition.getSourceNodeKey());
         contract.setTemplateTaskDefinitionId(templateTaskDefinitionId);
         contract.setDefinitionRevisionId(definition.getDefinitionRevisionId());
         contract.setWorkBindingRevisionId(definition.getWorkBindingRevisionId());
@@ -36,7 +37,11 @@ public class TaskExecutionContractFactory {
         contract.setComponentKey(definition.getComponentKey());
         contract.setDynamicFormRevisionId(definition.getDynamicFormRevisionId());
         contract.setBindingParameterSnapshot(definition.getBindingConfig());
+        contract.setBindingViewSnapshot(definition.getBindingViewSnapshot() == null ? null
+                : JsonUtils.toJsonString(definition.getBindingViewSnapshot()));
         contract.setPermissionPolicyRef(definition.getPermissionPolicyRef());
+        contract.setPermissionSnapshot(definition.getPermissionSnapshot() == null ? null
+                : JsonUtils.toJsonString(definition.getPermissionSnapshot()));
         contract.setCompletionRuleTypeCode(definition.getCompletionRuleTypeCode());
         contract.setCompletionRuleSnapshot(definition.getCompletionRuleConfig());
         contract.setGateRef(definition.getGateRef());
@@ -128,23 +133,19 @@ public class TaskExecutionContractFactory {
                 }
             }
             case "APPROVAL" -> requireAll(definition.getApprovalDefinitionKey());
-            case "COMPOSITE" -> { /* 子视图由已校验bindingConfig承载。 */ }
+            case "COMPOSITE" -> { /* subviews are carried in validated bindingConfig */ }
             default -> throw new IllegalArgumentException("任务WorkBinding类型无效");
         }
     }
 
     private void requireAll(String... values) {
         for (String value : values) {
-            if (StringUtils.isBlank(value)) {
-                throw new IllegalArgumentException("任务绑定目标缺失");
-            }
+            if (StringUtils.isBlank(value)) throw new IllegalArgumentException("任务绑定目标缺失");
         }
     }
 
     private void requireJson(String value, String message) {
-        if (StringUtils.isBlank(value)) {
-            throw new IllegalArgumentException(message);
-        }
+        if (StringUtils.isBlank(value)) throw new IllegalArgumentException(message);
         try {
             JsonUtils.parseObject(value, Object.class);
         } catch (RuntimeException ex) {
