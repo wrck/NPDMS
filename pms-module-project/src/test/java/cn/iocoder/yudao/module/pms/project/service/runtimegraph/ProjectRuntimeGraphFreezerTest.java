@@ -15,6 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -27,9 +29,9 @@ class ProjectRuntimeGraphFreezerTest {
         var task = new TemplateDefinitionContent.TaskDef();
         task.setTaskCode("OLD-S0"); task.setStageCode("S0");
         content.getTasks().add(task);
-        var error = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        var error = assertThrows(IllegalArgumentException.class,
                 () -> new ProjectRuntimeGraphFreezer(graphMapper, contractMapper).validate(content));
-        org.junit.jupiter.api.Assertions.assertTrue(error.getMessage().contains("S0不生成任务"));
+        assertTrue(error.getMessage().contains("S0不生成任务"));
         assertEquals("S0", content.getTasks().getFirst().getStageCode());
         verifyNoInteractions(graphMapper, contractMapper);
     }
@@ -58,6 +60,19 @@ class ProjectRuntimeGraphFreezerTest {
         var content = v2Content();
 
         assertDoesNotThrow(() -> new ProjectRuntimeGraphFreezer(graphMapper, contractMapper).validate(content));
+        verifyNoInteractions(graphMapper, contractMapper);
+    }
+
+    @Test
+    void v2RejectsLegacyAcceptanceTaskCodeWithoutDefinitionProvenance() {
+        var graphMapper = mock(ProjectRuntimeGraphMapper.class);
+        var contractMapper = mock(ProjectStageExecutionContractMapper.class);
+        var content = v2Content();
+        content.getTasks().getFirst().setTaskCode("T-FINAL-ACCEPT");
+
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> new ProjectRuntimeGraphFreezer(graphMapper, contractMapper).validate(content));
+        assertTrue(error.getMessage().contains("旧验收任务保留码"));
         verifyNoInteractions(graphMapper, contractMapper);
     }
 
