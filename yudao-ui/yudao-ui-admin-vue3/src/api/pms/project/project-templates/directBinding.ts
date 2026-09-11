@@ -1,6 +1,10 @@
-import * as Definitions from './definitions'
-import type { DefinitionRevision, DefinitionSave } from './definitions'
-import type { TaskDef } from './index'
+import type {
+  DesignerTaskNode,
+  JsonObject,
+  PermissionRequirement,
+  RuleSpec,
+  WorkBindingSpec
+} from './index'
 import { needsRequirementSource, requirementSourceSnapshot, REQUIREMENT_BINDING } from './requirementBinding'
 import * as Views from '@/api/pms/platform/business-view'
 import type {
@@ -9,7 +13,8 @@ import type {
   BusinessViewRegistrationVO
 } from '@/api/pms/platform/business-view'
 
-// PM-03 / F-PROJ-009: configuration only. No Owner instance or completion commands.
+// PM-03 V2: configuration only. A binding edit updates the TaskNode directly; it does not create
+// WORK_BINDING / COMPLETION_RULE / TASK DefinitionRevision records.
 export type EntitySource = 'REFERENCE_EXISTING' | 'READ_ONLY_AGGREGATE'
 export type BindingSelection = {
   strategy: EntitySource
@@ -17,60 +22,40 @@ export type BindingSelection = {
   completion?: { factCode: string; quantifier: 'ALL' | 'ANY' }
 } & (
   | { view: BusinessViewRegistrationVO }
-  | {
-      component: BusinessViewComponentVO
-      dynamicFormRevisionId?: BusinessViewId
-    }
+  | { component: BusinessViewComponentVO; dynamicFormRevisionId?: BusinessViewId }
 )
+
 export interface TaskContract {
-  definition: DefinitionRevision
-  binding: DefinitionRevision
-  permission: DefinitionRevision
-  completion: DefinitionRevision
+  binding: WorkBindingSpec
+  permission: PermissionRequirement
+  completion: RuleSpec
 }
-interface DefinitionStep {
-  id?: number
-  createKey: string
-  publishKey: string
-  body?: DefinitionSave
-}
+
 interface BindingIntent {
   token: string
   view?: BusinessViewRegistrationVO
   viewCreateKey: string
   viewPublishKey: string
-  binding: DefinitionStep
-  completion: DefinitionStep
-  task: DefinitionStep
-  contract?: TaskContract
-  requirementSource?: string
 }
-/** Keep this session until the whole template save succeeds; unchanged retries reuse IDs and keys. */
+
+/** Keep this session until the whole Designer save succeeds; unchanged retries reuse view IDs/keys. */
 export const createBindingSaveSession = () => new Map<string, BindingIntent>()
 export type BindingSaveSession = ReturnType<typeof createBindingSaveSession>
-const published = async (id: number | undefined, kind: DefinitionRevision['definitionKind']) => {
-  if (id == null) throw new Error('请先选择已发布的任务方案，保留其权限与完成依据。')
-  const row = await Definitions.getDefinition(id)
-  if (!Definitions.availableDefinition(row, kind))
-    throw new Error('引用的任务、权限或完成依据不可用，请重新选择；原配置未改变。')
-  return row
-}
-export const loadTaskContract = async (task: TaskDef): Promise<TaskContract> => {
-  const definition = await published(task.definitionRevisionId, 'TASK')
-  const slot = (key: 'workBinding' | 'permissionPolicy' | 'completionRule') =>
-    task[`${key}RevisionId`] ??
-    definition.references.find((ref) => ref.referenceKey === definition.payload[key])
-      ?.targetRevisionId
-  const binding = await published(slot('workBinding'), 'WORK_BINDING')
-  const permission = await published(slot('permissionPolicy'), 'PERMISSION_POLICY')
-  const completion = await published(slot('completionRule'), 'COMPLETION_RULE')
-  return { definition, binding, permission, completion }
-}
-export const containsNativeCompletion = (rule: Record<string, any>): boolean =>
-  rule.predicate === 'TASK_NATIVE_STATUS' ||
-  (Array.isArray(rule.rules) && rule.rules.some(containsNativeCompletion))
+
+export const loadTaskContract = async (task: DesignerTaskNode): Promise<TaskContract> => ({
+  binding: task.workBinding,
+  permission: task.permission,
+  completion: task.completionRule
+})
+
+export const containsNativeCompletion = (rule: Record<string, any> | undefined): boolean =>
+  !!rule &&
+  (rule.predicate === 'TASK_NATIVE_STATUS' ||
+    (Array.isArray(rule.rules) && rule.rules.some((item: Record<string, any>) => containsNativeCompletion(item))))
+
 export const bindingTarget = (view: Pick<BusinessViewComponentVO, 'entityType'>) =>
   `PROJECT_${view.entityType}`
+
 export const bindingContextMapping = (view: BusinessViewComponentVO): Record<string, string> => {
   const required = view.contextSchema.required
   const supported = new Set(['project', 'projectId', 'stageId', 'taskId', 'instanceId'])
@@ -79,24 +64,13 @@ export const bindingContextMapping = (view: BusinessViewComponentVO): Record<str
     (!Array.isArray(required) ||
       required.some((key) => typeof key !== 'string' || !supported.has(key)))
   ) {
-    throw new Error('该办理界面需要尚未接入的项目上下文，请使用高级配置核对；不会创建业务实例。')
+    throw new Error('该办理界面需要尚未接入的项目上下文，请核对后再配置；不会创建业务实例。')
   }
   return Object.fromEntries(
     (Array.isArray(required) ? required : []).map((key: string) => [key, key])
   )
 }
-const step = (): DefinitionStep => ({
-  createKey: crypto.randomUUID(),
-  publishKey: crypto.randomUUID()
-})
-const ensurePublishedDefinition = async (state: DefinitionStep) => {
-  state.id ??= await Definitions.createDefinition(state.body!, state.createKey)
-  const row = await Definitions.getDefinition(state.id)
-  if (row.disabledAt) throw new Error('本次配置定义已停用，请核对后重新配置。')
-  if (row.revisionState !== 'PUBLISHED')
-    await Definitions.publishDefinition(row.id, row.version, state.publishKey)
-  return state.id
-}
+
 const ensureView = async (selection: BindingSelection, intent: BindingIntent) => {
   if ('view' in selection) {
     const view = await Views.getBusinessView(selection.view.id)
@@ -118,7 +92,7 @@ const ensureView = async (selection: BindingSelection, intent: BindingIntent) =>
     },
     intent.viewCreateKey
   )
-  // Refresh first: a previous publish may have succeeded even when its response was lost.
+  // A prior publish may have succeeded even if its response was lost.
   intent.view = await Views.getBusinessView(intent.view.id)
   if (intent.view.disabledAt || intent.view.status === 'DISABLED')
     throw new Error('本次登记的办理界面已停用。')
@@ -133,135 +107,85 @@ const ensureView = async (selection: BindingSelection, intent: BindingIntent) =>
   }
   return intent.view
 }
-/** Read -> register/publish view if requested -> create/publish binding -> create/publish TASK.
- * The caller submits the whole draft LAST and only then replaces its local task objects.
- * HTTP steps are not a transaction; failed attempts leave the original binding untouched.
+
+const viewSnapshot = (view: BusinessViewRegistrationVO): JsonObject =>
+  JSON.parse(JSON.stringify(view)) as JsonObject
+
+/**
+ * Resolve/register the BusinessView, then return a new TaskNode with fully embedded V2 semantics.
+ * No template definition asset is created or published here.
  */
 export const prepareTaskBinding = async (
-  task: TaskDef,
+  task: DesignerTaskNode,
   selection: BindingSelection,
   session: BindingSaveSession
-): Promise<TaskDef> => {
+): Promise<DesignerTaskNode> => {
   if (!['REFERENCE_EXISTING', 'READ_ONLY_AGGREGATE'].includes(selection.strategy))
     throw new Error('尚未支持自动创建此业务对象。')
   const selectedView = 'view' in selection ? selection.view : selection.component
   const requirement = needsRequirementSource(selectedView)
   if (requirement && !selection.requirementFormRevisionId)
     throw new Error('请选择需求分析使用的已发布表单；仅选择办理页面不能创建需求分析')
-  const signature = JSON.stringify({ task, selection })
+
+  const signature = JSON.stringify({ nodeKey: task.nodeKey, selection })
   let intent = session.get(signature)
   if (!intent) {
     intent = {
       token: crypto.randomUUID().replaceAll('-', ''),
       viewCreateKey: crypto.randomUUID(),
-      viewPublishKey: crypto.randomUUID(),
-      binding: step(),
-      completion: step(),
-      task: step()
+      viewPublishKey: crypto.randomUUID()
     }
     session.set(signature, intent)
   }
-  intent.contract ??= await loadTaskContract(task)
-  const { definition, permission, completion } = intent.contract
-  if (requirement) intent.requirementSource ??= await requirementSourceSnapshot(selection.requirementFormRevisionId)
   const view = await ensureView(selection, intent)
-  intent.binding.body ??= {
-    definitionKind: 'WORK_BINDING',
-    definitionCode: `PROJECT_BIND_${intent.token}`,
-    schemaVersion: 1,
-    payload: {
-      bindingType: requirement ? REQUIREMENT_BINDING.bindingType : view.viewSource === 'DYNAMIC_FORM' ? 'DYNAMIC_FORM' : 'BUSINESS_COMPONENT',
+  const contextMapping = bindingContextMapping(view)
+  const requirementSource = requirement
+    ? await requirementSourceSnapshot(selection.requirementFormRevisionId)
+    : undefined
+
+  const binding: WorkBindingSpec = {
+    type: requirement
+      ? REQUIREMENT_BINDING.bindingType
+      : view.viewSource === 'DYNAMIC_FORM'
+        ? 'DYNAMIC_FORM'
+        : 'BUSINESS_COMPONENT',
+    targetContextCode: view.ownerContext,
+    targetObjectType: view.entityType,
+    targetObjectKey: requirement ? REQUIREMENT_BINDING.targetObjectKey : bindingTarget(view),
+    componentKey: view.componentKey,
+    ...(view.dynamicFormRevisionId ? { dynamicFormRevisionId: view.dynamicFormRevisionId } : {}),
+    parameters: {
       instanceResolutionStrategy: selection.strategy,
+      contextMapping,
       businessViewRevisionId: view.id,
-      targetContextCode: view.ownerContext,
-      targetObjectType: view.entityType,
-      targetObjectKey: requirement ? REQUIREMENT_BINDING.targetObjectKey : bindingTarget(view),
-      contextMapping: bindingContextMapping(view)
+      ...(requirementSource ?? {})
     },
-    references: []
+    businessViewSnapshot: viewSnapshot(view)
   }
-  const bindingId = await ensurePublishedDefinition(intent.binding)
-  let completionId = completion.id
-  if (selection.completion) {
-    if (
-      !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(selection.completion.factCode) ||
-      !['ALL', 'ANY'].includes(selection.completion.quantifier)
-    )
-      throw new Error('请选择有效的业务完成依据。')
-    intent.completion.body ??= {
-      definitionKind: 'COMPLETION_RULE',
-      definitionCode: `PROJECT_RESULT_${intent.token}`,
-      schemaVersion: 1,
-      payload: { predicate: 'BUSINESS_FACT', parameters: selection.completion },
-      references: []
-    }
-    completionId = await ensurePublishedDefinition(intent.completion)
+
+  const completionRule: RuleSpec = selection.completion
+    ? {
+        expression: {
+          predicate: 'BUSINESS_FACT',
+          parameters: {
+            factCode: selection.completion.factCode,
+            quantifier: selection.completion.quantifier
+          }
+        }
+      }
+    : task.completionRule
+
+  return {
+    ...task,
+    workBinding: binding,
+    completionRule,
+    // Changed semantics no longer claim to be the old reusable binding/rule revision.
+    source: task.source
+      ? {
+          ...task.source,
+          workBindingRevisionId: undefined,
+          completionRuleRevisionId: undefined
+        }
+      : undefined
   }
-  intent.task.body ??= {
-    definitionKind: 'TASK',
-    definitionCode: `PROJECT_TASK_${intent.token}`,
-    schemaVersion: definition.schemaVersion,
-    payload: {
-      ...definition.payload,
-      name: task.name,
-      workBinding: 'workBinding',
-      permissionPolicy: 'permissionPolicy',
-      completionRule: 'completionRule'
-    },
-    references: [
-      ...definition.references.filter(
-        (ref) =>
-          ![
-            definition.payload.workBinding,
-            definition.payload.permissionPolicy,
-            definition.payload.completionRule,
-            'workBinding',
-            'permissionPolicy',
-            'completionRule'
-          ].includes(ref.referenceKey)
-      ),
-      { referenceKey: 'workBinding', targetRevisionId: bindingId },
-      { referenceKey: 'permissionPolicy', targetRevisionId: permission.id },
-      { referenceKey: 'completionRule', targetRevisionId: completionId }
-    ]
-  }
-  const definitionId = await ensurePublishedDefinition(intent.task)
-  const prepared = taskWithExecution(task, {
-    definitionRevisionId: definitionId,
-    workBindingRevisionId: bindingId,
-    permissionPolicyRevisionId: permission.id,
-    completionRuleRevisionId: completionId
-  })
-  if (requirement) prepared.bindingConfig = intent.requirementSource
-  return prepared
-}
-/** Clear only derived execution fields when deliberately replacing a definition/binding. */
-export const taskWithExecution = (
-  task: TaskDef,
-  links: Pick<
-    TaskDef,
-    | 'definitionRevisionId'
-    | 'workBindingRevisionId'
-    | 'permissionPolicyRevisionId'
-    | 'completionRuleRevisionId'
-  >
-): TaskDef => {
-  const result = { ...task, ...links }
-  for (const key of [
-    'definitionSnapshot',
-    'workBindingTypeCode',
-    'targetContextCode',
-    'targetObjectType',
-    'targetObjectKey',
-    'componentKey',
-    'dynamicFormRevisionId',
-    'approvalDefinitionKey',
-    'bindingConfig',
-    'permissionPolicyRef',
-    'completionRuleTypeCode',
-    'completionRuleConfig',
-    'definitionVersion'
-  ] as const)
-    delete result[key]
-  return result
 }
