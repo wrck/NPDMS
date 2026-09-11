@@ -31,10 +31,13 @@ ALTER TABLE `proj_project_stage_execution_contract`
     ADD KEY `idx_psec_source_node` (`tenant_id`, `project_id`, `source_node_key`);
 
 ALTER TABLE `proj_project_task_execution_contract`
+    MODIFY COLUMN `permission_policy_ref` VARCHAR(512) NULL,
     ADD COLUMN `source_node_key` VARCHAR(128) NULL AFTER `project_task_id`,
     ADD COLUMN `binding_view_snapshot` JSON NULL AFTER `binding_parameter_snapshot`,
     ADD COLUMN `permission_snapshot` JSON NULL AFTER `permission_policy_ref`,
-    ADD KEY `idx_ptc_source_node` (`tenant_id`, `project_task_id`, `source_node_key`);
+    ADD KEY `idx_ptc_source_node` (`tenant_id`, `project_task_id`, `source_node_key`),
+    ADD CONSTRAINT `ck_ptc_permission_v2`
+        CHECK (`permission_policy_ref` IS NOT NULL OR `permission_snapshot` IS NOT NULL);
 
 -- V2 transitions are identified by the compiled stable key. A legacy row may still carry the old id/revision.
 ALTER TABLE `proj_project_stage_transition`
@@ -48,4 +51,4 @@ ALTER TABLE `proj_project_stage_transition`
     ADD CONSTRAINT `ck_pst_default_v2`
         CHECK (`is_default` IN (0,1)
             AND (`is_default` = 0 OR (`condition_rule_revision_id` IS NULL AND `condition_snapshot` IS NULL))),
-    ADD KEY `idx_pst_source_key` (`tenant_id`, `project_id`, `graph_version`, `source_transition_key`);
+    ADD UNIQUE KEY `uk_pst_source_key_v2` (`tenant_id`, `project_id`, `graph_version`, `source_transition_key`);
