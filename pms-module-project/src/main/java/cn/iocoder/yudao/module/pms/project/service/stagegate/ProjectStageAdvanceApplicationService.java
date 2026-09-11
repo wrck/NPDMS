@@ -184,7 +184,7 @@ public class ProjectStageAdvanceApplicationService {
         List<Map<String, Object>> evaluations = new ArrayList<>();
         Map<Long, List<GateReferenceContext>> byGate = context.references().stream()
                 .collect(Collectors.groupingBy(item -> item.gate().getId(), LinkedHashMap::new, Collectors.toList()));
-        for (ProjectGateInstanceDO gate : context.gates()) {
+        for (ProjectGateInstanceDO gate : ProjectStageTransitionFacts.exitBeforeEntry(context.gates())) {
             List<GateReferenceContext> gateRefs = byGate.getOrDefault(gate.getId(), List.of());
             if (gateRefs.isEmpty()) throw exception(PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE, "EXIT Gate缺少Reference");
             for (GateReferenceContext item : gateRefs) {
@@ -194,7 +194,9 @@ public class ProjectStageAdvanceApplicationService {
                 }
                 ProjectStageGateFact fact;
                 try {
-                    fact = providerRegistry.lockAndRevalidate(providerKey, factQuery(context, item));
+                    fact = ProjectStageTransitionFacts.completionForEntry(
+                            graph.current(), graph.target(), gate, item.reference(), true);
+                    if (fact == null) fact = providerRegistry.lockAndRevalidate(providerKey, factQuery(context, item));
                 } catch (IllegalStateException ex) {
                     throw exception(PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE, "OWNER_PROVIDER_UNAVAILABLE");
                 }

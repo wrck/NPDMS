@@ -55,6 +55,7 @@
           <div class="rail-stage-title">交付流程</div>
           <ProjectFlowNavigation
             v-if="detail?.id"
+            ref="flowNavigationRef"
             :project-id="detail.id"
             @select="handleFlowSelect"
           />
@@ -372,6 +373,7 @@
           <ProjectStageGatePanel
             :project-id="detail.id"
             :key="`${detail.id}:${detail.version}:${activeTab}`"
+            @changed="handleStageChanged"
           />
         </div>
 
@@ -524,6 +526,7 @@ const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
 const scopeVersion = ref<number>()
 const flowSelection = ref<ProjectFlowSelection>()
+const flowNavigationRef = ref<InstanceType<typeof ProjectFlowNavigation>>()
 const scopeContext = computed<ProjectRouteContext | undefined>(() => {
   const project = detail.value
   if (!project?.id || project.version === undefined || scopeVersion.value === undefined) {
@@ -633,6 +636,9 @@ const handleAttributeUpdated = async () => {
 }
 const handleMembersUpdated = async () => {
   await Promise.all([loadDetail(), loadInstances()])
+}
+const handleStageChanged = async () => {
+  await Promise.all([loadDetail(), loadInstances(), flowNavigationRef.value?.reload()])
 }
 const loadInstances = async () => {
   const id = projectId()

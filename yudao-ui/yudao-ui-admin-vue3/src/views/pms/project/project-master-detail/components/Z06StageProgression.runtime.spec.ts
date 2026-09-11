@@ -16,9 +16,9 @@ vi.mock('./ProjectTaskTree.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ProjectTaskWorkbenchDrawer.vue', () => ({ default: { render: () => null } }))
 
 const apps: { unmount: () => void }[] = []
-const render = (component: Component) => {
+const render = (component: Component, onChanged = vi.fn()) => {
   const child = ref<any>()
-  const wrapper = defineComponent({ setup: () => () => h(component, { projectId: 9, ref: child }) })
+  const wrapper = defineComponent({ setup: () => () => h(component, { projectId: 9, ref: child, onChanged }) })
   const { app } = mount(wrapper, {}, { ElSelect: passthrough, ElOption: passthrough, ElForm: passthrough })
   apps.push(app)
   return () => child.value.$.setupState
@@ -43,6 +43,16 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 describe('Z06 frozen progression retry and S0 creation guard', () => {
+  it('notifies the host only after a successful progression, not after a failed retry', async () => {
+    const changed = vi.fn()
+    const state = render(StagePanel, changed); await flush()
+    api.advanceProjectStage.mockRejectedValueOnce(new Error('unavailable'))
+    await state().recheckProgress()
+    expect(changed).not.toHaveBeenCalled()
+    await state().recheckProgress()
+    expect(changed).toHaveBeenCalledTimes(1)
+  })
+
   it('rechecks current versions and advances only the server-resolved target', async () => {
     const state = render(StagePanel); await flush()
     api.getProjectStageAdvanceReadiness.mockResolvedValueOnce({ ...ready(), projectVersion: 7 })

@@ -4,9 +4,16 @@ import { describe, expect, it } from 'vitest'
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const panel = read('./ProjectStageGatePanel.vue')
 const detail = read('../index.vue')
+const inheritanceDetail = read('../../inheritance/detail/index.vue')
 const api = read('../../../../../api/pms/project/projects/index.ts')
 
 describe('F-PROJ-008 project stage gate workspace', () => {
+  it('refreshes the new project header, instances and navigation after progression', () => {
+    expect(inheritanceDetail).toMatch(/<ProjectStageGatePanel\s[^>]*@changed="handleStageChanged"/)
+    expect(inheritanceDetail).toContain('ref="flowNavigationRef"')
+    expect(inheritanceDetail).toContain('Promise.all([loadDetail(), loadInstances(), flowNavigationRef.value?.reload()])')
+  })
+
   it('connects the project workspace to readiness and adjacent stage advance APIs', () => {
     expect(detail).not.toContain("{ key: 'stage-gates', label: '阶段门禁'")
     expect(detail).toContain('<ProjectStageGatePanel')

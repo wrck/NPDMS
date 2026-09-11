@@ -62,12 +62,16 @@ public class ProjectLocalStageGateFactProvider implements ProjectStageGateFactPr
     }
 
     private ProjectStageGateFact state(ProjectStageGateFactQuery query) {
-        String stageCode = STATE_STAGE_CODES.get(query.refCode());
+        String stageCode = completedStageCode(query.refCode());
         if (stageCode == null) return unavailable(PROVIDER_PROJ_STATE, query, "STATE_CODE_UNKNOWN");
         ProjectStageInstanceDO row = mapper.selectStageForUpdate(localQuery(query, stageCode));
         if (row == null) return unavailable(PROVIDER_PROJ_STATE, query, "STATE_NOT_FOUND");
         return fact(PROVIDER_PROJ_STATE, query, row.getId(), row.getStatus(), row.getVersion(),
                 "DONE".equals(row.getStatus()), "STATE_NOT_DONE");
+    }
+
+    static String completedStageCode(String refCode) {
+        return refCode == null ? null : STATE_STAGE_CODES.get(refCode);
     }
 
     private static ProjectLocalGateFactQuery localQuery(ProjectStageGateFactQuery query, String ownerCode) {

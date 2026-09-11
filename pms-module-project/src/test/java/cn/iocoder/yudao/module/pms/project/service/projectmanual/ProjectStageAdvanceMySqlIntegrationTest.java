@@ -89,7 +89,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     private ProjectMemberAssignmentMapper memberMapper;
     @Resource
     private ProjectStageSnapshotMapper snapshotMapper;
-    @Resource
+    @MockitoSpyBean
     private ProjectStageSnapshotRepository snapshotRepository;
 
     @Resource
@@ -104,6 +104,10 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     private TemplateDefinitionReferenceAssembler definitionReferenceAssembler;
     @MockitoBean
     private DeliveryConfigurationCommands configurationCommands;
+    @MockitoBean
+    private cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi normalClosureApi;
+    @MockitoBean
+    private cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi explicitPermissionApi;
     @MockitoBean
     private cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
     @MockitoBean
@@ -236,6 +240,54 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
         assertThrows(ServiceException.class, () -> stageAdvanceService.advance(
                 command(created.id(), version + 1, "S0", treeVersion, "version-drift"), actor("version-drift")));
         assertEquals(before, advanceFactCounts(created.id()));
+    }
+
+    @Test
+    void snapshotFailureRollsBackStageGateAndProjectUpdates() {
+        currentCompletionEntryTemplate();
+        var created = applicationService.create(newCommand(), newActor());
+        assignPrimaryManagers(created.id());
+        int version = projectVersion(created.id());
+        var before = advanceFactCounts(created.id());
+        org.mockito.Mockito.doThrow(new IllegalStateException("snapshot unavailable"))
+                .when(snapshotRepository).append(any());
+
+        assertThrows(IllegalStateException.class, () -> stageAdvanceService.advance(
+                command(created.id(), version, "S0", currentTreeVersion(created.id()), "snapshot-failure"),
+                actor("snapshot-failure")));
+
+        assertEquals("S0", currentStage(created.id()));
+        assertEquals(version, projectVersion(created.id()));
+        assertEquals(before, advanceFactCounts(created.id()));
+        assertEquals(0L, count("SELECT COUNT(*) FROM proj_project_gate WHERE project_id=? AND status='PASSED'", created.id()));
+        assertEquals(1L, count("SELECT COUNT(*) FROM proj_project_stage WHERE project_id=? AND stage_code='S0' AND status='ACTIVE'", created.id()));
+        assertEquals(1L, count("SELECT COUNT(*) FROM proj_project_stage WHERE project_id=? AND stage_code='S4' AND status='PENDING'", created.id()));
+    }
+
+    @Test
+    void currentStageCompletionEntryAdvancesAtomicallyAndRetainsEvaluationEvidence() {
+        currentCompletionEntryTemplate();
+        var created = applicationService.create(newCommand(), newActor());
+        assignPrimaryManagers(created.id());
+        int version = projectVersion(created.id());
+        assertEquals("S0", currentStage(created.id()));
+        var result = stageAdvanceService.advance(command(created.id(), version, "S0", currentTreeVersion(created.id()), "current-completion"),
+                actor("current-completion"));
+        assertEquals("S4", result.afterStage());
+        assertEquals(version + 1, projectVersion(created.id()));
+        assertTrue(result.gateEvaluationSummary().contains("COMPLETION_VERIFIED"));
+        assertEquals(1L, count("SELECT COUNT(*) FROM proj_project_stage WHERE project_id=? AND stage_code='S0' AND status='DONE'", created.id()));
+        assertEquals(1L, count("SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE project_id=? AND operation_type='STAGE_ADVANCE'", created.id()));
+    }
+
+    private void currentCompletionEntryTemplate() {
+        var template = graphTemplate(false);
+        template.getGates().get(1).getReferences().getFirst().setRefCode("S0_COMPLETED");
+        doReturn(template).when(templateService).getRevisionContent(any(), any());
+        // Persisted S0 is still ACTIVE. Only the transition-scoped completion fact may satisfy this entry.
+        doReturn(new ProjectStageGateFact("PROJ_STATE", "STATE", "S0_COMPLETED", "ACTIVE", "0",
+                ProjectStageGateOutcome.UNSATISFIED, "STATE_NOT_DONE")).when(providerRegistry)
+                .lockAndRevalidate(any(), argThat(query -> query != null && "S0_COMPLETED".equals(query.refCode())));
     }
 
     @Test

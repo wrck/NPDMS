@@ -154,6 +154,50 @@ class ProjectStageReadinessServiceTest {
     }
 
     @Test
+    void verifiesCurrentCompletionForEntryWithoutChangingPersistedStage() {
+        currentCompletionEntry(true);
+        var result = service.evaluate(PROJECT_ID, ACTOR_ID);
+        assertTrue(result.advanceAllowed());
+        assertEquals("COMPLETION_VERIFIED", result.gates().getLast().references().getFirst().fact().ownerBusinessVersion());
+        assertEquals("ACTIVE", stages.getFirst().getStatus());
+        verify(providerRegistry, never()).lockAndRevalidate(any(), argThat(query -> "S0_COMPLETED".equals(query.refCode())));
+    }
+
+    @Test
+    void entryCannotBorrowCompletionWhenExitOrNativeCompletionOrResponsibilitiesFail() {
+        currentCompletionEntry(false);
+        assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
+        verify(providerRegistry).lockAndRevalidate(any(), argThat(query -> "S0_COMPLETED".equals(query.refCode())));
+        currentCompletionEntry(true);
+        when(graphMapper.selectTasks(any())).thenReturn(List.of(new ProjectTaskInstanceDO()
+                .setId(99L).setStageCode("S0").setStatus("PENDING_ASSIGN")));
+        assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
+        when(graphMapper.selectTasks(any())).thenReturn(List.of());
+        when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(primaryPm));
+        assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
+    }
+
+    private void currentCompletionEntry(boolean exitSatisfied) {
+        var exit = new ProjectGateInstanceDO().setId(31L).setGateCode("G-S0-EXIT")
+                .setGateType("EXIT").setStageCode("S0").setStatus("PENDING").setVersion(0);
+        var entry = new ProjectGateInstanceDO().setId(32L).setGateCode("G-S4-ENTRY")
+                .setGateType("ENTRY").setStageCode("S4").setStatus("PENDING").setVersion(0);
+        when(graphMapper.selectGates(any())).thenReturn(List.of(entry, exit));
+        when(referenceMapper.selectOrdered(any())).thenReturn(List.of(
+                new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
+                        .setRefType("STATE").setRefCode("S0_COMPLETED").setVersion(0),
+                new ProjectGateReferenceInstanceDO().setId(41L).setGateId(31L)
+                        .setRefType("PROCESS").setRefCode("gate-process").setVersion(0)));
+        doAnswer(invocation -> {
+            cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFactQuery query = invocation.getArgument(1);
+            boolean satisfied = exitSatisfied && "PROCESS".equals(query.refType());
+            return new ProjectStageGateFact(invocation.getArgument(0), query.refType(), query.refCode(), "ACTIVE", "0",
+                    satisfied ? ProjectStageGateOutcome.SATISFIED : ProjectStageGateOutcome.UNSATISFIED,
+                    satisfied ? null : "NOT_DONE");
+        }).when(providerRegistry).lockAndRevalidate(any(), any());
+    }
+
+    @Test
     void terminalIsNotAdvanceOrClosureAndMissingGraphFailsClosed() {
         project.setCurrentStage("S6");
         stages.getFirst().setStatus("DONE"); stages.getLast().setStatus("ACTIVE");

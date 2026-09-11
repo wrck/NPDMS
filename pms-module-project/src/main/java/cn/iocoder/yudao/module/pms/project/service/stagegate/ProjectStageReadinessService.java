@@ -76,8 +76,12 @@ public class ProjectStageReadinessService {
         Map<Long, List<ProjectGateReferenceInstanceDO>> byGate = references.stream()
                 .collect(Collectors.groupingBy(ProjectGateReferenceInstanceDO::getGateId));
         boolean canManage = canManage(project, actorUserId, tenantId);
+        boolean resolved = graph.transition().status() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.Status.RESOLVED;
+        boolean completed = graph.completion() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.SATISFIED;
+        String assignmentReason = s0AssignmentUnmetReason(project, memberMapper);
+        boolean currentReadyToComplete = resolved && completed && assignmentReason == null;
         List<ProjectStageReadinessResult.GateResult> results = new ArrayList<>();
-        for (ProjectGateInstanceDO gate : gates) {
+        for (ProjectGateInstanceDO gate : ProjectStageTransitionFacts.exitBeforeEntry(gates)) {
             List<ProjectGateReferenceInstanceDO> gateRefs = byGate.getOrDefault(gate.getId(), List.of());
             if (gateRefs.isEmpty()) {
                 throw exception(PROJECT_STAGE_ADVANCE_INVALID, "EXIT Gate缺少Reference");
@@ -85,7 +89,9 @@ public class ProjectStageReadinessService {
             List<ProjectStageReadinessResult.ReferenceResult> refResults = new ArrayList<>();
             boolean gateSatisfied = true;
             for (ProjectGateReferenceInstanceDO reference : gateRefs) {
-                ProjectStageGateFact fact = evaluateFact(tenantId, project, gate, reference);
+                ProjectStageGateFact fact = ProjectStageTransitionFacts.completionForEntry(
+                        graph.current(), graph.target(), gate, reference, currentReadyToComplete);
+                if (fact == null) fact = evaluateFact(tenantId, project, gate, reference);
                 gateSatisfied &= fact.outcome() == ProjectStageGateOutcome.SATISFIED;
                 List<String> actions = canManage && isProcess(reference)
                         && fact.outcome() == ProjectStageGateOutcome.UNSATISFIED
@@ -96,11 +102,9 @@ public class ProjectStageReadinessService {
             }
             results.add(new ProjectStageReadinessResult.GateResult(gate.getId(), gate.getGateCode(),
                     gate.getName(), gate.getStatus(), gateSatisfied, List.copyOf(refResults)));
+            if ("EXIT".equals(gate.getGateType())) currentReadyToComplete &= gateSatisfied;
         }
         boolean allSatisfied = results.stream().allMatch(ProjectStageReadinessResult.GateResult::satisfied);
-        boolean resolved = graph.transition().status() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.Status.RESOLVED;
-        boolean completed = graph.completion() == cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.SATISFIED;
-        String assignmentReason = s0AssignmentUnmetReason(project, memberMapper);
         boolean allowed = canManage && allSatisfied && resolved && completed && assignmentReason == null;
         String reason = assignmentReason != null ? assignmentReason : !resolved ? graph.transition().status().name()
                 : !completed ? "STAGE_COMPLETION_" + graph.completion().name() : "请完成当前准出及目标准入条件";
