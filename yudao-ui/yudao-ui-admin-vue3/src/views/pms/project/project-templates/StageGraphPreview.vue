@@ -17,7 +17,7 @@
         <text v-for="edge in layout.edges" :key="`${edge.key}-label`" :x="edge.labelX" :y="edge.labelY" class="graph-edge-label">
           {{ edge.label }}
         </text>
-        <g v-for="node in nodes" :key="node.code" :transform="`translate(${node.x}, ${node.y})`">
+        <g v-for="node in nodes" :key="node.key" :transform="`translate(${node.x}, ${node.y})`">
           <rect
             :class="['graph-node', { 'graph-node-start': node.start, 'graph-node-terminal': node.terminal, 'graph-node-cyclic': node.cyclic }]"
             :width="nodeWidth"
@@ -32,7 +32,7 @@
         <span class="legend-start">开始</span><span class="legend-terminal">正常收口</span>
         <span class="legend-default">— — 默认分支</span>
         <span v-if="cyclic.length" class="legend-cyclic">循环受阻：{{ cyclic.join('、') }}</span>
-        <span class="legend-hint">仅按显式关系渲染；排序不生成边。</span>
+        <span class="legend-hint">仅按 DesignerDocument 的显式关系渲染；排序不生成边。</span>
       </p>
     </template>
     <el-alert v-else title="尚未配置阶段，无图可预览。" type="info" :closable="false" />
@@ -40,10 +40,9 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
+import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 
-// Read-only projection of the explicit transition graph; never mutates or infers edges.
-const props = defineProps<{ content: TemplateDefinitionContent }>()
+const props = defineProps<{ content: TemplateDesignerDocument }>()
 const nodeWidth = 150
 const nodeHeight = 48
 const colGap = 70
@@ -52,22 +51,21 @@ const padding = 12
 
 const graph = computed(() => {
   const stages = props.content.stages
-  const edges = props.content.transitions ?? []
+  const edges = props.content.transitions
   const outgoing = new Map<string, string[]>()
   const indegree = new Map<string, number>()
   stages.forEach((stage) => {
-    outgoing.set(stage.stageCode, [])
-    indegree.set(stage.stageCode, 0)
+    outgoing.set(stage.code, [])
+    indegree.set(stage.code, 0)
   })
   edges.forEach((edge) => {
     if (!outgoing.has(edge.fromStageCode) || !indegree.has(edge.toStageCode)) return
     outgoing.get(edge.fromStageCode)!.push(edge.toStageCode)
     indegree.set(edge.toStageCode, (indegree.get(edge.toStageCode) ?? 0) + 1)
   })
-  // Kahn layering: invariant DAG part first; leftovers are cyclic or unreachable-by-order nodes.
   const layers: string[][] = []
   const placed = new Set<string>()
-  let frontier = stages.filter((stage) => (indegree.get(stage.stageCode) ?? 0) === 0).map((stage) => stage.stageCode)
+  let frontier = stages.filter((stage) => (indegree.get(stage.code) ?? 0) === 0).map((stage) => stage.code)
   while (frontier.length) {
     layers.push(frontier)
     frontier.forEach((code) => placed.add(code))
@@ -80,12 +78,13 @@ const graph = computed(() => {
     )
     frontier = next
   }
-  const cyclic = stages.filter((stage) => !placed.has(stage.stageCode)).map((stage) => stage.stageCode)
+  const cyclic = stages.filter((stage) => !placed.has(stage.code)).map((stage) => stage.code)
   if (cyclic.length) layers.push(cyclic)
   return { stages, edges, layers, cyclic }
 })
 
 interface GraphNode {
+  key: string
   code: string
   name: string
   start?: boolean
@@ -95,12 +94,13 @@ interface GraphNode {
   y: number
 }
 const nodes = computed<GraphNode[]>(() => {
-  const byCode = new Map(graph.value.stages.map((stage) => [stage.stageCode, stage]))
+  const byCode = new Map(graph.value.stages.map((stage) => [stage.code, stage]))
   const result: GraphNode[] = []
   graph.value.layers.forEach((layer, columnIndex) => {
     layer.forEach((code, rowIndex) => {
       const stage = byCode.get(code)
       result.push({
+        key: stage?.nodeKey ?? code,
         code,
         name: stage?.name ?? '',
         start: stage?.start,
@@ -116,7 +116,7 @@ const nodes = computed<GraphNode[]>(() => {
 
 const layout = computed(() => {
   const position = new Map(nodes.value.map((node) => [node.code, node]))
-  const edges = graph.value.edges.map((edge, index) => {
+  const edges = graph.value.edges.map((edge) => {
     const from = position.get(edge.fromStageCode)
     const to = position.get(edge.toStageCode)
     if (!from || !to) return null
@@ -126,12 +126,12 @@ const layout = computed(() => {
     const y2 = to.y + nodeHeight / 2
     const bend = Math.max(36, Math.abs(x2 - x1) / 2)
     return {
-      key: edge.transitionCode || `edge-${index}`,
+      key: edge.edgeKey,
       path: `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`,
       labelX: (x1 + x2) / 2,
       labelY: (y1 + y2) / 2 - 4,
-      label: edge.default ? '默认' : `P${edge.priority ?? 0}`,
-      default: edge.default
+      label: edge.defaultBranch ? '默认' : edge.condition ? '条件' : `P${edge.priority ?? 0}`,
+      default: edge.defaultBranch
     }
   }).filter((edge): edge is NonNullable<typeof edge> => edge !== null)
   const width = padding * 2 + graph.value.layers.length * nodeWidth + Math.max(graph.value.layers.length - 1, 0) * colGap
