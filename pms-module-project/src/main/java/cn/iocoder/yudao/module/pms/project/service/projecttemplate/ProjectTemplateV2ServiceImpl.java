@@ -12,6 +12,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.Templ
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationErrors;
@@ -22,8 +25,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 
@@ -134,11 +142,48 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        if (!hasText(revision.getExecutionSnapshot())) {
+        if (!isV2RuntimeEligible(revision)) {
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
-                    "历史发布版本缺少V2执行快照，禁止由当前编译器即时重解释；请显式复制为V2草稿并重新发布");
+                    "历史发布版本缺少完整V2执行快照，禁止由当前编译器即时重解释；请显式复制为V2草稿并重新发布");
         }
         return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+    }
+
+    /**
+     * New-project matching is stricter than historical readability: only the latest published revision
+     * with a complete persisted V2 runtime envelope is selectable. Legacy revisions remain readable but
+     * are never advertised as candidates that would fail later during project creation.
+     */
+    @Override
+    public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
+                                             String implementationMethod, String majorProjectLevel) {
+        List<ProjectTemplateDO> activeTemplates =
+                v2TemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
+        List<TemplateMatchCandidate> candidates = new ArrayList<>();
+        for (ProjectTemplateDO activeTemplate : activeTemplates) {
+            List<ProjectTemplateRevisionDO> published =
+                    v2RevisionMapper.selectPublishedListByTemplateId(activeTemplate.getId());
+            if (published.isEmpty()) continue;
+            ProjectTemplateRevisionDO latest = published.getFirst();
+            if (!isV2RuntimeEligible(latest)) continue;
+            TemplateMatchCandidate candidate = new TemplateMatchCandidate();
+            candidate.setTemplateId(activeTemplate.getId());
+            candidate.setCode(activeTemplate.getCode());
+            candidate.setName(activeTemplate.getName());
+            candidate.setMatchPriority(activeTemplate.getMatchPriority());
+            candidate.setLatestRevisionNo(latest.getRevisionNo());
+            candidate.setTemplateRevisionId(latest.getId());
+            candidate.setSigningMethod(latest.getSigningMethod());
+            candidate.setProjectCategory(latest.getProjectCategory());
+            candidate.setImplementationMethod(latest.getImplementationMethod());
+            candidate.setMajorProjectLevel(latest.getMajorProjectLevel());
+            candidates.add(candidate);
+        }
+        TemplateMatchResult result = TemplateMatcher.match(candidates, signingMethod, projectCategory,
+                implementationMethod, majorProjectLevel);
+        result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
+                implementationMethod, majorProjectLevel));
+        return result;
     }
 
     @Override
@@ -283,6 +328,47 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             return JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class);
         TemplateDefinitionContent legacy = super.getRevisionContent(templateId, revisionNo);
         return TemplateDesignerDocument.fromResolvedLegacy(legacy);
+    }
+
+    private boolean isV2RuntimeEligible(ProjectTemplateRevisionDO revision) {
+        return revision != null
+                && TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())
+                && revision.getExecutionSchemaVersion() != null
+                && revision.getExecutionSchemaVersion() >= TemplateExecutionSnapshot.SCHEMA_VERSION
+                && hasText(revision.getExecutionSnapshot())
+                && hasText(revision.getCompilerVersion())
+                && hasText(revision.getSnapshotHash());
+    }
+
+    private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
+                                      String projectCategory, String implementationMethod,
+                                      String majorProjectLevel) {
+        StringBuilder canonical = new StringBuilder();
+        appendToken(canonical, signingMethod);
+        appendToken(canonical, projectCategory);
+        appendToken(canonical, implementationMethod);
+        appendToken(canonical, majorProjectLevel);
+        candidates.stream().sorted(Comparator.comparing(TemplateMatchCandidate::getTemplateId)).forEach(candidate -> {
+            appendToken(canonical, candidate.getTemplateId());
+            appendToken(canonical, candidate.getTemplateRevisionId());
+            appendToken(canonical, candidate.getLatestRevisionNo());
+            appendToken(canonical, candidate.getMatchPriority());
+            appendToken(canonical, candidate.getSigningMethod());
+            appendToken(canonical, candidate.getProjectCategory());
+            appendToken(canonical, candidate.getImplementationMethod());
+            appendToken(canonical, candidate.getMajorProjectLevel());
+        });
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
+        }
+    }
+
+    private void appendToken(StringBuilder target, Object value) {
+        String token = value == null ? "" : String.valueOf(value);
+        target.append(token.length()).append(':').append(token).append(';');
     }
 
     private ProjectTemplateDO lockV2Template(Long id) {
