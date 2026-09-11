@@ -1,5 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query;
 
-/** 按受信租户与模板任务定义稳定键查询发布版本事实。 */
-public record ProjectTemplateRevisionFactQuery(Long tenantId, Long templateTaskDefinitionId) {
+/**
+ * Resolve the frozen template revision from Project identity.
+ * templateTaskDefinitionId is the frozen task runtime node id for V2 and a legacy row id for old projects.
+ */
+public record ProjectTemplateRevisionFactQuery(
+        Long tenantId,
+        Long projectId,
+        Long templateTaskDefinitionId) {
 }
