@@ -95,6 +95,7 @@ class ProjectRulesTest {
         assertFalse(ProjectRules.isEditableField("status"));
         assertFalse(ProjectRules.isEditableField("lifecycleTemplateId"));
         assertFalse(ProjectRules.isEditableField("lifecycleTemplateRevisionNo"));
+        assertFalse(ProjectRules.isEditableField("lifecycleTemplateRevisionId"));
         assertFalse(ProjectRules.isEditableField("templateLoadMethod"));
         assertFalse(ProjectRules.isEditableField("signingMethod"));
         assertFalse(ProjectRules.isEditableField("creationReason"));
@@ -128,6 +129,7 @@ class ProjectRulesTest {
         update.setSourceType(ProjectRules.SOURCE_TYPE_ORDER);
         update.setLifecycleTemplateId(888L);
         update.setLifecycleTemplateRevisionNo(99);
+        update.setLifecycleTemplateRevisionId(999999L);
         update.setTemplateLoadMethod(ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
         update.setSigningMethod("HACK");
         update.setProjectCategory("HACK");
@@ -142,6 +144,7 @@ class ProjectRulesTest {
         assertEquals(ProjectRules.SOURCE_TYPE_MANUAL, update.getSourceType());
         assertEquals(5L, update.getLifecycleTemplateId());
         assertEquals(2, update.getLifecycleTemplateRevisionNo());
+        assertEquals(5002L, update.getLifecycleTemplateRevisionId());
         assertEquals(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT, update.getTemplateLoadMethod());
         assertEquals("DIRECT_SIGN", update.getSigningMethod());
         assertEquals("GENERAL", update.getProjectCategory());
@@ -183,6 +186,7 @@ class ProjectRulesTest {
         current.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         current.setLifecycleTemplateId(5L);
         current.setLifecycleTemplateRevisionNo(2);
+        current.setLifecycleTemplateRevisionId(5002L);
         current.setTemplateLoadMethod(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
         current.setContractNo("HT-2026-001");
         return current;
