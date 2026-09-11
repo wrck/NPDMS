@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 public class ProjectRuntimeGraphFreezer {
     /** Runtime graph version remains 1 because project Stage rows already freeze this value. */
     private static final long GRAPH_VERSION = 1L;
+    /** Old PM-01 bootstrap mapped these codes directly to ACC. New V2 must express ACC by binding/facts instead. */
+    private static final Set<String> LEGACY_ACCEPTANCE_TASK_CODES = Set.of("T-INITIAL-ACCEPT", "T-FINAL-ACCEPT");
 
     private final ProjectRuntimeGraphMapper graphMapper;
     private final ProjectStageExecutionContractMapper contractMapper;
@@ -82,6 +84,9 @@ public class ProjectRuntimeGraphFreezer {
             if ("S0".equals(task.getStageCode())) throw new IllegalArgumentException("S0不生成任务");
             if (blank(task.getSourceNodeKey()) || !nodeKeys.add(task.getSourceNodeKey()))
                 throw new IllegalArgumentException("COMPILED_TASK_NODE_KEY_REQUIRED");
+            if (LEGACY_ACCEPTANCE_TASK_CODES.contains(task.getTaskCode()) && task.getDefinitionRevisionId() == null)
+                throw new IllegalArgumentException("V2模板不得使用旧验收任务保留码：" + task.getTaskCode()
+                        + "；请用ACC WorkBinding/CompletionRule显式表达验收");
             if (blank(task.getWorkBindingTypeCode()) || blank(task.getCompletionRuleTypeCode())
                     || blank(task.getBindingConfig()) || blank(task.getCompletionRuleConfig()))
                 throw new IllegalArgumentException("COMPILED_TASK_CONTRACT_REQUIRED");
