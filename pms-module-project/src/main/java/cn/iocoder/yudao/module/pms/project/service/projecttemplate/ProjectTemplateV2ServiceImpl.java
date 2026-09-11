@@ -156,7 +156,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         List<Issue> issues = new ArrayList<>(templateCompiler.compile(designer).issues());
         issues.addAll(dependencyValidator.validate(designer, false));
-        if (designer.getSourceEvidence() != null) {
+        if (isFullyLegacyPinned(designer)) {
             try {
                 issues.addAll(super.validateProjectTemplate(id).issues());
             } catch (RuntimeException ex) {
@@ -181,7 +181,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         // New references are locked and revalidated inside this publication transaction. A stale or
         // disabled BusinessView cannot be smuggled into an immutable ExecutionSnapshot.
         issues.addAll(dependencyValidator.validate(designer, true));
-        if (designer.getSourceEvidence() != null) {
+        if (isFullyLegacyPinned(designer)) {
             try {
                 issues.addAll(super.validateProjectTemplate(id).issues());
             } catch (RuntimeException ex) {
