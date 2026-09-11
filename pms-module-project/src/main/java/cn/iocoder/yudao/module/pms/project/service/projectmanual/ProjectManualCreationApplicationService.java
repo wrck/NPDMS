@@ -190,8 +190,8 @@ public class ProjectManualCreationApplicationService {
     }
 
     private void initializePreparationIfConfigured(ProjectMasterDO project, Actor actor) {
-        var content = projectTemplateService.getRevisionContent(
-                project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo());
+        var content = projectTemplateService.getExecutionSnapshot(
+                project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo()).toRuntimeContent();
         if (content.getTasks().stream().noneMatch(PreparationWorkBindingSchema::isPreparationBinding)) {
             return;
         }

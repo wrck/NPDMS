@@ -15,7 +15,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTempl
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
@@ -161,8 +161,8 @@ class ProjectManualCreationApplicationServiceTest {
         lenient().when(deptApi.getDept(20L)).thenReturn(department);
         lenient().when(organizationScopeApi.hasScope(7L, 10L, 20L)).thenReturn(true);
         lenient().when(projectSiteService.validateLocationScope(any(), any())).thenReturn("UNRESOLVED");
-        lenient().when(projectTemplateService.getRevisionContent(any(), any()))
-                .thenReturn(new TemplateDefinitionContent());
+        lenient().when(projectTemplateService.getExecutionSnapshot(any(), any()))
+                .thenReturn(new TemplateExecutionSnapshot());
     }
 
     @Test
@@ -234,14 +234,17 @@ class ProjectManualCreationApplicationServiceTest {
     void preparationBindingInitializesInsideProjectCreationOperation() {
         ProjectMasterDO project = project();
         TemplateMatchDecision matchDecision = decision();
-        TemplateDefinitionContent content = new TemplateDefinitionContent();
-        TemplateDefinitionContent.TaskDef task = new TemplateDefinitionContent.TaskDef();
-        task.setWorkBindingTypeCode("BUSINESS_OBJECT");
-        task.setTargetContextCode("SOL");
-        task.setTargetObjectType("SITE_SURVEY_PREPARATION");
-        task.setTargetObjectKey("PRE_02_SITE_SURVEY");
-        content.setTasks(java.util.List.of(task));
-        when(projectTemplateService.getRevisionContent(9L, 2)).thenReturn(content);
+        TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
+        TemplateExecutionSnapshot.TaskContract task = new TemplateExecutionSnapshot.TaskContract();
+        task.setNodeKey("task:PRE-02");
+        TemplateExecutionSnapshot.BindingContract binding = new TemplateExecutionSnapshot.BindingContract();
+        binding.setType("BUSINESS_OBJECT");
+        binding.setTargetContextCode("SOL");
+        binding.setTargetObjectType("SITE_SURVEY_PREPARATION");
+        binding.setTargetObjectKey("PRE_02_SITE_SURVEY");
+        task.setBinding(binding);
+        snapshot.getTasks().add(task);
+        when(projectTemplateService.getExecutionSnapshot(9L, 2)).thenReturn(snapshot);
         when(projectWorkBindingFactApi.inspect(any())).thenReturn(new ProjectWorkBindingFact(
                 100L, 0, 200L, 3, 300L, 4, 400L, 5,
                 "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION", "PRE_02_SITE_SURVEY",
