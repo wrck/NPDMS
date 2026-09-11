@@ -20,8 +20,8 @@
                c.binding_parameter_snapshot    AS bindingParameterSnapshot,
                c.source_definition_version     AS sourceDefinitionVersion,
                c.contract_version              AS contractVersion,
-               r.id                            AS templateRevisionId,
-               r.revision_no                   AS templateRevisionNo
+               p.lifecycle_template_revision_id AS templateRevisionId,
+               p.lifecycle_template_revision_no AS templateRevisionNo
         FROM proj_project p
         JOIN proj_project_task t
           ON t.tenant_id = p.tenant_id
@@ -33,12 +33,6 @@
          AND c.current_marker = 1
          AND c.effective_to IS NULL
          AND c.deleted = b'0'
-        JOIN proj_project_template_revision r
-          ON r.tenant_id = p.tenant_id
-         AND r.template_id = p.lifecycle_template_id
-         AND r.revision_no = p.lifecycle_template_revision_no
-         AND r.status = 'PUBLISHED'
-         AND r.deleted = b'0'
         WHERE p.tenant_id = #{query.tenantId}
           AND p.id = #{query.projectId}
           AND p.deleted = b'0'
@@ -69,23 +63,6 @@
           AND effective_to IS NULL
           AND deleted = b'0'
         FOR UPDATE
-    </select>
-
-    <select id="selectTemplateRevisionFact"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord">
-        SELECT #{query.templateTaskDefinitionId} AS templateTaskDefinitionId,
-               r.id                             AS templateRevisionId,
-               r.revision_no                    AS templateRevisionNo
-        FROM proj_project p
-        JOIN proj_project_template_revision r
-          ON r.tenant_id = p.tenant_id
-         AND r.template_id = p.lifecycle_template_id
-         AND r.revision_no = p.lifecycle_template_revision_no
-         AND r.status = 'PUBLISHED'
-         AND r.deleted = b'0'
-        WHERE p.tenant_id = #{query.tenantId}
-          AND p.id = #{query.projectId}
-          AND p.deleted = b'0'
     </select>
 
     <select id="selectSatisfactionTaskForUpdate"
