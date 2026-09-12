@@ -73,8 +73,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             throw new IllegalArgumentException("仅支持模板设计schema v2");
         }
 
-        // Exact legacy assets may be imported once. The persisted V2 document keeps full semantics;
-        // source revision ids remain provenance only and do not become runtime dependencies.
         TemplateDesignerDocument designer = materializeSourcePinnedDesigner(submitted);
 
         ProjectTemplateRevisionDO update = new ProjectTemplateRevisionDO();
@@ -129,6 +127,10 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (hasText(revision.getExecutionSnapshot())) {
             return verifiedExecutionSnapshot(revision).toRuntimeContent();
         }
+        if (TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus()) && hasV2PublicationMetadata(revision)) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
+                    "V2发布版本缺少完整ExecutionSnapshot，禁止退回Designer/Legacy解释路径");
+        }
         if (hasText(revision.getDesignerDocument())) {
             return TemplateDesignerLegacyAdapter.toLegacy(
                     JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class));
@@ -145,11 +147,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         return verifiedExecutionSnapshot(revision);
     }
 
-    /**
-     * New-project matching is stricter than historical readability: only the latest published revision
-     * with a complete and internally consistent V2 runtime envelope is selectable. Legacy or corrupt
-     * revisions remain historical records but are never advertised as new-project candidates.
-     */
     @Override
     public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
                                              String implementationMethod, String majorProjectLevel) {
@@ -219,8 +216,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         TemplateDesignerDocument designer = getDraftDesigner(id);
         TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
-        // New references are locked and revalidated inside this publication transaction. A stale or
-        // disabled BusinessView cannot be smuggled into an immutable ExecutionSnapshot.
         issues.addAll(dependencyValidator.validate(designer, true));
         if (isFullyLegacyPinned(designer)) {
             try {
@@ -302,7 +297,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         return resolved;
     }
 
-    /** Legacy importer only: new V2 editing no longer requires all elements to remain source-pinned. */
     private boolean isFullyLegacyPinned(TemplateDesignerDocument designer) {
         if (designer.getStages() == null || designer.getStages().isEmpty()) return false;
         if (designer.getStages().stream().anyMatch(stage -> stage == null || stage.getSource() == null
@@ -368,6 +362,14 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                 && hasText(revision.getExecutionSnapshot())
                 && hasText(revision.getCompilerVersion())
                 && hasText(revision.getSnapshotHash());
+    }
+
+    private boolean hasV2PublicationMetadata(ProjectTemplateRevisionDO revision) {
+        return revision.getDesignerSchemaVersion() != null
+                || hasText(revision.getDesignerDocument())
+                || revision.getExecutionSchemaVersion() != null
+                || hasText(revision.getCompilerVersion())
+                || hasText(revision.getSnapshotHash());
     }
 
     private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
