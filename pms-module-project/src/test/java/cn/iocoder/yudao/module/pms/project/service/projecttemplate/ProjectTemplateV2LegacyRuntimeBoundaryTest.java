@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateRevisionMapper;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import org.junit.jupiter.api.Test;
@@ -94,6 +95,25 @@ class ProjectTemplateV2LegacyRuntimeBoundaryTest {
 
         assertEquals(PROJECT_TEMPLATE_PUBLISH_INVALID.getCode(), error.getCode());
         assertTrue(error.getMessage().contains("compiler"));
+        verifyNoInteractions(compiler);
+    }
+
+    @Test
+    void revisionContentRejectsPartialV2PublishedRevisionInsteadOfFallingBackToDesigner() {
+        ProjectTemplateRevisionMapper revisions = mock(ProjectTemplateRevisionMapper.class);
+        TemplateCompiler compiler = mock(TemplateCompiler.class);
+        ProjectTemplateV2ServiceImpl service = service(revisions, compiler);
+
+        ProjectTemplateRevisionDO revision = publishedRevision(6);
+        revision.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
+        revision.setDesignerDocument("{}");
+        when(revisions.selectByTemplateIdAndRevisionNo(10L, 6)).thenReturn(revision);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.getRevisionContent(10L, 6));
+
+        assertEquals(PROJECT_TEMPLATE_PUBLISH_INVALID.getCode(), error.getCode());
+        assertTrue(error.getMessage().contains("禁止退回Designer/Legacy解释路径"));
         verifyNoInteractions(compiler);
     }
 
