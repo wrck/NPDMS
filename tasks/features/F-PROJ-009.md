@@ -51,28 +51,29 @@ ProjectRuntimeInitializer / TemplateInstantiator
 - Designer 只表达模板业务设计，不要求用户维护 DefinitionRevision 技术引用。
 - Compiler 是设计态进入运行态的唯一解释边界；同一发布版本的 Snapshot 必须稳定、可复现、不可被未来 Compiler 静默改变。
 - V2 Runtime 只消费持久化 `TemplateExecutionSnapshot`，不得再次解析 DesignerDocument 或当前 DefinitionRevision 来改变发布语义。
+- `TemplateDefinitionContent` 在 V2 新项目链仅允许作为进程内兼容投影 DTO，不再是模板运行真值。
 - Project / Stage / Task / Deliverable 的实例表、状态机、Owner 业务服务和审计历史继续保留。
-- Legacy 模板保持只读兼容；如果要用于新的 V2 发布/新建链，必须显式复制/升级并生成新的 V2 Snapshot。
+- Legacy 模板保持历史只读兼容；如果要用于新的 V2 发布/新建链，必须显式复制/升级并生成新的 V2 Snapshot。
 - Rule Tree 与 Decision Table 是同一 Rule AST 的不同编辑视图，不建立第二套规则模型。
 
-## 2026-09-12 已提交代码 Review 基线
+## 2026-09-12 最新已提交代码 Review
 
-Review 基线 HEAD：`ff87761f6ecf6b82d774f60c46108e339da8d9c8`。
+Review 基线 HEAD：`5affcaf95d80ef9a7bcae970cbe297de10b158ee`。
 
-相对此前界面重构提交 `d445f02c7105ac232bb959a5b0cc1de73b811c5b`，当前分支已继续前进 81 个提交，Template V2 已不是“待设计”，而是主体代码已经进入分支。因此本专项从“继续搭 V2”调整为“review 已落地 V2 → 修正结构性问题 → 收敛单一运行链”。
+从首次专项计划同步提交 `bb6465c0a97f5702b71a38f30a15d0ed4f982489` 到当前 HEAD 共新增 7 个独立提交，涉及 Project Creation、Template V2 Service、RuntimeGraph freezer 及对应回归测试。逐项复核后，没有发现需要回滚的已提交实现；总体方向已经从“V2 与 Legacy 混合运行解释”收敛为“新写只走 V2 Snapshot，Legacy 只保历史读取”。
 
-当前 CI 状态：HEAD 的 CircleCI `buildgroup` 仍为 `pending`；本 Task 不把当前状态表述为已绿。
+当前 HEAD 无 GitHub combined status，且无 PR-triggered workflow run；因此本轮仍没有新的 CI / 构建通过证据，不得表述为已绿。
 
-### Review 已确认的结构性问题
+### 本轮 Review 后确认的边界
 
-1. **专项 Task 与代码现实漂移**：旧 Task 仍记录“修六类草稿 / 本次不改 SDS / 生产代码受既有实施链约束”，已经不符合当前 V2 重写事实和本次明确授权，本提交先纠正。
-2. **Legacy 发布语义漂移风险**：`ProjectTemplateV2ServiceImpl#getExecutionSnapshot` 在历史发布版本没有持久化 V2 Snapshot 时，会调用当前 `TemplateCompiler` 即时把 Legacy 内容编译为 V2 Snapshot。Compiler 未来变化会改变历史版本运行语义，与“旧发布版不静默升级”原则冲突，列为首要代码修复。
-3. **Runtime node identity 需审计**：当前 `TemplateExecutionSnapshot.stableRuntimeNodeId(nodeKey)` 仅以 `nodeKey` 计算 60-bit Long；需确认该值是否被当作跨模板全局定义 ID 使用。如果存在全局语义，将改为命名空间化身份；如果只在 Snapshot / Project 范围使用，则保留并补充约束测试，避免无收益改动。
-4. **V2 Runtime 仍需收敛验证**：需要继续核对项目新建、RuntimeGraphFreezer、TaskExecutionContractFactory 等路径，确保 V2 新链不再回查 `TemplateDefinitionContent / DefinitionSnapshot / DefinitionRevision` 重新解释已经发布的 Snapshot。
+1. **Legacy 发布版不再静默重编译**：历史发布 revision 缺少持久化 V2 Snapshot 时，`getExecutionSnapshot()` 直接拒绝，不再调用当前 Compiler 即时解释。
+2. **Runtime node identity 已定界**：`nodeKey` 是规范身份；60-bit `runtimeNodeId` 仅用于未改造 Long 契约的兼容投影，当前分支已不存在按该 Long 跨模板全局反查模板 revision 的路径。
+3. **Project Creation 已切到 Snapshot**：项目创建主链和 PRE-02 创建后初始化均从 `getExecutionSnapshot()` 获取运行输入；`TemplateDefinitionContent` 仅由 Snapshot 在进程内投影，不再读取发布 Definition rows 作为新项目运行真值。
+4. **RuntimeGraph freezer 已单写 V2**：创建期 freezer 已删除 `FrozenDefinitions / legacy` 写入分支；兼容重载只允许从 `TemplateDefinitionContent.executionSnapshot` 解出 V2 Snapshot。历史项目继续由 Resolver 读取其已冻结的历史 Contract / Transition，不依赖 freezer 重建。
+5. **新项目匹配已排除 Legacy revision**：V2 `matchPreview()` 只把最新发布版具有 `executionSchemaVersion + executionSnapshot + compilerVersion + snapshotHash` 的 ACTIVE 模板暴露为新项目候选，避免“预览命中、创建才失败”。
+6. **仍存在 Snapshot 完整性缺口**：发布时已持久化 schema/compiler/hash，但当前读取只校验 envelope 字段存在，尚未校验 Snapshot JSON 内部 `executionSchemaVersion / compilerVersion` 与行字段一致，也未重算语义 hash 验证 `snapshotHash`。这是下一步首要修复。
 
 ## 已完成并保留的 V2 能力
-
-以下能力已在当前分支落地，本专项不重复造轮子，而是作为后续收敛基础：
 
 - [x] `TemplateDesignerDocument`：Stage / Task / Milestone / Edge / Rule / Binding / Permission / Deliverable / Closure 的设计态模型。
 - [x] `TemplateCompiler`：Designer 到不可变 Execution Snapshot 的编译、校验、稳定排序和语义哈希基础。
@@ -83,22 +84,41 @@ Review 基线 HEAD：`ff87761f6ecf6b82d774f60c46108e339da8d9c8`。
 - [x] 模板统一设计器工作区：阶段与任务、流程画布、规则与决策、高级配置。
 - [x] `StageGraphDesigner`：显式关系图编辑，不从阶段顺序推导边。
 - [x] `RuleDecisionDesigner` + `ruleDecisionModel`：规则树 / 决策表共享同一 AST，复杂嵌套拒绝有损转换。
-- [x] RuntimeGraph freezer / resolver 的 V2 演进基础。
-- [x] 新建项目链已大幅转向 V2 Snapshot / RuntimeGraph。
+- [x] Legacy 发布版禁止当前 Compiler 静默重解释。
+- [x] V2 项目创建主链与 PRE-02 初始化切换到持久化 ExecutionSnapshot。
+- [x] RuntimeGraph freezer 新写路径只接受 V2 Snapshot。
+- [x] 新项目模板匹配排除仅有 Legacy 发布版的模板。
+- [x] Runtime node identity 作用域通过架构回归测试锁定，未做无收益的全局 ID 重写。
 - [x] TASK_NATIVE / Owner completion 的分流与原生完成能力已进入当前分支。
 - [x] S0 / pre-project 与 primary assignment 等当前分支后续改造已合入，不在本专项重复实现。
 - [x] 2026-09-09 六类草稿纠偏、S0 零任务、操作型重复任务移除、真实 PAGE / DYNAMIC_FORM 绑定保存等历史成果继续保留；它们不等于 V2 Runtime 已闭环。
 
+## 本轮专项提交记录
+
+- `bb6465c0a97f5702b71a38f30a15d0ed4f982489` — `docs(pm-03): refresh template runtime rewrite task plan`
+- `db0d5ab176c7cc7077e4ddd7a5de99f009105421` — `fix(pm-03): stop implicit legacy snapshot recompilation`
+- `95eb9272e80a303b20493a49ea74c0424b92c3b6` — `test(pm-03): lock runtime node identity scope`
+- `b57ad994c9f4ade36d6aa4b71e606c53c19ec98d` — `refactor(pm-03): initialize preparation from execution snapshot`
+- `e9ea26175a99a6cd9b8e5ddab22b1d8647cd06d1` — `refactor(pm-03): instantiate projects from execution snapshot`
+- `a3cff91e0652292331e56907ffdf656946b98ce5` — `test(pm-03): migrate project creation fixtures to snapshots`
+- `06a5072a4559616481833e6e19b49be064fb36a0` — `refactor(pm-03): make runtime graph freezer snapshot-native`
+- `5affcaf95d80ef9a7bcae970cbe297de10b158ee` — `fix(pm-03): exclude legacy revisions from new project matching`
+
 ## 本轮剩余专项步骤
 
-按“每完成一步就提交一次”执行：
+按“每完成一步就提交一次”继续执行：
 
-- [x] **Step 0 — Review 当前已提交代码**：确认当前 V2 实际落地范围、CI 状态和结构性风险。
-- [x] **Step 1 — 同步专项 Task**：更新本文件的专项计划、任务逻辑、Review 结论和已完成内容；本步单独提交。
-- [ ] **Step 2 — 修复 Legacy Runtime 边界**：移除历史发布版本被当前 Compiler 静默重编译的路径；V2 runtime 要求持久化 V2 Snapshot，Legacy 进入 V2 必须显式复制/升级；补回归测试；单独提交。
-- [ ] **Step 3 — 审计并收敛 Runtime Node Identity**：核查 `TaskDef.id / templateTaskDefinitionId / stage identity` 的实际持久化和查询语义；只有存在跨模板全局冲突风险时才修改 ID 算法，否则补约束测试和命名说明；单独提交。
-- [ ] **Step 4 — 收敛 Project Creation / Runtime Freeze**：V2 新建项目路径只消费 `TemplateExecutionSnapshot`；去掉 V2 路径中残留的 DefinitionSnapshot / TemplateDefinitionContent 二次解释；根据独立逻辑拆成多个小提交。
-- [ ] **Step 5 — 清理失去作用的 Legacy Bridge**：仅删除已经无调用或与 V2 重复的转换层，保留明确历史读取边界；每个独立清理单独提交。
+- [x] **Step 0 — Review 当前已提交代码**：确认当前 V2 实际落地范围、验证状态和结构性风险。
+- [x] **Step 1 — 同步专项 Task**：建立专项模式、目标架构、执行规则和初始 Review 结论。
+- [x] **Step 2 — 修复 Legacy Runtime 边界**：历史发布版本缺 V2 Snapshot 时不再被当前 Compiler 静默重编译。
+- [x] **Step 3 — 审计 Runtime Node Identity**：确认 `nodeKey` 为规范身份，Long 仅为兼容投影，并用测试锁定禁止恢复跨模板全局 lookup。
+- [x] **Step 4A — PRE-02 初始化切到 Snapshot**：创建后准备域初始化不再重读 Legacy revision。
+- [x] **Step 4B — Project Creation 主链切到 Snapshot**：新项目实例化只从持久化 ExecutionSnapshot 获取模板运行输入。
+- [x] **Step 4C — 创建链测试 fixture 切到 Snapshot**：显式断言创建链不调用 `getRevisionContent()`。
+- [x] **Step 5A — RuntimeGraph freezer 单写 V2**：删除创建期 Legacy freezer 分支，历史兼容仅留在 Resolver 已冻结事实读取。
+- [x] **Step 5B — 新项目匹配排除 Legacy revision**：只暴露完整 V2 runtime envelope 的最新发布版。
+- [ ] **Step 5C — Snapshot 完整性校验**：固定 schema-v2 语义哈希算法，读取时校验 row/snapshot 的 schema、compiler、hash 一致性；不得通过重新编译 Designer 验证。
+- [ ] **Step 5D — 继续清理失效 Legacy Bridge**：仅删除已经无新写调用或会重新打开双解释语义的桥接；历史详情/显式升级入口保留。
 - [ ] **Step 6 — 验证与修复**：运行可执行的后端定向测试、前端测试、类型/构建和 CI；每个实际失败修复单独提交，不用历史通过记录替代本轮验证。
 - [ ] **Step 7 — 正式规格落库**：代码重写稳定后，一次性更新 Feature Spec / SDS / API / DB 规格，使 `DesignerDocument → Compiler → ExecutionSnapshot`、Legacy 边界和实际代码一致；规格提交与代码提交分离。
 - [ ] **Step 8 — Task 收口**：回填最终 commit、验证证据、仍未完成边界和 GO/NO-GO；若仍有外部 Owner / 环境阻断，保持 `IN_PROGRESS / NOT_READY`。
@@ -112,8 +132,8 @@ Review 基线 HEAD：`ff87761f6ecf6b82d774f60c46108e339da8d9c8`。
 - 新建项目 V2 路径以 Snapshot 为唯一模板运行输入，Stage / Task / Deliverable / Transition / Completion 合同来源可追溯。
 - Runtime node identity 的作用域和唯一性有代码或测试证明，不存在未识别的跨模板碰撞语义。
 - Rule / Binding / Permission / BusinessView / DynamicForm 等发布依赖在 Snapshot 中保持精确固定，不在运行时漂移。
-- Designer / Compiler / Snapshot 的 schema / compiler version 和 semantic hash 能支撑发布后确定性验证。
-- 当前分支相关测试和构建由本轮实际执行并记录；CI 未绿时不得宣称合入 Gate 已通过。
+- Designer / Compiler / Snapshot 的 schema / compiler version 和 semantic hash 能支撑发布后确定性验证，读取时能识别 Snapshot 损坏或漂移。
+- 当前分支相关测试和构建由本轮实际执行并记录；CI 未绿或无 CI 证据时不得宣称合入 Gate 已通过。
 - 代码收敛后完成一次正式规格落库，规格描述与最终实现一致。
 
 ## 历史成果摘要（保留，不作为本轮运行时闭环证据）
