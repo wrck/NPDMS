@@ -1,7 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
-import cn.hutool.crypto.digest.DigestUtil;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionDefinition;
 import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraph;
 import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraphValidator;
@@ -52,7 +50,7 @@ public class TemplateCompiler {
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
 
         TemplateExecutionSnapshot snapshot = buildSnapshot(source);
-        String hash = DigestUtil.sha256Hex(JsonUtils.toJsonString(semanticSnapshot(snapshot)));
+        String hash = TemplateExecutionSnapshotHasher.hash(snapshot);
         return new Compilation(snapshot, hash, List.of());
     }
 
@@ -434,7 +432,8 @@ public class TemplateCompiler {
 
     private JsonNode copy(JsonNode source) { return source == null || source.isNull() ? null : source.deepCopy(); }
 
-    /** Canonical business snapshot excludes legacy source ids and publication metadata. */
+    /** Kept for schema-v2 compatibility tests; the canonical implementation is TemplateExecutionSnapshotHasher. */
+    @Deprecated(forRemoval = false)
     private Map<String, Object> semanticSnapshot(TemplateExecutionSnapshot snapshot) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("executionSchemaVersion", snapshot.getExecutionSchemaVersion());
