@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateMapper;
@@ -60,8 +61,26 @@ class ProjectTemplateV2MatchEligibilityTest {
         assertNotNull(result.getCandidateWatermark());
     }
 
+    @Test
+    void corruptV2SnapshotIsNotAdvertisedAsNewProjectCandidate() {
+        ProjectTemplateMapper templates = mock(ProjectTemplateMapper.class);
+        ProjectTemplateRevisionMapper revisions = mock(ProjectTemplateRevisionMapper.class);
+        ProjectTemplateV2ServiceImpl service = service(templates, revisions);
+
+        ProjectTemplateDO v2 = template(2L, "V2");
+        ProjectTemplateRevisionDO corrupt = revision(22L, 2, true);
+        corrupt.setSnapshotHash("tampered");
+        when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(v2));
+        when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(corrupt));
+
+        TemplateMatchResult result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+
+        assertEquals(TemplateMatchResult.Outcome.NO_MATCH, result.getOutcome());
+        assertTrue(result.getCandidates().isEmpty());
+    }
+
     private ProjectTemplateV2ServiceImpl service(ProjectTemplateMapper templates,
-                                                 ProjectTemplateRevisionMapper revisions) {
+                                                  ProjectTemplateRevisionMapper revisions) {
         ProjectTemplateV2ServiceImpl service = new ProjectTemplateV2ServiceImpl();
         ReflectionTestUtils.setField(service, "v2TemplateMapper", templates);
         ReflectionTestUtils.setField(service, "v2RevisionMapper", revisions);
@@ -87,10 +106,12 @@ class ProjectTemplateV2MatchEligibilityTest {
         revision.setProjectCategory("GENERAL");
         revision.setImplementationMethod("ONSITE");
         if (v2) {
+            TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
+            snapshot.setCompilerVersion("template-compiler-v2-test");
             revision.setExecutionSchemaVersion(TemplateExecutionSnapshot.SCHEMA_VERSION);
-            revision.setExecutionSnapshot("{}");
-            revision.setCompilerVersion("template-compiler-v2-test");
-            revision.setSnapshotHash("snapshot-hash");
+            revision.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+            revision.setCompilerVersion(snapshot.getCompilerVersion());
+            revision.setSnapshotHash(TemplateExecutionSnapshotHasher.hash(snapshot));
         }
         return revision;
     }

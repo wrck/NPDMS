@@ -127,7 +127,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         ProjectTemplateRevisionDO revision = v2RevisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
         if (revision == null) throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         if (hasText(revision.getExecutionSnapshot())) {
-            return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class).toRuntimeContent();
+            return verifiedExecutionSnapshot(revision).toRuntimeContent();
         }
         if (hasText(revision.getDesignerDocument())) {
             return TemplateDesignerLegacyAdapter.toLegacy(
@@ -142,17 +142,13 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        if (!isV2RuntimeEligible(revision)) {
-            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
-                    "历史发布版本缺少完整V2执行快照，禁止由当前编译器即时重解释；请显式复制为V2草稿并重新发布");
-        }
-        return JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        return verifiedExecutionSnapshot(revision);
     }
 
     /**
      * New-project matching is stricter than historical readability: only the latest published revision
-     * with a complete persisted V2 runtime envelope is selectable. Legacy revisions remain readable but
-     * are never advertised as candidates that would fail later during project creation.
+     * with a complete and internally consistent V2 runtime envelope is selectable. Legacy or corrupt
+     * revisions remain historical records but are never advertised as new-project candidates.
      */
     @Override
     public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
@@ -166,6 +162,11 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             if (published.isEmpty()) continue;
             ProjectTemplateRevisionDO latest = published.getFirst();
             if (!isV2RuntimeEligible(latest)) continue;
+            try {
+                verifiedExecutionSnapshot(latest);
+            } catch (RuntimeException ex) {
+                continue;
+            }
             TemplateMatchCandidate candidate = new TemplateMatchCandidate();
             candidate.setTemplateId(activeTemplate.getId());
             candidate.setCode(activeTemplate.getCode());
@@ -330,11 +331,40 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         return TemplateDesignerDocument.fromResolvedLegacy(legacy);
     }
 
+    private TemplateExecutionSnapshot verifiedExecutionSnapshot(ProjectTemplateRevisionDO revision) {
+        if (!isV2RuntimeEligible(revision)) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
+                    "历史发布版本缺少完整V2执行快照，禁止由当前编译器即时重解释；请显式复制为V2草稿并重新发布");
+        }
+        TemplateExecutionSnapshot snapshot;
+        try {
+            snapshot = JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        } catch (RuntimeException ex) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照无法解析");
+        }
+        if (snapshot == null
+                || !Objects.equals(revision.getExecutionSchemaVersion(), snapshot.getExecutionSchemaVersion())) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照schema与发布记录不一致");
+        }
+        if (!Objects.equals(revision.getCompilerVersion(), snapshot.getCompilerVersion())) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照compiler与发布记录不一致");
+        }
+        final String actualHash;
+        try {
+            actualHash = TemplateExecutionSnapshotHasher.hash(snapshot);
+        } catch (RuntimeException ex) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照语义结构无效");
+        }
+        if (!Objects.equals(revision.getSnapshotHash(), actualHash)) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照hash与发布记录不一致");
+        }
+        return snapshot;
+    }
+
     private boolean isV2RuntimeEligible(ProjectTemplateRevisionDO revision) {
         return revision != null
                 && TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())
-                && revision.getExecutionSchemaVersion() != null
-                && revision.getExecutionSchemaVersion() >= TemplateExecutionSnapshot.SCHEMA_VERSION
+                && Integer.valueOf(TemplateExecutionSnapshot.SCHEMA_VERSION).equals(revision.getExecutionSchemaVersion())
                 && hasText(revision.getExecutionSnapshot())
                 && hasText(revision.getCompilerVersion())
                 && hasText(revision.getSnapshotHash());

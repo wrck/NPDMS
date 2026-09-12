@@ -28,9 +28,7 @@ class ProjectTemplateV2LegacyRuntimeBoundaryTest {
 
         TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
         snapshot.setCompilerVersion("compiler-test");
-        ProjectTemplateRevisionDO revision = publishedRevision(3);
-        revision.setExecutionSchemaVersion(TemplateExecutionSnapshot.SCHEMA_VERSION);
-        revision.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        ProjectTemplateRevisionDO revision = v2Revision(3, snapshot);
         when(revisions.selectByTemplateIdAndRevisionNo(10L, 3)).thenReturn(revision);
 
         TemplateExecutionSnapshot result = service.getExecutionSnapshot(10L, 3);
@@ -59,11 +57,60 @@ class ProjectTemplateV2LegacyRuntimeBoundaryTest {
         verifyNoInteractions(compiler);
     }
 
+    @Test
+    void rejectsSnapshotWhenSemanticHashDoesNotMatchPublicationRow() {
+        ProjectTemplateRevisionMapper revisions = mock(ProjectTemplateRevisionMapper.class);
+        TemplateCompiler compiler = mock(TemplateCompiler.class);
+        ProjectTemplateV2ServiceImpl service = service(revisions, compiler);
+
+        TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
+        snapshot.setCompilerVersion("compiler-test");
+        ProjectTemplateRevisionDO revision = v2Revision(4, snapshot);
+        revision.setSnapshotHash("tampered");
+        when(revisions.selectByTemplateIdAndRevisionNo(10L, 4)).thenReturn(revision);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.getExecutionSnapshot(10L, 4));
+
+        assertEquals(PROJECT_TEMPLATE_PUBLISH_INVALID.getCode(), error.getCode());
+        assertTrue(error.getMessage().contains("hash"));
+        verifyNoInteractions(compiler);
+    }
+
+    @Test
+    void rejectsSnapshotWhenCompilerMetadataDoesNotMatchPublicationRow() {
+        ProjectTemplateRevisionMapper revisions = mock(ProjectTemplateRevisionMapper.class);
+        TemplateCompiler compiler = mock(TemplateCompiler.class);
+        ProjectTemplateV2ServiceImpl service = service(revisions, compiler);
+
+        TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
+        snapshot.setCompilerVersion("compiler-a");
+        ProjectTemplateRevisionDO revision = v2Revision(5, snapshot);
+        revision.setCompilerVersion("compiler-b");
+        when(revisions.selectByTemplateIdAndRevisionNo(10L, 5)).thenReturn(revision);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.getExecutionSnapshot(10L, 5));
+
+        assertEquals(PROJECT_TEMPLATE_PUBLISH_INVALID.getCode(), error.getCode());
+        assertTrue(error.getMessage().contains("compiler"));
+        verifyNoInteractions(compiler);
+    }
+
     private ProjectTemplateV2ServiceImpl service(ProjectTemplateRevisionMapper revisions, TemplateCompiler compiler) {
         ProjectTemplateV2ServiceImpl service = new ProjectTemplateV2ServiceImpl();
         ReflectionTestUtils.setField(service, "v2RevisionMapper", revisions);
         ReflectionTestUtils.setField(service, "templateCompiler", compiler);
         return service;
+    }
+
+    private ProjectTemplateRevisionDO v2Revision(int revisionNo, TemplateExecutionSnapshot snapshot) {
+        ProjectTemplateRevisionDO revision = publishedRevision(revisionNo);
+        revision.setExecutionSchemaVersion(TemplateExecutionSnapshot.SCHEMA_VERSION);
+        revision.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        revision.setCompilerVersion(snapshot.getCompilerVersion());
+        revision.setSnapshotHash(TemplateExecutionSnapshotHasher.hash(snapshot));
+        return revision;
     }
 
     private ProjectTemplateRevisionDO publishedRevision(int revisionNo) {
