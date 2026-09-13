@@ -28,6 +28,10 @@ import static org.mockito.Mockito.*;
 
 class ProjectStageReadinessServiceTest {
 
+    static cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture engine;
+    @org.junit.jupiter.api.BeforeAll static void startRules() { engine = new cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture(); }
+    @org.junit.jupiter.api.AfterAll static void stopRules() { engine.close(); }
+
     private static final Long TENANT_ID = 7L;
     private static final Long PROJECT_ID = 9L;
     private static final Long ACTOR_ID = 11L;
@@ -60,7 +64,9 @@ class ProjectStageReadinessServiceTest {
         participantFactApi = mock(ProjectParticipantFactApi.class);
         permissionApi = mock(PermissionApi.class);
         var graphResolver = new ProjectRuntimeGraphResolver(graphMapper, referenceMapper,
-                new ProjectRuntimeRuleEvaluator(providerRegistry));
+                new ProjectRuntimeRuleEvaluator(providerRegistry,
+                        new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
+                        mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class)));
         service = new ProjectStageReadinessService(graphResolver, projectMapper,
                 mock(ProjectStageInstanceMapper.class), mock(ProjectGateInstanceMapper.class), referenceMapper,
                 providerRegistry, scopeApi, participantFactApi, permissionApi, memberMapper);

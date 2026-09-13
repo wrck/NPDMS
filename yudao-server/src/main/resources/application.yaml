@@ -41,6 +41,15 @@ knife4j:
   setting:
     language: zh_cn
 
+# 发布的模板/项目计划携带规则程序；启动注册组件，规则按不可变程序执行。
+liteflow:
+  enable: true
+  parse-mode: PARSE_ALL_ON_START
+  print-banner: false
+  print-execution-log: false
+  monitor:
+    enable-log: false
+
 # 工作流 Flowable 配置
 flowable:
   # 1. false: 默认值，Flowable 启动时，对比数据库表中保存的版本，如果不匹配。将抛出异常

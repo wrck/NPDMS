@@ -2,7 +2,10 @@ package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
-import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleEvaluationService;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkFact;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
@@ -24,6 +27,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TaskBusinessCompletionEvaluator {
     private final ProjectTaskBusinessService businessService;
+    private final ProjectRuleCompiler compiler;
+    private final ProjectRuleEvaluationService rules;
 
     /** Called inside the platform command transaction, after project/task/current-contract locks. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -82,9 +87,14 @@ public class TaskBusinessCompletionEvaluator {
                     rule = JsonUtils.parseObject(JsonUtils.toJsonString(Map.of("predicate",
                             contract.getCompletionRuleTypeCode(), "parameters", snapshot)), JsonNode.class);
                 }
-                DeliveryDefinitionPayloadValidator.rule(rule);
-                boolean satisfied = evaluateRule(rule, links, criteria, unmet);
-                if (!satisfied && unmet.isEmpty()) unmet.add("BUSINESS_CRITERIA_NOT_SATISFIED");
+                var evaluation = rules.evaluate("task-contract:" + contract.getId() + ":" + contract.getContractVersion(),
+                        compiler.compile(rule), leaf -> businessFact(leaf, links, criteria, unmet));
+                evidence.put("ruleOutcome", evaluation.outcome());
+                evidence.put("conditions", evaluation.conditions());
+                evidence.put("components", evaluation.steps());
+                evidence.put("diagnostics", evaluation.diagnostics());
+                if (!evaluation.matched() && unmet.isEmpty()) unmet.add(evaluation.reasonCode() == null
+                        ? "BUSINESS_CRITERIA_NOT_SATISFIED" : evaluation.reasonCode());
             } catch (IllegalArgumentException ex) {
                 unmet.add("COMPLETION_RULE_INVALID");
             }
@@ -92,29 +102,24 @@ public class TaskBusinessCompletionEvaluator {
         return new Result(unmet.isEmpty(), List.copyOf(unmet), evidence);
     }
 
-    private boolean evaluateRule(JsonNode rule, List<TaskBusinessLinkFact> links,
-                                 List<Map<String, Object>> criteria, List<String> invalid) {
-        if (rule.has("operator")) {
-            boolean all = true, any = false;
-            for (JsonNode child : rule.path("rules")) {
-                boolean result = evaluateRule(child, links, criteria, invalid);
-                all &= result;
-                any |= result;
-            }
-            return "ALL".equals(rule.path("operator").asText()) ? all : any;
-        }
+    private RuleFact businessFact(RuleProgram.Leaf leaf, List<TaskBusinessLinkFact> links,
+                                  List<Map<String, Object>> criteria, List<String> invalid) {
         // No implicit Owner fact aliases, no native status or unsupported predicate fallback.
-        if (!"BUSINESS_FACT".equals(rule.path("predicate").asText())) {
+        if (!"BUSINESS_FACT".equals(leaf.predicate())) {
             invalid.add("BUSINESS_PREDICATE_UNSUPPORTED");
-            return false;
+            return RuleFact.unknown("BUSINESS_PREDICATE_UNSUPPORTED");
         }
-        String code = rule.path("parameters").path("factCode").asText();
-        String quantifier = rule.path("parameters").path("quantifier").asText();
+        String code = leaf.parameters().path("factCode").asText();
+        String quantifier = leaf.parameters().path("quantifier").asText();
         boolean all = true, any = false;
+        boolean available = true;
         List<Map<String, Object>> results = new ArrayList<>();
         for (TaskBusinessLinkFact link : links) {
             Boolean value = link.completionFacts().get(code);
-            if (value == null) invalid.add("BUSINESS_FACT_UNKNOWN:" + code + ":" + link.objectId());
+            if (value == null) {
+                available = false;
+                invalid.add("BUSINESS_FACT_UNKNOWN:" + code + ":" + link.objectId());
+            }
             boolean passed = Boolean.TRUE.equals(value);
             all &= passed;
             any |= passed;
@@ -122,8 +127,9 @@ public class TaskBusinessCompletionEvaluator {
                     "result", value == null ? "UNKNOWN" : passed ? "SATISFIED" : "NOT_SATISFIED"));
         }
         boolean result = "ALL".equals(quantifier) ? all : any;
-        criteria.add(Map.of("criterion", code, "quantifier", quantifier, "satisfied", result, "links", results));
-        return result;
+        criteria.add(Map.of("criterion", code, "quantifier", quantifier,
+                "outcome", available ? result ? "MATCHED" : "NOT_MATCHED" : "UNKNOWN", "links", results));
+        return available ? RuleFact.known(result) : RuleFact.unknown("BUSINESS_FACT_UNKNOWN");
     }
 
     private Result failed(String code) { return new Result(false, List.of(code), Map.of()); }

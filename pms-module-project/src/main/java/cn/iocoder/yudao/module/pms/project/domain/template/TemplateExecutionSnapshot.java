@@ -22,6 +22,10 @@ public class TemplateExecutionSnapshot {
 
     private Integer executionSchemaVersion = SCHEMA_VERSION;
     private String compilerVersion;
+    private List<cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule> rules = new ArrayList<>();
+    private java.util.Map<String, cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram> rulePrograms = new java.util.LinkedHashMap<>();
+    private String matchRuleKey;
+    private String closureRuleKey;
     private TemplateDesignerDocument.Match match = new TemplateDesignerDocument.Match();
     private String processDefinitionKey;
     private JsonNode closurePolicy;
@@ -34,6 +38,9 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class StageContract {
+        private String admissionRuleKey;
+        private String completionRuleKey;
+        private String exitRuleKey;
         private String nodeKey;
         private String code;
         private String name;
@@ -53,6 +60,9 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class TaskContract {
+        private String admissionRuleKey;
+        private String completionRuleKey;
+        private String exitRuleKey;
         private String nodeKey;
         /**
          * Deterministic compiled identity derived from nodeKey. This is not a template-definition row id.
@@ -107,6 +117,7 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class TransitionContract {
+        private String conditionRuleKey;
         private String edgeKey;
         private String code;
         private String fromStageCode;

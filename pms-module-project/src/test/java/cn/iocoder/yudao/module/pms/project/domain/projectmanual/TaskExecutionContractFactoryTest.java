@@ -32,9 +32,8 @@ class TaskExecutionContractFactoryTest {
         task.setCompletionRuleTypeCode("ALL");
         assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, task, NOW));
 
-        task = validTaskNative();
-        task.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\",\"fallback\":true}");
-        TemplateDefinitionContent.TaskDef finalTask = task;
+        TemplateDefinitionContent.TaskDef finalTask = validTaskNative();
+        finalTask.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\",\"fallback\":true}");
         assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, finalTask, NOW));
     }
 

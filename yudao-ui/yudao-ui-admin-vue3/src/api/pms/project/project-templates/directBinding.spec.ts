@@ -167,13 +167,12 @@ describe('PM-03 Designer V2 direct binding', () => {
 
   it('registers and publishes only the BusinessView when a component has no registration yet', async () => {
     const component: Views.BusinessViewComponentVO = {
-      ...view,
-      id: undefined as never,
-      viewKey: undefined as never,
-      revisionNo: undefined as never,
-      status: undefined as never,
-      version: undefined as never,
-      allowedActions: undefined as never,
+      componentVersion: view.componentVersion,
+      contextSchema: view.contextSchema,
+      supportedActions: view.supportedActions,
+      queryProviderKey: view.queryProviderKey,
+      commandProviderKey: view.commandProviderKey,
+      permissionProviderKey: view.permissionProviderKey,
       entityType: 'DYNAMIC_FORM_INSTANCE',
       ownerContext: 'PLATFORM',
       viewSource: 'DYNAMIC_FORM',

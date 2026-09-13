@@ -28,7 +28,7 @@ import { getSimpleUserList } from '@/api/system/user'
 import type { TemplateDesignerDocument, TemplateClosurePolicy } from '@/api/pms/project/project-templates'
 import { errorText } from './editorModel'
 
-const props = defineProps<{ content: TemplateDesignerDocument; readonly?: boolean }>()
+const props = defineProps<{ content: Pick<TemplateDesignerDocument, 'closurePolicy'>; readonly?: boolean }>()
 const users = ref<Array<{ id: number | string; nickname: string }>>([])
 const loading = ref(false)
 const loadError = ref('')

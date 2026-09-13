@@ -23,6 +23,9 @@ public class TemplateDesignerDocument {
     public static final int SCHEMA_VERSION = 2;
 
     private Integer schemaVersion = SCHEMA_VERSION;
+    private List<cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule> rules = new ArrayList<>();
+    private String matchRuleKey;
+    private String closureRuleKey;
     private Match match = new Match();
     private String processDefinitionKey;
     private JsonNode closurePolicy;
@@ -48,6 +51,9 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class StageNode {
+        private String admissionRuleKey;
+        private String completionRuleKey;
+        private String exitRuleKey;
         private String nodeKey;
         private String code;
         private String name;
@@ -64,6 +70,9 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class TaskNode {
+        private String admissionRuleKey;
+        private String completionRuleKey;
+        private String exitRuleKey;
         private String nodeKey;
         private String code;
         private String name;
@@ -126,6 +135,7 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class TransitionNode {
+        private String conditionRuleKey;
         private String edgeKey;
         private String code;
         private String fromStageCode;

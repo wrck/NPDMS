@@ -3,7 +3,10 @@ package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.*;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus;
-import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleEvaluationService;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageReadinessService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,9 @@ import java.util.*;
 @Component @RequiredArgsConstructor
 public class ProjectRuntimeRuleEvaluator {
     private final ProjectStageGateProviderRegistry providers;
+    private final ProjectRuleCompiler compiler;
+    private final ProjectRuleEvaluationService evaluator;
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService decisions;
 
     public record Facts(ProjectMasterDO project, ProjectStageInstanceDO stage, List<ProjectTaskInstanceDO> tasks,
                         List<ProjectGateInstanceDO> gates, List<ProjectGateReferenceInstanceDO> references,
@@ -22,58 +28,59 @@ public class ProjectRuntimeRuleEvaluator {
 
     public ConditionStatus evaluate(JsonNode rule, Facts facts) {
         try {
-            DeliveryDefinitionPayloadValidator.rule(rule);
-            return evaluateValidated(rule, facts);
+            var program = compiler.compile(rule);
+            var result = evaluator.evaluate("project:" + facts.project().getId() + ":graph:"
+                    + facts.stage().getGraphVersion() + ":stage:" + facts.stage().getId(), program,
+                    leaf -> resolveFact(leaf, facts));
+            return switch (result.outcome()) {
+                case MATCHED -> ConditionStatus.SATISFIED;
+                case NOT_MATCHED -> ConditionStatus.UNSATISFIED;
+                case UNKNOWN -> ConditionStatus.UNAVAILABLE;
+            };
         } catch (RuntimeException unavailable) {
             return ConditionStatus.UNAVAILABLE;
         }
     }
 
-    private ConditionStatus evaluateValidated(JsonNode rule, Facts facts) {
-        if (rule.has("operator")) {
-            List<ConditionStatus> children = new ArrayList<>();
-            for (JsonNode child : rule.path("rules")) children.add(evaluateValidated(child, facts));
-            // Do not short circuit either ALL or ANY: unavailable evidence blocks the whole decision.
-            if (children.contains(ConditionStatus.UNAVAILABLE)) return ConditionStatus.UNAVAILABLE;
-            boolean satisfied = "ALL".equals(rule.path("operator").asText())
-                    ? children.stream().allMatch(s -> s == ConditionStatus.SATISFIED)
-                    : children.contains(ConditionStatus.SATISFIED);
-            return satisfied ? ConditionStatus.SATISFIED : ConditionStatus.UNSATISFIED;
-        }
-        String predicate = rule.path("predicate").asText();
+    private RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
+        String predicate = leaf.predicate();
+        if ("DECISION".equals(predicate))
+            return decisions.resolve(facts.project().getTenantId(), "project:" + facts.project().getId()
+                    + ":graph:" + facts.stage().getGraphVersion(), leaf,
+                    code -> cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(facts.project(), code));
+        if ("FIELD".equals(predicate))
+            return cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(
+                    facts.project(), leaf.parameters().path("fieldCode").asText());
         if ("STAGE_NATIVE_STATUS".equals(predicate)) {
-            if (!facts.stageCompletion()) return status("DONE".equals(facts.stage().getStatus()));
+            if (!facts.stageCompletion()) return RuleFact.known("DONE".equals(facts.stage().getStatus()));
             // Native readiness is prospective completion, never a pre-write of the stage status.
-            return status(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getStageCode()))
+            return RuleFact.known(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getStageCode()))
                     .allMatch(t -> "DONE".equals(t.getStatus())));
         }
-        if ("TASK_NATIVE_STATUS".equals(predicate)) return ConditionStatus.UNAVAILABLE; // no task identity on a stage rule
-        String refCode = rule.path("parameters").path("refCode").asText();
+        if ("TASK_NATIVE_STATUS".equals(predicate)) return RuleFact.unknown("TASK_CONTEXT_REQUIRED");
+        String refCode = leaf.parameters().path("refCode").asText();
         String key = ProjectStageReadinessService.providerKey(predicate);
-        if (key == null || !providers.hasProvider(key)) return ConditionStatus.UNAVAILABLE;
+        if (key == null || !providers.hasProvider(key)) return RuleFact.unknown("FACT_PROVIDER_UNAVAILABLE");
         List<ProjectGateReferenceInstanceDO> matches = facts.references().stream()
                 .filter(r -> predicate.equals(r.getRefType()) && refCode.equals(r.getRefCode()))
                 .filter(r -> facts.gates().stream().anyMatch(g -> Objects.equals(g.getId(), r.getGateId())
                         && Objects.equals(g.getStageCode(), facts.stage().getStageCode()))).toList();
         // BPM business identity is the actual frozen reference. Never invent gate/reference IDs.
         if (("PROCESS".equals(predicate) || "APPROVAL".equals(predicate)) && matches.size() != 1)
-            return ConditionStatus.UNAVAILABLE;
+            return RuleFact.unknown("APPROVAL_REFERENCE_UNAVAILABLE");
         ProjectGateReferenceInstanceDO ref = matches.size() == 1 ? matches.getFirst() : null;
         ProjectGateInstanceDO gate = ref == null ? null : facts.gates().stream()
                 .filter(g -> Objects.equals(g.getId(), ref.getGateId())).findFirst().orElseThrow();
         var query = new ProjectStageGateFactQuery(facts.project().getTenantId(), facts.project().getId(),
-                facts.project().getCurrentStage(), gate == null ? null : gate.getId(),
+                facts.stage().getStageCode(), gate == null ? null : gate.getId(),
                 gate == null ? null : gate.getGateCode(), gate == null ? null : gate.getVersion(),
                 ref == null ? null : ref.getId(), ref == null ? null : ref.getVersion(), predicate, refCode);
         ProjectStageGateFact fact = providers.lockAndRevalidate(key, query);
         return switch (fact.outcome()) {
-            case SATISFIED -> ConditionStatus.SATISFIED;
-            case UNSATISFIED -> ConditionStatus.UNSATISFIED;
-            default -> ConditionStatus.UNAVAILABLE;
+            case SATISFIED -> RuleFact.known(true);
+            case UNSATISFIED -> RuleFact.known(false);
+            default -> RuleFact.unknown("FACT_UNAVAILABLE");
         };
     }
 
-    private static ConditionStatus status(boolean satisfied) {
-        return satisfied ? ConditionStatus.SATISFIED : ConditionStatus.UNSATISFIED;
-    }
 }

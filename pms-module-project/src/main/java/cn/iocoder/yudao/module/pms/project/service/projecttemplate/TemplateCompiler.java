@@ -1,8 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionDefinition;
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraph;
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraphValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
@@ -22,7 +19,9 @@ import java.util.Set;
 @Component
 public class TemplateCompiler {
 
-    public static final String COMPILER_VERSION = "template-compiler-v2.0";
+    public static final String COMPILER_VERSION = "template-liteflow-1";
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler ruleCompiler =
+            new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler();
 
     public record Compilation(TemplateExecutionSnapshot snapshot, String snapshotHash, List<Issue> issues) {
         public boolean valid() { return issues.isEmpty(); }
@@ -32,6 +31,12 @@ public class TemplateCompiler {
         List<Issue> issues = new ArrayList<>();
         if (source == null) {
             issues.add(new Issue("designer", "REQUIRED", "模板设计文档不能为空"));
+            return new Compilation(null, null, List.copyOf(issues));
+        }
+        try {
+            source = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.forCompilation(source);
+        } catch (RuntimeException invalidRuleCollection) {
+            issues.add(new Issue("rules", "INVALID_VERSION_RULES", invalidRuleCollection.getMessage()));
             return new Compilation(null, null, List.copyOf(issues));
         }
         if (!Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION).equals(source.getSchemaVersion())) {
@@ -70,11 +75,9 @@ public class TemplateCompiler {
             if (stage == null) { issues.add(new Issue(path, "REQUIRED", "阶段不能为空")); continue; }
             if (!code(stage.getNodeKey()) || !stageKeys.add(stage.getNodeKey()))
                 issues.add(new Issue(path + ".nodeKey", "INVALID_NODE_KEY", "阶段nodeKey不能为空且必须唯一"));
-            if (stage.getCode() == null || !stage.getCode().matches("S[0-6]") || !stageCodes.add(stage.getCode()))
-                issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码必须为唯一S0～S6"));
+            if (!code(stage.getCode()) || !stageCodes.add(stage.getCode()))
+                issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码不能为空且必须唯一"));
             if (blank(stage.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "阶段名称不能为空"));
-            if (stage.getStart() == null) issues.add(new Issue(path + ".start", "REQUIRED", "必须显式声明开始阶段"));
-            if (stage.getTerminal() == null) issues.add(new Issue(path + ".terminal", "REQUIRED", "必须显式声明正常收口阶段"));
         }
         Set<String> taskCodes = new HashSet<>();
         Set<String> taskKeys = new HashSet<>();
@@ -90,8 +93,6 @@ public class TemplateCompiler {
             if (blank(task.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "任务名称不能为空"));
             if (!stageCodes.contains(task.getStageCode()))
                 issues.add(new Issue(path + ".stageCode", "DANGLING_STAGE", "任务引用的阶段不存在"));
-            if ("S0".equals(task.getStageCode()))
-                issues.add(new Issue(path + ".stageCode", "S0_TASK_FORBIDDEN", "S0项目基本操作不得重复配置为ProjectTask"));
             if (task.getCode() != null) tasksByCode.put(task.getCode(), task);
         }
         for (int i = 0; i < source.getTasks().size(); i++) {
@@ -127,22 +128,22 @@ public class TemplateCompiler {
     }
 
     private void validateGraph(TemplateDesignerDocument source, List<Issue> issues) {
-        StageTransitionGraph graph = new StageTransitionGraph(
-                source.getStages().stream().map(stage -> stage == null ? null
-                        : new StageTransitionGraph.Stage(stage.getCode(), stage.getStart(), stage.getTerminal())).toList(),
-                source.getTransitions().stream().map(edge -> edge == null ? null
-                        : new StageTransitionDefinition(edge.getCode(), edge.getFromStageCode(), edge.getToStageCode(),
-                        edge.getCondition() == null || edge.getCondition().getExpression() == null ? null : 1L,
-                        edge.getPriority(), edge.getDefaultBranch())).toList());
-        for (StageTransitionGraphValidator.Failure failure : StageTransitionGraphValidator.validate(graph)) {
-            issues.add(new Issue(failure.path(), failure.code(), failure.message()));
-        }
+        if (source.getStages().isEmpty()) issues.add(new Issue("stages", "REQUIRED", "至少配置一个交付阶段"));
+        Set<String> stages = source.getStages().stream().filter(Objects::nonNull)
+                .map(TemplateDesignerDocument.StageNode::getCode).collect(java.util.stream.Collectors.toSet());
         Set<String> edgeKeys = new HashSet<>();
+        Set<String> edgeCodes = new HashSet<>();
         for (int i = 0; i < source.getTransitions().size(); i++) {
             TemplateDesignerDocument.TransitionNode edge = source.getTransitions().get(i);
             if (edge == null) continue;
             if (!code(edge.getEdgeKey()) || !edgeKeys.add(edge.getEdgeKey()))
                 issues.add(new Issue("transitions[" + i + "].edgeKey", "INVALID_EDGE_KEY", "关系edgeKey不能为空且必须唯一"));
+            if (!code(edge.getCode()) || !edgeCodes.add(edge.getCode()))
+                issues.add(new Issue("transitions[" + i + "].code", "INVALID_EDGE_CODE", "关系编码不能为空且必须唯一"));
+            if (!stages.contains(edge.getFromStageCode()) || !stages.contains(edge.getToStageCode()))
+                issues.add(new Issue("transitions[" + i + "]", "DANGLING_STAGE", "依赖引用的阶段不存在"));
+            if (Objects.equals(edge.getFromStageCode(), edge.getToStageCode()))
+                issues.add(new Issue("transitions[" + i + "]", "SELF_DEPENDENCY", "阶段不能依赖自身完成后才准入"));
         }
     }
 
@@ -155,14 +156,35 @@ public class TemplateCompiler {
         source.getStages().stream().filter(Objects::nonNull).map(TemplateDesignerDocument.StageNode::getCode)
                 .filter(Objects::nonNull).forEach(code -> states.add(code + "_COMPLETED"));
         targets.put("STATE", states);
+        var versionRules = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.index(source.getRules());
+        for (var rule : source.getRules()) {
+            if (rule.kind() != cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule.Kind.CONDITION) continue;
+            try {
+                JsonNode expression = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.condition(versionRules, rule.key());
+                ruleCompiler.compile(expression);
+                validateRuleTargets(expression, "rules." + rule.key(), targets, issues);
+            } catch (RuntimeException invalid) {
+                issues.add(new Issue("rules." + rule.key(), "INVALID_RULE", invalid.getMessage()));
+            }
+        }
+        for (String key : new String[]{source.getMatchRuleKey(), source.getClosureRuleKey()})
+            requireConditionRule(versionRules, key, "rules", issues);
 
         for (int i = 0; i < source.getStages().size(); i++) {
             TemplateDesignerDocument.StageNode stage = source.getStages().get(i);
-            if (stage != null) validateRule(stage.getCompletionRule(), "stages[" + i + "].completionRule", targets, issues);
+            if (stage != null) {
+                validateRule(stage.getCompletionRule(), "stages[" + i + "].completionRule", targets, issues);
+                requireConditionRule(versionRules, stage.getAdmissionRuleKey(), "stages[" + i + "].admissionRuleKey", issues);
+                requireConditionRule(versionRules, stage.getExitRuleKey(), "stages[" + i + "].exitRuleKey", issues);
+            }
         }
         for (int i = 0; i < source.getTasks().size(); i++) {
             TemplateDesignerDocument.TaskNode task = source.getTasks().get(i);
-            if (task != null) validateRule(task.getCompletionRule(), "tasks[" + i + "].completionRule", targets, issues);
+            if (task != null) {
+                validateRule(task.getCompletionRule(), "tasks[" + i + "].completionRule", targets, issues);
+                requireConditionRule(versionRules, task.getAdmissionRuleKey(), "tasks[" + i + "].admissionRuleKey", issues);
+                requireConditionRule(versionRules, task.getExitRuleKey(), "tasks[" + i + "].exitRuleKey", issues);
+            }
         }
         for (int i = 0; i < source.getTransitions().size(); i++) {
             TemplateDesignerDocument.TransitionNode edge = source.getTransitions().get(i);
@@ -178,11 +200,18 @@ public class TemplateCompiler {
         }
     }
 
+    private void requireConditionRule(Map<String, cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule> rules,
+                                      String key, String path, List<Issue> issues) {
+        if (key == null || key.isBlank()) return;
+        if (!rules.containsKey(key) || rules.get(key).kind() != cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule.Kind.CONDITION)
+            issues.add(new Issue(path, "CONDITION_RESULT_REQUIRED", "这里需要满足/不满足/未知的条件；策略输出需先配置比较条件"));
+    }
+
     private void validateRule(TemplateDesignerDocument.RuleSpec rule, String path,
                               Map<String, Set<String>> targets, List<Issue> issues) {
         if (rule == null || rule.getExpression() == null || rule.getExpression().isNull()) return;
         try {
-            DeliveryDefinitionPayloadValidator.rule(rule.getExpression());
+            ruleCompiler.compile(rule.getExpression());
             validateRuleTargets(rule.getExpression(), path, targets, issues);
         } catch (IllegalArgumentException ex) {
             issues.add(new Issue(path, "INVALID_RULE", ex.getMessage()));
@@ -209,8 +238,10 @@ public class TemplateCompiler {
         for (int i = 0; i < source.getStages().size(); i++) {
             TemplateDesignerDocument.StageNode stage = source.getStages().get(i);
             if (stage == null) continue;
-            validateBinding(stage.getWorkBinding(), true, "stages[" + i + "].workBinding", issues);
-            validatePermission(stage.getPermission(), "stages[" + i + "].permission", issues);
+            if (stage.getWorkBinding() != null) {
+                validateBinding(stage.getWorkBinding(), true, "stages[" + i + "].workBinding", issues);
+                validatePermission(stage.getPermission(), "stages[" + i + "].permission", issues);
+            }
             if (stage.getCompletionRule() == null || stage.getCompletionRule().getExpression() == null)
                 issues.add(new Issue("stages[" + i + "].completionRule", "REQUIRED", "阶段必须配置完成规则"));
         }
@@ -302,8 +333,8 @@ public class TemplateCompiler {
                     case "TASK" -> tasks.contains(ref.getRefCode());
                     case "MILESTONE" -> milestones.contains(ref.getRefCode());
                     case "DELIVERABLE" -> deliverables.contains(ref.getRefCode());
-                    case "STATE" -> ref.getRefCode() != null && ref.getRefCode().matches("S[0-6]_COMPLETED")
-                            && stages.contains(ref.getRefCode().substring(0, 2));
+                    case "STATE" -> ref.getRefCode() != null && ref.getRefCode().endsWith("_COMPLETED")
+                            && stages.contains(ref.getRefCode().substring(0, ref.getRefCode().length() - "_COMPLETED".length()));
                     case "APPROVAL", "PROCESS" -> code(ref.getRefCode());
                     default -> false;
                 };
@@ -315,6 +346,17 @@ public class TemplateCompiler {
     private TemplateExecutionSnapshot buildSnapshot(TemplateDesignerDocument source) {
         TemplateExecutionSnapshot result = new TemplateExecutionSnapshot();
         result.setCompilerVersion(COMPILER_VERSION);
+        result.setRules(List.copyOf(source.getRules()));
+        result.setMatchRuleKey(source.getMatchRuleKey());
+        result.setClosureRuleKey(source.getClosureRuleKey());
+        var versionRules = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.index(source.getRules());
+        for (var entry : versionRules.entrySet()) {
+            var rule = entry.getValue();
+            var program = rule.kind() == cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule.Kind.CONDITION
+                    ? ruleCompiler.compile(cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.condition(versionRules, rule.key()))
+                    : ruleCompiler.compileDecision(rule);
+            result.getRulePrograms().put(entry.getKey(), program);
+        }
         result.setMatch(copyMatch(source.getMatch()));
         result.setProcessDefinitionKey(source.getProcessDefinitionKey());
         result.setClosurePolicy(copy(source.getClosurePolicy()));
@@ -329,6 +371,7 @@ public class TemplateCompiler {
 
     private TemplateExecutionSnapshot.StageContract stage(TemplateDesignerDocument.StageNode source) {
         TemplateExecutionSnapshot.StageContract target = new TemplateExecutionSnapshot.StageContract();
+        target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setSortOrder(source.getSortOrder()); target.setEntryCriteria(source.getEntryCriteria()); target.setExitCriteria(source.getExitCriteria());
         target.setStart(source.getStart()); target.setTerminal(source.getTerminal()); target.setBinding(binding(source.getWorkBinding()));
@@ -344,6 +387,7 @@ public class TemplateCompiler {
 
     private TemplateExecutionSnapshot.TaskContract task(TemplateDesignerDocument.TaskNode source) {
         TemplateExecutionSnapshot.TaskContract target = new TemplateExecutionSnapshot.TaskContract();
+        target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setParentTaskCode(source.getParentTaskCode()); target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority());
         target.setSortOrder(source.getSortOrder()); target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());
@@ -379,6 +423,7 @@ public class TemplateCompiler {
 
     private TemplateExecutionSnapshot.TransitionContract transition(TemplateDesignerDocument.TransitionNode source) {
         TemplateExecutionSnapshot.TransitionContract target = new TemplateExecutionSnapshot.TransitionContract();
+        target.setConditionRuleKey(source.getConditionRuleKey());
         target.setEdgeKey(source.getEdgeKey()); target.setCode(source.getCode()); target.setFromStageCode(source.getFromStageCode());
         target.setToStageCode(source.getToStageCode()); target.setConditionRule(rule(source.getCondition())); target.setPriority(source.getPriority());
         target.setDefaultBranch(source.getDefaultBranch());

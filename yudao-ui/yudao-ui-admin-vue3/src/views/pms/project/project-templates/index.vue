@@ -166,7 +166,7 @@ const openCreate = () => { Object.assign(createForm, { code: '', name: '', match
 const saveCreate = async () => {
   if (saving.value) return
   await createFormRef.value.validate(); saving.value = true
-  try { const id = await TemplateApi.createProjectTemplate(createForm); await TemplateApi.updateProjectTemplateDraft(id, emptyContent()); createVisible.value = false; message.success('已创建 V2 Designer 草稿'); await load() }
+  try { await TemplateApi.createProjectTemplate(createForm); createVisible.value = false; message.success('已创建模板及设计草稿'); await load() }
   catch (error) { failure.value = errorText(error) }
   finally { saving.value = false }
 }

@@ -46,6 +46,19 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Primary
 public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createProjectTemplate(ProjectTemplateDO template) {
+        Long id = super.createProjectTemplate(template);
+        ProjectTemplateRevisionDO draft = requireDraft(id);
+        ProjectTemplateRevisionDO initial = new ProjectTemplateRevisionDO();
+        initial.setId(draft.getId());
+        initial.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
+        initial.setDesignerDocument(JsonUtils.toJsonString(new TemplateDesignerDocument()));
+        v2RevisionMapper.updateById(initial);
+        return id;
+    }
+
     @Resource
     private ProjectTemplateMapper v2TemplateMapper;
     @Resource
@@ -56,6 +69,8 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     private TemplateCompiler templateCompiler;
     @Resource
     private TemplateDesignerDependencyValidator dependencyValidator;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator rulePublicationValidator;
     @Resource
     private DeliveryConfigurationCommands v2ConfigurationCommands;
 
@@ -73,7 +88,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             throw new IllegalArgumentException("仅支持模板设计schema v2");
         }
 
-        TemplateDesignerDocument designer = materializeSourcePinnedDesigner(submitted);
+        TemplateDesignerDocument designer = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.forEditing(submitted);
 
         ProjectTemplateRevisionDO update = new ProjectTemplateRevisionDO();
         update.setId(draft.getId());
@@ -194,13 +209,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         List<Issue> issues = new ArrayList<>(templateCompiler.compile(designer).issues());
         issues.addAll(dependencyValidator.validate(designer, false));
-        if (isFullyLegacyPinned(designer)) {
-            try {
-                issues.addAll(super.validateProjectTemplate(id).issues());
-            } catch (RuntimeException ex) {
-                issues.add(new Issue("legacyValidation", "OWNER_VALIDATION_FAILED", safeMessage(ex)));
-            }
-        }
+        issues.addAll(rulePublicationValidator.validate(designer));
         return Validation.of(dedupe(issues));
     }
 
@@ -217,13 +226,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
         issues.addAll(dependencyValidator.validate(designer, true));
-        if (isFullyLegacyPinned(designer)) {
-            try {
-                issues.addAll(super.validateProjectTemplate(id).issues());
-            } catch (RuntimeException ex) {
-                issues.add(new Issue("legacyValidation", "OWNER_VALIDATION_FAILED", safeMessage(ex)));
-            }
-        }
+        issues.addAll(rulePublicationValidator.validate(designer));
         issues = dedupe(issues);
         if (!issues.isEmpty()) {
             rememberValidation(draft, summarize(issues));
@@ -283,37 +286,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                     updateProjectTemplateDesigner(copyId, designer);
                     return copyId;
                 });
-    }
-
-    private TemplateDesignerDocument materializeSourcePinnedDesigner(TemplateDesignerDocument designer) {
-        if (!isFullyLegacyPinned(designer)) return designer;
-        TemplateDefinitionContent bridge = TemplateDesignerLegacyAdapter.toLegacy(designer);
-        v2LegacyAssembler.resolve(bridge, false);
-        TemplateDesignerDocument resolved = TemplateDesignerDocument.fromResolvedLegacy(bridge);
-        resolved.setLayout(designer.getLayout());
-        if (designer.getRuleAssets() != null && !designer.getRuleAssets().isEmpty()) {
-            resolved.setRuleAssets(designer.getRuleAssets());
-        }
-        return resolved;
-    }
-
-    private boolean isFullyLegacyPinned(TemplateDesignerDocument designer) {
-        if (designer.getStages() == null || designer.getStages().isEmpty()) return false;
-        if (designer.getStages().stream().anyMatch(stage -> stage == null || stage.getSource() == null
-                || stage.getSource().getDefinitionRevisionId() == null
-                || stage.getSource().getWorkBindingRevisionId() == null
-                || stage.getSource().getPermissionPolicyRevisionId() == null
-                || stage.getSource().getCompletionRuleRevisionId() == null)) return false;
-        if (designer.getTasks() != null && designer.getTasks().stream().anyMatch(task -> task == null || task.getSource() == null
-                || task.getSource().getDefinitionRevisionId() == null)) return false;
-        if (designer.getMilestones() != null && designer.getMilestones().stream().anyMatch(node -> node == null || node.getSource() == null
-                || node.getSource().getDefinitionRevisionId() == null)) return false;
-        if (designer.getDeliverables() != null && designer.getDeliverables().stream().anyMatch(node -> node == null || node.getSource() == null
-                || node.getSource().getDefinitionRevisionId() == null)) return false;
-        if (designer.getGates() != null && designer.getGates().stream().anyMatch(node -> node == null || node.getSource() == null
-                || node.getSource().getDefinitionRevisionId() == null)) return false;
-        return designer.getTransitions() == null || designer.getTransitions().stream().noneMatch(edge -> edge == null
-                || edge.getSource() == null || edge.getSource().getTransitionRevisionNo() == null);
     }
 
     private TemplateDesignerDocument designerForRevision(Long templateId, int revisionNo) {

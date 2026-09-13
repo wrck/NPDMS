@@ -1,310 +1,761 @@
 <template>
-  <section class="delivery-design">
-    <div class="design-heading">
-      <div>
-        <h3>项目交付设计器</h3>
-        <p>DesignerDocument 是唯一设计态真值。阶段、任务、关系、绑定和规则直接在这里维护，发布时由 Compiler 生成不可变执行快照。</p>
-      </div>
-      <el-tag effect="plain">{{ content.stages.length }} 个阶段 · {{ content.tasks.filter((task) => task.stageCode !== 'S0').length }} 项任务</el-tag>
-    </div>
-    <el-alert v-if="failure" :title="failure" type="error" :closable="false" class="notice" />
-
-    <div class="designer-toolbar" aria-label="模板设计工作区">
-      <el-radio-group v-model="designerView" size="large">
-        <el-radio-button value="TASKS">阶段与任务</el-radio-button>
-        <el-radio-button value="FLOW">流程画布</el-radio-button>
-        <el-radio-button value="RULES">规则与决策</el-radio-button>
-        <el-radio-button value="ADVANCED">高级配置</el-radio-button>
-      </el-radio-group>
-      <span class="toolbar-hint">显示排序不生成流程边；配置业务入口不授予领域权限；规则树与决策表保存同一 AST。</span>
-    </div>
-
-    <section v-if="designerView === 'FLOW'" class="workspace-panel">
-      <div class="flow-overview">
-        <div class="canvas-panel">
-          <div class="panel-heading"><div><h4>阶段关系画布</h4><p>只呈现显式关系，不根据阶段编号或排序补边。</p></div></div>
-          <StageGraphPreview :content="content" />
+  <section class="delivery-designer">
+    <header class="designer-heading"
+      ><div
+        ><h3>规则驱动的项目交付执行系统</h3
+        ><p>节点侧栏直接配置；准入满足即激活。条件树默认，决策表按需。</p></div
+      >
+      <el-radio-group v-model="view"
+        ><el-radio-button value="FLOW">交付流程</el-radio-button
+        ><el-radio-button value="RULES">模板条件与本版本规则</el-radio-button></el-radio-group
+      >
+    </header>
+    <el-alert v-if="failure" :title="failure" type="error" :closable="false" class="mb-12px" />
+    <div v-if="view === 'FLOW'" class="designer-layout">
+      <main>
+        <div class="canvas-navigation"
+          ><el-button :type="!stage ? 'primary' : 'default'" @click="stageKey = undefined"
+            >阶段主画布</el-button
+          ><template v-if="stage"
+            ><span>／ {{ stage.name }} · 任务子画布</span
+            ><el-select
+              v-model="referenceKey"
+              clearable
+              filterable
+              placeholder="添加跨阶段任务引用"
+              @update:model-value="addReference"
+              ><el-option
+                v-for="task in otherTasks"
+                :key="task.nodeKey"
+                :value="task.nodeKey"
+                :label="`${task.stageCode} · ${task.name}`" /></el-select></template
+        ></div>
+        <TemplateFlowCanvas
+          :key="stageKey ?? 'main'"
+          :nodes="canvasNodes"
+          :edges="canvasEdges"
+          :mode="stage ? 'TASK' : 'STAGE'"
+          :readonly="readonly"
+          @create="create"
+          @select="selectedKey = $event"
+          @enter="enterStage"
+          @move="move"
+          @connect="connect"
+          @remove="remove"
+          @disconnect="disconnect"
+        />
+        <div v-if="!readonly" class="asset-copy"
+          ><el-button link @click="assetPicker = !assetPicker"
+            >从资产库复制{{ stage ? '任务' : '阶段' }}（可选）</el-button
+          >
+          <DefinitionSelect
+            v-if="assetPicker"
+            :kind="stage ? 'TASK' : 'STAGE'"
+            business
+            @selected="copyAsset"
+          />
         </div>
-        <aside class="designer-summary" aria-label="模板结构摘要">
-          <div><strong>{{ content.stages.length }}</strong><span>阶段</span></div>
-          <div><strong>{{ content.transitions.length }}</strong><span>关系</span></div>
-          <div><strong>{{ content.gates.length }}</strong><span>门禁</span></div>
-          <div><strong>{{ content.deliverables.length }}</strong><span>交付要求</span></div>
-        </aside>
-      </div>
-      <div class="relation-panel">
-        <div class="panel-heading"><div><h4>关系配置</h4><p>关系条件直接保存 Rule AST，不再引用独立 CompletionRule revision。</p></div></div>
-        <StageRelationsEditor :content="content" :readonly="readonly" />
-      </div>
-    </section>
-
-    <section v-else-if="designerView === 'TASKS'" class="workspace-panel">
-      <div class="delivery-layout">
-        <nav class="stage-nav" aria-label="交付阶段">
-          <p class="nav-caption">阶段导航 <span>显示顺序不代表流程关系</span></p>
-          <div v-for="(stage, index) in orderedStages" :key="stage.nodeKey" class="stage-item">
-            <button type="button" class="stage-button" :class="{ active: activeStage === stage.code }" :aria-current="activeStage === stage.code ? 'step' : undefined" @click="selectStage(stage.code)">
-              <span class="stage-code">{{ stage.code }}</span>
-              <span class="stage-title">{{ stage.code === 'S0' ? '项目基本操作' : stage.name }}<small>{{ stage.code === 'S0' ? '创建 · 属性 · 团队 · 范围' : `${tasksFor(stage.code).length} 项业务任务` }}</small></span>
-            </button>
-            <span v-if="!readonly" class="item-move">
-              <button type="button" class="move-button" title="上移" :disabled="index === 0" @click.stop="moveStage(stage.code, -1)">↑</button>
-              <button type="button" class="move-button" title="下移" :disabled="index === orderedStages.length - 1" @click.stop="moveStage(stage.code, 1)">↓</button>
-            </span>
-          </div>
-          <button v-if="unassigned.length" type="button" class="stage-button" :class="{ active: activeStage === '__unassigned' }" @click="selectStage('__unassigned')">未归属阶段 · {{ unassigned.length }} 项</button>
-          <el-empty v-if="!content.stages.length" description="尚未选择阶段" :image-size="48" />
-          <el-button v-if="!readonly" link type="primary" @click="stagePicker = !stagePicker">从资产库导入阶段</el-button>
-          <DefinitionSelect v-if="stagePicker && !readonly" kind="STAGE" business @selected="addStage" />
-        </nav>
-
-        <main class="stage-content">
-          <template v-if="activeStage === 'S0'">
-            <div class="section-heading"><div><h3>项目基本操作</h3><p>项目创建、属性维护、团队与范围管理在项目中直接办理，不配置为交付任务。</p></div><el-tag type="info">S0</el-tag></div>
-            <div class="basic-operations"><div v-for="item in basicOperations" :key="item.name"><strong>{{ item.name }}</strong><p>{{ item.description }}</p></div></div>
-            <section v-if="tasksFor('S0').length" class="historical-tasks">
-              <el-alert title="发现 S0 任务。V2 Compiler 会拒绝 S0 交付任务，请明确移除。" type="warning" :closable="false" />
-              <div v-for="task in tasksFor('S0')" :key="task.nodeKey" class="historical-row"><span>{{ task.name || '未命名任务' }}</span><el-button v-if="!readonly" link type="danger" @click="removeTask(task)">移除</el-button></div>
-            </section>
-          </template>
-
-          <template v-else-if="currentStage || activeStage === '__unassigned'">
-            <div class="section-heading"><div><h3>{{ currentStage?.name ?? '未归属阶段的任务' }}</h3><p>以可独立负责的业务结果命名；提交、审批、上传和采集属于任务内办理功能。</p></div><el-button v-if="!readonly && currentStage" type="primary" plain @click="newTaskOpen = !newTaskOpen">新增任务</el-button></div>
-            <section v-if="newTaskOpen && !readonly" class="task-create">
-              <h4>从已发布任务资产导入</h4><p>导入时把绑定、权限、完成规则和 BusinessView 冻结为 Designer 节点；后续编辑不依赖原 revision。</p>
-              <DefinitionSelect kind="TASK" business @selected="addTask" />
-            </section>
-
-            <div class="task-layout">
-              <div class="task-list" role="list" aria-label="业务任务">
-                <div v-for="(task, index) in stageTasks" :key="task.nodeKey" class="task-item">
-                  <button type="button" class="task-button" :class="{ active: selectedTask === task }" @click="selectedTask = task">
-                    <strong>{{ task.name || '未命名任务' }}</strong><span>{{ objectiveOf(task.description) || '选择任务，完善业务目标与办理方式' }}</span>
-                    <small v-if="task.parentTaskCode">子任务 · {{ content.tasks.find((row) => row.code === task.parentTaskCode)?.name ?? '保留父任务关系' }}</small>
-                  </button>
-                  <span v-if="!readonly" class="item-move">
-                    <button type="button" class="move-button" :disabled="index === 0" @click.stop="moveTask(task, -1)">↑</button>
-                    <button type="button" class="move-button" :disabled="index === stageTasks.length - 1" @click.stop="moveTask(task, 1)">↓</button>
-                  </span>
-                </div>
-                <el-empty v-if="!stageTasks.length" description="暂无业务任务，按本场景需要添加" :image-size="64" />
-              </div>
-
-              <section v-if="selectedTask && stageTasks.includes(selectedTask)" class="task-detail" aria-label="任务详情">
-                <div class="detail-heading"><h4>任务详情</h4><el-button v-if="!readonly" link type="danger" @click="removeTask(selectedTask)">移除任务</el-button></div>
-                <el-form label-position="top" :disabled="readonly">
-                  <el-form-item label="任务编码"><el-input v-model="selectedTask.code" /></el-form-item>
-                  <el-form-item label="任务名称"><el-input v-model="selectedTask.name" /></el-form-item>
-                  <el-form-item label="业务目标"><el-input :model-value="objectiveOf(selectedTask.description)" type="textarea" :rows="3" placeholder="说明要达成的业务结果" @update:model-value="setObjective" /></el-form-item>
-                </el-form>
-                <div v-if="taskTools.length" class="task-tools"><span class="muted">任务内办理</span><el-tag v-for="tool in taskTools" :key="tool" type="info" effect="plain" size="small">{{ tool }}</el-tag></div>
-                <TaskBindingEditor :key="selectedTask.nodeKey" :task="selectedTask" :model-value="pendingBindings.get(selectedTask)" :readonly="readonly" @update:model-value="setBinding(selectedTask!, $event)" />
-
-                <div class="deliverable-heading"><h4>必要交付物</h4><el-button v-if="!readonly" link @click="deliverablePicker = !deliverablePicker">从资产库导入</el-button></div>
-                <p v-if="!taskDeliverables.length" class="muted">未额外要求文件。优先复用真实业务结果，不默认每个任务上传附件。</p>
-                <div v-for="item in taskDeliverables" :key="item.nodeKey" class="historical-row"><span>{{ item.name }} <el-tag size="small" :type="item.required ? 'warning' : 'info'">{{ item.required ? '必要' : '可选' }}</el-tag></span><el-button v-if="!readonly" link @click="removeDeliverable(item.nodeKey)">移除</el-button></div>
-                <DefinitionSelect v-if="deliverablePicker && !readonly" kind="DELIVERABLE" business @selected="addDeliverable" />
-              </section>
-            </div>
-          </template>
-          <el-empty v-else description="选择阶段开始设计，不自动生成阶段或任务" :image-size="72" />
-        </main>
-      </div>
-    </section>
-
-    <section v-else-if="designerView === 'RULES'" class="workspace-panel rules-workspace">
-      <div class="panel-heading"><div><h4>规则与决策</h4><p>阶段和任务的完成规则直接属于节点。选择一个节点后，可在规则树与决策表间无损切换。</p></div></div>
-      <div class="rules-layout">
-        <el-table :data="ruleEntries" border highlight-current-row @current-change="selectRule">
-          <el-table-column prop="scope" label="范围" width="80" />
-          <el-table-column prop="name" label="节点" min-width="180" />
-          <el-table-column prop="code" label="编码" min-width="150" />
-          <el-table-column label="规则" width="120"><template #default="{ row }"><el-tag :type="row.target.completionRule?.expression ? 'success' : 'warning'">{{ row.target.completionRule?.expression ? '已配置' : '缺失' }}</el-tag></template></el-table-column>
-        </el-table>
-        <div class="rule-editor-panel">
-          <template v-if="activeRuleEntry">
-            <div class="rule-title"><strong>{{ activeRuleEntry.scope }} · {{ activeRuleEntry.name }}</strong><span>{{ activeRuleEntry.code }}</span></div>
-            <RuleDecisionDesigner
-              :model-value="activeRuleEntry.target.completionRule.expression"
-              :disabled="readonly"
-              @update:model-value="activeRuleEntry!.target.completionRule.expression = $event"
+      </main>
+      <aside class="node-inspector" aria-label="节点配置侧栏">
+        <template v-if="selected">
+          <header class="inspector-heading"
+            ><h4>{{ selected.node.name }}</h4
+            ><el-tag size="small">{{ kindNames[selected.kind] }}</el-tag></header
+          >
+          <el-alert
+            v-if="referenceSelected"
+            title="跨阶段引用只读；位置仅保存在当前画布，不修改原节点。"
+            type="info"
+            :closable="false"
+          >
+            <el-button link @click="openReferenceOwner">打开所属阶段编辑</el-button>
+          </el-alert>
+          <el-form label-position="top" :disabled="nodeReadonly">
+            <el-form-item label="名称"><el-input v-model="selected.node.name" /></el-form-item>
+            <el-form-item label="编码"
+              ><el-input :model-value="selected.node.code" @change="renameCode"
+            /></el-form-item>
+            <template v-if="selected.kind === 'STAGE'"
+              ><el-form-item label="终点"
+                ><el-switch v-model="(selected.node as DesignerStageNode).terminal" /><span
+                  class="field-hint"
+                  >终点不等于自动关闭项目，仍由项目收口条件判断。</span
+                ></el-form-item
+              ><el-button @click="enterStage(selected.node.nodeKey)"
+                >进入任务子画布</el-button
+              ></template
+            >
+            <el-form-item v-if="selected.kind === 'TASK'" label="父任务（不限制层级）"
+              ><el-select
+                v-model="(selected.node as DesignerTaskNode).parentTaskCode"
+                clearable
+                filterable
+                ><el-option
+                  v-for="task in content.tasks.filter((item) => item.nodeKey !== selectedKey)"
+                  :key="task.nodeKey"
+                  :value="task.code"
+                  :label="`${task.stageCode} · ${task.name}`" /></el-select
+            ></el-form-item>
+            <template v-if="selected.kind === 'MILESTONE'"
+              ><el-form-item label="达成说明"
+                ><el-input
+                  v-model="(selected.node as DesignerMilestoneNode).criteria"
+                  type="textarea" /></el-form-item
+            ></template>
+            <template v-if="selected.kind === 'DELIVERABLE'"
+              ><el-form-item label="必要交付件"
+                ><el-switch
+                  v-model="(selected.node as DesignerDeliverableNode).required" /></el-form-item
+              ><el-form-item label="关联任务"
+                ><el-select v-model="(selected.node as DesignerDeliverableNode).taskCode" clearable
+                  ><el-option
+                    v-for="task in content.tasks"
+                    :key="task.nodeKey"
+                    :value="task.code"
+                    :label="task.name" /></el-select></el-form-item
+            ></template>
+            <template v-if="selected.kind === 'GATE'"
+              ><el-form-item label="门禁用途"
+                ><el-select v-model="(selected.node as DesignerGateNode).gateType"
+                  ><el-option value="ENTRY" label="准入" /><el-option
+                    value="EXIT"
+                    label="退出" /></el-select
+              ></el-form-item>
+              <div
+                v-for="(reference, index) in (selected.node as DesignerGateNode).references"
+                :key="index"
+                class="gate-reference"
+                ><el-select v-model="reference.refType"
+                  ><el-option
+                    v-for="type in [
+                      'TASK',
+                      'MILESTONE',
+                      'DELIVERABLE',
+                      'STATE',
+                      'APPROVAL',
+                      'PROCESS'
+                    ]"
+                    :key="type"
+                    :value="type"
+                    :label="type" /></el-select
+                ><el-input v-model="reference.refCode" placeholder="引用编码" /><el-button
+                  link
+                  type="danger"
+                  @click="(selected.node as DesignerGateNode).references.splice(index, 1)"
+                  >移除</el-button
+                ></div
+              >
+              <el-button
+                @click="
+                  (selected.node as DesignerGateNode).references.push({
+                    refType: 'TASK',
+                    refCode: ''
+                  })
+                "
+                >添加门禁引用</el-button
+              >
+            </template>
+          </el-form>
+          <template v-if="runtimeNode">
+            <el-divider content-position="left">业务办理</el-divider>
+            <p class="field-hint">{{
+              selected.kind === 'STAGE'
+                ? '阶段可以仅组织任务，也可以直接绑定业务办理。'
+                : '手工任务需要真实提交；业务与审批任务使用原模块结果。'
+            }}</p>
+            <el-button v-if="!nodeReadonly" @click="businessOpen = !businessOpen"
+              >{{ businessOpen ? '收起' : '配置' }}业务页面／表单／审批</el-button
+            >
+            <TaskBindingEditor
+              v-if="bindingHost && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
+              :key="runtimeNode.nodeKey"
+              :task="bindingHost"
+              :model-value="pendingBindings.get(runtimeNode.nodeKey)"
+              :readonly="nodeReadonly"
+              @update:model-value="setBinding"
+            />
+            <p v-if="pendingBindings.has(runtimeNode.nodeKey)" class="field-hint"
+              >保存时完成业务绑定；若完成条件原先共享，将为当前节点保留独立修改，不影响其他节点。</p
+            >
+            <RuleSlotEditor
+              v-model="runtimeNode.admissionRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 准入`"
+              :readonly="nodeReadonly"
+              empty-text="无附加准入限制；任务仍必须等待所属阶段激活。"
+            />
+            <RuleSlotEditor
+              v-model="runtimeNode.completionRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 完成`"
+              :readonly="nodeReadonly"
+              required
+              :initial-expression="nativeCompletion"
+              empty-text="请配置完成条件；业务办理结果不能由打开页面或HTTP成功代替。"
+            />
+            <RuleSlotEditor
+              v-model="runtimeNode.exitRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 退出`"
+              :readonly="nodeReadonly"
+              empty-text="无附加退出限制；已启动工作仍须完成或明确终止。"
             />
           </template>
-          <el-empty v-else description="选择一个阶段或任务编辑完成规则" :image-size="60" />
-        </div>
-      </div>
-    </section>
-
-    <section v-else class="workspace-panel advanced-workspace">
-      <el-alert title="这里仍编辑同一份 DesignerDocument。旧 DefinitionRevision ID 只作为导入来源证据，不是运行时配置。" type="info" :closable="false" class="mb-16px" />
-      <el-divider content-position="left">适用场景</el-divider>
-      <el-form label-position="top" :disabled="readonly"><div class="dimension-grid"><el-form-item v-for="dimension in dimensions" :key="dimension.key" :label="dimension.label"><el-select v-model="content.match[dimension.key]" clearable placeholder="不限"><el-option v-for="option in getStrDictOptions(dimension.dict)" :key="option.value" :value="option.value" :label="option.label" /></el-select></el-form-item></div></el-form>
-      <el-divider content-position="left">流程定义</el-divider>
-      <el-form label-position="top" :disabled="readonly"><el-form-item label="BPM流程定义Key（可选）"><el-input v-model="content.processDefinitionKey" placeholder="只保存稳定Key，不保存PMS流程版本" /></el-form-item></el-form>
-      <el-divider content-position="left">专用闭环</el-divider>
-      <TemplateClosurePolicyEditor :content="content" :readonly="readonly" />
-      <el-divider content-position="left">V2 设计元数据</el-divider>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="Designer Schema">v{{ content.schemaVersion }}</el-descriptions-item>
-        <el-descriptions-item label="稳定节点">{{ content.stages.length + content.tasks.length + content.milestones.length + content.deliverables.length + content.gates.length }}</el-descriptions-item>
-        <el-descriptions-item label="规则资产">{{ content.ruleAssets.length }}</el-descriptions-item>
-        <el-descriptions-item label="旧来源证据">{{ content.sourceEvidence ? '保留，仅追溯' : '无' }}</el-descriptions-item>
-      </el-descriptions>
-    </section>
+          <el-button v-if="!readonly" type="danger" plain @click="remove(selected.node.nodeKey)"
+            >删除节点</el-button
+          >
+        </template>
+        <el-empty v-else description="从画布选择节点，在这里直接配置。" :image-size="64" />
+      </aside>
+    </div>
+    <div v-else class="template-rules">
+      <RuleSlotEditor
+        v-model="content.matchRuleKey"
+        :document="content"
+        label="模板适用条件"
+        :readonly="readonly"
+        empty-text="未限定适用字段；匹配是推荐，授权覆盖选择仍需原因与审计。"
+      />
+      <RuleSlotEditor
+        v-model="content.closureRuleKey"
+        :document="content"
+        label="项目收口条件"
+        :readonly="readonly"
+        required
+        :initial-expression="constantRule(false)"
+        empty-text="配置明确的收口条件；不附加固定审批，子孙项目是否必须结束也由这里决定。"
+      />
+      <el-collapse
+        ><el-collapse-item title="本版本规则集合 · 不单独发布" name="rules">
+          <el-table :data="content.rules ?? []"
+            ><el-table-column prop="name" label="规则" /><el-table-column
+              prop="kind"
+              label="结果类型"
+              width="130"
+            /><el-table-column label="使用范围"
+              ><template #default="{ row }">{{
+                ruleUses(content, row.key).join('；') || '本版本内尚未引用'
+              }}</template></el-table-column
+            ><el-table-column label="操作" width="110"
+              ><template #default="{ row }"
+                ><el-button link @click="selectedRuleKey = row.key">查看／编辑</el-button></template
+              ></el-table-column
+            ></el-table
+          >
+          <el-button v-if="!readonly" @click="addStrategy">添加策略决策表（可选）</el-button>
+          <template v-if="selectedRule"
+            ><RuleSlotEditor
+              v-if="selectedRule.kind === 'CONDITION'"
+              v-model="selectedRuleKey"
+              :document="content"
+              :label="selectedRule.name"
+              :readonly="readonly" /><template v-else-if="selectedRule.decision"
+              ><el-alert
+                v-if="strategyUses.length"
+                :title="`使用范围：${strategyUses.join('；')}`"
+                type="info"
+                :closable="false" /><el-button
+                v-if="
+                  !readonly && strategyUses.length > 1 && strategyEditableKey !== selectedRule.key
+                "
+                @click="authorizeStrategy"
+                >确认影响并编辑共享策略</el-button
+              ><DecisionTableEditor
+                ref="strategyEditor"
+                :key="selectedRule.key"
+                v-model="selectedRule.decision"
+                :readonly="
+                  readonly || (strategyUses.length > 1 && strategyEditableKey !== selectedRule.key)
+                " /><RuleSimulationPanel
+                :rule-key="selectedRule.key"
+                :rules="content.rules ?? []" /></template
+          ></template> </el-collapse-item
+      ></el-collapse>
+    </div>
   </section>
 </template>
+
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
-import { useMessage } from '@/hooks/web/useMessage'
-import type { DesignerStageNode, DesignerTaskNode, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
+import { ElMessageBox } from 'element-plus'
+import type {
+  DesignerStageNode,
+  DesignerTaskNode,
+  DesignerMilestoneNode,
+  DesignerDeliverableNode,
+  DesignerGateNode,
+  JsonObject,
+  TemplateDesignerDocument
+} from '@/api/pms/project/project-templates'
 import type { DefinitionRevision } from '@/api/pms/project/project-templates/definitions'
-import { createBindingSaveSession, prepareTaskBinding, type BindingSelection } from '@/api/pms/project/project-templates/directBinding'
-import { deliverableFromDefinition, stageFromDefinition, taskFromDefinition } from '@/api/pms/project/project-templates/designerAssets'
-import DefinitionSelect from './DefinitionSelect.vue'
+import {
+  createBindingSaveSession,
+  prepareTaskBinding,
+  type BindingSelection
+} from '@/api/pms/project/project-templates/directBinding'
+import {
+  stageFromDefinition,
+  taskFromDefinition
+} from '@/api/pms/project/project-templates/designerAssets'
+import TemplateFlowCanvas, { type DeliveryNodeKind } from './TemplateFlowCanvas.vue'
+import {
+  allNodes,
+  captureInlineRules,
+  connectNodes,
+  createDeliveryNode,
+  dependencyEdges,
+  disconnectNodes,
+  projectTransitions,
+  toCanvasNode
+} from './templateCanvasModel'
+import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
+import RuleSlotEditor from './RuleSlotEditor.vue'
+import RuleSimulationPanel from './RuleSimulationPanel.vue'
+import DecisionTableEditor from './DecisionTableEditor.vue'
+import { newDecisionTable } from './decisionTableModel'
 import TaskBindingEditor from './TaskBindingEditor.vue'
-import StageRelationsEditor from './StageRelationsEditor.vue'
-import StageGraphPreview from './StageGraphPreview.vue'
-import TemplateClosurePolicyEditor from './TemplateClosurePolicyEditor.vue'
-import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
-import { cloneContent, errorText } from './editorModel'
-
+import DefinitionSelect from './DefinitionSelect.vue'
 const props = defineProps<{ content: TemplateDesignerDocument; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean] }>()
-const message = useMessage()
-const designerView = ref<'TASKS' | 'FLOW' | 'RULES' | 'ADVANCED'>('TASKS')
-const activeStage = ref('')
-const selectedTask = ref<DesignerTaskNode>()
-const stagePicker = ref(false)
-const newTaskOpen = ref(false)
-const deliverablePicker = ref(false)
+const view = ref('FLOW')
+const stageKey = ref<string>()
+const selectedKey = ref<string>()
+const selectedRuleKey = ref<string>()
+const strategyEditableKey = ref<string>()
+const referenceKey = ref<string>()
+const references = reactive(new Set<string>())
+const businessOpen = ref(false)
+const assetPicker = ref(false)
 const failure = ref('')
-const pendingBindings = reactive(new Map<DesignerTaskNode, BindingSelection>())
-const session = createBindingSaveSession()
-const dimensions = [
-  { key: 'signingMethod', label: '签约方式', dict: DICT_TYPE.PMS_SIGNING_METHOD },
-  { key: 'projectCategory', label: '项目类别', dict: DICT_TYPE.PMS_PROJECT_CATEGORY },
-  { key: 'implementationMethod', label: '实施方式', dict: DICT_TYPE.PMS_IMPLEMENTATION_METHOD },
-  { key: 'majorProjectLevel', label: '重大项目级别', dict: DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL }
-] as const
-const basicOperations = [{ name: '项目创建', description: '建立项目及来源信息' }, { name: '项目属性', description: '维护项目分类与业务属性' }, { name: '项目团队', description: '管理项目角色与成员' }, { name: '业务范围', description: '维护合同、订单与实施范围' }]
-const orderedStages = computed(() => [...props.content.stages].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)))
-const tasksFor = (code: string) => props.content.tasks.filter((task) => task.stageCode === code).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-const unassigned = computed(() => props.content.tasks.filter((task) => !props.content.stages.some((stage) => stage.code === task.stageCode)))
-const currentStage = computed(() => props.content.stages.find((stage) => stage.code === activeStage.value))
-const stageTasks = computed(() => activeStage.value === '__unassigned' ? unassigned.value : tasksFor(activeStage.value))
-const taskDeliverables = computed(() => props.content.deliverables.filter((row) => row.taskCode === selectedTask.value?.code))
-const taskTools = computed(() => (selectedTask.value?.description?.match(/办理功能[：:]([^。\n]+)/)?.[1] ?? '').split(/[、，,；;]/).map((text) => text.trim()).filter(Boolean))
-const objectiveOf = (description?: string) => description?.match(/^业务目标[：:]([^。\n]*)/)?.[1] ?? description ?? ''
-const setObjective = (value: string) => {
-  if (!selectedTask.value || props.readonly) return
-  const previous = selectedTask.value.description ?? ''
-  selectedTask.value.description = /^业务目标[：:]/.test(previous) ? previous.replace(/^业务目标[：:][^。\n]*/, `业务目标：${value}`) : value
+const strategyEditor = ref<InstanceType<typeof DecisionTableEditor>>()
+const pendingBindings = reactive(new Map<string, BindingSelection>())
+let session = createBindingSaveSession()
+const kindNames = {
+  STAGE: '阶段',
+  TASK: '任务',
+  MILESTONE: '里程碑',
+  DELIVERABLE: '交付件',
+  GATE: '门禁'
 }
-const selectStage = (code: string) => { activeStage.value = code; selectedTask.value = stageTasks.value[0]; newTaskOpen.value = false; deliverablePicker.value = false }
-const moveStage = (code: string, offset: -1 | 1) => {
-  if (props.readonly) return
-  const ordered = orderedStages.value; const index = ordered.findIndex((stage) => stage.code === code); const target = index + offset
-  if (index < 0 || target < 0 || target >= ordered.length) return
-  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
-  ordered.forEach((stage, position) => (stage.sortOrder = position * 10))
-}
-const moveTask = (task: DesignerTaskNode, offset: -1 | 1) => {
-  if (props.readonly) return
-  const siblings = tasksFor(task.stageCode); const index = siblings.indexOf(task); const target = index + offset
-  if (index < 0 || target < 0 || target >= siblings.length) return
-  ;[siblings[index], siblings[target]] = [siblings[target], siblings[index]]
-  siblings.forEach((row, position) => (row.sortOrder = position * 10))
-}
-watch(() => props.content, () => { pendingBindings.clear(); session.clear(); emit('dirty-change', false); selectStage(orderedStages.value[0]?.code ?? '') }, { immediate: true })
-watch(() => pendingBindings.size, (size) => emit('dirty-change', size > 0))
-const setBinding = (task: DesignerTaskNode, selection?: BindingSelection) => { if (selection) pendingBindings.set(task, selection); else pendingBindings.delete(task) }
-
-const addStage = async (revision?: DefinitionRevision) => {
-  if (!revision || props.readonly) return
-  try {
-    const stage = await stageFromDefinition(revision)
-    if (props.content.stages.some((row) => row.code === stage.code)) { failure.value = '该阶段已在模板中。'; return }
-    stage.sortOrder = props.content.stages.length * 10
-    props.content.stages.push(stage); stagePicker.value = false; selectStage(stage.code); failure.value = ''
-  } catch (error) { failure.value = errorText(error) }
-}
-const addTask = async (revision?: DefinitionRevision) => {
-  if (!revision || props.readonly || !currentStage.value || activeStage.value === 'S0') return
-  try {
-    const task = await taskFromDefinition(revision, activeStage.value, stageTasks.value.length * 10)
-    props.content.tasks.push(task); selectedTask.value = task; newTaskOpen.value = false; failure.value = ''
-  } catch (error) { failure.value = errorText(error) }
-}
-const removeTask = async (task: DesignerTaskNode) => {
-  if (props.readonly) return
-  const referenced = props.content.deliverables.some((row) => row.taskCode === task.code)
-    || props.content.tasks.some((row) => row.parentTaskCode === task.code)
-    || props.content.gates.some((gate) => gate.references.some((ref) => ref.refType === 'TASK' && ref.refCode === task.code))
-  if (referenced) { failure.value = '该任务仍被交付要求、子任务或门禁引用，请先调整引用。'; return }
-  try { await message.confirm(`从当前 Designer 移除「${task.name}」？不会改变已发布快照或既有项目。`) } catch { return }
-  pendingBindings.delete(task); props.content.tasks.splice(props.content.tasks.indexOf(task), 1); selectedTask.value = stageTasks.value[0]
-}
-const addDeliverable = async (revision?: DefinitionRevision) => {
-  if (!revision || !selectedTask.value || props.readonly) return
-  if (revision.payload.scope !== 'TASK') { failure.value = '请选择任务级交付要求。'; return }
-  try {
-    const item = await deliverableFromDefinition(revision, selectedTask.value.stageCode, selectedTask.value.code)
-    props.content.deliverables.push(item); deliverablePicker.value = false; failure.value = ''
-  } catch (error) { failure.value = errorText(error) }
-}
-const removeDeliverable = async (nodeKey: string) => {
-  try { await message.confirm('移除当前 Designer 的这项交付要求？') } catch { return }
-  const index = props.content.deliverables.findIndex((row) => row.nodeKey === nodeKey)
-  if (index >= 0) props.content.deliverables.splice(index, 1)
-}
-
-interface RuleEntry { scope: string; name: string; code: string; target: DesignerStageNode | DesignerTaskNode }
-const ruleEntries = computed<RuleEntry[]>(() => [
-  ...props.content.stages.map((target) => ({ scope: '阶段', name: target.name, code: target.code, target })),
-  ...props.content.tasks.map((target) => ({ scope: '任务', name: target.name, code: target.code, target }))
-])
-const activeRuleEntry = ref<RuleEntry>()
-const selectRule = (row?: RuleEntry) => { activeRuleEntry.value = row }
-
-const prepareSave = async () => {
-  const content = cloneContent(props.content)
-  try {
-    const policy = content.closurePolicy as any
-    if (policy && !policy.reviewerUserId) throw new Error('启用专用闭环后必须显式选择材料审核人。')
-    for (const [task, selection] of pendingBindings) {
-      const index = content.tasks.findIndex((row) => row.nodeKey === task.nodeKey)
-      if (index >= 0) content.tasks[index] = await prepareTaskBinding(content.tasks[index], selection, session)
+const stage = computed(() => props.content.stages.find((node) => node.nodeKey === stageKey.value))
+const selected = computed(() =>
+  allNodes(props.content).find((item) => item.node.nodeKey === selectedKey.value)
+)
+const runtimeNode = computed(() =>
+  selected.value && ['STAGE', 'TASK'].includes(selected.value.kind)
+    ? (selected.value.node as DesignerStageNode | DesignerTaskNode)
+    : undefined
+)
+const referenceSelected = computed(
+  () =>
+    !!stage.value &&
+    !!selected.value &&
+    (selected.value.kind === 'STAGE'
+      ? selected.value.node.nodeKey !== stage.value.nodeKey
+      : 'stageCode' in selected.value.node && selected.value.node.stageCode !== stage.value.code)
+)
+const nodeReadonly = computed(() => !!props.readonly || referenceSelected.value)
+const otherTasks = computed(() =>
+  props.content.tasks.filter((task) => task.stageCode !== stage.value?.code)
+)
+const edges = computed(() => dependencyEdges(props.content))
+const canvasNodes = computed(() => {
+  const included = allNodes(props.content).filter((item) =>
+    stage.value
+      ? item.kind !== 'STAGE' &&
+        'stageCode' in item.node &&
+        item.node.stageCode === stage.value.code
+      : item.kind === 'STAGE' ||
+        (item.kind !== 'TASK' && !('stageCode' in item.node && item.node.stageCode))
+  )
+  if (stage.value) {
+    const keys = new Set(included.map((item) => item.node.nodeKey))
+    const referenced = new Set(references)
+    for (const edge of edges.value)
+      if (keys.has(edge.to) && !keys.has(edge.from)) referenced.add(edge.from)
+    for (const key of referenced) {
+      const item = allNodes(props.content).find((candidate) => candidate.node.nodeKey === key)
+      if (item && !keys.has(key)) included.push(item)
     }
-    return content
-  } catch (error) {
-    failure.value = `${errorText(error)} 编辑内容已保留；重新保存将续办同一配置意图。`
-    throw new Error(failure.value)
   }
+  return included.map((item, index) => {
+    const reference =
+      !!stage.value &&
+      (item.kind === 'STAGE' ||
+        ('stageCode' in item.node && item.node.stageCode !== stage.value.code))
+    const point = reference
+      ? props.content.layout?.nodes?.[`${stageKey.value}:reference:${item.node.nodeKey}`]
+      : undefined
+    return {
+      ...toCanvasNode(props.content, item.kind, item.node),
+      reference,
+      ...(reference ? { x: point?.x ?? 90, y: point?.y ?? 100 + index * 120 } : {}),
+      name: reference ? `引用 · ${item.node.name}` : item.node.name
+    }
+  })
+})
+const canvasEdges = computed(() => {
+  const keys = new Set(canvasNodes.value.map((node) => node.key))
+  return edges.value.filter((edge) => keys.has(edge.from) && keys.has(edge.to))
+})
+const nativeCompletion = computed<JsonObject>(() => ({
+  predicate: selected.value?.kind === 'STAGE' ? 'STAGE_NATIVE_STATUS' : 'TASK_NATIVE_STATUS',
+  parameters: { requiredStatus: 'DONE' }
+}))
+const expressionFor = (
+  document: TemplateDesignerDocument,
+  node: DesignerStageNode | DesignerTaskNode
+): JsonObject =>
+  document.rules?.find((rule) => rule.key === node.completionRuleKey)?.expression ??
+  node.completionRule?.expression ?? {
+    predicate: 'stageCode' in node ? 'TASK_NATIVE_STATUS' : 'STAGE_NATIVE_STATUS',
+    parameters: { requiredStatus: 'DONE' }
+  }
+const hostFor = (
+  document: TemplateDesignerDocument,
+  node: DesignerStageNode | DesignerTaskNode
+): DesignerTaskNode => ({
+  ...node,
+  stageCode: 'stageCode' in node ? node.stageCode : node.code,
+  workBinding: node.workBinding ?? {
+    type: 'stageCode' in node ? 'TASK_NATIVE' : 'STAGE_NATIVE',
+    parameters: {}
+  },
+  permission: node.permission ?? { policySnapshot: { requiredActions: ['VIEW'] } },
+  completionRule: { expression: expressionFor(document, node) }
+})
+const bindingHost = computed(() =>
+  runtimeNode.value ? hostFor(props.content, runtimeNode.value) : undefined
+)
+const selectedRule = computed(() =>
+  props.content.rules?.find((rule) => rule.key === selectedRuleKey.value)
+)
+const strategyUses = computed(() =>
+  selectedRule.value ? ruleUses(props.content, selectedRule.value.key) : []
+)
+watch(
+  () => props.content,
+  () => {
+    pendingBindings.clear()
+    session = createBindingSaveSession()
+    references.clear()
+    if (!props.readonly) captureInlineRules(props.content)
+  },
+  { immediate: true }
+)
+watch(selectedKey, () => {
+  businessOpen.value = false
+})
+watch(stageKey, () => {
+  references.clear()
+  referenceKey.value = undefined
+})
+watch(
+  () => pendingBindings.size,
+  (value) => emit('dirty-change', value > 0)
+)
+const create = (
+  kind: DeliveryNodeKind,
+  key: string | undefined,
+  point: { x: number; y: number }
+) => {
+  try {
+    selectedKey.value = createDeliveryNode(
+      props.content,
+      kind,
+      stage.value?.code,
+      key,
+      point
+    ).nodeKey
+    failure.value = ''
+  } catch (error) {
+    failure.value = String(error)
+  }
+}
+const move = (key: string, point: { x: number; y: number }) => {
+  const layoutKey = canvasNodes.value.find((node) => node.key === key)?.reference
+    ? `${stageKey.value}:reference:${key}`
+    : key
+  ;((props.content.layout ??= {}).nodes ??= {})[layoutKey] = point
+}
+const connect = (from: string, to: string) => {
+  try {
+    connectNodes(props.content, from, to, stage.value?.code)
+    failure.value = ''
+  } catch (error) {
+    failure.value = String(error)
+  }
+}
+const disconnect = (key: string) => {
+  if (!props.readonly) disconnectNodes(props.content, key)
+}
+const enterStage = (key: string) => {
+  if (props.content.stages.some((node) => node.nodeKey === key)) {
+    stageKey.value = key
+    selectedKey.value = key
+  }
+}
+const addReference = (key: string) => {
+  if (key) references.add(key)
+}
+const openReferenceOwner = () => {
+  const item = selected.value
+  if (!item) return
+  const ownerStageCode = 'stageCode' in item.node ? item.node.stageCode : undefined
+  const owner =
+    item.kind === 'STAGE'
+      ? item.node.nodeKey
+      : props.content.stages.find((stage) => stage.code === ownerStageCode)?.nodeKey
+  if (owner) stageKey.value = owner
+}
+const setBinding = (value: BindingSelection | undefined) => {
+  if (runtimeNode.value && !nodeReadonly.value) {
+    if (value) pendingBindings.set(runtimeNode.value.nodeKey, value)
+    else pendingBindings.delete(runtimeNode.value.nodeKey)
+  }
+}
+const remove = async (key: string) => {
+  const item = allNodes(props.content).find((entry) => entry.node.nodeKey === key)
+  if (!item || props.readonly) return
+  if (
+    stage.value &&
+    (item.kind === 'STAGE' ||
+      ('stageCode' in item.node && item.node.stageCode !== stage.value.code))
+  ) {
+    for (const edge of edges.value)
+      if (
+        edge.from === key &&
+        props.content.tasks.some(
+          (task) => task.nodeKey === edge.to && task.stageCode === stage.value?.code
+        )
+      )
+        disconnectNodes(props.content, edge.key)
+    references.delete(key)
+    selectedKey.value = undefined
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `删除“${item.node.name}”及其在准入条件中的引用${item.kind === 'STAGE' ? '，阶段内任务也将一并移除' : ''}？`,
+      '删除设计节点'
+    )
+  } catch {
+    return
+  }
+  const removed = new Set([key])
+  if (item.kind === 'STAGE')
+    props.content.tasks
+      .filter((task) => task.stageCode === item.node.code)
+      .forEach((task) => removed.add(task.nodeKey))
+  const removedTaskCodes = new Set(
+    props.content.tasks.filter((task) => removed.has(task.nodeKey)).map((task) => task.code)
+  )
+  for (const edge of [...dependencyEdges(props.content)])
+    if (removed.has(edge.from) || removed.has(edge.to)) disconnectNodes(props.content, edge.key)
+  props.content.stages = props.content.stages.filter((node) => !removed.has(node.nodeKey))
+  props.content.tasks = props.content.tasks.filter((node) => !removed.has(node.nodeKey))
+  props.content.milestones = props.content.milestones.filter((node) => !removed.has(node.nodeKey))
+  props.content.deliverables = props.content.deliverables.filter(
+    (node) => !removed.has(node.nodeKey)
+  )
+  props.content.gates = props.content.gates.filter((node) => !removed.has(node.nodeKey))
+  for (const node of props.content.tasks)
+    if (node.parentTaskCode && removedTaskCodes.has(node.parentTaskCode))
+      node.parentTaskCode = undefined
+  for (const asset of [
+    ...props.content.milestones,
+    ...props.content.deliverables,
+    ...props.content.gates
+  ])
+    if (item.kind === 'STAGE' && asset.stageCode === item.node.code) asset.stageCode = undefined
+  for (const asset of props.content.deliverables)
+    if (asset.taskCode && removedTaskCodes.has(asset.taskCode)) asset.taskCode = undefined
+  for (const id of removed) {
+    pendingBindings.delete(id)
+    if (props.content.layout?.nodes) delete props.content.layout.nodes[id]
+  }
+  selectedKey.value = undefined
+  if (removed.has(stageKey.value ?? '')) stageKey.value = undefined
+  projectTransitions(props.content)
+}
+const renameCode = (value: string) => {
+  const item = selected.value
+  if (!item || nodeReadonly.value || value === item.node.code) return
+  if (
+    !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(value) ||
+    allNodes(props.content).some(
+      (other) => other.node.nodeKey !== item.node.nodeKey && other.node.code === value
+    )
+  ) {
+    failure.value = '编码须为唯一的字母开头标识'
+    return
+  }
+  const previous = item.node.code
+  const rewrite = (expression: JsonObject) => {
+    if (Array.isArray(expression.rules))
+      for (const child of expression.rules)
+        if (child && typeof child === 'object' && !Array.isArray(child)) rewrite(child)
+    const parameters = expression.parameters as JsonObject | undefined
+    if (parameters?.refCode === previous && expression.predicate === 'TASK')
+      parameters.refCode = value
+    if (parameters?.refCode === `${previous}_COMPLETED` && expression.predicate === 'STATE')
+      parameters.refCode = `${value}_COMPLETED`
+  }
+  props.content.rules?.forEach((rule) => {
+    if (rule.expression) rewrite(rule.expression)
+  })
+  if (item.kind === 'STAGE')
+    for (const entry of allNodes(props.content))
+      if ('stageCode' in entry.node && entry.node.stageCode === previous)
+        entry.node.stageCode = value
+  if (item.kind === 'TASK') {
+    props.content.tasks.forEach((task) => {
+      if (task.parentTaskCode === previous) task.parentTaskCode = value
+    })
+    props.content.deliverables.forEach((deliverable) => {
+      if (deliverable.taskCode === previous) deliverable.taskCode = value
+    })
+  }
+  props.content.gates.forEach((gate) =>
+    gate.references.forEach((reference) => {
+      if (reference.refType === item.kind && reference.refCode === previous)
+        reference.refCode = value
+      if (
+        item.kind === 'STAGE' &&
+        reference.refType === 'STATE' &&
+        reference.refCode === `${previous}_COMPLETED`
+      )
+        reference.refCode = `${value}_COMPLETED`
+    })
+  )
+  item.node.code = value
+  projectTransitions(props.content)
+}
+const copyAsset = async (definition: DefinitionRevision) => {
+  try {
+    const node = stage.value
+      ? await taskFromDefinition(definition, stage.value.code, props.content.tasks.length)
+      : await stageFromDefinition(definition)
+    if (allNodes(props.content).some((item) => item.node.code === node.code))
+      throw new Error('已有相同编码，请先调整当前节点编码再复制')
+    if ('stageCode' in node) props.content.tasks.push(node)
+    else props.content.stages.push(node)
+    captureInlineRules(props.content)
+    selectedKey.value = node.nodeKey
+    assetPicker.value = false
+  } catch (error) {
+    failure.value = error instanceof Error ? error.message : '资产复制失败'
+  }
+}
+const addStrategy = () => {
+  const key = `rule_${crypto.randomUUID()}`
+  ;(props.content.rules ??= []).push({
+    key,
+    name: '新策略',
+    kind: 'DECISION',
+    shared: false,
+    decision: newDecisionTable()
+  })
+  selectedRuleKey.value = key
+}
+const authorizeStrategy = async () => {
+  if (!selectedRule.value) return
+  try {
+    await ElMessageBox.confirm(`修改影响：${strategyUses.value.join('；')}`, '共享策略影响')
+    selectedRule.value.shared = true
+    strategyEditableKey.value = selectedRule.value.key
+  } catch {
+    /* No changes on cancellation. */
+  }
+}
+const prepareSave = async () => {
+  await strategyEditor.value?.flush()
+  const document: TemplateDesignerDocument = JSON.parse(JSON.stringify(props.content))
+  for (const [key, selection] of pendingBindings) {
+    const node = [...document.stages, ...document.tasks].find((item) => item.nodeKey === key)
+    if (!node) continue
+    const prepared = await prepareTaskBinding(hostFor(document, node), selection, session)
+    node.workBinding = prepared.workBinding
+    node.permission = prepared.permission
+    node.source = prepared.source
+    let rule = document.rules?.find((item) => item.key === node.completionRuleKey)
+    if (rule && ruleUses(document, rule.key).length > 1) {
+      rule = copyVersionRule(document, rule.key)
+      node.completionRuleKey = rule.key
+    }
+    if (!rule) {
+      rule = createVersionRule(document, `${node.name}·完成`, prepared.completionRule.expression)
+      node.completionRuleKey = rule.key
+    }
+    rule.expression = prepared.completionRule.expression
+    Reflect.deleteProperty(node, 'completionRule')
+  }
+  return document
 }
 defineExpose({ prepareSave, hasPendingBindings: () => pendingBindings.size > 0 })
 </script>
+
 <style scoped>
-.delivery-design { color: var(--el-text-color-primary); }
-.design-heading, .section-heading, .detail-heading, .deliverable-heading, .panel-heading, .rule-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-h3, h4 { margin: 0; font-weight: 600; } h3 { font-size: 17px; } h4 { font-size: 14px; }
-.design-heading p, .section-heading p, .task-create p, .panel-heading p, .muted { color: var(--el-text-color-secondary); font-size: 13px; line-height: 1.7; margin: 8px 0 0; }
-.design-heading { margin-bottom: 16px; } .notice { margin-bottom: 16px; }
-.designer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0 18px; border-bottom: 1px solid var(--el-border-color-lighter); margin-bottom: 20px; }
-.toolbar-hint { color: var(--el-text-color-secondary); font-size: 12px; text-align: right; }
-.workspace-panel { min-width: 0; }.flow-overview { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 18px; margin-bottom: 18px; }
-.canvas-panel, .relation-panel, .rule-editor-panel { border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 18px; background: var(--el-bg-color); }
-.designer-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: start; }.designer-summary > div { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 86px; border-radius: 8px; background: var(--el-fill-color-light); }.designer-summary strong { font-size: 24px; }.designer-summary span { margin-top: 8px; color: var(--el-text-color-secondary); font-size: 12px; }
-.delivery-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; overflow: hidden; }
-.stage-nav { padding: 16px 12px; background: var(--el-fill-color-light); border-right: 1px solid var(--el-border-color-lighter); }.nav-caption { font-size: 13px; font-weight: 500; margin: 0 8px 16px; }.nav-caption span { display: block; font-size: 11px; color: var(--el-text-color-secondary); margin-top: 6px; font-weight: normal; }
-.stage-button, .task-button { width: 100%; text-align: left; cursor: pointer; font: inherit; background: transparent; border: 1px solid transparent; color: inherit; border-radius: 6px; padding: 12px; }.stage-item, .task-item { position: relative; }.item-move { position: absolute; top: 6px; right: 6px; display: none; gap: 2px; }.stage-item:hover .item-move, .task-item:hover .item-move { display: inline-flex; }
-.move-button { width: 22px; height: 22px; padding: 0; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; background: var(--el-bg-color); cursor: pointer; }.move-button:disabled { opacity: .35; }.stage-item { margin-bottom: 6px; }.stage-button { display: flex; gap: 10px; align-items: flex-start; }.stage-button:hover, .task-button:hover { background: var(--el-fill-color); }.stage-button.active, .task-button.active { background: var(--el-color-primary-light-9); border-color: var(--el-color-primary-light-7); }
-.stage-code { font-size: 12px; color: var(--el-color-primary); padding-top: 2px; }.stage-title { font-size: 14px; line-height: 1.5; }.stage-title small { display: block; color: var(--el-text-color-secondary); font-size: 11px; margin-top: 5px; }
-.stage-content { min-width: 0; padding: 24px; }.basic-operations { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }.basic-operations > div { border: 1px solid var(--el-border-color-lighter); border-radius: 6px; padding: 20px; }.basic-operations p { font-size: 13px; color: var(--el-text-color-secondary); }
-.task-layout { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 1.5fr); gap: 20px; }.task-list { display: flex; flex-direction: column; gap: 6px; }.task-button strong { display: block; }.task-button span { display: block; color: var(--el-text-color-secondary); font-size: 12px; margin-top: 6px; }.task-button small { font-size: 11px; color: var(--el-text-color-secondary); }.task-detail { min-width: 0; padding-left: 20px; border-left: 1px solid var(--el-border-color-lighter); }.task-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }.task-create { padding: 16px; background: var(--el-fill-color-light); border-radius: 6px; margin-bottom: 20px; }
-.historical-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--el-border-color-lighter); font-size: 13px; }.dimension-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
-.rules-layout { display: grid; grid-template-columns: minmax(300px, .8fr) minmax(0, 1.4fr); gap: 18px; margin-top: 16px; }.rule-title { margin-bottom: 14px; }.rule-title span { color: var(--el-text-color-secondary); font-size: 12px; }.advanced-workspace { max-width: 1180px; }
-.delivery-design :deep(.el-select) { width: 100%; }
-@media (max-width: 1050px) { .designer-toolbar { align-items: flex-start; flex-direction: column; }.flow-overview, .rules-layout { grid-template-columns: 1fr; }.delivery-layout { grid-template-columns: 190px minmax(0, 1fr); }.task-layout { grid-template-columns: 1fr; }.task-detail { border-left: 0; border-top: 1px solid var(--el-border-color-lighter); padding: 20px 0 0; } }
-@media (max-width: 600px) { .designer-toolbar :deep(.el-radio-group) { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }.delivery-layout { grid-template-columns: 1fr; }.stage-nav { border-right: 0; border-bottom: 1px solid var(--el-border-color-lighter); }.basic-operations, .dimension-grid { grid-template-columns: 1fr; } }
+.designer-heading,
+.canvas-navigation,
+.inspector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.designer-heading h3,
+.inspector-heading h4 {
+  margin: 0;
+}
+.designer-heading p,
+.field-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.designer-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(380px, 1fr);
+  gap: 16px;
+}
+.designer-layout main {
+  min-width: 0;
+}
+.node-inspector {
+  min-width: 0;
+  max-height: 78vh;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  padding: 16px;
+}
+.canvas-navigation :deep(.el-select) {
+  width: 230px;
+}
+.gate-reference {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.gate-reference :deep(.el-select) {
+  width: 135px;
+  flex-shrink: 0;
+}
+.asset-copy {
+  margin-top: 12px;
+}
+.template-rules {
+  max-width: 1200px;
+}
+@media (max-width: 1100px) {
+  .designer-layout {
+    grid-template-columns: 1fr;
+  }
+  .node-inspector {
+    max-height: none;
+  }
+}
 </style>

@@ -6,6 +6,10 @@ import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLink
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkedFacts;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
+import cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +22,11 @@ import static org.mockito.Mockito.*;
 
 /** PM-11: no native completion fallback; only locked explicit current-contract facts. */
 class TaskBusinessCompletionEvaluatorTest {
+    private static RuleEngineTestFixture engine;
+    @BeforeAll static void start() { engine = new RuleEngineTestFixture(); }
+    @AfterAll static void stop() { if (engine != null) engine.close(); }
     private final ProjectTaskBusinessService owner = mock(ProjectTaskBusinessService.class);
-    private final TaskBusinessCompletionEvaluator evaluator = new TaskBusinessCompletionEvaluator(owner);
+    private final TaskBusinessCompletionEvaluator evaluator = new TaskBusinessCompletionEvaluator(owner, new ProjectRuleCompiler(), engine.evaluator());
     private final String version = "a".repeat(64);
 
     @Test void emptyGroupNeverPassesEitherQuantifier() {
@@ -57,6 +64,17 @@ class TaskBusinessCompletionEvaluatorTest {
                 {"predicate":"TASK_NATIVE_STATUS","parameters":{"requiredStatus":"DONE"}}]}
                 """);
         assertFalse(evaluator.evaluate(contract, version, List.of(fact(1, true))).satisfied());
+    }
+    @Test void nativeNotCombinesKnownFactsButNeverReleasesUnknownFacts() {
+        var contract = contract("ALL");
+        contract.setCompletionRuleSnapshot("""
+                {"operator":"NOT","rules":[{"predicate":"BUSINESS_FACT","parameters":{"factCode":"CONFIRMED","quantifier":"ALL"}}]}
+                """);
+        var known = evaluator.evaluate(contract, version, List.of(fact(1, false)));
+        assertTrue(known.satisfied());
+        assertTrue(((List<?>) known.evidence().get("components")).contains("pmsRulePredicate"));
+        var missing = new TaskBusinessLinkFact(1L, "object-1", "name", "rev2", Map.of(), List.of(), Set.of());
+        assertFalse(evaluator.evaluate(contract, version, List.of(missing)).satisfied());
     }
     @Test void artifactPresenceOrGenericCompletedFactNeverMeansArchived() {
         var contract = contract("ALL");

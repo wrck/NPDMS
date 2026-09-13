@@ -1,5 +1,6 @@
 import request from '@/config/axios'
 import type { ValidationResult } from './definitions'
+import type { VersionRule } from './rules'
 
 export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
 export interface JsonObject { [key: string]: JsonValue | undefined }
@@ -48,6 +49,9 @@ export interface RuleSpec {
 }
 
 export interface DesignerStageNode {
+  admissionRuleKey?: string
+  completionRuleKey?: string
+  exitRuleKey?: string
   nodeKey: string
   code: string
   name: string
@@ -63,6 +67,9 @@ export interface DesignerStageNode {
 }
 
 export interface DesignerTaskNode {
+  admissionRuleKey?: string
+  completionRuleKey?: string
+  exitRuleKey?: string
   nodeKey: string
   code: string
   name: string
@@ -116,6 +123,7 @@ export interface DesignerGateNode {
 }
 
 export interface DesignerTransitionNode {
+  conditionRuleKey?: string
   edgeKey: string
   code: string
   fromStageCode: string
@@ -138,6 +146,9 @@ export interface DesignerLayout {
 }
 
 export interface TemplateDesignerDocument {
+  rules?: VersionRule[]
+  matchRuleKey?: string
+  closureRuleKey?: string
   schemaVersion: 2
   match: TemplateMatch
   processDefinitionKey?: string
