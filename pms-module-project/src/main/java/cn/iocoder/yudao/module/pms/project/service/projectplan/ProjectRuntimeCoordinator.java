@@ -28,9 +28,24 @@ public class ProjectRuntimeCoordinator {
         int completed = 0;
         ProjectStageCompletionService.Completion finished;
         ProjectBusinessTaskCompletionService.Result taskResults;
+        int stageActivated;
         do {
-            var admitted = admission.activateEligible(projectId, actorId, correlationId);
-            activated += (int) admitted.stream().filter(ProjectStageAdmissionService.StageAdmission::activated).count();
+            stageActivated = 0;
+            boolean admissionUnknown = false;
+            var pendingStages = graph.selectStages(new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(
+                    cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(), projectId));
+            for (var stage : pendingStages) {
+                if (!"PENDING".equals(stage.getStatus())) continue;
+                try {
+                    var admitted = admission.activateStage(projectId, actorId, correlationId, stage.getId());
+                    stageActivated += (int) admitted.stream().filter(ProjectStageAdmissionService.StageAdmission::activated).count();
+                    admissionUnknown |= admitted.stream().anyMatch(item -> item.outcome() == RuleEvaluation.Outcome.UNKNOWN);
+                } catch (RuntimeException unavailable) {
+                    // The single-stage command has rolled back before the next independent stage is evaluated.
+                    admissionUnknown = true;
+                }
+            }
+            activated += stageActivated;
             boolean gateUnknown = false;
             var gateRows = graph.selectGates(new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(
                     cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(), projectId));
@@ -63,8 +78,8 @@ public class ProjectRuntimeCoordinator {
             }
             finished = new ProjectStageCompletionService.Completion(stageCompleted,stageUnknown);
             completed += finished.completed();
-            unknown = gateUnknown || taskResults.unknown() || finished.unknown() || admitted.stream().anyMatch(item -> item.outcome() == RuleEvaluation.Outcome.UNKNOWN);
-        } while (finished.completed() > 0 || taskResults.completed() > 0 || taskResults.activated() > 0);
+            unknown = gateUnknown || taskResults.unknown() || finished.unknown() || admissionUnknown;
+        } while (finished.completed() > 0 || taskResults.completed() > 0 || taskResults.activated() > 0 || stageActivated > 0);
         return new Result(closure.closeIfSatisfied(projectId, actorId, correlationId).unknown() || unknown, activated, completed);
     }
 }

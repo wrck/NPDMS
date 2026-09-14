@@ -50,10 +50,10 @@ public class ProjectStageAdmissionService {
         return activate(projectId, actorId, correlationId, null);
     }
 
-    /** A version/round-checked timer admits only its target; independent timers retain their own transaction. */
+    /** A runtime reevaluation or version/round-checked timer admits only its target in this transaction. */
     @Transactional(rollbackFor = Exception.class)
     public List<StageAdmission> activateStage(Long projectId, Long actorId, String correlationId, Long stageId) {
-        if (stageId == null) throw new IllegalArgumentException("TIMER_STAGE_REQUIRED");
+        if (stageId == null) throw new IllegalArgumentException("ADMISSION_STAGE_REQUIRED");
         return activate(projectId, actorId, correlationId, stageId);
     }
 

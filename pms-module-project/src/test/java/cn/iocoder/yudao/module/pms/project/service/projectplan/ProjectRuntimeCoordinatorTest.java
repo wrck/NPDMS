@@ -11,6 +11,41 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ProjectRuntimeCoordinatorTest {
+    @Test void admissionProgressReevaluatesEarlierDependentStageWithoutWaitingForAnUnrelatedEvent() {
+        TenantContextHolder.setTenantId(7L);
+        try {
+            var admission = mock(ProjectStageAdmissionService.class);
+            var completion = mock(ProjectStageCompletionService.class);
+            var closure = mock(ProjectRuleClosureService.class);
+            var tasks = mock(ProjectBusinessTaskCompletionService.class);
+            var gates = mock(ProjectGateRuleService.class);
+            var graph = mock(ProjectRuntimeGraphMapper.class);
+            var associations = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService.class);
+            var dependent = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO().setId(11L).setStatus("PENDING");
+            var source = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO().setId(12L).setStatus("PENDING");
+            when(graph.selectStages(any())).thenReturn(List.of(dependent, source));
+            when(admission.activateStage(9L, 1L, "test", 11L)).thenAnswer(call -> {
+                boolean matched = "ACTIVE".equals(source.getStatus());
+                if (matched) dependent.setStatus("ACTIVE");
+                return List.of(new ProjectStageAdmissionService.StageAdmission(11L, "dependent",
+                        matched ? RuleEvaluation.Outcome.MATCHED : RuleEvaluation.Outcome.NOT_MATCHED, null, matched));
+            });
+            when(admission.activateStage(9L, 1L, "test", 12L)).thenAnswer(call -> {
+                source.setStatus("ACTIVE");
+                return List.of(new ProjectStageAdmissionService.StageAdmission(12L, "source", RuleEvaluation.Outcome.MATCHED, null, true));
+            });
+            when(tasks.completeEligible(9L, "test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0, 0, false));
+            when(completion.completeStage(anyLong(), anyLong(), anyLong(), anyString())).thenReturn(new ProjectStageCompletionService.Completion(0, false));
+            when(closure.closeIfSatisfied(9L, 1L, "test")).thenReturn(new ProjectRuleClosureService.Closure(false, false));
+            var result = new ProjectRuntimeCoordinator(admission, completion, closure, tasks, gates, graph, associations).reevaluate(9L, 1L, "test");
+            assertEquals(2, result.activated()); assertFalse(result.unknown()); assertEquals(0, result.completed());
+            verify(admission, never()).activateEligible(anyLong(), anyLong(), anyString());
+            verify(admission, times(2)).activateStage(9L, 1L, "test", 11L);
+            verify(admission).activateStage(9L, 1L, "test", 12L);
+            verify(tasks, times(3)).completeEligible(9L, "test");
+        } finally { TenantContextHolder.clear(); }
+    }
+
     @Test void failedStageOwnerRollsBackBeforeIndependentStageCompletionAndUsesOnlyTheExistingRetryLoop() {
         TenantContextHolder.setTenantId(7L);
         try {

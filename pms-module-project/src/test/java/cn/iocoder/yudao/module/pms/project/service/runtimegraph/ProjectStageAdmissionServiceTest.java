@@ -15,6 +15,15 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnap
 import cn.iocoder.yudao.module.pms.project.service.rule.*;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
 import org.junit.jupiter.api.*;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import cn.iocoder.yudao.module.pms.project.service.projectplan.*;
+import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,6 +194,56 @@ class ProjectStageAdmissionServiceTest {
         assertTrue(command.activateEligible(9L, 21L, "ordinary-reevaluation").activated());
         assertEquals("PENDING_START", task.getStatus()); assertNull(task.getActualStartTime());
         verify(executions).activateIfPending(argThat(write -> "TASK".equals(write.nodeKind()) && write.nodeInstanceId().equals(21L)));
+    }
+
+    @Test void ordinaryReevaluationRollsBackOnlyFailedStageAndCommitsIndependentBranches() {
+        add("FIRST", null); add("FAILED", null); add("LAST", null);
+        // Real Spring transactions over an isolated H2 ledger; production MySQL mapper SQL is not exercised.
+        var database = new EmbeddedDatabaseBuilder().generateUniqueName(true).setType(EmbeddedDatabaseType.H2).build();
+        try {
+            var jdbc = new JdbcTemplate(database);
+            jdbc.execute("CREATE TABLE admission_ledger (id BIGINT PRIMARY KEY, stage_status VARCHAR(20), round_status VARCHAR(20), version INT)");
+            for (var stage : rows) jdbc.update("INSERT INTO admission_ledger VALUES (?,'PENDING','PENDING',0)", stage.getId());
+            org.mockito.stubbing.Answer<List<ProjectStageInstanceDO>> refresh = call -> {
+                for (var stage : rows) {
+                    stage.setStatus(jdbc.queryForObject("SELECT stage_status FROM admission_ledger WHERE id=?", String.class, stage.getId()));
+                    stage.setVersion(jdbc.queryForObject("SELECT version FROM admission_ledger WHERE id=?", Integer.class, stage.getId()));
+                }
+                return rows;
+            };
+            when(graph.selectStages(any())).thenAnswer(refresh);
+            when(graph.selectStagesForUpdate(any())).thenAnswer(refresh);
+            doAnswer(call -> {
+                var write = call.getArgument(0, cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate.class);
+                return jdbc.update("UPDATE admission_ledger SET stage_status='ACTIVE',version=version+1 WHERE id=? AND stage_status='PENDING'", write.stageId());
+            }).when(stages).updateStatusIfMatch(any());
+            when(executions.activateIfPending(any())).thenAnswer(call -> {
+                var write = call.getArgument(0, cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.Activation.class);
+                return jdbc.update("UPDATE admission_ledger SET round_status='ACTIVE' WHERE id=? AND round_status='PENDING'", write.nodeInstanceId());
+            });
+            doThrow(new IllegalStateException("second-stage audit failed")).when(audit).record(eq(7L), eq(11L), eq("event"),
+                    eq("PROJECT_STAGE_ACTIVATED"), eq("PROJECT_STAGE"), eq("2"), eq("SUCCESS"), anyMap());
+            var factory = new ProxyFactory(service);
+            factory.addAdvice(new TransactionInterceptor(new DataSourceTransactionManager(database), new AnnotationTransactionAttributeSource()));
+            var admission = (ProjectStageAdmissionService) factory.getProxy();
+            var completion = mock(ProjectStageCompletionService.class);
+            when(completion.completeStage(anyLong(), anyLong(), anyLong(), anyString())).thenReturn(new ProjectStageCompletionService.Completion(0, false));
+            var tasks = mock(ProjectBusinessTaskCompletionService.class);
+            when(tasks.completeEligible(9L, "event")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0, 0, false));
+            var closure = mock(ProjectRuleClosureService.class);
+            when(closure.closeIfSatisfied(9L, 11L, "event")).thenReturn(new ProjectRuleClosureService.Closure(false, false));
+            var coordinator = new ProjectRuntimeCoordinator(admission, completion, closure, tasks,
+                    mock(ProjectGateRuleService.class), graph, mock(ProjectTaskBusinessAssociationService.class));
+            var result = coordinator.reevaluate(9L, 11L, "event");
+            assertTrue(result.unknown()); assertEquals(2, result.activated());
+            assertEquals(List.of("ACTIVE", "PENDING", "ACTIVE"), jdbc.queryForList("SELECT stage_status FROM admission_ledger ORDER BY id", String.class));
+            assertEquals(List.of("ACTIVE", "PENDING", "ACTIVE"), jdbc.queryForList("SELECT round_status FROM admission_ledger ORDER BY id", String.class));
+            assertEquals(List.of(1, 0, 1), jdbc.queryForList("SELECT version FROM admission_ledger ORDER BY id", Integer.class));
+            assertEquals(0, coordinator.reevaluate(9L, 11L, "event").activated());
+            verify(audit).record(eq(7L), eq(11L), eq("event"), eq("PROJECT_STAGE_ACTIVATED"), eq("PROJECT_STAGE"), eq("1"), eq("SUCCESS"), anyMap());
+            verify(audit).record(eq(7L), eq(11L), eq("event"), eq("PROJECT_STAGE_ACTIVATED"), eq("PROJECT_STAGE"), eq("3"), eq("SUCCESS"), anyMap());
+            verify(completion, never()).completeStage(9L, 2L, 11L, "event");
+        } finally { database.shutdown(); }
     }
 
     private void add(String code, String expression) {
