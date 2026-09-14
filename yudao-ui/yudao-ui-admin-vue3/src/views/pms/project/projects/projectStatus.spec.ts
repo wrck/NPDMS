@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { projectStatus } from './projectStatus'
 
 describe('project status presentation', () => {
+  it('shows the active lifecycle without inventing one current stage for parallel projects', () => {
+    expect(projectStatus({ lifecycleStatus: 'ACTIVE', currentStage: null, status: 'ACTIVE' }))
+      .toEqual({ value: 'ACTIVE', label: '进行中', type: 'primary', stage: false })
+  })
   it.each([
     ['NORMAL_CLOSED', '正常闭环', 'success'],
     ['NO_TRACKING_CLOSED', '不予跟踪闭环', 'info'],

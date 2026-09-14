@@ -7,11 +7,11 @@
       </div>
       <div class="panel-actions">
         <el-button
-          v-if="workspace?.allowedActions.includes('CREATE')"
+          v-if="workspace?.allowedActions.includes('MANAGE_PLAN')"
           type="primary"
-          @click="openCreate"
+          @click="planVisible = true"
         >
-          <Icon icon="ep:plus" />新建任务
+          <Icon icon="ep:plus" />新建／调整任务
         </el-button>
         <el-button :loading="loading" @click="reload"><Icon icon="ep:refresh" />刷新</el-button>
       </div>
@@ -67,192 +67,75 @@
     <el-empty v-else-if="!loading" description="暂无项目任务工作区" />
   </ContentWrap>
 
-  <ProjectTaskWorkbenchDrawer
+  <ProjectNodeWorkbenchDrawer
     v-model="drawerVisible"
-    :task-id="selectedTaskId"
+    :project="project"
+    :selection="selectedTaskId == null ? undefined : { kind: 'task', stageCode: selectedTaskStage, taskId: selectedTaskId }"
     :show-responsibilities="showResponsibilities"
     @changed="handleCommandChanged"
-    @move="openMove"
   />
 
-  <Dialog
-    v-model="createVisible"
-    title="新建 TASK_NATIVE 任务"
-    width="min(720px, calc(100vw - 24px))"
-  >
-    <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
-      <el-row :gutter="12">
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="任务编码" prop="taskCode"
-            ><el-input v-model="createForm.taskCode" maxlength="64" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="任务名称" prop="name"
-            ><el-input v-model="createForm.name" maxlength="128" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="所属阶段" prop="stageCode"
-            ><el-select v-model="createForm.stageCode"
-              ><el-option
-                v-for="stage in creatableStages"
-                :key="stage.stageCode"
-                :label="`${stage.stageCode} ${stage.stageName}`"
-                :value="stage.stageCode" /></el-select></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="父任务 ID"
-            ><el-input
-              v-model="createForm.parentTaskId"
-              inputmode="numeric"
-              maxlength="20"
-              placeholder="留空表示根任务" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="业务层级"
-            ><el-input v-model="createForm.businessLevelCode" maxlength="64" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="优先级"
-            ><el-input-number v-model="createForm.priority" :min="0" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="计划开始"
-            ><el-date-picker
-              v-model="createForm.planStartTime"
-              type="datetime"
-              value-format="YYYY-MM-DDTHH:mm:ss" /></el-form-item
-        ></el-col>
-        <el-col :xs="24" :sm="12"
-          ><el-form-item label="计划结束"
-            ><el-date-picker
-              v-model="createForm.planEndTime"
-              type="datetime"
-              value-format="YYYY-MM-DDTHH:mm:ss" /></el-form-item
-        ></el-col>
-        <el-col :span="24"
-          ><el-form-item label="任务说明"
-            ><el-input
-              v-model="createForm.description"
-              type="textarea"
-              :rows="3"
-              maxlength="500"
-              show-word-limit /></el-form-item
-        ></el-col>
-      </el-row>
-    </el-form>
-    <template #footer>
-      <el-button @click="createVisible = false">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="create">创建任务</el-button>
-    </template>
-  </Dialog>
-
-  <Dialog v-model="moveVisible" title="移动任务" width="min(560px, calc(100vw - 24px))">
-    <el-form :model="moveForm" label-position="top">
-      <el-form-item label="目标父任务 ID">
-        <el-input
-          v-model="moveForm.targetParentTaskId"
-          inputmode="numeric"
-          maxlength="20"
-          placeholder="留空表示根任务"
-        />
-        <span class="form-hint">留空表示移动为根任务</span>
-      </el-form-item>
-      <el-form-item label="移动原因" required>
-        <el-input
-          v-model="moveForm.reason"
-          type="textarea"
-          :rows="3"
-          maxlength="500"
-          show-word-limit
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="moveVisible = false">取消</el-button>
-      <el-button
-        type="primary"
-        :disabled="!moveForm.reason.trim()"
-        :loading="submitting"
-        @click="move"
-        >确认移动</el-button
-      >
-    </template>
-  </Dialog>
+  <ProjectPlanEditor
+    v-model="planVisible"
+    :project-id="projectId"
+    @changed="handleCommandChanged"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as TaskWorkbenchApi from '@/api/pms/project/task-workbench'
-import type { FormInstance, FormRules } from 'element-plus'
 import type {
   ProjectWorkspace,
   TaskCommandResult,
-  TaskDetail,
   TaskNode
 } from '@/api/pms/project/task-workbench'
 import ProjectTaskTree from './ProjectTaskTree.vue'
-import ProjectTaskWorkbenchDrawer from './ProjectTaskWorkbenchDrawer.vue'
+import ProjectPlanEditor from './ProjectPlanEditor.vue'
+import ProjectNodeWorkbenchDrawer from './ProjectNodeWorkbenchDrawer.vue'
+import type { ProjectMasterVO } from '@/api/pms/project/projects'
 
 defineOptions({ name: 'ProjectTaskPanel' })
-const props = withDefaults(defineProps<{ projectId: number; showResponsibilities?: boolean }>(), { showResponsibilities: true })
+const props = withDefaults(
+  defineProps<{ projectId: number; project: ProjectMasterVO; showResponsibilities?: boolean }>(),
+  { showResponsibilities: false }
+)
 const emit = defineEmits<{ 'tree-version': [version: number]; updated: [] }>()
 const message = useMessage()
 const loading = ref(false)
-const submitting = ref(false)
 const workspace = ref<ProjectWorkspace>()
-const creatableStages = computed(() =>
-  (workspace.value?.stageTaskNavigation || []).filter((stage) => stage.stageCode !== 'S0')
-)
 const selectedStage = ref('')
 const keywordInput = ref('')
 const keyword = ref('')
 const refreshToken = ref(0)
 const drawerVisible = ref(false)
 const selectedTaskId = ref<number>()
-const createVisible = ref(false)
-const moveVisible = ref(false)
-const movingTask = ref<TaskDetail>()
-const createFormRef = ref<FormInstance>()
-const createForm = reactive({
-  taskCode: '',
-  name: '',
-  stageCode: '',
-  parentTaskId: undefined as string | undefined,
-  businessLevelCode: '',
-  planStartTime: undefined as string | undefined,
-  planEndTime: undefined as string | undefined,
-  priority: 0,
-  sortOrder: 0,
-  description: ''
-})
-const moveForm = reactive({ targetParentTaskId: undefined as string | undefined, reason: '' })
-const createRules: FormRules = {
-  taskCode: [{ required: true, message: '请输入任务编码' }],
-  name: [{ required: true, message: '请输入任务名称' }],
-  stageCode: [{ required: true, message: '请选择所属阶段' }]
-}
-const idempotencyKey = () => crypto.randomUUID()
-const optionalTaskId = (value?: string) => value?.trim() || undefined
+const selectedTaskStage = ref('')
+const planVisible = ref(false)
 
+let workspaceRequest = 0
 const loadWorkspace = async () => {
+  const request = ++workspaceRequest
   loading.value = true
   try {
-    workspace.value = await TaskWorkbenchApi.getProjectWorkspace(props.projectId)
+    const result = await TaskWorkbenchApi.getProjectWorkspace(props.projectId)
+    if (request !== workspaceRequest) return false
+    workspace.value = result
     if (
       !workspace.value.stageTaskNavigation.some((stage) => stage.stageCode === selectedStage.value)
     ) {
       selectedStage.value = workspace.value.stageTaskNavigation[0]?.stageCode || ''
     }
     emit('tree-version', workspace.value.taskTreeVersion)
+    return true
   } finally {
-    loading.value = false
+    if (request === workspaceRequest) loading.value = false
   }
 }
 
 const reload = async () => {
-  await loadWorkspace()
-  refreshToken.value++
+  if (await loadWorkspace()) refreshToken.value++
 }
 const search = () => {
   keyword.value = keywordInput.value.trim()
@@ -262,100 +145,33 @@ const clearSearch = () => {
   keyword.value = ''
 }
 const openWorkbench = (task: TaskNode) => {
+  if (task.placeholder || !task.stageCode) {
+    message.warning('任务执行上下文不完整，请刷新任务树后重试')
+    return
+  }
   selectedTaskId.value = task.taskId
+  selectedTaskStage.value = task.stageCode
   drawerVisible.value = true
 }
 const handleTreeVersion = (version: number) => {
   if (workspace.value) workspace.value.taskTreeVersion = version
   emit('tree-version', version)
 }
-const handleCommandChanged = async (_result: TaskCommandResult) => {
+const handleCommandChanged = async (_result?: TaskCommandResult) => {
   emit('updated')
   await reload()
 }
 
-const openCreate = () => {
-  if (!creatableStages.value.length) {
-    message.warning('当前项目没有可新建任务的阶段，S0事项请通过项目基本功能办理')
-    return
-  }
-  Object.assign(createForm, {
-    taskCode: '',
-    name: '',
-    stageCode: creatableStages.value.some((stage) => stage.stageCode === selectedStage.value)
-      ? selectedStage.value
-      : creatableStages.value[0].stageCode,
-    parentTaskId: undefined,
-    businessLevelCode: '',
-    planStartTime: undefined,
-    planEndTime: undefined,
-    priority: 0,
-    sortOrder: 0,
-    description: ''
-  })
-  createVisible.value = true
-}
-
-const create = async () => {
-  if (createForm.stageCode === 'S0') {
-    message.warning('S0不生成任务，请通过项目基本功能办理')
-    return
-  }
-  if (!(await createFormRef.value?.validate())) return
-  submitting.value = true
-  try {
-    await TaskWorkbenchApi.createTask(
-      props.projectId,
-      { ...createForm, parentTaskId: optionalTaskId(createForm.parentTaskId) },
-      idempotencyKey()
-    )
-    message.success('任务创建成功')
-    createVisible.value = false
-    await reload()
-  } finally {
-    submitting.value = false
-  }
-}
-
-const openMove = (task: TaskDetail) => {
-  movingTask.value = task
-  Object.assign(moveForm, {
-    targetParentTaskId: task.parentTaskId == null ? undefined : String(task.parentTaskId),
-    reason: ''
-  })
-  moveVisible.value = true
-}
-
-const move = async () => {
-  if (
-    !movingTask.value ||
-    movingTask.value.version == null ||
-    !workspace.value ||
-    !moveForm.reason.trim()
-  )
-    return
-  submitting.value = true
-  try {
-    await TaskWorkbenchApi.moveTask(
-      movingTask.value.taskId,
-      {
-        ...moveForm,
-        targetParentTaskId: optionalTaskId(moveForm.targetParentTaskId),
-        expectedTaskTreeVersion: workspace.value.taskTreeVersion
-      },
-      movingTask.value.version,
-      idempotencyKey()
-    )
-    message.success('任务移动成功')
-    moveVisible.value = false
+watch([() => props.projectId, () => props.project.version], ([projectId], [previousProjectId]) => {
+  if (projectId !== previousProjectId) {
+    workspace.value = undefined
     drawerVisible.value = false
-    await reload()
-  } finally {
-    submitting.value = false
+    planVisible.value = false
+    selectedTaskId.value = undefined
+    selectedTaskStage.value = ''
   }
-}
-
-watch(() => props.projectId, reload)
+  void reload()
+})
 onMounted(loadWorkspace)
 </script>
 

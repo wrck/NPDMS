@@ -118,7 +118,10 @@ class AcceptanceReportCommandServiceTest {
             Supplier operation = invocation.getArgument(3);
             Object result = operation.get();
             Function facts = invocation.getArgument(4);
-            facts.apply(result);
+            var success=(PlatformCommandExecutionApi.SuccessFacts)facts.apply(result);
+            var event=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(success.businessEvents().getFirst().eventPayload(),
+                    cn.iocoder.yudao.module.pms.project.service.acceptancereport.event.AcceptanceReportVersionChangedMessage.class);
+            assertEquals(50L,event.deliverableId());
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
     }
@@ -137,6 +140,7 @@ class AcceptanceReportCommandServiceTest {
         row.setId(100L);
         row.setProjectId(80L);
         row.setProjectTaskId(90L);
+        row.setDeliverableId(50L);
         row.setAcceptanceType(type);
         row.setActivityStatus("PENDING");
         row.setCurrentReportVersionId(currentReportId);

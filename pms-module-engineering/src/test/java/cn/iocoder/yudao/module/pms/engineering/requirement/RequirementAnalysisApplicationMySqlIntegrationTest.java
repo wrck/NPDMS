@@ -168,7 +168,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         String key = operationKey("clone");
         var command = new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(
                 completed.preparationId(), completed.dynamicFormInstanceId(), completed.solVersion(),
-                completed.dynamicFormInstanceVersion(), key);
+                completed.dynamicFormInstanceVersion(), key, null);
 
         var draft = commands.createRevision(command, actor("clone"));
         assertEquals(before + 2, attachedEvents());
@@ -212,7 +212,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         assertThrows(RuntimeException.class, () -> commands.createRevision(
                 new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(
                         completed.preparationId(), completed.dynamicFormInstanceId(), completed.solVersion(),
-                        completed.dynamicFormInstanceVersion(), key), actor("failed-clone")));
+                        completed.dynamicFormInstanceVersion(), key, null), actor("failed-clone")));
 
         assertEquals(rootsBefore, rootCount());
         assertEquals(instancesBefore, instanceCount());
@@ -253,7 +253,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     @Test
     void v104RejectsNullInstanceIdForDraftPre04Root() {
         var draft = commands.createInitial(
-                new RequirementAnalysisDynamicFormCommandService.CreateCommand(projectId, operationKey("v104")),
+                new RequirementAnalysisDynamicFormCommandService.CreateCommand(projectId, operationKey("v104"), null),
                 actor("v104"));
         assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=? "
                 + "AND preparation_type_code='PRE_04_REQUIREMENT_ANALYSIS' "
@@ -302,7 +302,7 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
 
     private RequirementAnalysisDynamicFormCommandService.CommandResult initializedAndPatched(String suffix) {
         var initial = commands.createInitial(new RequirementAnalysisDynamicFormCommandService.CreateCommand(
-                projectId, operationKey(suffix + "-initial")), actor(suffix + "-initial"));
+                projectId, operationKey(suffix + "-initial"), null), actor(suffix + "-initial"));
         Map<String, Object> values = Map.of("PROJECT_BACKGROUND", "<p>项目背景</p>",
                 "PROJECT_OBJECTIVE", "<p>项目目标</p>", "NETWORK_TOPOLOGY", "<p>网络拓扑</p>");
         var patched = commands.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(

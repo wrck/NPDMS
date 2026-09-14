@@ -112,21 +112,21 @@ class TemplateInstantiatorTest {
     }
 
     @Test
-    void minSortOrderStageActiveOthersPending() {
+    void allStagesWaitForAdmissionRegardlessOfCodeOrSort() {
         TemplateDefinitionContent content = fullContent();
-        // S0 sort=0 最小 → ACTIVE；S1/S2 PENDING
         ProjectInstantiation instantiation = instantiate(content);
-        assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, findByCode(instantiation.getStages(), "S0").getStatus());
+        assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S0").getStatus());
         assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S1").getStatus());
         assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S2").getStatus());
     }
 
     @Test
-    void rejectsTemplateWithoutS0() {
+    void acceptsCustomStagesWithoutS0() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
-        content.getStages().add(stage("S2", "实施方案", 1));
-        content.getStages().add(stage("S3", "实施部署", 2));
-        assertThrows(IllegalArgumentException.class, () -> instantiate(content));
+        content.getStages().add(stage("DISCOVERY", "需求确认", 1));
+        content.getStages().add(stage("DELIVERY", "交付执行", 2));
+        assertEquals(2, instantiate(content).getStages().size());
+        assertThrows(IllegalArgumentException.class, () -> instantiate(new TemplateDefinitionContent()));
     }
 
     @Test
@@ -135,7 +135,7 @@ class TemplateInstantiatorTest {
         content.getStages().add(stage("S0", "待开始", null));
         content.getStages().add(stage("S1", "工前准备", 1));
         ProjectInstantiation instantiation = instantiate(content);
-        assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, findByCode(instantiation.getStages(), "S0").getStatus());
+        assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S0").getStatus());
     }
 
     @Test
@@ -223,7 +223,7 @@ class TemplateInstantiatorTest {
         content.getStages().add(stage("S0", "立项与指派", 0));
         ProjectInstantiation instantiation = instantiate(content);
         assertEquals(1, instantiation.getStages().size());
-        assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, instantiation.getStages().getFirst().getStatus());
+        assertEquals(ProjectRules.STAGE_STATUS_PENDING, instantiation.getStages().getFirst().getStatus());
         assertTrue(instantiation.getTasks().isEmpty());
         assertTrue(instantiation.getMilestones().isEmpty());
         assertTrue(instantiation.getDeliverables().isEmpty());

@@ -6,7 +6,7 @@ public record RequirementAnalysisWorkBindingFact(
         Integer projectTaskVersion,
         Long executionContractId,
         Integer executionContractVersion,
-        Long templateTaskDefinitionId,
+        Long projectTemplateId,
         Integer sourceDefinitionVersion,
         Long projectTemplateRevisionId,
         Integer projectTemplateRevisionNo,

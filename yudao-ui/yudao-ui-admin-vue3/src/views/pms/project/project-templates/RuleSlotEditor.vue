@@ -69,12 +69,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
+import { businessSources, ruleBusinessSourcesKey } from './ruleBusinessSources'
 const props = withDefaults(
   defineProps<{
     document: TemplateDesignerDocument
@@ -88,6 +89,9 @@ const props = withDefaults(
   { emptyText: '未配置附加条件。' }
 )
 const emit = defineEmits<{ 'update:modelValue': [key: string | undefined] }>()
+// Vue's reactive provide/inject keeps recursive groups tied to this version, not global editor state.
+// https://vuejs.org/guide/components/provide-inject.html#working-with-reactivity
+provide(ruleBusinessSourcesKey, computed(() => businessSources(props.document)))
 const rule = computed(() => props.document.rules?.find((item) => item.key === props.modelValue))
 const candidates = computed(
   () => props.document.rules?.filter((item) => item.kind === 'CONDITION') ?? []

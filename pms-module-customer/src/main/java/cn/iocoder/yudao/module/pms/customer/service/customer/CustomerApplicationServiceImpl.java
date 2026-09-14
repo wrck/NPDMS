@@ -144,6 +144,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
         customer.setCode(command.code());
         customer.setName(command.name());
         customer.setShortName(command.shortName());
+        customer.setCustomerLevel(command.customerLevel());
         customer.setLifecycleStatus(CustomerLifecycleStatus.ENABLED.name());
         customer.setSourceType(command.sourceType().name());
         customer.setSourceKey(command.sourceKey());
@@ -192,6 +193,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
                 : null;
         CustomerPlatformUpdate update = new CustomerPlatformUpdate(
                 actor.tenantId(), command.customerId(), command.name(), command.shortName(), command.remark(),
+                command.customerLevel(),
                 classification == null ? null : classification.departmentCode(),
                 classification == null ? null : classification.departmentName(),
                 classification == null ? null : classification.marketCode(),
@@ -203,7 +205,8 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
                 classification == null ? null : classification.industryCode(),
                 classification == null ? null : classification.industryName(),
                 command.changedFields().contains("name"), command.changedFields().contains("shortName"),
-                command.changedFields().contains("remark"), updateClassification, command.expectedVersion());
+                command.changedFields().contains("remark"), command.changedFields().contains("customerLevel"),
+                updateClassification, command.expectedVersion());
         if (customerMasterMapper.updatePlatformFieldsByVersion(update) != 1) {
             throw exception(CUSTOMER_VERSION_CONFLICT);
         }
@@ -345,6 +348,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
 
     private void validateCreate(CreateCustomerCommand command) {
         if (command == null || isBlank(command.code()) || isBlank(command.name()) || command.sourceType() == null
+                || isBlank(command.customerLevel())
                 || isBlank(command.departmentCode()) || isBlank(command.marketCode()) || isBlank(command.systemCode())
                 || isBlank(command.expendCode()) || isBlank(command.industryCode()) || isBlank(command.idempotencyKey())) {
             throw new IllegalArgumentException("客户创建命令不完整");
@@ -361,7 +365,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
                 || fields == null || fields.isEmpty() || isBlank(command.idempotencyKey())) {
             throw new IllegalArgumentException("客户更新命令不完整");
         }
-        Set<String> supported = Set.of("name", "shortName", "remark", "classification");
+        Set<String> supported = Set.of("name", "shortName", "remark", "customerLevel", "classification");
         if (!supported.containsAll(fields)) {
             throw new IllegalArgumentException("客户更新字段不受支持: " + fields);
         }
@@ -370,6 +374,9 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
                 || isBlank(command.systemCode()) || isBlank(command.expendCode())
                 || isBlank(command.industryCode()))) {
             throw new IllegalArgumentException("客户分类更新命令不完整");
+        }
+        if (fields.contains("customerLevel") && isBlank(command.customerLevel())) {
+            throw new IllegalArgumentException("客户级别不能为空");
         }
     }
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper">
+  <delete id="deleteTaskBindings">
+    DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id=#{taskId}
+  </delete>
+  <delete id="deleteAdapterBindings">
+    DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id IN
+      (SELECT id FROM int_sync_task WHERE tenant_id=#{tenantId} AND adapter=#{adapter})
+  </delete>
+</mapper>

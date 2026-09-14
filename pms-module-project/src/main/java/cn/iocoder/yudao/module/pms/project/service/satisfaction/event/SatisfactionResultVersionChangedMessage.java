@@ -6,7 +6,7 @@ import java.util.List;
 
 public record SatisfactionResultVersionChangedMessage(
         String eventId, String changeType, Long tenantId, Long projectId, Long projectTaskId,
-        Integer projectTaskVersion, String taskCode, String collectionKey, Integer taskRevisionNo,
+        Integer projectTaskVersion, Long deliverableId, String collectionKey, Integer taskRevisionNo,
         Long taskId, Long questionnaireId, Long responseId, Long resultId, Integer resultVersion,
         Integer resultFactVersion, Long templateRevisionId, String ruleVersion, BigDecimal threshold,
         String sourceOwnerContext, String sourceObjectType, String sourceObjectId, Long sourceObjectVersion,

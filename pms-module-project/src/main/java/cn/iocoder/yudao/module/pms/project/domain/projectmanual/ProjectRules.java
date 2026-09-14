@@ -194,6 +194,7 @@ public final class ProjectRules {
         update.setCreationReason(current.getCreationReason());
         // 模板冻结绑定与流程引用（BR-4）
         update.setLifecycleTemplateId(current.getLifecycleTemplateId());
+        update.setActivePlanVersionId(current.getActivePlanVersionId());
         update.setLifecycleTemplateRevisionNo(current.getLifecycleTemplateRevisionNo());
         update.setLifecycleTemplateRevisionId(current.getLifecycleTemplateRevisionId());
         update.setTemplateLoadMethod(current.getTemplateLoadMethod());

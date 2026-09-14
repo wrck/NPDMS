@@ -6,9 +6,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectSt
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectStageTransitionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectStageExecutionContractMapper;
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionDefinition;
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraph;
-import cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionGraphValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import lombok.RequiredArgsConstructor;
@@ -58,26 +55,19 @@ public class ProjectRuntimeGraphFreezer {
         if (snapshot.getStages() == null || snapshot.getTasks() == null || snapshot.getTransitions() == null) {
             throw new IllegalArgumentException("COMPILED_TEMPLATE_COLLECTION_REQUIRED");
         }
-        StageTransitionGraph graph = graph(snapshot);
-        List<StageTransitionGraphValidator.Failure> failures = StageTransitionGraphValidator.validate(graph);
-        if (!failures.isEmpty()) throw new IllegalArgumentException("INVALID_COMPILED_GRAPH: " + failures);
-        if (snapshot.getStages().stream().noneMatch(stage -> stage != null && "S0".equals(stage.getCode())
-                && Boolean.TRUE.equals(stage.getStart()))) {
-            throw new IllegalArgumentException("INVALID_COMPILED_GRAPH: S0 start required");
-        }
+        if (snapshot.getStages().isEmpty()) throw new IllegalArgumentException("COMPILED_STAGE_REQUIRED");
 
         Set<String> nodeKeys = new HashSet<>();
         for (TemplateExecutionSnapshot.StageContract stage : snapshot.getStages()) {
             if (stage == null || blank(stage.getNodeKey()) || !nodeKeys.add(stage.getNodeKey())) {
                 throw new IllegalArgumentException("COMPILED_STAGE_NODE_KEY_REQUIRED");
             }
-            if (stage.getBinding() == null) throw new IllegalArgumentException("COMPILED_STAGE_BINDING_REQUIRED");
-            if (stage.getPermission() == null) throw new IllegalArgumentException("COMPILED_STAGE_PERMISSION_REQUIRED");
+            if (stage.getBinding() != null && stage.getPermission() == null)
+                throw new IllegalArgumentException("COMPILED_STAGE_PERMISSION_REQUIRED");
             requireObject(stage.getCompletionRule(), "COMPILED_STAGE_COMPLETION_RULE_REQUIRED");
         }
         for (TemplateExecutionSnapshot.TaskContract task : snapshot.getTasks()) {
             if (task == null) throw new IllegalArgumentException("COMPILED_TASK_REQUIRED");
-            if ("S0".equals(task.getStageCode())) throw new IllegalArgumentException("S0不生成任务");
             if (blank(task.getNodeKey()) || !nodeKeys.add(task.getNodeKey())) {
                 throw new IllegalArgumentException("COMPILED_TASK_NODE_KEY_REQUIRED");
             }
@@ -97,52 +87,31 @@ public class ProjectRuntimeGraphFreezer {
             if (edge == null || blank(edge.getEdgeKey()) || !edgeKeys.add(edge.getEdgeKey())) {
                 throw new IllegalArgumentException("COMPILED_TRANSITION_KEY_REQUIRED");
             }
-            if (Boolean.TRUE.equals(edge.getDefaultBranch()) && edge.getConditionRule() != null) {
-                throw new IllegalArgumentException("DEFAULT_BRANCH_MUST_NOT_HAVE_CONDITION");
-            }
-            if (edge.getConditionRule() != null) {
-                requireObject(edge.getConditionRule(), "COMPILED_TRANSITION_CONDITION_INVALID");
-            }
+            if (edge.getConditionRule() != null || !blank(edge.getConditionRuleKey()))
+                throw new IllegalArgumentException("EDGE_RULE_MUST_USE_ADMISSION: 请将独立连线条件改为目标阶段准入条件后重新发布");
         }
     }
 
     /** Compatibility overload: unwraps the embedded V2 snapshot and delegates to the native freezer. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public void freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateDefinitionContent content,
+    public List<ProjectStageExecutionContractDO> freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateDefinitionContent content,
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {
-        freeze(tenantId, projectId, templateRevisionId, requireExecutionSnapshot(content), stages, now);
+        return freeze(tenantId, projectId, templateRevisionId, requireExecutionSnapshot(content), stages, now);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateExecutionSnapshot snapshot,
+    public List<ProjectStageExecutionContractDO> freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateExecutionSnapshot snapshot,
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {
         validate(snapshot);
         Map<String, ProjectStageInstanceDO> byCode = stages.stream()
                 .collect(Collectors.toMap(ProjectStageInstanceDO::getStageCode, stage -> stage));
         String executionSnapshot = JsonUtils.toJsonString(snapshot);
+        List<ProjectStageExecutionContractDO> contracts = new java.util.ArrayList<>();
         for (TemplateExecutionSnapshot.StageContract definition : snapshot.getStages()) {
             ProjectStageInstanceDO stage = requireStage(byCode, projectId, definition.getCode());
-            ProjectStageExecutionContractDO contract = new ProjectStageExecutionContractDO();
-            contract.setTenantId(tenantId);
-            contract.setProjectId(projectId);
-            contract.setStageId(stage.getId());
-            contract.setSourceNodeKey(definition.getNodeKey());
-            contract.setGraphVersion(GRAPH_VERSION);
-            // Legacy ids are provenance only; runtime evaluates the frozen V2 payloads below.
-            contract.setDefinitionRevisionId(definition.getSourceDefinitionRevisionId());
-            contract.setWorkBindingRevisionId(definition.getSourceWorkBindingRevisionId());
-            contract.setBindingVersion(1);
-            contract.setBindingType(definition.getBinding().getType());
-            contract.setBindingSnapshot(JsonUtils.toJsonString(definition.getBinding()));
-            contract.setPermissionSnapshot(JsonUtils.toJsonString(definition.getPermission()));
-            contract.setPermissionPolicyRevisionId(definition.getSourcePermissionPolicyRevisionId());
-            contract.setCompletionRuleSnapshot(JsonUtils.toJsonString(definition.getCompletionRule()));
-            contract.setCompletionRuleRevisionId(definition.getSourceCompletionRuleRevisionId());
-            // Immutable publication evidence only; V2 resolver does not reinterpret it.
-            contract.setDefinitionSnapshot(executionSnapshot);
-            contract.setEffectiveFrom(truncate(now));
-            contract.setVersion(0);
+            ProjectStageExecutionContractDO contract = createContract(tenantId, projectId, definition, stage, executionSnapshot, now);
             if (contractMapper.insert(contract) != 1) throw new IllegalStateException("STAGE_CONTRACT_FREEZE_FAILED");
+            contracts.add(contract);
         }
         for (TemplateExecutionSnapshot.TransitionContract definition : snapshot.getTransitions()) {
             ProjectStageTransitionDO edge = new ProjectStageTransitionDO();
@@ -163,6 +132,34 @@ public class ProjectRuntimeGraphFreezer {
             edge.setGraphVersion(GRAPH_VERSION);
             if (graphMapper.insert(edge) != 1) throw new IllegalStateException("STAGE_GRAPH_FREEZE_FAILED");
         }
+        return List.copyOf(contracts);
+    }
+
+    /** Shared immutable contract construction for initial creation and project-plan changes. No writes. */
+    public ProjectStageExecutionContractDO createContract(Long tenantId, Long projectId,
+            TemplateExecutionSnapshot.StageContract definition, ProjectStageInstanceDO stage,
+            String executionSnapshot, LocalDateTime now) {
+        ProjectStageExecutionContractDO contract = new ProjectStageExecutionContractDO();
+        contract.setTenantId(tenantId);
+        contract.setProjectId(projectId);
+        contract.setStageId(stage.getId());
+        contract.setSourceNodeKey(definition.getNodeKey());
+        contract.setGraphVersion(stage.getGraphVersion());
+        // Legacy ids are provenance only; runtime evaluates the frozen V2 payloads below.
+        contract.setDefinitionRevisionId(definition.getSourceDefinitionRevisionId());
+        contract.setWorkBindingRevisionId(definition.getSourceWorkBindingRevisionId());
+        contract.setBindingVersion(1);
+        contract.setBindingType(definition.getBinding() == null ? "STAGE_NATIVE" : definition.getBinding().getType());
+        contract.setBindingSnapshot(JsonUtils.toJsonString(definition.getBinding()));
+        contract.setPermissionSnapshot(JsonUtils.toJsonString(definition.getPermission()));
+        contract.setPermissionPolicyRevisionId(definition.getSourcePermissionPolicyRevisionId());
+        contract.setCompletionRuleSnapshot(JsonUtils.toJsonString(definition.getCompletionRule()));
+        contract.setCompletionRuleRevisionId(definition.getSourceCompletionRuleRevisionId());
+        // Immutable publication evidence only; V2 resolver does not reinterpret it.
+        contract.setDefinitionSnapshot(executionSnapshot);
+        contract.setEffectiveFrom(truncate(now));
+        contract.setVersion(0);
+        return contract;
     }
 
     private TemplateExecutionSnapshot requireExecutionSnapshot(TemplateDefinitionContent content) {
@@ -173,15 +170,6 @@ public class ProjectRuntimeGraphFreezer {
                 JsonUtils.toJsonString(content.getExecutionSnapshot()), TemplateExecutionSnapshot.class);
         if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         return snapshot;
-    }
-
-    private StageTransitionGraph graph(TemplateExecutionSnapshot snapshot) {
-        return new StageTransitionGraph(snapshot.getStages().stream()
-                .map(stage -> new StageTransitionGraph.Stage(stage.getCode(), stage.getStart(), stage.getTerminal()))
-                .toList(), snapshot.getTransitions().stream().map(edge -> new StageTransitionDefinition(edge.getCode(),
-                        edge.getFromStageCode(), edge.getToStageCode(),
-                        edge.getConditionRule() == null ? null : 1L,
-                        edge.getPriority(), edge.getDefaultBranch())).toList());
     }
 
     private ProjectStageInstanceDO requireStage(Map<String, ProjectStageInstanceDO> byCode,

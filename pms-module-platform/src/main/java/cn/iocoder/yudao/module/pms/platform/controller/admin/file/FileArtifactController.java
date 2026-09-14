@@ -82,7 +82,7 @@ public class FileArtifactController {
                     request.getExpectedReferenceVersion(), request.getOwnerContext(), request.getObjectType(),
                     request.getObjectId(), request.getPurposeCode(), request.getReferenceKey(),
                     request.getFileName(), request.getCategoryCode(), request.getDeclaredSizeBytes(),
-                    request.getDeclaredMediaType(), request.getClientSha256()));
+                    request.getDeclaredMediaType(), request.getClientSha256(), request.getOwnerExecutionContext()));
             return success(new FileUploadInitRespVO(
                     result.artifactId(), result.sessionId(), result.expiresAt()));
         });
@@ -96,11 +96,12 @@ public class FileArtifactController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestParam Long sessionId,
             @RequestParam(required = false) String clientSha256,
-            @RequestPart("file") MultipartFile file) {
+            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "ownerExecutionContext", required = false) tools.jackson.databind.JsonNode ownerExecutionContext) {
         return withTrustedTenant(() -> {
             var result = uploadService.complete(new FileUploadCompleteCommand(
                     TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
-                    idempotencyKey, artifactId, sessionId, file, clientSha256));
+                    idempotencyKey, artifactId, sessionId, file, clientSha256, ownerExecutionContext));
             return success(new FileUploadCompleteRespVO(result.artifactId(), result.versionNo(),
                     result.referenceId(), result.referenceKey(), result.sha256()));
         });
@@ -175,7 +176,8 @@ public class FileArtifactController {
         return withTrustedTenant(() -> success(lifecycleService.detach(new DetachFileReferenceCommand(
                 TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                 idempotencyKey, referenceId, expectedVersion, request.getOwnerContext(), request.getObjectType(),
-                request.getObjectId(), request.getPurposeCode(), request.getReferenceKey(), request.getReason()))));
+                request.getObjectId(), request.getPurposeCode(), request.getReferenceKey(), request.getReason(),
+                request.getOwnerExecutionContext()))));
     }
 
     @PostMapping("/files/{artifactId}/actions/delete-draft")

@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.deliveryconfiguration.query
 import cn.iocoder.yudao.module.pms.project.domain.template.*;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -29,6 +30,7 @@ public class DeliveryDefinitionResolver {
     private final ProjectStageGateProviderRegistry gateProviders;
     private final ProjectStageGateProcessOwnerApi processes;
     private final TaskBusinessProviderRegistry taskBusinessProviders;
+    private final ProjectRulePublicationValidator rulePublication;
 
     public Map<Long, Snapshot> resolve(List<DeliveryDefinitionReference> roots, Long forbiddenOwner, boolean lock) {
         return resolve(roots, forbiddenOwner, lock, null);
@@ -170,20 +172,24 @@ public class DeliveryDefinitionResolver {
             return;
         }
         if (!"BUSINESS_FACT".equals(rule.path("predicate").asText())) return;
-        // Only the TASK business object/component host currently evaluates this predicate.
-        if (kind != DeliveryDefinitionKind.TASK
-                || !Set.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT").contains(binding.path("bindingType").asText()))
-            throw exception(REFERENCE_INVALID, "BUSINESS_FACT runtime unsupported for binding: " + kind);
         String owner = binding.path("targetContextCode").asText();
         String type = binding.path("targetObjectType").asText();
         String code = rule.path("parameters").path("factCode").asText();
-        if (!taskBusinessProviders.supportsCompletionFact(owner, type, code))
+        if (!taskBusinessProviders.supportsBoundCompletionFact(new TaskBusinessProviderRegistry.CompletionBinding(
+                kind, binding.path("bindingType").asText(), owner, type), code))
             throw exception(REFERENCE_INVALID, "Owner completion fact unavailable: " + owner + "/" + type + "/" + code);
     }
 
     private void validateRuleProviders(JsonNode rule) {
-        if (rule.has("operator")) { for (JsonNode child : rule.path("rules")) validateRuleProviders(child); return; }
+        var issues = rulePublication.validateCondition(rule);
+        if (!issues.isEmpty()) throw exception(INVALID, issues.getFirst().field() + ": " + issues.getFirst().message());
+        validateOwnerPredicates(rule);
+    }
+
+    private void validateOwnerPredicates(JsonNode rule) {
+        if (rule.has("operator")) { for (JsonNode child : rule.path("rules")) validateOwnerPredicates(child); return; }
         String predicate = rule.path("predicate").asText();
+        if (Set.of("FIELD", "CONSTANT", "DECISION").contains(predicate)) return;
         if ("BUSINESS_FACT".equals(predicate)) {
             String code = rule.path("parameters").path("factCode").asText();
             if (!taskBusinessProviders.supportsCompletionFact(code))

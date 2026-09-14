@@ -185,7 +185,7 @@ class SatisfactionResultSourceProjectionMySqlIntegrationTest {
 
     private SatisfactionResultVersionChangedMessage invalidatedEvent(long resultId) {
         return new SatisfactionResultVersionChangedMessage("invalidate-" + resultId, "INVALIDATED", TENANT_ID,
-                projectId, projectId + 9, 7, "T-SAT-SURVEY", "SAT-10", 1, projectId + 8,
+                projectId, projectId + 9, 7, rootId, "SAT-10", 1, projectId + 8,
                 projectId + 7, projectId + 6, resultId, 1, 1, 31L, "RULE-1",
                 new BigDecimal("4.00"), "ACC", "AcceptanceActivity", "100", 1L,
                 true, "INVALIDATED", ACTOR_ID, "OWNER_INVALIDATED", ACTOR_ID,
@@ -194,7 +194,7 @@ class SatisfactionResultSourceProjectionMySqlIntegrationTest {
 
     private SatisfactionResultVersionChangedMessage recordedEvent(long resultId) {
         return new SatisfactionResultVersionChangedMessage("recorded-" + resultId, "RECORDED", TENANT_ID,
-                projectId, projectId + 9, 7, "T-SAT-SURVEY", "SAT-10", 1, projectId + 8,
+                projectId, projectId + 9, 7, rootId, "SAT-10", 1, projectId + 8,
                 projectId + 7, projectId + 6, resultId, 2, 0, 31L, "RULE-1",
                 new BigDecimal("4.00"), "ACC", "AcceptanceActivity", "100", 1L,
                 true, "EFFECTIVE", ACTOR_ID, null, null, null, List.of(

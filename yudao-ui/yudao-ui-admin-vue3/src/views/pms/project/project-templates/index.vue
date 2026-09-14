@@ -118,7 +118,7 @@ import type { ValidationResult } from '@/api/pms/project/project-templates/defin
 import { isBusinessViewConflict } from '@/api/pms/platform/business-view'
 import DefinitionLibrary from './DefinitionLibrary.vue'
 import TemplateContentEditor from './TemplateContentEditor.vue'
-import { cloneContent, commandIntent, emptyContent, errorText, graphIssues } from './editorModel'
+import { cloneContent, commandIntent, emptyContent, errorText } from './editorModel'
 
 defineOptions({ name: 'PmsProjectTemplate' })
 const message = useMessage()
@@ -236,10 +236,7 @@ const validation = ref<ValidationResult>()
 const validationVisible = ref(false)
 const check = async (row: ProjectTemplateVO) => {
   if (detailVisible.value && detail.value?.id === row.id && draftDirty.value) { failure.value = '请先保存 Designer 修改；预检与发布只读取服务端草稿。'; return false }
-  const designer = await TemplateApi.getProjectTemplateDraft(row.id!)
-  const local = graphIssues(cloneContent(designer))
-  const server = await TemplateApi.validateProjectTemplate(row.id!)
-  validation.value = { valid: server.valid && !local.length, issues: [...local, ...server.issues] }; validationVisible.value = true
+  validation.value = await TemplateApi.validateProjectTemplate(row.id!); validationVisible.value = true
   return validation.value.valid
 }
 const precheck = async (row: ProjectTemplateVO) => { if (saving.value) return; saving.value = true; failure.value = ''; try { await check(row) } catch (error) { failure.value = errorText(error) } finally { saving.value = false } }

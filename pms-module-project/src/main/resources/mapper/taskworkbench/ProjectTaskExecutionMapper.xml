@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskExecutionMapper">
+    <sql id="currentExecution">
+        SELECT p.id AS projectId, p.version AS projectVersion, p.lifecycle_status AS projectStatus,
+               t.id AS taskId, t.version AS taskVersion, t.status AS taskStatus,
+               c.id AS executionContractId, c.contract_version AS contractVersion,
+               v.id AS planVersionId, e.id AS executionId, e.version AS executionVersion,
+               e.round_no AS roundNo, e.status AS executionStatus,
+               se.id AS stageExecutionId, se.version AS stageExecutionVersion,
+               se.status AS stageExecutionStatus, s.status AS stageStatus, e.started_at AS startedAt
+        FROM proj_project p
+        JOIN proj_project_plan_version v ON v.tenant_id=p.tenant_id AND v.project_id=p.id
+            AND v.id=p.active_plan_version_id AND v.status='EFFECTIVE' AND v.deleted=b'0'
+        JOIN proj_project_task t ON t.tenant_id=p.tenant_id AND t.project_id=p.id
+            AND t.id=#{query.taskId} AND t.deleted=b'0'
+        JOIN proj_project_task_execution_contract c ON c.tenant_id=t.tenant_id AND c.project_task_id=t.id
+            AND c.id=#{query.executionContractId} AND c.current_marker=1 AND c.effective_to IS NULL AND c.deleted=b'0'
+        JOIN proj_project_node_execution e ON e.tenant_id=t.tenant_id AND e.project_id=p.id
+            AND e.node_kind='TASK' AND e.node_instance_id=t.id AND e.contract_id=c.id
+            AND CAST(e.node_key AS BINARY)=CAST(c.source_node_key AS BINARY)
+            AND e.plan_version_id=v.id AND e.current_marker=1 AND e.deleted=b'0'
+        JOIN proj_project_stage s ON s.tenant_id=t.tenant_id AND s.project_id=p.id
+            AND s.stage_code=t.stage_code AND s.deleted=b'0'
+        JOIN proj_project_node_execution se ON se.tenant_id=s.tenant_id AND se.project_id=p.id
+            AND se.node_kind='STAGE' AND se.node_instance_id=s.id
+            AND se.plan_version_id=v.id AND se.current_marker=1 AND se.deleted=b'0'
+        WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.projectId} AND p.deleted=b'0'
+    </sql>
+    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskExecutionRecord">
+        <include refid="currentExecution"/>
+    </select>
+    <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskExecutionRecord">
+        <include refid="currentExecution"/> FOR UPDATE
+    </select>
+</mapper>

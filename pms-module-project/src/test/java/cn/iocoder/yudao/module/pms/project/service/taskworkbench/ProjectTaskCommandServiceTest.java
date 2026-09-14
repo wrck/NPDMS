@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_COMMAND_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_PLAN_CHANGE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_VERSION_CONFLICT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,6 +105,61 @@ class ProjectTaskCommandServiceTest {
         lenient().when(treeVersionMapper.selectLatestActive(100L)).thenReturn(treeVersion);
         lenient().when(permissionApi.hasAnyPermissions(any(), any())).thenReturn(true);
         delegatePlatformOperation();
+    }
+
+    @Test
+    void plannedProjectRejectsDirectTaskCreationBeforeWritingAnUnversionedTask() {
+        project.setActivePlanVersionId(50L);
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+
+        ServiceException error = assertThrows(ServiceException.class, () -> service.create(
+                new CreateTaskCommand(100L, "T-PREP", "工前准备任务", "CUSTOM_PREP", null, null,
+                        null, null, 1, 0, null, "plan-create", DIGEST), ACTOR));
+
+        assertEquals(PROJECT_TASK_PLAN_CHANGE_REQUIRED.getCode(), error.getCode());
+        verify(taskMapper, never()).insert(any(ProjectTaskInstanceDO.class));
+        verify(taskMapper, never()).insertNewTaskPaths(any());
+        verify(contractMapper, never()).insert(any(ProjectTaskExecutionContractDO.class));
+        verify(taskMapper, never()).incrementTaskTreeVersion(any());
+        org.mockito.Mockito.verifyNoInteractions(progressService);
+    }
+
+    @Test
+    void plannedProjectRejectsDirectMoveBeforeChangingTaskStructure() {
+        project.setActivePlanVersionId(50L);
+        var source = task(11L, 2, "PENDING_START");
+        when(taskMapper.selectTask(any())).thenReturn(source);
+        when(taskMapper.selectMoveLocks(any())).thenReturn(new ProjectTaskRuntimeMapper.ProjectTaskMoveLocks(
+                project, source, null, List.of(source), false));
+
+        ServiceException error = assertThrows(ServiceException.class, () -> service.move(
+                new MoveTaskCommand(11L, 2, null, 3L, "调整层级", "plan-move", DIGEST), ACTOR));
+
+        assertEquals(PROJECT_TASK_PLAN_CHANGE_REQUIRED.getCode(), error.getCode());
+        verify(taskMapper, never()).updateStructureIfMatch(any());
+        verify(taskMapper, never()).incrementTaskTreeVersion(any());
+        verify(operationAuditApi).record(eq(0L), eq(9L), eq("trace-1"),
+                eq("PROJECT_TASK_MOVE"), eq("ProjectTask"), eq("11"), eq("REJECTED"),
+                argThat(detail -> String.valueOf(PROJECT_TASK_PLAN_CHANGE_REQUIRED.getCode())
+                        .equals(detail.get("failureCode"))));
+    }
+
+    @Test
+    void plannedProjectRejectsDirectDependencyBeforeChangingVersionedRules() {
+        project.setActivePlanVersionId(50L);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, 2, "PENDING_START"));
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+
+        ServiceException error = assertThrows(ServiceException.class, () -> service.addDependency(
+                new AddDependencyCommand(11L, 2, 12L, "FINISH_TO_START", "plan-dependency", DIGEST), ACTOR));
+
+        assertEquals(PROJECT_TASK_PLAN_CHANGE_REQUIRED.getCode(), error.getCode());
+        verify(dependencyMapper, never()).insert(any(ProjectTaskDependencyDO.class));
+        verify(taskMapper, never()).incrementTaskVersionIfMatch(any());
+        verify(operationAuditApi).record(eq(0L), eq(9L), eq("trace-1"),
+                eq("PROJECT_TASK_DEPENDENCY_ADD"), eq("ProjectTask"), eq("11"), eq("REJECTED"),
+                argThat(detail -> String.valueOf(PROJECT_TASK_PLAN_CHANGE_REQUIRED.getCode())
+                        .equals(detail.get("failureCode"))));
     }
 
     @Test

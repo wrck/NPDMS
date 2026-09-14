@@ -11,7 +11,7 @@
       <el-form label-position="top" :disabled="readonly">
         <el-form-item label="材料审核人（必选，无默认值）" :error="reviewerError">
           <el-select :model-value="reviewerUserId" filterable clearable :loading="loading" placeholder="请选择材料审核人" @update:model-value="setReviewer" @visible-change="loadOnOpen">
-            <el-option v-if="selectedMissing" :value="reviewerUserId" :label="`已选用户 ${reviewerUserId}（发布时核验资格）`" />
+            <el-option v-if="selectedMissing && reviewerUserId !== undefined" :value="reviewerUserId" :label="`已选用户 ${reviewerUserId}（发布时核验资格）`" />
             <el-option v-for="user in users" :key="user.id" :value="user.id" :label="`${user.nickname}（${user.id}）`" />
           </el-select>
         </el-form-item>

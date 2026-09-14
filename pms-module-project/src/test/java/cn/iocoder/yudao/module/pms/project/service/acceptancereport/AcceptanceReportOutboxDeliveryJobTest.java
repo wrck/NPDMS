@@ -41,7 +41,7 @@ class AcceptanceReportOutboxDeliveryJobTest {
 
     @Test
     void projectionFailureSchedulesRetryWithoutMarkingDelivered() {
-        var event = new AcceptanceReportVersionChangedMessage("event-1", 7L, "REVOKED", 100L, 80L,
+        var event = new AcceptanceReportVersionChangedMessage("event-1", 7L, "REVOKED", 100L, 80L, 50L,
                 "PRELIMINARY", 19L, null, 300L, 2, List.of());
         var message = new PlatformOutboxMessageDTO("event-1", "AcceptanceReportVersionChanged",
                 JsonUtils.toJsonString(event), 2, 7L, LocalDateTime.now());

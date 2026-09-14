@@ -77,24 +77,6 @@ public class ProjectCustomerContactService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public int importDefaults(CustomerContactMasterService.Actor actor, Long projectId, Integer projectVersion) {
-        var context = lock(actor, projectId, projectVersion);
-        int created = 0;
-        PageParam page = new PageParam(); page.setPageSize(100); page.setPageNo(1);
-        while (true) {
-            var sourcePage = sources.selectPage(new ContactMasterPageQuery(actor.tenantId(), context.customerId(), null, 0, page));
-            for (var source : sourcePage.getList()) {
-                if (contacts.selectSourceIncludingDeletedForUpdate(new ProjectContactSourceQuery(actor.tenantId(), projectId, source.getId())) != null) continue;
-                insertRelation(actor, projectId, source, values(source), false, 0);
-                created++;
-            }
-            if ((long) page.getPageNo() * page.getPageSize() >= sourcePage.getTotal()) break;
-            page.setPageNo(page.getPageNo() + 1);
-        }
-        return created;
-    }
-
-    @Transactional(rollbackFor = Exception.class)
     public ProjectCustomerContactDO create(CustomerContactMasterService.Actor actor, ProjectContactWrite command, String key) {
         var context = lock(actor, command.projectId(), command.expectedProjectVersion());
         if (key == null || key.isBlank() || key.length() > 128) throw exception(CONTACT_VALUES_INVALID, "缺少有效的新增操作标识");

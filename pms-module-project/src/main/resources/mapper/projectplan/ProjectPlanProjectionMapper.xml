@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanProjectionMapper">
+    <sql id="nodeScope">
+        tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.id}
+        AND version=#{query.expectedVersion} AND deleted=0
+    </sql>
+    <!-- Temporary codes exist only inside the enclosing project transaction, allowing rename cycles. -->
+    <update id="gateCodeForRename">
+        UPDATE proj_project_gate SET gate_code=CONCAT('~plan:',id) WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="updateGateDefinition">
+        UPDATE proj_project_gate SET gate_code=#{query.definition.gateCode},name=#{query.definition.name},
+            gate_type=#{query.definition.gateType},stage_code=#{query.definition.stageCode},
+            description=#{query.definition.description},validation_summary=#{query.definition.validationSummary},
+            version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="retirePendingGate">
+        UPDATE proj_project_gate SET deleted=1,version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/> AND status='PENDING'
+    </update>
+    <update id="retireGateReference">
+        UPDATE proj_project_gate_reference SET deleted=1,version=version+1,
+            updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND gate_id=#{query.gateId} AND id=#{query.referenceId}
+          AND version=#{query.expectedVersion} AND deleted=0
+          AND EXISTS (SELECT 1 FROM proj_project_gate g WHERE g.tenant_id=#{query.tenantId}
+              AND g.project_id=#{query.projectId} AND g.id=#{query.gateId})
+    </update>
+    <select id="selectMilestonesForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO">
+        SELECT * FROM proj_project_milestone
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=0 ORDER BY id FOR UPDATE
+    </select>
+    <update id="milestoneCodeForRename">
+        UPDATE proj_project_milestone SET milestone_code=CONCAT('~plan:',id) WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="updateMilestoneDefinition">
+        UPDATE proj_project_milestone SET milestone_code=#{query.definition.milestoneCode},name=#{query.definition.name},
+            stage_code=#{query.definition.stageCode},timing=#{query.definition.timing},criteria=#{query.definition.criteria},
+            version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="retirePendingMilestone">
+        UPDATE proj_project_milestone SET deleted=1,version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/> AND status='PENDING'
+    </update>
+    <update id="stageCodeForRename">
+        UPDATE proj_project_stage SET stage_code=CONCAT('~plan:',id) WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="taskCodeForRename">
+        UPDATE proj_project_task SET task_code=CONCAT('~plan:',id) WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="updateStageDefinition">
+        UPDATE proj_project_stage SET stage_code=#{query.definition.stageCode},name=#{query.definition.name},
+            sort_order=#{query.definition.sortOrder},entry_criteria=#{query.definition.entryCriteria},
+            exit_criteria=#{query.definition.exitCriteria},start_node=#{query.definition.startNode},terminal_node=#{query.definition.terminalNode},
+            version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="updateTaskDefinition">
+        UPDATE proj_project_task SET task_code=#{query.definition.taskCode},name=#{query.definition.name},
+            stage_code=#{query.definition.stageCode},parent_task_code=#{query.definition.parentTaskCode},
+            parent_task_id=#{query.definition.parentTaskId},root_task_id=#{query.definition.rootTaskId},tree_depth=#{query.definition.treeDepth},
+            priority=#{query.definition.priority},sort_order=#{query.definition.sortOrder},estimated_hours=#{query.definition.estimatedHours},
+            description=#{query.definition.description},satisfaction_timing=#{query.definition.satisfactionTiming},
+            acc_satisfaction_template_id=#{query.definition.accSatisfactionTemplateId},template_revision_id=#{query.definition.templateRevisionId},
+            template_version=#{query.definition.templateVersion},satisfaction_rule_version=#{query.definition.satisfactionRuleVersion},
+            satisfaction_threshold=#{query.definition.satisfactionThreshold},
+            version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/>
+    </update>
+    <update id="retireUnstartedTask">
+        UPDATE proj_project_task SET deleted=1,version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/> AND status IN ('PENDING_ASSIGN','PENDING_START') AND actual_start_time IS NULL
+    </update>
+    <update id="retireUnstartedStage">
+        UPDATE proj_project_stage SET deleted=1,version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE <include refid="nodeScope"/> AND status IN ('PENDING','ACTIVE')
+          AND NOT EXISTS (SELECT 1 FROM proj_project_task t WHERE t.tenant_id=#{query.tenantId} AND t.project_id=#{query.projectId}
+              AND t.stage_code=proj_project_stage.stage_code AND t.deleted=0
+              AND (t.actual_start_time IS NOT NULL OR t.status IN ('IN_PROGRESS','PENDING_ACCEPT','DONE','CLOSED')))
+    </update>
+    <update id="closeTaskContract">
+        UPDATE proj_project_task_execution_contract SET effective_to=#{query.closedAt},version=version+1,
+            updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_task_id=#{query.nodeInstanceId} AND id=#{query.contractId}
+          AND current_marker=1 AND effective_to IS NULL AND version=#{query.expectedVersion} AND deleted=0
+          AND EXISTS (SELECT 1 FROM proj_project_task t WHERE t.tenant_id=#{query.tenantId} AND t.project_id=#{query.projectId} AND t.id=#{query.nodeInstanceId})
+    </update>
+    <update id="closeStageContract">
+        UPDATE proj_project_stage_execution_contract SET effective_to=#{query.closedAt},version=version+1,
+            updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND stage_id=#{query.nodeInstanceId} AND id=#{query.contractId}
+          AND effective_to IS NULL AND version=#{query.expectedVersion} AND deleted=0
+    </update>
+    <!-- This table is explicitly the current WBS closure projection, not execution history. -->
+    <delete id="deleteCurrentTaskPaths">
+        DELETE FROM proj_task_tree_path WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+    </delete>
+    <update id="advanceTaskTreeVersion">
+        UPDATE proj_project SET task_tree_version=task_tree_version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND task_tree_version=#{query.expectedVersion}
+          AND lifecycle_status='ACTIVE' AND deleted=0
+    </update>
+</mapper>

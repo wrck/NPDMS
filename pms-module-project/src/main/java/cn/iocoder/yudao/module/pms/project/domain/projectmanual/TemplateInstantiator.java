@@ -15,12 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
+import java.util.function.LongFunction;
 
 /**
  * 模板实例化器（F-PM01 / BR-4：按创建时绑定版本实例化，模板后续新版本不影响已建项目）
  * <p>
  * 纯函数：输入 F-PM03 冻结版本内容 + 项目ID，输出实例 DO + 门禁引用行。
- * 初始状态：唯一S0阶段 ACTIVE、其余 PENDING；
+ * 阶段初始均为 PENDING；规则准入命令负责激活，不按编码或排序指定活动阶段。
  * 任务 PENDING_ASSIGN；里程碑/交付件/门禁 PENDING；交付件 required 冻结快照；
  * 门禁 validation_summary 由引用行生成摘要（`TYPE:code;` 精简拼接，≤1000 字符）。
  */
@@ -40,22 +41,26 @@ public final class TemplateInstantiator {
         if (stateMachineRevisionId == null || stateMachineRevisionId <= 0) {
             throw new IllegalArgumentException("任务状态机版本不能为空");
         }
+        return instantiateWithTaskStateMachines(content, projectId, taskId -> stateMachineRevisionId, taskIdSupplier);
+    }
+
+    /** Project plan changes retain each existing task's frozen machine and resolve one only for new tasks. */
+    public static ProjectInstantiation instantiateWithTaskStateMachines(TemplateDefinitionContent content, Long projectId,
+            LongFunction<Long> stateMachineRevisionByTaskId, LongSupplier taskIdSupplier) {
+        Objects.requireNonNull(stateMachineRevisionByTaskId, "任务状态机版本解析器不能为空");
         Objects.requireNonNull(taskIdSupplier, "任务ID生成器不能为空");
-        requireSingleS0(content);
+        requireStages(content);
         ProjectInstantiation instantiation = new ProjectInstantiation();
         instantiateStages(content, projectId, instantiation);
-        instantiateTasks(content, projectId, instantiation, stateMachineRevisionId, taskIdSupplier);
+        instantiateTasks(content, projectId, instantiation, stateMachineRevisionByTaskId, taskIdSupplier);
         instantiateMilestones(content, projectId, instantiation);
         instantiateGates(content, projectId, instantiation);
         return instantiation;
     }
 
-    /** V1.8正式创建必须从唯一S0阶段开始。 */
-    public static void requireSingleS0(TemplateDefinitionContent content) {
-        if (content == null || content.getStages() == null
-                || content.getStages().stream().filter(Objects::nonNull)
-                .filter(stage -> ProjectRules.STATUS_S0.equals(stage.getStageCode())).count() != 1) {
-            throw new IllegalArgumentException("模板必须包含且仅包含一个S0初始阶段");
+    public static void requireStages(TemplateDefinitionContent content) {
+        if (content == null || content.getStages() == null || content.getStages().isEmpty()) {
+            throw new IllegalArgumentException("模板至少需要一个交付阶段");
         }
     }
 
@@ -81,15 +86,14 @@ public final class TemplateInstantiator {
             instance.setGraphVersion(1L);
             instance.setStartNode(stage.getStart());
             instance.setTerminalNode(stage.getTerminal());
-            instance.setStatus(ProjectRules.STATUS_S0.equals(stage.getStageCode())
-                    ? ProjectRules.STAGE_STATUS_ACTIVE
-                    : ProjectRules.STAGE_STATUS_PENDING);
+            instance.setStatus(ProjectRules.STAGE_STATUS_PENDING);
+            instance.setVersion(0);
             instantiation.getStages().add(instance);
         }
     }
 
     private static void instantiateTasks(TemplateDefinitionContent content, Long projectId,
-                                         ProjectInstantiation instantiation, Long stateMachineRevisionId,
+                                         ProjectInstantiation instantiation, LongFunction<Long> stateMachineRevisionByTaskId,
                                          LongSupplier taskIdSupplier) {
         List<TemplateDefinitionContent.TaskDef> tasks = content.getTasks();
         if (tasks == null) {
@@ -101,6 +105,10 @@ public final class TemplateInstantiator {
             }
             ProjectTaskInstanceDO instance = new ProjectTaskInstanceDO();
             instance.setId(taskIdSupplier.getAsLong());
+            Long stateMachineRevisionId = stateMachineRevisionByTaskId.apply(instance.getId());
+            if (stateMachineRevisionId == null || stateMachineRevisionId <= 0) {
+                throw new IllegalArgumentException("任务状态机版本不能为空");
+            }
             instance.setStateMachineRevisionId(stateMachineRevisionId);
             instance.setProjectId(projectId);
             instance.setTaskCode(task.getTaskCode());
@@ -119,7 +127,9 @@ public final class TemplateInstantiator {
         buildTaskStructure(instantiation);
     }
 
-    private static void buildTaskStructure(ProjectInstantiation instantiation) {
+    /** Rebuild a desired task tree before writing it, using the same hierarchy validation as initial creation. */
+    public static void buildTaskStructure(ProjectInstantiation instantiation) {
+        instantiation.getTaskTreePaths().clear();
         Map<String, ProjectTaskInstanceDO> tasksByCode = new LinkedHashMap<>();
         Map<String, Integer> taskOrderByCode = new LinkedHashMap<>();
         for (ProjectTaskInstanceDO task : instantiation.getTasks()) {
@@ -186,6 +196,12 @@ public final class TemplateInstantiator {
         return path;
     }
 
+    public static List<ProjectMilestoneInstanceDO> instantiateMilestones(TemplateDefinitionContent content, Long projectId) {
+        var instantiation = new ProjectInstantiation();
+        instantiateMilestones(content, projectId, instantiation);
+        return instantiation.getMilestones();
+    }
+
     private static void instantiateMilestones(TemplateDefinitionContent content, Long projectId,
                                               ProjectInstantiation instantiation) {
         List<TemplateDefinitionContent.MilestoneDef> milestones = content.getMilestones();
@@ -207,6 +223,13 @@ public final class TemplateInstantiator {
             instance.setStatus(ProjectRules.MILESTONE_STATUS_PENDING);
             instantiation.getMilestones().add(instance);
         }
+    }
+
+    /** Desired gate definitions and references, using the same mapping as initial project creation. */
+    public static ProjectInstantiation instantiateGates(TemplateDefinitionContent content, Long projectId) {
+        var instantiation = new ProjectInstantiation();
+        instantiateGates(content, projectId, instantiation);
+        return instantiation;
     }
 
     private static void instantiateGates(TemplateDefinitionContent content, Long projectId,

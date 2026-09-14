@@ -1,6 +1,8 @@
 import request from '@/config/axios'
+import type { SiteSurveyExecutionSelection } from '@/api/pms/engineering/site-survey'
 
 export interface OutsourceRequestVO {
+  siteSurveyExecution?: SiteSurveyExecutionSelection
   id?: number
   projectId: number
   code: string
@@ -52,8 +54,8 @@ export const createOutsourceRequest = (data: OutsourceRequestVO) =>
   request.post({ url: `${baseUrl}/create`, data: outsourceSavePayload(data) })
 export const updateOutsourceRequest = (data: OutsourceRequestVO) =>
   request.put({ url: `${baseUrl}/update`, data: outsourceSavePayload(data) })
-export const deleteOutsourceRequest = (id: number) =>
-  request.delete({ url: `${baseUrl}/delete`, params: { id } })
+export const deleteOutsourceRequest = (id: number, siteSurveyExecution?: SiteSurveyExecutionSelection) =>
+  request.delete({ url: `${baseUrl}/delete`, params: { id }, data: siteSurveyExecution })
 export const submitOutsourceRequest = (id: number) =>
   request.put({ url: `${baseUrl}/submit`, params: { id } })
 export const approveOutsourceRequest = (data: { id: number; approveAction: string; approverUserId?: number; approveOpinion?: string }) =>

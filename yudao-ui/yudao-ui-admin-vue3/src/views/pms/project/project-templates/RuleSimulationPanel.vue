@@ -14,8 +14,9 @@
           </el-select>
           <el-input
             v-else
-            v-model="values[input.key]"
+            :model-value="typeof values[input.key] === 'string' ? String(values[input.key]) : undefined"
             placeholder="输入模拟值；未提供的值保持未知"
+            @update:model-value="values[input.key] = $event"
           />
         </el-form-item>
         <el-button type="primary" :loading="busy" @click="run">试算</el-button>

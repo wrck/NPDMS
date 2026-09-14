@@ -27,6 +27,17 @@ import static org.mockito.Mockito.when;
 class ProjectRuntimeGraphFreezerTest {
 
     @Test
+    void oldPublishedIndependentEdgeRulesCannotBeSilentlyIgnoredByNewProjectCreation() {
+        var graph = mock(ProjectRuntimeGraphMapper.class);
+        var contracts = mock(ProjectStageExecutionContractMapper.class);
+        var frozen = snapshot();
+        frozen.getTransitions().getFirst().setConditionRuleKey("old-edge-condition");
+        var error = assertThrows(IllegalArgumentException.class, () -> new ProjectRuntimeGraphFreezer(graph,contracts).validate(frozen));
+        assertTrue(error.getMessage().startsWith("EDGE_RULE_MUST_USE_ADMISSION"));
+        verifyNoInteractions(graph,contracts);
+    }
+
+    @Test
     void rejectsLegacyContentWithoutPersistedExecutionSnapshot() {
         var graphMapper = mock(ProjectRuntimeGraphMapper.class);
         var contractMapper = mock(ProjectStageExecutionContractMapper.class);
@@ -118,8 +129,8 @@ class ProjectRuntimeGraphFreezerTest {
     }
 
     private List<ProjectStageInstanceDO> stages() {
-        return List.of(new ProjectStageInstanceDO().setId(21L).setProjectId(9L).setStageCode("S0"),
-                new ProjectStageInstanceDO().setId(22L).setProjectId(9L).setStageCode("S4"));
+        return List.of(new ProjectStageInstanceDO().setId(21L).setProjectId(9L).setStageCode("S0").setGraphVersion(1L),
+                new ProjectStageInstanceDO().setId(22L).setProjectId(9L).setStageCode("S4").setGraphVersion(1L));
     }
 
     private TemplateExecutionSnapshot snapshot() {

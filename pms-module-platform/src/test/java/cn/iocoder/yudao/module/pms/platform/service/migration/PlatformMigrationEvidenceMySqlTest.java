@@ -168,6 +168,63 @@ class PlatformMigrationEvidenceMySqlTest {
     }
 
     @Test
+    void bulkSourcesAndMappingsPreserveReplayRollbackAndImmutableFacts() {
+        MigrationBatchFact created = api.createImportBatch(new CreateImportBatchCommand(
+                TENANT_ID, "COM", prefix, prefix + "-bulk", "ERP", "orders", "schema-v1",
+                2, SHA256, LocalDateTime.now(), null, null, prefix + "-bulk-create", prefix + "-bulk-create"));
+        var bulkClaim = new ClaimStagedBatchCommand(TENANT_ID, "COM", prefix,
+                List.of("ERP"), List.of("orders"), prefix + "-claim");
+        LocalDateTime time = LocalDateTime.now().withNano(0);
+        var first = new AppendMigrationSourceRecordCommand(TENANT_ID, created.batchId(), "ERP", "orders",
+                "bulk-1", null, "{\"value\":1}", SHA256, time, prefix + "-bulk-source");
+        var second = new AppendMigrationSourceRecordCommand(TENANT_ID, created.batchId(), "ERP", "orders",
+                "bulk-2", null, "{\"value\":2}", SHA256, time, prefix + "-bulk-source");
+        var sourcePage = new AppendMigrationSourceRecordsCommand(List.of(first, second));
+        List<MigrationSourceRecordFact> sources = api.appendSourceRecords(sourcePage);
+        assertEquals(sources.stream().map(MigrationSourceRecordFact::sourceRecordId).toList(),
+                api.appendSourceRecords(sourcePage).stream().map(MigrationSourceRecordFact::sourceRecordId).toList());
+        var changed = new AppendMigrationSourceRecordCommand(TENANT_ID, created.batchId(), "ERP", "orders",
+                "bulk-2", null, "{\"value\":99}", SHA256, time, prefix + "-bulk-source");
+        assertThrows(cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceException.class,
+                () -> api.appendSourceRecords(new AppendMigrationSourceRecordsCommand(List.of(first, changed))));
+        assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_migration_source_record WHERE tenant_id=? AND batch_id=?",
+                Long.class, TENANT_ID, created.batchId()));
+        stage(created, 2);
+        var page = new AppendExternalMappingsCommand(List.of(
+                mappingCommand(created.batchId(), sources.getFirst().sourceRecordId(), prefix + "-bulk-map"),
+                retainedCommand(created.batchId(), sources.getLast().sourceRecordId(), prefix + "-bulk-retain")),
+                prefix + "-bulk-page", prefix + "-bulk-page");
+        assertThrows(IllegalStateException.class, () -> transactionTemplate.executeWithoutResult(status -> {
+            api.claimStagedBatch(bulkClaim);
+            assertEquals(2, api.appendExternalMappings(page).classifiedSourceCount());
+            throw new IllegalStateException("rollback bulk evidence");
+        }));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_external_key_mapping WHERE tenant_id=? AND batch_id=?",
+                Long.class, TENANT_ID, created.batchId()));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key=?",
+                Long.class, TENANT_ID, prefix + "-bulk-page"));
+        transactionTemplate.executeWithoutResult(status -> {
+            var claim = api.claimStagedBatch(bulkClaim);
+            assertEquals(2, api.appendExternalMappings(page).classifiedSourceCount());
+            api.completeReconciliation(new CompleteReconciliationCommand(TENANT_ID, created.batchId(), claim.batch().version(),
+                    2, 1, 0, 1, "rules-v1", prefix + "-bulk-complete", prefix + "-bulk-complete"));
+        });
+        assertEquals(2, api.appendExternalMappings(page).classifiedSourceCount());
+        assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_external_key_mapping WHERE tenant_id=? AND batch_id=?",
+                Long.class, TENANT_ID, created.batchId()));
+        var altered = new AppendExternalMappingsCommand(List.of(
+                retainedCommand(created.batchId(), sources.getFirst().sourceRecordId(), prefix + "-bulk-map")),
+                prefix + "-bulk-page", prefix + "-bulk-page");
+        assertThrows(cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceException.class,
+                () -> api.appendExternalMappings(altered));
+        TenantContextHolder.setTenantId(8L);
+        try {
+            assertThrows(cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceException.class,
+                    () -> api.appendExternalMappings(page));
+        } finally { TenantContextHolder.setTenantId(TENANT_ID); }
+    }
+
+    @Test
     void claimRequiresCallerTransactionAndLeavesStagedBatchUntouched() {
         MigrationBatchFact created = createBatch(prefix + "-mandatory", 0);
         stage(created, 0);

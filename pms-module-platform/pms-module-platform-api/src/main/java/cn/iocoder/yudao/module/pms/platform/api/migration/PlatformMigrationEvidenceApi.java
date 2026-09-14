@@ -8,6 +8,7 @@ public interface PlatformMigrationEvidenceApi {
     MigrationBatchFact createImportBatch(CreateImportBatchCommand command);
 
     MigrationSourceRecordFact appendSourceRecord(AppendMigrationSourceRecordCommand command);
+    java.util.List<MigrationSourceRecordFact> appendSourceRecords(AppendMigrationSourceRecordsCommand command);
 
     MigrationBatchFact markStagedReady(MarkStagedReadyCommand command);
 
@@ -16,6 +17,7 @@ public interface PlatformMigrationEvidenceApi {
     MigrationSourceRecordPage pageSourceRecords(MigrationSourceRecordPageQuery query);
 
     SourceReconciliationResult appendExternalMapping(AppendExternalMappingCommand command);
+    MigrationMappingPageResult appendExternalMappings(AppendExternalMappingsCommand command);
 
     MigrationIssueFact appendMigrationIssue(AppendMigrationIssueCommand command);
 

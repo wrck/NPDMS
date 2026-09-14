@@ -55,6 +55,7 @@ import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -131,6 +132,10 @@ class ProjectManualCreationServiceImplTest {
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Mock
     private ProjectTemplateService projectTemplateService;
+    @Mock
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmissionService;
+    @Mock
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanInitializationService planInitializationService;
     @Mock
     private ProjectAttributeResolutionService projectAttributeResolutionService;
     @Mock
@@ -283,9 +288,9 @@ class ProjectManualCreationServiceImplTest {
         assertEquals("V1", created.getCodeRuleVersion());
         assertEquals(0, created.getProjectSequence());
         assertEquals(ProjectRules.SOURCE_TYPE_MANUAL, created.getSourceType());
-        assertEquals(ProjectRules.STATUS_S0, created.getStatus());
+        assertEquals(ProjectRules.LIFECYCLE_STATUS_ACTIVE, created.getStatus());
         assertEquals(ProjectRules.LIFECYCLE_STATUS_ACTIVE, created.getLifecycleStatus());
-        assertEquals(ProjectRules.STATUS_S0, created.getCurrentStage());
+        assertNull(created.getCurrentStage());
         assertEquals(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED, created.getAssignmentStatus());
         assertEquals(templateId, created.getLifecycleTemplateId());
         assertEquals(2, created.getLifecycleTemplateRevisionNo());
@@ -336,7 +341,7 @@ class ProjectManualCreationServiceImplTest {
     }
 
     @Test
-    void rejectsTemplateWithoutS0BeforeAllocatingCode() {
+    void rejectsTemplateWithoutStagesBeforeAllocatingCode() {
         Long templateId = 9L;
         Long revisionId = 1001L;
         when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
@@ -348,7 +353,7 @@ class ProjectManualCreationServiceImplTest {
         TemplateDefinitionContent.StageDef stage = new TemplateDefinitionContent.StageDef();
         stage.setStageCode("S2");
         invalid.getStages().add(stage);
-        when(projectTemplateService.getExecutionSnapshot(templateId, 1)).thenReturn(snapshotOf(invalid));
+        when(projectTemplateService.getExecutionSnapshot(templateId, 1)).thenReturn(new TemplateExecutionSnapshot());
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.createProject(validDraft(), null, null, revisionId,
@@ -855,7 +860,21 @@ class ProjectManualCreationServiceImplTest {
     }
 
     private TemplateExecutionSnapshot snapshotOf(TemplateDefinitionContent content) {
-        return new TemplateCompiler().compile(TemplateDesignerDocument.fromResolvedLegacy(content)).snapshot();
+        var designer = TemplateDesignerDocument.fromResolvedLegacy(content);
+        for (var stage : designer.getStages()) {
+            var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("STAGE_NATIVE");
+            binding.setParameters(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{}"));
+            stage.setWorkBinding(binding);
+            var permission = new TemplateDesignerDocument.PermissionRequirement(); permission.setPolicyRef("PROJECT_STAGE_DEFAULT");
+            stage.setPermission(permission);
+            var completion = new TemplateDesignerDocument.RuleSpec();
+            completion.setExpression(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                    "{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"));
+            stage.setCompletionRule(completion);
+        }
+        var compilation = new TemplateCompiler().compile(designer);
+        org.junit.jupiter.api.Assertions.assertTrue(compilation.valid(), () -> compilation.issues().toString());
+        return compilation.snapshot();
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {
@@ -875,7 +894,7 @@ class ProjectManualCreationServiceImplTest {
         task.setBindingConfig("{\"schemaVersion\":1}");
         task.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
         task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
-        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\"}");
         task.setDefinitionVersion(1);
         content.getTasks().add(task);
         TemplateDefinitionContent.MilestoneDef milestone = new TemplateDefinitionContent.MilestoneDef();

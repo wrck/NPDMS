@@ -14,6 +14,11 @@
     <dependencies>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-integration-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-commerce-api</artifactId>
             <version>${revision}</version>
         </dependency>

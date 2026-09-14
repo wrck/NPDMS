@@ -8,6 +8,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.customer.CustomerDeviceSummaryQuery;
 import cn.iocoder.yudao.module.pms.asset.api.customer.CustomerDeviceSummarySlice;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerCreateReqVO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerClassificationRespVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerDetailRespVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLifecycleReqVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLocationReqVO;
@@ -28,6 +29,7 @@ import cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService;
 import cn.iocoder.yudao.module.pms.customer.service.query.CustomerResponseService;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerContactAccessService;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService;
+import cn.iocoder.yudao.module.pms.customer.service.security.CustomerClassificationAccessService;
 import cn.iocoder.yudao.module.pms.customer.service.summary.CustomerDeviceSummaryService;
 import cn.iocoder.yudao.module.pms.customer.service.summary.CustomerProjectSummaryService;
 import cn.iocoder.yudao.module.pms.project.api.customer.CustomerProjectSummaryQuery;
@@ -75,6 +77,17 @@ public class CustomerController {
     private CustomerProjectSummaryService projectSummaryService;
     @Resource
     private CustomerDeviceSummaryService deviceSummaryService;
+    @Resource
+    private CustomerClassificationAccessService classificationAccessService;
+
+    @GetMapping("/classification-options")
+    @PreAuthorize("@ss.hasPermission('pms:customer:query')")
+    public CommonResult<List<CustomerClassificationRespVO>> classificationOptions() {
+        Long tenantId = tenantId();
+        var scope = scopeContextService.resolve(tenantId, userId());
+        return success(BeanUtils.toBean(classificationAccessService.listAvailable(tenantId, scope),
+                CustomerClassificationRespVO.class));
+    }
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:customer:query')")
@@ -160,7 +173,8 @@ public class CustomerController {
                 request.getName(), request.getShortName(), request.getRemark(), request.getSourceType(),
                 request.getSourceKey(), request.getSourceVersion(), request.getTemporaryReason(),
                 request.isReconciliationPending(), request.getDepartmentCode(), request.getMarketCode(),
-                request.getSystemCode(), request.getExpendCode(), request.getIndustryCode(), idempotencyKey)));
+                request.getSystemCode(), request.getExpendCode(), request.getIndustryCode(),
+                request.getCustomerLevel(), idempotencyKey)));
     }
 
     @PutMapping("/{id}")
@@ -172,7 +186,7 @@ public class CustomerController {
         return success(customerApplicationService.update(new UpdateCustomerCommand(tenantId(), id,
                 request.getName(), request.getShortName(), request.getRemark(), request.getDepartmentCode(),
                 request.getMarketCode(), request.getSystemCode(), request.getExpendCode(), request.getIndustryCode(),
-                request.getChangedFields(), expectedVersion, idempotencyKey)));
+                request.getCustomerLevel(), request.getChangedFields(), expectedVersion, idempotencyKey)));
     }
 
     @PostMapping("/{id}/actions/disable")

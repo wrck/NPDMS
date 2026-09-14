@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.ErpOrderSyncMapper">
+    <sql id="incomingOrders">
+        tenant_id = #{query.tenantId} AND source_system = 'ERP'
+        <choose>
+            <when test="query.orderNumbers != null and !query.orderNumbers.isEmpty()">
+                AND order_no IN
+                <foreach collection="query.orderNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+    <!-- Include deleted identities: they must never be silently recreated. -->
+    <select id="selectOrders" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT * FROM com_sales_order WHERE <include refid="incomingOrders"/>
+    </select>
+    <select id="selectLines" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO">
+        SELECT * FROM com_sales_order_line WHERE <include refid="incomingOrders"/>
+    </select>
+</mapper>

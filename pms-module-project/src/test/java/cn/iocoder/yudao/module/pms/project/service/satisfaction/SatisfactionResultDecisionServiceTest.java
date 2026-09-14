@@ -43,6 +43,7 @@ class SatisfactionResultDecisionServiceTest {
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     SatisfactionResultDecisionService service;
+    PlatformCommandExecutionApi.SuccessFacts emitted;
 
     @BeforeEach
     void setUp() {
@@ -53,7 +54,7 @@ class SatisfactionResultDecisionServiceTest {
             Supplier<?> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
             Object result = operation.get();
-            facts.apply(result);
+            emitted = facts.apply(result);
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
         when(taskMapper.selectByIdForUpdate(7L, 10L)).thenReturn(task());
@@ -64,7 +65,7 @@ class SatisfactionResultDecisionServiceTest {
                 .thenReturn(java.util.List.of(signature()));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()));
         when(workBindingFactApi.lockCurrentSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
-                20L, 21L, "T-SAT-SURVEY", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
+                20L, 21L, "CUSTOM-SAT", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
                 1, "RULE-1", new BigDecimal("4.00"), 99L));
     }
 
@@ -78,6 +79,8 @@ class SatisfactionResultDecisionServiceTest {
         var result = service.decide(command());
 
         assertEquals(12L, result.resultId());
+        assertEquals(40L, result.deliverableId());
+        assertTrue(emitted.businessEvents().getFirst().eventPayload().contains("\"deliverableId\":40"));
         assertEquals(new BigDecimal("5.0"), result.score());
         assertTrue(result.passed());
         assertEquals(List.of(1, 2), result.files().stream()
@@ -108,6 +111,7 @@ class SatisfactionResultDecisionServiceTest {
     private SatisfactionCollectionTaskDO task() {
         SatisfactionCollectionTaskDO row = new SatisfactionCollectionTaskDO();
         row.setId(10L); row.setTenantId(7L); row.setProjectId(20L); row.setProjectTaskId(21L);
+        row.setDeliverableId(40L);
         row.setQuestionnaireId(11L); row.setAssignedToUserId(99L); row.setTaskStatus("PENDING_DECISION");
         row.setCollectionKey("SAT-10"); row.setTaskRevisionNo(1); row.setVersion(1);
         row.setSourceOwnerContext("ACC"); row.setSourceObjectType("AcceptanceActivity");

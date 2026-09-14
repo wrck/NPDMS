@@ -32,7 +32,7 @@ public final class DeliveryDefinitionPayloadValidator {
                     require(keys.contains(payload.path(slot).asText()), slot + ": missing reference");
                 }
                 if (kind == DeliveryDefinitionKind.STAGE) {
-                    require(payload.path("stageCode").isTextual() && payload.path("stageCode").asText().matches("S[0-6]"), "stageCode");
+                    require(payload.path("stageCode").isTextual() && stageCode(payload.path("stageCode").asText()), "stageCode");
                     bool(payload, "start"); bool(payload, "terminal");
                 }
             }
@@ -81,7 +81,7 @@ public final class DeliveryDefinitionPayloadValidator {
                             .contains(text(ref, "refType")), "refType");
                     String refCode = text(ref, "refCode");
                     require(code(refCode) && seen.add(ref.path("refType").asText() + ":" + refCode), "gate duplicate/reference code");
-                    if ("STATE".equals(ref.path("refType").asText())) require(refCode.matches("S[0-6]_COMPLETED"), "state refCode");
+                    if ("STATE".equals(ref.path("refType").asText())) require(completedStageReference(refCode), "state refCode");
                 }
             }
             case MILESTONE -> {
@@ -92,31 +92,54 @@ public final class DeliveryDefinitionPayloadValidator {
 
     public static void rule(JsonNode rule) {
         object(rule, "rule");
+        if (rule.has("id")) text(rule, "id");
         if (rule.has("operator")) {
-            fields(rule, Set.of("operator", "rules"));
-            require(Set.of("ALL", "ANY").contains(text(rule, "operator")), "operator");
+            fields(rule, Set.of("id", "operator", "rules"));
+            require(Set.of("ALL", "ANY", "NOT").contains(text(rule, "operator")), "operator");
             JsonNode children = rule.path("rules"); require(children.isArray() && !children.isEmpty(), "rules");
+            require(!"NOT".equals(rule.path("operator").asText()) || children.size() == 1, "NOT requires exactly one rule");
             for (JsonNode child : children) rule(child);
         } else {
-            fields(rule, Set.of("predicate", "parameters"));
-            String predicate = text(rule, "predicate"); require(PREDICATES.contains(predicate), "unregistered predicate");
+            fields(rule, Set.of("id", "predicate", "parameters"));
+            String predicate = text(rule, "predicate");
             JsonNode parameters = rule.path("parameters");
-            if (predicate.endsWith("_NATIVE_STATUS")) {
+            if ("FIELD".equals(predicate) || "DECISION".equals(predicate)) {
+                fields(parameters, "FIELD".equals(predicate)
+                        ? Set.of("fieldCode", "operator", "valueType", "value", "quantifier")
+                        : Set.of("fieldCode", "operator", "valueType", "value", "quantifier", "table"));
+                for (String key : List.of("fieldCode", "operator", "valueType")) text(parameters, key);
+                if ("DECISION".equals(predicate)) {
+                    JsonNode table = parameters.path("table"); object(table, "table");
+                    text(table, "key"); text(table, "xml");
+                }
+                // Comparison types and DMN dependencies use the same compiler/publication validator as node rules.
+            } else if ("CONSTANT".equals(predicate)) {
+                fields(parameters, Set.of("value")); bool(parameters, "value");
+            } else if (predicate.endsWith("_NATIVE_STATUS") && PREDICATES.contains(predicate)) {
                 fields(parameters, Set.of("requiredStatus"));
                 require("DONE".equals(text(parameters, "requiredStatus")), "requiredStatus");
             } else if ("BUSINESS_FACT".equals(predicate)) {
-                fields(parameters, Set.of("factCode", "quantifier"));
+                fields(parameters, Set.of("factCode", "quantifier", "sourceNodeKey"));
+                if (parameters.has("sourceNodeKey"))
+                    require(code(text(parameters, "sourceNodeKey")), "sourceNodeKey: version-local node required");
                 require(code(text(parameters, "factCode")), "factCode: stable code required");
                 require(Set.of("ALL", "ANY").contains(text(parameters, "quantifier")), "quantifier");
             } else {
+                require(PREDICATES.contains(predicate), "unregistered predicate");
                 fields(parameters, Set.of("refCode")); String refCode = text(parameters, "refCode");
                 require(code(refCode), "refCode");
-                if ("STATE".equals(predicate)) require(refCode.matches("S[0-6]_COMPLETED"), "state refCode");
+                if ("STATE".equals(predicate)) require(completedStageReference(refCode), "state refCode");
             }
         }
     }
 
     public static boolean code(String value) { return value != null && value.matches("[A-Za-z][A-Za-z0-9_.:-]{0,127}"); }
+    public static boolean stageCode(String value) { return code(value) && value.length() <= 32; }
+    private static boolean completedStageReference(String value) {
+        String suffix = "_COMPLETED";
+        return value != null && value.endsWith(suffix)
+                && stageCode(value.substring(0, value.length() - suffix.length()));
+    }
     private static void fields(JsonNode node, Set<String> allowed) {
         object(node, "object");
         for (String key : node.propertyNames()) require(allowed.contains(key), "unknown field: " + key);

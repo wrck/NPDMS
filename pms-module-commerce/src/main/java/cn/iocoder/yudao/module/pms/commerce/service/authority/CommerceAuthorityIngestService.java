@@ -366,7 +366,7 @@ public class CommerceAuthorityIngestService {
         if (incoming.lifecycleStatus() != CommerceSourceLifecycleStatus.ACTIVE) {
             return true;
         }
-        if (incoming.quantity() == null) {
+        if (incoming.quantity() == null || !CONFIRMED.equals(incoming.quantityStatus())) {
             return true;
         }
         return current.getQuantity() != null && incoming.quantity().compareTo(current.getQuantity()) < 0;
@@ -382,6 +382,7 @@ public class CommerceAuthorityIngestService {
         BigDecimal allocated = activeScopes.stream().map(DeliveryScopeDO::getAllocatedQty)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (incoming.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
+                && CONFIRMED.equals(incoming.quantityStatus())
                 && incoming.quantity() != null && incoming.quantity().compareTo(allocated) >= 0) {
             return;
         }

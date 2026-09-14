@@ -132,6 +132,18 @@ class ProjectTaskOutboxDeliveryJobTest {
         return new PlatformOutboxMessageDTO("business", "TaskCompleted", JsonUtils.toJsonString(payload), 0, 9L, time);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"MATCHED", "UNKNOWN"})
+    void fieldOnlyRulesNeedExplicitMatchedTracesWhenBusinessCriteriaAreEmpty(String outcome) {
+        when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(businessMessage(java.util.Map.of(
+                "aggregateFactVersion", "a".repeat(64), "ownerContext", "SOL", "objectType", "REQUIREMENT_ANALYSIS",
+                "criteria", List.of(), "links", List.of(java.util.Map.of("objectId", "1", "factVersion", "owner:3")),
+                "completion", java.util.Map.of("outcome", outcome), "exit", java.util.Map.of("outcome", "MATCHED")))));
+        job.execute(null);
+        if ("MATCHED".equals(outcome)) verify(outboxDeliveryApi).markDelivered("business", 0);
+        else verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
     @Test
     void publishFailureSchedulesRetryAndDoesNotMarkDelivered() {
         when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(message("evt-2", 3)));

@@ -2,8 +2,6 @@ package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionResultFactApi;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionResultFact;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
@@ -29,7 +27,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SatisfactionResultSourceProjectionServiceTest {
-    @Mock ProjectWorkBindingFactApi workBindingFactApi;
     @Mock SatisfactionResultFactApi resultFactApi;
     @Mock AccProjectDeliverableMapper deliverableMapper;
     @Mock ProjectDeliverableSourceVersionMapper sourceMapper;
@@ -38,18 +35,13 @@ class SatisfactionResultSourceProjectionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SatisfactionResultSourceProjectionService(workBindingFactApi, resultFactApi,
+        service = new SatisfactionResultSourceProjectionService(resultFactApi,
                 deliverableMapper, sourceMapper, attachmentMapper);
-        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
-                20L, 21L, "T-SAT-SURVEY", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
-                1, "RULE-1", new BigDecimal("4.00"), 99L));
-        when(deliverableMapper.selectByProjectAndCodeForUpdate(any())).thenReturn(root());
-        when(sourceMapper.insert(any(ProjectDeliverableSourceVersionDO.class))).thenReturn(1);
-        when(attachmentMapper.insert(any(ProjectDeliverableSourceAttachmentDO.class))).thenReturn(1);
     }
 
     @Test
     void recordedUsesFactVersionForOwnerAndBusinessVersionForCurrentSource() {
+        stubRootAndWrites();
         when(resultFactApi.lockAndRevalidate(any())).thenReturn(resultFact("FOUND", "EFFECTIVE", true));
         when(deliverableMapper.updateById(any(AccProjectDeliverableDO.class))).thenReturn(1);
 
@@ -65,6 +57,7 @@ class SatisfactionResultSourceProjectionServiceTest {
 
     @Test
     void staleRecordedFactVersionOnlyCreatesNonCurrentHistory() {
+        stubRootAndWrites();
         when(resultFactApi.lockAndRevalidate(any())).thenReturn(resultFact("VERSION_CONFLICT", null, false));
 
         service.project(event());
@@ -78,9 +71,27 @@ class SatisfactionResultSourceProjectionServiceTest {
 
     private AccProjectDeliverableDO root() {
         AccProjectDeliverableDO row = new AccProjectDeliverableDO();
-        row.setId(40L); row.setProjectId(20L); row.setTaskCode("T-SAT-SURVEY");
-        row.setDeliverableCode("D-SAT-REPORT"); row.setVersion(0); row.setTenantId(7L);
+        row.setId(40L); row.setProjectId(20L); row.setTaskCode("CUSTOM-RENAMED");
+        row.setDeliverableCode("CUSTOM-REPORT"); row.setVersion(0); row.setTenantId(7L);
         return row;
+    }
+
+    private void stubRootAndWrites() {
+        when(deliverableMapper.selectByIdForUpdate(any())).thenReturn(root());
+        when(sourceMapper.insert(any(ProjectDeliverableSourceVersionDO.class))).thenReturn(1);
+        when(attachmentMapper.insert(any(ProjectDeliverableSourceAttachmentDO.class))).thenReturn(1);
+    }
+
+    @Test
+    void frozenIdentityDoesNotAllowAnotherProjectOrTenantRoot() {
+        var wrongRoot = root();
+        wrongRoot.setProjectId(999L);
+        when(deliverableMapper.selectByIdForUpdate(any())).thenReturn(wrongRoot);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.project(event()));
+        wrongRoot.setProjectId(20L);
+        wrongRoot.setTenantId(99L);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.project(event()));
+        org.mockito.Mockito.verifyNoInteractions(sourceMapper, attachmentMapper, resultFactApi);
     }
 
     private SatisfactionResultFact resultFact(String outcome, String status, boolean passed) {
@@ -91,7 +102,7 @@ class SatisfactionResultSourceProjectionServiceTest {
 
     private SatisfactionResultVersionChangedMessage event() {
         return new SatisfactionResultVersionChangedMessage("evt-1", "RECORDED", 7L, 20L, 21L, 7,
-                "T-SAT-SURVEY", "SAT-10", 1, 10L, 11L, 12L, 12L, 1, 0, 31L,
+                40L, "SAT-10", 1, 10L, 11L, 12L, 12L, 1, 0, 31L,
                 "RULE-1", new BigDecimal("4.00"), "ACC", "AcceptanceActivity", "100", 1L,
                 true, "EFFECTIVE", 99L, null, null, null, List.of(
                 new SatisfactionResultVersionChangedMessage.FileFact("RESULT_DOCUMENT", 1, 1, 100L, 1,

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncTaskMapper">
+  <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncTaskDO">
+    SELECT * FROM int_sync_task WHERE tenant_id=#{tenantId} AND id=#{id} AND deleted=FALSE FOR UPDATE
+  </select>
+  <select id="selectDue" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncTaskDO">
+    SELECT * FROM int_sync_task WHERE tenant_id=#{tenantId} AND deleted=FALSE
+      AND enabled=TRUE AND active_run_id IS NULL AND (next_run_at &lt;= #{now} OR next_full_at &lt;= #{now})
+      ORDER BY next_run_at,id LIMIT 100
+  </select>
+  <select id="selectAdapterForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncTaskDO">
+    SELECT * FROM int_sync_task WHERE tenant_id=#{tenantId} AND adapter=#{adapter} AND deleted=FALSE ORDER BY id FOR UPDATE
+  </select>
+</mapper>

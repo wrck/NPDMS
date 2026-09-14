@@ -30,7 +30,8 @@ class ProjectRuntimeGraphResolverTest {
         resolver = new ProjectRuntimeGraphResolver(mapper, mock(ProjectGateReferenceInstanceMapper.class),
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()),
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
-                        mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class)));
+                        mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
+                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L);
         project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("S0");
         stages = List.of(stage(1L, "S0", 99, true, false), stage(2L, "S4", 0, false, false), stage(3L, "S6", 1, false, true));
@@ -81,7 +82,8 @@ class ProjectRuntimeGraphResolverTest {
     @Test void anyDoesNotHideUnknownFact() {
         var evaluator = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()),
                 new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
-                mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class));
+                mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
+                mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class));
         var rule = JsonUtils.parseObject("{\"operator\":\"ANY\",\"rules\":[{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"PROCESS\",\"parameters\":{\"refCode\":\"unknown\"}}]}", tools.jackson.databind.JsonNode.class);
         assertEquals(StageTransitionTargetResolver.ConditionStatus.UNAVAILABLE, evaluator.evaluate(rule,
                 new ProjectRuntimeRuleEvaluator.Facts(project, stages.getFirst(), List.of(), List.of(), List.of(), true)));

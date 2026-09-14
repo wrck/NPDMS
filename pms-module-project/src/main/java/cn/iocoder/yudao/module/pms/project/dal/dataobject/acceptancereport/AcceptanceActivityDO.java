@@ -16,6 +16,7 @@ public class AcceptanceActivityDO extends TenantBaseDO {
     private Long projectId;
     private Long projectTaskId;
     private Long executionContractId;
+    private Long deliverableId;
     private String acceptanceType;
     private String activityStatus;
     private Long currentReportVersionId;

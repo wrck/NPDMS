@@ -6,7 +6,7 @@
     <el-alert v-if="!error && !context?.recoverableError && context?.bindingType === 'STAGE_NATIVE'" type="info" :closable="false"
       title="本阶段使用原生办理；按阶段自身的完成与门禁规则判定，不挂载外部业务页面。" />
     <BusinessViewHost v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
-      :resolved-context="{ project }" :allowed-actions="error || loading ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly"
+      :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly"
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
   </section>
 </template>
@@ -45,7 +45,7 @@ const load = async () => {
 const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false
 const refresh = async () => { if (await requestLeave()) await load() }
 const handleChanged = async () => { await load(); emit('changed') }
-watch(() => [props.project.id, props.stageCode], () => { context.value = undefined; void load() }, { immediate: true })
+watch([() => props.project.id, () => props.stageCode], () => { context.value = undefined; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })
 defineExpose({ requestLeave, refresh })
 </script>

@@ -115,7 +115,7 @@ public class AcceptanceReportQueryService {
 
     private ActivityView toActivityView(AcceptanceActivityDO row) {
         return new ActivityView(row.getId(), row.getProjectId(), row.getProjectTaskId(), row.getExecutionContractId(),
-                row.getAcceptanceType(), row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion());
+                row.getAcceptanceType(), row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion(), row.getDeliverableId());
     }
 
     private ReportVersionView toReportView(AcceptanceReportVersionDO row,
@@ -154,7 +154,7 @@ public class AcceptanceReportQueryService {
 
     public record ActivityView(Long id, Long projectId, Long projectTaskId, Long executionContractId,
                                String acceptanceType, String activityStatus, Long currentReportVersionId,
-                               Integer version) {
+                               Integer version, Long deliverableId) {
     }
 
     public record ReportVersionView(Long id, Long acceptanceId, Integer reportVersionNo, String reportStatus,

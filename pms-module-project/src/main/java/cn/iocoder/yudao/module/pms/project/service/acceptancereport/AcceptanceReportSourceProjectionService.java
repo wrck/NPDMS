@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectD
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdentityLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
@@ -30,11 +30,12 @@ public class AcceptanceReportSourceProjectionService {
     @Transactional(rollbackFor = Exception.class)
     public void project(AcceptanceReportVersionChangedMessage event) {
         validate(event);
-        String deliverableCode = "PRELIMINARY".equals(event.reportType())
-                ? "D-INITIAL-REPORT" : "D-FINAL-REPORT";
-        AccProjectDeliverableDO deliverable = deliverableMapper.selectByProjectAndCodeForUpdate(
-                new ProjectDeliverableIdentityLockQuery(event.tenantId(), event.projectId(), deliverableCode));
-        if (deliverable == null) throw new IllegalStateException("acceptance deliverable root unavailable");
+        AccProjectDeliverableDO deliverable = deliverableMapper.selectByIdForUpdate(
+                new ProjectDeliverableIdLockQuery(event.tenantId(), event.deliverableId()));
+        if (deliverable == null || !Objects.equals(deliverable.getId(), event.deliverableId())
+                || !Objects.equals(deliverable.getTenantId(), event.tenantId())
+                || !Objects.equals(deliverable.getProjectId(), event.projectId()) || Boolean.TRUE.equals(deliverable.getDeleted()))
+            throw new IllegalStateException("acceptance deliverable root unavailable");
         if ("REVOKED".equals(event.changeType())) {
             revoke(event, deliverable);
             return;
@@ -134,6 +135,7 @@ public class AcceptanceReportSourceProjectionService {
     private void validate(AcceptanceReportVersionChangedMessage event) {
         List<String> changes = List.of("EFFECTIVE", "REPLACED", "REVOKED");
         if (event == null || event.tenantId() == null || event.acceptanceId() == null || event.projectId() == null
+                || event.deliverableId() == null || event.deliverableId() <= 0
                 || !List.of("PRELIMINARY", "FINAL").contains(event.reportType())
                 || !changes.contains(event.changeType()) || event.publisherActorUserId() == null
                 || event.publisherActorUserId() <= 0

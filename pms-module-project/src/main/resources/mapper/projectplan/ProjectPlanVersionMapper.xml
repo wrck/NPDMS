@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper">
+    <update id="promoteDraftIfCurrent">
+        UPDATE proj_project_plan_version
+        SET status='EFFECTIVE', execution_snapshot=#{query.executionSnapshot}, effective_at=#{query.effectiveAt},
+            version=version+1, updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.draftId}
+          AND status='DRAFT' AND base_plan_version_id=#{query.oldPlanVersionId}
+          AND version=#{query.expectedDraftVersion} AND deleted=0
+    </update>
+    <update id="supersedeEffectiveIfCurrent">
+        UPDATE proj_project_plan_version SET status='SUPERSEDED', updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.oldPlanVersionId}
+          AND status='EFFECTIVE' AND closed_at IS NULL AND deleted=0
+    </update>
+    <update id="attachActivatedPlan">
+        UPDATE proj_project SET active_plan_version_id=#{query.draftId}, version=version+1,
+            updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId}
+          AND active_plan_version_id=#{query.oldPlanVersionId} AND version=#{query.expectedProjectVersion}
+          AND lifecycle_status='ACTIVE' AND deleted=0
+    </update>
+    <select id="selectDraft" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO">
+        SELECT * FROM proj_project_plan_version
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND status='DRAFT' AND deleted=b'0'
+    </select>
+    <select id="selectNextRevisionNo" resultType="int">
+        SELECT COALESCE(MAX(revision_no),0)+1 FROM proj_project_plan_version
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+    </select>
+    <update id="saveDraftIfCurrent">
+        UPDATE proj_project_plan_version SET designer_document=#{query.designer}, version=version+1,
+            updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.draftId}
+          AND base_plan_version_id=#{query.basePlanVersionId} AND version=#{query.expectedVersion} AND status='DRAFT' AND deleted=b'0'
+    </update>
+    <select id="selectHistory" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO">
+        SELECT * FROM proj_project_plan_version
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND status IN ('EFFECTIVE','SUPERSEDED') AND deleted=b'0'
+        ORDER BY revision_no DESC
+    </select>
+    <select id="selectEffective" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO">
+        SELECT v.* FROM proj_project_plan_version v
+        JOIN proj_project p ON p.active_plan_version_id=v.id AND p.tenant_id=v.tenant_id AND p.id=v.project_id
+        WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.projectId} AND p.deleted=b'0'
+          AND v.status='EFFECTIVE' AND v.deleted=b'0'
+    </select>
+    <update id="attachInitialPlan">
+        UPDATE proj_project SET active_plan_version_id=#{query.planVersionId}
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND active_plan_version_id IS NULL
+          AND lifecycle_status='ACTIVE' AND deleted=b'0'
+    </update>
+    <update id="closeProjectIfActive">
+        UPDATE proj_project SET lifecycle_status='NORMAL_CLOSED', status='NORMAL_CLOSED', project_close_time=#{query.closedAt}, version=version+1,
+            updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND active_plan_version_id=#{query.planVersionId}
+          AND version=#{query.expectedProjectVersion} AND lifecycle_status='ACTIVE' AND deleted=b'0'
+    </update>
+    <update id="recordClosureIfOpen">
+        UPDATE proj_project_plan_version SET closed_at=#{query.closedAt}, closure_result=#{query.evidence}
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.planVersionId}
+          AND status='EFFECTIVE' AND closed_at IS NULL AND deleted=b'0'
+    </update>
+</mapper>

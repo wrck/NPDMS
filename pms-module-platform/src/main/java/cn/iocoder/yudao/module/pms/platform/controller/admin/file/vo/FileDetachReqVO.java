@@ -8,5 +8,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class FileDetachReqVO extends FileContextReqVO {
+    private tools.jackson.databind.JsonNode ownerExecutionContext;
     @NotBlank @Size(max = 512) private String reason;
 }

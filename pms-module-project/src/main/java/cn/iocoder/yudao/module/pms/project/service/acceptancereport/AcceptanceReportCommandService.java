@@ -284,14 +284,14 @@ public class AcceptanceReportCommandService {
     private PlatformCommandExecutionApi.SuccessFacts successFacts(ReportResult result, Actor actor) {
         AcceptanceActivityDO activity = activityMapper.selectById(result.acceptanceId());
         AcceptanceReportVersionDO report = reportMapper.selectById(result.reportVersionId());
-        if (activity == null || report == null || report.getPublisherUserId() == null) {
+        if (activity == null || activity.getDeliverableId() == null || report == null || report.getPublisherUserId() == null) {
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         }
         List<FileArtifactVersionFact> files = "REVOKED".equals(result.changeType()) ? List.of()
                 : attachmentMapper.selectByReportVersion(report.getId()).stream().map(this::toFact).toList();
         String eventId = UUID.randomUUID().toString();
         AcceptanceReportVersionChangedMessage message = new AcceptanceReportVersionChangedMessage(eventId,
-                actor.tenantId(), result.changeType(), activity.getId(), activity.getProjectId(),
+                actor.tenantId(), result.changeType(), activity.getId(), activity.getProjectId(), activity.getDeliverableId(),
                 activity.getAcceptanceType(), report.getPublisherUserId(),
                 "REVOKED".equals(result.changeType()) ? null : report.getId(),
                 "REVOKED".equals(result.changeType()) ? report.getId() : report.getPreviousVersionId(),

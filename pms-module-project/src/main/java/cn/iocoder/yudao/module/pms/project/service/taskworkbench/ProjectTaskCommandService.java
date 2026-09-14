@@ -57,6 +57,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_I
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_COMMAND_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_PLAN_CHANGE_REQUIRED;
 
 @Service
 @RequiredArgsConstructor
@@ -143,6 +144,7 @@ public class ProjectTaskCommandService {
         }
         ProjectMasterDO project = lockProject(actor.tenantId(), command.projectId());
         requireActiveProjectManager(project, actor);
+        requireUnversionedStructure(project);
         if (stageMapper.selectByProjectIdAndStageCode(project.getId(), command.stageCode().trim()) == null) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
@@ -243,6 +245,7 @@ public class ProjectTaskCommandService {
         ProjectTaskInstanceDO source = locks.sourceTask();
         ProjectTaskInstanceDO target = locks.targetParentTask();
         requireActiveProjectManager(project, actor);
+        requireUnversionedStructure(project);
         if (source == null || !Objects.equals(source.getVersion(), command.expectedTaskVersion())
                 || !Objects.equals(project.getTaskTreeVersion(), command.expectedTaskTreeVersion())) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
@@ -279,6 +282,7 @@ public class ProjectTaskCommandService {
         ProjectTaskInstanceDO successor = requireTask(command.taskId(), actor);
         ProjectMasterDO project = lockProject(actor.tenantId(), successor.getProjectId());
         requireActiveProjectManager(project, actor);
+        requireUnversionedStructure(project);
         ProjectTaskInstanceDO predecessor = taskMapper.selectTask(
                 new TaskByIdQuery(actor.tenantId(), command.predecessorTaskId()));
         if (predecessor == null || !Objects.equals(predecessor.getProjectId(), successor.getProjectId())
@@ -302,6 +306,10 @@ public class ProjectTaskCommandService {
         auditDetail.set(dependencyAuditDetail(predecessor, successor, command.dependencyTypeCode()));
         return new TaskCommandResult(successor.getId(), command.expectedTaskVersion() + 1,
                 project.getTaskTreeVersion(), successor.getStatus(), "NEW");
+    }
+
+    private void requireUnversionedStructure(ProjectMasterDO project) {
+        if (project.getActivePlanVersionId() != null) throw exception(PROJECT_TASK_PLAN_CHANGE_REQUIRED);
     }
 
     private boolean moveBlockedByFrozenFact(ProjectTaskInstanceDO source) {

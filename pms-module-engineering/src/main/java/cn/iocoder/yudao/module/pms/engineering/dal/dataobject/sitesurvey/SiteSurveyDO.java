@@ -116,6 +116,9 @@ public class SiteSurveyDO extends TenantBaseDO {
      * 状态：0 草稿 1 已确认 2 已驳回 3 已归档
      */
     private Integer status;
+    /** Owner transition evidence, not generic update_time (editing a remark is not a new confirmation). */
+    private java.time.LocalDateTime confirmedAt;
+    private java.time.LocalDateTime archivedAt;
     /**
      * 备注
      */

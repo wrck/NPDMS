@@ -1,6 +1,6 @@
 export interface ProjectStatusSource {
   lifecycleStatus?: string
-  currentStage?: string
+  currentStage?: string | null
   status?: string
 }
 
@@ -12,6 +12,8 @@ export const closedProjectStatuses = [
 
 export function projectStatus(source?: ProjectStatusSource | null) {
   const lifecycle = source?.lifecycleStatus
+  if (lifecycle === 'ACTIVE' && !source?.currentStage)
+    return { value: 'ACTIVE', label: '进行中', type: 'primary' as const, stage: false }
   if (lifecycle && lifecycle !== 'ACTIVE') {
     return {
       value: lifecycle,

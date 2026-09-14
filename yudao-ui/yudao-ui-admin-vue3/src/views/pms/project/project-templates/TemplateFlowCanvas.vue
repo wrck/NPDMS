@@ -13,6 +13,8 @@
         >
       </div>
       <div
+        ><el-button v-if="!readonly" text :disabled="!nodes.length" @click="arrange"
+          >整理当前画布</el-button
         ><el-button text @click="flow?.fitView()">适应画布</el-button
         ><el-button text @click="flow?.zoom(true)">放大</el-button
         ><el-button text @click="flow?.zoom(false)">缩小</el-button></div
@@ -29,13 +31,16 @@
           : '任务子画布，拖入任务并连线配置依赖'
       "
     ></div>
-    <p class="canvas-help">拖入节点，点击配置；从节点连接点拖出依赖线。双击阶段进入任务子画布。</p>
+    <p class="canvas-help"
+      >拖入节点，点击配置；从节点连接点拖出依赖线。双击阶段进入任务子画布。整理仅调整当前画布位置，保存草稿后保留。</p
+    >
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import LogicFlow from '@logicflow/core'
+import { Dagre } from '@logicflow/layout'
 import '@logicflow/core/lib/index.css'
 
 export type DeliveryNodeKind = 'STAGE' | 'TASK' | 'MILESTONE' | 'DELIVERABLE' | 'GATE'
@@ -85,6 +90,20 @@ const shape = (kind: DeliveryNodeKind) =>
 const drag = (kind: DeliveryNodeKind, label: string) => {
   if (!props.readonly) flow?.dnd.startDrag({ type: shape(kind), text: label, properties: { kind } })
 }
+const arrange = () => {
+  if (props.readonly || !flow || !props.nodes.length) return
+  synchronizing = true
+  try {
+    flow.extension.dagre.layout({ rankdir: 'TB', nodesep: 80, ranksep: 100, isDefaultAnchor: true })
+    for (const node of flow.getGraphRawData().nodes) emit('move', node.id, { x: node.x, y: node.y })
+    failure.value = ''
+    flow.fitView()
+  } catch {
+    failure.value = '画布整理失败，请重试；尚未保存的位置不会影响运行计划。'
+  } finally {
+    synchronizing = false
+  }
+}
 const render = () => {
   if (!flow) return
   synchronizing = true
@@ -96,7 +115,10 @@ const render = () => {
         x: node.x ?? 180 + (index % 3) * 240,
         y: node.y ?? 120 + Math.floor(index / 3) * 160,
         text: `${node.name}\n${node.code}`,
-        properties: { kind: node.kind }
+        properties: {
+          kind: node.kind,
+          ...(shape(node.kind) === 'rect' ? { width: 172, height: 72 } : { rx: 74, ry: 48 })
+        }
       })),
       edges: props.edges.map((edge) => ({
         id: edge.key,
@@ -121,6 +143,7 @@ onMounted(() => {
   try {
     flow = new LogicFlow({
       container: container.value,
+      plugins: [Dagre],
       grid: true,
       isSilentMode: !!props.readonly,
       keyboard: { enabled: !props.readonly },
@@ -139,8 +162,9 @@ onMounted(() => {
       }
     })
     flow.setTheme({
-      rect: { radius: 8, width: 172, height: 72, stroke: '#64748b', fill: '#ffffff' },
-      diamond: { rx: 74, ry: 48, stroke: '#64748b', fill: '#ffffff' },
+      rect: { radius: 8, stroke: '#64748b', fill: '#ffffff' },
+      diamond: { stroke: '#64748b', fill: '#ffffff' },
+      nodeText: { fontSize: 12, overflowMode: 'autoWrap', textWidth: 140 },
       polyline: { stroke: '#64748b', strokeWidth: 1.5 }
     })
     flow.on('node:click', ({ data }: { data: { id: string } }) => emit('select', data.id))
@@ -148,7 +172,7 @@ onMounted(() => {
     flow.on('node:drop', ({ data }: { data: { id: string; x: number; y: number } }) => {
       if (!synchronizing && !props.readonly) emit('move', data.id, { x: data.x, y: data.y })
     })
-    flow.on('node:add', ({ data }) => {
+    flow.on('node:dnd-add', ({ data }) => {
       const kind = data.properties?.kind
       if (
         !synchronizing &&

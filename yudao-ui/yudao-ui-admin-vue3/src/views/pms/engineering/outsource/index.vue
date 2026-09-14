@@ -391,7 +391,8 @@ import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
-import { positiveShortcutId, surveyPath } from '../site-survey/siteSurveyOutsource'
+import { positiveShortcutId, surveyPath, surveyExecutionQuery } from '../site-survey/siteSurveyOutsource'
+import { resolveSurveyExecution } from '../site-survey/siteSurveyExecutionShortcut'
 import { useUserStore } from '@/store/modules/user'
 
 defineOptions({ name: 'PmsEngOutsource' })
@@ -481,6 +482,7 @@ const openCreate = () => {
     attachmentFiles: '',
     triggerSource: 'MANUAL',
     triggerRefId: undefined,
+    siteSurveyExecution: undefined,
     version: undefined,
     applicantUserId: undefined,
     applyTime: '',
@@ -490,7 +492,7 @@ const openCreate = () => {
 }
 const openEdit = async (row: OutsourceRequestVO) => {
   const detail = await OutsourceApi.getOutsourceRequest(row.id!)
-  Object.assign(form, detail)
+  Object.assign(form, detail, { siteSurveyExecution: undefined })
   formVisible.value = true
 }
 const save = async () => {
@@ -506,7 +508,10 @@ const save = async () => {
       message.success(sourceSurveyId.value ? '转包申请草稿已创建，ID已关联回工勘；尚未提交审批。' : '创建成功')
     }
     formVisible.value = false
-    if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
+    if (sourceSurveyId.value) await router.push({ path: surveyPath, query: {
+      surveyId: String(sourceSurveyId.value), ...surveyExecutionQuery(form.siteSurveyExecution,
+        typeof route.query.surveyStageCode === 'string' ? route.query.surveyStageCode : undefined)
+    } })
     else await load()
   } finally {
     saving.value = false
@@ -576,33 +581,41 @@ const handleTerminate = async (row: OutsourceRequestVO) => {
   await load()
 }
 const remove = async (row: OutsourceRequestVO) => {
+  const execution = row.triggerSource === 'SITE_SURVEY' ? await resolveSurveyExecution(row.projectId, route.query) : undefined
   await message.delConfirm()
-  await OutsourceApi.deleteOutsourceRequest(row.id!)
+  await OutsourceApi.deleteOutsourceRequest(row.id!, execution)
   message.success('删除成功')
   await load()
 }
 
 onMounted(load)
-watch(() => [route.query.siteSurveyId, route.query.requestId], async ([surveyValue, requestValue]) => {
+watch(() => [route.query.siteSurveyId, route.query.requestId, route.query.surveyTaskId, route.query.surveyStageId,
+  route.query.surveyStageCode, route.query.surveyExecutionId], async ([surveyValue, requestValue], _previous, onCleanup) => {
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
   if (surveyValue) {
     const surveyId = positiveShortcutId(surveyValue)
     if (!surveyId) { message.warning('工勘来源编号无效'); return }
     try {
       const survey = await SiteSurveyApi.getSiteSurvey(surveyId)
+      if (cancelled) return
       if (!survey || survey.status !== 0 || !survey.outsourceRequired || survey.outsourceRequestId) {
         message.warning('请从已保存且尚未关联申请的工勘草稿发起转包'); return
       }
+      const execution = await resolveSurveyExecution(survey.projectId, route.query)
+      if (cancelled) return
       openCreate()
       sourceSurveyId.value = surveyId
       Object.assign(form, { projectId: survey.projectId, name: `工勘转包：${survey.name}`,
-        triggerSource: 'SITE_SURVEY', triggerRefId: surveyId,
+        triggerSource: 'SITE_SURVEY', triggerRefId: surveyId, siteSurveyExecution: execution,
         applicantUserId: userStore.getUser.id, applyTime: formatDate(new Date()),
         workContent: survey.constructionResource || survey.conclusion || '现场工勘转包申请' })
-    } catch { message.warning('工勘来源加载失败，请返回工勘重试') }
+    } catch { if (!cancelled) message.warning('工勘来源或执行轮次已不可用，请返回原任务或阶段重试') }
   } else if (requestValue) {
     const id = positiveShortcutId(requestValue)
     if (!id) { message.warning('转包申请编号无效'); return }
     const data = await OutsourceApi.getOutsourceRequest(id)
+    if (cancelled) return
     if (!data) { message.warning('关联申请不存在或不可见，工勘中的来源ID保留'); return }
     current.value = data
     detailVisible.value = true

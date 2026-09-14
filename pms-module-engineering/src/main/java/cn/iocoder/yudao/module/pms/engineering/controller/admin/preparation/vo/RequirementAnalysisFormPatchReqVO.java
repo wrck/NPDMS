@@ -9,4 +9,5 @@ import java.util.Map;
 public class RequirementAnalysisFormPatchReqVO {
     @NotNull
     private Map<String, Object> values;
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection execution;
 }

@@ -32,6 +32,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,7 +61,8 @@ class ProjectWorkBindingFactApiImplTest {
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
-        api = new ProjectWorkBindingFactApiImpl(projectMapper, factMapper);
+        api = new ProjectWorkBindingFactApiImpl(projectMapper, factMapper,
+                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionApi.class));
     }
 
     @AfterEach
@@ -84,6 +86,24 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(0L, captor.getValue().tenantId());
         assertEquals("BUSINESS_OBJECT", captor.getValue().workBindingTypeCode());
         assertEquals("SOL", captor.getValue().targetContextCode());
+    }
+
+    @Test
+    void taskScopedLookupPinsTheTaskAndDoesNotFallBackToAnotherMatchingNode() {
+        var query = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery(
+                100L,101L,ProjectWorkBindingTarget.SITE_SURVEY_PREPARATION);
+        when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(record(0L,BINDING)));
+        assertEquals(102L,api.inspectTask(query).executionContractId());
+        verify(factMapper).selectCurrentFacts(org.mockito.ArgumentMatchers.argThat(q -> q.projectTaskId()==101L && q.projectId()==100L && q.tenantId()==0L));
+        assertThrows(ServiceException.class,()->api.inspectTask(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery(
+                100L,999L,ProjectWorkBindingTarget.SITE_SURVEY_PREPARATION)));
+    }
+
+    @Test
+    void taskScopedLookupRequiresAnExplicitPositiveTaskIdentity() {
+        assertThrows(ServiceException.class,()->api.inspectTask(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery(
+                100L,null,ProjectWorkBindingTarget.SITE_SURVEY_PREPARATION)));
+        verify(factMapper,never()).selectCurrentFacts(any());
     }
 
     @Test
@@ -187,6 +207,27 @@ class ProjectWorkBindingFactApiImplTest {
     }
 
     @Test
+    void runtimeIdentityDoesNotRequireOrCompareLegacyAssetIds() {
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
+        var task = task(0L, 7);
+        task.setSourceDefinitionId(null);
+        var contract = requirementAnalysisContract();
+        contract.setTemplateTaskDefinitionId(null);
+        when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task);
+        when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract);
+        var query = new ProjectWorkBindingFactRevalidationQuery(
+                100L, 101L, 102L, 7, 3, 11, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS);
+
+        assertEquals(501L, api.lockAndRevalidate(query).projectTemplateId());
+        task.setSourceDefinitionId(999L);
+        contract.setTemplateTaskDefinitionId(888L);
+        assertEquals(501L, api.lockAndRevalidate(query).projectTemplateId());
+
+        contract.setProjectTaskId(999L);
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidate(query));
+    }
+
+    @Test
     void lockAndRevalidateRejectsMissingFrozenProjectRevisionBeforeTaskLock() {
         ProjectMasterDO project = project(0L, 11);
         project.setLifecycleTemplateRevisionId(null);
@@ -222,7 +263,7 @@ class ProjectWorkBindingFactApiImplTest {
         var frozen = api.lockCurrentSatisfactionTask(new ProjectSatisfactionTaskIdentityQuery(100L, 101L));
         var resolved = api.lockCurrentSatisfactionTaskByProject(new ProjectSatisfactionTaskProjectQuery(100L));
 
-        assertEquals("T-SAT-SURVEY", fact.taskCode());
+        assertEquals("CUSTOM-SAT", fact.taskCode());
         assertEquals("AFTER_INITIAL_ACCEPTANCE", fact.satisfactionTiming());
         assertEquals(900L, fact.templateId());
         assertEquals(901L, fact.templateRevisionId());
@@ -250,14 +291,36 @@ class ProjectWorkBindingFactApiImplTest {
 
     private static ProjectWorkBindingFactRecord record(long tenantId, String binding) {
         return new ProjectWorkBindingFactRecord(tenantId, 100L, 11, 101L, 7, 501L,
-                102L, 501L, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
+                102L, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
                 "PRE_02_SITE_SURVEY", binding, 2, 3, 900L, 2);
     }
 
     private static ProjectWorkBindingFactRecord requirementAnalysisRecord() {
         return new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L,
-                102L, 501L, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
+                102L, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS", REQUIREMENT_ANALYSIS_BINDING, 2, 3, 900L, 2);
+    }
+
+    @Test
+    void unifiedViewMetadataDoesNotChangeTheClosedOwnerFormSchema() {
+        String parameters = REQUIREMENT_ANALYSIS_BINDING.replace("}",
+                ",\"businessViewRevisionId\":\"2098289231424929793\","
+                + "\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"contextMapping\":{\"project\":\"project\"}}");
+        var record = new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L, 102L,
+                "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
+                parameters, 2, 3, 900L, 2);
+        when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(record));
+        var fact = api.inspect(new ProjectWorkBindingFactQuery(100L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+        assertEquals(701L, fact.dynamicFormTemplateRevisionId());
+        assertEquals(parameters, fact.bindingParameterSnapshot());
+
+        var invalid = new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L, 102L,
+                "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
+                parameters.replace("\"schemaVersion\":2", "\"schemaVersion\":2,\"unknownOwnerField\":true"),
+                2, 3, 900L, 2);
+        when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(invalid));
+        assertThrows(ServiceException.class, () -> api.inspect(
+                new ProjectWorkBindingFactQuery(100L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS)));
     }
 
     private static ProjectMasterDO project(long tenantId, int version) {
@@ -265,6 +328,7 @@ class ProjectWorkBindingFactApiImplTest {
         project.setId(100L);
         project.setTenantId(tenantId);
         project.setVersion(version);
+        project.setLifecycleTemplateId(501L);
         project.setLifecycleTemplateRevisionId(900L);
         project.setLifecycleTemplateRevisionNo(2);
         return project;
@@ -297,7 +361,7 @@ class ProjectWorkBindingFactApiImplTest {
     }
 
     private static ProjectSatisfactionTaskFactRecord satisfactionRecord(int version) {
-        return new ProjectSatisfactionTaskFactRecord(0L, 100L, 101L, "T-SAT-SURVEY", version,
+        return new ProjectSatisfactionTaskFactRecord(0L, 100L, 101L, "CUSTOM-SAT", version,
                 "AFTER_INITIAL_ACCEPTANCE", 900L, 901L, 1, "FACC002-RULE-V1",
                 new BigDecimal("80.00"), 1000L);
     }

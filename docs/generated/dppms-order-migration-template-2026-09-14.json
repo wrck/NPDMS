@@ -1,0 +1,282 @@
+{
+  "adapter": "DPPMS_ERP_ORDER",
+  "autoPaging": true,
+  "clearBeforeLoad": false,
+  "connectionId": "2099429038730731522",
+  "cron": "0 0 2 * * ?",
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 2000,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "resetMappingsBeforeLoad": false,
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "source",
+          "target": "erpSource",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "compCode",
+          "target": "companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderNumber",
+          "target": "orderNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderType",
+          "target": "orderType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationVersion",
+          "target": "sourceUpdatedAt",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationIssue",
+          "target": "migrationIssue",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customerCode",
+          "target": "customerCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customerName",
+          "target": "customerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "salesType",
+          "target": "salesType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectName",
+          "target": "sourceProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderComment",
+          "target": "orderComment",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderCreateTime",
+          "target": "orderCreateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customerRequireTime",
+          "target": "customerRequiredTime",
+          "values": null
+        }
+      ],
+      "object": "ORDER",
+      "parameters": {},
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "sourceObject": "pm_order_data_from_erp",
+      "sql": "SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants > 1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue  FROM pm_order_data_from_erp r JOIN (SELECT source,compCode,orderType,orderNumber,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType)) AS payloadVariants FROM pm_order_data_from_erp GROUP BY source,compCode,orderType,orderNumber) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.orderType <=> g.orderType AND r.orderNumber <=> g.orderNumber",
+      "syncPrimaryKey": false,
+      "table": null,
+      "updatedAt": "migrationVersion"
+    },
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "source",
+          "target": "erpSource",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "compCode",
+          "target": "companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderNumber",
+          "target": "orderNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "lineType",
+          "target": "orderType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationVersion",
+          "target": "sourceUpdatedAt",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationIssue",
+          "target": "migrationIssue",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationParentExists",
+          "target": "migrationParentExists",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "lineNum",
+          "target": "lineNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemDesc",
+          "target": "itemDescription",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderQuantity",
+          "target": "orderQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "openQuantity",
+          "target": "openQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "bundleCode",
+          "target": "bundleCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "warrantyMonth",
+          "target": "warrantyMonth",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "profitCenter",
+          "target": "profitCenter",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "realOrderExecNumber",
+          "target": "realExecutionNo",
+          "values": null
+        }
+      ],
+      "object": "LINE",
+      "parameters": {},
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "sourceObject": "pm_order_line_from_erp",
+      "sql": "SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants > 1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue ,EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode AND h.orderType=r.lineType AND h.orderNumber=r.orderNumber GROUP BY h.source,h.compCode,h.orderType,h.orderNumber HAVING MAX(h.syncTime) IS NOT NULL AND COUNT(DISTINCT JSON_ARRAY(h.orderCreateTime,h.customerRequireTime,h.customerCode,h.customerName,h.projectName,h.orderComment,h.salesType))=1) AS migrationParentExists FROM pm_order_line_from_erp r JOIN (SELECT source,compCode,lineType,orderNumber,lineNum,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo)) AS payloadVariants FROM pm_order_line_from_erp GROUP BY source,compCode,lineType,orderNumber,lineNum) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.lineType <=> g.lineType AND r.orderNumber <=> g.orderNumber AND r.lineNum <=> g.lineNum",
+      "syncPrimaryKey": false,
+      "table": null,
+      "updatedAt": "migrationVersion"
+    }
+  ]
+}

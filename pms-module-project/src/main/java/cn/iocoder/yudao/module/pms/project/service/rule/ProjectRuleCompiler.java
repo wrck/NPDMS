@@ -16,12 +16,18 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /** Compiles business rule data using the native LiteFlow builder, not a second boolean interpreter. */
 @Component
 public class ProjectRuleCompiler {
+    public RuleProgram compileGateReferences(List<cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument.GateReference> references) {
+        var conditions = references.stream().map(ref -> java.util.Map.of("predicate", ref.getRefType(),
+                "parameters", java.util.Map.of("refCode", ref.getRefCode()))).toList();
+        return compile(JsonUtils.parseTree(JsonUtils.toJsonString(java.util.Map.of("operator", "ALL", "rules", conditions))));
+    }
+
     public RuleProgram compile(JsonNode expression) {
+        DeliveryDefinitionPayloadValidator.rule(expression);
         List<RuleProgram.Leaf> leaves = new ArrayList<>();
         ELWrapper condition = compileNode(expression, "rule", leaves);
         // https://liteflow.cc/pages/a3cb4b/ -- native construction validates expression operand types.
@@ -41,14 +47,9 @@ public class ProjectRuleCompiler {
     }
 
     private ELWrapper compileNode(JsonNode node, String path, List<RuleProgram.Leaf> leaves) {
-        require(node != null && node.isObject(), path + ": rule object required");
         if (node.has("operator")) {
-            require(!node.has("predicate"), path + ": group cannot also be a predicate");
             String operator = node.path("operator").asText();
-            require(Set.of("ALL", "ANY", "NOT").contains(operator), path + ": invalid group operator");
             JsonNode children = node.path("rules");
-            require(children.isArray() && !children.isEmpty(), path + ": empty rule group");
-            require(!operator.equals("NOT") || children.size() == 1, path + ": NOT requires exactly one rule");
             List<ELWrapper> compiled = new ArrayList<>();
             for (int i = 0; i < children.size(); i++)
                 compiled.add(compileNode(children.get(i), path + ".rules[" + i + "]", leaves));
@@ -63,26 +64,8 @@ public class ProjectRuleCompiler {
         }
         String predicate = node.path("predicate").asText();
         JsonNode parameters = node.path("parameters");
-        require(parameters.isObject(), path + ": parameters required");
-        if (predicate.equals("FIELD")) {
+        if (predicate.equals("FIELD") || predicate.equals("DECISION")) {
             RuleFieldComparison.validate(parameters);
-        } else if (predicate.equals("CONSTANT")) {
-            require(parameters.path("value").isBoolean(), path + ": boolean constant required");
-        } else if (predicate.equals("DECISION")) {
-            JsonNode table = parameters.path("table");
-            require(table.isObject() && table.path("key").isTextual() && !table.path("key").asText().isBlank()
-                    && table.path("xml").isTextual(), path + ": decision table definition required");
-            RuleFieldComparison.validate(parameters);
-        } else {
-            require(DeliveryDefinitionPayloadValidator.PREDICATES.contains(predicate), path + ": unregistered predicate");
-            if (predicate.endsWith("_NATIVE_STATUS"))
-                require("DONE".equals(parameters.path("requiredStatus").asText()), path + ": requiredStatus must be DONE");
-            else if (predicate.equals("BUSINESS_FACT")) {
-                require(DeliveryDefinitionPayloadValidator.code(parameters.path("factCode").asText()), path + ": factCode required");
-                require(Set.of("ALL", "ANY").contains(parameters.path("quantifier").asText()), path + ": quantifier required");
-            } else {
-                require(DeliveryDefinitionPayloadValidator.code(parameters.path("refCode").asText()), path + ": reference required");
-            }
         }
         String key = "condition" + leaves.size();
         leaves.add(new RuleProgram.Leaf(key, path, predicate, parameters.deepCopy()));

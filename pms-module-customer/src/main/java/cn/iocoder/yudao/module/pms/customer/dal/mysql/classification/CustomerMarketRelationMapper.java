@@ -3,10 +3,21 @@ package cn.iocoder.yudao.module.pms.customer.dal.mysql.classification;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.classification.CustomerMarketRelationDO;
+import cn.iocoder.yudao.module.pms.customer.dal.mysql.classification.query.ActiveClassificationListQuery;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface CustomerMarketRelationMapper extends BaseMapperX<CustomerMarketRelationDO> {
+
+    default java.util.List<CustomerMarketRelationDO> selectListActive(ActiveClassificationListQuery query) {
+        return selectList(new LambdaQueryWrapperX<CustomerMarketRelationDO>()
+                .eq(CustomerMarketRelationDO::getTenantId, query.tenantId())
+                .eq(CustomerMarketRelationDO::getMappingStatus, "ACTIVE")
+                .orderByAsc(CustomerMarketRelationDO::getMarketCode)
+                .orderByAsc(CustomerMarketRelationDO::getSystemCode)
+                .orderByAsc(CustomerMarketRelationDO::getExpendCode)
+                .orderByAsc(CustomerMarketRelationDO::getIndustryCode));
+    }
 
     default CustomerMarketRelationDO selectActive(CustomerMarketRelationDO relation) {
         return selectOne(new LambdaQueryWrapperX<CustomerMarketRelationDO>()

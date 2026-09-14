@@ -133,7 +133,7 @@ public class FileLifecycleApplicationService {
         ValidatedKey key = key(command.ownerContext(), command.objectType(), command.objectId(),
                 command.purposeCode(), command.referenceKey());
         FileBusinessObjectPolicyFact policy = authorizeMembership(command.tenantId(), command.actorUserId(), key,
-                FileActionCodes.DETACH);
+                FileActionCodes.DETACH, command.ownerExecutionContext());
         requireMutable(policy);
         FileReferenceDO reference = lockReference(command.tenantId(), key);
         if (!command.referenceId().equals(reference.getId()) || !"ACTIVE".equals(reference.getStatusCode())
@@ -286,13 +286,20 @@ public class FileLifecycleApplicationService {
 
     private FileBusinessObjectPolicyFact authorizeMembership(Long tenantId, Long actorId,
                                                               ValidatedKey key, String action) {
+        return authorizeMembership(tenantId, actorId, key, action, null);
+    }
+
+    private FileBusinessObjectPolicyFact authorizeMembership(Long tenantId, Long actorId,
+            ValidatedKey key, String action, tools.jackson.databind.JsonNode ownerExecutionContext) {
         FileBusinessObjectPolicyFact inspected = policyRegistry.inspect(new FileBusinessObjectPolicyQuery(
                 tenantId, actorId, key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(),
-                key.referenceKey(), action));
-        lockNamespace(tenantId, actorId, key, action, inspected);
+                key.referenceKey(), action, ownerExecutionContext));
+        policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
+                tenantId, actorId, new FileReferenceSetKey(key.ownerContext(), key.objectType(),
+                key.objectId(), key.purposeCode()), action, inspected.scopeVersion(), ownerExecutionContext));
         return policyRegistry.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 tenantId, actorId, key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(),
-                key.referenceKey(), action, inspected.scopeVersion()));
+                key.referenceKey(), action, inspected.scopeVersion(), ownerExecutionContext));
     }
 
     private void lockNamespace(Long tenantId, Long actorId, ValidatedKey key, String action,

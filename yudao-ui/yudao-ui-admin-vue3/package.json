@@ -35,6 +35,7 @@
   "dependencies": {
     "@logicflow/core": "2.2.5",
     "@logicflow/extension": "2.3.1",
+    "@logicflow/layout": "2.1.5",
     "@react-querybuilder/core": "8.23.1",
     "dmn-js": "17.10.2",
     "@element-plus/icons-vue": "2.3.2",

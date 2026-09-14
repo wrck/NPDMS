@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.api.workbinding;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.databind.node.ObjectNode;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
@@ -39,27 +41,98 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RequiredArgsConstructor
 public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi {
 
-    private static final String SATISFACTION_TASK_CODE = "T-SAT-SURVEY";
 
     private final ProjectMasterMapper projectMapper;
     private final ProjectWorkBindingFactMapper factMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper graph;
+    private final ProjectNodeExecutionApi executions;
+
+    @Override
+    public ProjectWorkBindingFact inspectStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery query) {
+        Long tenantId = trustedTenantId();
+        if (query == null || invalidId(query.projectId()) || invalidId(query.projectStageId()) || !supportedTarget(query.target()))
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        var project = projectMapper.selectById(query.projectId());
+        if (project == null || !Objects.equals(tenantId, project.getTenantId())) throw exception(PROJECT_TASK_QUERY_INVALID);
+        requireFrozenProjectTemplateIdentity(project);
+        var scope = new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(tenantId, query.projectId());
+        var stages = graph.selectStages(scope).stream().filter(row -> query.projectStageId().equals(row.getId())).toList();
+        var contracts = graph.selectContracts(scope).stream().filter(row -> query.projectStageId().equals(row.getStageId())).toList();
+        if (stages.size() != 1 || contracts.size() != 1) throw exception(PROJECT_TASK_QUERY_INVALID);
+        var stage = stages.getFirst(); var contract = contracts.getFirst();
+        if (!Objects.equals(stage.getTenantId(), tenantId) || !Objects.equals(stage.getProjectId(), project.getId())
+                || !Objects.equals(contract.getTenantId(), tenantId) || !Objects.equals(contract.getProjectId(), project.getId())
+                || contract.getEffectiveTo() != null || !Objects.equals(stage.getGraphVersion(), contract.getGraphVersion())
+                || blank(contract.getSourceNodeKey()) || invalidVersion(stage.getVersion())
+                || contract.getBindingVersion() == null || contract.getBindingVersion() <= 0)
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
+        var frozen = snapshot.getStages().stream().filter(node -> contract.getSourceNodeKey().equals(node.getNodeKey())
+                && stage.getStageCode().equals(node.getCode())).toList();
+        if (frozen.size() != 1 || frozen.getFirst().getBinding() == null) throw exception(PROJECT_TASK_QUERY_INVALID);
+        var binding = frozen.getFirst().getBinding();
+        if (!Objects.equals(JsonUtils.parseTree(JsonUtils.toJsonString(binding)), JsonUtils.parseTree(contract.getBindingSnapshot()))
+                || !Objects.equals(binding.getType(), contract.getBindingType())
+                || !exactTarget(binding.getType(), binding.getTargetContextCode(), binding.getTargetObjectType(), binding.getTargetObjectKey(), query.target()))
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        String parameters = JsonUtils.toJsonString(binding.getParameters());
+        var owner = parseFrozen(binding.getTargetObjectKey(), parameters);
+        return new ProjectWorkBindingFact(project.getId(), project.getVersion(), null, null, contract.getId(), contract.getBindingVersion(),
+                project.getLifecycleTemplateId(), null, binding.getType(), binding.getTargetContextCode(), binding.getTargetObjectType(),
+                binding.getTargetObjectKey(), owner.preparationTemplateCode(), owner.preparationTemplateRevision(),
+                owner.fixedFormCatalogVersion(), owner.itemConfigurationSnapshot(), project.getLifecycleTemplateRevisionId(),
+                project.getLifecycleTemplateRevisionNo(), parameters, owner.dynamicFormTemplateId(), owner.dynamicFormTemplateRevisionId(),
+                owner.dynamicFormRevisionNo(), owner.dynamicFormRevisionFactVersion(), stage.getId(), stage.getVersion());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectWorkBindingFact lockAndRevalidateStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactRevalidationQuery query) {
+        if (query == null) throw exception(PROJECT_TASK_QUERY_INVALID);
+        var lookup = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery(query.projectId(), query.projectStageId(), query.target());
+        var observed = inspectStage(lookup);
+        requireStageVersions(query, observed);
+        executions.lockAndRevalidateStage(executions.inspectStage(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionQuery(
+                query.projectId(), query.projectStageId(), query.executionContractId())));
+        var locked = inspectStage(lookup);
+        requireStageVersions(query, locked);
+        return locked;
+    }
+
+    private void requireStageVersions(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactRevalidationQuery expected,
+                                      ProjectWorkBindingFact actual) {
+        if (!Objects.equals(expected.executionContractId(), actual.executionContractId())
+                || !Objects.equals(expected.expectedProjectStageVersion(), actual.projectStageVersion())
+                || !Objects.equals(expected.expectedContractVersion(), actual.contractVersion())
+                || !Objects.equals(expected.expectedProjectVersion(), actual.projectVersion())) throw exception(PROJECT_TASK_VERSION_CONFLICT);
+    }
 
     @Override
     public ProjectWorkBindingFact inspect(ProjectWorkBindingFactQuery query) {
+        if (query == null) throw exception(PROJECT_TASK_QUERY_INVALID);
+        return inspectCurrent(query.projectId(),null,query.target());
+    }
+
+    @Override
+    public ProjectWorkBindingFact inspectTask(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery query) {
+        if (query == null || invalidId(query.projectTaskId())) throw exception(PROJECT_TASK_QUERY_INVALID);
+        return inspectCurrent(query.projectId(),query.projectTaskId(),query.target());
+    }
+
+    private ProjectWorkBindingFact inspectCurrent(Long projectId, Long taskId, ProjectWorkBindingTarget target) {
         Long tenantId = trustedTenantId();
-        if (query == null || query.projectId() == null || query.projectId() <= 0
-                || !supportedTarget(query.target())) {
+        if (invalidId(projectId) || !supportedTarget(target)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
-        ProjectWorkBindingTarget target = query.target();
         List<ProjectWorkBindingFactRecord> records = factMapper.selectCurrentFacts(new ProjectWorkBindingFactLookupQuery(
-                tenantId, query.projectId(), target.workBindingTypeCode(), target.targetContextCode(),
-                target.targetObjectType(), target.targetObjectKey()));
+                tenantId, projectId, target.workBindingTypeCode(), target.targetContextCode(),
+                target.targetObjectType(), target.targetObjectKey(), taskId));
         if (records == null || records.size() != 1) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
         ProjectWorkBindingFactRecord record = records.getFirst();
-        requireRecord(record, tenantId, query.projectId(), target);
+        requireRecord(record, tenantId, projectId, target);
+        if (taskId != null && !Objects.equals(taskId,record.projectTaskId())) throw exception(PROJECT_TASK_QUERY_INVALID);
         return toFact(record);
     }
 
@@ -106,9 +179,6 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         ProjectSatisfactionTaskFactRecord record = uniqueSatisfactionTask(
                 tenantId, query.projectId(), query.projectTaskId());
         requireSatisfactionTask(record, tenantId, query.projectId(), query.projectTaskId());
-        if (!SATISFACTION_TASK_CODE.equals(record.taskCode())) {
-            throw exception(PROJECT_TASK_QUERY_INVALID);
-        }
         return toSatisfactionTaskFact(record);
     }
 
@@ -127,9 +197,6 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         }
         ProjectSatisfactionTaskFactRecord record = records.getFirst();
         requireSatisfactionTask(record, tenantId, query.projectId(), record.projectTaskId());
-        if (!SATISFACTION_TASK_CODE.equals(record.taskCode())) {
-            throw exception(PROJECT_TASK_QUERY_INVALID);
-        }
         return toSatisfactionTaskFact(record);
     }
 
@@ -206,8 +273,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         if (record == null || !Objects.equals(record.tenantId(), tenantId)
                 || !Objects.equals(record.projectId(), projectId) || record.projectVersion() == null
                 || invalidId(record.projectTaskId()) || record.projectTaskVersion() == null
-                || invalidId(record.executionContractId()) || invalidId(record.templateTaskDefinitionId())
-                || !Objects.equals(record.sourceDefinitionId(), record.templateTaskDefinitionId())
+                || invalidId(record.executionContractId()) || invalidId(record.projectTemplateId())
                 || record.sourceDefinitionVersion() == null || record.sourceDefinitionVersion() <= 0
                 || record.contractVersion() == null || record.contractVersion() <= 0
                 || invalidId(record.templateRevisionId())
@@ -223,8 +289,6 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
                 || !Objects.equals(contract.getProjectTaskId(), task.getId())
                 || !Objects.equals(contract.getId(), executionContractId)
-                || invalidId(contract.getTemplateTaskDefinitionId())
-                || !Objects.equals(contract.getTemplateTaskDefinitionId(), task.getSourceDefinitionId())
                 || contract.getSourceDefinitionVersion() == null || contract.getSourceDefinitionVersion() <= 0
                 || contract.getContractVersion() == null || contract.getContractVersion() <= 0
                 || !exactTarget(contract.getWorkBindingTypeCode(), contract.getTargetContextCode(),
@@ -234,7 +298,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
     }
 
     private void requireFrozenProjectTemplateIdentity(ProjectMasterDO project) {
-        if (invalidId(project.getLifecycleTemplateRevisionId())
+        if (invalidId(project.getLifecycleTemplateId()) || invalidId(project.getLifecycleTemplateRevisionId())
                 || project.getLifecycleTemplateRevisionNo() == null
                 || project.getLifecycleTemplateRevisionNo() < 0) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
@@ -257,7 +321,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         BindingProjection binding = parseFrozen(record.targetObjectKey(), record.bindingParameterSnapshot());
         return new ProjectWorkBindingFact(record.projectId(), record.projectVersion(), record.projectTaskId(),
                 record.projectTaskVersion(), record.executionContractId(), record.contractVersion(),
-                record.templateTaskDefinitionId(), record.sourceDefinitionVersion(), record.workBindingTypeCode(),
+                record.projectTemplateId(), record.sourceDefinitionVersion(), record.workBindingTypeCode(),
                 record.targetContextCode(), record.targetObjectType(), record.targetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
                 binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
@@ -270,7 +334,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                                           ProjectTaskExecutionContractDO contract) {
         BindingProjection binding = parseFrozen(contract.getTargetObjectKey(), contract.getBindingParameterSnapshot());
         return new ProjectWorkBindingFact(project.getId(), project.getVersion(), task.getId(), task.getVersion(),
-                contract.getId(), contract.getContractVersion(), contract.getTemplateTaskDefinitionId(),
+                contract.getId(), contract.getContractVersion(), project.getLifecycleTemplateId(),
                 contract.getSourceDefinitionVersion(), contract.getWorkBindingTypeCode(),
                 contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
@@ -283,15 +347,24 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
 
     private BindingProjection parseFrozen(String targetObjectKey, String snapshot) {
         try {
+            // The unified binding carries view routing beside Owner form parameters.
+            // Owner schemas remain closed: only these known routing fields are outside their responsibility.
+            var parameters = JsonUtils.parseTree(snapshot);
+            if (!(parameters instanceof ObjectNode ownerParameters))
+                throw new IllegalArgumentException("binding parameters must be an object");
+            ownerParameters.remove("businessViewRevisionId");
+            ownerParameters.remove("instanceResolutionStrategy");
+            ownerParameters.remove("contextMapping");
+            String ownerSnapshot = ownerParameters.toString();
             if (PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(targetObjectKey)) {
-                PreparationWorkBindingSchema.ParsedBinding binding = PreparationWorkBindingSchema.parseFrozen(snapshot);
+                PreparationWorkBindingSchema.ParsedBinding binding = PreparationWorkBindingSchema.parseFrozen(ownerSnapshot);
                 return new BindingProjection(binding.preparationTemplateCode(),
                         binding.preparationTemplateRevision(), binding.fixedFormCatalogVersion(),
                         binding.itemConfigurationSnapshot(), null, null, null, null);
             }
             if (RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY.equals(targetObjectKey)) {
                 RequirementAnalysisWorkBindingSchema.ParsedBinding binding =
-                        RequirementAnalysisWorkBindingSchema.parseFrozen(snapshot);
+                        RequirementAnalysisWorkBindingSchema.parseFrozen(ownerSnapshot);
                 return new BindingProjection(null, null, null, null,
                         binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
                         binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion());

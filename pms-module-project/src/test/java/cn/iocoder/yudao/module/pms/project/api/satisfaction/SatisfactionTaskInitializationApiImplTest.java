@@ -42,6 +42,7 @@ class SatisfactionTaskInitializationApiImplTest {
     @Mock private SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock private SatisfactionQuestionnaireTemplateRevisionMapper revisionMapper;
     @Mock private PlatformCommandExecutionApi commandExecutionApi;
+    @Mock private cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper deliverableMapper;
     private SatisfactionTaskInitializationApiImpl api;
     private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> emitted = new AtomicReference<>();
 
@@ -49,7 +50,7 @@ class SatisfactionTaskInitializationApiImplTest {
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         api = new SatisfactionTaskInitializationApiImpl(workBindingFactApi, projectScopeApi, taskMapper,
-                questionnaireMapper, revisionMapper, commandExecutionApi);
+                questionnaireMapper, revisionMapper, commandExecutionApi, deliverableMapper);
         org.mockito.Mockito.lenient().when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<?> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
@@ -72,6 +73,7 @@ class SatisfactionTaskInitializationApiImplTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,
                 Set.of(100L), Set.of()));
         when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
+        when(deliverableMapper.selectTaskDeliverablesForUpdate(any())).thenReturn(java.util.List.of(deliverable()));
 
         var result = api.initialize(command());
 
@@ -79,6 +81,7 @@ class SatisfactionTaskInitializationApiImplTest {
         ArgumentCaptor<SatisfactionCollectionTaskDO> task = ArgumentCaptor.forClass(SatisfactionCollectionTaskDO.class);
         verify(taskMapper).insert((SatisfactionCollectionTaskDO) task.capture());
         assertEquals(1, task.getValue().getTaskRevisionNo());
+        assertEquals(400L, task.getValue().getDeliverableId());
         assertEquals(1000L, task.getValue().getAssignedToUserId());
         ArgumentCaptor<SatisfactionQuestionnaireDO> questionnaire =
                 ArgumentCaptor.forClass(SatisfactionQuestionnaireDO.class);
@@ -115,6 +118,30 @@ class SatisfactionTaskInitializationApiImplTest {
         verify(taskMapper, never()).insert((SatisfactionCollectionTaskDO) any());
     }
 
+    @Test
+    void rejectsAbsentOrAmbiguousDeliverableBeforeOwnerWrites() {
+        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(taskFact());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,
+                Set.of(100L), Set.of()));
+        when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
+        when(deliverableMapper.selectTaskDeliverablesForUpdate(any()))
+                .thenReturn(java.util.List.of(), java.util.List.of(deliverable(), deliverable()));
+        for (int i = 0; i < 2; i++) {
+            assertEquals("SATISFACTION_DELIVERABLE_BINDING_NOT_UNIQUE",
+                    org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                            () -> api.initialize(command())).getMessage());
+        }
+        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper);
+        verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
+    }
+
+    private static cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO deliverable() {
+        var row = new cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO();
+        row.setId(400L); row.setTenantId(0L); row.setProjectId(100L); row.setTaskCode("CUSTOM-SAT");
+        row.setDeliverableCode("CUSTOM-RESULT");
+        return row;
+    }
+
     private static SatisfactionTaskInitializationCommand command() {
         return new SatisfactionTaskInitializationCommand(0L, 100L, 101L, 7, "ACC",
                 "AcceptanceActivityCompletionFact", "500", 1L, "ACC",
@@ -122,7 +149,7 @@ class SatisfactionTaskInitializationApiImplTest {
     }
 
     private static ProjectSatisfactionTaskFact taskFact() {
-        return new ProjectSatisfactionTaskFact(100L, 101L, "T-SAT-SURVEY", 7,
+        return new ProjectSatisfactionTaskFact(100L, 101L, "CUSTOM-SAT", 7,
                 "AFTER_INITIAL_ACCEPTANCE", 900L, 901L, 1, "RULE-V1",
                 new BigDecimal("80.00"), 1000L);
     }

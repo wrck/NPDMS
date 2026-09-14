@@ -228,7 +228,10 @@ public class ProjectManualCreationApplicationService {
         detail.put("serviceManagerConfirmedBy", command.serviceManagerUserId() == null ? null : actor.actorId());
         return new SuccessFacts("PROJECT_CREATE", "Project", String.valueOf(result.id()),
                 actor.correlationId(), JsonUtils.toJsonString(detail),
-                "ProjectCreated", JsonUtils.toJsonString(result));
+                "ProjectCreated", JsonUtils.toJsonString(result), List.of(
+                        new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                actor.tenantId(), result.id(), actor.actorId(), actor.correlationId())
+                                .event()));
     }
 
     private void validate(ManualProjectCreateCommand command, Actor actor) {

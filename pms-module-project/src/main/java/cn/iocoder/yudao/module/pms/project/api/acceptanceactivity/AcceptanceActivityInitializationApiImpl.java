@@ -14,16 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivityInitializationApi {
-
-    private static final Map<String, Mapping> MAPPINGS = Map.of(
-            "T-INITIAL-ACCEPT", new Mapping("PRELIMINARY", "D-INITIAL-REPORT"),
-            "T-FINAL-ACCEPT", new Mapping("FINAL", "D-FINAL-REPORT"));
 
     private final AcceptanceActivityMapper activityMapper;
     private final AccProjectDeliverableMapper deliverableMapper;
@@ -32,30 +28,31 @@ public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivi
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public AcceptanceActivityInitializationResult initialize(AcceptanceActivityInitializationCommand command) {
         if (!valid(command)) return result("IDENTITY_MISMATCH", null, null);
-        Mapping mapping = MAPPINGS.get(command.taskDefinitionKey());
-        if (mapping == null || !mapping.acceptanceType().equals(command.acceptanceType())
-                || !mapping.deliverableCode().equals(command.deliverableCode())) {
-            return result("IDENTITY_MISMATCH", null, null);
-        }
         AcceptanceActivityDO existing = activityMapper.selectByIdentityForUpdate(
                 new AcceptanceActivityIdentityLockQuery(command.tenantId(), command.projectId(),
                         command.acceptanceType()));
-        if (existing != null) {
-            return Objects.equals(existing.getProjectTaskId(), command.projectTaskId())
-                    && Objects.equals(existing.getExecutionContractId(), command.executionContractId())
-                    ? result("INITIALIZED", existing.getId(), existing.getVersion())
-                    : result("DUPLICATE_OR_PARTIAL", null, null);
-        }
         var deliverable = deliverableMapper.selectByProjectAndCodeForUpdate(
                 new ProjectDeliverableIdentityLockQuery(command.tenantId(), command.projectId(),
                         command.deliverableCode()));
-        if (deliverable == null) return result("IDENTITY_MISMATCH", null, null);
+        if (deliverable == null || !Objects.equals(deliverable.getTenantId(), command.tenantId())
+                || !Objects.equals(deliverable.getProjectId(), command.projectId())
+                || !Objects.equals(deliverable.getDeliverableCode(), command.deliverableCode())
+                || (deliverable.getTaskCode() != null && !Objects.equals(deliverable.getTaskCode(), command.taskDefinitionKey())))
+            return result("IDENTITY_MISMATCH", null, null);
+        if (existing != null) {
+            return Objects.equals(existing.getProjectTaskId(), command.projectTaskId())
+                    && Objects.equals(existing.getExecutionContractId(), command.executionContractId())
+                    && Objects.equals(existing.getDeliverableId(), deliverable.getId())
+                    ? result("INITIALIZED", existing.getId(), existing.getVersion())
+                    : result("DUPLICATE_OR_PARTIAL", null, null);
+        }
         AcceptanceActivityDO row = new AcceptanceActivityDO();
         row.setId(IdWorker.getId());
         row.setTenantId(command.tenantId());
         row.setProjectId(command.projectId());
         row.setProjectTaskId(command.projectTaskId());
         row.setExecutionContractId(command.executionContractId());
+        row.setDeliverableId(deliverable.getId());
         row.setAcceptanceType(command.acceptanceType());
         row.setActivityStatus("PENDING");
         row.setVersion(0);
@@ -71,6 +68,9 @@ public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivi
                 && command.projectId() != null && command.projectId() > 0
                 && command.projectTaskId() != null && command.projectTaskId() > 0
                 && command.executionContractId() != null && command.executionContractId() > 0
+                && command.taskDefinitionKey() != null && !command.taskDefinitionKey().isBlank()
+                && command.acceptanceType() != null && Set.of("PRELIMINARY", "FINAL").contains(command.acceptanceType())
+                && command.deliverableCode() != null && !command.deliverableCode().isBlank()
                 && command.templateRevision() != null && command.templateRevision() > 0;
     }
 
@@ -78,6 +78,4 @@ public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivi
         return new AcceptanceActivityInitializationResult(outcome, id, version);
     }
 
-    private record Mapping(String acceptanceType, String deliverableCode) {
-    }
 }

@@ -101,12 +101,13 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
     @Override public String ownerContext() { return TARGET.targetContextCode(); }
     @Override public String objectType() { return TARGET.targetObjectType(); }
     @Override public Set<String> completionFactCodes() { return Set.of(COMPLETED_FACT); }
+    @Override public boolean supportsStageCompletionFacts() { return true; }
     @Override public Map<String, String> completionFactLabels() { return Map.of(COMPLETED_FACT, "需求分析版本已完成"); }
 
     @Override
     public Set<String> inspectContext(TaskBusinessObjectProvider.Context context) {
         requireTask(context);
-        return actions(workspace(context.tenantId(), context.actorId(), context.projectId()));
+        return actions(workspace(context));
     }
 
     @Override
@@ -116,7 +117,7 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
                 || !Set.of("REFERENCE_EXISTING", "CREATE_ON_FIRST_ACTION", "CREATE_ON_ENTER", "READ_ONLY_AGGREGATE")
                 .contains(context.instanceResolutionStrategy())) throw exception(FORBIDDEN);
         var workspace = queryService.getWorkspace(context.projectId(),
-                new RequirementAnalysisDynamicFormQueryService.Actor(context.tenantId(), context.actorId()), context.stageId());
+                new RequirementAnalysisDynamicFormQueryService.Actor(context.tenantId(), context.actorId()), context.stageId(), null);
         // Rendering never creates a draft, including CREATE_ON_ENTER. Only the Owner's explicit command may do that.
         var allowed = actions(workspace);
         var execution = context.execution();
@@ -129,7 +130,7 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
     @Override
     public List<BusinessObjectFact> candidates(TaskBusinessObjectProvider.Context context) {
         requireTask(context);
-        var workspace = workspace(context.tenantId(), context.actorId(), context.projectId());
+        var workspace = workspace(context);
         List<BusinessObjectFact> result = new ArrayList<>();
         if (workspace.getDraft() != null) result.add(toFact(context, workspace.getDraft(), actions(workspace)));
         if (workspace.getCurrentEffective() != null) result.add(toFact(context, workspace.getCurrentEffective(), actions(workspace)));
@@ -140,13 +141,13 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
     public BusinessObjectFact inspect(TaskBusinessObjectProvider.Context context, String objectId) {
         requireTask(context);
         var detail = detail(context, objectId);
-        return toFact(context, detail, actions(workspace(context.tenantId(), context.actorId(), context.projectId())));
+        return toFact(context, detail, actions(workspace(context)));
     }
 
     @Override
     public BusinessObjectInspection inspectContextAndObjects(TaskBusinessObjectProvider.Context context, List<String> objectIds) {
         requireTask(context);
-        var current = workspace(context.tenantId(), context.actorId(), context.projectId());
+        var current = workspace(context);
         var allowed = actions(current);
         var versions = new HashMap<String, RequirementAnalysisVersionRespVO>();
         if (current.getDraft() != null) versions.put(current.getDraft().getPreparationId().toString(), current.getDraft());
@@ -242,9 +243,10 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
         return fact;
     }
 
-    private RequirementAnalysisWorkspaceRespVO workspace(Long tenantId, Long actorId, Long projectId) {
-        trusted(tenantId, actorId, projectId);
-        return queryService.getWorkspace(projectId, new RequirementAnalysisDynamicFormQueryService.Actor(tenantId, actorId));
+    private RequirementAnalysisWorkspaceRespVO workspace(TaskBusinessObjectProvider.Context context) {
+        trusted(context.tenantId(), context.actorId(), context.projectId());
+        return queryService.getWorkspace(context.projectId(),
+                new RequirementAnalysisDynamicFormQueryService.Actor(context.tenantId(), context.actorId()), null, context.taskId());
     }
     private void requireTask(TaskBusinessObjectProvider.Context context) {
         if (context == null || context.taskId() == null || context.taskId() <= 0) throw exception(FORBIDDEN);

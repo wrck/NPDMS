@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -46,13 +47,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskLifecycleServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmission =
+            org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
 
     @Mock ProjectTaskRuntimeMapper taskMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
     @Mock ProjectMemberAssignmentMapper memberMapper;
     @Mock ProjectTaskCompletionEvaluationMapper evaluationMapper;
-    @Mock ProjectGateInstanceMapper gateMapper;
     @Mock TaskStateMachineMapper stateMachineMapper;
     @Mock TaskNativeBindingHostProvider nativeProvider;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
@@ -61,7 +63,7 @@ class ProjectTaskLifecycleServiceTest {
     @Mock PermissionApi permissionApi;
     @Mock AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
     @Mock ProjectScopeApi projectScopeApi;
-    @Mock TaskBusinessCompletionEvaluator businessEvaluator;
+    @Mock ProjectTaskPlanCompletionService businessEvaluator;
     @Mock TaskBusinessBindingHostProvider businessProvider;
     @Mock cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
 
@@ -71,9 +73,15 @@ class ProjectTaskLifecycleServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
-                evaluationMapper, gateMapper,
+                evaluationMapper,
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
                 permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmissionService", stageAdmission);
+        var nodeExecutions = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.class);
+        org.mockito.Mockito.lenient().when(nodeExecutions.recordTaskTransition(any())).thenReturn(1);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "nodeExecutions", nodeExecutions);
+        org.mockito.Mockito.lenient().when(stageAdmission.taskMayStart(any(), any(), any())).thenReturn(true);
+        lenient().when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(planned(true,java.util.List.of(),java.util.Map.of()));
     }
 
     @Test
@@ -89,6 +97,21 @@ class ProjectTaskLifecycleServiceTest {
         assertTrue(update.getValue().initializeActualStartTime());
         assertFalse(update.getValue().setActualEndTime());
         assertEquals("PROJECT_TASK_START", successFacts.operationCode());
+    }
+
+    @Test void anUnsatisfiedTaskAdmissionCannotBeBypassedByTheLifecycleEndpoint() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        when(stageAdmission.taskMayStart(any(), any(), any())).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> service.act(command("start", 3, null, null), actor()));
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test void ownerPermissionDenialPrecedesRuleFactReads() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        when(nativeProvider.inspect(any())).thenReturn(TaskBindingInspection.failed("TASK_NATIVE", "FORBIDDEN"));
+        assertThrows(RuntimeException.class, () -> service.act(command("start", 3, null, null), actor()));
+        org.mockito.Mockito.verifyNoInteractions(stageAdmission);
+        verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
 
     @Test
@@ -168,8 +191,8 @@ class ProjectTaskLifecycleServiceTest {
     void superAdminStillNeedsOwnerCompletionFacts() {
         allowBusinessAction("BUSINESS_OBJECT");
         when(treeScopes.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
-        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
-                new TaskBusinessCompletionEvaluator.Result(false, java.util.List.of("OWNER_NOT_COMPLETE"), businessEvidence()));
+        when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(
+                planned(false, java.util.List.of("OWNER_NOT_COMPLETE"), businessEvidence()));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
         assertEquals("PENDING_ACCEPT", service.act(businessCommand(), actor()).status());
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
@@ -205,9 +228,9 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @Test
-    void unmetDescendantPersistsEvaluationWithoutAdvancingTask() {
+    void unfinishedStartedDescendantPersistsEvaluationWithoutAdvancingTask() {
         allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
-        when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
+        when(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
 
         TaskCommandResult result = service.act(command("complete", 3, 91L, 2), actor());
@@ -217,7 +240,7 @@ class ProjectTaskLifecycleServiceTest {
         verify(evaluationMapper).insertEvaluation(any());
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
         assertEquals(null, successFacts.eventType());
-        assertTrue(successFacts.detailSnapshot().contains("NON_TERMINAL_DESCENDANT"));
+        assertTrue(successFacts.detailSnapshot().contains("UNFINISHED_STARTED_DESCENDANT"));
     }
 
     @Test
@@ -331,8 +354,8 @@ class ProjectTaskLifecycleServiceTest {
     void businessCompletionFreezesOwnerEvidenceWithoutInventingNativeLongFact() {
         allowBusinessAction("BUSINESS_COMPONENT");
         var evidence = businessEvidence();
-        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
-                new TaskBusinessCompletionEvaluator.Result(true, java.util.List.of(), evidence));
+        when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(
+                planned(true, java.util.List.of(), evidence));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
 
@@ -355,7 +378,7 @@ class ProjectTaskLifecycleServiceTest {
         verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
         var order = org.mockito.Mockito.inOrder(contractMapper, businessEvaluator, evaluationMapper, taskMapper);
         order.verify(contractMapper).selectCurrentByTaskIdForUpdate(any());
-        order.verify(businessEvaluator).evaluateLocked(any(), any(), any());
+        order.verify(businessEvaluator).evaluate(any(), any(), any(), any(), any());
         order.verify(evaluationMapper).insertEvaluation(any());
         order.verify(taskMapper).updateLifecycleIfMatch(any());
     }
@@ -363,8 +386,8 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void emptyBusinessGroupPersistsFailureAndNeverUpdatesProgressOrOutbox() {
         allowBusinessAction("BUSINESS_OBJECT");
-        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
-                new TaskBusinessCompletionEvaluator.Result(false, java.util.List.of("BUSINESS_LINK_GROUP_EMPTY"), businessEvidence()));
+        when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(
+                planned(false, java.util.List.of("BUSINESS_LINK_GROUP_EMPTY"), businessEvidence()));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
 
         var result = service.act(businessCommand(), actor());
@@ -381,15 +404,14 @@ class ProjectTaskLifecycleServiceTest {
     void satisfiedBusinessFactsStillCannotBypassTaskDependenciesOrGate() {
         var contract = allowBusinessAction("BUSINESS_OBJECT");
         contract.setGateRef("gate-required");
-        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenReturn(
-                new TaskBusinessCompletionEvaluator.Result(true, java.util.List.of(), businessEvidence()));
-        when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
-        when(taskMapper.selectNonTerminalPredecessorIdsForUpdate(any())).thenReturn(java.util.List.of(13L));
+        when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(
+                planned(false, java.util.List.of("GATE_NOT_PASSED"), businessEvidence()));
+        when(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
 
         assertEquals("PENDING_ACCEPT", service.act(businessCommand(), actor()).status());
 
-        for (String code : java.util.List.of("NON_TERMINAL_DESCENDANT", "NON_TERMINAL_PREDECESSOR", "GATE_NOT_PASSED")) {
+        for (String code : java.util.List.of("UNFINISHED_STARTED_DESCENDANT", "GATE_NOT_PASSED")) {
             assertTrue(successFacts.detailSnapshot().contains(code));
         }
         assertEquals(null, successFacts.eventType());
@@ -399,7 +421,7 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void staleLockedBusinessVersionAbortsBeforeAnySuccessWrites() {
         allowBusinessAction("BUSINESS_OBJECT");
-        when(businessEvaluator.evaluateLocked(any(), any(), any())).thenThrow(
+        when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenThrow(
                 new IllegalStateException("TASK_BUSINESS_FACT_VERSION_CONFLICT"));
 
         assertThrows(IllegalStateException.class, () -> service.act(businessCommand(), actor()));
@@ -444,6 +466,101 @@ class ProjectTaskLifecycleServiceTest {
                 "links", java.util.List.of(java.util.Map.of("linkId", 1L, "objectId", "survey-1", "factVersion", "survey:revision:7")));
     }
 
+    @Test void unknownPlanConditionsAreRecordedAsUnknownAndCannotAdvanceTask() {
+        allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
+        var unknown = new cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation("plan:51",
+                cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.UNKNOWN,"FACT_UNAVAILABLE",
+                java.util.List.of(),java.util.List.of(),java.util.List.of());
+        when(businessEvaluator.evaluate(any(),any(),any(),any(),any())).thenReturn(new ProjectTaskPlanCompletionService.Result(
+                unknown,unknown,java.util.Map.of("completion",unknown,"exit",unknown)));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+        assertEquals("PENDING_ACCEPT",service.act(command("complete",3,91L,2),actor()).status());
+        verify(evaluationMapper).insertEvaluation(org.mockito.ArgumentMatchers.argThat(value -> "UNKNOWN".equals(value.getEvaluationResultCode())));
+        verify(taskMapper,never()).updateLifecycleIfMatch(any());
+    }
+
+    private ProjectTaskPlanCompletionService.Result planned(boolean matched, java.util.List<String> unmet, java.util.Map<String,Object> evidence) {
+        var evaluation = new cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation("plan:51",
+                matched ? cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED
+                        : cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.NOT_MATCHED,
+                unmet.isEmpty() ? null : unmet.getFirst(),java.util.List.of(),java.util.List.of(),java.util.List.of());
+        return new ProjectTaskPlanCompletionService.Result(evaluation,evaluation,evidence);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"IN_PROGRESS", "PENDING_ACCEPT"})
+    @SuppressWarnings("unchecked")
+    void businessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status) {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            var task = automaticTask(status);
+            var transition = new TaskStateTransitionDO(); transition.setToStatusCode("DONE");
+            when(stateMachineMapper.requireTransition(any())).thenAnswer(call -> {
+                var query = (cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery) call.getArgument(0);
+                if ("SUBMIT".equals(query.actionCode())) {
+                    var submitted = new TaskStateTransitionDO(); submitted.setToStatusCode("PENDING_ACCEPT"); return submitted;
+                }
+                return transition;
+            });
+            when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+            when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+            when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(call -> {
+                var scope = (PlatformCommandExecutionApi.IdempotencyScope) call.getArgument(0);
+                assertEquals(0L, scope.actorId()); assertEquals("rule-complete:61", scope.key());
+                var result = ((Supplier<TaskCommandResult>) call.getArgument(3)).get();
+                successFacts = ((Function<TaskCommandResult, PlatformCommandExecutionApi.SuccessFacts>) call.getArgument(4)).apply(result);
+                return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
+            });
+            assertTrue(service.completeFromBusinessResult(100L, 11L, "outbox").completed());
+            verify(taskMapper).updateLifecycleIfMatch(org.mockito.ArgumentMatchers.argThat(update ->
+                    status.equals(update.expectedStatus()) && "DONE".equals(update.nextStatus())
+                            && update.expectedVersion()==3 && update.progress()==100 && update.setActualEndTime()));
+            assertEquals("TaskCompleted", successFacts.eventType());
+            var executionMapper = (cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper)
+                    org.springframework.test.util.ReflectionTestUtils.getField(service, "nodeExecutions");
+            verify(executionMapper).recordTaskTransition(argThat(update ->
+                    cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(update.evidence())
+                            .path("businessFacts").path("results").path(0).path("facts").path("SURVEY_CONFIRMED").asBoolean()));
+            assertEquals(1, successFacts.businessEvents().size());
+            org.mockito.Mockito.verifyNoInteractions(permissionApi, nativeProvider, businessProvider, acceptanceActivityCompletionFactApi);
+            task.setStatus("DONE");
+            assertFalse(service.completeFromBusinessResult(100L, 11L, "duplicate-event").completed());
+            verify(taskMapper, org.mockito.Mockito.times(1)).updateLifecycleIfMatch(any());
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Test void automaticCompletionNeverDiscardsStartedChildWork() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            automaticTask("PENDING_ACCEPT");
+            when(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
+            assertFalse(service.completeFromBusinessResult(100L, 11L, "outbox").completed());
+            verify(taskMapper, never()).updateLifecycleIfMatch(any());
+            verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    private ProjectTaskInstanceDO automaticTask(String status) {
+        var task = new ProjectTaskInstanceDO(); task.setId(11L); task.setProjectId(100L); task.setTenantId(0L);
+        task.setName("需求分析"); task.setStageCode("PREP_WORK"); task.setStatus(status); task.setVersion(3); task.setStateMachineRevisionId(81L);
+        var project = new ProjectMasterDO(); project.setId(100L); project.setTenantId(0L); project.setLifecycleStatus("ACTIVE");
+        project.setTaskProgressVersion(0L); project.setTaskTreeVersion(4L); project.setActivePlanVersionId(51L);
+        var contract = new ProjectTaskExecutionContractDO(); contract.setId(91L); contract.setTenantId(0L);
+        contract.setProjectTaskId(11L); contract.setContractVersion(2); contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        contract.setTargetContextCode("SOL"); contract.setTargetObjectType("REQUIREMENT_ANALYSIS");
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
+        when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+        var evidence = new java.util.LinkedHashMap<String,Object>(businessEvidence()); evidence.put("executionId",61L); evidence.put("planVersionId",51L);
+        evidence.put("businessFacts", new cn.iocoder.yudao.module.pms.project.domain.rule.BusinessFactEvidence(61L, 51L,
+                java.util.List.of(new cn.iocoder.yudao.module.pms.project.domain.rule.BusinessFactEvidence.Result(1L, "survey-1", "survey:revision:7",
+                        java.util.Map.of("SURVEY_CONFIRMED", true)))));
+        var evaluated = planned(true,java.util.List.of(),evidence);
+        evidence.put("completion",evaluated.completion()); evidence.put("exit",evaluated.exit());
+        when(businessEvaluator.evaluateAutomatically(project, task, contract)).thenReturn(evaluated);
+        return task;
+    }
+
     @SuppressWarnings("unchecked")
     private void allowAction(String status, String action, String target) {
         ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
@@ -481,7 +598,7 @@ class ProjectTaskLifecycleServiceTest {
         contract.setContractVersion(2);
         when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
         if ("COMPLETE".equals(action)) {
-            lenient().when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any()))
+            lenient().when(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(any()))
                     .thenReturn(java.util.List.of());
             lenient().when(taskMapper.selectNonTerminalPredecessorIdsForUpdate(any()))
                     .thenReturn(java.util.List.of());

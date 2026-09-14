@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import FlowPanel from '../../project-master-detail/components/ProjectFlowPanel.vue'
-import { mount, passthrough, tableColumn, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const api = vi.hoisted(() => ({ getProjectWorkspace: vi.fn(), getProjectTasks: vi.fn(), getTaskWorkbench: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
+const businessRefresh = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/project/task-workbench', () => api)
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
@@ -14,13 +15,16 @@ vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: async () => true }); return () => h('div', '阶段绑定上下文') }
 }) }))
 vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ isBusy: () => false }); return () => h('div', '任务状态操作') }
+  setup(_, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作' }, ['任务状态操作', slots.default?.()]) }
 }) }))
 vi.mock('../wbs/TaskMaintenancePanel.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务职责维护') }
+  setup(_, { expose }) { expose({ requestLeave: () => true, description: { description: '任务的基本说明', descriptionFormat: 'PLAIN' }, canEditDescription: true, openDescription: vi.fn() }); return () => h('div', '任务职责维护') }
+}) }))
+vi.mock('../../project-master-detail/components/ProjectTaskDetailsEditor.vue', () => ({ default: defineComponent({
+  setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务资料与进度') }
 }) }))
 vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ requestLeave: leave }); return () => h('div', 'Owner业务内容') }
+  setup(_, { expose }) { expose({ requestLeave: leave, refresh: businessRefresh, loading: false }); return () => h('div', 'Owner业务内容') }
 }) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
@@ -44,6 +48,42 @@ beforeEach(() => {
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
+it('starts independent task reads together and waits for both before exposing Owner actions', async () => {
+  let finishWorkspace!: (value: unknown) => void
+  api.getProjectWorkspace.mockReturnValueOnce(new Promise(resolve => { finishWorkspace = resolve }))
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  await flush()
+  expect(api.getTaskWorkbench).toHaveBeenCalledWith(10)
+  expect(textOf(view.root)).not.toContain('Owner业务内容')
+  finishWorkspace({ stageTaskNavigation: [] })
+  await flush()
+  expect(textOf(view.root)).toContain('Owner业务内容')
+})
+
+it('keeps task actions closed if the parallel workspace request fails', async () => {
+  api.getProjectWorkspace.mockRejectedValueOnce(new Error('403'))
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  await flush()
+  expect(textOf(view.root)).toContain('内容加载失败')
+  expect(textOf(view.root)).not.toContain('Owner业务内容')
+  expect(textOf(view.root)).not.toContain('任务状态操作')
+})
+
+it('ignores a completed parallel load from the previously selected task', async () => {
+  let finishOld!: (value: unknown) => void
+  api.getTaskWorkbench.mockReturnValueOnce(new Promise(resolve => { finishOld = resolve }))
+  const selection = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  const view = render(selection)
+  await flush()
+  api.getTaskWorkbench.mockResolvedValueOnce({ task: { taskId: 11, name: '任务B', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
+  selection.taskId = 11
+  await flush()
+  finishOld({ task: { taskId: 10, name: '旧任务A', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
+  await flush()
+  expect(textOf(view.root)).toContain('任务B')
+  expect(textOf(view.root)).not.toContain('旧任务A')
+})
+
 it('propagates the Owner leave refusal and does not clear its content during a refused reload', async () => {
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   expect(textOf(view.root)).toContain('Owner业务内容')
@@ -61,4 +101,29 @@ it('does not equate S2 with duration or call a task workbench with a stage ident
   expect(textOf(view.root)).toContain('真实准入')
   expect(textOf(view.root)).toContain('阶段绑定上下文')
   expect(api.getTaskWorkbench).not.toHaveBeenCalled()
+})
+
+it('places one refresh action next to the task business heading and delegates to the guarded Owner refresh', async () => {
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
+    predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
+  const heading = find(view.root, node => String(node.props?.class || '').includes('task-business-heading'))
+  expect(heading).toBeTruthy()
+  expect(textOf(heading!)).toContain('任务业务办理')
+  const refresh = find(heading!, node => node.type === 'button' && textOf(node) === '刷新业务结果')
+  expect(refresh).toBeTruthy()
+  await (refresh!.props!.onClick as () => unknown)()
+  expect(businessRefresh).toHaveBeenCalledTimes(1)
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(1)
+})
+
+it('places the description in a full-width basic-information field and task editing in the action group', async () => {
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
+    predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
+  const description = find(view.root, node => node.props?.label === '任务说明')
+  expect(description?.props?.span).toBe(2)
+  expect(textOf(description!)).toContain('任务的基本说明')
+  const actions = find(view.root, node => node.props?.['aria-label'] === '任务状态操作')
+  expect(textOf(actions!)).toContain('任务资料与进度')
 })

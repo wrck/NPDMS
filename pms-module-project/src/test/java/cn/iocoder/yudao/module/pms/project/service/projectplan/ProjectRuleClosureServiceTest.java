@@ -1,0 +1,87 @@
+package cn.iocoder.yudao.module.pms.project.service.projectplan;
+
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.*;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.service.rule.*;
+import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
+import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
+import org.junit.jupiter.api.*;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProjectRuleClosureServiceTest {
+    static RuleEngineTestFixture engine;
+    @BeforeAll static void start() { engine = new RuleEngineTestFixture(); }
+    @AfterAll static void stop() { engine.close(); }
+    @AfterEach void clear() { TenantContextHolder.clear(); }
+    final ProjectTaskRuntimeMapper projects = mock(ProjectTaskRuntimeMapper.class);
+    final ProjectPlanVersionMapper plans = mock(ProjectPlanVersionMapper.class);
+    final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
+    final ProjectRuntimeGraphMapper graph = mock(ProjectRuntimeGraphMapper.class);
+    final OperationAuditApi audit = mock(OperationAuditApi.class);
+    final ProjectRuleCompiler compiler = new ProjectRuleCompiler();
+    ProjectRuleClosureService service;
+    ProjectPlanVersionDO plan;
+    TemplateExecutionSnapshot snapshot;
+    ProjectMasterDO project;
+    @BeforeEach void setup() {
+        TenantContextHolder.setTenantId(7L);
+        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setVersion(3);
+        when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        snapshot = new TemplateExecutionSnapshot(); snapshot.setClosureRuleKey("close");
+        snapshot.getRulePrograms().put("close", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
+        plan = new ProjectPlanVersionDO(); plan.setId(21L); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        when(plans.selectEffective(any())).thenReturn(plan);
+        when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
+        service = new ProjectRuleClosureService(projects, plans, executions, graph, mock(ProjectGateReferenceInstanceMapper.class),
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit);
+    }
+    @Test void explicitClosureRuleClosesOnlyThisProjectWithFrozenEvidence() {
+        when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
+        assertTrue(service.closeIfSatisfied(9L, 1L, "test").closed());
+        verify(plans).closeProjectIfActive(argThat(update -> update.projectId().equals(9L) && update.expectedProjectVersion()==3 && update.planVersionId().equals(21L)));
+        verify(plans).recordClosureIfOpen(argThat(update -> update.evidence().contains("pmsRuleMatched")));
+    }
+    @Test void terminalStageDoesNotSupplyAnImplicitClosureRule() {
+        snapshot.setClosureRuleKey(null); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
+        verify(plans, never()).closeProjectIfActive(any());
+    }
+    @Test void activeStageAndStartedTasksCannotBeAbandoned() {
+        when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("ACTIVE")));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
+        when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setId(71L).setStatus("IN_PROGRESS")));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setId(71L).setStatus("PENDING_START")));
+        var started = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        started.setStartedAt(java.time.LocalDateTime.now()); started.setStatus("ACTIVE");
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(started));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
+        verify(plans, never()).closeProjectIfActive(any());
+    }
+
+    @Test void automaticReferenceToUnstartedOptionalTaskDoesNotAddAClosureRequirement() {
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setId(71L).setStatus("PENDING_ASSIGN")));
+        when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
+        assertTrue(service.closeIfSatisfied(9L,1L,"optional-branch").closed());
+    }
+    @Test void unknownConditionCannotBecomeClosureAndClosedProjectDoesNotRepeat() {
+        snapshot.getRulePrograms().put("close", compiler.compile(JsonUtils.parseTree("{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"APPROVAL\",\"parameters\":{\"refCode\":\"approval\"}}]}")));
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        assertTrue(service.closeIfSatisfied(9L, 1L, "test").unknown());
+        verify(plans, never()).closeProjectIfActive(any());
+        project.setLifecycleStatus("NORMAL_CLOSED");
+        assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
+        verifyNoInteractions(audit);
+    }
+}

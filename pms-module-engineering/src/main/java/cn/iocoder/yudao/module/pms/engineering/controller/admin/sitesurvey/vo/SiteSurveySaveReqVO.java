@@ -17,6 +17,7 @@ import static cn.iocoder.yudao.framework.common.util.date.DateUtils.FORMAT_YEAR_
 @Schema(description = "管理后台 - 现场工勘新增/修改 Request VO")
 @Data
 public class SiteSurveySaveReqVO {
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection execution;
 
     @Schema(description = "主键，更新时必填", example = "1")
     private Long id;

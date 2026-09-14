@@ -1,6 +1,8 @@
 import { markRaw, type Component } from 'vue'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
+import type { StageExecutionContext } from '@/api/pms/project/stage-business'
+import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
@@ -13,6 +15,9 @@ export interface BusinessViewResolvedContext {
   instanceId?: BusinessViewId
   businessObjectId?: BusinessViewId
   taskId?: BusinessViewId
+  stageExecution?: StageExecutionContext
+  stageCode?: string
+  taskExecution?: TaskExecutionContext
 }
 export interface BusinessViewTarget {
   registration: BusinessViewRegistrationVO
@@ -57,11 +62,22 @@ const adapters: readonly Adapter[] = [
       registration.dynamicFormRevisionId == null &&
       positiveId(resolvedContext.project?.id) &&
       (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId)) &&
-      (resolvedContext.taskId == null || positiveId(resolvedContext.taskId))
+      (resolvedContext.taskId == null || positiveId(resolvedContext.taskId)) &&
+      !(resolvedContext.taskExecution && resolvedContext.stageExecution) &&
+      (resolvedContext.taskExecution == null || (
+        positiveId(resolvedContext.taskExecution.executionId) &&
+        String(resolvedContext.taskExecution.projectId) === String(resolvedContext.project.id) &&
+        String(resolvedContext.taskExecution.taskId) === String(resolvedContext.taskId))) &&
+      (resolvedContext.stageExecution == null || (
+        resolvedContext.taskId == null && positiveId(resolvedContext.stageExecution.stageId) &&
+        positiveId(resolvedContext.stageExecution.executionId) &&
+        String(resolvedContext.stageExecution.projectId) === String(resolvedContext.project.id)))
         ? {
             projectId: resolvedContext.project.id,
             objectId: resolvedContext.businessObjectId,
-            taskId: resolvedContext.taskId
+            taskId: resolvedContext.taskId,
+            ...(resolvedContext.taskExecution ? { taskExecution: resolvedContext.taskExecution } : {}),
+            ...(resolvedContext.stageExecution ? { stageExecution: resolvedContext.stageExecution, stageCode: resolvedContext.stageCode } : {})
           }
         : undefined
   },
@@ -72,10 +88,21 @@ const adapters: readonly Adapter[] = [
     ownerContext: 'SOL',
     viewSource: 'PAGE',
     component: markRaw(ProjectRequirementAnalysisPanel),
-    resolve: ({ registration, resolvedContext }) =>
+      resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
       && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+      && !(resolvedContext.taskExecution && resolvedContext.stageExecution)
+      && (resolvedContext.taskId == null || resolvedContext.taskExecution != null)
+      && (resolvedContext.taskExecution == null || (
+        positiveId(resolvedContext.taskExecution.taskId) && positiveId(resolvedContext.taskExecution.executionId)
+        && String(resolvedContext.taskExecution.taskId) === String(resolvedContext.taskId)
+        && String(resolvedContext.taskExecution.projectId) === String(resolvedContext.project.id)))
+      && (resolvedContext.stageExecution == null || (
+        resolvedContext.taskId == null && positiveId(resolvedContext.stageExecution.stageId) && positiveId(resolvedContext.stageExecution.executionId)
+        && String(resolvedContext.stageExecution.projectId) === String(resolvedContext.project.id)))
         ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) },
+            ...(resolvedContext.stageExecution ? { stageExecution: resolvedContext.stageExecution } : {}),
+            ...(resolvedContext.taskExecution ? { taskExecution: resolvedContext.taskExecution } : {}),
             ...(resolvedContext.businessObjectId == null ? {} : { preparationId: legacyOwnerId(resolvedContext.businessObjectId) }) }
         : undefined
   },
@@ -135,5 +162,7 @@ export const businessViewTargetKey = (target: BusinessViewTarget) =>
     target.resolvedContext.project?.id,
     target.resolvedContext.instanceId,
     target.resolvedContext.businessObjectId,
-    target.resolvedContext.taskId
+    target.resolvedContext.taskId,
+    target.resolvedContext.stageExecution?.stageId,
+    target.resolvedContext.stageExecution?.executionId
   ])

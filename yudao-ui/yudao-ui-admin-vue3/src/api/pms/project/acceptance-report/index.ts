@@ -9,6 +9,7 @@ export interface AcceptanceActivityVO {
   projectId: number
   projectTaskId: number
   executionContractId: number
+  deliverableId?: number | string | null
   acceptanceType: AcceptanceType
   activityStatus: string
   currentReportVersionId?: number

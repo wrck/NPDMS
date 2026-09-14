@@ -73,7 +73,11 @@
           <el-form label-position="top" :disabled="nodeReadonly">
             <el-form-item label="名称"><el-input v-model="selected.node.name" /></el-form-item>
             <el-form-item label="编码"
-              ><el-input :model-value="selected.node.code" @change="renameCode"
+              ><el-input
+                v-model="codeDraft"
+                :maxlength="selected.kind === 'STAGE' ? 32 : undefined"
+                @blur="renameCode(codeDraft)"
+                @keyup.enter="renameCode(codeDraft)"
             /></el-form-item>
             <template v-if="selected.kind === 'STAGE'"
               ><el-form-item label="终点"
@@ -163,8 +167,35 @@
                 ? '阶段可以仅组织任务，也可以直接绑定业务办理。'
                 : '手工任务需要真实提交；业务与审批任务使用原模块结果。'
             }}</p>
+            <el-select
+              v-if="selected.kind === 'STAGE'"
+              aria-label="阶段办理方式"
+              :disabled="nodeReadonly"
+              :model-value="
+                runtimeNode.workBinding
+                  ? runtimeNode.workBinding.type === 'STAGE_NATIVE'
+                    ? 'MANUAL'
+                    : 'BUSINESS'
+                  : 'NONE'
+              "
+              @update:model-value="setStageHandling"
+            >
+              <el-option value="NONE" label="仅组织任务，不单独办理" />
+              <el-option value="MANUAL" label="阶段手工办理" />
+              <el-option value="BUSINESS" label="已绑定业务页面／表单／审批" disabled />
+            </el-select>
             <el-button v-if="!nodeReadonly" @click="businessOpen = !businessOpen"
               >{{ businessOpen ? '收起' : '配置' }}业务页面／表单／审批</el-button
+            >
+            <el-button
+              v-if="
+                !nodeReadonly &&
+                selected.kind === 'TASK' &&
+                (runtimeNode.workBinding?.type !== 'TASK_NATIVE' ||
+                  pendingBindings.has(runtimeNode.nodeKey))
+              "
+              @click="setTaskManualHandling"
+              >切换为手工办理</el-button
             >
             <TaskBindingEditor
               v-if="bindingHost && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
@@ -172,6 +203,7 @@
               :task="bindingHost"
               :model-value="pendingBindings.get(runtimeNode.nodeKey)"
               :readonly="nodeReadonly"
+              :binding-permission="bindingPermission"
               @update:model-value="setBinding"
             />
             <p v-if="pendingBindings.has(runtimeNode.nodeKey)" class="field-hint"
@@ -315,7 +347,11 @@ import DecisionTableEditor from './DecisionTableEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
 import TaskBindingEditor from './TaskBindingEditor.vue'
 import DefinitionSelect from './DefinitionSelect.vue'
-const props = defineProps<{ content: TemplateDesignerDocument; readonly?: boolean }>()
+const props = defineProps<{
+  content: TemplateDesignerDocument
+  readonly?: boolean
+  bindingPermission?: 'pms:project-template:update' | 'pms:project-plan:manage'
+}>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean] }>()
 const view = ref('FLOW')
 const stageKey = ref<string>()
@@ -443,6 +479,14 @@ watch(
   },
   { immediate: true }
 )
+const codeDraft = ref('')
+watch(
+  () => [props.content, selected.value?.node.code] as const,
+  ([, value]) => {
+    codeDraft.value = value ?? ''
+  },
+  { immediate: true }
+)
 watch(selectedKey, () => {
   businessOpen.value = false
 })
@@ -512,6 +556,45 @@ const setBinding = (value: BindingSelection | undefined) => {
   if (runtimeNode.value && !nodeReadonly.value) {
     if (value) pendingBindings.set(runtimeNode.value.nodeKey, value)
     else pendingBindings.delete(runtimeNode.value.nodeKey)
+  }
+}
+const setStageHandling = (value: 'NONE' | 'MANUAL') => {
+  if (nodeReadonly.value || selected.value?.kind !== 'STAGE' || !runtimeNode.value) return
+  pendingBindings.delete(runtimeNode.value.nodeKey)
+  businessOpen.value = false
+  if (value === 'NONE') {
+    Reflect.deleteProperty(runtimeNode.value, 'workBinding')
+    Reflect.deleteProperty(runtimeNode.value, 'permission')
+  } else {
+    runtimeNode.value.workBinding = { type: 'STAGE_NATIVE', parameters: {} }
+    runtimeNode.value.permission = { policyRef: 'PROJECT_STAGE_NATIVE_DEFAULT' }
+  }
+}
+const setTaskManualHandling = async () => {
+  if (nodeReadonly.value || selected.value?.kind !== 'TASK') return
+  const document = props.content
+  const task = selected.value.node as DesignerTaskNode
+  try {
+    await ElMessageBox.confirm(
+      `“${task.name}”将切换为手工办理，整个完成条件替换为本轮真实提交；准入、退出和节点权限保留。原完成规则如被其他节点共享，不受影响。保存草稿不会推进运行，项目改版仍须通过生效校验。`,
+      '切换为手工办理',
+      { type: 'warning', confirmButtonText: '确认切换', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  if (props.content !== document || selected.value?.node !== task || nodeReadonly.value) return
+  pendingBindings.delete(task.nodeKey)
+  businessOpen.value = false
+  task.workBinding = { type: 'TASK_NATIVE', parameters: {} }
+  task.completionRuleKey = createVersionRule(document, `${task.name} · 手工完成`, {
+    predicate: 'TASK_NATIVE_STATUS',
+    parameters: { requiredStatus: 'DONE' }
+  }).key
+  Reflect.deleteProperty(task, 'completionRule')
+  if (task.source) {
+    Reflect.deleteProperty(task.source, 'workBindingRevisionId')
+    Reflect.deleteProperty(task.source, 'completionRuleRevisionId')
   }
 }
 const remove = async (key: string) => {
@@ -674,7 +757,12 @@ const prepareSave = async () => {
   for (const [key, selection] of pendingBindings) {
     const node = [...document.stages, ...document.tasks].find((item) => item.nodeKey === key)
     if (!node) continue
-    const prepared = await prepareTaskBinding(hostFor(document, node), selection, session)
+    const prepared = await prepareTaskBinding(
+      hostFor(document, node),
+      selection,
+      session,
+      props.bindingPermission === 'pms:project-plan:manage' ? 'PROJECT_PLAN' : 'TEMPLATE'
+    )
     node.workBinding = prepared.workBinding
     node.permission = prepared.permission
     node.source = prepared.source

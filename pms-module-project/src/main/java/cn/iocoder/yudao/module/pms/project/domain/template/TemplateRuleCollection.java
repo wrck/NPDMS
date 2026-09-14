@@ -91,6 +91,7 @@ public final class TemplateRuleCollection {
                 throw new IllegalArgumentException("决策引用必须指向本版本策略规则，且不能另存一份可编辑表: " + key);
             ((ObjectNode) copy.path("parameters")).set("table",
                     JsonUtils.parseObject(JsonUtils.toJsonString(target.decision()), JsonNode.class));
+            ((ObjectNode) copy.path("parameters")).remove("ruleKey");
         }
         return copy;
     }

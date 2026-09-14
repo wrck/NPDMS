@@ -10,6 +10,7 @@ public record AcceptanceReportVersionChangedMessage(
         String changeType,
         Long acceptanceId,
         Long projectId,
+        Long deliverableId,
         String reportType,
         Long publisherActorUserId,
         Long currentReportVersionId,

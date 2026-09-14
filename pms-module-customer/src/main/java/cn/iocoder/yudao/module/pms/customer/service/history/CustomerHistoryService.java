@@ -36,6 +36,9 @@ public class CustomerHistoryService {
         if (customer.getShortName() != null) {
             append(customer, "shortName", null, customer.getShortName(), owner(customer), operatorId, operationId);
         }
+        if (customer.getCustomerLevel() != null) {
+            append(customer, "customerLevel", null, customer.getCustomerLevel(), owner(customer), operatorId, operationId);
+        }
         if (customer.getRemark() != null) {
             append(customer, "remark", null, customer.getRemark(), "CUS", operatorId, operationId);
         }
@@ -51,6 +54,10 @@ public class CustomerHistoryService {
         }
         if (command.changedFields().contains("remark")) {
             append(before, "remark", before.getRemark(), command.remark(), "CUS", operatorId, operationId);
+        }
+        if (command.changedFields().contains("customerLevel")) {
+            append(before, "customerLevel", before.getCustomerLevel(), command.customerLevel(),
+                    owner(before), operatorId, operationId);
         }
         if (command.changedFields().contains("classification")) {
             append(before, "departmentCode", before.getDepartmentCode(), command.departmentCode(),

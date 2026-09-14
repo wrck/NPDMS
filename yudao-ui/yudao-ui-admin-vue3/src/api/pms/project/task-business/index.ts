@@ -9,6 +9,22 @@ export interface BusinessArtifact {
   displayName: string
   sourceVersion: string
 }
+export interface TaskExecutionContext {
+  projectId: BusinessViewId
+  projectVersion: number
+  taskId: BusinessViewId
+  taskVersion: number
+  executionContractId: BusinessViewId
+  contractVersion: number
+  planVersionId: BusinessViewId
+  executionId: BusinessViewId
+  executionVersion: number
+  roundNo: number
+  stageExecutionId: BusinessViewId
+  stageExecutionVersion: number
+  writable: boolean
+  startedAt?: string
+}
 export interface TaskBusinessObject {
   objectId: string
   displayName: string
@@ -36,6 +52,7 @@ export interface TaskBusinessContext {
   factVersion?: string
   ownerActions: string[]
   executionAllowed?: boolean
+  execution?: TaskExecutionContext
   businessView?: BusinessViewRegistrationVO
 }
 const base = (id: BusinessViewId) => `/api/v1/pms/project-tasks/${businessViewIdKey(id)}/business`

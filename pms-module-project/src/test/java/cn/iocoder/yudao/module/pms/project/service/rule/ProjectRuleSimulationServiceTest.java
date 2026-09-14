@@ -59,5 +59,21 @@ class ProjectRuleSimulationServiceTest {
         assertTrue(result.diagnostics().stream().anyMatch(item -> "pmsRuleDecisionValue".equals(item.component())));
     }
 
+    @Test void identicalFactCodesFromDifferentNodesHaveIndependentSimulationInputs() {
+        var rule = new VersionRule("rule", "两个工勘来源", VersionRule.Kind.CONDITION, false, json("""
+                {"operator":"ALL","rules":[
+                  {"predicate":"BUSINESS_FACT","parameters":{"sourceNodeKey":"first","factCode":"SURVEY_CONFIRMED","quantifier":"ALL"}},
+                  {"predicate":"BUSINESS_FACT","parameters":{"sourceNodeKey":"second","factCode":"SURVEY_CONFIRMED","quantifier":"ALL"}}
+                ]}
+                """), null);
+        var values = Map.of("BUSINESS_FACT:SURVEY_CONFIRMED:ALL:source:first", json("true"),
+                "BUSINESS_FACT:SURVEY_CONFIRMED:ALL:source:second", json("false"));
+        var result = service.simulate(7L, List.of(rule), "rule", values);
+        assertEquals(2, result.inputs().size());
+        assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, ((RuleEvaluation) result.evaluation()).outcome());
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, ((RuleEvaluation) service.simulate(7L, List.of(rule), "rule",
+                Map.of("BUSINESS_FACT:SURVEY_CONFIRMED:ALL:source:first", json("true"))).evaluation()).outcome());
+    }
+
     private static JsonNode json(String json) { return JsonUtils.parseObject(json, JsonNode.class); }
 }

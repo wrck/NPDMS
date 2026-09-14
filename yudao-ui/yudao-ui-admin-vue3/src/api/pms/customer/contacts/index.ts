@@ -28,7 +28,6 @@ export const getProjectContext = (id: number) => request.get<ProjectContactConte
 export const getProjectPage = (id: number, params: PageParam & { status?: number; name?: string }) => request.get<{ list: ContactVO[]; total: number }>({ url: project(id), params })
 export const getProjectSources = (id: number, params: PageParam) => request.get<{ list: ContactVO[]; total: number }>({ url: `${project(id)}/sources`, params })
 export const getProjectHistory = (id: number, params: PageParam) => request.get<{ list: ContactHistoryVO[]; total: number }>({ url: `${project(id)}/history`, params })
-export const importDefaults = (id: number, expectedProjectVersion: number) => request.post<number>({ url: `${project(id)}/actions/import-defaults`, data: { expectedProjectVersion } })
 export const associateCustomer = (id: number, customerId: number, expectedProjectVersion: number) => request.post({ url: `${project(id)}/actions/associate-customer`, data: { customerId, expectedProjectVersion } })
 export const createProjectContact = (id: number, data: ContactVO, key: string) => request.post<number>({ url: project(id), data, headers: { 'Idempotency-Key': key } })
 export const updateProjectContact = (id: number, data: ContactVO) => request.put({ url: `${project(id)}/${data.id}`, data })

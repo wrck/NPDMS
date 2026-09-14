@@ -57,8 +57,6 @@ import cn.iocoder.yudao.module.pms.project.service.acceptance.application.Projec
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi;
 import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityInitializationCommand;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
@@ -110,6 +108,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectMasterMapper projectMasterMapper;
     @Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer runtimeGraphFreezer;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmissionService;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanInitializationService planInitializationService;
     @Resource
     private ProjectStageInstanceMapper stageInstanceMapper;
     @Resource
@@ -196,8 +198,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // Downstream Project domain still consumes the legacy-shaped DTO, but the only template runtime truth
         // is the persisted immutable V2 snapshot. This projection never resolves Designer/DefinitionRevision data.
         TemplateDefinitionContent content = executionSnapshot.toRuntimeContent();
-        // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
-        TemplateInstantiator.requireSingleS0(content);
+        TemplateInstantiator.requireStages(content);
         runtimeGraphFreezer.validate(content);
         LocalDateTime instantiationTime = LocalDateTime.now();
         Long trustedTenantId = draft.getTenantId();
@@ -250,9 +251,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setClosurePolicySnapshot(content.getClosurePolicy() == null ? null
                 : JsonUtils.toJsonString(content.getClosurePolicy().toJson()));
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
-        draft.setStatus(ProjectRules.INITIAL_STATUS);
+        draft.setStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
         draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
-        draft.setCurrentStage(ProjectRules.STATUS_S0);
+        // Active stages are determined by their own admission rules, not a single project stage pointer.
+        draft.setCurrentStage(null);
         draft.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         draft.setVersion(0);
         // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
@@ -277,7 +279,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             stage.setTenantId(trustedTenantId);
             stageInstanceMapper.insert(stage);
         });
-        runtimeGraphFreezer.freeze(trustedTenantId, draft.getId(), selected.revisionId(), content,
+        var stageContracts = runtimeGraphFreezer.freeze(trustedTenantId, draft.getId(), selected.revisionId(), content,
                 instantiation.getStages(), instantiationTime);
         freezeSatisfactionFacts(draft, instantiation);
         // 任务ID已在落库前确定；先写完整任务集合，再写闭包和一任务一当前执行契约。
@@ -287,6 +289,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         content.getTasks().stream().filter(Objects::nonNull)
                 .forEach(definition -> definitionsByCode.put(definition.getTaskCode(), definition));
         List<PendingAcceptanceContract> pendingAcceptanceContracts = new ArrayList<>();
+        List<ProjectTaskExecutionContractDO> taskContracts = new ArrayList<>();
         for (var task : instantiation.getTasks()) {
             TemplateDefinitionContent.TaskDef definition = definitionsByCode.get(task.getTaskCode());
             if (definition == null) {
@@ -304,6 +307,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                     task.getId(), definition.getId(), definition, instantiationTime);
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
+            taskContracts.add(contract);
         }
         insertIfNotEmpty(instantiation.getMilestones(), milestoneInstanceMapper::insertBatch);
         List<DeliverableDefinition> deliverableDefinitions = content.getDeliverables().stream()
@@ -328,6 +332,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                     initialized.acceptanceId(), pending.definition().getDefinitionVersion(), instantiationTime);
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
+            taskContracts.add(contract);
         }
         // 门禁需先落库取自增 id，供引用行回填 gate_id
         instantiation.getGates().forEach(gateInstanceMapper::insert);
@@ -367,6 +372,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             relation.setStatus(ProjectRules.RELATION_STATUS_ACTIVE);
             companyDepartmentRelationMapper.insert(relation);
         }
+        planInitializationService.initialize(draft, executionSnapshot, stageContracts, taskContracts);
+        stageAdmissionService.activateEligible(draft.getId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "PROJECT_CREATE:" + draft.getId());
         return draft;
     }
 
@@ -734,26 +743,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
 
     private void freezeSatisfactionFacts(ProjectMasterDO project, ProjectInstantiation instantiation) {
         for (var task : instantiation.getTasks()) {
-            if (task.getSatisfactionTiming() == null || task.getSatisfactionTiming().isBlank()) {
-                continue;
-            }
-            if (!"AFTER_INITIAL_ACCEPTANCE".equals(task.getSatisfactionTiming())) {
-                throw new IllegalStateException("SATISFACTION_TIMING_OWNER_NOT_AVAILABLE");
-            }
-            SatisfactionTemplateFact fact = satisfactionQuestionnaireTemplateApi.resolvePublished(
-                    new SatisfactionTemplateResolveQuery(project.getTenantId(), project.getProjectType(),
-                            project.getSigningMethod(), project.getImplementationMode(), "ACCEPTANCE",
-                            task.getSatisfactionTiming()));
-            if (fact == null || !"FOUND".equals(fact.outcome()) || fact.templateId() == null
-                    || fact.templateRevisionId() == null || fact.templateVersion() == null
-                    || fact.ruleVersion() == null || fact.threshold() == null) {
-                throw new IllegalStateException("SATISFACTION_TEMPLATE_NOT_UNIQUE");
-            }
-            task.setAccSatisfactionTemplateId(fact.templateId());
-            task.setTemplateRevisionId(fact.templateRevisionId());
-            task.setTemplateVersion(fact.templateVersion());
-            task.setSatisfactionRuleVersion(fact.ruleVersion());
-            task.setSatisfactionThreshold(fact.threshold());
+            ProjectTaskSatisfactionSnapshot.freeze(project,task,satisfactionQuestionnaireTemplateApi);
         }
     }
 

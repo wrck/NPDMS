@@ -23,6 +23,7 @@ import { vFormCreateKeyboardRows } from './formCreateKeyboardRows'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import type { RequirementAnalysisDetailVO } from '@/api/pms/engineering/requirement-analysis'
+import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
 import { buildInstanceRuntime } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
 import { registerDynamicFormComponents } from '@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents'
@@ -36,6 +37,7 @@ import {
 defineOptions({ name: 'RequirementAnalysisDynamicForm' })
 const props = defineProps<{
   detail: RequirementAnalysisDetailVO
+  execution?: ProjectBusinessExecutionSelection
   allowedActions?: string[]
   reload?: () => Promise<RequirementAnalysisDetailVO>
 }>()
@@ -100,7 +102,8 @@ const apply = (detail: RequirementAnalysisDetailVO, preserve?: JsonObject) => {
     instanceId: detail.dynamicFormInstanceId,
     templateRevisionId: detail.templateRevisionId,
     controlledFiles: controlledFilesByField,
-    allowedActions: editable.value ? ['PATCH_INSTANCE'] : []
+    allowedActions: editable.value ? ['PATCH_INSTANCE'] : [],
+    ownerExecutionContext: props.execution ? { ...props.execution } : undefined
   })
   baseline.value = cloneValues(detail.values || {})
   values.value = { ...cloneValues(detail.values || {}), ...(preserve || {}) }
@@ -124,6 +127,10 @@ const validate = async () => {
 
 const save = async () => {
   const entityId = props.detail.preparationId
+  const execution = props.execution ? {
+    ...(props.execution.task ? { task: { ...props.execution.task } } : {}),
+    ...(props.execution.stage ? { stage: { ...props.execution.stage } } : {})
+  } : undefined
   const cacheKey = pendingKey.value
   if (editable.value && !props.reload) {
     message.warning('实体回读接口未配置，不能将本地表单标记为已保存。')
@@ -144,7 +151,7 @@ const save = async () => {
       entityId,
       props.detail.dynamicFormInstanceVersion,
       props.detail.version,
-      patch
+      { ...patch, ...(execution ? { execution } : {}) }
     )
     if (entityId !== props.detail.preparationId) return false
     const authoritative = await props.reload()
@@ -195,16 +202,19 @@ watch(
 )
 // PM-03: authorization is independent from document reload. Update controlled-file actions
 // in place so neither form-create rules nor ordinary unsaved values are replaced.
-watch(editable, () => {
+watch([editable, () => props.execution], () => {
   updateEditorReadonly(render.rule)
   const visit = (rules: JsonObject[]) => rules.forEach((rule) => {
     if (rule.type === 'PmsFileArtifact' && rule.props) {
-      (rule.props as JsonObject).allowedActions = editable.value ? ['PATCH_INSTANCE'] : []
+      const fileProps = rule.props as JsonObject
+      fileProps.allowedActions = editable.value ? ['PATCH_INSTANCE'] : []
+      fileProps.ownerExecutionContext = props.execution
+        ? structuredClone(toRaw(props.execution)) : undefined
     }
     if (Array.isArray(rule.children)) visit(rule.children as JsonObject[])
   })
   visit(render.rule)
-})
+}, { deep: true })
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
 defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value })

@@ -29,11 +29,11 @@ class SiteSurveyTaskMapperTest {
                 + ";MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=100", "sa", "");
         try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
             sql.execute("CREATE TABLE pms_eng_site_survey (id BIGINT PRIMARY KEY, tenant_id BIGINT, "
-                    + "project_id BIGINT, name VARCHAR(100), version INT, status INT, deleted INT)");
+                    + "project_id BIGINT, name VARCHAR(100), version INT, status INT, deleted INT, confirmed_at TIMESTAMP(3), archived_at TIMESTAMP(3))");
             for (int id = 1; id <= 105; id++) {
-                sql.execute("INSERT INTO pms_eng_site_survey VALUES (" + id + ",3,100,'survey',7,1,0)");
+                sql.execute("INSERT INTO pms_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (" + id + ",3,100,'survey',7,1,0)");
             }
-            sql.execute("INSERT INTO pms_eng_site_survey VALUES (201,4,100,'foreign tenant',7,1,0),"
+            sql.execute("INSERT INTO pms_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (201,4,100,'foreign tenant',7,1,0),"
                     + "(202,3,101,'foreign project',7,1,0),(203,3,100,'deleted',7,1,1)");
         }
         Configuration configuration = new Configuration(new Environment("survey-test", new JdbcTransactionFactory(), dataSource));
@@ -55,6 +55,33 @@ class SiteSurveyTaskMapperTest {
             assertEquals(6L, candidates.getLast().getId());
             assertTrue(candidates.stream().allMatch(row -> row.getTenantId() == 3 && row.getProjectId() == 100));
             assertTrue(mapper.selectTaskCandidates(new SiteSurveyTaskCandidateQuery(9L, 100L, 100)).isEmpty());
+        }
+    }
+
+    @Test void ownerProjectionReadsFormalConfirmationTimesWithoutBusinessBody() throws Exception {
+        try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
+            sql.execute("UPDATE pms_eng_site_survey SET confirmed_at='2026-09-14 12:00:01.123', archived_at='2026-09-14 12:01:02.456' WHERE id=1");
+        }
+        try (var session = sessions.openSession(false)) {
+            var row = session.getMapper(SiteSurveyMapper.class).selectTaskObjectForUpdate(new SiteSurveyTaskObjectQuery(3L,100L,1L));
+            assertEquals(java.time.LocalDateTime.of(2026,9,14,12,0,1,123_000_000), row.getConfirmedAt());
+            assertEquals(java.time.LocalDateTime.of(2026,9,14,12,1,2,456_000_000), row.getArchivedAt());
+            assertNull(row.getConclusion());
+            session.rollback(true);
+        }
+    }
+
+    @Test void automaticAssociationPagesCurrentObjectsWithoutRejectedHistoryOrSilentFirstHundredLimit() throws Exception {
+        try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
+            sql.execute("INSERT INTO pms_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (206,3,100,'rejected history',1,2,0)");
+        }
+        try (var session = sessions.openSession()) {
+            var mapper = session.getMapper(SiteSurveyMapper.class);
+            var first = mapper.selectAssociationPage(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyAssociationPageQuery(3L,100L,null,100));
+            assertEquals(100,first.size()); assertEquals(1L,first.getFirst().getId()); assertEquals(100L,first.getLast().getId());
+            var next = mapper.selectAssociationPage(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyAssociationPageQuery(3L,100L,100L,100));
+            assertEquals(5,next.size()); assertEquals(105L,next.getLast().getId());
+            assertTrue(mapper.selectAssociationPage(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyAssociationPageQuery(3L,100L,105L,100)).isEmpty());
         }
     }
 

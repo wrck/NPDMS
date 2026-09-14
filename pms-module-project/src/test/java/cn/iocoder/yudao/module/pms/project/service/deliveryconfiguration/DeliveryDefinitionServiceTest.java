@@ -32,6 +32,23 @@ class DeliveryDefinitionServiceTest {
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
+    @Test void editedConditionTreeRoundTripsWithoutDroppingIdsNegationOrTypedValues() {
+        var expression = JsonUtils.parseTree("""
+                {"id":"root","operator":"NOT","rules":[{"id":"field_1","predicate":"FIELD",
+                 "parameters":{"fieldCode":"project.isChild","valueType":"BOOLEAN","operator":"=","value":true}}]}
+                """);
+        when(revisions.lockIdentity(any())).thenReturn(List.of());
+        when(revisions.insert(any(DeliveryDefinitionRevisionDO.class))).thenAnswer(call -> {
+            DeliveryDefinitionRevisionDO row = call.getArgument(0);
+            when(revisions.selectById(row.getId())).thenReturn(row);
+            return 1;
+        });
+        Long id = service.create(new Save(DeliveryDefinitionKind.COMPLETION_RULE, "CHILD_RULE", 1,
+                expression, List.of()), "save-tree");
+        assertEquals(expression, service.get(id).payload());
+        verify(revisions, never()).publish(any());
+    }
+
     @Test void creationAssignsApplicationIdsBeforeMapperWrites() {
         when(revisions.lockIdentity(any())).thenReturn(List.of());
         when(revisions.insert(any(DeliveryDefinitionRevisionDO.class))).thenAnswer(call -> {

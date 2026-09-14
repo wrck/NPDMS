@@ -44,7 +44,7 @@ class TaskBusinessBindingHostProviderTest {
         manager.setProjectId(20L); manager.setMemberRole("PROJECT_MANAGER");
         when(members.selectActiveByUser(any())).thenReturn(List.of(manager));
         var transition = new TaskStateTransitionDO();
-        transition.setFromStatusCode("PENDING_ACCEPT"); transition.setActionCode("COMPLETE");
+        transition.setFromStatusCode("PENDING_ACCEPT"); transition.setActionCode("CANCEL");
         transition.setAllowedRoleCode("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
         when(states.selectTransitions(any())).thenReturn(List.of(transition));
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(20L), Set.of()));
@@ -57,7 +57,7 @@ class TaskBusinessBindingHostProviderTest {
             var result = registry.inspect(type, query);
             assertEquals(type, result.bindingType());
             assertEquals("a".repeat(64), result.factVersion());
-            assertEquals(Set.of("COMPLETE"), result.allowedActions());
+            assertEquals(Set.of("CANCEL"), result.allowedActions());
         }
         verify(scopes, times(2)).resolveCurrent(argThat(q -> ProjectScopeApi.ACTION_MANAGE.equals(q.actionCode())));
     }
@@ -73,6 +73,23 @@ class TaskBusinessBindingHostProviderTest {
     @Test void ownerActionsNeverGrantMissingManagerRole() {
         when(members.selectActiveByUser(any())).thenReturn(List.of());
         assertTrue(host.inspect(query).allowedActions().isEmpty());
+    }
+
+    @Test void businessTasksNeverOfferDuplicateSubmissionOrCompletionConfirmation() {
+        var submit = new TaskStateTransitionDO(); submit.setActionCode("SUBMIT"); submit.setFromStatusCode("PENDING_ACCEPT");
+        var complete = new TaskStateTransitionDO(); complete.setActionCode("COMPLETE"); complete.setFromStatusCode("PENDING_ACCEPT");
+        when(states.selectTransitions(any())).thenReturn(List.of(submit, complete));
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+    }
+
+    @Test void noApplicableTransitionKeepsOwnerFactsWithoutLoadingActionOnlyPermissions() {
+        tasks.selectTask(null).setStatus("DONE");
+        var result = host.inspect(query);
+        assertTrue(result.allowedActions().isEmpty());
+        assertEquals("a".repeat(64), result.factVersion());
+        assertNull(result.recoverableError());
+        verify(business).getContext(10L, 1L, 5L, "corr");
+        verifyNoInteractions(assignments, members, scopes, permissions);
     }
 
     @Test void unassignedPendingTaskCanStartButDesignationAndScopeRemainEffective() {
@@ -105,6 +122,6 @@ class TaskBusinessBindingHostProviderTest {
     private TaskBusinessContext context(String error) {
         return new TaskBusinessContext(10L, 20L, 40L, 2, "SOL", "SITE_SURVEY", "survey-list", 50L,
                 "REFERENCE_EXISTING", List.of(), Set.of("LINK"), error, "a".repeat(64),
-                Set.of("QUERY", "CREATE", "COMPLETE"), null, true);
+                Set.of("QUERY", "CREATE", "COMPLETE"), null, true, null);
     }
 }

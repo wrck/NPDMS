@@ -3,14 +3,11 @@ package cn.iocoder.yudao.module.pms.project.service.satisfaction;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionResultFactApi;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionResultFact;
 import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionResultFactQuery;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdentityLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.DeliverableCurrentSourceClearQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
@@ -28,10 +25,6 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultSourceProjectionService {
-    private static final String TASK_CODE = "T-SAT-SURVEY";
-    private static final String DELIVERABLE_CODE = "D-SAT-REPORT";
-
-    private final ProjectWorkBindingFactApi workBindingFactApi;
     private final SatisfactionResultFactApi resultFactApi;
     private final AccProjectDeliverableMapper deliverableMapper;
     private final ProjectDeliverableSourceVersionMapper sourceMapper;
@@ -40,18 +33,12 @@ public class SatisfactionResultSourceProjectionService {
     @Transactional(rollbackFor = Exception.class)
     public void project(SatisfactionResultVersionChangedMessage event) {
         validate(event);
-        ProjectSatisfactionTaskFact taskFact = workBindingFactApi.lockAndRevalidateSatisfactionTask(
-                new ProjectSatisfactionTaskFactQuery(event.projectId(), event.projectTaskId(),
-                        event.projectTaskVersion()));
-        if (taskFact == null || !Objects.equals(taskFact.projectId(), event.projectId())
-                || !Objects.equals(taskFact.projectTaskId(), event.projectTaskId())
-                || !Objects.equals(taskFact.projectTaskVersion(), event.projectTaskVersion())
-                || !TASK_CODE.equals(taskFact.taskCode()) || !TASK_CODE.equals(event.taskCode())) {
-            throw new IllegalStateException("SATISFACTION_SOURCE_PROJECT_TASK_CONFLICT");
-        }
-        AccProjectDeliverableDO root = deliverableMapper.selectByProjectAndCodeForUpdate(
-                new ProjectDeliverableIdentityLockQuery(event.tenantId(), event.projectId(), DELIVERABLE_CODE));
-        if (root == null || !TASK_CODE.equals(root.getTaskCode())) {
+        // The event describes frozen Owner evidence, not a request to advance the current project task version.
+        AccProjectDeliverableDO root = deliverableMapper.selectByIdForUpdate(
+                new ProjectDeliverableIdLockQuery(event.tenantId(), event.deliverableId()));
+        if (root == null || !Objects.equals(root.getId(), event.deliverableId())
+                || !Objects.equals(root.getTenantId(), event.tenantId()) || !Objects.equals(root.getProjectId(), event.projectId())
+                || Boolean.TRUE.equals(root.getDeleted())) {
             throw new IllegalStateException("SATISFACTION_DELIVERABLE_ROOT_UNAVAILABLE");
         }
         if ("INVALIDATED".equals(event.changeType())) {
@@ -187,6 +174,7 @@ public class SatisfactionResultSourceProjectionService {
 
     private void validate(SatisfactionResultVersionChangedMessage event) {
         if (event == null || event.tenantId() == null || event.projectId() == null
+                || event.deliverableId() == null || event.deliverableId() <= 0
                 || event.projectTaskId() == null || event.projectTaskVersion() == null
                 || event.projectTaskVersion() < 0 || event.resultId() == null || event.resultVersion() == null
                 || event.resultVersion() <= 0 || event.resultFactVersion() == null || event.resultFactVersion() < 0

@@ -103,7 +103,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         }
         outsourceRequestMapper.insert(entity);
         if ("SITE_SURVEY".equals(entity.getTriggerSource())) {
-            siteSurveyService.associateOutsourceRequest(entity.getTriggerRefId(), entity.getProjectId(), entity.getId());
+            siteSurveyService.associateOutsourceRequest(entity.getTriggerRefId(), entity.getProjectId(), entity.getId(), createReqVO.getSiteSurveyExecution());
         }
         return entity.getId();
     }
@@ -135,14 +135,14 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteOutsourceRequest(Long id) {
+    public void deleteOutsourceRequest(Long id, cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution) {
         // 1. 校验存在
         OutsourceRequestDO existing = validateOutsourceRequestExists(id);
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
         if ("SITE_SURVEY".equals(existing.getTriggerSource())) {
-            siteSurveyService.releaseDeletedOutsourceRequest(existing.getTriggerRefId(), existing.getId());
+            siteSurveyService.releaseDeletedOutsourceRequest(existing.getTriggerRefId(), existing.getId(), siteSurveyExecution);
         }
         outsourceRequestMapper.deleteById(id);
     }

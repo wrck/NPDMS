@@ -50,7 +50,7 @@
         <RequirementAnalysisDynamicForm
           ref="dynamicFormRef"
           :key="`${detail.preparationId}-${detail.dynamicFormInstanceVersion}`"
-          :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail"
+          :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
           @dirty-change="formDirty = $event" @saved="emit('changed')"
         />
         <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
@@ -66,6 +66,8 @@ import { formatDate } from '@/utils/formatTime'
 import { useWindowSize } from '@vueuse/core'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
+import type { TaskExecutionContext } from '@/api/pms/project/task-business'
+import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import { legacyOwnerId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type {
@@ -85,7 +87,13 @@ import {
 } from './requirementAnalysisInteraction'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; preparationId?: BusinessViewId; stageExecution?: StageExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
+const props = defineProps<{ project: ProjectMasterVO; preparationId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
+const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
+  props.taskExecution || props.stageExecution ? {
+    ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),
+    ...(props.stageExecution ? { stage: { ...props.stageExecution } } : {})
+  } : undefined
+const loadedExecution = ref<ProjectBusinessExecutionSelection>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [dirty: boolean] }>()
 const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly ? [] : actions.filter(
   (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
@@ -184,6 +192,7 @@ const loadDetail = async (preparationId: number) => {
     const value = await readDetail(preparationId)
     if (sequence !== loadSequence) return
     detail.value = value
+    loadedExecution.value = selectedExecution()
     formDirty.value = false
     selectedPreparationId.value = preparationId
     return detail.value
@@ -219,18 +228,20 @@ const selectVersion = async (preparationId: number) => {
 const load = async () => {
   const sequence = ++loadSequence
   const projectId = props.project.id
+  const execution = selectedExecution()
   const preparationId = props.preparationId == null ? undefined : legacyOwnerId(props.preparationId)
   if (!projectId) return
   loading.value = true
   detailLoading.value = true
   errorText.value = ''
   try {
-    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
     if (sequence !== loadSequence) return
     const value = await readWorkspaceDetail(current, preparationId, projectId)
     if (sequence !== loadSequence) return
     overview.value = current
     detail.value = value
+    loadedExecution.value = execution
     selectedPreparationId.value = value?.preparationId
     formDirty.value = false
   } catch {
@@ -262,12 +273,12 @@ const openHistory = async () => {
 const createInitial = async () => {
   if (!props.project.id) return
   const payload = { projectId: props.project.id, projectVersion: props.project.version || 0,
-    stageExecution: props.stageExecution }
+    execution: selectedExecution() }
   const intent = requirementIntentOf('CREATE_INITIAL_DRAFT', payload)
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.createInitialDraft(payload.projectId, intentKeys.key(intent), payload.stageExecution)
+    await RequirementAnalysisApi.createInitialDraft(payload.projectId, intentKeys.key(intent), payload.execution)
     intentKeys.complete(intent)
     message.success('需求分析草稿已创建')
     await load()
@@ -279,13 +290,14 @@ const createInitial = async () => {
 }
 const complete = async () => {
   if (!detail.value) return
-  if (!(await guardCurrentForm('完成草稿'))) return
-  await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const payload = {
     preparationId: detail.value.preparationId,
     instanceVersion: detail.value.dynamicFormInstanceVersion,
-    solVersion: detail.value.version
+    solVersion: detail.value.version,
+    execution: loadedExecution.value
   }
+  if (!(await guardCurrentForm('完成草稿'))) return
+  await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const intent = requirementIntentOf('COMPLETE', payload)
   commandLoading.value = true
   commandError.value = ''
@@ -294,7 +306,8 @@ const complete = async () => {
       payload.preparationId,
       payload.instanceVersion,
       payload.solVersion,
-      intentKeys.key(intent)
+      intentKeys.key(intent),
+      payload.execution
     )
     intentKeys.complete(intent)
     message.success('需求分析已完成并冻结为当前有效版本')
@@ -307,13 +320,13 @@ const complete = async () => {
 }
 const createRevision = async () => {
   if (!detail.value) return
-  await message.confirm('将复制当前有效版本的冻结目录、正文和附件，是否创建修订草稿？')
   const payload = {
     preparationId: detail.value.preparationId,
     instanceVersion: detail.value.dynamicFormInstanceVersion,
     solVersion: detail.value.version,
-    stageExecution: props.stageExecution
+    execution: selectedExecution()
   }
+  await message.confirm('将复制当前有效版本的冻结目录、正文和附件，是否创建修订草稿？')
   const intent = requirementIntentOf('CREATE_REVISION', payload)
   commandLoading.value = true
   commandError.value = ''
@@ -323,7 +336,7 @@ const createRevision = async () => {
       payload.instanceVersion,
       payload.solVersion,
       intentKeys.key(intent),
-      payload.stageExecution
+      payload.execution
     )
     intentKeys.complete(intent)
     message.success('修订草稿已创建，原完成版本保持不变')
@@ -346,7 +359,7 @@ const reloadSelectedDetail = async () => {
   if (!preparationId || !projectId) throw new Error('没有选中的需求分析版本')
   // Keep the saving form mounted, and publish the overview/detail together only
   // after the fresh workspace read succeeds. A failed read must retain the edit.
-  const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+  const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
   if (sequence !== loadSequence) throw new Error('需求分析工作区已切换，请重新查询')
   const selected = await readWorkspaceDetail(current, preparationId, projectId)
   if (sequence !== loadSequence || !selected) throw new Error('需求分析工作区已切换，请重新查询')
@@ -367,6 +380,11 @@ const requestLeave = async () => {
   return true
 }
 watch(formDirty, (value) => emit('dirty-change', value), { immediate: true })
+// Refresh execution metadata only while idle; an edited form keeps the execution it was opened under.
+watch([() => props.taskExecution, () => props.stageExecution, formDirty, commandLoading, loading, detailLoading], () => {
+  if (!formDirty.value && !commandLoading.value && !loading.value && !detailLoading.value && !dynamicFormRef.value?.isSaving())
+    loadedExecution.value = selectedExecution()
+}, { deep: true })
 // START/rework can grant creation while this retained Owner panel still has its pre-start overview.
 // Refresh only action metadata, never the selected version or an unsaved form.
 // Vue watcher cleanup: https://vuejs.org/guide/essentials/watchers.html#side-effect-cleanup
@@ -381,7 +399,7 @@ watch([() => props.project.id, missingCreationActions], async ([projectId, missi
   let cancelled = false
   onCleanup(() => { cancelled = true })
   try {
-    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
     if (!cancelled && overview.value === previous)
       overview.value = { ...previous, allowedActions: current.allowedActions }
   } catch {
@@ -398,7 +416,8 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
   event.returnValue = ''
 }
 
-watch([() => props.project.id, () => props.stageExecution?.executionId, () => props.preparationId], load, { immediate: true })
+// A new round on the same node must not discard an in-progress Owner form.
+watch([() => props.project.id, () => props.stageExecution?.stageId, () => props.taskExecution?.taskId, () => props.preparationId], load, { immediate: true })
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
 onBeforeUnmount(() => {
   ++loadSequence

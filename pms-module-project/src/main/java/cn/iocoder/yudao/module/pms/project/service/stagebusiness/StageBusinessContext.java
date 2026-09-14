@@ -6,6 +6,7 @@ import java.util.Set;
 public record StageBusinessContext(Long projectId, Long stageId, String stageCode,
         Long executionContractId, Integer contractVersion, String bindingType,
         String instanceResolutionStrategy, BusinessViewRevision businessView,
-        Set<String> ownerActions, boolean readonly, String recoverableError) {
+        Set<String> ownerActions, boolean readonly, String recoverableError,
+        cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext execution) {
     public StageBusinessContext { ownerActions = Set.copyOf(ownerActions); }
 }

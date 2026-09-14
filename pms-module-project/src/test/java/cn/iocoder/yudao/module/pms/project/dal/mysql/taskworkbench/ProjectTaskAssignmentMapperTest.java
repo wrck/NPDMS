@@ -36,10 +36,41 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
     private ProjectTaskRuntimeMapper taskMapper;
     @Resource
     private ProjectTaskCompletionEvaluationMapper evaluationMapper;
+    @Resource
+    private org.mybatis.spring.SqlSessionTemplate sqlSession;
 
     @BeforeEach
     void setUp() {
         createFixture(1);
+    }
+
+    @Test
+    void onlyStartedUnfinishedDescendantsBlockCompletionAndAutomaticAssociationsDoNotStartWork() {
+        long parent = taskIds.getFirst(), child = projectId + 2;
+        transactionTemplate.executeWithoutResult(status -> {
+            status.setRollbackOnly();
+            insertTask(projectId,child,"T-CHILD");
+            jdbcTemplate.update("UPDATE proj_project_task SET parent_task_id=?,root_task_id=?,tree_depth=1 WHERE tenant_id=0 AND id=?",parent,parent,child);
+            jdbcTemplate.update("INSERT INTO proj_task_tree_path(project_id,ancestor_task_id,descendant_task_id,distance,tenant_id) VALUES (?,?,?,1,0)",projectId,parent,child);
+            var query = new TaskCompletionFactsQuery(0L,projectId,parent);
+            assertTrue(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(query).isEmpty());
+            jdbcTemplate.update("UPDATE proj_project_task SET actual_start_time=NOW(3) WHERE tenant_id=0 AND id=?",child);
+            sqlSession.clearCache(); // JDBC fixture writes do not invalidate MyBatis's transaction-local cache.
+            assertEquals(java.util.List.of(child),taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(query));
+            jdbcTemplate.update("UPDATE proj_project_task SET actual_start_time=NULL WHERE tenant_id=0 AND id=?",child);
+            jdbcTemplate.update("INSERT INTO proj_task_business_link(id,tenant_id,project_id,task_id,execution_contract_id,contract_version,owner_context,object_type,object_id,fact_version,linked_by,linked_at) VALUES (?,0,?,?,?,1,'SOL','SITE_SURVEY','fixture','v1',1,NOW(6))",projectId+60,projectId,child,projectId+61);
+            sqlSession.clearCache();
+            assertTrue(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(query).isEmpty());
+            jdbcTemplate.update("INSERT INTO proj_project_node_execution(id,tenant_id,project_id,plan_version_id,node_key,node_kind,node_instance_id,contract_id,round_no,current_marker,status,started_at) VALUES (?,0,?,?,'task:child','TASK',?,?,1,1,'ACTIVE',NOW(3))",
+                    projectId+63,projectId,projectId+62,child,projectId+61);
+            sqlSession.clearCache();
+            assertEquals(java.util.List.of(child),taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(query));
+            assertTrue(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(new TaskCompletionFactsQuery(1L,projectId,parent)).isEmpty());
+            jdbcTemplate.update("UPDATE proj_project_task SET status='DONE' WHERE tenant_id=0 AND id=?",child);
+            jdbcTemplate.update("UPDATE proj_project_node_execution SET status='DONE',ended_at=NOW(3),result_snapshot='{}' WHERE tenant_id=0 AND id=?",projectId+63);
+            sqlSession.clearCache();
+            assertTrue(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(query).isEmpty());
+        });
     }
 
     @Test
@@ -158,7 +189,7 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
         assertEquals(99, jdbcTemplate.queryForObject(
                 "SELECT progress FROM proj_project_task WHERE id=?", Integer.class, taskId));
         TaskCompletionFactsQuery facts = new TaskCompletionFactsQuery(0L, projectId, taskId);
-        assertTrue(taskMapper.selectNonTerminalDescendantIdsForUpdate(facts).isEmpty());
+        assertTrue(taskMapper.selectUnfinishedStartedDescendantIdsForUpdate(facts).isEmpty());
         assertTrue(taskMapper.selectNonTerminalPredecessorIdsForUpdate(facts).isEmpty());
         assertEquals("CLOSED", taskMapper.selectListForGovernanceGuard(
                 new ProjectTaskGovernanceGuardQuery(0L, Set.of(projectId))).getFirst().getStatus());

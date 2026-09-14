@@ -54,4 +54,13 @@ class ProjectLocalStageGateFactProviderTest {
         return new ProjectStageGateFactQuery(7L, 9L, "S0", 21L, "G-01", 0,
                 22L, 0, type, code);
     }
+
+    @Test void resolvesCustomStageCompletionWithoutFixedStageCatalog() {
+        when(mapper.selectStageForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.stagegate.query.ProjectLocalGateFactQuery(
+                7L, 9L, "DISCOVERY"))).thenReturn(new ProjectStageInstanceDO().setId(13L).setStatus("DONE").setVersion(1));
+        assertEquals(ProjectStageGateOutcome.SATISFIED,
+                provider.lockAndRevalidate(query("STATE", "DISCOVERY_COMPLETED")).outcome());
+        assertEquals(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE,
+                provider.lockAndRevalidate(query("STATE", "UNKNOWN_COMPLETED")).outcome());
+    }
 }

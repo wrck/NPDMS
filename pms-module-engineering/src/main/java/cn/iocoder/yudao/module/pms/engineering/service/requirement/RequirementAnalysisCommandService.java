@@ -384,7 +384,7 @@ public class RequirementAnalysisCommandService {
 
     private void requireBindingMatchesRoot(ProjectWorkBindingFact binding, PreparationDO root) {
         parseBinding(binding);
-        if (!Objects.equals(root.getTemplateId(), binding.templateTaskDefinitionId())
+        if (!Objects.equals(root.getTemplateId(), binding.projectTemplateId())
                 || !Objects.equals(root.getTemplateRevisionId(), binding.templateRevisionId())) {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
         }
@@ -400,7 +400,7 @@ public class RequirementAnalysisCommandService {
         row.setBusinessVersion(businessVersion);
         row.setSourcePreparationId(sourceId);
         row.setDraftMarker(1);
-        row.setTemplateId(binding.templateTaskDefinitionId());
+        row.setTemplateId(binding.projectTemplateId());
         row.setTemplateRevisionId(binding.templateRevisionId());
         row.setTemplateSnapshot(binding.bindingParameterSnapshot());
         row.setFixedFormCatalogVersion(RequirementAnalysisCatalog.CATALOG_VERSION);

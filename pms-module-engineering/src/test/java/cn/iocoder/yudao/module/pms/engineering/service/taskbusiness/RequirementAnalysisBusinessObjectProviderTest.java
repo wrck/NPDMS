@@ -23,6 +23,10 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
 
 class RequirementAnalysisBusinessObjectProviderTest {
+    @Test void stageCapabilityIsMetadataOnly() {
+        assertTrue(provider.supportsStageCompletionFacts());
+        verifyNoInteractions(query, roots, facts, executions);
+    }
     private final RequirementAnalysisDynamicFormQueryService query = mock(RequirementAnalysisDynamicFormQueryService.class);
     private final RequirementAnalysisRootMapper roots = mock(RequirementAnalysisRootMapper.class);
     private final RequirementAnalysisFactApi facts = mock(RequirementAnalysisFactApi.class);
@@ -42,8 +46,8 @@ class RequirementAnalysisBusinessObjectProviderTest {
         draft.setAllowedActions(List.of("PATCH_FORM"));
         workspace = new RequirementAnalysisWorkspaceRespVO(); workspace.setProjectId(9L); workspace.setDraft(draft);
         workspace.setAllowedActions(List.of());
-        when(query.getWorkspace(any(), any())).thenReturn(workspace); when(query.getDetail(any(), any())).thenReturn(draft);
-        when(query.getWorkspace(any(), any(), any())).thenReturn(workspace);
+        when(query.getDetail(any(), any())).thenReturn(draft);
+        when(query.getWorkspace(any(), any(), any(), any())).thenReturn(workspace);
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
 
@@ -51,14 +55,14 @@ class RequirementAnalysisBusinessObjectProviderTest {
         var result = provider.inspectContextAndObjects(context, List.of("42"));
         assertEquals(Set.of("QUERY", "PATCH_FORM"), result.allowedActions());
         assertEquals("42", result.objects().getFirst().objectId());
-        verify(query).getWorkspace(any(), any());
+        verify(query).getWorkspace(eq(context.projectId()), any(), isNull(), eq(context.taskId()));
         verify(query, never()).getDetail(any(), any());
         draft.setAllowedActions(List.of());
         draft.setContentVersion(2);
         var refreshed = provider.inspectContextAndObjects(context, List.of("42"));
         assertEquals(Set.of("QUERY"), refreshed.allowedActions());
         assertNotEquals(result.objects().getFirst().factVersion(), refreshed.objects().getFirst().factVersion());
-        verify(query, times(2)).getWorkspace(any(), any());
+        verify(query, times(2)).getWorkspace(eq(context.projectId()), any(), isNull(), eq(context.taskId()));
     }
 
     @Test void combinedInspectionKeepsHistoricalVisibilityAndCompletedProofChecks() {

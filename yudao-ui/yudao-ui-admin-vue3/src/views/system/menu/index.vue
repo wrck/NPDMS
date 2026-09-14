@@ -114,7 +114,7 @@ const columns: Column<MenuVO>[] = [
     dataKey: 'icon',
     width: 100,
     align: 'center',
-    cellRenderer: ({ cellData: icon }) => <Icon icon={icon} />
+    cellRenderer: ({ rowData }) => <Icon icon={rowData.icon} />
   },
   {
     key: 'sort',
@@ -160,7 +160,7 @@ const columns: Column<MenuVO>[] = [
           inactive-value={CommonStatusEnum.DISABLE}
           loading={menuStatusUpdating[rowData.id]}
           class="ml-4px"
-          onChange={(val) => handleStatusChanged(rowData, val)}
+          onChange={(val) => { if (typeof val === 'number') handleStatusChanged(rowData, val) }}
         />
       )
     }
@@ -173,7 +173,7 @@ const columns: Column<MenuVO>[] = [
     fixed: TableV2FixedDir.RIGHT,
     cellRenderer: ({ rowData }) => {
       // 定义按钮列表
-      const buttons: InstanceType<typeof ElButton>[] = []
+      const buttons: import('vue').VNode[] = []
 
       // 检查权限并添加按钮
       if (checkPermi(['system:menu:update'])) {
@@ -202,9 +202,9 @@ const columns: Column<MenuVO>[] = [
           </ElButton>
         )
       }
-      // 如果没有权限，返回 null
+      // 如果没有权限，返回空片段
       if (buttons.length === 0) {
-        return null
+        return <></>
       }
       // 渲染按钮列表
       return <>{buttons}</>

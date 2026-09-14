@@ -41,6 +41,7 @@ import type { UploadFile, UploadInstance } from 'element-plus'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileBusinessKey } from '@/api/pms/platform/file'
+import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileSelection } from './types'
 import { resolveFileUploadMode } from './useFileSlotState'
 
@@ -52,6 +53,7 @@ const props = withDefaults(
       categoryCode: string
       accept?: string
       disabled?: boolean
+      ownerExecutionContext?: JsonObject
     }
   >(),
   {
@@ -63,6 +65,7 @@ const emit = defineEmits<{ completed: [selection: FileSelection] }>()
 const message = useMessage()
 const uploadRef = ref<UploadInstance>()
 const selectedFile = ref<File>()
+const selectedExecutionContext = ref<JsonObject>()
 const busy = ref(false)
 const progress = ref(0)
 const stage = ref<'UPLOADING' | 'VALIDATING'>('UPLOADING')
@@ -70,6 +73,7 @@ const uploadMode = computed(() => resolveFileUploadMode(props.artifactId))
 const attempt = ref<{
   initKey: string
   completeKey: string
+  ownerExecutionContext?: JsonObject
   initialized?: FileApi.FileUploadInitRespVO
 }>()
 
@@ -82,11 +86,16 @@ const businessKey = (): FileBusinessKey => ({
 })
 
 const selectFile = (file: UploadFile) => {
-  if (selectedFile.value !== file.raw) attempt.value = undefined
+  if (selectedFile.value !== file.raw) {
+    attempt.value = undefined
+    selectedExecutionContext.value = props.ownerExecutionContext
+      ? structuredClone(toRaw(props.ownerExecutionContext)) : undefined
+  }
   selectedFile.value = file.raw
 }
 const removeFile = () => {
   selectedFile.value = undefined
+  selectedExecutionContext.value = undefined
   attempt.value = undefined
 }
 const onExceed = () => message.warning('每个材料槽位一次只能选择一个文件')
@@ -101,12 +110,14 @@ const submit = async () => {
   progress.value = 0
   stage.value = 'UPLOADING'
   try {
-    attempt.value ||= { initKey: crypto.randomUUID(), completeKey: crypto.randomUUID() }
+    attempt.value ||= { initKey: crypto.randomUUID(), completeKey: crypto.randomUUID(),
+      ownerExecutionContext: selectedExecutionContext.value }
     const initialized =
       attempt.value.initialized ||
       (await FileApi.initializeUpload(
         {
           ...businessKey(),
+          ...(attempt.value.ownerExecutionContext ? { ownerExecutionContext: attempt.value.ownerExecutionContext } : {}),
           modeCode: uploadMode.value,
           artifactId: props.artifactId,
           expectedReferenceVersion: props.expectedReferenceVersion,
@@ -126,7 +137,8 @@ const submit = async () => {
       (value) => {
         progress.value = value
         if (value >= 100) stage.value = 'VALIDATING'
-      }
+      },
+      attempt.value.ownerExecutionContext
     )
     progress.value = 100
     message.success('文件已通过服务端校验并绑定')

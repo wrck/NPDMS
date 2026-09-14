@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 
 /**
  * 管理后台 - 现场工勘 Controller（FR-ENG-001）。
@@ -69,8 +70,8 @@ public class SiteSurveyController {
     @Operation(summary = "删除现场工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:delete')")
-    public CommonResult<Boolean> deleteSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.deleteSiteSurvey(id);
+    public CommonResult<Boolean> deleteSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
+        siteSurveyService.deleteSiteSurvey(id, execution);
         return success(true);
     }
 
@@ -95,8 +96,8 @@ public class SiteSurveyController {
     @Operation(summary = "确认工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> confirmSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.confirmSiteSurvey(id);
+    public CommonResult<Boolean> confirmSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
+        siteSurveyService.confirmSiteSurvey(id, execution);
         return success(true);
     }
 
@@ -104,8 +105,8 @@ public class SiteSurveyController {
     @Operation(summary = "驳回工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> rejectSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.rejectSiteSurvey(id);
+    public CommonResult<Boolean> rejectSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
+        siteSurveyService.rejectSiteSurvey(id, execution);
         return success(true);
     }
 
@@ -113,8 +114,8 @@ public class SiteSurveyController {
     @Operation(summary = "归档工勘")
     @Parameter(name = "id", description = "编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
-    public CommonResult<Boolean> archiveSiteSurvey(@RequestParam("id") Long id) {
-        siteSurveyService.archiveSiteSurvey(id);
+    public CommonResult<Boolean> archiveSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
+        siteSurveyService.archiveSiteSurvey(id, execution);
         return success(true);
     }
 }

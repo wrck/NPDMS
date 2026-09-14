@@ -10,6 +10,36 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** PM-03: closed payloads, no expression engine, required quantities cannot be bypassed. */
 class DeliveryDefinitionPayloadValidatorTest {
+    @ParameterizedTest
+    @ValueSource(strings = {"PREP_WORK", "SITE-SURVEY", "Discovery.v2", "Phase:Delivery", "S0", "S6"})
+    void customStageAssetsAndTheirCompletionReferencesAreAllowed(String code) {
+        var payload = JsonUtils.parseTree("""
+                {"name":"工前准备","stageCode":"%s","start":true,"terminal":false,
+                 "workBinding":"work","permissionPolicy":"permission","completionRule":"completion"}
+                """.formatted(code));
+        var refs = List.of(new DeliveryDefinitionReference("work", 1L),
+                new DeliveryDefinitionReference("permission", 2L), new DeliveryDefinitionReference("completion", 3L));
+        assertDoesNotThrow(() -> DeliveryDefinitionPayloadValidator.validate(DeliveryDefinitionKind.STAGE, 1, payload, refs));
+        validate(DeliveryDefinitionKind.COMPLETION_RULE,
+                "{\"predicate\":\"STATE\",\"parameters\":{\"refCode\":\"" + code + "_COMPLETED\"}}");
+        validate(DeliveryDefinitionKind.GATE,
+                "{\"gateType\":\"ENTRY\",\"references\":[{\"refType\":\"STATE\",\"refCode\":\"" + code + "_COMPLETED\"}]}");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "1PREP", "PREP WORK", "_PREP", "A123456789012345678901234567890123"})
+    void invalidStageCodesAreRejectedInAssetsAndStateReferences(String code) {
+        var payload = JsonUtils.parseTree("""
+                {"name":"工前准备","stageCode":"%s","start":true,"terminal":false,
+                 "workBinding":"work","permissionPolicy":"permission","completionRule":"completion"}
+                """.formatted(code));
+        var refs = List.of(new DeliveryDefinitionReference("work", 1L),
+                new DeliveryDefinitionReference("permission", 2L), new DeliveryDefinitionReference("completion", 3L));
+        assertThrows(IllegalArgumentException.class, () ->
+                DeliveryDefinitionPayloadValidator.validate(DeliveryDefinitionKind.STAGE, 1, payload, refs));
+        assertThrows(IllegalArgumentException.class, () -> validate(DeliveryDefinitionKind.COMPLETION_RULE,
+                "{\"predicate\":\"STATE\",\"parameters\":{\"refCode\":\"" + code + "_COMPLETED\"}}"));
+    }
     @Test void nativeBindingRequiresExplicitStrategyAndObjectMapping() {
         validate(DeliveryDefinitionKind.WORK_BINDING, """
                 {"bindingType":"STAGE_NATIVE","instanceResolutionStrategy":"REFERENCE_EXISTING","contextMapping":{}}
@@ -39,8 +69,18 @@ class DeliveryDefinitionPayloadValidatorTest {
                 {"operator":"ANY","rules":[{"predicate":"STATE","parameters":{"refCode":"S0_COMPLETED"}}]}]}
                 """);
     }
+    @Test void editorIdsAndNegationShareTheVersionRuleShape() {
+        validate(DeliveryDefinitionKind.COMPLETION_RULE, """
+                {"operator":"NOT","rules":[{"id":"group_1","operator":"ALL","rules":[
+                {"id":"condition_1","predicate":"CONSTANT","parameters":{"value":false}},
+                {"id":"condition_2","predicate":"FIELD","parameters":{"fieldCode":"project.projectName",
+                "operator":"contains","valueType":"TEXT","value":"项目"}}]}]}
+                """);
+    }
     @ParameterizedTest @ValueSource(strings={
             "{\"script\":\"true\"}",
+            "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}},{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}]}",
+            "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true,\"script\":\"true\"}}",
             "{\"operator\":\"ALL\",\"rules\":[]}",
             "{\"predicate\":\"UNKNOWN\",\"parameters\":{}}",
             "{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\",\"sql\":\"x\"}}"})

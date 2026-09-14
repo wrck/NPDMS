@@ -29,6 +29,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFac
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -70,23 +71,31 @@ public class RequirementAnalysisDynamicFormQueryService {
     }
 
     public RequirementAnalysisWorkspaceRespVO getWorkspace(Long projectId, Actor actor) {
-        return getWorkspace(projectId, actor, null);
+        return getWorkspace(projectId, actor, null, null);
     }
 
-    public RequirementAnalysisWorkspaceRespVO getWorkspace(Long projectId, Actor actor, Long stageId) {
+    public RequirementAnalysisWorkspaceRespVO getWorkspace(Long projectId, Actor actor, Long stageId, Long taskId) {
         requireRead(actor, projectId);
+        if (stageId != null && taskId != null) throw exception(REQUIREMENT_ANALYSIS_COMMAND_INVALID);
         RequirementAnalysisProjectQuery query = new RequirementAnalysisProjectQuery(actor.tenantId(), projectId);
         PreparationDO effective = rootMapper.selectEffective(query);
         PreparationDO draft = rootMapper.selectDraft(query);
         boolean manager = isManager(actor, projectId);
         RequirementAnalysisWorkspaceRespVO response = new RequirementAnalysisWorkspaceRespVO();
         response.setProjectId(projectId);
-        response.setCurrentEffective(effective == null ? null : toVersion(effective, actor, manager));
-        response.setDraft(draft == null || !manager ? null : toVersion(draft, actor, manager));
-        ProjectWorkBindingFact binding = !manager ? null : stageId != null ? currentBinding(projectId, stageId)
-                : draft != null ? currentBinding(draft) : effective != null ? currentBinding(effective) : currentBinding(projectId, null);
+        ProjectWorkBindingFact binding = !manager ? null : stageId != null || taskId != null ? currentBinding(projectId, stageId, taskId)
+                : draft != null ? currentBinding(draft) : effective != null ? currentBinding(effective) : currentBinding(projectId, null, null);
+        boolean explicit = stageId != null || taskId != null;
+        ProjectBusinessExecutionSelection selected = null;
+        if (explicit && binding != null) {
+            try { selected = executionBinding.observeCurrent(binding); }
+            catch (RuntimeException unavailable) { /* Existing records remain readable without write actions. */ }
+        }
+        boolean nodeManage = manager && (!explicit || selected != null);
+        response.setCurrentEffective(effective == null ? null : toVersion(effective, actor, nodeManage, selected));
+        response.setDraft(draft == null || !manager ? null : toVersion(draft, actor, nodeManage, selected));
         boolean bindingUsable = effective == null ? binding != null : projectBindingMatches(effective, binding);
-        boolean canCreate = manager && bindingUsable && executionBinding.canCreate(binding);
+        boolean canCreate = nodeManage && bindingUsable && executionBinding.canCreate(binding);
         response.setAllowedActions(canCreate && draft == null
                 ? List.of(effective == null ? "CREATE_INITIAL_DRAFT" : "CREATE_DRAFT") : List.of());
         return response;
@@ -166,18 +175,23 @@ public class RequirementAnalysisDynamicFormQueryService {
     }
 
     private RequirementAnalysisVersionRespVO toVersion(PreparationDO root, Actor actor, boolean manager) {
+        return toVersion(root, actor, manager, null);
+    }
+
+    private RequirementAnalysisVersionRespVO toVersion(PreparationDO root, Actor actor, boolean manager,
+                                                       ProjectBusinessExecutionSelection selected) {
         DynamicFormInstanceFact form = inspect(root, actor, DynamicFormBusinessAction.READ);
         boolean draft = manager && "DRAFT".equals(root.getStatusCode())
                 && Integer.valueOf(1).equals(root.getDraftMarker());
         List<RequirementAnalysisCompletionBlockerRespVO> blockers = blockers(form);
         List<String> actions = new ArrayList<>();
-        if (draft && executionBinding.canWrite(root)) {
+        if (draft && (selected == null ? executionBinding.canWrite(root) : executionBinding.canWrite(root, selected))) {
             actions.add("PATCH_FORM");
             if (blockers.isEmpty()
-                    && bindingMatches(root, form, currentBinding(root))) actions.add("COMPLETE");
+                    && bindingMatches(root, form, currentBinding(root, selected))) actions.add("COMPLETE");
         } else if (manager && "COMPLETED".equals(root.getStatusCode())
                 && Integer.valueOf(1).equals(root.getEffectiveMarker())
-                && executionBinding.canCreate(currentBinding(root))) {
+                && executionBinding.canCreate(currentBinding(root, selected))) {
             actions.add("CREATE_DRAFT");
         }
         RequirementAnalysisVersionRespVO response = new RequirementAnalysisVersionRespVO();
@@ -300,13 +314,20 @@ public class RequirementAnalysisDynamicFormQueryService {
     }
 
     private ProjectWorkBindingFact currentBinding(PreparationDO root) {
-        try { return executionBinding.currentBinding(root); }
+        return currentBinding(root, null);
+    }
+
+    private ProjectWorkBindingFact currentBinding(PreparationDO root, ProjectBusinessExecutionSelection selected) {
+        try { return selected == null ? executionBinding.currentBinding(root) : executionBinding.currentBinding(root, selected); }
         catch (RuntimeException unavailable) { return null; }
     }
 
-    private ProjectWorkBindingFact currentBinding(Long projectId, Long stageId) {
+    private ProjectWorkBindingFact currentBinding(Long projectId, Long stageId, Long taskId) {
         try {
-            ProjectWorkBindingFact binding = stageId == null ? workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
+            ProjectWorkBindingFact binding = taskId != null ? workBindingFactApi.inspectTask(
+                    new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery(
+                            projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
+                    : stageId == null ? workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
                     projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
                     : workBindingFactApi.inspectStage(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery(
                             projectId, stageId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));

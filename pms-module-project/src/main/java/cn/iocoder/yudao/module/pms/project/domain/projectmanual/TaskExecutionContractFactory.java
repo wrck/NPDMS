@@ -109,10 +109,11 @@ public class TaskExecutionContractFactory {
             throw new IllegalArgumentException("任务完成规则类型缺失");
         }
         requireJson(definition.getCompletionRuleConfig(), "任务完成规则配置无效");
-        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())) {
-            TaskNativeCompletionPolicy.validate(definition.getWorkBindingTypeCode(),
-                    definition.getCompletionRuleTypeCode(), definition.getCompletionRuleConfig());
-        }
+        var expression = JsonUtils.parseTree(definition.getCompletionRuleConfig());
+        if (!expression.has("predicate") && !expression.has("operator"))
+            expression = JsonUtils.parseTree(JsonUtils.toJsonString(java.util.Map.of(
+                    "predicate",definition.getCompletionRuleTypeCode(),"parameters",expression)));
+        new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler().compile(expression);
         if (definition.getDefinitionVersion() == null || definition.getDefinitionVersion() <= 0) {
             throw new IllegalArgumentException("任务定义版本无效");
         }

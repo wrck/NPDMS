@@ -18,5 +18,16 @@ public record CreateCustomerCommand(
         String systemCode,
         String expendCode,
         String industryCode,
+        String customerLevel,
         String idempotencyKey) {
+
+    public CreateCustomerCommand(Long tenantId, String code, String name, String shortName, String remark,
+                                 CustomerSourceType sourceType, String sourceKey, String sourceVersion,
+                                 String temporaryReason, boolean reconciliationPending, String departmentCode,
+                                 String marketCode, String systemCode, String expendCode, String industryCode,
+                                 String idempotencyKey) {
+        this(tenantId, code, name, shortName, remark, sourceType, sourceKey, sourceVersion, temporaryReason,
+                reconciliationPending, departmentCode, marketCode, systemCode, expendCode, industryCode,
+                null, idempotencyKey);
+    }
 }

@@ -88,7 +88,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 || !Objects.equals(row.getTenantId(), context.tenantId())) throw exception(ACC_REPORT_NOT_EXISTS);
         var activity = requireActivity(context, new AcceptanceReportQueryService.ActivityView(row.getId(),
                 row.getProjectId(), row.getProjectTaskId(), row.getExecutionContractId(), row.getAcceptanceType(),
-                row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion()), id);
+                row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion(), row.getDeliverableId()), id);
         BusinessObjectFact fact = toFact(context, activity, true);
         if (expectedVersion == null || !expectedVersion.equals(fact.factVersion())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
@@ -222,14 +222,13 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 : deliverableMapper.selectById(snapshot.getDeliverableId());
         var source = lock ? sourceMapper.selectByIdForUpdate(new DeliverableSourceIdLockQuery(
                 context.tenantId(), snapshot.getId())) : snapshot;
-        String code = "PRELIMINARY".equals(activity.acceptanceType()) ? "D-INITIAL-REPORT" : "D-FINAL-REPORT";
         if (deliverable == null || source == null || Boolean.TRUE.equals(deliverable.getDeleted())
                 || Boolean.TRUE.equals(source.getDeleted()) || !Objects.equals(deliverable.getTenantId(), context.tenantId())
                 || !Objects.equals(source.getTenantId(), context.tenantId())
                 || !Objects.equals(deliverable.getProjectId(), context.projectId())
                 || !Objects.equals(deliverable.getId(), source.getDeliverableId())
                 || !Objects.equals(source.getId(), snapshot.getId())
-                || !code.equals(deliverable.getDeliverableCode()) || !"AcceptanceReportVersion".equals(source.getSourceObjectType())
+                || !Objects.equals(activity.deliverableId(), deliverable.getId()) || !"AcceptanceReportVersion".equals(source.getSourceObjectType())
                 || !"ACC-03@V1".equals(source.getSourceRequirementId())
                 || !Objects.equals(source.getSourceObjectId(), report.getId())
                 || !Objects.equals(source.getSourceVersion(), report.getReportVersionNo())) {

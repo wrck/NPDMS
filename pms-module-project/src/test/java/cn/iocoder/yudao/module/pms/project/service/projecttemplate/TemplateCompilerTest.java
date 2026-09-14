@@ -11,6 +11,30 @@ class TemplateCompilerTest {
 
     private final TemplateCompiler compiler = new TemplateCompiler();
 
+    @Test void customStageCodesAndReferencesFreezeWithoutAddingPresetStages() {
+        var designer = validDesigner();
+        designer.getStages().getFirst().setCode("PREP_WORK");
+        designer.getTransitions().getFirst().setFromStageCode("PREP_WORK");
+        var gate = new TemplateDesignerDocument.GateNode();
+        gate.setNodeKey("gate:ready"); gate.setCode("READY"); gate.setName("工前准备已完成");
+        gate.setGateType("ENTRY"); gate.setStageCode("S1");
+        var reference = new TemplateDesignerDocument.GateReference();
+        reference.setRefType("STATE"); reference.setRefCode("PREP_WORK_COMPLETED");
+        gate.setReferences(new java.util.ArrayList<>(java.util.List.of(reference)));
+        designer.getGates().add(gate);
+        var result = compiler.compile(designer);
+        assertTrue(result.valid(), () -> result.issues().toString());
+        assertEquals(java.util.List.of("PREP_WORK", "S1"), result.snapshot().getStages().stream()
+                .map(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.StageContract::getCode).toList());
+        var frozenGate = result.snapshot().getGates().getFirst();
+        assertEquals("PREP_WORK_COMPLETED", result.snapshot().getRulePrograms().get(frozenGate.getConditionRuleKey())
+                .leaves().getFirst().parameters().path("refCode").asText());
+        reference.setRefCode("MISSING_COMPLETED");
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "INVALID_GATE_REFERENCE".equals(issue.code())));
+        designer.getStages().getFirst().setCode("A".repeat(33));
+        assertFalse(compiler.compile(designer).valid());
+    }
+
     @Test void gateReferencesCompileIntoOneFrozenLiteFlowProgramAndRejectDuplicateOrDanglingReferences() {
         var designer = validDesigner();
         var gate = new TemplateDesignerDocument.GateNode();

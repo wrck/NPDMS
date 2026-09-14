@@ -82,7 +82,7 @@ export const stageFromDefinition = async (row: DefinitionRevision): Promise<Desi
   const completionId = target(row, 'completionRule')
   if (!bindingId || !permissionId || !completionId) throw new Error('阶段定义缺少绑定、权限或完成规则引用')
   return {
-    nodeKey: `stage:${String(row.payload.stageCode)}`,
+    nodeKey: `stage:${crypto.randomUUID()}`,
     code: String(row.payload.stageCode ?? ''),
     name: String(row.payload.name ?? row.definitionCode),
     sortOrder: 0,

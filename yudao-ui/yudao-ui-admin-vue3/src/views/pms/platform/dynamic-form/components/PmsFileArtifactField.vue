@@ -17,6 +17,7 @@
         :artifact-id="fact.artifactId"
         :version-no="fact.versionNo"
         :editable="canWrite"
+        :owner-execution-context="ownerExecutionContext"
         @loaded="handleLoaded"
         @detached="handleDetached(fact.referenceKey)"
       />
@@ -28,6 +29,7 @@
         :purpose-code="purposeCode"
         :reference-key="fact.referenceKey"
         :artifact-id="fact.artifactId"
+        :owner-execution-context="ownerExecutionContext"
         :expected-reference-version="
           fact.referenceVersion ?? fact.fileFactVersion?.referenceVersion
         "
@@ -43,6 +45,7 @@
       :object-id="String(instanceId)"
       :purpose-code="purposeCode"
       :reference-key="uploadSlotKey"
+      :owner-execution-context="ownerExecutionContext"
       category-code="DYNAMIC_FORM_ATTACHMENT"
       accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
       @completed="handleCompleted"
@@ -57,7 +60,7 @@ import {
   PmsFileUploader,
   type FileSelection
 } from '@/components/PmsFileArtifact'
-import type { DynamicFormAction, DynamicFormFileFactVO } from '@/api/pms/platform/dynamic-form'
+import type { DynamicFormAction, DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileArtifactVO } from '@/api/pms/platform/file'
 
 defineOptions({ name: 'PmsFileArtifact' })
@@ -71,6 +74,7 @@ const props = withDefaults(
     currentFacts?: DynamicFormFileFactVO[]
     allowedActions?: DynamicFormAction[]
     disabled?: boolean
+    ownerExecutionContext?: JsonObject
   }>(),
   { currentFacts: () => [], allowedActions: () => [], disabled: false }
 )

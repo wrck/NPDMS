@@ -9,7 +9,8 @@ public interface StageBusinessViewProvider {
     Result inspectStage(Context context);
 
     record Context(Long tenantId, Long actorId, Long projectId, Long stageId,
-                   String targetObjectKey, String instanceResolutionStrategy) { }
+                   String targetObjectKey, String instanceResolutionStrategy,
+                   cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext execution) { }
     record Result(Set<String> allowedActions) {
         public Result { allowedActions = Set.copyOf(allowedActions); }
     }

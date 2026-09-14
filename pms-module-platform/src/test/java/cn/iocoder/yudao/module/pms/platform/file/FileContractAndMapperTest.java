@@ -41,6 +41,23 @@ import static org.mockito.Mockito.when;
 class FileContractAndMapperTest {
 
     @Test
+    void filePolicyQueriesRetainCopiedExecutionContextThroughInspectionProjection() {
+        var context = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"task\":{\"executionId\":7}}");
+        var policy = new FileBusinessObjectPolicyRevalidationQuery(0L, 9L, "PLATFORM",
+                "DYNAMIC_FORM_INSTANCE", "31", "FORM_FIELD_ATTACHMENT/evidence", "slot-a",
+                FileActionCodes.DETACH, 8L, context);
+        var namespace = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery(
+                0L, 9L, new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey("PLATFORM",
+                "DYNAMIC_FORM_INSTANCE", "31", "FORM_FIELD_ATTACHMENT/evidence"), FileActionCodes.DETACH, 8L, context);
+        ((tools.jackson.databind.node.ObjectNode) context.get("task")).put("executionId", 99);
+        ((tools.jackson.databind.node.ObjectNode) policy.ownerExecutionContext().get("task")).put("executionId", 100);
+        assertEquals(7, policy.ownerExecutionContext().path("task").path("executionId").asInt());
+        assertEquals(policy.ownerExecutionContext(), namespace.ownerExecutionContext());
+        assertEquals(policy.ownerExecutionContext(), policy.toInspectionQuery().ownerExecutionContext());
+        assertEquals(namespace.ownerExecutionContext(), namespace.toInspectionQuery().ownerExecutionContext());
+    }
+
+    @Test
     void closesActionAndReferenceKeyAtThePublicQueryBoundary() {
         assertEquals(9, FileActionCodes.SUPPORTED_ACTIONS.size());
         assertThrows(IllegalArgumentException.class, () -> query("UNKNOWN", "slot-a"));

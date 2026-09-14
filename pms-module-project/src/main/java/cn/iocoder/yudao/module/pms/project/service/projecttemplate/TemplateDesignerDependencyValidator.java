@@ -27,6 +27,21 @@ public class TemplateDesignerDependencyValidator {
 
     private final BusinessViewQueryApi businessViewQueryApi;
 
+    /** Existing project bindings retain their frozen reference. Only additions/changes create new references. */
+    public List<Issue> validateProjectChanges(TemplateDesignerDocument effective, TemplateDesignerDocument submitted, boolean lockForPublish) {
+        var changes = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(submitted), TemplateDesignerDocument.class);
+        if (changes.getStages() != null && effective.getStages() != null)
+            for (var node : changes.getStages())
+                if (node != null && effective.getStages().stream().anyMatch(old -> old != null && Objects.equals(old.getNodeKey(),node.getNodeKey())
+                        && Objects.equals(old.getWorkBinding(),node.getWorkBinding()))) node.setWorkBinding(null);
+        if (changes.getTasks() != null && effective.getTasks() != null)
+            for (var node : changes.getTasks())
+                if (node != null && effective.getTasks().stream().anyMatch(old -> old != null && Objects.equals(old.getNodeKey(),node.getNodeKey())
+                        && Objects.equals(old.getWorkBinding(),node.getWorkBinding()))) node.setWorkBinding(null);
+        return validate(changes, lockForPublish);
+    }
+
     public List<Issue> validate(TemplateDesignerDocument designer, boolean lockForPublish) {
         List<BindingRef> refs = collect(designer);
         if (refs.isEmpty()) return List.of();

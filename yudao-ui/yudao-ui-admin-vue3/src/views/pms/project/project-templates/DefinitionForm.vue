@@ -3,7 +3,8 @@
     <template v-if="kind === 'STAGE' || kind === 'TASK'">
       <el-form-item label="名称"><el-input v-model="model.payload.name" /></el-form-item>
       <template v-if="kind === 'STAGE'">
-        <el-form-item label="阶段编码"><el-select v-model="model.payload.stageCode" placeholder="显式选择，不补齐其他阶段"><el-option v-for="code in stageCodes" :key="code" :value="code" :label="code" /></el-select></el-form-item>
+        <el-form-item label="阶段编码"><el-select v-model="model.payload.stageCode" filterable allow-create default-first-option placeholder="输入自定义编码，或选择 S0～S6 预设"><el-option v-for="code in stageCodes" :key="code" :value="code" :label="code" /></el-select></el-form-item>
+        <el-form-item><span>以字母开头，最长 32 位；可含字母、数字、下划线、点、冒号和短横线。复制后独立修改。</span></el-form-item>
         <el-form-item v-for="flag in flags" :key="flag.key" :label="flag.label"><el-radio-group v-model="model.payload[flag.key]"><el-radio :value="true">是</el-radio><el-radio :value="false">否</el-radio></el-radio-group></el-form-item>
       </template>
       <el-form-item v-for="slot in executionSlots" :key="slot.key" :label="slot.label">
@@ -54,7 +55,7 @@
         <div class="w-full">
           <div v-for="(row, index) in model.payload.references" :key="index" class="form-row">
             <el-select v-model="row.refType"><el-option v-for="type in gateTypes" :key="type" :value="type" :label="type" /></el-select>
-            <el-select v-if="row.refType === 'STATE'" v-model="row.refCode"><el-option v-for="code in stageCodes" :key="code" :value="`${code}_COMPLETED`" :label="`${code}_COMPLETED`" /></el-select>
+            <el-select v-if="row.refType === 'STATE'" v-model="row.refCode" filterable allow-create default-first-option placeholder="阶段编码_COMPLETED，例如 PREP_WORK_COMPLETED"><el-option v-for="code in stageCodes" :key="code" :value="`${code}_COMPLETED`" :label="`${code}_COMPLETED`" /></el-select>
             <el-input v-else v-model="row.refCode" placeholder="任务/里程碑/交付件编码或BPM Key" />
             <el-button v-if="!disabled" link type="danger" @click="model.payload.references.splice(index, 1)">移除</el-button>
           </div>

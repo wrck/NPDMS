@@ -76,7 +76,7 @@ public class TemplateCompiler {
             if (stage == null) { issues.add(new Issue(path, "REQUIRED", "阶段不能为空")); continue; }
             if (!code(stage.getNodeKey()) || !nodeKeys.add(stage.getNodeKey()))
                 issues.add(new Issue(path + ".nodeKey", "INVALID_NODE_KEY", "阶段nodeKey不能为空且必须唯一"));
-            if (!code(stage.getCode()) || stage.getCode().length() > 32 || !stageCodes.add(stage.getCode()))
+            if (!DeliveryDefinitionPayloadValidator.stageCode(stage.getCode()) || !stageCodes.add(stage.getCode()))
                 issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码须唯一且不超过32个字符"));
             if (blank(stage.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "阶段名称不能为空"));
         }

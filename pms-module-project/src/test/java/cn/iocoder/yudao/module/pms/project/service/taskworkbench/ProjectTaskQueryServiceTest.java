@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskTreeQueryReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +61,99 @@ class ProjectTaskQueryServiceTest {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
                 contractMapper, bindingRegistry, permissionApi);
+    }
+
+    @Test
+    void plannedWorkspaceUsesPlanPermissionAndEditScopeWithoutAnExtraManagerRequirement() {
+        stubProjectScope(false);
+        projectMapper.selectById(100L).setActivePlanVersionId(50L);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-plan:manage")).thenReturn(true);
+
+        assertEquals(Set.of("MANAGE_PLAN"), service.getWorkspace(100L, actor()).getAllowedActions());
+        verify(projectTreeScopeService).resolve(argThat(query -> ProjectScopeApi.ACTION_EDIT.equals(query.actionCode())
+                && query.tenantId() == 0L && query.subjectUserId() == 9L && query.anchorProjectId() == 100L
+                && query.expectedTreeVersion() == 7L));
+        verify(permissionApi, never()).hasAnyPermissions(9L, "pms:project-task:create");
+    }
+
+    @Test
+    void plannedWorkspaceRejectsMissingPermissionRestrictedEditScopeAndClosedProject() {
+        stubProjectScope(false);
+        var project = projectMapper.selectById(100L);
+        project.setActivePlanVersionId(50L);
+        assertTrue(service.getWorkspace(100L, actor()).getAllowedActions().isEmpty());
+
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-plan:manage")).thenReturn(true);
+        when(projectTreeScopeService.resolve(any())).thenAnswer(invocation -> {
+            ProjectScopeQuery query = invocation.getArgument(0);
+            return new ProjectTreeScopeService.ProjectTreeScope(100L, 7L,
+                    ProjectScopeApi.ACTION_EDIT.equals(query.actionCode()) ? Set.of() : Set.of(100L),
+                    Set.of(), Set.of());
+        });
+        assertTrue(service.getWorkspace(100L, actor()).getAllowedActions().isEmpty());
+
+        org.mockito.Mockito.doReturn(new ProjectTreeScopeService.ProjectTreeScope(
+                100L, 7L, Set.of(100L), Set.of(), Set.of())).when(projectTreeScopeService).resolve(any());
+        project.setLifecycleStatus("CLOSED_NORMAL");
+        assertTrue(service.getWorkspace(100L, actor()).getAllowedActions().isEmpty());
+    }
+
+    @Test
+    void plannedWorkbenchKeepsHandlingButDoesNotOfferDirectMove() {
+        stubProjectScope(true);
+        projectMapper.selectById(100L).setActivePlanVersionId(50L);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("TASK_NATIVE"); contract.setContractVersion(1);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(
+                new TaskBindingInspection("TASK_NATIVE", Set.of("START"), "0:1:0", null));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:update")).thenReturn(true);
+
+        assertEquals(Set.of("START", "UPDATE"), service.getWorkbench(11L, actor()).getAllowedActions());
+        verify(taskMapper).selectTask(any());
+        verify(permissionApi, never()).hasAnyPermissions(9L, "pms:project-task:move");
+    }
+
+    @Test
+    void maintenanceAccessReusesTaskGrantsWithoutLoadingOwnerCompletionFacts() {
+        stubProjectScope(true);
+        var task = task(11L, null, 0);
+        when(taskMapper.selectTask(any())).thenReturn(task);
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setTenantId(0L);
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:update")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:move")).thenReturn(false);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(true);
+        var access = service.getMaintenanceAccess(11L, actor());
+        assertTrue(access.canAssign()); assertTrue(access.canUpdate());
+        assertEquals(task.getVersion(), access.taskVersion());
+        task.setStatus("DONE");
+        assertFalse(service.getMaintenanceAccess(11L, actor()).canUpdate());
+        task.setStatus("PENDING_START");
+        contract.setTenantId(1L);
+        assertFalse(service.getMaintenanceAccess(11L, actor()).canAssign());
+        verifyNoInteractions(bindingRegistry);
+    }
+
+    @Test
+    void maintenancePreservesNativeProviderAssignmentGrantForNonProjectManagers() {
+        stubProjectScope(false);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setTenantId(0L);
+        contract.setWorkBindingTypeCode("TASK_NATIVE");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(
+                new TaskBindingInspection("TASK_NATIVE", Set.of("ASSIGN"), "0:1:0", null));
+
+        var access = service.getMaintenanceAccess(11L, actor());
+        assertTrue(access.canAssign());
+        assertFalse(access.canUpdate());
     }
 
     @Test

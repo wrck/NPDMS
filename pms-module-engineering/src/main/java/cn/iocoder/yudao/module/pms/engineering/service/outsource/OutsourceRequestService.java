@@ -35,7 +35,7 @@ public interface OutsourceRequestService {
      *
      * @param id 外包申请编号
      */
-    void deleteOutsourceRequest(Long id);
+    void deleteOutsourceRequest(Long id, cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution);
 
     /**
      * 查询外包申请详情

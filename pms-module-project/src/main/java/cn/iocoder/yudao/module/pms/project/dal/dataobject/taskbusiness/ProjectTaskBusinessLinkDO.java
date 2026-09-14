@@ -15,6 +15,8 @@ public class ProjectTaskBusinessLinkDO {
     private Long tenantId;
     private Long projectId;
     private Long taskId;
+    private Long stageId;
+    private Long nodeExecutionId;
     private Long executionContractId;
     private Integer contractVersion;
     private String ownerContext;

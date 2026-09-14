@@ -102,7 +102,7 @@ public class TaskBusinessCompletionEvaluator {
         return new Result(unmet.isEmpty(), List.copyOf(unmet), evidence);
     }
 
-    private RuleFact businessFact(RuleProgram.Leaf leaf, List<TaskBusinessLinkFact> links,
+    public static RuleFact businessFact(RuleProgram.Leaf leaf, List<TaskBusinessLinkFact> links,
                                   List<Map<String, Object>> criteria, List<String> invalid) {
         // No implicit Owner fact aliases, no native status or unsupported predicate fallback.
         if (!"BUSINESS_FACT".equals(leaf.predicate())) {

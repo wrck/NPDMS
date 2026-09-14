@@ -52,6 +52,23 @@ class TemplateRuleCollectionTest {
         assertThrows(IllegalArgumentException.class, () -> TemplateRuleCollection.condition(rules, "strategy"));
     }
 
+    @Test void decisionReferenceExpansionOnlyChangesTheExecutionCopy() {
+        var table = ProjectDecisionTableServiceTest.table("100", "true");
+        var expression = JsonUtils.parseTree("""
+                {"id":"decision_1","predicate":"DECISION","parameters":{"ruleKey":"strategy",
+                 "fieldCode":"allowed","operator":"=","valueType":"BOOLEAN","value":true}}
+                """);
+        var rules = TemplateRuleCollection.index(List.of(
+                new VersionRule("strategy", "策略", VersionRule.Kind.DECISION, false, null, table),
+                new VersionRule("condition", "条件", VersionRule.Kind.CONDITION, false, expression, null)));
+        var expanded = TemplateRuleCollection.condition(rules, "condition");
+        assertFalse(expanded.path("parameters").has("ruleKey"));
+        assertEquals(table.xml(), expanded.path("parameters").path("table").path("xml").asText());
+        assertEquals("strategy", expression.path("parameters").path("ruleKey").asText());
+        assertFalse(expression.path("parameters").has("table"));
+        assertDoesNotThrow(() -> new ProjectRuleCompiler().compile(expanded));
+    }
+
     private static TemplateDesignerDocument document() {
         var document = new TemplateDesignerDocument();
         var a = new TemplateDesignerDocument.StageNode(); a.setNodeKey("prepare"); a.setName("准备");

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -23,10 +22,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProjectLocalStageGateFactProvider implements ProjectStageGateFactProviderApi {
 
-    private static final Map<String, String> STATE_STAGE_CODES = Map.of(
-            "S0_COMPLETED", "S0", "S1_COMPLETED", "S1", "S2_COMPLETED", "S2",
-            "S3_COMPLETED", "S3", "S4_COMPLETED", "S4", "S5_COMPLETED", "S5",
-            "S6_COMPLETED", "S6");
+    private static final String COMPLETED_SUFFIX = "_COMPLETED";
 
     private final ProjectLocalStageGateFactMapper mapper;
 
@@ -71,7 +67,10 @@ public class ProjectLocalStageGateFactProvider implements ProjectStageGateFactPr
     }
 
     static String completedStageCode(String refCode) {
-        return refCode == null ? null : STATE_STAGE_CODES.get(refCode);
+        if (refCode == null || !refCode.endsWith(COMPLETED_SUFFIX)) return null;
+        String code = refCode.substring(0, refCode.length() - COMPLETED_SUFFIX.length());
+        return cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator.code(code)
+                ? code : null;
     }
 
     private static ProjectLocalGateFactQuery localQuery(ProjectStageGateFactQuery query, String ownerCode) {

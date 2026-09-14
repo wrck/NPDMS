@@ -109,10 +109,11 @@ import {
 import { errorText } from './editorModel'
 import { needsRequirementSource, savedRequirementSource } from '@/api/pms/project/project-templates/requirementBinding'
 
-const props = defineProps<{ task: DesignerTaskNode; modelValue?: BindingSelection; readonly?: boolean }>()
+const props = defineProps<{ task: DesignerTaskNode; modelValue?: BindingSelection; readonly?: boolean;
+  bindingPermission?: 'pms:project-template:update' | 'pms:project-plan:manage' }>()
 const emit = defineEmits<{ 'update:modelValue': [value: BindingSelection | undefined] }>()
-const canRegister = computed(() => hasPermission(['pms:business-view:manage']))
-const canBind = computed(() => hasPermission(['pms:project-template:update']))
+const canRegister = computed(() => props.bindingPermission !== 'pms:project-plan:manage' && hasPermission(['pms:business-view:manage']))
+const canBind = computed(() => hasPermission([props.bindingPermission ?? 'pms:project-template:update']))
 const views = ref<BusinessViewRegistrationVO[]>([])
 const components = ref<BusinessViewComponentVO[]>([])
 const forms = ref<DynamicFormSelectionVO[]>([])

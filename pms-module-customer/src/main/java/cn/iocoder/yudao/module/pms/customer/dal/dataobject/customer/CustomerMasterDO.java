@@ -20,6 +20,7 @@ public class CustomerMasterDO extends TenantBaseDO {
     private String code;
     private String name;
     private String shortName;
+    private String customerLevel;
     private String lifecycleStatus;
     private String sourceType;
     private String sourceKey;

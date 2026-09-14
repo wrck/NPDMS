@@ -13,6 +13,8 @@ public class CustomerCreateReqVO {
     @NotBlank
     private String name;
     private String shortName;
+    @NotBlank
+    private String customerLevel;
     private String remark;
     @NotNull
     private CustomerSourceType sourceType;

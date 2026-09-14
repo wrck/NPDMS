@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type {
   DesignerStageNode,
   DesignerTaskNode,
   TemplateDesignerDocument
 } from '@/api/pms/project/project-templates'
 import { addRelation, cloneContent, emptyContent, graphIssues, relationsFor } from './editorModel'
+
+vi.mock('@/config/axios', () => ({ default: {} }))
 
 const nativeRule = () => ({
   expression: { predicate: 'TASK_NATIVE_STATUS', parameters: { requiredStatus: 'DONE' } }

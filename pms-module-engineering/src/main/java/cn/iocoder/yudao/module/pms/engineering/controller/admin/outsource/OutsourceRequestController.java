@@ -61,8 +61,9 @@ public class OutsourceRequestController {
     @Operation(summary = "删除外包申请")
     @Parameter(name = "id", description = "外包申请编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:eng-outsource:delete')")
-    public CommonResult<Boolean> deleteOutsourceRequest(@RequestParam("id") Long id) {
-        outsourceRequestService.deleteOutsourceRequest(id);
+    public CommonResult<Boolean> deleteOutsourceRequest(@RequestParam("id") Long id,
+            @RequestBody(required = false) cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution) {
+        outsourceRequestService.deleteOutsourceRequest(id, siteSurveyExecution);
         return success(true);
     }
 

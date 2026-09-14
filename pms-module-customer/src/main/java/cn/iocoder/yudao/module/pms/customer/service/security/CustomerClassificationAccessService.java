@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.customer.service.security;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.classification.CustomerMarketRelationDO;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.classification.CustomerMarketRelationMapper;
+import cn.iocoder.yudao.module.pms.customer.dal.mysql.classification.query.ActiveClassificationListQuery;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,22 @@ public class CustomerClassificationAccessService {
     private DeptApi deptApi;
     @Resource
     private CustomerMarketRelationMapper marketRelationMapper;
+
+    public java.util.List<CustomerMarketRelationDO> listAvailable(Long tenantId, CustomerVisibleScope scope) {
+        if (tenantId == null || scope == null) {
+            throw exception(CUSTOMER_CLASSIFICATION_INVALID);
+        }
+        var relations = marketRelationMapper.selectListActive(new ActiveClassificationListQuery(tenantId));
+        if (scope.all()) {
+            return relations;
+        }
+        return relations.stream().filter(relation -> scope.slices().stream().anyMatch(slice ->
+                matches(slice.marketCodes(), relation.getMarketCode())
+                        && matches(slice.systemCodes(), relation.getSystemCode())
+                        && matches(slice.expendCodes(), relation.getExpendCode())
+                        && matches(slice.industryCodes(), relation.getIndustryCode())))
+                .toList();
+    }
 
     public CustomerClassificationSnapshot validate(Long tenantId, CustomerClassificationInput input,
                                                    CustomerVisibleScope scope) {

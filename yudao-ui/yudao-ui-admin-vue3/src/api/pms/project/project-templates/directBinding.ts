@@ -5,7 +5,11 @@ import type {
   RuleSpec,
   WorkBindingSpec
 } from './index'
-import { needsRequirementSource, requirementSourceSnapshot, REQUIREMENT_BINDING } from './requirementBinding'
+import {
+  needsRequirementSource,
+  requirementSourceSnapshot,
+  REQUIREMENT_BINDING
+} from './requirementBinding'
 import * as Views from '@/api/pms/platform/business-view'
 import type {
   BusinessViewComponentVO,
@@ -51,7 +55,8 @@ export const loadTaskContract = async (task: DesignerTaskNode): Promise<TaskCont
 export const containsNativeCompletion = (rule: Record<string, any> | undefined): boolean =>
   !!rule &&
   (rule.predicate === 'TASK_NATIVE_STATUS' ||
-    (Array.isArray(rule.rules) && rule.rules.some((item: Record<string, any>) => containsNativeCompletion(item))))
+    (Array.isArray(rule.rules) &&
+      rule.rules.some((item: Record<string, any>) => containsNativeCompletion(item))))
 
 export const bindingTarget = (view: Pick<BusinessViewComponentVO, 'entityType'>) =>
   `PROJECT_${view.entityType}`
@@ -118,8 +123,11 @@ const viewSnapshot = (view: BusinessViewRegistrationVO): JsonObject =>
 export const prepareTaskBinding = async (
   task: DesignerTaskNode,
   selection: BindingSelection,
-  session: BindingSaveSession
+  session: BindingSaveSession,
+  authoringScope: 'TEMPLATE' | 'PROJECT_PLAN' = 'TEMPLATE'
 ): Promise<DesignerTaskNode> => {
+  if (authoringScope === 'PROJECT_PLAN' && !('view' in selection))
+    throw new Error('项目计划草稿只能引用现有已发布办理页面或表单，不会登记或发布全局业务视图。')
   if (!['REFERENCE_EXISTING', 'READ_ONLY_AGGREGATE'].includes(selection.strategy))
     throw new Error('尚未支持自动创建此业务对象。')
   const selectedView = 'view' in selection ? selection.view : selection.component

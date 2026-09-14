@@ -42,6 +42,8 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock RequirementAnalysisExecutionBinding executionBinding;
+    @Mock cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents ruleEvents;
 
     @Test
     void patchStoresEntityValuesWithSolCasAndKeepsTheFileContextVersion() {
@@ -56,6 +58,14 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
         when(participantFactApi.inspect(any())).thenReturn(manager());
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        var binding = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact(
+                100L, 5, 200L, 1, 300L, 1, 700L, 1, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
+                "PRE_04_REQUIREMENT_ANALYSIS", null, null, null, null);
+        when(executionBinding.currentBinding(root)).thenReturn(binding);
+        when(executionBinding.lockBinding(binding)).thenReturn(binding);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L,5,200L,1,300L,1,400L,500L,1,1,600L,1,true,null);
+        when(executionBinding.lockCurrent(binding)).thenReturn(new RequirementAnalysisExecutionBinding.Frozen(binding,execution,null));
         when(rootMapper.selectById(any())).thenReturn(root);
         when(rootMapper.selectForUpdate(any())).thenReturn(root);
         when(dynamicFormApi.inspectEntityData(any())).thenAnswer(invocation -> {
@@ -81,6 +91,9 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
                 && update.entityValueJson().contains("\"requiresCutover\":false")
                 && update.entityValueJson().contains("\"machineCount\":0")));
         assertEquals(false, RequirementAnalysisEntityData.values(root).get("requiresCutover"));
+        verify(executionBinding).lockCurrent(binding);
+        verify(workBindingFactApi,never()).inspect(any());
+        verify(ruleEvents).changed(100L, "RequirementAnalysis", 501L, 9L, "corr-1");
         verify(operationAuditApi).record(eq(0L), eq(9L), eq("corr-1"),
                 eq("REQUIREMENT_ANALYSIS_PATCH"), eq("RequirementAnalysis"), eq("501"), eq("SUCCESS"), any());
     }
@@ -88,7 +101,7 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
     private RequirementAnalysisDynamicFormCommandService service() {
         return new RequirementAnalysisDynamicFormCommandService(rootMapper, projectScopeApi, participantFactApi,
                 workBindingFactApi, dynamicFormApi, policyProvider, permissionApi, commandExecutionApi,
-                operationAuditApi, transactionTemplate);
+                operationAuditApi, transactionTemplate, executionBinding, ruleEvents);
     }
 
     private PreparationDO draft() {
@@ -112,7 +125,7 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
 
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 5, 8L);
+                "PRIMARY", "ACTIVE", null, 5, 8L);
     }
 
     private DynamicFormInstanceFact form(int version, Map<String, Object> values) {

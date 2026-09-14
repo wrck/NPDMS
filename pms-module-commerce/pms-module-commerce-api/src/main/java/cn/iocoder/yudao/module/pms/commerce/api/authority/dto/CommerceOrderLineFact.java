@@ -38,16 +38,16 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
         itemDescription = optionalText(itemDescription, 512, "itemDescription");
         productCode = optionalText(productCode, 64, "productCode");
         modelCode = optionalText(modelCode, 64, "modelCode");
-        orderQuantity = quantity(orderQuantity, "orderQuantity");
-        openQuantity = quantity(openQuantity, "openQuantity");
-        deliveredQuantity = quantity(deliveredQuantity, "deliveredQuantity");
+        orderQuantity = quantity(orderQuantity, "orderQuantity", lifecycleStatus);
+        openQuantity = quantity(openQuantity, "openQuantity", lifecycleStatus);
+        deliveredQuantity = quantity(deliveredQuantity, "deliveredQuantity", lifecycleStatus);
         if (unitScale == null || unitScale < 0 || unitScale > 6) {
             throw invalid("unitScale must be between 0 and 6");
         }
-        unitCode = text(unitCode, 32, "unitCode");
+        unitCode = optionalText(unitCode, 32, "unitCode");
         quantityStatus = text(quantityStatus, 32, "quantityStatus");
-        if ("CONFIRMED".equals(quantityStatus) && orderQuantity == null) {
-            throw invalid("confirmed quantity requires orderQuantity");
+        if ("CONFIRMED".equals(quantityStatus) && (orderQuantity == null || unitCode == null)) {
+            throw invalid("confirmed quantity requires orderQuantity and unitCode");
         }
         if (lifecycleStatus == null) {
             throw invalid("lifecycleStatus must not be null");
@@ -84,8 +84,10 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
         return orderQuantity;
     }
 
-    private static BigDecimal quantity(BigDecimal value, String field) {
-        value = nonNegative(value, field);
+    private static BigDecimal quantity(BigDecimal value, String field, CommerceSourceLifecycleStatus lifecycleStatus) {
+        if (lifecycleStatus != CommerceSourceLifecycleStatus.RETURNED) {
+            value = nonNegative(value, field);
+        }
         if (value != null && (value.scale() > 6 || value.precision() - value.scale() > 12)) {
             throw invalid(field + " exceeds decimal(18,6)");
         }

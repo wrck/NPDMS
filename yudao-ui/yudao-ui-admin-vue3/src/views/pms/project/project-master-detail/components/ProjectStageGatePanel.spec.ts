@@ -3,25 +3,25 @@ import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const panel = read('./ProjectStageGatePanel.vue')
+const statusPanel = read('./ProjectStageStatusPanel.vue')
 const detail = read('../index.vue')
 const inheritanceDetail = read('../../inheritance/detail/index.vue')
 const api = read('../../../../../api/pms/project/projects/index.ts')
 
 describe('F-PROJ-008 project stage gate workspace', () => {
   it('refreshes the new project header, instances and navigation after progression', () => {
-    expect(inheritanceDetail).toMatch(/<ProjectStageGatePanel\s[^>]*@changed="handleStageChanged"/)
+    expect(inheritanceDetail).toMatch(/<ProjectStageStatusPanel\s[^>]*@changed="handleStageChanged"/)
     expect(inheritanceDetail).toContain('ref="flowNavigationRef"')
     expect(inheritanceDetail).toContain('Promise.all([loadDetail(), loadInstances(), flowNavigationRef.value?.reload()])')
   })
 
-  it('connects the project workspace to readiness and adjacent stage advance APIs', () => {
+  it('reads independent stage states without requiring a single current stage or manual advancement', () => {
     expect(detail).not.toContain("{ key: 'stage-gates', label: '阶段门禁'")
-    expect(detail).toContain('<ProjectStageGatePanel')
-    expect(api).toContain('/stage-advance-readiness')
-    expect(api).toContain('/actions/advance-stage')
-    expect(panel).not.toContain('@click="advanceStage"')
-    expect(api).toContain('/api/v1/pms/projects/${id}/stage-advance-readiness')
-    expect(panel).toContain('errorMessage.value')
+    expect(detail).toContain('<ProjectStageStatusPanel')
+    expect(statusPanel).toContain('getProjectInstances(props.projectId)')
+    expect(statusPanel).not.toContain('advanceProjectStage')
+    expect(statusPanel).not.toContain('currentStage')
+    expect(statusPanel).toContain('error.value')
   })
 
   it('starts Flowable with latest definition by default or an explicit native definition id', () => {

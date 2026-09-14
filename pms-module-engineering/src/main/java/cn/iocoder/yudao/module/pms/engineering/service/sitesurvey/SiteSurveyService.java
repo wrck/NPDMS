@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.Si
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO;
 
 import jakarta.validation.Valid;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 
 /**
  * PMS 现场工勘 Service 接口（FR-ENG-001）。
@@ -13,8 +14,8 @@ import jakarta.validation.Valid;
  * 状态流转：0 草稿 → 1 已确认 / 2 已驳回；1 已确认 → 3 已归档。
  */
 public interface SiteSurveyService {
-    void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId);
-    void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId);
+    void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution);
+    void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution);
 
     /**
      * 创建现场工勘
@@ -29,7 +30,7 @@ public interface SiteSurveyService {
     /**
      * 删除现场工勘
      */
-    void deleteSiteSurvey(Long id);
+    void deleteSiteSurvey(Long id, ProjectBusinessExecutionSelection execution);
 
     /**
      * 查询现场工勘详情
@@ -44,15 +45,15 @@ public interface SiteSurveyService {
     /**
      * 确认工勘：草稿(0) → 已确认(1)
      */
-    void confirmSiteSurvey(Long id);
+    void confirmSiteSurvey(Long id, ProjectBusinessExecutionSelection execution);
 
     /**
      * 驳回工勘：草稿(0) → 已驳回(2)
      */
-    void rejectSiteSurvey(Long id);
+    void rejectSiteSurvey(Long id, ProjectBusinessExecutionSelection execution);
 
     /**
      * 归档工勘：已确认(1) → 已归档(3)
      */
-    void archiveSiteSurvey(Long id);
+    void archiveSiteSurvey(Long id, ProjectBusinessExecutionSelection execution);
 }

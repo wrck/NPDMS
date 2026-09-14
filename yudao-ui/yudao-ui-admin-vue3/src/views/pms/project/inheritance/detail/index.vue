@@ -273,6 +273,12 @@
           </el-descriptions>
         </ContentWrap>
 
+        <ProjectCustomerOverview
+          v-if="detail?.id && activeTab === 'customer'"
+          :project="detail"
+          @changed="handleContactsChanged"
+        />
+
         <ProjectAttributePanel
           v-if="detail?.id && activeTab === 'attributes'"
           :project="detail"
@@ -365,16 +371,18 @@
         <div v-if="detail?.id && visitedTabs.has('tasks')" v-show="activeTab === 'tasks'" class="min-w-0" data-testid="project-pane-tasks">
           <ProjectTaskPanel
             :project-id="detail.id"
+            :project="detail"
             :show-responsibilities="false"
             @tree-version="treeVersion = $event"
-            @updated="loadAll"
+            @updated="handleStageChanged"
           />
         </div>
 
         <div v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))" v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)" class="min-w-0" data-testid="project-pane-stage-gates">
-          <ProjectStageGatePanel
+          <ProjectStageStatusPanel
             :project-id="detail.id"
-            :key="`${detail.id}:${detail.version}:${activeTab}`"
+            :project="detail"
+            :key="detail.id"
             @changed="handleStageChanged"
           />
         </div>
@@ -498,7 +506,7 @@ import ProjectTaskPanel from '@/views/pms/project/project-master-detail/componen
 import ProjectFlowNavigation from '@/views/pms/project/project-master-detail/components/ProjectFlowNavigation.vue'
 import ProjectFlowPanel from '@/views/pms/project/project-master-detail/components/ProjectFlowPanel.vue'
 import type { ProjectFlowSelection } from '@/views/pms/project/project-master-detail/components/project-flow'
-import ProjectStageGatePanel from '@/views/pms/project/project-master-detail/components/ProjectStageGatePanel.vue'
+import ProjectStageStatusPanel from '@/views/pms/project/project-master-detail/components/ProjectStageStatusPanel.vue'
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
@@ -507,6 +515,7 @@ import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/ind
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
+import ProjectCustomerOverview from '@/views/pms/project/project-master-detail/components/ProjectCustomerOverview.vue'
 import ProjectEquipmentPanel from '@/views/pms/asset/equipment/index.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
@@ -549,6 +558,7 @@ const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>(
 
 const TAB_KEYS = [
   'base',
+  'customer',
   'tree',
   'members',
   'tasks',
@@ -581,6 +591,7 @@ const activeTab = ref(requestedTab())
 const visitedTabs = ref(new Set([requestedTab()]))
 const overviewSteps: { key: string; label: string; icon: string; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
+  { key: 'customer', label: '客户与联系人', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },

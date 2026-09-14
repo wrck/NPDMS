@@ -27,6 +27,42 @@ import static org.mockito.Mockito.*;
 
 class RequirementAnalysisDynamicFormPolicyProviderTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = DynamicFormBusinessAction.class, names = {"PATCH", "FILE_WRITE"})
+    void sharedNodeExecutionIsRetainedThroughOwnerPolicyRevalidationWithoutGrantingModulePermissions(DynamicFormBusinessAction action) {
+        var roots = mock(RequirementAnalysisRootMapper.class);
+        var scopes = mock(ProjectScopeApi.class);
+        var permissions = mock(PermissionApi.class);
+        var participants = mock(ProjectParticipantFactApi.class);
+        var executions = mock(RequirementAnalysisExecutionBinding.class);
+        var provider = new RequirementAnalysisDynamicFormPolicyProvider(roots,scopes,participants,permissions,executions);
+        var root = root(); root.setStatusCode("DRAFT"); root.setDraftMarker(1);
+        when(roots.selectById(any())).thenReturn(root);
+        when(roots.selectDraftForUpdate(any())).thenReturn(root);
+        when(scopes.resolveCurrent(any())).thenReturn(scope()); when(scopes.lockAndRevalidate(any())).thenReturn(scope());
+        when(permissions.hasAnyPermissions(ACTOR,"pms:requirement-analysis:manage")).thenReturn(true);
+        when(participants.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
+                PROJECT,ACTOR,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,1,7L));
+        var selected = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(PROJECT,1,61L,1,71L,1,81L,91L,1,2,101L,1,true,null),null);
+        var context = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(selected));
+        when(executions.canWrite(root,selected)).thenReturn(true);
+        var query = new DynamicFormInstancePolicyQuery(TENANT,ACTOR,provider.providerKey(),owner(),51L,action,context);
+
+        var inspected = provider.inspectInstanceOwnerPolicy(query);
+        assertTrue(inspected.allowed());
+        org.junit.jupiter.api.Assertions.assertEquals(context,inspected.ownerExecutionContext());
+        var locked = provider.lockAndRevalidateInstanceOwnerPolicy(new DynamicFormPolicyRevalidationQuery(
+                TENANT,ACTOR,provider.providerKey(),owner(),51L,inspected));
+        org.junit.jupiter.api.Assertions.assertEquals(inspected,locked);
+        verify(executions).lockForWrite(root,selected);
+        verify(executions,never()).lockForWrite(root);
+
+        when(permissions.hasAnyPermissions(ACTOR,"pms:requirement-analysis:manage")).thenReturn(false);
+        assertFalse(provider.inspectInstanceOwnerPolicy(query).allowed());
+    }
+
     private static final long TENANT = 1L;
     private static final long ACTOR = 21L;
     private static final long PROJECT = 31L;
@@ -44,7 +80,7 @@ class RequirementAnalysisDynamicFormPolicyProviderTest {
     void revisionCompatibilityRejectsARequiredAttachmentSlot() {
         RequirementAnalysisDynamicFormPolicyProvider provider = new RequirementAnalysisDynamicFormPolicyProvider(
                 mock(RequirementAnalysisRootMapper.class), mock(ProjectScopeApi.class),
-                mock(ProjectParticipantFactApi.class), mock(PermissionApi.class));
+                mock(ProjectParticipantFactApi.class), mock(PermissionApi.class), mock(RequirementAnalysisExecutionBinding.class));
         List<DynamicFormFieldDescriptor> fields = compatibleFields();
         int attachment = 1;
         DynamicFormFieldDescriptor original = fields.get(attachment);
@@ -66,7 +102,7 @@ class RequirementAnalysisDynamicFormPolicyProviderTest {
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         RequirementAnalysisDynamicFormPolicyProvider provider = new RequirementAnalysisDynamicFormPolicyProvider(
-                rootMapper, scopeApi, mock(ProjectParticipantFactApi.class), permissionApi);
+                rootMapper, scopeApi, mock(ProjectParticipantFactApi.class), permissionApi, mock(RequirementAnalysisExecutionBinding.class));
         PreparationDO root = root();
         when(rootMapper.selectById(any())).thenReturn(root);
         when(rootMapper.selectForUpdate(any())).thenReturn(root);
@@ -93,7 +129,7 @@ class RequirementAnalysisDynamicFormPolicyProviderTest {
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         RequirementAnalysisDynamicFormPolicyProvider provider = new RequirementAnalysisDynamicFormPolicyProvider(
-                rootMapper, scopeApi, mock(ProjectParticipantFactApi.class), permissionApi);
+                rootMapper, scopeApi, mock(ProjectParticipantFactApi.class), permissionApi, mock(RequirementAnalysisExecutionBinding.class));
         PreparationDO root = root();
         when(rootMapper.selectById(any())).thenReturn(root);
         when(rootMapper.selectForUpdate(any())).thenReturn(root);

@@ -155,6 +155,15 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TEMPLATE_STATUS_INVALID = new ErrorCode(1_014_023_006, "模板状态流转不合法");
     ErrorCode PROJECT_TEMPLATE_RULE_SIMULATION_INVALID = new ErrorCode(1_014_023_007,
             "规则试算失败，请检查规则定义、字段绑定及执行组件");
+    ErrorCode PROJECT_NODE_EXECUTION_FAILED = new ErrorCode(1_014_023_008, "本轮办理提交失败，请刷新执行上下文后重试");
+    ErrorCode PROJECT_PLAN_VERSION_CONFLICT = new ErrorCode(1_014_023_009, "项目计划或草稿版本已变化，请重新加载后处理");
+    ErrorCode PROJECT_PLAN_CHANGE_INVALID = new ErrorCode(1_014_023_010, "当前项目计划不可修改或设计内容无效");
+    ErrorCode PROJECT_PLAN_CHANGE_FORBIDDEN = new ErrorCode(1_014_023_011, "无此项目计划的维护权限或数据范围");
+    ErrorCode PROJECT_REWORK_INVALID = new ErrorCode(1_014_023_012, "返工范围无效或仍有未结束工作，请先查看影响预览");
+    ErrorCode PROJECT_REWORK_VERSION_CONFLICT = new ErrorCode(1_014_023_013, "项目计划或执行已变化，请重新预览返工范围");
+    ErrorCode PROJECT_REWORK_FORBIDDEN = new ErrorCode(1_014_023_014, "无此项目的返工权限或数据范围");
+    ErrorCode PROJECT_TASK_PLAN_CHANGE_REQUIRED = new ErrorCode(1_014_023_015,
+            "项目任务结构由有效计划管理，请在项目计划草稿中调整并预览生效");
 
     // ========== 项目手工创建模块（F-PM01 / PM-01）1-014-024-000 ==========
     // 注：PROJECT_NOT_EXISTS 复用 1-014-003-000（项目主表段，新旧链同语义）。
@@ -219,6 +228,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TASK_QUERY_INVALID = new ErrorCode(1_014_024_044, "项目任务查询参数无效");
     ErrorCode PROJECT_TASK_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_045, "无权访问该项目任务");
     ErrorCode PROJECT_TASK_COMMAND_INVALID = new ErrorCode(1_014_024_046, "项目任务命令不符合当前规则");
+    ErrorCode PROJECT_BUSINESS_EXECUTION_REQUIRED = new ErrorCode(1_014_024_054, "未找到唯一可办理节点，请从当前阶段或任务入口办理");
     ErrorCode PROJECT_TASK_VERSION_CONFLICT = new ErrorCode(1_014_024_047, "项目任务版本冲突");
     ErrorCode PROJECT_STAGE_ADVANCE_INVALID = new ErrorCode(1_014_024_048, "项目阶段推进条件不合法：{}");
     ErrorCode PROJECT_STAGE_GATE_UNSATISFIED = new ErrorCode(1_014_024_049, "项目阶段准出条件未满足：{}");

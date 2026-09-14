@@ -319,8 +319,6 @@ export interface ProjectTemplateRevisionVO {
   publishedTime?: Date
 }
 export interface ProjectTemplateDetailVO extends ProjectTemplateVO {
-  /** Legacy compatibility projection. New editor loads /draft explicitly. */
-  draftContent?: TemplateDefinitionContent
   revisions: ProjectTemplateRevisionVO[]
 }
 export interface ProjectTemplateRevisionDetailVO extends ProjectTemplateRevisionVO {

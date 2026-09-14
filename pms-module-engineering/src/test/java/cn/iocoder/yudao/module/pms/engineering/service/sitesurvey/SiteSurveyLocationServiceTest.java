@@ -22,6 +22,7 @@ class SiteSurveyLocationServiceTest {
 
     @Mock private SiteSurveyMapper mapper;
     @Mock private EngineeringLocationFactService locationFactService;
+    @Mock private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents ruleEvents;
     private SiteSurveyServiceImpl service;
 
     @BeforeEach
@@ -29,6 +30,8 @@ class SiteSurveyLocationServiceTest {
         service = new SiteSurveyServiceImpl();
         ReflectionTestUtils.setField(service, "siteSurveyMapper", mapper);
         ReflectionTestUtils.setField(service, "locationFactService", locationFactService);
+        ReflectionTestUtils.setField(service, "ruleEvents", ruleEvents);
+        ReflectionTestUtils.setField(service, "writeAccess", mock(SiteSurveyWriteAccess.class));
         lenient().when(mapper.insert(any(SiteSurveyDO.class))).thenAnswer(invocation -> {
             SiteSurveyDO survey = invocation.getArgument(0);
             survey.setId(101L);
@@ -97,7 +100,7 @@ class SiteSurveyLocationServiceTest {
             assertEquals(1, changed.getStatus());
             return 0;
         });
-        assertThrows(ServiceException.class, () -> service.confirmSiteSurvey(101L));
+        assertThrows(ServiceException.class, () -> service.confirmSiteSurvey(101L, null));
     }
 
     @Test
@@ -116,7 +119,7 @@ class SiteSurveyLocationServiceTest {
         SiteSurveySaveReqVO request = request("不可覆盖");
         request.setId(101L); request.setVersion(7);
         assertThrows(ServiceException.class, () -> service.updateSiteSurvey(request));
-        assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L));
+        assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L, null));
         verify(mapper, never()).updateById(any(SiteSurveyDO.class));
         verify(mapper, never()).deleteDraft(any());
     }
@@ -137,14 +140,14 @@ class SiteSurveyLocationServiceTest {
         SiteSurveyDO row = new SiteSurveyDO();
         row.setId(101L); row.setProjectId(1L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequired(true);
         when(mapper.selectById(101L)).thenReturn(row);
-        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 2L, 500L));
-        service.associateOutsourceRequest(101L, 1L, 500L);
+        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 2L, 500L, null));
+        service.associateOutsourceRequest(101L, 1L, 500L, null);
         assertEquals(500L, row.getOutsourceRequestId());
         assertEquals(0, row.getStatus());
         verify(mapper).updateById(argThat((SiteSurveyDO value) -> value.getVersion() == 4 && value.getOutsourceRequestId() == 500L));
-        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 1L, 501L));
+        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 1L, 501L, null));
         row.setOutsourceRequestId(null); row.setOutsourceRequired(false);
-        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 1L, 502L));
+        assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 1L, 502L, null));
     }
 
     @Test
@@ -152,13 +155,13 @@ class SiteSurveyLocationServiceTest {
         SiteSurveyDO row = new SiteSurveyDO();
         row.setId(101L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequired(true); row.setOutsourceRequestId(500L);
         when(mapper.selectById(101L)).thenReturn(row);
-        service.releaseDeletedOutsourceRequest(101L, 499L);
+        service.releaseDeletedOutsourceRequest(101L, 499L, null);
         verify(mapper, never()).updateById(any(SiteSurveyDO.class));
-        service.releaseDeletedOutsourceRequest(101L, 500L);
+        service.releaseDeletedOutsourceRequest(101L, 500L, null);
         assertNull(row.getOutsourceRequestId());
         assertTrue(row.getOutsourceRequired());
         row.setOutsourceRequestId(501L); row.setStatus(1);
-        assertThrows(ServiceException.class, () -> service.releaseDeletedOutsourceRequest(101L, 501L));
+        assertThrows(ServiceException.class, () -> service.releaseDeletedOutsourceRequest(101L, 501L, null));
         assertEquals(501L, row.getOutsourceRequestId());
     }
 
@@ -167,12 +170,12 @@ class SiteSurveyLocationServiceTest {
         SiteSurveyDO row = new SiteSurveyDO();
         row.setId(101L); row.setTenantId(1L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequestId(500L);
         when(mapper.selectById(101L)).thenReturn(row);
-        var failure = assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L));
+        var failure = assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L, null));
         assertEquals(1011001008, failure.getCode());
         verify(mapper, never()).deleteDraft(any());
-        service.releaseDeletedOutsourceRequest(101L, 500L);
+        service.releaseDeletedOutsourceRequest(101L, 500L, null);
         when(mapper.deleteDraft(any())).thenReturn(1);
-        service.deleteSiteSurvey(101L);
+        service.deleteSiteSurvey(101L, null);
         verify(mapper).deleteDraft(any());
     }
 

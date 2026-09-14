@@ -31,6 +31,16 @@ public class PlatformMigrationEvidenceApiImpl implements PlatformMigrationEviden
     }
 
     @Override
+    public java.util.List<MigrationSourceRecordFact> appendSourceRecords(AppendMigrationSourceRecordsCommand command) {
+        return invoke(command == null ? null : command.tenantId(), () -> executor.appendSourceRecords(command));
+    }
+
+    @Override
+    public MigrationMappingPageResult appendExternalMappings(AppendExternalMappingsCommand command) {
+        return invoke(command == null ? null : command.tenantId(), () -> executor.appendExternalMappings(command));
+    }
+
+    @Override
     public MigrationBatchFact markStagedReady(MarkStagedReadyCommand command) {
         return invoke(command == null ? null : command.tenantId(), () -> executor.markStagedReady(command));
     }

@@ -136,8 +136,9 @@ class CommerceAuthorityIngestServiceTest {
         verify(salesOrderMapper).updateOwnerByVersion(any());
     }
 
-    @Test
-    void quantityDecreaseFreezesActiveScopeAndIncrementsWatermark() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"DECREASE", "UNKNOWN_UNIT", "RETURN"})
+    void quantityDecreaseOrUnconfirmedReturnFreezesActiveScopeAndIncrementsWatermark(String scenario) {
         SalesOrderDO order = orderRow("O-1", "V1");
         SalesOrderLineDO line = lineRow(order.getId(), "L-1", "V1", "10");
         DeliveryScopeDO active = activeScope(line.getId(), 701L, 901L, "8");
@@ -157,8 +158,16 @@ class CommerceAuthorityIngestServiceTest {
         when(scopeImpactMapper.selectProjectVersionForUpdate(any())).thenReturn(watermark);
         when(scopeImpactMapper.updateProjectVersionById(any())).thenReturn(1);
 
+        CommerceOrderLineFact incoming = line("L-1", "V1", "V2", "O-1", "5");
+        if (!"DECREASE".equals(scenario)) {
+            incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", "10", null, null, null, null,
+                    new BigDecimal("RETURN".equals(scenario) ? "-4" : "12"), BigDecimal.ZERO, BigDecimal.ZERO,
+                    null, 0, "PENDING_AUTHORITY", "RETURN".equals(scenario)
+                    ? CommerceSourceLifecycleStatus.RETURNED : CommerceSourceLifecycleStatus.ACTIVE,
+                    LocalDateTime.of(2026,8,30,12,0));
+        }
         CommerceAuthorityBatchResult result = service.ingest(batch("EV-7", "B-7", List.of(),
-                List.of(), List.of(line("L-1", "V1", "V2", "O-1", "5"))));
+                List.of(), List.of(incoming)));
 
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
         verify(scopeImpactMapper).insert(argThat((DeliveryScopeDO row) -> "CONFLICT_FROZEN".equals(row.getScopeStatus())

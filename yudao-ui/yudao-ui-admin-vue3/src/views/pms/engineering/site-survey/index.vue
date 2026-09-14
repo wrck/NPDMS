@@ -218,7 +218,7 @@
           <el-form-item label="转包关联">
             <el-link
               v-if="form.outsourceRequestId"
-              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId)"
+              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode)"
               :disabled="readonly"
               target="_blank"
               rel="noopener"
@@ -351,12 +351,15 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey'
+import type { TaskExecutionContext } from '@/api/pms/project/task-business'
+import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
 import SiteSurveyDynamicForm from './SiteSurveyDynamicForm.vue'
 import { hasStructuredSurveyLocation } from './siteSurveyForm'
+import { resolveSurveyExecution } from './siteSurveyExecutionShortcut'
 import { surveyProcurementRoute, type SurveyMaterialSelection } from './surveyBusinessForm'
 import {
   outsourceShortcutRoute,
@@ -371,9 +374,16 @@ const props = defineProps<{
   allowedActions?: string[]
   objectId?: number | string
   taskId?: number | string
+  taskExecution?: TaskExecutionContext
+  stageExecution?: StageExecutionContext
+  stageCode?: string
 }>()
 const emit = defineEmits<{ saved: []; changed: []; 'dirty-change': [value: boolean] }>()
 const projectLocked = computed(() => props.projectId != null)
+const executionSelection = (): SiteSurveyApi.SiteSurveyExecutionSelection | undefined => props.taskExecution || props.stageExecution
+  ? { ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),
+      ...(props.stageExecution ? { stage: { ...props.stageExecution } } : {}) } : undefined
+let openedExecution: SiteSurveyApi.SiteSurveyExecutionSelection | undefined
 const sameId = (left: unknown, right: unknown) => String(left ?? '') === String(right ?? '')
 const inProject = (row: Pick<SiteSurveyVO, 'projectId'>) =>
   !projectLocked.value || sameId(row.projectId, props.projectId)
@@ -438,6 +448,7 @@ const load = async () => {
   }
 }
 const openForm = async (row?: SiteSurveyVO, view = false) => {
+  let requestedExecution = executionSelection()
   const action = row ? (view ? 'QUERY' : 'UPDATE') : 'CREATE'
   if (!can(action) || saving.value || (row && !inProject(row) && row.projectId != null)) return
   // Refreshing the same project/object must not overwrite an unfinished form.
@@ -456,7 +467,13 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
     message.warning('该工勘不属于当前项目')
     return
   }
+  if (row && !view && !requestedExecution) {
+    try { requestedExecution = await resolveSurveyExecution(row.projectId, route.query) }
+    catch { message.warning('工勘执行轮次已不可用，请从原任务或阶段重新进入'); return }
+    if (!current(context) || sequence !== formSequence || !can(action)) return
+  }
   formVisible.value = false
+  openedExecution = requestedExecution
   detailReadonly.value = view || (!!row && row.status !== 0)
   integratedOutsource.value = false
   for (const key of Object.keys(form)) delete (form as unknown as Record<string, unknown>)[key]
@@ -599,7 +616,7 @@ const toLocationMaintenance = (row?: SiteSurveyVO): LocationMaintainRequest | un
 }
 
 const savePayload = () => {
-  const payload = { ...form }
+  const payload = { ...form, execution: openedExecution }
   const maintenance = payload.locationMaintenance
   if (!hasStructuredSurveyLocation(maintenance)) {
     if (!(maintenance?.fallbackLocation || payload.location)?.trim()) {
@@ -675,7 +692,9 @@ const save = async () => {
 }
 const startOutsource = async () => {
   if (readonly.value || saving.value || !inProject(form) || !form.outsourceRequired || form.outsourceRequestId) return
-  if ((await save()) && !readonly.value) await router.push(outsourceShortcutRoute(form.id!))
+  const execution = openedExecution
+  const stageCode = props.stageCode
+  if (await save()) await router.push(outsourceShortcutRoute(form.id!, execution, stageCode))
 }
 const performSurveyAction = async (kind: string, sn?: string) => {
   if (readonly.value || saving.value) return
@@ -698,6 +717,7 @@ const performSurveyAction = async (kind: string, sn?: string) => {
   if ((await save()) && !readonly.value) await router.push(surveyProcurementRoute(kind, form.id!, sn))
 }
 const remove = async (row: SiteSurveyVO) => {
+  const execution = executionSelection()
   if (!can('DELETE') || !inProject(row) || saving.value || row.status !== 0 && !row.outsourceRequestId) return
   const context = contextSequence
   if (row.outsourceRequestId) {
@@ -706,21 +726,22 @@ const remove = async (row: SiteSurveyVO) => {
   }
   await message.delConfirm()
   if (!current(context) || !can('DELETE') || !inProject(row)) return
-  await SiteSurveyApi.deleteSiteSurvey(row.id!)
+  await SiteSurveyApi.deleteSiteSurvey(row.id!, execution)
   if (!current(context)) return
   message.success('删除成功')
   emit('changed')
   await load()
 }
 const handleAction = async (row: SiteSurveyVO, action: 'confirm' | 'reject' | 'archive') => {
+  const execution = executionSelection()
   if (!['confirm', 'reject', 'archive'].includes(action) || !can(action.toUpperCase()) || !inProject(row) || saving.value || row.status !== (action === 'archive' ? 1 : 0)) return
   const context = contextSequence
   const actionText = { confirm: '确认', reject: '驳回', archive: '归档' }[action]
   await message.confirm(`是否${actionText}工勘【${row.code}】？`)
   if (!current(context) || !can(action.toUpperCase()) || !inProject(row)) return
-  if (action === 'confirm') await SiteSurveyApi.confirmSiteSurvey(row.id!)
-  if (action === 'reject') await SiteSurveyApi.rejectSiteSurvey(row.id!)
-  if (action === 'archive') await SiteSurveyApi.archiveSiteSurvey(row.id!)
+  if (action === 'confirm') await SiteSurveyApi.confirmSiteSurvey(row.id!, execution)
+  if (action === 'reject') await SiteSurveyApi.rejectSiteSurvey(row.id!, execution)
+  if (action === 'archive') await SiteSurveyApi.archiveSiteSurvey(row.id!, execution)
   if (!current(context)) return
   message.success(`${actionText}成功`)
   emit('changed')
@@ -745,7 +766,9 @@ watch(contextKey, async () => {
   query.projectId = props.projectId as number | undefined
   const context = contextSequence
   await load()
-  if (current(context) && props.objectId != null) {
+  // Task workbenches open the list. Only an explicit list action opens a survey dialog.
+  // Standalone object links retain their existing deep-link behavior.
+  if (current(context) && props.objectId != null && props.taskId == null) {
     await openForm({ id: ownerId(props.objectId) } as SiteSurveyVO, !can('UPDATE'))
   }
 }, { immediate: true, flush: 'sync' })

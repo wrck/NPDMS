@@ -74,6 +74,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
         when(permissions.hasAnyPermissions(9L, "pms:acceptance:report:query")).thenReturn(true);
         activity.setId(42L); activity.setTenantId(3L); activity.setProjectId(100L);
         activity.setProjectTaskId(300L); activity.setExecutionContractId(400L);
+        activity.setDeliverableId(91L);
         activity.setAcceptanceType("FINAL"); activity.setActivityStatus("PENDING");
         activity.setCurrentReportVersionId(51L); activity.setVersion(7); activity.setDeleted(false);
         when(activities.selectById(42L)).thenReturn(activity);
@@ -120,6 +121,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test
     void exactArchivedCurrentSourceReturnsImmutableFileTupleAndSourceIdentity() {
         archived();
+        deliverable.setDeliverableCode("RENAMED_CUSTOM_REPORT");
         var fact = provider.inspect(context, "42");
         assertEquals(1, fact.artifacts().size());
         var artifact = fact.artifacts().getFirst();
@@ -130,6 +132,12 @@ class AcceptanceTaskBusinessObjectProviderTest {
         verify(files).lockAndRevalidateReferenceSets(argThat(q -> q.collections().size() == 1
                 && q.collections().getFirst().key().equals(setKey)
                 && q.collections().getFirst().expectedActiveFacts().getFirst().versionNo() == 3));
+    }
+
+    @Test
+    void archiveMustBelongToTheActivitysFrozenDeliverableNotJustTheSameProject() {
+        archived(); activity.setDeliverableId(999L);
+        assertThrows(RuntimeException.class,()->provider.inspect(context,"42"));
     }
 
     @Test

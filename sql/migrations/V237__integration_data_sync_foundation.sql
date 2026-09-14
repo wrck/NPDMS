@@ -1,0 +1,107 @@
+-- Approved PMS integration plan: generic task/run/binding state; business writes remain with owners.
+CREATE TABLE `int_sync_connection` (
+  `id` bigint NOT NULL,
+  `tenant_id` bigint NOT NULL,
+  `data_source_id` bigint NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `creator` varchar(64) NOT NULL DEFAULT '',
+  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updater` varchar(64) NOT NULL DEFAULT '',
+  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_int_connection_source` (`tenant_id`,`data_source_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `int_sync_task` (
+  `id` bigint NOT NULL,
+  `tenant_id` bigint NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `connection_id` bigint NOT NULL,
+  `adapter` varchar(64) NOT NULL,
+  `source_system` varchar(32) NOT NULL,
+  `definition` json NOT NULL,
+  `version` int NOT NULL DEFAULT 0,
+  `validated_version` int NULL,
+  `enabled` bit(1) NOT NULL DEFAULT b'0',
+  `active_run_id` bigint NULL,
+  `checkpoint` datetime(6) NULL,
+  `next_run_at` datetime(3) NULL,
+  `next_full_at` datetime(3) NULL,
+  `retry_attempt` int NOT NULL DEFAULT 0,
+  `last_failed_run_id` bigint NULL,
+  `creator` varchar(64) NOT NULL DEFAULT '',
+  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updater` varchar(64) NOT NULL DEFAULT '',
+  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_int_task_source_adapter` (`tenant_id`,`source_system`,`adapter`),
+  KEY `idx_int_task_due` (`tenant_id`,`enabled`,`next_run_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `int_sync_run` (
+  `id` bigint NOT NULL,
+  `tenant_id` bigint NOT NULL,
+  `task_id` bigint NOT NULL,
+  `parent_run_id` bigint NULL,
+  `request_key` varchar(64) NOT NULL,
+  `status` varchar(32) NOT NULL,
+  `preview` bit(1) NOT NULL,
+  `full_snapshot` bit(1) NOT NULL,
+  `adopt_existing` bit(1) NOT NULL DEFAULT b'0',
+  `config_snapshot` json NOT NULL,
+  `config_version` int NOT NULL,
+  `result_json` json NULL,
+  `summary_json` json NULL,
+  `read_count` int NOT NULL DEFAULT 0,
+  `error_message` varchar(1000) NULL,
+  `evidence_json` json NULL,
+  `source_upper` datetime(6) NULL,
+  `started_at` datetime(3) NOT NULL,
+  `finished_at` datetime(3) NULL,
+  `cache_pending` bit(1) NOT NULL DEFAULT b'0',
+  `creator` varchar(64) NOT NULL DEFAULT '',
+  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updater` varchar(64) NOT NULL DEFAULT '',
+  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_int_run_request` (`tenant_id`,`task_id`,`request_key`),
+  KEY `idx_int_run_task` (`tenant_id`,`task_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `int_sync_binding` (
+  `id` bigint NOT NULL,
+  `tenant_id` bigint NOT NULL,
+  `task_id` bigint NOT NULL,
+  `object_key` varchar(64) NOT NULL,
+  `source_object` varchar(64) NOT NULL,
+  `source_key` varchar(128) NOT NULL,
+  `target_id` bigint NOT NULL,
+  `fields_json` json NOT NULL,
+  `last_run_id` bigint NOT NULL,
+  `creator` varchar(64) NOT NULL DEFAULT '',
+  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updater` varchar(64) NOT NULL DEFAULT '',
+  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_int_binding_source` (`tenant_id`,`task_id`,`source_object`,`source_key`),
+  UNIQUE KEY `uk_int_binding_target` (`tenant_id`,`task_id`,`object_key`,`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE system_organization_ownership (
+    id bigint NOT NULL,
+    tenant_id bigint NOT NULL,
+    object_type varchar(16) NOT NULL,
+    target_id bigint NOT NULL,
+    managed_by varchar(128) NOT NULL,
+    creator varchar(64) NOT NULL DEFAULT '',
+    create_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updater varchar(64) NOT NULL DEFAULT '',
+    update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    deleted bit(1) NOT NULL DEFAULT b'0',
+    PRIMARY KEY(id),
+    UNIQUE KEY uk_system_org_owner (tenant_id,object_type,target_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='组织外部字段归属元数据';

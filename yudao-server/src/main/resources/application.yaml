@@ -1,3 +1,9 @@
+# The development interceptor logs complete bodies independently of @ApiAccessLog.
+# Keep structured operation/access audits; do not print rule inputs or credentials to request logs.
+logging:
+  level:
+    cn.iocoder.yudao.framework.apilog.core.interceptor.ApiAccessLogInterceptor: WARN
+
 spring:
   application:
     name: yudao-server
@@ -49,6 +55,10 @@ liteflow:
   print-execution-log: false
   monitor:
     enable-log: false
+  # 2.16.1 的 Actuator 端点缺少参数名元数据；使用原生装配开关关闭该可选监控。
+  # 项目版本内的规则步骤诊断继续由核心求值器提供，不依赖此全局监控端点。
+  metrics:
+    enabled: false
 
 # 工作流 Flowable 配置
 flowable:

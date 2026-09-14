@@ -4,7 +4,7 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper">
     <select id="selectByIdentityForUpdate"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
-        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+        SELECT id, project_id, project_task_id, execution_contract_id, deliverable_id, acceptance_type,
                activity_status, current_report_version_id, version,
                creator, create_time, updater, update_time, deleted, tenant_id
         FROM acc_acceptance
@@ -16,7 +16,7 @@
     </select>
     <select id="selectByIdForUpdate"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
-        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+        SELECT id, project_id, project_task_id, execution_contract_id, deliverable_id, acceptance_type,
                activity_status, current_report_version_id, version,
                creator, create_time, updater, update_time, deleted, tenant_id
         FROM acc_acceptance
@@ -28,7 +28,7 @@
 
     <select id="selectByProjectScope"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
-        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+        SELECT id, project_id, project_task_id, execution_contract_id, deliverable_id, acceptance_type,
                activity_status, current_report_version_id, version,
                creator, create_time, updater, update_time, deleted, tenant_id
         FROM acc_acceptance

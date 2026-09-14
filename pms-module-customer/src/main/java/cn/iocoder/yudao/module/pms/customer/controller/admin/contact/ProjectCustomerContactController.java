@@ -33,7 +33,6 @@ public class ProjectCustomerContactController {
     private final CustomerQueryApi customers;
 
     public record ContextResponse(ProjectContactContextApi.Context project, String customerName, String customerStatus, boolean sensitiveRead) {}
-    public record ImportRequest(@NotNull @Min(0) Integer expectedProjectVersion) {}
     public record RestoreRequest(@NotNull @Min(0) Integer expectedProjectVersion, @Min(0) @Max(1) Integer status) {}
     public record AssociateRequest(@NotNull @Min(0) Integer expectedProjectVersion, @NotNull @Positive Long customerId) {}
 
@@ -44,39 +43,35 @@ public class ProjectCustomerContactController {
     }
 
     @GetMapping("/context")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:query')")
     public CommonResult<ContextResponse> context(@PathVariable Long projectId) {
         var context = service.context(actor(), projectId);
         var customer = context.customerId() == null ? null : customers.getCustomer(context.customerId());
-        return success(new ContextResponse(context, customer == null ? null : customer.name(), customer == null ? null : customer.lifecycleStatus(), sensitive()));
+        return success(new ContextResponse(context, customer == null ? null : customer.name(), customer == null ? null : customer.lifecycleStatus(), sensitive() || context.canManage()));
     }
 
     @GetMapping
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:query')")
     public CommonResult<PageResult<ProjectCustomerContactDO>> page(@PathVariable Long projectId, @Valid ProjectContactPageReqVO query) {
         var result = service.page(actor(), projectId, query.getStatus(), query.getName(), query);
-        if (!sensitive()) result.getList().forEach(row -> {
+        if (!canReadRaw(projectId)) result.getList().forEach(row -> {
             row.setMobile(masking.maskPhone(row.getMobile())); row.setPhone(masking.maskPhone(row.getPhone())); row.setEmail(masking.maskEmail(row.getEmail()));
         });
         return success(result);
     }
 
     @GetMapping("/sources")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:query')")
     public CommonResult<PageResult<CustomerContactMasterDO>> sources(@PathVariable Long projectId, @Valid ProjectContactPageReqVO page) {
         var result = service.sources(actor(), projectId, page.getName(), page);
-        if (!sensitive()) result.getList().forEach(row -> {
+        if (!canReadRaw(projectId)) result.getList().forEach(row -> {
             row.setMobile(masking.maskPhone(row.getMobile())); row.setPhone(masking.maskPhone(row.getPhone())); row.setEmail(masking.maskEmail(row.getEmail()));
         });
         return success(result);
     }
 
     @GetMapping("/history")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:query')")
     public CommonResult<PageResult<cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.ContactHistoryDO>> history(
             @PathVariable Long projectId, @Valid PageParam page) {
         var result = service.history(actor(), projectId, page);
-        if (!sensitive()) result.getList().forEach(row -> {
+        if (!canReadRaw(projectId)) result.getList().forEach(row -> {
             row.setBeforeValues(maskHistory(row.getBeforeValues())); row.setAfterValues(maskHistory(row.getAfterValues()));
         });
         return success(result);
@@ -91,28 +86,19 @@ public class ProjectCustomerContactController {
         return data.toString();
     }
 
-    @PostMapping("/actions/import-defaults")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:create')")
-    public CommonResult<Integer> importDefaults(@PathVariable Long projectId, @Valid @RequestBody ImportRequest request) {
-        return success(service.importDefaults(actor(), projectId, request.expectedProjectVersion()));
-    }
-
     @PostMapping
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:create')")
     public CommonResult<Long> create(@PathVariable Long projectId, @Valid @RequestBody ProjectContactSaveReqVO request,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max=128) String key) {
         return success(service.create(actor(), request.command(projectId, null), key).getId());
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:update')")
     public CommonResult<Boolean> update(@PathVariable Long projectId, @PathVariable Long id,
             @Valid @RequestBody ProjectContactSaveReqVO request) {
         service.update(actor(), request.command(projectId, id)); return success(true);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:delete')")
     public CommonResult<Boolean> delete(@PathVariable Long projectId, @PathVariable Long id,
             @RequestParam Integer expectedProjectVersion, @RequestHeader("If-Match") Integer version,
             @RequestParam(defaultValue="false") boolean confirmNoPrimary) {
@@ -122,7 +108,6 @@ public class ProjectCustomerContactController {
     }
 
     @PostMapping({"/{id}/actions/restore-enabled", "/{id}/actions/restore"})
-    @PreAuthorize("@ss.hasPermission('pms:customer-contact:update')")
     public CommonResult<Boolean> restoreEnabled(@PathVariable Long projectId, @PathVariable Long id,
             @Valid @RequestBody RestoreRequest request, @RequestHeader("If-Match") Integer version) {
         service.restore(actor(), projectId, id, request.expectedProjectVersion(), version, request.status() == null ? 0 : request.status());
@@ -130,6 +115,7 @@ public class ProjectCustomerContactController {
     }
 
     private boolean sensitive() { return contactAccess.resolve(SecurityFrameworkUtils.getLoginUserId(), true) == CustomerFieldMaskingService.ContactAccess.RAW; }
+    private boolean canReadRaw(Long projectId) { return sensitive() || service.context(actor(), projectId).canManage(); }
     private CustomerContactMasterService.Actor actor() {
         return new CustomerContactMasterService.Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId());
     }

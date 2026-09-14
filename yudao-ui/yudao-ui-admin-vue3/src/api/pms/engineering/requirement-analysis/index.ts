@@ -1,6 +1,8 @@
 import request from '@/config/axios'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
+import type { TaskExecutionContext } from '@/api/pms/project/task-business'
+import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 
 export type RequirementAnalysisAction =
   | 'CREATE_INITIAL_DRAFT'
@@ -165,6 +167,7 @@ export interface RequirementAnalysisCompareVO {
 
 export interface PatchRequirementAnalysisFormReqVO {
   values: JsonObject
+  execution?: ProjectBusinessExecutionSelection
 }
 
 /** @deprecated 使用PatchRequirementAnalysisFormReqVO。 */
@@ -184,16 +187,16 @@ export interface PatchRequirementAnalysisSectionReqVO {
 
 const baseUrl = '/api/v1/pms/preparations'
 
-export const getCurrent = (projectId: number, stageId?: StageExecutionContext['stageId']) =>
+export const getCurrent = (projectId: number, stageId?: StageExecutionContext['stageId'], taskId?: TaskExecutionContext['taskId']) =>
   request.get<RequirementAnalysisOverviewVO>({
     url: baseUrl,
-    params: { projectId, type: 'PRE_04', ...(stageId == null ? {} : { stageId }) }
+    params: { projectId, type: 'PRE_04', ...(stageId == null ? {} : { stageId }), ...(taskId == null ? {} : { taskId }) }
   })
 
-export const createInitialDraft = (projectId: number, idempotencyKey: string, stageExecution?: StageExecutionContext) =>
+export const createInitialDraft = (projectId: number, idempotencyKey: string, execution?: ProjectBusinessExecutionSelection) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: baseUrl,
-    data: { projectId, type: 'PRE_04', ...(stageExecution ? { stageExecution } : {}) },
+    data: { projectId, type: 'PRE_04', ...(execution ? { execution } : {}) },
     headers: { 'Idempotency-Key': idempotencyKey }
   })
 
@@ -237,11 +240,13 @@ export const completeDraft = (
   preparationId: number,
   expectedInstanceVersion: number,
   expectedSolVersion: number,
-  idempotencyKey: string
+  idempotencyKey: string,
+  execution?: ProjectBusinessExecutionSelection
 ) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: `${baseUrl}/${preparationId}/actions/submit`,
     params: { type: 'PRE_04' },
+    ...(execution ? { data: { execution } } : {}),
     headers: {
       'If-Match': String(expectedInstanceVersion),
       'X-SOL-If-Match': String(expectedSolVersion),
@@ -254,11 +259,11 @@ export const createNextDraft = (
   expectedInstanceVersion: number,
   expectedSolVersion: number,
   idempotencyKey: string,
-  stageExecution?: StageExecutionContext
+  execution?: ProjectBusinessExecutionSelection
 ) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: `${baseUrl}/${preparationId}/actions/create-draft`,
-    ...(stageExecution ? { data: { stageExecution } } : {}),
+    ...(execution ? { data: { execution } } : {}),
     headers: {
       'If-Match': String(expectedInstanceVersion),
       'X-SOL-If-Match': String(expectedSolVersion),

@@ -47,8 +47,8 @@
           <el-option :value="true" label="是" /><el-option :value="false" label="否" />
         </el-select>
         <el-date-picker
-          v-else-if="parameters.valueType === 'DATE'"
-          :model-value="parameters.value"
+          v-else-if="parameters.valueType === 'DATE' && !listValue"
+          :model-value="typeof parameters.value === 'string' ? parameters.value : undefined"
           :disabled="disabled"
           value-format="YYYY-MM-DD"
           type="date"
@@ -76,14 +76,27 @@
     </el-select>
     <template v-else-if="predicate === 'BUSINESS_FACT'">
       <el-select
+        v-if="sources.length || parameters.sourceNodeKey"
+        :model-value="parameters.sourceNodeKey ?? '$current'"
+        :disabled="disabled"
+        filterable
+        aria-label="业务结果来源节点"
+        @update:model-value="selectSource"
+      >
+        <el-option value="$current" label="本节点（完成／退出）" />
+        <el-option v-for="source in sources" :key="source.key" :value="source.key" :label="source.label" />
+        <el-option v-if="missingSource" :value="String(parameters.sourceNodeKey)" label="来源节点已移除，请重新选择" disabled />
+      </el-select>
+      <el-select
         :model-value="parameters.factCode"
         :disabled="disabled"
         filterable
+        aria-label="原模块业务事实"
         placeholder="原模块完成事实"
         @update:model-value="set('factCode', $event)"
       >
         <el-option
-          v-for="fact in facts"
+          v-for="fact in sourceFacts"
           :key="`${fact.ownerContext}/${fact.objectType}/${fact.factCode}`"
           :value="fact.factCode"
           :label="`${fact.label} · ${fact.ownerContext}`"
@@ -110,7 +123,7 @@
     />
     <el-input
       v-else
-      :model-value="parameters.refCode"
+      :model-value="typeof parameters.refCode === 'string' ? parameters.refCode : undefined"
       :disabled="disabled"
       placeholder="引用编码（阶段完成引用：阶段编码_COMPLETED）"
       @update:model-value="set('refCode', $event)"
@@ -119,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import type {
   JsonObject,
   JsonValue,
@@ -128,6 +141,7 @@ import type {
 import type { RuleField, VersionRule } from '@/api/pms/project/project-templates/rules'
 import DecisionTableConditionEditor from './DecisionTableConditionEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
+import { ruleBusinessSourcesKey } from './ruleBusinessSources'
 const props = defineProps<{
   predicate: string
   parameters: JsonObject
@@ -137,6 +151,22 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }>()
+const sources = inject(ruleBusinessSourcesKey, computed(() => []))
+const selectedSource = computed(() => sources.value.find((item) => item.key === props.parameters.sourceNodeKey))
+const missingSource = computed(() => !!props.parameters.sourceNodeKey && !selectedSource.value)
+const sourceFacts = computed(() => props.parameters.sourceNodeKey
+  ? props.facts.filter((fact) => fact.ownerContext === selectedSource.value?.ownerContext && fact.objectType === selectedSource.value?.objectType)
+  : props.facts)
+const selectSource = (key: string) => {
+  const parameters = { ...props.parameters }
+  if (key !== '$current') parameters.sourceNodeKey = key
+  else delete parameters.sourceNodeKey
+  const source = sources.value.find((item) => item.key === key)
+  if (source && !props.facts.some((fact) => fact.factCode === parameters.factCode
+    && fact.ownerContext === source.ownerContext && fact.objectType === source.objectType))
+    parameters.factCode = ''
+  emit('change', 'BUSINESS_FACT', parameters)
+}
 const labels = {
   FIELD: '字段判断',
   TASK: '任务完成',

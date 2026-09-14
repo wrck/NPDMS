@@ -10,6 +10,7 @@ public class CustomerUpdateReqVO {
 
     private String name;
     private String shortName;
+    private String customerLevel;
     private String remark;
     private String departmentCode;
     private String marketCode;

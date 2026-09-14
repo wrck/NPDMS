@@ -26,16 +26,62 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
 
 /**
- * REQ-PROJ-004: read-only task references to existing SOL surveys, not PRE02 preparation readiness.
+ * REQ-PROJ-004: read-only node references to existing SOL surveys, not PRE02 preparation readiness.
  * The original controller/service remains the only business command entry; no implicit creation.
  */
 @Service
 @RequiredArgsConstructor
-public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectProvider {
+public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectProvider, cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider {
 
     private final SiteSurveyMapper mapper;
     private final ProjectScopeApi projectScopeApi;
     private final PermissionApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {
+        if (context == null || context.tenantId() == null || context.execution() == null
+                || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())) throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
+        var execution = executions.lockAndRevalidate(context.execution());
+        return lockedResult(objectQuery(context.tenantId(), execution.projectId(), objectId), execution.executionId());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockStageCompletionFact(StageCompletionContext context, String objectId) {
+        if (context == null || context.tenantId() == null || context.execution() == null
+                || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())) throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
+        var execution = executions.lockAndRevalidateStage(context.execution());
+        return lockedResult(objectQuery(context.tenantId(), execution.projectId(), objectId), execution.executionId());
+    }
+
+    private CompletionFact lockedResult(SiteSurveyTaskObjectQuery query, Long executionId) {
+        var row = requireObject(mapper.selectTaskObjectForUpdate(query), query);
+        if (!Objects.equals(row.getTenantId(), query.tenantId()) || !Objects.equals(row.getProjectId(), query.projectId())
+                || Boolean.TRUE.equals(row.getDeleted()))
+            throw exception(SITE_SURVEY_NOT_EXISTS);
+        if (row.getVersion() == null || row.getVersion() < 0) throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
+        Integer status = row.getStatus();
+        if (status == null || status < 0 || status > 3) throw exception(SITE_SURVEY_STATUS_INVALID);
+        // Current-round association is validated by PROJ; SOL supplies the same real result for either node kind.
+        boolean confirmed = status == 1 || status == 3;
+        boolean archived = status == 3;
+        return new CompletionFact(row.getId().toString(), "SOL_SITE_SURVEY_RESULT:" + row.getVersion() + ":" + status
+                + ":execution:" + executionId, confirmed,
+                Map.of("SURVEY_CONFIRMED", confirmed, "SURVEY_ARCHIVED", archived));
+    }
+
+    @Override
+    public List<AssociationCandidate> associationCandidates(AssociationContext context, String afterObjectId, int pageSize) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
+                || pageSize < 1 || pageSize > 100) throw exception(FORBIDDEN);
+        Long afterId = afterObjectId == null ? null : Long.valueOf(afterObjectId);
+        return mapper.selectAssociationPage(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyAssociationPageQuery(
+                context.tenantId(), context.projectId(), afterId, pageSize)).stream()
+                .map(row -> new AssociationCandidate(row.getId().toString(), "SOL_SITE_SURVEY:v1:" + row.getVersion() + ":" + row.getStatus()))
+                .toList();
+    }
 
     @Override
     public String ownerContext() { return "SOL"; }
@@ -47,12 +93,36 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     public Set<String> completionFactCodes() { return Set.of("SURVEY_CONFIRMED", "SURVEY_ARCHIVED"); }
 
     @Override
+    public boolean supportsStageCompletionFacts() { return true; }
+
+    @Override
     public Map<String, String> completionFactLabels() {
         return Map.of("SURVEY_CONFIRMED", "工勘记录已确认（不等同实施就绪）", "SURVEY_ARCHIVED", "工勘记录已归档");
     }
 
     @Override
-    public Set<String> inspectContext(Context context) {
+    public cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Result inspectStage(
+            cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Context context) {
+        if (context == null || context.stageId() == null || context.stageId() <= 0
+                || !Set.of("REFERENCE_EXISTING", "CREATE_ON_FIRST_ACTION", "READ_ONLY_AGGREGATE").contains(context.instanceResolutionStrategy()))
+            throw exception(FORBIDDEN);
+        requireProjectQuery(context.tenantId(), context.actorId(), context.projectId());
+        Set<String> actions = new LinkedHashSet<>(Set.of("QUERY"));
+        var execution = context.execution();
+        if (!"READ_ONLY_AGGREGATE".equals(context.instanceResolutionStrategy()) && execution != null && execution.writable()
+                && Objects.equals(context.projectId(), execution.projectId()) && Objects.equals(context.stageId(), execution.stageId())
+                && permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:execute")
+                && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_EDIT)
+                && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_MANAGE)) {
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) actions.add("CREATE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) actions.add("DELETE");
+        }
+        return new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Result(actions);
+    }
+
+    @Override
+    public Set<String> inspectContext(TaskBusinessObjectProvider.Context context) {
         requireQuery(context);
         if (hasScope(context, ProjectScopeApi.ACTION_MANAGE)
                 && permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) {
@@ -62,7 +132,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     @Override
-    public List<BusinessObjectFact> candidates(Context context) {
+    public List<BusinessObjectFact> candidates(TaskBusinessObjectProvider.Context context) {
         requireQuery(context);
         Set<String> permissions = writePermissions(context);
         // Public interface has no cursor yet: deterministic first 100, never an unbounded list.
@@ -72,7 +142,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     @Override
-    public BusinessObjectFact inspect(Context context, String objectId) {
+    public BusinessObjectFact inspect(TaskBusinessObjectProvider.Context context, String objectId) {
         requireQuery(context);
         SiteSurveyTaskObjectQuery query = objectQuery(context, objectId);
         return toFact(context, requireObject(mapper.selectTaskObject(query), query), writePermissions(context));
@@ -80,7 +150,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public BusinessObjectFact lockAndRevalidate(Context context, String objectId, String expectedVersion) {
+    public BusinessObjectFact lockAndRevalidate(TaskBusinessObjectProvider.Context context, String objectId, String expectedVersion) {
         requireQuery(context);
         SiteSurveyTaskObjectQuery query = objectQuery(context, objectId);
         BusinessObjectFact fact = toFact(context, requireObject(mapper.selectTaskObjectForUpdate(query), query),
@@ -92,29 +162,35 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         return fact;
     }
 
-    private void requireQuery(Context context) {
-        if (context == null || context.tenantId() == null || context.tenantId() < 0
-                || context.actorId() == null || context.actorId() <= 0
-                || context.projectId() == null || context.projectId() <= 0
-                || context.taskId() == null || context.taskId() <= 0
-                || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
-                || !Objects.equals(context.actorId(), SecurityFrameworkUtils.getLoginUserId())) {
+    private void requireQuery(TaskBusinessObjectProvider.Context context) {
+        if (context == null || context.taskId() == null || context.taskId() <= 0) throw exception(FORBIDDEN);
+        requireProjectQuery(context.tenantId(), context.actorId(), context.projectId());
+    }
+
+    private void requireProjectQuery(Long tenantId, Long actorId, Long projectId) {
+        if (tenantId == null || tenantId < 0 || actorId == null || actorId <= 0 || projectId == null || projectId <= 0
+                || !Objects.equals(tenantId, TenantContextHolder.getTenantId())
+                || !Objects.equals(actorId, SecurityFrameworkUtils.getLoginUserId())) {
             throw exception(FORBIDDEN);
         }
-        if (!hasScope(context, ProjectScopeApi.ACTION_VIEW)
-                || !permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:query")) {
+        if (!hasScope(tenantId, actorId, projectId, ProjectScopeApi.ACTION_VIEW)
+                || !permissionApi.hasAnyPermissions(actorId, "pms:eng-site-survey:query")) {
             throw exception(FORBIDDEN);
         }
     }
 
-    private boolean hasScope(Context context, String action) {
+    private boolean hasScope(TaskBusinessObjectProvider.Context context, String action) {
+        return hasScope(context.tenantId(), context.actorId(), context.projectId(), action);
+    }
+
+    private boolean hasScope(Long tenantId, Long actorId, Long projectId, String action) {
         var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                context.tenantId(), context.actorId(), context.projectId(), action));
+                tenantId, actorId, projectId, action));
         return scope != null && scope.fullProjectIds() != null
-                && scope.fullProjectIds().contains(context.projectId());
+                && scope.fullProjectIds().contains(projectId);
     }
 
-    private Set<String> writePermissions(Context context) {
+    private Set<String> writePermissions(TaskBusinessObjectProvider.Context context) {
         if (!hasScope(context, ProjectScopeApi.ACTION_MANAGE)) return Set.of();
         Set<String> permissions = new LinkedHashSet<>();
         if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) {
@@ -126,7 +202,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         return permissions;
     }
 
-    private BusinessObjectFact toFact(Context context, SiteSurveyDO row, Set<String> permissions) {
+    private BusinessObjectFact toFact(TaskBusinessObjectProvider.Context context, SiteSurveyDO row, Set<String> permissions) {
         if (row == null || row.getId() == null || row.getId() <= 0 || Boolean.TRUE.equals(row.getDeleted())
                 || !Objects.equals(context.tenantId(), row.getTenantId())
                 || !Objects.equals(context.projectId(), row.getProjectId())) {
@@ -160,10 +236,14 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         return row;
     }
 
-    private SiteSurveyTaskObjectQuery objectQuery(Context context, String objectId) {
+    private SiteSurveyTaskObjectQuery objectQuery(TaskBusinessObjectProvider.Context context, String objectId) {
+        return objectQuery(context.tenantId(), context.projectId(), objectId);
+    }
+
+    private SiteSurveyTaskObjectQuery objectQuery(Long tenantId, Long projectId, String objectId) {
         try {
             if (objectId == null || !objectId.matches("[1-9][0-9]*")) throw exception(SITE_SURVEY_NOT_EXISTS);
-            return new SiteSurveyTaskObjectQuery(context.tenantId(), context.projectId(), Long.valueOf(objectId));
+            return new SiteSurveyTaskObjectQuery(tenantId, projectId, Long.valueOf(objectId));
         } catch (NumberFormatException invalid) {
             throw exception(SITE_SURVEY_NOT_EXISTS);
         }

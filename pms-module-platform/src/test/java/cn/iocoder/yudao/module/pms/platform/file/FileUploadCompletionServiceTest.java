@@ -100,8 +100,14 @@ class FileUploadCompletionServiceTest {
         when(sessionMapper.completeIfValidating(any())).thenReturn(1);
         executeImmediately();
 
+        var execution = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                "{\"stage\":{\"projectId\":11,\"stageId\":12,\"executionId\":13}}");
         FileUploadCompleted completed = service.complete(new FileUploadCompleteCommand(0L, 7L, "idem-complete",
-                101L, 201L, new MockMultipartFile("file", "evidence.pdf", "application/pdf", bytes), null));
+                101L, 201L, new MockMultipartFile("file", "evidence.pdf", "application/pdf", bytes), null, execution));
+        verify(policyRegistry).lockAndRevalidateReferenceSet(org.mockito.ArgumentMatchers.argThat(
+                query -> execution.equals(query.ownerExecutionContext())));
+        verify(policyRegistry).lockAndRevalidate(org.mockito.ArgumentMatchers.argThat(
+                query -> execution.equals(query.ownerExecutionContext())));
 
         assertEquals(101L, completed.artifactId());
         assertEquals(1, completed.versionNo());
@@ -130,6 +136,24 @@ class FileUploadCompletionServiceTest {
         assertEquals(101L, artifact.getValue().getId());
         assertEquals("DRAFT", artifact.getValue().getLifecycleStatusCode());
         assertNotNull(successFacts.get().detailSnapshot());
+    }
+
+    @Test
+    void staleSelectedExecutionRejectsBeforeStorageOrFileFactWrites() {
+        byte[] bytes = "%PDF-1.4".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(multipartReader.read(any(), eq(52_428_800L))).thenReturn(bytes);
+        when(sessionMapper.selectForUpdate(any())).thenReturn(session(bytes.length));
+        when(sessionMapper.beginValidationIfInitialized(any())).thenReturn(1);
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenThrow(new IllegalStateException("STALE_EXECUTION"));
+        executeImmediately();
+        var context = JsonUtils.parseTree("{\"task\":{\"executionId\":7001}}");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.complete(
+                new FileUploadCompleteCommand(0L, 7L, "stale-node", 101L, 201L,
+                        new MockMultipartFile("file", "evidence.pdf", "application/pdf", bytes), null, context)));
+        verify(policyRegistry).lockAndRevalidateReferenceSet(org.mockito.ArgumentMatchers.argThat(
+                query -> context.equals(query.ownerExecutionContext())));
+        org.mockito.Mockito.verifyNoInteractions(storageReceiptApi, artifactMapper, referenceMapper, versionMapper);
+        verify(sessionMapper, org.mockito.Mockito.never()).completeIfValidating(any());
     }
 
     private void executeImmediately() {

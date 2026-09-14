@@ -14,9 +14,12 @@ export const renderer = createRenderer<TestNode, TestNode>({
     node.props ||= {}
     node.props[key] = value
   },
-  insert: (child, parent) => {
+  insert: (child, parent, anchor) => {
+    if (child.parent) child.parent.children = child.parent.children.filter((item) => item !== child)
     child.parent = parent
-    parent.children.push(child)
+    const index = anchor ? parent.children.indexOf(anchor) : -1
+    if (index < 0) parent.children.push(child)
+    else parent.children.splice(index, 0, child)
   },
   remove: (child) => {
     if (child.parent) child.parent.children = child.parent.children.filter((item) => item !== child)

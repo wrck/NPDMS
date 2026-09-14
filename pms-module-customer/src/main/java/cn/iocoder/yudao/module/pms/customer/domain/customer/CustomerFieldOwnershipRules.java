@@ -6,7 +6,7 @@ import java.util.Set;
 public final class CustomerFieldOwnershipRules {
 
     private static final Set<String> CRM_FIELDS = Set.of(
-            "code", "name", "shortName", "crmLevel", "crmStatus", "salesOwnerId", "contactMobile", "contactEmail",
+            "code", "name", "shortName", "customerLevel", "crmLevel", "crmStatus", "salesOwnerId", "contactMobile", "contactEmail",
             "classification");
     private static final Set<String> PLATFORM_FIELDS = Set.of(
             "remark", "tags", "servicePreference", "deliveryNote");

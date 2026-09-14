@@ -104,12 +104,62 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         var stage = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(json.toString(),ProjectWorkBindingFact.class);
         when(workBindingFactApi.inspectStage(any())).thenReturn(stage);
         when(executionBinding.canCreate(stage)).thenReturn(true);
+        when(executionBinding.observeCurrent(stage)).thenReturn(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection(
+                null,new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(100L,4,600L,1,701L,1,800L,900L,1,1,true)));
         var actor = new RequirementAnalysisDynamicFormQueryService.Actor(0L,9L);
-        assertEquals(List.of("CREATE_INITIAL_DRAFT"),service.getWorkspace(100L,actor,600L).getAllowedActions());
+        assertEquals(List.of("CREATE_INITIAL_DRAFT"),service.getWorkspace(100L,actor,600L,null).getAllowedActions());
         verify(workBindingFactApi).inspectStage(argThat(query -> query.projectId()==100L && query.projectStageId()==600L));
         when(workBindingFactApi.inspectStage(any())).thenThrow(new IllegalStateException("stage unavailable"));
-        assertTrue(service.getWorkspace(100L,actor,600L).getAllowedActions().isEmpty());
+        assertTrue(service.getWorkspace(100L,actor,600L,null).getAllowedActions().isEmpty());
         verify(workBindingFactApi,never()).inspect(any()); verify(workBindingFactApi,never()).inspectTask(any());
+    }
+
+    @Test
+    void explicitTaskDoesNotFallBackToDefaultOrStageBinding() {
+        var service = new RequirementAnalysisDynamicFormQueryService(rootMapper,dynamicFormApi,
+                permissionApi,projectScopeApi,participantFactApi,workBindingFactApi,executionBinding);
+        allowProjectRead();
+        when(permissionApi.hasAnyPermissions(9L,RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L,9L,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,4,7L));
+        when(workBindingFactApi.inspectTask(any())).thenReturn(binding());
+        when(executionBinding.canCreate(any())).thenReturn(true);
+        when(executionBinding.observeCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(100L,4,200L,1,701L,1,800L,900L,1,1,600L,1,true,null),null));
+        var actor = new RequirementAnalysisDynamicFormQueryService.Actor(0L,9L);
+
+        assertEquals(List.of("CREATE_INITIAL_DRAFT"),service.getWorkspace(100L,actor,null,200L).getAllowedActions());
+        verify(workBindingFactApi).inspectTask(argThat(query -> query.projectId()==100L && query.projectTaskId()==200L));
+        when(workBindingFactApi.inspectTask(any())).thenThrow(new IllegalStateException("task unavailable"));
+        assertTrue(service.getWorkspace(100L,actor,null,200L).getAllowedActions().isEmpty());
+        assertThrows(RuntimeException.class, () -> service.getWorkspace(100L,actor,600L,200L));
+        verify(workBindingFactApi,never()).inspect(any()); verify(workBindingFactApi,never()).inspectStage(any());
+    }
+
+    @Test
+    void sharedDraftActionsUseTheSelectedNodeRatherThanItsInactiveOrigin() {
+        var service = new RequirementAnalysisDynamicFormQueryService(rootMapper,dynamicFormApi,
+                permissionApi,projectScopeApi,participantFactApi,workBindingFactApi,executionBinding);
+        allowProjectRead();
+        when(permissionApi.hasAnyPermissions(9L,RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L,9L,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,4,7L));
+        var root = draft();
+        when(rootMapper.selectDraft(any())).thenReturn(root);
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form());
+        var binding = binding();
+        var selected = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(100L,4,700L,1,701L,1,800L,900L,1,1,600L,1,true,null),null);
+        when(workBindingFactApi.inspectTask(any())).thenReturn(binding);
+        when(executionBinding.observeCurrent(binding)).thenReturn(selected);
+        when(executionBinding.currentBinding(root,selected)).thenReturn(binding);
+        when(executionBinding.canWrite(root,selected)).thenReturn(true);
+        var actor = new RequirementAnalysisDynamicFormQueryService.Actor(0L,9L);
+
+        assertEquals(List.of("PATCH_FORM","COMPLETE"),service.getWorkspace(100L,actor,null,700L).getDraft().getAllowedActions());
+        verify(executionBinding,never()).canWrite(root);
+        when(workBindingFactApi.inspectTask(any())).thenThrow(new IllegalStateException("selected task unavailable"));
+        assertTrue(service.getWorkspace(100L,actor,null,700L).getDraft().getAllowedActions().isEmpty());
     }
 
     @Test

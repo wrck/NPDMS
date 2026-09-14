@@ -13,6 +13,7 @@ public record UpdateCustomerCommand(
         String systemCode,
         String expendCode,
         String industryCode,
+        String customerLevel,
         Set<String> changedFields,
         Long expectedVersion,
         String idempotencyKey) {
@@ -26,7 +27,15 @@ public record UpdateCustomerCommand(
             Set<String> changedFields,
             Long expectedVersion,
             String idempotencyKey) {
-        this(tenantId, customerId, name, shortName, remark, null, null, null, null, null,
+        this(tenantId, customerId, name, shortName, remark, null, null, null, null, null, null,
                 changedFields, expectedVersion, idempotencyKey);
+    }
+
+    public UpdateCustomerCommand(Long tenantId, Long customerId, String name, String shortName, String remark,
+                                 String departmentCode, String marketCode, String systemCode, String expendCode,
+                                 String industryCode, Set<String> changedFields, Long expectedVersion,
+                                 String idempotencyKey) {
+        this(tenantId, customerId, name, shortName, remark, departmentCode, marketCode, systemCode,
+                expendCode, industryCode, null, changedFields, expectedVersion, idempotencyKey);
     }
 }

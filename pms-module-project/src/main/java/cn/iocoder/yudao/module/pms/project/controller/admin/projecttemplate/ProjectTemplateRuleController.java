@@ -31,7 +31,7 @@ public class ProjectTemplateRuleController {
 
     @GetMapping("/fields")
     @Operation(summary = "模板规则可用项目字段目录，不读取实例数据")
-    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')")
     public CommonResult<List<ProjectRuleFields.Field>> fields() {
         return success(ProjectRuleFields.catalog());
     }
@@ -43,7 +43,7 @@ public class ProjectTemplateRuleController {
     @PostMapping("/simulate")
     @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
     @Operation(summary = "使用模拟输入试算规则，不推进项目或业务状态")
-    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')")
     public CommonResult<ProjectRuleSimulationService.Simulation> simulate(@Valid @RequestBody SimulationRequest body) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         try {

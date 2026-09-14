@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.ProjectTaskBusinessLinkMapper">
+    <sql id="nodeScope">
+        <choose>
+            <when test="query.taskId != null and query.stageId == null">AND task_id = #{query.taskId}</when>
+            <when test="query.stageId != null and query.taskId == null">AND stage_id = #{query.stageId}</when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+    </sql>
     <sql id="activeLinks">
         SELECT * FROM proj_task_business_link
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
-          AND task_id = #{query.taskId} AND unlinked_at IS NULL AND active_marker = 1
+          <include refid="nodeScope"/>
+          AND unlinked_at IS NULL AND active_marker = 1
         ORDER BY id
     </sql>
     <select id="selectActive" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskbusiness.ProjectTaskBusinessLinkDO">
@@ -12,6 +20,19 @@
     </select>
     <select id="selectActiveForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskbusiness.ProjectTaskBusinessLinkDO">
         <include refid="activeLinks"/> FOR UPDATE
+    </select>
+    <select id="selectPreviouslyAssociatedObjectIds" resultType="java.lang.String">
+        SELECT DISTINCT object_id FROM proj_task_business_link
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          <include refid="nodeScope"/>
+          AND owner_context=#{query.ownerContext} AND object_type=#{query.objectType}
+          AND (node_execution_id IS NULL OR node_execution_id &lt;&gt; #{query.currentExecutionId})
+        <choose>
+            <when test="query.objectIds != null and !query.objectIds.isEmpty()">
+                AND object_id IN <foreach collection="query.objectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
     </select>
     <select id="selectCurrentContract" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO">
         SELECT c.* FROM proj_project_task_execution_contract c
@@ -22,10 +43,10 @@
     </select>
     <insert id="insertLink">
         INSERT INTO proj_task_business_link
-          (id, tenant_id, project_id, task_id, execution_contract_id, contract_version,
+          (id, tenant_id, project_id, task_id, stage_id, node_execution_id, execution_contract_id, contract_version,
            owner_context, object_type, object_id, fact_version, linked_by, linked_at, version,
            creator, create_time, updater, update_time)
-        VALUES (#{link.id}, #{link.tenantId}, #{link.projectId}, #{link.taskId},
+        VALUES (#{link.id}, #{link.tenantId}, #{link.projectId}, #{link.taskId}, #{link.stageId}, #{link.nodeExecutionId},
           #{link.executionContractId}, #{link.contractVersion}, #{link.ownerContext},
           #{link.objectType}, #{link.objectId}, #{link.factVersion}, #{link.linkedBy},
           #{link.linkedAt}, #{link.version}, #{link.creator}, #{link.createTime},
@@ -36,7 +57,8 @@
         SET unlinked_by = #{query.actorId}, unlinked_at = #{query.unlinkedAt},
             updater = #{query.actorId}, update_time = #{query.unlinkedAt}, version = version + 1
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
-          AND task_id = #{query.taskId} AND id = #{query.linkId} AND version = #{query.expectedVersion}
+          <include refid="nodeScope"/>
+          AND id = #{query.linkId} AND version = #{query.expectedVersion}
           AND unlinked_at IS NULL AND active_marker = 1 AND linked_at &lt;= #{query.unlinkedAt}
     </update>
 </mapper>

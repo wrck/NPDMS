@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import {
   connectNodes,
+  captureInlineRules,
   createDeliveryNode,
   dependencyEdges,
   disconnectNodes
@@ -22,6 +23,14 @@ const document = (): TemplateDesignerDocument => ({
 })
 
 describe('delivery canvas edits real rule references', () => {
+  it('does not mark a saved version dirty merely because the server includes a null inline rule', () => {
+    const model = document()
+    const stage = createDeliveryNode(model, 'STAGE', undefined, 'saved', { x: 1, y: 2 })
+    Reflect.set(stage, 'completionRule', null)
+    const saved = JSON.stringify(model)
+    captureInlineRules(model)
+    expect(JSON.stringify(model)).toBe(saved)
+  })
   it('creates independent nodes and makes a connection an admission condition', () => {
     const model = document()
     const a = createDeliveryNode(model, 'STAGE', undefined, 'a', { x: 100, y: 100 })

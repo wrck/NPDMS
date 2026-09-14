@@ -176,6 +176,26 @@ class CommercePublicContractTest {
     }
 
     @Test
+    void preservesSignedReturnQuantitiesAndUnknownUnitsWithoutConfirmingThem() {
+        CommerceOrderLineFact returned = new CommerceOrderLineFact("L-return", null, "1", "O-return",
+                "10", null, null, null, null, new BigDecimal("-4"), new BigDecimal("-1"),
+                new BigDecimal("-3"), null, 0, "PENDING_AUTHORITY",
+                CommerceSourceLifecycleStatus.RETURNED, NOW);
+        assertEquals(new BigDecimal("-4"), returned.orderQuantity());
+        assertEquals(new BigDecimal("-1"), returned.openQuantity());
+        assertEquals(new BigDecimal("-3"), returned.deliveredQuantity());
+        assertNull(returned.unitCode());
+        assertThrows(CommerceAuthorityIngestException.class, () -> new CommerceOrderLineFact(
+                "L", null, "1", "O", "10", null, null, null, null,
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ZERO, null, 0,
+                "CONFIRMED", CommerceSourceLifecycleStatus.ACTIVE, NOW));
+        assertThrows(CommerceAuthorityIngestException.class, () -> new CommerceOrderLineFact(
+                "L", null, "1", "O", "10", null, null, null, null,
+                new BigDecimal("-1000000000000"), BigDecimal.ZERO, BigDecimal.ZERO, "EA", 0,
+                "CONFIRMED", CommerceSourceLifecycleStatus.RETURNED, NOW));
+    }
+
+    @Test
     void publicRecordsDoNotExposeDataObjectsOrSourcePayloadBodies() {
         List<Class<?>> records = List.of(AssignedDeliveryScopeResult.class, AssignedDeliveryScopeLine.class,
                 CommerceAuthorityBatchCommand.class, CommerceAuthorityBatchResult.class,

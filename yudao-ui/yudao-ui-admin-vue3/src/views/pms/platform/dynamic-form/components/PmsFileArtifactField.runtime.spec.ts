@@ -2,12 +2,14 @@ import { defineComponent, h, nextTick, onMounted } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import PmsFileArtifactField from './PmsFileArtifactField.vue'
 import { mount, passthrough, textOf } from './runtimeTestHarness'
+const executionProps = vi.hoisted(() => ({ readers: [] as unknown[], uploaders: [] as unknown[] }))
 
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileReferenceList: defineComponent({
-    props: { referenceKey: { type: String, required: true } },
+    props: { referenceKey: { type: String, required: true }, ownerExecutionContext: Object },
     emits: ['loaded'],
     setup: (props, { emit }) => {
+      executionProps.readers.push(props.ownerExecutionContext)
       onMounted(() =>
         emit('loaded', {
           reference: { referenceKey: props.referenceKey, referenceVersion: 7 }
@@ -17,12 +19,29 @@ vi.mock('@/components/PmsFileArtifact', () => ({
     }
   }),
   PmsFileUploader: defineComponent({
-    props: { expectedReferenceVersion: Number },
-    setup: (props) => () => h('div', `uploader:${props.expectedReferenceVersion ?? 'new'}`)
+    props: { expectedReferenceVersion: Number, ownerExecutionContext: Object },
+    setup: (props) => {
+      executionProps.uploaders.push(props.ownerExecutionContext)
+      return () => h('div', `uploader:${props.expectedReferenceVersion ?? 'new'}`)
+    }
   })
 }))
 
 describe('F-PLT-002 controlled file field', () => {
+  it('passes the same selected execution to upload, replacement and removal controls', async () => {
+    executionProps.readers.length = 0
+    executionProps.uploaders.length = 0
+    const context = { stage: { executionId: '2099473011264401410' } }
+    const mounted = mount(PmsFileArtifactField, {
+      instanceId: 1, templateRevisionId: 8, fieldKey: 'evidence',
+      currentFacts: [{ artifactId: 2, versionNo: 3, referenceKey: 'slot-a' }],
+      allowedActions: ['PATCH_INSTANCE'], ownerExecutionContext: context
+    }, { ElAlert: passthrough, ElEmpty: passthrough })
+    await nextTick()
+    expect(executionProps.readers).toEqual([context])
+    expect(executionProps.uploaders).toEqual([context, context])
+    mounted.app.unmount()
+  })
   it('shows authoritative references and gates mutation with server PATCH_INSTANCE action', async () => {
     const runtimeValues: string[][] = []
     const readonly = mount(

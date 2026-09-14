@@ -6,7 +6,10 @@ import { buildTaskUpdatePayload, snapshotTaskEdit } from './project-task-update'
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const panel = read('./ProjectTaskPanel.vue')
 const tree = read('./ProjectTaskTree.vue')
-const drawer = read('./ProjectTaskWorkbenchDrawer.vue')
+const drawer = read('./ProjectNodeWorkbenchDrawer.vue')
+const flow = read('./ProjectFlowPanel.vue')
+const stateActions = read('../../inheritance/detail/TaskStateActions.vue')
+const detailsEditor = read('./ProjectTaskDetailsEditor.vue')
 const detail = read('../index.vue')
 const legacy = read('../../project-task/index.vue')
 const api = read('../../../../../api/pms/project/task-workbench/index.ts')
@@ -64,15 +67,15 @@ describe('F-PROJ-007 project task workbench', () => {
 
   it('uses only server allowed actions for workspace and task operations', () => {
     expect(panel).toContain("workspace?.allowedActions.includes('CREATE')")
-    expect(drawer).toContain('workbench.value?.allowedActions.includes(action)')
+    expect(stateActions).toContain('props.workbench.allowedActions?.includes(action)')
+    expect(drawer).toContain('<ProjectFlowPanel')
     expect(drawer).not.toMatch(/hasRole|roleCode|v-hasPermi/)
   })
 
-  it('pages task candidates and submits progress through the isolated PATCH branch', () => {
-    expect(drawer).toContain('getTaskAssigneeCandidates')
-    expect(drawer).toContain('v-model:page="candidateQuery.pageNo"')
-    expect(drawer).toContain('v-model:limit="candidateQuery.pageSize"')
-    expect(drawer).toContain(':max="99"')
+  it('shares responsibility, description and progress controls with the delivery flow', () => {
+    expect(flow).toContain('<TaskMaintenancePanel')
+    expect(flow).toContain('<ProjectTaskDetailsEditor')
+    expect(detailsEditor).toContain(':max="99"')
     expect(api).toContain('{ progress }')
     expect(api).toContain("method: 'PATCH'")
     expect(api).toContain("'If-Match': String(version)")
@@ -81,9 +84,9 @@ describe('F-PROJ-007 project task workbench', () => {
   it('sends concurrency and idempotency inputs through the new command API', () => {
     expect(api).toContain("'Idempotency-Key': idempotencyKey")
     expect(api).toContain("'If-Match': String(version)")
-    expect(panel).toContain('expectedTaskTreeVersion: workspace.value.taskTreeVersion')
+    expect(detailsEditor).toContain('editingVersion.value')
+    expect(stateActions).toContain('intent.keyFor(')
     expect(detail).toContain("{ key: 'tasks', label: '项目任务'")
-    expect(panel).toContain('targetParentTaskId: optionalTaskId(moveForm.targetParentTaskId)')
   })
 
   it('uses responsive Element Plus layouts and theme variables without inline styles', () => {
@@ -91,10 +94,10 @@ describe('F-PROJ-007 project task workbench', () => {
     expect(tree).toContain('<el-tree')
     expect(drawer).toContain('<el-drawer')
     expect(drawer).toContain('append-to-body')
-    expect(drawer).toContain('size="min(720px, 100vw)"')
-    expect(drawer).toContain('<el-descriptions')
+    expect(drawer).toContain('size="min(1180px, 100vw)"')
+    expect(flow).toContain('<el-descriptions')
     expect(panel).toContain('@media (width <= 767px)')
-    expect(drawer).toContain('@media (width <= 767px)')
+    expect(flow).toContain("useMediaQuery('(max-width: 767px)')")
     expect(panel).toMatch(/var\(--el-(?:text|border|fill)-/)
     expect(`${panel}${tree}${drawer}`).not.toMatch(/\sstyle=/)
   })

@@ -53,6 +53,7 @@ export const buildInstanceRuntime = (
     templateRevisionId: number
     controlledFiles: Record<string, DynamicFormFileFactVO[]>
     allowedActions: DynamicFormAction[]
+    ownerExecutionContext?: JsonObject
   }
 ) => {
   const runtimeRules = clone(rules)
@@ -66,7 +67,8 @@ export const buildInstanceRuntime = (
           templateRevisionId: context.templateRevisionId,
           fieldKey: rule.field,
           currentFacts: context.controlledFiles[rule.field] || [],
-          allowedActions: context.allowedActions
+          allowedActions: context.allowedActions,
+          ownerExecutionContext: clone(context.ownerExecutionContext)
         }
       }
       childrenOf(rule).forEach(visit)

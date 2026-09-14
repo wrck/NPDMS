@@ -18,6 +18,9 @@
             <if test="query.updateRemark">
                 remark = #{query.remark},
             </if>
+            <if test="query.updateCustomerLevel">
+                customer_level = #{query.customerLevel},
+            </if>
             <if test="query.updateClassification">
                 department_code = #{query.departmentCode},
                 department_name = #{query.departmentName},

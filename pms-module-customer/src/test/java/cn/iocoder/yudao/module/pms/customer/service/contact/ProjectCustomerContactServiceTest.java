@@ -77,17 +77,6 @@ class ProjectCustomerContactServiceTest {
         verify(contacts).selectPage(argThat(query -> Integer.valueOf(0).equals(query.status())));
     }
 
-    @Test void defaultsPreserveBothLocallyEditedAndDeletedRelations() {
-        var source = new CustomerContactMasterDO(); source.setId(9L); source.setCustomerId(8L); source.setStatus(0);
-        when(sources.selectPage(any())).thenReturn(new PageResult<>(List.of(source), 1L));
-        var existing = row(); existing.setDeleted(true);
-        when(contacts.selectSourceIncludingDeletedForUpdate(any())).thenReturn(existing);
-        assertEquals(0, service.importDefaults(actor, 7L, 2));
-        verify(contacts, never()).insert(any(ProjectCustomerContactDO.class));
-        verify(contacts, never()).updateById(any(ProjectCustomerContactDO.class));
-        verifyNoInteractions(history);
-    }
-
     @Test void staleProjectContactVersionCannotOverwriteOrAppendHistory() {
         when(contacts.selectForUpdate(any())).thenReturn(row());
         assertThrows(ServiceException.class, () -> service.update(actor, write(1)));

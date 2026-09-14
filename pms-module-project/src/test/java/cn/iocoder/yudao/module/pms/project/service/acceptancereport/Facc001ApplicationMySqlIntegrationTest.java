@@ -100,10 +100,10 @@ class Facc001ApplicationMySqlIntegrationTest {
         activityId = projectId + 1;
         actor = new AcceptanceReportCommands.Actor(TENANT_ID, USER_ID, KEY_PREFIX + activityId);
         jdbcTemplate.update("INSERT INTO acc_acceptance "
-                        + "(id,project_id,project_task_id,execution_contract_id,acceptance_type,activity_status,"
+                        + "(id,project_id,project_task_id,execution_contract_id,deliverable_id,acceptance_type,activity_status,"
                         + "current_report_version_id,version,creator,updater,deleted,tenant_id) "
-                        + "VALUES (?,?,?,?, 'PRELIMINARY','PENDING',NULL,0,'facc001_it','facc001_it',b'0',?)",
-                activityId, projectId, projectId + 2, projectId + 3, TENANT_ID);
+                        + "VALUES (?,?,?,?,?, 'PRELIMINARY','PENDING',NULL,0,'facc001_it','facc001_it',b'0',?)",
+                activityId, projectId, projectId + 2, projectId + 3, projectId + 4, TENANT_ID);
         jdbcTemplate.update("INSERT INTO acc_project_deliverable "
                         + "(id,project_id,deliverable_code,name,stage_code,required,status,current_source_version_id,archive_status,"
                         + "version,creator,updater,deleted,tenant_id) "
@@ -288,7 +288,7 @@ class Facc001ApplicationMySqlIntegrationTest {
                                                                  Long previousId, int versionNo,
                                                                  FileArtifactVersionFact file) {
         return new AcceptanceReportVersionChangedMessage(UUID.randomUUID().toString(), TENANT_ID, changeType,
-                activityId, projectId, "PRELIMINARY", USER_ID, currentId, previousId, versionNo, List.of(file));
+                activityId, projectId, projectId + 4, "PRELIMINARY", USER_ID, currentId, previousId, versionNo, List.of(file));
     }
 
     private long eventCount(String eventType) {

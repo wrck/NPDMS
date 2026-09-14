@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - PMS 外包申请新增/修改 Request VO")
 @Data
 public class OutsourceRequestSaveReqVO {
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution;
 
     @Schema(description = "主键，更新时必填", example = "1024")
     private Long id;

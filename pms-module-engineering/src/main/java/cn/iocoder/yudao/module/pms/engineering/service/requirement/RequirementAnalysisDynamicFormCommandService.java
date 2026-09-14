@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
+import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisCompleteUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisEntityDataUpdate;
@@ -33,8 +34,8 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidatio
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
@@ -73,7 +74,6 @@ public class RequirementAnalysisDynamicFormCommandService {
 
     private static final DynamicFormProviderKey PROVIDER = new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");
     private static final String ACTIVE = "ACTIVE";
-    private static final String INITIAL_STAGE = "S1";
 
     private final RequirementAnalysisRootMapper rootMapper;
     private final ProjectScopeApi projectScopeApi;
@@ -85,6 +85,8 @@ public class RequirementAnalysisDynamicFormCommandService {
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
+    private final RequirementAnalysisExecutionBinding executionBinding;
+    private final EngineeringRuleReevaluationEvents ruleEvents;
 
     public CommandResult createInitial(CreateCommand command, Actor actor) {
         return execute(actor, "REQUIREMENT_ANALYSIS_INITIALIZE", command.idempotencyKey(), command,
@@ -106,7 +108,7 @@ public class RequirementAnalysisDynamicFormCommandService {
     }
 
     private Outcome createInitialInTransaction(CreateCommand command, Actor actor) {
-        Authorization authorization = lockManager(command.projectId(), actor, true, true, null);
+        Authorization authorization = lockManager(command.projectId(), actor, null, command.execution());
         RequirementAnalysisProjectQuery project = new RequirementAnalysisProjectQuery(actor.tenantId(), command.projectId());
         if (rootMapper.selectDraftForUpdate(project) != null || rootMapper.selectEffectiveForUpdate(project) != null) {
             throw exception(REQUIREMENT_ANALYSIS_DRAFT_CONFLICT);
@@ -116,7 +118,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         long preparationId = IdWorker.getId();
         long instanceId = IdWorker.getId();
         PreparationDO root = newDraft(actor, command.projectId(), preparationId, instanceId,
-                1, null, binding);
+                1, null, binding, authorization.execution());
         insert(root);
         DynamicFormInstanceFact instance = dynamicFormApi.createBusinessInstance(new DynamicFormInstanceCreateCommand(
                 actor.tenantId(), actor.actorId(), PROVIDER, DynamicFormBusinessAction.CREATE,
@@ -132,13 +134,13 @@ public class RequirementAnalysisDynamicFormCommandService {
         PreparationDO inspected = rootMapper.selectById(new RequirementAnalysisRowQuery(
                 actor.tenantId(), command.preparationId()));
         if (inspected == null) throw exception(REQUIREMENT_STATUS_INVALID);
-        lockManager(inspected.getProjectId(), actor, false, false, null);
+        Authorization authorization = lockManager(inspected.getProjectId(), actor, inspected, command.execution());
         PreparationDO root = lockDraft(actor.tenantId(), command.preparationId(), command.expectedSolVersion());
         Map<String, Object> values = RequirementAnalysisEntityData.values(root);
         values.putAll(command.partialValues());
         DynamicFormInstanceFact inspectedForm = dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(
                 new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(), PROVIDER, owner(root.getId()),
-                        root.getDynamicFormInstanceId(), DynamicFormBusinessAction.PATCH), values));
+                        root.getDynamicFormInstanceId(), DynamicFormBusinessAction.PATCH, executionContext(authorization)), values));
         if (!Objects.equals(inspectedForm.instanceVersion(), command.expectedInstanceVersion())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
@@ -153,6 +155,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         root.setVersion(root.getVersion() + 1);
         root.setContentVersion(root.getContentVersion() + 1);
         recordPatchAudit(actor, root, command, updated);
+        ruleEvents.changed(root.getProjectId(), "RequirementAnalysis", root.getId(), actor.actorId(), actor.correlationId());
         return result(root, updated);
     }
 
@@ -160,13 +163,12 @@ public class RequirementAnalysisDynamicFormCommandService {
         PreparationDO inspected = rootMapper.selectById(new RequirementAnalysisRowQuery(
                 actor.tenantId(), command.preparationId()));
         if (inspected == null) throw exception(REQUIREMENT_STATUS_INVALID);
-        Authorization authorization = lockManager(inspected.getProjectId(), actor,
-                Integer.valueOf(1).equals(inspected.getBusinessVersion()), true, null);
+        Authorization authorization = lockManager(inspected.getProjectId(), actor, inspected, command.execution());
         PreparationDO root = lockDraft(actor.tenantId(), command.preparationId(), command.expectedSolVersion());
         DynamicFormRevisionFact revision = requireRootBinding(root, requireBinding(authorization.binding()), actor);
         DynamicFormInstanceFact inspectedInstance = dynamicFormApi.inspectEntityData(new DynamicFormEntityDataQuery(new DynamicFormInstanceQuery(
                 actor.tenantId(), actor.actorId(), PROVIDER, owner(root.getId()), root.getDynamicFormInstanceId(),
-                DynamicFormBusinessAction.COMPLETE), RequirementAnalysisEntityData.values(root)));
+                DynamicFormBusinessAction.COMPLETE, executionContext(authorization)), RequirementAnalysisEntityData.values(root)));
         if (!Objects.equals(inspectedInstance.instanceVersion(), command.expectedInstanceVersion())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
@@ -205,7 +207,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         if (inspected == null || !"COMPLETED".equals(inspected.getStatusCode())) {
             throw exception(REQUIREMENT_STATUS_INVALID);
         }
-        Authorization authorization = lockManager(inspected.getProjectId(), actor, false, true, null);
+        Authorization authorization = lockManager(inspected.getProjectId(), actor, inspected, command.execution());
         PreparationDO source = rootMapper.selectForUpdate(new RequirementAnalysisRowQuery(
                 actor.tenantId(), command.sourcePreparationId()));
         if (!Objects.equals(source.getVersion(), command.expectedSolVersion())
@@ -224,7 +226,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         long preparationId = IdWorker.getId();
         long instanceId = IdWorker.getId();
         PreparationDO draft = newDraft(actor, source.getProjectId(), preparationId, instanceId,
-                source.getBusinessVersion() + 1, source.getId(), authorization.binding());
+                source.getBusinessVersion() + 1, source.getId(), authorization.binding(), authorization.execution());
         draft.setEntityValueJson(source.getEntityValueJson());
         insert(draft);
         DynamicFormPolicyFact targetPolicy = policyProvider.inspectInstanceOwnerPolicy(
@@ -239,8 +241,7 @@ public class RequirementAnalysisDynamicFormCommandService {
                 cloned.fields().stream().map(field -> field.fieldKey()).sorted().toList()));
     }
 
-    private Authorization lockManager(Long projectId, Actor actor, boolean requireS1, boolean withBinding,
-                                      Integer expectedProjectVersion) {
+    private Authorization lockManager(Long projectId, Actor actor, PreparationDO existing, ProjectBusinessExecutionSelection requested) {
         requireActor(actor);
         if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
@@ -258,24 +259,24 @@ public class RequirementAnalysisDynamicFormCommandService {
         }
         ProjectParticipantFact inspected = RequirementAnalysisManagerFacts.inspect(
                 participantFactApi, permissionApi, projectId, actor.actorId());
-        if (inspected == null || expectedProjectVersion != null
-                && !Objects.equals(expectedProjectVersion, inspected.projectVersion())) {
+        if (inspected == null) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
         ProjectParticipantFact participant = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(projectId, inspected.userId(), inspected.projectVersion(),
-                        ACTIVE, requireS1 ? INITIAL_STAGE : null,
+                        ACTIVE, null,
                         Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
-        ProjectWorkBindingFact binding = null;
-        if (withBinding) {
-            ProjectWorkBindingFact current = workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
-                    projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
-            binding = workBindingFactApi.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
-                    projectId, current.projectTaskId(), current.executionContractId(),
-                    current.projectTaskVersion(), current.contractVersion(), current.projectVersion(),
-                    ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+        ProjectWorkBindingFact current;
+        if (requested != null) {
+            current = executionBinding.lockRequested(projectId, requested);
+            if (existing != null) current = executionBinding.currentBinding(existing, requested);
+        } else {
+            current = existing == null ? workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
+                    projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS)) : executionBinding.currentBinding(existing);
         }
-        return new Authorization(participant.projectVersion(), lockedScope.treeVersion(), binding);
+        ProjectWorkBindingFact binding = executionBinding.lockBinding(current);
+        return new Authorization(participant.projectVersion(), lockedScope.treeVersion(), binding,
+                executionBinding.lockCurrent(binding));
     }
 
     private DynamicFormRevisionFact inspectRevision(Actor actor, ProjectWorkBindingFact binding) {
@@ -290,8 +291,14 @@ public class RequirementAnalysisDynamicFormCommandService {
         return inspected;
     }
 
+    private tools.jackson.databind.JsonNode executionContext(Authorization authorization) {
+        var execution = authorization.execution();
+        return JsonUtils.parseTree(JsonUtils.toJsonString(new ProjectBusinessExecutionSelection(
+                execution.execution(), execution.stageExecution())));
+    }
+
     private ProjectWorkBindingFact requireBinding(ProjectWorkBindingFact binding) {
-        if (binding == null || binding.templateTaskDefinitionId() == null || binding.templateRevisionId() == null
+        if (binding == null || binding.projectTemplateId() == null || binding.templateRevisionId() == null
                 || binding.dynamicFormTemplateId() == null
                 || binding.dynamicFormTemplateRevisionId() == null || binding.dynamicFormRevisionNo() == null
                 || binding.dynamicFormRevisionFactVersion() == null
@@ -306,7 +313,7 @@ public class RequirementAnalysisDynamicFormCommandService {
 
     private DynamicFormRevisionFact requireRootBinding(PreparationDO root, ProjectWorkBindingFact binding,
                                                        Actor actor) {
-        if (!Objects.equals(root.getTemplateId(), binding.templateTaskDefinitionId())
+        if (!Objects.equals(root.getTemplateId(), binding.projectTemplateId())
                 || !Objects.equals(root.getTemplateRevisionId(), binding.templateRevisionId())) {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
         }
@@ -314,7 +321,8 @@ public class RequirementAnalysisDynamicFormCommandService {
     }
 
     private PreparationDO newDraft(Actor actor, Long projectId, Long preparationId, Long instanceId,
-                                   int businessVersion, Long sourceId, ProjectWorkBindingFact binding) {
+                                   int businessVersion, Long sourceId, ProjectWorkBindingFact binding,
+                                   RequirementAnalysisExecutionBinding.Frozen execution) {
         PreparationDO row = new PreparationDO();
         row.setId(preparationId);
         row.setTenantId(actor.tenantId());
@@ -323,9 +331,9 @@ public class RequirementAnalysisDynamicFormCommandService {
         row.setDynamicFormInstanceId(instanceId);
         row.setEntityValueJson("{}");
         row.setBusinessVersion(businessVersion);
-        row.setTemplateId(binding.templateTaskDefinitionId());
+        row.setTemplateId(binding.projectTemplateId());
         row.setTemplateRevisionId(binding.templateRevisionId());
-        row.setTemplateSnapshot(binding.bindingParameterSnapshot());
+        row.setTemplateSnapshot(executionBinding.freeze(execution));
         row.setVersion(1);
         row.setContentVersion(1);
         row.setStatusCode("DRAFT");
@@ -367,6 +375,8 @@ public class RequirementAnalysisDynamicFormCommandService {
                     digest(request), CommandResult.class, () -> {
                         Outcome outcome = operation.get();
                         transition.set(outcome.transition());
+                        ruleEvents.changed(outcome.result().projectId(), "RequirementAnalysis", outcome.result().preparationId(),
+                                actor.actorId(), actor.correlationId());
                         return outcome.result();
                     }, response -> successFacts(scope, actor, response, transition.get()));
             if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
@@ -455,7 +465,8 @@ public class RequirementAnalysisDynamicFormCommandService {
         }
     }
 
-    private record Authorization(Integer projectVersion, Long scopeVersion, ProjectWorkBindingFact binding) {}
+    private record Authorization(Integer projectVersion, Long scopeVersion, ProjectWorkBindingFact binding,
+                                 RequirementAnalysisExecutionBinding.Frozen execution) {}
     private record Outcome(CommandResult result, AuditTransition transition) {}
     private record AuditTransition(String action, String operationId, Long projectId, Long preparationId,
                                    Integer businessVersion, Long dynamicFormInstanceId, Long dynamicFormTemplateId,
@@ -473,18 +484,26 @@ public class RequirementAnalysisDynamicFormCommandService {
                                          Long scopeVersion) {}
 
     public record Actor(Long tenantId, Long actorId, String correlationId) {}
-    public record CreateCommand(Long projectId, String idempotencyKey) {}
+    public record CreateCommand(Long projectId, String idempotencyKey, ProjectBusinessExecutionSelection execution) {}
     public record PatchCommand(Long preparationId, Integer expectedSolVersion, Integer expectedInstanceVersion,
-                               Map<String, Object> partialValues, String operationId) {
+                               Map<String, Object> partialValues, String operationId, ProjectBusinessExecutionSelection execution) {
+        public PatchCommand(Long preparationId, Integer expectedSolVersion, Integer expectedInstanceVersion,
+                            Map<String, Object> partialValues, String operationId) {
+            this(preparationId, expectedSolVersion, expectedInstanceVersion, partialValues, operationId, null);
+        }
         public PatchCommand {
             partialValues = partialValues == null ? Map.of() : Map.copyOf(partialValues);
         }
     }
     public record CompleteCommand(Long preparationId, Integer expectedSolVersion,
-                                  Integer expectedInstanceVersion, String idempotencyKey) {}
+                                  Integer expectedInstanceVersion, String idempotencyKey, ProjectBusinessExecutionSelection execution) {
+        public CompleteCommand(Long preparationId, Integer expectedSolVersion, Integer expectedInstanceVersion, String idempotencyKey) {
+            this(preparationId, expectedSolVersion, expectedInstanceVersion, idempotencyKey, null);
+        }
+    }
     public record CreateRevisionCommand(Long sourcePreparationId, Long sourceInstanceId,
                                         Integer expectedSolVersion, Integer expectedInstanceVersion,
-                                        String idempotencyKey) {}
+                                        String idempotencyKey, ProjectBusinessExecutionSelection execution) {}
     public record CommandResult(Long projectId, Long preparationId, Long dynamicFormInstanceId,
                                 Integer businessVersion, String status, Integer contentVersion,
                                 Integer solVersion, Integer dynamicFormInstanceVersion) {}

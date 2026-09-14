@@ -22,7 +22,7 @@
         <el-tag v-else type="info" effect="plain">无条件</el-tag>
       </template></el-table-column>
       <el-table-column label="优先级" width="130"><template #default="{ row }"><el-input-number v-model="row.priority" :disabled="readonly" :precision="0" controls-position="right" class="!w-full" /></template></el-table-column>
-      <el-table-column label="默认" width="80"><template #default="{ row }"><el-checkbox :model-value="row.defaultBranch" :disabled="readonly" @update:model-value="setDefault(row, $event)" /></template></el-table-column>
+      <el-table-column label="默认" width="80"><template #default="{ row }"><el-checkbox :model-value="row.defaultBranch" :disabled="readonly" @update:model-value="setDefault(row, $event === true)" /></template></el-table-column>
       <el-table-column label="编辑规则" width="100"><template #default="{ row }"><el-button link type="primary" @click="selected = row">{{ row.condition ? '编辑' : '配置' }}</el-button></template></el-table-column>
       <el-table-column v-if="!readonly" label="操作" width="70"><template #default="{ row }"><el-button link type="danger" @click="remove(row)">删除</el-button></template></el-table-column>
     </el-table>

@@ -196,7 +196,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
                 || !Objects.equals(binding.projectVersion(), project.projectVersion())
                 || binding.projectTaskId() == null || binding.projectTaskVersion() == null
                 || binding.executionContractId() == null || binding.contractVersion() == null
-                || binding.templateTaskDefinitionId() == null || binding.sourceDefinitionVersion() == null
+                || binding.projectTemplateId() == null || binding.sourceDefinitionVersion() == null
                 || !Objects.equals(binding.workBindingTypeCode(), WORK_BINDING_TARGET.workBindingTypeCode())
                 || !Objects.equals(binding.targetContextCode(), WORK_BINDING_TARGET.targetContextCode())
                 || !Objects.equals(binding.targetObjectType(), WORK_BINDING_TARGET.targetObjectType())
@@ -211,7 +211,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
     private void requireComposition(PreparationDO root, ProjectWorkBindingFact binding,
                                     DynamicFormInstanceFact form, boolean currentEffective) {
         if (form == null || !Objects.equals(root.getDynamicFormInstanceId(), form.instanceId())
-                || !Objects.equals(root.getTemplateId(), binding.templateTaskDefinitionId())
+                || !Objects.equals(root.getTemplateId(), binding.projectTemplateId())
                 || !Objects.equals(root.getTemplateRevisionId(), binding.templateRevisionId())
                 || currentEffective && (!Objects.equals(form.templateId(), binding.dynamicFormTemplateId())
                 || !Objects.equals(form.templateRevisionId(), binding.dynamicFormTemplateRevisionId())
@@ -224,7 +224,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
 
     private RequirementAnalysisWorkBindingFact workBindingFact(ProjectWorkBindingFact binding) {
         return new RequirementAnalysisWorkBindingFact(binding.projectTaskId(), binding.projectTaskVersion(),
-                binding.executionContractId(), binding.contractVersion(), binding.templateTaskDefinitionId(),
+                binding.executionContractId(), binding.contractVersion(), binding.projectTemplateId(),
                 binding.sourceDefinitionVersion(), binding.templateRevisionId(), binding.templateRevisionNo(),
                 binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
                 binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion(),

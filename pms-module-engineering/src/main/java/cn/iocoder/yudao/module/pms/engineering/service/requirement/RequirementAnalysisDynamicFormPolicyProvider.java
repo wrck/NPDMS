@@ -52,6 +52,7 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final PermissionApi permissionApi;
+    private final RequirementAnalysisExecutionBinding executionBinding;
 
     @Override
     public DynamicFormProviderKey providerKey() {
@@ -74,7 +75,8 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
     @Override
     public DynamicFormPolicyFact inspectInstanceOwnerPolicy(DynamicFormInstancePolicyQuery query) {
         PreparationDO root = findRoot(query);
-        return policy(query == null ? null : query.actorUserId(), query == null ? null : query.action(), root);
+        return policy(query == null ? null : query.actorUserId(), query == null ? null : query.action(), root,
+                query == null ? null : query.ownerExecutionContext());
     }
 
     @Override
@@ -83,7 +85,7 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
             DynamicFormPolicyRevalidationQuery query) {
         DynamicFormInstancePolicyQuery lookup = new DynamicFormInstancePolicyQuery(
                 query.tenantId(), query.actorUserId(), query.providerKey(), query.ownerKey(),
-                query.instanceId(), query.expectedFact().action());
+                query.instanceId(), query.expectedFact().action(), query.expectedFact().ownerExecutionContext());
         PreparationDO inspected = findRoot(lookup);
         if (inspected == null) return denied(query.expectedFact().action(), "PRE04_ROOT_NOT_FOUND");
         boolean managerAction = requiresManager(query.expectedFact().action());
@@ -99,11 +101,15 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
                     inspected.getProjectId(), manager.userId(), manager.projectVersion(),
                     "ACTIVE", manager.currentStage(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
         }
+        if (requiresExecution(query.expectedFact().action())) {
+            if (query.expectedFact().ownerExecutionContext() == null) executionBinding.lockForWrite(inspected);
+            else executionBinding.lockForWrite(inspected, selection(query.expectedFact().ownerExecutionContext()));
+        }
         PreparationDO locked = lockOwnerFacts(query, inspected);
         boolean authorized = scopeAllowed && (!managerAction || manager != null)
                 && hasFunctionPermission(query.actorUserId(), query.expectedFact().action());
         DynamicFormPolicyFact current = policyFromLocked(
-                query.expectedFact().action(), locked, authorized, query.expectedFact().scopeVersion());
+                query.expectedFact().action(), locked, authorized, query.expectedFact().scopeVersion(), query.expectedFact().ownerExecutionContext());
         if (!Objects.equals(current, query.expectedFact())) {
             return denied(query.expectedFact().action(), "PRE04_OWNER_FACT_CHANGED");
         }
@@ -138,7 +144,8 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         }
     }
 
-    private DynamicFormPolicyFact policy(Long actorId, DynamicFormBusinessAction action, PreparationDO root) {
+    private DynamicFormPolicyFact policy(Long actorId, DynamicFormBusinessAction action, PreparationDO root,
+                                         tools.jackson.databind.JsonNode ownerExecutionContext) {
         if (root == null || action == null || actorId == null) return denied(action, "PRE04_ROOT_NOT_FOUND");
         boolean managerAction = requiresManager(action);
         if (!hasFunctionPermission(actorId, action)) return denied(action, "PRE04_ACTION_NOT_ALLOWED");
@@ -151,12 +158,14 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         }
         boolean authorized = scope != null && scope.fullProjectIds() != null
                 && scope.fullProjectIds().contains(root.getProjectId())
-                && (!managerAction || inspectManager(actorId, root.getProjectId()) != null);
-        return policyFromLocked(action, root, authorized, scope == null ? null : scope.treeVersion());
+                && (!managerAction || inspectManager(actorId, root.getProjectId()) != null)
+                && (!requiresExecution(action) || (ownerExecutionContext == null ? executionBinding.canWrite(root)
+                : executionBinding.canWrite(root, selection(ownerExecutionContext))));
+        return policyFromLocked(action, root, authorized, scope == null ? null : scope.treeVersion(), ownerExecutionContext);
     }
 
     private DynamicFormPolicyFact policyFromLocked(DynamicFormBusinessAction action, PreparationDO root,
-                                                   boolean authorized, Long scopeVersion) {
+                                                   boolean authorized, Long scopeVersion, tools.jackson.databind.JsonNode ownerExecutionContext) {
         boolean draft = "DRAFT".equals(root.getStatusCode()) && Integer.valueOf(1).equals(root.getDraftMarker());
         boolean completed = "COMPLETED".equals(root.getStatusCode());
         boolean allowed = switch (action) {
@@ -168,7 +177,13 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         };
         return new DynamicFormPolicyFact(action, allowed, allowed ? null : "PRE04_ACTION_NOT_ALLOWED",
                 scopeVersion,
-                root.getId() + ":" + root.getStatusCode() + ":" + root.getVersion());
+                root.getId() + ":" + root.getStatusCode() + ":" + root.getVersion(), ownerExecutionContext);
+    }
+
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection selection(
+            tools.jackson.databind.JsonNode context) {
+        return cn.iocoder.yudao.framework.common.util.json.JsonUtils.convertObject(context,
+                cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection.class);
     }
 
     private boolean compatibleFields(List<DynamicFormFieldDescriptor> fields) {
@@ -195,6 +210,13 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
 
     private boolean requiresManager(DynamicFormBusinessAction action) {
         return action != DynamicFormBusinessAction.READ && action != DynamicFormBusinessAction.FILE_READ;
+    }
+
+    private boolean requiresExecution(DynamicFormBusinessAction action) {
+        return switch (action) {
+            case CREATE, PATCH, COMPLETE, FILE_WRITE, CLONE_TARGET -> true;
+            default -> false;
+        };
     }
 
     private boolean hasFunctionPermission(Long actorId, DynamicFormBusinessAction action) {

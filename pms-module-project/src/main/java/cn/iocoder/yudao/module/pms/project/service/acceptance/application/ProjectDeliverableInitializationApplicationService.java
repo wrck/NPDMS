@@ -9,6 +9,19 @@ public interface ProjectDeliverableInitializationApplicationService {
 
     List<DeliverableView> getByProjectId(Long projectId);
 
+    /** Locks the Owner roots; preview and apply share the same retirement eligibility. Requires caller transaction. */
+    DeliverablePlanState inspectPlanDefinitions(Long projectId);
+
+    record DeliverablePlanState(List<DeliverableView> definitions, java.util.Set<Long> retirableIds) { }
+
+    /** Authorized project-plan command holds the project lock and supplies the previewed instance versions. */
+    void applyPlanChanges(ApplyDeliverablePlanChanges command);
+
+    record ApplyDeliverablePlanChanges(Long projectId, Long actorId, List<DeliverablePlanChange> changes) { }
+
+    /** Null id creates a new definition; null definition retires an unhandled instance. */
+    record DeliverablePlanChange(Long id, Integer expectedVersion, DeliverableDefinition definition) { }
+
     record InitializeProjectDeliverablesCommand(
             Long projectId,
             Long templateRevisionId,

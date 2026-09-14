@@ -147,8 +147,8 @@ public class PreparationInitializationService {
         preparation.setPreparationTypeCode(PREPARATION_TYPE);
         preparation.setBusinessVersion(1);
         preparation.setCurrentMarker(1);
-        preparation.setTemplateId(fact.templateTaskDefinitionId());
-        preparation.setTemplateRevisionId(fact.sourceDefinitionVersion().longValue());
+        preparation.setTemplateId(fact.projectTemplateId());
+        preparation.setTemplateRevisionId(fact.templateRevisionId());
         preparation.setTemplateSnapshot(templateSnapshot(fact));
         preparation.setFixedFormCatalogVersion(fact.fixedFormCatalogVersion());
         preparation.setStatusCode("DRAFT");
@@ -245,7 +245,7 @@ public class PreparationInitializationService {
                 || !Objects.equals(fact.projectVersion(), command.expectedProjectVersion())
                 || !Objects.equals(fact.projectTaskVersion(), command.expectedProjectTaskVersion())
                 || !Objects.equals(fact.contractVersion(), command.expectedContractVersion())
-                || fact.templateTaskDefinitionId() == null || fact.sourceDefinitionVersion() == null
+                || fact.projectTemplateId() == null || fact.templateRevisionId() == null
                 || fact.fixedFormCatalogVersion() == null || fact.itemConfigurationSnapshot() == null) {
             throw exception(PREPARATION_PROJECT_FACT_INVALID);
         }
@@ -254,8 +254,8 @@ public class PreparationInitializationService {
     private void requireSameInitialization(PreparationDO existing, ProjectWorkBindingFact fact) {
         if (!Integer.valueOf(1).equals(existing.getBusinessVersion())
                 || !Integer.valueOf(1).equals(existing.getCurrentMarker())
-                || !Objects.equals(existing.getTemplateId(), fact.templateTaskDefinitionId())
-                || !Objects.equals(existing.getTemplateRevisionId(), fact.sourceDefinitionVersion().longValue())
+                || !Objects.equals(existing.getTemplateId(), fact.projectTemplateId())
+                || !Objects.equals(existing.getTemplateRevisionId(), fact.templateRevisionId())
                 || !Objects.equals(existing.getFixedFormCatalogVersion(), fact.fixedFormCatalogVersion())
                 || !Objects.equals(existing.getTemplateSnapshot(), templateSnapshot(fact))) {
             throw exception(PREPARATION_STATUS_INVALID);
@@ -268,7 +268,8 @@ public class PreparationInitializationService {
         snapshot.put("projectTaskVersion", fact.projectTaskVersion());
         snapshot.put("executionContractId", fact.executionContractId());
         snapshot.put("contractVersion", fact.contractVersion());
-        snapshot.put("templateTaskDefinitionId", fact.templateTaskDefinitionId());
+        snapshot.put("projectTemplateId", fact.projectTemplateId());
+        snapshot.put("templateRevisionId", fact.templateRevisionId());
         snapshot.put("sourceDefinitionVersion", fact.sourceDefinitionVersion());
         snapshot.put("preparationTemplateCode", fact.preparationTemplateCode());
         snapshot.put("preparationTemplateRevision", fact.preparationTemplateRevision());

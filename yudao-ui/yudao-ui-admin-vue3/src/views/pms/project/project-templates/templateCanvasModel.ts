@@ -87,7 +87,7 @@ export function captureInlineRules(document: TemplateDesignerDocument) {
         `${node.name}·完成`,
         node.completionRule.expression
       ).key
-    if (node.completionRuleKey) Reflect.deleteProperty(node, 'completionRule')
+    if (node.completionRuleKey && node.completionRule != null) Reflect.deleteProperty(node, 'completionRule')
   }
 }
 

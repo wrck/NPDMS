@@ -78,7 +78,7 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         String fieldKey = parsePurpose(query.ownerContext(), query.objectType(), query.purposeCode());
         if (fieldKey == null || !validReferenceKey(query.referenceKey())) return denied();
         return inspect(query.tenantId(), query.actorUserId(), query.objectId(), fieldKey, query.requiredAction(), false,
-                null);
+                null, query.ownerExecutionContext());
     }
 
     @Override
@@ -87,7 +87,7 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         String fieldKey = parsePurpose(query.ownerContext(), query.objectType(), query.purposeCode());
         if (fieldKey == null || !validReferenceKey(query.referenceKey())) return denied();
         return inspect(query.tenantId(), query.actorUserId(), query.objectId(), fieldKey, query.requiredAction(), true,
-                query.expectedScopeVersion());
+                query.expectedScopeVersion(), query.ownerExecutionContext());
     }
 
     @Override
@@ -95,7 +95,7 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         String fieldKey = parsePurpose(query.key());
         if (fieldKey == null) return denied();
         return inspect(query.tenantId(), query.actorUserId(), query.key().objectId(), fieldKey,
-                query.requiredAction(), false, null);
+                query.requiredAction(), false, null, query.ownerExecutionContext());
     }
 
     @Override
@@ -106,7 +106,7 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         for (var query : queries) {
             String fieldKey = parsePurpose(query.key());
             result.put(query, fieldKey == null ? denied() : inspect(query.tenantId(), query.actorUserId(),
-                    query.key().objectId(), fieldKey, query.requiredAction(), false, null, reads));
+                    query.key().objectId(), fieldKey, query.requiredAction(), false, null, query.ownerExecutionContext(), reads));
         }
         return Map.copyOf(result);
     }
@@ -118,20 +118,22 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         String fieldKey = parsePurpose(query.key());
         if (fieldKey == null) return denied();
         return inspect(query.tenantId(), query.actorUserId(), query.key().objectId(), fieldKey,
-                query.requiredAction(), true, query.expectedScopeVersion());
-    }
-
-    private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId, String fieldKey,
-                                                 String action, boolean lock, Long expectedScopeVersion) {
-        return inspect(tenantId, actorUserId, objectId, fieldKey, action, lock, expectedScopeVersion, null);
+                query.requiredAction(), true, query.expectedScopeVersion(), query.ownerExecutionContext());
     }
 
     private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId, String fieldKey,
                                                  String action, boolean lock, Long expectedScopeVersion,
+                                                 tools.jackson.databind.JsonNode ownerExecutionContext) {
+        return inspect(tenantId, actorUserId, objectId, fieldKey, action, lock, expectedScopeVersion, ownerExecutionContext, null);
+    }
+
+    private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId, String fieldKey,
+                                                 String action, boolean lock, Long expectedScopeVersion,
+                                                 tools.jackson.databind.JsonNode ownerExecutionContext,
                                                  Map<ReadKey, ReadInspection> reads) {
         Long instanceId = parseInstanceId(objectId);
         if (instanceId == null) return denied();
-        ReadKey readKey = new ReadKey(tenantId, actorUserId, instanceId, action);
+        ReadKey readKey = new ReadKey(tenantId, actorUserId, instanceId, action, ownerExecutionContext);
         ReadInspection previous = reads == null ? null : reads.get(readKey);
         if (previous != null) return previous.fields().isFileField(fieldKey) ? previous.policy() : denied();
         try {
@@ -164,19 +166,19 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
                         instance.getObjectId());
                 java.util.Optional<DynamicFormPolicyFact> prevalidated = businessPolicyRegistry.prevalidatedFilePolicy(
                         tenantId, actorUserId, owner, instanceId, businessAction,
-                        lock ? expectedScopeVersion : null);
+                        lock ? expectedScopeVersion : null, ownerExecutionContext);
                 if (prevalidated.isPresent()) {
                     businessPolicy = prevalidated.get();
                 } else if (lock) {
                     DynamicFormPolicyFact inspected = businessPolicyRegistry.inspectInstance(
                             new DynamicFormInstancePolicyQuery(tenantId, actorUserId, owner.providerKey(), owner,
-                                    instanceId, businessAction));
+                                    instanceId, businessAction, ownerExecutionContext));
                     if (!Objects.equals(inspected.scopeVersion(), expectedScopeVersion)) return denied();
                     businessPolicy = businessPolicyRegistry.lockAndRevalidate(new DynamicFormPolicyRevalidationQuery(
                             tenantId, actorUserId, owner.providerKey(), owner, instanceId, inspected));
                 } else {
                     businessPolicy = businessPolicyRegistry.inspectInstance(new DynamicFormInstancePolicyQuery(
-                            tenantId, actorUserId, owner.providerKey(), owner, instanceId, businessAction));
+                            tenantId, actorUserId, owner.providerKey(), owner, instanceId, businessAction, ownerExecutionContext));
                 }
                 if (lock && !Objects.equals(businessPolicy.scopeVersion(), expectedScopeVersion)) return denied();
                 if (!businessPolicy.allowed()) return denied();
@@ -202,7 +204,8 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         }
     }
 
-    private record ReadKey(Long tenantId, Long actorId, Long instanceId, String action) {}
+    private record ReadKey(Long tenantId, Long actorId, Long instanceId, String action,
+                           tools.jackson.databind.JsonNode ownerExecutionContext) {}
     private record ReadInspection(DynamicFormSchemaService.SchemaFields fields, FileBusinessObjectPolicyFact policy) {}
 
     private boolean authorized(Long actorUserId, String action, PlatformDynamicFormInstanceDO instance) {

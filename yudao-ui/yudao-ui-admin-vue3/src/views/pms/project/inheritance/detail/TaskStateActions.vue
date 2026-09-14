@@ -3,6 +3,7 @@
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-button v-for="action in actions" :key="action" :type="action === 'CANCEL' ? 'danger' : 'primary'"
       :loading="busy" :disabled="busy" @click="execute(action)">{{ labels[action] }}</el-button>
+    <slot></slot>
   </section>
 </template>
 <script setup lang="ts">
@@ -47,5 +48,7 @@ const execute = async (action: TaskAction) => {
 defineExpose({ isBusy: () => busy.value })
 </script>
 <style scoped>
-.task-state-actions { margin: 12px 0; }
+.task-state-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
+.task-state-actions :deep(.el-button + .el-button) { margin-left: 0; }
+.task-state-actions > .el-alert { width: 100%; }
 </style>

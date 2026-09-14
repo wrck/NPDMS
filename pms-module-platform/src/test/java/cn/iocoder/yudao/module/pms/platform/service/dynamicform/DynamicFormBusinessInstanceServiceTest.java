@@ -66,6 +66,26 @@ class DynamicFormBusinessInstanceServiceTest {
     }
 
     @Test
+    void entityInspectionForwardsOwnerExecutionWithoutPersistingItAsBusinessData() {
+        var context = (tools.jackson.databind.node.ObjectNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"task\":{\"executionId\":101}}");
+        var query = new DynamicFormInstanceQuery(1L,2L,providerKey(),ownerKey(),100L,DynamicFormBusinessAction.PATCH,context);
+        var policy = new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH,true,null,8L,"DRAFT",query.ownerExecutionContext());
+        context.put("unexpected","not forwarded");
+        when(policyRegistry.inspectInstance(any())).thenReturn(policy);
+        when(instanceMapper.selectByRow(any())).thenReturn(instance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(fileArtifactApi.inspectReferenceSets(any())).thenReturn(List.of(fileSet()));
+
+        var fact = service.inspectEntityData(new DynamicFormEntityDataQuery(query,Map.of("enabled",false)));
+
+        verify(policyRegistry).inspectInstance(new DynamicFormInstancePolicyQuery(1L,2L,providerKey(),ownerKey(),100L,
+                DynamicFormBusinessAction.PATCH,query.ownerExecutionContext()));
+        assertThat(fact.policyFact().ownerExecutionContext()).isEqualTo(query.ownerExecutionContext());
+        assertThat(fact.ordinaryValues()).containsEntry("enabled",false).doesNotContainKey("ownerExecutionContext");
+        verify(instanceMapper,org.mockito.Mockito.never()).updateValueIfMatch(any());
+    }
+
+    @Test
     void everyWriteAndLockApiRequiresCallerTransaction() throws Exception {
         for (String method : new String[]{"lockAndRevalidateRevisionForUsage", "createBusinessInstance",
                 "cloneBusinessInstance", "lockAndRevalidateInstance"}) {

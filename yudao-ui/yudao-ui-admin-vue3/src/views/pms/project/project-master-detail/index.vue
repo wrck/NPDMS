@@ -373,15 +373,18 @@
         <div v-if="detail?.id && visitedTabs.has('tasks')" v-show="activeTab === 'tasks'" class="min-w-0" data-testid="project-pane-tasks">
           <ProjectTaskPanel
             :project-id="detail.id"
+            :project="detail"
             @tree-version="treeVersion = $event"
             @updated="loadAll"
           />
         </div>
 
         <div v-if="detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))" v-show="['base', 'tasks', 'stage-gates'].includes(activeTab)" class="min-w-0" data-testid="project-pane-stage-gates">
-          <ProjectStageGatePanel
+          <ProjectStageStatusPanel
             :project-id="detail.id"
-            :key="`${detail.id}:${detail.version}:${activeTab}`"
+            :project="detail"
+            :key="detail.id"
+            @changed="loadAll"
           />
         </div>
 
@@ -496,7 +499,7 @@ import ProjectMemberPanel from './components/ProjectMemberPanel.vue'
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
-import ProjectStageGatePanel from './components/ProjectStageGatePanel.vue'
+import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'

@@ -7,5 +7,6 @@ public record ProjectWorkBindingFactLookupQuery(
         String workBindingTypeCode,
         String targetContextCode,
         String targetObjectType,
-        String targetObjectKey) {
+        String targetObjectKey,
+        Long projectTaskId) {
 }

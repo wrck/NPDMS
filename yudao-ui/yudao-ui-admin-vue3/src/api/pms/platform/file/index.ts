@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 
 export type FileUploadMode = 'CREATE_ARTIFACT' | 'ADD_VERSION'
 export type FileAccessOperation = 'DOWNLOAD' | 'PREVIEW'
@@ -12,6 +13,7 @@ export interface FileBusinessKey {
 }
 
 export interface FileUploadInitReqVO extends FileBusinessKey {
+  ownerExecutionContext?: JsonObject
   modeCode: FileUploadMode
   artifactId?: number
   expectedReferenceVersion?: number
@@ -108,11 +110,16 @@ export const completeUpload = (
   sessionId: number,
   file: File,
   idempotencyKey: string,
-  onUploadProgress?: (progress: number) => void
+  onUploadProgress?: (progress: number) => void,
+  ownerExecutionContext?: JsonObject
 ) => {
   const data = new FormData()
   data.append('sessionId', String(sessionId))
   data.append('file', file)
+  // Spring @RequestPart uses the JSON part's Content-Type for its standard message converter.
+  // https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/multipart-forms.html
+  if (ownerExecutionContext) data.append('ownerExecutionContext',
+    new Blob([JSON.stringify(ownerExecutionContext)], { type: 'application/json' }))
   return request.post<FileUploadCompleteRespVO>({
     url: `${baseUrl}/files/${artifactId}:complete-upload`,
     data,
@@ -149,10 +156,11 @@ export const detachReference = (
   referenceVersion: number,
   key: FileBusinessKey,
   reason: string,
-  idempotencyKey: string
+  idempotencyKey: string,
+  ownerExecutionContext?: JsonObject
 ) =>
   request.delete<FileLifecycleResultVO>({
     url: `${baseUrl}/file-references/${referenceId}`,
-    data: { ...key, reason },
+    data: { ...key, reason, ...(ownerExecutionContext ? { ownerExecutionContext } : {}) },
     headers: { 'If-Match': String(referenceVersion), 'Idempotency-Key': idempotencyKey }
   })

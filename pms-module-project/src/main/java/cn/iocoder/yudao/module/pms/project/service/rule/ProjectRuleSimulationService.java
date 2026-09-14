@@ -65,7 +65,8 @@ public class ProjectRuleSimulationService {
         String reference = leaf.parameters().path("refCode").asText(
                 leaf.parameters().path("factCode").asText("current"));
         return leaf.predicate() + ":" + reference + (leaf.predicate().equals("BUSINESS_FACT")
-                ? ":" + leaf.parameters().path("quantifier").asText() : "");
+                ? ":" + leaf.parameters().path("quantifier").asText()
+                    + (leaf.parameters().has("sourceNodeKey") ? ":source:" + leaf.parameters().path("sourceNodeKey").asText() : "") : "");
     }
 
     private static DecisionTableDefinition table(RuleProgram.Leaf leaf) {

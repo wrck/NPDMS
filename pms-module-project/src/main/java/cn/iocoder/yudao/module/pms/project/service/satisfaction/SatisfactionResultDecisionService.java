@@ -30,7 +30,6 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultDecisionService {
-    private static final String TASK_CODE = "T-SAT-SURVEY";
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResponseMapper responseMapper;
@@ -70,7 +69,7 @@ public class SatisfactionResultDecisionService {
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(command.tenantId(), command.taskId());
         if (task == null || !"PENDING_DECISION".equals(task.getTaskStatus()) || task.getResultId() != null
                 || !command.questionnaireId().equals(task.getQuestionnaireId())
-                || !actorUserId.equals(task.getAssignedToUserId())) {
+                || !actorUserId.equals(task.getAssignedToUserId()) || task.getDeliverableId() == null) {
             throw new IllegalStateException("SATISFACTION_RESULT_TASK_CONFLICT");
         }
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectByIdForUpdate(
@@ -98,7 +97,7 @@ public class SatisfactionResultDecisionService {
                 new ProjectSatisfactionTaskIdentityQuery(task.getProjectId(), task.getProjectTaskId()));
         if (projectTask == null || !task.getProjectId().equals(projectTask.projectId())
                 || !task.getProjectTaskId().equals(projectTask.projectTaskId())
-                || !TASK_CODE.equals(projectTask.taskCode()) || projectTask.projectTaskVersion() == null) {
+                || projectTask.projectTaskVersion() == null) {
             throw new IllegalStateException("SATISFACTION_RESULT_PROJECT_TASK_CONFLICT");
         }
 
@@ -129,7 +128,7 @@ public class SatisfactionResultDecisionService {
             throw new IllegalStateException("SATISFACTION_RESULT_WRITE_CONFLICT");
         }
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
-                projectTask.projectTaskVersion(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
+                projectTask.projectTaskVersion(), task.getDeliverableId(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
                 questionnaire.getTemplateRevisionId(),
                 response.getId(), resultId, task.getTaskRevisionNo(), result.getVersion(), task.getCollectionKey(),
                 task.getSourceOwnerContext(),
@@ -212,7 +211,7 @@ public class SatisfactionResultDecisionService {
         payload.put("tenantId", result.tenantId());
         payload.put("projectId", result.projectId()); payload.put("projectTaskId", result.projectTaskId());
         payload.put("projectTaskVersion", result.projectTaskVersion());
-        payload.put("taskCode", TASK_CODE); payload.put("collectionKey", result.collectionKey());
+        payload.put("deliverableId", result.deliverableId()); payload.put("collectionKey", result.collectionKey());
         payload.put("taskRevisionNo", result.taskRevisionNo()); payload.put("taskId", result.taskId());
         payload.put("questionnaireId", result.questionnaireId()); payload.put("responseId", result.responseId());
         payload.put("resultId", result.resultId()); payload.put("resultVersion", result.resultVersion());
@@ -280,7 +279,7 @@ public class SatisfactionResultDecisionService {
     }
 
     public record DecisionResult(String operationId, Long tenantId, Long projectId, Long projectTaskId,
-                                 Integer projectTaskVersion, Long taskId, Integer taskRevisionNo,
+                                 Integer projectTaskVersion, Long deliverableId, Long taskId, Integer taskRevisionNo,
                                  Long questionnaireId, Long templateRevisionId,
                                  Long responseId, Long resultId, Integer resultVersion, Integer resultFactVersion,
                                  String collectionKey,
@@ -290,7 +289,7 @@ public class SatisfactionResultDecisionService {
                                  List<ResultFileFact> files, boolean replayed) {
         DecisionResult withReplay() {
             return new DecisionResult(operationId, tenantId, projectId, projectTaskId, projectTaskVersion,
-                    taskId, taskRevisionNo,
+                    deliverableId, taskId, taskRevisionNo,
                     questionnaireId, templateRevisionId, responseId, resultId, resultVersion, resultFactVersion,
                     collectionKey,
                     sourceOwnerContext, sourceObjectType, sourceObjectId, sourceObjectVersion, score, threshold,

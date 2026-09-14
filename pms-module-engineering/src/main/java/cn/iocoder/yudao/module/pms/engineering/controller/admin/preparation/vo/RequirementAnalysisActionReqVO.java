@@ -8,4 +8,5 @@ import lombok.Data;
 public class RequirementAnalysisActionReqVO {
     @NotNull @PositiveOrZero private Integer expectedContentVersion;
     private Integer expectedProjectVersion;
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection execution;
 }

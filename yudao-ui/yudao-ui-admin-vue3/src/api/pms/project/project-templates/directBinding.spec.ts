@@ -59,6 +59,37 @@ beforeEach(() => {
 })
 
 describe('PM-03 Designer V2 direct binding', () => {
+  it('never registers a global view while preparing a project plan draft', async () => {
+    await expect(
+      prepareTaskBinding(
+        task(),
+        { component: view, strategy: 'REFERENCE_EXISTING' },
+        createBindingSaveSession(),
+        'PROJECT_PLAN'
+      )
+    ).rejects.toThrow('现有已发布')
+    expect(Views.createBusinessView).not.toHaveBeenCalled()
+    expect(Views.publishBusinessView).not.toHaveBeenCalled()
+    expect(Views.getBusinessView).not.toHaveBeenCalled()
+  })
+
+  it('prepares an existing plan binding using reads only before the draft CAS command', async () => {
+    const result = await prepareTaskBinding(
+      task(),
+      {
+        view,
+        strategy: 'REFERENCE_EXISTING',
+        completion: { factCode: 'SURVEY_CONFIRMED', quantifier: 'ALL' }
+      },
+      createBindingSaveSession(),
+      'PROJECT_PLAN'
+    )
+    expect(result.workBinding.businessViewSnapshot).toMatchObject({ id: view.id })
+    expect(Views.getBusinessView).toHaveBeenCalledWith(view.id)
+    expect(Views.createBusinessView).not.toHaveBeenCalled()
+    expect(Views.publishBusinessView).not.toHaveBeenCalled()
+  })
+
   it('embeds BusinessView and completion semantics without creating DefinitionRevision assets', async () => {
     const original = task()
     const result = await prepareTaskBinding(
@@ -83,7 +114,10 @@ describe('PM-03 Designer V2 direct binding', () => {
         businessViewRevisionId: view.id
       }
     })
-    expect(result.workBinding.businessViewSnapshot).toMatchObject({ id: view.id, viewKey: view.viewKey })
+    expect(result.workBinding.businessViewSnapshot).toMatchObject({
+      id: view.id,
+      viewKey: view.viewKey
+    })
     expect(result.completionRule.expression).toEqual({
       predicate: 'BUSINESS_FACT',
       parameters: { factCode: 'SURVEY_CONFIRMED', quantifier: 'ALL' }
@@ -211,7 +245,11 @@ describe('PM-03 Designer V2 direct binding', () => {
   })
 
   it('reuses the same BusinessView registration intent after a lost publish response', async () => {
-    const component = { ...view, status: undefined as never, allowedActions: undefined as never } as Views.BusinessViewComponentVO
+    const component = {
+      ...view,
+      status: undefined as never,
+      allowedActions: undefined as never
+    } as Views.BusinessViewComponentVO
     const draftView = { ...view, status: 'DRAFT' as const, allowedActions: ['PUBLISH'] }
     vi.mocked(Views.createBusinessView).mockResolvedValue(draftView)
     vi.mocked(Views.getBusinessView).mockResolvedValue(draftView)
@@ -232,7 +270,9 @@ describe('PM-03 Designer V2 direct binding', () => {
   })
 
   it('fails closed for unknown context and unsupported create strategy', async () => {
-    expect(() => bindingContextMapping({ ...view, contextSchema: { required: ['unsupported'] } })).toThrow('尚未接入')
+    expect(() =>
+      bindingContextMapping({ ...view, contextSchema: { required: ['unsupported'] } })
+    ).toThrow('尚未接入')
     await expect(
       prepareTaskBinding(
         task(),

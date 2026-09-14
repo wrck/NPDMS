@@ -44,7 +44,6 @@ public class ProjectTaskBusinessController {
         return trustedTenant(() -> success(service.getCandidates(taskId, tenant(), actor(), correlation())));
     }
 
-    @PostMapping("/links")
     @PreAuthorize("@ss.hasPermission('pms:project-task:update')")
     public CommonResult<LinkCommandResult> link(@PathVariable Long taskId,
             @RequestHeader("If-Match") String ifMatch,
@@ -55,7 +54,6 @@ public class ProjectTaskBusinessController {
                 request.expectedTaskVersion(), request.expectedContractVersion(), key), tenant(), actor(), correlation())));
     }
 
-    @PostMapping("/links/{linkId}/actions/unlink")
     @PreAuthorize("@ss.hasPermission('pms:project-task:update')")
     public CommonResult<LinkCommandResult> unlink(@PathVariable Long taskId, @PathVariable Long linkId,
             @RequestHeader("If-Match") String ifMatch,

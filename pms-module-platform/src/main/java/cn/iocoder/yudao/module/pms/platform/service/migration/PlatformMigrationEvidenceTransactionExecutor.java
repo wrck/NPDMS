@@ -66,6 +66,39 @@ public class PlatformMigrationEvidenceTransactionExecutor {
         if (existing != null) {
             return replaySource(existing, command);
         }
+        MigrationSourceRecordDO source = sourceRow(command);
+        try {
+            sourceMapper.insert(source);
+        } catch (DuplicateKeyException ex) {
+            return replaySource(sourceMapper.selectByIdentity(identity), command);
+        }
+        return sourceFact(source, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public List<MigrationSourceRecordFact> appendSourceRecords(AppendMigrationSourceRecordsCommand command) {
+        MigrationBatchDO batch = requireBatchForUpdate(command.tenantId(), command.batchId());
+        requireStatus(batch, MigrationBatchStatus.IMPORTING);
+        var first = command.records().getFirst();
+        if (!batch.getSourceSystem().equals(first.sourceSystem()) || !batch.getSourceTable().equals(first.sourceTable()))
+            throw failure(BATCH_SOURCE_IDENTITY_MISMATCH, "source identity does not belong to batch");
+        Map<String, MigrationSourceRecordDO> existing = new HashMap<>();
+        sourceMapper.selectByKeys(new MigrationSourceKeysQuery(command.tenantId(), command.batchId(),
+                command.records().stream().map(AppendMigrationSourceRecordCommand::sourcePk).toList()))
+                .forEach(row -> existing.put(row.getSourceRecordKey(), row));
+        List<MigrationSourceRecordDO> created = new ArrayList<>();
+        List<MigrationSourceRecordDO> ordered = new ArrayList<>();
+        for (var record : command.records()) {
+            var row = existing.get(record.sourcePk());
+            if (row != null) replaySource(row, record);
+            else { row = sourceRow(record); created.add(row); }
+            ordered.add(row);
+        }
+        if (!created.isEmpty()) sourceMapper.insertBatch(created, 1000);
+        return ordered.stream().map(row -> sourceFact(row, null)).toList();
+    }
+
+    private MigrationSourceRecordDO sourceRow(AppendMigrationSourceRecordCommand command) {
         MigrationSourceRecordDO source = new MigrationSourceRecordDO();
         source.setTenantId(command.tenantId());
         source.setBatchId(command.batchId());
@@ -77,12 +110,39 @@ public class PlatformMigrationEvidenceTransactionExecutor {
         source.setSourceChecksum(command.sourceChecksum());
         source.setExtractedAt(command.extractedAt());
         initializeAuditFields(source);
-        try {
-            sourceMapper.insert(source);
-        } catch (DuplicateKeyException ex) {
-            return replaySource(sourceMapper.selectByIdentity(identity), command);
+        return source;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public MigrationMappingPageResult appendExternalMappings(AppendExternalMappingsCommand command) {
+        return execute("PLT:MIGRATION:RESULT:APPEND_PAGE", command.tenantId(), command.idempotencyKey(),
+                digest(command.tenantId(), command.batchId(), command.mappings()), MigrationMappingPageResult.class,
+                () -> appendMappings(command), command.correlationId());
+    }
+
+    private MigrationMappingPageResult appendMappings(AppendExternalMappingsCommand command) {
+        // All classification writers lock this batch first, including the single-record APIs.
+        MigrationBatchDO batch = requireBatchForUpdate(command.tenantId(), command.batchId());
+        requireStatus(batch, MigrationBatchStatus.RECONCILING);
+        var query = new MigrationSourcePageQuery(command.tenantId(), command.batchId(),
+                command.mappings().stream().map(AppendExternalMappingCommand::sourceRecordId).toList());
+        Set<Long> visible = new HashSet<>();
+        sourceMapper.selectSourcePage(query).forEach(row -> visible.add(row.getId()));
+        if (visible.size() != command.mappings().size()) throw failure(SOURCE_NOT_FOUND, "source is not visible in the batch");
+        if (!issueMapper.selectSourcePage(query).isEmpty()) throw failure(SOURCE_ALREADY_CLASSIFIED, "source is classified as ISSUE");
+        Map<Long, List<ExternalKeyMappingDO>> existing = new HashMap<>();
+        mappingMapper.selectSourcePage(query).forEach(row ->
+                existing.computeIfAbsent(row.getSourceRecordId(), key -> new ArrayList<>()).add(row));
+        List<ExternalKeyMappingDO> created = new ArrayList<>();
+        for (var mapping : command.mappings()) {
+            var prior = existing.get(mapping.sourceRecordId());
+            if (prior != null) { replayMapping(prior, mapping); continue; }
+            if (mapping.resultType() == SourceReconciliationType.RETAINED) created.add(mappingRow(mapping, null));
+            else for (var target : mapping.targets()) created.add(mappingRow(mapping, target));
         }
-        return sourceFact(source, null);
+        created.forEach(this::initializeAuditFields);
+        if (!created.isEmpty()) mappingMapper.insertBatch(created, 1000);
+        return new MigrationMappingPageResult(command.batchId(), command.mappings().size());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -208,7 +268,7 @@ public class PlatformMigrationEvidenceTransactionExecutor {
         String failureCode = null;
         long sourceCount = summary.sourceCount();
         if (command.decision() == ImportStagingDecision.READY) {
-            if (command.manifestRowCount() != batch.getExpectedRowCount()
+            if (!Objects.equals(command.manifestRowCount(), batch.getExpectedRowCount())
                     || !command.manifestSchemaVersion().equals(batch.getManifestSchemaVersion())
                     || !command.manifestContentSha256().equals(batch.getContentSha256())
                     || sourceCount != command.manifestRowCount()) {
@@ -373,7 +433,8 @@ public class PlatformMigrationEvidenceTransactionExecutor {
     private MigrationSourceRecordFact replaySource(MigrationSourceRecordDO source,
                                                     AppendMigrationSourceRecordCommand command) {
         if (source != null && Objects.equals(source.getSourceBusinessKey(), command.sourceBusinessKey())
-                && source.getSourcePayload().equals(command.sourcePayloadJson())
+                // MySQL JSON storage normalizes whitespace and object-key order.
+                && JsonUtils.parseTree(source.getSourcePayload()).equals(JsonUtils.parseTree(command.sourcePayloadJson()))
                 && source.getSourceChecksum().equals(command.sourceChecksum())
                 && source.getExtractedAt().equals(command.extractedAt())) {
             return sourceFact(source, null);
@@ -442,6 +503,7 @@ public class PlatformMigrationEvidenceTransactionExecutor {
     }
 
     private String resourceKey(Object response) {
+        if (response instanceof MigrationMappingPageResult value) return String.valueOf(value.batchId());
         if (response instanceof MigrationBatchFact value) return String.valueOf(value.batchId());
         if (response instanceof MigrationIssueFact value) return String.valueOf(value.issueId());
         if (response instanceof SourceReconciliationResult value) return String.valueOf(value.sourceRecordId());

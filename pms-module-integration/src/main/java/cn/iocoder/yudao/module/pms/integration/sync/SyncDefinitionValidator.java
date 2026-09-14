@@ -1,0 +1,68 @@
+package cn.iocoder.yudao.module.pms.integration.sync;
+
+import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
+import org.quartz.CronExpression;
+import org.springframework.stereotype.Component;
+import java.util.*;
+
+@Component
+public class SyncDefinitionValidator {
+    private final Map<String,DataSyncAdapter> adapters;
+    public SyncDefinitionValidator(List<DataSyncAdapter> providers) {
+        Map<String,DataSyncAdapter> map=new LinkedHashMap<>();
+        for(var p:providers) if(map.put(p.descriptor().key(),p)!=null) throw new IllegalStateException("适配器编码重复");
+        adapters=Collections.unmodifiableMap(map);
+    }
+    public DataSyncAdapter adapter(String key) {
+        var a=adapters.get(key);if(a==null) throw new IllegalArgumentException("业务适配器不存在");return a;
+    }
+    public List<DataSyncAdapter.Descriptor> descriptors(){return adapters.values().stream().map(DataSyncAdapter::descriptor).toList();}
+    public void validate(SyncDefinition d) {
+        if(d==null||d.connectionId()==null||d.sourceSystem()==null||!d.sourceSystem().matches("[A-Za-z0-9_-]{1,32}"))
+            throw new IllegalArgumentException("连接或来源系统标识无效");
+        var descriptor=adapter(d.adapter()).descriptor();
+        if(d.autoPaging() && (!Set.of("ONCE","SNAPSHOT").contains(d.mode()) || adapter(d.adapter()).requiresAllBindings()
+                || !"RETAIN".equals(d.missingPolicy()) || d.clearBeforeLoad() || d.resetMappingsBeforeLoad()))
+            throw new IllegalArgumentException("自动分页仅支持独立记录的完整读取和保留策略，不支持整树、清空或重置映射");
+        if(d.resetMappingsBeforeLoad()&&(d.clearBeforeLoad()||"INCREMENTAL".equals(d.mode())||d.retryCount()>0
+                ||!"UPSERT".equals(d.loadingMode())))
+            throw new IllegalArgumentException("仅重置映射不能同时截断目标；须使用完整快照、追加更新和手动执行，不能自动重试");
+        if(d.clearBeforeLoad()&&(!descriptor.supportsTargetClear()||"INCREMENTAL".equals(d.mode())||d.retryCount()>0))
+            throw new IllegalArgumentException("加载前清空仅限支持该操作的适配器、完整快照及手动执行，不能使用时间增量或自动重试");
+        if(d.loadingMode()==null || !descriptor.loadingModes().contains(d.loadingMode()))
+            throw new IllegalArgumentException("适配器不支持该加载策略");
+        if(!Set.of("ONCE","SNAPSHOT","INCREMENTAL").contains(d.mode())||!descriptor.missingPolicies().contains(d.missingPolicy()))
+            throw new IllegalArgumentException("同步方式或缺失策略无效");
+        if(!CronExpression.isValidExpression(d.cron())||!CronExpression.isValidExpression(d.fullCron()))
+            throw new IllegalArgumentException("Cron 表达式无效");
+        if(d.overlapSeconds()<0||d.retryCount()<0||d.retryCount()>10||d.retryIntervalSeconds()<1
+                ||d.maxRows()<1||d.maxRows()>10000||d.maxBytes()<1||d.maxBytes()>64L*1024*1024)
+            throw new IllegalArgumentException("重试、窗口或容量参数超出范围");
+        if(d.sources()==null||d.sources().size()!=descriptor.objects().size()) throw new IllegalArgumentException("必须配置适配器全部对象");
+        Set<String> objects=new HashSet<>(),sourceObjects=new HashSet<>();
+        for(var s:d.sources()) {
+            if(d.resetMappingsBeforeLoad()&&!s.syncPrimaryKey())
+                throw new IllegalArgumentException("仅重置映射后追加更新，须对所有来源对象启用源主键同步");
+            if(!objects.add(s.object())||s.sourceObject()==null||s.sourceObject().length()>64
+                    ||s.sourceObject().isBlank()||!sourceObjects.add(s.sourceObject()))
+                throw new IllegalArgumentException("来源对象身份重复或无效");
+            var object=descriptor.objects().stream().filter(o->o.name().equals(s.object())).findFirst()
+                    .orElseThrow(()->new IllegalArgumentException("对象不属于适配器"));
+            MysqlSyncReader.compile(s);
+            if(s.syncPrimaryKey()&&!object.supportsSourcePrimaryKey())
+                throw new IllegalArgumentException("该业务对象不支持同步源主键");
+            if("INCREMENTAL".equals(d.mode())) MysqlSyncReader.identifier(s.updatedAt());
+            if(s.mappings()==null) throw new IllegalArgumentException("缺少字段映射");
+            Set<String> mapped=new HashSet<>();
+            for(var m:s.mappings()) {
+                if(!mapped.add(m.target())||object.fields().stream().noneMatch(f->f.name().equals(m.target())))
+                    throw new IllegalArgumentException("未知或重复目标字段");
+                if(!Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","ENUM","CONSTANT","REFERENCE").contains(m.conversion()))
+                    throw new IllegalArgumentException("转换方式无效");
+                if(!"CONSTANT".equals(m.conversion())) MysqlSyncReader.identifier(m.source());
+            }
+            for(var field:object.fields()) if(field.required()&&!mapped.contains(field.name()))
+                throw new IllegalArgumentException("必填目标字段未映射: "+field.label());
+        }
+    }
+}

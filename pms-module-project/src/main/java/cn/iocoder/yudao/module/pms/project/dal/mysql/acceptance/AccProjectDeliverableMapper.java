@@ -35,4 +35,19 @@ public interface AccProjectDeliverableMapper extends BaseMapperX<AccProjectDeliv
     AccProjectDeliverableDO selectByIdForUpdate(@Param("query") ProjectDeliverableIdLockQuery query);
 
     int clearCurrentSource(@Param("query") DeliverableCurrentSourceClearQuery query);
+
+    List<AccProjectDeliverableDO> selectTaskDeliverablesForUpdate(@Param("query") TaskDeliverablesQuery query);
+    record TaskDeliverablesQuery(Long tenantId, Long projectId, String taskCode) { }
+
+    int stagePlanCodeForRename(@Param("query") PlanDefinitionChange query);
+    int updatePlanDefinition(@Param("query") PlanDefinitionChange query);
+    int retireUnhandledForPlan(@Param("query") PlanDefinitionChange query);
+
+    List<AccProjectDeliverableDO> selectPlanDefinitionsForUpdate(
+            @Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverablePlanScopeQuery query);
+    List<Long> selectRetirablePlanDefinitionIds(
+            @Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.query.ProjectDeliverablePlanScopeQuery query);
+
+    record PlanDefinitionChange(Long tenantId, Long projectId, Long id, Integer expectedVersion,
+                                AccProjectDeliverableDO definition, String updater) { }
 }

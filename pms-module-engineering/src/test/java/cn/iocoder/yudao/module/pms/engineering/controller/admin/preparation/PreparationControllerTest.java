@@ -71,7 +71,7 @@ class PreparationControllerTest {
                 mock(RequirementAnalysisDynamicFormCommandService.class),
                 new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
 
-        controller.getCurrent(100L, "PRE_02", false, new PreparationPageReqVO());
+        controller.getCurrent(100L, "PRE_02", false, new PreparationPageReqVO(), null, null);
 
         verify(queryService).getCurrent(eq(100L), eq("PRE_02"),
                 eq(new PreparationQueryService.Actor(0L, 9L)));
@@ -94,7 +94,7 @@ class PreparationControllerTest {
                 new MockEnvironment().withProperty("yudao.tenant.enable", "true"));
 
         ServiceException error = assertThrows(ServiceException.class,
-                () -> controller.getCurrent(100L, "PRE_02", false, new PreparationPageReqVO()));
+                () -> controller.getCurrent(100L, "PRE_02", false, new PreparationPageReqVO(), null, null));
 
         assertEquals(PREPARATION_PROJECT_FACT_INVALID.getCode(), error.getCode());
         verifyNoInteractions(queryService);
@@ -104,7 +104,7 @@ class PreparationControllerTest {
     @Test
     void sharedCurrentEndpointRequiresRequirementQueryPermissionForRequirementReads() throws Exception {
         PreAuthorize currentAuthorize = PreparationController.class
-                .getMethod("getCurrent", Long.class, String.class, boolean.class, PreparationPageReqVO.class)
+                .getMethod("getCurrent", Long.class, String.class, boolean.class, PreparationPageReqVO.class, Long.class, Long.class)
                 .getAnnotation(PreAuthorize.class);
         PreAuthorize detailAuthorize = PreparationController.class.getMethod("getDetail", Long.class)
                 .getAnnotation(PreAuthorize.class);

@@ -53,6 +53,7 @@ class ProjectWorkBindingFactMapperTest {
     private long contractId;
     private long stateMachineRevisionId;
     private long templateDefinitionId;
+    private long projectTemplateId;
     private long templateRevisionId;
     private int templateRevisionNo;
     private int sourceDefinitionVersion;
@@ -84,7 +85,7 @@ class ProjectWorkBindingFactMapperTest {
                 "SELECT id FROM proj_task_state_machine_revision WHERE tenant_id=0 "
                         + "AND status='PUBLISHED' ORDER BY revision_no DESC LIMIT 1", Long.class);
         Map<String, Object> definition = jdbcTemplate.queryForMap(
-                "SELECT d.id,d.definition_version,d.binding_config,d.template_revision_id,r.revision_no "
+                "SELECT d.id,d.definition_version,d.binding_config,d.template_revision_id,r.revision_no,r.template_id "
                         + "FROM proj_project_template_task_definition d "
                         + "JOIN proj_project_template_revision r ON r.tenant_id=d.tenant_id "
                         + "AND r.id=d.template_revision_id "
@@ -93,6 +94,7 @@ class ProjectWorkBindingFactMapperTest {
                         + "AND d.target_object_type='SITE_SURVEY_PREPARATION' "
                         + "AND d.target_object_key='PRE_02_SITE_SURVEY' ORDER BY d.id LIMIT 1");
         templateDefinitionId = ((Number) definition.get("id")).longValue();
+        projectTemplateId = ((Number) definition.get("template_id")).longValue();
         templateRevisionId = ((Number) definition.get("template_revision_id")).longValue();
         templateRevisionNo = ((Number) definition.get("revision_no")).intValue();
         sourceDefinitionVersion = ((Number) definition.get("definition_version")).intValue();
@@ -126,7 +128,7 @@ class ProjectWorkBindingFactMapperTest {
         assertEquals(1, facts.size());
         assertEquals(taskId, facts.getFirst().projectTaskId());
         assertEquals(contractId, facts.getFirst().executionContractId());
-        assertEquals(templateDefinitionId, facts.getFirst().templateTaskDefinitionId());
+        assertEquals(projectTemplateId, facts.getFirst().projectTemplateId());
         assertEquals(templateRevisionId, facts.getFirst().templateRevisionId());
         assertEquals(templateRevisionNo, facts.getFirst().templateRevisionNo());
 
@@ -155,19 +157,19 @@ class ProjectWorkBindingFactMapperTest {
 
     private ProjectWorkBindingFactLookupQuery lookup(long tenantId) {
         return new ProjectWorkBindingFactLookupQuery(tenantId, projectId, "BUSINESS_OBJECT", "SOL",
-                "SITE_SURVEY_PREPARATION", "PRE_02_SITE_SURVEY");
+                "SITE_SURVEY_PREPARATION", "PRE_02_SITE_SURVEY", null);
     }
 
     private void insertProject() {
         jdbcTemplate.update("INSERT INTO proj_project "
                         + "(id,project_code,code_root_id,project_sequence,project_name,root_id,tree_path,"
                         + "tree_depth,tree_sort,status,lifecycle_status,current_stage,assignment_status,"
-                        + "lifecycle_template_revision_id,lifecycle_template_revision_no,"
+                        + "lifecycle_template_id,lifecycle_template_revision_id,lifecycle_template_revision_no,"
                         + "task_tree_version,task_progress_version,version,tenant_id) "
-                        + "VALUES (?,?,?,?,?,?,?,?,?,'S1','ACTIVE','S1','UNASSIGNED',?,?,0,0,4,0)",
+                        + "VALUES (?,?,?,?,?,?,?,?,?,'S1','ACTIVE','S1','UNASSIGNED',?,?,?,0,0,4,0)",
                 projectId, "FSOL2-T2-" + projectId, projectId, 0,
                 "F-SOL-002 Task2 " + projectId, projectId, "/", 0, 0,
-                templateRevisionId, templateRevisionNo);
+                projectTemplateId, templateRevisionId, templateRevisionNo);
     }
 
     private void insertTaskAndContract(long newTaskId, long newContractId, String bindingType,

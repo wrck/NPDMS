@@ -21,6 +21,7 @@ public class ProjectRuntimeRuleEvaluator {
     private final ProjectRuleCompiler compiler;
     private final ProjectRuleEvaluationService evaluator;
     private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService decisions;
+    private final cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService businessSources;
 
     public record Facts(ProjectMasterDO project, ProjectStageInstanceDO stage, List<ProjectTaskInstanceDO> tasks,
                         List<ProjectGateInstanceDO> gates, List<ProjectGateReferenceInstanceDO> references,
@@ -29,9 +30,8 @@ public class ProjectRuntimeRuleEvaluator {
     public ConditionStatus evaluate(JsonNode rule, Facts facts) {
         try {
             var program = compiler.compile(rule);
-            var result = evaluator.evaluate("project:" + facts.project().getId() + ":graph:"
-                    + facts.stage().getGraphVersion() + ":stage:" + facts.stage().getId(), program,
-                    leaf -> resolveFact(leaf, facts));
+            var result = evaluate("project:" + facts.project().getId() + ":graph:"
+                    + facts.stage().getGraphVersion() + ":stage:" + facts.stage().getId(), program, facts);
             return switch (result.outcome()) {
                 case MATCHED -> ConditionStatus.SATISFIED;
                 case NOT_MATCHED -> ConditionStatus.UNSATISFIED;
@@ -42,16 +42,23 @@ public class ProjectRuntimeRuleEvaluator {
         }
     }
 
-    private RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
+    public cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation evaluate(
+            String ruleVersionReference, RuleProgram program, Facts facts) {
+        return evaluator.evaluate(ruleVersionReference, program, leaf -> resolveFact(leaf, facts));
+    }
+
+    public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if ("BUSINESS_FACT".equals(predicate)) return businessSources.resolve(facts.project(), leaf);
         if ("DECISION".equals(predicate))
             return decisions.resolve(facts.project().getTenantId(), "project:" + facts.project().getId()
-                    + ":graph:" + facts.stage().getGraphVersion(), leaf,
+                    + ":plan:" + facts.project().getActivePlanVersionId(), leaf,
                     code -> cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(facts.project(), code));
         if ("FIELD".equals(predicate))
             return cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(
                     facts.project(), leaf.parameters().path("fieldCode").asText());
         if ("STAGE_NATIVE_STATUS".equals(predicate)) {
+            if (facts.stage() == null) return RuleFact.unknown("STAGE_CONTEXT_REQUIRED");
             if (!facts.stageCompletion()) return RuleFact.known("DONE".equals(facts.stage().getStatus()));
             // Native readiness is prospective completion, never a pre-write of the stage status.
             return RuleFact.known(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getStageCode()))
@@ -64,7 +71,7 @@ public class ProjectRuntimeRuleEvaluator {
         List<ProjectGateReferenceInstanceDO> matches = facts.references().stream()
                 .filter(r -> predicate.equals(r.getRefType()) && refCode.equals(r.getRefCode()))
                 .filter(r -> facts.gates().stream().anyMatch(g -> Objects.equals(g.getId(), r.getGateId())
-                        && Objects.equals(g.getStageCode(), facts.stage().getStageCode()))).toList();
+                        && (facts.stage() == null || Objects.equals(g.getStageCode(), facts.stage().getStageCode())))).toList();
         // BPM business identity is the actual frozen reference. Never invent gate/reference IDs.
         if (("PROCESS".equals(predicate) || "APPROVAL".equals(predicate)) && matches.size() != 1)
             return RuleFact.unknown("APPROVAL_REFERENCE_UNAVAILABLE");
@@ -72,7 +79,7 @@ public class ProjectRuntimeRuleEvaluator {
         ProjectGateInstanceDO gate = ref == null ? null : facts.gates().stream()
                 .filter(g -> Objects.equals(g.getId(), ref.getGateId())).findFirst().orElseThrow();
         var query = new ProjectStageGateFactQuery(facts.project().getTenantId(), facts.project().getId(),
-                facts.stage().getStageCode(), gate == null ? null : gate.getId(),
+                gate != null ? gate.getStageCode() : facts.stage() == null ? null : facts.stage().getStageCode(), gate == null ? null : gate.getId(),
                 gate == null ? null : gate.getGateCode(), gate == null ? null : gate.getVersion(),
                 ref == null ? null : ref.getId(), ref == null ? null : ref.getVersion(), predicate, refCode);
         ProjectStageGateFact fact = providers.lockAndRevalidate(key, query);

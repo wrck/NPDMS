@@ -12,6 +12,22 @@ import java.util.List;
 @Mapper
 public interface MigrationSourceRecordMapper extends BaseMapperX<MigrationSourceRecordDO> {
 
+    default List<MigrationSourceRecordDO> selectByKeys(MigrationSourceKeysQuery query) {
+        if (query.sourceKeys() == null || query.sourceKeys().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<MigrationSourceRecordDO>()
+                .eq(MigrationSourceRecordDO::getTenantId, query.tenantId())
+                .eq(MigrationSourceRecordDO::getBatchId, query.batchId())
+                .in(MigrationSourceRecordDO::getSourceRecordKey, query.sourceKeys()));
+    }
+
+    default List<MigrationSourceRecordDO> selectSourcePage(MigrationSourcePageQuery query) {
+        if (query.sourceRecordIds() == null || query.sourceRecordIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<MigrationSourceRecordDO>()
+                .eq(MigrationSourceRecordDO::getTenantId, query.tenantId())
+                .eq(MigrationSourceRecordDO::getBatchId, query.batchId())
+                .in(MigrationSourceRecordDO::getId, query.sourceRecordIds()));
+    }
+
     default MigrationSourceRecordDO selectByIdentity(MigrationSourceIdentityQuery query) {
         return selectOne(new LambdaQueryWrapperX<MigrationSourceRecordDO>()
                 .eq(MigrationSourceRecordDO::getTenantId, query.tenantId())

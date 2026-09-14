@@ -1,0 +1,158 @@
+// Module-local presentation. Reuses Element Plus theme tokens; never styles the host shell.
+.integration-page,
+.integration-editor {
+  min-width: 0;
+
+  .integration-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .integration-toolbar .el-button + .el-button {
+    margin-left: 0;
+  }
+
+  .integration-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .integration-row-actions .el-button + .el-button {
+    margin-left: 0;
+  }
+
+  .integration-note {
+    margin: 8px 0 0;
+    color: var(--el-text-color-secondary);
+    font-size: var(--el-font-size-small);
+    line-height: 1.5;
+  }
+
+  .integration-form {
+    max-width: 720px;
+  }
+
+  .integration-form .el-select {
+    width: 100%;
+  }
+
+  .integration-section-title {
+    margin: 20px 0 12px;
+    color: var(--el-text-color-primary);
+    font-size: var(--el-font-size-base);
+    font-weight: 600;
+  }
+
+  .integration-table {
+    width: 100%;
+  }
+
+  .integration-table .el-table__header th {
+    background-color: var(--el-fill-color-light);
+  }
+
+  .integration-query {
+    margin-bottom: -18px;
+  }
+
+  .integration-query .el-select {
+    width: 280px;
+    max-width: 100%;
+  }
+
+  .integration-identity {
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .integration-pagination {
+    display: flow-root;
+  }
+}
+
+.integration-page {
+  .integration-navigation > .el-tabs__header {
+    margin: 0 0 16px;
+    padding: 0 16px;
+    background: var(--el-bg-color-overlay);
+  }
+
+  .integration-navigation > .el-tabs__header .el-tabs__nav-wrap::after {
+    height: 1px;
+    background: var(--el-border-color-light);
+  }
+
+  .integration-navigation > .el-tabs__content {
+    overflow: visible;
+  }
+}
+
+.integration-editor {
+  .el-dialog__body {
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  .integration-config-tabs > .el-tabs__content {
+    padding-top: 8px;
+  }
+
+  .integration-fields {
+    margin-top: 16px;
+  }
+
+  .integration-source-select {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .integration-source-select .el-select {
+    min-width: 0;
+  }
+
+  .integration-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .integration-page,
+  .integration-editor {
+    .integration-form .el-form-item {
+      display: block;
+    }
+
+    .integration-form .el-form-item__label {
+      justify-content: flex-start;
+      width: auto !important;
+      height: auto;
+      margin-bottom: 4px;
+      line-height: 24px;
+    }
+
+    .integration-form .el-form-item__content {
+      margin-left: 0 !important;
+    }
+
+    .integration-query .el-form-item {
+      display: flex;
+      margin-right: 0;
+    }
+
+    .integration-query .el-select {
+      width: 100%;
+    }
+
+    .integration-filters > .el-input,
+    .integration-filters > .el-select {
+      width: 100% !important;
+    }
+  }
+}

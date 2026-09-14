@@ -116,8 +116,6 @@ public class ProjectTemplateController {
         ProjectTemplateDetailRespVO detail = BeanUtils.toBean(template, ProjectTemplateDetailRespVO.class);
         List<ProjectTemplateRevisionDO> revisions = projectTemplateService.getRevisionList(id);
         detail.setRevisions(BeanUtils.toBean(revisions, ProjectTemplateRevisionRespVO.class));
-        boolean hasDraft = revisions.stream().anyMatch(revision -> TemplateRules.REVISION_STATUS_DRAFT.equals(revision.getStatus()));
-        detail.setDraftContent(hasDraft ? projectTemplateService.getDraftContent(id) : null);
         return success(detail);
     }
 
@@ -182,7 +180,7 @@ public class ProjectTemplateController {
 
     @GetMapping("/actions/completion-fact-catalog")
     @Operation(summary = "完成事实目录")
-    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')")
     public CommonResult<List<cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry.CompletionFactCatalogEntry>>
             completionFactCatalog() {
         return success(taskBusinessProviderRegistry.completionFactCatalog());

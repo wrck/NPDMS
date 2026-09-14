@@ -9,6 +9,8 @@ const message = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), error: v
 const push = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/engineering/site-survey', () => api)
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/task-business', () => ({ getTaskBusinessContext: vi.fn() }))
+vi.mock('@/api/pms/project/stage-business', () => ({ getStageBusinessContext: vi.fn() }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: async () => [] }))
 vi.mock('@/api/pms/platform/dynamic-form', () => ({}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
@@ -41,6 +43,41 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
 describe('SOL site-survey shared project and standalone context', () => {
+  it('freezes the opened task execution and preserves unsaved content when a new round arrives', async () => {
+    const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, roundNo: 1, writable: true }
+    const { state, input } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'UPDATE'] })
+    await flush()
+    await state.openForm(record())
+    state.form.name = '本轮未保存内容'
+    input.taskExecution = { ...execution, executionId: '2099999999999999998', roundNo: 2 }
+    await flush()
+    expect(state.formVisible).toBe(true)
+    expect(state.form.name).toBe('本轮未保存内容')
+    state.formRef = { validate: vi.fn() }
+    api.updateSiteSurvey.mockRejectedValueOnce(new Error('stale execution'))
+    expect(await state.save()).toBe(false)
+    expect(api.updateSiteSurvey).toHaveBeenCalledWith(expect.objectContaining({ execution: { task: execution } }))
+    expect(state.formVisible).toBe(true)
+    expect(state.form.name).toBe('本轮未保存内容')
+  })
+  it('carries the stage identity on save and keeps the click-time execution through confirmation', async () => {
+    const execution = { projectId: 7, stageId: 5, executionId: '2099999999999999999', executionVersion: 1, roundNo: 2, writable: true }
+    const { state, input } = render({ projectId: 7, stageExecution: execution, allowedActions: ['QUERY', 'CREATE', 'CONFIRM'] })
+    await flush()
+    await state.openForm()
+    Object.assign(state.form, { code: 'NEW', name: '阶段工勘', location: 'onsite', formRevisionId: undefined })
+    state.formRef = { validate: vi.fn() }
+    await state.save()
+    expect(api.createSiteSurvey).toHaveBeenCalledWith(expect.objectContaining({ execution: { stage: execution } }))
+    let accept!: () => void
+    message.confirm.mockImplementationOnce(() => new Promise<void>(resolve => { accept = resolve }))
+    const pending = state.handleAction(record(), 'confirm')
+    input.stageExecution = { ...execution, executionVersion: 2 }
+    await flush()
+    accept()
+    await pending
+    expect(api.confirmSiteSurvey).toHaveBeenCalledWith(12, { stage: execution })
+  })
   it('pins list and new-form project, even if filter state is changed, without coercing string IDs', async () => {
     const { state } = render({ projectId: '2099999999999999999' })
     await flush()
@@ -72,6 +109,23 @@ describe('SOL site-survey shared project and standalone context', () => {
     input.allowedActions = ['QUERY', 'UPDATE', 'CONFIRM']
     await flush()
     expect(state.form.name).toBe('unsaved')
+    expect(api.getSiteSurvey).toHaveBeenCalledTimes(1)
+  })
+  it('keeps task entry and context refresh on the list until the user opens details', async () => {
+    const { state, input } = render({ projectId: 7, objectId: 12, taskId: 4, allowedActions: ['QUERY', 'UPDATE'] })
+    await flush()
+    expect(api.getSiteSurveyPage).toHaveBeenCalled()
+    expect(api.getSiteSurvey).not.toHaveBeenCalled()
+    expect(state.formVisible).toBe(false)
+    await state.load()
+    expect(state.formVisible).toBe(false)
+    await state.openForm(record(), true)
+    expect(api.getSiteSurvey).toHaveBeenCalledWith(12)
+    expect(state.formVisible).toBe(true)
+    expect(state.detailReadonly).toBe(true)
+    input.taskId = 5
+    await flush()
+    expect(state.formVisible).toBe(false)
     expect(api.getSiteSurvey).toHaveBeenCalledTimes(1)
   })
   it('retains standalone editing, project selection, linked deletion protection and saved/changed events', async () => {
@@ -169,6 +223,7 @@ describe('SOL site-survey shared project and standalone context', () => {
     apps.push(mounted.app)
     await flush()
     const page = host.value.$.setupState.contentRef.$.setupState
+    await page.openForm(record())
     page.form.name = 'local'
     await flush()
     message.confirm.mockRejectedValueOnce(new Error('cancel'))
@@ -191,6 +246,9 @@ describe('SOL site-survey shared project and standalone context', () => {
     api.getSiteSurvey.mockResolvedValue(record(7, 15))
     input.resolvedContext = { project: { id: 7 }, businessObjectId: 15, taskId: 4 }
     await flush()
+    expect(page.formVisible).toBe(false)
+    expect(api.getSiteSurvey).toHaveBeenLastCalledWith(12)
+    await page.openForm(record(7, 15))
     expect(api.getSiteSurvey).toHaveBeenLastCalledWith(15)
     expect(host.value.isDirty()).toBe(false)
   })

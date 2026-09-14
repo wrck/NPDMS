@@ -9,9 +9,16 @@ public record FileBusinessObjectPolicyRevalidationQuery(
         String purposeCode,
         String referenceKey,
         String requiredAction,
-        Long expectedScopeVersion) {
+        Long expectedScopeVersion, tools.jackson.databind.JsonNode ownerExecutionContext) {
+    public FileBusinessObjectPolicyRevalidationQuery(Long tenantId, Long actorUserId, String ownerContext, String objectType, String objectId, String purposeCode, String referenceKey, String requiredAction, Long expectedScopeVersion) {
+        this(tenantId, actorUserId, ownerContext, objectType, objectId, purposeCode, referenceKey, requiredAction, expectedScopeVersion, null);
+    }
+    @Override public tools.jackson.databind.JsonNode ownerExecutionContext() {
+        return ownerExecutionContext == null ? null : ownerExecutionContext.deepCopy();
+    }
 
     public FileBusinessObjectPolicyRevalidationQuery {
+        ownerExecutionContext = ownerExecutionContext == null ? null : ownerExecutionContext.deepCopy();
         FileBusinessObjectPolicyQuery validated = new FileBusinessObjectPolicyQuery(
                 tenantId, actorUserId, ownerContext, objectType, objectId,
                 purposeCode, referenceKey, requiredAction);
@@ -28,6 +35,6 @@ public record FileBusinessObjectPolicyRevalidationQuery(
 
     public FileBusinessObjectPolicyQuery toInspectionQuery() {
         return new FileBusinessObjectPolicyQuery(tenantId, actorUserId, ownerContext, objectType,
-                objectId, purposeCode, referenceKey, requiredAction);
+                objectId, purposeCode, referenceKey, requiredAction, ownerExecutionContext);
     }
 }

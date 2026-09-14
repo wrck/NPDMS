@@ -6,6 +6,7 @@ public record CustomerPlatformUpdate(
         String name,
         String shortName,
         String remark,
+        String customerLevel,
         String departmentCode,
         String departmentName,
         String marketCode,
@@ -19,6 +20,7 @@ public record CustomerPlatformUpdate(
         boolean updateName,
         boolean updateShortName,
         boolean updateRemark,
+        boolean updateCustomerLevel,
         boolean updateClassification,
         Long expectedVersion) {
 
@@ -32,8 +34,20 @@ public record CustomerPlatformUpdate(
             boolean updateShortName,
             boolean updateRemark,
             Long expectedVersion) {
-        this(tenantId, customerId, name, shortName, remark,
+        this(tenantId, customerId, name, shortName, remark, null,
                 null, null, null, null, null, null, null, null, null, null,
-                updateName, updateShortName, updateRemark, false, expectedVersion);
+                updateName, updateShortName, updateRemark, false, false, expectedVersion);
+    }
+
+    public CustomerPlatformUpdate(Long tenantId, Long customerId, String name, String shortName, String remark,
+                                  String departmentCode, String departmentName, String marketCode, String marketName,
+                                  String systemCode, String systemName, String expendCode, String expendName,
+                                  String industryCode, String industryName, boolean updateName,
+                                  boolean updateShortName, boolean updateRemark, boolean updateClassification,
+                                  Long expectedVersion) {
+        this(tenantId, customerId, name, shortName, remark, null, departmentCode, departmentName,
+                marketCode, marketName, systemCode, systemName, expendCode, expendName, industryCode,
+                industryName, updateName, updateShortName, updateRemark, false, updateClassification,
+                expectedVersion);
     }
 }

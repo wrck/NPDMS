@@ -104,7 +104,8 @@ class ProjectStageAdvanceApplicationServiceTest {
                 graphMapper, referenceMapper,
                 new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator(providerRegistry,
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
-                        mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class)));
+                        mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
+                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
         processOwnerApi = mock(ProjectStageGateProcessOwnerApi.class);
         participantFactApi = mock(ProjectParticipantFactApi.class);
         service = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, projectScopeApi,

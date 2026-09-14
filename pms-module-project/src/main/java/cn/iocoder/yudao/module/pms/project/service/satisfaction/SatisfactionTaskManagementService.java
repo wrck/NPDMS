@@ -101,7 +101,7 @@ public class SatisfactionTaskManagementService {
     protected RecollectResult recollectOnce(Long tenantId, Long actorUserId, Long taskId, Recollect command) {
         SatisfactionCollectionTaskDO prior = taskMapper.selectByIdForUpdate(tenantId, taskId);
         SatisfactionResultDO result = resultMapper.selectByIdForUpdate(tenantId, command.priorResultId());
-        if (prior == null || result == null || !Objects.equals(prior.getResultId(), result.getId())
+        if (prior == null || result == null || prior.getDeliverableId() == null || !Objects.equals(prior.getResultId(), result.getId())
                 || !Objects.equals(result.getCollectionTaskId(), prior.getId())
                 || !(!Boolean.TRUE.equals(result.getPassed()) || "INVALIDATED".equals(result.getResultStatus()))) {
             throw new IllegalStateException("SATISFACTION_RECOLLECT_PRECONDITION_FAILED");
@@ -111,7 +111,6 @@ public class SatisfactionTaskManagementService {
                 new ProjectSatisfactionTaskIdentityQuery(prior.getProjectId(), prior.getProjectTaskId()));
         if (projectTaskFact == null || !Objects.equals(projectTaskFact.projectId(), prior.getProjectId())
                 || !Objects.equals(projectTaskFact.projectTaskId(), prior.getProjectTaskId())
-                || !"T-SAT-SURVEY".equals(projectTaskFact.taskCode())
                 || projectTaskFact.projectTaskVersion() == null || projectTaskFact.projectTaskVersion() < 0) {
             throw new IllegalStateException("SATISFACTION_PROJECT_TASK_IDENTITY_CONFLICT");
         }
@@ -139,6 +138,7 @@ public class SatisfactionTaskManagementService {
         SatisfactionCollectionTaskDO next = new SatisfactionCollectionTaskDO();
         next.setId(newTaskId); next.setTenantId(tenantId); next.setProjectId(prior.getProjectId());
         next.setProjectTaskId(prior.getProjectTaskId()); next.setSourceOwnerContext(prior.getSourceOwnerContext());
+        next.setDeliverableId(prior.getDeliverableId());
         next.setSourceObjectType(prior.getSourceObjectType()); next.setSourceObjectId(prior.getSourceObjectId());
         next.setSourceObjectVersion(prior.getSourceObjectVersion()); next.setTriggerOwnerContext("ACC");
         next.setTriggerObjectType("SatisfactionRemediationFact");

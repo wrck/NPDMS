@@ -207,7 +207,7 @@ class PreparationInitializationServiceTest {
                 "[{\"itemCode\":\"POWER\",\"itemName\":\"供电\",\"enabled\":true,"
                         + "\"formCode\":\"POWER\",\"formVersion\":1,\"evidenceRequired\":false,"
                         + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":true,"
-                        + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":1}]");
+                        + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":1}]", 450L, 5, "{}");
     }
 
     private FixedSurveyFormCatalog catalog() {

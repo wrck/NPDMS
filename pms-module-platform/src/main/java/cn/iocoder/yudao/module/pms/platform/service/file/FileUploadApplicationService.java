@@ -168,11 +168,12 @@ public class FileUploadApplicationService {
             policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
                     command.tenantId(), command.actorUserId(), new FileReferenceSetKey(session.getOwnerContext(),
                     session.getObjectType(), session.getObjectId(), session.getPurposeCode()), action,
-                    session.getScopeVersion()));
+                    session.getScopeVersion(), command.ownerExecutionContext()));
             policy = policyRegistry.lockAndRevalidate(
                     new FileBusinessObjectPolicyRevalidationQuery(command.tenantId(), command.actorUserId(),
                             session.getOwnerContext(), session.getObjectType(), session.getObjectId(),
-                            session.getPurposeCode(), session.getReferenceKey(), action, session.getScopeVersion()));
+                            session.getPurposeCode(), session.getReferenceKey(), action, session.getScopeVersion(),
+                            command.ownerExecutionContext()));
         } else if (!session.getScopeVersion().equals(policy.scopeVersion())) {
             throw exception(FILE_SCOPE_FORBIDDEN);
         }
@@ -311,7 +312,8 @@ public class FileUploadApplicationService {
         FileBusinessObjectPolicyFact policy = authorizedPolicy == null
                 ? policyRegistry.inspect(new FileBusinessObjectPolicyQuery(
                 command.tenantId(), command.actorUserId(), validated.ownerContext(), validated.objectType(),
-                validated.objectId(), validated.purposeCode(), validated.referenceKey(), validated.action()))
+                validated.objectId(), validated.purposeCode(), validated.referenceKey(), validated.action(),
+                command.ownerExecutionContext()))
                 : authorizedPolicy;
         validatePolicy(validated, command.declaredSizeBytes(), policy);
         policyRef.set(policy);
@@ -596,6 +598,7 @@ public class FileUploadApplicationService {
         request.put("artifactId", command.artifactId());
         request.put("sessionId", command.sessionId());
         request.put("actualSha256", actualSha256);
+        request.put("ownerExecutionContext", command.ownerExecutionContext());
         return sha256(JsonUtils.toJsonString(request));
     }
 
@@ -712,6 +715,7 @@ public class FileUploadApplicationService {
         request.put("declaredSizeBytes", command.declaredSizeBytes());
         request.put("declaredMediaType", validated.declaredMediaType());
         request.put("clientSha256", normalizeDigest(command.clientSha256()));
+        request.put("ownerExecutionContext", command.ownerExecutionContext());
         return sha256(JsonUtils.toJsonString(request));
     }
 

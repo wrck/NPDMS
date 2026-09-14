@@ -50,6 +50,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionQuestionnaireTemplateRevisionMapper templateRevisionMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper deliverableMapper;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -112,6 +113,14 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
             return conflict();
         }
 
+        var deliverables = deliverableMapper.selectTaskDeliverablesForUpdate(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AccProjectDeliverableMapper.TaskDeliverablesQuery(
+                        tenantId, command.projectId(), taskFact.taskCode()));
+        if (deliverables.size() != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_BINDING_NOT_UNIQUE");
+        var deliverable = deliverables.getFirst();
+        if (!Objects.equals(deliverable.getTenantId(), tenantId) || !Objects.equals(deliverable.getProjectId(), command.projectId())
+                || !Objects.equals(deliverable.getTaskCode(), taskFact.taskCode()))
+            throw new IllegalStateException("SATISFACTION_DELIVERABLE_BINDING_CONFLICT");
         long taskId = IdWorker.getId();
         long questionnaireId = IdWorker.getId();
         SatisfactionCollectionTaskDO task = new SatisfactionCollectionTaskDO();
@@ -119,6 +128,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         task.setTenantId(tenantId);
         task.setProjectId(command.projectId());
         task.setProjectTaskId(command.projectTaskId());
+        task.setDeliverableId(deliverable.getId());
         task.setSourceOwnerContext(command.sourceOwnerContext());
         task.setSourceObjectType(command.sourceObjectType());
         task.setSourceObjectId(command.sourceObjectId());

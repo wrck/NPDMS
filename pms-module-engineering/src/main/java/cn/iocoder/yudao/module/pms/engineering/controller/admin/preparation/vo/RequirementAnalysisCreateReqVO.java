@@ -10,4 +10,5 @@ public class RequirementAnalysisCreateReqVO {
     @NotNull @Positive private Long projectId;
     @NotBlank private String type;
     private Integer expectedProjectVersion;
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection execution;
 }

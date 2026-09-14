@@ -30,7 +30,6 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultManagementService {
-    private static final String TASK_CODE = "T-SAT-SURVEY";
     private final SatisfactionResultMapper resultMapper;
     private final SatisfactionResultFileMapper fileMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
@@ -109,13 +108,13 @@ public class SatisfactionResultManagementService {
         if (task == null || result == null || !Objects.equals(task.getResultId(), resultId)
                 || !Objects.equals(result.getVersion(), expectedFactVersion)
                 || !"EFFECTIVE".equals(result.getResultStatus()) || !Boolean.TRUE.equals(result.getPassed())
-                || result.getEffectiveTo() != null) {
+                || result.getEffectiveTo() != null || task.getDeliverableId() == null) {
             throw new IllegalStateException("SATISFACTION_RESULT_INVALIDATION_STATE_CONFLICT");
         }
         requireScope(tenantId, actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT);
         ProjectSatisfactionTaskFact projectTask = workBindingFactApi.lockCurrentSatisfactionTask(
                 new ProjectSatisfactionTaskIdentityQuery(task.getProjectId(), task.getProjectTaskId()));
-        if (projectTask == null || !TASK_CODE.equals(projectTask.taskCode())
+        if (projectTask == null
                 || !Objects.equals(projectTask.projectId(), task.getProjectId())
                 || !Objects.equals(projectTask.projectTaskId(), task.getProjectTaskId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_PROJECT_TASK_CONFLICT");
@@ -128,7 +127,7 @@ public class SatisfactionResultManagementService {
         }
         List<EventFile> files = eventFiles(tenantId, resultId);
         return new InvalidationResult(operationId, tenantId, task.getProjectId(), task.getProjectTaskId(),
-                projectTask.projectTaskVersion(), task.getCollectionKey(), task.getTaskRevisionNo(), task.getId(),
+                projectTask.projectTaskVersion(), task.getDeliverableId(), task.getCollectionKey(), task.getTaskRevisionNo(), task.getId(),
                 result.getQuestionnaireId(), result.getResponseId(), resultId, result.getResultVersion(),
                 expectedFactVersion + 1, task.getSourceOwnerContext(), task.getSourceObjectType(),
                 task.getSourceObjectId(), task.getSourceObjectVersion(), result.getThreshold(), result.getRuleVersion(),
@@ -141,7 +140,7 @@ public class SatisfactionResultManagementService {
         payload.put("eventId", eventId); payload.put("changeType", "INVALIDATED");
         payload.put("tenantId", result.tenantId()); payload.put("projectId", result.projectId());
         payload.put("projectTaskId", result.projectTaskId()); payload.put("projectTaskVersion", result.projectTaskVersion());
-        payload.put("taskCode", TASK_CODE); payload.put("collectionKey", result.collectionKey());
+        payload.put("deliverableId", result.deliverableId()); payload.put("collectionKey", result.collectionKey());
         payload.put("taskRevisionNo", result.taskRevisionNo()); payload.put("taskId", result.taskId());
         payload.put("questionnaireId", result.questionnaireId()); payload.put("responseId", result.responseId());
         payload.put("resultId", result.resultId()); payload.put("resultVersion", result.resultVersion());
@@ -222,7 +221,7 @@ public class SatisfactionResultManagementService {
                             String referenceKey, Integer artifactVersion, Integer referenceVersion,
                             Integer availabilityVersion, Long scopeVersion, String sha256) {}
     public record InvalidationResult(String operationId, Long tenantId, Long projectId, Long projectTaskId,
-                                     Integer projectTaskVersion, String collectionKey, Integer taskRevisionNo,
+                                     Integer projectTaskVersion, Long deliverableId, String collectionKey, Integer taskRevisionNo,
                                      Long taskId, Long questionnaireId, Long responseId, Long resultId,
                                      Integer resultVersion, Integer resultFactVersion, String sourceOwnerContext,
                                      String sourceObjectType, String sourceObjectId, Long sourceObjectVersion,

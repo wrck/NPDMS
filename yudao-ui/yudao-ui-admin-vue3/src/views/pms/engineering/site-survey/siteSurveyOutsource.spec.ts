@@ -15,8 +15,9 @@ describe('one outsourcing shortcut for a whole site survey', () => {
     expect(outsourceDetailUrl(44)).toBe('/pms/engineering/procurement/eng-outsource?requestId=44')
   })
   it('rejects absent, repeated and malformed route identities', () => {
-    expect(positiveShortcutId('30011')).toBe(30011)
-    for (const value of [undefined, ['1'], '0', '-1', '1.1', 'NaN', '9007199254740993'])
+    expect(positiveShortcutId('30011')).toBe('30011')
+    expect(positiveShortcutId('9007199254740993')).toBe('9007199254740993')
+    for (const value of [undefined, ['1'], '0', '-1', '1.1', 'NaN', '9223372036854775808'])
       expect(positiveShortcutId(value)).toBeUndefined()
   })
   it('dynamic fields do not overwrite the whole-survey shortcut or association', () => {

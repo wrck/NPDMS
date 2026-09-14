@@ -10,9 +10,8 @@
                p.version                       AS projectVersion,
                t.id                            AS projectTaskId,
                t.version                       AS projectTaskVersion,
-               t.source_definition_id          AS sourceDefinitionId,
+               p.lifecycle_template_id         AS projectTemplateId,
                c.id                            AS executionContractId,
-               c.template_task_definition_id   AS templateTaskDefinitionId,
                c.work_binding_type_code        AS workBindingTypeCode,
                c.target_context_code           AS targetContextCode,
                c.target_object_type            AS targetObjectType,
@@ -40,6 +39,9 @@
           AND c.target_context_code = #{query.targetContextCode}
           AND c.target_object_type = #{query.targetObjectType}
           AND c.target_object_key = #{query.targetObjectKey}
+        <if test="query.projectTaskId != null">
+          AND t.id = #{query.projectTaskId}
+        </if>
     </select>
 
     <select id="selectProjectTaskForUpdate"
@@ -115,7 +117,7 @@
         JOIN proj_project_task t
           ON t.tenant_id = p.tenant_id
          AND t.project_id = p.id
-         AND t.task_code = 'T-SAT-SURVEY'
+         AND t.acc_satisfaction_template_id IS NOT NULL
          AND t.deleted = b'0'
         LEFT JOIN proj_project_task_assignment a
           ON a.tenant_id = t.tenant_id

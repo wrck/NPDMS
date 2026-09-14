@@ -31,8 +31,13 @@ class DeliveryDefinitionResolverTest {
     BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
     TaskBusinessProviderRegistry catalog = new TaskBusinessProviderRegistry(List.of(survey, acceptance));
     DeliveryDefinitionResolver resolver = new DeliveryDefinitionResolver(revisions, references,
-            views, providers, mock(ProjectStageGateProcessOwnerApi.class), catalog);
-    @BeforeEach void setup() { TenantContextHolder.setTenantId(7L); when(references.selectReferences(any())).thenReturn(List.of()); }
+            views, providers, mock(ProjectStageGateProcessOwnerApi.class), catalog,
+            mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator.class));
+    @BeforeEach void setup() {
+        TenantContextHolder.setTenantId(7L);
+        when(references.selectReferences(any())).thenReturn(List.of());
+        when(survey.supportsStageCompletionFacts()).thenReturn(true);
+    }
     @AfterEach void clear() { TenantContextHolder.clear(); }
     @Test void missingForeignDraftAndDisabledTargetsRejected() {
         assertThrows(ServiceException.class, () -> resolve(1L));
@@ -113,8 +118,27 @@ class DeliveryDefinitionResolverTest {
         verifyMetadataOnly();
     }
 
-    @Test void stageNativeAndUnsupportedHostsDoNotAdvertiseTaskFactRuntime() {
-        for (String binding : List.of("BUSINESS_OBJECT", "STAGE_NATIVE")) {
+    @Test void declaredStageReceiversSupportBothBusinessHostsWithoutReadingBusinessObjects() {
+        for (String binding : List.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT")) {
+            Revision stage = bound(DeliveryDefinitionKind.STAGE, binding, "SOL", "SITE_SURVEY",
+                    "{\"operator\":\"NOT\",\"rules\":[" + fact("SURVEY_ARCHIVED") + "]}");
+            assertEquals(3, resolver.resolveDefinition(stage, true).size());
+        }
+        verifyMetadataOnly();
+    }
+
+    @Test void taskOnlyProviderAndWrongOwnerCannotSupplyStageFacts() {
+        assertThrows(ServiceException.class, () -> resolver.resolveDefinition(bound(DeliveryDefinitionKind.STAGE,
+                "BUSINESS_OBJECT", "ACC", "ACCEPTANCE", fact("REPORT_EFFECTIVE")), true));
+        assertThrows(ServiceException.class, () -> resolver.resolveDefinition(bound(DeliveryDefinitionKind.STAGE,
+                "BUSINESS_OBJECT", "SOL", "OTHER", fact("SURVEY_CONFIRMED")), true));
+        assertThrows(ServiceException.class, () -> resolver.resolveDefinition(bound(DeliveryDefinitionKind.STAGE,
+                "BUSINESS_COMPONENT", "SOL", "SITE_SURVEY", fact("REPORT_EFFECTIVE")), true));
+        verifyMetadataOnly();
+    }
+
+    @Test void nativeAndUnsupportedHostsDoNotAdvertiseBusinessFactRuntime() {
+        for (String binding : List.of("STAGE_NATIVE", "DYNAMIC_FORM", "COMPOSITE", "APPROVAL")) {
             Revision stage = bound(DeliveryDefinitionKind.STAGE, binding, "SOL", "SITE_SURVEY", fact("SURVEY_CONFIRMED"));
             assertThrows(ServiceException.class, () -> resolver.resolveDefinition(stage, true));
         }
@@ -130,10 +154,13 @@ class DeliveryDefinitionResolverTest {
         TaskBusinessObjectProvider legacy = mock(TaskBusinessObjectProvider.class, CALLS_REAL_METHODS);
         assertEquals(Set.of(), legacy.completionFactCodes());
         assertFalse(new TaskBusinessProviderRegistry(List.of(legacy)).supportsCompletionFact("SURVEY_CONFIRMED"));
+        assertFalse(legacy.supportsStageCompletionFacts());
         var duplicate = owner("SOL", "SITE_SURVEY", Set.of("SURVEY_CONFIRMED"));
         var ambiguous = new TaskBusinessProviderRegistry(List.of(survey, duplicate));
         assertFalse(ambiguous.supportsCompletionFact("SURVEY_CONFIRMED"));
         assertFalse(ambiguous.supportsCompletionFact("SOL", "SITE_SURVEY", "SURVEY_CONFIRMED"));
+        assertFalse(ambiguous.supportsStageCompletionFact("SOL", "SITE_SURVEY", "SURVEY_CONFIRMED"));
+        assertFalse(catalog.supportsStageCompletionFact(null, "SITE_SURVEY", "SURVEY_CONFIRMED"));
         assertFalse(catalog.supportsCompletionFact(null));
         assertFalse(catalog.supportsCompletionFact(null, "SITE_SURVEY", "SURVEY_CONFIRMED"));
     }
@@ -192,7 +219,8 @@ class DeliveryDefinitionResolverTest {
     private void verifyMetadataOnly() {
         for (var provider : List.of(survey, acceptance)) {
             verify(provider, atLeast(0)).ownerContext(); verify(provider, atLeast(0)).objectType();
-            verify(provider, atLeast(0)).completionFactCodes(); verifyNoMoreInteractions(provider);
+            verify(provider, atLeast(0)).completionFactCodes();
+            verify(provider, atLeast(0)).supportsStageCompletionFacts(); verifyNoMoreInteractions(provider);
         }
     }
 

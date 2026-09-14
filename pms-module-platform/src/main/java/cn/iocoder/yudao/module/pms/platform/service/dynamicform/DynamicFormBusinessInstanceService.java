@@ -151,7 +151,7 @@ public class DynamicFormBusinessInstanceService {
         requireProviderOwner(query.providerKey(), query.ownerKey());
         DynamicFormPolicyFact policy = policyRegistry.inspectInstance(new DynamicFormInstancePolicyQuery(
                 query.tenantId(), query.actorUserId(), query.providerKey(), query.ownerKey(), query.instanceId(),
-                query.action()));
+                query.action(), query.ownerExecutionContext()));
         PlatformDynamicFormInstanceDO row = requireInstance(query.tenantId(), query.instanceId(), query.ownerKey());
         DynamicFormTemplateRevisionDO revision = requireRevision(query.tenantId(), row.getTemplateRevisionId());
         DynamicFormSchemaService.SchemaFields schema = schema(revision);

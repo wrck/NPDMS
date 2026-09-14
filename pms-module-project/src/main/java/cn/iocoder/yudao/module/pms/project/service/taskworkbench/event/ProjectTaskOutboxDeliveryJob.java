@@ -100,11 +100,16 @@ public class ProjectTaskOutboxDeliveryJob implements JobHandler {
         if (!(evidence.get("aggregateFactVersion") instanceof String version) || !version.matches("[0-9a-f]{64}")
                 || !(evidence.get("ownerContext") instanceof String owner) || owner.isBlank()
                 || !(evidence.get("objectType") instanceof String type) || type.isBlank()
-                || !(evidence.get("criteria") instanceof List<?> criteria) || criteria.isEmpty()
+                || !(evidence.get("criteria") instanceof List<?> criteria)
+                || criteria.isEmpty() && !(matchedRule(evidence.get("completion")) && matchedRule(evidence.get("exit")))
                 || !(evidence.get("links") instanceof List<?> links) || links.isEmpty()) return false;
         return links.stream().allMatch(item -> item instanceof java.util.Map<?, ?> link
                 && link.get("objectId") instanceof String id && !id.isBlank()
                 && link.get("factVersion") instanceof String factVersion && !factVersion.isBlank());
+    }
+
+    private boolean matchedRule(Object value) {
+        return value instanceof java.util.Map<?, ?> result && "MATCHED".equals(result.get("outcome"));
     }
 
     private static long retryDelayMinutes(int retryCount) {

@@ -58,6 +58,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import download from '@/utils/download'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileAccessOperation, FileArtifactVO, FileBusinessKey } from '@/api/pms/platform/file'
+import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { DetachedFileSlot } from './types'
 import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 
@@ -67,6 +68,7 @@ const props = withDefaults(
       artifactId?: number
       versionNo?: number
       editable?: boolean
+      ownerExecutionContext?: JsonObject
     }
   >(),
   { editable: false }
@@ -140,27 +142,33 @@ const openAccess = async (operation: FileAccessOperation) => {
 }
 const detach = async () => {
   if (!artifact.value) return
+  const selected = artifact.value.reference
+  const selectedKey = { ...businessKey.value }
+  const execution = props.ownerExecutionContext
+    ? structuredClone(toRaw(props.ownerExecutionContext)) : undefined
   const prompt = await message.prompt('请输入解绑原因', '解除材料引用')
   const signature = JSON.stringify([
-    artifact.value.reference.referenceId,
-    artifact.value.reference.referenceVersion,
-    businessKey.value,
+    selected.referenceId,
+    selected.referenceVersion,
+    selectedKey,
+    execution,
     prompt.value
   ])
   if (detachAttempt.value?.signature !== signature) {
     detachAttempt.value = { signature, idempotencyKey: crypto.randomUUID() }
   }
   const result = await FileApi.detachReference(
-    artifact.value.reference.referenceId,
-    artifact.value.reference.referenceVersion,
-    businessKey.value,
+    selected.referenceId,
+    selected.referenceVersion,
+    selectedKey,
     prompt.value,
-    detachAttempt.value.idempotencyKey
+    detachAttempt.value.idempotencyKey,
+    execution
   )
   detachAttempt.value = undefined
   message.success('材料引用已解除')
   artifact.value = undefined
-  emit('detached', { ...result, referenceKey: businessKey.value.referenceKey })
+  emit('detached', { ...result, referenceKey: selectedKey.referenceKey })
 }
 const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status

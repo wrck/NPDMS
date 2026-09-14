@@ -25,6 +25,21 @@
 - Decision owner:
 - Decision date:
 
+## 当前任务业务关联待决事项
+
+### Q-TASK-BUSINESS-AUTO-LINK-001
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: PM-03、PM-11
+- Area: 任务业务记录自动归属
+- Question: 2026-09-14需求方要求取消手动建立/解除关联并直接展示业务操作页；同项目存在多条业务记录时，哪些记录自动归属当前任务并进入完成判定？
+- Evidence: `ProjectTaskBusinessService.getContext/inspectLinkedFactsSnapshot/lockAndRevalidateLinkedFacts`当前读取已保存的活动关联；唯一关系写入来自显式`link`命令。当前工勘样本同时存在草稿和已确认记录，同项目全部纳入会改变完成判定范围。
+- Recommended technical default: 按任务冻结的业务范围及Owner明确归属解析，不仅按项目ID把所有同类型记录全部纳入；已有关系与完成历史不自动重写。具体归属规则待需求方确认。
+- Blocking scope: 自动关联及依赖它的手动关联区撤除；不阻断任务说明布局、操作区合并和取消工勘详情自动弹窗。
+- Decision owner: 需求方；PROJ与相应业务Owner落实契约
+- Resolution: 2026-09-14需求方已确认统一方向：所有业务模块共用“业务完成→自动关联对应任务→按任务完成规则自动完成”，无需人工建立/解除关联或点击完成任务。此确认不是同项目全部记录无差别纳入；具体任务/业务范围解析及各Owner接入契约仍须统一落字，暂不关闭本问题。
+- Implementation coordination: 本任务11:21后只读复核发现，上一轮结束后同工作树已出现其他来源的`TaskBusinessObjectProvider.lockCompletionFact`、`ProjectTaskBusinessService.lockCompletionFacts`、`ProjectTaskLifecycleService.completeFromBusinessResult`及需求分析Outbox接线（核心文件修改时间11:15～11:19）。现有自动完成仍读取已保存活动关联，且本轮检索仅发现需求分析实现无人值守完成事实接口，不等于统一能力已交付。master相关DU未定位到本增量的当前写入责任；须先明确接管/分工，不能并行改写同一接口或重复建设。
+
 ## Phase 2历史资料承载决策
 
 ### Q-P2-001

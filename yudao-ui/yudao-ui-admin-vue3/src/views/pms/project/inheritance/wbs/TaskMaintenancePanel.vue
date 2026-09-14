@@ -10,9 +10,11 @@
           <el-button v-if="view.canAssign" link type="primary" class="role-action" @click="openRole(role.value)">设置{{ role.label }}</el-button>
         </el-descriptions-item>
       </el-descriptions>
-      <div class="section-heading"><h4>任务说明</h4><el-button v-if="view.canEdit" link type="primary" @click="openDescription">编辑说明</el-button></div>
-      <div v-if="view.description?.descriptionFormat === 'HTML'" v-dompurify-html="view.description.description || ''" class="description-body" />
-      <div v-else class="description-plain">{{ view.description?.description || '暂无任务说明' }}</div>
+      <template v-if="showDescription">
+        <div class="section-heading"><h4>任务说明</h4><el-button v-if="canEditDescription" link type="primary" @click="openDescription">编辑说明</el-button></div>
+        <div v-if="view.description?.descriptionFormat === 'HTML'" v-dompurify-html="view.description.description || ''" class="description-body"></div>
+        <div v-else class="description-plain">{{ view.description?.description || '暂无任务说明' }}</div>
+      </template>
     </template>
   </section>
   <Dialog v-if="showResponsibilities" v-model="roleVisible" :title="`设置${roleLabel(role)}`" width="min(560px, calc(100vw - 24px))">
@@ -25,7 +27,7 @@
     <template #footer><el-button :disabled="saving" @click="roleVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" :disabled="!userId || !reason.trim()" @click="saveRole">保存</el-button></template>
   </Dialog>
-  <Dialog v-model="descriptionVisible" title="编辑任务说明" width="min(900px, calc(100vw - 24px))">
+  <Dialog v-model="descriptionVisible" title="编辑任务说明" width="min(900px, calc(100vw - 24px))" :before-close="beforeDescriptionClose">
     <Editor v-if="descriptionVisible" v-model="html" :editor-id="`wbs-description-${taskId}`" height="320px" :readonly="saving" />
     <p class="length-hint">{{ html.length }} / {{ view?.descriptionLimit }}（包含格式标记）</p>
     <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" />
@@ -43,7 +45,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import escape from 'lodash-es/escape'
 import { Editor } from '@/components/Editor'
 import { formatDate } from '@/utils/formatTime'
@@ -52,11 +54,14 @@ import * as Api from '@/api/pms/project/task-maintenance'
 import { TASK_ROLE_OPTIONS, type TaskRole, type TaskRoleEntry, type TaskMaintenanceView } from '@/api/pms/project/task-maintenance'
 import type { TaskCommandResult } from '@/api/pms/project/task-workbench'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
-const props = withDefaults(defineProps<{ projectId: number; taskId: number | string; taskVersion: number; showResponsibilities?: boolean }>(), { showResponsibilities: false })
+const props = withDefaults(defineProps<{ projectId: number; taskId: number | string; taskVersion: number; showResponsibilities?: boolean; showDescription?: boolean }>(), { showResponsibilities: false, showDescription: true })
 const emit = defineEmits<{ changed: [result: TaskCommandResult] }>()
 const message = useMessage(), view = ref<TaskMaintenanceView>(), loading = ref(false), error = ref('')
+const description = computed(() => view.value?.description)
+const canEditDescription = computed(() => Boolean(view.value?.canEdit && !loading.value && !error.value))
 const roleVisible = ref(false), descriptionVisible = ref(false), saving = ref(false), saveError = ref('')
 const role = ref<TaskRole>('RESPONSIBLE'), userId = ref<number>(), reason = ref(''), html = ref('')
+let originalHtml = ''
 const roleSubmission = createSubmissionIdempotencyState(), descriptionSubmission = createSubmissionIdempotencyState()
 const historyVisible = ref(false), historyRole = ref<TaskRole>('RESPONSIBLE'), history = ref<TaskRoleEntry[]>([])
 const historyPage = ref(1), historyMore = ref(false), historyLoading = ref(false), historyError = ref('')
@@ -81,10 +86,19 @@ const saveRole = async () => {
   finally { saving.value = false }
 }
 const openDescription = () => {
-  if (!view.value) return
+  if (!view.value || !canEditDescription.value) return
   const body = view.value.description?.description || ''
   html.value = view.value.description?.descriptionFormat === 'HTML' ? body : `<p>${escape(body).replace(/\r?\n/g, '</p><p>')}</p>`
+  originalHtml = html.value
   saveError.value = ''; descriptionSubmission.reset(); descriptionVisible.value = true
+}
+const beforeDescriptionClose = (done: () => void) => {
+  if (saving.value) return
+  if (html.value !== originalHtml) {
+    message.warning('任务说明尚未保存，请保存说明，或点击取消放弃本次编辑')
+    return
+  }
+  done()
 }
 const saveText = async () => {
   if (!view.value || saving.value) return
@@ -115,7 +129,9 @@ const requestLeave = () => {
   }
   return true
 }
-defineExpose({ requestLeave })
+// Share the existing editor with the basic-information table; do not duplicate its save flow.
+// https://vuejs.org/api/sfc-script-setup.html#defineexpose
+defineExpose({ requestLeave, description, canEditDescription, openDescription })
 </script>
 <style scoped>
 .section-heading { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; }

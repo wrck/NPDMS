@@ -54,12 +54,15 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
     }
 
     public DynamicFormPolicyFact inspectInstance(DynamicFormInstancePolicyQuery query) {
-        return usable(invoke(() -> provider(query.providerKey()).inspectInstanceOwnerPolicy(query)), query.action());
+        var fact = usable(invoke(() -> provider(query.providerKey()).inspectInstanceOwnerPolicy(query)), query.action());
+        if (!Objects.equals(query.ownerExecutionContext(), fact.ownerExecutionContext()))
+            throw exception(DYNAMIC_FORM_SCOPE_VERSION_CONFLICT);
+        return fact;
     }
 
     public DynamicFormPolicyFact lockAndRevalidate(DynamicFormPolicyRevalidationQuery query) {
         DynamicFormPolicyFact frozen = prevalidatedPolicy(query.tenantId(), query.actorUserId(), query.ownerKey(),
-                query.instanceId(), query.expectedFact().action()).orElse(null);
+                query.instanceId(), query.expectedFact().action(), query.expectedFact().ownerExecutionContext()).orElse(null);
         if (frozen != null) {
             if (!Objects.equals(query.expectedFact(), frozen)) {
                 throw exception(DYNAMIC_FORM_SCOPE_VERSION_CONFLICT);
@@ -69,7 +72,8 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
         DynamicFormPolicyFact fact = usable(invoke(() -> provider(query.providerKey())
                 .lockAndRevalidateInstanceOwnerPolicy(query)), query.expectedFact().action());
         if (!Objects.equals(query.expectedFact().scopeVersion(), fact.scopeVersion())
-                || !Objects.equals(query.expectedFact().ownerStateSummary(), fact.ownerStateSummary())) {
+                || !Objects.equals(query.expectedFact().ownerStateSummary(), fact.ownerStateSummary())
+                || !Objects.equals(query.expectedFact().ownerExecutionContext(), fact.ownerExecutionContext())) {
             throw exception(DYNAMIC_FORM_SCOPE_VERSION_CONFLICT);
         }
         remember(query, fact);
@@ -80,8 +84,15 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
                                                                    cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey ownerKey,
                                                                    Long instanceId,
                                                                    cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action,
-                                                                   Long expectedScopeVersion) {
-        DynamicFormPolicyFact fact = prevalidatedPolicy(tenantId, actorUserId, ownerKey, instanceId, action)
+                                                                    Long expectedScopeVersion) {
+        return prevalidatedFilePolicy(tenantId, actorUserId, ownerKey, instanceId, action, expectedScopeVersion, null);
+    }
+
+    public Optional<DynamicFormPolicyFact> prevalidatedFilePolicy(Long tenantId, Long actorUserId,
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey ownerKey,
+            Long instanceId, cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action,
+            Long expectedScopeVersion, tools.jackson.databind.JsonNode ownerExecutionContext) {
+        DynamicFormPolicyFact fact = prevalidatedPolicy(tenantId, actorUserId, ownerKey, instanceId, action, ownerExecutionContext)
                 .orElse(null);
         if (fact == null || expectedScopeVersion != null
                 && !Objects.equals(expectedScopeVersion, fact.scopeVersion())) return Optional.empty();
@@ -91,9 +102,10 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
     private Optional<DynamicFormPolicyFact> prevalidatedPolicy(Long tenantId, Long actorUserId,
                                                                 cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey ownerKey,
                                                                 Long instanceId,
-                                                                cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action) {
+                                                                cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action,
+                                                                tools.jackson.databind.JsonNode ownerExecutionContext) {
         if (!TransactionSynchronizationManager.hasResource(transactionResourceKey)) return Optional.empty();
-        return Optional.ofNullable(policies().get(new PolicyKey(tenantId, actorUserId, ownerKey, instanceId, action)));
+        return Optional.ofNullable(policies().get(new PolicyKey(tenantId, actorUserId, ownerKey, instanceId, action, ownerExecutionContext)));
     }
 
     private void remember(DynamicFormPolicyRevalidationQuery query, DynamicFormPolicyFact fact) {
@@ -101,7 +113,7 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
             throw exception(DYNAMIC_FORM_PROVIDER_UNAVAILABLE);
         }
         policies().put(new PolicyKey(query.tenantId(), query.actorUserId(), query.ownerKey(), query.instanceId(),
-                fact.action()), fact);
+                fact.action(), fact.ownerExecutionContext()), fact);
     }
 
     @SuppressWarnings("unchecked")
@@ -123,7 +135,8 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
     private record PolicyKey(Long tenantId, Long actorUserId,
                              cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey ownerKey,
                              Long instanceId,
-                             cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action) {
+                             cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction action,
+                             tools.jackson.databind.JsonNode ownerExecutionContext) {
     }
 
     private record RevisionPolicyKey(Long tenantId, Long actorUserId, DynamicFormProviderKey providerKey,

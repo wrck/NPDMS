@@ -89,12 +89,14 @@ public class PreparationController {
             @RequestParam("projectId") @Positive Long projectId,
             @RequestParam(value = "type", defaultValue = "PRE_02") String type,
             @RequestParam(value = "history", defaultValue = "false") boolean history,
-            @Valid @ModelAttribute PreparationPageReqVO pageRequest) {
+            @Valid @ModelAttribute PreparationPageReqVO pageRequest,
+            @RequestParam(value = "stageId", required = false) @Positive Long stageId,
+            @RequestParam(value = "taskId", required = false) @Positive Long taskId) {
         if (RequirementAnalysisQueryService.TYPE_ALIAS.equals(type)
                 || RequirementAnalysisQueryService.TYPE.equals(type)) {
             return withTrustedTenant(() -> success(history
                     ? dynamicRequirementQueryService.getHistory(projectId, pageRequest, dynamicRequirementActor())
-                    : dynamicRequirementQueryService.getWorkspace(projectId, dynamicRequirementActor())));
+                    : dynamicRequirementQueryService.getWorkspace(projectId, dynamicRequirementActor(), stageId, taskId)));
         }
         return withTrustedTenant(() -> success(queryService.getCurrent(projectId, type, actor())));
     }
@@ -111,7 +113,7 @@ public class PreparationController {
         }
         return withTrustedTenant(() -> success(dynamicRequirementCommandService.createInitial(
                 new RequirementAnalysisDynamicFormCommandService.CreateCommand(
-                        request.getProjectId(), idempotencyKey), dynamicRequirementCommandActor())));
+                        request.getProjectId(), idempotencyKey, request.getExecution()), dynamicRequirementCommandActor())));
     }
 
     @GetMapping("/{id}")
@@ -176,7 +178,7 @@ public class PreparationController {
             @Valid @RequestBody RequirementAnalysisFormPatchReqVO request) {
         return withTrustedTenant(() -> success(dynamicRequirementCommandService.patch(
                 new RequirementAnalysisDynamicFormCommandService.PatchCommand(id, parseVersion(solIfMatch),
-                        parseVersion(ifMatch), request.getValues(), UUID.randomUUID().toString()),
+                        parseVersion(ifMatch), request.getValues(), UUID.randomUUID().toString(), request.getExecution()),
                 dynamicRequirementCommandActor())));
     }
 
@@ -198,10 +200,10 @@ public class PreparationController {
             @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("X-SOL-If-Match") String solIfMatch,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody(required = false) RequirementAnalysisActionReqVO ignored) {
+            @RequestBody(required = false) RequirementAnalysisActionReqVO request) {
         return withTrustedTenant(() -> success(dynamicRequirementCommandService.complete(
                 new RequirementAnalysisDynamicFormCommandService.CompleteCommand(id, parseVersion(solIfMatch),
-                        parseVersion(ifMatch), idempotencyKey), dynamicRequirementCommandActor())));
+                        parseVersion(ifMatch), idempotencyKey, request == null ? null : request.getExecution()), dynamicRequirementCommandActor())));
     }
 
     @PostMapping("/{id}/actions/create-draft")
@@ -212,13 +214,13 @@ public class PreparationController {
             @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("X-SOL-If-Match") String solIfMatch,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody(required = false) RequirementAnalysisActionReqVO ignored) {
+            @RequestBody(required = false) RequirementAnalysisActionReqVO request) {
         return withTrustedTenant(() -> {
             var source = dynamicRequirementQueryService.getDetail(id, dynamicRequirementActor());
             return success(dynamicRequirementCommandService.createRevision(
                     new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(id,
                             source.getDynamicFormInstanceId(), parseVersion(solIfMatch), parseVersion(ifMatch),
-                            idempotencyKey), dynamicRequirementCommandActor()));
+                            idempotencyKey, request == null ? null : request.getExecution()), dynamicRequirementCommandActor()));
         });
     }
 

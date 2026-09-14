@@ -447,7 +447,7 @@
           AND deleted = b'0'
     </update>
 
-    <select id="selectNonTerminalDescendantIdsForUpdate" resultType="long">
+    <select id="selectUnfinishedStartedDescendantIdsForUpdate" resultType="long">
         SELECT task.id
         FROM proj_task_tree_path path
         JOIN proj_project_task task
@@ -460,7 +460,12 @@
           AND path.ancestor_task_id = #{query.projectTaskId}
           AND path.distance &gt; 0
           AND path.deleted = b'0'
-          AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
+            AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
+            AND (task.actual_start_time IS NOT NULL OR task.status IN ('IN_PROGRESS','PENDING_ACCEPT')
+                 OR EXISTS (SELECT 1 FROM proj_project_node_execution execution
+                            WHERE execution.tenant_id=task.tenant_id AND execution.project_id=task.project_id
+                              AND execution.node_kind='TASK' AND execution.node_instance_id=task.id
+                              AND execution.current_marker=1 AND execution.deleted=b'0' AND execution.started_at IS NOT NULL))
         ORDER BY task.id
         FOR UPDATE
     </select>

@@ -10,9 +10,16 @@ public record FileBusinessObjectPolicyQuery(
         String objectId,
         String purposeCode,
         String referenceKey,
-        String requiredAction) {
+        String requiredAction, tools.jackson.databind.JsonNode ownerExecutionContext) {
+    public FileBusinessObjectPolicyQuery(Long tenantId, Long actorUserId, String ownerContext, String objectType, String objectId, String purposeCode, String referenceKey, String requiredAction) {
+        this(tenantId, actorUserId, ownerContext, objectType, objectId, purposeCode, referenceKey, requiredAction, null);
+    }
+    @Override public tools.jackson.databind.JsonNode ownerExecutionContext() {
+        return ownerExecutionContext == null ? null : ownerExecutionContext.deepCopy();
+    }
 
     public FileBusinessObjectPolicyQuery {
+        ownerExecutionContext = ownerExecutionContext == null ? null : ownerExecutionContext.deepCopy();
         if (tenantId == null || tenantId < 0 || actorUserId == null || actorUserId <= 0) {
             throw new IllegalArgumentException("invalid trusted file policy context");
         }

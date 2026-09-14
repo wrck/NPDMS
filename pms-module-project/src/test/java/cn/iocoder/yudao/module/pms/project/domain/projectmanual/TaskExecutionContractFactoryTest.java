@@ -20,6 +20,14 @@ class TaskExecutionContractFactoryTest {
     private final TaskExecutionContractFactory factory = new TaskExecutionContractFactory();
 
     @Test
+    void nativeWorkMayUseACompiledConditionGroupInsteadOfTheOldFixedCompletionShape() {
+        var definition = validTaskNative();
+        definition.setCompletionRuleTypeCode("ALL");
+        definition.setCompletionRuleConfig("{\"operator\":\"ALL\",\"rules\":[{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}]}");
+        assertEquals("ALL",factory.create(11L,21L,definition,NOW).getCompletionRuleTypeCode());
+    }
+
+    @Test
     void taskNativeRejectsExternalTarget() {
         TemplateDefinitionContent.TaskDef task = validTaskNative();
         task.setTargetObjectKey("foreign-1");

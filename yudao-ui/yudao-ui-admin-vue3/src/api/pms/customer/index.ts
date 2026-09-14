@@ -19,6 +19,7 @@ export interface CustomerCreateReqVO {
   code: string
   name: string
   shortName?: string
+  customerLevel: string
   remark?: string
   sourceType: CustomerSourceType
   sourceKey?: string
@@ -35,6 +36,7 @@ export interface CustomerCreateReqVO {
 export interface CustomerUpdateReqVO {
   name?: string
   shortName?: string
+  customerLevel?: string
   remark?: string
   departmentCode?: string
   marketCode?: string
@@ -53,8 +55,11 @@ export interface CustomerRespVO {
   code: string
   name: string
   shortName?: string
+  customerLevel?: string
   lifecycleStatus: CustomerLifecycleStatus
   sourceType: CustomerSourceType
+  sourceKey?: string
+  sourceVersion?: string
   syncStatus?: string
   dataAsOf?: string
   reconciliationPending: boolean
@@ -73,6 +78,10 @@ export interface CustomerRespVO {
   industryName?: string
   remark?: string
   version: number
+  creator?: string
+  createTime?: string
+  updater?: string
+  updateTime?: string
 }
 
 export interface CustomerRelationSummaryItem {
@@ -124,6 +133,17 @@ export interface CustomerCommandResult {
   replayed: boolean
 }
 
+export interface CustomerClassificationOption {
+  marketCode: string
+  marketName: string
+  systemCode: string
+  systemName: string
+  expendCode: string
+  expendName: string
+  industryCode: string
+  industryName: string
+}
+
 const baseUrl = '/pms/customers'
 
 export const getCustomerPage = (params: CustomerPageReqVO) => request.get({ url: baseUrl, params })
@@ -132,6 +152,9 @@ export const getCustomer = (id: number) => request.get({ url: `${baseUrl}/${id}`
 
 export const getCustomerByCode = (code: string) =>
   request.get<CustomerDetailRespVO>({ url: '/api/v1/pms/customers/by-code', params: { code } })
+
+export const getClassificationOptions = () =>
+  request.get<CustomerClassificationOption[]>({ url: `${baseUrl}/classification-options` })
 
 export const createCustomer = (data: CustomerCreateReqVO, idempotencyKey: string) =>
   request.post({

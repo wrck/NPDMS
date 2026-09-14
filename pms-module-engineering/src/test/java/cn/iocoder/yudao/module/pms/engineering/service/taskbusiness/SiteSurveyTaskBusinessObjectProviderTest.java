@@ -12,10 +12,14 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.Context;
+import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.StageCompletionContext;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,13 +36,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SiteSurveyTaskBusinessObjectProviderTest {
+    @Test void stageCapabilityIsMetadataOnly() {
+        assertTrue(provider.supportsStageCompletionFacts());
+        verifyNoInteractions(mapper, scope, permissions, executions);
+    }
     private final SiteSurveyMapper mapper = mock(SiteSurveyMapper.class);
     private final ProjectScopeApi scope = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     private final SiteSurveyTaskBusinessObjectProvider provider =
-            new SiteSurveyTaskBusinessObjectProvider(mapper, scope, permissions);
+            new SiteSurveyTaskBusinessObjectProvider(mapper, scope, permissions, executions);
     private final Context context = new Context(3L, 9L, 100L, 200L, "survey-test");
     private final SiteSurveyTaskObjectQuery objectQuery = new SiteSurveyTaskObjectQuery(3L, 100L, 42L);
+    private final ProjectStageExecutionContext stageExecution = new ProjectStageExecutionContext(
+            100L, 1, 300L, 2, 301L, 1, 302L, 303L, 1, 2, true);
+    private final StageCompletionContext stageContext = new StageCompletionContext(3L, stageExecution);
 
     @BeforeEach
     void setUp() {
@@ -228,7 +240,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         SiteSurveyTaskBusinessObjectProvider proxy = (SiteSurveyTaskBusinessObjectProvider) factory.getProxy();
         assertThrows(IllegalTransactionStateException.class,
                 () -> proxy.lockAndRevalidate(context, "42", "SOL_SITE_SURVEY:v1:7:1"));
-        verifyNoInteractions(mapper, scope, permissions);
+        assertThrows(IllegalTransactionStateException.class,
+                () -> proxy.lockStageCompletionFact(stageContext, "42"));
+        assertThrows(IllegalTransactionStateException.class,
+                () -> proxy.lockCompletionFact(null, "42"));
+        verifyNoInteractions(mapper, scope, permissions, executions);
     }
 
     private SiteSurveyDO row(int status) {
@@ -242,5 +258,164 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         row.setDeleted(false);
         row.setConclusion("https://not-a-plt-artifact");
         return row;
+    }
+
+    @Test
+    void unattendedFactsReadCurrentOwnerResultWithoutOriginTimeOrRoundComparison() {
+        SecurityContextHolder.clearContext();
+        var started = java.time.LocalDateTime.of(2026, 9, 14, 12, 0);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L, 1, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
+        var evaluation = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L, execution);
+        when(executions.lockAndRevalidate(execution)).thenReturn(execution);
+        var survey = row(1); survey.setConfirmedAt(started.minusDays(1)); survey.setUpdateTime(started.plusMinutes(1));
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(survey);
+        var old = provider.lockCompletionFact(evaluation, "42");
+        assertTrue(old.handlingCompleted()); assertTrue(old.completionFacts().get("SURVEY_CONFIRMED"));
+        survey.setConfirmedAt(started.plusSeconds(1));
+        var current = provider.lockCompletionFact(evaluation, "42");
+        assertTrue(current.handlingCompleted()); assertTrue(current.completionFacts().get("SURVEY_CONFIRMED"));
+        assertFalse(current.completionFacts().get("SURVEY_ARCHIVED"));
+        survey.setStatus(3); survey.setArchivedAt(started.plusMinutes(1));
+        assertTrue(provider.lockCompletionFact(evaluation, "42").completionFacts().get("SURVEY_ARCHIVED"));
+        verifyNoInteractions(scope, permissions);
+        verify(mapper, never()).updateById(any(SiteSurveyDO.class));
+    }
+
+    @Test
+    void missingTimestampsDoNotBlockCurrentBusinessResultButStaleTaskContextStillFails() {
+        var started = java.time.LocalDateTime.of(2026, 9, 14, 12, 0);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L, 1, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
+        var evaluation = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L, execution);
+        when(executions.lockAndRevalidate(execution)).thenReturn(execution);
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(row(1));
+        assertTrue(provider.lockCompletionFact(evaluation, "42").handlingCompleted());
+        when(executions.lockAndRevalidate(execution)).thenThrow(new IllegalStateException("stale execution"));
+        assertThrows(IllegalStateException.class, () -> provider.lockCompletionFact(evaluation, "42"));
+        verify(mapper, times(1)).selectTaskObjectForUpdate(objectQuery);
+    }
+
+    @Test
+    void firstExecutionCanExplicitlyShareAnExistingConfirmedResult() {
+        SecurityContextHolder.clearContext();
+        var started = java.time.LocalDateTime.of(2026,9,14,12,0);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L,1,200L,1,201L,1,202L,203L,1,1,204L,1,true,started);
+        when(executions.lockAndRevalidate(execution)).thenReturn(execution);
+        var survey = row(1); survey.setConfirmedAt(started.minusHours(1));
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(survey);
+        var result = provider.lockCompletionFact(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L,execution),"42");
+        assertTrue(result.handlingCompleted()); assertTrue(result.completionFacts().get("SURVEY_CONFIRMED"));
+        assertEquals(7, survey.getVersion());
+        verify(mapper, never()).updateById(any(SiteSurveyDO.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3})
+    void stageReadsOwnerResultInCurrentExecutionWithoutTaskOrTimestampEvidence(int status) {
+        SecurityContextHolder.clearContext();
+        when(executions.lockAndRevalidateStage(stageExecution)).thenReturn(stageExecution);
+        var survey = row(status);
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(survey);
+
+        var result = provider.lockStageCompletionFact(stageContext, "42");
+
+        assertEquals(status == 1 || status == 3, result.handlingCompleted());
+        assertEquals(status == 1 || status == 3, result.completionFacts().get("SURVEY_CONFIRMED"));
+        assertEquals(status == 3, result.completionFacts().get("SURVEY_ARCHIVED"));
+        assertEquals("SOL_SITE_SURVEY_RESULT:7:" + status + ":execution:303", result.factVersion());
+        assertEquals("42", result.objectId());
+        var order = inOrder(executions, mapper);
+        order.verify(executions).lockAndRevalidateStage(stageExecution);
+        order.verify(mapper).selectTaskObjectForUpdate(objectQuery);
+        verifyNoMoreInteractions(executions, mapper);
+        verifyNoInteractions(scope, permissions);
+        assertEquals(status, survey.getStatus());
+        assertEquals(7, survey.getVersion());
+        assertNull(survey.getConfirmedAt());
+        assertNull(survey.getArchivedAt());
+    }
+
+    @Test
+    void staleStageFailsBeforeOwnerRead() {
+        when(executions.lockAndRevalidateStage(stageExecution)).thenThrow(new IllegalStateException("stale stage"));
+        assertThrows(IllegalStateException.class, () -> provider.lockStageCompletionFact(stageContext, "42"));
+        verifyNoInteractions(mapper, scope, permissions);
+    }
+
+    @Test
+    void stageRejectsMissingOrForeignTenantBeforeExecutionLookup() {
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(null, "42"));
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(new StageCompletionContext(3L, null), "42"));
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(new StageCompletionContext(4L, stageExecution), "42"));
+        TenantContextHolder.clear();
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(new StageCompletionContext(null, stageExecution), "42"));
+        verifyNoInteractions(executions, mapper, scope, permissions);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "invalid", "99999999999999999999999"})
+    void stageRejectsInvalidObjectIdentityBeforeOwnerRead(String objectId) {
+        when(executions.lockAndRevalidateStage(stageExecution)).thenReturn(stageExecution);
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(stageContext, objectId));
+        verifyNoInteractions(mapper, scope, permissions);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"missing", "object", "project", "tenant", "deleted", "version", "negativeVersion", "status", "unknownStatus"})
+    void unavailableStageFactThrowsInsteadOfBecomingFalse(String invalid) {
+        when(executions.lockAndRevalidateStage(stageExecution)).thenReturn(stageExecution);
+        var survey = row(1);
+        switch (invalid) {
+            case "object" -> survey.setId(43L);
+            case "project" -> survey.setProjectId(101L);
+            case "tenant" -> survey.setTenantId(4L);
+            case "deleted" -> survey.setDeleted(true);
+            case "version" -> survey.setVersion(null);
+            case "negativeVersion" -> survey.setVersion(-1);
+            case "status" -> survey.setStatus(null);
+            case "unknownStatus" -> survey.setStatus(4);
+            default -> { }
+        }
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn("missing".equals(invalid) ? null : survey);
+        assertThrows(ServiceException.class, () -> provider.lockStageCompletionFact(stageContext, "42"));
+        verify(mapper).selectTaskObjectForUpdate(objectQuery);
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void sameSurveyCanSupplyIndependentStageContextsWithoutOverwritingEarlierEvidence() {
+        when(executions.lockAndRevalidateStage(stageExecution)).thenReturn(stageExecution);
+        var other = new ProjectStageExecutionContext(100L, 1, 400L, 2, 401L, 1, 302L, 403L, 1, 1, true);
+        when(executions.lockAndRevalidateStage(other)).thenReturn(other);
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(row(1));
+        var first = provider.lockStageCompletionFact(stageContext, "42");
+        var second = provider.lockStageCompletionFact(new StageCompletionContext(3L, other), "42");
+        assertEquals(first.completionFacts(), second.completionFacts());
+        assertEquals("SOL_SITE_SURVEY_RESULT:7:1:execution:303", first.factVersion());
+        assertEquals("SOL_SITE_SURVEY_RESULT:7:1:execution:403", second.factVersion());
+        verify(mapper, times(2)).selectTaskObjectForUpdate(objectQuery);
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void stageViewReusesOwnerPermissionsWithoutCreatingOrManuallyLinkingRecords() {
+        var stage = new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Context(
+                3L,9L,100L,300L,"SITE_SURVEY","CREATE_ON_FIRST_ACTION",stageExecution);
+        assertEquals(Set.of("QUERY"),provider.inspectStage(stage).allowedActions());
+        when(permissions.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:create")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:delete")).thenReturn(true);
+        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_EDIT)))
+                .thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
+        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
+        assertEquals(Set.of("QUERY","CREATE","UPDATE","CONFIRM","REJECT","ARCHIVE","DELETE"),provider.inspectStage(stage).allowedActions());
+        var readonly = new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Context(
+                3L,9L,100L,300L,"SITE_SURVEY","READ_ONLY_AGGREGATE",stageExecution);
+        assertEquals(Set.of("QUERY"),provider.inspectStage(readonly).allowedActions());
+        verifyNoInteractions(mapper,executions);
     }
 }

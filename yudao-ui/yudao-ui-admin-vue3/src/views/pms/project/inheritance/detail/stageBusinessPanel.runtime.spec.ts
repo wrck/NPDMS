@@ -1,22 +1,28 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, onUnmounted, ref } from 'vue'
 import StageBusinessPanel from './StageBusinessPanel.vue'
 import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ getStageBusinessContext: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
+const ownerUnmounted = vi.hoisted(() => vi.fn())
+const ownerContext = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/project/stage-business', () => api)
 vi.mock('@/components/BusinessView/BusinessViewHost.vue', () => ({ default: defineComponent({
   props: ['resolvedContext', 'readonly', 'allowedActions'],
-  setup(props, { expose }) { expose({ requestLeave: leave }); return () => h('div', `Owner:${props.resolvedContext.project.id}; readonly:${props.readonly}; actions:${props.allowedActions.join(',')}`) }
+  setup(props, { expose }) {
+    expose({ requestLeave: leave }); onUnmounted(ownerUnmounted)
+    return () => { ownerContext(props.resolvedContext); return h('div', `Owner:${props.resolvedContext.project.id}; readonly:${props.readonly}; actions:${props.allowedActions.join(',')}`) }
+  }
 }) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 6; i++) { await Promise.resolve(); await nextTick() } }
 const native = { projectId: '9', stageId: '90', stageCode: 'S4', bindingType: 'STAGE_NATIVE', ownerActions: [], readonly: true }
 const render = () => {
   const child = ref<any>()
-  const view = mount(defineComponent({ setup: () => () => h(StageBusinessPanel, { ref: child, project: { id: 9, version: 2 }, stageCode: 'S4' }) }))
+  const project = ref({ id: 9, version: 2 })
+  const view = mount(defineComponent({ setup: () => () => h(StageBusinessPanel, { ref: child, project: project.value, stageCode: 'S4' }) }))
   apps.push(view.app)
-  return { ...view, component: () => child.value, state: () => child.value.$.setupState }
+  return { ...view, project, component: () => child.value, state: () => child.value.$.setupState }
 }
 beforeEach(() => { vi.clearAllMocks(); leave.mockResolvedValue(false); api.getStageBusinessContext.mockResolvedValue(native) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
@@ -50,4 +56,16 @@ it('rejects a context for another project instead of mounting its view', async (
   const view = render(); await flush()
   expect(textOf(view.root)).not.toContain('Owner:')
   expect(textOf(view.root)).toContain('阶段业务上下文加载失败')
+})
+
+it('passes the exact stage execution and retains the Owner page when the same project metadata refreshes', async () => {
+  const execution = { projectId: '9', stageId: '90', executionId: '101', executionVersion: 2, roundNo: 2 }
+  api.getStageBusinessContext.mockResolvedValue({ ...native, execution, bindingType: 'BUSINESS_OBJECT', businessView: { id: 88 } })
+  const view = render(); await flush()
+  expect(ownerContext.mock.lastCall![0].stageExecution).toEqual(execution)
+  view.project.value = { id: 9, version: 3 }
+  await flush()
+  expect(api.getStageBusinessContext).toHaveBeenCalledTimes(1)
+  expect(ownerUnmounted).not.toHaveBeenCalled()
+  expect(ownerContext.mock.lastCall![0].project.version).toBe(3)
 })

@@ -102,6 +102,26 @@ class FileUploadInitializationServiceTest {
     }
 
     @Test
+    void sendsSelectedExecutionToOwnerAndNeverStoresItInSessionOrAudit() {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(
+                true, 8L, "MUTABLE", "MULTIPLE", Set.of("DYNAMIC_FORM_ATTACHMENT"),
+                Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        when(sessionMapper.insert(any())).thenReturn(1);
+        executeImmediately();
+        var context = JsonUtils.parseTree("{\"task\":{\"executionId\":7001}}");
+        service.initialize(new FileUploadInitializeCommand(0L, 7L, "selected-node",
+                "CREATE_ARTIFACT", null, null, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31",
+                "FORM_FIELD_ATTACHMENT/evidence", "e5596ba5-d40f-4adb-a6cb-00ec9ec0ecb4",
+                "evidence.pdf", "DYNAMIC_FORM_ATTACHMENT", 1024L, "application/pdf", null, context));
+        verify(policyRegistry).inspect(org.mockito.ArgumentMatchers.argThat(query ->
+                context.equals(query.ownerExecutionContext())));
+        var session = ArgumentCaptor.forClass(FileUploadSessionDO.class);
+        verify(sessionMapper).insert(session.capture());
+        org.junit.jupiter.api.Assertions.assertFalse(JsonUtils.toJsonString(session.getValue()).contains("ownerExecutionContext"));
+        org.junit.jupiter.api.Assertions.assertFalse(successFacts.get().detailSnapshot().contains("ownerExecutionContext"));
+    }
+
+    @Test
     void rejectsDeclaredSizeAboveBusinessLimitWithoutSessionSideEffect() {
         when(policyRegistry.inspect(any())).thenReturn(policy("MUTABLE", 100L));
         executeImmediately();

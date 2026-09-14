@@ -36,4 +36,5 @@ public class FileUploadInitReqVO {
     private String declaredMediaType;
     @Size(max = 64)
     private String clientSha256;
+    private tools.jackson.databind.JsonNode ownerExecutionContext;
 }

@@ -19,6 +19,57 @@ import static org.mockito.Mockito.times;
 class DynamicFormBusinessObjectPolicyProviderRegistryTest {
 
     @Test
+    void differentNodeContextsCannotReuseEachOthersTransactionAuthorization() {
+        var provider = mock(DynamicFormBusinessObjectPolicyProvider.class);
+        var key = new DynamicFormProviderKey("SOL","REQUIREMENT_ANALYSIS");
+        var owner = new DynamicFormOwnerKey("SOL","REQUIREMENT_ANALYSIS","11");
+        when(provider.providerKey()).thenReturn(key);
+        var first = new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH,true,null,4L,"DRAFT:4",
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"task\":{\"executionId\":101}}"));
+        var second = new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH,true,null,4L,"DRAFT:4",
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"task\":{\"executionId\":102}}"));
+        var firstQuery = new DynamicFormPolicyRevalidationQuery(1L,2L,key,owner,21L,first);
+        var secondQuery = new DynamicFormPolicyRevalidationQuery(1L,2L,key,owner,21L,second);
+        when(provider.lockAndRevalidateInstanceOwnerPolicy(firstQuery)).thenReturn(first);
+        when(provider.lockAndRevalidateInstanceOwnerPolicy(secondQuery)).thenReturn(second);
+        var registry = new DynamicFormBusinessObjectPolicyProviderRegistry(List.of(provider));
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            assertThat(registry.lockAndRevalidate(firstQuery)).isEqualTo(first);
+            assertThat(registry.lockAndRevalidate(secondQuery)).isEqualTo(second);
+            assertThat(registry.lockAndRevalidate(firstQuery)).isEqualTo(first);
+            verify(provider,times(1)).lockAndRevalidateInstanceOwnerPolicy(firstQuery);
+            verify(provider,times(1)).lockAndRevalidateInstanceOwnerPolicy(secondQuery);
+            assertThat(registry.prevalidatedFilePolicy(1L,2L,owner,21L,DynamicFormBusinessAction.PATCH,4L)).isEmpty();
+        } finally {
+            TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(0));
+            TransactionSynchronizationManager.clearSynchronization();
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+
+    @Test
+    void ownerCannotSilentlyDropRequestedExecutionAndContextCannotBeMutatedAfterInspection() {
+        var provider = mock(DynamicFormBusinessObjectPolicyProvider.class);
+        var key = new DynamicFormProviderKey("SOL","REQUIREMENT_ANALYSIS");
+        var owner = new DynamicFormOwnerKey("SOL","REQUIREMENT_ANALYSIS","11");
+        var context = (tools.jackson.databind.node.ObjectNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"executionId\":101}");
+        var query = new DynamicFormInstancePolicyQuery(1L,2L,key,owner,21L,DynamicFormBusinessAction.PATCH,context);
+        var fact = new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH,true,null,4L,"DRAFT:4",context);
+        context.put("executionId",102);
+        ((tools.jackson.databind.node.ObjectNode) fact.ownerExecutionContext()).put("executionId",103);
+        assertThat(query.ownerExecutionContext().path("executionId").asLong()).isEqualTo(101);
+        assertThat(fact.ownerExecutionContext().path("executionId").asLong()).isEqualTo(101);
+        when(provider.providerKey()).thenReturn(key);
+        when(provider.inspectInstanceOwnerPolicy(query)).thenReturn(new DynamicFormPolicyFact(DynamicFormBusinessAction.PATCH,true,null,4L,"DRAFT:4"));
+        var registry = new DynamicFormBusinessObjectPolicyProviderRegistry(List.of(provider));
+        assertThatThrownBy(() -> registry.inspectInstance(query)).isInstanceOf(ServiceException.class);
+        when(provider.inspectInstanceOwnerPolicy(query)).thenReturn(fact);
+        assertThat(registry.inspectInstance(query)).isEqualTo(fact);
+    }
+
+    @Test
     void exactProviderAndActionAreRequired() {
         DynamicFormBusinessObjectPolicyProvider provider = mock(DynamicFormBusinessObjectPolicyProvider.class);
         DynamicFormProviderKey key = new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");
