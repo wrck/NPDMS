@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import type { TaskApprovalSubmission } from '../task-workbench'
 
 /**
  * 新链项目 API（F-PM01 / PM-01，复数路由 /pms/projects）
@@ -592,15 +593,16 @@ export const getProjectStageGateProcessDefinitions = (id: number, gateReferenceI
   })
 
 export const startProjectStageGateProcess = (
-  id: number,
-  gateReferenceId: number,
+  id: number | string,
+  gateReferenceId: number | string,
   projectVersion: number,
   idempotencyKey: string,
-  processDefinitionId?: string
+  processDefinitionId?: string,
+  approval?: TaskApprovalSubmission
 ) =>
   request.post<ProjectStageGateProcessStartVO>({
     url: `/api/v1/pms/projects/${id}/stage-gates/${gateReferenceId}/actions/start-process`,
-    data: { processDefinitionId: processDefinitionId || undefined },
+    data: { processDefinitionId: processDefinitionId || undefined, ...approval },
     headers: { 'If-Match': String(projectVersion), 'Idempotency-Key': idempotencyKey }
   })
 

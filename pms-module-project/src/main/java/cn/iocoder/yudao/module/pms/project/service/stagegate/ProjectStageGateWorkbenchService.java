@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFactQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -36,6 +37,7 @@ public class ProjectStageGateWorkbenchService {
     private final ProjectNodeExecutionMapper executions;
     private final ProjectGateReferenceInstanceMapper references;
     private final ProjectGateRuleService rules;
+    private final ProjectStageGateProviderRegistry providers;
 
     // The established project lock serializes plan/round changes while assembling this view.
     // This is not @Transactional(readOnly=true): Owner fact readers may acquire locks, but never write business state.
@@ -70,9 +72,26 @@ public class ProjectStageGateWorkbenchService {
         var results = gates.stream().map(gate -> new ProjectStageGateWorkbench.Gate(gate.getId(), gate.getGateCode(),
                 gate.getName(), gate.getGateType(), gate.getStatus(), evaluate(projectId, gate.getGateCode()),
                 refs.stream().filter(ref -> Objects.equals(ref.getGateId(), gate.getId()) && Objects.equals(ref.getTenantId(), actor.tenantId()))
-                        .map(ref -> new ProjectStageGateWorkbench.Reference(ref.getId(), ref.getRefType(), ref.getRefCode(), ref.getRefVersion())).toList())).toList();
+                        .map(ref -> reference(project, gate, ref, current.stageStatus(), current.executionStatus())).toList())).toList();
         return new ProjectStageGateWorkbench(projectId, project.getVersion(), project.getActivePlanVersionId(), stage.getId(),
                 stageCode, round.getId(), round.getRoundNo(), null, results);
+    }
+
+    private ProjectStageGateWorkbench.Reference reference(ProjectMasterDO project, ProjectGateInstanceDO gate,
+            ProjectGateReferenceInstanceDO ref, String stageStatus, String executionStatus) {
+        ProjectStageGateProcessState process = null;
+        if (ProjectStageReadinessService.isProcess(ref)) {
+            var fact = providers.lockAndRevalidate(ProjectStageReadinessService.providerKey(ref.getRefType()),
+                    new ProjectStageGateFactQuery(project.getTenantId(), project.getId(), gate.getStageCode(), gate.getId(),
+                            gate.getGateCode(), gate.getVersion(), ref.getId(), ref.getVersion(), ref.getRefType(),
+                            ref.getRefCode(), ref.getRefVersion(), null));
+            process = ProjectStageGateProcessState.from(fact);
+        }
+        boolean phaseAllowsStart = "ACTIVE".equals(project.getLifecycleStatus())
+                && ("ACTIVE".equals(stageStatus) && "ACTIVE".equals(executionStatus)
+                    || "ENTRY".equals(gate.getGateType()) && "PENDING".equals(stageStatus) && "PENDING".equals(executionStatus));
+        return new ProjectStageGateWorkbench.Reference(ref.getId(), ref.getRefType(), ref.getRefCode(), ref.getRefVersion(),
+                process, phaseAllowsStart && process != null && process.canStart());
     }
 
     private RuleEvaluation evaluate(Long projectId, String gateCode) {

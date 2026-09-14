@@ -5,22 +5,30 @@ import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runt
 import type { StageGateWorkbench } from '@/api/pms/project/stage-gates'
 
 const api = vi.hoisted(() => ({ getStageGateWorkbench: vi.fn() }))
+const leave = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/project/stage-gates', () => api)
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), onBeforeRouteLeave: vi.fn() }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/api/pms/project/projects', () => ({ startProjectStageGateProcess: vi.fn() }))
+vi.mock('@/views/pms/project/inheritance/detail/TaskApprovalForm.vue', () => ({ default: defineComponent({
+  setup(_, { expose }) { expose({ requestLeave: leave, isBusy: () => false }); return () => h('div', '共用审批表单') }
+}) }))
 const apps: { unmount: () => void }[] = []
-const flush = async () => { for (let i = 0; i < 6; i++) { await Promise.resolve(); await nextTick() } }
+const flush = async () => { for (let i = 0; i < 20; i++) { await Promise.resolve(); await nextTick() } }
 const result = (stageCode = 'PREP'): StageGateWorkbench => ({ projectId: '9', projectVersion: 4, planVersionId: '51',
   stageId: '11', stageCode, executionId: '61', executionRound: 2, recoverableError: null,
   gates: [{ gateId: '21', gateCode: 'READY', name: '工前准备门禁', gateType: 'ENTRY', persistedStatus: 'PASSED',
     evaluation: { kind: 'CONDITION', ruleVersionRef: 'plan:51:gate:21', outcome: 'UNKNOWN', reasonCode: 'FACT_UNAVAILABLE',
       conditions: [{ key: 'a', path: '$.rules[0]', component: 'pmsRulePredicate', outcome: 'UNKNOWN', reasonCode: 'FACT_UNAVAILABLE' }],
-      steps: [], diagnostics: [] }, references: [{ gateReferenceId: '31', refType: 'APPROVAL', refCode: 'review', refVersion: 'review:2:222' }] }] })
+      steps: [], diagnostics: [] }, references: [{ gateReferenceId: '31', refType: 'APPROVAL', refCode: 'review', refVersion: 'review:2:222',
+        canStart: false, process: { processInstanceId: null, status: 'UNKNOWN', outcome: 'DEPENDENCY_UNAVAILABLE', reasonCode: 'FACT_UNAVAILABLE' } }] }] })
 const render = () => {
   const child = ref<any>(), props = reactive({ projectId: 9, stageCode: 'PREP', projectVersion: 4 })
   const view = mount(defineComponent({ setup: () => () => h(StageGateResultsPanel, { ...props, ref: child }) }))
   apps.push(view.app)
   return { ...view, props, component: () => child.value, state: () => child.value.$.setupState }
 }
-beforeEach(() => { vi.clearAllMocks(); api.getStageGateWorkbench.mockResolvedValue(result()) })
+beforeEach(() => { vi.clearAllMocks(); leave.mockResolvedValue(true); api.getStageGateWorkbench.mockResolvedValue(result()) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
 it('displays current unknown rather than persisted pass, and exposes frozen references and condition diagnostics', async () => {
@@ -86,4 +94,26 @@ it('shows the empty state without pretending that an absent gate is an approval'
   const view = render(); await flush()
   expect(textOf(view.root)).toContain('当前阶段未配置门禁')
   expect(textOf(view.root)).not.toContain('发起审批流程')
+})
+
+it('keeps only one editable form, and preserves it when leaving or refreshing is declined', async () => {
+  const value = result(), reference = value.gates[0].references[0]
+  reference.canStart = true
+  reference.process = { processInstanceId: null, status: 'NOT_STARTED', outcome: 'UNSATISFIED', reasonCode: null }
+  value.gates[0].references.push({ ...reference, gateReferenceId: '32' })
+  api.getStageGateWorkbench.mockResolvedValue(value)
+  const view = render(); await flush()
+  await view.state().openForm('31'); await flush()
+  expect(textOf(view.root)).toContain('共用审批表单')
+  leave.mockResolvedValue(false)
+  expect(await view.component().requestLeave()).toBe(false)
+  await view.state().openForm('32'); await view.component().refresh()
+  expect(view.state().editingId).toBe('31'); expect(api.getStageGateWorkbench).toHaveBeenCalledTimes(1)
+  leave.mockResolvedValue(true)
+  await view.state().openForm('32'); await flush()
+  expect(view.state().editingId).toBe('32')
+  expect(textOf(view.root).split('共用审批表单')).toHaveLength(2)
+  await view.state().handleSubmitted(); await flush()
+  expect(api.getStageGateWorkbench).toHaveBeenCalledTimes(2)
+  expect(view.state().editingId).toBeUndefined()
 })

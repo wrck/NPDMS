@@ -10,7 +10,9 @@ const gates = vi.hoisted(() => ({ getStageGateWorkbench: vi.fn() }))
 vi.mock('@/api/pms/project/stage-gates', () => gates)
 vi.mock('@/api/pms/project/task-workbench', () => api)
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
-vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/api/pms/project/projects', () => ({ startProjectStageGateProcess: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {} }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: (v: unknown) => String(v) }))
 vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
@@ -24,6 +26,9 @@ vi.mock('../wbs/TaskMaintenancePanel.vue', () => ({ default: defineComponent({
 }) }))
 vi.mock('./TaskApprovalPanel.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: leave, isBusy: () => false }); return () => h('div', '原BPM审批办理') }
+}) }))
+vi.mock('./TaskApprovalForm.vue', () => ({ default: defineComponent({
+  setup(_, { expose }) { expose({ requestLeave: leave, isBusy: () => false }); return () => h('div', '原BPM审批表单') }
 }) }))
 vi.mock('../../project-master-detail/components/ProjectTaskDetailsEditor.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务资料与进度') }

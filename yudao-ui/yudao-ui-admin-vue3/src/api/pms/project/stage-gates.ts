@@ -17,8 +17,22 @@ export interface StageGateWorkbench {
     gateType: string
     persistedStatus: string
     evaluation: Extract<RuleResult, { kind: 'CONDITION' }>
-    references: { gateReferenceId: number | string; refType: string; refCode: string; refVersion?: string | null }[]
+    references: StageGateReference[]
   }[]
+}
+
+export interface StageGateReference {
+  gateReferenceId: number | string
+  refType: string
+  refCode: string
+  refVersion?: string | null
+  canStart: boolean
+  process: null | {
+    processInstanceId: string | null
+    status: 'NOT_STARTED' | 'RUNNING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'UNKNOWN'
+    outcome: 'SATISFIED' | 'UNSATISFIED' | 'DEPENDENCY_UNAVAILABLE' | 'VERSION_CONFLICT'
+    reasonCode: string | null
+  }
 }
 
 /** Read-only current-plan evaluation, not the old adjacent-stage advance guard. */

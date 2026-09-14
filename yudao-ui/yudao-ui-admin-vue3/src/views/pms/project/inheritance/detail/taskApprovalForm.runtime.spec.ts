@@ -24,10 +24,11 @@ const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 10; i++) { await Promise.resolve(); await nextTick() } }
 const render = async () => {
   const child = ref<any>(), submit = vi.fn().mockResolvedValue(undefined)
-  const view = mount(defineComponent({ setup: () => () => h(Form, { ref: child, definitionId: 'review:1', definitionKey: 'review', submitApproval: submit }) }), {},
+  const submitted = vi.fn(() => child.value.isBusy())
+  const view = mount(defineComponent({ setup: () => () => h(Form, { ref: child, definitionId: 'review:1', definitionKey: 'review', submitApproval: submit, onSubmitted: submitted }) }), {},
     { ElCollapse: passthrough, ElCollapseItem: passthrough })
   apps.push(view.app); await flush()
-  return { ...view, submit, state: () => child.value.$.setupState, exposed: () => child.value }
+  return { ...view, submit, submitted, state: () => child.value.$.setupState, exposed: () => child.value }
 }
 const prediction = (id = 1) => ({ activityNodes: [{ id, name: '复核', candidateStrategy: 35 }], formFieldsPermission: {} })
 beforeEach(() => {
@@ -47,6 +48,8 @@ it('loads the exact definition and supports a form with no fields but required a
   expect(message.warning).toHaveBeenCalledWith('请选择复核的候选人')
   view.state().selectUsers('1', [{ id: 8 }]); await view.state().submit()
   expect(view.submit).toHaveBeenCalledWith({ variables: {}, selectedApprovers: { '1': [8] } })
+  expect(view.submitted).toHaveBeenCalledTimes(1)
+  expect(view.submitted).toHaveReturnedWith(false) // Parent refresh/leave runs only after submission and dirty state settle.
 })
 it('rejects a missing or different definition without substituting a latest version', async () => {
   api.getProcessDefinition.mockResolvedValueOnce({ id: 'review:2', key: 'review' })

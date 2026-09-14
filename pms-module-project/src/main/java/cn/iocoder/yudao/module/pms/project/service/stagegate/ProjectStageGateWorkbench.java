@@ -9,5 +9,6 @@ public record ProjectStageGateWorkbench(Long projectId, Integer projectVersion, 
         List<Gate> gates) {
     public record Gate(Long gateId, String gateCode, String name, String gateType, String persistedStatus,
                        RuleEvaluation evaluation, List<Reference> references) { }
-    public record Reference(Long gateReferenceId, String refType, String refCode, String refVersion) { }
+    public record Reference(Long gateReferenceId, String refType, String refCode, String refVersion,
+                            ProjectStageGateProcessState process, boolean canStart) { }
 }

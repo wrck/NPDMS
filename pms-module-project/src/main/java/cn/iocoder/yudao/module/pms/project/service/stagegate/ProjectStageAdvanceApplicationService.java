@@ -148,8 +148,7 @@ public class ProjectStageAdvanceApplicationService {
                         frozenDefinitionId, null));
         if (fact.outcome() == ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE || fact.outcome() == ProjectStageGateOutcome.VERSION_CONFLICT)
             throw exception(PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE, "BPM_GATE_RESULT_UNAVAILABLE");
-        if (fact.outcome() != ProjectStageGateOutcome.UNSATISFIED || fact.unmetCode() == null || !Set.of("APPROVAL_NOT_STARTED", "PROCESS_NOT_STARTED",
-                "APPROVAL_REJECTED", "PROCESS_REJECTED", "APPROVAL_CANCELLED", "PROCESS_CANCELLED").contains(fact.unmetCode()))
+        if (!ProjectStageGateProcessState.from(fact).canStart())
             throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_PROCESS_INVALID);
         var result = processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
                 actor.tenantId(), actor.actorUserId(), projectId, selected.gate().getStageCode(),

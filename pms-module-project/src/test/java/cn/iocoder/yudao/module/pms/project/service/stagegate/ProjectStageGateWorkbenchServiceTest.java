@@ -2,6 +2,9 @@ package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFact;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateOutcome;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
@@ -28,7 +31,8 @@ class ProjectStageGateWorkbenchServiceTest {
     final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
     final ProjectGateReferenceInstanceMapper references = mock(ProjectGateReferenceInstanceMapper.class);
     final ProjectGateRuleService rules = mock(ProjectGateRuleService.class);
-    final ProjectStageGateWorkbenchService service = new ProjectStageGateWorkbenchService(access, projects, graph, executions, references, rules);
+    final ProjectStageGateProviderRegistry providers = mock(ProjectStageGateProviderRegistry.class);
+    final ProjectStageGateWorkbenchService service = new ProjectStageGateWorkbenchService(access, projects, graph, executions, references, rules, providers);
     final ProjectAccessActor actor = new ProjectAccessActor(7L, 1L);
     ProjectMasterDO project;
     ProjectStageInstanceDO stage;
@@ -56,6 +60,7 @@ class ProjectStageGateWorkbenchServiceTest {
         reference.setGateId(21L); reference.setRefType("APPROVAL"); reference.setRefCode("review"); reference.setRefVersion("review:2:222");
         when(references.selectOrderedForUpdate(any())).thenReturn(List.of(reference));
         when(rules.inspect(9L, "READY")).thenReturn(outcome("READY", RuleEvaluation.Outcome.NOT_MATCHED));
+        when(providers.lockAndRevalidate(anyString(), any())).thenReturn(processFact(ProjectStageGateOutcome.UNSATISFIED, "APPROVAL_NOT_STARTED"));
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
@@ -68,9 +73,42 @@ class ProjectStageGateWorkbenchServiceTest {
         var actual = result.gates().getFirst();
         assertEquals(21L, actual.gateId()); assertEquals("PASSED", actual.persistedStatus());
         assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, actual.evaluation().outcome());
-        assertEquals(new ProjectStageGateWorkbench.Reference(31L, "APPROVAL", "review", "review:2:222"), actual.references().getFirst());
+        assertEquals(new ProjectStageGateWorkbench.Reference(31L, "APPROVAL", "review", "review:2:222",
+                new ProjectStageGateProcessState(null, "NOT_STARTED", ProjectStageGateOutcome.UNSATISFIED, "APPROVAL_NOT_STARTED"), true), actual.references().getFirst());
+        verify(providers).lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL), argThat(query ->
+                query.projectId().equals(9L) && query.currentStageCode().equals("PREP") && query.gateReferenceId().equals(31L)
+                        && query.processDefinitionId().equals("review:2:222")));
         verify(rules).inspect(9L, "READY"); verifyNoMoreInteractions(rules);
         verify(references).selectOrderedForUpdate(argThat(query -> query.tenantId() == 7L && query.gateIds().equals(List.of(21L))));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "UNSATISFIED,APPROVAL_RUNNING,RUNNING,false", "SATISFIED,,APPROVED,false",
+            "UNSATISFIED,APPROVAL_REJECTED,REJECTED,true", "UNSATISFIED,APPROVAL_CANCELLED,CANCELLED,true",
+            "DEPENDENCY_UNAVAILABLE,BPM_STATUS_UNKNOWN,UNKNOWN,false", "UNSATISFIED,,UNKNOWN,false"})
+    void processResultIsTypedAndSharesTheCommandStartPolicy(ProjectStageGateOutcome outcome, String reason, String status, boolean canStart) {
+        when(providers.lockAndRevalidate(anyString(), any())).thenReturn(processFact(outcome, reason));
+        var reference = service.inspect(9L, "PREP", actor).gates().getFirst().references().getFirst();
+        assertEquals(status, reference.process().status()); assertEquals(canStart, reference.canStart());
+        assertEquals(canStart, reference.process().canStart());
+        if ("UNKNOWN".equals(status)) assertNull(reference.process().processInstanceId());
+        else assertEquals("pi-1", reference.process().processInstanceId());
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"ENTRY,PENDING,true", "EXIT,PENDING,false", "EXIT,DONE,false", "ENTRY,TERMINATED,false"})
+    void onlyActiveOrPendingEntryWorkCanBeStarted(String gateType, String status, boolean allowed) {
+        gate.setGateType(gateType);
+        when(executions.selectCurrentStageContextForUpdate(any())).thenReturn(new ProjectStageExecutionRecord(
+                9L, 4, "ACTIVE", 11L, 0, status, 71L, 1, 51L, 61L, 0, 2, status));
+        assertEquals(allowed, service.inspect(9L, "PREP", actor).gates().getFirst().references().getFirst().canStart());
+        project.setLifecycleStatus("CLOSED");
+        assertFalse(service.inspect(9L, "PREP", actor).gates().getFirst().references().getFirst().canStart());
+    }
+
+    private ProjectStageGateFact processFact(ProjectStageGateOutcome outcome, String reason) {
+        return new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL, "APPROVAL", "pi-1", "review:2:222", "1", outcome, reason);
     }
 
     @Test void unknownGateDoesNotHideAnIndependentGateAndDoesNotExposeOwnerValues() {

@@ -41,6 +41,7 @@ const props = defineProps<{
   disabled?: boolean
   submitApproval: (submission: TaskApprovalSubmission) => Promise<void>
 }>()
+const emit = defineEmits<{ submitted: [] }>()
 const message = useMessage()
 const formApi = ref<Api>()
 const form = ref<{ rule: Rule[]; option: Options; value: Record<string, unknown> }>({ rule: [], option: {}, value: {} })
@@ -100,7 +101,7 @@ const load = async () => {
     ready.value = true
     await nextTick()
     await predict()
-  } catch { if (!disposed) error.value = '冻结审批定义或表单读取失败，请刷新任务后重试。' }
+  } catch { if (!disposed) error.value = '冻结审批定义或表单读取失败，请刷新办理结果后重试。' }
   finally { if (!disposed) { loading.value = false; dirty.value = false } }
 }
 // Ignore late predictions; watch the values (including clearing the last field), not the form configuration.
@@ -116,6 +117,7 @@ const selectUsers = (id: string, users: User[]) => {
 const submit = async () => {
   if (submitting.value || props.disabled || loading.value || predicting.value || !ready.value || !formApi.value) return
   submitting.value = true
+  let succeeded = false
   const submittedRevision = revision
   try {
     if (!await predict()) return
@@ -127,8 +129,10 @@ const submit = async () => {
     if (submittedRevision !== revision) { error.value = '表单在校验期间发生变化，请重新读取审批节点后提交。'; return }
     await props.submitApproval({ variables: cloneDeep(form.value.value), selectedApprovers: cloneDeep(selected.value) })
     dirty.value = false
-  } catch { if (!disposed) error.value = '审批未提交成功，请核对表单、权限和当前任务结果后重试。' }
+    succeeded = true
+  } catch { if (!disposed) error.value = '审批未提交成功，请核对表单、权限和当前办理结果后重试。' }
   finally { submitting.value = false }
+  if (succeeded && !disposed) emit('submitted')
 }
 const requestLeave = async () => {
   if (submitting.value) return false

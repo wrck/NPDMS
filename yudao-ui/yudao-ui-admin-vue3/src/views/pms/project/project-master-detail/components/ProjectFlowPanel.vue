@@ -31,7 +31,7 @@
       <StageBusinessPanel ref="stageBusinessRef" :project="project" :stage-code="selection.stageCode" @changed="handleStageBusinessChanged" />
 
       <StageGateResultsPanel v-if="hasStageGates" ref="stageGatesRef" :project-id="projectId"
-        :stage-code="selection.stageCode" :project-version="project.version" />
+        :stage-code="selection.stageCode" :project-version="project.version" @changed="handleGateChanged" />
 
       <div class="section-title">阶段任务</div>
       <el-alert v-if="tasks.error.value" :title="tasks.error.value" type="error" :closable="false">
@@ -220,6 +220,7 @@ const requestLeave = async () => !stateActionsRef.value?.isBusy() && maintenance
   && (await businessRef.value?.requestLeave()) !== false
   && (await stageBusinessRef.value?.requestLeave()) !== false
   && (await approvalRef.value?.requestLeave()) !== false
+  && (await stageGatesRef.value?.requestLeave()) !== false
 // BusinessViewHost already guards route leave; only reused-route project changes need this guard.
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || requestLeave())
 const businessFactVersion = ref<string>()
@@ -282,6 +283,7 @@ const handleBusinessChanged = async () => {
   emit('changed')
 }
 const handleStageBusinessChanged = async () => { await refreshSummary(); await stageGatesRef.value?.refresh(); emit('changed') }
+const handleGateChanged = async () => { await refreshSummary(); emit('changed') }
 const handleBusinessFactChanged = (version?: string) => {
   if (!version) return
   const previous = businessFactVersion.value

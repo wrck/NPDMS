@@ -2,7 +2,7 @@
   <section class="stage-gates" aria-label="阶段门禁条件" :aria-busy="loading">
     <div class="gate-heading">
       <span>阶段门禁条件</span>
-      <el-button :loading="loading" :disabled="loading" @click="refresh">刷新门禁结果</el-button>
+      <el-button :loading="loading" :disabled="loading || isBusy()" @click="refresh">刷新门禁结果</el-button>
     </div>
     <p v-if="loading" role="status">正在读取本轮门禁结果…</p>
     <el-alert v-else-if="error" :title="error" type="warning" :closable="false" show-icon />
@@ -15,6 +15,10 @@
           <el-tag :type="gate.evaluation.outcome === 'MATCHED' ? 'success' : 'warning'">{{ label(gate.evaluation.outcome) }}</el-tag>
         </div>
         <p v-if="gate.evaluation.reasonCode" class="hint">原因：{{ gate.evaluation.reasonCode }}</p>
+        <StageGateProcessPanel v-for="reference in gate.references.filter(ref => ['APPROVAL', 'PROCESS'].includes(ref.refType))"
+          :key="reference.gateReferenceId" ref="processPanels" :workbench="workbench" :reference="reference"
+          :editing="editingId === reference.gateReferenceId" :disabled="loading"
+          @edit="openForm(reference.gateReferenceId)" @changed="handleSubmitted" />
         <details>
           <summary>条件与引用明细</summary>
           <ul>
@@ -36,18 +40,34 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { getStageGateWorkbench, type StageGateWorkbench } from '@/api/pms/project/stage-gates'
+import StageGateProcessPanel from './StageGateProcessPanel.vue'
 
 const props = defineProps<{ projectId: number; stageCode: string; projectVersion?: number }>()
+const emit = defineEmits<{ changed: [] }>()
+const processPanels = ref<InstanceType<typeof StageGateProcessPanel>[]>([])
+const editingId = ref<number | string>()
 const workbench = ref<StageGateWorkbench>()
 const error = ref('')
 const loading = ref(false)
 let requestNo = 0
 const label = (outcome: string) => ({ MATCHED: '满足', NOT_MATCHED: '不满足', UNKNOWN: '未知' }[outcome] || '未知')
-const refresh = async () => {
+const isBusy = () => processPanels.value.some(panel => panel.isBusy())
+const requestLeave = async () => {
+  if (isBusy()) return false
+  for (const panel of processPanels.value) if (!await panel.requestLeave()) return false
+  return true
+}
+const openForm = async (id: number | string) => {
+  const current = workbench.value
+  if (await requestLeave() && current === workbench.value) editingId.value = id
+}
+const load = async () => {
   const current = ++requestNo
   const { projectId, stageCode } = props
   workbench.value = undefined
+  editingId.value = undefined
   error.value = ''
   loading.value = true
   try {
@@ -65,11 +85,14 @@ const refresh = async () => {
     if (current === requestNo) loading.value = false
   }
 }
+const refresh = async () => { if (await requestLeave()) await load() }
+const handleSubmitted = async () => { await load(); emit('changed') }
 // Vue watch invalidates requests on context changes; stale results never replace another stage.
 // https://vuejs.org/guide/essentials/watchers.html#side-effect-cleanup
-watch(() => [props.projectId, props.stageCode, props.projectVersion], refresh, { immediate: true })
+watch(() => [props.projectId, props.stageCode, props.projectVersion], load, { immediate: true })
+onBeforeRouteLeave(requestLeave)
 onBeforeUnmount(() => { ++requestNo })
-defineExpose({ refresh })
+defineExpose({ refresh, requestLeave, isBusy })
 </script>
 
 <style scoped>
