@@ -160,6 +160,7 @@ public class TemplateDesignerDocument {
         private Long sourceRevisionId;
     }
 
+    /** Descriptive operation metadata only; Owner authorizes each action, not an extra node admission rule. */
     @Data
     public static class PermissionRequirement {
         private String policyRef;

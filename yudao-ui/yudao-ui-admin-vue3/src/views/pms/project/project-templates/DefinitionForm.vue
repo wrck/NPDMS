@@ -35,8 +35,8 @@
       <el-form-item label="规则组合"><RuleDecisionDesigner v-model="model.payload" :disabled="disabled" /></el-form-item>
     </template>
     <template v-else-if="kind === 'PERMISSION_POLICY'">
-      <el-alert title="只声明所需操作编码，不授予权限。服务端仍重验租户、项目树、Owner对象、字段与当前状态。" type="info" :closable="false" class="mb-12px" />
-      <el-form-item label="所需操作编码"><el-select v-model="model.payload.requiredActions" multiple filterable allow-create default-first-option placeholder="输入既有Owner操作编码并确认" /></el-form-item>
+      <el-alert title="此处仅记录操作说明，不授予权限，也不增加节点级权限门槛。原业务模块逐项校验操作权限、租户、项目数据范围、对象与当前状态。" type="info" :closable="false" class="mb-12px" />
+      <el-form-item label="操作编码说明"><el-select v-model="model.payload.requiredActions" multiple filterable allow-create default-first-option placeholder="填写原业务模块的操作编码，仅作说明" /></el-form-item>
     </template>
     <template v-else-if="kind === 'DELIVERABLE'">
       <el-form-item label="归属范围"><el-radio-group v-model="model.payload.scope"><el-radio value="STAGE">阶段</el-radio><el-radio value="TASK">任务</el-radio></el-radio-group></el-form-item>

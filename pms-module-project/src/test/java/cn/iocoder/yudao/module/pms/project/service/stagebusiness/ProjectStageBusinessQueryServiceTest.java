@@ -3,9 +3,12 @@ package cn.iocoder.yudao.module.pms.project.service.stagebusiness;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.*;
 import cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectStageExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +24,9 @@ class ProjectStageBusinessQueryServiceTest {
     private final ProjectRuntimeGraphMapper graph = mock(ProjectRuntimeGraphMapper.class);
     private final BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
     private final StageBusinessViewProvider owner = mock(StageBusinessViewProvider.class);
-    private final ProjectStageBusinessQueryService service = new ProjectStageBusinessQueryService(projects, graph, views, List.of(owner));
+    private final ProjectNodeExecutionApi executions = mock(ProjectNodeExecutionApi.class);
+    private final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L, 1, 90L, 1, 99L, 1, 100L, 101L, 1, 2, true);
+    private final ProjectStageBusinessQueryService service = new ProjectStageBusinessQueryService(projects, graph, views, List.of(owner), executions);
     private final ProjectAccessActor actor = new ProjectAccessActor(1L, 7L);
     private ProjectStageInstanceDO stage;
     private ProjectStageExecutionContractDO contract;
@@ -30,24 +35,35 @@ class ProjectStageBusinessQueryServiceTest {
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE");
         when(projects.getProject(9L, actor)).thenReturn(project);
         stage = new ProjectStageInstanceDO(); stage.setId(90L); stage.setProjectId(9L); stage.setTenantId(1L);
-        stage.setStageCode("S4"); stage.setGraphVersion(1L); stage.setDefinitionRevisionId(10L);
+        stage.setStageCode("S4"); stage.setGraphVersion(1L); stage.setStatus("ACTIVE");
         contract = new ProjectStageExecutionContractDO(); contract.setId(99L); contract.setProjectId(9L); contract.setStageId(90L);
-        contract.setTenantId(1L); contract.setGraphVersion(1L); contract.setDefinitionRevisionId(10L);
-        contract.setWorkBindingRevisionId(2L); contract.setPermissionPolicyRevisionId(3L); contract.setCompletionRuleRevisionId(4L);
+        contract.setTenantId(1L); contract.setGraphVersion(1L); contract.setSourceNodeKey("stage-4");
         contract.setBindingVersion(1);
         binding("STAGE_NATIVE");
         when(graph.selectStages(any())).thenReturn(List.of(stage)); when(graph.selectContracts(any())).thenReturn(List.of(contract));
         when(owner.ownerContext()).thenReturn("SOL"); when(owner.objectType()).thenReturn("REQUIREMENT_ANALYSIS");
         when(owner.inspectStage(any())).thenReturn(new StageBusinessViewProvider.Result(Set.of("QUERY", "PATCH_FORM")));
         when(views.getRevision(any())).thenReturn(view("PUBLISHED"));
+        when(executions.inspectStage(any())).thenReturn(execution);
     }
     private void binding(String type) {
         contract.setBindingType(type);
-        String binding = "{\"bindingType\":\"" + type + "\",\"businessViewRevisionId\":\"88\",\"targetContextCode\":\"SOL\",\"targetObjectType\":\"REQUIREMENT_ANALYSIS\",\"targetObjectKey\":\"PRE_04_REQUIREMENT_ANALYSIS\",\"instanceResolutionStrategy\":\"CREATE_ON_FIRST_ACTION\"}";
-        contract.setBindingSnapshot(binding);
-        contract.setDefinitionSnapshot("[{\"definition\":{\"id\":2,\"definitionKind\":\"WORK_BINDING\",\"schemaVersion\":1,\"payload\":" + binding + "}},"
-                + "{\"definition\":{\"id\":3,\"definitionKind\":\"PERMISSION_POLICY\",\"schemaVersion\":1,\"payload\":{\"requiredActions\":[\"QUERY\"]}}},"
-                + "{\"definition\":{\"id\":4,\"definitionKind\":\"COMPLETION_RULE\",\"schemaVersion\":1,\"payload\":{}}}]");
+        var binding = new TemplateExecutionSnapshot.BindingContract();
+        binding.setType(type);
+        binding.setTargetContextCode("SOL"); binding.setTargetObjectType("REQUIREMENT_ANALYSIS");
+        binding.setTargetObjectKey("PRE_04_REQUIREMENT_ANALYSIS"); binding.setComponentKey("PROJ_REQUIREMENT_ANALYSIS");
+        binding.setParameters(JsonUtils.parseTree("{\"instanceResolutionStrategy\":\"CREATE_ON_FIRST_ACTION\"}"));
+        binding.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(view("PUBLISHED"))));
+        var permission = new TemplateExecutionSnapshot.PermissionContract();
+        permission.setPolicySnapshot(JsonUtils.parseTree("{\"requiredActions\":[\"QUERY\"]}"));
+        var frozen = new TemplateExecutionSnapshot.StageContract();
+        frozen.setNodeKey("stage-4"); frozen.setCode("S4"); frozen.setBinding(binding); frozen.setPermission(permission);
+        frozen.setCompletionRule(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"));
+        var snapshot = new TemplateExecutionSnapshot(); snapshot.setStages(List.of(frozen));
+        contract.setBindingSnapshot(JsonUtils.toJsonString(binding));
+        contract.setPermissionSnapshot(JsonUtils.toJsonString(permission));
+        contract.setCompletionRuleSnapshot(JsonUtils.toJsonString(frozen.getCompletionRule()));
+        contract.setDefinitionSnapshot(JsonUtils.toJsonString(snapshot));
     }
     private BusinessViewRevision view(String status) {
         return new BusinessViewRevision(88L, "REQUIREMENT_ANALYSIS", "REQ", 1L, "SOL", BusinessViewComponentProvider.ViewSource.PAGE,
@@ -64,12 +80,77 @@ class ProjectStageBusinessQueryServiceTest {
         var result = service.getContext(9L, "S4", actor);
         assertEquals(88L, result.businessView().id()); assertFalse(result.readonly());
         verify(views).getRevision(new BusinessViewQueryApi.Query(88L, BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
-        verify(owner).inspectStage(new StageBusinessViewProvider.Context(1L, 7L, 9L, 90L, "PRE_04_REQUIREMENT_ANALYSIS", "CREATE_ON_FIRST_ACTION"));
+        assertEquals(execution, result.execution());
+        verify(owner).inspectStage(new StageBusinessViewProvider.Context(1L, 7L, 9L, 90L, "PRE_04_REQUIREMENT_ANALYSIS", "CREATE_ON_FIRST_ACTION", execution));
+    }
+    @Test void permissionDeclarationNeitherRequiresEveryActionNorGrantsActionsDeniedByOwner() {
+        binding("BUSINESS_OBJECT");
+        var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), TemplateExecutionSnapshot.class);
+        var permission = snapshot.getStages().getFirst().getPermission();
+        permission.setPolicySnapshot(JsonUtils.parseTree("{\"requiredActions\":[\"QUERY\",\"DELETE\"]}"));
+        contract.setPermissionSnapshot(JsonUtils.toJsonString(permission));
+        contract.setDefinitionSnapshot(JsonUtils.toJsonString(snapshot));
+
+        var result = service.getContext(9L, "S4", actor);
+
+        assertNull(result.recoverableError());
+        assertFalse(result.readonly());
+        assertEquals(Set.of("QUERY", "PATCH_FORM"), result.ownerActions());
+        when(owner.inspectStage(any())).thenReturn(new StageBusinessViewProvider.Result(Set.of()));
+        assertEquals("OWNER_CONTEXT_FORBIDDEN", service.getContext(9L, "S4", actor).recoverableError());
+    }
+
+    @Test void activeStageProjectionDoesNotOverrideInactiveExecution() {
+        binding("BUSINESS_OBJECT");
+        when(executions.inspectStage(any())).thenReturn(new ProjectStageExecutionContext(9L, 1, 90L, 1, 99L, 1, 100L, 101L, 1, 2, false));
+        var result = service.getContext(9L, "S4", actor);
+        assertTrue(result.readonly()); assertEquals(Set.of("QUERY"), result.ownerActions());
+        assertNotNull(result.businessView());
+    }
+    @Test void unavailableExecutionKeepsFrozenViewReadableWithoutWriteActions() {
+        binding("BUSINESS_OBJECT");
+        when(executions.inspectStage(any())).thenThrow(new IllegalArgumentException("stale round"));
+        var result = service.getContext(9L, "S4", actor);
+        assertTrue(result.readonly()); assertEquals(Set.of("QUERY"), result.ownerActions());
+        assertEquals("STAGE_EXECUTION_UNAVAILABLE", result.recoverableError()); assertNull(result.execution());
+        assertEquals(88L, result.businessView().id());
+        stage.setStatus("DONE");
+        var history = service.getContext(9L, "S4", actor);
+        assertTrue(history.readonly()); assertNotNull(history.businessView()); assertNull(history.recoverableError());
     }
     @Test void disabledViewCannotGrantWriteActions() {
         binding("BUSINESS_OBJECT"); when(views.getRevision(any())).thenReturn(view("DISABLED"));
         var result = service.getContext(9L, "S4", actor);
         assertTrue(result.readonly()); assertEquals(Set.of("QUERY"), result.ownerActions());
+    }
+    @Test void onlyActiveStagesOfferWriteActionsWithoutDependingOnSingleCurrentStage() {
+        binding("BUSINESS_OBJECT");
+        for (String status : List.of("PENDING", "DONE")) {
+            stage.setStatus(status);
+            var context = service.getContext(9L, "S4", actor);
+            assertTrue(context.readonly()); assertEquals(Set.of("QUERY"), context.ownerActions());
+        }
+        stage.setStatus("ACTIVE");
+        var project = projects.getProject(9L, actor); project.setCurrentStage("ANOTHER_ACTIVE_STAGE");
+        assertFalse(service.getContext(9L, "S4", actor).readonly());
+    }
+    @Test void sourceAssetRevisionIdsDoNotControlRuntimeIdentity() {
+        binding("BUSINESS_OBJECT");
+        stage.setDefinitionRevisionId(500L); contract.setDefinitionRevisionId(600L);
+        assertFalse(service.getContext(9L, "S4", actor).readonly());
+        contract.setSourceNodeKey("missing-node");
+        assertEquals("STAGE_CONTRACT_STALE", service.getContext(9L, "S4", actor).recoverableError());
+    }
+    @Test void aChangedComponentAtTheSameViewIdIsNotExecuted() {
+        binding("BUSINESS_OBJECT");
+        var original = view("PUBLISHED");
+        when(views.getRevision(any())).thenReturn(new BusinessViewRevision(original.id(), original.entityType(), original.viewKey(),
+                original.revisionNo(), original.ownerContext(), original.viewSource(), "DIFFERENT_COMPONENT", original.componentVersion(),
+                original.dynamicFormRevisionId(), original.contextSchema(), original.supportedActions(), original.queryProviderKey(),
+                original.commandProviderKey(), original.permissionProviderKey(), original.publishedAt(), original.disabledAt(),
+                original.version(), original.status(), original.allowedActions()));
+        assertEquals("VIEW_IDENTITY_MISMATCH", service.getContext(9L, "S4", actor).recoverableError());
+        verify(owner, never()).inspectStage(any());
     }
     @Test void rejectsForeignOrStaleStageContract() {
         contract.setTenantId(2L);

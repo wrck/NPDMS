@@ -32,12 +32,14 @@ class ProjectTaskBusinessServiceTest {
     PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
     OperationAuditApi audit = mock(OperationAuditApi.class);
     BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
+    cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executionApi = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     ProjectTaskBusinessService service;
     ProjectTaskInstanceDO task;
     ProjectMasterDO project;
     ProjectTaskExecutionContractDO contract;
 
     @BeforeEach void setup() {
+        when(provider.inspectContextAndObjects(any(), anyList())).thenCallRealMethod();
         when(provider.ownerContext()).thenReturn("PRE"); when(provider.objectType()).thenReturn("SiteSurvey");
         service = service(List.of(provider));
         task = new ProjectTaskInstanceDO(); task.setId(10L); task.setTenantId(1L); task.setProjectId(20L);
@@ -50,6 +52,7 @@ class ProjectTaskBusinessServiceTest {
         contract.setBindingParameterSnapshot("{\"bindingType\":\"BUSINESS_COMPONENT\",\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"contextMapping\":{\"project\":\"project\"}}");
         when(access.read(10L, 1L, 5L)).thenReturn(task); when(access.project(20L)).thenReturn(project);
         when(access.writable(any(), any(), any())).thenReturn(true);
+        when(executionApi.inspect(any())).thenReturn(execution(true));
         when(links.selectCurrentContract(any())).thenReturn(contract);
         when(links.selectActive(any())).thenReturn(List.of()); when(links.selectActiveForUpdate(any())).thenReturn(List.of());
         when(tasks.selectProjectForCommandForUpdate(any())).thenReturn(project);
@@ -67,9 +70,26 @@ class ProjectTaskBusinessServiceTest {
                 1, "PUBLISHED", Set.of("UPDATE")));
         executeOperations();
     }
+    @Test void permissionDeclarationDoesNotReplaceOwnerActionAuthorization() {
+        contract.setPermissionSnapshot("{\"requiredActions\":[\"QUERY\",\"DELETE\"]}");
+
+        var result = service.getContext(10L, 1L, 5L, "permission-declaration");
+
+        assertNull(result.recoverableError());
+        assertTrue(result.executionAllowed());
+        assertEquals(Set.of("QUERY", "CREATE"), result.ownerActions());
+        when(provider.inspectContext(any())).thenReturn(Set.of());
+        assertEquals("OWNER_CONTEXT_FORBIDDEN",
+                service.getContext(10L, 1L, 5L, "permission-denied").recoverableError());
+    }
+
     ProjectTaskBusinessService service(List<TaskBusinessObjectProvider> providers) {
         return new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(providers), links, tasks,
-                contracts, commands, audit, views);
+                contracts, commands, audit, views, executionApi);
+    }
+    cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution(boolean writable) {
+        return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                20L,1,10L,3,30L,2,60L,61L,1,1,62L,1,writable,LocalDateTime.of(2026,9,14,10,0));
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
     void executeOperations() {
@@ -94,13 +114,160 @@ class ProjectTaskBusinessServiceTest {
     }
     LinkCommand command() { return new LinkCommand(10L, "x", 3, 2, "key"); }
 
+    @Test void contextUsesOneOwnerInspectionAndRejectsMissingForeignOrDuplicateFacts() {
+        when(links.selectActive(any())).thenReturn(List.of(row(51, "x")));
+        var current = new BusinessObjectFact("x", "record", "v1", Set.of("QUERY"), Map.of(), List.of());
+        doReturn(new BusinessObjectInspection(Set.of("QUERY"), List.of(current)))
+                .when(provider).inspectContextAndObjects(any(), eq(List.of("x")));
+        var result = service.getContext(10L, 1L, 5L, "test");
+        assertNull(result.recoverableError());
+        assertEquals("v1", result.links().getFirst().factVersion());
+        verify(provider, never()).inspectContext(any());
+        verify(provider, never()).inspect(any(), anyString());
+        for (var invalid : List.of(List.<BusinessObjectFact>of(), List.of(current, current),
+                List.of(new BusinessObjectFact("foreign", "record", "v1", Set.of("QUERY"), Map.of(), List.of())))) {
+            doReturn(new BusinessObjectInspection(Set.of("QUERY"), invalid))
+                    .when(provider).inspectContextAndObjects(any(), anyList());
+            var rejected = service.getContext(10L, 1L, 5L, "test");
+            assertNotNull(rejected.recoverableError());
+            assertTrue(rejected.links().isEmpty());
+            assertTrue(rejected.ownerActions().isEmpty());
+        }
+    }
+
+    cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution() {
+        return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
+                20L, 1, 90L, 3, 30L, 2, 60L, 71L, 1, 2, true);
+    }
+    cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract stageBinding() {
+        var binding = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract();
+        binding.setType("BUSINESS_COMPONENT"); binding.setTargetContextCode("PRE"); binding.setTargetObjectType("SiteSurvey");
+        return binding;
+    }
+    ProjectTaskBusinessLinkDO stageRow() {
+        var current = row(52, "stage-record");
+        current.setTaskId(null); current.setStageId(90L); current.setNodeExecutionId(71L);
+        return current;
+    }
+
+    @Test void stageCompletionUsesCurrentAssociationAndOwnerResultWithoutTaskIdentityOrTimestampComparison() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var current = stageRow();
+        current.setLinkedAt(LocalDateTime.of(2026, 9, 13, 10, 0));
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(current));
+        when(provider.lockStageCompletionFact(any(), eq("stage-record")))
+                .thenReturn(new CompletionFact("stage-record", "draft-v1", false, Map.of("COMPLETED", false)))
+                .thenReturn(new CompletionFact("stage-record", "completed-v2", true, Map.of("COMPLETED", true)));
+        assertFalse(service.lockStageCompletionFacts(1L, stageExecution(), stageBinding()).hasCompletedHandling());
+        var result = service.lockStageCompletionFacts(1L, stageExecution(), stageBinding());
+        assertTrue(result.hasCompletedHandling());
+        assertEquals("completed-v2", result.facts().links().getFirst().factVersion());
+        assertEquals("v0", current.getFactVersion());
+        verify(executionApi, times(2)).lockAndRevalidateStage(stageExecution());
+        verify(links, times(2)).selectActiveForUpdate(argThat(query -> query.taskId() == null
+                && Long.valueOf(90).equals(query.stageId()) && Long.valueOf(20).equals(query.projectId())
+                && Long.valueOf(1).equals(query.tenantId())));
+        verify(provider, never()).lockCompletionFact(any(), any());
+        verify(links, never()).insertLink(any());
+        verify(links, never()).unlinkIfMatch(any());
+    }
+
+    @Test void stageCompletionRejectsPreviousRoundAndWrongNodeBeforeReadingOwnerResult() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var previous = stageRow(); previous.setNodeExecutionId(70L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(previous));
+        assertTrue(assertThrows(ServiceException.class,
+                () -> service.lockStageCompletionFacts(1L, stageExecution(), stageBinding()))
+                .getMessage().contains("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED"));
+        var wrongNode = stageRow(); wrongNode.setTaskId(90L); wrongNode.setStageId(null);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(wrongNode));
+        assertTrue(assertThrows(ServiceException.class,
+                () -> service.lockStageCompletionFacts(1L, stageExecution(), stageBinding()))
+                .getMessage().contains("LINK_CONTRACT_MISMATCH"));
+        verify(provider, never()).lockStageCompletionFact(any(), any());
+        assertEquals(70L, previous.getNodeExecutionId());
+        assertNull(previous.getUnlinkedAt());
+    }
+
+    @Test void unavailableStageOwnerResultCannotBeTreatedAsCompletedHandling() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(stageRow()));
+        assertTrue(assertThrows(ServiceException.class,
+                () -> service.lockStageCompletionFacts(1L, stageExecution(), stageBinding()))
+                .getMessage().contains("OWNER_COMPLETION_FACT_UNAVAILABLE"));
+        verify(provider, never()).lockCompletionFact(any(), any());
+    }
+
+    @Test void automaticCompletionUsesNewlyAssociatedRecordResultWithoutComparingHandlingTimes() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var current = row(52, "new-record");
+        current.setNodeExecutionId(61L);
+        // Association predates activation: identity, not a timestamp threshold, determines its receiver.
+        current.setLinkedAt(LocalDateTime.of(2026, 9, 13, 10, 0));
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(current));
+        when(provider.lockCompletionFact(any(), eq("new-record")))
+                .thenReturn(new CompletionFact("new-record", "draft-v1", false, Map.of("COMPLETED", false)))
+                .thenReturn(new CompletionFact("new-record", "completed-v2", true, Map.of("COMPLETED", true)));
+
+        var pending = service.lockCompletionFacts(1L, execution(true), contract);
+        assertFalse(pending.hasCompletedHandling());
+        assertEquals(false, pending.facts().links().getFirst().completionFacts().get("COMPLETED"));
+        var completed = service.lockCompletionFacts(1L, execution(true), contract);
+        assertTrue(completed.hasCompletedHandling());
+        assertEquals("new-record", completed.facts().links().getFirst().objectId());
+        assertEquals("completed-v2", completed.facts().links().getFirst().factVersion());
+        assertNotEquals(pending.facts().factVersion(), completed.facts().factVersion());
+        assertEquals("v0", current.getFactVersion()); // Original association evidence is not rewritten.
+        verify(provider, times(2)).lockCompletionFact(argThat(context -> context.execution().executionId() == 61L), eq("new-record"));
+        verify(links, never()).insertLink(any());
+        verify(links, never()).unlinkIfMatch(any());
+        verifyNoInteractions(commands);
+    }
+
+    @Test void previousRoundAssociationCannotSupplyAutomaticCompletionEvenWithSameContract() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var previous = row(51, "old-completed-record");
+        previous.setNodeExecutionId(60L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(previous));
+
+        var failure = assertThrows(ServiceException.class,
+                () -> service.lockCompletionFacts(1L, execution(true), contract));
+        assertTrue(failure.getMessage().contains("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED"));
+        verify(provider, never()).lockCompletionFact(any(), any());
+        assertEquals(60L, previous.getNodeExecutionId());
+        assertNull(previous.getUnlinkedAt());
+    }
+
+    @Test void newRoundWithoutAssociatedBusinessRecordHasNoCompletedHandlingEvidence() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var result = service.lockCompletionFacts(1L, execution(true), contract);
+        assertFalse(result.hasCompletedHandling());
+        assertTrue(result.facts().links().isEmpty());
+        verify(provider, never()).lockCompletionFact(any(), any());
+    }
+
     @Test void contextReadsDoNotCreateBusinessOrRelationships() {
         var result = service.getContext(10L, 1L, 5L, "corr");
-        assertNull(result.recoverableError()); assertEquals(Set.of("LINK"), result.allowedActions());
+        assertNull(result.recoverableError()); assertTrue(result.allowedActions().isEmpty());
+        assertTrue(result.executionAllowed());
         assertEquals(Set.of("QUERY", "CREATE"), result.ownerActions());
         assertTrue(result.businessView().allowedActions().isEmpty());
         verify(links, never()).insertLink(any()); verifyNoInteractions(commands);
         verify(provider, never()).lockAndRevalidate(any(), any(), any());
+    }
+    @Test void anotherNodesOwnerActionsCannotMakeAnInactiveTaskBusinessViewWritable() {
+        when(executionApi.inspect(any())).thenReturn(execution(false));
+        when(provider.inspectContext(any())).thenReturn(Set.of("QUERY","CREATE","UPDATE"));
+        var result = service.getContext(10L,1L,5L,"inactive-node");
+        assertFalse(result.executionAllowed()); assertNotNull(result.businessView()); assertNull(result.recoverableError());
+        verify(executionApi).inspect(argThat(query -> query.taskId()==10L && query.projectId()==20L && query.executionContractId()==30L));
+        verifyNoInteractions(commands); verify(links,never()).insertLink(any());
+    }
+    @Test void unavailableExecutionKeepsAuthorizedHistoryReadableButDeniesWrites() {
+        when(executionApi.inspect(any())).thenThrow(new IllegalStateException("execution unavailable"));
+        var result = service.getContext(10L,1L,5L,"missing-execution");
+        assertFalse(result.executionAllowed()); assertNotNull(result.businessView());
+        verifyNoInteractions(commands);
     }
     @Test void multipleRecordsRemainIndependentlyLinked() {
         when(links.selectActive(any())).thenReturn(List.of(row(51, "x"), row(52, "y")));
@@ -225,9 +392,10 @@ class ProjectTaskBusinessServiceTest {
         assertEquals(context.links(), locked.links());
     }
     @Test void untrustedArtifactUrlsFailClosedWithoutBecomingCompletionFacts() {
+        when(links.selectActive(any())).thenReturn(List.of(row(51,"x")));
         for (String reference : List.of("https://example.test/report.html", "data:text/html,report", "blob:report", "//host/report")) {
-            when(provider.candidates(any())).thenReturn(List.of(new BusinessObjectFact("x", "X", "v1",
-                    Set.of("LINK"), Map.of(), List.of(new BusinessArtifact("artifact", 1, reference, "Report", "v1")))));
+            when(provider.inspect(any(),eq("x"))).thenReturn(new BusinessObjectFact("x", "X", "v1",
+                    Set.of(), Map.of(), List.of(new BusinessArtifact("artifact", 1, reference, "Report", "v1"))));
             assertEquals("OWNER_ARTIFACT_INVALID", service.getContext(10L, 1L, 5L, "c").recoverableError());
         }
         verify(links, never()).insertLink(any());

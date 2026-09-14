@@ -19,6 +19,27 @@ import static org.mockito.Mockito.*;
 class TemplateDesignerDependencyValidatorTest {
 
     @Test
+    void projectRuleOnlyChangeKeepsTheExistingBindingWithoutRevalidatingAsNewReference() {
+        BusinessViewQueryApi api = mock(BusinessViewQueryApi.class);
+        var active = designer(); var submitted = designer(); submitted.getTasks().getFirst().setName("计划侧改名");
+        var validator = new TemplateDesignerDependencyValidator(api);
+        assertTrue(validator.validateProjectChanges(active,submitted,true).isEmpty());
+        verifyNoInteractions(api);
+        assertEquals("BUSINESS_COMPONENT",submitted.getTasks().getFirst().getWorkBinding().getType());
+        assertEquals("BUSINESS_COMPONENT",active.getTasks().getFirst().getWorkBinding().getType());
+    }
+
+    @Test
+    void newProjectBindingStillRequiresAnAvailableExactPublishedView() {
+        BusinessViewQueryApi api = mock(BusinessViewQueryApi.class);
+        var active = designer(); var submitted = designer(); submitted.getTasks().getFirst().setNodeKey("task:new");
+        var validator = new TemplateDesignerDependencyValidator(api);
+        assertTrue(validator.validateProjectChanges(active,submitted,false).stream()
+                .anyMatch(issue -> issue.code().equals("BUSINESS_VIEW_UNAVAILABLE")));
+        verify(api).getRevision(new BusinessViewQueryApi.Query(91L,BusinessViewQueryApi.Purpose.NEW_REFERENCE,7));
+    }
+
+    @Test
     void validateAcceptsExactPublishedBusinessView() {
         BusinessViewQueryApi api = mock(BusinessViewQueryApi.class);
         when(api.getRevision(any())).thenReturn(revision());

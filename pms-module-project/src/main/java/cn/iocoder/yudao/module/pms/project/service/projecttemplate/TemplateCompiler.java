@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
 import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator;
+import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionKind;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
@@ -19,7 +20,7 @@ import java.util.Set;
 @Component
 public class TemplateCompiler {
 
-    public static final String COMPILER_VERSION = "template-liteflow-1";
+    public static final String COMPILER_VERSION = "template-liteflow-2";
     private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler ruleCompiler =
             new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler();
 
@@ -68,25 +69,24 @@ public class TemplateCompiler {
 
     private void validateNodes(TemplateDesignerDocument source, List<Issue> issues) {
         Set<String> stageCodes = new HashSet<>();
-        Set<String> stageKeys = new HashSet<>();
+        Set<String> nodeKeys = new HashSet<>();
         for (int i = 0; i < source.getStages().size(); i++) {
             TemplateDesignerDocument.StageNode stage = source.getStages().get(i);
             String path = "stages[" + i + "]";
             if (stage == null) { issues.add(new Issue(path, "REQUIRED", "阶段不能为空")); continue; }
-            if (!code(stage.getNodeKey()) || !stageKeys.add(stage.getNodeKey()))
+            if (!code(stage.getNodeKey()) || !nodeKeys.add(stage.getNodeKey()))
                 issues.add(new Issue(path + ".nodeKey", "INVALID_NODE_KEY", "阶段nodeKey不能为空且必须唯一"));
-            if (!code(stage.getCode()) || !stageCodes.add(stage.getCode()))
-                issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码不能为空且必须唯一"));
+            if (!code(stage.getCode()) || stage.getCode().length() > 32 || !stageCodes.add(stage.getCode()))
+                issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码须唯一且不超过32个字符"));
             if (blank(stage.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "阶段名称不能为空"));
         }
         Set<String> taskCodes = new HashSet<>();
-        Set<String> taskKeys = new HashSet<>();
         Map<String, TemplateDesignerDocument.TaskNode> tasksByCode = new HashMap<>();
         for (int i = 0; i < source.getTasks().size(); i++) {
             TemplateDesignerDocument.TaskNode task = source.getTasks().get(i);
             String path = "tasks[" + i + "]";
             if (task == null) { issues.add(new Issue(path, "REQUIRED", "任务不能为空")); continue; }
-            if (!code(task.getNodeKey()) || !taskKeys.add(task.getNodeKey()))
+            if (!code(task.getNodeKey()) || !nodeKeys.add(task.getNodeKey()))
                 issues.add(new Issue(path + ".nodeKey", "INVALID_NODE_KEY", "任务nodeKey不能为空且必须唯一"));
             if (!code(task.getCode()) || !taskCodes.add(task.getCode()))
                 issues.add(new Issue(path + ".code", "INVALID_TASK_CODE", "任务编码不能为空且必须唯一"));
@@ -136,6 +136,9 @@ public class TemplateCompiler {
         for (int i = 0; i < source.getTransitions().size(); i++) {
             TemplateDesignerDocument.TransitionNode edge = source.getTransitions().get(i);
             if (edge == null) continue;
+            if (edge.getCondition() != null || !blank(edge.getConditionRuleKey()))
+                issues.add(new Issue("transitions[" + i + "].condition", "EDGE_RULE_MUST_USE_ADMISSION",
+                        "连线只展示准入依赖；请在目标阶段准入条件中配置判断，不再单独维护连线规则"));
             if (!code(edge.getEdgeKey()) || !edgeKeys.add(edge.getEdgeKey()))
                 issues.add(new Issue("transitions[" + i + "].edgeKey", "INVALID_EDGE_KEY", "关系edgeKey不能为空且必须唯一"));
             if (!code(edge.getCode()) || !edgeCodes.add(edge.getCode()))
@@ -185,10 +188,6 @@ public class TemplateCompiler {
                 requireConditionRule(versionRules, task.getAdmissionRuleKey(), "tasks[" + i + "].admissionRuleKey", issues);
                 requireConditionRule(versionRules, task.getExitRuleKey(), "tasks[" + i + "].exitRuleKey", issues);
             }
-        }
-        for (int i = 0; i < source.getTransitions().size(); i++) {
-            TemplateDesignerDocument.TransitionNode edge = source.getTransitions().get(i);
-            if (edge != null) validateRule(edge.getCondition(), "transitions[" + i + "].condition", targets, issues);
         }
         Set<String> assetKeys = new HashSet<>();
         for (int i = 0; i < source.getRuleAssets().size(); i++) {
@@ -244,6 +243,9 @@ public class TemplateCompiler {
             }
             if (stage.getCompletionRule() == null || stage.getCompletionRule().getExpression() == null)
                 issues.add(new Issue("stages[" + i + "].completionRule", "REQUIRED", "阶段必须配置完成规则"));
+            else if (stage.getWorkBinding() == null && isNativeCompletion(stage.getCompletionRule().getExpression()))
+                issues.add(new Issue("stages[" + i + "].completionRule", "STAGE_HANDLING_NOT_CONFIGURED",
+                        "仅组织任务的阶段应按任务或业务结果完成，不能依赖阶段自身手工办理"));
         }
         for (int i = 0; i < source.getTasks().size(); i++) {
             TemplateDesignerDocument.TaskNode task = source.getTasks().get(i);
@@ -302,8 +304,20 @@ public class TemplateCompiler {
 
     private void validatePermission(TemplateDesignerDocument.PermissionRequirement permission,
                                     String path, List<Issue> issues) {
-        if (permission == null || (blank(permission.getPolicyRef()) && permission.getPolicySnapshot() == null))
+        if (permission == null || (blank(permission.getPolicyRef()) && permission.getPolicySnapshot() == null)) {
             issues.add(new Issue(path, "REQUIRED", "必须声明权限需求，最终授权仍由Owner实时计算"));
+            return;
+        }
+        if (permission.getPolicySnapshot() != null) {
+            try {
+                // Inline declarations and copied assets must obey the same payload contract.
+                DeliveryDefinitionPayloadValidator.validate(DeliveryDefinitionKind.PERMISSION_POLICY, 1,
+                        permission.getPolicySnapshot(), List.of());
+            } catch (IllegalArgumentException invalid) {
+                issues.add(new Issue(path + ".policySnapshot", "INVALID_PERMISSION_POLICY",
+                        "权限声明格式无效：" + invalid.getMessage()));
+            }
+        }
     }
 
     private void validateGateReferences(TemplateDesignerDocument source, List<Issue> issues) {
@@ -325,10 +339,13 @@ public class TemplateCompiler {
                 issues.add(new Issue(path + ".references", "REQUIRED", "Gate至少需要一个引用"));
                 continue;
             }
+            Set<String> referenceKeys = new HashSet<>();
             for (int j = 0; j < gate.getReferences().size(); j++) {
                 TemplateDesignerDocument.GateReference ref = gate.getReferences().get(j);
                 String refPath = path + ".references[" + j + "]";
                 if (ref == null) { issues.add(new Issue(refPath, "REQUIRED", "Gate引用不能为空")); continue; }
+                if (!referenceKeys.add(ref.getRefType() + ":" + ref.getRefCode()))
+                    issues.add(new Issue(refPath, "DUPLICATE_GATE_REFERENCE", "同一门禁不能重复引用同一对象"));
                 boolean valid = switch (ref.getRefType() == null ? "" : ref.getRefType()) {
                     case "TASK" -> tasks.contains(ref.getRefCode());
                     case "MILESTONE" -> milestones.contains(ref.getRefCode());
@@ -340,6 +357,11 @@ public class TemplateCompiler {
                 };
                 if (!valid) issues.add(new Issue(refPath, "INVALID_GATE_REFERENCE", "Gate引用不存在或类型无效"));
             }
+        }
+        for (int i = 0; i < source.getTasks().size(); i++) {
+            var task = source.getTasks().get(i);
+            if (task != null && task.getGateRef() != null && !task.getGateRef().isBlank() && !gates.contains(task.getGateRef()))
+                issues.add(new Issue("tasks[" + i + "].gateRef", "DANGLING_GATE", "任务引用的门禁不存在"));
         }
     }
 
@@ -364,7 +386,13 @@ public class TemplateCompiler {
         for (TemplateDesignerDocument.TaskNode sourceTask : source.getTasks()) result.getTasks().add(task(sourceTask));
         for (TemplateDesignerDocument.MilestoneNode sourceNode : source.getMilestones()) result.getMilestones().add(milestone(sourceNode));
         for (TemplateDesignerDocument.DeliverableNode sourceNode : source.getDeliverables()) result.getDeliverables().add(deliverable(sourceNode));
-        for (TemplateDesignerDocument.GateNode sourceGate : source.getGates()) result.getGates().add(gate(sourceGate));
+        for (TemplateDesignerDocument.GateNode sourceGate : source.getGates()) {
+            var gate = gate(sourceGate);
+            // Reserved execution-artifact key cannot collide with user-authored version-local rule keys.
+            gate.setConditionRuleKey("$gate:" + gate.getNodeKey());
+            result.getRulePrograms().put(gate.getConditionRuleKey(), ruleCompiler.compileGateReferences(sourceGate.getReferences()));
+            result.getGates().add(gate);
+        }
         for (TemplateDesignerDocument.TransitionNode sourceEdge : source.getTransitions()) result.getTransitions().add(transition(sourceEdge));
         return result;
     }
@@ -484,7 +512,14 @@ public class TemplateCompiler {
         Set<String> result = new HashSet<>(); source.getDeliverables().stream().filter(Objects::nonNull).map(TemplateDesignerDocument.DeliverableNode::getCode).filter(Objects::nonNull).forEach(result::add); return result;
     }
     private boolean isNative(String type) { return "STAGE_NATIVE".equals(type) || "TASK_NATIVE".equals(type); }
-    private boolean isNativeCompletion(JsonNode rule) { return rule != null && rule.path("predicate").asText().endsWith("_NATIVE_STATUS"); }
+    private boolean isNativeCompletion(JsonNode rule) {
+        if (rule == null) return false;
+        try {
+            return ruleCompiler.compile(rule).leaves().stream().anyMatch(leaf -> leaf.predicate().endsWith("_NATIVE_STATUS"));
+        } catch (RuntimeException invalid) {
+            return false; // Invalid grammar is already reported by validateRules, never treated as a valid publication.
+        }
+    }
     private boolean code(String value) { return DeliveryDefinitionPayloadValidator.code(value); }
     private boolean blank(String value) { return value == null || value.isBlank(); }
     private void required(String value, String path, String message, List<Issue> issues) { if (blank(value)) issues.add(new Issue(path, "REQUIRED", message)); }

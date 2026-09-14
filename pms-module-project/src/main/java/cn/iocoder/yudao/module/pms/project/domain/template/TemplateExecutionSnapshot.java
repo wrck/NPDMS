@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
-import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import lombok.Data;
 import tools.jackson.databind.JsonNode;
@@ -64,12 +63,6 @@ public class TemplateExecutionSnapshot {
         private String completionRuleKey;
         private String exitRuleKey;
         private String nodeKey;
-        /**
-         * Deterministic compiled identity derived from nodeKey. This is not a template-definition row id.
-         * It exists so unchanged cross-module Long contracts can identify one frozen template task without
-         * joining legacy proj_project_template_task_definition.
-         */
-        private Long runtimeNodeId;
         private String code;
         private String name;
         private String parentTaskCode;
@@ -88,10 +81,6 @@ public class TemplateExecutionSnapshot {
         private Long sourcePermissionPolicyRevisionId;
         private Long sourceCompletionRuleRevisionId;
 
-        public void setNodeKey(String nodeKey) {
-            this.nodeKey = nodeKey;
-            if (nodeKey != null && !nodeKey.isBlank()) this.runtimeNodeId = stableRuntimeNodeId(nodeKey);
-        }
     }
 
     @Data
@@ -108,6 +97,7 @@ public class TemplateExecutionSnapshot {
         private Long sourceRevisionId;
     }
 
+    /** Frozen operation metadata is neither a permission grant nor an additional node-level restriction. */
     @Data
     public static class PermissionContract {
         private String policyRef;
@@ -156,6 +146,7 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class GateContract {
+        private String conditionRuleKey;
         private String nodeKey;
         private String code;
         private String name;
@@ -187,7 +178,8 @@ public class TemplateExecutionSnapshot {
         }
         content.setProcessDefinitionKey(processDefinitionKey);
         content.setProcessDefinitionVersion(null);
-        content.setClosurePolicy(closurePolicy == null ? null : new TemplateDefinitionContent.ClosurePolicy(closurePolicy));
+        content.setClosurePolicy(closurePolicy == null || closurePolicy.isNull() ? null
+                : new TemplateDefinitionContent.ClosurePolicy(closurePolicy));
         content.setDefinitionSnapshot(null);
         content.setExecutionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(this), JsonNode.class));
 
@@ -214,7 +206,6 @@ public class TemplateExecutionSnapshot {
         }
         for (TaskContract source : tasks) {
             TemplateDefinitionContent.TaskDef target = new TemplateDefinitionContent.TaskDef();
-            target.setId(source.getRuntimeNodeId() == null ? stableRuntimeNodeId(source.getNodeKey()) : source.getRuntimeNodeId());
             target.setDefinitionRevisionId(source.getSourceDefinitionRevisionId());
             target.setWorkBindingRevisionId(source.getSourceWorkBindingRevisionId());
             target.setPermissionPolicyRevisionId(source.getSourcePermissionPolicyRevisionId());
@@ -315,14 +306,6 @@ public class TemplateExecutionSnapshot {
         }
         target.setCompletionRuleTypeCode(rule.path("predicate").asText());
         target.setCompletionRuleConfig(JsonUtils.toJsonString(rule.path("parameters")));
-    }
-
-    /** 60-bit positive deterministic identity; namespace is the frozen task nodeKey. */
-    public static long stableRuntimeNodeId(String nodeKey) {
-        if (nodeKey == null || nodeKey.isBlank()) throw new IllegalArgumentException("task nodeKey required");
-        String hex = DigestUtil.sha256Hex("template-task-node:" + nodeKey).substring(0, 15);
-        long value = Long.parseLong(hex, 16);
-        return value == 0 ? 1 : value;
     }
 
     private static JsonNode copy(JsonNode value) {
