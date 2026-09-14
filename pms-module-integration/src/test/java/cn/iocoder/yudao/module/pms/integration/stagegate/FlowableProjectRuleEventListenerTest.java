@@ -67,7 +67,15 @@ class FlowableProjectRuleEventListenerTest {
         config.setEventListeners(List.of(listener));
         engine = config.buildProcessEngine();
         when(runtime.createProcessInstanceQuery()).thenAnswer(call -> engine.getRuntimeService().createProcessInstanceQuery());
-        provider = new FlowableProjectStageGateProvider(engine.getRepositoryService(), engine.getRuntimeService(), engine.getHistoryService(), true);
+        // Engine/outbox fixture only; canonical BPM creation authorization is tested in the BPM module.
+        provider = new FlowableProjectStageGateProvider(engine.getRepositoryService(), engine.getRuntimeService(), engine.getHistoryService(), command -> {
+            var variables = new java.util.HashMap<>(command.variables());
+            variables.put("PROCESS_STATUS", 1);
+            variables.put("PROCESS_START_USER_ID", command.actorId());
+            variables.put("_FLOWABLE_SKIP_EXPRESSION_ENABLED", true);
+            return engine.getRuntimeService().createProcessInstanceBuilder().processDefinitionId(command.definitionId())
+                    .businessKey(command.businessKey()).tenantId(command.tenantId().toString()).variables(variables).start().getId();
+        }, true);
         engine.getRepositoryService().createDeployment().tenantId("7").addString("gate.bpmn20.xml", """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="pms-test">
@@ -161,7 +169,7 @@ class FlowableProjectRuleEventListenerTest {
         assertEquals(0, count()); // Definition validation must not start work or send reevaluation events.
         var command = new ProjectStageGateProcessStartCommand(7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL",
                 "pin-test", first.processDefinitionId(), FlowableProjectStageGateProvider.businessKey(referenceId),
-                "frozen-start", "request", Map.of());
+                "frozen-start", "request", Map.of(), Map.of());
         var started = provider.startProcess(command);
         assertEquals(first.processDefinitionId(), started.processDefinitionId());
         assertEquals("REPLAYED", provider.startProcess(command).outcome());
@@ -181,7 +189,7 @@ class FlowableProjectRuleEventListenerTest {
         assertEquals(latest, provider.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", null)));
         assertThrows(IllegalArgumentException.class, () -> provider.startProcess(new ProjectStageGateProcessStartCommand(
                 7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL", "pin-test", first.processDefinitionId(),
-                FlowableProjectStageGateProvider.businessKey(referenceId), "unavailable-start", "request", Map.of())));
+                FlowableProjectStageGateProvider.businessKey(referenceId), "unavailable-start", "request", Map.of(), Map.of())));
     }
 
     @ParameterizedTest @ValueSource(ints = {2, 3})
@@ -268,7 +276,7 @@ class FlowableProjectRuleEventListenerTest {
     private ProjectStageGateProcessStartCommand command(String operation) {
         return new ProjectStageGateProcessStartCommand(7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL",
                 "gate-test", frozenDefinitionId, FlowableProjectStageGateProvider.businessKey(referenceId), operation,
-                "request:" + referenceId, Map.of());
+                "request:" + referenceId, Map.of(), Map.of());
     }
     private ProjectStageGateFact fact() {
         return fact(java.time.Instant.EPOCH);

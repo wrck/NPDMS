@@ -4,10 +4,10 @@ import cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.framework.flowable.core.util.FlowableUtils;
 import cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectApprovalProcessCreationApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
 import lombok.RequiredArgsConstructor;
 import org.flowable.engine.HistoryService;
-import org.flowable.engine.RepositoryService;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,8 +24,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
-    private final BpmProcessInstanceServiceImpl processes;
-    private final RepositoryService repository;
+    private final ProjectApprovalProcessCreationApi creation;
     private final HistoryService history;
     private final ProjectNodeExecutionApi executions;
 
@@ -56,10 +55,6 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
             if (!List.of("REJECTED", "CANCELLED").contains(fact.status()))
                 throw new IllegalStateException("TASK_APPROVAL_ATTEMPT_STILL_EFFECTIVE");
         }
-        var definition = repository.createProcessDefinitionQuery().processDefinitionId(scope.definitionId())
-                .processDefinitionTenantId(FlowableUtils.getTenantId()).active().singleResult();
-        if (definition == null || !scope.definitionKey().equals(definition.getKey()))
-            throw new IllegalArgumentException("TASK_APPROVAL_DEFINITION_UNAVAILABLE");
         var variables = new HashMap<String, Object>();
         if (command.variables() != null) variables.putAll(command.variables());
         if (variables.keySet().stream().anyMatch(key -> key.startsWith("pmsTask")))
@@ -70,10 +65,8 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
         variables.put(VAR_ACTOR, command.actorId());
         variables.put(VAR_OPERATION, command.operationId());
         variables.put(VAR_ATTEMPT, existing.stream().mapToInt(this::attempt).max().orElse(0) + 1);
-        // Native processDefinitionId is exact; key-based launch would select the latest definition.
-        // https://www.flowable.com/open-source/docs/all-javadocs/org/flowable/engine/runtime/ProcessInstanceBuilder.html
-        String id = FlowableUtils.executeAuthenticatedUserId(command.actorId(), () -> processes.createProcessInstance0(
-                command.actorId(), definition, variables, scope.businessKey(), command.selectedApprovers()));
+        String id = creation.create(new ProjectApprovalProcessCreationApi.Command(scope.tenantId(), command.actorId(),
+                scope.definitionKey(), scope.definitionId(), scope.businessKey(), variables, command.selectedApprovers()));
         var result = evaluate(scope, instances(scope));
         if (!Objects.equals(id, result.processInstanceId())) throw new IllegalStateException("TASK_APPROVAL_START_UNCONFIRMED");
         return result;

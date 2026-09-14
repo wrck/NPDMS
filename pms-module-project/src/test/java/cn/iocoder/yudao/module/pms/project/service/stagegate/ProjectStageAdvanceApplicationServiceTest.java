@@ -289,7 +289,10 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(processOwnerApi.startProcess(any())).thenReturn(new ProjectStageGateProcessStartFact(
                 "pi-entry", "def-entry", "entry-process", "PROJECT_STAGE_GATE:42", "STARTED"));
 
-        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, "def-entry", "entry-start",
+        when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS), any()))
+                .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, "PROCESS",
+                        "", "NOT_STARTED", "def-entry", ProjectStageGateOutcome.UNSATISFIED, "PROCESS_NOT_STARTED"));
+        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, "def-entry", Map.of(), Map.of(), "entry-start",
                 "a".repeat(64), actor).outcome());
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
                 "S4".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
@@ -317,23 +320,60 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(processOwnerApi.inspectDefinitionKey(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact(
                 "def-parallel", "parallel-approval", "并行审批", true));
         service.listDefinitions(PROJECT_ID, 42L, actor);
-        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, "parallel", "digest", actor).outcome());
+        when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL), any()))
+                .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL, "APPROVAL",
+                        "", "NOT_STARTED", "def-parallel", ProjectStageGateOutcome.UNSATISFIED, "APPROVAL_NOT_STARTED"));
+        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, Map.of("note", "value"), Map.of("approve", List.of(12L)), "parallel", "digest", actor).outcome());
+        verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
+                command.variables().equals(Map.of("note", "value")) && command.selectedApprovers().equals(Map.of("approve", List.of(12L)))));
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command -> "def-parallel".equals(command.selectedProcessDefinitionId())));
-        assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, "another-definition", "override", "digest", actor));
+        assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, "another-definition", Map.of(), Map.of(), "override", "digest", actor));
         var handlingOrder = org.mockito.Mockito.inOrder(processOwnerApi, processContexts);
         handlingOrder.verify(processOwnerApi).startProcess(any());
         handlingOrder.verify(processContexts).recordStarted(any(), eq(ACTOR_ID));
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
                 "PARALLEL".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
-        verify(providerRegistry, never()).lockAndRevalidate(anyString(), any());
+        verify(providerRegistry).lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL), any());
+        verify(providerRegistry, never()).lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK), any());
         verify(stageMapper, never()).updateStatusIfMatch(any());
         verify(projectMapper, never()).advanceStageIfMatch(any());
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-                () -> service.startProcess(PROJECT_ID, 42L, 3, null, "stale", "digest", actor));
+                () -> service.startProcess(PROJECT_ID, 42L, 3, null, Map.of(), Map.of(), "stale", "digest", actor));
         when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(false);
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-                () -> service.startProcess(PROJECT_ID, 42L, 4, null, "forbidden", "digest", actor));
+                () -> service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "forbidden", "digest", actor));
         verify(processOwnerApi, org.mockito.Mockito.times(1)).startProcess(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "UNSATISFIED,APPROVAL_RUNNING,false", "SATISFIED,APPROVAL_APPROVED,false",
+            "DEPENDENCY_UNAVAILABLE,BPM_RESULT_UNKNOWN,false", "VERSION_CONFLICT,VERSION_CONFLICT,false",
+            "UNSATISFIED,,false", "UNSATISFIED,APPROVAL_REJECTED,true", "UNSATISFIED,APPROVAL_CANCELLED,true"})
+    void startRespectsCurrentRoundOwnerResult(ProjectStageGateOutcome outcome, String reason, boolean allowed) {
+        stubLockedContext(ProjectStageGateOutcome.SATISFIED);
+        var gate = new ProjectGateInstanceDO().setId(32L).setProjectId(PROJECT_ID)
+                .setGateCode("G").setGateType("EXIT").setStageCode("S0").setVersion(0);
+        var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
+                .setRefType("APPROVAL").setRefCode("approval").setRefVersion("def-1").setVersion(0);
+        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(gate, reference, null));
+        when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL), any()))
+                .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL, "APPROVAL",
+                        "pi-1", "STATE", "def-1", outcome, reason));
+        doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
+                ((Supplier<?>) invocation.getArgument(3)).get()))
+                .when(commandExecutionApi).execute(any(), anyString(), eq(ProjectStageGateProcessStartFact.class), any(), any());
+        when(processOwnerApi.startProcess(any())).thenReturn(new ProjectStageGateProcessStartFact(
+                "pi-2", "def-1", "approval", "PROJECT_STAGE_GATE:42", "STARTED"));
+        var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "start");
+        if (allowed) {
+            assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "new-operation", "digest", actor).outcome());
+            verify(processContexts).recordStarted(any(), eq(ACTOR_ID));
+        } else {
+            assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "new-operation", "digest", actor));
+            verify(processOwnerApi, never()).startProcess(any());
+            verify(processContexts, never()).recordStarted(any(), any());
+        }
     }
 
     @Test
@@ -344,7 +384,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, stored));
 
-        ProjectStageGateProcessStartFact replayed = service.startProcess(PROJECT_ID, 41L, 4, null,
+        ProjectStageGateProcessStartFact replayed = service.startProcess(PROJECT_ID, 41L, 4, null, Map.of(), Map.of(),
                 "process-1", "c".repeat(64),
                 new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-3"));
 

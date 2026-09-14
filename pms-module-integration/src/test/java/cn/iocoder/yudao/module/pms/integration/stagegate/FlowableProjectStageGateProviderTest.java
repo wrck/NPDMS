@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.stagegate;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectApprovalProcessCreationApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateOutcome;
@@ -15,8 +16,6 @@ import org.flowable.engine.history.HistoricProcessInstanceQuery;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.repository.ProcessDefinitionQuery;
-import org.flowable.engine.runtime.ProcessInstance;
-import org.flowable.engine.runtime.ProcessInstanceBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +38,7 @@ class FlowableProjectStageGateProviderTest {
     private HistoryService historyService;
     private ProcessDefinitionQuery definitionQuery;
     private HistoricProcessInstanceQuery historyQuery;
-    private ProcessInstanceBuilder instanceBuilder;
+    private ProjectApprovalProcessCreationApi creation;
     private FlowableProjectStageGateProvider provider;
 
     @BeforeEach
@@ -50,12 +49,11 @@ class FlowableProjectStageGateProviderTest {
         historyService = mock(HistoryService.class);
         definitionQuery = mock(ProcessDefinitionQuery.class, RETURNS_SELF);
         historyQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
-        instanceBuilder = mock(ProcessInstanceBuilder.class, RETURNS_SELF);
+        creation = mock(ProjectApprovalProcessCreationApi.class);
         when(repositoryService.createProcessDefinitionQuery()).thenReturn(definitionQuery);
         when(historyService.createHistoricProcessInstanceQuery()).thenReturn(historyQuery);
         when(historyQuery.list()).thenReturn(List.of());
-        when(runtimeService.createProcessInstanceBuilder()).thenReturn(instanceBuilder);
-        provider = new FlowableProjectStageGateProvider(repositoryService, runtimeService, historyService, true);
+        provider = new FlowableProjectStageGateProvider(repositoryService, runtimeService, historyService, creation, true);
     }
 
     @AfterEach
@@ -74,14 +72,41 @@ class FlowableProjectStageGateProviderTest {
     void startsExplicitHistoricalDefinitionIdWithoutPmsVersion() {
         ProcessDefinition definition = definition("def-v1", "gate-approval");
         when(definitionQuery.singleResult()).thenReturn(definition);
-        ProcessInstance instance = instance("pi-2", definition);
-        when(instanceBuilder.start()).thenReturn(instance);
+        when(creation.create(org.mockito.ArgumentMatchers.any())).thenReturn("pi-2");
 
         var fact = provider.startProcess(command("def-v1"));
 
         assertEquals("def-v1", fact.processDefinitionId());
         verify(definitionQuery).processDefinitionId("def-v1");
-        verify(instanceBuilder).processDefinitionId("def-v1");
+        var captured = org.mockito.ArgumentCaptor.forClass(ProjectApprovalProcessCreationApi.Command.class);
+        verify(creation).create(captured.capture());
+        assertEquals("def-v1", captured.getValue().definitionId());
+        assertEquals("PROJECT_STAGE_GATE:22", captured.getValue().businessKey());
+        assertEquals("form-value", captured.getValue().variables().get("formText"));
+        assertEquals(22L, captured.getValue().variables().get("pmsGateReferenceId"));
+        assertEquals(Map.of("approve", List.of(12L)), captured.getValue().selectedApprovers());
+        org.junit.jupiter.api.Assertions.assertFalse(captured.getValue().variables().containsKey("PROCESS_STATUS"));
+        verify(runtimeService, never()).createProcessInstanceBuilder();
+    }
+
+    @Test
+    void bpmDenialDoesNotFallBackToDirectEngineStart() {
+        var definition = definition("def-v1", "gate-approval");
+        when(definitionQuery.singleResult()).thenReturn(definition);
+        when(creation.create(org.mockito.ArgumentMatchers.any())).thenThrow(new IllegalStateException("start permission denied"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> provider.startProcess(command("def-v1")));
+        verify(runtimeService, never()).createProcessInstanceBuilder();
+    }
+
+    @Test
+    void rejectsClientSystemVariablesBeforeBpmCreation() {
+        var definition = definition("def-v1", "gate-approval");
+        when(definitionQuery.singleResult()).thenReturn(definition);
+        var command = new ProjectStageGateProcessStartCommand(7L, 8L, 9L, "S0", 21L, 22L,
+                "APPROVAL", "gate-approval", "def-v1", "PROJECT_STAGE_GATE:22", "op-1", "digest-1",
+                Map.of("PROCESS_STATUS", 2), Map.of());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> provider.startProcess(command));
+        org.mockito.Mockito.verifyNoInteractions(creation);
     }
 
     @Test
@@ -174,16 +199,6 @@ class FlowableProjectStageGateProviderTest {
         verify(historyService, never()).createHistoricProcessInstanceQuery();
     }
 
-    private static ProcessInstance instance(String id, ProcessDefinition definition) {
-        ProcessInstance instance = mock(ProcessInstance.class);
-        String definitionId = definition.getId();
-        String definitionKey = definition.getKey();
-        when(instance.getId()).thenReturn(id);
-        when(instance.getProcessDefinitionId()).thenReturn(definitionId);
-        when(instance.getProcessDefinitionKey()).thenReturn(definitionKey);
-        return instance;
-    }
-
     private static HistoricProcessInstance historic(String id, String definitionId, String definitionKey,
                                                       Date endTime, Map<String, Object> variables) {
         HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
@@ -199,6 +214,6 @@ class FlowableProjectStageGateProviderTest {
     private static ProjectStageGateProcessStartCommand command(String selectedDefinitionId) {
         return new ProjectStageGateProcessStartCommand(7L, 8L, 9L, "S0", 21L, 22L,
                 "APPROVAL", "gate-approval", selectedDefinitionId, "PROJECT_STAGE_GATE:22",
-                "op-1", "digest-1", Map.of());
+                "op-1", "digest-1", Map.of("formText", "form-value"), Map.of("approve", List.of(12L)));
     }
 }

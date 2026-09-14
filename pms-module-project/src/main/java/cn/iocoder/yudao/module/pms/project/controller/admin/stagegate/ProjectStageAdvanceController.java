@@ -96,7 +96,7 @@ public class ProjectStageAdvanceController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody ProjectStageGateProcessStartReqVO request) {
         return withTrustedTenant(() -> success(applicationService.startProcess(projectId, gateReferenceId,
-                parseIfMatch(ifMatch), blankToNull(request.getProcessDefinitionId()), idempotencyKey,
+                parseIfMatch(ifMatch), blankToNull(request.getProcessDefinitionId()), request.getVariables(), request.getSelectedApprovers(), idempotencyKey,
                 digest(projectId, gateReferenceId, parseIfMatch(ifMatch), request), actor())));
     }
 

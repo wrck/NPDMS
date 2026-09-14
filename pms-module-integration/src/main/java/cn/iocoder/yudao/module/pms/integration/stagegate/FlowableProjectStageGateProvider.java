@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.stagegate;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectApprovalProcessCreationApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFact;
@@ -14,19 +15,12 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGatePro
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 import org.flowable.bpmn.model.BpmnModel;
-import org.flowable.bpmn.model.ExtensionElement;
-import org.flowable.bpmn.model.FlowElement;
-import org.flowable.bpmn.model.SubProcess;
-import org.flowable.bpmn.model.UserTask;
-import org.flowable.common.engine.impl.identity.Authentication;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.repository.ProcessDefinitionQuery;
-import org.flowable.engine.runtime.ProcessInstance;
-import org.flowable.engine.runtime.ProcessInstanceBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,9 +40,6 @@ import java.util.Set;
 public class FlowableProjectStageGateProvider
         implements ProjectStageGateFactProviderApi, ProjectStageGateProcessOwnerApi {
 
-    private static final String FLOWABLE_NAMESPACE = "http://flowable.org/bpmn";
-    private static final String CANDIDATE_STRATEGY = "candidateStrategy";
-    private static final String START_USER_SELECT = "35";
     private static final String PROCESS_STATUS = "PROCESS_STATUS";
     private static final String PROCESS_START_USER_ID = "PROCESS_START_USER_ID";
     private static final String SKIP_EXPRESSION_ENABLED = "_FLOWABLE_SKIP_EXPRESSION_ENABLED";
@@ -72,15 +63,18 @@ public class FlowableProjectStageGateProvider
     private final RepositoryService repositoryService;
     private final RuntimeService runtimeService;
     private final HistoryService historyService;
+    private final ProjectApprovalProcessCreationApi creation;
     private final boolean tenantEnabled;
 
     public FlowableProjectStageGateProvider(RepositoryService repositoryService,
                                             RuntimeService runtimeService,
                                             HistoryService historyService,
+                                            ProjectApprovalProcessCreationApi creation,
                                             @Value("${yudao.tenant.enable:true}") boolean tenantEnabled) {
         this.repositoryService = repositoryService;
         this.runtimeService = runtimeService;
         this.historyService = historyService;
+        this.creation = creation;
         this.tenantEnabled = tenantEnabled;
     }
 
@@ -144,21 +138,10 @@ public class FlowableProjectStageGateProvider
         }
         requireSelectable(definition);
         Map<String, Object> variables = buildVariables(command, definition.getId());
-        Authentication.setAuthenticatedUserId(String.valueOf(command.actorUserId()));
-        try {
-            ProcessInstanceBuilder builder = runtimeService.createProcessInstanceBuilder()
-                    .processDefinitionId(definition.getId())
-                    .businessKey(businessKey)
-                    .variables(variables);
-            if (tenantEnabled) {
-                builder.tenantId(String.valueOf(command.tenantId()));
-            }
-            ProcessInstance instance = builder.start();
-            return new ProjectStageGateProcessStartFact(instance.getId(), instance.getProcessDefinitionId(),
-                    instance.getProcessDefinitionKey(), businessKey, "STARTED");
-        } finally {
-            Authentication.setAuthenticatedUserId(null);
-        }
+        String id = creation.create(new ProjectApprovalProcessCreationApi.Command(command.tenantId(), command.actorUserId(),
+                definition.getKey(), definition.getId(), businessKey, variables, command.selectedApprovers()));
+        if (id == null || id.isBlank()) throw new IllegalStateException("BPM_GATE_START_UNCONFIRMED");
+        return new ProjectStageGateProcessStartFact(id, definition.getId(), definition.getKey(), businessKey, "STARTED");
     }
 
     @Override
@@ -282,33 +265,8 @@ public class FlowableProjectStageGateProvider
         if (model == null || model.getProcesses() == null || model.getProcesses().isEmpty()) {
             return false;
         }
-        for (org.flowable.bpmn.model.Process process : model.getProcesses()) {
-            if (containsStartUserSelect(process.getFlowElements())) {
-                return false;
-            }
-        }
+        // Selected approvers are now handled by the original BPM creation service, not prohibited here.
         return true;
-    }
-
-    private boolean containsStartUserSelect(Iterable<FlowElement> elements) {
-        for (FlowElement element : elements) {
-            if (element instanceof UserTask && START_USER_SELECT.equals(candidateStrategy(element))) {
-                return true;
-            }
-            if (element instanceof SubProcess subProcess && containsStartUserSelect(subProcess.getFlowElements())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String candidateStrategy(FlowElement element) {
-        String strategy = element.getAttributeValue(FLOWABLE_NAMESPACE, CANDIDATE_STRATEGY);
-        if (strategy != null && !strategy.isBlank()) {
-            return strategy.trim();
-        }
-        List<ExtensionElement> extensions = element.getExtensionElements().get(CANDIDATE_STRATEGY);
-        return extensions == null || extensions.isEmpty() ? null : extensions.get(0).getElementText();
     }
 
     private ProjectStageGateProcessDefinitionFact definitionFact(ProcessDefinition definition) {
@@ -325,9 +283,6 @@ public class FlowableProjectStageGateProvider
             }
             variables.putAll(command.variables());
         }
-        variables.put(PROCESS_START_USER_ID, command.actorUserId());
-        variables.put(PROCESS_STATUS, 1);
-        variables.put(SKIP_EXPRESSION_ENABLED, true);
         variables.put(VAR_TENANT_ID, command.tenantId());
         variables.put(VAR_PROJECT_ID, command.projectId());
         variables.put(VAR_STAGE_CODE, command.currentStageCode());

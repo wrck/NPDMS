@@ -108,14 +108,15 @@ public class ProjectStageAdvanceApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public ProjectStageGateProcessStartFact startProcess(
             Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
-            String selectedProcessDefinitionId, String idempotencyKey, String requestDigest, Actor actor) {
+            String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
+            String idempotencyKey, String requestDigest, Actor actor) {
         requireUpdatePermission(actor);
         PlatformCommandExecutionApi.ExecutionResult<ProjectStageGateProcessStartFact> execution =
                 commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                                 actor.tenantId(), START_PROCESS_SCOPE, actor.actorUserId(), idempotencyKey),
                         requestDigest, ProjectStageGateProcessStartFact.class,
                         () -> startProcessOnce(projectId, gateReferenceId, expectedProjectVersion,
-                                selectedProcessDefinitionId, idempotencyKey, requestDigest, actor),
+                                selectedProcessDefinitionId, variables, selectedApprovers, idempotencyKey, requestDigest, actor),
                         result -> processStartSuccessFacts(projectId, gateReferenceId, actor, result));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
             throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
@@ -131,18 +132,30 @@ public class ProjectStageAdvanceApplicationService {
 
     private ProjectStageGateProcessStartFact startProcessOnce(
             Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
-            String selectedProcessDefinitionId, String idempotencyKey, String requestDigest, Actor actor) {
+            String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
+            String idempotencyKey, String requestDigest, Actor actor) {
         var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
         var selected = processContexts.resolve(context.project(), gateReferenceId);
         String frozenDefinitionId = selected.reference().getRefVersion();
         if (frozenDefinitionId == null || frozenDefinitionId.isBlank()
                 || selectedProcessDefinitionId != null && !Objects.equals(selectedProcessDefinitionId, frozenDefinitionId))
             throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_PROCESS_INVALID);
+        var gate = selected.gate();
+        var reference = selected.reference();
+        var fact = providerRegistry.lockAndRevalidate(ProjectStageReadinessService.providerKey(reference.getRefType()),
+                new ProjectStageGateFactQuery(actor.tenantId(), projectId, gate.getStageCode(), gate.getId(), gate.getGateCode(),
+                        gate.getVersion(), reference.getId(), reference.getVersion(), reference.getRefType(), reference.getRefCode(),
+                        frozenDefinitionId, null));
+        if (fact.outcome() == ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE || fact.outcome() == ProjectStageGateOutcome.VERSION_CONFLICT)
+            throw exception(PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE, "BPM_GATE_RESULT_UNAVAILABLE");
+        if (fact.outcome() != ProjectStageGateOutcome.UNSATISFIED || fact.unmetCode() == null || !Set.of("APPROVAL_NOT_STARTED", "PROCESS_NOT_STARTED",
+                "APPROVAL_REJECTED", "PROCESS_REJECTED", "APPROVAL_CANCELLED", "PROCESS_CANCELLED").contains(fact.unmetCode()))
+            throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_PROCESS_INVALID);
         var result = processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
                 actor.tenantId(), actor.actorUserId(), projectId, selected.gate().getStageCode(),
                 selected.gate().getId(), gateReferenceId, selected.reference().getRefType(),
                 selected.reference().getRefCode(), frozenDefinitionId,
-                "PROJECT_STAGE_GATE:" + gateReferenceId, idempotencyKey, requestDigest, Map.of()));
+                "PROJECT_STAGE_GATE:" + gateReferenceId, idempotencyKey, requestDigest, variables, selectedApprovers));
         if ("STARTED".equals(result.outcome())) processContexts.recordStarted(selected, actor.actorUserId());
         return result;
     }

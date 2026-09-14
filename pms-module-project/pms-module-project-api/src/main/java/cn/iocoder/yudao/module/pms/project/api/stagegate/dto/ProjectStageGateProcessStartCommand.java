@@ -1,8 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.api.stagegate.dto;
 
 import java.util.Map;
+import java.util.List;
 
-/** 服务端构造的Gate流程启动命令；客户端不能覆盖tenant、actor、businessKey和变量。 */
+/** 服务端构造的Gate流程启动命令；表单值允许提交，执行身份和系统变量仍由服务端提供。 */
 public record ProjectStageGateProcessStartCommand(
         Long tenantId,
         Long actorUserId,
@@ -17,5 +18,6 @@ public record ProjectStageGateProcessStartCommand(
         String businessKey,
         String operationId,
         String requestDigest,
-        Map<String, Object> variables) {
+        Map<String, Object> variables,
+        Map<String, List<Long>> selectedApprovers) {
 }

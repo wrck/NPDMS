@@ -77,7 +77,8 @@ class PmsTaskApprovalProcessOwnerTest {
         ReflectionTestUtils.setField(processes, "processDefinitionService", definitions);
         // This fixture excludes candidate prediction, but retains the original selected-approver validation below.
         doReturn(new BpmApprovalDetailRespVO().setActivityNodes(new ArrayList<>())).when(processes).getApprovalDetail(eq(1L), any());
-        owner = new PmsTaskApprovalProcessOwner(processes, engine.getRepositoryService(), engine.getHistoryService(), executions);
+        owner = new PmsTaskApprovalProcessOwner(new PmsApprovalProcessCreationService(processes, engine.getRepositoryService()),
+                engine.getHistoryService(), executions);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
     Fact start() { return start("first"); }
@@ -120,6 +121,30 @@ class PmsTaskApprovalProcessOwnerTest {
         assertThrows(RuntimeException.class, this::start);
         assertEquals("NOT_STARTED", fact().status());
     }
+    @Test void sharedCreationPreservesGateIdentityFormAndOriginalSelectedApprovers() {
+        var creation = new PmsApprovalProcessCreationService(processes, engine.getRepositoryService());
+        var node = new BpmApprovalDetailRespVO.ActivityNode().setId("approve").setName("审核").setCandidateStrategy(35);
+        doReturn(new BpmApprovalDetailRespVO().setActivityNodes(new ArrayList<>(List.of(node))))
+                .when(processes).getApprovalDetail(eq(1L), any());
+        var users = mock(cn.iocoder.yudao.module.system.api.user.AdminUserApi.class);
+        ReflectionTestUtils.setField(processes, "adminUserApi", users);
+        when(users.getUserMap(List.of(12L))).thenReturn(Map.of(12L, new cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO().setId(12L)));
+        String businessKey = "PROJECT_STAGE_GATE:" + scope.executionId();
+        var variables = new HashMap<String, Object>();
+        variables.put("formText", "gate-form"); variables.put("optionalField", null);
+        var command = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectApprovalProcessCreationApi.Command(
+                7L, 1L, "task-approval", pinned, businessKey, variables, Map.of("approve", List.of(12L)));
+        String id = tx.execute(ignored -> creation.create(command));
+        var process = engine.getHistoryService().createHistoricProcessInstanceQuery().processInstanceId(id).includeProcessVariables().singleResult();
+        assertEquals(pinned, process.getProcessDefinitionId()); assertEquals(businessKey, process.getBusinessKey());
+        assertEquals("1", process.getStartUserId()); assertEquals("gate-form", process.getProcessVariables().get("formText"));
+        assertEquals(1, process.getProcessVariables().get("PROCESS_STATUS"));
+        verify(users).getUserMap(List.of(12L));
+        when(definitions.canUserStartProcessDefinition(any(), eq(1L))).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> tx.execute(ignored -> creation.create(command)));
+        assertEquals(1, engine.getHistoryService().createHistoricProcessInstanceQuery().processInstanceBusinessKey(businessKey).count());
+    }
+
     @Test void originalSelectedApproverValidationStillRuns() {
         var node = new BpmApprovalDetailRespVO.ActivityNode().setId("approve").setName("审核").setCandidateStrategy(35);
         doReturn(new BpmApprovalDetailRespVO().setActivityNodes(new ArrayList<>(List.of(node))))
