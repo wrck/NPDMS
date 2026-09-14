@@ -18,6 +18,7 @@ import java.util.Set;
 public class ProjectRuleOutboxDeliveryJob implements JobHandler {
     private final PlatformOutboxDeliveryApi outbox;
     private final cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectRuntimeCoordinator coordinator;
+    private final ProjectRuleTimerDelivery timers;
 
     @Override
     @TenantJob
@@ -25,17 +26,25 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
         var now = LocalDateTime.now();
         int delivered = 0;
         int retry = 0;
-        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.of(ProjectRuleReevaluation.EVENT_TYPE)))) {
+        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE)))) {
             boolean completed = false;
             try {
-                var event = JsonUtils.parseObject(message.payload(), cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.class);
-                if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
-                        || !Objects.equals(event.tenantId(), message.tenantId()) || event.projectId() == null
-                        || !Objects.equals(event.eventId(), message.eventId())
-                        || !ProjectRuleReevaluation.EVENT_TYPE.equals(message.eventType()))
-                    throw new IllegalArgumentException("REEVALUATION_EVENT_IDENTITY_INVALID");
-                // Each attempt rereads current frozen contracts. The event is a wakeup, not a stale transition command.
-                completed = !coordinator.reevaluate(event.projectId(), event.actorId(), event.correlationId()).unknown();
+                if (ProjectRuleTimer.EVENT_TYPE.equals(message.eventType())) {
+                    var event = JsonUtils.parseObject(message.payload(), ProjectRuleTimer.class);
+                    if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
+                            || !Objects.equals(event.tenantId(), message.tenantId()) || !Objects.equals(event.eventId(), message.eventId()))
+                        throw new IllegalArgumentException("TIMER_EVENT_IDENTITY_INVALID");
+                    completed = timers.deliver(event);
+                } else {
+                    var event = JsonUtils.parseObject(message.payload(), cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.class);
+                    if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
+                            || !Objects.equals(event.tenantId(), message.tenantId()) || event.projectId() == null
+                            || !Objects.equals(event.eventId(), message.eventId())
+                            || !ProjectRuleReevaluation.EVENT_TYPE.equals(message.eventType()))
+                        throw new IllegalArgumentException("REEVALUATION_EVENT_IDENTITY_INVALID");
+                    // Each attempt rereads current frozen contracts. The event is a wakeup, not a stale transition command.
+                    completed = !coordinator.reevaluate(event.projectId(), event.actorId(), event.correlationId()).unknown();
+                }
             } catch (RuntimeException unavailable) {
                 // Retry only through Outbox. Do not log owner facts or native expression exception messages.
             }

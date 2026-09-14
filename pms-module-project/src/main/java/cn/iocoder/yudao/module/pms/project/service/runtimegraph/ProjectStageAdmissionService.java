@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectR
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
@@ -46,6 +47,17 @@ public class ProjectStageAdmissionService {
     /** Internal command invoked after an authorized project/business change; not a user rule override. */
     @Transactional(rollbackFor = Exception.class)
     public List<StageAdmission> activateEligible(Long projectId, Long actorId, String correlationId) {
+        return activate(projectId, actorId, correlationId, null);
+    }
+
+    /** A version/round-checked timer admits only its target; independent timers retain their own transaction. */
+    @Transactional(rollbackFor = Exception.class)
+    public List<StageAdmission> activateStage(Long projectId, Long actorId, String correlationId, Long stageId) {
+        if (stageId == null) throw new IllegalArgumentException("TIMER_STAGE_REQUIRED");
+        return activate(projectId, actorId, correlationId, stageId);
+    }
+
+    private List<StageAdmission> activate(Long projectId, Long actorId, String correlationId, Long stageId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         var project = projects.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(tenantId, projectId));
         if (project == null || !Objects.equals(project.getTenantId(), tenantId))
@@ -67,6 +79,7 @@ public class ProjectStageAdmissionService {
                         gates.stream().map(gate -> gate.getId()).toList()));
         List<StageAdmission> results = new ArrayList<>();
         for (var stage : nodes) {
+            if (stageId != null && !stageId.equals(stage.getId())) continue;
             if (!"PENDING".equals(stage.getStatus())) continue;
             var matching = contracts.stream().filter(contract -> Objects.equals(contract.getStageId(), stage.getId())).toList();
             if (matching.size() != 1) {
@@ -127,35 +140,51 @@ public class ProjectStageAdmissionService {
     public boolean taskMayStart(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
                                 cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
                                 cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
+        var result = taskAdmissionFact(project, task, taskContract);
+        return result.available() && Boolean.TRUE.equals(result.value());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public RuleFact taskAdmissionFact(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || !Objects.equals(project.getId(), task.getProjectId())
-                || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return false;
+                || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return admissionUnavailable();
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
         var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stage.getStageCode(), task.getStageCode())).toList();
-        if (parents.size() != 1 || !"ACTIVE".equals(parents.getFirst().getStatus())) return false;
+        if (parents.size() != 1) return admissionUnavailable();
+        if (!"ACTIVE".equals(parents.getFirst().getStatus())) return RuleFact.known(false);
         var parent = parents.getFirst();
         var matching = graph.selectContracts(query).stream().filter(contract -> Objects.equals(contract.getStageId(), parent.getId())).toList();
-        if (matching.size() != 1 || taskContract.getSourceNodeKey() == null) return false;
+        if (matching.size() != 1 || taskContract.getSourceNodeKey() == null) return admissionUnavailable();
         var contract = matching.getFirst();
         try {
-            if (!Objects.equals(contract.getGraphVersion(), parent.getGraphVersion()) || contract.getEffectiveTo() != null) return false;
+            if (!Objects.equals(contract.getGraphVersion(), parent.getGraphVersion()) || contract.getEffectiveTo() != null) return admissionUnavailable();
             var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(project.getTenantId(), project.getId()));
-            if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return false;
+            if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return admissionUnavailable();
             var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
             var definitions = snapshot.getTasks().stream().filter(node -> taskContract.getSourceNodeKey().equals(node.getNodeKey())
                     && task.getTaskCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
-            if (definitions.size() != 1) return false;
+            if (definitions.size() != 1) return admissionUnavailable();
             String key = definitions.getFirst().getAdmissionRuleKey();
-            if (key == null || key.isBlank()) return true;
+            if (key == null || key.isBlank()) return RuleFact.known(true);
             var program = snapshot.getRulePrograms().get(key);
-            if (program == null) return false;
+            if (program == null) return admissionUnavailable();
             var gates = graph.selectGatesForUpdate(query);
             var gateRefs = gates.isEmpty() ? List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO>of()
                     : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(project.getTenantId(),
                             gates.stream().map(gate -> gate.getId()).toList()));
-            return evaluator.evaluate("plan:" + plan.getId() + ":task:" + task.getId() + ":admission",
-                    program, new ProjectRuntimeRuleEvaluator.Facts(project, parent, graph.selectTasksForUpdate(query), gates, gateRefs, false)).matched();
+            var result = evaluator.evaluate("plan:" + plan.getId() + ":task:" + task.getId() + ":admission",
+                    program, new ProjectRuntimeRuleEvaluator.Facts(project, parent, graph.selectTasksForUpdate(query), gates, gateRefs, false));
+            return result.outcome() == RuleEvaluation.Outcome.UNKNOWN ? admissionUnavailable()
+                    : RuleFact.known(result.matched());
         } catch (RuntimeException unavailable) {
-            return false;
+            return admissionUnavailable();
         }
+    }
+
+    private static RuleFact admissionUnavailable() {
+        return RuleFact.unknown("TASK_ADMISSION_UNAVAILABLE");
     }
 }

@@ -30,7 +30,8 @@ class ProjectPlanActivationServiceTest {
     final ProjectPlanActivationPersistence persistence = mock(ProjectPlanActivationPersistence.class);
     final TaskStateMachineMapper machines = mock(TaskStateMachineMapper.class);
     final ProjectTaskProgressService progress = mock(ProjectTaskProgressService.class);
-    final ProjectPlanActivationService service = new ProjectPlanActivationService(drafts,commands,nodes,milestones,gates,deliverables,persistence,machines,progress);
+    final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers = mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class);
+    final ProjectPlanActivationService service = new ProjectPlanActivationService(drafts,commands,nodes,milestones,gates,deliverables,persistence,machines,progress,timers);
     final ProjectPlanScopeQuery scope = new ProjectPlanScopeQuery(7L,9L);
     ProjectPlanDraftService.Preview preview;
     ProjectPlanDraftService.Prepared prepared;
@@ -51,6 +52,7 @@ class ProjectPlanActivationServiceTest {
     @Test void appliesExactlyThePreviewedVersionAndEmitsSafeAuditAndDedicatedReevaluation() {
         var result = apply(preview);
         assertEquals(new ProjectPlanActivationService.Applied(9L,52L,2,5),result);
+        verify(timers).schedule(9L,52L,prepared.after(),null);
         var order = inOrder(drafts,nodes,deliverables,milestones,gates,persistence);
         order.verify(drafts).authorize(9L,1L);
         order.verify(drafts).prepare(9L,52L,3,1L,true);

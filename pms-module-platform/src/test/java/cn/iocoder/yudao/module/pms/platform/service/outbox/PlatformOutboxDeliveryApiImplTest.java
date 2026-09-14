@@ -93,6 +93,13 @@ class PlatformOutboxDeliveryApiImplTest {
         verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L, Set.of("DeviceAssigned"), dueAt, 10));
     }
 
+    @Test void scheduledRuleEventsUseTheExistingDueQueueWithoutClaimingNotifications() {
+        var due = LocalDateTime.of(2026,9,15,9,0);
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+        service.claimDue(new PlatformOutboxClaimQuery(due, 50, Set.of("ProjectRuleTimerRequested")));
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L,Set.of("ProjectRuleTimerRequested"),due,50));
+    }
+
     @Test
     void claimDueSupportsImplementationEvidencePublishedEventType() {
         LocalDateTime dueAt = LocalDateTime.of(2026, 8, 30, 12, 0);

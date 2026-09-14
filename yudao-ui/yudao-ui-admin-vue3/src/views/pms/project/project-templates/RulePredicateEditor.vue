@@ -74,6 +74,17 @@
     >
       <el-option :value="true" label="始终满足" /><el-option :value="false" label="始终不满足" />
     </el-select>
+    <template v-else-if="predicate === 'TIME_REACHED'">
+      <el-date-picker
+        :model-value="absoluteTime"
+        :disabled="disabled"
+        type="datetime"
+        aria-label="绝对时间点"
+        placeholder="选择到达时间"
+        @update:model-value="setAbsoluteTime"
+      />
+      <span class="condition-hint">按 {{ timeZone }} 显示，到达后满足</span>
+    </template>
     <template v-else-if="predicate === 'BUSINESS_FACT'">
       <el-select
         v-if="sources.length || parameters.sourceNodeKey"
@@ -151,6 +162,14 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }>()
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+const absoluteTime = computed(() => {
+  if (typeof props.parameters.at !== 'string' || !props.parameters.at) return undefined
+  const date = new Date(props.parameters.at)
+  return Number.isNaN(date.getTime()) ? undefined : date
+})
+const setAbsoluteTime = (date: Date | null) =>
+  emit('change', 'TIME_REACHED', { at: date && !Number.isNaN(date.getTime()) ? date.toISOString() : '' })
 const sources = inject(ruleBusinessSourcesKey, computed(() => []))
 const selectedSource = computed(() => sources.value.find((item) => item.key === props.parameters.sourceNodeKey))
 const missingSource = computed(() => !!props.parameters.sourceNodeKey && !selectedSource.value)
@@ -172,6 +191,7 @@ const labels = {
   TASK: '任务完成',
   STATE: '阶段完成',
   BUSINESS_FACT: '业务结果',
+  TIME_REACHED: '到达时间',
   APPROVAL: '审批结果',
   PROCESS: '流程结果',
   MILESTONE: '里程碑',
@@ -230,6 +250,10 @@ const selectField = (code: string) => {
     })
 }
 const selectPredicate = (value: string) => {
+  if (value === 'TIME_REACHED') {
+    emit('change', value, { at: '' })
+    return
+  }
   if (value === 'DECISION') {
     emit('change', 'DECISION', {
       table: newDecisionTable() as unknown as JsonObject,

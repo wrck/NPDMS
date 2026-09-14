@@ -17,6 +17,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectRuleOutboxDeliveryJobTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
+
+    @Test void timerDeliveryKeepsItsFrozenIdentityAndDoesNotBecomeAnUnscopedReevaluation() {
+        TenantContextHolder.setTenantId(7L);
+        var outbox = mock(PlatformOutboxDeliveryApi.class);
+        var coordinator = mock(ProjectRuntimeCoordinator.class);
+        var timers = mock(ProjectRuleTimerDelivery.class);
+        var timer = ProjectRuleTimer.create(7L,9L,51L,61L,List.of(),ProjectRuleTimer.Purpose.COMPLETION,"finish",java.time.Instant.now().minusSeconds(1));
+        var event = timer.event();
+        when(outbox.claimDue(any())).thenReturn(List.of(new PlatformOutboxMessageDTO(event.eventId(),event.eventType(),event.eventPayload(),0,7L,LocalDateTime.now())));
+        when(timers.deliver(timer)).thenReturn(false, true);
+        var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator, timers);
+        job.execute(""); job.execute("");
+        verify(outbox).scheduleRetry(eq(event.eventId()),eq(0),any());
+        verify(outbox).markDelivered(event.eventId(),0);
+        verifyNoInteractions(coordinator);
+    }
     @Test void longExecutionIdentitiesCannotOverflowThePlatformEventId() {
         var event = new ProjectRuleReevaluation(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE,
                 "task:" + Long.MAX_VALUE + ":" + java.util.UUID.randomUUID()).event();
@@ -33,9 +49,9 @@ class ProjectRuleOutboxDeliveryJobTest {
                 event.eventPayload(), 0, 7L, LocalDateTime.now());
         when(outbox.claimDue(any())).thenReturn(List.of(message));
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(true, 1, 0));
-        var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator);
+        var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator, mock(ProjectRuleTimerDelivery.class));
         assertTrue(job.execute("").endsWith("待重试 1"));
-        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(ProjectRuleReevaluation.EVENT_TYPE))));
+        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE))));
         verify(outbox).scheduleRetry(eq(event.eventId()), eq(0), any());
         verify(outbox, never()).markDelivered(any(), anyInt());
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(false, 0, 0));
@@ -53,7 +69,7 @@ class ProjectRuleOutboxDeliveryJobTest {
                 event.eventPayload(), 9, 7L, LocalDateTime.now())));
         when(coordinator.reevaluate(anyLong(), anyLong(), anyString())).thenThrow(new IllegalStateException("source detail"));
         var before = LocalDateTime.now();
-        new ProjectRuleOutboxDeliveryJob(outbox, coordinator).execute("");
+        new ProjectRuleOutboxDeliveryJob(outbox, coordinator, mock(ProjectRuleTimerDelivery.class)).execute("");
         verify(outbox).scheduleRetry(eq(event.eventId()), eq(9), argThat(time -> !time.isBefore(before.plusMinutes(60))
                 && time.isBefore(before.plusMinutes(61))));
     }

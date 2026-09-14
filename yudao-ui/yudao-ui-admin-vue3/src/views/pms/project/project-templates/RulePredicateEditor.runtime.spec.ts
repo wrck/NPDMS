@@ -11,6 +11,24 @@ const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode 
   predicate(node) ? node : node.children.map((child) => find(child, predicate)).find(Boolean)
 
 describe('business fact source editing', () => {
+  it('stores an absolute instant across timezone display and tree reopening', async () => {
+    const state = reactive<{ parameters: JsonObject }>({ parameters: { at: '2026-09-15T09:00:00+08:00' } })
+    const host = defineComponent({ setup: () => () => h(RulePredicateEditor, {
+      predicate: 'TIME_REACHED', parameters: state.parameters, fields: [], facts: [],
+      onChange: (_type, value) => { state.parameters = value }
+    }) })
+    const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough, ElDatePicker: passthrough, ElInput: passthrough })
+    const picker = find(view.root, (node) => node.props?.['aria-label'] === '绝对时间点')!
+    expect((picker.props!['model-value'] as Date).toISOString()).toBe('2026-09-15T01:00:00.000Z')
+    ;(picker.props!['onUpdate:modelValue'] as (value: Date | null) => void)(new Date('2026-09-16T09:00:00+08:00'))
+    await nextTick()
+    expect(state.parameters.at).toBe('2026-09-16T01:00:00.000Z')
+    expect(encodeTree(decodeTree({ predicate: 'TIME_REACHED', parameters: state.parameters })).parameters).toEqual(state.parameters)
+    ;(picker.props!['onUpdate:modelValue'] as (value: Date | null) => void)(null)
+    await nextTick()
+    expect(state.parameters.at).toBe('')
+    view.app.unmount()
+  })
   it('selects a version-local source, filters Owner facts and preserves it through a tree round trip', async () => {
     const state = reactive<{ parameters: JsonObject; sources: RuleBusinessSource[] }>({
       parameters: { factCode: 'SURVEY_CONFIRMED', quantifier: 'ALL' },

@@ -27,7 +27,8 @@ class ProjectPlanInitializationServiceTest {
         when(plans.attachInitialPlan(any())).thenReturn(1); when(rounds.insert(any(ProjectNodeExecutionDO.class))).thenReturn(1);
         var snapshot = new TemplateExecutionSnapshot(); var node = new TemplateExecutionSnapshot.StageContract(); node.setNodeKey("stage:one"); snapshot.setStages(List.of(node));
         var contract = new ProjectStageExecutionContractDO(); contract.setId(31L); contract.setStageId(11L); contract.setSourceNodeKey("stage:one");
-        var service = new ProjectPlanInitializationService(plans, rounds, templates);
+        var service = new ProjectPlanInitializationService(plans, rounds, templates,
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
         service.initialize(project, snapshot, List.of(contract), List.of());
         var version = ArgumentCaptor.forClass(ProjectPlanVersionDO.class); verify(plans).insert(version.capture());
         assertEquals(1, version.getValue().getRevisionNo()); assertEquals(102L, version.getValue().getSourceTemplateRevisionId());

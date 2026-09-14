@@ -189,7 +189,7 @@ public class DeliveryDefinitionResolver {
     private void validateOwnerPredicates(JsonNode rule) {
         if (rule.has("operator")) { for (JsonNode child : rule.path("rules")) validateOwnerPredicates(child); return; }
         String predicate = rule.path("predicate").asText();
-        if (Set.of("FIELD", "CONSTANT", "DECISION").contains(predicate)) return;
+        if (Set.of("FIELD", "CONSTANT", "DECISION", "TIME_REACHED").contains(predicate)) return;
         if ("BUSINESS_FACT".equals(predicate)) {
             String code = rule.path("parameters").path("factCode").asText();
             if (!taskBusinessProviders.supportsCompletionFact(code))

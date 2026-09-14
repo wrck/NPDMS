@@ -46,11 +46,22 @@ public class ProjectRuleSimulationService {
                                 .map(ProjectRuleFields.Field::valueType).findFirst().orElse("TEXT"))));
             } else {
                 String key = inputKey(leaf);
-                inputs.putIfAbsent(key, new Input(key, key, leaf.predicate().equals("FIELD")
+                inputs.putIfAbsent(key, new Input(key, leaf.predicate().equals("TIME_REACHED") ? "模拟当前时间（含时区）" : key,
+                        leaf.predicate().equals("TIME_REACHED") ? "DATETIME" : leaf.predicate().equals("FIELD")
                         ? leaf.parameters().path("valueType").asText() : "BOOLEAN"));
             }
         }
         RuleResult result = evaluator.evaluateRule("simulation:" + ruleKey, program, leaf -> {
+            if (leaf.predicate().equals("TIME_REACHED")) {
+                var supplied = supplied(values, inputKey(leaf));
+                if (!supplied.available()) return supplied;
+                try {
+                    return cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition.evaluate(leaf.parameters(),
+                            java.time.OffsetDateTime.parse((String) supplied.value()).toInstant());
+                } catch (RuntimeException invalid) {
+                    return RuleFact.unknown("SIMULATION_TIME_INVALID");
+                }
+            }
             if (!leaf.predicate().startsWith("DECISION")) return supplied(values, inputKey(leaf));
             var table = table(leaf);
             var decision = decisions.evaluate(tenantId, "simulation", table, key -> supplied(values, key));
@@ -61,6 +72,7 @@ public class ProjectRuleSimulationService {
     }
 
     public static String inputKey(RuleProgram.Leaf leaf) {
+        if (leaf.predicate().equals("TIME_REACHED")) return "clock.now";
         if (leaf.predicate().equals("FIELD")) return leaf.parameters().path("fieldCode").asText();
         String reference = leaf.parameters().path("refCode").asText(
                 leaf.parameters().path("factCode").asText("current"));

@@ -217,7 +217,9 @@ public class ProjectTaskLifecycleService {
         if (task == null || !Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
             return new AutomaticResult(false, false);
         var contract = requireCurrentContract(task, tenantId);
-        if (!isBusinessContract(contract) || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
+        boolean nativeWork = TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode());
+        if ((!isBusinessContract(contract) && !nativeWork) || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
+        if (nativeWork && !"PENDING_ACCEPT".equals(task.getStatus())) return new AutomaticResult(false, false);
         var evaluated = planCompletion.evaluateAutomatically(project, task, contract);
         var now = LocalDateTime.now();
         var decision = guardCompletion(evaluated, task, tenantId, now);

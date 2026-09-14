@@ -57,6 +57,7 @@ public class ProjectReworkService {
     private final ProjectReworkPlanner planner;
     private final ProjectTaskProgressService progress;
     private final PlatformCommandExecutionApi commands;
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
 
     public record Candidate(ProjectReworkPlanner.Node node, Long executionId, Integer executionVersion,
                             Integer roundNo, String status) { }
@@ -134,6 +135,8 @@ public class ProjectReworkService {
                 command.expectedProjectVersion(), actorId.toString())) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         if (plan.targets().stream().anyMatch(target -> "TASK".equals(target.node().nodeKind())))
             progress.recompute(scope.tenantId(), scope.projectId(), runtime.project().getTaskProgressVersion(), now);
+        timers.schedule(scope.projectId(), command.planVersionId(), runtime.snapshot(),
+                result.stream().map(NewExecution::executionId).collect(java.util.stream.Collectors.toSet()));
         return new Result(scope.projectId(), command.planVersionId(), command.expectedProjectVersion()+1, List.copyOf(result));
     }
 

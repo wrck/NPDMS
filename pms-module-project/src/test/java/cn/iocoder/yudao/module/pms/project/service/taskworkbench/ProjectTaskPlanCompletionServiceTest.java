@@ -99,6 +99,16 @@ class ProjectTaskPlanCompletionServiceTest {
         round.setSubmittedAt(null); rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}");
         assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED",evaluate().completion().reasonCode()); assertFalse(evaluate().matched());
     }
+    @Test void automaticTimeCompletionStillRequiresCurrentRoundManualSubmission() {
+        rule("done", "{\"predicate\":\"TIME_REACHED\",\"parameters\":{\"at\":\"2020-01-01T00:00:00Z\"}}");
+        round.setSubmittedAt(null);
+        assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED", service.evaluateAutomatically(project,task,binding).completion().reasonCode());
+        round.setSubmittedAt(LocalDateTime.now());
+        assertTrue(service.evaluateAutomatically(project,task,binding).matched());
+        rule("done", "{\"predicate\":\"TIME_REACHED\",\"parameters\":{\"at\":\"2099-01-01T00:00:00Z\"}}");
+        assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, service.evaluateAutomatically(project,task,binding).completion().outcome());
+        verifyNoInteractions(business,executionApi);
+    }
     @Test void nativeCompletionCanCombineTypedFieldsAndDoesNotExposeActualValuesInEvidence() {
         rule("done","{\"operator\":\"ALL\",\"rules\":[{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"FIELD\",\"parameters\":{\"fieldCode\":\"project.projectName\",\"valueType\":\"TEXT\",\"operator\":\"=\",\"value\":\"private-actual-value\"}}]}");
         var result=evaluate(); assertTrue(result.matched()); assertEquals(2,result.completion().conditions().size());

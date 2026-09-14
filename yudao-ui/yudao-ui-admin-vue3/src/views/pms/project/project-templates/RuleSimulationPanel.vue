@@ -15,7 +15,7 @@
           <el-input
             v-else
             :model-value="typeof values[input.key] === 'string' ? String(values[input.key]) : undefined"
-            placeholder="输入模拟值；未提供的值保持未知"
+            :placeholder="input.valueType === 'DATETIME' ? '例如 2026-09-15T09:00:00+08:00' : '输入模拟值；未提供的值保持未知'"
             @update:model-value="values[input.key] = $event"
           />
         </el-form-item>

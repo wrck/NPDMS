@@ -25,6 +25,7 @@ public class ProjectPlanInitializationService {
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
     private final ProjectTemplateService templates;
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
 
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public void initialize(ProjectMasterDO project, TemplateExecutionSnapshot snapshot,
@@ -53,6 +54,7 @@ public class ProjectPlanInitializationService {
         if (plans.attachInitialPlan(new ProjectPlanVersionMapper.InitialPlanBinding(project.getTenantId(), project.getId(), plan.getId())) != 1)
             throw new IllegalStateException("PROJECT_PLAN_BINDING_CONFLICT");
         project.setActivePlanVersionId(plan.getId());
+        timers.schedule(project.getId(), plan.getId(), snapshot, null);
     }
 
     private void insertRound(ProjectMasterDO project, ProjectPlanVersionDO plan, String kind, Long instanceId, String nodeKey, Long contractId) {

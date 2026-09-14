@@ -31,6 +31,7 @@ public class ProjectPlanActivationService {
     private final ProjectPlanActivationPersistence activation;
     private final TaskStateMachineMapper stateMachines;
     private final ProjectTaskProgressService progress;
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
 
     public record Apply(Long projectId, Long draftId, ProjectPlanDraftService.Preview expectedPreview) { }
     public record Applied(Long projectId, Long planVersionId, Integer revisionNo, Integer projectVersion) { }
@@ -63,6 +64,7 @@ public class ProjectPlanActivationService {
                     activation.activate(new ProjectPlanVersionMapper.Activation(scope.tenantId(),scope.projectId(),prepared.effective().getId(),command.draftId(),
                             prepared.draft().getVersion(),prepared.project().getVersion(),JsonUtils.toJsonString(prepared.after()),now,actorId.toString()),
                             installed.continuing(),installed.removed());
+                    timers.schedule(scope.projectId(), command.draftId(), prepared.after(), null);
                     if (installed.tasksChanged()) progress.recompute(scope.tenantId(),scope.projectId(),prepared.project().getTaskProgressVersion(),now);
                     return new Applied(scope.projectId(),command.draftId(),prepared.draft().getRevisionNo(),prepared.project().getVersion()+1);
                 }, applied -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_PLAN_APPLY","ProjectPlan",applied.planVersionId().toString(),correlationId,

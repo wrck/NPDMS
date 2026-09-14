@@ -45,7 +45,8 @@ class ProjectReworkServiceTest {
     final PlatformCommandExecutionApi commands=mock(PlatformCommandExecutionApi.class);
     final ProjectReworkService service=new ProjectReworkService(scopes,permissions,projectRows,tasks,plans,executions,graph,
             contracts,stageContracts,projections,new TaskExecutionContractFactory(),new ProjectRuntimeGraphFreezer(graph,stageContracts),
-            assignments,states,stages,changes,new ProjectReworkPlanner(new ProjectPlanImpactAnalyzer()),progress,commands);
+            assignments,states,stages,changes,new ProjectReworkPlanner(new ProjectPlanImpactAnalyzer()),progress,commands,
+            mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
     ProjectMasterDO project;
     ProjectNodeExecutionDO previous;
     List<ProjectNodeExecutionDO> rounds;

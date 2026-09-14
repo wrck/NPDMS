@@ -21,6 +21,23 @@ class PlatformTransactionalOutboxWriterTest {
 
     @Mock PlatformOutboxEventMapper mapper;
 
+    @Test void scheduledDeliveryPersistsDueTimeWithoutPretendingItIsARetry() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        try {
+            when(mapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
+            var writer = new PlatformTransactionalOutboxWriter(mapper);
+            var due = LocalDateTime.of(2027,1,1,9,0);
+            writer.appendAt("ProjectPlan", "51", new PlatformCommandExecutionApi.BusinessEvent(
+                    "time-1", "ProjectRuleTimerRequested", "{\"eventId\":\"time-1\"}"), due);
+            var row = ArgumentCaptor.forClass(PlatformOutboxEventDO.class);
+            verify(mapper).insert(row.capture());
+            assertEquals(due, row.getValue().getNextRetryTime());
+            assertEquals(0, row.getValue().getRetryCount());
+            assertEquals(7L, row.getValue().getTenantId());
+            org.junit.jupiter.api.Assertions.assertTrue(row.getValue().getOccurredAt().isBefore(due));
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
     @Test
     void writesProducerEventInTheSurroundingTransaction() {
         when(mapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);

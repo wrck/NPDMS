@@ -49,6 +49,8 @@ public class ProjectRuntimeRuleEvaluator {
 
     public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if ("TIME_REACHED".equals(predicate))
+            return cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition.evaluate(leaf.parameters(), java.time.Instant.now());
         if ("BUSINESS_FACT".equals(predicate)) return businessSources.resolve(facts.project(), leaf);
         if ("DECISION".equals(predicate))
             return decisions.resolve(facts.project().getTenantId(), "project:" + facts.project().getId()

@@ -25,17 +25,29 @@ public class PlatformTransactionalOutboxWriter implements PlatformBusinessEventA
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void append(String aggregateType, String aggregateKey, PlatformCommandExecutionApi.BusinessEvent event) {
+        appendAt(aggregateType, aggregateKey, event, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void appendAt(String aggregateType, String aggregateKey, PlatformCommandExecutionApi.BusinessEvent event, LocalDateTime notBefore) {
+        if (notBefore == null) throw new IllegalArgumentException("平台业务事件投递时间不能为空");
         if (event == null || event.eventId() == null || event.eventId().length() > 64)
             throw new IllegalArgumentException("平台业务事件标识无效");
         var payload = JsonUtils.parseTree(event.eventPayload());
         if (payload == null || !payload.isObject() || !event.eventId().equals(payload.path("eventId").asText()))
             throw new IllegalArgumentException("平台业务事件标识与载荷不一致");
-        write(TenantContextHolder.getRequiredTenantId(), event, aggregateType, aggregateKey, LocalDateTime.now());
+        write(TenantContextHolder.getRequiredTenantId(), event, aggregateType, aggregateKey, LocalDateTime.now(), notBefore);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void write(Long tenantId, PlatformCommandExecutionApi.BusinessEvent event,
                       String aggregateType, String aggregateKey, LocalDateTime occurredAt) {
+        write(tenantId, event, aggregateType, aggregateKey, occurredAt, null);
+    }
+
+    private void write(Long tenantId, PlatformCommandExecutionApi.BusinessEvent event,
+                       String aggregateType, String aggregateKey, LocalDateTime occurredAt, LocalDateTime notBefore) {
         if (tenantId == null || tenantId < 0 || event == null || isBlank(event.eventId())
                 || isBlank(event.eventType()) || isBlank(event.eventPayload())
                 || isBlank(aggregateType) || isBlank(aggregateKey) || occurredAt == null) {
@@ -51,6 +63,7 @@ public class PlatformTransactionalOutboxWriter implements PlatformBusinessEventA
         outbox.setStatus(STATUS_PENDING);
         outbox.setOccurredAt(occurredAt);
         outbox.setRetryCount(0);
+        outbox.setNextRetryTime(notBefore);
         if (outboxMapper.insert(outbox) != 1) {
             throw new IllegalStateException("平台Outbox事件写入失败");
         }
