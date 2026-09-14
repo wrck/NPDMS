@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevisio
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskbusiness.ProjectTaskBusinessLinkDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
@@ -43,6 +45,63 @@ public class ProjectTaskBusinessService {
     private final PlatformCommandExecutionApi commands;
     private final OperationAuditApi audit;
     private final BusinessViewQueryApi businessViews;
+    private final ProjectNodeExecutionApi executionApi;
+
+    /** Caller holds project/task/contract/round locks; this path never grants interactive Owner permissions. */
+    public TaskBusinessCompletionFacts lockCompletionFacts(Long tenantId,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution,
+            ProjectTaskExecutionContractDO contract) {
+        requireTransaction();
+        var context = new Context(tenantId, null, execution.projectId(), execution.taskId(), null);
+        requireContract(contract, context);
+        if (!Objects.equals(contract.getId(), execution.executionContractId())
+                || !Objects.equals(contract.getContractVersion(), execution.contractVersion()))
+            throw failure("CONTRACT_IDENTITY_MISMATCH");
+        var provider = registry.require(contract.getTargetContextCode(), contract.getTargetObjectType());
+        return completionFacts(new CompletionReceiver(query(context),execution.executionId(),contract.getId(),contract.getContractVersion(),
+                contract.getTargetContextCode(),contract.getTargetObjectType()), objectId ->
+                provider.lockCompletionFact(new TaskBusinessObjectProvider.CompletionContext(tenantId, execution),objectId));
+    }
+
+    public TaskBusinessCompletionFacts lockStageCompletionFacts(Long tenantId,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext execution,
+            cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract binding) {
+        requireTransaction();
+        executionApi.lockAndRevalidateStage(execution);
+        var provider = registry.require(binding.getTargetContextCode(),binding.getTargetObjectType());
+        return completionFacts(new CompletionReceiver(TaskBusinessLinksQuery.stage(tenantId,execution.projectId(),execution.stageId()),
+                execution.executionId(),execution.executionContractId(),execution.contractVersion(),binding.getTargetContextCode(),binding.getTargetObjectType()),
+                objectId -> provider.lockStageCompletionFact(new TaskBusinessObjectProvider.StageCompletionContext(tenantId,execution),objectId));
+    }
+
+    private record CompletionReceiver(TaskBusinessLinksQuery scope, Long executionId, Long contractId,
+                                      Integer contractVersion, String ownerContext, String objectType) { }
+
+    private TaskBusinessCompletionFacts completionFacts(CompletionReceiver receiver,
+            java.util.function.Function<String,TaskBusinessObjectProvider.CompletionFact> reader) {
+        var query = receiver.scope();
+        var facts = new ArrayList<TaskBusinessLinkFact>();
+        var digest = new ArrayList<Object>();
+        digest.add(List.of(receiver.contractId(),receiver.contractVersion()));
+        boolean handled = false;
+        for (var row : linkMapper.selectActiveForUpdate(query).stream().sorted(Comparator.comparing(ProjectTaskBusinessLinkDO::getId)).toList()) {
+            if (!Objects.equals(row.getTenantId(),query.tenantId()) || !Objects.equals(row.getProjectId(),query.projectId())
+                    || !Objects.equals(row.getTaskId(),query.taskId()) || !Objects.equals(row.getStageId(),query.stageId())
+                    || row.getUnlinkedAt()!=null || !Objects.equals(row.getExecutionContractId(),receiver.contractId())
+                    || !Objects.equals(row.getContractVersion(),receiver.contractVersion())
+                    || !Objects.equals(row.getOwnerContext(),receiver.ownerContext()) || !Objects.equals(row.getObjectType(),receiver.objectType()))
+                throw failure("LINK_CONTRACT_MISMATCH");
+            if (!Objects.equals(row.getNodeExecutionId(),receiver.executionId())) throw failure("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED");
+            var result = reader.apply(row.getObjectId());
+            if (result==null) throw failure("OWNER_COMPLETION_FACT_UNAVAILABLE");
+            var fact = validateFact(new BusinessObjectFact(result.objectId(),"业务完成事实",result.factVersion(),
+                    Set.of(),result.completionFacts(),List.of()),row.getObjectId());
+            facts.add(new TaskBusinessLinkFact(row.getId(),fact.objectId(),fact.displayName(),fact.factVersion(),fact.completionFacts(),List.of(),Set.of()));
+            digest.add(List.of(row.getId(),row.getVersion(),fact.objectId(),fact.factVersion()));
+            handled |= result.handlingCompleted();
+        }
+        return new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts(sha256(JsonUtils.toJsonString(digest)),facts),handled);
+    }
 
     public TaskBusinessContext getContext(Long taskId, Long tenantId, Long actorId, String correlationId) {
         var task = access.read(taskId, tenantId, actorId);
@@ -54,27 +113,31 @@ public class ProjectTaskBusinessService {
             binding = TaskBusinessBinding.parse(contract);
             var provider = registry.require(binding.ownerContext(), binding.objectType());
             var rows = linkMapper.selectActive(query(ctx));
-            var facts = inspectRows(ctx, contract, rows, provider, false);
-            String reason = binding.unavailableReason();
-            boolean writable = reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
-                    && access.writable(task, access.project(task.getProjectId()), ctx);
-            Set<String> actions = new LinkedHashSet<>();
-            if (writable) {
-                var candidates = provider.candidates(ctx);
-                if (candidates == null) throw failure("OWNER_FACT_INVALID");
-                if (candidates.stream().map(f -> validateFact(f, null)).anyMatch(f -> f.allowedActions().contains("LINK")))
-                    actions.add("LINK");
-                if (facts.links().stream().anyMatch(f -> f.allowedActions().contains("UNLINK"))) actions.add("UNLINK");
+            rows.forEach(row -> requireLink(row, ctx, contract));
+            var objectIds = rows.stream().map(ProjectTaskBusinessLinkDO::getObjectId).distinct().toList();
+            var inspection = provider.inspectContextAndObjects(ctx, objectIds);
+            if (inspection == null) throw failure("OWNER_FACT_INVALID");
+            var objects = new HashMap<String, BusinessObjectFact>();
+            for (var candidate : inspection.objects()) {
+                var fact = validateFact(candidate, null);
+                if (!objectIds.contains(fact.objectId()) || objects.put(fact.objectId(), fact) != null)
+                    throw failure("OWNER_FACT_INVALID");
             }
-            Set<String> ownerActions = Set.copyOf(provider.inspectContext(ctx));
+            var facts = inspectRows(ctx, contract, rows, row -> objects.get(row.getObjectId()));
+            String reason = binding.unavailableReason();
+            var execution = executionContext(ctx, contract);
+            boolean writable = reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
+                    && access.writable(task, access.project(task.getProjectId()), ctx) && execution != null && execution.writable();
+            Set<String> actions = Set.of();
+            Set<String> ownerActions = inspection.allowedActions();
             BusinessViewRevision view = null;
             if (reason == null) {
                 if (!ownerActions.contains("QUERY")) throw failure("OWNER_CONTEXT_FORBIDDEN");
                 view = historicalView(binding);
             }
-            return context(ctx, contract, binding, facts.links(), actions, reason, facts.factVersion(), ownerActions, view, writable);
+            return context(ctx, contract, binding, facts.links(), actions, reason, facts.factVersion(), ownerActions, view, writable, execution);
         } catch (RuntimeException ex) {
-            return context(ctx, contract, binding, List.of(), Set.of(), safeError(ex), null, Set.of(), null, false);
+            return context(ctx, contract, binding, List.of(), Set.of(), safeError(ex), null, Set.of(), null, false, null);
         }
     }
 
@@ -151,7 +214,9 @@ public class ProjectTaskBusinessService {
                     () -> { requireTransaction(); return action.apply(ctx); },
                     result -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_TASK_BUSINESS_" + operation,
                             "ProjectTaskBusinessLink", result.linkId().toString(), correlationId,
-                            JsonUtils.toJsonString(result), null, null));
+                            JsonUtils.toJsonString(result), null, null,
+                            List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                    tenantId, ctx.projectId(), actorId, correlationId).event())));
             if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
             if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
                 throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
@@ -234,17 +299,39 @@ public class ProjectTaskBusinessService {
 
     private TaskBusinessLinkedFacts inspectRows(Context ctx, ProjectTaskExecutionContractDO contract,
             List<ProjectTaskBusinessLinkDO> rows, TaskBusinessObjectProvider provider, boolean lockOwner) {
+        return inspectRows(ctx, contract, rows, row -> {
+            var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
+            if (lockOwner) {
+                var locked = validateFact(provider.lockAndRevalidate(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
+                if (!fact.factVersion().equals(locked.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+                return locked;
+            }
+            return fact;
+        });
+    }
+
+    private boolean executionWritable(Context context, ProjectTaskExecutionContractDO contract) {
+        var current = executionContext(context, contract);
+        return current != null && current.writable();
+    }
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext executionContext(
+            Context context, ProjectTaskExecutionContractDO contract) {
+        try {
+            return executionApi.inspect(new ProjectTaskExecutionQuery(context.projectId(),context.taskId(),contract.getId()));
+        } catch (RuntimeException unavailable) {
+            // A missing current execution denies writing, but does not remove an authorized historical business view.
+            return null;
+        }
+    }
+
+    private TaskBusinessLinkedFacts inspectRows(Context ctx, ProjectTaskExecutionContractDO contract,
+            List<ProjectTaskBusinessLinkDO> rows, java.util.function.Function<ProjectTaskBusinessLinkDO, BusinessObjectFact> reader) {
         var facts = new ArrayList<TaskBusinessLinkFact>();
         var digest = new ArrayList<Object>();
         digest.add(List.of(contract.getId(), contract.getContractVersion()));
         for (var row : rows.stream().sorted(Comparator.comparing(ProjectTaskBusinessLinkDO::getId)).toList()) {
             requireLink(row, ctx, contract);
-            var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
-            if (lockOwner) {
-                var locked = validateFact(provider.lockAndRevalidate(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
-                if (!fact.factVersion().equals(locked.factVersion())) throw failure("FACT_VERSION_CONFLICT");
-                fact = locked;
-            }
+            var fact = validateFact(reader.apply(row), row.getObjectId());
             facts.add(new TaskBusinessLinkFact(row.getId(), fact.objectId(), fact.displayName(), fact.factVersion(),
                     fact.completionFacts(), fact.artifacts(), fact.allowedActions()));
             digest.add(List.of(row.getId(), row.getVersion(), fact.objectId(), fact.factVersion()));
@@ -287,12 +374,13 @@ public class ProjectTaskBusinessService {
     private TaskBusinessLinksQuery query(Context ctx) { return new TaskBusinessLinksQuery(ctx.tenantId(), ctx.projectId(), ctx.taskId()); }
     private TaskBusinessContext context(Context ctx, ProjectTaskExecutionContractDO c, TaskBusinessBinding b,
             List<TaskBusinessLinkFact> links, Set<String> actions, String error, String factVersion,
-            Set<String> ownerActions, BusinessViewRevision businessView, boolean executionAllowed) {
+            Set<String> ownerActions, BusinessViewRevision businessView, boolean executionAllowed,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) {
         return new TaskBusinessContext(ctx.taskId(), ctx.projectId(), c == null ? null : c.getId(),
                 c == null ? null : c.getContractVersion(), c == null ? null : c.getTargetContextCode(),
                 c == null ? null : c.getTargetObjectType(), c == null ? null : c.getComponentKey(),
                 b == null ? null : b.businessViewRevisionId(), b == null ? null : b.instanceResolutionStrategy(),
-                links, actions, error, factVersion, ownerActions, businessView, executionAllowed);
+                links, actions, error, factVersion, ownerActions, businessView, executionAllowed, execution);
     }
     private BusinessViewRevision historicalView(TaskBusinessBinding binding) {
         var view = businessViews.getRevision(new BusinessViewQueryApi.Query(binding.businessViewRevisionId(),

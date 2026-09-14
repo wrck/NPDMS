@@ -86,11 +86,6 @@ const click = async (root: TestNode, label: string) => {
   await (node!.props!.onClick as () => unknown)()
   await tick()
 }
-const select = (root: TestNode) => visit(root, (node) => node.props?.placeholder === '选择本项目已有业务记录')!
-const choose = async (root: TestNode, objectId = '42') => {
-  (select(root).props!['onUpdate:modelValue'] as Function)(objectId)
-  await tick()
-}
 const apps: { unmount: () => void }[] = []
 const setup = async (initial: Record<string, unknown> = {}) => {
   const state = reactive({ taskId: '11', taskVersion: 4, readonly: false, ...initial })
@@ -120,6 +115,21 @@ afterEach(() => {
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('renders the Owner page without a duplicate heading or automatic-association panel', async () => {
+    const page = await setup()
+    expect(textOf(page.root)).not.toContain('自动关联')
+    expect(textOf(page.root)).not.toContain('record-41')
+    expect(visit(page.root, (node) => node.type === 'h3')).toBeUndefined()
+    expect(button(page.root, '刷新业务结果')).toBeUndefined()
+    expect(button(page.root, '关联记录')).toBeUndefined()
+    expect(button(page.root, '解除关联')).toBeUndefined()
+    expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
+    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
+    page.state.readonly = true
+    await tick()
+    expect(textOf(page.root)).toContain('owner:11/41')
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+  })
   it('keeps the task business view read-only when task execution is denied despite Owner actions', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { executionAllowed: false }))
     await setup()
@@ -155,8 +165,22 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
   })
   it('passes only context QUERY/CREATE without a selected record', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [] }))
-    await setup()
+    const page = await setup()
+    expect(textOf(page.root)).not.toContain('暂无自动关联')
+    expect(textOf(page.root)).toContain('owner:11/undefined')
     expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY', 'CREATE'])
+  })
+  it('preserves named Owner creation commands without granting unselected record writes', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      links: [], ownerActions: ['QUERY', 'CREATE', 'CREATE_INITIAL_DRAFT', 'CREATE_DRAFT', 'PATCH_FORM', 'COMPLETE']
+    }))
+    const page = await setup()
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([
+      'QUERY', 'CREATE', 'CREATE_INITIAL_DRAFT', 'CREATE_DRAFT'
+    ])
+    page.state.readonly = true
+    await tick()
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
   })
   it('fails closed when a full Owner project cannot be queried, without fabricating a grant', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
@@ -169,68 +193,32 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
     expect(textOf(page.root)).toContain('项目查询权限')
   })
-  it('reuses the LINK retry key for identical payloads, but changes it for a new task version', async () => {
-    const page = await setup()
-    vi.mocked(BusinessApi.linkTaskBusinessObject).mockRejectedValue(new Error('lost response'))
-    await choose(page.root)
-    await click(page.root, '关联记录')
-    await click(page.root, '关联记录')
-    const calls = vi.mocked(BusinessApi.linkTaskBusinessObject).mock.calls
-    expect(calls[0]).toEqual(calls[1])
-    expect(calls[0].slice(0, 4)).toEqual(['11', '42', 4, 3])
-    expect(calls[0][4]).toBeTruthy()
-    page.state.taskVersion = 5
-    await tick()
-    await choose(page.root)
-    await click(page.root, '关联记录')
-    expect(calls[2][4]).not.toBe(calls[0][4])
-    expect(page.facts).toHaveBeenLastCalledWith(undefined)
-  })
-  it('rotates the LINK key after confirmed success', async () => {
-    const page = await setup()
-    await choose(page.root)
-    await click(page.root, '关联记录')
-    await choose(page.root)
-    await click(page.root, '关联记录')
-    const calls = vi.mocked(BusinessApi.linkTaskBusinessObject).mock.calls
-    expect(calls[1][4]).not.toBe(calls[0][4])
-    expect(page.changed).toHaveBeenCalledTimes(2)
-  })
-  it.each(['LINK', 'UNLINK'])('revalidates a captured %s handler after action revocation', async (action) => {
-    const page = await setup()
-    await choose(page.root)
-    const handler = button(page.root, action === 'LINK' ? '关联记录' : '解除关联')!.props!.onClick as Function
-    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { allowedActions: [] }))
+  it('reuses the matching authorized project on entry but re-reads it on refresh', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      projectId: 12, businessView: { id: '31', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' } as any
+    }))
+    const page = await setup({ initialProject: { id: 12, projectName: '已读取的项目' } })
+    expect(getProject).not.toHaveBeenCalled()
+    expect(controls.ownerProps.mock.lastCall![0].resolvedContext.project.projectName).toBe('已读取的项目')
+    vi.mocked(getProject).mockRejectedValueOnce(new Error('403'))
     await page.panel.value.refresh()
-    await handler()
-    expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
-    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
-    expect(controls.confirm).not.toHaveBeenCalled()
-  })
-  it('treats unlink cancellation as a no-op', async () => {
-    const page = await setup()
-    controls.confirm.mockRejectedValue('cancel')
-    await click(page.root, '解除关联')
-    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
-    expect(page.changed).not.toHaveBeenCalled()
-  })
-  it.each(['task', 'permission', 'readonly', 'version', 'record'])('aborts unlink when %s changes during confirmation', async (change) => {
-    const page = await setup()
-    const confirmation = deferred<void>()
-    controls.confirm.mockReturnValue(confirmation.promise)
-    const pending = (button(page.root, '解除关联')!.props!.onClick as Function)()
-    if (change === 'task') page.state.taskId = '12'
-    if (change === 'readonly') page.state.readonly = true
-    if (change === 'version') page.state.taskVersion = 5
-    if (change === 'permission' || change === 'record') {
-      vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', change === 'permission'
-        ? { allowedActions: ['LINK'] } : { links: [record('43', '53')] }))
-      await page.panel.value.refresh()
-    }
     await tick()
-    confirmation.resolve()
-    await pending
-    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
+    expect(getProject).toHaveBeenCalledWith(12)
+    expect(page.facts).toHaveBeenLastCalledWith(undefined)
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
+  })
+  it('does not reuse another project or use the enclosing project to bypass denied context', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      projectId: 12, businessView: { id: '31', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' } as any
+    }))
+    vi.mocked(getProject).mockRejectedValue(new Error('403'))
+    await setup({ initialProject: { id: 13 } })
+    expect(getProject).toHaveBeenCalledWith(12)
+    expect(controls.ownerProps).not.toHaveBeenCalled()
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockRejectedValue(new Error('403'))
+    await setup({ initialProject: { id: 12 } })
+    expect(getProject).toHaveBeenCalledTimes(1)
+    expect(controls.ownerProps).not.toHaveBeenCalled()
   })
   it('isolates old context responses even across A→B→A', async () => {
     const old = deferred<TaskBusinessContext>()
@@ -245,41 +233,6 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(textOf(page.root)).toContain('owner:11/41')
     expect(textOf(page.root)).not.toContain('record-99')
     expect(page.facts).toHaveBeenLastCalledWith('fact-11')
-  })
-  it('isolates candidate responses and loading across task changes', async () => {
-    const page = await setup()
-    const old = deferred<TaskBusinessLink[]>(), fresh = deferred<TaskBusinessLink[]>()
-    vi.mocked(BusinessApi.getTaskBusinessCandidates).mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise)
-    const first = (select(page.root).props!['onVisibleChange'] as Function)(true)
-    page.state.taskId = '12'
-    await tick()
-    const second = (select(page.root).props!['onVisibleChange'] as Function)(true)
-    old.resolve([record('99')])
-    await first
-    await tick()
-    expect(select(page.root).props!.loading).toBe(true)
-    expect(textOf(page.root)).not.toContain('record-99')
-    fresh.resolve([record('44')])
-    await second
-    await tick()
-    expect(select(page.root).props!.loading).toBe(false)
-  })
-  it('does not let a late LINK response reload or emit changes for a replacement task', async () => {
-    const page = await setup()
-    const response = deferred<any>()
-    vi.mocked(BusinessApi.linkTaskBusinessObject).mockReturnValue(response.promise)
-    await choose(page.root)
-    const pending = (button(page.root, '关联记录')!.props!.onClick as Function)()
-    page.state.taskId = '12'
-    await tick()
-    response.resolve({})
-    await pending
-    await tick()
-    expect(page.changed).not.toHaveBeenCalled()
-    expect(page.facts).toHaveBeenLastCalledWith(undefined)
-    await page.panel.value.refresh()
-    await tick()
-    expect(textOf(page.root)).toContain('owner:12/41')
   })
   it('keeps dirty content when task-switch leave is cancelled', async () => {
     const page = await setup()
@@ -312,12 +265,12 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(controls.discard).toHaveBeenCalledTimes(1)
     expect(textOf(page.root)).toContain('owner:12/41;dirty:false')
   })
-  it('delegates record selection to the Host without duplicate confirmation and preserves dirty on cancellation', async () => {
-    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [record(), record('42', '52')] }))
+  it('preserves dirty content when an automatic Owner record replacement is cancelled', async () => {
     const page = await setup()
     await click(page.root, 'Owner edit')
     controls.leave.mockResolvedValue(false)
-    await click(page.root, 'record-42')
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [record('42', '52')] }))
+    await click(page.root, 'Owner changed')
     expect(controls.leave).toHaveBeenCalledTimes(1)
     expect(controls.discard).not.toHaveBeenCalled()
     expect(textOf(page.root)).toContain('owner:11/41;dirty:true')
@@ -344,53 +297,6 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(page.panel.value.isDirty()).toBe(true)
     expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
   })
-  it('keeps terminal history visible and rechecks readonly in captured handlers', async () => {
-    const page = await setup()
-    await choose(page.root)
-    const link = button(page.root, '关联记录')!.props!.onClick as Function
-    const unlink = button(page.root, '解除关联')!.props!.onClick as Function
-    await click(page.root, 'Owner edit')
-    page.state.readonly = true
-    await tick()
-    await link()
-    await unlink()
-    expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
-    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
-    expect(textOf(page.root)).toContain('record-41')
-    expect(textOf(page.root)).toContain('survey.pdf')
-    expect(page.panel.value.isDirty()).toBe(true)
-    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
-  })
-  it('ignores an older candidate request even for the same task', async () => {
-    const page = await setup()
-    const old = deferred<TaskBusinessLink[]>(), fresh = deferred<TaskBusinessLink[]>()
-    vi.mocked(BusinessApi.getTaskBusinessCandidates).mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise)
-    const first = (select(page.root).props!['onVisibleChange'] as Function)(true)
-    const second = (select(page.root).props!['onVisibleChange'] as Function)(true)
-    fresh.resolve([record('44')])
-    await second
-    old.reject(new Error('late failure'))
-    await first
-    await tick()
-    expect(controls.warning).not.toHaveBeenCalled()
-    const option = visit(page.root, (node) => node.props?.label === 'record-44')
-    expect(option).toBeTruthy()
-  })
-  it('ignores a late UNLINK result after a task switch', async () => {
-    const page = await setup()
-    const response = deferred<any>()
-    vi.mocked(BusinessApi.unlinkTaskBusinessObject).mockReturnValue(response.promise)
-    const pending = (button(page.root, '解除关联')!.props!.onClick as Function)()
-    await tick()
-    expect(BusinessApi.unlinkTaskBusinessObject).toHaveBeenCalledWith('11', '51', 4, 3, expect.any(String))
-    page.state.taskId = '12'
-    await tick()
-    response.resolve({})
-    await pending
-    expect(page.changed).not.toHaveBeenCalled()
-    expect(page.facts).toHaveBeenLastCalledWith(undefined)
-    expect(BusinessApi.getTaskBusinessContext).toHaveBeenCalledTimes(1)
-  })
   it('does not discard dirty content for a superseded task-switch confirmation', async () => {
     const page = await setup()
     await click(page.root, 'Owner edit')
@@ -409,16 +315,15 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(controls.discard).toHaveBeenCalledTimes(1)
     expect(page.facts).toHaveBeenLastCalledWith('fact-13')
   })
-  it('retains the original dirty target across multiple cancelled record switches', async () => {
-    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
-      links: [record(), record('42', '52'), record('43', '53')]
-    }))
+  it('retains the original dirty target across successive automatic record replacements', async () => {
     const page = await setup()
     await click(page.root, 'Owner edit')
     const leave = deferred<boolean>()
     controls.leave.mockReturnValue(leave.promise)
-    await click(page.root, 'record-42')
-    await click(page.root, 'record-43')
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [record('42', '52')] }))
+    await click(page.root, 'Owner changed')
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [record('43', '53')] }))
+    await click(page.root, 'Owner changed')
     leave.resolve(false)
     await tick()
     expect(textOf(page.root)).toContain('owner:11/41;dirty:true')
@@ -434,18 +339,6 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(textOf(page.root)).toContain('owner:11/41;dirty:true')
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
     expect(controls.discard).not.toHaveBeenCalled()
-  })
-  it('does not restore stale completion facts when dirty is discarded after a failed command', async () => {
-    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { links: [record(), record('42', '52')] }))
-    const page = await setup()
-    await click(page.root, 'Owner edit')
-    vi.mocked(BusinessApi.linkTaskBusinessObject).mockRejectedValue(new Error('unknown outcome'))
-    await choose(page.root)
-    await click(page.root, '关联记录')
-    expect(page.facts).toHaveBeenLastCalledWith(undefined)
-    await click(page.root, 'record-42')
-    expect(page.panel.value.isDirty()).toBe(false)
-    expect(page.facts).toHaveBeenLastCalledWith(undefined)
   })
   it('ignores an old Owner changed event while a dirty task switch is blocked', async () => {
     const page = await setup()

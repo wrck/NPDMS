@@ -15,6 +15,10 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUp
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 public interface FileBusinessObjectPolicyProvider {
 
     String ownerContext();
@@ -27,6 +31,14 @@ public interface FileBusinessObjectPolicyProvider {
 
     default FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
         throw new UnsupportedOperationException("reference set inspection is not implemented");
+    }
+
+    /** One fact per query; providers may reuse common owner reads within this batch. */
+    default Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> inspectReferenceSets(
+            List<FileBusinessObjectReferenceSetQuery> queries) {
+        Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> facts = new LinkedHashMap<>();
+        for (var query : queries) facts.put(query, inspectReferenceSet(query));
+        return facts;
     }
 
     default FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(

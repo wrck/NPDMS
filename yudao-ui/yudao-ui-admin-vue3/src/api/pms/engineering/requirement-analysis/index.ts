@@ -1,5 +1,6 @@
 import request from '@/config/axios'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
+import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 
 export type RequirementAnalysisAction =
   | 'CREATE_INITIAL_DRAFT'
@@ -118,8 +119,8 @@ export interface RequirementAnalysisDetailVO extends RequirementAnalysisVersionS
 
 export interface RequirementAnalysisOverviewVO {
   projectId: number
-  currentEffective: RequirementAnalysisVersionSummaryVO | null
-  draft: RequirementAnalysisVersionSummaryVO | null
+  currentEffective: RequirementAnalysisDetailVO | null
+  draft: RequirementAnalysisDetailVO | null
   allowedActions: RequirementAnalysisAction[]
 }
 
@@ -183,16 +184,16 @@ export interface PatchRequirementAnalysisSectionReqVO {
 
 const baseUrl = '/api/v1/pms/preparations'
 
-export const getCurrent = (projectId: number) =>
+export const getCurrent = (projectId: number, stageId?: StageExecutionContext['stageId']) =>
   request.get<RequirementAnalysisOverviewVO>({
     url: baseUrl,
-    params: { projectId, type: 'PRE_04' }
+    params: { projectId, type: 'PRE_04', ...(stageId == null ? {} : { stageId }) }
   })
 
-export const createInitialDraft = (projectId: number, idempotencyKey: string) =>
+export const createInitialDraft = (projectId: number, idempotencyKey: string, stageExecution?: StageExecutionContext) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: baseUrl,
-    data: { projectId, type: 'PRE_04' },
+    data: { projectId, type: 'PRE_04', ...(stageExecution ? { stageExecution } : {}) },
     headers: { 'Idempotency-Key': idempotencyKey }
   })
 
@@ -252,10 +253,12 @@ export const createNextDraft = (
   preparationId: number,
   expectedInstanceVersion: number,
   expectedSolVersion: number,
-  idempotencyKey: string
+  idempotencyKey: string,
+  stageExecution?: StageExecutionContext
 ) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: `${baseUrl}/${preparationId}/actions/create-draft`,
+    ...(stageExecution ? { data: { stageExecution } } : {}),
     headers: {
       'If-Match': String(expectedInstanceVersion),
       'X-SOL-If-Match': String(expectedSolVersion),

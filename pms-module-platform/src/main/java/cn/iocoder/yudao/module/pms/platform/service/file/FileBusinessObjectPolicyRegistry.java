@@ -18,6 +18,10 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUp
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_PROVIDER_UNAVAILABLE;
@@ -92,6 +96,29 @@ public class FileBusinessObjectPolicyRegistry {
             throw exception(FILE_SCOPE_VERSION_CONFLICT);
         }
         return fact;
+    }
+
+    public Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> inspectReferenceSets(
+            List<FileBusinessObjectReferenceSetQuery> queries) {
+        Map<FileBusinessObjectPolicyProvider, List<FileBusinessObjectReferenceSetQuery>> batches = new LinkedHashMap<>();
+        for (var query : queries) {
+            var provider = requireUniqueProvider(query.key().ownerContext(), query.key().objectType());
+            batches.computeIfAbsent(provider, ignored -> new ArrayList<>()).add(query);
+        }
+        Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> result = new LinkedHashMap<>();
+        for (var batch : batches.entrySet()) {
+            Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> facts;
+            try {
+                facts = batch.getKey().inspectReferenceSets(List.copyOf(batch.getValue()));
+            } catch (RuntimeException ex) {
+                throw exception(FILE_PROVIDER_UNAVAILABLE);
+            }
+            if (facts == null || !facts.keySet().equals(Set.copyOf(batch.getValue()))) {
+                throw exception(FILE_PROVIDER_UNAVAILABLE);
+            }
+            for (var query : batch.getValue()) result.put(query, requireUsableFact(facts.get(query)));
+        }
+        return Map.copyOf(result);
     }
 
     public FileBusinessObjectPolicyFact lockAndRevalidateGeneratedBusinessFile(

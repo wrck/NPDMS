@@ -133,8 +133,10 @@ public class ProjectTreeScopeService {
         if (currentVersion == null) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
-        return resolve(new ProjectScopeQuery(query.tenantId(), query.subjectUserId(),
-                query.anchorProjectId(), query.actionCode(), currentVersion.getTreeVersion()));
+        var versionedQuery = new ProjectScopeQuery(query.tenantId(), query.subjectUserId(),
+                query.anchorProjectId(), query.actionCode(), currentVersion.getTreeVersion());
+        validate(versionedQuery);
+        return resolveAtVersion(versionedQuery, rootId);
     }
 
     public ProjectTreeScope lockAndRevalidate(ProjectScopeRevalidationQuery query) {

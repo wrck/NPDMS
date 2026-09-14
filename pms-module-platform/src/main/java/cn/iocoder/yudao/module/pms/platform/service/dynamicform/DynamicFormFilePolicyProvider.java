@@ -28,6 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -95,6 +99,19 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
     }
 
     @Override
+    public Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> inspectReferenceSets(
+            List<FileBusinessObjectReferenceSetQuery> queries) {
+        Map<ReadKey, ReadInspection> reads = new HashMap<>();
+        Map<FileBusinessObjectReferenceSetQuery, FileBusinessObjectPolicyFact> result = new LinkedHashMap<>();
+        for (var query : queries) {
+            String fieldKey = parsePurpose(query.key());
+            result.put(query, fieldKey == null ? denied() : inspect(query.tenantId(), query.actorUserId(),
+                    query.key().objectId(), fieldKey, query.requiredAction(), false, null, reads));
+        }
+        return Map.copyOf(result);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
             FileBusinessObjectReferenceSetRevalidationQuery query) {
@@ -106,8 +123,17 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
 
     private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId, String fieldKey,
                                                  String action, boolean lock, Long expectedScopeVersion) {
+        return inspect(tenantId, actorUserId, objectId, fieldKey, action, lock, expectedScopeVersion, null);
+    }
+
+    private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId, String fieldKey,
+                                                 String action, boolean lock, Long expectedScopeVersion,
+                                                 Map<ReadKey, ReadInspection> reads) {
         Long instanceId = parseInstanceId(objectId);
         if (instanceId == null) return denied();
+        ReadKey readKey = new ReadKey(tenantId, actorUserId, instanceId, action);
+        ReadInspection previous = reads == null ? null : reads.get(readKey);
+        if (previous != null) return previous.fields().isFileField(fieldKey) ? previous.policy() : denied();
         try {
             PlatformDynamicFormInstanceDO instance = instanceMapper.selectByRow(
                     new DynamicFormInstanceRowQuery(tenantId, instanceId));
@@ -161,14 +187,23 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
                 if (!sameFrozenInstance(instance, locked)) return denied();
                 instance = locked;
             }
-            if (isManual(instance)) return policy(true, instance.getTemplateRevisionId(), "MUTABLE");
-            String mutability = businessPolicy.ownerStateSummary().contains("COMPLETED")
-                    ? "IMMUTABLE" : "MUTABLE";
-            return policy(true, businessPolicy.scopeVersion(), mutability);
+            FileBusinessObjectPolicyFact result;
+            if (isManual(instance)) {
+                result = policy(true, instance.getTemplateRevisionId(), "MUTABLE");
+            } else {
+                String mutability = businessPolicy.ownerStateSummary().contains("COMPLETED")
+                        ? "IMMUTABLE" : "MUTABLE";
+                result = policy(true, businessPolicy.scopeVersion(), mutability);
+            }
+            if (reads != null) reads.put(readKey, new ReadInspection(fields, result));
+            return result;
         } catch (RuntimeException unavailable) {
             return denied();
         }
     }
+
+    private record ReadKey(Long tenantId, Long actorId, Long instanceId, String action) {}
+    private record ReadInspection(DynamicFormSchemaService.SchemaFields fields, FileBusinessObjectPolicyFact policy) {}
 
     private boolean authorized(Long actorUserId, String action, PlatformDynamicFormInstanceDO instance) {
         if (READ_ACTIONS.contains(action)) {

@@ -27,8 +27,7 @@ import java.util.Set;
 public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider {
     public static final Set<String> TYPES = Set.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT");
     private static final Map<String, String> PERMISSIONS = Map.of(
-            "START", "pms:project-task:execute", "SUBMIT", "pms:project-task:execute",
-            "COMPLETE", "pms:project-task:complete", "CANCEL", "pms:project-task:complete");
+            "START", "pms:project-task:execute", "CANCEL", "pms:project-task:complete");
     private final ProjectTaskBusinessService businessService;
     private final ProjectTaskRuntimeMapper taskMapper;
     private final ProjectTaskAssignmentMapper assignmentMapper;
@@ -54,6 +53,17 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
         if (task == null || !Objects.equals(task.getProjectId(), context.projectId())) {
             return TaskBindingInspection.failed(bindingType(), "BINDING_FACT_UNKNOWN");
         }
+        var transitions = stateMachineMapper.selectTransitions(new TaskStateMachineRevisionLockQuery(
+                query.tenantId(), task.getStateMachineRevisionId())).stream()
+                .filter(transition -> PERMISSIONS.containsKey(transition.getActionCode()))
+                .filter(transition -> Objects.equals(transition.getFromStatusCode(), TaskExecutionPolicy.transitionSource(
+                        task.getStatus(), transition.getActionCode(), false))
+                        || Objects.equals(transition.getFromStatusCode(), TaskExecutionPolicy.transitionSource(
+                        task.getStatus(), transition.getActionCode(), true)))
+                .toList();
+        if (transitions.isEmpty()) {
+            return new TaskBindingInspection(bindingType(), Set.of(), context.factVersion(), null);
+        }
         boolean superAdmin = Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 && permissionApi.hasAnyRoles(query.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
         var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
@@ -63,12 +73,11 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
         boolean manager = superAdmin || memberships.stream().anyMatch(row ->
                 Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole()));
         Set<String> allowed = new HashSet<>();
-        for (var transition : stateMachineMapper.selectTransitions(new TaskStateMachineRevisionLockQuery(
-                query.tenantId(), task.getStateMachineRevisionId()))) {
+        for (var transition : transitions) {
             String action = transition.getActionCode();
             if (!Objects.equals(TaskExecutionPolicy.transitionSource(task.getStatus(), action, assignment != null),
-                    transition.getFromStatusCode()) || !PERMISSIONS.containsKey(action)) continue;
-            boolean execute = "START".equals(action) || "SUBMIT".equals(action);
+                    transition.getFromStatusCode())) continue;
+            boolean execute = "START".equals(action);
             boolean roleAllowed = switch (String.valueOf(transition.getAllowedRoleCode())) {
                 case "CURRENT_EFFECTIVE_ASSIGNEE" -> assignee;
                 case "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER",

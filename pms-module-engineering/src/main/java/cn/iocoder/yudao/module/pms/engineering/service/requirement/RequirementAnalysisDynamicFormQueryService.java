@@ -62,6 +62,7 @@ public class RequirementAnalysisDynamicFormQueryService {
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final ProjectWorkBindingFactApi workBindingFactApi;
+    private final RequirementAnalysisExecutionBinding executionBinding;
 
     public boolean owns(Long preparationId, Long tenantId) {
         return preparationId != null && tenantId != null
@@ -69,18 +70,23 @@ public class RequirementAnalysisDynamicFormQueryService {
     }
 
     public RequirementAnalysisWorkspaceRespVO getWorkspace(Long projectId, Actor actor) {
+        return getWorkspace(projectId, actor, null);
+    }
+
+    public RequirementAnalysisWorkspaceRespVO getWorkspace(Long projectId, Actor actor, Long stageId) {
         requireRead(actor, projectId);
         RequirementAnalysisProjectQuery query = new RequirementAnalysisProjectQuery(actor.tenantId(), projectId);
         PreparationDO effective = rootMapper.selectEffective(query);
         PreparationDO draft = rootMapper.selectDraft(query);
-        boolean manager = isManager(actor, projectId, false);
+        boolean manager = isManager(actor, projectId);
         RequirementAnalysisWorkspaceRespVO response = new RequirementAnalysisWorkspaceRespVO();
         response.setProjectId(projectId);
-        response.setCurrentEffective(effective == null ? null : toVersion(effective, actor));
-        response.setDraft(draft == null || !manager ? null : toVersion(draft, actor));
-        ProjectWorkBindingFact binding = currentBinding(projectId);
+        response.setCurrentEffective(effective == null ? null : toVersion(effective, actor, manager));
+        response.setDraft(draft == null || !manager ? null : toVersion(draft, actor, manager));
+        ProjectWorkBindingFact binding = !manager ? null : stageId != null ? currentBinding(projectId, stageId)
+                : draft != null ? currentBinding(draft) : effective != null ? currentBinding(effective) : currentBinding(projectId, null);
         boolean bindingUsable = effective == null ? binding != null : projectBindingMatches(effective, binding);
-        boolean canCreate = manager && bindingUsable && (effective != null || isManager(actor, projectId, true));
+        boolean canCreate = manager && bindingUsable && executionBinding.canCreate(binding);
         response.setAllowedActions(canCreate && draft == null
                 ? List.of(effective == null ? "CREATE_INITIAL_DRAFT" : "CREATE_DRAFT") : List.of());
         return response;
@@ -89,10 +95,11 @@ public class RequirementAnalysisDynamicFormQueryService {
     public RequirementAnalysisVersionRespVO getDetail(Long preparationId, Actor actor) {
         PreparationDO root = rootMapper.selectById(new RequirementAnalysisRowQuery(actor.tenantId(), preparationId));
         requireVisible(root, actor);
-        if ("DRAFT".equals(root.getStatusCode()) && !isManager(actor, root.getProjectId(), false)) {
+        boolean manager = isManager(actor, root.getProjectId());
+        if ("DRAFT".equals(root.getStatusCode()) && !manager) {
             throw exception(FORBIDDEN);
         }
-        return toVersion(root, actor);
+        return toVersion(root, actor, manager);
     }
 
     public PreparationCursorPageRespVO<RequirementAnalysisVersionRespVO> getHistory(
@@ -128,7 +135,7 @@ public class RequirementAnalysisDynamicFormQueryService {
             throw exception(REQUIREMENT_ANALYSIS_COMMAND_INVALID);
         }
         if (("DRAFT".equals(source.getStatusCode()) || "DRAFT".equals(target.getStatusCode()))
-                && !isManager(actor, source.getProjectId(), false)) throw exception(FORBIDDEN);
+                && !isManager(actor, source.getProjectId())) throw exception(FORBIDDEN);
         DynamicFormInstanceFact left = inspect(source, actor, DynamicFormBusinessAction.READ);
         DynamicFormInstanceFact right = inspect(target, actor, DynamicFormBusinessAction.READ);
         Map<String, List<FileArtifactVersionFact>> leftFiles = files(left);
@@ -158,21 +165,19 @@ public class RequirementAnalysisDynamicFormQueryService {
         return response;
     }
 
-    private RequirementAnalysisVersionRespVO toVersion(PreparationDO root, Actor actor) {
+    private RequirementAnalysisVersionRespVO toVersion(PreparationDO root, Actor actor, boolean manager) {
         DynamicFormInstanceFact form = inspect(root, actor, DynamicFormBusinessAction.READ);
-        boolean manager = isManager(actor, root.getProjectId(), false);
         boolean draft = manager && "DRAFT".equals(root.getStatusCode())
                 && Integer.valueOf(1).equals(root.getDraftMarker());
         List<RequirementAnalysisCompletionBlockerRespVO> blockers = blockers(form);
         List<String> actions = new ArrayList<>();
-        if (draft) {
+        if (draft && executionBinding.canWrite(root)) {
             actions.add("PATCH_FORM");
-            boolean completionStageAllowed = !Integer.valueOf(1).equals(root.getBusinessVersion())
-                    || isManager(actor, root.getProjectId(), true);
-            if (blockers.isEmpty() && completionStageAllowed
-                    && bindingMatches(root, form, currentBinding(root.getProjectId()))) actions.add("COMPLETE");
+            if (blockers.isEmpty()
+                    && bindingMatches(root, form, currentBinding(root))) actions.add("COMPLETE");
         } else if (manager && "COMPLETED".equals(root.getStatusCode())
-                && Integer.valueOf(1).equals(root.getEffectiveMarker())) {
+                && Integer.valueOf(1).equals(root.getEffectiveMarker())
+                && executionBinding.canCreate(currentBinding(root))) {
             actions.add("CREATE_DRAFT");
         }
         RequirementAnalysisVersionRespVO response = new RequirementAnalysisVersionRespVO();
@@ -277,7 +282,7 @@ public class RequirementAnalysisDynamicFormQueryService {
         }
     }
 
-    private boolean isManager(Actor actor, Long projectId, boolean requireS1) {
+    private boolean isManager(Actor actor, Long projectId) {
         try {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
                 return false;
@@ -288,17 +293,23 @@ public class RequirementAnalysisDynamicFormQueryService {
                     participantFactApi, permissionApi, projectId, actor.actorId());
             return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
                     && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
-                    && (!requireS1 || "S1".equals(participant.currentStage()))
                     && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
         } catch (RuntimeException unavailable) {
             return false;
         }
     }
 
-    private ProjectWorkBindingFact currentBinding(Long projectId) {
+    private ProjectWorkBindingFact currentBinding(PreparationDO root) {
+        try { return executionBinding.currentBinding(root); }
+        catch (RuntimeException unavailable) { return null; }
+    }
+
+    private ProjectWorkBindingFact currentBinding(Long projectId, Long stageId) {
         try {
-            ProjectWorkBindingFact binding = workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
-                    projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+            ProjectWorkBindingFact binding = stageId == null ? workBindingFactApi.inspect(new ProjectWorkBindingFactQuery(
+                    projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
+                    : workBindingFactApi.inspectStage(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery(
+                            projectId, stageId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
             return binding != null
                     && ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.workBindingTypeCode()
                     .equals(binding.workBindingTypeCode())
@@ -314,7 +325,7 @@ public class RequirementAnalysisDynamicFormQueryService {
     }
 
     private boolean projectBindingMatches(PreparationDO root, ProjectWorkBindingFact binding) {
-        return binding != null && Objects.equals(root.getTemplateId(), binding.templateTaskDefinitionId())
+        return binding != null && Objects.equals(root.getTemplateId(), binding.projectTemplateId())
                 && Objects.equals(root.getTemplateRevisionId(), binding.templateRevisionId());
     }
 

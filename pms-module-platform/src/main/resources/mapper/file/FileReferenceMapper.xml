@@ -124,6 +124,25 @@
         ORDER BY reference_key
     </select>
 
+    <select id="selectActiveSets"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND status_code = 'ACTIVE'
+        <choose>
+            <when test="query.keys != null and !query.keys.isEmpty()">
+                AND
+                <foreach collection="query.keys" item="key" open="(" close=")" separator=" OR ">
+                    (owner_context = #{key.ownerContext} AND object_type = #{key.objectType}
+                     AND object_id = #{key.objectId} AND purpose_code = #{key.purposeCode})
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY reference_key
+    </select>
+
     <select id="selectSetForUpdate"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
         SELECT <include refid="columns"/>

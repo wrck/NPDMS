@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Set;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -270,6 +271,66 @@ class DynamicFormFilePolicyProviderTest {
         order.verify(businessPolicyRegistry).inspectInstance(any());
         order.verify(businessPolicyRegistry).lockAndRevalidate(any());
         order.verify(instanceMapper).selectForUpdate(any());
+    }
+
+    @Test
+    void batchReadsOwnerOnceAndChecksEveryFieldWithoutKeepingFactsForNextCall() {
+        var revision = revision();
+        revision.setFormRulesJson(revision.getFormRulesJson().replace("]", ", {\"type\":\"PmsFileArtifact\",\"field\":\"photos\"}]"));
+        when(instanceMapper.selectByRow(any())).thenReturn(businessInstance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision);
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(
+                new DynamicFormPolicyFact(DynamicFormBusinessAction.FILE_READ, true, null, 12L, "77:COMPLETED:12"),
+                new DynamicFormPolicyFact(DynamicFormBusinessAction.FILE_READ, false, "FORBIDDEN", 13L, "77:COMPLETED:13"));
+        var drawings = setQuery(0L, 9L, "31", "drawings", FileActionCodes.READ);
+        var photos = setQuery(0L, 9L, "31", "photos", FileActionCodes.READ);
+        var ordinary = setQuery(0L, 9L, "31", "ordinary", FileActionCodes.READ);
+        var missing = setQuery(0L, 9L, "31", "missing", FileActionCodes.READ);
+
+        var result = provider.inspectReferenceSets(List.of(drawings, photos, ordinary, missing));
+
+        assertTrue(result.get(drawings).allowed());
+        assertEquals(result.get(drawings), result.get(photos));
+        assertEquals("IMMUTABLE", result.get(photos).referenceMutability());
+        assertFalse(result.get(ordinary).allowed());
+        assertFalse(result.get(missing).allowed());
+        verify(instanceMapper).selectByRow(any());
+        verify(revisionMapper).selectByRow(any());
+        verify(businessPolicyRegistry).inspectInstance(any());
+
+        assertFalse(provider.inspectReferenceSets(List.of(drawings)).get(drawings).allowed());
+        verify(businessPolicyRegistry, times(2)).inspectInstance(any());
+        verify(instanceMapper, never()).selectForUpdate(any());
+    }
+
+    @Test
+    void batchNeverSharesPermissionAcrossActorTenantInstanceOrAction() {
+        when(instanceMapper.selectByRow(any())).thenReturn(businessInstance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.inspectInstance(any())).thenAnswer(call -> {
+            DynamicFormInstancePolicyQuery query = call.getArgument(0);
+            boolean allowed = query.actorUserId().equals(9L) && query.action() == DynamicFormBusinessAction.FILE_READ;
+            return new DynamicFormPolicyFact(query.action(), allowed, allowed ? null : "FORBIDDEN", 12L, "77:DRAFT:12");
+        });
+        var read = setQuery(0L, 9L, "31", "drawings", FileActionCodes.READ);
+        var anotherActor = setQuery(0L, 8L, "31", "drawings", FileActionCodes.READ);
+        var anotherTenant = setQuery(1L, 9L, "31", "drawings", FileActionCodes.READ);
+        var anotherInstance = setQuery(0L, 9L, "32", "drawings", FileActionCodes.READ);
+        var write = setQuery(0L, 9L, "31", "drawings", FileActionCodes.REPLACE);
+
+        var result = provider.inspectReferenceSets(List.of(read, anotherActor, anotherTenant, anotherInstance, write));
+
+        assertTrue(result.get(read).allowed());
+        for (var denied : List.of(anotherActor, anotherTenant, anotherInstance, write)) {
+            assertFalse(result.get(denied).allowed());
+        }
+    }
+
+    private FileBusinessObjectReferenceSetQuery setQuery(Long tenantId, Long actorId, String instanceId,
+                                                        String field, String action) {
+        return new FileBusinessObjectReferenceSetQuery(tenantId, actorId,
+                new FileReferenceSetKey("PLATFORM", "DYNAMIC_FORM_INSTANCE", instanceId,
+                        "FORM_FIELD_ATTACHMENT/" + field), action);
     }
 
     private void stubRows(boolean lock) {

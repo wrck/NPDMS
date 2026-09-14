@@ -26,7 +26,8 @@ class RequirementAnalysisBusinessObjectProviderTest {
     private final RequirementAnalysisDynamicFormQueryService query = mock(RequirementAnalysisDynamicFormQueryService.class);
     private final RequirementAnalysisRootMapper roots = mock(RequirementAnalysisRootMapper.class);
     private final RequirementAnalysisFactApi facts = mock(RequirementAnalysisFactApi.class);
-    private final RequirementAnalysisBusinessObjectProvider provider = new RequirementAnalysisBusinessObjectProvider(query, roots, facts);
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
+    private final RequirementAnalysisBusinessObjectProvider provider = new RequirementAnalysisBusinessObjectProvider(query, roots, facts, executions);
     private final Context context = new Context(1L, 7L, 9L, 91L, "test");
     private RequirementAnalysisVersionRespVO draft;
     private RequirementAnalysisWorkspaceRespVO workspace;
@@ -42,18 +43,107 @@ class RequirementAnalysisBusinessObjectProviderTest {
         workspace = new RequirementAnalysisWorkspaceRespVO(); workspace.setProjectId(9L); workspace.setDraft(draft);
         workspace.setAllowedActions(List.of());
         when(query.getWorkspace(any(), any())).thenReturn(workspace); when(query.getDetail(any(), any())).thenReturn(draft);
+        when(query.getWorkspace(any(), any(), any())).thenReturn(workspace);
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+
+    @Test void combinedInspectionReusesCurrentVersionAndDoesNotCacheAcrossCalls() {
+        var result = provider.inspectContextAndObjects(context, List.of("42"));
+        assertEquals(Set.of("QUERY", "PATCH_FORM"), result.allowedActions());
+        assertEquals("42", result.objects().getFirst().objectId());
+        verify(query).getWorkspace(any(), any());
+        verify(query, never()).getDetail(any(), any());
+        draft.setAllowedActions(List.of());
+        draft.setContentVersion(2);
+        var refreshed = provider.inspectContextAndObjects(context, List.of("42"));
+        assertEquals(Set.of("QUERY"), refreshed.allowedActions());
+        assertNotEquals(result.objects().getFirst().factVersion(), refreshed.objects().getFirst().factVersion());
+        verify(query, times(2)).getWorkspace(any(), any());
+    }
+
+    @Test void combinedInspectionKeepsHistoricalVisibilityAndCompletedProofChecks() {
+        when(query.getDetail(eq(43L), any())).thenThrow(new IllegalStateException("not visible"));
+        assertThrows(RuntimeException.class, () -> provider.inspectContextAndObjects(context, List.of("43")));
+        verify(query).getDetail(eq(43L), any());
+        draft.setStatus("COMPLETED");
+        assertThrows(RuntimeException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
+        verify(facts).inspect(any());
+        draft.setStatus("DRAFT"); draft.setProjectId(10L);
+        assertThrows(RuntimeException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
+    }
+
+    @Test void automaticAssociationUsesCurrentOwnerRecordAndBindingWithoutAnyBusinessRoundField() {
+        SecurityContextHolder.clearContext();
+        var row = new PreparationDO(); row.setId(42L); row.setProjectId(9L); row.setVersion(2);
+        row.setTemplateSnapshot("{\"binding\":{\"dynamicFormTemplateRevisionId\":701}}");
+        when(roots.selectDraft(any())).thenReturn(row);
+        var association = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
+                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":701}");
+        assertEquals("42",provider.associationCandidates(association,null,100).getFirst().objectId());
+        verifyNoInteractions(executions,query,facts);
+        assertTrue(provider.associationCandidates(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
+                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}"),null,100).isEmpty());
+    }
+
+    @Test void unattendedCompletionReadsOnlySameRoundOwnerResultWithoutBrowserIdentityOrPrivateBody() {
+        SecurityContextHolder.clearContext();
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                9L, 1, 91L, 1, 92L, 1, 93L, 94L, 1, 1, 95L, 1, true, java.time.LocalDateTime.of(2026,9,14,9,0));
+        var row = new PreparationDO(); row.setId(42L); row.setProjectId(9L); row.setTenantId(1L);
+        row.setDynamicFormInstanceId(500L); row.setVersion(3); row.setContentVersion(2);
+        row.setStatusCode("COMPLETED"); row.setCompletedBy(7L); row.setCompletedAt(java.time.LocalDateTime.now());
+        when(roots.selectForUpdate(any())).thenReturn(row);
+        var result = provider.lockCompletionFact(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(1L, execution), "42");
+        assertTrue(result.handlingCompleted()); assertTrue(result.completionFacts().get("REQUIREMENT_ANALYSIS_COMPLETED"));
+        verify(executions).lockAndRevalidate(execution);
+        verifyNoInteractions(query, facts);
+        row.setStatusCode("DRAFT");
+        assertFalse(provider.lockCompletionFact(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(1L, execution), "42").handlingCompleted());
+        doThrow(new IllegalStateException("stale execution")).when(executions).lockAndRevalidate(execution);
+        assertThrows(RuntimeException.class, () -> provider.lockCompletionFact(
+                new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(1L, execution), "42"));
+    }
     @Test void candidatesUseNewDynamicFormOwnerAndNeverPretendDraftIsCompleted() {
         var result = provider.candidates(context);
         assertEquals(1, result.size()); assertEquals("42", result.getFirst().objectId());
         assertEquals(false, result.getFirst().completionFacts().get(RequirementAnalysisBusinessObjectProvider.COMPLETED_FACT));
         assertTrue(result.getFirst().allowedActions().contains("LINK")); verifyNoInteractions(facts, roots);
     }
+
+    @Test void stageCompletionUsesTheSameOwnerResultAndLocksTheStageWithoutReadingPrivateBody() {
+        SecurityContextHolder.clearContext();
+        var execution = stageExecution(9L,90L,true);
+        var row = new PreparationDO(); row.setId(42L); row.setTenantId(1L); row.setProjectId(9L);
+        row.setDynamicFormInstanceId(500L); row.setVersion(3); row.setContentVersion(2);
+        row.setStatusCode("COMPLETED"); row.setCompletedBy(7L); row.setCompletedAt(java.time.LocalDateTime.now());
+        when(roots.selectForUpdate(any())).thenReturn(row);
+        var request = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.StageCompletionContext(1L,execution);
+        assertTrue(provider.lockStageCompletionFact(request,"42").handlingCompleted());
+        verify(executions).lockAndRevalidateStage(execution); verify(executions,never()).lockAndRevalidate(any());
+        verifyNoInteractions(query,facts);
+        row.setStatusCode("DRAFT");
+        assertFalse(provider.lockStageCompletionFact(request,"42").handlingCompleted());
+        row.setProjectId(10L);
+        assertThrows(RuntimeException.class,() -> provider.lockStageCompletionFact(request,"42"));
+        doThrow(new IllegalStateException("stale stage")).when(executions).lockAndRevalidateStage(execution);
+        assertThrows(RuntimeException.class,() -> provider.lockStageCompletionFact(request,"42"));
+    }
     @Test void stageContextUsesStageIdentityAndPreservesOwnerActionsWithoutCreatingAnything() {
         var result = provider.inspectStage(new StageBusinessViewProvider.Context(1L, 7L, 9L, 90L,
-                "PRE_04_REQUIREMENT_ANALYSIS", "CREATE_ON_FIRST_ACTION"));
+                "PRE_04_REQUIREMENT_ANALYSIS", "CREATE_ON_FIRST_ACTION", stageExecution(9L, 90L, true)));
         assertEquals(Set.of("QUERY", "PATCH_FORM"), result.allowedActions()); verifyNoInteractions(roots, facts);
+    }
+    @Test void missingInactiveOrDifferentStageExecutionCannotGrantOwnerWrites() {
+        for (var execution : Arrays.asList(null, stageExecution(9L,90L,false), stageExecution(10L,90L,true), stageExecution(9L,91L,true))) {
+            var result = provider.inspectStage(new StageBusinessViewProvider.Context(1L,7L,9L,90L,
+                    "PRE_04_REQUIREMENT_ANALYSIS","CREATE_ON_FIRST_ACTION",execution));
+            assertEquals(Set.of("QUERY"), result.allowedActions());
+        }
+        verifyNoInteractions(roots, facts);
+    }
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution(Long projectId, Long stageId, boolean writable) {
+        return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
+                projectId,1,stageId,1,92L,1,93L,94L,1,2,writable);
     }
     @Test void foreignProjectObjectIsRejected() {
         draft.setProjectId(10L); assertThrows(RuntimeException.class, () -> provider.inspect(context, "42"));
@@ -75,7 +165,7 @@ class RequirementAnalysisBusinessObjectProviderTest {
     @Test void forgedActorAndWrongStageTargetAreRejectedBeforeOwnerQueries() {
         assertThrows(RuntimeException.class, () -> provider.inspect(new Context(1L, 8L, 9L, 91L, "test"), "42"));
         assertThrows(RuntimeException.class, () -> provider.inspectStage(new StageBusinessViewProvider.Context(
-                1L, 7L, 9L, 90L, "OLD_REQUIREMENT", "REFERENCE_EXISTING")));
+                1L, 7L, 9L, 90L, "OLD_REQUIREMENT", "REFERENCE_EXISTING", null)));
         verifyNoInteractions(query);
     }
     @Test void multiAttachmentFactFitsExistingStorageAndDetectsFileVersionChanges() {

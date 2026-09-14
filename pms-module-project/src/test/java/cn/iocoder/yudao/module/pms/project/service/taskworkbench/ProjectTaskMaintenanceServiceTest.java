@@ -29,6 +29,22 @@ class ProjectTaskMaintenanceServiceTest {
     final TaskWorkbenchActor actor = new TaskWorkbenchActor(1L, 9L, "maintenance-test");
     final ProjectTaskMaintenanceService service = new ProjectTaskMaintenanceService(tasks, maintenance, assignments, members, support, queries, permissions, users, commands, progression);
     ProjectTaskInstanceDO task; ProjectMasterDO project;
+
+    @Test void maintenanceReadUsesOneScopeCheckAndPreservesHistoryAndActionGrants() {
+        when(queries.getMaintenanceAccess(3L, actor))
+                .thenReturn(new ProjectTaskQueryService.TaskMaintenanceAccess(4, true, false));
+        var result = service.get(3L, actor);
+        assertEquals(4, result.version());
+        assertTrue(result.canAssign()); assertFalse(result.canEdit());
+        verify(queries).getMaintenanceAccess(3L, actor);
+        verify(queries, never()).getWorkbench(any(), any());
+        verify(queries, never()).getTask(any(), any());
+        verify(maintenance).selectHistory(any());
+        verify(maintenance).selectExecutorHistory(any());
+        when(queries.getMaintenanceAccess(3L, actor)).thenThrow(new IllegalStateException("scope denied"));
+        assertThrows(RuntimeException.class, () -> service.get(3L, actor));
+        verify(maintenance, times(1)).selectDescription(any());
+    }
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         TenantContextHolder.setTenantId(1L);
         task = new ProjectTaskInstanceDO().setId(3L).setProjectId(2L).setStatus("PENDING_ASSIGN").setVersion(0); task.setTenantId(1L);

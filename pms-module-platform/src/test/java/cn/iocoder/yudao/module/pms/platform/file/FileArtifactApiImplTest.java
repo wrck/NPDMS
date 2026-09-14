@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSet
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
@@ -39,6 +40,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import java.util.Set;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_FACT_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_VERSION_UNAVAILABLE;
@@ -184,8 +186,9 @@ class FileArtifactApiImplTest {
     @Test
     void inspectsAndRevalidatesAnAuthorizedEmptyReferenceSet() {
         FileReferenceSetKey key = setKey();
-        when(policyRegistry.inspectReferenceSet(any())).thenReturn(policy());
+        stubReadPolicies();
         when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSets(any())).thenReturn(List.of());
         when(referenceMapper.selectActiveSet(any())).thenReturn(List.of());
         when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of());
 
@@ -207,8 +210,8 @@ class FileArtifactApiImplTest {
         FileVersionDO invalidated = version();
         invalidated.setAvailabilityStatusCode("INVALIDATED");
         invalidated.setAvailabilityVersion(6);
-        when(policyRegistry.inspectReferenceSet(any())).thenReturn(policy());
-        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of(reference()));
+        stubReadPolicies();
+        when(referenceMapper.selectActiveSets(any())).thenReturn(List.of(reference()));
         when(artifactMapper.selectOne(any())).thenReturn(artifact());
         when(versionMapper.selectOne(any())).thenReturn(invalidated);
 
@@ -218,6 +221,26 @@ class FileArtifactApiImplTest {
         assertEquals("INVALIDATED", inspected.getFirst().activeFacts().getFirst().availabilityStatus());
         assertEquals(new FileFactVersion(3, 4, 6),
                 inspected.getFirst().activeFacts().getFirst().fileFactVersion());
+    }
+
+    @Test
+    void batchKeepsFilesInTheirOwnSetAndReturnsAuthorizedEmptySets() {
+        stubReadPolicies();
+        var empty = new FileReferenceSetKey("SOL", "CHANGE", "901", "EVIDENCE");
+        when(referenceMapper.selectActiveSets(any())).thenReturn(List.of(reference()));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+
+        var result = api.inspectReferenceSets(new FileReferenceSetCollectionQuery(
+                List.of(empty, setKey()), FileActionCodes.READ));
+
+        assertEquals(setKey(), result.getFirst().key());
+        assertEquals("slot-a", result.getFirst().activeFacts().getFirst().referenceKey());
+        assertEquals(empty, result.getLast().key());
+        assertEquals(List.of(), result.getLast().activeFacts());
+        verify(referenceMapper).selectActiveSets(new cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetsQuery(
+                7L, List.of(setKey(), empty)));
+        verify(referenceMapper, never()).selectActiveSet(any());
     }
 
     @Test
@@ -287,6 +310,12 @@ class FileArtifactApiImplTest {
                 Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL");
     }
 
+    private void stubReadPolicies() {
+        when(policyRegistry.inspectReferenceSets(any())).thenAnswer(call ->
+                call.<List<FileBusinessObjectReferenceSetQuery>>getArgument(0).stream()
+                        .collect(Collectors.toMap(query -> query, query -> policy())));
+    }
+
     private FileArtifactDO artifact() {
         FileArtifactDO row = new FileArtifactDO();
         row.setId(11L);
@@ -313,6 +342,10 @@ class FileArtifactApiImplTest {
     private FileReferenceDO reference() {
         FileReferenceDO row = new FileReferenceDO();
         row.setId(21L);
+        row.setOwnerContext("SOL");
+        row.setObjectType("CHANGE");
+        row.setObjectId("900");
+        row.setPurposeCode("EVIDENCE");
         row.setReferenceKey("slot-a");
         row.setArtifactId(11L);
         row.setFileVersionNo(2);

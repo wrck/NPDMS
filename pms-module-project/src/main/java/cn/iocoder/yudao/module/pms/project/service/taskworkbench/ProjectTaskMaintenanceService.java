@@ -52,13 +52,12 @@ public class ProjectTaskMaintenanceService {
     @Transactional(readOnly = true)
     public View get(Long taskId, TaskWorkbenchActor actor) {
         require(actor, "pms:project-task:query");
-        var workbench = queries.getWorkbench(taskId, actor);
+        var access = queries.getMaintenanceAccess(taskId, actor);
         var current = new ArrayList<RoleEntry>();
-        for (Role role : Role.values()) history(taskId, role, 1, 1, actor).list().stream()
+        for (Role role : Role.values()) readHistory(taskId, role, 1, 1, actor).list().stream()
                 .filter(row -> row.effectiveTo() == null).forEach(current::add);
-        return new View(taskId, workbench.getTask().getVersion(), maintenance.selectDescription(new TaskQuery(actor.tenantId(), taskId)),
-                TaskRichText.MAX_LENGTH, List.copyOf(current), workbench.getAllowedActions().contains("ASSIGN"),
-                workbench.getAllowedActions().contains("UPDATE"));
+        return new View(taskId, access.taskVersion(), maintenance.selectDescription(new TaskQuery(actor.tenantId(), taskId)),
+                TaskRichText.MAX_LENGTH, List.copyOf(current), access.canAssign(), access.canUpdate());
     }
 
     public cn.iocoder.yudao.framework.common.pojo.PageResult<Candidate> candidates(Long projectId, String keyword, int pageNo, int pageSize, TaskWorkbenchActor actor) {
@@ -76,6 +75,10 @@ public class ProjectTaskMaintenanceService {
 
     public HistoryPage history(Long taskId, Role role, int pageNo, int pageSize, TaskWorkbenchActor actor) {
         require(actor, "pms:project-task:query"); queries.getTask(taskId, actor);
+        return readHistory(taskId, role, pageNo, pageSize, actor);
+    }
+
+    private HistoryPage readHistory(Long taskId, Role role, int pageNo, int pageSize, TaskWorkbenchActor actor) {
         if (role == null || pageNo < 1 || pageSize < 1 || pageSize > 100) throw exception(PROJECT_TASK_QUERY_INVALID);
         var query = new HistoryQuery(actor.tenantId(), taskId, Math.multiplyExact(pageNo - 1, pageSize), pageSize + 1);
         var rows = role == Role.RESPONSIBLE ? maintenance.selectHistory(query) : maintenance.selectExecutorHistory(query);

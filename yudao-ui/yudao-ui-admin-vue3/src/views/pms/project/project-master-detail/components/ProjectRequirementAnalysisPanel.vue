@@ -65,6 +65,7 @@
 import { formatDate } from '@/utils/formatTime'
 import { useWindowSize } from '@vueuse/core'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import { legacyOwnerId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type {
@@ -84,7 +85,7 @@ import {
 } from './requirementAnalysisInteraction'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; preparationId?: BusinessViewId; allowedActions?: string[]; readonly?: boolean }>()
+const props = defineProps<{ project: ProjectMasterVO; preparationId?: BusinessViewId; stageExecution?: StageExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [dirty: boolean] }>()
 const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly ? [] : actions.filter(
   (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
@@ -153,18 +154,43 @@ const blockerLabel = (code: RequirementAnalysisCompletionBlockerCode) =>
 const blockerKey = (blocker: RequirementAnalysisCompletionBlockerVO) =>
   `${blocker.fieldKey || 'FORM'}:${blocker.code}`
 
+let loadSequence = 0
+const readDetail = async (preparationId: number, projectId = props.project.id) => {
+  const value = await RequirementAnalysisApi.getDetail(preparationId)
+  if (String(value.projectId) !== String(projectId) || String(value.preparationId) !== String(preparationId))
+    throw new Error('需求分析版本不属于当前项目或对象不匹配')
+  return value
+}
+const readWorkspaceDetail = async (
+  current: RequirementAnalysisOverviewVO,
+  preparationId: number | undefined,
+  projectId: number
+) => {
+  if (String(current.projectId) !== String(projectId)) throw new Error('需求分析项目不匹配')
+  // The workspace response already contains the complete draft/effective version.
+  // Only an explicitly selected historical version needs a separate detail read.
+  const selected = preparationId == null ? current.draft || current.currentEffective
+    : [current.draft, current.currentEffective].find(
+      (value) => value && String(value.preparationId) === String(preparationId)
+    )
+  if (selected && String(selected.projectId) !== String(projectId))
+    throw new Error('需求分析版本不属于当前项目')
+  return selected || (preparationId == null ? undefined : await readDetail(preparationId, projectId))
+}
 const loadDetail = async (preparationId: number) => {
+  const sequence = ++loadSequence
   detailLoading.value = true
   try {
-    const value = await RequirementAnalysisApi.getDetail(preparationId)
-    if (String(value.projectId) !== String(props.project.id) || String(value.preparationId) !== String(preparationId))
-      throw new Error('需求分析版本不属于当前项目或对象不匹配')
+    const value = await readDetail(preparationId)
+    if (sequence !== loadSequence) return
     detail.value = value
     formDirty.value = false
     selectedPreparationId.value = preparationId
     return detail.value
+  } catch (error) {
+    if (sequence === loadSequence) throw error
   } finally {
-    detailLoading.value = false
+    if (sequence === loadSequence) detailLoading.value = false
   }
 }
 const guardCurrentForm = async (target: string) => {
@@ -191,24 +217,32 @@ const selectVersion = async (preparationId: number) => {
   }
 }
 const load = async () => {
-  if (!props.project.id) return
+  const sequence = ++loadSequence
+  const projectId = props.project.id
+  const preparationId = props.preparationId == null ? undefined : legacyOwnerId(props.preparationId)
+  if (!projectId) return
   loading.value = true
+  detailLoading.value = true
   errorText.value = ''
   try {
-    overview.value = await RequirementAnalysisApi.getCurrent(props.project.id)
-    const preferred = overview.value.draft || overview.value.currentEffective
-    if (props.preparationId != null) await loadDetail(legacyOwnerId(props.preparationId))
-    else if (preferred) await loadDetail(preferred.preparationId)
-    else {
-      detail.value = undefined
-      selectedPreparationId.value = undefined
-    }
+    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+    if (sequence !== loadSequence) return
+    const value = await readWorkspaceDetail(current, preparationId, projectId)
+    if (sequence !== loadSequence) return
+    overview.value = current
+    detail.value = value
+    selectedPreparationId.value = value?.preparationId
+    formDirty.value = false
   } catch {
+    if (sequence !== loadSequence) return
     overview.value = undefined
     detail.value = undefined
     errorText.value = '需求分析工作区加载失败，请检查项目范围或稍后重试。'
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) {
+      loading.value = false
+      detailLoading.value = false
+    }
   }
 }
 const refreshWorkspace = async () => {
@@ -227,12 +261,13 @@ const openHistory = async () => {
 
 const createInitial = async () => {
   if (!props.project.id) return
-  const payload = { projectId: props.project.id, projectVersion: props.project.version || 0 }
+  const payload = { projectId: props.project.id, projectVersion: props.project.version || 0,
+    stageExecution: props.stageExecution }
   const intent = requirementIntentOf('CREATE_INITIAL_DRAFT', payload)
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.createInitialDraft(payload.projectId, intentKeys.key(intent))
+    await RequirementAnalysisApi.createInitialDraft(payload.projectId, intentKeys.key(intent), payload.stageExecution)
     intentKeys.complete(intent)
     message.success('需求分析草稿已创建')
     await load()
@@ -276,7 +311,8 @@ const createRevision = async () => {
   const payload = {
     preparationId: detail.value.preparationId,
     instanceVersion: detail.value.dynamicFormInstanceVersion,
-    solVersion: detail.value.version
+    solVersion: detail.value.version,
+    stageExecution: props.stageExecution
   }
   const intent = requirementIntentOf('CREATE_REVISION', payload)
   commandLoading.value = true
@@ -286,7 +322,8 @@ const createRevision = async () => {
       payload.preparationId,
       payload.instanceVersion,
       payload.solVersion,
-      intentKeys.key(intent)
+      intentKeys.key(intent),
+      payload.stageExecution
     )
     intentKeys.complete(intent)
     message.success('修订草稿已创建，原完成版本保持不变')
@@ -305,13 +342,14 @@ const openCompare = (preparationId: number, targetPreparationId: number) => {
 }
 
 const reloadSelectedDetail = async () => {
-  if (!selectedPreparationId.value || !props.project.id) throw new Error('没有选中的需求分析版本')
+  const preparationId = selectedPreparationId.value, projectId = props.project.id, sequence = loadSequence
+  if (!preparationId || !projectId) throw new Error('没有选中的需求分析版本')
   // Keep the saving form mounted, and publish the overview/detail together only
-  // after both authoritative reads succeed. A failed read must retain the edit.
-  const [current, selected] = await Promise.all([
-    RequirementAnalysisApi.getCurrent(props.project.id),
-    RequirementAnalysisApi.getDetail(selectedPreparationId.value)
-  ])
+  // after the fresh workspace read succeeds. A failed read must retain the edit.
+  const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+  if (sequence !== loadSequence) throw new Error('需求分析工作区已切换，请重新查询')
+  const selected = await readWorkspaceDetail(current, preparationId, projectId)
+  if (sequence !== loadSequence || !selected) throw new Error('需求分析工作区已切换，请重新查询')
   overview.value = current
   detail.value = selected
   return selected
@@ -329,6 +367,27 @@ const requestLeave = async () => {
   return true
 }
 watch(formDirty, (value) => emit('dirty-change', value), { immediate: true })
+// START/rework can grant creation while this retained Owner panel still has its pre-start overview.
+// Refresh only action metadata, never the selected version or an unsaved form.
+// Vue watcher cleanup: https://vuejs.org/guide/essentials/watchers.html#side-effect-cleanup
+const missingCreationActions = computed(() => overview.value && !overview.value.draft && !props.readonly
+  ? (props.allowedActions || []).filter((action) =>
+      (action === 'CREATE_INITIAL_DRAFT' || action === 'CREATE_DRAFT') && !overview.value!.allowedActions.includes(action)
+    ).join('|')
+  : '')
+watch([() => props.project.id, missingCreationActions], async ([projectId, missing], _previous, onCleanup) => {
+  if (!projectId || !missing || !overview.value) return
+  const previous = overview.value
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
+  try {
+    const current = await RequirementAnalysisApi.getCurrent(projectId, props.stageExecution?.stageId)
+    if (!cancelled && overview.value === previous)
+      overview.value = { ...previous, allowedActions: current.allowedActions }
+  } catch {
+    if (!cancelled) errorText.value = '业务操作状态刷新失败，请点击查询重试；当前正文未改变。'
+  }
+})
 watch(() => overview.value, (value, previous) => {
   if (previous && value) emit('changed')
 })
@@ -339,9 +398,12 @@ const beforeUnload = (event: BeforeUnloadEvent) => {
   event.returnValue = ''
 }
 
-watch(() => props.project.id, load, { immediate: true })
+watch([() => props.project.id, () => props.stageExecution?.executionId, () => props.preparationId], load, { immediate: true })
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => {
+  ++loadSequence
+  window.removeEventListener('beforeunload', beforeUnload)
+})
 onBeforeRouteLeave(async () => props.allowedActions === undefined
   ? await guardCurrentForm('离开当前页面')
   : await requestLeave())

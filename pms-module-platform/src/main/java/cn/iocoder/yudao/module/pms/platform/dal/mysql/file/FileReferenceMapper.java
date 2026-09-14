@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceLo
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceReplaceVersionUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceStateUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetsQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactReferenceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +32,8 @@ public interface FileReferenceMapper {
     List<FileReferenceDO> selectByArtifactForUpdate(@Param("query") FileArtifactReferenceQuery query);
 
     List<FileReferenceDO> selectActiveSet(@Param("query") FileReferenceSetQuery query);
+
+    List<FileReferenceDO> selectActiveSets(@Param("query") FileReferenceSetsQuery query);
 
     List<FileReferenceDO> selectSetForUpdate(@Param("query") FileReferenceSetQuery query);
 }

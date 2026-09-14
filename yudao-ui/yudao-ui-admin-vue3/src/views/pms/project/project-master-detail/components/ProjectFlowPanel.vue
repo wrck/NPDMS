@@ -101,6 +101,17 @@
         <el-descriptions-item label="任务版本">
           {{ workbench.task.version ?? '-' }}
         </el-descriptions-item>
+        <el-descriptions-item label="业务层级">{{ workbench.task.businessLevelCode || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="实际开始">{{ workbench.task.actualStartTime ? formatDate(workbench.task.actualStartTime) : '-' }}</el-descriptions-item>
+        <el-descriptions-item label="实际结束">{{ workbench.task.actualEndTime ? formatDate(workbench.task.actualEndTime) : '-' }}</el-descriptions-item>
+        <el-descriptions-item label="任务说明" :span="descriptionColumns">
+          <div class="description-heading">
+            <el-button v-if="maintenanceRef?.canEditDescription" link type="primary" @click="maintenanceRef?.openDescription()">编辑说明</el-button>
+          </div>
+          <div v-if="maintenanceRef?.description?.descriptionFormat === 'HTML'"
+            v-dompurify-html="maintenanceRef.description.description || ''" class="task-description-html"></div>
+          <div v-else class="task-description">{{ maintenanceRef?.description ? maintenanceRef.description.description || '暂无任务说明' : '任务说明尚未加载' }}</div>
+        </el-descriptions-item>
       </el-descriptions>
 
       <el-alert
@@ -112,17 +123,25 @@
       />
 
       <TaskStateActions v-if="workbench" ref="stateActionsRef" :workbench="workbench" :business-bound="businessBound"
-        :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged" />
+        :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged">
+        <ProjectTaskDetailsEditor ref="detailsRef" :workbench="workbench" :before-action="requestLeave" @changed="handleBusinessChanged" />
+      </TaskStateActions>
       <TaskMaintenancePanel v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="projectId"
-        :task-id="workbench.task.taskId" :task-version="workbench.task.version" :show-responsibilities="showResponsibilities" @changed="handleBusinessChanged" />
+        :task-id="workbench.task.taskId" :task-version="workbench.task.version" :show-description="false" :show-responsibilities="showResponsibilities" @changed="handleBusinessChanged" />
 
-      <div class="section-title">任务业务办理</div>
+      <div class="section-title task-business-heading">
+        <span>任务业务办理</span>
+        <el-button
+          v-if="businessBound && workbench?.task.version != null"
+          :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
+      </div>
       <TaskBusinessPanel
         v-if="businessBound && workbench?.task.version != null"
         ref="businessRef"
         :key="`flow-task-${workbench.task.taskId}`"
         :task-id="workbench.task.taskId"
         :task-version="workbench.task.version"
+        :initial-project="project"
         :readonly="['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
@@ -157,6 +176,7 @@ import { taskForest, useFlowTaskPaging } from '@/views/pms/project/inheritance/d
 import StageBusinessPanel from '@/views/pms/project/inheritance/detail/StageBusinessPanel.vue'
 import TaskStateActions from '@/views/pms/project/inheritance/detail/TaskStateActions.vue'
 import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMaintenancePanel.vue'
+import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
 
@@ -180,10 +200,12 @@ const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
 const stateActionsRef = ref<InstanceType<typeof TaskStateActions>>()
 const maintenanceRef = ref<InstanceType<typeof TaskMaintenancePanel>>()
+const detailsRef = ref<InstanceType<typeof ProjectTaskDetailsEditor>>()
 const emit = defineEmits<{ changed: [] }>()
 // Await the existing Owner leave contract before the parent changes selection/unmounts content.
 // https://vuejs.org/guide/essentials/template-refs.html#ref-on-component
 const requestLeave = async () => !stateActionsRef.value?.isBusy() && maintenanceRef.value?.requestLeave() !== false
+  && detailsRef.value?.requestLeave() !== false
   && (await businessRef.value?.requestLeave()) !== false
   && (await stageBusinessRef.value?.requestLeave()) !== false
 // BusinessViewHost already guards route leave; only reused-route project changes need this guard.
@@ -209,7 +231,7 @@ const loadWorkspace = async (token: number) => {
   if (current(token)) workspace.value = result
 }
 
-const loadTaskWorkbench = async (taskId: number, token: number) => {
+const loadTaskWorkbench = async (taskId: number | string, token: number) => {
   const result = await TaskWorkbenchApi.getTaskWorkbench(taskId)
   if (current(token)) workbench.value = result
 }
@@ -220,14 +242,21 @@ const load = async () => {
   workbench.value = undefined
   businessFactVersion.value = undefined
   tasks.reset()
-  if (!props.selection) return
+  const selection = props.selection
+  if (!selection) return
   try {
-    await loadWorkspace(token)
-    if (!current(token)) return
-    if (props.selection.kind === 'stage') {
-      await tasks.reload()
-    } else if (props.selection.taskId != null) {
-      await loadTaskWorkbench(props.selection.taskId, token)
+    if (selection.kind === 'stage') {
+      await Promise.all([loadWorkspace(token), tasks.reload()])
+    } else if (selection.taskId != null) {
+      // Both endpoints authorize independently. Publish together so a failed
+      // workspace read cannot expose a partially loaded task action panel.
+      const [nextWorkspace, nextWorkbench] = await Promise.all([
+        TaskWorkbenchApi.getProjectWorkspace(props.projectId),
+        TaskWorkbenchApi.getTaskWorkbench(selection.taskId)
+      ])
+      if (!current(token)) return
+      workspace.value = nextWorkspace
+      workbench.value = nextWorkbench
     }
   } catch {
     if (current(token)) loadError.value = '内容加载失败，请重新加载。'
@@ -295,6 +324,14 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
 }
 
+.task-business-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .task-breadcrumb {
   margin: 12px 0 8px;
   font-size: 12px;
@@ -306,6 +343,20 @@ onBeforeUnmount(() => {
   line-height: 1.6;
   color: var(--el-text-color-regular);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.description-heading {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.task-description-html {
+  overflow-wrap: anywhere;
+}
+
+.task-description-html :deep(img) {
+  max-width: 100%;
 }
 
 .row-code {

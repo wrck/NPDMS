@@ -45,6 +45,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactLoc
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArchiveRecordQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetsQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionLockQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_ARTIFACT_NOT_FOUND;
@@ -143,17 +145,18 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     public List<FileReferenceSetFact> inspectReferenceSets(FileReferenceSetCollectionQuery query) {
         TrustedActor actor = trustedActor();
         List<FileReferenceSetKey> keys = query.collectionKeys().stream().sorted().toList();
-        Map<FileReferenceSetKey, FileBusinessObjectPolicyFact> policies = new LinkedHashMap<>();
-        for (FileReferenceSetKey key : keys) {
-            policies.put(key, policyRegistry.inspectReferenceSet(
-                    new FileBusinessObjectReferenceSetQuery(actor.tenantId(), actor.userId(), key,
-                            FileActionCodes.READ)));
-        }
+        var policyQueries = keys.stream().map(key -> new FileBusinessObjectReferenceSetQuery(
+                actor.tenantId(), actor.userId(), key, FileActionCodes.READ)).toList();
+        var policies = policyRegistry.inspectReferenceSets(policyQueries);
+        var references = referenceMapper.selectActiveSets(new FileReferenceSetsQuery(actor.tenantId(), keys)).stream()
+                .collect(Collectors.groupingBy(row -> new FileReferenceSetKey(row.getOwnerContext(),
+                        row.getObjectType(), row.getObjectId(), row.getPurposeCode())));
         List<FileReferenceSetFact> result = new ArrayList<>(keys.size());
-        for (FileReferenceSetKey key : keys) {
-            FileBusinessObjectPolicyFact policy = policies.get(key);
+        for (var policyQuery : policyQueries) {
+            FileReferenceSetKey key = policyQuery.key();
+            FileBusinessObjectPolicyFact policy = policies.get(policyQuery);
             List<FileArtifactVersionFact> facts = facts(actor.tenantId(), key, policy,
-                    referenceMapper.selectActiveSet(setQuery(actor.tenantId(), key)), false,
+                    references.getOrDefault(key, List.of()), false,
                     Map.of(), Map.of());
             result.add(new FileReferenceSetFact(key, policy.scopeVersion(), facts));
         }

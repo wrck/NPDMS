@@ -37,6 +37,66 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
     private final RequirementAnalysisDynamicFormQueryService queryService;
     private final RequirementAnalysisRootMapper rootMapper;
     private final RequirementAnalysisFactApi facts;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {
+        if (context == null || context.execution() == null
+                || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
+                || objectId == null || !objectId.matches("[1-9][0-9]*"))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        executions.lockAndRevalidate(context.execution());
+        return lockedResult(context.tenantId(),context.execution().projectId(),objectId);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockStageCompletionFact(StageCompletionContext context, String objectId) {
+        if (context == null || context.execution() == null
+                || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
+                || objectId == null || !objectId.matches("[1-9][0-9]*"))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        executions.lockAndRevalidateStage(context.execution());
+        return lockedResult(context.tenantId(),context.execution().projectId(),objectId);
+    }
+
+    private CompletionFact lockedResult(Long tenantId, Long projectId, String objectId) {
+        var root = rootMapper.selectForUpdate(new RequirementAnalysisRowQuery(tenantId, Long.valueOf(objectId)));
+        if (root == null || !Objects.equals(root.getProjectId(), projectId)
+                || root.getDynamicFormInstanceId() == null || root.getVersion() == null || root.getContentVersion() == null
+                || !Set.of("DRAFT", "COMPLETED").contains(root.getStatusCode()))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        boolean completed = "COMPLETED".equals(root.getStatusCode());
+        // The SOL completion command already validated and froze the form/files atomically.
+        // Its immutable result is the fact; do not load private form content as a simulated user.
+        if (completed && (root.getCompletedAt() == null || root.getCompletedBy() == null))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        return new CompletionFact(objectId, "SOL_REQUIREMENT_RESULT:" + root.getId() + ":"
+                + root.getVersion() + ":" + root.getContentVersion() + ":" + root.getStatusCode(), completed,
+                Map.of(COMPLETED_FACT, completed));
+    }
+
+    @Override
+    public List<AssociationCandidate> associationCandidates(AssociationContext context, String afterObjectId, int pageSize) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
+                || !TARGET.targetObjectKey().equals(context.targetObjectKey()) || pageSize < 1 || pageSize > 100)
+            throw exception(FORBIDDEN);
+        if (afterObjectId != null) return List.of();
+        var project = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisProjectQuery(context.tenantId(), context.projectId());
+        var current = rootMapper.selectDraft(project);
+        if (current == null) current = rootMapper.selectEffective(project);
+        if (current == null) return List.of();
+        var frozen = JsonUtils.parseObject(current.getTemplateSnapshot(),
+                cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionBinding.Frozen.class);
+        var parameters = JsonUtils.parseTree(context.bindingParameters());
+        if (frozen == null || frozen.binding() == null || parameters == null)
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        if (!Objects.equals(parameters.path("dynamicFormTemplateRevisionId").asText(),
+                String.valueOf(frozen.binding().dynamicFormTemplateRevisionId()))) return List.of();
+        return List.of(new AssociationCandidate(current.getId().toString(),
+                "SOL_REQUIREMENT_ASSOCIATION:" + current.getId() + ":" + current.getVersion()));
+    }
 
     @Override public String ownerContext() { return TARGET.targetContextCode(); }
     @Override public String objectType() { return TARGET.targetObjectType(); }
@@ -55,9 +115,15 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
         if (context.stageId() == null || context.stageId() <= 0 || !TARGET.targetObjectKey().equals(context.targetObjectKey())
                 || !Set.of("REFERENCE_EXISTING", "CREATE_ON_FIRST_ACTION", "CREATE_ON_ENTER", "READ_ONLY_AGGREGATE")
                 .contains(context.instanceResolutionStrategy())) throw exception(FORBIDDEN);
-        var workspace = workspace(context.tenantId(), context.actorId(), context.projectId());
+        var workspace = queryService.getWorkspace(context.projectId(),
+                new RequirementAnalysisDynamicFormQueryService.Actor(context.tenantId(), context.actorId()), context.stageId());
         // Rendering never creates a draft, including CREATE_ON_ENTER. Only the Owner's explicit command may do that.
-        return new StageBusinessViewProvider.Result(actions(workspace));
+        var allowed = actions(workspace);
+        var execution = context.execution();
+        if (execution == null || !execution.writable()
+                || !Objects.equals(context.projectId(), execution.projectId()) || !Objects.equals(context.stageId(), execution.stageId()))
+            return new StageBusinessViewProvider.Result(allowed.contains("QUERY") ? Set.of("QUERY") : Set.of());
+        return new StageBusinessViewProvider.Result(allowed);
     }
 
     @Override
@@ -75,6 +141,24 @@ public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessOb
         requireTask(context);
         var detail = detail(context, objectId);
         return toFact(context, detail, actions(workspace(context.tenantId(), context.actorId(), context.projectId())));
+    }
+
+    @Override
+    public BusinessObjectInspection inspectContextAndObjects(TaskBusinessObjectProvider.Context context, List<String> objectIds) {
+        requireTask(context);
+        var current = workspace(context.tenantId(), context.actorId(), context.projectId());
+        var allowed = actions(current);
+        var versions = new HashMap<String, RequirementAnalysisVersionRespVO>();
+        if (current.getDraft() != null) versions.put(current.getDraft().getPreparationId().toString(), current.getDraft());
+        if (current.getCurrentEffective() != null)
+            versions.put(current.getCurrentEffective().getPreparationId().toString(), current.getCurrentEffective());
+        var objects = objectIds.stream().map(id -> {
+            // Workspace already authorizes and fully assembles current versions.
+            // Historical links still use the exact-version read and its visibility check.
+            var selected = versions.get(id);
+            return toFact(context, selected == null ? detail(context, id) : selected, allowed);
+        }).toList();
+        return new BusinessObjectInspection(allowed, objects);
     }
 
     @Override

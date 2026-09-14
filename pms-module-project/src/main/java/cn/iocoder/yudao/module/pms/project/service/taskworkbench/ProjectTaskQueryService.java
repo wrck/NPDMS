@@ -119,17 +119,38 @@ public class ProjectTaskQueryService {
     }
 
     public ProjectTaskDetailRespVO getTask(Long taskId, TaskWorkbenchActor actor) {
-        TaskAndAccess value = requireFullTask(taskId, actor);
+        return taskDetail(requireFullTask(taskId, actor), actor);
+    }
+
+    private ProjectTaskDetailRespVO taskDetail(TaskAndAccess value, TaskWorkbenchActor actor) {
         ProjectTaskAssignmentDO assignment = assignmentMapper.selectCurrent(
-                new CurrentTaskAssignmentsQuery(actor.tenantId(), Set.of(taskId))).stream().findFirst().orElse(null);
+                new CurrentTaskAssignmentsQuery(actor.tenantId(), Set.of(value.task().getId()))).stream().findFirst().orElse(null);
         return toDetail(value.task(), assignment == null ? null : assignment.getAssigneeUserId());
     }
+
+    /** Business-task maintenance needs task-scope grants, not Owner form/file completion facts. */
+    public TaskMaintenanceAccess getMaintenanceAccess(Long taskId, TaskWorkbenchActor actor) {
+        TaskAndAccess value = requireFullTask(taskId, actor);
+        var contract = contractMapper.selectCurrentByTaskId(taskId);
+        if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())) {
+            return new TaskMaintenanceAccess(value.task().getVersion(), false, false);
+        }
+        // Native providers can grant ASSIGN to service managers independently of the project-manager grants.
+        var bindingType = contract.getWorkBindingTypeCode();
+        var bindingActions = bindingType != null && TaskBusinessBindingHostProvider.TYPES.contains(bindingType)
+                ? Set.<String>of() : bindingRegistry.inspect(bindingType,
+                new TaskBindingInspectionQuery(actor.tenantId(), taskId, actor.actorId(), actor.correlationId())).allowedActions();
+        var actions = workbenchAllowedActions(value, bindingActions, actor);
+        return new TaskMaintenanceAccess(value.task().getVersion(), actions.contains("ASSIGN"), actions.contains("UPDATE"));
+    }
+
+    public record TaskMaintenanceAccess(Integer taskVersion, boolean canAssign, boolean canUpdate) { }
 
     public ProjectTaskWorkbenchRespVO getWorkbench(Long taskId, TaskWorkbenchActor actor) {
         TaskAndAccess value = requireFullTask(taskId, actor);
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskId(taskId);
         ProjectTaskWorkbenchRespVO response = new ProjectTaskWorkbenchRespVO();
-        response.setTask(getTask(taskId, actor));
+        response.setTask(taskDetail(value, actor));
         if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())) {
             response.setAllowedActions(Set.of());
             response.setRecoverableError("BINDING_FACT_UNKNOWN");
@@ -281,6 +302,14 @@ public class ProjectTaskQueryService {
     }
 
     private Set<String> workspaceAllowedActions(TaskAccess access, TaskWorkbenchActor actor) {
+        if (access.project().getActivePlanVersionId() != null) {
+            if (!"ACTIVE".equals(access.project().getLifecycleStatus())
+                    || !hasPermission(actor.actorId(), "pms:project-plan:manage")) return Set.of();
+            var scope = projectTreeScopeService.resolve(new ProjectScopeQuery(actor.tenantId(), actor.actorId(),
+                    access.project().getId(), ProjectScopeApi.ACTION_EDIT, access.projectTreeVersion()));
+            return scope.visibility(access.project().getId()) == ProjectTreeScopeService.Visibility.FULL
+                    ? Set.of("MANAGE_PLAN") : Set.of();
+        }
         if (!activeProjectManagerWithManageScope(access, actor)
                 || !hasPermission(actor.actorId(), "pms:project-task:create")) return Set.of();
         return Set.of("CREATE");
@@ -292,7 +321,8 @@ public class ProjectTaskQueryService {
         if (!activeProjectManagerWithManageScope(value.access(), actor)
                 || Set.of("DONE", "CLOSED").contains(value.task().getStatus())) return Set.copyOf(actions);
         if (hasPermission(actor.actorId(), "pms:project-task:update")) actions.add("UPDATE");
-        if (hasPermission(actor.actorId(), "pms:project-task:move")) actions.add("MOVE");
+        if (value.access().project().getActivePlanVersionId() == null
+                && hasPermission(actor.actorId(), "pms:project-task:move")) actions.add("MOVE");
         if (hasPermission(actor.actorId(), "pms:project-task:assign")) actions.add("ASSIGN");
         return Set.copyOf(actions);
     }

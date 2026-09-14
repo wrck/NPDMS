@@ -38,11 +38,32 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock ProjectWorkBindingFactApi workBindingFactApi;
+    @Mock RequirementAnalysisExecutionBinding executionBinding;
+
+    @Test
+    void initialDraftUsesActiveExecutionRatherThanFixedProjectStage() {
+        var service = new RequirementAnalysisDynamicFormQueryService(rootMapper, dynamicFormApi,
+                permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
+        allowProjectRead();
+        when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
+                "ACTIVE", null, 4, 7L));
+        when(workBindingFactApi.inspect(any())).thenReturn(binding());
+        when(executionBinding.canCreate(binding())).thenReturn(true);
+        var actor = new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L);
+        assertEquals(List.of("CREATE_INITIAL_DRAFT"), service.getWorkspace(100L, actor).getAllowedActions());
+        when(executionBinding.canCreate(binding())).thenReturn(false);
+        assertTrue(service.getWorkspace(100L, actor).getAllowedActions().isEmpty());
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L, 9L, Set.of(), "PRIMARY", "ACTIVE", null, 4, 7L));
+        assertTrue(service.getWorkspace(100L, actor).getAllowedActions().isEmpty());
+    }
 
     @Test
     void draftProjectsFrozenDynamicFormAndServerAuthoritativeActions() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         PreparationDO root = draft();
         when(rootMapper.selectById(any())).thenReturn(root);
         when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_QUERY,
@@ -53,7 +74,8 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
                 "ACTIVE", "S1", 4, 7L));
-        when(workBindingFactApi.inspect(any())).thenReturn(binding());
+        when(executionBinding.currentBinding(root)).thenReturn(binding());
+        when(executionBinding.canWrite(root)).thenReturn(true);
         when(dynamicFormApi.inspectEntityData(any())).thenReturn(form());
 
         var detail = service.getDetail(501L, new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L));
@@ -64,13 +86,36 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         assertEquals(0, detail.getValues().get("machineCount"));
         assertEquals(List.of("PATCH_FORM", "COMPLETE"), detail.getAllowedActions());
         assertTrue(detail.getCompletionBlockers().isEmpty());
+        verify(workBindingFactApi,never()).inspect(any());
         assertEquals(0, detail.getSections().size());
     }
 
     @Test
-    void firstDraftOutsideS1DoesNotProjectComplete() {
+    void explicitStageUsesOnlyItsBindingAndCannotBorrowAnAvailableTask() {
+        var service = new RequirementAnalysisDynamicFormQueryService(rootMapper,dynamicFormApi,
+                permissionApi,projectScopeApi,participantFactApi,workBindingFactApi,executionBinding);
+        allowProjectRead();
+        when(permissionApi.hasAnyPermissions(9L,RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L,9L,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,4,7L));
+        var json = (tools.jackson.databind.node.ObjectNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(binding()));
+        json.putNull("projectTaskId"); json.putNull("projectTaskVersion"); json.put("projectStageId",600L); json.put("projectStageVersion",1);
+        var stage = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(json.toString(),ProjectWorkBindingFact.class);
+        when(workBindingFactApi.inspectStage(any())).thenReturn(stage);
+        when(executionBinding.canCreate(stage)).thenReturn(true);
+        var actor = new RequirementAnalysisDynamicFormQueryService.Actor(0L,9L);
+        assertEquals(List.of("CREATE_INITIAL_DRAFT"),service.getWorkspace(100L,actor,600L).getAllowedActions());
+        verify(workBindingFactApi).inspectStage(argThat(query -> query.projectId()==100L && query.projectStageId()==600L));
+        when(workBindingFactApi.inspectStage(any())).thenThrow(new IllegalStateException("stage unavailable"));
+        assertTrue(service.getWorkspace(100L,actor,600L).getAllowedActions().isEmpty());
+        verify(workBindingFactApi,never()).inspect(any()); verify(workBindingFactApi,never()).inspectTask(any());
+    }
+
+    @Test
+    void inactiveExecutionDoesNotProjectAnyWriteAction() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         PreparationDO root = draft();
         when(rootMapper.selectById(any())).thenReturn(root);
         when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_QUERY,
@@ -85,14 +130,14 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
 
         var detail = service.getDetail(501L, new RequirementAnalysisDynamicFormQueryService.Actor(0L, 9L));
 
-        assertEquals(List.of("PATCH_FORM"), detail.getAllowedActions());
+        assertEquals(List.of(), detail.getAllowedActions());
         assertTrue(detail.getCompletionBlockers().isEmpty());
     }
 
     @Test
     void draftCanOnlyCompareWithItsSourceCompletedVersion() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         PreparationDO draft = draft();
         draft.setSourcePreparationId(401L);
         PreparationDO unrelatedCompleted = completed(400L);
@@ -110,7 +155,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
     @Test
     void detailProjectsControlledFilesByPlainFieldKey() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         PreparationDO root = completed(501L);
         when(rootMapper.selectById(any())).thenReturn(root);
         allowProjectRead();
@@ -125,7 +170,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
     @Test
     void compareReportsFileOnlyChange() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         PreparationDO source = completed(401L);
         PreparationDO target = completed(402L);
         target.setBusinessVersion(2);
@@ -146,7 +191,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
     @Test
     void historyProjectsSolSummariesWithoutPerRowDynamicFormOrParticipantReads() {
         RequirementAnalysisDynamicFormQueryService service = new RequirementAnalysisDynamicFormQueryService(
-                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi);
+                rootMapper, dynamicFormApi, permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, executionBinding);
         List<PreparationDO> history = IntStream.rangeClosed(1, 100).mapToObj(index -> {
             PreparationDO row = completed(500L + index);
             row.setBusinessVersion(101 - index);
@@ -164,7 +209,7 @@ class RequirementAnalysisDynamicFormQueryServiceTest {
         assertEquals(100, result.items().size());
         assertEquals(9001L, result.items().getFirst().getDynamicFormInstanceId());
         assertNull(result.items().getFirst().getDynamicFormInstanceVersion());
-        verifyNoInteractions(dynamicFormApi, participantFactApi, workBindingFactApi);
+        verifyNoInteractions(dynamicFormApi, participantFactApi, workBindingFactApi, executionBinding);
     }
 
     private void allowProjectRead() {

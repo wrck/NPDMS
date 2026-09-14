@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick, reactive } from 'vue'
 import ProjectRequirementAnalysisPanel from './ProjectRequirementAnalysisPanel.vue'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import { mount, textOf, findByTestId, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -41,13 +41,95 @@ const history = read('./RequirementAnalysisHistoryDrawer.vue')
 const compare = read('./RequirementAnalysisCompareDrawer.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/requirement-analysis/index.ts')
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no })
+  return { promise, resolve, reject }
+}
+const flushLoad = async () => { for (let i = 0; i < 10; i++) { await Promise.resolve(); await nextTick() } }
+const version = (preparationId = 31, projectId = 7) => ({
+  preparationId, projectId, businessVersion: 1, contentVersion: preparationId,
+  status: 'COMPLETED', currentEffective: true, completionBlockers: [], allowedActions: []
+}) as any
+const summary = (value = version()) => ({ projectId: value.projectId, draft: null, currentEffective: value, allowedActions: [] }) as any
+const renderPanel = (props: Record<string, unknown>) => mount(
+  defineComponent({ setup: () => () => h(ProjectRequirementAnalysisPanel, props as any) }), {},
+  { ElTable: passthrough, ElTableColumn: tableColumn, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, ElInput: passthrough }
+)
 
 describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     formLifecycle.mounts = 0
     formLifecycle.unmounts = 0
     vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  })
+
+  it.each([31, undefined])('uses complete workspace content without a duplicate detail read for selection %s', async (preparationId) => {
+    const overview = deferred<any>()
+    vi.mocked(RequirementAnalysisApi.getCurrent).mockReturnValueOnce(overview.promise)
+    const view = renderPanel({ project: { id: 7 }, preparationId })
+    try {
+      await flushLoad()
+      expect(RequirementAnalysisApi.getDetail).not.toHaveBeenCalled()
+      expect(formLifecycle.mounts).toBe(0)
+      overview.resolve({ ...summary(), draft: { ...version(32), status: 'DRAFT', currentDraft: true, currentEffective: false } })
+      await flushLoad()
+      expect(textOf(view.root)).toContain(`正文版本 ${preparationId == null ? 32 : 31}`)
+      expect(formLifecycle.mounts).toBe(1)
+      expect(RequirementAnalysisApi.getCurrent).toHaveBeenCalledTimes(1)
+      expect(RequirementAnalysisApi.getDetail).not.toHaveBeenCalled()
+    } finally { view.app.unmount() }
+  })
+
+  it('reads an explicitly selected historical version instead of replacing it with the current version', async () => {
+    vi.mocked(RequirementAnalysisApi.getCurrent).mockResolvedValueOnce(summary())
+    vi.mocked(RequirementAnalysisApi.getDetail).mockResolvedValueOnce({ ...version(30), currentEffective: false })
+    const view = renderPanel({ project: { id: 7 }, preparationId: 30 })
+    try {
+      await flushLoad()
+      expect(RequirementAnalysisApi.getDetail).toHaveBeenCalledTimes(1)
+      expect(RequirementAnalysisApi.getDetail).toHaveBeenCalledWith(30)
+      expect(textOf(view.root)).toContain('正文版本 30')
+      expect((findByTestId(view.root, 'requirement-version-table')!.props!.data as any[])[0].preparationId).toBe(31)
+    } finally { view.app.unmount() }
+  })
+
+  it.each(['overview', 'detail'])('does not display partial content when the %s read fails', async (failed) => {
+    vi.mocked(RequirementAnalysisApi.getCurrent).mockImplementationOnce(() => failed === 'overview'
+      ? Promise.reject(new Error('403')) : Promise.resolve(summary()))
+    vi.mocked(RequirementAnalysisApi.getDetail).mockImplementationOnce(() => failed === 'detail'
+      ? Promise.reject(new Error('403')) : Promise.resolve(version()))
+    const view = renderPanel({ project: { id: 7 }, preparationId: failed === 'detail' ? 30 : 31 })
+    try {
+      await flushLoad()
+      expect(textOf(view.root)).toContain('需求分析工作区加载失败')
+      expect(formLifecycle.mounts).toBe(0)
+    } finally { view.app.unmount() }
+  })
+
+  it('rejects mismatched detail identity and ignores obsolete loads after a project switch', async () => {
+    const old = deferred<any>()
+    vi.mocked(RequirementAnalysisApi.getCurrent).mockReturnValueOnce(old.promise).mockResolvedValueOnce(summary(version(32, 8)))
+    const props = reactive({ project: { id: 7 }, preparationId: 31 })
+    const view = renderPanel(props)
+    try {
+      await flushLoad()
+      props.project = { id: 8 }
+      props.preparationId = 32
+      await flushLoad()
+      old.reject(new Error('old request failed'))
+      await flushLoad()
+      expect(textOf(view.root)).toContain('正文版本 32')
+      expect(textOf(view.root)).not.toContain('加载失败')
+      vi.mocked(RequirementAnalysisApi.getCurrent).mockResolvedValueOnce({ ...summary(version(33, 9)), projectId: 8 })
+      props.preparationId = 33
+      await flushLoad()
+      expect(textOf(view.root)).toContain('需求分析工作区加载失败')
+      expect(textOf(view.root)).not.toContain('正文版本 33')
+      expect(RequirementAnalysisApi.getDetail).not.toHaveBeenCalled()
+    } finally { view.app.unmount() }
   })
 
   it('refreshes summary and detail together without unmounting the saving form; read failure preserves both', async () => {
@@ -89,7 +171,6 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
             finishOverview = resolve
           })
       )
-      vi.mocked(RequirementAnalysisApi.getDetail).mockResolvedValueOnce(updated)
       const pending = formLifecycle.reload!()
       await flush()
       expect(formLifecycle.unmounts).toBe(0)
@@ -103,15 +184,12 @@ describe('F-SOL-003 dynamic-form requirement analysis workspace', () => {
       vi.mocked(RequirementAnalysisApi.getCurrent).mockRejectedValueOnce(
         new Error('overview unavailable')
       )
-      vi.mocked(RequirementAnalysisApi.getDetail).mockResolvedValueOnce({
-        ...updated,
-        contentVersion: 3
-      })
       await expect(formLifecycle.reload!()).rejects.toThrow('overview unavailable')
       await flush()
       expect(summaryVersion()).toBe(2)
       expect(textOf(mounted.root)).toContain('正文版本 2')
       expect(formLifecycle.unmounts).toBe(0)
+      expect(RequirementAnalysisApi.getDetail).not.toHaveBeenCalled()
     } finally {
       mounted.app.unmount()
     }

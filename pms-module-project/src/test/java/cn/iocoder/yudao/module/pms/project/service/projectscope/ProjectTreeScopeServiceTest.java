@@ -94,6 +94,8 @@ class ProjectTreeScopeServiceTest {
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(3L));
+        verify(projectMapper).selectById(3L);
+        verify(versionMapper).selectLatestActive(1L);
     }
 
     @Test
