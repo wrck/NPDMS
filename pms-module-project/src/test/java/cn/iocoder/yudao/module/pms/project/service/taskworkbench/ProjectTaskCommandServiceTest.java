@@ -59,6 +59,36 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskCommandServiceTest {
 
+    @Test
+    void eventFailureRollsBackSourceWriteAndSuccessfulRetryCommits() {
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, 2, "IN_PROGRESS"));
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        // Unique in-memory ledger: proves Spring transaction boundaries, not production Mapper SQL.
+        var database = new org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder()
+                .generateUniqueName(true)
+                .setType(org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2).build();
+        try {
+            var jdbc = new org.springframework.jdbc.core.JdbcTemplate(database);
+            jdbc.execute("CREATE TABLE write_ledger (id INT PRIMARY KEY)");
+            org.mockito.Mockito.doAnswer(call -> jdbc.update("INSERT INTO write_ledger VALUES (1)"))
+                    .when(taskMapper).updateBasicIfMatch(any());
+            var proxy = new org.springframework.aop.framework.ProxyFactory(service);
+            proxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(
+                    new org.springframework.jdbc.datasource.DataSourceTransactionManager(database),
+                    new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+            var command = (ProjectTaskCommandService) proxy.getProxy();
+            org.mockito.Mockito.doThrow(new IllegalStateException("outbox unavailable"))
+                    .when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            assertThrows(IllegalStateException.class, () -> command.update(new UpdateTaskCommand(11L, 2, null, null, null, null, 1, null, null), ACTOR));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+            org.mockito.Mockito.doNothing().when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            command.update(new UpdateTaskCommand(11L, 2, null, null, null, null, 1, null, null), ACTOR);
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+        } finally {
+            database.shutdown();
+        }
+    }
+
     private static final String DIGEST = "a".repeat(64);
     private static final TaskWorkbenchActor ACTOR = new TaskWorkbenchActor(0L, 9L, "trace-1");
 
@@ -76,6 +106,7 @@ class ProjectTaskCommandServiceTest {
     @Mock OperationAuditApi operationAuditApi;
     @Mock ProjectTaskProgressService progressService;
     @Mock PermissionApi permissionApi;
+    @Mock cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
 
     private ProjectTaskCommandService service;
     private ProjectMasterDO project;
@@ -86,7 +117,7 @@ class ProjectTaskCommandServiceTest {
         service = new ProjectTaskCommandService(taskMapper, taskInstanceMapper, dependencyMapper, contractMapper,
                 new TaskExecutionContractFactory(), stateMachineMapper, stageMapper, milestoneMapper, memberMapper,
                 treeVersionMapper, treeScopeService, commandExecutionApi, operationAuditApi,
-                progressService, permissionApi);
+                progressService, permissionApi, ruleEvents);
         project = new ProjectMasterDO();
         project.setId(100L);
         project.setRootId(100L);
@@ -242,6 +273,7 @@ class ProjectTaskCommandServiceTest {
                 new UpdateTaskCommand(11L, 2, "更新", null, null, null, 1, 0, null), ACTOR));
 
         assertEquals(PROJECT_TASK_VERSION_CONFLICT.getCode(), error.getCode());
+        org.mockito.Mockito.verifyNoInteractions(ruleEvents);
     }
 
     @Test
@@ -254,6 +286,8 @@ class ProjectTaskCommandServiceTest {
                 new UpdateTaskCommand(11L, 2, null, null, null, null, 1, null, null), ACTOR);
 
         assertEquals(3, result.taskVersion());
+        verify(ruleEvents).append(eq("Project"), eq("100"), argThat(event ->
+                event.eventType().equals(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation.EVENT_TYPE)));
         verify(taskMapper).updateBasicIfMatch(argThat(update -> update.name() == null
                 && update.priority() == 1 && update.description() == null));
     }

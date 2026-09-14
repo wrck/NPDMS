@@ -102,10 +102,42 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @ExtendWith(MockitoExtension.class)
 class ProjectManualCreationServiceImplTest {
 
+    @Test
+    void eventFailureRollsBackSourceWriteAndSuccessfulRetryCommits() {
+        when(projectMasterMapper.selectById(100L)).thenReturn(persistedProject());
+        allowScope(100L, "PROJECT_MANAGE");
+        // Unique in-memory ledger: proves Spring transaction boundaries, not production Mapper SQL.
+        var database = new org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder()
+                .generateUniqueName(true)
+                .setType(org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2).build();
+        try {
+            var jdbc = new org.springframework.jdbc.core.JdbcTemplate(database);
+            jdbc.execute("CREATE TABLE write_ledger (id INT PRIMARY KEY)");
+            doAnswer(call -> jdbc.update("INSERT INTO write_ledger VALUES (1)"))
+                    .when(projectMasterMapper).updateById(any(ProjectMasterDO.class));
+            var proxy = new org.springframework.aop.framework.ProxyFactory(service);
+            proxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(
+                    new org.springframework.jdbc.datasource.DataSourceTransactionManager(database),
+                    new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+            var command = (ProjectManualCreationService) proxy.getProxy();
+            org.mockito.Mockito.doThrow(new IllegalStateException("outbox unavailable"))
+                    .when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            assertThrows(IllegalStateException.class, () -> command.updateProject(persistedProject(), new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+            org.mockito.Mockito.doNothing().when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            command.updateProject(persistedProject(), new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+        } finally {
+            database.shutdown();
+        }
+    }
+
     private static final String CANDIDATE_WATERMARK = "candidate-watermark-v1";
 
     @Mock
     private ProjectMasterMapper projectMasterMapper;
+    @Mock
+    private cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
     @Mock
     private ProjectRuntimeGraphFreezer runtimeGraphFreezer;
     @Mock
@@ -588,6 +620,7 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void updateIgnoresImmutableFields() {
+        when(projectMasterMapper.updateById(any(ProjectMasterDO.class))).thenReturn(1);
         ProjectMasterDO current = persistedProject();
         when(projectMasterMapper.selectById(100L)).thenReturn(current);
         allowScope(100L, "PROJECT_MANAGE");
@@ -651,6 +684,7 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void linkedCustomerIsRetainedWhileOtherFieldsAreUpdated() {
+        when(projectMasterMapper.updateById(any(ProjectMasterDO.class))).thenReturn(1);
         ProjectMasterDO current = persistedProject();
         current.setCustomerId(81L);
         current.setCustomerCode("CUS-001");
@@ -673,6 +707,7 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void unlinkedHistoricalProjectKeepsOriginalCustomerEditing() {
+        when(projectMasterMapper.updateById(any(ProjectMasterDO.class))).thenReturn(1);
         ProjectMasterDO current = persistedProject();
         current.setCustomerId(null);
         when(projectMasterMapper.selectById(100L)).thenReturn(current);
@@ -699,6 +734,17 @@ class ProjectManualCreationServiceImplTest {
                 () -> service.updateProject(payload,
                         new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
         assertEquals(PROJECT_NOT_EXISTS.getCode(), exception.getCode());
+        verifyNoInteractions(ruleEvents);
+    }
+
+    @Test
+    void failedProjectWriteDoesNotAppendReevaluationEvent() {
+        when(projectMasterMapper.selectById(100L)).thenReturn(persistedProject());
+        allowScope(100L, "PROJECT_MANAGE");
+        var error = assertThrows(ServiceException.class, () -> service.updateProject(persistedProject(),
+                new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
+        assertEquals(PROJECT_VERSION_CONFLICT.getCode(), error.getCode());
+        verifyNoInteractions(ruleEvents);
     }
 
     @Test

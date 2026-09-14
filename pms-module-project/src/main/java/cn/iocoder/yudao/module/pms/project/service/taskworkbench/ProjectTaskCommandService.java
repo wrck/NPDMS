@@ -84,6 +84,7 @@ public class ProjectTaskCommandService {
     private final OperationAuditApi operationAuditApi;
     private final ProjectTaskProgressService progressService;
     private final PermissionApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
 
     public TaskCommandResult create(CreateTaskCommand command, TaskWorkbenchActor actor) {
         AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
@@ -100,6 +101,7 @@ public class ProjectTaskCommandService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public TaskCommandResult update(UpdateTaskCommand command, TaskWorkbenchActor actor) {
         validateActor(actor);
         return updateOnce(command, actor);
@@ -228,6 +230,9 @@ public class ProjectTaskCommandService {
                 command.planStartTime(), command.planEndTime(), command.priority(), command.sortOrder(),
                 trim(command.description()), actorName(actor), command.submittedFields()));
         if (changed != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
+        ruleEvents.append("Project", project.getId().toString(),
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                        actor.tenantId(), project.getId(), actor.actorId(), actor.correlationId()).event());
         return new TaskCommandResult(task.getId(), command.expectedTaskVersion() + 1,
                 project.getTaskTreeVersion(), task.getStatus(), "NEW");
     }

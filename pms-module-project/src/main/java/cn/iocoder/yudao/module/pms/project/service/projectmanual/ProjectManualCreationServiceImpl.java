@@ -107,6 +107,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectMasterMapper projectMasterMapper;
     @Resource
+    private cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
+    @Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer runtimeGraphFreezer;
     @Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmissionService;
@@ -380,6 +382,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateProject(ProjectMasterDO update, ProjectAccessActor actor) {
         if (update == null || update.getId() == null) {
             throw exception(PROJECT_NOT_EXISTS);
@@ -398,7 +401,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
         update.setClosurePolicySnapshot(current.getClosurePolicySnapshot());
-        projectMasterMapper.updateById(update);
+        if (projectMasterMapper.updateById(update) != 1) throw exception(PROJECT_VERSION_CONFLICT);
+        ruleEvents.append("Project", current.getId().toString(),
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                        actor.tenantId(), current.getId(), actor.actorId(), "PROJECT_UPDATE:" + current.getId()).event());
     }
 
     @Override

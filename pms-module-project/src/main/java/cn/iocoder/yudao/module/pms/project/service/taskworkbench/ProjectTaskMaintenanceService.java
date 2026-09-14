@@ -12,7 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskMaintenanceMapper.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.*;
-import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageProgressionTrigger;
+import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
@@ -47,7 +47,7 @@ public class ProjectTaskMaintenanceService {
     private final PermissionApi permissions;
     private final AdminUserApi users;
     private final PlatformCommandExecutionApi commands;
-    private final ProjectStageProgressionTrigger progression;
+    private final PlatformBusinessEventApi ruleEvents;
 
     @Transactional(readOnly = true)
     public View get(Long taskId, TaskWorkbenchActor actor) {
@@ -162,7 +162,9 @@ public class ProjectTaskMaintenanceService {
         if (result.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         if (result.decision() == PlatformCommandExecutionApi.Decision.NEW) {
             var task = tasks.selectTask(new TaskByIdQuery(actor.tenantId(), taskId));
-            progression.afterChange(task.getProjectId());
+            ruleEvents.append("Project", task.getProjectId().toString(),
+                    new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                            actor.tenantId(), task.getProjectId(), actor.actorId(), actor.correlationId()).event());
         }
         return result.response();
     }

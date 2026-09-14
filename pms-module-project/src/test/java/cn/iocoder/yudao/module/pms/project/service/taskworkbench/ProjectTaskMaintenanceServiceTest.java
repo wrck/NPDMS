@@ -4,7 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
-import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageProgressionTrigger;
+import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
@@ -16,6 +16,35 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class ProjectTaskMaintenanceServiceTest {
+
+    @Test
+    void eventFailureRollsBackSourceWriteAndSuccessfulRetryCommits() {
+        when(tasks.incrementTaskVersionIfMatch(any())).thenReturn(1);
+        // Unique in-memory ledger: proves Spring transaction boundaries, not production Mapper SQL.
+        var database = new org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder()
+                .generateUniqueName(true)
+                .setType(org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2).build();
+        try {
+            var jdbc = new org.springframework.jdbc.core.JdbcTemplate(database);
+            jdbc.execute("CREATE TABLE write_ledger (id INT PRIMARY KEY)");
+            doAnswer(call -> jdbc.update("INSERT INTO write_ledger VALUES (1)"))
+                    .when(maintenance).insertResponsible(any());
+            var proxy = new org.springframework.aop.framework.ProxyFactory(service);
+            proxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(
+                    new org.springframework.jdbc.datasource.DataSourceTransactionManager(database),
+                    new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+            var command = (ProjectTaskMaintenanceService) proxy.getProxy();
+            org.mockito.Mockito.doThrow(new IllegalStateException("outbox unavailable"))
+                    .when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            assertThrows(IllegalStateException.class, () -> command.changeRole(role(ProjectTaskMaintenanceService.Role.RESPONSIBLE, 11L), actor));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+            org.mockito.Mockito.doNothing().when(ruleEvents).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), any());
+            command.changeRole(role(ProjectTaskMaintenanceService.Role.RESPONSIBLE, 11L), actor);
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM write_ledger", Integer.class));
+        } finally {
+            database.shutdown();
+        }
+    }
     final ProjectTaskRuntimeMapper tasks = mock(ProjectTaskRuntimeMapper.class);
     final ProjectTaskMaintenanceMapper maintenance = mock(ProjectTaskMaintenanceMapper.class);
     final ProjectTaskAssignmentMapper assignments = mock(ProjectTaskAssignmentMapper.class);
@@ -25,9 +54,9 @@ class ProjectTaskMaintenanceServiceTest {
     final PermissionApi permissions = mock(PermissionApi.class);
     final AdminUserApi users = mock(AdminUserApi.class);
     final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
-    final ProjectStageProgressionTrigger progression = mock(ProjectStageProgressionTrigger.class);
+    final PlatformBusinessEventApi ruleEvents = mock(PlatformBusinessEventApi.class);
     final TaskWorkbenchActor actor = new TaskWorkbenchActor(1L, 9L, "maintenance-test");
-    final ProjectTaskMaintenanceService service = new ProjectTaskMaintenanceService(tasks, maintenance, assignments, members, support, queries, permissions, users, commands, progression);
+    final ProjectTaskMaintenanceService service = new ProjectTaskMaintenanceService(tasks, maintenance, assignments, members, support, queries, permissions, users, commands, ruleEvents);
     ProjectTaskInstanceDO task; ProjectMasterDO project;
 
     @Test void maintenanceReadUsesOneScopeCheckAndPreservesHistoryAndActionGrants() {
@@ -70,7 +99,9 @@ class ProjectTaskMaintenanceServiceTest {
         when(maintenance.insertResponsible(any())).thenReturn(1); when(tasks.incrementTaskVersionIfMatch(any())).thenReturn(1);
         var result = service.changeRole(role(ProjectTaskMaintenanceService.Role.RESPONSIBLE,11L),actor);
         assertEquals("PENDING_ASSIGN",result.status()); assertEquals(1,result.taskVersion());
-        verifyNoInteractions(assignments); verify(tasks,never()).assignTaskIfMatch(any()); verify(progression).afterChange(2L);
+        verifyNoInteractions(assignments); verify(tasks,never()).assignTaskIfMatch(any());
+        verify(ruleEvents).append(eq("Project"), eq("2"), argThat(event ->
+                event.eventType().equals(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation.EVENT_TYPE)));
     }
     @Test void executorRetainsExistingAssignmentStateTransitionAndEventFactory() {
         when(assignments.insertAssignment(any())).thenReturn(1); when(tasks.assignTaskIfMatch(any())).thenReturn(1);
@@ -101,9 +132,18 @@ class ProjectTaskMaintenanceServiceTest {
         verify(maintenance).insertResponsible(argThat(row->row.getUserId().equals(11L)));
         assertEquals(10L,old.getUserId());
     }
-    @Test void failedVersionWriteDoesNotReportSuccessOrTriggerProgression() {
+    @Test void failedVersionWriteDoesNotReportSuccessOrAppendEvent() {
         when(maintenance.insertResponsible(any())).thenReturn(1); when(tasks.incrementTaskVersionIfMatch(any())).thenReturn(0);
         assertThrows(RuntimeException.class,()->service.changeRole(role(ProjectTaskMaintenanceService.Role.RESPONSIBLE,11L),actor));
-        verifyNoInteractions(progression);
+        verifyNoInteractions(ruleEvents);
+    }
+
+    @Test void replayDoesNotRepeatResponsibilityWriteOrReevaluationEvent() {
+        var saved = new TaskCommandResult(3L, 1, 4L, "PENDING_ASSIGN", "NEW");
+        doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
+                PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
+                .when(commands).execute(any(), anyString(), eq(TaskCommandResult.class), any(), any());
+        assertEquals(saved, service.changeRole(role(ProjectTaskMaintenanceService.Role.RESPONSIBLE, 11L), actor));
+        verifyNoInteractions(maintenance, ruleEvents);
     }
 }

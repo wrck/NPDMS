@@ -92,6 +92,9 @@ class ProjectClosurePolicyFreezeTest {
 
     @Test
     void ordinaryProjectUpdateCannotReplaceFrozenPolicy() {
+        ReflectionTestUtils.setField(service, "ruleEvents",
+                mock(cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi.class));
+        when(projects.updateById(any(ProjectMasterDO.class))).thenReturn(1);
         var current = new ProjectMasterDO(); current.setId(100L); current.setRootId(100L); current.setTenantId(7L);
         current.setClosurePolicySnapshot(JSON);
         when(projects.selectById(100L)).thenReturn(current);
