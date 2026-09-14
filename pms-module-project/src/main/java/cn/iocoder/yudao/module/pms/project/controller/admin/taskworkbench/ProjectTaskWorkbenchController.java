@@ -199,12 +199,13 @@ public class ProjectTaskWorkbenchController {
     }
 
     @PostMapping("/project-tasks/{id}/actions/{action}")
-    @Operation(summary = "执行TASK_NATIVE任务动作")
+    @Operation(summary = "执行项目任务动作")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false)
     @PreAuthorize("@ss.hasPermission('pms:project-task:execute') or "
             + "@ss.hasPermission('pms:project-task:complete')")
     public CommonResult<TaskCommandResult> actTask(
             @PathVariable("id") Long taskId,
-            @PathVariable("action") @Pattern(regexp = "start|submit|complete|cancel") String action,
+            @PathVariable("action") @Pattern(regexp = "start|submit|complete|cancel|approval") String action,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody ProjectTaskActionReqVO request) {
@@ -214,7 +215,7 @@ public class ProjectTaskWorkbenchController {
                 request.getContractVersion(), request.getFactObjectKey(), request.getFactVersion(),
                 request.getExpectedActivityVersion(), request.getExpectedReportVersion(),
                 request.getExpectedBusinessFactVersion(), idempotencyKey, digest(taskId + ":" + expectedVersion + ":" + action + ":"
-                + JsonUtils.toJsonString(request))), actor())));
+                + JsonUtils.toJsonString(request)), request.getApproval()), actor())));
     }
 
     private TaskWorkbenchActor actor() {

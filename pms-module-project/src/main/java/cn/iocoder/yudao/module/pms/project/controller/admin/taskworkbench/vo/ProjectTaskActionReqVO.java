@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-@Schema(description = "管理后台 - TASK_NATIVE动作 Request VO")
+@Schema(description = "管理后台 - 项目任务动作 Request VO")
 @Data
 public class ProjectTaskActionReqVO {
 
@@ -20,4 +20,6 @@ public class ProjectTaskActionReqVO {
     private String expectedBusinessFactVersion;
     private Integer expectedActivityVersion;
     private Integer expectedReportVersion;
+    @Schema(description = "原 BPM 表单变量及发起人自选审批人，仅审批办理使用")
+    private cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission approval;
 }

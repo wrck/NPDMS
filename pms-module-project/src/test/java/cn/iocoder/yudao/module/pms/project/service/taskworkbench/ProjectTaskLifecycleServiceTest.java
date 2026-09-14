@@ -44,6 +44,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskLifecycleServiceTest {
@@ -113,10 +114,10 @@ class ProjectTaskLifecycleServiceTest {
         var binding = contractMapper.selectCurrentByTaskIdForUpdate(null);
         binding.setWorkBindingTypeCode("APPROVAL");
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
-        assertEquals("IN_PROGRESS", service.act(command("start",3,null,null),actor()).status());
+        assertEquals("IN_PROGRESS", service.act(command("start",3,91L,2),actor()).status());
         var order = org.mockito.Mockito.inOrder(taskMapper,taskApprovals);
         order.verify(taskMapper).updateLifecycleIfMatch(any());
-        order.verify(taskApprovals).start(0L,100L,11L,binding,9L);
+        order.verify(taskApprovals).start(0L,100L,11L,binding,9L,"START:key-start",null);
         assertEquals("PROJECT_TASK_START",successFacts.operationCode());
     }
     @Test void runningApprovalCannotBeAbandonedByClosingTheTask() {
@@ -127,6 +128,55 @@ class ProjectTaskLifecycleServiceTest {
                 .requireMayCancel(0L,100L,11L,binding);
         assertThrows(IllegalStateException.class, () -> service.act(command("cancel",3,null,null),actor()));
         verify(taskMapper,never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test void approvalSubmissionDoesNotRestartTaskOrWriteAnotherExecutionRound() {
+        var binding = approvalHandling();
+        var submission = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+                java.util.Map.of("comment","private-form"),java.util.Map.of("review",java.util.List.of(8L)));
+        var receipt = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
+                cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,
+                "RUNNING","attempt-2","review:1",null);
+        when(taskApprovals.start(0L,100L,11L,binding,9L,"APPROVAL:retry",submission)).thenReturn(receipt);
+        var command = new TaskActionCommand(11L,3,"approval",null,91L,2,null,null,null,null,null,"retry","a".repeat(64),submission);
+        var result = service.act(command,actor());
+        assertEquals("IN_PROGRESS",result.status()); assertEquals(3,result.taskVersion());
+        assertEquals("PROJECT_TASK_APPROVAL",successFacts.operationCode());
+        verify(taskMapper,never()).updateLifecycleIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(stateMachineMapper,stageAdmission);
+        var rounds = (cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper)
+                org.springframework.test.util.ReflectionTestUtils.getField(service,"nodeExecutions");
+        verify(rounds,never()).recordTaskTransition(any());
+        assertFalse(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(successFacts).contains("private-form"));
+    }
+    @Test void currentTaskExecutionPermissionIsStillRequiredForAnotherApprovalAttempt() {
+        approvalHandling();
+        when(nativeProvider.inspect(any())).thenReturn(TaskBindingInspection.failed("APPROVAL","FORBIDDEN"));
+        assertThrows(RuntimeException.class,() -> service.act(command("approval",3,91L,2),actor()));
+        org.mockito.Mockito.verifyNoInteractions(taskApprovals);
+        verify(taskMapper,never()).updateLifecycleIfMatch(any());
+    }
+    @Test void anApprovalFormFromAnOldBindingCannotBeSubmittedToTheCurrentTask() {
+        approvalHandling();
+        assertThrows(RuntimeException.class,() -> service.act(command("approval",3,90L,1),actor()));
+        org.mockito.Mockito.verifyNoInteractions(taskApprovals);
+    }
+    @Test void approvalEngineErrorsAreNotCopiedWithFormValuesIntoRejectionAudit() {
+        approvalHandling();
+        when(taskApprovals.start(any(),any(),any(),any(),any(),any(),any())).thenThrow(new IllegalStateException("private-form-value"));
+        assertThrows(IllegalStateException.class,() -> service.act(command("approval",3,91L,2),actor()));
+        verify(operationAuditApi).record(eq(0L),eq(9L),any(),eq("PROJECT_TASK_ACTION"),eq("ProjectTask"),eq("11"),eq("REJECTED"),
+                argThat(detail -> "TASK_APPROVAL_ACTION_FAILED".equals(detail.get("failureCode"))));
+    }
+    private ProjectTaskExecutionContractDO approvalHandling() {
+        allowAction("IN_PROGRESS","START","IN_PROGRESS");
+        org.mockito.Mockito.reset(stateMachineMapper);
+        org.mockito.Mockito.reset(assignmentMapper);
+        var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(9L);
+        lenient().when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        var binding = contractMapper.selectCurrentByTaskIdForUpdate(null); binding.setWorkBindingTypeCode("APPROVAL");
+        lenient().when(nativeProvider.inspect(any())).thenReturn(new TaskBindingInspection("APPROVAL",Set.of("APPROVAL"),"3:2:1",null));
+        return binding;
     }
 
     @Test void ownerPermissionDenialPrecedesRuleFactReads() {
@@ -180,23 +230,23 @@ class ProjectTaskLifecycleServiceTest {
 
     @Test void directStartFailsIfFrozenStartDefinitionIsMissing() {
         allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
-        org.mockito.Mockito.reset(contractMapper);
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
         when(stateMachineMapper.requireTransition(any())).thenThrow(new IllegalArgumentException("missing"));
         assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(stateMachineMapper).requireTransition(argThat(query -> "PENDING_START".equals(query.fromStatusCode())));
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
         verify(assignmentMapper, never()).insertAssignment(any());
     }
 
     @Test void newlyDesignatedPendingTaskDoesNotUseUnassignedStartRule() {
         allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
-        org.mockito.Mockito.reset(contractMapper);
         when(stateMachineMapper.requireTransition(any())).thenAnswer(invocation -> {
             var q = invocation.getArgument(0, cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery.class);
             assertEquals("PENDING_ASSIGN", q.fromStatusCode());
             throw new IllegalArgumentException("no direct assigned transition");
         });
         assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(stateMachineMapper).requireTransition(argThat(query -> "PENDING_ASSIGN".equals(query.fromStatusCode())));
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
 

@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,7 +33,8 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     @DataPermission(enable = false) // Same user lookup semantics as the original BPM creation service.
     public Fact start(Start command) {
-        if (command == null || command.actorId() == null || command.actorId() <= 0 || command.execution() == null)
+        if (command == null || command.actorId() == null || command.actorId() <= 0 || command.execution() == null
+                || command.operationId() == null || command.operationId().isBlank())
             throw new IllegalArgumentException("TASK_APPROVAL_START_INVALID");
         var scope = command.scope();
         validate(scope);
@@ -46,7 +49,12 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
         if (!existing.isEmpty()) {
             var fact = evaluate(scope, existing);
             if (fact.outcome() == Outcome.UNKNOWN) throw new IllegalStateException(fact.reason());
-            return fact;
+            var replay = existing.stream().filter(instance -> Objects.equals(command.operationId(),
+                    instance.getProcessVariables().get(VAR_OPERATION)) && Objects.equals(command.actorId(),
+                    instance.getProcessVariables().get(VAR_ACTOR))).findFirst().orElse(null);
+            if (replay != null) return instanceFact(scope, replay);
+            if (!List.of("REJECTED", "CANCELLED").contains(fact.status()))
+                throw new IllegalStateException("TASK_APPROVAL_ATTEMPT_STILL_EFFECTIVE");
         }
         var definition = repository.createProcessDefinitionQuery().processDefinitionId(scope.definitionId())
                 .processDefinitionTenantId(FlowableUtils.getTenantId()).active().singleResult();
@@ -60,6 +68,8 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
         variables.put(VAR_TASK, scope.taskId()); variables.put(VAR_EXECUTION, scope.executionId());
         variables.put(VAR_CONTRACT, scope.contractId()); variables.put(VAR_DEFINITION, scope.definitionId());
         variables.put(VAR_ACTOR, command.actorId());
+        variables.put(VAR_OPERATION, command.operationId());
+        variables.put(VAR_ATTEMPT, existing.stream().mapToInt(this::attempt).max().orElse(0) + 1);
         // Native processDefinitionId is exact; key-based launch would select the latest definition.
         // https://www.flowable.com/open-source/docs/all-javadocs/org/flowable/engine/runtime/ProcessInstanceBuilder.html
         String id = FlowableUtils.executeAuthenticatedUserId(command.actorId(), () -> processes.createProcessInstance0(
@@ -83,8 +93,26 @@ public class PmsTaskApprovalProcessOwner implements ProjectTaskApprovalApi {
 
     private Fact evaluate(Scope scope, List<HistoricProcessInstance> instances) {
         if (instances.isEmpty()) return new Fact(Outcome.NOT_SATISFIED, "NOT_STARTED", null, scope.definitionId(), "APPROVAL_NOT_STARTED");
-        if (instances.size() != 1) return Fact.unknown("TASK_APPROVAL_MULTIPLE_INSTANCES");
-        var instance = instances.getFirst();
+        var numbers = new HashSet<Integer>();
+        var operations = new HashSet<List<Object>>();
+        for (var instance : instances) {
+            var fact = instanceFact(scope, instance);
+            if (fact.outcome() == Outcome.UNKNOWN) return fact;
+            var variables = instance.getProcessVariables();
+            if (!(variables.get(VAR_ATTEMPT) instanceof Integer number) || number <= 0 || !numbers.add(number)
+                    || !(variables.get(VAR_OPERATION) instanceof String operation) || operation.isBlank()
+                    || !(variables.get(VAR_ACTOR) instanceof Long actor) || actor <= 0
+                    || !operations.add(List.of(actor, operation)))
+                return Fact.unknown("TASK_APPROVAL_ATTEMPT_IDENTITY_INVALID");
+        }
+        if (instances.stream().filter(instance -> instance.getEndTime() == null).count() > 1)
+            return Fact.unknown("TASK_APPROVAL_MULTIPLE_ACTIVE_INSTANCES");
+        return instanceFact(scope, instances.stream().max(Comparator.comparingInt(this::attempt)).orElseThrow());
+    }
+
+    private int attempt(HistoricProcessInstance instance) { return (Integer) instance.getProcessVariables().get(VAR_ATTEMPT); }
+
+    private Fact instanceFact(Scope scope, HistoricProcessInstance instance) {
         var variables = instance.getProcessVariables();
         if (!Objects.equals(scope.definitionId(), instance.getProcessDefinitionId())
                 || !Objects.equals(scope.definitionKey(), instance.getProcessDefinitionKey()) || variables == null

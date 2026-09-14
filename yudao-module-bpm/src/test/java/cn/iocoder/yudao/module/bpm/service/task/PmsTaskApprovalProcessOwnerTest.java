@@ -80,7 +80,8 @@ class PmsTaskApprovalProcessOwnerTest {
         owner = new PmsTaskApprovalProcessOwner(processes, engine.getRepositoryService(), engine.getHistoryService(), executions);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
-    Fact start() { return tx.execute(ignored -> owner.start(new Start(scope, context, 1L, Map.of("formText", "private-value"), Map.of()))); }
+    Fact start() { return start("first"); }
+    Fact start(String operation) { return tx.execute(ignored -> owner.start(new Start(scope, context, 1L, operation, Map.of("formText", "private-value"), Map.of()))); }
     Fact fact() { return tx.execute(ignored -> owner.inspect(scope)); }
     void end(String id, int status) {
         tx.executeWithoutResult(ignored -> {
@@ -143,7 +144,7 @@ class PmsTaskApprovalProcessOwnerTest {
         tx.executeWithoutResult(ignored -> engine.getRuntimeService().createProcessInstanceBuilder()
                 .processDefinitionId(pinned).businessKey(scope.businessKey()).variables(variables).start());
         assertEquals(Outcome.UNKNOWN,fact().outcome());
-        assertEquals("TASK_APPROVAL_MULTIPLE_INSTANCES",fact().reason());
+        assertEquals("TASK_APPROVAL_ATTEMPT_IDENTITY_INVALID",fact().reason());
         assertThrows(IllegalStateException.class,this::start);
     }
     @Test void invalidIdentityMissingStatusAndOldTimeAreUnknown() {
@@ -168,5 +169,26 @@ class PmsTaskApprovalProcessOwnerTest {
             start(); throw new IllegalStateException("task transaction failed");
         }));
         assertEquals("NOT_STARTED", fact().status());
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {3,4})
+    void aNewIntentAfterRejectionOrCancellationUsesANewAttemptInTheSameRound(int status) {
+        var first = start(); end(first.processInstanceId(),status);
+        var second = start("second");
+        assertNotEquals(first.processInstanceId(),second.processInstanceId());
+        assertEquals("RUNNING",fact().status()); assertEquals(second,start("second"));
+        assertEquals(first.processInstanceId(),start().processInstanceId()); // retry does not become another submission
+        assertEquals(second.processInstanceId(),fact().processInstanceId()); // current fact is not that older replay
+        end(second.processInstanceId(),2);
+        assertEquals(Outcome.SATISFIED,fact().outcome());
+        assertEquals(second.processInstanceId(),fact().processInstanceId());
+        assertEquals(2,engine.getHistoryService().createHistoricProcessInstanceQuery().processInstanceBusinessKey(scope.businessKey()).count());
+    }
+    @Test void aDifferentIntentCannotDuplicateARunningOrApprovedAttempt() {
+        var first = start();
+        assertThrows(IllegalStateException.class,() -> start("second"));
+        end(first.processInstanceId(),2);
+        assertThrows(IllegalStateException.class,() -> start("third"));
+        assertEquals(1,engine.getHistoryService().createHistoricProcessInstanceQuery().processInstanceBusinessKey(scope.businessKey()).count());
     }
 }

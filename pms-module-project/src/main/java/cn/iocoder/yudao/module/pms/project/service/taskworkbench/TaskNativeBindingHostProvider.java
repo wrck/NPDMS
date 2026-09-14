@@ -77,6 +77,7 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_FACT_UNKNOWN");
         }
         boolean approval = "APPROVAL".equals(contract.getWorkBindingTypeCode());
+        boolean approvalHandling = approval && "IN_PROGRESS".equals(task.getStatus());
         if (!bindingTypes().contains(contract.getWorkBindingTypeCode()) || hasExternalTarget(contract)) {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_CONTRACT_INVALID");
         }
@@ -96,12 +97,13 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         Set<String> allowedActions = new HashSet<>();
         transitions.stream()
                 .filter(item -> Objects.equals(item.getFromStatusCode(), TaskExecutionPolicy.transitionSource(
-                        task.getStatus(), item.getActionCode(), assignment != null)))
+                        approvalHandling && "START".equals(item.getActionCode()) ? "PENDING_START" : task.getStatus(),
+                        item.getActionCode(), assignment != null)))
                 .filter(item -> roleMatches(item.getAllowedRoleCode(), roles))
                 .filter(item -> hasPermission(query.actorId(), item.getActionCode()))
                 .filter(item -> !Set.of("START", "SUBMIT").contains(item.getActionCode())
                         || hasScope(task, query, ProjectScopeApi.ACTION_EDIT))
-                .map(TaskStateTransitionDO::getActionCode)
+                .map(item -> approvalHandling && "START".equals(item.getActionCode()) ? "APPROVAL" : item.getActionCode())
                 .forEach(allowedActions::add);
         boolean knownNonTerminal = !TERMINAL_STATUSES.contains(task.getStatus()) && transitions.stream()
                 .anyMatch(item -> Objects.equals(item.getFromStatusCode(), task.getStatus())
@@ -118,7 +120,7 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         String factVersion = task.getVersion() + ":" + contract.getContractVersion() + ":"
                 + (assignment == null ? 0 : assignment.getVersion());
         // Approval submission/completion belongs to BPM, never to the native manual-completion buttons.
-        if (approval) allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
+        if (approval) allowedActions.retainAll(Set.of("START", "APPROVAL", "CANCEL", "ASSIGN"));
         return new TaskBindingInspection(contract.getWorkBindingTypeCode(), Set.copyOf(allowedActions), factVersion, null);
     }
 

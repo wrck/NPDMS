@@ -87,6 +87,25 @@ export interface TaskWorkbench {
   allowedActions: string[]
   factVersion?: string
   recoverableError?: string
+  approval?: TaskApprovalView
+}
+
+export interface TaskApprovalSubmission {
+  variables: Record<string, unknown>
+  selectedApprovers: Record<string, number[]>
+}
+
+export interface TaskApprovalView {
+  definitionKey: string
+  definitionId: string
+  executionId: number | string
+  current: {
+    outcome: 'SATISFIED' | 'NOT_SATISFIED' | 'UNKNOWN'
+    status: string
+    processInstanceId?: string
+    definitionId?: string
+    reason?: string
+  }
 }
 
 export interface TaskCommandResult {
@@ -150,6 +169,7 @@ export interface TaskActionCommand {
   factObjectKey?: string
   factVersion?: number
   expectedBusinessFactVersion?: string
+  approval?: TaskApprovalSubmission
 }
 
 const baseUrl = '/api/v1/pms'
@@ -219,7 +239,7 @@ export const assignTask = (
 
 export const executeTaskAction = (
   taskId: number,
-  action: TaskAction,
+  action: TaskAction | 'APPROVAL',
   command: TaskActionCommand,
   version: number,
   idempotencyKey: string

@@ -326,6 +326,28 @@ class ProjectTaskQueryServiceTest {
         }
     }
 
+    @Test void approvalWorkbenchUsesCurrentFrozenRoutingAfterTaskScopeAuthorization() {
+        stubProjectScope(true);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L,null,0));
+        var binding = new ProjectTaskExecutionContractDO(); binding.setId(91L); binding.setTenantId(0L);
+        binding.setProjectTaskId(11L); binding.setContractVersion(1); binding.setWorkBindingTypeCode("APPROVAL");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(binding);
+        when(bindingRegistry.inspect(any(),any())).thenReturn(new TaskBindingInspection("APPROVAL",Set.of("APPROVAL"),"v1",null));
+        var approvals = org.mockito.Mockito.mock(ProjectTaskApprovalService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"taskApprovals",approvals);
+        var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
+                cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,
+                "REJECTED","old-attempt","review:1",null);
+        var view = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.View("review","review:1",61L,fact);
+        when(approvals.view(0L,100L,11L,binding)).thenReturn(view);
+        assertEquals(view,service.getWorkbench(11L,actor()).getApproval());
+        assertEquals(Set.of("APPROVAL"),service.getWorkbench(11L,actor()).getAllowedActions());
+        when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(100L,7L,Set.of(),Set.of(),Set.of()));
+        org.mockito.Mockito.clearInvocations(approvals);
+        assertThrows(RuntimeException.class,() -> service.getWorkbench(11L,actor()));
+        verifyNoInteractions(approvals);
+    }
+
     @Test
     void businessBindingKeepsGenericAssignmentWithPermissionAndStateChecks() {
         stubProjectScope(true);

@@ -51,6 +51,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskQueryService {
+    @jakarta.annotation.Resource
+    private ProjectTaskApprovalService taskApprovals;
 
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
@@ -165,6 +167,10 @@ public class ProjectTaskQueryService {
         response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
+        if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
+            try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
+            catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
+        }
         return response;
     }
 

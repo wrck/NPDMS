@@ -94,6 +94,12 @@ class TaskNativeBindingHostProviderTest {
         assertEquals(java.util.Set.of("START"), result.allowedActions());
         assertEquals("3:2:1", result.factVersion());
         assertNull(result.recoverableError());
+        if ("APPROVAL".equals(type)) {
+            task.setStatus("IN_PROGRESS");
+            assertEquals(Set.of("APPROVAL"), provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"retry")).allowedActions());
+            when(permissionApi.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(false);
+            assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"revoked")).allowedActions().isEmpty());
+        }
     }
 
     @Test

@@ -30,9 +30,10 @@ const execute = async (action: TaskAction) => {
     if (!reason) return
   }
   if (taskId !== props.workbench.task.taskId || version !== props.workbench.task.version || !actions.value.includes(action)) return
+  const needsContract = action === 'COMPLETE' || (action === 'START' && props.workbench.bindingType === 'APPROVAL')
   const body = { reason,
-    executionContractId: action === 'COMPLETE' ? props.workbench.executionContractId : undefined,
-    contractVersion: action === 'COMPLETE' ? props.workbench.contractVersion : undefined,
+    executionContractId: needsContract ? props.workbench.executionContractId : undefined,
+    contractVersion: needsContract ? props.workbench.contractVersion : undefined,
     factObjectKey: action === 'COMPLETE' ? String(taskId) : undefined,
     factVersion: action === 'COMPLETE' && !props.businessBound ? version : undefined,
     expectedBusinessFactVersion: action === 'COMPLETE' && props.businessBound ? props.businessFactVersion : undefined }

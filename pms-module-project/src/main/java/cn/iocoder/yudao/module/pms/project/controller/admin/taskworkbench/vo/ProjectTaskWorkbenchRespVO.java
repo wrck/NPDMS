@@ -14,4 +14,5 @@ public class ProjectTaskWorkbenchRespVO {
     private Set<String> allowedActions;
     private String factVersion;
     private String recoverableError;
+    private cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.View approval;
 }

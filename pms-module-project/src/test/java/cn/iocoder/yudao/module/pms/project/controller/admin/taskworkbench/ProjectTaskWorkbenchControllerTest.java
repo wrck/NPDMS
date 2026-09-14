@@ -211,6 +211,48 @@ class ProjectTaskWorkbenchControllerTest {
         org.junit.jupiter.api.Assertions.assertNotEquals(first.requestDigest(), second.requestDigest());
     }
 
+    @Test void approvalFormAndSelectedUsersReachTheCommandAndChangeItsIdempotencyDigest() {
+        TenantContextHolder.setTenantId(1L);
+        var user = new LoginUser(); user.setId(9L); user.setTenantId(1L);
+        SecurityFrameworkUtils.setLoginUser(user,new MockHttpServletRequest());
+        var lifecycle = mock(ProjectTaskLifecycleService.class);
+        var controller = new ProjectTaskWorkbenchController(mock(ProjectTaskQueryService.class),mock(ProjectTaskCommandService.class),
+                mock(ProjectTaskAssignmentService.class),lifecycle,mock(ProjectTaskProgressService.class),new MockEnvironment());
+        var request = new cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskActionReqVO();
+        request.setExecutionContractId(91L); request.setContractVersion(2);
+        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+                Map.of("reason","first input"),Map.of("review",java.util.List.of(8L))));
+        controller.actTask(11L,"approval","retry","3",request);
+        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+                Map.of("reason","changed input"),Map.of("review",java.util.List.of(9L))));
+        controller.actTask(11L,"approval","retry","3",request);
+        var captured = org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand.class);
+        verify(lifecycle,org.mockito.Mockito.times(2)).act(captured.capture(),any());
+        var commands = captured.getAllValues();
+        assertEquals(java.util.List.of(8L),commands.get(0).approval().selectedApprovers().get("review"));
+        assertEquals("first input",commands.get(0).approval().variables().get("reason"));
+        org.junit.jupiter.api.Assertions.assertNotEquals(commands.get(0).requestDigest(),commands.get(1).requestDigest());
+        assertEquals("retry",commands.get(1).idempotencyKey());
+    }
+
+    @Test void taskActionAccessLogDoesNotPersistApprovalFormArguments() {
+        var filter = new cn.iocoder.yudao.framework.apilog.core.filter.ApiAccessLogFilter(
+                new cn.iocoder.yudao.framework.web.config.WebProperties(),"test",mock(cn.iocoder.yudao.framework.common.biz.infra.logger.ApiAccessLogCommonApi.class));
+        var controller = new ProjectTaskWorkbenchController(mock(ProjectTaskQueryService.class),mock(ProjectTaskCommandService.class),
+                mock(ProjectTaskAssignmentService.class),mock(ProjectTaskLifecycleService.class),mock(ProjectTaskProgressService.class),new MockEnvironment());
+        var request = new MockHttpServletRequest("POST","/api/v1/pms/project-tasks/11/actions/approval");
+        cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils.setLoginUserType(
+                request,cn.iocoder.yudao.framework.common.enums.UserTypeEnum.ADMIN.getValue());
+        request.setAttribute(cn.iocoder.yudao.framework.apilog.core.interceptor.ApiAccessLogInterceptor.ATTRIBUTE_HANDLER_METHOD,
+                new org.springframework.web.method.HandlerMethod(controller,findMethod("actTask")));
+        var log = new cn.iocoder.yudao.framework.common.biz.infra.logger.dto.ApiAccessLogCreateReqDTO();
+        Boolean enabled = org.springframework.test.util.ReflectionTestUtils.invokeMethod(filter,"buildApiAccessLog",log,request,
+                java.time.LocalDateTime.now(),Map.of("input","private-query"),"{\"approval\":{\"variables\":{\"text\":\"private-form\"}}}",null);
+        assertEquals(Boolean.TRUE,enabled);
+        assertNull(log.getRequestParams()); assertNull(log.getResponseBody());
+        assertEquals(request.getRequestURI(),log.getRequestUrl());
+    }
+
     private Method findMethod(String name) {
         return java.util.Arrays.stream(ProjectTaskWorkbenchController.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(name)).findFirst().orElseThrow();

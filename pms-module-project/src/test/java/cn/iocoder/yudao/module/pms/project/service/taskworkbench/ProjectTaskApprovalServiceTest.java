@@ -25,11 +25,14 @@ class ProjectTaskApprovalServiceTest {
     @Test void startsFromFrozenBindingAndCurrentExecutionInsteadOfLegacyApprovalId() {
         var binding = binding(); binding.setApprovalInstanceId(123L);
         when(executions.inspect(any())).thenReturn(context(started));
-        service.start(7L,9L,21L,binding,1L);
+        var submission = new ProjectTaskApprovalApi.Submission(java.util.Map.of("comment","private form"), java.util.Map.of("review",java.util.List.of(2L)));
+        service.start(7L,9L,21L,binding,1L,"START:intent",submission);
         verify(owner).start(argThat(command -> command.scope().executionId().equals(61L)
                 && command.scope().contractId().equals(91L) && command.scope().definitionId().equals("review:1")
                 && command.scope().definitionKey().equals("review") && command.scope().startedAt().equals(started)
-                && command.execution().roundNo()==2 && command.actorId().equals(1L)));
+                && command.execution().roundNo()==2 && command.actorId().equals(1L)
+                && command.operationId().equals("START:intent") && command.variables().equals(submission.variables())
+                && command.selectedApprovers().equals(submission.selectedApprovers())));
     }
     @Test void missingOrFailedOwnerResultIsUnknownAndDoesNotAllowTaskClosure() {
         when(executions.inspect(any())).thenReturn(context(started));
@@ -51,5 +54,19 @@ class ProjectTaskApprovalServiceTest {
         when(executions.inspect(any())).thenReturn(context(null));
         assertDoesNotThrow(() -> service.requireMayCancel(7L,9L,21L,binding()));
         verifyNoInteractions(owner);
+    }
+    @Test void unstartedWorkbenchExposesFrozenRoutingWithoutStartingOrReadingAnApproval() {
+        when(executions.inspect(any())).thenReturn(context(null));
+        var view = service.view(7L,9L,21L,binding());
+        assertEquals("review:1",view.definitionId()); assertEquals(61L,view.executionId());
+        assertEquals("NOT_STARTED",view.current().status());
+        verifyNoInteractions(owner);
+    }
+    @Test void workbenchUsesCurrentOwnerInstanceAndDoesNotReturnFormValues() {
+        when(executions.inspect(any())).thenReturn(context(started));
+        var fact = new ProjectTaskApprovalApi.Fact(ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,"RUNNING","current-2","review:1",null);
+        when(owner.inspect(any())).thenReturn(fact);
+        assertEquals(fact,service.view(7L,9L,21L,binding()).current());
+        verify(owner,never()).start(any());
     }
 }

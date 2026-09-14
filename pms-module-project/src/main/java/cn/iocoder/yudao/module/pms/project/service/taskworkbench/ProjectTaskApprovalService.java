@@ -22,10 +22,23 @@ public class ProjectTaskApprovalService {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public ProjectTaskApprovalApi.Fact start(Long tenantId, Long projectId, Long taskId,
-                                             ProjectTaskExecutionContractDO binding, Long actorId) {
+            ProjectTaskExecutionContractDO binding, Long actorId, String operationId, ProjectTaskApprovalApi.Submission submission) {
         var context = executions.inspect(new ProjectTaskExecutionQuery(projectId, taskId, binding.getId()));
         return approvals.start(new ProjectTaskApprovalApi.Start(scope(tenantId, projectId, taskId, binding,
-                context.executionId(), context.startedAt()), context, actorId, Map.of(), Map.of()));
+                context.executionId(), context.startedAt()), context, actorId, operationId,
+                submission == null || submission.variables() == null ? Map.of() : submission.variables(),
+                submission == null || submission.selectedApprovers() == null ? Map.of() : submission.selectedApprovers()));
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectTaskApprovalApi.View view(Long tenantId, Long projectId, Long taskId, ProjectTaskExecutionContractDO binding) {
+        var parameters = JsonUtils.parseTree(binding.getBindingParameterSnapshot());
+        var definition = ApprovalWorkBindingSchema.read(parameters.path("approvalDefinitionKey").asText(null), parameters);
+        var context = executions.inspect(new ProjectTaskExecutionQuery(projectId, taskId, binding.getId()));
+        var fact = context.startedAt() == null
+                ? new ProjectTaskApprovalApi.Fact(ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,"NOT_STARTED",null,definition.id(),"APPROVAL_NOT_STARTED")
+                : inspect(tenantId, projectId, taskId, binding, context.executionId(), context.startedAt());
+        return new ProjectTaskApprovalApi.View(definition.key(), definition.id(), context.executionId(), fact);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

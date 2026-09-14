@@ -71,7 +71,7 @@ public class ProjectTaskLifecycleService {
     @jakarta.annotation.Resource
     private ProjectTaskApprovalService taskApprovals;
 
-    private static final Set<String> ACTIONS = Set.of("START", "SUBMIT", "COMPLETE", "CANCEL");
+    private static final Set<String> ACTIONS = Set.of("START", "SUBMIT", "COMPLETE", "CANCEL", "APPROVAL");
     private static final String COMMAND_SCOPE = "POST:/api/v1/pms/project-tasks/{id}/actions/{action}";
 
     private final ProjectTaskRuntimeMapper taskMapper;
@@ -132,6 +132,15 @@ public class ProjectTaskLifecycleService {
         if (!Objects.equals(task.getVersion(), command.expectedTaskVersion())) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
+        ProjectTaskExecutionContractDO contract = requireCurrentContract(task, actor.tenantId());
+        if ("APPROVAL".equals(contract.getWorkBindingTypeCode()) && Set.of("START", "APPROVAL").contains(action)) {
+            if (!Objects.equals(command.executionContractId(), contract.getId())
+                    || !Objects.equals(command.contractVersion(), contract.getContractVersion()))
+                throw exception(PROJECT_TASK_VERSION_CONFLICT);
+        } else if (command.approval() != null || "APPROVAL".equals(action)) {
+            throw exception(PROJECT_TASK_COMMAND_INVALID);
+        }
+        if ("APPROVAL".equals(action)) return submitApproval(command, actor, project, task, contract, factsRef);
         TaskStateTransitionDO transition;
         // 指派命令使用相同的项目→任务锁顺序；锁内事实决定是否允许省略指派前置。
         boolean designated = "START".equals(action) && assignmentMapper.selectCurrentForUpdate(
@@ -143,7 +152,6 @@ public class ProjectTaskLifecycleService {
         } catch (IllegalArgumentException ex) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
-        ProjectTaskExecutionContractDO contract = requireCurrentContract(task, actor.tenantId());
         boolean acceptanceContract = isAcceptanceContract(contract);
         if (acceptanceContract) {
             requireAcceptanceActionAccess(action, task, actor);
@@ -177,9 +185,28 @@ public class ProjectTaskLifecycleService {
         var result = applyTransition(project, task, contract, action, transition, completion, actor,
                 occurredAt, command.reason());
         if ("START".equals(action) && "APPROVAL".equals(contract.getWorkBindingTypeCode()))
-            taskApprovals.start(actor.tenantId(), project.getId(), task.getId(), contract, actor.actorId());
+            taskApprovals.start(actor.tenantId(), project.getId(), task.getId(), contract, actor.actorId(),
+                    "START:" + command.idempotencyKey(), command.approval());
         factsRef.set(ActionFacts.changed(task, contract, completion, occurredAt, transitionSource));
         return result;
+    }
+
+    /** A business submission inside an already-started task, not a second task START/state transition. */
+    private TaskCommandResult submitApproval(TaskActionCommand command, TaskWorkbenchActor actor,
+            ProjectMasterDO project, ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract,
+            AtomicReference<ActionFacts> factsRef) {
+        if (!"IN_PROGRESS".equals(task.getStatus())) throw exception(PROJECT_TASK_COMMAND_INVALID);
+        var inspection = nativeProvider.inspect(new TaskBindingInspectionQuery(actor.tenantId(), task.getId(),
+                actor.actorId(), actor.correlationId()));
+        if (inspection.recoverableError() != null || !inspection.allowedActions().contains("APPROVAL"))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var now = LocalDateTime.now();
+        requireCurrentSubject("START", task, actor, now, false);
+        var receipt = taskApprovals.start(actor.tenantId(), project.getId(), task.getId(), contract, actor.actorId(),
+                "APPROVAL:" + command.idempotencyKey(), command.approval());
+        var facts = new CompletionDecision(true, List.of(), null, null, now, Map.of("approval", receipt));
+        factsRef.set(ActionFacts.evaluated(task, contract, facts, now));
+        return new TaskCommandResult(task.getId(), task.getVersion(), project.getTaskTreeVersion(), task.getStatus(), "NEW");
     }
 
     private TaskCommandResult applyTransition(ProjectMasterDO project, ProjectTaskInstanceDO task,
@@ -525,7 +552,10 @@ public class ProjectTaskLifecycleService {
         Map<String, Object> detail = new LinkedHashMap<>();
         if (command != null && command.taskId() != null) detail.put("projectTaskId", command.taskId());
         if (command != null && command.actionCode() != null) detail.put("action", command.actionCode());
+        boolean approvalSubmission = command != null && (command.approval() != null
+                || "APPROVAL".equalsIgnoreCase(command.actionCode()));
         detail.put("failureCode", ex instanceof ServiceException service ? String.valueOf(service.getCode())
+                : approvalSubmission ? "TASK_APPROVAL_ACTION_FAILED"
                 : ex.getMessage() == null ? "PROJECT_TASK_ACTION_FAILED" : ex.getMessage());
         operationAuditApi.record(actor.tenantId(), actor.actorId(), actor.correlationId(),
                 "PROJECT_TASK_ACTION", "ProjectTask",

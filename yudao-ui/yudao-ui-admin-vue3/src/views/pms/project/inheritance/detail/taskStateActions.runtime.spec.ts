@@ -7,10 +7,10 @@ const messages = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), prompt:
 vi.mock('@/api/pms/project/task-workbench', () => api)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => messages }))
 const apps: { unmount: () => void }[] = []
-const render = async (fact: string | undefined = 'owner-vector', beforeAction = async () => true) => {
+const render = async (fact: string | undefined = 'owner-vector', beforeAction = async () => true, bindingType = 'BUSINESS_OBJECT') => {
   const component = ref<any>()
   const workbench = { task: { taskId: '2098262374805766146', version: 3 }, executionContractId: 91, contractVersion: 2,
-    allowedActions: ['START', 'COMPLETE'] }
+    allowedActions: ['START', 'COMPLETE'], bindingType }
   const changed = vi.fn()
   const { app } = mount(defineComponent({ setup: () => () => h(Actions, { ref: component, workbench,
     businessBound: true, businessFactVersion: fact, beforeAction, onChanged: changed } as any) }))
@@ -30,6 +30,12 @@ it('blocks missing business facts and the Owner leave refusal', async () => {
   const missing = await render(''); await missing.state().execute('COMPLETE')
   const dirty = await render('owner-vector', async () => false); await dirty.state().execute('START')
   expect(api.executeTaskAction).not.toHaveBeenCalled()
+})
+it('starts approval tasks with the frozen contract identity instead of an unversioned request', async () => {
+  const view = await render('owner-vector', async () => true, 'APPROVAL'); await view.state().execute('START')
+  expect(api.executeTaskAction).toHaveBeenCalledWith('2098262374805766146', 'START', expect.objectContaining({
+    executionContractId: 91, contractVersion: 2, expectedBusinessFactVersion: undefined
+  }), 3, expect.any(String))
 })
 it('retries an uncertain response with the same intent key', async () => {
   api.executeTaskAction.mockRejectedValueOnce(new Error('response lost'))
