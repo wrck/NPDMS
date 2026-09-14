@@ -50,15 +50,15 @@ public class FlowableProjectStageGateProvider
     private static final String PROCESS_STATUS = "PROCESS_STATUS";
     private static final String PROCESS_START_USER_ID = "PROCESS_START_USER_ID";
     private static final String SKIP_EXPRESSION_ENABLED = "_FLOWABLE_SKIP_EXPRESSION_ENABLED";
-    private static final String VAR_TENANT_ID = "pmsGateTenantId";
-    private static final String VAR_PROJECT_ID = "pmsGateProjectId";
+    static final String VAR_TENANT_ID = "pmsGateTenantId";
+    static final String VAR_PROJECT_ID = "pmsGateProjectId";
     private static final String VAR_STAGE_CODE = "pmsGateStageCode";
     private static final String VAR_GATE_ID = "pmsGateId";
-    private static final String VAR_GATE_REFERENCE_ID = "pmsGateReferenceId";
+    static final String VAR_GATE_REFERENCE_ID = "pmsGateReferenceId";
     private static final String VAR_REF_TYPE = "pmsGateRefType";
     private static final String VAR_REF_CODE = "pmsGateRefCode";
-    private static final String VAR_ACTOR_USER_ID = "pmsGateActorUserId";
-    private static final String VAR_DEFINITION_ID = "pmsGateProcessDefinitionId";
+    static final String VAR_ACTOR_USER_ID = "pmsGateActorUserId";
+    static final String VAR_DEFINITION_ID = "pmsGateProcessDefinitionId";
     private static final String VAR_OPERATION_ID = "pmsGateOperationId";
     private static final String VAR_REQUEST_DIGEST = "pmsGateRequestDigest";
     private static final Set<String> RESERVED_VARIABLES = Set.of(
@@ -362,7 +362,7 @@ public class FlowableProjectStageGateProvider
         return "APPROVAL".equals(refType) ? "APPROVAL" : "PROCESS";
     }
 
-    private static String businessKey(Long gateReferenceId) {
+    static String businessKey(Long gateReferenceId) {
         return "PROJECT_STAGE_GATE:" + gateReferenceId;
     }
 

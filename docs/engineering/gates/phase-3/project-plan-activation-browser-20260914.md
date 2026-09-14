@@ -465,3 +465,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 同时修正 ProjectWorkBindingFactApiImpl 阶段事实复验调用“阶段必须可写”的错误边界：现在按项目、阶段顺序锁定并核对版本，允许已结束阶段的只读事实复验。真正的 Owner 写入口仍通过 RequirementAnalysisExecutionBinding.lockCurrent 和 ProjectBusinessExecutionApi/ProjectNodeExecutionApi 校验有效办理上下文；未开放已结束阶段写入，未新增表、SQL 或 Yudao 接口。
 - Maven 44855、94663 均 exit 0。最终十套件 **100 项通过，零失败/错误/跳过**：需求分析事实 10、业务对象 16、动态命令 1、阶段命令 11、执行绑定 14、工程事件 2、阶段绑定事实 6、任务绑定事实 15、阶段执行上下文 13、任务执行上下文 12。覆盖阶段身份与空资产版本、明确任务来源、缺失/错误来源拒绝、阶段版本漂移、历史指针、原权限、跨租户、终态不可办理及新轮次草稿保留已完成来源。
 - 本步测试使用 mocks/已有单元 fixture，不连接共享数据库。两个 Mapper 验收测试仅适配移除的无用构造依赖并参与测试编译，未运行它们的 MySQL 验收；不能将本次结果描述为生产 SQL、联合事务或浏览器验收。git diff --check 与提交前自审通过；未推送、部署或切换 59280，完整专项仍待后续闭环验收。
+
+## 2026-09-15：审批变化的同事务规则重评事件
+
+- 在 PMS 集成模块添加 FlowableProjectRuleEventListener，复用现有 BPM 对 FlowableEventListener Bean 的注册机制，监听启动、完成、取消及特殊结束事件；通过已有 PlatformBusinessEventApi 在引擎事务内追加专用规则重评事件。消息仅携带项目、租户、操作人和关联身份，不写审批结果或业务字段；消费时仍读取原模块已提交事实，不把流程事件成功解释为审批通过。
+- 复用审批适配器的受保护身份变量及业务键，校验流程定义、项目和租户；与项目无关的流程不发布事件。Outbox 写入失败向上传播并回滚引擎操作；租户上下文使用现有 TenantUtils 临时恢复，结束后还原。没有修改 Yudao 接口、原审批状态写入、权限、数据库结构或重试策略。事件机制参考 [Flowable 官方监听器 API](https://www.flowable.com/open-source/docs/all-javadocs/org/flowable/engine/delegate/event/AbstractFlowableEngineEventListener.html)。
+- 首轮真实引擎测试发现启动事件漏发：本地 Flowable 8 的 ProcessInstanceHelper 将首个子执行对象放入 PROCESS_STARTED，其业务键为空。现通过 DelegateExecution 的流程实例 ID 查询根实例及变量；修正过程中一次编译发现事件接口本身没有 getProcessInstanceId，已按实际 DelegateExecution API 更正，没有放宽业务断言。
+- Maven 定向会话 91659 exit 0：监听器 7 项、既有审批适配器 5 项，共 **12 项通过，零失败/错误/跳过**。新测试使用真实 Flowable 8、Spring 事务和唯一命名的隔离 H2；事件接口使用同事务 JDBC 测试账本。覆盖审批通过/驳回的不同事实结果、取消、启动和完成的事件失败回滚、重试、幂等重放、无关流程及无请求上下文时的租户恢复。不加载应用运行配置，不连接共享数据库；不宣称覆盖生产 Outbox SQL、完整 BPM 授权或浏览器验收。
+- 按“全部提交”收口本次代码、测试和验证记录；运行 PID 与 Office 临时锁文件不纳入代码提交。未推送、部署或切换 59280，完整联合业务验收与其余专项计划仍未完成。
