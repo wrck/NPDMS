@@ -64,7 +64,6 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_ADVANCE_PERSISTENCE_FAILED;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_GATE_DEPENDENCY_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_GATE_UNSATISFIED;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_PROCESS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
@@ -93,6 +92,7 @@ public class ProjectStageAdvanceApplicationService {
     private final ProjectStageSnapshotMapper snapshotMapper;
     private final ProjectStageSnapshotRepository snapshotRepository;
     private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver runtimeGraphResolver;
+    private final ProjectStageGateProcessContextResolver processContexts;
 
     @Transactional(rollbackFor = Exception.class)
     public List<ProjectStageGateProcessDefinitionFact> listDefinitions(
@@ -100,7 +100,7 @@ public class ProjectStageAdvanceApplicationService {
         requireUpdatePermission(actor);
         ProjectMasterDO project = requireProject(projectId, actor.tenantId());
         authorizeManageRead(project, actor);
-        GateReferenceContext reference = requireProcessReference(project, gateReferenceId);
+        var reference = processContexts.resolve(project, gateReferenceId);
         return processOwnerApi.listSelectableDefinitions(new ProjectStageGateProcessDefinitionSelectionQuery(
                 actor.tenantId(), projectId, gateReferenceId, reference.reference().getRefCode()));
     }
@@ -132,13 +132,8 @@ public class ProjectStageAdvanceApplicationService {
     private ProjectStageGateProcessStartFact startProcessOnce(
             Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
             String selectedProcessDefinitionId, String idempotencyKey, String requestDigest, Actor actor) {
-        LockedContext context = lockContext(projectId, expectedProjectVersion, null, actor, false);
-        GateReferenceContext selected = context.references().stream()
-                .filter(item -> Objects.equals(item.reference().getId(), gateReferenceId))
-                .findFirst().orElseThrow(() -> exception(PROJECT_STAGE_PROCESS_INVALID));
-        if (!ProjectStageReadinessService.isProcess(selected.reference())) {
-            throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        }
+        var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
+        var selected = processContexts.resolve(context.project(), gateReferenceId);
         return processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
                 actor.tenantId(), actor.actorUserId(), projectId, selected.gate().getStageCode(),
                 selected.gate().getId(), gateReferenceId, selected.reference().getRefType(),
@@ -169,7 +164,7 @@ public class ProjectStageAdvanceApplicationService {
 
     private ProjectStageAdvanceResult advanceOnce(ProjectStageAdvanceCommand command, Actor actor) {
         LockedContext context = lockContext(command.projectId(), command.expectedProjectVersion(),
-                command.expectedTreeVersion(), actor, true);
+                command.expectedTreeVersion(), actor);
         if (!Objects.equals(context.project().getCurrentStage(), command.expectedCurrentStage())) {
             throw exception(PROJECT_VERSION_CONFLICT);
         }
@@ -242,8 +237,10 @@ public class ProjectStageAdvanceApplicationService {
                 snapshot.getId(), evaluationJson, operationId, operatedAt, false);
     }
 
-    private LockedContext lockContext(Long projectId, Integer expectedProjectVersion,
-                                      Long expectedTreeVersion, Actor actor, boolean advancing) {
+    private record ManagedProject(ProjectMasterDO project, long treeVersion) { }
+
+    private ManagedProject lockManagedProject(Long projectId, Integer expectedProjectVersion,
+                                               Long expectedTreeVersion, Actor actor) {
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) throw exception(PROJECT_NOT_EXISTS);
         if (!Objects.equals(project.getVersion(), expectedProjectVersion)) throw exception(PROJECT_VERSION_CONFLICT);
@@ -256,10 +253,15 @@ public class ProjectStageAdvanceApplicationService {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
         requireCurrentManager(project, actor);
-        if (advancing) {
-            String assignmentReason = ProjectStageReadinessService.s0AssignmentUnmetReason(project, memberMapper, true);
-            if (assignmentReason != null) throw exception(PROJECT_STAGE_GATE_UNSATISFIED, assignmentReason);
-        }
+        return new ManagedProject(project, treeVersion);
+    }
+
+    private LockedContext lockContext(Long projectId, Integer expectedProjectVersion,
+                                      Long expectedTreeVersion, Actor actor) {
+        var managed = lockManagedProject(projectId, expectedProjectVersion, expectedTreeVersion, actor);
+        var project = managed.project();
+        String assignmentReason = ProjectStageReadinessService.s0AssignmentUnmetReason(project, memberMapper, true);
+        if (assignmentReason != null) throw exception(PROJECT_STAGE_GATE_UNSATISFIED, assignmentReason);
         var graph = runtimeGraphResolver.resolve(project);
         ProjectStageReadinessService.StagePair pair = new ProjectStageReadinessService.StagePair(graph.current(), graph.target());
         List<ProjectGateInstanceDO> gates = graph.gates();
@@ -268,7 +270,7 @@ public class ProjectStageAdvanceApplicationService {
         List<GateReferenceContext> contexts = references.stream()
                 .map(ref -> new GateReferenceContext(gateById.get(ref.getGateId()), ref)).toList();
         if (contexts.stream().anyMatch(it -> it.gate() == null)) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "Gate Reference身份不一致");
-        return new LockedContext(project, pair, gates, contexts, treeVersion, graph);
+        return new LockedContext(project, pair, gates, contexts, managed.treeVersion(), graph);
     }
 
     private void authorizeManageRead(ProjectMasterDO project, Actor actor) {
@@ -294,18 +296,6 @@ public class ProjectStageAdvanceApplicationService {
         List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
                 new ProjectParticipantFactLockQuery(actor.tenantId(), project.getId(), actor.actorUserId(), Set.of(PROJECT_MANAGER)));
         if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
-    }
-
-    private GateReferenceContext requireProcessReference(ProjectMasterDO project, Long referenceId) {
-        var graph = runtimeGraphResolver.inspect(project);
-        List<ProjectGateInstanceDO> gates = graph.gates();
-        if (gates.isEmpty()) throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        List<ProjectGateReferenceInstanceDO> refs = graph.references();
-        Map<Long, ProjectGateInstanceDO> byId = gates.stream().collect(Collectors.toMap(ProjectGateInstanceDO::getId, it -> it));
-        ProjectGateReferenceInstanceDO ref = refs.stream().filter(it -> Objects.equals(it.getId(), referenceId)).findFirst()
-                .orElseThrow(() -> exception(PROJECT_STAGE_PROCESS_INVALID));
-        if (!ProjectStageReadinessService.isProcess(ref)) throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        return new GateReferenceContext(byId.get(ref.getGateId()), ref);
     }
 
     private ProjectStageGateFactQuery factQuery(LockedContext context, GateReferenceContext item) {
@@ -398,7 +388,7 @@ public class ProjectStageAdvanceApplicationService {
     }
 
     private ProjectMasterDO requireProject(Long projectId, Long tenantId) {
-        ProjectMasterDO project = projectMapper.selectById(projectId);
+        ProjectMasterDO project = projectMapper.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), tenantId)) throw exception(PROJECT_NOT_EXISTS);
         return project;
     }

@@ -75,6 +75,7 @@ class ProjectStageAdvanceApplicationServiceTest {
     private ProjectStageGateProcessOwnerApi processOwnerApi;
     private ProjectParticipantFactApi participantFactApi;
     private ProjectStageAdvanceApplicationService service;
+    private ProjectStageGateProcessContextResolver processContexts;
     private PermissionApi permissionApi;
     private AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts;
 
@@ -108,10 +109,11 @@ class ProjectStageAdvanceApplicationServiceTest {
                         mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
         processOwnerApi = mock(ProjectStageGateProcessOwnerApi.class);
         participantFactApi = mock(ProjectParticipantFactApi.class);
+        processContexts = mock(ProjectStageGateProcessContextResolver.class);
         service = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, projectScopeApi,
                 participantFactApi, processOwnerApi, providerRegistry,
                 projectMapper, stageMapper, gateMapper, referenceMapper, memberMapper,
-                snapshotMapper, snapshotRepository, graphResolver);
+                snapshotMapper, snapshotRepository, graphResolver, processContexts);
 
         when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(true);
         ProjectScopeResult scope = new ProjectScopeResult(PROJECT_ID, 3L, Set.of(PROJECT_ID), Set.of());
@@ -264,6 +266,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 .setGateCode("G-S4-ENTRY").setGateType("ENTRY").setStageCode("S4").setStatus("PENDING").setVersion(0);
         var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
                 .setRefType("PROCESS").setRefCode("entry-process").setVersion(0);
+        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(entry, reference));
         var stages = graphMapper.selectStagesForUpdate(null);
         when(graphMapper.selectStages(any())).thenReturn(stages);
         when(graphMapper.selectGates(any())).thenReturn(List.of(entry));
@@ -288,6 +291,38 @@ class ProjectStageAdvanceApplicationServiceTest {
                 "S4".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
         verify(stageMapper, never()).updateStatusIfMatch(any());
         verify(projectMapper, never()).advanceStageIfMatch(any());
+    }
+
+    @Test
+    void parallelStageProcessStartDoesNotResolveTransitionsOrCompletionRules() {
+        stubLockedContext(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE);
+        var exit = new ProjectGateInstanceDO().setId(32L).setProjectId(PROJECT_ID)
+                .setGateCode("G-PARALLEL-EXIT").setGateType("EXIT").setStageCode("PARALLEL").setStatus("PENDING").setVersion(0);
+        var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
+                .setRefType("APPROVAL").setRefCode("parallel-approval").setVersion(0);
+        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(exit, reference));
+        // Any access to the obsolete transition resolver fails, independently of its mocked rule outcomes.
+        when(graphMapper.selectStagesForUpdate(any())).thenThrow(new IllegalStateException("single-stage graph must not be read"));
+        doAnswer(invocation -> {
+            Supplier<ProjectStageGateProcessStartFact> operation = invocation.getArgument(3);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
+        }).when(commandExecutionApi).execute(any(), anyString(), eq(ProjectStageGateProcessStartFact.class), any(), any());
+        when(processOwnerApi.startProcess(any())).thenReturn(new ProjectStageGateProcessStartFact(
+                "pi-parallel", "def-parallel", "parallel-approval", "PROJECT_STAGE_GATE:42", "STARTED"));
+        var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "parallel");
+        service.listDefinitions(PROJECT_ID, 42L, actor);
+        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, "parallel", "digest", actor).outcome());
+        verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
+                "PARALLEL".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
+        verify(providerRegistry, never()).lockAndRevalidate(anyString(), any());
+        verify(stageMapper, never()).updateStatusIfMatch(any());
+        verify(projectMapper, never()).advanceStageIfMatch(any());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> service.startProcess(PROJECT_ID, 42L, 3, null, "stale", "digest", actor));
+        when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(false);
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> service.startProcess(PROJECT_ID, 42L, 4, null, "forbidden", "digest", actor));
+        verify(processOwnerApi, org.mockito.Mockito.times(1)).startProcess(any());
     }
 
     @Test

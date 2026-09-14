@@ -135,7 +135,8 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
         stageAdvanceService = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, scopeApi,
                 mock(ProjectParticipantFactApi.class), mock(ProjectStageGateProcessOwnerApi.class), providerRegistry,
                 projectMasterMapper, stageMapper, gateMapper, referenceMapper, memberMapper, snapshotMapper,
-                snapshotRepository, runtimeGraphResolver);
+                snapshotRepository, runtimeGraphResolver,
+                mock(cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProcessContextResolver.class));
     }
 
     @org.junit.jupiter.api.AfterEach
