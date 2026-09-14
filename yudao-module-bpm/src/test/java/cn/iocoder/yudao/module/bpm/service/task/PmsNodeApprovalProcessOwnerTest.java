@@ -92,6 +92,56 @@ class PmsNodeApprovalProcessOwnerTest {
         });
     }
 
+    private StageStart stageCommand(Scope stage, String operation) {
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
+                9L,1,21L,2,91L,1,51L,stage.executionId(),1,1,true);
+        when(executions.lockAndRevalidateStage(execution)).thenReturn(execution);
+        return new StageStart(stage, execution, 1L, operation, Map.of("formText","stage-private"), Map.of());
+    }
+
+    @Test void stageApprovalReusesOriginalBpmAndKeepsItsIdentitySeparateFromATaskWithTheSameId() {
+        var task = start();
+        var stage = new Scope(NodeKind.STAGE,7L,9L,21L,scope.executionId(),91L,"task-approval",pinned,scope.startedAt());
+        var command = stageCommand(stage,"stage-first");
+        var first = tx.execute(ignored -> owner.startStage(command));
+        assertEquals("RUNNING", first.status()); assertEquals(pinned,first.definitionId());
+        assertNotEquals(task.processInstanceId(), first.processInstanceId());
+        assertEquals(first,tx.execute(ignored -> owner.startStage(command)));
+        end(first.processInstanceId(),2);
+        assertEquals(Outcome.SATISFIED,tx.execute(ignored -> owner.inspect(stage)).outcome());
+        assertEquals("RUNNING",fact().status());
+        var process = engine.getHistoryService().createHistoricProcessInstanceQuery().processInstanceId(first.processInstanceId())
+                .includeProcessVariables().singleResult();
+        assertEquals("PROJECT_STAGE_APPROVAL:" + scope.executionId(),process.getBusinessKey());
+        assertEquals(21L,process.getProcessVariables().get("pmsStageId"));
+        assertFalse(process.getProcessVariables().containsKey(VAR_TASK));
+        assertFalse(first.toString().contains("stage-private"));
+        verify(definitions,times(2)).canUserStartProcessDefinition(any(),eq(1L));
+    }
+
+    @Test void stageReworkAndRoundStartTimeCannotReuseAnOldApprovedResult() {
+        var stage = new Scope(NodeKind.STAGE,7L,9L,21L,scope.executionId(),91L,"task-approval",pinned,scope.startedAt());
+        var command = stageCommand(stage,"first");
+        var first = tx.execute(ignored -> owner.startStage(command)); end(first.processInstanceId(),2);
+        var next = new Scope(NodeKind.STAGE,7L,9L,21L,ids.incrementAndGet(),91L,"task-approval",pinned,scope.startedAt());
+        assertEquals("NOT_STARTED",tx.execute(ignored -> owner.inspect(next)).status());
+        var future = new Scope(NodeKind.STAGE,7L,9L,21L,stage.executionId(),91L,"task-approval",pinned,LocalDateTime.now().plusDays(1));
+        assertEquals("STAGE_APPROVAL_ROUND_EVIDENCE_UNAVAILABLE",tx.execute(ignored -> owner.inspect(future)).reason());
+        assertEquals(Outcome.SATISFIED,tx.execute(ignored -> owner.inspect(stage)).outcome());
+    }
+
+    @Test void stageStartRetainsOriginalPermissionAndRejectsStaleNodeContext() {
+        var stage = new Scope(NodeKind.STAGE,7L,9L,21L,scope.executionId(),91L,"task-approval",pinned,scope.startedAt());
+        var command = stageCommand(stage,"first");
+        when(definitions.canUserStartProcessDefinition(any(),eq(1L))).thenReturn(false);
+        assertThrows(RuntimeException.class,() -> tx.execute(ignored -> owner.startStage(command)));
+        assertEquals("NOT_STARTED",tx.execute(ignored -> owner.inspect(stage)).status());
+        when(definitions.canUserStartProcessDefinition(any(),eq(1L))).thenReturn(true);
+        when(executions.lockAndRevalidateStage(command.execution())).thenThrow(new IllegalStateException("stale round"));
+        assertThrows(IllegalStateException.class,() -> tx.execute(ignored -> owner.startStage(command)));
+        assertEquals("NOT_STARTED",tx.execute(ignored -> owner.inspect(stage)).status());
+    }
+
     @Test void startsPinnedDefinitionThroughOriginalBpmAndReplaysTheSameRound() {
         var first = start();
         assertEquals(Outcome.NOT_SATISFIED, first.outcome()); assertEquals("RUNNING", first.status());

@@ -28,6 +28,7 @@ public class ProjectStageBusinessQueryService {
     private final BusinessViewQueryApi views;
     private final List<StageBusinessViewProvider> providers;
     private final ProjectNodeExecutionApi executions;
+    private final ProjectStageApprovalService approvals;
 
     public StageBusinessContext getContext(Long projectId, String stageCode, ProjectAccessActor actor) {
         // The existing project query is the scope authority, including super-admin and tenant rules.
@@ -60,7 +61,16 @@ public class ProjectStageBusinessQueryService {
                 return unavailable(projectId, stageCode, stage, contract, "STAGE_BINDING_SNAPSHOT_MISMATCH");
             if ("STAGE_NATIVE".equals(contract.getBindingType())) {
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
-                        contract.getBindingVersion(), contract.getBindingType(), null, null, Set.of(), true, null, null);
+                        contract.getBindingVersion(), contract.getBindingType(), null, null, Set.of(), true, null, null, null);
+            }
+            if ("APPROVAL".equals(contract.getBindingType())) {
+                var execution = executions.inspectStage(new ProjectStageExecutionQuery(projectId, stage.getId(), contract.getId()));
+                var approval = approvals.view(actor.tenantId(), execution, binding);
+                // Approval routing is independent of business-page registration. BPM retains per-operation authorization.
+                return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
+                        contract.getBindingVersion(), contract.getBindingType(), null, null, Set.of("QUERY"), true,
+                        approval.current().outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN
+                                ? approval.current().reason() : null, execution, approval);
             }
             if (binding == null || binding.getBusinessViewSnapshot() == null)
                 return unavailable(projectId, stageCode, stage, contract, "VIEW_NOT_FROZEN");
@@ -97,7 +107,7 @@ public class ProjectStageBusinessQueryService {
                     || execution == null || !execution.writable();
             return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(), contract.getBindingVersion(),
                     contract.getBindingType(), strategy, view, readonly ? Set.of("QUERY") : result.allowedActions(), readonly,
-                    execution == null && "ACTIVE".equals(stage.getStatus()) ? "STAGE_EXECUTION_UNAVAILABLE" : null, execution);
+                    execution == null && "ACTIVE".equals(stage.getStatus()) ? "STAGE_EXECUTION_UNAVAILABLE" : null, execution, null);
         } catch (RuntimeException unavailable) {
             return unavailable(projectId, stageCode, stage, contract, "STAGE_BINDING_UNAVAILABLE");
         }
@@ -124,6 +134,6 @@ public class ProjectStageBusinessQueryService {
             ProjectStageExecutionContractDO contract, String reason) {
         return new StageBusinessContext(projectId, stage == null ? null : stage.getId(), code,
                 contract == null ? null : contract.getId(), contract == null ? null : contract.getBindingVersion(),
-                contract == null ? null : contract.getBindingType(), null, null, Set.of(), true, reason, null);
+                contract == null ? null : contract.getBindingType(), null, null, Set.of(), true, reason, null, null);
     }
 }

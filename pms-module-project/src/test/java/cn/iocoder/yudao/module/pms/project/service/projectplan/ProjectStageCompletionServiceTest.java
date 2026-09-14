@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnap
 import cn.iocoder.yudao.module.pms.project.service.rule.*;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProviderRegistry;
+import cn.iocoder.yudao.module.pms.project.service.stagebusiness.ProjectStageApprovalService;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi;
 import org.junit.jupiter.api.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +33,7 @@ class ProjectStageCompletionServiceTest {
     final ProjectStageInstanceMapper stages = mock(ProjectStageInstanceMapper.class);
     final ProjectGateReferenceInstanceMapper references = mock(ProjectGateReferenceInstanceMapper.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
+    final ProjectNodeApprovalApi approvals = mock(ProjectNodeApprovalApi.class);
     final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi nodeContexts = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     final cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService business = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService.class);
     final ProjectRuleCompiler compiler = new ProjectRuleCompiler();
@@ -50,6 +53,8 @@ class ProjectStageCompletionServiceTest {
         when(graph.selectTasksForUpdate(any())).thenReturn(List.of()); when(graph.selectGatesForUpdate(any())).thenReturn(List.of());
         round = new ProjectNodeExecutionDO(); round.setId(31L); round.setPlanVersionId(21L); round.setNodeKey("stage:discovery");
         round.setNodeInstanceId(11L); round.setNodeKind("STAGE"); round.setStatus("ACTIVE"); round.setRoundNo(1); round.setVersion(1);
+        round.setProjectId(9L); round.setTenantId(7L); round.setCurrentMarker(1);
+        when(executions.selectById(31L)).thenReturn(round);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         var definition = new TemplateExecutionSnapshot.StageContract(); definition.setNodeKey(round.getNodeKey()); definition.setCode("DISCOVERY");
         var binding = new TemplateExecutionSnapshot.BindingContract(); binding.setType("STAGE_NATIVE"); definition.setBinding(binding);
@@ -57,9 +62,79 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}")));
         plan = new ProjectPlanVersionDO(); plan.setId(21L); refreshSnapshot(); when(plans.selectEffective(any())).thenReturn(plan);
         service = new ProjectStageCompletionService(projects, plans, executions, graph, stages, references, engine.evaluator(), compiler,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes,
+                new ProjectStageApprovalService(executions, approvals));
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
+
+    private void approvalBinding() {
+        var binding = snapshot.getStages().getFirst().getBinding();
+        binding.setType("APPROVAL"); binding.setApprovalDefinitionKey("review");
+        binding.setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"review:1\"}"));
+        round.setContractId(41L); round.setStartedAt(LocalDateTime.of(2026,9,15,9,0));
+        snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
+        refreshSnapshot();
+        when(nodeContexts.inspectStage(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
+                9L,1,11L,1,41L,1,21L,31L,1,1,true));
+    }
+
+    @Test void directApprovalRequiresActualCurrentRoundResultBeforeConstantRules() {
+        approvalBinding();
+        for (String status : List.of("NOT_STARTED", "RUNNING", "REJECTED", "CANCELLED")) {
+            when(approvals.inspect(any())).thenReturn(new ProjectNodeApprovalApi.Fact(
+                    ProjectNodeApprovalApi.Outcome.NOT_SATISFIED, status, "pi", "review:1", null));
+            var result = service.completeStage(9L,11L,1L,"approval");
+            assertEquals(0, result.completed()); assertFalse(result.unknown());
+        }
+        when(approvals.inspect(any())).thenReturn(ProjectNodeApprovalApi.Fact.unknown("missing evidence"));
+        assertTrue(service.completeStage(9L,11L,1L,"unknown").unknown());
+        when(approvals.inspect(any())).thenThrow(new IllegalStateException("owner unavailable"));
+        assertTrue(service.completeStage(9L,11L,1L,"unavailable").unknown());
+        verifyNoInteractions(business, stages, audit);
+    }
+
+    @Test void approvedStageStillRequiresCompletionExitAndFinishedChildrenThenFreezesApprovalEvidence() {
+        approvalBinding();
+        var approved = new ProjectNodeApprovalApi.Fact(ProjectNodeApprovalApi.Outcome.SATISFIED,"APPROVED","pi","review:1",null);
+        when(approvals.inspect(any())).thenReturn(approved);
+        snapshot.getStages().getFirst().setExitRuleKey("exit");
+        snapshot.getRulePrograms().put("exit", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
+        refreshSnapshot();
+        assertEquals(0, service.completeStage(9L,11L,1L,"exit").completed());
+        snapshot.getStages().getFirst().setExitRuleKey(null); refreshSnapshot();
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setStageCode("DISCOVERY").setStatus("IN_PROGRESS")));
+        assertEquals(0, service.completeStage(9L,11L,1L,"children").completed());
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1,service.completeStage(9L,11L,1L,"completed").completed());
+        verify(executions).finishIfActive(argThat(update -> {
+            var evidence = JsonUtils.parseObject(update.resultSnapshot(), cn.iocoder.yudao.module.pms.project.domain.rule.StageCompletionEvidence.class);
+            return approved.equals(evidence.approval()) && evidence.executionId().equals(31L)
+                    && evidence.planVersionId().equals(21L) && evidence.businessResults().isEmpty();
+        }));
+        assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
+
+    @Test void approvalWithoutStartedRoundDoesNotReadAnOldApprovedProcess() {
+        approvalBinding(); round.setStartedAt(null);
+        assertEquals(0,service.completeStage(9L,11L,1L,"not-started").completed());
+        verifyNoInteractions(approvals, business, stages, audit);
+    }
+
+    @Test void approvedStageCannotBypassFalseCompletionOrAnUnknownConditionUnderNot() {
+        approvalBinding();
+        when(approvals.inspect(any())).thenReturn(new ProjectNodeApprovalApi.Fact(
+                ProjectNodeApprovalApi.Outcome.SATISFIED,"APPROVED","pi","review:1",null));
+        snapshot.getRulePrograms().put("complete",compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
+        refreshSnapshot();
+        var rejected = service.completeStage(9L,11L,1L,"false-completion");
+        assertEquals(0,rejected.completed()); assertFalse(rejected.unknown());
+        snapshot.getRulePrograms().put("complete",compiler.compile(JsonUtils.parseTree("{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"OWNER_COMPLETED\",\"quantifier\":\"ALL\"}}]}")));
+        refreshSnapshot();
+        var unknown = service.completeStage(9L,11L,1L,"unknown-condition");
+        assertEquals(0,unknown.completed()); assertTrue(unknown.unknown());
+        verifyNoInteractions(business,stages,audit);
+    }
 
     @Test void runningGateWorkMustEndBeforeAStageCanCompleteEvenWithSatisfiedRules() {
         round.setSubmittedAt(LocalDateTime.now());

@@ -68,7 +68,7 @@ class ProjectExecutionHistoryServiceTest {
         completed.setSubmittedAt(null);
         completed.setSubmittedBy(null);
         completed.setResultSnapshot(JsonUtils.toJsonString(new StageCompletionEvidence(31L, 51L, matched, matched,
-                List.of(new StageCompletionEvidence.BusinessResult(61L, "SOL", "REQUIREMENT_ANALYSIS", "71", "completed-v2")), null)));
+                List.of(new StageCompletionEvidence.BusinessResult(61L, "SOL", "REQUIREMENT_ANALYSIS", "71", "completed-v2")), null, null)));
         when(plans.selectHistory(any())).thenReturn(List.of(frozen));
         when(executions.selectHistory(any())).thenReturn(List.of(completed));
 

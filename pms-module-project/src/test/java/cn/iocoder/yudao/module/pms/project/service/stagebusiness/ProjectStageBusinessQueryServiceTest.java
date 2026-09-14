@@ -26,7 +26,8 @@ class ProjectStageBusinessQueryServiceTest {
     private final StageBusinessViewProvider owner = mock(StageBusinessViewProvider.class);
     private final ProjectNodeExecutionApi executions = mock(ProjectNodeExecutionApi.class);
     private final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L, 1, 90L, 1, 99L, 1, 100L, 101L, 1, 2, true);
-    private final ProjectStageBusinessQueryService service = new ProjectStageBusinessQueryService(projects, graph, views, List.of(owner), executions);
+    private final ProjectStageApprovalService approvals = mock(ProjectStageApprovalService.class);
+    private final ProjectStageBusinessQueryService service = new ProjectStageBusinessQueryService(projects, graph, views, List.of(owner), executions, approvals);
     private final ProjectAccessActor actor = new ProjectAccessActor(1L, 7L);
     private ProjectStageInstanceDO stage;
     private ProjectStageExecutionContractDO contract;
@@ -74,6 +75,42 @@ class ProjectStageBusinessQueryServiceTest {
         var result = service.getContext(9L, "S4", actor);
         assertEquals("STAGE_NATIVE", result.bindingType()); assertEquals(90L, result.stageId()); assertNull(result.recoverableError());
         verifyNoInteractions(views, owner);
+    }
+
+    private void approvalBinding() {
+        binding("APPROVAL");
+        var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), TemplateExecutionSnapshot.class);
+        var binding = snapshot.getStages().getFirst().getBinding();
+        binding.setBusinessViewSnapshot(null); binding.setApprovalDefinitionKey("review");
+        binding.setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"review:1\"}"));
+        contract.setBindingSnapshot(JsonUtils.toJsonString(binding));
+        contract.setDefinitionSnapshot(JsonUtils.toJsonString(snapshot));
+    }
+
+    @Test void approvalUsesFrozenBindingWithoutRequiringABusinessPageOrGrantingAnAction() {
+        approvalBinding();
+        var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
+                cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,
+                "RUNNING","pi","review:1",null);
+        var view = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View("review","review:1",101L,fact);
+        when(approvals.view(eq(1L),eq(execution),any())).thenReturn(view);
+        var result = service.getContext(9L,"S4",actor);
+        assertEquals(view,result.approval()); assertNull(result.businessView()); assertNull(result.recoverableError());
+        assertTrue(result.readonly()); assertEquals(Set.of("QUERY"),result.ownerActions());
+        verify(approvals).view(eq(1L),eq(execution),argThat(binding -> "review".equals(binding.getApprovalDefinitionKey())
+                && "review:1".equals(binding.getParameters().path("processDefinitionId").asText())));
+        verifyNoInteractions(views,owner);
+    }
+
+    @Test void unknownApprovalIsVisibleAsAnUnavailableResultWithoutGrantingActions() {
+        approvalBinding();
+        var fact = cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact.unknown("STAGE_APPROVAL_FACT_UNAVAILABLE");
+        when(approvals.view(eq(1L),eq(execution),any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View("review","review:1",101L,fact));
+        var result = service.getContext(9L,"S4",actor);
+        assertEquals("STAGE_APPROVAL_FACT_UNAVAILABLE",result.recoverableError());
+        assertTrue(result.readonly()); assertNull(result.approval().current().processInstanceId());
+        verifyNoInteractions(views,owner);
     }
     @Test void resolvesExactViewAndPassesStageIdentityOnlyToOwner() {
         binding("BUSINESS_OBJECT");

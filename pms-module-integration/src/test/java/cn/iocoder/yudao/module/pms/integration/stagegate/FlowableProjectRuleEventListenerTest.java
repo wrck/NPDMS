@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.NodeKind;
 import org.flowable.engine.ProcessEngine;
 import org.flowable.engine.ProcessEngineConfiguration;
 import org.flowable.engine.RuntimeService;
@@ -13,6 +14,7 @@ import org.flowable.spring.SpringProcessEngineConfiguration;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
@@ -102,8 +104,9 @@ class FlowableProjectRuleEventListenerTest {
         finally { if (database != null) database.shutdown(); }
     }
 
-    @Test void taskRoundApprovalStartAndCompletionWakeTheSameProjectReevaluationConsumer() {
-        String id = startTaskApproval();
+    @ParameterizedTest @EnumSource(NodeKind.class)
+    void nodeRoundApprovalStartAndCompletionWakeTheSameProjectReevaluationConsumer(NodeKind kind) {
+        String id = startNodeApproval(kind);
         assertEquals(1,count());
         tx.executeWithoutResult(ignored -> {
             engine.getRuntimeService().setVariable(id,"PROCESS_STATUS",2);
@@ -114,27 +117,28 @@ class FlowableProjectRuleEventListenerTest {
         assertTrue(payloads.stream().allMatch(payload -> payload.contains("bpm:" + id)));
         assertTrue(payloads.stream().noneMatch(payload -> payload.contains("private-form-value") || payload.contains("PROCESS_STATUS")));
     }
-    @Test void taskApprovalOutboxFailureRollsBackEngineStart() {
+    @ParameterizedTest @EnumSource(NodeKind.class)
+    void nodeApprovalOutboxFailureRollsBackEngineStart(NodeKind kind) {
         long before = engine.getRuntimeService().createProcessInstanceQuery().count();
         failAppend.set(true);
-        assertThrows(RuntimeException.class,this::startTaskApproval);
+        assertThrows(RuntimeException.class,() -> startNodeApproval(kind));
         assertEquals(before,engine.getRuntimeService().createProcessInstanceQuery().count());
         assertEquals(0,count());
     }
-    private String startTaskApproval() {
+    private String startNodeApproval(NodeKind kind) {
         var definition = engine.getRepositoryService().createProcessDefinitionQuery().processDefinitionKey("gate-test").singleResult();
         var variables = new java.util.HashMap<String,Object>();
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_TENANT,7L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_PROJECT,9L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_TASK,21L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_EXECUTION,referenceId);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_CONTRACT,91L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_DEFINITION,definition.getId());
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_ACTOR,1L);
+        variables.put(kind.variable("TenantId"),7L);
+        variables.put(kind.variable("ProjectId"),9L);
+        variables.put(kind.variable("Id"),21L);
+        variables.put(kind.variable("ExecutionId"),referenceId);
+        variables.put(kind.variable("ContractId"),91L);
+        variables.put(kind.variable("ProcessDefinitionId"),definition.getId());
+        variables.put(kind.variable("ActorId"),1L);
         variables.put("PROCESS_STATUS",1); variables.put("formText","private-form-value");
         return tx.execute(ignored -> engine.getRuntimeService().createProcessInstanceBuilder().tenantId("7")
                 .processDefinitionId(definition.getId()).businessKey(
-                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.BUSINESS_KEY_PREFIX + referenceId)
+                        kind.businessKey(referenceId))
                 .variables(variables).start().getId());
     }
 

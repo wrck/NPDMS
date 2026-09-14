@@ -602,3 +602,12 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 全量类型检查默认 4GB 堆会话 36877 内存不足。使用命令 `node --max-old-space-size=8192 node_modules/vue-tsc/bin/vue-tsc.js --noEmit --pretty false`，最终会话 70335 exit 1，仍为原九个文件的 26 条诊断；本步新增/修改文件无类型诊断，不声称全量类型检查通过。此前旧发布测试七项失败未在本步修复。
 - 内置浏览器只读回归项目 993109130061“工前准备办理方式切换验收20260914”，实际打开 PREP_WORK 阶段抽屉并查看截图：现场工勘待分配、需求分析完成，没有无配置的空门禁面板，所读 error 日志为空；验证标签已关闭。该项目阶段没有门禁，新后台未部署，故不构成新门禁表单、通过回调、并行自动准入或完整浏览器联合验收，也未执行新增面板各断点验收。未修改共享项目、未发起共享审批、不切换 59280。
 - 接口/前端技能用于复用办理及保护读写边界，代码质量技能用于自审收敛组件，Git 技能用于明确范围提交。差异检查通过，未改 SQL/Schema/Yudao 公共接口。不推送，保留运行 PID 和 Office 锁文件。直接阶段审批、旧校验失败修复、相对等待起算语义、完整示例与真实联合验收仍需推进；本次为可验证代码增量，不是专项完成结论。
+
+## 2026-09-15：阶段直接审批的本轮结果与完成消费
+
+- 阶段上下文查询识别冻结的 `APPROVAL` 绑定，返回精确流程版本及本轮结果，不再要求审批注册为业务页面。当前只开放查询，不增加节点操作权限，不暴露表单值；前端接口复用已有审批结果类型。本步没有新增审批发起 HTTP 入口或按钮。
+- `ProjectStageApprovalService` 使用项目所属轮次主键读取实际 `startedAt`，核对租户、项目、阶段、契约、计划版本、轮次号、执行版本和当前标记后调用统一节点审批 Owner。未开始轮次不查询旧审批；丢失或失效上下文、Owner 异常及无结果统一为未知。只读取项目自身表和 BPM API，无跨模块表查询、无 SQL/Schema 变更。依据当前 Spring Boot 4.1.0 基线及 [Spring 事务代理说明](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html)，外部查询服务入口建立只读事务，满足 BPM 查询的 MANDATORY 传播要求，不依赖类内自调用建立事务。
+- 阶段完成区分手工、业务记录和审批证据。只有本轮审批满足，才执行已冻结的完成/退出规则；运行中、驳回、取消、未开始、未知均不能被恒真或取反放行。审批通过也不能跳过未结束的已启动子任务或运行门禁。版本化阶段/执行状态更新与原审计机制不变，完成快照增加审批定位和结果，不保存审批表单明文，不补造手工提交、不覆盖历史。
+- Maven 会话 10815 exit 0，九组 97 项通过；补充假完成条件与 NOT 内未知条件用例后，会话 29836 exit 0，阶段完成 14 项通过。复用其余未变化证据合计 **98 项通过**：阶段审批结果 6、阶段上下文 17、阶段完成 14、完成快照 3、执行历史 6、任务审批 6、任务完成 13、节点审批 Owner 18、重评事件 15。真实 Flowable 8.0.0/Spring 用例使用唯一命名 H2、关闭异步执行器，覆盖任务/阶段同数字身份隔离、冻结版本、原权限拒绝、过期轮次与时间证据、事件发出和 Outbox 失败回滚；其余为 mocks/真实 LiteFlow 组合，不访问共享数据库。
+- 验证命令：`mvn -q -pl pms-module-project,pms-module-integration,yudao-module-bpm -am test "-Dtest=ProjectStageApprovalServiceTest,ProjectStageBusinessQueryServiceTest,ProjectStageCompletionServiceTest,StageCompletionEvidenceTest,ProjectExecutionHistoryServiceTest,ProjectTaskApprovalServiceTest,ProjectTaskPlanCompletionServiceTest,PmsNodeApprovalProcessOwnerTest,FlowableProjectRuleEventListenerTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`；最后补验使用 `-pl pms-module-project -Dtest=ProjectStageCompletionServiceTest`，其余参数相同。前端仅增加类型字段，未改页面行为，本步未重跑全量类型检查或浏览器，不能将此前类型检查失败或联合验收改写为通过。
+- 自审与 Git 技能用于差异检查及限定本地提交；接口技能用于复用统一结果而不越过 Owner。未切换/停止/部署 59280，未创建共享审批或项目数据。下一步仍需接通阶段审批发起命令和共用动态阶段办理表单，补齐运行审批的返工/关闭保护，再进行完整浏览器验收；本步不是直接阶段审批或专项完成结论。

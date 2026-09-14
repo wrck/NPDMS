@@ -56,6 +56,7 @@ public class ProjectStageCompletionService {
     private final ProjectNodeExecutionApi nodeContexts;
     private final ProjectTaskBusinessService business;
     private final ProjectStageGateProcessOwnerApi processes;
+    private final cn.iocoder.yudao.module.pms.project.service.stagebusiness.ProjectStageApprovalService approvals;
 
     public record Completion(int completed, boolean unknown) { }
 
@@ -95,14 +96,25 @@ public class ProjectStageCompletionService {
             boolean nativeWork = binding == null || "STAGE_NATIVE".equals(binding.getType());
             if (binding != null && nativeWork && round.getSubmittedAt() == null) continue;
             List<TaskBusinessLinkFact> ownerLinks = List.of();
+            cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact approval = null;
             if (!nativeWork) {
                 var execution = nodeContexts.inspectStage(new ProjectStageExecutionQuery(projectId,stage.getId(),round.getContractId()));
                 if (!Objects.equals(execution.executionId(),round.getId()) || !Objects.equals(execution.planVersionId(),plan.getId()))
                     return new Completion(0,true);
-                var owner = business.lockStageCompletionFacts(tenantId,execution,binding);
-                if (owner == null || owner.facts() == null || owner.facts().links().isEmpty()) return new Completion(0,true);
-                if (!owner.hasCompletedHandling()) continue;
-                ownerLinks = owner.facts().links();
+                if ("APPROVAL".equals(binding.getType())) {
+                    try {
+                        approval = approvals.view(tenantId, execution, binding).current();
+                        if (approval.outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN) {
+                            unknown = true; continue;
+                        }
+                        if (approval.outcome() != cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.SATISFIED) continue;
+                    } catch (RuntimeException unavailable) { unknown = true; continue; }
+                } else {
+                    var owner = business.lockStageCompletionFacts(tenantId,execution,binding);
+                    if (owner == null || owner.facts() == null || owner.facts().links().isEmpty()) return new Completion(0,true);
+                    if (!owner.hasCompletedHandling()) continue;
+                    ownerLinks = owner.facts().links();
+                }
             }
             boolean unfinishedWork = tasks.stream().filter(task -> stage.getStageCode().equals(task.getStageCode()))
                     .anyMatch(task -> (task.getActualStartTime() != null || startedTasks.contains(task.getId()) || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
@@ -133,7 +145,7 @@ public class ProjectStageCompletionService {
             String evidence = JsonUtils.toJsonString(new StageCompletionEvidence(round.getId(), plan.getId(), completion, exit,
                     ownerLinks.stream().map(link -> new StageCompletionEvidence.BusinessResult(link.id(),binding.getTargetContextCode(),
                             binding.getTargetObjectType(),link.objectId(),link.factVersion())).toList(),
-                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks)));
+                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval));
             if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(), stage.getVersion(),
                     "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString())) != 1
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),
