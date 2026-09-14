@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.pms.project.service.projectplan;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateReferenceForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
@@ -33,6 +35,7 @@ public class ProjectRuleClosureService {
     private final ProjectGateReferenceInstanceMapper references;
     private final ProjectRuntimeRuleEvaluator rules;
     private final OperationAuditApi audit;
+    private final ProjectStageGateProcessOwnerApi processes;
     public record Closure(boolean closed, boolean unknown) { }
 
     @Transactional(rollbackFor = Exception.class)
@@ -60,6 +63,13 @@ public class ProjectRuleClosureService {
         var gates = graph.selectGatesForUpdate(query);
         var refs = gates.isEmpty() ? List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO>of()
                 : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(tenantId, gates.stream().map(g -> g.getId()).toList()));
+        if (refs.stream().anyMatch(ref -> "PROCESS".equals(ref.getRefType()) || "APPROVAL".equals(ref.getRefType()))) {
+            try {
+                var running = processes.inspectRunning(new ProjectStageGateRunningProcessQuery(tenantId, projectId));
+                if (running == null) return new Closure(false, true);
+                if (!running.isEmpty()) return new Closure(false, false);
+            } catch (RuntimeException unavailable) { return new Closure(false, true); }
+        }
         var result = rules.evaluate("plan:" + plan.getId() + ":closure:" + key, program,
                 new ProjectRuntimeRuleEvaluator.Facts(project, null, tasks, gates, refs, false));
         if (!result.matched()) return new Closure(false, result.outcome() == RuleEvaluation.Outcome.UNKNOWN);

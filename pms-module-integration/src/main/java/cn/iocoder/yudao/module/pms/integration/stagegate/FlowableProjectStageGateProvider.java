@@ -11,6 +11,8 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGatePro
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionSelectionQuery;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartCommand;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartFact;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.FlowElement;
@@ -215,6 +217,33 @@ public class FlowableProjectStageGateProvider
         } catch (RuntimeException ex) {
             return unavailable(providerKey, query.refType(), "BPM_PROVIDER_UNAVAILABLE");
         }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<ProjectStageGateRunningProcess> inspectRunning(ProjectStageGateRunningProcessQuery query) {
+        if (query == null || query.projectId() == null || query.projectId() <= 0
+                || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw new IllegalArgumentException("BPM_ACTIVITY_QUERY_INVALID");
+        var instances = runtimeService.createProcessInstanceQuery()
+                .variableValueEquals(VAR_TENANT_ID, query.tenantId()).variableValueEquals(VAR_PROJECT_ID, query.projectId())
+                .excludeSubprocesses(true).includeProcessVariables();
+        if (tenantEnabled) instances.processInstanceTenantId(query.tenantId().toString());
+        var running = instances.list();
+        if (running == null) throw new IllegalStateException("BPM_ACTIVITY_UNAVAILABLE");
+        List<ProjectStageGateRunningProcess> result = new ArrayList<>();
+        for (var instance : running) {
+            var values = instance.getProcessVariables();
+            Object reference = values == null ? null : values.get(VAR_GATE_REFERENCE_ID);
+            Object stage = values == null ? null : values.get(VAR_STAGE_CODE);
+            if (!(reference instanceof Long id) || id <= 0 || !(stage instanceof String code) || code.isBlank()
+                    || !Objects.equals(values.get(VAR_TENANT_ID), query.tenantId()) || !Objects.equals(values.get(VAR_PROJECT_ID), query.projectId())
+                    || !Objects.equals(instance.getBusinessKey(), businessKey(id))
+                    || !Objects.equals(instance.getProcessDefinitionId(), values.get(VAR_DEFINITION_ID)))
+                throw new IllegalStateException("BPM_ACTIVITY_IDENTITY_INVALID");
+            result.add(new ProjectStageGateRunningProcess(instance.getId(), id, code));
+        }
+        return List.copyOf(result);
     }
 
     private ProcessDefinition latestDefinition(String definitionKey) {

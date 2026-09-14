@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
@@ -33,6 +35,7 @@ public class ProjectPlanGateInstaller {
     private final ProjectGateReferenceInstanceMapper references;
     private final ProjectPlanProjectionMapper projections;
     private final OperationAuditApi audit;
+    private final ProjectStageGateProcessOwnerApi processes;
     public record Change(String nodeKey, String action, Long instanceId, Integer expectedVersion,
                          String fromCode, String toCode, boolean reevaluationRequired) { }
     public record Write(Change change, ProjectGateInstanceDO definition, String previousStatus,
@@ -46,7 +49,33 @@ public class ProjectPlanGateInstaller {
         var rows = graph.selectGatesForUpdate(new ProjectRuntimeGraphQuery(scope.tenantId(), scope.projectId()));
         var refs = rows.isEmpty() ? List.<ProjectGateReferenceInstanceDO>of()
                 : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(scope.tenantId(), rows.stream().map(ProjectGateInstanceDO::getId).toList()));
-        return plan(scope, before, after, rows, refs);
+        var plan = plan(scope, before, after, rows, refs);
+        if (!plan.issues().isEmpty()) return plan;
+        Map<String, Set<Long>> affected = new LinkedHashMap<>();
+        for (var write : plan.writes()) {
+            var source = rows.stream().filter(row -> Objects.equals(row.getId(), write.change().instanceId())).findFirst().orElse(null);
+            if (source == null) continue;
+            boolean changesOwner = write.definition() == null
+                    || !Objects.equals(source.getStageCode(), write.definition().getStageCode())
+                    || !Objects.equals(source.getGateType(), write.definition().getGateType());
+            var protectedRefs = (changesOwner ? refs.stream().filter(ref -> Objects.equals(ref.getGateId(), source.getId()))
+                    : write.retired().stream()).filter(ref -> "PROCESS".equals(ref.getRefType()) || "APPROVAL".equals(ref.getRefType()))
+                    .map(ProjectGateReferenceInstanceDO::getId).collect(Collectors.toSet());
+            if (!protectedRefs.isEmpty()) affected.put(write.change().nodeKey(), protectedRefs);
+        }
+        if (affected.isEmpty()) return plan;
+        List<Issue> issues = new ArrayList<>();
+        try {
+            var running = processes.inspectRunning(new ProjectStageGateRunningProcessQuery(scope.tenantId(), scope.projectId()));
+            if (running == null) throw new IllegalStateException("BPM_ACTIVITY_UNAVAILABLE");
+            affected.forEach((nodeKey, ids) -> {
+                if (running.stream().anyMatch(process -> ids.contains(process.gateReferenceId())))
+                    issues.add(issue(nodeKey, "RUNNING_GATE_PROCESS_CHANGE_FORBIDDEN", "门禁流程仍在办理，须先完成或明确终止，不能删除引用或改变归属"));
+            });
+        } catch (RuntimeException unavailable) {
+            affected.keySet().forEach(nodeKey -> issues.add(issue(nodeKey, "GATE_PROCESS_ACTIVITY_UNAVAILABLE", "无法确认门禁流程是否仍在办理，暂不能变更其执行引用")));
+        }
+        return new Plan(plan.changes(), plan.writes(), List.copyOf(issues));
     }
 
     Plan plan(ProjectPlanScopeQuery scope, TemplateExecutionSnapshot before, TemplateExecutionSnapshot after,
@@ -90,8 +119,11 @@ public class ProjectPlanGateInstaller {
             target.setDescription(choose(old.getDescription(), next.getDescription(), row.getDescription()));
             var desiredRefs = content.getGateReferencesByGateCode().getOrDefault(next.getCode(), List.of());
             Set<Reference> previousValues = values(previousRefs), nextValues = values(desiredRefs);
-            var retired = previousRefs.stream().filter(ref -> !nextValues.contains(value(ref))).toList();
-            var added = desiredRefs.stream().filter(ref -> !previousValues.contains(value(ref))).toList();
+            // Process business keys must not be reassigned to another stage; retain old reference rows as history.
+            boolean changesStage = !Objects.equals(row.getStageCode(), target.getStageCode())
+                    || !Objects.equals(stageKey(before, row.getStageCode()), stageKey(after, target.getStageCode()));
+            var retired = previousRefs.stream().filter(ref -> changesStage || !nextValues.contains(value(ref))).toList();
+            var added = desiredRefs.stream().filter(ref -> changesStage || !previousValues.contains(value(ref))).toList();
             boolean changedJudgment = !retired.isEmpty() || !added.isEmpty()
                     || !Objects.equals(row.getGateType(), target.getGateType()) || !Objects.equals(row.getStageCode(), target.getStageCode());
             if (!metadata(row).equals(metadata(target)) || changedJudgment)
@@ -146,6 +178,10 @@ public class ProjectPlanGateInstaller {
     }
 
     private static Reference value(ProjectGateReferenceInstanceDO ref) { return new Reference(ref.getRefType(), ref.getRefCode(), ref.getRefVersion()); }
+    private static String stageKey(TemplateExecutionSnapshot snapshot, String code) {
+        return snapshot.getStages().stream().filter(stage -> Objects.equals(stage.getCode(), code))
+                .map(TemplateExecutionSnapshot.StageContract::getNodeKey).findFirst().orElse(null);
+    }
     private static Set<Reference> values(List<ProjectGateReferenceInstanceDO> refs) { return refs.stream().map(ProjectPlanGateInstaller::value).collect(Collectors.toSet()); }
     private static List<?> metadata(ProjectGateInstanceDO row) { return Arrays.asList(row.getGateCode(), row.getName(), row.getStageCode(), row.getGateType(), row.getDescription(), row.getValidationSummary()); }
     private static <T> T choose(T before, T after, T actual) { return Objects.equals(before, after) ? actual : after; }

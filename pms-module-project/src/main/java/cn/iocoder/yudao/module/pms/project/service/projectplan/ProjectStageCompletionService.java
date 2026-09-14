@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -52,6 +55,7 @@ public class ProjectStageCompletionService {
     private final OperationAuditApi audit;
     private final ProjectNodeExecutionApi nodeContexts;
     private final ProjectTaskBusinessService business;
+    private final ProjectStageGateProcessOwnerApi processes;
 
     public record Completion(int completed, boolean unknown) { }
 
@@ -104,6 +108,18 @@ public class ProjectStageCompletionService {
                     .anyMatch(task -> (task.getActualStartTime() != null || startedTasks.contains(task.getId()) || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                             && !Set.of("DONE", "CLOSED").contains(task.getStatus()));
             if (unfinishedWork) continue;
+            var processRefs = gateRefs.stream().filter(ref -> "PROCESS".equals(ref.getRefType()) || "APPROVAL".equals(ref.getRefType()))
+                    .filter(ref -> gates.stream().anyMatch(gate -> Objects.equals(gate.getId(), ref.getGateId())
+                            && Objects.equals(gate.getStageCode(), stage.getStageCode())))
+                    .map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO::getId)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (!processRefs.isEmpty()) {
+                try {
+                    var running = processes.inspectRunning(new ProjectStageGateRunningProcessQuery(tenantId, projectId));
+                    if (running == null) throw new IllegalStateException("BPM_ACTIVITY_UNAVAILABLE");
+                    if (running.stream().anyMatch(process -> processRefs.contains(process.gateReferenceId()))) continue;
+                } catch (RuntimeException unavailable) { unknown = true; continue; }
+            }
             var context = new ProjectRuntimeRuleEvaluator.Facts(project, stage, tasks, gates, gateRefs, true);
             RuleEvaluation completion;
             RuleEvaluation exit;

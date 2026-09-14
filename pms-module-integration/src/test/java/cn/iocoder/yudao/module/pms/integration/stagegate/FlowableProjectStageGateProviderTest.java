@@ -157,6 +157,15 @@ class FlowableProjectStageGateProviderTest {
     }
 
     @Test
+    void unavailableRunningQueryDoesNotClaimThereIsNoWork() {
+        var query = mock(org.flowable.engine.runtime.ProcessInstanceQuery.class, RETURNS_SELF);
+        when(runtimeService.createProcessInstanceQuery()).thenReturn(query);
+        when(query.list()).thenReturn(null);
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> provider.inspectRunning(
+                new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery(7L, 9L)));
+    }
+
+    @Test
     void missingRoundBoundaryIsUnknownNotAnUnboundedHistoryQuery() {
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
                 7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", null));

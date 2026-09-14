@@ -134,11 +134,13 @@ public class ProjectStageAdvanceApplicationService {
             String selectedProcessDefinitionId, String idempotencyKey, String requestDigest, Actor actor) {
         var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
         var selected = processContexts.resolve(context.project(), gateReferenceId);
-        return processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
+        var result = processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
                 actor.tenantId(), actor.actorUserId(), projectId, selected.gate().getStageCode(),
                 selected.gate().getId(), gateReferenceId, selected.reference().getRefType(),
                 selected.reference().getRefCode(), selectedProcessDefinitionId,
                 "PROJECT_STAGE_GATE:" + gateReferenceId, idempotencyKey, requestDigest, Map.of()));
+        if ("STARTED".equals(result.outcome())) processContexts.recordStarted(selected, actor.actorUserId());
+        return result;
     }
 
     @Transactional(rollbackFor = Exception.class)

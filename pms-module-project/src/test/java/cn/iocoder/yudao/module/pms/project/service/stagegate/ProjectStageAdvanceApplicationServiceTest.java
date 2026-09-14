@@ -266,7 +266,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 .setGateCode("G-S4-ENTRY").setGateType("ENTRY").setStageCode("S4").setStatus("PENDING").setVersion(0);
         var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
                 .setRefType("PROCESS").setRefCode("entry-process").setVersion(0);
-        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(entry, reference));
+        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(entry, reference, null));
         var stages = graphMapper.selectStagesForUpdate(null);
         when(graphMapper.selectStages(any())).thenReturn(stages);
         when(graphMapper.selectGates(any())).thenReturn(List.of(entry));
@@ -300,7 +300,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 .setGateCode("G-PARALLEL-EXIT").setGateType("EXIT").setStageCode("PARALLEL").setStatus("PENDING").setVersion(0);
         var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
                 .setRefType("APPROVAL").setRefCode("parallel-approval").setVersion(0);
-        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(exit, reference));
+        when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(exit, reference, null));
         // Any access to the obsolete transition resolver fails, independently of its mocked rule outcomes.
         when(graphMapper.selectStagesForUpdate(any())).thenThrow(new IllegalStateException("single-stage graph must not be read"));
         doAnswer(invocation -> {
@@ -312,6 +312,9 @@ class ProjectStageAdvanceApplicationServiceTest {
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "parallel");
         service.listDefinitions(PROJECT_ID, 42L, actor);
         assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, "parallel", "digest", actor).outcome());
+        var handlingOrder = org.mockito.Mockito.inOrder(processOwnerApi, processContexts);
+        handlingOrder.verify(processOwnerApi).startProcess(any());
+        handlingOrder.verify(processContexts).recordStarted(any(), eq(ACTOR_ID));
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
                 "PARALLEL".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
         verify(providerRegistry, never()).lockAndRevalidate(anyString(), any());
@@ -340,6 +343,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         assertEquals("pi-1", replayed.processInstanceId());
         assertEquals("REPLAYED", replayed.outcome());
         verify(projectMapper, never()).selectByIdForUpdate(any());
+        verify(processContexts, never()).recordStarted(any(), any());
     }
 
     @Test

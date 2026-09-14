@@ -28,6 +28,7 @@ class ProjectStageHandlingMapperTest {
                     + "result_snapshot VARCHAR(100), version INT, deleted INT, updater VARCHAR(64), update_time TIMESTAMP)");
             jdbc.execute("INSERT INTO proj_project_node_execution VALUES (101,1,9,100,99,'STAGE',1,'ACTIVE',NULL,NULL,NULL,NULL,NULL,1,0,'original',CURRENT_TIMESTAMP),"
                     + "(102,1,9,80,79,'STAGE',NULL,'DONE',CURRENT_TIMESTAMP,80,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'old result',7,0,'original',CURRENT_TIMESTAMP)");
+            jdbc.execute("INSERT INTO proj_project_node_execution VALUES (103,1,9,100,98,'STAGE',1,'PENDING',NULL,NULL,NULL,NULL,NULL,1,0,'original',CURRENT_TIMESTAMP)");
             var configuration = new Configuration(new Environment("stage-handling",new SpringManagedTransactionFactory(),database));
             try (var xml = getClass().getClassLoader().getResourceAsStream("mapper/projectplan/ProjectNodeExecutionMapper.xml")) {
                 assertNotNull(xml);
@@ -50,6 +51,7 @@ class ProjectStageHandlingMapperTest {
                 assertEquals(0, mapper.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(1L,9L,101L,80L,99L,1,now,9L)));
                 assertEquals(0, mapper.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(1L,9L,101L,100L,79L,1,now,9L)));
                 assertEquals(0, mapper.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(1L,9L,102L,80L,79L,7,now,9L)));
+                assertEquals(0, mapper.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(1L,9L,103L,100L,98L,1,now,9L)));
                 assertEquals(1, mapper.beginStageHandlingIfCurrent(start));
                 assertEquals(0, mapper.beginStageHandlingIfCurrent(start));
                 assertEquals(0, mapper.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(1L,9L,101L,100L,99L,2,now.plusHours(1),9L)));
@@ -58,6 +60,7 @@ class ProjectStageHandlingMapperTest {
             assertEquals(100L, jdbc.queryForObject("SELECT started_plan_version_id FROM proj_project_node_execution WHERE id=101",Long.class));
             assertEquals(2, jdbc.queryForObject("SELECT version FROM proj_project_node_execution WHERE id=101",Integer.class));
             assertEquals("ACTIVE", jdbc.queryForObject("SELECT status FROM proj_project_node_execution WHERE id=101",String.class));
+            assertNull(jdbc.queryForObject("SELECT started_at FROM proj_project_node_execution WHERE id=103",java.sql.Timestamp.class));
             assertNull(jdbc.queryForObject("SELECT submitted_at FROM proj_project_node_execution WHERE id=101",java.sql.Timestamp.class));
             assertNull(jdbc.queryForObject("SELECT ended_at FROM proj_project_node_execution WHERE id=101",java.sql.Timestamp.class));
             assertNull(jdbc.queryForObject("SELECT result_snapshot FROM proj_project_node_execution WHERE id=101",String.class));

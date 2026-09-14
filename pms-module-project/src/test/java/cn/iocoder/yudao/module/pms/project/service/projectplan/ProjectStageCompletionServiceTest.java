@@ -34,6 +34,7 @@ class ProjectStageCompletionServiceTest {
     final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi nodeContexts = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     final cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService business = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService.class);
     final ProjectRuleCompiler compiler = new ProjectRuleCompiler();
+    final cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi processes = mock(cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi.class);
     ProjectStageCompletionService service;
     ProjectStageInstanceDO stage;
     ProjectNodeExecutionDO round;
@@ -56,9 +57,24 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}")));
         plan = new ProjectPlanVersionDO(); plan.setId(21L); refreshSnapshot(); when(plans.selectEffective(any())).thenReturn(plan);
         service = new ProjectStageCompletionService(projects, plans, executions, graph, stages, references, engine.evaluator(), compiler,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes);
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
+
+    @Test void runningGateWorkMustEndBeforeAStageCanCompleteEvenWithSatisfiedRules() {
+        round.setSubmittedAt(LocalDateTime.now());
+        var gate=new ProjectGateInstanceDO().setId(51L).setStageCode("DISCOVERY");
+        var ref=new ProjectGateReferenceInstanceDO().setId(52L).setGateId(51L).setRefType("APPROVAL");
+        when(graph.selectGatesForUpdate(any())).thenReturn(List.of(gate)); when(references.selectOrderedForUpdate(any())).thenReturn(List.of(ref));
+        when(processes.inspectRunning(any())).thenReturn(List.of(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess("pi",52L,"DISCOVERY")));
+        var blocked=service.completeStage(9L,11L,1L,"running");
+        assertEquals(0,blocked.completed()); assertFalse(blocked.unknown()); verifyNoInteractions(stages,audit);
+        when(processes.inspectRunning(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertTrue(service.completeStage(9L,11L,1L,"unknown").unknown()); verifyNoInteractions(stages,audit);
+        doReturn(List.of(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess("other",99L,"OTHER"))).when(processes).inspectRunning(any());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1,service.completeStage(9L,11L,1L,"ended").completed());
+    }
 
     @Test void evenConstantTrueCannotReplaceTheCurrentRoundsRealSubmission() {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));

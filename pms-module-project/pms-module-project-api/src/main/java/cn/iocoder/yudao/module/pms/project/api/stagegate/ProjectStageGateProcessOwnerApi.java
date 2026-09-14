@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGatePro
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionSelectionQuery;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartCommand;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartFact;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 
 import java.util.List;
 
@@ -17,4 +19,7 @@ public interface ProjectStageGateProcessOwnerApi {
             ProjectStageGateProcessDefinitionSelectionQuery query);
 
     ProjectStageGateProcessStartFact startProcess(ProjectStageGateProcessStartCommand command);
+
+    /** Empty means no running work; an unavailable or untrusted query must throw, never return an empty fallback. */
+    List<ProjectStageGateRunningProcess> inspectRunning(ProjectStageGateRunningProcessQuery query);
 }

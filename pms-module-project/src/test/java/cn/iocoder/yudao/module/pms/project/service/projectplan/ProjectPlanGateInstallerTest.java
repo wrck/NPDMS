@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanProjectionMapper;
@@ -20,7 +22,8 @@ class ProjectPlanGateInstallerTest {
     final ProjectGateReferenceInstanceMapper references=mock(ProjectGateReferenceInstanceMapper.class);
     final ProjectPlanProjectionMapper projections=mock(ProjectPlanProjectionMapper.class);
     final OperationAuditApi audit=mock(OperationAuditApi.class);
-    final ProjectPlanGateInstaller installer=new ProjectPlanGateInstaller(graph,gates,references,projections,audit);
+    final ProjectStageGateProcessOwnerApi processes=mock(ProjectStageGateProcessOwnerApi.class);
+    final ProjectPlanGateInstaller installer=new ProjectPlanGateInstaller(graph,gates,references,projections,audit,processes);
     final ProjectPlanScopeQuery scope=new ProjectPlanScopeQuery(1L,9L);
     final TemplateExecutionSnapshot before=new TemplateExecutionSnapshot();
     final ProjectGateInstanceDO actual;
@@ -41,6 +44,52 @@ class ProjectPlanGateInstallerTest {
         when(projections.retirePendingGate(any())).thenReturn(1); when(projections.retireGateReference(any())).thenReturn(1);
         when(gates.insert(any(ProjectGateInstanceDO.class))).thenReturn(1); when(references.insert(any(ProjectGateReferenceInstanceDO.class))).thenReturn(1);
         when(gates.updateStatusIfMatch(any())).thenReturn(1);
+        when(processes.inspectRunning(any())).thenReturn(List.of());
+    }
+
+    @Test void activeProcessPreventsReferenceRemovalUntilOwnerConfirmsItEnded() {
+        var after=copy(); after.getGates().getFirst().getReferences().get(1).setRefVersion("2");
+        when(processes.inspectRunning(any())).thenReturn(List.of(new ProjectStageGateRunningProcess("pi",31L,"PREP")));
+        var blocked=installer.inspect(scope,before,after);
+        assertEquals("RUNNING_GATE_PROCESS_CHANGE_FORBIDDEN",blocked.issues().getFirst().code());
+        assertThrows(RuntimeException.class,()->installer.install(scope,blocked,7L,"blocked"));
+        verifyNoInteractions(gates,projections,audit);
+        when(processes.inspectRunning(any())).thenReturn(List.of());
+        var allowed=installer.inspect(scope,before,after);
+        assertTrue(allowed.issues().isEmpty()); installer.install(scope,allowed,7L,"ended");
+        verify(projections).retireGateReference(argThat(q -> q.referenceId().equals(31L)));
+    }
+
+    @Test void pendingGateIsNotDeletableWhileItsProcessIsRunning() {
+        actual.setStatus("PENDING"); var after=copy(); after.getGates().clear();
+        when(processes.inspectRunning(any())).thenReturn(List.of(new ProjectStageGateRunningProcess("pi",31L,"PREP")));
+        assertEquals("RUNNING_GATE_PROCESS_CHANGE_FORBIDDEN",installer.inspect(scope,before,after).issues().getFirst().code());
+    }
+
+    @Test void unknownProcessActivityBlocksOnlyChangesToProcessIdentity() {
+        when(processes.inspectRunning(any())).thenThrow(new IllegalStateException("unavailable"));
+        var renamed=copy(); renamed.getGates().getFirst().setName("new name");
+        assertTrue(installer.inspect(scope,before,renamed).issues().isEmpty());
+        verify(processes,never()).inspectRunning(any());
+        var after=copy(); after.getGates().getFirst().getReferences().get(1).setRefCode("P2");
+        assertEquals("GATE_PROCESS_ACTIVITY_UNAVAILABLE",installer.inspect(scope,before,after).issues().getFirst().code());
+    }
+
+    @Test void movingGateRetiresReferenceIdentitiesInsteadOfReassigningOldProcessHistory() {
+        var after=copy(); after.getGates().getFirst().setStageCode("DELIVERY");
+        var allowed=installer.inspect(scope,before,after);
+        assertTrue(allowed.issues().isEmpty());
+        assertEquals(2,allowed.writes().getFirst().retired().size()); assertEquals(2,allowed.writes().getFirst().added().size());
+        when(processes.inspectRunning(any())).thenReturn(List.of(new ProjectStageGateRunningProcess("pi",31L,"PREP")));
+        assertFalse(installer.inspect(scope,before,after).issues().isEmpty());
+    }
+
+    @Test void replacingAStageWithTheSameCodeStillProtectsItsRunningGateReference() {
+        var stage = new TemplateExecutionSnapshot.StageContract(); stage.setNodeKey("old-stage"); stage.setCode("PREP");
+        before.getStages().add(stage);
+        var after=copy(); after.getStages().getFirst().setNodeKey("new-stage");
+        when(processes.inspectRunning(any())).thenReturn(List.of(new ProjectStageGateRunningProcess("pi",31L,"PREP")));
+        assertEquals("RUNNING_GATE_PROCESS_CHANGE_FORBIDDEN",installer.inspect(scope,before,after).issues().getFirst().code());
     }
     @Test void unchangedGateKeepsResultAndReferenceIdentitiesWithoutWrites() {
         var plan=installer.inspect(scope,before,copy()); installer.install(scope,plan,7L,"plan-1");

@@ -220,6 +220,23 @@ class FlowableProjectRuleEventListenerTest {
         });
     }
 
+    @Test void runningWorkInspectionIsProjectScopedAndTracksCompletionAndCancellation() {
+        var started = provider.startProcess(command());
+        var query = new ProjectStageGateRunningProcessQuery(7L, 9L);
+        var running = tx.execute(ignored -> provider.inspectRunning(query));
+        assertTrue(running.stream().anyMatch(process -> process.processInstanceId().equals(started.processInstanceId())
+                && process.gateReferenceId().equals(referenceId) && process.stageCode().equals("PREP")));
+        assertTrue(tx.execute(ignored -> provider.inspectRunning(new ProjectStageGateRunningProcessQuery(7L, 999L))).isEmpty());
+        assertThrows(RuntimeException.class, () -> tx.execute(ignored -> provider.inspectRunning(new ProjectStageGateRunningProcessQuery(8L, 9L))));
+        completeApproved(started.processInstanceId());
+        assertFalse(tx.execute(ignored -> provider.inspectRunning(query)).stream()
+                .anyMatch(process -> process.processInstanceId().equals(started.processInstanceId())));
+        var cancelled = provider.startProcess(command("cancel:" + referenceId));
+        tx.executeWithoutResult(ignored -> engine.getRuntimeService().deleteProcessInstance(cancelled.processInstanceId(), "cancelled"));
+        assertFalse(tx.execute(ignored -> provider.inspectRunning(query)).stream()
+                .anyMatch(process -> process.processInstanceId().equals(cancelled.processInstanceId())));
+    }
+
     @Test void unfinishedOldProcessDoesNotMakeCurrentRoundAmbiguous() {
         var clock = engine.getProcessEngineConfiguration().getClock();
         var original = java.time.Instant.parse("2026-09-15T00:00:00Z");

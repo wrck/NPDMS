@@ -29,6 +29,8 @@ class ProjectRuleClosureServiceTest {
     final ProjectRuntimeGraphMapper graph = mock(ProjectRuntimeGraphMapper.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
     final ProjectRuleCompiler compiler = new ProjectRuleCompiler();
+    final ProjectGateReferenceInstanceMapper references = mock(ProjectGateReferenceInstanceMapper.class);
+    final cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi processes = mock(cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi.class);
     ProjectRuleClosureService service;
     ProjectPlanVersionDO plan;
     TemplateExecutionSnapshot snapshot;
@@ -42,8 +44,8 @@ class ProjectRuleClosureServiceTest {
         plan = new ProjectPlanVersionDO(); plan.setId(21L); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         when(plans.selectEffective(any())).thenReturn(plan);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
-        service = new ProjectRuleClosureService(projects, plans, executions, graph, mock(ProjectGateReferenceInstanceMapper.class),
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit);
+        service = new ProjectRuleClosureService(projects, plans, executions, graph, references,
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, processes);
     }
     @Test void explicitClosureRuleClosesOnlyThisProjectWithFrozenEvidence() {
         when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
@@ -55,6 +57,19 @@ class ProjectRuleClosureServiceTest {
         snapshot.setClosureRuleKey(null); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());
         verify(plans, never()).closeProjectIfActive(any());
+    }
+
+    @Test void optionalPendingStageStopsClosureOnlyWhileItsEntryProcessIsStillRunning() {
+        when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("PENDING")));
+        when(graph.selectGatesForUpdate(any())).thenReturn(List.of(new ProjectGateInstanceDO().setId(51L)));
+        when(references.selectOrderedForUpdate(any())).thenReturn(List.of(new ProjectGateReferenceInstanceDO().setId(52L).setGateId(51L).setRefType("APPROVAL")));
+        when(processes.inspectRunning(any())).thenReturn(List.of(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcess("pi",52L,"PREP")));
+        var waiting=service.closeIfSatisfied(9L,1L,"waiting"); assertFalse(waiting.closed()); assertFalse(waiting.unknown());
+        when(processes.inspectRunning(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertTrue(service.closeIfSatisfied(9L,1L,"unknown").unknown()); verify(plans,never()).closeProjectIfActive(any());
+        doReturn(List.of()).when(processes).inspectRunning(any());
+        when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
+        assertTrue(service.closeIfSatisfied(9L,1L,"ended").closed());
     }
     @Test void activeStageAndStartedTasksCannotBeAbandoned() {
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("ACTIVE")));

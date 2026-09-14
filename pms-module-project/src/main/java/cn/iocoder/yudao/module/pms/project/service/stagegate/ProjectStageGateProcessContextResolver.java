@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateReferenceForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
@@ -32,7 +33,7 @@ public class ProjectStageGateProcessContextResolver {
     private final ProjectGateReferenceInstanceMapper references;
     private final ProjectNodeExecutionMapper executions;
 
-    public record Context(ProjectGateInstanceDO gate, ProjectGateReferenceInstanceDO reference) { }
+    public record Context(ProjectGateInstanceDO gate, ProjectGateReferenceInstanceDO reference, ProjectNodeExecutionDO execution) { }
 
     /** Caller holds the project lock and owns operation authorization; all local reads precede the BPM Owner call. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -88,6 +89,19 @@ public class ProjectStageGateProcessContextResolver {
                 || !("ACTIVE".equals(current.stageStatus()) && "ACTIVE".equals(current.executionStatus())
                     || "ENTRY".equals(gate.getGateType()) && "PENDING".equals(current.stageStatus()) && "PENDING".equals(current.executionStatus())))
             throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        return new Context(gate, ref);
+        return new Context(gate, ref, round);
+    }
+
+    /** Successful Owner start and the handling evidence commit or roll back together; no admission/status change. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordStarted(Context context, Long actorId) {
+        var round = context.execution();
+        // ENTRY work before admission is protected by its live process, not a fictitious stage start.
+        if ("PENDING".equals(round.getStatus())) return;
+        if (round.getStartedAt() != null) return;
+        if (executions.beginStageHandlingIfCurrent(new ProjectNodeExecutionMapper.StageHandlingStart(
+                round.getTenantId(), round.getProjectId(), round.getId(), round.getPlanVersionId(), round.getContractId(),
+                round.getVersion(), java.time.LocalDateTime.now(), actorId)) != 1)
+            throw exception(PROJECT_STAGE_PROCESS_INVALID);
     }
 }

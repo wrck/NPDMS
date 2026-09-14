@@ -54,6 +54,7 @@ class ProjectStageGateProcessContextResolverTest {
         round = new ProjectNodeExecutionDO(); round.setId(61L); round.setTenantId(7L); round.setProjectId(9L);
         round.setPlanVersionId(51L); round.setNodeInstanceId(11L); round.setNodeKind("STAGE"); round.setNodeKey("stage:prep");
         round.setContractId(71L); round.setCurrentMarker(1); round.setStatus("ACTIVE");
+        round.setVersion(0);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         when(executions.selectCurrentStageContextForUpdate(any())).thenAnswer(call -> context(selectedStage.getStatus(), round.getStatus()));
     }
@@ -70,6 +71,8 @@ class ProjectStageGateProcessContextResolverTest {
         gate.setGateType("ENTRY"); snapshot.getGates().getFirst().setGateType("ENTRY");
         selectedStage.setStatus("PENDING"); round.setStatus("PENDING");
         assertSame(reference, resolver.resolve(project, 22L).reference());
+        resolver.recordStarted(resolver.resolve(project, 22L), 81L);
+        verify(executions, never()).beginStageHandlingIfCurrent(any());
         assertEquals("PENDING", selectedStage.getStatus()); assertEquals("PENDING", round.getStatus());
         verify(executions, never()).activateIfPending(any());
     }
@@ -102,6 +105,20 @@ class ProjectStageGateProcessContextResolverTest {
 
     private ProjectStageExecutionRecord context(String stageStatus, String executionStatus) {
         return new ProjectStageExecutionRecord(9L, 4, "ACTIVE", 11L, 0, stageStatus, 71L, 1, 51L, 61L, 0, 2, executionStatus);
+    }
+
+    @Test void successfulProcessStartRecordsFirstHandlingAndRejectsAStaleWrite() {
+        var context = resolver.resolve(project, 22L);
+        when(executions.beginStageHandlingIfCurrent(any())).thenReturn(1);
+        resolver.recordStarted(context, 81L);
+        verify(executions).beginStageHandlingIfCurrent(argThat(q -> q.executionId().equals(61L)
+                && q.planVersionId().equals(51L) && q.contractId().equals(71L) && q.expectedVersion().equals(0) && q.actorId().equals(81L)));
+        round.setStartedAt(java.time.LocalDateTime.now());
+        resolver.recordStarted(context, 81L);
+        verify(executions, times(1)).beginStageHandlingIfCurrent(any());
+        round.setStartedAt(null);
+        when(executions.beginStageHandlingIfCurrent(any())).thenReturn(0);
+        assertThrows(RuntimeException.class, () -> resolver.recordStarted(context, 81L));
     }
 
     private ProjectStageInstanceDO stage(Long id, String code) {
