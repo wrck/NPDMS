@@ -12,6 +12,8 @@ import {
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('element-plus', () => ({ ElMessageBox: { confirm: vi.fn() } }))
+vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: () => true }))
+vi.mock('./ApprovalDefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/project/project-templates/directBinding', () => ({
   createBindingSaveSession: () => ({}),
   prepareTaskBinding: vi.fn()

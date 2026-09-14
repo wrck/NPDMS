@@ -197,8 +197,12 @@
               @click="setTaskManualHandling"
               >切换为手工办理</el-button
             >
+            <el-radio-group v-if="selected.kind === 'TASK' && businessOpen" v-model="handlingTab" aria-label="任务办理类型" :disabled="nodeReadonly">
+              <el-radio-button value="BUSINESS">业务页面／表单</el-radio-button>
+              <el-radio-button value="APPROVAL">审批流程</el-radio-button>
+            </el-radio-group>
             <TaskBindingEditor
-              v-if="bindingHost && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
+              v-if="bindingHost && handlingTab !== 'APPROVAL' && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
               :key="runtimeNode.nodeKey"
               :task="bindingHost"
               :model-value="pendingBindings.get(runtimeNode.nodeKey)"
@@ -206,6 +210,9 @@
               :binding-permission="bindingPermission"
               @update:model-value="setBinding"
             />
+            <ApprovalDefinitionSelect v-if="selected.kind === 'TASK' && (businessOpen && handlingTab === 'APPROVAL' || nodeReadonly && runtimeNode.workBinding?.type === 'APPROVAL')"
+              :key="`approval-${runtimeNode.nodeKey}`" :binding="runtimeNode.workBinding" :readonly="nodeReadonly"
+              :binding-permission="bindingPermission" @choose="setApprovalBinding" />
             <p v-if="pendingBindings.has(runtimeNode.nodeKey)" class="field-hint"
               >保存时完成业务绑定；若完成条件原先共享，将为当前节点保留独立修改，不影响其他节点。</p
             >
@@ -346,6 +353,8 @@ import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import DecisionTableEditor from './DecisionTableEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
 import TaskBindingEditor from './TaskBindingEditor.vue'
+import ApprovalDefinitionSelect, { type ApprovalDefinitionChoice } from './ApprovalDefinitionSelect.vue'
+import { hasPermission } from '@/directives/permission/hasPermi'
 import DefinitionSelect from './DefinitionSelect.vue'
 const props = defineProps<{
   content: TemplateDesignerDocument
@@ -361,6 +370,7 @@ const strategyEditableKey = ref<string>()
 const referenceKey = ref<string>()
 const references = reactive(new Set<string>())
 const businessOpen = ref(false)
+const handlingTab = ref('BUSINESS')
 const assetPicker = ref(false)
 const failure = ref('')
 const strategyEditor = ref<InstanceType<typeof DecisionTableEditor>>()
@@ -489,6 +499,7 @@ watch(
 )
 watch(selectedKey, () => {
   businessOpen.value = false
+  handlingTab.value = runtimeNode.value?.workBinding?.type === 'APPROVAL' ? 'APPROVAL' : 'BUSINESS'
 })
 watch(stageKey, () => {
   references.clear()
@@ -557,6 +568,32 @@ const setBinding = (value: BindingSelection | undefined) => {
     if (value) pendingBindings.set(runtimeNode.value.nodeKey, value)
     else pendingBindings.delete(runtimeNode.value.nodeKey)
   }
+}
+const setApprovalBinding = async (definition: ApprovalDefinitionChoice) => {
+  const authorized = () => !nodeReadonly.value && hasPermission([props.bindingPermission ?? 'pms:project-template:update'])
+  if (!authorized() || selected.value?.kind !== 'TASK') return
+  const document = props.content, task = selected.value.node as DesignerTaskNode
+  const replacing = task.workBinding.type !== 'APPROVAL' || pendingBindings.has(task.nodeKey)
+  try {
+    await ElMessageBox.confirm(replacing
+      ? `“${task.name}”将使用 ${definition.name} 第${definition.version}版办理。完成依据改为本轮审批通过（无附加条件），准入、退出及权限保留；原共享完成规则不影响其他节点。保存草稿不会发起审批。`
+      : `“${task.name}”的审批绑定改为 ${definition.name} 第${definition.version}版，已有准入、完成、退出及权限保持不变。保存草稿不会影响在用版本。`,
+    '配置任务审批', { type: 'warning', confirmButtonText: '确认配置', cancelButtonText: '取消' })
+  } catch { return }
+  if (props.content !== document || selected.value?.node !== task || !authorized()) return
+  pendingBindings.delete(task.nodeKey)
+  task.workBinding = { type: 'APPROVAL', approvalDefinitionKey: definition.key,
+    parameters: { processDefinitionId: definition.id } }
+  if (replacing) {
+    // Approval completion first requires the current-round BPM result in the domain service.
+    // CONSTANT true here means no additional completion criteria, not approval bypass.
+    task.completionRuleKey = createVersionRule(document, `${task.name} · 审批通过后的附加条件`, {
+      predicate: 'CONSTANT', parameters: { value: true }
+    }).key
+    Reflect.deleteProperty(task, 'completionRule')
+    if (task.source) Reflect.deleteProperty(task.source, 'completionRuleRevisionId')
+  }
+  if (task.source) Reflect.deleteProperty(task.source, 'workBindingRevisionId')
 }
 const setStageHandling = (value: 'NONE' | 'MANUAL') => {
   if (nodeReadonly.value || selected.value?.kind !== 'STAGE' || !runtimeNode.value) return
