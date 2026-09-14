@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class ProjectRuntimeCoordinator {
     private final ProjectGateRuleService gates;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper graph;
     private final cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService associations;
+    private final ProjectMasterMapper projects;
 
     public record Result(boolean unknown, int activated, int completed) { }
 
@@ -30,6 +33,13 @@ public class ProjectRuntimeCoordinator {
         ProjectBusinessTaskCompletionService.Result taskResults;
         int stageActivated;
         do {
+            // Closure leaves optional branches pending. Their stale wakeups must not become endless UNKNOWN retries.
+            var project = projectId == null ? null : projects.selectById(projectId);
+            if (project == null || !TenantContextHolder.getRequiredTenantId().equals(project.getTenantId()))
+                return new Result(true, activated, completed);
+            if ("NORMAL_CLOSED".equals(project.getLifecycleStatus()) || "EXCEPTION_CLOSED".equals(project.getLifecycleStatus()))
+                return new Result(false, activated, completed);
+            if (!"ACTIVE".equals(project.getLifecycleStatus())) return new Result(true, activated, completed);
             stageActivated = 0;
             boolean admissionUnknown = false;
             var pendingStages = graph.selectStages(new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(
@@ -80,6 +90,8 @@ public class ProjectRuntimeCoordinator {
             completed += finished.completed();
             unknown = gateUnknown || taskResults.unknown() || finished.unknown() || admissionUnknown;
         } while (finished.completed() > 0 || taskResults.completed() > 0 || taskResults.activated() > 0 || stageActivated > 0);
-        return new Result(closure.closeIfSatisfied(projectId, actorId, correlationId).unknown() || unknown, activated, completed);
+        var closed = closure.closeIfSatisfied(projectId, actorId, correlationId);
+        // Successful formal closure ends reevaluation even if an optional, unstarted branch had unavailable facts.
+        return new Result(!closed.closed() && (closed.unknown() || unknown), activated, completed);
     }
 }

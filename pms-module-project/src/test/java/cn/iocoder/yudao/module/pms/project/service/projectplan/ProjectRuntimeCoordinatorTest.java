@@ -11,6 +11,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ProjectRuntimeCoordinatorTest {
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projects =
+            mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class);
+    private final cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project =
+            new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO();
+
+    @org.junit.jupiter.api.BeforeEach void activeProject() {
+        project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE");
+        when(projects.selectById(9L)).thenReturn(project);
+    }
     @Test void admissionProgressReevaluatesEarlierDependentStageWithoutWaitingForAnUnrelatedEvent() {
         TenantContextHolder.setTenantId(7L);
         try {
@@ -37,7 +46,7 @@ class ProjectRuntimeCoordinatorTest {
             when(tasks.completeEligible(9L, "test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0, 0, false));
             when(completion.completeStage(anyLong(), anyLong(), anyLong(), anyString())).thenReturn(new ProjectStageCompletionService.Completion(0, false));
             when(closure.closeIfSatisfied(9L, 1L, "test")).thenReturn(new ProjectRuleClosureService.Closure(false, false));
-            var result = new ProjectRuntimeCoordinator(admission, completion, closure, tasks, gates, graph, associations).reevaluate(9L, 1L, "test");
+            var result = new ProjectRuntimeCoordinator(admission, completion, closure, tasks, gates, graph, associations, projects).reevaluate(9L, 1L, "test");
             assertEquals(2, result.activated()); assertFalse(result.unknown()); assertEquals(0, result.completed());
             verify(admission, never()).activateEligible(anyLong(), anyLong(), anyString());
             verify(admission, times(2)).activateStage(9L, 1L, "test", 11L);
@@ -56,7 +65,7 @@ class ProjectRuntimeCoordinatorTest {
             var gates = mock(ProjectGateRuleService.class);
             var graph = mock(ProjectRuntimeGraphMapper.class);
             var associations = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService.class);
-            var coordinator = new ProjectRuntimeCoordinator(admission,completion,closure,tasks,gates,graph,associations);
+            var coordinator = new ProjectRuntimeCoordinator(admission,completion,closure,tasks,gates,graph,associations,projects);
             var bad = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO().setId(11L).setStatus("ACTIVE");
             var good = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO().setId(12L).setStatus("ACTIVE");
             when(graph.selectStages(any())).thenReturn(List.of(bad,good));
@@ -81,7 +90,7 @@ class ProjectRuntimeCoordinatorTest {
             var gates = mock(ProjectGateRuleService.class);
             var graph = mock(ProjectRuntimeGraphMapper.class);
             var associations = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService.class);
-            var coordinator = new ProjectRuntimeCoordinator(admission,completion,closure,tasks,gates,graph,associations);
+            var coordinator = new ProjectRuntimeCoordinator(admission,completion,closure,tasks,gates,graph,associations,projects);
             var bad = new ProjectGateInstanceDO(); bad.setGateCode("BAD");
             var good = new ProjectGateInstanceDO(); good.setGateCode("GOOD");
             when(graph.selectGates(any())).thenReturn(List.of(bad,good));

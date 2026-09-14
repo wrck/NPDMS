@@ -232,8 +232,10 @@ class ProjectStageAdmissionServiceTest {
             when(tasks.completeEligible(9L, "event")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0, 0, false));
             var closure = mock(ProjectRuleClosureService.class);
             when(closure.closeIfSatisfied(9L, 11L, "event")).thenReturn(new ProjectRuleClosureService.Closure(false, false));
+            var projectReader = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class);
+            when(projectReader.selectById(9L)).thenReturn(project);
             var coordinator = new ProjectRuntimeCoordinator(admission, completion, closure, tasks,
-                    mock(ProjectGateRuleService.class), graph, mock(ProjectTaskBusinessAssociationService.class));
+                    mock(ProjectGateRuleService.class), graph, mock(ProjectTaskBusinessAssociationService.class), projectReader);
             var result = coordinator.reevaluate(9L, 11L, "event");
             assertTrue(result.unknown()); assertEquals(2, result.activated());
             assertEquals(List.of("ACTIVE", "PENDING", "ACTIVE"), jdbc.queryForList("SELECT stage_status FROM admission_ledger ORDER BY id", String.class));
