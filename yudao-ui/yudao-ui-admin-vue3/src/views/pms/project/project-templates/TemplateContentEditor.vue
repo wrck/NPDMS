@@ -125,41 +125,11 @@
                     value="EXIT"
                     label="退出" /></el-select
               ></el-form-item>
-              <div
-                v-for="(reference, index) in (selected.node as DesignerGateNode).references"
-                :key="index"
-                class="gate-reference"
-                ><el-select v-model="reference.refType"
-                  ><el-option
-                    v-for="type in [
-                      'TASK',
-                      'MILESTONE',
-                      'DELIVERABLE',
-                      'STATE',
-                      'APPROVAL',
-                      'PROCESS'
-                    ]"
-                    :key="type"
-                    :value="type"
-                    :label="type" /></el-select
-                ><el-input v-model="reference.refCode" placeholder="引用编码" /><el-button
-                  link
-                  type="danger"
-                  @click="(selected.node as DesignerGateNode).references.splice(index, 1)"
-                  >移除</el-button
-                ></div
-              >
-              <el-button
-                @click="
-                  (selected.node as DesignerGateNode).references.push({
-                    refType: 'TASK',
-                    refCode: ''
-                  })
-                "
-                >添加门禁引用</el-button
-              >
             </template>
           </el-form>
+          <GateReferencesEditor v-if="selected.kind === 'GATE'" :key="selected.node.nodeKey"
+            :gate="selected.node as DesignerGateNode" :readonly="nodeReadonly" :binding-permission="bindingPermission"
+            :consumers="gateConsumers" />
           <template v-if="runtimeNode">
             <el-divider content-position="left">业务办理</el-divider>
             <p class="field-hint">{{
@@ -354,6 +324,7 @@ import DecisionTableEditor from './DecisionTableEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
 import TaskBindingEditor from './TaskBindingEditor.vue'
 import ApprovalDefinitionSelect, { type ApprovalDefinitionChoice } from './ApprovalDefinitionSelect.vue'
+import GateReferencesEditor from './GateReferencesEditor.vue'
 import { hasPermission } from '@/directives/permission/hasPermi'
 import DefinitionSelect from './DefinitionSelect.vue'
 const props = defineProps<{
@@ -401,6 +372,10 @@ const referenceSelected = computed(
       : 'stageCode' in selected.value.node && selected.value.node.stageCode !== stage.value.code)
 )
 const nodeReadonly = computed(() => !!props.readonly || referenceSelected.value)
+const gateConsumers = computed(() => {
+  const item = selected.value
+  return item?.kind === 'GATE' ? props.content.tasks.filter(task => task.gateRef === item.node.code).map(task => task.name) : []
+})
 const otherTasks = computed(() =>
   props.content.tasks.filter((task) => task.stageCode !== stage.value?.code)
 )
@@ -859,15 +834,6 @@ defineExpose({ prepareSave, hasPendingBindings: () => pendingBindings.size > 0 }
 }
 .canvas-navigation :deep(.el-select) {
   width: 230px;
-}
-.gate-reference {
-  display: flex;
-  gap: 8px;
-  margin: 8px 0;
-}
-.gate-reference :deep(.el-select) {
-  width: 135px;
-  flex-shrink: 0;
 }
 .asset-copy {
   margin-top: 12px;
