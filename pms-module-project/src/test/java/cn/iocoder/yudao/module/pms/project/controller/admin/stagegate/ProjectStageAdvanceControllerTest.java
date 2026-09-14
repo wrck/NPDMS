@@ -26,6 +26,7 @@ class ProjectStageAdvanceControllerTest {
         assertNotNull(mapping);
         assertEquals("/api/v1/pms/projects", mapping.value()[0]);
         assertEndpoint("readiness", GetMapping.class, "/{id}/stage-advance-readiness", "pms:project:query");
+        assertEndpoint("gateWorkbench", GetMapping.class, "/{id}/stages/{stageCode}/gate-workbench", "pms:project:query");
         assertEndpoint("processDefinitions", GetMapping.class,
                 "/{id}/stage-gates/{gateReferenceId}/process-definitions", "pms:project:update");
         assertEndpoint("startProcess", PostMapping.class,

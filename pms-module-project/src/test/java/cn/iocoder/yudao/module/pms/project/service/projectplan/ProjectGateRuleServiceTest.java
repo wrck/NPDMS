@@ -119,6 +119,27 @@ class ProjectGateRuleServiceTest {
         verify(owner,times(2)).lockAndRevalidate(any()); // Still checks live facts, not the cached pass.
     }
 
+    @Test void readOnlyInspectionUsesTheSameFrozenRulesWithoutUpdatingPendingOrPassedProjections() {
+        var matched = service.inspect(9L, "READY");
+        assertTrue(matched.matched());
+        assertEquals(2, matched.conditions().size());
+        assertFalse(matched.steps().isEmpty());
+        gate.setStatus("PASSED"); taskOutcome = ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE;
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, service.inspect(9L, "READY").outcome());
+        taskOutcome = ProjectStageGateOutcome.UNSATISFIED;
+        assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, service.inspect(9L, "READY").outcome());
+        verifyNoInteractions(gates, audit);
+        assertEquals("PASSED", gate.getStatus()); assertEquals(3, gate.getVersion());
+        assertFalse(JsonUtils.toJsonString(matched).contains("private-"));
+    }
+
+    @Test void inspectionDoesNotFallbackToPersistedPassWhenFrozenReferenceChanges() {
+        gate.setStatus("PASSED"); processRef.setRefVersion("other:2:999");
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, service.inspect(9L, "READY").outcome());
+        verify(owner, never()).lockAndRevalidate(any());
+        verifyNoInteractions(gates, audit);
+    }
+
     @Test void changedReferenceRevisionAndMissingFrozenProgramFailClosedWithoutReadingOwner() {
         gate.setStatus("PASSED"); processRef.setRefVersion("2");
         assertEquals(RuleEvaluation.Outcome.UNKNOWN,service.evaluate(9L,"READY",1L,"revision").evaluation().outcome());

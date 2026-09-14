@@ -30,6 +30,9 @@
       <div class="section-title">阶段业务办理</div>
       <StageBusinessPanel ref="stageBusinessRef" :project="project" :stage-code="selection.stageCode" @changed="handleStageBusinessChanged" />
 
+      <StageGateResultsPanel v-if="hasStageGates" ref="stageGatesRef" :project-id="projectId"
+        :stage-code="selection.stageCode" :project-version="project.version" />
+
       <div class="section-title">阶段任务</div>
       <el-alert v-if="tasks.error.value" :title="tasks.error.value" type="error" :closable="false">
         <el-button link @click="tasks.retry">重试任务加载</el-button>
@@ -177,6 +180,7 @@ import TaskBusinessPanel from './TaskBusinessPanel.vue'
 import type { ProjectFlowSelection } from './project-flow'
 import { taskForest, useFlowTaskPaging } from '@/views/pms/project/inheritance/detail/flowTaskPaging'
 import StageBusinessPanel from '@/views/pms/project/inheritance/detail/StageBusinessPanel.vue'
+import StageGateResultsPanel from './StageGateResultsPanel.vue'
 import TaskStateActions from '@/views/pms/project/inheritance/detail/TaskStateActions.vue'
 import TaskApprovalPanel from '@/views/pms/project/inheritance/detail/TaskApprovalPanel.vue'
 import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMaintenancePanel.vue'
@@ -198,10 +202,12 @@ const workspace = ref<ProjectWorkspace>()
 const tasks = useFlowTaskPaging(() => props.projectId, () => props.selection?.stageCode)
 const stageTree = computed(() => taskForest(tasks.rows.value, props.selection?.stageCode || ''))
 const stageDetails = computed(() => props.instances?.stages.find(stage => stage.stageCode === props.selection?.stageCode))
+const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
 const loadError = ref('')
 const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
+const stageGatesRef = ref<InstanceType<typeof StageGateResultsPanel>>()
 const stateActionsRef = ref<InstanceType<typeof TaskStateActions>>()
 const approvalRef = ref<InstanceType<typeof TaskApprovalPanel>>()
 const maintenanceRef = ref<InstanceType<typeof TaskMaintenancePanel>>()
@@ -275,7 +281,7 @@ const handleBusinessChanged = async () => {
   catch { loadError.value = '业务已保存，任务详情刷新失败，请重新加载。' }
   emit('changed')
 }
-const handleStageBusinessChanged = async () => { await refreshSummary(); emit('changed') }
+const handleStageBusinessChanged = async () => { await refreshSummary(); await stageGatesRef.value?.refresh(); emit('changed') }
 const handleBusinessFactChanged = (version?: string) => {
   if (!version) return
   const previous = businessFactVersion.value

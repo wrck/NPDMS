@@ -42,6 +42,16 @@ public class ProjectGateRuleService {
     // https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
     @Transactional(rollbackFor = Exception.class)
     public Result evaluate(Long projectId, String gateCode, Long actorId, String correlationId) {
+        return evaluate(projectId, gateCode, actorId, correlationId, true);
+    }
+
+    /** Same frozen rules and live facts, without updating the projection or recording a business operation. */
+    @Transactional(rollbackFor = Exception.class)
+    public RuleEvaluation inspect(Long projectId, String gateCode) {
+        return evaluate(projectId, gateCode, null, null, false).evaluation();
+    }
+
+    private Result evaluate(Long projectId, String gateCode, Long actorId, String correlationId, boolean persist) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         var project = projects.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(tenantId, projectId));
         String ref = "project:" + projectId + ":gate:" + gateCode;
@@ -83,6 +93,7 @@ public class ProjectGateRuleService {
             // Do not persist exception messages, business values, or stale success as a fallback.
             result = unknown(ref, "GATE_RULE_OR_FACT_UNAVAILABLE").evaluation();
         }
+        if (!persist) return new Result(result, null);
         String status = result.matched() ? "PASSED" : "PENDING";
         int version = gate.getVersion();
         if (!status.equals(gate.getStatus())) {

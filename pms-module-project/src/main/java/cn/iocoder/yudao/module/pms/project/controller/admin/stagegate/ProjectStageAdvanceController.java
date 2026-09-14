@@ -12,6 +12,9 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.stagegate.vo.Project
 import cn.iocoder.yudao.module.pms.project.controller.admin.stagegate.vo.ProjectStageGateProcessStartReqVO;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageAdvanceApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageReadinessService;
+import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateWorkbench;
+import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateWorkbenchService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.command.ProjectStageAdvanceCommand;
 import cn.iocoder.yudao.module.pms.project.service.stagegate.command.ProjectStageAdvanceResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +57,17 @@ public class ProjectStageAdvanceController {
 
     private final ProjectStageReadinessService readinessService;
     private final ProjectStageAdvanceApplicationService applicationService;
+    private final ProjectStageGateWorkbenchService workbenchService;
     private final Environment environment;
+
+    @GetMapping("/{id}/stages/{stageCode}/gate-workbench")
+    @Operation(summary = "只读查询所选阶段的当前计划门禁规则结果")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<ProjectStageGateWorkbench> gateWorkbench(@PathVariable("id") Long projectId,
+            @PathVariable("stageCode") @NotBlank @Size(max = 32) String stageCode) {
+        return withTrustedTenant(() -> success(workbenchService.inspect(projectId, stageCode,
+                new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()))));
+    }
 
     @GetMapping("/{id}/stage-advance-readiness")
     @Operation(summary = "查询当前阶段准出门禁")

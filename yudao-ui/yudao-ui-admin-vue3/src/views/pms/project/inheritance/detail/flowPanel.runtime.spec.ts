@@ -6,6 +6,8 @@ import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/
 const api = vi.hoisted(() => ({ getProjectWorkspace: vi.fn(), getProjectTasks: vi.fn(), getTaskWorkbench: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
 const businessRefresh = vi.hoisted(() => vi.fn())
+const gates = vi.hoisted(() => ({ getStageGateWorkbench: vi.fn() }))
+vi.mock('@/api/pms/project/stage-gates', () => gates)
 vi.mock('@/api/pms/project/task-workbench', () => api)
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
@@ -31,11 +33,11 @@ vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({
 }) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
-const render = (selection: Record<string, unknown>) => {
+const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = []) => {
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
     ref: child, projectId: 9, project: { id: 9 }, selection,
-    instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }] }
+    instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
     ElTable: passthrough, ElTableColumn: tableColumn, DictTag: passthrough })
@@ -50,6 +52,17 @@ beforeEach(() => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '任务A', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+
+it('loads configured gates for the selected parallel stage and does not show an empty extra panel for other stages', async () => {
+  gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', planVersionId: '51', executionId: '61', executionRound: 2, gates: [] })
+  const selected = reactive({ kind: 'stage', stageCode: 'S2' })
+  const view = render(selected, [{ stageCode: 'S2' }]); await flush()
+  expect(textOf(view.root)).toContain('阶段门禁条件')
+  expect(gates.getStageGateWorkbench).toHaveBeenCalledWith(9, 'S2')
+  selected.stageCode = 'S3'; await flush()
+  expect(textOf(view.root)).not.toContain('阶段门禁条件')
+  expect(gates.getStageGateWorkbench).toHaveBeenCalledTimes(1)
+})
 
 it('mounts approval handling in the shared delivery task panel and preserves its leave guard', async () => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'APPROVAL' })
