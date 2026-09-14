@@ -10,7 +10,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * BR-2 发布校验规则单测：内容不完整或引用不存在不得发布
+ * 旧内容结构的发布校验：共享执行契约仍须使用当前规则语法。
+ * 本类不验证 V2 发布入口，也不替代业务 Owner 的事实目录与办理验收。
  */
 class TemplatePublishValidatorTest {
 
@@ -19,6 +20,41 @@ class TemplatePublishValidatorTest {
         TemplateDefinitionContent content = buildValidContent();
         List<String> failures = TemplatePublishValidator.validate(content);
         assertTrue(failures.isEmpty(), () -> "应通过校验，实际失败项：" + failures);
+    }
+
+    @Test
+    void nativeCompletionRejectsLegacyMetadataAndCompletedStatus() {
+        var content = buildValidContent();
+        var task = content.getTasks().getFirst();
+        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"DONE\"}");
+        assertHasFailure(content, "unknown field: schemaVersion");
+        task.setCompletionRuleConfig("{\"requiredStatus\":\"COMPLETED\"}");
+        assertHasFailure(content, "requiredStatus");
+    }
+
+    @Test
+    void businessCompletionRejectsRetiredGenericStatusPredicate() {
+        var content = buildValidContent();
+        setRequirementAnalysisBinding(content.getTasks().getLast(), requirementAnalysisBinding());
+        content.getTasks().getLast().setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
+        content.getTasks().getLast().setCompletionRuleConfig("{\"requiredStatus\":\"COMPLETED\"}");
+        assertHasFailure(content, "unregistered predicate");
+    }
+
+    @Test
+    void compiledConditionGroupPreservesNativeEvidenceAndRejectsMalformedNegation() {
+        var content = buildValidContent();
+        var task = content.getTasks().getFirst();
+        task.setCompletionRuleTypeCode("ALL");
+        task.setCompletionRuleConfig("""
+                {"operator":"ALL","rules":[
+                  {"predicate":"TASK_NATIVE_STATUS","parameters":{"requiredStatus":"DONE"}},
+                  {"operator":"NOT","rules":[{"predicate":"CONSTANT","parameters":{"value":false}}]}
+                ]}
+                """);
+        assertTrue(TemplatePublishValidator.validate(content).isEmpty());
+        task.setCompletionRuleConfig("{\"operator\":\"NOT\",\"rules\":[]}");
+        assertHasFailure(content, "rules");
     }
 
     @Test
@@ -331,7 +367,7 @@ class TemplatePublishValidatorTest {
         task.setBindingConfig("{\"schemaVersion\":1}");
         task.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
         task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
-        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setCompletionRuleConfig("{\"requiredStatus\":\"DONE\"}");
         task.setDefinitionVersion(1);
     }
 
@@ -342,8 +378,9 @@ class TemplatePublishValidatorTest {
         task.setTargetObjectKey("PRE_02_SITE_SURVEY");
         task.setBindingConfig(binding);
         task.setPermissionPolicyRef("PRE_02_SITE_SURVEY_DEFAULT");
-        task.setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
-        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"DONE\"}");
+        // Schema-only fixture: this code is not a claim of a registered PRE-02 runtime Owner fact.
+        task.setCompletionRuleTypeCode("BUSINESS_FACT");
+        task.setCompletionRuleConfig("{\"factCode\":\"TEST_PREPARATION_COMPLETED\",\"quantifier\":\"ALL\"}");
         task.setDefinitionVersion(2);
     }
 
@@ -354,8 +391,8 @@ class TemplatePublishValidatorTest {
         task.setTargetObjectKey("PRE_04_REQUIREMENT_ANALYSIS");
         task.setBindingConfig(binding);
         task.setPermissionPolicyRef("PRE_04_REQUIREMENT_ANALYSIS_DEFAULT");
-        task.setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
-        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setCompletionRuleTypeCode("BUSINESS_FACT");
+        task.setCompletionRuleConfig("{\"factCode\":\"REQUIREMENT_ANALYSIS_COMPLETED\",\"quantifier\":\"ALL\"}");
         task.setDefinitionVersion(2);
     }
 
