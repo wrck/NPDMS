@@ -87,7 +87,7 @@ class ProjectStageBusinessQueryServiceTest {
         contract.setDefinitionSnapshot(JsonUtils.toJsonString(snapshot));
     }
 
-    @Test void approvalUsesFrozenBindingWithoutRequiringABusinessPageOrGrantingAnAction() {
+    @Test void approvalUsesFrozenBindingWithoutRequiringABusinessPageAndRespectsStageEligibility() {
         approvalBinding();
         var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
                 cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,
@@ -96,8 +96,11 @@ class ProjectStageBusinessQueryServiceTest {
         when(approvals.view(eq(1L),eq(execution),any())).thenReturn(view);
         var result = service.getContext(9L,"S4",actor);
         assertEquals(view,result.approval()); assertNull(result.businessView()); assertNull(result.recoverableError());
-        assertTrue(result.readonly()); assertEquals(Set.of("QUERY"),result.ownerActions());
-        verify(approvals).view(eq(1L),eq(execution),argThat(binding -> "review".equals(binding.getApprovalDefinitionKey())
+        assertFalse(result.readonly()); assertEquals(Set.of("QUERY","APPROVAL"),result.ownerActions());
+        stage.setStatus("DONE");
+        assertTrue(service.getContext(9L,"S4",actor).readonly());
+        assertEquals(Set.of("QUERY"),service.getContext(9L,"S4",actor).ownerActions());
+        verify(approvals,atLeastOnce()).view(eq(1L),eq(execution),argThat(binding -> "review".equals(binding.getApprovalDefinitionKey())
                 && "review:1".equals(binding.getParameters().path("processDefinitionId").asText())));
         verifyNoInteractions(views,owner);
     }

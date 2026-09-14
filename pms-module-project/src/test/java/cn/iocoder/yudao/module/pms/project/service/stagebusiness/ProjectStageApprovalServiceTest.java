@@ -20,7 +20,8 @@ import static org.mockito.Mockito.*;
 class ProjectStageApprovalServiceTest {
     final ProjectNodeExecutionMapper rounds = mock(ProjectNodeExecutionMapper.class);
     final ProjectNodeApprovalApi approvals = mock(ProjectNodeApprovalApi.class);
-    final ProjectStageApprovalService service = new ProjectStageApprovalService(rounds, approvals);
+    final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
+    final ProjectStageApprovalService service = new ProjectStageApprovalService(rounds, approvals, executions);
     final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,2,3,true);
     final BindingContract binding = new BindingContract();
     ProjectNodeExecutionDO round;
@@ -37,6 +38,28 @@ class ProjectStageApprovalServiceTest {
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
     View view() { return service.view(7L, execution, binding); }
+
+    @Test void startsOnlyAfterRecordingRealHandlingAndUsesTheUpdatedExecutionVersion() {
+        var current = new ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,3,3,true);
+        when(executions.beginStageHandling(execution,1L)).thenAnswer(call -> { round.setVersion(3); return current; });
+        var submission = new Submission(java.util.Map.of("note","private"),java.util.Map.of("review",List.of(12L)));
+        service.start(7L,execution,new cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema.Definition("review","review:1"),1L,"intent",submission);
+        var ordered = inOrder(executions,rounds,approvals);
+        ordered.verify(executions).beginStageHandling(execution,1L);
+        ordered.verify(rounds).selectById(31L);
+        ordered.verify(approvals).startStage(argThat(command -> current.equals(command.execution())
+                && round.getStartedAt().equals(command.scope().startedAt()) && command.scope().kind() == NodeKind.STAGE
+                && command.variables().equals(submission.variables()) && command.selectedApprovers().equals(submission.selectedApprovers())));
+    }
+
+    @Test void failedOrMissingRoundStartNeverCreatesAProcess() {
+        var definition = new cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema.Definition("review","review:1");
+        when(executions.beginStageHandling(execution,1L)).thenReturn(execution); round.setStartedAt(null);
+        assertThrows(IllegalStateException.class,() -> service.start(7L,execution,definition,1L,"intent",null));
+        when(executions.beginStageHandling(execution,1L)).thenThrow(new IllegalStateException("version conflict"));
+        assertThrows(IllegalStateException.class,() -> service.start(7L,execution,definition,1L,"intent",null));
+        verifyNoInteractions(approvals);
+    }
 
     @Test void usesFrozenDefinitionAndActualStageRoundTimeInsteadOfActivationOrCurrentTime() {
         var fact = new Fact(Outcome.SATISFIED,"APPROVED","pi","review:1",null);

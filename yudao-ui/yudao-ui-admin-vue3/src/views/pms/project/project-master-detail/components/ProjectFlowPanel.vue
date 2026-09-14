@@ -27,7 +27,10 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <div class="section-title">阶段业务办理</div>
+      <div class="section-title task-business-heading">
+        <span>阶段业务办理</span>
+        <el-button :disabled="stageBusinessRef?.isBusy()" @click="stageBusinessRef?.refresh()">刷新业务结果</el-button>
+      </div>
       <StageBusinessPanel ref="stageBusinessRef" :project="project" :stage-code="selection.stageCode" @changed="handleStageBusinessChanged" />
 
       <StageGateResultsPanel v-if="hasStageGates" ref="stageGatesRef" :project-id="projectId"

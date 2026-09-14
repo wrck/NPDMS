@@ -16,7 +16,7 @@ vi.mock('@/api/pms/project/projects', () => ({ startProjectStageGateProcess: vi.
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {} }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: (v: unknown) => String(v) }))
 vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ requestLeave: async () => true }); return () => h('div', '阶段绑定上下文') }
+  setup(_, { expose }) { expose({ requestLeave: async () => true, isBusy: () => false, refresh: businessRefresh }); return () => h('div', '阶段绑定上下文') }
 }) }))
 vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
   setup(_, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作' }, ['任务状态操作', slots.default?.()]) }

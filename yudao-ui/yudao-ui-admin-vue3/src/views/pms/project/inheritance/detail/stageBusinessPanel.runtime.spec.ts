@@ -7,6 +7,13 @@ const leave = vi.hoisted(() => vi.fn())
 const ownerUnmounted = vi.hoisted(() => vi.fn())
 const ownerContext = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/project/stage-business', () => api)
+vi.mock('./StageApprovalPanel.vue', () => ({ default: defineComponent({
+  props: ['workbench', 'disabled'],
+  setup(props, { expose }) {
+    expose({ requestLeave: leave, isBusy: () => false })
+    return () => h('div', `阶段审批:${props.workbench.execution?.executionId}; disabled:${props.disabled}`)
+  }
+}) }))
 vi.mock('@/components/BusinessView/BusinessViewHost.vue', () => ({ default: defineComponent({
   props: ['resolvedContext', 'readonly', 'allowedActions'],
   setup(props, { expose }) {
@@ -56,6 +63,16 @@ it('rejects a context for another project instead of mounting its view', async (
   const view = render(); await flush()
   expect(textOf(view.root)).not.toContain('Owner:')
   expect(textOf(view.root)).toContain('阶段业务上下文加载失败')
+})
+it('mounts stage approval in the shared business area and delegates its leave guard before refresh', async () => {
+  api.getStageBusinessContext.mockResolvedValue({ ...native, bindingType: 'APPROVAL', execution: { executionId: '101' } })
+  const view = render(); await flush()
+  expect(textOf(view.root)).toContain('阶段审批:101'); expect(textOf(view.root)).not.toContain('Owner:')
+  expect(await view.component().requestLeave()).toBe(false)
+  await view.component().refresh(); expect(api.getStageBusinessContext).toHaveBeenCalledTimes(1)
+  leave.mockResolvedValue(true); api.getStageBusinessContext.mockRejectedValueOnce(new Error('unavailable'))
+  await view.component().refresh(); await flush()
+  expect(textOf(view.root)).toContain('阶段审批:101; disabled:true')
 })
 
 it('passes the exact stage execution and retains the Owner page when the same project metadata refreshes', async () => {

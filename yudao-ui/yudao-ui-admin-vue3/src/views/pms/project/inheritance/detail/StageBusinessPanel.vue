@@ -8,17 +8,21 @@
     <BusinessViewHost v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
       :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly"
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
+    <StageApprovalPanel v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
+      :disabled="!!error || loading" @changed="handleChanged" />
   </section>
 </template>
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
+import StageApprovalPanel from './StageApprovalPanel.vue'
 import { getStageBusinessContext, type StageBusinessContext } from '@/api/pms/project/stage-business'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 const props = defineProps<{ project: ProjectMasterVO; stageCode: string }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [boolean] }>()
 const context = ref<StageBusinessContext>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
+const approvalRef = ref<InstanceType<typeof StageApprovalPanel>>()
 const loading = ref(false)
 const error = ref('')
 const unavailableMessage = computed(() => `阶段冻结绑定暂不可用（${context.value?.recoverableError}），未修改业务记录或阶段状态。`)
@@ -42,10 +46,10 @@ const load = async () => {
     if (token === sequence) loading.value = false
   }
 }
-const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false
+const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false && (await approvalRef.value?.requestLeave()) !== false
 const refresh = async () => { if (await requestLeave()) await load() }
 const handleChanged = async () => { await load(); emit('changed') }
 watch([() => props.project.id, () => props.stageCode], () => { context.value = undefined; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })
-defineExpose({ requestLeave, refresh })
+defineExpose({ requestLeave, refresh, isBusy: () => loading.value || !!approvalRef.value?.isBusy() })
 </script>

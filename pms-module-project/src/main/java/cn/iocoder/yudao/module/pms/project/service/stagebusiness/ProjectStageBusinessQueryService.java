@@ -66,9 +66,13 @@ public class ProjectStageBusinessQueryService {
             if ("APPROVAL".equals(contract.getBindingType())) {
                 var execution = executions.inspectStage(new ProjectStageExecutionQuery(projectId, stage.getId(), contract.getId()));
                 var approval = approvals.view(actor.tenantId(), execution, binding);
+                boolean readonly = !"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(stage.getStatus())
+                        || !execution.writable() || approval.current().outcome()
+                        == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN;
                 // Approval routing is independent of business-page registration. BPM retains per-operation authorization.
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
-                        contract.getBindingVersion(), contract.getBindingType(), null, null, Set.of("QUERY"), true,
+                        contract.getBindingVersion(), contract.getBindingType(), null, null,
+                        readonly ? Set.of("QUERY") : Set.of("QUERY", "APPROVAL"), readonly,
                         approval.current().outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN
                                 ? approval.current().reason() : null, execution, approval);
             }

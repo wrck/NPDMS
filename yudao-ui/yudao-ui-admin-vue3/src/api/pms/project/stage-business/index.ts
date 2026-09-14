@@ -1,6 +1,6 @@
 import request from '@/config/axios'
 import type { BusinessViewId, BusinessViewRegistrationVO } from '@/api/pms/platform/business-view'
-import type { TaskApprovalView } from '@/api/pms/project/task-workbench'
+import type { TaskApprovalSubmission, TaskApprovalView } from '@/api/pms/project/task-workbench'
 
 export interface StageExecutionContext {
   projectId: BusinessViewId
@@ -34,4 +34,12 @@ export interface StageBusinessContext {
 export const getStageBusinessContext = (projectId: number, stageCode: string) =>
   request.get<StageBusinessContext>({
     url: `/api/v1/pms/projects/${projectId}/stages/${encodeURIComponent(stageCode)}/business/context`
+  })
+
+export const startStageApproval = (projectId: BusinessViewId, stageCode: string,
+  execution: StageExecutionContext, approval: TaskApprovalSubmission, key: string) =>
+  request.post<TaskApprovalView['current']>({
+    url: `/api/v1/pms/projects/${projectId}/stages/${encodeURIComponent(stageCode)}/business/approvals`,
+    headers: { 'Idempotency-Key': key },
+    data: { execution, approval }
   })
