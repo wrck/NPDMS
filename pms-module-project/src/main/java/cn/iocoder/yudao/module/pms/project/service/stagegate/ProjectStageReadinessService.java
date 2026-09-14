@@ -186,7 +186,7 @@ public class ProjectStageReadinessService {
             return providerRegistry.lockAndRevalidate(key, new ProjectStageGateFactQuery(
                     tenantId, project.getId(), gate.getStageCode(), gate.getId(), gate.getGateCode(),
                     gate.getVersion(), reference.getId(), reference.getVersion(),
-                    reference.getRefType(), reference.getRefCode(), null));
+                    reference.getRefType(), reference.getRefCode(), reference.getRefVersion(), null));
         } catch (IllegalStateException unavailable) {
             return new ProjectStageGateFact(key, reference.getRefType(), reference.getRefCode(),
                     "UNKNOWN", "UNKNOWN", ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, "OWNER_PROVIDER_UNAVAILABLE");

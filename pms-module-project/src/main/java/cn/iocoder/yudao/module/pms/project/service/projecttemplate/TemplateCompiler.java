@@ -363,6 +363,9 @@ public class TemplateCompiler {
                     default -> false;
                 };
                 if (!valid) issues.add(new Issue(refPath, "INVALID_GATE_REFERENCE", "Gate引用不存在或类型无效"));
+                if (("APPROVAL".equals(ref.getRefType()) || "PROCESS".equals(ref.getRefType()))
+                        && (ref.getRefVersion() == null || ref.getRefVersion().isBlank()))
+                    issues.add(new Issue(refPath + ".refVersion", "GATE_PROCESS_DEFINITION_REQUIRED", "流程引用须冻结精确流程定义ID，不能运行时选择最新版本"));
             }
         }
         for (int i = 0; i < source.getTasks().size(); i++) {

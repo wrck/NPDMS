@@ -69,22 +69,7 @@
             </div>
 
             <div v-if="canStartProcess(reference)" class="process-action">
-              <el-select
-                v-model="selectedDefinitions[reference.gateReferenceId]"
-                :loading="definitionLoading[reference.gateReferenceId]"
-                placeholder="默认启动最新流程定义"
-                clearable
-                @visible-change="(visible) => visible && loadDefinitions(reference.gateReferenceId)"
-              >
-                <el-option label="默认：最新生效定义" value="__LATEST__" />
-                <el-option
-                  v-for="definition in definitions[reference.gateReferenceId] || []"
-                  :key="definition.processDefinitionId"
-                  :label="`${definition.name}（${definition.processDefinitionId}）`"
-                  :value="definition.processDefinitionId"
-                  :disabled="!definition.selectable"
-                />
-              </el-select>
+              <span>按当前计划冻结的流程版本办理</span>
               <el-button
                 v-hasPermi="['pms:project:update']"
                 type="primary"
@@ -119,7 +104,6 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import type {
   ProjectStageAdvanceReadinessVO,
-  ProjectStageGateProcessDefinitionVO,
   ProjectStageGateProcessStartVO,
   ProjectStageGateOutcome
 } from '@/api/pms/project/projects'
@@ -142,9 +126,6 @@ const checking = ref(false)
 const errorMessage = ref('')
 const startingReferenceId = ref<number>()
 const readiness = ref<ProjectStageAdvanceReadinessVO>()
-const definitions = reactive<Record<number, ProjectStageGateProcessDefinitionVO[]>>({})
-const definitionLoading = reactive<Record<number, boolean>>({})
-const selectedDefinitions = reactive<Record<number, string>>({})
 const startedProcesses = reactive<Record<number, ProjectStageGateProcessStartVO>>({})
 
 const outcomeLabel = (outcome: ProjectStageGateOutcome) =>
@@ -193,33 +174,20 @@ const recheckProgress = async () => {
   }
 }
 
-const loadDefinitions = async (gateReferenceId: number) => {
-  if (definitions[gateReferenceId] || definitionLoading[gateReferenceId]) return
-  definitionLoading[gateReferenceId] = true
-  try {
-    definitions[gateReferenceId] = await ProjectsApi.getProjectStageGateProcessDefinitions(
-      props.projectId,
-      gateReferenceId
-    )
-  } finally {
-    definitionLoading[gateReferenceId] = false
-  }
-}
-
 const startProcess = async (gateReferenceId: number) => {
-  if (!readiness.value) return
+  if (!readiness.value || startingReferenceId.value !== undefined) return
   startingReferenceId.value = gateReferenceId
   try {
-    const selected = selectedDefinitions[gateReferenceId]
     startedProcesses[gateReferenceId] = await ProjectsApi.startProjectStageGateProcess(
       props.projectId,
       gateReferenceId,
       readiness.value.projectVersion,
-      crypto.randomUUID(),
-      selected && selected !== '__LATEST__' ? selected : undefined
+      crypto.randomUUID()
     )
     message.success('审批流程已发起，请在流程工作台完成审批')
     await loadReadiness()
+  } catch {
+    errorMessage.value = '冻结流程未能发起，请核对当前计划及流程状态；不会改用其他版本。'
   } finally {
     startingReferenceId.value = undefined
   }

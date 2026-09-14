@@ -585,7 +585,7 @@ export const getProjectStageAdvanceReadiness = (id: number) =>
     url: `/api/v1/pms/projects/${id}/stage-advance-readiness`
   })
 
-/** 当前 Gate 可启动的 Flowable 原生流程定义；默认启动最新定义，也可选历史 definitionId */
+/** 当前 Gate 在有效计划中冻结的精确流程定义；不可运行时改选其他版本。 */
 export const getProjectStageGateProcessDefinitions = (id: number, gateReferenceId: number) =>
   request.get<ProjectStageGateProcessDefinitionVO[]>({
     url: `/api/v1/pms/projects/${id}/stage-gates/${gateReferenceId}/process-definitions`

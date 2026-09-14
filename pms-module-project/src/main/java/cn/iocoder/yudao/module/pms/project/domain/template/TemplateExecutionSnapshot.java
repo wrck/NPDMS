@@ -161,6 +161,7 @@ public class TemplateExecutionSnapshot {
     public static class GateReference {
         private String refType;
         private String refCode;
+        /** Frozen native process definition ID for PROCESS/APPROVAL. */
         private String refVersion;
     }
 

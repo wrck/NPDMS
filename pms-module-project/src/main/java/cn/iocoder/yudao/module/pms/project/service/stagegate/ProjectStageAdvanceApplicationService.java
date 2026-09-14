@@ -14,7 +14,7 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFac
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateOutcome;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact;
-import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionSelectionQuery;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionQuery;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartCommand;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessStartFact;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
@@ -101,8 +101,8 @@ public class ProjectStageAdvanceApplicationService {
         ProjectMasterDO project = requireProject(projectId, actor.tenantId());
         authorizeManageRead(project, actor);
         var reference = processContexts.resolve(project, gateReferenceId);
-        return processOwnerApi.listSelectableDefinitions(new ProjectStageGateProcessDefinitionSelectionQuery(
-                actor.tenantId(), projectId, gateReferenceId, reference.reference().getRefCode()));
+        return List.of(processOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
+                actor.tenantId(), reference.reference().getRefCode(), reference.reference().getRefVersion())));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -134,10 +134,14 @@ public class ProjectStageAdvanceApplicationService {
             String selectedProcessDefinitionId, String idempotencyKey, String requestDigest, Actor actor) {
         var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
         var selected = processContexts.resolve(context.project(), gateReferenceId);
+        String frozenDefinitionId = selected.reference().getRefVersion();
+        if (frozenDefinitionId == null || frozenDefinitionId.isBlank()
+                || selectedProcessDefinitionId != null && !Objects.equals(selectedProcessDefinitionId, frozenDefinitionId))
+            throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_PROCESS_INVALID);
         var result = processOwnerApi.startProcess(new ProjectStageGateProcessStartCommand(
                 actor.tenantId(), actor.actorUserId(), projectId, selected.gate().getStageCode(),
                 selected.gate().getId(), gateReferenceId, selected.reference().getRefType(),
-                selected.reference().getRefCode(), selectedProcessDefinitionId,
+                selected.reference().getRefCode(), frozenDefinitionId,
                 "PROJECT_STAGE_GATE:" + gateReferenceId, idempotencyKey, requestDigest, Map.of()));
         if ("STARTED".equals(result.outcome())) processContexts.recordStarted(selected, actor.actorUserId());
         return result;
@@ -304,7 +308,7 @@ public class ProjectStageAdvanceApplicationService {
         return new ProjectStageGateFactQuery(context.project().getTenantId(), context.project().getId(),
                 item.gate().getStageCode(), item.gate().getId(), item.gate().getGateCode(),
                 item.gate().getVersion(), item.reference().getId(), item.reference().getVersion(),
-                item.reference().getRefType(), item.reference().getRefCode(), null);
+                item.reference().getRefType(), item.reference().getRefCode(), item.reference().getRefVersion(), null);
     }
 
     private static Map<String, Object> evaluation(GateReferenceContext item, ProjectStageGateFact fact) {

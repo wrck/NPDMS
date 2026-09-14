@@ -86,7 +86,7 @@ public class NormalClosureCheckService {
                 }
                 var fact = gates.lockAndRevalidate(key, new ProjectStageGateFactQuery(project.getTenantId(), project.getId(),
                         gate.getStageCode(), gate.getId(), gate.getGateCode(), gate.getVersion(), ref.getId(), ref.getVersion(),
-                        ref.getRefType(), ref.getRefCode(), null));
+                        ref.getRefType(), ref.getRefCode(), ref.getRefVersion(), null));
                 add(checks, "EXIT_GATE_SATISFIED", fact.outcome() == ProjectStageGateOutcome.SATISFIED, ref.getId());
                 gateEvidence.add(List.of(gate.getId(), gate.getVersion(), ref.getId(), ref.getVersion(), fact));
             }

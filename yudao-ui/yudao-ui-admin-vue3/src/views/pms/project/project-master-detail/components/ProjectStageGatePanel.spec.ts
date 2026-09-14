@@ -24,12 +24,12 @@ describe('F-PROJ-008 project stage gate workspace', () => {
     expect(statusPanel).toContain('error.value')
   })
 
-  it('starts Flowable with latest definition by default or an explicit native definition id', () => {
+  it('starts Flowable from the plan pin without a runtime version selector', () => {
     expect(api).toContain('/process-definitions')
     expect(api).toContain('/actions/start-process')
-    expect(panel).toContain('默认：最新生效定义')
-    expect(panel).toContain("selected !== '__LATEST__' ? selected : undefined")
-    expect(panel).toContain('definition.processDefinitionId')
+    expect(panel).toContain('按当前计划冻结的流程版本办理')
+    expect(panel).not.toContain('__LATEST__')
+    expect(panel).not.toContain('selectedDefinitions')
     expect(panel).not.toContain('processDefinitionVersion')
   })
 

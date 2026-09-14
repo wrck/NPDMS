@@ -44,11 +44,35 @@ public class TemplateDesignerDependencyValidator {
             for (var node : changes.getTasks())
                 if (node != null && effective.getTasks().stream().anyMatch(old -> old != null && Objects.equals(old.getNodeKey(),node.getNodeKey())
                         && Objects.equals(old.getWorkBinding(),node.getWorkBinding()))) node.setWorkBinding(null);
+        if (changes.getGates() != null && effective.getGates() != null)
+            for (var node : changes.getGates()) {
+                if (node == null || node.getReferences() == null) continue;
+                var previous = effective.getGates().stream().filter(old -> old != null
+                        && Objects.equals(old.getNodeKey(), node.getNodeKey())
+                        && Objects.equals(old.getStageCode(), node.getStageCode())
+                        && Objects.equals(old.getGateType(), node.getGateType())).findFirst().orElse(null);
+                if (previous != null && previous.getReferences() != null)
+                    for (int i = 0; i < node.getReferences().size(); i++)
+                        if (previous.getReferences().contains(node.getReferences().get(i))) node.getReferences().set(i, null);
+            }
         return validate(changes, lockForPublish);
     }
 
     public List<Issue> validate(TemplateDesignerDocument designer, boolean lockForPublish) {
         List<Issue> issues = new ArrayList<>();
+        if (designer != null && designer.getGates() != null)
+            for (int i = 0; i < designer.getGates().size(); i++) {
+                var gate = designer.getGates().get(i);
+                if (gate == null || gate.getReferences() == null) continue;
+                for (int j = 0; j < gate.getReferences().size(); j++) {
+                    var ref = gate.getReferences().get(j);
+                    if (ref == null || !("APPROVAL".equals(ref.getRefType()) || "PROCESS".equals(ref.getRefType()))) continue;
+                    String path = "gates[" + i + "].references[" + j + "]";
+                    if (ref.getRefVersion() == null || ref.getRefVersion().isBlank())
+                        issues.add(new Issue(path, "GATE_PROCESS_DEFINITION_REQUIRED", "流程引用缺少冻结的精确定义ID"));
+                    else validateProcessDefinition(ref.getRefCode(), ref.getRefVersion(), path, issues);
+                }
+            }
         if (designer != null && designer.getStages() != null)
             for (int i = 0; i < designer.getStages().size(); i++) {
                 var node = designer.getStages().get(i);
@@ -118,11 +142,15 @@ public class TemplateDesignerDependencyValidator {
             issues.add(new Issue(path, "APPROVAL_DEFINITION_REQUIRED", invalid.getMessage()));
             return;
         }
+        validateProcessDefinition(definition.key(), definition.id(), path, issues);
+    }
+
+    private void validateProcessDefinition(String key, String id, String path, List<Issue> issues) {
         try {
             var actual = processes.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
-                    TenantContextHolder.getRequiredTenantId(), definition.key(), definition.id()));
-            if (actual == null || !actual.selectable() || !definition.id().equals(actual.processDefinitionId())
-                    || !definition.key().equals(actual.processDefinitionKey())) throw new IllegalStateException("APPROVAL_DEFINITION_UNAVAILABLE");
+                    TenantContextHolder.getRequiredTenantId(), key, id));
+            if (actual == null || !actual.selectable() || !id.equals(actual.processDefinitionId())
+                    || !Objects.equals(key, actual.processDefinitionKey())) throw new IllegalStateException("APPROVAL_DEFINITION_UNAVAILABLE");
         } catch (RuntimeException unavailable) {
             issues.add(new Issue(path, "APPROVAL_DEFINITION_UNAVAILABLE", "所选精确审批定义不可用或不匹配，请重新选择；不会改用最新版本"));
         }

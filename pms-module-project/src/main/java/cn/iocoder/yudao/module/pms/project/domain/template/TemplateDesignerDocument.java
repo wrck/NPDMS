@@ -130,6 +130,7 @@ public class TemplateDesignerDocument {
     public static class GateReference {
         private String refType;
         private String refCode;
+        /** PROCESS/APPROVAL freezes the native process definition ID, not a numeric PMS version. */
         private String refVersion;
     }
 

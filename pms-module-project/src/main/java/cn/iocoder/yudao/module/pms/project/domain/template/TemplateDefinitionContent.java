@@ -238,6 +238,7 @@ public class TemplateDefinitionContent {
     public static class GateRef {
         private String refType;
         private String refCode;
+        /** PROCESS/APPROVAL freezes the native process definition ID. */
         private String refVersion;
     }
 }

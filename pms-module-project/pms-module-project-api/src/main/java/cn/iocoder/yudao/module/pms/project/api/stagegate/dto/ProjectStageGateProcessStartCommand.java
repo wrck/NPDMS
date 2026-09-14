@@ -12,6 +12,7 @@ public record ProjectStageGateProcessStartCommand(
         Long gateReferenceId,
         String refType,
         String processDefinitionKey,
+        // Required exact ID resolved from the effective plan's gate reference; not a runtime override.
         String selectedProcessDefinitionId,
         String businessKey,
         String operationId,

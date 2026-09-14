@@ -11,6 +11,24 @@ class TemplateCompilerTest {
 
     private final TemplateCompiler compiler = new TemplateCompiler();
 
+    @Test void processGateRequiresAndPreservesExactDefinitionIdInSnapshotAndProjection() {
+        var designer = validDesigner();
+        var gate = new TemplateDesignerDocument.GateNode();
+        gate.setNodeKey("gate:approval"); gate.setCode("APPROVAL_GATE"); gate.setName("阶段审批");
+        gate.setStageCode("S1"); gate.setGateType("ENTRY");
+        var ref = new TemplateDesignerDocument.GateReference(); ref.setRefType("APPROVAL"); ref.setRefCode("approval");
+        gate.setReferences(new java.util.ArrayList<>(java.util.List.of(ref))); designer.getGates().add(gate);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "GATE_PROCESS_DEFINITION_REQUIRED".equals(issue.code())));
+        ref.setRefVersion("approval:1:101");
+        var compiled = compiler.compile(designer); assertTrue(compiled.valid(), () -> compiled.issues().toString());
+        var snapshot = JsonUtils.parseObject(JsonUtils.toJsonString(compiled.snapshot()),
+                cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
+        assertEquals("approval:1:101", snapshot.getGates().getFirst().getReferences().getFirst().getRefVersion());
+        assertEquals("approval:1:101", snapshot.toRuntimeContent().getGates().getFirst().getReferences().getFirst().getRefVersion());
+        ref.setRefVersion("approval:2:202");
+        assertEquals("approval:1:101", snapshot.getGates().getFirst().getReferences().getFirst().getRefVersion());
+    }
+
     @Test void approvalBindingRequiresAnExactDefinitionAndSurvivesExecutionContractFreezing() {
         var designer = validDesigner(); var task = designer.getTasks().getFirst();
         task.getWorkBinding().setType("APPROVAL"); task.getWorkBinding().setApprovalDefinitionKey("approval");

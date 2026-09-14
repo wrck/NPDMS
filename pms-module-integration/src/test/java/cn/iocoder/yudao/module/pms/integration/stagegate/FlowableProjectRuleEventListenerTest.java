@@ -39,6 +39,7 @@ class FlowableProjectRuleEventListenerTest {
     static final AtomicBoolean failAppend = new AtomicBoolean();
     static final AtomicLong ids = new AtomicLong(100);
     Long referenceId;
+    static String frozenDefinitionId;
 
     @BeforeAll static void startEngine() {
         database = new EmbeddedDatabaseBuilder().generateUniqueName(true).setType(EmbeddedDatabaseType.H2).build();
@@ -77,6 +78,8 @@ class FlowableProjectRuleEventListenerTest {
                   </process>
                 </definitions>
                 """).deploy();
+        frozenDefinitionId = engine.getRepositoryService().createProcessDefinitionQuery()
+                .processDefinitionKey("gate-test").processDefinitionTenantId("7").singleResult().getId();
     }
 
     @BeforeEach void setup() {
@@ -155,10 +158,30 @@ class FlowableProjectRuleEventListenerTest {
             assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(
                     new ProjectStageGateProcessDefinitionQuery(8L, "pin-test", first.processDefinitionId())));
         } finally { TenantContextHolder.setTenantId(7L); }
+        assertEquals(0, count()); // Definition validation must not start work or send reevaluation events.
+        var command = new ProjectStageGateProcessStartCommand(7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL",
+                "pin-test", first.processDefinitionId(), FlowableProjectStageGateProvider.businessKey(referenceId),
+                "frozen-start", "request", Map.of());
+        var started = provider.startProcess(command);
+        assertEquals(first.processDefinitionId(), started.processDefinitionId());
+        assertEquals("REPLAYED", provider.startProcess(command).outcome());
+        tx.executeWithoutResult(ignored -> {
+            engine.getRuntimeService().setVariable(started.processInstanceId(), "PROCESS_STATUS", 2);
+            engine.getTaskService().complete(engine.getTaskService().createTaskQuery().processInstanceId(started.processInstanceId()).singleResult().getId());
+        });
+        var accepted = tx.execute(ignored -> provider.lockAndRevalidate(new ProjectStageGateFactQuery(
+                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "pin-test", first.processDefinitionId(), java.time.Instant.EPOCH)));
+        assertEquals(ProjectStageGateOutcome.SATISFIED, accepted.outcome());
+        var differentPin = tx.execute(ignored -> provider.lockAndRevalidate(new ProjectStageGateFactQuery(
+                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "pin-test", latest.processDefinitionId(), java.time.Instant.EPOCH)));
+        assertEquals(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, differentPin.outcome());
+        assertEquals("BPM_INSTANCE_IDENTITY_MISMATCH", differentPin.unmetCode());
         repository.suspendProcessDefinitionById(first.processDefinitionId());
         assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(pinned));
         assertEquals(latest, provider.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", null)));
-        assertEquals(0, count()); // Definition validation must not start work or send reevaluation events.
+        assertThrows(IllegalArgumentException.class, () -> provider.startProcess(new ProjectStageGateProcessStartCommand(
+                7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL", "pin-test", first.processDefinitionId(),
+                FlowableProjectStageGateProvider.businessKey(referenceId), "unavailable-start", "request", Map.of())));
     }
 
     @ParameterizedTest @ValueSource(ints = {2, 3})
@@ -244,7 +267,7 @@ class FlowableProjectRuleEventListenerTest {
 
     private ProjectStageGateProcessStartCommand command(String operation) {
         return new ProjectStageGateProcessStartCommand(7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL",
-                "gate-test", null, FlowableProjectStageGateProvider.businessKey(referenceId), operation,
+                "gate-test", frozenDefinitionId, FlowableProjectStageGateProvider.businessKey(referenceId), operation,
                 "request:" + referenceId, Map.of());
     }
     private ProjectStageGateFact fact() {
@@ -253,7 +276,7 @@ class FlowableProjectRuleEventListenerTest {
 
     private ProjectStageGateFact fact(java.time.Instant roundCreatedAt) {
         return tx.execute(ignored -> provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "gate-test", roundCreatedAt)));
+                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "gate-test", frozenDefinitionId, roundCreatedAt)));
     }
 
     @Test void oldRoundCompletionCannotReleaseReworkButANewProcessCan() {

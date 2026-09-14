@@ -56,6 +56,8 @@ public class ProjectStageGateProcessContextResolver {
                 || !Objects.equals(refs.getFirst().getTenantId(), project.getTenantId()))
             throw exception(PROJECT_STAGE_PROCESS_INVALID);
         var ref = refs.getFirst();
+        if (ref.getRefVersion() == null || ref.getRefVersion().isBlank())
+            throw exception(PROJECT_STAGE_PROCESS_INVALID);
         var selected = gates.stream().filter(gate -> Objects.equals(gate.getId(), ref.getGateId())).toList();
         if (selected.size() != 1) throw exception(PROJECT_STAGE_PROCESS_INVALID);
         var gate = selected.getFirst();

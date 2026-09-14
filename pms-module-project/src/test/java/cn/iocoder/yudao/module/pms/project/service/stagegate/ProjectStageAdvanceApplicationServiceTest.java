@@ -41,6 +41,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -265,7 +266,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         var entry = new ProjectGateInstanceDO().setId(32L).setProjectId(PROJECT_ID)
                 .setGateCode("G-S4-ENTRY").setGateType("ENTRY").setStageCode("S4").setStatus("PENDING").setVersion(0);
         var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
-                .setRefType("PROCESS").setRefCode("entry-process").setVersion(0);
+                .setRefType("PROCESS").setRefCode("entry-process").setRefVersion("def-entry").setVersion(0);
         when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(entry, reference, null));
         var stages = graphMapper.selectStagesForUpdate(null);
         when(graphMapper.selectStages(any())).thenReturn(stages);
@@ -276,8 +277,11 @@ class ProjectStageAdvanceApplicationServiceTest {
         var project = projectMapper.selectByIdForUpdate(PROJECT_ID);
         when(projectMapper.selectById(PROJECT_ID)).thenReturn(project);
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "entry-start");
-        service.listDefinitions(PROJECT_ID, 42L, actor);
-        verify(processOwnerApi).listSelectableDefinitions(any());
+        when(processOwnerApi.inspectDefinitionKey(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact(
+                "def-entry", "entry-process", "前置审批", true));
+        assertEquals("def-entry", service.listDefinitions(PROJECT_ID, 42L, actor).getFirst().processDefinitionId());
+        verify(processOwnerApi).inspectDefinitionKey(org.mockito.ArgumentMatchers.argThat(query -> "def-entry".equals(query.processDefinitionId())));
+        verify(processOwnerApi, never()).listSelectableDefinitions(any());
         doAnswer(invocation -> {
             Supplier<ProjectStageGateProcessStartFact> operation = invocation.getArgument(3);
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
@@ -299,7 +303,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         var exit = new ProjectGateInstanceDO().setId(32L).setProjectId(PROJECT_ID)
                 .setGateCode("G-PARALLEL-EXIT").setGateType("EXIT").setStageCode("PARALLEL").setStatus("PENDING").setVersion(0);
         var reference = new ProjectGateReferenceInstanceDO().setId(42L).setGateId(32L)
-                .setRefType("APPROVAL").setRefCode("parallel-approval").setVersion(0);
+                .setRefType("APPROVAL").setRefCode("parallel-approval").setRefVersion("def-parallel").setVersion(0);
         when(processContexts.resolve(any(), eq(42L))).thenReturn(new ProjectStageGateProcessContextResolver.Context(exit, reference, null));
         // Any access to the obsolete transition resolver fails, independently of its mocked rule outcomes.
         when(graphMapper.selectStagesForUpdate(any())).thenThrow(new IllegalStateException("single-stage graph must not be read"));
@@ -310,8 +314,12 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(processOwnerApi.startProcess(any())).thenReturn(new ProjectStageGateProcessStartFact(
                 "pi-parallel", "def-parallel", "parallel-approval", "PROJECT_STAGE_GATE:42", "STARTED"));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "parallel");
+        when(processOwnerApi.inspectDefinitionKey(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact(
+                "def-parallel", "parallel-approval", "并行审批", true));
         service.listDefinitions(PROJECT_ID, 42L, actor);
         assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, "parallel", "digest", actor).outcome());
+        verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command -> "def-parallel".equals(command.selectedProcessDefinitionId())));
+        assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, "another-definition", "override", "digest", actor));
         var handlingOrder = org.mockito.Mockito.inOrder(processOwnerApi, processContexts);
         handlingOrder.verify(processOwnerApi).startProcess(any());
         handlingOrder.verify(processContexts).recordStarted(any(), eq(ACTOR_ID));

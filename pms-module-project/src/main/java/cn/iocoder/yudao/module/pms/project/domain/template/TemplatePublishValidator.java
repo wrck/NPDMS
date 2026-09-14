@@ -313,9 +313,9 @@ public final class TemplatePublishValidator {
                     break;
                 case TemplateDefinitionContent.REF_TYPE_PROCESS:
                 case TemplateDefinitionContent.REF_TYPE_APPROVAL:
-                    if (StringUtils.isNotBlank(ref.getRefVersion())) {
+                    if (StringUtils.isBlank(ref.getRefVersion())) {
                         failures.add("门禁【" + gate.getGateCode() + "】的流程引用【" + ref.getRefCode()
-                                + "】不得写入PMS流程版本");
+                                + "】须冻结精确流程定义ID");
                     }
                     break;
                 default:

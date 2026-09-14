@@ -67,6 +67,12 @@ class ProjectStageGateProcessContextResolverTest {
                 && query.tenantId().equals(7L) && query.stageId().equals(11L) && query.executionContractId().equals(71L)));
     }
 
+    @Test void missingPinIsRejectedEvenWhenRuntimeAndSnapshotBothLackIt() {
+        reference.setRefVersion(null);
+        snapshot.getGates().getFirst().getReferences().getFirst().setRefVersion(null);
+        assertThrows(RuntimeException.class, () -> resolver.resolve(project, 22L));
+    }
+
     @Test void pendingEntryGateCanRunBeforeAdmissionWithoutActivatingItsStage() {
         gate.setGateType("ENTRY"); snapshot.getGates().getFirst().setGateType("ENTRY");
         selectedStage.setStatus("PENDING"); round.setStatus("PENDING");

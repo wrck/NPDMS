@@ -72,7 +72,7 @@ class ProjectStageGateRoundBoundaryTest {
     }
 
     private ProjectStageGateFactQuery query() {
-        return new ProjectStageGateFactQuery(7L, 9L, "PREP", 21L, "GATE", 0, 22L, 0, "APPROVAL", "approval", null);
+        return new ProjectStageGateFactQuery(7L, 9L, "PREP", 21L, "GATE", 0, 22L, 0, "APPROVAL", "approval", "def-1", null);
     }
 
     private ProjectStageInstanceDO stage(Long id, String code) {

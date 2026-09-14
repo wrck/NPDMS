@@ -25,6 +25,35 @@ class TemplateDesignerDependencyValidatorTest {
     final ProjectStageGateProcessOwnerApi processes = mock(ProjectStageGateProcessOwnerApi.class);
     @AfterEach void clearTenant() { TenantContextHolder.clear(); }
 
+    @Test void processGateUsesItsExactPinAndOnlyChangedProjectReferencesAreRevalidated() {
+        TenantContextHolder.setTenantId(7L);
+        var api = mock(BusinessViewQueryApi.class);
+        var validator = new TemplateDesignerDependencyValidator(api, processes);
+        var document = new TemplateDesignerDocument();
+        var gate = new TemplateDesignerDocument.GateNode(); gate.setNodeKey("gate:approval");
+        gate.setStageCode("PREP"); gate.setGateType("EXIT");
+        var ref = new TemplateDesignerDocument.GateReference(); ref.setRefType("APPROVAL"); ref.setRefCode("approval");
+        gate.setReferences(new java.util.ArrayList<>(List.of(ref))); document.getGates().add(gate);
+        assertTrue(validator.validate(document, true).stream().anyMatch(issue -> "GATE_PROCESS_DEFINITION_REQUIRED".equals(issue.code())));
+        verifyNoInteractions(processes);
+        ref.setRefVersion("approval:1:101");
+        when(processes.inspectDefinitionKey(any())).thenReturn(new ProjectStageGateProcessDefinitionFact("approval:1:101", "approval", "审批", true));
+        assertTrue(validator.validate(document, true).isEmpty());
+        verify(processes).inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "approval", "approval:1:101"));
+        clearInvocations(processes);
+        var submitted = JsonUtils.parseObject(JsonUtils.toJsonString(document), TemplateDesignerDocument.class);
+        submitted.getGates().getFirst().setName("仅改名");
+        assertTrue(validator.validateProjectChanges(document, submitted, true).isEmpty());
+        verifyNoInteractions(processes);
+        assertEquals(1, submitted.getGates().getFirst().getReferences().size());
+        submitted.getGates().getFirst().getReferences().getFirst().setRefVersion("approval:2:202");
+        var failures = validator.validateProjectChanges(document, submitted, true);
+        assertEquals("gates[0].references[0]", failures.getFirst().field());
+        assertEquals("APPROVAL_DEFINITION_UNAVAILABLE", failures.getFirst().code());
+        assertEquals("approval:1:101", document.getGates().getFirst().getReferences().getFirst().getRefVersion());
+        verifyNoInteractions(api);
+    }
+
     @Test
     void projectRuleOnlyChangeKeepsTheExistingBindingWithoutRevalidatingAsNewReference() {
         BusinessViewQueryApi api = mock(BusinessViewQueryApi.class);

@@ -12,11 +12,13 @@ public record ProjectStageGateFactQuery(
         Integer gateReferenceVersion,
         String refType,
         String refCode,
+        // PROCESS/APPROVAL: exact definition ID from the frozen gate reference, never a latest-version hint.
+        String processDefinitionId,
         java.time.Instant processStartedNotBefore) {
 
     /** BPM facts require the current stage round's lower bound; non-process Owners do not use it. */
     public ProjectStageGateFactQuery forStageRound(java.time.Instant startedNotBefore) {
         return new ProjectStageGateFactQuery(tenantId, projectId, currentStageCode, gateId, gateCode,
-                gateVersion, gateReferenceId, gateReferenceVersion, refType, refCode, startedNotBefore);
+                gateVersion, gateReferenceId, gateReferenceVersion, refType, refCode, processDefinitionId, startedNotBefore);
     }
 }

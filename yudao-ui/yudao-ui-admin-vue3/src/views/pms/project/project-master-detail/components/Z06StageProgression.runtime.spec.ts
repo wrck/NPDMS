@@ -5,6 +5,7 @@ import StagePanel from './ProjectStageGatePanel.vue'
 
 const api = vi.hoisted(() => ({
   getProjectStageAdvanceReadiness: vi.fn(),
+  startProjectStageGateProcess: vi.fn(),
   advanceProjectStage: vi.fn()
 }))
 const message = vi.hoisted(() => ({ success: vi.fn(), warning: vi.fn() }))
@@ -51,6 +52,16 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 describe('Z06 frozen progression retry', () => {
+  it('uses the server frozen definition and reports failure without claiming a started process', async () => {
+    const state = render(StagePanel)
+    await flush()
+    api.startProjectStageGateProcess.mockRejectedValueOnce(new Error('frozen definition unavailable'))
+    await state().startProcess(22)
+    expect(api.startProjectStageGateProcess).toHaveBeenCalledWith(9, 22, 4, expect.any(String))
+    expect(state().startedProcesses[22]).toBeUndefined()
+    expect(state().errorMessage).toContain('不会改用其他版本')
+    expect(message.success).not.toHaveBeenCalled()
+  })
   it('notifies the host only after a successful progression, not after a failed retry', async () => {
     const changed = vi.fn()
     const state = render(StagePanel, changed)

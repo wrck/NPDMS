@@ -87,6 +87,7 @@ class ProjectTemplateStageGateValidationTest {
         TemplateDefinitionContent.GateRef process = new TemplateDefinitionContent.GateRef();
         process.setRefType(TemplateDefinitionContent.REF_TYPE_APPROVAL);
         process.setRefCode("gate-approval");
+        process.setRefVersion("def:3");
         gates.getFirst().getReferences().add(process);
         content.setGates(gates);
         return content;

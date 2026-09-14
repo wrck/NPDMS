@@ -37,7 +37,7 @@ class ProjectDeliverableStageGateFactProviderTest {
 
         var fact = new ProjectDeliverableStageGateFactProvider(mapper).lockAndRevalidate(
                 new ProjectStageGateFactQuery(7L, 9L, "S0", 21L, "G-01", 0,
-                        22L, 0, "DELIVERABLE", "D-01", null));
+                        22L, 0, "DELIVERABLE", "D-01", null, null));
 
         assertEquals(ProjectStageGateOutcome.SATISFIED, fact.outcome());
         assertEquals("31", fact.ownerObjectKey());

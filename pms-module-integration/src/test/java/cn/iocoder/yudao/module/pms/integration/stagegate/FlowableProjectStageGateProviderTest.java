@@ -64,18 +64,10 @@ class FlowableProjectStageGateProviderTest {
     }
 
     @Test
-    void startsLatestDefinitionByKey() {
-        ProcessDefinition definition = definition("def-v3", "gate-approval");
-        when(definitionQuery.singleResult()).thenReturn(definition);
-        ProcessInstance instance = instance("pi-1", definition);
-        when(instanceBuilder.start()).thenReturn(instance);
-
-        var fact = provider.startProcess(command(null));
-
-        assertEquals("def-v3", fact.processDefinitionId());
-        assertEquals("STARTED", fact.outcome());
-        verify(definitionQuery).latestVersion();
-        verify(instanceBuilder).processDefinitionId("def-v3");
+    void rejectsMissingFrozenDefinitionWithoutLookingUpLatest() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> provider.startProcess(command(null)));
+        verify(repositoryService, never()).createProcessDefinitionQuery();
+        verify(runtimeService, never()).createProcessInstanceBuilder();
     }
 
     @Test
@@ -103,7 +95,7 @@ class FlowableProjectStageGateProviderTest {
                         Map.entry("pmsGateRequestDigest", "digest-1")));
         when(historyQuery.list()).thenReturn(List.of(replay));
 
-        var fact = provider.startProcess(command(null));
+        var fact = provider.startProcess(command("def-v3"));
 
         assertEquals("REPLAYED", fact.outcome());
         assertEquals("def-v3", fact.processDefinitionId());
@@ -120,7 +112,7 @@ class FlowableProjectStageGateProviderTest {
         when(historyQuery.list()).thenReturn(List.of(completed));
 
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", java.time.Instant.ofEpochMilli(1_000)));
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", "def-v3", java.time.Instant.ofEpochMilli(1_000)));
 
         assertEquals(ProjectStageGateOutcome.SATISFIED, fact.outcome());
         assertEquals("def-v3", fact.ownerBusinessVersion());
@@ -136,7 +128,7 @@ class FlowableProjectStageGateProviderTest {
         when(historyQuery.list()).thenReturn(List.of(completed));
 
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "PROCESS", "gate-process", java.time.Instant.EPOCH));
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "PROCESS", "gate-process", "def-v2", java.time.Instant.EPOCH));
 
         assertEquals(ProjectStageGateOutcome.SATISFIED, fact.outcome());
         assertEquals(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, fact.providerKey());
@@ -168,9 +160,17 @@ class FlowableProjectStageGateProviderTest {
     @Test
     void missingRoundBoundaryIsUnknownNotAnUnboundedHistoryQuery() {
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", null));
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", "def-v3", null));
         assertEquals(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, fact.outcome());
         assertEquals("BPM_ROUND_BOUNDARY_UNAVAILABLE", fact.unmetCode());
+        verify(historyService, never()).createHistoricProcessInstanceQuery();
+    }
+
+    @Test void missingFrozenDefinitionIsUnknownBeforeQueryingHistory() {
+        var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", null, java.time.Instant.EPOCH));
+        assertEquals(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, fact.outcome());
+        assertEquals("BPM_FROZEN_DEFINITION_REQUIRED", fact.unmetCode());
         verify(historyService, never()).createHistoricProcessInstanceQuery();
     }
 

@@ -138,9 +138,7 @@ public class FlowableProjectStageGateProvider
                     replay.getProcessDefinitionKey(), businessKey, "REPLAYED");
         }
 
-        ProcessDefinition definition = command.selectedProcessDefinitionId() == null
-                ? latestDefinition(command.processDefinitionKey())
-                : selectedDefinition(command.selectedProcessDefinitionId(), command.processDefinitionKey());
+        ProcessDefinition definition = selectedDefinition(command.selectedProcessDefinitionId(), command.processDefinitionKey());
         if (definition == null) {
             throw new IllegalArgumentException("selectable process definition not found");
         }
@@ -170,6 +168,8 @@ public class FlowableProjectStageGateProvider
         String providerKey = providerKey(query.refType());
         if (query.processStartedNotBefore() == null)
             return unavailable(providerKey, query.refType(), "BPM_ROUND_BOUNDARY_UNAVAILABLE");
+        if (query.processDefinitionId() == null || query.processDefinitionId().isBlank())
+            return unavailable(providerKey, query.refType(), "BPM_FROZEN_DEFINITION_REQUIRED");
         try {
             List<HistoricProcessInstance> attempts = tenantHistory(query.tenantId(),
                     historyService.createHistoricProcessInstanceQuery()
@@ -354,8 +354,7 @@ public class FlowableProjectStageGateProvider
                 && Objects.equals(variable(instance, VAR_REF_CODE), command.processDefinitionKey())
                 && Objects.equals(variable(instance, VAR_ACTOR_USER_ID), command.actorUserId())
                 && Objects.equals(variable(instance, VAR_DEFINITION_ID), instance.getProcessDefinitionId())
-                && (command.selectedProcessDefinitionId() == null
-                || Objects.equals(command.selectedProcessDefinitionId(), instance.getProcessDefinitionId()));
+                && Objects.equals(command.selectedProcessDefinitionId(), instance.getProcessDefinitionId());
     }
 
     private static boolean matchesGate(HistoricProcessInstance instance, ProjectStageGateFactQuery query) {
@@ -367,6 +366,7 @@ public class FlowableProjectStageGateProvider
                 && Objects.equals(variable(instance, VAR_REF_TYPE), query.refType())
                 && Objects.equals(variable(instance, VAR_REF_CODE), query.refCode())
                 && Objects.equals(variable(instance, VAR_DEFINITION_ID), instance.getProcessDefinitionId())
+                && Objects.equals(query.processDefinitionId(), instance.getProcessDefinitionId())
                 && Objects.equals(instance.getProcessDefinitionKey(), query.refCode());
     }
 
@@ -416,6 +416,7 @@ public class FlowableProjectStageGateProvider
         requireText(command.currentStageCode(), "currentStageCode");
         requireText(command.refType(), "refType");
         requireText(command.processDefinitionKey(), "processDefinitionKey");
+        requireText(command.selectedProcessDefinitionId(), "processDefinitionId");
         if (!Objects.equals(command.businessKey(), businessKey(command.gateReferenceId()))) {
             throw new IllegalArgumentException("businessKey must match the gate reference identity");
         }

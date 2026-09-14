@@ -378,8 +378,14 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 if (TemplateDefinitionContent.REF_TYPE_PROCESS.equals(reference.getRefType())
                         || TemplateDefinitionContent.REF_TYPE_APPROVAL.equals(reference.getRefType())) {
                     try {
-                        stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
-                                tenantId, reference.getRefCode(), null));
+                        if (reference.getRefVersion() == null || reference.getRefVersion().isBlank())
+                            throw new IllegalArgumentException("GATE_PROCESS_DEFINITION_REQUIRED");
+                        var actual = stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
+                                tenantId, reference.getRefCode(), reference.getRefVersion()));
+                        if (actual == null || !actual.selectable()
+                                || !Objects.equals(reference.getRefVersion(), actual.processDefinitionId())
+                                || !Objects.equals(reference.getRefCode(), actual.processDefinitionKey()))
+                            throw new IllegalArgumentException("GATE_PROCESS_DEFINITION_UNAVAILABLE");
                     } catch (RuntimeException ex) {
                         failures.add("门禁【" + gate.getGateCode() + "】流程定义【" + reference.getRefCode()
                                 + "】不可用于阶段门禁");
