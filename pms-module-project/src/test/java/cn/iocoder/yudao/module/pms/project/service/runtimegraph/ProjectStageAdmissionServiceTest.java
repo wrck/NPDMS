@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -43,7 +45,7 @@ class ProjectStageAdmissionServiceTest {
     private final ProjectGateReferenceInstanceMapper references = mock(ProjectGateReferenceInstanceMapper.class);
     private final OperationAuditApi audit = mock(OperationAuditApi.class);
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper executions =
-            mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.class);
+            mock(ProjectNodeExecutionMapper.class);
     private final ProjectRuleCompiler compiler = new ProjectRuleCompiler();
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper plans =
             mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper.class);
@@ -75,7 +77,7 @@ class ProjectStageAdmissionServiceTest {
             row.setStatus(update.targetStatus()); row.setVersion(row.getVersion() + 1); return 1;
         });
         service = new ProjectStageAdmissionService(projects, graph, stages, references,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()), compiler, engine.evaluator(),
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(),
                         mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), compiler, audit, executions, plans);
     }
 

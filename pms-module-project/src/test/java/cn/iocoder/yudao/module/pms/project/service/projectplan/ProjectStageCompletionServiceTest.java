@@ -56,7 +56,7 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}")));
         plan = new ProjectPlanVersionDO(); plan.setId(21L); refreshSnapshot(); when(plans.selectEffective(any())).thenReturn(plan);
         service = new ProjectStageCompletionService(projects, plans, executions, graph, stages, references, engine.evaluator(), compiler,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business);
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
 

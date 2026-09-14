@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
+import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
@@ -135,7 +137,7 @@ class ProjectBusinessFactSourceServiceTest {
     private RuleEvaluation evaluate(boolean not) {
         String json = "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"sourceNodeKey\":\"prep\",\"factCode\":\"SURVEY_CONFIRMED\",\"quantifier\":\"ALL\"}}";
         if (not) json = "{\"operator\":\"NOT\",\"rules\":[" + json + "]}";
-        var runtime = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()), compiler,
+        var runtime = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler,
                 engine.evaluator(), mock(ProjectDecisionTableService.class), sources);
         return runtime.evaluate("plan:" + plan.getId() + ":consumer", compiler.compile(JsonUtils.parseTree(json)),
                 new ProjectRuntimeRuleEvaluator.Facts(project, null, List.of(), List.of(), List.of(), false));

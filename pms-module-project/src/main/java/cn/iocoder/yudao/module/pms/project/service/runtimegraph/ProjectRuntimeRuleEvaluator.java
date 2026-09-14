@@ -83,7 +83,7 @@ public class ProjectRuntimeRuleEvaluator {
         var query = new ProjectStageGateFactQuery(facts.project().getTenantId(), facts.project().getId(),
                 gate != null ? gate.getStageCode() : facts.stage() == null ? null : facts.stage().getStageCode(), gate == null ? null : gate.getId(),
                 gate == null ? null : gate.getGateCode(), gate == null ? null : gate.getVersion(),
-                ref == null ? null : ref.getId(), ref == null ? null : ref.getVersion(), predicate, refCode);
+                ref == null ? null : ref.getId(), ref == null ? null : ref.getVersion(), predicate, refCode, null);
         ProjectStageGateFact fact = providers.lockAndRevalidate(key, query);
         return switch (fact.outcome()) {
             case SATISFIED -> RuleFact.known(true);

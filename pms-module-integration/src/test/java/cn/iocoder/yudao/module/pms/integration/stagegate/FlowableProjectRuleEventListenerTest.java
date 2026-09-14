@@ -169,13 +169,74 @@ class FlowableProjectRuleEventListenerTest {
     }
 
     private ProjectStageGateProcessStartCommand command() {
+        return command("op:" + referenceId);
+    }
+
+    private ProjectStageGateProcessStartCommand command(String operation) {
         return new ProjectStageGateProcessStartCommand(7L, 11L, 9L, "PREP", 21L, referenceId, "APPROVAL",
-                "gate-test", null, FlowableProjectStageGateProvider.businessKey(referenceId), "op:" + referenceId,
+                "gate-test", null, FlowableProjectStageGateProvider.businessKey(referenceId), operation,
                 "request:" + referenceId, Map.of());
     }
     private ProjectStageGateFact fact() {
+        return fact(java.time.Instant.EPOCH);
+    }
+
+    private ProjectStageGateFact fact(java.time.Instant roundCreatedAt) {
         return tx.execute(ignored -> provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "gate-test")));
+                7L, 9L, "PREP", 21L, "approval", 1, referenceId, 1, "APPROVAL", "gate-test", roundCreatedAt)));
+    }
+
+    @Test void oldRoundCompletionCannotReleaseReworkButANewProcessCan() {
+        var clock = engine.getProcessEngineConfiguration().getClock();
+        var original = java.time.Instant.parse("2026-09-15T00:00:00Z");
+        var rework = original.plusSeconds(60);
+        try {
+            clock.setCurrentTime(java.util.Date.from(original));
+            var old = provider.startProcess(command());
+            clock.setCurrentTime(java.util.Date.from(rework.plusSeconds(10)));
+            // This old process finishes AFTER rework, but it was started in the prior round.
+            completeApproved(old.processInstanceId());
+            assertEquals(ProjectStageGateOutcome.SATISFIED, fact(original).outcome());
+            assertEquals(ProjectStageGateOutcome.UNSATISFIED, fact(rework).outcome());
+            var current = provider.startProcess(command("rework:" + referenceId));
+            assertEquals(ProjectStageGateOutcome.UNSATISFIED, fact(rework).outcome());
+            completeApproved(current.processInstanceId());
+            var approved = fact(rework);
+            assertEquals(ProjectStageGateOutcome.SATISFIED, approved.outcome());
+            assertEquals(current.processInstanceId(), approved.ownerObjectKey());
+            assertEquals(2, engine.getHistoryService().createHistoricProcessInstanceQuery()
+                    .processInstanceBusinessKey(command().businessKey()).finished().count());
+            assertEquals(4, count());
+        } finally {
+            clock.reset();
+        }
+    }
+
+    private void completeApproved(String processId) {
+        var task = engine.getTaskService().createTaskQuery().processInstanceId(processId).singleResult();
+        tx.executeWithoutResult(ignored -> {
+            engine.getRuntimeService().setVariable(processId, "PROCESS_STATUS", 2);
+            engine.getTaskService().complete(task.getId());
+        });
+    }
+
+    @Test void unfinishedOldProcessDoesNotMakeCurrentRoundAmbiguous() {
+        var clock = engine.getProcessEngineConfiguration().getClock();
+        var original = java.time.Instant.parse("2026-09-15T00:00:00Z");
+        var rework = original.plusSeconds(60);
+        try {
+            clock.setCurrentTime(java.util.Date.from(original));
+            var old = provider.startProcess(command());
+            clock.setCurrentTime(java.util.Date.from(rework));
+            var current = provider.startProcess(command("rework:" + referenceId));
+            assertEquals(ProjectStageGateOutcome.UNSATISFIED, fact(rework).outcome());
+            completeApproved(current.processInstanceId());
+            assertEquals(ProjectStageGateOutcome.SATISFIED, fact(rework).outcome());
+            assertNotNull(engine.getRuntimeService().createProcessInstanceQuery()
+                    .processInstanceId(old.processInstanceId()).singleResult());
+        } finally {
+            clock.reset();
+        }
     }
     private int count() { return jdbc.queryForObject("SELECT COUNT(*) FROM rule_events", Integer.class); }
 }

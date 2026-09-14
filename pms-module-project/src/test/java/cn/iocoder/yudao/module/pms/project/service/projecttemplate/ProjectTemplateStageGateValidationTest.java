@@ -1,5 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
+
+import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
+
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact;
@@ -61,7 +65,7 @@ class ProjectTemplateStageGateValidationTest {
                 new ProjectStageGateProcessDefinitionFact("def:3", "gate-approval", "审批", true));
         ProjectTemplateServiceImpl service = new ProjectTemplateServiceImpl();
         ReflectionTestUtils.setField(service, "stageGateProviderRegistry",
-                new ProjectStageGateProviderRegistry(List.of(provider)));
+                new ProjectStageGateProviderRegistry(List.of(provider), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)));
         ReflectionTestUtils.setField(service, "stageGateProcessOwnerApi", processOwner);
         return service;
     }

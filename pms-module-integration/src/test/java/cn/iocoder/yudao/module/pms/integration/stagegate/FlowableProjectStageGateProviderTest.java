@@ -120,7 +120,7 @@ class FlowableProjectStageGateProviderTest {
         when(historyQuery.list()).thenReturn(List.of(completed));
 
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval"));
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", java.time.Instant.ofEpochMilli(1_000)));
 
         assertEquals(ProjectStageGateOutcome.SATISFIED, fact.outcome());
         assertEquals("def-v3", fact.ownerBusinessVersion());
@@ -136,7 +136,7 @@ class FlowableProjectStageGateProviderTest {
         when(historyQuery.list()).thenReturn(List.of(completed));
 
         var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
-                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "PROCESS", "gate-process"));
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "PROCESS", "gate-process", java.time.Instant.EPOCH));
 
         assertEquals(ProjectStageGateOutcome.SATISFIED, fact.outcome());
         assertEquals(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, fact.providerKey());
@@ -154,6 +154,15 @@ class FlowableProjectStageGateProviderTest {
         model.addProcess(process);
         when(repositoryService.getBpmnModel(id)).thenReturn(model);
         return definition;
+    }
+
+    @Test
+    void missingRoundBoundaryIsUnknownNotAnUnboundedHistoryQuery() {
+        var fact = provider.lockAndRevalidate(new ProjectStageGateFactQuery(
+                7L, 9L, "S0", 21L, "G-01", 0, 22L, 0, "APPROVAL", "gate-approval", null));
+        assertEquals(ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE, fact.outcome());
+        assertEquals("BPM_ROUND_BOUNDARY_UNAVAILABLE", fact.unmetCode());
+        verify(historyService, never()).createHistoricProcessInstanceQuery();
     }
 
     private static ProcessInstance instance(String id, ProcessDefinition definition) {

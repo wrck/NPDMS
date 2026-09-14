@@ -1,5 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
+import static org.mockito.Mockito.mock;
+
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
+
+import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
+
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateFactProviderApi;
 import org.junit.jupiter.api.Test;
 
@@ -16,13 +22,13 @@ class ProjectStageGateProviderRegistryTest {
         ProjectStageGateFactProviderApi second = provider(Set.of(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK));
 
         assertThrows(IllegalStateException.class,
-                () -> new ProjectStageGateProviderRegistry(List.of(first, second)));
+                () -> new ProjectStageGateProviderRegistry(List.of(first, second), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)));
     }
 
     @Test
     void rejectsUnknownProviderAtRuntime() {
         ProjectStageGateProviderRegistry registry = new ProjectStageGateProviderRegistry(List.of(
-                provider(Set.of(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK))));
+                provider(Set.of(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK))), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class));
 
         assertThrows(IllegalStateException.class,
                 () -> registry.lockAndRevalidate(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, null));

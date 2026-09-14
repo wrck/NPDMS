@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
@@ -28,7 +30,7 @@ class ProjectRuntimeGraphResolverTest {
         TenantContextHolder.setTenantId(7L);
         mapper = mock(ProjectRuntimeGraphMapper.class);
         resolver = new ProjectRuntimeGraphResolver(mapper, mock(ProjectGateReferenceInstanceMapper.class),
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()),
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                         mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
                         mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
@@ -80,7 +82,7 @@ class ProjectRuntimeGraphResolverTest {
         assertEquals(StageTransitionTargetResolver.ConditionStatus.SATISFIED, resolver.resolve(project).completion());
     }
     @Test void anyDoesNotHideUnknownFact() {
-        var evaluator = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()),
+        var evaluator = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),
                 new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                 mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
                 mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class));

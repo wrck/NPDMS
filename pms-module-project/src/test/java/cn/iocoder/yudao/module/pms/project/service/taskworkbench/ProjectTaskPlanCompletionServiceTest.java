@@ -45,7 +45,7 @@ class ProjectTaskPlanCompletionServiceTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         service=new ProjectTaskPlanCompletionService(plans,executions,graph,references,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),
                 engine.evaluator(),compiler,business, executionApi,gateRules);
         project=new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(52L); project.setLifecycleStatus("ACTIVE"); project.setProjectName("private-actual-value");
         task=new ProjectTaskInstanceDO().setId(21L).setProjectId(9L).setTaskCode("T1").setStageCode("A").setName("办理任务");

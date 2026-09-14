@@ -163,6 +163,8 @@ public class FlowableProjectStageGateProvider
     public ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query) {
         validateFactQuery(query);
         String providerKey = providerKey(query.refType());
+        if (query.processStartedNotBefore() == null)
+            return unavailable(providerKey, query.refType(), "BPM_ROUND_BOUNDARY_UNAVAILABLE");
         try {
             List<HistoricProcessInstance> attempts = tenantHistory(query.tenantId(),
                     historyService.createHistoricProcessInstanceQuery()
@@ -176,6 +178,10 @@ public class FlowableProjectStageGateProvider
             if (trusted.size() != attempts.size()) {
                 return unavailable(providerKey, query.refType(), "BPM_INSTANCE_IDENTITY_MISMATCH");
             }
+            if (trusted.stream().anyMatch(instance -> instance.getStartTime() == null))
+                return unavailable(providerKey, query.refType(), "BPM_START_TIME_UNKNOWN");
+            trusted = trusted.stream().filter(instance -> !instance.getStartTime().toInstant()
+                    .isBefore(query.processStartedNotBefore())).toList();
             long activeCount = trusted.stream().filter(instance -> instance.getEndTime() == null).count();
             if (activeCount > 1) {
                 return unavailable(providerKey, query.refType(), "BPM_MULTIPLE_ACTIVE_INSTANCES");

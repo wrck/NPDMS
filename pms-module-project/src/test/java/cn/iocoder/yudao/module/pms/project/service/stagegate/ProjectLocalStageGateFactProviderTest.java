@@ -52,7 +52,7 @@ class ProjectLocalStageGateFactProviderTest {
 
     private static ProjectStageGateFactQuery query(String type, String code) {
         return new ProjectStageGateFactQuery(7L, 9L, "S0", 21L, "G-01", 0,
-                22L, 0, type, code);
+                22L, 0, type, code, null);
     }
 
     @Test void resolvesCustomStageCompletionWithoutFixedStageCatalog() {

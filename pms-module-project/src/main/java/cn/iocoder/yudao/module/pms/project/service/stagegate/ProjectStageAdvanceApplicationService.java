@@ -312,7 +312,7 @@ public class ProjectStageAdvanceApplicationService {
         return new ProjectStageGateFactQuery(context.project().getTenantId(), context.project().getId(),
                 item.gate().getStageCode(), item.gate().getId(), item.gate().getGateCode(),
                 item.gate().getVersion(), item.reference().getId(), item.reference().getVersion(),
-                item.reference().getRefType(), item.reference().getRefCode());
+                item.reference().getRefType(), item.reference().getRefCode(), null);
     }
 
     private static Map<String, Object> evaluation(GateReferenceContext item, ProjectStageGateFact fact) {

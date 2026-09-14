@@ -43,7 +43,7 @@ class ProjectRuleClosureServiceTest {
         when(plans.selectEffective(any())).thenReturn(plan);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
         service = new ProjectRuleClosureService(projects, plans, executions, graph, mock(ProjectGateReferenceInstanceMapper.class),
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of()), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit);
     }
     @Test void explicitClosureRuleClosesOnlyThisProjectWithFrozenEvidence() {
         when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);

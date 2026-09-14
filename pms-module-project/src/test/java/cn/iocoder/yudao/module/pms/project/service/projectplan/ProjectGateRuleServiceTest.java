@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -30,6 +32,7 @@ class ProjectGateRuleServiceTest {
     final ProjectTaskRuntimeMapper projects = mock(ProjectTaskRuntimeMapper.class);
     final ProjectPlanVersionMapper plans = mock(ProjectPlanVersionMapper.class);
     final ProjectRuntimeGraphMapper graph = mock(ProjectRuntimeGraphMapper.class);
+    final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
     final ProjectGateInstanceMapper gates = mock(ProjectGateInstanceMapper.class);
     final ProjectGateReferenceInstanceMapper refs = mock(ProjectGateReferenceInstanceMapper.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
@@ -47,7 +50,7 @@ class ProjectGateRuleServiceTest {
         when(owner.providerKeys()).thenReturn(Set.of("PROJ_TASK", "BPM_PROCESS"));
         var compiler = new ProjectRuleCompiler();
         service = new ProjectGateRuleService(projects,plans,graph,gates,refs,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(owner)),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),audit);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(owner), graph, executions),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),audit);
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(51L); project.setLifecycleStatus("ACTIVE");
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
         gate = new ProjectGateInstanceDO(); gate.setId(21L); gate.setTenantId(7L); gate.setProjectId(9L); gate.setGateCode("READY");
@@ -55,6 +58,12 @@ class ProjectGateRuleServiceTest {
         when(graph.selectGatesForUpdate(any())).thenReturn(List.of(gate));
         var stage = new ProjectStageInstanceDO(); stage.setId(11L); stage.setStageCode("PREP"); stage.setStatus("ACTIVE");
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
+        stage.setTenantId(7L); stage.setProjectId(9L);
+        when(graph.selectStages(any())).thenReturn(List.of(stage));
+        var round = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        round.setId(61L); round.setTenantId(7L); round.setProjectId(9L); round.setNodeKind("STAGE");
+        round.setNodeInstanceId(11L); round.setCurrentMarker(1); round.setCreateTime(java.time.LocalDateTime.of(2026, 9, 15, 0, 0));
+        when(executions.selectCurrent(any())).thenReturn(List.of(round));
         taskRef = reference(31L,"TASK","T1"); processRef = reference(32L,"PROCESS","APPROVE");
         when(refs.selectOrderedForUpdate(any())).thenReturn(List.of(taskRef,processRef));
         snapshot = new TemplateExecutionSnapshot();
