@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
 import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionKind;
+import cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
@@ -292,8 +293,14 @@ public class TemplateCompiler {
                 if (binding.getDynamicFormRevisionId() == null || binding.getDynamicFormRevisionId() <= 0)
                     issues.add(new Issue(path + ".dynamicFormRevisionId", "REQUIRED", "DYNAMIC_FORM缺少精确发布修订"));
             }
-            case "APPROVAL" -> required(binding.getApprovalDefinitionKey(), path + ".approvalDefinitionKey",
-                    "APPROVAL缺少流程定义key", issues);
+            case "APPROVAL" -> {
+                try {
+                    ApprovalWorkBindingSchema.read(
+                            binding.getApprovalDefinitionKey(), binding.getParameters());
+                } catch (IllegalArgumentException invalid) {
+                    issues.add(new Issue(path, "APPROVAL_DEFINITION_REQUIRED", invalid.getMessage()));
+                }
+            }
             case "COMPOSITE" -> {
                 if (binding.getParameters() == null || !binding.getParameters().isObject())
                     issues.add(new Issue(path + ".parameters", "REQUIRED", "COMPOSITE必须配置受控子视图参数"));

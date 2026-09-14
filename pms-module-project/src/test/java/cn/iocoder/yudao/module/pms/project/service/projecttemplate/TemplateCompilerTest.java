@@ -11,6 +11,26 @@ class TemplateCompilerTest {
 
     private final TemplateCompiler compiler = new TemplateCompiler();
 
+    @Test void approvalBindingRequiresAnExactDefinitionAndSurvivesExecutionContractFreezing() {
+        var designer = validDesigner(); var task = designer.getTasks().getFirst();
+        task.getWorkBinding().setType("APPROVAL"); task.getWorkBinding().setApprovalDefinitionKey("approval");
+        var completion = new TemplateDesignerDocument.RuleSpec();
+        completion.setExpression(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"));
+        task.setCompletionRule(completion);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "APPROVAL_DEFINITION_REQUIRED".equals(issue.code())));
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"approval:1:101\"}"));
+        var compiled = compiler.compile(designer); assertTrue(compiled.valid(), () -> compiled.issues().toString());
+        var reopened = JsonUtils.parseObject(JsonUtils.toJsonString(compiled.snapshot()),
+                cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
+        var contract = new cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory()
+                .create(11L, null, reopened.toRuntimeContent().getTasks().getFirst(), java.time.LocalDateTime.now());
+        assertEquals("approval:1:101", JsonUtils.parseTree(contract.getBindingParameterSnapshot()).path("processDefinitionId").asText());
+        assertEquals("approval", JsonUtils.parseTree(contract.getBindingParameterSnapshot()).path("approvalDefinitionKey").asText());
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"approval:2:202\"}"));
+        assertEquals("approval:1:101", reopened.getTasks().getFirst().getBinding().getParameters().path("processDefinitionId").asText());
+        assertNotEquals(compiled.snapshotHash(), compiler.compile(designer).snapshotHash());
+    }
+
     @Test void customStageCodesAndReferencesFreezeWithoutAddingPresetStages() {
         var designer = validDesigner();
         designer.getStages().getFirst().setCode("PREP_WORK");

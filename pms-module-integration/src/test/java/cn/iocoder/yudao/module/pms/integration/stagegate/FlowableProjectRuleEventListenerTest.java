@@ -91,6 +91,40 @@ class FlowableProjectRuleEventListenerTest {
         finally { if (database != null) database.shutdown(); }
     }
 
+    @Test void exactDefinitionInspectionDoesNotDriftAfterRedeploymentOrCrossTenantBoundaries() {
+        String bpmn = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="pms-test">
+                  <process id="pin-test" isExecutable="true">
+                    <startEvent id="start"/><userTask id="review"/><endEvent id="end"/>
+                    <sequenceFlow id="a" sourceRef="start" targetRef="review"/>
+                    <sequenceFlow id="b" sourceRef="review" targetRef="end"/>
+                  </process>
+                </definitions>
+                """;
+        var repository = engine.getRepositoryService();
+        repository.createDeployment().tenantId("7").addString("pin.bpmn20.xml", bpmn).deploy();
+        var first = provider.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", null));
+        repository.createDeployment().tenantId("7").addString("pin.bpmn20.xml", bpmn).deploy();
+        var latest = provider.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", null));
+        assertNotEquals(first.processDefinitionId(), latest.processDefinitionId());
+        var pinned = new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", first.processDefinitionId());
+        assertEquals(first, provider.inspectDefinitionKey(pinned));
+        assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(
+                new ProjectStageGateProcessDefinitionQuery(7L, "gate-test", first.processDefinitionId())));
+        assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(
+                new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", "missing")));
+        TenantContextHolder.setTenantId(8L);
+        try {
+            assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(
+                    new ProjectStageGateProcessDefinitionQuery(8L, "pin-test", first.processDefinitionId())));
+        } finally { TenantContextHolder.setTenantId(7L); }
+        repository.suspendProcessDefinitionById(first.processDefinitionId());
+        assertThrows(IllegalArgumentException.class, () -> provider.inspectDefinitionKey(pinned));
+        assertEquals(latest, provider.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(7L, "pin-test", null)));
+        assertEquals(0, count()); // Definition validation must not start work or send reevaluation events.
+    }
+
     @ParameterizedTest @ValueSource(ints = {2, 3})
     void committedApprovalAndRejectionBothWakeRulesButKeepDifferentOwnerResults(int status) {
         var started = provider.startProcess(command());

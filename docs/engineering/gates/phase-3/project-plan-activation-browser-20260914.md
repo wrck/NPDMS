@@ -508,3 +508,12 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 新增“现场工勘 → 门禁 → 跨阶段需求分析 → 阶段完成 → 项目收口”的影响测试，覆盖独立分支不受影响、已完成下游仅提示不重算、门禁规则变化及移除。返工服务测试进一步验证预览包含门禁和需求分析，但应用仍只重开选中的工勘任务，未选中的需求分析轮次与结果保持不变；原项目/执行版本冲突、权限撤销、幂等与失败保护测试保留。
 - Maven 会话 97278 与最终 53708 均 exit 0，八套件 **66 项通过，零失败/错误/跳过**：影响分析 12、返工规划 5、返工应用 10、返工 Mapper 1、计划草稿 11、计划生效 10、门禁规则 6、任务计划完成 11。新测试使用现有规则编译器及应用 mocks，复用真实 LiteFlow 和唯一隔离 H2/MyBatis/Spring 事务测试；不加载共享运行配置、不连接共享数据库。代码质量技能用于自审，Git 技能用于范围核对和本地提交，git diff --check 通过；没有新增流程门禁。
 - 此步为影响预览修复，不代表任务直接 APPROVAL 办理已接通：当前任务 Host 注册仅见原生和业务绑定，自动完成入口也尚未纳入 APPROVAL；该链路仍需实施。现有返工面板可显示受影响任务名称，非阶段/任务的门禁暂按 nodeKey 展示。本步未修改前端或执行真实浏览器验收，未推送、部署或切换 59280，完整专项继续推进。
+
+## 2026-09-15：直接审批绑定的精确流程定义冻结
+
+- 接通任务直接审批前，实查发现 APPROVAL 仅要求 approvalDefinitionKey，且 TaskExecutionContractFactory 不保留该 key，只有流程别名、缺少精确定义身份的配置仍可进入执行契约。新增项目特有的 ApprovalWorkBindingSchema，统一要求版本内 WorkBinding 的 approvalDefinitionKey 与 parameters.processDefinitionId；ID 必须为非空字符串，不接受运行时解析最新版本。若参数已有 key，则须与节点 key 一致。没有新增表、配置中心、全局规则发布或历史兼容层。
+- 模板编译、发布依赖校验与任务契约冻结复用该定义。执行契约沿用现有 bindingParameterSnapshot 保存 key、精确 ID 及其他参数，不修改设计来源；编译快照和序列化重开继续保留精确 ID。新任务/返工契约不复制旧 approvalInstanceId，已经完成的旧契约与结果只读。直接阶段审批绑定也适用同一发布校验。
+- 扩展既有 PMS 流程定义查询 DTO 的 processDefinitionId；提供 ID 时只按该 ID 查询并复验 key、租户和可用性，不回退最新版本。复用 Flowable 8.0.0 原生 [ProcessDefinitionQuery](https://www.flowable.com/open-source/docs/all-javadocs/org/flowable/engine/repository/ProcessDefinitionQuery.html) 的精确 ID、活动状态与租户过滤，未变更 Yudao 接口或跨模块读取业务表。既有仅按 key 的选择/旧门禁调用明确传 null，本步不把它们描述为已完成版本冻结。
+- 计划侧未变更的既有绑定保留原冻结引用，不因名称或规则调整要求其成为新可发布定义；新增、替换绑定必须重新校验所选精确定义。发布失败只返回绑定位置及通用原因，不回传原始引擎异常。定义校验不启动流程，不产生规则重评事件。
+- 首次编译 61733 因 Jackson 3 deepCopy 返回 JsonNode 而失败；在已验证对象类型后显式转换 ObjectNode 修复。最终 Maven 29778 exit 0，九套件 **92 项通过，零失败/错误/跳过**：模板编译 20、发布依赖 8、任务契约 9、V2 快照边界 5、计划草稿 11、生效 10、返工应用 11、Flowable 引擎事件/定义 11、流程适配器 7。真实 Flowable 8 + Spring + 唯一隔离 H2 覆盖同 key 两次部署后仍按原 ID 返回、错误 key/缺失 ID/跨租户/暂停定义拒绝及定义校验零事件；项目侧用既有编译器和 mocks 验证冻结、参数漂移与历史保护。
+- API 设计技能用于收敛模块契约，官方文档技能核对原生定义查询，Git/代码质量技能用于范围核对和自审；git diff --check 通过。没有加载共享运行配置、连接共享数据库或进行浏览器验收，不推送、不部署、不切换 59280。本步只完成直接审批的定义冻结与发布校验，侧栏定义选择、任务流程启动、原审批页面办理、按本轮结果自动完成与联合验收仍须继续；阶段门禁旧启动路径的可选版本/默认最新语义也尚需统一到冻结定义。

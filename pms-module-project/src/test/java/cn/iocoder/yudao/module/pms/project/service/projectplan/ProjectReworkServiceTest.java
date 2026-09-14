@@ -215,6 +215,22 @@ class ProjectReworkServiceTest {
         verify(executions).insert(argThat((ProjectNodeExecutionDO row) -> row.getPlanVersionId()==50L && row.getRoundNo()==2));
     }
 
+    @Test void reworkKeepsTheEffectiveApprovalDefinitionPinButNeverTheOldApprovalInstance() {
+        var binding = snapshot.getTasks().getFirst().getBinding();
+        binding.setType("APPROVAL"); binding.setApprovalDefinitionKey("review");
+        binding.setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"review:2:202\"}"));
+        snapshot.getTasks().getFirst().setCompletionRule(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"));
+        effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        String old = JsonUtils.toJsonString(oldContract);
+        service.apply(command(3, 2L), 9L, "approval-round");
+        verify(contracts).insert(argThat((ProjectTaskExecutionContractDO row) -> "APPROVAL".equals(row.getWorkBindingTypeCode())
+                && "review".equals(JsonUtils.parseTree(row.getBindingParameterSnapshot()).path("approvalDefinitionKey").asText())
+                && "review:2:202".equals(JsonUtils.parseTree(row.getBindingParameterSnapshot()).path("processDefinitionId").asText())
+                && row.getApprovalInstanceId() == null));
+        assertEquals(old, JsonUtils.toJsonString(oldContract));
+        verify(executions).insert(argThat((ProjectNodeExecutionDO row) -> row.getRoundNo() == 2 && row.getResultSnapshot() == null));
+    }
+
     @Test void mismatchedOrConcurrentlyClosedContractCannotCreateANewRound() {
         oldContract.setId(999L);
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.apply(command(3,2L),9L,"wrong-contract"));

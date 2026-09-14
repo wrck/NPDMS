@@ -3,6 +3,10 @@ package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevision;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
+import cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
+import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,7 +22,7 @@ import java.util.Objects;
  * PM-03 V2 publication dependency guard.
  *
  * <p>The Designer owns frozen WorkBinding semantics, but a new publication must still prove that
- * every selected BusinessView revision is the exact currently-publishable registration. This guard
+ * each BusinessView revision or approval definition is the exact currently-publishable selection. This guard
  * never grants object permissions and never queries Owner business instances.</p>
  */
 @Component
@@ -26,6 +30,7 @@ import java.util.Objects;
 public class TemplateDesignerDependencyValidator {
 
     private final BusinessViewQueryApi businessViewQueryApi;
+    private final ProjectStageGateProcessOwnerApi processes;
 
     /** Existing project bindings retain their frozen reference. Only additions/changes create new references. */
     public List<Issue> validateProjectChanges(TemplateDesignerDocument effective, TemplateDesignerDocument submitted, boolean lockForPublish) {
@@ -43,8 +48,19 @@ public class TemplateDesignerDependencyValidator {
     }
 
     public List<Issue> validate(TemplateDesignerDocument designer, boolean lockForPublish) {
+        List<Issue> issues = new ArrayList<>();
+        if (designer != null && designer.getStages() != null)
+            for (int i = 0; i < designer.getStages().size(); i++) {
+                var node = designer.getStages().get(i);
+                if (node != null) validateApproval(node.getWorkBinding(), "stages[" + i + "].workBinding", issues);
+            }
+        if (designer != null && designer.getTasks() != null)
+            for (int i = 0; i < designer.getTasks().size(); i++) {
+                var node = designer.getTasks().get(i);
+                if (node != null) validateApproval(node.getWorkBinding(), "tasks[" + i + "].workBinding", issues);
+            }
         List<BindingRef> refs = collect(designer);
-        if (refs.isEmpty()) return List.of();
+        if (refs.isEmpty()) return List.copyOf(issues);
 
         Map<Long, BusinessViewRevision> revisions = new LinkedHashMap<>();
         if (lockForPublish) {
@@ -59,8 +75,9 @@ public class TemplateDesignerDependencyValidator {
                         if (revision != null) revisions.put(revision.id(), revision);
                     }
                 } catch (RuntimeException ex) {
-                    return List.of(new Issue("businessViews", "BUSINESS_VIEW_REVALIDATION_FAILED",
+                    issues.add(new Issue("businessViews", "BUSINESS_VIEW_REVALIDATION_FAILED",
                             "办理视图发布重验失败：" + safeMessage(ex)));
+                    return List.copyOf(issues);
                 }
             }
         } else {
@@ -75,7 +92,6 @@ public class TemplateDesignerDependencyValidator {
             }
         }
 
-        List<Issue> issues = new ArrayList<>();
         for (BindingRef ref : refs) {
             if (ref.query() == null || ref.revisionId() <= 0) {
                 issues.add(new Issue(ref.path() + ".businessViewSnapshot.id", "BUSINESS_VIEW_ID_REQUIRED",
@@ -91,6 +107,25 @@ public class TemplateDesignerDependencyValidator {
             compare(ref, actual, issues);
         }
         return issues;
+    }
+
+    private void validateApproval(TemplateDesignerDocument.WorkBindingSpec binding, String path, List<Issue> issues) {
+        if (binding == null || !"APPROVAL".equals(binding.getType())) return;
+        ApprovalWorkBindingSchema.Definition definition;
+        try {
+            definition = ApprovalWorkBindingSchema.read(binding.getApprovalDefinitionKey(), binding.getParameters());
+        } catch (IllegalArgumentException invalid) {
+            issues.add(new Issue(path, "APPROVAL_DEFINITION_REQUIRED", invalid.getMessage()));
+            return;
+        }
+        try {
+            var actual = processes.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
+                    TenantContextHolder.getRequiredTenantId(), definition.key(), definition.id()));
+            if (actual == null || !actual.selectable() || !definition.id().equals(actual.processDefinitionId())
+                    || !definition.key().equals(actual.processDefinitionKey())) throw new IllegalStateException("APPROVAL_DEFINITION_UNAVAILABLE");
+        } catch (RuntimeException unavailable) {
+            issues.add(new Issue(path, "APPROVAL_DEFINITION_UNAVAILABLE", "所选精确审批定义不可用或不匹配，请重新选择；不会改用最新版本"));
+        }
     }
 
     private List<BindingRef> collect(TemplateDesignerDocument designer) {

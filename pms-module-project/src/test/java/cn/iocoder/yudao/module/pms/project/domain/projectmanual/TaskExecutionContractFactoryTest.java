@@ -19,6 +19,27 @@ class TaskExecutionContractFactoryTest {
 
     private final TaskExecutionContractFactory factory = new TaskExecutionContractFactory();
 
+    @Test void approvalContractPreservesBothDefinitionKeyAndExactIdWithoutMutatingItsSource() {
+        var task = validTaskNative(); task.setWorkBindingTypeCode("APPROVAL"); task.setApprovalDefinitionKey("approval");
+        task.setBindingConfig("{\"processDefinitionId\":\"approval:1:101\",\"formCode\":\"review\"}");
+        var contract = factory.create(11L, 21L, task, NOW);
+        var frozen = JsonUtils.parseTree(contract.getBindingParameterSnapshot());
+        assertEquals("approval", frozen.path("approvalDefinitionKey").asText());
+        assertEquals("approval:1:101", frozen.path("processDefinitionId").asText());
+        assertEquals("review", frozen.path("formCode").asText());
+        assertNull(contract.getApprovalInstanceId());
+        assertEquals("{\"processDefinitionId\":\"approval:1:101\",\"formCode\":\"review\"}", task.getBindingConfig());
+    }
+
+    @Test void approvalContractRejectsFloatingOrConflictingDefinitionIdentity() {
+        var task = validTaskNative(); task.setWorkBindingTypeCode("APPROVAL"); task.setApprovalDefinitionKey("approval");
+        for (String parameters : java.util.List.of("{}", "{\"processDefinitionId\":123}", "{\"processDefinitionId\":\" \"}",
+                "{\"processDefinitionId\":\"approval:1:101\",\"approvalDefinitionKey\":\"other\"}")) {
+            task.setBindingConfig(parameters);
+            assertThrows(IllegalArgumentException.class, () -> factory.create(11L, 21L, task, NOW));
+        }
+    }
+
     @Test
     void nativeWorkMayUseACompiledConditionGroupInsteadOfTheOldFixedCompletionShape() {
         var definition = validTaskNative();

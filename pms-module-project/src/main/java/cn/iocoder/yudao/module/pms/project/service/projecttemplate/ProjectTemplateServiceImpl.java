@@ -357,7 +357,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     List<String> validateStageGateOwners(TemplateDefinitionContent content, Long tenantId) {
         List<String> failures = new ArrayList<>();
         if (content.getProcessDefinitionKey() != null && !content.getProcessDefinitionKey().isBlank()) {
-            try { stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(tenantId, content.getProcessDefinitionKey())); }
+            try { stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(tenantId, content.getProcessDefinitionKey(), null)); }
             catch (RuntimeException ex) { failures.add("模板实际流程定义不可用"); }
         }
         List<TemplateDefinitionContent.GateDef> gates = content.getGates() == null ? List.of() : content.getGates();
@@ -379,7 +379,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                         || TemplateDefinitionContent.REF_TYPE_APPROVAL.equals(reference.getRefType())) {
                     try {
                         stageGateProcessOwnerApi.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(
-                                tenantId, reference.getRefCode()));
+                                tenantId, reference.getRefCode(), null));
                     } catch (RuntimeException ex) {
                         failures.add("门禁【" + gate.getGateCode() + "】流程定义【" + reference.getRefCode()
                                 + "】不可用于阶段门禁");

@@ -93,8 +93,11 @@ public class FlowableProjectStageGateProvider
     public ProjectStageGateProcessDefinitionFact inspectDefinitionKey(
             ProjectStageGateProcessDefinitionQuery query) {
         validateTenant(query == null ? null : query.tenantId());
-        ProcessDefinition definition = latestDefinition(requireText(query.processDefinitionKey(),
-                "processDefinitionKey"));
+        String key = requireText(query.processDefinitionKey(), "processDefinitionKey");
+        // Native ID lookup deliberately does not use latestVersion for frozen bindings.
+        // https://www.flowable.com/open-source/docs/all-javadocs/org/flowable/engine/repository/ProcessDefinitionQuery.html
+        ProcessDefinition definition = query.processDefinitionId() == null ? latestDefinition(key)
+                : selectedDefinition(requireText(query.processDefinitionId(), "processDefinitionId"), key);
         if (definition == null) {
             throw new IllegalArgumentException("active process definition not found: " + query.processDefinitionKey());
         }

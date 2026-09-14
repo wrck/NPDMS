@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.project.domain.projectmanual;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +37,10 @@ public class TaskExecutionContractFactory {
         contract.setTargetObjectKey(definition.getTargetObjectKey());
         contract.setComponentKey(definition.getComponentKey());
         contract.setDynamicFormRevisionId(definition.getDynamicFormRevisionId());
-        contract.setBindingParameterSnapshot(definition.getBindingConfig());
+        contract.setBindingParameterSnapshot("APPROVAL".equals(definition.getWorkBindingTypeCode())
+                ? JsonUtils.toJsonString(ApprovalWorkBindingSchema.freeze(
+                        definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig())))
+                : definition.getBindingConfig());
         contract.setBindingViewSnapshot(definition.getBindingViewSnapshot() == null ? null
                 : JsonUtils.toJsonString(definition.getBindingViewSnapshot()));
         contract.setPermissionPolicyRef(definition.getPermissionPolicyRef());
@@ -141,7 +145,8 @@ public class TaskExecutionContractFactory {
                     throw new IllegalArgumentException("DYNAMIC_FORM缺少发布版本");
                 }
             }
-            case "APPROVAL" -> requireAll(definition.getApprovalDefinitionKey());
+            case "APPROVAL" -> ApprovalWorkBindingSchema.read(
+                    definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig()));
             case "COMPOSITE" -> { /* subviews are carried in validated bindingConfig */ }
             default -> throw new IllegalArgumentException("任务WorkBinding类型无效");
         }

@@ -10,7 +10,7 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRun
 
 import java.util.List;
 
-/** PMS Gate范围内的Flowable定义身份、启动及实例事实契约。 */
+/** PMS 流程定义校验及 Gate 启动、实例事实契约；定义校验也供阶段/任务的直接审批绑定复用。 */
 public interface ProjectStageGateProcessOwnerApi {
 
     ProjectStageGateProcessDefinitionFact inspectDefinitionKey(ProjectStageGateProcessDefinitionQuery query);

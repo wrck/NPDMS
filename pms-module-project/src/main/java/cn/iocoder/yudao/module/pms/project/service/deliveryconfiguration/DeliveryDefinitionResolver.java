@@ -207,7 +207,7 @@ public class DeliveryDefinitionResolver {
         };
         if (key == null || !gateProviders.hasProvider(key)) throw exception(REFERENCE_INVALID, "Owner Provider unavailable: " + type);
         if ("PROCESS".equals(type) || "APPROVAL".equals(type))
-            processes.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(tenant(), code));
+            processes.inspectDefinitionKey(new ProjectStageGateProcessDefinitionQuery(tenant(), code, null));
     }
     private Long tenant() { return TenantContextHolder.getRequiredTenantId(); }
 }
