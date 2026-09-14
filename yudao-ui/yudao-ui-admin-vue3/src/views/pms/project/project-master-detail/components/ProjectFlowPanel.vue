@@ -134,6 +134,7 @@
         <el-button
           v-if="businessBound && workbench?.task.version != null"
           :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
+        <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
       </div>
       <TaskBusinessPanel
         v-if="businessBound && workbench?.task.version != null"
@@ -146,6 +147,8 @@
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
       />
+      <TaskApprovalPanel v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
+        :key="`approval-${workbench.task.taskId}`" :workbench="workbench" @changed="handleBusinessChanged" />
       <el-alert
         v-else
         type="info"
@@ -175,6 +178,7 @@ import type { ProjectFlowSelection } from './project-flow'
 import { taskForest, useFlowTaskPaging } from '@/views/pms/project/inheritance/detail/flowTaskPaging'
 import StageBusinessPanel from '@/views/pms/project/inheritance/detail/StageBusinessPanel.vue'
 import TaskStateActions from '@/views/pms/project/inheritance/detail/TaskStateActions.vue'
+import TaskApprovalPanel from '@/views/pms/project/inheritance/detail/TaskApprovalPanel.vue'
 import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMaintenancePanel.vue'
 import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
 
@@ -199,6 +203,7 @@ const loadError = ref('')
 const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
 const stateActionsRef = ref<InstanceType<typeof TaskStateActions>>()
+const approvalRef = ref<InstanceType<typeof TaskApprovalPanel>>()
 const maintenanceRef = ref<InstanceType<typeof TaskMaintenancePanel>>()
 const detailsRef = ref<InstanceType<typeof ProjectTaskDetailsEditor>>()
 const emit = defineEmits<{ changed: [] }>()
@@ -208,6 +213,7 @@ const requestLeave = async () => !stateActionsRef.value?.isBusy() && maintenance
   && detailsRef.value?.requestLeave() !== false
   && (await businessRef.value?.requestLeave()) !== false
   && (await stageBusinessRef.value?.requestLeave()) !== false
+  && (await approvalRef.value?.requestLeave()) !== false
 // BusinessViewHost already guards route leave; only reused-route project changes need this guard.
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || requestLeave())
 const businessFactVersion = ref<string>()

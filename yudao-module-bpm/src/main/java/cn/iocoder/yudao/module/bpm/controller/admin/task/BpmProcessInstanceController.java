@@ -171,6 +171,7 @@ public class BpmProcessInstanceController {
     }
 
     @GetMapping("/get-approval-detail")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false)
     @Operation(summary = "获得审批详情")
     @Parameter(name = "id", description = "流程实例的编号", required = true)
     @PreAuthorize("@ss.hasPermission('bpm:process-instance:query')")

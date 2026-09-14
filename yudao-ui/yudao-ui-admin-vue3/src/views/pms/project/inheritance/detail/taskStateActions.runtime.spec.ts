@@ -31,11 +31,10 @@ it('blocks missing business facts and the Owner leave refusal', async () => {
   const dirty = await render('owner-vector', async () => false); await dirty.state().execute('START')
   expect(api.executeTaskAction).not.toHaveBeenCalled()
 })
-it('starts approval tasks with the frozen contract identity instead of an unversioned request', async () => {
+it('does not bypass the approval form through generic task actions', async () => {
   const view = await render('owner-vector', async () => true, 'APPROVAL'); await view.state().execute('START')
-  expect(api.executeTaskAction).toHaveBeenCalledWith('2098262374805766146', 'START', expect.objectContaining({
-    executionContractId: 91, contractVersion: 2, expectedBusinessFactVersion: undefined
-  }), 3, expect.any(String))
+  await view.state().execute('COMPLETE')
+  expect(api.executeTaskAction).not.toHaveBeenCalled()
 })
 it('retries an uncertain response with the same intent key', async () => {
   api.executeTaskAction.mockRejectedValueOnce(new Error('response lost'))

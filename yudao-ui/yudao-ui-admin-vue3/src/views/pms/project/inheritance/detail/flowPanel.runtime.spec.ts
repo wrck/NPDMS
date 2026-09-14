@@ -20,6 +20,9 @@ vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
 vi.mock('../wbs/TaskMaintenancePanel.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: () => true, description: { description: '任务的基本说明', descriptionFormat: 'PLAIN' }, canEditDescription: true, openDescription: vi.fn() }); return () => h('div', '任务职责维护') }
 }) }))
+vi.mock('./TaskApprovalPanel.vue', () => ({ default: defineComponent({
+  setup(_, { expose }) { expose({ requestLeave: leave, isBusy: () => false }); return () => h('div', '原BPM审批办理') }
+}) }))
 vi.mock('../../project-master-detail/components/ProjectTaskDetailsEditor.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务资料与进度') }
 }) }))
@@ -47,6 +50,16 @@ beforeEach(() => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '任务A', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+
+it('mounts approval handling in the shared delivery task panel and preserves its leave guard', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'APPROVAL' })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('原BPM审批办理')
+  expect(textOf(view.root)).toContain('刷新审批结果')
+  expect(textOf(view.root)).not.toContain('Owner业务内容')
+  expect(textOf(view.root)).not.toContain('尚未取得可用的任务业务绑定')
+  expect(await view.exposed().requestLeave()).toBe(false)
+})
 
 it('starts independent task reads together and waits for both before exposing Owner actions', async () => {
   let finishWorkspace!: (value: unknown) => void

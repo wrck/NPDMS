@@ -14,7 +14,8 @@ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/s
 const props = defineProps<{ workbench: TaskWorkbench; businessBound: boolean; businessFactVersion?: string; beforeAction: () => Promise<boolean> }>()
 const emit = defineEmits<{ changed: [result: TaskCommandResult] }>()
 const labels: Record<TaskAction, string> = { START: '开始任务', SUBMIT: '提交任务', COMPLETE: '校验并完成任务', CANCEL: '关闭任务' }
-const actions = computed(() => (Object.keys(labels) as TaskAction[]).filter(action => props.workbench.allowedActions?.includes(action)))
+const actions = computed(() => (Object.keys(labels) as TaskAction[]).filter(action => props.workbench.allowedActions?.includes(action)
+  && !(props.workbench.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))))
 const message = useMessage(), busy = ref(false), error = ref('')
 const intent = createSubmissionIdempotencyState()
 const execute = async (action: TaskAction) => {
@@ -30,7 +31,7 @@ const execute = async (action: TaskAction) => {
     if (!reason) return
   }
   if (taskId !== props.workbench.task.taskId || version !== props.workbench.task.version || !actions.value.includes(action)) return
-  const needsContract = action === 'COMPLETE' || (action === 'START' && props.workbench.bindingType === 'APPROVAL')
+  const needsContract = action === 'COMPLETE'
   const body = { reason,
     executionContractId: needsContract ? props.workbench.executionContractId : undefined,
     contractVersion: needsContract ? props.workbench.contractVersion : undefined,
