@@ -12,6 +12,63 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectPlanImpactAnalyzerTest {
     final ProjectPlanImpactAnalyzer analyzer = new ProjectPlanImpactAnalyzer();
+    @Test void gateDependenciesReachCrossStageTasksAndClosureButNotIndependentNodes() {
+        var before = gateSnapshot();
+        String history = JsonUtils.toJsonString(before);
+        assertEquals(Set.of("gate:survey", "task:analysis", "stage:b", "$project"),
+                analyzer.dependentNodeKeys(before, Set.of("task:one")));
+        var after = copy(before); after.getTasks().getFirst().setName("调整工勘说明");
+        var completed = round("task:analysis", "TASK", 12L); completed.setStatus("DONE");
+        var result = analyzer.analyze(before, after, List.of(completed), List.of());
+        assertEquals(Set.of("task:one", "gate:survey", "task:analysis", "stage:b", "$project"),
+                new HashSet<>(result.changes().stream().map(ProjectPlanImpactAnalyzer.Change::nodeKey).toList()));
+        var dependent = result.changes().stream().filter(change -> "task:analysis".equals(change.nodeKey())).findFirst().orElseThrow();
+        assertEquals("REEVALUATE", dependent.action()); assertTrue(dependent.completed());
+        assertEquals("DONE", completed.getStatus()); assertEquals(history, JsonUtils.toJsonString(before));
+    }
+
+    @Test void gateProgramChangeIsReportedEvenWhenTheReferenceKeyAndNodeDoNotChange() {
+        var before = gateSnapshot(); var after = copy(before);
+        after.getRulePrograms().put("gate-survey", new ProjectRuleCompiler().compile(JsonUtils.parseTree(
+                "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
+        var result = analyzer.analyze(before, after, List.of(), List.of());
+        var gate = result.changes().stream().filter(change -> "gate:survey".equals(change.nodeKey())).findFirst().orElseThrow();
+        assertEquals("UPDATE", gate.action()); assertTrue(gate.effects().contains("门禁条件变化"));
+        assertEquals(List.of("gate-survey"), result.changedRuleKeys());
+        assertTrue(result.changes().stream().anyMatch(change -> "task:analysis".equals(change.nodeKey()) && "REEVALUATE".equals(change.action())));
+        assertTrue(analyzer.analyze(before, copy(before), List.of(), List.of()).changes().isEmpty());
+    }
+
+    @Test void gateDependencyRemovalStillReportsConsumersFromThePreviousPlan() {
+        var before = gateSnapshot(); var after = copy(before);
+        after.getGates().clear(); after.getRulePrograms().remove("gate-survey");
+        after.getTasks().get(1).setGateRef(null);
+        var result = analyzer.analyze(before, after, List.of(), List.of());
+        assertTrue(result.changes().stream().anyMatch(change -> "gate:survey".equals(change.nodeKey()) && "REMOVE".equals(change.action())));
+        assertTrue(result.changes().stream().anyMatch(change -> "stage:b".equals(change.nodeKey()) && "REEVALUATE".equals(change.action())));
+        assertFalse(analyzer.dependentNodeKeys(after, Set.of("task:one")).contains("task:analysis"));
+    }
+
+    static TemplateExecutionSnapshot gateSnapshot() {
+        var snapshot = snapshot(); var compiler = new ProjectRuleCompiler();
+        var gate = new TemplateExecutionSnapshot.GateContract(); gate.setNodeKey("gate:survey"); gate.setCode("SURVEY_READY");
+        gate.setName("工勘完成门禁"); gate.setStageCode("B"); gate.setGateType("ENTRY"); gate.setConditionRuleKey("gate-survey");
+        var reference = new TemplateExecutionSnapshot.GateReference(); reference.setRefType("TASK"); reference.setRefCode("T1");
+        gate.getReferences().add(reference); snapshot.getGates().add(gate);
+        snapshot.getRulePrograms().put("gate-survey", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"T1\"}}")));
+        var analysis = new TemplateExecutionSnapshot.TaskContract(); analysis.setNodeKey("task:analysis"); analysis.setCode("ANALYSIS");
+        analysis.setName("需求分析"); analysis.setStageCode("B"); analysis.setGateRef("SURVEY_READY"); analysis.setCompletionRuleKey("done");
+        snapshot.setTasks(List.of(snapshot.getTasks().getFirst(), analysis));
+        snapshot.getStages().get(1).setCompletionRuleKey("analysis-complete");
+        snapshot.getRulePrograms().put("analysis-complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"ANALYSIS\"}}")));
+        snapshot.setClosureRuleKey("after-b");
+        snapshot.getRulePrograms().put("after-b", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"STATE\",\"parameters\":{\"refCode\":\"B_COMPLETED\"}}")));
+        var independent = new TemplateExecutionSnapshot.StageContract(); independent.setNodeKey("stage:independent");
+        independent.setCode("INDEPENDENT"); independent.setName("独立分支"); independent.setCompletionRuleKey("done");
+        snapshot.getStages().add(independent);
+        return snapshot;
+    }
+
     @Test void businessSourceDependencyIsIncludedInReworkAndPlanPreviewWithoutChangingHistory() {
         var before = snapshot();
         before.getRulePrograms().put("business-source", new ProjectRuleCompiler().compile(JsonUtils.parseTree("""

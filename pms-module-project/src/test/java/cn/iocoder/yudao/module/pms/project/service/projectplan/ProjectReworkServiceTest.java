@@ -127,6 +127,26 @@ class ProjectReworkServiceTest {
         verify(changes).resetTaskProjection(argThat(reset -> "PENDING_START".equals(reset.initialStatus())));
     }
 
+    @Test void gateImpactPreviewDoesNotExpandTheAppliedReworkOrOverwriteUnselectedResults() {
+        var gate = new TemplateExecutionSnapshot.GateContract(); gate.setNodeKey("g"); gate.setCode("SURVEY_READY");
+        gate.setStageCode("PREP"); gate.setConditionRuleKey("survey-gate"); snapshot.getGates().add(gate);
+        snapshot.getRulePrograms().put("survey-gate", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler()
+                .compile(JsonUtils.parseTree("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"SURVEY\"}}")));
+        snapshot.getTasks().get(1).setGateRef("SURVEY_READY");
+        effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        rounds.get(2).setResultSnapshot("unselected-analysis-result");
+        String history = JsonUtils.toJsonString(rounds.get(2));
+        var preview = service.preview(100L, List.of("t1"), 9L);
+        assertEquals(Set.of("g", "t2"), preview.plan().affectedNodeKeys());
+        verifyNoInteractions(changes, commands);
+        var result = service.apply(command(3, 2L), 9L, "source-only");
+        assertEquals(List.of("t1"), result.executions().stream().map(ProjectReworkService.NewExecution::nodeKey).toList());
+        verify(changes).retireEndedExecution(argThat(change -> change.executionId().equals(2L)));
+        verify(executions, times(1)).insert(any(ProjectNodeExecutionDO.class));
+        assertEquals(history, JsonUtils.toJsonString(rounds.get(2)));
+        assertEquals("immutable-result", previous.getResultSnapshot());
+    }
+
     @Test void requiredEndedParentGetsOneNewRoundAndCannotBeOmittedFromPreviewTokens() {
         rounds.getFirst().setStatus("DONE");
         assertThrows(RuntimeException.class,()->service.apply(command(3,2L),9L,"missing-parent-token"));

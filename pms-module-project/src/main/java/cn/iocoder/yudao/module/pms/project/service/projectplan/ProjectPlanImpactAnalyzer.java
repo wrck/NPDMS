@@ -16,7 +16,7 @@ public class ProjectPlanImpactAnalyzer {
                          boolean started, boolean completed, List<String> effects) { }
     public record Impact(List<Change> changes, List<String> changedRuleKeys, List<Issue> issues) { }
     private record Node(String key, String kind, String name, String stageCode, JsonNode value, Object binding,
-                        String admission, String completion, String exit) { }
+                        String admission, String completion, String exit, String condition) { }
 
     public Impact analyze(TemplateExecutionSnapshot before, TemplateExecutionSnapshot after,
                           List<ProjectNodeExecutionDO> rounds, List<ProjectTaskInstanceDO> tasks) {
@@ -52,6 +52,7 @@ public class ProjectPlanImpactAnalyzer {
                 if (ruleChanged(old.admission(), next.admission(), changedRules)) effects.add("准入规则变化");
                 if (ruleChanged(old.completion(), next.completion(), changedRules)) effects.add("完成规则变化");
                 if (ruleChanged(old.exit(), next.exit(), changedRules)) effects.add("退出规则变化");
+                if (ruleChanged(old.condition(), next.condition(), changedRules)) effects.add("门禁条件变化");
             }
             if (!changed && effects.isEmpty()) continue;
             boolean started = startedKeys.contains(key);
@@ -117,15 +118,23 @@ public class ProjectPlanImpactAnalyzer {
         snapshot.getTasks().forEach(node -> references.put("TASK:" + node.getCode(), node.getNodeKey()));
         snapshot.getMilestones().forEach(node -> references.put("MILESTONE:" + node.getCode(), node.getNodeKey()));
         snapshot.getDeliverables().forEach(node -> references.put("DELIVERABLE:" + node.getCode(), node.getNodeKey()));
+        snapshot.getGates().forEach(node -> references.put("GATE:" + node.getCode(), node.getNodeKey()));
         var all = nodes(snapshot);
         for (var node : all.values()) {
             collectRuleDependents(snapshot, node.admission(), node.key(), references, dependents);
             collectRuleDependents(snapshot, node.completion(), node.key(), references, dependents);
             collectRuleDependents(snapshot, node.exit(), node.key(), references, dependents);
+            collectRuleDependents(snapshot, node.condition(), node.key(), references, dependents);
             if ("TASK".equals(node.kind())) {
                 String parent = stageIdentity(snapshot, node.stageCode());
                 if (parent != null) dependents.computeIfAbsent(parent, ignored -> new LinkedHashSet<>()).add(node.key());
             }
+        }
+        // Task completion evaluates the referenced gate in addition to its own completion/exit rules.
+        for (var task : snapshot.getTasks()) {
+            if (task.getGateRef() == null || task.getGateRef().isBlank()) continue;
+            String gate = references.get("GATE:" + task.getGateRef());
+            if (gate != null) dependents.computeIfAbsent(gate, ignored -> new LinkedHashSet<>()).add(task.getNodeKey());
         }
         collectRuleDependents(snapshot, snapshot.getClosureRuleKey(), "$project", references, dependents);
     }
@@ -159,12 +168,12 @@ public class ProjectPlanImpactAnalyzer {
     private Map<String, Node> nodes(TemplateExecutionSnapshot snapshot) {
         Map<String, Node> nodes = new LinkedHashMap<>();
         snapshot.getStages().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "STAGE", node.getName(), node.getCode(),
-                json(node), node.getBinding(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey())));
+                json(node), node.getBinding(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey(), null)));
         snapshot.getTasks().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "TASK", node.getName(), node.getStageCode(),
-                json(node), node.getBinding(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey())));
-        snapshot.getMilestones().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "MILESTONE", node.getName(), node.getStageCode(), json(node), null, null, null, null)));
-        snapshot.getDeliverables().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "DELIVERABLE", node.getName(), node.getStageCode(), json(node), null, null, null, null)));
-        snapshot.getGates().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "GATE", node.getName(), node.getStageCode(), json(node), null, null, null, null)));
+                json(node), node.getBinding(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey(), null)));
+        snapshot.getMilestones().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "MILESTONE", node.getName(), node.getStageCode(), json(node), null, null, null, null, null)));
+        snapshot.getDeliverables().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "DELIVERABLE", node.getName(), node.getStageCode(), json(node), null, null, null, null, null)));
+        snapshot.getGates().forEach(node -> nodes.put(node.getNodeKey(), new Node(node.getNodeKey(), "GATE", node.getName(), node.getStageCode(), json(node), null, null, null, null, node.getConditionRuleKey())));
         return nodes;
     }
     private JsonNode json(Object value) { return JsonUtils.parseTree(JsonUtils.toJsonString(value)); }

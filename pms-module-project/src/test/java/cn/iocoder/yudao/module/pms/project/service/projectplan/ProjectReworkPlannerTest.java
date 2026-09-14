@@ -25,6 +25,18 @@ class ProjectReworkPlannerTest {
         assertTrue(plan.applicable()); assertEquals(1,plan.targets().size());
     }
 
+    @Test void gateDependentWorkIsPreviewedButOnlyTheChosenSourceGetsANewRound() {
+        var snapshot = ProjectPlanImpactAnalyzerTest.gateSnapshot();
+        var analysis = round("task:analysis", "TASK", 12L, "DONE"); analysis.setResultSnapshot("preserved-analysis");
+        var plan = planner.plan(snapshot, List.of(round("stage:a", "STAGE", 1L, "ACTIVE"),
+                round("stage:b", "STAGE", 2L, "DONE"), round("task:one", "TASK", 11L, "DONE"), analysis), List.of("task:one"));
+        assertTrue(plan.applicable());
+        assertEquals(List.of("task:one"), plan.targets().stream().map(target -> target.node().nodeKey()).toList());
+        assertEquals(Set.of("gate:survey", "task:analysis", "stage:b", "$project"), plan.affectedNodeKeys());
+        assertEquals("DONE", analysis.getStatus()); assertEquals(1, analysis.getRoundNo());
+        assertEquals("preserved-analysis", analysis.getResultSnapshot());
+    }
+
     @Test void unstartedOrRunningSelectionsAreNotSilentlyTerminated() {
         for (String status : List.of("PENDING","ACTIVE")) {
             var plan = planner.plan(snapshot(),List.of(round("s","STAGE",1L,"ACTIVE"),round("t1","TASK",2L,status)),List.of("t1"));
