@@ -124,17 +124,17 @@ class FlowableProjectRuleEventListenerTest {
     private String startTaskApproval() {
         var definition = engine.getRepositoryService().createProcessDefinitionQuery().processDefinitionKey("gate-test").singleResult();
         var variables = new java.util.HashMap<String,Object>();
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_TENANT,7L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_PROJECT,9L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_TASK,21L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_EXECUTION,referenceId);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_CONTRACT,91L);
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_DEFINITION,definition.getId());
-        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_ACTOR,1L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_TENANT,7L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_PROJECT,9L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_TASK,21L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_EXECUTION,referenceId);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_CONTRACT,91L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_DEFINITION,definition.getId());
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.VAR_ACTOR,1L);
         variables.put("PROCESS_STATUS",1); variables.put("formText","private-form-value");
         return tx.execute(ignored -> engine.getRuntimeService().createProcessInstanceBuilder().tenantId("7")
                 .processDefinitionId(definition.getId()).businessKey(
-                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX + referenceId)
+                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.BUSINESS_KEY_PREFIX + referenceId)
                 .variables(variables).start().getId());
     }
 

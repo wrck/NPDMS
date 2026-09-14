@@ -75,7 +75,7 @@ public final class ProjectTaskCommands {
                                     Integer expectedActivityVersion, Integer expectedReportVersion,
                                     String expectedBusinessFactVersion,
                                     String idempotencyKey, String requestDigest,
-                                    cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission approval) {
+                                    cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Submission approval) {
         public TaskActionCommand(Long taskId, Integer expectedTaskVersion, String actionCode,
                                  String reason, Long executionContractId, Integer contractVersion,
                                  String factObjectKey, Long factVersion, Integer expectedActivityVersion,

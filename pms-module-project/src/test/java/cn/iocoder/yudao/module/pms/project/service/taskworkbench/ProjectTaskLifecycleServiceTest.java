@@ -132,10 +132,10 @@ class ProjectTaskLifecycleServiceTest {
 
     @Test void approvalSubmissionDoesNotRestartTaskOrWriteAnotherExecutionRound() {
         var binding = approvalHandling();
-        var submission = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+        var submission = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Submission(
                 java.util.Map.of("comment","private-form"),java.util.Map.of("review",java.util.List.of(8L)));
-        var receipt = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
-                cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,
+        var receipt = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
+                cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,
                 "RUNNING","attempt-2","review:1",null);
         when(taskApprovals.start(0L,100L,11L,binding,9L,"APPROVAL:retry",submission)).thenReturn(receipt);
         var command = new TaskActionCommand(11L,3,"approval",null,91L,2,null,null,null,null,null,"retry","a".repeat(64),submission);

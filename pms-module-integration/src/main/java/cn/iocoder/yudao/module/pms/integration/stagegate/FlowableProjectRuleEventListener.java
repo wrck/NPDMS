@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
-import cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.delegate.DelegateExecution;
@@ -64,10 +64,11 @@ public class FlowableProjectRuleEventListener extends AbstractFlowableEngineEven
     }
 
     private void changed(ProcessInstance process) {
-        if (process != null && process.getBusinessKey() != null
-                && process.getBusinessKey().startsWith(ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX)) {
-            taskApprovalChanged(process);
-            return;
+        if (process != null) {
+            for (var kind : ProjectNodeApprovalApi.NodeKind.values()) if (kind.owns(process.getBusinessKey())) {
+                nodeApprovalChanged(process, kind);
+                return;
+            }
         }
         if (process == null || process.getBusinessKey() == null
                 || !process.getBusinessKey().startsWith("PROJECT_STAGE_GATE:")) return;
@@ -86,22 +87,22 @@ public class FlowableProjectRuleEventListener extends AbstractFlowableEngineEven
         append(process, tenantId, projectId, actorId);
     }
 
-    private void taskApprovalChanged(ProcessInstance process) {
+    private void nodeApprovalChanged(ProcessInstance process, ProjectNodeApprovalApi.NodeKind kind) {
         var variables = process.getProcessVariables();
-        if (variables == null) throw new IllegalStateException("TASK_APPROVAL_EVENT_IDENTITY_UNAVAILABLE");
-        Long tenantId = number(variables.get(ProjectTaskApprovalApi.VAR_TENANT));
-        Long projectId = number(variables.get(ProjectTaskApprovalApi.VAR_PROJECT));
-        Long executionId = number(variables.get(ProjectTaskApprovalApi.VAR_EXECUTION));
-        Long taskId = number(variables.get(ProjectTaskApprovalApi.VAR_TASK));
-        Long contractId = number(variables.get(ProjectTaskApprovalApi.VAR_CONTRACT));
-        Long actorId = number(variables.get(ProjectTaskApprovalApi.VAR_ACTOR));
+        if (variables == null) throw new IllegalStateException(kind + "_APPROVAL_EVENT_IDENTITY_UNAVAILABLE");
+        Long tenantId = number(variables.get(kind.variable("TenantId")));
+        Long projectId = number(variables.get(kind.variable("ProjectId")));
+        Long executionId = number(variables.get(kind.variable("ExecutionId")));
+        Long nodeId = number(variables.get(kind.variable("Id")));
+        Long contractId = number(variables.get(kind.variable("ContractId")));
+        Long actorId = number(variables.get(kind.variable("ActorId")));
         if (tenantId == null || tenantId < 0 || projectId == null || projectId <= 0
-                || executionId == null || executionId <= 0 || taskId == null || taskId <= 0
+                || executionId == null || executionId <= 0 || nodeId == null || nodeId <= 0
                 || contractId == null || contractId <= 0 || actorId == null || actorId <= 0
-                || !Objects.equals(process.getBusinessKey(), ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX + executionId)
-                || !Objects.equals(process.getProcessDefinitionId(), variables.get(ProjectTaskApprovalApi.VAR_DEFINITION))
+                || !Objects.equals(process.getBusinessKey(), kind.businessKey(executionId))
+                || !Objects.equals(process.getProcessDefinitionId(), variables.get(kind.variable("ProcessDefinitionId")))
                 || tenantEnabled && !Objects.equals(process.getTenantId(), tenantId.toString()))
-            throw new IllegalStateException("TASK_APPROVAL_EVENT_IDENTITY_INVALID");
+            throw new IllegalStateException(kind + "_APPROVAL_EVENT_IDENTITY_INVALID");
         append(process, tenantId, projectId, actorId);
     }
 

@@ -66,13 +66,13 @@ class ProjectTaskPlanCompletionServiceTest {
     @Test void approvalCompletionRequiresThisRoundOwnerResultBeforeAnyTrueOrNotRule() {
         binding.setWorkBindingTypeCode("APPROVAL");
         round.setSubmittedAt(null); round.setStartedAt(LocalDateTime.of(2026,9,15,9,0));
-        for (var outcome : cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.values()) {
-            var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
+        for (var outcome : cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.values()) {
+            var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
                     outcome, "TEST", "approval-1", "definition:1", outcome.name());
             when(approvals.inspect(7L,9L,21L,binding,31L,round.getStartedAt())).thenReturn(fact);
             rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}");
             var result = service.evaluateAutomatically(project,task,binding);
-            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED, result.matched());
+            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.SATISFIED, result.matched());
             if (result.matched()) assertEquals(fact, result.evidence().get("approval"));
             else assertFalse(result.completion().matched());
         }
@@ -81,8 +81,8 @@ class ProjectTaskPlanCompletionServiceTest {
     @Test void approvedTaskStillRequiresConfiguredCompletionExitAndGateRules() {
         binding.setWorkBindingTypeCode("APPROVAL");
         when(approvals.inspect(any(),any(),any(),any(),any(),any())).thenReturn(
-                new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
-                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED,
+                new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
+                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.SATISFIED,
                         "APPROVED","approval-1","definition:1",null));
         rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
         assertFalse(service.evaluateAutomatically(project,task,binding).matched());

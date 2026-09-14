@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
-import cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
@@ -11,7 +11,7 @@ import static org.mockito.Mockito.*;
 
 class ProjectTaskApprovalServiceTest {
     final ProjectNodeExecutionApi executions = mock(ProjectNodeExecutionApi.class);
-    final ProjectTaskApprovalApi owner = mock(ProjectTaskApprovalApi.class);
+    final ProjectNodeApprovalApi owner = mock(ProjectNodeApprovalApi.class);
     final ProjectTaskApprovalService service = new ProjectTaskApprovalService(executions,owner);
     final LocalDateTime started = LocalDateTime.of(2026,9,15,9,0);
     ProjectTaskExecutionContractDO binding() {
@@ -25,7 +25,7 @@ class ProjectTaskApprovalServiceTest {
     @Test void startsFromFrozenBindingAndCurrentExecutionInsteadOfLegacyApprovalId() {
         var binding = binding(); binding.setApprovalInstanceId(123L);
         when(executions.inspect(any())).thenReturn(context(started));
-        var submission = new ProjectTaskApprovalApi.Submission(java.util.Map.of("comment","private form"), java.util.Map.of("review",java.util.List.of(2L)));
+        var submission = new ProjectNodeApprovalApi.Submission(java.util.Map.of("comment","private form"), java.util.Map.of("review",java.util.List.of(2L)));
         service.start(7L,9L,21L,binding,1L,"START:intent",submission);
         verify(owner).start(argThat(command -> command.scope().executionId().equals(61L)
                 && command.scope().contractId().equals(91L) && command.scope().definitionId().equals("review:1")
@@ -36,18 +36,18 @@ class ProjectTaskApprovalServiceTest {
     }
     @Test void missingOrFailedOwnerResultIsUnknownAndDoesNotAllowTaskClosure() {
         when(executions.inspect(any())).thenReturn(context(started));
-        assertEquals(ProjectTaskApprovalApi.Outcome.UNKNOWN,service.inspect(7L,9L,21L,binding(),61L,started).outcome());
+        assertEquals(ProjectNodeApprovalApi.Outcome.UNKNOWN,service.inspect(7L,9L,21L,binding(),61L,started).outcome());
         assertThrows(IllegalStateException.class,() -> service.requireMayCancel(7L,9L,21L,binding()));
         when(owner.inspect(any())).thenThrow(new IllegalStateException("private owner diagnostic"));
         var fact = service.inspect(7L,9L,21L,binding(),61L,started);
-        assertEquals(ProjectTaskApprovalApi.Outcome.UNKNOWN,fact.outcome());
+        assertEquals(ProjectNodeApprovalApi.Outcome.UNKNOWN,fact.outcome());
         assertFalse(fact.toString().contains("private owner diagnostic"));
     }
     @Test void taskClosureRequiresBpmToFinishOrExplicitlyCancelActiveApproval() {
         when(executions.inspect(any())).thenReturn(context(started));
-        when(owner.inspect(any())).thenReturn(new ProjectTaskApprovalApi.Fact(ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,"RUNNING","p1","review:1",null));
+        when(owner.inspect(any())).thenReturn(new ProjectNodeApprovalApi.Fact(ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,"RUNNING","p1","review:1",null));
         assertThrows(IllegalStateException.class,() -> service.requireMayCancel(7L,9L,21L,binding()));
-        when(owner.inspect(any())).thenReturn(new ProjectTaskApprovalApi.Fact(ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,"CANCELLED","p1","review:1",null));
+        when(owner.inspect(any())).thenReturn(new ProjectNodeApprovalApi.Fact(ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,"CANCELLED","p1","review:1",null));
         assertDoesNotThrow(() -> service.requireMayCancel(7L,9L,21L,binding()));
     }
     @Test void anUnstartedTaskCanStillBeExplicitlyClosed() {
@@ -64,7 +64,7 @@ class ProjectTaskApprovalServiceTest {
     }
     @Test void workbenchUsesCurrentOwnerInstanceAndDoesNotReturnFormValues() {
         when(executions.inspect(any())).thenReturn(context(started));
-        var fact = new ProjectTaskApprovalApi.Fact(ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,"RUNNING","current-2","review:1",null);
+        var fact = new ProjectNodeApprovalApi.Fact(ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,"RUNNING","current-2","review:1",null);
         when(owner.inspect(any())).thenReturn(fact);
         assertEquals(fact,service.view(7L,9L,21L,binding()).current());
         verify(owner,never()).start(any());

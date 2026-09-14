@@ -220,10 +220,10 @@ class ProjectTaskWorkbenchControllerTest {
                 mock(ProjectTaskAssignmentService.class),lifecycle,mock(ProjectTaskProgressService.class),new MockEnvironment());
         var request = new cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskActionReqVO();
         request.setExecutionContractId(91L); request.setContractVersion(2);
-        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Submission(
                 Map.of("reason","first input"),Map.of("review",java.util.List.of(8L))));
         controller.actTask(11L,"approval","retry","3",request);
-        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission(
+        request.setApproval(new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Submission(
                 Map.of("reason","changed input"),Map.of("review",java.util.List.of(9L))));
         controller.actTask(11L,"approval","retry","3",request);
         var captured = org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand.class);

@@ -113,9 +113,9 @@ public class ProjectTaskPlanCompletionService {
         Map<String,Object> evidence = new LinkedHashMap<>();
         if (approvalWork) {
             var approval = approvals.inspect(tenantId, project.getId(), task.getId(), binding, round.getId(), round.getStartedAt());
-            if (approval.outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.UNKNOWN)
+            if (approval.outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN)
                 return unknown(reference, approval.reason());
-            if (approval.outcome() != cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED) {
+            if (approval.outcome() != cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.SATISFIED) {
                 var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
                         approval.reason(), List.of(), List.of(), List.of());
                 return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));

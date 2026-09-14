@@ -335,10 +335,10 @@ class ProjectTaskQueryServiceTest {
         when(bindingRegistry.inspect(any(),any())).thenReturn(new TaskBindingInspection("APPROVAL",Set.of("APPROVAL"),"v1",null));
         var approvals = org.mockito.Mockito.mock(ProjectTaskApprovalService.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service,"taskApprovals",approvals);
-        var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
-                cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.NOT_SATISFIED,
+        var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Fact(
+                cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.NOT_SATISFIED,
                 "REJECTED","old-attempt","review:1",null);
-        var view = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.View("review","review:1",61L,fact);
+        var view = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View("review","review:1",61L,fact);
         when(approvals.view(0L,100L,11L,binding)).thenReturn(view);
         assertEquals(view,service.getWorkbench(11L,actor()).getApproval());
         assertEquals(Set.of("APPROVAL"),service.getWorkbench(11L,actor()).getAllowedActions());

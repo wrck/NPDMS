@@ -21,5 +21,5 @@ public class ProjectTaskActionReqVO {
     private Integer expectedActivityVersion;
     private Integer expectedReportVersion;
     @Schema(description = "原 BPM 表单变量及发起人自选审批人，仅审批办理使用")
-    private cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Submission approval;
+    private cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Submission approval;
 }

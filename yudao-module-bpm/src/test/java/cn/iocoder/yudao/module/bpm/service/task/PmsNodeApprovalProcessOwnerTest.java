@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.instance.BpmApprovalDetailRespVO;
 import cn.iocoder.yudao.module.bpm.dal.dataobject.definition.BpmProcessDefinitionInfoDO;
 import cn.iocoder.yudao.module.bpm.service.definition.BpmProcessDefinitionService;
-import cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext;
 import org.flowable.engine.ProcessEngine;
@@ -20,18 +20,18 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.*;
+import static cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /** Real original BPM creation + Flowable 8 in a unique H2/Spring transaction; no shared environment. */
-class PmsTaskApprovalProcessOwnerTest {
+class PmsNodeApprovalProcessOwnerTest {
     static EmbeddedDatabase database;
     static ProcessEngine engine;
     static TransactionTemplate tx;
     static String pinned;
     static final AtomicLong ids = new AtomicLong(100);
-    PmsTaskApprovalProcessOwner owner;
+    PmsNodeApprovalProcessOwner owner;
     BpmProcessInstanceServiceImpl processes;
     BpmProcessDefinitionService definitions;
     ProjectNodeExecutionApi executions;
@@ -64,7 +64,7 @@ class PmsTaskApprovalProcessOwnerTest {
     @AfterAll static void stop() { try { engine.close(); } finally { database.shutdown(); } }
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
-        scope = new Scope(7L, 9L, 21L, ids.incrementAndGet(), 91L, "task-approval", pinned, LocalDateTime.now().minusSeconds(1));
+        scope = new Scope(NodeKind.TASK, 7L, 9L, 21L, ids.incrementAndGet(), 91L, "task-approval", pinned, LocalDateTime.now().minusSeconds(1));
         context = new ProjectTaskExecutionContext(9L, 1, 21L, 2, 91L, 1, 51L, scope.executionId(), 1, 1, 62L, 1, true, scope.startedAt());
         executions = mock(ProjectNodeExecutionApi.class);
         when(executions.lockAndRevalidate(context)).thenReturn(context);
@@ -77,7 +77,7 @@ class PmsTaskApprovalProcessOwnerTest {
         ReflectionTestUtils.setField(processes, "processDefinitionService", definitions);
         // This fixture excludes candidate prediction, but retains the original selected-approver validation below.
         doReturn(new BpmApprovalDetailRespVO().setActivityNodes(new ArrayList<>())).when(processes).getApprovalDetail(eq(1L), any());
-        owner = new PmsTaskApprovalProcessOwner(new PmsApprovalProcessCreationService(processes, engine.getRepositoryService()),
+        owner = new PmsNodeApprovalProcessOwner(new PmsApprovalProcessCreationService(processes, engine.getRepositoryService()),
                 engine.getHistoryService(), executions);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
@@ -112,7 +112,7 @@ class PmsTaskApprovalProcessOwnerTest {
         assertEquals(Outcome.NOT_SATISFIED, fact().outcome());
         end(first.processInstanceId(), 2);
         assertEquals(Outcome.SATISFIED, fact().outcome()); assertEquals(fact(), start());
-        var next = new Scope(7L,9L,21L,ids.incrementAndGet(),92L,"task-approval",pinned,scope.startedAt());
+        var next = new Scope(NodeKind.TASK,7L,9L,21L,ids.incrementAndGet(),92L,"task-approval",pinned,scope.startedAt());
         assertEquals("NOT_STARTED", tx.execute(ignored -> owner.inspect(next)).status());
         assertEquals(Outcome.SATISFIED, fact().outcome()); // old history is untouched
     }
@@ -179,7 +179,7 @@ class PmsTaskApprovalProcessOwnerTest {
         runtime.setVariable(started.processInstanceId(), VAR_CONTRACT, 91L);
         runtime.removeVariable(started.processInstanceId(), "PROCESS_STATUS");
         assertEquals(Outcome.UNKNOWN, fact().outcome());
-        var future = new Scope(7L,9L,21L,scope.executionId(),91L,"task-approval",pinned,LocalDateTime.now().plusDays(1));
+        var future = new Scope(NodeKind.TASK,7L,9L,21L,scope.executionId(),91L,"task-approval",pinned,LocalDateTime.now().plusDays(1));
         assertEquals("TASK_APPROVAL_ROUND_EVIDENCE_UNAVAILABLE", tx.execute(ignored -> owner.inspect(future)).reason());
     }
     @Test void staleExecutionAndForeignTenantCannotStart() {
