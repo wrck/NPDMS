@@ -63,7 +63,9 @@ public class ProjectCustomerCorrectionService {
                 OPERATION, actor.userId(), command.key()), DigestUtil.sha256Hex(JsonUtils.toJsonString(command)), Result.class,
                 () -> correctOnce(command, actor), result -> new PlatformCommandExecutionApi.SuccessFacts(
                         OPERATION, "Project", String.valueOf(command.projectId()), actor.correlationId(),
-                        JsonUtils.toJsonString(result), null, null));
+                        JsonUtils.toJsonString(result), null, null,
+                        result.changed() ? java.util.List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                actor.tenantId(), command.projectId(), actor.userId(), actor.correlationId()).event()) : java.util.List.of()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         return execution.response();

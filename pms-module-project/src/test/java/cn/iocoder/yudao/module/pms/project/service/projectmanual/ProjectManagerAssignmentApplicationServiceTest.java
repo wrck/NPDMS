@@ -91,7 +91,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
         assertEquals(8L, result.assignmentId());
         assertEquals(3, result.version());
         verify(authorizationService).assertCanAssign(7L);
-        verify(projectAuthorizationGuard).assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
+        verify(projectAuthorizationGuard).assertCanInitiallyAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L, true, false);
         verify(projectService).assignServiceManager(any());
         Map<String, Object> eventPayload = JsonUtils.parseObject(capturedFacts.get().eventPayload(),
                 new TypeReference<>() {});
@@ -100,6 +100,14 @@ class ProjectManagerAssignmentApplicationServiceTest {
                 eventPayload.keySet());
         assertEquals("PRIMARY", eventPayload.get("assignmentType"));
         assertFalse(eventPayload.containsKey("version"));
+        assertEquals(1, capturedFacts.get().businessEvents().size());
+        var reevaluation = capturedFacts.get().businessEvents().getFirst();
+        assertEquals("ProjectRuleReevaluationRequested", reevaluation.eventType());
+        var context = JsonUtils.parseTree(reevaluation.eventPayload());
+        assertEquals(1L, context.path("tenantId").asLong());
+        assertEquals(1L, context.path("projectId").asLong());
+        assertEquals(7L, context.path("actorId").asLong());
+        assertEquals(reevaluation.eventId(), context.path("eventId").asText());
     }
 
     @Test
@@ -153,7 +161,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Test
     void projectScopeFailureStopsBeforeBusinessValidationAndIdempotencyClaim() {
         doThrow(new ServiceException(FORBIDDEN)).when(projectAuthorizationGuard)
-                .assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
+                .assertCanInitiallyAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L, true, false);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assign(command(), actor()));

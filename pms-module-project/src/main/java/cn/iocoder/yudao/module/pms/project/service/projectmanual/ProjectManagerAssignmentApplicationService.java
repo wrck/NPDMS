@@ -102,7 +102,9 @@ public class ProjectManagerAssignmentApplicationService {
                 Map.copyOf(templateParams), command.assignmentType(), command.levelCode(), result.effectiveFrom());
         return new SuccessFacts("PROJECT_SERVICE_MANAGER_ASSIGN", "Project",
                 String.valueOf(result.projectId()), actor.correlationId(), JsonUtils.toJsonString(detail),
-                "ProjectServiceManagerAssigned", JsonUtils.toJsonString(payload));
+                "ProjectServiceManagerAssigned", JsonUtils.toJsonString(payload), java.util.List.of(
+                        new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                actor.tenantId(), result.projectId(), actor.actorId(), actor.correlationId()).event()));
     }
 
     private void validate(AssignServiceManagerCommand command, Actor actor) {

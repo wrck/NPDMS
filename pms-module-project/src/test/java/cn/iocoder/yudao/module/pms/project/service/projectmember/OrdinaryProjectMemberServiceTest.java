@@ -43,6 +43,7 @@ class OrdinaryProjectMemberServiceTest {
     @Mock cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService serviceManagers;
     @InjectMocks OrdinaryProjectMemberService service;
     ProjectMasterDO project;
+    PlatformCommandExecutionApi.SuccessFacts successFacts;
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         TenantContextHolder.setTenantId(1L);
@@ -61,9 +62,11 @@ class OrdinaryProjectMemberServiceTest {
         });
         lenient().when(memberMapper.updateById(any(ProjectMemberAssignmentDO.class))).thenReturn(1);
         lenient().when(projectMapper.incrementVersionIfMatch(eq(100L), anyInt())).thenReturn(1);
-        lenient().when(commands.execute(any(), any(), any(), any(), any())).thenAnswer(call ->
-                new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
-                        ((Supplier<Object>) call.getArgument(3)).get()));
+        lenient().when(commands.execute(any(), any(), any(), any(), any())).thenAnswer(call -> {
+            var result = ((Supplier<Object>) call.getArgument(3)).get();
+            successFacts = ((java.util.function.Function<Object, PlatformCommandExecutionApi.SuccessFacts>) call.getArgument(4)).apply(result);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
+        });
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
@@ -82,6 +85,13 @@ class OrdinaryProjectMemberServiceTest {
         verify(users).page(new ActiveUserSelectionApi.Query(1, 1, null, Set.of(40L), "PROJECT_MANAGER", null));
         assertEquals(55L, project.getManagerId()); assertEquals("ASSIGNED", project.getAssignmentStatus());
         assertEquals("S2", project.getCurrentStage());
+        assertEquals(1, successFacts.businessEvents().size());
+        var event = successFacts.businessEvents().getFirst();
+        assertEquals("ProjectRuleReevaluationRequested", event.eventType());
+        var context = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(event.eventPayload());
+        assertEquals(100L, context.path("projectId").asLong());
+        assertEquals(1L, context.path("tenantId").asLong());
+        assertEquals(7L, context.path("actorId").asLong());
     }
 
     @Test void editingClosesOldIntervalAndAppendsInsteadOfRewritingIt() {
@@ -130,7 +140,9 @@ class OrdinaryProjectMemberServiceTest {
     @Test void removalPreservesDataAndRepeatedRemovalDoesNotRewriteHistory() {
         var previous = member("TEAM_MEMBER"); when(memberMapper.selectById(10L)).thenReturn(previous);
         assertTrue(service.mutate(command(Action.REMOVE, 10L, null, null, null, 0), actor()).changed());
+        assertEquals(1, successFacts.businessEvents().size());
         assertFalse(service.mutate(command(Action.REMOVE, 10L, null, null, null, 1), actor()).changed());
+        assertTrue(successFacts.businessEvents().isEmpty());
         verify(memberMapper, times(1)).updateById(any(ProjectMemberAssignmentDO.class));
         verify(memberMapper, never()).deleteById(anyLong());
         assertEquals("原备注", previous.getRemark()); assertEquals("原加入原因", previous.getChangeReason());
@@ -160,6 +172,7 @@ class OrdinaryProjectMemberServiceTest {
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
                 .when(commands).execute(any(), any(), any(), any(), any());
         assertSame(saved, service.mutate(command(Action.ADD, null, "TEAM_MEMBER", "", "", 0), actor()));
+        assertNull(successFacts);
         verifyNoInteractions(users, memberMapper, projectMapper);
     }
 

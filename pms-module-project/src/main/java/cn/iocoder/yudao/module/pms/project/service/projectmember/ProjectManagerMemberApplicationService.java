@@ -71,7 +71,9 @@ public class ProjectManagerMemberApplicationService {
                 changed -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_MANAGERS_UPDATE", "Project",
                         String.valueOf(command.projectId()), actor.correlationId(), JsonUtils.toJsonString(audit),
                         changed.changed() ? "ProjectManagersChanged" : null,
-                        changed.changed() ? JsonUtils.toJsonString(changed) : null));
+                        changed.changed() ? JsonUtils.toJsonString(changed) : null,
+                        changed.changed() ? java.util.List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                actor.tenantId(), command.projectId(), actor.userId(), actor.correlationId()).event()) : java.util.List.of()));
         if (result.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         if (result.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         return result.response();

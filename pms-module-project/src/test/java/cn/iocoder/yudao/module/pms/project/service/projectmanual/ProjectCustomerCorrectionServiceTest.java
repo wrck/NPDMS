@@ -32,6 +32,7 @@ class ProjectCustomerCorrectionServiceTest {
     final List<ProjectCustomerReferenceProvider> providers = new ArrayList<>();
     ProjectMasterDO project;
     ProjectCustomerCorrectionService service;
+    PlatformCommandExecutionApi.SuccessFacts successFacts;
     final ProjectCustomerCorrectionService.Actor actor = new ProjectCustomerCorrectionService.Actor(1L, 7L, "test");
     final ProjectCustomerCorrectionService.Command command = new ProjectCustomerCorrectionService.Command(10L, 3, "CUS-NEW", "录入更正", "key");
 
@@ -48,8 +49,11 @@ class ProjectCustomerCorrectionServiceTest {
                 null, "ENABLED", "PLATFORM", 1L, LocalDateTime.now()));
         when(mapper.correctCustomerIfMatch(any())).thenReturn(1);
         when(commands.execute(any(), anyString(), eq(ProjectCustomerCorrectionService.Result.class), any(), any()))
-                .thenAnswer(call -> new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
-                        ((Supplier<ProjectCustomerCorrectionService.Result>) call.getArgument(3)).get()));
+                .thenAnswer(call -> {
+                    var result = ((Supplier<ProjectCustomerCorrectionService.Result>) call.getArgument(3)).get();
+                    successFacts = ((java.util.function.Function<ProjectCustomerCorrectionService.Result, PlatformCommandExecutionApi.SuccessFacts>) call.getArgument(4)).apply(result);
+                    return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
+                });
         for (Source source : Source.values()) {
             var provider = mock(ProjectCustomerReferenceProvider.class);
             when(provider.source()).thenReturn(source);
@@ -64,6 +68,19 @@ class ProjectCustomerCorrectionServiceTest {
         assertEquals("CUS-OLD", result.previousCustomerCode()); assertEquals("CUS-NEW", result.customerCode());
         verify(mapper).correctCustomerIfMatch(new ProjectContactCustomerUpdate(1L, 10L, 3, 102L, "CUS-NEW", "新客户", "7"));
         assertEquals("CUS-OLD", project.getCustomerCode());
+        assertEquals(1, successFacts.businessEvents().size());
+        var event = successFacts.businessEvents().getFirst();
+        assertEquals("ProjectRuleReevaluationRequested", event.eventType());
+        var context = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(event.eventPayload());
+        assertEquals(10L, context.path("projectId").asLong());
+        assertEquals(1L, context.path("tenantId").asLong());
+        assertEquals(7L, context.path("actorId").asLong());
+    }
+    @Test void unchangedCustomerDoesNotProduceAReevaluationEvent() {
+        var same = new ProjectCustomerCorrectionService.Command(10L, 3, "CUS-OLD", "未更改", "same");
+        assertFalse(service.correct(same, actor).changed());
+        assertTrue(successFacts.businessEvents().isEmpty());
+        verify(mapper, never()).correctCustomerIfMatch(any());
     }
     @Test void referencesAreReportedAndCannotBeOverriddenBySave() {
         when(providers.get(Source.CUSTOMER.ordinal()).countReferences(any())).thenReturn(2L);
@@ -108,9 +125,10 @@ class ProjectCustomerCorrectionServiceTest {
     @Test void replayDoesNotChangeProjectOrReadCustomersAgain() {
         var saved = new ProjectCustomerCorrectionService.Result(10L, 4, 101L, "CUS-OLD", "原客户", 102L,
                 "CUS-NEW", "新客户", true, "录入更正");
-        when(commands.execute(any(), anyString(), eq(ProjectCustomerCorrectionService.Result.class), any(), any()))
-                .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved));
+        doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
+                .when(commands).execute(any(), anyString(), eq(ProjectCustomerCorrectionService.Result.class), any(), any());
         assertEquals(saved, service.correct(command, actor));
+        assertNull(successFacts);
         verify(mapper, never()).correctCustomerIfMatch(any()); verifyNoInteractions(customers);
     }
     @Test void compareAndSetFailureIsNotReportedAsSaved() {

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -109,7 +110,9 @@ public class OrdinaryProjectMemberService {
                 () -> mutateOnce(command, actor), result -> new PlatformCommandExecutionApi.SuccessFacts(
                         "PROJECT_MEMBER_" + command.action(), "Project", String.valueOf(command.projectId()),
                         actor.correlationId(), JsonUtils.toJsonString(new Audit(command.assignmentId(),
-                        command.member(), command.reason().trim(), result)), null, null));
+                        command.member(), command.reason().trim(), result)), null, null,
+                        result.changed() ? List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                                actor.tenantId(), command.projectId(), actor.userId(), actor.correlationId()).event()) : List.of()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         return execution.response();
