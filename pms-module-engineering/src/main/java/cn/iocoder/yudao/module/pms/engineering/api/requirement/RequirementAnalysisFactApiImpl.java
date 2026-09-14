@@ -59,13 +59,16 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
                 query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
         ProjectOrganizationFact project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
         requireProject(project, query.projectId());
-        ProjectWorkBindingFact binding = requireBinding(workBindingFactApi.inspect(
-                new ProjectWorkBindingFactQuery(query.projectId(), WORK_BINDING_TARGET)), project);
         PreparationDO selected = query.preparationId() == null
                 ? rootMapper.selectEffective(new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()))
                 : rootMapper.selectById(new RequirementAnalysisRowQuery(actor.tenantId(), query.preparationId()));
         if (selected == null && query.preparationId() == null) return null;
         requireCompleted(selected, query.projectId());
+        var origin = originBinding(selected);
+        ProjectWorkBindingFact binding = requireBinding(origin.projectStageId() != null
+                ? workBindingFactApi.inspectStage(new ProjectWorkBindingStageFactQuery(query.projectId(), origin.projectStageId(), WORK_BINDING_TARGET))
+                : workBindingFactApi.inspectTask(new ProjectWorkBindingTaskFactQuery(query.projectId(), origin.projectTaskId(), WORK_BINDING_TARGET)), project);
+        requireOriginNode(selected, binding);
         PreparationDO effective = rootMapper.selectEffective(
                 new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()));
         DynamicFormInstanceFact form = inspectForm(selected, actor);
@@ -90,14 +93,19 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireProject(project, query.projectId());
         requireExpectedQuery(query);
         RequirementAnalysisWorkBindingFact expectedBinding = query.expectedFactVector().workBindingFact();
-        ProjectWorkBindingFact binding = requireBinding(workBindingFactApi.lockAndRevalidate(
-                new ProjectWorkBindingFactRevalidationQuery(query.projectId(), expectedBinding.projectTaskId(),
+        ProjectWorkBindingFact binding = requireBinding(expectedBinding.projectStageId() != null
+                ? workBindingFactApi.lockAndRevalidateStage(new ProjectWorkBindingStageFactRevalidationQuery(
+                        query.projectId(), expectedBinding.projectStageId(), expectedBinding.executionContractId(),
+                        expectedBinding.projectStageVersion(), expectedBinding.executionContractVersion(),
+                        query.expectedProjectVersion(), WORK_BINDING_TARGET))
+                : workBindingFactApi.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(query.projectId(), expectedBinding.projectTaskId(),
                         expectedBinding.executionContractId(), expectedBinding.projectTaskVersion(),
                         expectedBinding.executionContractVersion(), query.expectedProjectVersion(),
                         WORK_BINDING_TARGET)), project);
         PreparationDO selected = rootMapper.selectForUpdate(
                 new RequirementAnalysisRowQuery(actor.tenantId(), query.preparationId()));
         requireCompleted(selected, query.projectId());
+        requireOriginNode(selected, binding);
         requireExpectedRoot(query, selected, project);
         PreparationDO effective = rootMapper.selectEffectiveForUpdate(
                 new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()));
@@ -194,9 +202,10 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
     private ProjectWorkBindingFact requireBinding(ProjectWorkBindingFact binding, ProjectOrganizationFact project) {
         if (binding == null || !Objects.equals(binding.projectId(), project.projectId())
                 || !Objects.equals(binding.projectVersion(), project.projectVersion())
-                || binding.projectTaskId() == null || binding.projectTaskVersion() == null
+                || (binding.projectTaskId() == null) == (binding.projectStageId() == null)
+                || (binding.projectStageId() != null ? binding.projectStageVersion() == null : binding.projectTaskVersion() == null)
                 || binding.executionContractId() == null || binding.contractVersion() == null
-                || binding.projectTemplateId() == null || binding.sourceDefinitionVersion() == null
+                || binding.projectTemplateId() == null
                 || !Objects.equals(binding.workBindingTypeCode(), WORK_BINDING_TARGET.workBindingTypeCode())
                 || !Objects.equals(binding.targetContextCode(), WORK_BINDING_TARGET.targetContextCode())
                 || !Objects.equals(binding.targetObjectType(), WORK_BINDING_TARGET.targetObjectType())
@@ -228,7 +237,25 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
                 binding.sourceDefinitionVersion(), binding.templateRevisionId(), binding.templateRevisionNo(),
                 binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
                 binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion(),
-                binding.workBindingTypeCode(), binding.targetContextCode(), binding.targetObjectType(), binding.targetObjectKey());
+                binding.workBindingTypeCode(), binding.targetContextCode(), binding.targetObjectType(), binding.targetObjectKey(),
+                binding.projectStageId(), binding.projectStageVersion());
+    }
+
+    private ProjectWorkBindingFact originBinding(PreparationDO root) {
+        var frozen = root.getTemplateSnapshot() == null ? null : JsonUtils.parseObject(root.getTemplateSnapshot(),
+                cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionBinding.Frozen.class);
+        var origin = frozen == null ? null : frozen.binding();
+        if (origin == null || !Objects.equals(root.getProjectId(), origin.projectId())
+                || (origin.projectTaskId() == null) == (origin.projectStageId() == null))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        return origin;
+    }
+
+    private void requireOriginNode(PreparationDO root, ProjectWorkBindingFact current) {
+        var origin = originBinding(root);
+        if (!Objects.equals(origin.projectTaskId(), current.projectTaskId())
+                || !Objects.equals(origin.projectStageId(), current.projectStageId()))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
     }
 
     private void requireCompleted(PreparationDO selected, Long projectId) {

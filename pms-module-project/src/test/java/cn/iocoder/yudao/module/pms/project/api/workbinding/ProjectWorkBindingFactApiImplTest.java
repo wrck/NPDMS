@@ -62,7 +62,7 @@ class ProjectWorkBindingFactApiImplTest {
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         api = new ProjectWorkBindingFactApiImpl(projectMapper, factMapper,
-                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionApi.class));
+                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class));
     }
 
     @AfterEach

@@ -45,7 +45,6 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
     private final ProjectMasterMapper projectMapper;
     private final ProjectWorkBindingFactMapper factMapper;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper graph;
-    private final ProjectNodeExecutionApi executions;
 
     @Override
     public ProjectWorkBindingFact inspectStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery query) {
@@ -88,12 +87,19 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProjectWorkBindingFact lockAndRevalidateStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactRevalidationQuery query) {
-        if (query == null) throw exception(PROJECT_TASK_QUERY_INVALID);
+        if (query == null || invalidId(query.projectId()) || invalidId(query.projectStageId()) || !supportedTarget(query.target()))
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        Long tenantId = trustedTenantId();
+        var project = projectMapper.selectByIdForUpdate(query.projectId());
+        if (project == null || !Objects.equals(tenantId, project.getTenantId())) throw exception(PROJECT_TASK_QUERY_INVALID);
+        if (!Objects.equals(project.getVersion(), query.expectedProjectVersion())) throw exception(PROJECT_VERSION_CONFLICT);
+        var stages = graph.selectStagesForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(
+                tenantId, query.projectId())).stream().filter(row -> query.projectStageId().equals(row.getId())).toList();
+        if (stages.size() != 1 || !Objects.equals(stages.getFirst().getTenantId(), tenantId)
+                || !Objects.equals(stages.getFirst().getProjectId(), query.projectId())) throw exception(PROJECT_TASK_QUERY_INVALID);
+        if (!Objects.equals(stages.getFirst().getVersion(), query.expectedProjectStageVersion())) throw exception(PROJECT_TASK_VERSION_CONFLICT);
         var lookup = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery(query.projectId(), query.projectStageId(), query.target());
-        var observed = inspectStage(lookup);
-        requireStageVersions(query, observed);
-        executions.lockAndRevalidateStage(executions.inspectStage(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionQuery(
-                query.projectId(), query.projectStageId(), query.executionContractId())));
+        // Reading a completed stage's frozen binding is not a request to reopen it for business writes.
         var locked = inspectStage(lookup);
         requireStageVersions(query, locked);
         return locked;

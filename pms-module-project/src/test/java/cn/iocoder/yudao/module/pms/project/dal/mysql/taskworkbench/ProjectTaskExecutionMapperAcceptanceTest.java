@@ -45,8 +45,7 @@ class ProjectTaskExecutionMapperAcceptanceTest {
         TenantContextHolder.setTenantId(tenant);
         var projects = mock(ProjectMasterMapper.class); // inspect methods use only their joined read models.
         var binding = new ProjectWorkBindingFactApiImpl(projects, bindings,
-                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class),
-                mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class)).inspect(
+                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class)).inspect(
                 new ProjectWorkBindingFactQuery(project, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
         assertEquals(task, binding.projectTaskId());
         assertEquals(contract, binding.executionContractId());

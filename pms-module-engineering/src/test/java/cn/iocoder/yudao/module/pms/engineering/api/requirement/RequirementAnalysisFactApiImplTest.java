@@ -105,8 +105,8 @@ class RequirementAnalysisFactApiImplTest {
         order.verify(permissionApi).hasAnyPermissions(9L, "pms:requirement-analysis:query");
         order.verify(projectScopeApi).resolveCurrent(any());
         order.verify(organizationFactApi).inspect(any());
-        order.verify(workBindingFactApi).inspect(any());
         order.verify(rootMapper).selectById(any());
+        order.verify(workBindingFactApi).inspectTask(argThat(query -> query.projectTaskId().equals(201L)));
         order.verify(rootMapper).selectEffective(any());
         order.verify(dynamicFormApi).inspectEntityData(any());
     }
@@ -117,7 +117,7 @@ class RequirementAnalysisFactApiImplTest {
         PreparationDO historical = root(501L, 1, null);
         PreparationDO effective = root(502L, 2, 1);
         ProjectWorkBindingFact currentBinding = binding(18L, 2, 3);
-        when(workBindingFactApi.inspect(any())).thenReturn(currentBinding);
+        when(workBindingFactApi.inspectTask(any())).thenReturn(currentBinding);
         when(rootMapper.selectById(any())).thenReturn(historical);
         when(rootMapper.selectEffective(any())).thenReturn(effective);
         when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(historical));
@@ -188,11 +188,81 @@ class RequirementAnalysisFactApiImplTest {
         verify(dynamicFormApi).lockAndRevalidateInstance(any());
     }
 
+    @Test
+    void stageOriginFactUsesExplicitStageAndRevalidatesItsVersionWithoutATask() {
+        when(permissionApi.hasAnyPermissions(9L, "pms:requirement-analysis:query")).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(organizationFactApi.inspect(any())).thenReturn(project());
+        var selected = root(501L, 1, 1);
+        freezeOrigin(selected, stageBinding(4));
+        String frozen = selected.getTemplateSnapshot();
+        when(rootMapper.selectById(any())).thenReturn(selected);
+        when(rootMapper.selectEffective(any())).thenReturn(selected);
+        when(workBindingFactApi.inspectStage(any())).thenReturn(stageBinding(4));
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
+        var inspected = api.inspect(new RequirementAnalysisFactQuery(100L, 501L));
+        assertNull(inspected.workBindingFact().projectTaskId());
+        assertEquals(202L, inspected.workBindingFact().projectStageId());
+        assertEquals(4, inspected.workBindingFact().projectStageVersion());
+        verify(workBindingFactApi).inspectStage(argThat(query -> query.projectStageId().equals(202L)));
+        verify(workBindingFactApi, never()).inspect(any());
+        verify(workBindingFactApi, never()).inspectTask(any());
+
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(organizationFactApi.lockAndRevalidate(any())).thenReturn(project());
+        when(workBindingFactApi.lockAndRevalidateStage(any())).thenReturn(stageBinding(4));
+        when(rootMapper.selectForUpdate(any())).thenReturn(selected);
+        when(rootMapper.selectEffectiveForUpdate(any())).thenReturn(selected);
+        when(dynamicFormApi.lockAndRevalidateInstance(any())).thenReturn(form(selected));
+        var query = new RequirementAnalysisFactRevalidationQuery(100L, 501L, 1, 5, 3, 702L, inspected.factVector());
+        assertEquals(inspected.factVector(), api.lockAndRevalidate(query).factVector());
+        verify(workBindingFactApi).lockAndRevalidateStage(argThat(expected -> expected.projectStageId().equals(202L)
+                && expected.expectedProjectStageVersion() == 4 && expected.executionContractId().equals(301L)));
+        verify(workBindingFactApi, never()).lockAndRevalidate(any());
+        assertEquals(frozen, selected.getTemplateSnapshot());
+
+        when(workBindingFactApi.lockAndRevalidateStage(any())).thenReturn(stageBinding(5));
+        assertThrows(RuntimeException.class, () -> api.lockAndRevalidate(query));
+    }
+
+    @Test
+    void taskOriginNeverUsesAmbiguousProjectWideDefaultBinding() {
+        stubProject();
+        var selected = root(501L, 1, 1);
+        when(rootMapper.selectById(any())).thenReturn(selected);
+        when(rootMapper.selectEffective(any())).thenReturn(selected);
+        when(dynamicFormApi.inspectEntityData(any())).thenReturn(form(selected));
+        assertEquals(201L, api.inspect(new RequirementAnalysisFactQuery(100L, 501L)).workBindingFact().projectTaskId());
+        verify(workBindingFactApi, never()).inspect(any());
+        verify(workBindingFactApi, never()).inspectStage(any());
+    }
+
+    @Test
+    void missingOriginDoesNotFallBackToTheProjectDefault() {
+        when(permissionApi.hasAnyPermissions(9L, "pms:requirement-analysis:query")).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(organizationFactApi.inspect(any())).thenReturn(project());
+        var selected = root(501L, 1, 1); selected.setTemplateSnapshot(null);
+        when(rootMapper.selectById(any())).thenReturn(selected);
+        assertThrows(RuntimeException.class, () -> api.inspect(new RequirementAnalysisFactQuery(100L, 501L)));
+        verifyNoInteractions(workBindingFactApi, dynamicFormApi);
+    }
+
+    @Test
+    void returnedBindingForAnotherNodeCannotProveTheSelectedBusinessRecord() {
+        stubProject();
+        var selected = root(501L, 1, 1);
+        when(rootMapper.selectById(any())).thenReturn(selected);
+        when(workBindingFactApi.inspectTask(any())).thenReturn(stageBinding(4));
+        assertThrows(RuntimeException.class, () -> api.inspect(new RequirementAnalysisFactQuery(100L, 501L)));
+        verifyNoInteractions(dynamicFormApi);
+    }
+
     private void stubProject() {
         when(permissionApi.hasAnyPermissions(9L, "pms:requirement-analysis:query")).thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(organizationFactApi.inspect(any())).thenReturn(project());
-        when(workBindingFactApi.inspect(any())).thenReturn(binding());
+        when(workBindingFactApi.inspectTask(any())).thenReturn(binding());
     }
 
     private ProjectScopeResult scope() {
@@ -232,7 +302,28 @@ class RequirementAnalysisFactApiImplTest {
         row.setEntityValueJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(form(row).ordinaryValues()));
         row.setCompletedBy(9L);
         row.setCompletedAt(LocalDateTime.now());
+        freezeOrigin(row, binding());
         return row;
+    }
+
+    private void freezeOrigin(PreparationDO row, ProjectWorkBindingFact binding) {
+        var task = binding.projectTaskId() == null ? null : new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L, 3, binding.projectTaskId(), binding.projectTaskVersion(), 301L, 5, 702L,
+                801L, 1, 1, 802L, 1, true, LocalDateTime.now());
+        var stage = binding.projectStageId() == null ? null : new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
+                100L, 3, binding.projectStageId(), binding.projectStageVersion(), 301L, 5, 702L, 802L, 1, 1, true);
+        row.setTemplateSnapshot(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(
+                new cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionBinding.Frozen(binding, task, stage)));
+    }
+
+    private ProjectWorkBindingFact stageBinding(int version) {
+        var task = binding();
+        return new ProjectWorkBindingFact(task.projectId(), task.projectVersion(), null, null,
+                task.executionContractId(), task.contractVersion(), task.projectTemplateId(), null,
+                task.workBindingTypeCode(), task.targetContextCode(), task.targetObjectType(), task.targetObjectKey(),
+                null, null, null, null, task.templateRevisionId(), task.templateRevisionNo(), task.bindingParameterSnapshot(),
+                task.dynamicFormTemplateId(), task.dynamicFormTemplateRevisionId(), task.dynamicFormRevisionNo(),
+                task.dynamicFormRevisionFactVersion(), 202L, version);
     }
 
     private DynamicFormInstanceFact form(PreparationDO root) {

@@ -42,8 +42,7 @@ class ProjectWorkBindingTaskLookupMySqlTest {
             }
             var mapper = new SqlSessionTemplate(new SqlSessionFactoryBuilder().build(configuration)).getMapper(ProjectWorkBindingFactMapper.class);
         var api = new ProjectWorkBindingFactApiImpl(mock(ProjectMasterMapper.class),mapper,
-                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class),
-                mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class));
+                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class));
             TenantContextHolder.setTenantId(1L);
             try {
                 assertThrows(ServiceException.class,()->api.inspect(new ProjectWorkBindingFactQuery(9L,ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS)));

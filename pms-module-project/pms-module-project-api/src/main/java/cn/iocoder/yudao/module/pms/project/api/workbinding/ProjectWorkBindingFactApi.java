@@ -18,6 +18,7 @@ public interface ProjectWorkBindingFactApi {
 
     ProjectWorkBindingFact inspectStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactQuery query);
 
+    /** 锁定绑定事实与版本，不授予办理权限；业务写入仍须通过 ProjectNodeExecutionApi/ProjectBusinessExecutionApi。 */
     ProjectWorkBindingFact lockAndRevalidateStage(cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingStageFactRevalidationQuery query);
 
     ProjectSatisfactionTaskFact lockCurrentSatisfactionTask(ProjectSatisfactionTaskIdentityQuery query);
