@@ -629,3 +629,13 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 核对入口：`ProjectTemplateV2ServiceImpl` 的校验与发布独立调用 `TemplateCompiler`、依赖校验和规则发布校验，不调用旧 `TemplatePublishValidator`。本次未改变旧入口固定阶段约束，更未把它们带回 V2；V2 自定义阶段、冻结快照及禁止读取最新定义的相关现有回归一起通过。此项是验证债务修复，不是新增运行能力。
 - 会话 53166 exit 0，四套件 **68 项通过，零失败/错误/跳过**：发布校验 33、执行契约工厂 9、V2 编译器 21、V2/旧运行边界 5。命令：`mvn -q -pl pms-module-project -am test "-Dtest=TemplatePublishValidatorTest,TaskExecutionContractFactoryTest,TemplateCompilerTest,ProjectTemplateV2LegacyRuntimeBoundaryTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`。使用纯 Java/LiteFlow 编译与 Mapper mocks，不启动应用或访问共享数据库。
 - 自审确认仅改测试及记录，无生产行为、接口、SQL、Schema 或权限变更；Git 技能用于限定本地提交，不推送。未重跑无关前端检查或浏览器，不更改此前类型检查内存失败和阶段审批端到端未验收结论。原有七项发布测试失败已解决；相对等待起算语义、完整示例和真实联合验收仍需推进。
+
+## 2026-09-15：补齐原生提交条件与阶段办理绑定的发布校验
+
+- 核对现有绝对时间实现：注册发生于项目初始化、计划生效和返工事务；事件绑定精确计划、节点执行轮次或项目当前轮次集合，到期重新求值，旧计划/旧轮次/关闭项目不推进，未知交由原 Outbox 重试。相关八项定时和四项绝对时间测试通过，本步没有重复改造该机制。
+- 排查发现阶段绑定业务或审批后仍可配置原生手工完成条件；实际阶段完成服务对这种条件返回 `NATIVE_COMPLETION_NOT_APPLICABLE`，导致定义可发布、实际不能满足。任务编译已有部分完成条件约束，但退出条件和按消费节点检查的发布阶段仍存在同类缺口。
+- 在现有 `ProjectRulePublicationValidator.validateNodeBindings` 中按已编译叶子补齐原生条件匹配：完成和退出的 `STAGE_NATIVE_STATUS` / `TASK_NATIVE_STATUS` 必须匹配消费节点类型及其原生绑定；无办理绑定、业务/组件/表单/审批/组合绑定均不能借用原生提交结果。准入不允许依赖本节点尚未发生的手工提交，应显式使用来源节点状态或业务条件。嵌套 NOT 等组合不绕过检查，共享规则逐消费节点诊断，不修改规则来源。
+- 模板校验/发布及项目计划影响预览/生效已调用同一个发布校验器，因此无需增加规则发布中心、独立审批或节点权限。合法原生完成/退出保留；审批阶段可以使用其他附加条件，运行时仍先检查本轮真实审批结果，未增加手工确认。未改状态转换、冻结快照、历史数据或原模块权限。
+- 首轮会话 98351 exit 0，六组 76 项通过；补充审批阶段正向条件后，会话 23153 exit 0，规则发布 17 项通过。复用其他五组未变化证据，合计 **77 项通过，零失败/错误/跳过**：规则发布 17、模板编译 21、阶段完成 14、任务完成 13、绝对时间 4、定时投递 8。真实 LiteFlow fixture 和非关系模式 Flowable DMN 配合 mocks，不加载共享应用配置、不访问共享数据库。新增四项测试覆盖绑定类型、空绑定、嵌套条件、准入自依赖、跨节点共享定位和合法审批附加条件。
+- 命令：`mvn -q -pl pms-module-project -am test "-Dtest=ProjectRulePublicationValidatorTest,TemplateCompilerTest,ProjectStageCompletionServiceTest,ProjectTaskPlanCompletionServiceTest,AbsoluteTimeConditionTest,ProjectRuleTimerTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`；补验仅将测试范围改为 `ProjectRulePublicationValidatorTest`，其余相同。
+- 代码质量技能用于核对现有运行语义及复用检查入口，Git 技能用于限定本地提交；无 SQL/Schema、前端页面或第三方 API 变更。本步未重新部署或切换 59280，未执行新浏览器联合验收，未把此前全量类型检查内存失败改为通过。已询问相对等待是否显式选择本节点激活/来源节点本轮完成时间，尚未收到确认，未先行固化该语义；专项保持进行中。

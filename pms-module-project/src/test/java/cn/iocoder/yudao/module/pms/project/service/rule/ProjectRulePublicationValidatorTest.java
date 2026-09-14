@@ -231,6 +231,76 @@ class ProjectRulePublicationValidatorTest {
         assertTrue(checks.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_BUSINESS_SOURCE_REQUIRED")));
     }
 
+    @Test void nativeCompletionAndExitRequireTheMatchingManualBindingEvenInsideNot() {
+        for (var kind : List.of(DeliveryDefinitionKind.STAGE, DeliveryDefinitionKind.TASK)) {
+            var source = nativeDocument(kind);
+            assertTrue(validator.validate(source).isEmpty());
+            var binding = kind == DeliveryDefinitionKind.STAGE ? source.getStages().getFirst().getWorkBinding()
+                    : source.getTasks().getFirst().getWorkBinding();
+            String path = kind == DeliveryDefinitionKind.STAGE ? "stages[0]" : "tasks[0]";
+            for (String type : List.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE")) {
+                binding.setType(type);
+                var issues = validator.validate(source);
+                for (String slot : List.of("completionRuleKey", "exitRuleKey"))
+                    assertTrue(issues.stream().anyMatch(issue -> issue.field().equals(path + "." + slot + ".rule.rules[0]")
+                            && issue.code().equals("RULE_NATIVE_BINDING_UNAVAILABLE")), () -> type + ": " + issues);
+            }
+            if (kind == DeliveryDefinitionKind.STAGE) source.getStages().getFirst().setWorkBinding(null);
+            else source.getTasks().getFirst().setWorkBinding(null);
+            assertTrue(validator.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_NATIVE_BINDING_UNAVAILABLE")));
+        }
+    }
+
+    @Test void nativeSubmissionCannotGateItsOwnAdmission() {
+        for (var kind : List.of(DeliveryDefinitionKind.STAGE, DeliveryDefinitionKind.TASK)) {
+            var source = nativeDocument(kind);
+            if (kind == DeliveryDefinitionKind.STAGE) source.getStages().getFirst().setAdmissionRuleKey("native");
+            else source.getTasks().getFirst().setAdmissionRuleKey("native");
+            var issues = validator.validate(source);
+            assertEquals(1, issues.size(), () -> issues.toString());
+            assertEquals("RULE_NATIVE_ADMISSION_UNAVAILABLE", issues.getFirst().code());
+            assertTrue(issues.getFirst().field().contains("admissionRuleKey.rule.rules[0]"));
+        }
+    }
+
+    @Test void aSharedNativeRuleIsValidatedPerConsumerWithoutChangingItsDefinition() {
+        var source = nativeDocument(DeliveryDefinitionKind.STAGE);
+        var before = JsonUtils.toJsonString(source.getRules());
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:survey");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("TASK_NATIVE");
+        task.setWorkBinding(binding); task.setCompletionRuleKey("native"); source.setTasks(List.of(task));
+        var issues = validator.validate(source);
+        assertEquals(1, issues.size(), () -> issues.toString());
+        assertEquals("tasks[0].completionRuleKey.rule.rules[0]", issues.getFirst().field());
+        assertEquals("RULE_NATIVE_BINDING_UNAVAILABLE", issues.getFirst().code());
+        assertEquals(before, JsonUtils.toJsonString(source.getRules()));
+    }
+
+    @Test void approvalStageMayUseAdditionalConditionsWithoutAManualSubmissionRule() {
+        var source = nativeDocument(DeliveryDefinitionKind.STAGE);
+        source.getStages().getFirst().getWorkBinding().setType("APPROVAL");
+        source.setRules(List.of(new VersionRule("native", "附加条件", VersionRule.Kind.CONDITION, true,
+                JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"), null)));
+        // The runtime separately requires this round's real approval result before evaluating these conditions.
+        assertTrue(validator.validate(source).isEmpty());
+    }
+
+    private static TemplateDesignerDocument nativeDocument(DeliveryDefinitionKind kind) {
+        String type = kind == DeliveryDefinitionKind.STAGE ? "STAGE_NATIVE" : "TASK_NATIVE";
+        var expression = JsonUtils.parseTree("{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"" + type
+                + "_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}]}");
+        var source = document(new VersionRule("native", "手工提交条件", VersionRule.Kind.CONDITION, true, expression, null));
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType(type);
+        if (kind == DeliveryDefinitionKind.STAGE) {
+            var node = new TemplateDesignerDocument.StageNode(); node.setNodeKey("stage:prep"); node.setWorkBinding(binding);
+            node.setCompletionRuleKey("native"); node.setExitRuleKey("native"); source.setStages(List.of(node));
+        } else {
+            var node = new TemplateDesignerDocument.TaskNode(); node.setNodeKey("task:survey"); node.setWorkBinding(binding);
+            node.setCompletionRuleKey("native"); node.setExitRuleKey("native"); source.setTasks(List.of(node));
+        }
+        return source;
+    }
+
     private static TemplateDesignerDocument boundDocument() {
         var expression = JsonUtils.parseTree("""
                 {"operator":"NOT","rules":[{"operator":"ALL","rules":[

@@ -139,6 +139,18 @@ public class ProjectRulePublicationValidator {
             RuleProgram program = programs.get(keys[i]);
             if (program == null) continue; // Missing/invalid rules are reported by reference and compilation validation.
             for (RuleProgram.Leaf leaf : program.leaves()) {
+                if (Set.of("STAGE_NATIVE_STATUS", "TASK_NATIVE_STATUS").contains(leaf.predicate())) {
+                    String nativeBinding = kind == DeliveryDefinitionKind.STAGE ? "STAGE_NATIVE" : "TASK_NATIVE";
+                    String field = path + "." + slots[i] + "." + leaf.path();
+                    if (i == 0)
+                        issues.add(new Issue(field, "RULE_NATIVE_ADMISSION_UNAVAILABLE",
+                                "准入不能依赖本节点尚未发生的手工提交，请改为来源节点状态或业务条件"));
+                    else if (binding == null || !nativeBinding.equals(binding.getType())
+                            || !(nativeBinding + "_STATUS").equals(leaf.predicate()))
+                        issues.add(new Issue(field, "RULE_NATIVE_BINDING_UNAVAILABLE",
+                                "手工提交条件只适用于同类型节点的原生办理，不能代替业务或审批结果"));
+                    continue;
+                }
                 if (!"BUSINESS_FACT".equals(leaf.predicate())) continue;
                 String source = leaf.parameters().path("sourceNodeKey").asText();
                 if (i == 0 && (source.isBlank() || source.equals(nodeKey)))
