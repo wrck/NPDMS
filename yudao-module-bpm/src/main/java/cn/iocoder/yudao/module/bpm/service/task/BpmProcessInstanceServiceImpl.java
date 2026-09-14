@@ -780,7 +780,8 @@ public class BpmProcessInstanceServiceImpl implements BpmProcessInstanceService 
         });
     }
 
-    private String createProcessInstance0(Long userId, ProcessDefinition definition,
+    // Package access for the PMS frozen-definition adapter; all original BPM checks remain here.
+    String createProcessInstance0(Long userId, ProcessDefinition definition,
                                           Map<String, Object> variables, String businessKey,
                                           Map<String, List<Long>> startUserSelectAssignees) {
         // 1.1 校验流程定义

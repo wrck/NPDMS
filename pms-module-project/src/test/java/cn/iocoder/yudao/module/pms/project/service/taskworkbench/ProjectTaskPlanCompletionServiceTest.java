@@ -30,6 +30,7 @@ class ProjectTaskPlanCompletionServiceTest {
     final ProjectRuntimeGraphMapper graph=mock(ProjectRuntimeGraphMapper.class);
     final ProjectGateReferenceInstanceMapper references=mock(ProjectGateReferenceInstanceMapper.class);
     final ProjectTaskBusinessService business=mock(ProjectTaskBusinessService.class);
+    final ProjectTaskApprovalService approvals=mock(ProjectTaskApprovalService.class);
     final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executionApi = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     final ProjectRuleCompiler compiler=new ProjectRuleCompiler();
     final cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleService gateRules = mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleService.class);
@@ -47,6 +48,7 @@ class ProjectTaskPlanCompletionServiceTest {
         service=new ProjectTaskPlanCompletionService(plans,executions,graph,references,
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),
                 engine.evaluator(),compiler,business, executionApi,gateRules);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvals", approvals);
         project=new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(52L); project.setLifecycleStatus("ACTIVE"); project.setProjectName("private-actual-value");
         task=new ProjectTaskInstanceDO().setId(21L).setProjectId(9L).setTaskCode("T1").setStageCode("A").setName("办理任务");
         stage=new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setStageCode("A").setStatus("ACTIVE");
@@ -60,6 +62,35 @@ class ProjectTaskPlanCompletionServiceTest {
         snapshot=new TemplateExecutionSnapshot(); var node=new TemplateExecutionSnapshot.TaskContract(); node.setNodeKey("task:one");node.setCode("T1");node.setStageCode("A");node.setCompletionRuleKey("done");
         snapshot.setTasks(List.of(node)); rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         when(plans.selectEffective(any())).thenAnswer(call -> { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); return plan; });
+    }
+    @Test void approvalCompletionRequiresThisRoundOwnerResultBeforeAnyTrueOrNotRule() {
+        binding.setWorkBindingTypeCode("APPROVAL");
+        round.setSubmittedAt(null); round.setStartedAt(LocalDateTime.of(2026,9,15,9,0));
+        for (var outcome : cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.values()) {
+            var fact = new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
+                    outcome, "TEST", "approval-1", "definition:1", outcome.name());
+            when(approvals.inspect(7L,9L,21L,binding,31L,round.getStartedAt())).thenReturn(fact);
+            rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}");
+            var result = service.evaluateAutomatically(project,task,binding);
+            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED, result.matched());
+            if (result.matched()) assertEquals(fact, result.evidence().get("approval"));
+            else assertFalse(result.completion().matched());
+        }
+        verifyNoInteractions(business, executionApi);
+    }
+    @Test void approvedTaskStillRequiresConfiguredCompletionExitAndGateRules() {
+        binding.setWorkBindingTypeCode("APPROVAL");
+        when(approvals.inspect(any(),any(),any(),any(),any(),any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Fact(
+                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED,
+                        "APPROVED","approval-1","definition:1",null));
+        rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}");
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit","{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"APPROVAL\",\"parameters\":{\"refCode\":\"missing\"}}]}");
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN,service.evaluateAutomatically(project,task,binding).exit().outcome());
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
     }
     void rule(String key,String expression) { snapshot.getRulePrograms().put(key,compiler.compile(JsonUtils.parseTree(expression))); }
     TaskActionCommand command() { return new TaskActionCommand(21L,1,"complete",null,91L,1,null,null,null,null,"a".repeat(64),"intent","b".repeat(64)); }

@@ -25,6 +25,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskPlanCompletionService {
+    @jakarta.annotation.Resource
+    private ProjectTaskApprovalService approvals;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper graph;
@@ -105,10 +107,21 @@ public class ProjectTaskPlanCompletionService {
                 : snapshot.getRulePrograms().get(node.getExitRuleKey());
         if (completion==null || exit==null) return unknown(reference,"FROZEN_RULE_PROGRAM_REQUIRED");
         boolean nativeWork = "TASK_NATIVE".equals(binding.getWorkBindingTypeCode());
+        boolean approvalWork = "APPROVAL".equals(binding.getWorkBindingTypeCode());
         if (nativeWork && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
-        if (!nativeWork) {
+        if (approvalWork) {
+            var approval = approvals.inspect(tenantId, project.getId(), task.getId(), binding, round.getId(), round.getStartedAt());
+            if (approval.outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.UNKNOWN)
+                return unknown(reference, approval.reason());
+            if (approval.outcome() != cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.Outcome.SATISFIED) {
+                var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
+                        approval.reason(), List.of(), List.of(), List.of());
+                return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));
+            }
+            evidence.put("approval", approval);
+        } else if (!nativeWork) {
             var ownerResult = ownerReader.get();
             var ownerFacts = ownerResult == null ? null : ownerResult.facts();
             if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.links().isEmpty())

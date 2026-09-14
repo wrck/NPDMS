@@ -70,8 +70,11 @@ class TaskNativeBindingHostProviderTest {
         when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
     }
 
-    @Test
-    void shouldExposeOnlyRoleAndPermissionApprovedAction() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"TASK_NATIVE", "APPROVAL"})
+    void shouldExposeOnlyRoleAndPermissionApprovedAction(String type) {
+        contract.setWorkBindingTypeCode(type);
+        contract.setBindingParameterSnapshot("{\"approvalDefinitionKey\":\"approval\",\"processDefinitionId\":\"approval:1\"}");
         allowProjectScope();
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
@@ -156,8 +159,9 @@ class TaskNativeBindingHostProviderTest {
         assertTrue(provider.inspect(query).allowedActions().isEmpty());
     }
 
-    @Test
-    void shouldExposeAssignmentAndProgressOnlyWithinTrustedScope() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"SUBMIT", "COMPLETE"})
+    void shouldExposeAssignmentAndProgressOnlyWithinTrustedScope(String action) {
         task.setStatus("IN_PROGRESS");
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
@@ -171,10 +175,11 @@ class TaskNativeBindingHostProviderTest {
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("IN_PROGRESS");
         transition.setToStatusCode("PENDING_ACCEPT");
-        transition.setActionCode("SUBMIT");
+        transition.setActionCode(action);
         transition.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
         when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(transition));
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        if ("COMPLETE".equals(action)) when(permissionApi.hasAnyPermissions(9L, "pms:project-task:complete")).thenReturn(true);
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(true);
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
@@ -190,6 +195,9 @@ class TaskNativeBindingHostProviderTest {
 
         TaskBindingInspection result = provider.inspect(new TaskBindingInspectionQuery(0L, 11L, 9L, "test"));
 
-        assertEquals(Set.of("SUBMIT", "ASSIGN", "UPDATE_PROGRESS"), result.allowedActions());
+        assertEquals(Set.of(action, "ASSIGN", "UPDATE_PROGRESS"), result.allowedActions());
+        contract.setWorkBindingTypeCode("APPROVAL");
+        contract.setBindingParameterSnapshot("{\"approvalDefinitionKey\":\"approval\",\"processDefinitionId\":\"approval:1\"}");
+        assertEquals(Set.of("ASSIGN"), provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"approval")).allowedActions());
     }
 }

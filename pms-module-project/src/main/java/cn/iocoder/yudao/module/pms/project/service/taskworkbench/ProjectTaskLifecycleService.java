@@ -68,6 +68,9 @@ public class ProjectTaskLifecycleService {
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper nodeExecutions;
 
+    @jakarta.annotation.Resource
+    private ProjectTaskApprovalService taskApprovals;
+
     private static final Set<String> ACTIONS = Set.of("START", "SUBMIT", "COMPLETE", "CANCEL");
     private static final String COMMAND_SCOPE = "POST:/api/v1/pms/project-tasks/{id}/actions/{action}";
 
@@ -157,6 +160,8 @@ public class ProjectTaskLifecycleService {
         requireCurrentSubject(action, task, actor, occurredAt, acceptanceContract);
         if ("START".equals(action) && !stageAdmissionService.taskMayStart(project, task, contract))
             throw exception(PROJECT_TASK_COMMAND_INVALID);
+        if ("CANCEL".equals(action) && "APPROVAL".equals(contract.getWorkBindingTypeCode()))
+            taskApprovals.requireMayCancel(actor.tenantId(), project.getId(), task.getId(), contract);
         CompletionDecision completion = "COMPLETE".equals(action)
                 ? acceptanceContract
                 ? completeAcceptance(command, task, contract, actor, occurredAt)
@@ -171,6 +176,8 @@ public class ProjectTaskLifecycleService {
         }
         var result = applyTransition(project, task, contract, action, transition, completion, actor,
                 occurredAt, command.reason());
+        if ("START".equals(action) && "APPROVAL".equals(contract.getWorkBindingTypeCode()))
+            taskApprovals.start(actor.tenantId(), project.getId(), task.getId(), contract, actor.actorId());
         factsRef.set(ActionFacts.changed(task, contract, completion, occurredAt, transitionSource));
         return result;
     }
@@ -193,6 +200,7 @@ public class ProjectTaskLifecycleService {
             roundEvidence.put("completion", completion.businessEvidence().get("completion"));
             roundEvidence.put("exit", completion.businessEvidence().get("exit"));
             roundEvidence.put("businessFacts", completion.businessEvidence().get("businessFacts"));
+            roundEvidence.put("approval", completion.businessEvidence().get("approval"));
         }
         if ("CANCEL".equals(action)) roundEvidence.put("reason", reason);
         if (nodeExecutions.recordTaskTransition(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.TaskTransition(
@@ -218,7 +226,8 @@ public class ProjectTaskLifecycleService {
             return new AutomaticResult(false, false);
         var contract = requireCurrentContract(task, tenantId);
         boolean nativeWork = TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode());
-        if ((!isBusinessContract(contract) && !nativeWork) || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
+        if ((!isBusinessContract(contract) && !nativeWork && !"APPROVAL".equals(contract.getWorkBindingTypeCode()))
+                || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
         if (nativeWork && !"PENDING_ACCEPT".equals(task.getStatus())) return new AutomaticResult(false, false);
         var evaluated = planCompletion.evaluateAutomatically(project, task, contract);
         var now = LocalDateTime.now();
@@ -265,6 +274,7 @@ public class ProjectTaskLifecycleService {
                 new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
                 || (!TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode())
+                && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
                 && !isAcceptanceContract(contract) && !isBusinessContract(contract))) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }

@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
+import cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.delegate.DelegateExecution;
@@ -63,6 +64,11 @@ public class FlowableProjectRuleEventListener extends AbstractFlowableEngineEven
     }
 
     private void changed(ProcessInstance process) {
+        if (process != null && process.getBusinessKey() != null
+                && process.getBusinessKey().startsWith(ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX)) {
+            taskApprovalChanged(process);
+            return;
+        }
         if (process == null || process.getBusinessKey() == null
                 || !process.getBusinessKey().startsWith("PROJECT_STAGE_GATE:")) return;
         var variables = process.getProcessVariables();
@@ -77,6 +83,29 @@ public class FlowableProjectRuleEventListener extends AbstractFlowableEngineEven
                 || !Objects.equals(process.getProcessDefinitionId(), variables.get(VAR_DEFINITION_ID))
                 || tenantEnabled && !Objects.equals(process.getTenantId(), tenantId.toString()))
             throw new IllegalStateException("GATE_EVENT_IDENTITY_INVALID");
+        append(process, tenantId, projectId, actorId);
+    }
+
+    private void taskApprovalChanged(ProcessInstance process) {
+        var variables = process.getProcessVariables();
+        if (variables == null) throw new IllegalStateException("TASK_APPROVAL_EVENT_IDENTITY_UNAVAILABLE");
+        Long tenantId = number(variables.get(ProjectTaskApprovalApi.VAR_TENANT));
+        Long projectId = number(variables.get(ProjectTaskApprovalApi.VAR_PROJECT));
+        Long executionId = number(variables.get(ProjectTaskApprovalApi.VAR_EXECUTION));
+        Long taskId = number(variables.get(ProjectTaskApprovalApi.VAR_TASK));
+        Long contractId = number(variables.get(ProjectTaskApprovalApi.VAR_CONTRACT));
+        Long actorId = number(variables.get(ProjectTaskApprovalApi.VAR_ACTOR));
+        if (tenantId == null || tenantId < 0 || projectId == null || projectId <= 0
+                || executionId == null || executionId <= 0 || taskId == null || taskId <= 0
+                || contractId == null || contractId <= 0 || actorId == null || actorId <= 0
+                || !Objects.equals(process.getBusinessKey(), ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX + executionId)
+                || !Objects.equals(process.getProcessDefinitionId(), variables.get(ProjectTaskApprovalApi.VAR_DEFINITION))
+                || tenantEnabled && !Objects.equals(process.getTenantId(), tenantId.toString()))
+            throw new IllegalStateException("TASK_APPROVAL_EVENT_IDENTITY_INVALID");
+        append(process, tenantId, projectId, actorId);
+    }
+
+    private void append(ProcessInstance process, Long tenantId, Long projectId, Long actorId) {
         var event = ProjectRuleReevaluationRequested.create(tenantId, projectId, actorId, "bpm:" + process.getId());
         // No business values or approval outcome in the message: the consumer rereads authoritative committed facts.
         TenantUtils.execute(tenantId, () -> outbox.append("Project", projectId.toString(),

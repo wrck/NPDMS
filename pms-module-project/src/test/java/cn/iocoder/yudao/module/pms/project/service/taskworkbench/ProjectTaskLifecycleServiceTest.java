@@ -65,6 +65,7 @@ class ProjectTaskLifecycleServiceTest {
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectTaskPlanCompletionService businessEvaluator;
     @Mock TaskBusinessBindingHostProvider businessProvider;
+    @Mock ProjectTaskApprovalService taskApprovals;
     @Mock cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
 
     private ProjectTaskLifecycleService service;
@@ -77,6 +78,7 @@ class ProjectTaskLifecycleServiceTest {
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
                 permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmissionService", stageAdmission);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "taskApprovals", taskApprovals);
         var nodeExecutions = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.class);
         org.mockito.Mockito.lenient().when(nodeExecutions.recordTaskTransition(any())).thenReturn(1);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "nodeExecutions", nodeExecutions);
@@ -104,6 +106,27 @@ class ProjectTaskLifecycleServiceTest {
         when(stageAdmission.taskMayStart(any(), any(), any())).thenReturn(false);
         assertThrows(RuntimeException.class, () -> service.act(command("start", 3, null, null), actor()));
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test void approvalStartsAfterTheTaskRoundTransitionAndBeforeCommandSuccess() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        var binding = contractMapper.selectCurrentByTaskIdForUpdate(null);
+        binding.setWorkBindingTypeCode("APPROVAL");
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertEquals("IN_PROGRESS", service.act(command("start",3,null,null),actor()).status());
+        var order = org.mockito.Mockito.inOrder(taskMapper,taskApprovals);
+        order.verify(taskMapper).updateLifecycleIfMatch(any());
+        order.verify(taskApprovals).start(0L,100L,11L,binding,9L);
+        assertEquals("PROJECT_TASK_START",successFacts.operationCode());
+    }
+    @Test void runningApprovalCannotBeAbandonedByClosingTheTask() {
+        allowAction("IN_PROGRESS", "CANCEL", "CLOSED");
+        var binding = contractMapper.selectCurrentByTaskIdForUpdate(null);
+        binding.setWorkBindingTypeCode("APPROVAL");
+        org.mockito.Mockito.doThrow(new IllegalStateException("running approval")).when(taskApprovals)
+                .requireMayCancel(0L,100L,11L,binding);
+        assertThrows(IllegalStateException.class, () -> service.act(command("cancel",3,null,null),actor()));
+        verify(taskMapper,never()).updateLifecycleIfMatch(any());
     }
 
     @Test void ownerPermissionDenialPrecedesRuleFactReads() {
@@ -488,7 +511,7 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE"})
+    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "IN_PROGRESS,APPROVAL"})
     @SuppressWarnings("unchecked")
     void submittedOrBusinessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status, String bindingType) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);

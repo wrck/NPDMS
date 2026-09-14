@@ -91,6 +91,42 @@ class FlowableProjectRuleEventListenerTest {
         finally { if (database != null) database.shutdown(); }
     }
 
+    @Test void taskRoundApprovalStartAndCompletionWakeTheSameProjectReevaluationConsumer() {
+        String id = startTaskApproval();
+        assertEquals(1,count());
+        tx.executeWithoutResult(ignored -> {
+            engine.getRuntimeService().setVariable(id,"PROCESS_STATUS",2);
+            engine.getTaskService().complete(engine.getTaskService().createTaskQuery().processInstanceId(id).singleResult().getId());
+        });
+        assertEquals(2,count());
+        var payloads = jdbc.queryForList("SELECT payload FROM rule_events",String.class);
+        assertTrue(payloads.stream().allMatch(payload -> payload.contains("bpm:" + id)));
+        assertTrue(payloads.stream().noneMatch(payload -> payload.contains("private-form-value") || payload.contains("PROCESS_STATUS")));
+    }
+    @Test void taskApprovalOutboxFailureRollsBackEngineStart() {
+        long before = engine.getRuntimeService().createProcessInstanceQuery().count();
+        failAppend.set(true);
+        assertThrows(RuntimeException.class,this::startTaskApproval);
+        assertEquals(before,engine.getRuntimeService().createProcessInstanceQuery().count());
+        assertEquals(0,count());
+    }
+    private String startTaskApproval() {
+        var definition = engine.getRepositoryService().createProcessDefinitionQuery().processDefinitionKey("gate-test").singleResult();
+        var variables = new java.util.HashMap<String,Object>();
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_TENANT,7L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_PROJECT,9L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_TASK,21L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_EXECUTION,referenceId);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_CONTRACT,91L);
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_DEFINITION,definition.getId());
+        variables.put(cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.VAR_ACTOR,1L);
+        variables.put("PROCESS_STATUS",1); variables.put("formText","private-form-value");
+        return tx.execute(ignored -> engine.getRuntimeService().createProcessInstanceBuilder().tenantId("7")
+                .processDefinitionId(definition.getId()).businessKey(
+                        cn.iocoder.yudao.module.pms.project.api.approval.ProjectTaskApprovalApi.BUSINESS_KEY_PREFIX + referenceId)
+                .variables(variables).start().getId());
+    }
+
     @Test void exactDefinitionInspectionDoesNotDriftAfterRedeploymentOrCrossTenantBoundaries() {
         String bpmn = """
                 <?xml version="1.0" encoding="UTF-8"?>

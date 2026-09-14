@@ -62,6 +62,8 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         return BINDING_TYPE;
     }
 
+    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL"); }
+
     @Override
     public TaskBindingInspection inspect(TaskBindingInspectionQuery query) {
         if (query == null || query.tenantId() == null || query.tenantId() < 0
@@ -74,8 +76,16 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         if (task == null || contract == null || !Objects.equals(contract.getTenantId(), query.tenantId())) {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_FACT_UNKNOWN");
         }
-        if (!BINDING_TYPE.equals(contract.getWorkBindingTypeCode()) || hasExternalTarget(contract)) {
+        boolean approval = "APPROVAL".equals(contract.getWorkBindingTypeCode());
+        if (!bindingTypes().contains(contract.getWorkBindingTypeCode()) || hasExternalTarget(contract)) {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_CONTRACT_INVALID");
+        }
+        if (approval) {
+            try {
+                var parameters = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(contract.getBindingParameterSnapshot());
+                cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema.read(
+                        parameters.path("approvalDefinitionKey").asText(null), parameters);
+            } catch (RuntimeException ex) { return TaskBindingInspection.failed("APPROVAL", "BINDING_CONTRACT_INVALID"); }
         }
         ProjectTaskAssignmentDO assignment = assignmentMapper.selectCurrent(
                 new CurrentTaskAssignmentsQuery(query.tenantId(), Set.of(query.taskId())))
@@ -107,7 +117,9 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         }
         String factVersion = task.getVersion() + ":" + contract.getContractVersion() + ":"
                 + (assignment == null ? 0 : assignment.getVersion());
-        return new TaskBindingInspection(BINDING_TYPE, Set.copyOf(allowedActions), factVersion, null);
+        // Approval submission/completion belongs to BPM, never to the native manual-completion buttons.
+        if (approval) allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
+        return new TaskBindingInspection(contract.getWorkBindingTypeCode(), Set.copyOf(allowedActions), factVersion, null);
     }
 
     private Set<String> actorRoles(ProjectTaskInstanceDO task, ProjectTaskAssignmentDO assignment,
