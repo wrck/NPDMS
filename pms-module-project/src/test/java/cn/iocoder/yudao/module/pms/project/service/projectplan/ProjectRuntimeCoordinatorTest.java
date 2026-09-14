@@ -26,7 +26,7 @@ class ProjectRuntimeCoordinatorTest {
             var good = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO().setId(12L).setStatus("ACTIVE");
             when(graph.selectStages(any())).thenReturn(List.of(bad,good));
             doThrow(new IllegalStateException("Owner transaction rolled back")).when(associations).synchronizeStage(9L,11L,"test");
-            when(tasks.completeEligible(9L,"test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0,false));
+            when(tasks.completeEligible(9L,"test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0,0,false));
             when(completion.completeStage(9L,12L,1L,"test")).thenReturn(new ProjectStageCompletionService.Completion(1,false),new ProjectStageCompletionService.Completion(0,false));
             when(closure.closeIfSatisfied(9L,1L,"test")).thenReturn(new ProjectRuleClosureService.Closure(false,false));
             var result = coordinator.reevaluate(9L,1L,"test");
@@ -53,12 +53,13 @@ class ProjectRuntimeCoordinatorTest {
             when(gates.evaluate(9L,"BAD",1L,"test")).thenThrow(new IllegalStateException("gate transaction rolled back"));
             var matched = new RuleEvaluation("plan:51:gate:21",RuleEvaluation.Outcome.MATCHED,null,List.of(),List.of(),List.of());
             when(gates.evaluate(9L,"GOOD",1L,"test")).thenReturn(new ProjectGateRuleService.Result(matched,"GOOD:PASSED:1"));
-            when(tasks.completeEligible(9L,"test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(1,false),new ProjectBusinessTaskCompletionService.Result(0,false));
+            when(tasks.completeEligible(9L,"test")).thenReturn(new ProjectBusinessTaskCompletionService.Result(0,1,false),new ProjectBusinessTaskCompletionService.Result(1,0,false),new ProjectBusinessTaskCompletionService.Result(0,0,false));
             when(closure.closeIfSatisfied(9L,1L,"test")).thenReturn(new ProjectRuleClosureService.Closure(false,false));
             var result = coordinator.reevaluate(9L,1L,"test");
             assertTrue(result.unknown()); assertEquals(1,result.completed());
+            assertEquals(1,result.activated());
             var order = inOrder(gates,tasks);
-            for (int i=0;i<2;i++) {
+            for (int i=0;i<3;i++) {
                 order.verify(gates).evaluate(9L,"BAD",1L,"test");
                 order.verify(gates).evaluate(9L,"GOOD",1L,"test");
                 order.verify(tasks).completeEligible(9L,"test");

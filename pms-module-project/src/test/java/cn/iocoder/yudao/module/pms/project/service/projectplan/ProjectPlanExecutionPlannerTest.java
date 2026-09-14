@@ -74,6 +74,21 @@ class ProjectPlanExecutionPlannerTest {
         rounds.getLast().setStatus("DONE"); tasks.getFirst().setStatus("DONE");
         assertTrue(plan(before).issues().stream().anyMatch(issue -> issue.code().equals("ENDED_EXECUTION_EVIDENCE_MISSING")));
     }
+    @Test void admittedButUnstartedTasksRemainEditableAndCanBeRetiredWithoutRewritingStartedWork() {
+        var round = rounds.getLast(); round.setStatus("ACTIVE"); round.setAdmittedAt(LocalDateTime.now());
+        for (String status : List.of("PENDING_ASSIGN", "PENDING_START")) {
+            tasks.getFirst().setStatus(status);
+            assertTrue(plan(before).issues().isEmpty());
+            assertEquals(ProjectPlanExecutionPlanner.Action.REBASE_CURRENT, change(plan(before), "task:one").action());
+            var removed = ProjectPlanImpactAnalyzerTest.copy(before); removed.setTasks(List.of());
+            assertEquals(ProjectPlanExecutionPlanner.Action.RETIRE_UNSTARTED, change(plan(removed), "task:one").action());
+        }
+        round.setStartedAt(LocalDateTime.now());
+        assertTrue(plan(before).issues().stream().anyMatch(issue -> issue.code().equals("NODE_RUNTIME_PROJECTION_STALE")));
+        tasks.getFirst().setStatus("IN_PROGRESS");
+        var removed = ProjectPlanImpactAnalyzerTest.copy(before); removed.setTasks(List.of());
+        assertTrue(plan(removed).issues().stream().anyMatch(issue -> issue.code().equals("STARTED_NODE_DELETE_FORBIDDEN")));
+    }
     @Test void includesTheNodeEditVersionSoConcurrentMetadataChangesCannotHideBehindAnUnchangedRound() {
         tasks.getFirst().setVersion(6);
         var first = change(plan(before),"task:one");

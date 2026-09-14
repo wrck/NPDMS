@@ -2,11 +2,8 @@ package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
@@ -22,8 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,13 +29,12 @@ public class ProjectRuleTimerDelivery {
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
-    private final ProjectTaskExecutionContractMapper contracts;
+    private final ProjectTaskAdmissionService taskAdmission;
     private final ProjectStageAdmissionService admission;
     private final ProjectStageCompletionService stages;
     private final ProjectTaskLifecycleService tasks;
     private final ProjectRuleClosureService closure;
     private final PlatformBusinessEventApi events;
-    private final OperationAuditApi audit;
 
     /** True acknowledges applied, unsatisfied or obsolete timers; false asks the existing Outbox to retry unknown. */
     @Transactional(rollbackFor = Exception.class)
@@ -89,17 +83,9 @@ public class ProjectRuleTimerDelivery {
             requireRule(timer, snapshot, key);
             if (timer.purpose() == ProjectRuleTimer.Purpose.ADMISSION) {
                 if (!"PENDING".equals(round.getStatus())) return true;
-                var task = projects.selectTaskForAssignmentForUpdate(new TaskAssignmentCommandQuery(tenant, timer.projectId(), round.getNodeInstanceId()));
-                var contract = contracts.selectCurrentByTaskIdForUpdate(new CurrentTaskExecutionContractLockQuery(tenant, round.getNodeInstanceId()));
-                if (task == null || contract == null || !Objects.equals(contract.getId(), round.getContractId())) return false;
-                var admitted = admission.taskAdmissionFact(project, task, contract);
-                if (!admitted.available()) return false;
-                if (!Boolean.TRUE.equals(admitted.value())) return true;
-                if (executions.activateIfPending(new ProjectNodeExecutionMapper.Activation(tenant, timer.projectId(), timer.planVersionId(),
-                        round.getNodeInstanceId(), "TASK", LocalDateTime.now())) != 1) throw new IllegalStateException("TASK_ADMISSION_ROUND_CONFLICT");
-                audit.record(tenant, null, timer.eventId(), "PROJECT_TASK_ADMITTED", "ProjectTask", task.getId().toString(), "SUCCESS",
-                        Map.of("planVersionId", timer.planVersionId(), "executionId", round.getId(), "ruleKey", key));
-                wakeDependents = true;
+                var admitted = taskAdmission.activateEligible(timer.projectId(), round.getNodeInstanceId(), timer.eventId());
+                if (admitted.unknown()) return false;
+                wakeDependents = admitted.activated();
             } else {
                 var result = tasks.completeFromBusinessResult(timer.projectId(), round.getNodeInstanceId(), timer.eventId());
                 if (result.unknown()) return false;

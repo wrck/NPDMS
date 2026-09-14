@@ -32,7 +32,8 @@ class ProjectRuleTimerTest {
     final ProjectRuleClosureService closure = mock(ProjectRuleClosureService.class);
     final PlatformBusinessEventApi events = mock(PlatformBusinessEventApi.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
-    final ProjectRuleTimerDelivery service = new ProjectRuleTimerDelivery(projects, plans, executions, contracts, admission, stages, tasks, closure, events, audit);
+    final ProjectTaskAdmissionService taskAdmission = new ProjectTaskAdmissionService(projects, contracts, executions, admission, audit);
+    final ProjectRuleTimerDelivery service = new ProjectRuleTimerDelivery(projects, plans, executions, taskAdmission, admission, stages, tasks, closure, events);
     final Instant due = Instant.now().minusSeconds(60).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
     ProjectMasterDO project;
     ProjectNodeExecutionDO round;
@@ -141,8 +142,9 @@ class ProjectRuleTimerTest {
         round.setNodeKind("TASK");
         var node = new TemplateExecutionSnapshot.TaskContract(); node.setNodeKey("prep"); node.setAdmissionRuleKey("time");
         snapshot.setTasks(List.of(node)); snapshot.setStages(List.of()); saveSnapshot();
-        var task = new ProjectTaskInstanceDO(); task.setId(11L);
-        var contract = new ProjectTaskExecutionContractDO(); contract.setId(21L);
+        var task = new ProjectTaskInstanceDO(); task.setId(11L); task.setTenantId(7L); task.setProjectId(9L);
+        var contract = new ProjectTaskExecutionContractDO(); contract.setId(21L); contract.setTenantId(7L);
+        contract.setProjectTaskId(11L); contract.setSourceNodeKey("prep");
         when(projects.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
         when(contracts.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
         when(admission.taskAdmissionFact(project,task,contract)).thenReturn(RuleFact.unknown("OWNER_UNAVAILABLE"));

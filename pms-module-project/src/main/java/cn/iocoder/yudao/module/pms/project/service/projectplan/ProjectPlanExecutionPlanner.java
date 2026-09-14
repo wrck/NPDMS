@@ -98,7 +98,9 @@ public class ProjectPlanExecutionPlanner {
         if (matches.size() != 1 || !Objects.equals(node.code(), matches.getFirst().getTaskCode())) return false;
         return switch (round.getStatus()) {
             case "PENDING" -> Set.of("PENDING_ASSIGN", "PENDING_START").contains(matches.getFirst().getStatus());
-            case "ACTIVE" -> Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(matches.getFirst().getStatus());
+            case "ACTIVE" -> Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(matches.getFirst().getStatus())
+                    || (round.getAdmittedAt() != null && round.getStartedAt() == null
+                        && Set.of("PENDING_ASSIGN", "PENDING_START").contains(matches.getFirst().getStatus()));
             case "DONE" -> "DONE".equals(matches.getFirst().getStatus());
             case "TERMINATED" -> "CLOSED".equals(matches.getFirst().getStatus());
             default -> false;

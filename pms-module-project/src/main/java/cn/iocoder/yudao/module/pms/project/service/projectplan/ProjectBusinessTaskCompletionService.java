@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntime
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
+import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectTaskAdmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,15 +16,23 @@ public class ProjectBusinessTaskCompletionService {
     private final ProjectRuntimeGraphMapper graph;
     private final ProjectTaskLifecycleService commands;
     private final ProjectTaskBusinessAssociationService associations;
+    private final ProjectTaskAdmissionService admission;
 
-    public record Result(int completed, boolean unknown) { }
+    public record Result(int activated, int completed, boolean unknown) { }
 
     public Result completeEligible(Long projectId, String correlationId) {
         var tasks = graph.selectTasks(new ProjectRuntimeGraphQuery(TenantContextHolder.getRequiredTenantId(), projectId));
         int completed = 0;
+        int activated = 0;
         boolean unknown = false;
         for (var task : tasks) {
             try {
+                var admitted = admission.activateEligible(projectId, task.getId(), correlationId);
+                if (admitted.activated()) activated++;
+                if (admitted.unknown()) {
+                    unknown = true;
+                    continue;
+                }
                 associations.synchronize(projectId, task.getId(), correlationId);
                 var result = commands.completeFromBusinessResult(projectId, task.getId(), correlationId);
                 if (result.completed()) completed++;
@@ -33,6 +42,6 @@ public class ProjectBusinessTaskCompletionService {
                 unknown = true;
             }
         }
-        return new Result(completed, unknown);
+        return new Result(activated, completed, unknown);
     }
 }

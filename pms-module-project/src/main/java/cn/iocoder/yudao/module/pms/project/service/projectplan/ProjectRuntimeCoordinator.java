@@ -43,6 +43,7 @@ public class ProjectRuntimeCoordinator {
                 }
             }
             taskResults = tasks.completeEligible(projectId, correlationId);
+            activated += taskResults.activated();
             completed += taskResults.completed();
             int stageCompleted = 0;
             boolean stageUnknown = false;
@@ -63,7 +64,7 @@ public class ProjectRuntimeCoordinator {
             finished = new ProjectStageCompletionService.Completion(stageCompleted,stageUnknown);
             completed += finished.completed();
             unknown = gateUnknown || taskResults.unknown() || finished.unknown() || admitted.stream().anyMatch(item -> item.outcome() == RuleEvaluation.Outcome.UNKNOWN);
-        } while (finished.completed() > 0 || taskResults.completed() > 0);
+        } while (finished.completed() > 0 || taskResults.completed() > 0 || taskResults.activated() > 0);
         return new Result(closure.closeIfSatisfied(projectId, actorId, correlationId).unknown() || unknown, activated, completed);
     }
 }

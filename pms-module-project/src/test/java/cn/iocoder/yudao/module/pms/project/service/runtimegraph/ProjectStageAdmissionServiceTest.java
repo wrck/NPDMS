@@ -159,6 +159,34 @@ class ProjectStageAdmissionServiceTest {
         verifyNoInteractions(stages, audit);
     }
 
+    @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
+        add("PREP", null);
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
+                .setId(21L).setProjectId(9L).setTaskCode("SURVEY").setStageCode("PREP").setStatus("PENDING_START");
+        task.setTenantId(7L);
+        var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        contract.setId(201L); contract.setProjectTaskId(21L); contract.setTenantId(7L); contract.setSourceNodeKey("task:survey");
+        var definition = new TemplateExecutionSnapshot.TaskContract(); definition.setNodeKey("task:survey");
+        definition.setCode("SURVEY"); definition.setStageCode("PREP"); definition.setAdmissionRuleKey("time");
+        effective.setTasks(List.of(definition));
+        effective.getRulePrograms().put("time", compiler.compile(JsonUtils.parseTree(
+                "{\"predicate\":\"TIME_REACHED\",\"parameters\":{\"at\":\"2020-01-01T00:00:00Z\"}}")));
+        var round = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        round.setId(301L); round.setNodeKind("TASK"); round.setNodeInstanceId(21L); round.setNodeKey("task:survey");
+        round.setContractId(201L); round.setPlanVersionId(51L); round.setStatus("PENDING");
+        var taskContracts = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper.class);
+        when(taskContracts.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+        when(projects.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
+        var command = new ProjectTaskAdmissionService(projects, taskContracts, executions, service, audit);
+        assertFalse(command.activateEligible(9L, 21L, "time-before-stage").activated());
+        verify(executions, never()).activateIfPending(any());
+        assertTrue(service.activateEligible(9L, null, "stage-reevaluation").getFirst().activated());
+        assertTrue(command.activateEligible(9L, 21L, "ordinary-reevaluation").activated());
+        assertEquals("PENDING_START", task.getStatus()); assertNull(task.getActualStartTime());
+        verify(executions).activateIfPending(argThat(write -> "TASK".equals(write.nodeKind()) && write.nodeInstanceId().equals(21L)));
+    }
+
     private void add(String code, String expression) {
         long id = rows.size() + 1L;
         var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setStageCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);
