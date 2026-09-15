@@ -20,6 +20,8 @@ import type {
 // PM-03 V2: configuration only. A binding edit updates the TaskNode directly; it does not create
 // WORK_BINDING / COMPLETION_RULE / TASK DefinitionRevision records.
 export type EntitySource = 'REFERENCE_EXISTING' | 'READ_ONLY_AGGREGATE'
+/** Ephemeral binding editor input, resolved from this document's version-local rule collection. */
+export type TaskBindingHost = DesignerTaskNode & { completionRule: RuleSpec }
 export type BindingSelection = {
   strategy: EntitySource
   requirementFormRevisionId?: BusinessViewId
@@ -46,7 +48,7 @@ interface BindingIntent {
 export const createBindingSaveSession = () => new Map<string, BindingIntent>()
 export type BindingSaveSession = ReturnType<typeof createBindingSaveSession>
 
-export const loadTaskContract = async (task: DesignerTaskNode): Promise<TaskContract> => ({
+export const loadTaskContract = async (task: TaskBindingHost): Promise<TaskContract> => ({
   binding: task.workBinding,
   permission: task.permission,
   completion: task.completionRule
@@ -121,11 +123,11 @@ const viewSnapshot = (view: BusinessViewRegistrationVO): JsonObject =>
  * No template definition asset is created or published here.
  */
 export const prepareTaskBinding = async (
-  task: DesignerTaskNode,
+  task: TaskBindingHost,
   selection: BindingSelection,
   session: BindingSaveSession,
   authoringScope: 'TEMPLATE' | 'PROJECT_PLAN' = 'TEMPLATE'
-): Promise<DesignerTaskNode> => {
+): Promise<TaskBindingHost> => {
   if (authoringScope === 'PROJECT_PLAN' && !('view' in selection))
     throw new Error('项目计划草稿只能引用现有已发布办理页面或表单，不会登记或发布全局业务视图。')
   if (!['REFERENCE_EXISTING', 'READ_ONLY_AGGREGATE'].includes(selection.strategy))

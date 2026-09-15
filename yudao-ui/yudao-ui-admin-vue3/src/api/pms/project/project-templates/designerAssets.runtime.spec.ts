@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { stageFromDefinition } from './designerAssets'
 import type { DefinitionKind, DefinitionRevision } from './definitions'
+import type { JsonObject } from './index'
 
 const get = vi.hoisted(() => vi.fn())
 vi.mock('@/config/axios', () => ({ default: { get } }))
@@ -75,10 +76,14 @@ it.each(['S1', 'PREP_WORK', 'Discovery.v2', 'Phase:Delivery'])(
   ])
   expect(new Set(reopened.map((node: { nodeKey: string }) => node.nodeKey)).size).toBe(2)
   expect(first.source).toEqual(second.source)
-  first.permission.policySnapshot!.roles.push('OTHER_ROLE')
-  first.completionRule!.expression.parameters.requiredStatus = 'CHANGED'
+  const roles = first.permission.policySnapshot!.roles
+  expect(Array.isArray(roles)).toBe(true)
+  ;(roles as string[]).push('OTHER_ROLE')
+  const firstParameters = first.completionRule!.expression.parameters as JsonObject
+  expect(firstParameters).toEqual({ requiredStatus: 'DONE' })
+  firstParameters.requiredStatus = 'CHANGED'
   expect(second.permission.policySnapshot!.roles).toEqual(['PROJECT_MANAGER'])
-  expect(second.completionRule!.expression.parameters.requiredStatus).toBe('DONE')
+  expect(second.completionRule!.expression.parameters).toEqual({ requiredStatus: 'DONE' })
   expect(JSON.stringify(asset)).toBe(originalAsset)
 })
 

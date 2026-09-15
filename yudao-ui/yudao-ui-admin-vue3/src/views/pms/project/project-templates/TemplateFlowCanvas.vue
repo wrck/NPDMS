@@ -94,7 +94,9 @@ const arrange = () => {
   if (props.readonly || !flow || !props.nodes.length) return
   synchronizing = true
   try {
-    flow.extension.dagre.layout({ rankdir: 'TB', nodesep: 80, ranksep: 100, isDefaultAnchor: true })
+    // Registered below as Dagre; use the plugin's own type, not the generic extension union.
+    const dagre = flow.extension.dagre as Dagre
+    dagre.layout({ rankdir: 'TB', nodesep: 80, ranksep: 100, isDefaultAnchor: true })
     for (const node of flow.getGraphRawData().nodes) emit('move', node.id, { x: node.x, y: node.y })
     failure.value = ''
     flow.fitView()

@@ -300,7 +300,8 @@ import type { DefinitionRevision } from '@/api/pms/project/project-templates/def
 import {
   createBindingSaveSession,
   prepareTaskBinding,
-  type BindingSelection
+  type BindingSelection,
+  type TaskBindingHost
 } from '@/api/pms/project/project-templates/directBinding'
 import {
   stageFromDefinition,
@@ -435,7 +436,7 @@ const expressionFor = (
 const hostFor = (
   document: TemplateDesignerDocument,
   node: DesignerStageNode | DesignerTaskNode
-): DesignerTaskNode => ({
+): TaskBindingHost => ({
   ...node,
   stageCode: 'stageCode' in node ? node.stageCode : node.code,
   workBinding: node.workBinding ?? {

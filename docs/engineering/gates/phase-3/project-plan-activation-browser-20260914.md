@@ -647,3 +647,12 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 组件及模型回归共 **22 项通过**，覆盖 RulePredicateEditor、ruleNativeOptions、ruleTreeModel、taskManualHandling 和 taskApprovalBinding。新增模型测试首次因导入接口模块触发浏览器存储依赖失败，隔离 axios 后两项通过；其余未变化的 20 项证据复用。提交前五个改动源码／测试文件 ESLint exit 0，无诊断。
 - 全量类型检查会话 33663 的完整终态输出未能取得，不声明通过。真实浏览器访问 19081 返回 ERR_CONNECTION_REFUSED，端口检查未发现 19081、59280 监听；未启动、停止或切换共享后台，本增量没有真实浏览器联合验收结论。
 - 按用户“全部提交”提交全部待提交源码、测试及本记录；两个本地运行 PID 文件不纳入版本，不推送。相对等待的起算语义仍待确认，专项未完成。
+
+## 2026-09-15：收回类型检查结果并修复模板设计侧阻断
+
+- 重新执行完整 `pnpm ts:check`，会话 17831 exit 2，取得完整 28 条诊断，而非继续把类型检查终态记为未知。其中两条来自上次新增的原生条件测试夹具；其余包含版本模型、测试替身与布局插件声明问题。
+- 核对 `TemplateRuleCollection.forEditing/forCompilation` 及前端 `captureInlineRules/hostFor`：设计节点通过本版本 `completionRuleKey` 引用规则，不要求同时保存内联快照；办理配置输入则已经解析该规则。前端类型据此把设计节点内联规则标为可选，并让现有绑定配置入口显式使用 `TaskBindingHost`（必含已解析快照）。这只是现有接口语义的准确表达，不新增规则来源、兼容层、服务或运行时默认规则。项目计划接口的无草稿状态按现有服务返回值声明为可空。
+- 修正资产复制测试的 JSON 类型收窄，保留嵌套独立修改和历史来源不变断言；原生条件夹具去掉无效空规则快照。手工切换与计划生效测试使用明确的确认 Promise 替身，保留取消、导航后迟到确认、未知结果幂等重试等断言。已核对 Element Plus 2.13.7 本地 `messageBox.mjs` 与[官方 Confirm 文档](https://element-plus.org/en-US/component/message-box.html#confirm)：无输入确认返回动作，输入框才返回输入数据；未改上游声明或生产确认流程。
+- 画布继续调用已注册的 Dagre 实例，使用插件自身类型；安装缺失的 `@types/dagre:0.7.54` 开发期声明（MIT、无运行时入口），不手写布局参数类型。已核对本地 `@logicflow/layout:2.1.5` README 与声明；锁文件仅新增该类型包，无其他依赖升级，安装禁用生命周期脚本。安装报告的三个既有 peer 不匹配未在本步扩大处理。
+- 最终会话 24895：八套件 **41 项通过**，覆盖资产复制、直接绑定、原生条件选项、手工切换、计划编辑、真实 Dagre 算法布局、画布模型及审批绑定；测试使用 mocks 和本地渲染器，不访问共享数据库。随后全量类型检查取得完整结果，仍 exit 2，但诊断由 28 条降至 **11 条**，本步修改文件及其模板绑定直接消费者无诊断。剩余为 BusinessView.runtime.spec.ts（7）、PmsFileExecution.runtime.spec.ts（1）、CustomerFormDrawer.vue（1）、客户联系人页面（1）及 ProjectCustomerOverview.vue（1），不声明全量通过。
+- 针对十一处改动 TS/Vue 文件的 ESLint exit 0，零错误；五条警告均在 TaskBindingEditor/TemplateContentEditor 未改动的模板格式位置，未顺手改格式。自审按 API/前端与代码质量技能明确了设计模型和临时执行输入边界；无业务行为、授权、状态转换、SQL 或 Schema 变更。本步未启动应用、切换 59280 或重跑真实浏览器，既有完整场景验收缺口仍保留。按持续目标完成此步后本地提交，不推送。

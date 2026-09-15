@@ -10,7 +10,7 @@ export interface PlanDefinition {
 }
 export interface ProjectPlanState {
   effective: PlanDefinition
-  draft?: PlanDefinition
+  draft?: PlanDefinition | null
   editable: boolean
   projectVersion: number
 }

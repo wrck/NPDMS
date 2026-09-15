@@ -62,7 +62,8 @@ export interface DesignerStageNode {
   exitCriteria?: string
   workBinding: WorkBindingSpec
   permission: PermissionRequirement
-  completionRule: RuleSpec
+  // Version-local completionRuleKey can supply the rule without an inline snapshot.
+  completionRule?: RuleSpec
   source?: TemplateSourcePin
 }
 
@@ -82,7 +83,7 @@ export interface DesignerTaskNode {
   description?: string
   workBinding: WorkBindingSpec
   permission: PermissionRequirement
-  completionRule: RuleSpec
+  completionRule?: RuleSpec
   gateRef?: string
   source?: TemplateSourcePin
 }

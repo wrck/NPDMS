@@ -99,17 +99,18 @@ import type { BusinessViewComponentVO, BusinessViewId, BusinessViewRegistrationV
 import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import { getTemplateSelection, type DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
 import * as TemplateApi from '@/api/pms/project/project-templates'
-import type { CompletionFactCatalogVO, DesignerTaskNode } from '@/api/pms/project/project-templates'
+import type { CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import {
   bindingContextMapping,
   containsNativeCompletion,
   type BindingSelection,
+  type TaskBindingHost,
   type EntitySource
 } from '@/api/pms/project/project-templates/directBinding'
 import { errorText } from './editorModel'
 import { needsRequirementSource, savedRequirementSource } from '@/api/pms/project/project-templates/requirementBinding'
 
-const props = defineProps<{ task: DesignerTaskNode; modelValue?: BindingSelection; readonly?: boolean;
+const props = defineProps<{ task: TaskBindingHost; modelValue?: BindingSelection; readonly?: boolean;
   bindingPermission?: 'pms:project-template:update' | 'pms:project-plan:manage' }>()
 const emit = defineEmits<{ 'update:modelValue': [value: BindingSelection | undefined] }>()
 const canRegister = computed(() => props.bindingPermission !== 'pms:project-plan:manage' && hasPermission(['pms:business-view:manage']))

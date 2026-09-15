@@ -10,7 +10,9 @@ import {
   type TestNode
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('element-plus', () => ({ ElMessageBox: { confirm: vi.fn() } }))
+// https://element-plus.org/en-US/component/message-box.html#confirm
+const confirmMessage = vi.hoisted(() => vi.fn<() => Promise<'confirm'>>())
+vi.mock('element-plus', () => ({ ElMessageBox: { confirm: confirmMessage } }))
 vi.mock('../../project-templates/TemplateContentEditor.vue', async () => {
   const { defineComponent, h } = await import('vue')
   return {
@@ -258,7 +260,7 @@ it('reuses the apply intent key after an unknown network result and refreshes on
       draft: null
     })
   vi.mocked(api.previewProjectPlanDraft).mockResolvedValue(impact)
-  vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm')
+  confirmMessage.mockResolvedValue('confirm')
   vi.mocked(api.applyProjectPlanDraft)
     .mockRejectedValueOnce(new Error('网络结果未知'))
     .mockResolvedValue({
@@ -294,7 +296,7 @@ it('does not apply a prior project after navigation while confirmation is open',
   vi.mocked(api.getProjectPlan).mockResolvedValue(planState())
   vi.mocked(api.previewProjectPlanDraft).mockResolvedValue(planImpact())
   let confirm!: (value: 'confirm') => void
-  vi.mocked(ElMessageBox.confirm).mockReturnValue(
+  confirmMessage.mockReturnValue(
     new Promise((resolve) => {
       confirm = resolve
     })

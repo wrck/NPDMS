@@ -6,7 +6,7 @@ import {
   createBindingSaveSession,
   prepareTaskBinding
 } from './directBinding'
-import type { DesignerTaskNode } from './index'
+import type { TaskBindingHost } from './directBinding'
 
 vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/api/pms/platform/business-view', () => ({
@@ -35,7 +35,7 @@ const view: Views.BusinessViewRegistrationVO = {
   permissionProviderKey: 'P'
 }
 
-const task = (): DesignerTaskNode => ({
+const task = (): TaskBindingHost => ({
   nodeKey: 'task:T1',
   code: 'T1',
   name: '需求分析',

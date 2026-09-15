@@ -4,9 +4,9 @@ import { nativeOptions } from './ruleNativeOptions'
 vi.mock('@/config/axios', () => ({ default: {} }))
 
 const stage = (): DesignerStageNode => ({ nodeKey: 'prep', code: 'PREP', name: '工前准备', start: true,
-  terminal: true, workBinding: { type: 'STAGE_NATIVE', parameters: {} }, permission: {}, completionRule: {}, completionRuleKey: 'ready' })
+  terminal: true, workBinding: { type: 'STAGE_NATIVE', parameters: {} }, permission: {}, completionRuleKey: 'ready' })
 const task = (): DesignerTaskNode => ({ nodeKey: 'survey', code: 'SURVEY', name: '现场工勘', stageCode: 'PREP',
-  workBinding: { type: 'TASK_NATIVE', parameters: {} }, permission: {}, completionRule: {}, exitRuleKey: 'ready' })
+  workBinding: { type: 'TASK_NATIVE', parameters: {} }, permission: {}, exitRuleKey: 'ready' })
 
 it('offers only the matching manual predicate and follows binding changes without changing rules', () => {
   const document = emptyDesignerDocument(); document.stages.push(stage())

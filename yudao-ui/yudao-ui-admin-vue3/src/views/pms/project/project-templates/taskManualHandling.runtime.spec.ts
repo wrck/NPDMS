@@ -1,6 +1,5 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { ElMessageBox } from 'element-plus'
 import TemplateContentEditor from './TemplateContentEditor.vue'
 import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import { prepareTaskBinding } from '@/api/pms/project/project-templates/directBinding'
@@ -11,7 +10,10 @@ import {
   type TestNode
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('element-plus', () => ({ ElMessageBox: { confirm: vi.fn() } }))
+// Confirm resolves the action string; prompt alone returns input data.
+// https://element-plus.org/en-US/component/message-box.html#confirm
+const confirmMessage = vi.hoisted(() => vi.fn<() => Promise<'confirm'>>())
+vi.mock('element-plus', () => ({ ElMessageBox: { confirm: confirmMessage } }))
 vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: () => true }))
 vi.mock('./ApprovalDefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/project/project-templates/directBinding', () => ({
@@ -58,7 +60,8 @@ const fixture = (): TemplateDesignerDocument => ({
   match: {},
   ruleAssets: [],
   stages: [
-    { nodeKey: 'stage:S', code: 'S', name: '工前准备', sortOrder: 0, start: true, terminal: true }
+    { nodeKey: 'stage:S', code: 'S', name: '工前准备', sortOrder: 0, start: true, terminal: true,
+      workBinding: { type: 'STAGE_NATIVE', parameters: {} }, permission: {} }
   ],
   tasks: ['A', 'B'].map((code) => ({
     nodeKey: `task:${code}`,
@@ -137,7 +140,7 @@ it('saves an independent manual completion rule without rewriting shared rules o
     await page.click('task:A')
     const shared = JSON.stringify(page.state.content.rules)
     const other = JSON.stringify(page.state.content.tasks[1])
-    vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm')
+    confirmMessage.mockResolvedValue('confirm')
     await page.click('切换为手工办理')
     const saved = await page.editor.value!.prepareSave()
     const task = saved.tasks[0]
@@ -170,11 +173,11 @@ it('cancels without mutation and clears an unsaved business selection only after
     await page.click('配置业务页面／表单／审批')
     await page.click('选择业务页面')
     const before = JSON.stringify(page.state.content)
-    vi.mocked(ElMessageBox.confirm).mockRejectedValueOnce('cancel')
+    confirmMessage.mockRejectedValueOnce('cancel')
     await page.click('切换为手工办理')
     expect(JSON.stringify(page.state.content)).toBe(before)
     expect(page.editor.value!.hasPendingBindings()).toBe(true)
-    vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm')
+    confirmMessage.mockResolvedValue('confirm')
     await page.click('切换为手工办理')
     expect(page.editor.value!.hasPendingBindings()).toBe(false)
     await page.editor.value!.prepareSave()
@@ -192,7 +195,7 @@ it.each(['document', 'selection', 'readonly'] as const)(
       await page.click('task:A')
       const original = page.state.content
       let confirm!: (value: 'confirm') => void
-      vi.mocked(ElMessageBox.confirm).mockReturnValue(
+      confirmMessage.mockReturnValue(
         new Promise((resolve) => {
           confirm = resolve
         })
