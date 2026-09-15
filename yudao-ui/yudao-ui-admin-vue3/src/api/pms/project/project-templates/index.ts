@@ -1,6 +1,6 @@
 import request from '@/config/axios'
 import type { ValidationResult } from './definitions'
-import type { VersionRule } from './rules'
+import type { RuleResult, VersionRule } from './rules'
 
 export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
 export interface JsonObject { [key: string]: JsonValue | undefined }
@@ -339,11 +339,19 @@ export interface MatchCandidateVO extends MatchPreviewReqVO {
   code: string
   name: string
   matchPriority?: number
+  ruleName?: string
+}
+export interface TemplateMatchEvaluation {
+  templateId: number | string
+  templateRevisionId: number | string
+  ruleName: string
+  result: Extract<RuleResult, { kind: 'CONDITION' }>
 }
 export interface MatchRespVO {
   outcome: 'MATCHED' | 'NO_MATCH' | 'MULTI_MATCH'
   matched?: MatchCandidateVO
   conflicts: string[]
+  evaluations?: TemplateMatchEvaluation[]
 }
 export interface CompletionFactCatalogVO {
   ownerContext: string

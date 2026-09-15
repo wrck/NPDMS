@@ -166,7 +166,7 @@ public class ProjectTemplateController {
     }
 
     @PostMapping("/actions/match-preview")
-    @Operation(summary = "四维匹配预演")
+    @Operation(summary = "已发布模板适用条件匹配预演")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<ProjectTemplateMatchRespVO> matchPreview(@Valid @RequestBody ProjectTemplateMatchPreviewReqVO reqVO) {
         TemplateMatchResult result = projectTemplateService.matchPreview(reqVO.getSigningMethod(), reqVO.getProjectCategory(),
@@ -175,6 +175,7 @@ public class ProjectTemplateController {
         respVO.setOutcome(result.getOutcome() == null ? null : result.getOutcome().name());
         respVO.setMatched(result.getMatched());
         respVO.setConflicts(result.getConflicts());
+        respVO.setEvaluations(result.getEvaluations());
         return success(respVO);
     }
 

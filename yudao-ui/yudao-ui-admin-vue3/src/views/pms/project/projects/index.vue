@@ -448,6 +448,7 @@
           <template #title>无匹配生效模板，创建阻断（PROJECT_TEMPLATE_NO_MATCH）</template>
           <div v-for="c in matchResult?.conflicts" :key="c" class="text-12px">{{ c }}</div>
         </el-alert>
+        <TemplateMatchDiagnostics :evaluations="matchResult?.evaluations ?? []" />
         <el-table
           v-if="matchCandidates.length"
           :data="matchCandidates"
@@ -467,13 +468,10 @@
           <el-table-column prop="latestRevisionNo" label="最新发布版" width="100">
             <template #default="{ row }">v{{ row.latestRevisionNo }}</template>
           </el-table-column>
-          <el-table-column label="匹配条件（空=不限）" min-width="220">
+          <el-table-column label="适用条件" min-width="220">
             <template #default="{ row }">
               <span class="text-12px">
-                {{ dimLabel(row.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) }} /
-                {{ dimLabel(row.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) }} /
-                {{ dimLabel(row.implementationMethod, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }} /
-                {{ row.majorProjectLevel || '不限' }}
+                {{ row.ruleName || '未返回规则名称' }}
               </span>
             </template>
           </el-table-column>
@@ -1036,6 +1034,7 @@ import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
+import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
 import { closedProjectStatuses } from './projectStatus'
 
 defineOptions({ name: 'PmsProjects' })

@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 管理后台 - 项目模板四维匹配预演 Response VO（F-PM03 BR-4）
+ * 管理后台 - 项目模板规则匹配预演 Response VO
  * <p>
  * 唯一命中返回模板；无匹配/同优先级多匹配返回冲突清单，不静默选模。
  */
-@Schema(description = "管理后台 - 项目模板四维匹配预演 Response VO")
+@Schema(description = "管理后台 - 项目模板规则匹配预演 Response VO")
 @Data
 public class ProjectTemplateMatchRespVO {
 
@@ -24,4 +24,7 @@ public class ProjectTemplateMatchRespVO {
 
     @Schema(description = "冲突/未命中说明清单（人工处理）")
     private List<String> conflicts = new ArrayList<>();
+
+    @Schema(description = "各已发布版本的规则求值结果，不含业务字段明文")
+    private List<cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult.Evaluation> evaluations = new ArrayList<>();
 }

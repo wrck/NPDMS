@@ -42,8 +42,13 @@ public final class TemplateMatcher {
                 }
             }
         }
+        return selectByPriority(matches);
+    }
+
+    /** Ranking only: eligibility has already been determined by the caller's rule evaluator. */
+    public static TemplateMatchResult selectByPriority(List<TemplateMatchCandidate> matches) {
         if (matches.isEmpty()) {
-            return TemplateMatchResult.noMatch("无匹配的生效模板：请核对四维条件或来源属性映射");
+            return TemplateMatchResult.noMatch("无满足适用条件的生效模板：请核对规则结果及创建事实");
         }
         int minPriority = matches.stream()
                 .map(TemplateMatchCandidate::getMatchPriority)

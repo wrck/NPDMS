@@ -25,6 +25,9 @@ public class ProjectMatchTemplatesRespVO {
     @Schema(description = "冲突/未命中说明清单（人工处理提示）")
     private List<String> conflicts = new ArrayList<>();
 
+    @Schema(description = "各已发布版本的规则求值结果，不含业务字段明文")
+    private List<cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult.Evaluation> evaluations = new ArrayList<>();
+
     @Data
     public static class CandidateItem {
         @Schema(description = "模板ID")
@@ -39,6 +42,8 @@ public class ProjectMatchTemplatesRespVO {
         private Integer latestRevisionNo;
         @Schema(description = "最新已发布版本稳定ID")
         private Long templateRevisionId;
+        @Schema(description = "发布版本的适用条件名称")
+        private String ruleName;
         @Schema(description = "匹配条件：签约方式（null=不限）")
         private String signingMethod;
         @Schema(description = "匹配条件：项目类别（null=不限）")

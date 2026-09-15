@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 四维匹配结果：唯一命中或冲突清单（不静默选模，BR-4）
+ * 模板推荐结果：规则求值决定适用性，优先级决定候选，不静默处理并列。
  */
 @Data
 public class TemplateMatchResult {
@@ -31,6 +31,12 @@ public class TemplateMatchResult {
     private List<String> conflicts = new ArrayList<>();
     /** 候选查询水位；正式创建必须回传并由服务端重算比较 */
     private String candidateWatermark;
+
+    /** Per-version rule diagnostics, without raw field values or expression literals. */
+    private List<Evaluation> evaluations = new ArrayList<>();
+
+    public record Evaluation(Long templateId, Long templateRevisionId, String ruleName,
+                             cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation result) { }
 
     public static TemplateMatchResult matched(TemplateMatchCandidate candidate) {
         TemplateMatchResult result = new TemplateMatchResult();

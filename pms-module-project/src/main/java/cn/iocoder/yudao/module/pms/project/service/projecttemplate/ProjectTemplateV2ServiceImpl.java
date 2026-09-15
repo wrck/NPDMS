@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidat
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
+import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationErrors;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
@@ -73,6 +74,8 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator rulePublicationValidator;
     @Resource
     private DeliveryConfigurationCommands v2ConfigurationCommands;
+    @Resource
+    private ProjectTemplateMatchRuleEvaluator matchRuleEvaluator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -168,14 +171,22 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         List<ProjectTemplateDO> activeTemplates =
                 v2TemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
         List<TemplateMatchCandidate> candidates = new ArrayList<>();
+        List<TemplateMatchResult.Evaluation> evaluations = new ArrayList<>();
+        var facts = java.util.Map.of(
+                "project.signingMethod", creationFact(signingMethod),
+                "project.projectCategory", creationFact(projectCategory),
+                "project.implementationMethod", creationFact(implementationMethod),
+                "project.majorProjectLevel", creationFact(majorProjectLevel));
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
         for (ProjectTemplateDO activeTemplate : activeTemplates) {
             List<ProjectTemplateRevisionDO> published =
                     v2RevisionMapper.selectPublishedListByTemplateId(activeTemplate.getId());
             if (published.isEmpty()) continue;
             ProjectTemplateRevisionDO latest = published.getFirst();
             if (!isV2RuntimeEligible(latest)) continue;
+            TemplateExecutionSnapshot snapshot;
             try {
-                verifiedExecutionSnapshot(latest);
+                snapshot = verifiedExecutionSnapshot(latest);
             } catch (RuntimeException ex) {
                 continue;
             }
@@ -186,17 +197,30 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             candidate.setMatchPriority(activeTemplate.getMatchPriority());
             candidate.setLatestRevisionNo(latest.getRevisionNo());
             candidate.setTemplateRevisionId(latest.getId());
-            candidate.setSigningMethod(latest.getSigningMethod());
-            candidate.setProjectCategory(latest.getProjectCategory());
-            candidate.setImplementationMethod(latest.getImplementationMethod());
-            candidate.setMajorProjectLevel(latest.getMajorProjectLevel());
-            candidates.add(candidate);
+            var evaluation = matchRuleEvaluator.evaluate(tenantId, latest.getId(), snapshot, facts);
+            String ruleName = matchRuleName(snapshot);
+            candidate.setRuleName(ruleName);
+            evaluations.add(new TemplateMatchResult.Evaluation(activeTemplate.getId(), latest.getId(), ruleName, evaluation));
+            if (evaluation.matched()) candidates.add(candidate);
         }
-        TemplateMatchResult result = TemplateMatcher.match(candidates, signingMethod, projectCategory,
-                implementationMethod, majorProjectLevel);
+        TemplateMatchResult result = TemplateMatcher.selectByPriority(candidates);
+        result.setEvaluations(List.copyOf(evaluations));
         result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
                 implementationMethod, majorProjectLevel));
         return result;
+    }
+
+    private RuleFact creationFact(String value) {
+        // The current nullable transport cannot prove whether null was read or never supplied.
+        return value == null ? RuleFact.unknown("MATCH_FIELD_UNAVAILABLE") : RuleFact.known(value);
+    }
+
+    private String matchRuleName(TemplateExecutionSnapshot snapshot) {
+        String key = snapshot.getMatchRuleKey();
+        if (key == null || key.isBlank()) return "不限";
+        if (snapshot.getRules() == null) return key;
+        return snapshot.getRules().stream().filter(rule -> Objects.equals(rule.key(), key))
+                .map(rule -> rule.name() == null ? key : rule.name()).findFirst().orElse(key);
     }
 
     @Override

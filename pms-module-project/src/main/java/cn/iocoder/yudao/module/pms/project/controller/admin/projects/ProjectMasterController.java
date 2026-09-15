@@ -146,7 +146,7 @@ public class ProjectMasterController {
     }
 
     @GetMapping("/actions/match-templates")
-    @Operation(summary = "按三维+级别返回命中生效模板列表（含版本概要，供创建向导选择）")
+    @Operation(summary = "按发布版本适用条件返回推荐模板（含版本概要，供创建向导选择）")
     @PreAuthorize("@ss.hasPermission('pms:project:create')")
     public CommonResult<ProjectMatchTemplatesRespVO> matchTemplates(
             @RequestParam(value = "signingMethod", required = false) String signingMethod,
@@ -159,6 +159,7 @@ public class ProjectMasterController {
         respVO.setOutcome(match.getOutcome().name());
         respVO.setCandidateWatermark(match.getCandidateWatermark());
         respVO.setConflicts(match.getConflicts());
+        respVO.setEvaluations(match.getEvaluations());
         respVO.setCandidates(BeanUtils.toBean(match.getCandidates(), ProjectMatchTemplatesRespVO.CandidateItem.class));
         return success(respVO);
     }

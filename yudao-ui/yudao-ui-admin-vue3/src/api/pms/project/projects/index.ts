@@ -1,5 +1,6 @@
 import request from '@/config/axios'
 import type { TaskApprovalSubmission } from '../task-workbench'
+import type { TemplateMatchEvaluation } from '../project-templates'
 
 /**
  * 新链项目 API（F-PM01 / PM-01，复数路由 /pms/projects）
@@ -168,6 +169,7 @@ export interface TemplateCandidateVO {
   name: string
   matchPriority: number
   latestRevisionNo: number
+  ruleName?: string
   signingMethod: string | null
   projectCategory: string | null
   implementationMethod: string | null
@@ -180,6 +182,7 @@ export interface ProjectMatchTemplatesRespVO {
   candidateWatermark: string
   candidates: TemplateCandidateVO[]
   conflicts: string[]
+  evaluations?: TemplateMatchEvaluation[]
 }
 
 /** 成员区间（当前有效+历史） */

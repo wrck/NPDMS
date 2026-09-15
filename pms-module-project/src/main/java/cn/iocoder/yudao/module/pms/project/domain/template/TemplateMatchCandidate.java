@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.project.domain.template;
 import lombok.Data;
 
 /**
- * 四维匹配候选（生效模板的最新已发布版本条件快照）
+ * 生效模板的最新已发布版本候选。
  */
 @Data
 public class TemplateMatchCandidate {
@@ -20,6 +20,8 @@ public class TemplateMatchCandidate {
     private Integer latestRevisionNo;
     /** 最新已发布版本稳定ID（正式创建按此ID冻结，不在提交时重新选择latest） */
     private Long templateRevisionId;
+    /** 当前发布版本的适用条件名称；V2 不再用四维列表示可执行规则。 */
+    private String ruleName;
     /** 匹配条件：签约方式（null=不限） */
     private String signingMethod;
     /** 匹配条件：项目类别（null=不限） */

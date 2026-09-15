@@ -101,10 +101,11 @@
     </template>
   </Dialog>
 
-  <Dialog v-model="matchVisible" title="四维匹配预演" width="640px">
+  <Dialog v-model="matchVisible" title="模板规则匹配预演" width="640px">
     <el-form label-width="110px"><el-form-item v-for="dimension in dimensions" :key="dimension.key" :label="dimension.label"><el-select v-model="matchForm[dimension.key]" clearable><el-option v-for="option in getStrDictOptions(dimension.dict)" :key="option.value" :value="option.value" :label="option.label" /></el-select></el-form-item><el-button type="primary" :loading="matching" @click="runMatchPreview">执行预演</el-button></el-form>
     <el-alert v-if="failure" :title="failure" type="error" :closable="false" />
     <template v-if="matchResult"><el-result v-if="matchResult.outcome === 'MATCHED' && matchResult.matched" icon="success" :title="`唯一命中：${matchResult.matched.code} - ${matchResult.matched.name}`" :sub-title="`匹配优先级 ${matchResult.matched.matchPriority ?? '-'}`" /><el-result v-else-if="matchResult.outcome === 'NO_MATCH'" icon="warning" title="无匹配模板" /><el-alert v-else title="同优先级多匹配，需人工处理，不静默选模" type="error" :closable="false" /><ul><li v-for="(conflict, index) in matchResult.conflicts" :key="index">{{ conflict }}</li></ul></template>
+    <TemplateMatchDiagnostics :evaluations="matchResult?.evaluations ?? []" />
   </Dialog>
 </template>
 <script setup lang="ts">
@@ -118,6 +119,7 @@ import type { ValidationResult } from '@/api/pms/project/project-templates/defin
 import { isBusinessViewConflict } from '@/api/pms/platform/business-view'
 import DefinitionLibrary from './DefinitionLibrary.vue'
 import TemplateContentEditor from './TemplateContentEditor.vue'
+import TemplateMatchDiagnostics from './TemplateMatchDiagnostics.vue'
 import { cloneContent, commandIntent, emptyContent, errorText } from './editorModel'
 
 defineOptions({ name: 'PmsProjectTemplate' })
