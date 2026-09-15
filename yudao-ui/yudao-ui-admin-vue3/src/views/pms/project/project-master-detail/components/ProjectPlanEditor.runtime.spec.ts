@@ -14,14 +14,20 @@ import {
 const confirmMessage = vi.hoisted(() => vi.fn<() => Promise<'confirm'>>())
 vi.mock('element-plus', () => ({ ElMessageBox: { confirm: confirmMessage } }))
 vi.mock('../../project-templates/TemplateContentEditor.vue', async () => {
-  const { defineComponent, h } = await import('vue')
+  const { defineComponent, h, nextTick } = await import('vue')
   return {
     default: defineComponent({
+      props: { content: Object, readonly: Boolean, busy: Boolean },
       emits: ['dirty-change'],
-      setup:
-        (_, { emit }) =>
-        () =>
-          h('button', { onClick: () => emit('dirty-change', true) }, '修改节点绑定')
+      setup: (props, { emit, expose }) => {
+        expose({ prepareSave: async () => {
+          await nextTick()
+          if (props.readonly) throw new Error('编辑上下文已变化，请重新保存。')
+          expect(props.busy).toBe(true)
+          return props.content
+        } })
+        return () => h('button', { onClick: () => emit('dirty-change', true) }, '修改节点绑定')
+      }
     })
   }
 })
@@ -199,6 +205,22 @@ const openEditor = async () => {
   }
   return { ...page, state, changed, button, click }
 }
+
+it('saves a project draft while the editor is busy but not read-only', async () => {
+  const original = planState()
+  const expectedDraft = structuredClone(original.draft!)
+  vi.mocked(api.getProjectPlan).mockResolvedValue(original)
+  vi.mocked(api.saveProjectPlanDraft).mockResolvedValue({ ...original.draft!, version: 5 })
+  const page = await openEditor()
+  try {
+    await page.click('修改节点绑定')
+    await tick()
+    await page.click('保存计划草稿')
+    expect(api.saveProjectPlanDraft).toHaveBeenCalledWith(9, expectedDraft, expectedDraft.designer, expect.any(String))
+    expect(textOf(page.root)).not.toContain('编辑上下文已变化')
+    expect(api.applyProjectPlanDraft).not.toHaveBeenCalled()
+  } finally { page.app.unmount() }
+})
 
 it('requires a clean successful preview and explicit confirmation before applying', async () => {
   vi.mocked(api.getProjectPlan).mockResolvedValue(planState())

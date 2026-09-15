@@ -1,5 +1,5 @@
 <template>
-  <section class="delivery-designer">
+  <section class="delivery-designer" :inert="busy" :aria-busy="busy">
     <header class="designer-heading"
       ><div
         ><h3>规则驱动的项目交付执行系统</h3
@@ -332,6 +332,8 @@ import DefinitionSelect from './DefinitionSelect.vue'
 const props = defineProps<{
   content: TemplateDesignerDocument
   readonly?: boolean
+  // Suspend interaction without invalidating an in-flight save or remounting the DMN viewer.
+  busy?: boolean
   bindingPermission?: 'pms:project-template:update' | 'pms:project-plan:manage'
 }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean] }>()

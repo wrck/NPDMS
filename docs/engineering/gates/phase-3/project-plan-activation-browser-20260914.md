@@ -799,3 +799,13 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 第二次启动健康为 UP，但实际 Quartz 日志暴露 ProjectChildClosureChanged 不在平台 Outbox 支持集合，导致规则消费者整批领取被拒绝。仅补入已实现的专用事件类型，保持通知消费隔离、租户、批次上限和失败校验。PlatformOutboxDeliveryApiImplTest 9、ProjectRuleOutboxDeliveryJobTest 6、ProjectRuntimeClosureDeliveryTest 8，共 23 项通过（3937 exit 0）；包含完整三类规则事件领取、子关闭未知重试及关闭协调测试。测试为内存替身，不加载应用数据源。
 - 修复后重新打包并仅重启本轮启动的后端。最终日志 .run/rule-match-backend-20260915-154944.out.log：15:50:15 应用启动成功，PID 23964，59280 监听，/actuator/health 返回 HTTP 200、UP。前端 19081 HTTP 200，保留已有进程。复用现有固定隔离 MySQL 23316/npdms_test、Redis 26379；未停止其他后台、未执行迁移或清库，未输出凭据。此结果是服务就绪证据，尚未证明真实子项目关闭事件已消费、状态已推进。
 - 本轮补修局部自审检查了直接消费者、完整装配、办理校验保留与事件类型边界，git diff --check 通过。尚未进行真实浏览器设计／发布／办理／改版／返工联合验收，也未完成其余计划行为的逐项自审。补修保留工作树，未新增提交或推送；.run/*.pid 仅运行状态。
+
+## 2026-09-15：真实浏览器发现并修复设计草稿保存自我失效
+
+- 上一步启动修复已提交 7dfd94a4。只读检查固定隔离库 infra_job_log：规则重评任务 15:50:30、15:51:00、15:51:30、15:52:00、15:52:31 均执行结束且 status=1，领取异常已消除；15:51:00 存在一个待重试事件，不能据此称业务已全部推进。
+- 浏览器复制原工前准备验收模板为独立 RULE_PREP_MATCH_20260915／工前准备规则匹配验收0915，未修改来源模板。配置项目名称等于“工前准备匹配验收0915”后，保存反复提示“编辑上下文已变化，请重新保存”。根因是模板列表与项目计划编辑入口将 saving/busy 合并进 readonly；prepareSave 的异步刷新完成后因自己的保存动作变成只读而拒绝。此前单编辑器测试没有覆盖真实父页面的状态联动。
+- 两个入口现在分别传递 busy 与实际 readonly，编辑区域用 HTML 原生 [inert](https://html.spec.whatwg.org/multipage/interaction.html#the-inert-attribute) 暂停交互并标注 aria-busy；不切换 DMN Modeler/Viewer，不取消草稿替换、权限只读或卸载时的保存保护。没有新增依赖、业务规则、权限门槛或 API。
+- Vitest 三套件 26 项通过：strategyEditing.runtime、ProjectPlanEditor.runtime、DecisionTableEditor.runtime。新增 busy 期间允许刷新和返回独立快照、恢复交互，以及父计划页面保存时保持真实编辑权限的回归。新增用例首次使用错误按钮名称，第二次断言误用了保存后被替换的测试状态；分别修正测试定位和预期快照，未降低生产保护。最终命令 pnpm exec vitest run --config vitest.pms-file.config.ts 加上述三个文件，exit 0。
+- 五个改动 TS/Vue 文件 ESLint 零错误，TemplateContentEditor 原有两条换行警告保留。pnpm ts:check 会话 51381 仍仅 CustomerFormDrawer.vue:248、contacts/index.vue:199、ProjectCustomerOverview.vue:159 三条既有客户模块问题，无新增类型诊断。未改后端，复用此前完整打包与服务就绪证据，不重复运行后端测试。
+- 真实浏览器保存成功，未保存标记消失；关闭后从服务端重开，条件值保留。Compiler 预检通过，用户界面确认发布成功，新模板 ID 993009001598、冻结版本 ID 993009001611。缺少项目名称：该版未知且不进入候选；名称相同：该版进入同优先级三匹配候选；名称不同：该版显示不满足且只保留两个不限模板。截图已在本任务展示，未用接口替身替代这些页面操作。实际预演中项目类型未提供，仍按未知输入省略。
+- 前端、浏览器与代码自审技能用于完成本次状态修复与真实验证。仍待推进：适用条件编辑器目前还展示生命周期状态、项目结束日期及运行节点类条件，后端发布校验会拒绝这些创建时不可用输入，前端应按用途收敛选项；本步未混入该独立调整。项目实际创建、工勘／需求分析办理、改版生效、选择性返工与子项目关闭状态推进的完整联合验收仍未完成。当前仅提交这个保存修复增量，不将专项标记完成。

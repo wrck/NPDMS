@@ -54,7 +54,7 @@
         </el-tab-pane>
         <el-tab-pane label="交付设计" name="draft">
           <el-alert v-if="draftReadonly" title="模板已停用，Designer 只读。需要新供给请显式复制，不修改既有历史。" type="warning" :closable="false" />
-          <TemplateContentEditor ref="contentEditor" :content="draft" :readonly="draftReadonly || saving" @dirty-change="bindingDirty = $event" />
+          <TemplateContentEditor ref="contentEditor" :content="draft" :readonly="draftReadonly" :busy="saving" @dirty-change="bindingDirty = $event" />
           <div class="mt-16px">
             <el-button type="primary" :disabled="draftReadonly" :loading="saving" @click="saveDraft" v-hasPermi="['pms:project-template:update']">保存 Designer 草稿</el-button>
             <el-button :disabled="saving" @click="precheck(detail)" v-hasPermi="['pms:project-template:query']">Compiler 预检</el-button>

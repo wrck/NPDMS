@@ -71,7 +71,8 @@
         <TemplateContentEditor
           ref="editor"
           :content="document"
-          :readonly="busy || !state.editable || !state.draft"
+          :readonly="!state.editable || !state.draft"
+          :busy="busy"
           binding-permission="pms:project-plan:manage"
           @dirty-change="bindingDirty = $event"
         />

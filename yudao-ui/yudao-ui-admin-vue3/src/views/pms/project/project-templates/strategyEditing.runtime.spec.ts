@@ -27,7 +27,7 @@ vi.mock('./DecisionTableEditor.vue', () => ({ default: defineComponent({
 const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
   predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
 const setup = async () => {
-  const state = reactive({ content: emptyDesignerDocument(), readonly: false })
+  const state = reactive({ content: emptyDesignerDocument(), readonly: false, busy: false })
   const editor = ref<InstanceType<typeof Editor>>()
   const page = mount(defineComponent({ setup: () => () => h(Editor, { ...state, ref: editor }) }), {},
     { ...Object.fromEntries(['ElRadioGroup', 'ElRadioButton', 'ElCollapse', 'ElCollapseItem', 'ElTable',
@@ -106,4 +106,25 @@ it.each(['document', 'readonly', 'unmount'] as const)('does not return a save sn
     if (change === 'unmount') page.app.unmount()
     await nextTick(); finish(); await rejected
   } finally { if (change !== 'unmount') page.app.unmount() }
+})
+
+it('suspends interaction while saving without invalidating XML flush or the save snapshot', async () => {
+  const page = await setup()
+  let finish!: () => void
+  dialogs.flush.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve }))
+  try {
+    page.state.busy = true
+    const saving = page.editor.value!.prepareSave()
+    await nextTick()
+    expect(find(page.root, node => node.props?.class === 'delivery-designer')?.props?.inert).toBe(true)
+    expect(page.state.readonly).toBe(false)
+    finish()
+    const snapshot = await saving
+    expect(dialogs.flush).toHaveBeenCalledOnce()
+    expect(snapshot).toEqual(JSON.parse(JSON.stringify(page.state.content)))
+    expect(snapshot).not.toBe(page.state.content)
+    page.state.busy = false
+    await nextTick()
+    expect(find(page.root, node => node.props?.class === 'delivery-designer')?.props?.inert).toBe(false)
+  } finally { page.app.unmount() }
 })
