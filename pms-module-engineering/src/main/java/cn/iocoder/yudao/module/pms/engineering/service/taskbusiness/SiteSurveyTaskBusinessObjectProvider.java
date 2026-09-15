@@ -124,11 +124,11 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     @Override
     public Set<String> inspectContext(TaskBusinessObjectProvider.Context context) {
         requireQuery(context);
-        if (hasScope(context, ProjectScopeApi.ACTION_MANAGE)
-                && permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) {
-            return Set.of("QUERY", "CREATE");
-        }
-        return Set.of("QUERY");
+        Set<String> actions = new LinkedHashSet<>(Set.of("QUERY"));
+        var permissions = writePermissions(context);
+        actions.addAll(permissions);
+        if (permissions.contains("UPDATE")) actions.addAll(Set.of("CONFIRM", "REJECT", "ARCHIVE"));
+        return Set.copyOf(actions);
     }
 
     @Override
@@ -199,6 +199,9 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) {
             permissions.add("UPDATE");
         }
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) {
+            permissions.add("DELETE");
+        }
         return permissions;
     }
 
@@ -214,6 +217,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         Set<String> actions = new LinkedHashSet<>();
         actions.add("QUERY");
         if (permissions.contains("CREATE")) actions.add("CREATE");
+        if (status == 0 && permissions.contains("DELETE") && row.getOutsourceRequestId() == null) actions.add("DELETE");
         if (permissions.contains("UPDATE")) {
             // Relationships do not mutate this entity, including its immutable archived history.
             actions.add("LINK");

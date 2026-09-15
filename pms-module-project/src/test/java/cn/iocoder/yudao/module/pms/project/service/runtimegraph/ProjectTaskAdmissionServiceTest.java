@@ -32,6 +32,8 @@ class ProjectTaskAdmissionServiceTest {
     final ProjectStageAdmissionService rules = mock(ProjectStageAdmissionService.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
     final ProjectRuleTimerScheduler timers = mock(ProjectRuleTimerScheduler.class);
+    final cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService lifecycle =
+            mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
     final ProjectTaskAdmissionService service = new ProjectTaskAdmissionService(projects, contracts, executions, rules, audit);
     final ProjectMasterDO project = new ProjectMasterDO();
     final ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
@@ -40,6 +42,7 @@ class ProjectTaskAdmissionServiceTest {
 
     @BeforeEach void setup() {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", timers);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "lifecycle", lifecycle);
         TenantContextHolder.setTenantId(7L);
         project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L);
         task.setId(11L); task.setTenantId(7L); task.setProjectId(9L); task.setStatus("PENDING_ASSIGN");
@@ -53,7 +56,10 @@ class ProjectTaskAdmissionServiceTest {
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
-    @Test void laterOrdinaryReevaluationAdmitsOnceWithoutStartingOrSubmittingTask() {
+    @Test void laterOrdinaryReevaluationAdmitsAndStartsOnceWithoutSubmittingTask() {
+        when(lifecycle.startAdmittedTask(eq(project), eq(task), eq(contract), anyString())).thenAnswer(call -> {
+            task.setStatus("IN_PROGRESS"); return true;
+        });
         when(rules.taskAdmissionFact(project, task, contract)).thenReturn(RuleFact.known(false), RuleFact.known(true));
         when(executions.activateIfPending(any())).thenAnswer(call -> {
             var write = call.getArgument(0, ProjectNodeExecutionMapper.Activation.class);
@@ -65,8 +71,9 @@ class ProjectTaskAdmissionServiceTest {
         assertFalse(service.activateEligible(9L, 11L, "duplicate-event").activated());
         verify(executions).activateIfPending(any());
         verify(timers).scheduleFromNode(9L, "TASK", 11L);
-        verify(audit).record(eq(7L), isNull(), eq("stage-now-active"), eq("PROJECT_TASK_ADMITTED"), eq("ProjectTask"), eq("11"), eq("SUCCESS"), anyMap());
-        assertEquals("PENDING_ASSIGN", task.getStatus()); assertNull(task.getActualStartTime());
+        verify(audit).record(eq(7L), eq(0L), eq("stage-now-active"), eq("PROJECT_TASK_ADMITTED"), eq("ProjectTask"), eq("11"), eq("SUCCESS"), anyMap());
+        assertEquals("IN_PROGRESS", task.getStatus());
+        verify(lifecycle).startAdmittedTask(project, task, contract, "stage-now-active");
         assertNull(round.getStartedAt()); assertNull(round.getSubmittedAt());
         verify(executions, never()).recordTaskTransition(any());
     }
@@ -76,6 +83,15 @@ class ProjectTaskAdmissionServiceTest {
         assertTrue(service.activateEligible(9L, 11L, "unknown").unknown());
         assertEquals(new ProjectTaskAdmissionService.Result(false, false), service.activateEligible(9L, 11L, "false"));
         verify(executions, never()).activateIfPending(any()); verifyNoInteractions(audit, timers);
+    }
+
+    @Test void previouslyAdmittedTaskCanStartWithoutReadmittingItsRound() {
+        round.setStatus("ACTIVE");
+        when(rules.taskAdmissionFact(project, task, contract)).thenReturn(RuleFact.known(true));
+        when(lifecycle.startAdmittedTask(project, task, contract, "resume")).thenReturn(true);
+        assertTrue(service.activateEligible(9L, 11L, "resume").activated());
+        verify(executions, never()).activateIfPending(any());
+        verify(lifecycle).startAdmittedTask(project, task, contract, "resume");
     }
 
     @Test void stalePlanContractAndForeignTaskCannotBeAdmitted() {
@@ -111,13 +127,17 @@ class ProjectTaskAdmissionServiceTest {
         try {
             var jdbc = new JdbcTemplate(database);
             jdbc.execute("CREATE TABLE admission_write (task_id BIGINT PRIMARY KEY)");
+            // Match the platform audit's NOT NULL actor contract, not a permissive no-op mock.
+            jdbc.execute("CREATE TABLE admission_audit (actor_id BIGINT NOT NULL)");
+            doAnswer(call -> jdbc.update("INSERT INTO admission_audit VALUES (?)", call.getArgument(1, Long.class)))
+                    .when(audit).record(eq(7L), nullable(Long.class), anyString(), anyString(), anyString(), anyString(), anyString(), anyMap());
             when(rules.taskAdmissionFact(project, task, contract)).thenReturn(RuleFact.known(true));
             when(executions.activateIfPending(any())).thenAnswer(call -> jdbc.update("INSERT INTO admission_write VALUES (?)", 11L));
             var manager = new DataSourceTransactionManager(database);
             var factory = new ProxyFactory(service);
             factory.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
             var command = (ProjectTaskAdmissionService) factory.getProxy();
-            doThrow(new IllegalStateException("audit unavailable")).when(audit).record(eq(7L), isNull(), eq("failed-audit"),
+            doThrow(new IllegalStateException("audit unavailable")).when(audit).record(eq(7L), eq(0L), eq("failed-audit"),
                     anyString(), anyString(), anyString(), anyString(), anyMap());
             assertThrows(IllegalStateException.class, () -> command.activateEligible(9L, 11L, "failed-audit"));
             assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM admission_write", Integer.class));
@@ -133,6 +153,7 @@ class ProjectTaskAdmissionServiceTest {
             assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM admission_write", Integer.class));
             assertTrue(command.activateEligible(9L, 11L, "ordinary").activated());
             assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM admission_write", Integer.class));
+            assertEquals(List.of(0L), jdbc.queryForList("SELECT actor_id FROM admission_audit", Long.class));
         } finally { database.shutdown(); }
     }
 }

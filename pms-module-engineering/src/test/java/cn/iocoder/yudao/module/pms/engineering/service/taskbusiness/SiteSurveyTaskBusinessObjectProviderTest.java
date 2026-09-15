@@ -170,6 +170,10 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:create")).thenReturn(true);
         assertEquals(Set.of("QUERY", "CREATE"), provider.inspectContext(context));
+        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:delete")).thenReturn(true);
+        assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "CONFIRM", "REJECT", "ARCHIVE", "DELETE"),
+                provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:query")).thenReturn(false);
         assertThrows(ServiceException.class, () -> provider.inspectContext(context));
         verifyNoInteractions(mapper);

@@ -199,11 +199,14 @@ class ProjectStageAdmissionServiceTest {
         assertEquals("PENDING_START", task.getStatus()); assertNull(task.getActualStartTime());
         verify(executions).activateIfPending(argThat(write -> "TASK".equals(write.nodeKind()) && write.nodeInstanceId().equals(21L)));
     }
+        var lifecycle = mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(command, "lifecycle", lifecycle);
 
     @Test void ordinaryReevaluationRollsBackOnlyFailedStageAndCommitsIndependentBranches() {
         add("FIRST", null); add("FAILED", null); add("LAST", null);
         // Real Spring transactions over an isolated H2 ledger; production MySQL mapper SQL is not exercised.
         var database = new EmbeddedDatabaseBuilder().generateUniqueName(true).setType(EmbeddedDatabaseType.H2).build();
+        verify(lifecycle).startAdmittedTask(any(), eq(task), eq(contract), eq("ordinary-reevaluation"));
         try {
             var jdbc = new JdbcTemplate(database);
             jdbc.execute("CREATE TABLE admission_ledger (id BIGINT PRIMARY KEY, stage_status VARCHAR(20), round_status VARCHAR(20), version INT)");

@@ -115,6 +115,27 @@ afterEach(() => {
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('refreshes task status after automatic completion even when Owner facts are unchanged', async () => {
+    const execution: NonNullable<TaskBusinessContext['execution']> = {
+      projectId: '2099999999999999999', projectVersion: 1, taskId: '11', taskVersion: 4,
+      executionContractId: '21', contractVersion: 3, planVersionId: '61', executionId: '71',
+      executionVersion: 2, roundNo: 1, stageExecutionId: '81', stageExecutionVersion: 1, writable: true
+    }
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { execution }))
+    const page = await setup()
+    expect(page.changed).not.toHaveBeenCalled()
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      execution: { ...execution, taskVersion: 5, writable: false }, executionAllowed: false
+    }))
+    await page.panel.value.refresh()
+    await tick()
+    expect(page.changed).toHaveBeenCalledTimes(1)
+    expect(page.facts).toHaveBeenLastCalledWith('fact-11')
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+    page.state.taskVersion = 5
+    await tick()
+    expect(page.changed).toHaveBeenCalledTimes(1)
+  })
   it('renders the Owner page without a duplicate heading or automatic-association panel', async () => {
     const page = await setup()
     expect(textOf(page.root)).not.toContain('自动关联')
@@ -170,13 +191,13 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(textOf(page.root)).toContain('owner:11/undefined')
     expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY', 'CREATE'])
   })
-  it('preserves named Owner creation commands without granting unselected record writes', async () => {
+  it('preserves authorized draft actions before asynchronous links arrive', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
       links: [], ownerActions: ['QUERY', 'CREATE', 'CREATE_INITIAL_DRAFT', 'CREATE_DRAFT', 'PATCH_FORM', 'COMPLETE']
     }))
     const page = await setup()
     expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([
-      'QUERY', 'CREATE', 'CREATE_INITIAL_DRAFT', 'CREATE_DRAFT'
+      'QUERY', 'CREATE', 'CREATE_INITIAL_DRAFT', 'CREATE_DRAFT', 'PATCH_FORM', 'COMPLETE'
     ])
     page.state.readonly = true
     await tick()
