@@ -268,14 +268,14 @@
                   !readonly && strategyUses.length > 1 && strategyEditableKey !== selectedRule.key
                 "
                 @click="authorizeStrategy"
+                :loading="strategyConfirming"
                 >确认影响并编辑共享策略</el-button
               ><DecisionTableEditor
                 ref="strategyEditor"
                 :key="selectedRule.key"
-                v-model="selectedRule.decision"
-                :readonly="
-                  readonly || (strategyUses.length > 1 && strategyEditableKey !== selectedRule.key)
-                " /><RuleSimulationPanel
+                :model-value="selectedRule.decision"
+                :readonly="strategyReadonly"
+                @update:model-value="updateStrategy" /><RuleSimulationPanel
                 :rule-key="selectedRule.key"
                 :rules="content.rules ?? []" /></template
           ></template> </el-collapse-item
@@ -285,7 +285,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import type {
   DesignerStageNode,
@@ -297,6 +297,7 @@ import type {
   TemplateDesignerDocument
 } from '@/api/pms/project/project-templates'
 import type { DefinitionRevision } from '@/api/pms/project/project-templates/definitions'
+import type { DecisionTableDefinition } from '@/api/pms/project/project-templates/rules'
 import {
   createBindingSaveSession,
   prepareTaskBinding,
@@ -339,6 +340,9 @@ const stageKey = ref<string>()
 const selectedKey = ref<string>()
 const selectedRuleKey = ref<string>()
 const strategyEditableKey = ref<string>()
+const strategyConfirming = ref(false)
+let strategyConfirmationVersion = 0
+let editorActive = true
 const referenceKey = ref<string>()
 const references = reactive(new Set<string>())
 const businessOpen = ref(false)
@@ -455,6 +459,18 @@ const selectedRule = computed(() =>
 const strategyUses = computed(() =>
   selectedRule.value ? ruleUses(props.content, selectedRule.value.key) : []
 )
+const strategyReadonly = computed(() => props.readonly || strategyConfirming.value
+  || (strategyUses.value.length > 1 && strategyEditableKey.value !== selectedRule.value?.key))
+watch(
+  [() => props.content, selectedRule, () => props.readonly, strategyUses],
+  ([document, rule, readonly, uses], [previousDocument, previousRule, previousReadonly, previousUses]) => {
+    if (document === previousDocument && rule === previousRule && readonly === previousReadonly
+      && uses.length === previousUses.length && uses.every((use, index) => use === previousUses[index])) return
+    strategyConfirmationVersion++
+    strategyEditableKey.value = undefined
+  }
+)
+onBeforeUnmount(() => { strategyConfirmationVersion++; editorActive = false })
 watch(
   () => props.content,
   () => {
@@ -744,6 +760,7 @@ const copyAsset = async (definition: DefinitionRevision) => {
   }
 }
 const addStrategy = () => {
+  if (props.readonly || strategyConfirming.value) return
   const key = `rule_${crypto.randomUUID()}`
   ;(props.content.rules ??= []).push({
     key,
@@ -755,19 +772,35 @@ const addStrategy = () => {
   selectedRuleKey.value = key
 }
 const authorizeStrategy = async () => {
-  if (!selectedRule.value) return
+  const rule = selectedRule.value
+  const document = props.content
+  const version = strategyConfirmationVersion
+  if (!rule || props.readonly || strategyConfirming.value) return
+  strategyConfirming.value = true
   try {
     await ElMessageBox.confirm(`修改影响：${strategyUses.value.join('；')}`, '共享策略影响')
-    selectedRule.value.shared = true
-    strategyEditableKey.value = selectedRule.value.key
+    if (version !== strategyConfirmationVersion || document !== props.content || rule !== selectedRule.value || props.readonly) return
+    rule.shared = true
+    strategyEditableKey.value = rule.key
   } catch {
     /* No changes on cancellation. */
+  } finally {
+    strategyConfirming.value = false
   }
 }
+const updateStrategy = (decision: DecisionTableDefinition) => {
+  if (selectedRule.value && !strategyReadonly.value) selectedRule.value.decision = decision
+}
 const prepareSave = async () => {
+  const source = props.content
+  const assertCurrent = () => {
+    if (!editorActive || source !== props.content || props.readonly) throw new Error('编辑上下文已变化，请重新保存。')
+  }
+  assertCurrent()
   await strategyEditor.value?.flush()
-  const document: TemplateDesignerDocument = JSON.parse(JSON.stringify(props.content))
-  for (const [key, selection] of pendingBindings) {
+  assertCurrent()
+  const document: TemplateDesignerDocument = JSON.parse(JSON.stringify(source))
+  for (const [key, selection] of [...pendingBindings]) {
     const node = [...document.stages, ...document.tasks].find((item) => item.nodeKey === key)
     if (!node) continue
     const prepared = await prepareTaskBinding(
@@ -776,6 +809,7 @@ const prepareSave = async () => {
       session,
       props.bindingPermission === 'pms:project-plan:manage' ? 'PROJECT_PLAN' : 'TEMPLATE'
     )
+    assertCurrent()
     node.workBinding = prepared.workBinding
     node.permission = prepared.permission
     node.source = prepared.source

@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 import type DmnManager from 'dmn-js/lib/Modeler'
 import type { DecisionTableDefinition, RuleField } from '@/api/pms/project/project-templates/rules'
 import { getRuleFields } from '@/api/pms/project/project-templates/rules'
@@ -56,7 +56,11 @@ let importing = false
 let lastXml = ''
 let pending: Promise<void> = Promise.resolve()
 let generation = 0
-let editableInstance = false
+let lastEmitted: DecisionTableDefinition | undefined
+const publish = (value: DecisionTableDefinition) => {
+  lastEmitted = value
+  emit('update:modelValue', value)
+}
 const metadata = () => {
   const view = manager?.getViews().find((item) => item.type === 'decisionTable')
   inputs.value = (view?.element.decisionLogic?.input ?? []).map((input) => ({
@@ -72,33 +76,35 @@ const metadata = () => {
   )
   return view
 }
-const flush = async () => {
-  if (!manager || importing) return
-  const instance = manager
-  const source = props.modelValue
+const flush = async (instance = manager, current = generation) => {
+  if (!instance || instance !== manager || current !== generation || importing || props.readonly) return
   const result = await instance.saveXML({ format: true })
-  if (instance !== manager) return
+  if (instance !== manager || current !== generation || props.readonly) return
+  const source = props.modelValue
   const view = metadata()
   lastXml = result.xml
   const inputFields: Record<string, string> = {}
   for (const input of inputs.value)
     inputFields[input.variable] = props.modelValue.inputFields[input.variable] ?? ''
-  emit('update:modelValue', {
+  publish({
     ...source,
     xml: result.xml,
     decisionKey: view?.element.id ?? source.decisionKey,
     inputFields
   })
 }
-const changed = () => {
-  if (importing || props.readonly) return
-  pending = pending.then(flush).catch(() => {
-    failure.value = '决策表内容暂未同步，请重试保存。'
+const changed = (instance: DmnManager, current: number) => {
+  if (importing || props.readonly || instance !== manager || current !== generation) return
+  pending = pending.then(() => flush(instance, current)).catch(() => {
+    if (instance === manager && current === generation)
+      failure.value = '决策表内容暂未同步，请重试保存。'
   })
 }
 const load = async () => {
   if (!container.value) return
   const current = ++generation
+  const source = props.modelValue
+  lastEmitted = undefined
   loading.value = true
   failure.value = ''
   importing = true
@@ -109,17 +115,24 @@ const load = async () => {
       ? await import('dmn-js/lib/NavigatedViewer')
       : await import('dmn-js/lib/Modeler')
     if (current !== generation) return
-    manager = new Manager({ container: container.value })
-    editableInstance = !props.readonly
-    manager.on('viewer.created', ({ viewer }) => viewer.on('commandStack.changed', changed))
-    await manager.importXML(props.modelValue.xml)
+    const instance = new Manager({ container: container.value })
+    manager = instance
+    instance.on('viewer.created', ({ viewer }) => viewer.on('commandStack.changed', () => changed(instance, current)))
+    // dmn-js import/open/save are asynchronous; an older editor must never publish into a new definition.
+    // https://github.com/bpmn-io/dmn-js#usage
+    await instance.importXML(source.xml)
+    if (current !== generation || instance !== manager) return
     const view = metadata()
     if (!view) throw new Error('未找到决策表')
-    await manager.open(view)
-    lastXml = props.modelValue.xml
-    if (!props.readonly && !fields.value.length) fields.value = await getRuleFields()
+    await instance.open(view)
+    if (current !== generation || instance !== manager) return
+    lastXml = source.xml
+    if (!props.readonly && !fields.value.length) {
+      const availableFields = await getRuleFields()
+      if (current === generation) fields.value = availableFields
+    }
   } catch (error) {
-    failure.value = error instanceof Error ? error.message : '决策表加载失败'
+    if (current === generation) failure.value = error instanceof Error ? error.message : '决策表加载失败'
   } finally {
     if (current === generation) {
       importing = false
@@ -127,21 +140,17 @@ const load = async () => {
     }
   }
 }
-const bind = (variable: string, field: string) =>
-  emit('update:modelValue', {
+const bind = (variable: string, field: string) => {
+  if (props.readonly || importing) return
+  publish({
     ...props.modelValue,
     inputFields: { ...props.modelValue.inputFields, [variable]: field }
   })
+}
 watch(
-  () => props.readonly,
-  (value) => {
-    if (!value && !editableInstance) void load()
-  }
-)
-watch(
-  () => props.modelValue.xml,
-  (xml) => {
-    if (xml !== lastXml && !importing) void load()
+  [() => props.modelValue, () => props.modelValue.xml, () => props.readonly],
+  ([value, xml, readonly], [, , previousReadonly]) => {
+    if (toRaw(value) !== lastEmitted || xml !== lastXml || readonly !== previousReadonly) void load()
   }
 )
 onMounted(load)
@@ -152,8 +161,10 @@ onBeforeUnmount(() => {
 })
 defineExpose({
   flush: async () => {
+    const instance = manager
+    const current = generation
     await pending
-    await flush()
+    await flush(instance, current)
   }
 })
 </script>
