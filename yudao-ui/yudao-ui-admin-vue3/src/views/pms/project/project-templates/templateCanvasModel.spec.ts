@@ -23,6 +23,29 @@ const document = (): TemplateDesignerDocument => ({
 })
 
 describe('delivery canvas edits real rule references', () => {
+  it('projects relative waits as dependencies and disconnects only a private copy of shared rules', () => {
+    const model = document()
+    const prep = createDeliveryNode(model, 'STAGE', undefined, 'prep', { x: 0, y: 0 })
+    const source = createDeliveryNode(model, 'TASK', prep.code, 'survey', { x: 0, y: 0 })
+    createDeliveryNode(model, 'STAGE', undefined, 'after', { x: 1, y: 1 })
+    createDeliveryNode(model, 'STAGE', undefined, 'another', { x: 2, y: 2 })
+    model.rules!.push({ key: 'wait', name: '工勘后等待', kind: 'CONDITION', shared: true,
+      expression: { operator: 'ALL', rules: [
+        { predicate: 'WAIT_ELAPSED', parameters: { anchor: 'NODE_COMPLETED', sourceNodeKey: source.nodeKey, duration: 'PT30M' } },
+        { predicate: 'CONSTANT', parameters: { value: false } }
+      ] } })
+    model.stages[1].admissionRuleKey = 'wait'; model.stages[2].admissionRuleKey = 'wait'
+    expect(dependencyEdges(model)).toHaveLength(2)
+    const original = JSON.stringify(model.rules!.find(rule => rule.key === 'wait'))
+    connectNodes(model, source.nodeKey, model.stages[1].nodeKey)
+    expect(model.stages[1].admissionRuleKey).toBe('wait')
+    disconnectNodes(model, `${source.nodeKey}->${model.stages[1].nodeKey}`)
+    expect(dependencyEdges(model)).toEqual([expect.objectContaining({ from: source.nodeKey, to: model.stages[2].nodeKey })])
+    expect(model.stages[1].admissionRuleKey).not.toBe('wait')
+    expect(model.rules!.find(rule => rule.key === model.stages[1].admissionRuleKey)?.expression)
+      .toEqual({ operator: 'ALL', rules: [{ predicate: 'CONSTANT', parameters: { value: false } }] })
+    expect(JSON.stringify(model.rules!.find(rule => rule.key === 'wait'))).toBe(original)
+  })
   it('copies a shared admission before connecting when its consumers have the same name', () => {
     const model = document()
     const source = createDeliveryNode(model, 'STAGE', undefined, '工勘', { x: 0, y: 0 })

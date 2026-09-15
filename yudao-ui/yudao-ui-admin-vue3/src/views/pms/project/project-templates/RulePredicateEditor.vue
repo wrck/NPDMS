@@ -93,6 +93,12 @@
       />
       <span class="condition-hint">按 {{ timeZone }} 显示，到达后满足</span>
     </template>
+    <RelativeTimeConditionEditor
+      v-else-if="predicate === 'WAIT_ELAPSED'"
+      :parameters="parameters"
+      :disabled="disabled"
+      @change="emit('change', 'WAIT_ELAPSED', $event)"
+    />
     <template v-else-if="predicate === 'BUSINESS_FACT'">
       <el-select
         v-if="sources.length || parameters.sourceNodeKey"
@@ -162,6 +168,8 @@ import DecisionTableConditionEditor from './DecisionTableConditionEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
 import { ruleBusinessSourcesKey } from './ruleBusinessSources'
 import { ruleNativeOptionsKey } from './ruleNativeOptions'
+import RelativeTimeConditionEditor from './RelativeTimeConditionEditor.vue'
+import { initialRelativeTime, relativeTimeOptionsKey } from './relativeTimeModel'
 const props = defineProps<{
   predicate: string
   parameters: JsonObject
@@ -172,8 +180,11 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }>()
 const allowedNative = inject(ruleNativeOptionsKey, computed(() => undefined))
-const predicateAllowed = (predicate: string) => !predicate.endsWith('_NATIVE_STATUS')
-  || allowedNative.value === undefined || allowedNative.value.includes(predicate)
+const waitOptions = inject(relativeTimeOptionsKey, computed(() => undefined))
+const predicateAllowed = (predicate: string) => {
+  if (predicate === 'WAIT_ELAPSED') return waitOptions.value?.available ?? true
+  return !predicate.endsWith('_NATIVE_STATUS') || allowedNative.value === undefined || allowedNative.value.includes(predicate)
+}
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 const absoluteTime = computed(() => {
   if (typeof props.parameters.at !== 'string' || !props.parameters.at) return undefined
@@ -204,6 +215,7 @@ const labels = {
   STATE: '阶段完成',
   BUSINESS_FACT: '业务结果',
   TIME_REACHED: '到达时间',
+  WAIT_ELAPSED: '相对等待',
   APPROVAL: '审批结果',
   PROCESS: '流程结果',
   MILESTONE: '里程碑',
@@ -263,6 +275,10 @@ const selectField = (code: string) => {
 }
 const selectPredicate = (value: string) => {
   if (props.disabled || !predicateAllowed(value)) return
+  if (value === 'WAIT_ELAPSED') {
+    emit('change', value, initialRelativeTime(waitOptions.value))
+    return
+  }
   if (value === 'TIME_REACHED') {
     emit('change', value, { at: '' })
     return

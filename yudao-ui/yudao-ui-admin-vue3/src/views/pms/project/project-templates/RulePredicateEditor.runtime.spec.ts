@@ -4,6 +4,7 @@ import type { JsonObject } from '@/api/pms/project/project-templates'
 import RulePredicateEditor from './RulePredicateEditor.vue'
 import { ruleBusinessSourcesKey, type RuleBusinessSource } from './ruleBusinessSources'
 import { ruleNativeOptionsKey } from './ruleNativeOptions'
+import { relativeTimeOptionsKey } from './relativeTimeModel'
 import { decodeTree, encodeTree } from './ruleTreeModel'
 import { mount, passthrough, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
@@ -12,6 +13,23 @@ const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode 
   predicate(node) ? node : node.children.map((child) => find(child, predicate)).find(Boolean)
 
 describe('business fact source editing', () => {
+  it('defaults admission waits to an explicit source and prevents use for template matching', async () => {
+    const state = reactive({ available: true, activation: false, sources: [] })
+    const change = vi.fn()
+    const host = defineComponent({ setup() {
+      provide(relativeTimeOptionsKey, computed(() => state))
+      return () => h(RulePredicateEditor, { predicate: 'CONSTANT', parameters: { value: false }, fields: [], facts: [], onChange: change })
+    } })
+    const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough })
+    const selector = find(view.root, node => node.props?.['aria-label'] === '条件类型')!
+    const select = selector.props!['onUpdate:modelValue'] as (value: string) => void
+    select('WAIT_ELAPSED')
+    expect(change).toHaveBeenCalledWith('WAIT_ELAPSED', { anchor: 'NODE_COMPLETED', sourceNodeKey: '', duration: '' })
+    change.mockClear(); state.available = false; await nextTick()
+    expect(find(view.root, node => node.props?.value === 'WAIT_ELAPSED')?.props?.disabled).toBe(true)
+    select('WAIT_ELAPSED'); expect(change).not.toHaveBeenCalled()
+    view.app.unmount()
+  })
   it('disables incompatible native choices and retains the existing condition when context changes', async () => {
     const state = reactive({ allowed: ['TASK_NATIVE_STATUS'], disabled: false })
     const change = vi.fn()

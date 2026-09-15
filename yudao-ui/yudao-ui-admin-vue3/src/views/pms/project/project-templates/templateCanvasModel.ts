@@ -99,10 +99,13 @@ const childRules = (node: JsonObject): JsonObject[] =>
       )
     : []
 
-function references(expression: JsonObject): { predicate: string; refCode: string }[] {
+function references(expression: JsonObject): { predicate: string; refCode?: string; sourceNodeKey?: string }[] {
   if (expression.operator) return childRules(expression).flatMap(references)
   const parameters = expression.parameters
   if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return []
+  if (expression.predicate === 'WAIT_ELAPSED' && parameters.anchor === 'NODE_COMPLETED'
+    && typeof parameters.sourceNodeKey === 'string')
+    return [{ predicate: 'WAIT_ELAPSED', sourceNodeKey: parameters.sourceNodeKey }]
   return ['TASK', 'STATE'].includes(String(expression.predicate)) &&
     typeof parameters.refCode === 'string'
     ? [{ predicate: String(expression.predicate), refCode: parameters.refCode }]
@@ -116,9 +119,11 @@ export function dependencyEdges(document: TemplateDesignerDocument): DeliveryCan
     if (!rule?.expression) continue
     for (const ref of references(rule.expression)) {
       const source =
-        ref.predicate === 'TASK'
-          ? document.tasks.find((node) => node.code === ref.refCode)
-          : document.stages.find((node) => `${node.code}_COMPLETED` === ref.refCode)
+        ref.sourceNodeKey
+          ? [...document.stages, ...document.tasks].find(node => node.nodeKey === ref.sourceNodeKey)
+          : ref.predicate === 'TASK'
+            ? document.tasks.find((node) => node.code === ref.refCode)
+            : document.stages.find((node) => `${node.code}_COMPLETED` === ref.refCode)
       if (!source) continue
       const key = `${source.nodeKey}->${target.nodeKey}`
       result.set(key, { key, from: source.nodeKey, to: target.nodeKey, label: '准入引用' })
@@ -187,6 +192,8 @@ export function disconnectNodes(document: TemplateDesignerDocument, key: string)
         .filter((item): item is JsonObject => !!item)
       return children.length ? { ...expression, rules: children } : undefined
     }
+    if (expression.predicate === 'WAIT_ELAPSED' && (expression.parameters as JsonObject)?.anchor === 'NODE_COMPLETED'
+      && (expression.parameters as JsonObject)?.sourceNodeKey === source.node.nodeKey) return undefined
     return (expression.parameters as JsonObject)?.refCode === refCode &&
       expression.predicate === (source.kind === 'STAGE' ? 'STATE' : 'TASK')
       ? undefined

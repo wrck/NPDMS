@@ -3,7 +3,7 @@
     <el-collapse-item title="模拟输入试算 · 不推进业务状态" name="trial">
       <el-alert v-if="failure" :title="failure" type="error" :closable="false" />
       <el-form label-position="top" v-loading="busy">
-        <el-form-item v-for="input in result?.inputs ?? []" :key="input.key" :label="input.label">
+        <el-form-item v-for="input in result?.inputs ?? []" :key="input.key" :label="inputLabel(input)">
           <el-select
             v-if="input.valueType === 'BOOLEAN'"
             v-model="values[input.key]"
@@ -71,14 +71,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, inject, reactive, ref, watch } from 'vue'
 import type { JsonValue } from '@/api/pms/project/project-templates'
 import {
   simulateRule,
   type RuleSimulation,
   type VersionRule
 } from '@/api/pms/project/project-templates/rules'
+import { relativeTimeOptionsKey } from './relativeTimeModel'
 const props = defineProps<{ rules: VersionRule[]; ruleKey: string }>()
+const timeOptions = inject(relativeTimeOptionsKey, computed(() => undefined))
+const inputLabel = (input: RuleSimulation['inputs'][number]) => {
+  if (input.key === 'clock.activation') return '模拟本节点本轮激活时间（含时区）'
+  if (!input.key.startsWith('clock.completed:')) return input.label
+  const sourceKey = input.key.slice('clock.completed:'.length)
+  const source = timeOptions.value?.sources.find(node => node.key === sourceKey)
+  return `${source?.label ?? sourceKey} · 本轮完成时间（含时区）`
+}
 const open = ref<string[]>([])
 const busy = ref(false)
 const failure = ref('')
