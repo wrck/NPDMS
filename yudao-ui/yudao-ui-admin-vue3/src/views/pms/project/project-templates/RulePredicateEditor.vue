@@ -6,8 +6,16 @@
       aria-label="条件类型"
       @update:model-value="selectPredicate"
     >
-      <el-option v-for="(label, value) in labels" :key="value" :value="value" :label="label" />
+      <el-option
+        v-for="(label, value) in labels"
+        :key="value"
+        :value="value"
+        :label="label"
+        :disabled="!predicateAllowed(value)"
+      />
     </el-select>
+    <span v-if="!predicateAllowed(predicate)" role="alert" class="condition-hint"
+      >此条件不适用于当前规则的办理绑定或引用位置，请修改条件或复制为独立规则；原条件已保留。</span>
     <template v-if="predicate === 'FIELD'">
       <el-select
         :model-value="parameters.fieldCode"
@@ -153,6 +161,7 @@ import type { RuleField, VersionRule } from '@/api/pms/project/project-templates
 import DecisionTableConditionEditor from './DecisionTableConditionEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
 import { ruleBusinessSourcesKey } from './ruleBusinessSources'
+import { ruleNativeOptionsKey } from './ruleNativeOptions'
 const props = defineProps<{
   predicate: string
   parameters: JsonObject
@@ -162,6 +171,9 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }>()
+const allowedNative = inject(ruleNativeOptionsKey, computed(() => undefined))
+const predicateAllowed = (predicate: string) => !predicate.endsWith('_NATIVE_STATUS')
+  || allowedNative.value === undefined || allowedNative.value.includes(predicate)
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 const absoluteTime = computed(() => {
   if (typeof props.parameters.at !== 'string' || !props.parameters.at) return undefined
@@ -250,6 +262,7 @@ const selectField = (code: string) => {
     })
 }
 const selectPredicate = (value: string) => {
+  if (props.disabled || !predicateAllowed(value)) return
   if (value === 'TIME_REACHED') {
     emit('change', value, { at: '' })
     return

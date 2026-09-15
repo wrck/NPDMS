@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { JsonObject } from '@/api/pms/project/project-templates'
 import RulePredicateEditor from './RulePredicateEditor.vue'
 import { ruleBusinessSourcesKey, type RuleBusinessSource } from './ruleBusinessSources'
+import { ruleNativeOptionsKey } from './ruleNativeOptions'
 import { decodeTree, encodeTree } from './ruleTreeModel'
 import { mount, passthrough, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
@@ -11,6 +12,30 @@ const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode 
   predicate(node) ? node : node.children.map((child) => find(child, predicate)).find(Boolean)
 
 describe('business fact source editing', () => {
+  it('disables incompatible native choices and retains the existing condition when context changes', async () => {
+    const state = reactive({ allowed: ['TASK_NATIVE_STATUS'], disabled: false })
+    const change = vi.fn()
+    const host = defineComponent({ setup() {
+      provide(ruleNativeOptionsKey, computed(() => state.allowed))
+      return () => h(RulePredicateEditor, { predicate: 'TASK_NATIVE_STATUS', parameters: { requiredStatus: 'DONE' },
+        fields: [], facts: [], disabled: state.disabled, onChange: change })
+    } })
+    const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough })
+    expect(find(view.root, node => node.props?.value === 'STAGE_NATIVE_STATUS')?.props?.disabled).toBe(true)
+    expect(find(view.root, node => node.props?.value === 'TASK_NATIVE_STATUS')?.props?.disabled).toBe(false)
+    const selector = find(view.root, node => node.props?.['aria-label'] === '条件类型')!
+    const select = selector.props!['onUpdate:modelValue'] as (value: string) => void
+    select('STAGE_NATIVE_STATUS'); expect(change).not.toHaveBeenCalled()
+    state.allowed = []; await nextTick()
+    expect(find(view.root, node => node.props?.role === 'alert')).toBeDefined()
+    expect(selector.props?.['model-value']).toBe('TASK_NATIVE_STATUS')
+    expect(change).not.toHaveBeenCalled()
+    select('TASK_NATIVE_STATUS'); expect(change).not.toHaveBeenCalled()
+    select('CONSTANT'); expect(change).toHaveBeenCalledWith('CONSTANT', { value: false })
+    change.mockClear(); state.disabled = true; await nextTick()
+    select('CONSTANT'); expect(change).not.toHaveBeenCalled()
+    view.app.unmount()
+  })
   it('stores an absolute instant across timezone display and tree reopening', async () => {
     const state = reactive<{ parameters: JsonObject }>({ parameters: { at: '2026-09-15T09:00:00+08:00' } })
     const host = defineComponent({ setup: () => () => h(RulePredicateEditor, {

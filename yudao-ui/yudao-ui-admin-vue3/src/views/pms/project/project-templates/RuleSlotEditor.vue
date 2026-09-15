@@ -76,6 +76,7 @@ import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
 import { businessSources, ruleBusinessSourcesKey } from './ruleBusinessSources'
+import { nativeOptions, ruleNativeOptionsKey } from './ruleNativeOptions'
 const props = withDefaults(
   defineProps<{
     document: TemplateDesignerDocument
@@ -92,6 +93,7 @@ const emit = defineEmits<{ 'update:modelValue': [key: string | undefined] }>()
 // Vue's reactive provide/inject keeps recursive groups tied to this version, not global editor state.
 // https://vuejs.org/guide/components/provide-inject.html#working-with-reactivity
 provide(ruleBusinessSourcesKey, computed(() => businessSources(props.document)))
+provide(ruleNativeOptionsKey, computed(() => nativeOptions(props.document, props.modelValue)))
 const rule = computed(() => props.document.rules?.find((item) => item.key === props.modelValue))
 const candidates = computed(
   () => props.document.rules?.filter((item) => item.kind === 'CONDITION') ?? []

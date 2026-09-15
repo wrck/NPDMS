@@ -639,3 +639,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 首轮会话 98351 exit 0，六组 76 项通过；补充审批阶段正向条件后，会话 23153 exit 0，规则发布 17 项通过。复用其他五组未变化证据，合计 **77 项通过，零失败/错误/跳过**：规则发布 17、模板编译 21、阶段完成 14、任务完成 13、绝对时间 4、定时投递 8。真实 LiteFlow fixture 和非关系模式 Flowable DMN 配合 mocks，不加载共享应用配置、不访问共享数据库。新增四项测试覆盖绑定类型、空绑定、嵌套条件、准入自依赖、跨节点共享定位和合法审批附加条件。
 - 命令：`mvn -q -pl pms-module-project -am test "-Dtest=ProjectRulePublicationValidatorTest,TemplateCompilerTest,ProjectStageCompletionServiceTest,ProjectTaskPlanCompletionServiceTest,AbsoluteTimeConditionTest,ProjectRuleTimerTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`；补验仅将测试范围改为 `ProjectRulePublicationValidatorTest`，其余相同。
 - 代码质量技能用于核对现有运行语义及复用检查入口，Git 技能用于限定本地提交；无 SQL/Schema、前端页面或第三方 API 变更。本步未重新部署或切换 59280，未执行新浏览器联合验收，未把此前全量类型检查内存失败改为通过。已询问相对等待是否显式选择本节点激活/来源节点本轮完成时间，尚未收到确认，未先行固化该语义；专项保持进行中。
+
+## 2026-09-15：条件编辑选项与原生办理绑定对齐
+
+- 规则侧栏复用响应式 provide/inject，按当前版本内全部消费节点的绑定和规则用途计算可选原生条件；共享规则取交集，准入、匹配、收口和连线条件不提供本节点原生提交选项。不增加规则来源或运行时解释器。
+- 办理绑定或引用位置变化时禁用不适用选项；已存在的条件保留并提示，不静默改写规则。无版本消费上下文的独立编辑器保持原有选项；服务端发布校验仍为最终约束。
+- 组件及模型回归共 **22 项通过**，覆盖 RulePredicateEditor、ruleNativeOptions、ruleTreeModel、taskManualHandling 和 taskApprovalBinding。新增模型测试首次因导入接口模块触发浏览器存储依赖失败，隔离 axios 后两项通过；其余未变化的 20 项证据复用。提交前五个改动源码／测试文件 ESLint exit 0，无诊断。
+- 全量类型检查会话 33663 的完整终态输出未能取得，不声明通过。真实浏览器访问 19081 返回 ERR_CONNECTION_REFUSED，端口检查未发现 19081、59280 监听；未启动、停止或切换共享后台，本增量没有真实浏览器联合验收结论。
+- 按用户“全部提交”提交全部待提交源码、测试及本记录；两个本地运行 PID 文件不纳入版本，不推送。相对等待的起算语义仍待确认，专项未完成。
