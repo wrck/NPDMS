@@ -818,3 +818,79 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 十一处改动 TS/Vue 文件 ESLint 无错误；新测试的三条 props 类型警告已修正并复验，TemplateContentEditor 两条原有换行警告保留。最终 pnpm ts:check 会话 97177 仍仅客户模块既有三条诊断（CustomerFormDrawer.vue:248、contacts/index.vue:199、ProjectCustomerOverview.vue:159），没有本步新增诊断；不将全量类型检查记为通过。
 - 内置真实浏览器在 RULE_PREP_MATCH_20260915 草稿验收：条件类型菜单只有字段判断、固定条件、决策表输出；字段菜单及原生 DMN 输入菜单均显示 17 个创建字段，不含生命周期状态和项目结束日期。临时增加决策表并成功绑定项目名称，之后移除该临时条件、保存、关闭并从服务端重开，确认只保留原项目名称匹配和原收口条件。未发布新模板版本、未覆盖冻结版本或修改运行项目。截图已在本任务展示。连续关闭/删除/保存的首次操作后临时条件仍在，按实际页面完成关闭再删除、保存可成功；快速操作的事件时序尚需单独复现定位，不能据此断言已修复。
 - 本步局部自审已检查字段目录、两类编辑入口、共享引用、只读和历史保护，使用前端工程、浏览器、代码质量及 Git 提交技能。没有重跑前提未变的后端测试或重启服务；保留 .run/*.pid，不推送。专项整体自审、业务办理、改版返工和子项目关闭联合验收仍未完成。
+
+## 2026-09-15：任务自动启动、草稿权限与业务完成联动修复
+
+- 本次依据需求方专项要求修复任务启动、现场工勘及需求分析草稿办理、业务完成未结束任务的问题（既有 PM-03／PM-11 办理范围）。不恢复工程实施链，不新增业务权限或审批。准入满足后通过原冻结状态机 START 命令自动开始任务，沿用版本锁、轮次和实际开始时间；自动开始不等于业务提交，也不授予原模块操作权限。已准入但尚未开始的任务可以由正常重评继续开始，完成历史不重写。
+- 后台无交互用户的准入、阶段完成及项目收口审计原先传 null，与平台 actor_id 非空契约冲突，可能回滚自动推进；改用现有系统主体 0，保留真实交互主体。失败仍回滚，不跳过审计。工勘接入层按原模块逐项授权返回操作能力；任务业务面板不再因异步关联尚未到达而删除已授权的草稿操作，原模块继续执行记录状态、项目数据范围和当前有效轮次校验。
+- 同一业务事实版本不保证任务状态未变化。面板读取业务结果时同时比较返回的任务版本，通知父工作台刷新，修复 Outbox 已完成任务但顶部仍显示进行中的缺口；不增加轮询、手工完成或手工关联按钮。
+- 固定隔离环境使用前端 19081、后端 59280，MySQL 23316/npdms_test、Redis 26379。实际运行后端 PID 37308、启动时间 16:56:05，包含本次后端修复；保留其他 Java 进程和运行文件。本单元前段通过既有 Compose 迁移入口应用 V244、V245，未新增迁移、清库、修复历史或覆盖数据。
+- 真实浏览器验收项目仅为 993109130063／PJT2026000020／工前准备匹配验收0915，模板 RULE_PREP_MATCH_20260915，冻结版本 993009001611。需求分析任务 2099771888284725251 在 17:01:00 自动开始，无手工启动或业务提交。工勘记录 30023 经原动态界面保存草稿、确认，17:06:55 已确认；其任务 2099771888284725250 在 17:08:00 自动完成为 DONE／100%，完成后只读。
+- 需求分析原模块因项目无经理而只读是正确的资格校验，不删除该约束。需求方先批准仅向本验收项目指派 admin，原模块以 1014024015 拒绝其不具备公司项目经理资格，未写入成员；需求方随后批准使用现有合格经理。17:16:51 经成员管理页面仅将已有 s0-accept-team（993109119003）指派到此项目，不新增公司资格，不改其他项目或服务经理。随后 admin 经原模块授权能够创建、保存本轮需求分析草稿。
+- 需求分析业务记录 2099790442220355586 自动关联任务当前第 1 轮 2099771888418942978；动态表单按其既有必填校验填写隔离示例，保存为内容版本 2，并经“查询”重新读取确认内容保留。17:21:53 通过原模块“完成并冻结当前草稿”完成 V1；17:23:00 后台自动结束需求分析任务及工前准备阶段。没有手工完成任务、建立关联或 SQL 修改状态。保持同一任务抽屉，点击“刷新业务结果”显示 DONE、100%、任务版本 2、实际结束 17:23:00，写操作消失；完成历史仍可查看 V1、内容版本 2、完成人及完成时间。此次实测异步推进约 67 秒，不承诺刷新按钮即时执行状态推进。
+- 核对并复用代码未变化的后端 Surefire 报告：ProjectTaskAdmissionServiceTest 7、ProjectTaskLifecycleServiceTest 40、ProjectStageAdmissionServiceTest 13、ProjectStageCompletionServiceTest 16、ProjectRuleClosureServiceTest 8、SiteSurveyTaskBusinessObjectProviderTest 38，共 122 项零失败／错误。包含系统审计非空约束的独立 H2 回滚验证、冻结 START、重复命令及权限拒绝；单测不加载应用数据源，真实业务验证另使用上述隔离项目。
+- TaskBusinessPanel.runtime.spec.ts 22 项通过，命令 `pnpm exec vitest run --config vitest.pms-file.config.ts src/views/pms/project/project-master-detail/components/TaskBusinessPanel.runtime.spec.ts`。新增相同业务事实、不同任务版本时刷新且不循环的回归。首次遗漏项目 Vitest 配置导致 CSS 加载失败，修正命令后通过，未放宽实现。两个前端文件 ESLint 无错误，测试替身 4 条既有 props 类型警告保留。`pnpm ts:check` 仍仅 CustomerFormDrawer.vue:248、contacts/index.vue:199、ProjectCustomerOverview.vue:159 三条既有客户模块错误，不记为通过；`git diff --check` 通过。
+- 使用变更交付、前端工程、浏览器、代码质量及 Git 技能收口本次局部修复与提交；没有推送，.run/*.pid 不提交。本单元真实正向办理已通过，不代表全部专项完成；改版、选择性返工、子项目关闭及其余计划行为的整体自审和联合验收仍需继续。
+
+## 2026-09-15：业务提交事件立即分发（运行验收待整包构建）
+
+- 需求方指出前段验收只是定时消费后最终完成，不符合业务提交事件立即驱动的要求。本步改为 PLT 原事务写入 Outbox 后发布 PlatformOutboxAppended；PROJ 使用 Spring 原生 AFTER_COMMIT 监听，只接收项目重评／子项目关闭事件，并经有界 ThreadPoolTaskExecutor 立即分发。没有新增依赖、消息中心、数据表或全项目定时扫描；Quartz 保留到期时间事件及失败／重启恢复，不再是正常业务事件的唯一触发入口。
+- 基线为仓库 Spring Boot 4.1.0；使用 [Spring 事务事件](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html) 与 [原生任务执行器](https://docs.spring.io/spring-framework/reference/integration/scheduling.html)。执行器 4 个核心、最多 8 个工作线程、128 个排队位置，不替代默认应用执行器。只在提交成功后分发，异步线程不带入原业务事务，各节点保持独立事务；拒绝或处理失败不会将已经提交的业务请求报告为失败，原持久事件负责恢复。不使用调用线程兜底，避免提交回调等待新事务连接而拖住原连接释放。
+- 即时与恢复共用单条消息处理实现，保留事件身份／租户校验、冻结规则读取、未知重试、节点状态锁和幂等。恢复扫描与即时消费同时读到一条事件时，仅投递状态 CAS 胜者写入，冲突不终止其他事件；不声称消息绝对只执行一次。原模块业务完成时间保持真实事实；任务结束时间保持规则实际满足后的正式转换时间，不统一倒填事件时间、不改写历史。
+- 六套件合计 61 项通过：PlatformTransactionalOutboxWriterTest 2、PlatformBusinessEventTransactionTest 1、ProjectRuleCommittedEventListenerTest 4、ProjectRuleOutboxDeliveryJobTest 7、ProjectTaskAdmissionServiceTest 7、ProjectTaskLifecycleServiceTest 40。新增监听器验证使用真实 Spring 事件与线程池、独立内存 H2：提交前不消费、无事务不消费、回滚不消费、提交后五秒以内无需 Quartz 即执行独立事务；40 条并发事件租户隔离；通知／未来时间事件不抢跑；执行拒绝及消费失败不冒充业务回滚。没有使用应用数据源。
+- 命令为 `mvn -q -pl pms-module-platform,pms-module-project -am test` 配合上述测试列表、既有 Mockito javaagent 与 failIfNoSpecifiedTests=false。首轮发现现有 MySQL 集成测试的 Outbox 子类构造器需要传入新增 ApplicationEventPublisher，已同步真实测试上下文；第二轮监听测试替身被容器误做资源注入，改用注册已构造单例后通过。最终监听／投递补验会话 83105 exit 0；其余四套件复用本轮未变化代码的通过报告。实际 MySQL 集成测试只适配并编译，未运行。
+- `mvn -q -pl yudao-server -am package -DskipTests` 会话 42925 失败于同时出现的另一组项目状态展示改动：ProjectMasterController 缺少 List 导入，ProjectStatusPresentationService 使用不存在的 getStageName。需求方确认“由原实施方修复”，本步未修改这些文件。17:36 检查后者已由其他改动改为 getName，前者仍缺少导入，因此不重复构建。当前后台仍是旧运行包，未重启，事件即时路径尚未完成真实浏览器验收；前段约 67 秒的定时验收不能作为本改动的运行证明。
+- 本步代码质量自审检查了事务提交／回滚、线程上限、租户恢复、通知隔离、重复投递与独立节点事务。`git diff --check` 通过。使用变更交付、源码核对、代码质量和浏览器技能；因实际整包编译失败而暂停部署，不是技能要求新增审批。保留其他工作区改动及 .run/*.pid，当前修复尚未提交或推送，未创建新验收业务数据。
+
+## 2026-09-15：标准生命周期绑定与 current_stage 汇总（待新包运行验收）
+
+- 需求方确认：自定义阶段必选 S0～S6 标准生命周期绑定，可重复绑定；current_stage 取 ACTIVE 阶段中最早的标准值，没有 ACTIVE 阶段则保留原值，不隐式关闭项目。绑定在阶段侧栏配置，随 DesignerDocument／ExecutionSnapshot 冻结，不新增表或独立规则来源，不覆盖已发布历史。
+- 已接入阶段激活、完成、项目计划生效和返工后的同事务汇总，按受信租户、有效计划及项目版本 CAS 写入，值相同不增加版本。阶段状态的独立终止命令目前不存在，未新增终止流程；TERMINATED 不参与汇总。已发布旧快照缺少绑定时不猜测映射，需要通过新版本设计明确绑定，未自动回填历史。
+- 直接消费者自审发现到货验收以摘要等于 S4 作为条件，会拒绝 S1 与 S4 并行办理。已改用 PROJ 的标准阶段 ACTIVE 事实；参与者／系统资格重验保留版本、权限、角色和数据范围，不把摘要改写成办理节点。原单阶段推进及 S5 入阶段快照接口仍属旧执行链，本次没有恢复或迁入 V2。
+- 11 个后端套件合计 108 项通过：ProjectParticipantFactApiImplTest 10、ProjectSystemQualificationFactApiImplTest 5、ProjectCurrentStageServiceTest 8、ProjectPlanActivationServiceTest 10、ProjectReworkServiceTest 11、ProjectStageCompletionServiceTest 16、TemplateCompilerTest 22、TemplateExecutionSnapshotHashCompatibilityTest 1、ProjectStageAdmissionServiceTest 13、ArrivalAcceptanceOwnerAdapterTest 8、ProjectSystemQualificationApiAdapterTest 4。包含最早绑定、重复绑定、无活动阶段保留、返工回退、错误绑定与版本失败、并行 S4 资格及真实 Spring/H2 同事务回滚；H2 使用独立内存库，只验证事务参与，不冒充生产 Mapper SQL 验收。窄上下文 MySQL 测试补齐依赖，未执行实际 MySQL 测试。
+- 前端 strategyEditing.runtime.spec.ts 与 designerAssets.runtime.spec.ts 共 17 项通过，覆盖侧栏绑定、保存契约副本及重新打开。类型检查发现新增测试夹具缺少 start/terminal/workBinding，已补齐并重新验证；最终 pnpm ts:check 仅余 CustomerFormDrawer.vue:248、contacts/index.vue:199、ProjectCustomerOverview.vue:159 三处原有类型错误，未记为全量通过。git diff --check 通过。自审使用代码质量技能，未新建工程审批链，未提交或推送。
+- 真实浏览器已复制独立草稿 `RULE_STAGE_BIND_20260915`／“工前准备标准阶段绑定验收0915”，保留 PREP_WORK 工前准备、SITE_SURVEY 现场工勘、REQUIREMENT_ANALYSIS 需求分析。侧栏显示全部 S0～S6 选项，选择 S1 后显示正确；当前运行后台保存后字段被丢弃，因此不能记为保存重开通过，也未发布该草稿或创建运行项目。原模板及项目 993109130063 的已完成历史未改。
+- 全模块 Java 与测试源编译完成，但 package 在 spring-boot:repackage 阶段失败：运行进程占用旧 jar，无法重命名到 yudao-server.jar.original。59280 已在 18:30 被其他操作重启（PID 35556），本轮没有停止或重启它；已向需求方请求重启授权。当前 target/yudao-server.jar 是此次失败打包留下的普通 jar，不能直接当作新运行包启动；必须在释放占用后重新完成 package。阶段开始／结束的数据库汇总、改版返工与此前即时事件路径的新包浏览器验收仍未完成。
+
+## 2026-09-15：授权重启及标准阶段运行验收完成
+
+- 需求方明确允许重启 59280。核对 PID 35556 的 jar 与端口后，仅停止该后台；`mvn -q -pl yudao-server -am package -DskipTests` 会话 91541 exit 0，重新得到完整可执行 jar。沿用原固定测试 MySQL 23316／npdms_test、Redis 26379 及本地加密配置启动，实际启动时间为 **18:55:35**，后台 PID 37984、端口 59280；前端 PID 25636、端口 19081 未重启。未停用其他 Java 进程，未切换数据库、清库或覆盖已发布历史。启动日志在未提交的 `.run/stage-binding-backend-20260915.*.log`。
+- 真实浏览器沿用 admin 已登录会话。独立模板 `RULE_STAGE_BIND_20260915`（993009001599）保留 PREP_WORK／工前准备、SITE_SURVEY／现场工勘、REQUIREMENT_ANALYSIS／需求分析，新增 START_CHECK／启动核验、DELIVERY_CHECK／并行交付核验两个原生手工阶段。侧栏分别绑定 S1、S0、S4，保存返回及重新打开时绑定保留，Compiler 预检与发布通过；冻结快照明确包含这三个值。
+- 最初复制的适用条件仍限定旧项目名称，创建新名称项目时正确返回无匹配。仅修改本验收模板草稿的 project.projectName 等于“标准阶段并行与返工验收0915”，另发 v2（993009001614），没有绕过匹配或覆盖 v1（993009001613）。新项目通过 AUTO_DEFAULT 唯一命中 v2 创建：`993109130069`／`PJT2026000026`。没有给新项目指派经理、增加资格或替代原业务办理；两项业务任务自动启动，本轮未办理它们的业务完成结果。
+
+| 实际操作 | 当前活动标准阶段 | current_stage／项目版本 | 观察 |
+|---|---|---|---|
+| 19:02:58 创建，三个阶段同时 ACTIVE | S0、S1、S4 | S0／1 | 自定义编码不参与标准排序，工勘与需求分析本轮自动启动 |
+| 提交 START_CHECK 第一轮结果 | S1、S4 | S1／2 | submitted_at 19:04:00.340，ended_at 19:04:00.428，相隔 88 毫秒 |
+| 提交 DELIVERY_CHECK 第一轮结果 | S1 | S1／2 | submitted_at 19:04:40.491，ended_at 19:04:40.563，相隔 72 毫秒；摘要未变化，不重复增加项目版本 |
+| 预览并仅返工 START_CHECK | S0、S1 | S0／4 | 只建立 START_CHECK 第二轮；第一轮已完成记录与 S4 的第一轮原样保留 |
+| 保存／预览项目计划 v2 草稿，START_CHECK 改绑 S3 | 运行仍为 S0、S1 | 仍为 S0／4 | 草稿不改变有效运行 |
+| 确认生效项目计划 v2 | S1、S3 | S1／6 | 第二轮延续，不自动返工；公共模板与项目旧计划仍为 S1、S0、S4 |
+
+- S4 的实际完成发生在 Quartz 恢复扫描的 19:04:30 与 19:05:00 之间，结合 72 毫秒的提交至结束证据，证明此次阶段正式完成由提交事件即时推进，不是等待扫描。仍有其他业务条件未知的项目重评消息保留 PENDING／重试，不能将已完成独立阶段或整个项目的 Outbox 状态等同于全部业务完成。未暂停 Quartz，未回填业务时间，未直接写 SQL 推进状态。
+- 项目计划 v1 为 2099816234681868290，v2 为 2099817203645784065。SQL 只读复核表明旧计划仍保存 S1、S0、S4，新有效计划为 S1、S3、S4；S0 第一轮和 S4 第一轮仍引用旧计划，原提交／结束时间未变化；S0 第二轮及工前准备当前轮次延续至新计划。浏览器已完成草稿、预览、生效、返工路径；不可变历史通过数据库事实核对，不把未完成的历史抽屉 UI 验收记为通过。
+- 本轮未修改实现代码，复用上一轮 108 项后端与 17 项前端通过证据；全模块打包成功，`git diff --check` 通过。无 ACTIVE 阶段保留原值、事务回滚与失败版本 CAS 继续由既有测试覆盖，本次没有为了覆盖它们关闭或丢弃正在进行的工勘／需求分析任务。原项目 993109130063 保持正常关闭；全部专项、自研规则剩余自审以及原模块业务完结的即时事件联合验收不因本单元完成而标为全部完成。未提交或推送。
+
+## 2026-09-15：撤回实例字段对项目模板的错误扩展
+
+- 需求方纠正范围：建议／计划时间、实际时间和偏差原因归项目阶段实例，不能因字段迁入新增模板配置或改变模板功能；负责角色、负责人仅为保留字段。实例事实自动映射到规则的需求已明确，但按最新指令本轮先还原模板，不继续实施映射。
+- 已移除误加的模板设计字段、侧栏组件、冻结快照字段、编译校验及实例化映射；项目计划定义更新恢复为只更新原定义字段，不覆盖或清空实例管理值。移除本轮新增的 StageManagementFields、NodeTimeRangeFields，任务日期编辑恢复原组件。保留此前已确认的标准生命周期绑定、规则和业务绑定能力，以及 proj_project_stage 字段迁入；不回退 V246，不删除阶段数据。
+- 定向验证：TemplateCompilerTest 22、ProjectPlanStageTaskInstallerTest 16、ProjectStageManagementPersistenceTest 4，共 42 项通过；后者使用独立 H2 与生产 Mapper XML（仅转换 H2 不支持的 MySQL 位字面量），验证计划更新不能改写实例日期、偏差原因或责任字段。前端 strategyEditing.runtime 与 ProjectPlanEditor.runtime 共 21 项通过，确认侧栏无实例字段、生命周期绑定及保存重开保留。后端完整 package 成功；前端未重复完整打包，全量类型检查沿用本轮先前仅有三处客户模块既有错误的边界。git diff --check 通过。
+- 仅重启本专项 59280 后台，新 PID 22748，于 20:44:06 启动；19081 前端热更新。真实浏览器打开 RULE_STAGE_BIND_20260915，侧栏无实例日期、偏差或责任配置，原业务／规则配置可见，Compiler 预检通过；没有发布新模板版本。
+- 先前错误日期试验仅写入项目 993109130069 的 v3 草稿，未生效。此次通过正常页面保存清理误加字段；只读 SQL 复核 v1 SUPERSEDED、v2 EFFECTIVE、v3 DRAFT 均不包含这些字段，v3 编辑版本为 3。原有效计划和阶段状态未变化，不直接修改 SQL 业务状态或历史。未提交、未推送；不将字段映射或整个专项标为完成。
+
+## 2026-09-15：阶段／任务公共实例模型与时间字段
+
+- 按最新确认统一 `ProjectExecutionNodeDO`：ID、项目、名称、排序、来源定义、建议／计划／实际起止时间、验收时间、状态与版本。两张主表保留；自身 `code` 分别映射 `stage_code`／`task_code`，任务所属阶段仍为 `stageCode`。直接服务、查询 XML、接口投影及测试同步调整，不引入旧实体兼容包装。
+- V247 仅为阶段增加 `acceptance_time`，为任务增加 `suggested_start_time`、`suggested_end_time`、`acceptance_time`。均允许空值，不回填，不从任务完成推断验收，不新增验收流程。没有新增工时或公式；既有任务预估工时保持原样，不迁入公共实体。模板配置、发布模型及项目计划定义没有增加实例时间字段；实例自动映射规则仍未实施。
+- 验证：19 个定向测试类、203 项通过（失败／错误／跳过均 0）。包含新增实体持久化与控制器映射测试，以及编译、实例化、计划安装、准入、结束、返工、任务查询／命令和绑定消费者。独立 H2 验证实际 BaseMapper 继承映射、生产 XML 的两类编码与任务所属阶段、全部公共时间读写及旧记录无回填；仅将 V247 的 MySQL 多列 ADD 拆为 H2 支持的逐列 ADD，未访问外部数据源。阶段计划更新测试增加验收时间保护断言。
+- `mvn -q -pl yudao-server -am compile -DskipTests` 通过；本次映射、实体及新增迁移差异空白检查通过。按代码质量技能完成自审，不将其记为独立审查。
+- 本增量尚未执行固定 MySQL 的 V247、重启服务或进行新一轮浏览器验收；此前浏览器证据只证明此前运行版本，不用作本次部署证据。未提交、未推送。
+
+## 2026-09-15：专项分组提交与服务重启
+
+- 需求方授权重启并提交，进一步确认本专项全部按逻辑分组；其他工作的状态展示、数据集成文档、运行脚本及 PID 文件不纳入。实体与时间字段、任务启动及原模块权限、提交后事件重评、生命周期绑定分别提交；文档集中记录，不将整个专项标记为已验收完成。
+- 固定 Compose `npdms-50eb-test` 的 `npdms_test` 已由 V246 迁至 V247，本次只执行一条新迁移。实际 MySQL 查询确认阶段／任务建议起止时间及验收时间列均存在且可空；验收项目 993109130069 的三个阶段、两个任务均未回填验收时间，未清库、删除记录或推进业务状态。
+- 后端重新 package 成功，59280 的旧 PID 22748 停止，新 PID 24804 于 21:22:27 启动，健康检查 UP。前端重启命令被宿主执行策略拒绝，未绕过；19081 原 PID 25636 保持运行，页面正常连接新后台。开发环境 58080／18081 和基础设施容器未停止。
+- 重启后真实浏览器打开项目 993109130069：阶段编码、名称与并行状态正常，工前准备仍包含现场工勘 SITE_SURVEY、需求分析 REQUIREMENT_ANALYSIS；两项任务办理均能加载原模块页面及新增／草稿入口，状态与原实际开始时间保持。仅检查加载和入口，不重新办理、提交或返工。模板 RULE_STAGE_BIND_20260915 编辑器正常打开，未保存或发布新版本。
+- 复用上一轮 203 项实体及直接消费者证据；本轮补跑跨模块专项 12 类、137 项测试，全部通过，无跳过。前端第一次调用未指定项目配置，在加载 CSS 时失败且未执行测试；使用已有 `vitest.pms-file.config.ts` 后 TaskBusinessPanel.runtime、strategyEditing.runtime 共 34 项通过。未进行新的全量前端构建。

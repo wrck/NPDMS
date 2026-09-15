@@ -59,6 +59,8 @@
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 
+2026-09-15 项目规则专项裁决：PLT 在原事务写入 Outbox 后发布进程内 `PlatformOutboxAppended` 唤醒，携带同一持久消息及 notBefore。PROJ 仅在提交成功后立即处理项目重评／子项目关闭事件；不等待 Quartz 批次，不消费通知事件，未来时间事件仍按到期时间处理。消费不加入已完成的业务事务，各节点正式命令继续独立事务及幂等，失败只由原 Outbox 恢复；重启或丢失进程内唤醒不丢持久事件。不新增消息中心、数据表或业务审批。原模块完成时间是业务事实，任务结束时间是其完成与退出条件实际满足后的正式转换时间，不因事件到达就直接完成或回填历史。
+
 修订018的受控验收创建是命令，不是上述只读事实查询的副作用；PROJ/ACC/COM依公开Owner契约协作，GET、readiness及视图渲染不创建业务实体。受管审批捕获的成功点与ACC创建的成功点分开：审批只证明其来源事实，ACC独立重验原执行身份和冻结配置后办理，不把消息投递或审批通过解释为验收完成。
 
 F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调用ACC公开内部应用接口，ACC加入调用方同一MySQL事务；正式Project、ProjectTask执行契约和ACC交付件实例必须全有或全无，不产生初始化中间状态。该例外不允许PROJ直接访问ACC Repository，也不改变其他跨Context契约的默认最终一致性。若部署边界不再共享同一事务资源，必须先批准创建完成语义变更，不得自行降级为Saga、异步补建或部分成功。
@@ -68,6 +70,14 @@ F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调�
 与客户和设备主档相关的命令和查询只传稳定ID、来源版本、期望版本、权限快照与幂等键。`INT-02`、`INT-03`、`INT-04`及`EQP-04`保持独立同步Feature。
 
 ## F-PROJ-008 阶段门禁 Owner Fact 基线（GO）
+
+2026-09-15 实例公共模型专项确认：阶段与任务共用 `ProjectExecutionNodeDO`，保留两张主表。自身编码统一为 `code`，分别映射既有 `stage_code`／`task_code`；任务的 `stageCode` 仍只表示所属阶段，外部接口编码字段保持原语义。公共字段包括 ID、项目 ID、名称、排序、来源定义 ID、建议／计划／实际起止时间、验收时间、状态和版本。统一追加 `suggestedStartTime`、`suggestedEndTime`、`acceptanceTime` 的实例存储；验收时间独立于实际结束时间，不推断、不回填，不因此新增验收流程或写入动作。上述字段不进入模板设计或发布模型；本次不引入工时和公式，既有任务专有字段不扩散到阶段。
+
+2026-09-15 阶段字段专项确认：保留 `proj_project_stage` 与 `proj_project_task` 两张主表，共享规则、绑定、办理组件及节点执行轮次；不把阶段主记录迁入执行契约或轮次表。旧 `pms_project_phase` 除 `templateId` 外的缺失业务字段补入新阶段：建议／计划起止时间、实际起止时间和偏差原因属于项目阶段实例，不进入模板设计、发布快照或项目计划定义；本次字段迁入不改变模板功能，计划生效也不得覆盖这些实例值。规则按需引用实例事实，自动映射能力另行处理，不将实例值复制入模板。负责角色、负责人仅为实体和数据库保留字段，暂不接设计、编辑、展示、派工或权限业务。阶段实际起止时间是当前有效轮次的激活／结束事实，在同一正式状态命令事务内更新，返工清空当前摘要后按新轮次记录；旧轮次、旧计划及审批办理身份不因此改写。不复制旧固定顺序、全项目任务门禁、任意手工状态修改或固定倒排缓冲规则；不回填旧表数据。
+
+2026-09-15 项目规则专项确认：自定义阶段必选 `lifecycleStage=S0～S6`，允许多个阶段绑定同一标准生命周期阶段；该绑定随模板／项目计划版本冻结，与自定义节点身份、规则和画布顺序分离。`proj_project.current_stage` 为当前 ACTIVE 阶段中按 S0→S6 排序最早的绑定值；无 ACTIVE 阶段时保留原值，不因此关闭项目。阶段准入、结束以及计划生效／返工后，在原正式命令事务内重算，仅值变化时更新项目版本；读取接口不修复状态，不读取模板最新定义。未提供独立阶段终止命令，已终止状态不参与汇总，不新增终止流程。
+
+依赖阶段的原模块仍逐项授权，不能用最早阶段摘要否定后续并行阶段。PROJ 提供内部 `ProjectLifecycleStageFactApi.isActive(projectId, expectedProjectVersion, lifecycleStage)` 事实查询，租户取受信上下文，使用明确有效计划快照及运行状态；版本失配、绑定不可识别或计划不可读抛出不可用，不猜测为满足。到货验收按 ACTIVE S4 事实判断；参与者／系统资格重验保留原权限、角色、范围及版本约束，返回的 currentStage 仍为真实摘要。原单阶段工程链与旧 S5 入阶段快照合同不因本次汇总改造自动迁入 V2。
 
 Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`、`MILESTONE/PROJ_MILESTONE`、`STATE/PROJ_STATE`、`DELIVERABLE/ACC_DELIVERABLE`、`APPROVAL/BPM_APPROVAL`、`PROCESS/BPM_PROCESS`，不接受客户端Owner选择。未登记、重复Provider、Owner不可用或身份/版本不一致均失败关闭；PROJ不得跨Context读表或按名称推断事实。修订018中，验收创建/关联属于受控Owner命令，条件判定只读其事实；是否参与阶段动作由冻结配置决定，不因目标为S5自动添加范围绑定或终验义务。独立验收新身份、来源和事务见Q-TPLACC-001，旧阶段进入接口不能静默改义。
 
