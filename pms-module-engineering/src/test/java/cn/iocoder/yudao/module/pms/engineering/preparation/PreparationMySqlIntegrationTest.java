@@ -386,9 +386,9 @@ class PreparationMySqlIntegrationTest {
         draft.setProjectCategory("ENGINEERING");
         draft.setImplementationMode("DIRECT_SERVICE");
         draft.setImplementationLocation("工勘准备集成测试地点");
-        TemplateMatchResult match = projectTemplateService.matchPreview(
-                draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(),
-                draft.getMajorProjectLevel());
+        TemplateMatchResult match = projectCreationService.previewMatching(draft, 1L, 1L,
+                new ProjectManualCreationApplicationService.Actor(
+                        0L, 9_900_001L, "PRE02-MATCH-" + UUID.randomUUID()));
         if (match.getOutcome() != TemplateMatchResult.Outcome.MATCHED || match.getMatched() == null) {
             throw new IllegalStateException("公开发布的PRE-02模板必须唯一匹配：" + match.getOutcome());
         }

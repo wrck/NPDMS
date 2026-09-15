@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnap
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,8 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
     private final TaskBusinessAccess taskAccess;
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
-    private final BusinessViewQueryApi views;
+    // Owner view providers depend on this guard; resolve the query API only when handling a write.
+    private final ObjectProvider<BusinessViewQueryApi> views;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
@@ -141,7 +143,7 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         var frozen = JsonUtils.convertObject(binding.getBusinessViewSnapshot(), BusinessViewRevision.class);
         if (frozen == null || frozen.id() == null) throw exception(PROJECT_TASK_COMMAND_INVALID);
-        var current = views.getRevision(new BusinessViewQueryApi.Query(frozen.id(), BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
+        var current = views.getObject().getRevision(new BusinessViewQueryApi.Query(frozen.id(), BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
         if (current == null || !"PUBLISHED".equals(current.status()) || !Objects.equals(frozen.id(), current.id())
                 || !Objects.equals(binding.getTargetContextCode(), current.ownerContext())
                 || !Objects.equals(binding.getTargetObjectType(), current.entityType())

@@ -34,7 +34,10 @@ class ProjectBusinessExecutionServiceTest {
     final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     final PermissionApi permissions = mock(PermissionApi.class);
     final BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
-    final ProjectBusinessExecutionService service = new ProjectBusinessExecutionService(projects, plans, nodes, executions, access, scopes, permissions, views);
+    final ProjectBusinessExecutionService service = new ProjectBusinessExecutionService(projects, plans, nodes, executions, access, scopes, permissions,
+            new org.springframework.beans.factory.ObjectProvider<BusinessViewQueryApi>() {
+                @Override public BusinessViewQueryApi getObject() { return views; }
+            });
     final ProjectMasterDO project = new ProjectMasterDO();
     final ProjectPlanVersionDO plan = new ProjectPlanVersionDO();
     final TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
@@ -63,6 +66,28 @@ class ProjectBusinessExecutionServiceTest {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
     }
     @AfterEach void clear() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    @Test void ownerViewCanDependOnWriteGuardWithoutAnInitializationCycle() {
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.getDefaultListableBeanFactory().setAllowCircularReferences(false);
+            var beans = context.getBeanFactory();
+            beans.registerSingleton("projects", projects);
+            beans.registerSingleton("plans", plans);
+            beans.registerSingleton("nodes", nodes);
+            beans.registerSingleton("executions", executions);
+            beans.registerSingleton("access", access);
+            beans.registerSingleton("scopes", scopes);
+            beans.registerSingleton("permissions", permissions);
+            context.registerBean(ProjectBusinessExecutionService.class);
+            context.registerBean(BusinessViewQueryApi.class, () -> {
+                assertNotNull(context.getBean(ProjectBusinessExecutionService.class));
+                return views;
+            });
+            context.refresh();
+            context.getBean(ProjectBusinessExecutionService.class).lockForWrite(request(null));
+            verify(views).getRevision(new BusinessViewQueryApi.Query(40L, BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
+            verify(executions).lockAndRevalidate(task);
+        }
+    }
     void freeze() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
     ProjectBusinessExecutionApi.WriteRequest request(ProjectBusinessExecutionSelection selected) {
         return new ProjectBusinessExecutionApi.WriteRequest(9L,"SOL","SITE_SURVEY",selected);
