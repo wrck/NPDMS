@@ -37,6 +37,7 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class StageContract {
+        private String lifecycleStage;
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;

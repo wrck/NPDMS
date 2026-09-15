@@ -49,6 +49,7 @@ export interface RuleSpec {
 }
 
 export interface DesignerStageNode {
+  lifecycleStage?: string
   admissionRuleKey?: string
   completionRuleKey?: string
   exitRuleKey?: string

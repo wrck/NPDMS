@@ -37,6 +37,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @Service
 @RequiredArgsConstructor
 public class ProjectReworkService {
+    @jakarta.annotation.Resource
+    private ProjectCurrentStageService currentStages;
     public static final String PERMISSION = "pms:project-plan:rework";
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
@@ -137,7 +139,7 @@ public class ProjectReworkService {
             progress.recompute(scope.tenantId(), scope.projectId(), runtime.project().getTaskProgressVersion(), now);
         timers.schedule(scope.projectId(), command.planVersionId(), runtime.snapshot(),
                 result.stream().map(NewExecution::executionId).collect(java.util.stream.Collectors.toSet()));
-        return new Result(scope.projectId(), command.planVersionId(), command.expectedProjectVersion()+1, List.copyOf(result));
+        return new Result(scope.projectId(), command.planVersionId(), currentStages.synchronize(scope.projectId()), List.copyOf(result));
     }
 
     private Long resetProjection(Runtime runtime, ProjectReworkPlanner.Target target, ProjectNodeExecutionDO old,

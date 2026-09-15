@@ -75,6 +75,21 @@ class ProjectSystemQualificationFactApiImplTest {
     }
 
     @Test
+    void parallelS4MustBeActiveEvenWhenSummaryIsS1() {
+        var locked = project(20L, 20L, 7L, 201L, "ACTIVE", "S1", 9);
+        locked.setActivePlanVersionId(21L);
+        when(projectMapper.selectById(20L)).thenReturn(locked);
+        when(projectMapper.selectByIdForUpdate(20L)).thenReturn(locked);
+        when(treeVersionMapper.selectLatestActiveForUpdate(20L)).thenReturn(treeVersion(7L, 20L, 15L));
+        var stages = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(api, "currentStages", stages);
+        when(stages.isActive(locked, "S4")).thenReturn(true);
+        assertEquals("S1", api.lockCurrentForSystem(new ProjectSystemQualificationLockQuery(20L, "ACTIVE", "S4")).currentStage());
+        when(stages.isActive(locked, "S4")).thenReturn(false);
+        assertThrows(ServiceException.class, () -> api.lockCurrentForSystem(new ProjectSystemQualificationLockQuery(20L, "ACTIVE", "S4")));
+    }
+
+    @Test
     void rejectsMissingManagerOrUnavailableTreeFact() {
         when(projectMapper.selectById(20L)).thenReturn(project(20L, 20L, 7L, null, "ACTIVE", "S4", 8));
         when(projectMapper.selectByIdForUpdate(20L))

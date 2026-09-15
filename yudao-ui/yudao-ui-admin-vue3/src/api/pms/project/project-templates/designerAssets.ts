@@ -85,6 +85,7 @@ export const stageFromDefinition = async (row: DefinitionRevision): Promise<Desi
     nodeKey: `stage:${crypto.randomUUID()}`,
     code: String(row.payload.stageCode ?? ''),
     name: String(row.payload.name ?? row.definitionCode),
+    lifecycleStage: row.payload.lifecycleStage as string | undefined,
     sortOrder: 0,
     start: Boolean(row.payload.start),
     terminal: Boolean(row.payload.terminal),

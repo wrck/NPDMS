@@ -38,6 +38,9 @@ class ProjectPlanActivationServiceTest {
     PlatformCommandExecutionApi.SuccessFacts facts;
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
+        var currentStages = mock(ProjectCurrentStageService.class);
+        when(currentStages.synchronize(9L)).thenReturn(5);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", currentStages);
         preview = preview(4,List.of(),List.of());
         when(drafts.authorize(9L,1L)).thenReturn(scope);
         prepare(preview);

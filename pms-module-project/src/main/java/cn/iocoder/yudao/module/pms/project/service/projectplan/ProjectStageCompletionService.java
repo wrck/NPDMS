@@ -44,6 +44,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProjectStageCompletionService {
     @jakarta.annotation.Resource
+    private ProjectCurrentStageService currentStages;
+    @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
@@ -157,6 +159,7 @@ public class ProjectStageCompletionService {
                     "SUCCESS", Map.of("projectId", projectId, "executionId", round.getId(), "roundNo", round.getRoundNo(), "planVersionId", plan.getId()));
             completed++;
         }
+        if (completed > 0) currentStages.synchronize(projectId);
         return new Completion(completed, unknown);
     }
 

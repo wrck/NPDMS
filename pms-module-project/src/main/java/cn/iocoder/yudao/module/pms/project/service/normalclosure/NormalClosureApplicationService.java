@@ -135,7 +135,7 @@ public class NormalClosureApplicationService {
                 if (templateRevisionId == null) throw failure("CLOSURE_TEMPLATE_REVISION_UNAVAILABLE");
                 var stage = evaluation.graph().current();
                 if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, project.getId(), stage.getId(), stage.getVersion(),
-                        "ACTIVE", "DONE", actor.userId().toString())) != 1) throw failure("CLOSURE_STAGE_VERSION_CONFLICT");
+                        "ACTIVE", "DONE", actor.userId().toString(), java.time.LocalDateTime.now())) != 1) throw failure("CLOSURE_STAGE_VERSION_CONFLICT");
                 if (mapper.closeProjectIfMatch(new NormalClosureMapper.ExitUpdate(tenantId, project.getId(), project.getVersion(),
                         project.getCurrentStage(), now, actor.userId().toString())) != 1) throw failure("CLOSURE_PROJECT_VERSION_CONFLICT");
                 var exit = new NormalClosureExitRecordDO();

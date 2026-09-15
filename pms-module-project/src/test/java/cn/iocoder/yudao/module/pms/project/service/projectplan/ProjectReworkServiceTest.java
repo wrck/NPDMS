@@ -56,6 +56,9 @@ class ProjectReworkServiceTest {
     ProjectTaskExecutionContractDO oldContract;
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
+        var currentStages = mock(ProjectCurrentStageService.class);
+        when(currentStages.synchronize(100L)).thenReturn(4);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", currentStages);
         TenantContextHolder.setTenantId(1L);
         when(permissions.hasAnyPermissions(9L,ProjectReworkService.PERMISSION)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));

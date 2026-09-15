@@ -32,6 +32,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ProjectStageAdmissionService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService currentStages;
+    @jakarta.annotation.Resource
     private ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectRuntimeGraphMapper graph;
@@ -102,9 +104,9 @@ public class ProjectStageAdmissionService {
             }
             // A failed rule blocks only this node. Persistence/audit failures still roll back the transaction.
             if (evaluation.matched()) {
+                var occurredAt = java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
                 if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(),
                         stage.getVersion(), "PENDING", "ACTIVE", actorId == null ? "project-rules" : actorId.toString(), occurredAt)) != 1)
-                var occurredAt = java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
                     throw new IllegalStateException("STAGE_ACTIVATION_VERSION_CONFLICT");
                 if (executions.activateIfPending(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.Activation(
                         tenantId, projectId, project.getActivePlanVersionId(), stage.getId(), "STAGE", occurredAt)) != 1)
@@ -118,6 +120,7 @@ public class ProjectStageAdmissionService {
             results.add(new StageAdmission(stage.getId(), contract.getSourceNodeKey(), evaluation.outcome(),
                     evaluation.reasonCode(), evaluation.matched()));
         }
+        if (results.stream().anyMatch(StageAdmission::activated)) currentStages.synchronize(projectId);
         return List.copyOf(results);
     }
 

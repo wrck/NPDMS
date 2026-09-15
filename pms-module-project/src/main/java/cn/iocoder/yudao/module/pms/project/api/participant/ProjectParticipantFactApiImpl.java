@@ -28,6 +28,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService currentStages;
 
     private static final String ACTIVE = "ACTIVE";
     private static final Set<String> STAGES = Set.of("S0", "S1", "S2", "S3", "S4", "S5", "S6");
@@ -62,7 +64,9 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         }
         if (!Objects.equals(project.getLifecycleStatus(), query.requiredLifecycleStatus())
                 || query.requiredCurrentStage() != null
-                && !Objects.equals(project.getCurrentStage(), query.requiredCurrentStage())) {
+                && !(project.getActivePlanVersionId() == null
+                    ? Objects.equals(project.getCurrentStage(), query.requiredCurrentStage())
+                    : currentStages.isActive(project, query.requiredCurrentStage()))) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
         List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFactsForUpdate(

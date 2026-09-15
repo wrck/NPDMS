@@ -80,6 +80,7 @@ class ProjectStageAdmissionServiceTest {
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(),
                         mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), compiler, audit, executions, plans);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(ProjectRuleTimerScheduler.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class));
     }
 
     @Test void activatesIndependentStagesAndDoesNotReleaseUnknownOrFalseBranches() {
@@ -105,7 +106,6 @@ class ProjectStageAdmissionServiceTest {
         verify(stages, times(2)).updateStatusIfMatch(any());
     }
 
-    @Test void staleContractOnlyBlocksItsOwnBranch() {
     @Test void timerAdmissionUsesTheExistingSystemAuditActor() {
         add("TIMER_STAGE", null);
         assertTrue(service.activateEligible(9L, null, "timer").getFirst().activated());
@@ -113,6 +113,7 @@ class ProjectStageAdmissionServiceTest {
                 eq("PROJECT_STAGE"), anyString(), eq("SUCCESS"), anyMap());
     }
 
+    @Test void staleContractOnlyBlocksItsOwnBranch() {
         add("STALE", null); add("INDEPENDENT", null);
         contracts.getFirst().setGraphVersion(2L);
         var result = service.activateEligible(9L, 11L, "event");
@@ -198,22 +199,22 @@ class ProjectStageAdmissionServiceTest {
         when(projects.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         var command = new ProjectTaskAdmissionService(projects, taskContracts, executions, service, audit);
+        var lifecycle = mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(command, "lifecycle", lifecycle);
         org.springframework.test.util.ReflectionTestUtils.setField(command, "timers", mock(ProjectRuleTimerScheduler.class));
         assertFalse(command.activateEligible(9L, 21L, "time-before-stage").activated());
         verify(executions, never()).activateIfPending(any());
         assertTrue(service.activateEligible(9L, null, "stage-reevaluation").getFirst().activated());
         assertTrue(command.activateEligible(9L, 21L, "ordinary-reevaluation").activated());
+        verify(lifecycle).startAdmittedTask(any(), eq(task), eq(contract), eq("ordinary-reevaluation"));
         assertEquals("PENDING_START", task.getStatus()); assertNull(task.getActualStartTime());
         verify(executions).activateIfPending(argThat(write -> "TASK".equals(write.nodeKind()) && write.nodeInstanceId().equals(21L)));
     }
-        var lifecycle = mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
-        org.springframework.test.util.ReflectionTestUtils.setField(command, "lifecycle", lifecycle);
 
     @Test void ordinaryReevaluationRollsBackOnlyFailedStageAndCommitsIndependentBranches() {
         add("FIRST", null); add("FAILED", null); add("LAST", null);
         // Real Spring transactions over an isolated H2 ledger; production MySQL mapper SQL is not exercised.
         var database = new EmbeddedDatabaseBuilder().generateUniqueName(true).setType(EmbeddedDatabaseType.H2).build();
-        verify(lifecycle).startAdmittedTask(any(), eq(task), eq(contract), eq("ordinary-reevaluation"));
         try {
             var jdbc = new JdbcTemplate(database);
             jdbc.execute("CREATE TABLE admission_ledger (id BIGINT PRIMARY KEY, stage_status VARCHAR(20), round_status VARCHAR(20), version INT)");

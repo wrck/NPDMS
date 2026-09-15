@@ -156,6 +156,7 @@ class ProjectPlanStageTaskInstallerTest {
     }
     @Test void preservesRunningApprovalReferenceWhenOnlyItsPermissionContractChanges() {
         var node = before.getTasks().getFirst(); node.getBinding().setType("APPROVAL"); node.getBinding().setApprovalDefinitionKey("existing-process");
+        node.getBinding().setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"existing-process:1:99\"}"));
         node.setCompletionRule(before.getStages().getFirst().getCompletionRule());
         taskContract = taskFactory.create(20L,null,before.toRuntimeContent().getTasks().getFirst(),now.minusDays(2));
         taskContract.setId(30L); taskContract.setTenantId(1L); taskContract.setApprovalInstanceId(99L);

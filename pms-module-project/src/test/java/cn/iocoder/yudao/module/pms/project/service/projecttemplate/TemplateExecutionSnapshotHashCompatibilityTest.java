@@ -46,6 +46,7 @@ class TemplateExecutionSnapshotHashCompatibilityTest {
 
     private TemplateDesignerDocument.StageNode stage(String key, String code, boolean start, boolean terminal) {
         TemplateDesignerDocument.StageNode stage = new TemplateDesignerDocument.StageNode();
+        stage.setLifecycleStage("S1");
         stage.setNodeKey(key);
         stage.setCode(code);
         stage.setName(code);
