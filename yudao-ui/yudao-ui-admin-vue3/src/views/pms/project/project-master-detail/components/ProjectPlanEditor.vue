@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import TemplateContentEditor from '../../project-templates/TemplateContentEditor.vue'
 import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
@@ -309,6 +309,9 @@ watch(
   },
   { deep: true }
 )
+onBeforeUnmount(() => {
+  generation++
+})
 </script>
 
 <style scoped>

@@ -341,3 +341,40 @@ it('discards a late preview response from the previous project', async () => {
     page.app.unmount()
   }
 })
+
+it('does not send a plan activation after the editor is unmounted during confirmation', async () => {
+  vi.mocked(api.getProjectPlan).mockResolvedValue(planState())
+  vi.mocked(api.previewProjectPlanDraft).mockResolvedValue(planImpact())
+  let confirm!: (value: 'confirm') => void
+  confirmMessage.mockReturnValue(new Promise(resolve => { confirm = resolve }))
+  const page = await openEditor()
+  await page.click('影响预览')
+  const applying = page.click('生效计划')
+  await tick()
+  page.app.unmount()
+  confirm('confirm')
+  await applying
+  expect(api.applyProjectPlanDraft).not.toHaveBeenCalled()
+  expect(page.changed).not.toHaveBeenCalled()
+  expect(api.getProjectPlan).toHaveBeenCalledTimes(1)
+})
+
+it('does not reload or notify a departed page when an already-sent activation returns', async () => {
+  vi.mocked(api.getProjectPlan).mockResolvedValue(planState())
+  vi.mocked(api.previewProjectPlanDraft).mockResolvedValue(planImpact())
+  confirmMessage.mockResolvedValue('confirm')
+  let complete!: (value: Awaited<ReturnType<typeof api.applyProjectPlanDraft>>) => void
+  vi.mocked(api.applyProjectPlanDraft).mockReturnValue(new Promise(resolve => { complete = resolve }))
+  const page = await openEditor()
+  await page.click('影响预览')
+  const applying = page.click('生效计划')
+  await tick()
+  expect(api.applyProjectPlanDraft).toHaveBeenCalledTimes(1)
+  page.app.unmount()
+  complete({ projectId: 9, planVersionId: planImpact().draftId, projectVersion: 7, revisionNo: 2 })
+  await applying
+  expect(page.changed).not.toHaveBeenCalled()
+  expect(api.getProjectPlan).toHaveBeenCalledTimes(1)
+  // A request already submitted is not revoked; its server-side command/idempotency remains authoritative.
+  expect(api.applyProjectPlanDraft).toHaveBeenCalledTimes(1)
+})

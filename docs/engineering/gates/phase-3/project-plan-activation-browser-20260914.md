@@ -734,3 +734,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 模型新增三项失败用例先复现：两个来源类型的业务依赖均丢失、混合等待与业务来源只显示部分连线；原有五项通过。修复后六套件 **36 项通过**：画布模型 8、主／子画布业务引用 3、Dagre 画布布局 4、共享侧栏 8、条件选择 4、策略编辑 9。命令为前端目录 `pnpm exec vitest run --config vitest.pms-file.config.ts`，文件位于 `src/views/pms/project/project-templates/`，分别是 `templateCanvasModel.spec.ts`、`businessDependencyCanvas.runtime.spec.ts`、`canvasLayout.runtime.spec.ts`、`RuleSlotEditor.runtime.spec.ts`、`RulePredicateEditor.runtime.spec.ts`、`strategyEditing.runtime.spec.ts`。组件测试使用真实父编辑器、Vue 本地渲染器和画布渲染替身，不冒充真实浏览器操作。
 - 四处改动 TS/Vue 的 ESLint exit 0，无错误；TemplateContentEditor.vue:130、183 两处既有首属性换行警告未扩大修复。会话 36742 最终 `pnpm ts:check` 仍仅报告三条既有客户模块诊断（CustomerFormDrawer.vue:248、联系人页面:199、ProjectCustomerOverview.vue:159），本步无新增诊断，不写为全量通过。自审检查删除引用、共享复制和布局隔离，没有新增 API、数据库查询、依赖、业务权限门槛或运行状态行为。
 - 本次端口实查 19081 监听、59280 无监听；Get-NetTCPConnection 不可用后使用 .NET TCP 监听列表确认。没有启动、停止或切换共享后台，未重复进入已知无法保存的浏览器路径，联合验收仍待可用且获准的后台。前端技能用于沿用现有只读引用和所属阶段操作，代码质量技能用于复核直接消费者，Git 技能用于本地单一修复提交、不推送、不提交 PID。此步修复画布与规则语义不一致，不代表全部依赖配置校验或整个专项已完成。
+
+## 2026-09-15：阻止离开计划编辑页面后的迟到生效操作
+
+- 复核项目改版保护，现有 ProjectPlanImpactAnalyzer 已检查已开始节点删除、绑定、所属阶段和完成历史，未因本次检查添加新门槛。发现 ProjectPlanEditor 仅在项目切换或抽屉关闭时使异步请求失效，整个组件卸载时没有更新标记；确认框等待中导航离开后再确认仍会发送旧计划生效请求，已发送请求迟到返回也会重复加载已经离开的页面。
+- 使用 Vue 原生 onBeforeUnmount 更新现有 generation，不引入第二套请求状态或取消框架。卸载后确认不能发送新命令，迟到返回不能更新页面或触发重新加载；发送在先的服务端命令不撤销，仍由原命令幂等及版本校验处理。正常确认、网络结果未知后的原幂等键重试、预览问题阻止生效和项目切换行为不变。
+- 新增两项组件用例先复现上述发送请求和重复加载问题，原六项通过。修复后 `ProjectPlanEditor.runtime.spec.ts` 8 项与 `ProjectReworkPanel.runtime.spec.ts` 3 项，合计 **11 项通过**；两处改动文件 ESLint exit 0、零错误/警告。命令：前端目录 `pnpm exec vitest run --config vitest.pms-file.config.ts src/views/pms/project/project-master-detail/components/ProjectPlanEditor.runtime.spec.ts src/views/pms/project/project-master-detail/components/ProjectReworkPanel.runtime.spec.ts`，随后对计划编辑器及其测试执行 `pnpm exec eslint`。使用现有 Vue 渲染器及 API/确认框替身，没有真实计划生效写入。
+- 前端技能用于复用组件生命周期和既有请求标记，Git 技能用于限定本地提交，不推送、不纳入 PID。没有后端、权限、数据库、状态机或版本契约变更；未重复全量类型检查或已知受后台阻断的浏览器路径，不改变既有三条客户类型诊断与浏览器未验收结论。
+- 另一次只读核对已确认尚缺新版“等待子孙项目关闭”的规则条件，不能将旧收口守卫存在视为新版已实现。异常关闭是否满足父模板等待仍待需求方选择（旧守卫不认可／全部关闭类型认可／模板显式选择），本次没有擅自落入任一语义，也未整体恢复旧守卫。该条件及关联重评、环境样例初始化、真实联合验收仍在剩余范围内，专项未完成。
