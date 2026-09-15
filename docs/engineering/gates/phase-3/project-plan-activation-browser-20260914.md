@@ -718,3 +718,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 会话 70013 中七套件 **27 项通过**：时长/上下文模型 2、相对时间组件 3、条件选择 4、画布模型 5、条件树模型 4、共享侧栏 8、试算面板 1。格式收口后组件/选择/试算八项复验通过；简化条件类型选择分支后选择/画布九项复验通过，其余未变化证据复用。全部十一处改动 TS/Vue 文件 ESLint exit 0，零错误/警告。运行使用真实 Day.js、Vue 本地渲染器和接口替身，无共享数据库或业务写入，不代替真实浏览器验收。
 - 执行 `pnpm exec vitest run --config vitest.pms-file.config.ts`，上述测试均位于 `src/views/pms/project/project-templates/`；随后 `pnpm ts:check` 的完整结果仍未通过，仅有既有三条客户相关诊断：CustomerFormDrawer.vue:248、客户联系人页面:199、ProjectCustomerOverview.vue:159，本增量无新增诊断。后续只做格式和等价分支清晰化，不重跑无关后端回归；不把全量类型检查写为通过。
 - 使用用户指定内置浏览器实际打开 19081 模板列表及新增基本信息表单。列表仍显示 Network Error、无模板数据，未创建或保存模板，无法进入持久模板侧栏进行实际等待配置/保存重开；开发热更新后取消按钮已不在页面，已直接关闭本次临时页，没有重建验收后台或切换 59280。前端技能用于复用现有控件和只读保护，来源驱动技能用于原生时长转换，代码质量技能用于自审，Git 技能用于限定本地提交、不纳入 PID、不推送。**对应示例数据、真实发布/办理/返工的联合验收仍待推进，专项未完成。**
+
+## 2026-09-15：补充工前准备相对等待设计样例
+
+- 新增 `pms-module-project/src/test/resources/project-template/preparation-relative-wait.json`，包含自定义工前准备组织阶段、现场工勘及需求分析任务。规则仅存版本内集合，节点以局部 key 引用；工勘完成采用原模块 `SURVEY_CONFIRMED`，需求分析完成采用 `REQUIREMENT_ANALYSIS_COMPLETED`，没有手工完成替代、重复关联面板或新审批。工勘本轮完成一分钟后需求分析准入，需求分析真实业务完成并激活满半分钟后完成；这些时长仅是短时验收数据，不是业务默认阈值。
+- 样例为设计草稿，不是已发布模板或已应用数据库种子。配套 README 明确通过新建模板及既有草稿接口使用，必须在获准隔离环境的侧栏选择已发布业务视图及精确动态表单版本，不伪造环境修订 ID、不直接写表、不覆盖历史。列明动态阶段任务办理、最新轮次自动关联、未关闭项目选择性返工及历史查看的待执行路径。本步不将样例存在等同于运行环境初始化完成。
+- 新增测试直接读取同一 JSON，使用现有模板编译器、版本规则校验器和真实内存 LiteFlow：验证保存重开不产生两份规则、冻结后修改草稿不改变快照、来源丢失被拒绝、缺少完成时间返回未知、到期边界、业务未完成不能由时间放行，以及返工当前轮次和自身激活计时。业务 Owner 仅替代元数据；不代表真实原模块办理或定时投递验收。自审核对工勘提供方为 SOL/SITE_SURVEY，需求分析提供方为 SOL/REQUIREMENT_ANALYSIS，没有跨模块数据库访问或依赖新增。
+- 会话 87400 exit 0，`PreparationRelativeWaitSampleTest` **4 项通过，零失败/错误/跳过**。命令：`mvn -q -pl pms-module-project -am test "-Dtest=PreparationRelativeWaitSampleTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`。LiteFlow 缺失事实用例的错误日志为预期未知路径；测试上下文没有应用数据源，DMN 使用非关系模式，没有连接共享数据库。
+- 本步仅样例、测试和使用/验证说明，无生产逻辑、权限、SQL 或状态转换变更。Git 技能用于限定本地提交，不推送、不提交运行 PID；未重跑前提未变的失败浏览器路径或前端类型检查，不切换 59280。**运行环境样例绑定与初始化、真实发布/办理/返工联合验收仍未完成，专项继续。**

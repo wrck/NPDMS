@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "closureRuleKey": "project.closed",
+  "rules": [
+    {
+      "key": "prep.complete", "name": "工前准备任务全部完成", "kind": "CONDITION", "shared": false,
+      "expression": {"operator": "ALL", "rules": [
+        {"predicate": "TASK", "parameters": {"refCode": "SITE_SURVEY"}},
+        {"predicate": "TASK", "parameters": {"refCode": "REQUIREMENT_ANALYSIS"}}
+      ]}
+    },
+    {
+      "key": "survey.complete", "name": "现场工勘记录已确认", "kind": "CONDITION", "shared": false,
+      "expression": {"predicate": "BUSINESS_FACT", "parameters": {"factCode": "SURVEY_CONFIRMED", "quantifier": "ALL"}}
+    },
+    {
+      "key": "analysis.admit", "name": "工勘本轮完成后等待一分钟", "kind": "CONDITION", "shared": false,
+      "expression": {"predicate": "WAIT_ELAPSED", "parameters": {
+        "anchor": "NODE_COMPLETED", "sourceNodeKey": "task:survey", "duration": "PT1M"
+      }}
+    },
+    {
+      "key": "analysis.complete", "name": "需求分析已完成且本轮激活已满半分钟", "kind": "CONDITION", "shared": false,
+      "expression": {"operator": "ALL", "rules": [
+        {"predicate": "BUSINESS_FACT", "parameters": {"factCode": "REQUIREMENT_ANALYSIS_COMPLETED", "quantifier": "ALL"}},
+        {"predicate": "WAIT_ELAPSED", "parameters": {"anchor": "NODE_ACTIVATED", "duration": "PT30S"}}
+      ]}
+    },
+    {
+      "key": "project.closed", "name": "工前准备结束后收口", "kind": "CONDITION", "shared": false,
+      "expression": {"predicate": "STATE", "parameters": {"refCode": "PREP_WORK_COMPLETED"}}
+    }
+  ],
+  "stages": [
+    {
+      "nodeKey": "stage:prep", "code": "PREP_WORK", "name": "工前准备",
+      "sortOrder": 10, "start": true, "terminal": true,
+      "completionRuleKey": "prep.complete",
+      "permission": {"policySnapshot": {"requiredActions": ["QUERY"]}}
+    }
+  ],
+  "tasks": [
+    {
+      "nodeKey": "task:survey", "code": "SITE_SURVEY", "name": "现场工勘", "stageCode": "PREP_WORK",
+      "priority": 10, "sortOrder": 10,
+      "description": "通过交付流程动态任务办理界面新增并确认工勘记录；业务记录自动关联，不另设手工确认。",
+      "completionRuleKey": "survey.complete",
+      "workBinding": {"type": "BUSINESS_OBJECT", "targetContextCode": "SOL", "targetObjectType": "SITE_SURVEY", "targetObjectKey": "PROJECT", "parameters": {}},
+      "permission": {"policySnapshot": {"requiredActions": ["QUERY"]}}
+    },
+    {
+      "nodeKey": "task:analysis", "code": "REQUIREMENT_ANALYSIS", "name": "需求分析", "stageCode": "PREP_WORK",
+      "priority": 20, "sortOrder": 20,
+      "description": "工勘本轮完成一分钟后准入；由原模块真实完成需求分析，且本轮激活满半分钟后自动完成。等待仅为验收示例。",
+      "admissionRuleKey": "analysis.admit", "completionRuleKey": "analysis.complete",
+      "workBinding": {"type": "BUSINESS_OBJECT", "targetContextCode": "SOL", "targetObjectType": "REQUIREMENT_ANALYSIS", "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS", "parameters": {}},
+      "permission": {"policySnapshot": {"requiredActions": ["QUERY"]}}
+    }
+  ],
+  "layout": {"nodes": {
+    "stage:prep": {"x": 200, "y": 180},
+    "task:survey": {"x": 180, "y": 180},
+    "task:analysis": {"x": 480, "y": 180}
+  }, "views": {}}
+}
