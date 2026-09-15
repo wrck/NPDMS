@@ -153,7 +153,7 @@ public class ProjectStageCompletionService {
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),
                     round.getVersion(), now, evidence)) != 1) throw new IllegalStateException("STAGE_COMPLETION_VERSION_CONFLICT");
             timers.scheduleFromNode(projectId, "STAGE", stage.getId());
-            audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_COMPLETED", "PROJECT_STAGE", stage.getId().toString(),
+            audit.record(tenantId, actorId == null ? 0L : actorId, correlationId, "PROJECT_STAGE_COMPLETED", "PROJECT_STAGE", stage.getId().toString(),
                     "SUCCESS", Map.of("projectId", projectId, "executionId", round.getId(), "roundNo", round.getRoundNo(), "planVersionId", plan.getId()));
             completed++;
         }

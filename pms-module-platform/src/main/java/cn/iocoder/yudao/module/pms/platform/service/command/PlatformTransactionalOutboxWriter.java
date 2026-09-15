@@ -17,9 +17,12 @@ public class PlatformTransactionalOutboxWriter implements PlatformBusinessEventA
     static final String STATUS_PENDING = "PENDING";
 
     private final PlatformOutboxEventMapper outboxMapper;
+    private final org.springframework.context.ApplicationEventPublisher publisher;
 
-    public PlatformTransactionalOutboxWriter(PlatformOutboxEventMapper outboxMapper) {
+    public PlatformTransactionalOutboxWriter(PlatformOutboxEventMapper outboxMapper,
+            org.springframework.context.ApplicationEventPublisher publisher) {
         this.outboxMapper = outboxMapper;
+        this.publisher = publisher;
     }
 
     @Override
@@ -67,6 +70,9 @@ public class PlatformTransactionalOutboxWriter implements PlatformBusinessEventA
         if (outboxMapper.insert(outbox) != 1) {
             throw new IllegalStateException("平台Outbox事件写入失败");
         }
+        publisher.publishEvent(new cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxAppended(
+                new cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxMessageDTO(
+                        event.eventId(), event.eventType(), event.eventPayload(), 0, tenantId, occurredAt), notBefore));
     }
 
     private boolean isBlank(String value) {

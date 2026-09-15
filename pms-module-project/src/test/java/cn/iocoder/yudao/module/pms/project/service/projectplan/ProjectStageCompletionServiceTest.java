@@ -192,6 +192,13 @@ class ProjectStageCompletionServiceTest {
         assertEquals(0, service.completeStage(9L, 11L, 1L, "test").completed()); verifyNoInteractions(stages, audit);
     }
     @Test void anUnstartedBranchIsRequiredOnlyByTheConfiguredRules() {
+
+    @Test void timerCompletionKeepsSubmissionEvidenceAndUsesSystemAuditActor() {
+        round.setSubmittedAt(LocalDateTime.now());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1, service.completeStage(9L, 11L, null, "timer").completed());
+        verify(audit).record(eq(7L), eq(0L), eq("timer"), eq("PROJECT_STAGE_COMPLETED"), eq("PROJECT_STAGE"), eq("11"), eq("SUCCESS"), anyMap());
+    }
         round.setSubmittedAt(LocalDateTime.now());
         when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setStageCode("DISCOVERY").setStatus("PENDING_ASSIGN")));
         when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);

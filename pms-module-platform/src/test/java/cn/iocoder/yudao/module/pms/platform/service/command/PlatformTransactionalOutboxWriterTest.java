@@ -20,12 +20,13 @@ import static org.mockito.Mockito.when;
 class PlatformTransactionalOutboxWriterTest {
 
     @Mock PlatformOutboxEventMapper mapper;
+    @Mock org.springframework.context.ApplicationEventPublisher publisher;
 
     @Test void scheduledDeliveryPersistsDueTimeWithoutPretendingItIsARetry() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
         try {
             when(mapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
-            var writer = new PlatformTransactionalOutboxWriter(mapper);
+            var writer = new PlatformTransactionalOutboxWriter(mapper, publisher);
             var due = LocalDateTime.of(2027,1,1,9,0);
             writer.appendAt("ProjectPlan", "51", new PlatformCommandExecutionApi.BusinessEvent(
                     "time-1", "ProjectRuleTimerRequested", "{\"eventId\":\"time-1\"}"), due);
@@ -41,7 +42,7 @@ class PlatformTransactionalOutboxWriterTest {
     @Test
     void writesProducerEventInTheSurroundingTransaction() {
         when(mapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
-        var writer = new PlatformTransactionalOutboxWriter(mapper);
+        var writer = new PlatformTransactionalOutboxWriter(mapper, publisher);
         LocalDateTime occurredAt = LocalDateTime.of(2026, 8, 27, 10, 0);
 
         writer.write(7L, new PlatformCommandExecutionApi.BusinessEvent(
@@ -54,5 +55,8 @@ class PlatformTransactionalOutboxWriterTest {
         assertEquals("PENDING", captor.getValue().getStatus());
         assertEquals(0, captor.getValue().getRetryCount());
         assertEquals(occurredAt, captor.getValue().getOccurredAt());
+        verify(publisher).publishEvent(new cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxAppended(
+                new cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxMessageDTO(
+                        "event-1", "FileReferenceAttached", "{\"eventId\":\"event-1\"}", 0, 7L, occurredAt), null));
     }
 }

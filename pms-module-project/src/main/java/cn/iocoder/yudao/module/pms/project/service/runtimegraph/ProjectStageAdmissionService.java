@@ -110,7 +110,7 @@ public class ProjectStageAdmissionService {
                         tenantId, projectId, project.getActivePlanVersionId(), stage.getId(), "STAGE", occurredAt)) != 1)
                     throw new IllegalStateException("STAGE_EXECUTION_ROUND_CONFLICT");
                 timers.scheduleFromNode(projectId, "STAGE", stage.getId());
-                audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_ACTIVATED", "PROJECT_STAGE", stage.getId().toString(),
+                audit.record(tenantId, actorId == null ? 0L : actorId, correlationId, "PROJECT_STAGE_ACTIVATED", "PROJECT_STAGE", stage.getId().toString(),
                         "SUCCESS", Map.of("projectId", projectId, "stageId", stage.getId(), "nodeKey", contract.getSourceNodeKey(),
                                 "graphVersion", contract.getGraphVersion(), "contractId", contract.getId(), "ruleVersionRef", version,
                                 "conditions", evaluation.conditions(), "components", evaluation.steps()));

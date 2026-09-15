@@ -106,6 +106,13 @@ class ProjectStageAdmissionServiceTest {
     }
 
     @Test void staleContractOnlyBlocksItsOwnBranch() {
+    @Test void timerAdmissionUsesTheExistingSystemAuditActor() {
+        add("TIMER_STAGE", null);
+        assertTrue(service.activateEligible(9L, null, "timer").getFirst().activated());
+        verify(audit).record(eq(7L), eq(0L), eq("timer"), eq("PROJECT_STAGE_ACTIVATED"),
+                eq("PROJECT_STAGE"), anyString(), eq("SUCCESS"), anyMap());
+    }
+
         add("STALE", null); add("INDEPENDENT", null);
         contracts.getFirst().setGraphVersion(2L);
         var result = service.activateEligible(9L, 11L, "event");
