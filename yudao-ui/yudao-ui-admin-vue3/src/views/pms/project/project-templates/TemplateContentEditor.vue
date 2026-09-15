@@ -275,6 +275,7 @@
                 :key="selectedRule.key"
                 :model-value="selectedRule.decision"
                 :readonly="strategyReadonly"
+                :creation-only="ruleUsedForMatching(content, selectedRule.key)"
                 @update:model-value="updateStrategy" /><RuleSimulationPanel
                 :rule-key="selectedRule.key"
                 :rules="content.rules ?? []" /></template
@@ -319,7 +320,7 @@ import {
   projectTransitions,
   toCanvasNode
 } from './templateCanvasModel'
-import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
+import { constantRule, copyVersionRule, createVersionRule, ruleUsedForMatching, ruleUses } from './versionRuleModel'
 import RuleSlotEditor from './RuleSlotEditor.vue'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import DecisionTableEditor from './DecisionTableEditor.vue'

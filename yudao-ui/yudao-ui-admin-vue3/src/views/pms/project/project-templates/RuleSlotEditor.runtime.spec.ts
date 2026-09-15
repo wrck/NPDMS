@@ -1,8 +1,8 @@
-import { defineComponent, h, nextTick, reactive } from 'vue'
+import { defineComponent, h, inject, nextTick, reactive } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
 import RuleSlotEditor from './RuleSlotEditor.vue'
 import { emptyDesignerDocument } from '@/api/pms/project/project-templates'
-import { constantRule, ruleUses } from './versionRuleModel'
+import { constantRule, ruleCreationOnlyKey, ruleUses } from './versionRuleModel'
 import { mount, passthrough, textOf, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
 const confirm = vi.hoisted(() => vi.fn<() => Promise<void>>())
@@ -11,9 +11,13 @@ vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('./RuleSimulationPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RuleDecisionDesigner.vue', () => ({ default: defineComponent({
   props: { disabled: Boolean }, emits: ['update:modelValue'],
-  setup: (props, { emit }) => () => h('button', {
-    disabled: props.disabled, onClick: () => emit('update:modelValue', constantRule(true))
-  }, '修改条件')
+  setup: (props, { emit }) => {
+    const creationOnly = inject(ruleCreationOnlyKey)!
+    return () => h('button', {
+      disabled: props.disabled, 'data-creation-only': creationOnly.value,
+      onClick: () => emit('update:modelValue', constantRule(true))
+    }, '修改条件')
+  }
 }) }))
 
 const fixture = () => {
@@ -42,6 +46,22 @@ const setup = () => {
   return { ...page, state, button, click }
 }
 beforeEach(() => { confirm.mockReset(); confirm.mockResolvedValue(undefined) })
+
+it('applies matching restrictions from every shared consumer and releases them only for an independent copy', async () => {
+  const page = setup()
+  try {
+    expect(page.button('修改条件').props?.['data-creation-only']).toBe(false)
+    page.state.document.matchRuleKey = 'shared'; await nextTick()
+    expect(page.button('修改条件').props?.['data-creation-only']).toBe(true)
+    await page.click('开始修改共享规则'); await nextTick()
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('模板适用条件'), '确认共享影响', expect.any(Object))
+    expect(page.button('修改条件').props?.['data-creation-only']).toBe(true)
+    await page.click('复制为独立规则'); await nextTick()
+    expect(page.state.document.matchRuleKey).toBe('shared')
+    expect(page.button('修改条件').props?.['data-creation-only']).toBe(false)
+    expect(page.state.document.rules![0].expression).toEqual(constantRule(false))
+  } finally { page.app.unmount() }
+})
 
 it('counts same-name consumers separately and confirms once while the impact remains unchanged', async () => {
   const page = setup()

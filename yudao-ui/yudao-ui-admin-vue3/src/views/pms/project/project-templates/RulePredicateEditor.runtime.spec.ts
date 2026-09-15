@@ -5,6 +5,7 @@ import RulePredicateEditor from './RulePredicateEditor.vue'
 import { ruleBusinessSourcesKey, type RuleBusinessSource } from './ruleBusinessSources'
 import { ruleNativeOptionsKey } from './ruleNativeOptions'
 import { relativeTimeOptionsKey } from './relativeTimeModel'
+import { ruleCreationOnlyKey } from './versionRuleModel'
 import { decodeTree, encodeTree } from './ruleTreeModel'
 import { mount, passthrough, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
@@ -13,6 +14,43 @@ const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode 
   predicate(node) ? node : node.children.map((child) => find(child, predicate)).find(Boolean)
 
 describe('business fact source editing', () => {
+  it('limits matching to creation fields and optional decisions without rewriting existing runtime conditions', async () => {
+    const state = reactive({ creationOnly: true, predicate: 'FIELD', parameters: { fieldCode: 'lifecycleStatus', valueType: 'TEXT', operator: '=', value: 'ACTIVE' } as JsonObject })
+    const change = vi.fn()
+    const host = defineComponent({ setup() {
+      provide(ruleCreationOnlyKey, computed(() => state.creationOnly))
+      return () => h(RulePredicateEditor, { predicate: state.predicate, parameters: state.parameters,
+        fields: [
+          { code: 'projectName', label: '项目名称', valueType: 'TEXT', availableAtCreation: true },
+          { code: 'lifecycleStatus', label: '生命周期状态', valueType: 'TEXT', availableAtCreation: false },
+          { code: 'projectEndDate', label: '项目结束日期', valueType: 'DATE', availableAtCreation: false }
+        ], facts: [], onChange: change })
+    } })
+    const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough, ElInput: passthrough, ElDatePicker: passthrough })
+    const select = (label: string, value: string) => {
+      const control = find(view.root, node => node.props?.['aria-label'] === label)!
+      ;(control.props!['onUpdate:modelValue'] as (value: string) => void)(value)
+    }
+    expect(find(view.root, node => node.props?.value === 'TASK')).toBeUndefined()
+    expect(find(view.root, node => node.props?.value === 'DECISION')?.props?.disabled).toBe(false)
+    expect(find(view.root, node => node.props?.value === 'projectEndDate')).toBeUndefined()
+    expect(find(view.root, node => node.props?.value === 'lifecycleStatus')?.props).toHaveProperty('disabled')
+    expect(find(view.root, node => node.props?.role === 'alert')).toBeDefined()
+    expect(change).not.toHaveBeenCalled()
+    select('判断字段', 'lifecycleStatus'); select('条件类型', 'BUSINESS_FACT')
+    expect(change).not.toHaveBeenCalled()
+    select('判断字段', 'projectName')
+    expect(change).toHaveBeenCalledWith('FIELD', { fieldCode: 'projectName', valueType: 'TEXT', operator: '=', value: '' })
+    change.mockClear(); state.predicate = 'TASK'; state.parameters = { refCode: 'SURVEY' }; await nextTick()
+    expect(find(view.root, node => node.props?.value === 'TASK')?.props?.disabled).toBe(true)
+    expect(state.parameters).toEqual({ refCode: 'SURVEY' })
+    expect(change).not.toHaveBeenCalled()
+    state.creationOnly = false; await nextTick()
+    expect(find(view.root, node => node.props?.value === 'TASK')?.props?.disabled).toBe(false)
+    state.predicate = 'FIELD'; await nextTick()
+    expect(find(view.root, node => node.props?.value === 'projectEndDate')).toBeDefined()
+    view.app.unmount()
+  })
   it('creates the approved child-wait defaults once and preserves later explicit choices through reopening', async () => {
     const state = reactive<{ predicate: string; parameters: JsonObject; disabled: boolean; available: boolean }>({
       predicate: 'CONSTANT', parameters: { value: false }, disabled: false, available: true

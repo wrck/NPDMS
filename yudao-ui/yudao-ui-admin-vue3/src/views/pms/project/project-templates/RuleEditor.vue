@@ -56,7 +56,6 @@ const change = (value: RuleGroupType) => {
   emit('update:modelValue', encodeTree(value))
 }
 onMounted(async () => {
-  if (props.disabled) return
   const results = await Promise.allSettled([getRuleFields(), getCompletionFactCatalog()])
   if (results[0].status === 'fulfilled') fields.value = results[0].value
   if (results[1].status === 'fulfilled') facts.value = results[1].value

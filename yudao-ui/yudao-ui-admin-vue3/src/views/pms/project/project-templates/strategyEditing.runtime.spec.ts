@@ -17,10 +17,10 @@ vi.mock('./DefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('./TaskBindingEditor.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ApprovalDefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('./DecisionTableEditor.vue', () => ({ default: defineComponent({
-  props: { modelValue: Object, readonly: Boolean }, emits: ['update:modelValue'],
+  props: { modelValue: Object, readonly: Boolean, creationOnly: Boolean }, emits: ['update:modelValue'],
   setup: (props, { emit, expose }) => {
     expose({ flush: dialogs.flush })
-    return () => h('button', { disabled: props.readonly,
+    return () => h('button', { disabled: props.readonly, 'data-creation-only': props.creationOnly,
       onClick: () => emit('update:modelValue', { ...props.modelValue, xml: 'edited-xml' }) }, '修改策略表')
   }
 }) }))
@@ -56,6 +56,18 @@ const setup = async () => {
 beforeEach(() => {
   dialogs.confirm.mockReset().mockResolvedValue(undefined)
   dialogs.flush.mockReset().mockResolvedValue(undefined)
+})
+
+it('restricts a shared decision table when it is referenced by template matching', async () => {
+  const page = await setup()
+  try {
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(false)
+    page.state.content.matchRuleKey = 'condition'; await nextTick()
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(true)
+    expect(textOf(page.root)).toContain('模板适用条件')
+    await page.click('确认影响并编辑共享策略'); await nextTick()
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(true)
+  } finally { page.app.unmount() }
 })
 
 it('requires shared confirmation, preserves normal editing and invalidates it when another consumer is added', async () => {

@@ -1,5 +1,8 @@
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type { VersionRule } from '@/api/pms/project/project-templates/rules'
+import type { ComputedRef, InjectionKey } from 'vue'
+
+export const ruleCreationOnlyKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-creation-only')
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 export const constantRule = (value: boolean): JsonObject => ({
@@ -64,6 +67,15 @@ function visitDecisionReferences(expression: JsonObject, visit: (parameters: Jso
     )
       visit(parameters)
   }
+}
+
+export function ruleUsedForMatching(document: TemplateDesignerDocument, key?: string): boolean {
+  if (!key || !document.matchRuleKey) return false
+  if (document.matchRuleKey === key) return true
+  const expression = document.rules?.find(rule => rule.key === document.matchRuleKey)?.expression
+  let used = false
+  if (expression) visitDecisionReferences(expression, parameters => { if (parameters.ruleKey === key) used = true })
+  return used
 }
 
 export function ruleUses(document: TemplateDesignerDocument, key: string): string[] {

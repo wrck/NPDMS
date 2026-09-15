@@ -74,7 +74,7 @@ import { ElMessageBox } from 'element-plus'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
-import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
+import { constantRule, copyVersionRule, createVersionRule, ruleCreationOnlyKey, ruleUsedForMatching, ruleUses } from './versionRuleModel'
 import { businessSources, ruleBusinessSourcesKey } from './ruleBusinessSources'
 import { nativeOptions, ruleNativeOptionsKey } from './ruleNativeOptions'
 import { relativeTimeOptions, relativeTimeOptionsKey } from './relativeTimeModel'
@@ -96,6 +96,7 @@ const emit = defineEmits<{ 'update:modelValue': [key: string | undefined] }>()
 provide(ruleBusinessSourcesKey, computed(() => businessSources(props.document)))
 provide(ruleNativeOptionsKey, computed(() => nativeOptions(props.document, props.modelValue)))
 provide(relativeTimeOptionsKey, computed(() => relativeTimeOptions(props.document, props.modelValue)))
+provide(ruleCreationOnlyKey, computed(() => ruleUsedForMatching(props.document, props.modelValue)))
 const rule = computed(() => props.document.rules?.find((item) => item.key === props.modelValue))
 const candidates = computed(
   () => props.document.rules?.filter((item) => item.kind === 'CONDITION') ?? []

@@ -7,7 +7,7 @@
       @update:model-value="selectPredicate"
     >
       <el-option
-        v-for="(label, value) in labels"
+        v-for="(label, value) in visibleLabels"
         :key="value"
         :value="value"
         :label="label"
@@ -17,18 +17,27 @@
     <span v-if="!predicateAllowed(predicate)" role="alert" class="condition-hint"
       >此条件不适用于当前规则的办理绑定或引用位置，请修改条件或复制为独立规则；原条件已保留。</span>
     <template v-if="predicate === 'FIELD'">
+      <span v-if="unavailableField" role="alert" class="condition-hint"
+        >原字段已保留，但不在当前可用目录中，请重新选择。{{ creationOnly ? '适用条件只能使用创建时字段。' : '' }}</span>
       <el-select
         :model-value="parameters.fieldCode"
         :disabled="disabled"
         filterable
         placeholder="选择开放字段"
+        aria-label="判断字段"
         @update:model-value="selectField"
       >
         <el-option
-          v-for="field in fields"
+          v-for="field in availableFields"
           :key="field.code"
           :value="field.code"
           :label="field.label"
+        />
+        <el-option
+          v-if="unavailableField"
+          :value="String(parameters.fieldCode)"
+          :label="`${fields.find(field => field.code === parameters.fieldCode)?.label ?? parameters.fieldCode}（不可用）`"
+          disabled
         />
       </el-select>
       <el-select
@@ -177,6 +186,7 @@ import { ruleNativeOptionsKey } from './ruleNativeOptions'
 import RelativeTimeConditionEditor from './RelativeTimeConditionEditor.vue'
 import ChildProjectWaitEditor from './ChildProjectWaitEditor.vue'
 import { initialRelativeTime, relativeTimeOptionsKey } from './relativeTimeModel'
+import { ruleCreationOnlyKey } from './versionRuleModel'
 const props = defineProps<{
   predicate: string
   parameters: JsonObject
@@ -188,7 +198,11 @@ const props = defineProps<{
 const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }>()
 const allowedNative = inject(ruleNativeOptionsKey, computed(() => undefined))
 const waitOptions = inject(relativeTimeOptionsKey, computed(() => undefined))
+const creationOnly = inject(ruleCreationOnlyKey, computed(() => false))
+const availableFields = computed(() => props.fields.filter(field => !creationOnly.value || field.availableAtCreation))
+const unavailableField = computed(() => !!props.parameters.fieldCode && !availableFields.value.some(field => field.code === props.parameters.fieldCode))
 const predicateAllowed = (predicate: string) => {
+  if (creationOnly.value && !['FIELD', 'CONSTANT', 'DECISION'].includes(predicate)) return false
   if (predicate === 'WAIT_ELAPSED' || predicate === 'CHILD_PROJECT_WAIT') return waitOptions.value?.available ?? true
   return !predicate.endsWith('_NATIVE_STATUS') || allowedNative.value === undefined || allowedNative.value.includes(predicate)
 }
@@ -233,6 +247,8 @@ const labels = {
   CONSTANT: '固定条件',
   DECISION: '决策表输出'
 }
+const visibleLabels = computed(() => Object.fromEntries(Object.entries(labels).filter(([value]) =>
+  !creationOnly.value || predicateAllowed(value) || value === props.predicate)))
 const allOperators = [
   { value: '=', label: '等于' },
   { value: '!=', label: '不等于' },
@@ -272,7 +288,8 @@ const set = (name: string, value: JsonValue | undefined) =>
 const setValue = (value: string) =>
   set('value', listValue.value ? value.split('\n').filter((item) => item !== '') : value)
 const selectField = (code: string) => {
-  const field = props.fields.find((item) => item.code === code)
+  if (props.disabled) return
+  const field = availableFields.value.find((item) => item.code === code)
   if (field)
     emit('change', 'FIELD', {
       fieldCode: code,
