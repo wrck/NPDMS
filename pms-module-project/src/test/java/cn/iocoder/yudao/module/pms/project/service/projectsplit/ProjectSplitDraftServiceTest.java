@@ -30,6 +30,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -82,7 +84,8 @@ class ProjectSplitDraftServiceTest {
         assertEquals(3, result.request().getDraftVersion());
         verify(scopeMapper).physicallyDeleteByRequestId(1L, 20L);
         verify(itemMapper).physicallyDeleteByRequestId(1L, 20L);
-        verify(itemMapper).insert(any(ProjectSplitItemDO.class));
+        verify(itemMapper).insert(argThat((ProjectSplitItemDO item) -> item.getTemplateRevisionId().equals(201L)
+                && item.getTemplateSelectionReason().equals("独立交付范围")));
         verify(scopeMapper).insert(any(ProjectSplitScopeDO.class));
         verify(treeScopeService).assertFullAccess(
                 new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
@@ -115,9 +118,29 @@ class ProjectSplitDraftServiceTest {
         verify(requestMapper).updateDraftIfMatch(20L, 2, null, 3, 5L, 7L);
     }
 
+    @Test
+    void templateOptionsRequireParentTenantOrganizationAndFullTreeScope() {
+        var actor = new ProjectSplitDraftService.Actor(1L, 9L, "selection");
+        var parent = new ProjectMasterDO(); parent.setId(100L); parent.setTenantId(2L);
+        when(projectMapper.selectById(100L)).thenReturn(parent);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.requireTemplateSelectionParent(100L, actor));
+        verifyNoInteractions(organizationMapper, treeScopeService);
+        parent.setTenantId(1L);
+        var relation = new ProjectCompanyDepartmentRelationDO(); relation.setCompanyId(1L); relation.setDepartmentId(2L);
+        when(organizationMapper.selectPrimaryOrderOffice(100L)).thenReturn(relation);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.requireTemplateSelectionParent(100L, actor));
+        when(organizationScopeApi.hasScope(9L, 1L, 2L)).thenReturn(true);
+        var tree = new ProjectTreeVersionDO(); tree.setTreeVersion(7L);
+        when(treeVersionMapper.selectLatestActive(100L)).thenReturn(tree);
+        assertSame(parent, service.requireTemplateSelectionParent(100L, actor));
+        verify(treeScopeService).assertFullAccess(new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
+    }
+
     private ProjectSplitDraftCommand command() {
         return new ProjectSplitDraftCommand(20L, 2, 100L, null, List.of(
                 new ProjectSplitDraftCommand.Item("A", "子项目A", null, 0, null, List.of(
-                        new ProjectSplitDraftCommand.Scope(10L, BigDecimal.ONE, null, List.of())))));
+                        new ProjectSplitDraftCommand.Scope(10L, BigDecimal.ONE, null, List.of())), 201L, "独立交付范围")));
     }
 }

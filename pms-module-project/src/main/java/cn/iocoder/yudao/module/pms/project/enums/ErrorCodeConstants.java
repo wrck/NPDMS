@@ -164,6 +164,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_REWORK_FORBIDDEN = new ErrorCode(1_014_023_014, "无此项目的返工权限或数据范围");
     ErrorCode PROJECT_TASK_PLAN_CHANGE_REQUIRED = new ErrorCode(1_014_023_015,
             "项目任务结构由有效计划管理，请在项目计划草稿中调整并预览生效");
+    ErrorCode PROJECT_TEMPLATE_OVERRIDE_FORBIDDEN = new ErrorCode(1_014_023_016, "无项目模板匹配覆盖权限");
+    ErrorCode PROJECT_TEMPLATE_SELECTION_REASON_INVALID = new ErrorCode(1_014_023_017,
+            "选择非匹配模板须填写原因（不超过512字）");
 
     // ========== 项目手工创建模块（F-PM01 / PM-01）1-014-024-000 ==========
     // 注：PROJECT_NOT_EXISTS 复用 1-014-003-000（项目主表段，新旧链同语义）。

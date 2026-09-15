@@ -77,7 +77,7 @@ class ProjectSplitApplicationServiceTest {
         ProjectMasterDO child = new ProjectMasterDO();
         child.setId(200L); child.setProjectCode("P-001-001"); child.setVersion(0); child.setParentId(100L);
         child.setRootId(100L); child.setTreeDepth(1); child.setTreeSort(0);
-        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L)).thenReturn(child);
+        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L, actor.actorId(), actor.correlationId())).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(true, false, 6L, List.of(), List.of()));
         when(itemMapper.markApplied(1L, 20L, 30L, 200L)).thenReturn(1);
@@ -117,7 +117,7 @@ class ProjectSplitApplicationServiceTest {
                         new ProjectSplitPreviewService.ItemResult("A", true, List.of()))));
         ProjectMasterDO child = new ProjectMasterDO(); child.setId(200L); child.setProjectCode("P-001-001");
         child.setVersion(0);
-        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L)).thenReturn(child);
+        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L, actor.actorId(), actor.correlationId())).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(false, false, null, List.of(), List.of("OVER_ALLOCATION:10")));
 
@@ -144,7 +144,7 @@ class ProjectSplitApplicationServiceTest {
                 new ProjectSplitPreviewService.PreviewResult(20L, 2, true, "h", LocalDateTime.now(),
                         3, 5L, 7L, List.of(), List.of(
                         new ProjectSplitPreviewService.ItemResult("A", true, List.of()))));
-        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L))
+        when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L, actor.actorId(), actor.correlationId()))
                 .thenThrow(new IllegalStateException("template instantiation failed"));
 
         assertThrows(IllegalStateException.class, () -> service.apply(command(), actor));

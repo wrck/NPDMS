@@ -113,7 +113,8 @@ public class ProjectSplitApplicationService {
         Map<String, Long> projectIds = new LinkedHashMap<>();
         Map<String, Integer> projectVersions = new LinkedHashMap<>();
         for (ProjectSplitItemDO item : draft.items()) {
-            ProjectMasterDO child = childCreationService.create(parent, item, actor.tenantId(), request.getId());
+            ProjectMasterDO child = childCreationService.create(parent, item, actor.tenantId(), request.getId(),
+                    actor.actorId(), actor.correlationId());
             created.add(new CreatedProject(item.getClientItemKey(), child.getId(), child.getProjectCode()));
             projectIds.put(item.getClientItemKey(), child.getId());
             projectVersions.put(item.getClientItemKey(), child.getVersion());

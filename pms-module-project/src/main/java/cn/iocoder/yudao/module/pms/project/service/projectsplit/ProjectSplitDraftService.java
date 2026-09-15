@@ -135,6 +135,8 @@ public class ProjectSplitDraftService {
             item.setBusinessLevelCode(source.businessLevelCode());
             item.setTreeSort(source.treeSort() == null ? 0 : source.treeSort());
             item.setOfficeDepartmentCode(source.officeDepartmentCode());
+            item.setTemplateRevisionId(source.templateRevisionId());
+            item.setTemplateSelectionReason(source.templateSelectionReason());
             item.setItemStatus("DRAFT");
             item.setVersion(0);
             itemMapper.insert(item);
@@ -171,6 +173,17 @@ public class ProjectSplitDraftService {
             throw exception(PROJECT_NOT_EXISTS);
         }
         return project;
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectMasterDO requireTemplateSelectionParent(Long projectId, Actor actor) {
+        validateActor(actor);
+        var parent = requireParent(projectId, actor);
+        requireProjectScope(projectId, actor.actorId());
+        var tree = treeVersionMapper.selectLatestActive(parent.getRootId() == null ? projectId : parent.getRootId());
+        if (tree == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
+        assertManageScope(actor, projectId, tree.getTreeVersion());
+        return parent;
     }
 
     private ProjectSplitRequestDO requireRequest(Long requestId, Actor actor) {

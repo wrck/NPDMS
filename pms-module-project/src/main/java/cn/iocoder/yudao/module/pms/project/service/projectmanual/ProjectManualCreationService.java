@@ -21,12 +21,13 @@ import java.util.List;
 public interface ProjectManualCreationService {
 
     /**
-     * 手工创建根项目（单事务）。
+     * 创建根项目或已由拆分应用层授权的子项目（单事务）。
      *
      * @param draft                      项目草稿（BR-2 必填字段由服务校验）
      * @param orderOfficeCompanyCode     下单办事处公司编码（空=不登记）
      * @param orderOfficeDepartmentCode  下单办事处部门编码（可空）
-     * @param manualTemplateId           人工选择模板ID（空=四维自动匹配）
+     * @param templateRevisionId         精确已发布版本；子项目必填，不继承父模板
+     * @param candidateWatermark         根项目匹配水位；子项目由拆分应用层复核选定版本
      * @param serviceManagerUserId       可选一级服务经理用户ID（空=暂存后人工指派）
      * @return 已落库项目主档（含自增ID与回填后的 code_root_id/root_id）
      */

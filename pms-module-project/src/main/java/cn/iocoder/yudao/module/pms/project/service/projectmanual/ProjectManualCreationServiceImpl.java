@@ -45,6 +45,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateSelectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
@@ -143,6 +144,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectAttributeResolutionService projectAttributeResolutionService;
     @Resource
+    private ProjectTemplateSelectionService templateSelectionService;
+    @Resource
     private ProjectCodeAllocator projectCodeAllocator;
     @Resource
     private TaskExecutionContractFactory taskExecutionContractFactory;
@@ -170,6 +173,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (!missing.isEmpty()) {
             throw exception(PROJECT_CREATE_FIELDS_INVALID, String.join("、", missing));
         }
+        if (draft.getParentId() != null) draft.setLifecycleTemplateRevisionId(templateRevisionId);
         TemplateMatchDecision matchDecision = draft.getParentId() == null
                 ? projectAttributeResolutionService.resolveInitial(new ProjectAttributeSnapshot(
                         draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(),
@@ -184,17 +188,17 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     public ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
                                          String orderOfficeDepartmentCode, TemplateMatchDecision matchDecision,
                                          Long serviceManagerUserId) {
-        // a) BR-2 必填校验（失败不落库不实例化；子项目三维/模板继承父，仅名称+创建原因必填）
+        // Validate before persistence; child business attributes may inherit, template identity must not.
         List<String> missing = draft.getParentId() == null
                 ? ProjectRules.validateManualCreation(draft)
                 : ProjectRules.validateChildCreation(draft);
         if (!missing.isEmpty()) {
             throw exception(PROJECT_CREATE_FIELDS_INVALID, String.join("、", missing));
         }
-        // b) 模板选择与冻结内容读取（根项目四维匹配/人工选择；子项目继承父模板版本）
+        // Both roots and children freeze the exact independently selected published revision.
         SelectedTemplate selected = draft.getParentId() == null
                 ? selectTemplate(matchDecision)
-                : selectInheritedTemplate(draft.getParentId());
+                : selectChildTemplate(draft.getLifecycleTemplateRevisionId(), draft.getTenantId());
         var executionSnapshot = projectTemplateService.getExecutionSnapshot(
                 selected.templateId(), selected.revisionNo());
         // Downstream Project domain still consumes the legacy-shaped DTO, but the only template runtime truth
@@ -585,23 +589,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 loadMethod);
     }
 
-    /**
-     * 子项目继承父项目的冻结模板版本（BR-2：继承拆分时指定的模板版本）。
-     */
-    private SelectedTemplate selectInheritedTemplate(Long parentId) {
-        ProjectMasterDO parent = validateProjectExists(parentId);
-        if (parent.getLifecycleTemplateId() == null || parent.getLifecycleTemplateRevisionId() == null
-                || parent.getLifecycleTemplateRevisionNo() == null) {
-            throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-        }
-        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionById(parent.getLifecycleTemplateRevisionId());
-        if (revision == null
-                || !Objects.equals(parent.getLifecycleTemplateId(), revision.getTemplateId())
-                || !Objects.equals(parent.getLifecycleTemplateRevisionNo(), revision.getRevisionNo())
-                || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
-            throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-        }
-        return new SelectedTemplate(parent.getLifecycleTemplateId(), revision.getId(), revision.getRevisionNo(),
+    private SelectedTemplate selectChildTemplate(Long revisionId, Long tenantId) {
+        var revision = templateSelectionService.requireAvailable(revisionId, tenantId);
+        return new SelectedTemplate(revision.getTemplateId(), revision.getId(), revision.getRevisionNo(),
                 ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
     }
 

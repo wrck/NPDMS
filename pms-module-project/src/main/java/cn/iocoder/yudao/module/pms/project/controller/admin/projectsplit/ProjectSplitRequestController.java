@@ -109,7 +109,8 @@ public class ProjectSplitRequestController {
                         item.getBusinessLevelCode(), item.getTreeSort(), item.getOfficeDepartmentCode(),
                         item.getScopes().stream().map(scope -> new ProjectSplitDraftCommand.Scope(
                                 scope.getOrderLineId(), scope.getQuantity(), scope.getOfficeDepartmentCode(),
-                                scope.getSerialNumbers())).toList())).toList());
+                                scope.getSerialNumbers())).toList(), item.getTemplateRevisionId(),
+                        item.getTemplateSelectionReason())).toList());
     }
 
     private ProjectSplitDraftService.Actor actor() {
@@ -149,6 +150,8 @@ public class ProjectSplitRequestController {
         response.setBusinessLevelCode(item.getBusinessLevelCode());
         response.setTreeSort(item.getTreeSort());
         response.setOfficeDepartmentCode(item.getOfficeDepartmentCode());
+        response.setTemplateRevisionId(item.getTemplateRevisionId());
+        response.setTemplateSelectionReason(item.getTemplateSelectionReason());
         response.setItemStatus(item.getItemStatus());
         response.setScopes(scopes.stream().map(scope -> {
             ProjectSplitRequestRespVO.Scope value = new ProjectSplitRequestRespVO.Scope();

@@ -89,6 +89,13 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectManualCreationApplicationService service;
 
     @Test
+    void oldRootCreationEntryCannotBypassChildSelectionScopeAndOverrideChecks() {
+        var command = command(); command.draft().setParentId(100L);
+        assertThrows(IllegalArgumentException.class, () -> service.create(command, actor()));
+        verifyNoInteractions(platformFactService, projectCreationService);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void selectedCustomerCreationUsesOwnerIdentityInsideTheOriginalCreationTransaction() {
         var command = command();
@@ -341,18 +348,13 @@ class ProjectManualCreationApplicationServiceTest {
     }
 
     @Test
-    void childCreationMayInheritTemplateWithoutCandidateWatermark() {
+    void childCreationWithoutSelectionMustUseScopedSplitEntry() {
         ManualProjectCreateCommand base = command();
         base.draft().setParentId(100L);
         ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), 10L, 20L,
                 java.util.List.of(), null, null, null, base.idempotencyKey(), base.requestDigest());
-        when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
-                new PlatformCommandExecutionApi.ExecutionResult<>(
-                        PlatformCommandExecutionApi.Decision.IN_PROGRESS, null));
-
-        ServiceException exception = assertThrows(ServiceException.class, () -> service.create(child, actor()));
-
-        assertEquals(PMS_IDEMPOTENCY_IN_PROGRESS.getCode(), exception.getCode());
+        assertThrows(IllegalArgumentException.class, () -> service.create(child, actor()));
+        verifyNoInteractions(platformFactService, projectCreationService);
     }
 
     private ManualProjectCreateCommand command() {

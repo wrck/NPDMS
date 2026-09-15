@@ -18,6 +18,8 @@ public class ProjectSplitItemDO extends TenantBaseDO {
     private String businessLevelCode;
     private Integer treeSort;
     private String officeDepartmentCode;
+    private Long templateRevisionId;
+    private String templateSelectionReason;
     private String itemStatus;
     private String validationResult;
     private Long createdProjectId;

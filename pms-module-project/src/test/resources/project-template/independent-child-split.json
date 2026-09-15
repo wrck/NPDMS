@@ -1,0 +1,19 @@
+{
+  "parentProjectId": 993009245100,
+  "items": [
+    {
+      "clientItemKey": "site-survey-delivery",
+      "projectName": "工前准备 - 现场工勘交付",
+      "templateRevisionId": 993009245201,
+      "templateSelectionReason": "现场工勘独立交付",
+      "scopes": [{ "orderLineId": 993009245301, "quantity": 1 }]
+    },
+    {
+      "clientItemKey": "requirements-delivery",
+      "projectName": "工前准备 - 需求分析交付",
+      "templateRevisionId": 993009245202,
+      "templateSelectionReason": "需求分析独立交付",
+      "scopes": [{ "orderLineId": 993009245302, "quantity": 1 }]
+    }
+  ]
+}

@@ -42,13 +42,14 @@ class ProjectSplitPreviewServiceTest {
     @Mock DeptApi deptApi;
     @Mock OperationAuditApi auditService;
     @Mock ProjectSplitMetrics metrics;
+    @Mock cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateSelectionService templates;
 
     private ProjectSplitPreviewService service;
 
     @BeforeEach
     void setUp() {
         service = new ProjectSplitPreviewService(draftService, requestMapper, itemMapper, projectMapper,
-                treeVersionMapper, deliveryScopeApi, assetDeviceScopeApi, deptApi, auditService, metrics);
+                treeVersionMapper, deliveryScopeApi, assetDeviceScopeApi, deptApi, auditService, metrics, templates);
     }
 
     @Test
@@ -111,6 +112,32 @@ class ProjectSplitPreviewServiceTest {
                 "INVALID".equals(update.getValidationStatus())));
         verify(auditService).record(eq(1L), eq(9L), eq("corr-3"), eq("PROJECT_SPLIT_PREVIEW"),
                 eq(20L), eq("VALIDATION_FAILED"), anyMap());
+    }
+
+    @Test
+    void previewRejectsUnavailableChildTemplateWithoutCreatingProject() {
+        var actor = new ProjectSplitDraftService.Actor(1L, 9L, "corr-template");
+        var draft = draft();
+        when(draftService.getDraft(20L, actor)).thenReturn(draft);
+        when(projectMapper.selectById(100L)).thenReturn(parent());
+        when(treeVersionMapper.selectLatestActive(100L)).thenReturn(tree());
+        when(deliveryScopeApi.previewSplit(any())).thenReturn(new SplitScopeApplyResult(true, false, 5L, List.of(), List.of()));
+        when(templates.select(any(), any(), any(), eq(9L))).thenThrow(new IllegalArgumentException("template retired"));
+        var result = service.preview(new ProjectSplitPreviewCommand(20L, 2), actor);
+        assertFalse(result.valid());
+        assertTrue(result.errors().contains("CHILD_TEMPLATE_NOT_SELECTABLE:" + draft.items().getFirst().getClientItemKey()));
+        assertFalse(result.items().getFirst().valid());
+        verify(projectMapper, never()).insert(any(ProjectMasterDO.class));
+        doThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(
+                        cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_SELECTION_REASON_INVALID))
+                .when(templates).select(any(), any(), any(), eq(9L));
+        assertTrue(service.preview(new ProjectSplitPreviewCommand(20L, 2), actor).errors().getFirst()
+                .startsWith("CHILD_TEMPLATE_REASON_REQUIRED:"));
+        doThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(
+                        cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_OVERRIDE_FORBIDDEN))
+                .when(templates).select(any(), any(), any(), eq(9L));
+        assertTrue(service.preview(new ProjectSplitPreviewCommand(20L, 2), actor).errors().getFirst()
+                .startsWith("CHILD_TEMPLATE_OVERRIDE_FORBIDDEN:"));
     }
 
     private ProjectSplitDraftService.DraftResult draft() {

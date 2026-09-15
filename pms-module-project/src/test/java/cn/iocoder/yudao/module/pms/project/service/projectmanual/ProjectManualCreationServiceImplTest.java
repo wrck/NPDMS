@@ -171,6 +171,8 @@ class ProjectManualCreationServiceImplTest {
     @Mock
     private ProjectAttributeResolutionService projectAttributeResolutionService;
     @Mock
+    private cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateSelectionService templateSelectionService;
+    @Mock
     private ProjectCodeAllocator projectCodeAllocator;
     @Mock
     private TaskExecutionContractFactory taskExecutionContractFactory;
@@ -200,6 +202,29 @@ class ProjectManualCreationServiceImplTest {
     }
 
     // ========== BR-2 必填阻断 ==========
+
+    @Test
+    void childFreezesItsSelectedRevisionAndPlanWithoutReadingParentTemplate() {
+        var parent = persistedProject(); parent.setTenantId(1L); parent.setTreePath("/"); parent.setTreeDepth(0);
+        parent.setLifecycleTemplateRevisionId(999L);
+        when(projectMasterMapper.selectById(100L)).thenReturn(parent);
+        var revision = revision(9L, "PUBLISHED", 2);
+        when(templateSelectionService.requireAvailable(1002L, 1L)).thenReturn(revision);
+        var snapshot = snapshotOf(contentWithS0Only());
+        when(projectTemplateService.getExecutionSnapshot(9L, 2)).thenReturn(snapshot);
+        when(projectCodeAllocator.allocateChildCode(100L, parent.getProjectCode()))
+                .thenReturn(new ProjectCodeAllocator.ChildCodeAllocation("CHILD-001", 1));
+        doAnswer(call -> { ((ProjectMasterDO) call.getArgument(0)).setId(200L); return 1; })
+                .when(projectMasterMapper).insert(any(ProjectMasterDO.class));
+        var draft = validDraft(); draft.setParentId(100L);
+        var created = service.createProject(draft, null, null, 1002L, null, null);
+        assertEquals(1002L, created.getLifecycleTemplateRevisionId()); assertEquals(9L, created.getLifecycleTemplateId());
+        assertEquals(2, created.getLifecycleTemplateRevisionNo()); assertEquals(999L, parent.getLifecycleTemplateRevisionId());
+        verify(runtimeGraphFreezer).freeze(eq(1L), eq(200L), eq(1002L), any(TemplateDefinitionContent.class), any(), any());
+        verify(planInitializationService).initialize(eq(created), eq(snapshot), any(), any());
+        verifyNoInteractions(projectAttributeResolutionService);
+        verify(projectTemplateService, never()).getRevisionById(999L);
+    }
 
     @Test
     void creationBlockedWhenRequiredFieldsMissing() {

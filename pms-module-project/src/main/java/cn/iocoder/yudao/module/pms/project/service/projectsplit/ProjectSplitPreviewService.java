@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectsplit;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.device.AssetDeviceScopeApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult;
@@ -18,6 +19,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRe
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitPreviewCommand;
+import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateSelectionService;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,8 @@ import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_SPLIT_DRAFT_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_OVERRIDE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_SELECTION_REASON_INVALID;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +59,7 @@ public class ProjectSplitPreviewService {
     private final DeptApi deptApi;
     private final OperationAuditApi auditService;
     private final ProjectSplitMetrics metrics;
+    private final ProjectTemplateSelectionService templates;
 
     @Transactional(rollbackFor = Exception.class)
     public PreviewResult preview(ProjectSplitPreviewCommand command, ProjectSplitDraftService.Actor actor) {
@@ -67,6 +72,13 @@ public class ProjectSplitPreviewService {
         List<String> errors = new ArrayList<>();
         validateProjectWatermarks(request, errors);
         validateDepartments(draft, errors);
+        ProjectMasterDO parent = projectMapper.selectById(request.getParentProjectId());
+        if (parent != null) {
+            for (var item : draft.items()) {
+                try { templates.select(parent, item.getTemplateRevisionId(), item.getTemplateSelectionReason(), actor.actorId()); }
+                catch (RuntimeException invalid) { errors.add(templateError(invalid) + ":" + item.getClientItemKey()); }
+            }
+        }
 
         List<SplitScopePreviewCommand.Allocation> allocations = allocations(draft);
         try {
@@ -109,6 +121,16 @@ public class ProjectSplitPreviewService {
 
     public PreviewResult validateAgain(ProjectSplitPreviewCommand command, ProjectSplitDraftService.Actor actor) {
         return preview(command, actor);
+    }
+
+    private String templateError(RuntimeException failure) {
+        if (failure instanceof ServiceException error) {
+            if (PROJECT_TEMPLATE_OVERRIDE_FORBIDDEN.getCode().equals(error.getCode()))
+                return "CHILD_TEMPLATE_OVERRIDE_FORBIDDEN";
+            if (PROJECT_TEMPLATE_SELECTION_REASON_INVALID.getCode().equals(error.getCode()))
+                return "CHILD_TEMPLATE_REASON_REQUIRED";
+        }
+        return "CHILD_TEMPLATE_NOT_SELECTABLE";
     }
 
     private void validateProjectWatermarks(ProjectSplitRequestDO request, List<String> errors) {

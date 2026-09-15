@@ -25,6 +25,8 @@ public class ProjectSplitDraftSaveReqVO {
         @Size(max = 64) private String businessLevelCode;
         private Integer treeSort;
         @Size(max = 64) private String officeDepartmentCode;
+        @jakarta.validation.constraints.Positive private Long templateRevisionId;
+        @Size(max = 512) private String templateSelectionReason;
         @Valid @NotEmpty private List<Scope> scopes;
     }
 

@@ -86,7 +86,7 @@ public class ProjectManualCreationApplicationService {
     @Resource
     private CustomerQueryApi customerQueryApi;
 
-    /** 新入口只解析已选择客户，后续创建完整复用原事务；旧创建入口不变。 */
+    /** 根项目入口解析已选择客户；子项目统一由带父范围授权的拆分应用层创建。 */
     public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
         if (command.draft().getParentId() != null || command.draft().getCustomerCode() == null
@@ -118,6 +118,9 @@ public class ProjectManualCreationApplicationService {
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
+        if (command.draft().getParentId() != null) {
+            throw new IllegalArgumentException("请通过拆分入口创建子项目并独立选择模板");
+        }
         authorizationService.assertCanCreate(actor.actorId());
         if (command.serviceManagerUserId() != null) {
             authorizationService.assertCanAssign(actor.actorId());

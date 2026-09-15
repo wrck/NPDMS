@@ -28,6 +28,8 @@ public class ProjectSplitRequestRespVO {
         private String businessLevelCode;
         private Integer treeSort;
         private String officeDepartmentCode;
+        private Long templateRevisionId;
+        private String templateSelectionReason;
         private String itemStatus;
         private List<Scope> scopes;
     }

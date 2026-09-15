@@ -16,7 +16,7 @@ class ProjectSplitRulesTest {
         ProjectSplitDraftCommand command = new ProjectSplitDraftCommand(null, null, 100L, null, List.of(
                 new ProjectSplitDraftCommand.Item("A", "子项目A", "L2", 1, "OFF-01", List.of(
                         new ProjectSplitDraftCommand.Scope(10L, new BigDecimal("2"), "OFF-01", List.of("SN-1", "SN-2")),
-                        new ProjectSplitDraftCommand.Scope(11L, new BigDecimal("3.5"), null, List.of())))));
+                        new ProjectSplitDraftCommand.Scope(11L, new BigDecimal("3.5"), null, List.of())), 201L, null)));
 
         assertTrue(rules.validate(command).isEmpty());
     }
@@ -31,6 +31,6 @@ class ProjectSplitRulesTest {
 
     private ProjectSplitDraftCommand.Item item(String key, String serial) {
         return new ProjectSplitDraftCommand.Item(key, "子项目" + key, null, 0, null, List.of(
-                new ProjectSplitDraftCommand.Scope(10L, BigDecimal.ONE, null, List.of(serial))));
+                new ProjectSplitDraftCommand.Scope(10L, BigDecimal.ONE, null, List.of(serial))), 201L, null);
     }
 }

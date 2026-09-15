@@ -15,6 +15,8 @@ export interface ProjectSplitItemInput {
   businessLevelCode?: string
   treeSort?: number
   officeDepartmentCode?: string
+  templateRevisionId?: LongId
+  templateSelectionReason?: string
   scopes: ProjectSplitScopeInput[]
 }
 
@@ -44,6 +46,8 @@ export interface ProjectSplitDraftVO {
     businessLevelCode?: string
     treeSort?: number
     officeDepartmentCode?: string
+    templateRevisionId?: LongId
+    templateSelectionReason?: string
     itemStatus?: string
     scopes: {
       id: LongId
@@ -70,6 +74,18 @@ export interface ProjectSplitPreviewVO {
 }
 
 const baseUrl = '/pms/project-split-requests'
+
+export interface ChildTemplateOption {
+  templateId: LongId
+  name: string
+  revisionId?: LongId
+  revisionNo?: number
+  recommended: boolean
+  selectable: boolean
+}
+
+export const getChildTemplateOptions = (params: { parentProjectId: number; pageNo: number; pageSize: number; name?: string }) =>
+  request.get<{ list: ChildTemplateOption[]; total: number }>({ url: '/api/v1/pms/project-child-template-options', params })
 
 export const createDraft = (data: ProjectSplitDraftInput, idempotencyKey: string) =>
   request.post<ProjectSplitDraftVO>({
