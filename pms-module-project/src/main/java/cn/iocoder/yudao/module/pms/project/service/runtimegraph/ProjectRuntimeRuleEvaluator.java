@@ -69,7 +69,7 @@ public class ProjectRuntimeRuleEvaluator {
             if (facts.stage() == null) return RuleFact.unknown("STAGE_CONTEXT_REQUIRED");
             if (!facts.stageCompletion()) return RuleFact.known("DONE".equals(facts.stage().getStatus()));
             // Native readiness is prospective completion, never a pre-write of the stage status.
-            return RuleFact.known(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getStageCode()))
+            return RuleFact.known(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getCode()))
                     .allMatch(t -> "DONE".equals(t.getStatus())));
         }
         if ("TASK_NATIVE_STATUS".equals(predicate)) return RuleFact.unknown("TASK_CONTEXT_REQUIRED");
@@ -79,7 +79,7 @@ public class ProjectRuntimeRuleEvaluator {
         List<ProjectGateReferenceInstanceDO> matches = facts.references().stream()
                 .filter(r -> predicate.equals(r.getRefType()) && refCode.equals(r.getRefCode()))
                 .filter(r -> facts.gates().stream().anyMatch(g -> Objects.equals(g.getId(), r.getGateId())
-                        && (facts.stage() == null || Objects.equals(g.getStageCode(), facts.stage().getStageCode())))).toList();
+                        && (facts.stage() == null || Objects.equals(g.getStageCode(), facts.stage().getCode())))).toList();
         // BPM business identity is the actual frozen reference. Never invent gate/reference IDs.
         if (("PROCESS".equals(predicate) || "APPROVAL".equals(predicate)) && matches.size() != 1)
             return RuleFact.unknown("APPROVAL_REFERENCE_UNAVAILABLE");
@@ -87,7 +87,7 @@ public class ProjectRuntimeRuleEvaluator {
         ProjectGateInstanceDO gate = ref == null ? null : facts.gates().stream()
                 .filter(g -> Objects.equals(g.getId(), ref.getGateId())).findFirst().orElseThrow();
         var query = new ProjectStageGateFactQuery(facts.project().getTenantId(), facts.project().getId(),
-                gate != null ? gate.getStageCode() : facts.stage() == null ? null : facts.stage().getStageCode(), gate == null ? null : gate.getId(),
+                gate != null ? gate.getStageCode() : facts.stage() == null ? null : facts.stage().getCode(), gate == null ? null : gate.getId(),
                 gate == null ? null : gate.getGateCode(), gate == null ? null : gate.getVersion(),
                 ref == null ? null : ref.getId(), ref == null ? null : ref.getVersion(), predicate, refCode,
                 ref == null ? null : ref.getRefVersion(), null);

@@ -240,7 +240,7 @@ class ProjectTaskCommandServiceTest {
     private void assertCreatesTaskWithNativeContractAndTreeVersion() {
         when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
         ProjectStageInstanceDO stage = new ProjectStageInstanceDO();
-        stage.setStageCode("S1");
+        stage.setCode("S1");
         when(stageMapper.selectByProjectIdAndStageCode(100L, "S1")).thenReturn(stage);
         TaskStateMachineRevisionDO revision = new TaskStateMachineRevisionDO();
         revision.setId(81L);

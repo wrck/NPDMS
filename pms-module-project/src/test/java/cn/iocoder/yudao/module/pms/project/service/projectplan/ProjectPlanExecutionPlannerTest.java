@@ -19,10 +19,10 @@ class ProjectPlanExecutionPlannerTest {
     ProjectPlanExecutionPlannerTest() {
         long id = 10;
         for (var stage : before.getStages()) {
-            var row = new ProjectStageInstanceDO(); row.setId(++id); row.setStageCode(stage.getCode()); row.setStatus("PENDING"); stages.add(row);
+            var row = new ProjectStageInstanceDO(); row.setId(++id); row.setCode(stage.getCode()); row.setStatus("PENDING"); stages.add(row);
             rounds.add(round(stage.getNodeKey(), "STAGE", row.getId()));
         }
-        var task = new ProjectTaskInstanceDO(); task.setId(20L); task.setTaskCode("T1"); task.setStageCode("A"); task.setStatus("PENDING_ASSIGN"); tasks.add(task);
+        var task = new ProjectTaskInstanceDO(); task.setId(20L); task.setCode("T1"); task.setStageCode("A"); task.setStatus("PENDING_ASSIGN"); tasks.add(task);
         rounds.add(round("task:one", "TASK", 20L));
     }
     @Test void mapsIdentityByNodeKeyNotCodeOrSourceAssetAndDoesNotInventRework() {
@@ -98,7 +98,7 @@ class ProjectPlanExecutionPlannerTest {
         assertEquals(6,first.nodeVersion()); assertEquals(7,second.nodeVersion());
     }
     @Test void independentRuntimeTasksCannotLoseTheirTreeWhenAPlanIsInstalled() {
-        var outside = new ProjectTaskInstanceDO(); outside.setId(21L); outside.setTaskCode("MANUAL"); outside.setStageCode("A"); outside.setStatus("IN_PROGRESS");
+        var outside = new ProjectTaskInstanceDO(); outside.setId(21L); outside.setCode("MANUAL"); outside.setStageCode("A"); outside.setStatus("IN_PROGRESS");
         tasks.add(outside);
         assertTrue(plan(before).issues().stream().anyMatch(issue -> issue.code().equals("PROJECT_PLAN_UNTRACKED_TASK")));
     }

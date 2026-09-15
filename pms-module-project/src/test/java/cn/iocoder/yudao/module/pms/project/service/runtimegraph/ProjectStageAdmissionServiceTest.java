@@ -153,7 +153,7 @@ class ProjectStageAdmissionServiceTest {
     @Test void taskStartNeedsItsActiveStageAndItsOwnFrozenAdmission() {
         add("DISCOVERY", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
-                .setId(21L).setProjectId(9L).setTaskCode("WORK").setStageCode("DISCOVERY");
+                .setId(21L).setProjectId(9L).setCode("WORK").setStageCode("DISCOVERY");
         var taskContract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
         taskContract.setId(201L); taskContract.setSourceNodeKey("task:work"); taskContract.setContractVersion(1);
         var snapshot = effective;
@@ -174,7 +174,7 @@ class ProjectStageAdmissionServiceTest {
     @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
         add("PREP", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
-                .setId(21L).setProjectId(9L).setTaskCode("SURVEY").setStageCode("PREP").setStatus("PENDING_START");
+                .setId(21L).setProjectId(9L).setCode("SURVEY").setStageCode("PREP").setStatus("PENDING_START");
         task.setTenantId(7L);
         var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
         contract.setId(201L); contract.setProjectTaskId(21L); contract.setTenantId(7L); contract.setSourceNodeKey("task:survey");
@@ -273,7 +273,7 @@ class ProjectStageAdmissionServiceTest {
 
     private void add(String code, String expression) {
         long id = rows.size() + 1L;
-        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setStageCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);
+        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);
         stage.setTenantId(7L); rows.add(stage);
         var definition = new TemplateExecutionSnapshot.StageContract(); definition.setNodeKey("stage:" + code); definition.setCode(code);
         var snapshot = new TemplateExecutionSnapshot(); snapshot.setStages(List.of(definition));

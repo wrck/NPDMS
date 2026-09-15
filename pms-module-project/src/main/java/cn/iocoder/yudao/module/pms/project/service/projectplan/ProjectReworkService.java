@@ -167,7 +167,7 @@ public class ProjectReworkService {
             return next.getId();
         }
         var stage = runtime.stages().stream().filter(row -> Objects.equals(row.getId(), old.getNodeInstanceId())).findFirst().orElseThrow();
-        if (!Set.of("DONE", "TERMINATED").contains(stage.getStatus()) || !Objects.equals(stage.getStageCode(), target.node().stageCode()))
+        if (!Set.of("DONE", "TERMINATED").contains(stage.getStatus()) || !Objects.equals(stage.getCode(), target.node().stageCode()))
             throw exception(PROJECT_REWORK_INVALID);
         var current = graph.selectContracts(new ProjectRuntimeGraphQuery(scope.tenantId(), scope.projectId())).stream()
                 .filter(contract -> Objects.equals(contract.getStageId(), stage.getId()) && Objects.equals(contract.getSourceNodeKey(), target.node().nodeKey())
@@ -184,7 +184,7 @@ public class ProjectReworkService {
                 stage.getId(), contract.getId(), contract.getVersion(), now, actorId.toString())) != 1
                 || stageContracts.insert(next) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(scope.tenantId(), scope.projectId(), stage.getId(), stage.getVersion(),
-                stage.getStatus(), "PENDING", actorId.toString())) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
+                stage.getStatus(), "PENDING", actorId.toString(), java.time.LocalDateTime.now())) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         return next.getId();
     }
 

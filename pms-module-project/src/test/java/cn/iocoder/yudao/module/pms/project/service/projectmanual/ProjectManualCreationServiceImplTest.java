@@ -365,7 +365,7 @@ class ProjectManualCreationServiceImplTest {
         ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
         verify(stageInstanceMapper).insert(stageCaptor.capture());
         assertEquals(100L, stageCaptor.getValue().getProjectId());
-        assertEquals("S0", stageCaptor.getValue().getStageCode());
+        assertEquals("S0", stageCaptor.getValue().getCode());
         verify(runtimeGraphFreezer).validate(any(TemplateDefinitionContent.class));
         verify(runtimeGraphFreezer).freeze(eq(1L), eq(100L), eq(revisionId),
                 any(TemplateDefinitionContent.class), any(), any());
@@ -484,7 +484,7 @@ class ProjectManualCreationServiceImplTest {
         ArgumentCaptor<ProjectStageInstanceDO> stageCaptor = ArgumentCaptor.forClass(ProjectStageInstanceDO.class);
         verify(stageInstanceMapper).insert(stageCaptor.capture());
         assertEquals(101L, stageCaptor.getValue().getProjectId());
-        assertEquals("S0", stageCaptor.getValue().getStageCode());
+        assertEquals("S0", stageCaptor.getValue().getCode());
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
     }
 

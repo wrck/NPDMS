@@ -234,13 +234,13 @@ public class ProjectStageAdvanceApplicationService {
         }
         if (stageMapper.updateStatusIfMatch(new ProjectStageStatusUpdate(actor.tenantId(),
                 context.project().getId(), context.pair().current().getId(), context.pair().current().getVersion(),
-                "ACTIVE", "DONE", updater)) != 1
+                "ACTIVE", "DONE", updater, java.time.LocalDateTime.now())) != 1
                 || stageMapper.updateStatusIfMatch(new ProjectStageStatusUpdate(actor.tenantId(),
                 context.project().getId(), context.pair().next().getId(), context.pair().next().getVersion(),
-                "PENDING", "ACTIVE", updater)) != 1
+                "PENDING", "ACTIVE", updater, java.time.LocalDateTime.now())) != 1
                 || projectMapper.advanceStageIfMatch(new ProjectStageAdvanceUpdate(actor.tenantId(),
                 context.project().getId(), context.project().getVersion(), context.project().getCurrentStage(),
-                context.pair().next().getStageCode(), updater)) != 1) {
+                context.pair().next().getCode(), updater)) != 1) {
             throw exception(PROJECT_VERSION_CONFLICT);
         }
         String operationId = UUID.randomUUID().toString();
@@ -251,7 +251,7 @@ public class ProjectStageAdvanceApplicationService {
             throw exception(PROJECT_STAGE_ADVANCE_PERSISTENCE_FAILED);
         }
         return new ProjectStageAdvanceResult(context.project().getId(), context.project().getCurrentStage(),
-                context.pair().next().getStageCode(), context.project().getVersion() + 1,
+                context.pair().next().getCode(), context.project().getVersion() + 1,
                 snapshot.getId(), evaluationJson, operationId, operatedAt, false);
     }
 
@@ -342,15 +342,15 @@ public class ProjectStageAdvanceApplicationService {
     private ProjectStageSnapshotDO snapshot(LockedContext context, Actor actor, String operationId,
                                             LocalDateTime operatedAt, String evaluations) {
         Integer no = snapshotMapper.selectNextSnapshotNo(new ProjectStageSnapshotSequenceQuery(
-                actor.tenantId(), context.project().getId(), context.pair().next().getStageCode()));
+                actor.tenantId(), context.project().getId(), context.pair().next().getCode()));
         if (no == null || no <= 0) throw exception(PROJECT_STAGE_ADVANCE_PERSISTENCE_FAILED);
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setProjectId(context.project().getId());
-        snapshot.setStageCode(context.pair().next().getStageCode());
+        snapshot.setStageCode(context.pair().next().getCode());
         snapshot.setSnapshotNo(no);
         snapshot.setOperationType("STAGE_ADVANCE");
         snapshot.setBeforeStage(context.project().getCurrentStage());
-        snapshot.setAfterStage(context.pair().next().getStageCode());
+        snapshot.setAfterStage(context.pair().next().getCode());
         snapshot.setBeforeLifecycleStatus(context.project().getLifecycleStatus());
         snapshot.setAfterLifecycleStatus(context.project().getLifecycleStatus());
         snapshot.setBeforeAssignmentStatus(context.project().getAssignmentStatus());

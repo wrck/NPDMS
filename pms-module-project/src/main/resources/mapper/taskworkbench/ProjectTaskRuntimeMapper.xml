@@ -2,11 +2,17 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper">
+    <resultMap id="taskInstance" type="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO" autoMapping="true">
+        <id property="id" column="id"/>
+        <result property="code" column="task_code"/>
+    </resultMap>
+
 
     <sql id="taskColumns">
         task.id, task.project_id, task.task_code, task.name, task.parent_task_code,
         task.parent_task_id, task.root_task_id, task.tree_depth, task.business_level_code,
-        task.milestone_id, task.plan_start_time, task.plan_end_time, task.actual_start_time,
+        task.milestone_id, task.suggested_start_time, task.suggested_end_time, task.acceptance_time,
+        task.plan_start_time, task.plan_end_time, task.actual_start_time,
         task.actual_end_time, task.progress, task.state_machine_revision_id, task.stage_code,
         task.priority, task.sort_order, task.estimated_hours, task.satisfaction_timing,
         task.description, task.source_definition_id, task.status, task.version,
@@ -14,7 +20,7 @@
     </sql>
 
     <select id="selectTreeQuery"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT <include refid="taskColumns"/>
         FROM proj_project_task task
         <if test="query.mode.name() == 'ALL_DESCENDANTS'">
@@ -145,7 +151,7 @@
     </select>
 
     <select id="selectAncestorQuery"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT DISTINCT <include refid="taskColumns"/>
         FROM proj_task_tree_path path
         JOIN proj_project_task task
@@ -166,7 +172,7 @@
     </select>
 
     <select id="selectTask"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT <include refid="taskColumns"/>
         FROM proj_project_task task
         WHERE task.tenant_id = #{query.tenantId}
@@ -175,7 +181,7 @@
     </select>
 
     <select id="selectListForGovernanceGuard"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT <include refid="taskColumns"/>
         FROM proj_project_task task
         WHERE task.tenant_id = #{query.tenantId}
@@ -308,7 +314,7 @@
     </select>
 
     <select id="selectTaskForAssignmentForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT <include refid="taskColumns"/>
         FROM proj_project_task task
         WHERE task.tenant_id = #{query.tenantId}
@@ -319,7 +325,7 @@
     </select>
 
     <select id="selectSourceTaskForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT *
         FROM proj_project_task
         WHERE tenant_id = #{query.tenantId}
@@ -330,7 +336,7 @@
     </select>
 
     <select id="selectTargetParentForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT *
         FROM proj_project_task
         WHERE tenant_id = #{query.tenantId}
@@ -341,7 +347,7 @@
     </select>
 
     <select id="selectMovedSubtreeForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+            resultMap="taskInstance">
         SELECT task.*
         FROM proj_task_tree_path path
         JOIN proj_project_task task

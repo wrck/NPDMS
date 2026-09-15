@@ -52,14 +52,14 @@
         UPDATE proj_project_task SET task_code=CONCAT('~plan:',id) WHERE <include refid="nodeScope"/>
     </update>
     <update id="updateStageDefinition">
-        UPDATE proj_project_stage SET stage_code=#{query.definition.stageCode},name=#{query.definition.name},
+        UPDATE proj_project_stage SET stage_code=#{query.definition.code},name=#{query.definition.name},
             sort_order=#{query.definition.sortOrder},entry_criteria=#{query.definition.entryCriteria},
             exit_criteria=#{query.definition.exitCriteria},start_node=#{query.definition.startNode},terminal_node=#{query.definition.terminalNode},
             version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
         WHERE <include refid="nodeScope"/>
     </update>
     <update id="updateTaskDefinition">
-        UPDATE proj_project_task SET task_code=#{query.definition.taskCode},name=#{query.definition.name},
+        UPDATE proj_project_task SET task_code=#{query.definition.code},name=#{query.definition.name},
             stage_code=#{query.definition.stageCode},parent_task_code=#{query.definition.parentTaskCode},
             parent_task_id=#{query.definition.parentTaskId},root_task_id=#{query.definition.rootTaskId},tree_depth=#{query.definition.treeDepth},
             priority=#{query.definition.priority},sort_order=#{query.definition.sortOrder},estimated_hours=#{query.definition.estimatedHours},

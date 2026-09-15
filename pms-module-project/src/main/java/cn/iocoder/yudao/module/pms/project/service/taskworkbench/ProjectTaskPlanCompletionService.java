@@ -99,7 +99,7 @@ public class ProjectTaskPlanCompletionService {
             return unknown(reference,"TASK_EXECUTION_ROUND_STALE");
         var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(),TemplateExecutionSnapshot.class);
         var definitions = snapshot.getTasks().stream().filter(node -> round.getNodeKey().equals(node.getNodeKey())
-                && task.getTaskCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
+                && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
         if (definitions.size()!=1) return unknown(reference,"TASK_PLAN_DEFINITION_UNAVAILABLE");
         var node = definitions.getFirst();
         var completion = snapshot.getRulePrograms().get(node.getCompletionRuleKey());
@@ -139,7 +139,7 @@ public class ProjectTaskPlanCompletionService {
             evidence.put("businessFacts", ProjectBusinessFactSourceService.freeze(round, links));
         }
         var query = new ProjectRuntimeGraphQuery(tenantId,project.getId());
-        var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> task.getStageCode().equals(stage.getStageCode())).toList();
+        var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> task.getStageCode().equals(stage.getCode())).toList();
         if (parents.size()!=1 || !"ACTIVE".equals(parents.getFirst().getStatus())) return unknown(reference,"TASK_STAGE_NOT_ACTIVE");
         var gates = graph.selectGatesForUpdate(query);
         var refs = gates.isEmpty() ? List.<ProjectGateReferenceInstanceDO>of()

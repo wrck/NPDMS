@@ -24,9 +24,9 @@ final class ProjectStageTransitionFacts {
                                                    boolean currentReadyToComplete) {
         if (!currentReadyToComplete || target == null || !"ACTIVE".equals(current.getStatus())
                 || !"PENDING".equals(target.getStatus()) || !"ENTRY".equals(gate.getGateType())
-                || !Objects.equals(target.getStageCode(), gate.getStageCode())
+                || !Objects.equals(target.getCode(), gate.getStageCode())
                 || !"STATE".equals(reference.getRefType())
-                || !Objects.equals(current.getStageCode(), ProjectLocalStageGateFactProvider.completedStageCode(reference.getRefCode()))) {
+                || !Objects.equals(current.getCode(), ProjectLocalStageGateFactProvider.completedStageCode(reference.getRefCode()))) {
             return null;
         }
         // 标明这是求值事实而非已持久化DONE；沿用实际阶段身份和当前版本进入审计。

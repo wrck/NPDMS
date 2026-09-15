@@ -151,7 +151,7 @@ class ProjectReworkServiceTest {
         rounds.getFirst().setStatus("DONE");
         assertThrows(RuntimeException.class,()->service.apply(command(3,2L),9L,"missing-parent-token"));
         verifyNoInteractions(changes);
-        var stage=new ProjectStageInstanceDO(); stage.setId(1L); stage.setStageCode("PREP"); stage.setStatus("DONE"); stage.setVersion(7); stage.setGraphVersion(1L);
+        var stage=new ProjectStageInstanceDO(); stage.setId(1L); stage.setCode("PREP"); stage.setStatus("DONE"); stage.setVersion(7); stage.setGraphVersion(1L);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         var binding=new cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectStageExecutionContractDO();
         binding.setId(101L); binding.setStageId(1L); binding.setSourceNodeKey("s"); binding.setGraphVersion(1L);

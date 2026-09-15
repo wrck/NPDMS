@@ -259,8 +259,10 @@ public class ProjectMasterController {
         respVO.setProjectId(id);
         respVO.setLifecycleTemplateId(project.getLifecycleTemplateId());
         respVO.setLifecycleTemplateRevisionNo(project.getLifecycleTemplateRevisionNo());
-        respVO.setStages(BeanUtils.toBean(instantiation.getStages(), ProjectInstancesRespVO.StageItem.class));
-        respVO.setTasks(BeanUtils.toBean(instantiation.getTasks(), ProjectInstancesRespVO.TaskItem.class));
+        respVO.setStages(instantiation.getStages().stream().map(stage ->
+                BeanUtils.toBean(stage, ProjectInstancesRespVO.StageItem.class).setStageCode(stage.getCode())).toList());
+        respVO.setTasks(instantiation.getTasks().stream().map(task ->
+                BeanUtils.toBean(task, ProjectInstancesRespVO.TaskItem.class).setTaskCode(task.getCode())).toList());
         respVO.setMilestones(BeanUtils.toBean(instantiation.getMilestones(), ProjectInstancesRespVO.MilestoneItem.class));
         respVO.setDeliverables(BeanUtils.toBean(instantiation.getDeliverables(), ProjectInstancesRespVO.DeliverableItem.class));
         respVO.setGates(BeanUtils.toBean(instantiation.getGates(), ProjectInstancesRespVO.GateItem.class));

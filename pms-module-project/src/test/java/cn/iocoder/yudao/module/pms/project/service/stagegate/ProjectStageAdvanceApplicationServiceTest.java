@@ -462,7 +462,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         project.setCurrentStage("S4"); project.setManagerId(null); project.setAssignmentStatus("UNASSIGNED");
         var stages = graphMapper.selectStagesForUpdate(null);
         stages.getFirst().setStatus("DONE"); stages.getLast().setStatus("ACTIVE"); stages.getLast().setTerminalNode(false);
-        var terminal = new ProjectStageInstanceDO().setId(23L).setProjectId(PROJECT_ID).setStageCode("S6")
+        var terminal = new ProjectStageInstanceDO().setId(23L).setProjectId(PROJECT_ID).setCode("S6")
                 .setStatus("PENDING").setVersion(0).setGraphVersion(1L).setDefinitionRevisionId(203L)
                 .setStartNode(false).setTerminalNode(true);
         terminal.setTenantId(TENANT_ID);
@@ -526,9 +526,9 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(project);
 
         ProjectStageInstanceDO current = new ProjectStageInstanceDO().setId(21L).setProjectId(PROJECT_ID)
-                .setStageCode("S0").setSortOrder(0).setStatus("ACTIVE").setVersion(1);
+                .setCode("S0").setSortOrder(0).setStatus("ACTIVE").setVersion(1);
         ProjectStageInstanceDO next = new ProjectStageInstanceDO().setId(22L).setProjectId(PROJECT_ID)
-                .setStageCode("S4").setSortOrder(1).setStatus("PENDING").setVersion(0);
+                .setCode("S4").setSortOrder(1).setStatus("PENDING").setVersion(0);
         next.setSortOrder(99);
         current.setTenantId(TENANT_ID); next.setTenantId(TENANT_ID);
         current.setGraphVersion(1L); next.setGraphVersion(1L);

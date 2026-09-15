@@ -88,7 +88,7 @@ class NormalClosureApplicationServiceTest {
         when(mapper.selectApplicationForUpdate(any())).thenReturn(app);
         when(access.lockProject(9L, 7L)).thenReturn(project);
         when(access.lock(eq(9L), eq(4), eq(3L), any())).thenReturn(new NormalClosureAccess.Context(project, 3L));
-        var stage = new ProjectStageInstanceDO(); stage.setId(31L); stage.setVersion(2); stage.setStageCode("S1");
+        var stage = new ProjectStageInstanceDO(); stage.setId(31L); stage.setVersion(2); stage.setCode("S1");
         var graph = mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver.Resolution.class);
         when(graph.current()).thenReturn(stage);
         var proof = evaluation("digest-original");

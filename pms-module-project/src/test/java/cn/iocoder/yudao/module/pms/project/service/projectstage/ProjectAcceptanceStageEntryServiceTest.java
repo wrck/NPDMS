@@ -228,7 +228,7 @@ class ProjectAcceptanceStageEntryServiceTest {
         stage.setId(id);
         stage.setTenantId(TENANT_ID);
         stage.setProjectId(PROJECT_ID);
-        stage.setStageCode(code);
+        stage.setCode(code);
         stage.setSortOrder(sort);
         stage.setStatus(status);
         stage.setVersion(version);

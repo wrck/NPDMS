@@ -48,7 +48,7 @@ class ProjectStageCompletionServiceTest {
         TenantContextHolder.setTenantId(7L);
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(21L);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
-        stage = new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setStageCode("DISCOVERY").setStatus("ACTIVE").setVersion(1);
+        stage = new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setCode("DISCOVERY").setStatus("ACTIVE").setVersion(1);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         when(graph.selectTasksForUpdate(any())).thenReturn(List.of()); when(graph.selectGatesForUpdate(any())).thenReturn(List.of());
         round = new ProjectNodeExecutionDO(); round.setId(31L); round.setPlanVersionId(21L); round.setNodeKey("stage:discovery");

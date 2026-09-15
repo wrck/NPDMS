@@ -390,7 +390,7 @@ class ProjectTaskQueryServiceTest {
         task.setParentTaskId(parentId);
         task.setRootTaskId(parentId == null ? id : 1L);
         task.setTreeDepth(depth);
-        task.setTaskCode("T-" + id);
+        task.setCode("T-" + id);
         task.setName("Task " + id);
         task.setStageCode("S1");
         task.setStatus("PENDING_START");

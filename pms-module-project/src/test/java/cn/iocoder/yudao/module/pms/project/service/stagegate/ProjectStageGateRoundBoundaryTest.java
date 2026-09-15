@@ -77,7 +77,7 @@ class ProjectStageGateRoundBoundaryTest {
 
     private ProjectStageInstanceDO stage(Long id, String code) {
         var stage = new ProjectStageInstanceDO();
-        stage.setId(id); stage.setTenantId(7L); stage.setProjectId(9L); stage.setStageCode(code);
+        stage.setId(id); stage.setTenantId(7L); stage.setProjectId(9L); stage.setCode(code);
         return stage;
     }
 

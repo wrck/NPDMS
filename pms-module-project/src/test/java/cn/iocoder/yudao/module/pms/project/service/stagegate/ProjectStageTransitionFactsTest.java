@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProjectStageTransitionFactsTest {
     @Test
     void completionIsLimitedToTheFrozenTargetsEntryAndTheCurrentStageReference() {
-        var current = new ProjectStageInstanceDO().setId(1L).setStageCode("S0").setStatus("ACTIVE").setVersion(2);
-        var target = new ProjectStageInstanceDO().setId(2L).setStageCode("S4").setStatus("PENDING");
+        var current = new ProjectStageInstanceDO().setId(1L).setCode("S0").setStatus("ACTIVE").setVersion(2);
+        var target = new ProjectStageInstanceDO().setId(2L).setCode("S4").setStatus("PENDING");
         var gate = new ProjectGateInstanceDO().setStageCode("S4").setGateType("ENTRY");
         var ref = new ProjectGateReferenceInstanceDO().setRefType("STATE").setRefCode("S0_COMPLETED");
         assertNotNull(ProjectStageTransitionFacts.completionForEntry(current, target, gate, ref, true));

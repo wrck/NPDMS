@@ -58,21 +58,21 @@ public class ProjectAcceptanceStageFactApiImpl implements ProjectAcceptanceStage
                     project.getCurrentStage(), null);
         }
         Long snapshotId = null;
-        if (Objects.equals(project.getCurrentStage(), acceptanceStage.getStageCode())) {
+        if (Objects.equals(project.getCurrentStage(), acceptanceStage.getCode())) {
             if (!STAGE_ACTIVE.equals(acceptanceStage.getStatus())) {
                 return outcome(ProjectFactOutcome.NOT_FOUND, project.getId(), project.getVersion(),
-                        project.getCurrentStage(), acceptanceStage.getStageCode());
+                        project.getCurrentStage(), acceptanceStage.getCode());
             }
             ProjectStageSnapshotDO snapshot = snapshotMapper.selectLatestStageEntry(
-                    new ProjectStageEntrySnapshotQuery(query.tenantId(), project.getId(), acceptanceStage.getStageCode()));
-            if (!validSnapshot(snapshot, query.tenantId(), project.getId(), acceptanceStage.getStageCode())) {
+                    new ProjectStageEntrySnapshotQuery(query.tenantId(), project.getId(), acceptanceStage.getCode()));
+            if (!validSnapshot(snapshot, query.tenantId(), project.getId(), acceptanceStage.getCode())) {
                 return outcome(ProjectFactOutcome.NOT_FOUND, project.getId(), project.getVersion(),
-                        project.getCurrentStage(), acceptanceStage.getStageCode());
+                        project.getCurrentStage(), acceptanceStage.getCode());
             }
             snapshotId = snapshot.getId();
         }
         return new ProjectAcceptanceStageFact(ProjectFactOutcome.FOUND, project.getId(), project.getVersion(),
-                project.getCurrentStage(), acceptanceStage.getStageCode(), snapshotId);
+                project.getCurrentStage(), acceptanceStage.getCode(), snapshotId);
     }
 
     private void validate(ProjectAcceptanceStageFactQuery query) {
@@ -89,7 +89,7 @@ public class ProjectAcceptanceStageFactApiImpl implements ProjectAcceptanceStage
     private boolean validStage(ProjectStageInstanceDO stage, Long tenantId, Long projectId) {
         return stage != null && Objects.equals(stage.getTenantId(), tenantId)
                 && Objects.equals(stage.getProjectId(), projectId)
-                && STATUS_S5.equals(stage.getStageCode());
+                && STATUS_S5.equals(stage.getCode());
     }
 
     private boolean validSnapshot(ProjectStageSnapshotDO snapshot, Long tenantId, Long projectId, String stageCode) {

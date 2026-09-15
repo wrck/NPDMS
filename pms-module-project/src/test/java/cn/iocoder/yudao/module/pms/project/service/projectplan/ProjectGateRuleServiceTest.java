@@ -56,7 +56,7 @@ class ProjectGateRuleServiceTest {
         gate = new ProjectGateInstanceDO(); gate.setId(21L); gate.setTenantId(7L); gate.setProjectId(9L); gate.setGateCode("READY");
         gate.setStageCode("PREP"); gate.setGateType("ENTRY"); gate.setVersion(3); gate.setStatus("PENDING");
         when(graph.selectGatesForUpdate(any())).thenReturn(List.of(gate));
-        var stage = new ProjectStageInstanceDO(); stage.setId(11L); stage.setStageCode("PREP"); stage.setStatus("ACTIVE");
+        var stage = new ProjectStageInstanceDO(); stage.setId(11L); stage.setCode("PREP"); stage.setStatus("ACTIVE");
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         stage.setTenantId(7L); stage.setProjectId(9L);
         when(graph.selectStages(any())).thenReturn(List.of(stage));

@@ -69,7 +69,7 @@ public class ProjectStageGateProviderRegistry {
 
     private ProjectStageGateFactQuery currentStageRound(ProjectStageGateFactQuery query) {
         var stages = graph.selectStages(new ProjectRuntimeGraphQuery(query.tenantId(), query.projectId())).stream()
-                .filter(stage -> Objects.equals(stage.getStageCode(), query.currentStageCode())
+                .filter(stage -> Objects.equals(stage.getCode(), query.currentStageCode())
                         && Objects.equals(stage.getTenantId(), query.tenantId())
                         && Objects.equals(stage.getProjectId(), query.projectId())).toList();
         if (stages.size() != 1 || stages.getFirst().getId() == null) return null;

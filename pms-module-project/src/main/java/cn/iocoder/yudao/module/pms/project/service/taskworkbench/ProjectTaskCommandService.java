@@ -166,7 +166,7 @@ public class ProjectTaskCommandService {
         task.setId(IdWorker.getId());
         task.setTenantId(actor.tenantId());
         task.setProjectId(project.getId());
-        task.setTaskCode(command.taskCode().trim());
+        task.setCode(command.taskCode().trim());
         task.setName(command.name().trim());
         task.setStageCode(command.stageCode().trim());
         task.setParentTaskId(parent == null ? null : parent.getId());

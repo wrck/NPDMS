@@ -70,11 +70,11 @@ public class ProjectStageGateProcessContextResolver {
                 || definition.getReferences().stream().filter(item -> Objects.equals(item.getRefType(), ref.getRefType())
                         && Objects.equals(item.getRefCode(), ref.getRefCode()) && Objects.equals(item.getRefVersion(), ref.getRefVersion())).count() != 1)
             throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        var parents = stages.stream().filter(stage -> Objects.equals(stage.getStageCode(), gate.getStageCode())
+        var parents = stages.stream().filter(stage -> Objects.equals(stage.getCode(), gate.getStageCode())
                 && Objects.equals(stage.getTenantId(), project.getTenantId()) && Objects.equals(stage.getProjectId(), project.getId())).toList();
         if (parents.size() != 1) throw exception(PROJECT_STAGE_PROCESS_INVALID);
         var stage = parents.getFirst();
-        var stageDefinitions = snapshot.getStages().stream().filter(def -> Objects.equals(def.getCode(), stage.getStageCode())).toList();
+        var stageDefinitions = snapshot.getStages().stream().filter(def -> Objects.equals(def.getCode(), stage.getCode())).toList();
         if (stageDefinitions.size() != 1) throw exception(PROJECT_STAGE_PROCESS_INVALID);
         var rounds = executions.selectCurrentForUpdate(scope).stream().filter(round -> "STAGE".equals(round.getNodeKind())
                 && Objects.equals(round.getTenantId(), project.getTenantId()) && Objects.equals(round.getProjectId(), project.getId())

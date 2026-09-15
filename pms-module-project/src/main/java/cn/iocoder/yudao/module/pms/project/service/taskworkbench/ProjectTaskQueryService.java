@@ -251,7 +251,7 @@ public class ProjectTaskQueryService {
         if (!full) return response;
         response.setProjectId(task.getProjectId());
         response.setRootTaskId(task.getRootTaskId());
-        response.setTaskCode(task.getTaskCode());
+        response.setTaskCode(task.getCode());
         response.setName(task.getName());
         response.setStageCode(task.getStageCode());
         response.setBusinessLevelCode(task.getBusinessLevelCode());
@@ -271,7 +271,7 @@ public class ProjectTaskQueryService {
         ProjectTaskDetailRespVO response = new ProjectTaskDetailRespVO();
         response.setTaskId(task.getId());
         response.setProjectId(task.getProjectId());
-        response.setTaskCode(task.getTaskCode());
+        response.setTaskCode(task.getCode());
         response.setName(task.getName());
         response.setParentTaskId(task.getParentTaskId());
         response.setRootTaskId(task.getRootTaskId());
@@ -295,8 +295,8 @@ public class ProjectTaskQueryService {
 
     private ProjectWorkspaceRespVO.StageTaskNavigation stageNavigation(ProjectStageInstanceDO stage,
                                                                         Map<String, Long> counts) {
-        return new ProjectWorkspaceRespVO.StageTaskNavigation(stage.getStageCode(), stage.getName(),
-                stage.getStatus(), counts.getOrDefault(stage.getStageCode(), 0L));
+        return new ProjectWorkspaceRespVO.StageTaskNavigation(stage.getCode(), stage.getName(),
+                stage.getStatus(), counts.getOrDefault(stage.getCode(), 0L));
     }
 
     private String trustedTargetRef(ProjectTaskExecutionContractDO contract) {

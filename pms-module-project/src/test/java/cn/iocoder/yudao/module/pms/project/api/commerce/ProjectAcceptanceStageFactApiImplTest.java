@@ -108,7 +108,7 @@ class ProjectAcceptanceStageFactApiImplTest {
         row.setId(20L);
         row.setTenantId(1L);
         row.setProjectId(10L);
-        row.setStageCode(code);
+        row.setCode(code);
         row.setStatus(status);
         return row;
     }

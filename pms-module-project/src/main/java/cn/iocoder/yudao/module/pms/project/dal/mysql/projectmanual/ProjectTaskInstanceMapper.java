@@ -26,6 +26,6 @@ public interface ProjectTaskInstanceMapper extends BaseMapperX<ProjectTaskInstan
     default ProjectTaskInstanceDO selectByProjectIdAndTaskCode(Long projectId, String taskCode) {
         return selectOne(new LambdaQueryWrapperX<ProjectTaskInstanceDO>()
                 .eq(ProjectTaskInstanceDO::getProjectId, projectId)
-                .eq(ProjectTaskInstanceDO::getTaskCode, taskCode));
+                .eq(ProjectTaskInstanceDO::getCode, taskCode));
     }
 }

@@ -71,7 +71,7 @@ class TemplateInstantiatorTest {
         ProjectInstantiation instantiation = instantiate(content);
 
         assertEquals(List.of("T1", "T1-1"), instantiation.getTasks().stream()
-                .map(ProjectTaskInstanceDO::getTaskCode).toList());
+                .map(ProjectTaskInstanceDO::getCode).toList());
     }
 
     @Test
@@ -329,7 +329,7 @@ class TemplateInstantiatorTest {
     }
 
     private ProjectStageInstanceDO findByCode(List<ProjectStageInstanceDO> list, String code) {
-        return findByCode(list, ProjectStageInstanceDO::getStageCode, code);
+        return findByCode(list, ProjectStageInstanceDO::getCode, code);
     }
 
     private ProjectMilestoneInstanceDO findMilestoneByCode(List<ProjectMilestoneInstanceDO> list, String code) {
@@ -341,7 +341,7 @@ class TemplateInstantiatorTest {
     }
 
     private ProjectTaskInstanceDO findByTaskCode(List<ProjectTaskInstanceDO> list, String code) {
-        return findByCode(list, ProjectTaskInstanceDO::getTaskCode, code);
+        return findByCode(list, ProjectTaskInstanceDO::getCode, code);
     }
 
 }
