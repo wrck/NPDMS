@@ -23,6 +23,21 @@ const document = (): TemplateDesignerDocument => ({
 })
 
 describe('delivery canvas edits real rule references', () => {
+  it('copies a shared admission before connecting when its consumers have the same name', () => {
+    const model = document()
+    const source = createDeliveryNode(model, 'STAGE', undefined, '工勘', { x: 0, y: 0 })
+    const target = createDeliveryNode(model, 'STAGE', undefined, '同名阶段', { x: 1, y: 1 })
+    createDeliveryNode(model, 'STAGE', undefined, '同名阶段', { x: 2, y: 2 })
+    const anotherSource = createDeliveryNode(model, 'STAGE', undefined, '需求', { x: 3, y: 3 })
+    connectNodes(model, source.nodeKey, target.nodeKey)
+    const sharedKey = model.stages[1].admissionRuleKey
+    model.stages[2].admissionRuleKey = sharedKey
+    const original = JSON.stringify(model.rules?.find(rule => rule.key === sharedKey))
+    connectNodes(model, anotherSource.nodeKey, target.nodeKey)
+    expect(model.stages[1].admissionRuleKey).not.toBe(sharedKey)
+    expect(model.stages[2].admissionRuleKey).toBe(sharedKey)
+    expect(JSON.stringify(model.rules?.find(rule => rule.key === sharedKey))).toBe(original)
+  })
   it('does not mark a saved version dirty merely because the server includes a null inline rule', () => {
     const model = document()
     const stage = createDeliveryNode(model, 'STAGE', undefined, 'saved', { x: 1, y: 2 })

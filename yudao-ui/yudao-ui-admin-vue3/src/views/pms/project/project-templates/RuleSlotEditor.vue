@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
@@ -102,35 +102,47 @@ const uses = computed(() => (props.modelValue ? ruleUses(props.document, props.m
 const shareSelection = ref(false)
 const confirming = ref(false)
 const confirmedKey = ref<string>()
+let confirmationVersion = 0
 const requiresConfirmation = computed(
   () => uses.value.length > 1 && confirmedKey.value !== rule.value?.key
 )
 watch(
-  () => props.modelValue,
-  () => {
+  [() => props.document, rule, () => props.readonly, uses],
+  ([document, current, readonly, targets], [previousDocument, previousRule, previousReadonly, previousTargets]) => {
+    if (document === previousDocument && current === previousRule && readonly === previousReadonly
+      && targets.length === previousTargets.length && targets.every((target, index) => target === previousTargets[index])) return
+    confirmationVersion++
     confirmedKey.value = undefined
     shareSelection.value = false
   }
 )
-const create = () =>
+onBeforeUnmount(() => { confirmationVersion++ })
+const create = () => {
+  if (props.readonly || confirming.value) return
   emit(
     'update:modelValue',
     createVersionRule(props.document, props.label, props.initialExpression ?? constantRule(true))
       .key
   )
+}
 const fork = () => {
-  if (props.modelValue)
+  if (props.modelValue && !props.readonly && !confirming.value)
     emit('update:modelValue', copyVersionRule(props.document, props.modelValue).key)
 }
 const authorizeSharedEdit = async () => {
   const current = rule.value
-  if (!current) return
+  if (!current || props.readonly || confirming.value || !requiresConfirmation.value) return
+  const document = props.document
+  const version = confirmationVersion
   confirming.value = true
   try {
     await ElMessageBox.confirm(`修改影响：${uses.value.join('；')}。`, '确认共享影响', {
       confirmButtonText: '编辑共享规则',
       cancelButtonText: '取消'
     })
+    // A dialog may outlive navigation, a read-only transition or a changed shared impact.
+    // https://vuejs.org/guide/essentials/watchers.html#side-effect-cleanup
+    if (version !== confirmationVersion || document !== props.document || current !== rule.value || props.readonly) return
     current.shared = true
     confirmedKey.value = current.key
   } catch {
@@ -140,6 +152,7 @@ const authorizeSharedEdit = async () => {
   }
 }
 const selectExisting = (key: string) => {
+  if (props.readonly || confirming.value) return
   if (shareSelection.value) {
     const selected = props.document.rules?.find((item) => item.key === key)
     if (selected) {
@@ -148,30 +161,9 @@ const selectExisting = (key: string) => {
     }
   } else emit('update:modelValue', copyVersionRule(props.document, key).key)
 }
-const updateExpression = async (expression: JsonObject) => {
+const updateExpression = (expression: JsonObject) => {
   const current = rule.value
-  if (!current || props.readonly || confirming.value) return
-  if (uses.value.length > 1 && confirmedKey.value !== current.key) {
-    confirming.value = true
-    try {
-      await ElMessageBox.confirm(`本次修改影响：${uses.value.join('；')}。`, '修改共享规则', {
-        confirmButtonText: '修改共享规则',
-        cancelButtonText: '复制为独立规则',
-        distinguishCancelAndClose: true
-      })
-      current.shared = true
-      confirmedKey.value = current.key
-    } catch (action) {
-      if (action === 'cancel') {
-        const copied = copyVersionRule(props.document, current.key)
-        copied.expression = expression
-        emit('update:modelValue', copied.key)
-      }
-      return
-    } finally {
-      confirming.value = false
-    }
-  }
+  if (!current || props.readonly || confirming.value || requiresConfirmation.value) return
   current.expression = expression
 }
 </script>

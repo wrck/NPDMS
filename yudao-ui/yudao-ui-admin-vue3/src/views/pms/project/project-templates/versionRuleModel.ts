@@ -67,24 +67,27 @@ function visitDecisionReferences(expression: JsonObject, visit: (parameters: Jso
 }
 
 export function ruleUses(document: TemplateDesignerDocument, key: string): string[] {
-  const users = new Set<string>()
+  const users: string[] = []
   const reference = (selected: string | undefined, label: string) => {
     if (!selected) return
-    if (selected === key) users.add(label)
+    let used = selected === key
     const rule = document.rules?.find((item) => item.key === selected)
     if (rule?.expression)
       visitDecisionReferences(rule.expression, (parameters) => {
-        if (parameters.ruleKey === key) users.add(label)
+        if (parameters.ruleKey === key) used = true
       })
+    // Deduplicate repeated decision references within one slot, never distinct nodes with the same name.
+    if (used) users.push(label)
   }
   reference(document.matchRuleKey, '模板适用条件')
   reference(document.closureRuleKey, '项目收口')
   for (const node of [...document.stages, ...document.tasks]) {
-    reference(node.admissionRuleKey, `${node.name} · 准入`)
-    reference(node.completionRuleKey, `${node.name} · 完成`)
-    reference(node.exitRuleKey, `${node.name} · 退出`)
+    const label = `${'stageCode' in node ? '任务' : '阶段'} ${node.name}（${node.code}）`
+    reference(node.admissionRuleKey, `${label} · 准入`)
+    reference(node.completionRuleKey, `${label} · 完成`)
+    reference(node.exitRuleKey, `${label} · 退出`)
   }
   for (const edge of document.transitions)
     reference(edge.conditionRuleKey, `${edge.code} · 依赖条件`)
-  return [...users]
+  return users
 }

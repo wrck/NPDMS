@@ -664,3 +664,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 文件夹具补齐现有 FileArtifactVO/FileReferenceVO 字段，去除不完整对象强制转换；上传完成夹具移除正式响应没有的 sessionId，不修改平台接口。文件状态和敏感级别复用现有附件测试定义，均为本地合成数据，无真实业务写入。
 - 会话 41811：`pnpm exec vitest run --config vitest.pms-file.config.ts src/components/BusinessView/BusinessView.runtime.spec.ts src/components/PmsFileArtifact/PmsFileExecution.runtime.spec.ts src/components/PmsFileArtifact/PmsFileArtifact.runtime.spec.ts`，三套件 **44 项通过**。自审将上传重试首次失败明确为 `RESPONSE_UNKNOWN`，避免把确定过期误示为重试可成功；解除引用仍验证 `STALE_EXECUTION` 拒绝。补跑附件执行三项 exit 0，其他未变化证据复用。Owner 与文件网络接口为 mocks，挂载现有页面/附件组件和自定义渲染器；不能替代真实后端权限、联合事务或浏览器验收。
 - 同会话随后完整 `pnpm ts:check` exit 2，诊断由 11 条减至 **3 条**：CustomerFormDrawer.vue:248、客户联系人页面:199、ProjectCustomerOverview.vue:159；两处客户筛选参数类型及一个未使用变量未在本轮扩围修复。两个改动测试文件 ESLint exit 0，无诊断；生产源码无变更。自审保留既有失败语义，提交技能用于限定测试及本记录的本地提交，不纳入 PID、不推送、不切换共享运行环境；专项完整场景仍待验收。
+
+## 2026-09-15：共享规则影响计数与迟到确认保护
+
+- 发现 `ruleUses` 原先用显示名称组成 Set，同名节点相同用途会被错误合并，影响侧栏共享确认以及画布改写前的自动独立复制。改为每个消费位置计数一次，仅在同一位置内合并重复决策表引用；展示增加节点类型和编码。同名阶段/任务仍是不同消费者，不新增全局规则身份。
+- RuleSlotEditor 原确认仅记住 ruleKey，无法区分同键新草稿、替换的规则对象、共享范围或只读状态变化。复用 Vue watch 和卸载钩子使已确认状态及待返回确认失效，返回后再核对当前文档、规则和只读状态。确认入口仍只有现有“开始修改共享规则”；条件编辑事件在未确认时直接拒绝，移除不可编辑状态下的第二套修改/复制确认分支。明确复制按钮、默认独立配置及连续编辑不反复确认保持有效，不增加发布流程或后台规则中心。实现参考 [Vue watcher 副作用清理说明](https://vuejs.org/guide/essentials/watchers.html#side-effect-cleanup)，未使用深度全量监听或规则内容指纹。
+- 新增 RuleSlotEditor 运行测试八项，覆盖同名影响、未确认事件拒绝、范围新增、普通编辑确认复用、文档/规则/只读/范围变化与卸载后的迟到确认、取消及只复制当前引用、同位置重复决策引用。画布模型增加同名共享准入条件的真实连线复制回归，原规则及其他节点引用保持不变。四套件最终 **25 项通过**：RuleSlotEditor、templateCanvasModel、taskManualHandling、taskApprovalBinding；使用组件渲染器与确认框替身，无网络或数据库写入。
+- 修改文件 ESLint exit 0，无诊断。会话 97222 完整类型检查 exit 2，仍为既有三条客户相关诊断，RuleSlotEditor/规则使用模型及新增侧栏测试无诊断；随后补充的画布测试已单独执行 ESLint 和组件测试，未单独重跑全量类型检查。自审确认本次仅影响草稿共享规则的编辑保护，不改求值、节点授权、冻结历史或业务状态命令。
+- 当前端口检查发现 19081 已恢复监听、59280 无监听；未启动或停止任何服务。使用用户指定的内置浏览器实际打开模板列表，页面最终显示“Network Error”和无数据，无法进入已有模板验证保存重开，未声称浏览器验收通过。已关闭本次创建的临时页。前端/代码质量技能用于约束共享修改边界，提交技能用于限定本地增量，不提交 PID、不推送；完整专项继续推进。
