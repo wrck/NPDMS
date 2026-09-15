@@ -681,3 +681,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 新增决策表组件测试七项、父编辑器交互测试九项。会话 21228 六套件合计 **43 项通过**，覆盖新增测试及任务审批、手工办理、条件树共享编辑和项目计划编辑。首次测试替身因缺少表格 scoped slot 参数失败，修正为已有 tableColumn 替身后通过；类型检查发现新夹具缺少 shared，补齐后父编辑器九项复验通过。加载时清除旧发射对象记录后，决策表七项亦复验通过，其余未变化证据复用。组件使用本地渲染器、dmn-js 与接口替身，不访问共享后台。
 - 四个改动源码/测试文件 ESLint exit 0，只有 TemplateContentEditor 原有两处模板格式警告。最终会话 39872 完整 pnpm ts:check exit 2，仅保留既有三条客户相关诊断（CustomerFormDrawer.vue:248、客户联系人页面:199、ProjectCustomerOverview.vue:159），本增量无新增诊断；不声明全量类型检查通过。
 - 自审未改变求值语义、冻结历史、原模块授权或状态转换。未重复执行前提未变的失败浏览器路径，真实决策表设计、保存重开仍未验收；未切换共享 59280。按用户“全部提交”提交本增量全部源码、测试及本记录，两个本机 PID 文件保留但不纳入提交，不推送。完整专项尚未完成。
+
+## 2026-09-15：决策表多行数值与版本并发联合验证
+
+- 复核既有决策表选择、统一求值及试算实现：分类输出已有覆盖，本步补齐多行数值和并发版本证据。新增 ProjectDecisionRuleIntegrationTest，使用真实 LiteFlow 与 Flowable DMN 8.0.0，不替换引擎；明确检查 DMN 无 DataSource 且关闭关系型数据库模式，LiteFlow fixture 不加载业务应用配置。
+- 六项新增用例覆盖 RULE ORDER/COLLECT 数值输出、ANY/ALL 条件区别、未配置多行量词的未知结果、缺失输出在 NOT 下不放行、原生 COLLECT SUM、UNIQUE/ANY 命中冲突，以及同规则键和相同 EL 在 32 次并发调用中的项目/版本/输入隔离。试算与冻结运行契约分别执行并比较条件结果和原因；原有分类试算测试继续通过。数值输出断言 Java Number，而非字符串或布尔值。
+- 依据 [Flowable 命中策略说明](https://www.flowable.com/open-source/docs/dmn/ch06-DMN-Introduction/#hit-policy)及[默认严格模式说明](https://www.flowable.com/open-source/docs/dmn/ch02-Configuration#strict-mode)，保留现有原生求和和冲突失败行为，不引入自研聚合或额外配置。自审纠正 COLLECT 行顺序断言，仍比较全部结果及数量；RULE ORDER 保留顺序比较。现有生产实现符合本步验证目标，因此没有制造生产修改。
+- 会话 9039 exit 0：决策联合 6、决策服务 6、规则试算 3、LiteFlow 求值 9，合计 **24 项通过，零失败/错误/跳过**。自审调整测试后，会话 92129 exit 0，新增六项复验通过，其他十八项代码和前提未变，复用本轮证据。命令：`mvn -q -pl pms-module-project -am test "-Dtest=ProjectDecisionRuleIntegrationTest,ProjectDecisionTableServiceTest,ProjectRuleSimulationServiceTest,ProjectRuleEvaluationServiceTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`；复验仅缩小测试类范围。命中冲突场景的引擎错误日志为预期失败路径，不是测试失败。
+- 本步只改测试和记录，无 API、SQL、权限、运行状态或依赖变更；未重跑无关前端检查、未切换共享后台，不能替代真实浏览器完整业务验收。接口与代码质量技能用于审查结果类型和隔离边界，来源驱动技能用于确认第三方原生语义，Git 技能用于本地增量提交，不推送、不提交 PID；专项仍在进行中。
