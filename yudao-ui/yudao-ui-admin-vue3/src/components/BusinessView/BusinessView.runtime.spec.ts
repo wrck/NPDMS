@@ -207,7 +207,9 @@ describe('PM-03 BusinessView runtime', () => {
     const panel = ref<any>()
     const mounted = mount(defineComponent({ setup: () => () => h(ProjectRequirementAnalysisPanel, { ...state, ref: panel }) }), {}, options)
     await tick()
-    findByTestId(mounted.root, 'change-form').props.onClick()
+    const edit = findByTestId(mounted.root, 'change-form')?.props?.onClick
+    expect(edit).toBeTypeOf('function')
+    ;(edit as () => void)()
     await tick()
     const context = kind === 'task' ? state.taskExecution! : state.stageExecution!
     context.executionId = '2099999999999999988'
@@ -217,7 +219,9 @@ describe('PM-03 BusinessView runtime', () => {
     expect(panel.value.isDirty()).toBe(true)
     expect(RequirementApi.getCurrent).toHaveBeenCalledTimes(1)
     vi.mocked(RequirementApi.patchForm).mockRejectedValueOnce(new Error('execution changed'))
-    await findByTestId(mounted.root, 'save-requirement-form').props.onClick()
+    const save = findByTestId(mounted.root, 'save-requirement-form')?.props?.onClick
+    expect(save).toBeTypeOf('function')
+    await (save as () => Promise<void>)()
     await tick()
     expect(RequirementApi.patchForm).toHaveBeenCalledWith(91, 3, 1, {
       values: { note: 'local' }, execution: kind === 'task' ? { task: taskExecution } : { stage: stageExecution }
@@ -269,7 +273,7 @@ describe('PM-03 BusinessView runtime', () => {
   it('rejects a foreign stage and switches the frozen target on a new execution, not a version refresh', () => {
     const data = target('PAGE')
     data.resolvedContext.stageExecution = stageExecution
-    expect(resolveBusinessView(data).props?.stageExecution).toEqual(stageExecution)
+    expect(resolveBusinessView(data).props).toHaveProperty('stageExecution', stageExecution)
     const key = businessViewTargetKey(data)
     data.resolvedContext.stageExecution = { ...stageExecution, executionVersion: 2 }
     expect(businessViewTargetKey(data)).toBe(key)

@@ -656,3 +656,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 画布继续调用已注册的 Dagre 实例，使用插件自身类型；安装缺失的 `@types/dagre:0.7.54` 开发期声明（MIT、无运行时入口），不手写布局参数类型。已核对本地 `@logicflow/layout:2.1.5` README 与声明；锁文件仅新增该类型包，无其他依赖升级，安装禁用生命周期脚本。安装报告的三个既有 peer 不匹配未在本步扩大处理。
 - 最终会话 24895：八套件 **41 项通过**，覆盖资产复制、直接绑定、原生条件选项、手工切换、计划编辑、真实 Dagre 算法布局、画布模型及审批绑定；测试使用 mocks 和本地渲染器，不访问共享数据库。随后全量类型检查取得完整结果，仍 exit 2，但诊断由 28 条降至 **11 条**，本步修改文件及其模板绑定直接消费者无诊断。剩余为 BusinessView.runtime.spec.ts（7）、PmsFileExecution.runtime.spec.ts（1）、CustomerFormDrawer.vue（1）、客户联系人页面（1）及 ProjectCustomerOverview.vue（1），不声明全量通过。
 - 针对十一处改动 TS/Vue 文件的 ESLint exit 0，零错误；五条警告均在 TaskBindingEditor/TemplateContentEditor 未改动的模板格式位置，未顺手改格式。自审按 API/前端与代码质量技能明确了设计模型和临时执行输入边界；无业务行为、授权、状态转换、SQL 或 Schema 变更。本步未启动应用、切换 59280 或重跑真实浏览器，既有完整场景验收缺口仍保留。按持续目标完成此步后本地提交，不推送。
+
+## 2026-09-15：补齐业务页面及附件写入的轮次证据测试
+
+- 消除 BusinessView 测试中两处未收窄的点击处理器访问：先断言处理器存在且为函数，再执行；阶段执行上下文改用完整属性值断言，仍比较原始上下文。保留本地未保存内容、跨轮次提交被拒绝和原页面实际命令参数检查，不调整生产解析器或授权逻辑。
+- 附件上传用 `satisfies` 对齐现有完整 TaskExecutionContext/StageExecutionContext，包含项目、计划、契约、节点及执行版本和轮次；增加阶段上传用例。初始化期间将页面切换至下一轮，断言初始化、首次完成及失败后重试仍使用发起时的完整执行证据与同一幂等键，不因新轮次而偷换写入上下文。附件解除引用测试同样使用完整阶段上下文，保留旧轮次拒绝后材料不消失、成功事件不发出的断言。
+- 文件夹具补齐现有 FileArtifactVO/FileReferenceVO 字段，去除不完整对象强制转换；上传完成夹具移除正式响应没有的 sessionId，不修改平台接口。文件状态和敏感级别复用现有附件测试定义，均为本地合成数据，无真实业务写入。
+- 会话 41811：`pnpm exec vitest run --config vitest.pms-file.config.ts src/components/BusinessView/BusinessView.runtime.spec.ts src/components/PmsFileArtifact/PmsFileExecution.runtime.spec.ts src/components/PmsFileArtifact/PmsFileArtifact.runtime.spec.ts`，三套件 **44 项通过**。自审将上传重试首次失败明确为 `RESPONSE_UNKNOWN`，避免把确定过期误示为重试可成功；解除引用仍验证 `STALE_EXECUTION` 拒绝。补跑附件执行三项 exit 0，其他未变化证据复用。Owner 与文件网络接口为 mocks，挂载现有页面/附件组件和自定义渲染器；不能替代真实后端权限、联合事务或浏览器验收。
+- 同会话随后完整 `pnpm ts:check` exit 2，诊断由 11 条减至 **3 条**：CustomerFormDrawer.vue:248、客户联系人页面:199、ProjectCustomerOverview.vue:159；两处客户筛选参数类型及一个未使用变量未在本轮扩围修复。两个改动测试文件 ESLint exit 0，无诊断；生产源码无变更。自审保留既有失败语义，提交技能用于限定测试及本记录的本地提交，不纳入 PID、不推送、不切换共享运行环境；专项完整场景仍待验收。
