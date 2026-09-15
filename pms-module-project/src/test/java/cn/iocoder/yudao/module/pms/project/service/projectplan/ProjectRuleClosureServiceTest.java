@@ -46,12 +46,35 @@ class ProjectRuleClosureServiceTest {
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
         service = new ProjectRuleClosureService(projects, plans, executions, graph, references,
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, processes);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
     }
     @Test void explicitClosureRuleClosesOnlyThisProjectWithFrozenEvidence() {
         when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
         assertTrue(service.closeIfSatisfied(9L, 1L, "test").closed());
         verify(plans).closeProjectIfActive(argThat(update -> update.projectId().equals(9L) && update.expectedProjectVersion()==3 && update.planVersionId().equals(21L)));
         verify(plans).recordClosureIfOpen(argThat(update -> update.evidence().contains("pmsRuleMatched")));
+        var events = (cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents)
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "childWaitEvents");
+        verify(events).closureChanged(7L, 9L, 1L, "test");
+    }
+    @Test void childWaitCannotBypassTheParentsOwnClosureCondition() {
+        var childWait = mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitFacts.class);
+        var runtime = org.springframework.test.util.ReflectionTestUtils.getField(service, "rules");
+        org.springframework.test.util.ReflectionTestUtils.setField(runtime, "childWait", childWait);
+        when(childWait.resolve(any(), any())).thenReturn(cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.known(true));
+        var condition = JsonUtils.parseTree("""
+                {"operator":"ALL","rules":[
+                  {"predicate":"CHILD_PROJECT_WAIT","parameters":{"scope":"DIRECT","acceptedClosureTypes":["NORMAL_CLOSED","EXCEPTION_CLOSED"],"quantifier":"ALL","emptyResult":true}},
+                  {"predicate":"CONSTANT","parameters":{"value":false}}
+                ]}
+                """);
+        snapshot.getRulePrograms().put("close", compiler.compile(condition));
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "wait").closed());
+        verify(plans, never()).closeProjectIfActive(any());
+        when(childWait.resolve(any(), any())).thenReturn(cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.unknown("CHILD_CLOSURE_FACT_UNAVAILABLE"));
+        assertTrue(service.closeIfSatisfied(9L, 1L, "wait").unknown());
     }
     @Test void terminalStageDoesNotSupplyAnImplicitClosureRule() {
         snapshot.setClosureRuleKey(null); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));

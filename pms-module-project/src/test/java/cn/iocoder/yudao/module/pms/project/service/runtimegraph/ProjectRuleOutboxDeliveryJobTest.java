@@ -16,6 +16,26 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectRuleOutboxDeliveryJobTest {
+    @Test void childClosureWakeupUsesDedicatedDeliveryAndRetriesUnknownWithoutConsumingNotifications() {
+        TenantContextHolder.setTenantId(7L);
+        var outbox = mock(PlatformOutboxDeliveryApi.class);
+        var childWait = mock(ProjectChildWaitDelivery.class);
+        var coordinator = mock(ProjectRuntimeCoordinator.class);
+        var timers = mock(ProjectRuleTimerDelivery.class);
+        var event = new ProjectChildWaitEvents.Changed("child-change", 7L, 9L, 11L, "corr");
+        when(outbox.claimDue(any())).thenReturn(List.of(new PlatformOutboxMessageDTO(event.eventId(), ProjectChildWaitEvents.EVENT_TYPE,
+                JsonUtils.toJsonString(event), 0, 7L, LocalDateTime.now())));
+        var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator, timers);
+        org.springframework.test.util.ReflectionTestUtils.setField(job, "childWait", childWait);
+        when(childWait.deliver(event)).thenReturn(false, true);
+        job.execute(""); job.execute("");
+        verify(outbox).scheduleRetry(eq(event.eventId()), eq(0), any());
+        verify(outbox).markDelivered(event.eventId(), 0);
+        verifyNoInteractions(coordinator, timers);
+        clearInvocations(childWait);
+        TenantContextHolder.setTenantId(8L); job.execute("");
+        verifyNoInteractions(childWait);
+    }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
     @Test void timerDeliveryKeepsItsFrozenIdentityAndDoesNotBecomeAnUnscopedReevaluation() {
@@ -51,7 +71,7 @@ class ProjectRuleOutboxDeliveryJobTest {
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(true, 1, 0));
         var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator, mock(ProjectRuleTimerDelivery.class));
         assertTrue(job.execute("").endsWith("待重试 1"));
-        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE))));
+        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE))));
         verify(outbox).scheduleRetry(eq(event.eventId()), eq(0), any());
         verify(outbox, never()).markDelivered(any(), anyInt());
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(false, 0, 0));

@@ -19,6 +19,8 @@ import java.util.*;
 public class ProjectRuntimeRuleEvaluator {
     @jakarta.annotation.Resource
     private ProjectRelativeTimeFacts relativeTime;
+    @jakarta.annotation.Resource
+    private ProjectChildWaitFacts childWait;
     private final ProjectStageGateProviderRegistry providers;
     private final ProjectRuleCompiler compiler;
     private final ProjectRuleEvaluationService evaluator;
@@ -51,6 +53,7 @@ public class ProjectRuntimeRuleEvaluator {
 
     public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if ("CHILD_PROJECT_WAIT".equals(predicate)) return childWait.resolve(facts.project(), leaf.parameters());
         if ("WAIT_ELAPSED".equals(predicate)) return resolveRelativeTime(leaf, facts, null);
         if ("TIME_REACHED".equals(predicate))
             return cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition.evaluate(leaf.parameters(), java.time.Instant.now());

@@ -14,8 +14,9 @@
           </el-select>
           <el-input
             v-else
+            :type="input.valueType === 'CHILD_PROJECT_STATUSES' ? 'textarea' : 'text'"
             :model-value="typeof values[input.key] === 'string' ? String(values[input.key]) : undefined"
-            :placeholder="input.valueType === 'DATETIME' ? '例如 2026-09-15T09:00:00+08:00' : '输入模拟值；未提供的值保持未知'"
+            :placeholder="input.valueType === 'CHILD_PROJECT_STATUSES' ? '每行一个：正常关闭 / 异常关闭 / 未关闭 / 未知；无子项目填写“无”' : input.valueType === 'DATETIME' ? '例如 2026-09-15T09:00:00+08:00' : '输入模拟值；未提供的值保持未知'"
             @update:model-value="values[input.key] = $event"
           />
         </el-form-item>
@@ -128,8 +129,14 @@ const run = async () => {
   failure.value = ''
   try {
     const facts: Record<string, JsonValue> = {}
-    for (const [key, value] of Object.entries(values))
-      if (value !== undefined && value !== '') facts[key] = value
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined || value === '') continue
+      if (result.value?.inputs.find(input => input.key === key)?.valueType === 'CHILD_PROJECT_STATUSES') {
+        const labels: Record<string, string> = { 正常关闭: 'NORMAL_CLOSED', 异常关闭: 'EXCEPTION_CLOSED', 未关闭: 'ACTIVE', 未知: 'UNKNOWN' }
+        facts[key] = String(value).trim() === '无' ? []
+          : String(value).split('\n').map(item => labels[item.trim()] ?? item.trim())
+      } else facts[key] = value
+    }
     const response = await simulateRule(props.rules, props.ruleKey, facts)
     if (requestGeneration === generation) result.value = response
   } catch (error) {

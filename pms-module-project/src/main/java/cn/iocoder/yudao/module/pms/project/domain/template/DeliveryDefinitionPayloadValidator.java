@@ -113,6 +113,8 @@ public final class DeliveryDefinitionPayloadValidator {
                     text(table, "key"); text(table, "xml");
                 }
                 // Comparison types and DMN dependencies use the same compiler/publication validator as node rules.
+            } else if ("CHILD_PROJECT_WAIT".equals(predicate)) {
+                cn.iocoder.yudao.module.pms.project.domain.rule.ChildProjectWaitCondition.parse(parameters);
             } else if ("TIME_REACHED".equals(predicate)) {
                 fields(parameters, Set.of("at"));
                 text(parameters, "at");

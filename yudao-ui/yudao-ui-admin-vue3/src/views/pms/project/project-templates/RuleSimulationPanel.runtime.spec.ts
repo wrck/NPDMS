@@ -10,6 +10,31 @@ vi.mock('@/api/pms/project/project-templates/rules', () => ({ simulateRule: simu
 const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
   predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
 
+it('keeps missing child facts unknown, distinguishes explicit emptiness and submits typed closure statuses', async () => {
+  const rules: VersionRule[] = [{ key: 'child', name: '子项目等待', kind: 'CONDITION', shared: false, expression: {
+    predicate: 'CHILD_PROJECT_WAIT', parameters: { scope: 'DIRECT', acceptedClosureTypes: ['NORMAL_CLOSED', 'EXCEPTION_CLOSED'], quantifier: 'ALL', emptyResult: true }
+  } }]
+  const response: RuleSimulation = { el: 'native', decisions: {}, inputs: [{ key: 'children:DIRECT', label: '直接子项目的关闭状态', valueType: 'CHILD_PROJECT_STATUSES' }],
+    evaluation: { kind: 'CONDITION', outcome: 'UNKNOWN', ruleVersionRef: 'simulation:child', conditions: [], steps: [], diagnostics: [] } }
+  simulate.mockResolvedValue(response)
+  const view = mount(RuleSimulationPanel, { rules, ruleKey: 'child' },
+    { ElCollapse: passthrough, ElCollapseItem: passthrough, ElForm: passthrough, ElFormItem: passthrough, ElInput: passthrough })
+  const run = async () => {
+    await (find(view.root, node => node.type === 'button' && textOf(node) === '试算')!.props!.onClick as () => Promise<void>)()
+    await nextTick()
+  }
+  await run(); expect(simulate).toHaveBeenLastCalledWith(rules, 'child', {})
+  const edit = (value: string) => {
+    const item = find(view.root, node => node.props?.label === '直接子项目的关闭状态')!
+    ;(find(item, node => !!node.props?.['onUpdate:modelValue'])!.props!['onUpdate:modelValue'] as (value: string) => void)(value)
+  }
+  edit('正常关闭\n异常关闭\n未关闭\n未知'); await run()
+  expect(simulate).toHaveBeenLastCalledWith(rules, 'child', { 'children:DIRECT': ['NORMAL_CLOSED', 'EXCEPTION_CLOSED', 'ACTIVE', 'UNKNOWN'] })
+  edit('无'); await run(); expect(simulate).toHaveBeenLastCalledWith(rules, 'child', { 'children:DIRECT': [] })
+  edit(''); await run(); expect(simulate).toHaveBeenLastCalledWith(rules, 'child', {})
+  view.app.unmount()
+})
+
 it('distinguishes each source clock and submits dates under their exact input keys without inventing missing values', async () => {
   const rules: VersionRule[] = [{ key: 'wait', name: '等待', kind: 'CONDITION', shared: false, expression: {
     predicate: 'WAIT_ELAPSED', parameters: { anchor: 'NODE_COMPLETED', duration: 'PT30M', sourceNodeKey: 'survey' }

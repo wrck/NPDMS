@@ -52,6 +52,8 @@ import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.Proj
 @Service
 @RequiredArgsConstructor
 public class ProjectGovernanceApplicationService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents childWaitEvents;
 
     public static final String ROLLBACK_SCOPE = "POST:/pms/projects/{id}/actions/rollback";
     public static final String EXCEPTION_CLOSE_SCOPE = "POST:/pms/projects/{id}/actions/close";
@@ -185,6 +187,7 @@ public class ProjectGovernanceApplicationService {
         if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) {
             throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
         }
+        childWaitEvents.closureChanged(actor.tenantId(), project.getId(), actor.actorId(), actor.correlationId());
         return new GovernanceActionResult(project.getId(), REOPEN.name(),
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getAssignmentStatus(),
                 ACTIVE, closeSnapshot.getBeforeStage(), UNASSIGNED,
@@ -299,6 +302,7 @@ public class ProjectGovernanceApplicationService {
         if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) {
             throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
         }
+        childWaitEvents.closureChanged(actor.tenantId(), project.getId(), actor.actorId(), actor.correlationId());
         return new GovernanceActionResult(project.getId(), EXCEPTION_CLOSE.name(),
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getAssignmentStatus(),
                 EXCEPTION_CLOSED, project.getCurrentStage(), UNASSIGNED,

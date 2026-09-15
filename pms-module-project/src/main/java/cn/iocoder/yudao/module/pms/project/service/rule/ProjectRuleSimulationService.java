@@ -38,6 +38,12 @@ public class ProjectRuleSimulationService {
         Map<String, ProjectDecisionTableService.Result> results = new LinkedHashMap<>();
         for (var leaf : program.leaves()) {
             if (leaf.predicate().equals("CONSTANT")) continue;
+            if (leaf.predicate().equals("CHILD_PROJECT_WAIT")) {
+                String key = inputKey(leaf);
+                inputs.putIfAbsent(key, new Input(key, leaf.parameters().path("scope").asText().equals("DIRECT")
+                        ? "直接子项目的关闭状态" : "全部子孙项目的关闭状态", "CHILD_PROJECT_STATUSES"));
+                continue;
+            }
             if (leaf.predicate().equals("WAIT_ELAPSED")) {
                 inputs.putIfAbsent("clock.now", new Input("clock.now", "模拟当前时间（含时区）", "DATETIME"));
                 String key = relativeAnchorKey(leaf);
@@ -58,6 +64,14 @@ public class ProjectRuleSimulationService {
             }
         }
         RuleResult result = evaluator.evaluateRule("simulation:" + ruleKey, program, leaf -> {
+            if (leaf.predicate().equals("CHILD_PROJECT_WAIT")) {
+                var statuses = values.get(inputKey(leaf));
+                if (statuses == null || !statuses.isArray()) return RuleFact.unknown("SIMULATION_INPUT_MISSING");
+                var suppliedStatuses = new java.util.ArrayList<String>();
+                for (var status : statuses) suppliedStatuses.add(status.isTextual() ? status.asText() : null);
+                return cn.iocoder.yudao.module.pms.project.domain.rule.ChildProjectWaitCondition.parse(leaf.parameters())
+                        .evaluate(suppliedStatuses);
+            }
             if (leaf.predicate().equals("WAIT_ELAPSED")) {
                 var now = supplied(values, "clock.now");
                 var anchor = supplied(values, relativeAnchorKey(leaf));
@@ -91,6 +105,7 @@ public class ProjectRuleSimulationService {
     }
 
     public static String inputKey(RuleProgram.Leaf leaf) {
+        if (leaf.predicate().equals("CHILD_PROJECT_WAIT")) return "children:" + leaf.parameters().path("scope").asText();
         if (leaf.predicate().equals("TIME_REACHED")) return "clock.now";
         if (leaf.predicate().equals("FIELD")) return leaf.parameters().path("fieldCode").asText();
         String reference = leaf.parameters().path("refCode").asText(

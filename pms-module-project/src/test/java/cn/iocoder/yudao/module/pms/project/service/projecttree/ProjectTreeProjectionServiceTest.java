@@ -48,6 +48,8 @@ class ProjectTreeProjectionServiceTest {
     void setUp() {
         service = new ProjectTreeProjectionService(projectMapper, versionMapper, pathMapper,
                 changeMapper, commandExecutionService, metrics, scopeService);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "ruleEvents",
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi.class));
     }
 
     @Test

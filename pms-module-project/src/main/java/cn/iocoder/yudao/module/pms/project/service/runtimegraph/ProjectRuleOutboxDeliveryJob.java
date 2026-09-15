@@ -19,6 +19,8 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
     private final PlatformOutboxDeliveryApi outbox;
     private final cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectRuntimeCoordinator coordinator;
     private final ProjectRuleTimerDelivery timers;
+    @jakarta.annotation.Resource
+    private ProjectChildWaitDelivery childWait;
 
     @Override
     @TenantJob
@@ -26,10 +28,17 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
         var now = LocalDateTime.now();
         int delivered = 0;
         int retry = 0;
-        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE)))) {
+        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE)))) {
             boolean completed = false;
             try {
-                if (ProjectRuleTimer.EVENT_TYPE.equals(message.eventType())) {
+                if (ProjectChildWaitEvents.EVENT_TYPE.equals(message.eventType())) {
+                    var event = JsonUtils.parseObject(message.payload(), ProjectChildWaitEvents.Changed.class);
+                    if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
+                            || !Objects.equals(event.tenantId(), message.tenantId()) || event.projectId() == null
+                            || !Objects.equals(event.eventId(), message.eventId()))
+                        throw new IllegalArgumentException("CHILD_WAIT_EVENT_IDENTITY_INVALID");
+                    completed = childWait.deliver(event);
+                } else if (ProjectRuleTimer.EVENT_TYPE.equals(message.eventType())) {
                     var event = JsonUtils.parseObject(message.payload(), ProjectRuleTimer.class);
                     if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
                             || !Objects.equals(event.tenantId(), message.tenantId()) || !Objects.equals(event.eventId(), message.eventId()))

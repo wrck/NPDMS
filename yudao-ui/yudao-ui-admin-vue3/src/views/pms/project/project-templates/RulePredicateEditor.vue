@@ -93,6 +93,12 @@
       />
       <span class="condition-hint">按 {{ timeZone }} 显示，到达后满足</span>
     </template>
+    <ChildProjectWaitEditor
+      v-else-if="predicate === 'CHILD_PROJECT_WAIT'"
+      :parameters="parameters"
+      :disabled="disabled || !predicateAllowed(predicate)"
+      @change="emit('change', 'CHILD_PROJECT_WAIT', $event)"
+    />
     <RelativeTimeConditionEditor
       v-else-if="predicate === 'WAIT_ELAPSED'"
       :parameters="parameters"
@@ -169,6 +175,7 @@ import { newDecisionTable } from './decisionTableModel'
 import { ruleBusinessSourcesKey } from './ruleBusinessSources'
 import { ruleNativeOptionsKey } from './ruleNativeOptions'
 import RelativeTimeConditionEditor from './RelativeTimeConditionEditor.vue'
+import ChildProjectWaitEditor from './ChildProjectWaitEditor.vue'
 import { initialRelativeTime, relativeTimeOptionsKey } from './relativeTimeModel'
 const props = defineProps<{
   predicate: string
@@ -182,7 +189,7 @@ const emit = defineEmits<{ change: [predicate: string, parameters: JsonObject] }
 const allowedNative = inject(ruleNativeOptionsKey, computed(() => undefined))
 const waitOptions = inject(relativeTimeOptionsKey, computed(() => undefined))
 const predicateAllowed = (predicate: string) => {
-  if (predicate === 'WAIT_ELAPSED') return waitOptions.value?.available ?? true
+  if (predicate === 'WAIT_ELAPSED' || predicate === 'CHILD_PROJECT_WAIT') return waitOptions.value?.available ?? true
   return !predicate.endsWith('_NATIVE_STATUS') || allowedNative.value === undefined || allowedNative.value.includes(predicate)
 }
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -216,6 +223,7 @@ const labels = {
   BUSINESS_FACT: '业务结果',
   TIME_REACHED: '到达时间',
   WAIT_ELAPSED: '相对等待',
+  CHILD_PROJECT_WAIT: '子项目等待条件',
   APPROVAL: '审批结果',
   PROCESS: '流程结果',
   MILESTONE: '里程碑',
@@ -275,6 +283,10 @@ const selectField = (code: string) => {
 }
 const selectPredicate = (value: string) => {
   if (props.disabled || !predicateAllowed(value)) return
+  if (value === 'CHILD_PROJECT_WAIT') {
+    emit('change', value, { scope: 'DIRECT', acceptedClosureTypes: ['NORMAL_CLOSED', 'EXCEPTION_CLOSED'], quantifier: 'ALL', emptyResult: true })
+    return
+  }
   if (value === 'WAIT_ELAPSED') {
     emit('change', value, initialRelativeTime(waitOptions.value))
     return

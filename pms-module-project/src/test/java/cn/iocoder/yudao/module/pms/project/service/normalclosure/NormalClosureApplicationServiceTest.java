@@ -28,6 +28,8 @@ class NormalClosureApplicationServiceTest {
     private final NormalClosureApplicationService.SubmitCommand submit = new NormalClosureApplicationService.SubmitCommand(9L, 5L, 4, 3L, "submit-1");
     private ProjectMasterDO project;
     @BeforeEach void setup() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
         TenantContextHolder.setTenantId(7L);
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(4); project.setCurrentStage("S1");
         when(access.lock(9L, 4, 3L, actor)).thenReturn(new NormalClosureAccess.Context(project, 3L));

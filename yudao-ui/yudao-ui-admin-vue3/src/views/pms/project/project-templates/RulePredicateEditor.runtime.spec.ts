@@ -13,6 +13,35 @@ const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode 
   predicate(node) ? node : node.children.map((child) => find(child, predicate)).find(Boolean)
 
 describe('business fact source editing', () => {
+  it('creates the approved child-wait defaults once and preserves later explicit choices through reopening', async () => {
+    const state = reactive<{ predicate: string; parameters: JsonObject; disabled: boolean; available: boolean }>({
+      predicate: 'CONSTANT', parameters: { value: false }, disabled: false, available: true
+    })
+    const host = defineComponent({ setup() {
+      provide(relativeTimeOptionsKey, computed(() => ({ available: state.available, activation: true, sources: [] })))
+      return () => h(RulePredicateEditor, { predicate: state.predicate, parameters: state.parameters, fields: [], facts: [], disabled: state.disabled,
+        onChange: (predicate, parameters) => { state.predicate = predicate; state.parameters = parameters } })
+    } })
+    const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough })
+    const update = (label: string, value: unknown) => {
+      const control = find(view.root, node => node.props?.['aria-label'] === label)!
+      ;(control.props!['onUpdate:modelValue'] as (value: unknown) => void)(value)
+    }
+    update('条件类型', 'CHILD_PROJECT_WAIT'); await nextTick()
+    expect(state.parameters).toEqual({ scope: 'DIRECT', acceptedClosureTypes: ['NORMAL_CLOSED', 'EXCEPTION_CLOSED'], quantifier: 'ALL', emptyResult: true })
+    update('子项目等待范围', 'DESCENDANTS'); await nextTick()
+    update('认可的关闭类型', ['NORMAL_CLOSED']); await nextTick()
+    update('子项目满足方式', 'ANY'); await nextTick()
+    update('无子项目时的结果', false); await nextTick()
+    const explicit = { scope: 'DESCENDANTS', acceptedClosureTypes: ['NORMAL_CLOSED'], quantifier: 'ANY', emptyResult: false }
+    expect(encodeTree(decodeTree({ predicate: state.predicate, parameters: state.parameters })).parameters).toEqual(explicit)
+    state.disabled = true; await nextTick()
+    update('无子项目时的结果', true); expect(state.parameters).toEqual(explicit)
+    state.disabled = false; state.available = false; await nextTick()
+    update('子项目等待范围', 'DIRECT'); expect(state.parameters).toEqual(explicit)
+    expect(find(view.root, node => node.props?.value === 'CHILD_PROJECT_WAIT')?.props?.disabled).toBe(true)
+    view.app.unmount()
+  })
   it('defaults admission waits to an explicit source and prevents use for template matching', async () => {
     const state = reactive({ available: true, activation: false, sources: [] })
     const change = vi.fn()

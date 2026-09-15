@@ -1,0 +1,15 @@
+{
+  "key": "children_closed",
+  "name": "等待直接子项目关闭",
+  "kind": "CONDITION",
+  "shared": false,
+  "expression": {
+    "predicate": "CHILD_PROJECT_WAIT",
+    "parameters": {
+      "scope": "DIRECT",
+      "acceptedClosureTypes": ["NORMAL_CLOSED", "EXCEPTION_CLOSED"],
+      "quantifier": "ALL",
+      "emptyResult": true
+    }
+  }
+}

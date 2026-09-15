@@ -93,6 +93,8 @@ class ProjectGovernanceApplicationServiceTest {
                 treeScopeService, guardService, projectMapper, memberMapper, treeVersionMapper,
                 snapshotMapper, snapshotRepository);
         successFacts = new AtomicReference<>();
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
         stubNewExecution();
         when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_ROLLBACK)).thenReturn(true);
         when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_CLOSE)).thenReturn(true);

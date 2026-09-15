@@ -38,6 +38,8 @@ import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTI
 @Service
 @RequiredArgsConstructor
 public class ProjectTreeProjectionService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
     public static final String MOVE_SCOPE = "POST:/pms/projects/{id}/actions/move";
 
     private final ProjectMasterMapper projectMapper;
@@ -249,6 +251,11 @@ public class ProjectTreeProjectionService {
             if (versionMapper.updateById(version) != 1) {
                 throw new IllegalStateException("PROJECT_TREE_VERSION_ACTIVATION_FAILED");
             }
+            // Creation/split/move may change both a populated range and the explicit empty-child result.
+            // Each affected root is published in the caller's transaction, including the former parent tree.
+            for (var node : nodes) ruleEvents.append("Project", node.getId().toString(),
+                    new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                            rootLock.getTenantId(), node.getId(), null, "PROJECT_TREE:" + changeBatchId).event());
             metrics.projection(true, System.nanoTime() - started, nodeCount);
             return new ProjectionResult(rootProjectId, treeVersion, nodeCount, pathCount);
         } catch (RuntimeException failure) {

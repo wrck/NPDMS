@@ -21,6 +21,8 @@ import static cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalCl
 
 @Service @RequiredArgsConstructor
 public class NormalClosureApplicationService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents childWaitEvents;
     private final NormalClosureAccess access;
     private final NormalClosureCheckService checks;
     private final NormalClosureMapper mapper;
@@ -147,6 +149,7 @@ public class NormalClosureApplicationService {
                 exit.setRevalidationEvidence(evaluation.sourceVector()); exit.setClosedAt(now);
                 exit.setCreator(actor.userId().toString()); exit.setUpdater(actor.userId().toString());
                 if (mapper.insertExitRecord(exit) != 1) throw failure("CLOSURE_EXIT_WRITE_FAILED");
+                childWaitEvents.closureChanged(tenantId, project.getId(), actor.userId(), actor.correlationId());
             }
             for (var review : reviews) appendReview(application, review);
             if (mapper.decideApplicationIfMatch(new NormalClosureMapper.ApplicationDecision(tenantId, project.getId(), applicationId,

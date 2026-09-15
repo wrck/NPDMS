@@ -28,6 +28,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ProjectRuleClosureService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents childWaitEvents;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
@@ -80,6 +82,7 @@ public class ProjectRuleClosureService {
             throw new IllegalStateException("PROJECT_RULE_CLOSURE_VERSION_CONFLICT");
         audit.record(tenantId, actorId, correlationId, "PROJECT_CLOSED_BY_RULE", "Project", projectId.toString(), "SUCCESS",
                 Map.of("planVersionId", plan.getId(), "ruleKey", key, "closedAt", now));
+        childWaitEvents.closureChanged(tenantId, projectId, actorId, correlationId);
         return new Closure(true, false);
     }
 }

@@ -44,7 +44,7 @@ export type RuleResult = ResultContext &
   )
 export interface RuleSimulation {
   el: string
-  inputs: { key: string; label: string; valueType: RuleValueType }[]
+  inputs: { key: string; label: string; valueType: RuleValueType | 'CHILD_PROJECT_STATUSES' }[]
   evaluation: RuleResult
   decisions: Record<
     string,
