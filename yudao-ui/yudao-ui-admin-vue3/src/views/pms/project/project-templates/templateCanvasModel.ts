@@ -103,9 +103,10 @@ function references(expression: JsonObject): { predicate: string; refCode?: stri
   if (expression.operator) return childRules(expression).flatMap(references)
   const parameters = expression.parameters
   if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return []
-  if (expression.predicate === 'WAIT_ELAPSED' && parameters.anchor === 'NODE_COMPLETED'
+  if ((expression.predicate === 'BUSINESS_FACT'
+    || (expression.predicate === 'WAIT_ELAPSED' && parameters.anchor === 'NODE_COMPLETED'))
     && typeof parameters.sourceNodeKey === 'string')
-    return [{ predicate: 'WAIT_ELAPSED', sourceNodeKey: parameters.sourceNodeKey }]
+    return [{ predicate: expression.predicate, sourceNodeKey: parameters.sourceNodeKey }]
   return ['TASK', 'STATE'].includes(String(expression.predicate)) &&
     typeof parameters.refCode === 'string'
     ? [{ predicate: String(expression.predicate), refCode: parameters.refCode }]
@@ -192,10 +193,9 @@ export function disconnectNodes(document: TemplateDesignerDocument, key: string)
         .filter((item): item is JsonObject => !!item)
       return children.length ? { ...expression, rules: children } : undefined
     }
-    if (expression.predicate === 'WAIT_ELAPSED' && (expression.parameters as JsonObject)?.anchor === 'NODE_COMPLETED'
-      && (expression.parameters as JsonObject)?.sourceNodeKey === source.node.nodeKey) return undefined
-    return (expression.parameters as JsonObject)?.refCode === refCode &&
-      expression.predicate === (source.kind === 'STAGE' ? 'STATE' : 'TASK')
+    return references(expression).some((reference) => reference.sourceNodeKey
+      ? reference.sourceNodeKey === source.node.nodeKey
+      : reference.refCode === refCode && reference.predicate === (source.kind === 'STAGE' ? 'STATE' : 'TASK'))
       ? undefined
       : expression
   }

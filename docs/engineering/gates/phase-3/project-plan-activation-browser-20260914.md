@@ -726,3 +726,11 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 新增测试直接读取同一 JSON，使用现有模板编译器、版本规则校验器和真实内存 LiteFlow：验证保存重开不产生两份规则、冻结后修改草稿不改变快照、来源丢失被拒绝、缺少完成时间返回未知、到期边界、业务未完成不能由时间放行，以及返工当前轮次和自身激活计时。业务 Owner 仅替代元数据；不代表真实原模块办理或定时投递验收。自审核对工勘提供方为 SOL/SITE_SURVEY，需求分析提供方为 SOL/REQUIREMENT_ANALYSIS，没有跨模块数据库访问或依赖新增。
 - 会话 87400 exit 0，`PreparationRelativeWaitSampleTest` **4 项通过，零失败/错误/跳过**。命令：`mvn -q -pl pms-module-project -am test "-Dtest=PreparationRelativeWaitSampleTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`。LiteFlow 缺失事实用例的错误日志为预期未知路径；测试上下文没有应用数据源，DMN 使用非关系模式，没有连接共享数据库。
 - 本步仅样例、测试和使用/验证说明，无生产逻辑、权限、SQL 或状态转换变更。Git 技能用于限定本地提交，不推送、不提交运行 PID；未重跑前提未变的失败浏览器路径或前端类型检查，不切换 59280。**运行环境样例绑定与初始化、真实发布/办理/返工联合验收仍未完成，专项继续。**
+
+## 2026-09-15：对齐业务来源条件与主／子画布依赖
+
+- 复核显式来源及影响分析时发现：后端已支持 BUSINESS_FACT/sourceNodeKey，但画布依赖只识别 TASK、STATE、WAIT_ELAPSED。因此原有业务来源不显示连线，再次连线会额外添加来源完成条件，改变原规则。另一个直接消费者缺口是主画布过滤了任务节点，即使阶段准入依赖该任务也不显示来源。
+- 复用原依赖投影，加入显式业务来源；连线、删线读取同一引用映射，不另建规则解释器。重复连线保持原条件及 ANY/ALL 语义，删线移除该来源的所有对应条件、保留其他来源；共享规则仍复制后只修改当前消费者。主／子画布统一补入外部来源，主画布的任务来源只读，位置保存于当前画布引用位置，不改变任务子画布布局。删除引用只解除可见目标的准入引用，不删除原任务、不修改其他消费者；编辑入口跳转原所属阶段。只读切换后的过期移动、连线、删除事件不改模型。
+- 模型新增三项失败用例先复现：两个来源类型的业务依赖均丢失、混合等待与业务来源只显示部分连线；原有五项通过。修复后六套件 **36 项通过**：画布模型 8、主／子画布业务引用 3、Dagre 画布布局 4、共享侧栏 8、条件选择 4、策略编辑 9。命令为前端目录 `pnpm exec vitest run --config vitest.pms-file.config.ts`，文件位于 `src/views/pms/project/project-templates/`，分别是 `templateCanvasModel.spec.ts`、`businessDependencyCanvas.runtime.spec.ts`、`canvasLayout.runtime.spec.ts`、`RuleSlotEditor.runtime.spec.ts`、`RulePredicateEditor.runtime.spec.ts`、`strategyEditing.runtime.spec.ts`。组件测试使用真实父编辑器、Vue 本地渲染器和画布渲染替身，不冒充真实浏览器操作。
+- 四处改动 TS/Vue 的 ESLint exit 0，无错误；TemplateContentEditor.vue:130、183 两处既有首属性换行警告未扩大修复。会话 36742 最终 `pnpm ts:check` 仍仅报告三条既有客户模块诊断（CustomerFormDrawer.vue:248、联系人页面:199、ProjectCustomerOverview.vue:159），本步无新增诊断，不写为全量通过。自审检查删除引用、共享复制和布局隔离，没有新增 API、数据库查询、依赖、业务权限门槛或运行状态行为。
+- 本次端口实查 19081 监听、59280 无监听；Get-NetTCPConnection 不可用后使用 .NET TCP 监听列表确认。没有启动、停止或切换共享后台，未重复进入已知无法保存的浏览器路径，联合验收仍待可用且获准的后台。前端技能用于沿用现有只读引用和所属阶段操作，代码质量技能用于复核直接消费者，Git 技能用于本地单一修复提交、不推送、不提交 PID。此步修复画布与规则语义不一致，不代表全部依赖配置校验或整个专项已完成。

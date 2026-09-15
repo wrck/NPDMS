@@ -369,12 +369,7 @@ const runtimeNode = computed(() =>
     : undefined
 )
 const referenceSelected = computed(
-  () =>
-    !!stage.value &&
-    !!selected.value &&
-    (selected.value.kind === 'STAGE'
-      ? selected.value.node.nodeKey !== stage.value.nodeKey
-      : 'stageCode' in selected.value.node && selected.value.node.stageCode !== stage.value.code)
+  () => !!canvasNodes.value.find((node) => node.key === selectedKey.value)?.reference
 )
 const nodeReadonly = computed(() => !!props.readonly || referenceSelected.value)
 const gateConsumers = computed(() => {
@@ -385,6 +380,7 @@ const otherTasks = computed(() =>
   props.content.tasks.filter((task) => task.stageCode !== stage.value?.code)
 )
 const edges = computed(() => dependencyEdges(props.content))
+const referenceLayoutKey = (key: string) => `${stageKey.value ?? '$stages'}:reference:${key}`
 const canvasNodes = computed(() => {
   const included = allNodes(props.content).filter((item) =>
     stage.value
@@ -394,23 +390,18 @@ const canvasNodes = computed(() => {
       : item.kind === 'STAGE' ||
         (item.kind !== 'TASK' && !('stageCode' in item.node && item.node.stageCode))
   )
-  if (stage.value) {
-    const keys = new Set(included.map((item) => item.node.nodeKey))
-    const referenced = new Set(references)
-    for (const edge of edges.value)
-      if (keys.has(edge.to) && !keys.has(edge.from)) referenced.add(edge.from)
-    for (const key of referenced) {
-      const item = allNodes(props.content).find((candidate) => candidate.node.nodeKey === key)
-      if (item && !keys.has(key)) included.push(item)
-    }
+  const keys = new Set(included.map((item) => item.node.nodeKey))
+  const referenced = new Set(references)
+  for (const edge of edges.value)
+    if (keys.has(edge.to) && !keys.has(edge.from)) referenced.add(edge.from)
+  for (const key of referenced) {
+    const item = allNodes(props.content).find((candidate) => candidate.node.nodeKey === key)
+    if (item && !keys.has(key)) included.push(item)
   }
   return included.map((item, index) => {
-    const reference =
-      !!stage.value &&
-      (item.kind === 'STAGE' ||
-        ('stageCode' in item.node && item.node.stageCode !== stage.value.code))
+    const reference = !keys.has(item.node.nodeKey)
     const point = reference
-      ? props.content.layout?.nodes?.[`${stageKey.value}:reference:${item.node.nodeKey}`]
+      ? props.content.layout?.nodes?.[referenceLayoutKey(item.node.nodeKey)]
       : undefined
     return {
       ...toCanvasNode(props.content, item.kind, item.node),
@@ -520,13 +511,17 @@ const create = (
   }
 }
 const move = (key: string, point: { x: number; y: number }) => {
+  if (props.readonly) return
   const layoutKey = canvasNodes.value.find((node) => node.key === key)?.reference
-    ? `${stageKey.value}:reference:${key}`
+    ? referenceLayoutKey(key)
     : key
   ;((props.content.layout ??= {}).nodes ??= {})[layoutKey] = point
 }
 const connect = (from: string, to: string) => {
+  if (props.readonly) return
   try {
+    if (canvasNodes.value.find((node) => node.key === to)?.reference)
+      throw new Error('引用节点只能作为依赖来源，请打开所属阶段编辑其准入')
     connectNodes(props.content, from, to, stage.value?.code)
     failure.value = ''
   } catch (error) {
@@ -629,17 +624,11 @@ const setTaskManualHandling = async () => {
 const remove = async (key: string) => {
   const item = allNodes(props.content).find((entry) => entry.node.nodeKey === key)
   if (!item || props.readonly) return
-  if (
-    stage.value &&
-    (item.kind === 'STAGE' ||
-      ('stageCode' in item.node && item.node.stageCode !== stage.value.code))
-  ) {
+  if (canvasNodes.value.find((node) => node.key === key)?.reference) {
     for (const edge of edges.value)
       if (
         edge.from === key &&
-        props.content.tasks.some(
-          (task) => task.nodeKey === edge.to && task.stageCode === stage.value?.code
-        )
+        canvasNodes.value.some((node) => node.key === edge.to && !node.reference)
       )
         disconnectNodes(props.content, edge.key)
     references.delete(key)
