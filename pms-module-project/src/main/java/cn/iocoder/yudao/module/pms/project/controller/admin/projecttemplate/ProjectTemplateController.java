@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate;
 
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
@@ -166,17 +167,27 @@ public class ProjectTemplateController {
     }
 
     @PostMapping("/actions/match-preview")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
     @Operation(summary = "已发布模板适用条件匹配预演")
     @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
     public CommonResult<ProjectTemplateMatchRespVO> matchPreview(@Valid @RequestBody ProjectTemplateMatchPreviewReqVO reqVO) {
-        TemplateMatchResult result = projectTemplateService.matchPreview(reqVO.getSigningMethod(), reqVO.getProjectCategory(),
-                reqVO.getImplementationMethod(), reqVO.getMajorProjectLevel());
-        ProjectTemplateMatchRespVO respVO = new ProjectTemplateMatchRespVO();
-        respVO.setOutcome(result.getOutcome() == null ? null : result.getOutcome().name());
-        respVO.setMatched(result.getMatched());
-        respVO.setConflicts(result.getConflicts());
-        respVO.setEvaluations(result.getEvaluations());
-        return success(respVO);
+        try {
+            TemplateMatchResult result = projectTemplateService.matchPreview(
+                    ProjectRuleFields.suppliedCreationFacts(reqVO.getFacts()));
+            ProjectTemplateMatchRespVO respVO = new ProjectTemplateMatchRespVO();
+            respVO.setOutcome(result.getOutcome() == null ? null : result.getOutcome().name());
+            respVO.setMatched(result.getMatched());
+            respVO.setConflicts(result.getConflicts());
+            respVO.setEvaluations(result.getEvaluations());
+            return success(respVO);
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException
+                 | org.springframework.security.access.AccessDeniedException denied) {
+            throw denied;
+        } catch (RuntimeException unavailable) {
+            // Global unexpected-error logging persists request bodies; matching facts must not enter it.
+            throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                    cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_MATCH_PREVIEW_FAILED);
+        }
     }
 
     @GetMapping("/actions/completion-fact-catalog")

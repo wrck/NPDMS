@@ -102,10 +102,7 @@
   </Dialog>
 
   <Dialog v-model="matchVisible" title="模板规则匹配预演" width="640px">
-    <el-form label-width="110px"><el-form-item v-for="dimension in dimensions" :key="dimension.key" :label="dimension.label"><el-select v-model="matchForm[dimension.key]" clearable><el-option v-for="option in getStrDictOptions(dimension.dict)" :key="option.value" :value="option.value" :label="option.label" /></el-select></el-form-item><el-button type="primary" :loading="matching" @click="runMatchPreview">执行预演</el-button></el-form>
-    <el-alert v-if="failure" :title="failure" type="error" :closable="false" />
-    <template v-if="matchResult"><el-result v-if="matchResult.outcome === 'MATCHED' && matchResult.matched" icon="success" :title="`唯一命中：${matchResult.matched.code} - ${matchResult.matched.name}`" :sub-title="`匹配优先级 ${matchResult.matched.matchPriority ?? '-'}`" /><el-result v-else-if="matchResult.outcome === 'NO_MATCH'" icon="warning" title="无匹配模板" /><el-alert v-else title="同优先级多匹配，需人工处理，不静默选模" type="error" :closable="false" /><ul><li v-for="(conflict, index) in matchResult.conflicts" :key="index">{{ conflict }}</li></ul></template>
-    <TemplateMatchDiagnostics :evaluations="matchResult?.evaluations ?? []" />
+    <TemplateMatchPreview v-if="matchVisible" />
   </Dialog>
 </template>
 <script setup lang="ts">
@@ -114,12 +111,12 @@ import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as TemplateApi from '@/api/pms/project/project-templates'
-import type { MatchPreviewReqVO, MatchRespVO, ProjectTemplateDetailVO, ProjectTemplateRevisionDetailVO, ProjectTemplateVO, TemplateCopy, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
+import type { ProjectTemplateDetailVO, ProjectTemplateRevisionDetailVO, ProjectTemplateVO, TemplateCopy, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type { ValidationResult } from '@/api/pms/project/project-templates/definitions'
 import { isBusinessViewConflict } from '@/api/pms/platform/business-view'
 import DefinitionLibrary from './DefinitionLibrary.vue'
 import TemplateContentEditor from './TemplateContentEditor.vue'
-import TemplateMatchDiagnostics from './TemplateMatchDiagnostics.vue'
+import TemplateMatchPreview from './TemplateMatchPreview.vue'
 import { cloneContent, commandIntent, emptyContent, errorText } from './editorModel'
 
 defineOptions({ name: 'PmsProjectTemplate' })
@@ -138,7 +135,7 @@ const dimensions = [
   { key: 'signingMethod', label: '签约方式', dict: DICT_TYPE.PMS_SIGNING_METHOD }, { key: 'projectCategory', label: '项目类别', dict: DICT_TYPE.PMS_PROJECT_CATEGORY },
   { key: 'implementationMethod', label: '实施方式', dict: DICT_TYPE.PMS_IMPLEMENTATION_METHOD }, { key: 'majorProjectLevel', label: '重大项目级别', dict: DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL }
 ] as const
-const dimText = (row: MatchPreviewReqVO) => dimensions.map((dimension) => {
+const dimText = (row: TemplateApi.TemplateMatch) => dimensions.map((dimension) => {
   const value = row[dimension.key]
   return value ? getStrDictOptions(dimension.dict).find((option) => option.value === value)?.label ?? value : undefined
 }).filter(Boolean).join(' / ') || '全部场景'
@@ -293,11 +290,7 @@ const viewRevision = async (revision: { revisionNo: number }) => {
 }
 
 const matchVisible = ref(false)
-const matching = ref(false)
-const matchResult = ref<MatchRespVO>()
-const matchForm = reactive<MatchPreviewReqVO>({})
-const openMatchPreview = () => { matchResult.value = undefined; failure.value = ''; matchVisible.value = true }
-const runMatchPreview = async () => { matching.value = true; try { matchResult.value = await TemplateApi.matchPreview({ ...matchForm }) } catch (error) { failure.value = errorText(error) } finally { matching.value = false } }
+const openMatchPreview = () => { matchVisible.value = true }
 onMounted(load)
 </script>
 <style scoped>

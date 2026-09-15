@@ -6,6 +6,9 @@ import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatch
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -22,21 +25,21 @@ public class ProjectAttributeResolutionService {
     @Resource
     private ProjectTemplateService projectTemplateService;
 
-    public TemplateMatchDecision resolveInitial(ProjectAttributeSnapshot attributes, Long selectedRevisionId,
+    public TemplateMatchDecision resolveInitial(ProjectMasterDO project, Long selectedRevisionId,
                                                 String candidateWatermark) {
-        ProjectAttributeSnapshot normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes);
-        return resolveInitialNormalized(normalized, selectedRevisionId, candidateWatermark);
+        ProjectAttributeSnapshot normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(project));
+        return resolveInitialNormalized(ProjectRuleFields.manualCreationFacts(project).withAttributes(normalized), selectedRevisionId, candidateWatermark);
     }
 
-    public TemplateMatchDecision resolveSourceInitial(ProjectAttributeSnapshot attributes, Long selectedRevisionId,
+    public TemplateMatchDecision resolveSourceInitial(ProjectMasterDO project, Long selectedRevisionId,
                                                       String candidateWatermark) {
-        return resolveInitialNormalized(normalizeCommon(attributes), selectedRevisionId, candidateWatermark);
+        return resolveInitialNormalized(ProjectRuleFields.creationFacts(project).withAttributes(normalizeCommon(attributes(project))), selectedRevisionId, candidateWatermark);
     }
 
-    private TemplateMatchDecision resolveInitialNormalized(ProjectAttributeSnapshot normalized,
+    private TemplateMatchDecision resolveInitialNormalized(TemplateMatchFacts facts,
                                                            Long selectedRevisionId,
                                                            String candidateWatermark) {
-        TemplateMatchResult match = match(normalized);
+        TemplateMatchResult match = projectTemplateService.matchPreview(facts);
         if (candidateWatermark == null || !candidateWatermark.equals(match.getCandidateWatermark())) {
             throw exception(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT);
         }
@@ -55,17 +58,17 @@ public class ProjectAttributeResolutionService {
         return decision(match, TemplateMatchDecisionRules.DECISION_AUTO_UNIQUE, match.getMatched());
     }
 
-    public TemplateMatchDecision evaluateImpact(ProjectAttributeSnapshot attributes) {
+    public TemplateMatchDecision evaluateImpact(ProjectMasterDO project, ProjectAttributeSnapshot attributes) {
         ProjectAttributeSnapshot normalized = normalizeCommon(attributes);
-        TemplateMatchResult match = match(normalized);
+        TemplateMatchResult match = projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project).withAttributes(normalized));
         TemplateMatchCandidate matched = match.getOutcome() == TemplateMatchResult.Outcome.MATCHED
                 ? match.getMatched() : null;
         return decision(match, null, matched);
     }
 
-    private TemplateMatchResult match(ProjectAttributeSnapshot attributes) {
-        return projectTemplateService.matchPreview(attributes.signingMethod(), attributes.projectCategory(),
-                attributes.implementationMode(), attributes.majorProjectLevel());
+    private ProjectAttributeSnapshot attributes(ProjectMasterDO project) {
+        return new ProjectAttributeSnapshot(project.getSigningMethod(), project.getProjectCategory(),
+                project.getImplementationMode(), project.getMajorProjectLevel());
     }
 
     private TemplateMatchDecision decision(TemplateMatchResult match, String decisionMode,

@@ -44,7 +44,7 @@
         <el-form label-position="top">
           <el-form-item label="子项目模板" required>
             <ChildTemplatePicker
-              :parent-project-id="projectId" :revision-id="item.templateRevisionId"
+              :parent-project-id="projectId" :project-name="item.projectName" :business-level-code="item.businessLevelCode" :office-department-code="item.officeDepartmentCode" :revision-id="item.templateRevisionId"
               :disabled="saving || applying" @change="selectTemplate(item, $event)" />
           </el-form-item>
           <el-form-item label="模板选择原因（选择非匹配模板时必填）">

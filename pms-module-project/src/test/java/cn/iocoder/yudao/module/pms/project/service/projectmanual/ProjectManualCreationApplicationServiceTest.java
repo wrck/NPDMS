@@ -357,6 +357,56 @@ class ProjectManualCreationApplicationServiceTest {
         verifyNoInteractions(platformFactService, projectCreationService);
     }
 
+    @Test void previewUsesCreationDefaultsAndOwnerOrganizationWithoutWriting() {
+        var draft = command().draft(); draft.setProjectName("现场工勘");
+        draft.setCompanyCode("CLIENT"); draft.setDepartmentCode("CLIENT"); draft.setProjectType("CLIENT");
+        var result = cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult.noMatch("none");
+        when(projectTemplateService.matchPreview(any())).thenReturn(result);
+        org.junit.jupiter.api.Assertions.assertSame(result, service.previewMatching(draft, 10L, 20L, actor()));
+        var input = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts.class);
+        verify(projectTemplateService).matchPreview(input.capture());
+        var facts = input.getValue().values();
+        assertEquals("现场工勘", facts.get("project.projectName").value());
+        assertEquals("CO-01", facts.get("project.companyCode").value());
+        assertEquals("DEP-01", facts.get("project.departmentCode").value());
+        assertEquals(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.DEFAULT_PROJECT_TYPE,
+                facts.get("project.projectType").value());
+        assertEquals(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.SOURCE_TYPE_MANUAL,
+                facts.get("project.sourceType").value());
+        assertEquals(false, facts.get("project.isChild").value());
+        org.junit.jupiter.api.Assertions.assertTrue(facts.get("project.businessType").available());
+        org.junit.jupiter.api.Assertions.assertNull(facts.get("project.businessType").value());
+        verifyNoInteractions(platformFactService, projectCreationService, preparationInitializationApi,
+                templateMatchHistoryService, projectSiteService);
+    }
+
+    @Test void previewChecksPermissionsAndOrganizationBeforeEvaluating() {
+        var command = command();
+        when(organizationScopeApi.hasScope(7L, 10L, 20L)).thenReturn(false);
+        assertThrows(ServiceException.class, () -> service.previewMatching(command.draft(), 10L, 20L, actor()));
+        verifyNoInteractions(projectTemplateService, projectCreationService, platformFactService);
+    }
+
+    @Test void selectedCustomerPreviewUsesTheSameOwnerCodeAsCreation() {
+        var draft = command().draft(); draft.setCustomerCode("c-001");
+        when(customerQueryApi.getCustomerByCode(new CustomerCodeQuery("c-001", 7L))).thenReturn(
+                new CustomerSummaryDTO(55L, 1L, "C-001", "主档客户", null, "ENABLED", "PLATFORM_TEMPORARY", 3L, null));
+        service.previewWithSelectedCustomer(draft, 10L, 20L, actor());
+        verify(projectTemplateService).matchPreview(org.mockito.ArgumentMatchers.argThat(input ->
+                "C-001".equals(input.values().get("project.customerCode").value())));
+        verifyNoInteractions(platformFactService, projectCreationService);
+    }
+
+    @Test void selectedCustomerPreviewCannotUseForeignCustomerOrBypassCreationPermission() {
+        var draft = command().draft(); draft.setCustomerCode("C-001");
+        when(customerQueryApi.getCustomerByCode(any())).thenReturn(
+                new CustomerSummaryDTO(55L, 2L, "C-001", "其他租户", null, "ENABLED", "PLATFORM_TEMPORARY", 3L, null));
+        assertThrows(ServiceException.class, () -> service.previewWithSelectedCustomer(draft, 10L, 20L, actor()));
+        doThrow(new ServiceException(FORBIDDEN)).when(authorizationService).assertCanCreate(7L);
+        assertThrows(ServiceException.class, () -> service.previewMatching(draft, 10L, 20L, actor()));
+        verifyNoInteractions(projectTemplateService, platformFactService, projectCreationService);
+    }
+
     private ManualProjectCreateCommand command() {
         ProjectMasterDO draft = new ProjectMasterDO();
         draft.setCreationReason("业务立项");

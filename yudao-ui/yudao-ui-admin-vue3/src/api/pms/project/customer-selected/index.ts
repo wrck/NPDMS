@@ -35,3 +35,7 @@ export const correctProjectCustomer = (id: number, version: number, customerCode
     url: `/api/v1/pms/projects/${id}/customer`, data: { customerCode, reason },
     headers: { 'If-Match': String(version), 'Idempotency-Key': idempotencyKey }
   })
+
+
+export const matchCustomerSelectedTemplates = (params: import('../projects').ProjectMatchTemplatesReqVO) =>
+  request.get<import('../projects').ProjectMatchTemplatesRespVO>({ url: '/api/v1/pms/projects/actions/match-templates', params })

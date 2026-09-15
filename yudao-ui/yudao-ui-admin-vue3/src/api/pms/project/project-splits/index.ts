@@ -84,7 +84,7 @@ export interface ChildTemplateOption {
   selectable: boolean
 }
 
-export const getChildTemplateOptions = (params: { parentProjectId: number; pageNo: number; pageSize: number; name?: string }) =>
+export const getChildTemplateOptions = (params: { parentProjectId: number; pageNo: number; pageSize: number; name?: string; projectName?: string; businessLevelCode?: string; officeDepartmentCode?: string }) =>
   request.get<{ list: ChildTemplateOption[]; total: number }>({ url: '/api/v1/pms/project-child-template-options', params })
 
 export const createDraft = (data: ProjectSplitDraftInput, idempotencyKey: string) =>

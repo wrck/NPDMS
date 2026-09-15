@@ -1000,6 +1000,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
  *
@@ -1017,7 +1018,6 @@ import type {
   ProjectMasterVO,
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
-  ProjectMatchTemplatesRespVO,
   ProjectSiteReqVO,
   ProjectSiteVO,
   ServiceManagerCandidateVO,
@@ -1266,9 +1266,16 @@ const wizardNext0 = async () => {
 }
 
 // ============ 模板匹配（步骤②） ============
-const matchLoading = ref(false)
-const matchResult = ref<ProjectMatchTemplatesRespVO | null>(null)
-const selectedTemplateRevisionId = ref<number | undefined>(undefined)
+const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
+  projectName: createForm.projectName,
+  customerCode: createForm.customerCode || undefined,
+  orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+  orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
+  implementationLocation: createForm.locationMode === 'fallback' ? createForm.implementationLocation : undefined,
+  signingMethod: createForm.signingMethod,
+  projectCategory: createForm.projectCategory,
+  implementationMode: createForm.implementationMode
+}))
 
 const matchCandidates = computed<TemplateCandidateVO[]>(() => matchResult.value?.candidates || [])
 const selectedTemplate = computed(
@@ -1285,19 +1292,6 @@ const canGoStep2 = computed(() => {
   return false
 })
 
-const runMatch = async () => {
-  matchLoading.value = true
-  selectedTemplateRevisionId.value = undefined
-  try {
-    matchResult.value = await ProjectsApi.matchTemplates({
-      signingMethod: createForm.signingMethod || undefined,
-      projectCategory: createForm.projectCategory || undefined,
-      implementationMode: createForm.implementationMode || undefined
-    })
-  } finally {
-    matchLoading.value = false
-  }
-}
 
 const selectCandidate = (row: TemplateCandidateVO) => {
   if (matchResult.value?.outcome === 'MULTI_MATCH') {

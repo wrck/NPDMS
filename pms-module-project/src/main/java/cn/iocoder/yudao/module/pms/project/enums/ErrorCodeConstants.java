@@ -155,6 +155,8 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TEMPLATE_STATUS_INVALID = new ErrorCode(1_014_023_006, "模板状态流转不合法");
     ErrorCode PROJECT_TEMPLATE_RULE_SIMULATION_INVALID = new ErrorCode(1_014_023_007,
             "规则试算失败，请检查规则定义、字段绑定及执行组件");
+    ErrorCode PROJECT_TEMPLATE_MATCH_PREVIEW_FAILED = new ErrorCode(1_014_023_018,
+            "模板匹配读取失败，请检查输入与服务可用性后重试");
     ErrorCode PROJECT_NODE_EXECUTION_FAILED = new ErrorCode(1_014_023_008, "本轮办理提交失败，请刷新执行上下文后重试");
     ErrorCode PROJECT_PLAN_VERSION_CONFLICT = new ErrorCode(1_014_023_009, "项目计划或草稿版本已变化，请重新加载后处理");
     ErrorCode PROJECT_PLAN_CHANGE_INVALID = new ErrorCode(1_014_023_010, "当前项目计划不可修改或设计内容无效");

@@ -18,9 +18,9 @@ describe('child template selection', () => {
   it('emits the selected revision without substituting the parent version', async () => {
     vi.mocked(api.getChildTemplateOptions).mockResolvedValue({ list: [recommended], total: 1 })
     const change = vi.fn()
-    const view = mount(ChildTemplatePicker, { parentProjectId: 100, revisionId: 101, onChange: change }, components)
+    const view = mount(ChildTemplatePicker, { parentProjectId: 100, projectName: '现场工勘', businessLevelCode: 'CHILD', officeDepartmentCode: 'OFFICE', revisionId: 101, onChange: change }, components)
     click(button(view.root, '选择模板')); await flush()
-    expect(api.getChildTemplateOptions).toHaveBeenCalledWith({ parentProjectId: 100, pageNo: 1, pageSize: 20, name: undefined })
+    expect(api.getChildTemplateOptions).toHaveBeenCalledWith({ parentProjectId: 100, projectName: '现场工勘', businessLevelCode: 'CHILD', officeDepartmentCode: 'OFFICE', pageNo: 1, pageSize: 20, name: undefined })
     click(button(view.root, '工前准备'))
     expect(change).toHaveBeenCalledWith('993009245201')
     view.app.unmount()
@@ -34,13 +34,15 @@ describe('child template selection', () => {
     click(button(view.root, '工前准备')); expect(change).not.toHaveBeenCalled()
     view.app.unmount()
   })
-  it('ignores late list responses after switching parent project', async () => {
+  it.each(['parentProjectId', 'projectName', 'businessLevelCode', 'officeDepartmentCode'] as const)('ignores late responses after changing %s', async (field) => {
     let resolve!: (result: { list: typeof recommended[]; total: number }) => void
     vi.mocked(api.getChildTemplateOptions).mockImplementation(() => new Promise(done => { resolve = done }))
-    const state = reactive({ parentProjectId: 100 })
+    const state = reactive({ parentProjectId: 100, projectName: '现场工勘', businessLevelCode: 'CHILD', officeDepartmentCode: 'OFFICE' })
     const view = mount(defineComponent({ setup: () => () => h(ChildTemplatePicker, state) }), {}, components)
     click(button(view.root, '选择模板'))
-    state.parentProjectId = 200; await nextTick()
+    if (field === 'parentProjectId') state[field] = 200
+    else state[field] = 'changed'
+    await nextTick()
     resolve({ list: [recommended], total: 1 }); await flush()
     expect(textOf(view.root)).not.toContain('工前准备')
     view.app.unmount()

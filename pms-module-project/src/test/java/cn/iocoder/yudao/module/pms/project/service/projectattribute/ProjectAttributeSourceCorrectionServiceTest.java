@@ -43,7 +43,7 @@ class ProjectAttributeSourceCorrectionServiceTest {
     void trustedSourceKeepsProjectCategoryAndWritesSourceEvidence() {
         when(principalRegistry.resolve("int-crm-sync")).thenReturn(91L);
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project());
-        when(resolutionService.evaluateImpact(any())).thenReturn(decision());
+        when(resolutionService.evaluateImpact(any(), any())).thenReturn(decision());
         when(templateService.getRevisionList(9L)).thenReturn(List.of(revision()));
         when(projectMapper.updateBusinessAttributesIfMatch(any())).thenReturn(1);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {

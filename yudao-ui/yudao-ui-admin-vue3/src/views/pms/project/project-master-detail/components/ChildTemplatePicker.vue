@@ -22,7 +22,7 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { getChildTemplateOptions, type ChildTemplateOption, type LongId } from '@/api/pms/project/project-splits'
 
-const props = defineProps<{ parentProjectId: number; revisionId?: LongId; disabled?: boolean }>()
+const props = defineProps<{ parentProjectId: number; projectName?: string; businessLevelCode?: string; officeDepartmentCode?: string; revisionId?: LongId; disabled?: boolean }>()
 const emit = defineEmits<{ change: [revisionId: LongId] }>()
 const visible = ref(false)
 const name = ref('')
@@ -38,7 +38,7 @@ const load = async () => {
   const current = ++generation
   loading.value = true; failed.value = false; options.value = []
   try {
-    const result = await getChildTemplateOptions({ parentProjectId: props.parentProjectId, pageNo: pageNo.value, pageSize: 20, name: name.value.trim() || undefined })
+    const result = await getChildTemplateOptions({ parentProjectId: props.parentProjectId, projectName: props.projectName, businessLevelCode: props.businessLevelCode, officeDepartmentCode: props.officeDepartmentCode, pageNo: pageNo.value, pageSize: 20, name: name.value.trim() || undefined })
     if (current !== generation) return
     options.value = result.list; total.value = result.total
   } catch {
@@ -53,7 +53,7 @@ const choose = (option: ChildTemplateOption) => {
   selected.value = option
   emit('change', option.revisionId); visible.value = false
 }
-watch(() => props.parentProjectId, () => { ++generation; visible.value = false; options.value = []; selected.value = undefined; loading.value = false })
+watch(() => [props.parentProjectId, props.projectName, props.businessLevelCode, props.officeDepartmentCode], () => { ++generation; visible.value = false; options.value = []; selected.value = undefined; loading.value = false }, { flush: 'sync' })
 onBeforeUnmount(() => { ++generation })
 </script>
 

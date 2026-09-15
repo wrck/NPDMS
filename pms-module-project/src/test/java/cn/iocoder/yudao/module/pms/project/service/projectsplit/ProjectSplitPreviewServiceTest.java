@@ -48,7 +48,7 @@ class ProjectSplitPreviewServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProjectSplitPreviewService(draftService, requestMapper, itemMapper, projectMapper,
+        service = new ProjectSplitPreviewService(new cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildDraftFactory(deptApi), draftService, requestMapper, itemMapper, projectMapper,
                 treeVersionMapper, deliveryScopeApi, assetDeviceScopeApi, deptApi, auditService, metrics, templates);
     }
 

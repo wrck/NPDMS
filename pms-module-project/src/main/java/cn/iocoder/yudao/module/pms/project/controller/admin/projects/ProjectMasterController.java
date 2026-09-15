@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesReqVO;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
@@ -146,22 +147,30 @@ public class ProjectMasterController {
     }
 
     @GetMapping("/actions/match-templates")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
     @Operation(summary = "按发布版本适用条件返回推荐模板（含版本概要，供创建向导选择）")
     @PreAuthorize("@ss.hasPermission('pms:project:create')")
     public CommonResult<ProjectMatchTemplatesRespVO> matchTemplates(
-            @RequestParam(value = "signingMethod", required = false) String signingMethod,
-            @RequestParam(value = "projectCategory", required = false) String projectCategory,
-            @RequestParam(value = "implementationMode", required = false) String implementationMode,
-            @RequestParam(value = "majorProjectLevel", required = false) String majorProjectLevel) {
-        TemplateMatchResult match = projectTemplateService.matchPreview(
-                signingMethod, projectCategory, implementationMode, majorProjectLevel);
-        ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
-        respVO.setOutcome(match.getOutcome().name());
-        respVO.setCandidateWatermark(match.getCandidateWatermark());
-        respVO.setConflicts(match.getConflicts());
-        respVO.setEvaluations(match.getEvaluations());
-        respVO.setCandidates(BeanUtils.toBean(match.getCandidates(), ProjectMatchTemplatesRespVO.CandidateItem.class));
-        return success(respVO);
+            @Valid ProjectMatchTemplatesReqVO request) {
+        try {
+            TemplateMatchResult match = withTrustedTenant(() -> projectManualCreationApplicationService.previewMatching(
+                    BeanUtils.toBean(request, ProjectMasterDO.class), request.getOrderOfficeCompanyId(), request.getOrderOfficeDepartmentId(),
+                    new ProjectManualCreationApplicationService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString())));
+            ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
+            respVO.setOutcome(match.getOutcome().name());
+            respVO.setCandidateWatermark(match.getCandidateWatermark());
+            respVO.setConflicts(match.getConflicts());
+            respVO.setEvaluations(match.getEvaluations());
+            respVO.setCandidates(BeanUtils.toBean(match.getCandidates(), ProjectMatchTemplatesRespVO.CandidateItem.class));
+            return success(respVO);
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException
+                 | org.springframework.security.access.AccessDeniedException denied) {
+            throw denied;
+        } catch (RuntimeException unavailable) {
+            // Global unexpected-error logging persists request bodies; matching facts must not enter it.
+            throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                    cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_MATCH_PREVIEW_FAILED);
+        }
     }
 
     @GetMapping("/page")

@@ -2,6 +2,9 @@ package cn.iocoder.yudao.module.pms.project.service.rule;
 
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
+import tools.jackson.databind.JsonNode;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,6 +22,41 @@ public final class ProjectRuleFields {
 
     public static List<Field> catalog() { return ENTRIES.values().stream().map(Entry::field).toList(); }
     public static Set<String> codes() { return ENTRIES.keySet(); }
+
+    /** The owner has loaded/assembled this entire project; its null columns are known empty values. */
+    public static TemplateMatchFacts creationFacts(ProjectMasterDO project) {
+        Map<String, RuleFact> facts = new LinkedHashMap<>();
+        ENTRIES.forEach((code, entry) -> {
+            if (entry.field().availableAtCreation()) facts.put(code, read(project, code));
+        });
+        return new TemplateMatchFacts(facts);
+    }
+
+    public static TemplateMatchFacts manualCreationFacts(ProjectMasterDO draft) {
+        var facts = new LinkedHashMap<>(creationFacts(draft).values());
+        facts.put("project.sourceType", RuleFact.known(ProjectRules.SOURCE_TYPE_MANUAL));
+        if (draft.getParentId() == null) facts.put("project.projectType", RuleFact.known(ProjectRules.DEFAULT_PROJECT_TYPE));
+        return new TemplateMatchFacts(facts);
+    }
+
+    /** Preview input is limited to the same published catalog; absent keys stay unavailable. */
+    public static TemplateMatchFacts suppliedCreationFacts(Map<String, JsonNode> supplied) {
+        Map<String, RuleFact> facts = new LinkedHashMap<>();
+        supplied.forEach((code, value) -> {
+            Entry entry = ENTRIES.get(code);
+            if (entry == null || !entry.field().availableAtCreation())
+                throw new IllegalArgumentException("匹配只能使用已开放的创建字段");
+            RuleFact fact;
+            if (value == null || value.isNull()) fact = RuleFact.known(null);
+            else if ("BOOLEAN".equals(entry.field().valueType()) && value.isBoolean()) fact = RuleFact.known(value.booleanValue());
+            else if ("NUMBER".equals(entry.field().valueType()) && value.isNumber()) fact = RuleFact.known(value.decimalValue());
+            else if (Set.of("TEXT", "DATE", "DATETIME").contains(entry.field().valueType()) && value.isTextual())
+                fact = RuleFact.known(value.asText());
+            else fact = RuleFact.unknown("MATCH_FIELD_VALUE_INVALID");
+            facts.put(code, fact);
+        });
+        return new TemplateMatchFacts(facts);
+    }
 
     public static RuleFact read(ProjectMasterDO project, String code) {
         Entry entry = ENTRIES.get(code);

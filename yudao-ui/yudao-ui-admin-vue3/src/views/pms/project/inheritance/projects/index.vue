@@ -468,6 +468,7 @@
           <template #title>无匹配生效模板，创建阻断（PROJECT_TEMPLATE_NO_MATCH）</template>
           <div v-for="c in matchResult?.conflicts" :key="c" class="text-12px">{{ c }}</div>
         </el-alert>
+        <TemplateMatchDiagnostics :evaluations="matchResult?.evaluations ?? []" />
         <el-table
           v-if="matchCandidates.length"
           :data="matchCandidates"
@@ -487,13 +488,10 @@
           <el-table-column prop="latestRevisionNo" label="最新发布版" width="100">
             <template #default="{ row }">v{{ row.latestRevisionNo }}</template>
           </el-table-column>
-          <el-table-column label="匹配条件（空=不限）" min-width="220">
+          <el-table-column label="适用规则" min-width="220">
             <template #default="{ row }">
               <span class="text-12px">
-                {{ dimLabel(row.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) }} /
-                {{ dimLabel(row.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) }} /
-                {{ dimLabel(row.implementationMethod, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }} /
-                {{ row.majorProjectLevel || '不限' }}
+                {{ row.ruleName || '未配置适用条件（不限）' }}
               </span>
             </template>
           </el-table-column>
@@ -907,6 +905,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
  *
@@ -924,7 +923,6 @@ import type {
   ProjectMasterVO,
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
-  ProjectMatchTemplatesRespVO,
   ProjectSiteReqVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
@@ -938,8 +936,9 @@ import type { DeptVO } from '@/api/system/dept'
 import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { getSelectableCustomers, type SelectedCustomer } from './customerSelection'
+import TemplateMatchDiagnostics from '@/views/pms/project/project-templates/TemplateMatchDiagnostics.vue'
 import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
-import { createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
+import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
 import { closedProjectStatuses } from '@/views/pms/project/projects/projectStatus'
@@ -1188,9 +1187,16 @@ const wizardNext0 = async () => {
 }
 
 // ============ 模板匹配（步骤②） ============
-const matchLoading = ref(false)
-const matchResult = ref<ProjectMatchTemplatesRespVO | null>(null)
-const selectedTemplateRevisionId = ref<number | undefined>(undefined)
+const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
+  projectName: createForm.projectName,
+  customerCode: createForm.customerCode || undefined,
+  orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+  orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
+  implementationLocation: createForm.locationMode === 'fallback' ? createForm.implementationLocation : undefined,
+  signingMethod: createForm.signingMethod,
+  projectCategory: createForm.projectCategory,
+  implementationMode: createForm.implementationMode
+}), matchCustomerSelectedTemplates)
 
 const matchCandidates = computed<TemplateCandidateVO[]>(() => matchResult.value?.candidates || [])
 const selectedTemplate = computed(
@@ -1207,19 +1213,6 @@ const canGoStep2 = computed(() => {
   return false
 })
 
-const runMatch = async () => {
-  matchLoading.value = true
-  selectedTemplateRevisionId.value = undefined
-  try {
-    matchResult.value = await ProjectsApi.matchTemplates({
-      signingMethod: createForm.signingMethod || undefined,
-      projectCategory: createForm.projectCategory || undefined,
-      implementationMode: createForm.implementationMode || undefined
-    })
-  } finally {
-    matchLoading.value = false
-  }
-}
 
 const selectCandidate = (row: TemplateCandidateVO) => {
   if (matchResult.value?.outcome === 'MULTI_MATCH') {

@@ -333,8 +333,8 @@ export interface ProjectTemplateUpdateReqVO {
   content?: TemplateDefinitionContent
 }
 export interface TemplateCopy { code: string; name: string; sourceRevisionNo?: number }
-export interface MatchPreviewReqVO extends TemplateMatch {}
-export interface MatchCandidateVO extends MatchPreviewReqVO {
+export interface MatchPreviewReqVO { facts: Record<string, JsonValue> }
+export interface MatchCandidateVO extends TemplateMatch {
   templateId: number
   code: string
   name: string

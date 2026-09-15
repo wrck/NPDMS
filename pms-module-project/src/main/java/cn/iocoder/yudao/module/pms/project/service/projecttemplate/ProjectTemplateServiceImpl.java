@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -37,9 +38,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemp
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateStageDefinitionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateTaskDefinitionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplatePublishValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
@@ -59,12 +58,8 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -520,71 +515,10 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
-    public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
-                                             String implementationMethod, String majorProjectLevel) {
-        // BR-4 基于 ACTIVE 模板最新 PUBLISHED 版本条件 + 模板优先级
-        List<ProjectTemplateDO> activeTemplates =
-                projectTemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
-        List<TemplateMatchCandidate> candidates = new ArrayList<>();
-        for (ProjectTemplateDO activeTemplate : activeTemplates) {
-            List<ProjectTemplateRevisionDO> publishedList =
-                    revisionMapper.selectPublishedListByTemplateId(activeTemplate.getId());
-            if (publishedList.isEmpty()) {
-                continue;
-            }
-            ProjectTemplateRevisionDO latest = publishedList.get(0);
-            TemplateMatchCandidate candidate = new TemplateMatchCandidate();
-            candidate.setTemplateId(activeTemplate.getId());
-            candidate.setCode(activeTemplate.getCode());
-            candidate.setName(activeTemplate.getName());
-            candidate.setMatchPriority(activeTemplate.getMatchPriority());
-            candidate.setLatestRevisionNo(latest.getRevisionNo());
-            candidate.setTemplateRevisionId(latest.getId());
-            candidate.setSigningMethod(latest.getSigningMethod());
-            candidate.setProjectCategory(latest.getProjectCategory());
-            candidate.setImplementationMethod(latest.getImplementationMethod());
-            candidate.setMajorProjectLevel(latest.getMajorProjectLevel());
-            candidates.add(candidate);
-        }
-        TemplateMatchResult result = TemplateMatcher.match(candidates, signingMethod, projectCategory,
-                implementationMethod, majorProjectLevel);
-        result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
-                implementationMethod, majorProjectLevel));
-        return result;
+    public TemplateMatchResult matchPreview(TemplateMatchFacts facts) {
+        throw new UnsupportedOperationException("模板匹配必须使用 V2 冻结规则实现");
     }
 
-    private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
-                                      String projectCategory, String implementationMethod,
-                                      String majorProjectLevel) {
-        StringBuilder canonical = new StringBuilder();
-        appendToken(canonical, signingMethod);
-        appendToken(canonical, projectCategory);
-        appendToken(canonical, implementationMethod);
-        appendToken(canonical, majorProjectLevel);
-        candidates.stream()
-                .sorted(Comparator.comparing(TemplateMatchCandidate::getTemplateId))
-                .forEach(candidate -> {
-                    appendToken(canonical, candidate.getTemplateId());
-                    appendToken(canonical, candidate.getTemplateRevisionId());
-                    appendToken(canonical, candidate.getLatestRevisionNo());
-                    appendToken(canonical, candidate.getMatchPriority());
-                    appendToken(canonical, candidate.getSigningMethod());
-                    appendToken(canonical, candidate.getProjectCategory());
-                    appendToken(canonical, candidate.getImplementationMethod());
-                    appendToken(canonical, candidate.getMajorProjectLevel());
-                });
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
-        }
-    }
-
-    private void appendToken(StringBuilder target, Object value) {
-        String token = value == null ? "" : String.valueOf(value);
-        target.append(token.length()).append(':').append(token).append(';');
-    }
 
     @Override
     public Validation validateProjectTemplate(Long id) {

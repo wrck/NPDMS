@@ -17,11 +17,11 @@ class ProjectChildCreationServiceTest {
     private final DeptApi departments = mock(DeptApi.class);
     private final ProjectTemplateSelectionService templates = mock(ProjectTemplateSelectionService.class);
     private final OperationAuditApi audit = mock(OperationAuditApi.class);
-    private final ProjectChildCreationService service = new ProjectChildCreationService(projects, departments, templates, audit);
+    private final ProjectChildCreationService service = new ProjectChildCreationService(projects, new ProjectChildDraftFactory(departments), templates, audit);
 
     @Test void createsUsingChildSelectionAndAuditsOverrideWithoutChangingParent() {
         var parent = parent(); var item = item(); var revision = new ProjectTemplateRevisionDO(); revision.setId(201L);
-        when(templates.select(parent, 201L, "独立交付", 9L)).thenReturn(new ProjectTemplateSelectionService.Selection(revision, true));
+        when(templates.select(argThat(child -> "现场工勘".equals(child.getProjectName()) && Long.valueOf(100L).equals(child.getParentId())), eq(201L), eq("独立交付"), eq(9L))).thenReturn(new ProjectTemplateSelectionService.Selection(revision, true));
         when(projects.createProject(any(), isNull(), isNull(), eq(201L), isNull(), isNull()))
                 .thenAnswer(call -> { ProjectMasterDO child = call.getArgument(0); child.setId(200L); return child; });
         var child = service.create(parent, item, 1L, 20L, 9L, "corr");
@@ -35,7 +35,7 @@ class ProjectChildCreationServiceTest {
     @Test void rejectedSelectionAndForeignParentCannotCreateOrAudit() {
         var parent = parent(); var item = item();
         assertThrows(IllegalArgumentException.class, () -> service.create(parent, item, 2L, 20L, 9L, "corr"));
-        when(templates.select(parent, 201L, "独立交付", 9L)).thenThrow(new IllegalArgumentException("unavailable"));
+        when(templates.select(argThat(child -> "现场工勘".equals(child.getProjectName()) && Long.valueOf(100L).equals(child.getParentId())), eq(201L), eq("独立交付"), eq(9L))).thenThrow(new IllegalArgumentException("unavailable"));
         assertThrows(IllegalArgumentException.class, () -> service.create(parent, item, 1L, 20L, 9L, "corr"));
         verifyNoInteractions(projects, audit);
     }
@@ -48,7 +48,7 @@ class ProjectChildCreationServiceTest {
             var jdbc = new org.springframework.jdbc.core.JdbcTemplate(database);
             jdbc.execute("CREATE TABLE child_ledger(id INT PRIMARY KEY)");
             var parent = parent(); var item = item(); var revision = new ProjectTemplateRevisionDO(); revision.setId(201L);
-            when(templates.select(parent, 201L, "独立交付", 9L)).thenReturn(new ProjectTemplateSelectionService.Selection(revision, true));
+            when(templates.select(argThat(child -> "现场工勘".equals(child.getProjectName()) && Long.valueOf(100L).equals(child.getParentId())), eq(201L), eq("独立交付"), eq(9L))).thenReturn(new ProjectTemplateSelectionService.Selection(revision, true));
             when(projects.createProject(any(), isNull(), isNull(), eq(201L), isNull(), isNull())).thenAnswer(call -> {
                 jdbc.update("INSERT INTO child_ledger VALUES(200)"); var child = new ProjectMasterDO(); child.setId(200L); return child;
             });

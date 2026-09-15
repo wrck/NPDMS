@@ -10,7 +10,7 @@ import java.util.Set;
 public final class TemplateMatchDecisionRules {
 
     public static final String SNAPSHOT_SCHEMA_VERSION = "1";
-    public static final String MATCHER_VERSION = "TEMPLATE_MATCHER_V1";
+    public static final String MATCHER_VERSION = "TEMPLATE_MATCHER_LITEFLOW_V2";
     public static final String MATCH_UNIQUE = "UNIQUE";
     public static final String MATCH_NO_MATCH = "NO_MATCH";
     public static final String MATCH_MULTIPLE = "MULTIPLE_MATCHES";

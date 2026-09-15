@@ -16,7 +16,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidat
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
-import cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationErrors;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
@@ -166,17 +166,11 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     }
 
     @Override
-    public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
-                                             String implementationMethod, String majorProjectLevel) {
+    public TemplateMatchResult matchPreview(TemplateMatchFacts facts) {
         List<ProjectTemplateDO> activeTemplates =
                 v2TemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
         List<TemplateMatchCandidate> candidates = new ArrayList<>();
         List<TemplateMatchResult.Evaluation> evaluations = new ArrayList<>();
-        var facts = java.util.Map.of(
-                "project.signingMethod", creationFact(signingMethod),
-                "project.projectCategory", creationFact(projectCategory),
-                "project.implementationMethod", creationFact(implementationMethod),
-                "project.majorProjectLevel", creationFact(majorProjectLevel));
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         for (ProjectTemplateDO activeTemplate : activeTemplates) {
             List<ProjectTemplateRevisionDO> published =
@@ -197,7 +191,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             candidate.setMatchPriority(activeTemplate.getMatchPriority());
             candidate.setLatestRevisionNo(latest.getRevisionNo());
             candidate.setTemplateRevisionId(latest.getId());
-            var evaluation = matchRuleEvaluator.evaluate(tenantId, latest.getId(), snapshot, facts);
+            var evaluation = matchRuleEvaluator.evaluate(tenantId, latest.getId(), snapshot, facts.values());
             String ruleName = matchRuleName(snapshot);
             candidate.setRuleName(ruleName);
             evaluations.add(new TemplateMatchResult.Evaluation(activeTemplate.getId(), latest.getId(), ruleName, evaluation));
@@ -205,14 +199,8 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         TemplateMatchResult result = TemplateMatcher.selectByPriority(candidates);
         result.setEvaluations(List.copyOf(evaluations));
-        result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
-                implementationMethod, majorProjectLevel));
+        result.setCandidateWatermark(candidateWatermark(candidates, facts));
         return result;
-    }
-
-    private RuleFact creationFact(String value) {
-        // The current nullable transport cannot prove whether null was read or never supplied.
-        return value == null ? RuleFact.unknown("MATCH_FIELD_UNAVAILABLE") : RuleFact.known(value);
     }
 
     private String matchRuleName(TemplateExecutionSnapshot snapshot) {
@@ -368,14 +356,14 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                 || hasText(revision.getSnapshotHash());
     }
 
-    private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
-                                      String projectCategory, String implementationMethod,
-                                      String majorProjectLevel) {
+    private String candidateWatermark(List<TemplateMatchCandidate> candidates, TemplateMatchFacts facts) {
         StringBuilder canonical = new StringBuilder();
-        appendToken(canonical, signingMethod);
-        appendToken(canonical, projectCategory);
-        appendToken(canonical, implementationMethod);
-        appendToken(canonical, majorProjectLevel);
+        facts.values().entrySet().stream().sorted(java.util.Map.Entry.comparingByKey()).forEach(entry -> {
+            appendToken(canonical, entry.getKey());
+            appendToken(canonical, entry.getValue().available());
+            appendToken(canonical, JsonUtils.toJsonString(entry.getValue().value()));
+            appendToken(canonical, entry.getValue().reasonCode());
+        });
         candidates.stream().sorted(Comparator.comparing(TemplateMatchCandidate::getTemplateId)).forEach(candidate -> {
             appendToken(canonical, candidate.getTemplateId());
             appendToken(canonical, candidate.getTemplateRevisionId());

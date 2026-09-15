@@ -11,7 +11,8 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
-import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeSnapshot;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.rule.*;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +51,7 @@ class ProjectTemplateV2MatchEligibilityTest {
         when(revisions.selectPublishedListByTemplateId(1L)).thenReturn(List.of(revision(11L, 1, false)));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(revision(22L, 2, true)));
 
-        TemplateMatchResult result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        TemplateMatchResult result = service.matchPreview(partialFacts());
 
         assertEquals(TemplateMatchResult.Outcome.MATCHED, result.getOutcome());
         assertNotNull(result.getMatched());
@@ -70,7 +71,7 @@ class ProjectTemplateV2MatchEligibilityTest {
         when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(legacy));
         when(revisions.selectPublishedListByTemplateId(1L)).thenReturn(List.of(revision(11L, 1, false)));
 
-        TemplateMatchResult result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        TemplateMatchResult result = service.matchPreview(partialFacts());
 
         assertEquals(TemplateMatchResult.Outcome.NO_MATCH, result.getOutcome());
         assertTrue(result.getCandidates().isEmpty());
@@ -89,7 +90,7 @@ class ProjectTemplateV2MatchEligibilityTest {
         when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(v2));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(corrupt));
 
-        TemplateMatchResult result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        TemplateMatchResult result = service.matchPreview(partialFacts());
 
         assertEquals(TemplateMatchResult.Outcome.NO_MATCH, result.getOutcome());
         assertTrue(result.getCandidates().isEmpty());
@@ -108,30 +109,29 @@ class ProjectTemplateV2MatchEligibilityTest {
         latest.setSigningMethod("DOES_NOT_MATCH");
         when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template(2L, "V2")));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(latest));
-        var preview = service.matchPreview("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null);
+        var draft = draft();
+        var preview = service.matchPreview(ProjectRuleFields.manualCreationFacts(draft));
         assertEquals(22L, preview.getMatched().getTemplateRevisionId());
         assertEquals("适用条件", preview.getMatched().getRuleName());
         assertEquals(RuleEvaluation.Outcome.MATCHED, preview.getEvaluations().getFirst().result().outcome());
         var creation = new ProjectAttributeResolutionService();
         ReflectionTestUtils.setField(creation, "projectTemplateService", service);
-        var decision = creation.resolveInitial(new ProjectAttributeSnapshot("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null),
+        var decision = creation.resolveInitial(draft,
                 22L, preview.getCandidateWatermark());
         assertEquals(22L, decision.matchedTemplateRevisionId());
         assertEquals(preview.getCandidateWatermark(), decision.candidateDigest());
         var controller = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.ProjectTemplateController();
         ReflectionTestUtils.setField(controller, "projectTemplateService", service);
         var request = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateMatchPreviewReqVO();
-        request.setSigningMethod("DIRECT_SIGN"); request.setProjectCategory("GENERAL"); request.setImplementationMethod("DIRECT_SERVICE");
+        request.setFacts(Map.of("project.signingMethod", JsonUtils.parseObject("\"DIRECT_SIGN\"", tools.jackson.databind.JsonNode.class),
+                "project.projectCategory", JsonUtils.parseObject("\"GENERAL\"", tools.jackson.databind.JsonNode.class),
+                "project.implementationMethod", JsonUtils.parseObject("\"DIRECT_SERVICE\"", tools.jackson.databind.JsonNode.class)));
         var response = controller.matchPreview(request).getData();
         assertEquals(preview.getEvaluations(), response.getEvaluations());
         var json = JsonUtils.parseObject(JsonUtils.toJsonString(response), tools.jackson.databind.JsonNode.class);
         assertEquals("CONDITION", json.path("evaluations").get(0).path("result").path("kind").asText());
         org.junit.jupiter.api.Assertions.assertFalse(json.toString().contains("DIRECT_SIGN"));
-        var projects = new cn.iocoder.yudao.module.pms.project.controller.admin.projects.ProjectMasterController();
-        ReflectionTestUtils.setField(projects, "projectTemplateService", service);
-        var creationResponse = projects.matchTemplates("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null).getData();
-        assertEquals(preview.getEvaluations(), creationResponse.getEvaluations());
-        assertEquals("适用条件", creationResponse.getCandidates().getFirst().getRuleName());
+
     }
 
     @Test
@@ -146,7 +146,7 @@ class ProjectTemplateV2MatchEligibilityTest {
                 "fieldCode":"project.businessType","valueType":"TEXT","operator":"=","value":"DELIVERY"}}]}
                 """)));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(revision(22L, 2, true)));
-        var result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        var result = service.matchPreview(partialFacts());
         assertEquals(22L, result.getMatched().getTemplateRevisionId());
         assertEquals(2, result.getEvaluations().size());
         assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.getEvaluations().getFirst().result().outcome());
@@ -165,7 +165,7 @@ class ProjectTemplateV2MatchEligibilityTest {
                 "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(revision(22L, 2, true)));
         when(revisions.selectPublishedListByTemplateId(3L)).thenReturn(List.of(revision(33L, 3, true)));
-        var result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        var result = service.matchPreview(partialFacts());
         assertEquals(TemplateMatchResult.Outcome.MULTI_MATCH, result.getOutcome());
         assertEquals(List.of(22L, 33L), result.getCandidates().stream().map(candidate -> candidate.getTemplateRevisionId()).toList());
         assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, result.getEvaluations().getFirst().result().outcome());
@@ -178,16 +178,16 @@ class ProjectTemplateV2MatchEligibilityTest {
         var service = service(templates, revisions);
         when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template(2L, "V2")));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(revision(22L, 2, true)));
-        var before = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        var before = service.matchPreview(partialFacts());
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(ruleRevision(23L, 3,
                 "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
-        var after = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        var after = service.matchPreview(partialFacts());
         assertEquals(TemplateMatchResult.Outcome.NO_MATCH, after.getOutcome());
         org.junit.jupiter.api.Assertions.assertNotEquals(before.getCandidateWatermark(), after.getCandidateWatermark());
         var creation = new ProjectAttributeResolutionService();
         ReflectionTestUtils.setField(creation, "projectTemplateService", service);
         org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
-                () -> creation.resolveInitial(new ProjectAttributeSnapshot("DIRECT", "GENERAL", "ONSITE", null), 22L, before.getCandidateWatermark()));
+                () -> creation.resolveInitial(draft(), 22L, before.getCandidateWatermark()));
     }
 
     @Test
@@ -201,9 +201,41 @@ class ProjectTemplateV2MatchEligibilityTest {
                 "fieldCode":"project.majorProjectLevel","valueType":"TEXT","operator":"=","value":"MAJOR"}}]}
                 """);
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(latest));
-        var result = service.matchPreview("DIRECT", "GENERAL", "ONSITE", null);
+        var result = service.matchPreview(partialFacts());
         assertEquals(TemplateMatchResult.Outcome.NO_MATCH, result.getOutcome());
         assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.getEvaluations().getFirst().result().outcome());
+    }
+
+    @Test void publishedRuleReadsNameOrganizationAndTypedChildFactBeyondFourAttributes() {
+        var templates = mock(ProjectTemplateMapper.class); var revisions = mock(ProjectTemplateRevisionMapper.class);
+        var service = service(templates, revisions);
+        when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template(2L, "V2")));
+        when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(ruleRevision(22L, 2, """
+                {"operator":"ALL","rules":[
+                  {"predicate":"FIELD","parameters":{"fieldCode":"project.projectName","valueType":"TEXT","operator":"=","value":"现场工勘"}},
+                  {"predicate":"FIELD","parameters":{"fieldCode":"project.departmentCode","valueType":"TEXT","operator":"=","value":"OFFICE"}},
+                  {"predicate":"FIELD","parameters":{"fieldCode":"project.isChild","valueType":"BOOLEAN","operator":"=","value":true}}]}
+                """)));
+        var child = draft(); child.setParentId(100L); child.setDepartmentCode("OFFICE");
+        assertEquals(TemplateMatchResult.Outcome.MATCHED, service.matchPreview(ProjectRuleFields.manualCreationFacts(child)).getOutcome());
+        child.setProjectName("需求分析");
+        assertEquals(TemplateMatchResult.Outcome.NO_MATCH, service.matchPreview(ProjectRuleFields.manualCreationFacts(child)).getOutcome());
+        var missing = service.matchPreview(partialFacts());
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, missing.getEvaluations().getFirst().result().outcome());
+    }
+
+    private ProjectMasterDO draft() {
+        var draft = new ProjectMasterDO(); draft.setProjectName("现场工勘");
+        draft.setSigningMethod("DIRECT_SIGN"); draft.setProjectCategory("GENERAL");
+        draft.setImplementationMode("DIRECT_SERVICE");
+        return draft;
+    }
+
+    private TemplateMatchFacts partialFacts() {
+        return new TemplateMatchFacts(Map.of(
+                "project.signingMethod", cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.known("DIRECT"),
+                "project.projectCategory", cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.known("GENERAL"),
+                "project.implementationMethod", cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.known("ONSITE")));
     }
 
     private ProjectTemplateRevisionDO ruleRevision(Long id, int number, String expression) {

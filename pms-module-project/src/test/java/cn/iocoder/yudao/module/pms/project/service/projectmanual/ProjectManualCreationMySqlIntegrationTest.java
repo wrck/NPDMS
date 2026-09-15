@@ -258,8 +258,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         draft.setProjectCategory("ENGINEERING");
         draft.setImplementationMode("DIRECT_SERVICE");
         draft.setImplementationLocation("集成测试兼容地点");
-        TemplateMatchResult match = projectTemplateService.matchPreview(
-                draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(), null);
+        TemplateMatchResult match = applicationService.previewMatching(draft, 1L, 1L, newActor());
         if (match.getOutcome() != TemplateMatchResult.Outcome.MATCHED || match.getMatched() == null) {
             throw new IllegalStateException("真实MySQL集成测试需要V54/V55提供唯一生效模板：outcome="
                     + match.getOutcome() + ", conflicts=" + match.getConflicts()

@@ -529,13 +529,18 @@ export const createProject = (data: ProjectCreateReqVO, idempotencyKey: string) 
     headers: { 'Idempotency-Key': idempotencyKey }
   })
 
-/** 按三维+级别实时匹配生效模板（创建向导第②步） */
-export const matchTemplates = (params: {
-  signingMethod?: string
-  projectCategory?: string
-  implementationMode?: string
-  majorProjectLevel?: string
-}) =>
+/** 创建字段匹配冻结的适用规则；组织编码与固定创建值由服务端解析。 */
+export interface ProjectMatchTemplatesReqVO {
+  projectName: string
+  customerCode?: string
+  implementationLocation?: string
+  signingMethod: string
+  projectCategory: string
+  implementationMode: string
+  orderOfficeCompanyId: number
+  orderOfficeDepartmentId: number
+}
+export const matchTemplates = (params: ProjectMatchTemplatesReqVO) =>
   request.get<ProjectMatchTemplatesRespVO>({ url: `${baseUrl}/actions/match-templates`, params })
 
 /** 分页查询（名称/编码/状态/三维过滤） */

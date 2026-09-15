@@ -80,7 +80,7 @@ public class ProjectAttributeSourceCorrectionService {
         ProjectAttributeSnapshot after = TemplateMatchDecisionRules.requireCommonAttributes(
                 new ProjectAttributeSnapshot(command.signingMethod(), current.getProjectCategory(),
                         command.implementationMode(), command.majorProjectLevel()));
-        TemplateMatchDecision decision = resolutionService.evaluateImpact(after);
+        TemplateMatchDecision decision = resolutionService.evaluateImpact(current, after);
         Long frozenRevisionId = frozenRevisionId(current);
         if (projectMasterMapper.updateBusinessAttributesIfMatch(new ProjectBusinessAttributeUpdate(
                 tenantId, current.getId(), command.expectedVersion(), after.signingMethod(),

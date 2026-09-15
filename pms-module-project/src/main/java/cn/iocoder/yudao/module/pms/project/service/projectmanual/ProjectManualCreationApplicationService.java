@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
@@ -100,20 +102,28 @@ public class ProjectManualCreationApplicationService {
                         actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
                 () -> {
-                    var customer = customerQueryApi.getCustomerByCode(
-                            new CustomerCodeQuery(command.draft().getCustomerCode(), actor.actorId()));
-                    if (customer == null || !actor.tenantId().equals(customer.tenantId())
-                            || !"ENABLED".equals(customer.lifecycleStatus())) {
-                        throw exception(PROJECT_CUSTOMER_UNAVAILABLE);
-                    }
-                    command.draft().setCustomerId(customer.id());
-                    command.draft().setCustomerCode(customer.code());
-                    command.draft().setCustomerName(customer.name());
+                    resolveSelectedCustomer(command.draft(), actor);
                     return createOnce(command, actor);
                 }, result -> successFacts(command, actor, result));
         if (execution.decision() == Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         if (execution.decision() == Decision.IN_PROGRESS) throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         return execution.response();
+    }
+
+    private void resolveSelectedCustomer(ProjectMasterDO draft, Actor actor) {
+        var customer = customerQueryApi.getCustomerByCode(new CustomerCodeQuery(draft.getCustomerCode(), actor.actorId()));
+        if (customer == null || !actor.tenantId().equals(customer.tenantId())
+                || !"ENABLED".equals(customer.lifecycleStatus())) throw exception(PROJECT_CUSTOMER_UNAVAILABLE);
+        draft.setCustomerId(customer.id()); draft.setCustomerCode(customer.code()); draft.setCustomerName(customer.name());
+    }
+
+    public TemplateMatchResult previewWithSelectedCustomer(
+            ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
+        authorizationService.assertCanCreate(actor.actorId());
+        if (draft.getParentId() != null || draft.getCustomerCode() == null || draft.getCustomerCode().isBlank())
+            throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
+        resolveSelectedCustomer(draft, actor);
+        return previewMatching(draft, companyId, departmentId, actor);
     }
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
@@ -139,6 +149,30 @@ public class ProjectManualCreationApplicationService {
         return execution.response();
     }
 
+    public TemplateMatchResult previewMatching(
+            ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
+        authorizationService.assertCanCreate(actor.actorId());
+        if (draft.getParentId() != null) throw new IllegalArgumentException("子项目使用拆分选模入口");
+        companyApi.validateCompanyList(List.of(companyId));
+        deptApi.validateDeptList(List.of(departmentId));
+        if (!organizationScopeApi.hasScope(actor.actorId(), companyId, departmentId))
+            throw exception(PROJECT_ORGANIZATION_SCOPE_INVALID, "当前操作人无下单公司与办事处的联合范围");
+        var normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
+        draft.setTenantId(actor.tenantId());
+        assignOrganization(draft, resolveCompany(companyId), resolveDepartment(departmentId));
+        return projectTemplateService.matchPreview(ProjectRuleFields
+                .manualCreationFacts(draft).withAttributes(normalized));
+    }
+
+    private void assignOrganization(ProjectMasterDO draft, CompanyRespDTO company, DeptRespDTO department) {
+        draft.setCompanyId(company.getId());
+        draft.setCompanyCode(company.getCode());
+        draft.setCompanyName(company.getName());
+        draft.setDepartmentId(department.getId());
+        draft.setDepartmentCode(department.getCode());
+        draft.setDepartmentName(department.getName());
+    }
+
     private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command, Actor actor) {
         CompanyRespDTO company = resolveCompany(command.orderOfficeCompanyId());
         DeptRespDTO department = resolveDepartment(command.orderOfficeDepartmentId());
@@ -147,16 +181,11 @@ public class ProjectManualCreationApplicationService {
                     department.getId(), department.getCode());
         }
         command.draft().setTenantId(actor.tenantId());
-        command.draft().setCompanyId(company.getId());
-        command.draft().setCompanyCode(company.getCode());
-        command.draft().setCompanyName(company.getName());
-        command.draft().setDepartmentId(department.getId());
-        command.draft().setDepartmentCode(department.getCode());
-        command.draft().setDepartmentName(department.getName());
+        assignOrganization(command.draft(), company, department);
         command.draft().setLocationResolutionStatus(projectSiteService.validateLocationScope(
                 command.sites(), command.draft().getImplementationLocation()));
         TemplateMatchDecision matchDecision = command.draft().getParentId() == null
-                ? projectAttributeResolutionService.resolveInitial(attributes(command.draft()),
+                ? projectAttributeResolutionService.resolveInitial(command.draft(),
                         command.templateRevisionId(), command.candidateWatermark())
                 : null;
         ProjectMasterDO project = matchDecision == null

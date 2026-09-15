@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchFacts;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
@@ -63,6 +64,5 @@ public interface ProjectTemplateService {
 
     void disableProjectTemplate(Long id);
 
-    TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
-                                      String implementationMethod, String majorProjectLevel);
+    TemplateMatchResult matchPreview(TemplateMatchFacts facts);
 }

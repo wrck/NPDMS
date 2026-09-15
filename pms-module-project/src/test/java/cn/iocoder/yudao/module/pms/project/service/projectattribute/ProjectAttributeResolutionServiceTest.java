@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatch
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,10 +34,10 @@ class ProjectAttributeResolutionServiceTest {
     void uniqueManualCandidateUsesAutoDecision() {
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null))
+        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
-        var decision = service.resolveInitial(attributes(), null, "watermark");
+        var decision = service.resolveInitial(project(attributes()), null, "watermark");
 
         assertEquals(TemplateMatchDecisionRules.MATCH_UNIQUE, decision.matchResult());
         assertEquals(TemplateMatchDecisionRules.DECISION_AUTO_UNIQUE, decision.decisionMode());
@@ -48,10 +50,10 @@ class ProjectAttributeResolutionServiceTest {
         TemplateMatchResult result = TemplateMatchResult.multiMatch(
                 List.of("冲突"), List.of(candidate(1L, 11L), candidate(2L, 22L)));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null))
+        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
-        var decision = service.resolveInitial(attributes(), 22L, "watermark");
+        var decision = service.resolveInitial(project(attributes()), 22L, "watermark");
 
         assertEquals(TemplateMatchDecisionRules.MATCH_MULTIPLE, decision.matchResult());
         assertEquals(TemplateMatchDecisionRules.DECISION_EXPLICIT, decision.decisionMode());
@@ -62,11 +64,11 @@ class ProjectAttributeResolutionServiceTest {
     void staleCandidateWatermarkIsRejected() {
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("new");
-        when(projectTemplateService.matchPreview("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null))
+        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
         ServiceException error = assertThrows(ServiceException.class,
-                () -> service.resolveInitial(attributes(), null, "old"));
+                () -> service.resolveInitial(project(attributes()), null, "old"));
 
         assertEquals(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT.getCode(), error.getCode());
     }
@@ -75,10 +77,10 @@ class ProjectAttributeResolutionServiceTest {
     void impactNoMatchDoesNotInventTemplateOrDecisionMode() {
         TemplateMatchResult result = TemplateMatchResult.noMatch("无候选");
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview("DIRECT_SIGN", "GENERAL", "DIRECT_SERVICE", null))
+        when(projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project(attributes()))))
                 .thenReturn(result);
 
-        var decision = service.evaluateImpact(attributes());
+        var decision = service.evaluateImpact(project(attributes()), attributes());
 
         assertEquals(TemplateMatchDecisionRules.MATCH_NO_MATCH, decision.matchResult());
         assertNull(decision.decisionMode());
@@ -91,12 +93,20 @@ class ProjectAttributeResolutionServiceTest {
                 "DIRECT_SIGN", "ENGINEERING", "DIRECT_SERVICE", "MAJOR_A");
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview("DIRECT_SIGN", "ENGINEERING", "DIRECT_SERVICE", "MAJOR_A"))
+        when(projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project(source))))
                 .thenReturn(result);
 
-        var decision = service.resolveSourceInitial(source, null, "watermark");
+        var decision = service.resolveSourceInitial(project(source), null, "watermark");
 
         assertEquals(11L, decision.matchedTemplateRevisionId());
+    }
+
+    private ProjectMasterDO project(ProjectAttributeSnapshot values) {
+        var project = new ProjectMasterDO();
+        project.setProjectName("现场工勘");
+        project.setSigningMethod(values.signingMethod()); project.setProjectCategory(values.projectCategory());
+        project.setImplementationMode(values.implementationMode()); project.setMajorProjectLevel(values.majorProjectLevel());
+        return project;
     }
 
     private ProjectAttributeSnapshot attributes() {

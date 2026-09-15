@@ -89,7 +89,7 @@ public class ProjectAttributeClassificationApplicationService {
         ProjectAttributeSnapshot after = TemplateMatchDecisionRules.requireCommonAttributes(
                 new ProjectAttributeSnapshot(command.signingMethod(), command.projectCategory(),
                         command.implementationMode(), current.getMajorProjectLevel()));
-        TemplateMatchDecision decision = resolutionService.evaluateImpact(after);
+        TemplateMatchDecision decision = resolutionService.evaluateImpact(current, after);
         Long frozenRevisionId = frozenRevisionId(current);
         if (projectMasterMapper.updateBusinessAttributesIfMatch(new ProjectBusinessAttributeUpdate(
                 actor.tenantId(), current.getId(), command.expectedVersion(), after.signingMethod(),

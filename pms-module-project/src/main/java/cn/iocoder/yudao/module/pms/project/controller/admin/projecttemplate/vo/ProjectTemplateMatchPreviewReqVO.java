@@ -1,24 +1,15 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import tools.jackson.databind.JsonNode;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-/**
- * 管理后台 - 项目模板四维匹配预演 Request VO（F-PM03 BR-4）
- */
-@Schema(description = "管理后台 - 项目模板四维匹配预演 Request VO")
+@Schema(description = "模板规则匹配预演；省略字段为未知，显式 null 为已知空值")
 @Data
 public class ProjectTemplateMatchPreviewReqVO {
-
-    @Schema(description = "签约方式（来源项目实际值）", example = "CONTRACT")
-    private String signingMethod;
-
-    @Schema(description = "项目类别（来源项目实际值）", example = "SOFTWARE")
-    private String projectCategory;
-
-    @Schema(description = "实施方式（来源项目实际值）", example = "ONSITE")
-    private String implementationMethod;
-
-    @Schema(description = "重大项目级别（来源项目实际值）", example = "LEVEL_A")
-    private String majorProjectLevel;
+    @NotNull
+    private Map<String, JsonNode> facts = new LinkedHashMap<>();
 }

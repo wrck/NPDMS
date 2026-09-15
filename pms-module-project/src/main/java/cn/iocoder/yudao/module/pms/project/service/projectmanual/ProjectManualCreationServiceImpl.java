@@ -38,7 +38,6 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectTreeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
-import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeSnapshot;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
@@ -175,9 +174,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         if (draft.getParentId() != null) draft.setLifecycleTemplateRevisionId(templateRevisionId);
         TemplateMatchDecision matchDecision = draft.getParentId() == null
-                ? projectAttributeResolutionService.resolveInitial(new ProjectAttributeSnapshot(
-                        draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(),
-                        draft.getMajorProjectLevel()), templateRevisionId, candidateWatermark)
+                ? projectAttributeResolutionService.resolveInitial(draft, templateRevisionId, candidateWatermark)
                 : null;
         return createProject(draft, orderOfficeCompanyCode, orderOfficeDepartmentCode,
                 matchDecision, serviceManagerUserId);
@@ -231,7 +228,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             draft.setTreeSort(0);
         } else {
             ProjectMasterDO parent = validateProjectExists(draft.getParentId());
-            inheritFromParent(draft, parent);
+            ProjectRules.inheritChildAttributes(draft, parent);
             validateCustomerAvailable(draft.getCustomerId());
             ProjectCodeAllocator.ChildCodeAllocation allocation =
                     projectCodeAllocator.allocateChildCode(parent.getCodeRootId(), parent.getProjectCode());
@@ -593,24 +590,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         var revision = templateSelectionService.requireAvailable(revisionId, tenantId);
         return new SelectedTemplate(revision.getTemplateId(), revision.getId(), revision.getRevisionNo(),
                 ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
-    }
-
-    /**
-     * 子项目继承父项目的可继承主数据（客户/公司/部门/四维），仅当 draft 未提供时继承。
-     */
-    private void inheritFromParent(ProjectMasterDO draft, ProjectMasterDO parent) {
-        if (draft.getCustomerId() == null) draft.setCustomerId(parent.getCustomerId());
-        if (draft.getCustomerCode() == null) draft.setCustomerCode(parent.getCustomerCode());
-        if (draft.getCustomerName() == null) draft.setCustomerName(parent.getCustomerName());
-        if (draft.getSigningMethod() == null) draft.setSigningMethod(parent.getSigningMethod());
-        if (draft.getProjectCategory() == null) draft.setProjectCategory(parent.getProjectCategory());
-        if (draft.getImplementationMode() == null) draft.setImplementationMode(parent.getImplementationMode());
-        if (draft.getMajorProjectLevel() == null) draft.setMajorProjectLevel(parent.getMajorProjectLevel());
-        if (draft.getProjectType() == null) draft.setProjectType(parent.getProjectType());
-        if (draft.getCompanyCode() == null) draft.setCompanyCode(parent.getCompanyCode());
-        if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
-        if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
-        if (draft.getDepartmentName() == null) draft.setDepartmentName(parent.getDepartmentName());
     }
 
     /**

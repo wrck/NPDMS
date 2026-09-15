@@ -55,7 +55,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
         when(permissionApi.hasAnyPermissions(7L,
                 ProjectAttributeClassificationApplicationService.PERMISSION_CLASSIFY)).thenReturn(true);
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(current);
-        when(resolutionService.evaluateImpact(any())).thenReturn(decision);
+        when(resolutionService.evaluateImpact(any(), any())).thenReturn(decision);
         when(templateService.getRevisionList(9L)).thenReturn(List.of(revision()));
         when(projectMapper.updateBusinessAttributesIfMatch(any())).thenReturn(1);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
@@ -172,7 +172,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
         when(permissionApi.hasAnyPermissions(7L,
                 ProjectAttributeClassificationApplicationService.PERMISSION_CLASSIFY)).thenReturn(true);
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(current);
-        when(resolutionService.evaluateImpact(any())).thenReturn(decision());
+        when(resolutionService.evaluateImpact(any(), any())).thenReturn(decision());
         when(templateService.getRevisionList(9L)).thenReturn(List.of(revision()));
         when(projectMapper.updateBusinessAttributesIfMatch(any())).thenReturn(1);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {

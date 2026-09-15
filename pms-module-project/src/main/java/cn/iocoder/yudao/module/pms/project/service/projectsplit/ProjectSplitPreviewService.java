@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectsplit;
 
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildDraftFactory;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -49,6 +50,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectSplitPreviewService {
+    private final ProjectChildDraftFactory childDrafts;
     private final ProjectSplitDraftService draftService;
     private final ProjectSplitRequestMapper requestMapper;
     private final ProjectSplitItemMapper itemMapper;
@@ -75,7 +77,7 @@ public class ProjectSplitPreviewService {
         ProjectMasterDO parent = projectMapper.selectById(request.getParentProjectId());
         if (parent != null) {
             for (var item : draft.items()) {
-                try { templates.select(parent, item.getTemplateRevisionId(), item.getTemplateSelectionReason(), actor.actorId()); }
+                try { templates.select(childDrafts.create(parent, item), item.getTemplateRevisionId(), item.getTemplateSelectionReason(), actor.actorId()); }
                 catch (RuntimeException invalid) { errors.add(templateError(invalid) + ":" + item.getClientItemKey()); }
             }
         }

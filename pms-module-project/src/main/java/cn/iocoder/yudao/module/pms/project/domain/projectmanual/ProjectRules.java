@@ -15,6 +15,20 @@ import java.util.Set;
  * BR-7 更新接口仅开放可编辑属性，编码/父节点/来源/模板绑定/状态不可改。
  */
 public final class ProjectRules {
+    public static void inheritChildAttributes(ProjectMasterDO draft, ProjectMasterDO parent) {
+        if (draft.getCustomerId() == null) draft.setCustomerId(parent.getCustomerId());
+        if (draft.getCustomerCode() == null) draft.setCustomerCode(parent.getCustomerCode());
+        if (draft.getCustomerName() == null) draft.setCustomerName(parent.getCustomerName());
+        if (draft.getSigningMethod() == null) draft.setSigningMethod(parent.getSigningMethod());
+        if (draft.getProjectCategory() == null) draft.setProjectCategory(parent.getProjectCategory());
+        if (draft.getImplementationMode() == null) draft.setImplementationMode(parent.getImplementationMode());
+        if (draft.getMajorProjectLevel() == null) draft.setMajorProjectLevel(parent.getMajorProjectLevel());
+        if (draft.getProjectType() == null) draft.setProjectType(parent.getProjectType());
+        if (draft.getCompanyCode() == null) draft.setCompanyCode(parent.getCompanyCode());
+        if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
+        if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
+        if (draft.getDepartmentName() == null) draft.setDepartmentName(parent.getDepartmentName());
+    }
 
     // ========== 生命周期阶段（字典 pms_project_lifecycle_stage） ==========
     /** S0 立项与指派（初始待开始） */

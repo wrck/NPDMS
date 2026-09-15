@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -72,8 +73,7 @@ public class ProjectTemplateSelectionService {
     }
 
     private Set<Long> recommended(ProjectMasterDO source) {
-        var result = templates.matchPreview(source.getSigningMethod(), source.getProjectCategory(),
-                source.getImplementationMode(), source.getMajorProjectLevel());
+        var result = templates.matchPreview(ProjectRuleFields.manualCreationFacts(source));
         return result.getCandidates().stream().map(candidate -> candidate.getTemplateRevisionId()).collect(Collectors.toSet());
     }
 
