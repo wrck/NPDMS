@@ -108,6 +108,55 @@ class ProjectExecutionHistoryServiceTest {
         assertEquals("stage:one",result.name()); assertNull(result.planRevisionNo()); assertTrue(result.evaluations().isEmpty());
     }
 
+    @Test void taskGateResultUsesTheCompletedRoundsFrozenGateAndNeverTheReworkedPlan() {
+        var old = taskPlan(51L, 1, "原工勘门禁", "SUPERSEDED");
+        var current = taskPlan(52L, 2, "改版工勘门禁", "EFFECTIVE");
+        var first = round(31L, 51L, 1, null); first.setNodeKind("TASK"); first.setNodeKey("task:analysis");
+        var gate = new RuleEvaluation("plan:51:gate:8:version:4", RuleEvaluation.Outcome.MATCHED, null,
+                matched.conditions(), matched.steps(), List.of());
+        first.setResultSnapshot(JsonUtils.toJsonString(Map.of("completion", matched, "exit", matched,
+                "gate", gate, "gateSnapshot", "SURVEY_READY:PASSED:4")));
+        String immutable = first.getResultSnapshot();
+        var second = round(32L, 52L, 2, 1); second.setNodeKind("TASK"); second.setNodeKey("task:analysis");
+        second.setStatus("PENDING"); second.setSubmittedAt(null); second.setSubmittedBy(null);
+        when(plans.selectHistory(any())).thenReturn(List.of(current, old));
+        when(executions.selectHistory(any())).thenReturn(List.of(first, second));
+
+        var result = service.get(9L, 1L);
+        assertEquals(List.of("completion", "exit", "gate"), result.rounds().getFirst().evaluations().stream()
+                .map(ProjectExecutionHistoryService.Evaluation::purpose).toList());
+        var history = result.rounds().getFirst().evaluations().get(2);
+        assertEquals("原工勘门禁", history.name());
+        assertEquals(gate, history.result());
+        assertTrue(result.rounds().get(1).evaluations().isEmpty());
+        assertEquals(immutable, first.getResultSnapshot());
+        verify(plans, never()).selectEffective(any());
+    }
+
+    @Test void missingHistoricalGateEvidenceIsNotRecomputedOrInvented() {
+        var old = taskPlan(51L, 1, "原工勘门禁", "SUPERSEDED");
+        var first = round(31L, 51L, 1, null); first.setNodeKind("TASK"); first.setNodeKey("task:analysis");
+        first.setResultSnapshot(JsonUtils.toJsonString(Map.of("completion", matched)));
+        when(plans.selectHistory(any())).thenReturn(List.of(old));
+        when(executions.selectHistory(any())).thenReturn(List.of(first));
+        assertEquals(List.of("completion"), service.get(9L, 1L).rounds().getFirst().evaluations().stream()
+                .map(ProjectExecutionHistoryService.Evaluation::purpose).toList());
+    }
+
+    private ProjectPlanVersionDO taskPlan(Long id, int revision, String gateName, String status) {
+        var plan = plan(id, revision, "工前准备", status);
+        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var task = new TemplateExecutionSnapshot.TaskContract(); task.setNodeKey("task:analysis");
+        task.setCode("ANALYSIS"); task.setName("需求分析"); task.setStageCode("DISCOVERY");
+        task.setCompletionRuleKey("complete"); task.setExitRuleKey("complete"); task.setGateRef("SURVEY_READY");
+        snapshot.setTasks(List.of(task));
+        var gate = new TemplateExecutionSnapshot.GateContract(); gate.setNodeKey("gate:survey");
+        gate.setCode("SURVEY_READY"); gate.setName(gateName); gate.setConditionRuleKey("survey-gate");
+        snapshot.setGates(List.of(gate));
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        return plan;
+    }
+
     private ProjectPlanVersionDO plan(Long id, int revision, String name, String status) {
         var snapshot = new TemplateExecutionSnapshot();
         var node = new TemplateExecutionSnapshot.StageContract(); node.setNodeKey("stage:one"); node.setCode("DISCOVERY");

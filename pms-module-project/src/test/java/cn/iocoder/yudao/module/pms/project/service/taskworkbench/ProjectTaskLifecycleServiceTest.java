@@ -426,7 +426,10 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void businessCompletionFreezesOwnerEvidenceWithoutInventingNativeLongFact() {
         allowBusinessAction("BUSINESS_COMPONENT");
-        var evidence = businessEvidence();
+        var evidence = new java.util.LinkedHashMap<String, Object>(businessEvidence());
+        var gate = planned(true, java.util.List.of(), java.util.Map.of()).completion();
+        evidence.put("gate", gate);
+        evidence.put("gateSnapshot", "SURVEY_READY:PASSED:4");
         when(businessEvaluator.evaluate(any(), any(), any(), any(), any())).thenReturn(
                 planned(true, java.util.List.of(), evidence));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
@@ -447,6 +450,15 @@ class ProjectTaskLifecycleServiceTest {
                 cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskCompletedMessage.Payload.class);
         assertEquals(null, payload.factVersion());
         assertEquals("a".repeat(64), payload.businessFacts().get("aggregateFactVersion"));
+        var executionMapper = (cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper)
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "nodeExecutions");
+        var transition = ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.TaskTransition.class);
+        verify(executionMapper).recordTaskTransition(transition.capture());
+        var recorded = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(transition.getValue().evidence());
+        assertEquals(gate, cn.iocoder.yudao.framework.common.util.json.JsonUtils.convertObject(recorded.path("gate"),
+                cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.class));
+        assertEquals("SURVEY_READY:PASSED:4", recorded.path("gateSnapshot").asText());
         verify(nativeProvider, never()).inspect(any());
         verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
         var order = org.mockito.Mockito.inOrder(contractMapper, businessEvaluator, evaluationMapper, taskMapper);

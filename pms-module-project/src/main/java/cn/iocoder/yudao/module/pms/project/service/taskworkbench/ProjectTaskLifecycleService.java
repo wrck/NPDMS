@@ -226,6 +226,8 @@ public class ProjectTaskLifecycleService {
         if (completion != null && "COMPLETE".equals(action)) {
             roundEvidence.put("completion", completion.businessEvidence().get("completion"));
             roundEvidence.put("exit", completion.businessEvidence().get("exit"));
+            roundEvidence.put("gate", completion.businessEvidence().get("gate"));
+            roundEvidence.put("gateSnapshot", completion.businessEvidence().get("gateSnapshot"));
             roundEvidence.put("businessFacts", completion.businessEvidence().get("businessFacts"));
             roundEvidence.put("approval", completion.businessEvidence().get("approval"));
         }

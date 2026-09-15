@@ -64,7 +64,7 @@
               <p v-else>办理说明需要办理权限。</p>
               <section v-for="evaluation in row.evaluations" :key="evaluation.purpose">
                 <h4
-                  >{{ evaluation.purpose === 'completion' ? '完成' : '退出' }} ·
+                  >{{ purposeLabel(evaluation.purpose) }} ·
                   {{ evaluation.name }} · {{ outcomeLabel(evaluation.result.outcome) }}</h4
                 >
                 <el-table :data="evaluation.result.conditions" border>
@@ -120,6 +120,8 @@ const loading = ref(false)
 let generation = 0
 const outcomeLabel = (value: string) =>
   ({ MATCHED: '满足', NOT_MATCHED: '不满足', UNKNOWN: '未知' })[value] ?? value
+const purposeLabel = (value: string) =>
+  ({ completion: '完成', exit: '退出', gate: '门禁' })[value] ?? value
 const statusLabel = (value: string) =>
   ({ PENDING: '等待准入', ACTIVE: '进行中', DONE: '已完成', TERMINATED: '已终止' })[value] ?? value
 const load = async () => {

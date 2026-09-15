@@ -8,7 +8,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExec
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
-import cn.iocoder.yudao.module.pms.project.domain.rule.StageCompletionEvidence;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +64,7 @@ public class ProjectExecutionHistoryService {
             String code = round.getNodeKey();
             String name = round.getNodeKey();
             Map<String, String> ruleKeys = new LinkedHashMap<>();
+            Map<String, String> slotNames = new HashMap<>();
             if (snapshot != null && "STAGE".equals(round.getNodeKind())) {
                 var node = snapshot.getStages().stream().filter(item -> round.getNodeKey().equals(item.getNodeKey())).findFirst().orElse(null);
                 if (node != null) {
@@ -76,16 +76,23 @@ public class ProjectExecutionHistoryService {
                 if (node != null) {
                     code = node.getCode(); name = node.getName();
                     ruleKeys.put("completion",node.getCompletionRuleKey()); ruleKeys.put("exit",node.getExitRuleKey());
+                    snapshot.getGates().stream().filter(gate -> Objects.equals(node.getGateRef(), gate.getCode()))
+                            .findFirst().ifPresent(gate -> {
+                                ruleKeys.put("gate", gate.getConditionRuleKey());
+                                slotNames.put("gate", gate.getName());
+                            });
                 }
             }
             List<Evaluation> evaluations = new ArrayList<>();
             if (round.getResultSnapshot() != null && snapshot != null) {
-                var evidence = JsonUtils.parseObject(round.getResultSnapshot(), StageCompletionEvidence.class);
+                var evidence = JsonUtils.parseTree(round.getResultSnapshot());
                 ruleKeys.forEach((purpose, key) -> {
-                    var result = "completion".equals(purpose) ? evidence.completion() : evidence.exit();
-                    if (result == null) return;
-                    String ruleName = snapshot.getRules().stream().filter(rule -> Objects.equals(key, rule.key()))
-                            .map(rule -> rule.name()).findFirst().orElse(key == null ? "无附加退出条件" : key);
+                    var recorded = evidence.path(purpose);
+                    if (recorded.isMissingNode() || recorded.isNull()) return;
+                    var result = JsonUtils.convertObject(recorded, RuleEvaluation.class);
+                    String ruleName = slotNames.containsKey(purpose) ? slotNames.get(purpose)
+                            : snapshot.getRules().stream().filter(rule -> Objects.equals(key, rule.key()))
+                                .map(rule -> rule.name()).findFirst().orElse(key == null ? "无附加退出条件" : key);
                     evaluations.add(new Evaluation(purpose, ruleName, result));
                 });
             }

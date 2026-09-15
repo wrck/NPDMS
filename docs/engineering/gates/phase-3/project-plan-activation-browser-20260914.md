@@ -689,3 +689,13 @@ pnpm exec eslint src/views/pms/project/project-master-detail/components/ProjectT
 - 依据 [Flowable 命中策略说明](https://www.flowable.com/open-source/docs/dmn/ch06-DMN-Introduction/#hit-policy)及[默认严格模式说明](https://www.flowable.com/open-source/docs/dmn/ch02-Configuration#strict-mode)，保留现有原生求和和冲突失败行为，不引入自研聚合或额外配置。自审纠正 COLLECT 行顺序断言，仍比较全部结果及数量；RULE ORDER 保留顺序比较。现有生产实现符合本步验证目标，因此没有制造生产修改。
 - 会话 9039 exit 0：决策联合 6、决策服务 6、规则试算 3、LiteFlow 求值 9，合计 **24 项通过，零失败/错误/跳过**。自审调整测试后，会话 92129 exit 0，新增六项复验通过，其他十八项代码和前提未变，复用本轮证据。命令：`mvn -q -pl pms-module-project -am test "-Dtest=ProjectDecisionRuleIntegrationTest,ProjectDecisionTableServiceTest,ProjectRuleSimulationServiceTest,ProjectRuleEvaluationServiceTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`；复验仅缩小测试类范围。命中冲突场景的引擎错误日志为预期失败路径，不是测试失败。
 - 本步只改测试和记录，无 API、SQL、权限、运行状态或依赖变更；未重跑无关前端检查、未切换共享后台，不能替代真实浏览器完整业务验收。接口与代码质量技能用于审查结果类型和隔离边界，来源驱动技能用于确认第三方原生语义，Git 技能用于本地增量提交，不推送、不提交 PID；专项仍在进行中。
+
+## 2026-09-15：补齐返工前任务轮次的门禁结果留痕
+
+- 复核选择性返工的目标规划、执行替换及历史读取后，确认返工服务保留未选节点结果和旧轮次。发现任务完成服务虽已求值 gate/gateSnapshot，生命周期命令写入轮次证据时却遗漏这两项；历史读取又以阶段证据模型仅提取 completion/exit，导致完成判断的一部分无法随轮次查看。
+- 在原 COMPLETE 状态转换内保存门禁结果和门禁版本标记，不新增状态命令、数据表或独立写事务。历史接口只读取该轮已有结果与精确计划快照，增加 gate 用途及冻结门禁名称；阶段和任务的 completion/exit 保持原义。前端复用原历史结果区域，将门禁标为“门禁”，不误显示为退出条件。历史缺失的门禁结果不从当前状态或新计划补算，不覆盖旧记录。
+- 扩展任务完成测试验证实际轮次写入参数，新增历史测试覆盖返工后新旧门禁名称隔离、新轮次无旧结果、旧快照不变及缺失证据不补造；新增两项组件测试验证完成/退出/门禁标签及缺失门禁不伪造展示。使用现有组件渲染器与 API 替身，不声称浏览器验收。
+- 会话 34843 exit 0，后端五套件 **71 项通过，零失败/错误/跳过**：历史 8、任务生命周期 38、计划完成 13、返工服务 11、返工 SQL/事务 1。命令：`mvn -q -pl pms-module-project -am test "-Dtest=ProjectExecutionHistoryServiceTest,ProjectTaskLifecycleServiceTest,ProjectTaskPlanCompletionServiceTest,ProjectReworkServiceTest,ProjectReworkMapperTest" "-DargLine=-Xms128m -Xmx768m -javaagent:D:/Maven/Repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false"`。SQL 测试使用独立 H2 内存库与真实 Spring 事务，规则测试使用内存 LiteFlow，其余依赖为 mocks，未访问共享数据库。
+- 前端历史和返工面板合计 **5 项通过**；补齐新表格测试替身的 props 类型后，历史两项复验通过，ESLint 无错误或警告。会话 24502 全量类型检查未通过，仍仅为既有三条客户模块诊断，本步源码和测试无新增诊断。自审未改变原权限与数据范围、返工目标、求值语义或业务完成条件，只补齐新执行的证据和只读投影。
+- 当前端口检查为 19081 监听、59280 无监听，未启动、停止或切换共享后台；完整业务浏览器验收仍缺失。前端技能用于复用历史展示区域，Git 技能用于限定本地提交，不推送、不提交运行 PID。
+- **需求方本轮已确认相对等待起算语义**：可选本节点激活时间或指定来源节点本轮完成时间；准入条件禁止自身激活为起点，返工按当前有效轮次重新计时。该事项不再待确认；本提交先收口上述已发现的历史缺口，相对等待的模型、求值、定时及编辑接入作为后续实施，不将确认等同于实现完成。
