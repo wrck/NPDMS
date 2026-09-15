@@ -43,6 +43,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ProjectStageCompletionService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
@@ -150,6 +152,7 @@ public class ProjectStageCompletionService {
                     "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString())) != 1
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),
                     round.getVersion(), now, evidence)) != 1) throw new IllegalStateException("STAGE_COMPLETION_VERSION_CONFLICT");
+            timers.scheduleFromNode(projectId, "STAGE", stage.getId());
             audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_COMPLETED", "PROJECT_STAGE", stage.getId().toString(),
                     "SUCCESS", Map.of("projectId", projectId, "executionId", round.getId(), "roundNo", round.getRoundNo(), "planVersionId", plan.getId()));
             completed++;
@@ -164,6 +167,7 @@ public class ProjectStageCompletionService {
                 : snapshot.getRulePrograms().get(key);
         if (program == null) throw new IllegalArgumentException("FROZEN_RULE_PROGRAM_REQUIRED");
         return rules.evaluate("plan:" + planId + ":rule:" + key + ":execution:" + round.getId(), program, leaf -> switch (leaf.predicate()) {
+            case "WAIT_ELAPSED" -> facts.resolveRelativeTime(leaf, context, round.getId());
             case "STAGE_NATIVE_STATUS" -> nativeWork ? RuleFact.known(round.getSubmittedAt() != null) : RuleFact.unknown("NATIVE_COMPLETION_NOT_APPLICABLE");
             case "BUSINESS_FACT" -> leaf.parameters().has("sourceNodeKey") ? facts.resolveFact(leaf, context)
                     : ownerLinks.isEmpty() ? RuleFact.unknown("BUSINESS_LINK_GROUP_EMPTY")

@@ -23,7 +23,7 @@ class ProjectRuleOutboxDeliveryJobTest {
         var outbox = mock(PlatformOutboxDeliveryApi.class);
         var coordinator = mock(ProjectRuntimeCoordinator.class);
         var timers = mock(ProjectRuleTimerDelivery.class);
-        var timer = ProjectRuleTimer.create(7L,9L,51L,61L,List.of(),ProjectRuleTimer.Purpose.COMPLETION,"finish",java.time.Instant.now().minusSeconds(1));
+        var timer = ProjectRuleTimer.create(7L,9L,51L,61L,List.of(),ProjectRuleTimer.Purpose.COMPLETION,"finish",java.time.Instant.now().minusSeconds(1),null);
         var event = timer.event();
         when(outbox.claimDue(any())).thenReturn(List.of(new PlatformOutboxMessageDTO(event.eventId(),event.eventType(),event.eventPayload(),0,7L,LocalDateTime.now())));
         when(timers.deliver(timer)).thenReturn(false, true);

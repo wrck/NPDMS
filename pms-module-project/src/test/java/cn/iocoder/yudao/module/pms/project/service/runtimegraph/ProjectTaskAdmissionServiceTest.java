@@ -31,6 +31,7 @@ class ProjectTaskAdmissionServiceTest {
     final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
     final ProjectStageAdmissionService rules = mock(ProjectStageAdmissionService.class);
     final OperationAuditApi audit = mock(OperationAuditApi.class);
+    final ProjectRuleTimerScheduler timers = mock(ProjectRuleTimerScheduler.class);
     final ProjectTaskAdmissionService service = new ProjectTaskAdmissionService(projects, contracts, executions, rules, audit);
     final ProjectMasterDO project = new ProjectMasterDO();
     final ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
@@ -38,6 +39,7 @@ class ProjectTaskAdmissionServiceTest {
     final ProjectNodeExecutionDO round = new ProjectNodeExecutionDO();
 
     @BeforeEach void setup() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", timers);
         TenantContextHolder.setTenantId(7L);
         project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L);
         task.setId(11L); task.setTenantId(7L); task.setProjectId(9L); task.setStatus("PENDING_ASSIGN");
@@ -62,6 +64,7 @@ class ProjectTaskAdmissionServiceTest {
         assertTrue(service.activateEligible(9L, 11L, "stage-now-active").activated());
         assertFalse(service.activateEligible(9L, 11L, "duplicate-event").activated());
         verify(executions).activateIfPending(any());
+        verify(timers).scheduleFromNode(9L, "TASK", 11L);
         verify(audit).record(eq(7L), isNull(), eq("stage-now-active"), eq("PROJECT_TASK_ADMITTED"), eq("ProjectTask"), eq("11"), eq("SUCCESS"), anyMap());
         assertEquals("PENDING_ASSIGN", task.getStatus()); assertNull(task.getActualStartTime());
         assertNull(round.getStartedAt()); assertNull(round.getSubmittedAt());
@@ -72,7 +75,7 @@ class ProjectTaskAdmissionServiceTest {
         when(rules.taskAdmissionFact(project, task, contract)).thenReturn(RuleFact.unknown("OWNER_UNAVAILABLE"), RuleFact.known(false));
         assertTrue(service.activateEligible(9L, 11L, "unknown").unknown());
         assertEquals(new ProjectTaskAdmissionService.Result(false, false), service.activateEligible(9L, 11L, "false"));
-        verify(executions, never()).activateIfPending(any()); verifyNoInteractions(audit);
+        verify(executions, never()).activateIfPending(any()); verifyNoInteractions(audit, timers);
     }
 
     @Test void stalePlanContractAndForeignTaskCannotBeAdmitted() {
@@ -119,6 +122,10 @@ class ProjectTaskAdmissionServiceTest {
             assertThrows(IllegalStateException.class, () -> command.activateEligible(9L, 11L, "failed-audit"));
             assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM admission_write", Integer.class));
             var outerTimer = new TransactionTemplate(manager);
+            doThrow(new IllegalStateException("relative timer registration failed")).when(timers).scheduleFromNode(9L, "TASK", 11L);
+            assertThrows(IllegalStateException.class, () -> command.activateEligible(9L, 11L, "failed-relative-timer"));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM admission_write", Integer.class));
+            doNothing().when(timers).scheduleFromNode(9L, "TASK", 11L);
             assertThrows(IllegalStateException.class, () -> outerTimer.executeWithoutResult(status -> {
                 assertTrue(command.activateEligible(9L, 11L, "timer").activated());
                 throw new IllegalStateException("timer outbox append failed");

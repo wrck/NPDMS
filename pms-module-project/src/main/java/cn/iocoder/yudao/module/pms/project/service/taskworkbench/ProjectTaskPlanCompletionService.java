@@ -149,6 +149,7 @@ public class ProjectTaskPlanCompletionService {
         List<Map<String,Object>> criteria = new ArrayList<>();
         List<String> invalid = new ArrayList<>();
         RuleFact.Resolver resolver = leaf -> switch (leaf.predicate()) {
+            case "WAIT_ELAPSED" -> facts.resolveRelativeTime(leaf, context, round.getId());
             case "TASK_NATIVE_STATUS" -> nativeWork ? RuleFact.known(round.getSubmittedAt()!=null) : RuleFact.unknown("NATIVE_COMPLETION_NOT_APPLICABLE");
             case "BUSINESS_FACT" -> leaf.parameters().has("sourceNodeKey") ? facts.resolveFact(leaf, context)
                     : ownerLinks.isEmpty() ? RuleFact.unknown("BUSINESS_LINK_GROUP_EMPTY")

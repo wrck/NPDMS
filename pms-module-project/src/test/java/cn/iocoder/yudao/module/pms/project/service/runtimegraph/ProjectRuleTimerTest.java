@@ -41,6 +41,7 @@ class ProjectRuleTimerTest {
     ProjectPlanVersionDO plan;
 
     @BeforeEach void setup() {
+        org.springframework.test.util.ReflectionTestUtils.setField(taskAdmission, "timers", mock(ProjectRuleTimerScheduler.class));
         TenantContextHolder.setTenantId(7L);
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
@@ -61,11 +62,11 @@ class ProjectRuleTimerTest {
     void saveSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
     ProjectRuleTimer timer(ProjectRuleTimer.Purpose purpose) {
         return ProjectRuleTimer.create(7L, 9L, 51L, purpose == ProjectRuleTimer.Purpose.CLOSURE ? null : 61L,
-                purpose == ProjectRuleTimer.Purpose.CLOSURE ? List.of(61L) : List.of(), purpose, "time", due);
+                purpose == ProjectRuleTimer.Purpose.CLOSURE ? List.of(61L) : List.of(), purpose, "time", due, null);
     }
 
     @Test void schedulesFrozenOneShotEventsForEverySlotAndOnlyNewReworkRounds() {
-        var scheduler = new ProjectRuleTimerScheduler(executions, events);
+        var scheduler = new ProjectRuleTimerScheduler(executions, events, plans);
         scheduler.schedule(9L, 51L, snapshot, null);
         var event = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent.class);
         verify(events, times(4)).appendAt(eq("ProjectPlan"), eq("51"), event.capture(), eq(LocalDateTime.ofInstant(due, ZoneId.systemDefault())));
@@ -128,7 +129,7 @@ class ProjectRuleTimerTest {
     }
 
     @Test void earlyForeignTenantAndWrongFrozenRuleAreNotExecuted() {
-        var early = ProjectRuleTimer.create(7L,9L,51L,61L,List.of(),ProjectRuleTimer.Purpose.ADMISSION,"time",Instant.now().plusSeconds(60));
+        var early = ProjectRuleTimer.create(7L,9L,51L,61L,List.of(),ProjectRuleTimer.Purpose.ADMISSION,"time",Instant.now().plusSeconds(60),null);
         assertFalse(service.deliver(early));
         TenantContextHolder.setTenantId(8L);
         assertThrows(IllegalArgumentException.class, () -> service.deliver(timer(ProjectRuleTimer.Purpose.ADMISSION)));
@@ -157,5 +158,87 @@ class ProjectRuleTimerTest {
         assertTrue(service.deliver(timer(ProjectRuleTimer.Purpose.ADMISSION)));
         verify(executions).activateIfPending(argThat(write -> write.planVersionId()==51L && write.nodeInstanceId()==11L && write.nodeKind().equals("TASK")));
         verifyNoInteractions(tasks, stages, closure);
+    }
+
+    @Test void relativeActivationRegistersOnActivationAndBindsTheActualExecution() {
+        var scheduler = new ProjectRuleTimerScheduler(executions, events, plans);
+        snapshot.getStages().getFirst().setAdmissionRuleKey(null);
+        snapshot.getStages().getFirst().setExitRuleKey(null); snapshot.setClosureRuleKey(null);
+        snapshot.setRulePrograms(Map.of("time", new ProjectRuleCompiler().compile(JsonUtils.parseTree("""
+                {"predicate":"WAIT_ELAPSED","parameters":{"anchor":"NODE_ACTIVATED","duration":"PT30M"}}
+                """)))); saveSnapshot();
+        scheduler.schedule(9L, 51L, snapshot, null); verifyNoInteractions(events);
+        round.setStatus("ACTIVE"); round.setAdmittedAt(LocalDateTime.ofInstant(due.minusSeconds(1800), ZoneId.systemDefault()));
+        scheduler.scheduleFromNode(9L, "STAGE", 11L);
+        var emitted = capturedTimers(1).getFirst();
+        assertEquals(due, emitted.dueAt()); assertEquals(61L, emitted.anchorExecutionId()); assertEquals(61L, emitted.executionId());
+        when(stages.completeStage(eq(9L), eq(11L), isNull(), anyString())).thenReturn(new ProjectStageCompletionService.Completion(1, false));
+        assertTrue(service.deliver(emitted));
+        verify(stages).completeStage(eq(9L), eq(11L), isNull(), eq(emitted.eventId()));
+    }
+
+    @Test void sourceCompletionRegistersDependentAndClosureTimersAndOldSourceRoundCannotAdvanceEither() {
+        var scheduler = new ProjectRuleTimerScheduler(executions, events, plans);
+        var source = completedSource();
+        relativeSourceRule(source);
+        source.setStatus("ACTIVE"); source.setEndedAt(null);
+        scheduler.schedule(9L, 51L, snapshot, null); verifyNoInteractions(events);
+        source.setStatus("DONE"); source.setEndedAt(LocalDateTime.ofInstant(due.minusSeconds(1800), ZoneId.systemDefault()));
+        scheduler.scheduleFromNode(9L, "TASK", 12L);
+        var emitted = capturedTimers(2);
+        assertEquals(Set.of(ProjectRuleTimer.Purpose.ADMISSION, ProjectRuleTimer.Purpose.CLOSURE), emitted.stream().map(ProjectRuleTimer::purpose).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(emitted.stream().allMatch(timer -> timer.anchorExecutionId().equals(62L) && timer.dueAt().equals(due)));
+        // The consumer stays in its current round while only the selected source is reworked.
+        source.setId(63L); source.setStatus("ACTIVE"); source.setEndedAt(null);
+        for (var timer : emitted) assertTrue(service.deliver(timer));
+        verifyNoInteractions(admission, stages, tasks, closure);
+        clearInvocations(events);
+        scheduler.scheduleFromNode(9L, "TASK", 12L); verifyNoInteractions(events);
+        source.setStatus("DONE"); source.setEndedAt(LocalDateTime.ofInstant(due.minusSeconds(900), ZoneId.systemDefault()));
+        scheduler.scheduleFromNode(9L, "TASK", 12L);
+        assertTrue(capturedTimers(2).stream().allMatch(timer -> timer.anchorExecutionId().equals(63L) && timer.dueAt().equals(due.plusSeconds(900))));
+    }
+
+    @Test void reworkedConsumerCanWaitOnUnselectedCompletedHistoryAndDeliveryReevaluatesOnlyItsRule() {
+        var source = completedSource(); source.setPlanVersionId(50L); relativeSourceRule(source);
+        var scheduler = new ProjectRuleTimerScheduler(executions, events, plans);
+        scheduler.schedule(9L, 51L, snapshot, Set.of(61L));
+        var timer = capturedTimers(2).stream().filter(event -> event.purpose() == ProjectRuleTimer.Purpose.ADMISSION).findFirst().orElseThrow();
+        when(admission.activateStage(eq(9L), isNull(), anyString(), eq(11L))).thenReturn(List.of(
+                new ProjectStageAdmissionService.StageAdmission(11L, "prep", RuleEvaluation.Outcome.UNKNOWN, "OWNER_UNAVAILABLE", false)));
+        assertFalse(service.deliver(timer));
+        when(admission.activateStage(eq(9L), isNull(), anyString(), eq(11L))).thenAnswer(call -> {
+            if ("ACTIVE".equals(round.getStatus())) return List.of();
+            round.setStatus("ACTIVE"); return List.of(new ProjectStageAdmissionService.StageAdmission(11L, "prep", RuleEvaluation.Outcome.MATCHED, null, true));
+        });
+        assertTrue(service.deliver(timer)); assertTrue(service.deliver(timer));
+        verify(events).append(eq("Project"), eq("9"), any());
+        var wrong = ProjectRuleTimer.create(7L, 9L, 51L, 61L, List.of(), ProjectRuleTimer.Purpose.ADMISSION, "time", due.minusSeconds(1), 62L);
+        assertThrows(IllegalArgumentException.class, () -> service.deliver(wrong));
+        verifyNoInteractions(stages, tasks, closure);
+    }
+
+    private ProjectNodeExecutionDO completedSource() {
+        var source = new ProjectNodeExecutionDO(); source.setId(62L); source.setTenantId(7L); source.setProjectId(9L);
+        source.setNodeKind("TASK"); source.setNodeInstanceId(12L); source.setNodeKey("task:survey"); source.setPlanVersionId(51L);
+        source.setCurrentMarker(1); source.setStatus("DONE");
+        source.setEndedAt(LocalDateTime.ofInstant(due.minusSeconds(1800), ZoneId.systemDefault())); return source;
+    }
+
+    private void relativeSourceRule(ProjectNodeExecutionDO source) {
+        when(executions.selectCurrent(any())).thenReturn(List.of(round, source));
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round, source));
+        snapshot.getStages().getFirst().setCompletionRuleKey(null); snapshot.getStages().getFirst().setExitRuleKey(null);
+        var sourceDefinition = new TemplateExecutionSnapshot.TaskContract(); sourceDefinition.setNodeKey("task:survey");
+        snapshot.setTasks(List.of(sourceDefinition));
+        snapshot.setRulePrograms(Map.of("time", new ProjectRuleCompiler().compile(JsonUtils.parseTree("""
+                {"predicate":"WAIT_ELAPSED","parameters":{"anchor":"NODE_COMPLETED","duration":"PT30M","sourceNodeKey":"task:survey"}}
+                """)))); saveSnapshot();
+    }
+
+    private List<ProjectRuleTimer> capturedTimers(int count) {
+        var captor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent.class);
+        verify(events, times(count)).appendAt(eq("ProjectPlan"), eq("51"), captor.capture(), any());
+        return captor.getAllValues().stream().map(event -> JsonUtils.parseObject(event.eventPayload(), ProjectRuleTimer.class)).toList();
     }
 }

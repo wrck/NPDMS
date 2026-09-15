@@ -159,7 +159,7 @@ public class ProjectPlanImpactAnalyzer {
         var program = snapshot.getRulePrograms().get(ruleKey);
         if (program == null) return;
         for (var leaf : program.leaves()) {
-            String source = "BUSINESS_FACT".equals(leaf.predicate()) && leaf.parameters().has("sourceNodeKey")
+            String source = Set.of("BUSINESS_FACT", "WAIT_ELAPSED").contains(leaf.predicate()) && leaf.parameters().has("sourceNodeKey")
                     ? leaf.parameters().path("sourceNodeKey").asText()
                     : references.get(leaf.predicate() + ":" + leaf.parameters().path("refCode").asText());
             if (source != null) dependents.computeIfAbsent(source, ignored -> new LinkedHashSet<>()).add(consumer);

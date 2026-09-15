@@ -9,16 +9,16 @@ import java.util.UUID;
 /** Immutable one-shot wakeup; never a command to apply an old boolean result. */
 public record ProjectRuleTimer(String eventId, Long tenantId, Long projectId, Long planVersionId,
                                Long executionId, List<Long> closureExecutionIds, Purpose purpose,
-                               String ruleKey, Instant dueAt) {
+                               String ruleKey, Instant dueAt, Long anchorExecutionId) {
     public static final String EVENT_TYPE = "ProjectRuleTimerRequested";
     public enum Purpose { ADMISSION, COMPLETION, EXIT, CLOSURE }
     public ProjectRuleTimer {
         closureExecutionIds = List.copyOf(closureExecutionIds);
     }
     public static ProjectRuleTimer create(Long tenant, Long project, Long plan, Long execution,
-                                          List<Long> closureExecutions, Purpose purpose, String rule, Instant due) {
+                                          List<Long> closureExecutions, Purpose purpose, String rule, Instant due, Long anchorExecutionId) {
         return new ProjectRuleTimer("rule-time:" + UUID.randomUUID(), tenant, project, plan, execution,
-                closureExecutions, purpose, rule, due);
+                closureExecutions, purpose, rule, due, anchorExecutionId);
     }
     public BusinessEvent event() { return new BusinessEvent(eventId, EVENT_TYPE, JsonUtils.toJsonString(this)); }
 }

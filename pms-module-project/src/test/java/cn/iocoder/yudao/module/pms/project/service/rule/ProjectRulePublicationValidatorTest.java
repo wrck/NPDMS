@@ -342,7 +342,41 @@ class ProjectRulePublicationValidatorTest {
     }
 
     private static VersionRule condition(String expression) {
-        return new VersionRule("rule", "条件", VersionRule.Kind.CONDITION, false, JsonUtils.parseObject(expression, JsonNode.class), null);
+        return condition(JsonUtils.parseTree(expression));
+    }
+
+    @Test void relativeWaitValidatesVersionSourcesAndEveryConsumerWithoutPublishingASecondRule() {
+        var doc = document(condition(RelativeTimeConditionTest.waitRule("NODE_COMPLETED", "PT1H", "task:survey")));
+        var stage = new TemplateDesignerDocument.StageNode(); stage.setNodeKey("stage:prep"); stage.setAdmissionRuleKey("rule");
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:survey");
+        doc.setStages(List.of(stage)); doc.setTasks(List.of(task));
+        assertTrue(validator.validate(doc).isEmpty());
+        doc.setTasks(List.of());
+        assertTrue(validator.validate(doc).stream().anyMatch(issue -> "RULE_TIME_SOURCE_UNAVAILABLE".equals(issue.code())));
+        doc.setTasks(List.of(task)); task.setAdmissionRuleKey("rule");
+        doc.setRules(List.of(new VersionRule("rule", "共享等待", VersionRule.Kind.CONDITION, true,
+                RelativeTimeConditionTest.waitRule("NODE_COMPLETED", "PT1H", "task:survey"), null)));
+        assertTrue(validator.validate(doc).stream().anyMatch(issue -> "RULE_TIME_SELF_DEPENDENCY".equals(issue.code()) && issue.field().startsWith("tasks[0]")));
+        assertTrue(validator.validateCondition(doc.getRules().getFirst().expression()).stream()
+                .anyMatch(issue -> "RULE_SOURCE_REQUIRES_VERSION".equals(issue.code())));
+    }
+
+    @Test void ownActivationIsAvailableForCompletionButNotAdmissionMatchingOrClosure() {
+        var expression = RelativeTimeConditionTest.waitRule("NODE_ACTIVATED", "PT1H", null);
+        var doc = document(condition(expression));
+        var stage = new TemplateDesignerDocument.StageNode(); stage.setNodeKey("stage:prep"); stage.setCompletionRuleKey("rule");
+        doc.setStages(List.of(stage));
+        assertTrue(validator.validate(doc).isEmpty());
+        stage.setCompletionRuleKey(null); stage.setAdmissionRuleKey("rule");
+        assertTrue(validator.validate(doc).stream().anyMatch(issue -> "RULE_TIME_SELF_DEPENDENCY".equals(issue.code())));
+        stage.setAdmissionRuleKey(null); doc.setClosureRuleKey("rule");
+        assertTrue(validator.validate(doc).stream().anyMatch(issue -> "RULE_TIME_SOURCE_REQUIRED".equals(issue.code())));
+        doc.setClosureRuleKey(null); doc.setMatchRuleKey("rule");
+        assertTrue(validator.validate(doc).stream().anyMatch(issue -> "MATCH_REQUIRES_CREATION_FACTS".equals(issue.code())));
+    }
+
+    private static VersionRule condition(JsonNode expression) {
+        return new VersionRule("rule", "条件", VersionRule.Kind.CONDITION, false, expression, null);
     }
     private static TemplateDesignerDocument document(VersionRule rule) {
         var source = new TemplateDesignerDocument(); source.setRules(List.of(rule)); return source;

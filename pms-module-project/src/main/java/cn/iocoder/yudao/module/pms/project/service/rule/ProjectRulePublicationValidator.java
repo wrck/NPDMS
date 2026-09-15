@@ -71,6 +71,14 @@ public class ProjectRulePublicationValidator {
                 programs.put(rule.key(), program);
                 validateProgram(path, program, fields, matching, issues);
                 for (var leaf : program.leaves()) {
+                    if ("WAIT_ELAPSED".equals(leaf.predicate())) {
+                        String source = leaf.parameters().path("sourceNodeKey").asText();
+                        if (!source.isBlank() && !bindings.containsKey(source))
+                            issues.add(new Issue(path + "." + leaf.path(), "RULE_TIME_SOURCE_UNAVAILABLE", "等待的来源阶段或任务不在当前版本中"));
+                        if (source.isBlank() && Objects.equals(rule.key(), document.getClosureRuleKey()))
+                            issues.add(new Issue(path + "." + leaf.path(), "RULE_TIME_SOURCE_REQUIRED", "项目收口没有自身激活时间，请选择来源节点完成时间"));
+                        continue;
+                    }
                     if (!"BUSINESS_FACT".equals(leaf.predicate())) continue;
                     String source = leaf.parameters().path("sourceNodeKey").asText();
                     if (!source.isBlank() && (!bindings.containsKey(source)
@@ -139,6 +147,13 @@ public class ProjectRulePublicationValidator {
             RuleProgram program = programs.get(keys[i]);
             if (program == null) continue; // Missing/invalid rules are reported by reference and compilation validation.
             for (RuleProgram.Leaf leaf : program.leaves()) {
+                if ("WAIT_ELAPSED".equals(leaf.predicate())) {
+                    String source = leaf.parameters().path("sourceNodeKey").asText();
+                    if ((i == 0 && source.isBlank()) || nodeKey.equals(source))
+                        issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_TIME_SELF_DEPENDENCY",
+                                "准入不能等待自身激活，节点结束前也不能等待自身本轮完成，请选择其他来源节点"));
+                    continue;
+                }
                 if (Set.of("STAGE_NATIVE_STATUS", "TASK_NATIVE_STATUS").contains(leaf.predicate())) {
                     String nativeBinding = kind == DeliveryDefinitionKind.STAGE ? "STAGE_NATIVE" : "TASK_NATIVE";
                     String field = path + "." + slots[i] + "." + leaf.path();

@@ -117,6 +117,14 @@ public final class DeliveryDefinitionPayloadValidator {
                 fields(parameters, Set.of("at"));
                 text(parameters, "at");
                 cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition.deadline(parameters);
+            } else if ("WAIT_ELAPSED".equals(predicate)) {
+                fields(parameters, Set.of("anchor", "duration", "sourceNodeKey"));
+                text(parameters, "anchor"); text(parameters, "duration");
+                var anchor = cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition.anchor(parameters);
+                cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition.duration(parameters);
+                if (anchor == cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition.Anchor.NODE_COMPLETED)
+                    require(code(text(parameters, "sourceNodeKey")), "sourceNodeKey: version-local node required");
+                else require(!parameters.has("sourceNodeKey"), "activation uses the current node");
             } else if ("CONSTANT".equals(predicate)) {
                 fields(parameters, Set.of("value")); bool(parameters, "value");
             } else if (predicate.endsWith("_NATIVE_STATUS") && PREDICATES.contains(predicate)) {

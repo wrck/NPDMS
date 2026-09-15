@@ -52,10 +52,11 @@ public class ProjectRuleTimerDelivery {
         if (plan == null || !timer.planVersionId().equals(plan.getId())) return false;
         var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
         var rounds = executions.selectCurrentForUpdate(scope);
+        if (timer.anchorExecutionId() != null && rounds.stream().noneMatch(round -> timer.anchorExecutionId().equals(round.getId()))) return true;
         boolean wakeDependents;
         if (timer.purpose() == ProjectRuleTimer.Purpose.CLOSURE) {
             if (timer.executionId() != null || !rounds.stream().map(ProjectNodeExecutionDO::getId).sorted().toList().equals(timer.closureExecutionIds())) return true;
-            requireRule(timer, snapshot, snapshot.getClosureRuleKey());
+            requireRule(timer, snapshot, snapshot.getClosureRuleKey(), rounds);
             var result = closure.closeIfSatisfied(timer.projectId(), null, timer.eventId());
             return !result.unknown();
         }
@@ -67,7 +68,7 @@ public class ProjectRuleTimerDelivery {
         if ("STAGE".equals(round.getNodeKind())) {
             var node = snapshot.getStages().stream().filter(item -> round.getNodeKey().equals(item.getNodeKey())).findFirst().orElseThrow();
             key = slot(timer.purpose(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey());
-            requireRule(timer, snapshot, key);
+            requireRule(timer, snapshot, key, rounds);
             if (timer.purpose() == ProjectRuleTimer.Purpose.ADMISSION) {
                 var result = admission.activateStage(timer.projectId(), null, timer.eventId(), round.getNodeInstanceId());
                 if (result.stream().anyMatch(item -> item.outcome() == RuleEvaluation.Outcome.UNKNOWN)) return false;
@@ -80,7 +81,7 @@ public class ProjectRuleTimerDelivery {
         } else if ("TASK".equals(round.getNodeKind())) {
             var node = snapshot.getTasks().stream().filter(item -> round.getNodeKey().equals(item.getNodeKey())).findFirst().orElseThrow();
             key = slot(timer.purpose(), node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey());
-            requireRule(timer, snapshot, key);
+            requireRule(timer, snapshot, key, rounds);
             if (timer.purpose() == ProjectRuleTimer.Purpose.ADMISSION) {
                 if (!"PENDING".equals(round.getStatus())) return true;
                 var admitted = taskAdmission.activateEligible(timer.projectId(), round.getNodeInstanceId(), timer.eventId());
@@ -106,10 +107,14 @@ public class ProjectRuleTimerDelivery {
         };
     }
 
-    private static void requireRule(ProjectRuleTimer timer, TemplateExecutionSnapshot snapshot, String expectedKey) {
+    private static void requireRule(ProjectRuleTimer timer, TemplateExecutionSnapshot snapshot, String expectedKey,
+                                    java.util.List<ProjectNodeExecutionDO> rounds) {
         var program = snapshot.getRulePrograms().get(timer.ruleKey());
         if (!Objects.equals(expectedKey, timer.ruleKey()) || program == null || program.leaves().stream().noneMatch(leaf ->
-                AbsoluteTimeCondition.PREDICATE.equals(leaf.predicate()) && AbsoluteTimeCondition.deadline(leaf.parameters()).equals(timer.dueAt())))
+                timer.anchorExecutionId() == null
+                    ? AbsoluteTimeCondition.PREDICATE.equals(leaf.predicate()) && AbsoluteTimeCondition.deadline(leaf.parameters()).equals(timer.dueAt())
+                    : "WAIT_ELAPSED".equals(leaf.predicate()) && new ProjectRelativeTimeFacts.Boundary(timer.anchorExecutionId(), timer.dueAt())
+                        .equals(ProjectRelativeTimeFacts.boundary(leaf.parameters(), timer.executionId(), rounds))))
             throw new IllegalArgumentException("TIMER_RULE_SCOPE_INVALID");
     }
 }

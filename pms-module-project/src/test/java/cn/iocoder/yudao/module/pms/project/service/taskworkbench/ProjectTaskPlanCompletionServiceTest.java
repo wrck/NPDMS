@@ -103,6 +103,19 @@ class ProjectTaskPlanCompletionServiceTest {
         assertEquals(91L,binding.getId()); assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
         assertTrue(evaluate().completion().ruleVersionRef().contains("plan:52")); verifyNoInteractions(business);
     }
+
+    @Test void ownActivationWaitUsesTheTaskRoundNotItsParentAndStillRequiresRealSubmission() {
+        var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        org.springframework.test.util.ReflectionTestUtils.setField(evaluator, "relativeTime",
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRelativeTimeFacts(executions));
+        when(executions.selectCurrent(any())).thenReturn(List.of(round));
+        rule("done", "{\"predicate\":\"WAIT_ELAPSED\",\"parameters\":{\"anchor\":\"NODE_ACTIVATED\",\"duration\":\"PT1H\"}}");
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, evaluate().completion().outcome());
+        round.setAdmittedAt(LocalDateTime.now()); assertFalse(evaluate().matched());
+        round.setAdmittedAt(LocalDateTime.now().minusHours(2)); assertTrue(evaluate().matched());
+        round.setSubmittedAt(null); assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        verifyNoInteractions(business);
+    }
     @Test void currentPlanGateIsReevaluatedInsteadOfUsingOldBindingGateOrCachedPass() {
         binding.setGateRef("obsolete-gate");
         snapshot.getTasks().getFirst().setGateRef("current-gate");

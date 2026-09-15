@@ -79,6 +79,7 @@ class ProjectStageAdmissionServiceTest {
         service = new ProjectStageAdmissionService(projects, graph, stages, references,
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(),
                         mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), compiler, audit, executions, plans);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(ProjectRuleTimerScheduler.class));
     }
 
     @Test void activatesIndependentStagesAndDoesNotReleaseUnknownOrFalseBranches() {
@@ -190,6 +191,7 @@ class ProjectStageAdmissionServiceTest {
         when(projects.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         var command = new ProjectTaskAdmissionService(projects, taskContracts, executions, service, audit);
+        org.springframework.test.util.ReflectionTestUtils.setField(command, "timers", mock(ProjectRuleTimerScheduler.class));
         assertFalse(command.activateEligible(9L, 21L, "time-before-stage").activated());
         verify(executions, never()).activateIfPending(any());
         assertTrue(service.activateEligible(9L, null, "stage-reevaluation").getFirst().activated());
@@ -248,6 +250,25 @@ class ProjectStageAdmissionServiceTest {
             verify(audit).record(eq(7L), eq(11L), eq("event"), eq("PROJECT_STAGE_ACTIVATED"), eq("PROJECT_STAGE"), eq("3"), eq("SUCCESS"), anyMap());
             verify(completion, never()).completeStage(9L, 2L, 11L, "event");
         } finally { database.shutdown(); }
+    }
+
+    @Test void relativeSourceAdmissionRemainsUnknownUntilCurrentSourceCompletesWhileIndependentStageActivates() {
+        add("WAITING", "{\"predicate\":\"WAIT_ELAPSED\",\"parameters\":{\"anchor\":\"NODE_COMPLETED\",\"duration\":\"PT1H\",\"sourceNodeKey\":\"task:survey\"}}");
+        add("INDEPENDENT", null);
+        var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "evaluator");
+        org.springframework.test.util.ReflectionTestUtils.setField(evaluator, "relativeTime", new ProjectRelativeTimeFacts(executions));
+        var source = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        source.setId(301L); source.setNodeKind("TASK"); source.setNodeKey("task:survey"); source.setStatus("ACTIVE");
+        when(executions.selectCurrent(any())).thenReturn(List.of(source));
+        var result = service.activateEligible(9L, 11L, "waiting-for-source");
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.getFirst().outcome());
+        assertTrue(result.get(1).activated());
+        source.setStatus("DONE"); source.setEndedAt(java.time.LocalDateTime.now());
+        assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, service.activateEligible(9L, 11L, "still-waiting").getFirst().outcome());
+        source.setEndedAt(java.time.LocalDateTime.now().minusHours(2));
+        assertTrue(service.activateEligible(9L, 11L, "elapsed").getFirst().activated());
+        var timers = (ProjectRuleTimerScheduler) org.springframework.test.util.ReflectionTestUtils.getField(service, "timers");
+        verify(timers).scheduleFromNode(9L, "STAGE", 1L); verify(timers).scheduleFromNode(9L, "STAGE", 2L);
     }
 
     private void add(String code, String expression) {

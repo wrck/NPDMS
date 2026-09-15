@@ -22,6 +22,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskAdmissionService {
+    @jakarta.annotation.Resource
+    private ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectTaskExecutionContractMapper contracts;
     private final ProjectNodeExecutionMapper executions;
@@ -59,6 +61,7 @@ public class ProjectTaskAdmissionService {
         if (executions.activateIfPending(new ProjectNodeExecutionMapper.Activation(tenant, projectId,
                 round.getPlanVersionId(), taskId, "TASK", LocalDateTime.now())) != 1)
             throw new IllegalStateException("TASK_ADMISSION_ROUND_CONFLICT");
+        timers.scheduleFromNode(projectId, "TASK", taskId);
         audit.record(tenant, null, correlationId, "PROJECT_TASK_ADMITTED", "ProjectTask", taskId.toString(), "SUCCESS",
                 Map.of("planVersionId", round.getPlanVersionId(), "executionId", round.getId(),
                         "contractId", contract.getId(), "nodeKey", round.getNodeKey(),

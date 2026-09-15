@@ -31,6 +31,8 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ProjectStageAdmissionService {
+    @jakarta.annotation.Resource
+    private ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectRuntimeGraphMapper graph;
     private final ProjectStageInstanceMapper stages;
@@ -106,6 +108,7 @@ public class ProjectStageAdmissionService {
                 if (executions.activateIfPending(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.Activation(
                         tenantId, projectId, project.getActivePlanVersionId(), stage.getId(), "STAGE", java.time.LocalDateTime.now())) != 1)
                     throw new IllegalStateException("STAGE_EXECUTION_ROUND_CONFLICT");
+                timers.scheduleFromNode(projectId, "STAGE", stage.getId());
                 audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_ACTIVATED", "PROJECT_STAGE", stage.getId().toString(),
                         "SUCCESS", Map.of("projectId", projectId, "stageId", stage.getId(), "nodeKey", contract.getSourceNodeKey(),
                                 "graphVersion", contract.getGraphVersion(), "contractId", contract.getId(), "ruleVersionRef", version,

@@ -145,6 +145,18 @@ class ProjectPlanImpactAnalyzerTest {
         assertTrue(result.changes().stream().anyMatch(c -> c.nodeKey().equals("$project") && c.action().equals("REEVALUATE")));
         assertEquals("DONE",completed.getStatus());
     }
+    @Test void relativeCompletionSourceParticipatesInReworkImpactWithoutRewritingHistory() {
+        var before = snapshot();
+        before.getStages().get(1).setAdmissionRuleKey("wait");
+        before.getRulePrograms().put("wait", new ProjectRuleCompiler().compile(JsonUtils.parseTree("""
+                {"predicate":"WAIT_ELAPSED","parameters":{"anchor":"NODE_COMPLETED","duration":"PT1H","sourceNodeKey":"task:one"}}
+                """)));
+        var after = copy(before); after.getTasks().getFirst().setName("工勘调整");
+        var completed = round("stage:b", "STAGE", 2L); completed.setStatus("DONE");
+        var result = analyzer.analyze(before, after, List.of(completed), List.of());
+        assertTrue(result.changes().stream().anyMatch(change -> "stage:b".equals(change.nodeKey()) && "REEVALUATE".equals(change.action()) && change.completed()));
+        assertEquals("DONE", completed.getStatus());
+    }
     static TemplateExecutionSnapshot snapshot() {
         var snapshot = new TemplateExecutionSnapshot();
         for (String code : List.of("A","B")) {

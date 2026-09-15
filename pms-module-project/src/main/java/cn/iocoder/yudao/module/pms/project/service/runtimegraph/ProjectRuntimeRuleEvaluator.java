@@ -17,6 +17,8 @@ import java.util.*;
 /** PM-03/PM-11: read-only three-valued frozen CompletionRule evaluation. Unknown never becomes false. */
 @Component @RequiredArgsConstructor
 public class ProjectRuntimeRuleEvaluator {
+    @jakarta.annotation.Resource
+    private ProjectRelativeTimeFacts relativeTime;
     private final ProjectStageGateProviderRegistry providers;
     private final ProjectRuleCompiler compiler;
     private final ProjectRuleEvaluationService evaluator;
@@ -49,6 +51,7 @@ public class ProjectRuntimeRuleEvaluator {
 
     public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if ("WAIT_ELAPSED".equals(predicate)) return resolveRelativeTime(leaf, facts, null);
         if ("TIME_REACHED".equals(predicate))
             return cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition.evaluate(leaf.parameters(), java.time.Instant.now());
         if ("BUSINESS_FACT".equals(predicate)) return businessSources.resolve(facts.project(), leaf);
@@ -93,4 +96,7 @@ public class ProjectRuntimeRuleEvaluator {
         };
     }
 
+    public RuleFact resolveRelativeTime(RuleProgram.Leaf leaf, Facts facts, Long executionId) {
+        return relativeTime.resolve(facts.project().getTenantId(), facts.project().getId(), executionId, leaf.parameters());
+    }
 }

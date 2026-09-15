@@ -64,8 +64,31 @@ class ProjectStageCompletionServiceTest {
         service = new ProjectStageCompletionService(projects, plans, executions, graph, stages, references, engine.evaluator(), compiler,
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes,
                 new ProjectStageApprovalService(executions, approvals, nodeContexts));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
+
+    @Test void stageOwnActivationWaitUsesCurrentRoundAndRegistersDependentsOnlyAfterRealCompletion() {
+        var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        org.springframework.test.util.ReflectionTestUtils.setField(evaluator, "relativeTime",
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRelativeTimeFacts(executions));
+        when(executions.selectCurrent(any())).thenReturn(List.of(round));
+        snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("""
+                {"predicate":"WAIT_ELAPSED","parameters":{"anchor":"NODE_ACTIVATED","duration":"PT1H"}}
+                """))); refreshSnapshot();
+        var timers = (cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler)
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "timers");
+        round.setAdmittedAt(LocalDateTime.now().minusHours(2));
+        assertEquals(0, service.completeStage(9L, 11L, 1L, "no-submission").completed());
+        round.setSubmittedAt(LocalDateTime.now()); round.setAdmittedAt(null);
+        assertTrue(service.completeStage(9L, 11L, 1L, "missing-anchor").unknown());
+        round.setAdmittedAt(LocalDateTime.now());
+        assertEquals(0, service.completeStage(9L, 11L, 1L, "waiting").completed()); verifyNoInteractions(timers);
+        round.setAdmittedAt(LocalDateTime.now().minusHours(2));
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1, service.completeStage(9L, 11L, 1L, "elapsed").completed());
+        verify(timers).scheduleFromNode(9L, "STAGE", 11L);
+    }
 
     private void approvalBinding() {
         var binding = snapshot.getStages().getFirst().getBinding();

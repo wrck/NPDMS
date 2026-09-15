@@ -62,6 +62,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_R
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskLifecycleService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
 
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmissionService;
@@ -235,6 +237,7 @@ public class ProjectTaskLifecycleService {
         if (nodeExecutions.recordTaskTransition(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.TaskTransition(
                 actor.tenantId(), project.getId(), task.getId(), contract.getId(), action, occurredAt, actor.actorId(),
                 JsonUtils.toJsonString(roundEvidence))) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
+        if (Set.of("START", "COMPLETE").contains(action)) timers.scheduleFromNode(project.getId(), "TASK", task.getId());
         if (Set.of("SUBMIT", "COMPLETE", "CANCEL").contains(action)) {
             progressService.recompute(actor.tenantId(), project.getId(), project.getTaskProgressVersion(), occurredAt);
         }

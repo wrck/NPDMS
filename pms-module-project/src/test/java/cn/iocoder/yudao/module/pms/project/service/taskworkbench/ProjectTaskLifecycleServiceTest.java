@@ -79,6 +79,7 @@ class ProjectTaskLifecycleServiceTest {
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
                 permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmissionService", stageAdmission);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "taskApprovals", taskApprovals);
         var nodeExecutions = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.class);
         org.mockito.Mockito.lenient().when(nodeExecutions.recordTaskTransition(any())).thenReturn(1);

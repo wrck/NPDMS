@@ -38,6 +38,12 @@ public class ProjectRuleSimulationService {
         Map<String, ProjectDecisionTableService.Result> results = new LinkedHashMap<>();
         for (var leaf : program.leaves()) {
             if (leaf.predicate().equals("CONSTANT")) continue;
+            if (leaf.predicate().equals("WAIT_ELAPSED")) {
+                inputs.putIfAbsent("clock.now", new Input("clock.now", "模拟当前时间（含时区）", "DATETIME"));
+                String key = relativeAnchorKey(leaf);
+                inputs.putIfAbsent(key, new Input(key, "模拟本轮起算时间（含时区）", "DATETIME"));
+                continue;
+            }
             if (leaf.predicate().startsWith("DECISION")) {
                 var table = table(leaf);
                 decisions.validate(table, table.inputFields().values().stream().collect(java.util.stream.Collectors.toSet()));
@@ -52,6 +58,19 @@ public class ProjectRuleSimulationService {
             }
         }
         RuleResult result = evaluator.evaluateRule("simulation:" + ruleKey, program, leaf -> {
+            if (leaf.predicate().equals("WAIT_ELAPSED")) {
+                var now = supplied(values, "clock.now");
+                var anchor = supplied(values, relativeAnchorKey(leaf));
+                if (!now.available()) return now;
+                if (!anchor.available()) return anchor;
+                try {
+                    return cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition.evaluate(leaf.parameters(),
+                            java.time.OffsetDateTime.parse((String) anchor.value()).toInstant(),
+                            java.time.OffsetDateTime.parse((String) now.value()).toInstant());
+                } catch (RuntimeException invalid) {
+                    return RuleFact.unknown("SIMULATION_TIME_INVALID");
+                }
+            }
             if (leaf.predicate().equals("TIME_REACHED")) {
                 var supplied = supplied(values, inputKey(leaf));
                 if (!supplied.available()) return supplied;
@@ -79,6 +98,11 @@ public class ProjectRuleSimulationService {
         return leaf.predicate() + ":" + reference + (leaf.predicate().equals("BUSINESS_FACT")
                 ? ":" + leaf.parameters().path("quantifier").asText()
                     + (leaf.parameters().has("sourceNodeKey") ? ":source:" + leaf.parameters().path("sourceNodeKey").asText() : "") : "");
+    }
+
+    public static String relativeAnchorKey(RuleProgram.Leaf leaf) {
+        return leaf.parameters().path("anchor").asText().equals("NODE_ACTIVATED") ? "clock.activation"
+                : "clock.completed:" + leaf.parameters().path("sourceNodeKey").asText();
     }
 
     private static DecisionTableDefinition table(RuleProgram.Leaf leaf) {
