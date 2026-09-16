@@ -6,10 +6,14 @@
  * 对消费方统一暴露 V1 的 methods / events，避免 workflow、integration、关联页等
  * 业务模块感知具体渲染引擎。
  */
-import { computed, ref, type Component } from 'vue'
-import type { FormFieldConfig } from '@/api/lowcode'
+import { computed, onMounted, ref, shallowRef, type Component } from 'vue'
+import { FieldType, type FormFieldConfig } from '@/api/lowcode'
 import LowCodeFormRenderer from '@/components/LowCodeFormRenderer/index.vue'
 import LowCodeFormRendererV2 from '@/components/LowCodeFormRendererV2/index.vue'
+import {
+  componentMap,
+  initBuiltinComponents
+} from '@/components/LowCodeComponentRegistry'
 import {
   LowCodeFormRendererVersion,
   resolveLowCodeFormRendererVersion,
@@ -52,6 +56,45 @@ const emit = defineEmits<{
 }>()
 
 const rendererRef = ref<RendererExpose | null>(null)
+const runtimeComponentRegistry = shallowRef<Record<string, Component>>(componentMap())
+
+/**
+ * 兼容当前设计器的顶层 field.componentName 与 V1 历史的 props.componentName。
+ * 仅在传给渲染器时创建浅拷贝，不修改持久化 config，确保 V1 历史 Schema 不被迁移。
+ */
+const rendererConfig = computed<VersionedFormConfig>(() => {
+  let changed = false
+  const fields = (props.config.fields || []).map((field) => {
+    if (
+      field.type !== FieldType.CUSTOM ||
+      !field.componentName ||
+      field.props?.componentName
+    ) {
+      return field
+    }
+    changed = true
+    return {
+      ...field,
+      props: {
+        ...(field.props || {}),
+        componentName: field.componentName
+      }
+    }
+  })
+  return changed ? { ...props.config, fields } : props.config
+})
+
+const effectiveComponentRegistry = computed<Record<string, Component>>(() =>
+  Object.keys(props.componentRegistry).length > 0
+    ? props.componentRegistry
+    : runtimeComponentRegistry.value
+)
+
+onMounted(async () => {
+  if (Object.keys(props.componentRegistry).length > 0) return
+  await initBuiltinComponents()
+  runtimeComponentRegistry.value = componentMap()
+})
 
 const effectiveRendererVersion = computed(() =>
   resolveLowCodeFormRendererVersion(props.config, props.rendererVersion)
@@ -103,10 +146,10 @@ defineExpose({
   <component
     :is="rendererComponent"
     ref="rendererRef"
-    :config="config"
+    :config="rendererConfig"
     :model-value="modelValue"
     :disabled="disabled"
-    :component-registry="componentRegistry"
+    :component-registry="effectiveComponentRegistry"
     :event-handlers="eventHandlers"
     @update:model-value="(value: Record<string, unknown>) => emit('update:modelValue', value)"
     @submit="(value: Record<string, unknown>) => emit('submit', value)"
