@@ -355,7 +355,7 @@ class ProjectManagerMemberMySqlTest {
     static class FailingOutbox extends PlatformTransactionalOutboxWriter {
         volatile boolean fail;
         public void setFail(boolean value) { fail = value; }
-        FailingOutbox(PlatformOutboxEventMapper mapper) { super(mapper); }
+        FailingOutbox(PlatformOutboxEventMapper mapper, org.springframework.context.ApplicationEventPublisher publisher) { super(mapper, publisher); }
         @Override public void write(Long tenant, PlatformCommandExecutionApi.BusinessEvent event,
                 String type, String key, LocalDateTime at) {
             if (fail) throw new IllegalStateException("controlled Outbox failure");
@@ -378,7 +378,11 @@ class ProjectManagerMemberMySqlTest {
     static class Application {
         @Bean JdbcTemplate jdbcTemplate(DataSource source) { return new JdbcTemplate(source); }
         @Bean PermissionCommonApi permissions() { return mock(PermissionCommonApi.class); }
-        @Bean FailingOutbox outbox(PlatformOutboxEventMapper mapper) { return new FailingOutbox(mapper); }
+        // These legacy manager fixtures have no V2 plan; lifecycle membership is tested separately.
+        @Bean cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService currentStages() {
+            return mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class);
+        }
+        @Bean FailingOutbox outbox(PlatformOutboxEventMapper mapper, org.springframework.context.ApplicationEventPublisher publisher) { return new FailingOutbox(mapper, publisher); }
         @Bean ProjectServiceManagerCandidateValidator serviceCandidates() { return mock(ProjectServiceManagerCandidateValidator.class); }
         @Bean AssetLocationApi locations() { return mock(AssetLocationApi.class); }
         @Bean ProjectSiteApplicationService sites() { return mock(ProjectSiteApplicationService.class); }
