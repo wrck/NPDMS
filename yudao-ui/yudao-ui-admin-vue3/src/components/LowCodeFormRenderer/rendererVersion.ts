@@ -45,3 +45,23 @@ export function resolveLowCodeFormRendererVersion(
   }
   return normalizeLowCodeFormRendererVersion((config as VersionedFormConfig).rendererVersion)
 }
+
+/**
+ * 将设计器选择的渲染版本写回表单配置。
+ *
+ * V1 是历史兼容默认值，必须通过“字段缺省”表达，不能主动持久化 rendererVersion=v1；
+ * 只有显式选择 V2 时才写入 rendererVersion=v2。这样打开并保存历史表单不会产生无意义的版本变更。
+ */
+export function setLowCodeFormRendererVersion(
+  config: FormConfig,
+  value: unknown
+): LowCodeFormRendererVersion {
+  const normalized = normalizeLowCodeFormRendererVersion(value)
+  const versionedConfig = config as VersionedFormConfig
+  if (normalized === LowCodeFormRendererVersion.V2) {
+    versionedConfig.rendererVersion = LowCodeFormRendererVersion.V2
+  } else {
+    delete versionedConfig.rendererVersion
+  }
+  return normalized
+}
