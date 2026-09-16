@@ -1,3 +1,4 @@
+import type { Component } from 'vue'
 import type { ComponentMeta, RegisteredComponent } from './types'
 
 const registry = new Map<string, RegisteredComponent>()
@@ -14,6 +15,15 @@ export function list() {
   return Array.from(registry.values()).map((v) => v.meta)
 }
 
+/** 给运行时渲染 Facade 提供 name → Vue Component 映射。 */
+export function componentMap(): Record<string, Component> {
+  const result: Record<string, Component> = {}
+  for (const [name, item] of registry.entries()) {
+    result[name] = item.component as Component
+  }
+  return result
+}
+
 export function has(name: string) {
   return registry.has(name)
 }
@@ -26,6 +36,7 @@ export default {
   register,
   get,
   list,
+  componentMap,
   has,
   initBuiltinComponents
 }
@@ -71,72 +82,78 @@ function parsePropsSchema(raw: string | undefined): any[] {
   }
 }
 
+let initPromise: Promise<void> | null = null
+
 /**
  * Initialize builtin components:
  * 1. Load local .vue widgets with hardcoded metas (reliable baseline)
  * 2. Fetch backend component metas and merge (adds custom/marketplace components)
  *
- * Errors are logged but do not block the designer — base components remain usable.
- * Widgets are loaded concurrently to avoid blocking the designer UI.
+ * 初始化在应用生命周期内去重，避免一个关联页/标签页中的多个表单同时重复加载组件与请求后端元数据。
+ * Errors are logged but do not block the renderer — base components remain usable.
  */
-export async function initBuiltinComponents() {
-  // Step 1: Load local widget .vue files concurrently with hardcoded metas
-  const widgets = import.meta.glob('../LowCodeWidgets/*.vue')
-  const loadPromises: Promise<void>[] = []
-  for (const [path, loader] of Object.entries(widgets)) {
-    const name = path.split('/').pop()!.replace('.vue', '')
-    const meta = BUILTIN_METAS[name]
-    if (!meta) continue
-    loadPromises.push(
-      (loader as () => Promise<any>)()
-        .then((module) => {
-          const component = module.default
-          register(name, component, meta)
-        })
-        .catch((e) => {
-          console.error(`[LowCode] Failed to load widget "${name}":`, e)
-        })
-    )
-  }
-  await Promise.all(loadPromises)
-  console.info(`[LowCode] Loaded ${registry.size} builtin widgets`)
+export function initBuiltinComponents(): Promise<void> {
+  if (initPromise) return initPromise
+  initPromise = (async () => {
+    // Step 1: Load local widget .vue files concurrently with hardcoded metas
+    const widgets = import.meta.glob('../LowCodeWidgets/*.vue')
+    const loadPromises: Promise<void>[] = []
+    for (const [path, loader] of Object.entries(widgets)) {
+      const name = path.split('/').pop()!.replace('.vue', '')
+      const meta = BUILTIN_METAS[name]
+      if (!meta) continue
+      loadPromises.push(
+        (loader as () => Promise<any>)()
+          .then((module) => {
+            const component = module.default
+            register(name, component, meta)
+          })
+          .catch((e) => {
+            console.error(`[LowCode] Failed to load widget "${name}":`, e)
+          })
+      )
+    }
+    await Promise.all(loadPromises)
+    console.info(`[LowCode] Loaded ${registry.size} builtin widgets`)
 
-  // Step 2: Fetch backend component metas (best-effort, with timeout protection)
-  try {
-    const { listComponentMetas } = await import('@/api/lowcode-component-meta')
-    // Race against a 3s timeout to avoid blocking the designer
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 3000)
-    )
-    const remoteMetas = await Promise.race([listComponentMetas(), timeoutPromise])
-    let remoteCount = 0
-    for (const rm of remoteMetas) {
-      // Skip if already registered as builtin (local .vue takes priority)
-      if (registry.has(rm.name)) continue
+    // Step 2: Fetch backend component metas (best-effort, with timeout protection)
+    try {
+      const { listComponentMetas } = await import('@/api/lowcode-component-meta')
+      // Race against a 3s timeout to avoid blocking the renderer/designer
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 3000)
+      )
+      const remoteMetas = await Promise.race([listComponentMetas(), timeoutPromise])
+      let remoteCount = 0
+      for (const rm of remoteMetas) {
+        // Skip if already registered as builtin (local .vue takes priority)
+        if (registry.has(rm.name)) continue
 
-      // Only register remote components that have an entryUrl (can be dynamically loaded)
-      if (rm.sourceType === 'MARKETPLACE' && rm.entryUrl) {
-        try {
-          const module = await import(/* @vite-ignore */ rm.entryUrl)
-          const component = module.default || module
-          const meta: ComponentMeta = {
-            name: rm.name,
-            displayName: rm.displayName,
-            category: rm.category,
-            propsSchema: parsePropsSchema(rm.propsSchema)
+        // Only register remote components that have an entryUrl (can be dynamically loaded)
+        if (rm.sourceType === 'MARKETPLACE' && rm.entryUrl) {
+          try {
+            const module = await import(/* @vite-ignore */ rm.entryUrl)
+            const component = module.default || module
+            const meta: ComponentMeta = {
+              name: rm.name,
+              displayName: rm.displayName,
+              category: rm.category,
+              propsSchema: parsePropsSchema(rm.propsSchema)
+            }
+            register(rm.name, component, meta)
+            remoteCount++
+          } catch (e) {
+            console.error(`[LowCode] Failed to load remote component "${rm.name}" from ${rm.entryUrl}:`, e)
           }
-          register(rm.name, component, meta)
-          remoteCount++
-        } catch (e) {
-          console.error(`[LowCode] Failed to load remote component "${rm.name}" from ${rm.entryUrl}:`, e)
         }
       }
+      if (remoteCount > 0) {
+        console.info(`[LowCode] Loaded ${remoteCount} remote components from backend`)
+      }
+    } catch (e) {
+      // Backend API unavailable or timeout — silent fallback, builtin widgets already loaded
+      console.warn('[LowCode] Could not fetch backend component metas (builtin widgets still available):', e)
     }
-    if (remoteCount > 0) {
-      console.info(`[LowCode] Loaded ${remoteCount} remote components from backend`)
-    }
-  } catch (e) {
-    // Backend API unavailable or timeout — silent fallback, builtin widgets already loaded
-    console.warn('[LowCode] Could not fetch backend component metas (builtin widgets still available):', e)
-  }
+  })()
+  return initPromise
 }
