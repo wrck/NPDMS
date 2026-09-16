@@ -175,7 +175,7 @@
             <span v-else class="text-gray-400">不限</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" min-width="160" align="center" show-overflow-tooltip>
           <template #default="{ row }">
             <ProjectStatusTag :project="row" />
           </template>
@@ -912,7 +912,7 @@ import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreati
  * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认+可选指派）
  * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）。
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -1413,6 +1413,14 @@ const submitEdit = async () => {
   }
 }
 
+let refreshOnReturn = false
+onDeactivated(() => { refreshOnReturn = true })
+onActivated(() => {
+  if (!refreshOnReturn) return
+  refreshOnReturn = false
+  loadStats()
+  load()
+})
 onMounted(() => {
   loadStats()
   load()

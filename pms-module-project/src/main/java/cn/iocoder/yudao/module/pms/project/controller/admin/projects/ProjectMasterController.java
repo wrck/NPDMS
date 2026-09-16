@@ -78,6 +78,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -102,6 +103,8 @@ public class ProjectMasterController {
 
     @Resource
     private ProjectManualCreationService projectManualCreationService;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStatusPresentationService projectStatusPresentationService;
     @Resource
     private ProjectTemplateService projectTemplateService;
     @Resource
@@ -181,7 +184,9 @@ public class ProjectMasterController {
                 pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
                 pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
                 pageReqVO.getManagerId(), accessActor());
-        return success(BeanUtils.toBean(pageResult, ProjectRespVO.class));
+        PageResult<ProjectRespVO> response = BeanUtils.toBean(pageResult, ProjectRespVO.class);
+        projectStatusPresentationService.populate(response.getList());
+        return success(response);
     }
 
     @GetMapping("/{id}")
@@ -190,7 +195,9 @@ public class ProjectMasterController {
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectRespVO> getProject(@PathVariable("id") Long id) {
         ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
-        return success(BeanUtils.toBean(project, ProjectRespVO.class));
+        ProjectRespVO response = BeanUtils.toBean(project, ProjectRespVO.class);
+        projectStatusPresentationService.populate(List.of(response));
+        return success(response);
     }
 
     @GetMapping("/{id}/sites")
