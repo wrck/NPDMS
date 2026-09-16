@@ -63,11 +63,19 @@ const isFormReadOnly = computed(() => pageType.value === 'form' && formMode.valu
 /** 合法的页面类型集合 */
 const VALID_PAGE_TYPES: ReadonlySet<string> = new Set(['form', 'list', 'tab', 'related-page'])
 
+/** 表单渲染引擎 V2 切入：仅 pageType=form 且 query.renderer=v2 时切入，
+ * 默认（无 query 或其他值）保持 V1 原样渲染，V1 渲染器不受影响 */
+const isFormRendererV2 = computed(
+  () => pageType.value === 'form' && (route.query.renderer as string) === 'v2'
+)
+
 /** 根据 pageType 解析渲染器组件（异步加载，避免首屏加载全部渲染器） */
 const renderer = computed(() => {
   switch (pageType.value) {
     case 'form':
-      return defineAsyncComponent(() => import('@/components/LowCodeFormRenderer/index.vue'))
+      return isFormRendererV2.value
+        ? defineAsyncComponent(() => import('@/components/LowCodeFormRendererV2/index.vue'))
+        : defineAsyncComponent(() => import('@/components/LowCodeFormRenderer/index.vue'))
     case 'list':
       return defineAsyncComponent(() => import('@/components/LowCodeListRenderer/index.vue'))
     case 'tab':

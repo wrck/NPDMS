@@ -334,7 +334,48 @@ yudao:
     ignore-visit-urls:
       - /admin-api/system/user/profile/**
       - /admin-api/system/auth/**
+    # PMS 业务表无 tenant_id 列（源工程无租户概念），
+    # 必须排除租户拦截，否则启动即触发 TenantContextHolder NPE；
+    # 有 tenant_id 的表不在此列，保持原租户隔离
     ignore-tables:
+      - wf_approval_field_permission
+      - wf_approval_history
+      - wf_approval_node
+      - wf_approval_record
+      - int_log
+      - int_d365_purchase_receipt
+      - int_d365_invoice
+      - low_approval_chain
+      - low_backup_record
+      - low_collaboration_session
+      - low_comment
+      - low_component_meta
+      - low_config_template
+      - low_config_version
+      - low_connector
+      - low_datasource
+      - low_ddl_backup
+      - low_ddl_execution_log
+      - low_edit_lock
+      - low_entity
+      - low_field
+      - low_form
+      - low_gray_release
+      - low_import_task
+      - low_list
+      - low_microflow
+      - low_microflow_execution_log
+      - low_microflow_version
+      - low_process_binding
+      - low_process_sla_record
+      - low_publish_record
+      - low_related_page
+      - low_relation
+      - low_rule
+      - low_rule_test_case
+      - low_tab
+      - low_trigger
+      - low_trigger_execution_log
     ignore-caches:
       - user_role_ids
       - permission_menu_ids

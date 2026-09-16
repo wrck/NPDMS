@@ -18,6 +18,40 @@
             <groupId>org.springframework.batch</groupId>
             <artifactId>spring-batch-core</artifactId>
         </dependency>
+        <!-- Resilience4j（迁移自源工程 pms-integration 的 resilience4j-spring-boot3，
+             改用独立模块：Spring Boot 4 下 starter 自动装配不可用） -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-retry</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-ratelimiter</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-bulkhead</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <!-- Resilience4j 注解（@CircuitBreaker / @Bulkhead / @Retry / @RateLimiter） -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-annotations</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <!-- AOP 支持：Resilience4j 注解（@CircuitBreaker / @Bulkhead / @Retry /
+             @RateLimiter）依赖 AOP 代理生效（Spring Boot 4 以 aspectj starter 取代 aop starter） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-integration-api</artifactId>
@@ -36,6 +70,12 @@
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-project-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- OA 待办端口适配（OaTodoPortAdapter 实现 workflow 模块声明的 OaTodoPort 扩展点） -->
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-workflow</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>

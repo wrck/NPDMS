@@ -35,15 +35,15 @@ export default ({command, mode}: ConfigEnv): UserConfig => {
             port: env.VITE_PORT, // 端口号
             host: "0.0.0.0",
             open: env.VITE_OPEN === 'true',
-            // 本地跨域代理. 目前注释的原因：暂时没有用途，server 端已经支持跨域
-            // proxy: {
-            //   ['/admin-api']: {
-            //     target: env.VITE_BASE_URL,
-            //     ws: false,
-            //     changeOrigin: true,
-            //     rewrite: (path) => path.replace(new RegExp(`^/admin-api`), ''),
-            //   },
-            // },
+            // PMS 低代码业务 API（/api/lowcode 等）同源代理到宿主机后端 58080；
+            // /api/lowcode 路径由 pms-module-lowcode 控制器定义，utils/request
+            // 依赖此 dev-server 代理（同源 /api -> 后端），无代理时 SPA 回退返回 index.html
+            proxy: {
+                "/api": {
+                    target: env.VITE_PROXY_TARGET,
+                    changeOrigin: true
+                }
+            }
         },
         preview: {
             // Docker 浏览器端只访问同源 /admin-api，由容器内 preview 转发到后端服务。

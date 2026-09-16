@@ -847,6 +847,30 @@ const remainingRouter: AppRouteRecordRaw[] = [
         ]
       }
     ]
+  },
+  {
+    // PMS 低代码模块本地路由：页面消费者（渲染入口 / 表单配置列表）。
+    // 按用户指令不迁移源工程用户权限/菜单体系，权限对齐由 yudao system_menu 承担；
+    // 此处仅注册页面消费者路由（hidden 不入侧边栏），页面内仍执行 checkLowCodePermission
+    // 权限校验，接口层仍由 @PreAuthorize 授权。
+    path: '/lowcode',
+    name: 'LowCodeRoot',
+    component: Layout,
+    meta: { hidden: true },
+    children: [
+      {
+        path: 'form-list',
+        name: 'LowCodeFormList',
+        component: () => import('@/views/lowcode/form-list/index.vue'),
+        meta: { canTo: true, hidden: true, title: '低代码表单配置' }
+      },
+      {
+        path: ':pageType/:pageCode',
+        name: 'LowCodeRender',
+        component: () => import('@/views/lowcode/render/index.vue'),
+        meta: { canTo: true, hidden: true, title: '低代码页面' }
+      }
+    ]
   }
 ]
 

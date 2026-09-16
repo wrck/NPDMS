@@ -33,11 +33,16 @@
     "lint:lint-staged": "lint-staged"
   },
   "dependencies": {
+    "@antv/x6": "^3.1.7",
+    "@antv/x6-vue-shape": "^3.0.2",
     "@logicflow/core": "2.2.5",
     "@logicflow/extension": "2.3.1",
     "@logicflow/layout": "2.1.5",
     "@react-querybuilder/core": "8.23.1",
     "dmn-js": "17.10.2",
+    "dompurify": "^3.4.11",
+    "js-yaml": "^4.1.0",
+    "jsondiffpatch": "^0.7.6",
     "@element-plus/icons-vue": "2.3.2",
     "@form-create/designer": "^3.4.0",
     "@form-create/element-ui": "^3.2.38",

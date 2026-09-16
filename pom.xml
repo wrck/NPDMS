@@ -36,6 +36,8 @@
         <module>pms-module-outsourcing</module>
         <module>pms-module-analytics</module>
         <module>pms-module-integration</module>
+        <module>pms-module-lowcode</module>
+        <module>pms-module-workflow</module>
 <!--        <module>yudao-module-report</module>-->
 <!--        <module>yudao-module-mp</module>-->
 <!--        <module>yudao-module-pay</module>-->
