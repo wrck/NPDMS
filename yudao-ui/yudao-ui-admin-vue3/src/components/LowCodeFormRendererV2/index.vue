@@ -14,6 +14,14 @@ import {
   type ResponsiveSpan
 } from '@/api/lowcode'
 import formCreate, { type Api as FormCreateApi, type Rule } from '@form-create/element-ui'
+import {
+  buildFormCreateValidate,
+  initMissingFieldDefaults,
+  mergeExternalModelValue,
+  resetFieldDefaults,
+  resolveCustomComponentName,
+  resolveFormCreateComponentType
+} from './runtimeCompat'
 
 const props = withDefaults(
   defineProps<{
@@ -45,28 +53,11 @@ const formRef = formApi
 
 const values = computed<Record<string, unknown>>({
   get: () => formData,
-  set: (val) => {
-    if (!val) return
-    for (const key of Object.keys(val)) {
-      if (formData[key] !== val[key]) {
-        formData[key] = val[key]
-      }
-    }
-  }
+  set: (val) => mergeExternalModelValue(formData, val)
 })
 
 function initDefaults() {
-  for (const field of props.config.fields || []) {
-    if (!(field.prop in formData)) {
-      if (field.defaultValue !== undefined && field.defaultValue !== null) {
-        formData[field.prop] = field.defaultValue
-      } else if (field.type === FieldType.CHECKBOX) {
-        formData[field.prop] = []
-      } else {
-        formData[field.prop] = ''
-      }
-    }
-  }
+  initMissingFieldDefaults(formData, props.config.fields || [])
 }
 
 watch(
@@ -77,14 +68,7 @@ watch(
 
 watch(
   () => props.modelValue,
-  (val) => {
-    if (!val) return
-    for (const key of Object.keys(val)) {
-      if (formData[key] !== val[key]) {
-        formData[key] = val[key]
-      }
-    }
-  },
+  (val) => mergeExternalModelValue(formData, val),
   { deep: true }
 )
 
@@ -104,14 +88,10 @@ const visibleFields = computed(() => (props.config.fields || []).filter((f) => !
  */
 const registeredCustomComponents = new Map<string, Component>()
 
-function customComponentName(field: FormFieldConfig): string {
-  return (field.props?.componentName as string) || field.componentName || ''
-}
-
 function registerCustomComponents() {
   for (const field of props.config.fields || []) {
     if (field.type !== FieldType.CUSTOM) continue
-    const name = customComponentName(field)
+    const name = resolveCustomComponentName(field)
     if (!name) continue
     const comp = props.componentRegistry[name]
     if (!comp) {
@@ -143,23 +123,6 @@ function handleFieldChange(field: FormFieldConfig, value: unknown) {
   }
 }
 
-function buildValidate(field: FormFieldConfig): Array<Record<string, unknown>> {
-  const list: Array<Record<string, unknown>> = []
-  if (field.required) {
-    list.push({
-      required: true,
-      message: field.placeholder || `请填写${field.label}`,
-      trigger: ['blur', 'change']
-    })
-  }
-  if (field.rules && Array.isArray(field.rules)) {
-    for (const rule of field.rules) {
-      list.push({ ...rule })
-    }
-  }
-  return list
-}
-
 function dateType(field: FormFieldConfig): 'date' | 'datetime' | 'daterange' {
   if (field.type === FieldType.DATETIME) return 'datetime'
   if (field.type === FieldType.DATERANGE) return 'daterange'
@@ -169,7 +132,7 @@ function dateType(field: FormFieldConfig): 'date' | 'datetime' | 'daterange' {
 function toRule(field: FormFieldConfig): Rule {
   if (field.type === FieldType.DIVIDER) {
     return {
-      type: 'el-divider',
+      type: resolveFormCreateComponentType(field),
       props: {
         contentPosition:
           (field.props?.contentPosition as 'left' | 'center' | 'right') || 'center',
@@ -180,7 +143,7 @@ function toRule(field: FormFieldConfig): Rule {
   }
   if (field.type === FieldType.TITLE) {
     return {
-      type: 'h3',
+      type: resolveFormCreateComponentType(field),
       class: ['form-title'],
       style: { fontSize: '16px' },
       children: [field.label]
@@ -197,7 +160,7 @@ function toRule(field: FormFieldConfig): Rule {
       clearable: field.clearable,
       ...(field.props || {})
     } as Record<string, unknown>,
-    validate: buildValidate(field),
+    validate: buildFormCreateValidate(field),
     emit: ['change'],
     on: {
       change: (value: unknown) => handleFieldChange(field, value)
@@ -206,11 +169,11 @@ function toRule(field: FormFieldConfig): Rule {
 
   switch (field.type) {
     case FieldType.INPUT:
-      return { ...common, type: 'input' }
+      return { ...common, type: resolveFormCreateComponentType(field) }
     case FieldType.TEXTAREA:
       return {
         ...common,
-        type: 'input',
+        type: resolveFormCreateComponentType(field),
         props: {
           ...common.props,
           type: 'textarea',
@@ -220,33 +183,45 @@ function toRule(field: FormFieldConfig): Rule {
     case FieldType.PASSWORD:
       return {
         ...common,
-        type: 'input',
+        type: resolveFormCreateComponentType(field),
         props: { ...common.props, type: 'password' }
       }
     case FieldType.NUMBER:
-      return { ...common, type: 'inputNumber' }
+      return { ...common, type: resolveFormCreateComponentType(field) }
     case FieldType.SELECT: {
-      const options = (field.props?.options as Array<{ label: string; value: unknown }>) || []
+      const options = (field.props?.options as Array<{ label: string; value: unknown; disabled?: boolean }>) || []
       return {
         ...common,
-        type: 'select',
-        options: options.map((option) => ({ label: option.label, value: option.value }))
+        type: resolveFormCreateComponentType(field),
+        options: options.map((option) => ({
+          label: option.label,
+          value: option.value,
+          disabled: option.disabled
+        }))
       }
     }
     case FieldType.RADIO: {
-      const options = (field.props?.options as Array<{ label: string; value: unknown }>) || []
+      const options = (field.props?.options as Array<{ label: string; value: unknown; disabled?: boolean }>) || []
       return {
         ...common,
-        type: 'radioGroup',
-        options: options.map((option) => ({ label: option.label, value: option.value }))
+        type: resolveFormCreateComponentType(field),
+        options: options.map((option) => ({
+          label: option.label,
+          value: option.value,
+          disabled: option.disabled
+        }))
       }
     }
     case FieldType.CHECKBOX: {
-      const options = (field.props?.options as Array<{ label: string; value: unknown }>) || []
+      const options = (field.props?.options as Array<{ label: string; value: unknown; disabled?: boolean }>) || []
       return {
         ...common,
-        type: 'checkboxGroup',
-        options: options.map((option) => ({ label: option.label, value: option.value }))
+        type: resolveFormCreateComponentType(field),
+        options: options.map((option) => ({
+          label: option.label,
+          value: option.value,
+          disabled: option.disabled
+        }))
       }
     }
     case FieldType.DATE:
@@ -254,7 +229,7 @@ function toRule(field: FormFieldConfig): Rule {
     case FieldType.DATERANGE:
       return {
         ...common,
-        type: 'datePicker',
+        type: resolveFormCreateComponentType(field),
         props: {
           ...common.props,
           type: dateType(field),
@@ -263,17 +238,14 @@ function toRule(field: FormFieldConfig): Rule {
         }
       }
     case FieldType.SWITCH:
-      return { ...common, type: 'switch' }
     case FieldType.RATE:
-      return { ...common, type: 'rate' }
     case FieldType.SLIDER:
-      return { ...common, type: 'slider' }
     case FieldType.CASCADER:
-      return { ...common, type: 'cascader' }
+      return { ...common, type: resolveFormCreateComponentType(field) }
     case FieldType.UPLOAD:
       return {
         ...common,
-        type: 'upload',
+        type: resolveFormCreateComponentType(field),
         props: {
           ...common.props,
           action: (field.props?.action as string) || '/api/file/upload',
@@ -284,12 +256,20 @@ function toRule(field: FormFieldConfig): Rule {
         }
       }
     case FieldType.CUSTOM: {
-      const name = customComponentName(field)
+      const name = resolveCustomComponentName(field)
       const comp = name ? props.componentRegistry[name] : undefined
       if (!name || !comp) {
         return { ...common, type: 'input' }
       }
-      return { ...common, type: name, field: field.prop }
+      return {
+        ...common,
+        type: name,
+        field: field.prop,
+        props: {
+          ...common.props,
+          field
+        }
+      }
     }
     default:
       return { ...common, type: 'input' }
@@ -444,13 +424,7 @@ async function submit(): Promise<void> {
 
 function resetFields(): void {
   formApi.value?.resetFields()
-  for (const field of props.config.fields || []) {
-    if (field.defaultValue !== undefined) {
-      formData[field.prop] = field.defaultValue
-    } else {
-      formData[field.prop] = field.type === FieldType.CHECKBOX ? [] : ''
-    }
-  }
+  resetFieldDefaults(formData, props.config.fields || [])
 }
 
 function clearValidate(): void {
