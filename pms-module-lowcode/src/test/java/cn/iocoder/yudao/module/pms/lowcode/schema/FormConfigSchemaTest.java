@@ -87,6 +87,16 @@ class FormConfigSchemaTest {
     }
 
     @Test
+    @DisplayName("历史预置模板不应写 rendererVersion，缺失即保持 V1 兼容语义")
+    void templates_shouldKeepRendererVersionAbsentByDefault() throws Exception {
+        for (String path : TEMPLATE_FILES) {
+            JsonNode formConfig = loadTemplate(path).get("formConfig");
+            assertFalse(formConfig.has("rendererVersion"),
+                    "历史模板不应主动写 rendererVersion: " + path);
+        }
+    }
+
+    @Test
     @DisplayName("每个字段应包含必要属性：id、type、label、prop")
     void fields_shouldContainRequiredProperties() throws Exception {
         for (String path : TEMPLATE_FILES) {
@@ -204,6 +214,8 @@ class FormConfigSchemaTest {
     @Test
     @DisplayName("FormConfigSchema 常量值应稳定且符合规范")
     void schemaConstants_shouldBeStable() {
+        assertEquals("v1", FormConfigSchema.RENDERER_VERSION_V1);
+        assertEquals("v2", FormConfigSchema.RENDERER_VERSION_V2);
         assertEquals("input", FormConfigSchema.TYPE_INPUT);
         assertEquals("textarea", FormConfigSchema.TYPE_TEXTAREA);
         assertEquals("number", FormConfigSchema.TYPE_NUMBER);
