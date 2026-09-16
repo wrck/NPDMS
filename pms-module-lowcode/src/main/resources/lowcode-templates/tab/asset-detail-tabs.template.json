@@ -1,0 +1,73 @@
+{
+  "code": "tpl_asset_detail_tabs",
+  "name": "资产详情标签页",
+  "description": "网络设备资产详情页标签页配置：基本信息/维修记录/RMA 记录/质保信息 共 4 个 Tab。",
+  "bizType": "ASSET",
+  "status": "DRAFT",
+  "version": 1,
+  "tabConfig": {
+    "title": "资产详情",
+    "description": "网络设备资产详情页标签页配置",
+    "type": "border-card",
+    "tabPosition": "top",
+    "closable": false,
+    "addable": false,
+    "editable": false,
+    "tabs": [
+      {
+        "id": "tab_1",
+        "title": "基本信息",
+        "name": "basic",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Document",
+        "pageType": "form",
+        "pageCode": "tpl_asset_inbound",
+        "props": {
+          "assetId": "${route.params.id}",
+          "mode": "view"
+        }
+      },
+      {
+        "id": "tab_2",
+        "title": "维修记录",
+        "name": "repair",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Tools",
+        "pageType": "list",
+        "pageCode": "tpl_asset_list",
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_3",
+        "title": "RMA 记录",
+        "name": "rma",
+        "lazy": true,
+        "disabled": false,
+        "icon": "RefreshRight",
+        "pageType": "list",
+        "pageCode": "tpl_asset_list",
+        "visible": "row.warrantyStatus === 'ACTIVE' || row.warrantyStatus === 'EXPIRED'",
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_4",
+        "title": "质保信息",
+        "name": "warranty",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Timer",
+        "pageType": "list",
+        "pageCode": "tpl_asset_list",
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      }
+    ]
+  }
+}

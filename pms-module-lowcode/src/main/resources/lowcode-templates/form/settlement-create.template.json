@@ -1,0 +1,152 @@
+{
+  "code": "tpl_settlement_create",
+  "name": "结算创建表单",
+  "description": "用于创建项目结算单，包含结算编号、所属项目、结算类型、金额、付款方式、发票号与备注等字段。",
+  "bizType": "SETTLEMENT",
+  "status": "DRAFT",
+  "version": 1,
+  "formConfig": {
+    "title": "结算创建",
+    "description": "创建项目结算单",
+    "labelWidth": 110,
+    "labelPosition": "right",
+    "size": "default",
+    "fields": [
+      {
+        "id": "field_1",
+        "type": "input",
+        "label": "结算编号",
+        "prop": "settlementCode",
+        "placeholder": "请输入结算编号",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 32, "showWordLimit": true }
+      },
+      {
+        "id": "field_2",
+        "type": "select",
+        "label": "所属项目",
+        "prop": "projectId",
+        "placeholder": "请选择所属项目",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": {
+          "options": [
+            { "label": "示例项目 A", "value": "proj_001" },
+            { "label": "示例项目 B", "value": "proj_002" }
+          ],
+          "multiple": false,
+          "filterable": true
+        }
+      },
+      {
+        "id": "field_3",
+        "type": "radio",
+        "label": "结算类型",
+        "prop": "settlementType",
+        "required": true,
+        "span": 12,
+        "defaultValue": "MILESTONE",
+        "props": {
+          "options": [
+            { "label": "里程碑结算", "value": "MILESTONE" },
+            { "label": "阶段结算", "value": "STAGE" },
+            { "label": "终结算", "value": "FINAL" }
+          ]
+        }
+      },
+      {
+        "id": "field_4",
+        "type": "number",
+        "label": "结算金额(元)",
+        "prop": "amount",
+        "placeholder": "请输入结算金额",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "min": 0, "precision": 2, "step": 1000, "controlsPosition": "right" }
+      },
+      {
+        "id": "field_5",
+        "type": "select",
+        "label": "付款方式",
+        "prop": "paymentMethod",
+        "placeholder": "请选择付款方式",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": {
+          "options": [
+            { "label": "银行转账", "value": "BANK_TRANSFER" },
+            { "label": "支票", "value": "CHEQUE" },
+            { "label": "现金", "value": "CASH" },
+            { "label": "汇票", "value": "DRAFT" }
+          ],
+          "multiple": false
+        }
+      },
+      {
+        "id": "field_6",
+        "type": "input",
+        "label": "发票号",
+        "prop": "invoiceNo",
+        "placeholder": "请输入发票号",
+        "required": false,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 32, "showWordLimit": true }
+      },
+      {
+        "id": "field_7",
+        "type": "date",
+        "label": "结算日期",
+        "prop": "settlementDate",
+        "placeholder": "请选择结算日期",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "format": "YYYY-MM-DD", "valueFormat": "YYYY-MM-DD" }
+      },
+      {
+        "id": "field_8",
+        "type": "rate",
+        "label": "结算评级",
+        "prop": "rating",
+        "span": 12,
+        "defaultValue": 3,
+        "props": { "max": 5, "allowHalf": false, "showText": true, "texts": ["差", "一般", "正常", "良好", "优秀"] }
+      },
+      {
+        "id": "field_9",
+        "type": "checkbox",
+        "label": "附加选项",
+        "prop": "options",
+        "span": 24,
+        "props": {
+          "options": [
+            { "label": "已开具发票", "value": "invoiced" },
+            { "label": "已收到款项", "value": "paid" },
+            { "label": "需要审核", "value": "need_audit" }
+          ]
+        }
+      },
+      {
+        "id": "field_10",
+        "type": "textarea",
+        "label": "备注",
+        "prop": "remark",
+        "placeholder": "请输入备注信息",
+        "required": false,
+        "clearable": true,
+        "span": 24,
+        "props": { "rows": 4, "maxlength": 500, "showWordLimit": true }
+      }
+    ],
+    "layout": {
+      "type": "grid",
+      "gutter": 16
+    }
+  }
+}

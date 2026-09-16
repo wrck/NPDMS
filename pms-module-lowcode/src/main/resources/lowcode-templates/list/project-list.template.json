@@ -1,0 +1,205 @@
+{
+  "code": "tpl_project_list",
+  "name": "项目列表",
+  "description": "网络设备工程项目列表，含项目编号、名称、类型、客户、状态、起止日期与行操作。",
+  "bizType": "PROJECT",
+  "status": "DRAFT",
+  "version": 1,
+  "listConfig": {
+    "title": "项目列表",
+    "description": "网络设备工程项目列表",
+    "searchApi": "/api/project",
+    "method": "GET",
+    "pageSize": 20,
+    "pageSizes": [10, 20, 50, 100],
+    "layout": "table",
+    "stripe": true,
+    "border": true,
+    "showSelection": true,
+    "showIndex": true,
+    "showPagination": true,
+    "columns": [
+      {
+        "id": "col_1",
+        "prop": "projectCode",
+        "label": "项目编号",
+        "width": 150,
+        "minWidth": 120,
+        "align": "left",
+        "type": "text",
+        "sortable": true,
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_2",
+        "prop": "projectName",
+        "label": "项目名称",
+        "minWidth": 200,
+        "align": "left",
+        "type": "link",
+        "linkUrl": "/project/detail/{id}",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_3",
+        "prop": "projectType",
+        "label": "项目类型",
+        "width": 110,
+        "align": "center",
+        "type": "dict",
+        "dictCode": "project_type",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_4",
+        "prop": "customerName",
+        "label": "客户名称",
+        "minWidth": 160,
+        "align": "left",
+        "type": "text",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_5",
+        "prop": "status",
+        "label": "状态",
+        "width": 100,
+        "align": "center",
+        "type": "tag",
+        "tagType": "primary",
+        "dictCode": "project_status",
+        "formatter": "",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_6",
+        "prop": "planStartDate",
+        "label": "计划开始",
+        "width": 120,
+        "align": "center",
+        "type": "date",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_7",
+        "prop": "planEndDate",
+        "label": "计划结束",
+        "width": 120,
+        "align": "center",
+        "type": "date",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_8",
+        "prop": "contractAmount",
+        "label": "合同金额",
+        "width": 130,
+        "align": "right",
+        "type": "currency",
+        "hidden": false,
+        "editable": false
+      }
+    ],
+    "filters": [
+      {
+        "id": "filter_1",
+        "prop": "projectCode",
+        "label": "项目编号",
+        "type": "input",
+        "placeholder": "请输入项目编号",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_2",
+        "prop": "projectName",
+        "label": "项目名称",
+        "type": "input",
+        "placeholder": "请输入项目名称",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_3",
+        "prop": "status",
+        "label": "状态",
+        "type": "select",
+        "placeholder": "请选择状态",
+        "dictCode": "project_status",
+        "clearable": true,
+        "span": 6,
+        "options": [
+          { "label": "草稿", "value": "DRAFT" },
+          { "label": "进行中", "value": "IN_PROGRESS" },
+          { "label": "已完成", "value": "COMPLETED" },
+          { "label": "已取消", "value": "CANCELLED" }
+        ]
+      },
+      {
+        "id": "filter_4",
+        "prop": "planStartDate",
+        "label": "开始日期",
+        "type": "daterange",
+        "placeholder": "请选择日期范围",
+        "clearable": true,
+        "span": 6
+      }
+    ],
+    "operations": [
+      {
+        "id": "op_1",
+        "label": "查看",
+        "type": "text",
+        "icon": "View",
+        "action": "view",
+        "url": "/project/detail/{id}",
+        "permission": "project:view"
+      },
+      {
+        "id": "op_2",
+        "label": "编辑",
+        "type": "primary",
+        "icon": "Edit",
+        "action": "edit",
+        "url": "/project/edit/{id}",
+        "permission": "project:update"
+      },
+      {
+        "id": "op_3",
+        "label": "删除",
+        "type": "danger",
+        "icon": "Delete",
+        "action": "delete",
+        "api": "/api/project/{id}",
+        "method": "DELETE",
+        "confirm": "确认删除此项目？",
+        "permission": "project:remove",
+        "visible": "row.status === 'DRAFT'"
+      }
+    ],
+    "toolbar": [
+      {
+        "id": "op_t1",
+        "label": "新增项目",
+        "type": "primary",
+        "icon": "Plus",
+        "action": "create",
+        "url": "/project/create",
+        "permission": "project:create"
+      }
+    ],
+    "export": {
+      "enabled": true,
+      "api": "/api/project/export",
+      "fileName": "项目列表",
+      "withFilter": true
+    }
+  }
+}

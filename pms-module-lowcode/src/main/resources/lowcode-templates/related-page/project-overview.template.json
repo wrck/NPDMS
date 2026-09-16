@@ -1,0 +1,65 @@
+{
+  "code": "tpl_project_overview_related",
+  "name": "项目概览关联页",
+  "description": "网络设备工程项目概览关联页：项目信息卡片 + 关键指标列表 + 里程碑时间线 + 团队信息 共 4 个区块。",
+  "bizType": "PROJECT",
+  "status": "DRAFT",
+  "version": 1,
+  "relatedConfig": {
+    "title": "项目概览",
+    "description": "网络设备工程项目概览关联页配置",
+    "mainEntity": "project",
+    "layout": "grid",
+    "gutter": 16,
+    "sections": [
+      {
+        "id": "section_1",
+        "title": "项目信息",
+        "type": "form",
+        "pageCode": "tpl_project_create",
+        "span": 24,
+        "order": 1,
+        "props": {
+          "projectId": "${route.params.id}",
+          "mode": "view"
+        }
+      },
+      {
+        "id": "section_2",
+        "title": "关键指标",
+        "type": "list",
+        "pageCode": "tpl_project_list",
+        "span": 24,
+        "order": 2,
+        "visible": "row.status !== 'DRAFT'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "section_3",
+        "title": "里程碑时间线",
+        "type": "list",
+        "pageCode": "tpl_project_list",
+        "span": 12,
+        "order": 3,
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "section_4",
+        "title": "团队信息",
+        "type": "list",
+        "pageCode": "tpl_project_list",
+        "span": 12,
+        "order": 4,
+        "visible": "row.status !== 'DRAFT'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      }
+    ]
+  }
+}

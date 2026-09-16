@@ -1,0 +1,63 @@
+{
+  "code": "tpl_asset_overview_related",
+  "name": "资产概览关联页",
+  "description": "网络设备资产概览关联页：资产信息 + 项目关联 + 维保记录 + 操作日志 共 4 个区块。",
+  "bizType": "ASSET",
+  "status": "DRAFT",
+  "version": 1,
+  "relatedConfig": {
+    "title": "资产概览",
+    "description": "网络设备资产概览关联页配置",
+    "mainEntity": "asset",
+    "layout": "grid",
+    "gutter": 16,
+    "sections": [
+      {
+        "id": "section_1",
+        "title": "资产信息",
+        "type": "form",
+        "pageCode": "tpl_asset_inbound",
+        "span": 24,
+        "order": 1,
+        "props": {
+          "assetId": "${route.params.id}",
+          "mode": "view"
+        }
+      },
+      {
+        "id": "section_2",
+        "title": "项目关联",
+        "type": "list",
+        "pageCode": "tpl_project_list",
+        "span": 24,
+        "order": 2,
+        "visible": "row.projectId",
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "section_3",
+        "title": "维保记录",
+        "type": "list",
+        "pageCode": "tpl_asset_list",
+        "span": 12,
+        "order": 3,
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "section_4",
+        "title": "操作日志",
+        "type": "list",
+        "pageCode": "tpl_asset_list",
+        "span": 12,
+        "order": 4,
+        "props": {
+          "assetId": "${route.params.id}"
+        }
+      }
+    ]
+  }
+}

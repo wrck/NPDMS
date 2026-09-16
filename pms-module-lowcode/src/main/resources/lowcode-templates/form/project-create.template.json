@@ -1,0 +1,134 @@
+{
+  "code": "tpl_project_create",
+  "name": "项目创建表单",
+  "description": "用于创建网络设备工程项目，包含项目编号、名称、类型、客户、起止日期、预算与描述等字段。",
+  "bizType": "PROJECT",
+  "status": "DRAFT",
+  "version": 1,
+  "formConfig": {
+    "title": "项目创建",
+    "description": "新建网络设备工程项目",
+    "labelWidth": 110,
+    "labelPosition": "right",
+    "size": "default",
+    "fields": [
+      {
+        "id": "field_1",
+        "type": "input",
+        "label": "项目编号",
+        "prop": "projectCode",
+        "placeholder": "请输入项目编号",
+        "required": true,
+        "disabled": false,
+        "readonly": false,
+        "hidden": false,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 32, "showWordLimit": true },
+        "events": {}
+      },
+      {
+        "id": "field_2",
+        "type": "input",
+        "label": "项目名称",
+        "prop": "projectName",
+        "placeholder": "请输入项目名称",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 128, "showWordLimit": true }
+      },
+      {
+        "id": "field_3",
+        "type": "select",
+        "label": "项目类型",
+        "prop": "projectType",
+        "placeholder": "请选择项目类型",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "defaultValue": "NETWORK_DEVICE",
+        "props": {
+          "options": [
+            { "label": "网络设备", "value": "NETWORK_DEVICE" },
+            { "label": "安全", "value": "SECURITY" },
+            { "label": "数据中心", "value": "DATACENTER" }
+          ],
+          "multiple": false,
+          "filterable": true
+        }
+      },
+      {
+        "id": "field_4",
+        "type": "input",
+        "label": "客户名称",
+        "prop": "customerName",
+        "placeholder": "请输入客户名称",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 128, "showWordLimit": true }
+      },
+      {
+        "id": "field_5",
+        "type": "date",
+        "label": "计划开始日期",
+        "prop": "planStartDate",
+        "placeholder": "请选择计划开始日期",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "format": "YYYY-MM-DD", "valueFormat": "YYYY-MM-DD" }
+      },
+      {
+        "id": "field_6",
+        "type": "date",
+        "label": "计划结束日期",
+        "prop": "planEndDate",
+        "placeholder": "请选择计划结束日期",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "format": "YYYY-MM-DD", "valueFormat": "YYYY-MM-DD" }
+      },
+      {
+        "id": "field_7",
+        "type": "number",
+        "label": "合同金额(元)",
+        "prop": "contractAmount",
+        "placeholder": "请输入合同金额",
+        "required": false,
+        "clearable": true,
+        "span": 12,
+        "props": { "min": 0, "precision": 2, "step": 1000, "controlsPosition": "right" }
+      },
+      {
+        "id": "field_8",
+        "type": "number",
+        "label": "优先级",
+        "prop": "priority",
+        "placeholder": "请输入优先级(1-5)",
+        "required": false,
+        "clearable": true,
+        "span": 12,
+        "defaultValue": 3,
+        "props": { "min": 1, "max": 5, "step": 1, "precision": 0 }
+      },
+      {
+        "id": "field_9",
+        "type": "textarea",
+        "label": "项目描述",
+        "prop": "description",
+        "placeholder": "请输入项目描述",
+        "required": false,
+        "clearable": true,
+        "span": 24,
+        "props": { "rows": 4, "maxlength": 500, "showWordLimit": true, "autosize": { "minRows": 3, "maxRows": 8 } }
+      }
+    ],
+    "layout": {
+      "type": "grid",
+      "gutter": 16
+    }
+  }
+}

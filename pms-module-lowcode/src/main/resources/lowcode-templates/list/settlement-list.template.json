@@ -1,0 +1,241 @@
+{
+  "code": "tpl_settlement_list",
+  "name": "结算列表",
+  "description": "实施结算列表，含结算编号、所属项目、结算类型、金额、付款状态、审批状态与行操作。",
+  "bizType": "SETTLEMENT",
+  "status": "DRAFT",
+  "version": 1,
+  "listConfig": {
+    "title": "结算列表",
+    "description": "实施结算列表",
+    "searchApi": "/api/settlement",
+    "method": "GET",
+    "pageSize": 20,
+    "pageSizes": [10, 20, 50, 100],
+    "layout": "table",
+    "stripe": true,
+    "border": true,
+    "showSelection": true,
+    "showIndex": true,
+    "showPagination": true,
+    "columns": [
+      {
+        "id": "col_1",
+        "prop": "settlementCode",
+        "label": "结算编号",
+        "width": 150,
+        "minWidth": 120,
+        "align": "left",
+        "type": "text",
+        "sortable": true,
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_2",
+        "prop": "projectName",
+        "label": "项目名称",
+        "minWidth": 200,
+        "align": "left",
+        "type": "link",
+        "linkUrl": "/project/detail/{projectId}",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_3",
+        "prop": "settlementType",
+        "label": "结算类型",
+        "width": 110,
+        "align": "center",
+        "type": "dict",
+        "dictCode": "settlement_type",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_4",
+        "prop": "amount",
+        "label": "结算金额",
+        "width": 140,
+        "align": "right",
+        "type": "currency",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_5",
+        "prop": "paidAmount",
+        "label": "已付金额",
+        "width": 140,
+        "align": "right",
+        "type": "currency",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_6",
+        "prop": "progress",
+        "label": "付款进度",
+        "width": 110,
+        "align": "right",
+        "type": "percent",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_7",
+        "prop": "paymentStatus",
+        "label": "付款状态",
+        "width": 110,
+        "align": "center",
+        "type": "tag",
+        "tagType": "warning",
+        "dictCode": "payment_status",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_8",
+        "prop": "approvalStatus",
+        "label": "审批状态",
+        "width": 110,
+        "align": "center",
+        "type": "tag",
+        "tagType": "primary",
+        "dictCode": "approval_status",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_9",
+        "prop": "createTime",
+        "label": "创建时间",
+        "width": 160,
+        "align": "center",
+        "type": "datetime",
+        "hidden": false,
+        "editable": false
+      }
+    ],
+    "filters": [
+      {
+        "id": "filter_1",
+        "prop": "settlementCode",
+        "label": "结算编号",
+        "type": "input",
+        "placeholder": "请输入结算编号",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_2",
+        "prop": "projectName",
+        "label": "项目名称",
+        "type": "input",
+        "placeholder": "请输入项目名称",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_3",
+        "prop": "paymentStatus",
+        "label": "付款状态",
+        "type": "select",
+        "placeholder": "请选择付款状态",
+        "clearable": true,
+        "span": 6,
+        "options": [
+          { "label": "未付款", "value": "UNPAID" },
+          { "label": "部分付款", "value": "PARTIAL_PAID" },
+          { "label": "已付款", "value": "FULLY_PAID" }
+        ]
+      },
+      {
+        "id": "filter_4",
+        "prop": "approvalStatus",
+        "label": "审批状态",
+        "type": "select",
+        "placeholder": "请选择审批状态",
+        "clearable": true,
+        "span": 6,
+        "options": [
+          { "label": "待审批", "value": "PENDING" },
+          { "label": "审批中", "value": "APPROVING" },
+          { "label": "已通过", "value": "APPROVED" },
+          { "label": "已驳回", "value": "REJECTED" }
+        ]
+      }
+    ],
+    "operations": [
+      {
+        "id": "op_1",
+        "label": "查看",
+        "type": "text",
+        "icon": "View",
+        "action": "view",
+        "url": "/implementation/settlement/detail/{id}",
+        "permission": "settlement:view"
+      },
+      {
+        "id": "op_2",
+        "label": "编辑",
+        "type": "primary",
+        "icon": "Edit",
+        "action": "edit",
+        "url": "/implementation/settlement/edit/{id}",
+        "permission": "settlement:update",
+        "visible": "row.approvalStatus === 'PENDING' || row.approvalStatus === 'REJECTED'"
+      },
+      {
+        "id": "op_3",
+        "label": "提交审批",
+        "type": "success",
+        "icon": "Promotion",
+        "action": "custom",
+        "api": "/api/settlement/{id}/submit",
+        "method": "POST",
+        "confirm": "确认提交审批？",
+        "permission": "settlement:submit",
+        "visible": "row.approvalStatus === 'PENDING' || row.approvalStatus === 'REJECTED'"
+      },
+      {
+        "id": "op_4",
+        "label": "删除",
+        "type": "danger",
+        "icon": "Delete",
+        "action": "delete",
+        "api": "/api/settlement/{id}",
+        "method": "DELETE",
+        "confirm": "确认删除此结算？",
+        "permission": "settlement:remove",
+        "visible": "row.approvalStatus === 'PENDING'"
+      }
+    ],
+    "toolbar": [
+      {
+        "id": "op_t1",
+        "label": "新增结算",
+        "type": "primary",
+        "icon": "Plus",
+        "action": "create",
+        "url": "/implementation/settlement/create",
+        "permission": "settlement:create"
+      },
+      {
+        "id": "op_t2",
+        "label": "批量审批",
+        "type": "warning",
+        "icon": "Finished",
+        "action": "custom",
+        "permission": "settlement:approve"
+      }
+    ],
+    "export": {
+      "enabled": true,
+      "api": "/api/settlement/export",
+      "fileName": "结算列表",
+      "withFilter": true
+    }
+  }
+}

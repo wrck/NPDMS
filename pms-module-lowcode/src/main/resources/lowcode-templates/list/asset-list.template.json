@@ -1,0 +1,211 @@
+{
+  "code": "tpl_asset_list",
+  "name": "资产列表",
+  "description": "网络设备资产清单，含资产编号、SN、型号、所属项目、状态、库位与行操作。",
+  "bizType": "ASSET",
+  "status": "DRAFT",
+  "version": 1,
+  "listConfig": {
+    "title": "资产列表",
+    "description": "网络设备资产清单",
+    "searchApi": "/api/asset",
+    "method": "GET",
+    "pageSize": 20,
+    "pageSizes": [10, 20, 50, 100],
+    "layout": "table",
+    "stripe": true,
+    "border": true,
+    "showSelection": true,
+    "showIndex": true,
+    "showPagination": true,
+    "columns": [
+      {
+        "id": "col_1",
+        "prop": "assetCode",
+        "label": "资产编号",
+        "width": 150,
+        "minWidth": 120,
+        "align": "left",
+        "type": "text",
+        "sortable": true,
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_2",
+        "prop": "serialNumber",
+        "label": "SN 序列号",
+        "width": 160,
+        "align": "left",
+        "type": "text",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_3",
+        "prop": "modelName",
+        "label": "型号",
+        "minWidth": 160,
+        "align": "left",
+        "type": "text",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_4",
+        "prop": "projectName",
+        "label": "所属项目",
+        "minWidth": 160,
+        "align": "left",
+        "type": "link",
+        "linkUrl": "/project/detail/{projectId}",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_5",
+        "prop": "status",
+        "label": "状态",
+        "width": 100,
+        "align": "center",
+        "type": "dict",
+        "dictCode": "asset_status",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_6",
+        "prop": "storageLocation",
+        "label": "库位",
+        "width": 120,
+        "align": "left",
+        "type": "text",
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_7",
+        "prop": "photo",
+        "label": "图片",
+        "width": 90,
+        "align": "center",
+        "type": "image",
+        "imageWidth": 60,
+        "imageHeight": 60,
+        "hidden": false,
+        "editable": false
+      },
+      {
+        "id": "col_8",
+        "prop": "inboundTime",
+        "label": "入库时间",
+        "width": 160,
+        "align": "center",
+        "type": "datetime",
+        "hidden": false,
+        "editable": false
+      }
+    ],
+    "filters": [
+      {
+        "id": "filter_1",
+        "prop": "assetCode",
+        "label": "资产编号",
+        "type": "input",
+        "placeholder": "请输入资产编号",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_2",
+        "prop": "serialNumber",
+        "label": "SN",
+        "type": "input",
+        "placeholder": "请输入 SN",
+        "clearable": true,
+        "span": 6
+      },
+      {
+        "id": "filter_3",
+        "prop": "status",
+        "label": "状态",
+        "type": "select",
+        "placeholder": "请选择状态",
+        "clearable": true,
+        "span": 6,
+        "options": [
+          { "label": "在库", "value": "IN_STOCK" },
+          { "label": "在用", "value": "IN_USE" },
+          { "label": "维修中", "value": "UNDER_REPAIR" },
+          { "label": "报废", "value": "SCRAPPED" }
+        ]
+      },
+      {
+        "id": "filter_4",
+        "prop": "modelName",
+        "label": "型号",
+        "type": "input",
+        "placeholder": "请输入型号",
+        "clearable": true,
+        "span": 6
+      }
+    ],
+    "operations": [
+      {
+        "id": "op_1",
+        "label": "查看",
+        "type": "text",
+        "icon": "View",
+        "action": "view",
+        "url": "/asset/detail/{id}",
+        "permission": "asset:view"
+      },
+      {
+        "id": "op_2",
+        "label": "编辑",
+        "type": "primary",
+        "icon": "Edit",
+        "action": "edit",
+        "url": "/asset/edit/{id}",
+        "permission": "asset:update"
+      },
+      {
+        "id": "op_3",
+        "label": "删除",
+        "type": "danger",
+        "icon": "Delete",
+        "action": "delete",
+        "api": "/api/asset/{id}",
+        "method": "DELETE",
+        "confirm": "确认删除此资产？",
+        "permission": "asset:remove",
+        "visible": "row.status === 'IN_STOCK'"
+      }
+    ],
+    "toolbar": [
+      {
+        "id": "op_t1",
+        "label": "新增资产",
+        "type": "primary",
+        "icon": "Plus",
+        "action": "create",
+        "url": "/asset/create",
+        "permission": "asset:create"
+      },
+      {
+        "id": "op_t2",
+        "label": "批量导入",
+        "type": "success",
+        "icon": "Upload",
+        "action": "custom",
+        "permission": "asset:import"
+      }
+    ],
+    "export": {
+      "enabled": true,
+      "api": "/api/asset/export",
+      "fileName": "资产列表",
+      "withFilter": true
+    }
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "code": "tpl_asset_inbound",
+  "name": "资产入库表单",
+  "description": "用于网络设备资产入库登记，包含资产编号、SN、型号、数量、库位、质保期与照片等字段。",
+  "bizType": "ASSET",
+  "status": "DRAFT",
+  "version": 1,
+  "formConfig": {
+    "title": "资产入库",
+    "description": "网络设备资产入库登记",
+    "labelWidth": 110,
+    "labelPosition": "right",
+    "size": "default",
+    "fields": [
+      {
+        "id": "field_1",
+        "type": "input",
+        "label": "资产编号",
+        "prop": "assetCode",
+        "placeholder": "请输入资产编号",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 64, "showWordLimit": true }
+      },
+      {
+        "id": "field_2",
+        "type": "input",
+        "label": "SN 序列号",
+        "prop": "serialNumber",
+        "placeholder": "请输入 SN 序列号",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": { "maxlength": 64, "showWordLimit": true }
+      },
+      {
+        "id": "field_3",
+        "type": "select",
+        "label": "设备型号",
+        "prop": "modelId",
+        "placeholder": "请选择设备型号",
+        "required": true,
+        "clearable": true,
+        "filterable": true,
+        "span": 12,
+        "props": {
+          "options": [
+            { "label": "华为 S5735-L48T4X", "value": "model_001" },
+            { "label": "华为 CE6863-48S6CQ", "value": "model_002" },
+            { "label": "锐捷 RG-S6510-48VQ", "value": "model_003" }
+          ],
+          "multiple": false,
+          "filterable": true
+        }
+      },
+      {
+        "id": "field_4",
+        "type": "number",
+        "label": "数量",
+        "prop": "quantity",
+        "placeholder": "请输入数量",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "defaultValue": 1,
+        "props": { "min": 1, "max": 9999, "step": 1, "precision": 0 }
+      },
+      {
+        "id": "field_5",
+        "type": "select",
+        "label": "所属库位",
+        "prop": "storageLocation",
+        "placeholder": "请选择库位",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": {
+          "options": [
+            { "label": "A 区-01 货架", "value": "A-01" },
+            { "label": "A 区-02 货架", "value": "A-02" },
+            { "label": "B 区-01 货架", "value": "B-01" },
+            { "label": "B 区-02 货架", "value": "B-02" },
+            { "label": "C 区-01 货架", "value": "C-01" }
+          ],
+          "multiple": false,
+          "filterable": true
+        }
+      },
+      {
+        "id": "field_6",
+        "type": "date",
+        "label": "质保到期日",
+        "prop": "warrantyExpiry",
+        "placeholder": "请选择质保到期日",
+        "required": false,
+        "clearable": true,
+        "span": 12,
+        "props": { "format": "YYYY-MM-DD", "valueFormat": "YYYY-MM-DD" }
+      },
+      {
+        "id": "field_7",
+        "type": "select",
+        "label": "设备分类",
+        "prop": "categoryId",
+        "placeholder": "请选择设备分类",
+        "required": true,
+        "clearable": true,
+        "span": 12,
+        "props": {
+          "options": [
+            { "label": "交换机", "value": "cat_switch" },
+            { "label": "路由器", "value": "cat_router" },
+            { "label": "防火墙", "value": "cat_firewall" },
+            { "label": "无线AP", "value": "cat_ap" },
+            { "label": "服务器", "value": "cat_server" },
+            { "label": "配件/模块", "value": "cat_module" }
+          ],
+          "multiple": false,
+          "filterable": true
+        }
+      },
+      {
+        "id": "field_8",
+        "type": "switch",
+        "label": "是否在保",
+        "prop": "inWarranty",
+        "span": 12,
+        "defaultValue": true,
+        "props": { "activeText": "在保", "inactiveText": "过保", "activeValue": true, "inactiveValue": false }
+      },
+      {
+        "id": "field_9",
+        "type": "upload",
+        "label": "设备照片",
+        "prop": "photos",
+        "placeholder": "",
+        "required": false,
+        "span": 24,
+        "props": {
+          "action": "/api/file/upload",
+          "limit": 5,
+          "accept": ".jpg,.jpeg,.png",
+          "multiple": true,
+          "listType": "picture-card"
+        }
+      },
+      {
+        "id": "field_10",
+        "type": "textarea",
+        "label": "备注",
+        "prop": "remark",
+        "placeholder": "请输入备注信息",
+        "required": false,
+        "clearable": true,
+        "span": 24,
+        "props": { "rows": 3, "maxlength": 500, "showWordLimit": true }
+      }
+    ],
+    "layout": {
+      "type": "grid",
+      "gutter": 16
+    }
+  }
+}

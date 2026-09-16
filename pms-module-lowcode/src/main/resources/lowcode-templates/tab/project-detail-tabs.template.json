@@ -1,0 +1,130 @@
+{
+  "code": "tpl_project_detail_tabs",
+  "name": "项目详情标签页",
+  "description": "网络设备工程项目详情页标签页配置：基本信息/资产/里程碑/任务/结算/变更/风险/问题 共 8 个 Tab。",
+  "bizType": "PROJECT",
+  "status": "DRAFT",
+  "version": 1,
+  "tabConfig": {
+    "title": "项目详情",
+    "description": "网络设备工程项目详情页标签页配置",
+    "type": "border-card",
+    "tabPosition": "top",
+    "closable": false,
+    "addable": false,
+    "editable": false,
+    "tabs": [
+      {
+        "id": "tab_1",
+        "title": "基本信息",
+        "name": "basic",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Document",
+        "pageType": "form",
+        "pageCode": "tpl_project_create",
+        "props": {
+          "projectId": "${route.params.id}",
+          "mode": "view"
+        }
+      },
+      {
+        "id": "tab_2",
+        "title": "资产清单",
+        "name": "assets",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Box",
+        "pageType": "list",
+        "pageCode": "tpl_asset_list",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_3",
+        "title": "里程碑",
+        "name": "milestone",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Flag",
+        "pageType": "list",
+        "pageCode": "tpl_project_list",
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_4",
+        "title": "任务",
+        "name": "tasks",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Tickets",
+        "pageType": "list",
+        "pageCode": "tpl_project_list",
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_5",
+        "title": "结算",
+        "name": "settlement",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Money",
+        "pageType": "list",
+        "pageCode": "tpl_settlement_list",
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_6",
+        "title": "变更",
+        "name": "change",
+        "lazy": true,
+        "disabled": false,
+        "icon": "EditPen",
+        "pageType": "list",
+        "pageCode": "tpl_project_list",
+        "visible": "row.status !== 'DRAFT'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_7",
+        "title": "风险",
+        "name": "risk",
+        "lazy": true,
+        "disabled": false,
+        "icon": "Warning",
+        "pageType": "list",
+        "pageCode": "tpl_project_list",
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      },
+      {
+        "id": "tab_8",
+        "title": "问题",
+        "name": "issue",
+        "lazy": true,
+        "disabled": false,
+        "icon": "ChatLineSquare",
+        "pageType": "list",
+        "pageCode": "tpl_project_list",
+        "visible": "row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'",
+        "props": {
+          "projectId": "${route.params.id}"
+        }
+      }
+    ]
+  }
+}
