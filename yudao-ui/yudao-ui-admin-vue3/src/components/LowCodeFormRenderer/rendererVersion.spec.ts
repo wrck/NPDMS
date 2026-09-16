@@ -4,6 +4,7 @@ import {
   LowCodeFormRendererVersion,
   normalizeLowCodeFormRendererVersion,
   resolveLowCodeFormRendererVersion,
+  setLowCodeFormRendererVersion,
   type VersionedFormConfig
 } from './rendererVersion'
 
@@ -14,7 +15,9 @@ const config = (rendererVersion?: string | null): VersionedFormConfig => ({
 
 describe('LowCodeFormRenderer rendererVersion', () => {
   it('keeps legacy forms on V1 when rendererVersion is absent', () => {
-    expect(resolveLowCodeFormRendererVersion(config())).toBe(LowCodeFormRendererVersion.V1)
+    const legacy = config()
+    expect(resolveLowCodeFormRendererVersion(legacy)).toBe(LowCodeFormRendererVersion.V1)
+    expect('rendererVersion' in legacy).toBe(false)
   })
 
   it('selects V2 only when it is explicitly configured', () => {
@@ -33,5 +36,21 @@ describe('LowCodeFormRenderer rendererVersion', () => {
     expect(resolveLowCodeFormRendererVersion(persisted, 'v1')).toBe(LowCodeFormRendererVersion.V1)
     expect(resolveLowCodeFormRendererVersion(persisted, '')).toBe(LowCodeFormRendererVersion.V2)
     expect((persisted as FormConfig).fields).toEqual([])
+  })
+
+  it('persists rendererVersion only for V2', () => {
+    const persisted = config()
+    expect(setLowCodeFormRendererVersion(persisted, LowCodeFormRendererVersion.V2)).toBe(
+      LowCodeFormRendererVersion.V2
+    )
+    expect(persisted.rendererVersion).toBe(LowCodeFormRendererVersion.V2)
+  })
+
+  it('removes rendererVersion when switching back to V1', () => {
+    const persisted = config('v2')
+    expect(setLowCodeFormRendererVersion(persisted, LowCodeFormRendererVersion.V1)).toBe(
+      LowCodeFormRendererVersion.V1
+    )
+    expect('rendererVersion' in persisted).toBe(false)
   })
 })
