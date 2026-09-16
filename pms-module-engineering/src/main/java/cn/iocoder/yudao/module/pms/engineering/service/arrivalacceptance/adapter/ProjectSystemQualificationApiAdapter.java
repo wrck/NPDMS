@@ -29,7 +29,7 @@ public class ProjectSystemQualificationApiAdapter implements ProjectSystemQualif
         ProjectSystemQualificationFact fact = factApi.lockCurrentForSystem(
                 new ProjectSystemQualificationLockQuery(projectId, ACTIVE, ARRIVAL_STAGE));
         if (fact == null || !Objects.equals(projectId, fact.projectId())
-                || !ACTIVE.equals(fact.lifecycleStatus()) || !ARRIVAL_STAGE.equals(fact.currentStage())) {
+                || !ACTIVE.equals(fact.lifecycleStatus())) {
             throw new IllegalStateException("current project system qualification is unavailable or mismatched");
         }
         return new CurrentProjectQualification(

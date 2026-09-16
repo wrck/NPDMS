@@ -152,6 +152,8 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
     }
 
     private ActionPolicy actionPolicy(String action, PreparationDO root) {
+        // Original section evidence remains readable; its retired business path cannot mutate files.
+        if (!READ_ACTIONS.contains(action)) return null;
         if ("DRAFT".equals(root.getStatusCode()) && (WRITE_ACTIONS.contains(action) || READ_ACTIONS.contains(action))) {
             return new ActionPolicy(RequirementAnalysisQueryService.PERMISSION_MANAGE,
                     ProjectScopeApi.ACTION_MANAGE, true);
@@ -232,7 +234,7 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
 
     private FileBusinessObjectPolicyFact policy(boolean allowed, Long scopeVersion, PreparationDO root) {
         return new FileBusinessObjectPolicyFact(allowed, scopeVersion,
-                "DRAFT".equals(root.getStatusCode()) ? "MUTABLE" : "IMMUTABLE", "MULTIPLE",
+                "IMMUTABLE", "MULTIPLE",
                 CATEGORIES, MEDIA_TYPES, MAX_SIZE_BYTES, "INTERNAL");
     }
 

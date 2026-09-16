@@ -101,7 +101,7 @@ public class ProjectPlanStageTaskInstaller {
         }
         // Free only renamed CURRENT codes, inside this transaction; archived rows retain their original code.
         for (var stage : desired.getStages()) {
-            var node = stageDefinitions.get(stage.getStageCode());
+            var node = stageDefinitions.get(stage.getCode());
             var oldRound = current.get(node.getNodeKey());
             stage.setId(oldRound == null ? IdWorker.getId() : oldRound.getNodeInstanceId()); stage.setTenantId(tenant);
             // Match the defaults used by initial inserts; clearing optional design values must not write SQL NULL to required columns.
@@ -109,7 +109,7 @@ public class ProjectPlanStageTaskInstaller {
             var old = oldStages.get(stage.getId());
             if (old != null) {
                 stage.setGraphVersion(old.getGraphVersion());
-                if (!Objects.equals(old.getStageCode(),stage.getStageCode()))
+                if (!Objects.equals(old.getCode(),stage.getCode()))
                     requireOne(projections.stageCodeForRename(new ProjectPlanProjectionMapper.NodeProjectionChange(tenant,project,old.getId(),old.getVersion(),actor)));
             }
         }
@@ -117,9 +117,9 @@ public class ProjectPlanStageTaskInstaller {
             task.setTenantId(tenant); task.setVersion(0);
             var old = oldTasks.get(task.getId());
             if (old != null) {
-                var prior = previousDefinitions.get(taskDefinitions.get(task.getTaskCode()).getNodeKey());
-                preserveUnchangedTaskFields(prior,taskDefinitions.get(task.getTaskCode()),old,task);
-                if (!Objects.equals(old.getTaskCode(),task.getTaskCode()))
+                var prior = previousDefinitions.get(taskDefinitions.get(task.getCode()).getNodeKey());
+                preserveUnchangedTaskFields(prior,taskDefinitions.get(task.getCode()),old,task);
+                if (!Objects.equals(old.getCode(),task.getCode()))
                     requireOne(projections.taskCodeForRename(new ProjectPlanProjectionMapper.NodeProjectionChange(tenant,project,old.getId(),old.getVersion(),actor)));
             }
             if (task.getSortOrder() == null) task.setSortOrder(0);
@@ -135,7 +135,7 @@ public class ProjectPlanStageTaskInstaller {
         }
         String snapshot = JsonUtils.toJsonString(request.after());
         for (var stage : desired.getStages()) {
-            var node = stageDefinitions.get(stage.getStageCode());
+            var node = stageDefinitions.get(stage.getCode());
             var old = oldStages.get(stage.getId());
             if (old == null) requireOne(stageRows.insert(stage));
             else if (!stageMetadata(old).equals(stageMetadata(stage)))
@@ -157,7 +157,7 @@ public class ProjectPlanStageTaskInstaller {
         }
         var bindings = content.getTasks().stream().collect(Collectors.toMap(node -> node.getSourceNodeKey(),Function.identity()));
         for (var task : desired.getTasks()) {
-            var node = taskDefinitions.get(task.getTaskCode());
+            var node = taskDefinitions.get(task.getCode());
             var old = oldTasks.get(task.getId());
             if (old == null) { requireOne(taskRows.insert(task)); tasksChanged = true; }
             else if (!taskMetadata(old).equals(taskMetadata(task))) {
@@ -238,10 +238,10 @@ public class ProjectPlanStageTaskInstaller {
                 && jsonEquals(old.getBindingViewSnapshot(),next.getBindingViewSnapshot());
     }
     private List<?> stageMetadata(ProjectStageInstanceDO row) {
-        return Arrays.asList(row.getStageCode(),row.getName(),row.getSortOrder(),row.getEntryCriteria(),row.getExitCriteria(),row.getStartNode(),row.getTerminalNode());
+        return Arrays.asList(row.getCode(),row.getName(),row.getSortOrder(),row.getEntryCriteria(),row.getExitCriteria(),row.getStartNode(),row.getTerminalNode());
     }
     private List<?> taskMetadata(ProjectTaskInstanceDO row) {
-        return Arrays.asList(row.getTaskCode(),row.getName(),row.getStageCode(),row.getParentTaskCode(),row.getParentTaskId(),row.getRootTaskId(),row.getTreeDepth(),row.getPriority(),row.getSortOrder(),row.getEstimatedHours(),row.getDescription(),row.getSatisfactionTiming());
+        return Arrays.asList(row.getCode(),row.getName(),row.getStageCode(),row.getParentTaskCode(),row.getParentTaskId(),row.getRootTaskId(),row.getTreeDepth(),row.getPriority(),row.getSortOrder(),row.getEstimatedHours(),row.getDescription(),row.getSatisfactionTiming());
     }
     private void preserveUnchangedTaskFields(TemplateExecutionSnapshot.TaskContract before,TemplateExecutionSnapshot.TaskContract after,
                                              ProjectTaskInstanceDO actual,ProjectTaskInstanceDO desired) {

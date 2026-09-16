@@ -1,7 +1,8 @@
-import { defineComponent, h, nextTick, reactive, ref } from 'vue'
+import { computed, defineComponent, h, nextTick, provide, reactive, ref } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
 import DecisionTableEditor from './DecisionTableEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
+import { ruleCreationOnlyKey } from './versionRuleModel'
 import { mount, passthrough, textOf, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
 interface Instance {
@@ -14,7 +15,10 @@ const dmn = vi.hoisted(() => ({
   importXML: vi.fn<(xml: string) => Promise<void>>(),
   saveXML: vi.fn<() => Promise<{ xml: string }>>()
 }))
-vi.mock('@/api/pms/project/project-templates/rules', () => ({ getRuleFields: async () => [] }))
+vi.mock('@/api/pms/project/project-templates/rules', () => ({ getRuleFields: async () => [
+  { code: 'project.type', label: '项目类型', valueType: 'TEXT', availableAtCreation: true },
+  { code: 'lifecycleStatus', label: '生命周期状态', valueType: 'TEXT', availableAtCreation: false }
+] }))
 vi.mock('dmn-js/lib/Modeler', () => ({ default: class {
   changed = () => {}
   open = vi.fn(async () => undefined)
@@ -35,14 +39,16 @@ const tick = async () => { for (let i = 0; i < 24; i++) { await Promise.resolve(
 const find = (node: TestNode): TestNode | undefined =>
   typeof node.props?.['onUpdate:modelValue'] === 'function' ? node : node.children.map(find).find(Boolean)
 const setup = async (readonly = false) => {
-  const state = reactive({ model: newDecisionTable(), readonly })
+  const state = reactive({ model: newDecisionTable(), readonly, creationOnly: false, inheritedCreationOnly: false })
   const editor = ref<InstanceType<typeof DecisionTableEditor>>()
   const update = vi.fn(value => { state.model = value })
   const outputs = vi.fn()
-  const page = mount(defineComponent({ setup: () => () => h(DecisionTableEditor, {
-    ref: editor, modelValue: state.model, readonly: state.readonly,
+  const page = mount(defineComponent({ setup() {
+    provide(ruleCreationOnlyKey, computed(() => state.inheritedCreationOnly))
+    return () => h(DecisionTableEditor, {
+    ref: editor, modelValue: state.model, readonly: state.readonly, creationOnly: state.creationOnly,
     'onUpdate:modelValue': update, onOutputs: outputs
-  }) }), {}, { ElSelect: passthrough, ElOption: passthrough })
+  }) } }), {}, { ElSelect: passthrough, ElOption: passthrough })
   await tick()
   return { ...page, state, editor, update, outputs }
 }
@@ -50,6 +56,23 @@ beforeEach(() => {
   dmn.instances.length = 0
   dmn.importXML.mockReset().mockResolvedValue(undefined)
   dmn.saveXML.mockReset().mockResolvedValue({ xml: 'edited-xml' })
+})
+
+it.each(['creationOnly', 'inheritedCreationOnly'] as const)('filters DMN inputs for %s without discarding existing bindings or reloading XML', async restriction => {
+  const page = await setup()
+  try {
+    const bind = (field: string) => (find(page.root)!.props!['onUpdate:modelValue'] as (field: string) => void)(field)
+    bind('lifecycleStatus'); await tick()
+    page.update.mockClear(); page.state[restriction] = true; await tick()
+    expect(textOf(page.root)).toContain('此输入字段不适用于当前规则引用位置')
+    expect(page.state.model.inputFields.inputValue).toBe('lifecycleStatus')
+    expect(page.update).not.toHaveBeenCalled()
+    bind('lifecycleStatus'); expect(page.update).not.toHaveBeenCalled()
+    bind('project.type'); await tick()
+    expect(page.state.model.inputFields.inputValue).toBe('project.type')
+    expect(textOf(page.root)).not.toContain('此输入字段不适用于当前规则引用位置')
+    expect(dmn.instances).toHaveLength(1)
+  } finally { page.app.unmount() }
 })
 
 it('does not save or change field bindings while viewing a frozen table', async () => {

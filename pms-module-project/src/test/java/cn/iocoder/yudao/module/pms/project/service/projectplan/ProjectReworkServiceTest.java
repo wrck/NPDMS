@@ -56,6 +56,9 @@ class ProjectReworkServiceTest {
     ProjectTaskExecutionContractDO oldContract;
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
+        var currentStages = mock(ProjectCurrentStageService.class);
+        when(currentStages.synchronize(100L)).thenReturn(4);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", currentStages);
         TenantContextHolder.setTenantId(1L);
         when(permissions.hasAnyPermissions(9L,ProjectReworkService.PERMISSION)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
@@ -151,7 +154,7 @@ class ProjectReworkServiceTest {
         rounds.getFirst().setStatus("DONE");
         assertThrows(RuntimeException.class,()->service.apply(command(3,2L),9L,"missing-parent-token"));
         verifyNoInteractions(changes);
-        var stage=new ProjectStageInstanceDO(); stage.setId(1L); stage.setStageCode("PREP"); stage.setStatus("DONE"); stage.setVersion(7); stage.setGraphVersion(1L);
+        var stage=new ProjectStageInstanceDO(); stage.setId(1L); stage.setCode("PREP"); stage.setStatus("DONE"); stage.setVersion(7); stage.setGraphVersion(1L);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         var binding=new cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectStageExecutionContractDO();
         binding.setId(101L); binding.setStageId(1L); binding.setSourceNodeKey("s"); binding.setGraphVersion(1L);

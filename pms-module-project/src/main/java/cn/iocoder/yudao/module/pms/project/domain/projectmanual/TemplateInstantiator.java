@@ -76,7 +76,7 @@ public final class TemplateInstantiator {
             }
             ProjectStageInstanceDO instance = new ProjectStageInstanceDO();
             instance.setProjectId(projectId);
-            instance.setStageCode(stage.getStageCode());
+            instance.setCode(stage.getStageCode());
             instance.setName(stage.getName());
             instance.setSortOrder(stage.getSortOrder());
             instance.setEntryCriteria(stage.getEntryCriteria());
@@ -111,7 +111,7 @@ public final class TemplateInstantiator {
             }
             instance.setStateMachineRevisionId(stateMachineRevisionId);
             instance.setProjectId(projectId);
-            instance.setTaskCode(task.getTaskCode());
+            instance.setCode(task.getTaskCode());
             instance.setName(task.getName());
             instance.setParentTaskCode(task.getParentTaskCode());
             instance.setStageCode(task.getStageCode());
@@ -133,11 +133,11 @@ public final class TemplateInstantiator {
         Map<String, ProjectTaskInstanceDO> tasksByCode = new LinkedHashMap<>();
         Map<String, Integer> taskOrderByCode = new LinkedHashMap<>();
         for (ProjectTaskInstanceDO task : instantiation.getTasks()) {
-            if (task.getTaskCode() == null || task.getTaskCode().isBlank()
-                    || tasksByCode.putIfAbsent(task.getTaskCode(), task) != null) {
+            if (task.getCode() == null || task.getCode().isBlank()
+                    || tasksByCode.putIfAbsent(task.getCode(), task) != null) {
                 throw new IllegalArgumentException("模板任务码不能为空且必须唯一");
             }
-            taskOrderByCode.put(task.getTaskCode(), taskOrderByCode.size());
+            taskOrderByCode.put(task.getCode(), taskOrderByCode.size());
         }
         Map<String, Integer> resolveStates = new LinkedHashMap<>();
         for (ProjectTaskInstanceDO task : instantiation.getTasks()) {
@@ -145,21 +145,21 @@ public final class TemplateInstantiator {
         }
         instantiation.getTasks().sort(Comparator
                 .comparingInt((ProjectTaskInstanceDO task) -> task.getTreeDepth())
-                .thenComparingInt(task -> taskOrderByCode.get(task.getTaskCode())));
+                .thenComparingInt(task -> taskOrderByCode.get(task.getCode())));
     }
 
     private static void resolveTaskStructure(ProjectTaskInstanceDO task,
                                              Map<String, ProjectTaskInstanceDO> tasksByCode,
                                              Map<String, Integer> resolveStates,
                                              ProjectInstantiation instantiation) {
-        Integer state = resolveStates.get(task.getTaskCode());
+        Integer state = resolveStates.get(task.getCode());
         if (Integer.valueOf(2).equals(state)) {
             return;
         }
         if (Integer.valueOf(1).equals(state)) {
-            throw new IllegalArgumentException("模板任务父子关系存在循环：" + task.getTaskCode());
+            throw new IllegalArgumentException("模板任务父子关系存在循环：" + task.getCode());
         }
-        resolveStates.put(task.getTaskCode(), 1);
+        resolveStates.put(task.getCode(), 1);
         String parentTaskCode = task.getParentTaskCode();
         if (parentTaskCode == null || parentTaskCode.isBlank()) {
             task.setParentTaskId(null);
@@ -182,7 +182,7 @@ public final class TemplateInstantiator {
         }
         instantiation.getTaskTreePaths().add(taskTreePath(
                 task.getProjectId(), task.getId(), task.getId(), 0));
-        resolveStates.put(task.getTaskCode(), 2);
+        resolveStates.put(task.getCode(), 2);
     }
 
     private static ProjectTaskTreePathDO taskTreePath(Long projectId, Long ancestorTaskId,

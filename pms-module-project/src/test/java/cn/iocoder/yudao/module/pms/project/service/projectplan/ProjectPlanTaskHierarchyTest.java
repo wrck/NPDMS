@@ -17,7 +17,7 @@ class ProjectPlanTaskHierarchyTest {
         for (int i=1;i<=3;i++) {
             var node=new TemplateExecutionSnapshot.TaskContract(); node.setNodeKey("node:"+i); node.setCode("T"+i);
             before.getTasks().add(node);
-            var task=new ProjectTaskInstanceDO(); task.setId((long)i); task.setTaskCode(node.getCode()); tasks.add(task);
+            var task=new ProjectTaskInstanceDO(); task.setId((long)i); task.setCode(node.getCode()); tasks.add(task);
             var round=new ProjectNodeExecutionDO(); round.setNodeKind("TASK"); round.setNodeKey(node.getNodeKey());
             round.setNodeInstanceId(task.getId()); rounds.add(round);
         }

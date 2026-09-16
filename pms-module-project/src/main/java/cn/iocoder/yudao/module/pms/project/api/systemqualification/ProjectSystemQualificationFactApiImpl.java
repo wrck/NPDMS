@@ -20,6 +20,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectSystemQualificationFactApiImpl implements ProjectSystemQualificationFactApi {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService currentStages;
 
     private static final String ACTIVE = "ACTIVE";
     private static final String S4 = "S4";
@@ -84,7 +86,8 @@ public class ProjectSystemQualificationFactApiImpl implements ProjectSystemQuali
     }
 
     private void requireCurrentQualification(ProjectMasterDO project) {
-        if (!ACTIVE.equals(project.getLifecycleStatus()) || !S4.equals(project.getCurrentStage())
+        if (!ACTIVE.equals(project.getLifecycleStatus()) || !(project.getActivePlanVersionId() == null
+                ? S4.equals(project.getCurrentStage()) : currentStages.isActive(project, S4))
                 || project.getManagerId() == null || project.getManagerId() <= 0
                 || project.getVersion() == null || project.getVersion() < 0) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);

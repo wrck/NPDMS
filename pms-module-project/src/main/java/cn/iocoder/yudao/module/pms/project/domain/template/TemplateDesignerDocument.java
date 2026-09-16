@@ -51,6 +51,8 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class StageNode {
+        /** Standard lifecycle classification, independent of the custom stage identity. */
+        private String lifecycleStage;
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;

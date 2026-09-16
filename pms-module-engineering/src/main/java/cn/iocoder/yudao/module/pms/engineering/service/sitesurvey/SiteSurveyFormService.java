@@ -12,7 +12,7 @@ import java.util.*;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.SITE_SURVEY_FORM_INVALID;
 
-@Service
+// Retired from runtime registration; retained as the original implementation.
 @RequiredArgsConstructor
 public class SiteSurveyFormService {
     private final DynamicFormBusinessInstanceApi forms;

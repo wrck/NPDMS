@@ -18,17 +18,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class RequirementAnalysisControllerContractTest {
 
     @Test
-    void patchCompleteAndCreateDraftExposeIndependentPltAndSolCasHeaders() throws Exception {
-        Method patch = PreparationController.class.getMethod("patchRequirementForm", Long.class, String.class,
-                String.class, RequirementAnalysisFormPatchReqVO.class);
-        Method complete = PreparationController.class.getMethod("completeRequirementAnalysis", Long.class,
-                String.class, String.class, String.class, RequirementAnalysisActionReqVO.class);
-        Method createDraft = PreparationController.class.getMethod("createRequirementAnalysisRevision", Long.class,
-                String.class, String.class, String.class, RequirementAnalysisActionReqVO.class);
-
-        assertEquals(Set.of("If-Match", "X-SOL-If-Match"), casHeaders(patch));
-        assertEquals(Set.of("If-Match", "X-SOL-If-Match", "Idempotency-Key"), headers(complete));
-        assertEquals(Set.of("If-Match", "X-SOL-If-Match", "Idempotency-Key"), headers(createDraft));
+    void newRevisionCommandsExposeBusinessCasAndIdempotencyHeaders() throws Exception {
+        var controller = cn.iocoder.yudao.module.pms.engineering.controller.admin.requirement.RequirementAnalysisEntityController.class;
+        var patchType = cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityCommands.Patch.class;
+        var actionType = cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityCommands.Action.class;
+        for (Method method : new Method[]{
+                controller.getMethod("save", Long.class, Long.class, int.class, String.class, patchType),
+                controller.getMethod("complete", Long.class, Long.class, int.class, String.class, actionType),
+                controller.getMethod("copy", Long.class, Long.class, int.class, String.class, actionType)}) {
+            assertEquals(Set.of("If-Match", "Idempotency-Key"), headers(method));
+        }
     }
 
     @Test

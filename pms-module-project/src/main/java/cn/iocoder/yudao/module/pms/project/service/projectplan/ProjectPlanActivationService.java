@@ -22,6 +22,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @Service
 @RequiredArgsConstructor
 public class ProjectPlanActivationService {
+    @jakarta.annotation.Resource
+    private ProjectCurrentStageService currentStages;
     private final ProjectPlanDraftService drafts;
     private final PlatformCommandExecutionApi commands;
     private final ProjectPlanStageTaskInstaller nodes;
@@ -66,7 +68,7 @@ public class ProjectPlanActivationService {
                             installed.continuing(),installed.removed());
                     timers.schedule(scope.projectId(), command.draftId(), prepared.after(), null);
                     if (installed.tasksChanged()) progress.recompute(scope.tenantId(),scope.projectId(),prepared.project().getTaskProgressVersion(),now);
-                    return new Applied(scope.projectId(),command.draftId(),prepared.draft().getRevisionNo(),prepared.project().getVersion()+1);
+                    return new Applied(scope.projectId(),command.draftId(),prepared.draft().getRevisionNo(),currentStages.synchronize(scope.projectId()));
                 }, applied -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_PLAN_APPLY","ProjectPlan",applied.planVersionId().toString(),correlationId,
                         JsonUtils.toJsonString(Map.of("projectId",applied.projectId(),"previousPlanVersionId",command.expectedPreview().basePlanVersionId(),
                                 "planVersionId",applied.planVersionId(),"revisionNo",applied.revisionNo())),

@@ -80,6 +80,8 @@ public class TemplateCompiler {
             if (!DeliveryDefinitionPayloadValidator.stageCode(stage.getCode()) || !stageCodes.add(stage.getCode()))
                 issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码须唯一且不超过32个字符"));
             if (blank(stage.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "阶段名称不能为空"));
+            if (stage.getLifecycleStage() == null || !stage.getLifecycleStage().matches("S[0-6]"))
+                issues.add(new Issue(path + ".lifecycleStage", "INVALID_LIFECYCLE_STAGE", "请选择标准生命周期阶段 S0～S6"));
         }
         Set<String> taskCodes = new HashSet<>();
         Map<String, TemplateDesignerDocument.TaskNode> tasksByCode = new HashMap<>();
@@ -409,6 +411,7 @@ public class TemplateCompiler {
 
     private TemplateExecutionSnapshot.StageContract stage(TemplateDesignerDocument.StageNode source) {
         TemplateExecutionSnapshot.StageContract target = new TemplateExecutionSnapshot.StageContract();
+        target.setLifecycleStage(source.getLifecycleStage());
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setSortOrder(source.getSortOrder()); target.setEntryCriteria(source.getEntryCriteria()); target.setExitCriteria(source.getExitCriteria());

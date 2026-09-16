@@ -91,11 +91,11 @@ public class ProjectPlanExecutionPlanner {
                                       List<ProjectStageInstanceDO> stages, List<ProjectTaskInstanceDO> tasks) {
         if ("STAGE".equals(node.kind())) {
             var matches = stages.stream().filter(stage -> Objects.equals(stage.getId(), round.getNodeInstanceId())).toList();
-            return matches.size() == 1 && Objects.equals(node.code(), matches.getFirst().getStageCode())
+            return matches.size() == 1 && Objects.equals(node.code(), matches.getFirst().getCode())
                     && Objects.equals(round.getStatus(), matches.getFirst().getStatus());
         }
         var matches = tasks.stream().filter(task -> Objects.equals(task.getId(), round.getNodeInstanceId())).toList();
-        if (matches.size() != 1 || !Objects.equals(node.code(), matches.getFirst().getTaskCode())) return false;
+        if (matches.size() != 1 || !Objects.equals(node.code(), matches.getFirst().getCode())) return false;
         return switch (round.getStatus()) {
             case "PENDING" -> Set.of("PENDING_ASSIGN", "PENDING_START").contains(matches.getFirst().getStatus());
             case "ACTIVE" -> Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(matches.getFirst().getStatus())

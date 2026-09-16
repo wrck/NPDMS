@@ -76,6 +76,12 @@ class ProjectRuleClosureServiceTest {
         when(childWait.resolve(any(), any())).thenReturn(cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.unknown("CHILD_CLOSURE_FACT_UNAVAILABLE"));
         assertTrue(service.closeIfSatisfied(9L, 1L, "wait").unknown());
     }
+
+    @Test void timerClosureUsesSystemAuditActorWithoutInventingAnInteractiveActor() {
+        when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
+        assertTrue(service.closeIfSatisfied(9L, null, "timer").closed());
+        verify(audit).record(eq(7L), eq(0L), eq("timer"), eq("PROJECT_CLOSED_BY_RULE"), eq("Project"), eq("9"), eq("SUCCESS"), anyMap());
+    }
     @Test void terminalStageDoesNotSupplyAnImplicitClosureRule() {
         snapshot.setClosureRuleKey(null); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         assertFalse(service.closeIfSatisfied(9L, 1L, "test").closed());

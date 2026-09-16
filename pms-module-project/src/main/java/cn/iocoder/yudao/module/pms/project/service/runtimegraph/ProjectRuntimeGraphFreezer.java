@@ -104,7 +104,7 @@ public class ProjectRuntimeGraphFreezer {
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {
         validate(snapshot);
         Map<String, ProjectStageInstanceDO> byCode = stages.stream()
-                .collect(Collectors.toMap(ProjectStageInstanceDO::getStageCode, stage -> stage));
+                .collect(Collectors.toMap(ProjectStageInstanceDO::getCode, stage -> stage));
         String executionSnapshot = JsonUtils.toJsonString(snapshot);
         List<ProjectStageExecutionContractDO> contracts = new java.util.ArrayList<>();
         for (TemplateExecutionSnapshot.StageContract definition : snapshot.getStages()) {

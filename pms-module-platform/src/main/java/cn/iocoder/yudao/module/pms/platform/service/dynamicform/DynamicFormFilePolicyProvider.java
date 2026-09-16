@@ -40,16 +40,10 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
     static final String OWNER_CONTEXT = "PLATFORM";
     static final String OBJECT_TYPE = "DYNAMIC_FORM_INSTANCE";
     static final String INSTANCE_OBJECT_TYPE = "MANUAL_DYNAMIC_FORM";
-    static final String CATEGORY_CODE = "DYNAMIC_FORM_ATTACHMENT";
-    private static final long MAX_SIZE_BYTES = 52_428_800L;
+    static final String CATEGORY_CODE = cn.iocoder.yudao.module.pms.platform.api.file.FormAttachmentPolicy.CATEGORY;
+    private static final long MAX_SIZE_BYTES = cn.iocoder.yudao.module.pms.platform.api.file.FormAttachmentPolicy.MAX_SIZE;
     private static final Set<String> CATEGORIES = Set.of(CATEGORY_CODE);
-    private static final Set<String> MEDIA_TYPES = Set.of(
-            "application/pdf", "image/jpeg", "image/png", "text/plain", "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+    private static final Set<String> MEDIA_TYPES = cn.iocoder.yudao.module.pms.platform.api.file.FormAttachmentPolicy.MEDIA_TYPES;
     private static final Set<String> WRITE_ACTIONS = Set.of(FileActionCodes.UPLOAD, FileActionCodes.REFERENCE,
             FileActionCodes.REPLACE, FileActionCodes.DETACH);
     private static final Set<String> BUSINESS_LIFECYCLE_ACTIONS = Set.of(

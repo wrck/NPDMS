@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,29 +15,13 @@ import lombok.EqualsAndHashCode;
 @TableName("proj_project_stage")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectStageInstanceDO extends TenantBaseDO {
+public class ProjectStageInstanceDO extends ProjectExecutionNodeDO<ProjectStageInstanceDO> {
 
     /**
-     * 阶段实例ID
+     * 自定义阶段编码，与标准生命周期绑定独立。
      */
-    @TableId
-    private Long id;
-    /**
-     * 项目ID（proj_project）
-     */
-    private Long projectId;
-    /**
-     * 阶段码（S0～S6，实例化时冻结）
-     */
-    private String stageCode;
-    /**
-     * 阶段名称（快照）
-     */
-    private String name;
-    /**
-     * 阶段顺序（快照）
-     */
-    private Integer sortOrder;
+    @TableField("stage_code")
+    private String code;
     /**
      * 准入条件说明（快照）
      */
@@ -47,20 +30,15 @@ public class ProjectStageInstanceDO extends TenantBaseDO {
      * 准出条件说明（快照）
      */
     private String exitCriteria;
-    /**
-     * 冻结来源：模板阶段定义ID（proj_project_template_stage_definition；内容模型无定义行 ID 时为 NULL）
-     */
-    private Long sourceDefinitionId;
+    private String deviationReason;
+    /** 保留字段，暂不参与界面、派工和权限业务。 */
+    private String responsibleRole;
+    /** 保留字段，暂不参与界面、派工和权限业务。 */
+    private Long responsibleUserId;
     private Long definitionRevisionId;
     private Long graphVersion;
     private Boolean startNode;
     private Boolean terminalNode;
-    /**
-     * 阶段实例状态（字典 pms_project_stage_status：PENDING/ACTIVE/DONE，实例化时最小 sort_order 阶段置 ACTIVE）
-     */
-    private String status;
-    /**
-     * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
-     */
-    private Integer version;
+    @Override
+    protected ProjectStageInstanceDO self() { return this; }
 }

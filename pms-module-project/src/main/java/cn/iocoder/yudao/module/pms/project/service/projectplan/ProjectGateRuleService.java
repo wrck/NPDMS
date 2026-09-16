@@ -84,7 +84,7 @@ public class ProjectGateRuleService {
                     || refs.stream().anyMatch(r -> !Objects.equals(r.getTenantId(), tenantId) || !Objects.equals(r.getGateId(), gate.getId())
                     || r.getId() == null || r.getVersion() == null))
                 throw new IllegalStateException("GATE_REFERENCE_VERSION_UNAVAILABLE");
-            var stages = graph.selectStagesForUpdate(query).stream().filter(s -> gate.getStageCode().equals(s.getStageCode())).toList();
+            var stages = graph.selectStagesForUpdate(query).stream().filter(s -> gate.getStageCode().equals(s.getCode())).toList();
             if (stages.size() != 1) throw new IllegalStateException("GATE_STAGE_UNAVAILABLE");
             result = rules.evaluate(ref + ":rule:" + definition.getConditionRuleKey(), program,
                     new ProjectRuntimeRuleEvaluator.Facts(project, stages.getFirst(), graph.selectTasksForUpdate(query),

@@ -103,6 +103,28 @@ class ProjectTaskLifecycleServiceTest {
         assertEquals("PROJECT_TASK_START", successFacts.operationCode());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"PENDING_ASSIGN", "PENDING_START"})
+    void admittedTaskStartsUsingFrozenMachineWithoutGrantingBusinessPermissions(String status) {
+        var project = new ProjectMasterDO(); project.setId(100L); project.setTenantId(0L);
+        project.setTaskTreeVersion(1L);
+        var task = new ProjectTaskInstanceDO(); task.setId(11L); task.setStatus(status);
+        task.setVersion(3); task.setStateMachineRevisionId(81L);
+        var contract = new ProjectTaskExecutionContractDO(); contract.setId(91L);
+        var transition = new TaskStateTransitionDO(); transition.setToStatusCode("IN_PROGRESS");
+        when(stateMachineMapper.requireTransition(any())).thenReturn(transition);
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertTrue(service.startAdmittedTask(project, task, contract, "automatic-start"));
+        verify(stateMachineMapper).requireTransition(argThat(q -> "PENDING_START".equals(q.fromStatusCode())
+                && "START".equals(q.actionCode())));
+        verify(taskMapper).updateLifecycleIfMatch(argThat(q -> q.initializeActualStartTime()
+                && "IN_PROGRESS".equals(q.nextStatus())));
+        org.mockito.Mockito.verifyNoInteractions(permissionApi, taskApprovals, businessProvider);
+        task.setStatus("IN_PROGRESS");
+        assertFalse(service.startAdmittedTask(project, task, contract, "repeat"));
+        verify(taskMapper, org.mockito.Mockito.times(1)).updateLifecycleIfMatch(any());
+    }
+
     @Test void anUnsatisfiedTaskAdmissionCannotBeBypassedByTheLifecycleEndpoint() {
         allowAction("PENDING_START", "START", "IN_PROGRESS");
         when(stageAdmission.taskMayStart(any(), any(), any())).thenReturn(false);

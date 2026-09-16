@@ -1,11 +1,11 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
-import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
+import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import { businessViewTargetKey, resolveBusinessView, type BusinessViewTarget } from './registry'
-import SiteSurveyPage from '@/views/pms/engineering/site-survey/index.vue'
+import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
-import * as RequirementApi from '@/api/pms/engineering/requirement-analysis'
+import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
 import {
   mount,
   passthrough,
@@ -16,7 +16,8 @@ import {
 
 // The custom renderer has no DOM; keyboard/ARIA integration is covered by its DOM suite.
 vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
-vi.mock('@/views/pms/engineering/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
+vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
 vi.mock('@/views/pms/project/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
 const confirm = vi.hoisted(() => vi.fn(async (): Promise<void> => undefined))
 vi.mock('@/hooks/web/useMessage', () => ({
@@ -26,23 +27,23 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@vueuse/core', () => ({ useWindowSize: () => ({ width: { value: 1280 } }) }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: (value: unknown) => String(value) }))
 vi.mock('@/api/pms/platform/dynamic-form', () => ({ getInstance: vi.fn(), patchInstance: vi.fn() }))
-vi.mock('@/api/pms/engineering/requirement-analysis', () => ({
-  getCurrent: vi.fn(),
-  getDetail: vi.fn(),
-  patchForm: vi.fn(),
-  createInitialDraft: vi.fn(),
-  completeDraft: vi.fn(),
-  createNextDraft: vi.fn()
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({
+  workspace: vi.fn(),
+  read: vi.fn(),
+  save: vi.fn(),
+  create: vi.fn(),
+  complete: vi.fn(),
+  copy: vi.fn()
 }))
 vi.mock('@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents', () => ({
   registerDynamicFormComponents: vi.fn()
 }))
 vi.mock(
-  '@/views/pms/project/project-master-detail/components/RequirementAnalysisHistoryDrawer.vue',
+  '@/views/pms/delivery-business/requirement-analysis/entity/RevisionDrawer.vue',
   () => ({ default: { render: () => null } })
 )
 vi.mock(
-  '@/views/pms/project/project-master-detail/components/RequirementAnalysisCompareDrawer.vue',
+  '@/views/pms/delivery-business/requirement-analysis/entity/CompareDrawer.vue',
   () => ({ default: { render: () => null } })
 )
 const tick = async () => {
@@ -124,6 +125,14 @@ const options = {
   ElDescriptions: passthrough,
   ElDescriptionsItem: passthrough
 }
+const requirementView = (id: string | number = 91, state = 'DRAFT', allowedActions = ['PATCH_FORM', 'COMPLETE']) => ({
+  projectId: 11, revision: { ref: { entity: { tenantId: 1, ownerModule: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', entityId: 90 }, revisionId: id },
+    revisionNo: 1, state, effective: state === 'FROZEN', version: 4 },
+  extensionValueVersion: 0, allowedActions, fieldCatalog: [{ code: 'note', type: 'TEXT', required: false }],
+  form: { binding: { formRevisionId: 20, version: 1, fieldBindings: { note: 'note' } }, revisionNo: 1,
+    formConfJson: '{}', formRulesJson: '[{"type":"input","field":"note"}]' },
+  values: { note: 'old' }, attachments: []
+}) as any
 beforeEach(() => {
   vi.clearAllMocks()
   confirm.mockResolvedValue(undefined)
@@ -135,24 +144,9 @@ beforeEach(() => {
   })
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(FormApi.getInstance).mockResolvedValue(instance())
-  const detail = {
-    preparationId: 91,
-    projectId: 11,
-    status: 'DRAFT',
-    currentDraft: true,
-    version: 1,
-    allowedActions: ['PATCH_FORM', 'COMPLETE'],
-    completionBlockers: [],
-    dynamicFormInstanceId: 71,
-    templateRevisionId: 20,
-    formConfJson: {},
-    formRulesJson: [{ type: 'input', field: 'note' }],
-    values: { note: 'old' },
-    controlledFiles: {},
-    dynamicFormInstanceVersion: 3
-  } as any
-  vi.mocked(RequirementApi.getDetail).mockResolvedValue(detail)
-  vi.mocked(RequirementApi.getCurrent).mockResolvedValue({
+  const detail = requirementView()
+  vi.mocked(RequirementApi.read).mockResolvedValue(detail)
+  vi.mocked(RequirementApi.workspace).mockResolvedValue({
     projectId: 11, draft: detail, allowedActions: ['CREATE_DRAFT']
   } as any)
 })
@@ -176,14 +170,14 @@ describe('PM-03 BusinessView runtime', () => {
     data.resolvedContext.taskId = taskExecution.taskId
     data.resolvedContext.taskExecution = taskExecution
     data.allowedActions = ['CREATE_INITIAL_DRAFT']
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
     const mounted = mount(BusinessViewHost, data, options)
     await tick()
-    expect(RequirementApi.getCurrent).toHaveBeenCalledWith(11, undefined, taskExecution.taskId)
+    expect(RequirementApi.workspace).toHaveBeenCalledWith(11, undefined, taskExecution.taskId)
     const visit = (node: any): any => node.type === 'button' && textOf(node).includes('创建需求分析草稿')
       ? node : node.children.map(visit).find(Boolean)
     await visit(mounted.root).props.onClick()
-    expect(RequirementApi.createInitialDraft).toHaveBeenCalledWith(11, expect.any(String), { task: taskExecution })
+    expect(RequirementApi.create).toHaveBeenCalledWith(11, expect.any(String), { task: taskExecution })
     mounted.app.unmount()
   })
 
@@ -217,38 +211,37 @@ describe('PM-03 BusinessView runtime', () => {
     await tick()
     expect(textOf(mounted.root)).toContain('form:local')
     expect(panel.value.isDirty()).toBe(true)
-    expect(RequirementApi.getCurrent).toHaveBeenCalledTimes(1)
-    vi.mocked(RequirementApi.patchForm).mockRejectedValueOnce(new Error('execution changed'))
+    expect(RequirementApi.workspace).toHaveBeenCalledTimes(1)
+    vi.mocked(RequirementApi.save).mockRejectedValueOnce(new Error('execution changed'))
     const save = findByTestId(mounted.root, 'save-requirement-form')?.props?.onClick
     expect(save).toBeTypeOf('function')
     await (save as () => Promise<void>)()
     await tick()
-    expect(RequirementApi.patchForm).toHaveBeenCalledWith(91, 3, 1, {
-      values: { note: 'local' }, execution: kind === 'task' ? { task: taskExecution } : { stage: stageExecution }
-    })
+    expect(RequirementApi.save).toHaveBeenCalledWith(requirementView().revision, {
+      values: { note: 'local' }, expectedExtensionVersion: 0, extensionDefinitionRevisionId: undefined,
+      execution: kind === 'task' ? { task: taskExecution } : { stage: stageExecution }
+    }, expect.any(String))
     expect(textOf(mounted.root)).toContain('form:local')
     expect(panel.value.isDirty()).toBe(true)
     mounted.app.unmount()
   })
 
   it('keeps the original task execution while revision confirmation is open', async () => {
-    const completed = { preparationId: 91, projectId: 11, status: 'COMPLETED', currentEffective: true,
-      allowedActions: [], completionBlockers: [], dynamicFormInstanceId: 71, templateRevisionId: 20,
-      formConfJson: {}, formRulesJson: [], values: {}, controlledFiles: {}, dynamicFormInstanceVersion: 3, version: 4 }
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ projectId: 11, currentEffective: completed, allowedActions: ['CREATE_DRAFT'] } as any)
+    const completed = requirementView(91, 'FROZEN', ['CREATE_DRAFT'])
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ projectId: 11, currentEffective: completed, allowedActions: ['CREATE_DRAFT'] } as any)
     const state = reactive({ project: { id: 11 } as any, allowedActions: ['CREATE_DRAFT'], taskExecution: { ...taskExecution } })
     const mounted = mount(defineComponent({ setup: () => () => h(ProjectRequirementAnalysisPanel, state) }), {}, options)
     await tick()
     let approve!: () => void
     confirm.mockImplementationOnce(() => new Promise<void>((resolve) => { approve = resolve }))
-    const visit = (node: any): any => node.type === 'button' && textOf(node).includes('从当前有效版创建修订草稿')
+    const visit = (node: any): any => node.type === 'button' && textOf(node).includes('从查看版本创建草稿')
       ? node : node.children.map(visit).find(Boolean)
     const pending = visit(mounted.root).props.onClick()
     state.taskExecution.executionId = '2099999999999999988'
     await tick()
     approve()
     await pending
-    expect(RequirementApi.createNextDraft).toHaveBeenCalledWith(91, 3, 4, expect.any(String), { task: taskExecution })
+    expect(RequirementApi.copy).toHaveBeenCalledWith(completed.revision, expect.any(String), { task: taskExecution })
     mounted.app.unmount()
   })
 
@@ -256,18 +249,18 @@ describe('PM-03 BusinessView runtime', () => {
     const data = target('PAGE')
     data.resolvedContext.stageExecution = stageExecution
     data.allowedActions = ['CREATE_INITIAL_DRAFT']
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
-    vi.mocked(RequirementApi.createInitialDraft).mockResolvedValue({ preparationId: 91 } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
+    vi.mocked(RequirementApi.create).mockResolvedValue(requirementView().revision)
     const mounted = mount(BusinessViewHost, data, options)
     await tick()
-    expect(RequirementApi.getCurrent).toHaveBeenCalledWith(11, stageExecution.stageId, undefined)
+    expect(RequirementApi.workspace).toHaveBeenCalledWith(11, stageExecution.stageId, undefined)
     const visit = (node: any): any => node.type === 'button' && textOf(node).includes('创建需求分析草稿')
       ? node : node.children.map(visit).find(Boolean)
     const create = visit(mounted.root)
     expect(create).toBeTruthy()
     await create.props.onClick()
     await tick()
-    expect(RequirementApi.createInitialDraft).toHaveBeenCalledWith(11, expect.any(String), { stage: stageExecution })
+    expect(RequirementApi.create).toHaveBeenCalledWith(11, expect.any(String), { stage: stageExecution })
     mounted.app.unmount()
   })
   it('rejects a foreign stage and switches the frozen target on a new execution, not a version refresh', () => {
@@ -283,29 +276,29 @@ describe('PM-03 BusinessView runtime', () => {
     expect(resolveBusinessView(data).error).toBeTruthy()
   })
   it('refreshes pre-start SOL creation actions when the retained task host grants them', async () => {
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValueOnce({ projectId: 11, allowedActions: [] } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValueOnce({ projectId: 11, allowedActions: [] } as any)
     const state = reactive({ ...target('PAGE'), allowedActions: ['QUERY'] })
     const mounted = mount(defineComponent({ setup: () => () => h(BusinessViewHost, state) }), {}, options)
     await tick()
     expect(textOf(mounted.root)).not.toContain('创建需求分析草稿')
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
     state.allowedActions = ['QUERY', 'CREATE_INITIAL_DRAFT']
     await tick()
     expect(textOf(mounted.root)).toContain('创建需求分析草稿')
-    expect(RequirementApi.getCurrent).toHaveBeenCalledTimes(2)
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
+    expect(RequirementApi.workspace).toHaveBeenCalledTimes(2)
+    expect(RequirementApi.read).not.toHaveBeenCalled()
     state.allowedActions = [...state.allowedActions]
     await tick()
-    expect(RequirementApi.getCurrent).toHaveBeenCalledTimes(2)
+    expect(RequirementApi.workspace).toHaveBeenCalledTimes(2)
     mounted.app.unmount()
   })
   it('ignores a delayed SOL creation grant after the host revokes it', async () => {
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValueOnce({ projectId: 11, allowedActions: [] } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValueOnce({ projectId: 11, allowedActions: [] } as any)
     const state = reactive({ ...target('PAGE'), allowedActions: ['QUERY'] })
     const mounted = mount(defineComponent({ setup: () => () => h(BusinessViewHost, state) }), {}, options)
     await tick()
     let finish!: (value: any) => void
-    vi.mocked(RequirementApi.getCurrent).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve }))
+    vi.mocked(RequirementApi.workspace).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve }))
     state.allowedActions = ['QUERY', 'CREATE_INITIAL_DRAFT']
     await tick()
     state.allowedActions = ['QUERY']
@@ -313,39 +306,33 @@ describe('PM-03 BusinessView runtime', () => {
     finish({ projectId: 11, allowedActions: ['CREATE_INITIAL_DRAFT'] })
     await tick()
     expect(textOf(mounted.root)).not.toContain('创建需求分析草稿')
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
+    expect(RequirementApi.read).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it('refreshes rework revision actions without replacing the selected frozen business result', async () => {
-    const completed = { preparationId: 91, projectId: 11, status: 'COMPLETED', currentEffective: true,
-      allowedActions: [], completionBlockers: [], dynamicFormInstanceId: 71, templateRevisionId: 20,
-      formConfJson: {}, formRulesJson: [], values: {}, controlledFiles: {}, dynamicFormInstanceVersion: 3 }
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValueOnce({ projectId: 11, currentEffective: completed, allowedActions: [] } as any)
-    vi.mocked(RequirementApi.getDetail).mockResolvedValue(completed as any)
+    const completed = requirementView(91, 'FROZEN', ['CREATE_DRAFT'])
+    vi.mocked(RequirementApi.workspace).mockResolvedValueOnce({ projectId: 11, currentEffective: completed, allowedActions: [] } as any)
+    vi.mocked(RequirementApi.read).mockResolvedValue(completed as any)
     const state = reactive({ ...target('PAGE'), allowedActions: ['QUERY'] })
     const mounted = mount(defineComponent({ setup: () => () => h(BusinessViewHost, state) }), {}, options)
     await tick()
-    expect(textOf(mounted.root)).not.toContain('从当前有效版创建修订草稿')
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ projectId: 11, currentEffective: completed, allowedActions: ['CREATE_DRAFT'] } as any)
+    expect(textOf(mounted.root)).not.toContain('从查看版本创建草稿')
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ projectId: 11, currentEffective: completed, allowedActions: ['CREATE_DRAFT'] } as any)
     state.allowedActions = ['QUERY', 'CREATE_DRAFT']
     await tick()
-    expect(textOf(mounted.root)).toContain('从当前有效版创建修订草稿')
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
-    expect(RequirementApi.createNextDraft).not.toHaveBeenCalled()
+    expect(textOf(mounted.root)).toContain('从查看版本创建草稿')
+    expect(RequirementApi.read).not.toHaveBeenCalled()
+    expect(RequirementApi.copy).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it.each([93, '9007199254740993'])('opens exact linked SOL preparation %s instead of the default current draft', async (id) => {
     const data = target('PAGE')
     data.resolvedContext.businessObjectId = id
-    vi.mocked(RequirementApi.getDetail).mockResolvedValueOnce({
-      preparationId: id, projectId: 11, status: 'COMPLETED', allowedActions: [], completionBlockers: [],
-      dynamicFormInstanceId: 73, templateRevisionId: 20, formConfJson: {}, formRulesJson: [], values: {},
-      controlledFiles: {}, dynamicFormInstanceVersion: 1
-    } as any)
+    vi.mocked(RequirementApi.read).mockResolvedValueOnce(requirementView(id, 'FROZEN', []))
     const mounted = mount(BusinessViewHost, data, options)
     await tick()
-    expect(RequirementApi.getDetail).toHaveBeenCalledWith(id)
-    expect(RequirementApi.getDetail).not.toHaveBeenCalledWith(91)
+    expect(RequirementApi.read).toHaveBeenCalledWith(id)
+    expect(RequirementApi.read).not.toHaveBeenCalledWith(91)
     mounted.app.unmount()
   })
   it('maps only the exact SOL site-survey page and preserves typed Owner context without numeric conversion', () => {
@@ -418,7 +405,7 @@ describe('PM-03 BusinessView runtime', () => {
     page.resolvedContext.project = { id, version: 1 } as any
     const sol = mount(BusinessViewHost, page, options)
     await tick()
-    expect(RequirementApi.getCurrent).toHaveBeenLastCalledWith(id, undefined, undefined)
+    expect(RequirementApi.workspace).toHaveBeenLastCalledWith(id, undefined, undefined)
     sol.app.unmount()
   })
   it.each(['0', '-1', '1.5', '2e18', ' 7', '07', '9223372036854775808', 2099999999999999999])(
@@ -449,8 +436,8 @@ describe('PM-03 BusinessView runtime', () => {
     expect(findByTestId(mounted.root, 'save-requirement-form')).toBeUndefined()
     expect(host.value.isDirty()).toBe(true)
     expect(await host.value.requestLeave()).toBe(false)
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
-    expect(RequirementApi.patchForm).not.toHaveBeenCalled()
+    expect(RequirementApi.read).not.toHaveBeenCalled()
+    expect(RequirementApi.save).not.toHaveBeenCalled()
     state.allowedActions = ['PATCH_FORM']
     await tick()
     expect(textOf(mounted.root)).toContain('form:local; readonly:false')
@@ -520,28 +507,28 @@ describe('PM-03 BusinessView runtime', () => {
   it('actually loads the existing SOL panel and intersects host actions with its Owner response', async () => {
     const mounted = mount(BusinessViewHost, target('PAGE'), options)
     await tick()
-    expect(RequirementApi.getCurrent).toHaveBeenCalledWith(11, undefined, undefined)
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
+    expect(RequirementApi.workspace).toHaveBeenCalledWith(11, undefined, undefined)
+    expect(RequirementApi.read).not.toHaveBeenCalled()
     expect(findByTestId(mounted.root, 'requirement-version-table')).toBeTruthy()
     expect(textOf(mounted.root)).toContain('form:old; readonly:true')
     expect(textOf(mounted.root)).not.toContain('完成并冻结当前草稿')
-    expect(RequirementApi.createInitialDraft).not.toHaveBeenCalled()
+    expect(RequirementApi.create).not.toHaveBeenCalled()
     expect(FormApi.getInstance).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it.each([
     { projectId: 12 },
-    { projectId: 11, draft: { preparationId: 91, projectId: 12 } }
+    { projectId: 11, draft: { ...requirementView(), projectId: 12 } }
   ])('rejects a foreign SOL workspace or version without fallback requests: %j', async (workspace) => {
-    vi.mocked(RequirementApi.getCurrent).mockResolvedValue({ ...workspace, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ ...workspace, allowedActions: ['CREATE_INITIAL_DRAFT'] } as any)
     const mounted = mount(BusinessViewHost, { ...target('PAGE'), allowedActions: ['CREATE_INITIAL_DRAFT', 'PATCH_FORM'] }, options)
     await tick()
     expect(textOf(mounted.root)).toContain('工作区加载失败')
     expect(textOf(mounted.root)).not.toContain('form:old')
     expect(textOf(mounted.root)).not.toContain('创建需求分析草稿')
-    expect(RequirementApi.getDetail).not.toHaveBeenCalled()
-    expect(RequirementApi.createInitialDraft).not.toHaveBeenCalled()
-    expect(RequirementApi.patchForm).not.toHaveBeenCalled()
+    expect(RequirementApi.read).not.toHaveBeenCalled()
+    expect(RequirementApi.create).not.toHaveBeenCalled()
+    expect(RequirementApi.save).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it('rejects an instance whose frozen revision differs, without fallback rendering or writes', async () => {
@@ -624,7 +611,7 @@ describe('PM-03 BusinessView runtime', () => {
     await tick()
     expect(await (mounted.vm as any).requestLeave()).toBe(false)
     expect(confirm).not.toHaveBeenCalled()
-    expect(RequirementApi.completeDraft).not.toHaveBeenCalled()
+    expect(RequirementApi.complete).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it('fails closed for unknown components without reading either business Owner', async () => {
@@ -634,7 +621,7 @@ describe('PM-03 BusinessView runtime', () => {
     await tick()
     expect(textOf(mounted.root)).toContain('尚未部署')
     expect(FormApi.getInstance).not.toHaveBeenCalled()
-    expect(RequirementApi.getCurrent).not.toHaveBeenCalled()
+    expect(RequirementApi.workspace).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
   it('preserves stopped registrations as readonly historical views', () => {

@@ -44,6 +44,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProjectStageCompletionService {
     @jakarta.annotation.Resource
+    private ProjectCurrentStageService currentStages;
+    @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
@@ -86,7 +88,7 @@ public class ProjectStageCompletionService {
         boolean unknown = false;
         for (var stage : stageRows) {
             if (!"ACTIVE".equals(stage.getStatus())) continue;
-            var definitions = snapshot.getStages().stream().filter(node -> stage.getStageCode().equals(node.getCode())).toList();
+            var definitions = snapshot.getStages().stream().filter(node -> stage.getCode().equals(node.getCode())).toList();
             var current = rounds.stream().filter(round -> "STAGE".equals(round.getNodeKind())
                     && stage.getId().equals(round.getNodeInstanceId()) && plan.getId().equals(round.getPlanVersionId())).toList();
             if (definitions.size() != 1 || current.size() != 1 || !"ACTIVE".equals(current.getFirst().getStatus())) { unknown = true; continue; }
@@ -118,13 +120,13 @@ public class ProjectStageCompletionService {
                     ownerLinks = owner.facts().links();
                 }
             }
-            boolean unfinishedWork = tasks.stream().filter(task -> stage.getStageCode().equals(task.getStageCode()))
+            boolean unfinishedWork = tasks.stream().filter(task -> stage.getCode().equals(task.getStageCode()))
                     .anyMatch(task -> (task.getActualStartTime() != null || startedTasks.contains(task.getId()) || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                             && !Set.of("DONE", "CLOSED").contains(task.getStatus()));
             if (unfinishedWork) continue;
             var processRefs = gateRefs.stream().filter(ref -> "PROCESS".equals(ref.getRefType()) || "APPROVAL".equals(ref.getRefType()))
                     .filter(ref -> gates.stream().anyMatch(gate -> Objects.equals(gate.getId(), ref.getGateId())
-                            && Objects.equals(gate.getStageCode(), stage.getStageCode())))
+                            && Objects.equals(gate.getStageCode(), stage.getCode())))
                     .map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO::getId)
                     .collect(java.util.stream.Collectors.toSet());
             if (!processRefs.isEmpty()) {
@@ -143,20 +145,21 @@ public class ProjectStageCompletionService {
             } catch (RuntimeException invalidDefinition) { unknown = true; continue; }
             unknown |= completion.outcome() == RuleEvaluation.Outcome.UNKNOWN || exit.outcome() == RuleEvaluation.Outcome.UNKNOWN;
             if (!completion.matched() || !exit.matched()) continue;
-            var now = LocalDateTime.now();
+            var now = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
             String evidence = JsonUtils.toJsonString(new StageCompletionEvidence(round.getId(), plan.getId(), completion, exit,
                     ownerLinks.stream().map(link -> new StageCompletionEvidence.BusinessResult(link.id(),binding.getTargetContextCode(),
                             binding.getTargetObjectType(),link.objectId(),link.factVersion())).toList(),
                     cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval));
             if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(), stage.getVersion(),
-                    "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString())) != 1
+                    "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString(), now)) != 1
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),
                     round.getVersion(), now, evidence)) != 1) throw new IllegalStateException("STAGE_COMPLETION_VERSION_CONFLICT");
             timers.scheduleFromNode(projectId, "STAGE", stage.getId());
-            audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_COMPLETED", "PROJECT_STAGE", stage.getId().toString(),
+            audit.record(tenantId, actorId == null ? 0L : actorId, correlationId, "PROJECT_STAGE_COMPLETED", "PROJECT_STAGE", stage.getId().toString(),
                     "SUCCESS", Map.of("projectId", projectId, "executionId", round.getId(), "roundNo", round.getRoundNo(), "planVersionId", plan.getId()));
             completed++;
         }
+        if (completed > 0) currentStages.synchronize(projectId);
         return new Completion(completed, unknown);
     }
 

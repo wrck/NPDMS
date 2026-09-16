@@ -16,6 +16,21 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectRuleOutboxDeliveryJobTest {
+    @Test void concurrentRecoveryCasLoserDoesNotAbortTheNextIndependentEvent() {
+        TenantContextHolder.setTenantId(7L);
+        var outbox = mock(PlatformOutboxDeliveryApi.class);
+        var coordinator = mock(ProjectRuntimeCoordinator.class);
+        var first = new ProjectRuleReevaluation(7L, 9L, 11L, "first").event();
+        var second = new ProjectRuleReevaluation(7L, 10L, 11L, "second").event();
+        when(outbox.claimDue(any())).thenReturn(List.of(
+                new PlatformOutboxMessageDTO(first.eventId(), first.eventType(), first.eventPayload(), 0, 7L, LocalDateTime.now()),
+                new PlatformOutboxMessageDTO(second.eventId(), second.eventType(), second.eventPayload(), 0, 7L, LocalDateTime.now())));
+        when(coordinator.reevaluate(anyLong(), anyLong(), anyString())).thenReturn(new ProjectRuntimeCoordinator.Result(false, 0, 0));
+        doThrow(new IllegalStateException("OUTBOX_DELIVERY_CAS_CONFLICT")).when(outbox).markDelivered(first.eventId(), 0);
+        new ProjectRuleOutboxDeliveryJob(outbox, coordinator, mock(ProjectRuleTimerDelivery.class)).execute("");
+        verify(outbox).markDelivered(second.eventId(), 0);
+        verify(outbox, never()).scheduleRetry(anyString(), anyInt(), any());
+    }
     @Test void childClosureWakeupUsesDedicatedDeliveryAndRetriesUnknownWithoutConsumingNotifications() {
         TenantContextHolder.setTenantId(7L);
         var outbox = mock(PlatformOutboxDeliveryApi.class);

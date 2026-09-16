@@ -20,28 +20,37 @@
           @update:model-value="bind(input.variable, $event)"
         >
           <el-option
-            v-for="field in fields"
+            v-for="field in availableFields"
             :key="field.code"
             :value="field.code"
             :label="field.label"
           />
+          <el-option
+            v-if="unavailableBinding(input.variable)"
+            :value="modelValue.inputFields[input.variable]"
+            :label="`${modelValue.inputFields[input.variable]}（不可用，原绑定已保留）`"
+            disabled
+          />
         </el-select>
+        <span v-if="unavailableBinding(input.variable)" role="alert"
+          >此输入字段不适用于当前规则引用位置，请重新绑定开放字段。</span>
       </el-form-item>
     </el-form>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 import type DmnManager from 'dmn-js/lib/Modeler'
 import type { DecisionTableDefinition, RuleField } from '@/api/pms/project/project-templates/rules'
 import { getRuleFields } from '@/api/pms/project/project-templates/rules'
+import { ruleCreationOnlyKey } from './versionRuleModel'
 import 'dmn-js/dist/assets/diagram-js.css'
 import 'dmn-js/dist/assets/dmn-js-shared.css'
 import 'dmn-js/dist/assets/dmn-js-decision-table.css'
 import 'dmn-js/dist/assets/dmn-js-decision-table-controls.css'
 import 'dmn-js/dist/assets/dmn-font/css/dmn.css'
-const props = defineProps<{ modelValue: DecisionTableDefinition; readonly?: boolean }>()
+const props = defineProps<{ modelValue: DecisionTableDefinition; readonly?: boolean; creationOnly?: boolean }>()
 const emit = defineEmits<{
   'update:modelValue': [value: DecisionTableDefinition]
   outputs: [value: { name: string; type: string }[]]
@@ -50,6 +59,11 @@ const container = ref<HTMLElement>()
 const loading = ref(false)
 const failure = ref('')
 const fields = ref<RuleField[]>([])
+const inheritedCreationOnly = inject(ruleCreationOnlyKey, computed(() => false))
+const availableFields = computed(() => fields.value.filter(field =>
+  !(props.creationOnly || inheritedCreationOnly.value) || field.availableAtCreation))
+const unavailableBinding = (variable: string) => !!props.modelValue.inputFields[variable]
+  && !availableFields.value.some(field => field.code === props.modelValue.inputFields[variable])
 const inputs = ref<{ variable: string; label: string }[]>([])
 let manager: DmnManager | undefined
 let importing = false
@@ -127,7 +141,7 @@ const load = async () => {
     await instance.open(view)
     if (current !== generation || instance !== manager) return
     lastXml = source.xml
-    if (!props.readonly && !fields.value.length) {
+    if (!fields.value.length) {
       const availableFields = await getRuleFields()
       if (current === generation) fields.value = availableFields
     }
@@ -141,7 +155,7 @@ const load = async () => {
   }
 }
 const bind = (variable: string, field: string) => {
-  if (props.readonly || importing) return
+  if (props.readonly || importing || !availableFields.value.some(item => item.code === field)) return
   publish({
     ...props.modelValue,
     inputFields: { ...props.modelValue.inputFields, [variable]: field }

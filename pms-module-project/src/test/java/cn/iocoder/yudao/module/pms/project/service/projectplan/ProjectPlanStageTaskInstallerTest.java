@@ -87,8 +87,8 @@ class ProjectPlanStageTaskInstallerTest {
         assertTrue(result.tasksChanged()); assertEquals(2,result.continuing().size()); assertTrue(result.removed().isEmpty());
         assertTrue(result.continuing().stream().anyMatch(row -> row.executionId()==120L && row.newContractId()==30L));
         var added = ArgumentCaptor.forClass(ProjectTaskInstanceDO.class); verify(tasks,times(2)).insert(added.capture());
-        var child = added.getAllValues().stream().filter(row -> "T3".equals(row.getTaskCode())).findFirst().orElseThrow();
-        var parent = added.getAllValues().stream().filter(row -> "T2".equals(row.getTaskCode())).findFirst().orElseThrow();
+        var child = added.getAllValues().stream().filter(row -> "T3".equals(row.getCode())).findFirst().orElseThrow();
+        var parent = added.getAllValues().stream().filter(row -> "T2".equals(row.getCode())).findFirst().orElseThrow();
         assertEquals(parent.getId(),child.getParentTaskId()); assertEquals(parent.getId(),child.getRootTaskId()); assertEquals(1,child.getTreeDepth());
         assertEquals("PENDING_ASSIGN",child.getStatus()); assertEquals(73L,child.getStateMachineRevisionId());
         verify(executions,times(3)).insert(any(ProjectNodeExecutionDO.class)); verify(projections,never()).updateTaskDefinition(any());
@@ -133,7 +133,7 @@ class ProjectPlanStageTaskInstallerTest {
         after.getTasks().getFirst().setStageCode("RENAMED"); after.getTasks().getFirst().setCode("RENAMED_TASK");
         var result = install(after);
         var order = inOrder(projections); order.verify(projections).stageCodeForRename(any()); order.verify(projections).taskCodeForRename(any());
-        order.verify(projections).updateStageDefinition(argThat(row -> row.id()==11L && "RENAMED".equals(row.definition().getStageCode())));
+        order.verify(projections).updateStageDefinition(argThat(row -> row.id()==11L && "RENAMED".equals(row.definition().getCode())));
         order.verify(projections).updateTaskDefinition(argThat(row -> row.id()==20L && row.expectedVersion()==5 && "运行中实际说明".equals(row.definition().getDescription())));
         assertEquals(120L,result.continuing().stream().filter(row -> row.expectedContractId()==30L).findFirst().orElseThrow().executionId());
         assertEquals("IN_PROGRESS",actual.getTasks().getFirst().getStatus()); assertNotNull(actual.getTasks().getFirst().getActualStartTime());
@@ -156,6 +156,7 @@ class ProjectPlanStageTaskInstallerTest {
     }
     @Test void preservesRunningApprovalReferenceWhenOnlyItsPermissionContractChanges() {
         var node = before.getTasks().getFirst(); node.getBinding().setType("APPROVAL"); node.getBinding().setApprovalDefinitionKey("existing-process");
+        node.getBinding().setParameters(JsonUtils.parseTree("{\"processDefinitionId\":\"existing-process:1:99\"}"));
         node.setCompletionRule(before.getStages().getFirst().getCompletionRule());
         taskContract = taskFactory.create(20L,null,before.toRuntimeContent().getTasks().getFirst(),now.minusDays(2));
         taskContract.setId(30L); taskContract.setTenantId(1L); taskContract.setApprovalInstanceId(99L);
@@ -179,7 +180,7 @@ class ProjectPlanStageTaskInstallerTest {
         when(satisfactionTemplates.resolvePublished(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact(
                 "FOUND",81L,82L,3,"rule-v2",new java.math.BigDecimal("90")));
         install(after);
-        verify(tasks).insert(argThat((ProjectTaskInstanceDO row) -> "SATISFACTION".equals(row.getTaskCode())
+        verify(tasks).insert(argThat((ProjectTaskInstanceDO row) -> "SATISFACTION".equals(row.getCode())
                 && row.getAccSatisfactionTemplateId()==81L && row.getTemplateRevisionId()==82L
                 && row.getTemplateVersion()==3 && "rule-v2".equals(row.getSatisfactionRuleVersion())
                 && new java.math.BigDecimal("90").equals(row.getSatisfactionThreshold())));
@@ -242,7 +243,7 @@ class ProjectPlanStageTaskInstallerTest {
         parent.setNodeKey("task:parent"); parent.setCode("T2");
         before.setTasks(new ArrayList<>(before.getTasks())); before.getTasks().add(parent);
         var row=JsonUtils.parseObject(JsonUtils.toJsonString(actual.getTasks().getFirst()),ProjectTaskInstanceDO.class);
-        row.setId(21L); row.setTaskCode("T2"); row.setParentTaskId(null); row.setRootTaskId(21L); row.setTreeDepth(0);
+        row.setId(21L); row.setCode("T2"); row.setParentTaskId(null); row.setRootTaskId(21L); row.setTreeDepth(0);
         actual.getTasks().add(row);
         actual.getTasks().getFirst().setParentTaskId(21L); actual.getTasks().getFirst().setRootTaskId(21L);
         actual.getTasks().getFirst().setTreeDepth(1); actual.getTasks().getFirst().setParentTaskCode("T2");

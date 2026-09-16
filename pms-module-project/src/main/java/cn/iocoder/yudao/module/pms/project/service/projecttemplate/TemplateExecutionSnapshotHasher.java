@@ -56,6 +56,7 @@ final class TemplateExecutionSnapshotHasher {
 
     private static Map<String, Object> semanticStage(TemplateExecutionSnapshot.StageContract row) {
         Map<String, Object> map = baseNode(row.getNodeKey(), row.getCode(), row.getName());
+        map.put("lifecycleStage", row.getLifecycleStage());
         map.put("sortOrder", row.getSortOrder());
         map.put("entryCriteria", row.getEntryCriteria());
         map.put("exitCriteria", row.getExitCriteria());

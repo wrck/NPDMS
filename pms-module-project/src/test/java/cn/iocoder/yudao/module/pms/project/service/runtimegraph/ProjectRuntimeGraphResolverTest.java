@@ -48,9 +48,9 @@ class ProjectRuntimeGraphResolverTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
     @Test void followsS0ToS4AndS4ToS6IndependentOfSort() {
-        assertEquals("S4", resolver.resolve(project).target().getStageCode());
+        assertEquals("S4", resolver.resolve(project).target().getCode());
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); project.setCurrentStage("S4");
-        assertEquals("S6", resolver.resolve(project).target().getStageCode());
+        assertEquals("S6", resolver.resolve(project).target().getCode());
     }
     @Test void terminalIsOnlyAReadResultNotProjectClosure() {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
@@ -91,7 +91,7 @@ class ProjectRuntimeGraphResolverTest {
                 new ProjectRuntimeRuleEvaluator.Facts(project, stages.getFirst(), List.of(), List.of(), List.of(), true)));
     }
     private ProjectStageInstanceDO stage(Long id, String code, int sort, boolean start, boolean terminal) {
-        var s = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setStageCode(code).setSortOrder(sort)
+        var s = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setCode(code).setSortOrder(sort)
                 .setStatus(start ? "ACTIVE" : "PENDING").setGraphVersion(1L).setStartNode(start).setTerminalNode(terminal)
                 .setDefinitionRevisionId(id + 200);
         s.setTenantId(7L); return s;

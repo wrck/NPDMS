@@ -129,8 +129,8 @@ class ProjectRuntimeGraphFreezerTest {
     }
 
     private List<ProjectStageInstanceDO> stages() {
-        return List.of(new ProjectStageInstanceDO().setId(21L).setProjectId(9L).setStageCode("S0").setGraphVersion(1L),
-                new ProjectStageInstanceDO().setId(22L).setProjectId(9L).setStageCode("S4").setGraphVersion(1L));
+        return List.of(new ProjectStageInstanceDO().setId(21L).setProjectId(9L).setCode("S0").setGraphVersion(1L),
+                new ProjectStageInstanceDO().setId(22L).setProjectId(9L).setCode("S4").setGraphVersion(1L));
     }
 
     private TemplateExecutionSnapshot snapshot() {

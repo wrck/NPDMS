@@ -18,12 +18,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Shared automatic admission command. Admission is not START, assignment or a business submission. */
+/** Shared automatic admission and task START; business submission remains an Owner command. */
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskAdmissionService {
     @jakarta.annotation.Resource
     private ProjectRuleTimerScheduler timers;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService lifecycle;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectTaskExecutionContractMapper contracts;
     private final ProjectNodeExecutionMapper executions;
@@ -48,8 +50,10 @@ public class ProjectTaskAdmissionService {
                 || rounds.size() != 1) return new Result(false, true);
         var round = rounds.getFirst();
         // Completed history can intentionally belong to an older plan. Never admit or rewrite it.
-        if (Set.of("ACTIVE", "DONE", "TERMINATED").contains(round.getStatus())) return new Result(false, false);
-        if (!"PENDING".equals(round.getStatus()) || !project.getActivePlanVersionId().equals(round.getPlanVersionId()))
+        if (Set.of("DONE", "TERMINATED").contains(round.getStatus())) return new Result(false, false);
+        if ("ACTIVE".equals(round.getStatus()) && !Set.of("PENDING_ASSIGN", "PENDING_START").contains(task.getStatus()))
+            return new Result(false, false);
+        if (!Set.of("PENDING", "ACTIVE").contains(round.getStatus()) || !project.getActivePlanVersionId().equals(round.getPlanVersionId()))
             return new Result(false, true);
         var contract = contracts.selectCurrentByTaskIdForUpdate(new CurrentTaskExecutionContractLockQuery(tenant, taskId));
         if (contract == null || !tenant.equals(contract.getTenantId()) || !taskId.equals(contract.getProjectTaskId())
@@ -58,11 +62,14 @@ public class ProjectTaskAdmissionService {
         var fact = rules.taskAdmissionFact(project, task, contract);
         if (!fact.available()) return new Result(false, true);
         if (!Boolean.TRUE.equals(fact.value())) return new Result(false, false);
+        if ("ACTIVE".equals(round.getStatus()))
+            return new Result(lifecycle.startAdmittedTask(project, task, contract, correlationId), false);
         if (executions.activateIfPending(new ProjectNodeExecutionMapper.Activation(tenant, projectId,
                 round.getPlanVersionId(), taskId, "TASK", LocalDateTime.now())) != 1)
             throw new IllegalStateException("TASK_ADMISSION_ROUND_CONFLICT");
         timers.scheduleFromNode(projectId, "TASK", taskId);
-        audit.record(tenant, null, correlationId, "PROJECT_TASK_ADMITTED", "ProjectTask", taskId.toString(), "SUCCESS",
+        lifecycle.startAdmittedTask(project, task, contract, correlationId);
+        audit.record(tenant, 0L, correlationId, "PROJECT_TASK_ADMITTED", "ProjectTask", taskId.toString(), "SUCCESS",
                 Map.of("planVersionId", round.getPlanVersionId(), "executionId", round.getId(),
                         "contractId", contract.getId(), "nodeKey", round.getNodeKey(),
                         "ruleVersionRef", "plan:" + round.getPlanVersionId() + ":task:" + taskId + ":admission"));

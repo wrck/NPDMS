@@ -32,6 +32,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ProjectStageAdmissionService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService currentStages;
+    @jakarta.annotation.Resource
     private ProjectRuleTimerScheduler timers;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectRuntimeGraphMapper graph;
@@ -102,14 +104,15 @@ public class ProjectStageAdmissionService {
             }
             // A failed rule blocks only this node. Persistence/audit failures still roll back the transaction.
             if (evaluation.matched()) {
+                var occurredAt = java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
                 if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(),
-                        stage.getVersion(), "PENDING", "ACTIVE", actorId == null ? "project-rules" : actorId.toString())) != 1)
+                        stage.getVersion(), "PENDING", "ACTIVE", actorId == null ? "project-rules" : actorId.toString(), occurredAt)) != 1)
                     throw new IllegalStateException("STAGE_ACTIVATION_VERSION_CONFLICT");
                 if (executions.activateIfPending(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.Activation(
-                        tenantId, projectId, project.getActivePlanVersionId(), stage.getId(), "STAGE", java.time.LocalDateTime.now())) != 1)
+                        tenantId, projectId, project.getActivePlanVersionId(), stage.getId(), "STAGE", occurredAt)) != 1)
                     throw new IllegalStateException("STAGE_EXECUTION_ROUND_CONFLICT");
                 timers.scheduleFromNode(projectId, "STAGE", stage.getId());
-                audit.record(tenantId, actorId, correlationId, "PROJECT_STAGE_ACTIVATED", "PROJECT_STAGE", stage.getId().toString(),
+                audit.record(tenantId, actorId == null ? 0L : actorId, correlationId, "PROJECT_STAGE_ACTIVATED", "PROJECT_STAGE", stage.getId().toString(),
                         "SUCCESS", Map.of("projectId", projectId, "stageId", stage.getId(), "nodeKey", contract.getSourceNodeKey(),
                                 "graphVersion", contract.getGraphVersion(), "contractId", contract.getId(), "ruleVersionRef", version,
                                 "conditions", evaluation.conditions(), "components", evaluation.steps()));
@@ -117,6 +120,7 @@ public class ProjectStageAdmissionService {
             results.add(new StageAdmission(stage.getId(), contract.getSourceNodeKey(), evaluation.outcome(),
                     evaluation.reasonCode(), evaluation.matched()));
         }
+        if (results.stream().anyMatch(StageAdmission::activated)) currentStages.synchronize(projectId);
         return List.copyOf(results);
     }
 
@@ -128,7 +132,7 @@ public class ProjectStageAdmissionService {
                 || contract.getEffectiveTo() != null || contract.getSourceNodeKey() == null)
             throw new IllegalArgumentException("STAGE_CONTRACT_STALE");
         var definitions = snapshot.getStages().stream().filter(node -> contract.getSourceNodeKey().equals(node.getNodeKey())
-                && stage.getStageCode().equals(node.getCode())).toList();
+                && stage.getCode().equals(node.getCode())).toList();
         if (definitions.size() != 1) throw new IllegalArgumentException("STAGE_DEFINITION_UNAVAILABLE");
         String key = definitions.getFirst().getAdmissionRuleKey();
         if (key == null || key.isBlank())
@@ -155,7 +159,7 @@ public class ProjectStageAdmissionService {
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || !Objects.equals(project.getId(), task.getProjectId())
                 || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return admissionUnavailable();
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
-        var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stage.getStageCode(), task.getStageCode())).toList();
+        var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stage.getCode(), task.getStageCode())).toList();
         if (parents.size() != 1) return admissionUnavailable();
         if (!"ACTIVE".equals(parents.getFirst().getStatus())) return RuleFact.known(false);
         var parent = parents.getFirst();
@@ -168,7 +172,7 @@ public class ProjectStageAdmissionService {
             if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return admissionUnavailable();
             var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
             var definitions = snapshot.getTasks().stream().filter(node -> taskContract.getSourceNodeKey().equals(node.getNodeKey())
-                    && task.getTaskCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
+                    && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
             if (definitions.size() != 1) return admissionUnavailable();
             String key = definitions.getFirst().getAdmissionRuleKey();
             if (key == null || key.isBlank()) return RuleFact.known(true);

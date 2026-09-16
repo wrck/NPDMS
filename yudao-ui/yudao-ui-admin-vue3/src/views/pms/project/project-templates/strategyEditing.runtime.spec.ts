@@ -10,17 +10,20 @@ vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: () => true }))
 vi.mock('@/api/pms/project/project-templates/directBinding', () => ({ createBindingSaveSession: () => new Map(), prepareTaskBinding: vi.fn() }))
 vi.mock('@/api/pms/project/project-templates/designerAssets', () => ({}))
-vi.mock('./TemplateFlowCanvas.vue', () => ({ default: { render: () => null } }))
+vi.mock('./TemplateFlowCanvas.vue', () => ({ default: defineComponent({
+  props: ['nodes'], emits: ['select'],
+  setup: (props, { emit }) => () => h('button', { onClick: () => emit('select', props.nodes[0].key) }, '选择阶段')
+}) }))
 vi.mock('./RuleSlotEditor.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RuleSimulationPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./DefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('./TaskBindingEditor.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ApprovalDefinitionSelect.vue', () => ({ default: { render: () => null } }))
 vi.mock('./DecisionTableEditor.vue', () => ({ default: defineComponent({
-  props: { modelValue: Object, readonly: Boolean }, emits: ['update:modelValue'],
+  props: { modelValue: Object, readonly: Boolean, creationOnly: Boolean }, emits: ['update:modelValue'],
   setup: (props, { emit, expose }) => {
     expose({ flush: dialogs.flush })
-    return () => h('button', { disabled: props.readonly,
+    return () => h('button', { disabled: props.readonly, 'data-creation-only': props.creationOnly,
       onClick: () => emit('update:modelValue', { ...props.modelValue, xml: 'edited-xml' }) }, '修改策略表')
   }
 }) }))
@@ -56,6 +59,43 @@ const setup = async () => {
 beforeEach(() => {
   dialogs.confirm.mockReset().mockResolvedValue(undefined)
   dialogs.flush.mockReset().mockResolvedValue(undefined)
+})
+
+it('edits the lifecycle binding without introducing execution fields into template configuration', async () => {
+  const page = await setup()
+  try {
+    page.state.content.stages.push({ nodeKey: 'custom', code: 'PREP_WORK', name: '工前准备', permission: {},
+      start: true, terminal: true, workBinding: { type: 'STAGE_NATIVE', parameters: {} } })
+    const mode = find(page.root, node => typeof node.props?.['onUpdate:modelValue'] === 'function')!
+    ;(mode.props!['onUpdate:modelValue'] as (mode: string) => void)('FLOW')
+    await nextTick(); await page.click('选择阶段'); await nextTick()
+    const binding = find(page.root, node => node.props?.['aria-label'] === '标准生命周期阶段')!
+    expect(binding).toBeDefined()
+    ;(binding.props!['onUpdate:modelValue'] as (value: string) => void)('S1')
+    await nextTick()
+    const saved = await page.editor.value!.prepareSave()
+    expect(saved.stages[0]).toMatchObject({ code: 'PREP_WORK', lifecycleStage: 'S1' })
+    page.state.content = JSON.parse(JSON.stringify(saved)); await nextTick()
+    await page.click('选择阶段'); await nextTick()
+    for (const label of ['建议开始', '建议结束', '计划开始', '计划结束', '偏差原因', '负责角色', '负责人']) {
+      expect(find(page.root, node => node.props?.['aria-label'] === label), label).toBeUndefined()
+    }
+    expect(find(page.root, node => node.props?.['aria-label'] === '标准生命周期阶段')?.props?.modelValue).toBe('S1')
+    page.state.content.stages[0].lifecycleStage = 'S4'
+    expect(saved.stages[0].lifecycleStage).toBe('S1')
+  } finally { page.app.unmount() }
+})
+
+it('restricts a shared decision table when it is referenced by template matching', async () => {
+  const page = await setup()
+  try {
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(false)
+    page.state.content.matchRuleKey = 'condition'; await nextTick()
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(true)
+    expect(textOf(page.root)).toContain('模板适用条件')
+    await page.click('确认影响并编辑共享策略'); await nextTick()
+    expect(page.button('修改策略表').props?.['data-creation-only']).toBe(true)
+  } finally { page.app.unmount() }
 })
 
 it('requires shared confirmation, preserves normal editing and invalidates it when another consumer is added', async () => {

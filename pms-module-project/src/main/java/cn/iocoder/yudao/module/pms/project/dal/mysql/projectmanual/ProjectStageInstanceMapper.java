@@ -30,7 +30,7 @@ public interface ProjectStageInstanceMapper extends BaseMapperX<ProjectStageInst
     default ProjectStageInstanceDO selectByProjectIdAndStageCode(Long projectId, String stageCode) {
         return selectOne(new LambdaQueryWrapperX<ProjectStageInstanceDO>()
                 .eq(ProjectStageInstanceDO::getProjectId, projectId)
-                .eq(ProjectStageInstanceDO::getStageCode, stageCode));
+                .eq(ProjectStageInstanceDO::getCode, stageCode));
     }
 
     List<ProjectStageInstanceDO> selectStagePair(@Param("query") ProjectStagePairForUpdateQuery query);

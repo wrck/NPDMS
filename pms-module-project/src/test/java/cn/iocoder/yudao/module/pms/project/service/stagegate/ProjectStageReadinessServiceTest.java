@@ -296,7 +296,7 @@ class ProjectStageReadinessServiceTest {
     }
 
     private static ProjectStageInstanceDO stage(Long id, String code, int sort, boolean start, boolean terminal) {
-        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(PROJECT_ID).setStageCode(code)
+        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(PROJECT_ID).setCode(code)
                 .setSortOrder(sort).setStatus(start ? "ACTIVE" : "PENDING").setGraphVersion(1L)
                 .setDefinitionRevisionId(id + 200).setStartNode(start).setTerminalNode(terminal);
         stage.setTenantId(TENANT_ID);

@@ -33,7 +33,8 @@ class PlatformBusinessEventTransactionTest {
                 return jdbc.update("INSERT INTO outbox_result VALUES (?,?)", row.getEventId(), row.getTenantId());
             });
             var manager = new DataSourceTransactionManager(database);
-            var factory = new ProxyFactory(new PlatformTransactionalOutboxWriter(mapper));
+            var factory = new ProxyFactory(new PlatformTransactionalOutboxWriter(mapper,
+                    mock(org.springframework.context.ApplicationEventPublisher.class)));
             factory.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
             var events = (PlatformBusinessEventApi) factory.getProxy();
             var event = new BusinessEvent("rule-event-1", "ProjectRuleReevaluationRequested", "{\"eventId\":\"rule-event-1\"}");

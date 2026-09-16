@@ -45,7 +45,7 @@ class ProjectStageGateWorkbenchServiceTest {
         project.setActivePlanVersionId(51L); project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("ANOTHER_ACTIVE_STAGE");
         when(access.getProject(9L, actor)).thenReturn(project);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
-        stage = new ProjectStageInstanceDO(); stage.setId(11L); stage.setStageCode("PREP"); stage.setTenantId(7L);
+        stage = new ProjectStageInstanceDO(); stage.setId(11L); stage.setCode("PREP"); stage.setTenantId(7L);
         stage.setProjectId(9L); stage.setStatus("ACTIVE");
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         round = new ProjectNodeExecutionDO(); round.setId(61L); round.setTenantId(7L); round.setProjectId(9L);

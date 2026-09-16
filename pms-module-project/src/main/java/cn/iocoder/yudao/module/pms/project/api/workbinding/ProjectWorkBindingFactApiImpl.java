@@ -67,7 +67,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
             throw exception(PROJECT_TASK_QUERY_INVALID);
         var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
         var frozen = snapshot.getStages().stream().filter(node -> contract.getSourceNodeKey().equals(node.getNodeKey())
-                && stage.getStageCode().equals(node.getCode())).toList();
+                && stage.getCode().equals(node.getCode())).toList();
         if (frozen.size() != 1 || frozen.getFirst().getBinding() == null) throw exception(PROJECT_TASK_QUERY_INVALID);
         var binding = frozen.getFirst().getBinding();
         if (!Objects.equals(JsonUtils.parseTree(JsonUtils.toJsonString(binding)), JsonUtils.parseTree(contract.getBindingSnapshot()))

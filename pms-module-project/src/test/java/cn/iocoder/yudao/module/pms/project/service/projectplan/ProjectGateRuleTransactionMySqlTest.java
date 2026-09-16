@@ -60,7 +60,7 @@ class ProjectGateRuleTransactionMySqlTest {
             var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L);
             when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
             when(graph.selectGatesForUpdate(any())).thenAnswer(call -> List.of(gates.selectByCodeForUpdate(new ProjectGateForUpdateQuery(7L,9L,"READY"))));
-            var stage = new ProjectStageInstanceDO(); stage.setStageCode("PREP");
+            var stage = new ProjectStageInstanceDO(); stage.setCode("PREP");
             when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
             var ref = new ProjectGateReferenceInstanceDO(); ref.setId(31L); ref.setTenantId(7L); ref.setGateId(21L); ref.setRefType("TASK"); ref.setRefCode("T1"); ref.setVersion(0);
             when(references.selectOrderedForUpdate(any())).thenReturn(List.of(ref));

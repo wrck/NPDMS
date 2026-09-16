@@ -80,7 +80,7 @@ public class ProjectRuntimeGraphResolver {
         if (byStage.size() != stages.size()) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_NOT_FROZEN");
 
         ProjectStageInstanceDO current = stages.stream()
-                .filter(stage -> Objects.equals(stage.getStageCode(), project.getCurrentStage()))
+                .filter(stage -> Objects.equals(stage.getCode(), project.getCurrentStage()))
                 .findFirst().orElseThrow(() -> exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CURRENT_STAGE_MISSING"));
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(current.getStatus())
                 || stages.stream().filter(stage -> "ACTIVE".equals(stage.getStatus())).count() != 1
@@ -100,13 +100,13 @@ public class ProjectRuntimeGraphResolver {
                     || !Objects.equals(edge.getGraphVersion(), current.getGraphVersion()))
                 throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_EDGE_STALE");
             Long token = conditionToken(edge);
-            definitions.add(new StageTransitionDefinition(edge.getTransitionCode(), from.getStageCode(), to.getStageCode(),
+            definitions.add(new StageTransitionDefinition(edge.getTransitionCode(), from.getCode(), to.getCode(),
                     token, edge.getPriority(), edge.getIsDefault()));
             if (token != null && edgeByConditionToken.putIfAbsent(token, edge) != null)
                 throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CONDITION_IDENTITY_CONFLICT");
         }
         StageTransitionGraph graph = new StageTransitionGraph(stages.stream().map(stage -> new StageTransitionGraph.Stage(
-                stage.getStageCode(), stage.getStartNode(), stage.getTerminalNode())).toList(), definitions);
+                stage.getCode(), stage.getStartNode(), stage.getTerminalNode())).toList(), definitions);
 
         List<ProjectGateInstanceDO> allGates = locked ? mapper.selectGatesForUpdate(query) : mapper.selectGates(query);
         var referenceQuery = new ProjectGateReferenceForUpdateQuery(project.getTenantId(),
@@ -124,9 +124,9 @@ public class ProjectRuntimeGraphResolver {
             conditionFacts.add(new StageTransitionTargetResolver.ConditionFact(entry.getKey(), evaluator.evaluate(rule, facts)));
         }
         StageTransitionTargetResolver.Result transition = StageTransitionTargetResolver.resolve(
-                graph, current.getStageCode(), conditionFacts);
+                graph, current.getCode(), conditionFacts);
         ProjectStageInstanceDO target = transition.targetStageCode() == null ? null : stages.stream()
-                .filter(stage -> stage.getStageCode().equals(transition.targetStageCode())).findFirst().orElseThrow();
+                .filter(stage -> stage.getCode().equals(transition.targetStageCode())).findFirst().orElseThrow();
         if (target != null && !"PENDING".equals(target.getStatus()))
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TARGET_STALE");
 
@@ -136,8 +136,8 @@ public class ProjectRuntimeGraphResolver {
                 new ProjectRuntimeRuleEvaluator.Facts(project, current, tasks, allGates, allRefs, true));
 
         List<ProjectGateInstanceDO> gates = allGates.stream().filter(gate ->
-                (Objects.equals(gate.getStageCode(), current.getStageCode()) && "EXIT".equals(gate.getGateType()))
-                || (target != null && Objects.equals(gate.getStageCode(), target.getStageCode()) && "ENTRY".equals(gate.getGateType())))
+                (Objects.equals(gate.getStageCode(), current.getCode()) && "EXIT".equals(gate.getGateType()))
+                || (target != null && Objects.equals(gate.getStageCode(), target.getCode()) && "ENTRY".equals(gate.getGateType())))
                 .toList();
         Set<Long> gateIds = gates.stream().map(ProjectGateInstanceDO::getId).collect(Collectors.toSet());
         List<ProjectGateReferenceInstanceDO> refs = allRefs.stream().filter(ref -> gateIds.contains(ref.getGateId())).toList();

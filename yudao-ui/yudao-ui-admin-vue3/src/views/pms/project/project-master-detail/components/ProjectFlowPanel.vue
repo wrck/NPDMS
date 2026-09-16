@@ -25,6 +25,13 @@
         <el-descriptions-item label="准出说明">
           {{ stageDetails?.exitCriteria || '未配置说明；按冻结规则判定' }}
         </el-descriptions-item>
+        <el-descriptions-item label="建议开始">{{ stageTime(stageDetails?.suggestedStartTime) }}</el-descriptions-item>
+        <el-descriptions-item label="建议结束">{{ stageTime(stageDetails?.suggestedEndTime) }}</el-descriptions-item>
+        <el-descriptions-item label="计划开始">{{ stageTime(stageDetails?.planStartTime) }}</el-descriptions-item>
+        <el-descriptions-item label="计划结束">{{ stageTime(stageDetails?.planEndTime) }}</el-descriptions-item>
+        <el-descriptions-item label="实际开始（本轮）">{{ stageTime(stageDetails?.actualStartTime) }}</el-descriptions-item>
+        <el-descriptions-item label="实际结束（本轮）">{{ stageTime(stageDetails?.actualEndTime) }}</el-descriptions-item>
+        <el-descriptions-item label="偏差原因">{{ stageDetails?.deviationReason || '未记录' }}</el-descriptions-item>
       </el-descriptions>
 
       <div class="section-title task-business-heading">
@@ -205,6 +212,7 @@ const workspace = ref<ProjectWorkspace>()
 const tasks = useFlowTaskPaging(() => props.projectId, () => props.selection?.stageCode)
 const stageTree = computed(() => taskForest(tasks.rows.value, props.selection?.stageCode || ''))
 const stageDetails = computed(() => props.instances?.stages.find(stage => stage.stageCode === props.selection?.stageCode))
+const stageTime = (value?: string) => value ? formatDate(value) : '—'
 const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
 const loadError = ref('')

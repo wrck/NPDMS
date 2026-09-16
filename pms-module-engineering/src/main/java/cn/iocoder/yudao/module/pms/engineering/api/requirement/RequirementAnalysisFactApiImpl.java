@@ -34,7 +34,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.R
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID;
 
 /** 向SCH-01公开明确完成PRE-04及其冻结PLATFORM实例事实。 */
-@Service
+// Retired PRE-04 implementation; new runtime uses RequirementAnalysisEntityFactApi.
 @RequiredArgsConstructor
 public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactApi {
     private static final DynamicFormProviderKey PROVIDER = new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");

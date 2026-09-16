@@ -813,7 +813,7 @@ import type { ProjectTaskTreeVO } from '@/api/pms/project/project-task'
 import type { ProjectRiskVO } from '@/api/pms/project/project-risk'
 import type { ProjectTeamMemberVO } from '@/api/pms/project/project-team'
 // 工程实施域
-import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
+import * as SiteSurveyApi from '@/api/pms/engineering/site-survey/entity'
 import * as RequirementApi from '@/api/pms/engineering/requirement'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
 import * as EngRiskApi from '@/api/pms/engineering/risk'

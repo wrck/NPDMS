@@ -1,5 +1,5 @@
 import request from '@/config/axios'
-import type { SiteSurveyExecutionSelection } from '@/api/pms/engineering/site-survey'
+import type { SiteSurveyExecutionSelection } from '@/api/pms/engineering/site-survey/entity'
 
 export interface OutsourceRequestVO {
   siteSurveyExecution?: SiteSurveyExecutionSelection

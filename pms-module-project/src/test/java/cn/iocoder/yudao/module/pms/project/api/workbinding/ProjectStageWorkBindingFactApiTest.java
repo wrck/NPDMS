@@ -30,7 +30,7 @@ class ProjectStageWorkBindingFactApiTest {
         when(projects.selectById(9L)).thenReturn(project);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
         stage = new ProjectStageInstanceDO(); stage.setId(90L); stage.setTenantId(1L); stage.setProjectId(9L);
-        stage.setStageCode("CUSTOM_PREP"); stage.setGraphVersion(2L); stage.setVersion(3);
+        stage.setCode("CUSTOM_PREP"); stage.setGraphVersion(2L); stage.setVersion(3);
         var binding = new TemplateExecutionSnapshot.BindingContract();
         binding.setType("BUSINESS_OBJECT"); binding.setTargetContextCode("SOL");
         binding.setTargetObjectType("REQUIREMENT_ANALYSIS"); binding.setTargetObjectKey("PRE_04_REQUIREMENT_ANALYSIS");

@@ -80,6 +80,22 @@
                 @keyup.enter="renameCode(codeDraft)"
             /></el-form-item>
             <template v-if="selected.kind === 'STAGE'"
+              ><el-form-item label="标准生命周期阶段" required>
+                <el-select
+                  v-model="(selected.node as DesignerStageNode).lifecycleStage"
+                  aria-label="标准生命周期阶段"
+                  placeholder="请选择标准生命周期阶段"
+                >
+                  <el-option
+                    v-for="item in lifecycleStages"
+                    :key="item.code"
+                    :value="item.code"
+                    :label="`${item.code} ${item.name}`"
+                  />
+                </el-select>
+                <span class="field-hint"
+                  >用于项目当前阶段汇总，不限制自定义阶段的并行办理。</span
+                > </el-form-item
               ><el-form-item label="终点"
                 ><el-switch v-model="(selected.node as DesignerStageNode).terminal" /><span
                   class="field-hint"
@@ -275,6 +291,7 @@
                 :key="selectedRule.key"
                 :model-value="selectedRule.decision"
                 :readonly="strategyReadonly"
+                :creation-only="ruleUsedForMatching(content, selectedRule.key)"
                 @update:model-value="updateStrategy" /><RuleSimulationPanel
                 :rule-key="selectedRule.key"
                 :rules="content.rules ?? []" /></template
@@ -319,7 +336,7 @@ import {
   projectTransitions,
   toCanvasNode
 } from './templateCanvasModel'
-import { constantRule, copyVersionRule, createVersionRule, ruleUses } from './versionRuleModel'
+import { constantRule, copyVersionRule, createVersionRule, ruleUsedForMatching, ruleUses } from './versionRuleModel'
 import RuleSlotEditor from './RuleSlotEditor.vue'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import DecisionTableEditor from './DecisionTableEditor.vue'
@@ -354,6 +371,15 @@ const failure = ref('')
 const strategyEditor = ref<InstanceType<typeof DecisionTableEditor>>()
 const pendingBindings = reactive(new Map<string, BindingSelection>())
 let session = createBindingSaveSession()
+const lifecycleStages = [
+  { code: 'S0', name: '项目立项与指派' },
+  { code: 'S1', name: '工前准备' },
+  { code: 'S2', name: '施工计划' },
+  { code: 'S3', name: '实施方案编审' },
+  { code: 'S4', name: '实施部署' },
+  { code: 'S5', name: '验收交维' },
+  { code: 'S6', name: '项目闭环' }
+]
 const kindNames = {
   STAGE: '阶段',
   TASK: '任务',

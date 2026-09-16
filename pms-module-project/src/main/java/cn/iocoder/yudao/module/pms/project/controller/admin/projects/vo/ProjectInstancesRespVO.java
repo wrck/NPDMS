@@ -1,5 +1,10 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo;
 
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.ext.javatime.deser.LocalDateTimeDeserializer;
+import tools.jackson.databind.ext.javatime.ser.LocalDateTimeSerializer;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -39,7 +44,7 @@ public class ProjectInstancesRespVO {
 
     @Data
     public static class StageItem {
-        @Schema(description = "阶段码（S0～S6）")
+        @Schema(description = "模板自定义阶段码，与标准生命周期绑定独立")
         private String stageCode;
         @Schema(description = "阶段名称（快照）")
         private String name;
@@ -49,6 +54,25 @@ public class ProjectInstancesRespVO {
         private String entryCriteria;
         @Schema(description = "准出条件说明（快照）")
         private String exitCriteria;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime suggestedStartTime;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime suggestedEndTime;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime planStartTime;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime planEndTime;
+        private String deviationReason;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime actualStartTime;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime actualEndTime;
         @Schema(description = "阶段实例状态")
         private String status;
     }

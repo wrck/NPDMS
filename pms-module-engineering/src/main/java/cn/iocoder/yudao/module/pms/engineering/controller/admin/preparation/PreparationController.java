@@ -17,9 +17,6 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationSourceRefreshReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationWaiverReqVO;
-import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisActionReqVO;
-import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisCreateReqVO;
-import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisFormPatchReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
@@ -31,7 +28,6 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.Prepa
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewResult;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessResult;
-import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormCommandService;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisQueryService;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
@@ -78,7 +74,6 @@ public class PreparationController {
     private final PreparationWaiverService waiverService;
     private final RequirementAnalysisQueryService requirementQueryService;
     private final RequirementAnalysisDynamicFormQueryService dynamicRequirementQueryService;
-    private final RequirementAnalysisDynamicFormCommandService dynamicRequirementCommandService;
     private final Environment environment;
 
     @GetMapping
@@ -99,21 +94,6 @@ public class PreparationController {
                     : dynamicRequirementQueryService.getWorkspace(projectId, dynamicRequirementActor(), stageId, taskId)));
         }
         return withTrustedTenant(() -> success(queryService.getCurrent(projectId, type, actor())));
-    }
-
-    @PostMapping
-    @Operation(summary = "创建首个需求分析草稿")
-    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
-    public CommonResult<RequirementAnalysisDynamicFormCommandService.CommandResult> createRequirementAnalysis(
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @Valid @RequestBody RequirementAnalysisCreateReqVO request) {
-        if (!RequirementAnalysisQueryService.TYPE_ALIAS.equals(request.getType())
-                && !RequirementAnalysisQueryService.TYPE.equals(request.getType())) {
-            throw exception(PREPARATION_COMMAND_INVALID);
-        }
-        return withTrustedTenant(() -> success(dynamicRequirementCommandService.createInitial(
-                new RequirementAnalysisDynamicFormCommandService.CreateCommand(
-                        request.getProjectId(), idempotencyKey, request.getExecution()), dynamicRequirementCommandActor())));
     }
 
     @GetMapping("/{id}")
@@ -168,20 +148,6 @@ public class PreparationController {
         });
     }
 
-    @PatchMapping("/{id}/form")
-    @Operation(summary = "保存需求分析动态表单普通值")
-    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
-    public CommonResult<RequirementAnalysisDynamicFormCommandService.CommandResult> patchRequirementForm(
-            @PathVariable("id") @Positive Long id,
-            @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("X-SOL-If-Match") String solIfMatch,
-            @Valid @RequestBody RequirementAnalysisFormPatchReqVO request) {
-        return withTrustedTenant(() -> success(dynamicRequirementCommandService.patch(
-                new RequirementAnalysisDynamicFormCommandService.PatchCommand(id, parseVersion(solIfMatch),
-                        parseVersion(ifMatch), request.getValues(), UUID.randomUUID().toString(), request.getExecution()),
-                dynamicRequirementCommandActor())));
-    }
-
     @PostMapping(value = "/{id}/actions/submit", params = "!type")
     @Operation(summary = "提交并冻结当前工勘准备版本")
     @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
@@ -190,38 +156,6 @@ public class PreparationController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody PreparationReviewReqVO request) {
         return review(id, null, PreparationReviewCommand.SUBMIT, ifMatch, idempotencyKey, request);
-    }
-
-    @PostMapping(value = "/{id}/actions/submit", params = "type=PRE_04")
-    @Operation(summary = "完成并冻结需求分析版本")
-    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
-    public CommonResult<RequirementAnalysisDynamicFormCommandService.CommandResult> completeRequirementAnalysis(
-            @PathVariable("id") @Positive Long id,
-            @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("X-SOL-If-Match") String solIfMatch,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody(required = false) RequirementAnalysisActionReqVO request) {
-        return withTrustedTenant(() -> success(dynamicRequirementCommandService.complete(
-                new RequirementAnalysisDynamicFormCommandService.CompleteCommand(id, parseVersion(solIfMatch),
-                        parseVersion(ifMatch), idempotencyKey, request == null ? null : request.getExecution()), dynamicRequirementCommandActor())));
-    }
-
-    @PostMapping("/{id}/actions/create-draft")
-    @Operation(summary = "从当前有效完成版创建需求分析修订草稿")
-    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
-    public CommonResult<RequirementAnalysisDynamicFormCommandService.CommandResult> createRequirementAnalysisRevision(
-            @PathVariable("id") @Positive Long id,
-            @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("X-SOL-If-Match") String solIfMatch,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestBody(required = false) RequirementAnalysisActionReqVO request) {
-        return withTrustedTenant(() -> {
-            var source = dynamicRequirementQueryService.getDetail(id, dynamicRequirementActor());
-            return success(dynamicRequirementCommandService.createRevision(
-                    new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(id,
-                            source.getDynamicFormInstanceId(), parseVersion(solIfMatch), parseVersion(ifMatch),
-                            idempotencyKey, request == null ? null : request.getExecution()), dynamicRequirementCommandActor()));
-        });
     }
 
     @GetMapping("/{id}/compare")
@@ -381,12 +315,7 @@ public class PreparationController {
                 TenantContextHolder.getRequiredTenantId(), actorId);
     }
 
-    private RequirementAnalysisDynamicFormCommandService.Actor dynamicRequirementCommandActor() {
-        Long actorId = SecurityFrameworkUtils.getLoginUserId();
-        if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
-        return new RequirementAnalysisDynamicFormCommandService.Actor(
-                TenantContextHolder.getRequiredTenantId(), actorId, UUID.randomUUID().toString());
-    }
+
 
     private Integer parseVersion(String value) {
         try {

@@ -83,7 +83,7 @@ class ProjectPlanProjectionMySqlTest {
                 assertEquals(1,mapper.updateStageDefinition(new ProjectPlanProjectionMapper.StageDefinitionUpdate(1L,9L,11L,0,stage("B"),"1")));
                 assertEquals(1,mapper.updateStageDefinition(new ProjectPlanProjectionMapper.StageDefinitionUpdate(1L,9L,12L,0,stage("A"),"1")));
                 assertEquals(1,mapper.taskCodeForRename(new ProjectPlanProjectionMapper.NodeProjectionChange(1L,9L,20L,0,"1")));
-                var task = new ProjectTaskInstanceDO(); task.setTaskCode("RENAMED"); task.setName("新任务名"); task.setStageCode("B"); task.setRootTaskId(20L); task.setTreeDepth(0); task.setPriority(2); task.setSortOrder(0);
+                var task = new ProjectTaskInstanceDO(); task.setCode("RENAMED"); task.setName("新任务名"); task.setStageCode("B"); task.setRootTaskId(20L); task.setTreeDepth(0); task.setPriority(2); task.setSortOrder(0);
                 task.setAccSatisfactionTemplateId(81L); task.setTemplateRevisionId(82L); task.setTemplateVersion(3);
                 task.setSatisfactionRuleVersion("frozen-v2"); task.setSatisfactionThreshold(new java.math.BigDecimal("90"));
                 assertEquals(1,mapper.updateTaskDefinition(new ProjectPlanProjectionMapper.TaskDefinitionUpdate(1L,9L,20L,0,task,"1")));
@@ -109,7 +109,7 @@ class ProjectPlanProjectionMySqlTest {
         }
     }
     private ProjectStageInstanceDO stage(String code) {
-        var row = new ProjectStageInstanceDO(); row.setStageCode(code); row.setName("阶段"+code); row.setSortOrder(0); return row;
+        var row = new ProjectStageInstanceDO(); row.setCode(code); row.setName("阶段"+code); row.setSortOrder(0); return row;
     }
     private record CodeTable(String table,String code) { }
 }

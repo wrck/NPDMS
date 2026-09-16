@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.outsource;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.outsource.vo.OutsourceRequestSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.outsource.OutsourceRequestDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.outsource.OutsourceRequestMapper;
-import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyService;
+import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityService;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.*;
 import org.springframework.aop.framework.ProxyFactory;
@@ -21,7 +21,7 @@ class OutsourceSurveyExecutionTransactionTest {
     JdbcTemplate jdbc;
     OutsourceRequestService service;
     final OutsourceRequestMapper mapper = mock(OutsourceRequestMapper.class);
-    final SiteSurveyService surveys = mock(SiteSurveyService.class);
+    final SiteSurveyEntityService surveys = mock(SiteSurveyEntityService.class);
     @BeforeEach void setup() {
         var dataSource = new JdbcDataSource();
         dataSource.setURL("jdbc:h2:mem:outsource_" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");

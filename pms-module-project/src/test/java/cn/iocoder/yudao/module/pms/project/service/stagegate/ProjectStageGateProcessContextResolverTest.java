@@ -129,6 +129,6 @@ class ProjectStageGateProcessContextResolverTest {
 
     private ProjectStageInstanceDO stage(Long id, String code) {
         var stage = new ProjectStageInstanceDO(); stage.setId(id); stage.setTenantId(7L); stage.setProjectId(9L);
-        stage.setStageCode(code); stage.setStatus("ACTIVE"); return stage;
+        stage.setCode(code); stage.setStatus("ACTIVE"); return stage;
     }
 }

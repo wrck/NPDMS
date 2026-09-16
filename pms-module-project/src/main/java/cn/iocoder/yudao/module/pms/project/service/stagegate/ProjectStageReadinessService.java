@@ -109,7 +109,7 @@ public class ProjectStageReadinessService {
         String reason = assignmentReason != null ? assignmentReason : !resolved ? graph.transition().status().name()
                 : !completed ? "STAGE_COMPLETION_" + graph.completion().name() : "请完成当前准出及目标准入条件";
         return new ProjectStageReadinessResult(projectId, project.getVersion(), viewScope.treeVersion(),
-                graph.current().getStageCode(), graph.target() == null ? null : graph.target().getStageCode(), allowed,
+                graph.current().getCode(), graph.target() == null ? null : graph.target().getCode(), allowed,
                 allowed ? null : reason, List.copyOf(results));
     }
 
@@ -196,8 +196,8 @@ public class ProjectStageReadinessService {
     static StagePair requirePair(ProjectMasterDO project, List<ProjectStageInstanceDO> stages) {
         if (!"ACTIVE".equals(project.getLifecycleStatus())
                 || stages == null || stages.size() != 2
-                || !Objects.equals(stages.get(0).getStageCode(), project.getCurrentStage())
-                || Objects.equals(stages.get(0).getStageCode(), stages.get(1).getStageCode())
+                || !Objects.equals(stages.get(0).getCode(), project.getCurrentStage())
+                || Objects.equals(stages.get(0).getCode(), stages.get(1).getCode())
                 || !"ACTIVE".equals(stages.get(0).getStatus())
                 || !"PENDING".equals(stages.get(1).getStatus())) {
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "项目当前阶段不可使用通用推进");

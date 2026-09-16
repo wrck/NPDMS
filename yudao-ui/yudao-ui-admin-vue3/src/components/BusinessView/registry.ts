@@ -4,9 +4,9 @@ import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platf
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
-import ProjectRequirementAnalysisPanel from '@/views/pms/project/project-master-detail/components/ProjectRequirementAnalysisPanel.vue'
+import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
-import SiteSurveyPage from '@/views/pms/engineering/site-survey/index.vue'
+import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import AcceptanceReportPage from '@/views/pms/project/acceptance-report/index.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
@@ -103,7 +103,7 @@ const adapters: readonly Adapter[] = [
         ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) },
             ...(resolvedContext.stageExecution ? { stageExecution: resolvedContext.stageExecution } : {}),
             ...(resolvedContext.taskExecution ? { taskExecution: resolvedContext.taskExecution } : {}),
-            ...(resolvedContext.businessObjectId == null ? {} : { preparationId: legacyOwnerId(resolvedContext.businessObjectId) }) }
+            ...(resolvedContext.businessObjectId == null ? {} : { revisionId: resolvedContext.businessObjectId }) }
         : undefined
   },
   {

@@ -80,6 +80,7 @@ class ProjectStageAdmissionServiceTest {
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(),
                         mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), compiler, audit, executions, plans);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(ProjectRuleTimerScheduler.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class));
     }
 
     @Test void activatesIndependentStagesAndDoesNotReleaseUnknownOrFalseBranches() {
@@ -103,6 +104,13 @@ class ProjectStageAdmissionServiceTest {
         service.activateEligible(9L, 11L, "event");
         assertTrue(service.activateEligible(9L, 11L, "event").isEmpty());
         verify(stages, times(2)).updateStatusIfMatch(any());
+    }
+
+    @Test void timerAdmissionUsesTheExistingSystemAuditActor() {
+        add("TIMER_STAGE", null);
+        assertTrue(service.activateEligible(9L, null, "timer").getFirst().activated());
+        verify(audit).record(eq(7L), eq(0L), eq("timer"), eq("PROJECT_STAGE_ACTIVATED"),
+                eq("PROJECT_STAGE"), anyString(), eq("SUCCESS"), anyMap());
     }
 
     @Test void staleContractOnlyBlocksItsOwnBranch() {
@@ -153,7 +161,7 @@ class ProjectStageAdmissionServiceTest {
     @Test void taskStartNeedsItsActiveStageAndItsOwnFrozenAdmission() {
         add("DISCOVERY", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
-                .setId(21L).setProjectId(9L).setTaskCode("WORK").setStageCode("DISCOVERY");
+                .setId(21L).setProjectId(9L).setCode("WORK").setStageCode("DISCOVERY");
         var taskContract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
         taskContract.setId(201L); taskContract.setSourceNodeKey("task:work"); taskContract.setContractVersion(1);
         var snapshot = effective;
@@ -174,7 +182,7 @@ class ProjectStageAdmissionServiceTest {
     @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
         add("PREP", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
-                .setId(21L).setProjectId(9L).setTaskCode("SURVEY").setStageCode("PREP").setStatus("PENDING_START");
+                .setId(21L).setProjectId(9L).setCode("SURVEY").setStageCode("PREP").setStatus("PENDING_START");
         task.setTenantId(7L);
         var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
         contract.setId(201L); contract.setProjectTaskId(21L); contract.setTenantId(7L); contract.setSourceNodeKey("task:survey");
@@ -191,11 +199,14 @@ class ProjectStageAdmissionServiceTest {
         when(projects.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         var command = new ProjectTaskAdmissionService(projects, taskContracts, executions, service, audit);
+        var lifecycle = mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(command, "lifecycle", lifecycle);
         org.springframework.test.util.ReflectionTestUtils.setField(command, "timers", mock(ProjectRuleTimerScheduler.class));
         assertFalse(command.activateEligible(9L, 21L, "time-before-stage").activated());
         verify(executions, never()).activateIfPending(any());
         assertTrue(service.activateEligible(9L, null, "stage-reevaluation").getFirst().activated());
         assertTrue(command.activateEligible(9L, 21L, "ordinary-reevaluation").activated());
+        verify(lifecycle).startAdmittedTask(any(), eq(task), eq(contract), eq("ordinary-reevaluation"));
         assertEquals("PENDING_START", task.getStatus()); assertNull(task.getActualStartTime());
         verify(executions).activateIfPending(argThat(write -> "TASK".equals(write.nodeKind()) && write.nodeInstanceId().equals(21L)));
     }
@@ -273,7 +284,7 @@ class ProjectStageAdmissionServiceTest {
 
     private void add(String code, String expression) {
         long id = rows.size() + 1L;
-        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setStageCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);
+        var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);
         stage.setTenantId(7L); rows.add(stage);
         var definition = new TemplateExecutionSnapshot.StageContract(); definition.setNodeKey("stage:" + code); definition.setCode(code);
         var snapshot = new TemplateExecutionSnapshot(); snapshot.setStages(List.of(definition));

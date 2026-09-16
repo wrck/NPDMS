@@ -48,7 +48,7 @@ class ProjectStageCompletionServiceTest {
         TenantContextHolder.setTenantId(7L);
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(21L);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
-        stage = new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setStageCode("DISCOVERY").setStatus("ACTIVE").setVersion(1);
+        stage = new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setCode("DISCOVERY").setStatus("ACTIVE").setVersion(1);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         when(graph.selectTasksForUpdate(any())).thenReturn(List.of()); when(graph.selectGatesForUpdate(any())).thenReturn(List.of());
         round = new ProjectNodeExecutionDO(); round.setId(31L); round.setPlanVersionId(21L); round.setNodeKey("stage:discovery");
@@ -65,6 +65,7 @@ class ProjectStageCompletionServiceTest {
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes,
                 new ProjectStageApprovalService(executions, approvals, nodeContexts));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", mock(ProjectCurrentStageService.class));
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
 
@@ -190,6 +191,13 @@ class ProjectStageCompletionServiceTest {
         round.setSubmittedAt(LocalDateTime.now());
         when(graph.selectTasksForUpdate(any())).thenReturn(List.of(new ProjectTaskInstanceDO().setStageCode("DISCOVERY").setStatus("IN_PROGRESS")));
         assertEquals(0, service.completeStage(9L, 11L, 1L, "test").completed()); verifyNoInteractions(stages, audit);
+    }
+
+    @Test void timerCompletionKeepsSubmissionEvidenceAndUsesSystemAuditActor() {
+        round.setSubmittedAt(LocalDateTime.now());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1, service.completeStage(9L, 11L, null, "timer").completed());
+        verify(audit).record(eq(7L), eq(0L), eq("timer"), eq("PROJECT_STAGE_COMPLETED"), eq("PROJECT_STAGE"), eq("11"), eq("SUCCESS"), anyMap());
     }
     @Test void anUnstartedBranchIsRequiredOnlyByTheConfiguredRules() {
         round.setSubmittedAt(LocalDateTime.now());

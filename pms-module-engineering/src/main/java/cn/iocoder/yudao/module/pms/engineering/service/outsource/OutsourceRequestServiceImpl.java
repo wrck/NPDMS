@@ -84,7 +84,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Resource
     private OutsourceRequestMapper outsourceRequestMapper;
     @Resource
-    private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyService siteSurveyService;
+    private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityService siteSurveyService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)

@@ -294,13 +294,13 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         List<PendingAcceptanceContract> pendingAcceptanceContracts = new ArrayList<>();
         List<ProjectTaskExecutionContractDO> taskContracts = new ArrayList<>();
         for (var task : instantiation.getTasks()) {
-            TemplateDefinitionContent.TaskDef definition = definitionsByCode.get(task.getTaskCode());
+            TemplateDefinitionContent.TaskDef definition = definitionsByCode.get(task.getCode());
             if (definition == null) {
-                throw new IllegalArgumentException("模板任务定义不存在：" + task.getTaskCode());
+                throw new IllegalArgumentException("模板任务定义不存在：" + task.getCode());
             }
             // Exact published definitions own binding semantics; task codes do not create ACC obligations.
             AcceptanceTaskMapping acceptanceMapping = definition.getDefinitionRevisionId() == null
-                    ? acceptanceTaskMapping(task.getTaskCode()) : null;
+                    ? acceptanceTaskMapping(task.getCode()) : null;
             if (acceptanceMapping != null) {
                 pendingAcceptanceContracts.add(new PendingAcceptanceContract(task.getId(), definition,
                         IdWorker.getId(), acceptanceMapping));

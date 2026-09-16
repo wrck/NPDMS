@@ -63,7 +63,7 @@ final class ProjectPlanTaskHierarchy {
             long id = 1;
             for (var definition : content.getTasks()) {
                 var task = new ProjectTaskInstanceDO(); task.setId(id++);
-                task.setTaskCode(definition.getTaskCode()); task.setParentTaskCode(definition.getParentTaskCode());
+                task.setCode(definition.getTaskCode()); task.setParentTaskCode(definition.getParentTaskCode());
                 structure.getTasks().add(task);
             }
             try { TemplateInstantiator.buildTaskStructure(structure); }

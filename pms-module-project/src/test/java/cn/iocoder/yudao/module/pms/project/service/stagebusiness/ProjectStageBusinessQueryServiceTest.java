@@ -36,7 +36,7 @@ class ProjectStageBusinessQueryServiceTest {
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE");
         when(projects.getProject(9L, actor)).thenReturn(project);
         stage = new ProjectStageInstanceDO(); stage.setId(90L); stage.setProjectId(9L); stage.setTenantId(1L);
-        stage.setStageCode("S4"); stage.setGraphVersion(1L); stage.setStatus("ACTIVE");
+        stage.setCode("S4"); stage.setGraphVersion(1L); stage.setStatus("ACTIVE");
         contract = new ProjectStageExecutionContractDO(); contract.setId(99L); contract.setProjectId(9L); contract.setStageId(90L);
         contract.setTenantId(1L); contract.setGraphVersion(1L); contract.setSourceNodeKey("stage-4");
         contract.setBindingVersion(1);

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyImportMapper">
+    <resultMap id="legacy" type="cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyImportSource" autoMapping="true">
+        <result column="form_extra_values" property="formExtraValues"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+    <select id="lockSource" resultMap="legacy">
+        SELECT id, tenant_id, project_id, code, name, survey_date, surveyor_user_id, location,
+            address_id, address_version, site_id, site_version, site_location_id, site_location_version,
+            location_resolution_status, address_snapshot, location_snapshot,
+            power_supply, cabinet, network_port, fiber, module, cable, ground, construction_resource,
+            conclusion, status, confirmed_at, archived_at, remark, version,
+            form_revision_id, form_revision_version, form_extra_values, outsource_required, outsource_request_id,
+            creator, updater, create_time, update_time, deleted
+        FROM pms_eng_site_survey
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.surveyId} FOR UPDATE
+    </select>
+    <select id="lockTarget" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO">
+        SELECT id, tenant_id, project_id, code, name, survey_date, surveyor_user_id, location,
+            address_id, address_version, site_id, site_version, site_location_id, site_location_version,
+            location_resolution_status, address_snapshot, location_snapshot,
+            power_supply, cabinet, network_port, fiber, module, cable, ground, construction_resource,
+            conclusion, status, confirmed_at, archived_at, remark, version,
+            cabinet_ready, cable_ready, module_ready, original_module, manufacturer_installation,
+            rail_tray_required, material_matches, required_end_date, outsource_required, outsource_request_id,
+            creator, updater, create_time, update_time, deleted
+        FROM sol_site_survey
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.surveyId} FOR UPDATE
+    </select>
+</mapper>

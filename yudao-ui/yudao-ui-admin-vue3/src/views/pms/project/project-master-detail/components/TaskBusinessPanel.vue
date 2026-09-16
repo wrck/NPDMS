@@ -85,14 +85,14 @@ const viewReadonly = computed(() =>
     context.value?.executionAllowed === false ||
     !sameTask(context.value?.taskId, props.taskId))
 )
-// Owner permissions are authoritative; record-level actions cannot grant a missing Owner action.
+// Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
 const ownerActions = computed(() => {
   if (viewReadonly.value) return []
   const actions = context.value?.ownerActions || []
   const record = context.value?.links.find((row) => row.objectId === selectedObject.value)
   if (!actions.includes('QUERY')) return []
   return [...new Set([
-    ...actions.filter((action) => action === 'QUERY' || action === 'CREATE' || action.startsWith('CREATE_')),
+    ...actions.filter((action) => !['LINK', 'UNLINK'].includes(action)),
     ...(record?.allowedActions || []).filter((action) => !['LINK', 'UNLINK', 'CREATE'].includes(action))
   ])]
 })
@@ -146,6 +146,9 @@ const load = async (useInitialProject = false) => {
       selectedObject.value = next.links[0]?.objectId
     pendingFactVersion = !next.recoverableError && switchingDirtyTarget ? next.factVersion : undefined
     emit('fact-version', next.recoverableError || switchingDirtyTarget ? undefined : next.factVersion)
+    // Outbox may complete the task without changing its already-confirmed Owner facts.
+    // Refresh the enclosing workbench from the task version, not only the business fact version.
+    if (next.execution && next.execution.taskVersion !== props.taskVersion) emit('changed')
   } catch {
     if (isCurrent()) {
       error.value = '无法读取业务关联或 Owner 项目上下文（可能缺少项目查询权限），请重试；原业务数据未改变。'

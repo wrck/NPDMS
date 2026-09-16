@@ -9,8 +9,8 @@ const mocks = vi.hoisted(() => ({
   message: { success: vi.fn(), warning: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }
 }))
 vi.mock('vue-router', () => ({ useRoute: () => mocks.route, useRouter: () => ({ push: mocks.push }) }))
-vi.mock('@/api/pms/engineering/site-survey', () => ({ getSiteSurvey: mocks.getSurvey }))
-vi.mock('../site-survey/siteSurveyExecutionShortcut', () => ({ resolveSurveyExecution: mocks.resolve }))
+vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getSiteSurvey: mocks.getSurvey }))
+vi.mock('@/views/pms/delivery-business/site-survey/siteSurveyExecutionShortcut', () => ({ resolveSurveyExecution: mocks.resolve }))
 vi.mock('@/api/pms/engineering/outsource', () => ({ getOutsourceRequestPage: async () => ({ list: [], total: 0 }), createOutsourceRequest: mocks.create, deleteOutsourceRequest: mocks.remove }))
 vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn() }))

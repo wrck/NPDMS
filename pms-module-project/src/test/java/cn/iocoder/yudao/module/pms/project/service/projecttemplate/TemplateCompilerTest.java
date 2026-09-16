@@ -8,8 +8,19 @@ import tools.jackson.databind.JsonNode;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TemplateCompilerTest {
-
     private final TemplateCompiler compiler = new TemplateCompiler();
+
+    @Test void lifecycleBindingIsRequiredFrozenAndIndependentOfCustomStageCode() {
+        var designer = validDesigner();
+        designer.getStages().getFirst().setLifecycleStage(null);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "INVALID_LIFECYCLE_STAGE".equals(issue.code())));
+        designer.getStages().getFirst().setLifecycleStage("S7");
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "INVALID_LIFECYCLE_STAGE".equals(issue.code())));
+        designer.getStages().forEach(stage -> stage.setLifecycleStage("S1"));
+        var result = compiler.compile(designer);
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        assertTrue(result.snapshot().getStages().stream().allMatch(stage -> "S1".equals(stage.getLifecycleStage())));
+    }
 
     @Test void processGateRequiresAndPreservesExactDefinitionIdInSnapshotAndProjection() {
         var designer = validDesigner();
@@ -265,6 +276,7 @@ class TemplateCompilerTest {
         TemplateDesignerDocument.StageNode stage = new TemplateDesignerDocument.StageNode();
         stage.setNodeKey(key);
         stage.setCode(code);
+        stage.setLifecycleStage(code);
         stage.setName(code);
         stage.setSortOrder(start ? 0 : 10);
         stage.setStart(start);

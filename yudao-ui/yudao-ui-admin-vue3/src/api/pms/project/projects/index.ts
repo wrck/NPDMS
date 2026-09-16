@@ -216,6 +216,13 @@ export interface ProjectInstancesVO {
     name: string
     sortOrder: number
     entryCriteria?: string
+    suggestedStartTime?: string
+    suggestedEndTime?: string
+    planStartTime?: string
+    planEndTime?: string
+    actualStartTime?: string
+    actualEndTime?: string
+    deviationReason?: string
     exitCriteria?: string
     status: string
   }[]

@@ -57,6 +57,15 @@ class ProjectSystemQualificationApiAdapterTest {
     }
 
     @Test
+    void acceptsOwnerValidatedParallelS4WithEarlierSummary() {
+        TenantContextHolder.setTenantId(7L);
+        var api = mock(ProjectSystemQualificationFactApi.class);
+        when(api.lockCurrentForSystem(new ProjectSystemQualificationLockQuery(100L, "ACTIVE", "S4")))
+                .thenReturn(new ProjectSystemQualificationFact(100L, 8L, "ACTIVE", "S1", 11, 12L, 13L));
+        assertEquals(11, new ProjectSystemQualificationApiAdapter(api).lockCurrent(7L, 100L).projectVersion());
+    }
+
+    @Test
     void rejectsOwnerIdentityOrEligibilityMismatch() {
         TenantContextHolder.setTenantId(7L);
         ProjectSystemQualificationFactApi api = mock(ProjectSystemQualificationFactApi.class);

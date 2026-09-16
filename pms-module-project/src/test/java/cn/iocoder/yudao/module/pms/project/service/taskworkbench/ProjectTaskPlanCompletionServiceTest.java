@@ -50,8 +50,8 @@ class ProjectTaskPlanCompletionServiceTest {
                 engine.evaluator(),compiler,business, executionApi,gateRules);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "approvals", approvals);
         project=new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(52L); project.setLifecycleStatus("ACTIVE"); project.setProjectName("private-actual-value");
-        task=new ProjectTaskInstanceDO().setId(21L).setProjectId(9L).setTaskCode("T1").setStageCode("A").setName("办理任务");
-        stage=new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setStageCode("A").setStatus("ACTIVE");
+        task=new ProjectTaskInstanceDO().setId(21L).setProjectId(9L).setCode("T1").setStageCode("A").setName("办理任务");
+        stage=new ProjectStageInstanceDO().setId(11L).setProjectId(9L).setCode("A").setStatus("ACTIVE");
         binding=new ProjectTaskExecutionContractDO(); binding.setId(91L); binding.setContractVersion(1); binding.setProjectTaskId(21L);
         binding.setSourceNodeKey("task:one"); binding.setWorkBindingTypeCode("TASK_NATIVE"); binding.setCompletionRuleSnapshot("obsolete-binding-rule-must-not-be-read");
         round=new ProjectNodeExecutionDO(); round.setId(31L); round.setNodeInstanceId(21L); round.setNodeKind("TASK"); round.setNodeKey("task:one");

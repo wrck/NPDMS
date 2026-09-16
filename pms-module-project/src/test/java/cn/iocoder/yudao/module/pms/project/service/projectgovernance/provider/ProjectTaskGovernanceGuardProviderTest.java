@@ -121,7 +121,7 @@ class ProjectTaskGovernanceGuardProviderTest {
         task.setTenantId(TENANT_ID);
         task.setProjectId(projectId);
         task.setId(id);
-        task.setTaskCode(code);
+        task.setCode(code);
         task.setStatus(status);
         task.setVersion(version);
         task.setUpdateTime(CHECKED_AT.plusMinutes(id));

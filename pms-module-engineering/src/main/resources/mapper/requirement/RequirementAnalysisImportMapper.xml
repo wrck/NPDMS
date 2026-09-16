@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisImportMapper">
+    <select id="lockSources" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisImportSource">
+        SELECT id, tenant_id, project_id, business_version AS revision_no, source_preparation_id AS source_revision_id,
+            draft_marker, effective_marker, template_id AS project_template_id,
+            template_revision_id AS project_template_revision_id, template_snapshot AS execution_snapshot,
+            completed_by AS frozen_by, completed_at AS frozen_at, status_code, version,
+            creator, create_time, updater, update_time, 0 AS deleted, dynamic_form_instance_id, entity_value_json
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+            AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+        ORDER BY business_version, id FOR UPDATE
+    </select>
+    <select id="lockTargets" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.historyColumns"/>
+        FROM sol_requirement_analysis_revision
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+        ORDER BY revision_no, id FOR UPDATE
+    </select>
+    <select id="lockCurrent" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.currentColumns"/>
+        FROM sol_requirement_analysis
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} FOR UPDATE
+    </select>
+</mapper>

@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.adapte
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -22,6 +23,7 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class ProjectQualificationApiAdapter implements ProjectQualificationPort {
+    private final ProjectLifecycleStageFactApi lifecycleStages;
 
     static final Set<String> REQUIRED_PROJECT_ROLES = Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
     private static final String ACTIVE = "ACTIVE";
@@ -103,12 +105,13 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
         }
     }
 
-    private static void requireEligibleArrivalProject(ProjectParticipantFact participant,
+    private void requireEligibleArrivalProject(ProjectParticipantFact participant,
                                                       Integer expectedProjectVersion,
                                                       Long expectedFactVersion) {
         if (!ACTIVE.equals(participant.lifecycleStatus())) throw ArrivalAcceptanceContractException.simple(
                 "BUSINESS_GATE_INVALID", "PROJECT_NOT_ACTIVE", "project is not active");
-        if (!ARRIVAL_STAGE.equals(participant.currentStage())) throw ArrivalAcceptanceContractException.simple(
+        if (!lifecycleStages.isActive(new ProjectLifecycleStageFactApi.Query(
+                participant.projectId(), participant.projectVersion(), ARRIVAL_STAGE))) throw ArrivalAcceptanceContractException.simple(
                 "BUSINESS_GATE_INVALID", "PROJECT_STAGE_NOT_S4", "project is not in S4");
         if (!participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
             throw ArrivalAcceptanceContractException.simple("BUSINESS_GATE_INVALID",

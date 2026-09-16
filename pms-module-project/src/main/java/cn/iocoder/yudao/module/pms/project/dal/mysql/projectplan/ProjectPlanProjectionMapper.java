@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 /** Project-owned current projections only; frozen execution results and Owner business tables are not updated here. */
 @Mapper
 public interface ProjectPlanProjectionMapper {
+    int updateCurrentStage(@Param("query") CurrentStageUpdate query);
+    record CurrentStageUpdate(Long tenantId, Long projectId, Long planVersionId, Integer expectedVersion,
+                              String currentStage, String updater) { }
     int gateCodeForRename(@Param("query") NodeProjectionChange query);
     int updateGateDefinition(@Param("query") GateDefinitionUpdate query);
     int retirePendingGate(@Param("query") NodeProjectionChange query);

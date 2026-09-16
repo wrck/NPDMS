@@ -245,6 +245,26 @@ public class ProjectTaskLifecycleService {
                 nextStatus, "NEW");
     }
 
+    /** Called under the admission command's project/task locks after its frozen rule matched. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
+    public boolean startAdmittedTask(ProjectMasterDO project, ProjectTaskInstanceDO task,
+            ProjectTaskExecutionContractDO contract, String correlationId) {
+        if (!Set.of("PENDING_ASSIGN", "PENDING_START").contains(task.getStatus())) return false;
+        boolean designated = assignmentMapper.selectCurrentForUpdate(
+                new TaskAssignmentLockQuery(project.getTenantId(), task.getId())) != null;
+        String source = TaskExecutionPolicy.transitionSource(task.getStatus(), "START", designated);
+        var transition = stateMachineMapper.requireTransition(new TaskStateTransitionQuery(project.getTenantId(),
+                task.getStateMachineRevisionId(), source, "START"));
+        var actor = new TaskWorkbenchActor(project.getTenantId(), 0L,
+                correlationId == null || correlationId.isBlank() ? "project-rules:" + project.getId() : correlationId);
+        var result = applyTransition(project, task, contract, "START", transition,
+                CompletionDecision.notApplicable(), actor, LocalDateTime.now(), null);
+        operationAuditApi.record(actor.tenantId(), actor.actorId(), actor.correlationId(), "PROJECT_TASK_START",
+                "ProjectTask", task.getId().toString(), "SUCCESS", Map.of("executionMode", "AUTOMATIC",
+                        "contractId", contract.getId(), "fromStatus", task.getStatus(), "toStatus", result.status()));
+        return true;
+    }
+
     public record AutomaticResult(boolean completed, boolean unknown) { }
 
     /** Internal rule command, not exposed by the user-action controller. No simulated user/session. */

@@ -5,12 +5,6 @@
     </el-alert>
     <el-skeleton v-else-if="loading" :rows="6" animated />
     <template v-else>
-      <el-alert
-        title="数据保存到原现场工勘实体"
-        type="info"
-        :closable="false"
-        description="模板仅控制字段与布局；原字段保存到原业务列，扩展字段保存到同一工勘记录。"
-      />
       <form-create
         v-model="values"
         v-model:api="formApi"
@@ -25,7 +19,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import type { Api } from '@form-create/element-ui'
-import formCreate from '@form-create/element-ui'
+import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey'
 import { getFormSchema } from '@/api/pms/engineering/site-survey'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
@@ -44,7 +38,7 @@ const businessComponents = {
   SurveyProjectEndDate
 }
 Object.entries(businessComponents).forEach(([name, component]) =>
-  formCreate.component(name, component)
+  formCreateEngine.component(name, component)
 )
 
 const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean }>()

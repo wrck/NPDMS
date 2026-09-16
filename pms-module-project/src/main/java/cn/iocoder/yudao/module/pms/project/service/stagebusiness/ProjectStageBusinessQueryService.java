@@ -34,7 +34,7 @@ public class ProjectStageBusinessQueryService {
         // The existing project query is the scope authority, including super-admin and tenant rules.
         var project = projects.getProject(projectId, actor);
         var query = new ProjectRuntimeGraphQuery(actor.tenantId(), projectId);
-        var stages = graph.selectStages(query).stream().filter(s -> stageCode.equals(s.getStageCode())).toList();
+        var stages = graph.selectStages(query).stream().filter(s -> stageCode.equals(s.getCode())).toList();
         if (stages.size() != 1) return unavailable(projectId, stageCode, null, null, "STAGE_NOT_FOUND");
         var stage = stages.getFirst();
         var contracts = graph.selectContracts(query).stream().filter(c -> Objects.equals(c.getStageId(), stage.getId())).toList();

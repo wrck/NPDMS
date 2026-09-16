@@ -4,10 +4,10 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.SiteSurveyMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyTaskCandidateQuery;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyTaskObjectQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityTaskCandidateQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityTaskObjectQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -40,14 +40,14 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         assertTrue(provider.supportsStageCompletionFacts());
         verifyNoInteractions(mapper, scope, permissions, executions);
     }
-    private final SiteSurveyMapper mapper = mock(SiteSurveyMapper.class);
+    private final SiteSurveyEntityMapper mapper = mock(SiteSurveyEntityMapper.class);
     private final ProjectScopeApi scope = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     private final SiteSurveyTaskBusinessObjectProvider provider =
             new SiteSurveyTaskBusinessObjectProvider(mapper, scope, permissions, executions);
     private final Context context = new Context(3L, 9L, 100L, 200L, "survey-test");
-    private final SiteSurveyTaskObjectQuery objectQuery = new SiteSurveyTaskObjectQuery(3L, 100L, 42L);
+    private final SiteSurveyEntityTaskObjectQuery objectQuery = new SiteSurveyEntityTaskObjectQuery(3L, 100L, 42L);
     private final ProjectStageExecutionContext stageExecution = new ProjectStageExecutionContext(
             100L, 1, 300L, 2, 301L, 1, 302L, 303L, 1, 2, true);
     private final StageCompletionContext stageContext = new StageCompletionContext(3L, stageExecution);
@@ -146,13 +146,13 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void foreignTenantProjectAndDeletedRowsFailClosedEvenIfMapperReturnsThem() {
-        SiteSurveyDO foreignTenant = row(1);
+        SiteSurveyEntityDO foreignTenant = row(1);
         foreignTenant.setTenantId(4L);
-        SiteSurveyDO foreignProject = row(1);
+        SiteSurveyEntityDO foreignProject = row(1);
         foreignProject.setProjectId(101L);
-        SiteSurveyDO deleted = row(1);
+        SiteSurveyEntityDO deleted = row(1);
         deleted.setDeleted(true);
-        for (SiteSurveyDO invalid : List.of(foreignTenant, foreignProject, deleted)) {
+        for (SiteSurveyEntityDO invalid : List.of(foreignTenant, foreignProject, deleted)) {
             when(mapper.selectTaskObject(objectQuery)).thenReturn(invalid);
             when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(invalid);
             when(mapper.selectTaskCandidates(any())).thenReturn(List.of(invalid));
@@ -170,6 +170,10 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:create")).thenReturn(true);
         assertEquals(Set.of("QUERY", "CREATE"), provider.inspectContext(context));
+        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:delete")).thenReturn(true);
+        assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "CONFIRM", "REJECT", "ARCHIVE", "DELETE"),
+                provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:query")).thenReturn(false);
         assertThrows(ServiceException.class, () -> provider.inspectContext(context));
         verifyNoInteractions(mapper);
@@ -177,7 +181,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void wrongObjectIdentityCannotBeReturnedEvenWithinSameTenantAndProject() {
-        SiteSurveyDO other = row(1);
+        SiteSurveyEntityDO other = row(1);
         other.setId(43L);
         when(mapper.selectTaskObject(objectQuery)).thenReturn(other);
         when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(other);
@@ -187,20 +191,20 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void candidatesUseBoundedTrustedQueryAndEmptyNeverCreatesOrCompletesAnything() {
-        SiteSurveyTaskCandidateQuery query = new SiteSurveyTaskCandidateQuery(3L, 100L, 100);
+        SiteSurveyEntityTaskCandidateQuery query = new SiteSurveyEntityTaskCandidateQuery(3L, 100L, 100);
         when(mapper.selectTaskCandidates(query)).thenReturn(List.of());
         assertTrue(provider.candidates(context).isEmpty());
         verify(mapper).selectTaskCandidates(query);
         verifyNoMoreInteractions(mapper);
-        assertThrows(IllegalArgumentException.class, () -> new SiteSurveyTaskCandidateQuery(3L, 100L, 101));
-        assertThrows(IllegalArgumentException.class, () -> new SiteSurveyTaskCandidateQuery(3L, 100L, 0));
+        assertThrows(IllegalArgumentException.class, () -> new SiteSurveyEntityTaskCandidateQuery(3L, 100L, 101));
+        assertThrows(IllegalArgumentException.class, () -> new SiteSurveyEntityTaskCandidateQuery(3L, 100L, 0));
     }
 
     @Test
     void missingObjectOrUnknownVersionAndStateDoNotBecomeSatisfiedFacts() {
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "https://not-an-id"));
-        SiteSurveyDO unknownVersion = row(1);
+        SiteSurveyEntityDO unknownVersion = row(1);
         unknownVersion.setVersion(null);
         when(mapper.selectTaskObject(objectQuery)).thenReturn(unknownVersion);
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
@@ -210,7 +214,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void lockRevalidatesBothVersionAndStatusWithoutModifyingArchivedHistory() {
-        SiteSurveyDO archived = row(3);
+        SiteSurveyEntityDO archived = row(3);
         when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(archived);
         assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", "unknownVersion"));
         assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", null));
@@ -247,8 +251,8 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         verifyNoInteractions(mapper, scope, permissions, executions);
     }
 
-    private SiteSurveyDO row(int status) {
-        SiteSurveyDO row = new SiteSurveyDO();
+    private SiteSurveyEntityDO row(int status) {
+        SiteSurveyEntityDO row = new SiteSurveyEntityDO();
         row.setId(42L);
         row.setTenantId(3L);
         row.setProjectId(100L);
@@ -279,7 +283,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         survey.setStatus(3); survey.setArchivedAt(started.plusMinutes(1));
         assertTrue(provider.lockCompletionFact(evaluation, "42").completionFacts().get("SURVEY_ARCHIVED"));
         verifyNoInteractions(scope, permissions);
-        verify(mapper, never()).updateById(any(SiteSurveyDO.class));
+        verify(mapper, never()).updateById(any(SiteSurveyEntityDO.class));
     }
 
     @Test
@@ -308,7 +312,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         var result = provider.lockCompletionFact(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L,execution),"42");
         assertTrue(result.handlingCompleted()); assertTrue(result.completionFacts().get("SURVEY_CONFIRMED"));
         assertEquals(7, survey.getVersion());
-        verify(mapper, never()).updateById(any(SiteSurveyDO.class));
+        verify(mapper, never()).updateById(any(SiteSurveyEntityDO.class));
     }
 
     @ParameterizedTest

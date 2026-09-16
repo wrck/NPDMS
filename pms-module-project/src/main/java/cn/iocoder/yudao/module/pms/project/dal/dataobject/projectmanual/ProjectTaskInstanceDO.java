@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 项目任务实例 DO（F-PM01 / V57 `proj_project_task`）
@@ -19,25 +17,13 @@ import java.time.LocalDateTime;
 @TableName("proj_project_task")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectTaskInstanceDO extends TenantBaseDO {
+public class ProjectTaskInstanceDO extends ProjectExecutionNodeDO<ProjectTaskInstanceDO> {
 
-    /**
-     * 任务实例ID
-     */
-    @TableId
-    private Long id;
-    /**
-     * 项目ID
-     */
-    private Long projectId;
     /**
      * 任务码（实例化时冻结，项目内唯一）
      */
-    private String taskCode;
-    /**
-     * 任务名称（快照）
-     */
-    private String name;
+    @TableField("task_code")
+    private String code;
     /**
      * 父任务码（NULL=顶层）
      */
@@ -62,10 +48,6 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      * 关联里程碑实例ID
      */
     private Long milestoneId;
-    private LocalDateTime planStartTime;
-    private LocalDateTime planEndTime;
-    private LocalDateTime actualStartTime;
-    private LocalDateTime actualEndTime;
     /**
      * 任务进度0～100
      */
@@ -82,10 +64,6 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      * 优先级（快照）
      */
     private Integer priority;
-    /**
-     * 排序（快照）
-     */
-    private Integer sortOrder;
     /**
      * 预估工时（快照）
      */
@@ -105,16 +83,6 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      */
     private String description;
     private String descriptionFormat;
-    /**
-     * 冻结来源：模板任务定义ID（内容模型无定义行 ID 时为 NULL）
-     */
-    private Long sourceDefinitionId;
-    /**
-     * 任务实例状态（字典 pms_project_task_status，初始 PENDING_ASSIGN 待分配）
-     */
-    private String status;
-    /**
-     * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
-     */
-    private Integer version;
+    @Override
+    protected ProjectTaskInstanceDO self() { return this; }
 }

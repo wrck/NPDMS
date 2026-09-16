@@ -48,7 +48,7 @@ public class ProjectStageGateWorkbenchService {
         var project = projects.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(actor.tenantId(), projectId));
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) throw exception(PROJECT_NOT_EXISTS);
         var query = new ProjectRuntimeGraphQuery(actor.tenantId(), projectId);
-        var stages = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stageCode, stage.getStageCode())
+        var stages = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stageCode, stage.getCode())
                 && Objects.equals(stage.getTenantId(), actor.tenantId()) && Objects.equals(stage.getProjectId(), projectId)).toList();
         if (stages.size() != 1) return unavailable(project, stageCode, null, "STAGE_NOT_FOUND");
         var stage = stages.getFirst();

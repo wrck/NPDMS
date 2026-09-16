@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /** SOL/PRE-04向共享动态表单公开的唯一Owner策略。 */
-@Component
+// Retired registration; independent entity policy handles schema and read-only legacy references.
 @RequiredArgsConstructor
 public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicFormBusinessObjectPolicyProvider {
 

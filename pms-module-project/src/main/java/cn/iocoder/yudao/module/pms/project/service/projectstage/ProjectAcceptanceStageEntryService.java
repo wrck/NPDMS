@@ -112,20 +112,20 @@ public class ProjectAcceptanceStageEntryService {
         ProjectStageSnapshotDO snapshot = appendSnapshot(command, actor, project, transition, operationId, now);
         AcceptanceScopeBindingResult bindings = bindingApi.bindForStageEntry(new AcceptanceStageEntryBindingCommand(
                 actor.tenantId(), project.getId(), project.getVersion(), snapshot.getId(),
-                transition.current().getStageCode(), transition.target().getStageCode(), operationId));
+                transition.current().getCode(), transition.target().getCode(), operationId));
         int bindingCount = validateBindings(bindings, snapshot.getId());
         if (stageMapper.updateStatusIfMatch(new ProjectStageStatusUpdate(actor.tenantId(), project.getId(),
                 transition.target().getId(), transition.target().getVersion(), PENDING, STAGE_ACTIVE,
-                String.valueOf(actor.actorId()))) != 1) {
+                String.valueOf(actor.actorId()), java.time.LocalDateTime.now())) != 1) {
             throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
         }
         if (projectMapper.updateGovernanceStateIfMatch(new ProjectGovernanceStateUpdate(actor.tenantId(),
-                project.getId(), project.getVersion(), ACTIVE, transition.target().getStageCode(), ACTIVE,
+                project.getId(), project.getVersion(), ACTIVE, transition.target().getCode(), ACTIVE,
                 project.getAssignmentStatus(), String.valueOf(actor.actorId()))) != 1) {
             throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
         }
-        return new ProjectAcceptanceStageEntryResult(project.getId(), transition.current().getStageCode(),
-                transition.target().getStageCode(), project.getVersion() + 1, snapshot.getId(), bindingCount,
+        return new ProjectAcceptanceStageEntryResult(project.getId(), transition.current().getCode(),
+                transition.target().getCode(), project.getVersion() + 1, snapshot.getId(), bindingCount,
                 operationId, now, false);
     }
 
@@ -140,12 +140,12 @@ public class ProjectAcceptanceStageEntryService {
                     || !Objects.equals(current.getProjectId(), project.getId())) {
                 throw exception(PROJECT_PHASE_SEQUENCE_INVALID);
             }
-            if (Objects.equals(current.getStageCode(), project.getCurrentStage())) {
+            if (Objects.equals(current.getCode(), project.getCurrentStage())) {
                 if (index + 1 >= stages.size()) {
                     throw exception(PROJECT_PHASE_SEQUENCE_INVALID);
                 }
                 ProjectStageInstanceDO target = stages.get(index + 1);
-                if (!DONE.equals(current.getStatus()) || !STATUS_S5.equals(target.getStageCode())
+                if (!DONE.equals(current.getStatus()) || !STATUS_S5.equals(target.getCode())
                         || !PENDING.equals(target.getStatus()) || current.getVersion() == null
                         || target.getVersion() == null || target.getId() == null) {
                     throw exception(PROJECT_PHASE_SEQUENCE_INVALID);
@@ -160,17 +160,17 @@ public class ProjectAcceptanceStageEntryService {
                                                    ProjectMasterDO project, StageTransition transition,
                                                    String operationId, LocalDateTime now) {
         Integer snapshotNo = snapshotMapper.selectNextSnapshotNo(new ProjectStageSnapshotSequenceQuery(
-                actor.tenantId(), project.getId(), transition.target().getStageCode()));
+                actor.tenantId(), project.getId(), transition.target().getCode()));
         if (snapshotNo == null || snapshotNo <= 0) {
             throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
         }
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setProjectId(project.getId());
-        snapshot.setStageCode(transition.target().getStageCode());
+        snapshot.setStageCode(transition.target().getCode());
         snapshot.setSnapshotNo(snapshotNo);
         snapshot.setOperationType(STAGE_ENTRY);
-        snapshot.setBeforeStage(transition.current().getStageCode());
-        snapshot.setAfterStage(transition.target().getStageCode());
+        snapshot.setBeforeStage(transition.current().getCode());
+        snapshot.setAfterStage(transition.target().getCode());
         snapshot.setBeforeLifecycleStatus(project.getLifecycleStatus());
         snapshot.setAfterLifecycleStatus(project.getLifecycleStatus());
         snapshot.setBeforeAssignmentStatus(project.getAssignmentStatus());

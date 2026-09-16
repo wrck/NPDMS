@@ -73,7 +73,7 @@ public class NormalClosureCheckService {
         add(checks, "TERMINAL_STAGE", graph.terminal(), graph.current().getId());
         add(checks, "STAGE_COMPLETION", graph.completion() == ConditionStatus.SATISFIED, graph.current().getId());
         source.put("stage", List.of(graph.current().getId(), graph.current().getVersion(), graph.current().getGraphVersion(),
-                graph.current().getDefinitionRevisionId(), graph.current().getStageCode()));
+                graph.current().getDefinitionRevisionId(), graph.current().getCode()));
         List<Object> gateEvidence = new ArrayList<>();
         for (var gate : graph.gates()) {
             var references = graph.references().stream().filter(r -> Objects.equals(r.getGateId(), gate.getId())).toList();
