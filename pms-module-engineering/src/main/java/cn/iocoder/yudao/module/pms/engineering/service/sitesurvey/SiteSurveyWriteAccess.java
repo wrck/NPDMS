@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 
-@Service
+// Retired registration; independent Owner retains this policy for new business instances.
 @RequiredArgsConstructor
 public class SiteSurveyWriteAccess {
     private final PermissionApi permissions;

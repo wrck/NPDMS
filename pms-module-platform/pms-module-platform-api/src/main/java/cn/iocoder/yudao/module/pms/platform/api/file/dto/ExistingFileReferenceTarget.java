@@ -33,7 +33,9 @@ public record ExistingFileReferenceTarget(
                 && "SATISFACTION_RESPONSE".equals(objectType)
                 && ("SATISFACTION_SIGNATURE".equals(purposeCode)
                 || "SATISFACTION_ATTACHMENT".equals(purposeCode));
-        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile)
+        boolean requirementRevision = "SOL".equals(ownerContext) && "REQUIREMENT_ANALYSIS_REVISION".equals(objectType)
+                && purposeCode.startsWith("FORM_FIELD_ATTACHMENT/") && purposeCode.length() > "FORM_FIELD_ATTACHMENT/".length();
+        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision)
                 || !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }

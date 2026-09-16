@@ -390,9 +390,9 @@ import * as UserApi from '@/api/system/user'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
-import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
-import { positiveShortcutId, surveyPath, surveyExecutionQuery } from '../site-survey/siteSurveyOutsource'
-import { resolveSurveyExecution } from '../site-survey/siteSurveyExecutionShortcut'
+import * as SiteSurveyApi from '@/api/pms/engineering/site-survey/entity'
+import { positiveShortcutId, surveyPath, surveyExecutionQuery } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
+import { resolveSurveyExecution } from '@/views/pms/delivery-business/site-survey/siteSurveyExecutionShortcut'
 import { useUserStore } from '@/store/modules/user'
 
 defineOptions({ name: 'PmsEngOutsource' })

@@ -24,7 +24,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
  * <p>
  * 状态流转：0 草稿 → 1 已确认 / 2 已驳回；1 已确认 → 3 已归档。
  */
-@Service
+// Retired from runtime registration; retained as the original implementation.
 @Validated
 public class SiteSurveyServiceImpl implements SiteSurveyService {
 

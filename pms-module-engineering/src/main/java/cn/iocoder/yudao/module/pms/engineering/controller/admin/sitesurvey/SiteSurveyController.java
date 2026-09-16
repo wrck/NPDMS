@@ -27,7 +27,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessEx
  * 路径前缀 {@code /pms/eng-site-survey}。
  */
 @Tag(name = "管理后台 - 现场工勘")
-@RestController
+// Retired HTTP entry: the independent survey controller owns all current business operations.
 @RequestMapping({"/pms/eng-site-survey", "/api/v1/pms/site-surveys"})
 @Validated
 public class SiteSurveyController {

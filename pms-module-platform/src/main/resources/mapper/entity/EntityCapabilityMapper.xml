@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.EntityCapabilityMapper">
+    <sql id="target">
+        deleted = b'0' AND tenant_id = #{query.tenantId} AND owner_module = #{query.ownerModule}
+        AND entity_type = #{query.entityType} AND entity_id = #{query.entityId} AND revision_id = #{query.revisionId}
+    </sql>
+    <select id="selectDefinition" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionDefinitionDO">
+        SELECT id, tenant_id, owner_module, entity_type, revision_no, source_form_revision_id, fields_json, creator, updater, create_time, update_time, deleted
+        FROM plt_entity_extension_definition WHERE deleted = b'0' AND id = #{id}
+    </select>
+    <select id="selectDefinitionBySource" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionDefinitionDO">
+        SELECT id, tenant_id, owner_module, entity_type, revision_no, source_form_revision_id, fields_json,
+            creator, updater, create_time, update_time, deleted
+        FROM plt_entity_extension_definition
+        WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND owner_module = #{query.ownerModule}
+          AND entity_type = #{query.entityType} AND source_form_revision_id = #{query.sourceFormRevisionId}
+    </select>
+    <select id="selectMaxDefinitionRevision" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(revision_no), 0) FROM plt_entity_extension_definition
+        WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND owner_module = #{query.ownerModule} AND entity_type = #{query.entityType}
+    </select>
+    <insert id="insertDefinition">
+        INSERT INTO plt_entity_extension_definition (id, tenant_id, owner_module, entity_type, revision_no, source_form_revision_id, fields_json, creator, updater, create_time, update_time, deleted)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.ownerModule}, #{row.entityType}, #{row.revisionNo}, #{row.sourceFormRevisionId}, #{row.fieldsJson},
+            #{row.creator}, #{row.creator}, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3), b'0')
+    </insert>
+    <select id="selectValues" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionValueDO">
+        SELECT id, tenant_id, owner_module, entity_type, entity_id, revision_id, definition_revision_id, values_json, version, creator, updater, create_time, update_time, deleted FROM plt_entity_extension_value
+        WHERE <include refid="target"/>
+    </select>
+    <select id="lockValues" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionValueDO">
+        SELECT id, tenant_id, owner_module, entity_type, entity_id, revision_id, definition_revision_id, values_json, version, creator, updater, create_time, update_time, deleted FROM plt_entity_extension_value
+        WHERE <include refid="target"/> FOR UPDATE
+    </select>
+    <insert id="insertValues">
+        INSERT INTO plt_entity_extension_value (id, tenant_id, owner_module, entity_type, entity_id, revision_id, definition_revision_id, values_json, version, creator, updater)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.ownerModule}, #{row.entityType}, #{row.entityId}, #{row.revisionId}, #{row.definitionRevisionId}, #{row.valuesJson}, #{row.version}, #{row.creator}, #{row.updater})
+    </insert>
+    <update id="updateValues">
+        UPDATE plt_entity_extension_value SET definition_revision_id = #{row.definitionRevisionId}, values_json = #{row.valuesJson},
+            version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+    </update>
+    <delete id="deleteValues">
+        DELETE FROM plt_entity_extension_value
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+            AND revision_id = #{row.revisionId}
+    </delete>
+    <select id="selectBinding" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityFormBindingDO">
+        SELECT id, tenant_id, owner_module, entity_type, entity_id, revision_id, form_revision_id, extension_definition_revision_id, field_bindings_json, version, creator, updater, create_time, update_time, deleted FROM plt_entity_form_binding
+        WHERE <include refid="target"/>
+    </select>
+    <select id="lockBinding" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityFormBindingDO">
+        SELECT id, tenant_id, owner_module, entity_type, entity_id, revision_id, form_revision_id, extension_definition_revision_id, field_bindings_json, version, creator, updater, create_time, update_time, deleted FROM plt_entity_form_binding
+        WHERE <include refid="target"/> FOR UPDATE
+    </select>
+    <insert id="insertBinding">
+        INSERT INTO plt_entity_form_binding (id, tenant_id, owner_module, entity_type, entity_id, revision_id, form_revision_id, extension_definition_revision_id, field_bindings_json, version, creator, updater)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.ownerModule}, #{row.entityType}, #{row.entityId}, #{row.revisionId}, #{row.formRevisionId}, #{row.extensionDefinitionRevisionId}, #{row.fieldBindingsJson}, #{row.version}, #{row.creator}, #{row.updater})
+    </insert>
+    <update id="updateBinding">
+        UPDATE plt_entity_form_binding SET form_revision_id = #{row.formRevisionId}, extension_definition_revision_id = #{row.extensionDefinitionRevisionId}, field_bindings_json = #{row.fieldBindingsJson},
+            version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+    </update>
+    <delete id="deleteBinding">
+        DELETE FROM plt_entity_form_binding
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+            AND revision_id = #{row.revisionId}
+    </delete>
+</mapper>

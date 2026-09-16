@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.outsource;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.outsource.vo.OutsourceRequestSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.outsource.OutsourceRequestDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.outsource.OutsourceRequestMapper;
-import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyService;
+import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityService;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
 import org.junit.jupiter.api.*;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class OutsourceSurveyExecutionTest {
     final OutsourceRequestMapper mapper = mock(OutsourceRequestMapper.class);
-    final SiteSurveyService surveys = mock(SiteSurveyService.class);
+    final SiteSurveyEntityService surveys = mock(SiteSurveyEntityService.class);
     final OutsourceRequestServiceImpl service = new OutsourceRequestServiceImpl();
     final ProjectBusinessExecutionSelection selection = new ProjectBusinessExecutionSelection(null,
             new ProjectStageExecutionContext(9L,1,11L,1,12L,1,21L,31L,1,2,true));

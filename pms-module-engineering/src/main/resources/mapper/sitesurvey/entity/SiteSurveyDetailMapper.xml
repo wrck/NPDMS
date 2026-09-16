@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyDetailMapper">
+    <select id="selectConditions" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyConditionDO">
+        SELECT id, tenant_id, survey_id, condition_type, condition_code, sort_order, creator, updater, create_time, update_time, deleted FROM sol_site_survey_condition
+        WHERE tenant_id = #{query.tenantId} AND survey_id = #{query.surveyId} AND deleted = b'0'
+        ORDER BY sort_order, id
+    </select>
+    <delete id="deleteConditions">
+        DELETE FROM sol_site_survey_condition WHERE tenant_id = #{query.tenantId} AND survey_id = #{query.surveyId}
+    </delete>
+    <insert id="insertCondition">
+        INSERT INTO sol_site_survey_condition (id, tenant_id, survey_id, condition_type, condition_code, sort_order, creator, updater)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.surveyId}, #{row.conditionType}, #{row.conditionCode}, #{row.sortOrder}, #{row.creator}, #{row.updater})
+    </insert>
+    <select id="selectMaterials" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyMaterialDO">
+        SELECT id, tenant_id, survey_id, device_id, project_id, sn, product_code, product_name, product_model, reason, sort_order, creator, updater, create_time, update_time, deleted FROM sol_site_survey_material
+        WHERE tenant_id = #{query.tenantId} AND survey_id = #{query.surveyId} AND deleted = b'0'
+        ORDER BY sort_order, id
+    </select>
+    <delete id="deleteMaterials">
+        DELETE FROM sol_site_survey_material WHERE tenant_id = #{query.tenantId} AND survey_id = #{query.surveyId}
+    </delete>
+    <insert id="insertMaterial">
+        INSERT INTO sol_site_survey_material (id, tenant_id, survey_id, device_id, project_id, sn, product_code, product_name, product_model, reason, sort_order, creator, updater, create_time, update_time)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.surveyId}, #{row.deviceId}, #{row.projectId}, #{row.sn}, #{row.productCode}, #{row.productName}, #{row.productModel}, #{row.reason}, #{row.sortOrder}, #{row.creator}, #{row.updater}, #{row.createTime}, #{row.updateTime})
+    </insert>
+</mapper>

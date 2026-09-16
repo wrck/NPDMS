@@ -55,4 +55,10 @@ public interface ErrorCodeConstants {
     ErrorCode DYNAMIC_FORM_SCOPE_VERSION_CONFLICT = new ErrorCode(1_010_003_014, "动态表单业务范围版本已变化");
     ErrorCode DYNAMIC_FORM_OWNER_CONFLICT = new ErrorCode(1_010_003_015, "动态表单业务Owner已绑定其他实例");
 
+    ErrorCode ENTITY_PROVIDER_UNAVAILABLE = new ErrorCode(1_010_004_000, "业务实体未接入对应公共能力");
+    ErrorCode ENTITY_VALUE_INVALID = new ErrorCode(1_010_004_001, "字段值或字段绑定不符合定义");
+    ErrorCode ENTITY_VALUE_VERSION_CONFLICT = new ErrorCode(1_010_004_002, "业务字段或表单绑定已变化，请重新读取");
+    ErrorCode ENTITY_DEFINITION_NOT_FOUND = new ErrorCode(1_010_004_003, "扩展字段定义修订不存在或不属于该实体类型");
+    ErrorCode ENTITY_REVISION_MISMATCH = new ErrorCode(1_010_004_004, "业务修订不属于指定实体或状态不允许操作");
+
 }

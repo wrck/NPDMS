@@ -501,13 +501,13 @@ import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchH
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
-import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'
+import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
 import SatisfactionWorkbench from '@/views/pms/project/satisfaction/index.vue'
 import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
-import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
+import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,

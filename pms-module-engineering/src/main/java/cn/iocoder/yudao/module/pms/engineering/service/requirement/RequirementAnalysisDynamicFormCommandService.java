@@ -68,7 +68,7 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.PLAT
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.PLATFORM_COMMAND_KEY_CONFLICT;
 
 /** PRE-04动态表单组合命令；SOL是唯一外层事务、幂等和审计Owner。 */
-@Service
+// Retired PRE-04 commands; only independent entity commands are registered.
 @RequiredArgsConstructor
 public class RequirementAnalysisDynamicFormCommandService {
 

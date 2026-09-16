@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper">
+    <sql id="currentColumns">id, tenant_id, project_id, project_background, project_objective, network_topology, transmission_requirement, traffic_requirement, business_requirement, ip_planning, redundancy_requirement, security_protection, operations_requirement, logging_requirement, status_code, version, creator, updater, create_time, update_time, deleted</sql>
+    <sql id="historyColumns">id, tenant_id, project_id, entity_id, revision_no, source_revision_id, base_effective_revision_id, base_entity_version, revision_state, draft_marker, effective_marker, change_reason, frozen_by, frozen_at, project_template_id, project_template_revision_id, execution_snapshot, project_background, project_objective, network_topology, transmission_requirement, traffic_requirement, business_requirement, ip_planning, redundancy_requirement, security_protection, operations_requirement, logging_requirement, status_code, version, creator, updater, create_time, update_time, deleted</sql>
+    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO">
+        SELECT <include refid="currentColumns"/> FROM sol_requirement_analysis WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND id = #{query.entityId}
+    </select>
+    <select id="selectLatestForEntity" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision
+        WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND entity_id = #{query.entityId}
+        ORDER BY revision_no DESC LIMIT 1
+    </select>
+    <select id="lockCurrent" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO">
+        SELECT <include refid="currentColumns"/> FROM sol_requirement_analysis WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND id = #{query.entityId} FOR UPDATE
+    </select>
+    <select id="selectRevision" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND id = #{query.revisionId}
+    </select>
+    <select id="lockRevision" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND id = #{query.revisionId} FOR UPDATE
+    </select>
+    <select id="selectDraft" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND draft_marker = 1
+    </select>
+    <select id="selectEffective" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND effective_marker = 1
+    </select>
+    <select id="selectLatest" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND project_id = #{query.projectId} ORDER BY revision_no DESC LIMIT 1
+    </select>
+    <select id="maxRevisionNo" resultType="int">
+        SELECT COALESCE(MAX(revision_no), 0) FROM sol_requirement_analysis_revision
+        WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND entity_id = #{query.entityId}
+    </select>
+    <select id="selectHistory" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+        SELECT <include refid="historyColumns"/> FROM sol_requirement_analysis_revision
+        WHERE deleted = b'0' AND tenant_id = #{query.tenantId} AND entity_id = #{query.entityId} AND revision_state = 'FROZEN'
+        <if test="query.beforeRevisionNo != null">AND revision_no &lt; #{query.beforeRevisionNo}</if>
+        ORDER BY revision_no DESC LIMIT #{query.limit}
+    </select>
+    <insert id="insertCurrent">
+        INSERT INTO sol_requirement_analysis (id, tenant_id, project_id, project_background, project_objective, network_topology, transmission_requirement, traffic_requirement, business_requirement, ip_planning, redundancy_requirement, security_protection, operations_requirement, logging_requirement, status_code, version, creator, updater, create_time, update_time)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.projectId}, #{row.projectBackground}, #{row.projectObjective}, #{row.networkTopology}, #{row.transmissionRequirement}, #{row.trafficRequirement}, #{row.businessRequirement}, #{row.ipPlanning}, #{row.redundancyRequirement}, #{row.securityProtection}, #{row.operationsRequirement}, #{row.loggingRequirement}, #{row.statusCode}, #{row.version}, #{row.creator}, #{row.updater}, COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)))
+    </insert>
+    <insert id="insertRevision">
+        INSERT INTO sol_requirement_analysis_revision (id, tenant_id, project_id, entity_id, revision_no, source_revision_id, base_effective_revision_id, base_entity_version, revision_state, draft_marker, effective_marker, change_reason, frozen_by, frozen_at, project_template_id, project_template_revision_id, execution_snapshot, project_background, project_objective, network_topology, transmission_requirement, traffic_requirement, business_requirement, ip_planning, redundancy_requirement, security_protection, operations_requirement, logging_requirement, status_code, version, creator, updater, create_time, update_time)
+        VALUES (#{row.id}, #{row.tenantId}, #{row.projectId}, #{row.entityId}, #{row.revisionNo}, #{row.sourceRevisionId}, #{row.baseEffectiveRevisionId}, #{row.baseEntityVersion}, #{row.revisionState}, #{row.draftMarker}, #{row.effectiveMarker}, #{row.changeReason}, #{row.frozenBy}, #{row.frozenAt}, #{row.projectTemplateId}, #{row.projectTemplateRevisionId}, #{row.executionSnapshot}, #{row.projectBackground}, #{row.projectObjective}, #{row.networkTopology}, #{row.transmissionRequirement}, #{row.trafficRequirement}, #{row.businessRequirement}, #{row.ipPlanning}, #{row.redundancyRequirement}, #{row.securityProtection}, #{row.operationsRequirement}, #{row.loggingRequirement}, #{row.statusCode}, #{row.version}, #{row.creator}, #{row.updater}, COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)))
+    </insert>
+    <update id="updateCurrent">
+        UPDATE sol_requirement_analysis SET
+            project_background = #{row.projectBackground},
+            project_objective = #{row.projectObjective},
+            network_topology = #{row.networkTopology},
+            transmission_requirement = #{row.transmissionRequirement},
+            traffic_requirement = #{row.trafficRequirement},
+            business_requirement = #{row.businessRequirement},
+            ip_planning = #{row.ipPlanning},
+            redundancy_requirement = #{row.redundancyRequirement},
+            security_protection = #{row.securityProtection},
+            operations_requirement = #{row.operationsRequirement},
+            logging_requirement = #{row.loggingRequirement},
+            status_code = #{row.statusCode}, version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND tenant_id = #{row.tenantId} AND id = #{row.id} AND version = #{row.version}
+    </update>
+    <update id="saveDraft">
+        UPDATE sol_requirement_analysis_revision SET
+            project_background = #{row.projectBackground},
+            project_objective = #{row.projectObjective},
+            network_topology = #{row.networkTopology},
+            transmission_requirement = #{row.transmissionRequirement},
+            traffic_requirement = #{row.trafficRequirement},
+            business_requirement = #{row.businessRequirement},
+            ip_planning = #{row.ipPlanning},
+            redundancy_requirement = #{row.redundancyRequirement},
+            security_protection = #{row.securityProtection},
+            operations_requirement = #{row.operationsRequirement},
+            logging_requirement = #{row.loggingRequirement},
+            change_reason = #{row.changeReason}, version = version + 1, updater = #{row.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND tenant_id = #{row.tenantId} AND id = #{row.id} AND version = #{row.version}
+            AND revision_state = 'DRAFT' AND draft_marker = 1
+    </update>
+    <update id="freeze">
+        UPDATE sol_requirement_analysis_revision SET revision_state = 'FROZEN', draft_marker = NULL,
+            status_code = 'COMPLETED', frozen_by = #{update.actorId}, frozen_at = #{update.frozenAt},
+            version = version + 1, updater = #{update.actorId}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND tenant_id = #{update.tenantId} AND id = #{update.revisionId} AND version = #{update.expectedVersion}
+            AND revision_state = 'DRAFT' AND draft_marker = 1
+    </update>
+    <update id="clearEffective">
+        UPDATE sol_requirement_analysis_revision SET effective_marker = NULL, version = version + 1,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND tenant_id = #{update.tenantId} AND id = #{update.revisionId} AND version = #{update.expectedVersion}
+            AND revision_state = 'FROZEN' AND effective_marker = 1
+    </update>
+    <update id="makeEffective">
+        UPDATE sol_requirement_analysis_revision SET effective_marker = 1, version = version + 1,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE deleted = b'0' AND tenant_id = #{update.tenantId} AND id = #{update.revisionId} AND version = #{update.expectedVersion}
+            AND revision_state = 'FROZEN' AND effective_marker IS NULL
+    </update>
+</mapper>

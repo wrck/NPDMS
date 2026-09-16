@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /** Original site-survey entity owns all values; this provider supports schema use only. */
-@Component
+// Retired registration; independent Owner retains this policy for new business instances.
 public class SiteSurveyFormPolicyProvider implements DynamicFormBusinessObjectPolicyProvider {
     public static final DynamicFormProviderKey KEY = new DynamicFormProviderKey("SOL", "SITE_SURVEY");
     public static final Set<String> FIELDS = Set.of("powerSupply", "cabinet", "networkPort", "fiber",

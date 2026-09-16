@@ -50,18 +50,13 @@ class RequirementAnalysisFilePolicyProviderTest {
     }
 
     @Test
-    void draftCurrentManagerCanMutateMultipleAttachmentSlots() {
+    void retiredDraftFilesCannotBeMutatedEvenByCurrentManager() {
         stubContext("DRAFT");
-        when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
-        when(participantFactApi.inspect(any())).thenReturn(manager());
-
-        var fact = provider.inspect(query(FileActionCodes.REPLACE));
-
-        assertTrue(fact.allowed());
-        assertEquals("MUTABLE", fact.referenceMutability());
-        assertEquals("MULTIPLE", fact.cardinality());
-        assertEquals(Set.of("REQUIREMENT_ANALYSIS_ATTACHMENT"), fact.allowedCategoryCodes());
+        for (String action : Set.of(FileActionCodes.UPLOAD, FileActionCodes.REFERENCE,
+                FileActionCodes.REPLACE, FileActionCodes.DETACH, FileActionCodes.ARCHIVE)) {
+            assertFalse(provider.inspect(query(action)).allowed());
+        }
+        verifyNoInteractions(permissionApi, projectScopeApi, participantFactApi);
     }
 
     @Test
@@ -100,7 +95,7 @@ class RequirementAnalysisFilePolicyProviderTest {
 
         var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "SOL", "REQUIREMENT_ANALYSIS_SECTION", "701", "SECTION_ATTACHMENT", SLOT,
-                FileActionCodes.REFERENCE, 7L));
+                FileActionCodes.READ, 7L));
 
         assertTrue(fact.allowed());
         assertFalse(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
@@ -118,7 +113,7 @@ class RequirementAnalysisFilePolicyProviderTest {
                 "701", "SECTION_ATTACHMENT");
 
         var inspected = provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(
-                0L, 9L, key, FileActionCodes.REFERENCE));
+                0L, 9L, key, FileActionCodes.READ));
 
         assertTrue(inspected.allowed());
         assertEquals(7L, inspected.scopeVersion());
@@ -128,11 +123,12 @@ class RequirementAnalysisFilePolicyProviderTest {
         when(rootMapper.selectForUpdate(any())).thenReturn(root("DRAFT"));
         when(sectionMapper.selectForUpdate(any())).thenReturn(section());
         var locked = provider.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
-                0L, 9L, key, FileActionCodes.REFERENCE, 7L));
+                0L, 9L, key, FileActionCodes.READ, 7L));
 
         assertTrue(locked.allowed());
         assertEquals(7L, locked.scopeVersion());
         assertEquals("MULTIPLE", locked.cardinality());
+        assertEquals("IMMUTABLE", locked.referenceMutability());
     }
 
     private void stubContext(String status) {

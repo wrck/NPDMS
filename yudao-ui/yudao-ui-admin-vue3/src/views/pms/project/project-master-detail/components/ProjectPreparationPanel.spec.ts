@@ -9,7 +9,7 @@ const readiness = read('./PreparationReadinessDrawer.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/preparation/index.ts')
 const oldApi = read('../../../../../api/pms/engineering/site-survey/index.ts')
-const oldPage = read('../../../engineering/site-survey/index.vue')
+const oldPage = read('../../../delivery-business/site-survey/index.vue')
 const legacyDetail = read('../../project-detail/index.vue')
 
 describe('F-SOL-002 project preparation panel', () => {
@@ -27,7 +27,7 @@ describe('F-SOL-002 project preparation panel', () => {
   it('mounts the shared survey page while preserving legacy PRE-02 allowed-action handling', () => {
     expect(detail).toContain("activeTab === 'preparation'")
     expect(detail).toContain('<ProjectSiteSurveyPanel')
-    expect(detail).toContain("import ProjectSiteSurveyPanel from '@/views/pms/engineering/site-survey/index.vue'")
+    expect(detail).toContain("import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'")
     expect(detail).toContain(':project-id="detail.id"')
     expect(detail).not.toContain('<ProjectPreparationPanel')
     expect(panel).toContain("preparation.allowedActions.includes('SUBMIT')")

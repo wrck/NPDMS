@@ -28,7 +28,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.R
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE;
 
 /** PRE-04: sol_preparation + published PLT composition only; never pms_eng_requirement or fixed sections. */
-@Service
+// Retired PRE-04 registration; the independent business Owner provides the new instances.
 @RequiredArgsConstructor
 public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessObjectProvider, StageBusinessViewProvider {
     public static final String COMPLETED_FACT = "REQUIREMENT_ANALYSIS_COMPLETED";
