@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.job.TenantJob;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformOutboxDeliveryApi;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxClaimQuery;
+import cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultDelivery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
     private final ProjectRuleTimerDelivery timers;
     @jakarta.annotation.Resource
     private ProjectChildWaitDelivery childWait;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<ProjectOperationResultDelivery> operationResults;
 
     @Override
     @TenantJob
@@ -28,7 +31,9 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
         var now = LocalDateTime.now();
         int delivered = 0;
         int retry = 0;
-        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE)))) {
+        var types = new java.util.HashSet<>(Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE));
+        types.addAll(ProjectOperationResultDelivery.eventTypes());
+        for (var message : outbox.claimDue(new PlatformOutboxClaimQuery(now, 50, Set.copyOf(types)))) {
             if (deliver(message, now)) delivered++;
             else retry++;
         }
@@ -40,7 +45,9 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
             LocalDateTime now) {
         boolean completed = false;
         try {
-            if (ProjectChildWaitEvents.EVENT_TYPE.equals(message.eventType())) {
+            if (ProjectOperationResultDelivery.eventTypes().contains(message.eventType())) {
+                completed = operationResults.getObject().deliver(message);
+            } else if (ProjectChildWaitEvents.EVENT_TYPE.equals(message.eventType())) {
                 var event = JsonUtils.parseObject(message.payload(), ProjectChildWaitEvents.Changed.class);
                 if (!Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
                         || !Objects.equals(event.tenantId(), message.tenantId()) || event.projectId() == null
@@ -60,22 +67,18 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
                         || !Objects.equals(event.eventId(), message.eventId())
                         || !ProjectRuleReevaluation.EVENT_TYPE.equals(message.eventType()))
                     throw new IllegalArgumentException("REEVALUATION_EVENT_IDENTITY_INVALID");
-                // Each attempt rereads current frozen contracts. The event is a wakeup, not a stale transition command.
                 completed = !coordinator.reevaluate(event.projectId(), event.actorId(), event.correlationId()).unknown();
             }
         } catch (RuntimeException unavailable) {
-            // Retry only through Outbox. Do not log owner facts or native expression exception messages.
+            // Retry through durable Outbox; never expose Owner payloads or report a committed business operation as rolled back.
         }
         try {
-            if (completed) {
-                outbox.markDelivered(message.eventId(), message.retryCount());
-            } else {
+            if (completed) outbox.markDelivered(message.eventId(), message.retryCount());
+            else {
                 long delay = Math.min(60, 1L << Math.min(Math.max(message.retryCount(), 0), 6));
                 outbox.scheduleRetry(message.eventId(), message.retryCount(), now.plusMinutes(delay));
             }
         } catch (IllegalStateException conflict) {
-            // Immediate delivery and recovery can observe the same pending event. Node commands are idempotent;
-            // only the CAS winner updates delivery state, and the loser must not abort unrelated events.
             if (!Set.of("OUTBOX_DELIVERY_CAS_CONFLICT", "OUTBOX_RETRY_CAS_CONFLICT").contains(conflict.getMessage())) throw conflict;
         }
         return completed;
