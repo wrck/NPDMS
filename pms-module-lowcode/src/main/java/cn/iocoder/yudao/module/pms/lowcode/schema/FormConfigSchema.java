@@ -5,7 +5,7 @@ package cn.iocoder.yudao.module.pms.lowcode.schema;
  *
  * <p>本类同时作为 Java 类型定义与开发文档，定义了表单设计器产出的 {@code formConfig}
  * 字段的 JSON 结构。实际在数据库中存储为 JSON 字符串（{@link cn.iocoder.yudao.module.pms.lowcode.entity.LowCodeForm#getFormConfig()}），
- * 由前端表单设计器生成、由前端 {@code LowCodeFormRenderer} 渲染。</p>
+ * 由前端表单设计器生成、由前端 {@code LowCodeFormRendererFacade} 按渲染版本路由。</p>
  *
  * <h2>顶层结构</h2>
  * <pre>{@code
@@ -15,10 +15,15 @@ package cn.iocoder.yudao.module.pms.lowcode.schema;
  *   "labelWidth": 100,           // 标签宽度（px 或 'auto'）
  *   "labelPosition": "right",     // 标签位置：left / right / top
  *   "size": "default",            // 尺寸：large / default / small
+ *   "rendererVersion": "v2",      // 可选；缺失表示历史兼容 V1，仅显式选择 V2 时写入
  *   "fields": [ FieldConfig ],    // 字段定义列表
  *   "layout": LayoutConfig        // 布局配置（grid / tabs / collapse）
  * }
  * }</pre>
+ *
+ * <p>{@code rendererVersion} 的兼容约定：历史表单和选择 V1 的表单均不写该字段；
+ * 只有显式选择 V2（FormCreate）时持久化 {@code "rendererVersion":"v2"}。
+ * 因此缺少该字段必须始终按 V1 解释，禁止通过默认值回填方式批量改写历史配置。</p>
  *
  * <h2>FieldConfig 字段定义</h2>
  * <pre>{@code
@@ -116,6 +121,13 @@ public final class FormConfigSchema {
 
     private FormConfigSchema() {
     }
+
+    // ===================== 渲染器版本常量 =====================
+
+    /** 历史兼容 V1；持久化时应省略 rendererVersion，而不是显式写入 v1。 */
+    public static final String RENDERER_VERSION_V1 = "v1";
+    /** FormCreate V2；只有显式选择 V2 时才持久化 rendererVersion=v2。 */
+    public static final String RENDERER_VERSION_V2 = "v2";
 
     // ===================== 字段类型常量 =====================
 
