@@ -44,7 +44,7 @@ import {
 import { useUserStore } from '@/stores/user'
 
 /** 异步加载子页面渲染器，避免循环依赖 */
-const LowCodeFormRenderer = defineAsyncComponent(() => import('@/components/LowCodeFormRenderer/index.vue'))
+const LowCodeFormRenderer = defineAsyncComponent(() => import('@/components/LowCodeFormRendererFacade/index.vue'))
 const LowCodeListRenderer = defineAsyncComponent(() => import('@/components/LowCodeListRenderer/index.vue'))
 const LowCodeRelatedPageRenderer = defineAsyncComponent(() => import('@/components/LowCodeRelatedPageRenderer/index.vue'))
 
@@ -85,7 +85,6 @@ const userStore = useUserStore()
 /** 内部维护的激活 tab name */
 const activeName = ref<string>(props.modelValue || '')
 
-// 监听外部 modelValue 变化
 watch(
   () => props.modelValue,
   (val) => {
@@ -95,20 +94,15 @@ watch(
   }
 )
 
-/** el-tabs type 值：plain 类型在 Element Plus 中对应空字符串 */
 const tabsType = computed(() => {
   const t = props.config.type || TabsType.BORDER_CARD
   return t === TabsType.PLAIN ? '' : t
 })
 
-/**
- * 可见标签列表：根据 visible 表达式过滤。
- */
 const visibleTabs = computed<TabItemConfig[]>(() => {
   return normalizeTabConfig(props.config).tabs.filter((tab) => evalVisible(tab))
 })
 
-// 监听可见标签变化，确保 activeName 始终有效
 watch(
   visibleTabs,
   (tabs) => {
@@ -125,12 +119,6 @@ watch(
   { immediate: true }
 )
 
-/**
- * 求值 visible 显示条件表达式。
- *
- * <p>使用 new Function 编译表达式，注入 row/context/route/user 上下文。
- * 留空或求值出错时返回 true（显示）。</p>
- */
 function evalVisible(tab: TabItemConfig): boolean {
   const expr = tab.visible
   if (!expr || !expr.trim()) return true
@@ -147,12 +135,6 @@ function evalVisible(tab: TabItemConfig): boolean {
   }
 }
 
-/**
- * 解析 props 模板变量。
- *
- * <p>支持 ${route.params.id} / ${route.query.code} / ${row.field} /
- * ${context.field} / ${user.userId} 等模板。非字符串值原样返回。</p>
- */
 function resolveProps(tab: TabItemConfig): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   const src = tab.props || {}
@@ -170,10 +152,8 @@ function resolveProps(tab: TabItemConfig): Record<string, unknown> {
   return result
 }
 
-/** 模板变量正则：匹配 ${...} */
 const TEMPLATE_RE = /\$\{\s*([^}]+?)\s*\}/g
 
-/** 解析单个字符串中的模板变量 */
 function resolveTemplate(tpl: string, ctx: Record<string, unknown>): string {
   return tpl.replace(TEMPLATE_RE, (_, expr: string) => {
     try {
@@ -188,25 +168,10 @@ function resolveTemplate(tpl: string, ctx: Record<string, unknown>): string {
   })
 }
 
-// ===================== 子页面配置加载 =====================
-
-/**
- * 已加载的子页面配置缓存：key 为 tab.id，value 为解析后的配置对象。
- *
- * <p>使用 shallowRef 避免 reactive 深度代理（form/list 配置可能较大）。
- * lazy 模式下首次激活对应 tab 时才触发加载。</p>
- */
 const pageConfigCache = ref<Record<string, unknown>>({})
-
-/** 各 tab 加载状态 */
 const loadingMap = ref<Record<string, boolean>>({})
-
-/** 各 tab 加载错误信息 */
 const errorMap = ref<Record<string, string>>({})
 
-/**
- * 加载指定 tab 引用的子页面配置。
- */
 async function loadPageConfig(tab: TabItemConfig): Promise<void> {
   if (!tab.pageCode) {
     return
@@ -262,7 +227,6 @@ async function loadPageConfig(tab: TabItemConfig): Promise<void> {
   }
 }
 
-/** 当前激活 tab 变化时触发懒加载 */
 watch(
   activeName,
   (name) => {
@@ -278,7 +242,6 @@ watch(
   { immediate: true }
 )
 
-/** 非懒加载的 tab 在初始化时主动加载 */
 watch(
   visibleTabs,
   (tabs) => {
@@ -291,12 +254,10 @@ watch(
   { immediate: true }
 )
 
-/** tab 点击事件 */
 function handleTabClick(tabName: string) {
   activeName.value = tabName
 }
 
-/** custom 类型 tab 跳转 */
 function handleCustomNavigate(tab: TabItemConfig) {
   if (!tab.pageUrl) {
     ElMessage.warning('自定义页面未配置 pageUrl')
@@ -309,7 +270,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
     user: (userStore.userInfo as Record<string, unknown>) || {}
   })
   emit('navigate', resolved, tab)
-  // 默认行为：尝试 router.push，若失败则降级为 window.open
   if (resolved.startsWith('http')) {
     window.open(resolved, '_blank')
   } else {
@@ -346,7 +306,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
           </span>
         </template>
 
-        <!-- 表单类型 -->
         <div v-if="tab.pageType === 'form'" class="tab-content" v-loading="loadingMap[tab.id]">
           <div v-if="errorMap[tab.id]" class="tab-error">
             <el-alert :title="`加载表单失败：${errorMap[tab.id]}`" type="error" :closable="false" />
@@ -358,7 +317,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
           />
         </div>
 
-        <!-- 列表类型 -->
         <div v-else-if="tab.pageType === 'list'" class="tab-content" v-loading="loadingMap[tab.id]">
           <div v-if="errorMap[tab.id]" class="tab-error">
             <el-alert :title="`加载列表失败：${errorMap[tab.id]}`" type="error" :closable="false" />
@@ -370,7 +328,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
           />
         </div>
 
-        <!-- 关联页类型 -->
         <div v-else-if="tab.pageType === 'related-page'" class="tab-content" v-loading="loadingMap[tab.id]">
           <div v-if="errorMap[tab.id]" class="tab-error">
             <el-alert :title="`加载关联页失败：${errorMap[tab.id]}`" type="error" :closable="false" />
@@ -383,7 +340,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
           />
         </div>
 
-        <!-- 自定义类型：iframe 嵌入或跳转 -->
         <div v-else-if="tab.pageType === 'custom'" class="tab-content">
           <div v-if="tab.pageUrl" class="custom-page">
             <iframe
@@ -405,7 +361,6 @@ function handleCustomNavigate(tab: TabItemConfig) {
           <el-empty v-else description="自定义页面未配置 URL" :image-size="80" />
         </div>
 
-        <!-- 未知类型 -->
         <el-empty
           v-else
           :description="`未知的页面类型: ${tab.pageType}`"
