@@ -39,7 +39,14 @@ import {
   type LowCodeFormQuery,
   type ResponsiveSpan
 } from '@/api/lowcode'
-import LowCodeFormRenderer from '@/components/LowCodeFormRenderer/index.vue'
+import LowCodeFormRendererFacade from '@/components/LowCodeFormRendererFacade/index.vue'
+import {
+  LowCodeFormRendererVersion as RendererVersion,
+  resolveLowCodeFormRendererVersion,
+  setLowCodeFormRendererVersion,
+  type LowCodeFormRendererVersion,
+  type VersionedFormConfig
+} from '@/components/LowCodeFormRenderer/rendererVersion'
 import LowCodePropertyPanel from '@/components/LowCodePropertyPanel/index.vue'
 import LowCodeComponentRegistry, {
   initBuiltinComponents
@@ -174,6 +181,19 @@ const formConfig = reactive<FormConfig>({
   size: 'default',
   fields: [],
   layout: { type: LayoutType.GRID, gutter: 16 }
+})
+
+/**
+ * 配置端渲染器选择。
+ *
+ * getter 只解析、不回填：历史表单缺少 rendererVersion 时界面显示 V1，原始配置仍保持无版本字段。
+ * setter 通过统一 helper 持久化：只有 V2 写 rendererVersion=v2；切回 V1 会删除字段。
+ */
+const rendererVersion = computed<LowCodeFormRendererVersion>({
+  get: () => resolveLowCodeFormRendererVersion(formConfig),
+  set: (version) => {
+    setLowCodeFormRendererVersion(formConfig, version)
+  }
 })
 
 /** 当前选中的字段 id */
@@ -543,9 +563,10 @@ function parseFormConfigFromStr() {
     if (!metaForm.formConfig) {
       formConfig.fields = []
       formConfig.layout = { type: LayoutType.GRID, gutter: 16 }
+      setLowCodeFormRendererVersion(formConfig, RendererVersion.V1)
       return
     }
-    const parsed = JSON.parse(metaForm.formConfig) as FormConfig
+    const parsed = JSON.parse(metaForm.formConfig) as VersionedFormConfig
     formConfig.title = parsed.title ?? ''
     formConfig.description = parsed.description ?? ''
     const parsedLabelWidth =
@@ -560,6 +581,7 @@ function parseFormConfigFromStr() {
       events: field.events || {}
     }))
     formConfig.layout = parsed.layout || { type: LayoutType.GRID, gutter: 16 }
+    setLowCodeFormRendererVersion(formConfig, resolveLowCodeFormRendererVersion(parsed))
     // 重置字段计数器
     fieldSeq = 0
     for (const f of formConfig.fields) {
@@ -978,6 +1000,13 @@ onBeforeUnmount(() => {
         <el-form-item label="业务类型">
           <el-input v-model="metaForm.bizType" placeholder="如：PROJECT" style="width: 160px" />
         </el-form-item>
+        <el-form-item label="渲染器">
+          <el-select v-model="rendererVersion" style="width: 170px">
+            <el-option label="V1（兼容默认）" :value="RendererVersion.V1" />
+            <el-option label="V2（FormCreate）" :value="RendererVersion.V2" />
+          </el-select>
+          <span class="form-tip">历史表单默认 V1，仅 V2 写入版本</span>
+        </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="metaForm.description" placeholder="表单描述" style="width: 320px" />
         </el-form-item>
@@ -1319,7 +1348,7 @@ onBeforeUnmount(() => {
           <el-button :icon="'Back'" @click="exitPreview">退出预览</el-button>
         </div>
       </template>
-      <LowCodeFormRenderer
+      <LowCodeFormRendererFacade
         :config="formConfig"
         v-model="previewData"
         @submit="handlePreviewSubmit"
