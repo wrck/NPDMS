@@ -11,13 +11,8 @@
  *   <li>将路由 query 参数透传给渲染器作为上下文数据</li>
  * </ul>
  *
- * <p>4 种渲染器对应关系：</p>
- * <ul>
- *   <li>form → LowCodeFormRenderer（props: config: FormConfig）</li>
- *   <li>list → LowCodeListRenderer（props: config: ListConfig）</li>
- *   <li>tab → LowCodeTabRenderer（props: config: TabConfig, contextData）</li>
- *   <li>related-page → LowCodeRelatedPageRenderer（props: config: RelatedPageConfig, contextData）</li>
- * </ul>
+ * <p>表单统一通过 LowCodeFormRendererFacade 渲染：历史无版本配置默认 V1，
+ * 显式 rendererVersion=v2 使用 FormCreate V2。业务运行页不再直接依赖具体渲染器。</p>
  */
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -37,6 +32,14 @@ import {
 } from '@/api/lowcode'
 import { TOKEN_KEY } from '@/utils/request'
 
+interface FormRendererExpose {
+  validate?: () => Promise<boolean>
+  submit?: () => Promise<void>
+  resetFields?: () => void
+  clearValidate?: () => void
+  getFormData?: () => Record<string, unknown>
+}
+
 const route = useRoute()
 const router = useRouter()
 
@@ -48,6 +51,7 @@ const state = ref<'loading' | 'done' | 'not-found' | 'forbidden' | 'error'>('loa
 const config = ref<any>(null)
 const pageName = ref('')
 const formDataModel = ref<Record<string, unknown>>({})
+const rendererRef = ref<FormRendererExpose | null>(null)
 
 const pageType = computed(() => route.params.pageType as LowCodePageType)
 const pageCode = computed(() => route.params.pageCode as string)
@@ -63,19 +67,21 @@ const isFormReadOnly = computed(() => pageType.value === 'form' && formMode.valu
 /** 合法的页面类型集合 */
 const VALID_PAGE_TYPES: ReadonlySet<string> = new Set(['form', 'list', 'tab', 'related-page'])
 
-/** 表单渲染引擎 V2 切入：仅 pageType=form 且 query.renderer=v2 时切入，
- * 默认（无 query 或其他值）保持 V1 原样渲染，V1 渲染器不受影响 */
-const isFormRendererV2 = computed(
-  () => pageType.value === 'form' && (route.query.renderer as string) === 'v2'
-)
+/**
+ * renderer query 仅作为诊断覆盖，不参与持久化。
+ * 无 query 时由 Facade 根据 config.rendererVersion 决定 V1/V2，历史配置自然回退 V1。
+ */
+const formRendererOverride = computed<string | undefined>(() => {
+  const raw = route.query.renderer
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return value === 'v1' || value === 'v2' ? value : undefined
+})
 
 /** 根据 pageType 解析渲染器组件（异步加载，避免首屏加载全部渲染器） */
 const renderer = computed(() => {
   switch (pageType.value) {
     case 'form':
-      return isFormRendererV2.value
-        ? defineAsyncComponent(() => import('@/components/LowCodeFormRendererV2/index.vue'))
-        : defineAsyncComponent(() => import('@/components/LowCodeFormRenderer/index.vue'))
+      return defineAsyncComponent(() => import('@/components/LowCodeFormRendererFacade/index.vue'))
     case 'list':
       return defineAsyncComponent(() => import('@/components/LowCodeListRenderer/index.vue'))
     case 'tab':
@@ -148,6 +154,7 @@ async function fetchConfig(
 async function load() {
   state.value = 'loading'
   config.value = null
+  rendererRef.value = null
 
   // 1. 校验 pageType 合法性
   if (!VALID_PAGE_TYPES.has(pageType.value)) {
@@ -217,10 +224,15 @@ function goBack() {
   router.back()
 }
 
-async function handleFormSubmit() {
+/**
+ * 持久化 Facade submit 事件提供的数据。
+ * V1/V2 都通过同一事件进入这里，因此业务层不依赖 FormCreate Api。
+ */
+async function handleFormSubmit(submittedData: Record<string, unknown>) {
   try {
+    formDataModel.value = { ...submittedData }
     const formData: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(formDataModel.value)) {
+    for (const [key, value] of Object.entries(submittedData)) {
       formData[key] = value === '' || value === undefined ? null : value
     }
     const token = localStorage.getItem(TOKEN_KEY) || ''
@@ -238,6 +250,17 @@ async function handleFormSubmit() {
     console.error('表单提交失败', e)
     ElMessage.error('保存失败，请检查数据')
   }
+}
+
+/** 统一触发 V1/V2 的 validate + submit 契约。 */
+async function requestFormSubmit() {
+  if (pageType.value !== 'form') return
+  if (rendererRef.value?.submit) {
+    await rendererRef.value.submit()
+    return
+  }
+  // 异步组件 ref 尚未就绪时不绕过校验直接保存。
+  ElMessage.warning('表单尚未加载完成，请稍后再试')
 }
 </script>
 
@@ -276,15 +299,18 @@ async function handleFormSubmit() {
       <template #header><span class="page-title">{{ pageName || '低代码页面' }}</span></template>
       <component
         :is="renderer"
+        ref="rendererRef"
         v-model="formDataModel"
         :config="config"
         :context-data="contextData"
         :auto-fetch="true"
         :disabled="isFormReadOnly"
+        :renderer-version="pageType === 'form' ? formRendererOverride : undefined"
+        @submit="handleFormSubmit"
       />
       <div v-if="pageType === 'form'" class="form-actions">
         <template v-if="!isFormReadOnly">
-          <el-button type="primary" @click="handleFormSubmit">保存</el-button>
+          <el-button type="primary" @click="requestFormSubmit">保存</el-button>
           <el-button @click="goBack">取消</el-button>
         </template>
         <el-button v-else type="primary" @click="goBack">返回</el-button>
